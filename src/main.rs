@@ -130,13 +130,11 @@ fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
         for entry in std::fs::read_dir(target)? {
             let entry = entry?;
             let path = entry.path();
-            if path.is_file() {
-                if let Some(ext) = path.extension() {
-                    if ext == "pcap" || ext == "pcapng" {
+            if path.is_file()
+                && let Some(ext) = path.extension()
+                    && (ext == "pcap" || ext == "pcapng") {
                         files.push(path);
                     }
-                }
-            }
         }
         files.sort();
         return Ok(files);

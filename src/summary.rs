@@ -14,6 +14,12 @@ pub struct Summary {
     services: HashMap<String, u64>,
 }
 
+impl Default for Summary {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Summary {
     pub fn new() -> Self {
         Summary {

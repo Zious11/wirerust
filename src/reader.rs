@@ -26,7 +26,7 @@ impl PcapSource {
             let raw_packet = raw_packet.context("Failed to read packet")?;
             packets.push(RawPacket {
                 timestamp_secs: raw_packet.timestamp.as_secs() as u32,
-                timestamp_usecs: raw_packet.timestamp.subsec_nanos() / 1000,
+                timestamp_usecs: raw_packet.timestamp.subsec_micros(),
                 data: raw_packet.data.into_owned(),
             });
         }

@@ -9,6 +9,12 @@ pub struct DnsAnalyzer {
     response_count: u64,
 }
 
+impl Default for DnsAnalyzer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DnsAnalyzer {
     pub fn new() -> Self {
         DnsAnalyzer {
