@@ -7,7 +7,6 @@ use crate::findings::Finding;
 pub struct DnsAnalyzer {
     query_count: u64,
     response_count: u64,
-    unique_queried_domains: HashMap<String, u64>,
 }
 
 impl DnsAnalyzer {
@@ -15,7 +14,6 @@ impl DnsAnalyzer {
         DnsAnalyzer {
             query_count: 0,
             response_count: 0,
-            unique_queried_domains: HashMap::new(),
         }
     }
 
