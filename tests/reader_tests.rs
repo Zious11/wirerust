@@ -8,40 +8,40 @@ fn minimal_pcap_bytes() -> Vec<u8> {
 
     // Global header (24 bytes)
     buf.extend_from_slice(&0xa1b2c3d4u32.to_le_bytes()); // magic
-    buf.extend_from_slice(&2u16.to_le_bytes());           // version major
-    buf.extend_from_slice(&4u16.to_le_bytes());           // version minor
-    buf.extend_from_slice(&0i32.to_le_bytes());           // thiszone
-    buf.extend_from_slice(&0u32.to_le_bytes());           // sigfigs
-    buf.extend_from_slice(&65535u32.to_le_bytes());       // snaplen
-    buf.extend_from_slice(&1u32.to_le_bytes());           // network (Ethernet)
+    buf.extend_from_slice(&2u16.to_le_bytes()); // version major
+    buf.extend_from_slice(&4u16.to_le_bytes()); // version minor
+    buf.extend_from_slice(&0i32.to_le_bytes()); // thiszone
+    buf.extend_from_slice(&0u32.to_le_bytes()); // sigfigs
+    buf.extend_from_slice(&65535u32.to_le_bytes()); // snaplen
+    buf.extend_from_slice(&1u32.to_le_bytes()); // network (Ethernet)
 
     // Packet: Ethernet(14) + IPv4(20) + TCP(20) = 54 bytes
     let packet_data: Vec<u8> = vec![
         // Ethernet header (14 bytes)
         0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // dst mac
         0x00, 0x11, 0x22, 0x33, 0x44, 0x55, // src mac
-        0x08, 0x00,                         // ethertype: IPv4
+        0x08, 0x00, // ethertype: IPv4
         // IPv4 header (20 bytes)
-        0x45, 0x00, 0x00, 0x28,             // version/IHL, DSCP, total length=40
-        0x00, 0x01, 0x00, 0x00,             // identification, flags/fragment
-        0x40, 0x06, 0x00, 0x00,             // TTL=64, protocol=TCP, checksum
-        0x0a, 0x00, 0x00, 0x01,             // src: 10.0.0.1
-        0x0a, 0x00, 0x00, 0x02,             // dst: 10.0.0.2
+        0x45, 0x00, 0x00, 0x28, // version/IHL, DSCP, total length=40
+        0x00, 0x01, 0x00, 0x00, // identification, flags/fragment
+        0x40, 0x06, 0x00, 0x00, // TTL=64, protocol=TCP, checksum
+        0x0a, 0x00, 0x00, 0x01, // src: 10.0.0.1
+        0x0a, 0x00, 0x00, 0x02, // dst: 10.0.0.2
         // TCP header (20 bytes)
-        0x00, 0x50, 0x04, 0xd2,             // src port 80, dst port 1234
-        0x00, 0x00, 0x00, 0x01,             // seq number
-        0x00, 0x00, 0x00, 0x00,             // ack number
-        0x50, 0x02, 0xff, 0xff,             // data offset=5, SYN, window
-        0x00, 0x00, 0x00, 0x00,             // checksum, urgent pointer
+        0x00, 0x50, 0x04, 0xd2, // src port 80, dst port 1234
+        0x00, 0x00, 0x00, 0x01, // seq number
+        0x00, 0x00, 0x00, 0x00, // ack number
+        0x50, 0x02, 0xff, 0xff, // data offset=5, SYN, window
+        0x00, 0x00, 0x00, 0x00, // checksum, urgent pointer
     ];
 
     let captured_len = packet_data.len() as u32;
 
     // Packet header (16 bytes)
-    buf.extend_from_slice(&1000u32.to_le_bytes());         // ts_sec
-    buf.extend_from_slice(&0u32.to_le_bytes());            // ts_usec
-    buf.extend_from_slice(&captured_len.to_le_bytes());    // incl_len
-    buf.extend_from_slice(&captured_len.to_le_bytes());    // orig_len
+    buf.extend_from_slice(&1000u32.to_le_bytes()); // ts_sec
+    buf.extend_from_slice(&0u32.to_le_bytes()); // ts_usec
+    buf.extend_from_slice(&captured_len.to_le_bytes()); // incl_len
+    buf.extend_from_slice(&captured_len.to_le_bytes()); // orig_len
 
     // Packet data
     buf.extend_from_slice(&packet_data);
