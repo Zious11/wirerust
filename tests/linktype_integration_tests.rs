@@ -11,15 +11,18 @@ fn test_ethernet_pcap_tls() {
         "tls.pcap should have packets, got 0"
     );
 
-    let mut decoded_count = 0;
+    let mut decode_errors = 0;
     for raw in &source.packets {
-        if decode_packet(&raw.data, source.datalink).is_ok() {
-            decoded_count += 1;
+        if let Err(e) = decode_packet(&raw.data, source.datalink) {
+            if decode_errors == 0 {
+                panic!("Failed to decode packet in tls.pcap: {e}");
+            }
+            decode_errors += 1;
         }
     }
-    assert!(
-        decoded_count > 0,
-        "Should decode at least some packets from tls.pcap, got 0"
+    assert_eq!(
+        decode_errors, 0,
+        "Expected no decode errors in tls.pcap, got {decode_errors}"
     );
 }
 
@@ -33,15 +36,18 @@ fn test_raw_ip_pcap_segmented() {
         "segmented.pcap should have packets, got 0"
     );
 
-    let mut decoded_count = 0;
+    let mut decode_errors = 0;
     for raw in &source.packets {
-        if decode_packet(&raw.data, source.datalink).is_ok() {
-            decoded_count += 1;
+        if let Err(e) = decode_packet(&raw.data, source.datalink) {
+            if decode_errors == 0 {
+                panic!("Failed to decode packet in segmented.pcap: {e}");
+            }
+            decode_errors += 1;
         }
     }
-    assert!(
-        decoded_count > 0,
-        "Should decode at least some packets from segmented.pcap, got 0"
+    assert_eq!(
+        decode_errors, 0,
+        "Expected no decode errors in segmented.pcap, got {decode_errors}"
     );
 }
 
@@ -55,14 +61,17 @@ fn test_ipv4_pcap_http_ooo() {
         "http-ooo.pcap should have packets, got 0"
     );
 
-    let mut decoded_count = 0;
+    let mut decode_errors = 0;
     for raw in &source.packets {
-        if decode_packet(&raw.data, source.datalink).is_ok() {
-            decoded_count += 1;
+        if let Err(e) = decode_packet(&raw.data, source.datalink) {
+            if decode_errors == 0 {
+                panic!("Failed to decode packet in http-ooo.pcap: {e}");
+            }
+            decode_errors += 1;
         }
     }
-    assert!(
-        decoded_count > 0,
-        "Should decode at least some packets from http-ooo.pcap, got 0"
+    assert_eq!(
+        decode_errors, 0,
+        "Expected no decode errors in http-ooo.pcap, got {decode_errors}"
     );
 }

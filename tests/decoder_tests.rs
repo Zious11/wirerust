@@ -1,4 +1,4 @@
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use pcap_file::DataLink;
 use wirerust::decoder::{Protocol, TransportInfo, decode_packet};
@@ -105,6 +105,104 @@ fn test_decode_raw_ip_tcp_packet() {
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
     assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)));
+    assert_eq!(parsed.protocol, Protocol::Tcp);
+    match parsed.transport {
+        TransportInfo::Tcp {
+            src_port, dst_port, ..
+        } => {
+            assert_eq!(src_port, 49153);
+            assert_eq!(dst_port, 80);
+        }
+        _ => panic!("Expected TCP"),
+    }
+}
+
+#[test]
+fn test_decode_ipv4_linktype_uses_from_ip() {
+    // DataLink::IPV4 should use from_ip(), same as RAW
+    let data = make_raw_ip_tcp_packet();
+    let parsed = decode_packet(&data, DataLink::IPV4).unwrap();
+    assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
+    assert_eq!(parsed.protocol, Protocol::Tcp);
+}
+
+fn make_raw_ipv6_tcp_packet() -> Vec<u8> {
+    vec![
+        // IPv6 header (40 bytes) — no Ethernet header
+        0x60, 0x00, 0x00, 0x00, // version=6, traffic class, flow label
+        0x00, 0x14, 0x06, 0x40, // payload length=20, next header=TCP(6), hop limit=64
+        // src: 2001:db8::1
+        0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, // dst: 2001:db8::2
+        0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x02, // TCP header (20 bytes)
+        0xc0, 0x01, 0x00, 0x50, // src port 49153, dst port 80
+        0x00, 0x00, 0x00, 0x01, // seq number
+        0x00, 0x00, 0x00, 0x00, // ack number
+        0x50, 0x02, 0xff, 0xff, // data offset=5, SYN, window
+        0x00, 0x00, 0x00, 0x00, // checksum, urgent pointer
+    ]
+}
+
+#[test]
+fn test_decode_ipv6_tcp_packet() {
+    let data = make_raw_ipv6_tcp_packet();
+    let parsed = decode_packet(&data, DataLink::IPV6).unwrap();
+
+    assert_eq!(
+        parsed.src_ip,
+        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1))
+    );
+    assert_eq!(
+        parsed.dst_ip,
+        IpAddr::V6(Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 2))
+    );
+    assert_eq!(parsed.protocol, Protocol::Tcp);
+    match parsed.transport {
+        TransportInfo::Tcp {
+            src_port, dst_port, ..
+        } => {
+            assert_eq!(src_port, 49153);
+            assert_eq!(dst_port, 80);
+        }
+        _ => panic!("Expected TCP"),
+    }
+}
+
+fn make_linux_sll_tcp_packet() -> Vec<u8> {
+    let mut pkt = Vec::new();
+    // Linux SLL header (16 bytes)
+    pkt.extend_from_slice(&[0x00, 0x00]); // packet type: sent by us
+    pkt.extend_from_slice(&[0x00, 0x01]); // ARPHRD_ETHER
+    pkt.extend_from_slice(&[0x00, 0x06]); // link-layer address length
+    pkt.extend_from_slice(&[0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x00, 0x00]); // address (padded)
+    pkt.extend_from_slice(&[0x08, 0x00]); // protocol type: IPv4
+    // IPv4 header (20 bytes)
+    pkt.extend_from_slice(&[
+        0x45, 0x00, 0x00, 0x28, // version/IHL, total length=40
+        0x00, 0x01, 0x00, 0x00, // identification, flags/fragment
+        0x40, 0x06, 0x00, 0x00, // TTL=64, protocol=TCP, checksum
+        0x0a, 0x00, 0x00, 0x01, // src: 10.0.0.1
+        0x0a, 0x00, 0x00, 0x02, // dst: 10.0.0.2
+    ]);
+    // TCP header (20 bytes)
+    pkt.extend_from_slice(&[
+        0xc0, 0x01, 0x00, 0x50, // src port 49153, dst port 80
+        0x00, 0x00, 0x00, 0x01, // seq number
+        0x00, 0x00, 0x00, 0x00, // ack number
+        0x50, 0x02, 0xff, 0xff, // data offset=5, SYN, window
+        0x00, 0x00, 0x00, 0x00, // checksum, urgent pointer
+    ]);
+    pkt
+}
+
+#[test]
+fn test_decode_linux_sll_tcp_packet() {
+    let data = make_linux_sll_tcp_packet();
+    let parsed = decode_packet(&data, DataLink::LINUX_SLL).unwrap();
+
+    assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)));
+    assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)));
     assert_eq!(parsed.protocol, Protocol::Tcp);
     match parsed.transport {
         TransportInfo::Tcp {
