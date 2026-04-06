@@ -142,7 +142,8 @@ fn run_summary(targets: &[std::path::PathBuf], use_color: bool, cli: &Cli) -> Re
     for target in targets {
         let pcap_files = resolve_targets(target)?;
         for path in &pcap_files {
-            let source = PcapSource::from_file(path)?;
+            let source = PcapSource::from_file(path)
+                .with_context(|| format!("Failed to read {}", path.display()))?;
             for raw in &source.packets {
                 match decode_packet(&raw.data, source.datalink) {
                     Ok(parsed) => {

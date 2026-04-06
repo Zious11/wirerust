@@ -61,12 +61,14 @@ PcapSource::from_file(path)
   → header().datalink → validate supported → store on PcapSource
   → packets loaded as before
 
-Processing loop:
-  for raw in source.packets:
-    decode_packet(&raw.data, source.datalink)  // dispatches by link type
-      → SlicedPacket::from_ethernet/from_ip/from_linux_sll
-      → extract net/transport/payload (unchanged)
-    on Err: increment total_decode_errors, warn on first
+Processing loop (runs across all target files):
+  for path in targets:
+    source = PcapSource::from_file(path)
+    for raw in source.packets:
+      decode_packet(&raw.data, source.datalink)  // dispatches by link type
+        → SlicedPacket::from_ethernet/from_ip/from_linux_sll
+        → extract IPs from net, ports+payload from transport slice (unchanged)
+      on Err: increment total_decode_errors, warn on first
   summary.skipped_packets = total_decode_errors
 ```
 
@@ -90,7 +92,7 @@ All three link types are already present in `tests/fixtures/`:
 
 ### Existing Tests
 
-All current tests use Ethernet fixtures or construct packets directly. They pass without modification because `decode_packet()` is backward-compatible (callers just add the `datalink` parameter).
+All current tests use Ethernet fixtures or construct packets directly. They require only a trivial call-site update (adding `DataLink::ETHERNET` as a second argument) — no test logic or assertions change.
 
 ## Acceptance Criteria
 
