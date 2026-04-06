@@ -36,7 +36,7 @@ pub struct Cli {
     pub csv: Option<Option<PathBuf>>,
 
     /// Force TCP stream reassembly on
-    #[arg(long, global = true)]
+    #[arg(long, global = true, conflicts_with = "no_reassemble")]
     pub reassemble: bool,
 
     /// Force TCP stream reassembly off (quick scan)

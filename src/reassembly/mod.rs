@@ -12,6 +12,7 @@ use crate::reassembly::segment::{InsertResult, flush_contiguous, insert_segment}
 
 const OVERLAP_ALERT_THRESHOLD: u32 = 50;
 const SMALL_SEGMENT_ALERT_THRESHOLD: u32 = 2048;
+const MAX_FINDINGS: usize = 10_000;
 
 /// Configuration for the TCP reassembly engine.
 #[derive(Debug, Clone)]
@@ -69,6 +70,13 @@ pub struct TcpReassembler {
 
 impl TcpReassembler {
     pub fn new(config: ReassemblyConfig) -> Self {
+        assert!(config.max_depth > 0, "max_depth must be > 0");
+        assert!(config.memcap > 0, "memcap must be > 0");
+        assert!(config.max_flows > 0, "max_flows must be > 0");
+        assert!(
+            config.max_segments_per_direction > 0,
+            "max_segments_per_direction must be > 0"
+        );
         TcpReassembler {
             config,
             flows: HashMap::new(),
@@ -232,7 +240,10 @@ impl TcpReassembler {
             // Check anomaly thresholds on the direction
             let flow = self.flows.get_mut(&key).unwrap();
             let flow_dir = flow.get_direction_mut(dir);
-            if flow_dir.overlap_count > OVERLAP_ALERT_THRESHOLD && !flow_dir.overlap_alert_fired {
+            if flow_dir.overlap_count > OVERLAP_ALERT_THRESHOLD
+                && !flow_dir.overlap_alert_fired
+                && self.findings.len() < MAX_FINDINGS
+            {
                 flow_dir.overlap_alert_fired = true;
                 self.findings.push(Finding {
                     category: ThreatCategory::Anomaly,
@@ -250,6 +261,7 @@ impl TcpReassembler {
             }
             if flow_dir.small_segment_count > SMALL_SEGMENT_ALERT_THRESHOLD
                 && !flow_dir.small_segment_alert_fired
+                && self.findings.len() < MAX_FINDINGS
             {
                 flow_dir.small_segment_alert_fired = true;
                 self.findings.push(Finding {
@@ -424,6 +436,9 @@ impl TcpReassembler {
     }
 
     fn generate_conflicting_overlap_finding(&mut self, key: &FlowKey, src_ip: std::net::IpAddr) {
+        if self.findings.len() >= MAX_FINDINGS {
+            return;
+        }
         self.findings.push(Finding {
             category: ThreatCategory::Anomaly,
             verdict: Verdict::Likely,
@@ -437,6 +452,9 @@ impl TcpReassembler {
     }
 
     fn generate_truncated_finding(&mut self, key: &FlowKey, src_ip: std::net::IpAddr) {
+        if self.findings.len() >= MAX_FINDINGS {
+            return;
+        }
         self.findings.push(Finding {
             category: ThreatCategory::Anomaly,
             verdict: Verdict::Inconclusive,

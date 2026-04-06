@@ -50,7 +50,6 @@ pub enum FlowState {
     Established,
     Closing,
     Closed,
-    TimedOut,
 }
 
 #[derive(Debug)]
@@ -119,8 +118,7 @@ pub struct TcpFlow {
     pub partial: bool,
     pub first_seen: u32,
     pub last_seen: u32,
-    initiator_ip: Option<IpAddr>,
-    initiator_port: Option<u16>,
+    initiator: Option<(IpAddr, u16)>,
     fin_count: u8,
 }
 
@@ -134,21 +132,19 @@ impl TcpFlow {
             partial: false,
             first_seen: timestamp,
             last_seen: timestamp,
-            initiator_ip: None,
-            initiator_port: None,
+            initiator: None,
             fin_count: 0,
         }
     }
 
     pub fn set_initiator(&mut self, ip: IpAddr, port: u16) {
-        if self.initiator_ip.is_none() {
-            self.initiator_ip = Some(ip);
-            self.initiator_port = Some(port);
+        if self.initiator.is_none() {
+            self.initiator = Some((ip, port));
         }
     }
 
     pub fn direction(&self, src_ip: IpAddr, src_port: u16) -> Direction {
-        if self.initiator_ip == Some(src_ip) && self.initiator_port == Some(src_port) {
+        if self.initiator == Some((src_ip, src_port)) {
             Direction::ClientToServer
         } else {
             Direction::ServerToClient
