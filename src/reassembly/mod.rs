@@ -165,13 +165,8 @@ impl TcpReassembler {
             let dir = flow.direction(packet.src_ip, src_port);
             flow.get_direction_mut(dir).fin_seen = true;
             flow.on_fin();
-            if flow.state == FlowState::Closed {
-                self.stats.flows_fin += 1;
-                let key_clone = key.clone();
-                handler.on_flow_close(&key_clone, CloseReason::Fin);
-                // Remove fully closed flow — but continue processing payload below
-                // if this FIN packet carries data (payload handled after this block)
-            }
+            // Note: if state is now Closed (both FINs seen), the flow will be
+            // removed after payload processing below (step 10).
         }
 
         // 9. Handle payload
@@ -278,6 +273,8 @@ impl TcpReassembler {
             .get(&key)
             .is_some_and(|f| f.state == FlowState::Closed)
         {
+            self.stats.flows_fin += 1;
+            handler.on_flow_close(&key, CloseReason::Fin);
             self.flows.remove(&key);
         }
 
@@ -304,6 +301,17 @@ impl TcpReassembler {
             .collect();
 
         for key in expired_keys {
+            // Flush salvageable data before removing
+            if let Some(flow) = self.flows.get_mut(&key) {
+                use crate::reassembly::handler::Direction;
+                for dir in [Direction::ClientToServer, Direction::ServerToClient] {
+                    let flow_dir = flow.get_direction_mut(dir);
+                    let flushed = flush_contiguous(flow_dir);
+                    for (offset, data) in &flushed {
+                        handler.on_data(&key, dir, data, *offset);
+                    }
+                }
+            }
             self.flows.remove(&key);
             self.stats.flows_expired += 1;
             handler.on_flow_close(&key, CloseReason::Timeout);
