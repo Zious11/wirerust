@@ -1,6 +1,7 @@
 use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use wirerust::reporter::Reporter;
 use wirerust::reporter::json::JsonReporter;
+use wirerust::reporter::terminal::TerminalReporter;
 use wirerust::summary::Summary;
 
 #[test]
@@ -27,4 +28,52 @@ fn test_json_reporter_produces_valid_json() {
     let findings_arr = parsed["findings"].as_array().unwrap();
     assert_eq!(findings_arr.len(), 1);
     assert_eq!(findings_arr[0]["summary"], "Test finding");
+}
+
+#[test]
+fn test_json_reporter_includes_skipped_packets() {
+    let reporter = JsonReporter;
+    let mut summary = Summary::new();
+    summary.skipped_packets = 42;
+
+    let output = reporter.render(&summary, &[], &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+
+    assert_eq!(parsed["summary"]["skipped_packets"], 42);
+}
+
+#[test]
+fn test_json_reporter_skipped_packets_zero_by_default() {
+    let reporter = JsonReporter;
+    let summary = Summary::new();
+
+    let output = reporter.render(&summary, &[], &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+
+    assert_eq!(parsed["summary"]["skipped_packets"], 0);
+}
+
+#[test]
+fn test_terminal_reporter_shows_skipped_when_nonzero() {
+    let reporter = TerminalReporter { use_color: false };
+    let mut summary = Summary::new();
+    summary.skipped_packets = 5;
+
+    let output = reporter.render(&summary, &[], &[]);
+    assert!(
+        output.contains("Skipped: 5 packets"),
+        "Terminal output should show skipped count, got: {output}"
+    );
+}
+
+#[test]
+fn test_terminal_reporter_hides_skipped_when_zero() {
+    let reporter = TerminalReporter { use_color: false };
+    let summary = Summary::new();
+
+    let output = reporter.render(&summary, &[], &[]);
+    assert!(
+        !output.contains("Skipped"),
+        "Terminal output should NOT show 'Skipped' when zero, got: {output}"
+    );
 }

@@ -9,6 +9,7 @@ use crate::decoder::{ParsedPacket, Protocol};
 pub struct Summary {
     pub total_packets: u64,
     pub total_bytes: u64,
+    pub skipped_packets: u64,
     hosts: HashSet<IpAddr>,
     protocols: HashMap<Protocol, u64>,
     services: HashMap<String, u64>,
@@ -25,6 +26,7 @@ impl Summary {
         Summary {
             total_packets: 0,
             total_bytes: 0,
+            skipped_packets: 0,
             hosts: HashSet::new(),
             protocols: HashMap::new(),
             services: HashMap::new(),

@@ -45,6 +45,7 @@ fn run_analyze(
     let mut summary = Summary::new();
     let mut dns_analyzer = DnsAnalyzer::new();
     let mut all_findings = Vec::new();
+    let mut total_decode_errors: u64 = 0;
 
     // Determine if reassembly is needed
     let needs_reassembly = cli.reassemble; // Will expand when HTTP/TLS analyzers added
@@ -80,14 +81,24 @@ fn run_analyze(
             )?);
 
             for raw in &source.packets {
-                if let Ok(parsed) = decode_packet(&raw.data) {
-                    summary.ingest(&parsed);
-                    if enable_dns && dns_analyzer.can_decode(&parsed) {
-                        let findings = dns_analyzer.analyze(&parsed);
-                        all_findings.extend(findings);
+                match decode_packet(&raw.data, source.datalink) {
+                    Ok(parsed) => {
+                        summary.ingest(&parsed);
+                        if enable_dns && dns_analyzer.can_decode(&parsed) {
+                            let findings = dns_analyzer.analyze(&parsed);
+                            all_findings.extend(findings);
+                        }
+                        if let Some(ref mut reasm) = reassembler {
+                            reasm.process_packet(&parsed, raw.timestamp_secs, &mut stream_handler);
+                        }
                     }
-                    if let Some(ref mut reasm) = reassembler {
-                        reasm.process_packet(&parsed, raw.timestamp_secs, &mut stream_handler);
+                    Err(e) => {
+                        if total_decode_errors == 0 {
+                            eprintln!(
+                                "Warning: failed to decode packet ({e}). Further errors counted silently."
+                            );
+                        }
+                        total_decode_errors += 1;
                     }
                 }
                 pb.inc(1);
@@ -95,6 +106,8 @@ fn run_analyze(
             pb.finish_and_clear();
         }
     }
+
+    summary.skipped_packets = total_decode_errors;
 
     if let Some(ref mut reasm) = reassembler {
         reasm.finalize(&mut stream_handler);
@@ -124,18 +137,31 @@ fn run_analyze(
 
 fn run_summary(targets: &[std::path::PathBuf], use_color: bool, cli: &Cli) -> Result<()> {
     let mut summary = Summary::new();
+    let mut total_decode_errors: u64 = 0;
 
     for target in targets {
         let pcap_files = resolve_targets(target)?;
         for path in &pcap_files {
-            let source = PcapSource::from_file(path)?;
+            let source = PcapSource::from_file(path)
+                .with_context(|| format!("Failed to read {}", path.display()))?;
             for raw in &source.packets {
-                if let Ok(parsed) = decode_packet(&raw.data) {
-                    summary.ingest(&parsed);
+                match decode_packet(&raw.data, source.datalink) {
+                    Ok(parsed) => {
+                        summary.ingest(&parsed);
+                    }
+                    Err(e) => {
+                        if total_decode_errors == 0 {
+                            eprintln!(
+                                "Warning: failed to decode packet ({e}). Further errors counted silently."
+                            );
+                        }
+                        total_decode_errors += 1;
+                    }
                 }
             }
         }
     }
+    summary.skipped_packets = total_decode_errors;
 
     let output = match cli.output_format {
         Some(OutputFormat::Json) => {
