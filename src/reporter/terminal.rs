@@ -27,7 +27,10 @@ impl Reporter for TerminalReporter {
             summary.unique_hosts().len(),
         ));
         if summary.skipped_packets > 0 {
-            let warning = format!("  Skipped: {} packets (decode errors)\n", summary.skipped_packets);
+            let warning = format!(
+                "  Skipped: {} packets (decode errors)\n",
+                summary.skipped_packets
+            );
             if self.use_color {
                 out.push_str(&warning.yellow().to_string());
             } else {
