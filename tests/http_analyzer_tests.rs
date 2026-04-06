@@ -1,6 +1,7 @@
 use wirerust::analyzer::http::HttpAnalyzer;
+use wirerust::findings::{Confidence, ThreatCategory, Verdict};
 use wirerust::reassembly::flow::FlowKey;
-use wirerust::reassembly::handler::{Direction, StreamHandler};
+use wirerust::reassembly::handler::{Direction, StreamAnalyzer, StreamHandler};
 use std::net::IpAddr;
 
 fn test_flow_key() -> FlowKey {
@@ -86,4 +87,70 @@ fn test_parse_pipelined_responses() {
     assert_eq!(*analyzer.status_code_counts().get(&200).unwrap(), 1);
     assert_eq!(*analyzer.status_code_counts().get(&404).unwrap(), 1);
     assert_eq!(analyzer.transaction_count(), 2);
+}
+
+#[test]
+fn test_detect_path_traversal() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+    let request = b"GET /../../etc/passwd HTTP/1.1\r\nHost: target.com\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    let findings = analyzer.findings();
+    assert_eq!(findings.len(), 1);
+    assert_eq!(findings[0].category, ThreatCategory::Reconnaissance);
+    assert_eq!(findings[0].verdict, Verdict::Likely);
+    assert_eq!(findings[0].confidence, Confidence::High);
+}
+
+#[test]
+fn test_detect_encoded_traversal() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+    let request = b"GET /..%2f..%2fetc/passwd HTTP/1.1\r\nHost: target.com\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    assert!(!analyzer.findings().is_empty(), "Should detect encoded path traversal");
+}
+
+#[test]
+fn test_detect_webshell_path() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+    let request = b"GET /uploads/shell.php HTTP/1.1\r\nHost: target.com\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    let findings = analyzer.findings();
+    assert_eq!(findings.len(), 1);
+    assert_eq!(findings[0].category, ThreatCategory::Execution);
+}
+
+#[test]
+fn test_detect_unusual_method() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+    let request = b"CONNECT proxy.example.com:443 HTTP/1.1\r\nHost: proxy.example.com\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    let findings = analyzer.findings();
+    assert_eq!(findings.len(), 1);
+    assert_eq!(findings[0].category, ThreatCategory::Reconnaissance);
+}
+
+#[test]
+fn test_detect_missing_host_header() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+    let request = b"GET /path HTTP/1.1\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    let findings = analyzer.findings();
+    assert!(
+        findings.iter().any(|f| f.category == ThreatCategory::Anomaly),
+        "Should detect missing Host header"
+    );
+}
+
+#[test]
+fn test_no_findings_for_normal_request() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+    let request = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    assert!(analyzer.findings().is_empty(), "Normal request should produce no findings");
 }

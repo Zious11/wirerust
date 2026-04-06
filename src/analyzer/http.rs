@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::analyzer::AnalysisSummary;
-use crate::findings::Finding;
+use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use crate::reassembly::flow::FlowKey;
 use crate::reassembly::handler::{CloseReason, Direction, StreamAnalyzer, StreamHandler};
 
@@ -76,6 +76,14 @@ impl HttpFlowState {
     }
 }
 
+fn truncate_uri(uri: &str, max_len: usize) -> &str {
+    if uri.len() <= max_len {
+        uri
+    } else {
+        &uri[..max_len]
+    }
+}
+
 pub struct HttpAnalyzer {
     flows: HashMap<FlowKey, HttpFlowState>,
     methods: HashMap<String, u64>,
@@ -125,6 +133,115 @@ impl HttpAnalyzer {
         &self.status_codes
     }
 
+    fn check_request_detections(&mut self, parsed: &ParsedRequest, _flow_key: &FlowKey) {
+        let uri_lower = parsed.uri.to_lowercase();
+
+        // 1. Path traversal (including URL-encoded variants)
+        if uri_lower.contains("../")
+            || uri_lower.contains("..%2f")
+            || uri_lower.contains("..%252f")
+            || uri_lower.contains("....//")
+        {
+            self.all_findings.push(Finding {
+                category: ThreatCategory::Reconnaissance,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: format!("Path traversal in URI: {}", truncate_uri(&parsed.uri, 120)),
+                evidence: vec![format!("URI: {}", parsed.uri)],
+                mitre_technique: Some("T1083".to_string()),
+                source_ip: None,
+                timestamp: None,
+            });
+        }
+
+        // 2. Web shell paths
+        let shell_patterns = ["/shell", "/cmd", "/c99", "/r57", "/webshell", "/backdoor"];
+        if shell_patterns.iter().any(|p| uri_lower.contains(p)) {
+            self.all_findings.push(Finding {
+                category: ThreatCategory::Execution,
+                verdict: Verdict::Likely,
+                confidence: Confidence::Medium,
+                summary: format!("Possible web shell access: {}", truncate_uri(&parsed.uri, 120)),
+                evidence: vec![format!("URI: {}", parsed.uri)],
+                mitre_technique: Some("T1505.003".to_string()),
+                source_ip: None,
+                timestamp: None,
+            });
+        }
+
+        // 3. Admin panel paths
+        let admin_patterns = ["/wp-admin", "/admin", "/phpmyadmin", "/manager"];
+        if admin_patterns.iter().any(|p| uri_lower.contains(p)) {
+            self.all_findings.push(Finding {
+                category: ThreatCategory::Reconnaissance,
+                verdict: Verdict::Inconclusive,
+                confidence: Confidence::Low,
+                summary: format!("Admin panel access: {}", truncate_uri(&parsed.uri, 120)),
+                evidence: vec![format!("URI: {}", parsed.uri)],
+                mitre_technique: Some("T1046".to_string()),
+                source_ip: None,
+                timestamp: None,
+            });
+        }
+
+        // 4. Unusual HTTP methods
+        let unusual_methods = ["CONNECT", "TRACE", "DELETE", "OPTIONS"];
+        if unusual_methods.contains(&parsed.method.as_str()) {
+            self.all_findings.push(Finding {
+                category: ThreatCategory::Reconnaissance,
+                verdict: Verdict::Inconclusive,
+                confidence: Confidence::Medium,
+                summary: format!("Unusual HTTP method: {}", parsed.method),
+                evidence: vec![format!("{} {}", parsed.method, parsed.uri)],
+                mitre_technique: None,
+                source_ip: None,
+                timestamp: None,
+            });
+        }
+
+        // 5. Missing Host header (HTTP/1.1 requires it)
+        if parsed.version == 1 && parsed.host.is_none() {
+            self.all_findings.push(Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Inconclusive,
+                confidence: Confidence::Medium,
+                summary: "HTTP/1.1 request without Host header".to_string(),
+                evidence: vec![format!("{} {}", parsed.method, parsed.uri)],
+                mitre_technique: None,
+                source_ip: None,
+                timestamp: None,
+            });
+        }
+
+        // 6. Long URI (> 2048 chars)
+        if parsed.uri.len() > 2048 {
+            self.all_findings.push(Finding {
+                category: ThreatCategory::Execution,
+                verdict: Verdict::Likely,
+                confidence: Confidence::Medium,
+                summary: format!("Abnormally long URI ({} chars)", parsed.uri.len()),
+                evidence: vec![format!("URI prefix: {}", truncate_uri(&parsed.uri, 200))],
+                mitre_technique: None,
+                source_ip: None,
+                timestamp: None,
+            });
+        }
+
+        // 7. Empty User-Agent
+        if parsed.user_agent.as_deref() == Some("") {
+            self.all_findings.push(Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Inconclusive,
+                confidence: Confidence::Low,
+                summary: "Empty User-Agent header".to_string(),
+                evidence: vec![format!("{} {}", parsed.method, parsed.uri)],
+                mitre_technique: None,
+                source_ip: None,
+                timestamp: None,
+            });
+        }
+    }
+
     fn try_parse_requests(&mut self, flow_key: &FlowKey) {
         loop {
             let result = self
@@ -145,6 +262,8 @@ impl HttpAnalyzer {
                     if self.uris.len() < MAX_URIS {
                         self.uris.push(parsed.uri.clone());
                     }
+
+                    self.check_request_detections(&parsed, flow_key);
 
                     if let Some(state) = self.flows.get_mut(flow_key) {
                         state.pending_method = Some(parsed.method);
