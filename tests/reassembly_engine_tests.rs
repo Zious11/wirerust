@@ -44,6 +44,7 @@ impl StreamHandler for RecordingHandler {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn make_tcp_packet(
     src_ip: [u8; 4],
     src_port: u16,

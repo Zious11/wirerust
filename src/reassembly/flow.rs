@@ -66,6 +66,12 @@ pub struct FlowDirection {
     pub depth_exceeded: bool,
 }
 
+impl Default for FlowDirection {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FlowDirection {
     pub fn new() -> Self {
         FlowDirection {

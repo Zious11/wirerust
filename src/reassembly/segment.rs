@@ -169,15 +169,11 @@ pub fn insert_segment(
 pub fn flush_contiguous(dir: &mut FlowDirection) -> Vec<(u64, Vec<u8>)> {
     let mut flushed = Vec::new();
 
-    loop {
-        if let Some(data) = dir.segments.remove(&dir.base_offset) {
-            let offset = dir.base_offset;
-            dir.base_offset += data.len() as u64;
-            dir.reassembled_bytes += data.len();
-            flushed.push((offset, data));
-        } else {
-            break;
-        }
+    while let Some(data) = dir.segments.remove(&dir.base_offset) {
+        let offset = dir.base_offset;
+        dir.base_offset += data.len() as u64;
+        dir.reassembled_bytes += data.len();
+        flushed.push((offset, data));
     }
 
     flushed

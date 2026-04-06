@@ -136,7 +136,7 @@ fn test_small_segment_tracking() {
     // Insert small segments
     for i in 0..5u32 {
         let seq = 1001 + i;
-        insert_segment(&mut dir, seq, &[b'a'], 10_485_760);
+        insert_segment(&mut dir, seq, b"a", 10_485_760);
     }
 
     assert_eq!(dir.small_segment_count, 5);
