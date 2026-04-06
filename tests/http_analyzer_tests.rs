@@ -54,3 +54,36 @@ fn test_parse_partial_request() {
     analyzer.on_data(&fk, Direction::ClientToServer, b"t: example.com\r\n\r\n", 23);
     assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
 }
+
+#[test]
+fn test_parse_response() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Send request first
+    let request = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+    // Then response
+    let response = b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 5\r\n\r\nhello";
+    analyzer.on_data(&fk, Direction::ServerToClient, response, 0);
+
+    assert_eq!(*analyzer.status_code_counts().get(&200).unwrap(), 1);
+    assert_eq!(analyzer.transaction_count(), 1);
+}
+
+#[test]
+fn test_parse_pipelined_responses() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    let requests = b"GET /a HTTP/1.1\r\nHost: x.com\r\n\r\nGET /b HTTP/1.1\r\nHost: x.com\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, requests, 0);
+
+    let responses = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\nHTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ServerToClient, responses, 0);
+
+    assert_eq!(*analyzer.status_code_counts().get(&200).unwrap(), 1);
+    assert_eq!(*analyzer.status_code_counts().get(&404).unwrap(), 1);
+    assert_eq!(analyzer.transaction_count(), 2);
+}

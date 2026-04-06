@@ -35,6 +35,24 @@ fn parse_one_request(buf: &[u8]) -> Result<Option<ParsedRequest>, ()> {
     }
 }
 
+struct ParsedResponse {
+    bytes_consumed: usize,
+    status_code: u16,
+}
+
+fn parse_one_response(buf: &[u8]) -> Result<Option<ParsedResponse>, ()> {
+    let mut headers = [httparse::EMPTY_HEADER; MAX_HEADERS];
+    let mut resp = httparse::Response::new(&mut headers);
+    match resp.parse(buf) {
+        Ok(httparse::Status::Complete(n)) => Ok(Some(ParsedResponse {
+            bytes_consumed: n,
+            status_code: resp.code.unwrap_or(0),
+        })),
+        Ok(httparse::Status::Partial) => Ok(None),
+        Err(_) => Err(()),
+    }
+}
+
 fn find_header(headers: &[httparse::Header<'_>], name: &str) -> Option<String> {
     headers
         .iter()
@@ -144,6 +162,36 @@ impl HttpAnalyzer {
             }
         }
     }
+
+    fn try_parse_responses(&mut self, flow_key: &FlowKey) {
+        loop {
+            let result = self
+                .flows
+                .get(flow_key)
+                .filter(|s| !s.response_buf.is_empty())
+                .map(|s| parse_one_response(&s.response_buf));
+
+            match result {
+                Some(Ok(Some(parsed))) => {
+                    *self.status_codes.entry(parsed.status_code).or_insert(0) += 1;
+                    self.transactions += 1;
+
+                    if let Some(state) = self.flows.get_mut(flow_key) {
+                        state.pending_method = None;
+                        state.response_buf.drain(..parsed.bytes_consumed);
+                    }
+                }
+                Some(Ok(None)) => return,
+                Some(Err(())) => {
+                    if let Some(state) = self.flows.get_mut(flow_key) {
+                        state.response_buf.clear();
+                    }
+                    return;
+                }
+                None => return,
+            }
+        }
+    }
 }
 
 impl StreamHandler for HttpAnalyzer {
@@ -174,7 +222,7 @@ impl StreamHandler for HttpAnalyzer {
         }
         match direction {
             Direction::ClientToServer => self.try_parse_requests(flow_key),
-            Direction::ServerToClient => {} // Task 3
+            Direction::ServerToClient => self.try_parse_responses(flow_key),
         }
     }
 
