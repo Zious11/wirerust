@@ -75,7 +75,7 @@ Some(etherparse::TransportSlice::Tcp(tcp)) => (
     TransportInfo::Tcp {
         src_port: tcp.source_port(),
         dst_port: tcp.destination_port(),
-        seq_number: tcp.sequence_number(),
+        seq_number: tcp.header().sequence_number(),
         syn: tcp.syn(),
         ack: tcp.ack(),
         fin: tcp.fin(),
