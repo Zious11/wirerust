@@ -6,6 +6,7 @@ description = "Fast PCAP forensics and network triage CLI tool"
 license = "MIT"
 
 [dependencies]
+httparse = "1"
 clap = { version = "4", features = ["derive"] }
 etherparse = "0.16"
 pcap-file = "2"
