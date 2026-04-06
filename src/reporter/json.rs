@@ -25,6 +25,7 @@ impl Reporter for JsonReporter {
             "summary": {
                 "total_packets": summary.total_packets,
                 "total_bytes": summary.total_bytes,
+                "skipped_packets": summary.skipped_packets,
                 "unique_hosts": summary.unique_hosts(),
                 "protocols": protocols,
                 "services": summary.service_counts(),

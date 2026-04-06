@@ -21,11 +21,20 @@ impl Reporter for TerminalReporter {
         // Header
         out.push_str(&self.section("WIRERUST TRIAGE REPORT"));
         out.push_str(&format!(
-            "  Packets: {}  Bytes: {}  Hosts: {}\n\n",
+            "  Packets: {}  Bytes: {}  Hosts: {}\n",
             summary.total_packets,
             summary.total_bytes,
             summary.unique_hosts().len(),
         ));
+        if summary.skipped_packets > 0 {
+            let warning = format!("  Skipped: {} packets (decode errors)\n", summary.skipped_packets);
+            if self.use_color {
+                out.push_str(&warning.yellow().to_string());
+            } else {
+                out.push_str(&warning);
+            }
+        }
+        out.push('\n');
 
         // Protocol breakdown
         out.push_str(&self.section("PROTOCOLS"));
