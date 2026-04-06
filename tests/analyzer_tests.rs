@@ -26,6 +26,7 @@ fn make_non_dns_packet() -> ParsedPacket {
         transport: TransportInfo::Tcp {
             src_port: 12345,
             dst_port: 80,
+            seq_number: 1000,
             syn: true,
             ack: false,
             fin: false,

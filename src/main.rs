@@ -9,6 +9,9 @@ use wirerust::analyzer::dns::DnsAnalyzer;
 use wirerust::cli::{Cli, Commands, OutputFormat};
 use wirerust::decoder::decode_packet;
 use wirerust::reader::PcapSource;
+use wirerust::reassembly::flow::FlowKey;
+use wirerust::reassembly::handler::{CloseReason, Direction, StreamHandler};
+use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
 use wirerust::reporter::Reporter;
 use wirerust::reporter::json::JsonReporter;
 use wirerust::reporter::terminal::TerminalReporter;
@@ -43,6 +46,28 @@ fn run_analyze(
     let mut dns_analyzer = DnsAnalyzer::new();
     let mut all_findings = Vec::new();
 
+    // Determine if reassembly is needed
+    let needs_reassembly = cli.reassemble; // Will expand when HTTP/TLS analyzers added
+    let skip_reassembly = cli.no_reassemble;
+
+    let mut reassembler = if needs_reassembly && !skip_reassembly {
+        let config = ReassemblyConfig {
+            max_depth: cli.reassembly_depth * 1_048_576,
+            memcap: cli.reassembly_memcap * 1_048_576,
+            ..ReassemblyConfig::default()
+        };
+        Some(TcpReassembler::new(config))
+    } else {
+        None
+    };
+
+    struct NullHandler;
+    impl StreamHandler for NullHandler {
+        fn on_data(&mut self, _: &FlowKey, _: Direction, _: &[u8], _: u64) {}
+        fn on_flow_close(&mut self, _: &FlowKey, _: CloseReason) {}
+    }
+    let mut stream_handler = NullHandler;
+
     for target in targets {
         let pcap_files = resolve_targets(target)?;
         for path in &pcap_files {
@@ -61,11 +86,19 @@ fn run_analyze(
                         let findings = dns_analyzer.analyze(&parsed);
                         all_findings.extend(findings);
                     }
+                    if let Some(ref mut reasm) = reassembler {
+                        reasm.process_packet(&parsed, raw.timestamp_secs, &mut stream_handler);
+                    }
                 }
                 pb.inc(1);
             }
             pb.finish_and_clear();
         }
+    }
+
+    if let Some(ref mut reasm) = reassembler {
+        reasm.finalize(&mut stream_handler);
+        all_findings.extend(reasm.findings().to_vec());
     }
 
     let analyzer_summaries = if enable_dns {

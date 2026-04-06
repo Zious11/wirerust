@@ -46,6 +46,29 @@ fn test_summary_subcommand() {
 }
 
 #[test]
+fn test_reassembly_flags() {
+    let cli = Cli::parse_from([
+        "wirerust",
+        "analyze",
+        "test.pcap",
+        "--reassemble",
+        "--reassembly-depth",
+        "20",
+        "--reassembly-memcap",
+        "2048",
+    ]);
+    assert!(cli.reassemble);
+    assert_eq!(cli.reassembly_depth, 20);
+    assert_eq!(cli.reassembly_memcap, 2048);
+}
+
+#[test]
+fn test_no_reassemble_flag() {
+    let cli = Cli::parse_from(["wirerust", "analyze", "test.pcap", "--no-reassemble"]);
+    assert!(cli.no_reassemble);
+}
+
+#[test]
 fn test_no_color_flag() {
     let cli = Cli::parse_from(["wirerust", "--no-color", "analyze", "test.pcap"]);
     assert!(cli.no_color);

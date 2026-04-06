@@ -35,6 +35,22 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub csv: Option<Option<PathBuf>>,
 
+    /// Force TCP stream reassembly on
+    #[arg(long, global = true, conflicts_with = "no_reassemble")]
+    pub reassemble: bool,
+
+    /// Force TCP stream reassembly off (quick scan)
+    #[arg(long, global = true)]
+    pub no_reassemble: bool,
+
+    /// Per-direction stream reassembly limit in MB (default: 10)
+    #[arg(long, global = true, default_value_t = 10)]
+    pub reassembly_depth: usize,
+
+    /// Global reassembly memory cap in MB (default: 1024)
+    #[arg(long, global = true, default_value_t = 1024)]
+    pub reassembly_memcap: usize,
+
     #[command(subcommand)]
     pub command: Commands,
 }
