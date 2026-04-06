@@ -28,13 +28,7 @@ impl RecordingHandler {
 }
 
 impl StreamHandler for RecordingHandler {
-    fn on_data(
-        &mut self,
-        flow_key: &FlowKey,
-        direction: Direction,
-        data: &[u8],
-        offset: u64,
-    ) {
+    fn on_data(&mut self, flow_key: &FlowKey, direction: Direction, data: &[u8], offset: u64) {
         self.data_events
             .push((flow_key.clone(), direction, data.to_vec(), offset));
     }
@@ -139,7 +133,9 @@ fn test_mid_stream_no_syn() {
     let server = [10, 0, 0, 2];
 
     // Data without SYN
-    let p1 = make_tcp_packet(client, 12345, server, 80, 5000, b"hello", false, false, false);
+    let p1 = make_tcp_packet(
+        client, 12345, server, 80, 5000, b"hello", false, false, false,
+    );
     reassembler.process_packet(&p1, 1, &mut handler);
 
     assert_eq!(handler.all_data(), b"hello");
@@ -161,7 +157,9 @@ fn test_rst_closes_flow() {
     let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false);
     reassembler.process_packet(&syn, 1, &mut handler);
 
-    let data = make_tcp_packet(client, 12345, server, 80, 1001, b"data", false, false, false);
+    let data = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"data", false, false, false,
+    );
     reassembler.process_packet(&data, 2, &mut handler);
 
     let rst = make_tcp_packet(server, 80, client, 12345, 2000, &[], false, false, true);
@@ -183,7 +181,17 @@ fn test_finalize_flushes_remaining() {
     let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false);
     reassembler.process_packet(&syn, 1, &mut handler);
 
-    let data = make_tcp_packet(client, 12345, server, 80, 1001, b"leftover", false, false, false);
+    let data = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1001,
+        b"leftover",
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&data, 2, &mut handler);
 
     reassembler.finalize(&mut handler);

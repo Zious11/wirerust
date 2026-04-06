@@ -8,7 +8,7 @@ use crate::decoder::{ParsedPacket, Protocol, TransportInfo};
 use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use crate::reassembly::flow::{FlowKey, FlowState, TcpFlow};
 use crate::reassembly::handler::{CloseReason, StreamHandler};
-use crate::reassembly::segment::{flush_contiguous, insert_segment, InsertResult};
+use crate::reassembly::segment::{InsertResult, flush_contiguous, insert_segment};
 
 /// Configuration for the TCP reassembly engine.
 #[derive(Debug, Clone)]
@@ -24,9 +24,9 @@ pub struct ReassemblyConfig {
 impl Default for ReassemblyConfig {
     fn default() -> Self {
         ReassemblyConfig {
-            max_depth: 10 * 1024 * 1024,       // 10 MB per direction
-            memcap: 1024 * 1024 * 1024,         // 1 GB total
-            flow_timeout_secs: 300,              // 5 minutes
+            max_depth: 10 * 1024 * 1024, // 10 MB per direction
+            memcap: 1024 * 1024 * 1024,  // 1 GB total
+            flow_timeout_secs: 300,      // 5 minutes
         }
     }
 }
@@ -351,10 +351,7 @@ impl TcpReassembler {
             verdict: Verdict::Inconclusive,
             confidence: Confidence::Low,
             summary: format!("Stream depth exceeded on flow {}", key),
-            evidence: vec![format!(
-                "Max depth {} bytes reached",
-                self.config.max_depth
-            )],
+            evidence: vec![format!("Max depth {} bytes reached", self.config.max_depth)],
             mitre_technique: None,
             source_ip: Some(src_ip),
             timestamp: None,

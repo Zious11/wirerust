@@ -1,5 +1,5 @@
 use wirerust::reassembly::flow::FlowDirection;
-use wirerust::reassembly::segment::{flush_contiguous, insert_segment, InsertResult};
+use wirerust::reassembly::segment::{InsertResult, flush_contiguous, insert_segment};
 
 #[test]
 fn test_insert_single_segment() {
@@ -89,7 +89,10 @@ fn test_overlap_first_wins() {
 
     // Flush and verify: first 6 bytes from original, then "CC" from new
     let flushed = flush_contiguous(&mut dir);
-    let all_bytes: Vec<u8> = flushed.iter().flat_map(|(_, data)| data.iter().copied()).collect();
+    let all_bytes: Vec<u8> = flushed
+        .iter()
+        .flat_map(|(_, data)| data.iter().copied())
+        .collect();
     assert_eq!(&all_bytes, b"AAABBBCC");
 }
 
@@ -124,7 +127,10 @@ fn test_sequence_wraparound() {
     insert_segment(&mut dir, 0xFFFF_FFFB, b"around", 10_485_760);
 
     let flushed = flush_contiguous(&mut dir);
-    let all_bytes: Vec<u8> = flushed.iter().flat_map(|(_, data)| data.iter().copied()).collect();
+    let all_bytes: Vec<u8> = flushed
+        .iter()
+        .flat_map(|(_, data)| data.iter().copied())
+        .collect();
     assert_eq!(&all_bytes, b"beforewraparound");
 }
 
