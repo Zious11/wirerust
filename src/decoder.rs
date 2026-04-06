@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use etherparse::SlicedPacket;
 use serde::Serialize;
 
@@ -67,8 +67,7 @@ impl ParsedPacket {
 }
 
 pub fn decode_packet(data: &[u8]) -> Result<ParsedPacket> {
-    let sliced =
-        SlicedPacket::from_ethernet(data).map_err(|e| anyhow!("Parse error: {e}"))?;
+    let sliced = SlicedPacket::from_ethernet(data).map_err(|e| anyhow!("Parse error: {e}"))?;
 
     let (src_ip, dst_ip, ip_protocol) = match &sliced.net {
         Some(etherparse::NetSlice::Ipv4(ipv4)) => {
@@ -91,22 +90,24 @@ pub fn decode_packet(data: &[u8]) -> Result<ParsedPacket> {
     };
 
     let (protocol, transport) = match &sliced.transport {
-        Some(etherparse::TransportSlice::Tcp(tcp)) => {
-            (Protocol::Tcp, TransportInfo::Tcp {
+        Some(etherparse::TransportSlice::Tcp(tcp)) => (
+            Protocol::Tcp,
+            TransportInfo::Tcp {
                 src_port: tcp.source_port(),
                 dst_port: tcp.destination_port(),
                 syn: tcp.syn(),
                 ack: tcp.ack(),
                 fin: tcp.fin(),
                 rst: tcp.rst(),
-            })
-        }
-        Some(etherparse::TransportSlice::Udp(udp)) => {
-            (Protocol::Udp, TransportInfo::Udp {
+            },
+        ),
+        Some(etherparse::TransportSlice::Udp(udp)) => (
+            Protocol::Udp,
+            TransportInfo::Udp {
                 src_port: udp.source_port(),
                 dst_port: udp.destination_port(),
-            })
-        }
+            },
+        ),
         Some(etherparse::TransportSlice::Icmpv4(_) | etherparse::TransportSlice::Icmpv6(_)) => {
             (Protocol::Icmp, TransportInfo::None)
         }

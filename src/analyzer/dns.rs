@@ -43,12 +43,10 @@ impl ProtocolAnalyzer for DnsAnalyzer {
 
     fn can_decode(&self, packet: &ParsedPacket) -> bool {
         match &packet.transport {
-            TransportInfo::Udp { src_port, dst_port } => {
-                Self::is_dns_port(*src_port, *dst_port)
-            }
-            TransportInfo::Tcp { src_port, dst_port, .. } => {
-                Self::is_dns_port(*src_port, *dst_port)
-            }
+            TransportInfo::Udp { src_port, dst_port } => Self::is_dns_port(*src_port, *dst_port),
+            TransportInfo::Tcp {
+                src_port, dst_port, ..
+            } => Self::is_dns_port(*src_port, *dst_port),
             TransportInfo::None => false,
         }
     }

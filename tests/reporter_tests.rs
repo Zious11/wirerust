@@ -1,6 +1,6 @@
 use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
-use wirerust::reporter::json::JsonReporter;
 use wirerust::reporter::Reporter;
+use wirerust::reporter::json::JsonReporter;
 use wirerust::summary::Summary;
 
 #[test]

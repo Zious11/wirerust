@@ -13,7 +13,12 @@ fn test_analyze_subcommand() {
     ]);
     assert!(cli.verbose);
     match cli.command {
-        Commands::Analyze { targets, threats, dns, .. } => {
+        Commands::Analyze {
+            targets,
+            threats,
+            dns,
+            ..
+        } => {
             assert_eq!(targets, vec![std::path::PathBuf::from("capture.pcap")]);
             assert!(threats);
             assert!(dns);
@@ -28,7 +33,8 @@ fn test_summary_subcommand() {
         "wirerust",
         "summary",
         "capture.pcap",
-        "--output-format", "json",
+        "--output-format",
+        "json",
     ]);
     match cli.command {
         Commands::Summary { targets, .. } => {

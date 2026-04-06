@@ -4,14 +4,14 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 
-use wirerust::analyzer::dns::DnsAnalyzer;
 use wirerust::analyzer::ProtocolAnalyzer;
+use wirerust::analyzer::dns::DnsAnalyzer;
 use wirerust::cli::{Cli, Commands, OutputFormat};
 use wirerust::decoder::decode_packet;
 use wirerust::reader::PcapSource;
+use wirerust::reporter::Reporter;
 use wirerust::reporter::json::JsonReporter;
 use wirerust::reporter::terminal::TerminalReporter;
-use wirerust::reporter::Reporter;
 use wirerust::summary::Summary;
 
 fn main() -> Result<()> {
@@ -20,7 +20,9 @@ fn main() -> Result<()> {
     let use_color = !cli.no_color && std::env::var("NO_COLOR").is_err();
 
     match &cli.command {
-        Commands::Analyze { targets, dns, all, .. } => {
+        Commands::Analyze {
+            targets, dns, all, ..
+        } => {
             run_analyze(targets, *dns || *all, use_color, &cli)?;
         }
         Commands::Summary { targets, .. } => {
@@ -48,9 +50,9 @@ fn run_analyze(
                 .with_context(|| format!("Failed to read {}", path.display()))?;
 
             let pb = ProgressBar::new(source.packets.len() as u64);
-            pb.set_style(
-                ProgressStyle::with_template("[{elapsed_precise}] {bar:40} {pos}/{len} packets")?
-            );
+            pb.set_style(ProgressStyle::with_template(
+                "[{elapsed_precise}] {bar:40} {pos}/{len} packets",
+            )?);
 
             for raw in &source.packets {
                 if let Ok(parsed) = decode_packet(&raw.data) {
@@ -87,11 +89,7 @@ fn run_analyze(
     Ok(())
 }
 
-fn run_summary(
-    targets: &[std::path::PathBuf],
-    use_color: bool,
-    cli: &Cli,
-) -> Result<()> {
+fn run_summary(targets: &[std::path::PathBuf], use_color: bool, cli: &Cli) -> Result<()> {
     let mut summary = Summary::new();
 
     for target in targets {
@@ -132,9 +130,10 @@ fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
             let path = entry.path();
             if path.is_file()
                 && let Some(ext) = path.extension()
-                    && (ext == "pcap" || ext == "pcapng") {
-                        files.push(path);
-                    }
+                && (ext == "pcap" || ext == "pcapng")
+            {
+                files.push(path);
+            }
         }
         files.sort();
         return Ok(files);

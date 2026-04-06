@@ -17,8 +17,7 @@ pub struct PcapSource {
 
 impl PcapSource {
     pub fn from_pcap_reader<R: Read>(reader: R) -> Result<Self> {
-        let mut pcap_reader =
-            PcapReader::new(reader).context("Failed to parse pcap header")?;
+        let mut pcap_reader = PcapReader::new(reader).context("Failed to parse pcap header")?;
 
         let mut packets = Vec::new();
 
