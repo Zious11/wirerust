@@ -44,9 +44,11 @@ One side of a TCP connection. Each flow has two: client→server and server→cl
 ```rust
 pub struct FlowDirection {
     pub isn: Option<u32>,
-    pub base_offset: u32,
-    pub segments: BTreeMap<u32, Vec<u8>>,
+    pub base_offset: u64,
+    pub segments: BTreeMap<u64, Vec<u8>>,
     pub reassembled_bytes: usize,
+    pub overlap_count: u32,
+    pub small_segment_count: u32,
     pub fin_seen: bool,
     pub rst_seen: bool,
     pub depth_exceeded: bool,
@@ -54,9 +56,11 @@ pub struct FlowDirection {
 ```
 
 - `isn`: Initial Sequence Number. Set from SYN or inferred from first data packet.
-- `base_offset`: The next contiguous byte expected, ISN-relative. Starts at 1 (ISN+1 is the first data byte after SYN).
-- `segments`: Out-of-order buffer. Keyed by ISN-relative offset (`seq.wrapping_sub(isn)`). BTreeMap provides ordered iteration for flush.
+- `base_offset`: The next contiguous byte expected, ISN-relative. Starts at 1 (ISN+1 is the first data byte after SYN). Uses `u64` to handle streams >4GB without key-space wraparound.
+- `segments`: Out-of-order buffer. Keyed by ISN-relative offset as `u64` (`(seq.wrapping_sub(isn)) as u64`). BTreeMap provides ordered iteration for flush.
 - `reassembled_bytes`: Total bytes flushed so far. Used to enforce depth limit.
+- `overlap_count`: Number of overlapping segments seen. If >50, generate an evasion-attempt Finding.
+- `small_segment_count`: Consecutive segments <8 bytes. If >2048, generate an evasion-attempt Finding.
 - `fin_seen`, `rst_seen`: Terminal flag tracking.
 - `depth_exceeded`: Set when `reassembled_bytes` exceeds the per-direction limit.
 
@@ -93,13 +97,18 @@ Any → TimedOut        (flow_timeout_secs exceeded)
 
 ## Sequence Number Handling
 
-All segment keys are stored as ISN-relative offsets: `seq.wrapping_sub(isn)`. This solves wraparound because realistic streams stay within a ~4GB window, so relative offsets don't wrap and BTreeMap ordering works correctly.
+All segment keys are stored as ISN-relative offsets cast to `u64`: `(seq.wrapping_sub(isn)) as u64`. The wrapping subtraction handles the 32-bit sequence space correctly, and promoting to `u64` ensures BTreeMap key ordering works for streams of any size (including >4GB transfers that wrap the sequence space).
 
 Comparison helpers for raw seq numbers use wrapping arithmetic:
 
 ```rust
-fn seq_lt(a: u32, b: u32) -> bool {
-    (a.wrapping_sub(b)) as i32 > 0  // b is "before" a in sequence space
+fn seq_before(a: u32, b: u32) -> bool {
+    // a is "before" b in TCP sequence space (signed comparison of difference)
+    (a.wrapping_sub(b) as i32) < 0
+}
+
+fn seq_offset(seq: u32, isn: u32) -> u64 {
+    seq.wrapping_sub(isn) as u64
 }
 ```
 
@@ -108,6 +117,15 @@ fn seq_lt(a: u32, b: u32) -> bool {
 **Policy: first-wins (hardcoded).** When a new segment overlaps existing data, the existing bytes are kept. This matches the behavior of Windows, macOS, and BSD — the majority of real-world targets. It also matches what Zeek and NetworkMiner do.
 
 Implementation: on segment insertion, check BTreeMap neighbors. If the new segment's range overlaps any existing segment, trim the new one to only cover gaps. If fully covered, discard it (retransmission dedup).
+
+**Anomaly detection on overlaps:**
+- Increment `overlap_count` on every overlap.
+- If `overlap_count > 50` on a flow direction, generate a Finding: `[Anomaly] LIKELY (MEDIUM) — Excessive TCP segment overlaps on flow {key} ({count} overlaps), possible evasion attempt. MITRE: T1036.`
+- If overlapping data differs from existing data (not a simple retransmit), generate: `[Anomaly] LIKELY (HIGH) — Conflicting data in overlapping TCP segments on flow {key}, possible insertion/evasion attack.`
+
+**Depth truncation mid-segment:** When inserting a segment that would exceed `max_depth_per_direction`, truncate it to `depth - reassembled_bytes` rather than dropping entirely. This captures as much as possible before cutting off.
+
+**Small segment flood detection:** Track consecutive segments <8 bytes in `small_segment_count`. If >2048, generate: `[Anomaly] INCONCLUSIVE (MEDIUM) — Excessive small TCP segments on flow {key} ({count} segments <8 bytes), possible IDS evasion.`
 
 ## Mid-Stream Pickup
 
@@ -225,7 +243,7 @@ pub trait StreamHandler {
         flow_key: &FlowKey,
         direction: Direction,
         data: &[u8],
-        offset: u32,
+        offset: u64,
     );
 
     fn on_flow_close(
@@ -334,8 +352,23 @@ All tests use synthetic packet bytes (same pattern as existing wirerust tests �
 - Three-packet stream in order → reassembled payload matches concatenation.
 - Three-packet stream out of order [1, 3, 2] → same result after reordering.
 - Retransmission of packet 1 → deduplicated, single copy in stream.
-- Overlapping segments with different data → first-wins, original data preserved.
+- Overlapping segments with different data → first-wins, original data preserved, Finding generated for conflicting data.
+- Excessive overlaps (>50) → evasion-attempt Finding generated.
+- Small segment flood (>2048 segments <8 bytes) → evasion-attempt Finding generated.
+- Depth truncation mid-segment → partial segment stored up to limit, truncation Finding generated.
 - 11MB stream → first 10MB reassembled, truncation Finding generated.
 - 100+ flows exceeding memcap → eviction occurs, stats.flows_evicted > 0.
 - Mid-stream flow (no SYN) → reassembles correctly, partial flag set.
 - RST mid-stream → on_flow_close(Rst) called, accumulated data flushed.
+
+## Future Considerations (Not In Scope)
+
+These are deliberately deferred. They can be added later without changing the core architecture:
+
+- **Configurable overlap policy** (last-wins, per-OS policy) — first-wins covers the majority of targets; add configurability only if users request it.
+- **TCP Fast Open (TFO)** — Data in SYN packets. Rare in practice. Would require special handling of payload attached to SYN.
+- **PAWS (Protection Against Wrapped Sequence Numbers)** — Uses TCP timestamps option to reject old duplicates. Not needed for offline pcap analysis since we see all packets.
+- **Urgent pointer / out-of-band data** — Rarely used. Would need special offset handling.
+- **ACK-based progress tracking** — Not needed for offline analysis. Sequence-number-only tracking is sufficient.
+- **Live capture mode** — Current design uses pcap timestamps. Live mode would need wall-clock timeouts and periodic expiration on a timer.
+- **Parallel reassembly with rayon** — Flow-level parallelism is possible since flows are independent, but adds complexity to the callback model.
