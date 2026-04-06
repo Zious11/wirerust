@@ -17,6 +17,7 @@ pub enum TransportInfo {
     Tcp {
         src_port: u16,
         dst_port: u16,
+        seq_number: u32,
         syn: bool,
         ack: bool,
         fin: bool,
@@ -95,6 +96,7 @@ pub fn decode_packet(data: &[u8]) -> Result<ParsedPacket> {
             TransportInfo::Tcp {
                 src_port: tcp.source_port(),
                 dst_port: tcp.destination_port(),
+                seq_number: tcp.to_header().sequence_number,
                 syn: tcp.syn(),
                 ack: tcp.ack(),
                 fin: tcp.fin(),
