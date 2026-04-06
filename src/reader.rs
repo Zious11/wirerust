@@ -1,6 +1,7 @@
 use std::io::Read;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
+use pcap_file::DataLink;
 use pcap_file::pcap::PcapReader;
 
 #[derive(Debug, Clone)]
@@ -13,11 +14,26 @@ pub struct RawPacket {
 #[derive(Debug)]
 pub struct PcapSource {
     pub packets: Vec<RawPacket>,
+    pub datalink: DataLink,
 }
 
 impl PcapSource {
     pub fn from_pcap_reader<R: Read>(reader: R) -> Result<Self> {
         let mut pcap_reader = PcapReader::new(reader).context("Failed to parse pcap header")?;
+
+        let datalink = pcap_reader.header().datalink;
+        match datalink {
+            DataLink::ETHERNET
+            | DataLink::RAW
+            | DataLink::IPV4
+            | DataLink::IPV6
+            | DataLink::LINUX_SLL => {}
+            other => {
+                return Err(anyhow!(
+                    "Unsupported pcap link type: {other:?}. Supported: Ethernet (1), Raw IP (101), Linux Cooked (113), IPv4 (228), IPv6 (229)"
+                ));
+            }
+        }
 
         let mut packets = Vec::new();
 
@@ -30,7 +46,7 @@ impl PcapSource {
             });
         }
 
-        Ok(PcapSource { packets })
+        Ok(PcapSource { packets, datalink })
     }
 
     pub fn from_file(path: &std::path::Path) -> Result<Self> {

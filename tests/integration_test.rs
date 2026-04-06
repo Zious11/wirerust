@@ -48,7 +48,7 @@ fn test_full_pipeline() {
     let mut all_findings = Vec::new();
 
     for raw in &source.packets {
-        if let Ok(parsed) = decode_packet(&raw.data) {
+        if let Ok(parsed) = decode_packet(&raw.data, source.datalink) {
             summary.ingest(&parsed);
             if dns_analyzer.can_decode(&parsed) {
                 let findings = dns_analyzer.analyze(&parsed);
