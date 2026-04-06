@@ -43,15 +43,15 @@ This is a fail-fast design: unsupported formats error at file open, not silently
 - `DataLink::LINUX_SLL` → `SlicedPacket::from_linux_sll(data)`
 - `_` → error (defense-in-depth; reader already rejects unsupported types)
 
-Everything after `SlicedPacket` construction is unchanged. The `net`, `transport`, and `payload` fields on `SlicedPacket` are identical in structure regardless of which `from_*()` method was used. Only the `link` field differs (populated for Ethernet/SLL, empty for Raw IP), and wirerust does not access it.
+Everything after `SlicedPacket` construction is unchanged. The `net` and `transport` fields on `SlicedPacket` are identical in structure regardless of which `from_*()` method was used (payload is accessed via transport slice methods like `tcp.payload()`). Only the `link` field differs (populated for Ethernet/SLL, empty for Raw IP), and wirerust does not access it.
 
 ### Error Surfacing (`src/main.rs`)
 
-The processing loops in `run_analyze()` and `run_summary()` gain a `decode_errors: u32` counter. On first decode failure, a warning is printed to stderr (not stdout, to keep piped output clean):
+The processing loops in `run_analyze()` and `run_summary()` gain a `total_decode_errors: u64` counter. On first decode failure, a warning is printed to stderr (not stdout, to keep piped output clean):
 
-`"Warning: failed to decode packet (link type: {datalink:?}). Further errors will be counted silently."`
+`"Warning: failed to decode packet ({e}). Further errors counted silently."`
 
-After the loop, if `decode_errors > 0`, the count is included in summary output so the user knows data was lost.
+After the loop, `summary.skipped_packets = total_decode_errors` surfaces the count to reporters.
 
 ## Data Flow
 
@@ -66,7 +66,8 @@ Processing loop:
     decode_packet(&raw.data, source.datalink)  // dispatches by link type
       → SlicedPacket::from_ethernet/from_ip/from_linux_sll
       → extract net/transport/payload (unchanged)
-    on Err: increment decode_errors, warn on first
+    on Err: increment total_decode_errors, warn on first
+  summary.skipped_packets = total_decode_errors
 ```
 
 ## Testing

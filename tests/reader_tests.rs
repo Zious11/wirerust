@@ -99,10 +99,50 @@ fn test_unsupported_link_type_rejected() {
     );
 }
 
+fn pcap_header_with_linktype(link_type: u32) -> Vec<u8> {
+    let mut buf = Vec::new();
+    buf.extend_from_slice(&0xa1b2c3d4u32.to_le_bytes());
+    buf.extend_from_slice(&2u16.to_le_bytes());
+    buf.extend_from_slice(&4u16.to_le_bytes());
+    buf.extend_from_slice(&0i32.to_le_bytes());
+    buf.extend_from_slice(&0u32.to_le_bytes());
+    buf.extend_from_slice(&65535u32.to_le_bytes());
+    buf.extend_from_slice(&link_type.to_le_bytes());
+    buf
+}
+
 #[test]
 fn test_pcap_source_stores_datalink() {
     let data = minimal_pcap_bytes();
     let cursor = Cursor::new(data);
     let source = PcapSource::from_pcap_reader(cursor).unwrap();
     assert_eq!(source.datalink, DataLink::ETHERNET);
+}
+
+#[test]
+fn test_reader_accepts_raw_linktype() {
+    let buf = pcap_header_with_linktype(101); // RAW
+    let source = PcapSource::from_pcap_reader(Cursor::new(buf)).unwrap();
+    assert_eq!(source.datalink, DataLink::RAW);
+}
+
+#[test]
+fn test_reader_accepts_ipv4_linktype() {
+    let buf = pcap_header_with_linktype(228); // IPV4
+    let source = PcapSource::from_pcap_reader(Cursor::new(buf)).unwrap();
+    assert_eq!(source.datalink, DataLink::IPV4);
+}
+
+#[test]
+fn test_reader_accepts_ipv6_linktype() {
+    let buf = pcap_header_with_linktype(229); // IPV6
+    let source = PcapSource::from_pcap_reader(Cursor::new(buf)).unwrap();
+    assert_eq!(source.datalink, DataLink::IPV6);
+}
+
+#[test]
+fn test_reader_accepts_linux_sll_linktype() {
+    let buf = pcap_header_with_linktype(113); // LINUX_SLL
+    let source = PcapSource::from_pcap_reader(Cursor::new(buf)).unwrap();
+    assert_eq!(source.datalink, DataLink::LINUX_SLL);
 }
