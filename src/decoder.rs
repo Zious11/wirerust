@@ -2,6 +2,7 @@ use std::net::IpAddr;
 
 use anyhow::{Result, anyhow};
 use etherparse::SlicedPacket;
+use pcap_file::DataLink;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
@@ -67,8 +68,14 @@ impl ParsedPacket {
     }
 }
 
-pub fn decode_packet(data: &[u8]) -> Result<ParsedPacket> {
-    let sliced = SlicedPacket::from_ethernet(data).map_err(|e| anyhow!("Parse error: {e}"))?;
+pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<ParsedPacket> {
+    let sliced = match datalink {
+        DataLink::ETHERNET => SlicedPacket::from_ethernet(data),
+        DataLink::RAW | DataLink::IPV4 | DataLink::IPV6 => SlicedPacket::from_ip(data),
+        DataLink::LINUX_SLL => SlicedPacket::from_linux_sll(data),
+        other => return Err(anyhow!("Unsupported link type: {other:?}")),
+    }
+    .map_err(|e| anyhow!("Parse error: {e}"))?;
 
     let (src_ip, dst_ip, ip_protocol) = match &sliced.net {
         Some(etherparse::NetSlice::Ipv4(ipv4)) => {

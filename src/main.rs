@@ -80,7 +80,7 @@ fn run_analyze(
             )?);
 
             for raw in &source.packets {
-                if let Ok(parsed) = decode_packet(&raw.data) {
+                if let Ok(parsed) = decode_packet(&raw.data, source.datalink) {
                     summary.ingest(&parsed);
                     if enable_dns && dns_analyzer.can_decode(&parsed) {
                         let findings = dns_analyzer.analyze(&parsed);
@@ -130,7 +130,7 @@ fn run_summary(targets: &[std::path::PathBuf], use_color: bool, cli: &Cli) -> Re
         for path in &pcap_files {
             let source = PcapSource::from_file(path)?;
             for raw in &source.packets {
-                if let Ok(parsed) = decode_packet(&raw.data) {
+                if let Ok(parsed) = decode_packet(&raw.data, source.datalink) {
                     summary.ingest(&parsed);
                 }
             }

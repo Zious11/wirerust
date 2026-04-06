@@ -1,5 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr};
 
+use pcap_file::DataLink;
 use wirerust::decoder::{Protocol, TransportInfo, decode_packet};
 
 fn make_tcp_packet() -> Vec<u8> {
@@ -33,10 +34,27 @@ fn make_udp_packet() -> Vec<u8> {
     ]
 }
 
+fn make_raw_ip_tcp_packet() -> Vec<u8> {
+    vec![
+        // IPv4 header (20 bytes) — no Ethernet header
+        0x45, 0x00, 0x00, 0x28, // version/IHL, DSCP, total length=40
+        0x00, 0x01, 0x00, 0x00, // identification, flags/fragment
+        0x40, 0x06, 0x00, 0x00, // TTL=64, protocol=TCP, checksum
+        0xc0, 0xa8, 0x01, 0x0a, // src: 192.168.1.10
+        0xc0, 0xa8, 0x01, 0x01, // dst: 192.168.1.1
+        // TCP header (20 bytes)
+        0xc0, 0x01, 0x00, 0x50, // src port 49153, dst port 80
+        0x00, 0x00, 0x00, 0x01, // seq number
+        0x00, 0x00, 0x00, 0x00, // ack number
+        0x50, 0x02, 0xff, 0xff, // data offset=5, SYN, window
+        0x00, 0x00, 0x00, 0x00, // checksum, urgent pointer
+    ]
+}
+
 #[test]
 fn test_decode_tcp_packet() {
     let data = make_tcp_packet();
-    let parsed = decode_packet(&data).unwrap();
+    let parsed = decode_packet(&data, DataLink::ETHERNET).unwrap();
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
     assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)));
@@ -57,7 +75,7 @@ fn test_decode_tcp_packet() {
 #[test]
 fn test_decode_udp_dns_packet() {
     let data = make_udp_packet();
-    let parsed = decode_packet(&data).unwrap();
+    let parsed = decode_packet(&data, DataLink::ETHERNET).unwrap();
 
     assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)));
     assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)));
@@ -77,5 +95,24 @@ fn test_decode_udp_dns_packet() {
 #[test]
 fn test_decode_invalid_packet() {
     let garbage = vec![0x00, 0x01, 0x02];
-    assert!(decode_packet(&garbage).is_err());
+    assert!(decode_packet(&garbage, DataLink::ETHERNET).is_err());
+}
+
+#[test]
+fn test_decode_raw_ip_tcp_packet() {
+    let data = make_raw_ip_tcp_packet();
+    let parsed = decode_packet(&data, DataLink::RAW).unwrap();
+
+    assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
+    assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)));
+    assert_eq!(parsed.protocol, Protocol::Tcp);
+    match parsed.transport {
+        TransportInfo::Tcp {
+            src_port, dst_port, ..
+        } => {
+            assert_eq!(src_port, 49153);
+            assert_eq!(dst_port, 80);
+        }
+        _ => panic!("Expected TCP"),
+    }
 }
