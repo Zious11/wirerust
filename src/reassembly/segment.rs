@@ -84,16 +84,18 @@ pub fn insert_segment(
             let overlap_start = new_start.max(existing_offset);
             let overlap_end = new_end.min(existing_end);
 
-            for pos in overlap_start..overlap_end {
-                let new_idx = (pos - new_start) as usize;
-                let existing_idx = (pos - existing_offset) as usize;
-                if new_idx < segment_data.len()
-                    && existing_idx < existing_data.len()
-                    && segment_data[new_idx] != existing_data[existing_idx]
-                {
-                    has_conflict = true;
-                    break;
-                }
+            // Use slice comparison (SIMD-optimized) instead of byte-by-byte
+            let new_slice_start = (overlap_start - new_start) as usize;
+            let new_slice_end = (overlap_end - new_start) as usize;
+            let existing_slice_start = (overlap_start - existing_offset) as usize;
+            let existing_slice_end = (overlap_end - existing_offset) as usize;
+
+            if new_slice_end <= segment_data.len()
+                && existing_slice_end <= existing_data.len()
+                && segment_data[new_slice_start..new_slice_end]
+                    != existing_data[existing_slice_start..existing_slice_end]
+            {
+                has_conflict = true;
             }
 
             trimmed_ranges.push((existing_offset, existing_end));

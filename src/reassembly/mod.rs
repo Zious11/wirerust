@@ -131,12 +131,15 @@ impl TcpReassembler {
             flow.on_syn_ack();
         }
 
-        // 7. Handle RST
+        // 7. Handle RST — close and remove flow immediately
         if rst {
             flow.on_rst();
             self.stats.flows_rst += 1;
+            // Drop the mutable borrow before removing
             let key_clone = key.clone();
             handler.on_flow_close(&key_clone, CloseReason::Rst);
+            self.flows.remove(&key_clone);
+            self.update_memory();
             return;
         }
 
@@ -147,7 +150,10 @@ impl TcpReassembler {
             flow.on_fin();
             if flow.state == FlowState::Closed {
                 self.stats.flows_fin += 1;
-                handler.on_flow_close(&key, CloseReason::Fin);
+                let key_clone = key.clone();
+                handler.on_flow_close(&key_clone, CloseReason::Fin);
+                // Remove fully closed flow — but continue processing payload below
+                // if this FIN packet carries data (payload handled after this block)
             }
         }
 
@@ -242,10 +248,19 @@ impl TcpReassembler {
             }
         }
 
-        // 10. Update total memory tracking
+        // 10. Remove FIN-closed flows after processing their final payload
+        if self
+            .flows
+            .get(&key)
+            .is_some_and(|f| f.state == FlowState::Closed)
+        {
+            self.flows.remove(&key);
+        }
+
+        // 11. Update total memory tracking
         self.update_memory();
 
-        // 11. Evict flows if memcap exceeded
+        // 12. Evict flows if memcap exceeded
         if self.total_memory > self.config.memcap {
             self.evict_flows(handler);
         }
@@ -258,8 +273,8 @@ impl TcpReassembler {
             .flows
             .iter()
             .filter(|(_, flow)| {
-                flow.state != FlowState::Closed
-                    && current_time.wrapping_sub(flow.last_seen) > timeout
+                flow.state == FlowState::Closed
+                    || (current_time > flow.last_seen && (current_time - flow.last_seen) > timeout)
             })
             .map(|(key, _)| key.clone())
             .collect();
