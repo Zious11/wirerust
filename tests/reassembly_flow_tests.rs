@@ -12,10 +12,11 @@ fn test_flow_key_canonicalization() {
     let key_ba = FlowKey::new(ip_b, 80, ip_a, 12345);
 
     assert_eq!(key_ab, key_ba);
+    // Tuple ordering: (10.0.0.1, 12345) < (10.0.0.2, 80) since IPs differ
     assert_eq!(key_ab.lower_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)));
-    assert_eq!(key_ab.lower_port, 80);
+    assert_eq!(key_ab.lower_port, 12345);
     assert_eq!(key_ab.upper_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)));
-    assert_eq!(key_ab.upper_port, 12345);
+    assert_eq!(key_ab.upper_port, 80);
 }
 
 #[test]

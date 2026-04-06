@@ -13,24 +13,22 @@ pub struct FlowKey {
 
 impl FlowKey {
     pub fn new(ip_a: IpAddr, port_a: u16, ip_b: IpAddr, port_b: u16) -> Self {
-        // Canonicalize independently: lower_ip = min(ip_a, ip_b), lower_port = min(port_a, port_b),
-        // upper_ip = max(ip_a, ip_b), upper_port = max(port_a, port_b).
-        // This ensures the same FlowKey regardless of which direction the packet arrives from.
-        let (lower_ip, upper_ip) = if ip_a <= ip_b {
-            (ip_a, ip_b)
+        // Canonicalize by (ip, port) tuple comparison — keeps IP+port paired together.
+        // This is critical: sorting independently would merge different connections.
+        if (ip_a, port_a) <= (ip_b, port_b) {
+            FlowKey {
+                lower_ip: ip_a,
+                lower_port: port_a,
+                upper_ip: ip_b,
+                upper_port: port_b,
+            }
         } else {
-            (ip_b, ip_a)
-        };
-        let (lower_port, upper_port) = if port_a <= port_b {
-            (port_a, port_b)
-        } else {
-            (port_b, port_a)
-        };
-        FlowKey {
-            lower_ip,
-            lower_port,
-            upper_ip,
-            upper_port,
+            FlowKey {
+                lower_ip: ip_b,
+                lower_port: port_b,
+                upper_ip: ip_a,
+                upper_port: port_a,
+            }
         }
     }
 }
