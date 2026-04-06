@@ -148,12 +148,23 @@ impl TcpReassembler {
             flow.on_syn_ack();
         }
 
-        // 7. Handle RST — close and remove flow immediately
+        // 7. Handle RST — flush salvageable data, close, and remove
         if rst {
             flow.on_rst();
             self.stats.flows_rst += 1;
-            // Drop the mutable borrow before removing
             let key_clone = key.clone();
+            // Flush buffered contiguous data before removing
+            if let Some(flow) = self.flows.get_mut(&key_clone) {
+                use crate::reassembly::handler::Direction;
+                for dir in [Direction::ClientToServer, Direction::ServerToClient] {
+                    let flow_dir = flow.get_direction_mut(dir);
+                    let flushed = flush_contiguous(flow_dir);
+                    for (offset, data) in &flushed {
+                        self.stats.bytes_reassembled += data.len() as u64;
+                        handler.on_data(&key_clone, dir, data, *offset);
+                    }
+                }
+            }
             handler.on_flow_close(&key_clone, CloseReason::Rst);
             self.flows.remove(&key_clone);
             self.update_memory();
@@ -273,6 +284,18 @@ impl TcpReassembler {
             .get(&key)
             .is_some_and(|f| f.state == FlowState::Closed)
         {
+            // Flush remaining data in both directions before removal
+            if let Some(flow) = self.flows.get_mut(&key) {
+                use crate::reassembly::handler::Direction;
+                for dir in [Direction::ClientToServer, Direction::ServerToClient] {
+                    let flow_dir = flow.get_direction_mut(dir);
+                    let flushed = flush_contiguous(flow_dir);
+                    for (offset, data) in &flushed {
+                        self.stats.bytes_reassembled += data.len() as u64;
+                        handler.on_data(&key, dir, data, *offset);
+                    }
+                }
+            }
             self.stats.flows_fin += 1;
             handler.on_flow_close(&key, CloseReason::Fin);
             self.flows.remove(&key);

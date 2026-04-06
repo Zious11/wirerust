@@ -143,6 +143,10 @@ pub fn insert_segment(
         let had_gap = !gaps.is_empty();
 
         for (gap_start, gap_end) in gaps {
+            // Enforce max_segments inside gap insertion loop
+            if dir.segments.len() >= max_segments {
+                break;
+            }
             let start_idx = (gap_start - new_start) as usize;
             let end_idx = (gap_end - new_start) as usize;
             if start_idx < segment_data.len() && end_idx <= segment_data.len() {

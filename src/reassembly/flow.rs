@@ -182,7 +182,7 @@ impl TcpFlow {
     }
 
     pub fn on_fin(&mut self) {
-        self.fin_count += 1;
+        self.fin_count = self.fin_count.saturating_add(1);
         if self.fin_count >= 2 {
             self.state = FlowState::Closed;
         } else if self.state == FlowState::Established || self.state == FlowState::SynSent {
