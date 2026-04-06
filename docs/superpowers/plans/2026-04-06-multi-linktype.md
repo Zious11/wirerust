@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Support Raw IP (101) and Linux Cooked SLL (113) pcap link types in addition to Ethernet, with clear errors for unsupported types.
+**Goal:** Support Raw IP (101), IPv4 (228), IPv6 (229), and Linux Cooked SLL (113) pcap link types in addition to Ethernet, with clear errors for unsupported types.
 
 **Architecture:** Read link type from pcap global header, dispatch to the correct etherparse parser (`from_ethernet`, `from_ip`, `from_linux_sll`), and surface decode errors to the user instead of silently dropping packets.
 
@@ -117,10 +117,14 @@ impl PcapSource {
 
         let datalink = pcap_reader.header().datalink;
         match datalink {
-            DataLink::ETHERNET | DataLink::RAW | DataLink::LINUX_SLL => {}
+            DataLink::ETHERNET
+            | DataLink::RAW
+            | DataLink::IPV4
+            | DataLink::IPV6
+            | DataLink::LINUX_SLL => {}
             other => {
                 return Err(anyhow!(
-                    "Unsupported pcap link type: {other:?}. Supported: Ethernet (1), Raw IP (101), Linux Cooked (113)"
+                    "Unsupported pcap link type: {other:?}. Supported: Ethernet (1), Raw IP (101), Linux Cooked (113), IPv4 (228), IPv6 (229)"
                 ));
             }
         }
@@ -234,7 +238,7 @@ use serde::Serialize;
 pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<ParsedPacket> {
     let sliced = match datalink {
         DataLink::ETHERNET => SlicedPacket::from_ethernet(data),
-        DataLink::RAW => SlicedPacket::from_ip(data),
+        DataLink::RAW | DataLink::IPV4 | DataLink::IPV6 => SlicedPacket::from_ip(data),
         DataLink::LINUX_SLL => SlicedPacket::from_linux_sll(data),
         other => return Err(anyhow!("Unsupported link type: {other:?}")),
     }
@@ -544,7 +548,7 @@ git commit -m "feat: count and surface decode errors instead of silently droppin
 **Files:**
 - Create: `tests/linktype_integration_tests.rs`
 
-- [ ] **Step 1: Write integration tests for all three link types**
+- [ ] **Step 1: Write integration tests for all three fixture link types**
 
 Create `tests/linktype_integration_tests.rs`:
 
@@ -597,10 +601,10 @@ fn test_raw_ip_pcap_segmented() {
 }
 
 #[test]
-fn test_linux_cooked_pcap_http_ooo() {
+fn test_ipv4_pcap_http_ooo() {
     let source =
         PcapSource::from_file(std::path::Path::new("tests/fixtures/http-ooo.pcap")).unwrap();
-    assert_eq!(source.datalink, DataLink::LINUX_SLL);
+    assert_eq!(source.datalink, DataLink::IPV4);
     assert!(
         source.packets.len() > 0,
         "http-ooo.pcap should have packets, got 0"
@@ -636,5 +640,5 @@ Expected: Clean.
 
 ```bash
 git add tests/linktype_integration_tests.rs
-git commit -m "test: integration tests for Ethernet, Raw IP, and Linux Cooked pcap fixtures"
+git commit -m "test: integration tests for Ethernet, Raw IP, and IPv4 pcap fixtures"
 ```

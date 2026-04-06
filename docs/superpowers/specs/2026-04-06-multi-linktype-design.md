@@ -16,6 +16,8 @@ This affects ~40% of real-world incident response captures (cloud VPC mirrors us
 | `DataLink::ETHERNET` | 1 | `SlicedPacket::from_ethernet()` | SPAN ports, Wireshark, most captures |
 | `DataLink::RAW` | 101 | `SlicedPacket::from_ip()` | Cloud VPC mirrors, mobile, some tools |
 | `DataLink::LINUX_SLL` | 113 | `SlicedPacket::from_linux_sll()` | `tcpdump -i any`, Docker captures |
+| `DataLink::IPV4` | 228 | `SlicedPacket::from_ip()` | Raw IPv4 captures (same as RAW but IPv4-only) |
+| `DataLink::IPV6` | 229 | `SlicedPacket::from_ip()` | Raw IPv6 captures |
 
 All other link types are rejected at file open with a clear error message.
 
@@ -28,7 +30,7 @@ Three layers change, each with a single responsibility:
 `PcapSource` gains a `datalink: DataLink` field read from `pcap_reader.header().datalink`.
 
 Unsupported link types are rejected immediately in `from_pcap_reader()` with:
-`"Unsupported pcap link type: {datalink:?}. Supported: Ethernet (1), Raw IP (101), Linux Cooked (113)"`
+`"Unsupported pcap link type: {datalink:?}. Supported: Ethernet (1), Raw IP (101), Linux Cooked (113), IPv4 (228), IPv6 (229)"`
 
 This is a fail-fast design: unsupported formats error at file open, not silently per-packet.
 
@@ -37,7 +39,7 @@ This is a fail-fast design: unsupported formats error at file open, not silently
 `decode_packet()` gains a `datalink: DataLink` parameter. A match expression dispatches to the correct etherparse parser:
 
 - `DataLink::ETHERNET` → `SlicedPacket::from_ethernet(data)`
-- `DataLink::RAW` → `SlicedPacket::from_ip(data)`
+- `DataLink::RAW` | `DataLink::IPV4` | `DataLink::IPV6` → `SlicedPacket::from_ip(data)`
 - `DataLink::LINUX_SLL` → `SlicedPacket::from_linux_sll(data)`
 - `_` → error (defense-in-depth; reader already rejects unsupported types)
 
@@ -77,7 +79,7 @@ All three link types are already present in `tests/fixtures/`:
 |------|-----------|---------------|----------------|
 | `tls.pcap` | Ethernet (1) | Works | Works (unchanged) |
 | `segmented.pcap` | Raw IP (101) | Silent 0 packets | Parses successfully |
-| `http-ooo.pcap` | Linux Cooked (113) | Silent 0 packets | Parses successfully |
+| `http-ooo.pcap` | Raw IPv4 (228) | Silent 0 packets | Parses successfully |
 
 ### New Tests
 
