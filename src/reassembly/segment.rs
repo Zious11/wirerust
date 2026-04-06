@@ -22,6 +22,7 @@ pub fn insert_segment(
     seq: u32,
     data: &[u8],
     max_depth: usize,
+    max_segments: usize,
 ) -> InsertResult {
     if data.is_empty() {
         return InsertResult::Inserted;
@@ -29,14 +30,20 @@ pub fn insert_segment(
 
     let isn = match dir.isn {
         Some(isn) => isn,
-        None => return InsertResult::Inserted,
+        None => {
+            debug_assert!(false, "insert_segment called with no ISN set");
+            return InsertResult::DepthExceeded;
+        }
     };
 
-    // Track small segments
+    // Enforce max segments per direction to prevent BTreeMap overhead explosion
+    if dir.segments.len() >= max_segments {
+        return InsertResult::DepthExceeded;
+    }
+
+    // Track small segments (cumulative, not consecutive)
     if data.len() < 8 {
         dir.small_segment_count += 1;
-    } else {
-        dir.small_segment_count = 0;
     }
 
     // Check depth limit

@@ -10,6 +10,9 @@ use crate::reassembly::flow::{FlowKey, FlowState, TcpFlow};
 use crate::reassembly::handler::{CloseReason, StreamHandler};
 use crate::reassembly::segment::{InsertResult, flush_contiguous, insert_segment};
 
+const OVERLAP_ALERT_THRESHOLD: u32 = 50;
+const SMALL_SEGMENT_ALERT_THRESHOLD: u32 = 2048;
+
 /// Configuration for the TCP reassembly engine.
 #[derive(Debug, Clone)]
 pub struct ReassemblyConfig {
@@ -19,14 +22,20 @@ pub struct ReassemblyConfig {
     pub memcap: usize,
     /// Seconds of inactivity before a flow is considered timed out.
     pub flow_timeout_secs: u32,
+    /// Maximum number of concurrent flows tracked. Prevents flow table flooding.
+    pub max_flows: usize,
+    /// Maximum segments per flow direction. Prevents BTreeMap overhead explosion.
+    pub max_segments_per_direction: usize,
 }
 
 impl Default for ReassemblyConfig {
     fn default() -> Self {
         ReassemblyConfig {
-            max_depth: 10 * 1024 * 1024, // 10 MB per direction
-            memcap: 1024 * 1024 * 1024,  // 1 GB total
-            flow_timeout_secs: 300,      // 5 minutes
+            max_depth: 10 * 1024 * 1024,        // 10 MB per direction
+            memcap: 1024 * 1024 * 1024,         // 1 GB total
+            flow_timeout_secs: 300,             // 5 minutes
+            max_flows: 100_000,                 // 100K concurrent flows
+            max_segments_per_direction: 10_000, // 10K segments per direction
         }
     }
 }
@@ -105,6 +114,14 @@ impl TcpReassembler {
 
         // 4. Get or create flow
         if !self.flows.contains_key(&key) {
+            // Enforce max_flows limit
+            if self.flows.len() >= self.config.max_flows {
+                self.evict_flows(handler);
+                if self.flows.len() >= self.config.max_flows {
+                    // Still at capacity after eviction — drop this packet
+                    return;
+                }
+            }
             let flow = TcpFlow::new(key.clone(), timestamp);
             self.flows.insert(key.clone(), flow);
             self.stats.flows_total += 1;
@@ -178,7 +195,13 @@ impl TcpReassembler {
             }
 
             let flow_dir = flow.get_direction_mut(dir);
-            let result = insert_segment(flow_dir, seq, payload, self.config.max_depth);
+            let result = insert_segment(
+                flow_dir,
+                seq,
+                payload,
+                self.config.max_depth,
+                self.config.max_segments_per_direction,
+            );
 
             match result {
                 InsertResult::Inserted => self.stats.segments_inserted += 1,
@@ -203,34 +226,35 @@ impl TcpReassembler {
             // Check anomaly thresholds on the direction
             let flow = self.flows.get_mut(&key).unwrap();
             let flow_dir = flow.get_direction_mut(dir);
-            if flow_dir.overlap_count == 51 {
+            if flow_dir.overlap_count > OVERLAP_ALERT_THRESHOLD && !flow_dir.overlap_alert_fired {
+                flow_dir.overlap_alert_fired = true;
                 self.findings.push(Finding {
                     category: ThreatCategory::Anomaly,
-                    verdict: Verdict::Inconclusive,
+                    verdict: Verdict::Likely,
                     confidence: Confidence::Medium,
                     summary: format!(
                         "Excessive segment overlaps ({}) on flow {}",
                         flow_dir.overlap_count, key
                     ),
-                    evidence: vec![format!("overlap_count = {}", flow_dir.overlap_count)],
-                    mitre_technique: None,
+                    evidence: vec!["Possible evasion attempt".into()],
+                    mitre_technique: Some("T1036".into()),
                     source_ip: Some(packet.src_ip),
                     timestamp: None,
                 });
             }
-            if flow_dir.small_segment_count == 2049 {
+            if flow_dir.small_segment_count > SMALL_SEGMENT_ALERT_THRESHOLD
+                && !flow_dir.small_segment_alert_fired
+            {
+                flow_dir.small_segment_alert_fired = true;
                 self.findings.push(Finding {
                     category: ThreatCategory::Anomaly,
                     verdict: Verdict::Inconclusive,
-                    confidence: Confidence::Low,
+                    confidence: Confidence::Medium,
                     summary: format!(
                         "Excessive small segments ({}) on flow {}",
                         flow_dir.small_segment_count, key
                     ),
-                    evidence: vec![format!(
-                        "small_segment_count = {}",
-                        flow_dir.small_segment_count
-                    )],
+                    evidence: vec!["Possible IDS evasion".into()],
                     mitre_technique: None,
                     source_ip: Some(packet.src_ip),
                     timestamp: None,
@@ -290,8 +314,19 @@ impl TcpReassembler {
 
     /// Close all remaining flows (called at end of capture).
     pub fn finalize(&mut self, handler: &mut dyn StreamHandler) {
+        use crate::reassembly::handler::Direction;
         let all_keys: Vec<FlowKey> = self.flows.keys().cloned().collect();
         for key in all_keys {
+            // Flush any remaining contiguous data before closing
+            if let Some(flow) = self.flows.get_mut(&key) {
+                for dir in [Direction::ClientToServer, Direction::ServerToClient] {
+                    let flow_dir = flow.get_direction_mut(dir);
+                    let flushed = flush_contiguous(flow_dir);
+                    for (offset, data) in &flushed {
+                        handler.on_data(&key, dir, data, *offset);
+                    }
+                }
+            }
             self.flows.remove(&key);
             handler.on_flow_close(&key, CloseReason::Timeout);
         }
@@ -318,32 +353,42 @@ impl TcpReassembler {
     /// Strategy: evict non-established flows first (sorted by LRU),
     /// then established flows by LRU.
     fn evict_flows(&mut self, handler: &mut dyn StreamHandler) {
-        while self.total_memory > self.config.memcap && !self.flows.is_empty() {
-            // Collect candidate keys with their (is_established, last_seen) for sorting
-            let mut candidates: Vec<(FlowKey, bool, u32)> = self
-                .flows
-                .iter()
-                .map(|(key, flow)| {
-                    let is_established = flow.state == FlowState::Established;
-                    (key.clone(), is_established, flow.last_seen)
-                })
-                .collect();
+        // Sort once, then evict from the sorted list until under memcap
+        let mut candidates: Vec<(FlowKey, bool, u32)> = self
+            .flows
+            .iter()
+            .map(|(key, flow)| {
+                let is_established = flow.state == FlowState::Established;
+                (key.clone(), is_established, flow.last_seen)
+            })
+            .collect();
 
-            // Sort: non-established first, then by oldest last_seen
-            candidates.sort_by(|a, b| {
-                a.1.cmp(&b.1) // false (non-established) < true (established)
-                    .then(a.2.cmp(&b.2)) // older first
-            });
+        // Sort: non-established first, then by oldest last_seen
+        candidates.sort_by(|a, b| {
+            a.1.cmp(&b.1) // false (non-established) < true (established)
+                .then(a.2.cmp(&b.2)) // older first
+        });
 
-            if let Some((key, _, _)) = candidates.first() {
-                let key = key.clone();
-                self.flows.remove(&key);
-                self.stats.evictions += 1;
-                handler.on_flow_close(&key, CloseReason::MemoryPressure);
-                self.update_memory();
-            } else {
+        for (key, _, _) in &candidates {
+            if self.total_memory <= self.config.memcap && self.flows.len() <= self.config.max_flows
+            {
                 break;
             }
+            // Flush salvageable contiguous data before evicting
+            if let Some(flow) = self.flows.get_mut(key) {
+                use crate::reassembly::handler::Direction;
+                for dir in [Direction::ClientToServer, Direction::ServerToClient] {
+                    let flow_dir = flow.get_direction_mut(dir);
+                    let flushed = flush_contiguous(flow_dir);
+                    for (offset, data) in &flushed {
+                        handler.on_data(key, dir, data, *offset);
+                    }
+                }
+            }
+            self.flows.remove(key);
+            self.stats.evictions += 1;
+            handler.on_flow_close(key, CloseReason::MemoryPressure);
+            self.update_memory();
         }
     }
 
