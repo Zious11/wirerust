@@ -1,6 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr};
 
 use wirerust::decoder::{ParsedPacket, Protocol, TransportInfo};
+use wirerust::findings::{Confidence, ThreatCategory};
 use wirerust::reassembly::flow::FlowKey;
 use wirerust::reassembly::handler::{CloseReason, Direction, StreamHandler};
 use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
@@ -769,4 +770,157 @@ fn test_memcap_eviction() {
     let stats = reassembler.stats();
     assert!(stats.evictions >= 1);
     assert!(reassembler.total_memory() <= 10);
+}
+
+#[test]
+fn test_overlap_anomaly_finding() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN — establishes ISN=1000, base_offset=1
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Out-of-order segment at offset 2 (gap at offset 1 keeps it buffered)
+    let original = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+    );
+    reassembler.process_packet(&original, 2, &mut handler);
+
+    // No findings yet
+    assert!(reassembler.findings().is_empty());
+
+    // Send 51 duplicates to reach overlap_count=51 (> threshold of 50)
+    for i in 0..51u32 {
+        let dup = make_tcp_packet(
+            client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+        );
+        reassembler.process_packet(&dup, 3 + i, &mut handler);
+    }
+
+    // Overlap anomaly finding should be generated
+    let findings = reassembler.findings();
+    assert!(!findings.is_empty(), "expected overlap anomaly finding");
+    let overlap_finding = findings
+        .iter()
+        .find(|f| f.summary.contains("Excessive segment overlaps"))
+        .expect("overlap anomaly finding not found");
+    assert_eq!(overlap_finding.category, ThreatCategory::Anomaly);
+}
+
+#[test]
+fn test_conflicting_overlap_finding() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN — establishes ISN=1000, base_offset=1
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Out-of-order segment at offset 2 (gap at offset 1 keeps it buffered)
+    let original = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+    );
+    reassembler.process_packet(&original, 2, &mut handler);
+
+    // Conflicting retransmission: same seq, different data — triggers ConflictingOverlap
+    let conflict = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"BBBB", false, false, false, false,
+    );
+    reassembler.process_packet(&conflict, 3, &mut handler);
+
+    // Conflicting overlap finding should be generated
+    let findings = reassembler.findings();
+    let conflict_finding = findings
+        .iter()
+        .find(|f| f.summary.contains("Conflicting TCP segment overlap"))
+        .expect("conflicting overlap finding not found");
+    assert_eq!(conflict_finding.category, ThreatCategory::Anomaly);
+    assert_eq!(conflict_finding.confidence, Confidence::High);
+}
+
+#[test]
+fn test_max_segments_per_direction() {
+    let config = ReassemblyConfig {
+        max_segments_per_direction: 5,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN — establishes ISN=1000, base_offset=1
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // 5 non-contiguous segments (gap at offset 1 keeps them buffered).
+    // seq 1002 → offset 2, seq 1004 → offset 4, etc. Each 1 byte.
+    for i in 0..5u32 {
+        let seq = 1002 + (i * 2);
+        let pkt = make_tcp_packet(
+            client, 12345, server, 80, seq, b"x", false, false, false, false,
+        );
+        reassembler.process_packet(&pkt, 2 + i, &mut handler);
+    }
+
+    // All 5 slots used; no data flushed yet (gap at offset 1)
+    assert!(handler.data_events.is_empty());
+    let stats_before = reassembler.stats().segments_inserted;
+    assert_eq!(stats_before, 5);
+
+    // 6th segment — should be rejected (DepthExceeded: max_segments reached)
+    let rejected = make_tcp_packet(
+        client, 12345, server, 80, 1012, b"y", false, false, false, false,
+    );
+    reassembler.process_packet(&rejected, 7, &mut handler);
+
+    // segments_inserted must not have increased
+    assert_eq!(
+        reassembler.stats().segments_inserted,
+        stats_before,
+        "6th segment should be rejected when max_segments_per_direction is reached"
+    );
 }
