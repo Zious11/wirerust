@@ -291,20 +291,20 @@ fn test_parse_error_in_response() {
 }
 
 #[test]
-fn test_parse_error_clears_buffer_and_continues() {
+fn test_parse_error_poisons_direction() {
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
 
-    // First: malformed request (triggers error, clears buffer)
+    // First: malformed request (triggers error, poisons request direction)
     analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
     assert_eq!(analyzer.parse_error_count(), 1);
 
-    // Second: valid request (should parse successfully on fresh buffer)
+    // Second: valid request on same flow — skipped because direction is poisoned
     let valid = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
     analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
 
-    assert_eq!(analyzer.parse_error_count(), 1); // no new errors
-    assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
+    assert_eq!(analyzer.parse_error_count(), 1); // no new errors (poisoned, not retried)
+    assert!(analyzer.method_counts().get("GET").is_none()); // never parsed
 }
 
 #[test]

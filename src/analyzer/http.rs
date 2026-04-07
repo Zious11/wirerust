@@ -64,6 +64,8 @@ fn find_header(headers: &[httparse::Header<'_>], name: &str) -> Option<String> {
 struct HttpFlowState {
     request_buf: Vec<u8>,
     response_buf: Vec<u8>,
+    request_poisoned: bool,
+    response_poisoned: bool,
 }
 
 impl HttpFlowState {
@@ -71,6 +73,8 @@ impl HttpFlowState {
         HttpFlowState {
             request_buf: Vec::new(),
             response_buf: Vec::new(),
+            request_poisoned: false,
+            response_poisoned: false,
         }
     }
 }
@@ -93,6 +97,7 @@ pub struct HttpAnalyzer {
     transactions: u64,
     all_findings: Vec<Finding>,
     parse_errors: u64,
+    non_http_flows: u64,
 }
 
 impl Default for HttpAnalyzer {
@@ -113,6 +118,7 @@ impl HttpAnalyzer {
             transactions: 0,
             all_findings: Vec::new(),
             parse_errors: 0,
+            non_http_flows: 0,
         }
     }
 
@@ -313,6 +319,10 @@ impl HttpAnalyzer {
                 Some(Err(e)) => {
                     if !had_success {
                         self.parse_errors += 1;
+                        if let Some(state) = self.flows.get_mut(flow_key) {
+                            state.request_poisoned = true;
+                            self.non_http_flows += 1;
+                        }
                         if e == httparse::Error::TooManyHeaders {
                             self.all_findings.push(Finding {
                                 category: ThreatCategory::Anomaly,
@@ -359,6 +369,10 @@ impl HttpAnalyzer {
                 Some(Err(e)) => {
                     if !had_success {
                         self.parse_errors += 1;
+                        if let Some(state) = self.flows.get_mut(flow_key) {
+                            state.response_poisoned = true;
+                            self.non_http_flows += 1;
+                        }
                         if e == httparse::Error::TooManyHeaders {
                             self.all_findings.push(Finding {
                                 category: ThreatCategory::Anomaly,
@@ -392,6 +406,9 @@ impl StreamHandler for HttpAnalyzer {
                 .or_insert_with(HttpFlowState::new);
             match direction {
                 Direction::ClientToServer => {
+                    if state.request_poisoned {
+                        return;
+                    }
                     let remaining = MAX_HEADER_BUF.saturating_sub(state.request_buf.len());
                     if remaining > 0 {
                         state
@@ -400,6 +417,9 @@ impl StreamHandler for HttpAnalyzer {
                     }
                 }
                 Direction::ServerToClient => {
+                    if state.response_poisoned {
+                        return;
+                    }
                     let remaining = MAX_HEADER_BUF.saturating_sub(state.response_buf.len());
                     if remaining > 0 {
                         state
@@ -458,6 +478,10 @@ impl StreamAnalyzer for HttpAnalyzer {
         detail.insert(
             "parse_errors".to_string(),
             serde_json::json!(self.parse_errors),
+        );
+        detail.insert(
+            "non_http_flows".to_string(),
+            serde_json::json!(self.non_http_flows),
         );
 
         AnalysisSummary {
