@@ -10,6 +10,7 @@ pub enum InsertResult {
     DepthExceeded,
     SegmentLimitReached,
     OutOfWindow,
+    IsnMissing,
 }
 
 /// Compute the ISN-relative offset for a sequence number.
@@ -36,7 +37,7 @@ impl FlowDirection {
             Some(isn) => isn,
             None => {
                 eprintln!("wirerust: insert_segment called with no ISN set");
-                return InsertResult::DepthExceeded;
+                return InsertResult::IsnMissing;
             }
         };
 

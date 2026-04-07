@@ -1275,7 +1275,7 @@ fn test_depth_exceeded_counter() {
     assert_eq!(reassembler.stats().segments_depth_exceeded, 0);
 
     // Second segment: 5 bytes, would exceed 10-byte depth (8 + 5 = 13 > 10)
-    // First 2 bytes are truncated+inserted, rest is depth-exceeded
+    // Truncated to 2 bytes and inserted (returns Truncated, not DepthExceeded)
     let p2 = make_tcp_packet(
         client, 12345, server, 80, 1009, b"BBBBB", false, false, false, false,
     );

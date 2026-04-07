@@ -254,6 +254,10 @@ impl TcpReassembler {
                 InsertResult::OutOfWindow => {
                     self.stats.segments_out_of_window += 1;
                 }
+                InsertResult::IsnMissing => {
+                    // Programming error — ISN should always be set before insert.
+                    // eprintln already emitted in insert_segment.
+                }
             }
 
             // Check anomaly thresholds on the direction
@@ -446,6 +450,7 @@ impl TcpReassembler {
     fn close_flow(&mut self, key: &FlowKey, reason: CloseReason, handler: &mut dyn StreamHandler) {
         use crate::reassembly::handler::Direction;
         let Some(mut flow) = self.flows.remove(key) else {
+            debug_assert!(false, "close_flow called for non-existent key: {}", key);
             eprintln!("wirerust: close_flow called for non-existent key: {}", key);
             return;
         };
