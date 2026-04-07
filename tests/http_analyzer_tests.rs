@@ -233,6 +233,8 @@ fn test_parse_error_increments_counter() {
     analyzer.on_data(&fk, Direction::ClientToServer, b"NOT_HTTP\r\n\r\n", 0);
 
     assert_eq!(analyzer.parse_error_count(), 1);
+    // Token error should NOT generate a finding (only TooManyHeaders does)
+    assert!(analyzer.findings().is_empty());
 }
 
 #[test]
@@ -284,6 +286,8 @@ fn test_parse_error_in_response() {
     analyzer.on_data(&fk, Direction::ServerToClient, b"NOT_HTTP\r\n\r\n", 0);
 
     assert_eq!(analyzer.parse_error_count(), 1);
+    // Token error on response should NOT generate a finding
+    assert!(analyzer.findings().is_empty());
 }
 
 #[test]
@@ -314,4 +318,39 @@ fn test_normal_request_no_parse_errors() {
 
     assert_eq!(analyzer.parse_error_count(), 0);
     assert!(analyzer.findings().is_empty());
+}
+
+#[test]
+fn test_too_many_headers_in_response_generates_finding() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Build a response with 97 headers to exceed MAX_HEADERS (96)
+    let mut response = b"HTTP/1.1 200 OK\r\n".to_vec();
+    for i in 0..97 {
+        response.extend_from_slice(format!("X-Header-{i}: value\r\n").as_bytes());
+    }
+    response.extend_from_slice(b"\r\n");
+
+    analyzer.on_data(&fk, Direction::ServerToClient, &response, 0);
+
+    assert_eq!(analyzer.parse_error_count(), 1);
+    let findings = analyzer.findings();
+    assert_eq!(findings.len(), 1);
+    assert_eq!(findings[0].category, ThreatCategory::Anomaly);
+    assert!(findings[0].evidence[0].contains("response"));
+}
+
+#[test]
+fn test_multiple_parse_errors_accumulate() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    // First error: malformed request
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+    assert_eq!(analyzer.parse_error_count(), 1);
+
+    // Second error: malformed response
+    analyzer.on_data(&fk, Direction::ServerToClient, b"ALSO_BAD\r\n\r\n", 0);
+    assert_eq!(analyzer.parse_error_count(), 2);
 }
