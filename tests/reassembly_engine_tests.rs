@@ -167,6 +167,7 @@ fn test_rst_closes_flow() {
 
     assert_eq!(handler.close_events.len(), 1);
     assert_eq!(handler.close_events[0].1, CloseReason::Rst);
+    assert_eq!(reassembler.total_memory(), 0);
 }
 
 #[test]
@@ -223,4 +224,35 @@ fn test_flow_timeout_expiration() {
 
     let stats = reassembler.stats();
     assert_eq!(stats.flows_expired, 1);
+    assert_eq!(reassembler.total_memory(), 0);
+}
+
+#[test]
+fn test_total_memory_tracking() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN — no payload, no memory change
+    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false);
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Out-of-order segment — buffered (not flushed)
+    let p2 = make_tcp_packet(client, 12345, server, 80, 1004, b"bbb", false, false, false);
+    reassembler.process_packet(&p2, 2, &mut handler);
+    assert!(handler.data_events.is_empty());
+    assert_eq!(reassembler.total_memory(), 3); // "bbb" buffered
+
+    // In-order segment — triggers flush of both
+    let p1 = make_tcp_packet(client, 12345, server, 80, 1001, b"aaa", false, false, false);
+    reassembler.process_packet(&p1, 3, &mut handler);
+    assert_eq!(handler.all_data(), b"aaabbb");
+    assert_eq!(reassembler.total_memory(), 0); // all flushed
+
+    // Finalize — closes flow
+    reassembler.finalize(&mut handler);
+    assert_eq!(reassembler.total_memory(), 0);
 }

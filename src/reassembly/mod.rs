@@ -161,6 +161,11 @@ impl TcpReassembler {
             flow.on_rst();
             self.stats.flows_rst += 1;
             let key_clone = key.clone();
+            let flow_mem = self
+                .flows
+                .get(&key_clone)
+                .map(|f| f.memory_used())
+                .unwrap_or(0);
             // Flush buffered contiguous data before removing
             if let Some(flow) = self.flows.get_mut(&key_clone) {
                 use crate::reassembly::handler::Direction;
@@ -175,7 +180,7 @@ impl TcpReassembler {
             }
             handler.on_flow_close(&key_clone, CloseReason::Rst);
             self.flows.remove(&key_clone);
-            self.update_memory();
+            self.total_memory -= flow_mem;
             return;
         }
 
@@ -209,6 +214,7 @@ impl TcpReassembler {
             }
 
             let flow_dir = flow.get_direction_mut(dir);
+            let before_insert = flow_dir.buffered_bytes;
             let result = insert_segment(
                 flow_dir,
                 seq,
@@ -216,6 +222,7 @@ impl TcpReassembler {
                 self.config.max_depth,
                 self.config.max_segments_per_direction,
             );
+            self.total_memory += flow_dir.buffered_bytes - before_insert;
 
             match result {
                 InsertResult::Inserted => self.stats.segments_inserted += 1,
@@ -282,7 +289,9 @@ impl TcpReassembler {
             // Flush contiguous data
             let flow = self.flows.get_mut(&key).unwrap();
             let flow_dir = flow.get_direction_mut(dir);
+            let before_flush = flow_dir.buffered_bytes;
             let flushed = flush_contiguous(flow_dir);
+            self.total_memory -= before_flush - flow_dir.buffered_bytes;
 
             for (offset, data) in &flushed {
                 self.stats.bytes_reassembled += data.len() as u64;
@@ -296,6 +305,7 @@ impl TcpReassembler {
             .get(&key)
             .is_some_and(|f| f.state == FlowState::Closed)
         {
+            let flow_mem = self.flows.get(&key).map(|f| f.memory_used()).unwrap_or(0);
             // Flush remaining data in both directions before removal
             if let Some(flow) = self.flows.get_mut(&key) {
                 use crate::reassembly::handler::Direction;
@@ -311,10 +321,8 @@ impl TcpReassembler {
             self.stats.flows_fin += 1;
             handler.on_flow_close(&key, CloseReason::Fin);
             self.flows.remove(&key);
+            self.total_memory -= flow_mem;
         }
-
-        // 11. Update total memory tracking
-        self.update_memory();
 
         // 12. Evict flows if memcap exceeded
         if self.total_memory > self.config.memcap {
@@ -336,6 +344,7 @@ impl TcpReassembler {
             .collect();
 
         for key in expired_keys {
+            let flow_mem = self.flows.get(&key).map(|f| f.memory_used()).unwrap_or(0);
             // Flush salvageable data before removing
             if let Some(flow) = self.flows.get_mut(&key) {
                 use crate::reassembly::handler::Direction;
@@ -348,11 +357,10 @@ impl TcpReassembler {
                 }
             }
             self.flows.remove(&key);
+            self.total_memory -= flow_mem;
             self.stats.flows_expired += 1;
             handler.on_flow_close(&key, CloseReason::Timeout);
         }
-
-        self.update_memory();
     }
 
     /// Close all remaining flows (called at end of capture).
@@ -360,6 +368,7 @@ impl TcpReassembler {
         use crate::reassembly::handler::Direction;
         let all_keys: Vec<FlowKey> = self.flows.keys().cloned().collect();
         for key in all_keys {
+            let flow_mem = self.flows.get(&key).map(|f| f.memory_used()).unwrap_or(0);
             // Flush any remaining contiguous data before closing
             if let Some(flow) = self.flows.get_mut(&key) {
                 for dir in [Direction::ClientToServer, Direction::ServerToClient] {
@@ -371,9 +380,9 @@ impl TcpReassembler {
                 }
             }
             self.flows.remove(&key);
+            self.total_memory -= flow_mem;
             handler.on_flow_close(&key, CloseReason::Timeout);
         }
-        self.update_memory();
     }
 
     /// Return a reference to current stats.
@@ -386,11 +395,12 @@ impl TcpReassembler {
         &self.findings
     }
 
-    // --- Private helpers ---
-
-    fn update_memory(&mut self) {
-        self.total_memory = self.flows.values().map(|f| f.memory_used()).sum();
+    /// Return the current total memory used by all flow buffers.
+    pub fn total_memory(&self) -> usize {
+        self.total_memory
     }
+
+    // --- Private helpers ---
 
     /// Evict flows when memcap is exceeded.
     /// Strategy: evict non-established flows first (sorted by LRU),
@@ -417,6 +427,7 @@ impl TcpReassembler {
             {
                 break;
             }
+            let flow_mem = self.flows.get(key).map(|f| f.memory_used()).unwrap_or(0);
             // Flush salvageable contiguous data before evicting
             if let Some(flow) = self.flows.get_mut(key) {
                 use crate::reassembly::handler::Direction;
@@ -429,9 +440,9 @@ impl TcpReassembler {
                 }
             }
             self.flows.remove(key);
+            self.total_memory -= flow_mem;
             self.stats.evictions += 1;
             handler.on_flow_close(key, CloseReason::MemoryPressure);
-            self.update_memory();
         }
     }
 
