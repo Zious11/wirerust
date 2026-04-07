@@ -58,7 +58,7 @@ fn find_header(headers: &[httparse::Header<'_>], name: &str) -> Option<String> {
     headers
         .iter()
         .find(|h| h.name.eq_ignore_ascii_case(name))
-        .map(|h| String::from_utf8_lossy(h.value).to_string())
+        .map(|h| String::from_utf8_lossy(h.value).trim().to_string())
 }
 
 struct HttpFlowState {
@@ -404,8 +404,8 @@ impl StreamAnalyzer for HttpAnalyzer {
         let top_hosts: Vec<&str> = top_hosts.iter().take(20).map(|(k, _)| k.as_str()).collect();
         detail.insert("top_hosts".to_string(), serde_json::json!(top_hosts));
 
-        let top_uris: Vec<&str> = self.uris.iter().take(20).map(|s| s.as_str()).collect();
-        detail.insert("top_uris".to_string(), serde_json::json!(top_uris));
+        let recent_uris: Vec<&str> = self.uris.iter().take(20).map(|s| s.as_str()).collect();
+        detail.insert("recent_uris".to_string(), serde_json::json!(recent_uris));
 
         detail.insert(
             "user_agents".to_string(),
