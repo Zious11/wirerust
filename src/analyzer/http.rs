@@ -97,6 +97,12 @@ pub struct HttpAnalyzer {
     all_findings: Vec<Finding>,
 }
 
+impl Default for HttpAnalyzer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HttpAnalyzer {
     pub fn new() -> Self {
         HttpAnalyzer {
@@ -163,7 +169,10 @@ impl HttpAnalyzer {
                 category: ThreatCategory::Execution,
                 verdict: Verdict::Likely,
                 confidence: Confidence::Medium,
-                summary: format!("Possible web shell access: {}", truncate_uri(&parsed.uri, 120)),
+                summary: format!(
+                    "Possible web shell access: {}",
+                    truncate_uri(&parsed.uri, 120)
+                ),
                 evidence: vec![format!("URI: {}", parsed.uri)],
                 mitre_technique: Some("T1505.003".to_string()),
                 source_ip: None,

@@ -6,10 +6,12 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 use wirerust::analyzer::ProtocolAnalyzer;
 use wirerust::analyzer::dns::DnsAnalyzer;
+use wirerust::analyzer::http::HttpAnalyzer;
 use wirerust::cli::{Cli, Commands, OutputFormat};
 use wirerust::decoder::decode_packet;
 use wirerust::reader::PcapSource;
 use wirerust::reassembly::flow::FlowKey;
+use wirerust::reassembly::handler::StreamAnalyzer;
 use wirerust::reassembly::handler::{CloseReason, Direction, StreamHandler};
 use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
 use wirerust::reporter::Reporter;
@@ -24,9 +26,13 @@ fn main() -> Result<()> {
 
     match &cli.command {
         Commands::Analyze {
-            targets, dns, all, ..
+            targets,
+            dns,
+            http,
+            all,
+            ..
         } => {
-            run_analyze(targets, *dns || *all, use_color, &cli)?;
+            run_analyze(targets, *dns || *all, *http || *all, use_color, &cli)?;
         }
         Commands::Summary { targets, .. } => {
             run_summary(targets, use_color, &cli)?;
@@ -39,6 +45,7 @@ fn main() -> Result<()> {
 fn run_analyze(
     targets: &[std::path::PathBuf],
     enable_dns: bool,
+    enable_http: bool,
     use_color: bool,
     cli: &Cli,
 ) -> Result<()> {
@@ -48,7 +55,7 @@ fn run_analyze(
     let mut total_decode_errors: u64 = 0;
 
     // Determine if reassembly is needed
-    let needs_reassembly = cli.reassemble; // Will expand when HTTP/TLS analyzers added
+    let needs_reassembly = cli.reassemble || enable_http;
     let skip_reassembly = cli.no_reassemble;
 
     let mut reassembler = if needs_reassembly && !skip_reassembly {
@@ -67,7 +74,12 @@ fn run_analyze(
         fn on_data(&mut self, _: &FlowKey, _: Direction, _: &[u8], _: u64) {}
         fn on_flow_close(&mut self, _: &FlowKey, _: CloseReason) {}
     }
-    let mut stream_handler = NullHandler;
+    let mut null_handler = NullHandler;
+    let mut http_analyzer = if enable_http && !skip_reassembly {
+        Some(HttpAnalyzer::new())
+    } else {
+        None
+    };
 
     for target in targets {
         let pcap_files = resolve_targets(target)?;
@@ -89,7 +101,18 @@ fn run_analyze(
                             all_findings.extend(findings);
                         }
                         if let Some(ref mut reasm) = reassembler {
-                            reasm.process_packet(&parsed, raw.timestamp_secs, &mut stream_handler);
+                            match http_analyzer {
+                                Some(ref mut http) => {
+                                    reasm.process_packet(&parsed, raw.timestamp_secs, http);
+                                }
+                                None => {
+                                    reasm.process_packet(
+                                        &parsed,
+                                        raw.timestamp_secs,
+                                        &mut null_handler,
+                                    );
+                                }
+                            }
                         }
                     }
                     Err(e) => {
@@ -110,15 +133,25 @@ fn run_analyze(
     summary.skipped_packets = total_decode_errors;
 
     if let Some(ref mut reasm) = reassembler {
-        reasm.finalize(&mut stream_handler);
+        match http_analyzer {
+            Some(ref mut http) => {
+                reasm.finalize(http);
+                all_findings.extend(http.findings());
+            }
+            None => {
+                reasm.finalize(&mut null_handler);
+            }
+        }
         all_findings.extend(reasm.findings().to_vec());
     }
 
-    let analyzer_summaries = if enable_dns {
-        vec![dns_analyzer.summarize()]
-    } else {
-        vec![]
-    };
+    let mut analyzer_summaries = Vec::new();
+    if enable_dns {
+        analyzer_summaries.push(dns_analyzer.summarize());
+    }
+    if let Some(ref http) = http_analyzer {
+        analyzer_summaries.push(http.summarize());
+    }
 
     let output = match cli.output_format {
         Some(OutputFormat::Json) => {
