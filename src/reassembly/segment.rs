@@ -1,4 +1,8 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use crate::reassembly::flow::FlowDirection;
+
+static ISN_MISSING_WARNED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InsertResult {
@@ -36,7 +40,9 @@ impl FlowDirection {
         let isn = match self.isn {
             Some(isn) => isn,
             None => {
-                eprintln!("wirerust: insert_segment called with no ISN set");
+                if !ISN_MISSING_WARNED.swap(true, Ordering::Relaxed) {
+                    eprintln!("wirerust: insert_segment called with no ISN set");
+                }
                 return InsertResult::IsnMissing;
             }
         };

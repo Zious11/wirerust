@@ -3,6 +3,7 @@ pub mod handler;
 pub mod segment;
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::analyzer::AnalysisSummary;
 use crate::decoder::{ParsedPacket, Protocol, TransportInfo};
@@ -14,6 +15,8 @@ use crate::reassembly::segment::InsertResult;
 const OVERLAP_ALERT_THRESHOLD: u32 = 50;
 const SMALL_SEGMENT_ALERT_THRESHOLD: u32 = 2048;
 const MAX_FINDINGS: usize = 10_000;
+
+static CLOSE_FLOW_MISSING_WARNED: AtomicBool = AtomicBool::new(false);
 
 /// Configuration for the TCP reassembly engine.
 #[derive(Debug, Clone)]
@@ -451,7 +454,12 @@ impl TcpReassembler {
         use crate::reassembly::handler::Direction;
         let Some(mut flow) = self.flows.remove(key) else {
             debug_assert!(false, "close_flow called for non-existent key: {}", key);
-            eprintln!("wirerust: close_flow called for non-existent key: {}", key);
+            if !CLOSE_FLOW_MISSING_WARNED.swap(true, Ordering::Relaxed) {
+                eprintln!(
+                    "wirerust: close_flow called for non-existent key: {} (reason: {:?})",
+                    key, reason
+                );
+            }
             return;
         };
         let flow_mem = flow.memory_used();
