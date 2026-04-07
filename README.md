@@ -7,9 +7,10 @@ Inspired by [pcapper](https://github.com/SackOfHacks/pcapper) — reimagined for
 ## Features
 
 - **One-pass triage** — hosts, services, protocols, and threat signals from pcap files
-- **Protocol analysis** — DNS and HTTP traffic analysis with extensible analyzer framework
+- **Protocol analysis** — DNS, HTTP, and TLS traffic analysis with extensible analyzer framework
 - **HTTP forensics** — stream-level HTTP/1.x parsing with detection for path traversal, web shells, unusual methods, and anomalies
-- **TCP stream reassembly** — forensic-grade reassembly engine with first-wins overlap policy, configurable depth/memory limits
+- **TLS forensics** — ClientHello/ServerHello parsing, SNI extraction, JA3/JA3S fingerprinting, weak cipher and deprecated SSL 2.0/3.0 detection
+- **TCP stream reassembly** — forensic-grade reassembly engine with first-wins overlap policy, configurable depth/memory/window limits
 - **Multi-link-type support** — Ethernet, Raw IP, IPv4, IPv6, and Linux Cooked (SLL) pcap formats
 - **Threat detection** — finding system with verdict/confidence scoring and MITRE ATT&CK mapping
 - **Multiple outputs** — colored terminal, JSON export
@@ -85,7 +86,7 @@ Options:
 --threats    Run threat detection
 --dns        Analyze DNS traffic
 --http       Analyze HTTP traffic (auto-enables reassembly)
---tls        Analyze TLS handshakes (coming soon)
+--tls        Analyze TLS handshakes (SNI, JA3/JA3S, weak ciphers, deprecated SSL)
 --beacon     Detect C2 beaconing patterns (coming soon)
 -a, --all    Run all analyzers
 -f, --filter BPF filter expression
@@ -98,7 +99,7 @@ PCAP file → Reader → Decoder → Analyzers → Reporter
                ↓         ↓          ↓
            DataLink  ParsedPacket  Findings
                          ↓
-                   Reassembly Engine → StreamAnalyzers (HTTP)
+                   Reassembly Engine → StreamDispatcher → StreamAnalyzers (HTTP, TLS)
                          ↓
                       Summary
 ```
@@ -108,6 +109,7 @@ PCAP file → Reader → Decoder → Analyzers → Reporter
 | Reader | `pcap-file` | Parse pcap files (5 link types) |
 | Decoder | `etherparse` | Zero-copy packet parsing |
 | HTTP Parser | `httparse` | HTTP/1.x request/response parsing |
+| TLS Parser | `tls-parser` | TLS handshake parsing, JA3/JA3S |
 | Reassembly | (built-in) | TCP stream reassembly engine |
 | CLI | `clap` | Argument parsing |
 | Output | `owo-colors`, `serde_json` | Terminal + JSON |
@@ -144,7 +146,6 @@ impl ProtocolAnalyzer for MyAnalyzer {
 
 See [open issues](https://github.com/Zious11/wirerust/issues) for planned features:
 
-- TLS analyzer (JA3/JA4 fingerprinting)
 - C2 beaconing detection
 - CSV and SQLite export
 - MITRE ATT&CK mapping

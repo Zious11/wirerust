@@ -47,7 +47,7 @@ fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget {
         return DispatchTarget::Http;
     }
     // Port fallback for short data
-    let ports = [flow_key.lower_port, flow_key.upper_port];
+    let ports = [flow_key.lower_port(), flow_key.upper_port()];
     if ports.contains(&443) || ports.contains(&8443) {
         return DispatchTarget::Tls;
     }
