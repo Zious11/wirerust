@@ -1,4 +1,5 @@
 pub mod dns;
+pub mod http;
 
 use std::collections::HashMap;
 
