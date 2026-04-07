@@ -160,29 +160,7 @@ impl TcpReassembler {
         if rst {
             flow.on_rst();
             self.stats.flows_rst += 1;
-            let key_clone = key.clone();
-            // Capture memory before flushing: total_memory still holds this flow's
-            // full contribution. Subtracting flow_mem after removal zeros it out.
-            let flow_mem = self
-                .flows
-                .get(&key_clone)
-                .expect("flow must exist before RST removal")
-                .memory_used();
-            // Flush buffered contiguous data before removing
-            if let Some(flow) = self.flows.get_mut(&key_clone) {
-                use crate::reassembly::handler::Direction;
-                for dir in [Direction::ClientToServer, Direction::ServerToClient] {
-                    let flow_dir = flow.get_direction_mut(dir);
-                    let flushed = flow_dir.flush_contiguous();
-                    for (offset, data) in &flushed {
-                        self.stats.bytes_reassembled += data.len() as u64;
-                        handler.on_data(&key_clone, dir, data, *offset);
-                    }
-                }
-            }
-            handler.on_flow_close(&key_clone, CloseReason::Rst);
-            self.flows.remove(&key_clone);
-            self.total_memory -= flow_mem;
+            self.close_flow(&key, CloseReason::Rst, handler);
             return;
         }
 
@@ -312,28 +290,8 @@ impl TcpReassembler {
             .get(&key)
             .is_some_and(|f| f.state == FlowState::Closed)
         {
-            // Capture memory before flushing (see RST handler comment for rationale)
-            let flow_mem = self
-                .flows
-                .get(&key)
-                .expect("flow must exist before FIN removal")
-                .memory_used();
-            // Flush remaining data in both directions before removal
-            if let Some(flow) = self.flows.get_mut(&key) {
-                use crate::reassembly::handler::Direction;
-                for dir in [Direction::ClientToServer, Direction::ServerToClient] {
-                    let flow_dir = flow.get_direction_mut(dir);
-                    let flushed = flow_dir.flush_contiguous();
-                    for (offset, data) in &flushed {
-                        self.stats.bytes_reassembled += data.len() as u64;
-                        handler.on_data(&key, dir, data, *offset);
-                    }
-                }
-            }
             self.stats.flows_fin += 1;
-            handler.on_flow_close(&key, CloseReason::Fin);
-            self.flows.remove(&key);
-            self.total_memory -= flow_mem;
+            self.close_flow(&key, CloseReason::Fin, handler);
         }
 
         // 12. Evict flows if memcap exceeded
@@ -356,52 +314,16 @@ impl TcpReassembler {
             .collect();
 
         for key in expired_keys {
-            let flow_mem = self
-                .flows
-                .get(&key)
-                .expect("expired flow must exist")
-                .memory_used();
-            // Flush salvageable data before removing
-            if let Some(flow) = self.flows.get_mut(&key) {
-                use crate::reassembly::handler::Direction;
-                for dir in [Direction::ClientToServer, Direction::ServerToClient] {
-                    let flow_dir = flow.get_direction_mut(dir);
-                    let flushed = flow_dir.flush_contiguous();
-                    for (offset, data) in &flushed {
-                        handler.on_data(&key, dir, data, *offset);
-                    }
-                }
-            }
-            self.flows.remove(&key);
-            self.total_memory -= flow_mem;
             self.stats.flows_expired += 1;
-            handler.on_flow_close(&key, CloseReason::Timeout);
+            self.close_flow(&key, CloseReason::Timeout, handler);
         }
     }
 
     /// Close all remaining flows (called at end of capture).
     pub fn finalize(&mut self, handler: &mut dyn StreamHandler) {
-        use crate::reassembly::handler::Direction;
         let all_keys: Vec<FlowKey> = self.flows.keys().cloned().collect();
         for key in all_keys {
-            let flow_mem = self
-                .flows
-                .get(&key)
-                .expect("finalize flow must exist")
-                .memory_used();
-            // Flush any remaining contiguous data before closing
-            if let Some(flow) = self.flows.get_mut(&key) {
-                for dir in [Direction::ClientToServer, Direction::ServerToClient] {
-                    let flow_dir = flow.get_direction_mut(dir);
-                    let flushed = flow_dir.flush_contiguous();
-                    for (offset, data) in &flushed {
-                        handler.on_data(&key, dir, data, *offset);
-                    }
-                }
-            }
-            self.flows.remove(&key);
-            self.total_memory -= flow_mem;
-            handler.on_flow_close(&key, CloseReason::Timeout);
+            self.close_flow(&key, CloseReason::Timeout, handler);
         }
     }
 
@@ -421,6 +343,30 @@ impl TcpReassembler {
     }
 
     // --- Private helpers ---
+
+    /// Flush remaining contiguous data in both directions, remove the flow,
+    /// update memory accounting, and notify the handler.
+    fn close_flow(&mut self, key: &FlowKey, reason: CloseReason, handler: &mut dyn StreamHandler) {
+        use crate::reassembly::handler::Direction;
+        let flow_mem = self
+            .flows
+            .get(key)
+            .expect("flow must exist before close")
+            .memory_used();
+        if let Some(flow) = self.flows.get_mut(key) {
+            for dir in [Direction::ClientToServer, Direction::ServerToClient] {
+                let flow_dir = flow.get_direction_mut(dir);
+                let flushed = flow_dir.flush_contiguous();
+                for (offset, data) in &flushed {
+                    self.stats.bytes_reassembled += data.len() as u64;
+                    handler.on_data(key, dir, data, *offset);
+                }
+            }
+        }
+        self.flows.remove(key);
+        self.total_memory -= flow_mem;
+        handler.on_flow_close(key, reason);
+    }
 
     /// Evict flows when memcap is exceeded.
     /// Strategy: evict non-established flows first (sorted by LRU),
@@ -447,26 +393,8 @@ impl TcpReassembler {
             {
                 break;
             }
-            let flow_mem = self
-                .flows
-                .get(key)
-                .expect("eviction candidate must exist")
-                .memory_used();
-            // Flush salvageable contiguous data before evicting
-            if let Some(flow) = self.flows.get_mut(key) {
-                use crate::reassembly::handler::Direction;
-                for dir in [Direction::ClientToServer, Direction::ServerToClient] {
-                    let flow_dir = flow.get_direction_mut(dir);
-                    let flushed = flow_dir.flush_contiguous();
-                    for (offset, data) in &flushed {
-                        handler.on_data(key, dir, data, *offset);
-                    }
-                }
-            }
-            self.flows.remove(key);
-            self.total_memory -= flow_mem;
             self.stats.evictions += 1;
-            handler.on_flow_close(key, CloseReason::MemoryPressure);
+            self.close_flow(key, CloseReason::MemoryPressure, handler);
         }
     }
 

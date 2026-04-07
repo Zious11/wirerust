@@ -967,3 +967,47 @@ fn test_max_segments_per_direction() {
     reassembler.finalize(&mut handler);
     assert_eq!(reassembler.total_memory(), 0);
 }
+
+#[test]
+fn test_finalize_bytes_reassembled_consistent() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let data = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"hello", false, false, false, false,
+    );
+    reassembler.process_packet(&data, 2, &mut handler);
+
+    let bytes_before_finalize = reassembler.stats().bytes_reassembled;
+    reassembler.finalize(&mut handler);
+    let bytes_after_finalize = reassembler.stats().bytes_reassembled;
+
+    assert!(bytes_after_finalize >= bytes_before_finalize);
+    let total_delivered: u64 = handler
+        .data_events
+        .iter()
+        .map(|(_, _, data, _)| data.len() as u64)
+        .sum();
+    assert_eq!(
+        bytes_after_finalize, total_delivered,
+        "bytes_reassembled must match total bytes delivered to handler"
+    );
+}
