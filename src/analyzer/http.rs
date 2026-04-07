@@ -268,6 +268,11 @@ impl HttpAnalyzer {
     }
 
     fn try_parse_requests(&mut self, flow_key: &FlowKey) {
+        // Track whether we've successfully parsed headers this call. After a
+        // successful parse, remaining bytes are likely HTTP body data (we don't
+        // handle Content-Length/Transfer-Encoding). Suppress error counting for
+        // body-byte-induced failures to avoid inflating the counter on normal traffic.
+        let mut had_success = false;
         loop {
             let result = self
                 .flows
@@ -277,6 +282,7 @@ impl HttpAnalyzer {
 
             match result {
                 Some(Ok(Some(parsed))) => {
+                    had_success = true;
                     if self.methods.len() < MAX_MAP_ENTRIES
                         || self.methods.contains_key(&parsed.method)
                     {
@@ -305,18 +311,20 @@ impl HttpAnalyzer {
                 }
                 Some(Ok(None)) => return, // Partial — wait for more data
                 Some(Err(e)) => {
-                    self.parse_errors += 1;
-                    if e == httparse::Error::TooManyHeaders {
-                        self.all_findings.push(Finding {
-                            category: ThreatCategory::Anomaly,
-                            verdict: Verdict::Inconclusive,
-                            confidence: Confidence::Medium,
-                            summary: "Excessive HTTP headers exceeded parser limit (possible DoS or header-based attack)".to_string(),
-                            evidence: vec!["Direction: request".to_string()],
-                            mitre_technique: Some("T1499.002".to_string()),
-                            source_ip: None,
-                            timestamp: None,
-                        });
+                    if !had_success {
+                        self.parse_errors += 1;
+                        if e == httparse::Error::TooManyHeaders {
+                            self.all_findings.push(Finding {
+                                category: ThreatCategory::Anomaly,
+                                verdict: Verdict::Inconclusive,
+                                confidence: Confidence::Medium,
+                                summary: "Excessive HTTP headers exceeded parser limit (possible DoS or header-based attack)".to_string(),
+                                evidence: vec!["Direction: request".to_string()],
+                                mitre_technique: Some("T1499.002".to_string()),
+                                source_ip: None,
+                                timestamp: None,
+                            });
+                        }
                     }
                     if let Some(state) = self.flows.get_mut(flow_key) {
                         state.request_buf.clear();
@@ -329,6 +337,7 @@ impl HttpAnalyzer {
     }
 
     fn try_parse_responses(&mut self, flow_key: &FlowKey) {
+        let mut had_success = false;
         loop {
             let result = self
                 .flows
@@ -338,6 +347,7 @@ impl HttpAnalyzer {
 
             match result {
                 Some(Ok(Some(parsed))) => {
+                    had_success = true;
                     *self.status_codes.entry(parsed.status_code).or_insert(0) += 1;
                     self.transactions += 1;
 
@@ -347,18 +357,20 @@ impl HttpAnalyzer {
                 }
                 Some(Ok(None)) => return,
                 Some(Err(e)) => {
-                    self.parse_errors += 1;
-                    if e == httparse::Error::TooManyHeaders {
-                        self.all_findings.push(Finding {
-                            category: ThreatCategory::Anomaly,
-                            verdict: Verdict::Inconclusive,
-                            confidence: Confidence::Medium,
-                            summary: "Excessive HTTP headers exceeded parser limit (possible DoS or header-based attack)".to_string(),
-                            evidence: vec!["Direction: response".to_string()],
-                            mitre_technique: Some("T1499.002".to_string()),
-                            source_ip: None,
-                            timestamp: None,
-                        });
+                    if !had_success {
+                        self.parse_errors += 1;
+                        if e == httparse::Error::TooManyHeaders {
+                            self.all_findings.push(Finding {
+                                category: ThreatCategory::Anomaly,
+                                verdict: Verdict::Inconclusive,
+                                confidence: Confidence::Medium,
+                                summary: "Excessive HTTP headers exceeded parser limit (possible DoS or header-based attack)".to_string(),
+                                evidence: vec!["Direction: response".to_string()],
+                                mitre_technique: Some("T1499.002".to_string()),
+                                source_ip: None,
+                                timestamp: None,
+                            });
+                        }
                     }
                     if let Some(state) = self.flows.get_mut(flow_key) {
                         state.response_buf.clear();

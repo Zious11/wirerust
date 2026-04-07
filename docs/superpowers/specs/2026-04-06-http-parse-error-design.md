@@ -50,7 +50,7 @@ Public method on `HttpAnalyzer` returning `u64`, for test assertions.
 | `parse_one_response` (line 44-55) | Same return type change |
 | `HttpAnalyzer` struct (line 86-95) | Add `parse_errors: u64` field |
 | `HttpAnalyzer::new()` (line 104-115) | Initialize `parse_errors: 0` |
-| `try_parse_requests` (line 264-310) | Match on `Some(Err(e))` instead of `Some(Err(()))`, increment `self.parse_errors`, generate finding if `e == httparse::Error::TooManyHeaders` |
+| `try_parse_requests` (line 264-310) | Match on `Some(Err(e))`, increment counter and generate finding only if no prior successful parse this call (suppresses body-byte false positives) |
 | `try_parse_responses` (line 312-339) | Same error handling change |
 | `summarize()` (line 384-420) | Add `parse_errors` to detail map |
 | New method | `pub fn parse_error_count(&self) -> u64` |
@@ -66,9 +66,18 @@ Public method on `HttpAnalyzer` returning `u64`, for test assertions.
 | `test_parse_error_in_summarize` | Send malformed request, assert `summarize().detail["parse_errors"]` reflects count |
 | `test_normal_request_no_parse_errors` | Send valid HTTP, assert `parse_error_count() == 0` |
 
+## Design Decision: Body-Byte Suppression
+
+The analyzer does not handle HTTP body framing (Content-Length / Transfer-Encoding). After a successful header parse, remaining body bytes stay in the buffer and get re-parsed as HTTP, triggering `httparse::Error::Token`. Without mitigation, this would inflate `parse_errors` on every response with a body.
+
+**Fix:** A `had_success` flag in `try_parse_requests` / `try_parse_responses` tracks whether headers were successfully parsed this call. Parse errors after a successful parse are suppressed (body-byte-induced), while errors on fresh data (no prior success) are counted.
+
+**Trade-off:** A pipelined valid request followed by a genuinely malformed request in the same buffer would not be counted. This is acceptable — pipelined malformed traffic is rare, and the counter remains accurate for the primary use case (malformed traffic arriving fresh).
+
 ## Not In Scope
 
 - Splitting counter by request vs response (Suricata uses aggregate)
 - Findings for non-TooManyHeaders error variants (benign malformed traffic at individual level)
 - Changes to `Finding` struct
 - Changes to reassembly engine or other analyzers
+- Content-Length / Transfer-Encoding body handling (would eliminate the need for had_success heuristic)

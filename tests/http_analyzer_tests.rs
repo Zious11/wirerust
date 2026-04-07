@@ -354,3 +354,22 @@ fn test_multiple_parse_errors_accumulate() {
     analyzer.on_data(&fk, Direction::ServerToClient, b"ALSO_BAD\r\n\r\n", 0);
     assert_eq!(analyzer.parse_error_count(), 2);
 }
+
+#[test]
+fn test_body_bytes_do_not_inflate_parse_errors() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Request with no body
+    let request = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+    // Response WITH body "hello" (Content-Length: 5)
+    // Body bytes remain in buffer after header parse and would previously
+    // be re-parsed as HTTP, triggering a false parse error.
+    let response = b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 5\r\n\r\nhello";
+    analyzer.on_data(&fk, Direction::ServerToClient, response, 0);
+
+    assert_eq!(analyzer.parse_error_count(), 0);
+    assert!(analyzer.findings().is_empty());
+}
