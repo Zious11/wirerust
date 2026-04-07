@@ -6,8 +6,11 @@ Inspired by [pcapper](https://github.com/SackOfHacks/pcapper) — reimagined for
 
 ## Features
 
-- **One-pass triage** — hosts, services, protocols, and threat signals from pcap/pcapng files
-- **Protocol analysis** — DNS traffic analysis with extensible analyzer framework
+- **One-pass triage** — hosts, services, protocols, and threat signals from pcap files
+- **Protocol analysis** — DNS and HTTP traffic analysis with extensible analyzer framework
+- **HTTP forensics** — stream-level HTTP/1.x parsing with detection for path traversal, web shells, unusual methods, and anomalies
+- **TCP stream reassembly** — forensic-grade reassembly engine with first-wins overlap policy, configurable depth/memory limits
+- **Multi-link-type support** — Ethernet, Raw IP, IPv4, IPv6, and Linux Cooked (SLL) pcap formats
 - **Threat detection** — finding system with verdict/confidence scoring and MITRE ATT&CK mapping
 - **Multiple outputs** — colored terminal, JSON export
 - **Fast** — Rust + etherparse zero-copy parsing, built for multi-GB captures
@@ -34,6 +37,9 @@ cargo build --release
 ```bash
 # Quick triage with DNS analysis
 wirerust analyze capture.pcap --dns
+
+# HTTP analysis (auto-enables TCP reassembly)
+wirerust analyze capture.pcap --http
 
 # Run all analyzers
 wirerust analyze capture.pcap --all
@@ -65,6 +71,10 @@ Options:
   -v, --verbose              Enable verbose output
       --no-color             Disable colored output
       --output-format <FMT>  Output format: json, csv
+      --reassemble           Force TCP stream reassembly on
+      --no-reassemble        Force TCP stream reassembly off
+      --reassembly-depth N   Per-direction stream limit in MB (default: 10)
+      --reassembly-memcap N  Global memory cap in MB (default: 1024)
   -h, --help                 Print help
   -V, --version              Print version
 ```
@@ -74,7 +84,7 @@ Options:
 ```
 --threats    Run threat detection
 --dns        Analyze DNS traffic
---http       Analyze HTTP traffic (coming soon)
+--http       Analyze HTTP traffic (auto-enables reassembly)
 --tls        Analyze TLS handshakes (coming soon)
 --beacon     Detect C2 beaconing patterns (coming soon)
 -a, --all    Run all analyzers
@@ -85,22 +95,37 @@ Options:
 
 ```
 PCAP file → Reader → Decoder → Analyzers → Reporter
-                        ↓           ↓
-                    ParsedPacket  Findings
-                        ↓
-                     Summary
+               ↓         ↓          ↓
+           DataLink  ParsedPacket  Findings
+                         ↓
+                   Reassembly Engine → StreamAnalyzers (HTTP)
+                         ↓
+                      Summary
 ```
 
 | Component | Crate | Purpose |
 |-----------|-------|---------|
-| Reader | `pcap-file` | Parse pcap/pcapng files |
+| Reader | `pcap-file` | Parse pcap files (5 link types) |
 | Decoder | `etherparse` | Zero-copy packet parsing |
+| HTTP Parser | `httparse` | HTTP/1.x request/response parsing |
+| Reassembly | (built-in) | TCP stream reassembly engine |
 | CLI | `clap` | Argument parsing |
 | Output | `owo-colors`, `serde_json` | Terminal + JSON |
 
+## Supported Link Types
+
+| Type | ID | Status |
+|------|-----|--------|
+| Ethernet | 1 | Supported |
+| Raw IP | 101 | Supported |
+| Linux Cooked (SLL) | 113 | Supported |
+| IPv4 | 228 | Supported |
+| IPv6 | 229 | Supported |
+| pcapng | — | Not yet supported |
+
 ## Extending
 
-Add a new protocol analyzer by implementing the `ProtocolAnalyzer` trait:
+Add a new protocol analyzer by implementing the `ProtocolAnalyzer` trait (per-packet) or `StreamAnalyzer` trait (reassembled streams):
 
 ```rust
 use wirerust::analyzer::ProtocolAnalyzer;
@@ -119,12 +144,13 @@ impl ProtocolAnalyzer for MyAnalyzer {
 
 See [open issues](https://github.com/Zious11/wirerust/issues) for planned features:
 
-- HTTP and TLS analyzers
+- TLS analyzer (JA3/JA4 fingerprinting)
 - C2 beaconing detection
 - CSV and SQLite export
 - MITRE ATT&CK mapping
 - Parallel file processing
 - ICS/OT protocols (Modbus, DNP3)
+- pcapng format support
 
 ## License
 
