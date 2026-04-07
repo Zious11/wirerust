@@ -288,3 +288,33 @@ fn test_out_of_window_segment_rejected() {
     let result = dir.insert_segment(edge_seq as u32, b"edge", 10_485_760, 10_000, 1_048_576);
     assert_eq!(result, InsertResult::Inserted);
 }
+
+#[test]
+fn test_multi_segment_full_coverage_returns_duplicate() {
+    let mut dir = FlowDirection::new();
+    dir.set_isn(1000);
+
+    // Insert two adjacent segments: "AAA" at offset 1, "BBB" at offset 4
+    dir.insert_segment(1001, b"AAA", 10_485_760, 10_000, 10_485_760);
+    dir.insert_segment(1004, b"BBB", 10_485_760, 10_000, 10_485_760);
+
+    // Insert segment spanning both: "AAABBB" at offset 1
+    // Union of existing segments fully covers this — should be Duplicate
+    let result = dir.insert_segment(1001, b"AAABBB", 10_485_760, 10_000, 10_485_760);
+    assert_eq!(result, InsertResult::Duplicate);
+}
+
+#[test]
+fn test_multi_segment_full_coverage_conflicting_returns_conflict() {
+    let mut dir = FlowDirection::new();
+    dir.set_isn(1000);
+
+    // Insert two adjacent segments: "AAA" at offset 1, "BBB" at offset 4
+    dir.insert_segment(1001, b"AAA", 10_485_760, 10_000, 10_485_760);
+    dir.insert_segment(1004, b"BBB", 10_485_760, 10_000, 10_485_760);
+
+    // Insert segment spanning both with different data
+    // Union covers it but data conflicts — should be ConflictingOverlap
+    let result = dir.insert_segment(1001, b"XXXXXX", 10_485_760, 10_000, 10_485_760);
+    assert_eq!(result, InsertResult::ConflictingOverlap);
+}

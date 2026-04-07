@@ -180,6 +180,8 @@ impl FlowDirection {
             // Only report ConflictingOverlap when fully covered (no gap was inserted)
             return if !had_gap && has_conflict {
                 InsertResult::ConflictingOverlap
+            } else if !had_gap {
+                InsertResult::Duplicate
             } else if truncated {
                 InsertResult::Truncated
             } else {
