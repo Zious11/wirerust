@@ -47,6 +47,7 @@ fn make_tcp_packet(
     seq: u32,
     payload: &[u8],
     syn: bool,
+    ack: bool,
     fin: bool,
     rst: bool,
 ) -> ParsedPacket {
@@ -59,7 +60,7 @@ fn make_tcp_packet(
             dst_port,
             seq_number: seq,
             syn,
-            ack: false,
+            ack,
             fin,
             rst,
         },
@@ -78,17 +79,34 @@ fn test_three_packet_stream_ordered() {
     let server = [10, 0, 0, 2];
 
     // SYN
-    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false);
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn, 1, &mut handler);
 
     // Data packets
-    let p1 = make_tcp_packet(client, 12345, server, 80, 1001, b"aaa", false, false, false);
+    let p1 = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"aaa", false, false, false, false,
+    );
     reassembler.process_packet(&p1, 2, &mut handler);
 
-    let p2 = make_tcp_packet(client, 12345, server, 80, 1004, b"bbb", false, false, false);
+    let p2 = make_tcp_packet(
+        client, 12345, server, 80, 1004, b"bbb", false, false, false, false,
+    );
     reassembler.process_packet(&p2, 3, &mut handler);
 
-    let p3 = make_tcp_packet(client, 12345, server, 80, 1007, b"ccc", false, false, false);
+    let p3 = make_tcp_packet(
+        client, 12345, server, 80, 1007, b"ccc", false, false, false, false,
+    );
     reassembler.process_packet(&p3, 4, &mut handler);
 
     assert_eq!(handler.all_data(), b"aaabbbccc");
@@ -105,18 +123,35 @@ fn test_out_of_order_delivery() {
     let server = [10, 0, 0, 2];
 
     // SYN
-    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false);
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn, 1, &mut handler);
 
     // Send packets [1, 3, 2]
-    let p1 = make_tcp_packet(client, 12345, server, 80, 1001, b"aaa", false, false, false);
+    let p1 = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"aaa", false, false, false, false,
+    );
     reassembler.process_packet(&p1, 2, &mut handler);
 
-    let p3 = make_tcp_packet(client, 12345, server, 80, 1007, b"ccc", false, false, false);
+    let p3 = make_tcp_packet(
+        client, 12345, server, 80, 1007, b"ccc", false, false, false, false,
+    );
     reassembler.process_packet(&p3, 3, &mut handler);
     assert_eq!(handler.data_events.len(), 1); // only p1 flushed
 
-    let p2 = make_tcp_packet(client, 12345, server, 80, 1004, b"bbb", false, false, false);
+    let p2 = make_tcp_packet(
+        client, 12345, server, 80, 1004, b"bbb", false, false, false, false,
+    );
     reassembler.process_packet(&p2, 4, &mut handler);
 
     // Now all three should be flushed
@@ -134,7 +169,7 @@ fn test_mid_stream_no_syn() {
 
     // Data without SYN
     let p1 = make_tcp_packet(
-        client, 12345, server, 80, 5000, b"hello", false, false, false,
+        client, 12345, server, 80, 5000, b"hello", false, false, false, false,
     );
     reassembler.process_packet(&p1, 1, &mut handler);
 
@@ -154,15 +189,37 @@ fn test_rst_closes_flow() {
     let client = [10, 0, 0, 1];
     let server = [10, 0, 0, 2];
 
-    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false);
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn, 1, &mut handler);
 
     let data = make_tcp_packet(
-        client, 12345, server, 80, 1001, b"data", false, false, false,
+        client, 12345, server, 80, 1001, b"data", false, false, false, false,
     );
     reassembler.process_packet(&data, 2, &mut handler);
 
-    let rst = make_tcp_packet(server, 80, client, 12345, 2000, &[], false, false, true);
+    let rst = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        false,
+        false,
+        false,
+        true,
+    );
     reassembler.process_packet(&rst, 3, &mut handler);
 
     assert_eq!(handler.close_events.len(), 1);
@@ -179,7 +236,18 @@ fn test_finalize_flushes_remaining() {
     let client = [10, 0, 0, 1];
     let server = [10, 0, 0, 2];
 
-    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false);
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn, 1, &mut handler);
 
     let data = make_tcp_packet(
@@ -189,6 +257,7 @@ fn test_finalize_flushes_remaining() {
         80,
         1001,
         b"leftover",
+        false,
         false,
         false,
         false,
@@ -213,7 +282,18 @@ fn test_flow_timeout_expiration() {
     let client = [10, 0, 0, 1];
     let server = [10, 0, 0, 2];
 
-    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false);
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn, 100, &mut handler);
 
     // Expire at time 200 (100 seconds later, > 10s timeout)
@@ -237,17 +317,32 @@ fn test_total_memory_tracking() {
     let server = [10, 0, 0, 2];
 
     // SYN — no payload, no memory change
-    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false);
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn, 1, &mut handler);
 
     // Out-of-order segment — buffered (not flushed)
-    let p2 = make_tcp_packet(client, 12345, server, 80, 1004, b"bbb", false, false, false);
+    let p2 = make_tcp_packet(
+        client, 12345, server, 80, 1004, b"bbb", false, false, false, false,
+    );
     reassembler.process_packet(&p2, 2, &mut handler);
     assert!(handler.data_events.is_empty());
     assert_eq!(reassembler.total_memory(), 3); // "bbb" buffered
 
     // In-order segment — triggers flush of both
-    let p1 = make_tcp_packet(client, 12345, server, 80, 1001, b"aaa", false, false, false);
+    let p1 = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"aaa", false, false, false, false,
+    );
     reassembler.process_packet(&p1, 3, &mut handler);
     assert_eq!(handler.all_data(), b"aaabbb");
     assert_eq!(reassembler.total_memory(), 0); // all flushed
@@ -267,20 +362,55 @@ fn test_fin_close_total_memory() {
     let server = [10, 0, 0, 2];
 
     // SYN from client
-    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false);
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn, 1, &mut handler);
 
     // Out-of-order data — stays buffered (gap at offset 1)
-    let p2 = make_tcp_packet(client, 12345, server, 80, 1004, b"bbb", false, false, false);
+    let p2 = make_tcp_packet(
+        client, 12345, server, 80, 1004, b"bbb", false, false, false, false,
+    );
     reassembler.process_packet(&p2, 2, &mut handler);
     assert_eq!(reassembler.total_memory(), 3);
 
     // FIN from client (first FIN)
-    let fin1 = make_tcp_packet(client, 12345, server, 80, 1007, &[], false, true, false);
+    let fin1 = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1007,
+        &[],
+        false,
+        false,
+        true,
+        false,
+    );
     reassembler.process_packet(&fin1, 3, &mut handler);
 
     // FIN from server (second FIN → Closed, triggers step 10 removal)
-    let fin2 = make_tcp_packet(server, 80, client, 12345, 2000, &[], false, true, false);
+    let fin2 = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        false,
+        false,
+        true,
+        false,
+    );
     reassembler.process_packet(&fin2, 4, &mut handler);
 
     // Flow removed with buffered-but-not-flushed data — total_memory must be 0
