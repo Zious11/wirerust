@@ -234,3 +234,14 @@ fn test_parse_error_increments_counter() {
 
     assert_eq!(analyzer.parse_error_count(), 1);
 }
+
+#[test]
+fn test_parse_error_in_summarize() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    analyzer.on_data(&fk, Direction::ClientToServer, b"NOT_HTTP\r\n\r\n", 0);
+
+    let summary = analyzer.summarize();
+    assert_eq!(summary.detail["parse_errors"], 1);
+}

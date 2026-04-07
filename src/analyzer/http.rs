@@ -443,6 +443,10 @@ impl StreamAnalyzer for HttpAnalyzer {
             "user_agents".to_string(),
             serde_json::json!(self.user_agents),
         );
+        detail.insert(
+            "parse_errors".to_string(),
+            serde_json::json!(self.parse_errors),
+        );
 
         AnalysisSummary {
             analyzer_name: self.name().to_string(),
