@@ -73,6 +73,7 @@ pub struct TcpReassembler {
     stats: ReassemblyStats,
     findings: Vec<Finding>,
     total_memory: usize,
+    finalized: bool,
 }
 
 impl TcpReassembler {
@@ -94,6 +95,7 @@ impl TcpReassembler {
             stats: ReassemblyStats::default(),
             findings: Vec::new(),
             total_memory: 0,
+            finalized: false,
         }
     }
 
@@ -345,21 +347,31 @@ impl TcpReassembler {
 
     /// Close all remaining flows (called at end of capture).
     /// Generates summary-level findings for notable reassembly events.
+    /// Must only be called once; subsequent calls are no-ops.
     pub fn finalize(&mut self, handler: &mut dyn StreamHandler) {
+        if self.finalized {
+            return;
+        }
+        self.finalized = true;
+
         let all_keys: Vec<FlowKey> = self.flows.keys().cloned().collect();
         for key in all_keys {
             self.close_flow(&key, CloseReason::Timeout, handler);
         }
 
-        // Generate summary-level finding for segment limit hits
-        if self.stats.segments_segment_limit > 0 && self.findings.len() < MAX_FINDINGS {
+        // Generate summary-level finding for segment limit hits.
+        // Pushed unconditionally (at most 1 finding) to avoid being silently
+        // dropped when per-flow findings have filled the MAX_FINDINGS cap.
+        let count = self.stats.segments_segment_limit;
+        if count > 0 {
             self.findings.push(Finding {
                 category: ThreatCategory::Anomaly,
                 verdict: Verdict::Inconclusive,
                 confidence: Confidence::Medium,
                 summary: format!(
-                    "{} segments dropped due to per-flow segment count limit",
-                    self.stats.segments_segment_limit
+                    "{} segment{} dropped due to per-flow segment count limit",
+                    count,
+                    if count == 1 { "" } else { "s" }
                 ),
                 evidence: vec![
                     "Segment count limit prevents BTreeMap overhead explosion".into(),
@@ -391,6 +403,11 @@ impl TcpReassembler {
     pub fn summarize(&self) -> AnalysisSummary {
         let mut detail = HashMap::new();
         let s = &self.stats;
+        detail.insert("packets_processed".into(), s.packets_processed.into());
+        detail.insert(
+            "packets_skipped_non_tcp".into(),
+            s.packets_skipped_non_tcp.into(),
+        );
         detail.insert("flows_total".into(), s.flows_total.into());
         detail.insert("flows_partial".into(), s.flows_partial.into());
         detail.insert("flows_completed".into(), (s.flows_fin + s.flows_rst).into());

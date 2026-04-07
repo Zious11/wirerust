@@ -1186,7 +1186,7 @@ fn test_finalize_generates_segment_limit_finding() {
         .iter()
         .find(|f| f.summary.contains("segment count limit"))
         .expect("should find segment-limit summary finding");
-    assert!(limit_finding.summary.contains("1 segments dropped"));
+    assert!(limit_finding.summary.contains("1 segment dropped"));
 }
 
 #[test]
