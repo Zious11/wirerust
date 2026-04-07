@@ -1,17 +1,17 @@
 # TCP Reassembly Performance Optimization Design
 
 **Issue:** #11 — perf: use BTreeMap::range() and incremental memory tracking in reassembly
-**Scope:** Three targeted O(n) → O(1)/O(log n) optimizations in the reassembly engine internals. No behavioral changes, no API changes.
+**Scope:** Three targeted O(n) → O(1)/O(log n) optimizations in the reassembly engine internals. No behavioral changes. Adds `total_memory()` public accessor for testability.
 
 ## Problem
 
-The TCP reassembly engine has three O(n) hotspots identified during PR #10 review:
+Before these optimizations, the TCP reassembly engine had three O(n) hotspots identified during PR #10 review:
 
-1. **Overlap detection** (`segment.rs:85`): iterates all segments in the BTreeMap per insert, even though only segments starting before `new_end` can overlap.
-2. **`buffered_bytes` computation** (`segment.rs:62`): recomputes `segments.values().map(|v| v.len()).sum()` on every insert — O(n) per call.
-3. **`update_memory()` recomputation** (`mod.rs:391`): iterates all flows × all segments per direction to sum total memory — O(m × n). Called at 5 sites per packet (lines 178, 317, 355, 376, 434).
+1. **Overlap detection** (`segment.rs:85`): iterated all segments in the BTreeMap per insert, even though only segments starting before `new_end` could overlap.
+2. **`buffered_bytes` computation** (`segment.rs:62`): recomputed `segments.values().map(|v| v.len()).sum()` on every insert — O(n) per call.
+3. **`update_memory()` recomputation** (`mod.rs:391`): iterated all flows × all segments per direction to sum total memory — O(m × n). Called at 5 sites per packet (lines 178, 317, 355, 376, 434).
 
-With `max_segments_per_direction = 10,000` and `max_flows = 100,000`, these are bounded but wasteful.
+With `max_segments_per_direction = 10,000` and `max_flows = 100,000`, these costs were bounded but wasteful.
 
 ## Approach
 

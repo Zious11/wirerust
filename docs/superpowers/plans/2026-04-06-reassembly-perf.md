@@ -424,7 +424,7 @@ fn test_total_memory_tracking() {
 }
 ```
 
-Note: We cannot directly assert `total_memory` because it is a private field. The test verifies correct behavior indirectly — the `debug_assert_eq!` inside `memory_used()` (called during finalize's flow removal) will panic if counters have drifted. If this test passes, incremental tracking is correct.
+Note: The PR exposes `TcpReassembler::total_memory()` publicly, so the test asserts on it directly at each checkpoint (after buffering, after flush, after finalize).
 
 - [ ] **Step 2: Run test to verify it passes with current `update_memory()`**
 
