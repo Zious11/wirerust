@@ -59,7 +59,7 @@ pub fn insert_segment(
     let mut segment_data = data.to_vec();
 
     // Truncate if exceeding depth
-    let buffered: usize = dir.segments.values().map(|v| v.len()).sum();
+    let buffered = dir.buffered_bytes;
     let total_after = dir.reassembled_bytes + buffered + segment_data.len();
     let truncated = if total_after > max_depth {
         let allowed = max_depth.saturating_sub(dir.reassembled_bytes + buffered);
@@ -82,7 +82,8 @@ pub fn insert_segment(
     let mut has_conflict = false;
     let mut trimmed_ranges: Vec<(u64, u64)> = Vec::new();
 
-    for (&existing_offset, existing_data) in dir.segments.iter() {
+    // Only segments starting before new_end can overlap [new_start, new_end).
+    for (&existing_offset, existing_data) in dir.segments.range(..new_end) {
         let existing_end = existing_offset + existing_data.len() as u64;
 
         if new_start < existing_end && new_end > existing_offset {

@@ -220,3 +220,43 @@ fn test_depth_limit_truncation() {
     assert_eq!(flushed[0].1.len(), 20); // truncated from 50 to 20
     assert_eq!(dir.reassembled_bytes, 100);
 }
+
+#[test]
+fn test_overlap_detection_boundary() {
+    let mut dir = FlowDirection::new();
+    dir.set_isn(1000);
+
+    // Insert segment at offset 1, length 5 (covers 1-5)
+    insert_segment(&mut dir, 1001, b"AAAAA", 10_485_760, 10_000);
+    // Insert segment at offset 10, length 5 (covers 10-14) — no overlap with above
+    insert_segment(&mut dir, 1010, b"BBBBB", 10_485_760, 10_000);
+    assert_eq!(dir.segments.len(), 2);
+    assert_eq!(dir.overlap_count, 0);
+
+    // Insert segment at offset 3, length 4 (covers 3-6) — overlaps first, not second
+    let result = insert_segment(&mut dir, 1003, b"XXXX", 10_485_760, 10_000);
+    assert_eq!(result, InsertResult::PartialOverlap);
+    assert_eq!(dir.overlap_count, 1);
+
+    // Insert segment at offset 6, length 4 (covers 6-9).
+    // The partial-overlap insert above deposited a 1-byte gap at offset 6 ("X"),
+    // so this segment overlaps that byte and is PartialOverlap.
+    let result = insert_segment(&mut dir, 1006, b"CCCC", 10_485_760, 10_000);
+    assert_eq!(result, InsertResult::PartialOverlap);
+    assert_eq!(dir.overlap_count, 2);
+}
+
+#[test]
+fn test_range_boundary_exact_new_end() {
+    let mut dir = FlowDirection::new();
+    dir.set_isn(1000);
+
+    // Insert segment at offset 1, length 5 (covers 1-5, ends at 6)
+    insert_segment(&mut dir, 1001, b"AAAAA", 10_485_760, 10_000);
+
+    // Insert segment starting exactly at the end of the first (offset 6)
+    // This should NOT overlap — range(..new_end) must exclude it
+    let result = insert_segment(&mut dir, 1006, b"BBBBB", 10_485_760, 10_000);
+    assert_eq!(result, InsertResult::Inserted);
+    assert_eq!(dir.overlap_count, 0);
+}
