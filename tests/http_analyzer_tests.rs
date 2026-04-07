@@ -223,3 +223,14 @@ fn test_flow_close_cleans_up_state() {
     assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 2);
     assert_eq!(*analyzer.host_counts().get("y.com").unwrap(), 1);
 }
+
+#[test]
+fn test_parse_error_increments_counter() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    // "NOT_HTTP\r\n\r\n" triggers httparse::Error::Token
+    analyzer.on_data(&fk, Direction::ClientToServer, b"NOT_HTTP\r\n\r\n", 0);
+
+    assert_eq!(analyzer.parse_error_count(), 1);
+}
