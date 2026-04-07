@@ -107,7 +107,12 @@ impl FlowDirection {
     }
 
     pub fn memory_used(&self) -> usize {
-        self.segments.values().map(|v| v.len()).sum()
+        debug_assert_eq!(
+            self.buffered_bytes,
+            self.segments.values().map(|v| v.len()).sum::<usize>(),
+            "buffered_bytes counter drifted from actual segment sizes"
+        );
+        self.buffered_bytes
     }
 }
 

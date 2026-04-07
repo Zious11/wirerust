@@ -192,6 +192,7 @@ pub fn flush_contiguous(dir: &mut FlowDirection) -> Vec<(u64, Vec<u8>)> {
 
     while let Some(data) = dir.segments.remove(&dir.base_offset) {
         let offset = dir.base_offset;
+        dir.buffered_bytes -= data.len();
         dir.base_offset += data.len() as u64;
         dir.reassembled_bytes += data.len();
         flushed.push((offset, data));

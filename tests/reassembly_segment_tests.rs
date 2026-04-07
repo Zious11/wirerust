@@ -169,6 +169,36 @@ fn test_buffered_bytes_after_overlap() {
 }
 
 #[test]
+fn test_buffered_bytes_after_flush() {
+    let mut dir = FlowDirection::new();
+    dir.set_isn(1000);
+
+    insert_segment(&mut dir, 1001, b"hello", 10_485_760, 10_000);
+    assert_eq!(dir.buffered_bytes, 5);
+
+    let flushed = flush_contiguous(&mut dir);
+    assert_eq!(flushed.len(), 1);
+    assert_eq!(dir.buffered_bytes, 0);
+}
+
+#[test]
+fn test_buffered_bytes_partial_flush() {
+    let mut dir = FlowDirection::new();
+    dir.set_isn(1000);
+
+    // Insert segment at offset 1 (contiguous) and offset 10 (gap)
+    insert_segment(&mut dir, 1001, b"aaa", 10_485_760, 10_000);
+    insert_segment(&mut dir, 1010, b"bbb", 10_485_760, 10_000);
+    assert_eq!(dir.buffered_bytes, 6);
+
+    // Flush only flushes contiguous segment at offset 1
+    let flushed = flush_contiguous(&mut dir);
+    assert_eq!(flushed.len(), 1);
+    assert_eq!(flushed[0].1, b"aaa");
+    assert_eq!(dir.buffered_bytes, 3); // "bbb" remains buffered
+}
+
+#[test]
 fn test_depth_limit_truncation() {
     let mut dir = FlowDirection::new();
     dir.set_isn(1000);
