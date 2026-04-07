@@ -278,7 +278,12 @@ fn test_out_of_window_segment_rejected() {
     let result = dir.insert_segment(far_seq as u32, b"evil", 10_485_760, 10_000, 1_048_576);
     assert_eq!(result, InsertResult::OutOfWindow);
 
-    // Segment just inside window boundary should be accepted
+    // Segment exactly one byte beyond window should be rejected (off-by-one check)
+    let one_past_seq = 1000 + 6 + 1_048_576 + 1; // ISN + base_offset + window + 1
+    let result = dir.insert_segment(one_past_seq as u32, b"x", 10_485_760, 10_000, 1_048_576);
+    assert_eq!(result, InsertResult::OutOfWindow);
+
+    // Segment exactly at window boundary should be accepted
     let edge_seq = 1000 + 6 + 1_048_576; // ISN + base_offset + window (exactly at boundary)
     let result = dir.insert_segment(edge_seq as u32, b"edge", 10_485_760, 10_000, 1_048_576);
     assert_eq!(result, InsertResult::Inserted);
