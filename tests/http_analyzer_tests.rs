@@ -1,7 +1,7 @@
 use wirerust::analyzer::http::HttpAnalyzer;
 use wirerust::findings::{Confidence, ThreatCategory, Verdict};
 use wirerust::reassembly::flow::FlowKey;
-use wirerust::reassembly::handler::{Direction, StreamAnalyzer, StreamHandler};
+use wirerust::reassembly::handler::{CloseReason, Direction, StreamAnalyzer, StreamHandler};
 use std::net::IpAddr;
 
 fn test_flow_key() -> FlowKey {
@@ -153,4 +153,41 @@ fn test_no_findings_for_normal_request() {
     let request = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0\r\n\r\n";
     analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
     assert!(analyzer.findings().is_empty(), "Normal request should produce no findings");
+}
+
+#[test]
+fn test_summarize_produces_complete_output() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    let request = b"GET /page HTTP/1.1\r\nHost: example.com\r\nUser-Agent: TestBot\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+    let response = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ServerToClient, response, 0);
+
+    let summary = analyzer.summarize();
+    assert_eq!(summary.analyzer_name, "HTTP");
+    assert_eq!(summary.packets_analyzed, 1);
+
+    let detail = &summary.detail;
+    assert_eq!(detail["transactions"], 1);
+    assert_eq!(detail["methods"]["GET"], 1);
+    assert_eq!(detail["status_codes"]["200"], 1);
+    assert!(detail["top_hosts"].as_array().unwrap().contains(&serde_json::json!("example.com")));
+    assert_eq!(detail["user_agents"]["TestBot"], 1);
+}
+
+#[test]
+fn test_flow_close_cleans_up_state() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    let request = b"GET / HTTP/1.1\r\nHost: x.com\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_flow_close(&fk, CloseReason::Fin);
+
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GET /new HTTP/1.1\r\nHost: y.com\r\n\r\n", 0);
+    assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 2);
+    assert_eq!(*analyzer.host_counts().get("y.com").unwrap(), 1);
 }

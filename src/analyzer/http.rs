@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use serde_json;
+
 use crate::analyzer::AnalysisSummary;
 use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use crate::reassembly::flow::FlowKey;
@@ -356,10 +358,40 @@ impl StreamAnalyzer for HttpAnalyzer {
     }
 
     fn summarize(&self) -> AnalysisSummary {
+        let mut detail = HashMap::new();
+
+        detail.insert(
+            "transactions".to_string(),
+            serde_json::json!(self.transactions),
+        );
+        detail.insert("methods".to_string(), serde_json::json!(self.methods));
+        detail.insert(
+            "status_codes".to_string(),
+            serde_json::json!(
+                self.status_codes
+                    .iter()
+                    .map(|(k, v)| (k.to_string(), *v))
+                    .collect::<HashMap<String, u64>>()
+            ),
+        );
+
+        let mut top_hosts: Vec<_> = self.hosts.iter().collect();
+        top_hosts.sort_by(|a, b| b.1.cmp(a.1));
+        let top_hosts: Vec<&str> = top_hosts.iter().take(20).map(|(k, _)| k.as_str()).collect();
+        detail.insert("top_hosts".to_string(), serde_json::json!(top_hosts));
+
+        let top_uris: Vec<&str> = self.uris.iter().take(20).map(|s| s.as_str()).collect();
+        detail.insert("top_uris".to_string(), serde_json::json!(top_uris));
+
+        detail.insert(
+            "user_agents".to_string(),
+            serde_json::json!(self.user_agents),
+        );
+
         AnalysisSummary {
             analyzer_name: self.name().to_string(),
             packets_analyzed: self.transactions,
-            detail: HashMap::new(), // Populated in Task 5
+            detail,
         }
     }
 
