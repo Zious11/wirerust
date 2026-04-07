@@ -5,13 +5,29 @@ use crate::reassembly::handler::Direction;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FlowKey {
-    pub lower_ip: IpAddr,
-    pub lower_port: u16,
-    pub upper_ip: IpAddr,
-    pub upper_port: u16,
+    lower_ip: IpAddr,
+    lower_port: u16,
+    upper_ip: IpAddr,
+    upper_port: u16,
 }
 
 impl FlowKey {
+    pub fn lower_ip(&self) -> IpAddr {
+        self.lower_ip
+    }
+
+    pub fn lower_port(&self) -> u16 {
+        self.lower_port
+    }
+
+    pub fn upper_ip(&self) -> IpAddr {
+        self.upper_ip
+    }
+
+    pub fn upper_port(&self) -> u16 {
+        self.upper_port
+    }
+
     pub fn new(ip_a: IpAddr, port_a: u16, ip_b: IpAddr, port_b: u16) -> Self {
         // Canonicalize by (ip, port) tuple comparison — keeps IP+port paired together.
         // This is critical: sorting independently would merge different connections.
