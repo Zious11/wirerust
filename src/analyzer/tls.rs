@@ -251,11 +251,17 @@ impl TlsAnalyzer {
         let version = ch.version.0;
         Self::increment(&mut self.version_counts, version, MAX_MAP_ENTRIES);
 
-        // Parse extensions
-        let exts: Vec<TlsExtension<'_>> = ch
-            .ext
-            .and_then(|raw| parse_tls_extensions(raw).ok().map(|(_, v)| v))
-            .unwrap_or_default();
+        // Parse extensions (compute partial JA3 with empty fields on failure)
+        let exts: Vec<TlsExtension<'_>> = match ch.ext {
+            Some(raw) => match parse_tls_extensions(raw) {
+                Ok((_, v)) => v,
+                Err(_) => {
+                    self.parse_errors += 1;
+                    Vec::new()
+                }
+            },
+            None => Vec::new(),
+        };
 
         // SNI
         if let Some(sni) = extract_sni(&exts) {
@@ -297,10 +303,16 @@ impl TlsAnalyzer {
         let version = sh.version.0;
         Self::increment(&mut self.version_counts, version, MAX_MAP_ENTRIES);
 
-        let exts: Vec<TlsExtension<'_>> = sh
-            .ext
-            .and_then(|raw| parse_tls_extensions(raw).ok().map(|(_, v)| v))
-            .unwrap_or_default();
+        let exts: Vec<TlsExtension<'_>> = match sh.ext {
+            Some(raw) => match parse_tls_extensions(raw) {
+                Ok((_, v)) => v,
+                Err(_) => {
+                    self.parse_errors += 1;
+                    Vec::new()
+                }
+            },
+            None => Vec::new(),
+        };
 
         // JA3S
         let ja3s_hash = compute_ja3s(version, sh.cipher, &exts);
@@ -401,7 +413,8 @@ impl TlsAnalyzer {
                     }
                 }
                 Err(NomErr::Incomplete(_)) => {
-                    // Should not happen since we verified length, but treat gracefully.
+                    // Should not happen since we verified length — count as error if it does.
+                    self.parse_errors += 1;
                 }
                 Err(_) => {
                     self.parse_errors += 1;
