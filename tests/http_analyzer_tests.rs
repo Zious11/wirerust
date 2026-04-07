@@ -1,13 +1,15 @@
+use std::net::IpAddr;
 use wirerust::analyzer::http::HttpAnalyzer;
 use wirerust::findings::{Confidence, ThreatCategory, Verdict};
 use wirerust::reassembly::flow::FlowKey;
 use wirerust::reassembly::handler::{CloseReason, Direction, StreamAnalyzer, StreamHandler};
-use std::net::IpAddr;
 
 fn test_flow_key() -> FlowKey {
     FlowKey::new(
-        "10.0.0.1".parse::<IpAddr>().unwrap(), 49153,
-        "10.0.0.2".parse::<IpAddr>().unwrap(), 80,
+        "10.0.0.1".parse::<IpAddr>().unwrap(),
+        49153,
+        "10.0.0.2".parse::<IpAddr>().unwrap(),
+        80,
     )
 }
 
@@ -22,7 +24,8 @@ fn test_parse_get_request() {
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
 
-    let request = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0\r\n\r\n";
+    let request =
+        b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0\r\n\r\n";
     analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
 
     assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
@@ -49,10 +52,20 @@ fn test_parse_partial_request() {
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
 
-    analyzer.on_data(&fk, Direction::ClientToServer, b"GET /page HTTP/1.1\r\nHos", 0);
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        b"GET /page HTTP/1.1\r\nHos",
+        0,
+    );
     assert_eq!(analyzer.method_counts().get("GET"), None);
 
-    analyzer.on_data(&fk, Direction::ClientToServer, b"t: example.com\r\n\r\n", 23);
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        b"t: example.com\r\n\r\n",
+        23,
+    );
     assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
 }
 
@@ -108,7 +121,10 @@ fn test_detect_encoded_traversal() {
     let fk = test_flow_key();
     let request = b"GET /..%2f..%2fetc/passwd HTTP/1.1\r\nHost: target.com\r\n\r\n";
     analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
-    assert!(!analyzer.findings().is_empty(), "Should detect encoded path traversal");
+    assert!(
+        !analyzer.findings().is_empty(),
+        "Should detect encoded path traversal"
+    );
 }
 
 #[test]
@@ -141,7 +157,9 @@ fn test_detect_missing_host_header() {
     analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
     let findings = analyzer.findings();
     assert!(
-        findings.iter().any(|f| f.category == ThreatCategory::Anomaly),
+        findings
+            .iter()
+            .any(|f| f.category == ThreatCategory::Anomaly),
         "Should detect missing Host header"
     );
 }
@@ -150,9 +168,13 @@ fn test_detect_missing_host_header() {
 fn test_no_findings_for_normal_request() {
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
-    let request = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0\r\n\r\n";
+    let request =
+        b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0\r\n\r\n";
     analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
-    assert!(analyzer.findings().is_empty(), "Normal request should produce no findings");
+    assert!(
+        analyzer.findings().is_empty(),
+        "Normal request should produce no findings"
+    );
 }
 
 #[test]
@@ -174,7 +196,12 @@ fn test_summarize_produces_complete_output() {
     assert_eq!(detail["transactions"], 1);
     assert_eq!(detail["methods"]["GET"], 1);
     assert_eq!(detail["status_codes"]["200"], 1);
-    assert!(detail["top_hosts"].as_array().unwrap().contains(&serde_json::json!("example.com")));
+    assert!(
+        detail["top_hosts"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("example.com"))
+    );
     assert_eq!(detail["user_agents"]["TestBot"], 1);
 }
 
@@ -187,7 +214,12 @@ fn test_flow_close_cleans_up_state() {
     analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
     analyzer.on_flow_close(&fk, CloseReason::Fin);
 
-    analyzer.on_data(&fk, Direction::ClientToServer, b"GET /new HTTP/1.1\r\nHost: y.com\r\n\r\n", 0);
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        b"GET /new HTTP/1.1\r\nHost: y.com\r\n\r\n",
+        0,
+    );
     assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 2);
     assert_eq!(*analyzer.host_counts().get("y.com").unwrap(), 1);
 }
