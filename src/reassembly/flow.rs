@@ -57,6 +57,7 @@ pub struct FlowDirection {
     pub isn: Option<u32>,
     pub base_offset: u64,
     pub segments: BTreeMap<u64, Vec<u8>>,
+    pub buffered_bytes: usize,
     pub reassembled_bytes: usize,
     pub overlap_count: u32,
     pub overlap_alert_fired: bool,
@@ -79,6 +80,7 @@ impl FlowDirection {
             isn: None,
             base_offset: 0,
             segments: BTreeMap::new(),
+            buffered_bytes: 0,
             reassembled_bytes: 0,
             overlap_count: 0,
             overlap_alert_fired: false,
@@ -105,7 +107,12 @@ impl FlowDirection {
     }
 
     pub fn memory_used(&self) -> usize {
-        self.segments.values().map(|v| v.len()).sum()
+        debug_assert_eq!(
+            self.buffered_bytes,
+            self.segments.values().map(|v| v.len()).sum::<usize>(),
+            "buffered_bytes counter drifted from actual segment sizes"
+        );
+        self.buffered_bytes
     }
 }
 

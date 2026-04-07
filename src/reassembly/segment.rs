@@ -59,7 +59,7 @@ pub fn insert_segment(
     let mut segment_data = data.to_vec();
 
     // Truncate if exceeding depth
-    let buffered: usize = dir.segments.values().map(|v| v.len()).sum();
+    let buffered = dir.buffered_bytes;
     let total_after = dir.reassembled_bytes + buffered + segment_data.len();
     let truncated = if total_after > max_depth {
         let allowed = max_depth.saturating_sub(dir.reassembled_bytes + buffered);
@@ -82,7 +82,8 @@ pub fn insert_segment(
     let mut has_conflict = false;
     let mut trimmed_ranges: Vec<(u64, u64)> = Vec::new();
 
-    for (&existing_offset, existing_data) in dir.segments.iter() {
+    // Only segments starting before new_end can overlap [new_start, new_end).
+    for (&existing_offset, existing_data) in dir.segments.range(..new_end) {
         let existing_end = existing_offset + existing_data.len() as u64;
 
         if new_start < existing_end && new_end > existing_offset {
@@ -152,7 +153,17 @@ pub fn insert_segment(
             if start_idx < segment_data.len() && end_idx <= segment_data.len() {
                 let gap_data = segment_data[start_idx..end_idx].to_vec();
                 if !gap_data.is_empty() {
-                    dir.segments.insert(gap_start, gap_data);
+                    let gap_len = gap_data.len();
+                    let old = dir.segments.insert(gap_start, gap_data);
+                    debug_assert!(
+                        old.is_none(),
+                        "gap_start {} collided with existing segment",
+                        gap_start
+                    );
+                    if let Some(old) = old {
+                        dir.buffered_bytes -= old.len();
+                    }
+                    dir.buffered_bytes += gap_len;
                 }
             }
         }
@@ -168,7 +179,17 @@ pub fn insert_segment(
     }
 
     // No overlap — insert normally
-    dir.segments.insert(offset, segment_data);
+    let data_len = segment_data.len();
+    let old = dir.segments.insert(offset, segment_data);
+    debug_assert!(
+        old.is_none(),
+        "offset {} collided with existing segment in no-overlap path",
+        offset
+    );
+    if let Some(old) = old {
+        dir.buffered_bytes -= old.len();
+    }
+    dir.buffered_bytes += data_len;
 
     if truncated {
         InsertResult::Truncated
@@ -184,6 +205,7 @@ pub fn flush_contiguous(dir: &mut FlowDirection) -> Vec<(u64, Vec<u8>)> {
 
     while let Some(data) = dir.segments.remove(&dir.base_offset) {
         let offset = dir.base_offset;
+        dir.buffered_bytes -= data.len();
         dir.base_offset += data.len() as u64;
         dir.reassembled_bytes += data.len();
         flushed.push((offset, data));
