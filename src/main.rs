@@ -148,6 +148,9 @@ fn run_analyze(
     }
 
     let mut analyzer_summaries = Vec::new();
+    if let Some(ref reasm) = reassembler {
+        analyzer_summaries.push(reasm.summarize());
+    }
     if enable_dns {
         analyzer_summaries.push(dns_analyzer.summarize());
     }

@@ -4,6 +4,7 @@ pub mod segment;
 
 use std::collections::HashMap;
 
+use crate::analyzer::AnalysisSummary;
 use crate::decoder::{ParsedPacket, Protocol, TransportInfo};
 use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use crate::reassembly::flow::{FlowKey, FlowState, TcpFlow};
@@ -72,6 +73,7 @@ pub struct TcpReassembler {
     stats: ReassemblyStats,
     findings: Vec<Finding>,
     total_memory: usize,
+    finalized: bool,
 }
 
 impl TcpReassembler {
@@ -93,6 +95,7 @@ impl TcpReassembler {
             stats: ReassemblyStats::default(),
             findings: Vec::new(),
             total_memory: 0,
+            finalized: false,
         }
     }
 
@@ -343,10 +346,41 @@ impl TcpReassembler {
     }
 
     /// Close all remaining flows (called at end of capture).
+    /// Generates summary-level findings for notable reassembly events.
+    /// Must only be called once; subsequent calls are no-ops.
     pub fn finalize(&mut self, handler: &mut dyn StreamHandler) {
+        if self.finalized {
+            return;
+        }
+        self.finalized = true;
+
         let all_keys: Vec<FlowKey> = self.flows.keys().cloned().collect();
         for key in all_keys {
             self.close_flow(&key, CloseReason::Timeout, handler);
+        }
+
+        // Generate summary-level finding for segment limit hits.
+        // Pushed unconditionally (at most 1 finding) to avoid being silently
+        // dropped when per-flow findings have filled the MAX_FINDINGS cap.
+        let count = self.stats.segments_segment_limit;
+        if count > 0 {
+            self.findings.push(Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Inconclusive,
+                confidence: Confidence::Medium,
+                summary: format!(
+                    "{} segment{} dropped due to per-flow segment count limit",
+                    count,
+                    if count == 1 { "" } else { "s" }
+                ),
+                evidence: vec![
+                    "Segment count limit prevents BTreeMap overhead explosion".into(),
+                    "May indicate segmentation-based evasion attempt".into(),
+                ],
+                mitre_technique: None,
+                source_ip: None,
+                timestamp: None,
+            });
         }
     }
 
@@ -363,6 +397,41 @@ impl TcpReassembler {
     /// Return the current total memory used by all flow buffers.
     pub fn total_memory(&self) -> usize {
         self.total_memory
+    }
+
+    /// Produce an AnalysisSummary for the reassembly engine stats.
+    pub fn summarize(&self) -> AnalysisSummary {
+        let mut detail = HashMap::new();
+        let s = &self.stats;
+        detail.insert("packets_processed".into(), s.packets_processed.into());
+        detail.insert(
+            "packets_skipped_non_tcp".into(),
+            s.packets_skipped_non_tcp.into(),
+        );
+        detail.insert("flows_total".into(), s.flows_total.into());
+        detail.insert("flows_partial".into(), s.flows_partial.into());
+        detail.insert("flows_fin".into(), s.flows_fin.into());
+        detail.insert("flows_rst".into(), s.flows_rst.into());
+        detail.insert("flows_completed".into(), (s.flows_fin + s.flows_rst).into());
+        detail.insert("flows_expired".into(), s.flows_expired.into());
+        detail.insert("evictions".into(), s.evictions.into());
+        detail.insert("segments_inserted".into(), s.segments_inserted.into());
+        detail.insert("segments_duplicates".into(), s.segments_duplicates.into());
+        detail.insert("segments_overlaps".into(), s.segments_overlaps.into());
+        detail.insert(
+            "segments_out_of_window".into(),
+            s.segments_out_of_window.into(),
+        );
+        detail.insert(
+            "segments_segment_limit".into(),
+            s.segments_segment_limit.into(),
+        );
+        detail.insert("bytes_reassembled".into(), s.bytes_reassembled.into());
+        AnalysisSummary {
+            analyzer_name: "TCP Reassembly".into(),
+            packets_analyzed: s.packets_tcp,
+            detail,
+        }
     }
 
     // --- Private helpers ---
