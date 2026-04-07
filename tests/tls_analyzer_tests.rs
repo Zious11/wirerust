@@ -79,6 +79,46 @@ fn build_client_hello(sni: &str, cipher_ids: &[u16]) -> Vec<u8> {
     record
 }
 
+/// Build a minimal TLS ServerHello record.
+fn build_server_hello(cipher_id: u16) -> Vec<u8> {
+    // Extensions: just renegotiation_info (0xff01) with empty data
+    let mut extensions = Vec::new();
+    extensions.extend_from_slice(&[0xff, 0x01]); // renegotiation_info
+    extensions.extend_from_slice(&[0x00, 0x01]); // extension data length
+    extensions.push(0x00); // empty renegotiation info
+
+    // ServerHello body
+    let mut sh_body = Vec::new();
+    sh_body.extend_from_slice(&[0x03, 0x03]); // version: TLS 1.2
+    sh_body.extend_from_slice(&[0u8; 32]); // random
+    sh_body.push(0x00); // session_id length: 0
+    sh_body.extend_from_slice(&cipher_id.to_be_bytes()); // selected cipher
+    sh_body.push(0x00); // compression: null
+
+    let ext_len = extensions.len() as u16;
+    sh_body.extend_from_slice(&ext_len.to_be_bytes());
+    sh_body.extend_from_slice(&extensions);
+
+    // Handshake header
+    let mut handshake = Vec::new();
+    handshake.push(0x02); // handshake type: ServerHello
+    let sh_len = sh_body.len() as u32;
+    handshake.push((sh_len >> 16) as u8);
+    handshake.push((sh_len >> 8) as u8);
+    handshake.push(sh_len as u8);
+    handshake.extend_from_slice(&sh_body);
+
+    // TLS record header
+    let mut record = Vec::new();
+    record.push(0x16);
+    record.extend_from_slice(&[0x03, 0x03]);
+    let hs_len = handshake.len() as u16;
+    record.extend_from_slice(&hs_len.to_be_bytes());
+    record.extend_from_slice(&handshake);
+
+    record
+}
+
 #[test]
 fn test_parse_client_hello() {
     let mut analyzer = TlsAnalyzer::new();
@@ -128,4 +168,115 @@ fn test_normal_request_no_parse_errors() {
 
     assert_eq!(analyzer.parse_error_count(), 0);
     assert!(analyzer.findings().is_empty());
+}
+
+#[test]
+fn test_parse_server_hello() {
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let ch = build_client_hello("example.com", &[0x1301, 0x1303]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+
+    let sh = build_server_hello(0x1301);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+
+    assert_eq!(analyzer.ja3s_counts().len(), 1);
+    assert_eq!(analyzer.parse_error_count(), 0);
+}
+
+#[test]
+fn test_weak_cipher_finding_client() {
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // TLS_RSA_WITH_NULL_SHA (0x0002) — NULL cipher
+    let record = build_client_hello("test.com", &[0x0002, 0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    let findings = analyzer.findings();
+    assert_eq!(findings.len(), 1);
+    assert_eq!(findings[0].category, wirerust::findings::ThreatCategory::Anomaly);
+    assert_eq!(findings[0].confidence, wirerust::findings::Confidence::High);
+    assert!(findings[0].summary.contains("weak cipher"));
+}
+
+#[test]
+fn test_weak_cipher_finding_server() {
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let ch = build_client_hello("test.com", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+
+    // Server selects TLS_RSA_WITH_RC4_128_SHA (0x0005)
+    let sh = build_server_hello(0x0005);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+
+    let findings = analyzer.findings();
+    assert_eq!(findings.len(), 1);
+    assert_eq!(findings[0].confidence, wirerust::findings::Confidence::Medium);
+    assert!(findings[0].summary.contains("weak cipher"));
+}
+
+#[test]
+fn test_normal_handshake_no_findings() {
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let ch = build_client_hello("example.com", &[0x1301, 0x1303]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+
+    let sh = build_server_hello(0x1301);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+
+    assert!(analyzer.findings().is_empty());
+    assert_eq!(analyzer.parse_error_count(), 0);
+}
+
+#[test]
+fn test_stop_after_handshake() {
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let ch = build_client_hello("example.com", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+
+    let sh = build_server_hello(0x1301);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+
+    // Send encrypted application data (content_type=0x17) — should be ignored
+    let mut app_data = vec![0x17, 0x03, 0x03, 0x00, 0x10];
+    app_data.extend_from_slice(&[0xAA; 16]);
+    analyzer.on_data(&fk, Direction::ServerToClient, &app_data, 0);
+
+    // No parse errors from the encrypted data
+    assert_eq!(analyzer.parse_error_count(), 0);
+}
+
+#[test]
+fn test_summarize_output() {
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let ch = build_client_hello("example.com", &[0x1301, 0x1303]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+
+    let sh = build_server_hello(0x1301);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+
+    let summary = analyzer.summarize();
+    assert_eq!(summary.analyzer_name, "TLS");
+    assert_eq!(summary.packets_analyzed, 1);
+
+    let detail = &summary.detail;
+    assert!(detail["top_snis"]
+        .as_array()
+        .unwrap()
+        .contains(&serde_json::json!("example.com")));
+    assert!(detail.contains_key("ja3_hashes"));
+    assert!(detail.contains_key("ja3s_hashes"));
+    assert!(detail.contains_key("tls_versions"));
+    assert!(detail.contains_key("cipher_suites"));
+    assert_eq!(detail["parse_errors"], 0);
 }
