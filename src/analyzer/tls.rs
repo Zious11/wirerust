@@ -292,6 +292,27 @@ impl TlsAnalyzer {
                 timestamp: None,
             });
         }
+
+        // Deprecated protocol version detection (SSLv2/SSLv3)
+        if version <= 0x0300 {
+            let version_name = match version {
+                0x0200 => "SSL 2.0",
+                0x0300 => "SSL 3.0",
+                _ => "Unknown legacy SSL",
+            };
+            self.all_findings.push(Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: format!(
+                    "ClientHello uses deprecated protocol ({version_name}, RFC 7568 prohibits SSLv3)"
+                ),
+                evidence: vec![format!("Version: 0x{version:04x} ({version_name})")],
+                mitre_technique: None,
+                source_ip: None,
+                timestamp: None,
+            });
+        }
     }
 
     /// Process a single complete ServerHello.
@@ -329,6 +350,27 @@ impl TlsAnalyzer {
                 confidence: Confidence::Medium,
                 summary: format!("ServerHello selected weak cipher suite ({})", name),
                 evidence: vec![format!("Selected cipher: {} (0x{:04x})", name, sh.cipher.0)],
+                mitre_technique: None,
+                source_ip: None,
+                timestamp: None,
+            });
+        }
+
+        // Deprecated protocol version — server selecting SSLv2/SSLv3 is critical
+        if version <= 0x0300 {
+            let version_name = match version {
+                0x0200 => "SSL 2.0",
+                0x0300 => "SSL 3.0",
+                _ => "Unknown legacy SSL",
+            };
+            self.all_findings.push(Finding {
+                category: ThreatCategory::Anomaly,
+                verdict: Verdict::Likely,
+                confidence: Confidence::High,
+                summary: format!(
+                    "ServerHello negotiated deprecated protocol ({version_name}, RFC 7568 prohibits SSLv3)"
+                ),
+                evidence: vec![format!("Version: 0x{version:04x} ({version_name})")],
                 mitre_technique: None,
                 source_ip: None,
                 timestamp: None,
