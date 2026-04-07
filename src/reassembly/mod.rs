@@ -218,7 +218,8 @@ impl TcpReassembler {
                 before_insert,
                 flow_dir.buffered_bytes
             );
-            self.total_memory += flow_dir.buffered_bytes.saturating_sub(before_insert);
+            let bytes_added = flow_dir.buffered_bytes.saturating_sub(before_insert);
+            self.total_memory += bytes_added;
 
             match result {
                 InsertResult::Inserted => self.stats.segments_inserted += 1,
@@ -240,6 +241,11 @@ impl TcpReassembler {
                 }
                 InsertResult::SegmentLimitReached => {
                     self.stats.segments_segment_limit += 1;
+                    // Partial insertion: some gap bytes were inserted before the limit
+                    if bytes_added > 0 {
+                        self.stats.segments_overlaps += 1;
+                        self.stats.segments_inserted += 1;
+                    }
                 }
                 InsertResult::OutOfWindow => {
                     self.stats.segments_out_of_window += 1;

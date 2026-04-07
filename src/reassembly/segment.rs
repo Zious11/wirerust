@@ -154,7 +154,6 @@ impl FlowDirection {
             let had_gap = !gaps.is_empty();
 
             let mut segments_exhausted = false;
-            let mut any_gap_inserted = false;
             for (gap_start, gap_end) in gaps {
                 // Enforce max_segments inside gap insertion loop
                 if self.segments.len() >= max_segments {
@@ -177,7 +176,6 @@ impl FlowDirection {
                             self.buffered_bytes -= old.len();
                         }
                         self.buffered_bytes += gap_len;
-                        any_gap_inserted = true;
                     }
                 }
             }
@@ -187,7 +185,7 @@ impl FlowDirection {
                 InsertResult::ConflictingOverlap
             } else if !had_gap {
                 InsertResult::Duplicate
-            } else if segments_exhausted && !any_gap_inserted {
+            } else if segments_exhausted {
                 InsertResult::SegmentLimitReached
             } else if truncated {
                 InsertResult::Truncated
