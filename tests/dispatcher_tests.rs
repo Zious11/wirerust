@@ -42,8 +42,7 @@ fn test_dispatcher_routes_http() {
 
 #[test]
 fn test_dispatcher_content_detection_tls_on_port_80() {
-    let mut dispatcher =
-        StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
     let fk = flow_key(49152, 80); // Port 80, but content is TLS
 
     // TLS record header on port 80 — content detection should override port
@@ -57,8 +56,7 @@ fn test_dispatcher_content_detection_tls_on_port_80() {
 
 #[test]
 fn test_dispatcher_port_fallback_short_data() {
-    let mut dispatcher =
-        StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
     let fk = flow_key(49152, 443); // Port 443
 
     // Only 2 bytes — too short for content detection, falls back to port

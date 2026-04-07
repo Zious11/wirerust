@@ -81,7 +81,11 @@ fn compute_ja3(
         .filter_map(|e| {
             let t: TlsExtensionType = e.into();
             let v: u16 = t.into();
-            if is_grease_u16(v) { None } else { Some(v.to_string()) }
+            if is_grease_u16(v) {
+                None
+            } else {
+                Some(v.to_string())
+            }
         })
         .collect::<Vec<_>>()
         .join("-");
@@ -125,7 +129,11 @@ fn compute_ja3s(version: u16, cipher: TlsCipherSuiteID, extensions: &[TlsExtensi
         .filter_map(|e| {
             let t: TlsExtensionType = e.into();
             let v: u16 = t.into();
-            if is_grease_u16(v) { None } else { Some(v.to_string()) }
+            if is_grease_u16(v) {
+                None
+            } else {
+                Some(v.to_string())
+            }
         })
         .collect::<Vec<_>>()
         .join("-");
@@ -285,7 +293,8 @@ impl TlsAnalyzer {
                 category: ThreatCategory::Anomaly,
                 verdict: Verdict::Likely,
                 confidence: Confidence::High,
-                summary: "ClientHello offers weak cipher suites (NULL/anonymous/export)".to_string(),
+                summary: "ClientHello offers weak cipher suites (NULL/anonymous/export)"
+                    .to_string(),
                 evidence: weak,
                 mitre_technique: None,
                 source_ip: None,
@@ -477,7 +486,10 @@ impl StreamHandler for TlsAnalyzer {
         }
 
         {
-            let state = self.flows.entry(flow_key.clone()).or_insert_with(TlsFlowState::new);
+            let state = self
+                .flows
+                .entry(flow_key.clone())
+                .or_insert_with(TlsFlowState::new);
             match direction {
                 Direction::ClientToServer => {
                     let remaining = MAX_BUF.saturating_sub(state.client_buf.len());
@@ -521,7 +533,10 @@ impl StreamAnalyzer for TlsAnalyzer {
         detail.insert("top_snis".to_string(), serde_json::json!(top_snis));
 
         detail.insert("ja3_hashes".to_string(), serde_json::json!(self.ja3_counts));
-        detail.insert("ja3s_hashes".to_string(), serde_json::json!(self.ja3s_counts));
+        detail.insert(
+            "ja3s_hashes".to_string(),
+            serde_json::json!(self.ja3s_counts),
+        );
         detail.insert(
             "tls_versions".to_string(),
             serde_json::json!(
@@ -531,8 +546,14 @@ impl StreamAnalyzer for TlsAnalyzer {
                     .collect::<HashMap<String, u64>>()
             ),
         );
-        detail.insert("cipher_suites".to_string(), serde_json::json!(self.cipher_counts));
-        detail.insert("parse_errors".to_string(), serde_json::json!(self.parse_errors));
+        detail.insert(
+            "cipher_suites".to_string(),
+            serde_json::json!(self.cipher_counts),
+        );
+        detail.insert(
+            "parse_errors".to_string(),
+            serde_json::json!(self.parse_errors),
+        );
 
         AnalysisSummary {
             analyzer_name: self.name().to_string(),

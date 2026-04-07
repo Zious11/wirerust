@@ -196,7 +196,10 @@ fn test_weak_cipher_finding_client() {
 
     let findings = analyzer.findings();
     assert_eq!(findings.len(), 1);
-    assert_eq!(findings[0].category, wirerust::findings::ThreatCategory::Anomaly);
+    assert_eq!(
+        findings[0].category,
+        wirerust::findings::ThreatCategory::Anomaly
+    );
     assert_eq!(findings[0].confidence, wirerust::findings::Confidence::High);
     assert!(findings[0].summary.contains("weak cipher"));
 }
@@ -215,7 +218,10 @@ fn test_weak_cipher_finding_server() {
 
     let findings = analyzer.findings();
     assert_eq!(findings.len(), 1);
-    assert_eq!(findings[0].confidence, wirerust::findings::Confidence::Medium);
+    assert_eq!(
+        findings[0].confidence,
+        wirerust::findings::Confidence::Medium
+    );
     assert!(findings[0].summary.contains("weak cipher"));
 }
 
@@ -270,10 +276,12 @@ fn test_summarize_output() {
     assert_eq!(summary.packets_analyzed, 1);
 
     let detail = &summary.detail;
-    assert!(detail["top_snis"]
-        .as_array()
-        .unwrap()
-        .contains(&serde_json::json!("example.com")));
+    assert!(
+        detail["top_snis"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("example.com"))
+    );
     assert!(detail.contains_key("ja3_hashes"));
     assert!(detail.contains_key("ja3s_hashes"));
     assert!(detail.contains_key("tls_versions"));

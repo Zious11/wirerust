@@ -95,9 +95,7 @@ fn test_ssl30_pcap_generates_findings() {
 
     // At least one finding about weak ciphers (export ciphers in this capture)
     assert!(
-        findings
-            .iter()
-            .any(|f| f.summary.contains("weak cipher")),
+        findings.iter().any(|f| f.summary.contains("weak cipher")),
         "Should flag export cipher suites"
     );
 }
@@ -114,16 +112,10 @@ fn test_summarize_has_all_required_fields() {
     assert!(detail.contains_key("top_snis"), "missing top_snis");
     assert!(detail.contains_key("ja3_hashes"), "missing ja3_hashes");
     assert!(detail.contains_key("ja3s_hashes"), "missing ja3s_hashes");
-    assert!(
-        detail.contains_key("tls_versions"),
-        "missing tls_versions"
-    );
+    assert!(detail.contains_key("tls_versions"), "missing tls_versions");
     assert!(
         detail.contains_key("cipher_suites"),
         "missing cipher_suites"
     );
-    assert!(
-        detail.contains_key("parse_errors"),
-        "missing parse_errors"
-    );
+    assert!(detail.contains_key("parse_errors"), "missing parse_errors");
 }
