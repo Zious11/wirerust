@@ -1078,3 +1078,155 @@ fn test_out_of_window_segment_rejected_by_engine() {
     assert_eq!(reassembler.stats().segments_inserted, 2);
     assert_eq!(reassembler.stats().segments_out_of_window, 1); // unchanged
 }
+
+#[test]
+fn test_summarize_returns_reassembly_stats() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let data = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"hello", false, false, false, false,
+    );
+    reassembler.process_packet(&data, 2, &mut handler);
+
+    reassembler.finalize(&mut handler);
+
+    let summary = reassembler.summarize();
+    assert_eq!(summary.analyzer_name, "TCP Reassembly");
+    assert!(summary.packets_analyzed > 0);
+    assert_eq!(
+        summary.detail.get("flows_total"),
+        Some(&serde_json::Value::from(1u64))
+    );
+    assert_eq!(
+        summary.detail.get("segments_inserted"),
+        Some(&serde_json::Value::from(1u64))
+    );
+    assert_eq!(
+        summary.detail.get("bytes_reassembled"),
+        Some(&serde_json::Value::from(5u64))
+    );
+}
+
+#[test]
+fn test_finalize_generates_segment_limit_finding() {
+    let config = ReassemblyConfig {
+        max_segments_per_direction: 2,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Insert 2 non-contiguous segments (gap at offset 1 keeps them buffered)
+    let p1 = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"a", false, false, false, false,
+    );
+    let p2 = make_tcp_packet(
+        client, 12345, server, 80, 1004, b"b", false, false, false, false,
+    );
+    reassembler.process_packet(&p1, 2, &mut handler);
+    reassembler.process_packet(&p2, 3, &mut handler);
+
+    // 3rd segment should hit segment limit
+    let p3 = make_tcp_packet(
+        client, 12345, server, 80, 1006, b"c", false, false, false, false,
+    );
+    reassembler.process_packet(&p3, 4, &mut handler);
+
+    assert_eq!(reassembler.stats().segments_segment_limit, 1);
+
+    // Before finalize: no summary-level finding yet
+    let findings_before = reassembler.findings().len();
+
+    reassembler.finalize(&mut handler);
+
+    // After finalize: should have a summary finding about segment limit
+    let findings_after = reassembler.findings();
+    assert!(
+        findings_after.len() > findings_before,
+        "finalize should generate a segment-limit finding"
+    );
+
+    let limit_finding = findings_after
+        .iter()
+        .find(|f| f.summary.contains("segment count limit"))
+        .expect("should find segment-limit summary finding");
+    assert!(limit_finding.summary.contains("1 segments dropped"));
+}
+
+#[test]
+fn test_finalize_no_finding_when_no_segment_limit_hits() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let data = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"hello", false, false, false, false,
+    );
+    reassembler.process_packet(&data, 2, &mut handler);
+
+    let findings_before = reassembler.findings().len();
+    reassembler.finalize(&mut handler);
+
+    // No segment limit hits — no summary finding should be generated
+    let new_findings: Vec<_> = reassembler.findings()[findings_before..]
+        .iter()
+        .filter(|f| f.summary.contains("segment count limit"))
+        .collect();
+    assert!(
+        new_findings.is_empty(),
+        "should not generate segment-limit finding when counter is 0"
+    );
+}
