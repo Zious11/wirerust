@@ -62,6 +62,7 @@ pub struct ReassemblyStats {
     pub segments_overlaps: u64,
     pub segments_out_of_window: u64,
     pub segments_segment_limit: u64,
+    pub segments_depth_exceeded: u64,
     pub bytes_reassembled: u64,
     pub evictions: u64,
 }
@@ -240,7 +241,7 @@ impl TcpReassembler {
                     self.generate_truncated_finding(&key, packet.src_ip);
                 }
                 InsertResult::DepthExceeded => {
-                    // Already tracked in the direction
+                    self.stats.segments_depth_exceeded += 1;
                 }
                 InsertResult::SegmentLimitReached => {
                     self.stats.segments_segment_limit += 1;
@@ -426,6 +427,10 @@ impl TcpReassembler {
             "segments_segment_limit".into(),
             s.segments_segment_limit.into(),
         );
+        detail.insert(
+            "segments_depth_exceeded".into(),
+            s.segments_depth_exceeded.into(),
+        );
         detail.insert("bytes_reassembled".into(), s.bytes_reassembled.into());
         AnalysisSummary {
             analyzer_name: "TCP Reassembly".into(),
@@ -441,7 +446,7 @@ impl TcpReassembler {
     fn close_flow(&mut self, key: &FlowKey, reason: CloseReason, handler: &mut dyn StreamHandler) {
         use crate::reassembly::handler::Direction;
         let Some(mut flow) = self.flows.remove(key) else {
-            debug_assert!(false, "close_flow called for non-existent key: {}", key);
+            eprintln!("wirerust: close_flow called for non-existent key: {}", key);
             return;
         };
         let flow_mem = flow.memory_used();

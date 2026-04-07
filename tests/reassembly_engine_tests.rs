@@ -1230,3 +1230,74 @@ fn test_finalize_no_finding_when_no_segment_limit_hits() {
         "should not generate segment-limit finding when counter is 0"
     );
 }
+
+#[test]
+fn test_depth_exceeded_counter() {
+    let config = ReassemblyConfig {
+        max_depth: 10, // tiny depth for testing
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // First segment: 8 bytes, fits within 10-byte depth
+    let p1 = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1001,
+        b"AAAAAAAA",
+        false,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&p1, 2, &mut handler);
+    assert_eq!(reassembler.stats().segments_inserted, 1);
+    assert_eq!(reassembler.stats().segments_depth_exceeded, 0);
+
+    // Second segment: 5 bytes, would exceed 10-byte depth (8 + 5 = 13 > 10)
+    // First 2 bytes are truncated+inserted, rest is depth-exceeded
+    let p2 = make_tcp_packet(
+        client, 12345, server, 80, 1009, b"BBBBB", false, false, false, false,
+    );
+    reassembler.process_packet(&p2, 3, &mut handler);
+
+    // Third segment: fully rejected — depth already exceeded
+    let p3 = make_tcp_packet(
+        client, 12345, server, 80, 1014, b"CCCCC", false, false, false, false,
+    );
+    reassembler.process_packet(&p3, 4, &mut handler);
+    assert_eq!(
+        reassembler.stats().segments_depth_exceeded,
+        1,
+        "depth_exceeded counter should track fully rejected segments"
+    );
+
+    // Verify it shows up in summarize()
+    reassembler.finalize(&mut handler);
+    let summary = reassembler.summarize();
+    let depth_val = summary.detail.get("segments_depth_exceeded");
+    assert!(
+        depth_val.is_some(),
+        "segments_depth_exceeded should appear in summarize() detail"
+    );
+}

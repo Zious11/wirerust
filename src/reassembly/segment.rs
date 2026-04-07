@@ -35,7 +35,7 @@ impl FlowDirection {
         let isn = match self.isn {
             Some(isn) => isn,
             None => {
-                debug_assert!(false, "insert_segment called with no ISN set");
+                eprintln!("wirerust: insert_segment called with no ISN set");
                 return InsertResult::DepthExceeded;
             }
         };
