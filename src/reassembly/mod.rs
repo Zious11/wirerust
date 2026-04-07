@@ -410,6 +410,8 @@ impl TcpReassembler {
         );
         detail.insert("flows_total".into(), s.flows_total.into());
         detail.insert("flows_partial".into(), s.flows_partial.into());
+        detail.insert("flows_fin".into(), s.flows_fin.into());
+        detail.insert("flows_rst".into(), s.flows_rst.into());
         detail.insert("flows_completed".into(), (s.flows_fin + s.flows_rst).into());
         detail.insert("flows_expired".into(), s.flows_expired.into());
         detail.insert("evictions".into(), s.evictions.into());
