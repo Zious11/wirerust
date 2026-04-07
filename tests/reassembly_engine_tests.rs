@@ -256,3 +256,39 @@ fn test_total_memory_tracking() {
     reassembler.finalize(&mut handler);
     assert_eq!(reassembler.total_memory(), 0);
 }
+
+#[test]
+fn test_fin_close_total_memory() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN from client
+    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false);
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Out-of-order data — stays buffered (gap at offset 1)
+    let p2 = make_tcp_packet(client, 12345, server, 80, 1004, b"bbb", false, false, false);
+    reassembler.process_packet(&p2, 2, &mut handler);
+    assert_eq!(reassembler.total_memory(), 3);
+
+    // FIN from client (first FIN)
+    let fin1 = make_tcp_packet(client, 12345, server, 80, 1007, &[], false, true, false);
+    reassembler.process_packet(&fin1, 3, &mut handler);
+
+    // FIN from server (second FIN → Closed, triggers step 10 removal)
+    let fin2 = make_tcp_packet(server, 80, client, 12345, 2000, &[], false, true, false);
+    reassembler.process_packet(&fin2, 4, &mut handler);
+
+    // Flow removed with buffered-but-not-flushed data — total_memory must be 0
+    assert_eq!(reassembler.total_memory(), 0);
+    assert!(
+        handler
+            .close_events
+            .iter()
+            .any(|(_, r)| *r == CloseReason::Fin)
+    );
+}

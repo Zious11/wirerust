@@ -161,11 +161,13 @@ impl TcpReassembler {
             flow.on_rst();
             self.stats.flows_rst += 1;
             let key_clone = key.clone();
+            // Capture memory before flushing: total_memory still holds this flow's
+            // full contribution. Subtracting flow_mem after removal zeros it out.
             let flow_mem = self
                 .flows
                 .get(&key_clone)
-                .map(|f| f.memory_used())
-                .unwrap_or(0);
+                .expect("flow must exist before RST removal")
+                .memory_used();
             // Flush buffered contiguous data before removing
             if let Some(flow) = self.flows.get_mut(&key_clone) {
                 use crate::reassembly::handler::Direction;
@@ -222,7 +224,13 @@ impl TcpReassembler {
                 self.config.max_depth,
                 self.config.max_segments_per_direction,
             );
-            self.total_memory += flow_dir.buffered_bytes - before_insert;
+            debug_assert!(
+                flow_dir.buffered_bytes >= before_insert,
+                "insert_segment decreased buffered_bytes: before={} after={}",
+                before_insert,
+                flow_dir.buffered_bytes
+            );
+            self.total_memory += flow_dir.buffered_bytes.saturating_sub(before_insert);
 
             match result {
                 InsertResult::Inserted => self.stats.segments_inserted += 1,
@@ -305,7 +313,12 @@ impl TcpReassembler {
             .get(&key)
             .is_some_and(|f| f.state == FlowState::Closed)
         {
-            let flow_mem = self.flows.get(&key).map(|f| f.memory_used()).unwrap_or(0);
+            // Capture memory before flushing (see RST handler comment for rationale)
+            let flow_mem = self
+                .flows
+                .get(&key)
+                .expect("flow must exist before FIN removal")
+                .memory_used();
             // Flush remaining data in both directions before removal
             if let Some(flow) = self.flows.get_mut(&key) {
                 use crate::reassembly::handler::Direction;
@@ -344,7 +357,11 @@ impl TcpReassembler {
             .collect();
 
         for key in expired_keys {
-            let flow_mem = self.flows.get(&key).map(|f| f.memory_used()).unwrap_or(0);
+            let flow_mem = self
+                .flows
+                .get(&key)
+                .expect("expired flow must exist")
+                .memory_used();
             // Flush salvageable data before removing
             if let Some(flow) = self.flows.get_mut(&key) {
                 use crate::reassembly::handler::Direction;
@@ -368,7 +385,11 @@ impl TcpReassembler {
         use crate::reassembly::handler::Direction;
         let all_keys: Vec<FlowKey> = self.flows.keys().cloned().collect();
         for key in all_keys {
-            let flow_mem = self.flows.get(&key).map(|f| f.memory_used()).unwrap_or(0);
+            let flow_mem = self
+                .flows
+                .get(&key)
+                .expect("finalize flow must exist")
+                .memory_used();
             // Flush any remaining contiguous data before closing
             if let Some(flow) = self.flows.get_mut(&key) {
                 for dir in [Direction::ClientToServer, Direction::ServerToClient] {
@@ -427,7 +448,11 @@ impl TcpReassembler {
             {
                 break;
             }
-            let flow_mem = self.flows.get(key).map(|f| f.memory_used()).unwrap_or(0);
+            let flow_mem = self
+                .flows
+                .get(key)
+                .expect("eviction candidate must exist")
+                .memory_used();
             // Flush salvageable contiguous data before evicting
             if let Some(flow) = self.flows.get_mut(key) {
                 use crate::reassembly::handler::Direction;

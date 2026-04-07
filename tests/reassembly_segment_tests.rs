@@ -72,6 +72,7 @@ fn test_retransmission_dedup() {
     let result = insert_segment(&mut dir, 1001, b"hello", 10_485_760, 10_000);
     assert_eq!(result, InsertResult::Duplicate);
     assert_eq!(dir.segments.len(), 1); // No duplicate stored
+    assert_eq!(dir.buffered_bytes, 5); // counter must not double-count
 }
 
 #[test]
