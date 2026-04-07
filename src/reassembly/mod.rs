@@ -8,7 +8,7 @@ use crate::decoder::{ParsedPacket, Protocol, TransportInfo};
 use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use crate::reassembly::flow::{FlowKey, FlowState, TcpFlow};
 use crate::reassembly::handler::{CloseReason, StreamHandler};
-use crate::reassembly::segment::{InsertResult, flush_contiguous, insert_segment};
+use crate::reassembly::segment::InsertResult;
 
 const OVERLAP_ALERT_THRESHOLD: u32 = 50;
 const SMALL_SEGMENT_ALERT_THRESHOLD: u32 = 2048;
@@ -173,7 +173,7 @@ impl TcpReassembler {
                 use crate::reassembly::handler::Direction;
                 for dir in [Direction::ClientToServer, Direction::ServerToClient] {
                     let flow_dir = flow.get_direction_mut(dir);
-                    let flushed = flush_contiguous(flow_dir);
+                    let flushed = flow_dir.flush_contiguous();
                     for (offset, data) in &flushed {
                         self.stats.bytes_reassembled += data.len() as u64;
                         handler.on_data(&key_clone, dir, data, *offset);
@@ -217,8 +217,7 @@ impl TcpReassembler {
 
             let flow_dir = flow.get_direction_mut(dir);
             let before_insert = flow_dir.buffered_bytes;
-            let result = insert_segment(
-                flow_dir,
+            let result = flow_dir.insert_segment(
                 seq,
                 payload,
                 self.config.max_depth,
@@ -298,7 +297,7 @@ impl TcpReassembler {
             let flow = self.flows.get_mut(&key).unwrap();
             let flow_dir = flow.get_direction_mut(dir);
             let before_flush = flow_dir.buffered_bytes;
-            let flushed = flush_contiguous(flow_dir);
+            let flushed = flow_dir.flush_contiguous();
             self.total_memory -= before_flush - flow_dir.buffered_bytes;
 
             for (offset, data) in &flushed {
@@ -324,7 +323,7 @@ impl TcpReassembler {
                 use crate::reassembly::handler::Direction;
                 for dir in [Direction::ClientToServer, Direction::ServerToClient] {
                     let flow_dir = flow.get_direction_mut(dir);
-                    let flushed = flush_contiguous(flow_dir);
+                    let flushed = flow_dir.flush_contiguous();
                     for (offset, data) in &flushed {
                         self.stats.bytes_reassembled += data.len() as u64;
                         handler.on_data(&key, dir, data, *offset);
@@ -367,7 +366,7 @@ impl TcpReassembler {
                 use crate::reassembly::handler::Direction;
                 for dir in [Direction::ClientToServer, Direction::ServerToClient] {
                     let flow_dir = flow.get_direction_mut(dir);
-                    let flushed = flush_contiguous(flow_dir);
+                    let flushed = flow_dir.flush_contiguous();
                     for (offset, data) in &flushed {
                         handler.on_data(&key, dir, data, *offset);
                     }
@@ -394,7 +393,7 @@ impl TcpReassembler {
             if let Some(flow) = self.flows.get_mut(&key) {
                 for dir in [Direction::ClientToServer, Direction::ServerToClient] {
                     let flow_dir = flow.get_direction_mut(dir);
-                    let flushed = flush_contiguous(flow_dir);
+                    let flushed = flow_dir.flush_contiguous();
                     for (offset, data) in &flushed {
                         handler.on_data(&key, dir, data, *offset);
                     }
@@ -458,7 +457,7 @@ impl TcpReassembler {
                 use crate::reassembly::handler::Direction;
                 for dir in [Direction::ClientToServer, Direction::ServerToClient] {
                     let flow_dir = flow.get_direction_mut(dir);
-                    let flushed = flush_contiguous(flow_dir);
+                    let flushed = flow_dir.flush_contiguous();
                     for (offset, data) in &flushed {
                         handler.on_data(key, dir, data, *offset);
                     }

@@ -15,201 +15,203 @@ fn seq_offset(seq: u32, isn: u32) -> u64 {
     seq.wrapping_sub(isn) as u64
 }
 
-/// Insert a segment into the flow direction's out-of-order buffer.
-/// Applies first-wins overlap policy and tracks anomaly counters.
-pub fn insert_segment(
-    dir: &mut FlowDirection,
-    seq: u32,
-    data: &[u8],
-    max_depth: usize,
-    max_segments: usize,
-) -> InsertResult {
-    if data.is_empty() {
-        return InsertResult::Inserted;
-    }
+impl FlowDirection {
+    /// Insert a segment into the flow direction's out-of-order buffer.
+    /// Applies first-wins overlap policy and tracks anomaly counters.
+    pub fn insert_segment(
+        &mut self,
+        seq: u32,
+        data: &[u8],
+        max_depth: usize,
+        max_segments: usize,
+    ) -> InsertResult {
+        if data.is_empty() {
+            return InsertResult::Inserted;
+        }
 
-    let isn = match dir.isn {
-        Some(isn) => isn,
-        None => {
-            debug_assert!(false, "insert_segment called with no ISN set");
+        let isn = match self.isn {
+            Some(isn) => isn,
+            None => {
+                debug_assert!(false, "insert_segment called with no ISN set");
+                return InsertResult::DepthExceeded;
+            }
+        };
+
+        // Enforce max segments per direction to prevent BTreeMap overhead explosion
+        if self.segments.len() >= max_segments {
             return InsertResult::DepthExceeded;
         }
-    };
 
-    // Enforce max segments per direction to prevent BTreeMap overhead explosion
-    if dir.segments.len() >= max_segments {
-        return InsertResult::DepthExceeded;
-    }
-
-    // Track small segments (cumulative, not consecutive)
-    if data.len() < 8 {
-        dir.small_segment_count += 1;
-    }
-
-    // Check depth limit
-    let remaining_depth = max_depth.saturating_sub(dir.reassembled_bytes);
-    if remaining_depth == 0 {
-        if !dir.depth_exceeded {
-            dir.depth_exceeded = true;
+        // Track small segments (cumulative, not consecutive)
+        if data.len() < 8 {
+            self.small_segment_count += 1;
         }
-        return InsertResult::DepthExceeded;
-    }
 
-    let offset = seq_offset(seq, isn);
-    let mut segment_data = data.to_vec();
-
-    // Truncate if exceeding depth
-    let buffered = dir.buffered_bytes;
-    let total_after = dir.reassembled_bytes + buffered + segment_data.len();
-    let truncated = if total_after > max_depth {
-        let allowed = max_depth.saturating_sub(dir.reassembled_bytes + buffered);
-        if allowed == 0 {
-            dir.depth_exceeded = true;
+        // Check depth limit
+        let remaining_depth = max_depth.saturating_sub(self.reassembled_bytes);
+        if remaining_depth == 0 {
+            if !self.depth_exceeded {
+                self.depth_exceeded = true;
+            }
             return InsertResult::DepthExceeded;
         }
-        segment_data.truncate(allowed);
-        dir.depth_exceeded = true;
-        true
-    } else {
-        false
-    };
 
-    let new_start = offset;
-    let new_end = offset + segment_data.len() as u64;
+        let offset = seq_offset(seq, isn);
+        let mut segment_data = data.to_vec();
 
-    // Check for overlaps with existing segments
-    let mut has_overlap = false;
-    let mut has_conflict = false;
-    let mut trimmed_ranges: Vec<(u64, u64)> = Vec::new();
+        // Truncate if exceeding depth
+        let buffered = self.buffered_bytes;
+        let total_after = self.reassembled_bytes + buffered + segment_data.len();
+        let truncated = if total_after > max_depth {
+            let allowed = max_depth.saturating_sub(self.reassembled_bytes + buffered);
+            if allowed == 0 {
+                self.depth_exceeded = true;
+                return InsertResult::DepthExceeded;
+            }
+            segment_data.truncate(allowed);
+            self.depth_exceeded = true;
+            true
+        } else {
+            false
+        };
 
-    // Only segments starting before new_end can overlap [new_start, new_end).
-    for (&existing_offset, existing_data) in dir.segments.range(..new_end) {
-        let existing_end = existing_offset + existing_data.len() as u64;
+        let new_start = offset;
+        let new_end = offset + segment_data.len() as u64;
 
-        if new_start < existing_end && new_end > existing_offset {
-            has_overlap = true;
+        // Check for overlaps with existing segments
+        let mut has_overlap = false;
+        let mut has_conflict = false;
+        let mut trimmed_ranges: Vec<(u64, u64)> = Vec::new();
 
-            let overlap_start = new_start.max(existing_offset);
-            let overlap_end = new_end.min(existing_end);
+        // Only segments starting before new_end can overlap [new_start, new_end).
+        for (&existing_offset, existing_data) in self.segments.range(..new_end) {
+            let existing_end = existing_offset + existing_data.len() as u64;
 
-            // Use slice comparison (SIMD-optimized) instead of byte-by-byte
-            let new_slice_start = (overlap_start - new_start) as usize;
-            let new_slice_end = (overlap_end - new_start) as usize;
-            let existing_slice_start = (overlap_start - existing_offset) as usize;
-            let existing_slice_end = (overlap_end - existing_offset) as usize;
+            if new_start < existing_end && new_end > existing_offset {
+                has_overlap = true;
 
-            if new_slice_end <= segment_data.len()
-                && existing_slice_end <= existing_data.len()
-                && segment_data[new_slice_start..new_slice_end]
-                    != existing_data[existing_slice_start..existing_slice_end]
-            {
-                has_conflict = true;
+                let overlap_start = new_start.max(existing_offset);
+                let overlap_end = new_end.min(existing_end);
+
+                // Use slice comparison (SIMD-optimized) instead of byte-by-byte
+                let new_slice_start = (overlap_start - new_start) as usize;
+                let new_slice_end = (overlap_end - new_start) as usize;
+                let existing_slice_start = (overlap_start - existing_offset) as usize;
+                let existing_slice_end = (overlap_end - existing_offset) as usize;
+
+                if new_slice_end <= segment_data.len()
+                    && existing_slice_end <= existing_data.len()
+                    && segment_data[new_slice_start..new_slice_end]
+                        != existing_data[existing_slice_start..existing_slice_end]
+                {
+                    has_conflict = true;
+                }
+
+                trimmed_ranges.push((existing_offset, existing_end));
+            }
+        }
+
+        if has_overlap {
+            self.overlap_count += 1;
+
+            let fully_covered = trimmed_ranges
+                .iter()
+                .any(|&(es, ee)| es <= new_start && ee >= new_end);
+            if fully_covered {
+                return if has_conflict {
+                    InsertResult::ConflictingOverlap
+                } else {
+                    InsertResult::Duplicate
+                };
             }
 
-            trimmed_ranges.push((existing_offset, existing_end));
-        }
-    }
+            // First-wins: insert only gap portions
+            let mut gaps: Vec<(u64, u64)> = Vec::new();
+            let mut cursor = new_start;
 
-    if has_overlap {
-        dir.overlap_count += 1;
+            let mut sorted_ranges = trimmed_ranges.clone();
+            sorted_ranges.sort_by_key(|&(start, _)| start);
 
-        let fully_covered = trimmed_ranges
-            .iter()
-            .any(|&(es, ee)| es <= new_start && ee >= new_end);
-        if fully_covered {
-            return if has_conflict {
+            for &(es, ee) in &sorted_ranges {
+                if cursor < es {
+                    gaps.push((cursor, es.min(new_end)));
+                }
+                cursor = cursor.max(ee);
+            }
+            if cursor < new_end {
+                gaps.push((cursor, new_end));
+            }
+
+            let had_gap = !gaps.is_empty();
+
+            for (gap_start, gap_end) in gaps {
+                // Enforce max_segments inside gap insertion loop
+                if self.segments.len() >= max_segments {
+                    break;
+                }
+                let start_idx = (gap_start - new_start) as usize;
+                let end_idx = (gap_end - new_start) as usize;
+                if start_idx < segment_data.len() && end_idx <= segment_data.len() {
+                    let gap_data = segment_data[start_idx..end_idx].to_vec();
+                    if !gap_data.is_empty() {
+                        let gap_len = gap_data.len();
+                        let old = self.segments.insert(gap_start, gap_data);
+                        debug_assert!(
+                            old.is_none(),
+                            "gap_start {} collided with existing segment",
+                            gap_start
+                        );
+                        if let Some(old) = old {
+                            self.buffered_bytes -= old.len();
+                        }
+                        self.buffered_bytes += gap_len;
+                    }
+                }
+            }
+
+            // Only report ConflictingOverlap when fully covered (no gap was inserted)
+            return if !had_gap && has_conflict {
                 InsertResult::ConflictingOverlap
+            } else if truncated {
+                InsertResult::Truncated
             } else {
-                InsertResult::Duplicate
+                InsertResult::PartialOverlap
             };
         }
 
-        // First-wins: insert only gap portions
-        let mut gaps: Vec<(u64, u64)> = Vec::new();
-        let mut cursor = new_start;
-
-        let mut sorted_ranges = trimmed_ranges.clone();
-        sorted_ranges.sort_by_key(|&(start, _)| start);
-
-        for &(es, ee) in &sorted_ranges {
-            if cursor < es {
-                gaps.push((cursor, es.min(new_end)));
-            }
-            cursor = cursor.max(ee);
+        // No overlap — insert normally
+        let data_len = segment_data.len();
+        let old = self.segments.insert(offset, segment_data);
+        debug_assert!(
+            old.is_none(),
+            "offset {} collided with existing segment in no-overlap path",
+            offset
+        );
+        if let Some(old) = old {
+            self.buffered_bytes -= old.len();
         }
-        if cursor < new_end {
-            gaps.push((cursor, new_end));
-        }
+        self.buffered_bytes += data_len;
 
-        let had_gap = !gaps.is_empty();
-
-        for (gap_start, gap_end) in gaps {
-            // Enforce max_segments inside gap insertion loop
-            if dir.segments.len() >= max_segments {
-                break;
-            }
-            let start_idx = (gap_start - new_start) as usize;
-            let end_idx = (gap_end - new_start) as usize;
-            if start_idx < segment_data.len() && end_idx <= segment_data.len() {
-                let gap_data = segment_data[start_idx..end_idx].to_vec();
-                if !gap_data.is_empty() {
-                    let gap_len = gap_data.len();
-                    let old = dir.segments.insert(gap_start, gap_data);
-                    debug_assert!(
-                        old.is_none(),
-                        "gap_start {} collided with existing segment",
-                        gap_start
-                    );
-                    if let Some(old) = old {
-                        dir.buffered_bytes -= old.len();
-                    }
-                    dir.buffered_bytes += gap_len;
-                }
-            }
-        }
-
-        // Only report ConflictingOverlap when fully covered (no gap was inserted)
-        return if !had_gap && has_conflict {
-            InsertResult::ConflictingOverlap
-        } else if truncated {
+        if truncated {
             InsertResult::Truncated
         } else {
-            InsertResult::PartialOverlap
-        };
+            InsertResult::Inserted
+        }
     }
 
-    // No overlap — insert normally
-    let data_len = segment_data.len();
-    let old = dir.segments.insert(offset, segment_data);
-    debug_assert!(
-        old.is_none(),
-        "offset {} collided with existing segment in no-overlap path",
-        offset
-    );
-    if let Some(old) = old {
-        dir.buffered_bytes -= old.len();
+    /// Flush contiguous segments starting from base_offset.
+    /// Returns Vec of (offset, data) pairs that were flushed.
+    pub fn flush_contiguous(&mut self) -> Vec<(u64, Vec<u8>)> {
+        let mut flushed = Vec::new();
+
+        while let Some(data) = self.segments.remove(&self.base_offset) {
+            let offset = self.base_offset;
+            self.buffered_bytes -= data.len();
+            self.base_offset += data.len() as u64;
+            self.reassembled_bytes += data.len();
+            flushed.push((offset, data));
+        }
+
+        flushed
     }
-    dir.buffered_bytes += data_len;
-
-    if truncated {
-        InsertResult::Truncated
-    } else {
-        InsertResult::Inserted
-    }
-}
-
-/// Flush contiguous segments starting from base_offset.
-/// Returns Vec of (offset, data) pairs that were flushed.
-pub fn flush_contiguous(dir: &mut FlowDirection) -> Vec<(u64, Vec<u8>)> {
-    let mut flushed = Vec::new();
-
-    while let Some(data) = dir.segments.remove(&dir.base_offset) {
-        let offset = dir.base_offset;
-        dir.buffered_bytes -= data.len();
-        dir.base_offset += data.len() as u64;
-        dir.reassembled_bytes += data.len();
-        flushed.push((offset, data));
-    }
-
-    flushed
 }
