@@ -291,20 +291,97 @@ fn test_parse_error_in_response() {
 }
 
 #[test]
-fn test_parse_error_poisons_direction() {
+fn test_parse_error_poisons_direction_after_threshold() {
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
 
-    // First: malformed request (triggers error, poisons request direction)
-    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
-    assert_eq!(analyzer.parse_error_count(), 1);
+    // Send 3 consecutive errors to reach POISON_THRESHOLD
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE1\r\n\r\n", 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE2\r\n\r\n", 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE3\r\n\r\n", 0);
+    assert_eq!(analyzer.parse_error_count(), 3);
 
-    // Second: valid request on same flow — skipped because direction is poisoned
+    // Fourth: valid request — skipped because direction is now poisoned
     let valid = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
     analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
 
-    assert_eq!(analyzer.parse_error_count(), 1); // no new errors (poisoned, not retried)
+    assert_eq!(analyzer.parse_error_count(), 3); // no new errors (poisoned, not retried)
     assert!(analyzer.method_counts().get("GET").is_none()); // never parsed
+}
+
+#[test]
+fn test_single_error_does_not_poison() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    // One error is below threshold — should NOT poison
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+    assert_eq!(analyzer.parse_error_count(), 1);
+
+    // Valid request should still parse (direction not poisoned yet)
+    let valid = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+
+    assert_eq!(analyzer.parse_error_count(), 1);
+    assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
+}
+
+#[test]
+fn test_poison_request_does_not_affect_response() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Poison request direction (3 errors)
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE1\r\n\r\n", 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE2\r\n\r\n", 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE3\r\n\r\n", 0);
+    assert_eq!(analyzer.parse_error_count(), 3);
+
+    // Response direction should still work
+    let response = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ServerToClient, response, 0);
+    assert_eq!(analyzer.transaction_count(), 1);
+    assert_eq!(*analyzer.status_code_counts().get(&200).unwrap(), 1);
+}
+
+#[test]
+fn test_non_http_flows_counts_per_flow_not_direction() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Poison request direction (3 errors)
+    for _ in 0..3 {
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+    }
+    // Poison response direction (3 errors)
+    for _ in 0..3 {
+        analyzer.on_data(&fk, Direction::ServerToClient, b"GARBAGE\r\n\r\n", 0);
+    }
+
+    // Both directions poisoned, but non_http_flows should count 1 flow, not 2
+    let summary = analyzer.summarize();
+    assert_eq!(summary.detail["non_http_flows"], serde_json::json!(1));
+}
+
+#[test]
+fn test_poison_cleared_after_flow_close() {
+    use wirerust::reassembly::handler::CloseReason;
+
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Poison request direction (3 errors)
+    for _ in 0..3 {
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+    }
+
+    // Close the flow
+    analyzer.on_flow_close(&fk, CloseReason::Fin);
+
+    // Reopen same 4-tuple — should NOT be poisoned
+    let valid = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+    assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
 }
 
 #[test]

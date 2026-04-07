@@ -61,11 +61,19 @@ fn find_header(headers: &[httparse::Header<'_>], name: &str) -> Option<String> {
         .map(|h| String::from_utf8_lossy(h.value).trim().to_string())
 }
 
+/// Number of consecutive parse errors before poisoning a direction.
+/// Set > 1 to tolerate mid-stream joins where the first segment(s)
+/// are body data from a transfer that started before the capture.
+const POISON_THRESHOLD: u8 = 3;
+
 struct HttpFlowState {
     request_buf: Vec<u8>,
     response_buf: Vec<u8>,
     request_poisoned: bool,
     response_poisoned: bool,
+    request_error_count: u8,
+    response_error_count: u8,
+    counted_as_non_http: bool,
 }
 
 impl HttpFlowState {
@@ -75,6 +83,9 @@ impl HttpFlowState {
             response_buf: Vec::new(),
             request_poisoned: false,
             response_poisoned: false,
+            request_error_count: 0,
+            response_error_count: 0,
+            counted_as_non_http: false,
         }
     }
 }
@@ -98,6 +109,7 @@ pub struct HttpAnalyzer {
     all_findings: Vec<Finding>,
     parse_errors: u64,
     non_http_flows: u64,
+    poisoned_bytes_skipped: u64,
 }
 
 impl Default for HttpAnalyzer {
@@ -119,6 +131,7 @@ impl HttpAnalyzer {
             all_findings: Vec::new(),
             parse_errors: 0,
             non_http_flows: 0,
+            poisoned_bytes_skipped: 0,
         }
     }
 
@@ -320,8 +333,14 @@ impl HttpAnalyzer {
                     if !had_success {
                         self.parse_errors += 1;
                         if let Some(state) = self.flows.get_mut(flow_key) {
-                            state.request_poisoned = true;
-                            self.non_http_flows += 1;
+                            state.request_error_count = state.request_error_count.saturating_add(1);
+                            if state.request_error_count >= POISON_THRESHOLD {
+                                state.request_poisoned = true;
+                                if !state.counted_as_non_http {
+                                    state.counted_as_non_http = true;
+                                    self.non_http_flows += 1;
+                                }
+                            }
                         }
                         if e == httparse::Error::TooManyHeaders {
                             self.all_findings.push(Finding {
@@ -370,8 +389,15 @@ impl HttpAnalyzer {
                     if !had_success {
                         self.parse_errors += 1;
                         if let Some(state) = self.flows.get_mut(flow_key) {
-                            state.response_poisoned = true;
-                            self.non_http_flows += 1;
+                            state.response_error_count =
+                                state.response_error_count.saturating_add(1);
+                            if state.response_error_count >= POISON_THRESHOLD {
+                                state.response_poisoned = true;
+                                if !state.counted_as_non_http {
+                                    state.counted_as_non_http = true;
+                                    self.non_http_flows += 1;
+                                }
+                            }
                         }
                         if e == httparse::Error::TooManyHeaders {
                             self.all_findings.push(Finding {
@@ -407,6 +433,7 @@ impl StreamHandler for HttpAnalyzer {
             match direction {
                 Direction::ClientToServer => {
                     if state.request_poisoned {
+                        self.poisoned_bytes_skipped += data.len() as u64;
                         return;
                     }
                     let remaining = MAX_HEADER_BUF.saturating_sub(state.request_buf.len());
@@ -418,6 +445,7 @@ impl StreamHandler for HttpAnalyzer {
                 }
                 Direction::ServerToClient => {
                     if state.response_poisoned {
+                        self.poisoned_bytes_skipped += data.len() as u64;
                         return;
                     }
                     let remaining = MAX_HEADER_BUF.saturating_sub(state.response_buf.len());
@@ -482,6 +510,10 @@ impl StreamAnalyzer for HttpAnalyzer {
         detail.insert(
             "non_http_flows".to_string(),
             serde_json::json!(self.non_http_flows),
+        );
+        detail.insert(
+            "poisoned_bytes_skipped".to_string(),
+            serde_json::json!(self.poisoned_bytes_skipped),
         );
 
         AnalysisSummary {
