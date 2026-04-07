@@ -1,7 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr};
 
 use wirerust::decoder::{ParsedPacket, Protocol, TransportInfo};
-use wirerust::findings::{Confidence, ThreatCategory};
+use wirerust::findings::{Confidence, ThreatCategory, Verdict};
 use wirerust::reassembly::flow::FlowKey;
 use wirerust::reassembly::handler::{CloseReason, Direction, StreamHandler};
 use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
@@ -712,6 +712,23 @@ fn test_max_flows_eviction() {
 
     // All three flows were created at some point
     assert_eq!(stats.flows_total, 3);
+
+    // Verify eviction order: Flow A (oldest, last_seen=2) was evicted, not Flow B
+    let flow_a_key = FlowKey::new(
+        IpAddr::V4(Ipv4Addr::from([10, 0, 0, 1])),
+        1000,
+        IpAddr::V4(Ipv4Addr::from(server)),
+        80,
+    );
+    let evicted = handler
+        .close_events
+        .iter()
+        .find(|(_, r)| *r == CloseReason::MemoryPressure)
+        .expect("MemoryPressure close event must exist");
+    assert_eq!(
+        evicted.0, flow_a_key,
+        "oldest flow (A) should be evicted first"
+    );
 }
 
 #[test]
@@ -770,6 +787,15 @@ fn test_memcap_eviction() {
     let stats = reassembler.stats();
     assert!(stats.evictions >= 1);
     assert!(reassembler.total_memory() <= 10);
+
+    // CloseReason::MemoryPressure must be emitted
+    assert!(
+        handler
+            .close_events
+            .iter()
+            .any(|(_, r)| *r == CloseReason::MemoryPressure),
+        "memcap eviction must emit CloseReason::MemoryPressure"
+    );
 }
 
 #[test]
@@ -821,6 +847,9 @@ fn test_overlap_anomaly_finding() {
         .find(|f| f.summary.contains("Excessive segment overlaps"))
         .expect("overlap anomaly finding not found");
     assert_eq!(overlap_finding.category, ThreatCategory::Anomaly);
+    assert_eq!(overlap_finding.confidence, Confidence::Medium);
+    assert_eq!(overlap_finding.verdict, Verdict::Likely);
+    assert_eq!(overlap_finding.mitre_technique.as_deref(), Some("T1036"));
 }
 
 #[test]
@@ -923,4 +952,18 @@ fn test_max_segments_per_direction() {
         stats_before,
         "6th segment should be rejected when max_segments_per_direction is reached"
     );
+
+    // Verify existing buffered segments survive rejection (non-destructive).
+    // The 5 segments at offsets 2,4,6,8,10 are non-contiguous with base_offset=1,
+    // so flush_contiguous won't deliver them. Verify via memory accounting:
+    // total_memory should still reflect all 5 bytes.
+    assert_eq!(
+        reassembler.total_memory(),
+        5,
+        "5 buffered segments (1 byte each) must survive after rejection"
+    );
+
+    // Finalize cleans up — total_memory drops to 0
+    reassembler.finalize(&mut handler);
+    assert_eq!(reassembler.total_memory(), 0);
 }
