@@ -599,3 +599,174 @@ fn test_full_handshake_fin_teardown() {
     assert_eq!(client_data, vec![b"hello".as_slice()]);
     assert_eq!(server_data, vec![b"world".as_slice()]);
 }
+
+#[test]
+fn test_max_flows_eviction() {
+    // Verify that the engine evicts the oldest flow when the flow table is full,
+    // making room for a new flow.
+    //
+    // max_flows=2 caps the table size.  Both flows carry out-of-order segments
+    // (buffered, not flushed) so total_memory is non-zero when the third flow
+    // arrives.  memcap=5 is set just below the combined buffered size of both
+    // flows (3+3=6) so that evict_flows() does not short-circuit: the loop
+    // break condition is `total_memory <= memcap && flows.len() <= max_flows`,
+    // and both must be true to stop eviction.  With total_memory=6 > memcap=5,
+    // the oldest flow (A) is evicted before Flow C is admitted.
+    let config = ReassemblyConfig {
+        max_flows: 2,
+        memcap: 5,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let server = [10, 0, 0, 2];
+
+    // Flow A (oldest, last_seen=2): SYN + out-of-order data (stays buffered)
+    let syn_a = make_tcp_packet(
+        [10, 0, 0, 1],
+        1000,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_a, 1, &mut handler);
+    // seq=1002: offset = 1002-1000 = 2, base_offset = 1 → gap at 1 → buffered
+    let data_a = make_tcp_packet(
+        [10, 0, 0, 1],
+        1000,
+        server,
+        80,
+        1002,
+        b"aaa",
+        false,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&data_a, 2, &mut handler);
+    assert_eq!(reassembler.total_memory(), 3); // "aaa" buffered, not flushed
+
+    // Flow B (last_seen=4): SYN + out-of-order data (stays buffered)
+    let syn_b = make_tcp_packet(
+        [10, 0, 0, 1],
+        2000,
+        server,
+        80,
+        2000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_b, 3, &mut handler);
+    // seq=2002: offset = 2002-2000 = 2, base_offset = 1 → gap at 1 → buffered
+    let data_b = make_tcp_packet(
+        [10, 0, 0, 1],
+        2000,
+        server,
+        80,
+        2002,
+        b"bbb",
+        false,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&data_b, 4, &mut handler);
+    // total_memory = 6 > memcap = 5 → evict_flows() fires, evicts Flow A (oldest)
+
+    // Flow C SYN: after eviction, flows.len()=1 < max_flows=2 → admitted
+    let syn_c = make_tcp_packet(
+        [10, 0, 0, 1],
+        3000,
+        server,
+        80,
+        3000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_c, 5, &mut handler);
+
+    // Eviction occurred
+    let stats = reassembler.stats();
+    assert!(stats.evictions >= 1);
+
+    // MemoryPressure close reason present
+    assert!(
+        handler
+            .close_events
+            .iter()
+            .any(|(_, r)| *r == CloseReason::MemoryPressure)
+    );
+
+    // All three flows were created at some point
+    assert_eq!(stats.flows_total, 3);
+}
+
+#[test]
+fn test_memcap_eviction() {
+    let config = ReassemblyConfig {
+        memcap: 10,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Flow A: SYN + out-of-order data (stays buffered because offset 1 is missing)
+    let syn_a = make_tcp_packet(
+        client,
+        1000,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_a, 1, &mut handler);
+    let data_a1 = make_tcp_packet(
+        client, 1000, server, 80, 1002, b"aaaaa", false, false, false, false,
+    );
+    reassembler.process_packet(&data_a1, 2, &mut handler);
+    assert_eq!(reassembler.total_memory(), 5);
+
+    // Flow B: SYN + out-of-order data that pushes past memcap (5+6=11 > 10)
+    let syn_b = make_tcp_packet(
+        client,
+        2000,
+        server,
+        80,
+        2000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_b, 3, &mut handler);
+    let data_b1 = make_tcp_packet(
+        client, 2000, server, 80, 2002, b"bbbbbb", false, false, false, false,
+    );
+    reassembler.process_packet(&data_b1, 4, &mut handler);
+    // total_memory would be 11 which exceeds memcap=10, triggering eviction
+
+    // Eviction should have fired
+    let stats = reassembler.stats();
+    assert!(stats.evictions >= 1);
+    assert!(reassembler.total_memory() <= 10);
+}
