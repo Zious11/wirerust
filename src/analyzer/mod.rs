@@ -1,5 +1,6 @@
 pub mod dns;
 pub mod http;
+pub mod tls;
 
 use std::collections::HashMap;
 

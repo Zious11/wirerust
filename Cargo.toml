@@ -7,6 +7,8 @@ license = "MIT"
 
 [dependencies]
 httparse = "1"
+tls-parser = "0.12"
+md-5 = "0.11"
 clap = { version = "4", features = ["derive"] }
 etherparse = "0.16"
 pcap-file = "2"
