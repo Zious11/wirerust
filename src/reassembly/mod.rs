@@ -60,6 +60,7 @@ pub struct ReassemblyStats {
     pub segments_duplicates: u64,
     pub segments_overlaps: u64,
     pub segments_out_of_window: u64,
+    pub segments_segment_limit: u64,
     pub bytes_reassembled: u64,
     pub evictions: u64,
 }
@@ -236,6 +237,9 @@ impl TcpReassembler {
                 }
                 InsertResult::DepthExceeded => {
                     // Already tracked in the direction
+                }
+                InsertResult::SegmentLimitReached => {
+                    self.stats.segments_segment_limit += 1;
                 }
                 InsertResult::OutOfWindow => {
                     self.stats.segments_out_of_window += 1;

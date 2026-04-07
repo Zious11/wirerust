@@ -318,3 +318,66 @@ fn test_multi_segment_full_coverage_conflicting_returns_conflict() {
     let result = dir.insert_segment(1001, b"XXXXXX", 10_485_760, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::ConflictingOverlap);
 }
+
+#[test]
+fn test_segment_limit_non_overlap_path() {
+    let mut dir = FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_segments: usize = 3;
+
+    // Fill up to the segment limit
+    dir.insert_segment(1001, b"aaa", 10_485_760, max_segments, 10_485_760);
+    dir.insert_segment(1010, b"bbb", 10_485_760, max_segments, 10_485_760);
+    dir.insert_segment(1020, b"ccc", 10_485_760, max_segments, 10_485_760);
+    assert_eq!(dir.segments.len(), 3);
+
+    // Next non-overlapping insert should return SegmentLimitReached
+    let result = dir.insert_segment(1030, b"ddd", 10_485_760, max_segments, 10_485_760);
+    assert_eq!(result, InsertResult::SegmentLimitReached);
+    assert_eq!(dir.segments.len(), 3); // No new segment added
+}
+
+#[test]
+fn test_segment_limit_gap_loop_full_rejection() {
+    let mut dir = FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_segments: usize = 2;
+
+    // Insert two segments with a gap between them (offsets 1-3 and 10-12)
+    dir.insert_segment(1001, b"AAA", 10_485_760, max_segments, 10_485_760);
+    dir.insert_segment(1010, b"BBB", 10_485_760, max_segments, 10_485_760);
+    assert_eq!(dir.segments.len(), 2);
+
+    // Now insert a segment that overlaps the first and has a gap to fill (offset 1-6)
+    // Gap is at offset 4-6. But segments are at capacity (2), so the gap can't be inserted.
+    let result = dir.insert_segment(1001, b"AAAXXX", 10_485_760, max_segments, 10_485_760);
+    assert_eq!(result, InsertResult::SegmentLimitReached);
+    assert_eq!(dir.segments.len(), 2); // No new segment added
+}
+
+#[test]
+fn test_segment_limit_gap_loop_partial_insertion() {
+    let mut dir = FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_segments: usize = 3;
+
+    // Insert two segments: offset 1-3 and offset 10-12, leaving gaps at 4-9 and 13+
+    dir.insert_segment(1001, b"AAA", 10_485_760, max_segments, 10_485_760);
+    dir.insert_segment(1010, b"BBB", 10_485_760, max_segments, 10_485_760);
+    assert_eq!(dir.segments.len(), 2);
+
+    // Insert segment spanning offset 1-14 (overlaps both, has two gaps: 4-9 and 13-14)
+    // Only 1 segment slot available (limit=3, currently 2). First gap fills, second is dropped.
+    let result = dir.insert_segment(1001, b"AAABBBBBBBBBBCC", 10_485_760, max_segments, 10_485_760);
+    // Some data was inserted (first gap), so returns PartialOverlap
+    assert_eq!(result, InsertResult::PartialOverlap);
+    assert_eq!(dir.segments.len(), 3); // One gap inserted, hit limit before second
+
+    // Verify the first gap was filled (offset 4, data "BBBBBBB" for offsets 4-9 = 6 bytes)
+    assert!(dir.segments.contains_key(&4));
+    // Second gap (offset 13) was NOT inserted
+    assert!(!dir.segments.contains_key(&13));
+}

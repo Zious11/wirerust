@@ -940,7 +940,7 @@ fn test_max_segments_per_direction() {
     let stats_before = reassembler.stats().segments_inserted;
     assert_eq!(stats_before, 5);
 
-    // 6th segment — should be rejected (DepthExceeded: max_segments reached)
+    // 6th segment — should be rejected (SegmentLimitReached: max_segments reached)
     let rejected = make_tcp_packet(
         client, 12345, server, 80, 1012, b"y", false, false, false, false,
     );
@@ -951,6 +951,13 @@ fn test_max_segments_per_direction() {
         reassembler.stats().segments_inserted,
         stats_before,
         "6th segment should be rejected when max_segments_per_direction is reached"
+    );
+
+    // segments_segment_limit counter must be incremented
+    assert_eq!(
+        reassembler.stats().segments_segment_limit,
+        1,
+        "segment limit counter should track the rejection"
     );
 
     // Verify existing buffered segments survive rejection (non-destructive).

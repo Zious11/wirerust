@@ -8,6 +8,7 @@ pub enum InsertResult {
     ConflictingOverlap,
     Truncated,
     DepthExceeded,
+    SegmentLimitReached,
     OutOfWindow,
 }
 
@@ -48,7 +49,7 @@ impl FlowDirection {
 
         // Enforce max segments per direction to prevent BTreeMap overhead explosion
         if self.segments.len() >= max_segments {
-            return InsertResult::DepthExceeded;
+            return InsertResult::SegmentLimitReached;
         }
 
         // Track small segments (cumulative, not consecutive)
@@ -152,9 +153,12 @@ impl FlowDirection {
 
             let had_gap = !gaps.is_empty();
 
+            let mut segments_exhausted = false;
+            let mut any_gap_inserted = false;
             for (gap_start, gap_end) in gaps {
                 // Enforce max_segments inside gap insertion loop
                 if self.segments.len() >= max_segments {
+                    segments_exhausted = true;
                     break;
                 }
                 let start_idx = (gap_start - new_start) as usize;
@@ -173,6 +177,7 @@ impl FlowDirection {
                             self.buffered_bytes -= old.len();
                         }
                         self.buffered_bytes += gap_len;
+                        any_gap_inserted = true;
                     }
                 }
             }
@@ -182,6 +187,8 @@ impl FlowDirection {
                 InsertResult::ConflictingOverlap
             } else if !had_gap {
                 InsertResult::Duplicate
+            } else if segments_exhausted && !any_gap_inserted {
+                InsertResult::SegmentLimitReached
             } else if truncated {
                 InsertResult::Truncated
             } else {
