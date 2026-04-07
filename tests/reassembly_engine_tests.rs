@@ -1011,3 +1011,63 @@ fn test_finalize_bytes_reassembled_consistent() {
         "bytes_reassembled must match total bytes delivered to handler"
     );
 }
+
+#[test]
+fn test_out_of_window_segment_rejected_by_engine() {
+    let config = ReassemblyConfig {
+        max_receive_window: 1000, // small window for testing
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN (ISN=1000, base_offset=1)
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Normal data at offset 1 (within window)
+    let p1 = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"hello", false, false, false, false,
+    );
+    reassembler.process_packet(&p1, 2, &mut handler);
+
+    assert_eq!(handler.data_events.len(), 1);
+    assert_eq!(reassembler.stats().segments_inserted, 1);
+
+    // Segment way beyond window: base_offset=6, window=1000, so offset > 1006 is rejected
+    // seq = ISN + offset = 1000 + 2000 = 3000
+    let far = make_tcp_packet(
+        client, 12345, server, 80, 3000, b"evil", false, false, false, false,
+    );
+    reassembler.process_packet(&far, 3, &mut handler);
+
+    // Should be rejected — no new data events, counter incremented
+    assert_eq!(handler.data_events.len(), 1); // unchanged
+    assert_eq!(reassembler.stats().segments_out_of_window, 1);
+    assert_eq!(reassembler.stats().segments_inserted, 1); // unchanged
+
+    // Segment just within window should be accepted
+    // base_offset=6, window=1000, so offset 1006 is the last accepted
+    // seq = ISN + offset = 1000 + 1006 = 2006
+    let edge = make_tcp_packet(
+        client, 12345, server, 80, 2006, b"ok", false, false, false, false,
+    );
+    reassembler.process_packet(&edge, 4, &mut handler);
+
+    assert_eq!(reassembler.stats().segments_inserted, 2);
+    assert_eq!(reassembler.stats().segments_out_of_window, 1); // unchanged
+}

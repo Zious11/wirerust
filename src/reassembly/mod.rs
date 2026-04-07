@@ -27,6 +27,9 @@ pub struct ReassemblyConfig {
     pub max_flows: usize,
     /// Maximum segments per flow direction. Prevents BTreeMap overhead explosion.
     pub max_segments_per_direction: usize,
+    /// Maximum distance (bytes) ahead of base_offset to accept a segment.
+    /// Segments beyond this are dropped. Default 1MB matches Suricata/Zeek/Snort.
+    pub max_receive_window: usize,
 }
 
 impl Default for ReassemblyConfig {
@@ -37,6 +40,7 @@ impl Default for ReassemblyConfig {
             flow_timeout_secs: 300,             // 5 minutes
             max_flows: 100_000,                 // 100K concurrent flows
             max_segments_per_direction: 10_000, // 10K segments per direction
+            max_receive_window: 1_048_576,      // 1 MB forward window
         }
     }
 }
@@ -55,6 +59,7 @@ pub struct ReassemblyStats {
     pub segments_inserted: u64,
     pub segments_duplicates: u64,
     pub segments_overlaps: u64,
+    pub segments_out_of_window: u64,
     pub bytes_reassembled: u64,
     pub evictions: u64,
 }
@@ -76,6 +81,10 @@ impl TcpReassembler {
         assert!(
             config.max_segments_per_direction > 0,
             "max_segments_per_direction must be > 0"
+        );
+        assert!(
+            config.max_receive_window > 0,
+            "max_receive_window must be > 0"
         );
         TcpReassembler {
             config,
@@ -200,6 +209,7 @@ impl TcpReassembler {
                 payload,
                 self.config.max_depth,
                 self.config.max_segments_per_direction,
+                self.config.max_receive_window,
             );
             debug_assert!(
                 flow_dir.buffered_bytes >= before_insert,
@@ -226,6 +236,9 @@ impl TcpReassembler {
                 }
                 InsertResult::DepthExceeded => {
                     // Already tracked in the direction
+                }
+                InsertResult::OutOfWindow => {
+                    self.stats.segments_out_of_window += 1;
                 }
             }
 

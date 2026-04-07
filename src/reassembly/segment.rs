@@ -8,6 +8,7 @@ pub enum InsertResult {
     ConflictingOverlap,
     Truncated,
     DepthExceeded,
+    OutOfWindow,
 }
 
 /// Compute the ISN-relative offset for a sequence number.
@@ -24,6 +25,7 @@ impl FlowDirection {
         data: &[u8],
         max_depth: usize,
         max_segments: usize,
+        max_receive_window: usize,
     ) -> InsertResult {
         if data.is_empty() {
             return InsertResult::Inserted;
@@ -36,6 +38,13 @@ impl FlowDirection {
                 return InsertResult::DepthExceeded;
             }
         };
+
+        let offset = seq_offset(seq, isn);
+
+        // Reject segments too far ahead of base_offset (before overlap/depth checks)
+        if offset > self.base_offset.saturating_add(max_receive_window as u64) {
+            return InsertResult::OutOfWindow;
+        }
 
         // Enforce max segments per direction to prevent BTreeMap overhead explosion
         if self.segments.len() >= max_segments {
@@ -56,7 +65,6 @@ impl FlowDirection {
             return InsertResult::DepthExceeded;
         }
 
-        let offset = seq_offset(seq, isn);
         let mut segment_data = data.to_vec();
 
         // Truncate if exceeding depth

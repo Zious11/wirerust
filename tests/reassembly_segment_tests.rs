@@ -6,7 +6,7 @@ fn test_insert_single_segment() {
     let mut dir = FlowDirection::new();
     dir.set_isn(1000);
 
-    let result = dir.insert_segment(1001, b"hello", 10_485_760, 10_000);
+    let result = dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::Inserted);
     assert_eq!(dir.segments.len(), 1);
     assert_eq!(dir.segments.get(&1), Some(&b"hello".to_vec()));
@@ -17,7 +17,7 @@ fn test_flush_contiguous_single() {
     let mut dir = FlowDirection::new();
     dir.set_isn(1000);
 
-    dir.insert_segment(1001, b"hello", 10_485_760, 10_000);
+    dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 10_485_760);
 
     let flushed = dir.flush_contiguous();
     assert_eq!(flushed.len(), 1);
@@ -33,8 +33,8 @@ fn test_flush_contiguous_ordered() {
     let mut dir = FlowDirection::new();
     dir.set_isn(1000);
 
-    dir.insert_segment(1001, b"aaa", 10_485_760, 10_000);
-    dir.insert_segment(1004, b"bbb", 10_485_760, 10_000);
+    dir.insert_segment(1001, b"aaa", 10_485_760, 10_000, 10_485_760);
+    dir.insert_segment(1004, b"bbb", 10_485_760, 10_000, 10_485_760);
 
     let flushed = dir.flush_contiguous();
     assert_eq!(flushed.len(), 2);
@@ -50,12 +50,12 @@ fn test_out_of_order_buffering() {
     dir.set_isn(1000);
 
     // Insert segment 2 first (out of order)
-    dir.insert_segment(1004, b"bbb", 10_485_760, 10_000);
+    dir.insert_segment(1004, b"bbb", 10_485_760, 10_000, 10_485_760);
     let flushed = dir.flush_contiguous();
     assert!(flushed.is_empty()); // Can't flush — gap at offset 1
 
     // Now insert segment 1
-    dir.insert_segment(1001, b"aaa", 10_485_760, 10_000);
+    dir.insert_segment(1001, b"aaa", 10_485_760, 10_000, 10_485_760);
     let flushed = dir.flush_contiguous();
     assert_eq!(flushed.len(), 2); // Both flush now
     assert_eq!(flushed[0].1, b"aaa");
@@ -68,8 +68,8 @@ fn test_retransmission_dedup() {
     let mut dir = FlowDirection::new();
     dir.set_isn(1000);
 
-    dir.insert_segment(1001, b"hello", 10_485_760, 10_000);
-    let result = dir.insert_segment(1001, b"hello", 10_485_760, 10_000);
+    dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 10_485_760);
+    let result = dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::Duplicate);
     assert_eq!(dir.segments.len(), 1); // No duplicate stored
     assert_eq!(dir.buffered_bytes, 5); // counter must not double-count
@@ -81,10 +81,10 @@ fn test_overlap_first_wins() {
     dir.set_isn(1000);
 
     // Insert "AAABBB" at offset 1
-    dir.insert_segment(1001, b"AAABBB", 10_485_760, 10_000);
+    dir.insert_segment(1001, b"AAABBB", 10_485_760, 10_000, 10_485_760);
 
     // Overlapping insert: "XXXCC" at offset 4 (overlaps with "BBB" at 4-6)
-    let result = dir.insert_segment(1004, b"XXXCC", 10_485_760, 10_000);
+    let result = dir.insert_segment(1004, b"XXXCC", 10_485_760, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::PartialOverlap);
     assert_eq!(dir.overlap_count, 1);
 
@@ -102,10 +102,10 @@ fn test_overlap_conflicting_data_detected() {
     let mut dir = FlowDirection::new();
     dir.set_isn(1000);
 
-    dir.insert_segment(1001, b"AAAA", 10_485_760, 10_000);
+    dir.insert_segment(1001, b"AAAA", 10_485_760, 10_000, 10_485_760);
 
     // Same range, different data
-    let result = dir.insert_segment(1001, b"BBBB", 10_485_760, 10_000);
+    let result = dir.insert_segment(1001, b"BBBB", 10_485_760, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::ConflictingOverlap);
     assert_eq!(dir.overlap_count, 1);
 
@@ -121,11 +121,11 @@ fn test_sequence_wraparound() {
     dir.set_isn(0xFFFF_FFF0);
 
     // First data byte at ISN+1 = 0xFFFF_FFF1, offset = 1
-    dir.insert_segment(0xFFFF_FFF1, b"before", 10_485_760, 10_000);
+    dir.insert_segment(0xFFFF_FFF1, b"before", 10_485_760, 10_000, 10_485_760);
     // Next segment wraps: seq = 0xFFFF_FFF1 + 6 = 0xFFFF_FFF7, offset = 7
-    dir.insert_segment(0xFFFF_FFF7, b"wrap", 10_485_760, 10_000);
+    dir.insert_segment(0xFFFF_FFF7, b"wrap", 10_485_760, 10_000, 10_485_760);
     // Another after wrap: seq = 0xFFFF_FFFB, offset = 11
-    dir.insert_segment(0xFFFF_FFFB, b"around", 10_485_760, 10_000);
+    dir.insert_segment(0xFFFF_FFFB, b"around", 10_485_760, 10_000, 10_485_760);
 
     let flushed = dir.flush_contiguous();
     let all_bytes: Vec<u8> = flushed
@@ -143,7 +143,7 @@ fn test_small_segment_tracking() {
     // Insert small segments
     for i in 0..5u32 {
         let seq = 1001 + i;
-        dir.insert_segment(seq, b"a", 10_485_760, 10_000);
+        dir.insert_segment(seq, b"a", 10_485_760, 10_000, 10_485_760);
     }
 
     assert_eq!(dir.small_segment_count, 5);
@@ -153,9 +153,9 @@ fn test_small_segment_tracking() {
 fn test_buffered_bytes_after_insert() {
     let mut dir = FlowDirection::new();
     dir.set_isn(1000);
-    dir.insert_segment(1001, b"hello", 10_485_760, 10_000);
+    dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 10_485_760);
     assert_eq!(dir.buffered_bytes, 5);
-    dir.insert_segment(1006, b"world", 10_485_760, 10_000);
+    dir.insert_segment(1006, b"world", 10_485_760, 10_000, 10_485_760);
     assert_eq!(dir.buffered_bytes, 10);
 }
 
@@ -163,9 +163,9 @@ fn test_buffered_bytes_after_insert() {
 fn test_buffered_bytes_after_overlap() {
     let mut dir = FlowDirection::new();
     dir.set_isn(1000);
-    dir.insert_segment(1001, b"AAABBB", 10_485_760, 10_000);
+    dir.insert_segment(1001, b"AAABBB", 10_485_760, 10_000, 10_485_760);
     assert_eq!(dir.buffered_bytes, 6);
-    dir.insert_segment(1004, b"XXXCC", 10_485_760, 10_000);
+    dir.insert_segment(1004, b"XXXCC", 10_485_760, 10_000, 10_485_760);
     assert_eq!(dir.buffered_bytes, 8); // 6 original + 2 gap bytes
 }
 
@@ -174,7 +174,7 @@ fn test_buffered_bytes_after_flush() {
     let mut dir = FlowDirection::new();
     dir.set_isn(1000);
 
-    dir.insert_segment(1001, b"hello", 10_485_760, 10_000);
+    dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 10_485_760);
     assert_eq!(dir.buffered_bytes, 5);
 
     let flushed = dir.flush_contiguous();
@@ -188,8 +188,8 @@ fn test_buffered_bytes_partial_flush() {
     dir.set_isn(1000);
 
     // Insert segment at offset 1 (contiguous) and offset 10 (gap)
-    dir.insert_segment(1001, b"aaa", 10_485_760, 10_000);
-    dir.insert_segment(1010, b"bbb", 10_485_760, 10_000);
+    dir.insert_segment(1001, b"aaa", 10_485_760, 10_000, 10_485_760);
+    dir.insert_segment(1010, b"bbb", 10_485_760, 10_000, 10_485_760);
     assert_eq!(dir.buffered_bytes, 6);
 
     // Flush only flushes contiguous segment at offset 1
@@ -206,14 +206,14 @@ fn test_depth_limit_truncation() {
 
     let max_depth: usize = 100; // small for testing
     let data = vec![b'A'; 80];
-    dir.insert_segment(1001, &data, max_depth, 10_000);
+    dir.insert_segment(1001, &data, max_depth, 10_000, 10_485_760);
     dir.flush_contiguous();
     assert_eq!(dir.reassembled_bytes, 80);
     assert!(!dir.depth_exceeded);
 
     // This should be truncated to 20 bytes
     let data2 = vec![b'B'; 50];
-    let result = dir.insert_segment(1081, &data2, max_depth, 10_000);
+    let result = dir.insert_segment(1081, &data2, max_depth, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::Truncated);
     assert!(dir.depth_exceeded);
 
@@ -228,21 +228,21 @@ fn test_overlap_detection_boundary() {
     dir.set_isn(1000);
 
     // Insert segment at offset 1, length 5 (covers 1-5)
-    dir.insert_segment(1001, b"AAAAA", 10_485_760, 10_000);
+    dir.insert_segment(1001, b"AAAAA", 10_485_760, 10_000, 10_485_760);
     // Insert segment at offset 10, length 5 (covers 10-14) — no overlap with above
-    dir.insert_segment(1010, b"BBBBB", 10_485_760, 10_000);
+    dir.insert_segment(1010, b"BBBBB", 10_485_760, 10_000, 10_485_760);
     assert_eq!(dir.segments.len(), 2);
     assert_eq!(dir.overlap_count, 0);
 
     // Insert segment at offset 3, length 4 (covers 3-6) — overlaps first, not second
-    let result = dir.insert_segment(1003, b"XXXX", 10_485_760, 10_000);
+    let result = dir.insert_segment(1003, b"XXXX", 10_485_760, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::PartialOverlap);
     assert_eq!(dir.overlap_count, 1);
 
     // Insert segment at offset 6, length 4 (covers 6-9).
     // The partial-overlap insert above deposited a 1-byte gap at offset 6 ("X"),
     // so this segment overlaps that byte and is PartialOverlap.
-    let result = dir.insert_segment(1006, b"CCCC", 10_485_760, 10_000);
+    let result = dir.insert_segment(1006, b"CCCC", 10_485_760, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::PartialOverlap);
     assert_eq!(dir.overlap_count, 2);
 }
@@ -253,11 +253,33 @@ fn test_range_boundary_exact_new_end() {
     dir.set_isn(1000);
 
     // Insert segment at offset 1, length 5 (covers 1-5, ends at 6)
-    dir.insert_segment(1001, b"AAAAA", 10_485_760, 10_000);
+    dir.insert_segment(1001, b"AAAAA", 10_485_760, 10_000, 10_485_760);
 
     // Insert segment starting exactly at the end of the first (offset 6)
     // This should NOT overlap — range(..new_end) must exclude it
-    let result = dir.insert_segment(1006, b"BBBBB", 10_485_760, 10_000);
+    let result = dir.insert_segment(1006, b"BBBBB", 10_485_760, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::Inserted);
     assert_eq!(dir.overlap_count, 0);
+}
+
+#[test]
+fn test_out_of_window_segment_rejected() {
+    let mut dir = FlowDirection::new();
+    dir.set_isn(1000);
+
+    // Insert normal segment at offset 1 (within any window)
+    let result = dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 1_048_576);
+    assert_eq!(result, InsertResult::Inserted);
+
+    dir.flush_contiguous(); // base_offset now 6
+
+    // Insert segment far beyond window: base_offset=6 + 1MB + 100 = way out of window
+    let far_seq = 1000 + 6 + 1_048_576 + 100; // ISN + base_offset + window + 100
+    let result = dir.insert_segment(far_seq as u32, b"evil", 10_485_760, 10_000, 1_048_576);
+    assert_eq!(result, InsertResult::OutOfWindow);
+
+    // Segment just inside window boundary should be accepted
+    let edge_seq = 1000 + 6 + 1_048_576; // ISN + base_offset + window (exactly at boundary)
+    let result = dir.insert_segment(edge_seq as u32, b"edge", 10_485_760, 10_000, 1_048_576);
+    assert_eq!(result, InsertResult::Inserted);
 }
