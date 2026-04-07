@@ -7,12 +7,12 @@ use indicatif::{ProgressBar, ProgressStyle};
 use wirerust::analyzer::ProtocolAnalyzer;
 use wirerust::analyzer::dns::DnsAnalyzer;
 use wirerust::analyzer::http::HttpAnalyzer;
+use wirerust::analyzer::tls::TlsAnalyzer;
 use wirerust::cli::{Cli, Commands, OutputFormat};
 use wirerust::decoder::decode_packet;
+use wirerust::dispatcher::StreamDispatcher;
 use wirerust::reader::PcapSource;
-use wirerust::reassembly::flow::FlowKey;
 use wirerust::reassembly::handler::StreamAnalyzer;
-use wirerust::reassembly::handler::{CloseReason, Direction, StreamHandler};
 use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
 use wirerust::reporter::Reporter;
 use wirerust::reporter::json::JsonReporter;
@@ -29,10 +29,18 @@ fn main() -> Result<()> {
             targets,
             dns,
             http,
+            tls,
             all,
             ..
         } => {
-            run_analyze(targets, *dns || *all, *http || *all, use_color, &cli)?;
+            run_analyze(
+                targets,
+                *dns || *all,
+                *http || *all,
+                *tls || *all,
+                use_color,
+                &cli,
+            )?;
         }
         Commands::Summary { targets, .. } => {
             run_summary(targets, use_color, &cli)?;
@@ -46,6 +54,7 @@ fn run_analyze(
     targets: &[std::path::PathBuf],
     enable_dns: bool,
     enable_http: bool,
+    enable_tls: bool,
     use_color: bool,
     cli: &Cli,
 ) -> Result<()> {
@@ -54,13 +63,12 @@ fn run_analyze(
     let mut all_findings = Vec::new();
     let mut total_decode_errors: u64 = 0;
 
-    // Determine if reassembly is needed
-    let needs_reassembly = cli.reassemble || enable_http;
+    let needs_reassembly = cli.reassemble || enable_http || enable_tls;
     let skip_reassembly = cli.no_reassemble;
 
-    if enable_http && skip_reassembly {
+    if (enable_http || enable_tls) && skip_reassembly {
         eprintln!(
-            "Warning: --http requires TCP reassembly, but --no-reassemble is set. HTTP analysis will be skipped."
+            "Warning: --http/--tls require TCP reassembly, but --no-reassemble is set. Stream analysis will be skipped."
         );
     }
 
@@ -75,17 +83,17 @@ fn run_analyze(
         None
     };
 
-    struct NullHandler;
-    impl StreamHandler for NullHandler {
-        fn on_data(&mut self, _: &FlowKey, _: Direction, _: &[u8], _: u64) {}
-        fn on_flow_close(&mut self, _: &FlowKey, _: CloseReason) {}
-    }
-    let mut null_handler = NullHandler;
-    let mut http_analyzer = if enable_http && !skip_reassembly {
+    let http_analyzer = if enable_http && !skip_reassembly {
         Some(HttpAnalyzer::new())
     } else {
         None
     };
+    let tls_analyzer = if enable_tls && !skip_reassembly {
+        Some(TlsAnalyzer::new())
+    } else {
+        None
+    };
+    let mut dispatcher = StreamDispatcher::new(http_analyzer, tls_analyzer);
 
     for target in targets {
         let pcap_files = resolve_targets(target)?;
@@ -107,18 +115,7 @@ fn run_analyze(
                             all_findings.extend(findings);
                         }
                         if let Some(ref mut reasm) = reassembler {
-                            match http_analyzer {
-                                Some(ref mut http) => {
-                                    reasm.process_packet(&parsed, raw.timestamp_secs, http);
-                                }
-                                None => {
-                                    reasm.process_packet(
-                                        &parsed,
-                                        raw.timestamp_secs,
-                                        &mut null_handler,
-                                    );
-                                }
-                            }
+                            reasm.process_packet(&parsed, raw.timestamp_secs, &mut dispatcher);
                         }
                     }
                     Err(e) => {
@@ -139,24 +136,26 @@ fn run_analyze(
     summary.skipped_packets = total_decode_errors;
 
     if let Some(ref mut reasm) = reassembler {
-        match http_analyzer {
-            Some(ref mut http) => {
-                reasm.finalize(http);
-                all_findings.extend(http.findings());
-            }
-            None => {
-                reasm.finalize(&mut null_handler);
-            }
-        }
+        reasm.finalize(&mut dispatcher);
         all_findings.extend(reasm.findings().to_vec());
+    }
+
+    if let Some(ref http) = dispatcher.http {
+        all_findings.extend(http.findings());
+    }
+    if let Some(ref tls) = dispatcher.tls {
+        all_findings.extend(tls.findings());
     }
 
     let mut analyzer_summaries = Vec::new();
     if enable_dns {
         analyzer_summaries.push(dns_analyzer.summarize());
     }
-    if let Some(ref http) = http_analyzer {
+    if let Some(ref http) = dispatcher.http {
         analyzer_summaries.push(http.summarize());
+    }
+    if let Some(ref tls) = dispatcher.tls {
+        analyzer_summaries.push(tls.summarize());
     }
 
     let output = match cli.output_format {
