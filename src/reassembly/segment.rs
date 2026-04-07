@@ -177,9 +177,11 @@ impl FlowDirection {
                 }
             }
 
-            // Only report ConflictingOverlap when fully covered (no gap was inserted)
+            // Union of existing segments covers the new segment entirely (no gaps to fill)
             return if !had_gap && has_conflict {
                 InsertResult::ConflictingOverlap
+            } else if !had_gap {
+                InsertResult::Duplicate
             } else if truncated {
                 InsertResult::Truncated
             } else {
