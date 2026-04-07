@@ -433,7 +433,7 @@ fn test_syn_ack_bidirectional_data() {
     let client = [10, 0, 0, 1];
     let server = [10, 0, 0, 2];
 
-    // 3-way handshake: SYN, SYN+ACK
+    // SYN + SYN+ACK handshake (engine transitions to Established on SYN+ACK)
     let syn = make_tcp_packet(
         client,
         12345,
@@ -505,7 +505,7 @@ fn test_full_handshake_fin_teardown() {
     let client = [10, 0, 0, 1];
     let server = [10, 0, 0, 2];
 
-    // Full 3-way handshake
+    // SYN + SYN+ACK handshake
     let syn = make_tcp_packet(
         client,
         12345,
