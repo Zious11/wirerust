@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use serde_json;
-
 use crate::analyzer::AnalysisSummary;
 use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use crate::reassembly::flow::FlowKey;
@@ -10,6 +8,7 @@ use crate::reassembly::handler::{CloseReason, Direction, StreamAnalyzer, StreamH
 const MAX_HEADER_BUF: usize = 65_536;
 const MAX_HEADERS: usize = 96;
 const MAX_URIS: usize = 10_000;
+const MAX_MAP_ENTRIES: usize = 50_000;
 
 struct ParsedRequest {
     bytes_consumed: usize,
@@ -65,7 +64,6 @@ fn find_header(headers: &[httparse::Header<'_>], name: &str) -> Option<String> {
 struct HttpFlowState {
     request_buf: Vec<u8>,
     response_buf: Vec<u8>,
-    pending_method: Option<String>,
 }
 
 impl HttpFlowState {
@@ -73,7 +71,6 @@ impl HttpFlowState {
         HttpFlowState {
             request_buf: Vec::new(),
             response_buf: Vec::new(),
-            pending_method: None,
         }
     }
 }
@@ -82,7 +79,7 @@ fn truncate_uri(uri: &str, max_len: usize) -> &str {
     if uri.len() <= max_len {
         uri
     } else {
-        &uri[..max_len]
+        &uri[..uri.floor_char_boundary(max_len)]
     }
 }
 
@@ -162,8 +159,19 @@ impl HttpAnalyzer {
             });
         }
 
-        // 2. Web shell paths
-        let shell_patterns = ["/shell", "/cmd", "/c99", "/r57", "/webshell", "/backdoor"];
+        // 2. Web shell paths (specific file extensions to reduce false positives)
+        let shell_patterns = [
+            "/shell.php",
+            "/shell.asp",
+            "/shell.jsp",
+            "/cmd.php",
+            "/cmd.asp",
+            "/cmd.jsp",
+            "/c99.php",
+            "/r57.php",
+            "/webshell",
+            "/backdoor",
+        ];
         if shell_patterns.iter().any(|p| uri_lower.contains(p)) {
             self.all_findings.push(Finding {
                 category: ThreatCategory::Execution,
@@ -263,11 +271,20 @@ impl HttpAnalyzer {
 
             match result {
                 Some(Ok(Some(parsed))) => {
-                    *self.methods.entry(parsed.method.clone()).or_insert(0) += 1;
-                    if let Some(ref h) = parsed.host {
+                    if self.methods.len() < MAX_MAP_ENTRIES
+                        || self.methods.contains_key(&parsed.method)
+                    {
+                        *self.methods.entry(parsed.method.clone()).or_insert(0) += 1;
+                    }
+                    if let Some(ref h) = parsed.host
+                        && (self.hosts.len() < MAX_MAP_ENTRIES || self.hosts.contains_key(h))
+                    {
                         *self.hosts.entry(h.clone()).or_insert(0) += 1;
                     }
-                    if let Some(ref ua) = parsed.user_agent {
+                    if let Some(ref ua) = parsed.user_agent
+                        && (self.user_agents.len() < MAX_MAP_ENTRIES
+                            || self.user_agents.contains_key(ua))
+                    {
                         *self.user_agents.entry(ua.clone()).or_insert(0) += 1;
                     }
                     if self.uris.len() < MAX_URIS {
@@ -277,7 +294,6 @@ impl HttpAnalyzer {
                     self.check_request_detections(&parsed, flow_key);
 
                     if let Some(state) = self.flows.get_mut(flow_key) {
-                        state.pending_method = Some(parsed.method);
                         state.request_buf.drain(..parsed.bytes_consumed);
                     }
                 }
@@ -307,7 +323,6 @@ impl HttpAnalyzer {
                     self.transactions += 1;
 
                     if let Some(state) = self.flows.get_mut(flow_key) {
-                        state.pending_method = None;
                         state.response_buf.drain(..parsed.bytes_consumed);
                     }
                 }

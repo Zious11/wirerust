@@ -58,6 +58,12 @@ fn run_analyze(
     let needs_reassembly = cli.reassemble || enable_http;
     let skip_reassembly = cli.no_reassemble;
 
+    if enable_http && skip_reassembly {
+        eprintln!(
+            "Warning: --http requires TCP reassembly, but --no-reassemble is set. HTTP analysis will be skipped."
+        );
+    }
+
     let mut reassembler = if needs_reassembly && !skip_reassembly {
         let config = ReassemblyConfig {
             max_depth: cli.reassembly_depth * 1_048_576,

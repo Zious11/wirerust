@@ -131,7 +131,7 @@ fn test_detect_encoded_traversal() {
 fn test_detect_webshell_path() {
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
-    let request = b"GET /uploads/shell.php HTTP/1.1\r\nHost: target.com\r\n\r\n";
+    let request = b"GET /uploads/c99.php HTTP/1.1\r\nHost: target.com\r\n\r\n";
     analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
     let findings = analyzer.findings();
     assert_eq!(findings.len(), 1);
