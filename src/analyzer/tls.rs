@@ -13,6 +13,9 @@ use crate::reassembly::handler::{CloseReason, Direction, StreamAnalyzer, StreamH
 
 const MAX_BUF: usize = 65_536;
 const MAX_MAP_ENTRIES: usize = 50_000;
+/// Max valid TLS record payload: 18,432 bytes (TLS 1.2 ciphertext max per RFC 5246).
+/// TLS 1.3 max is 16,640 but we use the larger value as a safe upper bound.
+const MAX_RECORD_PAYLOAD: usize = 18_432;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -413,6 +416,18 @@ impl TlsAnalyzer {
                 let payload_len = u16::from_be_bytes([buf[3], buf[4]]) as usize;
                 (record_type, payload_len)
             };
+
+            // Reject impossibly large records (DoS protection)
+            if payload_len > MAX_RECORD_PAYLOAD {
+                self.parse_errors += 1;
+                if let Some(state) = self.flows.get_mut(flow_key) {
+                    match direction {
+                        Direction::ClientToServer => state.client_buf.clear(),
+                        Direction::ServerToClient => state.server_buf.clear(),
+                    };
+                }
+                return;
+            }
 
             let total_record_len = 5 + payload_len;
             if buf_len < total_record_len {

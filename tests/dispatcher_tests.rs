@@ -52,6 +52,7 @@ fn test_dispatcher_content_detection_tls_on_port_80() {
     // HTTP analyzer should NOT have received this data
     let http = dispatcher.http.as_ref().unwrap();
     assert_eq!(http.method_counts().len(), 0);
+    assert_eq!(http.parse_error_count(), 0); // Confirms HTTP didn't try to parse TLS bytes
 }
 
 #[test]
@@ -67,4 +68,5 @@ fn test_dispatcher_port_fallback_short_data() {
     // HTTP should not have received it
     let http = dispatcher.http.as_ref().unwrap();
     assert_eq!(http.method_counts().len(), 0);
+    assert_eq!(http.parse_error_count(), 0); // Confirms HTTP didn't try to parse TLS bytes
 }

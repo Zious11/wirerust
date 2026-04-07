@@ -59,10 +59,20 @@ fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget {
 
 impl StreamHandler for StreamDispatcher {
     fn on_data(&mut self, flow_key: &FlowKey, direction: Direction, data: &[u8], offset: u64) {
-        let target = *self
-            .routes
-            .entry(flow_key.clone())
-            .or_insert_with(|| classify(data, flow_key));
+        if self.http.is_none() && self.tls.is_none() {
+            return;
+        }
+
+        // Don't cache None — allow reclassification on next on_data with more bytes
+        let target = if let Some(&cached) = self.routes.get(flow_key) {
+            cached
+        } else {
+            let target = classify(data, flow_key);
+            if target != DispatchTarget::None {
+                self.routes.insert(flow_key.clone(), target);
+            }
+            target
+        };
 
         match target {
             DispatchTarget::Http => {
