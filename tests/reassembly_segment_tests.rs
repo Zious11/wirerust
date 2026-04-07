@@ -389,3 +389,14 @@ fn test_segment_limit_gap_loop_partial_insertion() {
     // Second gap (starting at offset 13) was NOT inserted
     assert!(!dir.segments.contains_key(&13));
 }
+
+#[test]
+fn test_isn_missing_returns_isn_missing() {
+    let mut dir = FlowDirection::new();
+    // Deliberately do NOT call dir.set_isn() — ISN is None
+
+    let result = dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 10_485_760);
+    assert_eq!(result, InsertResult::IsnMissing);
+    assert!(dir.segments.is_empty()); // No data inserted
+    assert_eq!(dir.buffered_bytes, 0);
+}

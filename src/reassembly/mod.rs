@@ -3,6 +3,7 @@ pub mod handler;
 pub mod segment;
 
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::analyzer::AnalysisSummary;
 use crate::decoder::{ParsedPacket, Protocol, TransportInfo};
@@ -14,6 +15,8 @@ use crate::reassembly::segment::InsertResult;
 const OVERLAP_ALERT_THRESHOLD: u32 = 50;
 const SMALL_SEGMENT_ALERT_THRESHOLD: u32 = 2048;
 const MAX_FINDINGS: usize = 10_000;
+
+static CLOSE_FLOW_MISSING_WARNED: AtomicBool = AtomicBool::new(false);
 
 /// Configuration for the TCP reassembly engine.
 #[derive(Debug, Clone)]
@@ -62,6 +65,7 @@ pub struct ReassemblyStats {
     pub segments_overlaps: u64,
     pub segments_out_of_window: u64,
     pub segments_segment_limit: u64,
+    pub segments_depth_exceeded: u64,
     pub bytes_reassembled: u64,
     pub evictions: u64,
 }
@@ -240,7 +244,7 @@ impl TcpReassembler {
                     self.generate_truncated_finding(&key, packet.src_ip);
                 }
                 InsertResult::DepthExceeded => {
-                    // Already tracked in the direction
+                    self.stats.segments_depth_exceeded += 1;
                 }
                 InsertResult::SegmentLimitReached => {
                     self.stats.segments_segment_limit += 1;
@@ -252,6 +256,10 @@ impl TcpReassembler {
                 }
                 InsertResult::OutOfWindow => {
                     self.stats.segments_out_of_window += 1;
+                }
+                InsertResult::IsnMissing => {
+                    // Programming error — ISN should always be set before insert.
+                    // eprintln already emitted in insert_segment.
                 }
             }
 
@@ -426,6 +434,10 @@ impl TcpReassembler {
             "segments_segment_limit".into(),
             s.segments_segment_limit.into(),
         );
+        detail.insert(
+            "segments_depth_exceeded".into(),
+            s.segments_depth_exceeded.into(),
+        );
         detail.insert("bytes_reassembled".into(), s.bytes_reassembled.into());
         AnalysisSummary {
             analyzer_name: "TCP Reassembly".into(),
@@ -442,6 +454,12 @@ impl TcpReassembler {
         use crate::reassembly::handler::Direction;
         let Some(mut flow) = self.flows.remove(key) else {
             debug_assert!(false, "close_flow called for non-existent key: {}", key);
+            if !CLOSE_FLOW_MISSING_WARNED.swap(true, Ordering::Relaxed) {
+                eprintln!(
+                    "wirerust: close_flow called for non-existent key: {} (reason: {:?})",
+                    key, reason
+                );
+            }
             return;
         };
         let flow_mem = flow.memory_used();
