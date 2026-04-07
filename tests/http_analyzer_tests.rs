@@ -245,3 +245,73 @@ fn test_parse_error_in_summarize() {
     let summary = analyzer.summarize();
     assert_eq!(summary.detail["parse_errors"], 1);
 }
+
+#[test]
+fn test_too_many_headers_generates_finding() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Build a request with 97 headers to exceed MAX_HEADERS (96)
+    let mut request = b"GET / HTTP/1.1\r\n".to_vec();
+    for i in 0..97 {
+        request.extend_from_slice(format!("X-Header-{i}: value\r\n").as_bytes());
+    }
+    request.extend_from_slice(b"\r\n");
+
+    analyzer.on_data(&fk, Direction::ClientToServer, &request, 0);
+
+    assert_eq!(analyzer.parse_error_count(), 1);
+    let findings = analyzer.findings();
+    assert_eq!(findings.len(), 1);
+    assert_eq!(findings[0].category, ThreatCategory::Anomaly);
+    assert_eq!(findings[0].verdict, Verdict::Inconclusive);
+    assert_eq!(findings[0].confidence, Confidence::Medium);
+    assert_eq!(findings[0].mitre_technique.as_deref(), Some("T1499.002"));
+    assert!(findings[0].summary.contains("Excessive HTTP headers"));
+    assert!(findings[0].evidence[0].contains("request"));
+}
+
+#[test]
+fn test_parse_error_in_response() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Send valid request first
+    let request = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+    // Send malformed response
+    analyzer.on_data(&fk, Direction::ServerToClient, b"NOT_HTTP\r\n\r\n", 0);
+
+    assert_eq!(analyzer.parse_error_count(), 1);
+}
+
+#[test]
+fn test_parse_error_clears_buffer_and_continues() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    // First: malformed request (triggers error, clears buffer)
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+    assert_eq!(analyzer.parse_error_count(), 1);
+
+    // Second: valid request (should parse successfully on fresh buffer)
+    let valid = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+
+    assert_eq!(analyzer.parse_error_count(), 1); // no new errors
+    assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
+}
+
+#[test]
+fn test_normal_request_no_parse_errors() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    let request =
+        b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+    assert_eq!(analyzer.parse_error_count(), 0);
+    assert!(analyzer.findings().is_empty());
+}
