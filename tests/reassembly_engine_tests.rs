@@ -422,3 +422,180 @@ fn test_fin_close_total_memory() {
             .any(|(_, r)| *r == CloseReason::Fin)
     );
 }
+
+#[test]
+fn test_syn_ack_bidirectional_data() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // 3-way handshake: SYN, SYN+ACK
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // Client sends data
+    let req = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"request", false, false, false, false,
+    );
+    reassembler.process_packet(&req, 3, &mut handler);
+
+    // Server sends data
+    let resp = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2001,
+        b"response",
+        false,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&resp, 4, &mut handler);
+
+    // Verify proper handshake (not partial/mid-stream)
+    let stats = reassembler.stats();
+    assert_eq!(stats.flows_partial, 0);
+    assert_eq!(stats.flows_total, 1);
+
+    // Verify bidirectional data with correct directions
+    assert_eq!(handler.data_events.len(), 2);
+    assert_eq!(handler.data_events[0].1, Direction::ClientToServer);
+    assert_eq!(handler.data_events[0].2, b"request");
+    assert_eq!(handler.data_events[1].1, Direction::ServerToClient);
+    assert_eq!(handler.data_events[1].2, b"response");
+}
+
+#[test]
+fn test_full_handshake_fin_teardown() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Full 3-way handshake
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // Bidirectional data
+    let req = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"hello", false, false, false, false,
+    );
+    reassembler.process_packet(&req, 3, &mut handler);
+
+    let resp = make_tcp_packet(
+        server, 80, client, 12345, 2001, b"world", false, false, false, false,
+    );
+    reassembler.process_packet(&resp, 4, &mut handler);
+
+    // FIN from client
+    let fin1 = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1006,
+        &[],
+        false,
+        false,
+        true,
+        false,
+    );
+    reassembler.process_packet(&fin1, 5, &mut handler);
+
+    // FIN from server
+    let fin2 = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2006,
+        &[],
+        false,
+        false,
+        true,
+        false,
+    );
+    reassembler.process_packet(&fin2, 6, &mut handler);
+
+    // Flow closed via FIN
+    let stats = reassembler.stats();
+    assert_eq!(stats.flows_fin, 1);
+    assert_eq!(reassembler.total_memory(), 0);
+
+    // Close reason is Fin
+    assert_eq!(handler.close_events.len(), 1);
+    assert_eq!(handler.close_events[0].1, CloseReason::Fin);
+
+    // Both directions' data delivered
+    let client_data: Vec<&[u8]> = handler
+        .data_events
+        .iter()
+        .filter(|(_, d, _, _)| *d == Direction::ClientToServer)
+        .map(|(_, _, data, _)| data.as_slice())
+        .collect();
+    let server_data: Vec<&[u8]> = handler
+        .data_events
+        .iter()
+        .filter(|(_, d, _, _)| *d == Direction::ServerToClient)
+        .map(|(_, _, data, _)| data.as_slice())
+        .collect();
+    assert_eq!(client_data, vec![b"hello".as_slice()]);
+    assert_eq!(server_data, vec![b"world".as_slice()]);
+}
