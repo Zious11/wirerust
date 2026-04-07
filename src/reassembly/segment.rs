@@ -152,7 +152,11 @@ pub fn insert_segment(
             if start_idx < segment_data.len() && end_idx <= segment_data.len() {
                 let gap_data = segment_data[start_idx..end_idx].to_vec();
                 if !gap_data.is_empty() {
-                    dir.segments.insert(gap_start, gap_data);
+                    let gap_len = gap_data.len();
+                    if let Some(old) = dir.segments.insert(gap_start, gap_data) {
+                        dir.buffered_bytes -= old.len();
+                    }
+                    dir.buffered_bytes += gap_len;
                 }
             }
         }
@@ -168,7 +172,11 @@ pub fn insert_segment(
     }
 
     // No overlap — insert normally
-    dir.segments.insert(offset, segment_data);
+    let data_len = segment_data.len();
+    if let Some(old) = dir.segments.insert(offset, segment_data) {
+        dir.buffered_bytes -= old.len();
+    }
+    dir.buffered_bytes += data_len;
 
     if truncated {
         InsertResult::Truncated

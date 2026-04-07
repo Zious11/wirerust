@@ -95,6 +95,7 @@ fn test_flow_direction_new() {
     assert_eq!(dir.base_offset, 0);
     assert!(dir.segments.is_empty());
     assert_eq!(dir.reassembled_bytes, 0);
+    assert_eq!(dir.buffered_bytes, 0);
     assert!(!dir.fin_seen);
     assert!(!dir.rst_seen);
     assert!(!dir.depth_exceeded);

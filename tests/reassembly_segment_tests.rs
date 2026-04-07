@@ -149,6 +149,26 @@ fn test_small_segment_tracking() {
 }
 
 #[test]
+fn test_buffered_bytes_after_insert() {
+    let mut dir = FlowDirection::new();
+    dir.set_isn(1000);
+    insert_segment(&mut dir, 1001, b"hello", 10_485_760, 10_000);
+    assert_eq!(dir.buffered_bytes, 5);
+    insert_segment(&mut dir, 1006, b"world", 10_485_760, 10_000);
+    assert_eq!(dir.buffered_bytes, 10);
+}
+
+#[test]
+fn test_buffered_bytes_after_overlap() {
+    let mut dir = FlowDirection::new();
+    dir.set_isn(1000);
+    insert_segment(&mut dir, 1001, b"AAABBB", 10_485_760, 10_000);
+    assert_eq!(dir.buffered_bytes, 6);
+    insert_segment(&mut dir, 1004, b"XXXCC", 10_485_760, 10_000);
+    assert_eq!(dir.buffered_bytes, 8); // 6 original + 2 gap bytes
+}
+
+#[test]
 fn test_depth_limit_truncation() {
     let mut dir = FlowDirection::new();
     dir.set_isn(1000);
