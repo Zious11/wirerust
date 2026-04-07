@@ -19,7 +19,7 @@ struct ParsedRequest {
     user_agent: Option<String>,
 }
 
-fn parse_one_request(buf: &[u8]) -> Result<Option<ParsedRequest>, ()> {
+fn parse_one_request(buf: &[u8]) -> Result<Option<ParsedRequest>, httparse::Error> {
     let mut headers = [httparse::EMPTY_HEADER; MAX_HEADERS];
     let mut req = httparse::Request::new(&mut headers);
     match req.parse(buf) {
@@ -32,7 +32,7 @@ fn parse_one_request(buf: &[u8]) -> Result<Option<ParsedRequest>, ()> {
             user_agent: find_header(req.headers, "user-agent"),
         })),
         Ok(httparse::Status::Partial) => Ok(None),
-        Err(_) => Err(()),
+        Err(e) => Err(e),
     }
 }
 
@@ -41,7 +41,7 @@ struct ParsedResponse {
     status_code: u16,
 }
 
-fn parse_one_response(buf: &[u8]) -> Result<Option<ParsedResponse>, ()> {
+fn parse_one_response(buf: &[u8]) -> Result<Option<ParsedResponse>, httparse::Error> {
     let mut headers = [httparse::EMPTY_HEADER; MAX_HEADERS];
     let mut resp = httparse::Response::new(&mut headers);
     match resp.parse(buf) {
@@ -50,7 +50,7 @@ fn parse_one_response(buf: &[u8]) -> Result<Option<ParsedResponse>, ()> {
             status_code: resp.code.unwrap_or(0),
         })),
         Ok(httparse::Status::Partial) => Ok(None),
-        Err(_) => Err(()),
+        Err(e) => Err(e),
     }
 }
 
@@ -92,6 +92,7 @@ pub struct HttpAnalyzer {
     uris: Vec<String>,
     transactions: u64,
     all_findings: Vec<Finding>,
+    parse_errors: u64,
 }
 
 impl Default for HttpAnalyzer {
@@ -111,6 +112,7 @@ impl HttpAnalyzer {
             uris: Vec::new(),
             transactions: 0,
             all_findings: Vec::new(),
+            parse_errors: 0,
         }
     }
 
@@ -136,6 +138,10 @@ impl HttpAnalyzer {
 
     pub fn status_code_counts(&self) -> &HashMap<u16, u64> {
         &self.status_codes
+    }
+
+    pub fn parse_error_count(&self) -> u64 {
+        self.parse_errors
     }
 
     fn check_request_detections(&mut self, parsed: &ParsedRequest, _flow_key: &FlowKey) {
@@ -262,6 +268,11 @@ impl HttpAnalyzer {
     }
 
     fn try_parse_requests(&mut self, flow_key: &FlowKey) {
+        // Track whether we've successfully parsed headers this call. After a
+        // successful parse, remaining bytes are likely HTTP body data (we don't
+        // handle Content-Length/Transfer-Encoding). Suppress error counting for
+        // body-byte-induced failures to avoid inflating the counter on normal traffic.
+        let mut had_success = false;
         loop {
             let result = self
                 .flows
@@ -271,6 +282,7 @@ impl HttpAnalyzer {
 
             match result {
                 Some(Ok(Some(parsed))) => {
+                    had_success = true;
                     if self.methods.len() < MAX_MAP_ENTRIES
                         || self.methods.contains_key(&parsed.method)
                     {
@@ -298,7 +310,22 @@ impl HttpAnalyzer {
                     }
                 }
                 Some(Ok(None)) => return, // Partial — wait for more data
-                Some(Err(())) => {
+                Some(Err(e)) => {
+                    if !had_success {
+                        self.parse_errors += 1;
+                        if e == httparse::Error::TooManyHeaders {
+                            self.all_findings.push(Finding {
+                                category: ThreatCategory::Anomaly,
+                                verdict: Verdict::Inconclusive,
+                                confidence: Confidence::Medium,
+                                summary: "Excessive HTTP headers exceeded parser limit (possible DoS or header-based attack)".to_string(),
+                                evidence: vec!["Direction: request".to_string()],
+                                mitre_technique: Some("T1499.002".to_string()),
+                                source_ip: None,
+                                timestamp: None,
+                            });
+                        }
+                    }
                     if let Some(state) = self.flows.get_mut(flow_key) {
                         state.request_buf.clear();
                     }
@@ -310,6 +337,7 @@ impl HttpAnalyzer {
     }
 
     fn try_parse_responses(&mut self, flow_key: &FlowKey) {
+        let mut had_success = false;
         loop {
             let result = self
                 .flows
@@ -319,6 +347,7 @@ impl HttpAnalyzer {
 
             match result {
                 Some(Ok(Some(parsed))) => {
+                    had_success = true;
                     *self.status_codes.entry(parsed.status_code).or_insert(0) += 1;
                     self.transactions += 1;
 
@@ -327,7 +356,22 @@ impl HttpAnalyzer {
                     }
                 }
                 Some(Ok(None)) => return,
-                Some(Err(())) => {
+                Some(Err(e)) => {
+                    if !had_success {
+                        self.parse_errors += 1;
+                        if e == httparse::Error::TooManyHeaders {
+                            self.all_findings.push(Finding {
+                                category: ThreatCategory::Anomaly,
+                                verdict: Verdict::Inconclusive,
+                                confidence: Confidence::Medium,
+                                summary: "Excessive HTTP headers exceeded parser limit (possible DoS or header-based attack)".to_string(),
+                                evidence: vec!["Direction: response".to_string()],
+                                mitre_technique: Some("T1499.002".to_string()),
+                                source_ip: None,
+                                timestamp: None,
+                            });
+                        }
+                    }
                     if let Some(state) = self.flows.get_mut(flow_key) {
                         state.response_buf.clear();
                     }
@@ -410,6 +454,10 @@ impl StreamAnalyzer for HttpAnalyzer {
         detail.insert(
             "user_agents".to_string(),
             serde_json::json!(self.user_agents),
+        );
+        detail.insert(
+            "parse_errors".to_string(),
+            serde_json::json!(self.parse_errors),
         );
 
         AnalysisSummary {
