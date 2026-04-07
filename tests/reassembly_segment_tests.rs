@@ -369,15 +369,23 @@ fn test_segment_limit_gap_loop_partial_insertion() {
     dir.insert_segment(1010, b"BBB", 10_485_760, max_segments, 10_485_760);
     assert_eq!(dir.segments.len(), 2);
 
-    // Insert segment spanning offset 1-14 (overlaps both, has two gaps: 4-9 and 13-14)
-    // Only 1 segment slot available (limit=3, currently 2). First gap fills, second is dropped.
-    let result = dir.insert_segment(1001, b"AAABBBBBBBBBBCC", 10_485_760, max_segments, 10_485_760);
+    // Insert a 15-byte segment spanning offsets 1-15; it overlaps both existing
+    // segments and leaves two insertable gaps: [4,10) and [13,16).
+    // Only 1 segment slot available (limit=3, currently 2), so the first gap is
+    // inserted and the second gap is dropped when the segment limit is reached.
+    let result = dir.insert_segment(
+        1001,
+        b"AAABBBBBBBBBBCC",
+        10_485_760,
+        max_segments,
+        10_485_760,
+    );
     // Segment limit was hit (even though some data was inserted)
     assert_eq!(result, InsertResult::SegmentLimitReached);
     assert_eq!(dir.segments.len(), 3); // One gap inserted, hit limit before second
 
-    // Verify the first gap was filled (offset 4, data "BBBBBBB" for offsets 4-9 = 6 bytes)
+    // Verify the first gap was filled at offset 4 with 6 bytes covering [4,10)
     assert!(dir.segments.contains_key(&4));
-    // Second gap (offset 13) was NOT inserted
+    // Second gap (starting at offset 13) was NOT inserted
     assert!(!dir.segments.contains_key(&13));
 }
