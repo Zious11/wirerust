@@ -26,6 +26,11 @@ fn build_client_hello_raw_sni(sni_bytes: &[u8], cipher_ids: &[u16]) -> Vec<u8> {
 /// Build a minimal TLS ClientHello record with an arbitrary number of SNI hostname
 /// entries (zero or more). Used for edge-case tests covering empty SNI lists,
 /// multi-name SNI lists, and other scenarios the single-hostname helpers don't reach.
+///
+/// Passing `sni_entries: &[]` produces a `ServerNameList` of length 0 — this is a
+/// technically RFC-violating wire form (RFC 6066 §3 requires `server_name_list<1..2^16-1>`)
+/// but is used to exercise the analyzer's defensive `list.first() == None` branch in
+/// `extract_sni`. The current `tls_parser` crate accepts it at parse time.
 fn build_client_hello_with_sni_list(sni_entries: &[&[u8]], cipher_ids: &[u16]) -> Vec<u8> {
     let mut extensions = Vec::new();
 
@@ -434,6 +439,19 @@ fn test_sni_extension_with_empty_hostname_list() {
     let record = build_client_hello_with_sni_list(&[], &[0x1301]);
     analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
 
+    // Guard against a silent false-positive: if tls_parser ever tightens to
+    // reject zero-entry ServerNameList (RFC 6066 §3: server_name_list<1..2^16-1>),
+    // parse_tls_extensions would fail and the subsequent assertions would still
+    // pass — but for the wrong reason. The branch we actually want to pin is
+    // `list.first() == None`, which requires the extension to have parsed
+    // successfully as `TlsExtension::SNI(empty_list)`.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "extensions must parse cleanly; an empty-list pin that fires because \
+         tls_parser rejected the extension is not pinning the extract_sni branch \
+         we think it is"
+    );
     assert!(
         analyzer.sni_counts().is_empty(),
         "sni_counts should be untouched when SNI list is empty, got {:?}",
@@ -478,7 +496,8 @@ fn test_valid_utf8_non_ascii_sni_currently_not_flagged() {
     // Pin: a SNI value that is valid UTF-8 but contains non-ASCII characters
     // (e.g. a raw U-label "café.example") is *also* a RFC 6066 §3 violation —
     // the spec requires A-labels (RFC 5890 Punycode `xn--` form). The current
-    // analyzer does not flag this case (it's tracked separately in issue #51).
+    // analyzer does not flag this case (tracked as a follow-up at
+    // https://github.com/Zious11/wirerust/issues/51).
     //
     // This test pins the current "no finding emitted" behavior. When issue #51
     // lands, this assertion should be flipped to expect a finding, and this
@@ -502,7 +521,9 @@ fn test_valid_utf8_non_ascii_sni_currently_not_flagged() {
         .count();
     assert_eq!(
         non_utf8_findings, 0,
-        "valid UTF-8 must not trip the non-UTF-8 finding (see #51 for follow-up)"
+        "valid UTF-8 must not trip the non-UTF-8 finding (see \
+         https://github.com/Zious11/wirerust/issues/51 for the planned follow-up; \
+         flip this assertion when that issue lands)"
     );
 }
 
@@ -515,12 +536,13 @@ fn test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity() {
     // and forensic visibility into anomalous SNI in long-running captures
     // would degrade past the cap.
     //
-    // This test is intentionally slow (~1-3s in debug builds) because the only
-    // way to reach the capacity-full state via the public API is to feed 50k
-    // unique ClientHellos through it. The performance trade-off was discussed
-    // in the design phase: the alternative was adding a #[cfg(test)] test
-    // helper to TlsAnalyzer, which would expose internal state. Black-box
-    // brute force keeps the public API clean.
+    // This test is intentionally slower than the others (~650ms in debug builds,
+    // measured locally; budget ~2s for CI cold caches) because the only way to
+    // reach the capacity-full state via the public API is to feed 50k unique
+    // ClientHellos through it. The performance trade-off was discussed in the
+    // design phase: the alternative was adding a #[cfg(test)] test helper to
+    // TlsAnalyzer, which would expose internal state. Black-box brute force
+    // keeps the public API clean.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
@@ -547,9 +569,16 @@ fn test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity() {
         analyzer.sni_counts().len()
     );
 
-    // Snapshot the finding count before the capacity-test ClientHello so we can
-    // assert exactly one new finding fired.
-    let findings_before = analyzer.findings().len();
+    // Snapshot the non-UTF-8 finding count before the capacity-test ClientHello
+    // so we can assert exactly one new non-UTF-8 finding fired. Filtering by
+    // category (not total length) keeps the assertion robust: a future refactor
+    // that adds an unrelated finding on every ClientHello wouldn't make this
+    // test pass vacuously.
+    let non_utf8_before = analyzer
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("non-UTF-8 bytes"))
+        .count();
 
     // Send one more ClientHello with a non-UTF-8 SNI. Its key cannot fit in
     // sni_counts (the map is full and the key is new), but the finding push
@@ -572,13 +601,18 @@ fn test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity() {
         "non-UTF-8 hex key must not be present in sni_counts past the cap"
     );
 
-    // The finding must still have fired.
-    let findings_after = analyzer.findings().len();
+    // The non-UTF-8 finding must still have fired — this is the real invariant
+    // the test guards: finding emission is independent of count insertion.
+    let non_utf8_after = analyzer
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("non-UTF-8 bytes"))
+        .count();
     assert_eq!(
-        findings_after,
-        findings_before + 1,
-        "expected exactly one new finding from the non-UTF-8 SNI past the cap, \
-         got {findings_before} -> {findings_after}"
+        non_utf8_after,
+        non_utf8_before + 1,
+        "expected exactly one new non-UTF-8 finding past the cap, \
+         got {non_utf8_before} -> {non_utf8_after}"
     );
     let f = analyzer
         .findings()
