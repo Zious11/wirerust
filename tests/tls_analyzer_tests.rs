@@ -359,3 +359,47 @@ fn test_ascii_sni_does_not_emit_non_utf8_finding() {
         .count();
     assert_eq!(non_utf8_findings, 0);
 }
+
+#[test]
+fn test_non_utf8_sni_escapes_control_bytes_in_summary() {
+    // Security regression: a malformed SNI containing raw ESC (0x1b) plus an
+    // ANSI CSI sequence must NOT propagate the literal control byte into the
+    // finding summary, where it would be interpreted by an analyst's terminal
+    // and could recolor or overwrite the rendered report line.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // 0xff makes from_utf8 fail; 0x1b [ 3 1 m is the ANSI "red" CSI sequence;
+    // "pwnd" is the visible payload an attacker would inject.
+    let raw_sni: &[u8] = &[0xff, 0x1b, b'[', b'3', b'1', b'm', b'p', b'w', b'n', b'd'];
+    let record = build_client_hello_raw_sni(raw_sni, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    let findings = analyzer.findings();
+    let f = findings
+        .iter()
+        .find(|f| f.summary.contains("non-UTF-8 bytes"))
+        .expect("expected non-UTF-8 SNI finding");
+
+    // The summary must not contain the raw ESC byte. Debug formatting ({:?})
+    // turns 0x1b into the literal escape sequence "\u{1b}" instead.
+    assert!(
+        !f.summary.as_bytes().contains(&0x1b),
+        "summary contains raw ESC byte (terminal injection vector): {:?}",
+        f.summary
+    );
+    assert!(
+        f.summary.contains("\\u{1b}"),
+        "summary should contain escaped ESC sequence \\u{{1b}}, got: {}",
+        f.summary
+    );
+
+    // Hex evidence is unchanged — that's the lossless record.
+    assert!(
+        f.evidence
+            .iter()
+            .any(|e| e.contains("ff1b5b33316d70776e64")),
+        "expected raw bytes in hex evidence, got: {:?}",
+        f.evidence
+    );
+}

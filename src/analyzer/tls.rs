@@ -315,8 +315,13 @@ impl TlsAnalyzer {
                     category: ThreatCategory::Anomaly,
                     verdict: Verdict::Inconclusive,
                     confidence: Confidence::Low,
+                    // Use Debug formatter ({:?}) to escape control bytes (e.g. ESC 0x1b)
+                    // that String::from_utf8_lossy preserves but the analyst's terminal
+                    // would interpret as ANSI control sequences. Without this an attacker
+                    // could craft a malformed SNI like b"\x1b[31m..." that recolors or
+                    // overwrites the rendered finding line.
                     summary: format!(
-                        "TLS SNI contains non-UTF-8 bytes (RFC 6066 violation): {lossy}"
+                        "TLS SNI contains non-UTF-8 bytes (RFC 6066 violation): {lossy:?}"
                     ),
                     evidence: vec![format!("hex: {hex}")],
                     mitre_technique: None,
