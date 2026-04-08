@@ -14,10 +14,15 @@ fn test_flow_key() -> FlowKey {
 
 /// Build a minimal TLS ClientHello record with SNI and specified cipher suites.
 fn build_client_hello(sni: &str, cipher_ids: &[u16]) -> Vec<u8> {
+    build_client_hello_raw_sni(sni.as_bytes(), cipher_ids)
+}
+
+/// Build a minimal TLS ClientHello record with arbitrary raw bytes for the SNI hostname.
+/// Used for tests that exercise non-UTF-8 / malformed SNI handling.
+fn build_client_hello_raw_sni(sni_bytes: &[u8], cipher_ids: &[u16]) -> Vec<u8> {
     let mut extensions = Vec::new();
 
     // SNI extension (type 0x0000)
-    let sni_bytes = sni.as_bytes();
     let sni_list_len = (3 + sni_bytes.len()) as u16;
     let sni_ext_len = 2 + sni_list_len;
     extensions.extend_from_slice(&[0x00, 0x00]); // extension type: server_name
@@ -287,4 +292,70 @@ fn test_summarize_output() {
     assert!(detail.contains_key("tls_versions"));
     assert!(detail.contains_key("cipher_suites"));
     assert_eq!(detail["parse_errors"], 0);
+}
+
+#[test]
+fn test_non_utf8_sni_emits_finding_and_counts_under_hex_key() {
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // 0xFF / 0xFE are invalid as standalone UTF-8 start bytes — guarantees
+    // from_utf8 fails. Mix in some ASCII so the lossy form is recognizable.
+    let raw_sni: &[u8] = &[0xff, 0xfe, b'a', b'.', b'c', b'o', b'm'];
+    let record = build_client_hello_raw_sni(raw_sni, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    // Parse error counter must NOT be incremented — the record itself parsed,
+    // only the SNI hostname bytes failed UTF-8 decoding.
+    assert_eq!(analyzer.parse_error_count(), 0);
+
+    // sni_counts should be keyed on a tagged hex form, not on a lossy string.
+    // This guarantees distinct byte sequences don't collide.
+    let expected_key = "<non-utf8:fffe612e636f6d>";
+    assert_eq!(
+        *analyzer.sni_counts().get(expected_key).unwrap(),
+        1,
+        "expected sni_counts to contain hex-tagged key {expected_key}"
+    );
+
+    // Exactly one finding, the non-UTF-8 SNI anomaly.
+    let findings = analyzer.findings();
+    let non_utf8_findings: Vec<_> = findings
+        .iter()
+        .filter(|f| f.summary.contains("non-UTF-8 bytes"))
+        .collect();
+    assert_eq!(
+        non_utf8_findings.len(),
+        1,
+        "expected exactly one non-UTF-8 SNI finding, got: {findings:?}"
+    );
+    let f = non_utf8_findings[0];
+    assert_eq!(f.category, wirerust::findings::ThreatCategory::Anomaly);
+    assert_eq!(f.verdict, wirerust::findings::Verdict::Inconclusive);
+    assert_eq!(f.confidence, wirerust::findings::Confidence::Low);
+    assert!(f.summary.contains("RFC 6066"));
+    // Hex evidence is the lossless representation of the raw bytes.
+    assert!(
+        f.evidence.iter().any(|e| e.contains("fffe612e636f6d")),
+        "expected hex evidence to contain raw byte sequence, got: {:?}",
+        f.evidence
+    );
+}
+
+#[test]
+fn test_ascii_sni_does_not_emit_non_utf8_finding() {
+    // Regression: a normal ASCII hostname must not trip the non-UTF-8 finding.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello("example.com", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(*analyzer.sni_counts().get("example.com").unwrap(), 1);
+    let non_utf8_findings = analyzer
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("non-UTF-8 bytes"))
+        .count();
+    assert_eq!(non_utf8_findings, 0);
 }
