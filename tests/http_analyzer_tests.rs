@@ -455,3 +455,70 @@ fn test_body_bytes_do_not_inflate_parse_errors() {
     assert_eq!(analyzer.parse_error_count(), 0);
     assert!(analyzer.findings().is_empty());
 }
+
+#[test]
+fn test_cross_flow_isolation_parse_errors() {
+    let mut analyzer = HttpAnalyzer::new();
+
+    let flow_a = FlowKey::new(
+        "10.0.0.1".parse::<IpAddr>().unwrap(),
+        49153,
+        "10.0.0.2".parse::<IpAddr>().unwrap(),
+        80,
+    );
+    let flow_b = FlowKey::new(
+        "192.168.1.1".parse::<IpAddr>().unwrap(),
+        55000,
+        "192.168.1.2".parse::<IpAddr>().unwrap(),
+        8080,
+    );
+
+    // Send malformed data on flow A
+    analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+    assert_eq!(analyzer.parse_error_count(), 1);
+
+    // Send valid request on flow B — should parse successfully
+    let valid = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    analyzer.on_data(&flow_b, Direction::ClientToServer, valid, 0);
+
+    assert_eq!(analyzer.parse_error_count(), 1); // only from flow A
+    assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
+}
+
+#[test]
+fn test_cross_flow_isolation_poisoning() {
+    let mut analyzer = HttpAnalyzer::new();
+
+    let flow_a = FlowKey::new(
+        "10.0.0.1".parse::<IpAddr>().unwrap(),
+        49153,
+        "10.0.0.2".parse::<IpAddr>().unwrap(),
+        80,
+    );
+    let flow_b = FlowKey::new(
+        "192.168.1.1".parse::<IpAddr>().unwrap(),
+        55000,
+        "192.168.1.2".parse::<IpAddr>().unwrap(),
+        8080,
+    );
+
+    // Poison flow A (3 consecutive errors)
+    for _ in 0..3 {
+        analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+    }
+    assert_eq!(analyzer.parse_error_count(), 3);
+
+    // Flow B should be completely unaffected
+    let valid = b"GET /page HTTP/1.1\r\nHost: other.com\r\n\r\n";
+    analyzer.on_data(&flow_b, Direction::ClientToServer, valid, 0);
+
+    assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
+
+    // Verify flow A is poisoned (data skipped, bytes counted)
+    let skipped_before = analyzer.poisoned_bytes_skipped();
+    analyzer.on_data(&flow_a, Direction::ClientToServer, b"more data", 0);
+    assert_eq!(
+        analyzer.poisoned_bytes_skipped(),
+        skipped_before + b"more data".len() as u64
+    );
+}
