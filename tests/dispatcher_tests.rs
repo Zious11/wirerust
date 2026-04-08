@@ -3,7 +3,7 @@ use wirerust::analyzer::http::HttpAnalyzer;
 use wirerust::analyzer::tls::TlsAnalyzer;
 use wirerust::dispatcher::StreamDispatcher;
 use wirerust::reassembly::flow::FlowKey;
-use wirerust::reassembly::handler::{Direction, StreamHandler};
+use wirerust::reassembly::handler::{CloseReason, Direction, StreamHandler};
 
 fn flow_key(src_port: u16, dst_port: u16) -> FlowKey {
     FlowKey::new(
@@ -69,4 +69,30 @@ fn test_dispatcher_port_fallback_short_data() {
     let http = dispatcher.http.as_ref().unwrap();
     assert_eq!(http.method_counts().len(), 0);
     assert_eq!(http.parse_error_count(), 0); // Confirms HTTP didn't try to parse TLS bytes
+}
+
+#[test]
+fn test_unclassified_flows_counter() {
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    let fk = flow_key(49152, 9999); // Non-standard port
+
+    // Send data that doesn't match HTTP or TLS content signatures
+    dispatcher.on_data(&fk, Direction::ClientToServer, b"UNKNOWN_PROTOCOL", 0);
+    assert_eq!(dispatcher.unclassified_flows(), 0); // Not counted until close
+
+    // Close the flow — never classified
+    dispatcher.on_flow_close(&fk, CloseReason::Fin);
+    assert_eq!(dispatcher.unclassified_flows(), 1);
+}
+
+#[test]
+fn test_classified_flow_not_counted_as_unclassified() {
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    let fk = flow_key(49152, 80);
+
+    let http_data = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    dispatcher.on_data(&fk, Direction::ClientToServer, http_data, 0);
+    dispatcher.on_flow_close(&fk, CloseReason::Fin);
+
+    assert_eq!(dispatcher.unclassified_flows(), 0);
 }

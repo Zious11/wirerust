@@ -16,6 +16,7 @@ pub struct StreamDispatcher {
     routes: HashMap<FlowKey, DispatchTarget>,
     pub http: Option<HttpAnalyzer>,
     pub tls: Option<TlsAnalyzer>,
+    unclassified_flows: u64,
 }
 
 impl StreamDispatcher {
@@ -24,7 +25,12 @@ impl StreamDispatcher {
             routes: HashMap::new(),
             http,
             tls,
+            unclassified_flows: 0,
         }
+    }
+
+    pub fn unclassified_flows(&self) -> u64 {
+        self.unclassified_flows
     }
 }
 
@@ -102,7 +108,11 @@ impl StreamHandler for StreamDispatcher {
                     tls.on_flow_close(flow_key, reason);
                 }
             }
-            _ => {}
+            Some(DispatchTarget::None) | None => {
+                if self.http.is_some() || self.tls.is_some() {
+                    self.unclassified_flows += 1;
+                }
+            }
         }
     }
 }
