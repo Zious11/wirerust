@@ -512,38 +512,154 @@ fn test_sni_with_empty_hostname_bytes() {
 }
 
 #[test]
-fn test_valid_utf8_non_ascii_sni_currently_not_flagged() {
-    // Pin: a SNI value that is valid UTF-8 but contains non-ASCII characters
-    // (e.g. a raw U-label "café.example") is *also* a RFC 6066 §3 violation —
-    // the spec requires A-labels (RFC 5890 Punycode `xn--` form). The current
-    // analyzer does not flag this case (tracked as a follow-up at
-    // https://github.com/Zious11/wirerust/issues/51).
+fn test_valid_utf8_non_ascii_sni_emits_finding() {
+    // A SNI value that is valid UTF-8 but contains non-ASCII characters (e.g. a
+    // raw U-label "café.example") is a RFC 6066 §3 violation: the spec requires
+    // ASCII encoding, with internationalized names sent as A-labels (RFC 5890
+    // Punycode `xn--` form). Major TLS clients (rustls, Chrome/BoringSSL,
+    // Firefox/NSS, curl/libcurl) all auto-Punycode internationalized hostnames
+    // before sending, so a non-ASCII SNI on the wire is a strong indicator of
+    // either a buggy custom client (often raw OpenSSL without IDNA prep) or an
+    // attacker tool.
     //
-    // This test pins the current "no finding emitted" behavior. When issue #51
-    // lands, this assertion should be flipped to expect a finding, and this
-    // comment removed.
+    // This test was previously a pin-test for "no finding emitted" pending
+    // issue #51; that issue is now implemented and the assertion has been
+    // flipped to expect the finding.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
     let record = build_client_hello("café.example", &[0x1301]);
     analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
 
+    // Hostname is still counted under its valid-UTF-8 form (no collision risk).
     assert_eq!(
         *analyzer.sni_counts().get("café.example").unwrap_or(&0),
         1,
         "expected café.example to be counted under its UTF-8 form, got {:?}",
         analyzer.sni_counts()
     );
+
+    let non_ascii_findings: Vec<_> = analyzer
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("non-ASCII characters"))
+        .collect();
+    assert_eq!(
+        non_ascii_findings.len(),
+        1,
+        "expected exactly one non-ASCII SNI finding, got: {:?}",
+        analyzer.findings()
+    );
+    let f = &non_ascii_findings[0];
+    assert_eq!(f.category, wirerust::findings::ThreatCategory::Anomaly);
+    assert_eq!(f.verdict, wirerust::findings::Verdict::Inconclusive);
+    assert_eq!(f.confidence, wirerust::findings::Confidence::Low);
+    assert!(
+        f.summary.contains("RFC 6066"),
+        "summary should reference RFC 6066, got: {}",
+        f.summary
+    );
+    assert!(
+        f.summary.contains("A-labels"),
+        "summary should mention A-labels, got: {}",
+        f.summary
+    );
+    // Hex evidence is the lossless representation of the raw bytes.
+    // "café.example" UTF-8 = 63 61 66 c3 a9 2e 65 78 61 6d 70 6c 65
+    assert!(
+        f.evidence
+            .iter()
+            .any(|e| e.contains("636166c3a92e6578616d706c65")),
+        "expected raw UTF-8 bytes in hex evidence, got: {:?}",
+        f.evidence
+    );
+
+    // Critical: this must NOT trip the non-UTF-8 finding (those are different
+    // cases — café.example is valid UTF-8, just non-ASCII).
     let non_utf8_findings = analyzer
         .findings()
         .iter()
         .filter(|f| f.summary.contains("non-UTF-8 bytes"))
         .count();
+    assert_eq!(non_utf8_findings, 0);
+}
+
+#[test]
+fn test_cyrillic_sni_emits_non_ascii_finding() {
+    // Regression: a U-label using Cyrillic script should trip the non-ASCII
+    // finding identically to the Latin-accented case.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello("пример.example", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    let non_ascii_count = analyzer
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("non-ASCII characters"))
+        .count();
     assert_eq!(
-        non_utf8_findings, 0,
-        "valid UTF-8 must not trip the non-UTF-8 finding (see \
-         https://github.com/Zious11/wirerust/issues/51 for the planned follow-up; \
-         flip this assertion when that issue lands)"
+        non_ascii_count,
+        1,
+        "Cyrillic U-label must emit one non-ASCII finding, got {:?}",
+        analyzer.findings()
+    );
+    assert_eq!(
+        *analyzer.sni_counts().get("пример.example").unwrap_or(&0),
+        1
+    );
+}
+
+#[test]
+fn test_emoji_sni_emits_non_ascii_finding() {
+    // Regression: a 4-byte UTF-8 emoji codepoint also trips the finding.
+    // 🦀 = U+1F980 = 0xF0 0x9F 0xA6 0x80 (4 bytes, all ≥ 0x80).
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello("🦀.example", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    let non_ascii_count = analyzer
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("non-ASCII characters"))
+        .count();
+    assert_eq!(
+        non_ascii_count,
+        1,
+        "emoji SNI must emit one non-ASCII finding, got {:?}",
+        analyzer.findings()
+    );
+}
+
+#[test]
+fn test_punycode_a_label_does_not_emit_non_ascii_finding() {
+    // Regression: a Punycode A-label "xn--caf-dma.example" is the
+    // RFC-compliant way to encode "café.example" and is pure ASCII.
+    // The analyzer must NOT flag it.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello("xn--caf-dma.example", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    let non_ascii_count = analyzer
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("non-ASCII characters"))
+        .count();
+    assert_eq!(
+        non_ascii_count, 0,
+        "Punycode A-label is RFC-compliant ASCII and must not be flagged"
+    );
+    assert_eq!(
+        *analyzer
+            .sni_counts()
+            .get("xn--caf-dma.example")
+            .unwrap_or(&0),
+        1
     );
 }
 

@@ -148,12 +148,28 @@ fn compute_ja3s(version: u16, cipher: TlsCipherSuiteID, extensions: &[TlsExtensi
 /// Result of decoding a TLS SNI hostname.
 ///
 /// RFC 6066 §3 specifies that the `HostName` field is "represented as a byte
-/// string using ASCII encoding". Internationalized names use A-labels (RFC 5890),
-/// which are also ASCII. A `NonUtf8` SNI is therefore a protocol violation —
-/// usually a buggy TLS client, but worth surfacing for forensic review.
+/// string using ASCII encoding". Internationalized names use A-labels (RFC 5890,
+/// `xn--…` Punycode form), which are also ASCII. Two RFC violations are tracked
+/// separately:
+///
+/// - `NonAsciiUtf8` — bytes decode as valid UTF-8 but contain non-ASCII codepoints
+///   (e.g. a raw U-label "café.example"). RFC 6066 says these MUST be Punycode-encoded
+///   before transmission. Major TLS clients (rustls, Chrome/BoringSSL, Firefox/NSS,
+///   curl/libcurl) all do this conversion automatically — so a non-ASCII SNI on the
+///   wire indicates either a buggy custom client (often raw OpenSSL without IDNA prep)
+///   or an attacker tool.
+/// - `NonUtf8` — bytes can't decode as UTF-8 at all. Strictly malformed.
+///
+/// Both are surfaced as Anomaly findings; usually a client bug, but worth forensic
+/// review.
 enum SniValue {
-    /// Hostname decoded cleanly as UTF-8 (which includes the RFC-compliant ASCII case).
-    Utf8(String),
+    /// Hostname is pure ASCII — RFC 6066 compliant. May be a literal hostname or
+    /// an A-label (Punycode) form like `xn--caf-dma.example`.
+    Ascii(String),
+    /// Hostname decodes as valid UTF-8 but contains at least one byte ≥ 0x80.
+    /// `hostname` is the decoded String (always valid UTF-8); `hex` is the lossless
+    /// lowercase hex of the raw bytes for forensic evidence.
+    NonAsciiUtf8 { hostname: String, hex: String },
     /// Hostname bytes failed UTF-8 decoding. `lossy` is the U+FFFD-replaced form
     /// for human display; `hex` is the lossless lowercase hex of the raw bytes.
     NonUtf8 { lossy: String, hex: String },
@@ -171,7 +187,11 @@ fn extract_sni(extensions: &[TlsExtension<'_>]) -> Option<SniValue> {
             && let Some((_, hostname)) = list.first()
         {
             return Some(match std::str::from_utf8(hostname) {
-                Ok(s) => SniValue::Utf8(s.to_string()),
+                Ok(s) if s.is_ascii() => SniValue::Ascii(s.to_string()),
+                Ok(s) => SniValue::NonAsciiUtf8 {
+                    hostname: s.to_string(),
+                    hex: bytes_to_hex(hostname),
+                },
                 Err(_) => SniValue::NonUtf8 {
                     lossy: String::from_utf8_lossy(hostname).into_owned(),
                     hex: bytes_to_hex(hostname),
@@ -304,30 +324,56 @@ impl TlsAnalyzer {
             // Choose a map key that preserves uniqueness for non-UTF-8 cases.
             // Using `lossy` as a key would collapse distinct byte sequences whose
             // U+FFFD replacements happen to align — bad for forensic counting.
+            // For Ascii and NonAsciiUtf8 the hostname is valid UTF-8 with no
+            // collision risk, so use it directly.
             let key = match &sni {
-                SniValue::Utf8(s) => s.clone(),
+                SniValue::Ascii(s) => s.clone(),
+                SniValue::NonAsciiUtf8 { hostname, .. } => hostname.clone(),
                 SniValue::NonUtf8 { hex, .. } => format!("<non-utf8:{hex}>"),
             };
             Self::increment(&mut self.sni_counts, key, MAX_MAP_ENTRIES);
 
-            if let SniValue::NonUtf8 { lossy, hex } = sni {
-                self.all_findings.push(Finding {
-                    category: ThreatCategory::Anomaly,
-                    verdict: Verdict::Inconclusive,
-                    confidence: Confidence::Low,
-                    // Use Debug formatter ({:?}) to escape control bytes (e.g. ESC 0x1b)
-                    // that String::from_utf8_lossy preserves but the analyst's terminal
-                    // would interpret as ANSI control sequences. Without this an attacker
-                    // could craft a malformed SNI like b"\x1b[31m..." that recolors or
-                    // overwrites the rendered finding line.
-                    summary: format!(
-                        "TLS SNI contains non-UTF-8 bytes (RFC 6066 violation): {lossy:?}"
-                    ),
-                    evidence: vec![format!("hex: {hex}")],
-                    mitre_technique: None,
-                    source_ip: None,
-                    timestamp: None,
-                });
+            match sni {
+                SniValue::Ascii(_) => {} // RFC-compliant, no finding
+                SniValue::NonAsciiUtf8 { hostname, hex } => {
+                    self.all_findings.push(Finding {
+                        category: ThreatCategory::Anomaly,
+                        verdict: Verdict::Inconclusive,
+                        confidence: Confidence::Low,
+                        // Use Debug formatter ({:?}) to escape any control codepoints
+                        // that might survive UTF-8 decoding (e.g. U+0085 NEL); the
+                        // hostname here is valid UTF-8 but printable-script content
+                        // is not guaranteed.
+                        summary: format!(
+                            "TLS SNI contains non-ASCII characters (RFC 6066 requires \
+                             A-labels per RFC 5890): {hostname:?}"
+                        ),
+                        evidence: vec![format!("hex: {hex}")],
+                        mitre_technique: None,
+                        source_ip: None,
+                        timestamp: None,
+                    });
+                }
+                SniValue::NonUtf8 { lossy, hex } => {
+                    self.all_findings.push(Finding {
+                        category: ThreatCategory::Anomaly,
+                        verdict: Verdict::Inconclusive,
+                        confidence: Confidence::Low,
+                        // Use Debug formatter ({:?}) to escape control bytes (e.g.
+                        // ESC 0x1b) that String::from_utf8_lossy preserves but the
+                        // analyst's terminal would interpret as ANSI control
+                        // sequences. Without this an attacker could craft a
+                        // malformed SNI like b"\x1b[31m..." that recolors or
+                        // overwrites the rendered finding line.
+                        summary: format!(
+                            "TLS SNI contains non-UTF-8 bytes (RFC 6066 violation): {lossy:?}"
+                        ),
+                        evidence: vec![format!("hex: {hex}")],
+                        mitre_technique: None,
+                        source_ip: None,
+                        timestamp: None,
+                    });
+                }
             }
         }
 
