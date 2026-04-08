@@ -21,6 +21,9 @@ indicatif = "0.17"
 chrono = { version = "0.4", features = ["serde"] }
 rayon = "1"
 
+[profile.release]
+overflow-checks = true
+
 [dev-dependencies]
 assert_cmd = "2"
 predicates = "3"
