@@ -72,8 +72,8 @@ pub enum FlowState {
 pub struct FlowDirection {
     pub isn: Option<u32>,
     pub base_offset: u64,
-    pub(crate) segments: BTreeMap<u64, Vec<u8>>,
-    pub(crate) buffered_bytes: usize,
+    pub(super) segments: BTreeMap<u64, Vec<u8>>,
+    pub(super) buffered_bytes: usize,
     pub reassembled_bytes: usize,
     pub overlap_count: u32,
     pub overlap_alert_fired: bool,
