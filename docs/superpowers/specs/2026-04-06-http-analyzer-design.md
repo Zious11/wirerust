@@ -29,16 +29,22 @@ Implements `StreamAnalyzer` (which extends `StreamHandler`). Receives reassemble
 - `httparse::Response::new(&mut headers).parse(&buf)` for responses
 - After `Status::Complete(n)`, drain `n` bytes and parse again (handles HTTP pipelining)
 - `Status::Partial` means wait for more data
-- Pre-allocate 96-element header arrays (covers real-world HTTP; `Status::Partial` returned if exceeded)
+- Pre-allocate 96-element header arrays (covers real-world HTTP). If exceeded, `httparse` returns `Error::TooManyHeaders`; the analyzer treats this as a parse error, clears the direction buffer, and — unless the error is absorbed by **body-byte tolerance** (see "Per-Flow State" below) — emits an `Anomaly`/`Inconclusive` finding (possible DoS or header-based attack, MITRE T1499.002).
 
 ### Per-Flow State
 
 `HashMap<FlowKey, HttpFlowState>` where each flow tracks:
 - `request_buf: Vec<u8>` — accumulates client→server bytes until a complete request header is parsed
 - `response_buf: Vec<u8>` — accumulates server→client bytes
-- `pending_method: Option<String>` — last request method, to pair with response
+- `request_poisoned`, `response_poisoned: bool` — once a direction trips the parse-error threshold, subsequent bytes in that direction are skipped
+- `request_error_count`, `response_error_count: u8` — consecutive parse errors per direction; poisoning fires at `POISON_THRESHOLD` and resets on successful parse
+- `counted_as_non_http: bool` — ensures a flow that poisons in both directions is only counted once in `non_http_flows`
 
 **Buffer cap:** 64KB per direction per flow. HTTP headers exceeding 64KB are themselves anomalous and are skipped rather than buffered indefinitely.
+
+Request/response pairing is not tracked — responses are counted independently. The summary's `transactions` counter increments once per successfully parsed response, so on captures with missing responses (mid-stream joins, dropped traffic) the count reflects responses only, not request/response pairs.
+
+**Body-byte tolerance:** Once at least one message has been successfully parsed in the same `on_data` call, any parse errors encountered afterward in that same call are treated as trailing body bytes (since the analyzer does not track `Content-Length`/`Transfer-Encoding`). Such errors do not increment `parse_errors`, do not emit `TooManyHeaders` findings, and do not count toward `POISON_THRESHOLD`. This keeps normal HTTP traffic from tripping the poisoning logic.
 
 ### CLI Wiring
 
@@ -63,23 +69,28 @@ Reassembly Engine
   → on_data(flow_key, direction, data, offset)
     → HttpAnalyzer
       ├── direction == ClientToServer:
-      │   append to request_buf
+      │   append to request_buf (skip if request_poisoned)
       │   loop: httparse::Request::parse(&request_buf)
-      │     Complete(n) → extract method, uri, version, headers
-      │                  → store pending_method for response pairing
+      │     Complete(n) → extract method, uri, version, Host, User-Agent
       │                  → check detection rules → generate findings
-      │                  → update summary counters
-      │                  → drain n bytes, continue loop
+      │                  → update summary counters (methods, hosts, user_agents, uris)
+      │                  → drain n bytes, reset request_error_count, continue loop
       │     Partial → break, wait for more data
+      │     Err(_) → clear buffer and return; unless absorbed by body-byte
+      │              tolerance (see Per-Flow State): increment
+      │              request_error_count; if TooManyHeaders also emit anomaly
+      │              finding; poison direction once consecutive errors reach
+      │              POISON_THRESHOLD
       │
       └── direction == ServerToClient:
-          append to response_buf
+          append to response_buf (skip if response_poisoned)
           loop: httparse::Response::parse(&response_buf)
-            Complete(n) → extract status_code, reason, headers
-                        → pair with pending_method
-                        → update summary counters
-                        → drain n bytes, continue loop
+            Complete(n) → extract status_code
+                        → update summary counters (transactions, status_codes)
+                        → drain n bytes, reset response_error_count, continue loop
             Partial → break, wait for more data
+            Err(_) → clear buffer and return; same body-byte-tolerance-aware
+                     poisoning path as requests
 
   → on_flow_close(flow_key, reason)
     → remove flow state from HashMap
@@ -91,32 +102,43 @@ Each produces a `Finding` with the listed severity. Conservative by design — f
 
 | Pattern | Category | Verdict | Confidence | Details |
 |---------|----------|---------|------------|---------|
-| Path traversal (`../`, `..%2f`, `..%252f`, `....//`) | Reconnaissance | Likely | High | URI decoded and checked |
-| Web shell paths (`/shell`, `/cmd`, `/c99`, `/r57`, `/webshell`, `/backdoor`) | Execution | Likely | Medium | Substring match on URI |
+| Path traversal (`../`, `..%2f`, `..%252f`, `....//`) | Reconnaissance | Likely | High | Case-insensitive substring match on the raw URI — single- and double-encoded variants are matched literally, URIs are not percent-decoded |
+| Web shell paths (`/shell.php`, `/shell.asp`, `/shell.jsp`, `/cmd.php`, `/cmd.asp`, `/cmd.jsp`, `/c99.php`, `/r57.php`, `/webshell`, `/backdoor`) | Execution | Likely | Medium | Case-insensitive substring match on the URI |
 | Admin panel paths (`/wp-admin`, `/admin`, `/phpmyadmin`, `/manager`) | Reconnaissance | Inconclusive | Low | Common scan targets |
 | Unusual methods (CONNECT, TRACE, DELETE, OPTIONS) | Reconnaissance | Inconclusive | Medium | Rarely seen in normal traffic |
 | Missing Host header (HTTP/1.1) | Anomaly | Inconclusive | Medium | Violates HTTP/1.1 spec, common in exploits |
 | Long URI (> 2048 chars) | Execution | Likely | Medium | Buffer overflow / fuzzing indicator |
-| Empty User-Agent | Anomaly | Inconclusive | Low | Scripts and tools often omit it |
+| Empty User-Agent | Anomaly | Inconclusive | Low | Fires only when the `User-Agent` header is present but its value is empty; a missing header is not currently flagged |
+| Excessive HTTP headers (>96) | Anomaly | Inconclusive | Medium | Emitted from the `TooManyHeaders` parse-error path, in either direction |
 
 ## Summary Output
 
-After all packets are processed, `HttpAnalyzer::summarize()` returns:
+After all packets are processed, `HttpAnalyzer::summarize()` returns an `AnalysisSummary` shaped like the following. `packets_analyzed` is set to the same value as `detail.transactions` — the analyzer counts parsed HTTP transactions (responses), not TCP packets.
 
 ```json
 {
   "analyzer_name": "HTTP",
-  "packets_analyzed": 142,
+  "packets_analyzed": 42,
   "detail": {
     "transactions": 42,
     "methods": {"GET": 35, "POST": 7},
     "status_codes": {"200": 30, "404": 5, "301": 4, "500": 3},
     "top_hosts": ["example.com", "api.target.com"],
-    "top_uris": ["/index.html", "/api/v1/users", "/login"],
-    "user_agents": {"Mozilla/5.0...": 35, "curl/7.68": 7}
+    "recent_uris": ["/index.html", "/api/v1/users", "/login"],
+    "user_agents": {"Mozilla/5.0...": 35, "curl/7.68": 7},
+    "parse_errors": 0,
+    "non_http_flows": 0,
+    "poisoned_bytes_skipped": 0
   }
 }
 ```
+
+Key shape notes:
+- `top_hosts` is a top-20 list sorted by count.
+- `recent_uris` is the first 20 URIs seen, in arrival order (not a "top" list). Capped at `MAX_URIS` internally.
+- `parse_errors` is the global total of non-suppressed parse errors across all flows — each error event increments it, regardless of whether the flow eventually poisons. (Body-byte errors, per "Body-byte tolerance" above, are suppressed and do not increment this counter.)
+- `non_http_flows` counts flows where at least one direction hit `POISON_THRESHOLD` consecutive parse errors.
+- `poisoned_bytes_skipped` is the cumulative size of data dropped from poisoned directions.
 
 Terminal reporter displays this in the existing `ANALYZER: HTTP` section format.
 
@@ -131,7 +153,7 @@ httparse = "1"
 
 **Unit tests (crafted byte streams):**
 1. Parse simple GET request → verify method, URI, Host, User-Agent
-2. Parse HTTP response → verify status code, reason
+2. Parse HTTP response → verify status code is recorded (no reason/headers extraction)
 3. Pipelining: two requests in one buffer → both parsed correctly
 4. Partial data: incomplete request → no crash, waits for more
 5. Buffer cap: 64KB+ headers → skipped gracefully
