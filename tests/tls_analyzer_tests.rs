@@ -36,9 +36,10 @@ fn build_client_hello_with_sni_list(sni_entries: &[&[u8]], cipher_ids: &[u16]) -
 
     // SNI extension (type 0x0000)
     // The ServerNameList contents: for each entry, 1 byte host_name type + 2 byte name length + name bytes.
-    // Use checked conversions so a future test passing an out-of-range SNI (e.g. the
-    // 65,534-byte hostname requested in issue #52) panics with a clear message rather
-    // than silently wrapping through `as u16` and producing a malformed ClientHello.
+    // Use checked conversions so a future test passing an out-of-range SNI (e.g. a
+    // ~65,532-byte single hostname — u16::MAX minus 3 bytes of ServerName overhead
+    // per entry — requested in issue #52) panics with a clear message rather than
+    // silently wrapping through `as u16` and producing a malformed ClientHello.
     let mut sni_list_data = Vec::new();
     for entry in sni_entries {
         let name_len = u16::try_from(entry.len())
@@ -76,7 +77,12 @@ fn build_client_hello_with_sni_list(sni_entries: &[&[u8]], cipher_ids: &[u16]) -
     ch_body.extend_from_slice(&[0u8; 32]); // random
     ch_body.push(0x00); // session_id length: 0
 
-    let ciphers_len = (cipher_ids.len() * 2) as u16;
+    let ciphers_byte_len = cipher_ids
+        .len()
+        .checked_mul(2)
+        .expect("cipher_ids list byte length overflows usize");
+    let ciphers_len = u16::try_from(ciphers_byte_len)
+        .expect("cipher_ids list exceeds u16::MAX bytes (max 32,767 suites)");
     ch_body.extend_from_slice(&ciphers_len.to_be_bytes());
     for &id in cipher_ids {
         ch_body.extend_from_slice(&id.to_be_bytes());
@@ -85,7 +91,8 @@ fn build_client_hello_with_sni_list(sni_entries: &[&[u8]], cipher_ids: &[u16]) -
     ch_body.push(0x01); // compression methods length
     ch_body.push(0x00); // null compression
 
-    let ext_len = extensions.len() as u16;
+    let ext_len = u16::try_from(extensions.len())
+        .expect("ClientHello extensions block exceeds u16::MAX bytes");
     ch_body.extend_from_slice(&ext_len.to_be_bytes());
     ch_body.extend_from_slice(&extensions);
 
@@ -102,7 +109,8 @@ fn build_client_hello_with_sni_list(sni_entries: &[&[u8]], cipher_ids: &[u16]) -
     let mut record = Vec::new();
     record.push(0x16); // handshake
     record.extend_from_slice(&[0x03, 0x01]); // TLS 1.0 record version
-    let hs_len = handshake.len() as u16;
+    let hs_len = u16::try_from(handshake.len())
+        .expect("TLS handshake body exceeds u16::MAX bytes; record fragmentation not implemented");
     record.extend_from_slice(&hs_len.to_be_bytes());
     record.extend_from_slice(&handshake);
 
