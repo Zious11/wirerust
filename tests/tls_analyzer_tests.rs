@@ -514,7 +514,7 @@ fn test_sni_with_empty_hostname_bytes() {
 #[test]
 fn test_valid_utf8_non_ascii_sni_emits_finding() {
     // A SNI value that is valid UTF-8 but contains non-ASCII characters (e.g. a
-    // raw U-label "café.example") is a RFC 6066 §3 violation: the spec requires
+    // raw U-label "café.example") is an RFC 6066 §3 violation: the spec requires
     // ASCII encoding, with internationalized names sent as A-labels (RFC 5890
     // Punycode `xn--` form). Major TLS clients (rustls, Chrome/BoringSSL,
     // Firefox/NSS, curl/libcurl) all auto-Punycode internationalized hostnames
