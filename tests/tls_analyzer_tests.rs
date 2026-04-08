@@ -36,14 +36,22 @@ fn build_client_hello_with_sni_list(sni_entries: &[&[u8]], cipher_ids: &[u16]) -
 
     // SNI extension (type 0x0000)
     // The ServerNameList contents: for each entry, 1 byte host_name type + 2 byte name length + name bytes.
+    // Use checked conversions so a future test passing an out-of-range SNI (e.g. the
+    // 65,534-byte hostname requested in issue #52) panics with a clear message rather
+    // than silently wrapping through `as u16` and producing a malformed ClientHello.
     let mut sni_list_data = Vec::new();
     for entry in sni_entries {
+        let name_len = u16::try_from(entry.len())
+            .expect("SNI hostname entry exceeds u16::MAX; can't encode as RFC 6066 HostName");
         sni_list_data.push(0x00); // host_name type
-        sni_list_data.extend_from_slice(&(entry.len() as u16).to_be_bytes());
+        sni_list_data.extend_from_slice(&name_len.to_be_bytes());
         sni_list_data.extend_from_slice(entry);
     }
-    let sni_list_len = sni_list_data.len() as u16;
-    let sni_ext_len = 2 + sni_list_len;
+    let sni_list_len =
+        u16::try_from(sni_list_data.len()).expect("ServerNameList payload exceeds u16::MAX");
+    let sni_ext_len = sni_list_len
+        .checked_add(2)
+        .expect("SNI extension length would overflow u16");
     extensions.extend_from_slice(&[0x00, 0x00]); // extension type: server_name
     extensions.extend_from_slice(&sni_ext_len.to_be_bytes());
     extensions.extend_from_slice(&sni_list_len.to_be_bytes());
@@ -468,9 +476,13 @@ fn test_sni_extension_with_empty_hostname_list() {
 
 #[test]
 fn test_sni_with_empty_hostname_bytes() {
-    // Pin: an SNI hostname of zero bytes (b"") decodes via from_utf8 as Ok(""),
-    // so the analyzer counts it under the empty-string key and emits no finding.
-    // This is a degenerate but technically valid wire form.
+    // Pin current behavior for a degenerate, RFC-violating SNI hostname whose
+    // HostName bytes are empty (b""). RFC 6066 §3 defines `HostName<1..2^16-1>`,
+    // so a zero-byte hostname is not spec-valid wire form. Current tls_parser
+    // accepts it anyway; from_utf8 decodes it as Ok(""), so the analyzer counts
+    // it under the empty-string key and emits no non-UTF-8 finding. This pin
+    // guards the defensive path — the analyzer's existing branch handles the
+    // degenerate case without panicking or double-counting.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
