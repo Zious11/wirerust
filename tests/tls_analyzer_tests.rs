@@ -20,17 +20,29 @@ fn build_client_hello(sni: &str, cipher_ids: &[u16]) -> Vec<u8> {
 /// Build a minimal TLS ClientHello record with arbitrary raw bytes for the SNI hostname.
 /// Used for tests that exercise non-UTF-8 / malformed SNI handling.
 fn build_client_hello_raw_sni(sni_bytes: &[u8], cipher_ids: &[u16]) -> Vec<u8> {
+    build_client_hello_with_sni_list(&[sni_bytes], cipher_ids)
+}
+
+/// Build a minimal TLS ClientHello record with an arbitrary number of SNI hostname
+/// entries (zero or more). Used for edge-case tests covering empty SNI lists,
+/// multi-name SNI lists, and other scenarios the single-hostname helpers don't reach.
+fn build_client_hello_with_sni_list(sni_entries: &[&[u8]], cipher_ids: &[u16]) -> Vec<u8> {
     let mut extensions = Vec::new();
 
     // SNI extension (type 0x0000)
-    let sni_list_len = (3 + sni_bytes.len()) as u16;
+    // The ServerNameList contents: for each entry, 1 byte host_name type + 2 byte name length + name bytes.
+    let mut sni_list_data = Vec::new();
+    for entry in sni_entries {
+        sni_list_data.push(0x00); // host_name type
+        sni_list_data.extend_from_slice(&(entry.len() as u16).to_be_bytes());
+        sni_list_data.extend_from_slice(entry);
+    }
+    let sni_list_len = sni_list_data.len() as u16;
     let sni_ext_len = 2 + sni_list_len;
     extensions.extend_from_slice(&[0x00, 0x00]); // extension type: server_name
     extensions.extend_from_slice(&sni_ext_len.to_be_bytes());
     extensions.extend_from_slice(&sni_list_len.to_be_bytes());
-    extensions.push(0x00); // host_name type
-    extensions.extend_from_slice(&(sni_bytes.len() as u16).to_be_bytes());
-    extensions.extend_from_slice(sni_bytes);
+    extensions.extend_from_slice(&sni_list_data);
 
     // Supported Groups extension (type 0x000a)
     extensions.extend_from_slice(&[0x00, 0x0a]); // extension type
@@ -401,5 +413,210 @@ fn test_non_utf8_sni_escapes_control_bytes_in_summary() {
             .any(|e| e.contains("ff1b5b33316d70776e64")),
         "expected raw bytes in hex evidence, got: {:?}",
         f.evidence
+    );
+}
+
+// ── SNI edge-case pin tests (issue #50) ──────────────────────────────────────
+//
+// These tests pin the analyzer's behavior for SNI inputs that the existing
+// tests don't reach. Each one documents the *current* behavior so a future
+// refactor can't silently change it.
+
+#[test]
+fn test_sni_extension_with_empty_hostname_list() {
+    // Pin: an SNI extension whose ServerNameList contains zero entries should
+    // be treated as "no SNI" — extract_sni returns None, no count, no finding.
+    // Whether tls_parser ever produces this on the wire is implementation-defined,
+    // but the analyzer's branch (`list.first()` returning None) must be safe.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello_with_sni_list(&[], &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert!(
+        analyzer.sni_counts().is_empty(),
+        "sni_counts should be untouched when SNI list is empty, got {:?}",
+        analyzer.sni_counts()
+    );
+    assert!(
+        analyzer.findings().is_empty(),
+        "no findings should fire for an empty SNI list, got {:?}",
+        analyzer.findings()
+    );
+    // The handshake itself still parsed, so handshake_count should advance.
+    assert_eq!(analyzer.handshake_count(), 1);
+}
+
+#[test]
+fn test_sni_with_empty_hostname_bytes() {
+    // Pin: an SNI hostname of zero bytes (b"") decodes via from_utf8 as Ok(""),
+    // so the analyzer counts it under the empty-string key and emits no finding.
+    // This is a degenerate but technically valid wire form.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello_raw_sni(b"", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(
+        *analyzer.sni_counts().get("").unwrap_or(&0),
+        1,
+        "expected empty-string SNI key with count 1, got {:?}",
+        analyzer.sni_counts()
+    );
+    let non_utf8_findings = analyzer
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("non-UTF-8 bytes"))
+        .count();
+    assert_eq!(non_utf8_findings, 0);
+}
+
+#[test]
+fn test_valid_utf8_non_ascii_sni_currently_not_flagged() {
+    // Pin: a SNI value that is valid UTF-8 but contains non-ASCII characters
+    // (e.g. a raw U-label "café.example") is *also* a RFC 6066 §3 violation —
+    // the spec requires A-labels (RFC 5890 Punycode `xn--` form). The current
+    // analyzer does not flag this case (it's tracked separately in issue #51).
+    //
+    // This test pins the current "no finding emitted" behavior. When issue #51
+    // lands, this assertion should be flipped to expect a finding, and this
+    // comment removed.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello("café.example", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(
+        *analyzer.sni_counts().get("café.example").unwrap_or(&0),
+        1,
+        "expected café.example to be counted under its UTF-8 form, got {:?}",
+        analyzer.sni_counts()
+    );
+    let non_utf8_findings = analyzer
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("non-UTF-8 bytes"))
+        .count();
+    assert_eq!(
+        non_utf8_findings, 0,
+        "valid UTF-8 must not trip the non-UTF-8 finding (see #51 for follow-up)"
+    );
+}
+
+#[test]
+fn test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity() {
+    // Pin: when sni_counts is at MAX_MAP_ENTRIES (50,000), the increment for a
+    // new key is silently dropped, but the non-UTF-8 finding must STILL fire.
+    // The finding push and the count increment are independent — a refactor
+    // that nests one inside the other would silently break this invariant
+    // and forensic visibility into anomalous SNI in long-running captures
+    // would degrade past the cap.
+    //
+    // This test is intentionally slow (~1-3s in debug builds) because the only
+    // way to reach the capacity-full state via the public API is to feed 50k
+    // unique ClientHellos through it. The performance trade-off was discussed
+    // in the design phase: the alternative was adding a #[cfg(test)] test
+    // helper to TlsAnalyzer, which would expose internal state. Black-box
+    // brute force keeps the public API clean.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // MAX_MAP_ENTRIES is private; this constant must stay in sync.
+    const MAX_MAP_ENTRIES: usize = 50_000;
+
+    // Fill sni_counts to capacity with unique valid-UTF-8 hostnames. Each
+    // ClientHello uses the same cipher list, so all 50k JA3 hashes collapse
+    // into a single ja3_counts entry — only sni_counts grows. The single
+    // per-flow state handles all 50k records in sequence via buffer draining;
+    // client_hello_seen stays true after the first iteration but that's
+    // harmless because only `done()` (requiring both hellos) short-circuits
+    // on_data, and we never send a ServerHello.
+    for i in 0..MAX_MAP_ENTRIES {
+        let sni = format!("filler{i:05}.example");
+        let record = build_client_hello(&sni, &[0x1301]);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    }
+
+    assert_eq!(
+        analyzer.sni_counts().len(),
+        MAX_MAP_ENTRIES,
+        "expected sni_counts to be full at MAX_MAP_ENTRIES, got {}",
+        analyzer.sni_counts().len()
+    );
+
+    // Snapshot the finding count before the capacity-test ClientHello so we can
+    // assert exactly one new finding fired.
+    let findings_before = analyzer.findings().len();
+
+    // Send one more ClientHello with a non-UTF-8 SNI. Its key cannot fit in
+    // sni_counts (the map is full and the key is new), but the finding push
+    // must still happen.
+    let raw_sni: &[u8] = &[0xff, 0xfe, b'a', b'.', b'c', b'o', b'm'];
+    let record = build_client_hello_raw_sni(raw_sni, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    // sni_counts should be unchanged in size — the new non-UTF-8 key was dropped.
+    assert_eq!(
+        analyzer.sni_counts().len(),
+        MAX_MAP_ENTRIES,
+        "non-UTF-8 SNI must not have been inserted past the cap"
+    );
+    assert!(
+        analyzer
+            .sni_counts()
+            .get("<non-utf8:fffe612e636f6d>")
+            .is_none(),
+        "non-UTF-8 hex key must not be present in sni_counts past the cap"
+    );
+
+    // The finding must still have fired.
+    let findings_after = analyzer.findings().len();
+    assert_eq!(
+        findings_after,
+        findings_before + 1,
+        "expected exactly one new finding from the non-UTF-8 SNI past the cap, \
+         got {findings_before} -> {findings_after}"
+    );
+    let f = analyzer
+        .findings()
+        .into_iter()
+        .find(|f| f.summary.contains("non-UTF-8 bytes"))
+        .expect("expected non-UTF-8 SNI finding even when sni_counts is full");
+    assert_eq!(f.confidence, wirerust::findings::Confidence::Low);
+}
+
+#[test]
+fn test_multi_name_sni_list_only_first_entry_counted() {
+    // Pin: when an SNI extension contains multiple ServerName entries,
+    // the analyzer reads only the first one. This matches the prior behavior
+    // (extract_sni uses `list.first()`) and matches what nearly all real-world
+    // TLS clients do — the spec allows multiple but no major client emits >1.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello_with_sni_list(
+        &[b"first.example", b"second.example", b"third.example"],
+        &[0x1301],
+    );
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(
+        *analyzer.sni_counts().get("first.example").unwrap_or(&0),
+        1,
+        "expected first hostname to be counted, got {:?}",
+        analyzer.sni_counts()
+    );
+    assert!(
+        analyzer.sni_counts().get("second.example").is_none(),
+        "second hostname must not be counted, got {:?}",
+        analyzer.sni_counts()
+    );
+    assert!(
+        analyzer.sni_counts().get("third.example").is_none(),
+        "third hostname must not be counted, got {:?}",
+        analyzer.sni_counts()
     );
 }
