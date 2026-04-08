@@ -72,8 +72,8 @@ pub enum FlowState {
 pub struct FlowDirection {
     pub isn: Option<u32>,
     pub base_offset: u64,
-    pub segments: BTreeMap<u64, Vec<u8>>,
-    pub buffered_bytes: usize,
+    pub(super) segments: BTreeMap<u64, Vec<u8>>,
+    pub(super) buffered_bytes: usize,
     pub reassembled_bytes: usize,
     pub overlap_count: u32,
     pub overlap_alert_fired: bool,
@@ -120,6 +120,26 @@ impl FlowDirection {
             self.isn = Some(first_seq.wrapping_sub(1));
             self.base_offset = 1;
         }
+    }
+
+    pub fn segment_count(&self) -> usize {
+        self.segments.len()
+    }
+
+    pub fn buffered_bytes(&self) -> usize {
+        self.buffered_bytes
+    }
+
+    pub fn segments_is_empty(&self) -> bool {
+        self.segments.is_empty()
+    }
+
+    pub fn segment_at(&self, offset: u64) -> Option<&[u8]> {
+        self.segments.get(&offset).map(|v| v.as_slice())
+    }
+
+    pub fn has_segment_at(&self, offset: u64) -> bool {
+        self.segments.contains_key(&offset)
     }
 
     pub fn memory_used(&self) -> usize {
