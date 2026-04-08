@@ -14,6 +14,7 @@ use crate::reassembly::segment::InsertResult;
 
 const OVERLAP_ALERT_THRESHOLD: u32 = 50;
 const SMALL_SEGMENT_ALERT_THRESHOLD: u32 = 2048;
+const OUT_OF_WINDOW_ALERT_THRESHOLD: u32 = 100;
 const MAX_FINDINGS: usize = 10_000;
 
 static CLOSE_FLOW_MISSING_WARNED: AtomicBool = AtomicBool::new(false);
@@ -299,6 +300,30 @@ impl TcpReassembler {
                         flow_dir.small_segment_count, key
                     ),
                     evidence: vec!["Possible IDS evasion".into()],
+                    mitre_technique: None,
+                    source_ip: Some(packet.src_ip),
+                    timestamp: None,
+                });
+            }
+            if flow_dir.out_of_window_count > OUT_OF_WINDOW_ALERT_THRESHOLD
+                && !flow_dir.out_of_window_alert_fired
+                && self.findings.len() < MAX_FINDINGS
+            {
+                flow_dir.out_of_window_alert_fired = true;
+                let count = flow_dir.out_of_window_count;
+                let window = self.config.max_receive_window;
+                self.findings.push(Finding {
+                    category: ThreatCategory::Anomaly,
+                    verdict: Verdict::Inconclusive,
+                    confidence: Confidence::Low,
+                    summary: format!(
+                        "Excessive out-of-window segments ({}) on flow {}",
+                        count, key
+                    ),
+                    evidence: vec![format!(
+                        "max_receive_window={} bytes; possible misconfiguration, evasion, or capture corruption",
+                        window
+                    )],
                     mitre_technique: None,
                     source_ip: Some(packet.src_ip),
                     timestamp: None,

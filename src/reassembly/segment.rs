@@ -51,6 +51,7 @@ impl FlowDirection {
 
         // Reject segments too far ahead of base_offset (before overlap/depth checks)
         if offset > self.base_offset.saturating_add(max_receive_window as u64) {
+            self.out_of_window_count = self.out_of_window_count.saturating_add(1);
             return InsertResult::OutOfWindow;
         }
 

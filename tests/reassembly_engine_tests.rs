@@ -1080,6 +1080,101 @@ fn test_out_of_window_segment_rejected_by_engine() {
 }
 
 #[test]
+fn test_out_of_window_threshold_alert() {
+    let config = ReassemblyConfig {
+        max_receive_window: 1000, // small window for testing
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Send 101 out-of-window segments (threshold is 100, alert fires when > 100)
+    for i in 0..101 {
+        // Each segment uses a different sequence beyond the window
+        let seq = 1000 + 5000 + i; // Way beyond base_offset + 1000 window
+        let pkt = make_tcp_packet(
+            client, 12345, server, 80, seq, b"x", false, false, false, false,
+        );
+        reassembler.process_packet(&pkt, 2, &mut handler);
+    }
+
+    assert_eq!(reassembler.stats().segments_out_of_window, 101);
+
+    // Verify alert finding was generated
+    let oow_finding = reassembler
+        .findings()
+        .iter()
+        .find(|f| f.summary.contains("out-of-window segments"));
+    assert!(
+        oow_finding.is_some(),
+        "should generate out-of-window threshold finding"
+    );
+    let f = oow_finding.unwrap();
+    assert!(f.evidence[0].contains("max_receive_window=1000"));
+}
+
+#[test]
+fn test_out_of_window_alert_fires_only_once() {
+    let config = ReassemblyConfig {
+        max_receive_window: 1000,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Send 200 out-of-window segments (well above threshold)
+    for i in 0..200 {
+        let seq = 1000 + 5000 + i;
+        let pkt = make_tcp_packet(
+            client, 12345, server, 80, seq, b"x", false, false, false, false,
+        );
+        reassembler.process_packet(&pkt, 2, &mut handler);
+    }
+
+    // Should only have 1 finding for out-of-window despite 200 events
+    let oow_count = reassembler
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("out-of-window segments"))
+        .count();
+    assert_eq!(oow_count, 1);
+}
+
+#[test]
 fn test_summarize_returns_reassembly_stats() {
     let config = ReassemblyConfig::default();
     let mut reassembler = TcpReassembler::new(config);
