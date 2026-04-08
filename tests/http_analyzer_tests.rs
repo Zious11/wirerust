@@ -13,6 +13,15 @@ fn test_flow_key() -> FlowKey {
     )
 }
 
+fn test_flow_key_b() -> FlowKey {
+    FlowKey::new(
+        "192.168.1.1".parse::<IpAddr>().unwrap(),
+        55000,
+        "192.168.1.2".parse::<IpAddr>().unwrap(),
+        8080,
+    )
+}
+
 #[test]
 fn test_http_analyzer_construction() {
     let analyzer = HttpAnalyzer::new();
@@ -459,19 +468,8 @@ fn test_body_bytes_do_not_inflate_parse_errors() {
 #[test]
 fn test_cross_flow_isolation_parse_errors() {
     let mut analyzer = HttpAnalyzer::new();
-
-    let flow_a = FlowKey::new(
-        "10.0.0.1".parse::<IpAddr>().unwrap(),
-        49153,
-        "10.0.0.2".parse::<IpAddr>().unwrap(),
-        80,
-    );
-    let flow_b = FlowKey::new(
-        "192.168.1.1".parse::<IpAddr>().unwrap(),
-        55000,
-        "192.168.1.2".parse::<IpAddr>().unwrap(),
-        8080,
-    );
+    let flow_a = test_flow_key();
+    let flow_b = test_flow_key_b();
 
     // Send malformed data on flow A
     analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
@@ -488,19 +486,8 @@ fn test_cross_flow_isolation_parse_errors() {
 #[test]
 fn test_cross_flow_isolation_poisoning() {
     let mut analyzer = HttpAnalyzer::new();
-
-    let flow_a = FlowKey::new(
-        "10.0.0.1".parse::<IpAddr>().unwrap(),
-        49153,
-        "10.0.0.2".parse::<IpAddr>().unwrap(),
-        80,
-    );
-    let flow_b = FlowKey::new(
-        "192.168.1.1".parse::<IpAddr>().unwrap(),
-        55000,
-        "192.168.1.2".parse::<IpAddr>().unwrap(),
-        8080,
-    );
+    let flow_a = test_flow_key();
+    let flow_b = test_flow_key_b();
 
     // Poison flow A (3 consecutive errors)
     for _ in 0..3 {
