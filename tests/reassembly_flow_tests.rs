@@ -93,9 +93,9 @@ fn test_flow_direction_new() {
     let dir = FlowDirection::new();
     assert_eq!(dir.isn, None);
     assert_eq!(dir.base_offset, 0);
-    assert!(dir.segments.is_empty());
+    assert!(dir.segments_is_empty());
     assert_eq!(dir.reassembled_bytes, 0);
-    assert_eq!(dir.buffered_bytes, 0);
+    assert_eq!(dir.buffered_bytes(), 0);
     assert!(!dir.fin_seen);
     assert!(!dir.rst_seen);
     assert!(!dir.depth_exceeded);

@@ -8,8 +8,8 @@ fn test_insert_single_segment() {
 
     let result = dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::Inserted);
-    assert_eq!(dir.segments.len(), 1);
-    assert_eq!(dir.segments.get(&1), Some(&b"hello".to_vec()));
+    assert_eq!(dir.segment_count(), 1);
+    assert_eq!(dir.segment_at(1), Some(b"hello".as_slice()));
 }
 
 #[test]
@@ -25,7 +25,7 @@ fn test_flush_contiguous_single() {
     assert_eq!(flushed[0].1, b"hello");
     assert_eq!(dir.base_offset, 6); // 1 + 5
     assert_eq!(dir.reassembled_bytes, 5);
-    assert!(dir.segments.is_empty());
+    assert!(dir.segments_is_empty());
 }
 
 #[test]
@@ -41,7 +41,7 @@ fn test_flush_contiguous_ordered() {
     assert_eq!(flushed[0].1, b"aaa");
     assert_eq!(flushed[1].1, b"bbb");
     assert_eq!(dir.base_offset, 7); // 1 + 3 + 3
-    assert!(dir.segments.is_empty());
+    assert!(dir.segments_is_empty());
 }
 
 #[test]
@@ -71,8 +71,8 @@ fn test_retransmission_dedup() {
     dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 10_485_760);
     let result = dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::Duplicate);
-    assert_eq!(dir.segments.len(), 1); // No duplicate stored
-    assert_eq!(dir.buffered_bytes, 5); // counter must not double-count
+    assert_eq!(dir.segment_count(), 1); // No duplicate stored
+    assert_eq!(dir.buffered_bytes(), 5); // counter must not double-count
 }
 
 #[test]
@@ -154,9 +154,9 @@ fn test_buffered_bytes_after_insert() {
     let mut dir = FlowDirection::new();
     dir.set_isn(1000);
     dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 10_485_760);
-    assert_eq!(dir.buffered_bytes, 5);
+    assert_eq!(dir.buffered_bytes(), 5);
     dir.insert_segment(1006, b"world", 10_485_760, 10_000, 10_485_760);
-    assert_eq!(dir.buffered_bytes, 10);
+    assert_eq!(dir.buffered_bytes(), 10);
 }
 
 #[test]
@@ -164,9 +164,9 @@ fn test_buffered_bytes_after_overlap() {
     let mut dir = FlowDirection::new();
     dir.set_isn(1000);
     dir.insert_segment(1001, b"AAABBB", 10_485_760, 10_000, 10_485_760);
-    assert_eq!(dir.buffered_bytes, 6);
+    assert_eq!(dir.buffered_bytes(), 6);
     dir.insert_segment(1004, b"XXXCC", 10_485_760, 10_000, 10_485_760);
-    assert_eq!(dir.buffered_bytes, 8); // 6 original + 2 gap bytes
+    assert_eq!(dir.buffered_bytes(), 8); // 6 original + 2 gap bytes
 }
 
 #[test]
@@ -175,11 +175,11 @@ fn test_buffered_bytes_after_flush() {
     dir.set_isn(1000);
 
     dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 10_485_760);
-    assert_eq!(dir.buffered_bytes, 5);
+    assert_eq!(dir.buffered_bytes(), 5);
 
     let flushed = dir.flush_contiguous();
     assert_eq!(flushed.len(), 1);
-    assert_eq!(dir.buffered_bytes, 0);
+    assert_eq!(dir.buffered_bytes(), 0);
 }
 
 #[test]
@@ -190,13 +190,13 @@ fn test_buffered_bytes_partial_flush() {
     // Insert segment at offset 1 (contiguous) and offset 10 (gap)
     dir.insert_segment(1001, b"aaa", 10_485_760, 10_000, 10_485_760);
     dir.insert_segment(1010, b"bbb", 10_485_760, 10_000, 10_485_760);
-    assert_eq!(dir.buffered_bytes, 6);
+    assert_eq!(dir.buffered_bytes(), 6);
 
     // Flush only flushes contiguous segment at offset 1
     let flushed = dir.flush_contiguous();
     assert_eq!(flushed.len(), 1);
     assert_eq!(flushed[0].1, b"aaa");
-    assert_eq!(dir.buffered_bytes, 3); // "bbb" remains buffered
+    assert_eq!(dir.buffered_bytes(), 3); // "bbb" remains buffered
 }
 
 #[test]
@@ -231,7 +231,7 @@ fn test_overlap_detection_boundary() {
     dir.insert_segment(1001, b"AAAAA", 10_485_760, 10_000, 10_485_760);
     // Insert segment at offset 10, length 5 (covers 10-14) — no overlap with above
     dir.insert_segment(1010, b"BBBBB", 10_485_760, 10_000, 10_485_760);
-    assert_eq!(dir.segments.len(), 2);
+    assert_eq!(dir.segment_count(), 2);
     assert_eq!(dir.overlap_count, 0);
 
     // Insert segment at offset 3, length 4 (covers 3-6) — overlaps first, not second
@@ -330,12 +330,12 @@ fn test_segment_limit_non_overlap_path() {
     dir.insert_segment(1001, b"aaa", 10_485_760, max_segments, 10_485_760);
     dir.insert_segment(1010, b"bbb", 10_485_760, max_segments, 10_485_760);
     dir.insert_segment(1020, b"ccc", 10_485_760, max_segments, 10_485_760);
-    assert_eq!(dir.segments.len(), 3);
+    assert_eq!(dir.segment_count(), 3);
 
     // Next non-overlapping insert should return SegmentLimitReached
     let result = dir.insert_segment(1030, b"ddd", 10_485_760, max_segments, 10_485_760);
     assert_eq!(result, InsertResult::SegmentLimitReached);
-    assert_eq!(dir.segments.len(), 3); // No new segment added
+    assert_eq!(dir.segment_count(), 3); // No new segment added
 }
 
 #[test]
@@ -348,13 +348,13 @@ fn test_segment_limit_gap_loop_full_rejection() {
     // Insert two segments with a gap between them (offsets 1-3 and 10-12)
     dir.insert_segment(1001, b"AAA", 10_485_760, max_segments, 10_485_760);
     dir.insert_segment(1010, b"BBB", 10_485_760, max_segments, 10_485_760);
-    assert_eq!(dir.segments.len(), 2);
+    assert_eq!(dir.segment_count(), 2);
 
     // Now insert a segment that overlaps the first and has a gap to fill (offset 1-6)
     // Gap is at offset 4-6. But segments are at capacity (2), so the gap can't be inserted.
     let result = dir.insert_segment(1001, b"AAAXXX", 10_485_760, max_segments, 10_485_760);
     assert_eq!(result, InsertResult::SegmentLimitReached);
-    assert_eq!(dir.segments.len(), 2); // No new segment added
+    assert_eq!(dir.segment_count(), 2); // No new segment added
 }
 
 #[test]
@@ -367,7 +367,7 @@ fn test_segment_limit_gap_loop_partial_insertion() {
     // Insert two segments: offset 1-3 and offset 10-12, leaving gaps at 4-9 and 13+
     dir.insert_segment(1001, b"AAA", 10_485_760, max_segments, 10_485_760);
     dir.insert_segment(1010, b"BBB", 10_485_760, max_segments, 10_485_760);
-    assert_eq!(dir.segments.len(), 2);
+    assert_eq!(dir.segment_count(), 2);
 
     // Insert a 15-byte segment spanning offsets 1-15; it overlaps both existing
     // segments and leaves two insertable gaps: [4,10) and [13,16).
@@ -382,12 +382,12 @@ fn test_segment_limit_gap_loop_partial_insertion() {
     );
     // Segment limit was hit (even though some data was inserted)
     assert_eq!(result, InsertResult::SegmentLimitReached);
-    assert_eq!(dir.segments.len(), 3); // One gap inserted, hit limit before second
+    assert_eq!(dir.segment_count(), 3); // One gap inserted, hit limit before second
 
     // Verify the first gap was filled at offset 4 with 6 bytes covering [4,10)
-    assert!(dir.segments.contains_key(&4));
+    assert!(dir.has_segment_at(4));
     // Second gap (starting at offset 13) was NOT inserted
-    assert!(!dir.segments.contains_key(&13));
+    assert!(!dir.has_segment_at(13));
 }
 
 #[test]
@@ -397,6 +397,6 @@ fn test_isn_missing_returns_isn_missing() {
 
     let result = dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::IsnMissing);
-    assert!(dir.segments.is_empty()); // No data inserted
-    assert_eq!(dir.buffered_bytes, 0);
+    assert!(dir.segments_is_empty()); // No data inserted
+    assert_eq!(dir.buffered_bytes(), 0);
 }
