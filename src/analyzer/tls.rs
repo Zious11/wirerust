@@ -145,13 +145,38 @@ fn compute_ja3s(version: u16, cipher: TlsCipherSuiteID, extensions: &[TlsExtensi
     bytes_to_hex(Md5::digest(ja3s_str.as_bytes()).as_slice())
 }
 
+/// Result of decoding a TLS SNI hostname.
+///
+/// RFC 6066 §3 specifies that the `HostName` field is "represented as a byte
+/// string using ASCII encoding". Internationalized names use A-labels (RFC 5890),
+/// which are also ASCII. A `NonUtf8` SNI is therefore a protocol violation —
+/// usually a buggy TLS client, but worth surfacing for forensic review.
+enum SniValue {
+    /// Hostname decoded cleanly as UTF-8 (which includes the RFC-compliant ASCII case).
+    Utf8(String),
+    /// Hostname bytes failed UTF-8 decoding. `lossy` is the U+FFFD-replaced form
+    /// for human display; `hex` is the lossless lowercase hex of the raw bytes.
+    NonUtf8 { lossy: String, hex: String },
+}
+
 /// Extract SNI hostname from the parsed extension list.
-fn extract_sni(extensions: &[TlsExtension<'_>]) -> Option<String> {
+///
+/// Returns `None` if no SNI extension is present or the extension's hostname
+/// list is empty. Otherwise returns an `SniValue` describing the first hostname
+/// (we ignore additional entries — multi-name SNI is rare and treating only the
+/// first matches the prior behavior).
+fn extract_sni(extensions: &[TlsExtension<'_>]) -> Option<SniValue> {
     for ext in extensions {
         if let TlsExtension::SNI(list) = ext
             && let Some((_, hostname)) = list.first()
         {
-            return String::from_utf8(hostname.to_vec()).ok();
+            return Some(match std::str::from_utf8(hostname) {
+                Ok(s) => SniValue::Utf8(s.to_string()),
+                Err(_) => SniValue::NonUtf8 {
+                    lossy: String::from_utf8_lossy(hostname).into_owned(),
+                    hex: bytes_to_hex(hostname),
+                },
+            });
         }
     }
     None
@@ -276,7 +301,34 @@ impl TlsAnalyzer {
 
         // SNI
         if let Some(sni) = extract_sni(&exts) {
-            Self::increment(&mut self.sni_counts, sni, MAX_MAP_ENTRIES);
+            // Choose a map key that preserves uniqueness for non-UTF-8 cases.
+            // Using `lossy` as a key would collapse distinct byte sequences whose
+            // U+FFFD replacements happen to align — bad for forensic counting.
+            let key = match &sni {
+                SniValue::Utf8(s) => s.clone(),
+                SniValue::NonUtf8 { hex, .. } => format!("<non-utf8:{hex}>"),
+            };
+            Self::increment(&mut self.sni_counts, key, MAX_MAP_ENTRIES);
+
+            if let SniValue::NonUtf8 { lossy, hex } = sni {
+                self.all_findings.push(Finding {
+                    category: ThreatCategory::Anomaly,
+                    verdict: Verdict::Inconclusive,
+                    confidence: Confidence::Low,
+                    // Use Debug formatter ({:?}) to escape control bytes (e.g. ESC 0x1b)
+                    // that String::from_utf8_lossy preserves but the analyst's terminal
+                    // would interpret as ANSI control sequences. Without this an attacker
+                    // could craft a malformed SNI like b"\x1b[31m..." that recolors or
+                    // overwrites the rendered finding line.
+                    summary: format!(
+                        "TLS SNI contains non-UTF-8 bytes (RFC 6066 violation): {lossy:?}"
+                    ),
+                    evidence: vec![format!("hex: {hex}")],
+                    mitre_technique: None,
+                    source_ip: None,
+                    timestamp: None,
+                });
+            }
         }
 
         // JA3
