@@ -149,7 +149,12 @@ fn run_analyze(
 
     let mut analyzer_summaries = Vec::new();
     if let Some(ref reasm) = reassembler {
-        analyzer_summaries.push(reasm.summarize());
+        let mut reasm_summary = reasm.summarize();
+        reasm_summary.detail.insert(
+            "unclassified_flows".to_string(),
+            serde_json::json!(dispatcher.unclassified_flows()),
+        );
+        analyzer_summaries.push(reasm_summary);
     }
     if enable_dns {
         analyzer_summaries.push(dns_analyzer.summarize());
