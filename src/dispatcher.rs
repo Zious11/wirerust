@@ -109,7 +109,9 @@ impl StreamHandler for StreamDispatcher {
                 }
             }
             Some(DispatchTarget::None) | None => {
-                self.unclassified_flows += 1;
+                if self.http.is_some() || self.tls.is_some() {
+                    self.unclassified_flows += 1;
+                }
             }
         }
     }
