@@ -29,7 +29,7 @@ Implements `StreamAnalyzer` (which extends `StreamHandler`). Receives reassemble
 - `httparse::Response::new(&mut headers).parse(&buf)` for responses
 - After `Status::Complete(n)`, drain `n` bytes and parse again (handles HTTP pipelining)
 - `Status::Partial` means wait for more data
-- Pre-allocate 96-element header arrays (covers real-world HTTP). If exceeded, `httparse` returns `Error::TooManyHeaders`; the analyzer treats this as a parse error, clears the direction buffer, and emits an `Anomaly`/`Inconclusive` finding (possible DoS or header-based attack, MITRE T1499.002).
+- Pre-allocate 96-element header arrays (covers real-world HTTP). If exceeded, `httparse` returns `Error::TooManyHeaders`; the analyzer treats this as a parse error, clears the direction buffer, and — unless the error is absorbed by **body-byte tolerance** (see "Per-Flow State" below) — emits an `Anomaly`/`Inconclusive` finding (possible DoS or header-based attack, MITRE T1499.002).
 
 ### Per-Flow State
 
@@ -76,9 +76,11 @@ Reassembly Engine
       │                  → update summary counters (methods, hosts, user_agents, uris)
       │                  → drain n bytes, reset request_error_count, continue loop
       │     Partial → break, wait for more data
-      │     Err(_) → increment request_error_count; if TooManyHeaders,
-      │              also emit anomaly finding; clear buffer; poison direction
-      │              once consecutive errors reach POISON_THRESHOLD
+      │     Err(_) → clear buffer and return; unless absorbed by body-byte
+      │              tolerance (see Per-Flow State): increment
+      │              request_error_count; if TooManyHeaders also emit anomaly
+      │              finding; poison direction once consecutive errors reach
+      │              POISON_THRESHOLD
       │
       └── direction == ServerToClient:
           append to response_buf (skip if response_poisoned)
@@ -87,7 +89,8 @@ Reassembly Engine
                         → update summary counters (transactions, status_codes)
                         → drain n bytes, reset response_error_count, continue loop
             Partial → break, wait for more data
-            Err(_) → same poisoning path as requests
+            Err(_) → clear buffer and return; same body-byte-tolerance-aware
+                     poisoning path as requests
 
   → on_flow_close(flow_key, reason)
     → remove flow state from HashMap
