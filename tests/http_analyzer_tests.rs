@@ -303,10 +303,15 @@ fn test_parse_error_poisons_direction_after_threshold() {
 
     // Fourth: valid request — skipped because direction is now poisoned
     let valid = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    let skipped_before = analyzer.poisoned_bytes_skipped();
     analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
 
     assert_eq!(analyzer.parse_error_count(), 3); // no new errors (poisoned, not retried)
     assert!(analyzer.method_counts().get("GET").is_none()); // never parsed
+    assert_eq!(
+        analyzer.poisoned_bytes_skipped(),
+        skipped_before + valid.len() as u64
+    );
 }
 
 #[test]

@@ -163,6 +163,10 @@ impl HttpAnalyzer {
         self.parse_errors
     }
 
+    pub fn poisoned_bytes_skipped(&self) -> u64 {
+        self.poisoned_bytes_skipped
+    }
+
     fn check_request_detections(&mut self, parsed: &ParsedRequest, _flow_key: &FlowKey) {
         let uri_lower = parsed.uri.to_lowercase();
 
@@ -326,6 +330,7 @@ impl HttpAnalyzer {
 
                     if let Some(state) = self.flows.get_mut(flow_key) {
                         state.request_buf.drain(..parsed.bytes_consumed);
+                        state.request_error_count = 0;
                     }
                 }
                 Some(Ok(None)) => return, // Partial — wait for more data
@@ -382,6 +387,7 @@ impl HttpAnalyzer {
 
                     if let Some(state) = self.flows.get_mut(flow_key) {
                         state.response_buf.drain(..parsed.bytes_consumed);
+                        state.response_error_count = 0;
                     }
                 }
                 Some(Ok(None)) => return,
