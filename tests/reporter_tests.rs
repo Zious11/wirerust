@@ -77,3 +77,38 @@ fn test_terminal_reporter_hides_skipped_when_zero() {
         "Terminal output should NOT show 'Skipped' when zero, got: {output}"
     );
 }
+
+#[test]
+fn test_terminal_reporter_escapes_esc_bytes_in_summary() {
+    // Regression: a Finding whose summary contains an ESC byte must not
+    // propagate the raw byte to terminal output, where it would be
+    // interpreted as an ANSI escape sequence. Per ADR 0003, the terminal
+    // reporter is responsible for this escaping.
+    let reporter = TerminalReporter { use_color: false };
+    let summary = Summary::new();
+    let findings = vec![Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Inconclusive,
+        confidence: Confidence::Low,
+        summary: "attacker payload: \x1b[31mRED\x1b[0m".into(),
+        evidence: vec!["raw evidence: \x1b[32mGREEN".into()],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+    }];
+
+    let output = reporter.render(&summary, &findings, &[]);
+
+    assert!(
+        !output.as_bytes().contains(&0x1b),
+        "terminal output must not contain raw ESC (0x1b) bytes, got: {output:?}"
+    );
+    assert!(
+        output.contains("\\u{1b}[31mRED"),
+        "terminal output should contain escaped form of ESC sequence in summary, got: {output}"
+    );
+    assert!(
+        output.contains("\\u{1b}[32mGREEN"),
+        "terminal output should contain escaped form in evidence line, got: {output}"
+    );
+}
