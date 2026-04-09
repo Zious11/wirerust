@@ -53,13 +53,13 @@ The data layer is raw and forensic; the display layer formats for its medium and
 
 ### Immediate scope: terminal-safe escaping
 
-The first concrete consequence of the layering rule — and the motivating problem — is terminal-safe escaping. The terminal reporter defines a private `escape_for_terminal` helper that iterates the input `str`'s characters and applies `char::escape_default()` only to characters matching `char::is_ascii_control()` or the backslash. All other characters are passed through unchanged:
+The first concrete consequence of the layering rule — and the motivating problem — is terminal-safe escaping. The terminal reporter defines a private `escape_for_terminal` helper that iterates the input `str`'s characters and applies `char::escape_default()` only to characters matching `char::is_ascii_control()`, the C1 control range `U+0080..=U+009F`, or the backslash. All other characters are passed through unchanged:
 
 ```rust
 fn escape_for_terminal(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
-        if c.is_ascii_control() || c == '\\' {
+        if c.is_ascii_control() || ('\u{80}'..='\u{9f}').contains(&c) || c == '\\' {
             for e in c.escape_default() {
                 out.push(e);
             }
@@ -74,6 +74,7 @@ fn escape_for_terminal(s: &str) -> String {
 The helper escapes:
 - C0 control bytes (`0x00`–`0x1f`, including ESC `0x1b`, BEL `0x07`, LF `0x0a`, CR `0x0d`) — rendered as `\u{1b}`, `\n`, `\t`, etc. via `char::escape_default`
 - DEL (`0x7f`) — rendered as `\u{7f}`
+- C1 control codepoints (`U+0080`–`U+009F`, including NEL `U+0085` and CSI `U+009B`) — rendered as `\u{85}`, `\u{9b}`, etc. via `char::escape_default`. See "C1 control codepoints" below for the rationale.
 - backslash (`\\`)
 
 It preserves:
@@ -167,7 +168,7 @@ Add a `Finding::display_summary()` method that returns the escaped form, and hav
 - **Preserves forensic data.** The raw bytes are kept in the `Finding` struct, available for JSON export, future reporters, and downstream tooling. An analyst exporting to JSON sees the actual SNI bytes (with serde's standard JSON escaping); only the terminal reporter applies terminal-safe escaping.
 - **Single point of enforcement per medium.** Future analyzers don't need to remember any rule. Adding a new analyzer requires zero terminal-safety awareness. A new reporter (CSV, HTML, etc.) gets one place to apply its own escaping.
 - **Extensible.** When a future need appears — localization, HTML rendering, different truncation per medium — the pipeline already has the boundary in place. The work is in the display layer, not in every analyzer.
-- **A small custom helper is the right primitive.** Built on stdlib `char::escape_default` + `char::is_ascii_control`, ~8 lines, no dependency. Gates the escape on control-ness so valid Unicode (Cyrillic, CJK, emoji) passes through unchanged. Escapes exactly the bytes that constitute the threat (C0 + DEL + backslash). The stdlib `str::escape_default` method was considered and rejected (it mangles all non-ASCII).
+- **A small custom helper is the right primitive.** Built on stdlib `char::escape_default` + `char::is_ascii_control` plus an explicit C1 range check, ~15 lines, no dependency. Gates the escape on control-ness so valid Unicode (Cyrillic, CJK, emoji) passes through unchanged. Escapes exactly the characters that constitute the threat (C0 + C1 + DEL + backslash). The stdlib `str::escape_default` method was considered and rejected (it mangles all non-ASCII).
 - **Validated.** OWASP encoding guidance and RFC 8259 + serde_json behavior confirmed via Perplexity 2026-04-08. The escape primitive was re-verified empirically (`rustc`-compiled program, 2026-04-09) after an initial Perplexity answer about `str::escape_default` turned out to be wrong — see Validation.
 
 ## Consequences
@@ -176,7 +177,7 @@ Add a `Finding::display_summary()` method that returns the escaped form, and hav
 
 | File | Change |
 |------|--------|
-| `src/reporter/terminal.rs` | Add a private `escape_for_terminal(s: &str) -> String` helper at file scope that iterates `s.chars()`, applies `char::escape_default()` for chars matching `char::is_ascii_control()` or backslash, and passes all other chars through. Apply it to `f.summary` (line ~65, where `f.summary` is interpolated into the line `format!`) and to each `ev` in `f.evidence` (line ~81) before writing to the output buffer. The helper is private to the terminal reporter — other reporters that need it (e.g., a future CSV reporter) implement at their own boundary, since each output medium has different escaping rules. |
+| `src/reporter/terminal.rs` | Add a private `escape_for_terminal(s: &str) -> String` helper at file scope that iterates `s.chars()`, applies `char::escape_default()` for chars that are ASCII controls (C0 + DEL), C1 controls (`U+0080..=U+009F`), or backslash, and passes all other chars through. Apply it to `f.summary` (line ~65, where `f.summary` is interpolated into the line `format!`) and to each `ev` in `f.evidence` (line ~81) before writing to the output buffer. The helper is private to the terminal reporter — other reporters that need it (e.g., a future CSV reporter) implement at their own boundary, since each output medium has different escaping rules. |
 | `src/analyzer/tls.rs` | Replace `{hostname:?}` (line ~349) and `{lossy:?}` (line ~369) with `{hostname}` / `{lossy}`. Update the inline doc comments that explain *why* the Debug formatter was used; replace them with a pointer to this ADR. |
 | `src/findings.rs` | Add a `///` doc comment on `impl Display for Finding` noting that it produces RAW text and is NOT safe for terminal display; consumers wanting safe display should go through the terminal reporter. |
 | `src/analyzer/http.rs` | **No changes required.** Existing raw interpolations are now correct under the new policy. |

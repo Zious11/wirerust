@@ -4,9 +4,9 @@
 
 **Goal:** Move finding output sanitization from the analyzer construction site to the terminal reporter, per ADR 0003 (`docs/adr/0003-reporting-pipeline-layering.md`), fixing terminal injection in HTTP findings and restoring forensic data preservation in the `Finding` struct.
 
-**Architecture:** The `Finding` struct stores raw post-`from_utf8_lossy` bytes; the terminal reporter escapes via a custom helper (~8 lines, built on stdlib `char::escape_default` gated by `char::is_ascii_control`) immediately before writing. The JSON reporter is already safe via `serde_json`'s automatic RFC 8259 control-byte escaping. No new dependencies, no new types.
+**Architecture:** The `Finding` struct stores raw post-`from_utf8_lossy` bytes; the terminal reporter escapes via a custom helper (~15 lines, built on stdlib `char::escape_default` gated by ASCII control / C1 control / backslash detection) immediately before writing. The JSON reporter is already safe via `serde_json`'s automatic RFC 8259 control-byte escaping. No new dependencies, no new types.
 
-**Important mechanism note:** `str::escape_default` was the initial choice but was rejected during plan self-review after empirical verification showed it escapes *all* non-ASCII characters (Cyrillic, emoji) — same UX problem as the PR #49 Debug formatter. See ADR 0003's updated Mechanism section and commit `45cf649`. The custom helper iterates `s.chars()` and only escapes when `char::is_ascii_control() || c == '\\'`.
+**Important mechanism note:** `str::escape_default` was the initial choice but was rejected during plan self-review after empirical verification showed it escapes *all* non-ASCII characters (Cyrillic, emoji) — same UX problem as the PR #49 Debug formatter. See ADR 0003's updated Mechanism section and commit `45cf649`. The custom helper iterates `s.chars()` and only escapes when the character is an ASCII control (C0 + DEL), a C1 control (`U+0080..=U+009F`), or `'\\'`. The C1 range was added in commit `7d2cd3c` after the initial round of plan execution; the flow described in Task 3 below matches the pre-C1 predicate for historical accuracy — see commit `7d2cd3c` for the final predicate.
 
 **Tech Stack:** Rust 2024 edition, stdlib only for the escape primitive, `serde_json` for JSON output (already in tree), `owo_colors` for terminal styling (already in tree).
 
@@ -24,7 +24,7 @@
 | `tests/tls_analyzer_tests.rs` | TLS tests | Update `test_non_utf8_sni_escapes_control_bytes_in_summary` to assert the RAW ESC byte is now preserved in `f.summary` (contract inversion) |
 | `tests/reporter_tests.rs` | Reporter tests | Add end-to-end regression tests: terminal reporter escapes ESC bytes; JSON reporter preserves via serde's `\u001b`; `Finding.summary` keeps the raw byte |
 
-No files are created. All changes are edits or test additions inside existing files.
+No new code or runtime files are created as part of this implementation work. All implementation changes are edits or test additions inside existing files. (This plan document and `docs/adr/0003-reporting-pipeline-layering.md` are themselves new files committed as prerequisites before the implementation tasks begin.)
 
 ---
 
