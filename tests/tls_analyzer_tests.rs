@@ -394,11 +394,13 @@ fn test_ascii_sni_does_not_emit_non_utf8_finding() {
 }
 
 #[test]
-fn test_non_utf8_sni_escapes_control_bytes_in_summary() {
-    // Security regression: a malformed SNI containing raw ESC (0x1b) plus an
-    // ANSI CSI sequence must NOT propagate the literal control byte into the
-    // finding summary, where it would be interpreted by an analyst's terminal
-    // and could recolor or overwrite the rendered report line.
+fn test_non_utf8_sni_preserves_raw_bytes_in_summary() {
+    // Per ADR 0003: the Finding struct is the data layer — it stores the
+    // raw post-from_utf8_lossy bytes from the attacker's SNI, including
+    // any ASCII control codes. Terminal-safety is the reporter's job, not
+    // the analyzer's. This test enforces that contract: raw ESC must
+    // survive to the struct; downstream rendering tests (in reporter
+    // tests) verify the terminal reporter escapes it on display.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
@@ -414,16 +416,19 @@ fn test_non_utf8_sni_escapes_control_bytes_in_summary() {
         .find(|f| f.summary.contains("non-UTF-8 bytes"))
         .expect("expected non-UTF-8 SNI finding");
 
-    // The summary must not contain the raw ESC byte. Debug formatting ({:?})
-    // turns 0x1b into the literal escape sequence "\u{1b}" instead.
+    // The summary MUST contain the raw ESC byte — the analyzer does not
+    // escape. Forensic preservation is a load-bearing property of the
+    // data layer (ADR 0003).
     assert!(
-        !f.summary.as_bytes().contains(&0x1b),
-        "summary contains raw ESC byte (terminal injection vector): {:?}",
+        f.summary.as_bytes().contains(&0x1b),
+        "summary must preserve raw ESC byte for forensics, got: {:?}",
         f.summary
     );
+    // And it must NOT contain the Debug-formatted escape form (which
+    // would indicate a regression to construction-site escaping).
     assert!(
-        f.summary.contains("\\u{1b}"),
-        "summary should contain escaped ESC sequence \\u{{1b}}, got: {}",
+        !f.summary.contains("\\u{1b}"),
+        "summary must not contain Debug-formatted escape (regression to construction-site), got: {}",
         f.summary
     );
 
@@ -608,6 +613,27 @@ fn test_cyrillic_sni_emits_non_ascii_finding() {
     assert_eq!(
         *analyzer.sni_counts().get("пример.example").unwrap_or(&0),
         1
+    );
+
+    // Per ADR 0003: the data layer stores raw bytes (not Debug-escaped).
+    // Find the non-ASCII finding and assert it contains the raw Cyrillic
+    // hostname — this directly guards the {hostname:?} → {hostname} rollback
+    // on the NonAsciiUtf8 match arm (src/analyzer/tls.rs), which was
+    // otherwise only covered structurally by the NonUtf8 branch test.
+    let f = analyzer
+        .findings()
+        .into_iter()
+        .find(|f| f.summary.contains("non-ASCII characters"))
+        .expect("expected non-ASCII finding");
+    assert!(
+        f.summary.contains("пример.example"),
+        "summary must contain raw Cyrillic hostname for forensic preservation, got: {}",
+        f.summary
+    );
+    assert!(
+        !f.summary.contains("\\u{43f}"),
+        "summary must not contain Debug-formatted Cyrillic escape (regression to construction-site), got: {}",
+        f.summary
     );
 }
 

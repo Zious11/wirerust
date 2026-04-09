@@ -107,6 +107,7 @@ The `detail` map contains protocol-specific fields as `serde_json::Value`. This 
 - Include MITRE ATT&CK technique ID only when there's a clean mapping; `None` is better than a forced fit
 - Include actionable evidence (specific values, not just "something was wrong")
 - Cap findings with `MAX_FINDINGS` to prevent memory exhaustion on adversarial input
+- **Output sanitization is a reporter responsibility, not an analyzer responsibility.** Store raw bytes (post-`from_utf8_lossy`) in `Finding.summary` and `Finding.evidence`. Do not escape, debug-format, or otherwise pre-encode untrusted bytes at the analyzer. See ADR 0003 (`docs/adr/0003-reporting-pipeline-layering.md`) for the full layering principle.
 
 ## Alternatives Considered
 

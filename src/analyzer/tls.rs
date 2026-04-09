@@ -340,13 +340,13 @@ impl TlsAnalyzer {
                         category: ThreatCategory::Anomaly,
                         verdict: Verdict::Inconclusive,
                         confidence: Confidence::Low,
-                        // Use Debug formatter ({:?}) to escape any control codepoints
-                        // that might survive UTF-8 decoding (e.g. U+0085 NEL); the
-                        // hostname here is valid UTF-8 but printable-script content
-                        // is not guaranteed.
+                        // Raw hostname interpolation — the data layer stores raw
+                        // bytes per ADR 0003. Terminal-safety (escaping control
+                        // codes, etc.) is applied by the terminal reporter at
+                        // render time, not here.
                         summary: format!(
                             "TLS SNI contains non-ASCII characters (RFC 6066 requires \
-                             A-labels per RFC 5890): {hostname:?}"
+                             A-labels per RFC 5890): {hostname}"
                         ),
                         evidence: vec![format!("hex: {hex}")],
                         mitre_technique: None,
@@ -359,14 +359,13 @@ impl TlsAnalyzer {
                         category: ThreatCategory::Anomaly,
                         verdict: Verdict::Inconclusive,
                         confidence: Confidence::Low,
-                        // Use Debug formatter ({:?}) to escape control bytes (e.g.
-                        // ESC 0x1b) that String::from_utf8_lossy preserves but the
-                        // analyst's terminal would interpret as ANSI control
-                        // sequences. Without this an attacker could craft a
-                        // malformed SNI like b"\x1b[31m..." that recolors or
-                        // overwrites the rendered finding line.
+                        // Raw lossy interpolation — the data layer stores raw
+                        // bytes (including any embedded ASCII control codes) per
+                        // ADR 0003. The terminal reporter is responsible for
+                        // escaping these for safe display; JSON output is already
+                        // safe via serde_json's automatic RFC 8259 escaping.
                         summary: format!(
-                            "TLS SNI contains non-UTF-8 bytes (RFC 6066 violation): {lossy:?}"
+                            "TLS SNI contains non-UTF-8 bytes (RFC 6066 violation): {lossy}"
                         ),
                         evidence: vec![format!("hex: {hex}")],
                         mitre_technique: None,
