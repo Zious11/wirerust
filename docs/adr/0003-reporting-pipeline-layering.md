@@ -53,16 +53,34 @@ The data layer is raw and forensic; the display layer formats for its medium and
 
 ### Immediate scope: terminal-safe escaping
 
-The first concrete consequence of the layering rule — and the motivating problem — is terminal-safe escaping. The terminal reporter calls `str::escape_default` (Rust stdlib) on every `Finding.summary` and every entry in `Finding.evidence` immediately before writing them to the output buffer.
+The first concrete consequence of the layering rule — and the motivating problem — is terminal-safe escaping. The terminal reporter defines a private `escape_for_terminal` helper that iterates the input `str`'s characters and applies `char::escape_default()` only to characters matching `char::is_ascii_control()` or the backslash. All other characters are passed through unchanged:
 
-`str::escape_default` escapes:
-- C0 control bytes (`0x00`–`0x1f`, including ESC `0x1b`, BEL `0x07`, LF `0x0a`, CR `0x0d`)
-- DEL (`0x7f`)
+```rust
+fn escape_for_terminal(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        if c.is_ascii_control() || c == '\\' {
+            for e in c.escape_default() {
+                out.push(e);
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+```
+
+The helper escapes:
+- C0 control bytes (`0x00`–`0x1f`, including ESC `0x1b`, BEL `0x07`, LF `0x0a`, CR `0x0d`) — rendered as `\u{1b}`, `\n`, `\t`, etc. via `char::escape_default`
+- DEL (`0x7f`) — rendered as `\u{7f}`
 - backslash (`\\`)
 
 It preserves:
 - All printable ASCII
-- All valid non-ASCII Unicode (Cyrillic, CJK, emoji, etc.)
+- All valid non-ASCII Unicode (Cyrillic, CJK, emoji, etc.) — passed through as raw UTF-8 bytes
+
+**Why not stdlib `str::escape_default`?** Empirical verification (2026-04-09) showed that `str::escape_default` internally escapes *every* non-ASCII character via `char::escape_default`, so a Cyrillic hostname like `пример.рф` would become `\u{43f}\u{440}\u{438}\u{43c}\u{435}\u{440}.\u{440}\u{444}` — the same UX problem as the Debug formatter in PR #49. This contradicted an earlier Perplexity answer (which conflated `str::escape_default` with the byte-oriented `std::ascii::escape_default`) and was caught during plan self-review. The custom helper is ~8 lines, stdlib-only, and does exactly what we need.
 
 The output is always valid UTF-8 and contains no bytes that a modern terminal will interpret as control sequences.
 
@@ -115,13 +133,13 @@ A third-party crate offering byte-slice escaping.
 - **Con:** Adds a dependency for a problem stdlib solves.
 - **Rejected.** Same UX problem as the Debug formatter, plus a dependency.
 
-### `char::escape_debug` (per-char Debug)
+### Stdlib `str::escape_default` (or `char::escape_debug`, which is equivalent for this purpose)
 
-Iterate characters and apply `escape_debug` to each.
+Apply the stdlib method unconditionally to every character.
 
-- **Pro:** Preserves printable ASCII.
-- **Con:** Escapes all non-ASCII Unicode as `\u{...}` — same UX problem as `{:?}`.
-- **Rejected.**
+- **Pro:** Stdlib, zero dependency.
+- **Con:** Escapes *all* non-ASCII characters, not just control bytes. A Cyrillic hostname like `пример.рф` becomes `\u{43f}\u{440}\u{438}\u{43c}\u{435}\u{440}.\u{440}\u{444}` — same UX problem as the Debug formatter. Verified empirically 2026-04-09. This was the original choice in an earlier draft of this ADR, reversed during plan self-review when the assumption was checked against actual stdlib behavior.
+- **Rejected.** The custom helper adds ~8 lines of code to gate `escape_default` on `is_ascii_control()` and avoid mangling valid Unicode.
 
 ### Stripping vs. escaping
 
@@ -147,8 +165,8 @@ Add a `Finding::display_summary()` method that returns the escaped form, and hav
 - **Preserves forensic data.** The raw bytes are kept in the `Finding` struct, available for JSON export, future reporters, and downstream tooling. An analyst exporting to JSON sees the actual SNI bytes (with serde's standard JSON escaping); only the terminal reporter applies terminal-safe escaping.
 - **Single point of enforcement per medium.** Future analyzers don't need to remember any rule. Adding a new analyzer requires zero terminal-safety awareness. A new reporter (CSV, HTML, etc.) gets one place to apply its own escaping.
 - **Extensible.** When a future need appears — localization, HTML rendering, different truncation per medium — the pipeline already has the boundary in place. The work is in the display layer, not in every analyzer.
-- **`str::escape_default` is the right primitive for the immediate fix.** Stdlib (no dependency), preserves valid Unicode, and escapes exactly the bytes that constitute the threat (C0 + DEL). Cross-checked against `char::escape_debug` (mangles Unicode), `bstr::escape_default` (mangles Unicode), and `{:?}` Debug formatter (mangles Unicode).
-- **Validated.** OWASP encoding guidance, RFC 8259 + serde_json behavior, and `str::escape_default` semantics all confirmed via Perplexity 2026-04-08.
+- **A small custom helper is the right primitive.** Built on stdlib `char::escape_default` + `char::is_ascii_control`, ~8 lines, no dependency. Gates the escape on control-ness so valid Unicode (Cyrillic, CJK, emoji) passes through unchanged. Escapes exactly the bytes that constitute the threat (C0 + DEL + backslash). The stdlib `str::escape_default` method was considered and rejected (it mangles all non-ASCII).
+- **Validated.** OWASP encoding guidance and RFC 8259 + serde_json behavior confirmed via Perplexity 2026-04-08. The escape primitive was re-verified empirically (`rustc`-compiled program, 2026-04-09) after an initial Perplexity answer about `str::escape_default` turned out to be wrong — see Validation.
 
 ## Consequences
 
@@ -156,7 +174,7 @@ Add a `Finding::display_summary()` method that returns the escaped form, and hav
 
 | File | Change |
 |------|--------|
-| `src/reporter/terminal.rs` | Add a private `escape_for_terminal(s: &str) -> String` helper at file scope that returns `s.escape_default().collect()`. Apply it to `f.summary` (line ~65, where `f.summary` is interpolated into the line `format!`) and to each `ev` in `f.evidence` (line ~81) before writing to the output buffer. The helper is private to the terminal reporter — other reporters that need it (e.g., a future CSV reporter) implement at their own boundary, since each output medium has different escaping rules. |
+| `src/reporter/terminal.rs` | Add a private `escape_for_terminal(s: &str) -> String` helper at file scope that iterates `s.chars()`, applies `char::escape_default()` for chars matching `char::is_ascii_control()` or backslash, and passes all other chars through. Apply it to `f.summary` (line ~65, where `f.summary` is interpolated into the line `format!`) and to each `ev` in `f.evidence` (line ~81) before writing to the output buffer. The helper is private to the terminal reporter — other reporters that need it (e.g., a future CSV reporter) implement at their own boundary, since each output medium has different escaping rules. |
 | `src/analyzer/tls.rs` | Replace `{hostname:?}` (line ~349) and `{lossy:?}` (line ~369) with `{hostname}` / `{lossy}`. Update the inline doc comments that explain *why* the Debug formatter was used; replace them with a pointer to this ADR. |
 | `src/findings.rs` | Add a `///` doc comment on `impl Display for Finding` noting that it produces RAW text and is NOT safe for terminal display; consumers wanting safe display should go through the terminal reporter. |
 | `src/analyzer/http.rs` | **No changes required.** Existing raw interpolations are now correct under the new policy. |
@@ -173,7 +191,7 @@ Add a `Finding::display_summary()` method that returns the escaped form, and hav
 
 ### Behavioral changes visible to users
 
-- TLS findings for non-ASCII / non-UTF-8 SNI hostnames will display readably in the terminal: a Cyrillic SNI like `пример.рф` will appear as `пример.рф` (not `\u{43f}\u{440}...`). Embedded ESC bytes still get escaped to `\x1b`.
+- TLS findings for non-ASCII / non-UTF-8 SNI hostnames will display readably in the terminal: a Cyrillic SNI like `пример.рф` will appear as `пример.рф` (not `\u{43f}\u{440}...`). Embedded control bytes still get escaped — an ESC `0x1b` renders as `\u{1b}` via `char::escape_default`.
 - TLS findings in JSON output will contain the raw hostname (with serde's standard JSON string escaping for control bytes only). Downstream tooling that previously saw `\u{...}` literals will now see the actual UTF-8 hostname.
 - HTTP findings (path traversal, web shell, admin panel, unusual method, missing host, long URI, empty UA) gain terminal-safety. Previously, an attacker could embed terminal control sequences in a URI and have them rendered live in the analyst's report. They can no longer.
 
@@ -199,5 +217,5 @@ This decision was validated through targeted Perplexity queries on 2026-04-08:
 
 - **Output encoding placement:** OWASP guidance (XSS prevention cheat sheet, CWE-117 log injection) recommends encoding at display time, not at storage time. Encoding at construction creates premature commitment to one output context and breaks others. Confirmed.
 - **`serde_json` control byte handling:** `serde_json` automatically escapes control bytes (including ESC `0x1b`) as `\u001b`, per RFC 8259 §7. JSON output is safe with no analyzer code. Confirmed.
-- **`str::escape_default` semantics:** Confirmed against Rust stdlib behavior — uses `char::is_ascii_control` internally, escapes C0 + DEL + backslash, preserves all valid non-ASCII Unicode as raw UTF-8 bytes. Compared against `char::escape_debug`, `bstr::ByteSlice::escape_default`, and Debug formatter `{:?}`; `str::escape_default` is the only stdlib option that preserves multi-byte UTF-8.
+- **Escape primitive selection:** An initial Perplexity answer claimed `str::escape_default` preserves multi-byte UTF-8. A follow-up empirical check (`rustc`-compiled program, 2026-04-09) falsified this: `str::escape_default` internally routes every character through `char::escape_default`, which escapes *all* non-ASCII Unicode as `\u{...}`. A custom helper iterating `chars()` and gating `escape_default` on `is_ascii_control() || '\\'` was then verified empirically against the same test inputs (ESC, BEL, DEL, backslash, Cyrillic, emoji, mixed content, tabs/newlines/CR) and produced the correct output: control bytes escaped as `\u{<hex>}`, backslash doubled, Cyrillic and emoji preserved byte-for-byte.
 - **C1 control byte risk:** Standalone C1 bytes (`0x80`–`0x9f`) cannot appear in a valid UTF-8 `String`. Since `Finding.summary` is `String` and analyzers populate it via `String::from_utf8_lossy`, C0 + DEL coverage is complete.
