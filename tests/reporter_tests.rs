@@ -166,11 +166,7 @@ fn test_output_sanitization_layering_contract() {
     );
 
     // Layer 3: JSON reporter escapes via serde's RFC 8259 \u001b form.
-    let json_output = JsonReporter.render(
-        &Summary::new(),
-        std::slice::from_ref(&finding),
-        &[],
-    );
+    let json_output = JsonReporter.render(&Summary::new(), std::slice::from_ref(&finding), &[]);
     assert!(
         !json_output.as_bytes().contains(&0x1b),
         "JSON reporter must not emit raw ESC bytes, got: {json_output:?}"
