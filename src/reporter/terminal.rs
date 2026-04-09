@@ -139,7 +139,15 @@ impl Reporter for TerminalReporter {
                 asummary.packets_analyzed
             ));
             for (key, val) in &asummary.detail {
-                out.push_str(&format!("  {key}: {val}\n"));
+                // Per ADR 0003: analyzer summary detail values can contain
+                // attacker-controlled bytes (e.g., top_hosts, top_snis,
+                // recent_uris from HTTP/TLS). serde_json's Display impl
+                // escapes C0 + DEL per RFC 8259 but passes C1 codepoints
+                // (U+0080-U+009F) through as raw UTF-8 — so we still need
+                // to run the JSON rendering through escape_for_terminal to
+                // close the C1 gap that U+009B (CSI) exploits.
+                let escaped_val = escape_for_terminal(&val.to_string());
+                out.push_str(&format!("  {key}: {escaped_val}\n"));
             }
             out.push('\n');
         }

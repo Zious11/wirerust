@@ -76,9 +76,11 @@ Insert these lines directly above `impl fmt::Display for Finding {`:
 /// `summary` field may contain attacker-controlled bytes from packet payloads
 /// (including ASCII control codes like ESC `0x1b`) that a terminal would
 /// interpret as control sequences. For safe terminal rendering, use the
-/// terminal reporter (`src/reporter/terminal.rs`), which applies
-/// `str::escape_default` to every `summary` and `evidence` entry before
-/// writing to the output buffer. See ADR 0003.
+/// terminal reporter (`src/reporter/terminal.rs`), which applies its
+/// `escape_for_terminal` helper to every `summary` and `evidence` entry
+/// before writing to the output buffer. See ADR 0003
+/// (`docs/adr/0003-reporting-pipeline-layering.md`) for the full layering
+/// principle.
 ```
 
 - [ ] **Step 3: Run existing `test_finding_display`**

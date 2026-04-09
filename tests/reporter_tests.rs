@@ -227,3 +227,52 @@ fn test_json_reporter_preserves_cyrillic_as_readable_unicode() {
     let parsed_summary = parsed["findings"][0]["summary"].as_str().unwrap();
     assert_eq!(parsed_summary, finding.summary);
 }
+
+#[test]
+fn test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries() {
+    // Regression: analyzer_summaries detail values can contain
+    // attacker-controlled strings (HTTP top_hosts, TLS top_snis, etc.).
+    // serde_json::Value's Display impl escapes C0 + DEL per RFC 8259 but
+    // passes C1 codepoints (U+0080-U+009F) through as raw UTF-8 — which
+    // is a terminal injection vector on the analyzer summary rendering
+    // path. Per ADR 0003, the terminal reporter must escape at the
+    // display boundary regardless of what the underlying serializer does.
+    use wirerust::analyzer::AnalysisSummary;
+
+    let mut detail = std::collections::HashMap::new();
+    detail.insert(
+        "top_snis".to_string(),
+        serde_json::json!([
+            "\u{1b}[31mREDC0\u{1b}[0m", // C0 ESC injection
+            "before\u{9b}31mC1after", // C1 CSI injection (valid UTF-8, bypasses serde's RFC 8259 escape)
+            "пример.рф",              // legitimate Cyrillic — must survive readably
+        ]),
+    );
+    let analyzer_summary = AnalysisSummary {
+        analyzer_name: "TLS".to_string(),
+        packets_analyzed: 3,
+        detail,
+    };
+
+    let output = TerminalReporter { use_color: false }.render(
+        &Summary::new(),
+        &[],
+        std::slice::from_ref(&analyzer_summary),
+    );
+
+    // No raw C0 ESC bytes in the output.
+    assert!(
+        !output.as_bytes().contains(&0x1b),
+        "terminal output must not contain raw ESC (0x1b) bytes in analyzer summary section, got: {output:?}"
+    );
+    // No raw C1 bytes (0xC2 0x9B encodes U+009B in UTF-8).
+    assert!(
+        !output.as_bytes().windows(2).any(|w| w == [0xc2, 0x9b]),
+        "terminal output must not contain raw C1 UTF-8 bytes (0xC2 0x9B) in analyzer summary section, got: {output:?}"
+    );
+    // Cyrillic must still be readable — the escape must not mangle valid Unicode.
+    assert!(
+        output.contains("пример.рф"),
+        "analyzer summary section must preserve legitimate Cyrillic, got: {output}"
+    );
+}
