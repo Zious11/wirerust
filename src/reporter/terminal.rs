@@ -89,10 +89,10 @@ impl Reporter for TerminalReporter {
                 // Per ADR 0003: the Finding struct stores raw bytes; the
                 // terminal reporter is responsible for escaping untrusted
                 // content (summary + evidence) before writing to a TTY.
-                let safe_summary = escape_for_terminal(&f.summary);
+                let escaped_summary = escape_for_terminal(&f.summary);
                 let line = format!(
                     "[{}] {} ({}) - {}",
-                    f.category, f.verdict, f.confidence, safe_summary
+                    f.category, f.verdict, f.confidence, escaped_summary
                 );
                 let colored = if self.use_color {
                     match f.verdict {
@@ -108,8 +108,8 @@ impl Reporter for TerminalReporter {
                 };
                 out.push_str(&format!("  {colored}\n"));
                 for ev in &f.evidence {
-                    let safe_ev = escape_for_terminal(ev);
-                    out.push_str(&format!("    > {safe_ev}\n"));
+                    let escaped_ev = escape_for_terminal(ev);
+                    out.push_str(&format!("    > {escaped_ev}\n"));
                 }
                 if let Some(ref t) = f.mitre_technique {
                     out.push_str(&format!("    MITRE: {t}\n"));
