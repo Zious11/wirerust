@@ -206,11 +206,7 @@ fn test_json_reporter_preserves_cyrillic_as_readable_unicode() {
         timestamp: None,
     };
 
-    let json_output = JsonReporter.render(
-        &Summary::new(),
-        std::slice::from_ref(&finding),
-        &[],
-    );
+    let json_output = JsonReporter.render(&Summary::new(), std::slice::from_ref(&finding), &[]);
 
     // Readable Cyrillic must appear in the JSON output — serde_json preserves
     // non-ASCII Unicode by default and only escapes control characters.

@@ -231,10 +231,7 @@ mod tests {
         // Introducer). Both are valid multi-byte UTF-8 and survive
         // String::from_utf8_lossy — must be escaped to avoid 8-bit terminal
         // control interpretation.
-        assert_eq!(
-            escape_for_terminal("line1\u{85}line2"),
-            "line1\\u{85}line2"
-        );
+        assert_eq!(escape_for_terminal("line1\u{85}line2"), "line1\\u{85}line2");
         assert_eq!(
             escape_for_terminal("before\u{9b}31mafter"),
             "before\\u{9b}31mafter"
