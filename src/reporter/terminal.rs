@@ -5,22 +5,35 @@ use crate::findings::{Confidence, Finding, Verdict};
 use crate::reporter::Reporter;
 use crate::summary::Summary;
 
-/// Escape control bytes (C0 + DEL + backslash) for safe terminal display.
+/// Escape control bytes (C0 + DEL + C1 + backslash) for safe terminal display.
 ///
 /// Iterates the input string's characters and applies `char::escape_default`
-/// only when the character matches `char::is_ascii_control()` or is a
-/// backslash. All other characters — printable ASCII and valid non-ASCII
-/// Unicode (Cyrillic, CJK, emoji) — pass through unchanged.
+/// when the character matches `char::is_ascii_control()` (C0 + DEL), falls in
+/// the C1 range `U+0080..=U+009F`, or is a backslash. All other characters —
+/// printable ASCII and valid non-ASCII Unicode (Cyrillic, CJK, emoji) — pass
+/// through unchanged.
 ///
-/// Why not `str::escape_default`? It routes *every* character through
-/// `char::escape_default`, which escapes non-ASCII as `\u{...}` and
-/// would mangle a Cyrillic hostname like `пример.рф` into
-/// `\u{43f}\u{440}...`. See ADR 0003 (`docs/adr/0003-reporting-pipeline-layering.md`)
-/// for the layering rationale and the empirical verification.
+/// **Why C1?** Codepoints U+0080–U+009F (C1 controls like NEL U+0085 and CSI
+/// U+009B) can be encoded in valid UTF-8 as two-byte sequences (e.g., U+009B
+/// as `0xC2 0x9B`) and survive `String::from_utf8_lossy`. Most modern
+/// terminals in UTF-8 mode do NOT interpret these as controls by default, but
+/// the DEC S8C1T mode and some legacy terminals can treat U+009B as an 8-bit
+/// equivalent of ESC[. Escaping them closes a narrow but real vector.
+///
+/// **Why not `str::escape_default`?** It routes *every* character through
+/// `char::escape_default`, which escapes non-ASCII as `\u{...}` and would
+/// mangle a Cyrillic hostname like `пример.рф` into `\u{43f}\u{440}...`.
+/// See ADR 0003 (`docs/adr/0003-reporting-pipeline-layering.md`) for the
+/// layering rationale and the empirical verification.
 fn escape_for_terminal(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
-        if c.is_ascii_control() || c == '\\' {
+        // Escape C0 (0x00-0x1f), DEL (0x7f), C1 (U+0080-U+009F), and backslash.
+        // C1 codepoints like U+0085 (NEL) and U+009B (CSI — 8-bit equivalent of
+        // ESC[) are valid multi-byte UTF-8 in a `String` but can be interpreted
+        // as controls by terminals in 8-bit C1 mode (DEC S8C1T). Escaping them
+        // is cheap insurance.
+        if c.is_ascii_control() || ('\u{80}'..='\u{9f}').contains(&c) || c == '\\' {
             for e in c.escape_default() {
                 out.push(e);
             }
@@ -210,5 +223,31 @@ mod tests {
     #[test]
     fn empty_string_is_empty() {
         assert_eq!(escape_for_terminal(""), "");
+    }
+
+    #[test]
+    fn escapes_c1_nel_and_csi() {
+        // U+0085 (NEL, Next Line) and U+009B (CSI, 8-bit Control Sequence
+        // Introducer). Both are valid multi-byte UTF-8 and survive
+        // String::from_utf8_lossy — must be escaped to avoid 8-bit terminal
+        // control interpretation.
+        assert_eq!(
+            escape_for_terminal("line1\u{85}line2"),
+            "line1\\u{85}line2"
+        );
+        assert_eq!(
+            escape_for_terminal("before\u{9b}31mafter"),
+            "before\\u{9b}31mafter"
+        );
+    }
+
+    #[test]
+    fn escapes_c1_range_boundaries() {
+        // U+0080 (start of C1) and U+009F (end of C1) must both escape.
+        // U+00A0 (NBSP, just past C1) must pass through unchanged — it's a
+        // legitimate printable whitespace character, not a control code.
+        assert_eq!(escape_for_terminal("\u{80}"), "\\u{80}");
+        assert_eq!(escape_for_terminal("\u{9f}"), "\\u{9f}");
+        assert_eq!(escape_for_terminal("\u{a0}"), "\u{a0}");
     }
 }
