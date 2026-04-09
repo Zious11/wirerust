@@ -614,6 +614,27 @@ fn test_cyrillic_sni_emits_non_ascii_finding() {
         *analyzer.sni_counts().get("пример.example").unwrap_or(&0),
         1
     );
+
+    // Per ADR 0003: the data layer stores raw bytes (not Debug-escaped).
+    // Find the non-ASCII finding and assert it contains the raw Cyrillic
+    // hostname — this directly guards the {hostname:?} → {hostname} rollback
+    // on the NonAsciiUtf8 match arm (src/analyzer/tls.rs), which was
+    // otherwise only covered structurally by the NonUtf8 branch test.
+    let f = analyzer
+        .findings()
+        .into_iter()
+        .find(|f| f.summary.contains("non-ASCII characters"))
+        .expect("expected non-ASCII finding");
+    assert!(
+        f.summary.contains("пример.example"),
+        "summary must contain raw Cyrillic hostname for forensic preservation, got: {}",
+        f.summary
+    );
+    assert!(
+        !f.summary.contains("\\u{43f}"),
+        "summary must not contain Debug-formatted Cyrillic escape (regression to construction-site), got: {}",
+        f.summary
+    );
 }
 
 #[test]

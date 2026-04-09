@@ -90,7 +90,7 @@ fn test_terminal_reporter_escapes_esc_bytes_in_summary() {
         category: ThreatCategory::Anomaly,
         verdict: Verdict::Inconclusive,
         confidence: Confidence::Low,
-        summary: "attacker payload: \x1b[31mRED\x1b[0m".into(),
+        summary: "attacker payload: пример\x1b[31mRED\x1b[0m".into(),
         evidence: vec!["raw evidence: \x1b[32mGREEN".into()],
         mitre_technique: None,
         source_ip: None,
@@ -110,6 +110,10 @@ fn test_terminal_reporter_escapes_esc_bytes_in_summary() {
     assert!(
         output.contains("\\u{1b}[32mGREEN"),
         "terminal output should contain escaped form in evidence line, got: {output}"
+    );
+    assert!(
+        output.contains("пример"),
+        "terminal output should preserve Cyrillic in the summary, got: {output}"
     );
 }
 
@@ -178,6 +182,51 @@ fn test_output_sanitization_layering_contract() {
     // Round-trip through serde_json::from_str: the deserialized summary
     // must match the original raw ESC byte. This proves the JSON escape
     // is reversible, which is what downstream tooling relies on.
+    let parsed: serde_json::Value = serde_json::from_str(&json_output).unwrap();
+    let parsed_summary = parsed["findings"][0]["summary"].as_str().unwrap();
+    assert_eq!(parsed_summary, finding.summary);
+}
+
+#[test]
+fn test_json_reporter_preserves_cyrillic_as_readable_unicode() {
+    // ADR 0003's primary user-visible behavioral claim: JSON consumers see
+    // raw Cyrillic (and other non-ASCII Unicode) hostnames instead of the
+    // hex-mangled forms PR #49 produced (`\u{43f}\u{440}...`). This test
+    // pins that contract: any future regression that re-introduces
+    // construction-site Debug-formatting or swaps to a non-serde JSON
+    // writer that pre-escapes non-ASCII will fail here.
+    let finding = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Inconclusive,
+        confidence: Confidence::Low,
+        summary: "TLS SNI non-ASCII: пример.рф".into(),
+        evidence: vec!["hex: d0bfd180d0b8d0bcd0b5d1802ed180d184".into()],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+    };
+
+    let json_output = JsonReporter.render(
+        &Summary::new(),
+        std::slice::from_ref(&finding),
+        &[],
+    );
+
+    // Readable Cyrillic must appear in the JSON output — serde_json preserves
+    // non-ASCII Unicode by default and only escapes control characters.
+    assert!(
+        json_output.contains("пример.рф"),
+        "JSON output must contain readable Cyrillic, got: {json_output}"
+    );
+    // And the old hex-escaped form must NOT appear — that would indicate a
+    // regression to construction-site escaping.
+    assert!(
+        !json_output.contains("\\u{43f}"),
+        "JSON output must not contain Debug-formatted Cyrillic escape (regression to construction-site), got: {json_output}"
+    );
+
+    // Round-trip: deserialize the JSON and confirm the summary matches
+    // byte-for-byte — proves the Cyrillic survives the full trip.
     let parsed: serde_json::Value = serde_json::from_str(&json_output).unwrap();
     let parsed_summary = parsed["findings"][0]["summary"].as_str().unwrap();
     assert_eq!(parsed_summary, finding.summary);
