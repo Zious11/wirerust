@@ -5,6 +5,32 @@ use crate::findings::{Confidence, Finding, Verdict};
 use crate::reporter::Reporter;
 use crate::summary::Summary;
 
+/// Escape control bytes (C0 + DEL + backslash) for safe terminal display.
+///
+/// Iterates the input string's characters and applies `char::escape_default`
+/// only when the character matches `char::is_ascii_control()` or is a
+/// backslash. All other characters — printable ASCII and valid non-ASCII
+/// Unicode (Cyrillic, CJK, emoji) — pass through unchanged.
+///
+/// Why not `str::escape_default`? It routes *every* character through
+/// `char::escape_default`, which escapes non-ASCII as `\u{...}` and
+/// would mangle a Cyrillic hostname like `пример.рф` into
+/// `\u{43f}\u{440}...`. See ADR 0003 (`docs/adr/0003-reporting-pipeline-layering.md`)
+/// for the layering rationale and the empirical verification.
+fn escape_for_terminal(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        if c.is_ascii_control() || c == '\\' {
+            for e in c.escape_default() {
+                out.push(e);
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 pub struct TerminalReporter {
     pub use_color: bool,
 }
@@ -111,5 +137,73 @@ impl TerminalReporter {
         } else {
             format!("{title}\n{}\n", "─".repeat(40))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::escape_for_terminal;
+
+    #[test]
+    fn escapes_esc_byte() {
+        assert_eq!(
+            escape_for_terminal("\x1b[31mRED\x1b[0m"),
+            "\\u{1b}[31mRED\\u{1b}[0m"
+        );
+    }
+
+    #[test]
+    fn escapes_bel_and_del() {
+        assert_eq!(
+            escape_for_terminal("ring\x07bye\x7f"),
+            "ring\\u{7}bye\\u{7f}"
+        );
+    }
+
+    #[test]
+    fn escapes_tab_newline_cr_as_short_forms() {
+        // char::escape_default uses short escapes for these three.
+        assert_eq!(
+            escape_for_terminal("tab\there\nnewline\rreturn"),
+            "tab\\there\\nnewline\\rreturn"
+        );
+    }
+
+    #[test]
+    fn escapes_backslash() {
+        assert_eq!(escape_for_terminal("a\\b"), "a\\\\b");
+    }
+
+    #[test]
+    fn preserves_printable_ascii() {
+        assert_eq!(
+            escape_for_terminal("hello world 123 !@#"),
+            "hello world 123 !@#"
+        );
+    }
+
+    #[test]
+    fn preserves_cyrillic() {
+        assert_eq!(escape_for_terminal("пример.рф"), "пример.рф");
+    }
+
+    #[test]
+    fn preserves_emoji() {
+        assert_eq!(escape_for_terminal("crab 🦀 rust"), "crab 🦀 rust");
+    }
+
+    #[test]
+    fn mixed_content_escapes_only_dangerous_bytes() {
+        // Cyrillic + ESC injection + emoji — Cyrillic and emoji must survive,
+        // only the ESC sequence should be escaped.
+        assert_eq!(
+            escape_for_terminal("пример\x1b[31m🦀"),
+            "пример\\u{1b}[31m🦀"
+        );
+    }
+
+    #[test]
+    fn empty_string_is_empty() {
+        assert_eq!(escape_for_terminal(""), "");
     }
 }
