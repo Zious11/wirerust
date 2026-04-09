@@ -112,3 +112,77 @@ fn test_terminal_reporter_escapes_esc_bytes_in_summary() {
         "terminal output should contain escaped form in evidence line, got: {output}"
     );
 }
+
+#[test]
+fn test_output_sanitization_layering_contract() {
+    // End-to-end contract test for ADR 0003. A single Finding flows through
+    // the data layer and both reporters; all three assertions must hold:
+    //   1. The struct itself keeps the raw ESC byte (forensic layer).
+    //   2. The terminal reporter escapes the ESC byte (terminal display layer).
+    //   3. The JSON reporter escapes via serde's RFC 8259 \u001b form (JSON layer).
+    //
+    // Any future regression that breaks one of these — e.g., re-introducing
+    // construction-site escaping, removing the terminal reporter's helper,
+    // or swapping to a JSON crate that doesn't escape control chars — will
+    // fail this test.
+    let finding = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Inconclusive,
+        confidence: Confidence::Low,
+        summary: "attacker payload: \x1b[31mRED\x1b[0m".into(),
+        evidence: vec!["ev: \x1b[32mGREEN".into()],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+    };
+
+    // Layer 1: the struct preserves the raw ESC byte (forensic ground truth).
+    assert!(
+        finding.summary.as_bytes().contains(&0x1b),
+        "Finding.summary must preserve raw ESC for forensics"
+    );
+    assert!(
+        finding.evidence[0].as_bytes().contains(&0x1b),
+        "Finding.evidence must preserve raw ESC for forensics"
+    );
+
+    // Layer 2: terminal reporter escapes on display.
+    let terminal_output = TerminalReporter { use_color: false }.render(
+        &Summary::new(),
+        std::slice::from_ref(&finding),
+        &[],
+    );
+    assert!(
+        !terminal_output.as_bytes().contains(&0x1b),
+        "terminal reporter must not emit raw ESC bytes, got: {terminal_output:?}"
+    );
+    assert!(
+        terminal_output.contains("\\u{1b}[31mRED"),
+        "terminal reporter should emit the escaped summary form, got: {terminal_output}"
+    );
+    assert!(
+        terminal_output.contains("\\u{1b}[32mGREEN"),
+        "terminal reporter should emit the escaped evidence form, got: {terminal_output}"
+    );
+
+    // Layer 3: JSON reporter escapes via serde's RFC 8259 \u001b form.
+    let json_output = JsonReporter.render(
+        &Summary::new(),
+        std::slice::from_ref(&finding),
+        &[],
+    );
+    assert!(
+        !json_output.as_bytes().contains(&0x1b),
+        "JSON reporter must not emit raw ESC bytes, got: {json_output:?}"
+    );
+    assert!(
+        json_output.contains("\\u001b"),
+        "JSON reporter should serialize ESC as \\u001b per RFC 8259, got: {json_output}"
+    );
+    // Round-trip through serde_json::from_str: the deserialized summary
+    // must match the original raw ESC byte. This proves the JSON escape
+    // is reversible, which is what downstream tooling relies on.
+    let parsed: serde_json::Value = serde_json::from_str(&json_output).unwrap();
+    let parsed_summary = parsed["findings"][0]["summary"].as_str().unwrap();
+    assert_eq!(parsed_summary, finding.summary);
+}
