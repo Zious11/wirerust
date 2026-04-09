@@ -69,6 +69,15 @@ pub struct Finding {
     pub timestamp: Option<DateTime<Utc>>,
 }
 
+/// Produces the raw text representation of a finding for logging, debugging,
+/// or machine-readable output. **Not safe for direct terminal display** — the
+/// `summary` field may contain attacker-controlled bytes from packet payloads
+/// (including ASCII control codes like ESC `0x1b`) that a terminal would
+/// interpret as control sequences. For safe terminal rendering, use the
+/// terminal reporter (`src/reporter/terminal.rs`), which escapes every
+/// `summary` and `evidence` entry before writing to the output buffer.
+/// See ADR 0003 (`docs/adr/0003-reporting-pipeline-layering.md`) for the
+/// full layering principle.
 impl fmt::Display for Finding {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
