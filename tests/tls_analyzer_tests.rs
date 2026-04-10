@@ -1025,14 +1025,16 @@ fn test_trailing_bytes_in_server_name_list() {
     //   sni_list_len = actual_entries_len + 4 (lying — 4 extra bytes)
     //   entry: NameType=0x00, name_len=12, "test.example"
     let hostname = b"test.example";
-    let name_len = hostname.len() as u16;
+    let name_len =
+        u16::try_from(hostname.len()).expect("hostname length must fit in TLS u16 field");
     let mut sni_list_data = Vec::new();
     sni_list_data.push(0x00); // NameType = host_name
     sni_list_data.extend_from_slice(&name_len.to_be_bytes());
     sni_list_data.extend_from_slice(hostname);
 
     // Lie about list length: claim 4 extra bytes of trailing garbage
-    let lying_list_len = (sni_list_data.len() + 4) as u16;
+    let lying_list_len =
+        u16::try_from(sni_list_data.len() + 4).expect("lying list length must fit in u16");
     let mut raw_ext_data = Vec::new();
     raw_ext_data.extend_from_slice(&lying_list_len.to_be_bytes());
     raw_ext_data.extend_from_slice(&sni_list_data);
