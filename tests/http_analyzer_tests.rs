@@ -517,34 +517,56 @@ fn test_cross_flow_isolation_poisoning() {
 #[test]
 fn test_buffer_cap_no_panic_on_oversized_headers() {
     // MAX_HEADER_BUF is 65_536. Data beyond this limit is silently
-    // truncated — the buffer must not grow unbounded. The truncated
-    // partial header will stay in httparse::Status::Partial state.
-    // Key assertion: no panic, no findings, parse errors stay at 0
-    // (Partial is not an error).
+    // truncated — the buffer must not grow unbounded. To prove the cap
+    // is enforced, we first send an oversized partial header, then send
+    // the missing terminator on the SAME flow. If the buffer had been
+    // allowed to retain all bytes, the second chunk would complete the
+    // request; with truncation, it must remain unparsed.
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
 
     // Use a single header with a massive value to exceed 64KB without
     // hitting MAX_HEADERS (96). The request line + Host: header + the
     // large X-Big header totals > 65536 bytes, so the buffer truncates
-    // mid-value. httparse sees an incomplete header and returns Partial.
+    // mid-value.
     let mut oversized = b"GET / HTTP/1.1\r\nHost: example.com\r\nX-Big: ".to_vec();
     oversized.extend_from_slice(&vec![b'A'; 70_000]);
-    // No \r\n\r\n — after truncation, httparse sees a partial header value.
+    // No \r\n\r\n yet.
 
     analyzer.on_data(&fk, Direction::ClientToServer, &oversized, 0);
 
-    // No panic occurred (implicit). No parse errors — Partial is not an error.
+    // The oversized partial request should not parse.
+    assert!(
+        analyzer.method_counts().get("GET").is_none(),
+        "oversized partial request should not be counted as parsed"
+    );
     assert_eq!(
         analyzer.parse_error_count(),
         0,
         "partial header from buffer cap should not count as a parse error"
     );
-    // No findings from truncated partial data.
+
+    // Now try to complete the same request on the SAME flow. If the full
+    // oversized buffer had been retained, this would complete parsing.
+    // Because the buffer is capped/truncated, the terminator is silently
+    // dropped (remaining capacity is 0), and the request stays unparsed.
+    let completion = b"\r\n\r\n";
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        completion,
+        oversized.len() as u64,
+    );
+
+    assert!(
+        analyzer.method_counts().get("GET").is_none(),
+        "same-flow completion after buffer-cap truncation must not produce a parsed request"
+    );
     assert!(
         analyzer.findings().is_empty(),
         "truncated partial data should not produce findings"
     );
+
     // Subsequent valid data on a NEW flow should still work (analyzer not corrupted).
     let fk2 = test_flow_key_b();
     let valid = b"GET /ok HTTP/1.1\r\nHost: example.com\r\n\r\n";
