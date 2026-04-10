@@ -861,7 +861,10 @@ fn build_client_hello_with_raw_sni_ext(raw_sni_ext_data: &[u8], cipher_ids: &[u1
     ch_body.extend_from_slice(&[0u8; 32]); // random
     ch_body.push(0x00); // session_id length: 0
 
-    let ciphers_byte_len = cipher_ids.len() * 2;
+    let ciphers_byte_len = cipher_ids
+        .len()
+        .checked_mul(2)
+        .expect("cipher_ids list byte length overflows usize");
     let ciphers_len =
         u16::try_from(ciphers_byte_len).expect("cipher_ids list exceeds u16::MAX bytes");
     ch_body.extend_from_slice(&ciphers_len.to_be_bytes());
@@ -1020,7 +1023,7 @@ fn test_trailing_bytes_in_server_name_list() {
 
     // Build raw SNI extension data:
     //   sni_list_len = actual_entries_len + 4 (lying — 4 extra bytes)
-    //   entry: NameType=0x00, name_len=11, "test.example" (wait, 12 bytes)
+    //   entry: NameType=0x00, name_len=12, "test.example"
     let hostname = b"test.example";
     let name_len = hostname.len() as u16;
     let mut sni_list_data = Vec::new();
