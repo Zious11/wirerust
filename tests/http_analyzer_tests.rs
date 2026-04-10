@@ -509,3 +509,227 @@ fn test_cross_flow_isolation_poisoning() {
         skipped_before + b"more data".len() as u64
     );
 }
+
+// ---------------------------------------------------------------------------
+// Issue #20: missing HTTP analyzer test coverage
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_buffer_cap_no_panic_on_oversized_headers() {
+    // MAX_HEADER_BUF is 65_536. Data beyond this limit is silently
+    // truncated — the buffer must not grow unbounded. To prove the cap
+    // is enforced, we first send an oversized partial header, then send
+    // the missing terminator on the SAME flow. If the buffer had been
+    // allowed to retain all bytes, the second chunk would complete the
+    // request; with truncation, it must remain unparsed.
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Use a single header with a massive value to exceed 64KB without
+    // hitting MAX_HEADERS (96). The request line + Host: header + the
+    // large X-Big header totals > 65536 bytes, so the buffer truncates
+    // mid-value.
+    let mut oversized = b"GET / HTTP/1.1\r\nHost: example.com\r\nX-Big: ".to_vec();
+    oversized.extend_from_slice(&vec![b'A'; 70_000]);
+    // No \r\n\r\n yet.
+
+    analyzer.on_data(&fk, Direction::ClientToServer, &oversized, 0);
+
+    // The oversized partial request should not parse.
+    assert!(
+        analyzer.method_counts().get("GET").is_none(),
+        "oversized partial request should not be counted as parsed"
+    );
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "partial header from buffer cap should not count as a parse error"
+    );
+
+    // Now try to complete the same request on the SAME flow. If the full
+    // oversized buffer had been retained, this would complete parsing.
+    // Because the buffer is capped/truncated, the terminator is silently
+    // dropped (remaining capacity is 0), and the request stays unparsed.
+    let completion = b"\r\n\r\n";
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        completion,
+        oversized.len() as u64,
+    );
+
+    assert!(
+        analyzer.method_counts().get("GET").is_none(),
+        "same-flow completion after buffer-cap truncation must not produce a parsed request"
+    );
+    assert!(
+        analyzer.findings().is_empty(),
+        "truncated partial data should not produce findings"
+    );
+
+    // Subsequent valid data on a NEW flow should still work (analyzer not corrupted).
+    let fk2 = test_flow_key_b();
+    let valid = b"GET /ok HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    analyzer.on_data(&fk2, Direction::ClientToServer, valid, 0);
+    assert_eq!(
+        *analyzer.method_counts().get("GET").unwrap(),
+        1,
+        "valid request on a different flow should parse after buffer-cap hit"
+    );
+}
+
+#[test]
+fn test_detect_long_uri() {
+    // URIs > 2048 chars should trigger an Execution finding with the
+    // URI length in the summary and a truncated prefix in evidence.
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    let long_path = "/".to_string() + &"A".repeat(2100);
+    let request = format!("GET {long_path} HTTP/1.1\r\nHost: target.com\r\n\r\n");
+    analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+
+    let findings = analyzer.findings();
+    let long_uri_finding = findings
+        .iter()
+        .find(|f| f.summary.contains("Abnormally long URI"))
+        .expect("expected a long-URI finding for URI > 2048 chars");
+    assert_eq!(long_uri_finding.category, ThreatCategory::Execution);
+    assert_eq!(long_uri_finding.verdict, Verdict::Likely);
+    assert_eq!(long_uri_finding.confidence, Confidence::Medium);
+    assert!(
+        long_uri_finding.summary.contains("2101 chars"),
+        "summary should include the URI length, got: {}",
+        long_uri_finding.summary
+    );
+    assert!(
+        long_uri_finding.evidence[0].starts_with("URI prefix:"),
+        "evidence should contain truncated URI prefix, got: {}",
+        long_uri_finding.evidence[0]
+    );
+}
+
+#[test]
+fn test_detect_empty_user_agent() {
+    // An empty User-Agent header (present but "") should trigger an
+    // Anomaly finding. This is more suspicious than a missing UA —
+    // real browsers always populate it, and even common tools
+    // (curl, wget, Python requests) send a default string.
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    let request = b"GET /page HTTP/1.1\r\nHost: example.com\r\nUser-Agent: \r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+    let findings = analyzer.findings();
+    let ua_finding = findings
+        .iter()
+        .find(|f| f.summary.contains("Empty User-Agent"))
+        .expect("expected an empty-UA finding");
+    assert_eq!(ua_finding.category, ThreatCategory::Anomaly);
+    assert_eq!(ua_finding.verdict, Verdict::Inconclusive);
+    assert_eq!(ua_finding.confidence, Confidence::Low);
+}
+
+#[test]
+fn test_missing_user_agent_no_finding() {
+    // A missing User-Agent header (not present at all) should NOT
+    // trigger the empty-UA finding. The detection specifically checks
+    // for Some(""), not None.
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    let request = b"GET /page HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+    assert!(
+        !analyzer
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("User-Agent")),
+        "missing (absent) User-Agent should not trigger empty-UA finding"
+    );
+}
+
+#[test]
+fn test_detect_admin_panel_paths() {
+    // Admin panel URIs should trigger Reconnaissance findings.
+    let patterns = [
+        "/wp-admin/index.php",
+        "/admin/dashboard",
+        "/phpmyadmin/",
+        "/manager/html",
+    ];
+
+    for pattern in &patterns {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        let request = format!("GET {pattern} HTTP/1.1\r\nHost: target.com\r\n\r\n");
+        analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+
+        let findings = analyzer.findings();
+        let admin_finding = findings
+            .iter()
+            .find(|f| f.summary.contains("Admin panel"))
+            .unwrap_or_else(|| panic!("expected admin-panel finding for URI {pattern}"));
+        assert_eq!(
+            admin_finding.category,
+            ThreatCategory::Reconnaissance,
+            "admin panel finding for {pattern} should be Reconnaissance"
+        );
+        assert_eq!(
+            admin_finding.verdict,
+            Verdict::Inconclusive,
+            "admin panel finding for {pattern} should be Inconclusive"
+        );
+        assert_eq!(
+            admin_finding.confidence,
+            Confidence::Low,
+            "admin panel finding for {pattern} should be Low confidence"
+        );
+        assert_eq!(
+            admin_finding.mitre_technique.as_deref(),
+            Some("T1046"),
+            "admin panel finding for {pattern} should map to T1046"
+        );
+    }
+}
+
+#[test]
+fn test_partial_response_reassembly() {
+    // Split a response header across two on_data calls. The parser
+    // should buffer the first partial chunk and complete the parse
+    // when the rest arrives.
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Send a request first so the response direction is active.
+    let request = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+    // Split response across two chunks mid-header.
+    let part1 = b"HTTP/1.1 200 OK\r\nContent-Len";
+    let part2 = b"gth: 0\r\n\r\n";
+
+    analyzer.on_data(&fk, Direction::ServerToClient, part1, 0);
+    // After part1: should be Partial — no transaction yet.
+    assert_eq!(
+        analyzer.transaction_count(),
+        0,
+        "partial response should not complete a transaction"
+    );
+
+    analyzer.on_data(&fk, Direction::ServerToClient, part2, part1.len() as u64);
+    // After part2: response fully assembled → transaction counted.
+    assert_eq!(
+        analyzer.transaction_count(),
+        1,
+        "completed response should count as a transaction"
+    );
+    assert_eq!(
+        *analyzer.status_code_counts().get(&200).unwrap(),
+        1,
+        "status code 200 should be recorded"
+    );
+}
