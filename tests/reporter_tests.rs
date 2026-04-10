@@ -1,4 +1,8 @@
+use std::net::IpAddr;
+use wirerust::analyzer::http::HttpAnalyzer;
 use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+use wirerust::reassembly::flow::FlowKey;
+use wirerust::reassembly::handler::{Direction, StreamAnalyzer, StreamHandler};
 use wirerust::reporter::Reporter;
 use wirerust::reporter::json::JsonReporter;
 use wirerust::reporter::terminal::TerminalReporter;
@@ -274,5 +278,176 @@ fn test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries() {
     assert!(
         output.contains("пример.рф"),
         "analyzer summary section must preserve legitimate Cyrillic, got: {output}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// End-to-end: HttpAnalyzer → reporter pipeline (issue #56)
+//
+// These tests close the coverage gap identified during the ADR 0003 PR review:
+// the existing contract tests above use synthetic Findings, not ones produced
+// by the actual HttpAnalyzer. These tests drive HttpAnalyzer::on_data with
+// crafted HTTP requests and verify the full pipeline.
+//
+// Key discovery during issue validation: httparse rejects C0 control bytes
+// (including ESC 0x1b) in URIs and header values, but ACCEPTS C1 codepoints
+// (U+0080-U+009F) because they encode as high bytes in UTF-8 (e.g., U+009B
+// CSI = 0xC2 0x9B). C1 CSI is the real injection vector through httparse.
+// ---------------------------------------------------------------------------
+
+fn http_test_flow_key() -> FlowKey {
+    FlowKey::new(
+        "10.0.0.1".parse::<IpAddr>().unwrap(),
+        49153,
+        "10.0.0.2".parse::<IpAddr>().unwrap(),
+        80,
+    )
+}
+
+/// Build an HTTP/1.1 request with a path-traversal URI containing C1 CSI
+/// (U+009B) — the 8-bit equivalent of ESC[. httparse accepts this because
+/// the UTF-8 encoding (0xC2 0x9B) consists of high bytes (≥ 0x80).
+fn build_path_traversal_with_c1_csi() -> Vec<u8> {
+    let mut buf = b"GET /../../etc/passwd".to_vec();
+    buf.extend_from_slice(&[0xC2, 0x9B]); // U+009B CSI
+    buf.extend_from_slice(b"31mHACKED HTTP/1.1\r\nHost: target.com\r\n\r\n");
+    buf
+}
+
+/// Build an HTTP/1.1 request with C1 CSI in the Host header value.
+fn build_request_with_c1_in_host() -> Vec<u8> {
+    let mut buf = b"GET /index HTTP/1.1\r\nHost: evil".to_vec();
+    buf.extend_from_slice(&[0xC2, 0x9B]); // U+009B CSI
+    buf.extend_from_slice(b"31m.com\r\nUser-Agent: Mozilla/5.0\r\n\r\n");
+    buf
+}
+
+#[test]
+fn test_http_finding_c1_csi_escaped_by_terminal_reporter() {
+    // End-to-end: HttpAnalyzer produces a path-traversal finding whose
+    // summary contains a raw C1 CSI (U+009B). The terminal reporter must
+    // escape it. This exercises the real injection path — httparse accepts
+    // C1 in URIs because the UTF-8 encoding uses high bytes.
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = http_test_flow_key();
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_path_traversal_with_c1_csi(),
+        0,
+    );
+
+    let findings = analyzer.findings();
+    assert!(
+        !findings.is_empty(),
+        "path traversal with C1 CSI should produce at least one finding"
+    );
+
+    // The finding's raw summary must contain the C1 CSI bytes (forensic preservation).
+    let traversal_finding = findings
+        .iter()
+        .find(|f| f.summary.contains("Path traversal"))
+        .expect("expected a path-traversal finding");
+    assert!(
+        traversal_finding
+            .summary
+            .as_bytes()
+            .windows(2)
+            .any(|w| w == [0xC2, 0x9B]),
+        "Finding.summary must preserve raw C1 CSI for forensics, got: {:?}",
+        traversal_finding.summary
+    );
+
+    // Render through terminal reporter — no raw C1 bytes in output.
+    let output = TerminalReporter { use_color: false }.render(&Summary::new(), &findings, &[]);
+    assert!(
+        !output.as_bytes().windows(2).any(|w| w == [0xC2, 0x9B]),
+        "terminal output must not contain raw C1 CSI (0xC2 0x9B), got: {output:?}"
+    );
+    assert!(
+        output.contains("\\u{9b}"),
+        "terminal output should contain the escaped form of C1 CSI, got: {output}"
+    );
+}
+
+#[test]
+fn test_http_finding_c1_csi_in_json_reporter() {
+    // The JSON reporter renders findings from HttpAnalyzer. serde_json does
+    // NOT escape C1 codepoints (RFC 8259 only mandates C0 + DEL), so the
+    // raw C1 CSI UTF-8 bytes pass through. This test verifies the JSON
+    // round-trip preserves the C1 byte — downstream tools can reconstruct
+    // the original payload.
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = http_test_flow_key();
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_path_traversal_with_c1_csi(),
+        0,
+    );
+
+    let findings = analyzer.findings();
+    let json_output = JsonReporter.render(&Summary::new(), &findings, &[]);
+
+    // JSON must be valid.
+    let parsed: serde_json::Value =
+        serde_json::from_str(&json_output).expect("JSON output must be valid");
+
+    // Round-trip: the deserialized finding summary must contain the C1 CSI
+    // codepoint, proving the JSON encoding preserved it.
+    let json_findings = parsed["findings"].as_array().unwrap();
+    let traversal = json_findings
+        .iter()
+        .find(|f| {
+            f["summary"]
+                .as_str()
+                .is_some_and(|s| s.contains("Path traversal"))
+        })
+        .expect("expected path-traversal finding in JSON");
+    let summary_str = traversal["summary"].as_str().unwrap();
+    assert!(
+        summary_str.as_bytes().windows(2).any(|w| w == [0xC2, 0x9B]),
+        "JSON round-trip must preserve raw C1 CSI in finding summary, got: {summary_str:?}"
+    );
+}
+
+#[test]
+fn test_http_analyzer_summary_c1_csi_escaped_by_terminal_reporter() {
+    // End-to-end: HttpAnalyzer accumulates a Host header containing C1 CSI
+    // into its top_hosts summary. When rendered through the terminal
+    // reporter's analyzer-summary section, the C1 must be escaped.
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = http_test_flow_key();
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_request_with_c1_in_host(),
+        0,
+    );
+
+    // Verify the host made it into the analyzer summary.
+    let analyzer_summary = analyzer.summarize();
+    let top_hosts_str = analyzer_summary.detail["top_hosts"].to_string();
+    assert!(
+        top_hosts_str
+            .as_bytes()
+            .windows(2)
+            .any(|w| w == [0xC2, 0x9B]),
+        "analyzer summary top_hosts must contain raw C1 CSI, got: {top_hosts_str:?}"
+    );
+
+    // Render through terminal reporter — no raw C1 bytes in output.
+    let output = TerminalReporter { use_color: false }.render(
+        &Summary::new(),
+        &[],
+        std::slice::from_ref(&analyzer_summary),
+    );
+    assert!(
+        !output.as_bytes().windows(2).any(|w| w == [0xC2, 0x9B]),
+        "terminal output must not contain raw C1 CSI in analyzer summary section, got: {output:?}"
+    );
+    assert!(
+        output.contains("\\u{9b}"),
+        "terminal output should contain the escaped form of C1 CSI in analyzer summary, got: {output}"
     );
 }
