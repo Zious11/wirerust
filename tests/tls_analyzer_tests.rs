@@ -32,19 +32,33 @@ fn build_client_hello_raw_sni(sni_bytes: &[u8], cipher_ids: &[u16]) -> Vec<u8> {
 /// but is used to exercise the analyzer's defensive `list.first() == None` branch in
 /// `extract_sni`. The current `tls_parser` crate accepts it at parse time.
 fn build_client_hello_with_sni_list(sni_entries: &[&[u8]], cipher_ids: &[u16]) -> Vec<u8> {
+    let typed: Vec<(u8, &[u8])> = sni_entries.iter().map(|e| (0x00u8, *e)).collect();
+    build_client_hello_with_typed_sni_list(&typed, cipher_ids)
+}
+
+/// Build a minimal TLS ClientHello with SNI entries where each entry has an explicit
+/// NameType byte. Used for testing non-zero NameType values (issue #52 case 1).
+///
+/// Each tuple is `(name_type, hostname_bytes)`. RFC 6066 §3 defines `host_name(0)`;
+/// the `(255)` in the enum reserves slots for future types. A non-zero NameType
+/// exercises the tls_parser's handling of unknown ServerName types.
+fn build_client_hello_with_typed_sni_list(
+    sni_entries: &[(u8, &[u8])],
+    cipher_ids: &[u16],
+) -> Vec<u8> {
     let mut extensions = Vec::new();
 
     // SNI extension (type 0x0000)
-    // The ServerNameList contents: for each entry, 1 byte host_name type + 2 byte name length + name bytes.
+    // The ServerNameList contents: for each entry, 1 byte NameType + 2 byte name length + name bytes.
     // Use checked conversions so a future test passing an out-of-range SNI (e.g. a
     // ~65,532-byte single hostname — u16::MAX minus 3 bytes of ServerName overhead
     // per entry — requested in issue #52) panics with a clear message rather than
     // silently wrapping through `as u16` and producing a malformed ClientHello.
     let mut sni_list_data = Vec::new();
-    for entry in sni_entries {
+    for (name_type, entry) in sni_entries {
         let name_len = u16::try_from(entry.len())
             .expect("SNI hostname entry exceeds u16::MAX; can't encode as RFC 6066 HostName");
-        sni_list_data.push(0x00); // host_name type
+        sni_list_data.push(*name_type);
         sni_list_data.extend_from_slice(&name_len.to_be_bytes());
         sni_list_data.extend_from_slice(entry);
     }
@@ -815,4 +829,224 @@ fn test_multi_name_sni_list_only_first_entry_counted() {
         "third hostname must not be counted, got {:?}",
         analyzer.sni_counts()
     );
+}
+
+// ---------------------------------------------------------------------------
+// Issue #52: SNI edge-case coverage for non-zero NameType, large SNI,
+// and trailing bytes in ServerNameList
+// ---------------------------------------------------------------------------
+
+/// Build a ClientHello with a raw, hand-crafted SNI extension (arbitrary bytes).
+/// Used for tests that need malformed or non-standard SNI framing that the
+/// structured builders can't produce (e.g., trailing bytes in ServerNameList).
+fn build_client_hello_with_raw_sni_ext(raw_sni_ext_data: &[u8], cipher_ids: &[u16]) -> Vec<u8> {
+    let mut extensions = Vec::new();
+
+    // SNI extension (type 0x0000) with caller-supplied raw data
+    let ext_data_len =
+        u16::try_from(raw_sni_ext_data.len()).expect("raw SNI ext data exceeds u16::MAX");
+    extensions.extend_from_slice(&[0x00, 0x00]); // extension type: server_name
+    extensions.extend_from_slice(&ext_data_len.to_be_bytes());
+    extensions.extend_from_slice(raw_sni_ext_data);
+
+    // Supported Groups extension (type 0x000a)
+    extensions.extend_from_slice(&[0x00, 0x0a, 0x00, 0x06, 0x00, 0x04, 0x00, 0x1d, 0x00, 0x17]);
+
+    // EC Point Formats extension (type 0x000b)
+    extensions.extend_from_slice(&[0x00, 0x0b, 0x00, 0x02, 0x01, 0x00]);
+
+    // Build ClientHello body
+    let mut ch_body = Vec::new();
+    ch_body.extend_from_slice(&[0x03, 0x03]); // version: TLS 1.2
+    ch_body.extend_from_slice(&[0u8; 32]); // random
+    ch_body.push(0x00); // session_id length: 0
+
+    let ciphers_byte_len = cipher_ids.len() * 2;
+    let ciphers_len =
+        u16::try_from(ciphers_byte_len).expect("cipher_ids list exceeds u16::MAX bytes");
+    ch_body.extend_from_slice(&ciphers_len.to_be_bytes());
+    for &id in cipher_ids {
+        ch_body.extend_from_slice(&id.to_be_bytes());
+    }
+
+    ch_body.push(0x01); // compression methods length
+    ch_body.push(0x00); // null compression
+
+    let ext_len =
+        u16::try_from(extensions.len()).expect("ClientHello extensions block exceeds u16::MAX");
+    ch_body.extend_from_slice(&ext_len.to_be_bytes());
+    ch_body.extend_from_slice(&extensions);
+
+    // Handshake header
+    let mut handshake = Vec::new();
+    handshake.push(0x01); // ClientHello
+    let ch_len = ch_body.len() as u32;
+    handshake.push((ch_len >> 16) as u8);
+    handshake.push((ch_len >> 8) as u8);
+    handshake.push(ch_len as u8);
+    handshake.extend_from_slice(&ch_body);
+
+    // TLS record header
+    let mut record = Vec::new();
+    record.push(0x16); // handshake
+    record.extend_from_slice(&[0x03, 0x01]); // TLS 1.0 record version
+    let hs_len = u16::try_from(handshake.len()).expect("handshake body exceeds u16::MAX bytes");
+    record.extend_from_slice(&hs_len.to_be_bytes());
+    record.extend_from_slice(&handshake);
+
+    record
+}
+
+#[test]
+fn test_non_zero_name_type_sni_entry() {
+    // RFC 6066 §3 defines NameType { host_name(0), (255) }. A non-zero
+    // NameType is reserved for future use. This test pins how tls_parser
+    // and extract_sni handle an entry with NameType=1 (unknown future type).
+    //
+    // extract_sni destructures as `let Some((_, hostname)) = list.first()`
+    // — it ignores the type field. So if tls_parser includes the entry in
+    // the SNI list, it will be treated as a hostname regardless of type.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // NameType=1 with hostname "future.example"
+    let record = build_client_hello_with_typed_sni_list(&[(0x01, b"future.example")], &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    // Pinned behavior (empirically verified): tls_parser includes non-zero
+    // NameType entries in the SNI list, and extract_sni reads the first entry
+    // regardless of type (it destructures as `(_, hostname)`, ignoring the type).
+    // If a tls_parser upgrade changes this to skip unknown types, this test
+    // will fail — documenting the behavioral change.
+    assert_eq!(
+        *analyzer.sni_counts().get("future.example").unwrap_or(&0),
+        1,
+        "tls_parser should include non-zero NameType entry in SNI list"
+    );
+    assert_eq!(analyzer.parse_error_count(), 0);
+    assert_eq!(analyzer.handshake_count(), 1);
+}
+
+#[test]
+fn test_non_zero_name_type_with_valid_first_entry() {
+    // Variant: first entry is host_name(0) with a valid hostname, second
+    // entry is an unknown NameType=0x02. extract_sni should read only the
+    // first entry (host_name) regardless.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello_with_typed_sni_list(
+        &[(0x00, b"real.example"), (0x02, b"unknown-type")],
+        &[0x1301],
+    );
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(
+        *analyzer.sni_counts().get("real.example").unwrap_or(&0),
+        1,
+        "first entry (host_name type) must be counted"
+    );
+    assert!(
+        analyzer.sni_counts().get("unknown-type").is_none(),
+        "second entry (unknown type) must not be counted"
+    );
+    assert_eq!(analyzer.parse_error_count(), 0);
+}
+
+#[test]
+fn test_large_sni_near_record_payload_limit() {
+    // A large SNI hostname that fits within MAX_RECORD_PAYLOAD (18,432 bytes).
+    // The ClientHello overhead is ~74 bytes, so a 16,000-byte hostname produces
+    // a record payload of ~16,074 — well within the limit.
+    //
+    // This pins that a large-but-valid SNI parses cleanly and is counted.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let large_hostname = "A".repeat(16_000);
+    let record = build_client_hello(&large_hostname, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(
+        *analyzer
+            .sni_counts()
+            .get(large_hostname.as_str())
+            .unwrap_or(&0),
+        1,
+        "16KB SNI should parse and be counted"
+    );
+    assert_eq!(analyzer.parse_error_count(), 0);
+    assert_eq!(analyzer.handshake_count(), 1);
+}
+
+#[test]
+fn test_oversized_sni_exceeds_record_payload_limit() {
+    // A SNI so large that the TLS record payload exceeds MAX_RECORD_PAYLOAD
+    // (18,432 bytes). The analyzer should reject the record at the record-layer
+    // boundary and increment parse_errors. The SNI is never reached.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // 18,400 byte hostname + ~74 bytes overhead = ~18,474 > 18,432 limit
+    let huge_hostname = "B".repeat(18_400);
+    let record = build_client_hello(&huge_hostname, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert!(
+        analyzer.sni_counts().is_empty(),
+        "oversized record should be rejected before SNI parsing"
+    );
+    assert_eq!(
+        analyzer.parse_error_count(),
+        1,
+        "oversized record should count as a parse error"
+    );
+    assert_eq!(
+        analyzer.handshake_count(),
+        0,
+        "no handshake should be counted from a rejected record"
+    );
+}
+
+#[test]
+fn test_trailing_bytes_in_server_name_list() {
+    // If the ServerNameList's outer length field claims more bytes than the
+    // sum of its ServerName entries, there are "trailing bytes". This test
+    // pins tls_parser's behavior: does it accept or reject the malformed
+    // framing? And if it accepts, does extract_sni still read the first
+    // entry correctly?
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Build raw SNI extension data:
+    //   sni_list_len = actual_entries_len + 4 (lying — 4 extra bytes)
+    //   entry: NameType=0x00, name_len=11, "test.example" (wait, 12 bytes)
+    let hostname = b"test.example";
+    let name_len = hostname.len() as u16;
+    let mut sni_list_data = Vec::new();
+    sni_list_data.push(0x00); // NameType = host_name
+    sni_list_data.extend_from_slice(&name_len.to_be_bytes());
+    sni_list_data.extend_from_slice(hostname);
+
+    // Lie about list length: claim 4 extra bytes of trailing garbage
+    let lying_list_len = (sni_list_data.len() + 4) as u16;
+    let mut raw_ext_data = Vec::new();
+    raw_ext_data.extend_from_slice(&lying_list_len.to_be_bytes());
+    raw_ext_data.extend_from_slice(&sni_list_data);
+    raw_ext_data.extend_from_slice(&[0xDE, 0xAD, 0xBE, 0xEF]); // trailing garbage
+
+    let record = build_client_hello_with_raw_sni_ext(&raw_ext_data, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    // Pinned behavior (empirically verified): tls_parser accepts the malformed
+    // framing — the trailing garbage bytes are consumed by the length field but
+    // don't interfere with parsing the first ServerName entry. If a tls_parser
+    // upgrade tightens validation to reject trailing bytes, this test will fail.
+    assert_eq!(
+        *analyzer.sni_counts().get("test.example").unwrap_or(&0),
+        1,
+        "first SNI entry should be readable despite trailing bytes in ServerNameList"
+    );
+    assert_eq!(analyzer.parse_error_count(), 0);
+    assert_eq!(analyzer.handshake_count(), 1);
 }
