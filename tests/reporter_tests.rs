@@ -236,7 +236,7 @@ fn test_json_reporter_preserves_cyrillic_as_readable_unicode() {
 fn test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries() {
     // Regression: analyzer_summaries detail values can contain
     // attacker-controlled strings (HTTP top_hosts, TLS top_snis, etc.).
-    // serde_json::Value's Display impl escapes C0 + DEL per RFC 8259 but
+    // serde_json::Value's Display impl escapes C0 (per RFC 8259) and DEL but
     // passes C1 codepoints (U+0080-U+009F) through as raw UTF-8 — which
     // is a terminal injection vector on the analyzer summary rendering
     // path. Per ADR 0003, the terminal reporter must escape at the
@@ -373,7 +373,7 @@ fn test_http_finding_c1_csi_escaped_by_terminal_reporter() {
 #[test]
 fn test_http_finding_c1_csi_in_json_reporter() {
     // The JSON reporter renders findings from HttpAnalyzer. serde_json does
-    // NOT escape C1 codepoints (RFC 8259 only mandates C0 + DEL), so the
+    // NOT escape C1 codepoints (RFC 8259 only mandates C0; serde_json also escapes DEL), so the
     // raw C1 CSI UTF-8 bytes pass through. This test verifies the JSON
     // round-trip preserves the C1 byte — downstream tools can reconstruct
     // the original payload.
