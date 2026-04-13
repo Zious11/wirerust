@@ -14,7 +14,12 @@
 
 use std::fmt;
 
+// MITRE ATT&CK is an evolving external standard — new tactics are added in
+// new ATT&CK versions (e.g., v18 added Resource Development). Mark the enum
+// `#[non_exhaustive]` so adding a variant later is non-breaking for any
+// downstream crate that matches on `MitreTactic`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum MitreTactic {
     // Enterprise canonical kill-chain order.
     Reconnaissance,
