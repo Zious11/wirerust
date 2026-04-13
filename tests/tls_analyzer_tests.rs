@@ -59,7 +59,7 @@ fn build_client_hello_with_typed_sni_list(
     let mut sni_list_data = Vec::new();
     for (name_type, entry) in sni_entries {
         let name_len = u16::try_from(entry.len())
-            .expect("SNI hostname entry exceeds u16::MAX; can't encode as RFC 6066 HostName");
+            .expect("SNI entry payload exceeds u16::MAX; can't encode as ServerName");
         sni_list_data.push(*name_type);
         sni_list_data.extend_from_slice(&name_len.to_be_bytes());
         sni_list_data.extend_from_slice(entry);
