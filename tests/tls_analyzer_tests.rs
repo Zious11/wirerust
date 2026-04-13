@@ -1076,3 +1076,319 @@ fn test_trailing_bytes_in_server_name_list() {
     assert_eq!(analyzer.parse_error_count(), 0);
     assert_eq!(analyzer.handshake_count(), 1);
 }
+
+// ── issue #54: SNI containing ASCII control bytes (C0 / DEL) ─────────────────
+//
+// RFC 6066 §3 requires HostName to be ASCII; the DNS preferred hostname syntax
+// (RFC 952 / RFC 1123, preserved under RFC 5890 A-label construction) restricts
+// to letters, digits, and hyphens. No legitimate TLS client emits C0 (0x00–0x1F)
+// or DEL (0x7F) in SNI, so the full C0+DEL range is the correct detection scope
+// (narrower ranges like ESC+DEL alone would miss BEL / CR / LF / tab variants
+// used for log-injection, terminal escape, or covert signalling).
+//
+// Tests below pin each control-byte case to the `AsciiWithControl` variant:
+// finding fires with Anomaly / Inconclusive / Low (matching other SNI anomalies),
+// sni_counts stores the *raw* hostname (per ADR 0003 — reporter escapes for
+// terminal display), and mutually exclusive with the NonAsciiUtf8 path.
+
+/// Helper: build a ClientHello with an SNI containing arbitrary ASCII bytes.
+/// Wraps `build_client_hello_raw_sni` — the latter already accepts `&[u8]`,
+/// but this name documents intent at the call site.
+fn build_client_hello_ascii_bytes(sni_bytes: &[u8], cipher_ids: &[u16]) -> Vec<u8> {
+    build_client_hello_raw_sni(sni_bytes, cipher_ids)
+}
+
+/// Helper: count findings whose summary mentions the ASCII control-byte anomaly.
+fn count_control_findings(analyzer: &TlsAnalyzer) -> usize {
+    analyzer
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("ASCII control characters"))
+        .count()
+}
+
+#[test]
+fn test_ascii_sni_with_esc_emits_control_finding_and_counts_under_raw_key() {
+    // Primary test: a classic ANSI escape sequence embedded in the SNI. This
+    // is the terminal-injection shape the ADR 0003 pipeline is designed to
+    // contain — the analyzer preserves the raw bytes, the reporter escapes
+    // them at render. Here we assert only the analyzer-layer contract.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // "foo\x1b[31m.example" — ESC + CSI 31m (red) sequence.
+    let sni: &[u8] = b"foo\x1b[31m.example";
+    let record = build_client_hello_ascii_bytes(sni, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(analyzer.parse_error_count(), 0);
+    assert_eq!(analyzer.handshake_count(), 1);
+
+    // Exactly one control-byte finding.
+    assert_eq!(
+        count_control_findings(&analyzer),
+        1,
+        "expected exactly one ASCII control finding, got: {:?}",
+        analyzer.findings()
+    );
+    let f = analyzer
+        .findings()
+        .into_iter()
+        .find(|f| f.summary.contains("ASCII control characters"))
+        .expect("expected control finding");
+    assert_eq!(f.category, wirerust::findings::ThreatCategory::Anomaly);
+    assert_eq!(f.verdict, wirerust::findings::Verdict::Inconclusive);
+    assert_eq!(f.confidence, wirerust::findings::Confidence::Low);
+    assert!(
+        f.summary.contains("RFC 6066"),
+        "summary should cite RFC 6066, got: {}",
+        f.summary
+    );
+    // Per ADR 0003: analyzer finding summary stores the raw hostname
+    // (including the ESC byte). Terminal escaping is the reporter's job.
+    assert!(
+        f.summary.as_bytes().contains(&0x1b),
+        "summary must preserve raw ESC byte per ADR 0003, got hex: {:?}",
+        f.summary.as_bytes()
+    );
+    // Hex evidence is the lossless byte-form of the raw SNI.
+    assert!(
+        f.evidence
+            .iter()
+            .any(|e| e.contains("666f6f1b5b33316d2e6578616d706c65")),
+        "expected hex evidence to contain raw byte sequence, got: {:?}",
+        f.evidence
+    );
+
+    // sni_counts stores the raw hostname string (matches the NonAsciiUtf8
+    // precedent — distinct ASCII-with-control strings produce distinct keys
+    // deterministically, no <ctrl:HEX> tagging is needed).
+    assert_eq!(
+        *analyzer
+            .sni_counts()
+            .get(std::str::from_utf8(sni).unwrap())
+            .unwrap_or(&0),
+        1,
+        "sni_counts must key on raw hostname, got keys: {:?}",
+        analyzer.sni_counts().keys().collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn test_ascii_sni_with_bel_emits_control_finding() {
+    // BEL (0x07) is the canonical "audible" control — not a terminal-escape
+    // vector per se, but still a protocol violation and a plausible covert
+    // signal.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello_ascii_bytes(b"ring\x07bell.example", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(count_control_findings(&analyzer), 1);
+    assert_eq!(
+        *analyzer
+            .sni_counts()
+            .get("ring\x07bell.example")
+            .unwrap_or(&0),
+        1
+    );
+}
+
+#[test]
+fn test_ascii_sni_with_del_emits_control_finding() {
+    // DEL (0x7F) sits at the very top of the 7-bit ASCII range. `char::is_ascii()`
+    // returns true — which is why the pre-fix analyzer silently accepted it.
+    // DEL is non-printable and non-LDH.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello_ascii_bytes(b"host\x7fname.example", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(count_control_findings(&analyzer), 1);
+}
+
+#[test]
+fn test_ascii_sni_with_tab_emits_control_finding() {
+    // Tab (0x09) is C0 whitespace. Issue #54 flagged tab/CR/LF as an open
+    // question; RFC 6066 §3 + DNS preferred-hostname syntax (RFC 952/1123)
+    // disallow whitespace in SNI. Include in detection range.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello_ascii_bytes(b"left\tright.example", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(count_control_findings(&analyzer), 1);
+}
+
+#[test]
+fn test_ascii_sni_with_cr_and_lf_emits_control_finding() {
+    // CR (0x0D) and LF (0x0A) are the classic log-injection vector — a
+    // logger that prints the SNI unescaped would see spurious new log lines.
+    // Both are C0 and must trip the finding.
+
+    // CR alone.
+    let mut a1 = TlsAnalyzer::new();
+    let fk = test_flow_key();
+    a1.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_ascii_bytes(b"a\rb.example", &[0x1301]),
+        0,
+    );
+    assert_eq!(count_control_findings(&a1), 1, "CR must trip finding");
+
+    // LF alone.
+    let mut a2 = TlsAnalyzer::new();
+    a2.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_ascii_bytes(b"a\nb.example", &[0x1301]),
+        0,
+    );
+    assert_eq!(count_control_findings(&a2), 1, "LF must trip finding");
+
+    // CRLF combined.
+    let mut a3 = TlsAnalyzer::new();
+    a3.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_ascii_bytes(b"a\r\nb.example", &[0x1301]),
+        0,
+    );
+    assert_eq!(count_control_findings(&a3), 1, "CRLF must trip finding");
+}
+
+#[test]
+fn test_printable_ascii_sni_emits_no_control_finding() {
+    // Regression guard: a plain printable-ASCII hostname must not trigger
+    // the new finding. A normal hostname keeps the intent clear.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello("www.example.com", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(count_control_findings(&analyzer), 0);
+    assert_eq!(
+        analyzer
+            .findings()
+            .iter()
+            .filter(|f| f.summary.contains("SNI"))
+            .count(),
+        0,
+        "printable ASCII must produce no SNI findings at all"
+    );
+}
+
+#[test]
+fn test_punycode_a_label_emits_no_control_finding() {
+    // Regression guard: `xn--caf-dma.example` is the RFC-compliant A-label
+    // encoding of `café.example`. It's pure printable ASCII and must NOT
+    // trigger either the non-ASCII finding (covered elsewhere) or the new
+    // control-byte finding.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello("xn--caf-dma.example", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(count_control_findings(&analyzer), 0);
+}
+
+#[test]
+fn test_non_ascii_sni_does_not_emit_control_finding() {
+    // Mutual exclusivity: a non-ASCII UTF-8 SNI (Cyrillic) falls into the
+    // `NonAsciiUtf8` branch, NOT `AsciiWithControl`. The `s.is_ascii()`
+    // guard on both control-byte arms prevents the non-ASCII path from
+    // ever landing in the new variant.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello("пример.example", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(
+        count_control_findings(&analyzer),
+        0,
+        "non-ASCII SNI must land in NonAsciiUtf8, not AsciiWithControl"
+    );
+    // And the non-ASCII finding still fires.
+    assert_eq!(
+        analyzer
+            .findings()
+            .iter()
+            .filter(|f| f.summary.contains("non-ASCII characters"))
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn test_ascii_control_boundary_bytes() {
+    // Boundary pins on both ends of the C0+DEL detection range:
+    //   - 0x00 (NUL, start of C0) MUST trip — most dangerous injection byte
+    //     (C-string truncation, log-parser splitting).
+    //   - 0x1F (Unit Separator, end of C0) MUST trip.
+    //   - 0x20 (space, first printable) MUST NOT trip — space is disallowed
+    //     by DNS preferred hostname syntax (RFC 952/1123), but it's not a
+    //     control byte, so this issue deliberately leaves it alone. Broader
+    //     LDH compliance is out-of-scope per issue #54's "Out of scope".
+    //   - 0x7F (DEL) is the other non-C0 half of the detection range and is
+    //     covered separately in `test_ascii_sni_with_del_emits_control_finding`.
+    let fk = test_flow_key();
+
+    for (label, byte, expect_trip) in [
+        ("0x00 (NUL, start of C0)", 0x00u8, true),
+        ("0x1F (end of C0)", 0x1fu8, true),
+        ("0x20 (space, first printable)", 0x20u8, false),
+    ] {
+        let sni = vec![b'a', byte, b'b', b'.', b'e', b'x', b'a', b'm', b'p', b'l', b'e'];
+        let mut analyzer = TlsAnalyzer::new();
+        analyzer.on_data(
+            &fk,
+            Direction::ClientToServer,
+            &build_client_hello_ascii_bytes(&sni, &[0x1301]),
+            0,
+        );
+        let expected = if expect_trip { 1 } else { 0 };
+        assert_eq!(
+            count_control_findings(&analyzer),
+            expected,
+            "{label}: expected {expected} control finding(s)",
+        );
+    }
+}
+
+#[test]
+fn test_multiple_control_bytes_in_sni_produces_single_finding() {
+    // If multiple C0/DEL bytes appear in the same SNI, the analyzer emits
+    // ONE finding for the hostname (not one per byte). Evidence still
+    // captures the full raw bytes via the hex field.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello_ascii_bytes(b"a\x07b\x1bc\x7fd.example", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(
+        count_control_findings(&analyzer),
+        1,
+        "multiple control bytes in one SNI must produce one finding, not N"
+    );
+    // Hex evidence captures all three bytes losslessly.
+    let f = analyzer
+        .findings()
+        .into_iter()
+        .find(|f| f.summary.contains("ASCII control characters"))
+        .unwrap();
+    assert!(
+        f.evidence
+            .iter()
+            .any(|e| e.contains("07") && e.contains("1b") && e.contains("7f")),
+        "hex evidence must preserve all control bytes, got: {:?}",
+        f.evidence
+    );
+}
