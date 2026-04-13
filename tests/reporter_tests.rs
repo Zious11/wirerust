@@ -1,7 +1,6 @@
 use std::net::IpAddr;
 use wirerust::analyzer::http::HttpAnalyzer;
 use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
-use wirerust::mitre::MitreTactic;
 use wirerust::reassembly::flow::FlowKey;
 use wirerust::reassembly::handler::{Direction, StreamAnalyzer, StreamHandler};
 use wirerust::reporter::Reporter;
@@ -551,7 +550,3 @@ fn default_rendering_unchanged_when_mitre_flag_off() {
     assert!(!out.contains("Uncategorized"));
 }
 
-// Ensure unused import doesn't trigger a warning — MitreTactic is used in
-// grouping tests indirectly; this explicit reference silences the lint.
-#[allow(dead_code)]
-fn _use_mitre_tactic(_: MitreTactic) {}
