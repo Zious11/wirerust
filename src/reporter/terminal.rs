@@ -2,6 +2,7 @@ use owo_colors::OwoColorize;
 
 use crate::analyzer::AnalysisSummary;
 use crate::findings::{Confidence, Finding, Verdict};
+use crate::mitre::{all_tactics_in_report_order, technique_name, technique_tactic, MitreTactic};
 use crate::reporter::Reporter;
 use crate::summary::Summary;
 
@@ -101,34 +102,14 @@ impl Reporter for TerminalReporter {
         // Findings
         if !findings.is_empty() {
             out.push_str(&self.section("FINDINGS"));
-            for f in findings {
+            if self.show_mitre_grouping {
+                self.render_findings_grouped(&mut out, findings);
+            } else {
                 // Per ADR 0003: the Finding struct stores raw bytes; the
                 // terminal reporter is responsible for escaping untrusted
                 // content (summary + evidence) before writing to a TTY.
-                let escaped_summary = escape_for_terminal(&f.summary);
-                let line = format!(
-                    "[{}] {} ({}) - {}",
-                    f.category, f.verdict, f.confidence, escaped_summary
-                );
-                let colored = if self.use_color {
-                    match f.verdict {
-                        Verdict::Likely => match f.confidence {
-                            Confidence::High => line.red().bold().to_string(),
-                            _ => line.yellow().to_string(),
-                        },
-                        Verdict::Inconclusive => line.cyan().to_string(),
-                        Verdict::Unlikely => line.dimmed().to_string(),
-                    }
-                } else {
-                    line
-                };
-                out.push_str(&format!("  {colored}\n"));
-                for ev in &f.evidence {
-                    let escaped_ev = escape_for_terminal(ev);
-                    out.push_str(&format!("    > {escaped_ev}\n"));
-                }
-                if let Some(ref t) = f.mitre_technique {
-                    out.push_str(&format!("    MITRE: {t}\n"));
+                for f in findings {
+                    self.render_finding_flat(&mut out, f);
                 }
             }
             out.push('\n');
@@ -165,6 +146,111 @@ impl TerminalReporter {
             format!("{}\n{}\n", title.bold().underline(), "─".repeat(40))
         } else {
             format!("{title}\n{}\n", "─".repeat(40))
+        }
+    }
+
+    fn render_finding_flat(&self, out: &mut String, f: &Finding) {
+        let escaped_summary = escape_for_terminal(&f.summary);
+        let line = format!(
+            "[{}] {} ({}) - {}",
+            f.category, f.verdict, f.confidence, escaped_summary
+        );
+        let colored = if self.use_color {
+            match f.verdict {
+                Verdict::Likely => match f.confidence {
+                    Confidence::High => line.red().bold().to_string(),
+                    _ => line.yellow().to_string(),
+                },
+                Verdict::Inconclusive => line.cyan().to_string(),
+                Verdict::Unlikely => line.dimmed().to_string(),
+            }
+        } else {
+            line
+        };
+        out.push_str(&format!("  {colored}\n"));
+        for ev in &f.evidence {
+            let escaped_ev = escape_for_terminal(ev);
+            out.push_str(&format!("    > {escaped_ev}\n"));
+        }
+        if let Some(ref t) = f.mitre_technique {
+            out.push_str(&format!("    MITRE: {t}\n"));
+        }
+    }
+
+    fn render_finding_grouped(&self, out: &mut String, f: &Finding) {
+        let escaped_summary = escape_for_terminal(&f.summary);
+        let line = format!(
+            "[{}] {} ({}) - {}",
+            f.category, f.verdict, f.confidence, escaped_summary
+        );
+        let colored = if self.use_color {
+            match f.verdict {
+                Verdict::Likely => match f.confidence {
+                    Confidence::High => line.red().bold().to_string(),
+                    _ => line.yellow().to_string(),
+                },
+                Verdict::Inconclusive => line.cyan().to_string(),
+                Verdict::Unlikely => line.dimmed().to_string(),
+            }
+        } else {
+            line
+        };
+        out.push_str(&format!("  {colored}\n"));
+        for ev in &f.evidence {
+            let escaped_ev = escape_for_terminal(ev);
+            out.push_str(&format!("    > {escaped_ev}\n"));
+        }
+        if let Some(ref id) = f.mitre_technique {
+            match technique_name(id) {
+                Some(name) => out.push_str(&format!("    MITRE: {id} \u{2014} {name}\n")),
+                None => out.push_str(&format!("    MITRE: {id} (unknown)\n")),
+            }
+        }
+    }
+
+    fn render_findings_grouped(&self, out: &mut String, findings: &[Finding]) {
+        // Bucket by tactic. Attach original index for stable tertiary sort.
+        let mut buckets: std::collections::HashMap<Option<MitreTactic>, Vec<(usize, &Finding)>> =
+            std::collections::HashMap::new();
+        for (i, f) in findings.iter().enumerate() {
+            let tactic = f.mitre_technique.as_deref().and_then(technique_tactic);
+            buckets.entry(tactic).or_default().push((i, f));
+        }
+
+        fn verdict_rank(v: Verdict) -> u8 {
+            match v {
+                Verdict::Likely => 0,
+                Verdict::Inconclusive => 1,
+                Verdict::Unlikely => 2,
+            }
+        }
+        fn confidence_rank(c: Confidence) -> u8 {
+            match c {
+                Confidence::High => 0,
+                Confidence::Medium => 1,
+                Confidence::Low => 2,
+            }
+        }
+
+        for (_, items) in buckets.iter_mut() {
+            items.sort_by_key(|(idx, f)| {
+                (verdict_rank(f.verdict), confidence_rank(f.confidence), *idx)
+            });
+        }
+
+        for tactic in all_tactics_in_report_order() {
+            if let Some(items) = buckets.get(&Some(*tactic)) {
+                out.push_str(&format!("  ## {tactic}\n"));
+                for (_, f) in items {
+                    self.render_finding_grouped(out, f);
+                }
+            }
+        }
+        if let Some(items) = buckets.get(&None) {
+            out.push_str("  ## Uncategorized\n");
+            for (_, f) in items {
+                self.render_finding_grouped(out, f);
+            }
         }
     }
 }

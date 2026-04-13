@@ -1,6 +1,7 @@
 use std::net::IpAddr;
 use wirerust::analyzer::http::HttpAnalyzer;
 use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+use wirerust::mitre::MitreTactic;
 use wirerust::reassembly::flow::FlowKey;
 use wirerust::reassembly::handler::{Direction, StreamAnalyzer, StreamHandler};
 use wirerust::reporter::Reporter;
@@ -451,3 +452,106 @@ fn test_http_analyzer_summary_c1_csi_escaped_by_terminal_reporter() {
         "terminal output should contain the escaped form of C1 CSI in analyzer summary, got: {output}"
     );
 }
+
+// ---------------------------------------------------------------------------
+// MITRE grouping tests
+// ---------------------------------------------------------------------------
+
+fn base_finding_with_mitre(
+    technique: Option<&str>,
+    verdict: Verdict,
+    confidence: Confidence,
+    summary: &str,
+) -> Finding {
+    Finding {
+        category: ThreatCategory::Anomaly,
+        verdict,
+        confidence,
+        summary: summary.to_string(),
+        evidence: vec![],
+        mitre_technique: technique.map(|s| s.to_string()),
+        source_ip: None,
+        timestamp: None,
+    }
+}
+
+#[test]
+fn mitre_grouping_emits_tactic_headers_in_canonical_order() {
+    let findings = vec![
+        base_finding_with_mitre(Some("T1499.002"), Verdict::Likely, Confidence::High, "dos"),
+        base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::High, "scan"),
+        base_finding_with_mitre(Some("T0855"), Verdict::Likely, Confidence::High, "ics"),
+    ];
+    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: true };
+    let out = reporter.render(&Summary::new(), &findings, &[]);
+    let discovery_pos = out.find("Discovery").expect("missing Discovery header");
+    let impact_pos = out.find("Impact").expect("missing Impact header");
+    let ics_pos = out.find("Impair Process Control").expect("missing ICS header");
+    assert!(discovery_pos < impact_pos, "Discovery must come before Impact");
+    assert!(impact_pos < ics_pos, "Impact must come before ICS tactics");
+}
+
+#[test]
+fn mitre_grouping_sorts_within_tactic_by_verdict_then_confidence() {
+    let findings = vec![
+        base_finding_with_mitre(Some("T1046"), Verdict::Unlikely, Confidence::High, "third"),
+        base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::Medium, "second"),
+        base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::High, "first"),
+        base_finding_with_mitre(Some("T1046"), Verdict::Inconclusive, Confidence::Low, "fourth_ish"),
+    ];
+    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: true };
+    let out = reporter.render(&Summary::new(), &findings, &[]);
+    let p1 = out.find("first").expect("first missing");
+    let p2 = out.find("second").expect("second missing");
+    let p3 = out.find("fourth_ish").expect("fourth_ish missing");
+    let p4 = out.find("third").expect("third missing");
+    assert!(p1 < p2 && p2 < p3 && p3 < p4, "verdict/confidence sort wrong: {out}");
+}
+
+#[test]
+fn mitre_grouping_buckets_none_and_unknown_under_uncategorized() {
+    let findings = vec![
+        base_finding_with_mitre(None, Verdict::Likely, Confidence::High, "no_id_finding"),
+        base_finding_with_mitre(Some("T9999"), Verdict::Likely, Confidence::High, "unknown_id_finding"),
+        base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::High, "known_finding"),
+    ];
+    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: true };
+    let out = reporter.render(&Summary::new(), &findings, &[]);
+    let uncat_pos = out.find("Uncategorized").expect("missing Uncategorized section");
+    let no_id_pos = out.find("no_id_finding").expect("missing no-id finding");
+    let unknown_pos = out.find("unknown_id_finding").expect("missing unknown-id finding");
+    let known_pos = out.find("known_finding").expect("missing known finding");
+    assert!(known_pos < uncat_pos, "Uncategorized must come after known tactics");
+    assert!(uncat_pos < no_id_pos && uncat_pos < unknown_pos);
+    assert!(out.contains("T9999 (unknown)"), "unknown ID must render with '(unknown)' label");
+}
+
+#[test]
+fn mitre_grouping_expands_per_finding_line_with_technique_name() {
+    let findings = vec![
+        base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::High, "scan"),
+    ];
+    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: true };
+    let out = reporter.render(&Summary::new(), &findings, &[]);
+    assert!(
+        out.contains("MITRE: T1046 \u{2014} Network Service Discovery"),
+        "expected em-dash-expanded MITRE line, got: {out}",
+    );
+}
+
+#[test]
+fn default_rendering_unchanged_when_mitre_flag_off() {
+    let findings = vec![
+        base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::High, "scan"),
+    ];
+    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: false };
+    let out = reporter.render(&Summary::new(), &findings, &[]);
+    assert!(out.contains("MITRE: T1046"));
+    assert!(!out.contains("\u{2014}"), "em-dash should not appear in default render");
+    assert!(!out.contains("Uncategorized"));
+}
+
+// Ensure unused import doesn't trigger a warning — MitreTactic is used in
+// grouping tests indirectly; this explicit reference silences the lint.
+#[allow(dead_code)]
+fn _use_mitre_tactic(_: MitreTactic) {}
