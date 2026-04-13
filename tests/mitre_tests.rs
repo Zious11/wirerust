@@ -1,4 +1,4 @@
-use wirerust::mitre::{MitreTactic, all_tactics_in_report_order};
+use wirerust::mitre::{MitreTactic, all_tactics_in_report_order, technique_name, technique_tactic};
 
 #[test]
 fn display_renders_enterprise_tactics_with_canonical_spacing() {
@@ -71,4 +71,62 @@ fn report_order_matches_enterprise_kill_chain_for_first_14() {
         MitreTactic::Impact,
     ];
     assert_eq!(&tactics[..14], &enterprise);
+}
+
+#[test]
+fn technique_name_resolves_every_seeded_id() {
+    assert_eq!(technique_name("T1027"), Some("Obfuscated Files or Information"));
+    assert_eq!(technique_name("T1036"), Some("Masquerading"));
+    assert_eq!(technique_name("T1040"), Some("Network Sniffing"));
+    assert_eq!(technique_name("T1046"), Some("Network Service Discovery"));
+    assert_eq!(technique_name("T1071"), Some("Application Layer Protocol"));
+    assert_eq!(technique_name("T1071.001"), Some("Web Protocols"));
+    assert_eq!(technique_name("T1071.004"), Some("DNS"));
+    assert_eq!(technique_name("T1083"), Some("File and Directory Discovery"));
+    assert_eq!(technique_name("T1499.002"), Some("Service Exhaustion Flood"));
+    assert_eq!(technique_name("T1505.003"), Some("Web Shell"));
+    assert_eq!(technique_name("T1573"), Some("Encrypted Channel"));
+    assert_eq!(technique_name("T0846"), Some("Remote System Discovery"));
+    assert_eq!(technique_name("T0855"), Some("Unauthorized Command Message"));
+    assert_eq!(technique_name("T0856"), Some("Spoof Reporting Message"));
+    assert_eq!(technique_name("T0885"), Some("Commonly Used Port"));
+}
+
+#[test]
+fn technique_name_returns_none_for_unknown_ids() {
+    assert_eq!(technique_name("T9999"), None);
+    assert_eq!(technique_name(""), None);
+    assert_eq!(technique_name("T1046.999"), None);
+    assert_eq!(technique_name("garbage"), None);
+}
+
+#[test]
+fn technique_tactic_matches_spec_table() {
+    assert_eq!(technique_tactic("T1027"), Some(MitreTactic::DefenseEvasion));
+    assert_eq!(technique_tactic("T1036"), Some(MitreTactic::DefenseEvasion));
+    assert_eq!(technique_tactic("T1040"), Some(MitreTactic::CredentialAccess));
+    assert_eq!(technique_tactic("T1046"), Some(MitreTactic::Discovery));
+    assert_eq!(technique_tactic("T1071"), Some(MitreTactic::CommandAndControl));
+    assert_eq!(technique_tactic("T1071.001"), Some(MitreTactic::CommandAndControl));
+    assert_eq!(technique_tactic("T1071.004"), Some(MitreTactic::CommandAndControl));
+    assert_eq!(technique_tactic("T1083"), Some(MitreTactic::Discovery));
+    assert_eq!(technique_tactic("T1499.002"), Some(MitreTactic::Impact));
+    assert_eq!(technique_tactic("T1505.003"), Some(MitreTactic::Persistence));
+    assert_eq!(technique_tactic("T1573"), Some(MitreTactic::CommandAndControl));
+    assert_eq!(technique_tactic("T0846"), Some(MitreTactic::Discovery));
+    assert_eq!(
+        technique_tactic("T0855"),
+        Some(MitreTactic::IcsImpairProcessControl)
+    );
+    assert_eq!(
+        technique_tactic("T0856"),
+        Some(MitreTactic::IcsImpairProcessControl)
+    );
+    assert_eq!(technique_tactic("T0885"), Some(MitreTactic::CommandAndControl));
+}
+
+#[test]
+fn technique_tactic_returns_none_for_unknown_ids() {
+    assert_eq!(technique_tactic("T9999"), None);
+    assert_eq!(technique_tactic(""), None);
 }
