@@ -154,7 +154,7 @@ fn compute_ja3s(version: u16, cipher: TlsCipherSuiteID, extensions: &[TlsExtensi
 ///
 /// - `AsciiWithControl` — bytes are pure ASCII but contain at least one C0 control
 ///   byte (0x00–0x1F) or DEL (0x7F). RFC 6066 §3 requires ASCII; the DNS preferred
-///   hostname syntax (RFC 952 / RFC 1123, preserved under RFC 5890 A-label
+///   hostname syntax (RFC 952 / RFC 1123, inherited by RFC 5890 A-label
 ///   construction) restricts to letters, digits, and hyphens — no whitespace,
 ///   no control codes. An SNI like `"foo\x1b[31m.example"` is
 ///   simultaneously a protocol violation, a potential terminal-injection vector

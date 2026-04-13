@@ -1080,9 +1080,10 @@ fn test_trailing_bytes_in_server_name_list() {
 // ── issue #54: SNI containing ASCII control bytes (C0 / DEL) ─────────────────
 //
 // RFC 6066 §3 requires HostName to be ASCII; the DNS preferred hostname syntax
-// (RFC 952 / RFC 1123, preserved under RFC 5890 A-label construction) restricts
-// to letters, digits, and hyphens. No legitimate TLS client emits C0 (0x00–0x1F)
-// or DEL (0x7F) in SNI, so the full C0+DEL range is the correct detection scope
+// (RFC 952 / RFC 1123, inherited by RFC 5890 A-label construction) restricts
+// to letters, digits, and hyphens. No conforming TLS client should emit C0
+// (0x00–0x1F) or DEL (0x7F) in SNI, so the full C0+DEL range is the correct
+// detection scope
 // (narrower ranges like ESC+DEL alone would miss BEL / CR / LF / tab variants
 // used for log-injection, terminal escape, or covert signalling).
 //
