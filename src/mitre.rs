@@ -8,10 +8,9 @@
 //!
 //! Callers pass technique IDs in MITRE's canonical form: `TXXXX` for parent
 //! techniques (e.g., `T1046`) and `TXXXX.NNN` for sub-techniques (period
-//! separator, three-digit suffix — e.g., `T1071.001`). The format is used
-//! consistently across Enterprise, ICS, and Mobile matrices and in STIX 2.1
-//! bundles. Inputs that don't match a seeded ID return `None` from the
-//! lookup functions.
+//! separator, three-digit suffix — e.g., `T1071.001`). This format is used
+//! across ATT&CK matrices and STIX 2.1 bundles. Inputs that don't match a
+//! seeded ID return `None` from the lookup functions.
 
 use std::fmt;
 
@@ -108,10 +107,10 @@ pub fn technique_info(id: &str) -> Option<(&'static str, MitreTactic)> {
         "T1499.002" => ("Service Exhaustion Flood", MitreTactic::Impact),
         "T1505.003" => ("Web Shell", MitreTactic::Persistence),
         "T1573" => ("Encrypted Channel", MitreTactic::CommandAndControl),
-        // ICS. The shared-name tactics (Discovery, Command and Control)
-        // collapse into their Enterprise variants — Enterprise and ICS
-        // matrices list them as distinct TA-IDs, but for grouping we
-        // prefer one section per tactic name.
+        // ICS. MITRE assigns distinct TA-IDs per matrix (e.g., Enterprise
+        // Discovery TA0007 vs ICS Discovery TA0111); we intentionally
+        // merge by name so a single grouped report has one section per
+        // tactic name regardless of source matrix.
         "T0846" => ("Remote System Discovery", MitreTactic::Discovery),
         "T0855" => (
             "Unauthorized Command Message",
