@@ -375,6 +375,12 @@ impl TlsAnalyzer {
             };
             Self::increment(&mut self.sni_counts, key, MAX_MAP_ENTRIES);
 
+            // SNI encoding violations (control chars, non-ASCII UTF-8,
+            // non-UTF-8 bytes) map to MITRE T1027 (Obfuscated Files or
+            // Information): the technique is corrupting a protocol field
+            // to evade inspection, not impersonating a legitimate
+            // hostname (which would be T1036 Masquerading) or proving C2
+            // abuse over the channel (T1071.001).
             match sni {
                 SniValue::Ascii(_) => {} // No C0/DEL detected; no finding emitted at this layer.
                 SniValue::AsciiWithControl { hostname, hex } => {
@@ -394,7 +400,7 @@ impl TlsAnalyzer {
                              digits, and hyphens): {hostname}"
                         ),
                         evidence: vec![format!("hex: {hex}")],
-                        mitre_technique: None,
+                        mitre_technique: Some("T1027".to_string()),
                         source_ip: None,
                         timestamp: None,
                     });
@@ -413,7 +419,7 @@ impl TlsAnalyzer {
                              A-labels per RFC 5890): {hostname}"
                         ),
                         evidence: vec![format!("hex: {hex}")],
-                        mitre_technique: None,
+                        mitre_technique: Some("T1027".to_string()),
                         source_ip: None,
                         timestamp: None,
                     });
@@ -432,7 +438,7 @@ impl TlsAnalyzer {
                             "TLS SNI contains non-UTF-8 bytes (RFC 6066 violation): {lossy}"
                         ),
                         evidence: vec![format!("hex: {hex}")],
-                        mitre_technique: None,
+                        mitre_technique: Some("T1027".to_string()),
                         source_ip: None,
                         timestamp: None,
                     });

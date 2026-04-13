@@ -90,3 +90,21 @@ fn test_multiple_targets() {
         _ => panic!("Expected Analyze command"),
     }
 }
+
+#[test]
+fn test_mitre_flag_parses_on_analyze() {
+    let cli = Cli::parse_from(["wirerust", "analyze", "capture.pcap", "--mitre"]);
+    match cli.command {
+        Commands::Analyze { mitre, .. } => assert!(mitre),
+        _ => panic!("Expected Analyze command"),
+    }
+}
+
+#[test]
+fn test_mitre_flag_defaults_false() {
+    let cli = Cli::parse_from(["wirerust", "analyze", "capture.pcap"]);
+    match cli.command {
+        Commands::Analyze { mitre, .. } => assert!(!mitre),
+        _ => panic!("Expected Analyze command"),
+    }
+}

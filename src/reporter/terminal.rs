@@ -2,6 +2,7 @@ use owo_colors::OwoColorize;
 
 use crate::analyzer::AnalysisSummary;
 use crate::findings::{Confidence, Finding, Verdict};
+use crate::mitre::{MitreTactic, all_tactics_in_report_order, technique_name, technique_tactic};
 use crate::reporter::Reporter;
 use crate::summary::Summary;
 
@@ -46,6 +47,9 @@ fn escape_for_terminal(s: &str) -> String {
 
 pub struct TerminalReporter {
     pub use_color: bool,
+    /// When true, regroup the FINDINGS section by MITRE tactic and expand
+    /// the per-finding MITRE line to include the technique name.
+    pub show_mitre_grouping: bool,
 }
 
 impl Reporter for TerminalReporter {
@@ -98,34 +102,14 @@ impl Reporter for TerminalReporter {
         // Findings
         if !findings.is_empty() {
             out.push_str(&self.section("FINDINGS"));
-            for f in findings {
+            if self.show_mitre_grouping {
+                self.render_findings_grouped(&mut out, findings);
+            } else {
                 // Per ADR 0003: the Finding struct stores raw bytes; the
                 // terminal reporter is responsible for escaping untrusted
                 // content (summary + evidence) before writing to a TTY.
-                let escaped_summary = escape_for_terminal(&f.summary);
-                let line = format!(
-                    "[{}] {} ({}) - {}",
-                    f.category, f.verdict, f.confidence, escaped_summary
-                );
-                let colored = if self.use_color {
-                    match f.verdict {
-                        Verdict::Likely => match f.confidence {
-                            Confidence::High => line.red().bold().to_string(),
-                            _ => line.yellow().to_string(),
-                        },
-                        Verdict::Inconclusive => line.cyan().to_string(),
-                        Verdict::Unlikely => line.dimmed().to_string(),
-                    }
-                } else {
-                    line
-                };
-                out.push_str(&format!("  {colored}\n"));
-                for ev in &f.evidence {
-                    let escaped_ev = escape_for_terminal(ev);
-                    out.push_str(&format!("    > {escaped_ev}\n"));
-                }
-                if let Some(ref t) = f.mitre_technique {
-                    out.push_str(&format!("    MITRE: {t}\n"));
+                for f in findings {
+                    self.render_finding_flat(&mut out, f);
                 }
             }
             out.push('\n');
@@ -162,6 +146,114 @@ impl TerminalReporter {
             format!("{}\n{}\n", title.bold().underline(), "─".repeat(40))
         } else {
             format!("{title}\n{}\n", "─".repeat(40))
+        }
+    }
+
+    /// Emits the shared per-finding prefix: the colored `[category] verdict
+    /// (confidence) - summary` header line followed by each evidence line.
+    /// Summary and evidence strings are escaped per ADR 0003 before being
+    /// written to the TTY. Callers own the trailing MITRE line — see
+    /// [`render_finding_flat`] and [`render_finding_grouped`].
+    fn render_finding_prefix(&self, out: &mut String, f: &Finding) {
+        let escaped_summary = escape_for_terminal(&f.summary);
+        let line = format!(
+            "[{}] {} ({}) - {}",
+            f.category, f.verdict, f.confidence, escaped_summary
+        );
+        let colored = if self.use_color {
+            match f.verdict {
+                Verdict::Likely => match f.confidence {
+                    Confidence::High => line.red().bold().to_string(),
+                    _ => line.yellow().to_string(),
+                },
+                Verdict::Inconclusive => line.cyan().to_string(),
+                Verdict::Unlikely => line.dimmed().to_string(),
+            }
+        } else {
+            line
+        };
+        out.push_str(&format!("  {colored}\n"));
+        for ev in &f.evidence {
+            let escaped_ev = escape_for_terminal(ev);
+            out.push_str(&format!("    > {escaped_ev}\n"));
+        }
+    }
+
+    /// Renders a single finding in the default flat view. MITRE line, if
+    /// present, shows just the technique ID.
+    fn render_finding_flat(&self, out: &mut String, f: &Finding) {
+        self.render_finding_prefix(out, f);
+        if let Some(ref t) = f.mitre_technique {
+            out.push_str(&format!("    MITRE: {t}\n"));
+        }
+    }
+
+    /// Renders a single finding in the `--mitre` grouped view. MITRE line,
+    /// if present, expands to `ID — Name` for known IDs and `ID (unknown)`
+    /// for IDs absent from [`crate::mitre::technique_name`]. Unknown IDs
+    /// still render so they surface in audit trails; the regression test
+    /// `known_emitted_technique_ids_resolve_in_lookup` in
+    /// `tests/mitre_tests.rs` covers the hand-curated set of IDs we
+    /// currently emit (see issue #67 for the trade-off rationale).
+    fn render_finding_grouped(&self, out: &mut String, f: &Finding) {
+        self.render_finding_prefix(out, f);
+        if let Some(ref id) = f.mitre_technique {
+            match technique_name(id) {
+                Some(name) => out.push_str(&format!("    MITRE: {id} \u{2014} {name}\n")),
+                None => out.push_str(&format!("    MITRE: {id} (unknown)\n")),
+            }
+        }
+    }
+
+    /// Renders the FINDINGS section grouped by MITRE tactic. Each tactic
+    /// header is `## Tactic Name`; sections appear in
+    /// [`all_tactics_in_report_order`] order with an Uncategorized bucket
+    /// last that holds findings with no technique or an unknown ID.
+    /// Within each bucket, findings sort by verdict-desc, then
+    /// confidence-desc, then original emission order (stable).
+    fn render_findings_grouped(&self, out: &mut String, findings: &[Finding]) {
+        // Bucket by tactic. Attach original index for stable tertiary sort.
+        let mut buckets: std::collections::HashMap<Option<MitreTactic>, Vec<(usize, &Finding)>> =
+            std::collections::HashMap::new();
+        for (i, f) in findings.iter().enumerate() {
+            let tactic = f.mitre_technique.as_deref().and_then(technique_tactic);
+            buckets.entry(tactic).or_default().push((i, f));
+        }
+
+        fn verdict_rank(v: Verdict) -> u8 {
+            match v {
+                Verdict::Likely => 0,
+                Verdict::Inconclusive => 1,
+                Verdict::Unlikely => 2,
+            }
+        }
+        fn confidence_rank(c: Confidence) -> u8 {
+            match c {
+                Confidence::High => 0,
+                Confidence::Medium => 1,
+                Confidence::Low => 2,
+            }
+        }
+
+        for (_, items) in buckets.iter_mut() {
+            items.sort_by_key(|(idx, f)| {
+                (verdict_rank(f.verdict), confidence_rank(f.confidence), *idx)
+            });
+        }
+
+        for tactic in all_tactics_in_report_order() {
+            if let Some(items) = buckets.get(&Some(*tactic)) {
+                out.push_str(&format!("  ## {tactic}\n"));
+                for (_, f) in items {
+                    self.render_finding_grouped(out, f);
+                }
+            }
+        }
+        if let Some(items) = buckets.get(&None) {
+            out.push_str("  ## Uncategorized\n");
+            for (_, f) in items {
+                self.render_finding_grouped(out, f);
+            }
         }
     }
 }

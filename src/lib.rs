@@ -3,6 +3,7 @@ pub mod cli;
 pub mod decoder;
 pub mod dispatcher;
 pub mod findings;
+pub mod mitre;
 pub mod reader;
 pub mod reassembly;
 pub mod reporter;
