@@ -130,3 +130,32 @@ fn technique_tactic_returns_none_for_unknown_ids() {
     assert_eq!(technique_tactic("T9999"), None);
     assert_eq!(technique_tactic(""), None);
 }
+
+#[test]
+fn every_emitted_technique_id_is_known() {
+    // Canonical list of every mitre_technique Some(...) value the codebase
+    // emits today. When you add a new emission site in an analyzer or
+    // reassembly handler, add the ID here too. Missing entries = CI failure.
+    let emitted_ids = [
+        // src/analyzer/http.rs
+        "T1083",
+        "T1505.003",
+        "T1046",
+        "T1499.002",
+        // src/analyzer/tls.rs (added in this feature)
+        "T1027",
+        // src/reassembly/mod.rs
+        "T1036",
+    ];
+
+    for id in emitted_ids {
+        assert!(
+            technique_name(id).is_some(),
+            "analyzer emits {id} but technique_name({id}) returned None",
+        );
+        assert!(
+            technique_tactic(id).is_some(),
+            "analyzer emits {id} but technique_tactic({id}) returned None",
+        );
+    }
+}
