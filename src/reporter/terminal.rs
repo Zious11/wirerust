@@ -191,9 +191,10 @@ impl TerminalReporter {
     /// Renders a single finding in the `--mitre` grouped view. MITRE line,
     /// if present, expands to `ID — Name` for known IDs and `ID (unknown)`
     /// for IDs absent from [`crate::mitre::technique_name`]. Unknown IDs
-    /// still render so they surface in audit trails; the canonical
-    /// regression test in `tests/mitre_tests.rs` is the authoritative typo
-    /// gate at CI time.
+    /// still render so they surface in audit trails; the regression test
+    /// `known_emitted_technique_ids_resolve_in_lookup` in
+    /// `tests/mitre_tests.rs` covers the hand-curated set of IDs we
+    /// currently emit (see issue #67 for the trade-off rationale).
     fn render_finding_grouped(&self, out: &mut String, f: &Finding) {
         self.render_finding_prefix(out, f);
         if let Some(ref id) = f.mitre_technique {

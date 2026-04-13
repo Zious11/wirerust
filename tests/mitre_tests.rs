@@ -182,10 +182,16 @@ fn technique_tactic_returns_none_for_unknown_ids() {
 }
 
 #[test]
-fn every_emitted_technique_id_is_known() {
-    // Canonical list of every mitre_technique Some(...) value the codebase
-    // emits today. When you add a new emission site in an analyzer or
-    // reassembly handler, add the ID here too. Missing entries = CI failure.
+fn known_emitted_technique_ids_resolve_in_lookup() {
+    // Sanity check on a hand-curated list of the technique IDs the codebase
+    // emits today via `mitre_technique: Some("...")`. This is not an
+    // exhaustive cross-check — adding a new emission site without also
+    // adding the ID here will not fail this test. See issue #67 for the
+    // tracked discussion of the trade-off (the hand-curated approach is
+    // the idiomatic Rust pattern at this scale; revisit when emission
+    // sites grow > ~20 or a missed-update incident occurs). The
+    // convention is to update this list in the same commit as a new
+    // emission.
     let emitted_ids = [
         // src/analyzer/http.rs
         "T1083",
