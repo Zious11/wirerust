@@ -149,9 +149,17 @@ fn compute_ja3s(version: u16, cipher: TlsCipherSuiteID, extensions: &[TlsExtensi
 ///
 /// RFC 6066 §3 specifies that the `HostName` field is "represented as a byte
 /// string using ASCII encoding". Internationalized names use A-labels (RFC 5890,
-/// `xn--…` Punycode form), which are also ASCII. Two RFC violations are tracked
+/// `xn--…` Punycode form), which are also ASCII. Three RFC violations are tracked
 /// separately:
 ///
+/// - `AsciiWithControl` — bytes are pure ASCII but contain at least one C0 control
+///   byte (0x00–0x1F) or DEL (0x7F). RFC 6066 §3 requires ASCII; the DNS preferred
+///   hostname syntax (RFC 952 / RFC 1123, inherited by RFC 5890 A-label
+///   construction) restricts to letters, digits, and hyphens — no whitespace,
+///   no control codes. An SNI like `"foo\x1b[31m.example"` is
+///   simultaneously a protocol violation, a potential terminal-injection vector
+///   (rendered via the terminal reporter, which escapes at display time per
+///   ADR 0003), and a plausible evasion / log-poisoning / covert-channel signal.
 /// - `NonAsciiUtf8` — bytes decode as valid UTF-8 but contain non-ASCII codepoints
 ///   (e.g. a raw U-label "café.example"). RFC 6066 says these MUST be Punycode-encoded
 ///   before transmission. Major TLS clients (rustls, Chrome/BoringSSL, Firefox/NSS,
@@ -160,12 +168,23 @@ fn compute_ja3s(version: u16, cipher: TlsCipherSuiteID, extensions: &[TlsExtensi
 ///   or an attacker tool.
 /// - `NonUtf8` — bytes can't decode as UTF-8 at all. Strictly malformed.
 ///
-/// Both are surfaced as Anomaly findings; usually a client bug, but worth forensic
-/// review.
+/// All three are surfaced as Anomaly findings; usually a client bug or adversarial
+/// input, but worth forensic review.
 enum SniValue {
-    /// Hostname is pure ASCII — RFC 6066 compliant. May be a literal hostname or
-    /// an A-label (Punycode) form like `xn--caf-dma.example`.
+    /// Hostname is pure ASCII with no C0 control bytes (0x00–0x1F) and no DEL
+    /// (0x7F), so this classifier emits no finding. This arm is a "nothing to
+    /// flag at the byte-control level" bucket, not a full RFC 6066 /
+    /// DNS-preferred-hostname compliance check — empty hostnames (`""`),
+    /// spaces, and other non-LDH printable ASCII still land here. May be a
+    /// literal hostname or an A-label (Punycode) form like
+    /// `xn--caf-dma.example`. Broader LDH compliance is out of scope (see
+    /// issue #54's "Out of scope" section).
     Ascii(String),
+    /// Hostname is pure ASCII but contains at least one C0 control byte
+    /// (0x00–0x1F) or DEL (0x7F). `hostname` is the raw String (safe because
+    /// pure ASCII is always valid UTF-8); `hex` is the lossless lowercase hex
+    /// of the raw bytes for forensic evidence.
+    AsciiWithControl { hostname: String, hex: String },
     /// Hostname decodes as valid UTF-8 but contains at least one byte ≥ 0x80.
     /// `hostname` is the decoded String (always valid UTF-8); `hex` is the lossless
     /// lowercase hex of the raw bytes for forensic evidence.
@@ -173,6 +192,22 @@ enum SniValue {
     /// Hostname bytes failed UTF-8 decoding. `lossy` is the U+FFFD-replaced form
     /// for human display; `hex` is the lossless lowercase hex of the raw bytes.
     NonUtf8 { lossy: String, hex: String },
+}
+
+/// Returns true if any byte is a C0 control (0x00–0x1F) or DEL (0x7F).
+///
+/// Callers must ensure `s` is pure ASCII before calling — the byte-level check
+/// is only meaningful for ASCII strings. For non-ASCII UTF-8 it would produce
+/// false negatives on multi-byte codepoints (whose continuation bytes are all
+/// ≥ 0x80) and is redundant since non-ASCII already signals a protocol violation
+/// via `NonAsciiUtf8`.
+fn contains_c0_or_del(s: &str) -> bool {
+    debug_assert!(
+        s.is_ascii(),
+        "contains_c0_or_del requires ASCII input; non-ASCII UTF-8 \
+         continuation bytes are ≥ 0x80 and would produce a false negative"
+    );
+    s.bytes().any(|b| b < 0x20 || b == 0x7f)
 }
 
 /// Extract SNI hostname from the parsed extension list.
@@ -187,7 +222,11 @@ fn extract_sni(extensions: &[TlsExtension<'_>]) -> Option<SniValue> {
             && let Some((_, hostname)) = list.first()
         {
             return Some(match std::str::from_utf8(hostname) {
-                Ok(s) if s.is_ascii() => SniValue::Ascii(s.to_string()),
+                Ok(s) if s.is_ascii() && !contains_c0_or_del(s) => SniValue::Ascii(s.to_string()),
+                Ok(s) if s.is_ascii() => SniValue::AsciiWithControl {
+                    hostname: s.to_string(),
+                    hex: bytes_to_hex(hostname),
+                },
                 Ok(s) => SniValue::NonAsciiUtf8 {
                     hostname: s.to_string(),
                     hex: bytes_to_hex(hostname),
@@ -324,17 +363,42 @@ impl TlsAnalyzer {
             // Choose a map key that preserves uniqueness for non-UTF-8 cases.
             // Using `lossy` as a key would collapse distinct byte sequences whose
             // U+FFFD replacements happen to align — bad for forensic counting.
-            // For Ascii and NonAsciiUtf8 the hostname is valid UTF-8 with no
-            // collision risk, so use it directly.
+            // For Ascii, AsciiWithControl, and NonAsciiUtf8 the hostname is valid
+            // UTF-8 with no collision risk, so use it directly. Terminal-safe
+            // display of embedded control bytes is handled by the terminal
+            // reporter per ADR 0003.
             let key = match &sni {
                 SniValue::Ascii(s) => s.clone(),
+                SniValue::AsciiWithControl { hostname, .. } => hostname.clone(),
                 SniValue::NonAsciiUtf8 { hostname, .. } => hostname.clone(),
                 SniValue::NonUtf8 { hex, .. } => format!("<non-utf8:{hex}>"),
             };
             Self::increment(&mut self.sni_counts, key, MAX_MAP_ENTRIES);
 
             match sni {
-                SniValue::Ascii(_) => {} // RFC-compliant, no finding
+                SniValue::Ascii(_) => {} // No C0/DEL detected; no finding emitted at this layer.
+                SniValue::AsciiWithControl { hostname, hex } => {
+                    self.all_findings.push(Finding {
+                        category: ThreatCategory::Anomaly,
+                        verdict: Verdict::Inconclusive,
+                        confidence: Confidence::Low,
+                        // Raw hostname interpolation — the data layer stores raw
+                        // bytes per ADR 0003 (including embedded C0/DEL control
+                        // codes). The terminal reporter escapes them at render
+                        // time to prevent terminal-injection; JSON output is
+                        // already safe via serde_json's RFC 8259 escaping.
+                        summary: format!(
+                            "TLS SNI contains ASCII control characters \
+                             (RFC 6066 §3 requires ASCII; DNS preferred hostname \
+                             syntax per RFC 952 / RFC 1123 restricts to letters, \
+                             digits, and hyphens): {hostname}"
+                        ),
+                        evidence: vec![format!("hex: {hex}")],
+                        mitre_technique: None,
+                        source_ip: None,
+                        timestamp: None,
+                    });
+                }
                 SniValue::NonAsciiUtf8 { hostname, hex } => {
                     self.all_findings.push(Finding {
                         category: ThreatCategory::Anomaly,
