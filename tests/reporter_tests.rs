@@ -59,7 +59,10 @@ fn test_json_reporter_skipped_packets_zero_by_default() {
 
 #[test]
 fn test_terminal_reporter_shows_skipped_when_nonzero() {
-    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: false };
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: false,
+    };
     let mut summary = Summary::new();
     summary.skipped_packets = 5;
 
@@ -72,7 +75,10 @@ fn test_terminal_reporter_shows_skipped_when_nonzero() {
 
 #[test]
 fn test_terminal_reporter_hides_skipped_when_zero() {
-    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: false };
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: false,
+    };
     let summary = Summary::new();
 
     let output = reporter.render(&summary, &[], &[]);
@@ -88,7 +94,10 @@ fn test_terminal_reporter_escapes_esc_bytes_in_summary() {
     // propagate the raw byte to terminal output, where it would be
     // interpreted as an ANSI escape sequence. Per ADR 0003, the terminal
     // reporter is responsible for this escaping.
-    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: false };
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: false,
+    };
     let summary = Summary::new();
     let findings = vec![Finding {
         category: ThreatCategory::Anomaly,
@@ -155,11 +164,11 @@ fn test_output_sanitization_layering_contract() {
     );
 
     // Layer 2: terminal reporter escapes on display.
-    let terminal_output = TerminalReporter { use_color: false, show_mitre_grouping: false }.render(
-        &Summary::new(),
-        std::slice::from_ref(&finding),
-        &[],
-    );
+    let terminal_output = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: false,
+    }
+    .render(&Summary::new(), std::slice::from_ref(&finding), &[]);
     assert!(
         !terminal_output.as_bytes().contains(&0x1b),
         "terminal reporter must not emit raw ESC bytes, got: {terminal_output:?}"
@@ -258,7 +267,11 @@ fn test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries() {
         detail,
     };
 
-    let output = TerminalReporter { use_color: false, show_mitre_grouping: false }.render(
+    let output = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: false,
+    }
+    .render(
         &Summary::new(),
         &[],
         std::slice::from_ref(&analyzer_summary),
@@ -359,7 +372,11 @@ fn test_http_finding_c1_csi_escaped_by_terminal_reporter() {
     );
 
     // Render through terminal reporter — no raw C1 bytes in output.
-    let output = TerminalReporter { use_color: false, show_mitre_grouping: false }.render(&Summary::new(), &findings, &[]);
+    let output = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: false,
+    }
+    .render(&Summary::new(), &findings, &[]);
     assert!(
         !output.as_bytes().windows(2).any(|w| w == [0xC2, 0x9B]),
         "terminal output must not contain raw C1 CSI (0xC2 0x9B), got: {output:?}"
@@ -437,7 +454,11 @@ fn test_http_analyzer_summary_c1_csi_escaped_by_terminal_reporter() {
     );
 
     // Render through terminal reporter — no raw C1 bytes in output.
-    let output = TerminalReporter { use_color: false, show_mitre_grouping: false }.render(
+    let output = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: false,
+    }
+    .render(
         &Summary::new(),
         &[],
         std::slice::from_ref(&analyzer_summary),
@@ -481,12 +502,20 @@ fn mitre_grouping_emits_tactic_headers_in_canonical_order() {
         base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::High, "scan"),
         base_finding_with_mitre(Some("T0855"), Verdict::Likely, Confidence::High, "ics"),
     ];
-    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: true };
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: true,
+    };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let discovery_pos = out.find("Discovery").expect("missing Discovery header");
     let impact_pos = out.find("Impact").expect("missing Impact header");
-    let ics_pos = out.find("Impair Process Control").expect("missing ICS header");
-    assert!(discovery_pos < impact_pos, "Discovery must come before Impact");
+    let ics_pos = out
+        .find("Impair Process Control")
+        .expect("missing ICS header");
+    assert!(
+        discovery_pos < impact_pos,
+        "Discovery must come before Impact"
+    );
     assert!(impact_pos < ics_pos, "Impact must come before ICS tactics");
 }
 
@@ -496,41 +525,81 @@ fn mitre_grouping_sorts_within_tactic_by_verdict_then_confidence() {
         base_finding_with_mitre(Some("T1046"), Verdict::Unlikely, Confidence::High, "third"),
         base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::Medium, "second"),
         base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::High, "first"),
-        base_finding_with_mitre(Some("T1046"), Verdict::Inconclusive, Confidence::Low, "fourth_ish"),
+        base_finding_with_mitre(
+            Some("T1046"),
+            Verdict::Inconclusive,
+            Confidence::Low,
+            "fourth_ish",
+        ),
     ];
-    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: true };
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: true,
+    };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let p1 = out.find("first").expect("first missing");
     let p2 = out.find("second").expect("second missing");
     let p3 = out.find("fourth_ish").expect("fourth_ish missing");
     let p4 = out.find("third").expect("third missing");
-    assert!(p1 < p2 && p2 < p3 && p3 < p4, "verdict/confidence sort wrong: {out}");
+    assert!(
+        p1 < p2 && p2 < p3 && p3 < p4,
+        "verdict/confidence sort wrong: {out}"
+    );
 }
 
 #[test]
 fn mitre_grouping_buckets_none_and_unknown_under_uncategorized() {
     let findings = vec![
         base_finding_with_mitre(None, Verdict::Likely, Confidence::High, "no_id_finding"),
-        base_finding_with_mitre(Some("T9999"), Verdict::Likely, Confidence::High, "unknown_id_finding"),
-        base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::High, "known_finding"),
+        base_finding_with_mitre(
+            Some("T9999"),
+            Verdict::Likely,
+            Confidence::High,
+            "unknown_id_finding",
+        ),
+        base_finding_with_mitre(
+            Some("T1046"),
+            Verdict::Likely,
+            Confidence::High,
+            "known_finding",
+        ),
     ];
-    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: true };
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: true,
+    };
     let out = reporter.render(&Summary::new(), &findings, &[]);
-    let uncat_pos = out.find("Uncategorized").expect("missing Uncategorized section");
+    let uncat_pos = out
+        .find("Uncategorized")
+        .expect("missing Uncategorized section");
     let no_id_pos = out.find("no_id_finding").expect("missing no-id finding");
-    let unknown_pos = out.find("unknown_id_finding").expect("missing unknown-id finding");
+    let unknown_pos = out
+        .find("unknown_id_finding")
+        .expect("missing unknown-id finding");
     let known_pos = out.find("known_finding").expect("missing known finding");
-    assert!(known_pos < uncat_pos, "Uncategorized must come after known tactics");
+    assert!(
+        known_pos < uncat_pos,
+        "Uncategorized must come after known tactics"
+    );
     assert!(uncat_pos < no_id_pos && uncat_pos < unknown_pos);
-    assert!(out.contains("T9999 (unknown)"), "unknown ID must render with '(unknown)' label");
+    assert!(
+        out.contains("T9999 (unknown)"),
+        "unknown ID must render with '(unknown)' label"
+    );
 }
 
 #[test]
 fn mitre_grouping_expands_per_finding_line_with_technique_name() {
-    let findings = vec![
-        base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::High, "scan"),
-    ];
-    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: true };
+    let findings = vec![base_finding_with_mitre(
+        Some("T1046"),
+        Verdict::Likely,
+        Confidence::High,
+        "scan",
+    )];
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: true,
+    };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     assert!(
         out.contains("MITRE: T1046 \u{2014} Network Service Discovery"),
@@ -540,13 +609,21 @@ fn mitre_grouping_expands_per_finding_line_with_technique_name() {
 
 #[test]
 fn default_rendering_unchanged_when_mitre_flag_off() {
-    let findings = vec![
-        base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::High, "scan"),
-    ];
-    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: false };
+    let findings = vec![base_finding_with_mitre(
+        Some("T1046"),
+        Verdict::Likely,
+        Confidence::High,
+        "scan",
+    )];
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: false,
+    };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     assert!(out.contains("MITRE: T1046"));
-    assert!(!out.contains("\u{2014}"), "em-dash should not appear in default render");
+    assert!(
+        !out.contains("\u{2014}"),
+        "em-dash should not appear in default render"
+    );
     assert!(!out.contains("Uncategorized"));
 }
-

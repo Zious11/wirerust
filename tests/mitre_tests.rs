@@ -2,13 +2,25 @@ use wirerust::mitre::{MitreTactic, all_tactics_in_report_order, technique_name, 
 
 #[test]
 fn display_renders_enterprise_tactics_with_canonical_spacing() {
-    assert_eq!(MitreTactic::CommandAndControl.to_string(), "Command and Control");
+    assert_eq!(
+        MitreTactic::CommandAndControl.to_string(),
+        "Command and Control"
+    );
     assert_eq!(MitreTactic::DefenseEvasion.to_string(), "Defense Evasion");
-    assert_eq!(MitreTactic::CredentialAccess.to_string(), "Credential Access");
+    assert_eq!(
+        MitreTactic::CredentialAccess.to_string(),
+        "Credential Access"
+    );
     assert_eq!(MitreTactic::LateralMovement.to_string(), "Lateral Movement");
-    assert_eq!(MitreTactic::PrivilegeEscalation.to_string(), "Privilege Escalation");
+    assert_eq!(
+        MitreTactic::PrivilegeEscalation.to_string(),
+        "Privilege Escalation"
+    );
     assert_eq!(MitreTactic::InitialAccess.to_string(), "Initial Access");
-    assert_eq!(MitreTactic::ResourceDevelopment.to_string(), "Resource Development");
+    assert_eq!(
+        MitreTactic::ResourceDevelopment.to_string(),
+        "Resource Development"
+    );
     assert_eq!(MitreTactic::Reconnaissance.to_string(), "Reconnaissance");
     assert_eq!(MitreTactic::Execution.to_string(), "Execution");
     assert_eq!(MitreTactic::Persistence.to_string(), "Persistence");
@@ -34,10 +46,7 @@ fn display_renders_ics_tactics_unprefixed() {
 fn report_order_starts_with_reconnaissance_and_ends_with_ics() {
     let tactics = all_tactics_in_report_order();
     assert_eq!(tactics.first(), Some(&MitreTactic::Reconnaissance));
-    assert_eq!(
-        tactics.last(),
-        Some(&MitreTactic::IcsImpairProcessControl)
-    );
+    assert_eq!(tactics.last(), Some(&MitreTactic::IcsImpairProcessControl));
 }
 
 #[test]
@@ -48,7 +57,10 @@ fn report_order_contains_every_variant_exactly_once() {
     let before = seen.len();
     seen.dedup();
     assert_eq!(seen.len(), before, "duplicate variant in report order");
-    assert_eq!(before, 16, "expected 14 Enterprise + 2 ICS-unique = 16 variants");
+    assert_eq!(
+        before, 16,
+        "expected 14 Enterprise + 2 ICS-unique = 16 variants"
+    );
 }
 
 #[test]
@@ -75,19 +87,31 @@ fn report_order_matches_enterprise_kill_chain_for_first_14() {
 
 #[test]
 fn technique_name_resolves_every_seeded_id() {
-    assert_eq!(technique_name("T1027"), Some("Obfuscated Files or Information"));
+    assert_eq!(
+        technique_name("T1027"),
+        Some("Obfuscated Files or Information")
+    );
     assert_eq!(technique_name("T1036"), Some("Masquerading"));
     assert_eq!(technique_name("T1040"), Some("Network Sniffing"));
     assert_eq!(technique_name("T1046"), Some("Network Service Discovery"));
     assert_eq!(technique_name("T1071"), Some("Application Layer Protocol"));
     assert_eq!(technique_name("T1071.001"), Some("Web Protocols"));
     assert_eq!(technique_name("T1071.004"), Some("DNS"));
-    assert_eq!(technique_name("T1083"), Some("File and Directory Discovery"));
-    assert_eq!(technique_name("T1499.002"), Some("Service Exhaustion Flood"));
+    assert_eq!(
+        technique_name("T1083"),
+        Some("File and Directory Discovery")
+    );
+    assert_eq!(
+        technique_name("T1499.002"),
+        Some("Service Exhaustion Flood")
+    );
     assert_eq!(technique_name("T1505.003"), Some("Web Shell"));
     assert_eq!(technique_name("T1573"), Some("Encrypted Channel"));
     assert_eq!(technique_name("T0846"), Some("Remote System Discovery"));
-    assert_eq!(technique_name("T0855"), Some("Unauthorized Command Message"));
+    assert_eq!(
+        technique_name("T0855"),
+        Some("Unauthorized Command Message")
+    );
     assert_eq!(technique_name("T0856"), Some("Spoof Reporting Message"));
     assert_eq!(technique_name("T0885"), Some("Commonly Used Port"));
 }
@@ -104,15 +128,33 @@ fn technique_name_returns_none_for_unknown_ids() {
 fn technique_tactic_matches_spec_table() {
     assert_eq!(technique_tactic("T1027"), Some(MitreTactic::DefenseEvasion));
     assert_eq!(technique_tactic("T1036"), Some(MitreTactic::DefenseEvasion));
-    assert_eq!(technique_tactic("T1040"), Some(MitreTactic::CredentialAccess));
+    assert_eq!(
+        technique_tactic("T1040"),
+        Some(MitreTactic::CredentialAccess)
+    );
     assert_eq!(technique_tactic("T1046"), Some(MitreTactic::Discovery));
-    assert_eq!(technique_tactic("T1071"), Some(MitreTactic::CommandAndControl));
-    assert_eq!(technique_tactic("T1071.001"), Some(MitreTactic::CommandAndControl));
-    assert_eq!(technique_tactic("T1071.004"), Some(MitreTactic::CommandAndControl));
+    assert_eq!(
+        technique_tactic("T1071"),
+        Some(MitreTactic::CommandAndControl)
+    );
+    assert_eq!(
+        technique_tactic("T1071.001"),
+        Some(MitreTactic::CommandAndControl)
+    );
+    assert_eq!(
+        technique_tactic("T1071.004"),
+        Some(MitreTactic::CommandAndControl)
+    );
     assert_eq!(technique_tactic("T1083"), Some(MitreTactic::Discovery));
     assert_eq!(technique_tactic("T1499.002"), Some(MitreTactic::Impact));
-    assert_eq!(technique_tactic("T1505.003"), Some(MitreTactic::Persistence));
-    assert_eq!(technique_tactic("T1573"), Some(MitreTactic::CommandAndControl));
+    assert_eq!(
+        technique_tactic("T1505.003"),
+        Some(MitreTactic::Persistence)
+    );
+    assert_eq!(
+        technique_tactic("T1573"),
+        Some(MitreTactic::CommandAndControl)
+    );
     assert_eq!(technique_tactic("T0846"), Some(MitreTactic::Discovery));
     assert_eq!(
         technique_tactic("T0855"),
@@ -122,7 +164,10 @@ fn technique_tactic_matches_spec_table() {
         technique_tactic("T0856"),
         Some(MitreTactic::IcsImpairProcessControl)
     );
-    assert_eq!(technique_tactic("T0885"), Some(MitreTactic::CommandAndControl));
+    assert_eq!(
+        technique_tactic("T0885"),
+        Some(MitreTactic::CommandAndControl)
+    );
 }
 
 #[test]

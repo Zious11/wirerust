@@ -2,7 +2,7 @@ use owo_colors::OwoColorize;
 
 use crate::analyzer::AnalysisSummary;
 use crate::findings::{Confidence, Finding, Verdict};
-use crate::mitre::{all_tactics_in_report_order, technique_name, technique_tactic, MitreTactic};
+use crate::mitre::{MitreTactic, all_tactics_in_report_order, technique_name, technique_tactic};
 use crate::reporter::Reporter;
 use crate::summary::Summary;
 
