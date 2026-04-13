@@ -172,7 +172,7 @@ fn run_analyze(
             reporter.render(&summary, &all_findings, &analyzer_summaries)
         }
         _ => {
-            let reporter = TerminalReporter { use_color };
+            let reporter = TerminalReporter { use_color, show_mitre_grouping: false };
             reporter.render(&summary, &all_findings, &analyzer_summaries)
         }
     };
@@ -215,7 +215,7 @@ fn run_summary(targets: &[std::path::PathBuf], use_color: bool, cli: &Cli) -> Re
             reporter.render(&summary, &[], &[])
         }
         _ => {
-            let reporter = TerminalReporter { use_color };
+            let reporter = TerminalReporter { use_color, show_mitre_grouping: false };
             reporter.render(&summary, &[], &[])
         }
     };

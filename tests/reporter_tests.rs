@@ -59,7 +59,7 @@ fn test_json_reporter_skipped_packets_zero_by_default() {
 
 #[test]
 fn test_terminal_reporter_shows_skipped_when_nonzero() {
-    let reporter = TerminalReporter { use_color: false };
+    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: false };
     let mut summary = Summary::new();
     summary.skipped_packets = 5;
 
@@ -72,7 +72,7 @@ fn test_terminal_reporter_shows_skipped_when_nonzero() {
 
 #[test]
 fn test_terminal_reporter_hides_skipped_when_zero() {
-    let reporter = TerminalReporter { use_color: false };
+    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: false };
     let summary = Summary::new();
 
     let output = reporter.render(&summary, &[], &[]);
@@ -88,7 +88,7 @@ fn test_terminal_reporter_escapes_esc_bytes_in_summary() {
     // propagate the raw byte to terminal output, where it would be
     // interpreted as an ANSI escape sequence. Per ADR 0003, the terminal
     // reporter is responsible for this escaping.
-    let reporter = TerminalReporter { use_color: false };
+    let reporter = TerminalReporter { use_color: false, show_mitre_grouping: false };
     let summary = Summary::new();
     let findings = vec![Finding {
         category: ThreatCategory::Anomaly,
@@ -155,7 +155,7 @@ fn test_output_sanitization_layering_contract() {
     );
 
     // Layer 2: terminal reporter escapes on display.
-    let terminal_output = TerminalReporter { use_color: false }.render(
+    let terminal_output = TerminalReporter { use_color: false, show_mitre_grouping: false }.render(
         &Summary::new(),
         std::slice::from_ref(&finding),
         &[],
@@ -258,7 +258,7 @@ fn test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries() {
         detail,
     };
 
-    let output = TerminalReporter { use_color: false }.render(
+    let output = TerminalReporter { use_color: false, show_mitre_grouping: false }.render(
         &Summary::new(),
         &[],
         std::slice::from_ref(&analyzer_summary),
@@ -359,7 +359,7 @@ fn test_http_finding_c1_csi_escaped_by_terminal_reporter() {
     );
 
     // Render through terminal reporter — no raw C1 bytes in output.
-    let output = TerminalReporter { use_color: false }.render(&Summary::new(), &findings, &[]);
+    let output = TerminalReporter { use_color: false, show_mitre_grouping: false }.render(&Summary::new(), &findings, &[]);
     assert!(
         !output.as_bytes().windows(2).any(|w| w == [0xC2, 0x9B]),
         "terminal output must not contain raw C1 CSI (0xC2 0x9B), got: {output:?}"
@@ -437,7 +437,7 @@ fn test_http_analyzer_summary_c1_csi_escaped_by_terminal_reporter() {
     );
 
     // Render through terminal reporter — no raw C1 bytes in output.
-    let output = TerminalReporter { use_color: false }.render(
+    let output = TerminalReporter { use_color: false, show_mitre_grouping: false }.render(
         &Summary::new(),
         &[],
         std::slice::from_ref(&analyzer_summary),

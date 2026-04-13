@@ -46,6 +46,9 @@ fn escape_for_terminal(s: &str) -> String {
 
 pub struct TerminalReporter {
     pub use_color: bool,
+    /// When true, regroup the FINDINGS section by MITRE tactic and expand
+    /// the per-finding MITRE line to include the technique name.
+    pub show_mitre_grouping: bool,
 }
 
 impl Reporter for TerminalReporter {
