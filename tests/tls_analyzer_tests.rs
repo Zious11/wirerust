@@ -1398,3 +1398,58 @@ fn test_multiple_control_bytes_in_sni_produces_single_finding() {
         f.evidence
     );
 }
+
+#[test]
+fn ascii_control_sni_finding_sets_mitre_t1027() {
+    let esc_hostname = b"foo\x1bbar.example.com";
+    let bytes = build_client_hello_ascii_bytes(esc_hostname, &[]);
+    let mut analyzer = TlsAnalyzer::new();
+    analyzer.on_data(&test_flow_key(), Direction::ClientToServer, &bytes, 0);
+
+    let findings = analyzer.findings();
+    let control_finding = findings
+        .iter()
+        .find(|f| f.summary.contains("ASCII control characters"))
+        .expect("expected an ASCII-control SNI finding");
+    assert_eq!(
+        control_finding.mitre_technique.as_deref(),
+        Some("T1027"),
+        "malformed-SNI finding must be mapped to T1027 (Obfuscated Files or Information)",
+    );
+}
+
+#[test]
+fn non_ascii_utf8_sni_finding_sets_mitre_t1027() {
+    let bytes = build_client_hello("пример.рф", &[]);
+    let mut analyzer = TlsAnalyzer::new();
+    analyzer.on_data(&test_flow_key(), Direction::ClientToServer, &bytes, 0);
+
+    let findings = analyzer.findings();
+    let finding = findings
+        .iter()
+        .find(|f| f.summary.contains("non-ASCII characters"))
+        .expect("expected a non-ASCII SNI finding");
+    assert_eq!(
+        finding.mitre_technique.as_deref(),
+        Some("T1027"),
+        "malformed-SNI finding must be mapped to T1027 (Obfuscated Files or Information)",
+    );
+}
+
+#[test]
+fn non_utf8_sni_finding_sets_mitre_t1027() {
+    let bytes = build_client_hello_raw_sni(&[b'f', b'o', b'o', 0xc3, b'.', b'c', b'o', b'm'], &[]);
+    let mut analyzer = TlsAnalyzer::new();
+    analyzer.on_data(&test_flow_key(), Direction::ClientToServer, &bytes, 0);
+
+    let findings = analyzer.findings();
+    let finding = findings
+        .iter()
+        .find(|f| f.summary.contains("non-UTF-8 bytes"))
+        .expect("expected a non-UTF-8 SNI finding");
+    assert_eq!(
+        finding.mitre_technique.as_deref(),
+        Some("T1027"),
+        "malformed-SNI finding must be mapped to T1027 (Obfuscated Files or Information)",
+    );
+}

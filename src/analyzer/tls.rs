@@ -394,7 +394,7 @@ impl TlsAnalyzer {
                              digits, and hyphens): {hostname}"
                         ),
                         evidence: vec![format!("hex: {hex}")],
-                        mitre_technique: None,
+                        mitre_technique: Some("T1027".to_string()),
                         source_ip: None,
                         timestamp: None,
                     });
@@ -413,7 +413,7 @@ impl TlsAnalyzer {
                              A-labels per RFC 5890): {hostname}"
                         ),
                         evidence: vec![format!("hex: {hex}")],
-                        mitre_technique: None,
+                        mitre_technique: Some("T1027".to_string()),
                         source_ip: None,
                         timestamp: None,
                     });
@@ -432,7 +432,7 @@ impl TlsAnalyzer {
                             "TLS SNI contains non-UTF-8 bytes (RFC 6066 violation): {lossy}"
                         ),
                         evidence: vec![format!("hex: {hex}")],
-                        mitre_technique: None,
+                        mitre_technique: Some("T1027".to_string()),
                         source_ip: None,
                         timestamp: None,
                     });
