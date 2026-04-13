@@ -92,14 +92,14 @@ Add to `Commands::Analyze` in `src/cli.rs`:
 pub mitre: bool,
 ```
 
-Threaded through `src/dispatcher.rs` into `TerminalReporter` via a new constructor parameter (or field on an existing config struct, following the `use_color` pattern).
+Threaded from `src/main.rs::run_analyze` (where `Commands::Analyze` is destructured) into `TerminalReporter` via a new public field `show_mitre_grouping: bool`, following the `use_color` pattern.
 
 ### Error handling for unknown IDs
 
 - `technique_name` / `technique_tactic` return `Option`; `None` is the unknown-ID signal.
-- At the reporter call site: `debug_assert!(technique_name(id).is_some(), "unknown MITRE id: {id}")`. Fires in `cargo test` (debug build), zero cost in release. Catches analyzer typos at CI time.
+- The reporter does **not** `debug_assert!` on unknown IDs at the render site — an earlier draft proposed this but it was dropped during local PR review (Task 8) because the grouped-render tests intentionally exercise the unknown-ID code path with `Some("T9999")`, which would panic in debug builds under that assertion.
 - Release behavior: render unknown IDs inline (`MITRE: T9999 (unknown)`) and bucket under Uncategorized. Never panic user-facing.
-- Regression test in `tests/mitre_tests.rs`: a `#[test] fn all_emitted_ids_are_known` with a canonical list of every ID the codebase intentionally emits, each asserted to resolve via `technique_name` + `technique_tactic`. The list is manually maintained; growing it is a required step when any analyzer adds a new technique ID.
+- Regression test in `tests/mitre_tests.rs`: `#[test] fn known_emitted_technique_ids_resolve_in_lookup` with a hand-curated list of the technique IDs the codebase emits today, each asserted to resolve via `technique_name` + `technique_tactic`. The list is manually maintained — adding a new emission site without updating the list will not fail CI. See issue #67 for the trade-off rationale (the hand-curated approach is the idiomatic Rust pattern at this scale per Perplexity validation; revisit when emission sites grow > ~20 or a missed-update incident occurs).
 
 ## Pre-seeded techniques
 
@@ -142,7 +142,7 @@ T1027 over T1071.001 is also deliberate. T1071.001 would overstate our detection
 
 ## Testing strategy
 
-- **Unit + regression (`tests/mitre_tests.rs`)**: every seeded ID round-trips through `technique_name` and `technique_tactic`; `all_tactics_in_report_order` contains every enum variant exactly once; `MitreTactic::Display` matches expected human names; a canonical list of every ID the codebase emits is asserted to resolve (fails CI if an analyzer emits an ID not in the lookup).
+- **Unit + regression (`tests/mitre_tests.rs`)**: every seeded ID round-trips through `technique_name` and `technique_tactic`; `all_tactics_in_report_order` contains every enum variant exactly once; `MitreTactic::Display` matches expected human names; a hand-curated, non-exhaustive list of known-emitted IDs is asserted to resolve in the lookup. This fails CI if a listed known-emitted ID is missing from the lookup, but it does **not** automatically catch every newly emitted analyzer ID unless that ID is also added to the curated list (see issue #67 for the trade-off rationale).
 - **Reporter (`tests/reporter_tests.rs`)**: with `show_mitre_grouping = true`, findings are grouped by tactic; within-group sort is verdict-desc → confidence-desc; unknown IDs render as `(unknown)` and bucket under Uncategorized; `None` techniques bucket under Uncategorized; name expansion includes the em-dash.
 - **CLI integration (`tests/integration_tests.rs` or equivalent)**: `wirerust analyze --mitre FIXTURE.pcap` produces grouped output; `wirerust analyze FIXTURE.pcap` matches baseline (no MITRE grouping).
 - **TLS analyzer (`tests/tls_analyzer_tests.rs`)**: three malformed-SNI cases now assert `mitre_technique == Some("T1027")`.
@@ -156,10 +156,10 @@ T1027 over T1071.001 is also deliberate. T1071.001 would overstate our detection
 **Modified files:**
 - `src/lib.rs` — add `pub mod mitre;`
 - `src/cli.rs` — add `mitre: bool` flag to `Commands::Analyze`
-- `src/dispatcher.rs` — thread flag through to reporter
-- `src/reporter/mod.rs` — constructor takes the flag (or a config struct)
-- `src/reporter/terminal.rs` — grouping code path; `debug_assert!` at MITRE render site
+- `src/main.rs` — destructure `mitre` in the `Commands::Analyze` arm; thread into `run_analyze`; pass to `TerminalReporter` (`src/dispatcher.rs` is the *stream* dispatcher for HTTP/TLS routing, not the command dispatcher — the spec's earlier wording was inherited from a misread of the codebase)
+- `src/reporter/terminal.rs` — `show_mitre_grouping` field on `TerminalReporter`; grouping code path with shared `render_finding_prefix` helper; em-dash name expansion; `(unknown)` fallback for IDs absent from the lookup
 - `src/analyzer/tls.rs` — 3 of 7 `mitre_technique: None` sites become `Some("T1027")`
+- `tests/cli_tests.rs` — assert `--mitre` flag parses
 - `tests/reporter_tests.rs` — add grouping-path tests
 - `tests/tls_analyzer_tests.rs` — assert T1027 on the three findings
 
