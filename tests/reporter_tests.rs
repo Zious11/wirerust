@@ -507,10 +507,12 @@ fn mitre_grouping_emits_tactic_headers_in_canonical_order() {
         show_mitre_grouping: true,
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
-    let discovery_pos = out.find("Discovery").expect("missing Discovery header");
-    let impact_pos = out.find("Impact").expect("missing Impact header");
+    // Anchor on the `## ` header prefix so future summary/evidence text
+    // containing the tactic word cannot confuse the ordering check.
+    let discovery_pos = out.find("## Discovery").expect("missing Discovery header");
+    let impact_pos = out.find("## Impact").expect("missing Impact header");
     let ics_pos = out
-        .find("Impair Process Control")
+        .find("## Impair Process Control")
         .expect("missing ICS header");
     assert!(
         discovery_pos < impact_pos,
@@ -570,7 +572,7 @@ fn mitre_grouping_buckets_none_and_unknown_under_uncategorized() {
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let uncat_pos = out
-        .find("Uncategorized")
+        .find("## Uncategorized")
         .expect("missing Uncategorized section");
     let no_id_pos = out.find("no_id_finding").expect("missing no-id finding");
     let unknown_pos = out
@@ -625,5 +627,75 @@ fn default_rendering_unchanged_when_mitre_flag_off() {
         !out.contains("\u{2014}"),
         "em-dash should not appear in default render"
     );
-    assert!(!out.contains("Uncategorized"));
+    assert!(!out.contains("## Uncategorized"));
+}
+
+#[test]
+fn mitre_grouping_preserves_emission_order_when_verdict_and_confidence_tie() {
+    // All four findings are in the same tactic with identical verdict +
+    // confidence — the tertiary emission-order key is the only thing
+    // that can distinguish them.
+    let findings = vec![
+        base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::High, "alpha"),
+        base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::High, "bravo"),
+        base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::High, "charlie"),
+        base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::High, "delta"),
+    ];
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: true,
+    };
+    let out = reporter.render(&Summary::new(), &findings, &[]);
+    let pa = out.find("alpha").expect("alpha missing");
+    let pb = out.find("bravo").expect("bravo missing");
+    let pc = out.find("charlie").expect("charlie missing");
+    let pd = out.find("delta").expect("delta missing");
+    assert!(
+        pa < pb && pb < pc && pc < pd,
+        "stable tiebreaker should preserve emission order: {out}",
+    );
+}
+
+#[test]
+fn mitre_grouping_keeps_known_and_unknown_ids_in_separate_buckets() {
+    // Enterprise T1046 is Discovery; T1046.999 isn't seeded and so falls
+    // to Uncategorized. A finding with a known ID and one with a typo'd
+    // variant of the same family must not end up together.
+    let findings = vec![
+        base_finding_with_mitre(
+            Some("T1046"),
+            Verdict::Likely,
+            Confidence::High,
+            "known_discovery",
+        ),
+        base_finding_with_mitre(
+            Some("T1046.999"),
+            Verdict::Likely,
+            Confidence::High,
+            "typo_variant",
+        ),
+    ];
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: true,
+    };
+    let out = reporter.render(&Summary::new(), &findings, &[]);
+    let discovery_pos = out.find("## Discovery").expect("Discovery header missing");
+    let uncat_pos = out
+        .find("## Uncategorized")
+        .expect("Uncategorized header missing");
+    let known_pos = out.find("known_discovery").expect("known finding missing");
+    let typo_pos = out.find("typo_variant").expect("typo finding missing");
+    assert!(
+        discovery_pos < known_pos && known_pos < uncat_pos,
+        "known_discovery must render under the Discovery header",
+    );
+    assert!(
+        uncat_pos < typo_pos,
+        "typo_variant must render under Uncategorized",
+    );
+    assert!(
+        out.contains("T1046.999 (unknown)"),
+        "typo variant must render with '(unknown)' label",
+    );
 }

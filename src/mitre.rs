@@ -1,14 +1,23 @@
 //! MITRE ATT&CK technique-ID → name / tactic lookup module.
 //!
-//! Backed by exhaustive `match` statements; zero runtime dependencies.
-//! See `docs/superpowers/specs/2026-04-13-mitre-attack-mapping-design.md`
-//! for the full design rationale.
+//! Backed by a single exhaustive `match` statement (see [`technique_info`]);
+//! zero runtime dependencies. See the design spec under
+//! `docs/superpowers/specs/` for the full rationale.
+//!
+//! ## ID format
+//!
+//! Callers pass technique IDs in MITRE's canonical form: `TXXXX` for parent
+//! techniques (e.g., `T1046`) and `TXXXX.NNN` for sub-techniques (period
+//! separator, three-digit suffix — e.g., `T1071.001`). The format is used
+//! consistently across Enterprise, ICS, and Mobile matrices and in STIX 2.1
+//! bundles. Inputs that don't match a seeded ID return `None` from the
+//! lookup functions.
 
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MitreTactic {
-    // Enterprise canonical order (MITRE ATT&CK v18, 14 tactics).
+    // Enterprise canonical kill-chain order.
     Reconnaissance,
     ResourceDevelopment,
     InitialAccess,
@@ -52,9 +61,9 @@ impl fmt::Display for MitreTactic {
     }
 }
 
-/// Returns all tactics in MITRE canonical kill-chain order, with ICS-unique
-/// tactics appended last. Used by the terminal reporter to produce a stable
-/// section order when grouping findings by tactic.
+/// Returns all tactics in canonical kill-chain order, with ICS-unique
+/// tactics appended last. Intended as a stable iteration order for any
+/// consumer that needs to present findings grouped by tactic.
 pub fn all_tactics_in_report_order() -> &'static [MitreTactic] {
     &[
         MitreTactic::Reconnaissance,
@@ -76,57 +85,56 @@ pub fn all_tactics_in_report_order() -> &'static [MitreTactic] {
     ]
 }
 
-/// Resolves a MITRE ATT&CK technique ID to its human-readable name.
+/// Resolves a technique ID to its `(name, tactic)` pair. The single source
+/// of truth for every seeded technique — [`technique_name`] and
+/// [`technique_tactic`] are thin projections over this function, which
+/// makes it impossible to add one facet without the other.
 ///
-/// Returns `None` for unknown IDs; callers that treat unknowns as
-/// programming errors should `debug_assert!` at their call site.
-/// The canonical ID format is `TXXXX` for parent techniques and
-/// `TXXXX.NNN` for sub-techniques (period separator, three-digit
-/// suffix), used consistently across Enterprise, ICS, and Mobile
-/// matrices and in STIX 2.1 bundles.
-pub fn technique_name(id: &str) -> Option<&'static str> {
-    let name = match id {
+/// Returns `None` for IDs not in the seeded set.
+pub fn technique_info(id: &str) -> Option<(&'static str, MitreTactic)> {
+    let info = match id {
         // Enterprise.
-        "T1027" => "Obfuscated Files or Information",
-        "T1036" => "Masquerading",
-        "T1040" => "Network Sniffing",
-        "T1046" => "Network Service Discovery",
-        "T1071" => "Application Layer Protocol",
-        "T1071.001" => "Web Protocols",
-        "T1071.004" => "DNS",
-        "T1083" => "File and Directory Discovery",
-        "T1499.002" => "Service Exhaustion Flood",
-        "T1505.003" => "Web Shell",
-        "T1573" => "Encrypted Channel",
-        // ICS.
-        "T0846" => "Remote System Discovery",
-        "T0855" => "Unauthorized Command Message",
-        "T0856" => "Spoof Reporting Message",
-        "T0885" => "Commonly Used Port",
+        "T1027" => (
+            "Obfuscated Files or Information",
+            MitreTactic::DefenseEvasion,
+        ),
+        "T1036" => ("Masquerading", MitreTactic::DefenseEvasion),
+        "T1040" => ("Network Sniffing", MitreTactic::CredentialAccess),
+        "T1046" => ("Network Service Discovery", MitreTactic::Discovery),
+        "T1071" => ("Application Layer Protocol", MitreTactic::CommandAndControl),
+        "T1071.001" => ("Web Protocols", MitreTactic::CommandAndControl),
+        "T1071.004" => ("DNS", MitreTactic::CommandAndControl),
+        "T1083" => ("File and Directory Discovery", MitreTactic::Discovery),
+        "T1499.002" => ("Service Exhaustion Flood", MitreTactic::Impact),
+        "T1505.003" => ("Web Shell", MitreTactic::Persistence),
+        "T1573" => ("Encrypted Channel", MitreTactic::CommandAndControl),
+        // ICS. The shared-name tactics (Discovery, Command and Control)
+        // collapse into their Enterprise variants — Enterprise and ICS
+        // matrices list them as distinct TA-IDs, but for grouping we
+        // prefer one section per tactic name.
+        "T0846" => ("Remote System Discovery", MitreTactic::Discovery),
+        "T0855" => (
+            "Unauthorized Command Message",
+            MitreTactic::IcsImpairProcessControl,
+        ),
+        "T0856" => (
+            "Spoof Reporting Message",
+            MitreTactic::IcsImpairProcessControl,
+        ),
+        "T0885" => ("Commonly Used Port", MitreTactic::CommandAndControl),
         _ => return None,
     };
-    Some(name)
+    Some(info)
 }
 
-/// Resolves a MITRE ATT&CK technique ID to its parent tactic.
-///
-/// For IDs shared in name between Enterprise and ICS (Discovery,
-/// Command and Control, etc.) this returns the unified variant — see
-/// the spec for the v1 limitation rationale.
+/// Resolves a technique ID to its human-readable name. Returns `None` for
+/// unknown IDs.
+pub fn technique_name(id: &str) -> Option<&'static str> {
+    technique_info(id).map(|(name, _)| name)
+}
+
+/// Resolves a technique ID to its parent tactic. Returns `None` for
+/// unknown IDs.
 pub fn technique_tactic(id: &str) -> Option<MitreTactic> {
-    let tactic = match id {
-        // Enterprise.
-        "T1027" | "T1036" => MitreTactic::DefenseEvasion,
-        "T1040" => MitreTactic::CredentialAccess,
-        "T1046" | "T1083" => MitreTactic::Discovery,
-        "T1071" | "T1071.001" | "T1071.004" | "T1573" => MitreTactic::CommandAndControl,
-        "T1499.002" => MitreTactic::Impact,
-        "T1505.003" => MitreTactic::Persistence,
-        // ICS.
-        "T0846" => MitreTactic::Discovery,
-        "T0855" | "T0856" => MitreTactic::IcsImpairProcessControl,
-        "T0885" => MitreTactic::CommandAndControl,
-        _ => return None,
-    };
-    Some(tactic)
+    technique_info(id).map(|(_, tactic)| tactic)
 }

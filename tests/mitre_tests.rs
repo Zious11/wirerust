@@ -51,14 +51,19 @@ fn report_order_starts_with_reconnaissance_and_ends_with_ics() {
 
 #[test]
 fn report_order_contains_every_variant_exactly_once() {
+    use std::collections::HashSet;
     let tactics = all_tactics_in_report_order();
-    let mut seen: Vec<String> = tactics.iter().map(|t| format!("{t:?}")).collect();
-    seen.sort();
-    let before = seen.len();
-    seen.dedup();
-    assert_eq!(seen.len(), before, "duplicate variant in report order");
+    // HashSet on MitreTactic uses the derived Eq + Hash — robust against
+    // any future change to the Debug impl.
+    let unique: HashSet<MitreTactic> = tactics.iter().copied().collect();
     assert_eq!(
-        before, 16,
+        unique.len(),
+        tactics.len(),
+        "duplicate variant in report order"
+    );
+    assert_eq!(
+        tactics.len(),
+        16,
         "expected 14 Enterprise + 2 ICS-unique = 16 variants"
     );
 }
