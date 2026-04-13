@@ -23,7 +23,9 @@ Systematically map every finding to a MITRE ATT&CK technique (Enterprise + ICS m
 
 ```rust
 pub enum MitreTactic {
+    // Enterprise canonical order (MITRE ATT&CK v18, 14 tactics)
     Reconnaissance,
+    ResourceDevelopment,
     InitialAccess,
     Execution,
     Persistence,
@@ -36,16 +38,26 @@ pub enum MitreTactic {
     CommandAndControl,
     Exfiltration,
     Impact,
+    // ICS-unique tactics (names that don't collide with Enterprise)
     IcsInhibitResponseFunction,
     IcsImpairProcessControl,
 }
 
-impl fmt::Display for MitreTactic { /* human names: "Command and Control", "ICS: Inhibit Response Function", ... */ }
+impl fmt::Display for MitreTactic {
+    // Unprefixed canonical names per MITRE convention (Caldera, Atomic Red
+    // Team, ATT&CK Navigator all render tactic names without matrix prefixes):
+    //   CommandAndControl                 -> "Command and Control"
+    //   DefenseEvasion                    -> "Defense Evasion"
+    //   IcsInhibitResponseFunction        -> "Inhibit Response Function"
+    //   IcsImpairProcessControl           -> "Impair Process Control"
+}
 
 pub fn technique_name(id: &str) -> Option<&'static str>;
 pub fn technique_tactic(id: &str) -> Option<MitreTactic>;
 pub fn all_tactics_in_report_order() -> &'static [MitreTactic];
 ```
+
+**Enterprise/ICS tactic name collision — known limitation.** MITRE's Enterprise and ICS matrices share several tactic *names* (Persistence, Discovery, Command and Control, Lateral Movement, Collection, Impact) that have *different* `TA-####` IDs (e.g., Enterprise Discovery = TA0007; ICS Discovery = TA0111). This design unifies them under a single variant (e.g., `Discovery` covers both). Practical effect: an Enterprise T1046 finding and an ICS T0846 finding both render under a single "Discovery" section header. Acceptable for v1 — no consumer has asked for matrix-level distinction; can split into `EnterpriseDiscovery` / `IcsDiscovery` if demand appears. ICS-unique tactics (Inhibit Response Function, Impair Process Control, Evasion) get their own variants.
 
 Both `technique_name` and `technique_tactic` are backed by exhaustive `match` statements. Perplexity-validated as idiomatic for ~15–20 static entries in Rust 2024; `phf` and `Lazy<HashMap>` add cost without benefit at this scale, and clippy does not warn on unused match arms.
 
@@ -64,7 +76,7 @@ Without `--mitre` (default): output unchanged. `MITRE: T1046` line printed per f
 With `--mitre`:
 
 1. Replace the flat FINDINGS section with a grouped view.
-2. Tactic section order = `all_tactics_in_report_order()` (kill-chain order: Reconnaissance → … → Impact → ICS tactics → Uncategorized last).
+2. Tactic section order = `all_tactics_in_report_order()` (MITRE Enterprise canonical kill-chain order: Reconnaissance → Resource Development → Initial Access → Execution → Persistence → Privilege Escalation → Defense Evasion → Credential Access → Discovery → Lateral Movement → Collection → Command and Control → Exfiltration → Impact → ICS-unique tactics → Uncategorized last).
 3. Within each tactic, sort by **Verdict descending** (`Likely > Inconclusive > Unlikely`) then **Confidence descending** (`High > Medium > Low`) then **emission order**. Validated as the SIEM industry standard (Splunk, Elastic, QRadar, Sentinel, Sumo Logic all default to severity-desc; within-MITRE-tactic groups specifically follow this order).
 4. Findings with `mitre_technique == None` OR an unknown ID go to the "Uncategorized" bucket at the end.
 5. Per-finding MITRE line expands: `MITRE: T1046 — Network Service Discovery` (ID, em-dash, name).
@@ -174,3 +186,5 @@ Every substantive design decision in this spec was validated against Perplexity 
 - **Grouped output layout**: replace flat (our case) matches opt-in semantics of `--mitre`.
 - **Within-group sort order**: severity descending matches every major SIEM (Splunk, Elastic, QRadar, Sentinel, Sumo Logic).
 - **MITRE tactic assignments**: all Enterprise techniques verified current as of 2024-2025; ICS T0885 verified not deprecated; ICS tactic names verified.
+- **Enterprise canonical tactic ordering**: 14 tactics in kill-chain order (Reconnaissance → Resource Development → Initial Access → Execution → Persistence → Privilege Escalation → Defense Evasion → Credential Access → Discovery → Lateral Movement → Collection → Command and Control → Exfiltration → Impact) validated against MITRE ATT&CK v18.
+- **Display convention**: unprefixed tactic names per MITRE convention (Caldera, Atomic Red Team, ATT&CK Navigator); disambiguation via tactic IDs is the standard, not name prefixes. Enterprise/ICS tactic name collision (e.g., Discovery exists in both matrices with different TA-IDs) treated as a v1 limitation documented inline.
