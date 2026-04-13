@@ -31,6 +31,7 @@ fn main() -> Result<()> {
             http,
             tls,
             all,
+            mitre,
             ..
         } => {
             run_analyze(
@@ -38,6 +39,7 @@ fn main() -> Result<()> {
                 *dns || *all,
                 *http || *all,
                 *tls || *all,
+                *mitre,
                 use_color,
                 &cli,
             )?;
@@ -55,6 +57,7 @@ fn run_analyze(
     enable_dns: bool,
     enable_http: bool,
     enable_tls: bool,
+    show_mitre_grouping: bool,
     use_color: bool,
     cli: &Cli,
 ) -> Result<()> {
@@ -172,7 +175,7 @@ fn run_analyze(
             reporter.render(&summary, &all_findings, &analyzer_summaries)
         }
         _ => {
-            let reporter = TerminalReporter { use_color, show_mitre_grouping: false };
+            let reporter = TerminalReporter { use_color, show_mitre_grouping };
             reporter.render(&summary, &all_findings, &analyzer_summaries)
         }
     };
