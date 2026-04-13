@@ -99,7 +99,7 @@ Threaded through `src/dispatcher.rs` into `TerminalReporter` via a new construct
 - `technique_name` / `technique_tactic` return `Option`; `None` is the unknown-ID signal.
 - At the reporter call site: `debug_assert!(technique_name(id).is_some(), "unknown MITRE id: {id}")`. Fires in `cargo test` (debug build), zero cost in release. Catches analyzer typos at CI time.
 - Release behavior: render unknown IDs inline (`MITRE: T9999 (unknown)`) and bucket under Uncategorized. Never panic user-facing.
-- Regression test `tests/mitre_coverage.rs`: a canonical list of every ID the codebase intentionally emits, with each asserted to resolve via `technique_name` + `technique_tactic`. The list is manually maintained; growing it is a required step when any analyzer adds a new technique ID.
+- Regression test in `tests/mitre_tests.rs`: a `#[test] fn all_emitted_ids_are_known` with a canonical list of every ID the codebase intentionally emits, each asserted to resolve via `technique_name` + `technique_tactic`. The list is manually maintained; growing it is a required step when any analyzer adds a new technique ID.
 
 ## Pre-seeded techniques
 
@@ -142,8 +142,7 @@ T1027 over T1071.001 is also deliberate. T1071.001 would overstate our detection
 
 ## Testing strategy
 
-- **Unit (`src/mitre.rs`)**: every seeded ID round-trips through `technique_name` and `technique_tactic`; `all_tactics_in_report_order` contains every enum variant exactly once; `MitreTactic::Display` matches expected human names.
-- **Regression (`tests/mitre_coverage.rs`)**: canonical list of every ID the codebase emits, each asserted to resolve. Fails CI if an analyzer emits an ID not in the lookup.
+- **Unit + regression (`tests/mitre_tests.rs`)**: every seeded ID round-trips through `technique_name` and `technique_tactic`; `all_tactics_in_report_order` contains every enum variant exactly once; `MitreTactic::Display` matches expected human names; a canonical list of every ID the codebase emits is asserted to resolve (fails CI if an analyzer emits an ID not in the lookup).
 - **Reporter (`tests/reporter_tests.rs`)**: with `show_mitre_grouping = true`, findings are grouped by tactic; within-group sort is verdict-desc → confidence-desc; unknown IDs render as `(unknown)` and bucket under Uncategorized; `None` techniques bucket under Uncategorized; name expansion includes the em-dash.
 - **CLI integration (`tests/integration_tests.rs` or equivalent)**: `wirerust analyze --mitre FIXTURE.pcap` produces grouped output; `wirerust analyze FIXTURE.pcap` matches baseline (no MITRE grouping).
 - **TLS analyzer (`tests/tls_analyzer_tests.rs`)**: three malformed-SNI cases now assert `mitre_technique == Some("T1027")`.
@@ -152,8 +151,7 @@ T1027 over T1071.001 is also deliberate. T1071.001 would overstate our detection
 
 **New files:**
 - `src/mitre.rs` (~200 lines)
-- `tests/mitre_coverage.rs`
-- `tests/mitre_tests.rs`
+- `tests/mitre_tests.rs` (unit + regression coverage in one file, per repo convention)
 
 **Modified files:**
 - `src/lib.rs` — add `pub mod mitre;`
