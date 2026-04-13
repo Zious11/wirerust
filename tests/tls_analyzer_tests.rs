@@ -39,9 +39,11 @@ fn build_client_hello_with_sni_list(sni_entries: &[&[u8]], cipher_ids: &[u16]) -
 /// Build a minimal TLS ClientHello with SNI entries where each entry has an explicit
 /// NameType byte. Used for testing non-zero NameType values (issue #52 case 1).
 ///
-/// Each tuple is `(name_type, hostname_bytes)`. RFC 6066 §3 defines `host_name(0)`;
-/// the `(255)` in the enum reserves slots for future types. A non-zero NameType
-/// exercises the tls_parser's handling of unknown ServerName types.
+/// Each tuple is `(name_type, name_bytes)`. For `host_name(0)` the bytes are an
+/// ASCII hostname per RFC 6066 §3; for other NameType values the bytes are the
+/// opaque ServerName payload for that type. The `(255)` in the RFC enum reserves
+/// slots for future types — a non-zero NameType exercises tls_parser's handling
+/// of unknown ServerName types.
 fn build_client_hello_with_typed_sni_list(
     sni_entries: &[(u8, &[u8])],
     cipher_ids: &[u16],
@@ -986,11 +988,16 @@ fn test_large_sni_near_record_payload_limit() {
 
 #[test]
 fn test_oversized_sni_exceeds_record_payload_limit() {
-    // A SNI so large that the TLS record payload exceeds MAX_RECORD_PAYLOAD
-    // (18,432 bytes). The analyzer should reject the record at the record-layer
-    // boundary and increment parse_errors. The SNI is never reached.
+    // A SNI so large that the TLS record payload exceeds MAX_RECORD_PAYLOAD.
+    // The analyzer should reject the record at the record-layer boundary and
+    // increment parse_errors. The SNI is never reached.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
+
+    // MAX_RECORD_PAYLOAD is private in src/analyzer/tls.rs; this constant
+    // must stay in sync with the production value (18,432 = TLS 1.2 ciphertext
+    // max per RFC 5246).
+    const MAX_RECORD_PAYLOAD: usize = 18_432;
 
     // 18,400 byte hostname + ~74 bytes overhead = ~18,474 > 18,432 limit.
     // Verify the record payload actually exceeds the cap before asserting
@@ -1003,7 +1010,7 @@ fn test_oversized_sni_exceeds_record_payload_limit() {
     );
     let payload_len = u16::from_be_bytes([record[3], record[4]]) as usize;
     assert!(
-        payload_len > 18_432,
+        payload_len > MAX_RECORD_PAYLOAD,
         "test precondition: record payload must exceed MAX_RECORD_PAYLOAD (got {payload_len})"
     );
 
