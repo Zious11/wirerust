@@ -171,8 +171,14 @@ fn compute_ja3s(version: u16, cipher: TlsCipherSuiteID, extensions: &[TlsExtensi
 /// All three are surfaced as Anomaly findings; usually a client bug or adversarial
 /// input, but worth forensic review.
 enum SniValue {
-    /// Hostname is pure printable ASCII (0x20–0x7E) — RFC 6066 compliant. May be
-    /// a literal hostname or an A-label (Punycode) form like `xn--caf-dma.example`.
+    /// Hostname is pure ASCII with no C0 control bytes (0x00–0x1F) and no DEL
+    /// (0x7F), so this classifier emits no finding. This arm is a "nothing to
+    /// flag at the byte-control level" bucket, not a full RFC 6066 /
+    /// DNS-preferred-hostname compliance check — empty hostnames (`""`),
+    /// spaces, and other non-LDH printable ASCII still land here. May be a
+    /// literal hostname or an A-label (Punycode) form like
+    /// `xn--caf-dma.example`. Broader LDH compliance is out of scope (see
+    /// issue #54's "Out of scope" section).
     Ascii(String),
     /// Hostname is pure ASCII but contains at least one C0 control byte
     /// (0x00–0x1F) or DEL (0x7F). `hostname` is the raw String (safe because
@@ -196,6 +202,11 @@ enum SniValue {
 /// ≥ 0x80) and is redundant since non-ASCII already signals a protocol violation
 /// via `NonAsciiUtf8`.
 fn contains_c0_or_del(s: &str) -> bool {
+    debug_assert!(
+        s.is_ascii(),
+        "contains_c0_or_del requires ASCII input; non-ASCII UTF-8 \
+         continuation bytes are ≥ 0x80 and would produce a false negative"
+    );
     s.bytes().any(|b| b < 0x20 || b == 0x7f)
 }
 
@@ -365,7 +376,7 @@ impl TlsAnalyzer {
             Self::increment(&mut self.sni_counts, key, MAX_MAP_ENTRIES);
 
             match sni {
-                SniValue::Ascii(_) => {} // RFC-compliant, no finding
+                SniValue::Ascii(_) => {} // No C0/DEL detected; no finding emitted at this layer.
                 SniValue::AsciiWithControl { hostname, hex } => {
                     self.all_findings.push(Finding {
                         category: ThreatCategory::Anomaly,
