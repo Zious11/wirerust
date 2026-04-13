@@ -1142,7 +1142,10 @@ fn test_ascii_sni_with_esc_emits_control_finding_and_counts_under_raw_key() {
     assert_eq!(f.confidence, wirerust::findings::Confidence::Low);
     assert!(
         f.summary.contains("RFC 6066"),
-        "summary should cite RFC 6066, got: {}",
+        // {:?} uses Debug formatting which escapes control bytes — prevents
+        // a failing assertion from corrupting CI logs with the raw ESC / ANSI
+        // sequence that the test deliberately constructs.
+        "summary should cite RFC 6066, got: {:?}",
         f.summary
     );
     // Per ADR 0003: analyzer finding summary stores the raw hostname
