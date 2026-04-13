@@ -83,6 +83,10 @@ pub enum Commands {
         #[arg(long)]
         beacon: bool,
 
+        /// Group findings by MITRE ATT&CK tactic and show technique names
+        #[arg(long)]
+        mitre: bool,
+
         /// Run all analyzers
         #[arg(short, long)]
         all: bool,
