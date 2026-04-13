@@ -962,7 +962,9 @@ fn test_large_sni_near_record_payload_limit() {
     // The ClientHello overhead is ~74 bytes, so a 16,000-byte hostname produces
     // a record payload of ~16,074 — well within the limit.
     //
-    // This pins that a large-but-valid SNI parses cleanly and is counted.
+    // This pins size-handling behavior only — the analyzer does not validate
+    // DNS label/hostname syntax, so a 16KB string of "A" (not a legal DNS name)
+    // is a fine fixture for exercising the record-layer and SNI-parsing paths.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
@@ -990,9 +992,21 @@ fn test_oversized_sni_exceeds_record_payload_limit() {
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
-    // 18,400 byte hostname + ~74 bytes overhead = ~18,474 > 18,432 limit
+    // 18,400 byte hostname + ~74 bytes overhead = ~18,474 > 18,432 limit.
+    // Verify the record payload actually exceeds the cap before asserting
+    // rejection — catches fixture drift if the builder structure changes.
     let huge_hostname = "B".repeat(18_400);
     let record = build_client_hello(&huge_hostname, &[0x1301]);
+    assert!(
+        record.len() >= 5,
+        "fixture must produce a complete TLS record header"
+    );
+    let payload_len = u16::from_be_bytes([record[3], record[4]]) as usize;
+    assert!(
+        payload_len > 18_432,
+        "test precondition: record payload must exceed MAX_RECORD_PAYLOAD (got {payload_len})"
+    );
+
     analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
 
     assert!(
