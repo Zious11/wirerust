@@ -1346,7 +1346,9 @@ fn test_ascii_control_boundary_bytes() {
         ("0x1F (end of C0)", 0x1fu8, true),
         ("0x20 (space, first printable)", 0x20u8, false),
     ] {
-        let sni = vec![b'a', byte, b'b', b'.', b'e', b'x', b'a', b'm', b'p', b'l', b'e'];
+        let sni = vec![
+            b'a', byte, b'b', b'.', b'e', b'x', b'a', b'm', b'p', b'l', b'e',
+        ];
         let mut analyzer = TlsAnalyzer::new();
         analyzer.on_data(
             &fk,
