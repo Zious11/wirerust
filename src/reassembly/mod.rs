@@ -5,7 +5,19 @@
 //! [`handler::StreamAnalyzer`] interfaces that downstream protocol
 //! analyzers (HTTP, TLS) implement.
 //!
-//! Design highlights:
+//! ## Module layout (LESSON-P2.01)
+//!
+//! The engine is split across four files within this directory:
+//! - `mod.rs` (here) — the [`TcpReassembler`] type and the per-packet
+//!   hot path: [`TcpReassembler::process_packet`] decomposed into named
+//!   steps, plus `expire_flows` / `finalize` / `summarize` / accessors.
+//! - `config.rs` — [`ReassemblyConfig`] (re-exported).
+//! - `stats.rs` — [`ReassemblyStats`] (re-exported).
+//! - `lifecycle.rs` — flow-retirement and finding-emission internals
+//!   (`close_flow`, `evict_flows`, `generate_*_finding`).
+//!
+//! ## Design highlights
+//!
 //! - **First-wins overlap policy.** When a retransmitted segment carries
 //!   different bytes from the one already buffered at the same offset,
 //!   the buffered bytes are kept and a "conflicting overlap" Anomaly
@@ -22,6 +34,13 @@ pub mod flow;
 pub mod handler;
 pub mod segment;
 
+mod config;
+mod lifecycle;
+mod stats;
+
+pub use config::ReassemblyConfig;
+pub use stats::ReassemblyStats;
+
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -29,7 +48,7 @@ use crate::analyzer::AnalysisSummary;
 use crate::decoder::{ParsedPacket, Protocol, TransportInfo};
 use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use crate::reassembly::flow::{FlowKey, FlowState, TcpFlow};
-use crate::reassembly::handler::{CloseReason, StreamHandler};
+use crate::reassembly::handler::{CloseReason, Direction, StreamHandler};
 use crate::reassembly::segment::InsertResult;
 
 const OVERLAP_ALERT_THRESHOLD: u32 = 50;
@@ -37,64 +56,30 @@ const SMALL_SEGMENT_ALERT_THRESHOLD: u32 = 2048;
 const OUT_OF_WINDOW_ALERT_THRESHOLD: u32 = 100;
 const MAX_FINDINGS: usize = 10_000;
 
-static CLOSE_FLOW_MISSING_WARNED: AtomicBool = AtomicBool::new(false);
 static FINALIZE_SKIPPED_WARNED: AtomicBool = AtomicBool::new(false);
 
-/// Configuration for the TCP reassembly engine.
-#[derive(Debug, Clone)]
-pub struct ReassemblyConfig {
-    /// Maximum bytes to reassemble per-direction before stopping (depth limit).
-    pub max_depth: usize,
-    /// Maximum total memory across all flows before eviction kicks in.
-    pub memcap: usize,
-    /// Seconds of inactivity before a flow is considered timed out.
-    pub flow_timeout_secs: u32,
-    /// Maximum number of concurrent flows tracked. Prevents flow table flooding.
-    pub max_flows: usize,
-    /// Maximum segments per flow direction. Prevents BTreeMap overhead explosion.
-    pub max_segments_per_direction: usize,
-    /// Maximum distance (bytes) ahead of base_offset to accept a segment.
-    /// Segments beyond this are dropped. Default 1MB matches Suricata/Zeek/Snort.
-    pub max_receive_window: usize,
+/// TCP header fields extracted from a packet.
+///
+/// Carried between the `process_packet` sub-steps as a named struct
+/// rather than a positional 7-tuple (LESSON-P2.01 readability cleanup).
+struct TcpFields {
+    src_port: u16,
+    dst_port: u16,
+    seq: u32,
+    syn: bool,
+    ack: bool,
+    fin: bool,
+    rst: bool,
 }
 
-impl Default for ReassemblyConfig {
-    fn default() -> Self {
-        ReassemblyConfig {
-            max_depth: 10 * 1024 * 1024,        // 10 MB per direction
-            memcap: 1024 * 1024 * 1024,         // 1 GB total
-            flow_timeout_secs: 300,             // 5 minutes
-            max_flows: 100_000,                 // 100K concurrent flows
-            max_segments_per_direction: 10_000, // 10K segments per direction
-            max_receive_window: 1_048_576,      // 1 MB forward window
-        }
-    }
-}
-
-/// Counters exposed by the reassembly engine.
-#[derive(Debug, Clone, Default)]
-pub struct ReassemblyStats {
-    pub packets_processed: u64,
-    pub packets_tcp: u64,
-    pub packets_skipped_non_tcp: u64,
-    pub flows_total: u64,
-    pub flows_partial: u64,
-    pub flows_expired: u64,
-    pub flows_rst: u64,
-    pub flows_fin: u64,
-    pub segments_inserted: u64,
-    pub segments_duplicates: u64,
-    pub segments_overlaps: u64,
-    pub segments_out_of_window: u64,
-    pub segments_segment_limit: u64,
-    pub segments_depth_exceeded: u64,
-    pub bytes_reassembled: u64,
-    pub evictions: u64,
-    /// Anomaly findings that were suppressed because `self.findings` had
-    /// already reached `MAX_FINDINGS`. Exposed in `summarize()` under
-    /// `dropped_findings` so JSON consumers can detect when the cap was
-    /// hit and per-flow signal was silently lost — see LESSON-P1.01.
-    pub dropped_findings: u64,
+/// Outcome of handshake-flag handling: whether `process_packet` should
+/// continue to payload handling or stop because the flow was RST-closed.
+#[derive(Debug, PartialEq, Eq)]
+enum PostHandshake {
+    /// No RST — proceed to payload processing.
+    Continue,
+    /// An RST flushed and removed the flow; stop processing this packet.
+    FlowClosed,
 }
 
 /// The main TCP reassembly engine.
@@ -131,6 +116,10 @@ impl TcpReassembler {
     }
 
     /// Process a single parsed packet through the reassembly engine.
+    ///
+    /// The work is decomposed into named sub-steps (LESSON-P2.01); each
+    /// re-acquires the flow handle from the table, mirroring the
+    /// original combined function's existing per-section re-lookups.
     pub fn process_packet(
         &mut self,
         packet: &ParsedPacket,
@@ -139,254 +128,31 @@ impl TcpReassembler {
     ) {
         self.stats.packets_processed += 1;
 
-        // 1. Skip non-TCP packets
-        if packet.protocol != Protocol::Tcp {
-            self.stats.packets_skipped_non_tcp += 1;
+        // Skip non-TCP packets; extract TCP fields; build the flow key.
+        let Some((key, tcp)) = self.extract_tcp_context(packet) else {
             return;
-        }
-
-        // 2. Extract TCP fields
-        let (src_port, dst_port, seq, syn, ack, fin, rst) = match &packet.transport {
-            TransportInfo::Tcp {
-                src_port,
-                dst_port,
-                seq_number,
-                syn,
-                ack,
-                fin,
-                rst,
-            } => (*src_port, *dst_port, *seq_number, *syn, *ack, *fin, *rst),
-            _ => return,
         };
-
         self.stats.packets_tcp += 1;
 
-        // 3. Build the flow key
-        let key = FlowKey::new(packet.src_ip, src_port, packet.dst_ip, dst_port);
-
-        // 4. Get or create flow
-        if !self.flows.contains_key(&key) {
-            // Enforce max_flows limit
-            if self.flows.len() >= self.config.max_flows {
-                self.evict_flows(handler);
-                if self.flows.len() >= self.config.max_flows {
-                    // Still at capacity after eviction — drop this packet
-                    return;
-                }
-            }
-            let flow = TcpFlow::new(key.clone(), timestamp);
-            self.flows.insert(key.clone(), flow);
-            self.stats.flows_total += 1;
-        }
-
-        // Work with the flow
-        let flow = self.flows.get_mut(&key).unwrap();
-        flow.last_seen = timestamp;
-
-        // 5. Handle SYN (without ACK) -- client initiating
-        if syn && !ack {
-            flow.set_initiator(packet.src_ip, src_port);
-            let dir = flow.direction(packet.src_ip, src_port);
-            flow.get_direction_mut(dir).set_isn(seq);
-            flow.on_syn();
-        }
-
-        // 6. Handle SYN+ACK -- server responding
-        if syn && ack {
-            // The responder is sending SYN+ACK, so the initiator is the *destination*
-            flow.set_initiator(packet.dst_ip, dst_port);
-            let dir = flow.direction(packet.src_ip, src_port);
-            flow.get_direction_mut(dir).set_isn(seq);
-            flow.on_syn_ack();
-        }
-
-        // 7. Handle RST — flush salvageable data, close, and remove
-        if rst {
-            flow.on_rst();
-            self.stats.flows_rst += 1;
-            self.close_flow(&key, CloseReason::Rst, handler);
+        // Get-or-create the flow, evicting under capacity pressure.
+        if !self.get_or_create_flow(&key, timestamp, handler) {
             return;
         }
 
-        // 8. Handle FIN
-        if fin {
-            let dir = flow.direction(packet.src_ip, src_port);
-            flow.get_direction_mut(dir).fin_seen = true;
-            flow.on_fin();
-            // Note: if state is now Closed (both FINs seen), the flow will be
-            // removed after payload processing below (step 10).
+        // SYN / SYN+ACK / RST / FIN handling. RST closes the flow.
+        if self.apply_handshake_flags(packet, &key, &tcp, handler) == PostHandshake::FlowClosed {
+            return;
         }
 
-        // 9. Handle payload
-        let payload = &packet.payload;
-        if !payload.is_empty() {
-            // If no SYN was seen (mid-stream join), infer state
-            if flow.state == FlowState::New {
-                flow.on_data_without_syn();
-                flow.set_initiator(packet.src_ip, src_port);
-                let dir = flow.direction(packet.src_ip, src_port);
-                flow.get_direction_mut(dir).infer_isn(seq);
-                self.stats.flows_partial += 1;
-            }
-
-            let dir = flow.direction(packet.src_ip, src_port);
-
-            // Ensure ISN is set for this direction even on established flows
-            // (e.g., server direction when only SYN was seen, not SYN+ACK)
-            if flow.get_direction_mut(dir).isn.is_none() {
-                flow.get_direction_mut(dir).infer_isn(seq);
-            }
-
-            let flow_dir = flow.get_direction_mut(dir);
-            let before_insert = flow_dir.buffered_bytes;
-            let result = flow_dir.insert_segment(
-                seq,
-                payload,
-                self.config.max_depth,
-                self.config.max_segments_per_direction,
-                self.config.max_receive_window,
-            );
-            debug_assert!(
-                flow_dir.buffered_bytes >= before_insert,
-                "insert_segment decreased buffered_bytes: before={} after={}",
-                before_insert,
-                flow_dir.buffered_bytes
-            );
-            let bytes_added = flow_dir.buffered_bytes.saturating_sub(before_insert);
-            self.total_memory += bytes_added;
-
-            match result {
-                InsertResult::Inserted => self.stats.segments_inserted += 1,
-                InsertResult::Duplicate => self.stats.segments_duplicates += 1,
-                InsertResult::PartialOverlap => {
-                    self.stats.segments_overlaps += 1;
-                    self.stats.segments_inserted += 1;
-                }
-                InsertResult::ConflictingOverlap => {
-                    self.stats.segments_overlaps += 1;
-                    self.generate_conflicting_overlap_finding(&key, packet.src_ip);
-                }
-                InsertResult::Truncated => {
-                    self.stats.segments_inserted += 1;
-                    self.generate_truncated_finding(&key, packet.src_ip);
-                }
-                InsertResult::DepthExceeded => {
-                    self.stats.segments_depth_exceeded += 1;
-                }
-                InsertResult::SegmentLimitReached => {
-                    self.stats.segments_segment_limit += 1;
-                    // Partial insertion: some gap bytes were inserted before the limit
-                    if bytes_added > 0 {
-                        self.stats.segments_overlaps += 1;
-                        self.stats.segments_inserted += 1;
-                    }
-                }
-                InsertResult::OutOfWindow => {
-                    self.stats.segments_out_of_window += 1;
-                }
-                InsertResult::IsnMissing => {
-                    // Programming error — ISN should always be set before insert.
-                    // eprintln already emitted in insert_segment.
-                }
-            }
-
-            // Check anomaly thresholds on the direction
-            let flow = self.flows.get_mut(&key).unwrap();
-            let flow_dir = flow.get_direction_mut(dir);
-            // LESSON-P1.01: the per-direction alert latches now flip
-            // unconditionally once their threshold trips, even when the
-            // finding push is suppressed by the MAX_FINDINGS cap. This
-            // prevents re-evaluating the same threshold on every
-            // subsequent packet (which would also miscount as multiple
-            // dropped_findings rather than one) and lets the
-            // dropped_findings counter accurately reflect distinct
-            // anomalies lost to the cap.
-            if flow_dir.overlap_count > OVERLAP_ALERT_THRESHOLD && !flow_dir.overlap_alert_fired {
-                flow_dir.overlap_alert_fired = true;
-                if self.findings.len() < MAX_FINDINGS {
-                    self.findings.push(Finding {
-                        category: ThreatCategory::Anomaly,
-                        verdict: Verdict::Likely,
-                        confidence: Confidence::Medium,
-                        summary: format!(
-                            "Excessive segment overlaps ({}) on flow {}",
-                            flow_dir.overlap_count, key
-                        ),
-                        evidence: vec!["Possible evasion attempt".into()],
-                        mitre_technique: Some("T1036".into()),
-                        source_ip: Some(packet.src_ip),
-                        timestamp: None,
-                        direction: Some(dir),
-                    });
-                } else {
-                    self.stats.dropped_findings += 1;
-                }
-            }
-            if flow_dir.small_segment_count > SMALL_SEGMENT_ALERT_THRESHOLD
-                && !flow_dir.small_segment_alert_fired
-            {
-                flow_dir.small_segment_alert_fired = true;
-                if self.findings.len() < MAX_FINDINGS {
-                    self.findings.push(Finding {
-                        category: ThreatCategory::Anomaly,
-                        verdict: Verdict::Inconclusive,
-                        confidence: Confidence::Medium,
-                        summary: format!(
-                            "Excessive small segments ({}) on flow {}",
-                            flow_dir.small_segment_count, key
-                        ),
-                        evidence: vec!["Possible IDS evasion".into()],
-                        mitre_technique: None,
-                        source_ip: Some(packet.src_ip),
-                        timestamp: None,
-                        direction: Some(dir),
-                    });
-                } else {
-                    self.stats.dropped_findings += 1;
-                }
-            }
-            if flow_dir.out_of_window_count > OUT_OF_WINDOW_ALERT_THRESHOLD
-                && !flow_dir.out_of_window_alert_fired
-            {
-                flow_dir.out_of_window_alert_fired = true;
-                let count = flow_dir.out_of_window_count;
-                let window = self.config.max_receive_window;
-                if self.findings.len() < MAX_FINDINGS {
-                    self.findings.push(Finding {
-                        category: ThreatCategory::Anomaly,
-                        verdict: Verdict::Inconclusive,
-                        confidence: Confidence::Low,
-                        summary: format!(
-                            "Excessive out-of-window segments ({count}) on flow {key}"
-                        ),
-                        evidence: vec![format!(
-                            "max_receive_window={} bytes; possible misconfiguration, evasion, or capture corruption",
-                            window
-                        )],
-                        mitre_technique: None,
-                        source_ip: Some(packet.src_ip),
-                        timestamp: None,
-                    direction: Some(dir),
-                    });
-                } else {
-                    self.stats.dropped_findings += 1;
-                }
-            }
-
-            // Flush contiguous data
-            let flow = self.flows.get_mut(&key).unwrap();
-            let flow_dir = flow.get_direction_mut(dir);
-            let before_flush = flow_dir.buffered_bytes;
-            let flushed = flow_dir.flush_contiguous();
-            self.total_memory -= before_flush - flow_dir.buffered_bytes;
-
-            for (offset, data) in &flushed {
-                self.stats.bytes_reassembled += data.len() as u64;
-                handler.on_data(&key, dir, data, *offset);
-            }
+        // Payload: insert the segment, check anomaly thresholds, flush.
+        if !packet.payload.is_empty() {
+            let dir = self.insert_payload_segment(packet, &key, &tcp);
+            self.check_anomaly_thresholds(packet, &key, dir);
+            self.flush_contiguous_data(&key, dir, handler);
         }
 
-        // 10. Remove FIN-closed flows after processing their final payload
+        // Remove a flow that FIN-closed during this packet, after its
+        // final payload has been processed.
         if self
             .flows
             .get(&key)
@@ -396,9 +162,309 @@ impl TcpReassembler {
             self.close_flow(&key, CloseReason::Fin, handler);
         }
 
-        // 12. Evict flows if memcap exceeded
+        // Evict flows if the memcap was exceeded by this packet.
         if self.total_memory > self.config.memcap {
             self.evict_flows(handler);
+        }
+    }
+
+    /// Reject non-TCP packets, pull the TCP header fields, and build the
+    /// canonical flow key. Returns `None` (counting the packet as
+    /// skipped, when it is genuinely non-TCP) if the packet cannot be
+    /// processed as a TCP segment.
+    fn extract_tcp_context(&mut self, packet: &ParsedPacket) -> Option<(FlowKey, TcpFields)> {
+        if packet.protocol != Protocol::Tcp {
+            self.stats.packets_skipped_non_tcp += 1;
+            return None;
+        }
+        let tcp = match &packet.transport {
+            TransportInfo::Tcp {
+                src_port,
+                dst_port,
+                seq_number,
+                syn,
+                ack,
+                fin,
+                rst,
+            } => TcpFields {
+                src_port: *src_port,
+                dst_port: *dst_port,
+                seq: *seq_number,
+                syn: *syn,
+                ack: *ack,
+                fin: *fin,
+                rst: *rst,
+            },
+            _ => return None,
+        };
+        let key = FlowKey::new(packet.src_ip, tcp.src_port, packet.dst_ip, tcp.dst_port);
+        Some((key, tcp))
+    }
+
+    /// Ensure a [`TcpFlow`] exists for `key`, creating one (and evicting
+    /// under `max_flows` pressure) if needed, and stamp `last_seen`.
+    /// Returns `false` if the flow table is still at capacity after
+    /// eviction and the packet must therefore be dropped.
+    fn get_or_create_flow(
+        &mut self,
+        key: &FlowKey,
+        timestamp: u32,
+        handler: &mut dyn StreamHandler,
+    ) -> bool {
+        if !self.flows.contains_key(key) {
+            // Enforce max_flows limit
+            if self.flows.len() >= self.config.max_flows {
+                self.evict_flows(handler);
+                if self.flows.len() >= self.config.max_flows {
+                    // Still at capacity after eviction — drop this packet
+                    return false;
+                }
+            }
+            let flow = TcpFlow::new(key.clone(), timestamp);
+            self.flows.insert(key.clone(), flow);
+            self.stats.flows_total += 1;
+        }
+
+        let flow = self.flows.get_mut(key).unwrap();
+        flow.last_seen = timestamp;
+        true
+    }
+
+    /// Apply SYN / SYN+ACK / RST / FIN semantics to the flow. An RST
+    /// flushes and removes the flow; the return value tells
+    /// `process_packet` whether to stop ([`PostHandshake::FlowClosed`])
+    /// or continue to payload handling ([`PostHandshake::Continue`]).
+    fn apply_handshake_flags(
+        &mut self,
+        packet: &ParsedPacket,
+        key: &FlowKey,
+        tcp: &TcpFields,
+        handler: &mut dyn StreamHandler,
+    ) -> PostHandshake {
+        let flow = self.flows.get_mut(key).unwrap();
+
+        // SYN (without ACK) — client initiating.
+        if tcp.syn && !tcp.ack {
+            flow.set_initiator(packet.src_ip, tcp.src_port);
+            let dir = flow.direction(packet.src_ip, tcp.src_port);
+            flow.get_direction_mut(dir).set_isn(tcp.seq);
+            flow.on_syn();
+        }
+
+        // SYN+ACK — server responding, so the initiator is the *destination*.
+        if tcp.syn && tcp.ack {
+            flow.set_initiator(packet.dst_ip, tcp.dst_port);
+            let dir = flow.direction(packet.src_ip, tcp.src_port);
+            flow.get_direction_mut(dir).set_isn(tcp.seq);
+            flow.on_syn_ack();
+        }
+
+        // RST — flush salvageable data, close, and remove.
+        if tcp.rst {
+            flow.on_rst();
+            self.stats.flows_rst += 1;
+            self.close_flow(key, CloseReason::Rst, handler);
+            return PostHandshake::FlowClosed;
+        }
+
+        // FIN — mark the direction; if both FINs are now seen the flow
+        // is removed after payload processing (see `process_packet`).
+        if tcp.fin {
+            let dir = flow.direction(packet.src_ip, tcp.src_port);
+            flow.get_direction_mut(dir).fin_seen = true;
+            flow.on_fin();
+        }
+
+        PostHandshake::Continue
+    }
+
+    /// Insert the packet payload into the per-direction segment buffer,
+    /// inferring mid-stream-join state when no SYN was seen, and update
+    /// the segment-class counters. Returns the flow [`Direction`] the
+    /// payload belongs to, for the threshold-check and flush steps.
+    fn insert_payload_segment(
+        &mut self,
+        packet: &ParsedPacket,
+        key: &FlowKey,
+        tcp: &TcpFields,
+    ) -> Direction {
+        let payload = &packet.payload;
+        let flow = self.flows.get_mut(key).unwrap();
+
+        // If no SYN was seen (mid-stream join), infer state.
+        if flow.state == FlowState::New {
+            flow.on_data_without_syn();
+            flow.set_initiator(packet.src_ip, tcp.src_port);
+            let dir = flow.direction(packet.src_ip, tcp.src_port);
+            flow.get_direction_mut(dir).infer_isn(tcp.seq);
+            self.stats.flows_partial += 1;
+        }
+
+        let dir = flow.direction(packet.src_ip, tcp.src_port);
+
+        // Ensure ISN is set for this direction even on established flows
+        // (e.g., server direction when only SYN was seen, not SYN+ACK).
+        if flow.get_direction_mut(dir).isn.is_none() {
+            flow.get_direction_mut(dir).infer_isn(tcp.seq);
+        }
+
+        let flow_dir = flow.get_direction_mut(dir);
+        let before_insert = flow_dir.buffered_bytes;
+        let result = flow_dir.insert_segment(
+            tcp.seq,
+            payload,
+            self.config.max_depth,
+            self.config.max_segments_per_direction,
+            self.config.max_receive_window,
+        );
+        debug_assert!(
+            flow_dir.buffered_bytes >= before_insert,
+            "insert_segment decreased buffered_bytes: before={} after={}",
+            before_insert,
+            flow_dir.buffered_bytes
+        );
+        let bytes_added = flow_dir.buffered_bytes.saturating_sub(before_insert);
+        self.total_memory += bytes_added;
+
+        match result {
+            InsertResult::Inserted => self.stats.segments_inserted += 1,
+            InsertResult::Duplicate => self.stats.segments_duplicates += 1,
+            InsertResult::PartialOverlap => {
+                self.stats.segments_overlaps += 1;
+                self.stats.segments_inserted += 1;
+            }
+            InsertResult::ConflictingOverlap => {
+                self.stats.segments_overlaps += 1;
+                self.generate_conflicting_overlap_finding(key, packet.src_ip);
+            }
+            InsertResult::Truncated => {
+                self.stats.segments_inserted += 1;
+                self.generate_truncated_finding(key, packet.src_ip);
+            }
+            InsertResult::DepthExceeded => {
+                self.stats.segments_depth_exceeded += 1;
+            }
+            InsertResult::SegmentLimitReached => {
+                self.stats.segments_segment_limit += 1;
+                // Partial insertion: some gap bytes were inserted before the limit
+                if bytes_added > 0 {
+                    self.stats.segments_overlaps += 1;
+                    self.stats.segments_inserted += 1;
+                }
+            }
+            InsertResult::OutOfWindow => {
+                self.stats.segments_out_of_window += 1;
+            }
+            InsertResult::IsnMissing => {
+                // Programming error — ISN should always be set before insert.
+                // eprintln already emitted in insert_segment.
+            }
+        }
+
+        dir
+    }
+
+    /// Emit the per-direction overlap / small-segment / out-of-window
+    /// Anomaly findings whose thresholds have just been crossed.
+    ///
+    /// LESSON-P1.01: the per-direction alert latches flip
+    /// unconditionally once their threshold trips, even when the finding
+    /// push is suppressed by the `MAX_FINDINGS` cap. This prevents
+    /// re-evaluating the same threshold on every subsequent packet
+    /// (which would also miscount as multiple `dropped_findings` rather
+    /// than one) and lets the `dropped_findings` counter accurately
+    /// reflect distinct anomalies lost to the cap.
+    fn check_anomaly_thresholds(&mut self, packet: &ParsedPacket, key: &FlowKey, dir: Direction) {
+        let flow = self.flows.get_mut(key).unwrap();
+        let flow_dir = flow.get_direction_mut(dir);
+
+        if flow_dir.overlap_count > OVERLAP_ALERT_THRESHOLD && !flow_dir.overlap_alert_fired {
+            flow_dir.overlap_alert_fired = true;
+            if self.findings.len() < MAX_FINDINGS {
+                self.findings.push(Finding {
+                    category: ThreatCategory::Anomaly,
+                    verdict: Verdict::Likely,
+                    confidence: Confidence::Medium,
+                    summary: format!(
+                        "Excessive segment overlaps ({}) on flow {}",
+                        flow_dir.overlap_count, key
+                    ),
+                    evidence: vec!["Possible evasion attempt".into()],
+                    mitre_technique: Some("T1036".into()),
+                    source_ip: Some(packet.src_ip),
+                    timestamp: None,
+                    direction: Some(dir),
+                });
+            } else {
+                self.stats.dropped_findings += 1;
+            }
+        }
+        if flow_dir.small_segment_count > SMALL_SEGMENT_ALERT_THRESHOLD
+            && !flow_dir.small_segment_alert_fired
+        {
+            flow_dir.small_segment_alert_fired = true;
+            if self.findings.len() < MAX_FINDINGS {
+                self.findings.push(Finding {
+                    category: ThreatCategory::Anomaly,
+                    verdict: Verdict::Inconclusive,
+                    confidence: Confidence::Medium,
+                    summary: format!(
+                        "Excessive small segments ({}) on flow {}",
+                        flow_dir.small_segment_count, key
+                    ),
+                    evidence: vec!["Possible IDS evasion".into()],
+                    mitre_technique: None,
+                    source_ip: Some(packet.src_ip),
+                    timestamp: None,
+                    direction: Some(dir),
+                });
+            } else {
+                self.stats.dropped_findings += 1;
+            }
+        }
+        if flow_dir.out_of_window_count > OUT_OF_WINDOW_ALERT_THRESHOLD
+            && !flow_dir.out_of_window_alert_fired
+        {
+            flow_dir.out_of_window_alert_fired = true;
+            let count = flow_dir.out_of_window_count;
+            let window = self.config.max_receive_window;
+            if self.findings.len() < MAX_FINDINGS {
+                self.findings.push(Finding {
+                    category: ThreatCategory::Anomaly,
+                    verdict: Verdict::Inconclusive,
+                    confidence: Confidence::Low,
+                    summary: format!("Excessive out-of-window segments ({count}) on flow {key}"),
+                    evidence: vec![format!(
+                        "max_receive_window={window} bytes; possible misconfiguration, evasion, or capture corruption"
+                    )],
+                    mitre_technique: None,
+                    source_ip: Some(packet.src_ip),
+                    timestamp: None,
+                    direction: Some(dir),
+                });
+            } else {
+                self.stats.dropped_findings += 1;
+            }
+        }
+    }
+
+    /// Flush the now-contiguous prefix of the direction's buffer to the
+    /// handler and update memory accounting.
+    fn flush_contiguous_data(
+        &mut self,
+        key: &FlowKey,
+        dir: Direction,
+        handler: &mut dyn StreamHandler,
+    ) {
+        let flow = self.flows.get_mut(key).unwrap();
+        let flow_dir = flow.get_direction_mut(dir);
+        let before_flush = flow_dir.buffered_bytes;
+        let flushed = flow_dir.flush_contiguous();
+        self.total_memory -= before_flush - flow_dir.buffered_bytes;
+
+        for (offset, data) in &flushed {
+            self.stats.bytes_reassembled += data.len() as u64;
+            handler.on_data(key, dir, data, *offset);
         }
     }
 
@@ -526,100 +592,6 @@ impl TcpReassembler {
             packets_analyzed: s.packets_tcp,
             detail,
         }
-    }
-
-    // --- Private helpers ---
-
-    /// Flush remaining contiguous data in both directions, remove the flow,
-    /// update memory accounting, and notify the handler.
-    fn close_flow(&mut self, key: &FlowKey, reason: CloseReason, handler: &mut dyn StreamHandler) {
-        use crate::reassembly::handler::Direction;
-        let Some(mut flow) = self.flows.remove(key) else {
-            debug_assert!(false, "close_flow called for non-existent key: {key}");
-            if !CLOSE_FLOW_MISSING_WARNED.swap(true, Ordering::Relaxed) {
-                eprintln!(
-                    "wirerust: close_flow called for non-existent key: {key} (reason: {reason:?})"
-                );
-            }
-            return;
-        };
-        let flow_mem = flow.memory_used();
-        for dir in [Direction::ClientToServer, Direction::ServerToClient] {
-            let flow_dir = flow.get_direction_mut(dir);
-            let flushed = flow_dir.flush_contiguous();
-            for (offset, data) in &flushed {
-                self.stats.bytes_reassembled += data.len() as u64;
-                handler.on_data(key, dir, data, *offset);
-            }
-        }
-        self.total_memory -= flow_mem;
-        handler.on_flow_close(key, reason);
-    }
-
-    /// Evict flows when memcap is exceeded.
-    /// Strategy: evict non-established flows first (sorted by LRU),
-    /// then established flows by LRU.
-    fn evict_flows(&mut self, handler: &mut dyn StreamHandler) {
-        // Sort once, then evict from the sorted list until under memcap
-        let mut candidates: Vec<(FlowKey, bool, u32)> = self
-            .flows
-            .iter()
-            .map(|(key, flow)| {
-                let is_established = flow.state == FlowState::Established;
-                (key.clone(), is_established, flow.last_seen)
-            })
-            .collect();
-
-        // Sort: non-established first, then by oldest last_seen
-        candidates.sort_by(|a, b| {
-            a.1.cmp(&b.1) // false (non-established) < true (established)
-                .then(a.2.cmp(&b.2)) // older first
-        });
-
-        for (key, _, _) in &candidates {
-            if self.total_memory <= self.config.memcap && self.flows.len() <= self.config.max_flows
-            {
-                break;
-            }
-            self.stats.evictions += 1;
-            self.close_flow(key, CloseReason::MemoryPressure, handler);
-        }
-    }
-
-    fn generate_conflicting_overlap_finding(&mut self, key: &FlowKey, src_ip: std::net::IpAddr) {
-        if self.findings.len() >= MAX_FINDINGS {
-            self.stats.dropped_findings += 1;
-            return;
-        }
-        self.findings.push(Finding {
-            category: ThreatCategory::Anomaly,
-            verdict: Verdict::Likely,
-            confidence: Confidence::High,
-            summary: format!("Conflicting TCP segment overlap on flow {key}"),
-            evidence: vec!["Retransmitted segment contains different data".to_string()],
-            mitre_technique: Some("T1036".to_string()),
-            source_ip: Some(src_ip),
-            timestamp: None,
-            direction: None,
-        });
-    }
-
-    fn generate_truncated_finding(&mut self, key: &FlowKey, src_ip: std::net::IpAddr) {
-        if self.findings.len() >= MAX_FINDINGS {
-            self.stats.dropped_findings += 1;
-            return;
-        }
-        self.findings.push(Finding {
-            category: ThreatCategory::Anomaly,
-            verdict: Verdict::Inconclusive,
-            confidence: Confidence::Low,
-            summary: format!("Stream depth exceeded on flow {key}"),
-            evidence: vec![format!("Max depth {} bytes reached", self.config.max_depth)],
-            mitre_technique: None,
-            source_ip: Some(src_ip),
-            timestamp: None,
-            direction: None,
-        });
     }
 }
 
