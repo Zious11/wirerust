@@ -1396,3 +1396,82 @@ fn test_depth_exceeded_counter() {
         "segments_depth_exceeded should appear in summarize() detail"
     );
 }
+
+// ---- LESSON-P0.03 / smell #9: Drop tripwire + finalize idempotency ----
+
+#[test]
+fn test_is_finalized_flips_on_finalize() {
+    // Lifecycle invariant: `is_finalized()` is false before `finalize` and
+    // true after. This is the field that `impl Drop for TcpReassembler`
+    // reads to decide whether to emit the lifecycle warning.
+    let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    let mut handler = RecordingHandler::new();
+    assert!(
+        !reassembler.is_finalized(),
+        "new reassembler should not yet be finalized"
+    );
+    reassembler.finalize(&mut handler);
+    assert!(
+        reassembler.is_finalized(),
+        "finalize() must flip is_finalized() to true"
+    );
+}
+
+#[test]
+fn test_finalize_is_idempotent() {
+    // The lesson observed that without `impl Drop`, finalize is a manual
+    // call. With the tripwire in place, finalize must also remain safely
+    // idempotent so that callers (or a future Drop guard wrapper) can
+    // invoke it more than once without re-emitting summary findings or
+    // re-flushing flows. Verifies the `if self.finalized { return; }`
+    // guard in mod.rs.
+    let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    let mut handler = RecordingHandler::new();
+    reassembler.finalize(&mut handler);
+    let first_findings = reassembler.findings().len();
+    let first_close_events = handler.close_events.len();
+    reassembler.finalize(&mut handler);
+    assert!(reassembler.is_finalized());
+    assert_eq!(
+        reassembler.findings().len(),
+        first_findings,
+        "second finalize call must not append additional findings"
+    );
+    assert_eq!(
+        handler.close_events.len(),
+        first_close_events,
+        "second finalize call must not re-emit on_flow_close events"
+    );
+}
+
+#[test]
+fn test_drop_without_finalize_does_not_panic() {
+    // `impl Drop for TcpReassembler` is intentionally non-panicking: it
+    // emits a one-shot eprintln warning so future regressions of the
+    // "forgot to call finalize" bug are visible at runtime, but it must
+    // never crash the process. Several existing unit tests construct a
+    // reassembler purely to exercise sub-engine behavior without ever
+    // driving it to a captured-state end-of-input, so the tripwire
+    // would be unusable as a `panic!` / `debug_assert!`.
+    //
+    // This test asserts that dropping an un-finalized reassembler is a
+    // safe, non-panicking operation. Stderr capture for the warning
+    // text itself is left to the integration layer.
+    let reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    assert!(!reassembler.is_finalized());
+    drop(reassembler); // must not panic
+}
+
+#[test]
+fn test_drop_after_finalize_is_silent_path() {
+    // The happy path: caller drives finalize before letting the
+    // reassembler go out of scope. The Drop guard's `!self.finalized`
+    // check is the gating predicate for the warning; this test verifies
+    // we hit that predicate as false, so production runs do not spam
+    // stderr.
+    let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    let mut handler = RecordingHandler::new();
+    reassembler.finalize(&mut handler);
+    assert!(reassembler.is_finalized());
+    drop(reassembler); // must not panic and must be the silent branch
+}
