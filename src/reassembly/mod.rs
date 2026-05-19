@@ -357,8 +357,7 @@ impl TcpReassembler {
                         verdict: Verdict::Inconclusive,
                         confidence: Confidence::Low,
                         summary: format!(
-                            "Excessive out-of-window segments ({}) on flow {}",
-                            count, key
+                            "Excessive out-of-window segments ({count}) on flow {key}"
                         ),
                         evidence: vec![format!(
                             "max_receive_window={} bytes; possible misconfiguration, evasion, or capture corruption",
@@ -536,11 +535,10 @@ impl TcpReassembler {
     fn close_flow(&mut self, key: &FlowKey, reason: CloseReason, handler: &mut dyn StreamHandler) {
         use crate::reassembly::handler::Direction;
         let Some(mut flow) = self.flows.remove(key) else {
-            debug_assert!(false, "close_flow called for non-existent key: {}", key);
+            debug_assert!(false, "close_flow called for non-existent key: {key}");
             if !CLOSE_FLOW_MISSING_WARNED.swap(true, Ordering::Relaxed) {
                 eprintln!(
-                    "wirerust: close_flow called for non-existent key: {} (reason: {:?})",
-                    key, reason
+                    "wirerust: close_flow called for non-existent key: {key} (reason: {reason:?})"
                 );
             }
             return;
@@ -597,7 +595,7 @@ impl TcpReassembler {
             category: ThreatCategory::Anomaly,
             verdict: Verdict::Likely,
             confidence: Confidence::High,
-            summary: format!("Conflicting TCP segment overlap on flow {}", key),
+            summary: format!("Conflicting TCP segment overlap on flow {key}"),
             evidence: vec!["Retransmitted segment contains different data".to_string()],
             mitre_technique: Some("T1036".to_string()),
             source_ip: Some(src_ip),
@@ -615,7 +613,7 @@ impl TcpReassembler {
             category: ThreatCategory::Anomaly,
             verdict: Verdict::Inconclusive,
             confidence: Confidence::Low,
-            summary: format!("Stream depth exceeded on flow {}", key),
+            summary: format!("Stream depth exceeded on flow {key}"),
             evidence: vec![format!("Max depth {} bytes reached", self.config.max_depth)],
             mitre_technique: None,
             source_ip: Some(src_ip),

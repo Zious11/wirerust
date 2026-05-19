@@ -560,7 +560,7 @@ impl TlsAnalyzer {
                 category: ThreatCategory::Anomaly,
                 verdict: Verdict::Likely,
                 confidence: Confidence::Medium,
-                summary: format!("ServerHello selected weak cipher suite ({})", name),
+                summary: format!("ServerHello selected weak cipher suite ({name})"),
                 evidence: vec![format!("Selected cipher: {} (0x{:04x})", name, sh.cipher.0)],
                 mitre_technique: None,
                 source_ip: None,

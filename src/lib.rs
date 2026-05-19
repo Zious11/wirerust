@@ -36,6 +36,11 @@
 //! in the technical-debt register; new public items added to an audited
 //! module MUST carry a doc comment.
 #![warn(missing_docs)]
+// LESSON-P2.02: enforce inlined format-string arguments
+// (`format!("{x}")` not `format!("{}", x)`) across the crate.
+// Combined with CI's `-D warnings`, this turns any regression
+// into a build failure.
+#![warn(clippy::uninlined_format_args)]
 
 #[allow(missing_docs)]
 pub mod analyzer;
