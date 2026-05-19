@@ -10,9 +10,10 @@
 //!   reassembly), with optional per-host breakdown in the terminal
 //!   reporter when `summary --hosts` is given (LESSON-P1.03).
 //!
-//! Both pipelines respect the `--json <FILE>` / `--output-format` /
-//! `--csv` flags; CSV currently bails loudly via
-//! [`check_unsupported_outputs`] until a CSV reporter lands.
+//! Both pipelines respect the `--json [<FILE>]`, `--csv [<FILE>]`, and
+//! `--output-format {json,csv}` flags ([`resolve_format`]); each writes
+//! to a file when a path is given, else to stdout ([`write_output`]).
+//! `--json` and `--csv` are mutually exclusive (LESSON-P2.03).
 
 use std::path::Path;
 
@@ -31,6 +32,7 @@ use wirerust::reader::PcapSource;
 use wirerust::reassembly::handler::StreamAnalyzer;
 use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
 use wirerust::reporter::Reporter;
+use wirerust::reporter::csv::CsvReporter;
 use wirerust::reporter::json::JsonReporter;
 use wirerust::reporter::terminal::TerminalReporter;
 use wirerust::summary::Summary;
@@ -77,8 +79,6 @@ fn run_analyze(
     use_color: bool,
     cli: &Cli,
 ) -> Result<()> {
-    check_unsupported_outputs(cli)?;
-
     let mut summary = Summary::new();
     let mut dns_analyzer = DnsAnalyzer::new();
     let mut all_findings = Vec::new();
@@ -207,6 +207,10 @@ fn run_analyze(
             let reporter = JsonReporter;
             reporter.render(&summary, &all_findings, &analyzer_summaries)
         }
+        Some(OutputFormat::Csv) => {
+            let reporter = CsvReporter;
+            reporter.render(&summary, &all_findings, &analyzer_summaries)
+        }
         _ => {
             let reporter = TerminalReporter {
                 use_color,
@@ -229,8 +233,6 @@ fn run_summary(
     use_color: bool,
     cli: &Cli,
 ) -> Result<()> {
-    check_unsupported_outputs(cli)?;
-
     let mut summary = Summary::new();
     let mut total_decode_errors: u64 = 0;
 
@@ -264,6 +266,10 @@ fn run_summary(
             let reporter = JsonReporter;
             reporter.render(&summary, &[], &[])
         }
+        Some(OutputFormat::Csv) => {
+            let reporter = CsvReporter;
+            reporter.render(&summary, &[], &[])
+        }
         _ => {
             let reporter = TerminalReporter {
                 use_color,
@@ -278,47 +284,40 @@ fn run_summary(
     Ok(())
 }
 
-/// Determine the output format, with `--json [<FILE>]` overriding `--output-format`.
+/// Determine the output format.
 ///
 /// Precedence (highest to lowest):
-/// 1. `--json` (with or without path) forces `OutputFormat::Json`.
-/// 2. `--output-format <fmt>` is honored as-is.
-/// 3. Default (terminal table) when neither flag is given.
+/// 1. `--json [<FILE>]` forces `OutputFormat::Json`.
+/// 2. `--csv [<FILE>]` forces `OutputFormat::Csv`. (`--json` and `--csv`
+///    are mutually exclusive — clap rejects the combination.)
+/// 3. `--output-format <fmt>` is honored as-is.
+/// 4. Default (terminal table) when no flag is given.
 fn resolve_format(cli: &Cli) -> Option<OutputFormat> {
     if cli.json.is_some() {
         Some(OutputFormat::Json)
+    } else if cli.csv.is_some() {
+        Some(OutputFormat::Csv)
     } else {
         cli.output_format
     }
 }
 
-/// Write rendered output either to a file (if `--json <FILE>` was given) or stdout.
+/// Write rendered output to a file (if `--json <FILE>` or `--csv <FILE>`
+/// was given with a path) or to stdout otherwise.
+///
+/// `--json` and `--csv` are mutually exclusive (enforced by clap), so at
+/// most one of the file-path arms can be active.
 fn write_output(output: &str, cli: &Cli) -> Result<()> {
-    match &cli.json {
-        Some(Some(path)) => std::fs::write(path, output)
+    match (&cli.json, &cli.csv) {
+        (Some(Some(path)), _) => std::fs::write(path, output)
             .with_context(|| format!("Failed to write JSON output to {}", path.display())),
+        (_, Some(Some(path))) => std::fs::write(path, output)
+            .with_context(|| format!("Failed to write CSV output to {}", path.display())),
         _ => {
             println!("{output}");
             Ok(())
         }
     }
-}
-
-/// Bail before any analysis if the user requested CSV output. The CSV reporter
-/// is unimplemented; previously the request was silently downgraded to terminal
-/// output, hiding the failure. Make it loud until the CSV reporter lands.
-fn check_unsupported_outputs(cli: &Cli) -> Result<()> {
-    if cli.csv.is_some() {
-        anyhow::bail!(
-            "--csv output is not yet implemented; rerun without --csv (or use --output-format json --json <FILE> for file output)"
-        );
-    }
-    if matches!(cli.output_format, Some(OutputFormat::Csv)) {
-        anyhow::bail!(
-            "--output-format csv is not yet implemented; choose 'json' or omit the flag for the terminal table"
-        );
-    }
-    Ok(())
 }
 
 fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {

@@ -1,12 +1,11 @@
 //! End-to-end CLI integration tests that spawn the `wirerust` binary.
 //!
-//! These tests exercise the `--json <FILE>` file-output path (LESSON-P0.04) and
-//! the loud-bail behavior on `--csv` / `--output-format csv`. They are the
-//! first activated use of the `assert_cmd` + `predicates` + `tempfile`
-//! dev-dependencies (previously dead per BC-ABS-009).
+//! These tests exercise the `--json <FILE>` file-output path (LESSON-P0.04)
+//! and the `--csv` reporter (LESSON-P2.03). They were the first activated
+//! use of the `assert_cmd` + `predicates` + `tempfile` dev-dependencies
+//! (previously dead per BC-ABS-009).
 
 use assert_cmd::Command;
-use predicates::str::contains;
 
 /// Smallest consumed pcap fixture in the tree (1,209 B). Produces a small but
 /// non-empty findings set when analyzed with `--all`.
@@ -72,56 +71,108 @@ fn json_file_output_overrides_terminal_output_format() {
     );
 }
 
-#[test]
-fn csv_flag_bails_with_clear_message() {
-    Command::cargo_bin("wirerust")
-        .expect("binary built")
-        .args(["analyze", FIXTURE, "--csv"])
-        .assert()
-        .failure()
-        .stderr(contains("--csv output is not yet implemented"));
-}
+// ---- LESSON-P2.03: CSV reporter ----
 
 #[test]
-fn csv_flag_with_path_bails_with_clear_message() {
+fn csv_flag_with_path_writes_csv_findings_table() {
+    // `--csv <FILE>` writes the findings table to the file. The
+    // fixture analyzed with `--all` produces a non-empty findings set,
+    // so the CSV has the header row plus at least one data row.
     let tmp = tempfile::tempdir().expect("tempdir");
-    let out_path = tmp.path().join("would-not-be-written.csv");
+    let out_path = tmp.path().join("out.csv");
 
     Command::cargo_bin("wirerust")
         .expect("binary built")
         .args([
             "analyze",
             FIXTURE,
+            "--all",
             "--csv",
             out_path.to_str().expect("utf-8 path"),
         ])
         .assert()
-        .failure()
-        .stderr(contains("--csv output is not yet implemented"));
+        .success();
 
+    let written = std::fs::read_to_string(&out_path).expect("output file exists");
+    let mut lines = written.lines();
+    // Fixed header row, exact column order.
+    assert_eq!(
+        lines.next(),
+        Some(
+            "category,verdict,confidence,summary,evidence,mitre_technique,source_ip,direction,timestamp"
+        ),
+        "CSV must start with the fixed header row"
+    );
     assert!(
-        !out_path.exists(),
-        "CSV bail must not create the requested output file"
+        lines.next().is_some(),
+        "CSV must contain at least one finding row for the --all analysis of the fixture"
     );
 }
 
 #[test]
-fn output_format_csv_bails_with_clear_message() {
-    Command::cargo_bin("wirerust")
+fn csv_flag_without_path_writes_csv_to_stdout() {
+    // `--csv` with no path emits the CSV table to stdout. The terminal
+    // reporter never emits the CSV header line, so its presence proves
+    // the CSV reporter ran.
+    let output = Command::cargo_bin("wirerust")
         .expect("binary built")
-        .args(["analyze", FIXTURE, "--output-format", "csv"])
+        .args(["analyze", FIXTURE, "--all", "--csv"])
         .assert()
-        .failure()
-        .stderr(contains("--output-format csv is not yet implemented"));
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let stdout = String::from_utf8(output).expect("utf-8 stdout");
+    assert!(
+        stdout.starts_with("category,verdict,confidence,summary,"),
+        "stdout must begin with the CSV header, got: {:?}",
+        &stdout[..60.min(stdout.len())]
+    );
 }
 
 #[test]
-fn summary_subcommand_also_honors_csv_bail() {
-    // The bail must fire for both subcommands, not just `analyze`.
-    Command::cargo_bin("wirerust")
+fn output_format_csv_emits_csv() {
+    // `--output-format csv` is honored identically to `--csv`.
+    let output = Command::cargo_bin("wirerust")
+        .expect("binary built")
+        .args(["analyze", FIXTURE, "--all", "--output-format", "csv"])
+        .assert()
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let stdout = String::from_utf8(output).expect("utf-8 stdout");
+    assert!(
+        stdout.starts_with("category,verdict,confidence,"),
+        "--output-format csv must produce CSV output"
+    );
+}
+
+#[test]
+fn summary_subcommand_also_supports_csv() {
+    // The CSV reporter is wired for both subcommands. `summary` has no
+    // findings, so the CSV is just the header row.
+    let output = Command::cargo_bin("wirerust")
         .expect("binary built")
         .args(["summary", FIXTURE, "--csv"])
         .assert()
-        .failure()
-        .stderr(contains("--csv output is not yet implemented"));
+        .success()
+        .get_output()
+        .stdout
+        .clone();
+    let stdout = String::from_utf8(output).expect("utf-8 stdout");
+    assert!(
+        stdout.starts_with("category,verdict,confidence,"),
+        "summary --csv must produce the CSV header"
+    );
+}
+
+#[test]
+fn json_and_csv_flags_are_mutually_exclusive() {
+    // clap `conflicts_with` must reject `--json` + `--csv` together.
+    Command::cargo_bin("wirerust")
+        .expect("binary built")
+        .args(["analyze", FIXTURE, "--json", "--csv"])
+        .assert()
+        .failure();
 }

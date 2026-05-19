@@ -108,6 +108,135 @@ fn test_json_finding_emits_present_optional_fields() {
     );
 }
 
+// ---- LESSON-P2.03: CSV reporter ----
+
+#[test]
+fn test_csv_reporter_emits_header_and_one_row_per_finding() {
+    use wirerust::reporter::csv::CsvReporter;
+
+    let reporter = CsvReporter;
+    let findings = vec![
+        Finding {
+            category: ThreatCategory::Reconnaissance,
+            verdict: Verdict::Likely,
+            confidence: Confidence::High,
+            summary: "first finding".into(),
+            evidence: vec!["ev-a".into(), "ev-b".into()],
+            mitre_technique: Some("T1046".into()),
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        },
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Inconclusive,
+            confidence: Confidence::Low,
+            summary: "second finding".into(),
+            evidence: vec![],
+            mitre_technique: None,
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        },
+    ];
+    let out = reporter.render(&Summary::new(), &findings, &[]);
+    let lines: Vec<&str> = out.lines().collect();
+    assert_eq!(
+        lines[0],
+        "category,verdict,confidence,summary,evidence,mitre_technique,source_ip,direction,timestamp"
+    );
+    // Header + 2 data rows.
+    assert_eq!(lines.len(), 3, "expected header + 2 rows, got: {out}");
+    assert!(lines[1].contains("first finding"));
+    assert!(lines[1].contains("T1046"));
+    // Multi-value evidence is flattened into one cell with "; ".
+    assert!(lines[1].contains("ev-a; ev-b"));
+    assert!(lines[2].contains("second finding"));
+}
+
+#[test]
+fn test_csv_reporter_empty_findings_emits_header_only() {
+    use wirerust::reporter::csv::CsvReporter;
+
+    let reporter = CsvReporter;
+    let out = reporter.render(&Summary::new(), &[], &[]);
+    let lines: Vec<&str> = out.lines().collect();
+    assert_eq!(lines.len(), 1, "empty findings → header row only");
+    assert!(lines[0].starts_with("category,verdict,confidence,"));
+}
+
+#[test]
+fn test_csv_reporter_neutralizes_formula_injection() {
+    // LESSON-P2.03 security: a Finding summary controlled by an
+    // attacker that begins with a spreadsheet formula-trigger char
+    // (`=`, `+`, `-`, `@`) must be neutralized with a leading `'` so
+    // that opening the CSV in Excel/Sheets does not execute it.
+    use wirerust::reporter::csv::CsvReporter;
+
+    let reporter = CsvReporter;
+    let findings = vec![Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Inconclusive,
+        confidence: Confidence::Low,
+        // Classic CSV-injection payload.
+        summary: "=cmd|'/c calc'!A1".into(),
+        evidence: vec!["@SUM(1+1)".into()],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    }];
+    let out = reporter.render(&Summary::new(), &findings, &[]);
+    // Parse the CSV back and check the field values directly.
+    let mut rdr = csv::Reader::from_reader(out.as_bytes());
+    let record = rdr
+        .records()
+        .next()
+        .expect("one data row")
+        .expect("valid CSV record");
+    let summary_cell = &record[3];
+    let evidence_cell = &record[4];
+    assert!(
+        summary_cell.starts_with('\''),
+        "formula-trigger summary must be neutralized with a leading quote, got: {summary_cell:?}"
+    );
+    assert!(
+        evidence_cell.starts_with('\''),
+        "formula-trigger evidence must be neutralized, got: {evidence_cell:?}"
+    );
+}
+
+#[test]
+fn test_csv_reporter_ignores_summary_and_analyzer_data() {
+    // LESSON-P2.03 documented scope: the CSV reporter renders the
+    // findings table ONLY. A populated Summary / AnalysisSummary must
+    // not leak into the CSV output.
+    use wirerust::analyzer::AnalysisSummary;
+    use wirerust::reporter::csv::CsvReporter;
+
+    let mut summary = Summary::new();
+    summary.skipped_packets = 999;
+    let mut detail: std::collections::BTreeMap<String, serde_json::Value> =
+        std::collections::BTreeMap::new();
+    detail.insert(
+        "sentinel_key".to_string(),
+        serde_json::json!("sentinel_val"),
+    );
+    let analyzer = AnalysisSummary {
+        analyzer_name: "sentinel_analyzer".to_string(),
+        packets_analyzed: 7,
+        detail,
+    };
+
+    let reporter = CsvReporter;
+    let out = reporter.render(&summary, &[], &[analyzer]);
+    assert!(!out.contains("999"), "summary data must not appear in CSV");
+    assert!(
+        !out.contains("sentinel_key") && !out.contains("sentinel_analyzer"),
+        "analyzer-summary data must not appear in CSV; got: {out}"
+    );
+}
+
 // ---- LESSON-P2.08: direction tag on Finding ----
 
 #[test]
