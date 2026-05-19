@@ -27,8 +27,27 @@ enum DispatchTarget {
     None,
 }
 
+/// Default upper bound on classification retries per flow before it
+/// is permanently stamped as [`DispatchTarget::None`].
+///
+/// Picked empirically: a single TCP segment from a long-running TLS or
+/// HTTP connection always reveals its protocol in the first 1–2 chunks,
+/// and any stream that still hasn't matched after 8 chunks is almost
+/// certainly a non-HTTP, non-TLS protocol (SSH, custom binary,
+/// encrypted-but-not-TLS) — re-running [`classify`] on every subsequent
+/// segment is wasted work and inflates CPU on long-lived flows. See
+/// LESSON-P2.11 (`max_classification_attempts` knob).
+pub const DEFAULT_MAX_CLASSIFICATION_ATTEMPTS: u32 = 8;
+
 pub struct StreamDispatcher {
     routes: HashMap<FlowKey, DispatchTarget>,
+    /// Number of times [`classify`] has returned [`DispatchTarget::None`]
+    /// for a given flow. Once a flow's count reaches
+    /// `max_classification_attempts`, the dispatcher inserts
+    /// `DispatchTarget::None` into `routes` and stops re-classifying.
+    classification_attempts: HashMap<FlowKey, u32>,
+    /// Hard cap on classification retries per flow. LESSON-P2.11.
+    max_classification_attempts: u32,
     pub http: Option<HttpAnalyzer>,
     pub tls: Option<TlsAnalyzer>,
     unclassified_flows: u64,
@@ -38,14 +57,33 @@ impl StreamDispatcher {
     pub fn new(http: Option<HttpAnalyzer>, tls: Option<TlsAnalyzer>) -> Self {
         StreamDispatcher {
             routes: HashMap::new(),
+            classification_attempts: HashMap::new(),
+            max_classification_attempts: DEFAULT_MAX_CLASSIFICATION_ATTEMPTS,
             http,
             tls,
             unclassified_flows: 0,
         }
     }
 
+    /// Override the per-flow classification-retry cap. Useful for
+    /// tests that need to exercise the give-up branch with small
+    /// inputs, or for callers that need to widen the cap to
+    /// accommodate unusual mid-stream-join captures.
+    ///
+    /// A value of `0` effectively disables classification entirely
+    /// (every flow becomes `DispatchTarget::None` on the first chunk).
+    pub fn with_max_classification_attempts(mut self, max_attempts: u32) -> Self {
+        self.max_classification_attempts = max_attempts;
+        self
+    }
+
     pub fn unclassified_flows(&self) -> u64 {
         self.unclassified_flows
+    }
+
+    /// Returns the configured per-flow classification-retry cap.
+    pub fn max_classification_attempts(&self) -> u32 {
+        self.max_classification_attempts
     }
 }
 
@@ -84,13 +122,33 @@ impl StreamHandler for StreamDispatcher {
             return;
         }
 
-        // Don't cache None — allow reclassification on next on_data with more bytes
+        // Classification cache + retry-budget enforcement (LESSON-P2.11):
+        //   - If the flow is already in `routes`, use the cached target
+        //     (covers both successful classifications AND flows that
+        //     hit the retry cap and were stamped `None`).
+        //   - Otherwise run [`classify`]; on success cache the result;
+        //     on failure increment the attempt count and, if we've hit
+        //     `max_classification_attempts`, cache `None` so future
+        //     chunks short-circuit the work.
         let target = if let Some(&cached) = self.routes.get(flow_key) {
             cached
         } else {
             let target = classify(data, flow_key);
-            if target != DispatchTarget::None {
+            if target == DispatchTarget::None {
+                let count = self
+                    .classification_attempts
+                    .entry(flow_key.clone())
+                    .or_insert(0);
+                *count = count.saturating_add(1);
+                if *count >= self.max_classification_attempts {
+                    // Give up: persistently route to `None` so we
+                    // stop calling `classify` on every chunk.
+                    self.routes.insert(flow_key.clone(), DispatchTarget::None);
+                    self.classification_attempts.remove(flow_key);
+                }
+            } else {
                 self.routes.insert(flow_key.clone(), target);
+                self.classification_attempts.remove(flow_key);
             }
             target
         };
@@ -111,6 +169,10 @@ impl StreamHandler for StreamDispatcher {
     }
 
     fn on_flow_close(&mut self, flow_key: &FlowKey, reason: CloseReason) {
+        // Clean up both the routing cache and the retry-attempt
+        // counter (LESSON-P2.11) so closing a flow returns the
+        // dispatcher to its pre-classification state for that key.
+        self.classification_attempts.remove(flow_key);
         let target = self.routes.remove(flow_key);
         match target {
             Some(DispatchTarget::Http) => {
