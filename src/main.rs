@@ -44,8 +44,8 @@ fn main() -> Result<()> {
                 &cli,
             )?;
         }
-        Commands::Summary { targets, .. } => {
-            run_summary(targets, use_color, &cli)?;
+        Commands::Summary { targets, hosts } => {
+            run_summary(targets, *hosts, use_color, &cli)?;
         }
     }
 
@@ -195,6 +195,9 @@ fn run_analyze(
             let reporter = TerminalReporter {
                 use_color,
                 show_mitre_grouping,
+                // `analyze` does not expose a per-host breakdown flag —
+                // that is `summary`-subcommand-only (LESSON-P1.03).
+                show_hosts_breakdown: false,
             };
             reporter.render(&summary, &all_findings, &analyzer_summaries)
         }
@@ -204,7 +207,12 @@ fn run_analyze(
     Ok(())
 }
 
-fn run_summary(targets: &[std::path::PathBuf], use_color: bool, cli: &Cli) -> Result<()> {
+fn run_summary(
+    targets: &[std::path::PathBuf],
+    show_hosts_breakdown: bool,
+    use_color: bool,
+    cli: &Cli,
+) -> Result<()> {
     check_unsupported_outputs(cli)?;
 
     let mut summary = Summary::new();
@@ -244,6 +252,7 @@ fn run_summary(targets: &[std::path::PathBuf], use_color: bool, cli: &Cli) -> Re
             let reporter = TerminalReporter {
                 use_color,
                 show_mitre_grouping: false,
+                show_hosts_breakdown,
             };
             reporter.render(&summary, &[], &[])
         }
