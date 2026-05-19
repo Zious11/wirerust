@@ -63,18 +63,15 @@ fn test_json_finding_omits_absent_optional_fields_symmetrically() {
     let obj = finding.as_object().expect("finding must be a JSON object");
     assert!(
         !obj.contains_key("mitre_technique"),
-        "absent mitre_technique must be omitted, got: {}",
-        finding
+        "absent mitre_technique must be omitted, got: {finding}"
     );
     assert!(
         !obj.contains_key("source_ip"),
-        "absent source_ip must be omitted, got: {}",
-        finding
+        "absent source_ip must be omitted, got: {finding}"
     );
     assert!(
         !obj.contains_key("timestamp"),
-        "absent timestamp must be omitted, got: {}",
-        finding
+        "absent timestamp must be omitted, got: {finding}"
     );
 }
 

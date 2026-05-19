@@ -188,8 +188,7 @@ impl FlowDirection {
                         let old = self.segments.insert(gap_start, gap_data);
                         debug_assert!(
                             old.is_none(),
-                            "gap_start {} collided with existing segment",
-                            gap_start
+                            "gap_start {gap_start} collided with existing segment"
                         );
                         if let Some(old) = old {
                             self.buffered_bytes -= old.len();
@@ -218,8 +217,7 @@ impl FlowDirection {
         let old = self.segments.insert(offset, segment_data);
         debug_assert!(
             old.is_none(),
-            "offset {} collided with existing segment in no-overlap path",
-            offset
+            "offset {offset} collided with existing segment in no-overlap path"
         );
         if let Some(old) = old {
             self.buffered_bytes -= old.len();
