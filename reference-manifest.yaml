@@ -1,0 +1,32 @@
+# Reference Manifest
+# Source of truth for rebuilding .reference/ on a new system.
+# To rebuild: for each entry, run `git clone --depth=<depth> <url> .reference/<project>`
+# Updated by /vsdd-factory:brownfield-ingest (Step 0) when new repos are added.
+#
+# Fields:
+#   url:      Git clone URL (HTTPS or SSH)
+#   commit:   SHA at time of ingestion (for reproducibility)
+#   ingested: Date the repo was cloned (YYYY-MM-DD)
+#   depth:    Clone depth (1 for shallow, full for complete history)
+#   focus:    What to analyze (full | plugins | src | <specific-dir>)
+#   status:   Lifecycle state (pending | ingested | analyzed)
+#   note:     Optional context about this reference
+
+repos:
+  wirerust:
+    # In-repo brownfield: the factory worktree (.factory/) sits inside the
+    # same repo whose source it is analyzing. There is no separate
+    # .reference/wirerust/ clone — analyzers read from the parent worktree
+    # path directly. This entry exists for provenance tracking, not for
+    # rebuilding a clone tree.
+    url: https://github.com/Zious11/wirerust.git
+    commit: 0a00c6385fb5396d1e00b8ce894d34041037589d
+    ingested: 2026-05-19
+    depth: full
+    focus: full
+    status: ingested
+    note: |
+      In-repo brownfield ingest. Source path is the parent worktree itself:
+      /Users/zious/Documents/GITHUB/wirerust/
+      Analyzer agents are dispatched with that absolute path as the source root
+      rather than a .reference/<project>/ subdirectory. No clone needed.
