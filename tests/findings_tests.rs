@@ -11,6 +11,7 @@ fn test_finding_creation() {
         mitre_technique: Some("T1046".into()),
         source_ip: Some("10.0.0.1".parse().unwrap()),
         timestamp: None,
+        direction: None,
     };
     assert_eq!(finding.verdict, Verdict::Likely);
     assert_eq!(finding.confidence, Confidence::High);
@@ -28,6 +29,7 @@ fn test_finding_display() {
         mitre_technique: None,
         source_ip: None,
         timestamp: None,
+        direction: None,
     };
     let display = format!("{finding}");
     assert!(display.contains("C2"));

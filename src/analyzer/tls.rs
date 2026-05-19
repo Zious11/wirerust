@@ -431,6 +431,7 @@ impl TlsAnalyzer {
                         mitre_technique: Some("T1027".to_string()),
                         source_ip: None,
                         timestamp: None,
+                        direction: Some(Direction::ClientToServer),
                     });
                 }
                 SniValue::NonAsciiUtf8 { hostname, hex } => {
@@ -450,6 +451,7 @@ impl TlsAnalyzer {
                         mitre_technique: Some("T1027".to_string()),
                         source_ip: None,
                         timestamp: None,
+                        direction: Some(Direction::ClientToServer),
                     });
                 }
                 SniValue::NonUtf8 { lossy, hex } => {
@@ -469,6 +471,7 @@ impl TlsAnalyzer {
                         mitre_technique: Some("T1027".to_string()),
                         source_ip: None,
                         timestamp: None,
+                        direction: Some(Direction::ClientToServer),
                     });
                 }
             }
@@ -497,6 +500,7 @@ impl TlsAnalyzer {
                 mitre_technique: None,
                 source_ip: None,
                 timestamp: None,
+                direction: Some(Direction::ClientToServer),
             });
         }
 
@@ -518,6 +522,7 @@ impl TlsAnalyzer {
                 mitre_technique: None,
                 source_ip: None,
                 timestamp: None,
+            direction: Some(Direction::ClientToServer),
             });
         }
     }
@@ -560,6 +565,7 @@ impl TlsAnalyzer {
                 mitre_technique: None,
                 source_ip: None,
                 timestamp: None,
+                direction: Some(Direction::ServerToClient),
             });
         }
 
@@ -581,6 +587,7 @@ impl TlsAnalyzer {
                 mitre_technique: None,
                 source_ip: None,
                 timestamp: None,
+            direction: Some(Direction::ServerToClient),
             });
         }
     }

@@ -19,6 +19,8 @@ use std::net::IpAddr;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
+use crate::reassembly::handler::Direction;
+
 /// Confidence that a [`Finding`] reflects a real threat.
 ///
 /// LESSON-P2.10: marked `#[non_exhaustive]` so downstream consumers
@@ -133,6 +135,14 @@ pub struct Finding {
     pub source_ip: Option<IpAddr>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<DateTime<Utc>>,
+    /// Direction of the TCP stream the finding came from, when
+    /// applicable. LESSON-P2.08: lets JSON consumers distinguish
+    /// client-side anomalies from server-side responses for the
+    /// same flow. `None` for findings emitted from non-stream
+    /// sources (e.g. the DNS UDP analyzer) or from engine-level
+    /// summary events.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub direction: Option<Direction>,
 }
 
 /// Produces the raw text representation of a finding for logging, debugging,
