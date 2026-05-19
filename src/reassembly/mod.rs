@@ -18,6 +18,7 @@ const OUT_OF_WINDOW_ALERT_THRESHOLD: u32 = 100;
 const MAX_FINDINGS: usize = 10_000;
 
 static CLOSE_FLOW_MISSING_WARNED: AtomicBool = AtomicBool::new(false);
+static FINALIZE_SKIPPED_WARNED: AtomicBool = AtomicBool::new(false);
 
 /// Configuration for the TCP reassembly engine.
 #[derive(Debug, Clone)]
@@ -427,6 +428,13 @@ impl TcpReassembler {
         &self.findings
     }
 
+    /// Returns `true` once [`Self::finalize`] has been called. Exposed so
+    /// callers and tests can observe the lifecycle invariant that
+    /// `impl Drop` defends.
+    pub fn is_finalized(&self) -> bool {
+        self.finalized
+    }
+
     /// Return the current total memory used by all flow buffers.
     pub fn total_memory(&self) -> usize {
         self.total_memory
@@ -560,5 +568,37 @@ impl TcpReassembler {
             source_ip: Some(src_ip),
             timestamp: None,
         });
+    }
+}
+
+/// Lifecycle tripwire: warn (once per process) if a reassembler is dropped
+/// without [`TcpReassembler::finalize`] having been called.
+///
+/// `finalize` requires a `&mut dyn StreamHandler`, which `Drop::drop`
+/// cannot accept, so this `impl Drop` cannot itself flush pending flows
+/// or emit summary-level findings. What it *can* do is make the
+/// "forgot-to-finalize" bug loud at runtime, including on unwind from
+/// a `?`-propagated `Err` further up the call stack — which is the
+/// failure mode that closes LESSON-P0.03 in the brownfield-ingest
+/// synthesis (architecture smell #9, "no-Drop / finalize-fragile").
+///
+/// The companion to this tripwire is the `run_analyze` control flow in
+/// `src/main.rs`, which wraps the fallible per-target loop so that
+/// `finalize` is reached before any `Err` escapes the function. The two
+/// pieces together — guaranteed finalize on the happy path + a noisy
+/// runtime check for regressions — replace the original silent skip.
+impl Drop for TcpReassembler {
+    fn drop(&mut self) {
+        if !self.finalized && !FINALIZE_SKIPPED_WARNED.swap(true, Ordering::Relaxed) {
+            eprintln!(
+                "wirerust: TcpReassembler dropped without calling finalize() \
+                 — {} flow(s) and {} byte(s) of buffered segment state were \
+                 discarded without producing summary-level findings. This \
+                 indicates a control-flow bug; further occurrences in this \
+                 process will be suppressed.",
+                self.flows.len(),
+                self.total_memory,
+            );
+        }
     }
 }

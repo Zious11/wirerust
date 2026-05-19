@@ -100,50 +100,64 @@ fn run_analyze(
     };
     let mut dispatcher = StreamDispatcher::new(http_analyzer, tls_analyzer);
 
-    for target in targets {
-        let pcap_files = resolve_targets(target)?;
-        for path in &pcap_files {
-            let source = PcapSource::from_file(path)
-                .with_context(|| format!("Failed to read {}", path.display()))?;
+    // Capture loop wrapped in an immediately-invoked closure so any `?`-bail
+    // inside (e.g. unreadable pcap, malformed progress-bar template) is
+    // captured as an `Err` *without* short-circuiting `run_analyze` itself.
+    // This guarantees we always reach the reassembler `finalize` call below,
+    // which is what `impl Drop for TcpReassembler` only warns about — see
+    // LESSON-P0.03 / architecture smell #9 ("no-Drop / finalize-fragile").
+    let capture_result: Result<()> = (|| {
+        for target in targets {
+            let pcap_files = resolve_targets(target)?;
+            for path in &pcap_files {
+                let source = PcapSource::from_file(path)
+                    .with_context(|| format!("Failed to read {}", path.display()))?;
 
-            let pb = ProgressBar::new(source.packets.len() as u64);
-            pb.set_style(ProgressStyle::with_template(
-                "[{elapsed_precise}] {bar:40} {pos}/{len} packets",
-            )?);
+                let pb = ProgressBar::new(source.packets.len() as u64);
+                pb.set_style(ProgressStyle::with_template(
+                    "[{elapsed_precise}] {bar:40} {pos}/{len} packets",
+                )?);
 
-            for raw in &source.packets {
-                match decode_packet(&raw.data, source.datalink) {
-                    Ok(parsed) => {
-                        summary.ingest(&parsed);
-                        if enable_dns && dns_analyzer.can_decode(&parsed) {
-                            let findings = dns_analyzer.analyze(&parsed);
-                            all_findings.extend(findings);
+                for raw in &source.packets {
+                    match decode_packet(&raw.data, source.datalink) {
+                        Ok(parsed) => {
+                            summary.ingest(&parsed);
+                            if enable_dns && dns_analyzer.can_decode(&parsed) {
+                                let findings = dns_analyzer.analyze(&parsed);
+                                all_findings.extend(findings);
+                            }
+                            if let Some(ref mut reasm) = reassembler {
+                                reasm.process_packet(&parsed, raw.timestamp_secs, &mut dispatcher);
+                            }
                         }
-                        if let Some(ref mut reasm) = reassembler {
-                            reasm.process_packet(&parsed, raw.timestamp_secs, &mut dispatcher);
+                        Err(e) => {
+                            if total_decode_errors == 0 {
+                                eprintln!(
+                                    "Warning: failed to decode packet ({e}). Further errors counted silently."
+                                );
+                            }
+                            total_decode_errors += 1;
                         }
                     }
-                    Err(e) => {
-                        if total_decode_errors == 0 {
-                            eprintln!(
-                                "Warning: failed to decode packet ({e}). Further errors counted silently."
-                            );
-                        }
-                        total_decode_errors += 1;
-                    }
+                    pb.inc(1);
                 }
-                pb.inc(1);
+                pb.finish_and_clear();
             }
-            pb.finish_and_clear();
         }
-    }
+        Ok(())
+    })();
 
     summary.skipped_packets = total_decode_errors;
 
+    // ALWAYS finalize the reassembler before propagating any capture error,
+    // so the segment-limit summary finding and per-flow flush still happen
+    // on the partial state captured before the bail.
     if let Some(ref mut reasm) = reassembler {
         reasm.finalize(&mut dispatcher);
         all_findings.extend(reasm.findings().to_vec());
     }
+
+    capture_result?;
 
     if let Some(ref http) = dispatcher.http {
         all_findings.extend(http.findings());
