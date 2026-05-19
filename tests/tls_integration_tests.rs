@@ -118,4 +118,20 @@ fn test_summarize_has_all_required_fields() {
         "missing cipher_suites"
     );
     assert!(detail.contains_key("parse_errors"), "missing parse_errors");
+    // LESSON-P1.05: capacity/DoS-class drops are now surfaced
+    // separately from parse_errors, so any JSON consumer can
+    // distinguish "record was malformed" from "record was over-cap".
+    assert!(
+        detail.contains_key("truncated_records"),
+        "missing truncated_records — LESSON-P1.05 regressed"
+    );
+    let truncated = detail
+        .get("truncated_records")
+        .expect("truncated_records key")
+        .as_u64()
+        .expect("truncated_records is u64");
+    assert_eq!(
+        truncated, 0,
+        "well-formed tls12 fixture must not trigger truncated_records"
+    );
 }

@@ -277,6 +277,12 @@ pub struct TlsAnalyzer {
     cipher_counts: HashMap<String, u64>,
     handshakes_seen: u64,
     parse_errors: u64,
+    /// TLS records whose declared `payload_len` exceeded
+    /// `MAX_RECORD_PAYLOAD` and were dropped before parsing. Counted
+    /// separately from `parse_errors` so that DoS-protection drops are
+    /// distinguishable from genuinely malformed records — see
+    /// LESSON-P1.05 (CNV-PAT-002 follow-up).
+    truncated_records: u64,
     all_findings: Vec<Finding>,
 }
 
@@ -297,6 +303,7 @@ impl TlsAnalyzer {
             cipher_counts: HashMap::new(),
             handshakes_seen: 0,
             parse_errors: 0,
+            truncated_records: 0,
             all_findings: Vec::new(),
         }
     }
@@ -321,6 +328,12 @@ impl TlsAnalyzer {
 
     pub fn parse_error_count(&self) -> u64 {
         self.parse_errors
+    }
+
+    /// TLS records dropped before parsing because their declared
+    /// payload length exceeded `MAX_RECORD_PAYLOAD`. See LESSON-P1.05.
+    pub fn truncated_record_count(&self) -> u64 {
+        self.truncated_records
     }
 
     pub fn handshake_count(&self) -> u64 {
@@ -584,9 +597,18 @@ impl TlsAnalyzer {
                 (record_type, payload_len)
             };
 
-            // Reject impossibly large records (DoS protection)
+            // Reject impossibly large records (DoS protection).
+            //
+            // LESSON-P1.05 / CNV-PAT-002 follow-up: bump the dedicated
+            // `truncated_records` counter in addition to `parse_errors`
+            // so JSON consumers can distinguish "record dropped because
+            // its declared length blew the cap" (a capacity/DoS event)
+            // from "record contents failed to parse" (a malformed-data
+            // event). `parse_errors` is kept incremented to preserve
+            // back-compatibility with existing dashboards.
             if payload_len > MAX_RECORD_PAYLOAD {
                 self.parse_errors += 1;
+                self.truncated_records += 1;
                 if let Some(state) = self.flows.get_mut(flow_key) {
                     match direction {
                         Direction::ClientToServer => state.client_buf.clear(),
@@ -735,6 +757,10 @@ impl StreamAnalyzer for TlsAnalyzer {
         detail.insert(
             "parse_errors".to_string(),
             serde_json::json!(self.parse_errors),
+        );
+        detail.insert(
+            "truncated_records".to_string(),
+            serde_json::json!(self.truncated_records),
         );
 
         AnalysisSummary {
