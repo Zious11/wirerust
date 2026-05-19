@@ -3,24 +3,14 @@ use wirerust::cli::{Cli, Commands, OutputFormat};
 
 #[test]
 fn test_analyze_subcommand() {
-    let cli = Cli::parse_from([
-        "wirerust",
-        "analyze",
-        "capture.pcap",
-        "--threats",
-        "--dns",
-        "--verbose",
-    ]);
-    assert!(cli.verbose);
+    // LESSON-P1.04: `--threats` and `--verbose` were removed as part
+    // of the "no unwired CLI flags" sweep; this test now exercises
+    // only flags that have wired effects in `src/main.rs`.
+    let cli = Cli::parse_from(["wirerust", "analyze", "capture.pcap", "--dns", "--no-color"]);
+    assert!(cli.no_color);
     match cli.command {
-        Commands::Analyze {
-            targets,
-            threats,
-            dns,
-            ..
-        } => {
+        Commands::Analyze { targets, dns, .. } => {
             assert_eq!(targets, vec![std::path::PathBuf::from("capture.pcap")]);
-            assert!(threats);
             assert!(dns);
         }
         _ => panic!("Expected Analyze command"),
@@ -106,5 +96,55 @@ fn test_mitre_flag_defaults_false() {
     match cli.command {
         Commands::Analyze { mitre, .. } => assert!(!mitre),
         _ => panic!("Expected Analyze command"),
+    }
+}
+
+// ---- LESSON-P1.03 / P1.04: CLI flag truth ----
+
+#[test]
+fn test_summary_hosts_flag_parses_and_is_bound() {
+    // LESSON-P1.03: `--hosts` on `summary` was previously unwired.
+    // It now toggles a per-host breakdown in the terminal reporter
+    // and must remain a real, bound field on the Summary variant.
+    let cli = Cli::parse_from(["wirerust", "summary", "capture.pcap", "--hosts"]);
+    match cli.command {
+        Commands::Summary { targets, hosts } => {
+            assert_eq!(targets, vec![std::path::PathBuf::from("capture.pcap")]);
+            assert!(hosts, "--hosts must set Summary.hosts to true");
+        }
+        _ => panic!("Expected Summary command"),
+    }
+}
+
+#[test]
+fn test_summary_hosts_flag_defaults_false() {
+    let cli = Cli::parse_from(["wirerust", "summary", "capture.pcap"]);
+    match cli.command {
+        Commands::Summary { hosts, .. } => {
+            assert!(!hosts, "Summary.hosts must default to false");
+        }
+        _ => panic!("Expected Summary command"),
+    }
+}
+
+#[test]
+fn test_removed_unwired_flags_are_rejected() {
+    // LESSON-P1.04: --threats, --verbose, --beacon, --filter, and
+    // --services were removed in the "no unwired CLI flags" sweep
+    // (Phase C synthesis). Re-introducing any of them without
+    // wiring a consumer in main.rs would regress the convention;
+    // this test asserts clap rejects each as unknown.
+    for flag in [
+        "--threats",
+        "--verbose",
+        "--beacon",
+        "--filter",
+        "--services",
+    ] {
+        let result = Cli::try_parse_from(["wirerust", "analyze", "x.pcap", flag]);
+        assert!(
+            result.is_err(),
+            "removed flag `{flag}` must not parse — LESSON-P1.04 regressed"
+        );
     }
 }

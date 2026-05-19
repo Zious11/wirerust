@@ -50,6 +50,13 @@ pub struct TerminalReporter {
     /// When true, regroup the FINDINGS section by MITRE tactic and expand
     /// the per-finding MITRE line to include the technique name.
     pub show_mitre_grouping: bool,
+    /// When true, render a per-host breakdown section listing each
+    /// unique source/destination IP observed in the capture. Wired
+    /// from the `summary` subcommand's `--hosts` flag — see
+    /// LESSON-P1.03 in the brownfield-ingest Phase C synthesis. The
+    /// always-present `Hosts: N` count line in the header is shown
+    /// regardless; this gate only controls the expanded itemized list.
+    pub show_hosts_breakdown: bool,
 }
 
 impl Reporter for TerminalReporter {
@@ -81,6 +88,23 @@ impl Reporter for TerminalReporter {
             }
         }
         out.push('\n');
+
+        // LESSON-P1.03: optional per-host breakdown, gated by the
+        // `summary --hosts` flag. Renders one line per unique
+        // source/destination IP observed in the capture, in the
+        // sorted-by-address order returned by `Summary::unique_hosts()`.
+        // The always-on `Hosts: N` count in the header is kept; this
+        // section is the expanded itemized list.
+        if self.show_hosts_breakdown {
+            let hosts = summary.unique_hosts();
+            if !hosts.is_empty() {
+                out.push_str(&self.section("HOSTS"));
+                for host in &hosts {
+                    out.push_str(&format!("  {host}\n"));
+                }
+                out.push('\n');
+            }
+        }
 
         // Protocol breakdown
         out.push_str(&self.section("PROTOCOLS"));

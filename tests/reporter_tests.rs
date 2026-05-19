@@ -108,6 +108,85 @@ fn test_json_finding_emits_present_optional_fields() {
     );
 }
 
+// ---- LESSON-P1.03: terminal --hosts gates per-host breakdown section ----
+
+fn make_summary_with_two_hosts() -> Summary {
+    use std::net::{IpAddr, Ipv4Addr};
+    use wirerust::decoder::{ParsedPacket, Protocol, TransportInfo};
+
+    let mut summary = Summary::new();
+    summary.ingest(&ParsedPacket {
+        src_ip: IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)),
+        dst_ip: IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)),
+        protocol: Protocol::Tcp,
+        transport: TransportInfo::Tcp {
+            src_port: 12345,
+            dst_port: 80,
+            seq_number: 1,
+            syn: false,
+            ack: false,
+            fin: false,
+            rst: false,
+        },
+        payload: vec![],
+        packet_len: 60,
+    });
+    summary
+}
+
+#[test]
+fn test_terminal_hosts_breakdown_off_by_default() {
+    // LESSON-P1.03 / P1.04: without `--hosts`, the terminal output
+    // must keep its existing compact `Hosts: N` count line and not
+    // emit a HOSTS section. This preserves back-compat for callers
+    // who built parsers against the pre-P1.03 output.
+    let summary = make_summary_with_two_hosts();
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: false,
+        show_hosts_breakdown: false,
+    };
+    let out = reporter.render(&summary, &[], &[]);
+    assert!(
+        out.contains("Hosts: 2"),
+        "header count line must remain unconditional; got: {out}"
+    );
+    assert!(
+        !out.contains("HOSTS"),
+        "HOSTS section must be hidden when show_hosts_breakdown is false; got: {out}"
+    );
+}
+
+#[test]
+fn test_terminal_hosts_breakdown_lists_each_host_when_enabled() {
+    // LESSON-P1.03: with `--hosts` (show_hosts_breakdown == true),
+    // the terminal output emits a HOSTS section listing every unique
+    // src/dst IP, in `Summary::unique_hosts()`'s sorted order.
+    let summary = make_summary_with_two_hosts();
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: false,
+        show_hosts_breakdown: true,
+    };
+    let out = reporter.render(&summary, &[], &[]);
+    assert!(
+        out.contains("HOSTS"),
+        "HOSTS section must be present when show_hosts_breakdown is true; got: {out}"
+    );
+    assert!(
+        out.contains("10.0.0.1"),
+        "host 10.0.0.1 must appear in the breakdown; got: {out}"
+    );
+    assert!(
+        out.contains("10.0.0.2"),
+        "host 10.0.0.2 must appear in the breakdown; got: {out}"
+    );
+    // Sorted: 10.0.0.1 must precede 10.0.0.2 in the output.
+    let p1 = out.find("10.0.0.1").expect("10.0.0.1 in output");
+    let p2 = out.find("10.0.0.2").expect("10.0.0.2 in output");
+    assert!(p1 < p2, "hosts must be listed in sorted order");
+}
+
 #[test]
 fn test_json_reporter_includes_skipped_packets() {
     let reporter = JsonReporter;
@@ -136,6 +215,7 @@ fn test_terminal_reporter_shows_skipped_when_nonzero() {
     let reporter = TerminalReporter {
         use_color: false,
         show_mitre_grouping: false,
+        show_hosts_breakdown: false,
     };
     let mut summary = Summary::new();
     summary.skipped_packets = 5;
@@ -152,6 +232,7 @@ fn test_terminal_reporter_hides_skipped_when_zero() {
     let reporter = TerminalReporter {
         use_color: false,
         show_mitre_grouping: false,
+        show_hosts_breakdown: false,
     };
     let summary = Summary::new();
 
@@ -171,6 +252,7 @@ fn test_terminal_reporter_escapes_esc_bytes_in_summary() {
     let reporter = TerminalReporter {
         use_color: false,
         show_mitre_grouping: false,
+        show_hosts_breakdown: false,
     };
     let summary = Summary::new();
     let findings = vec![Finding {
@@ -241,6 +323,7 @@ fn test_output_sanitization_layering_contract() {
     let terminal_output = TerminalReporter {
         use_color: false,
         show_mitre_grouping: false,
+        show_hosts_breakdown: false,
     }
     .render(&Summary::new(), std::slice::from_ref(&finding), &[]);
     assert!(
@@ -344,6 +427,7 @@ fn test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries() {
     let output = TerminalReporter {
         use_color: false,
         show_mitre_grouping: false,
+        show_hosts_breakdown: false,
     }
     .render(
         &Summary::new(),
@@ -449,6 +533,7 @@ fn test_http_finding_c1_csi_escaped_by_terminal_reporter() {
     let output = TerminalReporter {
         use_color: false,
         show_mitre_grouping: false,
+        show_hosts_breakdown: false,
     }
     .render(&Summary::new(), &findings, &[]);
     assert!(
@@ -531,6 +616,7 @@ fn test_http_analyzer_summary_c1_csi_escaped_by_terminal_reporter() {
     let output = TerminalReporter {
         use_color: false,
         show_mitre_grouping: false,
+        show_hosts_breakdown: false,
     }
     .render(
         &Summary::new(),
@@ -579,6 +665,7 @@ fn mitre_grouping_emits_tactic_headers_in_canonical_order() {
     let reporter = TerminalReporter {
         use_color: false,
         show_mitre_grouping: true,
+        show_hosts_breakdown: false,
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     // Anchor on the `## ` header prefix so future summary/evidence text
@@ -611,6 +698,7 @@ fn mitre_grouping_sorts_within_tactic_by_verdict_then_confidence() {
     let reporter = TerminalReporter {
         use_color: false,
         show_mitre_grouping: true,
+        show_hosts_breakdown: false,
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let p1 = out.find("first").expect("first missing");
@@ -643,6 +731,7 @@ fn mitre_grouping_buckets_none_and_unknown_under_uncategorized() {
     let reporter = TerminalReporter {
         use_color: false,
         show_mitre_grouping: true,
+        show_hosts_breakdown: false,
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let uncat_pos = out
@@ -675,6 +764,7 @@ fn mitre_grouping_expands_per_finding_line_with_technique_name() {
     let reporter = TerminalReporter {
         use_color: false,
         show_mitre_grouping: true,
+        show_hosts_breakdown: false,
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     assert!(
@@ -694,6 +784,7 @@ fn default_rendering_unchanged_when_mitre_flag_off() {
     let reporter = TerminalReporter {
         use_color: false,
         show_mitre_grouping: false,
+        show_hosts_breakdown: false,
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     assert!(out.contains("MITRE: T1046"));
@@ -718,6 +809,7 @@ fn mitre_grouping_preserves_emission_order_when_verdict_and_confidence_tie() {
     let reporter = TerminalReporter {
         use_color: false,
         show_mitre_grouping: true,
+        show_hosts_breakdown: false,
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let pa = out.find("alpha").expect("alpha missing");
@@ -752,6 +844,7 @@ fn mitre_grouping_keeps_known_and_unknown_ids_in_separate_buckets() {
     let reporter = TerminalReporter {
         use_color: false,
         show_mitre_grouping: true,
+        show_hosts_breakdown: false,
     };
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let discovery_pos = out.find("## Discovery").expect("Discovery header missing");

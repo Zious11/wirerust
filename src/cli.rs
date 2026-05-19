@@ -8,6 +8,20 @@ pub enum OutputFormat {
     Csv,
 }
 
+/// CLI surface.
+///
+/// LESSON-P1.04 ("no unwired CLI flags" convention): every flag and
+/// option here must be consumed somewhere in `src/main.rs`. Declaring a
+/// flag in clap that has no behavioral effect misleads users who read
+/// `--help` and write scripts against the surface. The brownfield-ingest
+/// Phase C synthesis identified 5 unwired flags (`--verbose`,
+/// `--threats`, `--beacon`, `--filter` on `analyze`; `--services` on
+/// `summary`) which have been removed in this PR. A 6th — `--hosts` on
+/// `summary` — was previously unwired and has been *wired* to gate a
+/// per-host breakdown in the terminal reporter (LESSON-P1.03).
+///
+/// When adding a new flag here, verify the consumer path in `main.rs`
+/// in the same change. CI does not yet enforce this — see DEBT register.
 #[derive(Parser, Debug)]
 #[command(
     name = "wirerust",
@@ -15,10 +29,6 @@ pub enum OutputFormat {
     version
 )]
 pub struct Cli {
-    /// Enable verbose output
-    #[arg(short, long, global = true)]
-    pub verbose: bool,
-
     /// Disable colored output
     #[arg(long, global = true)]
     pub no_color: bool,
@@ -63,10 +73,6 @@ pub enum Commands {
         #[arg(required = true)]
         targets: Vec<PathBuf>,
 
-        /// Run threat detection
-        #[arg(long)]
-        threats: bool,
-
         /// Analyze DNS traffic
         #[arg(long)]
         dns: bool,
@@ -79,10 +85,6 @@ pub enum Commands {
         #[arg(long)]
         tls: bool,
 
-        /// Detect C2 beaconing patterns
-        #[arg(long)]
-        beacon: bool,
-
         /// Group findings by MITRE ATT&CK tactic and show technique names
         #[arg(long)]
         mitre: bool,
@@ -90,10 +92,6 @@ pub enum Commands {
         /// Run all analyzers
         #[arg(short, long)]
         all: bool,
-
-        /// BPF filter expression
-        #[arg(short, long)]
-        filter: Option<String>,
     },
 
     /// Generate a triage summary of PCAP files
@@ -102,12 +100,12 @@ pub enum Commands {
         #[arg(required = true)]
         targets: Vec<PathBuf>,
 
-        /// Include per-host breakdown
+        /// Include per-host breakdown of source/destination IPs
+        /// (LESSON-P1.03 — previously a no-op flag; now wired to
+        /// expand the terminal output's `Hosts: N` count into an
+        /// itemized list. The JSON reporter has always emitted the
+        /// full `unique_hosts` array independently of this flag.)
         #[arg(long)]
         hosts: bool,
-
-        /// Include service/port breakdown
-        #[arg(long)]
-        services: bool,
     },
 }
