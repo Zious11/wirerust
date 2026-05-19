@@ -48,11 +48,13 @@ pub struct Cli {
     #[arg(long, global = true, value_enum)]
     pub output_format: Option<OutputFormat>,
 
-    /// Write JSON output to file
-    #[arg(long, global = true)]
+    /// Write JSON output to file (or stdout if no path given).
+    /// Mutually exclusive with --csv.
+    #[arg(long, global = true, conflicts_with = "csv")]
     pub json: Option<Option<PathBuf>>,
 
-    /// Write CSV output to file
+    /// Write CSV output to file (or stdout if no path given).
+    /// Emits the findings table only — see the CSV reporter docs.
     #[arg(long, global = true)]
     pub csv: Option<Option<PathBuf>>,
 
