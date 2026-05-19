@@ -29,3 +29,4 @@ overflow-checks = true
 assert_cmd = "2"
 predicates = "3"
 tempfile = "3"
+proptest = "1"

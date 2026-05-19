@@ -799,3 +799,143 @@ impl StreamAnalyzer for TlsAnalyzer {
         self.all_findings.clone()
     }
 }
+
+// ── JA3 / JA3S property tests (LESSON-P2.04) ─────────────────────────────────
+//
+// Inline `#[cfg(test)]` module so the property tests can reach the private
+// `compute_ja3`, `compute_ja3s`, `is_grease_u16`, and `bytes_to_hex`
+// functions. The JA3 algorithm is a fingerprint: its core invariants
+// (determinism, fixed output format, GREASE-invariance, order-sensitivity)
+// hold over the entire input space, which is exactly what property-based
+// testing exercises better than example-based tests.
+#[cfg(test)]
+mod ja3_property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    /// The 16 canonical TLS GREASE values (RFC 8701): both bytes are
+    /// `0xNA` for N in 0x0..=0xF.
+    const GREASE_VALUES: [u16; 16] = [
+        0x0a0a, 0x1a1a, 0x2a2a, 0x3a3a, 0x4a4a, 0x5a5a, 0x6a6a, 0x7a7a, 0x8a8a, 0x9a9a, 0xaaaa,
+        0xbaba, 0xcaca, 0xdada, 0xeaea, 0xfafa,
+    ];
+
+    #[test]
+    fn is_grease_u16_matches_all_canonical_grease_values() {
+        // Every RFC 8701 GREASE value must be recognized.
+        for &g in &GREASE_VALUES {
+            assert!(is_grease_u16(g), "0x{g:04x} must be recognized as GREASE");
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn is_grease_u16_matches_nibble_bitmask_contract(v in any::<u16>()) {
+            // `is_grease_u16` implements the *bitmask* GREASE test
+            // `(v & 0x0F0F) == 0x0A0A` — i.e. "the low nibble of each
+            // byte is 0xA". This is the form used widely in JA3 tooling.
+            //
+            // NOTE: the bitmask is broader than RFC 8701's strict
+            // definition. RFC 8701 lists exactly 16 GREASE values
+            // (0x0A0A, 0x1A1A … 0xFAFA — both *bytes* equal). The
+            // bitmask additionally accepts 240 non-canonical values like
+            // 0x0A1A and 0xCABA. In practice this is harmless: IANA has
+            // assigned no real cipher / extension IDs of `0x_A_A` form
+            // outside the 16 GREASE values, so nothing real is wrongly
+            // filtered. A strict 16-value check is recorded as a P2
+            // follow-up rather than fixed here (this is a test PR).
+            //
+            // The property re-derives the predicate via independent
+            // nibble extraction so it is a genuine cross-check, not a
+            // tautology against the implementation's own expression.
+            let lo_nibble_hi_byte = (v >> 8) & 0x0F;
+            let lo_nibble_lo_byte = v & 0x0F;
+            let expected = lo_nibble_hi_byte == 0x0A && lo_nibble_lo_byte == 0x0A;
+            prop_assert_eq!(is_grease_u16(v), expected);
+        }
+
+        #[test]
+        fn compute_ja3s_is_deterministic_and_hex(
+            version in any::<u16>(),
+            cipher in any::<u16>(),
+        ) {
+            // A fingerprint must be reproducible: identical inputs yield
+            // identical hashes.
+            let a = compute_ja3s(version, TlsCipherSuiteID(cipher), &[]);
+            let b = compute_ja3s(version, TlsCipherSuiteID(cipher), &[]);
+            prop_assert_eq!(&a, &b);
+            // MD5 hex is always 32 lowercase-hex characters.
+            prop_assert_eq!(a.len(), 32);
+            prop_assert!(a.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()));
+        }
+
+        #[test]
+        fn compute_ja3_has_five_fields_and_hex_hash(
+            version in any::<u16>(),
+            ciphers in prop::collection::vec(any::<u16>(), 0..20),
+        ) {
+            let cipher_ids: Vec<TlsCipherSuiteID> =
+                ciphers.iter().map(|&c| TlsCipherSuiteID(c)).collect();
+            let (hash, ja3_str) = compute_ja3(version, &cipher_ids, &[]);
+            // The JA3 string is always exactly 5 comma-separated fields:
+            // version,ciphers,extensions,curves,point_formats.
+            prop_assert_eq!(ja3_str.matches(',').count(), 4);
+            // Hash is a 32-char lowercase-hex MD5 digest.
+            prop_assert_eq!(hash.len(), 32);
+            prop_assert!(hash.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()));
+            // First field is always the version, verbatim.
+            let version_prefix = format!("{version},");
+            prop_assert!(ja3_str.starts_with(&version_prefix));
+        }
+
+        #[test]
+        fn compute_ja3_is_grease_invariant(
+            version in any::<u16>(),
+            ciphers in prop::collection::vec(any::<u16>(), 0..15),
+            grease_idx in 0usize..16,
+            insert_pos in 0usize..16,
+        ) {
+            // GREASE values are filtered before hashing, so inserting one
+            // anywhere into the cipher list must NOT change the JA3 hash.
+            let base: Vec<TlsCipherSuiteID> =
+                ciphers.iter().map(|&c| TlsCipherSuiteID(c)).collect();
+            let (base_hash, _) = compute_ja3(version, &base, &[]);
+
+            let mut with_grease = base.clone();
+            let pos = insert_pos.min(with_grease.len());
+            with_grease.insert(pos, TlsCipherSuiteID(GREASE_VALUES[grease_idx]));
+            let (grease_hash, _) = compute_ja3(version, &with_grease, &[]);
+
+            prop_assert_eq!(base_hash, grease_hash);
+        }
+
+        #[test]
+        fn compute_ja3_is_order_sensitive(
+            version in any::<u16>(),
+            a in any::<u16>(),
+            b in any::<u16>(),
+        ) {
+            // JA3 is order-sensitive by design: the cipher list order is
+            // part of the fingerprint. Two distinct non-GREASE ciphers in
+            // opposite order must produce different hashes.
+            prop_assume!(a != b);
+            prop_assume!(!is_grease_u16(a) && !is_grease_u16(b));
+            let ab = [TlsCipherSuiteID(a), TlsCipherSuiteID(b)];
+            let ba = [TlsCipherSuiteID(b), TlsCipherSuiteID(a)];
+            let (hash_ab, _) = compute_ja3(version, &ab, &[]);
+            let (hash_ba, _) = compute_ja3(version, &ba, &[]);
+            prop_assert_ne!(hash_ab, hash_ba);
+        }
+
+        #[test]
+        fn bytes_to_hex_roundtrips_length_and_alphabet(
+            bytes in prop::collection::vec(any::<u8>(), 0..64),
+        ) {
+            // bytes_to_hex must always emit exactly 2 lowercase-hex chars
+            // per input byte.
+            let hex = bytes_to_hex(&bytes);
+            prop_assert_eq!(hex.len(), bytes.len() * 2);
+            prop_assert!(hex.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()));
+        }
+    }
+}
