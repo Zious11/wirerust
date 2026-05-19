@@ -1475,3 +1475,61 @@ fn test_drop_after_finalize_is_silent_path() {
     assert!(reassembler.is_finalized());
     drop(reassembler); // must not panic and must be the silent branch
 }
+
+// ---- LESSON-P1.01: dropped_findings counter surfaces MAX_FINDINGS suppressions ----
+
+#[test]
+fn test_dropped_findings_zero_on_normal_flow() {
+    // On a happy-path single-flow capture, the dropped_findings
+    // counter must be zero — the field is contractually a
+    // "cap-hit" signal, not a per-anomaly counter.
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let data = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"hi", false, false, false, false,
+    );
+    reassembler.process_packet(&data, 2, &mut handler);
+    reassembler.finalize(&mut handler);
+
+    let summary = reassembler.summarize();
+    assert_eq!(
+        summary.detail.get("dropped_findings"),
+        Some(&serde_json::Value::from(0u64)),
+        "happy-path capture must report dropped_findings == 0"
+    );
+}
+
+#[test]
+fn test_dropped_findings_key_present_in_summarize() {
+    // Structural contract: the `dropped_findings` key always appears in
+    // the summarize() detail map (mirrors the pattern for
+    // `segments_segment_limit`, `parse_errors`, etc.). Catches a
+    // regression that removes the field-to-detail wiring even if no
+    // counter ever increments during a particular run.
+    let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    let mut handler = RecordingHandler::new();
+    reassembler.finalize(&mut handler);
+    let summary = reassembler.summarize();
+    assert!(
+        summary.detail.contains_key("dropped_findings"),
+        "summarize() detail must always contain `dropped_findings` — LESSON-P1.01 regressed"
+    );
+}

@@ -70,6 +70,11 @@ pub struct ReassemblyStats {
     pub segments_depth_exceeded: u64,
     pub bytes_reassembled: u64,
     pub evictions: u64,
+    /// Anomaly findings that were suppressed because `self.findings` had
+    /// already reached `MAX_FINDINGS`. Exposed in `summarize()` under
+    /// `dropped_findings` so JSON consumers can detect when the cap was
+    /// hit and per-flow signal was silently lost — see LESSON-P1.01.
+    pub dropped_findings: u64,
 }
 
 /// The main TCP reassembly engine.
@@ -268,67 +273,82 @@ impl TcpReassembler {
             // Check anomaly thresholds on the direction
             let flow = self.flows.get_mut(&key).unwrap();
             let flow_dir = flow.get_direction_mut(dir);
-            if flow_dir.overlap_count > OVERLAP_ALERT_THRESHOLD
-                && !flow_dir.overlap_alert_fired
-                && self.findings.len() < MAX_FINDINGS
-            {
+            // LESSON-P1.01: the per-direction alert latches now flip
+            // unconditionally once their threshold trips, even when the
+            // finding push is suppressed by the MAX_FINDINGS cap. This
+            // prevents re-evaluating the same threshold on every
+            // subsequent packet (which would also miscount as multiple
+            // dropped_findings rather than one) and lets the
+            // dropped_findings counter accurately reflect distinct
+            // anomalies lost to the cap.
+            if flow_dir.overlap_count > OVERLAP_ALERT_THRESHOLD && !flow_dir.overlap_alert_fired {
                 flow_dir.overlap_alert_fired = true;
-                self.findings.push(Finding {
-                    category: ThreatCategory::Anomaly,
-                    verdict: Verdict::Likely,
-                    confidence: Confidence::Medium,
-                    summary: format!(
-                        "Excessive segment overlaps ({}) on flow {}",
-                        flow_dir.overlap_count, key
-                    ),
-                    evidence: vec!["Possible evasion attempt".into()],
-                    mitre_technique: Some("T1036".into()),
-                    source_ip: Some(packet.src_ip),
-                    timestamp: None,
-                });
+                if self.findings.len() < MAX_FINDINGS {
+                    self.findings.push(Finding {
+                        category: ThreatCategory::Anomaly,
+                        verdict: Verdict::Likely,
+                        confidence: Confidence::Medium,
+                        summary: format!(
+                            "Excessive segment overlaps ({}) on flow {}",
+                            flow_dir.overlap_count, key
+                        ),
+                        evidence: vec!["Possible evasion attempt".into()],
+                        mitre_technique: Some("T1036".into()),
+                        source_ip: Some(packet.src_ip),
+                        timestamp: None,
+                    });
+                } else {
+                    self.stats.dropped_findings += 1;
+                }
             }
             if flow_dir.small_segment_count > SMALL_SEGMENT_ALERT_THRESHOLD
                 && !flow_dir.small_segment_alert_fired
-                && self.findings.len() < MAX_FINDINGS
             {
                 flow_dir.small_segment_alert_fired = true;
-                self.findings.push(Finding {
-                    category: ThreatCategory::Anomaly,
-                    verdict: Verdict::Inconclusive,
-                    confidence: Confidence::Medium,
-                    summary: format!(
-                        "Excessive small segments ({}) on flow {}",
-                        flow_dir.small_segment_count, key
-                    ),
-                    evidence: vec!["Possible IDS evasion".into()],
-                    mitre_technique: None,
-                    source_ip: Some(packet.src_ip),
-                    timestamp: None,
-                });
+                if self.findings.len() < MAX_FINDINGS {
+                    self.findings.push(Finding {
+                        category: ThreatCategory::Anomaly,
+                        verdict: Verdict::Inconclusive,
+                        confidence: Confidence::Medium,
+                        summary: format!(
+                            "Excessive small segments ({}) on flow {}",
+                            flow_dir.small_segment_count, key
+                        ),
+                        evidence: vec!["Possible IDS evasion".into()],
+                        mitre_technique: None,
+                        source_ip: Some(packet.src_ip),
+                        timestamp: None,
+                    });
+                } else {
+                    self.stats.dropped_findings += 1;
+                }
             }
             if flow_dir.out_of_window_count > OUT_OF_WINDOW_ALERT_THRESHOLD
                 && !flow_dir.out_of_window_alert_fired
-                && self.findings.len() < MAX_FINDINGS
             {
                 flow_dir.out_of_window_alert_fired = true;
                 let count = flow_dir.out_of_window_count;
                 let window = self.config.max_receive_window;
-                self.findings.push(Finding {
-                    category: ThreatCategory::Anomaly,
-                    verdict: Verdict::Inconclusive,
-                    confidence: Confidence::Low,
-                    summary: format!(
-                        "Excessive out-of-window segments ({}) on flow {}",
-                        count, key
-                    ),
-                    evidence: vec![format!(
-                        "max_receive_window={} bytes; possible misconfiguration, evasion, or capture corruption",
-                        window
-                    )],
-                    mitre_technique: None,
-                    source_ip: Some(packet.src_ip),
-                    timestamp: None,
-                });
+                if self.findings.len() < MAX_FINDINGS {
+                    self.findings.push(Finding {
+                        category: ThreatCategory::Anomaly,
+                        verdict: Verdict::Inconclusive,
+                        confidence: Confidence::Low,
+                        summary: format!(
+                            "Excessive out-of-window segments ({}) on flow {}",
+                            count, key
+                        ),
+                        evidence: vec![format!(
+                            "max_receive_window={} bytes; possible misconfiguration, evasion, or capture corruption",
+                            window
+                        )],
+                        mitre_technique: None,
+                        source_ip: Some(packet.src_ip),
+                        timestamp: None,
+                    });
+                } else {
+                    self.stats.dropped_findings += 1;
+                }
             }
 
             // Flush contiguous data
@@ -472,6 +492,7 @@ impl TcpReassembler {
             s.segments_depth_exceeded.into(),
         );
         detail.insert("bytes_reassembled".into(), s.bytes_reassembled.into());
+        detail.insert("dropped_findings".into(), s.dropped_findings.into());
         AnalysisSummary {
             analyzer_name: "TCP Reassembly".into(),
             packets_analyzed: s.packets_tcp,
@@ -540,6 +561,7 @@ impl TcpReassembler {
 
     fn generate_conflicting_overlap_finding(&mut self, key: &FlowKey, src_ip: std::net::IpAddr) {
         if self.findings.len() >= MAX_FINDINGS {
+            self.stats.dropped_findings += 1;
             return;
         }
         self.findings.push(Finding {
@@ -556,6 +578,7 @@ impl TcpReassembler {
 
     fn generate_truncated_finding(&mut self, key: &FlowKey, src_ip: std::net::IpAddr) {
         if self.findings.len() >= MAX_FINDINGS {
+            self.stats.dropped_findings += 1;
             return;
         }
         self.findings.push(Finding {

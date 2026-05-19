@@ -35,6 +35,80 @@ fn test_json_reporter_produces_valid_json() {
 }
 
 #[test]
+fn test_json_finding_omits_absent_optional_fields_symmetrically() {
+    // LESSON-P1.02 / NFR OBS-010: a `Finding` whose three `Option<_>`
+    // fields are all `None` must emit a JSON object with *none* of
+    // those three keys present. Previously `timestamp` had
+    // `skip_serializing_if = "Option::is_none"` while `mitre_technique`
+    // and `source_ip` did not, producing asymmetric mixed-shape output
+    // (`mitre_technique: null` and `source_ip: null` appeared as keys
+    // while `timestamp` was omitted).
+    let reporter = JsonReporter;
+    let summary = Summary::new();
+    let findings = vec![Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Inconclusive,
+        confidence: Confidence::Low,
+        summary: "P1.02 symmetry test".into(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+    }];
+    let output = reporter.render(&summary, &findings, &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+    let finding = &parsed["findings"][0];
+    let obj = finding.as_object().expect("finding must be a JSON object");
+    assert!(
+        !obj.contains_key("mitre_technique"),
+        "absent mitre_technique must be omitted, got: {}",
+        finding
+    );
+    assert!(
+        !obj.contains_key("source_ip"),
+        "absent source_ip must be omitted, got: {}",
+        finding
+    );
+    assert!(
+        !obj.contains_key("timestamp"),
+        "absent timestamp must be omitted, got: {}",
+        finding
+    );
+}
+
+#[test]
+fn test_json_finding_emits_present_optional_fields() {
+    // LESSON-P1.02 companion: present `Option::Some(_)` values must
+    // still be serialized as JSON object members. Confirms that the
+    // skip_serializing_if attribute only suppresses None, not Some.
+    let reporter = JsonReporter;
+    let summary = Summary::new();
+    let findings = vec![Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Likely,
+        confidence: Confidence::High,
+        summary: "P1.02 presence test".into(),
+        evidence: vec![],
+        mitre_technique: Some("T1036".into()),
+        source_ip: Some(IpAddr::V4(std::net::Ipv4Addr::new(10, 0, 0, 1))),
+        timestamp: None, // intentionally None — verifies mixed presence
+    }];
+    let output = reporter.render(&summary, &findings, &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+    let finding = &parsed["findings"][0];
+    let obj = finding.as_object().expect("finding must be a JSON object");
+    assert_eq!(
+        obj.get("mitre_technique"),
+        Some(&serde_json::json!("T1036"))
+    );
+    assert_eq!(obj.get("source_ip"), Some(&serde_json::json!("10.0.0.1")));
+    assert!(
+        !obj.contains_key("timestamp"),
+        "the still-None timestamp must remain omitted"
+    );
+}
+
+#[test]
 fn test_json_reporter_includes_skipped_packets() {
     let reporter = JsonReporter;
     let mut summary = Summary::new();

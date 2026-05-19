@@ -63,7 +63,15 @@ pub struct Finding {
     pub confidence: Confidence,
     pub summary: String,
     pub evidence: Vec<String>,
+    // LESSON-P1.02 / NFR OBS-010: all three `Option<_>` fields are
+    // emitted symmetrically — absent values are omitted from the JSON
+    // object rather than serialized as `null`. Previously only
+    // `timestamp` carried this attribute, producing an asymmetric
+    // mixed-shape output (`mitre_technique: null` vs no `timestamp`
+    // key at all) that made JSON consumers harder to write.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub mitre_technique: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub source_ip: Option<IpAddr>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<DateTime<Utc>>,
