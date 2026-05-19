@@ -198,6 +198,7 @@ impl HttpAnalyzer {
                 mitre_technique: Some("T1083".to_string()),
                 source_ip: None,
                 timestamp: None,
+                direction: Some(Direction::ClientToServer),
             });
         }
 
@@ -227,6 +228,7 @@ impl HttpAnalyzer {
                 mitre_technique: Some("T1505.003".to_string()),
                 source_ip: None,
                 timestamp: None,
+                direction: Some(Direction::ClientToServer),
             });
         }
 
@@ -242,6 +244,7 @@ impl HttpAnalyzer {
                 mitre_technique: Some("T1046".to_string()),
                 source_ip: None,
                 timestamp: None,
+                direction: Some(Direction::ClientToServer),
             });
         }
 
@@ -257,6 +260,7 @@ impl HttpAnalyzer {
                 mitre_technique: None,
                 source_ip: None,
                 timestamp: None,
+                direction: Some(Direction::ClientToServer),
             });
         }
 
@@ -292,6 +296,7 @@ impl HttpAnalyzer {
                     mitre_technique: None,
                     source_ip: None,
                     timestamp: None,
+                    direction: Some(Direction::ClientToServer),
                 });
             }
         }
@@ -307,6 +312,7 @@ impl HttpAnalyzer {
                 mitre_technique: None,
                 source_ip: None,
                 timestamp: None,
+                direction: Some(Direction::ClientToServer),
             });
         }
 
@@ -345,6 +351,7 @@ impl HttpAnalyzer {
                 mitre_technique: None,
                 source_ip: None,
                 timestamp: None,
+                direction: Some(Direction::ClientToServer),
             });
         }
     }
@@ -416,6 +423,7 @@ impl HttpAnalyzer {
                                 mitre_technique: Some("T1499.002".to_string()),
                                 source_ip: None,
                                 timestamp: None,
+                            direction: Some(Direction::ClientToServer),
                             });
                         }
                     }
@@ -474,6 +482,7 @@ impl HttpAnalyzer {
                                 mitre_technique: Some("T1499.002".to_string()),
                                 source_ip: None,
                                 timestamp: None,
+                            direction: Some(Direction::ServerToClient),
                             });
                         }
                     }

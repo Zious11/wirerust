@@ -21,6 +21,7 @@ fn test_json_reporter_produces_valid_json() {
         mitre_technique: Some("T1046".into()),
         source_ip: None,
         timestamp: None,
+        direction: None,
     }];
     let analyzer_summaries = vec![];
 
@@ -54,6 +55,7 @@ fn test_json_finding_omits_absent_optional_fields_symmetrically() {
         mitre_technique: None,
         source_ip: None,
         timestamp: None,
+        direction: None,
     }];
     let output = reporter.render(&summary, &findings, &[]);
     let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
@@ -92,6 +94,7 @@ fn test_json_finding_emits_present_optional_fields() {
         mitre_technique: Some("T1036".into()),
         source_ip: Some(IpAddr::V4(std::net::Ipv4Addr::new(10, 0, 0, 1))),
         timestamp: None, // intentionally None — verifies mixed presence
+        direction: None,
     }];
     let output = reporter.render(&summary, &findings, &[]);
     let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
@@ -105,6 +108,81 @@ fn test_json_finding_emits_present_optional_fields() {
     assert!(
         !obj.contains_key("timestamp"),
         "the still-None timestamp must remain omitted"
+    );
+}
+
+// ---- LESSON-P2.08: direction tag on Finding ----
+
+#[test]
+fn test_json_finding_emits_direction_when_set() {
+    // LESSON-P2.08: a Finding with `direction: Some(Direction::*)` must
+    // surface the value in JSON under a `"direction"` key. Verifies the
+    // serde Serialize wiring on the Direction enum.
+    use wirerust::reassembly::handler::Direction;
+
+    let reporter = JsonReporter;
+    let summary = Summary::new();
+    let findings = vec![
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::Medium,
+            summary: "client-side finding".into(),
+            evidence: vec![],
+            mitre_technique: None,
+            source_ip: None,
+            timestamp: None,
+            direction: Some(Direction::ClientToServer),
+        },
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::Medium,
+            summary: "server-side finding".into(),
+            evidence: vec![],
+            mitre_technique: None,
+            source_ip: None,
+            timestamp: None,
+            direction: Some(Direction::ServerToClient),
+        },
+    ];
+    let output = reporter.render(&summary, &findings, &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+    assert_eq!(
+        parsed["findings"][0]["direction"],
+        serde_json::json!("ClientToServer")
+    );
+    assert_eq!(
+        parsed["findings"][1]["direction"],
+        serde_json::json!("ServerToClient")
+    );
+}
+
+#[test]
+fn test_json_finding_omits_direction_when_none() {
+    // LESSON-P2.08 companion to P1.02: absent direction must be
+    // omitted from the JSON object (skip_serializing_if), not
+    // emitted as `null`.
+    let reporter = JsonReporter;
+    let summary = Summary::new();
+    let findings = vec![Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Likely,
+        confidence: Confidence::Medium,
+        summary: "directionless finding".into(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    }];
+    let output = reporter.render(&summary, &findings, &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+    let finding = parsed["findings"][0].as_object().expect("object");
+    assert!(
+        !finding.contains_key("direction"),
+        "absent direction must be omitted from JSON, got: {}",
+        parsed["findings"][0]
     );
 }
 
@@ -363,6 +441,7 @@ fn test_terminal_reporter_escapes_esc_bytes_in_summary() {
         mitre_technique: None,
         source_ip: None,
         timestamp: None,
+        direction: None,
     }];
 
     let output = reporter.render(&summary, &findings, &[]);
@@ -406,6 +485,7 @@ fn test_output_sanitization_layering_contract() {
         mitre_technique: None,
         source_ip: None,
         timestamp: None,
+        direction: None,
     };
 
     // Layer 1: the struct preserves the raw ESC byte (forensic ground truth).
@@ -473,6 +553,7 @@ fn test_json_reporter_preserves_cyrillic_as_readable_unicode() {
         mitre_technique: None,
         source_ip: None,
         timestamp: None,
+        direction: None,
     };
 
     let json_output = JsonReporter.render(&Summary::new(), std::slice::from_ref(&finding), &[]);
@@ -752,6 +833,7 @@ fn base_finding_with_mitre(
         mitre_technique: technique.map(|s| s.to_string()),
         source_ip: None,
         timestamp: None,
+        direction: None,
     }
 }
 

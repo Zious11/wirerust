@@ -316,6 +316,7 @@ impl TcpReassembler {
                         mitre_technique: Some("T1036".into()),
                         source_ip: Some(packet.src_ip),
                         timestamp: None,
+                        direction: Some(dir),
                     });
                 } else {
                     self.stats.dropped_findings += 1;
@@ -338,6 +339,7 @@ impl TcpReassembler {
                         mitre_technique: None,
                         source_ip: Some(packet.src_ip),
                         timestamp: None,
+                        direction: Some(dir),
                     });
                 } else {
                     self.stats.dropped_findings += 1;
@@ -365,6 +367,7 @@ impl TcpReassembler {
                         mitre_technique: None,
                         source_ip: Some(packet.src_ip),
                         timestamp: None,
+                    direction: Some(dir),
                     });
                 } else {
                     self.stats.dropped_findings += 1;
@@ -454,6 +457,7 @@ impl TcpReassembler {
                 mitre_technique: None,
                 source_ip: None,
                 timestamp: None,
+                direction: None,
             });
         }
     }
@@ -598,6 +602,7 @@ impl TcpReassembler {
             mitre_technique: Some("T1036".to_string()),
             source_ip: Some(src_ip),
             timestamp: None,
+            direction: None,
         });
     }
 
@@ -615,6 +620,7 @@ impl TcpReassembler {
             mitre_technique: None,
             source_ip: Some(src_ip),
             timestamp: None,
+            direction: None,
         });
     }
 }
