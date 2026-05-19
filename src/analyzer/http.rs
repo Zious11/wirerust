@@ -539,7 +539,10 @@ impl StreamAnalyzer for HttpAnalyzer {
     }
 
     fn summarize(&self) -> AnalysisSummary {
-        let mut detail = HashMap::new();
+        // LESSON-P2.09: BTreeMap so the JSON output keys are
+        // alphabetically ordered and deterministic across runs.
+        let mut detail: std::collections::BTreeMap<String, serde_json::Value> =
+            std::collections::BTreeMap::new();
 
         detail.insert(
             "transactions".to_string(),

@@ -19,10 +19,21 @@ use std::net::IpAddr;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
+/// Confidence that a [`Finding`] reflects a real threat.
+///
+/// LESSON-P2.10: marked `#[non_exhaustive]` so downstream consumers
+/// must include a wildcard arm when matching on this enum. Lets us
+/// add new verdicts (e.g. `Suspected`) in the future without breaking
+/// SemVer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub enum Verdict {
+    /// The finding is likely a real threat / anomaly.
     Likely,
+    /// The finding is most likely benign noise; emitted for transparency.
     Unlikely,
+    /// The finding cannot be classified as Likely or Unlikely from the
+    /// available evidence.
     Inconclusive,
 }
 
@@ -36,10 +47,19 @@ impl fmt::Display for Verdict {
     }
 }
 
+/// Confidence band assigned by the analyzer to its own finding.
+///
+/// LESSON-P2.10: `#[non_exhaustive]` so a future "VeryHigh" or
+/// "Negligible" tier can be added without breaking downstream
+/// pattern matches.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub enum Confidence {
+    /// Strong signal — false-positive rate is expected to be low.
     High,
+    /// Moderate signal — useful for triage but warrants human review.
     Medium,
+    /// Weak signal — often noisy, included for completeness only.
     Low,
 }
 
@@ -53,15 +73,38 @@ impl fmt::Display for Confidence {
     }
 }
 
+/// Top-level threat taxonomy assigned to each [`Finding`].
+///
+/// Roughly mirrors a subset of MITRE ATT&CK tactics (with `Anomaly`
+/// covering unclassified / pre-classification signals) plus `C2`
+/// (Command-and-Control) split out from the ATT&CK tactic of the
+/// same name for analyst convenience.
+///
+/// LESSON-P2.10: `#[non_exhaustive]` so the enum can grow as new
+/// detection families are added (Impact, Collection, Discovery,
+/// etc.) without breaking SemVer on downstream pattern matches.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[non_exhaustive]
 pub enum ThreatCategory {
+    /// Active or passive information gathering (port scans, host
+    /// enumeration, banner grabbing).
     Reconnaissance,
+    /// Movement between hosts after initial access.
     LateralMovement,
+    /// Command-and-control communication patterns (beaconing,
+    /// covert channels, suspicious DNS / TLS fingerprints).
     C2,
+    /// Data being staged or moved off-host.
     Exfiltration,
+    /// Credential theft / brute-force / spraying patterns.
     CredentialAccess,
-    Execution,
+    /// Suspicious code execution patterns (upload paths, traversal,
+    /// malformed methods).
     Persistence,
+    /// Execution-class signals (long URIs, unusual methods).
+    Execution,
+    /// Unclassified protocol-level anomalies (RFC violations, evasion
+    /// indicators) that don't yet warrant a specific tactic tag.
     Anomaly,
 }
 
