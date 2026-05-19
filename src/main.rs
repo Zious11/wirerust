@@ -244,7 +244,7 @@ fn resolve_targets(target: &Path) -> Result<Vec<std::path::PathBuf>> {
             let path = entry.path();
             if path.is_file()
                 && let Some(ext) = path.extension()
-                && (ext == "pcap" || ext == "pcapng")
+                && ext == "pcap"
             {
                 files.push(path);
             }
