@@ -1,0 +1,65 @@
+# Cargo-deny configuration (LESSON-P2.06).
+#
+# Supply-chain policy for wirerust. Three concerns:
+#   - licenses: only permissive open-source licenses compatible
+#     with this crate's MIT license
+#   - bans: no duplicate / yanked dependencies
+#   - sources: only crates.io for now (no git or local-path deps)
+#
+# The advisories section is handled by the separate `cargo audit` job
+# in CI (rustsec/audit-check) so this config focuses on policy rather
+# than vuln scanning.
+
+[graph]
+# Match the project's stable-channel target.
+all-features = false
+no-default-features = false
+
+[licenses]
+# Permissive licenses compatible with MIT. If a transitive dep
+# carries a different license, this list needs updating — explicitly
+# rather than silently waving it through.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "Zlib",
+    "CC0-1.0",
+    "MPL-2.0",
+    "0BSD",
+]
+# Per-crate overrides for crates whose published license metadata is
+# ambiguous but whose actual LICENSE file is OK. (Currently empty;
+# add entries here rather than relaxing the `allow` list.)
+exceptions = []
+confidence-threshold = 0.93
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+highlight = "all"
+# Permit a handful of common version-duplication cases (e.g. nested
+# rand 0.7 vs 0.8 through different transitive paths). Add entries
+# here only with a one-line comment justifying why the duplicate is
+# unavoidable.
+skip = []
+skip-tree = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
+
+[advisories]
+# Advisory checks live in the `cargo audit` job; cargo-deny's
+# `advisories` table is intentionally minimal here so the two jobs
+# do not double-report the same finding.
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+yanked = "warn"

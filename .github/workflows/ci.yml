@@ -66,3 +66,32 @@ jobs:
         with:
           components: rustfmt
       - run: cargo fmt --all --check
+
+  # LESSON-P2.06: supply-chain scanning split into two complementary
+  # jobs so a noisy advisory in one source does not block merges on
+  # an unrelated regression.
+  audit:
+    name: Audit
+    runs-on: ubuntu-latest
+    # Advisory database may surface new findings between code changes,
+    # so this job is informational on PRs (continue-on-error: true)
+    # and run on a schedule against develop to catch zero-days.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run cargo audit
+        uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  deny:
+    name: Deny
+    runs-on: ubuntu-latest
+    # cargo-deny enforces the license / banned-deps / sources policy
+    # in `deny.toml`. Failures are blocking — these are
+    # repo-policy violations, not external advisory noise.
+    steps:
+      - uses: actions/checkout@v6
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check bans licenses sources
