@@ -61,6 +61,8 @@ fn run_analyze(
     use_color: bool,
     cli: &Cli,
 ) -> Result<()> {
+    check_unsupported_outputs(cli)?;
+
     let mut summary = Summary::new();
     let mut dns_analyzer = DnsAnalyzer::new();
     let mut all_findings = Vec::new();
@@ -169,7 +171,8 @@ fn run_analyze(
         analyzer_summaries.push(tls.summarize());
     }
 
-    let output = match cli.output_format {
+    let resolved_format = resolve_format(cli);
+    let output = match resolved_format {
         Some(OutputFormat::Json) => {
             let reporter = JsonReporter;
             reporter.render(&summary, &all_findings, &analyzer_summaries)
@@ -183,11 +186,13 @@ fn run_analyze(
         }
     };
 
-    println!("{output}");
+    write_output(&output, cli)?;
     Ok(())
 }
 
 fn run_summary(targets: &[std::path::PathBuf], use_color: bool, cli: &Cli) -> Result<()> {
+    check_unsupported_outputs(cli)?;
+
     let mut summary = Summary::new();
     let mut total_decode_errors: u64 = 0;
 
@@ -215,7 +220,8 @@ fn run_summary(targets: &[std::path::PathBuf], use_color: bool, cli: &Cli) -> Re
     }
     summary.skipped_packets = total_decode_errors;
 
-    let output = match cli.output_format {
+    let resolved_format = resolve_format(cli);
+    let output = match resolved_format {
         Some(OutputFormat::Json) => {
             let reporter = JsonReporter;
             reporter.render(&summary, &[], &[])
@@ -229,7 +235,50 @@ fn run_summary(targets: &[std::path::PathBuf], use_color: bool, cli: &Cli) -> Re
         }
     };
 
-    println!("{output}");
+    write_output(&output, cli)?;
+    Ok(())
+}
+
+/// Determine the output format, with `--json [<FILE>]` overriding `--output-format`.
+///
+/// Precedence (highest to lowest):
+/// 1. `--json` (with or without path) forces `OutputFormat::Json`.
+/// 2. `--output-format <fmt>` is honored as-is.
+/// 3. Default (terminal table) when neither flag is given.
+fn resolve_format(cli: &Cli) -> Option<OutputFormat> {
+    if cli.json.is_some() {
+        Some(OutputFormat::Json)
+    } else {
+        cli.output_format
+    }
+}
+
+/// Write rendered output either to a file (if `--json <FILE>` was given) or stdout.
+fn write_output(output: &str, cli: &Cli) -> Result<()> {
+    match &cli.json {
+        Some(Some(path)) => std::fs::write(path, output)
+            .with_context(|| format!("Failed to write JSON output to {}", path.display())),
+        _ => {
+            println!("{output}");
+            Ok(())
+        }
+    }
+}
+
+/// Bail before any analysis if the user requested CSV output. The CSV reporter
+/// is unimplemented; previously the request was silently downgraded to terminal
+/// output, hiding the failure. Make it loud until the CSV reporter lands.
+fn check_unsupported_outputs(cli: &Cli) -> Result<()> {
+    if cli.csv.is_some() {
+        anyhow::bail!(
+            "--csv output is not yet implemented; rerun without --csv (or use --output-format json --json <FILE> for file output)"
+        );
+    }
+    if matches!(cli.output_format, Some(OutputFormat::Csv)) {
+        anyhow::bail!(
+            "--output-format csv is not yet implemented; choose 'json' or omit the flag for the terminal table"
+        );
+    }
     Ok(())
 }
 
