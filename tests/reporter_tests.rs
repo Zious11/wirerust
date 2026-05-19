@@ -108,6 +108,105 @@ fn test_json_finding_emits_present_optional_fields() {
     );
 }
 
+// ---- LESSON-P2.09: deterministic JSON map ordering ----
+
+#[test]
+fn test_json_reporter_emits_deterministic_protocols_ordering() {
+    // LESSON-P2.09 / NFR DET-001: top-level map keys in the JSON
+    // output (protocols, services) must serialize in deterministic
+    // alphabetical order, regardless of underlying HashMap iteration
+    // order. Snapshot / golden tests over the JSON depend on this.
+    use std::net::{IpAddr, Ipv4Addr};
+    use wirerust::decoder::{ParsedPacket, Protocol, TransportInfo};
+
+    fn make_packet(proto: Protocol, src_port: u16, dst_port: u16) -> ParsedPacket {
+        ParsedPacket {
+            src_ip: IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)),
+            dst_ip: IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)),
+            protocol: proto,
+            transport: match proto {
+                Protocol::Tcp => TransportInfo::Tcp {
+                    src_port,
+                    dst_port,
+                    seq_number: 0,
+                    syn: false,
+                    ack: false,
+                    fin: false,
+                    rst: false,
+                },
+                Protocol::Udp => TransportInfo::Udp { src_port, dst_port },
+                _ => TransportInfo::None,
+            },
+            payload: vec![],
+            packet_len: 60,
+        }
+    }
+
+    let mut summary = Summary::new();
+    // Insert in a deliberately non-alphabetical order to exercise the sort.
+    summary.ingest(&make_packet(Protocol::Udp, 53, 0));
+    summary.ingest(&make_packet(Protocol::Tcp, 0, 443));
+    summary.ingest(&make_packet(Protocol::Icmp, 0, 0));
+    summary.ingest(&make_packet(Protocol::Tcp, 0, 80));
+
+    let reporter = JsonReporter;
+    // Render twice; output must be byte-identical (HashMap iteration
+    // order would otherwise diverge across calls).
+    let out_a = reporter.render(&summary, &[], &[]);
+    let out_b = reporter.render(&summary, &[], &[]);
+    assert_eq!(
+        out_a, out_b,
+        "two render() calls on the same summary must produce identical bytes"
+    );
+
+    // Protocol keys must appear in alphabetical order.
+    let icmp_pos = out_a.find("\"Icmp\"").expect("Icmp key in output");
+    let tcp_pos = out_a.find("\"Tcp\"").expect("Tcp key in output");
+    let udp_pos = out_a.find("\"Udp\"").expect("Udp key in output");
+    assert!(
+        icmp_pos < tcp_pos && tcp_pos < udp_pos,
+        "protocol keys must be sorted alphabetically (Icmp < Tcp < Udp) — got positions {icmp_pos}, {tcp_pos}, {udp_pos}"
+    );
+
+    // Service keys (DNS, HTTP, TLS) must appear alphabetically.
+    let dns_pos = out_a.find("\"DNS\"").expect("DNS service in output");
+    let http_pos = out_a.find("\"HTTP\"").expect("HTTP service in output");
+    let tls_pos = out_a.find("\"TLS\"").expect("TLS service in output");
+    assert!(
+        dns_pos < http_pos && http_pos < tls_pos,
+        "service keys must be sorted alphabetically (DNS < HTTP < TLS) — got positions {dns_pos}, {http_pos}, {tls_pos}"
+    );
+}
+
+#[test]
+fn test_json_reporter_emits_deterministic_analyzer_detail_ordering() {
+    // LESSON-P2.09: AnalysisSummary::detail is a BTreeMap, so its
+    // keys serialize alphabetically. Catches a regression that would
+    // change the field back to HashMap.
+    use wirerust::analyzer::AnalysisSummary;
+
+    let mut detail: std::collections::BTreeMap<String, serde_json::Value> =
+        std::collections::BTreeMap::new();
+    detail.insert("zeta_key".to_string(), serde_json::json!(1));
+    detail.insert("alpha_key".to_string(), serde_json::json!(2));
+    detail.insert("mu_key".to_string(), serde_json::json!(3));
+    let analyzer_summary = AnalysisSummary {
+        analyzer_name: "test".to_string(),
+        packets_analyzed: 0,
+        detail,
+    };
+
+    let reporter = JsonReporter;
+    let out = reporter.render(&Summary::new(), &[], &[analyzer_summary]);
+    let alpha = out.find("alpha_key").expect("alpha_key in output");
+    let mu = out.find("mu_key").expect("mu_key in output");
+    let zeta = out.find("zeta_key").expect("zeta_key in output");
+    assert!(
+        alpha < mu && mu < zeta,
+        "analyzer detail keys must serialize alphabetically (alpha < mu < zeta) — got positions {alpha}, {mu}, {zeta}"
+    );
+}
+
 // ---- LESSON-P1.03: terminal --hosts gates per-host breakdown section ----
 
 fn make_summary_with_two_hosts() -> Summary {
@@ -409,7 +508,8 @@ fn test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries() {
     // display boundary regardless of what the underlying serializer does.
     use wirerust::analyzer::AnalysisSummary;
 
-    let mut detail = std::collections::HashMap::new();
+    let mut detail: std::collections::BTreeMap<String, serde_json::Value> =
+        std::collections::BTreeMap::new();
     detail.insert(
         "top_snis".to_string(),
         serde_json::json!([

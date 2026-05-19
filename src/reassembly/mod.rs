@@ -481,8 +481,13 @@ impl TcpReassembler {
     }
 
     /// Produce an AnalysisSummary for the reassembly engine stats.
+    ///
+    /// LESSON-P2.09: the returned `AnalysisSummary::detail` is a
+    /// `BTreeMap`, so the JSON output's analyzer-summary section is
+    /// alphabetically ordered and deterministic across runs.
     pub fn summarize(&self) -> AnalysisSummary {
-        let mut detail = HashMap::new();
+        let mut detail: std::collections::BTreeMap<String, serde_json::Value> =
+            std::collections::BTreeMap::new();
         let s = &self.stats;
         detail.insert("packets_processed".into(), s.packets_processed.into());
         detail.insert(

@@ -27,11 +27,21 @@ impl Reporter for JsonReporter {
         findings: &[Finding],
         analyzer_summaries: &[AnalysisSummary],
     ) -> String {
-        // Convert Protocol (non-string) keys to strings for JSON compatibility
-        let protocols: std::collections::HashMap<String, u64> = summary
+        // LESSON-P2.09 / NFR DET-001: every map serialized into the
+        // JSON output goes through a `BTreeMap` first so the key
+        // order is deterministic (alphabetical) and snapshot/golden
+        // tests stay stable across runs and target platforms. The
+        // `Protocol` keys also need the non-string-to-string
+        // conversion they always did.
+        let protocols: std::collections::BTreeMap<String, u64> = summary
             .protocol_counts()
             .iter()
             .map(|(k, v)| (format!("{k:?}"), *v))
+            .collect();
+        let services: std::collections::BTreeMap<String, u64> = summary
+            .service_counts()
+            .iter()
+            .map(|(k, v)| (k.clone(), *v))
             .collect();
 
         let output = json!({
@@ -41,7 +51,7 @@ impl Reporter for JsonReporter {
                 "skipped_packets": summary.skipped_packets,
                 "unique_hosts": summary.unique_hosts(),
                 "protocols": protocols,
-                "services": summary.service_counts(),
+                "services": services,
             },
             "findings": findings,
             "analyzers": analyzer_summaries,

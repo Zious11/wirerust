@@ -6,7 +6,7 @@
 //! and rare-TLD lookups. Findings carry confidence levels reflecting how
 //! noisy each pattern is in benign traffic.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use crate::analyzer::{AnalysisSummary, ProtocolAnalyzer};
 use crate::decoder::{ParsedPacket, TransportInfo};
@@ -70,7 +70,7 @@ impl ProtocolAnalyzer for DnsAnalyzer {
     }
 
     fn summarize(&self) -> AnalysisSummary {
-        let mut detail = HashMap::new();
+        let mut detail: BTreeMap<String, serde_json::Value> = BTreeMap::new();
         detail.insert(
             "dns_queries".to_string(),
             serde_json::json!(self.query_count),
