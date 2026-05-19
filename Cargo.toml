@@ -30,3 +30,11 @@ assert_cmd = "2"
 predicates = "3"
 tempfile = "3"
 proptest = "1"
+criterion = "0.8"
+
+# LESSON-P2.07: criterion micro-benchmarks for the hot pcap-processing
+# paths. `harness = false` hands the test binary to criterion's own
+# runner instead of libtest. Run with `cargo bench`.
+[[bench]]
+name = "pipeline"
+harness = false
