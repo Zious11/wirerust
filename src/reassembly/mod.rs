@@ -1,3 +1,23 @@
+//! TCP stream reassembly engine.
+//!
+//! Owns the [`TcpReassembler`] type plus the per-flow ([`flow`]) and
+//! per-segment ([`segment`]) state, and the [`handler::StreamHandler`] /
+//! [`handler::StreamAnalyzer`] interfaces that downstream protocol
+//! analyzers (HTTP, TLS) implement.
+//!
+//! Design highlights:
+//! - **First-wins overlap policy.** When a retransmitted segment carries
+//!   different bytes from the one already buffered at the same offset,
+//!   the buffered bytes are kept and a "conflicting overlap" Anomaly
+//!   finding is emitted. Mirrors Suricata's default behavior.
+//! - **Per-direction latched alerts** for overlap / small-segment /
+//!   out-of-window thresholds. The latches flip even when the
+//!   `MAX_FINDINGS` cap suppresses the finding (LESSON-P1.01), so
+//!   `dropped_findings` counts distinct anomalies — not packets.
+//! - **`impl Drop` lifecycle tripwire** that emits a one-shot eprintln
+//!   if [`TcpReassembler::finalize`] was not called, catching the
+//!   `?`-bail bypass at runtime (LESSON-P0.03).
+
 pub mod flow;
 pub mod handler;
 pub mod segment;

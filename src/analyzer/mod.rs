@@ -1,3 +1,16 @@
+//! Per-protocol analyzers and the shared [`ProtocolAnalyzer`] trait.
+//!
+//! Each protocol-specific submodule (`dns`, `http`, `tls`) inspects either
+//! raw [`crate::decoder::ParsedPacket`]s ([`ProtocolAnalyzer`]) or reassembled
+//! TCP stream data ([`crate::reassembly::handler::StreamAnalyzer`]) and emits
+//! [`crate::findings::Finding`]s plus an [`AnalysisSummary`].
+//!
+//! `AnalysisSummary` is the universal shape consumed by both
+//! [`crate::reporter::terminal::TerminalReporter`] and
+//! [`crate::reporter::json::JsonReporter`]; analyzer-specific metric
+//! key/value pairs live in `detail` so the reporter does not need to know
+//! per-protocol schemas.
+
 pub mod dns;
 pub mod http;
 pub mod tls;

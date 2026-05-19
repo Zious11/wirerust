@@ -1,3 +1,12 @@
+//! Stream-handler / stream-analyzer interfaces.
+//!
+//! The [`StreamHandler`] trait is the callback surface invoked by
+//! [`crate::reassembly::TcpReassembler`] when contiguous TCP-stream data
+//! becomes available. The [`StreamAnalyzer`] super-trait additionally
+//! exposes name / findings / summarize hooks so the dispatcher can
+//! treat per-protocol analyzers uniformly. [`Direction`] and
+//! [`CloseReason`] are the shared event vocabulary.
+
 use crate::analyzer::AnalysisSummary;
 use crate::findings::Finding;
 use crate::reassembly::flow::FlowKey;

@@ -1,3 +1,18 @@
+//! Terminal-table reporter with ADR 0003 control-byte escaping.
+//!
+//! Renders the capture summary, per-host breakdown (gated by
+//! `show_hosts_breakdown` per LESSON-P1.03), protocols, services,
+//! findings, and per-analyzer detail tables for TTY output. Optional
+//! MITRE-tactic grouping (`show_mitre_grouping`) reorganizes the
+//! FINDINGS section by MITRE ATT&CK tactic and expands each finding's
+//! MITRE line with the technique name from [`crate::mitre`].
+//!
+//! Per ADR 0003 (`docs/adr/0003-reporting-pipeline-layering.md`), every
+//! attacker-controlled string (Finding `summary`/`evidence`, analyzer
+//! detail values) is run through [`escape_for_terminal`] before being
+//! written to the output buffer. The pure-data [`Finding`] type carries
+//! raw bytes; only this layer escapes them.
+
 use owo_colors::OwoColorize;
 
 use crate::analyzer::AnalysisSummary;

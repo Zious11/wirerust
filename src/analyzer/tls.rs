@@ -1,3 +1,18 @@
+//! TLS handshake analyzer.
+//!
+//! Reads reassembled TCP-stream data (the dispatcher routes to here on the
+//! `0x16 0x03` content fingerprint), parses ClientHello / ServerHello records
+//! with `tls_parser`, and computes JA3 / JA3S fingerprints (MD5-hashed
+//! field concatenations per the Salesforce JA3 spec).
+//!
+//! Counters surfaced via [`StreamAnalyzer::summarize`] cover SNI / JA3 / JA3S
+//! / version / cipher distributions plus `parse_errors` (malformed records)
+//! and `truncated_records` (DoS-protection drops, see LESSON-P1.05).
+//!
+//! Findings cover: SNI hostnames containing C0/DEL control bytes,
+//! non-ASCII SNI (RFC 6066 violation), weak / deprecated cipher suites,
+//! and SSL/3.0 handshakes (POODLE-class).
+
 use std::collections::HashMap;
 
 use md5::{Digest, Md5};

@@ -1,3 +1,18 @@
+//! Content-first stream dispatcher (ADR 0001).
+//!
+//! Sits between [`crate::reassembly::TcpReassembler`] (which produces
+//! contiguous TCP-stream byte ranges) and the per-protocol analyzers
+//! ([`HttpAnalyzer`], [`TlsAnalyzer`]). On the first chunk of each flow,
+//! peeks at the leading bytes to decide whether the stream is TLS
+//! (`0x16 0x03` record-type-and-version prefix) or HTTP (one of the
+//! known method tokens) and routes all subsequent data on that flow to
+//! the matching analyzer. Streams whose content doesn't match either
+//! prefix are tracked under "unclassified" for the JSON summary.
+//!
+//! Routing is irrevocable per flow — once classified, a flow stays with
+//! its analyzer for the rest of its lifetime to avoid mid-stream
+//! protocol confusion attacks.
+
 use std::collections::HashMap;
 
 use crate::analyzer::http::HttpAnalyzer;

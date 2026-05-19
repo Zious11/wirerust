@@ -1,3 +1,14 @@
+//! Pcap-format capture-file reader.
+//!
+//! [`PcapSource::from_file`] reads a `.pcap` (libpcap) file into memory and
+//! exposes the link-layer type plus a `Vec<RawPacket>` of frame timestamps
+//! and bytes. `pcapng` is intentionally NOT supported here (see LESSON-P0.02
+//! in the brownfield-ingest synthesis); the directory-glob path in
+//! `src/main.rs` enforces that.
+//!
+//! For very large captures the all-in-memory model is a known limitation;
+//! see the technical-debt register for a streaming-reader follow-up.
+
 use std::io::Read;
 
 use anyhow::{Context, Result, anyhow};

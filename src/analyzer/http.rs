@@ -1,3 +1,16 @@
+//! HTTP/1.x request analyzer driven by reassembled TCP stream data.
+//!
+//! Implements [`StreamAnalyzer`] so the [`crate::dispatcher::StreamDispatcher`]
+//! can route bytes here once a flow is content-classified as HTTP. Per-flow
+//! state is bounded by `MAX_HEADER_BUF`, `MAX_HEADERS`, and `MAX_URIS` to
+//! prevent attacker-controlled growth.
+//!
+//! Anomaly detection covers: directory-traversal URIs, encoded path traversal,
+//! upload paths with executable extensions, unusual HTTP methods, missing or
+//! empty `Host` headers on HTTP/1.1 (RFC 7230 §5.4), abnormally long URIs,
+//! and empty `User-Agent` values. Rationale for the asymmetric missing- vs
+//! empty-UA handling is documented inline at rule 7.
+
 use std::collections::HashMap;
 
 use crate::analyzer::AnalysisSummary;

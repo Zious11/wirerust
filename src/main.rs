@@ -1,3 +1,19 @@
+//! `wirerust` binary entrypoint.
+//!
+//! Thin wrapper over the library API in [`wirerust`]. Parses the
+//! [`Cli`] surface (see `src/cli.rs`), then dispatches to one of two
+//! pipelines:
+//!
+//! - [`run_analyze`] — full per-packet decode + reassembly + dispatcher
+//!   + per-protocol analyzers + reporter.
+//! - [`run_summary`] — capture-level triage only (no analyzers, no
+//!   reassembly), with optional per-host breakdown in the terminal
+//!   reporter when `summary --hosts` is given (LESSON-P1.03).
+//!
+//! Both pipelines respect the `--json <FILE>` / `--output-format` /
+//! `--csv` flags; CSV currently bails loudly via
+//! [`check_unsupported_outputs`] until a CSV reporter lands.
+
 use std::path::Path;
 
 use anyhow::{Context, Result};
