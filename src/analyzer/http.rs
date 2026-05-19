@@ -247,18 +247,40 @@ impl HttpAnalyzer {
             });
         }
 
-        // 5. Missing Host header (HTTP/1.1 requires it)
-        if parsed.version == 1 && parsed.host.is_none() {
-            self.all_findings.push(Finding {
-                category: ThreatCategory::Anomaly,
-                verdict: Verdict::Inconclusive,
-                confidence: Confidence::Medium,
-                summary: "HTTP/1.1 request without Host header".to_string(),
-                evidence: vec![format!("{} {}", parsed.method, parsed.uri)],
-                mitre_technique: None,
-                source_ip: None,
-                timestamp: None,
-            });
+        // 5. Missing or empty Host header on HTTP/1.1.
+        //
+        // RFC 7230 §5.4 (and successor RFC 9112 §3.2) require an HTTP/1.1
+        // request to carry exactly one non-empty `Host` field-value; both
+        // absent-Host and empty-value-Host are equally non-compliant and
+        // are documented evasion lanes in front-end/back-end request-
+        // smuggling research (PortSwigger; Node.js CVE-2022-35256). The
+        // closest comparator tool (Suricata) surfaces these as two
+        // separate events (sids 2221014 `http.missing_host_header` and
+        // 2221028 `http.request_header_host_invalid`); we fold both into
+        // one Anomaly finding but disambiguate via the summary text so
+        // downstream analysts can grep either case.
+        //
+        // Note: `find_header` already trims whitespace from header
+        // values, so `Some("")` here covers both `Host:\r\n` and
+        // `Host:   \r\n`.
+        if parsed.version == 1 {
+            let host_anomaly_summary = match parsed.host.as_deref() {
+                None => Some("HTTP/1.1 request without Host header"),
+                Some("") => Some("HTTP/1.1 request with empty Host header"),
+                Some(_) => None,
+            };
+            if let Some(summary) = host_anomaly_summary {
+                self.all_findings.push(Finding {
+                    category: ThreatCategory::Anomaly,
+                    verdict: Verdict::Inconclusive,
+                    confidence: Confidence::Medium,
+                    summary: summary.to_string(),
+                    evidence: vec![format!("{} {}", parsed.method, parsed.uri)],
+                    mitre_technique: None,
+                    source_ip: None,
+                    timestamp: None,
+                });
+            }
         }
 
         // 6. Long URI (> 2048 chars)
@@ -275,7 +297,31 @@ impl HttpAnalyzer {
             });
         }
 
-        // 7. Empty User-Agent
+        // 7. Empty User-Agent (deliberately asymmetric with the Host
+        //    check above — only `Some("")` fires, absent UA is ignored).
+        //
+        // Rationale for not firing on absent UA:
+        //   - Many legitimate clients omit UA entirely (cron jobs,
+        //     internal microservices, healthchecks, embedded HTTP
+        //     libraries). Snort ships its "POLICY-OTHER HTTP Request
+        //     missing user-agent" rule (sid 1:38130) **disabled by
+        //     default** for this reason — it is treated as a policy
+        //     violation, not a malicious-traffic indicator.
+        //   - Empty-UA, in contrast, is a stronger signal. Kheir (2015,
+        //     "Malware Detection Using HTTP User-Agent Discrepancy
+        //     Identification") reports ~24% of malware samples in a
+        //     181k-sample Totalhash corpus emit an empty UA. Real
+        //     browsers always populate UA, and common tools (curl,
+        //     wget, Python `requests`) send a default string when one
+        //     is not overridden.
+        //   - Suricata's `http-events.rules` ships no built-in UA
+        //     presence/emptiness anomaly at all; both detections are
+        //     left to rule-authors via `http.user_agent` content
+        //     matching, which we do not do here.
+        //
+        // If a policy-mode "missing UA" finding is later desired, it
+        // should be added as a separate, lower-confidence finding
+        // rather than collapsing the two cases.
         if parsed.user_agent.as_deref() == Some("") {
             self.all_findings.push(Finding {
                 category: ThreatCategory::Anomaly,
