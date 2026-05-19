@@ -1,3 +1,11 @@
+//! DNS query/response analyzer.
+//!
+//! Operates on raw UDP/53 packets directly (not via TCP reassembly), parsing
+//! the question section to extract qnames and tracking suspicious patterns:
+//! DGA-class entropy on labels, unusually long subdomains, NXDOMAIN spikes,
+//! and rare-TLD lookups. Findings carry confidence levels reflecting how
+//! noisy each pattern is in benign traffic.
+
 use std::collections::HashMap;
 
 use crate::analyzer::{AnalysisSummary, ProtocolAnalyzer};

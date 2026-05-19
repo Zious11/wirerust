@@ -1,3 +1,18 @@
+//! Universal anomaly-finding type — the lingua franca of the pipeline.
+//!
+//! Every analyzer ([`crate::analyzer::dns`], [`crate::analyzer::http`],
+//! [`crate::analyzer::tls`], [`crate::reassembly`]) emits findings as
+//! [`Finding`]s; every reporter ([`crate::reporter::terminal`],
+//! [`crate::reporter::json`]) consumes the same type. The three classifying
+//! enums ([`ThreatCategory`], [`Verdict`], [`Confidence`]) keep the
+//! cross-analyzer vocabulary bounded.
+//!
+//! See ADR 0003 (`docs/adr/0003-reporting-pipeline-layering.md`) for the
+//! raw-data-vs-display-layer escaping contract that `Finding::Display`
+//! intentionally does NOT enforce — the terminal reporter handles it
+//! at render time so the same `Finding` value can flow safely to JSON,
+//! logs, or a TTY without double-escaping.
+
 use std::fmt;
 use std::net::IpAddr;
 

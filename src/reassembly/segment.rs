@@ -1,3 +1,14 @@
+//! Per-direction segment buffer with the first-wins overlap policy.
+//!
+//! [`InsertResult`] is the classification produced by every segment
+//! insertion: clean, duplicate (identical bytes at the same offset),
+//! overlap-clean (overlap that agrees with the buffer),
+//! conflicting overlap (overlap that disagrees — emitted as an Anomaly
+//! finding upstream), out-of-window (too far ahead of `base_offset`),
+//! depth-exceeded (per-direction byte cap hit), segment-limit
+//! (per-direction segment-count cap hit), or `IsnMissing` (programming
+//! error guarded by a one-shot eprintln so the bug is loud, not silent).
+
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::reassembly::flow::FlowDirection;

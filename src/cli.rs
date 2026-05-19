@@ -1,3 +1,14 @@
+//! Command-line interface definition (clap derive).
+//!
+//! Surfaces two subcommands: `analyze` (full pipeline with selectable
+//! per-protocol analyzers + MITRE grouping) and `summary` (capture-level
+//! triage view with optional per-host breakdown). Global flags govern
+//! output channel (`--json`, `--csv`, `--output-format`), reassembly
+//! limits (`--reassembly-depth`, `--reassembly-memcap`), and color.
+//!
+//! See the [`Cli`] struct comment for the "no unwired flags" convention
+//! (LESSON-P1.04).
+
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};

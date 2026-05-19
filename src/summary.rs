@@ -1,3 +1,13 @@
+//! Capture-level rollup totals.
+//!
+//! [`Summary`] aggregates packet count, byte count, decode-skipped packets,
+//! the set of unique source/destination IPs, the protocol-count map, and
+//! the inferred service distribution (port-tuple-based, see
+//! [`crate::decoder::ParsedPacket::app_protocol_hint`]). Both reporters
+//! ([`crate::reporter::terminal`] and [`crate::reporter::json`]) consume
+//! this type unchanged; the terminal reporter's per-host breakdown
+//! (LESSON-P1.03) reads from [`Summary::unique_hosts`].
+
 use std::collections::{HashMap, HashSet};
 use std::net::IpAddr;
 

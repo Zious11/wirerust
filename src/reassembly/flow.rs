@@ -1,3 +1,16 @@
+//! Per-TCP-flow state and the canonical [`FlowKey`].
+//!
+//! A flow is identified by the unordered 4-tuple {lower_ip:port, upper_ip:port},
+//! so packets in either direction map to the same key. Each [`TcpFlow`]
+//! owns two [`FlowDirection`] segment buffers (client→server and
+//! server→client), tracks ISN (initial sequence number) per direction, and
+//! advances through the [`FlowState`] machine (`New` → `SynSent` → `Established`
+//! → `Closed`).
+//!
+//! Memory accounting (`memory_used`) is consulted by the reassembler's
+//! memcap eviction strategy; per-direction `overlap_count`, `small_segment_count`,
+//! and `out_of_window_count` feed the threshold-based Anomaly findings.
+
 use std::collections::BTreeMap;
 use std::net::IpAddr;
 

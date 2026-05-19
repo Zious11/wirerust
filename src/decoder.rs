@@ -1,3 +1,17 @@
+//! Link-layer / IP / transport decoder for raw pcap frames.
+//!
+//! Turns a single captured frame plus its [`pcap_file::DataLink`] into a
+//! [`ParsedPacket`] containing source / destination IP, transport-layer
+//! information ([`TransportInfo`]), and the payload slice. Application-layer
+//! parsing is NOT done here — that is the analyzer / dispatcher pipeline's
+//! responsibility.
+//!
+//! Currently supports Ethernet and Linux-cooked-capture (SLL) link layers
+//! via `etherparse::SlicedPacket`. IPv4 and IPv6 are both handled; TCP and
+//! UDP transports surface their port / flag tuple, ICMP is reported as the
+//! parent protocol with no transport detail, and everything else is reported
+//! as `Protocol::Other(proto_num)` with no transport info.
+
 use std::net::IpAddr;
 
 use anyhow::{Result, anyhow};
