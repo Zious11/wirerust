@@ -160,16 +160,69 @@ fn test_detect_unusual_method() {
 
 #[test]
 fn test_detect_missing_host_header() {
+    // HTTP/1.1 without any Host header is RFC 7230 §5.4 non-compliant
+    // and must produce a "without Host header" Anomaly finding.
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
     let request = b"GET /path HTTP/1.1\r\n\r\n";
     analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
     let findings = analyzer.findings();
+    let host_finding = findings
+        .iter()
+        .find(|f| f.summary.contains("without Host header"))
+        .expect("expected a missing-Host anomaly");
+    assert_eq!(host_finding.category, ThreatCategory::Anomaly);
+    assert_eq!(host_finding.verdict, Verdict::Inconclusive);
+    assert_eq!(host_finding.confidence, Confidence::Medium);
+}
+
+#[test]
+fn test_detect_empty_host_header() {
+    // An empty-value `Host:` is equally RFC 7230 §5.4 non-compliant and
+    // is the documented bypass that the `is_none()`-only check missed
+    // (Suricata surfaces this as sid 2221028
+    // `http.request_header_host_invalid`, separate from the
+    // sid-2221014 missing-Host event). It must produce an Anomaly
+    // finding with the distinct "empty Host header" summary so analysts
+    // can disambiguate it from the truly-absent case.
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+    let request = b"GET /path HTTP/1.1\r\nHost: \r\nUser-Agent: curl/8.0\r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    let findings = analyzer.findings();
+    let host_finding = findings
+        .iter()
+        .find(|f| f.summary.contains("empty Host header"))
+        .expect("expected an empty-Host anomaly");
+    assert_eq!(host_finding.category, ThreatCategory::Anomaly);
+    assert_eq!(host_finding.verdict, Verdict::Inconclusive);
+    assert_eq!(host_finding.confidence, Confidence::Medium);
+
+    // And the *missing* variant must not also fire on the empty case —
+    // they are surfaced via distinct summary strings.
     assert!(
-        findings
+        !findings
             .iter()
-            .any(|f| f.category == ThreatCategory::Anomaly),
-        "Should detect missing Host header"
+            .any(|f| f.summary.contains("without Host header")),
+        "empty-Host case must not also trigger the missing-Host variant"
+    );
+}
+
+#[test]
+fn test_detect_whitespace_only_host_header() {
+    // `Host:    ` (whitespace-only value) is folded into the empty case
+    // by `find_header`'s `.trim()` and must produce the same empty-Host
+    // anomaly as a literally-empty value.
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+    let request = b"GET /path HTTP/1.1\r\nHost:    \r\n\r\n";
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    assert!(
+        analyzer
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("empty Host header")),
+        "whitespace-only Host: must fire the empty-Host anomaly"
     );
 }
 
@@ -633,9 +686,15 @@ fn test_detect_empty_user_agent() {
 
 #[test]
 fn test_missing_user_agent_no_finding() {
-    // A missing User-Agent header (not present at all) should NOT
-    // trigger the empty-UA finding. The detection specifically checks
-    // for Some(""), not None.
+    // A missing User-Agent header (not present at all) must NOT trigger
+    // the empty-UA finding. This asymmetry with the Host check is
+    // deliberate and documented in `src/analyzer/http.rs` (rule 7
+    // comment): Snort ships its missing-UA rule (sid 1:38130) disabled
+    // by default because legitimate non-browser traffic (cron jobs,
+    // healthchecks, microservices, embedded clients) routinely omits
+    // UA, while empty-UA is a stronger malicious-traffic indicator
+    // (Kheir 2015 reports ~24% of malware samples emit empty UA).
+    // The detection specifically checks for `Some("")`, not `None`.
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
 
