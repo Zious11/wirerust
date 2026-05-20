@@ -10,12 +10,12 @@
 //! TCP traffic.
 //!
 //! `nfs_bad_stalls.cap` is a different kind of fixture: a snaplen-96
-//! capture that exercises the reader's truncated-capture path
-//! end-to-end. It is a regression guard for the snaplen reader fix —
-//! before that fix the validated `pcap-file` read path rejected the
-//! whole file. It is benign but deliberately NOT reassembly-heavy; see
-//! `test_nfs_bad_stalls_snaplen_capture_reassembles_as_benign` for the
-//! decoder-truncation caveat.
+//! capture that exercises the snaplen-truncated reader AND decoder
+//! paths end-to-end. Unlike the two baselines it is NOT benign — it is
+//! a genuine "bad stalls" capture whose NFS flow trips the
+//! out-of-window anomaly threshold, so it doubles as a positive
+//! detection fixture. See
+//! `test_nfs_bad_stalls_snaplen_capture_decodes_and_detects_anomaly`.
 //!
 //! Fixture provenance and licensing: see `tests/fixtures/README.md`.
 
@@ -109,33 +109,36 @@ fn test_snaplen_truncated_capture_loads_without_error() {
 }
 
 #[test]
-fn test_nfs_bad_stalls_snaplen_capture_reassembles_as_benign() {
-    // `nfs_bad_stalls.cap` is a snaplen-96 NFS-over-TCP capture. Two
-    // separate truncation effects apply, and only the first is fixed:
+fn test_nfs_bad_stalls_snaplen_capture_decodes_and_detects_anomaly() {
+    // `nfs_bad_stalls.cap` is a snaplen-96 NFS-over-TCP capture that
+    // exercises two snaplen-truncation fixes end-to-end: the reader
+    // (the file loads at all) and the decoder (truncated IP packets are
+    // lax-parsed instead of dropped). Before the decoder fix only ~2373
+    // of its packets decoded; now ~7032 do — `packets_tcp` is the
+    // regression guard for that fix.
     //
-    //  - Reader: the file now loads (see the test above).
-    //  - Decoder: `etherparse` still drops every packet whose IPv4
-    //    `total_length` overshoots the 96-byte captured slice — the
-    //    data-bearing segments. Only the small control packets (SYN /
-    //    ACK / FIN, whose real length fits in 96 bytes) decode.
-    //
-    // So this is NOT a heavy-reassembly baseline like the two fixtures
-    // above — `bytes_reassembled` is tiny by construction. Its job is
-    // to prove a snaplen-truncated capture flows reader -> decoder ->
-    // reassembly -> finalize without panic, and stays benign.
+    // It is NOT a benign baseline like the two fixtures above: it is a
+    // genuine "bad stalls" capture, and its NFS flow legitimately
+    // exceeds the out-of-window anomaly threshold. The TCP sequence
+    // numbers that drive that detection live in the headers, which the
+    // 96-byte snaplen captured intact — so the finding is real, not a
+    // truncation artifact. The fixture therefore doubles as a positive
+    // detection fixture.
     let reasm = reassemble_fixture("tests/fixtures/nfs_bad_stalls.cap");
     let s = reasm.stats();
     assert!(reasm.is_finalized());
     assert!(
-        s.packets_tcp > 0,
-        "expected the decodable control packets to be processed as TCP"
+        s.packets_tcp > 7000,
+        "decoder must lax-parse the snaplen-truncated packets; got only \
+         {} TCP packets (pre-decoder-fix baseline was ~2373)",
+        s.packets_tcp
     );
-    assert!(s.flows_total > 0, "expected reassembled flows");
-    // Benign capture: no reassembly anomaly threshold may trip.
-    assert_eq!(
-        reasm.findings().len(),
-        0,
-        "benign capture must produce no reassembly anomaly findings; got {:?}",
-        reasm.findings()
+    assert_eq!(s.flows_total, 8, "expected 8 flows");
+    // Positive detection: the bad-stalls NFS flow trips the
+    // out-of-window anomaly threshold.
+    let findings = reasm.findings();
+    assert!(
+        findings.iter().any(|f| f.summary.contains("out-of-window")),
+        "expected an out-of-window anomaly finding; got {findings:?}"
     );
 }

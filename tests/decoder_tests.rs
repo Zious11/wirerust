@@ -214,3 +214,91 @@ fn test_decode_linux_sll_tcp_packet() {
         _ => panic!("Expected TCP"),
     }
 }
+
+// --- Snaplen-truncated captures -----------------------------------------
+//
+// A `tcpdump -s 96` capture truncates each packet below its on-wire
+// length, but the IPv4 `total_length` field still reports the full
+// original size. `etherparse`'s strict parser rejects that as a length
+// inconsistency; `decode_packet` must fall back to lax parsing and
+// recover the headers from the bytes that were captured.
+
+/// `make_tcp_packet` with the IPv4 `total_length` field overwritten to
+/// claim a full 1500-byte packet, simulating snaplen truncation. The
+/// field is at frame offset 16..18 (Ethernet 14 + IPv4 bytes 2..4).
+fn make_snaplen_truncated_eth_tcp() -> Vec<u8> {
+    let mut pkt = make_tcp_packet();
+    pkt[16] = 0x05;
+    pkt[17] = 0xdc; // total_length = 1500, far past the captured bytes
+    pkt
+}
+
+#[test]
+fn test_decode_snaplen_truncated_ethernet_recovers_via_lax_parsing() {
+    let data = make_snaplen_truncated_eth_tcp();
+    let parsed = decode_packet(&data, DataLink::ETHERNET)
+        .expect("snaplen-truncated Ethernet frame must decode via the lax fallback");
+
+    assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
+    assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)));
+    assert_eq!(parsed.protocol, Protocol::Tcp);
+    match parsed.transport {
+        TransportInfo::Tcp {
+            src_port, dst_port, ..
+        } => {
+            assert_eq!(src_port, 49153);
+            assert_eq!(dst_port, 80);
+        }
+        _ => panic!("Expected TCP"),
+    }
+}
+
+#[test]
+fn test_decode_snaplen_truncated_raw_ip_recovers_via_lax_parsing() {
+    // RAW datalink: IPv4 `total_length` is at frame offset 2..4.
+    let mut data = make_raw_ip_tcp_packet();
+    data[2] = 0x05;
+    data[3] = 0xdc;
+    let parsed = decode_packet(&data, DataLink::RAW)
+        .expect("snaplen-truncated raw-IP frame must decode via the lax fallback");
+
+    assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
+    assert_eq!(parsed.protocol, Protocol::Tcp);
+}
+
+#[test]
+fn test_decode_snaplen_truncated_linux_sll_recovers_via_lax_parsing() {
+    // SLL datalink: IPv4 starts after the 16-byte SLL header, so the
+    // `total_length` field is at frame offset 18..20. This also
+    // exercises the manual `from_ether_type` lax path, since
+    // `etherparse` has no `LaxSlicedPacket::from_linux_sll`.
+    let mut data = make_linux_sll_tcp_packet();
+    data[18] = 0x05;
+    data[19] = 0xdc;
+    let parsed = decode_packet(&data, DataLink::LINUX_SLL)
+        .expect("snaplen-truncated SLL frame must decode via the lax fallback");
+
+    assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)));
+    assert_eq!(parsed.dst_ip, IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)));
+    assert_eq!(parsed.protocol, Protocol::Tcp);
+}
+
+#[test]
+fn test_decode_snaplen_truncated_clamps_payload_to_captured_bytes() {
+    // Header stack plus 10 real payload bytes, with `total_length`
+    // claiming a 1500-byte packet. Lax parsing must clamp the payload
+    // to the bytes actually present rather than trusting the field —
+    // otherwise it would over-read past the buffer.
+    let mut data = make_tcp_packet();
+    data.extend_from_slice(&[0xde, 0xad, 0xbe, 0xef, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06]);
+    data[16] = 0x05;
+    data[17] = 0xdc;
+    let parsed = decode_packet(&data, DataLink::ETHERNET).expect("must decode");
+
+    assert_eq!(
+        parsed.payload.len(),
+        10,
+        "lax parsing must clamp the TCP payload to the captured bytes, \
+         not to the inflated IPv4 total_length"
+    );
+}
