@@ -95,7 +95,7 @@ accurate for the pre-PR-#74 codebase; it is wrong for the current shipped binary
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/cli.rs` (lines 25-34 -- LESSON-P1.04 comment identifies --threats as removed by PR #74) |
+| **Path** | `src/cli.rs` (lines 24-32 -- LESSON-P1.04 comment identifies --threats as removed by PR #74) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

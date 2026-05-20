@@ -82,13 +82,13 @@ for test fixtures and for handling captures that were stopped before any traffic
 
 ## Architecture Anchors
 
-- `src/reader.rs:40` -- while-let yields immediately on empty packet stream
+- `src/reader.rs:69` -- `while let Some(raw_packet) = pcap_reader.next_raw_packet()` -- exits immediately on empty packet stream
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reader.rs:40` |
+| **Path** | `src/reader.rs:69` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

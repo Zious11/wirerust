@@ -109,8 +109,10 @@ contract.
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs` -- escape_for_terminal function implementation
-- `src/reporter/terminal.rs:163-174` -- call site in render()
+- `src/reporter/terminal.rs:44` -- `fn escape_for_terminal(s: &str) -> String` implementation
+- `src/reporter/terminal.rs:197` -- call site in `render_finding_prefix`: `escape_for_terminal(&f.summary)`
+- `src/reporter/terminal.rs:216` -- call site for evidence: `escape_for_terminal(ev)` per finding evidence entry
+- `src/reporter/terminal.rs:172` -- call site in analyzer-summary detail: `escape_for_terminal(&val.to_string())`
 - `tests/reporter_tests.rs` -- test_terminal_reporter_escapes_esc_bytes_in_summary
 
 ## Source Evidence

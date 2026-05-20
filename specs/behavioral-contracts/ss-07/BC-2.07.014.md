@@ -102,7 +102,7 @@ bytes are preserved in the finding (ADR 0003).
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- SNI C0/DEL detection is a core TLS anomaly finding in the SNI 4-way classification |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification ordered match), INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:219-242, C-16) |
+| Architecture Module | SS-07 (analyzer/tls.rs:200-265, C-16) |
 | Stories | S-TBD |
 | Origin BC | BC-TLS-014 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -115,15 +115,17 @@ bytes are preserved in the finding (ADR 0003).
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:219-242` -- extract_sni match block
-- `src/analyzer/tls.rs:405` -- AsciiWithControl finding emission site (contains U+00A7)
+- `src/analyzer/tls.rs:200` -- `enum SniValue` definition
+- `src/analyzer/tls.rs:246` -- `fn extract_sni(extensions: &[TlsExtension]) -> Option<SniValue>`
+- `src/analyzer/tls.rs:251-265` -- extract_sni match block: arm ordering (Ascii, AsciiWithControl, NonAsciiUtf8, NonUtf8)
+- `src/analyzer/tls.rs:426` -- AsciiWithControl finding emission site in handle_client_hello
 - `tests/tls_analyzer_tests.rs` -- multiple test_ascii_sni_with_* functions
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:219-242` (extract_sni), `src/analyzer/tls.rs:405` (emission) |
+| **Path** | `src/analyzer/tls.rs:246` (fn extract_sni), `:251-265` (match block), `:426` (AsciiWithControl emission) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

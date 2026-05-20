@@ -75,7 +75,7 @@ raw attacker-controlled bytes survive intact through every layer to JSON output;
 renderer is the sole owner of escape logic. This ensures SIEM consumers see unaltered forensic
 data while terminal operators are protected from terminal injection attacks.
 
-Architecture: 5-layer synchronous pipeline (Entry -> Ingest -> Stream -> Domain -> Output), 20
+Architecture: 5-layer synchronous pipeline (Entry -> Ingest -> Stream -> Domain -> Output), 24
 Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition, MSRV 1.91.
 
 ### 1.3 Key Differentiators
@@ -109,10 +109,10 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 - HTTP/2 or HTTP/3 analysis (HTTP/1.x only; H2 frames will be parsed as unknown bytes)
 - DNS-based detection findings (DNS is statistics-only: query/response counts only; no NXDOMAIN flood, no tunneling detection)
 - TLS decryption or certificate validation (SNI and cipher fingerprinting only; no key material involved)
-- BPF filtering (--filter flag is parsed but intentionally not wired; out of scope for current release)
-- C2 beacon detection (--beacon flag is parsed but intentionally not wired; no beacon analyzer exists)
+- BPF filtering (--filter flag removed by PR #74; clap rejects --filter as unknown argument; out of scope for current release)
+- C2 beacon detection (--beacon flag removed by PR #74; clap rejects --beacon as unknown argument; no beacon analyzer exists)
 - --threats flag behavior (flag removed by PR #74; clap rejects --threats as unknown argument; no corresponding analyzer)
-- Parallel file processing (rayon dependency removed; single-threaded only)
+- Parallel file processing (rayon = "1" is a declared production dependency but is entirely unused in src/; single-threaded only)
 - Streaming / lazy-read pcap processing (entire file loaded into RAM before processing)
 - Per-packet timestamp in findings (Finding.timestamp is always None; O-01)
 - Empirically-calibrated anomaly thresholds (defaults are research-documented but not validated against labelled traffic; O-03)
@@ -428,15 +428,16 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 
 ### 2.13 Absent / Unwired Feature Contracts (Documented Current Behavior)
 
-> These BCs document features that are parsed at CLI level but produce NO behavior at runtime.
-> They are HIGH-confidence absent contracts. The code parses the flags but wires them to nothing.
+> These BCs document flags or behaviors that do not exist in the current codebase (removed by
+> PR #74). clap rejects all four as unknown arguments; there is no runtime behavior for any of
+> them. They are HIGH-confidence absent contracts verified against src/cli.rs.
 
 | BC ID | Title | Priority | Origin BC |
 |-------|-------|----------|-----------|
 | BC-2.13.001 | --threats flag does not exist; clap rejects it as unknown argument | P0 (absent) | BC-ABS-001 |
-| BC-2.13.002 | --beacon flag is parsed but no C2 beacon analyzer exists | P0 (absent) | BC-ABS-002 |
-| BC-2.13.003 | --filter <BPF> flag is parsed but no BPF filter is applied | P0 (absent) | BC-ABS-003 |
-| BC-2.13.004 | --verbose flag is parsed but never consulted at runtime | P2 (absent) | BC-ABS-010 |
+| BC-2.13.002 | --beacon flag does not exist; no C2 beacon analyzer exists | P0 (absent) | BC-ABS-002 |
+| BC-2.13.003 | --filter <BPF> flag does not exist; no BPF filter applied | P0 (absent) | BC-ABS-003 |
+| BC-2.13.004 | --verbose flag does not exist; no verbose logging mode | P2 (absent) | BC-ABS-010 |
 
 > Full contracts: `behavioral-contracts/ss-13/BC-2.13.001.md` through `BC-2.13.004.md`
 

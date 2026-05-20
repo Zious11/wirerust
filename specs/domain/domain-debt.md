@@ -28,7 +28,7 @@ of develop today.
 | D-04 | --json/--csv flags do not write files | #70: write_output() wired; #84: CSV reporter fully implemented |
 | D-05 (partial) | Missing-Host empty-value evasion | #71: both None and Some("") Host values now detected |
 | D-09 | TlsAnalyzer has no truncation counter | #73: truncated_records: u64 added to TlsAnalyzer |
-| D-10 | CsvReporter unwired; csv/rayon deps unused | #84: CsvReporter implemented with CSV-injection neutralization; rayon removed |
+| D-10 | CsvReporter unwired; csv dep unused | #84: CsvReporter implemented with CSV-injection neutralization; csv dep now used. NOTE: rayon = "1" was NOT removed -- it remains in Cargo.toml (line 28) but is not imported in src/. See open item O-07. |
 | D-11 | JSON map key ordering non-deterministic | #76: BTreeMap used in JsonReporter for deterministic key order |
 | D-12 | ThreatCategory not #[non_exhaustive] | #76: #[non_exhaustive] added to ThreatCategory, Verdict, and Confidence |
 | D-13 | Unwired CLI flags advertised in --help | #74: 5 dead flags removed; #93/#96: threshold flags added and wired |
@@ -126,6 +126,23 @@ Finding heap ~270-500 KB. No per-cipher truncation cap exists.
 **References:** NFR-RES-023; pass-4 R2 Target 10.3.
 
 
+### O-07: rayon Declared in Cargo.toml but Never Imported (unused dependency)
+
+**What exists:** `rayon = "1"` appears in `[dependencies]` at Cargo.toml:28 but no module
+in `src/` imports it. The D-10 retirement entry incorrectly stated rayon was removed; it was
+not. The dep contributes a transitive closure of crates to the build graph without providing
+any functionality.
+
+**Observable consequence:** Cargo will not warn about unused dependencies by default
+(unlike unused imports in src/). The dep will be included in lock-file resolution and may
+appear in `cargo tree` output. There is no runtime impact.
+
+**Fix:** Remove `rayon = "1"` from `[dependencies]` in Cargo.toml, or add a code comment
+explaining why it is retained (e.g., planned future parallelism). Estimated effort: trivial.
+
+**References:** Cargo.toml:28; architecture smell #8 (partially closed by #84).
+
+
 ---
 
 ## Architecture Smell Status (updated, develop HEAD)
@@ -139,6 +156,6 @@ Finding heap ~270-500 KB. No per-cipher truncation cap exists.
 | 5 | DnsAnalyzer::analyze returns empty Vec | low | UNCHANGED: statistics-only by design |
 | 6 | StreamDispatcher pub field exposure | low | UNCHANGED |
 | 7 | pcap_file::DataLink leaks across crate boundary | low | UNCHANGED |
-| 8 | csv + rayon declared, never imported | low | CLOSED (#84): csv now used by CsvReporter; rayon removed |
+| 8 | csv + rayon declared, never imported | low | PARTIALLY CLOSED (#84): csv now used by CsvReporter. rayon = "1" remains in Cargo.toml but is not imported in src/. See O-07. |
 | 9 | No impl Drop on TcpReassembler | high | CLOSED (#72): impl Drop tripwire + IIFE finalize guarantee |
 | 10 | Loose TLS gate (byte[2] unchecked) | low | UNCHANGED: theoretical; zero misroute tests |

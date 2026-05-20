@@ -9,10 +9,10 @@ total_vps: 20
 p0_count: 8
 p1_count: 7
 test_sufficient_count: 5
-kani_count: 7
+kani_count: 8
 proptest_count: 6
 fuzz_count: 1
-integration_unit_count: 6
+integration_unit_count: 5
 ---
 
 # wirerust Verification Properties Index
@@ -34,17 +34,13 @@ integration_unit_count: 6
 
 | Tool | Count | VP IDs |
 |------|-------|--------|
-| Kani | 7 | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015 (VP-015 counted once under Kani) |
+| Kani | 8 | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015 |
 | proptest | 6 | VP-006, VP-010, VP-011, VP-012, VP-013, VP-014 |
 | cargo-fuzz | 1 | VP-008 |
-| integration/unit | 6 | VP-016, VP-017, VP-018, VP-019, VP-020 (5 test-sufficient + VP-005 proptest supplement) |
+| integration/unit | 5 | VP-016, VP-017, VP-018, VP-019, VP-020 |
 
-> Note: VP-005 uses Kani as primary tool and proptest as supplement. It is
-> counted once under Kani. The integration/unit count of 6 covers VP-016
-> through VP-020 (5 test-sufficient VPs) plus VP-015 has a Kani proof only.
-> Totals: 7 Kani + 6 proptest + 1 fuzz + 5 integration/unit = 19 distinct
-> tool assignments with VP-005 double-listed. Single-tool counts: 7+6+1+5 = 19;
-> add 1 for VP-005 proptest supplement = correct per-tool distribution.
+> VP-005 (SNI 4-way ordered classification) uses Kani as its primary and sole
+> counted tool. Each VP is counted exactly once. Totals: 8+6+1+5 = 20.
 
 ## Complete VP Catalog
 
@@ -54,7 +50,7 @@ integration_unit_count: 6
 | VP-002 | First-Wins Overlap Policy | reassembly/segment.rs | Kani | P0 | draft | BC-2.04.018, BC-2.04.036, BC-2.04.037 |
 | VP-003 | MAX_FINDINGS Cap with Finalize Bypass | reassembly/mod.rs | Kani | P0 | draft | BC-2.04.024, BC-2.04.054 |
 | VP-004 | Content-First Dispatch Precedence | dispatcher.rs | Kani | P0 | draft | BC-2.05.001, BC-2.05.002, BC-2.05.003, BC-2.05.005, BC-2.05.006 |
-| VP-005 | SNI 4-Way Ordered Classification | analyzer/tls.rs | Kani + proptest | P0 | draft | BC-2.07.014, BC-2.07.037, BC-2.07.013..016 |
+| VP-005 | SNI 4-Way Ordered Classification | analyzer/tls.rs | Kani | P0 | draft | BC-2.07.014, BC-2.07.037, BC-2.07.013..016 |
 | VP-006 | HTTP Poison Monotonicity | analyzer/http.rs | proptest | P1 | draft | BC-2.06.015, BC-2.06.016, BC-2.06.017 |
 | VP-007 | MITRE Technique ID Format and Completeness | mitre.rs | Kani | P0 | draft | BC-2.10.005, BC-2.10.006, BC-2.10.007, BC-2.10.008 |
 | VP-008 | decode_packet Never Panics | decoder.rs | cargo-fuzz | P0 | draft | BC-2.02.007, BC-2.02.008, BC-2.02.009 |
@@ -109,7 +105,7 @@ No formal proof harness (Kani/proptest) is required.
 
 - VP-INDEX total (20) must equal verification-architecture.md row count (20)
 - VP-INDEX total (20) must equal verification-coverage-matrix.md VP row count (20)
-- verification-coverage-matrix.md Totals row: Kani(7) + proptest(6) + fuzz(1) + integration/unit(6) = 20
+- verification-coverage-matrix.md Totals row: Kani(8) + proptest(6) + fuzz(1) + integration/unit(5) = 20
 - P0 count (8) + P1 count (7) + test-sufficient (5) = 20
 
 ## File Naming Convention

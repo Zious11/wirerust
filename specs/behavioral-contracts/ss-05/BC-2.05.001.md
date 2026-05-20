@@ -88,7 +88,7 @@ an attacker running TLS on port 80 is still identified as TLS, not HTTP.
 | L2 Capability | CAP-05 ("Content-first protocol dispatch") per capabilities.md §CAP-05 |
 | Capability Anchor Justification | CAP-05 ("Content-first protocol dispatch") per capabilities.md §CAP-05 -- TLS content signature routing is the primary dispatch rule per ADR 0001 |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence) |
-| Architecture Module | SS-05 (dispatcher.rs:37-79, C-15) |
+| Architecture Module | SS-05 (dispatcher.rs:90-116, C-15) |
 | Stories | S-TBD |
 | Origin BC | BC-DSP-001 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -100,14 +100,15 @@ an attacker running TLS on port 80 is still identified as TLS, not HTTP.
 
 ## Architecture Anchors
 
-- `src/dispatcher.rs:37-79` -- classify function, TLS check first
+- `src/dispatcher.rs:90` -- `fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget`
+- `src/dispatcher.rs:92-94` -- TLS check: `data.len() >= 5 && data[0] == 0x16 && data[1] == 0x03`
 - `tests/dispatcher_tests.rs` -- test_dispatcher_routes_tls, test_dispatcher_content_detection_tls_on_port_80
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/dispatcher.rs:37-41` |
+| **Path** | `src/dispatcher.rs:90-94` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

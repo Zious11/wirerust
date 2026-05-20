@@ -26,7 +26,7 @@ removal_reason: null
 
 ## Description
 
-The `--reassemble` flag at `cli.rs:39` declares `conflicts_with = "no_reassemble"`. Clap
+The `--reassemble` flag at `cli.rs:62` declares `conflicts_with = "no_reassemble"`. Clap
 interprets this as a bidirectional conflict: passing both `--reassemble` AND `--no-reassemble`
 in any order causes `Cli::try_parse_from` to return an error of kind
 `clap::error::ErrorKind::ArgumentConflict`. No runtime code is reached.
@@ -97,13 +97,15 @@ If both flags were somehow passed simultaneously, the downstream code at main.rs
 
 ## Architecture Anchors
 
-- `src/cli.rs:39` -- `conflicts_with = "no_reassemble"` on --reassemble
+- `src/cli.rs:62` -- `#[arg(long, global = true, conflicts_with = "no_reassemble")]` on --reassemble
+- `src/cli.rs:63` -- `pub reassemble: bool`
+- `src/cli.rs:67` -- `pub no_reassemble: bool`
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/cli.rs:39` |
+| **Path** | `src/cli.rs:62-67` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-19 |
 

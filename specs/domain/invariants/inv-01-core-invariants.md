@@ -41,19 +41,26 @@ if (ip_a, port_a) <= (ip_b, port_b) { ... }
 
 **Rule:** Protocol identification is determined by inspecting the first bytes of reassembled
 TCP content before falling back to port numbers. Precedence order:
-1. `data[0..2] == [0x16, 0x03]` (5-byte buffer minimum) => TLS
-2. HTTP method token prefix (`GET `, `POST `, etc.) => HTTP
+1. `data.len() >= 5 AND data[0] == 0x16 AND data[1] == 0x03` (two-byte prefix check,
+   5-byte buffer minimum to guard against short data) => TLS
+2. HTTP method token prefix (`GET `, `POST `, etc. via `starts_with`) => HTTP
 3. Port-based fallback (80/443/8080/8443) => HTTP or TLS
-4. Otherwise => DispatchTarget::None (NOT cached; reclassified next call, up to
-   `max_classification_attempts` cap)
+4. Otherwise => `DispatchTarget::None` for this call
 
-`DispatchTarget::None` is never cached. Cached (Http or Tls) results are immutable for the
-flow's lifetime.
+**None caching behavior (verified against `src/dispatcher.rs:136-154`):**
+`DispatchTarget::None` is NOT immediately cached. Each `None` result increments a
+per-flow `classification_attempts` counter. Once the counter reaches
+`max_classification_attempts` (default 8), the dispatcher permanently inserts
+`DispatchTarget::None` into `routes` and removes the attempt counter. From that point
+the flow is short-circuited as `None` on every subsequent chunk without re-running
+`classify`. Successful classifications (Http or Tls) are cached immediately and are
+immutable for the flow's lifetime.
 
 **Why load-bearing:** This is the dispatch identity per ADR 0001. Changing to port-first
 would break the sniffing of protocol-aware attacks where attackers run non-standard ports.
 
-**Enforcement:** `src/dispatcher.rs:37-79` (`classify` function + `routes` HashMap).
+**Enforcement:** `src/dispatcher.rs:90-117` (`classify` function); `src/dispatcher.rs:133-154`
+(caching + retry-budget logic in `on_data`).
 **Corpus refs:** ADR 0001, VO-E-22, BC-DSP-001..006.
 
 
@@ -71,7 +78,9 @@ treated as ground truth. ConflictingOverlap findings are the primary signal for 
 attacks (segment-splicing / IDS bypass attempts).
 
 **Enforcement:** `src/reassembly/segment.rs:FlowDirection::insert_segment` returning
-`InsertResult::ConflictingOverlap`; engine match at `src/reassembly/mod.rs:232-265`.
+`InsertResult::ConflictingOverlap`; engine match at `src/reassembly/mod.rs:372-405`
+(`insert_payload_segment` result dispatch, including the `ConflictingOverlap` arm at
+`:379-382` that calls `generate_conflicting_overlap_finding`).
 **Corpus refs:** VO-1, BC-RAS-036/037/018, InsertResult (E-13).
 
 
@@ -112,15 +121,16 @@ recoverable from hex evidence only (BC-TLS-037; pass-2-R3 Target 2).
 downstream SIEM text. Knowing the precedence is necessary to correctly interpret which finding
 a given SNI will produce.
 
-**Enforcement:** `src/analyzer/tls.rs:219-242` (the match block in `extract_sni`).
+**Enforcement:** `src/analyzer/tls.rs:200` (`SniValue` enum definition);
+`src/analyzer/tls.rs:251-265` (the match block inside `extract_sni`).
 **Corpus refs:** VO-E-35, BC-TLS-014..020, BC-TLS-037.
 
 
 ## INV-6: MAX_FINDINGS Cap with Cap-Bypass for Finalize
 
 **Rule:** The reassembly engine's `findings: Vec<Finding>` is capped at `MAX_FINDINGS = 10,000`
-(reassembly/mod.rs:18). Guard checks at lines 272/291/310/534/550 return early if
-`self.findings.len() >= MAX_FINDINGS`.
+(reassembly/mod.rs:54). Guard checks push or count-as-dropped via `self.findings.len() >= MAX_FINDINGS`
+at five sites (mod.rs:432,466,495 and lifecycle.rs:101,121).
 
 **Exception:** `TcpReassembler::finalize()` pushes the segment-limit summary finding
 UNCONDITIONALLY, bypassing the cap guard (BC-RAS-054). This finding can make
@@ -137,14 +147,18 @@ to this cap. Only the reassembly engine enforces MAX_FINDINGS.
 **Why load-bearing:** Prevents unbounded memory growth from adversarial input designed to
 flood the finding buffer. The cap is the primary resource-bounding mechanism for the engine.
 
-**Enforcement:** `src/reassembly/mod.rs:18,272,291,310,534,550,415`.
+**Enforcement:** `MAX_FINDINGS` const at `src/reassembly/mod.rs:54`; guard sites at
+`mod.rs:432,466,495` (three per-direction anomaly threshold checks in
+`check_anomaly_thresholds`) AND `reassembly/lifecycle.rs:101,121` (conflicting-overlap
+and truncated findings in `generate_conflicting_overlap_finding` /
+`generate_truncated_finding`). Five guard sites across two files.
 **Corpus refs:** ADR 0002, NFR-RES-001, NFR-RES-022, BC-RAS-054.
 
 
 ## INV-7: Finalize-Once Latch
 
 **Rule:** `TcpReassembler::finalize()` must be called exactly once per reassembler instance.
-A `finalized: bool` latch at mod.rs:385-388 makes subsequent calls no-ops.
+A `finalized: bool` latch at mod.rs:558-561 makes subsequent calls no-ops.
 
 **Safety net (P0.03 / #72):** `impl Drop for TcpReassembler` emits a one-shot `eprintln!`
 if the reassembler is dropped without `finalize()` having been called, naming how many flows
@@ -155,8 +169,10 @@ gap (Smell #9 / domain-debt D-01, now retired).
 **Why load-bearing:** Finalize is the only cleanup path that emits the segment-limit summary
 finding and closes all remaining open flows. Skipping it loses forensic data silently.
 
-**Enforcement:** `src/reassembly/mod.rs:385-388` (latch); `impl Drop` at mod.rs:677
-(tripwire); main.rs IIFE pattern (caller guarantee).
+**Enforcement:** `src/reassembly/mod.rs:558-561` (latch: `if self.finalized { return; }`
+guard + `self.finalized = true` assignment); `impl Drop` at `mod.rs:677-679`
+(tripwire: `FINALIZE_SKIPPED_WARNED` one-shot guard); main.rs IIFE pattern
+(caller guarantee).
 **Corpus refs:** BC-RAS-054, LESSON-P0.03.
 
 
@@ -175,8 +191,11 @@ latch could reset, a successfully-parsed segment after poisoning would re-open t
 path unexpectedly. The monotonic design ensures a flow with proven repeated-parse-failures
 stays quarantined for its lifetime.
 
-**Enforcement:** `src/analyzer/http.rs:341-345` (poison transition); absence of `= false`
-assignments (confirmed pass-2 R3 Target 3).
+**Enforcement:** `src/analyzer/http.rs:408-409` (request direction poison transition:
+`request_error_count >= POISON_THRESHOLD` => `request_poisoned = true`);
+`src/analyzer/http.rs:467-468` (response direction poison transition:
+`response_error_count >= POISON_THRESHOLD` => `response_poisoned = true`);
+absence of `= false` assignments (confirmed pass-2 R3 Target 3).
 **Corpus refs:** BC-HTTP-010..016, VO-E-32.
 
 
@@ -191,5 +210,6 @@ assignments (confirmed pass-2 R3 Target 3).
 unrecognized ID produces an ungrouped finding with a `<id> (unknown)` label. JSON output
 passes the raw ID string through without validation.
 
-**Enforcement:** `src/mitre.rs:99-129` (static match).
+**Enforcement:** `src/mitre.rs:122-154` (`technique_info` function; `let info = match id`
+block starts at `:123`, wildcard arm `_ => return None` at `:153`).
 **Corpus refs:** VO-6, BC-MIT-001..004, CAP-10.

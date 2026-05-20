@@ -41,7 +41,7 @@ timestamp: 2026-05-20T00:00:00Z
 | Module | Kani | proptest | fuzz | integration/unit | Total VPs |
 |--------|------|----------|------|-----------------|-----------|
 | reassembly/flow.rs | 2 (VP-001, VP-009) | 0 | 0 | 0 | 2 |
-| reassembly/segment.rs | 1 (VP-002, VP-015) | 2 (VP-010, VP-011) | 0 | 0 | 4 |
+| reassembly/segment.rs | 2 (VP-002, VP-015) | 2 (VP-010, VP-011) | 0 | 0 | 4 |
 | reassembly/mod.rs | 1 (VP-003) | 0 | 0 | 0 | 1 |
 | dispatcher.rs | 1 (VP-004) | 0 | 0 | 0 | 1 |
 | analyzer/tls.rs | 1 (VP-005) | 1 (VP-013) | 0 | 0 | 2 |
@@ -53,14 +53,14 @@ timestamp: 2026-05-20T00:00:00Z
 | cli.rs | 0 | 0 | 0 | 1 (VP-018) | 1 |
 | analyzer/dns.rs | 0 | 0 | 0 | 1 (VP-019) | 1 |
 | reporter/csv.rs | 0 | 0 | 0 | 1 (VP-020) | 1 |
-| **Totals** | **7** | **6** | **1** | **6** | **20** |
+| **Totals** | **8** | **6** | **1** | **5** | **20** |
 
 
 ## Coverage Notes
 
-- VP-015 is listed under Kani but also counted in reassembly/segment.rs Kani column (1).
-  The segment.rs Kani total includes both VP-002 and VP-015 = 2 Kani proofs on that module.
-  The summary row correctly shows segment.rs total = 4 VPs.
+- reassembly/segment.rs has 2 Kani proofs (VP-002 first-wins overlap, VP-015 sequence
+  wraparound) and 2 proptest proofs (VP-010 buffered_bytes invariant, VP-011
+  flush_contiguous monotonicity). Row total = 4 VPs.
 
 - All VP statuses are `draft`. They move to `harness-written` when the Kani/proptest
   harness skeleton exists, to `passing` when the harness runs green.

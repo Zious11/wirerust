@@ -13,16 +13,21 @@ dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
+adversary_convergence_counter: 0/3
+adversary_pass_1_date: "2026-05-20"
+adversary_pass_1_verdict: NOT_CONVERGED
+adversary_pass_1_findings: "17 (2C/8H/5M/2L) — all remediated"
+convergence_trajectory: "17→..."
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Phase 1 artifact production is COMPLETE.
-Spec package committed to `factory-artifacts`. Awaiting adversarial
-spec-convergence gate (3 clean passes) and then consistency audit + human
-approval gate before Phase 1 is declared PASSED.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 1 complete (NOT CONVERGED,
+17 findings: 2C/8H/5M/2L). All findings remediated. Pass 2 is next.
+Awaiting 3 clean adversarial passes, then consistency audit + human approval
+gate before Phase 1 is declared PASSED.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -37,7 +42,7 @@ approval gate before Phase 1 is declared PASSED.
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — awaiting adversarial gate | 19 L2 shards, 212 BCs, 11 arch files, 20 VPs, 4 supplements |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; pass 1 NOT CONVERGED, remediated; pass 2 pending) | 19 L2 shards, 212 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→...` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -83,10 +88,18 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | SS-13 | 4 |
 | **Total** | **212** |
 
+### Adversarial Spec-Convergence Log
+
+| Pass | Date | Findings | Verdict | Status |
+|------|------|----------|---------|--------|
+| 1 | 2026-05-20 | 17 (2C/8H/5M/2L) | NOT_CONVERGED | REMEDIATED — pass 2 pending |
+
+Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
+
 ### Next Steps (Phase 1 Gates)
 
-1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes.
-   No finding regression between passes.
+1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (0/3).
+   Pass 2 is next; no regression allowed between passes.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 
@@ -95,6 +108,14 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 **DF-VALIDATION-001** (commit 9b6efd3, `.factory/policies.yaml`): every
 deferred/open finding must be research-agent validated before filing as a
 GitHub issue. Pointer in `CLAUDE.md` on `develop` via PR #99 (0082a0c).
+
+## Tech Debt (Open)
+
+| ID | Description | Priority | Source |
+|----|-------------|----------|--------|
+| O-07 | `rayon` declared in Cargo.toml but unused in `src/` — dead dependency | P2 | adversarial pass 1 (LOW finding) |
+
+Full register: `.factory/tech-debt-register.md` (when populated).
 
 ## Open Issues (from Phase 0 / deferred findings)
 

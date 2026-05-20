@@ -30,7 +30,7 @@ After link-type acceptance, the reader performs an eager in-memory load of all p
 into a `Vec<RawPacket>`. Each `RawPacket` carries the raw frame bytes and a split timestamp
 (seconds and microseconds) copied from the pcap record header. The entire file must fit in RAM
 because no streaming or lazy-read mode exists. This contract covers `PcapSource::from_pcap_reader`
-in `src/reader.rs:38-49`.
+in `src/reader.rs:69-79`.
 
 ## Preconditions
 
@@ -103,14 +103,15 @@ in `src/reader.rs:38-49`.
 
 ## Architecture Anchors
 
-- `src/reader.rs:38-49` -- PcapSource::from_pcap_reader packet loop
-- `src/reader.rs:43-44` -- timestamp split: as u32 and subsec_micros()
+- `src/reader.rs:69-79` -- PcapSource::from_pcap_reader packet loop (while-let at :69, context at :70)
+- `src/reader.rs:71-74` -- timestamp extraction: ts_frac for MicroSecond / NanoSecond resolution
+- `src/reader.rs:75-79` -- RawPacket construction: timestamp_secs, timestamp_usecs, data
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reader.rs:38-49` |
+| **Path** | `src/reader.rs:69-79` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

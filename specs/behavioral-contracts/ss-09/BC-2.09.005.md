@@ -90,7 +90,7 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 | L2 Capability | CAP-09 ("Forensic finding emission") per capabilities.md §CAP-09 |
 | Capability Anchor Justification | CAP-09 ("Forensic finding emission") per capabilities.md §CAP-09 -- the raw-data contract is the foundational invariant of the Finding type's data preservation guarantee |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-09 (findings.rs:72-80, C-10; all analyzer emission sites) |
+| Architecture Module | SS-09 (findings.rs:120-145, C-10; all analyzer emission sites) |
 | Stories | S-TBD |
 | Origin BC | BC-FND-005 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -103,15 +103,17 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 
 ## Architecture Anchors
 
-- `src/findings.rs:72-80` -- doc comment stating ADR 0003 raw-data contract
-- `src/reporter/terminal.rs` -- the sole call site of escape_for_terminal
+- `src/findings.rs:120` -- `pub struct Finding` definition
+- `src/findings.rs:124-125` -- `pub summary: String`, `pub evidence: Vec<String>` fields
+- `src/findings.rs:155-156` -- `See ADR 0003` doc comment on Display impl
+- `src/reporter/terminal.rs:44` -- `fn escape_for_terminal(s: &str) -> String` -- the sole production call site
 - `tests/reporter_tests.rs` -- test_output_sanitization_layering_contract
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/findings.rs:72-80` |
+| **Path** | `src/findings.rs:120-145` (struct + serde attrs), `:155-156` (ADR 0003 doc comment) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

@@ -92,7 +92,7 @@ resets to false within the flow's lifetime (INV-8).
 | L2 Capability | CAP-06 ("HTTP traffic analysis") per capabilities.md §CAP-06 |
 | Capability Anchor Justification | CAP-06 ("HTTP traffic analysis") per capabilities.md §CAP-06 -- HTTP poisoning state machine is the resilience mechanism for non-HTTP traffic in HTTP-dispatched flows |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true) |
-| Architecture Module | SS-06 (analyzer/http.rs:341-345, C-14) |
+| Architecture Module | SS-06 (analyzer/http.rs:408-409, C-14) |
 | Stories | S-TBD |
 | Origin BC | BC-HTTP-015 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -105,14 +105,16 @@ resets to false within the flow's lifetime (INV-8).
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:341-345` -- poison transition check
+- `src/analyzer/http.rs:80` -- `const POISON_THRESHOLD: u8 = 3`
+- `src/analyzer/http.rs:408-409` -- request direction poison transition: `if state.request_error_count >= POISON_THRESHOLD { state.request_poisoned = true; }`
+- `src/analyzer/http.rs:467` -- response direction poison transition (symmetric)
 - `tests/http_analyzer_tests.rs` -- test_parse_error_poisons_direction_after_threshold
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:341-345` |
+| **Path** | `src/analyzer/http.rs:408-409` (request poison), `:467` (response poison), `:80` (threshold const) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

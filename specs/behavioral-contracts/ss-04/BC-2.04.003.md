@@ -97,14 +97,15 @@ therefore map to the same flow entry. This is INV-1 and is load-bearing for the 
 
 ## Architecture Anchors
 
-- `src/reassembly/flow.rs:34` -- tuple-pair comparison: `if (ip_a, port_a) <= (ip_b, port_b)`
+- `src/reassembly/flow.rs:45` -- `pub fn FlowKey::new(ip_a, port_a, ip_b, port_b)` function
+- `src/reassembly/flow.rs:48` -- tuple-pair comparison: `if (ip_a, port_a) <= (ip_b, port_b)`
 - `tests/reassembly_flow_tests.rs` -- test_flow_key_canonicalization, test_flow_key_same_ip_different_ports
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/flow.rs:34` |
+| **Path** | `src/reassembly/flow.rs:45-58` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

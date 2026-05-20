@@ -84,7 +84,7 @@ Only the reassembly engine enforces MAX_FINDINGS.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- MAX_FINDINGS cap is the primary resource-bounding mechanism for the reassembly engine |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap with cap-bypass for finalize) |
-| Architecture Module | SS-04 (reassembly/mod.rs:18,272,291,310,534,550, C-6) |
+| Architecture Module | SS-04 (reassembly/mod.rs:54,432,466,495; reassembly/lifecycle.rs:101,121, C-6) |
 | Stories | S-TBD |
 | Origin BC | BC-RAS-024 (pass-3 ingestion corpus, MEDIUM confidence -- not directly tested) |
 
@@ -95,15 +95,16 @@ Only the reassembly engine enforces MAX_FINDINGS.
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:18` -- `const MAX_FINDINGS: usize = 10_000`
-- `src/reassembly/mod.rs:272,291,310,534,550` -- guard check sites
+- `src/reassembly/mod.rs:54` -- `const MAX_FINDINGS: usize = 10_000`
+- `src/reassembly/mod.rs:432,466,495` -- guard check sites in check_anomaly_thresholds
+- `src/reassembly/lifecycle.rs:101,121` -- guard check sites in generate_conflicting_overlap_finding and generate_truncated_finding
 - `src/reassembly/stats.rs` -- dropped_findings: u64 field
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:272,291,310,534,550` |
+| **Path** | `src/reassembly/mod.rs:54` (const), `mod.rs:432,466,495` (check_anomaly_thresholds guards), `lifecycle.rs:101,121` (generate_* guards) |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-19 |
 

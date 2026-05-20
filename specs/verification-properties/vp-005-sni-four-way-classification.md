@@ -84,81 +84,102 @@ and the arm-3 priority case). proptest supplemental for longer inputs.
 
 ## Proof Harness Skeleton
 
+// Real function signature (src/analyzer/tls.rs:246):
+//   fn extract_sni(extensions: &[TlsExtension<'_>]) -> Option<SniValue>
+//
+// `extract_sni` takes a parsed extension list, not a raw byte slice.
+// The 4-way classification match operates on the raw hostname bytes
+// extracted from the first SNI extension entry (tls.rs:251-265).
+//
+// Because constructing a synthetic `TlsExtension::SNI` value requires
+// tls-parser types that Kani cannot symbolically model directly, the
+// proof harness targets the classification logic in isolation by
+// replicating the inline match over a kani::any() byte slice. This
+// tests the exact same branch ordering and guard conditions as the
+// production code without the tls-parser dependency.
+//
+// The formal-verifier MUST verify that the harness replicates
+// tls.rs:251-265 exactly before locking this VP.
+
 ```rust
+// Kani harnesses -- placed in src/analyzer/tls.rs under #[cfg(kani)]
 #[cfg(kani)]
 mod kani_proofs {
-    use super::*;
+    // Replicates the inline match at tls.rs:251-265 for symbolic testing.
+    fn classify_hostname(hostname: &[u8]) -> u8 {
+        // 0=Ascii, 1=AsciiWithControl, 2=NonAsciiUtf8, 3=NonUtf8
+        match std::str::from_utf8(hostname) {
+            Ok(s) if s.is_ascii() && !s.bytes().any(|b| b < 0x20 || b == 0x7f) => 0,
+            Ok(s) if s.is_ascii() => 1,
+            Ok(_) => 2,
+            Err(_) => 3,
+        }
+    }
 
     #[kani::proof]
     #[kani::unwind(33)]
     fn verify_sni_exactly_one_arm_fires_kani() {
         let len: usize = kani::any();
         kani::assume(len <= 32);
-        let mut bytes = vec![0u8; len];
-        for b in &mut bytes {
+        let mut hostname = vec![0u8; len];
+        for b in &mut hostname {
             *b = kani::any();
         }
+        // Result is 0..=3 by construction -- exactly one arm fires.
+        let arm = classify_hostname(&hostname);
+        assert!(arm <= 3);
 
-        let result = extract_sni(&bytes);
-
-        // Exactly one variant fires -- the type system guarantees this,
-        // but verify the arm-3 priority explicitly:
-        match &result {
-            SniValue::AsciiWithControl(_) => {
-                // If arm 2 fired, the bytes must be valid UTF-8 AND all-ASCII
-                // (if non-ASCII were present, arm 3 would have fired instead)
-                let s = std::str::from_utf8(&bytes);
-                assert!(s.is_ok());
-                assert!(s.unwrap().is_ascii());
+        // INV-5 arm-3-priority: valid UTF-8 + non-ASCII => arm 2 only.
+        if let Ok(s) = std::str::from_utf8(&hostname) {
+            if !s.is_ascii() {
+                assert_eq!(arm, 2);
             }
-            SniValue::NonAsciiUtf8(_) => {
-                // Arm 3: valid UTF-8 but NOT all-ASCII
-                let s = std::str::from_utf8(&bytes);
-                assert!(s.is_ok());
-                assert!(!s.unwrap().is_ascii());
-            }
-            _ => {}
         }
     }
 
     #[kani::proof]
-    fn verify_c0_boundary_0x1f_triggers_arm2() {
-        // 0x1F is the last C0 control byte; must trigger AsciiWithControl
-        let bytes: [u8; 1] = [0x1F];
-        let result = extract_sni(&bytes);
-        assert!(matches!(result, SniValue::AsciiWithControl(_)));
+    fn verify_c0_boundary_0x1f_triggers_arm1() {
+        // 0x1F (last C0 byte) must trigger AsciiWithControl (arm 1).
+        let hostname: [u8; 1] = [0x1F];
+        assert_eq!(classify_hostname(&hostname), 1);
     }
 
     #[kani::proof]
-    fn verify_0x20_space_does_not_trigger_arm2() {
-        // 0x20 (space) is printable ASCII; must yield Ascii (arm 1)
-        let bytes: [u8; 1] = [0x20];
-        let result = extract_sni(&bytes);
-        assert!(matches!(result, SniValue::Ascii(_)));
+    fn verify_0x20_space_yields_arm0() {
+        // 0x20 (space) is printable ASCII; must yield Ascii (arm 0).
+        let hostname: [u8; 1] = [0x20];
+        assert_eq!(classify_hostname(&hostname), 0);
     }
 }
 
-// proptest supplement
+// proptest supplement -- arbitrary byte lengths, same invariants.
 #[cfg(test)]
 mod proptest_proofs {
     use proptest::prelude::*;
-    use super::*;
+
+    fn classify_hostname(hostname: &[u8]) -> u8 {
+        match std::str::from_utf8(hostname) {
+            Ok(s) if s.is_ascii() && !s.bytes().any(|b| b < 0x20 || b == 0x7f) => 0,
+            Ok(s) if s.is_ascii() => 1,
+            Ok(_) => 2,
+            Err(_) => 3,
+        }
+    }
 
     proptest! {
         #[test]
-        fn prop_sni_arm3_priority_over_arm2(bytes: Vec<u8>) {
-            let result = extract_sni(&bytes);
-            // If arm 3 fired (NonAsciiUtf8), the bytes must NOT be all-ASCII
-            if let SniValue::NonAsciiUtf8(_) = &result {
-                let s = std::str::from_utf8(&bytes);
-                prop_assert!(s.is_ok());
-                prop_assert!(!s.unwrap().is_ascii());
+        fn prop_sni_arm3_priority_over_arm1(hostname: Vec<u8>) {
+            let arm = classify_hostname(&hostname);
+            // Arm 2 (NonAsciiUtf8) fires iff valid UTF-8 + non-ASCII.
+            if let Ok(s) = std::str::from_utf8(&hostname) {
+                if !s.is_ascii() {
+                    prop_assert_eq!(arm, 2);
+                }
             }
-            // If arm 2 fired (AsciiWithControl), bytes must be all-ASCII
-            if let SniValue::AsciiWithControl(_) = &result {
-                let s = std::str::from_utf8(&bytes);
-                prop_assert!(s.is_ok());
-                prop_assert!(s.unwrap().is_ascii());
+            // Arm 1 (AsciiWithControl) fires only when all-ASCII.
+            if arm == 1 {
+                prop_assert!(std::str::from_utf8(&hostname)
+                    .map(|s| s.is_ascii()).unwrap_or(false));
             }
         }
     }
@@ -176,7 +197,8 @@ mod proptest_proofs {
 
 ## Source Location
 
-`src/analyzer/tls.rs:219-242` -- the match block in `extract_sni`.
+`src/analyzer/tls.rs:246-269` -- `fn extract_sni(extensions: &[TlsExtension<'_>]) -> Option<SniValue>`;
+the 4-way classification match is at lines 251-265.
 
 ## Lifecycle
 

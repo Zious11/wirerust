@@ -89,14 +89,14 @@ behavior, not a bug.
 
 ## Architecture Anchors
 
-- `src/reader.rs:22` -- pcap header parse with anyhow context
-- `main.rs:340-360` -- directory glob pattern excludes *.pcapng (LESSON-P0.02 / #69)
+- `src/reader.rs:46` -- `PcapReader::new(reader).context("Failed to parse pcap header")` -- pcapng rejected here
+- `src/main.rs` -- directory glob pattern excludes *.pcapng (LESSON-P0.02 / #69)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reader.rs:22` |
+| **Path** | `src/reader.rs:46` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-19 |
 

@@ -114,7 +114,7 @@ policy. Valid configs always produce a zero-finding, zero-flow, un-finalized ins
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:108-115` |
+| **Path** | `src/reassembly/mod.rs:107-127` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

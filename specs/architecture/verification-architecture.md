@@ -76,7 +76,7 @@ See `tooling-selection.md` for full rationale. Summary:
 
 | Tool | Target Properties | Scope |
 |------|-----------------|-------|
-| Kani (model checker) | State machine reachability, arithmetic overflow, pointer safety | VP-001..005, VP-007, VP-009, VP-015 |
+| Kani (model checker) | State machine reachability, arithmetic overflow, pointer safety | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015 |
 | proptest | Property-based: generate random inputs, check invariants | VP-006, VP-010..014 |
 | cargo-fuzz (libFuzzer) | No-panic for parser entry points | VP-008 |
 | cargo-mutants | Mutation coverage for domain logic | SS-06, SS-07, SS-08, SS-10 |
@@ -116,21 +116,45 @@ fn verify_first_wins_overlap() {
 }
 ```
 
-### VP-005: SNI 4-way Ordered Match (Kani / proptest)
+### VP-005: SNI 4-way Ordered Match (Kani)
 
-```rust
-// proptest strategy: generate arbitrary Vec<u8>, pass to extract_sni,
-// verify exactly one arm fires, verify INV-5 arm-3-priority rule:
-// if from_utf8 OK && !is_ascii() => NonAsciiUtf8 regardless of C0 presence
-proptest! {
-    #[test]
-    fn prop_sni_exactly_one_arm_fires(bytes: Vec<u8>) {
-        let result = extract_sni(&bytes);
-        // exactly one variant: Ascii | AsciiWithControl | NonAsciiUtf8 | NonUtf8
-        // assert arm 3 priority when !is_ascii() && from_utf8 OK
+// Real signature (src/analyzer/tls.rs:246):
+//   fn extract_sni(extensions: &[TlsExtension<'_>]) -> Option<SniValue>
+//
+// The 4-way classification is the inline match at tls.rs:251-265:
+//   Ok(s) if s.is_ascii() && !contains_c0_or_del(s) => SniValue::Ascii
+//   Ok(s) if s.is_ascii()                             => SniValue::AsciiWithControl
+//   Ok(s)                                             => SniValue::NonAsciiUtf8
+//   Err(_)                                            => SniValue::NonUtf8
+//
+// Kani proof target: the byte-to-variant mapping. Because `extract_sni`
+// takes a parsed extension list (not raw bytes), the proof harness
+// exercises the classification match directly via a helper that wraps
+// a synthetic SNI extension backed by a kani::any() byte slice.
+//
+// Illustrative skeleton:
+#[cfg(kani)]
+#[kani::proof]
+fn verify_sni_classification_exhaustive() {
+    // Build a synthetic hostname byte slice of bounded length.
+    let len: usize = kani::any();
+    kani::assume(len <= 32);
+    let hostname: Vec<u8> = (0..len).map(|_| kani::any()).collect();
+    // Classify the same bytes using the same logic as the inline match.
+    let result = match std::str::from_utf8(&hostname) {
+        Ok(s) if s.is_ascii() && !s.bytes().any(|b| b < 0x20 || b == 0x7f) => 0u8,
+        Ok(s) if s.is_ascii() => 1u8,
+        Ok(_) => 2u8,
+        Err(_) => 3u8,
+    };
+    // Exactly one arm fires (result is 0..=3 by construction).
+    // INV-5 arm-3-priority: valid UTF-8 + non-ASCII cannot match arm 0 or 1.
+    if let Ok(s) = std::str::from_utf8(&hostname) {
+        if !s.is_ascii() {
+            assert!(result == 2);
+        }
     }
 }
-```
 
 ### VP-008: decode_packet No-Panic (cargo-fuzz)
 

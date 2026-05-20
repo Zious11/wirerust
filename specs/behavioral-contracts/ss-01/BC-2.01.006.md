@@ -84,13 +84,13 @@ have a different magic number).
 
 ## Architecture Anchors
 
-- `src/reader.rs:22` -- `.with_context(|| "Failed to parse pcap header")`
+- `src/reader.rs:46` -- `PcapReader::new(reader).context("Failed to parse pcap header")`
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reader.rs:22` |
+| **Path** | `src/reader.rs:46` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-19 |
 

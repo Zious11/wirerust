@@ -88,7 +88,7 @@ observable behavior, not a bug (pass-2 R3 Target 2).
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- this BC clarifies the critical disambiguation rule in the SNI 4-way classification that affects SOC operator searches |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification ordered match -- this BC specifies the disambiguation for the arm 2/3 boundary) |
-| Architecture Module | SS-07 (analyzer/tls.rs:219-242, C-16) |
+| Architecture Module | SS-07 (analyzer/tls.rs:200-265, C-16) |
 | Stories | S-TBD |
 | Origin BC | BC-TLS-037 (pass-3 ingestion corpus, HIGH confidence; pass-2 R3 Target 2) |
 
@@ -100,14 +100,16 @@ observable behavior, not a bug (pass-2 R3 Target 2).
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:219-242` -- extract_sni ordered match; is_ascii() at arm 2/3 boundary
-- `src/analyzer/tls.rs:405` vs `src/analyzer/tls.rs:424` -- different summary text for arm 2 vs arm 3
+- `src/analyzer/tls.rs:246` -- `fn extract_sni` function declaration
+- `src/analyzer/tls.rs:251-265` -- extract_sni ordered match block; is_ascii() at arm 2/3 boundary (`:253` arm 2, `:257` arm 3)
+- `src/analyzer/tls.rs:426` -- AsciiWithControl (arm 2) finding emission in handle_client_hello
+- `src/analyzer/tls.rs:449` -- NonAsciiUtf8 (arm 3) finding emission in handle_client_hello
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:219-242` |
+| **Path** | `src/analyzer/tls.rs:251-265` (extract_sni match), `:426` (arm 2 emission), `:449` (arm 3 emission) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

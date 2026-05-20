@@ -45,17 +45,17 @@ renderer is the sole owner of escape logic.
 
 | Metric | Value |
 |---|---|
-| Rust source files (src/) | 20 |
+| Rust source files (src/) | 24 |
 | Source LOC | 3,868 |
 | Test LOC | 6,021 |
-| Total #[test] functions | 282 (271 in tests/ + 11 inline in reporter/terminal.rs; 69 added in remediation cycle) |
-| Components | 20 (C-1..C-20) |
+| Total #[test] functions | ~282 as of develop@aa2ece9 (264 in tests/ + 18 inline: 11 in reporter/terminal.rs + 7 in analyzer/tls.rs; exact count is commit-sensitive and should be re-verified against current tree) |
+| Components | 20 (C-1..C-20); note 24 source files map to 20 components because the 7 reassembly sub-files (mod, config, lifecycle, stats, flow, handler, segment) plus dispatcher.rs collapse into components C-6..C-9,C-15 |
 | Layers | 5 (L0..L4) |
 | Behavioral contracts catalogued | 218 |
 | Domain entities | 41 |
 | Semantic enums | 14 |
 | NFRs | 79 |
-| Direct prod deps | 14 |
+| Direct prod deps | 14 (includes rayon = "1", declared but unused in src/ as of this writing) |
 | ADRs | 4 (0001/0002/0003/0004) |
 | MSRV (declared in Cargo.toml) | rust-version = "1.91" (P0.01 / #69) |
 
@@ -92,7 +92,7 @@ the StreamAnalyzer trait (L2 imports L3 types). Accepted by ADR 0002.
 | 0001 | 2026-04-07 | Content-first stream dispatch | 5-byte content signature wins over port; ports 80/443/8080/8443 are fallback only |
 | 0002 | 2026-04-07 | Modular protocol analyzer pattern | Two-trait split (ProtocolAnalyzer / StreamHandler+StreamAnalyzer); MAX_FINDINGS/MAX_MAP_ENTRIES cardinality |
 | 0003 | 2026-04-09 | Reporting pipeline layering | Analyzers store raw bytes; only TerminalReporter escapes; JsonReporter delegates to serde |
-| 0004 | 2026-05-14 | Process-wide warning atomics | Single AtomicBool per one-shot warning site; no mutex; added for ISN_MISSING_WARNED and Drop tripwire |
+| 0004 | 2026-05-14 | Process-wide warning atomics | Single AtomicBool per one-shot warning site; no mutex; three sites: ISN_MISSING_WARNED (segment.rs:16), FINALIZE_SKIPPED_WARNED (mod.rs:70), CLOSE_FLOW_MISSING_WARNED (lifecycle.rs:31) |
 
 
 ## 4. Capability Index

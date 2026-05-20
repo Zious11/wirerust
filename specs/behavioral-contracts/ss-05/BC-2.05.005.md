@@ -83,7 +83,7 @@ verified. A refactor that broke cache lookup would pass CI if the INSERT path te
 | L2 Capability | CAP-05 ("Content-first protocol dispatch") per capabilities.md §CAP-05 |
 | Capability Anchor Justification | CAP-05 ("Content-first protocol dispatch") per capabilities.md §CAP-05 -- caching is the efficiency mechanism for per-flow classification state |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- once classified, the decision is sticky) |
-| Architecture Module | SS-05 (dispatcher.rs:73-81, C-15) |
+| Architecture Module | SS-05 (dispatcher.rs:133-154, C-15) |
 | Stories | S-TBD |
 | Origin BC | BC-DSP-005 (pass-3 ingestion corpus, MEDIUM confidence -- cache miss path covered; cache hit path not independently tested; R4 finding) |
 
@@ -94,13 +94,14 @@ verified. A refactor that broke cache lookup would pass CI if the INSERT path te
 
 ## Architecture Anchors
 
-- `src/dispatcher.rs:73-81` -- routes.insert only when target != None
+- `src/dispatcher.rs:133-154` -- classification cache block in on_data
+- `src/dispatcher.rs:149-151` -- routes.insert when target is Http or Tls (not None); classification_attempts.remove
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/dispatcher.rs:73-81` |
+| **Path** | `src/dispatcher.rs:149-151` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-19 |
 

@@ -29,7 +29,7 @@ removal_reason: null
 The PCAP reader performs link-type gating at file-open time: it accepts exactly five
 `pcap_file::DataLink` variants (ETHERNET, RAW, IPV4, IPV6, LINUX_SLL) and immediately returns
 an anyhow error for any other value. This is the primary ingestion gate -- no packets from an
-unsupported file are processed. This contract is enforced in `src/reader.rs:25-36`.
+unsupported file are processed. This contract is enforced in `src/reader.rs:50-60`.
 
 ## Preconditions
 
@@ -90,7 +90,7 @@ unsupported file are processed. This contract is enforced in `src/reader.rs:25-3
 | L2 Capability | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 |
 | Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- this BC describes the initial link-type gate that gatekeeps all file ingestion |
 | L2 Domain Invariants | None directly (link-type gating is a precondition to all invariants) |
-| Architecture Module | SS-01 (reader.rs, C-4) |
+| Architecture Module | SS-01 (reader.rs:46-60, C-4) |
 | Stories | S-TBD -- filled by story-writer |
 | Origin BC | BC-RDR-001 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -101,14 +101,15 @@ unsupported file are processed. This contract is enforced in `src/reader.rs:25-3
 
 ## Architecture Anchors
 
-- `src/reader.rs:25-36` -- acceptance whitelist and rejection branch
-- `src/reader.rs:22` -- pcap header parse with anyhow context
+- `src/reader.rs:46` -- `PcapReader::new(reader).context("Failed to parse pcap header")` -- header parse
+- `src/reader.rs:50-60` -- DataLink match: whitelist arms at :51-55, rejection branch at :57-60
+- `src/reader.rs:51-55` -- acceptance whitelist (ETHERNET, RAW, IPV4, IPV6, LINUX_SLL)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reader.rs:25-36` |
+| **Path** | `src/reader.rs:50-60` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

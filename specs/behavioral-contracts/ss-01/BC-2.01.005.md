@@ -87,13 +87,14 @@ an accepted limitation of the pcap format's own u32 epoch design.
 
 ## Architecture Anchors
 
-- `src/reader.rs:43-44` -- timestamp split: `.as_secs() as u32` and `.subsec_micros()`
+- `src/reader.rs:71-74` -- timestamp conversion: `ts_frac` used directly for MicroSecond; divided by 1000 for NanoSecond
+- `src/reader.rs:76-77` -- `timestamp_secs: raw_packet.ts_sec`, `timestamp_usecs` from ts_frac conversion
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reader.rs:43-44` |
+| **Path** | `src/reader.rs:71-77` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

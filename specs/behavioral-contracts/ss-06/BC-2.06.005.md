@@ -94,7 +94,7 @@ The raw URI bytes are preserved in the finding evidence without escaping (ADR 00
 | L2 Capability | CAP-06 ("HTTP traffic analysis") per capabilities.md §CAP-06 |
 | Capability Anchor Justification | CAP-06 ("HTTP traffic analysis") per capabilities.md §CAP-06 -- path traversal detection is one of the core HTTP anomaly findings |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:187, C-14) |
+| Architecture Module | SS-06 (analyzer/http.rs:186-202, C-14) |
 | Stories | S-TBD |
 | Origin BC | BC-HTTP-005 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -105,13 +105,14 @@ The raw URI bytes are preserved in the finding evidence without escaping (ADR 00
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:187` -- path traversal finding emission site
+- `src/analyzer/http.rs:186-191` -- path traversal detection: `if uri_lower.contains("../")` and encoded variants
+- `src/analyzer/http.rs:192-202` -- Finding construction and push (T1083, Reconnaissance/Likely/High)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:187` |
+| **Path** | `src/analyzer/http.rs:186-202` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

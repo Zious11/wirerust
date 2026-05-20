@@ -99,13 +99,14 @@ catalog includes 6 IDs currently emitted by analyzers and 9 staged IDs for futur
 
 ## Architecture Anchors
 
-- `src/mitre.rs:99-129` -- static match table
+- `src/mitre.rs:122` -- `pub fn technique_info(id: &str)` function declaration
+- `src/mitre.rs:123-155` -- static match table (T1027 at :125, T0885 at :152, `_ => return None` at :153)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/mitre.rs:99-129` |
+| **Path** | `src/mitre.rs:122-155` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

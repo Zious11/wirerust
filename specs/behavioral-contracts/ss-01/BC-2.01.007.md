@@ -76,13 +76,13 @@ are NOT returned as a partial result -- the entire from_pcap_reader call fails.
 
 ## Architecture Anchors
 
-- `src/reader.rs:41` -- `.with_context(|| "Failed to read packet")`
+- `src/reader.rs:70` -- `raw_packet.context("Failed to read packet")`
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reader.rs:41` |
+| **Path** | `src/reader.rs:70` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-19 |
 
