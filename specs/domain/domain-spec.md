@@ -53,7 +53,7 @@ renderer is the sole owner of escape logic.
 | Components | 21 (C-1..C-20 + C-21); 24 source files map to 21 components because 2 reassembly sub-files (config.rs, stats.rs) are unnumbered data-only modules, and csv.rs (reporter/csv.rs) is unnumbered. dispatcher.rs = C-21 (added by ADR 0001 after the C-1..C-20 count was set). The 7 reassembly sub-files (mod, flow, segment, handler, lifecycle, config, stats) map to C-6, C-7, C-8, C-9, C-15 (config.rs and stats.rs unnumbered). |
 | Layers | 5 (L0..L4) |
 | Behavioral contracts catalogued | 218 ingested / 217 active (212 ingestion-derived + 5 pass-4 CsvReporter) |
-| Domain entities | 41 |
+| Domain entities | 42 |
 | Semantic enums | 14 |
 | NFRs | 79 |
 | Direct prod deps | 14 (includes rayon = "1", declared but unused in src/ as of this writing) |
@@ -118,18 +118,18 @@ the StreamAnalyzer trait (L2 imports L3 types). Accepted by ADR 0002.
 
 **CAP-12 note:** CAP-12 is the L0 cross-cutting orchestration capability. It coordinates
 CAP-01..CAP-11 without reimplementing any of them. Components: C-1 (main.rs), C-2 (lib.rs),
-C-3 (cli.rs), C-16 (summary.rs). Subsystem SS-12 (CLI / entry-point) maps exclusively to
+C-3 (cli.rs), C-17 (summary.rs). Subsystem SS-12 (CLI / entry-point) maps exclusively to
 CAP-12. Behavioral contracts BC-CLI-* and BC-SUM-* are anchored here, not to CAP-11.
 
 
-## 5. Entity / Enum Index (41 entities, 14 semantic enums)
+## 5. Entity / Enum Index (42 entities, 14 semantic enums)
 
 | Shard | Contents |
 |---|---|
 | ent-01-ingestion-decoding.md | E-1 Cli, E-2 Commands, E-3 OutputFormat, E-4 RawPacket, E-5 PcapSource, E-6 Protocol, E-7 TransportInfo, E-8 ParsedPacket |
 | ent-02-reassembly-flow.md | E-9 FlowKey, E-10 FlowState, E-11 FlowDirection, E-12 TcpFlow, E-13 InsertResult, E-14 Direction, E-15 CloseReason, E-18 ReassemblyConfig, E-19 ReassemblyStats, E-20 TcpReassembler |
 | ent-03-dispatch-analysis.md | E-16 StreamHandler (trait), E-17 StreamAnalyzer (trait), E-21 StreamDispatcher, E-22 DispatchTarget, E-29 ProtocolAnalyzer (trait), E-30 DnsAnalyzer, E-31 HttpAnalyzer, E-32 HttpFlowState, E-33 TlsAnalyzer, E-34 TlsFlowState, E-35 SniValue, E-40 ParsedRequest, E-41 ParsedResponse |
-| ent-04-findings-output.md | E-23 Verdict, E-24 Confidence, E-25 ThreatCategory, E-26 Finding, E-27 MitreTactic, E-28 AnalysisSummary, E-36 Summary, E-37 Reporter (trait), E-38 TerminalReporter, E-39 JsonReporter |
+| ent-04-findings-output.md | E-23 Verdict, E-24 Confidence, E-25 ThreatCategory, E-26 Finding, E-27 MitreTactic, E-28 AnalysisSummary, E-36 Summary, E-37 Reporter (trait), E-38 TerminalReporter, E-39 JsonReporter, E-39b CsvReporter |
 | ent-05-enums-value-objects.md | All 14 semantic enums; all 12 value objects (VO-1..VO-12) |
 
 
@@ -174,7 +174,7 @@ The following corpus identifiers from the ingestion passes are used throughout t
 
 | Subsystem | Description | Capability |
 |---|---|---|
-| SS-12 | CLI / entry-point (C-1 main.rs, C-2 lib.rs, C-3 cli.rs, C-16 summary.rs) | CAP-12 |
+| SS-12 | CLI / entry-point (C-1 main.rs, C-2 lib.rs, C-3 cli.rs, C-17 summary.rs) | CAP-12 |
 
 This table is partial -- it lists only SS-12 here because CAP-12 is the capability added to
 resolve adversarial-review finding H-4. Other SS -> CAP mappings are maintained in the

@@ -100,7 +100,7 @@ All default to their `ReassemblyConfig::default()` values when absent.
 
 ## Architecture Anchors
 
-- `src/cli.rs:61-105` -- reassembly flags on Cli struct
+- `src/cli.rs:61-106` -- reassembly flags on Cli struct
 - `src/main.rs:87-122` -- reassembly configuration applied in run_analyze
 - `tests/cli_tests.rs` -- test_reassembly_flags, test_no_reassemble_flag
 
@@ -112,7 +112,7 @@ All default to their `ReassemblyConfig::default()` values when absent.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/cli.rs:61-105` |
+| **Path** | `src/cli.rs:61-106` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

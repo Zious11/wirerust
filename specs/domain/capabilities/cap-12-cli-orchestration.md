@@ -25,7 +25,7 @@ sole owners of argument parsing, subcommand dispatch, target resolution,
 the per-target packet loop, `Summary` accumulation, and output routing.
 `lib.rs` (C-2) is the crate root that re-exports the public module tree.
 
-**Sources:** C-1 main.rs, C-2 lib.rs, C-3 cli.rs, C-16 summary.rs.
+**Sources:** C-1 main.rs, C-2 lib.rs, C-3 cli.rs, C-17 summary.rs.
 BC-CLI-*, BC-SUM-*.
 
 **Scope note:** CAP-12 coordinates the other capabilities. It calls
@@ -159,7 +159,7 @@ After finalize, `capture_result?` propagates any loop error.
 No ProgressBar is constructed in run_summary.
 
 
-## Summary accumulation (summary.rs / C-16)
+## Summary accumulation (summary.rs / C-17)
 
 `Summary` (E-36) maintains rolling capture-level totals.
 
