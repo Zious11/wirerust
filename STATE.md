@@ -19,7 +19,7 @@ documentation subset. Three cosmetic P3 items deliberately deferred.
 
 **Mode:** brownfield (in-repo: target == reference).
 
-**Test suite:** 213 (Phase 0 baseline) → **271** passing. `cargo fmt --check`,
+**Test suite:** 213 (Phase 0 baseline) → **272** passing. `cargo fmt --check`,
 `cargo clippy --all-targets -- -D warnings`, `cargo test --all-targets`,
 `cargo audit`, and `cargo deny` are all green on `develop`.
 
@@ -94,17 +94,24 @@ DEFERRED (cosmetic, per agreed curation): pluralization-helper extraction,
 - **#91** — `fix(decoder)`: lax-parse snaplen-truncated IP packets
   (drift item 5 below, now closed). 7037/7038 packets of
   `nfs_bad_stalls.cap` now decode (was 2376) + 4 tests.
+- **#92** — `fix(reassembly)`: small-segment detector redesigned to
+  consecutive-run counting (drift item 2 below, now resolved). Count
+  default 2048→100, size cutoff 8→16 + configurable, +2 tests.
 
 ## Drift Items / open follow-ups
 
 1. **P2.05 not empirically calibrated.** Research established no NIDS exposes
    a comparable count-and-alert-at-N threshold; the lesson was closed as
-   *configurable + honestly documented*. True calibration needs a labelled
-   capture corpus (benign + adversarial) measured for FP/TP rates.
-2. **small-segment default `2048`** — research flags it as likely Snort's knob
-   *ceiling* mistaken for a default (near-inert). Kept unchanged (an 8× cut
-   without FP data is another guess); operators can lower it via
-   `--small-segment-threshold`. Candidate for a data-backed default change.
+   *configurable + honestly documented*. The overlap and out-of-window
+   thresholds remain conservative engineering defaults. True calibration
+   needs a labelled capture corpus (benign + adversarial) measured for
+   FP/TP rates.
+2. **small-segment detector** — RESOLVED by #92. Research found the
+   cumulative-2048 design was a dead detector; switched to consecutive-run
+   counting (Snort semantics), default 100, configurable `< 16 byte`
+   cutoff. New follow-up: per-port exclusion (Snort `ignore_ports`
+   analogue) to suppress residual false positives on plaintext interactive
+   traffic (telnet) — not yet implemented.
 3. **3 deferred P3 cosmetic items** (see above).
 4. **`nfs_bad_stalls.cap`** — CLOSED by #90. Re-added as a
    snaplen-truncation regression fixture (not a reassembly baseline).
