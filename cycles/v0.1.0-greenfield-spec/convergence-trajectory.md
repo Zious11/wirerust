@@ -44,10 +44,13 @@ traces_to: STATE.md
 | 24 | 2026-05-20 | 0 | 0 | 0 | 0 | 0 | NONE | — | **1/3** | **CONVERGED** — **CLEAN PASS 1/3 (new streak)**; 0C/0H/0M/0L/0N. 2 non-blocking observations only (neither a spec defect). No spec artifact modified. Passes 25 and 26 will review identical, stable content. Counter advances to **1/3**. Pass 25 next (second confirmation pass). |
 | 25 | 2026-05-20 | 4 | 0 | 2 | 2 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — **STREAK RESET 1/3→0/3**; 0C/2H/2M/0L/0N. All 4 findings in PRD supplements only (the last spec-package pocket not yet comprehensively reconciled). H-1: error-taxonomy.md — E-RAS-001/E-RAS-002 message strings wrong vs actual eprintln! literals; H-2: error-taxonomy.md — E-DEC-001 stale `from_ethernet_slice` API name. M-1: interface-definitions.md — wrong analyzer_name values + fabricated/wrong JSON detail-shape keys (flows_evicted/flows_closed_fin do not exist in source). M-2: nfr-catalog.md — NFR-PERF-001 decoder.rs line range 72-130 should be 288-291. Orchestrator commissioned comprehensive PRD-supplement sweep after pass-25 findings. Counter RESET to **0/3**. |
 | SWEEP68 | 2026-05-20 | — | — | — | — | — | — | — | **0/3** | **REMEDIATION BURST** — comprehensive PRD-supplement verification sweep; all 4 PRD supplements re-verified against current src/; ~68 defects fixed total. Addresses P-CITE-PG process gap (recurring citation/string-drift; 4 supplements were the last un-comprehensively-reconciled spec pocket). Details: error-taxonomy.md (3 fixes — pass-25 findings); interface-definitions.md (14 fixes — wrong analyzer_name values, 8+ fabricated/wrong JSON detail keys corrected to actual summarize() keys); nfr-catalog.md (47 fixes — M-2 line range + 39 stale citations re-anchored post-LESSON-P2.01 refactor + NFR-SEC-005 SNI verdict Likely/High→Inconclusive/Low + 6 module-map citations); test-vectors.md (8 fixes — BC-2.06.005 category Anomaly→Reconnaissance; BC-2.07.014/017/037 verdict corrected to Inconclusive/Low; embedded literal control bytes 0x00/0x1b/ESC replaced with textual escapes; integration-scenario category/severity corrections). No adversary pass; counter unchanged at 0/3. Pass 26 next. |
+| 26 | 2026-05-20 | 5 | 0 | 3 | 1 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — 0C/3H/1M/1L. All 4 blocking findings in VP files: wrong API signatures, stale citations, mis-stated verdict labels. Comprehensive VP-file sweep (SWEEP48) commissioned. Counter remains 0/3. |
+| SWEEP48 | 2026-05-20 | — | — | — | — | — | — | — | **0/3** | **REMEDIATION BURST** — comprehensive VP-file sweep; all 20 VP files + VP-INDEX + BC-2.04.039 re-verified against current src/; ~48 defects fixed (wrong API sigs ~20, stale citations ~25, BC verdict labels 3, VP-INDEX phase column 5). SHA: 25641c4. All 4 major spec categories now comprehensively reconciled. Counter 0/3 unchanged. Pass 27 next. |
+| 27 | 2026-05-20 | 1 | 0 | 1 | 0 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — 0C/1H/0M/0L. H-1: verification-coverage-matrix.md VP-016..020 Phase column P1→test-sufficient (SWEEP48 propagation gap; P0(8)/P1(7)/test-sufficient(5)=20 invariant restored). Fixed (e758fb6). Counter remains 0/3. Pass 28 next. |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only; pass 20 spec-precision gaps — 0C/0H/2M/1L/1N; pass 21 — 0C/0H/1M/0L/2N, C-10 re-anchor + PRD nitpicks; **pass 22 CONVERGED 0C/0H/0M/2L/1N — counter 1/3**; pass 23 NOT CONVERGED — streak broken, 0C/1H/1M/1N, counter reset 0/3; **pass 24 CONVERGED 0/0/0/0/0 — counter 1/3**; pass 25 NOT CONVERGED — streak RESET 1/3→0/3, 0C/2H/2M, all 4 in PRD supplements; SWEEP68 — comprehensive PRD-supplement sweep ~68 defects fixed, P-CITE-PG addressed; counter 0/3, pass 26 next)
+`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only; pass 20 spec-precision gaps — 0C/0H/2M/1L/1N; pass 21 — 0C/0H/1M/0L/2N, C-10 re-anchor + PRD nitpicks; **pass 22 CONVERGED 0C/0H/0M/2L/1N — counter 1/3**; pass 23 NOT CONVERGED — streak broken, 0C/1H/1M/1N, counter reset 0/3; **pass 24 CONVERGED 0/0/0/0/0 — counter 1/3**; pass 25 NOT CONVERGED — streak RESET 1/3→0/3, 0C/2H/2M, all 4 in PRD supplements; SWEEP68 — comprehensive PRD-supplement sweep ~68 defects fixed, P-CITE-PG addressed; counter 0/3; pass 26 NOT CONVERGED 0C/3H/1M/1L, all 4 in VP files; SWEEP48 — comprehensive VP-file sweep ~48 defects fixed; counter 0/3; pass 27 NOT CONVERGED 0C/1H/0M/0L — VP-016..020 Phase column drift fixed (e758fb6); counter 0/3, pass 28 next)
 
 ## Per-Pass Details
 
@@ -1469,5 +1472,30 @@ the fully-reconciled package.
 comprehensively reconciled. All known citation/API-drift pockets have been closed.
 
 **Outcome:** Counter unchanged at **0/3**. Pass 27 dispatched next.
+
+---
+
+### Pass 27 (2026-05-20)
+
+**Findings:** 1 (0 CRIT, 1 HIGH, 0 MED, 0 LOW)
+**Delta from pass 26:** -4 total (HIGH -2, MED -1, LOW -1) — no regression
+**Novelty:** LOW
+**Convergence counter:** 0 of 3
+
+**Key finding:**
+
+- H-1: `verification-coverage-matrix.md` — VP-016..VP-020 Phase column listed `P1` instead of
+  `test-sufficient`. The VP-INDEX.md SWEEP48 correction (which set Phase to `test-sufficient` for
+  these 5 rows) was not propagated to the coverage matrix. P0(8)/P1(7)/test-sufficient(5)=20
+  invariant was violated with the stale values.
+
+**Remediation:** Single file corrected — VP-016..VP-020 Phase column updated P1→test-sufficient
+in `specs/architecture/verification-coverage-matrix.md`. P0(8)/P1(7)/test-sufficient(5)=20
+invariant restored. Committed to factory-artifacts (e758fb6).
+
+**Verdict:** NOT CONVERGED — counter remains 0/3. Pass 28 next.
+
+**Note:** This was a single-file, single-category finding (phase-column drift from SWEEP48
+propagation gap). The spec package remains comprehensively reconciled in all other respects.
 
 ---

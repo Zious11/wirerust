@@ -14,20 +14,19 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 0/3
-adversary_pass_26_date: "2026-05-20"
-adversary_pass_26_verdict: NOT_CONVERGED
-adversary_pass_26_findings: "5 (0C/3H/1M/1L) — counter remains 0/3. All 4 blocking findings in VP files. ~48 defects fixed in comprehensive VP-file sweep (all 20 VPs + VP-INDEX vs src/)."
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48"
+adversary_pass_27_date: "2026-05-20"
+adversary_pass_27_verdict: NOT_CONVERGED
+adversary_pass_27_findings: "1 (0C/1H/0M/0L) — counter remains 0/3. H-1: VP-016..020 Phase column P1→test-sufficient in verification-coverage-matrix.md. Fixed (e758fb6). Pass 28 next."
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 26 returned NOT CONVERGED (0C/3H/1M/1L); counter
-remains 0/3. All 4 blocking findings in VP files. Comprehensive VP-file sweep (SWEEP48, ~48
-defects, all 20 VPs + VP-INDEX vs src/) completed (SHA: 25641c4). Counter now **0/3**.
-Pass 27 next. All 4 major spec categories now comprehensively source-reconciled.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 27 returned NOT CONVERGED (0C/1H/0M/0L); counter
+remains 0/3. Single HIGH finding (VP-016..020 Phase column drift) fixed (e758fb6). Pass 28
+next. All 4 major spec categories comprehensively source-reconciled.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -42,7 +41,7 @@ Pass 27 next. All 4 major spec categories now comprehensively source-reconciled.
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (**0/3** — pass 26 NOT CONVERGED, counter 0/3; SWEEP48 ~48 VP defects fixed (25641c4); pass 27 next; all 4 spec categories comprehensively reconciled) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (**0/3** — pass 27 NOT CONVERGED, 1H fixed (e758fb6); pass 28 next; all 4 spec categories comprehensively reconciled) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -121,16 +120,17 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 25 | 2026-05-20 | 4 (0C/2H/2M/0L) | NOT CONVERGED | **STREAK RESET 1/3→0/3** — all 4 findings in PRD supplements. Commissioned SWEEP68. Counter: **0/3**. |
 | SWEEP68 | 2026-05-20 | — | REMEDIATION BURST | ~68 defects in all 4 PRD supplements vs src/. Supplements comprehensively reconciled. Counter: **0/3** unchanged. |
 | 26 | 2026-05-20 | 5 (0C/3H/1M/1L) | NOT CONVERGED | Counter remains **0/3** — all 4 blocking findings in VP files (wrong API signatures, stale citations, mis-stated verdict labels). Commissioned SWEEP48. |
-| SWEEP48 | 2026-05-20 | — | REMEDIATION BURST | ~48 defects across all 20 VP files + VP-INDEX + BC-2.04.039 vs src/. All 4 major spec categories now comprehensively reconciled: BCs (~58), anchors (~28), supplements (~68), VPs (~48). SHA: 25641c4. Counter: **0/3** unchanged. Pass 27 next. |
+| SWEEP48 | 2026-05-20 | — | REMEDIATION BURST | ~48 defects across all 20 VP files + VP-INDEX + BC-2.04.039 vs src/. All 4 major spec categories now comprehensively reconciled: BCs (~58), anchors (~28), supplements (~68), VPs (~48). SHA: 25641c4. Counter: **0/3** unchanged. |
+| 27 | 2026-05-20 | 1 (0C/1H/0M/0L) | NOT CONVERGED | Counter remains **0/3** — H-1 verification-coverage-matrix.md VP-016..020 Phase column P1→test-sufficient (P0(8)/P1(7)/test-sufficient(5)=20 invariant restored). Fixed (e758fb6). Pass 28 next. |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
 1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (**0/3 — counter remains 0**).
-   Pass 26 NOT CONVERGED (0C/3H/1M/1L). SWEEP48 (~48 VP defects, 25641c4) completed. Pass 27
-   next — must return 0C/0H/0M to start a new streak. All 4 major spec categories now
-   comprehensively source-reconciled; spec package fully swept.
+   Pass 27 NOT CONVERGED (0C/1H/0M/0L); single H-1 fixed (e758fb6). Pass 28 next — must
+   return 0C/0H/0M to start a new streak. All 4 major spec categories comprehensively
+   source-reconciled; spec package fully swept.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 
