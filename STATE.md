@@ -19,7 +19,7 @@ documentation subset. Three cosmetic P3 items deliberately deferred.
 
 **Mode:** brownfield (in-repo: target == reference).
 
-**Test suite:** 213 (Phase 0 baseline) → **265** passing. `cargo fmt --check`,
+**Test suite:** 213 (Phase 0 baseline) → **267** passing. `cargo fmt --check`,
 `cargo clippy --all-targets -- -D warnings`, `cargo test --all-targets`,
 `cargo audit`, and `cargo deny` are all green on `develop`.
 
@@ -89,6 +89,8 @@ DEFERRED (cosmetic, per agreed curation): pluralization-helper extraction,
   A genuine reader bug discovered while adding fixtures; pcap-file 2.0.0's
   validated path wrongly rejects `orig_len > snap_len`.
 - **#82** — chore: commit `Cargo.lock` + proptest regressions for P2.04.
+- **#90** — `test`: re-add `nfs_bad_stalls.cap` as a snaplen-truncation
+  regression fixture (drift item 4 below, now closed) + 2 tests.
 
 ## Drift Items / open follow-ups
 
@@ -101,8 +103,15 @@ DEFERRED (cosmetic, per agreed curation): pluralization-helper extraction,
    without FP data is another guess); operators can lower it via
    `--small-segment-threshold`. Candidate for a data-backed default change.
 3. **3 deferred P3 cosmetic items** (see above).
-4. **`nfs_bad_stalls.cap`** could now be re-added as a benign reassembly
-   fixture — #87 made snaplen-truncated captures readable.
+4. **`nfs_bad_stalls.cap`** — CLOSED by #90. Re-added as a
+   snaplen-truncation regression fixture (not a reassembly baseline).
+5. **Decoder drops snaplen-truncated IP packets.** New follow-up
+   surfaced by #90: #87 fixed the *reader*, but `etherparse` still
+   rejects an IPv4 header whose `total_length` overshoots the captured
+   slice, so every data-bearing packet of a `-s 96` capture is dropped
+   at decode time (4661 of 7038 in `nfs_bad_stalls.cap`). Fix: have the
+   decoder clamp `total_length` to the captured bytes. Until then,
+   snaplen-truncated captures only yield their control packets.
 
 ## Notes
 
