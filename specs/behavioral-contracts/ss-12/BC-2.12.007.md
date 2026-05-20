@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/cli.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-12
-capability: CAP-01
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: []
@@ -83,8 +83,8 @@ If both flags were somehow passed simultaneously, the downstream code at main.rs
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 |
-| Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- this CLI flag constraint governs how the ingestion/reassembly pipeline is configured at startup |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the clap conflicts_with constraint between --reassemble and --no-reassemble is declared on the Cli struct (cli.rs:62) and enforced at parse time before any pipeline wiring; this is a CLI entry-point invariant, not a PCAP ingestion or reassembly behavior |
 | L2 Domain Invariants | None |
 | Architecture Module | SS-12 (cli.rs, C-3) |
 | Stories | S-TBD |

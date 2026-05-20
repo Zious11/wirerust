@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/main.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-12
-capability: CAP-11
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: []
@@ -81,8 +81,8 @@ included.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- directory expansion is the multi-file ingestion path that feeds the reporting pipeline |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- resolve_targets (main.rs:340-360) is CAP-12's target-resolution step; choosing which files to read (filtering by .pcap extension, sorting, and expanding directories) is the entry-point orchestration that precedes any ingestion or analysis |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | S-TBD |

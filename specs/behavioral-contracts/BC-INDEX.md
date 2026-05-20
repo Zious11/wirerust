@@ -58,7 +58,7 @@ traces_to: .factory/specs/prd.md
 
 ## ss-04: TCP Stream Reassembly (CAP-04)
 
-> 54 BCs total; 3 fully written; 51 planned.
+> 54 BCs total; 54 fully written; 0 planned.
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
@@ -85,7 +85,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.04.021 | Excessive Out-of-Window Segments Emit One-Shot Low Finding | P1 | [WRITTEN] | BC-RAS-021 |
 | BC-2.04.022 | Per-Direction Alert Fires At Most Once Per Flow (Sticky Latch) | P0 | [WRITTEN] | BC-RAS-022 |
 | BC-2.04.023 | Truncated Segment Emits Anomaly/Inconclusive/Low Finding | P1 | [WRITTEN] | BC-RAS-023 |
-| BC-2.04.024 | Total Findings Capped at MAX_FINDINGS=10000; Excess Dropped | P0 | [WRITTEN] | BC-RAS-024 |
+| BC-2.04.024 | Total Findings Capped at MAX_FINDINGS=10000; Excess Silently Dropped | P0 | [WRITTEN] | BC-RAS-024 |
 | BC-2.04.025 | finalize Emits Segment-Limit Summary Finding When Segments Dropped | P0 | [WRITTEN] | BC-RAS-025 |
 | BC-2.04.026 | finalize Does NOT Emit Segment-Limit Finding When Counter is Zero | P0 | [WRITTEN] | BC-RAS-026 |
 | BC-2.04.027 | segments_depth_exceeded Tracks Fully-Rejected Segments After Depth Hit | P1 | [WRITTEN] | BC-RAS-027 |
@@ -209,9 +209,9 @@ traces_to: .factory/specs/prd.md
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
 | BC-2.08.001 | DnsAnalyzer Matches Packets Where Port == 53 (TCP or UDP) | P0 | [WRITTEN] | BC-DNS-001 |
-| BC-2.08.002 | DNS QR-Bit Dispatch: response_count++ if Set; query_count++ Otherwise | P0 | [WRITTEN] | BC-DNS-002 |
+| BC-2.08.002 | DNS QR-Bit Dispatch: response_count Incremented if Set; query_count Otherwise | P0 | [WRITTEN] | BC-DNS-002 |
 | BC-2.08.003 | summarize Emits AnalysisSummary with dns_queries/dns_responses | P1 | [WRITTEN] | BC-DNS-003 |
-| BC-2.08.004 | DnsAnalyzer NEVER Emits Findings (Statistics-Only) | P0 | [WRITTEN] | BC-DNS-004 |
+| BC-2.08.004 | DnsAnalyzer NEVER Emits Findings (Statistics-Only by Design) | P0 | [WRITTEN] | BC-DNS-004 |
 
 ## ss-09: Forensic Finding Emission (CAP-09)
 
@@ -320,8 +320,15 @@ traces_to: .factory/specs/prd.md
 **Total ingestion BCs mapped: 218 / 218**
 
 Note: BC-ABS-004 (--hosts unwired), BC-ABS-005 (--services unwired), BC-ABS-006 (--json
-file unwired), BC-ABS-007 (CSV unwired), BC-ABS-008 (rayon unused), BC-ABS-009 (no e2e
-CLI tests) are RETIRED -- these were fixed by PRs #70, #74, #84, and others in the
-remediation cycle. They are not represented as L3 BCs because they are no longer absent
-behaviors. The remaining 4 absent behaviors (BC-2.13.001..004) describe features that
-remain intentionally unwired.
+file unwired), BC-ABS-007 (CSV unwired), BC-ABS-009 (no e2e CLI tests) are RETIRED --
+these were fixed by PRs #70, #74, #84, and others in the remediation cycle. They are not
+represented as L3 BCs because they are no longer absent behaviors.
+
+BC-ABS-008 (rayon declared but unused) is RETIRED as an absent-behavior contract because
+the concern is reclassified as open dependency debt, not a behavioral gap. As of develop
+HEAD, `rayon = "1"` remains in Cargo.toml:28 with zero call sites in src/. This is tracked
+as domain-debt item O-07 and is not a behavioral contract violation. BC-ABS-008 is not
+represented as an active L3 BC; O-07 is the living tracker for this item.
+
+The remaining 4 absent behaviors (BC-2.13.001..004) describe features that remain
+intentionally unwired.

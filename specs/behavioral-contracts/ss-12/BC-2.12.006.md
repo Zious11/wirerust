@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/cli.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-12
-capability: CAP-11
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: []
@@ -75,8 +75,8 @@ may be file paths or directory paths (directory expansion is handled in `resolve
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- multi-target support is a CLI ergonomics feature of the analysis pipeline entry point |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- accepting multiple positional targets and iterating over them in run_analyze / run_summary is core to CAP-12's per-target file expansion and packet-loop orchestration |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (cli.rs, C-3) |
 | Stories | S-TBD |

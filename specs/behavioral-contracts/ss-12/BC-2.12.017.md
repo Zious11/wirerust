@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/main.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-12
-capability: CAP-11
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: []
@@ -83,8 +83,8 @@ the remediation cycle.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- output routing to file vs stdout is a core part of the reporting output delivery mechanism |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- write_output (main.rs:322-338) routes the already-rendered string to a file or stdout based on CLI flag state; this delivery-routing decision is CAP-12's output-channel responsibility, distinct from CAP-11's rendering of the string itself |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | S-TBD |

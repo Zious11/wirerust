@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/cli.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-12
-capability: CAP-11
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: []
@@ -75,8 +75,8 @@ so either `--no-color` or the `NO_COLOR` environment variable independently disa
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- color control is part of the terminal output configuration in the reporting capability |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the --no-color global flag is declared on the Cli struct (cli.rs C-3) and consumed in main.rs to compute use_color before subcommand dispatch; this is CLI orchestration / entry-point wiring, not reporter rendering logic |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (cli.rs, C-3) |
 | Stories | S-TBD |

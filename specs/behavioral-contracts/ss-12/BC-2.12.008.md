@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/main.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-12
-capability: CAP-11
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: []
@@ -76,8 +76,8 @@ not in the clap `Commands::Analyze` struct itself.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- the --all flag is the shorthand CLI path for enabling the full analysis pipeline |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the OR-expansion of --all into enable_dns/enable_http/enable_tls (main.rs:57-58) is the wiring layer that routes subcommand flags to analyzer construction; this is exactly the orchestration concern CAP-12 owns |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | S-TBD |

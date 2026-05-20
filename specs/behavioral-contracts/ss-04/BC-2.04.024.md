@@ -110,7 +110,7 @@ Only the reassembly engine enforces MAX_FINDINGS.
 
 ## Evidence Types Used
 
-- **guard clause**: `if self.findings.len() >= MAX_FINDINGS { return; }` at 5 sites
+- **guard clause**: two guard forms across 5 sites -- (a) inverted early-return form `if self.findings.len() >= MAX_FINDINGS { self.stats.dropped_findings += 1; return; }` at `lifecycle.rs:101` and `lifecycle.rs:121`; (b) positive conditional form `if self.findings.len() < MAX_FINDINGS { self.findings.push(...); } else { self.stats.dropped_findings += 1; }` at `mod.rs:432`, `mod.rs:466`, and `mod.rs:495`
 
 ## Purity Classification
 

@@ -29,10 +29,9 @@ removal_reason: null
 `DnsAnalyzer::analyze(packet)` inspects bit 15 of the 16-bit Flags field at byte offset 2
 of the DNS payload. If the QR bit (bit 7 of `payload[2]`) is set (value 1), the packet is
 a DNS response and `response_count` is incremented. If the bit is clear (value 0), the
-packet is a DNS query and `query_count` is incremented. Malformed payloads shorter than 12
-bytes are treated as queries (the `is_query` helper returns `false` means it is not a query
--- wait: `is_query` returns `true` if it IS a query). When the payload is shorter than 12
-bytes, `is_query` returns `false`, meaning `response_count` is incremented by default.
+packet is a DNS query and `query_count` is incremented. Payloads shorter than 12 bytes
+cannot be inspected: `is_query` returns `false` (because the length guard at `dns.rs:40`
+fires before the bit test), so the `else` branch in `analyze` increments `response_count`.
 
 ## Preconditions
 

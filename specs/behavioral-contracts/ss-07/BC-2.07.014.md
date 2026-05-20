@@ -28,9 +28,10 @@ removal_reason: null
 
 When an SNI hostname byte sequence is valid UTF-8, passes `is_ascii()`, and contains at least
 one C0 control byte (0x00-0x1F) or DEL (0x7F), `extract_sni` classifies it as
-`SniValue::AsciiWithControl` (arm 2 of INV-5). A single `Anomaly/Inconclusive/Low` finding is
-emitted for the hostname with MITRE technique T1027 (Obfuscated Files or Information). The raw
-bytes are preserved in the finding (ADR 0003).
+`SniValue::AsciiWithControl { hostname, hex }` (arm 2 of INV-5) -- a struct variant with two
+fields: `hostname: String` (the raw ASCII string) and `hex: String` (lossless lowercase hex of
+the raw bytes, per ADR 0003). A single `Anomaly/Inconclusive/Low` finding is emitted for the
+hostname with MITRE technique T1027 (Obfuscated Files or Information).
 
 ## Preconditions
 
@@ -43,7 +44,7 @@ bytes are preserved in the finding (ADR 0003).
 
 ## Postconditions
 
-1. `extract_sni` returns `SniValue::AsciiWithControl(hostname)`.
+1. `extract_sni` returns `SniValue::AsciiWithControl { hostname, hex }` where `hostname` is the raw ASCII string and `hex` is the lossless lowercase hex encoding of the raw bytes (ADR 0003 forensic evidence).
 2. One Finding is emitted with:
    - category: Anomaly
    - verdict: Inconclusive

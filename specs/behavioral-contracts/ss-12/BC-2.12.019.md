@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/summary.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-12
-capability: CAP-11
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: []
@@ -77,8 +77,8 @@ on a non-standard port (e.g., HTTP on 8080) contributes nothing to the service m
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- service counts are part of the triage summary output rendered by both terminal and JSON reporters |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- Summary::ingest's service-counter step (summary.rs:65-67) is part of the Summary accumulation described in CAP-12; summary.rs (C-16) is listed under CAP-12 sources, and the service hint is a per-packet statistic accumulated in the entry-layer packet loop |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence -- note: this service attribution is port-based, NOT content-first; the two can disagree per LESSON-P3.01) |
 | Architecture Module | SS-12 (summary.rs, C-17) |
 | Stories | S-TBD |

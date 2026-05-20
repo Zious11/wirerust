@@ -52,7 +52,7 @@ low severity, by design, not a bug.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | Malformed DNS payload (truncated) | query_count or response_count may not increment (QR bit unreadable); empty findings still returned |
+| EC-001 | Malformed DNS payload (truncated, < 12 bytes) | `is_query` returns `false` (length guard fires before bit test); `response_count` is unconditionally incremented; empty findings returned |
 | EC-002 | DNS-over-TCP (port 53, TCP) | Counted; empty findings |
 | EC-003 | DNS-over-UDP (port 53, UDP) | Counted; empty findings |
 | EC-004 | Very high DNS query volume | Counted; empty findings (no flood detection) |

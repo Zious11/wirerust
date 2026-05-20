@@ -19,6 +19,7 @@ shards:
   - capabilities/cap-09-finding-emission.md
   - capabilities/cap-10-mitre-mapping.md
   - capabilities/cap-11-reporting-output.md
+  - capabilities/cap-12-cli-orchestration.md
   - entities/ent-01-ingestion-decoding.md
   - entities/ent-02-reassembly-flow.md
   - entities/ent-03-dispatch-analysis.md
@@ -97,19 +98,25 @@ the StreamAnalyzer trait (L2 imports L3 types). Accepted by ADR 0002.
 
 ## 4. Capability Index
 
-| Cap-ID | Name | Shard |
-|---|---|---|
-| CAP-01 | PCAP file ingestion | cap-01-pcap-ingestion.md |
-| CAP-02 | Link-type gating | cap-02-link-type-gating.md |
-| CAP-03 | Packet decoding (L2-L4) | cap-03-packet-decoding.md |
-| CAP-04 | TCP stream reassembly | cap-04-tcp-reassembly.md |
-| CAP-05 | Content-first protocol dispatch | cap-05-content-first-dispatch.md |
-| CAP-06 | HTTP traffic analysis | cap-06-http-analysis.md |
-| CAP-07 | TLS traffic analysis | cap-07-tls-analysis.md |
-| CAP-08 | DNS traffic analysis | cap-08-dns-analysis.md |
-| CAP-09 | Forensic finding emission | cap-09-finding-emission.md |
-| CAP-10 | MITRE ATT&CK mapping | cap-10-mitre-mapping.md |
-| CAP-11 | Reporting and output | cap-11-reporting-output.md |
+| Cap-ID | Name | Layer | SS | Shard |
+|---|---|---|---|---|
+| CAP-01 | PCAP file ingestion | L1 | SS-1 | cap-01-pcap-ingestion.md |
+| CAP-02 | Link-type gating | L1 | SS-2 | cap-02-link-type-gating.md |
+| CAP-03 | Packet decoding (L2-L4) | L1 | SS-3 | cap-03-packet-decoding.md |
+| CAP-04 | TCP stream reassembly | L2 | SS-4 | cap-04-tcp-reassembly.md |
+| CAP-05 | Content-first protocol dispatch | L2 | SS-5 | cap-05-content-first-dispatch.md |
+| CAP-06 | HTTP traffic analysis | L3 | SS-6 | cap-06-http-analysis.md |
+| CAP-07 | TLS traffic analysis | L3 | SS-7 | cap-07-tls-analysis.md |
+| CAP-08 | DNS traffic analysis | L3 | SS-8 | cap-08-dns-analysis.md |
+| CAP-09 | Forensic finding emission | L3 | SS-9 | cap-09-finding-emission.md |
+| CAP-10 | MITRE ATT&CK mapping | L3 | SS-10 | cap-10-mitre-mapping.md |
+| CAP-11 | Reporting and output | L4 | SS-11 | cap-11-reporting-output.md |
+| CAP-12 | CLI orchestration / entry point | L0 | SS-12 | cap-12-cli-orchestration.md |
+
+**CAP-12 note:** CAP-12 is the L0 cross-cutting orchestration capability. It coordinates
+CAP-01..CAP-11 without reimplementing any of them. Components: C-1 (main.rs), C-2 (lib.rs),
+C-3 (cli.rs), C-16 (summary.rs). Subsystem SS-12 (CLI / entry-point) maps exclusively to
+CAP-12. Behavioral contracts BC-CLI-* and BC-SUM-* are anchored here, not to CAP-11.
 
 
 ## 5. Entity / Enum Index (41 entities, 14 semantic enums)
@@ -159,6 +166,16 @@ The following corpus identifiers from the ingestion passes are used throughout t
 - E-1..E-41: Entity IDs (pass-2 domain model)
 - VO-1..VO-12: Value object IDs (pass-2 domain model)
 - LESSON-P0/P1/P2/P3.*: Action items from pass-8 synthesis
+
+### Subsystem-to-Capability mapping (SS -> CAP)
+
+| Subsystem | Description | Capability |
+|---|---|---|
+| SS-12 | CLI / entry-point (C-1 main.rs, C-2 lib.rs, C-3 cli.rs, C-16 summary.rs) | CAP-12 |
+
+This table is partial -- it lists only SS-12 here because CAP-12 is the capability added to
+resolve adversarial-review finding H-4. Other SS -> CAP mappings are maintained in the
+architecture index (ARCH-INDEX). BC-CLI-* and BC-SUM-* are anchored to CAP-12, not CAP-11.
 
 
 ## 9. Known Limitations / Domain Debt

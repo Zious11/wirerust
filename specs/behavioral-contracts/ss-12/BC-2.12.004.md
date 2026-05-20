@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/cli.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-12
-capability: CAP-11
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: []
@@ -79,8 +79,8 @@ The `--output-format` global flag accepts a `ValueEnum` variant: `json` or `csv`
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- output format selection is the primary dispatch mechanism for choosing between JSON, CSV, and terminal reporters |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the --output-format flag is declared on the Cli struct and parsed at the L0 entry layer; it is an input to resolve_format in main.rs, which is CAP-12's output-channel selection responsibility, not CAP-11's rendering logic |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (cli.rs, C-3) |
 | Stories | S-TBD |

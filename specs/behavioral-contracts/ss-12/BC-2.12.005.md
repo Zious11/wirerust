@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/cli.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-12
-capability: CAP-11
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: []
@@ -86,8 +86,8 @@ All default to their `ReassemblyConfig::default()` values when absent.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- reassembly flags are the CLI surface that configures the analysis pipeline before reporting |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the reassembly control flags (--reassemble, --no-reassemble, --reassembly-depth, etc.) are declared on the Cli struct and consumed by main.rs to wire the ReassemblyConfig; this is the entry-point orchestration concern that CAP-12 owns, not CAP-04's stream reassembly logic |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (cli.rs, C-3) |
 | Stories | S-TBD |

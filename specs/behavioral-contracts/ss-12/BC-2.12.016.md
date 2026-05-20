@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/main.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-12
-capability: CAP-11
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: []
@@ -84,8 +84,8 @@ any unhandled variant) -> `TerminalReporter`.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- format selection is the dispatch mechanism that routes the analysis output to the correct reporter |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- resolve_format (main.rs:304-320) is CAP-12's output-channel selection step; it reads CLI flag state and returns the reporter variant to instantiate; this is entry-point orchestration (choosing which reporter to create), not the reporter's own rendering logic |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | S-TBD |

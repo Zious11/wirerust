@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/summary.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-12
-capability: CAP-11
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: []
@@ -81,8 +81,8 @@ per-protocol counter in `protocols: HashMap<Protocol, u64>`.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- Summary::ingest is the aggregation function that produces the capture-level statistics consumed by all reporters |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- Summary::ingest is called inside CAP-12's per-target packet loop (main.rs: summary.ingest(&parsed)) as part of the Summary accumulation described in CAP-12; summary.rs (C-16) is listed in CAP-12's source sources |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (summary.rs, C-17) |
 | Stories | S-TBD |

@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/summary.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-12
-capability: CAP-11
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: []
@@ -78,8 +78,8 @@ addresses (the IpAddr Ord implementation in Rust's std sorts V4 before V6).
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- unique_hosts is consumed by both the terminal reporter's host breakdown and the JSON reporter's unique_hosts array |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- unique_hosts() is an accessor on Summary (C-16), which is listed under CAP-12 sources; it surfaces the host set accumulated by the entry-layer packet loop; CAP-12 is responsible for Summary accumulation end-to-end |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (summary.rs, C-17) |
 | Stories | S-TBD |

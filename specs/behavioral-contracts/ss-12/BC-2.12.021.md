@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/summary.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-12
-capability: CAP-11
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: []
@@ -84,8 +84,8 @@ the JSON output manually using `serde_json::json!`.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- Summary serialization is the core mechanism that produces the machine-readable capture statistics in JSON output |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- Summary (summary.rs / C-16) is listed under CAP-12 sources; its public serializable fields (total_packets, total_bytes, skipped_packets) are owned by the Summary accumulation step that CAP-12 orchestrates; the serde derive is on the Summary struct in C-16, not in any reporter |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (summary.rs, C-17; reporter/json.rs, C-19) |
 | Stories | S-TBD |

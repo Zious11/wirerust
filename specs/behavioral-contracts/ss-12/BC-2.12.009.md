@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/main.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-12
-capability: CAP-11
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: []
@@ -85,8 +85,8 @@ require reassembled streams).
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- the reassembly enable/disable logic governs whether stream-analysis outputs (HTTP/TLS findings) are included in the report |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the needs_reassembly computation and the --no-reassemble override warning (main.rs:87-94) are entry-point wiring decisions: they determine which pipeline components are constructed before packet processing begins, which is the core orchestration responsibility of CAP-12 |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | S-TBD |
