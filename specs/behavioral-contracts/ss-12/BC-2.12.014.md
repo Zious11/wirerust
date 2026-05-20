@@ -95,7 +95,7 @@ failing entirely.
 
 ## Architecture Anchors
 
-- `src/main.rs:165-173` -- decode error handler with eprintln and counter increment
+- `src/main.rs:166-173` -- decode error handler with eprintln and counter increment
 - `src/main.rs:183` -- summary.skipped_packets = total_decode_errors assignment
 - `src/main.rs:266-276` -- same pattern in run_summary
 
@@ -107,7 +107,7 @@ failing entirely.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/main.rs:165-173, 183` |
+| **Path** | `src/main.rs:166-173, 183` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

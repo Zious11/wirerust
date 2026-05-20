@@ -101,7 +101,7 @@ corresponding fields set. Global flags (from the `Cli` struct) are available in 
 
 ## Architecture Anchors
 
-- `src/cli.rs:113-140` -- Commands::Analyze variant definition
+- `src/cli.rs:113-139` -- Commands::Analyze variant definition
 - `tests/cli_tests.rs` -- test_analyze_subcommand, test_mitre_flag_parses_on_analyze
 
 ---
@@ -112,7 +112,7 @@ corresponding fields set. Global flags (from the `Cli` struct) are available in 
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/cli.rs:113-140` |
+| **Path** | `src/cli.rs:113-139` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

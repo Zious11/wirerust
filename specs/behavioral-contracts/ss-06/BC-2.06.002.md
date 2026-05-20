@@ -87,7 +87,7 @@ detection separately per request. The loop exits when the buffer is exhausted (r
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- pipelined request handling is a required behavior for HTTP/1.1 analysis |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:359-437, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:359-438, C-12) |
 | Stories | S-TBD |
 | Origin BC | BC-HTTP-002 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -99,14 +99,14 @@ detection separately per request. The loop exits when the buffer is exhausted (r
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:359-437` -- try_parse_requests loop
+- `src/analyzer/http.rs:359-438` -- try_parse_requests loop
 - `tests/http_analyzer_tests.rs` -- test_parse_pipelined_requests
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:359-437` |
+| **Path** | `src/analyzer/http.rs:359-438` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

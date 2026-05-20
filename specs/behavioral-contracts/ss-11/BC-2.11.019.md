@@ -104,8 +104,8 @@ section per `AnalysisSummary`. This order is documented in the module and verifi
 - `src/reporter/terminal.rs:83-178` -- TerminalReporter::render full body
 - `src/reporter/terminal.rs:113` -- HOSTS conditional block
 - `src/reporter/terminal.rs:125` -- PROTOCOLS section
-- `src/reporter/terminal.rs:131` -- SERVICES conditional block
-- `src/reporter/terminal.rs:141` -- FINDINGS conditional block
+- `src/reporter/terminal.rs:133` -- SERVICES conditional block (`if !services.is_empty()`)
+- `src/reporter/terminal.rs:142` -- FINDINGS conditional block (`if !findings.is_empty()`)
 - `src/reporter/terminal.rs:158` -- ANALYZER: sections loop
 
 ---

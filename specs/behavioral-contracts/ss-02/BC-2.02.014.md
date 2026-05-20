@@ -40,7 +40,8 @@ not application payload bytes.
 ## Postconditions
 
 1. `ParsedPacket.packet_len == data.len()`.
-2. `packet_len` is set in `build_parsed` by passing `data.len()` as the third argument.
+2. `packet_len` is set in `build_parsed` by passing `data.len()` as the third argument:
+   strict path at decoder.rs:145, lax path at decoder.rs:161.
 3. `packet_len` is independent of whether the packet has a payload or not.
 
 ## Invariants
@@ -89,14 +90,16 @@ not application payload bytes.
 
 ## Architecture Anchors
 
-- `src/decoder.rs:258` -- `build_parsed(ip_triple, &slice.transport, data.len())`
-- `src/decoder.rs:256` -- `build_parsed` signature takes `packet_len: usize`
+- `src/decoder.rs:255-259` -- `build_parsed` function signature: `fn build_parsed(ip: IpTriple, transport: &Option<TransportSlice<'_>>, packet_len: usize) -> ParsedPacket`
+- `src/decoder.rs:142-146` -- strict path call site: `build_parsed(strict_ip_triple(net), &slice.transport, data.len())`
+- `src/decoder.rs:161` -- lax path call site: `build_parsed(lax_ip_triple(net), &lax.transport, data.len())`
+- `src/decoder.rs:300` -- `packet_len` field assignment in ParsedPacket construction
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/decoder.rs:255-261` |
+| **Path** | `src/decoder.rs:255-259, 142-146, 161` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

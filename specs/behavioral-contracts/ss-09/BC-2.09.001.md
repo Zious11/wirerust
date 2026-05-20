@@ -48,18 +48,28 @@ builder or constructor helper -- every site provides the full literal.
    - `summary`: raw `String` (per ADR 0003; no escape applied at construction)
    - `evidence`: `Vec<String>` (raw; 0 or more entries)
    - `mitre_technique`: `Option<String>` (None or a technique ID string)
-   - `source_ip`: `Option<IpAddr>` (None in all current 22 emission sites)
+   - `source_ip`: `Option<IpAddr>` (Some(ip) at 5 reassembly sites in mod.rs and lifecycle.rs;
+     None at all HTTP/TLS and segment-limit-summary sites)
    - `timestamp`: `Option<DateTime<Utc>>` (None in all current 22 emission sites -- O-01)
-   - `direction`: `Option<Direction>` (Some for HTTP/TLS findings; None for reassembly findings)
+   - `direction`: `Option<Direction>` (Some for HTTP/TLS findings; Some for reassembly mod.rs
+     overlap/small-segment/out-of-window findings; None for reassembly lifecycle and
+     segment-limit-summary findings)
 2. No allocation beyond the struct fields themselves.
 3. The constructed value is valid to pass to any reporter.
 
 ## Invariants
 
 1. All 22 current emission sites set `timestamp: None` (O-01; forensic gap).
-2. All 22 current emission sites set `source_ip: None` (no IP attribution at Finding level).
+2. Reassembly anomaly findings in `reassembly/mod.rs` (overlap, small-segment, out-of-window)
+   set `source_ip: Some(packet.src_ip)`. Reassembly lifecycle findings in
+   `reassembly/lifecycle.rs` (conflicting-overlap, stream-depth-exceeded) also set
+   `source_ip: Some(src_ip)`. HTTP and TLS analyzer findings set `source_ip: None`.
+   The segment-limit summary finding in `reassembly/mod.rs` sets `source_ip: None`.
+   (Domain-debt O-01 mischaracterized source_ip as always None; 5 of 22 sites set Some.)
 3. HTTP and TLS analyzer findings set `direction: Some(...)`.
-4. Reassembly engine findings set `direction: None`.
+4. Reassembly anomaly findings in `reassembly/mod.rs` (overlap, small-segment,
+   out-of-window) set `direction: Some(dir)`. Reassembly lifecycle findings and the
+   segment-limit summary finding set `direction: None`.
 5. `summary` and `evidence` carry raw bytes (ADR 0003 / INV-4).
 
 ## Edge Cases

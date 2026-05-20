@@ -41,8 +41,9 @@ The response direction supports the same buffering and pipelined-loop semantics 
 ## Postconditions
 
 1. `transactions` incremented by 1.
-2. `status_codes` map gains an entry (or increments) for the numeric status code, subject to
-   `MAX_MAP_ENTRIES = 50,000` cap (BC-2.06.024).
+2. `status_codes` map gains an entry (or increments) for the numeric status code (http.rs:452).
+   There is NO `MAX_MAP_ENTRIES` guard on `status_codes`; the key type is u16 which provides a
+   natural practical limit of 65535 distinct status codes (see BC-2.06.024 Invariants).
 3. The bytes consumed are drained from `response_buf`.
 4. `response_error_count` is reset to 0.
 5. No anomaly detection is triggered from response parse (all detections are request-side).

@@ -47,12 +47,12 @@ key). This ordering surfaces the highest-severity findings at the top of each ta
 ## Invariants
 
 1. Verdict ranks: Likely=0, Inconclusive=1, Unlikely=2 (defined by local `verdict_rank`
-   closure in terminal.rs:262-267).
-2. Confidence ranks: High=0, Medium=1, Low=2 (defined by local `confidence_rank` closure
-   in terminal.rs:268-273).
+   function in terminal.rs:262-268).
+2. Confidence ranks: High=0, Medium=1, Low=2 (defined by local `confidence_rank` function
+   in terminal.rs:269-275).
 3. The sort key is `(verdict_rank, confidence_rank, original_index)` -- a 3-tuple
    sort that is stable (Rust's sort_by_key is stable).
-4. Original index is attached at bucket insertion time (line 258) as `(i, f)`.
+4. Original index is attached at bucket insertion time (line 259) as `(i, f)` via `buckets.entry(tactic).or_default().push((i, f))`.
 
 ## Edge Cases
 

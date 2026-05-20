@@ -89,7 +89,7 @@ may be file paths or directory paths (directory expansion is handled in `resolve
 
 ## Architecture Anchors
 
-- `src/cli.rs:119-121` -- targets field in Commands::Analyze
+- `src/cli.rs:116-118` -- targets field (doc comment + required arg attr + Vec<PathBuf> field) in Commands::Analyze
 - `tests/cli_tests.rs` -- test_multiple_targets
 
 ---
@@ -100,7 +100,7 @@ may be file paths or directory paths (directory expansion is handled in `resolve
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/cli.rs:119-121` |
+| **Path** | `src/cli.rs:116-118` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

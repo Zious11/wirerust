@@ -95,13 +95,13 @@ This gate is the entry condition for DNS analysis.
 ## Architecture Anchors
 
 - `src/analyzer/dns.rs:34-35` -- is_dns_port helper: `src == 53 || dst == 53`
-- `src/analyzer/dns.rs:52-59` -- can_decode dispatches on transport variant
+- `src/analyzer/dns.rs:52-60` -- can_decode dispatches on transport variant
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/dns.rs:34-59` |
+| **Path** | `src/analyzer/dns.rs:34-60` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

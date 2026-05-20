@@ -94,7 +94,7 @@ by the current analyzers.
 ## Architecture Anchors
 
 - `src/mitre.rs:123-154` -- technique_info match table covering all 6 emitted IDs
-- Emitted sites: `src/analyzer/tls.rs:405,424,443`, `src/analyzer/http.rs:187,216,231,246`, `src/reassembly/mod.rs:545`
+- Emitted sites: `src/analyzer/tls.rs:443,463,483` (T1027 x3), `src/analyzer/http.rs:198,228,244,423,482` (T1083, T1505.003, T1046, T1499.002 x2), `src/reassembly/mod.rs:442` (T1036)
 
 ## Source Evidence
 

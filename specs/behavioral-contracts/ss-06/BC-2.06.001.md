@@ -109,15 +109,15 @@ increment `transactions`; only a parsed response does (per BC-2.06.004).
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:35-49` -- parse_one_request function
-- `src/analyzer/http.rs:359-437` -- try_parse_requests loop
+- `src/analyzer/http.rs:35-50` -- parse_one_request function
+- `src/analyzer/http.rs:359-438` -- try_parse_requests loop
 - `tests/http_analyzer_tests.rs` -- test_parse_get_request, test_parse_pipelined_requests
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:35-49, 359-437` |
+| **Path** | `src/analyzer/http.rs:35-50, 359-438` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

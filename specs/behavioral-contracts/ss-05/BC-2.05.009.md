@@ -46,9 +46,9 @@ The analyzer-forward side-effect is less directly tested (pass-3 R4 finding).
 1. `self.classification_attempts.remove(flow_key)` is called (removes attempt counter).
 2. `let target = self.routes.remove(flow_key)` -- route entry removed; returns the prior route.
 3. If `target == Some(DispatchTarget::Http)`:
-   - `self.http.as_mut().unwrap().on_flow_close(flow_key, reason)` is called.
+   - `if let Some(ref mut http) = self.http { http.on_flow_close(flow_key, reason); }` (safe pattern; no panic on None).
 4. If `target == Some(DispatchTarget::Tls)`:
-   - `self.tls.as_mut().unwrap().on_flow_close(flow_key, reason)` is called.
+   - `if let Some(ref mut tls) = self.tls { tls.on_flow_close(flow_key, reason); }` (safe pattern; no panic on None).
 5. If `target == None || target == Some(DispatchTarget::None)`:
    - `self.unclassified_flows` is incremented (if analyzers are configured).
    - No analyzer receives the close event.

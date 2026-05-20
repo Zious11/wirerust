@@ -35,8 +35,9 @@ This is a MEDIUM-confidence contract because no test currently passes both flags
 to assert the conflict fires. A future maintainer removing the `conflicts_with` attribute
 would silently break the invariant; main.rs assumes the flags are never both true.
 
-If both flags were somehow passed simultaneously, the downstream code at main.rs:69-76 would:
-1. Emit a stderr warning ("No-reassemble flag overrides --http/--tls").
+If both flags were somehow passed simultaneously, the downstream code at main.rs:90-94 would:
+1. Emit a stderr warning ("Warning: --http/--tls require TCP reassembly, but
+   --no-reassemble is set. Stream analysis will be skipped.").
 2. Skip reassembler creation (no_reassemble wins at runtime).
 
 ## Preconditions

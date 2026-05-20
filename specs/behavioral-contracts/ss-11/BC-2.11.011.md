@@ -99,8 +99,8 @@ reporter must therefore re-escape the rendered JSON string to close the C1 gap.
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:163-174` -- analyzer summary rendering loop with escape
-- `src/reporter/terminal.rs:164-171` -- module comment explaining the C1 gap in serde_json
+- `src/reporter/terminal.rs:164-174` -- analyzer summary detail loop with escape (`for (key, val)` at 164)
+- `src/reporter/terminal.rs:165-171` -- inline comment explaining the C1 gap in serde_json
 - `tests/reporter_tests.rs` -- test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries
 
 ---
@@ -111,14 +111,14 @@ reporter must therefore re-escape the rendered JSON string to close the C1 gap.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:163-174` |
+| **Path** | `src/reporter/terminal.rs:164-174` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
 #### Evidence Types Used
 
 - **assertion**: test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries, test_http_analyzer_summary_c1_csi_escaped_by_terminal_reporter
-- **documentation**: inline comment at lines 164-171 explaining the C1 gap rationale
+- **documentation**: inline comment at lines 165-171 explaining the C1 gap rationale
 
 #### Purity Classification
 

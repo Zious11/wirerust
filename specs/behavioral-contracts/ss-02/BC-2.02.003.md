@@ -90,13 +90,13 @@ captures where no Ethernet framing is present.
 
 ## Architecture Anchors
 
-- `src/decoder.rs:132-134` -- `DataLink::RAW | DataLink::IPV4 | DataLink::IPV6 => SlicedPacket::from_ip(data)`
+- `src/decoder.rs:134` -- `DataLink::RAW | DataLink::IPV4 | DataLink::IPV6 => SlicedPacket::from_ip(data)`
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/decoder.rs:132-134` |
+| **Path** | `src/decoder.rs:134` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

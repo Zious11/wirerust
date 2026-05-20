@@ -38,8 +38,8 @@ removal_reason: null
 ## Postconditions
 
 1. Equivalent to calling `from_pcap_reader` on a `BufReader<File>` for the same path.
-2. If the file cannot be opened, returns Err from `File::open` (no special context added at
-   this level).
+2. If the file cannot be opened, returns `Err` with anyhow context
+   `"Failed to open {path}"` (reader.rs:87: `.with_context(|| format!("Failed to open {}", path.display()))`).
 
 ## Invariants
 
@@ -49,15 +49,15 @@ removal_reason: null
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | File does not exist | Err from File::open (OS error "No such file or directory") |
-| EC-002 | File exists but not readable (permissions) | Err from File::open |
+| EC-001 | File does not exist | Err with context "Failed to open {path}" wrapping the OS "No such file or directory" error |
+| EC-002 | File exists but not readable (permissions) | Err with context "Failed to open {path}" wrapping the OS permission error |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
 | valid pcap file path | Same result as from_pcap_reader on same bytes | happy-path |
-| non-existent path | Err from File::open | error |
+| non-existent path | Err with context "Failed to open {path}" | error |
 
 ## Verification Properties
 
@@ -78,7 +78,8 @@ removal_reason: null
 
 ## Architecture Anchors
 
-- `src/reader.rs` -- from_file function opening File + BufReader
+- `src/reader.rs:85-90` -- `from_file`: opens `File`, wraps in `BufReader`, delegates to `from_pcap_reader`
+- `src/reader.rs:86-87` -- `File::open(path).with_context(|| format!("Failed to open {}", path.display()))` -- file-open error context
 
 ## Source Evidence
 

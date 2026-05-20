@@ -86,13 +86,13 @@ even for raw IP captures.
 
 ## Architecture Anchors
 
-- `src/decoder.rs:132-134` -- single match arm covering RAW | IPV4 | IPV6
+- `src/decoder.rs:134` -- single match arm: `DataLink::RAW | DataLink::IPV4 | DataLink::IPV6 => SlicedPacket::from_ip(data)`
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/decoder.rs:132-134` |
+| **Path** | `src/decoder.rs:134` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

@@ -104,13 +104,13 @@ assignments (e.g., T1027 => DefenseEvasion, T1036 => DefenseEvasion, T1046 => Di
 
 ## Architecture Anchors
 
-- `src/mitre.rs:164-168` -- technique_tactic thin wrapper
+- `src/mitre.rs:166-168` -- technique_tactic thin wrapper
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/mitre.rs:164-168` |
+| **Path** | `src/mitre.rs:166-168` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

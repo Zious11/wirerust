@@ -100,15 +100,15 @@ responses via `try_parse_responses`.
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:402` -- `Some(Ok(None)) => return` (Partial arm)
-- `src/analyzer/http.rs:459` -- same for responses
+- `src/analyzer/http.rs:402` -- `Some(Ok(None)) => return` (Partial arm, requests)
+- `src/analyzer/http.rs:460` -- `Some(Ok(None)) => return` (Partial arm, responses)
 - `tests/http_analyzer_tests.rs` -- test_parse_partial_request, test_partial_response_reassembly
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:402, 459` |
+| **Path** | `src/analyzer/http.rs:402, 460` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

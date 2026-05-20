@@ -108,7 +108,7 @@ preserved in the finding (ADR 0003 / INV-4).
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:256-259` -- arm 3 in extract_sni match
+- `src/analyzer/tls.rs:257-260` -- arm 3 in extract_sni match (`Ok(s) => SniValue::NonAsciiUtf8 { ... }`)
 - `src/analyzer/tls.rs:449-467` -- NonAsciiUtf8 finding push
 - `tests/tls_analyzer_tests.rs` -- test_valid_utf8_non_ascii_sni_emits_finding
 
@@ -116,7 +116,7 @@ preserved in the finding (ADR 0003 / INV-4).
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:256-259` (extract_sni arm 3), `src/analyzer/tls.rs:449-467` (emission) |
+| **Path** | `src/analyzer/tls.rs:257-260` (extract_sni arm 3), `src/analyzer/tls.rs:449-467` (emission) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

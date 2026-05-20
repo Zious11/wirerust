@@ -96,7 +96,7 @@ same `ParsedPacket` structure as Ethernet and RAW paths.
 
 ## Architecture Anchors
 
-- `src/decoder.rs:133-135` -- LINUX_SLL strict dispatch
+- `src/decoder.rs:135` -- `DataLink::LINUX_SLL => SlicedPacket::from_linux_sll(data)` -- LINUX_SLL strict dispatch
 - `src/decoder.rs:184-205` -- lax_parse LINUX_SLL fallback with manual header strip
 - `src/decoder.rs:119-121` -- SLL_HEADER_LEN constant
 

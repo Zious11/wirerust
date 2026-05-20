@@ -27,12 +27,13 @@ removal_reason: null
 ## Description
 
 `TerminalReporter` calls `escape_for_terminal(s)` on all user-controlled string content before
-printing. The function escapes: C0 control bytes (0x00-0x1F, except CR 0x0D and LF 0x0A which
-are passed through), DEL (0x7F), the entire C1 range (0x80-0x9F inclusive, including NEL
-U+0085 and CSI U+009B -- no exceptions within this range), and backslash.
+printing. The function escapes: all C0 control bytes (0x00-0x1F) including TAB, LF, and CR
+(these become `\t`, `\n`, `\r` respectively via `char::escape_default`), DEL (0x7F), the
+entire C1 range (0x80-0x9F inclusive, including NEL U+0085 and CSI U+009B -- no exceptions
+within this range), and backslash.
 This prevents terminal injection attacks from attacker-controlled bytes in Finding summaries.
 
-Note: BC-2.11.009 specifies the precise CR/LF handling; this BC covers the overall escaping
+Note: BC-2.11.009 specifies the precise C1 range boundary; this BC covers the overall escaping
 contract.
 
 ## Preconditions
@@ -42,15 +43,17 @@ contract.
 
 ## Postconditions
 
-1. All C0 bytes except CR (0x0D) and LF (0x0A) are replaced with escape sequences
-   (e.g., ESC 0x1B -> `\u{1b}` or `\x1b`).
-2. DEL (0x7F) is replaced with an escape sequence.
-3. C1 bytes (0x80-0x9F) inclusive are replaced -- including NEL (U+0085). No NEL exception
+1. All C0 bytes (0x00-0x1F) are replaced with escape sequences via `char::escape_default`:
+   ESC (0x1B) -> `\u{1b}`, NUL (0x00) -> `\u{0}`, TAB (0x09) -> `\t`, LF (0x0A) -> `\n`,
+   CR (0x0D) -> `\r`. No C0 byte passes through raw.
+2. DEL (0x7F) is replaced with an escape sequence (`\u{7f}`).
+3. C1 bytes (0x80-0x9F) inclusive are replaced -- including NEL (U+0085). No C1 exception
    exists; the entire C1 range is escaped by the `('\u{80}'..='\u{9f}').contains(&c)` predicate
    at `terminal.rs:52`.
 4. Backslash (0x5C) is replaced with `\\`.
-5. Printable ASCII, regular UTF-8 (Cyrillic, emoji, CJK, etc.) pass through unmodified.
-6. The escaped output contains NO raw C0/DEL bytes (except permitted CR/LF).
+5. Printable ASCII (0x20-0x7E, excluding 0x5C backslash), and UTF-8 codepoints U+00A0 and above
+   (Cyrillic, emoji, CJK, etc.) pass through unmodified.
+6. The escaped output contains NO raw C0, DEL, or C1 bytes.
 
 ## Invariants
 
@@ -70,8 +73,9 @@ contract.
 | EC-004 | Backslash in summary | Escaped to `\\` |
 | EC-005 | Cyrillic characters in summary | Passed through unescaped |
 | EC-006 | Emoji in summary | Passed through unescaped |
-| EC-007 | CR (0x0D) and LF (0x0A) in summary | Passed through (not escaped) |
-| EC-008 | C1 CSI byte (0x9B) in summary | Escaped (closes gap for terminal CSI injection) |
+| EC-007 | CR (0x0D) in summary | Escaped to `\r` (char::escape_default short form) |
+| EC-008 | LF (0x0A) in summary | Escaped to `\n` (char::escape_default short form) |
+| EC-009 | C1 CSI byte (0x9B) in summary | Escaped (closes gap for terminal CSI injection) |
 
 ## Canonical Test Vectors
 

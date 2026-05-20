@@ -120,7 +120,7 @@ processed.
 ## Architecture Anchors
 
 - `src/analyzer/tls.rs:379-540` -- `handle_client_hello` implementation
-- `src/analyzer/tls.rs:379-384` -- `handshakes_seen` increment and version count
+- `src/analyzer/tls.rs:379-387` -- `handshakes_seen` increment and version count
 - `src/analyzer/tls.rs:493` -- JA3 computation and count
 - `src/analyzer/tls.rs:402-490` -- SNI extraction and finding emission
 - `tests/tls_analyzer_tests.rs` -- test_parse_client_hello

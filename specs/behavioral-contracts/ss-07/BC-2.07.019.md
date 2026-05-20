@@ -105,7 +105,7 @@ with `Anomaly/Inconclusive/Low` and MITRE T1027.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:260-264` -- arm 4 match in extract_sni (Err case)
+- `src/analyzer/tls.rs:261-264` -- arm 4 match in extract_sni (`Err(_) => SniValue::NonUtf8 { ... }`)
 - `src/analyzer/tls.rs:410-415` -- sni_counts key selection for NonUtf8
 - `src/analyzer/tls.rs:469-488` -- NonUtf8 finding push
 - `tests/tls_analyzer_tests.rs` -- test_non_utf8_sni_emits_finding_and_counts_under_hex_key
@@ -114,7 +114,7 @@ with `Anomaly/Inconclusive/Low` and MITRE T1027.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:260-264` (arm 4), `src/analyzer/tls.rs:469-488` (emission) |
+| **Path** | `src/analyzer/tls.rs:261-264` (arm 4), `src/analyzer/tls.rs:469-488` (emission) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

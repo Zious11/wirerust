@@ -88,13 +88,13 @@ visible output contract.
 
 ## Architecture Anchors
 
-- `src/findings.rs:68-75` -- impl fmt::Display for Confidence
+- `src/findings.rs:68-76` -- impl fmt::Display for Confidence
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/findings.rs:68-75` |
+| **Path** | `src/findings.rs:68-76` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

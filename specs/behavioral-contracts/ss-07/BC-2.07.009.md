@@ -60,8 +60,12 @@ cardinality.
 
 ## Invariants
 
-1. GREASE-valued cipher IDs are filtered BEFORE `is_weak_cipher` is called; GREASE
-   values never trigger a weak-cipher finding.
+1. GREASE-valued cipher IDs never trigger a weak-cipher finding because
+   `TlsCipherSuite::from_id(id.0)` returns `None` for GREASE values (they are not
+   in the cipher suite database), and `is_weak_cipher` returns `false` for `None`.
+   There is NO explicit GREASE pre-filter on the weak-cipher scan; the scan operates
+   on the raw `ch.ciphers` list (lines 497-502). GREASE immunity is a consequence of
+   the `None`-returns-false branch, not an explicit filter.
 2. If `TlsCipherSuite::from_id(id.0)` returns None (unknown cipher), `is_weak_cipher`
    returns false -- unknown ciphers do NOT trigger the finding.
 3. The evidence vec has data-dependent cardinality (O-06). There is no per-cipher cap

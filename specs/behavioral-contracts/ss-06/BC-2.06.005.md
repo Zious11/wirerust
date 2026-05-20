@@ -26,15 +26,15 @@ removal_reason: null
 
 ## Description
 
-When the parsed HTTP request URI contains the substring `../` or `..\` (or URL-encoded
-variants such as `..%2f`, `..%252f`, `....//`), the HttpAnalyzer emits a
-`Reconnaissance/Likely/High` finding tagged with MITRE T1083 (File and Directory Discovery).
-The raw URI bytes are preserved in the finding evidence without escaping (ADR 0003).
+When the parsed HTTP request URI (lowercased) contains any of the substrings `../`,
+`..%2f`, `..%252f`, or `....//`, the HttpAnalyzer emits a `Reconnaissance/Likely/High`
+finding tagged with MITRE T1083 (File and Directory Discovery). The raw URI bytes are
+preserved in the finding evidence without escaping (ADR 0003).
 
 ## Preconditions
 
 1. A complete HTTP/1.1 or HTTP/1.0 request has been parsed by httparse.
-2. The request URI contains `../` or `..\` as a substring.
+2. The lowercased request URI contains at least one of the substrings `../`, `..%2f`, `..%252f`, or `....//`.
 3. The flow direction is ClientToServer (path traversal is a client-originated anomaly).
 
 ## Postconditions
@@ -44,16 +44,15 @@ The raw URI bytes are preserved in the finding evidence without escaping (ADR 00
    - verdict: Likely
    - confidence: High
    - mitre_technique: Some("T1083")
-   - summary: format string mentioning "path traversal" and the flow key
-   - evidence: vec![format of the URI, truncated if > 100 chars]
+   - summary: `format!("Path traversal in URI: {}", truncate_uri(&parsed.uri, 120))` (URI truncated to 120 chars in summary)
+   - evidence: `vec![format!("URI: {}", parsed.uri)]` (full raw URI, NO truncation in evidence)
    - direction: Some(Direction::ClientToServer)
 2. The detection fires per-request (not per-flow-once).
 3. The HTTP parse statistics are updated normally (transaction count, method count, etc.).
 
 ## Invariants
 
-1. The check is a substring match: `uri.contains("../") || uri.contains("..\\")`
-   plus URL-encoded variants. The exact set of patterns is in http.rs.
+1. The check is a substring match on the lowercased URI: `uri_lower.contains("../") || uri_lower.contains("..%2f") || uri_lower.contains("..%252f") || uri_lower.contains("....//")`. These are the exact four patterns at http.rs:187-191. There is NO backslash (`..\"`) pattern in source.
 2. Raw URI bytes are preserved in evidence (ADR 0003 / INV-4).
 3. The finding fires even if the request also triggers other detections (e.g., admin path).
 

@@ -102,13 +102,13 @@ headers in the `--mitre` grouped terminal output and as JSON keys in MITRE-group
 
 ## Architecture Anchors
 
-- `src/mitre.rs:69-90` -- impl fmt::Display for MitreTactic
+- `src/mitre.rs:68-90` -- impl fmt::Display for MitreTactic
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/mitre.rs:69-90` |
+| **Path** | `src/mitre.rs:68-90` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

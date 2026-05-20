@@ -53,7 +53,7 @@ the reassembler is dropped without finalize having been called.
 
 1. The `finalized` latch is set to `true` before any flow-closing work; this prevents
    re-entrancy if close_flow triggers a panic.
-   CORRECTION: looking at the source, `self.finalized = true` is set at line 560 before the
+   The source confirms `self.finalized = true` is set at line 561 before the
    flow loop, ensuring idempotency.
 2. The segment-limit finding push in finalize is the ONLY path that bypasses MAX_FINDINGS.
 3. `impl Drop` is a DIAGNOSTIC ONLY -- it cannot flush flows because `Drop::drop` has no

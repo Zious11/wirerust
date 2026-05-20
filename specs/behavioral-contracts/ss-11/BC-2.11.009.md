@@ -101,7 +101,7 @@ narrow but real vector where DEC S8C1T terminals can interpret 8-bit C1 sequence
 ## Architecture Anchors
 
 - `src/reporter/terminal.rs:52` -- C1 predicate in escape_for_terminal
-- `src/reporter/terminal.rs:369-388` -- escapes_c1_nel_and_csi and escapes_c1_range_boundaries tests
+- `src/reporter/terminal.rs:367-389` -- escapes_c1_nel_and_csi (fn at :368) and escapes_c1_range_boundaries (fn at :381) inline tests
 
 ---
 

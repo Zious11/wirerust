@@ -43,9 +43,12 @@ in `src/reader.rs:69-79`.
 1. Returns `Ok(PcapSource { packets: Vec<RawPacket>, datalink })` where `packets` contains
    one entry per pcap record in file order.
 2. Each `RawPacket` carries:
-   - `timestamp_secs: u32` -- truncated from pcap timestamp Duration seconds.
-   - `timestamp_usecs: u32` -- from `Duration::subsec_micros()`.
-   - `data: Vec<u8>` -- raw frame bytes, cloned via `into_owned()`.
+   - `timestamp_secs: u32` -- copied directly from `raw_packet.ts_sec` (the pcap record's
+     seconds field; reader.rs:76).
+   - `timestamp_usecs: u32` -- derived from `raw_packet.ts_frac`: used as-is for
+     `TsResolution::MicroSecond`, divided by 1_000 for `TsResolution::NanoSecond`
+     (reader.rs:72-73).
+   - `data: Vec<u8>` -- raw frame bytes, cloned via `into_owned()` (reader.rs:78).
 3. Packet order matches pcap record order (no sorting or reordering).
 4. On any packet read error, returns `Err` with context "Failed to read packet"; previously
    read packets are NOT returned.
@@ -66,7 +69,7 @@ in `src/reader.rs:69-79`.
 | EC-003 | Pcap with snaplen-truncated packets | Packets are stored with truncated data bytes; decoder handles truncation downstream |
 | EC-004 | Mid-stream read error (corrupt packet record) | Returns Err wrapping the read error; no partial result |
 | EC-005 | Very large capture (multi-GB) | Loaded entirely into RAM; may fail with OOM if RAM is insufficient (NFR-VIO-001) |
-| EC-006 | Packet with timestamp_secs at u32::MAX (post-2106) | Stored as-is; lossy cast is not checked |
+| EC-006 | Packet with ts_sec at u32::MAX (4294967295) | Stored as-is in timestamp_secs; u32 is the native pcap type, no cast performed |
 
 ## Canonical Test Vectors
 

@@ -98,8 +98,8 @@ due to an unrecognized technique ID.
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:237-244` -- render_finding_grouped None-arm: `(unknown)` label
-- `src/reporter/terminal.rs:291-295` -- Uncategorized bucket rendering
+- `src/reporter/terminal.rs:237-245` -- render_finding_grouped (fn decl to closing brace); None-arm `(unknown)` label at :242
+- `src/reporter/terminal.rs:291-296` -- Uncategorized bucket rendering (`if let Some(items) = buckets.get(&None)` at :291)
 - `tests/reporter_tests.rs` -- mitre_grouping_buckets_none_and_unknown_under_uncategorized
 
 ---
@@ -110,7 +110,7 @@ due to an unrecognized technique ID.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:237-295` |
+| **Path** | `src/reporter/terminal.rs:237-296` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

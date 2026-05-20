@@ -92,14 +92,14 @@ is a first-class supported protocol, not a degraded path.
 
 ## Architecture Anchors
 
-- `src/decoder.rs:219-228` -- lax_ip_triple IPv6 arm (mirrors strict_ip_triple)
-- `src/decoder.rs:209-218` -- strict_ip_triple IPv6 arm
+- `src/decoder.rs:209-228` -- `strict_ip_triple`: IPv4 arm at 211-218, IPv6 arm at 219-227
+- `src/decoder.rs:231-250` -- `lax_ip_triple`: IPv4 arm at 233-240, IPv6 arm at 241-249
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/decoder.rs:219-228` |
+| **Path** | `src/decoder.rs:209-250` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

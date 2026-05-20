@@ -96,13 +96,13 @@ fires before the bit test), so the `else` branch in `analyze` increments `respon
 ## Architecture Anchors
 
 - `src/analyzer/dns.rs:38-44` -- is_query helper: payload length guard + bit test
-- `src/analyzer/dns.rs:62-67` -- analyze: increment logic based on is_query result
+- `src/analyzer/dns.rs:62-70` -- analyze: increment logic based on is_query result, returns Vec::new()
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/dns.rs:38-67` |
+| **Path** | `src/analyzer/dns.rs:38-70` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

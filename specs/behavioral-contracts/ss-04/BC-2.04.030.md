@@ -41,7 +41,7 @@ passed to every `handler.on_data` invocation across all flows, in both direction
 
 1. `stats().bytes_reassembled == sum of data.len() over all on_data(flow_key, dir, data, offset) calls`.
 2. The counter is incremented in two places:
-   - `flush_contiguous_data()` (mod.rs:531) on each segment flushed during live processing.
+   - `flush_contiguous_data()` (mod.rs:530) on each segment flushed during live processing.
    - `close_flow()` (lifecycle.rs:56) on each segment flushed during flow closure.
 3. The counter is never decremented.
 4. Duplicate segments and out-of-window segments do NOT contribute to this count (they are

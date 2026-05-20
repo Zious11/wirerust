@@ -26,42 +26,47 @@ removal_reason: null
 
 ## Description
 
-Each pcap record carries a timestamp as a `Duration`. The reader splits this into two `u32`
-fields: `timestamp_secs` (Duration::as_secs() cast as u32) and `timestamp_usecs`
-(Duration::subsec_micros()). The as-u32 cast is lossy for timestamps beyond 2106 but this is
-an accepted limitation of the pcap format's own u32 epoch design.
+Each pcap record exposes a seconds field (`ts_sec`) and a fractional field (`ts_frac`). The
+reader copies `ts_sec` directly into `timestamp_secs: u32` and derives `timestamp_usecs: u32`
+from `ts_frac`: used as-is for microsecond-resolution files, divided by 1_000 for nanosecond-
+resolution files (reader.rs:71-73). No `Duration` API is involved. The u32 field is already
+the pcap format's own type; no cast is required beyond the match-arm value.
 
 ## Preconditions
 
 1. A pcap packet record has been read from the file.
-2. The record timestamp is a valid Duration from the pcap_file crate.
+2. The record's `ts_sec` (u32) and `ts_frac` (u32) fields are populated by the pcap_file crate from the pcap record header.
 
 ## Postconditions
 
-1. `RawPacket.timestamp_secs` equals `pcap_packet.timestamp.as_secs() as u32`.
-2. `RawPacket.timestamp_usecs` equals `pcap_packet.timestamp.subsec_micros()`.
-3. No panic from the as-u32 cast (Rust u64-as-u32 is defined truncation, not panic).
+1. `RawPacket.timestamp_secs` equals `raw_packet.ts_sec` -- the pcap record's seconds field
+   copied directly (reader.rs:76).
+2. `RawPacket.timestamp_usecs` equals `raw_packet.ts_frac` when `ts_resolution` is
+   `TsResolution::MicroSecond`, or `raw_packet.ts_frac / 1_000` when
+   `TsResolution::NanoSecond` (reader.rs:71-73).
+3. Both fields are `u32` as declared in the pcap format; no additional cast is performed.
 
 ## Invariants
 
 1. Timestamps are preserved as-read; no normalization or wall-clock correction is applied.
-2. The Y2106 wrap (when u64 seconds exceed u32::MAX = 4,294,967,295) is not detected or
-   reported. This is a known accepted limitation.
+2. `ts_sec` is a u32 in the pcap format; values beyond 2106 (u32::MAX = 4,294,967,295)
+   are not possible without format corruption. The field is copied as-is; no wrapping
+   behavior is applied by wirerust.
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | timestamp_secs = 1000, timestamp_usecs = 500 | RawPacket { timestamp_secs: 1000, timestamp_usecs: 500 } |
-| EC-002 | Timestamp at u32::MAX (year 2106) | as u32 wraps to 0; no error |
-| EC-003 | Timestamp with sub-millisecond precision | subsec_micros preserves microseconds; nanoseconds truncated |
+| EC-001 | ts_sec=1000, ts_frac=500 (microsecond file) | RawPacket { timestamp_secs: 1000, timestamp_usecs: 500 } |
+| EC-002 | ts_sec=u32::MAX (maximum possible pcap value) | timestamp_secs=4294967295; no error (u32 is the native pcap type) |
+| EC-003 | Nanosecond-resolution file (ts_frac=500_000) | timestamp_usecs = 500_000 / 1_000 = 500; sub-microsecond precision is discarded (reader.rs:73) |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| pcap_packet.timestamp = 1000s 500us | timestamp_secs=1000, timestamp_usecs=500 | happy-path |
-| timestamp = 0s 0us | timestamp_secs=0, timestamp_usecs=0 | edge-case |
+| pcap record: ts_sec=1000, ts_frac=500, MicroSecond resolution | RawPacket { timestamp_secs: 1000, timestamp_usecs: 500 } | happy-path |
+| pcap record: ts_sec=0, ts_frac=0, MicroSecond resolution | RawPacket { timestamp_secs: 0, timestamp_usecs: 0 } | edge-case |
 
 ## Verification Properties
 
