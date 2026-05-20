@@ -22,6 +22,18 @@ pub struct Summary {
     pub skipped_packets: u64,
     hosts: HashSet<IpAddr>,
     protocols: HashMap<Protocol, u64>,
+    /// Inferred service distribution, keyed by service name.
+    ///
+    /// LESSON-P3.01 — known divergence: this map is **port-based**. It
+    /// is built from [`ParsedPacket::app_protocol_hint`], which infers a
+    /// service purely from the TCP/UDP port tuple (53→DNS, 80→HTTP,
+    /// 443→TLS, 22→SSH, ...). The stream dispatcher (ADR 0001) is, by
+    /// contrast, **content-first**: it identifies a protocol from the
+    /// reassembled bytes regardless of port. The two can therefore
+    /// disagree — e.g. HTTP served on port 8080 contributes nothing
+    /// here (8080 is not a known port hint) yet is dispatched as HTTP
+    /// by content. Treat `services` as a cheap port-based triage
+    /// estimate, not an authoritative classification.
     services: HashMap<String, u64>,
 }
 

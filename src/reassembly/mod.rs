@@ -58,6 +58,15 @@ const MAX_FINDINGS: usize = 10_000;
 // (`ReassemblyConfig::*_alert_threshold`, see `config.rs`) so they can
 // be tuned via the CLI — LESSON-P2.05.
 
+/// Plural suffix for a count: `""` for exactly one, `"s"` otherwise.
+///
+/// LESSON-P3.02: extracted from the inline ternary that formatted the
+/// segment-limit summary finding, giving the pluralization form one
+/// named home for any future count-bearing message to reuse.
+fn plural_s(count: u64) -> &'static str {
+    if count == 1 { "" } else { "s" }
+}
+
 static FINALIZE_SKIPPED_WARNED: AtomicBool = AtomicBool::new(false);
 
 /// TCP header fields extracted from a packet.
@@ -566,9 +575,8 @@ impl TcpReassembler {
                 verdict: Verdict::Inconclusive,
                 confidence: Confidence::Medium,
                 summary: format!(
-                    "{} segment{} dropped due to per-flow segment count limit",
-                    count,
-                    if count == 1 { "" } else { "s" }
+                    "{count} segment{} dropped due to per-flow segment count limit",
+                    plural_s(count),
                 ),
                 evidence: vec![
                     "Segment count limit prevents BTreeMap overhead explosion".into(),
