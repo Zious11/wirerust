@@ -113,9 +113,11 @@ fn test_nfs_bad_stalls_snaplen_capture_decodes_and_detects_anomaly() {
     // `nfs_bad_stalls.cap` is a snaplen-96 NFS-over-TCP capture that
     // exercises two snaplen-truncation fixes end-to-end: the reader
     // (the file loads at all) and the decoder (truncated IP packets are
-    // lax-parsed instead of dropped). Before the decoder fix only ~2373
-    // of its packets decoded; now ~7032 do — `packets_tcp` is the
-    // regression guard for that fix.
+    // lax-parsed instead of dropped). Before the decoder fix only 2373
+    // of its packets decoded; now exactly 7032 of its 7038 packets are
+    // TCP and decode — `packets_tcp` is the regression guard for that
+    // fix, and the exact count is pinned so a decoder regression fails
+    // here rather than drifting silently.
     //
     // It is NOT a benign baseline like the two fixtures above: it is a
     // genuine "bad stalls" capture, and its NFS flow legitimately
@@ -127,11 +129,10 @@ fn test_nfs_bad_stalls_snaplen_capture_decodes_and_detects_anomaly() {
     let reasm = reassemble_fixture("tests/fixtures/nfs_bad_stalls.cap");
     let s = reasm.stats();
     assert!(reasm.is_finalized());
-    assert!(
-        s.packets_tcp > 7000,
-        "decoder must lax-parse the snaplen-truncated packets; got only \
-         {} TCP packets (pre-decoder-fix baseline was ~2373)",
-        s.packets_tcp
+    assert_eq!(
+        s.packets_tcp, 7032,
+        "decoder must lax-parse the snaplen-truncated packets into exactly \
+         7032 TCP packets (pre-decoder-fix baseline was 2373)"
     );
     assert_eq!(s.flows_total, 8, "expected 8 flows");
     // Positive detection: the bad-stalls NFS flow trips the

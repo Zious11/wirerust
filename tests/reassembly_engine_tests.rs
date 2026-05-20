@@ -1718,22 +1718,42 @@ fn test_consecutive_small_segments_trip_anomaly() {
 }
 
 #[test]
-fn test_normal_segment_resets_small_segment_run() {
-    // Positive control: 11 one-byte segments with no break trip the
-    // threshold of 10. Without this the negative assertion below would
-    // pass even if small-segment detection were entirely broken.
-    let control = run_small_segment_flow(10, 11, None, 12345, 80);
+fn test_small_segment_run_at_exactly_threshold_stays_silent() {
+    // The alert fires on `run > threshold`, strictly. A run of exactly
+    // the threshold (10 small segments, threshold 10) must NOT fire —
+    // this pins the boundary, so a regression from `>` to `>=` is
+    // caught (`test_consecutive_small_segments_trip_anomaly` covers the
+    // threshold + 1 side).
+    let reasm = run_small_segment_flow(10, 10, None, 12345, 80);
     assert!(
-        fired_small_segment(&control),
-        "control: an unbroken 11-segment run must fire the anomaly"
+        !fired_small_segment(&reasm),
+        "a run of exactly the threshold must stay silent (the test is `>`, not `>=`)"
     );
-    // The same 11 one-byte segments — but a normal-sized segment after
-    // the 6th resets the consecutive run, so the two sub-runs (6, then
-    // 5) never reach the threshold of 10 and the anomaly stays silent.
-    let reset = run_small_segment_flow(10, 11, Some(6), 12345, 80);
+}
+
+#[test]
+fn test_normal_segment_resets_small_segment_run() {
+    // Two flows of 11 one-byte segments against a threshold of 8,
+    // differing only in where the run-breaking normal segment lands.
+    // Both the *threshold boundary* and the *reset position* are made
+    // load-bearing — a wrong answer flips the assertion.
+    //
+    // Break after the 9th small segment: the first sub-run is exactly 9
+    // (> 8) so the anomaly MUST fire. This proves the run is not reset
+    // before the break — a too-early reset would keep the sub-run <= 8.
+    let fires = run_small_segment_flow(8, 11, Some(9), 12345, 80);
     assert!(
-        !fired_small_segment(&reset),
-        "a normal-sized segment must reset the run and keep the anomaly silent"
+        fired_small_segment(&fires),
+        "the pre-break sub-run of 9 must trip the threshold of 8"
+    );
+    // Move the break one segment earlier: the first sub-run is now
+    // exactly 8 (not > 8) and the second is 3, so the anomaly MUST stay
+    // silent. Were the reset absent the run would reach 11 and fire —
+    // so this proves the reset actually happens, and at the break.
+    let silent = run_small_segment_flow(8, 11, Some(8), 12345, 80);
+    assert!(
+        !fired_small_segment(&silent),
+        "a normal-sized segment must reset the run at the break"
     );
 }
 

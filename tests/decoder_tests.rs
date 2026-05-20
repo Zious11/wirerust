@@ -303,6 +303,57 @@ fn test_decode_snaplen_truncated_clamps_payload_to_captured_bytes() {
     );
 }
 
+#[test]
+fn test_decode_snaplen_truncated_ipv6_recovers_via_lax_parsing() {
+    // The IPv6 `payload_length` field sits at frame offset 4..6 (no
+    // Ethernet header on a RAW capture). Inflating it past the captured
+    // bytes makes the strict parser fail with the same length error an
+    // IPv4 `total_length` over-run produces — this confirms the lax
+    // fallback covers IPv6 truncation too, not only IPv4.
+    let mut data = make_raw_ipv6_tcp_packet();
+    data[4] = 0x05;
+    data[5] = 0xdc; // payload_length = 1500, far past the captured bytes
+    let parsed = decode_packet(&data, DataLink::IPV6)
+        .expect("snaplen-truncated IPv6 frame must decode via the lax fallback");
+
+    assert_eq!(parsed.protocol, Protocol::Tcp);
+    match parsed.transport {
+        TransportInfo::Tcp {
+            src_port, dst_port, ..
+        } => {
+            assert_eq!(src_port, 49153);
+            assert_eq!(dst_port, 80);
+        }
+        _ => panic!("Expected TCP"),
+    }
+}
+
+#[test]
+fn test_decode_truncation_inside_tcp_header_degrades_to_other() {
+    // A frame physically cut *inside* the TCP header — only 10 of the
+    // 20 header bytes captured (44-byte buffer = Ethernet 14 + IPv4 20 +
+    // 10 TCP). The lax fallback recovers the IP layer but cannot recover
+    // the transport layer, so the packet decodes with its IP addresses
+    // intact but as `Protocol::Other(6)` with no transport detail. This
+    // pins the documented degraded-decode behavior for a snaplen cut
+    // that lands within the transport header rather than the payload.
+    let full = make_tcp_packet();
+    let truncated = &full[..44];
+    let parsed = decode_packet(truncated, DataLink::ETHERNET)
+        .expect("a frame truncated mid-TCP-header must still decode its IP layer");
+
+    assert_eq!(parsed.src_ip, IpAddr::V4(Ipv4Addr::new(192, 168, 1, 10)));
+    assert_eq!(
+        parsed.protocol,
+        Protocol::Other(6),
+        "a captured-but-incomplete TCP header must degrade to Other(<ip-proto>)"
+    );
+    assert!(
+        matches!(parsed.transport, TransportInfo::None),
+        "an incomplete TCP header yields no transport detail"
+    );
+}
+
 // --- Error-path discipline ----------------------------------------------
 //
 // The strict→lax fallback must apply lax recovery ONLY to snaplen

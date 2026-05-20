@@ -332,9 +332,14 @@ impl TcpReassembler {
         // Maintain the consecutive small-segment run for this direction
         // (LESSON-P2.05). "Small" is a pure property of the payload
         // size, so it is classified here rather than inside the segment
-        // buffer. Segments the buffer rejected outright — out-of-window,
-        // segment-limit, depth-exceeded — and pure ACKs (empty payload)
-        // are neutral: they neither extend nor reset the run. A
+        // buffer. The run reflects every segment that *reached the
+        // reassembly window* — including duplicates and overlaps
+        // (`Duplicate` / `PartialOverlap` / `ConflictingOverlap` /
+        // `Truncated`), which are real received segments even though
+        // they are not newly stored. Only segments turned away *before*
+        // the window — out-of-window, segment-limit, depth-exceeded — and
+        // the IsnMissing programming-error case are neutral, as are pure
+        // ACKs (empty payload): none extend or reset the run. A
         // normal-sized data segment resets it: segmentation-evasion
         // shows up as a long *unbroken* run of tiny segments, whereas
         // benign interactive traffic interleaves them with normal-sized

@@ -64,9 +64,11 @@ them end-to-end:
   rejected; lax recovery never admits a malformed packet.
 
 `nfs_bad_stalls.cap` is the end-to-end regression fixture for both. All
-7037 of its IPv4 packets decode (the single non-IP ARP frame is dropped,
-as expected); only the application-layer *payload* bytes beyond the
-96-byte snaplen are unavoidably absent. Because the TCP/IP headers
-survive intact, the reassembly engine sees this capture's true sequence
+but one of its 7038 packets decode — the lone non-IP ARP frame is
+dropped; `tests/fixture_reassembly_tests.rs` pins the exact 7032 TCP
+packets the decoder recovers (the rest are a handful of UDP / other-IP
+packets). Only the application-layer *payload* bytes beyond the 96-byte
+snaplen are unavoidably absent. Because the TCP/IP headers survive
+intact, the reassembly engine sees this capture's true sequence
 behaviour — and its NFS flow legitimately trips the out-of-window
 anomaly threshold, which is what makes it a positive detection fixture.
