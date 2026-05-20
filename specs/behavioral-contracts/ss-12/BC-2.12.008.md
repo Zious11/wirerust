@@ -27,7 +27,7 @@ removal_reason: null
 ## Description
 
 In `run_analyze`, the boolean flags `enable_dns`, `enable_http`, and `enable_tls` are
-computed as `*dns || *all`, `*http || *all`, and `*tls || *all` respectively (main.rs:57-58).
+computed as `*dns || *all`, `*http || *all`, and `*tls || *all` respectively (main.rs:57-59).
 When `--all` is given, all three analyzers are enabled regardless of whether `--dns`, `--http`,
 and `--tls` were individually specified. This is an OR-semantics enablement at the call site,
 not in the clap `Commands::Analyze` struct itself.
@@ -44,7 +44,7 @@ not in the clap `Commands::Analyze` struct itself.
 
 ## Invariants
 
-1. The OR computation is at main.rs:57-58 inside the `Commands::Analyze` arm.
+1. The OR computation is at main.rs:57-59 inside the `Commands::Analyze` arm.
 2. The `all` field in the clap struct is a plain `bool`; the OR expansion happens in
    main.rs, not in cli.rs.
 3. The `--mitre` flag is NOT included in `--all`; it must be specified separately.
@@ -77,7 +77,7 @@ not in the clap `Commands::Analyze` struct itself.
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the OR-expansion of --all into enable_dns/enable_http/enable_tls (main.rs:57-58) is the wiring layer that routes subcommand flags to analyzer construction; this is exactly the orchestration concern CAP-12 owns |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the OR-expansion of --all into enable_dns/enable_http/enable_tls (main.rs:57-59) is the wiring layer that routes subcommand flags to analyzer construction; this is exactly the orchestration concern CAP-12 owns |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | S-TBD |
@@ -106,7 +106,7 @@ not in the clap `Commands::Analyze` struct itself.
 
 #### Evidence Types Used
 
-- **documentation**: code is explicit at main.rs:57: `*dns || *all`
+- **documentation**: code is explicit at main.rs:57-59: `*dns || *all`, `*http || *all`, `*tls || *all`
 - **inferred**: no direct test passes `--all` and asserts all three analyzers activate
 
 #### Purity Classification
@@ -123,4 +123,4 @@ not in the clap `Commands::Analyze` struct itself.
 
 To upgrade to HIGH: add `Cli::try_parse_from(["wirerust", "--all", "analyze", "x.pcap"])` and
 assert that the resulting `Commands::Analyze { all: true, .. }` combined with the OR expansion
-at main.rs:57 produces `enable_dns=true, enable_http=true, enable_tls=true`.
+at main.rs:57-59 produces `enable_dns=true, enable_http=true, enable_tls=true`.

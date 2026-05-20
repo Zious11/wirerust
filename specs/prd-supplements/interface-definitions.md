@@ -231,7 +231,7 @@ which calls `serde_json::to_string_pretty`. The output is a single JSON object.
           "mitre_technique": {
             "type": "string",
             "description": "MITRE ATT&CK technique ID (e.g. T1027). Present only when a clean mapping exists; omitted entirely when None (not null).",
-            "pattern": "^T[0-9]+(\\.[0-9]+)?$"
+            "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$"
           },
           "source_ip": {
             "type": "string",

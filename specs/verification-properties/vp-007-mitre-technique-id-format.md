@@ -75,26 +75,26 @@ The static match in `mitre.rs` is closed-world enumeration. Kani can enumerate a
 mod kani_proofs {
     use super::*;
 
-    // All 15 seeded IDs from mitre.rs technique_info
+    // All 15 seeded IDs from mitre.rs technique_info (src/mitre.rs:122-156)
     const SEEDED_IDS: &[&str] = &[
+        // Enterprise
         "T1027",
         "T1036",
+        "T1040",
         "T1046",
-        "T1059",
         "T1071",
         "T1071.001",
         "T1071.004",
-        "T1078",
         "T1083",
         "T1499.002",
         "T1505.003",
         "T1573",
-        "T1595",
+        // ICS
         "T0846",
-        "T1040",
+        "T0855",
+        "T0856",
+        "T0885",
     ];
-    // Note: the actual 15 IDs must be read from src/mitre.rs technique_info.
-    // The list above is illustrative; formal-verifier must reconcile against source.
 
     #[kani::proof]
     fn verify_all_seeded_ids_resolve() {
@@ -160,7 +160,7 @@ mod catalog_completeness {
 
 ## Source Location
 
-`src/mitre.rs:99-129` -- `technique_info` static match block.
+`src/mitre.rs:122-156` -- `technique_info` static match block.
 
 The 15 currently-seeded IDs include T1040, T1071, T1071.001, T1071.004, T1573,
 T0846, T0855, T0856, T0885 which are staged-but-never-emitted (O-04). Sub-property

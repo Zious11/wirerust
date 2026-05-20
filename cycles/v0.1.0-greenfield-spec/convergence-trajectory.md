@@ -37,10 +37,11 @@ traces_to: STATE.md
 | 17 | 2026-05-20 | 5 | 0 | 2 | 1 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — all 5 findings concentrated in ent-04 only; ZERO BC defects found (BC sweep held). F-1 HIGH: AnalysisSummary.detail HashMap→BTreeMap; F-2 HIGH: false "only inline tests" claim + stale line range; F-3 MED: BC-RPT-007→BC-RPT-001 cross-ref; F-4 LOW: line range 12-17→38-50; F-5 NITPICK: Verdict citation 32-40→30-40. All fixed (0c16cad). |
 | 18 | 2026-05-20 | 5 | 0 | 3 | 0 | 2 | LOW | — | **0/3** | **NOT CONVERGED** — all 5 findings were stale-anchor drift from PR #75 `//!` header line shifts in last unreconciled domain shards. H-1 ent-01 8 entity anchors; H-2 ent-04 6 cross-file anchors; H-3 cap-10 unknown-ID rendering anchor; L-1 ent-02 C-range; L-2 domain-spec test count. All fixed (fc28b69). |
 | 19 | 2026-05-20 | 2 | 0 | 0 | 2 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — 0C/0H/2M/0L; package described as "overwhelmingly clean". M-1 purity-boundary-map.md: 3 reporters (JsonReporter, CsvReporter, TextReporter) misclassified as Effectful-shell; corrected to Pure-core (consistent with module-decomposition.md). M-2 dependency-graph.md: test-count statement corrected to "264 in tests/ + 18 inline = 282". All fixed (f913004). |
+| 20 | 2026-05-20 | 4 | 0 | 0 | 2 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — 0C/0H/2M/1L/1N; all spec-precision gaps, no behavioral defects. F-1/F-2 VP-007 SEEDED_IDS corrected + citation 99-129→122-156; F-3 BC-2.12.008 main.rs 57-58→57-59 (5 instances); F-4 mitre_technique regex tightened. Counter remains 0/3. All fixed. |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only)
+`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only; pass 20 spec-precision gaps — 0C/0H/2M/1L/1N)
 
 ## Per-Pass Details
 
@@ -1057,5 +1058,45 @@ findings identified — both minor consistency gaps between architecture documen
 **Remediation:** All 2 findings (0C/0H/2M/0L) remediated. Fixes committed in burst
 `spec: fix adversarial-review pass-19 findings (2M) - reporter purity + test-count`
 (SHA: f913004). Pass 20 dispatched next.
+
+---
+
+### Pass 20 (2026-05-20)
+
+**Findings:** 4 (0 CRIT, 0 HIGH, 2 MED, 1 LOW, 1 NITPICK)
+**Delta from pass 19:** +2 total (MED 0, LOW +1, NITPICK +1) — no regression; 4 discrete spec precision gaps
+**Novelty:** LOW
+**Convergence counter:** 0 of 3
+
+**Adversary assessment:** All findings are spec-precision gaps — no behavioral correctness defects
+found. SEEDED_IDS list in VP-007 contained placeholder IDs; citation ranges off-by-one in two
+files. Package remains in very clean state.
+
+**Key finding categories:**
+
+- MED (F-1): `specs/verification-properties/vp-007-mitre-technique-id-format.md` — `SEEDED_IDS`
+  list contained placeholder/incorrect technique IDs rather than the actual 15 real MITRE IDs
+  present in the seeded test fixture. Corrected to the real 15 IDs from the source fixture.
+
+- MED (F-2): `specs/verification-properties/vp-007-mitre-technique-id-format.md` — Source
+  Location citation range was `99-129`; correct range post-refactor is `122-156`. Updated.
+
+- LOW (F-3): `specs/behavioral-contracts/ss-12/BC-2.12.008.md` — 5 off-by-one citation errors
+  in `main.rs` anchor; all cited `57-58` where correct range is `57-59`. All 5 instances
+  corrected.
+
+- NITPICK (F-4): `specs/prd-supplements/interface-definitions.md` — `mitre_technique` regex
+  pattern was permissive (matched too broadly); tightened to strict form matching actual
+  MITRE technique ID format.
+
+**Files fixed (3):**
+- `specs/verification-properties/vp-007-mitre-technique-id-format.md`
+- `specs/behavioral-contracts/ss-12/BC-2.12.008.md`
+- `specs/prd-supplements/interface-definitions.md`
+
+**Remediation:** All 4 findings (0C/0H/2M/1L/1N) remediated. VP-007 SEEDED_IDS corrected to
+real 15 MITRE IDs; VP-007 Source Location citation updated 99-129 → 122-156; BC-2.12.008
+main.rs citation corrected 57-58 → 57-59 (5 instances); interface-definitions.md mitre_technique
+regex tightened to strict form. Pass 21 dispatched next.
 
 ---
