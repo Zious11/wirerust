@@ -32,9 +32,6 @@ When SNI hostname bytes fail UTF-8 decoding (`str::from_utf8` returns `Err`), ar
 as the `sni_counts` map key, wrapped in `<non-utf8:HEX>` format. A finding is emitted
 with `Anomaly/Inconclusive/Low` and MITRE T1027.
 
-Note: BC-INDEX title says "Anomaly/Likely/High" but source emits `Verdict::Inconclusive,
-Confidence::Low`. The body reflects source truth.
-
 ## Preconditions
 
 1. `str::from_utf8(hostname_bytes) == Err(_)` -- bytes are not valid UTF-8.

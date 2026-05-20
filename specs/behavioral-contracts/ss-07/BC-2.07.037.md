@@ -49,7 +49,7 @@ observable behavior, not a bug (pass-2 R3 Target 2).
 1. Arm 3 fires: `SniValue::NonAsciiUtf8 { hostname, hex }` is returned.
 2. A Finding is emitted with summary text about "non-ASCII characters" (NOT "control bytes").
 3. The control-byte information is recoverable only from the hex evidence field.
-4. The finding has MITRE T1027, direction ClientToServer, Anomaly/Likely/High.
+4. The finding has MITRE T1027, direction ClientToServer, Anomaly/Inconclusive/Low.
 
 ## Invariants
 

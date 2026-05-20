@@ -33,9 +33,6 @@ code point outside U+0000-U+007F (i.e., `is_ascii()` returns false), arm 3 of
 characters" and the RFC 6066 A-label requirement. Raw UTF-8 hostname bytes are
 preserved in the finding (ADR 0003 / INV-4).
 
-Note: BC-INDEX title says "Anomaly/Likely/High" but the source code at tls.rs:449-467
-emits `Verdict::Inconclusive, Confidence::Low`. The body reflects source truth.
-
 ## Preconditions
 
 1. `from_utf8(hostname) == Ok(s)` -- valid UTF-8.
