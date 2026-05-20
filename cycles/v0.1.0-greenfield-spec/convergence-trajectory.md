@@ -28,10 +28,11 @@ traces_to: STATE.md
 | 10 | 2026-05-20 | 6 | 0 | 3 | 3 | 0 | LOW | — | 0/3 | NOT_CONVERGED — dependency table stale vs Cargo.toml, api-surface Reporter trait + ParsedPacket wrong, CAP-03/SS IDs; all 6 fixed |
 | 11 | 2026-05-20 | 1 | 0 | 0 | 0 | 1 | LOW | — | **1/3** | **CONVERGED** — clean pass 1 of 3 (0C/0H/0M/1L/4obs); 1L + 4 cosmetic observations polished |
 | 12 | 2026-05-20 | 6 | 0 | 1 | 1 | 2 | LOW | — | **0/3** | **NOT CONVERGED** — counter RESET from 1/3 (H+M findings broke streak); all 6 findings fixed |
+| 13 | 2026-05-20 | 5 | 0 | 2 | 0 | 3 | LOW | — | **0/3** | **NOT CONVERGED** — 2H stale anchors (ent-05, INV-4), 2L doc drift (ARCH-INDEX C-count, prd BC-2.07.004), 1N; all 5 fixed |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6`
+`17→13→7→19→8→3→13→7→4→6→1→6→5`
 
 ## Per-Pass Details
 
@@ -617,5 +618,52 @@ rendering and stale citation fixed in BC-2.04.049; csv.rs off-by-one citations f
 BC-2.11.020. Fixes committed in burst
 `spec: fix adversarial-review pass-12 findings (1H/1M/2L) - C1-escape postcondition, stale citations`
 (SHA: c21b13c). Pass 13 dispatched next.
+
+---
+
+### Pass 13 (2026-05-20) — NOT CONVERGED (counter remains 0/3)
+
+**Findings:** 5 (0 CRIT, 2 HIGH, 0 MED, 3 LOW — of which 2L + 1N reported as "3 LOW, 1 NITPICK")
+**Delta from pass 12:** -1 total (HIGH +1, MED -1, LOW +1, NITPICK -1) — no regression; fresh-context anchor audit
+**Novelty:** LOW
+**Convergence counter:** 0/3 (unchanged — HIGH findings disqualify; a clean pass requires 0C/0H/0M)
+**Verdict:** NOT CONVERGED — 2 HIGH findings present. Counter remains 0/3. Pass 14 is next.
+
+**Key finding categories:**
+
+- HIGH (H-1): `domain/entities/ent-05-enums-value-objects.md` — 7 value-object source-line anchors
+  were stale (post-refactor drift in `findings.rs`, `output/json.rs`, `output/csv.rs`). All 7
+  anchor citations corrected to current line numbers.
+
+- HIGH (H-2): `domain/invariants/inv-01-core-invariants.md` — INV-4 enforcement citation referenced
+  `findings.rs:72-80`; correct lines post-refactor are `findings.rs:10-14` (struct definition) and
+  `findings.rs:148-156` (validation logic). Citation updated to dual-anchor form.
+
+- LOW (C-1): `architecture/ARCH-INDEX.md` — component-count summary line stated range `C-1..C-20`;
+  correct range is `C-1..C-21` (CsvReporter dispatcher was added as C-21 in pass-4 remediation but
+  the summary line was not updated). Corrected.
+
+- LOW (LOW): `specs/prd.md` — BC-2.07.004 section-2.7 one-liner description was misaligned with
+  the canonical BC H1 heading. Aligned to canonical BC body language.
+
+- NITPICK (1N): Minor wording inconsistency; corrected in the same sweep as H-1.
+
+**Recurring process gap (7th occurrence — P-CITE-PG):**
+Stale source-line citations (`file.rs:NNN`) recurred again in this pass (H-1, H-2). This is the
+7th recurrence across passes 4, 6, 8, 9, 10, 12, 13. Mandatory codification follow-up (P-CITE-PG)
+already recorded in STATE.md Deferred Findings. No new action item added.
+
+**Files fixed (4):**
+`specs/domain/entities/ent-05-enums-value-objects.md`,
+`specs/domain/invariants/inv-01-core-invariants.md`,
+`specs/architecture/ARCH-INDEX.md`,
+`specs/prd.md`
+
+**Remediation:** All 5 findings (0C/2H/0M/3L) remediated. ent-05 7 value-object anchors corrected;
+INV-4 enforcement citation updated to dual-anchor form (findings.rs:10-14 + :148-156); ARCH-INDEX
+component-count range corrected C-1..C-20 → C-1..C-21; prd.md BC-2.07.004 one-liner aligned to
+canonical BC H1. Fixes committed in burst
+`spec: fix adversarial-review pass-13 findings (2H/3L) - ent-05 anchors, INV-4 anchor`.
+Pass 14 dispatched next.
 
 ---

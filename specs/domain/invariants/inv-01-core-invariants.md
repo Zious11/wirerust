@@ -98,7 +98,8 @@ TCP payloads. If escape logic runs at construction time, the escaped form reache
 consumers -- forensic data is permanently lost. ADR 0003 was established after PR #49
 used `{:?}` Debug formatting at construction time.
 
-**Enforcement:** Convention only; documented in `src/findings.rs:72-80` doc-comment.
+**Enforcement:** Convention only; documented in the module header doc-comment at
+`src/findings.rs:10-14` and the `Finding::Display` doc at `src/findings.rs:148-156`.
 The compiler does not enforce this. Any analyzer that calls `escape_for_terminal` at
 construction time silently violates the invariant without a compile error.
 

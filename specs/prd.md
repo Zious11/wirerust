@@ -285,7 +285,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.07.001 | Parse complete TLS ClientHello: version, ciphers, extensions, SNI, JA3 | P0 | BC-TLS-001 |
 | BC-2.07.002 | Parse complete TLS ServerHello: JA3S fingerprint computed | P0 | BC-TLS-002 |
 | BC-2.07.003 | After both hellos seen, subsequent records silently skipped | P0 | BC-TLS-003 |
-| BC-2.07.004 | TLS record payload > MAX_RECORD_PAYLOAD (18432) increments parse_errors and clears buffer | P0 | BC-TLS-004 |
+| BC-2.07.004 | TLS record payload > MAX_RECORD_PAYLOAD (18432) increments parse_errors and truncated_records | P0 | BC-TLS-004 |
 | BC-2.07.005 | Per-direction buffer capped at MAX_BUF=65536 bytes | P1 | BC-TLS-005 |
 | BC-2.07.006 | JA3 computation filters GREASE values per RFC 8701 | P0 | BC-TLS-006 |
 | BC-2.07.007 | JA3 string format: version,ciphers,extensions,curves,pointfmts hyphen-joined; MD5 hex | P0 | BC-TLS-007 |

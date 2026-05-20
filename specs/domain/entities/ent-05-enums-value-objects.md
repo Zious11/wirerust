@@ -40,7 +40,7 @@ domain model. Source: pass-2-domain-model.md sections 2 and 4.
 the pair participate in the comparison together; independent per-field sorting would break
 the invariant.
 
-**Enforcement:** `src/reassembly/flow.rs:34`.
+**Enforcement:** `src/reassembly/flow.rs:48` (`if (ip_a, port_a) <= (ip_b, port_b)`).
 **Tests:** `test_flow_key_canonicalization` and `test_flow_key_same_ip_different_ports` in
 `tests/reassembly_flow_tests.rs:7,23`.
 
@@ -60,7 +60,7 @@ inconsistency (LESSON-P2.10) is closed.
 
 ### VO-5: MitreTactic is non-exhaustive
 
-`#[non_exhaustive]` attribute at `src/mitre.rs:22`. Downstream matches must include a `_` arm.
+`#[non_exhaustive]` attribute at `src/mitre.rs:46`. Downstream matches must include a `_` arm.
 
 ### VO-6: MITRE technique ID format
 
@@ -71,22 +71,23 @@ passes the raw string through without validation.
 ### VO-7: JA3 fingerprint hash
 
 MD5 hex of `version,ciphers,extensions,curves,point_formats` with GREASE values filtered
-(`val & 0x0F0F == 0x0A0A`). Enforcement: `src/analyzer/tls.rs:68-124`. If GREASE is not
+(`val & 0x0F0F == 0x0A0A`). Enforcement: `src/analyzer/tls.rs:95-151` (`compute_ja3`). If GREASE is not
 filtered, the same client produces different hashes per-connection (RFC 8701).
 
 ### VO-8: JA3S fingerprint hash
 
-MD5 hex of `version,cipher,extensions` server-side. Enforcement: `src/analyzer/tls.rs:127-146`.
+MD5 hex of `version,cipher,extensions` server-side. Enforcement: `src/analyzer/tls.rs:156-173` (`compute_ja3s`).
 
 ### VO-9: Finding.summary/evidence carries raw bytes
 
-No escape applied at construction. ADR 0003. Enforcement: doc-comment at `src/findings.rs:72-80`.
+No escape applied at construction. ADR 0003. Enforcement: module header doc-comment at
+`src/findings.rs:10-14` and `Finding::Display` doc at `src/findings.rs:148-156`.
 Not mechanically enforced; convention violation would not be caught by the compiler.
 
 ### VO-10: Direction is a closed binary enum
 
 `ClientToServer` / `ServerToClient` only. Ambiguous flows default to `ServerToClient` when
-`initiator` is None (`flow.rs:194-198`).
+`initiator` is None (`flow.rs:214-220`, `direction()` method).
 
 ### VO-11: FlowState transitions monotonic toward Closed
 
@@ -96,5 +97,5 @@ non-monotonic path is `on_data_without_syn` (jumps to Established from New).
 ### VO-12: InsertResult::IsnMissing is a programming-error sentinel
 
 Should never occur in production. If reached, segment is silently dropped. One-shot `eprintln!`
-via `ISN_MISSING_WARNED: AtomicBool` at `src/reassembly/segment.rs:42-47`. No finding emitted,
-no stats counter incremented.
+via `ISN_MISSING_WARNED: AtomicBool` at `src/reassembly/segment.rs:16`; the `eprintln!` is at
+`src/reassembly/segment.rs:54-56`. No finding emitted, no stats counter incremented.

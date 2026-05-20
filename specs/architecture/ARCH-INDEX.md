@@ -39,7 +39,7 @@ network interfaces. The binary IS the complete deployment unit.
 | File | Contents | Tokens (est.) |
 |------|----------|---------------|
 | `system-overview.md` | 5-layer pipeline narrative, data flow, key constraints | ~900 |
-| `module-decomposition.md` | 20 components C-1..C-20 mapped to source files and SS-NN | ~1100 |
+| `module-decomposition.md` | 21 components C-1..C-21 mapped to source files and SS-NN | ~1100 |
 | `dependency-graph.md` | Import DAG, the one accepted cycle (L2<->L3), external crates | ~800 |
 | `api-surface.md` | Public API: traits, structs, CLI surface, no network interfaces | ~900 |
 | `verification-architecture.md` | Provable properties catalog, P0/P1 list, tooling selection | ~1100 |
