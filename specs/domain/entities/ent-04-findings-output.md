@@ -10,7 +10,7 @@ reconciled: 2026-05-20
 
 Covers E-23 through E-28, E-36 through E-39. Source: pass-2-domain-model.md + pass-3-R4.md.
 
-## E-23: Verdict (src/findings.rs:32-40)
+## E-23: Verdict (src/findings.rs:30-40)
 
 ```
 enum Verdict { Likely, Unlikely, Inconclusive }
@@ -62,13 +62,13 @@ it; reassembly-engine findings leave it None.
 Copy, PartialEq, Eq, Hash`. `Display` renders canonical English names. See CAP-10 for full
 variant list.
 
-## E-28: AnalysisSummary (src/analyzer/mod.rs:12-17)
+## E-28: AnalysisSummary (src/analyzer/mod.rs:38-50)
 
 ```
 struct AnalysisSummary {
     analyzer_name:    String,
     packets_analyzed: u64,
-    detail:           HashMap<String, serde_json::Value>,
+    detail:           BTreeMap<String, serde_json::Value>,
 }
 ```
 
@@ -121,13 +121,14 @@ struct TerminalReporter {
 }
 ```
 
-Sole owner of `escape_for_terminal`. Contains the only inline `#[test]` functions in src/
-(11 tests at lines 265-341; discovered in pass-0 R2). See CAP-11 for rendering details.
+Sole owner of `escape_for_terminal`. Contains 11 inline `#[test]` functions
+(terminal.rs:300-389); `src/analyzer/tls.rs` holds the other 7 inline tests -- total 18
+inline across src/ (discovered in pass-0 R2). See CAP-11 for rendering details.
 
 ## E-39: JsonReporter (src/reporter/json.rs:8)
 
 Unit struct. `serde_json::to_string_pretty().unwrap()` is infallible by construction
-(BC-RPT-007; confirmed pass-2 R2 Target 8). Statistics maps serialized via BTreeMap for
+(BC-RPT-001 / BC-2.11.001; confirmed pass-2 R2 Target 8). Statistics maps serialized via BTreeMap for
 deterministic key ordering (P2.09 / #76).
 
 ## E-39b: CsvReporter (src/reporter/csv.rs)
