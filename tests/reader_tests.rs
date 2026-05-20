@@ -146,3 +146,52 @@ fn test_reader_accepts_linux_sll_linktype() {
     let source = PcapSource::from_pcap_reader(Cursor::new(buf)).unwrap();
     assert_eq!(source.datalink, DataLink::LINUX_SLL);
 }
+
+/// Build a pcap with one packet record whose on-wire `orig_len` exceeds
+/// the file's `snaplen` — i.e. a snaplen-truncated capture, as produced
+/// by `tcpdump -s <small>`. `incl_len` (captured bytes) stays within
+/// `snaplen`; only `orig_len` (the real wire length) is larger.
+fn snaplen_truncated_pcap_bytes() -> Vec<u8> {
+    let mut buf = Vec::new();
+
+    // Global header: snaplen = 96.
+    buf.extend_from_slice(&0xa1b2c3d4u32.to_le_bytes()); // magic (LE, microsecond)
+    buf.extend_from_slice(&2u16.to_le_bytes()); // version major
+    buf.extend_from_slice(&4u16.to_le_bytes()); // version minor
+    buf.extend_from_slice(&0i32.to_le_bytes()); // thiszone
+    buf.extend_from_slice(&0u32.to_le_bytes()); // sigfigs
+    buf.extend_from_slice(&96u32.to_le_bytes()); // snaplen = 96
+    buf.extend_from_slice(&1u32.to_le_bytes()); // network = Ethernet
+
+    // Packet record: incl_len = 96 (<= snaplen), orig_len = 1500 (> snaplen).
+    buf.extend_from_slice(&100u32.to_le_bytes()); // ts_sec
+    buf.extend_from_slice(&42u32.to_le_bytes()); // ts_frac (microseconds)
+    buf.extend_from_slice(&96u32.to_le_bytes()); // incl_len = 96
+    buf.extend_from_slice(&1500u32.to_le_bytes()); // orig_len = 1500
+    buf.extend_from_slice(&[0u8; 96]); // 96 captured bytes
+
+    buf
+}
+
+#[test]
+fn test_reader_accepts_snaplen_truncated_capture() {
+    // Regression: a capture taken with a snap length (`tcpdump -s 96`)
+    // has packet records whose `orig_len` legitimately exceeds the
+    // file `snaplen`. pcap-file 2.0.0's validated `next_packet()` path
+    // wrongly rejects these (`PacketHeader orig_len > snap_len`); the
+    // reader must use the raw-record path and accept them.
+    let buf = snaplen_truncated_pcap_bytes();
+    let source = PcapSource::from_pcap_reader(Cursor::new(buf))
+        .expect("snaplen-truncated capture must be readable");
+    assert_eq!(source.packets.len(), 1, "expected the single packet");
+    assert_eq!(
+        source.packets[0].data.len(),
+        96,
+        "captured data is exactly incl_len (96) bytes"
+    );
+    assert_eq!(source.packets[0].timestamp_secs, 100);
+    assert_eq!(
+        source.packets[0].timestamp_usecs, 42,
+        "microsecond-resolution ts_frac is carried through verbatim"
+    );
+}
