@@ -13,20 +13,21 @@ dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
-adversary_convergence_counter: 1/3
-adversary_pass_28_date: "2026-05-20"
-adversary_pass_28_verdict: CONVERGED
-adversary_pass_28_findings: "0 (0C/0H/0M/0L/0N) — clean pass 1/3. No spec artifact modified. Pass 29 next (second confirmation pass on stable, unchanged package)."
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0"
+adversary_convergence_counter: 2/3
+adversary_pass_29_date: "2026-05-20"
+adversary_pass_29_verdict: CONVERGED
+adversary_pass_29_findings: "1 (0C/0H/0M/1L/1obs) — clean pass 2/3. L-1+O-08 fixed before commit 04478ef. Pass 30 next (third and final confirmation pass)."
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 28 returned CONVERGED (0C/0H/0M/0L/0N); counter
-advances to **1/3**. No spec artifact modified. Passes 29 and 30 must also return 0C/0H/0M
-on the unchanged package to satisfy the Phase 1d adversarial convergence gate.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 29 returned CONVERGED (0C/0H/0M/1L/1obs); counter
+advances to **2/3**. L-1 (system-overview.md handler.rs import desc) and O-08 (dns.rs stale
+doc-comment, new debt item) both fixed before commit 04478ef. Pass 30 next — the THIRD and
+final confirmation pass; if 0C/0H/0M the Phase 1d convergence gate is SATISFIED (3/3).
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -41,7 +42,7 @@ on the unchanged package to satisfy the Phase 1d adversarial convergence gate.
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (**1/3** — pass 28 CONVERGED 0C/0H/0M/0L/0N; pass 29 next — second confirmation pass on stable, unchanged package) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (**2/3** — pass 29 CONVERGED 0C/0H/0M/1L/1obs; pass 30 next — third and final confirmation pass) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -122,16 +123,17 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 26 | 2026-05-20 | 5 (0C/3H/1M/1L) | NOT CONVERGED | Counter remains **0/3** — all 4 blocking findings in VP files (wrong API signatures, stale citations, mis-stated verdict labels). Commissioned SWEEP48. |
 | SWEEP48 | 2026-05-20 | — | REMEDIATION BURST | ~48 defects across all 20 VP files + VP-INDEX + BC-2.04.039 vs src/. All 4 major spec categories now comprehensively reconciled: BCs (~58), anchors (~28), supplements (~68), VPs (~48). SHA: 25641c4. Counter: **0/3** unchanged. |
 | 27 | 2026-05-20 | 1 (0C/1H/0M/0L) | NOT CONVERGED | Counter remains **0/3** — H-1 verification-coverage-matrix.md VP-016..020 Phase column P1→test-sufficient (P0(8)/P1(7)/test-sufficient(5)=20 invariant restored). Fixed (e758fb6). |
-| 28 | 2026-05-20 | 0 (0C/0H/0M/0L/0N) | **CONVERGED** | **CLEAN PASS 1/3** — zero findings; no spec artifact modified. Counter advances to **1/3**. Pass 29 next (second confirmation pass on stable, unchanged package). |
+| 28 | 2026-05-20 | 0 (0C/0H/0M/0L/0N) | **CONVERGED** | **CLEAN PASS 1/3** — zero findings; no spec artifact modified. Counter advances to **1/3**. |
+| 29 | 2026-05-20 | 1 (0C/0H/0M/1L/1obs) | **CONVERGED** | **CLEAN PASS 2/3** — L-1 system-overview.md handler.rs import desc corrected; O-08 dns.rs stale doc-comment recorded as debt. Both fixed before commit 04478ef. Counter advances to **2/3**. Pass 30 next. |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
-1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (**1/3 — clean pass 1 achieved**).
-   Pass 28 CONVERGED (0C/0H/0M/0L/0N); no spec artifact modified. Pass 29 next — second
-   confirmation pass on stable, unchanged package. Pass 30 required after that. All 4 major
-   spec categories comprehensively source-reconciled; spec package fully swept.
+1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (**2/3 — clean passes 28+29 achieved**).
+   Pass 30 is the THIRD and final confirmation pass. If pass 30 returns 0C/0H/0M the Phase 1d
+   adversarial convergence gate is SATISFIED (3/3). All 4 major spec categories comprehensively
+   source-reconciled; spec package fully swept.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 
@@ -146,6 +148,7 @@ GitHub issue. Pointer in `CLAUDE.md` on `develop` via PR #99 (0082a0c).
 | ID | Description | Priority | Source |
 |----|-------------|----------|--------|
 | O-07 | `rayon` declared in Cargo.toml but unused in `src/` — dead dependency | P2 | adversarial pass 1 (LOW finding) |
+| O-08 | `src/analyzer/dns.rs` module doc-comment is stale — references removed behavior | P3 | adversarial pass 29 (observation O-1); recorded in domain-debt.md |
 
 Full register: `.factory/tech-debt-register.md` (when populated).
 

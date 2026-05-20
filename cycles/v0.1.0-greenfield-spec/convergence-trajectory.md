@@ -48,10 +48,11 @@ traces_to: STATE.md
 | SWEEP48 | 2026-05-20 | — | — | — | — | — | — | — | **0/3** | **REMEDIATION BURST** — comprehensive VP-file sweep; all 20 VP files + VP-INDEX + BC-2.04.039 re-verified against current src/; ~48 defects fixed (wrong API sigs ~20, stale citations ~25, BC verdict labels 3, VP-INDEX phase column 5). SHA: 25641c4. All 4 major spec categories now comprehensively reconciled. Counter 0/3 unchanged. Pass 27 next. |
 | 27 | 2026-05-20 | 1 | 0 | 1 | 0 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — 0C/1H/0M/0L. H-1: verification-coverage-matrix.md VP-016..020 Phase column P1→test-sufficient (SWEEP48 propagation gap; P0(8)/P1(7)/test-sufficient(5)=20 invariant restored). Fixed (e758fb6). Counter remains 0/3. Pass 28 next. |
 | 28 | 2026-05-20 | 0 | 0 | 0 | 0 | 0 | NONE | — | **1/3** | **CONVERGED** — **CLEAN PASS 1/3 (new streak)**; 0C/0H/0M/0L/0N. Zero findings. No spec artifact modified. Passes 29 and 30 will review identical, stable content. Counter advances to **1/3**. Pass 29 next (second confirmation pass). |
+| 29 | 2026-05-20 | 1 | 0 | 0 | 0 | 1 | LOW | — | **2/3** | **CONVERGED** — **CLEAN PASS 2/3**; 0C/0H/0M/1L/1obs. Gate definition: 0C/0H/0M = clean pass. L-1: system-overview.md handler.rs import description corrected (Direction/CloseReason defined in-file, not imported). O-1 (obs): new debt item O-08 added — dns.rs module doc-comment stale; propagated to domain-debt.md, ARCH-INDEX.md, prd.md. Both L-1 and O-08 fixed before commit (04478ef). Counter advances to **2/3**. Pass 30 next — THIRD and final confirmation pass; if 0C/0H/0M the Phase 1d adversarial convergence gate is SATISFIED (3/3). |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only; pass 20 spec-precision gaps — 0C/0H/2M/1L/1N; pass 21 — 0C/0H/1M/0L/2N, C-10 re-anchor + PRD nitpicks; **pass 22 CONVERGED 0C/0H/0M/2L/1N — counter 1/3**; pass 23 NOT CONVERGED — streak broken, 0C/1H/1M/1N, counter reset 0/3; **pass 24 CONVERGED 0/0/0/0/0 — counter 1/3**; pass 25 NOT CONVERGED — streak RESET 1/3→0/3, 0C/2H/2M, all 4 in PRD supplements; SWEEP68 — comprehensive PRD-supplement sweep ~68 defects fixed, P-CITE-PG addressed; counter 0/3; pass 26 NOT CONVERGED 0C/3H/1M/1L, all 4 in VP files; SWEEP48 — comprehensive VP-file sweep ~48 defects fixed; counter 0/3; pass 27 NOT CONVERGED 0C/1H/0M/0L — VP-016..020 Phase column drift fixed (e758fb6); counter 0/3; **pass 28 CONVERGED 0C/0H/0M/0L/0N — counter 1/3, clean pass 1/3**; pass 29 next — second confirmation pass on stable, unchanged package)
+`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only; pass 20 spec-precision gaps — 0C/0H/2M/1L/1N; pass 21 — 0C/0H/1M/0L/2N, C-10 re-anchor + PRD nitpicks; **pass 22 CONVERGED 0C/0H/0M/2L/1N — counter 1/3**; pass 23 NOT CONVERGED — streak broken, 0C/1H/1M/1N, counter reset 0/3; **pass 24 CONVERGED 0/0/0/0/0 — counter 1/3**; pass 25 NOT CONVERGED — streak RESET 1/3→0/3, 0C/2H/2M, all 4 in PRD supplements; SWEEP68 — comprehensive PRD-supplement sweep ~68 defects fixed, P-CITE-PG addressed; counter 0/3; pass 26 NOT CONVERGED 0C/3H/1M/1L, all 4 in VP files; SWEEP48 — comprehensive VP-file sweep ~48 defects fixed; counter 0/3; pass 27 NOT CONVERGED 0C/1H/0M/0L — VP-016..020 Phase column drift fixed (e758fb6); counter 0/3; **pass 28 CONVERGED 0C/0H/0M/0L/0N — counter 1/3, clean pass 1/3**; **pass 29 CONVERGED 0C/0H/0M/1L/1obs — counter 2/3, clean pass 2/3, L-1+O-08 fixed before commit 04478ef**; pass 30 next — FINAL confirmation pass; 3/3 satisfies Phase 1d gate)
 
 ## Per-Pass Details
 
@@ -1498,5 +1499,56 @@ invariant restored. Committed to factory-artifacts (e758fb6).
 
 **Note:** This was a single-file, single-category finding (phase-column drift from SWEEP48
 propagation gap). The spec package remains comprehensively reconciled in all other respects.
+
+---
+
+### Pass 28 (2026-05-20)
+
+**Findings:** 0 (0 CRIT, 0 HIGH, 0 MED, 0 LOW, 0 Novelty)
+**Delta from pass 27:** -1 total — no regression
+**Novelty:** NONE
+**Convergence counter:** 1 of 3
+
+**Key findings:** None. Zero findings. No spec artifact modified.
+
+**Remediation:** None required.
+
+**Verdict:** CONVERGED — **CLEAN PASS 1/3 (new streak)**. Counter advances to 1/3. Pass 29
+next (second confirmation pass on stable, unchanged package).
+
+---
+
+### Pass 29 (2026-05-20)
+
+**Findings:** 1 (0 CRIT, 0 HIGH, 0 MED, 1 LOW) + 1 observation
+**Delta from pass 28:** +1 total (1L vs 0) — gate-level clean (0C/0H/0M; LOW below RESET threshold)
+**Novelty:** LOW
+**Convergence counter:** 2 of 3
+
+**Gate-level classification:** CLEAN PASS — gate definition requires 0C/0H/0M; LOWs and
+observations do not break the streak.
+
+**Findings:**
+
+- L-1 (LOW): `specs/architecture/system-overview.md` — handler.rs import description was
+  incorrect. Stated that `Direction` and `CloseReason` are imported from a sub-module; in
+  reality handler.rs imports L3 `AnalysisSummary`/`Finding` and L2 `FlowKey` from sibling
+  modules. `Direction` and `CloseReason` are defined in-file (not imported). One-line
+  description corrected.
+
+- O-1 (observation / process-gap): `src/analyzer/dns.rs` module doc-comment is stale —
+  references behavior that was removed. This is a source defect, not a spec defect; the spec
+  correctly describes current behavior. Recorded as documentation-debt item O-08 in
+  domain-debt.md; propagated to ARCH-INDEX.md debt list and prd.md Section 8 Domain Debt
+  Index (O-07 and O-08 backfilled; range O-01..O-06 → O-01..O-08).
+
+**Remediation:** Both L-1 and O-08 fixed and committed to factory-artifacts before recording
+this verdict (commit 04478ef, 4 files: system-overview.md, domain-debt.md, ARCH-INDEX.md,
+prd.md).
+
+**Verdict:** CONVERGED — **CLEAN PASS 2/3**. Counter advances to 2/3. Pass 30 next — the
+THIRD and final confirmation pass. If pass 30 returns 0C/0H/0M, the Phase 1d adversarial
+spec-convergence gate is SATISFIED (3/3) and Phase 1 may proceed to the consistency audit
+and human approval gate.
 
 ---
