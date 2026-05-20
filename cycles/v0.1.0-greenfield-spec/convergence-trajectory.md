@@ -20,10 +20,11 @@ traces_to: STATE.md
 | 2 | 2026-05-20 | 13 | 0 | 4 | 6 | 3 | MED | — | 0/3 | NOT_CONVERGED — all blocking remediated; 2 deferred (L-2, L-3) |
 | 3 | 2026-05-20 | 7 | 0 | 3 | 2 | 2 | MED | — | 0/3 | NOT_CONVERGED — all findings remediated |
 | 4 | 2026-05-20 | 19 | 4 | 5 | 5 | 3 | HIGH | — | 0/3 | NOT_CONVERGED — fresh-context L2 cap+entity audit; all 19 fixed; +5 CsvReporter BCs |
+| 5 | 2026-05-20 | 8 | 1 | 2 | 3 | 2 | LOW | — | 0/3 | NOT_CONVERGED — NUL byte, stale --services, count drift; all 8 fixed |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→...`
+`17→13→7→19→8→...`
 
 ## Per-Pass Details
 
@@ -175,5 +176,54 @@ corrected. CsvReporter coverage gap closed with 5 new BCs (BC-2.11.020–024). C
 updated 20→21 in domain-spec.md. VP-020 re-anchored to BC-2.11.021. Fixes committed in burst
 `spec: fix adversarial-review pass-4 findings (4C/5H/5M) - reconcile L2 capability layer + add CsvReporter BCs`.
 Pass 5 dispatched next.
+
+---
+
+### Pass 5 (2026-05-20)
+
+**Findings:** 8 (1 CRIT, 2 HIGH, 3 MED, 2 LOW)
+**Delta from pass 4:** -11 total (CRIT -3, HIGH -3, MED -2, LOW -1, NITPICK -2) — no regression
+**Novelty:** LOW
+**Convergence counter:** 0 of 3
+
+**Key finding categories:**
+
+- CRIT (C-1): `BC-2.07.020.md` contained a literal NUL byte (0x00), making the file
+  non-UTF-8. The existence check used during spec-package verification did not detect the
+  corruption. NUL byte replaced with textual escape ` `; file is now valid UTF-8.
+- HIGH (H-1): `BC-INDEX.md` and `prd.md` — BC-2.12.002 title still referenced `--services`
+  flag which was removed from the CLI in a prior refactor. Title corrected in both files.
+- HIGH (H-2): `BC-2.11.024.md` — direction column showed 8 instead of the correct value 9.
+  Corrected.
+- MED (M-1): `BC-INDEX.md` — footer BC count arithmetic was inconsistent; corrected to 217
+  derived consistently across all subsystems.
+- MED (M-2): `nfr-catalog.md` — NFR-VIO-003 example count showed 7; correct value is 8.
+  Updated.
+- MED (M-3): `domain-spec.md` — active BC count showed 212; correct value is 217. Updated.
+- LOW (L-1): `verification-coverage-matrix.md` — VP-008 tool label was non-standard;
+  normalized to `cargo-fuzz`.
+- LOW (L-2): `nfr-catalog.md` — NFR-VIO-009 rationale was evasive; rewritten to be honest
+  about the limitation.
+
+**Process gap identified (codification follow-up at cycle close):**
+P5-PG: BC-file on-disk verification used an existence check only; it did not detect a
+NUL-byte-corrupted file (BC-2.07.020.md). Recommend a spec-package validator asserting
+every BC/spec file is valid UTF-8 with no control bytes other than CR/LF/TAB.
+
+**Files fixed (7):**
+`specs/behavioral-contracts/ss-07/BC-2.07.020.md`,
+`specs/behavioral-contracts/BC-INDEX.md`,
+`specs/prd.md`,
+`specs/behavioral-contracts/ss-11/BC-2.11.024.md`,
+`specs/prd-supplements/nfr-catalog.md`,
+`specs/domain/domain-spec.md`,
+`specs/architecture/verification-coverage-matrix.md`
+
+**Remediation:** All 8 findings (1C/2H/3M/2L) remediated. NUL byte removed from
+BC-2.07.020.md; stale --services reference purged from BC-INDEX + PRD; active BC count
+corrected to 217 in domain-spec.md; BC footer arithmetic made consistent; NFR-VIO-003 count
+and NFR-VIO-009 rationale corrected; VP-008 tool label normalized. Fixes committed in burst
+`spec: fix adversarial-review pass-5 findings (1C/2H/3M/2L)` (SHA: e7c56a4).
+Pass 6 dispatched next.
 
 ---
