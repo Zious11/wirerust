@@ -302,3 +302,52 @@ fn test_decode_snaplen_truncated_clamps_payload_to_captured_bytes() {
          not to the inflated IPv4 total_length"
     );
 }
+
+// --- Error-path discipline ----------------------------------------------
+//
+// The strict→lax fallback must apply lax recovery ONLY to snaplen
+// truncation (a strict *length* error), never to structural corruption.
+// These tests pin both the non-IP-frame branch and the
+// corruption-is-rejected branch.
+
+#[test]
+fn test_decode_arp_frame_reports_no_ip_layer() {
+    // An ARP frame (ethertype 0x0806) parses cleanly at the link layer
+    // but has no IP layer. `decode_packet` must reject it with
+    // "No IP layer found" — not attempt a lax recovery.
+    let mut frame = vec![
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // dst mac (broadcast)
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, // src mac
+        0x08, 0x06, // ethertype: ARP
+    ];
+    frame.extend_from_slice(&[
+        0x00, 0x01, 0x08, 0x00, 0x06, 0x04, 0x00, 0x01, // htype/ptype/hlen/plen/oper
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, // sender mac
+        0xc0, 0xa8, 0x01, 0x0a, // sender ip
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // target mac
+        0xc0, 0xa8, 0x01, 0x01, // target ip
+    ]);
+    let err = decode_packet(&frame, DataLink::ETHERNET).unwrap_err();
+    assert!(
+        err.to_string().contains("No IP layer found"),
+        "an ARP frame must report 'No IP layer found'; got: {err}"
+    );
+}
+
+#[test]
+fn test_decode_structurally_corrupt_packet_is_rejected_not_lax_recovered() {
+    // A frame with a valid IPv4 header but an invalid TCP data-offset
+    // (0, below the minimum of 5) is structural corruption, not snaplen
+    // truncation. The strict parser rejects it with a non-length error;
+    // `decode_packet` must NOT fall back to lax recovery (which would
+    // admit the malformed packet) — it must reject with "Parse error".
+    let mut frame = make_tcp_packet();
+    // TCP data-offset/reserved byte is at frame offset 14 + 20 + 12 = 46.
+    frame[46] = 0x00; // data offset 0 — structurally invalid
+    let err = decode_packet(&frame, DataLink::ETHERNET).unwrap_err();
+    assert!(
+        err.to_string().contains("Parse error"),
+        "a structurally-corrupt packet must be rejected as a parse error, \
+         not lax-recovered; got: {err}"
+    );
+}

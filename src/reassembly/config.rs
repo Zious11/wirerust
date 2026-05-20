@@ -58,13 +58,17 @@ pub struct ReassemblyConfig {
     ///
     /// LESSON-P2.05: TCP segmentation-evasion (e.g. `fragroute tcp_seg
     /// 1`) shows up as a long *unbroken* run of tiny segments, whereas
-    /// benign interactive traffic (telnet / SSH keystrokes) interleaves
-    /// tiny segments with normal-sized ones. A consecutive-run counter
-    /// — which Snort's `stream_tcp.small_segments` also uses, resetting
-    /// on a non-small segment — separates the two far better than the
-    /// cumulative count this field previously held. No NIDS publishes a
-    /// recommended value (Snort ships the feature disabled); `100` is a
-    /// conservative engineering default: low enough to catch a
+    /// benign interactive traffic (telnet / rlogin keystrokes)
+    /// interleaves tiny segments with normal-sized ones. A
+    /// consecutive-run counter — in the spirit of Snort's
+    /// `stream_tcp.small_segments` — separates the two far better than
+    /// the cumulative count this field previously held. The run resets
+    /// on *any single* normal-sized segment, so an attacker who splices
+    /// one `>= small_segment_max_bytes` segment into the run evades the
+    /// detector; a port-independent directional-symmetry discriminator
+    /// (tracked as a follow-up) would be more robust. No NIDS publishes
+    /// a recommended value (Snort ships the feature disabled); `100` is
+    /// a conservative engineering default: low enough to catch a
     /// 1-byte-segmented exploit payload (typically 300–900 segments),
     /// high enough to tolerate ordinary interactive bursts. Tune via
     /// `--small-segment-threshold`.

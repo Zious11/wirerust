@@ -55,10 +55,13 @@ them end-to-end:
   `Invalid field value: PacketHeader orig_len > snap_len`, so the reader
   takes the unvalidated raw-record path instead.
 - **Decoder.** `etherparse`'s strict parser rejects an IP header whose
-  `total_length` / `payload_length` overshoots the captured bytes, so
-  the decoder falls back to `etherparse`'s lax parser, which clamps
-  lengths to the captured slice. This matches how Wireshark and tcpdump
-  dissect truncated captures rather than dropping them.
+  `total_length` / `payload_length` overshoots the captured bytes — a
+  *length* error. On that error class only, the decoder falls back to
+  `etherparse`'s lax parser, which clamps lengths to the captured slice
+  (matching how Wireshark and tcpdump dissect truncated captures rather
+  than dropping them). A structural error — bad header version, bad
+  IHL, bad TCP data-offset — is genuine corruption and is still
+  rejected; lax recovery never admits a malformed packet.
 
 `nfs_bad_stalls.cap` is the end-to-end regression fixture for both. All
 7037 of its IPv4 packets decode (the single non-IP ARP frame is dropped,
