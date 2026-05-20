@@ -19,9 +19,17 @@ documentation subset. Three cosmetic P3 items deliberately deferred.
 
 **Mode:** brownfield (in-repo: target == reference).
 
-**Test suite:** 213 (Phase 0 baseline) → **273** passing. `cargo fmt --check`,
+**Test suite:** 213 (Phase 0 baseline) → **279** passing. `cargo fmt --check`,
 `cargo clippy --all-targets -- -D warnings`, `cargo test --all-targets`,
 `cargo audit`, and `cargo deny` are all green on `develop`.
+
+**Snaplen / small-segment sub-cycle (#90–#95): CONVERGED.** The
+snaplen-truncation + small-segment-detector work was taken through a
+3-pass fresh-context adversarial review (vsdd-factory:adversary):
+pass 1 found a real decoder regression (lax recovery applied to
+malformed packets) → fixed in #94; pass 2 found test-quality gaps
+(vacuous assertions) → fixed in #95; pass 3 returned `CONVERGED` with
+no CRITICAL/HIGH/MEDIUM findings.
 
 ## Phase 0 Ingestion Summary (historical)
 
@@ -101,6 +109,12 @@ DEFERRED (cosmetic, per agreed curation): pluralization-helper extraction,
   small-segment detector (`small_segment_ignore_ports`, default
   `[23, 513]`; `--small-segment-ignore-ports` flag) — closes the #92
   per-port follow-up. +1 test.
+- **#94** — `fix(decoder)`: restrict the strict→lax fallback to
+  `SliceError::Len` (truncation) so structurally-malformed packets stay
+  rejected — adversarial-review pass-1 fix (H1/H2 + Mediums).
+- **#95** — `test`: close adversarial-review pass-2 test-quality gaps
+  (load-bearing boundary/reset tests, physical-buffer truncation test,
+  IPv6 truncation coverage, exact decode-count pin). Docs/tests only.
 
 ## Drift Items / open follow-ups
 
@@ -123,11 +137,29 @@ DEFERRED (cosmetic, per agreed curation): pluralization-helper extraction,
 3. **3 deferred P3 cosmetic items** (see above).
 4. **`nfs_bad_stalls.cap`** — CLOSED by #90. Re-added as a
    snaplen-truncation regression fixture (not a reassembly baseline).
-5. **Decoder snaplen-truncation** — CLOSED by #91. The decoder now
-   parses strict-first and falls back to `etherparse::LaxSlicedPacket`,
-   which clamps header lengths to the captured slice. `nfs_bad_stalls.cap`
-   went from 2376 → 7037 decoded packets; it is now a positive detection
-   fixture (its NFS flow trips the out-of-window anomaly).
+5. **Decoder snaplen-truncation** — CLOSED by #91, hardened by #94/#95.
+   The decoder parses strict-first and falls back to
+   `etherparse::LaxSlicedPacket` only on `SliceError::Len`.
+   `nfs_bad_stalls.cap` went from 2376 → 7032 decoded TCP packets.
+
+### Adversarial-convergence process-gap deferrals (sub-cycle #90–#95)
+
+The 3-pass adversarial review tagged process-gaps that are deliberately
+deferred (justified deferrals per the Cycle-Closing Checklist S-7.02):
+
+6. **No sane-range validation on reassembly numeric CLI flags**
+   (`--small-segment-max-bytes` etc.). An operator can set nonsensical
+   values; the field docs cite sane ranges but nothing enforces them.
+   Deferred — low impact (operator's own footgun), no target release.
+7. **Boundary-pair test pattern applied only to the small-segment
+   threshold.** `overlap_alert_threshold` and `out_of_window_alert_threshold`
+   still have only threshold+1 tests, not exactly-threshold negatives.
+   Deferred to the next reassembly-test sweep.
+8. **`etherparse` not pinned to `=0.16.x`.** The strict→lax control
+   flow depends on `SliceError::Len` discrimination, which is
+   version-coupled; an etherparse minor bump could silently reclassify.
+   The #95 IPv6 truncation test acts as a partial contract test.
+   Deferred — revisit at the next dependency bump.
 
 ## Notes
 
