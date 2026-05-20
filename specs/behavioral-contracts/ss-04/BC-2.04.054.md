@@ -50,7 +50,7 @@ even during adversarial flooding scenarios.
 ## Invariants
 
 1. This is the ONLY code path that bypasses the MAX_FINDINGS guard.
-2. finalize() is idempotent: the latch at mod.rs:385-388 ensures subsequent calls are no-ops.
+2. finalize() is idempotent: the latch at mod.rs:558-561 ensures subsequent calls are no-ops.
 3. The maximum possible `findings.len()` after any run is MAX_FINDINGS + 1.
 
 ## Edge Cases
@@ -84,7 +84,7 @@ even during adversarial flooding scenarios.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- the finalize bypass is the lifecycle closure contract for the reassembly engine |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap -- this BC documents the sole exception), INV-7 (Finalize-once latch) |
-| Architecture Module | SS-04 (reassembly/mod.rs:415, C-6) |
+| Architecture Module | SS-04 (reassembly/mod.rs:557-591, C-6) |
 | Stories | S-TBD |
 | Origin BC | BC-RAS-054 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -96,20 +96,20 @@ even during adversarial flooding scenarios.
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:415` -- unconditional push of finalize segment-limit finding
-- `src/reassembly/mod.rs:385-388` -- finalized latch
+- `src/reassembly/mod.rs:573` -- unconditional push of finalize segment-limit finding
+- `src/reassembly/mod.rs:558-561` -- finalized latch
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:415` |
+| **Path** | `src/reassembly/mod.rs:573` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 
 ## Evidence Types Used
 
-- **guard clause**: absence of MAX_FINDINGS check at push site 415 (all other 5 sites have it)
+- **guard clause**: absence of MAX_FINDINGS check at push site 573 (all other 5 sites have it)
 - **assertion**: test_finalize_generates_segment_limit_finding
 
 ## Purity Classification

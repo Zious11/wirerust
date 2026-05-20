@@ -85,7 +85,7 @@ the per-direction depth limit having been reached. It is distinct from `Truncate
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- depth-exceeded tracking enables observability of segments dropped by the depth bound |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:386-389, DepthExceeded match arm; segment.rs:80-88, DepthExceeded check) |
+| Architecture Module | SS-04 (reassembly/mod.rs:387-389, DepthExceeded match arm; segment.rs:80-88, DepthExceeded check) |
 | Stories | S-TBD |
 | Origin BC | BC-RAS-027 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -97,14 +97,14 @@ the per-direction depth limit having been reached. It is distinct from `Truncate
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:386-389` -- DepthExceeded match arm: segments_depth_exceeded++
+- `src/reassembly/mod.rs:387-389` -- DepthExceeded match arm: segments_depth_exceeded++
 - `src/reassembly/segment.rs:80-88` -- DepthExceeded return when depth_exceeded is already set
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:386-389` |
+| **Path** | `src/reassembly/mod.rs:387-389` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

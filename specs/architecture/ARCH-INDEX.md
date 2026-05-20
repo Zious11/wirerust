@@ -163,3 +163,15 @@ summary:
 | O-06: Weak-cipher evidence vec unbounded | Open | Medium (NFR-RES-023) |
 | Smell #4: L2<->L3 trait cycle (ADR 0002 accepted) | Advisory | Low |
 | Smell #10: Loose TLS gate (byte[2] unchecked) | Open | Low (theoretical) |
+
+**Items tracked in domain-debt.md only (intentionally absent from this table):**
+- O-02 (User-Agent absent-vs-empty asymmetry): a documented domain design decision,
+  not an architecture defect. Only `Some("")` fires; absent UA (`None`) is intentionally
+  ignored per research cited in http.rs:319-343. See domain-debt.md O-02.
+- O-07 (rayon declared but never imported): build/dependency debt in Cargo.toml; has no
+  architecture surface, no runtime impact, and no module boundary implication. Fix is a
+  one-line Cargo.toml edit. See domain-debt.md O-07.
+
+The complete open-item set is O-01 through O-07. O-02 and O-07 are tracked in
+`.factory/specs/domain/domain-debt.md` rather than this table because they fall outside
+the architecture layer's scope.

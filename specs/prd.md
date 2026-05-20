@@ -478,10 +478,12 @@ under matching RAM constraints (eager full-file load; O-01 context).
 > This section is a stub until the supplement burst (Phase 1b) completes.
 
 Errors follow anyhow chaining patterns. Key categories:
-- E-RDR-NNN: Reader errors (header parse failure, unsupported link type, packet read failure)
+- E-INP-NNN: Input / File errors (header parse failure, unsupported link type, file open failure, packet read failure)
 - E-DEC-NNN: Decoder errors (unsupported link type, no IP layer, etherparse parse failure)
-- E-CLI-NNN: CLI entry errors (target not found, conflicting flags)
-- E-RAS-NNN: Reassembly lifecycle errors (IsnMissing warning, finalize-not-called warning)
+- E-RAS-NNN: Reassembly errors (lifecycle state-machine edge cases and resource limits)
+- E-ANA-NNN: Analyzer errors (HTTP, TLS, DNS protocol-level parse failures)
+- E-OUT-NNN: Output errors (file write failures for --json/--csv paths)
+- E-CFG-NNN: Configuration errors (mutually exclusive flag combinations rejected by clap)
 See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 
 
