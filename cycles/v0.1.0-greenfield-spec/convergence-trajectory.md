@@ -1143,3 +1143,78 @@ Out-of-Scope removed-flags completed and BC-2.07.016 one-liner aligned. Counter 
 Pass 22 dispatched next.
 
 ---
+
+### Pass 22 (2026-05-20) — CONVERGED (CLEAN PASS 1/3)
+
+**Findings:** 3 (0 CRIT, 0 HIGH, 0 MED, 2 LOW, 1 NITPICK)
+**Delta from pass 21:** 0 total — same count, all findings demoted to LOW/NITPICK severity
+**Novelty:** LOW
+**Convergence counter:** 1/3 — FIRST CLEAN PASS (0C/0H/0M; counter incremented from 0 to 1)
+**Verdict:** CONVERGED — no CRITICAL, HIGH, or MEDIUM findings. Counter advances to 1/3.
+
+**Adversary assessment:** Pass 22 is the first clean pass of the current run. No behavioral
+defects. Two LOW polish items and one editorial nitpick only.
+
+**Key finding categories:**
+
+- LOW (LOW-1): `specs/behavioral-contracts/ss-12/BC-2.12.005.md` — H1 precondition covered
+  only a subset of reassembly flags. Broadened to enumerate all 9 reassembly flags. BC-INDEX
+  title row and prd.md inline synopsis synced.
+
+- LOW (LOW-2): `specs/behavioral-contracts/ss-07/BC-2.07.004.md` — Source Location citation
+  ranges were off by one line on both boundaries. Tightened to exact current positions.
+
+- NITPICK (N-1): `specs/prd-supplements/error-taxonomy.md` — E-ANA-003 oversized-record guard
+  citation aligned to `tls.rs:643-653` to match the actual guard location.
+
+**Files fixed (4):**
+- `specs/behavioral-contracts/ss-12/BC-2.12.005.md`
+- `specs/behavioral-contracts/BC-INDEX.md`
+- `specs/prd.md`
+- `specs/behavioral-contracts/ss-07/BC-2.07.004.md`
+- `specs/prd-supplements/error-taxonomy.md`
+
+**Remediation:** All polish applied. Counter advances to 1/3. Pass 23 dispatched as second
+confirmation pass.
+
+---
+
+### Pass 23 (2026-05-20) — NOT CONVERGED — STREAK BROKEN (counter RESET 1/3 → 0/3)
+
+**Findings:** 3 (0 CRIT, 1 HIGH, 1 MED, 0 LOW, 1 NITPICK)
+**Delta from pass 22:** 0 total (HIGH +1, MED +1, LOW -2, NITPICK 0) — REGRESSION in severity
+**Novelty:** LOW
+**Convergence counter:** 0/3 — RESET (pass 22 had started streak at 1/3; pass 23 HIGH+MED
+findings break the streak; counter returns to 0)
+**Verdict:** NOT CONVERGED — 1 HIGH + 1 MEDIUM present. Streak broken; counter reset to 0/3.
+Pass 24 is next.
+
+**Root cause:** Three isolated spec precision gaps — one anchor collision in the purity boundary
+map, one stale flag description in module criticality, and one citation range off-by-one in the
+error taxonomy supplement.
+
+**Key finding categories:**
+
+- HIGH (F-1): `specs/architecture/purity-boundary-map.md` — `csv.rs` component anchor C-21
+  collided with an existing numbered component. The collision caused the anchor to shadow a
+  different component in cross-reference lookups. Fixed by changing the numbered entry to an
+  unnumbered `(--)` anchor (component is a leaf with no inbound cross-references).
+
+- MED (F-2): `specs/module-criticality.md` — a row in the module-criticality table described
+  a CLI flag as "parsed but not executed" (absent-flag behavior description). This was stale:
+  the flag was removed by PR #74 and `clap` now rejects it as an unknown argument at startup.
+  Row corrected to: "removed by PR #74; clap rejects as unknown arguments".
+
+- NITPICK (O-1): `specs/prd-supplements/error-taxonomy.md` — E-INP-001 source citation listed
+  as lines `56-59`; correct range is `56-60`. Off-by-one on end line. Corrected.
+
+**Files fixed (3):**
+- `specs/architecture/purity-boundary-map.md`
+- `specs/module-criticality.md`
+- `specs/prd-supplements/error-taxonomy.md`
+
+**Remediation:** All 3 findings (0C/1H/1M/0L/1N) remediated. csv.rs C-21 collision resolved
+to unnumbered `(--)` anchor; stale absent-flag row corrected to reflect PR #74 clap rejection;
+E-INP-001 citation corrected 56-59 → 56-60. Counter reset to 0/3. Pass 24 dispatched next.
+
+---

@@ -13,23 +13,22 @@ dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
-adversary_convergence_counter: 1/3
-adversary_pass_22_date: "2026-05-20"
-adversary_pass_22_verdict: CONVERGED
-adversary_pass_22_findings: "3 (0C/0H/0M/2L/1N) — FIRST clean pass; LOW-1 BC-2.12.005 H1 broadened (all 9 reassembly flags); LOW-2 BC-2.07.004 citation ranges tightened; NITPICK oversized-record guard aligned tls.rs:643-653. Counter: 1/3."
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0"
+adversary_convergence_counter: 0/3
+adversary_pass_23_date: "2026-05-20"
+adversary_pass_23_verdict: NOT_CONVERGED
+adversary_pass_23_findings: "3 (0C/1H/1M/0L/1N) — STREAK BROKEN; H-1 csv.rs C-21 anchor collision fixed; M-1 stale absent-flag row corrected (PR #74 clap reject); N-1 E-INP-001 citation 56-59→56-60. Counter RESET 1/3→0/3."
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 22 returned CONVERGED (0C/0H/0M/2L/1N);
-FIRST clean pass of current run. Counter: 1/3. 2 LOW + 1 NITPICK polished: LOW-1
-BC-2.12.005 H1 broadened to cover all 9 reassembly flags (BC-INDEX + prd.md synced);
-LOW-2 BC-2.07.004 citation ranges tightened; NITPICK oversized-record guard aligned
-to tls.rs:643-653 (BC-2.07.004 + error-taxonomy.md E-ANA-003). Pass 23 is next
-(second confirmation pass; must also be 0C/0H/0M to hold streak).
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 23 returned NOT CONVERGED (0C/1H/1M/1N);
+streak BROKEN. Pass 22 had been the first clean pass (counter 1/3); pass 23 HIGH+MED
+reset counter to 0/3. All 3 findings fixed: csv.rs C-21 anchor collision resolved
+(purity-boundary-map.md); stale absent-flag description corrected (module-criticality.md);
+E-INP-001 citation 56-59→56-60 (error-taxonomy.md). Pass 24 is next.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -44,7 +43,7 @@ to tls.rs:643-653 (BC-2.07.004 + error-taxonomy.md E-ANA-003). Pass 23 is next
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (**1/3 clean**; passes 1–21 remediated; pass 22 CONVERGED — first clean pass; pass 23 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (**0/3** — pass 23 BROKE streak; counter RESET; pass 24 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -118,14 +117,15 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 20 | 2026-05-20 | 4 (0C/0H/2M/1L/1N) | NOT CONVERGED | Counter remains 0/3 — F-1/F-2 VP-007 SEEDED_IDS corrected to real 15 MITRE IDs + citation 99-129→122-156; F-3 BC-2.12.008 main.rs 57-58→57-59 (5 instances); F-4 mitre_technique regex tightened. All spec-precision gaps; no behavioral defects. All fixed. |
 | 21 | 2026-05-20 | 3 (0C/0H/1M/0L/2N) | NOT CONVERGED | Counter remains 0/3 — F-1 (MED) C-10 re-anchored SS-08→SS-05 (module-decomposition.md + ARCH-INDEX follow-up); O-1 (NITPICK) prd.md removed-flags completed; O-2 (NITPICK) BC-2.07.016 one-liner aligned. No behavioral defects. All fixed. |
 | 22 | 2026-05-20 | 3 (0C/0H/0M/2L/1N) | **CONVERGED** | **CLEAN PASS 1/3** — LOW-1 BC-2.12.005 H1 broadened (all 9 reassembly flags; BC-INDEX + prd.md synced); LOW-2 BC-2.07.004 citation ranges tightened; NITPICK oversized-record guard aligned tls.rs:643-653 (BC-2.07.004 + error-taxonomy.md E-ANA-003). Counter: **1/3**. |
+| 23 | 2026-05-20 | 3 (0C/1H/1M/0L/1N) | NOT CONVERGED | **STREAK BROKEN — RESET 1/3→0/3** — H-1 csv.rs C-21 anchor collision fixed (purity-boundary-map.md → unnumbered `(--)`) ; M-1 stale absent-flag row corrected to "removed by PR #74; clap rejects" (module-criticality.md); N-1 E-INP-001 citation 56-59→56-60 (error-taxonomy.md). All fixed. Counter: **0/3**. |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
-1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (**1/3 achieved**).
-   Pass 23 is next (second confirmation pass). Passes 23 AND 24 must also return 0C/0H/0M to
-   satisfy gate. Any CRITICAL/HIGH/MEDIUM finding in pass 23 or 24 resets counter to 0/3.
+1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (**0/3 — streak reset**).
+   Pass 23 broke the streak (1H + 1M); all findings fixed. Pass 24 is next and must return
+   0C/0H/0M to restart the streak. Three consecutive clean passes (0C/0H/0M each) required.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 

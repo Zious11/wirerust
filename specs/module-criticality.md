@@ -63,4 +63,4 @@ freeze_condition: Phase 5 gate pass
 | CSV reporter | reporter/csv.rs | Optional output format; CSV-injection neutralization is unit-tested. |
 | Main orchestrator | main.rs | Orchestration glue; finalize() guarantee is tested by Drop tripwire. |
 | lib.rs | lib.rs | Re-export shim; no logic. |
-| Absent-behavior stubs | cli.rs (unwired flags) | BC-2.13.001..004: parsed but not executed. |
+| Absent CLI flags | cli.rs (removed flags) | BC-2.13.001..004: --threats/--beacon/--filter/--verbose do NOT exist; removed by PR #74; clap rejects them as unknown arguments. |

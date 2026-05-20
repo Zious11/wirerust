@@ -84,7 +84,7 @@ L4 Output          | reporter/mod.rs  (C-18) |      |                    |
                    | reporter/terminal.rs    |      |                    |
                    |   (C-20; escape_for_   |      |                    |
                    |    terminal is pure)    |      |                    |
-                   | reporter/csv.rs  (C-21) |      |                    |
+                   | reporter/csv.rs  (--)   |      |                    |
                    | [all render()->String;  |      |                    |
                    |  caller in main.rs does |      |                    |
                    |  the stdout/file write] |      |                    |

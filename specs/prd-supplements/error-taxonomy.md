@@ -53,7 +53,7 @@ traces_to: .factory/specs/prd.md
 
 | Error Code | Category | Severity | Exit Code | Source Location | Message Format | BC Ref | Notes |
 |-----------|----------|----------|-----------|----------------|----------------|--------|-------|
-| E-INP-001 | Input | `broken` | 1 | `src/reader.rs:56-59` | `Unsupported pcap link type: <type>. Supported: Ethernet (1), Raw IP (101), Linux Cooked (113), IPv4 (228), IPv6 (229)` | BC-2.01.001, BC-2.02.008 | Surfaced via anyhow chain. `<type>` is `DataLink` Debug repr (e.g. `UNKNOWN(166)`) |
+| E-INP-001 | Input | `broken` | 1 | `src/reader.rs:56-60` | `Unsupported pcap link type: <type>. Supported: Ethernet (1), Raw IP (101), Linux Cooked (113), IPv4 (228), IPv6 (229)` | BC-2.01.001, BC-2.02.008 | Surfaced via anyhow chain. `<type>` is `DataLink` Debug repr (e.g. `UNKNOWN(166)`) |
 | E-INP-002 | Input | `broken` | 1 | `src/reader.rs:46` | `Failed to parse pcap header: <underlying>` | BC-2.01.006 | `pcap_file::pcap::PcapReader::new` failure; wrong magic number, truncated file, or pcapng format |
 | E-INP-003 | Input | `broken` | 1 | `src/reader.rs:70` | `Failed to read packet: <underlying>` | BC-2.01.007 | Per-packet `next_raw_packet()` failure; corrupt or truncated payload |
 | E-INP-004 | Input | `broken` | 1 | `src/reader.rs:86-87` | `Failed to open <path>: <os-error>` | BC-2.12.012 | `std::fs::File::open` failure; file not found, permission denied |
