@@ -33,10 +33,11 @@ traces_to: STATE.md
 | SWEEP | 2026-05-20 | — | — | — | — | — | — | — | **0/3** | **REMEDIATION BURST** — proactive anchor sweep; 3,820 occurrences audited; 28 mis-anchors fixed; no adversary pass; counter unchanged |
 | 15 | 2026-05-20 | 4 | 0 | 1 | 2 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — H-1 VP-020 test API wrong (CsvReporter/render()->String); M-1 VP-020 pt 3 mis-scoped AnalysisSummary; M-2 module-decomposition reporter Purity wrong; N-1 covered by M-2 fix. All 4 fixed. |
 | 16 | 2026-05-20 | 3 | 1 | 0 | 1 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — C-1 BC-2.07.037 Postcondition 4 verdict Anomaly/Likely/High→Anomaly/Inconclusive/Low; M-1 stale correction-notes removed from BC-2.07.017/019; L-1 minor wording. All 3 fixed. |
+| SWEEP | 2026-05-20 | — | — | — | — | — | — | — | **0/3** | **REMEDIATION BURST** — comprehensive BC-vs-source verification sweep; all 217 BCs re-verified against current src/; ~58 defects fixed (off-by-one citations + ~6 semantic spec-vs-code defects); 37 BC body files committed (d038ace); addresses recurring P-CITE-PG defect class at root; no adversary pass; counter unchanged |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3`
+`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3` (SWEEP between 16 and 17 — counter unchanged)
 
 ## Per-Pass Details
 
@@ -843,5 +844,91 @@ corrected Anomaly/Likely/High → Anomaly/Inconclusive/Low to match source and s
 stale correction-notes removed from BC-2.07.017 and BC-2.07.019. Fixes committed in burst
 `spec: fix adversarial-review pass-16 findings (1C/1M) - SNI verdict + stale notes`
 (SHA: cbef4f1). Pass 17 dispatched next.
+
+---
+
+### Inter-Pass Sweep (2026-05-20) — Comprehensive BC-vs-Source Verification Sweep
+
+**Type:** Remediation burst (not an adversary pass)
+**Trigger:** After pass 16, recurring citation/token-drift defect class (P-CITE-PG, 8 occurrences
+across passes 4, 6, 8, 9, 10, 12, 13, 14) had driven repeated HIGH and MEDIUM findings that reset
+or held back the convergence counter. The orchestrator commissioned a proactive, comprehensive
+BC-vs-source verification sweep of all 217 BCs (6 parallel agents, one per subsystem group) before
+dispatching pass 17, to flush residual spec-vs-code drift at root rather than discovering it one
+defect at a time per adversary pass.
+**Convergence counter:** 0/3 (unchanged — no adversary pass issued)
+
+**Scope:** All 217 behavioral contracts across ss-01..ss-13 re-verified against current src/.
+
+**Defects found and fixed: ~58 total**
+
+#### ss-04 (2 defects)
+- `BC-2.04.012.md` — stale latch/counter line citations corrected
+- `BC-2.04.030.md` — stale latch/counter line citations corrected
+
+#### ss-07 (6 defects)
+- `BC-2.07.001.md` — off-by-one match-arm citations corrected
+- `BC-2.07.009.md` — GREASE-mechanism mis-description corrected; off-by-one citations
+- `BC-2.07.017.md` — off-by-one match-arm citations corrected
+- `BC-2.07.019.md` — off-by-one match-arm citations corrected
+
+#### ss-06 / ss-05 (15 defects)
+- `BC-2.06.001.md`, `BC-2.06.002.md`, `BC-2.06.003.md` — off-by-one function-end citations
+- `BC-2.06.004.md` — wrong MAX_MAP_ENTRIES cap claim corrected (semantic)
+- `BC-2.06.005.md` — fabricated backslash traversal pattern removed; wrong evidence-truncation
+  claim corrected (semantic)
+- `BC-2.05.009.md` — wrong unwrap-vs-iflet claim corrected (semantic); off-by-one citations
+
+#### ss-11 / ss-10 (12 defects)
+- `BC-2.11.007.md` — wrong C0-escaping claim re CR/LF corrected (semantic: CR and LF are
+  not escaped — only C0 range 0x00-0x1F excluding CR/LF/TAB, plus C1 range 0x80-0x9F)
+- `BC-2.11.009.md`, `BC-2.11.011.md`, `BC-2.11.014.md`, `BC-2.11.015.md`, `BC-2.11.019.md`
+  — off-by-one citations corrected
+- `BC-2.10.008.md` — all emitted-site citations were stale; fully re-anchored (semantic)
+- `BC-2.10.001.md`, `BC-2.10.007.md` — off-by-one citations corrected
+
+#### ss-12 / ss-09 / ss-08 (8 defects)
+- `BC-2.09.001.md` — wrong source_ip/direction claims for reassembly findings corrected
+  (semantic: reassembly findings use client-side IP and forward direction, not bidirectional)
+- `BC-2.09.004.md` — off-by-one citations corrected
+- `BC-2.08.001.md`, `BC-2.08.002.md` — off-by-one citations corrected
+- `BC-2.12.001.md`, `BC-2.12.006.md`, `BC-2.12.007.md`, `BC-2.12.014.md` — off-by-one
+  citations corrected
+
+#### ss-01 / ss-02 (15 defects)
+- `BC-2.01.002.md`, `BC-2.01.005.md` — fabricated Duration API calls corrected (semantic:
+  no `Duration::from_secs_f64` usage in the relevant source path; correct API cited)
+- `BC-2.01.008.md` — off-by-one citations corrected
+- `BC-2.02.005.md` — wrong-function citation corrected (cited wrong function for behavior)
+- `BC-2.02.003.md`, `BC-2.02.004.md`, `BC-2.02.006.md`, `BC-2.02.014.md` — off-by-one
+  citations corrected
+
+**Summary of defect classes:**
+- Off-by-one / stale line citations: ~52 defects (citation drift from src/ refactors)
+- Semantic spec-vs-code defects: ~6 defects (wrong API, wrong cap claims, wrong field/direction
+  claims, wrong escape-behavior descriptions)
+
+**Root cause addressed:** P-CITE-PG — no automated validator resolves `file.rs:NNN` anchors
+in spec artifacts. This sweep manually closed the accumulated citation debt across all 217 BCs.
+Mandatory codification follow-up (P-CITE-PG) remains open for cycle close.
+
+**Files fixed (37 BC body files):**
+ss-01: BC-2.01.002, BC-2.01.005, BC-2.01.008
+ss-02: BC-2.02.003, BC-2.02.004, BC-2.02.005, BC-2.02.006, BC-2.02.014
+ss-04: BC-2.04.012, BC-2.04.030
+ss-05: BC-2.05.009
+ss-06: BC-2.06.001, BC-2.06.002, BC-2.06.003, BC-2.06.004, BC-2.06.005
+ss-07: BC-2.07.001, BC-2.07.009, BC-2.07.017, BC-2.07.019
+ss-08: BC-2.08.001, BC-2.08.002
+ss-09: BC-2.09.001, BC-2.09.004
+ss-10: BC-2.10.001, BC-2.10.007, BC-2.10.008
+ss-11: BC-2.11.007, BC-2.11.009, BC-2.11.011, BC-2.11.014, BC-2.11.015, BC-2.11.019
+ss-12: BC-2.12.001, BC-2.12.006, BC-2.12.007, BC-2.12.014
+
+BC-INDEX.md NOT modified — index was current; body files only.
+
+**Committed in burst:**
+`spec: comprehensive BC-vs-source verification sweep - fix ~58 residual drift defects across 217 BCs`
+(SHA: d038ace). Pass 17 dispatched next.
 
 ---

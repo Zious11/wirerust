@@ -24,11 +24,11 @@ convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5�
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 16 NOT CONVERGED (1C/1M/1L).
-Counter remains 0/3. All pass-16 findings fixed (BC-2.07.037 SNI verdict corrected
-Anomaly/Likely/High→Anomaly/Inconclusive/Low; stale correction-notes removed from
-BC-2.07.017/019). Pass 17 is next; must achieve 3 consecutive clean passes (0C/0H/0M)
-to satisfy gate.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Comprehensive BC-vs-source sweep complete (inter-pass
+16→17): 217 BCs re-verified against current src/; ~58 defects fixed (off-by-one citations
++ ~6 semantic spec-vs-code defects). Addresses recurring P-CITE-PG defect class at root.
+Convergence counter: 0/3 unchanged. Pass 17 is next; must achieve 3 consecutive clean
+passes (0C/0H/0M) to satisfy gate.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -109,7 +109,8 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 14 | 2026-05-20 | 3 (0C/1H/0M/1L/1N) | NOT CONVERGED | Counter remains 0/3 — H-1 summary.rs C-16→C-17 mis-anchor (domain-spec+cap-12, 4 sites), L-1 ent-04 E-39b CsvReporter missing from entity index (entity count 41→42), N-1 BC-2.12.005 cli.rs citation 61-105→61-106. All fixed. |
 | SWEEP | 2026-05-20 | — (inter-pass) | REMEDIATION BURST | Proactive anchor-consistency sweep: 3,820 occurrences audited; 28 mis-anchors fixed (3 C-ID in BC-2.12.018/019/021 + 25 capability-column in prd.md). Recurring C-ID/capability-anchor defect class addressed at root (passes 4,6,10,13,14). Counter remains 0/3. Pass 15 next. |
 | 15 | 2026-05-20 | 4 (0C/1H/2M/1N) | NOT CONVERGED | Counter remains 0/3 — H-1 VP-020 test_csv_safe_values_unchanged using wrong API; M-1 VP-020 Property Statement pt 3 mis-scoped AnalysisSummary; M-2/N-1 module-decomposition reporter Purity column wrong (effectful→pure). All fixed. |
-| 16 | 2026-05-20 | 3 (1C/1M/1L) | NOT CONVERGED | Counter remains 0/3 — C-1 BC-2.07.037 Postcondition 4 verdict Anomaly/Likely/High→Anomaly/Inconclusive/Low; M-1 stale correction-notes removed from BC-2.07.017/019; L-1 (see trajectory). All fixed. Pass 17 next. |
+| 16 | 2026-05-20 | 3 (1C/1M/1L) | NOT CONVERGED | Counter remains 0/3 — C-1 BC-2.07.037 Postcondition 4 verdict Anomaly/Likely/High→Anomaly/Inconclusive/Low; M-1 stale correction-notes removed from BC-2.07.017/019; L-1. All fixed. |
+| SWEEP | 2026-05-20 | — (inter-pass) | REMEDIATION BURST | BC-vs-source sweep: all 217 BCs re-verified against current src/; ~58 defects fixed (off-by-one citations + ~6 semantic); addresses P-CITE-PG at root. 37 BC body files committed (d038ace). Counter: 0/3 unchanged. Pass 17 next. |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
