@@ -131,8 +131,8 @@ S-TBD -- CsvReporter implementation (LESSON-P2.03)
 
 #### Evidence Types Used
 
-- **guard clause**: `write_record` at csv.rs:63-73 enumerates the exact 9 field names as an array literal; order is structural
-- **documentation**: module doc comment (csv.rs:1-31) states "fixed header" and "Order is stable so downstream parsers can rely on column positions"
+- **guard clause**: `write_record` at csv.rs:62-73 enumerates the exact 9 field names as an array literal; order is structural
+- **documentation**: module doc comment (csv.rs:1-30) states "fixed header" and "Order is stable so downstream parsers can rely on column positions"
 - **type constraint**: `csv::WriterBuilder` enforces RFC 4180 formatting including quoting
 
 #### Purity Classification

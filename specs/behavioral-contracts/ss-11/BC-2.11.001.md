@@ -51,7 +51,7 @@ by `serde_json::to_string_pretty`. The `unwrap()` call is infallible by construc
 
 ## Invariants
 
-1. The `unwrap()` at `json.rs:30` is infallible; `serde_json::to_string_pretty` cannot fail
+1. The `unwrap()` at `json.rs:59` is infallible; `serde_json::to_string_pretty` cannot fail
    on a `serde_json::Value`.
 2. No manual escaping is performed; ADR 0003 delegates escaping to serde_json's RFC 8259
    path (C0+DEL escaped as `\uNNNN`; C1 passed through as raw UTF-8).
@@ -105,7 +105,7 @@ by `serde_json::to_string_pretty`. The `unwrap()` call is infallible by construc
 ## Architecture Anchors
 
 - `src/reporter/json.rs:23-60` -- JsonReporter::render implementation
-- `src/reporter/json.rs:30` -- infallible unwrap on serde_json::to_string_pretty
+- `src/reporter/json.rs:59` -- infallible unwrap on serde_json::to_string_pretty
 
 ---
 
@@ -123,7 +123,9 @@ by `serde_json::to_string_pretty`. The `unwrap()` call is infallible by construc
 
 - **type constraint**: serde::Serialize derived on Summary and Finding
 - **assertion**: test_json_reporter_produces_valid_json verifies parseable output
-- **guard clause**: infallible unwrap documented in json.rs:7-10 module comment
+- **structural guarantee**: `serde_json::to_string_pretty` on a `serde_json::Value` cannot fail
+  (Value implements Serialize and contains only JSON-representable types); the `unwrap()` at
+  `json.rs:59` is therefore infallible by construction, not by documentation
 
 #### Purity Classification
 

@@ -60,7 +60,7 @@ expecting ASCII `->` will silently fail to match, because the actual separator i
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
 | EC-001 | IPv4 flow key | "1.2.3.4:80 -> 5.6.7.8:443" with U+2192 |
-| EC-002 | IPv6 flow key | "[::1]:80 -> [::2]:443" with U+2192 (IpAddr display for IPv6) |
+| EC-002 | IPv6 flow key | "::1:80 -> ::2:443" with U+2192 (IpAddr::fmt does NOT add RFC-3986 brackets; IPv6 addresses render bracket-free in this format) |
 | EC-003 | Same IP, different ports | "1.2.3.4:22 -> 1.2.3.4:50000" |
 | EC-004 | Grep pipeline using ASCII -> to match finding summaries | Will NOT match; U+2192 required |
 
@@ -110,7 +110,7 @@ expecting ASCII `->` will silently fail to match, because the actual separator i
 ## Evidence Types Used
 
 - **documentation**: pass-3-R4 analysis identifying U+2192 vs ASCII -> as a hidden output-encoding contract
-- **guard clause**: `write!(f, "{}:{} \u{2192} {}:{}", ...)` at flow.rs:69 (the -> in source is the Unicode arrow character)
+- **guard clause**: `write!(f, "{}:{} \u{2192} {}:{}", ...)` at flow.rs:70 (the -> in source is the Unicode arrow character; the `write!` macro spans flow.rs:68-72)
 
 ## Purity Classification
 
