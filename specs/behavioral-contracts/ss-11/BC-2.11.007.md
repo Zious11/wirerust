@@ -1,0 +1,136 @@
+---
+document_type: behavioral-contract
+level: L3
+version: "1.1"
+status: draft
+producer: product-owner
+timestamp: 2026-05-20T00:00:00Z
+phase: 1a
+origin: brownfield
+extracted_from: src/reporter/terminal.rs
+traces_to: .factory/specs/domain/domain-spec.md
+subsystem: SS-11
+capability: CAP-11
+lifecycle_status: active
+introduced: v0.1.0-brownfield
+modified: []
+deprecated: null
+deprecated_by: null
+replacement: null
+retired: null
+removed: null
+removal_reason: null
+---
+
+# BC-2.11.007: TerminalReporter Escapes C0+DEL+C1+Backslash in Finding Summary and Evidence
+
+## Description
+
+`TerminalReporter` calls `escape_for_terminal(s)` on all user-controlled string content before
+printing. The function escapes: C0 control bytes (0x00-0x1F except CR 0x0D and LF 0x0A which
+are passed through), DEL (0x7F), non-CR-LF C1 control bytes (0x80-0x9F), and backslash.
+This prevents terminal injection attacks from attacker-controlled bytes in Finding summaries.
+
+Note: BC-2.11.009 specifies the precise CR/LF handling; this BC covers the overall escaping
+contract.
+
+## Preconditions
+
+1. A Finding with attacker-controlled bytes in `summary` or `evidence` is being rendered.
+2. TerminalReporter is selected (not JsonReporter or CsvReporter).
+
+## Postconditions
+
+1. All C0 bytes except CR (0x0D) and LF (0x0A) are replaced with escape sequences
+   (e.g., ESC 0x1B -> `\u{1b}` or `\x1b`).
+2. DEL (0x7F) is replaced with an escape sequence.
+3. C1 bytes (0x80-0x9F) excluding NEL (U+0085) -- see BC-2.11.009 -- are replaced.
+4. Backslash (0x5C) is replaced with `\\`.
+5. Printable ASCII, regular UTF-8 (Cyrillic, emoji, CJK, etc.) pass through unmodified.
+6. The escaped output contains NO raw C0/DEL bytes (except permitted CR/LF).
+
+## Invariants
+
+1. `escape_for_terminal` has exactly ONE production call site: inside TerminalReporter.
+   This is the architectural contract of ADR 0003 / INV-4.
+2. JsonReporter does NOT call escape_for_terminal; it uses serde_json which applies RFC 8259
+   escaping (a different set from terminal escaping).
+3. Escaping is applied to BOTH `Finding.summary` AND each entry in `Finding.evidence`.
+
+## Edge Cases
+
+| ID | Description | Expected Behavior |
+|----|-------------|-------------------|
+| EC-001 | ESC byte (0x1B) in summary | Escaped to `\u{1b}` or similar; raw 0x1B not printed |
+| EC-002 | BEL byte (0x07) in evidence | Escaped |
+| EC-003 | DEL byte (0x7F) | Escaped |
+| EC-004 | Backslash in summary | Escaped to `\\` |
+| EC-005 | Cyrillic characters in summary | Passed through unescaped |
+| EC-006 | Emoji in summary | Passed through unescaped |
+| EC-007 | CR (0x0D) and LF (0x0A) in summary | Passed through (not escaped) |
+| EC-008 | C1 CSI byte (0x9B) in summary | Escaped (closes gap for terminal CSI injection) |
+
+## Canonical Test Vectors
+
+| Input | Expected Output | Category |
+|-------|----------------|----------|
+| summary = "evil\x1b[31mtext" | rendered as "evil\u{1b}[31mtext" (no raw ESC) | happy-path |
+| evidence = ["path: /\x00foo"] | rendered as ["path: /\u{0}foo"] (no raw NUL) | happy-path |
+| summary = "clean text" | "clean text" unchanged | happy-path |
+| summary = "caf\xc3\xa9" (UTF-8 for café) | "café" unchanged | edge-case |
+| summary = "back\\slash" | "back\\\\slash" (escaped) | edge-case |
+
+## Verification Properties
+
+| VP-NNN | Property | Proof Method |
+|--------|----------|-------------|
+| VP-TBD | No raw C0 byte appears in TerminalReporter output | unit: test_terminal_reporter_escapes_esc_bytes_in_summary |
+| VP-TBD | Printable ASCII and UTF-8 pass through unchanged | unit: inline tests in terminal.rs |
+| VP-TBD | Both summary AND evidence are escaped | unit: test_terminal_reporter_escapes_esc_bytes_in_summary asserts both |
+
+## Traceability
+
+| Field | Value |
+|-------|-------|
+| L2 Capability | CAP-11 ("Reporting and output") per capabilities.md §CAP-11 |
+| Capability Anchor Justification | CAP-11 ("Reporting and output") per capabilities.md §CAP-11 -- terminal escaping is the display-layer safety contract that completes the raw-data pipeline |
+| L2 Domain Invariants | INV-4 (Raw-data/display-layer separation -- TerminalReporter is the sole escape owner) |
+| Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
+| Stories | S-TBD |
+| Origin BC | BC-RPT-007 (pass-3 ingestion corpus, HIGH confidence) |
+
+## Related BCs
+
+- BC-2.09.005 -- depends on (raw bytes at Finding construction are what get escaped here)
+- BC-2.11.008 -- composes with (printable Unicode preservation)
+- BC-2.11.009 -- composes with (C1 range boundary details)
+- BC-2.11.010 -- composes with (escaping applied to both summary AND evidence)
+- BC-2.11.011 -- composes with (escaping applied to analyzer-summary detail values)
+
+## Architecture Anchors
+
+- `src/reporter/terminal.rs` -- escape_for_terminal function implementation
+- `src/reporter/terminal.rs:163-174` -- call site in render()
+- `tests/reporter_tests.rs` -- test_terminal_reporter_escapes_esc_bytes_in_summary
+
+## Source Evidence
+
+| Property | Value |
+|----------|-------|
+| **Path** | `src/reporter/terminal.rs` |
+| **Confidence** | high |
+| **Extraction Date** | 2026-05-19 |
+
+## Evidence Types Used
+
+- **assertion**: test_terminal_reporter_escapes_esc_bytes_in_summary; 11 inline tests in terminal.rs
+
+## Purity Classification
+
+| Property | Assessment |
+|----------|-----------|
+| **I/O operations** | writes to output string |
+| **Global state access** | none |
+| **Deterministic** | yes |
+| **Thread safety** | Send + Sync (TerminalReporter is stateless) |
+| **Overall classification** | pure (escape_for_terminal is a pure string transformation) |

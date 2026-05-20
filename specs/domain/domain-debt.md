@@ -1,0 +1,144 @@
+---
+artifact: L2-domain-debt
+traces_to: domain-spec.md
+title: Known Limitations and Domain Debt
+status: descriptive (brownfield) -- reconciled against develop HEAD aa2ece9
+reconciled: 2026-05-20
+---
+
+# Known Limitations / Domain Debt
+
+This shard documents observable gaps, known bugs, and technical debt in the shipped wirerust
+codebase as of develop HEAD (post remediation-cycle PRs #69-#98). Items are presented
+honestly. None are silently omitted or presented as intended behavior.
+
+**Remediation status:** The brownfield-ingest Phase C produced 30 prioritized lessons
+(5 P0, 7 P1, 11 P2, 7 P3). All 30 were delivered in PRs #69-#98. Many debt items from
+the initial spec draft have been retired. The remaining open items below reflect the state
+of develop today.
+
+---
+
+## RETIRED ITEMS (closed by remediation; recorded for traceability)
+
+| Former ID | Description | Closed by |
+|---|---|---|
+| D-01 | No impl Drop on TcpReassembler | #72: impl Drop tripwire + run_analyze IIFE so finalize() always runs |
+| D-02 | MAX_FINDINGS silent truncation with no counter | #73: dropped_findings: u64 added to ReassemblyStats |
+| D-04 | --json/--csv flags do not write files | #70: write_output() wired; #84: CSV reporter fully implemented |
+| D-05 (partial) | Missing-Host empty-value evasion | #71: both None and Some("") Host values now detected |
+| D-09 | TlsAnalyzer has no truncation counter | #73: truncated_records: u64 added to TlsAnalyzer |
+| D-10 | CsvReporter unwired; csv/rayon deps unused | #84: CsvReporter implemented with CSV-injection neutralization; rayon removed |
+| D-11 | JSON map key ordering non-deterministic | #76: BTreeMap used in JsonReporter for deterministic key order |
+| D-12 | ThreatCategory not #[non_exhaustive] | #76: #[non_exhaustive] added to ThreatCategory, Verdict, and Confidence |
+| D-13 | Unwired CLI flags advertised in --help | #74: 5 dead flags removed; #93/#96: threshold flags added and wired |
+| D-14 | pcapng files matched by glob but rejected by reader | #69: *.pcapng removed from resolve_targets directory glob |
+| D-15 | MSRV undeclared in Cargo.toml | #69: rust-version = "1.91" declared |
+| D-16 | 8 of 14 pcap test fixtures unused | #86: tests/fixtures/README.md added; nfs_bad_stalls.cap re-added (#90) |
+| D-17 | Zero //! module headers in 19 of 20 modules | #75: //! headers on all 20 modules; #![warn(missing_docs)] added |
+| D-07 (partial) | Anomaly thresholds unjustified round numbers | #88/#92/#93/#96: thresholds moved to ReassemblyConfig fields, CLI-overridable, research-documented |
+
+
+---
+
+## OPEN ITEMS (genuine debt on develop today)
+
+### O-01: Finding.timestamp is Universally None (forensic gap)
+
+**What exists:** All Finding emission sites in src/ set `timestamp: None`.
+`RawPacket.timestamp_secs: u32` is read from the pcap header and threaded through
+`process_packet(packet, timestamp, handler)`, but is never consumed by any Finding
+constructor. The `direction` field (P2.08, #77) and JSON Option symmetry (P1.02, #73)
+were both wired; timestamp wiring was not part of the remediation cycle.
+
+**Observable consequence:** Forensic findings carry no time provenance. SIEM consumers
+cannot correlate a Finding with the originating pcap moment.
+
+**Source locations:** All emission sites across `src/analyzer/http.rs`,
+`src/analyzer/tls.rs`, `src/reassembly/mod.rs`, and `src/reassembly/lifecycle.rs`.
+
+**Engineering decision still open:** Option A (wire it; ~M cost: thread timestamp through
+StreamHandler::on_data signature, update ~all emission sites) vs. Option B (deprecate the
+field and drop the chrono dep). Option A is recommended (pass-4 R2 Target 6).
+
+**References:** Original D-03; pass-4 R2 Target 6.
+
+
+### O-02: Absent User-Agent Intentionally Not Detected (documented asymmetry)
+
+**What exists:** The empty-Host evasion was closed by #71 -- both `None` and `Some("")`
+Host values now fire findings (with different summary text: "without Host header" vs.
+"with empty Host header"). The UA detection is intentionally asymmetric: only `Some("")`
+(present-empty) fires; absent UA (`None`) does not.
+
+**Rationale (research-cited in http.rs:319-343):** Many legitimate clients omit UA entirely
+(cron jobs, internal microservices, healthchecks, embedded libraries). Snort's missing-UA
+rule (sid 1:38130) ships disabled by default. Kheir (2015) reports ~24% of malware samples
+emit an empty UA string rather than omitting the header. This is a documented design
+decision, not a bug.
+
+**References:** P0.05 (#71); http.rs:319-343 inline doc.
+
+
+### O-03: Anomaly Thresholds Not Empirically Calibrated Against Labelled Traffic (P2)
+
+**What exists:** `ReassemblyConfig` thresholds (`overlap_alert_threshold=50`,
+`small_segment_alert_threshold=100`, `small_segment_max_bytes=16`,
+`out_of_window_alert_threshold=100`) are CLI-overridable and research-documented in
+config.rs (P2.05 via #88, #92, #93, #96). However, no labelled capture corpus (benign +
+adversarial) exists to measure FP/TP rates and validate the defaults empirically.
+
+**Remaining follow-up (STATE.md drift item 2):** A port-independent directional-symmetry
+discriminator for the small-segment detector would make `small_segment_ignore_ports`
+advisory rather than load-bearing. Research flagged as sound but not yet implemented.
+
+**References:** LESSON-P2.05; config.rs doc comments; STATE.md drift items 1 and 2.
+
+
+### O-04: 9 MITRE Techniques Catalogued but Never Emitted (documentation debt)
+
+**What exists:** `technique_info` in mitre.rs contains 15 IDs; 9 are never referenced by
+any current analyzer. The mitre.rs doc comment now says "staged for future analyzers"
+(P3.04, #89). No analyzer wiring was added.
+
+**Staged IDs:** T1040, T1071, T1071.001, T1071.004, T1573, T0846, T0855, T0856, T0885.
+
+**References:** LESSON-P3.04; mitre.rs doc comment; CAP-10.
+
+
+### O-05: reassembly/mod.rs Still ~691 LOC (partial split)
+
+**What exists:** P2.01 (#85) split the original 565-LOC `mod.rs` into `config.rs`,
+`stats.rs`, and `lifecycle.rs`. `mod.rs` now measures ~691 LOC because the
+`process_packet` decomposition added named helper structs and sub-steps. Config and stats
+are cleanly extracted; the engine hot path remains in `mod.rs` by design.
+
+**References:** Smell #1 (partially closed); P2.01 (#85).
+
+
+### O-06: Weak-Cipher Finding Evidence Vec Has Unbounded Cardinality (NFR-RES-023)
+
+**What exists:** The ClientHello weak-cipher Finding at `src/analyzer/tls.rs` uses
+`evidence: weak` where `weak: Vec<String>` is built by filtering ClientHello cipher suites.
+Upper bound: ~9,216 cipher names (MAX_RECORD_PAYLOAD / 2 bytes per cipher). Worst-case
+Finding heap ~270-500 KB. No per-cipher truncation cap exists.
+
+**References:** NFR-RES-023; pass-4 R2 Target 10.3.
+
+
+---
+
+## Architecture Smell Status (updated, develop HEAD)
+
+| # | Smell | Original severity | Current status |
+|---|---|---|---|
+| 1 | reassembly/mod.rs god-module | medium | PARTIALLY CLOSED (#85): config/stats/lifecycle extracted; mod.rs still 691 LOC (see O-05) |
+| 2 | Process-wide one-shot AtomicBool warning guards | low | DOCUMENTED (#89): ADR 0004 added; pattern is intentional |
+| 3 | Unwired CLI flags | high | CLOSED (#74/#93/#96): all current flags are wired |
+| 4 | L2->L3 trait coupling (intrinsic to ADR 0002) | advisory | UNCHANGED: accepted by ADR 0002 |
+| 5 | DnsAnalyzer::analyze returns empty Vec | low | UNCHANGED: statistics-only by design |
+| 6 | StreamDispatcher pub field exposure | low | UNCHANGED |
+| 7 | pcap_file::DataLink leaks across crate boundary | low | UNCHANGED |
+| 8 | csv + rayon declared, never imported | low | CLOSED (#84): csv now used by CsvReporter; rayon removed |
+| 9 | No impl Drop on TcpReassembler | high | CLOSED (#72): impl Drop tripwire + IIFE finalize guarantee |
+| 10 | Loose TLS gate (byte[2] unchecked) | low | UNCHANGED: theoretical; zero misroute tests |
