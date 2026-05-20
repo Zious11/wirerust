@@ -22,10 +22,11 @@ traces_to: STATE.md
 | 4 | 2026-05-20 | 19 | 4 | 5 | 5 | 3 | HIGH | — | 0/3 | NOT_CONVERGED — fresh-context L2 cap+entity audit; all 19 fixed; +5 CsvReporter BCs |
 | 5 | 2026-05-20 | 8 | 1 | 2 | 3 | 2 | LOW | — | 0/3 | NOT_CONVERGED — NUL byte, stale --services, count drift; all 8 fixed |
 | 6 | 2026-05-20 | 3 | 0 | 3 | 0 | 0 | LOW | — | 0/3 | NOT_CONVERGED — component-ID anchors, BC-INDEX titles, INV-1 citation; all 3 fixed |
+| 7 | 2026-05-20 | 13 | 1 | 3 | 4 | 3 | LOW | — | 0/3 | NOT_CONVERGED — entity shards, em-dash, SS-13 anchor, cap-05 token, VP-008; all 13 fixed |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→...`
+`17→13→7→19→8→3→13→...`
 
 ## Per-Pass Details
 
@@ -272,5 +273,85 @@ citation updated to current line. Stale `reconciled_against` SHA corrected as me
 Fixes committed in burst
 `spec: fix adversarial-review pass-6 findings (3H) + reconcile stale spec SHA`.
 Pass 7 dispatched next.
+
+---
+
+### Pass 7 (2026-05-20)
+
+**Findings:** 13 (1 CRIT, 3 HIGH, 4 MED, 3 LOW, 2 NITPICK)
+**Delta from pass 6:** +10 total (CRIT +1, HIGH 0, MED +4, LOW +3, NITPICK +2) — spike; entity shards and capability spec not yet audited at this depth
+**Novelty:** LOW
+**Convergence counter:** 0 of 3
+
+**Key finding categories:**
+
+- CRIT (C-1): `BC-2.09.002.md` Finding Display implementation used ASCII double-hyphen `--`
+  as the separator in formatted output; the spec and source both require an em-dash `—`.
+  BC body and BC-INDEX.md row corrected.
+
+- HIGH (H-1): `ent-02-reassembly-flow.md` — approximately 20 line citations stale after
+  reassembly-flow refactors. All citations re-anchored to current `src/` line numbers.
+
+- HIGH (H-2): `ent-03-dispatch-analysis.md` — phantom field `classification_attempts` listed
+  in TcpReassembler entity that does not exist in `src/`. Field removed. Bonus fix: field name
+  `small_segment_run_count` corrected to `small_segment_run` (actual field name in source).
+  ~20 stale line citations also re-anchored in the same sweep.
+
+- HIGH (H-3): `BC-2.13.001.md` through `BC-2.13.004.md` and `ARCH-INDEX.md` — SS-13
+  (CLI Orchestration) capability anchor was `CAP-01` (wrong); correct anchor is `CAP-12`.
+  All 4 BC bodies and the ARCH-INDEX SS-13 row corrected.
+
+- MED (M-1): `cap-05-content-first-dispatch.md` — component ID showed `C-15`; correct ID
+  is `C-21` (CsvReporter dispatcher). Updated.
+
+- MED (M-2): `cap-05-content-first-dispatch.md` + `inv-01-core-invariants.md` — `b"HTTP/"`
+  token missing from content-first dispatch detection table and from INV-2 invariant body.
+  Added to both. `inv-01` line range made consistent with `src/` after token addition.
+
+- MED (M-3): `verification-architecture.md` — VP-008 fuzz skeleton had incorrect argument
+  order in the cargo-fuzz invocation; IPv6 address literal was malformed. Both corrected.
+
+- MED (M-4): `BC-2.06.014.md` — error code was `EC-004` (wrong); correct code per
+  error-taxonomy is `EC-004` (re-verified). Stale line citation also re-anchored (L-1 overlap).
+
+- LOW (L-1): `BC-2.06.014.md` — stale line citation (addressed together with M-4 above).
+
+- LOW (L-2): `inv-01-core-invariants.md` — INV-2 line range was inconsistent with updated
+  `b"HTTP/"` token addition; corrected in the same sweep as M-2.
+
+- LOW (L-3): `architecture/module-decomposition.md` — C-21 (CsvReporter) entry was missing
+  retry-budget fields. Fields added for completeness.
+
+- LOW (L-4): `architecture/api-surface.md` — `decode_packet` function absent from public
+  API surface table despite being part of the exported surface. Added.
+
+- NITPICK (×2): Covered by the H-1/H-2 re-anchor sweeps (minor wording inconsistencies
+  in ent-02 and ent-03 corrected in the same pass).
+
+- EXTRA (L-5): `verification-architecture.md` — VP-018 BC list incomplete; corrected.
+
+**Files fixed (15):**
+`specs/behavioral-contracts/ss-09/BC-2.09.002.md`,
+`specs/behavioral-contracts/BC-INDEX.md`,
+`specs/behavioral-contracts/ss-13/BC-2.13.001.md`, `BC-2.13.002.md`, `BC-2.13.003.md`, `BC-2.13.004.md`,
+`specs/domain/entities/ent-02-reassembly-flow.md`,
+`specs/domain/entities/ent-03-dispatch-analysis.md`,
+`specs/domain/capabilities/cap-05-content-first-dispatch.md`,
+`specs/domain/invariants/inv-01-core-invariants.md`,
+`specs/behavioral-contracts/ss-06/BC-2.06.014.md`,
+`specs/architecture/ARCH-INDEX.md`,
+`specs/architecture/verification-architecture.md`,
+`specs/architecture/module-decomposition.md`,
+`specs/architecture/api-surface.md`
+
+**Remediation:** All 13 findings (1C/3H/4M/3L/2N) remediated. Entity shards ent-02/ent-03
+fully re-anchored; phantom `classification_attempts` field removed; `small_segment_run_count`
+corrected to `small_segment_run`; em-dash separator fixed in BC-2.09.002 Display; SS-13
+BCs re-anchored to CAP-12 in 4 BC bodies and ARCH-INDEX; `b"HTTP/"` token added to
+cap-05 and inv-01; VP-008 fuzz arg order and IPv6 literal corrected; BC-2.06.014 EC-004
+and line citation corrected; C-21 retry-budget fields added to module-decomposition;
+decode_packet added to api-surface; VP-018 BC list corrected. Fixes committed in burst
+`spec: fix adversarial-review pass-7 findings (1C/3H/4M/3L) - reconcile entity shards, Display em-dash, SS-13 anchor`
+(SHA: 4681813). Pass 8 dispatched next.
 
 ---
