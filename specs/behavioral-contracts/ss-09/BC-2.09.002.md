@@ -22,16 +22,16 @@ removed: null
 removal_reason: null
 ---
 
-# BC-2.09.002: Finding Display Renders [Category] VERDICT (CONFIDENCE) -- summary
+# BC-2.09.002: Finding Display Renders [Category] VERDICT (CONFIDENCE) — summary
 
 ## Description
 
 `Finding`'s `fmt::Display` implementation renders a one-line string in the format
-`[{category}] {verdict} ({confidence}) -- {summary}`. The category is the Debug string
+`[{category}] {verdict} ({confidence}) — {summary}`. The category is the Debug string
 of `ThreatCategory` (e.g., "Anomaly", "Reconnaissance"). The verdict and confidence are
-their Display strings ("LIKELY", "MEDIUM", etc.). The separator before summary is ` -- `
-(space em-dash is not used here; it is ` -- ` two hyphens). This Display output is used
-for debugging and logging; terminal rendering uses the reporter layer.
+their Display strings ("LIKELY", "MEDIUM", etc.). The separator before summary is ` — `
+(U+2014 em-dash). This Display output is used for debugging and logging; terminal
+rendering uses the reporter layer.
 
 ## Preconditions
 
@@ -40,7 +40,7 @@ for debugging and logging; terminal rendering uses the reporter layer.
 
 ## Postconditions
 
-1. The formatted string matches: `"[{category:?}] {verdict} ({confidence}) -- {summary}"`.
+1. The formatted string matches: `"[{category:?}] {verdict} ({confidence}) — {summary}"`.
 2. `category` renders via `{self:?}` (Debug format of ThreatCategory) -- e.g., "Anomaly".
 3. `verdict` renders via Display -- "LIKELY", "UNLIKELY", or "INCONCLUSIVE".
 4. `confidence` renders via Display -- "HIGH", "MEDIUM", or "LOW".
@@ -48,7 +48,7 @@ for debugging and logging; terminal rendering uses the reporter layer.
 
 ## Invariants
 
-1. The template is hardcoded: `[{cat}] {verdict} ({conf}) -- {summary}`.
+1. The template is hardcoded: `[{cat}] {verdict} ({conf}) — {summary}`.
 2. `ThreatCategory::fmt` uses `{self:?}` (Debug), which produces the variant name (e.g., "Anomaly").
 3. The summary may contain control bytes; Display is NOT safe for direct terminal output.
 
@@ -56,22 +56,22 @@ for debugging and logging; terminal rendering uses the reporter layer.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | category=Anomaly, verdict=Likely, confidence=High | "[Anomaly] LIKELY (HIGH) -- <summary>" |
+| EC-001 | category=Anomaly, verdict=Likely, confidence=High | "[Anomaly] LIKELY (HIGH) — <summary>" |
 | EC-002 | summary contains ESC byte 0x1B | ESC byte appears literally in formatted string |
-| EC-003 | summary is empty string | "[Anomaly] LIKELY (HIGH) -- " (trailing space after --) |
+| EC-003 | summary is empty string | "[Anomaly] LIKELY (HIGH) — " (trailing space after em-dash) |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| Finding { category: Anomaly, verdict: Likely, confidence: High, summary: "test" } | "[Anomaly] LIKELY (HIGH) -- test" | happy-path |
-| Finding { category: Reconnaissance, verdict: Inconclusive, confidence: Low, summary: "scan" } | "[Reconnaissance] INCONCLUSIVE (LOW) -- scan" | happy-path |
+| Finding { category: Anomaly, verdict: Likely, confidence: High, summary: "test" } | "[Anomaly] LIKELY (HIGH) — test" | happy-path |
+| Finding { category: Reconnaissance, verdict: Inconclusive, confidence: Low, summary: "scan" } | "[Reconnaissance] INCONCLUSIVE (LOW) — scan" | happy-path |
 
 ## Verification Properties
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Display output matches expected format string | unit: assert_eq!(format!("{finding}"), "[Anomaly] LIKELY (HIGH) -- test") |
+| VP-TBD | Display output matches expected format string | unit: assert_eq!(format!("{finding}"), "[Anomaly] LIKELY (HIGH) — test") |
 
 ## Traceability
 

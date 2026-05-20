@@ -43,7 +43,7 @@ timestamp: 2026-05-20T00:00:00Z
 |-------|----------|------|
 | VP-016 | TerminalReporter MITRE tactic grouping order matches all_tactics_in_report_order | integration test |
 | VP-017 | JsonReporter BTreeMap key determinism: repeated calls with same input produce identical JSON | integration test |
-| VP-018 | CLI flag parsing: --reassemble/--no-reassemble mutual exclusion (BC-2.12.007) | integration test |
+| VP-018 | CLI flag parsing: --reassemble/--no-reassemble mutual exclusion (BC-2.12.007, BC-2.12.009) | integration test |
 | VP-019 | DNS statistics-only invariant: DnsAnalyzer.analyze() always returns empty Vec | unit test |
 | VP-020 | CsvReporter CSV-injection neutralization: cell values starting with =,+,-,@,TAB,CR are prefixed with a single-quote (') | unit test |
 
@@ -160,10 +160,18 @@ fn verify_sni_classification_exhaustive() {
 
 ```rust
 // fuzz_target in fuzz/fuzz_targets/decode_packet.rs:
+// Real signature (src/decoder.rs:128):
+//   pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<ParsedPacket>
 libfuzzer_sys::fuzz_target!(|data: &[u8]| {
-    // try all supported link types
-    for link_type in [DataLink::ETHERNET, DataLink::RAW, DataLink::IPV4, DataLink::LINUX_SLL] {
-        let _ = decode_packet(link_type, data); // must not panic
+    // try all supported link types (DataLink::IPV6 accepted per decoder.rs:134)
+    for datalink in [
+        DataLink::ETHERNET,
+        DataLink::RAW,
+        DataLink::IPV4,
+        DataLink::IPV6,
+        DataLink::LINUX_SLL,
+    ] {
+        let _ = decode_packet(data, datalink); // must not panic
     }
 });
 ```

@@ -11,12 +11,12 @@ reconciled: 2026-05-20
 
 ## What the system does today
 
-`StreamDispatcher` (E-21, C-15) implements `StreamHandler` and sits between the TCP
+`StreamDispatcher` (E-21, C-21) implements `StreamHandler` and sits between the TCP
 reassembly engine and the protocol analyzers. For each reassembled data chunk, it classifies
 the flow's protocol by inspecting the first bytes of content before consulting port numbers
 (ADR 0001).
 
-**Sources:** C-15 dispatcher.rs. BC-DSP-001..009.
+**Sources:** C-21 dispatcher.rs. BC-DSP-001..009.
 
 ## Classification algorithm (classify function)
 
@@ -24,8 +24,9 @@ the flow's protocol by inspecting the first bytes of content before consulting p
 1. If data.len() >= 5 AND data[0] == 0x16 AND data[1] == 0x03:
        -> DispatchTarget::Tls   (TLS record type + major version)
 2. Else if data starts with b"GET " | b"POST " | b"PUT " | b"DELETE " |
-          b"HEAD " | b"OPTIONS " | b"CONNECT " | b"PATCH " | b"TRACE ":
-       -> DispatchTarget::Http
+          b"HEAD " | b"OPTIONS " | b"CONNECT " | b"PATCH " | b"TRACE " |
+          b"HTTP/":
+       -> DispatchTarget::Http  (b"HTTP/" matches response-first streams)
 3. Else if flow.lower_port or flow.upper_port in {80, 443, 8080, 8443}:
        -> DispatchTarget::Http or Tls (port-based fallback)
 4. Else -> DispatchTarget::None

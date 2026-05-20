@@ -11,7 +11,7 @@ reconciled: 2026-05-20
 Covers E-9 through E-15, E-18 through E-20. These are the L2 Stream/Routing entities
 (C-6..C-9). Source: pass-2-domain-model.md + pass-2-R3.md.
 
-## E-9: FlowKey (src/reassembly/flow.rs:6-12)
+## E-9: FlowKey (src/reassembly/flow.rs:21)
 
 Canonicalized 4-tuple identifying a TCP connection.
 
@@ -32,7 +32,7 @@ is `(ip_a, port_a) <= (ip_b, port_b)` -- tuple comparison, NOT independent field
 This means A->B and B->A produce the identical key. Sorting ip and port independently would
 silently merge unrelated connections sharing an IP.
 
-## E-10: FlowState (src/reassembly/flow.rs:62-69)
+## E-10: FlowState (src/reassembly/flow.rs:77)
 
 ```
 enum FlowState { New, SynSent, Established, Closing, Closed }
@@ -46,7 +46,7 @@ TCP handshake/teardown state machine. Transitions (VO-11):
 - Any state -> `Closed` on RST (direct jump).
 - `New -> Established` via `on_data_without_syn` (mid-stream capture; sets `partial=true`).
 
-## E-11: FlowDirection (src/reassembly/flow.rs:71-87)
+## E-11: FlowDirection (src/reassembly/flow.rs:86)
 
 Per-direction reassembly buffer and anomaly counters.
 
@@ -59,7 +59,7 @@ struct FlowDirection {
     reassembled_bytes:        usize,
     overlap_count:            u32,
     overlap_alert_fired:      bool,   // one-shot latch
-    small_segment_run_count:  u32,    // consecutive-run counter (not cumulative; resets on normal segment)
+    small_segment_run:        u32,    // consecutive-run counter (not cumulative; resets on normal segment)
     small_segment_alert_fired:bool,   // one-shot latch
     out_of_window_count:      u32,
     out_of_window_alert_fired:bool,   // one-shot latch
@@ -72,11 +72,11 @@ struct FlowDirection {
 The three `_alert_fired` latches are monotonic false->true. Alerts fire exactly once per
 direction (worst-case 6 findings per bidirectional flow across all three types).
 
-`small_segment_run_count` tracks consecutive small-segment runs, not cumulative count. It
+`small_segment_run` tracks consecutive small-segment runs, not cumulative count. It
 resets to 0 whenever a segment with payload >= `small_segment_max_bytes` is inserted. This
 is the redesigned consecutive-run model from #92/#93.
 
-## E-12: TcpFlow (src/reassembly/flow.rs:159-170)
+## E-12: TcpFlow (src/reassembly/flow.rs:181)
 
 Aggregate of two FlowDirections plus handshake state.
 
@@ -97,7 +97,7 @@ struct TcpFlow {
 `initiator` is latched: first `set_initiator` call wins; subsequent calls are no-ops.
 If never set, `TcpFlow::direction()` defaults to `ServerToClient` (VO-10).
 
-## E-13: InsertResult (src/reassembly/segment.rs:7-18)
+## E-13: InsertResult (src/reassembly/segment.rs:19)
 
 ```
 enum InsertResult {
@@ -110,7 +110,7 @@ The engine matches all 9 variants at mod.rs:232-265. `IsnMissing` is a programmi
 sentinel (VO-12): triggers one-shot eprintln via `ISN_MISSING_WARNED` atomic; segment is
 silently dropped.
 
-## E-14: Direction (src/reassembly/handler.rs:5-9)
+## E-14: Direction (src/reassembly/handler.rs:25)
 
 ```
 enum Direction { ClientToServer, ServerToClient }
@@ -119,7 +119,7 @@ enum Direction { ClientToServer, ServerToClient }
 Binary enum (VO-10). No Unknown variant; the engine commits to a direction at first SYN or
 via `on_data_without_syn`.
 
-## E-15: CloseReason (src/reassembly/handler.rs:11-17)
+## E-15: CloseReason (src/reassembly/handler.rs:37)
 
 ```
 enum CloseReason { Fin, Rst, Timeout, MemoryPressure }
@@ -170,13 +170,12 @@ Top-level engine. Not Serialize, not Clone. Source now split across four files:
 
 ```
 struct TcpReassembler {
-    config:       ReassemblyConfig,    // private
+    config:       ReassemblyConfig,         // private
     flows:        HashMap<FlowKey, TcpFlow>, // private
-    stats:        ReassemblyStats,     // private
-    findings:     Vec<Finding>,        // private; capped at MAX_FINDINGS=10,000
-    total_memory: usize,               // private
-    finalized:    bool,                // private; latch for finalize()
-    classification_attempts: HashMap<FlowKey, u32>,  // (carried by StreamDispatcher, not here)
+    stats:        ReassemblyStats,           // private
+    findings:     Vec<Finding>,              // private; capped at MAX_FINDINGS=10,000
+    total_memory: usize,                     // private
+    finalized:    bool,                      // private; latch for finalize()
 }
 ```
 

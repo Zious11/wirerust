@@ -40,7 +40,7 @@ All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by 
 | C-15 | src/reassembly/lifecycle.rs | SS-04 | `close_flow`, eviction logic, `on_rst`, `on_fin` | Mixed: pure flow-table mutations; `static AtomicBool` warning latch for missing-key |
 | -- | src/reassembly/config.rs | SS-04 | `ReassemblyConfig` struct; threshold fields with research-documented defaults | Pure (data) |
 | -- | src/reassembly/stats.rs | SS-04 | `ReassemblyStats` counters struct; `summarize` mapping | Pure (data) |
-| C-21 | src/dispatcher.rs | SS-05 | `StreamDispatcher`: `classify()`, `routes: HashMap<FlowKey, DispatchTarget>`, `on_data`, `on_flow_close` | Pure core (deterministic routing logic; HashMap state) |
+| C-21 | src/dispatcher.rs | SS-05 | `StreamDispatcher`: `classify()`, `routes: HashMap<FlowKey, DispatchTarget>`, `classification_attempts: HashMap<FlowKey, u32>`, `max_classification_attempts: u32` (LESSON-P2.11 retry-budget cap), `on_data`, `on_flow_close` | Pure core (deterministic routing logic; HashMap state) |
 
 ### L3 Domain Layer
 

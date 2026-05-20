@@ -43,11 +43,13 @@ if (ip_a, port_a) <= (ip_b, port_b) { ... }
 TCP content before falling back to port numbers. Precedence order:
 1. `data.len() >= 5 AND data[0] == 0x16 AND data[1] == 0x03` (two-byte prefix check,
    5-byte buffer minimum to guard against short data) => TLS
-2. HTTP method token prefix (`GET `, `POST `, etc. via `starts_with`) => HTTP
+2. HTTP method token prefix (`GET `, `POST `, `PUT `, `DELETE `, `HEAD `, `OPTIONS `,
+   `CONNECT `, `PATCH `, `TRACE `, or `HTTP/` via `starts_with`) => HTTP
+   (the `HTTP/` arm matches response-first streams; see `src/dispatcher.rs:104`)
 3. Port-based fallback (80/443/8080/8443) => HTTP or TLS
 4. Otherwise => `DispatchTarget::None` for this call
 
-**None caching behavior (verified against `src/dispatcher.rs:136-154`):**
+**None caching behavior (verified against `src/dispatcher.rs:133-154`):**
 `DispatchTarget::None` is NOT immediately cached. Each `None` result increments a
 per-flow `classification_attempts` counter. Once the counter reaches
 `max_classification_attempts` (default 8), the dispatcher permanently inserts
@@ -60,7 +62,8 @@ immutable for the flow's lifetime.
 would break the sniffing of protocol-aware attacks where attackers run non-standard ports.
 
 **Enforcement:** `src/dispatcher.rs:90-117` (`classify` function); `src/dispatcher.rs:133-154`
-(caching + retry-budget logic in `on_data`).
+(cache lookup + retry-budget logic in `on_data`; block starts at line 133 with
+`let target = if let Some(&cached)`).
 **Corpus refs:** ADR 0001, VO-E-22, BC-DSP-001..006.
 
 

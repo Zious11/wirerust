@@ -220,7 +220,7 @@ traces_to: .factory/specs/prd.md
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
 | BC-2.09.001 | Finding Constructed with Required Fields and Optional Fields | P0 | [WRITTEN] | BC-FND-001 |
-| BC-2.09.002 | Finding Display Renders [Category] VERDICT (CONFIDENCE) -- summary | P1 | [WRITTEN] | BC-FND-002 |
+| BC-2.09.002 | Finding Display Renders [Category] VERDICT (CONFIDENCE) — summary | P1 | [WRITTEN] | BC-FND-002 |
 | BC-2.09.003 | Verdict Display: Uppercase Tokens | P1 | [WRITTEN] | BC-FND-003 |
 | BC-2.09.004 | Confidence Display: Uppercase Tokens | P1 | [WRITTEN] | BC-FND-004 |
 | BC-2.09.005 | Finding.summary and Evidence Store RAW Post-from_utf8_lossy Bytes per ADR 0003 | P0 | [WRITTEN] | BC-FND-005 |

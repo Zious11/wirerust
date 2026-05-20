@@ -70,7 +70,7 @@ determines whether the evidence cites "request" or "response". The error also in
 | EC-001 | Request with 97 headers | Finding + parse_errors=1 |
 | EC-002 | Response with 97 headers | Finding with "Direction: response" evidence |
 | EC-003 | TooManyHeaders on 3rd consecutive attempt | Third error also triggers poisoning (BC-2.06.015) AND emits a finding |
-| EC-004 | TooManyHeaders after prior success (had_success=true) | Finding still emitted (the TooManyHeaders finding check is outside the had_success guard) |
+| EC-004 | TooManyHeaders after prior success (had_success=true) | Finding NOT emitted; the TooManyHeaders check is nested inside `if !had_success {`, so had_success=true suppresses both the counter increment and the finding |
 
 ## Canonical Test Vectors
 
@@ -105,14 +105,14 @@ determines whether the evidence cites "request" or "response". The error also in
 ## Architecture Anchors
 
 - `src/analyzer/http.rs:416-428` -- TooManyHeaders arm in request Err block
-- `src/analyzer/http.rs:474-486` -- TooManyHeaders arm in response Err block
+- `src/analyzer/http.rs:475-487` -- TooManyHeaders arm in response Err block
 - `tests/http_analyzer_tests.rs` -- test_too_many_headers_generates_finding, test_too_many_headers_in_response_generates_finding
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:416-428, 474-486` |
+| **Path** | `src/analyzer/http.rs:416-428, 475-487` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

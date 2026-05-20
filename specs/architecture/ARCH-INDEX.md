@@ -67,7 +67,7 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 | SS-10 | MITRE Mapping | CAP-10 | mitre.rs | 9 |
 | SS-11 | Reporting | CAP-11 | reporter/{mod,json,terminal,csv}.rs | 24 |
 | SS-12 | CLI / Entry | CAP-12 | main.rs, cli.rs, lib.rs, summary.rs | 21 |
-| SS-13 | Absent Behaviors | N/A (intentionally unwired) | cli.rs (flag parse only) | 4 |
+| SS-13 | Absent Behaviors | CAP-12 | cli.rs (flag parse only) | 4 |
 
 > SS-03 is intentionally absent. See "CAP-03 / ss-02 Ruling" below.
 

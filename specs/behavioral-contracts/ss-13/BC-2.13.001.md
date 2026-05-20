@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/cli.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-13
-capability: CAP-01
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: ["2026-05-20: corrected -- flag was removed by PR #74, not merely unwired"]
@@ -75,8 +75,8 @@ accurate for the pre-PR-#74 codebase; it is wrong for the current shipped binary
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 |
-| Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- this absent behavior is documented at the CLI boundary, which governs ingestion configuration |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- this BC documents an absent CLI flag; the CLI entry-point surface (argument declarations, clap rejection behavior) is precisely what CAP-12 governs |
 | L2 Domain Invariants | None |
 | Architecture Module | SS-13 (cli.rs, C-3 -- flag absence documented by LESSON-P1.04 comment) |
 | Stories | S-TBD |

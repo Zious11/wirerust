@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/cli.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-13
-capability: CAP-01
+capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified: []
@@ -74,8 +74,8 @@ behavior -- BPF-style filtering is out of scope for the current release (Section
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 |
-| Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- packet filtering at ingestion is governed by the CLI/ingestion boundary; its absence is a CAP-01 scope boundary |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- this BC documents an absent CLI flag; the CLI argument surface (including the non-existence of --filter) is what CAP-12 governs |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-13 (cli.rs, C-3 -- flag absence documented) |
 | Stories | S-TBD |

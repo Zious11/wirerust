@@ -126,6 +126,13 @@ pub trait Reporter {
 Implemented by: `JsonReporter`, `TerminalReporter`, `CsvReporter`.
 
 
+## Key Public Functions (L1 Ingest Layer)
+
+| Function | File | Signature | Notes |
+|----------|------|-----------|-------|
+| `decode_packet` | decoder.rs | `pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<ParsedPacket>` | Link-type whitelist gate + L2-L4 header parse. Data-first argument order. Used by integration tests and VP-008 fuzz target. Accepts ETHERNET, RAW, IPV4, IPV6, LINUX_SLL; rejects all other link types with Err. |
+
+
 ## Key Public Structs (L3 Domain)
 
 | Struct | File | Key Fields |
