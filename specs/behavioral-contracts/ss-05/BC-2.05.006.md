@@ -127,7 +127,7 @@ cache permanently.
 
 ## Evidence Types Used
 
-- **guard clause**: `if target != DispatchTarget::None { routes.insert(...) }`
+- **guard clause**: `if target == DispatchTarget::None { ... } else { routes.insert(...) }`
 - **inferred**: no independent test of the cache-not-inserted path
 
 ## Purity Classification

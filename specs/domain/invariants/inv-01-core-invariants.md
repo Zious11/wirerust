@@ -214,6 +214,6 @@ absence of `= false` assignments (confirmed pass-2 R3 Target 3).
 unrecognized ID produces an ungrouped finding with a `<id> (unknown)` label. JSON output
 passes the raw ID string through without validation.
 
-**Enforcement:** `src/mitre.rs:122-154` (`technique_info` function; `let info = match id`
-block starts at `:123`, wildcard arm `_ => return None` at `:153`).
+**Enforcement:** `src/mitre.rs:122-156` (`technique_info` function; `let info = match id`
+block starts at `:123`, wildcard arm `_ => return None` at `:153`, closing `}` at `:156`).
 **Corpus refs:** VO-6, BC-MIT-005..008, CAP-10.
