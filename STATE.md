@@ -13,9 +13,10 @@ remediation_completed: 2026-05-19T22:30:00Z
 
 ## Status
 
-**Pipeline:** REMEDIATION_COMPLETE — the full Phase C lesson backlog (P0 + P1 +
-P2) has been delivered as 21 merged PRs on `develop`, plus the high-value P3
-documentation subset. Three cosmetic P3 items deliberately deferred.
+**Pipeline:** REMEDIATION_COMPLETE — the **entire** Phase C lesson backlog
+is delivered: all 30 prioritized lessons (5 P0, 7 P1, 11 P2, 7 P3) merged to
+`develop`. The snaplen / small-segment sub-cycle (#90–#96) additionally went
+through a full 3-pass adversarial convergence. No lessons remain open.
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -87,9 +88,9 @@ test-naming convention P3.05 (#89, in README), `is_grease_u16` rationale,
 dead-fixtures README P3.07 (#86), `Summary.services` divergence doc P3.01
 and pluralization helper P3.02 (#97).
 
-REMAINING: P3.06 (widen branch-naming patterns to `<type>/<slug>`) —
-blocked: it targets `CLAUDE.md`, which is currently untracked in the
-repo. See drift item 3.
+P3.06 (widen branch-naming patterns to `<type>/<slug>`) — CLOSED by
+#98, which also brought `CLAUDE.md` under version control. All 7 P3
+lessons are now done.
 
 ### Non-lesson PRs
 
@@ -121,8 +122,10 @@ repo. See drift item 3.
   flags + threshold-boundary tests for overlap/out-of-window + etherparse
   version-coupling docs — closes process-gap deferrals 6, 7, 8 below.
 - **#97** — `chore`: P3.01 (`Summary.services` port-vs-content
-  divergence doc) + P3.02 (pluralization helper extraction). 6/7 P3
-  lessons now done; only P3.06 remains (see drift item 3).
+  divergence doc) + P3.02 (pluralization helper extraction).
+- **#98** — `docs`: track `CLAUDE.md` in the repo + P3.06 (widen
+  branch-naming patterns to `<type>/<slug>`). Closes P3.06 — the last
+  open lesson; all 30 P0–P3 lessons are now delivered.
 
 ## Drift Items / open follow-ups
 
@@ -142,13 +145,9 @@ repo. See drift item 3.
    this as a sound but not-yet-validated design proposal; it would let
    the port list become advisory rather than load-bearing. Not
    implemented.
-3. **P3.06 — widen branch-naming patterns** (`<type>/<slug>`) in
-   `CLAUDE.md`. The other six P3 lessons are done (P3.01/P3.02 by #97);
-   P3.06 is the last open lesson of the entire P0–P3 backlog. It is
-   blocked on a user decision: `CLAUDE.md` is untracked (not gitignored
-   — just never `git add`ed), so the edit cannot land in version
-   control. Either commit `CLAUDE.md` to the repo (then apply P3.06) or
-   accept it as a local-only guidance file.
+3. **P3.06** — CLOSED by #98. Branch-naming patterns widened to
+   `<type>/<slug>`; `CLAUDE.md` is now version-controlled. The entire
+   P0–P3 lesson backlog (30 lessons) is delivered.
 4. **`nfs_bad_stalls.cap`** — CLOSED by #90. Re-added as a
    snaplen-truncation regression fixture (not a reassembly baseline).
 5. **Decoder snaplen-truncation** — CLOSED by #91, hardened by #94/#95.
