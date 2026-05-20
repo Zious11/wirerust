@@ -171,7 +171,12 @@ summary:
 - O-07 (rayon declared but never imported): build/dependency debt in Cargo.toml; has no
   architecture surface, no runtime impact, and no module boundary implication. Fix is a
   one-line Cargo.toml edit. See domain-debt.md O-07.
+- O-08 (dns.rs module doc-comment describes unimplemented detection): stale/aspirational
+  //! comment claims qname parsing, DGA-class entropy, NXDOMAIN spikes, and rare-TLD
+  lookups; actual DnsAnalyzer only increments two counters and always returns Vec::new().
+  Documentation debt only -- no architecture boundary implication. Fix is correcting the
+  //! header. See domain-debt.md O-08.
 
-The complete open-item set is O-01 through O-07. O-02 and O-07 are tracked in
+The complete open-item set is O-01 through O-08. O-02, O-07, and O-08 are tracked in
 `.factory/specs/domain/domain-debt.md` rather than this table because they fall outside
 the architecture layer's scope.

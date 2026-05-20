@@ -37,7 +37,7 @@ supplements:
 
 > **Brownfield Mode:** This PRD is DESCRIPTIVE of the shipped system as of develop HEAD (post
 > remediation-cycle PRs #69-#98, reconciled against 0082a0c). Every requirement is grounded in
-> verified source evidence. Known gaps are recorded as debt (O-01..O-06), not silently omitted.
+> verified source evidence. Known gaps are recorded as debt (O-01..O-08), not silently omitted.
 > Do NOT treat this document as aspirational -- it specifies what the system does today.
 
 > **BC Index Model:** This PRD is an index document. Each Behavioral Contract (BC) lives in its
@@ -799,3 +799,5 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | O-04 | 9 MITRE techniques catalogued but never emitted (T1040, T1071, T1071.001, T1071.004, T1573, T0846, T0855, T0856, T0885) | BC-2.10.005 |
 | O-05 | reassembly/mod.rs still 691 LOC after partial split (#85) | BC-2.04.* (reassembly module group) |
 | O-06 | Weak-cipher Finding evidence Vec has unbounded cardinality (up to ~9216 cipher names) | BC-2.07.009 |
+| O-07 | rayon declared in Cargo.toml but never imported; unused transitive dependency | (none -- build/dep debt only) |
+| O-08 | dns.rs module doc-comment (lines 1-7) describes DGA/entropy/NXDOMAIN/rare-TLD detection not implemented; DnsAnalyzer is statistics-only (QR-bit counters, always returns empty findings Vec) | BC-2.08.001-004 |

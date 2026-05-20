@@ -117,11 +117,14 @@ engine (L2). The effectful shell is confined to L0 (CLI + main.rs), L1 (file I/O
 reader.rs), and L4 (stdout/stderr writers). See `purity-boundary-map.md`.
 
 **Single accepted cycle:** The file-level import DAG has one group cycle: the L2 stream
-layer (`reassembly/handler.rs`) imports L3 types (`FlowKey`, `Direction`, `Finding`,
-`CloseReason`), and the L3 analyzers implement the L2 traits (`StreamHandler`,
-`StreamAnalyzer`). This cycle is accepted by ADR 0002 as the cost of the modular
-analyzer pattern. It does not prevent formal verification because both sides are
-testable independently.
+layer (`reassembly/handler.rs`) imports the L3 types `AnalysisSummary`
+(`crate::analyzer::AnalysisSummary`) and `Finding` (`crate::findings::Finding`), and the
+L3 analyzers implement the L2 traits (`StreamHandler`, `StreamAnalyzer`). That upward
+L2->L3 import is the accepted cycle per ADR 0002. Note: `FlowKey` is also imported in
+`handler.rs` but it is an L2 type (`crate::reassembly::flow::FlowKey`) -- no layer
+violation. `Direction` and `CloseReason` are not imported; they are defined in
+`handler.rs` itself (lines 25 and 37). The cycle does not prevent formal verification
+because both sides are testable independently.
 
 **Forensic fidelity:** INV-4 (ADR 0003) requires that attacker-controlled bytes survive
 all pipeline layers unchanged. `escape_for_terminal` executes only in `TerminalReporter`.

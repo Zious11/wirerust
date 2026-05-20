@@ -143,6 +143,38 @@ explaining why it is retained (e.g., planned future parallelism). Estimated effo
 **References:** Cargo.toml:28; architecture smell #8 (partially closed by #84).
 
 
+### O-08: dns.rs Module Doc-Comment Describes Unimplemented Detection (stale aspirational docs)
+
+**What exists:** `src/analyzer/dns.rs` lines 1-7 carry a module doc-comment that asserts the
+analyzer "pars[es] the question section to extract qnames" and tracks "DGA-class entropy on
+labels, unusually long subdomains, NXDOMAIN spikes, and rare-TLD lookups" with "findings
+carry[ing] confidence levels". None of this is implemented. `DnsAnalyzer` (lines 62-70) only
+inspects the QR bit (byte 2, bit 7) via `is_query()`, increments one of two counters
+(`query_count` / `response_count`), and unconditionally returns `Vec::new()`. The struct
+(lines 15-18) has exactly two fields and no qname buffer, entropy accumulator, TLD set, or
+NXDOMAIN counter. `analyze()` never constructs a `Finding`.
+
+**Severity:** Low -- documentation debt only. The spec is correct: BC-2.08.001-004, VP-019,
+and CAP-08 all accurately describe DNS as statistics-only. This is a stale/aspirational
+SOURCE doc-comment, not a spec defect. Architecture Smell #5 ("DnsAnalyzer::analyze returns
+empty Vec -- statistics-only by design") already acknowledges the statistics-only design; it
+does not record the discrepancy between that design and the misleading doc-comment text.
+
+**Observable consequence:** A developer reading only the module-level doc-comment will expect
+qname extraction, entropy scoring, NXDOMAIN detection, and confidence-level findings. None of
+these are present. The discrepancy can cause misaligned expectations during code review, onboarding,
+or when adding future DNS detection capabilities.
+
+**Source location:** `src/analyzer/dns.rs` lines 1-7 (//! module doc-comment).
+
+**Fix:** Replace the module doc-comment with text that accurately describes the actual behavior:
+statistics-only QR-bit discrimination producing `dns_queries` and `dns_responses` counters,
+always returning an empty findings Vec. If DGA/entropy/NXDOMAIN detection is planned,
+document it explicitly as future work rather than present behavior.
+
+**References:** Adversarial-review pass-29 observation O-1; Architecture Smell #5; BC-2.08.001-004; VP-019; CAP-08.
+
+
 ---
 
 ## Architecture Smell Status (updated, develop HEAD)
