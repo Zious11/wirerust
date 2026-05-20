@@ -29,10 +29,11 @@ traces_to: STATE.md
 | 11 | 2026-05-20 | 1 | 0 | 0 | 0 | 1 | LOW | — | **1/3** | **CONVERGED** — clean pass 1 of 3 (0C/0H/0M/1L/4obs); 1L + 4 cosmetic observations polished |
 | 12 | 2026-05-20 | 6 | 0 | 1 | 1 | 2 | LOW | — | **0/3** | **NOT CONVERGED** — counter RESET from 1/3 (H+M findings broke streak); all 6 findings fixed |
 | 13 | 2026-05-20 | 5 | 0 | 2 | 0 | 3 | LOW | — | **0/3** | **NOT CONVERGED** — 2H stale anchors (ent-05, INV-4), 2L doc drift (ARCH-INDEX C-count, prd BC-2.07.004), 1N; all 5 fixed |
+| 14 | 2026-05-20 | 3 | 0 | 1 | 0 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — H-1 summary.rs C-16→C-17 mis-anchor (4 sites/2 files), L-1 entity index E-39b missing (entity 41→42), N-1 BC-2.12.005 citation off-by-one; all 3 fixed |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6→5`
+`17→13→7→19→8→3→13→7→4→6→1→6→5→3`
 
 ## Per-Pass Details
 
@@ -665,5 +666,50 @@ component-count range corrected C-1..C-20 → C-1..C-21; prd.md BC-2.07.004 one-
 canonical BC H1. Fixes committed in burst
 `spec: fix adversarial-review pass-13 findings (2H/3L) - ent-05 anchors, INV-4 anchor`.
 Pass 14 dispatched next.
+
+---
+
+### Pass 14 (2026-05-20) — NOT CONVERGED (counter remains 0/3)
+
+**Findings:** 3 (0 CRIT, 1 HIGH, 0 MED, 1 LOW, 1 NITPICK)
+**Delta from pass 13:** -2 total (HIGH -1, LOW -2, NITPICK +1) — no regression; continued reduction
+**Novelty:** LOW
+**Convergence counter:** 0/3 (unchanged — HIGH finding disqualifies; a clean pass requires 0C/0H/0M)
+**Verdict:** NOT CONVERGED — 1 HIGH finding present. Counter remains 0/3. Pass 15 is next.
+
+**Key finding categories:**
+
+- HIGH (H-1): `domain/domain-spec.md` and `domain/capabilities/cap-12-cli-orchestration.md` —
+  summary.rs component ID cited as `C-16` in both files (4 total locations). Correct component ID
+  per `architecture/module-decomposition.md` is `C-17`. Fixed in:
+  - `domain-spec.md`: CAP-12 note paragraph (1 site) and SS-12 subsystem map row (1 site)
+  - `cap-12-cli-orchestration.md`: Sources line in overview (1 site) and section header
+    "Summary accumulation (summary.rs / C-16)" (1 site)
+
+- LOW (L-1): `domain/domain-spec.md` — Entity/Enum Index table (section 5) did not list
+  `E-39b CsvReporter` in the ent-04 row. CsvReporter has been in the codebase since PR #84;
+  the entity index was never updated to reflect it. Entry added. Entity count updated 41→42
+  in both the frontmatter summary table and the section-5 header.
+
+- NITPICK (N-1): `behavioral-contracts/ss-12/BC-2.12.005.md` — Architecture Anchors section
+  and Source Evidence Path field both cited `src/cli.rs:61-105`; correct range after latest
+  refactor is `src/cli.rs:61-106` (off-by-one on end line). Fixed in 2 locations.
+
+**Recurring process gap (8th occurrence — P-CITE-PG):**
+Stale source-line citation recurred in N-1 (cli.rs:61-105 → 61-106). This is the 8th occurrence
+of the P-CITE-PG gap. Mandatory codification follow-up already recorded in STATE.md. No new
+action item added.
+
+**Files fixed (3):**
+`specs/domain/domain-spec.md`,
+`specs/domain/capabilities/cap-12-cli-orchestration.md`,
+`specs/behavioral-contracts/ss-12/BC-2.12.005.md`
+
+**Remediation:** All 3 findings (0C/1H/0M/1L/1N) remediated. summary.rs C-16→C-17 corrected
+in 4 locations across 2 files; E-39b CsvReporter added to entity index and entity count
+incremented 41→42; cli.rs citation range corrected 61-105→61-106 in 2 locations. Fixes committed
+in burst
+`spec: fix adversarial-review pass-14 findings (1H/1L/1N) - C-16/C-17 mis-anchor, entity index`
+(SHA: 3ec08db). Pass 15 dispatched next.
 
 ---

@@ -14,18 +14,18 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 0/3
-adversary_pass_13_date: "2026-05-20"
-adversary_pass_13_verdict: NOT_CONVERGED
-adversary_pass_13_findings: "5 (0C/2H/0M/3L) — counter remains 0/3; all fixed"
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5"
+adversary_pass_14_date: "2026-05-20"
+adversary_pass_14_verdict: NOT_CONVERGED
+adversary_pass_14_findings: "3 (0C/1H/0M/1L/1N) — counter remains 0/3; all fixed"
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 13 NOT CONVERGED (0C/2H/0M/3L/1N).
-Counter remains 0/3 (2 HIGH findings). All findings fixed. Pass 14 is next; must achieve
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 14 NOT CONVERGED (0C/1H/0M/1L/1N).
+Counter remains 0/3 (1 HIGH finding). All findings fixed. Pass 15 is next; must achieve
 3 consecutive clean passes (0C/0H/0M) to satisfy the convergence gate.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
@@ -41,7 +41,7 @@ Counter remains 0/3 (2 HIGH findings). All findings fixed. Pass 14 is next; must
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–13 remediated; pass 11 CONVERGED then passes 12–13 NOT CONVERGED reset/held counter; pass 14 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–14 remediated; pass 11 CONVERGED then passes 12–14 NOT CONVERGED reset/held counter; pass 15 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -104,13 +104,14 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 11 | 2026-05-20 | 1L/4obs (0C/0H/0M/1L) | **CONVERGED** | CLEAN PASS 1/3 — polish applied (L-1 BC ref, O-1 pseudocode, O-2 struct-variant, O-3 exit-2, O-4 dev-deps) |
 | 12 | 2026-05-20 | 6 (0C/1H/1M/2L/2N) | NOT CONVERGED | RESET 1/3→0/3 — F-1 C1 postcondition, F-2 stale citation+unsupported claim, F-3/F-4 IPv6 bracket+citation, 2N csv.rs off-by-one. All fixed. |
 | 13 | 2026-05-20 | 5 (0C/2H/0M/3L) | NOT CONVERGED | Counter remains 0/3 — H-1 ent-05 7 stale anchors, H-2 INV-4 ADR-0003 anchor, C-1 ARCH-INDEX C-count, prd.md BC-2.07.004 one-liner, 1N. All fixed. |
+| 14 | 2026-05-20 | 3 (0C/1H/0M/1L/1N) | NOT CONVERGED | Counter remains 0/3 — H-1 summary.rs C-16→C-17 mis-anchor (domain-spec+cap-12, 4 sites), L-1 ent-04 E-39b CsvReporter missing from entity index (entity count 41→42), N-1 BC-2.12.005 cli.rs citation 61-105→61-106. All fixed. |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
 1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (0/3).
-   Pass 14 is next; all three consecutive passes must be clean (0C/0H/0M) to satisfy gate.
+   Pass 15 is next; all three consecutive passes must be clean (0C/0H/0M) to satisfy gate.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 
