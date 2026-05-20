@@ -82,24 +82,24 @@ mod kani_proofs {
         // Commutativity: argument order must not matter
         assert_eq!(key_ab, key_ba);
 
-        // Ordering invariant: lower field must be <= upper field
+        // Ordering invariant: lower field must be <= upper field.
+        // FlowKey fields are PRIVATE; use public accessors lower_ip(), lower_port(),
+        // upper_ip(), upper_port() (src/reassembly/flow.rs:29-43).
         assert!(
-            (key_ab.lower_ip, key_ab.lower_port) <= (key_ab.upper_ip, key_ab.upper_port)
+            (key_ab.lower_ip(), key_ab.lower_port()) <= (key_ab.upper_ip(), key_ab.upper_port())
         );
     }
 
     #[kani::proof]
     fn verify_flowkey_tuple_pair_not_independent_field() {
         // Construct a case where tuple-pair ordering differs from independent-field sorting.
-        // Example: ip_a = 1.0.0.0, port_a = 9000, ip_b = 2.0.0.0, port_b = 80
-        // Tuple-pair: (1.0.0.0, 9000) < (2.0.0.0, 80) -> lower is (1.0.0.0, 9000)
-        // Independent-field (wrong): would sort IPs first; same result here.
-        // Counter-example: ip_a = ip_b = 1.0.0.0; port_a = 9000 > port_b = 80
-        // Tuple-pair: (1.0.0.0, 80) < (1.0.0.0, 9000) -> lower_port = 80.
+        // Example: ip_a = ip_b = 1.0.0.0; port_a = 9000 > port_b = 80
+        // Tuple-pair: (1.0.0.0, 80) < (1.0.0.0, 9000) -> lower_port() = 80.
+        // FlowKey fields are PRIVATE; use public accessors lower_port(), upper_port().
         let ip: IpAddr = IpAddr::V4(Ipv4Addr::new(1, 0, 0, 0));
         let key = FlowKey::new(ip, 9000, ip, 80);
-        assert_eq!(key.lower_port, 80);
-        assert_eq!(key.upper_port, 9000);
+        assert_eq!(key.lower_port(), 80);
+        assert_eq!(key.upper_port(), 9000);
     }
 }
 ```

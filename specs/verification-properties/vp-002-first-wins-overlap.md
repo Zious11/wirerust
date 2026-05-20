@@ -73,49 +73,96 @@ TCP evasion attack detection. A conflicting overlap is always surfaced as an
 
 ## Proof Harness Skeleton
 
+// Real signature (src/reassembly/segment.rs:39-46):
+//   pub fn insert_segment(
+//       &mut self,
+//       seq: u32,
+//       data: &[u8],
+//       max_depth: usize,
+//       max_segments: usize,
+//       max_receive_window: usize,
+//   ) -> InsertResult
+//
+// ISN is stored inside FlowDirection (self.isn: Option<u32>); there is NO `isn`
+// parameter on insert_segment. Set the ISN via dir.set_isn(isn) or dir.infer_isn(seq)
+// before the first insert.
+//
+// Available read accessors on FlowDirection (src/reassembly/flow.rs:150-177):
+//   segment_at(offset: u64) -> Option<&[u8]>
+//   has_segment_at(offset: u64) -> bool
+//   segment_count() -> usize
+//   buffered_bytes() -> usize
+//   segments_is_empty() -> bool
+// There is NO read_at method.
+
 ```rust
 #[cfg(kani)]
 mod kani_proofs {
     use super::*;
 
+    // Bounded constants for Kani tractability
+    const TEST_MAX_DEPTH: usize = 65_536;
+    const TEST_MAX_SEGMENTS: usize = 1_024;
+    const TEST_MAX_WINDOW: usize = 65_536;
+
     #[kani::proof]
     fn verify_first_wins_conflicting_overlap() {
         let mut dir = FlowDirection::new();
-        // Insert original bytes at offset 0
+        // Set ISN so that seq=0 maps to offset=1 (ISN+1 is first data byte).
+        // Use infer_isn(1) which sets isn=0, base_offset=1.
+        // For simplicity use seq=1 so offset=seq.wrapping_sub(isn)=1.
+        dir.set_isn(0);
+        // Insert original bytes at seq=1 (offset=1)
         let original: [u8; 4] = kani::any();
-        let result1 = dir.insert_segment(0, &original, /* isn */ 0);
+        let result1 = dir.insert_segment(
+            1,
+            &original,
+            TEST_MAX_DEPTH,
+            TEST_MAX_SEGMENTS,
+            TEST_MAX_WINDOW,
+        );
         assert!(matches!(result1, InsertResult::Inserted));
 
-        // Insert conflicting bytes at same offset (must differ in at least one position)
+        // Insert conflicting bytes at same seq (must differ in at least one position)
         let conflicting: [u8; 4] = kani::any();
         kani::assume(conflicting != original); // ensure a difference exists
 
-        let result2 = dir.insert_segment(0, &conflicting, 0);
+        let result2 = dir.insert_segment(
+            1,
+            &conflicting,
+            TEST_MAX_DEPTH,
+            TEST_MAX_SEGMENTS,
+            TEST_MAX_WINDOW,
+        );
         assert!(matches!(result2, InsertResult::ConflictingOverlap));
 
-        // Original bytes must still be in buffer unchanged
-        let buffered = dir.read_at(0, 4); // test accessor
-        assert_eq!(buffered, original);
+        // Original bytes must still be in buffer unchanged.
+        // Use segment_at(offset) to read the buffered bytes at ISN-relative offset 1.
+        let buffered = dir.segment_at(1).expect("segment must exist after insert");
+        assert_eq!(buffered, &original[..]);
     }
 
     #[kani::proof]
     fn verify_duplicate_does_not_change_buffer() {
         let mut dir = FlowDirection::new();
+        dir.set_isn(0);
         let bytes: [u8; 4] = kani::any();
-        let _ = dir.insert_segment(0, &bytes, 0);
+        let _ = dir.insert_segment(1, &bytes, TEST_MAX_DEPTH, TEST_MAX_SEGMENTS, TEST_MAX_WINDOW);
         // Insert identical bytes again
-        let result = dir.insert_segment(0, &bytes, 0);
+        let result = dir.insert_segment(1, &bytes, TEST_MAX_DEPTH, TEST_MAX_SEGMENTS, TEST_MAX_WINDOW);
         assert!(matches!(result, InsertResult::Duplicate));
     }
 
     #[kani::proof]
     fn verify_adjacent_boundary_not_overlap() {
         let mut dir = FlowDirection::new();
+        dir.set_isn(0);
         let bytes_a: [u8; 4] = kani::any();
         let bytes_b: [u8; 4] = kani::any();
-        let _ = dir.insert_segment(0, &bytes_a, 0);
-        // Segment starting exactly at end of first segment -- should NOT be overlap
-        let result = dir.insert_segment(4, &bytes_b, 0);
+        // seq=1 -> offset=1; insert 4 bytes covering offsets 1..5
+        let _ = dir.insert_segment(1, &bytes_a, TEST_MAX_DEPTH, TEST_MAX_SEGMENTS, TEST_MAX_WINDOW);
+        // seq=5 -> offset=5; starts exactly at end of first segment -- NOT overlap
+        let result = dir.insert_segment(5, &bytes_b, TEST_MAX_DEPTH, TEST_MAX_SEGMENTS, TEST_MAX_WINDOW);
         assert!(!matches!(result, InsertResult::ConflictingOverlap));
         assert!(!matches!(result, InsertResult::Duplicate));
     }

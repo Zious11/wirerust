@@ -69,44 +69,62 @@ values per RFC 8701 before computing the fingerprint:
 
 ## Proof Harness Skeleton
 
+API notes verified against `src/analyzer/tls.rs` @ 0082a0c:
+- `compute_ja3_string` does NOT exist. The real functions are:
+  - `compute_ja3(version: u16, ciphers: &[TlsCipherSuiteID], extensions: &[TlsExtension<'_>]) -> (String, String)`
+    Returns `(md5_hash, ja3_string)`. Curves and point_formats are extracted
+    from the `extensions` slice internally (from `TlsExtension::EllipticCurves`
+    and `TlsExtension::EcPointFormats` arms). There is no separate `curves` arg.
+  - `compute_ja3s(version: u16, cipher: TlsCipherSuiteID, extensions: &[TlsExtension<'_>]) -> String`
+    Returns only the MD5 hex string (not a tuple).
+- `is_grease_u16(val: u16) -> bool` is the module-private GREASE predicate.
+  It uses the broader mask `(val & 0x0F0F) == 0x0A0A` (intentionally covers
+  240 non-canonical `0x_A_A` values beyond the 16 strict RFC 8701 GREASE
+  values -- see src/analyzer/tls.rs:50 for rationale).
+- Both `compute_ja3` and `is_grease_u16` are private (`fn`, not `pub fn`).
+  Proptest must be a module-internal test using `use super::*`.
+- Cipher types use `TlsCipherSuiteID` (a newtype wrapper around `u16`), not
+  bare `u16`. Construct via `TlsCipherSuiteID(val)`.
+- JA3 string format uses `-` as the field delimiter and `-` as the
+  within-field delimiter (src/analyzer/tls.rs:148: `format!("{version},{cipher_str},{ext_ids},{curves_str},{pf_str}")`
+  where inner join also uses `-`).
+
 ```rust
+// Located in src/analyzer/tls.rs (module-internal test using `use super::*`)
 #[cfg(test)]
 mod proptest_proofs {
     use proptest::prelude::*;
-    use super::*;
+    use tls_parser::TlsCipherSuiteID;
+    use super::*; // brings compute_ja3, is_grease_u16 into scope
 
-    // All 16 GREASE cipher values per RFC 8701
-    const GREASE_VALUES: &[u16] = &[
-        0x0A0A, 0x1A1A, 0x2A2A, 0x3A3A, 0x4A4A, 0x5A5A, 0x6A6A, 0x7A7A,
-        0x8A8A, 0x9A9A, 0xAAAA, 0xBABA, 0xCACA, 0xDADA, 0xEAEA, 0xFAFA,
-    ];
-
-    fn is_grease(v: u16) -> bool {
-        (v & 0x0F0F == 0x0A0A) && ((v >> 8) == (v & 0xFF))
+    // The GREASE predicate used by this module (src/analyzer/tls.rs:50):
+    // (val & 0x0F0F) == 0x0A0A -- broader than the 16 strict RFC 8701 values.
+    fn grease(v: u16) -> bool {
+        (v & 0x0F0F) == 0x0A0A
     }
 
     proptest! {
         #[test]
         fn prop_no_grease_in_ja3_string(
-            ciphers in prop::collection::vec(any::<u16>(), 0..20),
-            extensions in prop::collection::vec(any::<u16>(), 0..10),
-            curves in prop::collection::vec(any::<u16>(), 0..5),
+            cipher_vals in prop::collection::vec(any::<u16>(), 0..20),
         ) {
             let version: u16 = 0x0303; // TLS 1.2
+            // Wrap bare u16 values into TlsCipherSuiteID (newtype)
+            let ciphers: Vec<TlsCipherSuiteID> = cipher_vals.iter()
+                .map(|&v| TlsCipherSuiteID(v))
+                .collect();
+            // extensions=&[] means no elliptic curves, no ec point formats,
+            // no extension IDs in the JA3 string -- acceptable for cipher-filter test.
+            let (_, ja3_str) = compute_ja3(version, &ciphers, &[]);
 
-            // Build a synthetic ClientHello with these values
-            let ja3_string = compute_ja3_string(
-                version, &ciphers, &extensions, &curves, &[]
-            );
-
-            // Parse the JA3 string and verify no GREASE values appear
-            let parts: Vec<&str> = ja3_string.split('-').collect();
-            if parts.len() >= 2 {
-                let cipher_field = parts[1];
-                for cipher_str in cipher_field.split(',').filter(|s| !s.is_empty()) {
-                    if let Ok(v) = cipher_str.parse::<u16>() {
-                        prop_assert!(!is_grease(v),
-                            "GREASE value {} appeared in JA3 cipher field", v);
+            // Parse the cipher field (field index 1, delimiter '-') and verify
+            // no GREASE values appear (src/analyzer/tls.rs:101-106).
+            let fields: Vec<&str> = ja3_str.splitn(5, ',').collect();
+            if let Some(cipher_field) = fields.get(1) {
+                for s in cipher_field.split('-').filter(|s| !s.is_empty()) {
+                    if let Ok(v) = s.parse::<u16>() {
+                        prop_assert!(!grease(v),
+                            "GREASE-matched value {} appeared in JA3 cipher field", v);
                     }
                 }
             }
@@ -114,30 +132,33 @@ mod proptest_proofs {
 
         #[test]
         fn prop_all_grease_values_filtered() {
-            // Every GREASE value must be filtered from every field
-            let ciphers: Vec<u16> = GREASE_VALUES.to_vec();
-            let ja3 = compute_ja3_string(0x0303, &ciphers, &[], &[], &[]);
-            // With only GREASE ciphers, the cipher field should be empty
-            let parts: Vec<&str> = ja3.split('-').collect();
-            if parts.len() >= 2 {
-                assert!(parts[1].is_empty() || parts[1] == "",
-                    "GREASE ciphers not filtered: {}", parts[1]);
+            // The 16 strict RFC 8701 GREASE ciphers: 0x0A0A .. 0xFAFA
+            let grease_ciphers: Vec<TlsCipherSuiteID> = (0u8..=15)
+                .map(|n| TlsCipherSuiteID((u16::from(n) << 8 | u16::from(n)) | 0x0A0A))
+                .collect();
+            let (_, ja3_str) = compute_ja3(0x0303, &grease_ciphers, &[]);
+            let fields: Vec<&str> = ja3_str.splitn(5, ',').collect();
+            // Cipher field should be empty after all GREASE ciphers are filtered.
+            if let Some(cipher_field) = fields.get(1) {
+                assert!(cipher_field.is_empty(),
+                    "GREASE ciphers not filtered: {cipher_field}");
             }
         }
 
         #[test]
         fn prop_non_grease_values_preserved(
-            non_grease in prop::collection::vec(
-                // Generate u16 values that are NOT GREASE
-                any::<u16>().prop_filter("not grease", |v| !is_grease(*v)),
+            non_grease_vals in prop::collection::vec(
+                any::<u16>().prop_filter("not grease", |v| !grease(*v)),
                 1..10
             )
         ) {
-            let ja3 = compute_ja3_string(0x0303, &non_grease, &[], &[], &[]);
-            let parts: Vec<&str> = ja3.split('-').collect();
-            // All non-GREASE ciphers must appear in the cipher field
-            if parts.len() >= 2 {
-                prop_assert!(!parts[1].is_empty(),
+            let ciphers: Vec<TlsCipherSuiteID> = non_grease_vals.iter()
+                .map(|&v| TlsCipherSuiteID(v))
+                .collect();
+            let (_, ja3_str) = compute_ja3(0x0303, &ciphers, &[]);
+            let fields: Vec<&str> = ja3_str.splitn(5, ',').collect();
+            if let Some(cipher_field) = fields.get(1) {
+                prop_assert!(!cipher_field.is_empty(),
                     "non-GREASE ciphers were incorrectly filtered");
             }
         }
@@ -156,8 +177,12 @@ mod proptest_proofs {
 
 ## Source Location
 
-`src/analyzer/tls.rs` -- JA3/JA3S fingerprint computation functions.
-GREASE filter based on RFC 8701 `is_grease(value)` predicate.
+`src/analyzer/tls.rs:50` -- `fn is_grease_u16(val: u16) -> bool` -- GREASE predicate.
+`src/analyzer/tls.rs:95` -- `fn compute_ja3(version: u16, ciphers: &[TlsCipherSuiteID], extensions: &[TlsExtension<'_>]) -> (String, String)`.
+Curves and point_formats are extracted from `extensions` internally (no separate curves arg).
+`src/analyzer/tls.rs:156` -- `fn compute_ja3s(version: u16, cipher: TlsCipherSuiteID, extensions: &[TlsExtension<'_>]) -> String`.
+Returns MD5 hex string only (not a tuple).
+Both functions are module-private; proofs must be in `src/analyzer/tls.rs` test submodule.
 
 ## Lifecycle
 

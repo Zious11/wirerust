@@ -60,22 +60,45 @@ The counter must not go negative (it is a `usize`). When the buffer is empty,
 
 ## Proof Harness Skeleton
 
+API notes verified against `src/reassembly/` @ 0082a0c:
+- `FlowDirection::set_isn(isn: u32)` -- ISN is `u32`, not u64.
+- `FlowDirection::insert_segment(seq: u32, data: &[u8], max_depth: usize, max_segments: usize, max_receive_window: usize) -> InsertResult`
+  -- 5 parameters; the first is a TCP sequence number (`u32`), not an offset. For
+  tests that want a simple byte offset, pass `isn.wrapping_add(1)` as the seq for
+  offset 1, etc. Using `seq = isn + 1` puts the segment at relative offset 1
+  (seq_offset wrapping subtraction from ISN).
+- `FlowDirection::flush_contiguous(&mut self) -> Vec<(u64, Vec<u8>)>` -- returns
+  the flushed (offset, data) pairs; takes NO closure argument.
+- `FlowDirection::buffered_bytes(&self) -> usize` -- public accessor (line 154).
+- `FlowDirection::segments` is `pub(super)` BTreeMap; it is NOT accessible outside
+  the `reassembly` module. The invariant check must be done inside the reassembly
+  module or via the `debug_assert` in `memory_used()`. For proptest driven from an
+  integration test, verify via `memory_used()` (which asserts the invariant in debug
+  builds) rather than directly iterating `segments`.
+
 ```rust
+// Located in src/reassembly/ (needs pub(super) or module-internal access)
 #[cfg(test)]
 mod proptest_proofs {
     use proptest::prelude::*;
-    use super::*;
+    use super::flow::FlowDirection;
+    use super::segment::InsertResult;
+
+    // Probe parameters: reasonable caps that keep tests fast.
+    const MAX_DEPTH: usize = 1_000_000;
+    const MAX_SEGS: usize = 10_000;
+    const MAX_WIN: usize = 1_000_000;
 
     #[derive(Clone, Debug)]
     enum SegmentOp {
-        Insert { offset: u64, data: Vec<u8> },
+        Insert { seq_delta: u32, data: Vec<u8> },
         Flush,
     }
 
     fn seg_op_strategy() -> impl Strategy<Value = SegmentOp> {
         prop_oneof![
-            (0u64..1000, prop::collection::vec(any::<u8>(), 1..64))
-                .prop_map(|(offset, data)| SegmentOp::Insert { offset, data }),
+            (0u32..1000, prop::collection::vec(any::<u8>(), 1..64))
+                .prop_map(|(d, data)| SegmentOp::Insert { seq_delta: d, data }),
             Just(SegmentOp::Flush),
         ]
     }
@@ -84,26 +107,35 @@ mod proptest_proofs {
         #[test]
         fn prop_buffered_bytes_mirrors_btreemap_sum(
             ops in prop::collection::vec(seg_op_strategy(), 1..100),
-            isn: u64,
+            isn: u32,
         ) {
             let mut dir = FlowDirection::new();
-            // Set a dummy ISN so inserts don't return IsnMissing
+            // set_isn takes u32 (src/reassembly/flow.rs:136).
             dir.set_isn(isn);
 
             for op in ops {
                 match op {
-                    SegmentOp::Insert { offset, data } => {
-                        let _ = dir.insert_segment(offset, &data, isn);
+                    SegmentOp::Insert { seq_delta, data } => {
+                        // seq = ISN + 1 + delta => relative offset = 1 + delta
+                        let seq = isn.wrapping_add(1).wrapping_add(seq_delta);
+                        let _ = dir.insert_segment(
+                            seq, &data, MAX_DEPTH, MAX_SEGS, MAX_WIN
+                        );
                     }
                     SegmentOp::Flush => {
-                        dir.flush_contiguous(&mut |_bytes| {});
+                        // flush_contiguous returns Vec<(u64, Vec<u8>)>; no closure
+                        // (src/reassembly/segment.rs:236).
+                        let _ = dir.flush_contiguous();
                     }
                 }
 
-                // Invariant: counter == actual sum
-                let actual_sum: usize = dir.segments()
+                // Invariant: buffered_bytes counter == actual BTreeMap sum.
+                // segments is pub(super); sum via memory_used() which contains
+                // the debug_assert. In tests within this module, direct access
+                // to `dir.segments` is allowed.
+                let actual_sum: usize = dir.segments
                     .values()
-                    .map(|s| s.data.len())
+                    .map(|v| v.len())
                     .sum();
                 prop_assert_eq!(dir.buffered_bytes(), actual_sum,
                     "buffered_bytes mismatch after op");
@@ -111,13 +143,14 @@ mod proptest_proofs {
         }
 
         #[test]
-        fn prop_buffered_bytes_zero_when_empty(isn: u64) {
+        fn prop_buffered_bytes_zero_when_empty(isn: u32) {
             let mut dir = FlowDirection::new();
             dir.set_isn(isn);
             prop_assert_eq!(dir.buffered_bytes(), 0);
-            // Insert then flush
-            let _ = dir.insert_segment(0, b"hello", isn);
-            dir.flush_contiguous(&mut |_| {});
+            // Insert then flush -- insert_segment(seq, data, max_depth, max_segs, max_win)
+            let seq = isn.wrapping_add(1);
+            let _ = dir.insert_segment(seq, b"hello", MAX_DEPTH, MAX_SEGS, MAX_WIN);
+            let _ = dir.flush_contiguous();
             prop_assert_eq!(dir.buffered_bytes(), 0);
         }
     }
@@ -135,8 +168,13 @@ mod proptest_proofs {
 
 ## Source Location
 
-`src/reassembly/segment.rs` -- `FlowDirection.buffered_bytes: usize` field.
-Updated in `insert_segment` (add) and `flush_contiguous` (subtract).
+`src/reassembly/flow.rs:90` -- `FlowDirection.buffered_bytes: usize` field (pub(super)).
+`src/reassembly/flow.rs:154` -- `FlowDirection::buffered_bytes(&self) -> usize` public accessor.
+`src/reassembly/segment.rs:39` -- `FlowDirection::insert_segment(seq: u32, data: &[u8], max_depth: usize, max_segments: usize, max_receive_window: usize) -> InsertResult`.
+Counter incremented on insert (line ~196, ~225) and decremented on flush (line ~241).
+`src/reassembly/segment.rs:236` -- `FlowDirection::flush_contiguous(&mut self) -> Vec<(u64, Vec<u8>)>`.
+`src/reassembly/flow.rs:89` -- `segments: BTreeMap<u64, Vec<u8>>` is `pub(super)`; test code
+inside the `reassembly` module can access it directly for sum verification.
 
 ## Lifecycle
 

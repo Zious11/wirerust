@@ -85,7 +85,7 @@ produces the correct monotonically-increasing u64 offset relative to the ISN.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- correct 32-bit wraparound arithmetic is a correctness requirement for any TCP reassembly implementation |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- wraparound does not change overlap semantics) |
-| Architecture Module | SS-04 (reassembly/segment.rs:32-34, C-8) |
+| Architecture Module | SS-04 (reassembly/segment.rs:31-34, C-8) |
 | Stories | S-TBD |
 | Origin BC | BC-RAS-039 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -96,13 +96,13 @@ produces the correct monotonically-increasing u64 offset relative to the ISN.
 
 ## Architecture Anchors
 
-- `src/reassembly/segment.rs:32-34` -- seq_offset function: `seq.wrapping_sub(isn) as u64`
+- `src/reassembly/segment.rs:31-34` -- seq_offset function: `seq.wrapping_sub(isn) as u64`
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/segment.rs:32-34` |
+| **Path** | `src/reassembly/segment.rs:31-34` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

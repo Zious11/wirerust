@@ -62,14 +62,14 @@ The result is unique for any given input: no byte slice can match more than one 
 
 ## Source Contract
 
-- **Primary BC:** BC-2.07.014 -- SNI Containing C0/DEL Emits Anomaly/Likely/High Finding (T1027)
+- **Primary BC:** BC-2.07.014 -- SNI Containing C0/DEL Emits Anomaly/Inconclusive/Low Finding (T1027)
 - **Postcondition:** Exactly one SniValue variant is returned for any input
 - **Invariant:** INV-5 (SNI 4-Way Classification Ordered Match, inv-01-core-invariants.md)
 - **Related BC:** BC-2.07.013 -- Clean ASCII SNI Produces No Finding
 - **Related BC:** BC-2.07.015 -- Multiple control bytes in one SNI produce exactly ONE finding
 - **Related BC:** BC-2.07.016 -- C0 boundary: 0x1F trips finding; 0x20 (space) does NOT
-- **Related BC:** BC-2.07.017 -- Non-ASCII UTF-8 SNI Emits Anomaly/Likely/High Finding (T1027)
-- **Related BC:** BC-2.07.019 -- Non-UTF-8 SNI Emits Anomaly/Likely/High Finding (T1027)
+- **Related BC:** BC-2.07.017 -- Non-ASCII UTF-8 SNI Emits Anomaly/Inconclusive/Low Finding (T1027)
+- **Related BC:** BC-2.07.019 -- Non-UTF-8 SNI Emits Anomaly/Inconclusive/Low Finding (T1027)
 - **Related BC:** BC-2.07.037 -- Mixed Non-ASCII+C0 SNI fires arm 3 (NonAsciiUtf8) not arm 2
 
 ## Proof Method

@@ -61,11 +61,11 @@ integration_unit_count: 5
 | VP-013 | JA3 GREASE Filter Correctness | analyzer/tls.rs | proptest | P1 | draft | BC-2.07.006, BC-2.07.007, BC-2.07.008 |
 | VP-014 | HttpAnalyzer Cross-Flow Isolation | analyzer/http.rs | proptest | P1 | draft | BC-2.06.021, BC-2.06.019 |
 | VP-015 | TCP Sequence Wraparound | reassembly/segment.rs | Kani | P1 | draft | BC-2.04.039 |
-| VP-016 | MITRE Tactic Grouping Order | reporter/terminal.rs | integration | P1 | draft | BC-2.11.013, BC-2.11.014, BC-2.11.015, BC-2.10.003, BC-2.10.004 |
-| VP-017 | JsonReporter BTreeMap Key Determinism | reporter/json.rs | integration | P1 | draft | BC-2.11.001, BC-2.11.003 |
-| VP-018 | CLI Reassemble Mutual Exclusion | cli.rs | integration | P1 | draft | BC-2.12.007, BC-2.12.009 |
-| VP-019 | DNS Analyzer Statistics-Only | analyzer/dns.rs | unit | P1 | draft | BC-2.08.004, BC-2.08.001, BC-2.08.002 |
-| VP-020 | CSV Injection Neutralization | reporter/csv.rs | unit | P1 | draft | BC-2.11.021 |
+| VP-016 | MITRE Tactic Grouping Order | reporter/terminal.rs | integration | test-sufficient | draft | BC-2.11.013, BC-2.11.014, BC-2.11.015, BC-2.10.003, BC-2.10.004 |
+| VP-017 | JsonReporter Key-Order Determinism | reporter/json.rs | integration | test-sufficient | draft | BC-2.11.001, BC-2.11.003 |
+| VP-018 | CLI Reassemble Mutual Exclusion | cli.rs | integration | test-sufficient | draft | BC-2.12.007, BC-2.12.009 |
+| VP-019 | DNS Analyzer Statistics-Only | analyzer/dns.rs | unit | test-sufficient | draft | BC-2.08.004, BC-2.08.001, BC-2.08.002 |
+| VP-020 | CSV Injection Neutralization | reporter/csv.rs | unit | test-sufficient | draft | BC-2.11.021 |
 
 ## P0 Properties (required before Phase 5 gate)
 

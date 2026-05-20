@@ -79,22 +79,34 @@ exercises the full grouping and sorting logic without formal verification overhe
 ```rust
 #[test]
 fn test_mitre_grouping_order_canonical() {
-    use crate::mitre::{all_tactics_in_report_order, MitreTactic};
+    use crate::mitre::all_tactics_in_report_order;
 
-    // Verify all_tactics_in_report_order is exhaustive
+    // all_tactics_in_report_order returns a &'static [MitreTactic] (mitre.rs:95).
+    // MitreTactic has no all_variants() method; count the variants manually:
+    // 14 Enterprise + 2 ICS-unique = 16 total (mitre.rs:48-66).
     let tactics = all_tactics_in_report_order();
-    let all_variants = MitreTactic::all_variants(); // if available, else count manually
-    assert_eq!(tactics.len(), all_variants.len(),
-        "all_tactics_in_report_order missing variants");
+    assert_eq!(tactics.len(), 16,
+        "all_tactics_in_report_order must list all 16 MitreTactic variants");
 
     // No duplicates
-    let deduped: Vec<_> = tactics.iter().collect::<std::collections::HashSet<_>>()
-        .into_iter().collect();
-    assert_eq!(deduped.len(), tactics.len(), "duplicate tactics in order list");
+    let unique: std::collections::HashSet<_> = tactics.iter().collect();
+    assert_eq!(unique.len(), tactics.len(), "duplicate tactics in order list");
 }
 
 #[test]
 fn test_no_technique_finding_lands_in_uncategorized() {
+    use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
+    use crate::reporter::Reporter;
+    use crate::reporter::terminal::TerminalReporter;
+    use crate::summary::Summary;
+
+    // TerminalReporter is a plain struct with public fields; no new() constructor
+    // (terminal.rs:63-75). Construct directly.
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: true,
+        show_hosts_breakdown: false,
+    };
     let finding = Finding {
         category: ThreatCategory::Anomaly,
         verdict: Verdict::Likely,
@@ -102,24 +114,52 @@ fn test_no_technique_finding_lands_in_uncategorized() {
         mitre_technique: None,
         summary: "test".to_string(),
         evidence: vec![],
+        source_ip: None,
         timestamp: None,
         direction: None,
     };
-    let mut output = Vec::new();
-    let mut reporter = TerminalReporter::new(&mut output, /*mitre=*/true, /*no_color=*/true);
-    reporter.report(&[finding], &[], &Summary::default()).unwrap();
-    let text = String::from_utf8(output).unwrap();
+    // Reporter trait method is render(), not report() (reporter/mod.rs:27-32).
+    let text = reporter.render(&Summary::default(), &[finding], &[]);
     assert!(text.contains("Uncategorized"), "no-technique finding not in Uncategorized");
 }
 
 #[test]
 fn test_within_bucket_sort_verdict_first() {
-    // Findings with different verdicts in same tactic should be sorted Likely first
-    let likely = make_finding(Verdict::Likely, Confidence::Low, Some("T1036"));
+    use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
+    use crate::reporter::Reporter;
+    use crate::reporter::terminal::TerminalReporter;
+    use crate::summary::Summary;
+
+    // sort_within_bucket is an internal detail of render_findings_grouped;
+    // it is not a public function. Verify the sort property end-to-end via
+    // render(), checking that Likely appears before Inconclusive in the output.
+    let reporter = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: true,
+        show_hosts_breakdown: false,
+    };
+    fn make_finding(verdict: Verdict, confidence: Confidence, technique: Option<&str>) -> Finding {
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict,
+            confidence,
+            summary: format!("{verdict:?}"),
+            evidence: vec![],
+            mitre_technique: technique.map(|s| s.to_string()),
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }
+    }
+    // Both findings map to DefenseEvasion (T1036 -> MitreTactic::DefenseEvasion).
     let inconclusive = make_finding(Verdict::Inconclusive, Confidence::High, Some("T1036"));
-    let sorted = sort_within_bucket(&[inconclusive, likely]);
-    assert!(matches!(sorted[0].verdict, Verdict::Likely),
-        "Likely should sort before Inconclusive");
+    let likely      = make_finding(Verdict::Likely,       Confidence::Low,  Some("T1036"));
+    let text = reporter.render(&Summary::default(), &[inconclusive, likely], &[]);
+    // "Likely" in the summary line must appear before "Inconclusive"
+    let pos_likely      = text.find("Likely").unwrap_or(usize::MAX);
+    let pos_inconclusive = text.find("Inconclusive").unwrap_or(usize::MAX);
+    assert!(pos_likely < pos_inconclusive,
+        "Likely should sort before Inconclusive within tactic bucket");
 }
 ```
 

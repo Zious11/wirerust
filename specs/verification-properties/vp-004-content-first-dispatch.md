@@ -87,10 +87,15 @@ mod kani_proofs {
 
     #[kani::proof]
     fn verify_tls_signature_beats_port() {
-        // Even if port is 80 (HTTP port), TLS signature wins
-        let port: u16 = 80;
+        // Even if port is 80 (HTTP port), TLS signature wins.
+        // Real signature (src/dispatcher.rs:90):
+        //   fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget
+        // classify takes a &FlowKey (not a bare u16 port); construct a key with port 80.
+        use std::net::{IpAddr, Ipv4Addr};
+        let ip = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+        let key = FlowKey::new(ip, 80, ip, 9000); // lower_port will be 80
         let data: [u8; 5] = [0x16, 0x03, 0x03, 0x00, 0x00]; // TLS record header
-        let result = classify(&data, port);
+        let result = classify(&data, &key);
         assert!(matches!(result, DispatchTarget::Tls));
     }
 
@@ -131,9 +136,18 @@ mod kani_proofs {
 
     #[kani::proof]
     fn verify_content_first_precedence_exhaustive() {
-        let mut data: [u8; 5] = kani::any();
-        let port: u16 = kani::any();
-        let result = classify(&data, port);
+        // classify takes a &FlowKey (src/dispatcher.rs:90); build symbolic key.
+        use std::net::{IpAddr, Ipv4Addr};
+        let raw_a: u32 = kani::any();
+        let raw_b: u32 = kani::any();
+        let port_a: u16 = kani::any();
+        let port_b: u16 = kani::any();
+        let key = FlowKey::new(
+            IpAddr::V4(Ipv4Addr::from(raw_a)), port_a,
+            IpAddr::V4(Ipv4Addr::from(raw_b)), port_b,
+        );
+        let data: [u8; 5] = kani::any();
+        let result = classify(&data, &key);
         // If TLS signature present, must be Tls
         if data[0] == 0x16 && data[1] == 0x03 {
             assert!(matches!(result, DispatchTarget::Tls));
@@ -153,9 +167,15 @@ mod kani_proofs {
 
 ## Source Location
 
-`src/dispatcher.rs` -- `classify()` function and `routes: HashMap<FlowKey, DispatchTarget>`.
+`src/dispatcher.rs:90` -- `fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget`
 
-`src/dispatcher.rs:37-79` per ingestion corpus reference.
+`src/dispatcher.rs:40` -- `pub const DEFAULT_MAX_CLASSIFICATION_ATTEMPTS: u32 = 8`
+
+`src/dispatcher.rs:42-53` -- `StreamDispatcher` struct; `routes: HashMap<FlowKey, DispatchTarget>` at line 43;
+`classification_attempts: HashMap<FlowKey, u32>` at line 48.
+
+`src/dispatcher.rs:120` -- `fn on_data` (StreamHandler impl); phase-B None insertion at line 146;
+`classification_attempts.remove` at line 147.
 
 ## Lifecycle
 

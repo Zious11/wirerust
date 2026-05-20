@@ -77,70 +77,122 @@ all 30 combinations without a problematic unwind bound.
 
 ## Proof Harness Skeleton
 
+Notes on `TcpFlow` API:
+- `TcpFlow::new(key: FlowKey, timestamp: u32)` is the only public constructor.
+  There is no `with_state` convenience helper in production code; proofs that
+  need to start from an arbitrary state must call `new` and then drive the state
+  machine via the event methods before the assertion under test.
+- `flow.state` is a `pub` field (`FlowState`), not a getter method. Access it
+  as `flow.state`, not `flow.state()`.
+- `on_data_without_syn(&mut self)` takes NO arguments
+  (`src/reassembly/flow.rs:241`). It does not accept an ISN; the ISN is set
+  separately via `flow_dir.set_isn(isn)` on a `FlowDirection`.
+- `apply_event` is a test-only helper that must be defined inside the proof
+  module; it does not exist in production code.
+
 ```rust
 #[cfg(kani)]
 mod kani_proofs {
     use super::*;
+    use crate::reassembly::flow::{FlowKey, FlowState, TcpFlow};
+    use std::net::{IpAddr, Ipv4Addr};
 
-    // All possible starting states
-    fn all_states() -> Vec<FlowState> {
-        vec![
-            FlowState::New,
-            FlowState::SynSent,
-            FlowState::Established,
-            FlowState::Closing,
-            FlowState::Closed,
-        ]
+    /// Build a `TcpFlow` pre-seeded to `target_state` by driving the real
+    /// transition methods. Used by proofs that need a symbolic starting state.
+    ///
+    /// Mapping (kani::any() % 5):
+    ///   0 => New       (fresh flow, no transitions)
+    ///   1 => SynSent   (New -> on_syn)
+    ///   2 => Established (New -> on_syn -> on_syn_ack)
+    ///   3 => Closing   (New -> on_syn -> on_syn_ack -> on_fin)
+    ///   4 => Closed    (New -> on_rst)
+    fn make_flow_in_state(discriminant: u8) -> TcpFlow {
+        let key = FlowKey::new(
+            IpAddr::V4(Ipv4Addr::new(1, 0, 0, 1)), 1000,
+            IpAddr::V4(Ipv4Addr::new(1, 0, 0, 2)), 80,
+        );
+        let mut flow = TcpFlow::new(key, 0);
+        match discriminant % 5 {
+            0 => {} // New
+            1 => { flow.on_syn(); } // SynSent
+            2 => { flow.on_syn(); flow.on_syn_ack(); } // Established
+            3 => { flow.on_syn(); flow.on_syn_ack(); flow.on_fin(); } // Closing
+            _ => { flow.on_rst(); } // Closed
+        }
+        flow
+    }
+
+    /// Apply one of 5 driving events (0=syn, 1=syn_ack, 2=rst, 3=fin,
+    /// 4=data_without_syn) to a flow. Test-only helper; not in production code.
+    fn apply_event(flow: &mut TcpFlow, event: u8) {
+        match event % 5 {
+            0 => flow.on_syn(),
+            1 => flow.on_syn_ack(),
+            2 => flow.on_rst(),
+            3 => flow.on_fin(),
+            _ => flow.on_data_without_syn(),
+        }
     }
 
     #[kani::proof]
     fn verify_rst_closes_from_any_state() {
-        // For each starting state, apply RST, verify Closed
-        // (Kani handles this as symbolic state)
-        let state: FlowState = kani::any();
-        let mut flow = TcpFlow::with_state(state);
+        // For each starting state, apply RST, verify Closed.
+        // `flow.state` is a pub field (not a method).
+        let discriminant: u8 = kani::any();
+        let mut flow = make_flow_in_state(discriminant);
         flow.on_rst();
-        assert!(matches!(flow.state(), FlowState::Closed));
+        assert!(matches!(flow.state, FlowState::Closed));
     }
 
     #[kani::proof]
     fn verify_closed_is_terminal() {
-        let mut flow = TcpFlow::with_state(FlowState::Closed);
-        // Apply any event -- state must remain Closed
+        // Start in Closed (discriminant % 5 == 4), apply every event.
+        let mut flow = make_flow_in_state(4);
         flow.on_rst();
-        assert!(matches!(flow.state(), FlowState::Closed));
-        // (Additional events: on_syn, on_syn_ack, on_fin -- all must leave Closed)
+        assert!(matches!(flow.state, FlowState::Closed));
+        let mut flow2 = make_flow_in_state(4);
+        flow2.on_syn();
+        // on_syn only transitions New -> SynSent; Closed is unaffected.
+        assert!(matches!(flow2.state, FlowState::Closed));
+        let mut flow3 = make_flow_in_state(4);
+        flow3.on_fin();
+        assert!(matches!(flow3.state, FlowState::Closed));
     }
 
     #[kani::proof]
     fn verify_data_without_syn_sets_partial() {
-        let mut flow = TcpFlow::with_state(FlowState::New);
-        let isn: u32 = kani::any();
-        flow.on_data_without_syn(isn);
-        assert!(matches!(flow.state(), FlowState::Established));
+        // on_data_without_syn takes NO arguments (src/reassembly/flow.rs:241).
+        let key = FlowKey::new(
+            IpAddr::V4(Ipv4Addr::new(1, 0, 0, 1)), 1000,
+            IpAddr::V4(Ipv4Addr::new(1, 0, 0, 2)), 80,
+        );
+        let mut flow = TcpFlow::new(key, 0);
+        // flow.state is New at construction.
+        assert!(matches!(flow.state, FlowState::New));
+        flow.on_data_without_syn();
+        assert!(matches!(flow.state, FlowState::Established));
         assert!(flow.partial);
     }
 
     #[kani::proof]
     fn verify_no_invalid_state_reachable() {
-        // Symbolic starting state + symbolic event sequence of length 3
-        let state: FlowState = kani::any();
-        let event1: u8 = kani::any();  // 0=syn, 1=syn_ack, 2=rst, 3=fin, 4=data, 5=data_no_syn
+        // Symbolic starting state + symbolic event sequence of length 2.
+        let disc: u8 = kani::any();
+        let event1: u8 = kani::any();
         let event2: u8 = kani::any();
-        kani::assume(event1 <= 5 && event2 <= 5);
 
-        let mut flow = TcpFlow::with_state(state);
+        let mut flow = make_flow_in_state(disc);
         apply_event(&mut flow, event1);
         apply_event(&mut flow, event2);
 
-        // After any sequence, state must be one of the 5 valid variants
-        let s = flow.state();
+        // After any sequence, state must be one of the 5 valid variants.
+        // flow.state is a pub field.
         assert!(
-            matches!(s, FlowState::New)
-            || matches!(s, FlowState::SynSent)
-            || matches!(s, FlowState::Established)
-            || matches!(s, FlowState::Closing)
-            || matches!(s, FlowState::Closed)
+            matches!(flow.state, FlowState::New)
+            || matches!(flow.state, FlowState::SynSent)
+            || matches!(flow.state, FlowState::Established)
+            || matches!(flow.state, FlowState::Closing)
+            || matches!(flow.state, FlowState::Closed)
         );
     }
 }
@@ -157,8 +209,15 @@ mod kani_proofs {
 
 ## Source Location
 
-`src/reassembly/flow.rs` -- `FlowState` enum and transition methods on `TcpFlow`.
-`src/reassembly/lifecycle.rs` -- RST and FIN handling.
+`src/reassembly/flow.rs:77` -- `FlowState` enum definition.
+`src/reassembly/flow.rs:229` -- `TcpFlow::on_syn` (New -> SynSent).
+`src/reassembly/flow.rs:235` -- `TcpFlow::on_syn_ack` (SynSent/New -> Established).
+`src/reassembly/flow.rs:241` -- `TcpFlow::on_data_without_syn` (no-arg; New -> Established, sets partial=true).
+`src/reassembly/flow.rs:248` -- `TcpFlow::on_fin` (Established/SynSent -> Closing; second FIN -> Closed).
+`src/reassembly/flow.rs:257` -- `TcpFlow::on_rst` (any state -> Closed).
+`src/reassembly/flow.rs:185` -- `TcpFlow::state` pub field (access as `flow.state`, not `flow.state()`).
+Note: FIN/RST state changes are implemented directly on `TcpFlow` in `flow.rs`;
+`lifecycle.rs` handles flow retirement (memcap eviction, close_flow), not state transitions.
 
 ## Lifecycle
 

@@ -69,6 +69,25 @@ sequences of byte chunks and verifies the monotonicity invariant across all orde
 
 ## Proof Harness Skeleton
 
+// API notes (src/analyzer/http.rs):
+//   - HttpFlowState (including request_poisoned / response_poisoned fields) is
+//     a PRIVATE struct. There is no flow_state() public method on HttpAnalyzer.
+//   - The only public observable for poisoning is poisoned_bytes_skipped() -> u64,
+//     which increments for every byte fed to a direction after it is poisoned
+//     (src/analyzer/http.rs:509-511, 521-522).
+//   - Public methods: new(), transaction_count(), parse_error_count(),
+//     poisoned_bytes_skipped(), method_counts(), host_counts(), uri_list(),
+//     status_code_counts(), user_agent_counts().
+//   - The harness must expose poison monotonicity via the public observable
+//     (poisoned_bytes_skipped monotonically non-decreasing once poison sets in)
+//     OR via #[cfg(test)] with a test-only accessor added to HttpAnalyzer.
+//   - The formal-verifier MUST add a test-only accessor:
+//       #[cfg(test)]
+//       pub fn flow_state_for_test(&self, key: &FlowKey)
+//           -> Option<(bool, bool)>  // (request_poisoned, response_poisoned)
+//     before locking this VP, or restructure the harness to use only
+//     poisoned_bytes_skipped() as the observable.
+
 ```rust
 #[cfg(test)]
 mod proptest_proofs {
@@ -83,9 +102,20 @@ mod proptest_proofs {
         ValidResponse,    // bytes that parse as a complete HTTP response
     }
 
+    // Helper: construct a deterministic flow key for tests.
+    fn test_flow_key() -> FlowKey {
+        use std::net::{IpAddr, Ipv4Addr};
+        let c = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+        let s = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+        FlowKey::new(c, 54321, s, 80)
+    }
+
     proptest! {
+        // Monotonicity observable via poisoned_bytes_skipped:
+        // Once a direction is poisoned, every byte sent to it adds to
+        // poisoned_bytes_skipped. The counter must never decrease.
         #[test]
-        fn prop_poison_monotonic_false_to_true(
+        fn prop_poison_bytes_skipped_monotonic(
             events in prop::collection::vec(
                 prop_oneof![
                     Just(ParseEvent::ValidRequest),
@@ -97,8 +127,7 @@ mod proptest_proofs {
         ) {
             let mut analyzer = HttpAnalyzer::new();
             let key = test_flow_key();
-            let mut req_ever_poisoned = false;
-            let mut resp_ever_poisoned = false;
+            let mut prev_skipped: u64 = 0;
 
             for event in &events {
                 let data = match event {
@@ -112,42 +141,41 @@ mod proptest_proofs {
                 };
                 analyzer.on_data(&key, dir, data, 0);
 
-                // Once poisoned, must stay poisoned
-                let state = analyzer.flow_state(&key);
-                if let Some(s) = state {
-                    if req_ever_poisoned {
-                        prop_assert!(s.request_poisoned,
-                            "request_poisoned reverted to false");
-                    }
-                    if resp_ever_poisoned {
-                        prop_assert!(s.response_poisoned,
-                            "response_poisoned reverted to false");
-                    }
-                    if s.request_poisoned { req_ever_poisoned = true; }
-                    if s.response_poisoned { resp_ever_poisoned = true; }
-                }
+                let now_skipped = analyzer.poisoned_bytes_skipped();
+                prop_assert!(
+                    now_skipped >= prev_skipped,
+                    "poisoned_bytes_skipped decreased: was {} now {}",
+                    prev_skipped, now_skipped
+                );
+                prev_skipped = now_skipped;
             }
         }
 
+        // Per-direction isolation: request-side errors >= POISON_THRESHOLD (3)
+        // must not cause response-direction bytes to be skipped when response
+        // direction receives a single valid response before any response errors.
         #[test]
         fn prop_poison_per_direction_isolated(
-            req_errors in 1usize..=10,
-            resp_errors in 0usize..=2  // below threshold
+            req_errors in 3usize..=10
         ) {
             let mut analyzer = HttpAnalyzer::new();
             let key = test_flow_key();
 
-            // Drive request direction to poisoning
-            for _ in 0..(req_errors.max(3)) {
-                analyzer.on_data(&key, Direction::ClientToServer, b"\xFF garbage", 0);
+            // Drive request direction past POISON_THRESHOLD
+            for _ in 0..req_errors {
+                analyzer.on_data(&key, Direction::ClientToServer, b"\xFF\xFE garbage", 0);
             }
+            let skipped_after_req_poison = analyzer.poisoned_bytes_skipped();
 
-            // Response direction should not be poisoned
-            let state = analyzer.flow_state(&key);
-            if let Some(s) = state {
-                prop_assert!(!s.response_poisoned,
-                    "response direction poisoned by request-side errors");
-            }
+            // Feed a valid response -- response direction is NOT poisoned;
+            // its bytes must NOT be counted as skipped.
+            let resp = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+            analyzer.on_data(&key, Direction::ServerToClient, resp, 0);
+            prop_assert_eq!(
+                analyzer.poisoned_bytes_skipped(),
+                skipped_after_req_poison,
+                "response-direction bytes were skipped due to request-side poison"
+            );
         }
     }
 }
@@ -164,7 +192,14 @@ mod proptest_proofs {
 
 ## Source Location
 
-`src/analyzer/http.rs:341-345` -- poison transition logic.
+`src/analyzer/http.rs:408-409` -- request direction poison transition:
+  `if state.request_error_count >= POISON_THRESHOLD { state.request_poisoned = true; }`
+
+`src/analyzer/http.rs:467-468` -- response direction poison transition:
+  `if state.response_error_count >= POISON_THRESHOLD { state.response_poisoned = true; }`
+
+`src/analyzer/http.rs:80` -- `const POISON_THRESHOLD: u8 = 3;`
+
 Confirmed zero `= false` assignments to `*_poisoned` fields (pass-2 R3 Target 3 audit).
 
 ## Lifecycle
