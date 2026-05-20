@@ -332,17 +332,19 @@ impl TcpReassembler {
         // Maintain the consecutive small-segment run for this direction
         // (LESSON-P2.05). "Small" is a pure property of the payload
         // size, so it is classified here rather than inside the segment
-        // buffer. Segments the buffer rejected outright (out-of-window,
-        // segment-limit) and pure ACKs (empty payload) are neutral —
-        // they neither extend nor reset the run. A normal-sized data
-        // segment resets it: segmentation-evasion shows up as a long
-        // *unbroken* run of tiny segments, whereas benign interactive
-        // traffic interleaves them with normal-sized segments.
+        // buffer. Segments the buffer rejected outright — out-of-window,
+        // segment-limit, depth-exceeded — and pure ACKs (empty payload)
+        // are neutral: they neither extend nor reset the run. A
+        // normal-sized data segment resets it: segmentation-evasion
+        // shows up as a long *unbroken* run of tiny segments, whereas
+        // benign interactive traffic interleaves them with normal-sized
+        // segments.
         if !payload.is_empty()
             && !matches!(
                 result,
                 InsertResult::OutOfWindow
                     | InsertResult::SegmentLimitReached
+                    | InsertResult::DepthExceeded
                     | InsertResult::IsnMissing
             )
         {
@@ -408,17 +410,6 @@ impl TcpReassembler {
         let small_segment_threshold = self.config.small_segment_alert_threshold;
         let out_of_window_threshold = self.config.out_of_window_alert_threshold;
 
-        // LESSON-P2.05 follow-up: a flow is exempt from small-segment
-        // detection when EITHER endpoint port is in the configured
-        // interactive-port ignore list (telnet, rlogin, ...) — those
-        // protocols emit benign runs of tiny segments. See
-        // `ReassemblyConfig::small_segment_ignore_ports`.
-        let small_segment_ignored = self
-            .config
-            .small_segment_ignore_ports
-            .iter()
-            .any(|&p| p == key.lower_port() || p == key.upper_port());
-
         let flow = self.flows.get_mut(key).unwrap();
         let flow_dir = flow.get_direction_mut(dir);
 
@@ -443,9 +434,19 @@ impl TcpReassembler {
                 self.stats.dropped_findings += 1;
             }
         }
+        // LESSON-P2.05 follow-up: a flow is exempt from small-segment
+        // detection when EITHER endpoint port is in the configured
+        // interactive-port ignore list (telnet, rlogin, ...) — those
+        // protocols emit benign runs of tiny segments. The list scan is
+        // the last `&&` term, so it runs only once the run has actually
+        // crossed the threshold, not on every packet.
         if flow_dir.small_segment_run > small_segment_threshold
             && !flow_dir.small_segment_alert_fired
-            && !small_segment_ignored
+            && !self
+                .config
+                .small_segment_ignore_ports
+                .iter()
+                .any(|&p| p == key.lower_port() || p == key.upper_port())
         {
             flow_dir.small_segment_alert_fired = true;
             if self.findings.len() < MAX_FINDINGS {

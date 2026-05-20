@@ -1623,16 +1623,16 @@ fn test_default_config_threshold_values() {
 }
 
 /// Drive a flow of one-byte segments through the engine to exercise the
-/// consecutive small-segment run counter (LESSON-P2.05). `server_port`
-/// is the flow's well-known port (use a non-ignored port such as 80 to
-/// observe the detector, or an ignored one such as 23 to observe
-/// suppression). When `break_after` is `Some(n)`, one normal-sized
-/// (29-byte) segment is inserted after the n-th small segment, which
-/// must reset the run.
+/// consecutive small-segment run counter (LESSON-P2.05). `client_port`
+/// and `server_port` are the flow's two endpoint ports — vary them to
+/// land an ignored port on either side and observe the port exemption.
+/// When `break_after` is `Some(n)`, one normal-sized (29-byte) segment
+/// is inserted after the n-th small segment, which must reset the run.
 fn run_small_segment_flow(
     threshold: u32,
     small_count: u32,
     break_after: Option<u32>,
+    client_port: u16,
     server_port: u16,
 ) -> TcpReassembler {
     let config = ReassemblyConfig {
@@ -1646,7 +1646,7 @@ fn run_small_segment_flow(
 
     let syn = make_tcp_packet(
         client,
-        12345,
+        client_port,
         server,
         server_port,
         1000,
@@ -1665,7 +1665,7 @@ fn run_small_segment_flow(
             // 29 bytes: well above the 16-byte cutoff, so it resets the run.
             let normal = make_tcp_packet(
                 client,
-                12345,
+                client_port,
                 server,
                 server_port,
                 seq,
@@ -1681,7 +1681,7 @@ fn run_small_segment_flow(
         }
         let small = make_tcp_packet(
             client,
-            12345,
+            client_port,
             server,
             server_port,
             seq,
@@ -1698,46 +1698,69 @@ fn run_small_segment_flow(
     reassembler
 }
 
+/// True if any finding's summary names the small-segment anomaly.
+fn fired_small_segment(reasm: &TcpReassembler) -> bool {
+    reasm
+        .findings()
+        .iter()
+        .any(|f| f.summary.contains("small segments"))
+}
+
 #[test]
 fn test_consecutive_small_segments_trip_anomaly() {
     // 11 one-byte segments form an unbroken run of 11, above the
     // configured threshold of 10 — the small-segment anomaly must fire.
-    let reasm = run_small_segment_flow(10, 11, None, 80);
+    let reasm = run_small_segment_flow(10, 11, None, 12345, 80);
     assert!(
-        reasm
-            .findings()
-            .iter()
-            .any(|f| f.summary.contains("small segments")),
+        fired_small_segment(&reasm),
         "an unbroken run past the threshold must fire the small-segment anomaly"
     );
 }
 
 #[test]
 fn test_normal_segment_resets_small_segment_run() {
+    // Positive control: 11 one-byte segments with no break trip the
+    // threshold of 10. Without this the negative assertion below would
+    // pass even if small-segment detection were entirely broken.
+    let control = run_small_segment_flow(10, 11, None, 12345, 80);
+    assert!(
+        fired_small_segment(&control),
+        "control: an unbroken 11-segment run must fire the anomaly"
+    );
     // The same 11 one-byte segments — but a normal-sized segment after
     // the 6th resets the consecutive run, so the two sub-runs (6, then
     // 5) never reach the threshold of 10 and the anomaly stays silent.
-    let reasm = run_small_segment_flow(10, 11, Some(6), 80);
+    let reset = run_small_segment_flow(10, 11, Some(6), 12345, 80);
     assert!(
-        !reasm
-            .findings()
-            .iter()
-            .any(|f| f.summary.contains("small segments")),
+        !fired_small_segment(&reset),
         "a normal-sized segment must reset the run and keep the anomaly silent"
     );
 }
 
 #[test]
-fn test_small_segment_anomaly_suppressed_on_ignored_port() {
-    // The same unbroken 11-segment run that fires on port 80 must stay
-    // silent on telnet (port 23): it is in the default ignore list, as
-    // char-at-a-time interactive traffic there is benign, not evasion.
-    let reasm = run_small_segment_flow(10, 11, None, 23);
+fn test_small_segment_anomaly_suppressed_on_server_side_ignored_port() {
+    // The same unbroken 11-segment run that fires on port 80 (see
+    // `test_consecutive_small_segments_trip_anomaly`) must stay silent
+    // when the server port is telnet (23) — in the default ignore list.
+    // The only difference between the two flows is the server port, so
+    // this proves the port is the discriminator.
+    let reasm = run_small_segment_flow(10, 11, None, 12345, 23);
     assert!(
-        !reasm
-            .findings()
-            .iter()
-            .any(|f| f.summary.contains("small segments")),
-        "small-segment detection must be suppressed on an ignored port"
+        !fired_small_segment(&reasm),
+        "small-segment detection must be suppressed when the server port is ignored"
+    );
+}
+
+#[test]
+fn test_small_segment_anomaly_suppressed_on_client_side_ignored_port() {
+    // The exemption matches EITHER endpoint: here the ignored port (23)
+    // is the *client* port and the server port (80) is not ignored.
+    // The run must still be suppressed — exercises the `lower_port()`
+    // arm of the either-endpoint check, the complement of the test
+    // above.
+    let reasm = run_small_segment_flow(10, 11, None, 23, 80);
+    assert!(
+        !fired_small_segment(&reasm),
+        "small-segment detection must be suppressed when the client port is ignored"
     );
 }

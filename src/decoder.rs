@@ -18,15 +18,20 @@
 //! validates the IPv4 `total_length` / IPv6 `payload_length` header fields
 //! against the bytes actually captured. A `tcpdump -s` capture truncates
 //! packets below their on-wire length, so those fields legitimately over-run
-//! the captured slice and the strict parser rejects the packet. When that
-//! happens the frame is re-parsed with [`etherparse::LaxSlicedPacket`], which
-//! clamps lengths to the captured bytes — matching how Wireshark and tcpdump
-//! dissect truncated captures. Strict-first keeps full validation for the
-//! common (untruncated) case; lax parsing is only ever a fallback.
+//! the captured slice and the strict parser fails with a *length* error
+//! ([`etherparse::err::packet::SliceError::Len`]). **Only that error class**
+//! triggers a re-parse with [`etherparse::LaxSlicedPacket`], which clamps
+//! lengths to the captured bytes — matching how Wireshark and tcpdump dissect
+//! truncated captures. Any other strict error (bad header version, bad IHL,
+//! bad TCP data-offset, ...) is genuine structural corruption and the packet
+//! is rejected, exactly as the strict parser intended — lax recovery is never
+//! applied to a malformed packet. Strict-first keeps full validation for the
+//! common (untruncated) case; lax parsing is only ever the truncation fallback.
 
 use std::net::IpAddr;
 
 use anyhow::{Result, anyhow};
+use etherparse::err::packet::SliceError;
 use etherparse::{
     EtherType, IpNumber, LaxNetSlice, LaxSlicedPacket, NetSlice, SlicedPacket, TransportSlice,
 };
@@ -107,11 +112,8 @@ type IpTriple = (IpAddr, IpAddr, IpNumber);
 
 pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<ParsedPacket> {
     // Strict parse first: it validates the IPv4 `total_length` / IPv6
-    // `payload_length` fields against the captured bytes, which catches
-    // genuinely malformed packets. A snaplen-truncated capture trips that
-    // same length check — there the length field legitimately describes
-    // the full on-wire packet — so a strict error is NOT fatal here; it
-    // falls through to the lax parser below.
+    // `payload_length` fields against the captured bytes and catches
+    // genuinely malformed packets.
     let strict = match datalink {
         DataLink::ETHERNET => SlicedPacket::from_ethernet(data),
         DataLink::RAW | DataLink::IPV4 | DataLink::IPV6 => SlicedPacket::from_ip(data),
@@ -119,31 +121,38 @@ pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<ParsedPacket> {
         other => return Err(anyhow!("Unsupported link type: {other:?}")),
     };
 
-    // Common path: the strict parse succeeded with a usable IP layer.
-    if let Ok(slice) = &strict
-        && let Some(net) = &slice.net
-    {
-        return Ok(build_parsed(
-            strict_ip_triple(net),
-            &slice.transport,
-            data.len(),
-        ));
-    }
-
-    // Otherwise strict parsing either errored on a length check (the
-    // signature of a snaplen-truncated capture) or produced no IP layer
-    // (a non-IP frame such as ARP). Re-parse with the lax slicer, which
-    // clamps header lengths to the captured slice instead of rejecting —
-    // the way Wireshark and tcpdump dissect truncated captures.
-    let lax = lax_parse(data, datalink)?;
-    if let Some(net) = &lax.net {
-        return Ok(build_parsed(lax_ip_triple(net), &lax.transport, data.len()));
-    }
-
-    // Neither parser found an IP layer: the frame is genuinely undecodable.
     match strict {
+        // Strict succeeded with a usable IP layer — the common path.
+        Ok(slice) => match &slice.net {
+            Some(net) => Ok(build_parsed(
+                strict_ip_triple(net),
+                &slice.transport,
+                data.len(),
+            )),
+            // Strict parsed cleanly but found no IP layer — a non-IP
+            // frame (e.g. ARP). Lax parsing cannot conjure an IP layer
+            // that is not present, so reject directly.
+            None => Err(anyhow!("No IP layer found")),
+        },
+        // Strict failed on a *length* error — the signature of a
+        // snaplen-truncated capture, where a header length field
+        // legitimately over-runs the captured bytes. ONLY this error
+        // class is retried with the lax slicer, which clamps lengths to
+        // the captured slice (as Wireshark and tcpdump do). A structural
+        // error is handled by the arm below.
+        Err(SliceError::Len(_)) => {
+            let lax = lax_parse(data, datalink)?;
+            match &lax.net {
+                Some(net) => Ok(build_parsed(lax_ip_triple(net), &lax.transport, data.len())),
+                // Truncated past the IP header itself — undecodable.
+                None => Err(anyhow!("No IP layer found")),
+            }
+        }
+        // Any other strict error is genuine structural corruption (bad
+        // header version, bad IHL, bad TCP data-offset, ...). Reject it,
+        // exactly as the strict parser intended — lax recovery here
+        // would admit malformed packets a forensics tool should drop.
         Err(e) => Err(anyhow!("Parse error: {e}")),
-        Ok(_) => Err(anyhow!("No IP layer found")),
     }
 }
 

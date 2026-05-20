@@ -94,6 +94,10 @@ pub struct FlowDirection {
     /// Length of the *current consecutive run* of small (undersized)
     /// segments. Incremented per small segment and reset to zero by any
     /// normal-sized one — see `ReassemblyConfig::small_segment_alert_threshold`.
+    /// Maintained for every flow regardless of the small-segment port
+    /// exemption: the exemption is applied when the finding would be
+    /// emitted, not when segments are counted, so this stays a raw
+    /// measurement.
     pub small_segment_run: u32,
     pub small_segment_alert_fired: bool,
     pub out_of_window_count: u32,
