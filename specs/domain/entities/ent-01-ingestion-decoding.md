@@ -11,7 +11,7 @@ reconciled: 2026-05-20
 Covers E-1 through E-8. These entities span the CLI, reader, and decoder components
 (C-1..C-5). Source: pass-2-domain-model.md entity table (41 entities confirmed).
 
-## E-1: Cli (src/cli.rs:17-56)
+## E-1: Cli (src/cli.rs:42-110)
 
 Clap-derive `Parser` struct. Root CLI entry point.
 
@@ -40,7 +40,7 @@ in cli.rs documents the "no unwired flags" convention established by P1.04.
 The `--verbose`, `--threats`, `--beacon`, `--filter`, and `--services` flags that previously
 existed as unwired declarations were removed by P1.04 (#74).
 
-## E-2: Commands (src/cli.rs:58-113)
+## E-2: Commands (src/cli.rs:112-155)
 
 Clap-derive `Subcommand` enum with two variants:
 
@@ -65,7 +65,7 @@ Clap-derive `Subcommand` enum with two variants:
 All flags in both subcommands are now wired. The 8 previously-unwired flags
 (threats, beacon, filter, services, verbose, and 3 others) were removed by P1.04 (#74).
 
-## E-3: OutputFormat (src/cli.rs:5-9)
+## E-3: OutputFormat (src/cli.rs:16-20)
 
 ```
 enum OutputFormat { Json, Csv }
@@ -74,7 +74,7 @@ enum OutputFormat { Json, Csv }
 Both variants are wired. `Json` routes to `JsonReporter`; `Csv` routes to `CsvReporter`
 (implemented P2.03 / #84). Not `#[non_exhaustive]`.
 
-## E-4: RawPacket (src/reader.rs:7-12)
+## E-4: RawPacket (src/reader.rs:31-36)
 
 ```
 struct RawPacket {
@@ -87,7 +87,7 @@ struct RawPacket {
 Transient DTO. Emitted by PcapSource. Passed into `decode_packet`. Never enters L2+.
 `timestamp_secs` is read but never threaded to any `Finding` constructor (open item O-01).
 
-## E-5: PcapSource (src/reader.rs:14-18)
+## E-5: PcapSource (src/reader.rs:38-42)
 
 ```
 struct PcapSource {
@@ -100,7 +100,7 @@ In-memory pcap representation. `datalink` leaks the external `pcap-file::DataLin
 
 Reader now accepts snaplen-truncated captures where `orig_len > snap_len` (fixed #87).
 
-## E-6: Protocol (src/decoder.rs:8-14)
+## E-6: Protocol (src/decoder.rs:56-62)
 
 ```
 enum Protocol { Tcp, Udp, Icmp, Other(u8) }
@@ -110,7 +110,7 @@ Derives: `Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize`.
 `Hash` enables use as a `Summary.protocols` HashMap key. `Other(u8)` carries the raw IP
 protocol byte for protocols not otherwise classified.
 
-## E-7: TransportInfo (src/decoder.rs:16-32)
+## E-7: TransportInfo (src/decoder.rs:64-80)
 
 ```
 enum TransportInfo {
@@ -122,7 +122,7 @@ enum TransportInfo {
 
 NOT `Serialize`. Stays inside the binary.
 
-## E-8: ParsedPacket (src/decoder.rs:34-42)
+## E-8: ParsedPacket (src/decoder.rs:82-90)
 
 ```
 struct ParsedPacket {

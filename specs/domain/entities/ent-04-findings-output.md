@@ -18,7 +18,7 @@ enum Verdict { Likely, Unlikely, Inconclusive }
 
 `#[non_exhaustive]` (P2.10 / #76). Derives `Debug, Clone, Copy, PartialEq, Eq, Serialize`.
 `Display` renders uppercase (`LIKELY`, etc.).
-`verdict_rank` order (for sorting): `Likely < Inconclusive < Unlikely` (terminal.rs:223-229).
+`verdict_rank` order (for sorting): `Likely < Inconclusive < Unlikely` (terminal.rs:262-268).
 
 ## E-24: Confidence (src/findings.rs:57-66)
 
@@ -27,7 +27,7 @@ enum Confidence { High, Medium, Low }
 ```
 
 `#[non_exhaustive]` (P2.10 / #76). Derives same as Verdict.
-`confidence_rank` order: `High < Medium < Low` (terminal.rs:230-236).
+`confidence_rank` order: `High < Medium < Low` (terminal.rs:269-275).
 
 ## E-25: ThreatCategory (src/findings.rs:88-111)
 
@@ -56,7 +56,7 @@ All 22 emission sites set `timestamp: None` (open item O-01).
 `direction: Option<Direction>` was added (P2.08 / #77). HTTP and TLS analyzer findings set
 it; reassembly-engine findings leave it None.
 
-## E-27: MitreTactic (src/mitre.rs:21-42)
+## E-27: MitreTactic (src/mitre.rs:45-66)
 
 16-variant enum (14 Enterprise + 2 ICS). `#[non_exhaustive]` (VO-5). Derives `Debug, Clone,
 Copy, PartialEq, Eq, Hash`. `Display` renders canonical English names. See CAP-10 for full
@@ -79,7 +79,7 @@ populates it with its own keys. No schema is enforced at the type level.
 `bytes_reassembled`, `evictions`, `dropped_findings`, and other counters from
 ReassemblyStats.
 
-## E-36: Summary (src/summary.rs:8-16)
+## E-36: Summary (src/summary.rs:18-38)
 
 ```
 struct Summary {
@@ -111,7 +111,7 @@ pub trait Reporter {
 
 Single immutable-inputs method. ADR 0003: each implementor owns its own escaping.
 
-## E-38: TerminalReporter (src/reporter/terminal.rs:48-53)
+## E-38: TerminalReporter (src/reporter/terminal.rs:63-75)
 
 ```
 struct TerminalReporter {
@@ -125,7 +125,7 @@ Sole owner of `escape_for_terminal`. Contains 11 inline `#[test]` functions
 (terminal.rs:300-389); `src/analyzer/tls.rs` holds the other 7 inline tests -- total 18
 inline across src/ (discovered in pass-0 R2). See CAP-11 for rendering details.
 
-## E-39: JsonReporter (src/reporter/json.rs:8)
+## E-39: JsonReporter (src/reporter/json.rs:21)
 
 Unit struct. `serde_json::to_string_pretty().unwrap()` is infallible by construction
 (BC-RPT-001 / BC-2.11.001; confirmed pass-2 R2 Target 8). Statistics maps serialized via BTreeMap for

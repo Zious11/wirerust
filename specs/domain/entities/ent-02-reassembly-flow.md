@@ -9,7 +9,7 @@ reconciled: 2026-05-20
 # Entities: Reassembly and Flow (L2)
 
 Covers E-9 through E-15, E-18 through E-20. These are the L2 Stream/Routing entities
-(C-6..C-9). Source: pass-2-domain-model.md + pass-2-R3.md.
+(C-6..C-9, C-15). Source: pass-2-domain-model.md + pass-2-R3.md.
 
 ## E-9: FlowKey (src/reassembly/flow.rs:21)
 
