@@ -14,22 +14,22 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 0/3
-adversary_pass_9_date: "2026-05-20"
-adversary_pass_9_verdict: NOT_CONVERGED
-adversary_pass_9_findings: "4 (0C/1H/1M/2L) — all remediated; stale citations, error-category alignment"
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→..."
+adversary_pass_10_date: "2026-05-20"
+adversary_pass_10_verdict: NOT_CONVERGED
+adversary_pass_10_findings: "6 (0C/3H/3M/0L) — all remediated; dependency table, api-surface trait/struct, capability anchors"
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→..."
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 9 complete (NOT CONVERGED,
-4 findings: 0C/1H/1M/2L). BC-2.04.054 stale line citations corrected (415→573 push,
-385-388→558-561 latch); prd.md section 5 error-category prefixes aligned to
-error-taxonomy.md (E-INP/E-DEC/E-RAS/E-ANA/E-OUT/E-CFG); BC-2.04.027 DepthExceeded
-arm citation corrected (386-389→387-389); ARCH-INDEX debt note added for O-02 and O-07.
-All findings remediated. Pass 10 is next. Awaiting 3 clean adversarial passes.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 10 complete (NOT CONVERGED,
+6 findings: 0C/3H/3M/0L). dependency-graph.md rebuilt from Cargo.toml (owo-colors,
+md-5 0.11, etherparse 0.16, tls-parser added; num_cpus + false rayon-removed claim removed);
+api-surface.md Reporter trait corrected to `render(&self,...) -> String` and ParsedPacket
+phantom timestamp fields removed; domain-spec.md CAP-03 SS-3→SS-02 and SS IDs zero-padded.
+All findings remediated. Pass 11 is next. Awaiting 3 clean adversarial passes.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -44,7 +44,7 @@ All findings remediated. Pass 10 is next. Awaiting 3 clean adversarial passes.
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–9 NOT CONVERGED all remediated; pass 10 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→...` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–10 NOT CONVERGED all remediated; pass 11 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→...` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -103,13 +103,14 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 7 | 2026-05-20 | 13 (1C/3H/4M/3L/2N) | NOT_CONVERGED | REMEDIATED — all 13 fixed; entity shards, em-dash, SS-13 anchor, cap-05 token, VP-008 |
 | 8 | 2026-05-20 | 8 (0C/2H/3M/2L/1N) | NOT_CONVERGED | REMEDIATED — all 8 fixed; vp-008 arg order+IPv6, stale citations, E-RAS-005 counter |
 | 9 | 2026-05-20 | 4 (0C/1H/1M/2L) | NOT_CONVERGED | REMEDIATED — all 4 fixed; stale citations BC-2.04.054/027, prd error-categories, ARCH-INDEX debt note |
+| 10 | 2026-05-20 | 6 (0C/3H/3M/0L) | NOT_CONVERGED | REMEDIATED — all 6 fixed; dependency table vs Cargo.toml, Reporter trait, ParsedPacket struct, CAP-03/SS IDs |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
 1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (0/3).
-   Pass 10 is next; no regression allowed between passes.
+   Pass 11 is next; no regression allowed between passes.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 
@@ -139,6 +140,7 @@ Full register: `.factory/tech-debt-register.md` (when populated).
 | P4-PG3 | New reporter (csv.rs, PR #84) shipped without a BC — CsvReporter coverage gap not detected until pass-4 fresh-context audit (process gap, pass 4) | Coverage gap — 5 CsvReporter BCs (BC-2.11.020–024) added in pass-4 remediation. | Codify: every new src/ file in reporter/ or analyzer/ must trigger a BC coverage check at cycle close. |
 | P5-PG | BC-file on-disk verification used an existence check only; a NUL-byte-corrupted file (BC-2.07.020.md) was not detected until pass-5 adversarial audit (process gap, pass 5) | Tooling gap — no UTF-8 + control-byte validator on the spec package. Pass-5 remediation removed the NUL byte. | Codify as cycle-close follow-up: add spec-package validator asserting every BC/spec file is valid UTF-8 with no control bytes other than CR/LF/TAB. |
 | P8-DEFER | All 217 BC files carry `VP-TBD` placeholders in their Verification Properties field. The forward VP->BC mapping exists and is authoritative in VP-INDEX.md; the BC->VP back-reference back-fill is deferred as a Phase-1-exit polish item. | The adversary classified this as a deliberate Phase-1 convention, not drift — it is an Observation, not a blocking defect. Forward mapping in VP-INDEX.md is the authoritative source of VP->BC linkage; reverse back-references in individual BC files are editorial. | Surface as structured question at the Phase 1 human approval gate: does the human want BC->VP back-references back-filled before Phase 1 sign-off? |
+| P10-PG | Architecture-doc dependency tables were not diffed against Cargo.toml — authored from memory, causing stale versions, phantom crates, and missing crates (pass-10 H-1, M-3). | Tooling gap — no mechanical validator exists to assert dependency-graph.md matches Cargo.toml. Pass-10 remediation corrected the table manually. | Codify as cycle-close follow-up: add a `validate-deps-against-cargo` check that parses `[dependencies]` + `[dev-dependencies]` from Cargo.toml and asserts each crate appears in dependency-graph.md with the correct version. |
 
 ## Open Issues (from Phase 0 / deferred findings)
 

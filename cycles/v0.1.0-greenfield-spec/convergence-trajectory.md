@@ -25,10 +25,11 @@ traces_to: STATE.md
 | 7 | 2026-05-20 | 13 | 1 | 3 | 4 | 3 | LOW | — | 0/3 | NOT_CONVERGED — entity shards, em-dash, SS-13 anchor, cap-05 token, VP-008; all 13 fixed |
 | 8 | 2026-05-20 | 8 | 0 | 2 | 3 | 2 | LOW | — | 0/3 | NOT_CONVERGED — vp-008 arg order+IPv6, stale citations, E-RAS-005 counter; all 8 fixed |
 | 9 | 2026-05-20 | 4 | 0 | 1 | 1 | 2 | LOW | — | 0/3 | NOT_CONVERGED — stale citations BC-2.04.054/027, prd error-categories, ARCH-INDEX debt note; all 4 fixed |
+| 10 | 2026-05-20 | 6 | 0 | 3 | 3 | 0 | LOW | — | 0/3 | NOT_CONVERGED — dependency table stale vs Cargo.toml, api-surface Reporter trait + ParsedPacket wrong, CAP-03/SS IDs; all 6 fixed |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→...`
+`17→13→7→19→8→3→13→7→4→6→...`
 
 ## Per-Pass Details
 
@@ -465,5 +466,62 @@ error-category scheme aligned to the canonical 6-prefix taxonomy in error-taxono
 ARCH-INDEX debt section annotated to account for O-02 and O-07. Fixes committed in burst
 `spec: fix adversarial-review pass-9 findings (1H/1M/2L) - stale citations, error-category alignment`
 (SHA: b210c05). Pass 10 dispatched next.
+
+---
+
+### Pass 10 (2026-05-20)
+
+**Findings:** 6 (0 CRIT, 3 HIGH, 3 MED, 0 LOW)
+**Delta from pass 9:** +2 total (CRIT 0, HIGH +2, MED +2, LOW -2) — spike; architecture docs not diffed against Cargo.toml in prior passes
+**Novelty:** LOW
+**Convergence counter:** 0 of 3
+
+**Key finding categories:**
+
+- HIGH (H-1): `architecture/dependency-graph.md` — dependency table built from memory, not
+  from a live diff of Cargo.toml. Four concrete errors: `colored` crate listed but replaced by
+  `owo-colors`; `num_cpus` listed but removed; `md5` listed without correct crate name `md-5`
+  version 0.11; `etherparse` version listed as 0.14 but is 0.16. Additionally `tls-parser` was
+  missing from the table entirely. Table rebuilt from Cargo.toml ground truth.
+
+- HIGH (H-2): `architecture/api-surface.md` — `Reporter` trait signature listed as
+  `render(&self, findings: &[Finding]) -> Vec<String>` (Vec return). Correct signature is
+  `render(&self, findings: &[Finding], config: &OutputConfig) -> String`. Corrected.
+
+- HIGH (H-3): `architecture/api-surface.md` — `ParsedPacket` struct listed `timestamp: f64`
+  and `timestamp_micros: u64` fields that do not exist in source. Actual field is
+  `packet_len: usize`. Phantom timestamp fields removed; packet_len added.
+
+- MED (M-1): `domain/domain-spec.md` — Capability Index table row for CAP-03 listed
+  owning subsystem as `SS-3` (not zero-padded). Corrected to `SS-02` and all SS ID
+  references in the Capability Index zero-padded for consistency (SS-01 through SS-13).
+
+- MED (M-2): `domain/domain-spec.md` — test-count anchor in the `reconciled_against` metadata
+  field still showed commit `aa2ece9`; correct current develop HEAD is `0082a0c`. Updated.
+
+- MED (M-3): `architecture/dependency-graph.md` — narrative prose claimed "rayon removed"
+  as justification for the rebuild. `rayon` is still declared in Cargo.toml (tracked as
+  tech-debt item O-07 — declared but unused). False claim corrected; O-07 status note added.
+
+**Process gap identified (codification follow-up at cycle close):**
+P10-PG: Architecture-doc dependency tables were not diffed against Cargo.toml before adversarial
+review — they were authored from memory. Recommend a mechanical `validate-deps-against-cargo`
+check: parse `[dependencies]` and `[dev-dependencies]` from Cargo.toml and assert each declared
+crate appears in the dependency-graph.md table with the correct version. Eliminates the class
+of stale-version / phantom-crate / missing-crate findings that drove H-1 and M-3 in pass 10.
+
+**Files fixed (3):**
+`specs/architecture/dependency-graph.md`,
+`specs/architecture/api-surface.md`,
+`specs/domain/domain-spec.md`
+
+**Remediation:** All 6 findings (0C/3H/3M/0L) remediated. Dependency table rebuilt from
+Cargo.toml ground truth (owo-colors, md-5 0.11, etherparse 0.16, tls-parser added; num_cpus
+removed; rayon-removed false claim corrected). Reporter trait signature corrected to
+`render(&self, ...) -> String`. ParsedPacket phantom timestamp fields removed; packet_len
+added. CAP-03 SS-3 -> SS-02 and all SS IDs zero-padded in domain-spec Capability Index.
+Reconciled-against anchor corrected aa2ece9 -> 0082a0c. Fixes committed in burst
+`spec: fix adversarial-review pass-10 findings (3H/3M) - dependency table, api-surface, capability anchors`
+(SHA: 824f07d). Pass 11 dispatched next.
 
 ---
