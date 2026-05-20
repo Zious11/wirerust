@@ -1533,3 +1533,89 @@ fn test_dropped_findings_key_present_in_summarize() {
         "summarize() detail must always contain `dropped_findings` — LESSON-P1.01 regressed"
     );
 }
+
+// ---- LESSON-P2.05: configurable anomaly thresholds ----
+
+/// Drive a flow to `n` overlapping duplicate segments and return the
+/// reassembler, so a test can assert whether the overlap finding fired
+/// under a given `overlap_alert_threshold`.
+fn run_overlapping_flow(overlap_alert_threshold: u32, duplicates: u32) -> TcpReassembler {
+    let config = ReassemblyConfig {
+        overlap_alert_threshold,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Out-of-order segment at offset 2 (gap at offset 1 keeps it buffered).
+    let original = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+    );
+    reassembler.process_packet(&original, 2, &mut handler);
+
+    for i in 0..duplicates {
+        let dup = make_tcp_packet(
+            client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+        );
+        reassembler.process_packet(&dup, 3 + i, &mut handler);
+    }
+    reassembler
+}
+
+#[test]
+fn test_low_overlap_threshold_fires_earlier() {
+    // With a configured threshold of 5, just 6 overlapping duplicates
+    // (overlap_count = 6 > 5) must trigger the overlap anomaly — far
+    // below the default-50 trip point. Proves the engine reads the
+    // threshold from ReassemblyConfig, not a hard-coded const.
+    let reasm = run_overlapping_flow(5, 6);
+    assert!(
+        reasm
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("Excessive segment overlaps")),
+        "overlap finding must fire once overlap_count exceeds the configured threshold of 5"
+    );
+}
+
+#[test]
+fn test_default_overlap_threshold_silent_at_six_overlaps() {
+    // The same 6 overlaps under the default threshold (50) must NOT
+    // fire — confirms the low-threshold test above is exercising the
+    // config field, not some unrelated trigger.
+    let reasm = run_overlapping_flow(ReassemblyConfig::default().overlap_alert_threshold, 6);
+    assert!(
+        !reasm
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("Excessive segment overlaps")),
+        "6 overlaps must stay silent under the default threshold of 50"
+    );
+}
+
+#[test]
+fn test_default_config_threshold_values() {
+    // Pin the documented LESSON-P2.05 defaults so a silent change is
+    // caught. These are conservative engineering defaults (see
+    // config.rs field docs), not values endorsed by NIDS prior art.
+    let cfg = ReassemblyConfig::default();
+    assert_eq!(cfg.overlap_alert_threshold, 50);
+    assert_eq!(cfg.small_segment_alert_threshold, 2048);
+    assert_eq!(cfg.out_of_window_alert_threshold, 100);
+}

@@ -127,6 +127,36 @@ fn test_summary_hosts_flag_defaults_false() {
     }
 }
 
+// ---- LESSON-P2.05: configurable reassembly anomaly thresholds ----
+
+#[test]
+fn test_threshold_flags_parse() {
+    let cli = Cli::parse_from([
+        "wirerust",
+        "--overlap-threshold",
+        "10",
+        "--small-segment-threshold",
+        "256",
+        "--out-of-window-threshold",
+        "25",
+        "analyze",
+        "capture.pcap",
+    ]);
+    assert_eq!(cli.overlap_threshold, Some(10));
+    assert_eq!(cli.small_segment_threshold, Some(256));
+    assert_eq!(cli.out_of_window_threshold, Some(25));
+}
+
+#[test]
+fn test_threshold_flags_default_to_none() {
+    // Absent flags must be None so main.rs leaves the
+    // ReassemblyConfig::default() value untouched.
+    let cli = Cli::parse_from(["wirerust", "analyze", "capture.pcap"]);
+    assert_eq!(cli.overlap_threshold, None);
+    assert_eq!(cli.small_segment_threshold, None);
+    assert_eq!(cli.out_of_window_threshold, None);
+}
+
 #[test]
 fn test_removed_unwired_flags_are_rejected() {
     // LESSON-P1.04: --threats, --verbose, --beacon, --filter, and
