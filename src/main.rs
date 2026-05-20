@@ -110,6 +110,9 @@ fn run_analyze(
         if let Some(v) = cli.small_segment_max_bytes {
             config.small_segment_max_bytes = v;
         }
+        if let Some(v) = cli.small_segment_ignore_ports.clone() {
+            config.small_segment_ignore_ports = v;
+        }
         if let Some(v) = cli.out_of_window_threshold {
             config.out_of_window_alert_threshold = v;
         }

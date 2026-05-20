@@ -408,6 +408,17 @@ impl TcpReassembler {
         let small_segment_threshold = self.config.small_segment_alert_threshold;
         let out_of_window_threshold = self.config.out_of_window_alert_threshold;
 
+        // LESSON-P2.05 follow-up: a flow is exempt from small-segment
+        // detection when EITHER endpoint port is in the configured
+        // interactive-port ignore list (telnet, rlogin, ...) — those
+        // protocols emit benign runs of tiny segments. See
+        // `ReassemblyConfig::small_segment_ignore_ports`.
+        let small_segment_ignored = self
+            .config
+            .small_segment_ignore_ports
+            .iter()
+            .any(|&p| p == key.lower_port() || p == key.upper_port());
+
         let flow = self.flows.get_mut(key).unwrap();
         let flow_dir = flow.get_direction_mut(dir);
 
@@ -434,6 +445,7 @@ impl TcpReassembler {
         }
         if flow_dir.small_segment_run > small_segment_threshold
             && !flow_dir.small_segment_alert_fired
+            && !small_segment_ignored
         {
             flow_dir.small_segment_alert_fired = true;
             if self.findings.len() < MAX_FINDINGS {
