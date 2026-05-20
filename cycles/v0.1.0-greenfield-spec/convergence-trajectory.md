@@ -26,10 +26,11 @@ traces_to: STATE.md
 | 8 | 2026-05-20 | 8 | 0 | 2 | 3 | 2 | LOW | — | 0/3 | NOT_CONVERGED — vp-008 arg order+IPv6, stale citations, E-RAS-005 counter; all 8 fixed |
 | 9 | 2026-05-20 | 4 | 0 | 1 | 1 | 2 | LOW | — | 0/3 | NOT_CONVERGED — stale citations BC-2.04.054/027, prd error-categories, ARCH-INDEX debt note; all 4 fixed |
 | 10 | 2026-05-20 | 6 | 0 | 3 | 3 | 0 | LOW | — | 0/3 | NOT_CONVERGED — dependency table stale vs Cargo.toml, api-surface Reporter trait + ParsedPacket wrong, CAP-03/SS IDs; all 6 fixed |
+| 11 | 2026-05-20 | 1 | 0 | 0 | 0 | 1 | LOW | — | **1/3** | **CONVERGED** — clean pass 1 of 3 (0C/0H/0M/1L/4obs); 1L + 4 cosmetic observations polished |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→...`
+`17→13→7→19→8→3→13→7→4→6→1`
 
 ## Per-Pass Details
 
@@ -523,5 +524,45 @@ added. CAP-03 SS-3 -> SS-02 and all SS IDs zero-padded in domain-spec Capability
 Reconciled-against anchor corrected aa2ece9 -> 0082a0c. Fixes committed in burst
 `spec: fix adversarial-review pass-10 findings (3H/3M) - dependency table, api-surface, capability anchors`
 (SHA: 824f07d). Pass 11 dispatched next.
+
+---
+
+### Pass 11 (2026-05-20) — CONVERGED (clean pass 1 of 3)
+
+**Findings:** 1 LOW + 4 observations (0 CRIT, 0 HIGH, 0 MED, 1 LOW, 4 cosmetic)
+**Delta from pass 10:** -5 total (CRIT 0, HIGH -3, MED -3, LOW +1) — no regression
+**Novelty:** LOW
+**Convergence counter:** 1/3
+**Verdict:** CONVERGED — first clean pass. No CRIT/HIGH/MED findings. Passes 12 and 13
+must also return clean to satisfy the 3-clean-pass Phase 1d adversarial convergence gate.
+
+**Findings (non-blocking, polished for clean package):**
+
+- LOW (L-1): `architecture/api-surface.md` — `--mitre` flag BC reference listed as
+  `BC-2.12.004`; correct reference is `BC-2.12.001`. Corrected.
+
+- Observation (O-1): `architecture/system-overview.md` — pseudocode used `reporter.report(...)`
+  which does not match the actual trait method name `render`. Updated to `reporter.render(...)`.
+
+- Observation (O-2): `behavioral-contracts/ss-07/BC-2.07.037.md` — `NonAsciiUtf8` variant
+  written as a unit variant; correct form is a struct variant with a `bytes` field, matching
+  the actual enum definition. Corrected to struct-variant notation.
+
+- Observation (O-3): `prd-supplements/interface-definitions.md` — exit-code table omitted
+  the `exit 2` row for clap argument-parse errors. Row added.
+
+- Observation (O-4): `architecture/dependency-graph.md` — dev-dependency table was
+  incomplete; `tempfile`, `proptest`, and `criterion` were absent. All three added.
+
+**Files fixed (5):**
+`specs/architecture/api-surface.md`,
+`specs/architecture/system-overview.md`,
+`specs/behavioral-contracts/ss-07/BC-2.07.037.md`,
+`specs/prd-supplements/interface-definitions.md`,
+`specs/architecture/dependency-graph.md`
+
+**Polish committed in burst:**
+`spec: pass-11 polish (1L/4 observations) - package CONVERGED, counter 1/3`
+(SHA: 4d4cf89). Pass 12 dispatched next (confirmation pass).
 
 ---

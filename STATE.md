@@ -13,23 +13,21 @@ dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
-adversary_convergence_counter: 0/3
-adversary_pass_10_date: "2026-05-20"
-adversary_pass_10_verdict: NOT_CONVERGED
-adversary_pass_10_findings: "6 (0C/3H/3M/0L) — all remediated; dependency table, api-surface trait/struct, capability anchors"
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→..."
+adversary_convergence_counter: 1/3
+adversary_pass_11_date: "2026-05-20"
+adversary_pass_11_verdict: CONVERGED
+adversary_pass_11_findings: "1L/4 observations (0C/0H/0M/1L) — clean pass 1 of 3; polish applied"
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 10 complete (NOT CONVERGED,
-6 findings: 0C/3H/3M/0L). dependency-graph.md rebuilt from Cargo.toml (owo-colors,
-md-5 0.11, etherparse 0.16, tls-parser added; num_cpus + false rayon-removed claim removed);
-api-surface.md Reporter trait corrected to `render(&self,...) -> String` and ParsedPacket
-phantom timestamp fields removed; domain-spec.md CAP-03 SS-3→SS-02 and SS IDs zero-padded.
-All findings remediated. Pass 11 is next. Awaiting 3 clean adversarial passes.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 11 CONVERGED (0C/0H/0M/1L/4obs).
+First clean pass. Convergence counter: 1/3. Polish applied (BC-2.12.004→BC-2.12.001 ref,
+pseudocode render, NonAsciiUtf8 struct-variant, exit-2 row, dev-dep table). Pass 12 is next
+(confirmation pass). Two more clean passes (12 and 13) required to satisfy Phase 1d gate.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -44,7 +42,7 @@ All findings remediated. Pass 11 is next. Awaiting 3 clean adversarial passes.
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–10 NOT CONVERGED all remediated; pass 11 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→...` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (1/3 clean; passes 1–10 NOT CONVERGED all remediated; pass 11 CONVERGED; passes 12–13 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -104,13 +102,14 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 8 | 2026-05-20 | 8 (0C/2H/3M/2L/1N) | NOT_CONVERGED | REMEDIATED — all 8 fixed; vp-008 arg order+IPv6, stale citations, E-RAS-005 counter |
 | 9 | 2026-05-20 | 4 (0C/1H/1M/2L) | NOT_CONVERGED | REMEDIATED — all 4 fixed; stale citations BC-2.04.054/027, prd error-categories, ARCH-INDEX debt note |
 | 10 | 2026-05-20 | 6 (0C/3H/3M/0L) | NOT_CONVERGED | REMEDIATED — all 6 fixed; dependency table vs Cargo.toml, Reporter trait, ParsedPacket struct, CAP-03/SS IDs |
+| 11 | 2026-05-20 | 1L/4obs (0C/0H/0M/1L) | **CONVERGED** | CLEAN PASS 1/3 — polish applied (L-1 BC ref, O-1 pseudocode, O-2 struct-variant, O-3 exit-2, O-4 dev-deps) |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
-1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (0/3).
-   Pass 11 is next; no regression allowed between passes.
+1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (1/3).
+   Pass 12 is next (confirmation pass); passes 12 and 13 must be clean to satisfy gate.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 
