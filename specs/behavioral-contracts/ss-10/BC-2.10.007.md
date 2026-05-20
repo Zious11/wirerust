@@ -52,7 +52,7 @@ assignments (e.g., T1027 => DefenseEvasion, T1036 => DefenseEvasion, T1046 => Di
    - T1573 => MitreTactic::CommandAndControl
    - T0846 => MitreTactic::Discovery
    - T0855 => MitreTactic::IcsImpairProcessControl
-   - T0856 => MitreTactic::IcsInhibitResponseFunction
+   - T0856 => MitreTactic::IcsImpairProcessControl
    - T0885 => MitreTactic::CommandAndControl
 3. Returns `None` for any ID not in the seeded set.
 

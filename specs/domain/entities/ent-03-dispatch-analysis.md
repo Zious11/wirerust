@@ -65,8 +65,14 @@ subsequent `on_data` calls for that flow forward to no analyzer. Configurable vi
 enum DispatchTarget { Http, Tls, None }
 ```
 
-Module-private (no `pub`). `None` is NOT cached in `routes`; it triggers reclassification
-on the next `on_data` call (INV-2 / BC-DSP-005), subject to the attempt-count cap.
+Module-private (no `pub`). `None` operates in two phases (dispatcher.rs:137-148;
+LESSON-P2.11):
+Phase 1 (attempt count < `max_classification_attempts`): NOT cached in `routes`; triggers
+reclassification on each subsequent `on_data` call, incrementing the per-flow
+`classification_attempts` counter (INV-2 / BC-DSP-005).
+Phase 2 (attempt count reaches `max_classification_attempts`): inserted PERMANENTLY into
+`routes`; `classify()` is no longer called for that flow. `classification_attempts` entry
+is removed.
 
 ## E-29: ProtocolAnalyzer (src/analyzer/mod.rs:19-31) [trait]
 

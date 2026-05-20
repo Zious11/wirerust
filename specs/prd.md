@@ -238,7 +238,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.05.003 | Port fallback: 443/8443->TLS, 80/8080->HTTP when content insufficient | P0 | BC-DSP-003 |
 | BC-2.05.004 | Unknown content and unknown port returns DispatchTarget::None | P1 | BC-DSP-004 |
 | BC-2.05.005 | Classification cached per FlowKey after first non-None result | P0 | BC-DSP-005 |
-| BC-2.05.006 | DispatchTarget::None is NOT cached; reclassification retried on next on_data | P0 | BC-DSP-006 |
+| BC-2.05.006 | DispatchTarget::None NOT cached until retry cap (default 8); reclassification retried per on_data until cap, then None cached permanently | P0 | BC-DSP-006 |
 | BC-2.05.007 | unclassified_flows increments only at on_flow_close for never-classified flows | P1 | BC-DSP-007 |
 | BC-2.05.008 | No analyzer configured: dispatcher early-returns from on_data | P1 | BC-DSP-008 |
 | BC-2.05.009 | on_flow_close removes route entry and forwards close to analyzer | P0 | BC-DSP-009 |
@@ -515,7 +515,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.05.002 | HTTP method prefix routes to HTTP regardless of port |
 | BC-2.05.003 | Port fallback only when content is insufficient (5 bytes minimum) |
 | BC-2.05.005 | Classification cached per flow for efficiency |
-| BC-2.05.006 | DispatchTarget::None not cached; late protocol identification possible |
+| BC-2.05.006 | DispatchTarget::None not cached until retry cap (default 8); late protocol identification retried until cap, then permanently cached as None |
 
 ### 6.4 KD-004: First-Wins TCP Overlap Forensics
 

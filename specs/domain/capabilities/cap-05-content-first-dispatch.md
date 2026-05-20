@@ -46,8 +46,14 @@ advisory). Zero tests exercise the misroute path.
 
 - `DispatchTarget::Http` and `DispatchTarget::Tls` are cached in `routes: HashMap<FlowKey,
   DispatchTarget>` on first classification.
-- `DispatchTarget::None` is NOT cached. `classify()` re-runs on every subsequent data chunk.
-  This is now bounded by `max_classification_attempts` (see below).
+- `DispatchTarget::None` operates in two phases:
+  Phase 1 (attempt count < `max_classification_attempts`): `None` is NOT cached in `routes`;
+  `classify()` re-runs on each subsequent `on_data` chunk and increments the per-flow
+  `classification_attempts` counter.
+  Phase 2 (attempt count reaches `max_classification_attempts`): `DispatchTarget::None` IS
+  inserted permanently into `routes` and `classify()` is no longer called for that flow.
+  The `classification_attempts` entry is removed at that point.
+  (dispatcher.rs:137-148; LESSON-P2.11)
 
 ## max_classification_attempts knob (P2.11 / #80)
 

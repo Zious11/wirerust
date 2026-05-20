@@ -52,7 +52,7 @@ renderer is the sole owner of escape logic.
 | Total #[test] functions | ~282 as of develop@aa2ece9 (264 in tests/ + 18 inline: 11 in reporter/terminal.rs + 7 in analyzer/tls.rs; exact count is commit-sensitive and should be re-verified against current tree) |
 | Components | 20 (C-1..C-20); note 24 source files map to 20 components because the 7 reassembly sub-files (mod, config, lifecycle, stats, flow, handler, segment) plus dispatcher.rs collapse into components C-6..C-9,C-15 |
 | Layers | 5 (L0..L4) |
-| Behavioral contracts catalogued | 218 |
+| Behavioral contracts catalogued | 218 ingested / 212 active |
 | Domain entities | 41 |
 | Semantic enums | 14 |
 | NFRs | 79 |

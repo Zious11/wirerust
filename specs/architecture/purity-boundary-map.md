@@ -94,7 +94,7 @@ proptest. Key formally-verifiable properties:
 - `decoder.rs`: No panic on malformed input; link-type gate exhaustive
 - `reassembly/flow.rs`: FlowKey canonical ordering (INV-1); state machine reachability
 - `reassembly/segment.rs`: First-wins overlap (INV-3); buffered_bytes monotonicity (INV-6 partial)
-- `dispatcher.rs`: Content-first precedence (INV-2); DispatchTarget::None never cached
+- `dispatcher.rs`: Content-first precedence (INV-2); DispatchTarget::None NOT cached before retry cap (pre-cap: attempts incremented, routes untouched); permanently cached as DispatchTarget::None once cap reached (dispatcher.rs:146-148)
 - `analyzer/tls.rs`: SNI 4-way ordered match (INV-5); JA3 GREASE filter correctness
 - `analyzer/http.rs`: HTTP poison monotonicity (INV-8); cross-flow state isolation
 - `mitre.rs`: technique_id format invariant (INV-9); all_tactics_in_report_order completeness

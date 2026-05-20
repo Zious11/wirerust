@@ -126,7 +126,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.05.003 | Port Fallback: 443/8443->TLS, 80/8080->HTTP When Content Insufficient | P0 | [WRITTEN] | BC-DSP-003 |
 | BC-2.05.004 | Unknown Content + Unknown Port Returns DispatchTarget::None | P1 | [WRITTEN] | BC-DSP-004 |
 | BC-2.05.005 | Classification Cached Per FlowKey After First Non-None Result | P0 | [WRITTEN] | BC-DSP-005 |
-| BC-2.05.006 | DispatchTarget::None NOT Cached; Reclassification Retried | P0 | [WRITTEN] | BC-DSP-006 |
+| BC-2.05.006 | DispatchTarget::None NOT Cached Until Retry Cap; Reclassification Retried Until Cap Then Cached Permanently | P0 | [WRITTEN] | BC-DSP-006 |
 | BC-2.05.007 | unclassified_flows Increments Only at on_flow_close | P1 | [WRITTEN] | BC-DSP-007 |
 | BC-2.05.008 | No Analyzer Configured: Dispatcher Early-Returns | P1 | [WRITTEN] | BC-DSP-008 |
 | BC-2.05.009 | on_flow_close Removes Route Entry and Forwards Close | P0 | [WRITTEN] | BC-DSP-009 |

@@ -29,7 +29,7 @@ removal_reason: null
 After a flow is classified as Http or Tls, the result is stored in `routes: HashMap<FlowKey,
 DispatchTarget>`. Subsequent `on_data` calls for the same FlowKey use the cached target without
 re-running the classify function. Once a flow is classified, it stays classified for its
-lifetime. `DispatchTarget::None` is specifically excluded from caching (see BC-2.05.006).
+lifetime. `DispatchTarget::None` is excluded from caching during the retry phase (before `max_classification_attempts` is reached), but IS inserted permanently into `routes` once the cap is hit. See BC-2.05.006 for the full two-phase None-caching contract.
 
 This contract's test coverage (R4 finding): the INSERT path (classify + cache) is exercised
 by tests, but the cache-HIT path (subsequent calls using cached result) is not independently
@@ -50,7 +50,7 @@ verified. A refactor that broke cache lookup would pass CI if the INSERT path te
 
 ## Invariants
 
-1. Only Http and Tls are inserted into routes; None is never inserted.
+1. Http and Tls are inserted into routes on first non-None classification. None is NOT inserted during the retry phase (before the cap); None IS inserted permanently once `classification_attempts[flow_key]` reaches `max_classification_attempts` (dispatcher.rs:146). See BC-2.05.006 for the full two-phase contract.
 2. Cached routes are removed only on on_flow_close (BC-2.05.009).
 3. Cache entries are per FlowKey (not per connection direction).
 

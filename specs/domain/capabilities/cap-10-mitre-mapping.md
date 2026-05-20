@@ -37,7 +37,7 @@ corrects pass-6's "16" claim):
 | T1573 | Encrypted Channel | CommandAndControl (*catalogued, never emitted*) |
 | T0846 | Remote System Discovery | Discovery (ICS) |
 | T0855 | Unauthorized Command Message | IcsImpairProcessControl (*catalogued, never emitted*) |
-| T0856 | Spoof Reporting Message | IcsInhibitResponseFunction (*catalogued, never emitted*) |
+| T0856 | Spoof Reporting Message | IcsImpairProcessControl (*catalogued, never emitted*) |
 | T0885 | Commonly Used Port | CommandAndControl (*catalogued, never emitted*) |
 
 **Emitted (6):** T1027, T1036, T1046, T1083, T1499.002, T1505.003.

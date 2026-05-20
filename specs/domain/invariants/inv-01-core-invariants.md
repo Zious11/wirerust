@@ -212,4 +212,4 @@ passes the raw ID string through without validation.
 
 **Enforcement:** `src/mitre.rs:122-154` (`technique_info` function; `let info = match id`
 block starts at `:123`, wildcard arm `_ => return None` at `:153`).
-**Corpus refs:** VO-6, BC-MIT-001..004, CAP-10.
+**Corpus refs:** VO-6, BC-MIT-005..008, CAP-10.

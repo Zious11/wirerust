@@ -25,7 +25,7 @@ domain model. Source: pass-2-domain-model.md sections 2 and 4.
 | CloseReason (E-15) | handler.rs | Fin, Rst, Timeout, MemoryPressure | No | Ignored by analyzers |
 | Direction (E-14) | handler.rs | ClientToServer, ServerToClient | No | Binary; no Unknown |
 | InsertResult (E-13) | segment.rs | 9 variants | No | All 9 matched in engine |
-| DispatchTarget (E-22) | dispatcher.rs | Http, Tls, None | No | Module-private; None not cached |
+| DispatchTarget (E-22) | dispatcher.rs | Http, Tls, None | No | Module-private; None: not cached until attempt cap, then cached permanently (two-phase, LESSON-P2.11) |
 | OutputFormat (E-3) | cli.rs | Json, Csv | No | Both variants now wired |
 | Commands (E-2) | cli.rs | Analyze{..}, Summary{..} | No | All fields wired as of P1.04 |
 | SniValue (E-35) | tls.rs | Ascii, AsciiWithControl, NonAsciiUtf8, NonUtf8 | No | Module-private |

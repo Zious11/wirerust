@@ -20,18 +20,20 @@ adversary_pass_1_findings: "17 (2C/8H/5M/2L) — all remediated"
 adversary_pass_2_date: "2026-05-20"
 adversary_pass_2_verdict: NOT_CONVERGED
 adversary_pass_2_findings: "13 (0C/4H/6M/3L) — all blocking remediated; 2 deferred (non-blocking)"
-convergence_trajectory: "17→13→..."
+adversary_pass_3_date: "2026-05-20"
+adversary_pass_3_verdict: NOT_CONVERGED
+adversary_pass_3_findings: "7 (0C/3H/2M/2N) — all remediated"
+convergence_trajectory: "17→13→7→..."
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 2 complete (NOT CONVERGED,
-13 findings: 0C/4H/6M/3L). All blocking findings remediated; 2 non-blocking
-deferred. CAP-12 (CLI Orchestration) added; capability count 11 -> 12. Pass 3
-is next. Awaiting 3 clean adversarial passes, then consistency audit + human
-approval gate before Phase 1 is declared PASSED.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 3 complete (NOT CONVERGED,
+7 findings: 0C/3H/2M/2N). All findings remediated (T0856 MITRE tactic + None-caching
+propagation gap). Pass 4 is next. Awaiting 3 clean adversarial passes, then
+consistency audit + human approval gate before Phase 1 is declared PASSED.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -46,7 +48,7 @@ approval gate before Phase 1 is declared PASSED.
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; pass 1 NOT CONVERGED remediated; pass 2 NOT CONVERGED remediated; pass 3 pending) | 19 L2 shards, 212 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→...` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; pass 1 NOT CONVERGED remediated; pass 2 NOT CONVERGED remediated; pass 3 NOT CONVERGED remediated; pass 4 pending) | 20 L2 shards, 212 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→...` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -98,6 +100,7 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 |------|------|----------|---------|--------|
 | 1 | 2026-05-20 | 17 (2C/8H/5M/2L) | NOT_CONVERGED | REMEDIATED — all 17 fixed |
 | 2 | 2026-05-20 | 13 (0C/4H/6M/3L) | NOT_CONVERGED | REMEDIATED — all blocking fixed; 2 deferred (non-blocking) |
+| 3 | 2026-05-20 | 7 (0C/3H/2M/2N) | NOT_CONVERGED | REMEDIATED — all 7 fixed; pass 4 next |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
@@ -128,6 +131,7 @@ Full register: `.factory/tech-debt-register.md` (when populated).
 |----|---------|-------------|-----------|
 | L-2 | `src/analyzer/dns.rs` module doc-comment is stale — references removed behavior | Source defect, not a spec defect. Spec is correct. | File as code follow-up issue on `develop` after Phase 1 gate. |
 | L-3 | No machine validator for BC-H1 <-> BC-INDEX title sync (process gap) | Tooling gap, not a spec gap. Spec BCs and INDEX are now in sync. | Codify as CI lint rule in a future sprint. |
+| P3-PG | BC body postcondition/invariant edits must trigger a propagation sweep across BC-INDEX, PRD, capability/entity docs, VP files, and architecture docs (process gap, pass 3) | Discipline gap — not a spec defect. All 8+ affected files corrected in pass-3 remediation. | Codify as checklist step or CI lint rule at cycle close. |
 
 ## Open Issues (from Phase 0 / deferred findings)
 
