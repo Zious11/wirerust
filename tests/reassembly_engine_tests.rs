@@ -1618,17 +1618,22 @@ fn test_default_config_threshold_values() {
     assert_eq!(cfg.overlap_alert_threshold, 50);
     assert_eq!(cfg.small_segment_alert_threshold, 100);
     assert_eq!(cfg.small_segment_max_bytes, 16);
+    assert_eq!(cfg.small_segment_ignore_ports, vec![23, 513]);
     assert_eq!(cfg.out_of_window_alert_threshold, 100);
 }
 
 /// Drive a flow of one-byte segments through the engine to exercise the
-/// consecutive small-segment run counter (LESSON-P2.05). When
-/// `break_after` is `Some(n)`, one normal-sized (29-byte) segment is
-/// inserted after the n-th small segment, which must reset the run.
+/// consecutive small-segment run counter (LESSON-P2.05). `server_port`
+/// is the flow's well-known port (use a non-ignored port such as 80 to
+/// observe the detector, or an ignored one such as 23 to observe
+/// suppression). When `break_after` is `Some(n)`, one normal-sized
+/// (29-byte) segment is inserted after the n-th small segment, which
+/// must reset the run.
 fn run_small_segment_flow(
     threshold: u32,
     small_count: u32,
     break_after: Option<u32>,
+    server_port: u16,
 ) -> TcpReassembler {
     let config = ReassemblyConfig {
         small_segment_alert_threshold: threshold,
@@ -1643,7 +1648,7 @@ fn run_small_segment_flow(
         client,
         12345,
         server,
-        80,
+        server_port,
         1000,
         &[],
         true,
@@ -1662,7 +1667,7 @@ fn run_small_segment_flow(
                 client,
                 12345,
                 server,
-                80,
+                server_port,
                 seq,
                 b"a-normal-sized-tcp-segment-xx",
                 false,
@@ -1675,7 +1680,16 @@ fn run_small_segment_flow(
             ts += 1;
         }
         let small = make_tcp_packet(
-            client, 12345, server, 80, seq, b"x", false, true, false, false,
+            client,
+            12345,
+            server,
+            server_port,
+            seq,
+            b"x",
+            false,
+            true,
+            false,
+            false,
         );
         reassembler.process_packet(&small, ts, &mut handler);
         seq += 1;
@@ -1688,7 +1702,7 @@ fn run_small_segment_flow(
 fn test_consecutive_small_segments_trip_anomaly() {
     // 11 one-byte segments form an unbroken run of 11, above the
     // configured threshold of 10 — the small-segment anomaly must fire.
-    let reasm = run_small_segment_flow(10, 11, None);
+    let reasm = run_small_segment_flow(10, 11, None, 80);
     assert!(
         reasm
             .findings()
@@ -1703,12 +1717,27 @@ fn test_normal_segment_resets_small_segment_run() {
     // The same 11 one-byte segments — but a normal-sized segment after
     // the 6th resets the consecutive run, so the two sub-runs (6, then
     // 5) never reach the threshold of 10 and the anomaly stays silent.
-    let reasm = run_small_segment_flow(10, 11, Some(6));
+    let reasm = run_small_segment_flow(10, 11, Some(6), 80);
     assert!(
         !reasm
             .findings()
             .iter()
             .any(|f| f.summary.contains("small segments")),
         "a normal-sized segment must reset the run and keep the anomaly silent"
+    );
+}
+
+#[test]
+fn test_small_segment_anomaly_suppressed_on_ignored_port() {
+    // The same unbroken 11-segment run that fires on port 80 must stay
+    // silent on telnet (port 23): it is in the default ignore list, as
+    // char-at-a-time interactive traffic there is benign, not evasion.
+    let reasm = run_small_segment_flow(10, 11, None, 23);
+    assert!(
+        !reasm
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("small segments")),
+        "small-segment detection must be suppressed on an ignored port"
     );
 }

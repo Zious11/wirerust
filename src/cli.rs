@@ -91,6 +91,12 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub small_segment_max_bytes: Option<usize>,
 
+    /// Override the ports exempt from small-segment detection
+    /// (default: 23,513 — telnet, rlogin). Comma-separated; a flow is
+    /// exempt if either endpoint port matches. See LESSON-P2.05.
+    #[arg(long, global = true, value_delimiter = ',')]
+    pub small_segment_ignore_ports: Option<Vec<u16>>,
+
     /// Override the out-of-window anomaly threshold (default: 100).
     /// Per flow direction; see LESSON-P2.05.
     #[arg(long, global = true)]
