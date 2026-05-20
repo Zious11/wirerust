@@ -59,9 +59,9 @@ All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by 
 | C-ID | File | SS-ID | Role | Purity |
 |------|------|-------|------|--------|
 | C-18 | src/reporter/mod.rs | SS-11 | `Reporter` trait | Pure (trait definition) |
-| C-19 | src/reporter/json.rs | SS-11 | `JsonReporter`: `serde_json`; `BTreeMap` for deterministic key order | Effectful (stdout write) |
-| C-20 | src/reporter/terminal.rs | SS-11 | `TerminalReporter`: `escape_for_terminal`; MITRE tactic grouping; colorization; 11 inline unit tests | Effectful (stdout write) |
-| -- | src/reporter/csv.rs | SS-11 | `CsvReporter`: CSV-injection neutralization; file or stdout output | Effectful (stdout/file write) |
+| C-19 | src/reporter/json.rs | SS-11 | `JsonReporter`: `serde_json`; `BTreeMap` for deterministic key order | Pure (returns owned String; no I/O -- caller in main.rs writes) |
+| C-20 | src/reporter/terminal.rs | SS-11 | `TerminalReporter`: `escape_for_terminal`; MITRE tactic grouping; colorization; 11 inline unit tests | Pure (returns owned String; no I/O -- caller in main.rs writes) |
+| -- | src/reporter/csv.rs | SS-11 | `CsvReporter`: CSV-injection neutralization; renders findings to in-memory String | Pure (returns owned String; no I/O -- caller in main.rs writes) |
 
 
 ## Architecture Debt by Component

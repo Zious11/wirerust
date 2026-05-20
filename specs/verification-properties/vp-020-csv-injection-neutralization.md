@@ -43,7 +43,12 @@ in the output causes a spreadsheet application to interpret the cell as a formul
    the injection vector it claims to fix. The correct neutralization is a single quote.)
 2. The `csv` crate handles field quoting and escaping of commas and double-quotes.
 3. The neutralization applies to all string fields derived from attacker-controlled
-   data: `summary`, `evidence`, and any `detail` values from `AnalysisSummary`.
+   data that are actually emitted to CSV cells: per-`Finding` fields `summary`,
+   `evidence` (joined), `category`, `verdict`, `confidence`, `mitre_technique`,
+   `source_ip`, `direction`, and `timestamp`. The `_analyzer_summaries` parameter
+   is accepted by the trait signature but is explicitly ignored by `CsvReporter::render`
+   (underscore-prefixed at `csv.rs:56`); no `AnalysisSummary` detail value ever
+   reaches a CSV cell, so that field is outside the neutralization scope.
 
 This property was added when the CSV reporter was implemented in PR #84.
 
@@ -89,18 +94,23 @@ fn test_csv_injection_neutralization() {
 
 #[test]
 fn test_csv_safe_values_unchanged() {
+    // CsvReporter is a unit struct -- constructed directly, no constructor call.
+    // render() returns an owned String; there is no I/O in the reporter itself.
+    let reporter = CsvReporter;
     let safe_values = ["normal text", "192.168.1.1", "GET /path", "200 OK"];
     for value in safe_values {
         let finding = Finding {
             summary: value.to_string(),
             ..make_test_finding()
         };
-        let mut output = Vec::new();
-        let mut reporter = CsvReporter::new(&mut output);
-        reporter.report(&[finding], &[], &Summary::default()).unwrap();
-        let csv_text = String::from_utf8(output).unwrap();
-        assert!(csv_text.contains(value),
-            "safe value '{}' was modified", value);
+        let summary = Summary::default();
+        // render() signature: fn render(&self, summary: &Summary, findings: &[Finding],
+        //   analyzer_summaries: &[AnalysisSummary]) -> String  (Reporter trait, mod.rs:27-32)
+        let csv_text = reporter.render(&summary, &[finding], &[]);
+        assert!(
+            csv_text.contains(value),
+            "safe value '{}' was modified", value
+        );
     }
 }
 ```
