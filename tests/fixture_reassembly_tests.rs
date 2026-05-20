@@ -1,12 +1,21 @@
 //! Reassembly-engine smoke tests over the Wireshark-wiki TCP fixtures
 //! added toward the P2.05 calibration corpus.
 //!
-//! Both captures are reassembly-heavy *benign baselines*: each drives
-//! 100+ segments and 80 KB+ of reassembled stream data through the
-//! engine while producing ZERO anomaly findings. That is the useful
-//! property for threshold calibration — it confirms the overlap /
-//! small-segment / out-of-window thresholds do not false-positive on
-//! normal high-volume TCP traffic.
+//! `tcp-ecn-sample.pcap` and `tcp-ethereal-file1.trace` are
+//! reassembly-heavy *benign baselines*: each drives 100+ segments and
+//! 80 KB+ of reassembled stream data through the engine while producing
+//! ZERO anomaly findings. That is the useful property for threshold
+//! calibration — it confirms the overlap / small-segment /
+//! out-of-window thresholds do not false-positive on normal high-volume
+//! TCP traffic.
+//!
+//! `nfs_bad_stalls.cap` is a different kind of fixture: a snaplen-96
+//! capture that exercises the reader's truncated-capture path
+//! end-to-end. It is a regression guard for the snaplen reader fix —
+//! before that fix the validated `pcap-file` read path rejected the
+//! whole file. It is benign but deliberately NOT reassembly-heavy; see
+//! `test_nfs_bad_stalls_snaplen_capture_reassembles_as_benign` for the
+//! decoder-truncation caveat.
 //!
 //! Fixture provenance and licensing: see `tests/fixtures/README.md`.
 
@@ -75,6 +84,54 @@ fn test_tcp_ethereal_file1_reassembles_as_benign_baseline() {
     );
     // Calibration baseline: a large benign transfer must NOT trip any
     // reassembly anomaly threshold.
+    assert_eq!(
+        reasm.findings().len(),
+        0,
+        "benign capture must produce no reassembly anomaly findings; got {:?}",
+        reasm.findings()
+    );
+}
+
+#[test]
+fn test_snaplen_truncated_capture_loads_without_error() {
+    // Regression guard for the snaplen reader fix. `nfs_bad_stalls.cap`
+    // is a snaplen-96 capture: every data-bearing packet's on-wire
+    // `orig_len` exceeds the 96-byte `snap_len`. `pcap-file` 2.0.0's
+    // validated read path wrongly rejects such records with
+    // `PacketHeader orig_len > snap_len`, which previously made the
+    // whole file unreadable. The reader must now load it.
+    let source = PcapSource::from_file(std::path::Path::new("tests/fixtures/nfs_bad_stalls.cap"))
+        .expect("snaplen-truncated capture must load");
+    assert!(
+        !source.packets.is_empty(),
+        "expected raw packets from the snaplen-truncated capture"
+    );
+}
+
+#[test]
+fn test_nfs_bad_stalls_snaplen_capture_reassembles_as_benign() {
+    // `nfs_bad_stalls.cap` is a snaplen-96 NFS-over-TCP capture. Two
+    // separate truncation effects apply, and only the first is fixed:
+    //
+    //  - Reader: the file now loads (see the test above).
+    //  - Decoder: `etherparse` still drops every packet whose IPv4
+    //    `total_length` overshoots the 96-byte captured slice — the
+    //    data-bearing segments. Only the small control packets (SYN /
+    //    ACK / FIN, whose real length fits in 96 bytes) decode.
+    //
+    // So this is NOT a heavy-reassembly baseline like the two fixtures
+    // above — `bytes_reassembled` is tiny by construction. Its job is
+    // to prove a snaplen-truncated capture flows reader -> decoder ->
+    // reassembly -> finalize without panic, and stays benign.
+    let reasm = reassemble_fixture("tests/fixtures/nfs_bad_stalls.cap");
+    let s = reasm.stats();
+    assert!(reasm.is_finalized());
+    assert!(
+        s.packets_tcp > 0,
+        "expected the decodable control packets to be processed as TCP"
+    );
+    assert!(s.flows_total > 0, "expected reassembled flows");
+    // Benign capture: no reassembly anomaly threshold may trip.
     assert_eq!(
         reasm.findings().len(),
         0,

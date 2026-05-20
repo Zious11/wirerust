@@ -31,27 +31,36 @@ false-positives for anyone cloning the repository.
 |------|--------|-------|
 | `tcp-ecn-sample.pcap` | [Wireshark SampleCaptures wiki](https://wiki.wireshark.org/uploads/__moin_import__/attachments/SampleCaptures/tcp-ecn-sample.pcap) | TCP transfer with ECN (RFC 3168). 479 TCP packets, 2 flows. Reassembly-heavy benign baseline (P2.05). |
 | `tcp-ethereal-file1.trace` | [Wireshark SampleCaptures wiki](https://wiki.wireshark.org/uploads/__moin_import__/attachments/SampleCaptures/tcp-ethereal-file1.trace) | Large multi-segment TCP/HTTP transfer. 218 TCP packets, 1 flow, ~150 KB reassembled. Reassembly-heavy benign baseline (P2.05). |
+| `nfs_bad_stalls.cap` | [Wireshark SampleCaptures wiki](https://wiki.wireshark.org/uploads/__moin_import__/attachments/SampleCaptures/nfs_bad_stalls.cap) | Snaplen-96 NFS-over-TCP capture (7038 packets). Snaplen-truncation regression fixture, **not** a reassembly baseline — see below. |
 
-Both are exercised by `tests/fixture_reassembly_tests.rs` as benign
-calibration baselines: they drive heavy reassembly while producing zero
-anomaly findings, confirming the overlap / small-segment /
-out-of-window thresholds do not false-positive on normal traffic.
+The first two are exercised by `tests/fixture_reassembly_tests.rs` as
+benign calibration baselines: they drive heavy reassembly while
+producing zero anomaly findings, confirming the overlap / small-segment
+/ out-of-window thresholds do not false-positive on normal traffic.
 
 The remaining fixtures in this directory predate this README; their
 individual provenance is not recorded here. Documenting them is tracked
 as a separate backlog item (the "dead-fixtures README or removal"
 lesson).
 
-## Known reader limitation
+## Snaplen-truncated captures (`nfs_bad_stalls.cap`)
 
-`wirerust` (via the `pcap-file` crate) currently **cannot read
-snaplen-truncated captures** — files where a packet's original on-wire
+Snaplen-truncated captures — files where a packet's original on-wire
 length exceeds the capture's `snaplen` (e.g. produced by
-`tcpdump -s 96`). Such files fail with
-`Invalid field value: PacketHeader orig_len > snap_len`.
+`tcpdump -s 96`) — are common in real-world forensics. wirerust now
+handles them at the **reader** layer: the validated `pcap-file` 2.0.0
+read path wrongly rejects such records with
+`Invalid field value: PacketHeader orig_len > snap_len`, so the reader
+takes the unvalidated raw-record path instead. `nfs_bad_stalls.cap` is
+the regression fixture for that fix.
 
-This blocked the addition of the wiki's `nfs_bad_stalls.cap` (a
-snaplen-96 retransmission-stall capture that would otherwise have been
-a good benign reassembly baseline). Snaplen-truncated captures are
-common in real-world forensics, so this is a genuine functional gap
-worth a future fix — tracked as a follow-up, not addressed here.
+One truncation effect remains, in the **decoder** rather than the
+reader. `etherparse` rejects an IPv4 header whose `total_length` field
+overshoots the bytes actually captured, so every data-bearing packet in
+a `-s 96` capture is dropped at decode time — only the small control
+packets (SYN / ACK / FIN, whose real length fits the snaplen) survive.
+For `nfs_bad_stalls.cap` that is 2376 of 7038 packets. This is why the
+fixture is a snaplen *regression guard*, not a reassembly baseline: its
+reassembled byte volume is tiny by construction. Making the decoder
+tolerate snaplen-truncated IP packets (clamp `total_length` to the
+captured slice) is a genuine follow-up, tracked but not addressed here.
