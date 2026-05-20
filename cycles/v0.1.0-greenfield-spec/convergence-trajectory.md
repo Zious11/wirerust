@@ -30,6 +30,7 @@ traces_to: STATE.md
 | 12 | 2026-05-20 | 6 | 0 | 1 | 1 | 2 | LOW | — | **0/3** | **NOT CONVERGED** — counter RESET from 1/3 (H+M findings broke streak); all 6 findings fixed |
 | 13 | 2026-05-20 | 5 | 0 | 2 | 0 | 3 | LOW | — | **0/3** | **NOT CONVERGED** — 2H stale anchors (ent-05, INV-4), 2L doc drift (ARCH-INDEX C-count, prd BC-2.07.004), 1N; all 5 fixed |
 | 14 | 2026-05-20 | 3 | 0 | 1 | 0 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — H-1 summary.rs C-16→C-17 mis-anchor (4 sites/2 files), L-1 entity index E-39b missing (entity 41→42), N-1 BC-2.12.005 citation off-by-one; all 3 fixed |
+| SWEEP | 2026-05-20 | — | — | — | — | — | — | — | **0/3** | **REMEDIATION BURST** — proactive anchor sweep; 3,820 occurrences audited; 28 mis-anchors fixed; no adversary pass; counter unchanged |
 
 ## Trajectory Shorthand
 
@@ -711,5 +712,49 @@ incremented 41→42; cli.rs citation range corrected 61-105→61-106 in 2 locati
 in burst
 `spec: fix adversarial-review pass-14 findings (1H/1L/1N) - C-16/C-17 mis-anchor, entity index`
 (SHA: 3ec08db). Pass 15 dispatched next.
+
+---
+
+### Inter-Pass Sweep (2026-05-20) — Proactive Anchor-Consistency Sweep
+
+**Type:** Remediation burst (not an adversary pass)
+**Trigger:** Recurring component-ID / capability-anchor defect class found in passes 4, 6, 10, 13, 14.
+Orchestrator commissioned a root-cause sweep before dispatching pass 15.
+**Convergence counter:** 0/3 (unchanged — no adversary pass issued)
+
+**Scope:** Comprehensive C-NN / SS-NN / capability-column anchor audit across the full spec package.
+Total occurrences audited: 3,820.
+
+**Mis-anchors found and fixed: 28**
+
+1. **C-ID mis-anchors in ss-12 BC bodies (3 fixes):**
+   - `behavioral-contracts/ss-12/BC-2.12.018.md` — Architecture Module field cited `C-16`; correct is `C-17` (summary.rs).
+   - `behavioral-contracts/ss-12/BC-2.12.019.md` — same C-16→C-17 correction.
+   - `behavioral-contracts/ss-12/BC-2.12.021.md` — same C-16→C-17 correction.
+   These three files were missed in the pass-14 remediation which corrected domain-spec.md and
+   cap-12-cli-orchestration.md but did not sweep the BC bodies that also anchor to summary.rs.
+
+2. **Capability-column mis-anchors in prd.md traceability matrix (25 fixes):**
+   - All 21 BC-2.12.* rows had capability column mapped to `CAP-01` instead of `CAP-12`.
+   - All 4 BC-2.13.* rows had capability column mapped to `CAP-01` instead of `CAP-12`.
+   Root cause: CAP-12 (CLI Orchestration) was added in pass-2 remediation; the prd.md traceability
+   matrix was not swept at that time and defaulted to the CAP-01 placeholder for all new rows.
+
+**Root-cause analysis:**
+The recurring defect class (component-ID and capability-anchor drift) is driven by P4-PG2:
+no automated cross-file consistency validator exists to assert that a component-ID or
+capability-anchor is consistent across BC bodies, domain-spec, capability shards, and the
+prd.md traceability matrix. Manual remediation bursts fix the reported site but leave
+sibling files un-swept. Mandatory codification follow-up P4-PG2 already recorded in STATE.md.
+
+**Files fixed (4):**
+`specs/behavioral-contracts/ss-12/BC-2.12.018.md`,
+`specs/behavioral-contracts/ss-12/BC-2.12.019.md`,
+`specs/behavioral-contracts/ss-12/BC-2.12.021.md`,
+`specs/prd.md`
+
+**Committed in burst:**
+`spec: proactive anchor-consistency sweep - fix 3 C-ID + 25 capability-column mis-anchors`
+(SHA: 21093ed). Pass 15 dispatched next.
 
 ---
