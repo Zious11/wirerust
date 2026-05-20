@@ -19,7 +19,7 @@ documentation subset. Three cosmetic P3 items deliberately deferred.
 
 **Mode:** brownfield (in-repo: target == reference).
 
-**Test suite:** 213 (Phase 0 baseline) → **272** passing. `cargo fmt --check`,
+**Test suite:** 213 (Phase 0 baseline) → **273** passing. `cargo fmt --check`,
 `cargo clippy --all-targets -- -D warnings`, `cargo test --all-targets`,
 `cargo audit`, and `cargo deny` are all green on `develop`.
 
@@ -95,8 +95,12 @@ DEFERRED (cosmetic, per agreed curation): pluralization-helper extraction,
   (drift item 5 below, now closed). 7037/7038 packets of
   `nfs_bad_stalls.cap` now decode (was 2376) + 4 tests.
 - **#92** — `fix(reassembly)`: small-segment detector redesigned to
-  consecutive-run counting (drift item 2 below, now resolved). Count
-  default 2048→100, size cutoff 8→16 + configurable, +2 tests.
+  consecutive-run counting (drift item 2 below). Count default
+  2048→100, size cutoff 8→16 + configurable, +2 tests.
+- **#93** — `feat(reassembly)`: interactive-port exemption for the
+  small-segment detector (`small_segment_ignore_ports`, default
+  `[23, 513]`; `--small-segment-ignore-ports` flag) — closes the #92
+  per-port follow-up. +1 test.
 
 ## Drift Items / open follow-ups
 
@@ -106,12 +110,16 @@ DEFERRED (cosmetic, per agreed curation): pluralization-helper extraction,
    thresholds remain conservative engineering defaults. True calibration
    needs a labelled capture corpus (benign + adversarial) measured for
    FP/TP rates.
-2. **small-segment detector** — RESOLVED by #92. Research found the
-   cumulative-2048 design was a dead detector; switched to consecutive-run
-   counting (Snort semantics), default 100, configurable `< 16 byte`
-   cutoff. New follow-up: per-port exclusion (Snort `ignore_ports`
-   analogue) to suppress residual false positives on plaintext interactive
-   traffic (telnet) — not yet implemented.
+2. **small-segment detector** — REDESIGNED by #92 + #93. The
+   cumulative-2048 design (a dead detector) is now consecutive-run
+   counting (default 100), a configurable `< 16 byte` cutoff, and an
+   interactive-port exemption (`[23, 513]` default). New follow-up: a
+   port-independent **directional-symmetry discriminator** — benign
+   interactive traffic is bidirectionally tiny (keystroke echo) while
+   segmentation evasion is a one-directional burst. Research flagged
+   this as a sound but not-yet-validated design proposal; it would let
+   the port list become advisory rather than load-bearing. Not
+   implemented.
 3. **3 deferred P3 cosmetic items** (see above).
 4. **`nfs_bad_stalls.cap`** — CLOSED by #90. Re-added as a
    snaplen-truncation regression fixture (not a reassembly baseline).
