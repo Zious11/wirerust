@@ -83,7 +83,7 @@ volume of data before any parseable TLS record appears.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- per-direction buffer cap is part of TLS analysis bounded-resource design (ARCH-INDEX Cross-Cutting Concerns) |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:726-748, C-16) |
+| Architecture Module | SS-07 (analyzer/tls.rs:726-748, C-13) |
 | Stories | S-TBD |
 | Origin BC | BC-TLS-005 (pass-3 ingestion corpus, MEDIUM confidence -- not directly tested) |
 

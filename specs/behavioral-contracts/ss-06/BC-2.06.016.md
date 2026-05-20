@@ -80,7 +80,7 @@ errors). After the error, subsequent valid HTTP data can still be parsed normall
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- non-poisoning of a single error is the tolerance policy for mid-stream joins |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true -- single error does not cross threshold) |
-| Architecture Module | SS-06 (analyzer/http.rs:406-414, C-14) |
+| Architecture Module | SS-06 (analyzer/http.rs:406-414, C-12) |
 | Stories | S-TBD |
 | Origin BC | BC-HTTP-016 (pass-3 ingestion corpus, HIGH confidence) |
 

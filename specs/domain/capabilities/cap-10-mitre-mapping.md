@@ -3,7 +3,7 @@ artifact: L2-cap-10
 traces_to: ../domain-spec.md
 cap_id: CAP-10
 title: MITRE ATT&CK Mapping
-status: descriptive (brownfield) -- reconciled against develop HEAD aa2ece9
+status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
 ---
 

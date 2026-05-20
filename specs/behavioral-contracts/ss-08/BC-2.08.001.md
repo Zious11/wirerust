@@ -83,7 +83,7 @@ This gate is the entry condition for DNS analysis.
 | L2 Capability | CAP-08 ("DNS traffic analysis") per capabilities.md §CAP-08 |
 | Capability Anchor Justification | CAP-08 ("DNS traffic analysis") per capabilities.md §CAP-08 -- can_decode is the port-53 gate that qualifies packets for DNS analysis |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-08 (analyzer/dns.rs, C-13) |
+| Architecture Module | SS-08 (analyzer/dns.rs, C-11) |
 | Stories | S-TBD |
 | Origin BC | BC-DNS-001 (pass-3 ingestion corpus, HIGH confidence) |
 

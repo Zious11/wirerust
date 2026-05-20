@@ -82,7 +82,7 @@ the reporter layer to display DNS statistics.
 | L2 Capability | CAP-08 ("DNS traffic analysis") per capabilities.md §CAP-08 |
 | Capability Anchor Justification | CAP-08 ("DNS traffic analysis") per capabilities.md §CAP-08 -- summarize is the primary output mechanism for the DNS statistics-only analysis |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-08 (analyzer/dns.rs, C-13) |
+| Architecture Module | SS-08 (analyzer/dns.rs, C-11) |
 | Stories | S-TBD |
 | Origin BC | BC-DNS-003 (pass-3 ingestion corpus, HIGH confidence) |
 

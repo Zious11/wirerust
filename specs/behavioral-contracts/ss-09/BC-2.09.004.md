@@ -78,7 +78,7 @@ visible output contract.
 | L2 Capability | CAP-09 ("Forensic finding emission") per capabilities.md §CAP-09 |
 | Capability Anchor Justification | CAP-09 ("Forensic finding emission") per capabilities.md §CAP-09 -- Confidence display is part of the Finding output vocabulary defined in CAP-09 |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-09 (findings.rs, C-10) |
+| Architecture Module | SS-09 (findings.rs, C-14) |
 | Stories | S-TBD |
 | Origin BC | BC-FND-004 (pass-3 ingestion corpus, HIGH confidence) |
 

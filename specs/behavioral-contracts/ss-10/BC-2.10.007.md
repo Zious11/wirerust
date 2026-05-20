@@ -93,7 +93,7 @@ assignments (e.g., T1027 => DefenseEvasion, T1036 => DefenseEvasion, T1046 => Di
 | L2 Capability | CAP-10 ("MITRE ATT&CK mapping") per capabilities.md §CAP-10 |
 | Capability Anchor Justification | CAP-10 ("MITRE ATT&CK mapping") per capabilities.md §CAP-10 -- technique_tactic is the tactic-lookup function of the MITRE catalog used to group findings in reports |
 | L2 Domain Invariants | INV-9 (MITRE technique ID format) |
-| Architecture Module | SS-10 (mitre.rs, C-11) |
+| Architecture Module | SS-10 (mitre.rs, C-16) |
 | Stories | S-TBD |
 | Origin BC | BC-MIT-007 (pass-3 ingestion corpus, HIGH confidence) |
 

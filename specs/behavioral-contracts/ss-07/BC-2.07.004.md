@@ -91,7 +91,7 @@ instrumentation added in LESSON-P1.05.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- MAX_RECORD_PAYLOAD guard is part of TLS analysis bounded-resource design |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation -- truncated records are not stored) |
-| Architecture Module | SS-07 (analyzer/tls.rs:641-653, C-16) |
+| Architecture Module | SS-07 (analyzer/tls.rs:641-653, C-13) |
 | Stories | S-TBD |
 | Origin BC | BC-TLS-004 (pass-3 ingestion corpus, HIGH confidence) |
 

@@ -79,7 +79,7 @@ Trailing bytes do not cause a panic or a parse error at the `extract_sni` level.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- trailing-bytes tolerance is part of robust TLS analysis SNI parsing |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification) |
-| Architecture Module | SS-07 (analyzer/tls.rs:246-268, C-16) |
+| Architecture Module | SS-07 (analyzer/tls.rs:246-268, C-13) |
 | Stories | S-TBD |
 | Origin BC | BC-TLS-026 (pass-3 ingestion corpus, HIGH confidence) |
 

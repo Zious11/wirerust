@@ -2,7 +2,7 @@
 artifact: L2-domain-debt
 traces_to: domain-spec.md
 title: Known Limitations and Domain Debt
-status: descriptive (brownfield) -- reconciled against develop HEAD aa2ece9
+status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
 ---
 

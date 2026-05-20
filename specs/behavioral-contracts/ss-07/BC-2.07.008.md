@@ -81,7 +81,7 @@ The function returns only the MD5 hex string, not the underlying JA3S string.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- JA3S is the server-side TLS fingerprint output of TLS analysis |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:153-173, C-16) |
+| Architecture Module | SS-07 (analyzer/tls.rs:153-173, C-13) |
 | Stories | S-TBD |
 | Origin BC | BC-TLS-008 (pass-3 ingestion corpus, MEDIUM confidence) |
 

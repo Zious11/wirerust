@@ -21,10 +21,11 @@ traces_to: STATE.md
 | 3 | 2026-05-20 | 7 | 0 | 3 | 2 | 2 | MED | — | 0/3 | NOT_CONVERGED — all findings remediated |
 | 4 | 2026-05-20 | 19 | 4 | 5 | 5 | 3 | HIGH | — | 0/3 | NOT_CONVERGED — fresh-context L2 cap+entity audit; all 19 fixed; +5 CsvReporter BCs |
 | 5 | 2026-05-20 | 8 | 1 | 2 | 3 | 2 | LOW | — | 0/3 | NOT_CONVERGED — NUL byte, stale --services, count drift; all 8 fixed |
+| 6 | 2026-05-20 | 3 | 0 | 3 | 0 | 0 | LOW | — | 0/3 | NOT_CONVERGED — component-ID anchors, BC-INDEX titles, INV-1 citation; all 3 fixed |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→...`
+`17→13→7→19→8→3→...`
 
 ## Per-Pass Details
 
@@ -225,5 +226,51 @@ corrected to 217 in domain-spec.md; BC footer arithmetic made consistent; NFR-VI
 and NFR-VIO-009 rationale corrected; VP-008 tool label normalized. Fixes committed in burst
 `spec: fix adversarial-review pass-5 findings (1C/2H/3M/2L)` (SHA: e7c56a4).
 Pass 6 dispatched next.
+
+---
+
+### Pass 6 (2026-05-20)
+
+**Findings:** 3 (0 CRIT, 3 HIGH, 0 MED, 0 LOW)
+**Delta from pass 5:** -5 total (CRIT -1, HIGH +1, MED -3, LOW -2) — no regression
+**Novelty:** LOW
+**Convergence counter:** 0 of 3
+
+**Key finding categories:**
+
+- HIGH (H-1): 95 BC body files (ss-04 through ss-10) carried incorrect `Architecture Module`
+  component-ID anchors. Correct IDs per module-decomposition.md: ss-05 C-15→C-21, ss-06
+  C-14→C-12, ss-07 C-16→C-13, ss-08 C-13→C-11, ss-09 C-10→C-14, ss-10 C-11→C-16, and 4
+  ss-04 files (lifecycle.rs) C-6→C-15. All 95 BC bodies corrected.
+- HIGH (H-2): `BC-INDEX.md` — 34 row titles were out of sync with BC body H1 headings
+  (accumulated drift from prior remediation bursts that updated BC bodies without sweeping
+  the index). All 34 rows resynchronized.
+- HIGH (H-3): `domain/invariants/inv-01-core-invariants.md` — INV-1 enforcement citation
+  pointed to `flow.rs:34` (stale); correct line after recent refactors is `flow.rs:48`. Citation
+  updated.
+
+**Additional fix (metadata):** `specs/domain/domain-spec.md` frontmatter field
+`reconciled_against` carried stale SHA `aa2ece9`; corrected to `0082a0c` (current develop
+HEAD, PR #99 — CLAUDE.md governance pointer). Spec content was verified against the actual
+working-tree `src/` by spec agents; this only corrects the SHA label.
+
+**Files fixed (97):**
+`specs/behavioral-contracts/ss-04/` (4 files: BC-2.04.018, BC-2.04.024, BC-2.04.029, BC-2.04.030),
+`specs/behavioral-contracts/ss-05/` (9 files: BC-2.05.001–009),
+`specs/behavioral-contracts/ss-06/` (26 files: BC-2.06.001–026),
+`specs/behavioral-contracts/ss-07/` (37 files: BC-2.07.001–037),
+`specs/behavioral-contracts/ss-08/` (4 files: BC-2.08.001–004),
+`specs/behavioral-contracts/ss-09/` (6 files: BC-2.09.001–006),
+`specs/behavioral-contracts/ss-10/` (9 files: BC-2.10.001–009),
+`specs/behavioral-contracts/BC-INDEX.md`,
+`specs/domain/invariants/inv-01-core-invariants.md`,
+`specs/domain/domain-spec.md` (metadata SHA reconciliation)
+
+**Remediation:** All 3 findings (3H) remediated. Component-ID anchors corrected across 95
+BC body files; BC-INDEX titles resynchronized to BC body H1s (34 rows); INV-1 enforcement
+citation updated to current line. Stale `reconciled_against` SHA corrected as metadata fix.
+Fixes committed in burst
+`spec: fix adversarial-review pass-6 findings (3H) + reconcile stale spec SHA`.
+Pass 7 dispatched next.
 
 ---

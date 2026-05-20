@@ -33,7 +33,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.01.002 | Read All Packets from PCAP as Vec<RawPacket> Preserving Timestamps | P0 | [WRITTEN] | BC-RDR-002 |
 | BC-2.01.003 | Accept PCAP with Zero Packets Without Error | P1 | [WRITTEN] | BC-RDR-003 |
 | BC-2.01.004 | Reject pcapng-Format Input at Reader Level | P0 | [WRITTEN] | BC-RDR-004 |
-| BC-2.01.005 | Convert PCAP Record Timestamp to (timestamp_secs, timestamp_usecs) | P1 | [WRITTEN] | BC-RDR-005 |
+| BC-2.01.005 | Convert PCAP Record Timestamp to (timestamp_secs: u32, timestamp_usecs: u32) | P1 | [WRITTEN] | BC-RDR-005 |
 | BC-2.01.006 | Surface PCAP Header Parse Errors with Anyhow Context | P1 | [WRITTEN] | BC-RDR-006 |
 | BC-2.01.007 | Surface Per-Packet Read Errors with Anyhow Context | P1 | [WRITTEN] | BC-RDR-007 |
 | BC-2.01.008 | from_file Opens via BufReader and Delegates to from_pcap_reader | P2 | [WRITTEN] | BC-RDR-008 |
@@ -43,19 +43,19 @@ traces_to: .factory/specs/prd.md
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
 | BC-2.02.001 | Decode Ethernet-framed IPv4 TCP Packet to ParsedPacket | P0 | [WRITTEN] | BC-DEC-001 |
-| BC-2.02.002 | Decode Ethernet-framed IPv4 UDP Packet with DNS Hint | P0 | [WRITTEN] | BC-DEC-002 |
+| BC-2.02.002 | Decode Ethernet-framed IPv4 UDP Packet with DNS Port Hint | P0 | [WRITTEN] | BC-DEC-002 |
 | BC-2.02.003 | Decode RAW Link-Layer IPv4 TCP Packet via from_ip | P0 | [WRITTEN] | BC-DEC-003 |
 | BC-2.02.004 | DataLink::IPV4 Decodes Identically to DataLink::RAW | P1 | [WRITTEN] | BC-DEC-004 |
 | BC-2.02.005 | Decode RAW IPv6 TCP Packet Surfacing IPv6 Addresses | P0 | [WRITTEN] | BC-DEC-005 |
-| BC-2.02.006 | Decode Linux SLL (cooked) TCP Packets | P0 | [WRITTEN] | BC-DEC-006 |
+| BC-2.02.006 | Decode Linux SLL (Cooked) TCP Packets | P0 | [WRITTEN] | BC-DEC-006 |
 | BC-2.02.007 | Reject Malformed Input Bytes with anyhow Error (No Panic) | P0 | [WRITTEN] | BC-DEC-007 |
 | BC-2.02.008 | Reject Unsupported Link Types in decode_packet | P1 | [WRITTEN] | BC-DEC-008 |
-| BC-2.02.009 | Surface No IP Layer Found Error | P1 | [WRITTEN] | BC-DEC-009 |
+| BC-2.02.009 | Surface No IP Layer Found Error for Non-IP Frames | P1 | [WRITTEN] | BC-DEC-009 |
 | BC-2.02.010 | Classify ICMP as Protocol::Icmp with TransportInfo::None | P1 | [WRITTEN] | BC-DEC-010 |
 | BC-2.02.011 | Classify Other IP Protocols as Protocol::Other(byte) | P1 | [WRITTEN] | BC-DEC-011 |
 | BC-2.02.012 | app_protocol_hint Returns Service Strings from Port Number | P1 | [WRITTEN] | BC-DEC-012 |
 | BC-2.02.013 | app_protocol_hint Returns None When TransportInfo is None | P2 | [WRITTEN] | BC-DEC-013 |
-| BC-2.02.014 | packet_len is Set to Total Frame Length not Just Payload | P1 | [WRITTEN] | BC-DEC-014 |
+| BC-2.02.014 | packet_len is Set to Total Frame Length, Not Just Payload Length | P1 | [WRITTEN] | BC-DEC-014 |
 | BC-2.02.015 | Extract TCP Control Flags and Sequence Number into TransportInfo::Tcp | P0 | [WRITTEN] | BC-DEC-015 |
 
 ## ss-04: TCP Stream Reassembly (CAP-04)
@@ -66,13 +66,13 @@ traces_to: .factory/specs/prd.md
 |-------|-------|----------|--------|--------|
 | BC-2.04.001 | TcpReassembler::new Panics on Invalid Config | P1 | [WRITTEN] | BC-RAS-001 |
 | BC-2.04.002 | Non-TCP Packets Skipped; packets_skipped_non_tcp Increments | P1 | [WRITTEN] | BC-RAS-002 |
-| BC-2.04.003 | Canonical FlowKey Ordering: A->B and B->A Produce Identical Key | P0 | [WRITTEN] | BC-RAS-003 |
+| BC-2.04.003 | Canonical FlowKey Ordering Ensures A->B and B->A Produce Identical Key | P0 | [WRITTEN] | BC-RAS-003 |
 | BC-2.04.004 | First SYN Sets Client ISN and Initiator | P0 | [WRITTEN] | BC-RAS-004 |
-| BC-2.04.005 | SYN+ACK Marks Server as Responder; State -> Established | P0 | [WRITTEN] | BC-RAS-005 |
+| BC-2.04.005 | SYN+ACK Marks Server as Responder; State Transitions to Established | P0 | [WRITTEN] | BC-RAS-005 |
 | BC-2.04.006 | Bidirectional Data Delivered with Correct Direction Tag | P0 | [WRITTEN] | BC-RAS-006 |
 | BC-2.04.007 | In-Order Data Flushes Contiguously to Handler | P0 | [WRITTEN] | BC-RAS-007 |
 | BC-2.04.008 | Out-of-Order Segments Buffer Until Gap Filled Then Flush | P0 | [WRITTEN] | BC-RAS-008 |
-| BC-2.04.009 | Mid-Stream Join Infers ISN from seq-1; Flow Partial | P0 | [WRITTEN] | BC-RAS-009 |
+| BC-2.04.009 | Mid-Stream Join Infers ISN from seq-1; Flow Marked Partial | P0 | [WRITTEN] | BC-RAS-009 |
 | BC-2.04.010 | RST Closes Flow Immediately with CloseReason::Rst | P0 | [WRITTEN] | BC-RAS-010 |
 | BC-2.04.011 | Both FINs Close Flow with CloseReason::Fin | P0 | [WRITTEN] | BC-RAS-011 |
 | BC-2.04.012 | finalize Flushes All Remaining Flows; Idempotent | P0 | [WRITTEN] | BC-RAS-012 |
@@ -80,8 +80,8 @@ traces_to: .factory/specs/prd.md
 | BC-2.04.014 | total_memory Tracks Buffered Bytes; Decrements on Flush and Close | P1 | [WRITTEN] | BC-RAS-014 |
 | BC-2.04.015 | Flow Eviction on max_flows Hit Uses LRU Non-Established-First | P1 | [WRITTEN] | BC-RAS-015 |
 | BC-2.04.016 | Memory Pressure Eviction When total_memory Exceeds memcap | P1 | [WRITTEN] | BC-RAS-016 |
-| BC-2.04.017 | Eviction Sort: Non-Established First, Then Oldest-Last-Seen | P1 | [WRITTEN] | BC-RAS-017 |
-| BC-2.04.018 | Conflicting Overlap Emits Anomaly/Likely/High Finding with T1036 | P0 | [WRITTEN] | BC-RAS-018 |
+| BC-2.04.017 | Eviction Sort -- Non-Established First, Then Oldest-Last-Seen | P1 | [WRITTEN] | BC-RAS-017 |
+| BC-2.04.018 | Conflicting Overlap Emits Anomaly/Likely/High Finding with MITRE T1036 | P0 | [WRITTEN] | BC-RAS-018 |
 | BC-2.04.019 | Excessive Overlaps Emit One-Shot T1036 Finding | P0 | [WRITTEN] | BC-RAS-019 |
 | BC-2.04.020 | Excessive Small Segments Emit One-Shot Finding | P1 | [WRITTEN] | BC-RAS-020 |
 | BC-2.04.021 | Excessive Out-of-Window Segments Emit One-Shot Low Finding | P1 | [WRITTEN] | BC-RAS-021 |
@@ -117,7 +117,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.04.051 | RST Transitions State to Closed from Any Prior State | P0 | [WRITTEN] | BC-RAS-051 |
 | BC-2.04.052 | on_data_without_syn: New->Established; partial=true | P0 | [WRITTEN] | BC-RAS-052 |
 | BC-2.04.053 | TcpFlow::direction Returns ClientToServer When src Matches Initiator | P0 | [WRITTEN] | BC-RAS-053 |
-| BC-2.04.054 | finalize Unconditionally Bypasses MAX_FINDINGS Cap | P0 | [WRITTEN] | BC-RAS-054 |
+| BC-2.04.054 | finalize Unconditionally Bypasses MAX_FINDINGS Cap for Segment-Limit Finding | P0 | [WRITTEN] | BC-RAS-054 |
 
 ## ss-05: Content-First Protocol Dispatch (CAP-05)
 
@@ -141,19 +141,19 @@ traces_to: .factory/specs/prd.md
 | BC-2.06.002 | Parse Pipelined Requests with Independent Per-Request Counting | P0 | [WRITTEN] | BC-HTTP-002 |
 | BC-2.06.003 | Partial Requests Buffered Until Complete; Not Counted Until Full | P0 | [WRITTEN] | BC-HTTP-003 |
 | BC-2.06.004 | Parse HTTP/1.1 Responses with Status Code Counting | P0 | [WRITTEN] | BC-HTTP-004 |
-| BC-2.06.005 | Path Traversal in URI Emits Reconnaissance/Likely/High Finding (T1083) | P0 | [WRITTEN] | BC-HTTP-005 |
+| BC-2.06.005 | Path Traversal in URI Emits Reconnaissance/Likely/High Finding Mapped to T1083 | P0 | [WRITTEN] | BC-HTTP-005 |
 | BC-2.06.006 | Web-Shell URI Patterns Emit Execution/Likely/Medium Finding (T1505.003) | P0 | [WRITTEN] | BC-HTTP-006 |
 | BC-2.06.007 | Admin Panel Paths Emit Reconnaissance/Inconclusive/Low Finding (T1046) | P1 | [WRITTEN] | BC-HTTP-007 |
 | BC-2.06.008 | Unusual HTTP Methods Emit Reconnaissance/Inconclusive/Medium Finding | P1 | [WRITTEN] | BC-HTTP-008 |
-| BC-2.06.009 | HTTP/1.1 Missing Host Emits Anomaly/Inconclusive/Medium Finding | P0 | [WRITTEN] | BC-HTTP-009 |
-| BC-2.06.010 | URI > 2048 chars Emits Execution/Likely/Medium Finding | P1 | [WRITTEN] | BC-HTTP-010 |
+| BC-2.06.009 | HTTP/1.1 Missing or Empty Host Emits Anomaly/Inconclusive/Medium Finding | P0 | [WRITTEN] | BC-HTTP-009 |
+| BC-2.06.010 | URI Greater Than 2048 Chars Emits Execution/Likely/Medium Finding | P1 | [WRITTEN] | BC-HTTP-010 |
 | BC-2.06.011 | Empty UA Emits Anomaly/Inconclusive/Low; Absent UA Does NOT | P1 | [WRITTEN] | BC-HTTP-011 |
 | BC-2.06.012 | Well-Formed HTTP Request Produces Zero Findings | P0 | [WRITTEN] | BC-HTTP-012 |
 | BC-2.06.013 | Non-HTTP Bytes Increment parse_errors; No Token-Error Findings | P0 | [WRITTEN] | BC-HTTP-013 |
 | BC-2.06.014 | Too Many Headers Emits Anomaly/Inconclusive/Medium Finding (T1499.002) | P0 | [WRITTEN] | BC-HTTP-014 |
-| BC-2.06.015 | After 3 Consecutive Parse Errors Direction is Poisoned | P0 | [WRITTEN] | BC-HTTP-015 |
+| BC-2.06.015 | After 3 Consecutive Parse Errors a Direction is Poisoned; Subsequent Bytes Skipped | P0 | [WRITTEN] | BC-HTTP-015 |
 | BC-2.06.016 | Single Parse Error Does NOT Poison | P0 | [WRITTEN] | BC-HTTP-016 |
-| BC-2.06.017 | Poisoning is Per-Direction: Poisoned Request Does Not Affect Response | P0 | [WRITTEN] | BC-HTTP-017 |
+| BC-2.06.017 | Poisoning is Per-Direction; Poisoned Request Does Not Affect Response | P0 | [WRITTEN] | BC-HTTP-017 |
 | BC-2.06.018 | non_http_flows Counts Flow Once Even if Both Directions Poisoned | P1 | [WRITTEN] | BC-HTTP-018 |
 | BC-2.06.019 | on_flow_close Removes Per-Flow State; Reopening Same Key Starts Fresh | P0 | [WRITTEN] | BC-HTTP-019 |
 | BC-2.06.020 | HTTP Body Bytes After Header Completion Do Not Inflate parse_errors | P1 | [WRITTEN] | BC-HTTP-020 |
@@ -168,25 +168,25 @@ traces_to: .factory/specs/prd.md
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
-| BC-2.07.001 | Parse Complete TLS ClientHello: Version/Ciphers/Extensions/SNI/JA3 | P0 | [WRITTEN] | BC-TLS-001 |
+| BC-2.07.001 | Parse Complete TLS ClientHello: Version, Ciphers, Extensions, SNI, JA3 | P0 | [WRITTEN] | BC-TLS-001 |
 | BC-2.07.002 | Parse Complete TLS ServerHello: JA3S Fingerprint Computed | P0 | [WRITTEN] | BC-TLS-002 |
-| BC-2.07.003 | After Both Hellos Seen, Subsequent Records Silently Skipped | P0 | [WRITTEN] | BC-TLS-003 |
-| BC-2.07.004 | TLS Record Payload > MAX_RECORD_PAYLOAD Increments parse_errors | P0 | [WRITTEN] | BC-TLS-004 |
-| BC-2.07.005 | Per-Direction Buffer Capped at MAX_BUF=65536 | P1 | [WRITTEN] | BC-TLS-005 |
+| BC-2.07.003 | After Both Hellos Seen, Subsequent Records Are Silently Skipped | P0 | [WRITTEN] | BC-TLS-003 |
+| BC-2.07.004 | TLS Record Payload > MAX_RECORD_PAYLOAD Increments parse_errors and truncated_records | P0 | [WRITTEN] | BC-TLS-004 |
+| BC-2.07.005 | Per-Direction Buffer Capped at MAX_BUF = 65536 Bytes | P1 | [WRITTEN] | BC-TLS-005 |
 | BC-2.07.006 | JA3 Computation Filters GREASE Values per RFC 8701 | P0 | [WRITTEN] | BC-TLS-006 |
 | BC-2.07.007 | JA3 String Format: version,ciphers,...; MD5 Hex | P0 | [WRITTEN] | BC-TLS-007 |
 | BC-2.07.008 | JA3S String Format: version,cipher,extensions; MD5 Hex | P0 | [WRITTEN] | BC-TLS-008 |
-| BC-2.07.009 | Weak Client Cipher Emits Anomaly/Likely/High Finding | P0 | [WRITTEN] | BC-TLS-009 |
+| BC-2.07.009 | Weak Client Cipher in ClientHello Emits Anomaly/Likely/High Finding | P0 | [WRITTEN] | BC-TLS-009 |
 | BC-2.07.010 | Weak Server Cipher Selected Emits Anomaly/Likely/Medium Finding | P0 | [WRITTEN] | BC-TLS-010 |
-| BC-2.07.011 | Deprecated Client Protocol (<=SSLv3) Emits Anomaly/Likely/High | P0 | [WRITTEN] | BC-TLS-011 |
-| BC-2.07.012 | Deprecated Server Protocol (<=SSLv3) Emits Anomaly/Likely/High | P0 | [WRITTEN] | BC-TLS-012 |
+| BC-2.07.011 | Deprecated Client Protocol (<=SSLv3) Emits Anomaly/Likely/High Finding | P0 | [WRITTEN] | BC-TLS-011 |
+| BC-2.07.012 | Deprecated Server Protocol (<=SSLv3) Emits Anomaly/Likely/High Finding | P0 | [WRITTEN] | BC-TLS-012 |
 | BC-2.07.013 | Clean ASCII SNI Produces No Finding | P0 | [WRITTEN] | BC-TLS-013 |
 | BC-2.07.014 | SNI Containing C0/DEL Byte Emits Anomaly/Inconclusive/Low Finding Mapped to T1027 | P0 | [WRITTEN] | BC-TLS-014 |
 | BC-2.07.015 | Multiple Control Bytes in One SNI Produce Exactly ONE Finding | P0 | [WRITTEN] | BC-TLS-015 |
 | BC-2.07.016 | C0 Boundary: 0x1F Trips Finding; 0x20 (Space) Does NOT | P0 | [WRITTEN] | BC-TLS-016 |
 | BC-2.07.017 | Non-ASCII UTF-8 SNI Emits Anomaly/Inconclusive/Low Finding (T1027) | P0 | [WRITTEN] | BC-TLS-017 |
 | BC-2.07.018 | Punycode A-label is Pure ASCII; Emits No SNI Finding | P1 | [WRITTEN] | BC-TLS-018 |
-| BC-2.07.019 | Non-UTF-8 SNI Bytes Emit Anomaly/Inconclusive/Low Finding (T1027); Count Key Tagged | P0 | [WRITTEN] | BC-TLS-019 |
+| BC-2.07.019 | Non-UTF-8 SNI Emits Anomaly/Inconclusive/Low Finding (T1027); Count Key Tagged | P0 | [WRITTEN] | BC-TLS-019 |
 | BC-2.07.020 | Non-UTF-8 SNI Preserves Raw Bytes per ADR 0003 | P0 | [WRITTEN] | BC-TLS-020 |
 | BC-2.07.021 | Non-ASCII UTF-8 SNI Preserves Raw Bytes per ADR 0003 | P0 | [WRITTEN] | BC-TLS-021 |
 | BC-2.07.022 | Empty SNI ServerNameList: No Count, No Finding, Handshake Counted | P1 | [WRITTEN] | BC-TLS-022 |
@@ -197,14 +197,14 @@ traces_to: .factory/specs/prd.md
 | BC-2.07.027 | Large SNI (16 KB) Under MAX_RECORD_PAYLOAD Parses Successfully | P1 | [WRITTEN] | BC-TLS-027 |
 | BC-2.07.028 | sni_counts Cap: Finding Still Fires When Map at Capacity | P0 | [WRITTEN] | BC-TLS-028 |
 | BC-2.07.029 | Bad TLS Record Body Increments parse_errors; No Panic | P0 | [WRITTEN] | BC-TLS-029 |
-| BC-2.07.030 | Normal Handshake (Strong Cipher) Produces Zero Findings | P0 | [WRITTEN] | BC-TLS-030 |
+| BC-2.07.030 | Normal Handshake with Strong Cipher Produces Zero Findings | P0 | [WRITTEN] | BC-TLS-030 |
 | BC-2.07.031 | summarize Emits AnalysisSummary with TLS Stats Detail Map | P1 | [WRITTEN] | BC-TLS-031 |
 | BC-2.07.032 | TLS 1.3 ClientHello legacy_version Recorded as 0x0303 | P1 | [WRITTEN] | BC-TLS-032 |
 | BC-2.07.033 | TLS Analyzer Ignores Non-Handshake Records | P1 | [WRITTEN] | BC-TLS-033 |
 | BC-2.07.034 | After Both Hellos Seen, on_data Short-Circuits | P0 | [WRITTEN] | BC-TLS-034 |
 | BC-2.07.035 | on_flow_close Drops Per-Flow TlsFlowState | P1 | [WRITTEN] | BC-TLS-035 |
 | BC-2.07.036 | Unknown Cipher IDs Render as Hex 0xNNNN Lowercase | P2 | [WRITTEN] | BC-TLS-036 |
-| BC-2.07.037 | Mixed Non-ASCII+C0 SNI Fires Arm 3 (NonAsciiUtf8) Not Arm 2 | P0 | [WRITTEN] | BC-TLS-037 |
+| BC-2.07.037 | SNI with Both Non-ASCII and C0 Control Bytes Fires Arm 3 (NonAsciiUtf8), Not Arm 2 | P0 | [WRITTEN] | BC-TLS-037 |
 
 ## ss-08: DNS Traffic Analysis (CAP-08)
 
@@ -212,19 +212,19 @@ traces_to: .factory/specs/prd.md
 |-------|-------|----------|--------|--------|
 | BC-2.08.001 | DnsAnalyzer Matches Packets Where Port == 53 (TCP or UDP) | P0 | [WRITTEN] | BC-DNS-001 |
 | BC-2.08.002 | DNS QR-Bit Dispatch: response_count Incremented if Set; query_count Otherwise | P0 | [WRITTEN] | BC-DNS-002 |
-| BC-2.08.003 | summarize Emits AnalysisSummary with dns_queries/dns_responses | P1 | [WRITTEN] | BC-DNS-003 |
+| BC-2.08.003 | summarize Emits AnalysisSummary with dns_queries and dns_responses | P1 | [WRITTEN] | BC-DNS-003 |
 | BC-2.08.004 | DnsAnalyzer NEVER Emits Findings (Statistics-Only by Design) | P0 | [WRITTEN] | BC-DNS-004 |
 
 ## ss-09: Forensic Finding Emission (CAP-09)
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
-| BC-2.09.001 | Finding Constructed with Required and Optional Fields | P0 | [WRITTEN] | BC-FND-001 |
+| BC-2.09.001 | Finding Constructed with Required Fields and Optional Fields | P0 | [WRITTEN] | BC-FND-001 |
 | BC-2.09.002 | Finding Display Renders [Category] VERDICT (CONFIDENCE) -- summary | P1 | [WRITTEN] | BC-FND-002 |
 | BC-2.09.003 | Verdict Display: Uppercase Tokens | P1 | [WRITTEN] | BC-FND-003 |
 | BC-2.09.004 | Confidence Display: Uppercase Tokens | P1 | [WRITTEN] | BC-FND-004 |
-| BC-2.09.005 | Finding.summary/evidence Store RAW Bytes per ADR 0003 | P0 | [WRITTEN] | BC-FND-005 |
-| BC-2.09.006 | All None Option Fields Omitted from JSON via skip_serializing_if | P0 | [WRITTEN] | BC-FND-006 |
+| BC-2.09.005 | Finding.summary and Evidence Store RAW Post-from_utf8_lossy Bytes per ADR 0003 | P0 | [WRITTEN] | BC-FND-005 |
+| BC-2.09.006 | Finding JSON Serialization: All None Option Fields Omitted via skip_serializing_if | P0 | [WRITTEN] | BC-FND-006 |
 
 ## ss-10: MITRE ATT&CK Mapping (CAP-10)
 
@@ -254,7 +254,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.11.004 | JsonReporter Preserves Non-ASCII Unicode in Readable Form | P1 | [WRITTEN] | BC-RPT-004 |
 | BC-2.11.005 | JsonReporter Passes C1 Codepoints Through as Raw UTF-8 | P1 | [WRITTEN] | BC-RPT-005 |
 | BC-2.11.006 | TerminalReporter Shows Skipped: N Packets Only When N > 0 | P1 | [WRITTEN] | BC-RPT-006 |
-| BC-2.11.007 | TerminalReporter Escapes C0+DEL+C1+Backslash in Summary and Evidence | P0 | [WRITTEN] | BC-RPT-007 |
+| BC-2.11.007 | TerminalReporter Escapes C0+DEL+C1+Backslash in Finding Summary and Evidence | P0 | [WRITTEN] | BC-RPT-007 |
 | BC-2.11.008 | TerminalReporter Escape Preserves Printable ASCII and UTF-8 | P0 | [WRITTEN] | BC-RPT-008 |
 | BC-2.11.009 | TerminalReporter Escapes C1 Codepoints U+0080-U+009F; U+00A0 Preserved | P0 | [WRITTEN] | BC-RPT-009 |
 | BC-2.11.010 | TerminalReporter Escapes Both Summary AND Each Evidence Line | P0 | [WRITTEN] | BC-RPT-010 |
@@ -283,7 +283,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.12.004 | --output-format json Parses to Some(OutputFormat::Json) | P0 | [WRITTEN] | BC-CLI-004 |
 | BC-2.12.005 | Reassembly CLI Flags: --reassemble, --no-reassemble, Depth, Memcap | P0 | [WRITTEN] | BC-CLI-005 |
 | BC-2.12.006 | Multiple Positional Targets Accepted in analyze | P1 | [WRITTEN] | BC-CLI-006 |
-| BC-2.12.007 | --reassemble and --no-reassemble are Mutually Exclusive | P0 | [WRITTEN] | BC-CLI-007 |
+| BC-2.12.007 | --reassemble and --no-reassemble are Mutually Exclusive (clap conflicts_with) | P0 | [WRITTEN] | BC-CLI-007 |
 | BC-2.12.008 | --all Enables dns/http/tls Together | P1 | [WRITTEN] | BC-CLI-008 |
 | BC-2.12.009 | needs_reassembly Logic; --no-reassemble Forces Off with Warning | P0 | [WRITTEN] | BC-CLI-009 |
 | BC-2.12.010 | NO_COLOR Env Var Disables Color | P2 | [WRITTEN] | BC-CLI-010 |

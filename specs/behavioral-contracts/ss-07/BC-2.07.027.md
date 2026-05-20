@@ -81,7 +81,7 @@ correctly: MAX_RECORD_PAYLOAD is the binding constraint, not MAX_BUF.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- large SNI handling confirms the interaction between MAX_RECORD_PAYLOAD and MAX_BUF limits |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification) |
-| Architecture Module | SS-07 (analyzer/tls.rs:641-653 for limit, C-16) |
+| Architecture Module | SS-07 (analyzer/tls.rs:641-653 for limit, C-13) |
 | Stories | S-TBD |
 | Origin BC | BC-TLS-027 (pass-3 ingestion corpus, HIGH confidence) |
 

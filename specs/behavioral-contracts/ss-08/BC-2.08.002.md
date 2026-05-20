@@ -84,7 +84,7 @@ fires before the bit test), so the `else` branch in `analyze` increments `respon
 | L2 Capability | CAP-08 ("DNS traffic analysis") per capabilities.md §CAP-08 |
 | Capability Anchor Justification | CAP-08 ("DNS traffic analysis") per capabilities.md §CAP-08 -- QR-bit dispatch is the core statistical classification in the DNS analysis capability |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-08 (analyzer/dns.rs, C-13) |
+| Architecture Module | SS-08 (analyzer/dns.rs, C-11) |
 | Stories | S-TBD |
 | Origin BC | BC-DNS-002 (pass-3 ingestion corpus, HIGH confidence) |
 

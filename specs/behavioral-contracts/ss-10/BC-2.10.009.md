@@ -77,7 +77,7 @@ extensibility pattern for enums representing evolving external standards.
 | L2 Capability | CAP-10 ("MITRE ATT&CK mapping") per capabilities.md §CAP-10 |
 | Capability Anchor Justification | CAP-10 ("MITRE ATT&CK mapping") per capabilities.md §CAP-10 -- #[non_exhaustive] is the extensibility contract for the MITRE tactic enum |
 | L2 Domain Invariants | INV-9 (MITRE technique ID format) |
-| Architecture Module | SS-10 (mitre.rs, C-11) |
+| Architecture Module | SS-10 (mitre.rs, C-16) |
 | Stories | S-TBD |
 | Origin BC | BC-MIT-009 (pass-3 ingestion corpus, HIGH confidence) |
 

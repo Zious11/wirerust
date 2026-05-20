@@ -96,7 +96,7 @@ Confidence::Low`. The body reflects source truth.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- non-UTF-8 SNI detection is arm 4 of the SNI 4-way classification |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification), INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:260-264, 410-415, 469-488, C-16) |
+| Architecture Module | SS-07 (analyzer/tls.rs:260-264, 410-415, 469-488, C-13) |
 | Stories | S-TBD |
 | Origin BC | BC-TLS-019 (pass-3 ingestion corpus, HIGH confidence) |
 

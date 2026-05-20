@@ -81,7 +81,7 @@ inadvertently triggering the poison threshold.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- had_success suppression is part of the HTTP parsing resilience design |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true -- had_success prevents body bytes from advancing toward threshold) |
-| Architecture Module | SS-06 (analyzer/http.rs:362-408, C-14) |
+| Architecture Module | SS-06 (analyzer/http.rs:362-408, C-12) |
 | Stories | S-TBD |
 | Origin BC | BC-HTTP-020 (pass-3 ingestion corpus, HIGH confidence) |
 

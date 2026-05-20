@@ -93,7 +93,7 @@ determines whether the evidence cites "request" or "response". The error also in
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- excessive-header detection is an HTTP DoS/evasion anomaly finding |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true -- TooManyHeaders contributes to error_count) |
-| Architecture Module | SS-06 (analyzer/http.rs:416-428, C-14) |
+| Architecture Module | SS-06 (analyzer/http.rs:416-428, C-12) |
 | Stories | S-TBD |
 | Origin BC | BC-HTTP-014 (pass-3 ingestion corpus, HIGH confidence) |
 

@@ -84,7 +84,7 @@ ADR 0003 / INV-4.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- header value extraction and raw byte preservation are core to HTTP analysis data quality |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation -- no escape at analyzer) |
-| Architecture Module | SS-06 (analyzer/http.rs:70-75, C-14) |
+| Architecture Module | SS-06 (analyzer/http.rs:70-75, C-12) |
 | Stories | S-TBD |
 | Origin BC | BC-HTTP-026 (pass-3 ingestion corpus, HIGH confidence) |
 

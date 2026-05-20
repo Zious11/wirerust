@@ -98,7 +98,7 @@ emits `Verdict::Inconclusive, Confidence::Low`. The body reflects source truth.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- non-ASCII UTF-8 SNI detection is arm 3 of the SNI 4-way classification |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification ordered match), INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:256-259, 449-467, C-16) |
+| Architecture Module | SS-07 (analyzer/tls.rs:256-259, 449-467, C-13) |
 | Stories | S-TBD |
 | Origin BC | BC-TLS-017 (pass-3 ingestion corpus, HIGH confidence) |
 

@@ -24,7 +24,7 @@ input-hash: "[md5-TBD]"
 # wirerust Architecture Index
 
 > **Brownfield Mode:** This architecture describes the shipped system as of develop HEAD
-> (post remediation-cycle PRs #69-#98, reconciled against aa2ece9). Do not treat this
+> (post remediation-cycle PRs #69-#98, reconciled against 0082a0c). Do not treat this
 > as aspirational design -- it is a formal record of what exists.
 
 ## Deployment Topology

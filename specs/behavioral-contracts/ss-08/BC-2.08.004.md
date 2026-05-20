@@ -77,7 +77,7 @@ low severity, by design, not a bug.
 | L2 Capability | CAP-08 ("DNS traffic analysis") per capabilities.md §CAP-08 |
 | Capability Anchor Justification | CAP-08 ("DNS traffic analysis") per capabilities.md §CAP-08 -- the never-emit contract is the defining behavioral boundary of the current DNS implementation |
 | L2 Domain Invariants | None |
-| Architecture Module | SS-08 (analyzer/dns.rs, C-13) |
+| Architecture Module | SS-08 (analyzer/dns.rs, C-11) |
 | Stories | S-TBD |
 | Origin BC | BC-DNS-004 (pass-3 ingestion corpus, HIGH confidence) |
 

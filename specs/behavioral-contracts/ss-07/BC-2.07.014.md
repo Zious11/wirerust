@@ -103,7 +103,7 @@ hostname with MITRE technique T1027 (Obfuscated Files or Information).
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- SNI C0/DEL detection is a core TLS anomaly finding in the SNI 4-way classification |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification ordered match), INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:200-265, C-16) |
+| Architecture Module | SS-07 (analyzer/tls.rs:200-265, C-13) |
 | Stories | S-TBD |
 | Origin BC | BC-TLS-014 (pass-3 ingestion corpus, HIGH confidence) |
 

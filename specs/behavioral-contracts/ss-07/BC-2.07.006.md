@@ -90,7 +90,7 @@ with that low-nibble pattern outside the 16 GREASE values.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- GREASE filtering is required for accurate JA3 fingerprinting, a core TLS analysis output |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation -- JA3 string uses numeric IDs, not display names) |
-| Architecture Module | SS-07 (analyzer/tls.rs:50-52, 100-143, C-16) |
+| Architecture Module | SS-07 (analyzer/tls.rs:50-52, 100-143, C-13) |
 | Stories | S-TBD |
 | Origin BC | BC-TLS-006 (pass-3 ingestion corpus, HIGH confidence) |
 

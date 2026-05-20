@@ -3,7 +3,7 @@ artifact: L2-cap-01
 traces_to: ../domain-spec.md
 cap_id: CAP-01
 title: PCAP File Ingestion
-status: descriptive (brownfield) -- reconciled against develop HEAD aa2ece9
+status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
 ---
 

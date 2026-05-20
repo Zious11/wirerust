@@ -14,20 +14,21 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 0/3
-adversary_pass_5_date: "2026-05-20"
-adversary_pass_5_verdict: NOT_CONVERGED
-adversary_pass_5_findings: "8 (1C/2H/3M/2L) — all remediated; NUL byte, stale --services, count drift"
-convergence_trajectory: "17→13→7→19→8→..."
+adversary_pass_6_date: "2026-05-20"
+adversary_pass_6_verdict: NOT_CONVERGED
+adversary_pass_6_findings: "3 (0C/3H/0M/0L) — all remediated; component-ID anchors, BC-INDEX titles, INV-1 citation"
+convergence_trajectory: "17→13→7→19→8→3→..."
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 5 complete (NOT CONVERGED,
-8 findings: 1C/2H/3M/2L). NUL byte in BC-2.07.020.md, stale --services title in BC-2.12.002,
-count drift (212→217 active BCs), direction column error in BC-2.11.024. All findings remediated.
-Pass 6 is next. Awaiting 3 clean adversarial passes, then consistency audit + human approval
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 6 complete (NOT CONVERGED,
+3 findings: 0C/3H/0M/0L). Component-ID anchors in 95 BC bodies (ss-04..ss-10), 34 BC-INDEX
+title mismatches, INV-1 enforcement citation stale (flow.rs:34→flow.rs:48). All findings
+remediated. Stale `reconciled_against` SHA (aa2ece9→0082a0c) corrected in domain-spec.md.
+Pass 7 is next. Awaiting 3 clean adversarial passes, then consistency audit + human approval
 gate before Phase 1 is declared PASSED.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
@@ -43,7 +44,7 @@ gate before Phase 1 is declared PASSED.
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–5 NOT CONVERGED all remediated; pass 6 pending) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→...` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–6 NOT CONVERGED all remediated; pass 7 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→...` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -97,14 +98,15 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 2 | 2026-05-20 | 13 (0C/4H/6M/3L) | NOT_CONVERGED | REMEDIATED — all blocking fixed; 2 deferred (non-blocking) |
 | 3 | 2026-05-20 | 7 (0C/3H/2M/2N) | NOT_CONVERGED | REMEDIATED — all 7 fixed |
 | 4 | 2026-05-20 | 19 (4C/5H/5M/3L/2N) | NOT_CONVERGED | REMEDIATED — all 19 fixed; +5 CsvReporter BCs (020–024) |
-| 5 | 2026-05-20 | 8 (1C/2H/3M/2L) | NOT_CONVERGED | REMEDIATED — all 8 fixed; NUL byte, stale --services, count drift; pass 6 next |
+| 5 | 2026-05-20 | 8 (1C/2H/3M/2L) | NOT_CONVERGED | REMEDIATED — all 8 fixed; NUL byte, stale --services, count drift |
+| 6 | 2026-05-20 | 3 (0C/3H/0M/0L) | NOT_CONVERGED | REMEDIATED — all 3 fixed; component-ID anchors (95 BCs), BC-INDEX titles (34 rows), INV-1 citation; pass 7 next |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
 1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (0/3).
-   Pass 6 is next; no regression allowed between passes.
+   Pass 7 is next; no regression allowed between passes.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 

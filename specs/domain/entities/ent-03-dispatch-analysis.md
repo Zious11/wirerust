@@ -2,7 +2,7 @@
 artifact: L2-ent-03
 traces_to: ../domain-spec.md
 title: Entities -- Dispatch and Protocol Analysis (L2-L3)
-status: descriptive (brownfield) -- reconciled against develop HEAD aa2ece9
+status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
 ---
 

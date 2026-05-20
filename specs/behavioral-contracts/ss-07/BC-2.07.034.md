@@ -79,7 +79,7 @@ a defensive optimization: no buffering, no parsing, no state mutation of any kin
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- on_data short-circuit is a resource-bounding mechanism of TLS analysis |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:718-724, C-16) |
+| Architecture Module | SS-07 (analyzer/tls.rs:718-724, C-13) |
 | Stories | S-TBD |
 | Origin BC | BC-TLS-034 (pass-3 ingestion corpus, MEDIUM confidence -- exercised by test_stop_after_handshake) |
 

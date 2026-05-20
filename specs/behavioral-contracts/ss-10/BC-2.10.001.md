@@ -91,7 +91,7 @@ headers in the `--mitre` grouped terminal output and as JSON keys in MITRE-group
 | L2 Capability | CAP-10 ("MITRE ATT&CK mapping") per capabilities.md §CAP-10 |
 | Capability Anchor Justification | CAP-10 ("MITRE ATT&CK mapping") per capabilities.md §CAP-10 -- tactic Display strings are the human-readable labels of the MITRE mapping capability |
 | L2 Domain Invariants | INV-9 (MITRE technique ID format -- tactic names must match ATT&CK canonical form) |
-| Architecture Module | SS-10 (mitre.rs, C-11) |
+| Architecture Module | SS-10 (mitre.rs, C-16) |
 | Stories | S-TBD |
 | Origin BC | BC-MIT-001 (pass-3 ingestion corpus, HIGH confidence) |
 

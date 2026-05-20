@@ -87,7 +87,7 @@ responses via `try_parse_responses`.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- buffering partial request headers is required for correct HTTP parsing over TCP stream data |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:402, 459, C-14) |
+| Architecture Module | SS-06 (analyzer/http.rs:402, 459, C-12) |
 | Stories | S-TBD |
 | Origin BC | BC-HTTP-003 (pass-3 ingestion corpus, HIGH confidence) |
 

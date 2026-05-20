@@ -80,7 +80,7 @@ for debugging and logging; terminal rendering uses the reporter layer.
 | L2 Capability | CAP-09 ("Forensic finding emission") per capabilities.md §CAP-09 |
 | Capability Anchor Justification | CAP-09 ("Forensic finding emission") per capabilities.md §CAP-09 -- Display is the raw-text representation of a Finding, part of the CAP-09 emission contract |
 | L2 Domain Invariants | INV-4 (raw bytes preserved in Display output; no escaping) |
-| Architecture Module | SS-09 (findings.rs, C-10) |
+| Architecture Module | SS-09 (findings.rs, C-14) |
 | Stories | S-TBD |
 | Origin BC | BC-FND-002 (pass-3 ingestion corpus, HIGH confidence) |
 

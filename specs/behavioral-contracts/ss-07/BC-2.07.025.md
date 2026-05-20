@@ -79,7 +79,7 @@ accepted; only the hostname bytes are used.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- NameType handling is an SNI edge case in TLS analysis |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification) |
-| Architecture Module | SS-07 (analyzer/tls.rs:247-249, C-16) |
+| Architecture Module | SS-07 (analyzer/tls.rs:247-249, C-13) |
 | Stories | S-TBD |
 | Origin BC | BC-TLS-025 (pass-3 ingestion corpus, HIGH confidence) |
 

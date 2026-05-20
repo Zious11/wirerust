@@ -79,7 +79,7 @@ This is the "no-op dispatcher" path for captures where neither HTTP nor TLS anal
 | L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 |
 | Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 -- no-analyzer early-return is the efficiency guard for unconfigured dispatchers |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- early return is pre-classification) |
-| Architecture Module | SS-05 (dispatcher.rs:121-123, C-15) |
+| Architecture Module | SS-05 (dispatcher.rs:121-123, C-21) |
 | Stories | S-TBD |
 | Origin BC | BC-DSP-008 (pass-3 ingestion corpus, HIGH confidence) |
 

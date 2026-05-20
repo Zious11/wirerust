@@ -92,7 +92,7 @@ returns `(md5_hex, ja3_string)` as a pair.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- JA3 string format is the algorithm defining the fingerprint output |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:94-151, C-16) |
+| Architecture Module | SS-07 (analyzer/tls.rs:94-151, C-13) |
 | Stories | S-TBD |
 | Origin BC | BC-TLS-007 (pass-3 ingestion corpus, MEDIUM confidence) |
 

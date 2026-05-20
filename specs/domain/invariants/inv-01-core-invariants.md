@@ -2,7 +2,7 @@
 artifact: L2-inv-01
 traces_to: ../domain-spec.md
 title: Core Domain Invariants
-status: descriptive (brownfield) -- reconciled against develop HEAD aa2ece9
+status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
 ---
 
@@ -26,7 +26,7 @@ comparison is tuple-pair comparison, not independent per-field.
 sorted IPs and ports independently, connections sharing one field but having different values
 for the other would map to the same FlowKey, merging unrelated flows.
 
-**Enforcement:** `src/reassembly/flow.rs:34`
+**Enforcement:** `src/reassembly/flow.rs:48`
 ```rust
 if (ip_a, port_a) <= (ip_b, port_b) { ... }
 ```

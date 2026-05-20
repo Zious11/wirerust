@@ -6,7 +6,7 @@ generated: 2026-05-20
 reconciled: 2026-05-20
 mode: brownfield-descriptive
 source: .factory/semport/wirerust/ (21 ingestion artifacts; canonical = pass-8-deep-synthesis.md)
-reconciled_against: develop HEAD aa2ece9 (PRs #69-#98; 30-lesson remediation cycle)
+reconciled_against: develop HEAD 0082a0c (PRs #69-#99; 30-lesson remediation cycle + CLAUDE.md governance pointer)
 shards:
   - capabilities/cap-01-pcap-ingestion.md
   - capabilities/cap-02-link-type-gating.md

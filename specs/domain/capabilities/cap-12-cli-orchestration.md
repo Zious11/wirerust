@@ -3,7 +3,7 @@ artifact: L2-cap-12
 traces_to: ../domain-spec.md
 cap_id: CAP-12
 title: CLI Orchestration / Entry Point
-status: descriptive (brownfield) -- reconciled against develop HEAD aa2ece9
+status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
 anchor_justification: >
   CAP-12 covers the CLI orchestration / entry-point concern because main.rs

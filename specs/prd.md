@@ -36,7 +36,7 @@ supplements:
 # Product Requirements Document: wirerust
 
 > **Brownfield Mode:** This PRD is DESCRIPTIVE of the shipped system as of develop HEAD (post
-> remediation-cycle PRs #69-#98, reconciled against aa2ece9). Every requirement is grounded in
+> remediation-cycle PRs #69-#98, reconciled against 0082a0c). Every requirement is grounded in
 > verified source evidence. Known gaps are recorded as debt (O-01..O-06), not silently omitted.
 > Do NOT treat this document as aspirational -- it specifies what the system does today.
 

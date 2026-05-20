@@ -89,7 +89,7 @@ FlowKey (INV-1).
 | L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 |
 | Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 -- port-based fallback is the third and last classification rule per ADR 0001 |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- port fallback is LAST, after both content checks fail) |
-| Architecture Module | SS-05 (dispatcher.rs:108-116, C-15) |
+| Architecture Module | SS-05 (dispatcher.rs:108-116, C-21) |
 | Stories | S-TBD |
 | Origin BC | BC-DSP-003 (pass-3 ingestion corpus, HIGH confidence) |
 

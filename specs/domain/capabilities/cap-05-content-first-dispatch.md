@@ -3,7 +3,7 @@ artifact: L2-cap-05
 traces_to: ../domain-spec.md
 cap_id: CAP-05
 title: Content-First Protocol Dispatch
-status: descriptive (brownfield) -- reconciled against develop HEAD aa2ece9
+status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
 ---
 

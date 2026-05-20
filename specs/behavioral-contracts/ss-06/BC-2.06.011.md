@@ -89,7 +89,7 @@ is routine for cron jobs and microservices. No MITRE technique ID is assigned.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- empty User-Agent detection is one of the HTTP anomaly findings; absent-UA non-detection is an intentional design choice |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:344-356, C-14) |
+| Architecture Module | SS-06 (analyzer/http.rs:344-356, C-12) |
 | Stories | S-TBD |
 | Origin BC | BC-HTTP-011 (pass-3 ingestion corpus, HIGH confidence) |
 

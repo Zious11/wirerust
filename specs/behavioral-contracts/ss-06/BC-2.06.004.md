@@ -88,7 +88,7 @@ The response direction supports the same buffering and pipelined-loop semantics 
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- response status code tracking is part of HTTP traffic analysis statistics |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:440-497, C-14) |
+| Architecture Module | SS-06 (analyzer/http.rs:440-497, C-12) |
 | Stories | S-TBD |
 | Origin BC | BC-HTTP-004 (pass-3 ingestion corpus, HIGH confidence) |
 

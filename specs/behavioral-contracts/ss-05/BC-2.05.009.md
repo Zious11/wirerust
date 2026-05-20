@@ -90,7 +90,7 @@ The analyzer-forward side-effect is less directly tested (pass-3 R4 finding).
 | L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 |
 | Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 -- on_flow_close cleans up per-flow dispatcher state and propagates close events to wrapped analyzers |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- route removal ensures clean per-flow lifecycle) |
-| Architecture Module | SS-05 (dispatcher.rs:171-194, C-15) |
+| Architecture Module | SS-05 (dispatcher.rs:171-194, C-21) |
 | Stories | S-TBD |
 | Origin BC | BC-DSP-009 (pass-3 ingestion corpus, MEDIUM confidence -- route-remove side-effect HIGH per R4; analyzer-forward side-effect MEDIUM per R4) |
 
