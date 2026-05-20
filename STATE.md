@@ -14,22 +14,23 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 0/3
-adversary_pass_7_date: "2026-05-20"
-adversary_pass_7_verdict: NOT_CONVERGED
-adversary_pass_7_findings: "13 (1C/3H/4M/3L/2N) — all remediated; entity shards, em-dash, SS-13 anchor, cap-05 token, VP-008"
-convergence_trajectory: "17→13→7→19→8→3→13→..."
+adversary_pass_8_date: "2026-05-20"
+adversary_pass_8_verdict: NOT_CONVERGED
+adversary_pass_8_findings: "8 (0C/2H/3M/2L/1N) — all remediated; vp-008 arg order, stale citations, E-RAS-005 counter name"
+convergence_trajectory: "17→13→7→19→8→3→13→7→..."
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 7 complete (NOT CONVERGED,
-13 findings: 1C/3H/4M/3L/2N). Entity shards ent-02/ent-03 re-anchored and phantom field
-removed; BC-2.09.002 em-dash separator fixed; SS-13 BCs re-anchored to CAP-12; cap-05 and
-inv-01 updated with `b"HTTP/"` token and C-21 component ID; VP-008 fuzz arg order + IPv6
-corrected; module-decomposition C-21 retry-budget fields added; api-surface decode_packet
-added. All findings remediated. Pass 8 is next. Awaiting 3 clean adversarial passes.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 8 complete (NOT CONVERGED,
+8 findings: 0C/2H/3M/2L/1N). VP-008 decode_packet arg order corrected (data-first) + IPv6
+target added; vp-001 stale line citation fixed (flow.rs:34 -> flow.rs:48); error-taxonomy
+E-RAS-005 counter name corrected; cap-02 decode_packet line range corrected; BC-2.02.007
+error-prefix count corrected; VP-INDEX VP-005 redundant BC list cleaned; inv-01 INV-2
+method-token order matched to source. All findings remediated. Pass 9 is next.
+Awaiting 3 clean adversarial passes.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -44,7 +45,7 @@ added. All findings remediated. Pass 8 is next. Awaiting 3 clean adversarial pas
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–7 NOT CONVERGED all remediated; pass 8 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→...` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–8 NOT CONVERGED all remediated; pass 9 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→...` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -100,14 +101,15 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 4 | 2026-05-20 | 19 (4C/5H/5M/3L/2N) | NOT_CONVERGED | REMEDIATED — all 19 fixed; +5 CsvReporter BCs (020–024) |
 | 5 | 2026-05-20 | 8 (1C/2H/3M/2L) | NOT_CONVERGED | REMEDIATED — all 8 fixed; NUL byte, stale --services, count drift |
 | 6 | 2026-05-20 | 3 (0C/3H/0M/0L) | NOT_CONVERGED | REMEDIATED — all 3 fixed; component-ID anchors (95 BCs), BC-INDEX titles (34 rows), INV-1 citation |
-| 7 | 2026-05-20 | 13 (1C/3H/4M/3L/2N) | NOT_CONVERGED | REMEDIATED — all 13 fixed; entity shards, em-dash, SS-13 anchor, cap-05 token, VP-008; pass 8 next |
+| 7 | 2026-05-20 | 13 (1C/3H/4M/3L/2N) | NOT_CONVERGED | REMEDIATED — all 13 fixed; entity shards, em-dash, SS-13 anchor, cap-05 token, VP-008 |
+| 8 | 2026-05-20 | 8 (0C/2H/3M/2L/1N) | NOT_CONVERGED | REMEDIATED — all 8 fixed; vp-008 arg order+IPv6, stale citations, E-RAS-005 counter; pass 9 next |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
 1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (0/3).
-   Pass 8 is next; no regression allowed between passes.
+   Pass 9 is next; no regression allowed between passes.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 
@@ -136,6 +138,7 @@ Full register: `.factory/tech-debt-register.md` (when populated).
 | P4-PG2 | No component-ID consistency validator between domain-spec/capabilities and architecture/module-decomposition (process gap, pass 4) | Tooling gap — component IDs drift silently. No machine check exists. | Codify as CI lint rule or reviewer checklist item at cycle close. |
 | P4-PG3 | New reporter (csv.rs, PR #84) shipped without a BC — CsvReporter coverage gap not detected until pass-4 fresh-context audit (process gap, pass 4) | Coverage gap — 5 CsvReporter BCs (BC-2.11.020–024) added in pass-4 remediation. | Codify: every new src/ file in reporter/ or analyzer/ must trigger a BC coverage check at cycle close. |
 | P5-PG | BC-file on-disk verification used an existence check only; a NUL-byte-corrupted file (BC-2.07.020.md) was not detected until pass-5 adversarial audit (process gap, pass 5) | Tooling gap — no UTF-8 + control-byte validator on the spec package. Pass-5 remediation removed the NUL byte. | Codify as cycle-close follow-up: add spec-package validator asserting every BC/spec file is valid UTF-8 with no control bytes other than CR/LF/TAB. |
+| P8-DEFER | All 217 BC files carry `VP-TBD` placeholders in their Verification Properties field. The forward VP->BC mapping exists and is authoritative in VP-INDEX.md; the BC->VP back-reference back-fill is deferred as a Phase-1-exit polish item. | The adversary classified this as a deliberate Phase-1 convention, not drift — it is an Observation, not a blocking defect. Forward mapping in VP-INDEX.md is the authoritative source of VP->BC linkage; reverse back-references in individual BC files are editorial. | Surface as structured question at the Phase 1 human approval gate: does the human want BC->VP back-references back-filled before Phase 1 sign-off? |
 
 ## Open Issues (from Phase 0 / deferred findings)
 

@@ -23,10 +23,11 @@ traces_to: STATE.md
 | 5 | 2026-05-20 | 8 | 1 | 2 | 3 | 2 | LOW | — | 0/3 | NOT_CONVERGED — NUL byte, stale --services, count drift; all 8 fixed |
 | 6 | 2026-05-20 | 3 | 0 | 3 | 0 | 0 | LOW | — | 0/3 | NOT_CONVERGED — component-ID anchors, BC-INDEX titles, INV-1 citation; all 3 fixed |
 | 7 | 2026-05-20 | 13 | 1 | 3 | 4 | 3 | LOW | — | 0/3 | NOT_CONVERGED — entity shards, em-dash, SS-13 anchor, cap-05 token, VP-008; all 13 fixed |
+| 8 | 2026-05-20 | 8 | 0 | 2 | 3 | 2 | LOW | — | 0/3 | NOT_CONVERGED — vp-008 arg order+IPv6, stale citations, E-RAS-005 counter; all 8 fixed |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→...`
+`17→13→7→19→8→3→13→7→...`
 
 ## Per-Pass Details
 
@@ -353,5 +354,67 @@ and line citation corrected; C-21 retry-budget fields added to module-decomposit
 decode_packet added to api-surface; VP-018 BC list corrected. Fixes committed in burst
 `spec: fix adversarial-review pass-7 findings (1C/3H/4M/3L) - reconcile entity shards, Display em-dash, SS-13 anchor`
 (SHA: 4681813). Pass 8 dispatched next.
+
+---
+
+### Pass 8 (2026-05-20)
+
+**Findings:** 8 (0 CRIT, 2 HIGH, 3 MED, 2 LOW, 1 NITPICK)
+**Delta from pass 7:** -5 total (CRIT -1, HIGH -1, MED -1, LOW -1, NITPICK -1) — no regression
+**Novelty:** LOW
+**Convergence counter:** 0 of 3
+
+**Key finding categories:**
+
+- HIGH (H-1): `vp-008-decode-packet-no-panic.md` — `decode_packet` argument order in the
+  fuzz skeleton had data and length arguments transposed (length-first instead of data-first).
+  Corrected to data-first order matching the actual function signature.
+
+- HIGH (H-2): `vp-008-decode-packet-no-panic.md` — IPv6 address literal absent from the fuzz
+  input corpus examples. IPv6 target added to the fuzz targets section.
+
+- MED (M-1): `vp-001-flowkey-canonical-ordering.md` — enforcement citation pointed to
+  `flow.rs:34` (stale after recent refactors); correct line is `flow.rs:48`. Citation updated.
+
+- MED (M-2): `prd-supplements/error-taxonomy.md` — E-RAS-005 counter name was
+  `segments_depth_exceeded`; correct name in source is `segments_segment_limit`. Corrected.
+
+- MED (M-3): `domain/capabilities/cap-02-link-type-gating.md` — `decode_packet` line range
+  was `71-140`; correct range post-refactor is `128-172`. Updated.
+
+- LOW (L-1): `behavioral-contracts/ss-02/BC-2.02.007.md` — postcondition listed "two" error
+  prefixes; correct count is "three" (the spec body enumerates three distinct error prefixes).
+  Corrected.
+
+- LOW (L-2): `verification-properties/VP-INDEX.md` — VP-005 row carried a redundant,
+  partially-stale BC list in the index cell. Cleaned to match the canonical BC set in the
+  VP-005 body.
+
+- NITPICK (N-1): `domain/invariants/inv-01-core-invariants.md` — INV-2 method-token list
+  order did not match the ordering in source. Re-ordered to match source.
+
+**Observation (non-blocking, deferred — see STATE.md P8-DEFER):**
+All 217 BC files carry `VP-TBD` placeholders in their Verification Properties field. The
+adversary classified this as a deliberate Phase-1 convention, not drift. The forward
+VP->BC mapping in VP-INDEX.md is authoritative. BC->VP back-reference back-fill deferred as
+a Phase-1-exit polish item; to be surfaced as a structured question at the Phase 1 human
+approval gate.
+
+**Files fixed (7):**
+`specs/verification-properties/vp-008-decode-packet-no-panic.md`,
+`specs/verification-properties/vp-001-flowkey-canonical-ordering.md`,
+`specs/verification-properties/VP-INDEX.md`,
+`specs/prd-supplements/error-taxonomy.md`,
+`specs/domain/capabilities/cap-02-link-type-gating.md`,
+`specs/behavioral-contracts/ss-02/BC-2.02.007.md`,
+`specs/domain/invariants/inv-01-core-invariants.md`
+
+**Remediation:** All 8 findings (0C/2H/3M/2L/1N) remediated. VP-008 fuzz skeleton arg order
+corrected to data-first; IPv6 literal added; stale line citations corrected in vp-001 and
+cap-02; E-RAS-005 counter name corrected in error-taxonomy; BC-2.02.007 error-prefix count
+corrected; VP-INDEX VP-005 redundant BC list cleaned; INV-2 token order matched to source.
+Fixes committed in burst
+`spec: fix adversarial-review pass-8 findings (2H/3M/2L) - vp-008 signature, stale citations`
+(SHA: 7cf0edd). Pass 9 dispatched next.
 
 ---
