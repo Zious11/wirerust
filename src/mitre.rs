@@ -11,6 +11,30 @@
 //! separator, three-digit suffix — e.g., `T1071.001`). This format is used
 //! across ATT&CK matrices and STIX 2.1 bundles. Inputs that don't match a
 //! seeded ID return `None` from the lookup functions.
+//!
+//! ## Catalogued vs. emitted techniques (staged entries)
+//!
+//! [`technique_info`] is a *catalogue*: it seeds every technique ID that
+//! wirerust may attach to a [`crate::findings::Finding`]. Not every
+//! catalogued ID is currently produced by an analyzer.
+//!
+//! Some entries are **staged** — present in the lookup table ahead of the
+//! detection logic that will emit them. This is intentional:
+//!
+//! - The catalogue is the single place an ID's name and tactic are defined.
+//!   Seeding an ID here first means the analyzer PR that starts emitting it
+//!   only has to set `mitre_technique: Some("TXXXX")` — it does not also
+//!   have to touch this module, keeping that change small and focused.
+//! - The ICS techniques (`T0xxx`) in particular are seeded for the planned
+//!   Modbus / DNP3 analyzers (see the README roadmap) but are not emitted
+//!   until those analyzers land.
+//!
+//! A staged entry is therefore not dead code — it is a deliberate forward
+//! declaration. The set of *emitted* IDs is whatever the analyzers in
+//! `src/analyzer/` and `src/reassembly/` currently pass as
+//! `mitre_technique`; `grep -rn 'mitre_technique: Some' src/` is the
+//! authoritative way to see it. No invariant requires the catalogue and the
+//! emitted set to match — the catalogue is intentionally the superset.
 
 use std::fmt;
 

@@ -142,6 +142,37 @@ impl ProtocolAnalyzer for MyAnalyzer {
 }
 ```
 
+### Test naming convention
+
+Tests use **prose-style names that state the asserted behavior**, not just
+the function under test. The name should read as a claim that is true when
+the test passes:
+
+```rust
+// good — states the behavior being asserted
+fn test_detect_empty_host_header() { ... }
+fn mitre_grouping_emits_tactic_headers_in_canonical_order() { ... }
+fn test_low_overlap_threshold_fires_earlier() { ... }
+
+// avoid — names the symbol, not the behavior
+fn test_host_header() { ... }
+fn test_mitre() { ... }
+```
+
+Guidelines:
+
+- Prefer `<subject>_<verb>_<expected outcome>` — e.g.
+  `test_drop_without_finalize_does_not_panic`.
+- A `test_` prefix is common but not required; an integration test whose
+  name already reads as a sentence (`mitre_grouping_emits_…`) may omit it.
+- One behavior per test. If the name needs an "and", it is probably two
+  tests.
+- When a test exists to guard a specific lesson or regression, reference it
+  in the test body comment (e.g. `// LESSON-P2.05: …`), not in the name.
+
+This is a documentation of existing practice — the test suite already
+follows it; new tests should match.
+
 ## Roadmap
 
 See [open issues](https://github.com/Zious11/wirerust/issues) for planned features:
