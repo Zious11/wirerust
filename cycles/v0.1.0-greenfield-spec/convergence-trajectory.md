@@ -1328,3 +1328,146 @@ spec package has now been systematically verified against current src/.
 **Outcome:** Counter unchanged at **0/3**. Pass 26 dispatched next.
 
 ---
+
+### Pass 26 (2026-05-20) — NOT CONVERGED (counter remains 0/3)
+
+**Findings:** 5 (0 CRIT, 3 HIGH, 1 MED, 1 LOW)
+**Delta from SWEEP68:** N/A (inter-pass sweep, not a pass)
+**Novelty:** LOW
+**Convergence counter:** 0/3 (unchanged — HIGH findings disqualify; a clean pass requires 0C/0H/0M)
+**Verdict:** NOT CONVERGED — 3 HIGH + 1 MED findings present. Counter remains 0/3. Pass 27 is next.
+
+**Root cause:** VP files were the last spec-package category not yet comprehensively
+source-reconciled. All 4 blocking findings were in VP harness-skeleton sections and
+property-statement sections that referenced non-existent APIs, wrong argument signatures,
+or stale source-line citations.
+
+**Key finding categories:**
+
+- HIGH (H-1): Multiple VP files — harness-skeleton API signatures wrong. Nonexistent
+  methods/constructors cited: `TcpFlow::with_state`, `TerminalReporter::new`, `read_at`,
+  `flow_state`, `render_json`, `all_variants`. Argument form wrong for `insert_segment`
+  (arity), `set_isn` (arg type), `on_data_without_syn` (args). Return form wrong for
+  `flush_contiguous` (closure vs. return value). Method name wrong: `seq_offset` →
+  `seq_to_offset`. All corrected to actual API surface.
+
+- HIGH (H-2): Multiple VP files — stale source-line citations throughout harness-skeleton
+  and property-statement sections. Post-refactor line shifts not reflected. All re-anchored
+  to current positions.
+
+- HIGH (H-3): `vp-005-sni-four-way-classification.md` — BC verdict labels mis-stated:
+  BC-2.07.014, BC-2.07.017, BC-2.07.019 all cited as `Anomaly/Likely/High`. Correct verdicts
+  (per pass-16/SWEEP58 corrections) are `Anomaly/Inconclusive/Low`. Corrected.
+
+- MED (M-1): `vp-003-max-findings-cap.md` — MAX_FINDINGS anchor value and associated
+  constant citation wrong. Corrected to actual constant name and source location.
+
+- LOW (L-1): `BC-2.04.039.md` — `seq_offset` cited at lines 32-34; correct range is
+  31-34 (3 occurrences). Corrected.
+
+**VP files verified clean (0 defects):** VP-007, VP-008, VP-012, VP-018, VP-019, VP-020
+
+**VP-INDEX fix:** phase-column values for VP-016..VP-020 were wrong. Corrected to Phase 3.
+
+**Orchestrator action:** Commissioned comprehensive VP-file sweep of all 20 VP files +
+VP-INDEX against current src/, to flush all residual API-signature and citation drift at
+root (same approach as SWEEP58 for BCs, SWEEP68 for supplements).
+
+**Files with blocking findings:** vp-003, vp-005, multiple VP files (H-1, H-2).
+
+**Verdict:** NOT CONVERGED — counter remains 0/3. SWEEP48 commissioned next.
+
+---
+
+### SWEEP48 — Comprehensive VP-File Verification Sweep (2026-05-20)
+
+**Type:** Inter-pass remediation burst (no adversary pass)
+**Convergence counter:** Unchanged — **0/3**
+**Commit SHA:** 25641c4
+
+**Purpose:** Pass 26 revealed VP files as the last spec-package pocket not yet
+comprehensively source-reconciled. Orchestrator commissioned a full sweep of all 20 VP
+files + VP-INDEX against current src/. This directly addresses P-CITE-PG (recurring
+citation/API-drift process gap) for the final unchecked category.
+
+**Total defects fixed: ~48 across VP files + 1 BC fix.**
+
+#### API-signature defects (wrong method names, wrong arity, nonexistent constructors)
+
+- `vp-001-flowkey-canonical-ordering.md` — wrong method call in harness corrected
+- `vp-002-first-wins-overlap.md` — insert_segment arity corrected
+- `vp-004-content-first-dispatch.md` — on_data_without_syn args corrected
+- `vp-009-flow-state-machine.md` — TcpFlow::with_state (nonexistent) removed; flow_state
+  method (nonexistent) corrected to actual state accessor
+- `vp-010-buffered-bytes-invariant.md` — read_at (nonexistent) corrected; set_isn arg type fixed
+- `vp-011-flush-contiguous-monotonicity.md` — flush_contiguous closure-vs-return form corrected
+- `vp-013-ja3-grease-filter.md` — render_json (nonexistent) corrected
+- `vp-014-http-cross-flow-isolation.md` — all_variants (nonexistent) corrected
+- `vp-015-tcp-sequence-wraparound.md` — seq_offset → seq_to_offset; TerminalReporter::new
+  (nonexistent) removed (TerminalReporter is a unit struct)
+- `vp-016-mitre-tactic-grouping-order.md` — API signature corrected
+- `vp-017-json-key-determinism.md` — JSON key-order claim corrected to match BTreeMap
+  serialization behavior; render_json (nonexistent) corrected
+
+#### Stale source-line citation defects
+
+- `vp-001-flowkey-canonical-ordering.md` — citations re-anchored
+- `vp-002-first-wins-overlap.md` — citations re-anchored
+- `vp-003-max-findings-cap.md` — MAX_FINDINGS anchor corrected; citations re-anchored
+- `vp-004-content-first-dispatch.md` — citations re-anchored
+- `vp-006-http-poison-monotonicity.md` — citations re-anchored
+- `vp-009-flow-state-machine.md` — citations re-anchored
+- `vp-010-buffered-bytes-invariant.md` — citations re-anchored
+- `vp-011-flush-contiguous-monotonicity.md` — citations re-anchored
+- `vp-013-ja3-grease-filter.md` — citations re-anchored
+- `vp-014-http-cross-flow-isolation.md` — citations re-anchored
+- `vp-015-tcp-sequence-wraparound.md` — citations re-anchored
+- `vp-016-mitre-tactic-grouping-order.md` — citations re-anchored
+
+#### BC verdict label defects
+
+- `vp-005-sni-four-way-classification.md` — BC-2.07.014 / BC-2.07.017 / BC-2.07.019 verdict
+  labels corrected from Anomaly/Likely/High → Anomaly/Inconclusive/Low (aligns with
+  pass-16 and SWEEP58 corrections to the BC bodies themselves)
+
+#### VP-INDEX fix
+
+- `VP-INDEX.md` — phase-column values for VP-016..VP-020 corrected to Phase 3
+
+#### BC fix
+
+- `specs/behavioral-contracts/ss-04/BC-2.04.039.md` — F-5 LOW: seq_offset citation corrected
+  32-34 → 31-34 (3 occurrences)
+
+#### VP files verified clean (0 defects found, no changes made)
+
+VP-007 (MITRE technique ID format), VP-008 (TLS SNI four-way), VP-012 (DNS label encoding),
+VP-018 (MITRE output structure), VP-019 (terminal color isolation), VP-020 (CSV injection
+neutralization — already corrected in pass-15 remediation).
+
+**Summary of defect classes:**
+- Wrong API signatures / nonexistent methods: ~20 defects
+- Stale source-line citations: ~25 defects
+- Mis-stated BC verdict labels: 3 defects
+- VP-INDEX phase column: 5 rows
+- BC citation: 3 occurrences (1 BC file)
+
+**Historical context — comprehensive spec-reconciliation sweep summary:**
+
+| Sweep | Pass trigger | Category | Defects fixed | Commit |
+|-------|-------------|----------|---------------|--------|
+| SWEEP58 | Pass 16 | All 217 BC bodies vs src/ | ~58 | d038ace |
+| Anchor sweep | Pass 14 | C-NN/SS-NN anchors (3,820 occurrences) | 28 | 21093ed |
+| SWEEP68 | Pass 25 | All 4 PRD supplements vs src/ | ~68 | (SWEEP68 burst) |
+| SWEEP48 | Pass 26 | All 20 VP files + VP-INDEX vs src/ | ~48 | 25641c4 |
+
+All 4 major spec categories have now been comprehensively source-reconciled. The spec package
+is fully swept. Passes 27–29 (or until 3 consecutive clean passes are achieved) will review
+the fully-reconciled package.
+
+**Process-gap addressed:** P-CITE-PG — VP files join BCs, anchors, and supplements as
+comprehensively reconciled. All known citation/API-drift pockets have been closed.
+
+**Outcome:** Counter unchanged at **0/3**. Pass 27 dispatched next.
+
+---
