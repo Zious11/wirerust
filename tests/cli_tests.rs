@@ -166,6 +166,25 @@ fn test_threshold_flags_default_to_none() {
 }
 
 #[test]
+fn test_reassembly_threshold_flags_reject_out_of_range_values() {
+    // LESSON-P2.05 adversarial-review follow-up: the reassembly
+    // threshold flags enforce their documented sane ranges, so an
+    // out-of-range value is rejected at parse time rather than silently
+    // producing a nonsensical detector configuration.
+    for (flag, bad) in [
+        ("--overlap-threshold", "300"),        // range 0..=255
+        ("--small-segment-threshold", "5000"), // range 0..=2048
+        ("--small-segment-max-bytes", "5000"), // range 0..=2048
+    ] {
+        let result = Cli::try_parse_from(["wirerust", flag, bad, "analyze", "x.pcap"]);
+        assert!(
+            result.is_err(),
+            "`{flag} {bad}` is out of range and must be rejected"
+        );
+    }
+}
+
+#[test]
 fn test_removed_unwired_flags_are_rejected() {
     // LESSON-P1.04: --threats, --verbose, --beacon, --filter, and
     // --services were removed in the "no unwired CLI flags" sweep

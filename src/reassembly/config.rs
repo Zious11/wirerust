@@ -84,9 +84,9 @@ pub struct ReassemblyConfig {
     /// conservative default — small enough to flag deliberate
     /// fragmentation, large enough to also catch an attacker who splits
     /// into 8–15 byte segments rather than literal 1-byte ones. Setting
-    /// it to `0` disables small-segment detection entirely. Tune via
-    /// `--small-segment-max-bytes`.
-    pub small_segment_max_bytes: usize,
+    /// it to `0` disables small-segment detection entirely. The
+    /// `--small-segment-max-bytes` flag enforces Snort's 0–2048 range.
+    pub small_segment_max_bytes: u16,
     /// Ports on which small-segment detection is suppressed. A flow is
     /// exempt when **either** endpoint port appears here — a small-segment
     /// run on these ports is benign interactive traffic, not evasion.
