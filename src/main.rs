@@ -94,11 +94,22 @@ fn run_analyze(
     }
 
     let mut reassembler = if needs_reassembly && !skip_reassembly {
-        let config = ReassemblyConfig {
+        let mut config = ReassemblyConfig {
             max_depth: cli.reassembly_depth * 1_048_576,
             memcap: cli.reassembly_memcap * 1_048_576,
             ..ReassemblyConfig::default()
         };
+        // LESSON-P2.05: anomaly thresholds are CLI-overridable; an
+        // absent flag leaves the `ReassemblyConfig::default()` value.
+        if let Some(v) = cli.overlap_threshold {
+            config.overlap_alert_threshold = v;
+        }
+        if let Some(v) = cli.small_segment_threshold {
+            config.small_segment_alert_threshold = v;
+        }
+        if let Some(v) = cli.out_of_window_threshold {
+            config.out_of_window_alert_threshold = v;
+        }
         Some(TcpReassembler::new(config))
     } else {
         None

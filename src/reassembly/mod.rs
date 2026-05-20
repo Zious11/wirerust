@@ -51,10 +51,12 @@ use crate::reassembly::flow::{FlowKey, FlowState, TcpFlow};
 use crate::reassembly::handler::{CloseReason, Direction, StreamHandler};
 use crate::reassembly::segment::InsertResult;
 
-const OVERLAP_ALERT_THRESHOLD: u32 = 50;
-const SMALL_SEGMENT_ALERT_THRESHOLD: u32 = 2048;
-const OUT_OF_WINDOW_ALERT_THRESHOLD: u32 = 100;
 const MAX_FINDINGS: usize = 10_000;
+
+// The overlap / small-segment / out-of-window anomaly thresholds were
+// module-level `const`s; they are now per-engine configuration fields
+// (`ReassemblyConfig::*_alert_threshold`, see `config.rs`) so they can
+// be tuned via the CLI — LESSON-P2.05.
 
 static FINALIZE_SKIPPED_WARNED: AtomicBool = AtomicBool::new(false);
 
@@ -375,10 +377,16 @@ impl TcpReassembler {
     /// than one) and lets the `dropped_findings` counter accurately
     /// reflect distinct anomalies lost to the cap.
     fn check_anomaly_thresholds(&mut self, packet: &ParsedPacket, key: &FlowKey, dir: Direction) {
+        // Snapshot the configured thresholds before borrowing the flow
+        // (LESSON-P2.05 — these are now `ReassemblyConfig` fields).
+        let overlap_threshold = self.config.overlap_alert_threshold;
+        let small_segment_threshold = self.config.small_segment_alert_threshold;
+        let out_of_window_threshold = self.config.out_of_window_alert_threshold;
+
         let flow = self.flows.get_mut(key).unwrap();
         let flow_dir = flow.get_direction_mut(dir);
 
-        if flow_dir.overlap_count > OVERLAP_ALERT_THRESHOLD && !flow_dir.overlap_alert_fired {
+        if flow_dir.overlap_count > overlap_threshold && !flow_dir.overlap_alert_fired {
             flow_dir.overlap_alert_fired = true;
             if self.findings.len() < MAX_FINDINGS {
                 self.findings.push(Finding {
@@ -399,7 +407,7 @@ impl TcpReassembler {
                 self.stats.dropped_findings += 1;
             }
         }
-        if flow_dir.small_segment_count > SMALL_SEGMENT_ALERT_THRESHOLD
+        if flow_dir.small_segment_count > small_segment_threshold
             && !flow_dir.small_segment_alert_fired
         {
             flow_dir.small_segment_alert_fired = true;
@@ -422,7 +430,7 @@ impl TcpReassembler {
                 self.stats.dropped_findings += 1;
             }
         }
-        if flow_dir.out_of_window_count > OUT_OF_WINDOW_ALERT_THRESHOLD
+        if flow_dir.out_of_window_count > out_of_window_threshold
             && !flow_dir.out_of_window_alert_fired
         {
             flow_dir.out_of_window_alert_fired = true;
