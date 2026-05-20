@@ -1616,6 +1616,99 @@ fn test_default_config_threshold_values() {
     // config.rs field docs), not values endorsed by NIDS prior art.
     let cfg = ReassemblyConfig::default();
     assert_eq!(cfg.overlap_alert_threshold, 50);
-    assert_eq!(cfg.small_segment_alert_threshold, 2048);
+    assert_eq!(cfg.small_segment_alert_threshold, 100);
+    assert_eq!(cfg.small_segment_max_bytes, 16);
     assert_eq!(cfg.out_of_window_alert_threshold, 100);
+}
+
+/// Drive a flow of one-byte segments through the engine to exercise the
+/// consecutive small-segment run counter (LESSON-P2.05). When
+/// `break_after` is `Some(n)`, one normal-sized (29-byte) segment is
+/// inserted after the n-th small segment, which must reset the run.
+fn run_small_segment_flow(
+    threshold: u32,
+    small_count: u32,
+    break_after: Option<u32>,
+) -> TcpReassembler {
+    let config = ReassemblyConfig {
+        small_segment_alert_threshold: threshold,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let mut seq: u32 = 1001;
+    let mut ts: u32 = 2;
+    for i in 0..small_count {
+        if break_after == Some(i) {
+            // 29 bytes: well above the 16-byte cutoff, so it resets the run.
+            let normal = make_tcp_packet(
+                client,
+                12345,
+                server,
+                80,
+                seq,
+                b"a-normal-sized-tcp-segment-xx",
+                false,
+                true,
+                false,
+                false,
+            );
+            reassembler.process_packet(&normal, ts, &mut handler);
+            seq += 29;
+            ts += 1;
+        }
+        let small = make_tcp_packet(
+            client, 12345, server, 80, seq, b"x", false, true, false, false,
+        );
+        reassembler.process_packet(&small, ts, &mut handler);
+        seq += 1;
+        ts += 1;
+    }
+    reassembler
+}
+
+#[test]
+fn test_consecutive_small_segments_trip_anomaly() {
+    // 11 one-byte segments form an unbroken run of 11, above the
+    // configured threshold of 10 — the small-segment anomaly must fire.
+    let reasm = run_small_segment_flow(10, 11, None);
+    assert!(
+        reasm
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("small segments")),
+        "an unbroken run past the threshold must fire the small-segment anomaly"
+    );
+}
+
+#[test]
+fn test_normal_segment_resets_small_segment_run() {
+    // The same 11 one-byte segments — but a normal-sized segment after
+    // the 6th resets the consecutive run, so the two sub-runs (6, then
+    // 5) never reach the threshold of 10 and the anomaly stays silent.
+    let reasm = run_small_segment_flow(10, 11, Some(6));
+    assert!(
+        !reasm
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("small segments")),
+        "a normal-sized segment must reset the run and keep the anomaly silent"
+    );
 }

@@ -8,8 +8,9 @@
 //! → `Closed`).
 //!
 //! Memory accounting (`memory_used`) is consulted by the reassembler's
-//! memcap eviction strategy; per-direction `overlap_count`, `small_segment_count`,
-//! and `out_of_window_count` feed the threshold-based Anomaly findings.
+//! memcap eviction strategy; per-direction `overlap_count`,
+//! `small_segment_run`, and `out_of_window_count` feed the
+//! threshold-based Anomaly findings.
 
 use std::collections::BTreeMap;
 use std::net::IpAddr;
@@ -90,7 +91,10 @@ pub struct FlowDirection {
     pub reassembled_bytes: usize,
     pub overlap_count: u32,
     pub overlap_alert_fired: bool,
-    pub small_segment_count: u32,
+    /// Length of the *current consecutive run* of small (undersized)
+    /// segments. Incremented per small segment and reset to zero by any
+    /// normal-sized one — see `ReassemblyConfig::small_segment_alert_threshold`.
+    pub small_segment_run: u32,
     pub small_segment_alert_fired: bool,
     pub out_of_window_count: u32,
     pub out_of_window_alert_fired: bool,
@@ -115,7 +119,7 @@ impl FlowDirection {
             reassembled_bytes: 0,
             overlap_count: 0,
             overlap_alert_fired: false,
-            small_segment_count: 0,
+            small_segment_run: 0,
             small_segment_alert_fired: false,
             out_of_window_count: 0,
             out_of_window_alert_fired: false,

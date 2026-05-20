@@ -135,19 +135,12 @@ fn test_sequence_wraparound() {
     assert_eq!(&all_bytes, b"beforewraparound");
 }
 
-#[test]
-fn test_small_segment_tracking() {
-    let mut dir = FlowDirection::new();
-    dir.set_isn(1000);
-
-    // Insert small segments
-    for i in 0..5u32 {
-        let seq = 1001 + i;
-        dir.insert_segment(seq, b"a", 10_485_760, 10_000, 10_485_760);
-    }
-
-    assert_eq!(dir.small_segment_count, 5);
-}
+// `test_small_segment_tracking` was removed in the LESSON-P2.05
+// consecutive-run change: small-segment classification moved out of the
+// segment buffer into the engine (`insert_payload_segment`), so it is
+// now covered by the engine-level tests in `reassembly_engine_tests.rs`
+// (`test_consecutive_small_segments_trip_anomaly` and
+// `test_normal_segment_resets_small_segment_run`).
 
 #[test]
 fn test_buffered_bytes_after_insert() {

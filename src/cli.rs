@@ -79,11 +79,17 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub overlap_threshold: Option<u32>,
 
-    /// Override the small-segment anomaly threshold (default: 2048).
-    /// The default is permissive — lower it (low hundreds) to catch
-    /// fine-grained segmentation evasion. See LESSON-P2.05.
+    /// Override the small-segment anomaly threshold (default: 100).
+    /// Length of a consecutive run of undersized segments, per flow
+    /// direction, above which the anomaly fires. See LESSON-P2.05.
     #[arg(long, global = true)]
     pub small_segment_threshold: Option<u32>,
+
+    /// Override the small-segment payload-size cutoff in bytes
+    /// (default: 16). A segment shorter than this counts as "small";
+    /// 0 disables small-segment detection. See LESSON-P2.05.
+    #[arg(long, global = true)]
+    pub small_segment_max_bytes: Option<usize>,
 
     /// Override the out-of-window anomaly threshold (default: 100).
     /// Per flow direction; see LESSON-P2.05.

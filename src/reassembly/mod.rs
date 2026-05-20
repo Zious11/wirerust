@@ -310,6 +310,7 @@ impl TcpReassembler {
             flow.get_direction_mut(dir).infer_isn(tcp.seq);
         }
 
+        let small_segment_max_bytes = self.config.small_segment_max_bytes;
         let flow_dir = flow.get_direction_mut(dir);
         let before_insert = flow_dir.buffered_bytes;
         let result = flow_dir.insert_segment(
@@ -327,6 +328,30 @@ impl TcpReassembler {
         );
         let bytes_added = flow_dir.buffered_bytes.saturating_sub(before_insert);
         self.total_memory += bytes_added;
+
+        // Maintain the consecutive small-segment run for this direction
+        // (LESSON-P2.05). "Small" is a pure property of the payload
+        // size, so it is classified here rather than inside the segment
+        // buffer. Segments the buffer rejected outright (out-of-window,
+        // segment-limit) and pure ACKs (empty payload) are neutral —
+        // they neither extend nor reset the run. A normal-sized data
+        // segment resets it: segmentation-evasion shows up as a long
+        // *unbroken* run of tiny segments, whereas benign interactive
+        // traffic interleaves them with normal-sized segments.
+        if !payload.is_empty()
+            && !matches!(
+                result,
+                InsertResult::OutOfWindow
+                    | InsertResult::SegmentLimitReached
+                    | InsertResult::IsnMissing
+            )
+        {
+            if payload.len() < small_segment_max_bytes {
+                flow_dir.small_segment_run = flow_dir.small_segment_run.saturating_add(1);
+            } else {
+                flow_dir.small_segment_run = 0;
+            }
+        }
 
         match result {
             InsertResult::Inserted => self.stats.segments_inserted += 1,
@@ -407,7 +432,7 @@ impl TcpReassembler {
                 self.stats.dropped_findings += 1;
             }
         }
-        if flow_dir.small_segment_count > small_segment_threshold
+        if flow_dir.small_segment_run > small_segment_threshold
             && !flow_dir.small_segment_alert_fired
         {
             flow_dir.small_segment_alert_fired = true;
@@ -417,10 +442,14 @@ impl TcpReassembler {
                     verdict: Verdict::Inconclusive,
                     confidence: Confidence::Medium,
                     summary: format!(
-                        "Excessive small segments ({}) on flow {}",
-                        flow_dir.small_segment_count, key
+                        "Excessive consecutive small segments ({}) on flow {}",
+                        flow_dir.small_segment_run, key
                     ),
-                    evidence: vec!["Possible IDS evasion".into()],
+                    evidence: vec![
+                        "Long unbroken run of undersized TCP segments; possible \
+                         segmentation-based IDS evasion"
+                            .into(),
+                    ],
                     mitre_technique: None,
                     source_ip: Some(packet.src_ip),
                     timestamp: None,
