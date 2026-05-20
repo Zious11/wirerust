@@ -35,6 +35,18 @@ const MAX_RECORD_PAYLOAD: usize = 18_432;
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 /// Returns true if `val` is a TLS GREASE value (RFC 8701).
+///
+/// This uses the well-known bitmask test `(val & 0x0F0F) == 0x0A0A`,
+/// which is **deliberately broader than RFC 8701's strict definition**.
+/// RFC 8701 reserves exactly 16 GREASE values — `0x0A0A`, `0x1A1A`, …,
+/// `0xFAFA` (both bytes equal, of the form `0xNANA`). The bitmask also
+/// matches the 240 non-canonical `0x_A_A` values (e.g. `0x0A1A`,
+/// `0xCABA`). This is intentional and harmless: IANA has assigned no
+/// real cipher-suite or extension ID of `0x_A_A` form outside the 16
+/// GREASE values, so the wider mask never filters a value that carries
+/// JA3-relevant signal. The cheaper single-mask test is preferred over
+/// an explicit 16-value membership check. The JA3 property tests in
+/// this module's `ja3_property_tests` submodule pin this contract.
 fn is_grease_u16(val: u16) -> bool {
     (val & 0x0F0F) == 0x0A0A
 }
