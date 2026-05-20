@@ -14,23 +14,22 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 0/3
-adversary_pass_8_date: "2026-05-20"
-adversary_pass_8_verdict: NOT_CONVERGED
-adversary_pass_8_findings: "8 (0C/2H/3M/2L/1N) — all remediated; vp-008 arg order, stale citations, E-RAS-005 counter name"
-convergence_trajectory: "17→13→7→19→8→3→13→7→..."
+adversary_pass_9_date: "2026-05-20"
+adversary_pass_9_verdict: NOT_CONVERGED
+adversary_pass_9_findings: "4 (0C/1H/1M/2L) — all remediated; stale citations, error-category alignment"
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→..."
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 8 complete (NOT CONVERGED,
-8 findings: 0C/2H/3M/2L/1N). VP-008 decode_packet arg order corrected (data-first) + IPv6
-target added; vp-001 stale line citation fixed (flow.rs:34 -> flow.rs:48); error-taxonomy
-E-RAS-005 counter name corrected; cap-02 decode_packet line range corrected; BC-2.02.007
-error-prefix count corrected; VP-INDEX VP-005 redundant BC list cleaned; inv-01 INV-2
-method-token order matched to source. All findings remediated. Pass 9 is next.
-Awaiting 3 clean adversarial passes.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 9 complete (NOT CONVERGED,
+4 findings: 0C/1H/1M/2L). BC-2.04.054 stale line citations corrected (415→573 push,
+385-388→558-561 latch); prd.md section 5 error-category prefixes aligned to
+error-taxonomy.md (E-INP/E-DEC/E-RAS/E-ANA/E-OUT/E-CFG); BC-2.04.027 DepthExceeded
+arm citation corrected (386-389→387-389); ARCH-INDEX debt note added for O-02 and O-07.
+All findings remediated. Pass 10 is next. Awaiting 3 clean adversarial passes.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -45,7 +44,7 @@ Awaiting 3 clean adversarial passes.
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–8 NOT CONVERGED all remediated; pass 9 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→...` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–9 NOT CONVERGED all remediated; pass 10 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→...` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -102,14 +101,15 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 5 | 2026-05-20 | 8 (1C/2H/3M/2L) | NOT_CONVERGED | REMEDIATED — all 8 fixed; NUL byte, stale --services, count drift |
 | 6 | 2026-05-20 | 3 (0C/3H/0M/0L) | NOT_CONVERGED | REMEDIATED — all 3 fixed; component-ID anchors (95 BCs), BC-INDEX titles (34 rows), INV-1 citation |
 | 7 | 2026-05-20 | 13 (1C/3H/4M/3L/2N) | NOT_CONVERGED | REMEDIATED — all 13 fixed; entity shards, em-dash, SS-13 anchor, cap-05 token, VP-008 |
-| 8 | 2026-05-20 | 8 (0C/2H/3M/2L/1N) | NOT_CONVERGED | REMEDIATED — all 8 fixed; vp-008 arg order+IPv6, stale citations, E-RAS-005 counter; pass 9 next |
+| 8 | 2026-05-20 | 8 (0C/2H/3M/2L/1N) | NOT_CONVERGED | REMEDIATED — all 8 fixed; vp-008 arg order+IPv6, stale citations, E-RAS-005 counter |
+| 9 | 2026-05-20 | 4 (0C/1H/1M/2L) | NOT_CONVERGED | REMEDIATED — all 4 fixed; stale citations BC-2.04.054/027, prd error-categories, ARCH-INDEX debt note |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
 1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (0/3).
-   Pass 9 is next; no regression allowed between passes.
+   Pass 10 is next; no regression allowed between passes.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 

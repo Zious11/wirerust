@@ -24,10 +24,11 @@ traces_to: STATE.md
 | 6 | 2026-05-20 | 3 | 0 | 3 | 0 | 0 | LOW | — | 0/3 | NOT_CONVERGED — component-ID anchors, BC-INDEX titles, INV-1 citation; all 3 fixed |
 | 7 | 2026-05-20 | 13 | 1 | 3 | 4 | 3 | LOW | — | 0/3 | NOT_CONVERGED — entity shards, em-dash, SS-13 anchor, cap-05 token, VP-008; all 13 fixed |
 | 8 | 2026-05-20 | 8 | 0 | 2 | 3 | 2 | LOW | — | 0/3 | NOT_CONVERGED — vp-008 arg order+IPv6, stale citations, E-RAS-005 counter; all 8 fixed |
+| 9 | 2026-05-20 | 4 | 0 | 1 | 1 | 2 | LOW | — | 0/3 | NOT_CONVERGED — stale citations BC-2.04.054/027, prd error-categories, ARCH-INDEX debt note; all 4 fixed |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→...`
+`17→13→7→19→8→3→13→7→4→...`
 
 ## Per-Pass Details
 
@@ -416,5 +417,53 @@ corrected; VP-INDEX VP-005 redundant BC list cleaned; INV-2 token order matched 
 Fixes committed in burst
 `spec: fix adversarial-review pass-8 findings (2H/3M/2L) - vp-008 signature, stale citations`
 (SHA: 7cf0edd). Pass 9 dispatched next.
+
+---
+
+### Pass 9 (2026-05-20)
+
+**Findings:** 4 (0 CRIT, 1 HIGH, 1 MED, 2 LOW)
+**Delta from pass 8:** -4 total (CRIT 0, HIGH -1, MED -2, LOW 0, NITPICK -1) — no regression
+**Novelty:** LOW
+**Convergence counter:** 0 of 3
+
+**Key finding categories:**
+
+- HIGH (H-1): `behavioral-contracts/ss-04/BC-2.04.054.md` — 5 stale line citations corrected.
+  Architecture Module field: `415` → `557-591`. Invariant 2 latch citation: `mod.rs:385-388` →
+  `mod.rs:558-561`. Architecture Anchors push site: `mod.rs:415` → `mod.rs:573`. Architecture
+  Anchors latch: `mod.rs:385-388` → `mod.rs:558-561`. Source Evidence Path: `mod.rs:415` →
+  `mod.rs:573`. Evidence Types Used guard clause: push site 415 → push site 573.
+  All 5 citations now match the post-refactor source layout.
+
+- MED (M-1): `specs/prd.md` section 5 (Error Categories) — prefix scheme misaligned with
+  `prd-supplements/error-taxonomy.md`. `E-RDR-NNN` replaced with `E-INP-NNN` (input/file errors).
+  `E-CLI-NNN` replaced with `E-CFG-NNN` (configuration errors). Two new categories added:
+  `E-ANA-NNN` (analyzer protocol-level parse failures) and `E-OUT-NNN` (output file write
+  failures). `E-RAS-NNN` description tightened. `E-DEC-NNN` description updated. Section now
+  enumerates all 6 error-taxonomy prefixes: E-INP, E-DEC, E-RAS, E-ANA, E-OUT, E-CFG.
+
+- LOW (L-1): `behavioral-contracts/ss-04/BC-2.04.027.md` — DepthExceeded match arm citation
+  was `reassembly/mod.rs:386-389`; correct range is `mod.rs:387-389`. Corrected in Architecture
+  Module field, Architecture Anchors section, and Source Evidence Path field.
+
+- LOW (L-2): `specs/architecture/ARCH-INDEX.md` — debt section table accounted for O-01,
+  O-03 through O-06 and Smells but gave no account of O-02 and O-07. Note added explaining
+  both items are tracked in `domain-debt.md` rather than the architecture debt table because
+  they fall outside the architecture layer's scope. Complete open-item set (O-01 through O-07)
+  now explicitly acknowledged.
+
+**Files fixed (4):**
+`specs/behavioral-contracts/ss-04/BC-2.04.054.md`,
+`specs/prd.md`,
+`specs/behavioral-contracts/ss-04/BC-2.04.027.md`,
+`specs/architecture/ARCH-INDEX.md`
+
+**Remediation:** All 4 findings (0C/1H/1M/2L) remediated. Stale post-refactor citations
+corrected in BC-2.04.054 (5 citations) and BC-2.04.027 (1 citation range); prd.md section 5
+error-category scheme aligned to the canonical 6-prefix taxonomy in error-taxonomy.md;
+ARCH-INDEX debt section annotated to account for O-02 and O-07. Fixes committed in burst
+`spec: fix adversarial-review pass-9 findings (1H/1M/2L) - stale citations, error-category alignment`
+(SHA: b210c05). Pass 10 dispatched next.
 
 ---
