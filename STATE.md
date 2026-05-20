@@ -14,22 +14,21 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 0/3
-adversary_pass_20_date: "2026-05-20"
-adversary_pass_20_verdict: NOT_CONVERGED
-adversary_pass_20_findings: "4 (0C/0H/2M/1L/1N) — F-1/F-2 VP-007 SEEDED_IDS + citation; F-3 BC-2.12.008 main.rs off-by-one (5x); F-4 mitre_technique regex; counter remains 0/3; all fixed"
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4"
+adversary_pass_21_date: "2026-05-20"
+adversary_pass_21_verdict: NOT_CONVERGED
+adversary_pass_21_findings: "3 (0C/0H/1M/0L/2N) — F-1 C-10 re-anchor SS-08→SS-05 + ARCH-INDEX follow-up; O-1 prd.md removed-flags completed; O-2 BC-2.07.016 H1 align; counter remains 0/3; all fixed"
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 20 returned NOT CONVERGED (0C/0H/2M/1L/1N);
-4 findings, all spec-precision gaps: F-1/F-2 VP-007 SEEDED_IDS list corrected to real 15
-MITRE IDs + citation 99-129→122-156; F-3 BC-2.12.008 main.rs citation 57-58→57-59 (5
-instances); F-4 mitre_technique regex tightened. No behavioral defects. All fixed.
-Convergence counter: 0/3 unchanged. Pass 21 is next; must achieve 3 consecutive clean
-passes (0C/0H/0M) to satisfy gate.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 21 returned NOT CONVERGED (0C/0H/1M/0L/2N);
+3 findings: F-1 (MED) C-10 re-anchored SS-08→SS-05 in module-decomposition.md + ARCH-INDEX
+SS-05 row updated; O-1 (NITPICK) prd.md removed-flags completed; O-2 (NITPICK) BC-2.07.016
+one-liner aligned. No behavioral defects. All fixed. Convergence counter: 0/3 unchanged.
+Pass 22 is next; must achieve 3 consecutive clean passes (0C/0H/0M) to satisfy gate.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -44,7 +43,7 @@ passes (0C/0H/0M) to satisfy gate.
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–20 remediated; pass 11 CONVERGED then passes 12–20 NOT CONVERGED reset/held counter; pass 21 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–21 remediated; pass 11 CONVERGED then passes 12–21 NOT CONVERGED reset/held counter; pass 22 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -116,13 +115,14 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 18 | 2026-05-20 | 5 (0C/3H/2L) | NOT CONVERGED | Counter remains 0/3 — all 5 findings were stale-anchor drift from PR #75 `//!` header line shifts in last unreconciled domain shards. H-1 ent-01 8 entity anchors re-resolved; H-2 ent-04 6 cross-file anchors re-resolved; H-3 cap-10 unknown-ID rendering anchor corrected; L-1 ent-02 component range C-6..C-9→C-6..C-9,C-15; L-2 domain-spec "~282"→"282". All fixed (fc28b69). |
 | 19 | 2026-05-20 | 2 (0C/0H/2M/0L) | NOT CONVERGED | Counter remains 0/3 — M-1 purity-boundary-map.md 3 reporters misclassified Effectful-shell (should be Pure-core per module-decomposition.md); M-2 dependency-graph.md test-count statement inconsistent (corrected to "264 in tests/ + 18 inline = 282"). Package described as "overwhelmingly clean". All fixed (f913004). |
 | 20 | 2026-05-20 | 4 (0C/0H/2M/1L/1N) | NOT CONVERGED | Counter remains 0/3 — F-1/F-2 VP-007 SEEDED_IDS corrected to real 15 MITRE IDs + citation 99-129→122-156; F-3 BC-2.12.008 main.rs 57-58→57-59 (5 instances); F-4 mitre_technique regex tightened. All spec-precision gaps; no behavioral defects. All fixed. |
+| 21 | 2026-05-20 | 3 (0C/0H/1M/0L/2N) | NOT CONVERGED | Counter remains 0/3 — F-1 (MED) C-10 re-anchored SS-08→SS-05 (module-decomposition.md + ARCH-INDEX follow-up); O-1 (NITPICK) prd.md removed-flags completed; O-2 (NITPICK) BC-2.07.016 one-liner aligned. No behavioral defects. All fixed. |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
 1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (0/3).
-   Pass 21 is next; all three consecutive passes must be clean (0C/0H/0M) to satisfy gate.
+   Pass 22 is next; all three consecutive passes must be clean (0C/0H/0M) to satisfy gate.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 

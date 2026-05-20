@@ -46,7 +46,7 @@ All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by 
 
 | C-ID | File | SS-ID | Role | Purity |
 |------|------|-------|------|--------|
-| C-10 | src/analyzer/mod.rs | SS-08 | `ProtocolAnalyzer` trait; module re-exports | Pure (trait definition) |
+| C-10 | src/analyzer/mod.rs | SS-05 | `ProtocolAnalyzer` trait; `AnalysisSummary` struct; module re-exports -- shared analyzer infrastructure consumed by all three protocol analyzers (SS-06/07/08) and routed through by SS-05 per ADR 0002 | Pure (trait definition) |
 | C-11 | src/analyzer/dns.rs | SS-08 | `DnsAnalyzer`: `ProtocolAnalyzer`; packet-level QR-bit dispatch; statistics-only (emits no findings) | Pure core |
 | C-12 | src/analyzer/http.rs | SS-06 | `HttpAnalyzer`: `StreamAnalyzer`; HTTP/1.x request+response parse; 8 finding types; poison logic | Pure core |
 | C-13 | src/analyzer/tls.rs | SS-07 | `TlsAnalyzer`: `StreamAnalyzer`; ClientHello/ServerHello; JA3/JA3S; SNI 4-way; weak cipher; deprecated protocol | Pure core |

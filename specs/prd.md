@@ -112,6 +112,8 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 - BPF filtering (--filter flag removed by PR #74; clap rejects --filter as unknown argument; out of scope for current release)
 - C2 beacon detection (--beacon flag removed by PR #74; clap rejects --beacon as unknown argument; no beacon analyzer exists)
 - --threats flag behavior (flag removed by PR #74; clap rejects --threats as unknown argument; no corresponding analyzer)
+- --verbose flag (removed by PR #74 alongside --filter/--beacon/--threats; clap rejects --verbose as unknown argument; no verbosity levels defined)
+- --services flag on summary subcommand (removed by PR #74; clap rejects --services as unknown argument; per-service breakdown is out of scope for current release)
 - Parallel file processing (rayon = "1" is a declared production dependency but is entirely unused in src/; single-threaded only)
 - Streaming / lazy-read pcap processing (entire file loaded into RAM before processing)
 - Per-packet timestamp in findings (Finding.timestamp is always None; O-01)
@@ -297,7 +299,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.07.013 | Clean ASCII SNI without C0/DEL bytes produces no SNI-related finding | P0 | BC-TLS-013 |
 | BC-2.07.014 | SNI containing C0/DEL byte emits Anomaly/Inconclusive/Low finding mapped to T1027 | P0 | BC-TLS-014 |
 | BC-2.07.015 | Multiple control bytes in one SNI produce exactly ONE finding | P0 | BC-TLS-015 |
-| BC-2.07.016 | C0 boundary: 0x00 and 0x1F trip the finding; 0x20 (space) does not | P0 | BC-TLS-016 |
+| BC-2.07.016 | C0 boundary: 0x1F trips the finding; 0x20 (space) does not | P0 | BC-TLS-016 |
 | BC-2.07.017 | Non-ASCII but valid UTF-8 SNI emits Anomaly/Inconclusive/Low finding mapped to T1027 | P0 | BC-TLS-017 |
 | BC-2.07.018 | Punycode A-label (xn--...) is pure ASCII and emits no SNI finding | P1 | BC-TLS-018 |
 | BC-2.07.019 | Non-UTF-8 SNI bytes emit Anomaly/Inconclusive/Low finding mapped to T1027; count key tagged | P0 | BC-TLS-019 |

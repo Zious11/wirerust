@@ -38,10 +38,11 @@ traces_to: STATE.md
 | 18 | 2026-05-20 | 5 | 0 | 3 | 0 | 2 | LOW | — | **0/3** | **NOT CONVERGED** — all 5 findings were stale-anchor drift from PR #75 `//!` header line shifts in last unreconciled domain shards. H-1 ent-01 8 entity anchors; H-2 ent-04 6 cross-file anchors; H-3 cap-10 unknown-ID rendering anchor; L-1 ent-02 C-range; L-2 domain-spec test count. All fixed (fc28b69). |
 | 19 | 2026-05-20 | 2 | 0 | 0 | 2 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — 0C/0H/2M/0L; package described as "overwhelmingly clean". M-1 purity-boundary-map.md: 3 reporters (JsonReporter, CsvReporter, TextReporter) misclassified as Effectful-shell; corrected to Pure-core (consistent with module-decomposition.md). M-2 dependency-graph.md: test-count statement corrected to "264 in tests/ + 18 inline = 282". All fixed (f913004). |
 | 20 | 2026-05-20 | 4 | 0 | 0 | 2 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — 0C/0H/2M/1L/1N; all spec-precision gaps, no behavioral defects. F-1/F-2 VP-007 SEEDED_IDS corrected + citation 99-129→122-156; F-3 BC-2.12.008 main.rs 57-58→57-59 (5 instances); F-4 mitre_technique regex tightened. Counter remains 0/3. All fixed. |
+| 21 | 2026-05-20 | 3 | 0 | 0 | 1 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — 0C/0H/1M/0L/2N. F-1 (MED) module-decomposition.md C-10 re-anchored SS-08→SS-05 (analyzer/mod.rs belongs to shared analyzer-trait module, not DNS-specific); ARCH-INDEX.md SS-05 registry row updated (follow-up). O-1 (NITPICK) prd.md Out-of-Scope removed-flags list completed (--verbose, --services added). O-2 (NITPICK) BC-2.07.016 one-liner aligned to canonical H1. Counter remains 0/3. All fixed. |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only; pass 20 spec-precision gaps — 0C/0H/2M/1L/1N)
+`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only; pass 20 spec-precision gaps — 0C/0H/2M/1L/1N; pass 21 — 0C/0H/1M/0L/2N, C-10 re-anchor + PRD nitpicks)
 
 ## Per-Pass Details
 
@@ -1098,5 +1099,46 @@ files. Package remains in very clean state.
 real 15 MITRE IDs; VP-007 Source Location citation updated 99-129 → 122-156; BC-2.12.008
 main.rs citation corrected 57-58 → 57-59 (5 instances); interface-definitions.md mitre_technique
 regex tightened to strict form. Pass 21 dispatched next.
+
+---
+
+### Pass 21 (2026-05-20)
+
+**Findings:** 3 (0 CRIT, 0 HIGH, 1 MED, 0 LOW, 2 NITPICK)
+**Delta from pass 20:** -1 total (MED -1, LOW -1, NITPICK +1) — no regression; continued reduction
+**Novelty:** LOW
+**Convergence counter:** 0 of 3
+
+**Adversary assessment:** Package remains in very clean state. Single medium finding is a
+subsystem anchor misclassification (C-10 in module-decomposition.md pointing to SS-08 DNS-specific
+module instead of SS-05 shared analyzer-trait module). Two nitpicks are PRD editorial gaps. No
+behavioral correctness defects found.
+
+**Key finding categories:**
+
+- MED (F-1): `specs/architecture/module-decomposition.md` — C-10 (`analyzer/mod.rs`, shared
+  analyzer trait module) was anchored under SS-08 (DNS Analyzer subsystem) instead of SS-05
+  (Analyzer Registry subsystem). Re-anchored to SS-05.
+
+- MED follow-up: `specs/architecture/ARCH-INDEX.md` — SS-05 registry row "Primary Source Files"
+  column updated from `dispatcher.rs` to `dispatcher.rs, analyzer/mod.rs` to reflect the
+  re-anchor of C-10.
+
+- NITPICK (O-1): `specs/prd.md` — Out-of-Scope section "Removed CLI flags" list was incomplete;
+  `--verbose` and `--services` were present in prior versions but not listed as explicitly
+  removed. Both flags added to the removed-flags enumeration.
+
+- NITPICK (O-2): `specs/prd.md` — BC-2.07.016 inline one-liner was editorially misaligned with
+  its canonical H1 heading format (minor wording inconsistency). Aligned to canonical H1.
+
+**Files fixed (3):**
+- `specs/architecture/module-decomposition.md`
+- `specs/architecture/ARCH-INDEX.md`
+- `specs/prd.md`
+
+**Remediation:** All 3 findings (0C/0H/1M/0L/2N) remediated. C-10 re-anchored SS-08→SS-05 in
+module-decomposition.md; ARCH-INDEX.md SS-05 row updated (follow-up to F-1); prd.md
+Out-of-Scope removed-flags completed and BC-2.07.016 one-liner aligned. Counter remains 0/3.
+Pass 22 dispatched next.
 
 ---

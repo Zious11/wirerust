@@ -59,7 +59,7 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 | SS-01 | PCAP Ingestion | CAP-01 | reader.rs | 8 |
 | SS-02 | Packet Decoding | CAP-02 + CAP-03 | decoder.rs | 15 |
 | SS-04 | TCP Reassembly | CAP-04 | reassembly/{mod,flow,segment,handler,lifecycle,config,stats}.rs | 54 |
-| SS-05 | Protocol Dispatch | CAP-05 | dispatcher.rs | 9 |
+| SS-05 | Protocol Dispatch | CAP-05 | dispatcher.rs, analyzer/mod.rs | 9 |
 | SS-06 | HTTP Analysis | CAP-06 | analyzer/http.rs | 26 |
 | SS-07 | TLS Analysis | CAP-07 | analyzer/tls.rs | 37 |
 | SS-08 | DNS Analysis | CAP-08 | analyzer/dns.rs | 4 |
