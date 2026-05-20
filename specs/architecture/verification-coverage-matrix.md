@@ -29,11 +29,11 @@ timestamp: 2026-05-20T00:00:00Z
 | VP-013 | JA3 GREASE filter | analyzer/tls.rs | proptest | P1 | draft |
 | VP-014 | HttpAnalyzer cross-flow isolation | analyzer/http.rs | proptest | P1 | draft |
 | VP-015 | TCP sequence wraparound | reassembly/segment.rs | Kani | P1 | draft |
-| VP-016 | MITRE tactic grouping order | reporter/terminal.rs | integration | P1 | draft |
-| VP-017 | JsonReporter key determinism | reporter/json.rs | integration | P1 | draft |
-| VP-018 | CLI mutual exclusion (reassemble flags) | cli.rs | integration | P1 | draft |
-| VP-019 | DNS statistics-only (no findings) | analyzer/dns.rs | unit | P1 | draft |
-| VP-020 | CSV injection neutralization | reporter/csv.rs | unit | P1 | draft |
+| VP-016 | MITRE tactic grouping order | reporter/terminal.rs | integration | test-sufficient | draft |
+| VP-017 | JsonReporter key determinism | reporter/json.rs | integration | test-sufficient | draft |
+| VP-018 | CLI mutual exclusion (reassemble flags) | cli.rs | integration | test-sufficient | draft |
+| VP-019 | DNS statistics-only (no findings) | analyzer/dns.rs | unit | test-sufficient | draft |
+| VP-020 | CSV injection neutralization | reporter/csv.rs | unit | test-sufficient | draft |
 
 
 ## Per-Module Coverage Totals
