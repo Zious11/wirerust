@@ -32,10 +32,11 @@ traces_to: STATE.md
 | 14 | 2026-05-20 | 3 | 0 | 1 | 0 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — H-1 summary.rs C-16→C-17 mis-anchor (4 sites/2 files), L-1 entity index E-39b missing (entity 41→42), N-1 BC-2.12.005 citation off-by-one; all 3 fixed |
 | SWEEP | 2026-05-20 | — | — | — | — | — | — | — | **0/3** | **REMEDIATION BURST** — proactive anchor sweep; 3,820 occurrences audited; 28 mis-anchors fixed; no adversary pass; counter unchanged |
 | 15 | 2026-05-20 | 4 | 0 | 1 | 2 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — H-1 VP-020 test API wrong (CsvReporter/render()->String); M-1 VP-020 pt 3 mis-scoped AnalysisSummary; M-2 module-decomposition reporter Purity wrong; N-1 covered by M-2 fix. All 4 fixed. |
+| 16 | 2026-05-20 | 3 | 1 | 0 | 1 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — C-1 BC-2.07.037 Postcondition 4 verdict Anomaly/Likely/High→Anomaly/Inconclusive/Low; M-1 stale correction-notes removed from BC-2.07.017/019; L-1 minor wording. All 3 fixed. |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4`
+`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3`
 
 ## Per-Pass Details
 
@@ -804,5 +805,43 @@ sibling files un-swept. Mandatory codification follow-up P4-PG2 already recorded
 corrected from effectful to pure for all three reporter components. Fixes committed in burst
 `spec: fix adversarial-review pass-15 findings (1H/2M/1N) - VP-020 CsvReporter API + reporter purity`
 (SHA: 7a66b0b). Pass 16 dispatched next.
+
+---
+
+### Pass 16 (2026-05-20) — NOT CONVERGED (counter remains 0/3)
+
+**Findings:** 3 (1 CRIT, 0 HIGH, 1 MED, 1 LOW)
+**Delta from pass 15:** -1 total (CRIT +1, HIGH -1, MED -1, LOW +1) — no regression; findings are in a different BC file than pass-15 targets
+**Novelty:** LOW
+**Convergence counter:** 0/3 (unchanged — CRIT finding disqualifies; a clean pass requires 0C/0H/0M)
+**Verdict:** NOT CONVERGED — 1 CRIT finding present. Counter remains 0/3. Pass 17 is next.
+
+**Key finding categories:**
+
+- CRIT (F-1): `behavioral-contracts/ss-07/BC-2.07.037.md` — Postcondition 4 asserted that the
+  arm-3 (NonAsciiUtf8) finding has verdict `Anomaly/Likely/High`. This is incorrect. Arm 3 fires
+  for non-ASCII UTF-8 SNI hostnames; the correct verdict tuple per the source code and sibling BCs
+  (BC-2.07.017, BC-2.07.019) is `Anomaly/Inconclusive/Low`. The `Likely/High` tuple is used by
+  arm 1 (valid ASCII clean hostname — no finding) and arm 2 (AsciiWithControl — BC-2.07.014),
+  not arm 3. Postcondition 4 corrected to `Anomaly/Inconclusive/Low`.
+
+- MED (F-2): `behavioral-contracts/ss-07/BC-2.07.017.md` and `BC-2.07.019.md` — both files
+  contained stale internal correction-notes of the form "BC-INDEX title says..." that were
+  remediation breadcrumbs from an earlier pass (pass 6 BC-INDEX resync). These notes are no
+  longer accurate or useful and were removed.
+
+- LOW (L-1): Minor wording inconsistency in BC-2.07.037.md Related BCs section; corrected in
+  the same sweep as F-1.
+
+**Files fixed (3):**
+`specs/behavioral-contracts/ss-07/BC-2.07.037.md`,
+`specs/behavioral-contracts/ss-07/BC-2.07.017.md`,
+`specs/behavioral-contracts/ss-07/BC-2.07.019.md`
+
+**Remediation:** All 3 findings (1C/1M/1L) remediated. BC-2.07.037 Postcondition 4 verdict
+corrected Anomaly/Likely/High → Anomaly/Inconclusive/Low to match source and sibling BCs;
+stale correction-notes removed from BC-2.07.017 and BC-2.07.019. Fixes committed in burst
+`spec: fix adversarial-review pass-16 findings (1C/1M) - SNI verdict + stale notes`
+(SHA: cbef4f1). Pass 17 dispatched next.
 
 ---

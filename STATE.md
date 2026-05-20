@@ -14,20 +14,21 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 0/3
-adversary_pass_15_date: "2026-05-20"
-adversary_pass_15_verdict: NOT_CONVERGED
-adversary_pass_15_findings: "4 (0C/1H/2M/1N) — counter remains 0/3; all fixed"
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4"
+adversary_pass_16_date: "2026-05-20"
+adversary_pass_16_verdict: NOT_CONVERGED
+adversary_pass_16_findings: "3 (1C/1M/1L) — counter remains 0/3; all fixed"
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 15 NOT CONVERGED (0C/1H/2M/1N).
-Counter remains 0/3. All pass-15 findings fixed (VP-020 CsvReporter API corrected, reporter
-purity column corrected in module-decomposition.md). Pass 16 is next; must achieve 3
-consecutive clean passes (0C/0H/0M) to satisfy gate.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 16 NOT CONVERGED (1C/1M/1L).
+Counter remains 0/3. All pass-16 findings fixed (BC-2.07.037 SNI verdict corrected
+Anomaly/Likely/High→Anomaly/Inconclusive/Low; stale correction-notes removed from
+BC-2.07.017/019). Pass 17 is next; must achieve 3 consecutive clean passes (0C/0H/0M)
+to satisfy gate.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -42,7 +43,7 @@ consecutive clean passes (0C/0H/0M) to satisfy gate.
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–15 remediated; pass 11 CONVERGED then passes 12–15 NOT CONVERGED reset/held counter; pass 16 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–16 remediated; pass 11 CONVERGED then passes 12–16 NOT CONVERGED reset/held counter; pass 17 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -107,14 +108,15 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 13 | 2026-05-20 | 5 (0C/2H/0M/3L) | NOT CONVERGED | Counter remains 0/3 — H-1 ent-05 7 stale anchors, H-2 INV-4 ADR-0003 anchor, C-1 ARCH-INDEX C-count, prd.md BC-2.07.004 one-liner, 1N. All fixed. |
 | 14 | 2026-05-20 | 3 (0C/1H/0M/1L/1N) | NOT CONVERGED | Counter remains 0/3 — H-1 summary.rs C-16→C-17 mis-anchor (domain-spec+cap-12, 4 sites), L-1 ent-04 E-39b CsvReporter missing from entity index (entity count 41→42), N-1 BC-2.12.005 cli.rs citation 61-105→61-106. All fixed. |
 | SWEEP | 2026-05-20 | — (inter-pass) | REMEDIATION BURST | Proactive anchor-consistency sweep: 3,820 occurrences audited; 28 mis-anchors fixed (3 C-ID in BC-2.12.018/019/021 + 25 capability-column in prd.md). Recurring C-ID/capability-anchor defect class addressed at root (passes 4,6,10,13,14). Counter remains 0/3. Pass 15 next. |
-| 15 | 2026-05-20 | 4 (0C/1H/2M/1N) | NOT CONVERGED | Counter remains 0/3 — H-1 VP-020 test_csv_safe_values_unchanged using wrong API; M-1 VP-020 Property Statement pt 3 mis-scoped AnalysisSummary; M-2/N-1 module-decomposition reporter Purity column wrong (effectful→pure). All fixed. Pass 16 next. |
+| 15 | 2026-05-20 | 4 (0C/1H/2M/1N) | NOT CONVERGED | Counter remains 0/3 — H-1 VP-020 test_csv_safe_values_unchanged using wrong API; M-1 VP-020 Property Statement pt 3 mis-scoped AnalysisSummary; M-2/N-1 module-decomposition reporter Purity column wrong (effectful→pure). All fixed. |
+| 16 | 2026-05-20 | 3 (1C/1M/1L) | NOT CONVERGED | Counter remains 0/3 — C-1 BC-2.07.037 Postcondition 4 verdict Anomaly/Likely/High→Anomaly/Inconclusive/Low; M-1 stale correction-notes removed from BC-2.07.017/019; L-1 (see trajectory). All fixed. Pass 17 next. |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
 1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (0/3).
-   Pass 16 is next; all three consecutive passes must be clean (0C/0H/0M) to satisfy gate.
+   Pass 17 is next; all three consecutive passes must be clean (0C/0H/0M) to satisfy gate.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 
