@@ -31,10 +31,11 @@ traces_to: STATE.md
 | 13 | 2026-05-20 | 5 | 0 | 2 | 0 | 3 | LOW | — | **0/3** | **NOT CONVERGED** — 2H stale anchors (ent-05, INV-4), 2L doc drift (ARCH-INDEX C-count, prd BC-2.07.004), 1N; all 5 fixed |
 | 14 | 2026-05-20 | 3 | 0 | 1 | 0 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — H-1 summary.rs C-16→C-17 mis-anchor (4 sites/2 files), L-1 entity index E-39b missing (entity 41→42), N-1 BC-2.12.005 citation off-by-one; all 3 fixed |
 | SWEEP | 2026-05-20 | — | — | — | — | — | — | — | **0/3** | **REMEDIATION BURST** — proactive anchor sweep; 3,820 occurrences audited; 28 mis-anchors fixed; no adversary pass; counter unchanged |
+| 15 | 2026-05-20 | 4 | 0 | 1 | 2 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — H-1 VP-020 test API wrong (CsvReporter/render()->String); M-1 VP-020 pt 3 mis-scoped AnalysisSummary; M-2 module-decomposition reporter Purity wrong; N-1 covered by M-2 fix. All 4 fixed. |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6→5→3`
+`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4`
 
 ## Per-Pass Details
 
@@ -756,5 +757,52 @@ sibling files un-swept. Mandatory codification follow-up P4-PG2 already recorded
 **Committed in burst:**
 `spec: proactive anchor-consistency sweep - fix 3 C-ID + 25 capability-column mis-anchors`
 (SHA: 21093ed). Pass 15 dispatched next.
+
+---
+
+### Pass 15 (2026-05-20) — NOT CONVERGED (counter remains 0/3)
+
+**Findings:** 4 (0 CRIT, 1 HIGH, 2 MED, 1 NITPICK)
+**Delta from pass 14:** +1 total (HIGH 0, MED +2, LOW -1, NITPICK 0) — no regression; LOW findings resolved, 2 MED surfaced in VP-020 and module-decomposition
+**Novelty:** LOW
+**Convergence counter:** 0/3 (unchanged — HIGH finding disqualifies; a clean pass requires 0C/0H/0M)
+**Verdict:** NOT CONVERGED — 1 HIGH + 2 MED findings present. Counter remains 0/3. Pass 16 is next.
+
+**Key finding categories:**
+
+- HIGH (F-1): `verification-properties/vp-020-csv-injection-neutralization.md` — the
+  `test_csv_safe_values_unchanged` test was written against a non-existent API: it used
+  `CsvReporter::new()` (no such constructor; `CsvReporter` is a unit struct) and called
+  `reporter.render(...)` with a `Summary` + `findings` + `analyzer_summaries` triple-arg
+  form that does not match the actual `Reporter` trait signature. The `render` method returns
+  an owned `String`, not a `Vec<String>`. Test rewritten to use `CsvReporter` directly
+  (unit struct — no constructor) and the correct `render(&self, ...) -> String` signature.
+
+- MED (F-2): `verification-properties/vp-020-csv-injection-neutralization.md` — Property
+  Statement point 3 claimed that `AnalysisSummary` detail values are neutralized. This was
+  incorrect: `CsvReporter::render` explicitly ignores the `_analyzer_summaries` parameter
+  (underscore-prefixed at `csv.rs:56`). No `AnalysisSummary` data ever reaches a CSV cell.
+  Point 3 corrected to reflect the actual neutralization scope (per-`Finding` fields only).
+
+- MED (F-3): `architecture/module-decomposition.md` — L4 reporter table Purity column listed
+  `C-19` (JsonReporter) and `C-20` (TerminalReporter) as `Effectful (stdout write)`, and the
+  CsvReporter row as `Effectful (stdout/file write)`. This was incorrect: all three reporter
+  `render()` implementations are pure `&self -> String` transformations — they return an owned
+  `String` and perform no I/O themselves. The I/O (stdout write or file write) is the caller's
+  responsibility (`main.rs`). All three Purity cells corrected to `Pure (returns owned String;
+  no I/O -- caller in main.rs writes)`.
+
+- NITPICK (N-1): Covered by the F-3 purity-column fix; minor wording cleaned in the same pass.
+
+**Files fixed (2):**
+`specs/verification-properties/vp-020-csv-injection-neutralization.md`,
+`specs/architecture/module-decomposition.md`
+
+**Remediation:** All 4 findings (0C/1H/2M/1N) remediated. VP-020 test rewritten to the real
+`CsvReporter`/`render() -> String` API; Property Statement point 3 corrected to exclude
+`AnalysisSummary` from neutralization scope; module-decomposition reporter Purity column
+corrected from effectful to pure for all three reporter components. Fixes committed in burst
+`spec: fix adversarial-review pass-15 findings (1H/2M/1N) - VP-020 CsvReporter API + reporter purity`
+(SHA: 7a66b0b). Pass 16 dispatched next.
 
 ---
