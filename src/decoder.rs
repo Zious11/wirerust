@@ -27,6 +27,14 @@
 //! is rejected, exactly as the strict parser intended — lax recovery is never
 //! applied to a malformed packet. Strict-first keeps full validation for the
 //! common (untruncated) case; lax parsing is only ever the truncation fallback.
+//!
+//! When the snaplen cut lands *inside* the transport header (not just the
+//! payload), the lax parser recovers the IP layer but not the transport
+//! layer: such a frame decodes with its IP addresses intact but as
+//! `Protocol::Other(ip_protocol)` with `TransportInfo::None` — the honest
+//! degraded result, since the ports / flags simply were not captured. The
+//! "TCP / UDP surface their port / flag tuple" statement above therefore
+//! holds only when the transport header itself was captured.
 
 use std::net::IpAddr;
 
@@ -171,6 +179,12 @@ fn lax_parse(data: &[u8], datalink: DataLink) -> Result<LaxSlicedPacket<'_>> {
             // SLL header is a fixed 16 bytes whose final two bytes hold the
             // protocol type (an `EtherType`); hand the remainder to the lax
             // ether-type slicer, which is infallible.
+            //
+            // The `.get(..)` guard below is defensive: in practice an SLL
+            // frame shorter than 16 bytes fails the *strict* parse with a
+            // non-`Len` error and is rejected before `lax_parse` is ever
+            // reached, so the truncated-header branch is not expected to
+            // fire — but bounding the slice keeps it panic-free regardless.
             let proto = data
                 .get(SLL_HEADER_LEN - 2..SLL_HEADER_LEN)
                 .ok_or_else(|| anyhow!("Parse error: SLL header truncated"))?;
