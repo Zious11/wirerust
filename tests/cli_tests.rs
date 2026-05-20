@@ -137,6 +137,8 @@ fn test_threshold_flags_parse() {
         "10",
         "--small-segment-threshold",
         "256",
+        "--small-segment-max-bytes",
+        "32",
         "--out-of-window-threshold",
         "25",
         "analyze",
@@ -144,6 +146,7 @@ fn test_threshold_flags_parse() {
     ]);
     assert_eq!(cli.overlap_threshold, Some(10));
     assert_eq!(cli.small_segment_threshold, Some(256));
+    assert_eq!(cli.small_segment_max_bytes, Some(32));
     assert_eq!(cli.out_of_window_threshold, Some(25));
 }
 
@@ -154,6 +157,7 @@ fn test_threshold_flags_default_to_none() {
     let cli = Cli::parse_from(["wirerust", "analyze", "capture.pcap"]);
     assert_eq!(cli.overlap_threshold, None);
     assert_eq!(cli.small_segment_threshold, None);
+    assert_eq!(cli.small_segment_max_bytes, None);
     assert_eq!(cli.out_of_window_threshold, None);
 }
 

@@ -3,23 +3,22 @@
 //! [`ReassemblyConfig`] holds the resource ceilings that bound the
 //! [`crate::reassembly::TcpReassembler`] — per-direction depth, total
 //! memcap, idle timeout, concurrent-flow count, the forward receive
-//! window, and the three per-flow-direction anomaly-alert thresholds
+//! window, and the four per-flow-direction anomaly-detection fields
 //! (LESSON-P2.05). Extracted from `mod.rs` for LESSON-P2.01.
 //!
 //! ## Anomaly thresholds (LESSON-P2.05)
 //!
-//! The three `*_alert_threshold` fields control when the engine emits
-//! overlap / small-segment / out-of-window Anomaly findings. A research
-//! pass against Suricata, Zeek, and Snort established that **no
-//! production NIDS exposes a directly-comparable "count occurrences per
-//! flow direction and alert at N" threshold** — Suricata acts
-//! per-event with exponential backoff, Zeek bounds byte volumes and
-//! ships its overlap detector disabled, and Snort's count-based knobs
-//! (`overlap_limit`, `small_segments`) both default to 0/disabled.
-//! These three values therefore cannot be "calibrated" against prior
-//! art; they are conservative engineering defaults, and each field's
-//! doc comment records the closest cited reference. They are also CLI-
-//! overridable (`--overlap-threshold`, `--small-segment-threshold`,
+//! Four fields control the overlap / small-segment / out-of-window
+//! Anomaly findings. A research pass against Suricata, Zeek, and Snort
+//! established that **no production NIDS ships an enabled, directly-
+//! comparable detector**: Suricata reassembles and inspects the result
+//! rather than alerting on segment-size distribution, Zeek ships no
+//! small-segment notice, and Snort's count-based knobs (`overlap_limit`,
+//! `small_segments`) both default to 0/disabled. These values are
+//! therefore conservative engineering defaults, not values calibrated
+//! against prior art; each field's doc comment records the closest
+//! cited reference. All four are CLI-overridable (`--overlap-threshold`,
+//! `--small-segment-threshold`, `--small-segment-max-bytes`,
 //! `--out-of-window-threshold`) so operators can tune per-network.
 
 /// Configuration for the TCP reassembly engine.
@@ -50,19 +49,39 @@ pub struct ReassemblyConfig {
     /// engineering choice inside that sanctioned range — not a value
     /// any source endorses.
     pub overlap_alert_threshold: u32,
-    /// Small (undersized) segment count, per flow direction, **above
-    /// which** a small-segment Anomaly finding is emitted.
+    /// Length of a *consecutive run* of small (undersized) segments, per
+    /// flow direction, **above which** a small-segment Anomaly finding
+    /// is emitted. A segment counts as small when its payload is shorter
+    /// than [`Self::small_segment_max_bytes`]; a normal-sized segment
+    /// resets the run to zero.
     ///
-    /// LESSON-P2.05: research flagged this default as likely too
-    /// permissive. `2048` is the **maximum** of Snort's
-    /// `stream_tcp.small_segments.count` knob — whose actual default is
-    /// `0`/disabled — not a recommended detection value. A fine-grained
-    /// segmentation-evasion stream would need 2 KB+ of payload to trip
-    /// it. The value is retained as the default to avoid a behavior
-    /// change without false-positive data; operators tuning for evasion
-    /// detection should lower it via `--small-segment-threshold` (the
-    /// low hundreds is a reasonable starting point).
+    /// LESSON-P2.05: TCP segmentation-evasion (e.g. `fragroute tcp_seg
+    /// 1`) shows up as a long *unbroken* run of tiny segments, whereas
+    /// benign interactive traffic (telnet / SSH keystrokes) interleaves
+    /// tiny segments with normal-sized ones. A consecutive-run counter
+    /// — which Snort's `stream_tcp.small_segments` also uses, resetting
+    /// on a non-small segment — separates the two far better than the
+    /// cumulative count this field previously held. No NIDS publishes a
+    /// recommended value (Snort ships the feature disabled); `100` is a
+    /// conservative engineering default: low enough to catch a
+    /// 1-byte-segmented exploit payload (typically 300–900 segments),
+    /// high enough to tolerate ordinary interactive bursts. Tune via
+    /// `--small-segment-threshold`.
     pub small_segment_alert_threshold: u32,
+    /// Payload-size cutoff: a TCP segment carrying fewer than this many
+    /// payload bytes is classified as "small" for the
+    /// [`Self::small_segment_alert_threshold`] run counter. Empty
+    /// segments (pure ACKs) are never counted either way.
+    ///
+    /// LESSON-P2.05: the closest prior art is the size parameter of
+    /// Snort's `stream_tcp.small_segments`, operator-chosen in the range
+    /// 1–2048 (the documentation examples use `15`). `16` is a
+    /// conservative default — small enough to flag deliberate
+    /// fragmentation, large enough to also catch an attacker who splits
+    /// into 8–15 byte segments rather than literal 1-byte ones. Setting
+    /// it to `0` disables small-segment detection entirely. Tune via
+    /// `--small-segment-max-bytes`.
+    pub small_segment_max_bytes: usize,
     /// Out-of-window segment count, per flow direction, **above which**
     /// an out-of-window Anomaly finding is emitted.
     ///
@@ -77,15 +96,16 @@ pub struct ReassemblyConfig {
 impl Default for ReassemblyConfig {
     fn default() -> Self {
         ReassemblyConfig {
-            max_depth: 10 * 1024 * 1024,         // 10 MB per direction
-            memcap: 1024 * 1024 * 1024,          // 1 GB total
-            flow_timeout_secs: 300,              // 5 minutes
-            max_flows: 100_000,                  // 100K concurrent flows
-            max_segments_per_direction: 10_000,  // 10K segments per direction
-            max_receive_window: 1_048_576,       // 1 MB forward window
-            overlap_alert_threshold: 50,         // see field doc (LESSON-P2.05)
-            small_segment_alert_threshold: 2048, // see field doc (LESSON-P2.05)
-            out_of_window_alert_threshold: 100,  // see field doc (LESSON-P2.05)
+            max_depth: 10 * 1024 * 1024,        // 10 MB per direction
+            memcap: 1024 * 1024 * 1024,         // 1 GB total
+            flow_timeout_secs: 300,             // 5 minutes
+            max_flows: 100_000,                 // 100K concurrent flows
+            max_segments_per_direction: 10_000, // 10K segments per direction
+            max_receive_window: 1_048_576,      // 1 MB forward window
+            overlap_alert_threshold: 50,        // see field doc (LESSON-P2.05)
+            small_segment_alert_threshold: 100, // see field doc (LESSON-P2.05)
+            small_segment_max_bytes: 16,        // see field doc (LESSON-P2.05)
+            out_of_window_alert_threshold: 100, // see field doc (LESSON-P2.05)
         }
     }
 }

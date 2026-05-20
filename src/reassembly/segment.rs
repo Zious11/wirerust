@@ -71,10 +71,10 @@ impl FlowDirection {
             return InsertResult::SegmentLimitReached;
         }
 
-        // Track small segments (cumulative, not consecutive)
-        if data.len() < 8 {
-            self.small_segment_count += 1;
-        }
+        // Note: the small-segment run counter is maintained by the
+        // caller (`insert_payload_segment`), not here — "small" is a
+        // pure property of the payload size and needs no buffer state,
+        // unlike the overlap and out-of-window counters below.
 
         // Check depth limit
         let remaining_depth = max_depth.saturating_sub(self.reassembled_bytes);
