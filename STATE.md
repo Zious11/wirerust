@@ -19,7 +19,7 @@ documentation subset. Three cosmetic P3 items deliberately deferred.
 
 **Mode:** brownfield (in-repo: target == reference).
 
-**Test suite:** 213 (Phase 0 baseline) → **279** passing. `cargo fmt --check`,
+**Test suite:** 213 (Phase 0 baseline) → **282** passing. `cargo fmt --check`,
 `cargo clippy --all-targets -- -D warnings`, `cargo test --all-targets`,
 `cargo audit`, and `cargo deny` are all green on `develop`.
 
@@ -115,6 +115,9 @@ DEFERRED (cosmetic, per agreed curation): pluralization-helper extraction,
 - **#95** — `test`: close adversarial-review pass-2 test-quality gaps
   (load-bearing boundary/reset tests, physical-buffer truncation test,
   IPv6 truncation coverage, exact decode-count pin). Docs/tests only.
+- **#96** — `fix(cli)`: enforce sane ranges on the reassembly threshold
+  flags + threshold-boundary tests for overlap/out-of-window + etherparse
+  version-coupling docs — closes process-gap deferrals 6, 7, 8 below.
 
 ## Drift Items / open follow-ups
 
@@ -142,24 +145,22 @@ DEFERRED (cosmetic, per agreed curation): pluralization-helper extraction,
    `etherparse::LaxSlicedPacket` only on `SliceError::Len`.
    `nfs_bad_stalls.cap` went from 2376 → 7032 decoded TCP packets.
 
-### Adversarial-convergence process-gap deferrals (sub-cycle #90–#95)
+### Adversarial-convergence process-gaps (sub-cycle #90–#95)
 
-The 3-pass adversarial review tagged process-gaps that are deliberately
-deferred (justified deferrals per the Cycle-Closing Checklist S-7.02):
+The 3-pass adversarial review tagged three process-gaps — all CLOSED by
+#96:
 
-6. **No sane-range validation on reassembly numeric CLI flags**
-   (`--small-segment-max-bytes` etc.). An operator can set nonsensical
-   values; the field docs cite sane ranges but nothing enforces them.
-   Deferred — low impact (operator's own footgun), no target release.
-7. **Boundary-pair test pattern applied only to the small-segment
-   threshold.** `overlap_alert_threshold` and `out_of_window_alert_threshold`
-   still have only threshold+1 tests, not exactly-threshold negatives.
-   Deferred to the next reassembly-test sweep.
-8. **`etherparse` not pinned to `=0.16.x`.** The strict→lax control
-   flow depends on `SliceError::Len` discrimination, which is
-   version-coupled; an etherparse minor bump could silently reclassify.
-   The #95 IPv6 truncation test acts as a partial contract test.
-   Deferred — revisit at the next dependency bump.
+6. **Sane-range validation on reassembly CLI flags** — CLOSED by #96.
+   `--overlap-threshold` (0–255), `--small-segment-threshold` (0–2048)
+   and `--small-segment-max-bytes` (0–2048) now reject out-of-range
+   values at parse time.
+7. **Threshold-boundary test pattern** — CLOSED by #96. Exactly-threshold
+   negative tests now exist for the overlap and out-of-window detectors,
+   not just the small-segment one.
+8. **etherparse version coupling** — CLOSED by #96. The `SliceError::Len`
+   coupling is documented in `Cargo.toml` and `src/decoder.rs`; the
+   `"0.16"` constraint already excludes 0.17, and the IPv6 / corrupt-packet
+   tests are the contract tests for a future bump.
 
 ## Notes
 
