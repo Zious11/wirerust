@@ -17,17 +17,21 @@ adversary_convergence_counter: 0/3
 adversary_pass_1_date: "2026-05-20"
 adversary_pass_1_verdict: NOT_CONVERGED
 adversary_pass_1_findings: "17 (2C/8H/5M/2L) — all remediated"
-convergence_trajectory: "17→..."
+adversary_pass_2_date: "2026-05-20"
+adversary_pass_2_verdict: NOT_CONVERGED
+adversary_pass_2_findings: "13 (0C/4H/6M/3L) — all blocking remediated; 2 deferred (non-blocking)"
+convergence_trajectory: "17→13→..."
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 1 complete (NOT CONVERGED,
-17 findings: 2C/8H/5M/2L). All findings remediated. Pass 2 is next.
-Awaiting 3 clean adversarial passes, then consistency audit + human approval
-gate before Phase 1 is declared PASSED.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 2 complete (NOT CONVERGED,
+13 findings: 0C/4H/6M/3L). All blocking findings remediated; 2 non-blocking
+deferred. CAP-12 (CLI Orchestration) added; capability count 11 -> 12. Pass 3
+is next. Awaiting 3 clean adversarial passes, then consistency audit + human
+approval gate before Phase 1 is declared PASSED.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -42,7 +46,7 @@ gate before Phase 1 is declared PASSED.
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; pass 1 NOT CONVERGED, remediated; pass 2 pending) | 19 L2 shards, 212 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→...` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; pass 1 NOT CONVERGED remediated; pass 2 NOT CONVERGED remediated; pass 3 pending) | 19 L2 shards, 212 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→...` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -56,7 +60,7 @@ gate before Phase 1 is declared PASSED.
 
 | Artifact | Location | Count |
 |----------|----------|-------|
-| L2 Domain Specification | `.factory/specs/domain/` | 19 shards (1 index, 11 cap, 5 entity, 1 inv, 1 debt) |
+| L2 Domain Specification | `.factory/specs/domain/` | 20 shards (1 index, 12 cap, 5 entity, 1 inv, 1 debt) |
 | L3 PRD | `.factory/specs/prd.md` | 1 file |
 | Behavioral Contracts | `.factory/specs/behavioral-contracts/ss-01..ss-13/` | 212 BCs across 12 subsystems (no ss-03) |
 | BC Index | `.factory/specs/behavioral-contracts/BC-INDEX.md` | 1 file |
@@ -92,14 +96,15 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 
 | Pass | Date | Findings | Verdict | Status |
 |------|------|----------|---------|--------|
-| 1 | 2026-05-20 | 17 (2C/8H/5M/2L) | NOT_CONVERGED | REMEDIATED — pass 2 pending |
+| 1 | 2026-05-20 | 17 (2C/8H/5M/2L) | NOT_CONVERGED | REMEDIATED — all 17 fixed |
+| 2 | 2026-05-20 | 13 (0C/4H/6M/3L) | NOT_CONVERGED | REMEDIATED — all blocking fixed; 2 deferred (non-blocking) |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
 1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (0/3).
-   Pass 2 is next; no regression allowed between passes.
+   Pass 3 is next; no regression allowed between passes.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 
@@ -116,6 +121,13 @@ GitHub issue. Pointer in `CLAUDE.md` on `develop` via PR #99 (0082a0c).
 | O-07 | `rayon` declared in Cargo.toml but unused in `src/` — dead dependency | P2 | adversarial pass 1 (LOW finding) |
 
 Full register: `.factory/tech-debt-register.md` (when populated).
+
+## Deferred Findings (non-blocking, pass 2)
+
+| ID | Finding | Disposition | Follow-up |
+|----|---------|-------------|-----------|
+| L-2 | `src/analyzer/dns.rs` module doc-comment is stale — references removed behavior | Source defect, not a spec defect. Spec is correct. | File as code follow-up issue on `develop` after Phase 1 gate. |
+| L-3 | No machine validator for BC-H1 <-> BC-INDEX title sync (process gap) | Tooling gap, not a spec gap. Spec BCs and INDEX are now in sync. | Codify as CI lint rule in a future sprint. |
 
 ## Open Issues (from Phase 0 / deferred findings)
 
