@@ -48,9 +48,9 @@ The pure portions are extracted for verification; the effectful portions are int
 | src/mitre.rs | **Pure core** | Static match table; pure lookup functions (INV-9). Formally verifiable. |
 | src/summary.rs | Pure core | Per-instance accumulator; no I/O |
 | src/reporter/mod.rs | Pure core | Trait definition only |
-| src/reporter/json.rs | Effectful shell | Writes to stdout or file via `serde_json::to_writer` |
-| src/reporter/terminal.rs | Effectful shell | Writes to stdout; `escape_for_terminal` is a pure helper within the effectful module |
-| src/reporter/csv.rs | Effectful shell | Writes to stdout or file |
+| src/reporter/json.rs | **Pure core** | `render()` returns an owned `String` via `serde_json::json!` + `to_string_pretty`; zero I/O. Stdout/file write is done exclusively by the caller in `main.rs`. Formally verifiable. |
+| src/reporter/terminal.rs | **Pure core** | `render()` pushes into an in-memory `String` and returns it; zero I/O. `escape_for_terminal` is a pure helper. Stdout write is done exclusively by the caller in `main.rs`. Formally verifiable. |
+| src/reporter/csv.rs | **Pure core** | `render()` writes to a `Vec<u8>` via `csv::WriterBuilder::from_writer(Vec::new())`, converts to `String`, and returns it; zero I/O. Stdout/file write is done exclusively by the caller in `main.rs`. Formally verifiable. |
 
 
 ## Purity Boundary Diagram
@@ -79,9 +79,15 @@ L3 Domain          | analyzer/dns.rs  (C-11) |      |                    |
                    | mitre.rs         (C-16) |      |                    |
                    | summary.rs       (C-17) |      |                    |
                    +-------------------------+      +--------------------+
-L4 Output          | reporter/mod.rs  (C-18) |      | reporter/json.rs   |
-                   | [escape_for_terminal    |      | reporter/terminal.rs|
-                   |  is pure helper]        |      | reporter/csv.rs    |
+L4 Output          | reporter/mod.rs  (C-18) |      |                    |
+                   | reporter/json.rs (C-19) |      |                    |
+                   | reporter/terminal.rs    |      |                    |
+                   |   (C-20; escape_for_   |      |                    |
+                   |    terminal is pure)    |      |                    |
+                   | reporter/csv.rs  (C-21) |      |                    |
+                   | [all render()->String;  |      |                    |
+                   |  caller in main.rs does |      |                    |
+                   |  the stdout/file write] |      |                    |
                    +-------------------------+      +--------------------+
 ```
 

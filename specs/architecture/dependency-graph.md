@@ -106,4 +106,4 @@ Verified against Cargo.toml @ 0082a0c. Every row name and version matches the
 | `tempfile` | 3 | Temporary file/directory fixtures for tests |
 | `proptest` | 1 | Property-based testing (VP harnesses) |
 | `criterion` | 0.8 | Micro-benchmarks for hot pcap-processing paths (`cargo bench`) |
-| Inline test modules | -- | All 282 tests in `tests/` + inline in `reporter/terminal.rs` |
+| Inline test modules | -- | 264 tests in `tests/` + 18 inline (11 in `reporter/terminal.rs`, 7 in `analyzer/tls.rs`) = 282 total |
