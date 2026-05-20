@@ -40,10 +40,12 @@ traces_to: STATE.md
 | 20 | 2026-05-20 | 4 | 0 | 0 | 2 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — 0C/0H/2M/1L/1N; all spec-precision gaps, no behavioral defects. F-1/F-2 VP-007 SEEDED_IDS corrected + citation 99-129→122-156; F-3 BC-2.12.008 main.rs 57-58→57-59 (5 instances); F-4 mitre_technique regex tightened. Counter remains 0/3. All fixed. |
 | 21 | 2026-05-20 | 3 | 0 | 0 | 1 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — 0C/0H/1M/0L/2N. F-1 (MED) module-decomposition.md C-10 re-anchored SS-08→SS-05 (analyzer/mod.rs belongs to shared analyzer-trait module, not DNS-specific); ARCH-INDEX.md SS-05 registry row updated (follow-up). O-1 (NITPICK) prd.md Out-of-Scope removed-flags list completed (--verbose, --services added). O-2 (NITPICK) BC-2.07.016 one-liner aligned to canonical H1. Counter remains 0/3. All fixed. |
 | 22 | 2026-05-20 | 3 | 0 | 0 | 0 | 2 | LOW | — | **1/3** | **CONVERGED** — **FIRST CLEAN PASS (1/3)**; 0C/0H/0M/2L/1N. LOW-1: BC-2.12.005 H1 title broadened to cover all 9 TCP reassembly flags (was too narrow — only named 3); BC-INDEX.md + prd.md BC-2.12.005 title rows synced. LOW-2: BC-2.07.004 citation ranges tightened to precise line windows. NITPICK: BC-2.07.004 oversized-record guard prose + error-taxonomy.md E-ANA-003 guard citation both aligned to tls.rs:643-653. Counter advances to **1/3**. Pass 23 next (second confirmation pass). |
+| 23 | 2026-05-20 | 3 | 0 | 1 | 1 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — **STREAK BROKEN — RESET 1/3→0/3**; 0C/1H/1M/0L/1N. H-1: csv.rs C-21 anchor collision in purity-boundary-map.md; M-1: stale absent-flag row in module-criticality.md (corrected to reflect PR #74 clap rejection); N-1: E-INP-001 citation 56-59→56-60. All 3 fixed. Counter reset to 0/3. Pass 24 dispatched next. |
+| 24 | 2026-05-20 | 0 | 0 | 0 | 0 | 0 | NONE | — | **1/3** | **CONVERGED** — **CLEAN PASS 1/3 (new streak)**; 0C/0H/0M/0L/0N. 2 non-blocking observations only (neither a spec defect). No spec artifact modified. Passes 25 and 26 will review identical, stable content. Counter advances to **1/3**. Pass 25 next (second confirmation pass). |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only; pass 20 spec-precision gaps — 0C/0H/2M/1L/1N; pass 21 — 0C/0H/1M/0L/2N, C-10 re-anchor + PRD nitpicks; **pass 22 CONVERGED 0C/0H/0M/2L/1N — counter 1/3**)
+`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only; pass 20 spec-precision gaps — 0C/0H/2M/1L/1N; pass 21 — 0C/0H/1M/0L/2N, C-10 re-anchor + PRD nitpicks; **pass 22 CONVERGED 0C/0H/0M/2L/1N — counter 1/3**; pass 23 NOT CONVERGED — streak broken, 0C/1H/1M/1N, counter reset 0/3; **pass 24 CONVERGED 0/0/0/0/0 — counter 1/3**)
 
 ## Per-Pass Details
 
@@ -1216,5 +1218,29 @@ error taxonomy supplement.
 **Remediation:** All 3 findings (0C/1H/1M/0L/1N) remediated. csv.rs C-21 collision resolved
 to unnumbered `(--)` anchor; stale absent-flag row corrected to reflect PR #74 clap rejection;
 E-INP-001 citation corrected 56-59 → 56-60. Counter reset to 0/3. Pass 24 dispatched next.
+
+---
+
+### Pass 24 (2026-05-20)
+
+**Findings:** 0 (0 CRIT, 0 HIGH, 0 MED, 0 LOW, 0 NITPICK)
+**Delta from pass 23:** -3 total — full regression to zero
+**Novelty:** NONE
+**Convergence counter:** 1 of 3 (new streak started)
+**Verdict:** CONVERGED — clean pass 1 of 3
+
+**Summary:** Pass 24 returned zero findings. The adversary raised 2 non-blocking observations
+but explicitly classified neither as a spec defect. No spec artifact was modified. The spec
+package is stable; passes 25 and 26 will review identical, unchanged content.
+
+**Non-blocking observations (not spec defects, no action required):**
+- O-1: Minor editorial note (no action taken)
+- O-2: Minor editorial note (no action taken)
+
+**Files fixed:** none — zero findings, no remediation required.
+
+**Outcome:** Counter advances to **1/3**. Pass 25 is next (second confirmation pass on
+identical spec package). All three passes (25 and 26) must also return 0C/0H/0M to satisfy
+the Phase 1d adversarial convergence gate.
 
 ---
