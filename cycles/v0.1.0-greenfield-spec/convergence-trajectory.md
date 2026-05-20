@@ -1552,3 +1552,41 @@ spec-convergence gate is SATISFIED (3/3) and Phase 1 may proceed to the consiste
 and human approval gate.
 
 ---
+
+### Pass 30 (2026-05-20)
+
+**Findings:** 3 (0 CRIT, 0 HIGH, 1 MED, 0 LOW, 2 NITPICK)
+**Delta from pass 29:** +2 total — REGRESSION relative to gate level (1M breaks the 0C/0H/0M
+streak)
+**Novelty:** LOW (all findings are prose/citation precision gaps; no behavioral defects)
+**Convergence counter:** 0 of 3 — RESET from 2/3
+
+**Verdict:** NOT CONVERGED — **STREAK BROKEN — RESET 2/3→0/3**
+
+**Findings:**
+
+- M-1 (MEDIUM): `specs/behavioral-contracts/ss-12/BC-2.12.020.md` — capability-anchor prose in
+  Summary section incorrectly cited C-16 instead of C-17. BC-2.12.020 covers the MITRE
+  capability, which anchors to C-17 (cap-12 MITRE ATT&CK); the C-16 reference was a copy-paste
+  error from an adjacent BC. Corrected: "Summary (C-16)" → "Summary (C-17)".
+
+- N-1 (NITPICK): `specs/behavioral-contracts/ss-05/BC-2.05.006.md` — guard-clause in the
+  Postcondition was quoted in shorthand form rather than the actual Rust `if target ==
+  DispatchTarget::None { } else { }` form. No behavioral impact; prose precision corrected.
+
+- N-2 (NITPICK): `specs/domain/invariants/inv-01-core-invariants.md` — INV-9 cited the
+  `technique_info` span as an approximate range; corrected to verified-exact span
+  `src/mitre.rs:122-156` matching the actual implementation. No semantic change.
+
+**Remediation:** All 3 findings fixed and committed to factory-artifacts before recording this
+verdict (commit 00f5094, 3 files: BC-2.12.020.md, BC-2.05.006.md, inv-01-core-invariants.md).
+
+**Milestone:** 30 adversarial passes completed. Spec package is at ZERO known open defects
+post-remediation. All 4 major spec categories have been comprehensively source-reconciled:
+BCs (~58 fixes in SWEEP16), anchors (~28 in SWEEP14), PRD supplements (~68 in SWEEP68),
+VPs (~48 in SWEEP48). The single MEDIUM finding in this pass broke the 2-pass clean streak;
+a new 3-pass streak must be established starting with Pass 31.
+
+**Verdict:** NOT CONVERGED — Counter RESET to **0/3**. Pass 31 next (new streak restart).
+
+---
