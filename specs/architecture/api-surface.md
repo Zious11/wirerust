@@ -49,7 +49,7 @@ wirerust summary [OPTIONS] <TARGET>...
 | `--http` | bool | false | BC-2.12.001 |
 | `--tls` | bool | false | BC-2.12.001 |
 | `-a` / `--all` | bool | false | BC-2.12.008 |
-| `--mitre` | bool | false | BC-2.12.004 |
+| `--mitre` | bool | false | BC-2.12.001 |
 
 ### summary Flags
 

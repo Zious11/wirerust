@@ -144,7 +144,8 @@ struct has a consumer in `src/main.rs`.
 | Code | Meaning | When |
 |------|---------|------|
 | 0 | Success | Pipeline completed; findings may be empty; JSON/terminal output written |
-| 1 | Error (anyhow propagated) | File not found; unsupported link type; pcap header parse failure; pcap per-packet read error; output file write failure; clap parse error (clap uses exit 2 for arg parse errors) |
+| 1 | Error (anyhow propagated) | File not found; unsupported link type; pcap header parse failure; pcap per-packet read error; output file write failure (E-INP-001..006, E-OUT-001..002) |
+| 2 | Argument parse error (clap) | Mutually exclusive flags combined (--reassemble + --no-reassemble, --json + --csv); invalid flag value outside allowed range (E-CFG-001..005) |
 
 Note: decode errors on individual packets do NOT produce exit code 1. They are
 counted into `Summary.skipped_packets` and the analysis continues. Exit code 1

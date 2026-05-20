@@ -104,7 +104,7 @@ reassembler.finalize()          -- SS-04: close remaining flows; emit segment-li
 collect findings + summaries    -- SS-09, SS-10
   |
   v
-reporter.report(...)            -- SS-11: terminal / JSON / CSV
+reporter.render(...)            -- SS-11: terminal / JSON / CSV
 ```
 
 

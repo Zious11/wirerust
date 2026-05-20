@@ -99,8 +99,11 @@ Verified against Cargo.toml @ 0082a0c. Every row name and version matches the
 
 ## Dev / Test Dependencies
 
-| Crate | Purpose |
-|-------|---------|
-| `assert_cmd` | CLI integration tests |
-| `predicates` | CLI test assertions |
-| Inline test modules | All 282 tests in `tests/` + inline in `reporter/terminal.rs` |
+| Crate | Version (Cargo.toml) | Purpose |
+|-------|---------------------|---------|
+| `assert_cmd` | 2 | CLI integration tests |
+| `predicates` | 3 | CLI test assertions |
+| `tempfile` | 3 | Temporary file/directory fixtures for tests |
+| `proptest` | 1 | Property-based testing (VP harnesses) |
+| `criterion` | 0.8 | Micro-benchmarks for hot pcap-processing paths (`cargo bench`) |
+| Inline test modules | -- | All 282 tests in `tests/` + inline in `reporter/terminal.rs` |
