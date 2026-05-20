@@ -82,12 +82,14 @@ corpus; the Phase 0 metric table and convergence record are preserved there.
 
 ### P3 — Documentation tier — curated subset done (#89)
 
-DONE: ADR 0004 (process-wide warning atomics), MITRE staged-techniques module
-note, test-naming convention in README, `is_grease_u16` rationale comment,
-`tests/fixtures/README.md` provenance doc (#86).
+DONE: ADR 0004 / P3.03 (#89), MITRE staged-techniques P3.04 (#89),
+test-naming convention P3.05 (#89, in README), `is_grease_u16` rationale,
+dead-fixtures README P3.07 (#86), `Summary.services` divergence doc P3.01
+and pluralization helper P3.02 (#97).
 
-DEFERRED (cosmetic, per agreed curation): pluralization-helper extraction,
-`<type>/<slug>` branch-naming doc widening, services-taxonomy split doc.
+REMAINING: P3.06 (widen branch-naming patterns to `<type>/<slug>`) —
+blocked: it targets `CLAUDE.md`, which is currently untracked in the
+repo. See drift item 3.
 
 ### Non-lesson PRs
 
@@ -118,6 +120,9 @@ DEFERRED (cosmetic, per agreed curation): pluralization-helper extraction,
 - **#96** — `fix(cli)`: enforce sane ranges on the reassembly threshold
   flags + threshold-boundary tests for overlap/out-of-window + etherparse
   version-coupling docs — closes process-gap deferrals 6, 7, 8 below.
+- **#97** — `chore`: P3.01 (`Summary.services` port-vs-content
+  divergence doc) + P3.02 (pluralization helper extraction). 6/7 P3
+  lessons now done; only P3.06 remains (see drift item 3).
 
 ## Drift Items / open follow-ups
 
@@ -137,7 +142,13 @@ DEFERRED (cosmetic, per agreed curation): pluralization-helper extraction,
    this as a sound but not-yet-validated design proposal; it would let
    the port list become advisory rather than load-bearing. Not
    implemented.
-3. **3 deferred P3 cosmetic items** (see above).
+3. **P3.06 — widen branch-naming patterns** (`<type>/<slug>`) in
+   `CLAUDE.md`. The other six P3 lessons are done (P3.01/P3.02 by #97);
+   P3.06 is the last open lesson of the entire P0–P3 backlog. It is
+   blocked on a user decision: `CLAUDE.md` is untracked (not gitignored
+   — just never `git add`ed), so the edit cannot land in version
+   control. Either commit `CLAUDE.md` to the repo (then apply P3.06) or
+   accept it as a local-only guidance file.
 4. **`nfs_bad_stalls.cap`** — CLOSED by #90. Re-added as a
    snaplen-truncation regression fixture (not a reassembly baseline).
 5. **Decoder snaplen-truncation** — CLOSED by #91, hardened by #94/#95.
