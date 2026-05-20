@@ -44,7 +44,7 @@ TCP content before falling back to port numbers. Precedence order:
 1. `data.len() >= 5 AND data[0] == 0x16 AND data[1] == 0x03` (two-byte prefix check,
    5-byte buffer minimum to guard against short data) => TLS
 2. HTTP method token prefix (`GET `, `POST `, `PUT `, `DELETE `, `HEAD `, `OPTIONS `,
-   `CONNECT `, `PATCH `, `TRACE `, or `HTTP/` via `starts_with`) => HTTP
+   `PATCH `, `CONNECT `, `TRACE `, or `HTTP/` via `starts_with`) => HTTP
    (the `HTTP/` arm matches response-first streams; see `src/dispatcher.rs:104`)
 3. Port-based fallback (80/443/8080/8443) => HTTP or TLS
 4. Otherwise => `DispatchTarget::None` for this call

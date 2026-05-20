@@ -115,7 +115,7 @@ mod kani_proofs {
 
 ## Source Location
 
-`src/reassembly/flow.rs:34` -- tuple-pair comparison: `if (ip_a, port_a) <= (ip_b, port_b)`
+`src/reassembly/flow.rs:48` -- tuple-pair comparison: `if (ip_a, port_a) <= (ip_b, port_b)`
 
 Existing tests: `tests/reassembly_flow_tests.rs` -- `test_flow_key_canonicalization`,
 `test_flow_key_same_ip_different_ports`.

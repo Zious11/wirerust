@@ -46,7 +46,7 @@ crashing.
 
 ## Invariants
 
-1. The only two error message prefixes are "Unsupported link type:", "No IP layer found", and
+1. The only three error message prefixes are "Unsupported link type:", "No IP layer found", and
    "Parse error: " (from etherparse). No other panic or unwrap is reachable.
 2. `anyhow!` is used for all error construction; `unwrap()` does not appear in `decode_packet`.
 3. This applies to ALL input bytes including zero-length slices, random bytes, and truncated headers.

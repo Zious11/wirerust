@@ -36,14 +36,15 @@ removal_reason: null
 ## Property Statement
 
 For any byte slice `data` of any length (including empty) and any supported
-`DataLink` variant, `decode_packet(link_type, data)` never panics (no
+`DataLink` variant, `decode_packet(data, datalink)` never panics (no
 `unwrap()`, no index out of bounds, no stack overflow on any valid input). It
 either returns `Ok(ParsedPacket)` or `Err(anyhow::Error)`.
 
-This property must hold for all four supported link types:
+This property must hold for all five supported link types:
 - `DataLink::ETHERNET` (0x01)
 - `DataLink::RAW` (raw IP)
 - `DataLink::IPV4` (raw IPv4)
+- `DataLink::IPV6` (raw IPv6)
 - `DataLink::LINUX_SLL` (Linux cooked capture)
 
 And for all inputs including:
@@ -89,11 +90,12 @@ fuzz_target!(|data: &[u8]| {
         DataLink::ETHERNET,
         DataLink::RAW,
         DataLink::IPV4,
+        DataLink::IPV6,
         DataLink::LINUX_SLL,
     ];
     for link_type in link_types {
         // Must never panic -- Ok or Err both acceptable
-        let _ = decode_packet(link_type, data);
+        let _ = decode_packet(data, link_type);
     }
 });
 ```
@@ -122,7 +124,7 @@ fuzz_target!(|data: &[u8]| {
 
 ## Source Location
 
-`src/decoder.rs` -- `decode_packet(link_type: DataLink, data: &[u8]) -> Result<ParsedPacket>`.
+`src/decoder.rs:128` -- `decode_packet(data: &[u8], datalink: DataLink) -> Result<ParsedPacket>`.
 
 The etherparse parsing chain is the primary source of potential panics. wirerust has
 no `unsafe` blocks. The `unwrap()` audit from pass-1 ingestion found no panicking

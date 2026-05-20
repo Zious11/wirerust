@@ -50,7 +50,7 @@ integration_unit_count: 5
 | VP-002 | First-Wins Overlap Policy | reassembly/segment.rs | Kani | P0 | draft | BC-2.04.018, BC-2.04.036, BC-2.04.037 |
 | VP-003 | MAX_FINDINGS Cap with Finalize Bypass | reassembly/mod.rs | Kani | P0 | draft | BC-2.04.024, BC-2.04.054 |
 | VP-004 | Content-First Dispatch Precedence | dispatcher.rs | Kani | P0 | draft | BC-2.05.001, BC-2.05.002, BC-2.05.003, BC-2.05.005, BC-2.05.006 |
-| VP-005 | SNI 4-Way Ordered Classification | analyzer/tls.rs | Kani | P0 | draft | BC-2.07.014, BC-2.07.037, BC-2.07.013..016 |
+| VP-005 | SNI 4-Way Ordered Classification | analyzer/tls.rs | Kani | P0 | draft | BC-2.07.013..016, BC-2.07.037 |
 | VP-006 | HTTP Poison Monotonicity | analyzer/http.rs | proptest | P1 | draft | BC-2.06.015, BC-2.06.016, BC-2.06.017 |
 | VP-007 | MITRE Technique ID Format and Completeness | mitre.rs | Kani | P0 | draft | BC-2.10.005, BC-2.10.006, BC-2.10.007, BC-2.10.008 |
 | VP-008 | decode_packet Never Panics | decoder.rs | cargo-fuzz | P0 | draft | BC-2.02.007, BC-2.02.008, BC-2.02.009 |

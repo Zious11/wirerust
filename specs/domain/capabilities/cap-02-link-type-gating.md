@@ -30,7 +30,7 @@ link type: ..."))` immediately; no packets from that file are processed.
 
 ## Per-packet decoding gate
 
-`decode_packet(data, datalink)` in decoder.rs:71-140 dispatches on the same five-element
+`decode_packet(data, datalink)` in decoder.rs:128-172 dispatches on the same five-element
 whitelist to strip the link-layer header and hand the IP payload to etherparse. Errors:
 
 - Unsupported link type: `anyhow!("Unsupported link type")`.
