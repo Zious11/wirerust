@@ -1,0 +1,23 @@
+policies:
+  - id: DF-VALIDATION-001
+    name: research-validated-deferred-findings
+    description: >
+      Every deferred or open finding — STATE.md Drift Items, spec
+      contradictions, adversarial or review backlog items, and any finding
+      explicitly deferred rather than fixed — MUST be validated by the
+      vsdd-factory:research-agent before it is filed as a GitHub issue or
+      otherwise actioned. The research agent must confirm the finding is
+      sound and still open on the current default branch (develop), citing
+      sources. A finding that fails research-agent validation (resolved,
+      invalid, or mis-stated) MUST NOT become an issue.
+    severity: HIGH
+    scope:
+      - orchestrator
+      - issue-filing
+      - deferred-findings
+    rationale: >
+      Deferred findings are frequently captured from stale snapshots (for
+      example a pre-remediation brownfield-ingest corpus) and may already
+      be resolved, invalid, or mis-stated. Research-agent validation
+      prevents filing noise and stale issues.
+    added: "2026-05-20"
