@@ -49,7 +49,7 @@ renderer is the sole owner of escape logic.
 | Rust source files (src/) | 24 |
 | Source LOC | 3,868 |
 | Test LOC | 6,021 |
-| Total #[test] functions | ~282 as of develop@aa2ece9 (264 in tests/ + 18 inline: 11 in reporter/terminal.rs + 7 in analyzer/tls.rs; exact count is commit-sensitive and should be re-verified against current tree) |
+| Total #[test] functions | ~282 as of develop@0082a0c (264 in tests/ + 18 inline: 11 in reporter/terminal.rs + 7 in analyzer/tls.rs) |
 | Components | 21 (C-1..C-20 + C-21); 24 source files map to 21 components because 2 reassembly sub-files (config.rs, stats.rs) are unnumbered data-only modules, and csv.rs (reporter/csv.rs) is unnumbered. dispatcher.rs = C-21 (added by ADR 0001 after the C-1..C-20 count was set). The 7 reassembly sub-files (mod, flow, segment, handler, lifecycle, config, stats) map to C-6, C-7, C-8, C-9, C-15 (config.rs and stats.rs unnumbered). |
 | Layers | 5 (L0..L4) |
 | Behavioral contracts catalogued | 218 ingested / 217 active (212 ingestion-derived + 5 pass-4 CsvReporter) |
@@ -103,15 +103,15 @@ the StreamAnalyzer trait (L2 imports L3 types). Accepted by ADR 0002.
 
 | Cap-ID | Name | Layer | SS | Shard |
 |---|---|---|---|---|
-| CAP-01 | PCAP file ingestion | L1 | SS-1 | cap-01-pcap-ingestion.md |
-| CAP-02 | Link-type gating | L1 | SS-2 | cap-02-link-type-gating.md |
-| CAP-03 | Packet decoding (L2-L4) | L1 | SS-3 | cap-03-packet-decoding.md |
-| CAP-04 | TCP stream reassembly | L2 | SS-4 | cap-04-tcp-reassembly.md |
-| CAP-05 | Content-first protocol dispatch | L2 | SS-5 | cap-05-content-first-dispatch.md |
-| CAP-06 | HTTP traffic analysis | L3 | SS-6 | cap-06-http-analysis.md |
-| CAP-07 | TLS traffic analysis | L3 | SS-7 | cap-07-tls-analysis.md |
-| CAP-08 | DNS traffic analysis | L3 | SS-8 | cap-08-dns-analysis.md |
-| CAP-09 | Forensic finding emission | L3 | SS-9 | cap-09-finding-emission.md |
+| CAP-01 | PCAP file ingestion | L1 | SS-01 | cap-01-pcap-ingestion.md |
+| CAP-02 | Link-type gating | L1 | SS-02 | cap-02-link-type-gating.md |
+| CAP-03 | Packet decoding (L2-L4) | L1 | SS-02 | cap-03-packet-decoding.md |
+| CAP-04 | TCP stream reassembly | L2 | SS-04 | cap-04-tcp-reassembly.md |
+| CAP-05 | Content-first protocol dispatch | L2 | SS-05 | cap-05-content-first-dispatch.md |
+| CAP-06 | HTTP traffic analysis | L3 | SS-06 | cap-06-http-analysis.md |
+| CAP-07 | TLS traffic analysis | L3 | SS-07 | cap-07-tls-analysis.md |
+| CAP-08 | DNS traffic analysis | L3 | SS-08 | cap-08-dns-analysis.md |
+| CAP-09 | Forensic finding emission | L3 | SS-09 | cap-09-finding-emission.md |
 | CAP-10 | MITRE ATT&CK mapping | L3 | SS-10 | cap-10-mitre-mapping.md |
 | CAP-11 | Reporting and output | L4 | SS-11 | cap-11-reporting-output.md |
 | CAP-12 | CLI orchestration / entry point | L0 | SS-12 | cap-12-cli-orchestration.md |

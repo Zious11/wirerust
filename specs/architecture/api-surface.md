@@ -118,8 +118,12 @@ Implemented by: `DnsAnalyzer`.
 
 ```rust
 pub trait Reporter {
-    fn report(&mut self, findings: &[Finding], summaries: &[AnalysisSummary],
-              summary: &Summary) -> Result<()>;
+    fn render(
+        &self,
+        summary: &Summary,
+        findings: &[Finding],
+        analyzer_summaries: &[AnalysisSummary],
+    ) -> String;
 }
 ```
 
@@ -140,7 +144,7 @@ Implemented by: `JsonReporter`, `TerminalReporter`, `CsvReporter`.
 | `Finding` | findings.rs | `category: ThreatCategory`, `verdict: Verdict`, `confidence: Confidence`, `mitre_technique: Option<String>`, `summary: String` (raw), `evidence: Vec<String>` (raw), `timestamp: Option<...>` (always None; O-01) |
 | `AnalysisSummary` | analyzer/mod.rs | `analyzer_name: String`, `packets_analyzed: u64`, `detail: BTreeMap<String, serde_json::Value>` |
 | `FlowKey` | reassembly/flow.rs | `lower_ip: IpAddr`, `lower_port: u16`, `upper_ip: IpAddr`, `upper_port: u16` (canonically ordered per INV-1) |
-| `ParsedPacket` | decoder.rs | `src_ip`, `dst_ip`, `protocol: Protocol`, `transport: TransportInfo`, `payload: Vec<u8>`, `packet_len: u32`, timestamp fields |
+| `ParsedPacket` | decoder.rs | `src_ip: IpAddr`, `dst_ip: IpAddr`, `protocol: Protocol`, `transport: TransportInfo`, `payload: Vec<u8>`, `packet_len: usize` |
 | `ReassemblyConfig` | reassembly/config.rs | `max_flows`, `memcap`, `max_depth`, `flow_timeout_secs`, threshold fields |
 
 ## No Network Interface

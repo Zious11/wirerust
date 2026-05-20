@@ -73,26 +73,29 @@ independent property verification.
 
 ## External Crate Dependencies (14 direct production deps)
 
-| Crate | Version (approx) | Used By | Purpose |
-|-------|-----------------|---------|---------|
-| `pcap-file` | 2.x | reader.rs (C-4) | Classic pcap file format parsing |
-| `etherparse` | 0.15.x | decoder.rs (C-5) | L2-L4 header parsing (Ethernet, IP, TCP, UDP) |
-| `anyhow` | 1.x | reader.rs, decoder.rs, main.rs | Error propagation with context |
-| `serde` | 1.x | findings.rs, reporter/*.rs | Serialization traits |
-| `serde_json` | 1.x | reporter/json.rs, analyzer/{http,tls}.rs | JSON serialization; RFC 8259 escaping |
-| `clap` | 4.x | cli.rs | CLI argument parsing |
-| `indicatif` | 0.17.x | main.rs | Per-target progress bar on stderr |
-| `csv` | 1.x | reporter/csv.rs | CSV serialization |
-| `md5` | 0.10.x | analyzer/tls.rs | JA3/JA3S fingerprint computation |
-| `colored` | 2.x | reporter/terminal.rs | Terminal colorization |
-| `num_cpus` | 1.x | (retained dep; rayon removed by #84) | Potentially unused post-rayon removal |
-| `thiserror` | 1.x | findings.rs or error types | Custom error types |
-| `chrono` | 0.4.x | main.rs or findings.rs | Timestamp types (O-01: field exists but universally None) |
-| `httparse` | 1.x | analyzer/http.rs | HTTP/1.x request + response parsing |
+Verified against Cargo.toml @ 0082a0c. Every row name and version matches the
+`[dependencies]` table exactly.
 
-> Exact versions are in Cargo.toml / Cargo.lock. This table lists the functional roles.
-> `num_cpus` should be audited post-rayon removal (Smell #8 is closed but num_cpus may
-> be a stale transitive dep that was promoted to direct).
+| Crate | Version (Cargo.toml) | Used By | Purpose |
+|-------|---------------------|---------|---------|
+| `httparse` | 1 | analyzer/http.rs | HTTP/1.x request + response parsing |
+| `tls-parser` | 0.12 | analyzer/tls.rs | TLS record + handshake parsing |
+| `md-5` | 0.11 | analyzer/tls.rs | JA3/JA3S fingerprint computation (exposes `md5` module) |
+| `clap` | 4 (derive feature) | cli.rs | CLI argument parsing |
+| `etherparse` | 0.16 | decoder.rs (C-5) | L2-L4 header parsing (Ethernet, IP, TCP, UDP); pinned to 0.16 API contract |
+| `pcap-file` | 2 | reader.rs (C-4) | Classic pcap file format parsing |
+| `serde` | 1 (derive feature) | findings.rs, reporter/*.rs | Serialization traits |
+| `serde_json` | 1 | reporter/json.rs, analyzer/{http,tls}.rs | JSON serialization; RFC 8259 escaping |
+| `csv` | 1 | reporter/csv.rs | CSV serialization |
+| `anyhow` | 1 | reader.rs, decoder.rs, main.rs | Error propagation with context |
+| `owo-colors` | 4 | reporter/terminal.rs | Terminal colorization |
+| `indicatif` | 0.17 | main.rs | Per-target progress bar on stderr |
+| `chrono` | 0.4 (serde feature) | main.rs / findings.rs | Timestamp types (O-01: field exists but universally None) |
+| `rayon` | 1 | (present in Cargo.toml; unused in current call-paths; tracked as domain-debt O-07) | Work-stealing parallelism (not yet wired in) |
+
+> Exact pinned versions are in Cargo.lock. Cargo.toml version specs above use
+> caret semantics. `rayon` is a real direct production dependency as of
+> Cargo.toml:28 -- it has not been removed.
 
 ## Dev / Test Dependencies
 
