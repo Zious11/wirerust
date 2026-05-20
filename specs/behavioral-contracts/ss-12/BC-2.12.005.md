@@ -22,7 +22,7 @@ removed: null
 removal_reason: null
 ---
 
-# BC-2.12.005: Reassembly CLI Flags: --reassemble, --no-reassemble, Depth, Memcap
+# BC-2.12.005: Reassembly CLI Flags: --reassemble/--no-reassemble, depth, memcap, and five anomaly-threshold flags
 
 ## Description
 

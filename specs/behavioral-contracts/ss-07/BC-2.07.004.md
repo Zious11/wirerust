@@ -91,7 +91,7 @@ instrumentation added in LESSON-P1.05.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- MAX_RECORD_PAYLOAD guard is part of TLS analysis bounded-resource design |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation -- truncated records are not stored) |
-| Architecture Module | SS-07 (analyzer/tls.rs:641-653, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:643-653, C-13) |
 | Stories | S-TBD |
 | Origin BC | BC-TLS-004 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -102,16 +102,16 @@ instrumentation added in LESSON-P1.05.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:641-653` -- oversized-record guard and buffer clear
-- `src/analyzer/tls.rs:29-33` -- MAX_RECORD_PAYLOAD constant definition
-- `src/analyzer/tls.rs:305-312` -- truncated_records field declaration
+- `src/analyzer/tls.rs:643-653` -- oversized-record guard and buffer clear
+- `src/analyzer/tls.rs:33` -- MAX_RECORD_PAYLOAD constant definition
+- `src/analyzer/tls.rs:312` -- truncated_records field declaration
 - `tests/tls_analyzer_tests.rs` -- test_oversized_sni_exceeds_record_payload_limit
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:641-653` |
+| **Path** | `src/analyzer/tls.rs:643-653` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

@@ -281,7 +281,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.12.002 | summary Subcommand Parses Targets and --hosts Flag | P1 | [WRITTEN] | BC-CLI-002 |
 | BC-2.12.003 | Global Flag --no-color Parsed and Stored | P1 | [WRITTEN] | BC-CLI-003 |
 | BC-2.12.004 | --output-format json Parses to Some(OutputFormat::Json) | P0 | [WRITTEN] | BC-CLI-004 |
-| BC-2.12.005 | Reassembly CLI Flags: --reassemble, --no-reassemble, Depth, Memcap | P0 | [WRITTEN] | BC-CLI-005 |
+| BC-2.12.005 | Reassembly CLI Flags: --reassemble/--no-reassemble, depth, memcap, and five anomaly-threshold flags | P0 | [WRITTEN] | BC-CLI-005 |
 | BC-2.12.006 | Multiple Positional Targets Accepted in analyze | P1 | [WRITTEN] | BC-CLI-006 |
 | BC-2.12.007 | --reassemble and --no-reassemble are Mutually Exclusive (clap conflicts_with) | P0 | [WRITTEN] | BC-CLI-007 |
 | BC-2.12.008 | --all Enables dns/http/tls Together | P1 | [WRITTEN] | BC-CLI-008 |

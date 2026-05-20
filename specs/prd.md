@@ -409,7 +409,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.12.002 | summary subcommand parses positional targets and --hosts flag | P1 | BC-CLI-002 |
 | BC-2.12.003 | Global flag --no-color is parsed and stored | P1 | BC-CLI-003 |
 | BC-2.12.004 | Global flag --output-format json parses to Some(OutputFormat::Json); default is None | P0 | BC-CLI-004 |
-| BC-2.12.005 | Reassembly CLI flags: --reassemble, --no-reassemble, --reassembly-depth, --reassembly-memcap | P0 | BC-CLI-005 |
+| BC-2.12.005 | Reassembly CLI flags: --reassemble/--no-reassemble, depth, memcap, and five anomaly-threshold flags | P0 | BC-CLI-005 |
 | BC-2.12.006 | Multiple positional targets accepted in analyze | P1 | BC-CLI-006 |
 | BC-2.12.007 | --reassemble and --no-reassemble are mutually exclusive (clap conflicts_with) | P0 | BC-CLI-007 |
 | BC-2.12.008 | --all enables dns/http/tls together (boolean OR semantics) | P1 | BC-CLI-008 |
