@@ -82,7 +82,7 @@ per-protocol counter in `protocols: HashMap<Protocol, u64>`.
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- Summary::ingest is called inside CAP-12's per-target packet loop (main.rs: summary.ingest(&parsed)) as part of the Summary accumulation described in CAP-12; summary.rs (C-16) is listed in CAP-12's source sources |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- Summary::ingest is called inside CAP-12's per-target packet loop (main.rs: summary.ingest(&parsed)) as part of the Summary accumulation described in CAP-12; summary.rs (C-17) is listed in CAP-12's source sources |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (summary.rs, C-17) |
 | Stories | S-TBD |
