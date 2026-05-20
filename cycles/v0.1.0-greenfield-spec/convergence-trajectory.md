@@ -42,10 +42,12 @@ traces_to: STATE.md
 | 22 | 2026-05-20 | 3 | 0 | 0 | 0 | 2 | LOW | — | **1/3** | **CONVERGED** — **FIRST CLEAN PASS (1/3)**; 0C/0H/0M/2L/1N. LOW-1: BC-2.12.005 H1 title broadened to cover all 9 TCP reassembly flags (was too narrow — only named 3); BC-INDEX.md + prd.md BC-2.12.005 title rows synced. LOW-2: BC-2.07.004 citation ranges tightened to precise line windows. NITPICK: BC-2.07.004 oversized-record guard prose + error-taxonomy.md E-ANA-003 guard citation both aligned to tls.rs:643-653. Counter advances to **1/3**. Pass 23 next (second confirmation pass). |
 | 23 | 2026-05-20 | 3 | 0 | 1 | 1 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — **STREAK BROKEN — RESET 1/3→0/3**; 0C/1H/1M/0L/1N. H-1: csv.rs C-21 anchor collision in purity-boundary-map.md; M-1: stale absent-flag row in module-criticality.md (corrected to reflect PR #74 clap rejection); N-1: E-INP-001 citation 56-59→56-60. All 3 fixed. Counter reset to 0/3. Pass 24 dispatched next. |
 | 24 | 2026-05-20 | 0 | 0 | 0 | 0 | 0 | NONE | — | **1/3** | **CONVERGED** — **CLEAN PASS 1/3 (new streak)**; 0C/0H/0M/0L/0N. 2 non-blocking observations only (neither a spec defect). No spec artifact modified. Passes 25 and 26 will review identical, stable content. Counter advances to **1/3**. Pass 25 next (second confirmation pass). |
+| 25 | 2026-05-20 | 4 | 0 | 2 | 2 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — **STREAK RESET 1/3→0/3**; 0C/2H/2M/0L/0N. All 4 findings in PRD supplements only (the last spec-package pocket not yet comprehensively reconciled). H-1: error-taxonomy.md — E-RAS-001/E-RAS-002 message strings wrong vs actual eprintln! literals; H-2: error-taxonomy.md — E-DEC-001 stale `from_ethernet_slice` API name. M-1: interface-definitions.md — wrong analyzer_name values + fabricated/wrong JSON detail-shape keys (flows_evicted/flows_closed_fin do not exist in source). M-2: nfr-catalog.md — NFR-PERF-001 decoder.rs line range 72-130 should be 288-291. Orchestrator commissioned comprehensive PRD-supplement sweep after pass-25 findings. Counter RESET to **0/3**. |
+| SWEEP68 | 2026-05-20 | — | — | — | — | — | — | — | **0/3** | **REMEDIATION BURST** — comprehensive PRD-supplement verification sweep; all 4 PRD supplements re-verified against current src/; ~68 defects fixed total. Addresses P-CITE-PG process gap (recurring citation/string-drift; 4 supplements were the last un-comprehensively-reconciled spec pocket). Details: error-taxonomy.md (3 fixes — pass-25 findings); interface-definitions.md (14 fixes — wrong analyzer_name values, 8+ fabricated/wrong JSON detail keys corrected to actual summarize() keys); nfr-catalog.md (47 fixes — M-2 line range + 39 stale citations re-anchored post-LESSON-P2.01 refactor + NFR-SEC-005 SNI verdict Likely/High→Inconclusive/Low + 6 module-map citations); test-vectors.md (8 fixes — BC-2.06.005 category Anomaly→Reconnaissance; BC-2.07.014/017/037 verdict corrected to Inconclusive/Low; embedded literal control bytes 0x00/0x1b/ESC replaced with textual escapes; integration-scenario category/severity corrections). No adversary pass; counter unchanged at 0/3. Pass 26 next. |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only; pass 20 spec-precision gaps — 0C/0H/2M/1L/1N; pass 21 — 0C/0H/1M/0L/2N, C-10 re-anchor + PRD nitpicks; **pass 22 CONVERGED 0C/0H/0M/2L/1N — counter 1/3**; pass 23 NOT CONVERGED — streak broken, 0C/1H/1M/1N, counter reset 0/3; **pass 24 CONVERGED 0/0/0/0/0 — counter 1/3**)
+`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only; pass 20 spec-precision gaps — 0C/0H/2M/1L/1N; pass 21 — 0C/0H/1M/0L/2N, C-10 re-anchor + PRD nitpicks; **pass 22 CONVERGED 0C/0H/0M/2L/1N — counter 1/3**; pass 23 NOT CONVERGED — streak broken, 0C/1H/1M/1N, counter reset 0/3; **pass 24 CONVERGED 0/0/0/0/0 — counter 1/3**; pass 25 NOT CONVERGED — streak RESET 1/3→0/3, 0C/2H/2M, all 4 in PRD supplements; SWEEP68 — comprehensive PRD-supplement sweep ~68 defects fixed, P-CITE-PG addressed; counter 0/3, pass 26 next)
 
 ## Per-Pass Details
 
@@ -1242,5 +1244,87 @@ package is stable; passes 25 and 26 will review identical, unchanged content.
 **Outcome:** Counter advances to **1/3**. Pass 25 is next (second confirmation pass on
 identical spec package). All three passes (25 and 26) must also return 0C/0H/0M to satisfy
 the Phase 1d adversarial convergence gate.
+
+---
+
+### Pass 25 (2026-05-20)
+
+**Findings:** 4 (0 CRIT, 2 HIGH, 2 MED, 0 LOW)
+**Novelty:** LOW
+**Convergence counter:** RESET — 1/3 → **0/3**
+
+**Finding summary:** All 4 findings were concentrated in PRD supplements — the last
+spec-package pocket that had not yet been comprehensively reconciled against src/.
+
+- **H-1 (HIGH) — error-taxonomy.md — E-RAS-001/E-RAS-002 message strings wrong:** The
+  eprintln! literal strings cited for E-RAS-001 and E-RAS-002 did not match the actual
+  eprintln! text in src/. Corrected to the actual eprintln! literals.
+- **H-2 (HIGH) — error-taxonomy.md — E-DEC-001 stale API name:** `from_ethernet_slice` is
+  a stale API name that no longer exists. Corrected to the current API.
+- **M-1 (MED) — interface-definitions.md — wrong analyzer_name values + fabricated JSON
+  detail keys:** analyzer_name values were wrong; JSON detail-shape keys
+  `flows_evicted`/`flows_closed_fin` do not exist in source; corrected to actual
+  `summarize()` output keys.
+- **M-2 (MED) — nfr-catalog.md — NFR-PERF-001 stale line range:** decoder.rs line range
+  cited as 72-130 but correct range is 288-291. Corrected.
+
+**Orchestrator action:** Commissioned comprehensive PRD-supplement sweep to address the
+full scope of citation/string-drift across all 4 supplements (P-CITE-PG process gap).
+
+**Files fixed:** error-taxonomy.md (3 fixes), nfr-catalog.md (1 fix from pass-25 finding).
+Remaining supplement fixes delivered as SWEEP68 remediation burst.
+
+**Verdict:** NOT CONVERGED — streak RESET 1/3→0/3.
+
+---
+
+### SWEEP68 — Comprehensive PRD-Supplement Verification Sweep (2026-05-20)
+
+**Type:** Inter-pass remediation burst (no adversary pass)
+**Convergence counter:** Unchanged — **0/3**
+
+**Purpose:** Pass 25 revealed that PRD supplements were the last spec-package pocket not
+yet comprehensively reconciled against current src/. Orchestrator commissioned a full
+sweep of all 4 supplements. This directly addresses P-CITE-PG (recurring citation/string-
+drift process gap).
+
+**Total defects fixed: ~68 across 4 files.**
+
+#### error-taxonomy.md — 3 fixes (pass-25 findings)
+
+- E-RAS-001 eprintln! message string corrected to actual literal
+- E-RAS-002 eprintln! message string corrected to actual literal
+- E-DEC-001 stale `from_ethernet_slice` API name corrected to current API
+
+#### interface-definitions.md — 14 fixes
+
+- Wrong `analyzer_name` values corrected for multiple analyzers
+- 8+ fabricated/wrong JSON detail-shape keys removed and corrected to actual keys
+  returned by `summarize()` — keys `flows_evicted` and `flows_closed_fin` do not exist
+  in source; corrected to actual field names present in analyzer output structs
+
+#### nfr-catalog.md — 47 fixes
+
+- M-2 (pass-25): NFR-PERF-001 decoder.rs line range 72-130 → 288-291
+- 39 stale citations re-anchored following the LESSON-P2.01 refactor (line numbers had
+  shifted across the board; all citations now point to correct post-refactor locations)
+- NFR-SEC-005: SNI verdict assessment corrected Likely/High → Inconclusive/Low
+  (matches actual src/ behavior for SNI control-byte flagging)
+- 6 module-map citations corrected to current module paths
+
+#### test-vectors.md — 8 fixes
+
+- BC-2.06.005: category corrected Anomaly → Reconnaissance
+- BC-2.07.014, BC-2.07.017, BC-2.07.037: verdict corrected to Inconclusive/Low
+  (matches pass-16/BC sweep corrections to the BC files themselves)
+- Embedded literal control bytes (0x00, 0x1b/ESC) replaced with textual escapes
+  to prevent toolchain encoding issues
+- Integration-scenario category/severity corrections aligned to current verdict model
+
+**Process-gap addressed:** P-CITE-PG — PRD supplements join BCs (SWEEP after pass 16)
+and domain shards (passes 17–18) as comprehensively reconciled spec pockets. The entire
+spec package has now been systematically verified against current src/.
+
+**Outcome:** Counter unchanged at **0/3**. Pass 26 dispatched next.
 
 ---

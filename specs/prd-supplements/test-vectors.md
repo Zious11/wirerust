@@ -174,7 +174,7 @@ traces_to: .factory/specs/prd.md
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| `GET /../etc/passwd HTTP/1.1\r\nHost: example.com\r\n\r\n` | Finding { category: Anomaly, verdict: Likely, confidence: High, mitre_technique: Some("T1083"), summary: contains "../" } | happy-path | Classic directory traversal |
+| `GET /../etc/passwd HTTP/1.1\r\nHost: example.com\r\n\r\n` | Finding { category: Reconnaissance, verdict: Likely, confidence: High, mitre_technique: Some("T1083"), summary: contains "../" } | happy-path | Classic directory traversal; http.rs:193 uses ThreatCategory::Reconnaissance |
 | `GET /static/file.css HTTP/1.1\r\nHost: example.com\r\n\r\n` | No finding | happy-path | Clean path; no traversal |
 
 #### BC-2.06.009 -- Missing Host Header
@@ -214,8 +214,8 @@ traces_to: .factory/specs/prd.md
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| TLS ClientHello with SNI = `evil\x1bhost.com` (ESC byte 0x1B, a C0 control) | Finding { category: Anomaly, verdict: Likely, confidence: High, mitre_technique: Some("T1027") } | happy-path | Any byte in 0x00..=0x1F triggers arm 2 |
-| TLS ClientHello with SNI = `evil\x7fhost.com` (DEL 0x7F) | Finding { category: Anomaly, verdict: Likely, confidence: High, mitre_technique: Some("T1027") } | happy-path | DEL = C0 arm |
+| TLS ClientHello with SNI = `evil\x1bhost.com` (ESC byte 0x1B, a C0 control) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_technique: Some("T1027") } | happy-path | AsciiWithControl arm (tls.rs:426-448); verdict/confidence are Inconclusive/Low, not Likely/High |
+| TLS ClientHello with SNI = `evil\x7fhost.com` (DEL 0x7F) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_technique: Some("T1027") } | happy-path | DEL = AsciiWithControl arm |
 | TLS ClientHello with SNI = `www.example.com` (clean ASCII) | No SNI-related finding | happy-path | BC-2.07.013 |
 | TLS ClientHello with SNI = `www.ex\x20ample.com` (SPACE = 0x20) | No SNI C0 finding (0x20 is not C0/DEL) | edge-case | BC-2.07.016: 0x1F trips; 0x20 does NOT |
 
@@ -223,14 +223,14 @@ traces_to: .factory/specs/prd.md
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| TLS ClientHello with SNI = `xn--\xC3\xA9vil.com` (contains U+00E9, valid UTF-8 but non-ASCII) | Finding { category: Anomaly, verdict: Likely, confidence: High, mitre_technique: Some("T1027") } | happy-path | Non-ASCII UTF-8 = arm 3 |
+| TLS ClientHello with SNI = `xn--\xC3\xA9vil.com` (contains U+00E9, valid UTF-8 but non-ASCII) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_technique: Some("T1027") } | happy-path | NonAsciiUtf8 arm (tls.rs:449-468); verdict/confidence are Inconclusive/Low, not Likely/High |
 | TLS ClientHello with SNI = `xn--test.com` (pure ASCII Punycode A-label) | No finding | happy-path | BC-2.07.018: A-labels are pure ASCII |
 
 #### BC-2.07.037 -- Mixed Non-ASCII + C0 SNI Fires Arm 3
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| SNI bytes contain BOTH U+00E9 (non-ASCII UTF-8) AND 0x1B (C0 control) | Finding arm = NonAsciiUtf8 (arm 3), not C0/DEL (arm 2) | edge-case | Arm 3 takes priority over arm 2 per tls.rs SniValue discriminant ordering |
+| SNI bytes contain BOTH U+00E9 (non-ASCII UTF-8) AND 0x1B (C0 control) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_technique: Some("T1027") } with arm = NonAsciiUtf8 (arm 3), not C0/DEL (arm 2) | edge-case | Arm 3 (NonAsciiUtf8) takes priority because `from_utf8` succeeds on the multi-byte U+00E9 sequence before `is_ascii()` is checked; tls.rs:251-258 `extract_sni` match order |
 
 #### BC-2.07.009 -- Weak Cipher Finding
 
@@ -308,8 +308,8 @@ traces_to: .factory/specs/prd.md
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| Finding with summary = `"path\x00injection"` (null byte 0x00) | JSON: `"summary": "path injection"` | happy-path | serde_json RFC 8259: C0 bytes escaped as \uXXXX |
-| Finding with summary = `"evil\x1bpath"` (ESC 0x1B) | JSON: `"summary": "evilpath"` | happy-path | |
+| Finding with summary = `"path\x00injection"` (null byte 0x00) | JSON: `"summary": "path\u0000injection"` | happy-path | serde_json RFC 8259: C0 bytes escaped as \uXXXX; null byte -> \u0000 |
+| Finding with summary = `"evil\x1bpath"` (ESC 0x1B) | JSON: `"summary": "evil\u001bpath"` | happy-path | serde_json escapes ESC as \u001b |
 | Finding with summary = `"Кириллица"` (Cyrillic, valid UTF-8) | JSON: `"summary": "Кириллица"` (readable, not \uXXXX-escaped) | happy-path | BC-2.11.004: non-ASCII Unicode preserved readable |
 
 #### BC-2.11.007 -- Terminal C0/C1/DEL/Backslash Escaping
@@ -361,20 +361,20 @@ traces_to: .factory/specs/prd.md
 
 | Scenario | Input | Step 1: Reassembly | Step 2: Dispatch | Step 3: HTTP Analysis | Final Output |
 |----------|-------|-------------------|-----------------|----------------------|-------------|
-| Attacker sends `GET /../etc/passwd HTTP/1.1\r\nHost: evil.com\r\n\r\n` over TCP flow | pcap with SYN, data, FIN sequence | TcpReassembler delivers data bytes to StreamDispatcher | Dispatcher classifies as HTTP (method prefix `GET `) | HttpAnalyzer detects traversal; emits Finding(Anomaly/Likely/High, T1083) | JSON: `{"category":"Anomaly","verdict":"Likely","confidence":"High","mitre_technique":"T1027"...}` |
+| Attacker sends `GET /../etc/passwd HTTP/1.1\r\nHost: evil.com\r\n\r\n` over TCP flow | pcap with SYN, data, FIN sequence | TcpReassembler delivers data bytes to StreamDispatcher | Dispatcher classifies as HTTP (method prefix `GET `) | HttpAnalyzer detects traversal; emits Finding(Reconnaissance/Likely/High, T1083) | JSON: `{"category":"Reconnaissance","verdict":"Likely","confidence":"High","mitre_technique":"T1083"...}` |
 
 ### Integration 2: TLS SNI C0 Injection (SS-04 -> SS-05 -> SS-07 -> SS-11)
 
 | Scenario | Input | Step 1 | Step 2 | Step 3 | Final Output |
 |----------|-------|--------|--------|--------|-------------|
-| TLS ClientHello with SNI = `evil\x00host.com` | pcap with TLS handshake | Reassembly delivers TLS record bytes | Dispatcher: first byte 0x16 -> TLS (content-first) | TlsAnalyzer: SNI arm 2 (C0/DEL); emits Finding(Anomaly/Likely/High, T1027) | JSON: `"mitre_technique":"T1027"`, summary contains raw SNI bytes |
+| TLS ClientHello with SNI = `evil\x00host.com` | pcap with TLS handshake | Reassembly delivers TLS record bytes | Dispatcher: first byte 0x16 -> TLS (content-first) | TlsAnalyzer: SNI AsciiWithControl arm; emits Finding(Anomaly/Inconclusive/Low, T1027) | JSON: `"mitre_technique":"T1027"`, summary contains raw SNI bytes |
 
 ### Integration 3: Terminal Injection Prevention (SS-07 -> SS-11 terminal path)
 
 | Scenario | Input | Analyzer Output | Terminal Reporter Output |
 |----------|-------|----------------|--------------------------|
 | TLS SNI = `\x1b[31m` (ANSI red sequence) | pcap with crafted TLS | Finding.summary = `"SNI: \x1b[31m"` (raw bytes per ADR 0003) | Rendered: `"SNI: \e[31m"` (ESC escaped; terminal cannot interpret as color code) |
-| Same SNI via JSON reporter | Same Finding | `"summary": "SNI: [31m"` (serde_json RFC 8259 escaping) | JSON consumer gets escaped C0; C0 never reaches terminal directly |
+| Same SNI via JSON reporter | Same Finding | `"summary": "SNI: \u001b[31m"` (serde_json RFC 8259 escaping: ESC -> \u001b) | JSON consumer gets escaped C0; C0 never reaches terminal directly |
 
 ### Integration 4: MAX_FINDINGS Cap (SS-04 -> SS-09)
 

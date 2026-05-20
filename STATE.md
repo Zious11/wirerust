@@ -13,20 +13,20 @@ dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
-adversary_convergence_counter: 1/3
-adversary_pass_24_date: "2026-05-20"
-adversary_pass_24_verdict: CONVERGED
-adversary_pass_24_findings: "0 (0C/0H/0M/0L/0N) — CLEAN PASS 1/3 (new streak). 2 non-blocking observations only, neither a spec defect. No spec artifact modified."
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0"
+adversary_convergence_counter: 0/3
+adversary_pass_25_date: "2026-05-20"
+adversary_pass_25_verdict: NOT_CONVERGED
+adversary_pass_25_findings: "4 (0C/2H/2M/0L) — STREAK RESET 1/3→0/3. All 4 findings in PRD supplements. ~68 defects fixed in comprehensive supplement sweep (SWEEP68)."
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 24 returned CONVERGED (0C/0H/0M/0L/0N);
-new streak started, counter now **1/3**. No spec artifact modified. Passes 25 and 26
-must also return clean (0C/0H/0M) on the unchanged package to close the Phase 1d gate.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 25 returned NOT CONVERGED (0C/2H/2M); streak
+RESET 1/3→0/3. All 4 findings were in PRD supplements. Comprehensive supplement sweep
+(SWEEP68, ~68 defects) completed. Counter now **0/3**. Pass 26 next.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -41,7 +41,7 @@ must also return clean (0C/0H/0M) on the unchanged package to close the Phase 1d
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (**1/3** — pass 24 CONVERGED; pass 25 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (**0/3** — pass 25 NOT CONVERGED, streak RESET; SWEEP68 ~68 supplement defects fixed; pass 26 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -117,15 +117,17 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 22 | 2026-05-20 | 3 (0C/0H/0M/2L/1N) | **CONVERGED** | **CLEAN PASS 1/3** — LOW-1 BC-2.12.005 H1 broadened (all 9 reassembly flags; BC-INDEX + prd.md synced); LOW-2 BC-2.07.004 citation ranges tightened; NITPICK oversized-record guard aligned tls.rs:643-653 (BC-2.07.004 + error-taxonomy.md E-ANA-003). Counter: **1/3**. |
 | 23 | 2026-05-20 | 3 (0C/1H/1M/0L/1N) | NOT CONVERGED | **STREAK BROKEN — RESET 1/3→0/3** — H-1 csv.rs C-21 anchor collision fixed (purity-boundary-map.md → unnumbered `(--)`) ; M-1 stale absent-flag row corrected to "removed by PR #74; clap rejects" (module-criticality.md); N-1 E-INP-001 citation 56-59→56-60 (error-taxonomy.md). All fixed. Counter: **0/3**. |
 | 24 | 2026-05-20 | 0 (0C/0H/0M/0L/0N) | **CONVERGED** | **CLEAN PASS 1/3 (new streak)** — zero findings; 2 non-blocking observations only, neither a spec defect. No spec artifact modified. Counter: **1/3**. Pass 25 next (second confirmation pass on stable, unchanged package). |
+| 25 | 2026-05-20 | 4 (0C/2H/2M/0L) | NOT CONVERGED | **STREAK RESET 1/3→0/3** — all 4 findings in PRD supplements (last un-reconciled spec pocket). H-1/H-2: error-taxonomy.md wrong eprintln! literals + stale API name. M-1: interface-definitions.md fabricated JSON detail keys. M-2: nfr-catalog.md decoder.rs line range wrong. Orchestrator commissioned comprehensive supplement sweep. Counter: **0/3**. |
+| SWEEP68 | 2026-05-20 | — (inter-pass) | REMEDIATION BURST | ~68 defects fixed across all 4 PRD supplements vs current src/. error-taxonomy.md (3); interface-definitions.md (14 — analyzer_name values + JSON detail keys); nfr-catalog.md (47 — stale citations re-anchored, NFR-SEC-005 verdict corrected, module-map citations); test-vectors.md (8 — BC category/verdict corrections, control-byte escapes). Supplements are now the last comprehensively-reconciled spec pocket. Addresses P-CITE-PG. Counter: **0/3** unchanged. Pass 26 next. |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
-1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (**1/3 — new streak**).
-   Pass 24 returned 0C/0H/0M (zero findings) — streak started. Pass 25 is next (second
-   confirmation pass). Passes 25 and 26 must also return 0C/0H/0M on the unchanged package.
-   No spec artifact was modified in pass 24; passes 25 and 26 review identical, stable content.
+1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (**0/3 — counter reset**).
+   Pass 25 returned NOT CONVERGED (0C/2H/2M); streak broken. SWEEP68 comprehensive supplement
+   sweep (~68 defects) completed. Pass 26 is next — must return 0C/0H/0M to start a new streak.
+   PRD supplements now comprehensively reconciled; spec package fully swept.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 

@@ -278,53 +278,66 @@ which calls `serde_json::to_string_pretty`. The output is a single JSON object.
 
 ### Per-Analyzer Detail Shapes
 
-#### tcp_reassembler
+#### TCP Reassembly
+
+`analyzer_name`: `"TCP Reassembly"` (as returned by `TcpReassembler::summarize()`)
 
 | Key | Value Type | Description |
 |-----|-----------|-------------|
 | `packets_processed` | integer | Total packets fed to process_packet |
 | `packets_skipped_non_tcp` | integer | Non-TCP packets skipped |
 | `flows_total` | integer | Total TCP flows seen |
-| `flows_evicted` | integer | Flows evicted (memcap or max_flows pressure) |
-| `flows_closed_fin` | integer | Flows closed by FIN/FIN handshake |
-| `flows_closed_rst` | integer | Flows closed by RST |
-| `flows_closed_timeout` | integer | Flows closed by timeout or finalize |
+| `flows_partial` | integer | Flows that never reached Established state |
+| `flows_fin` | integer | Flows closed by FIN handshake |
+| `flows_rst` | integer | Flows closed by RST |
+| `flows_completed` | integer | flows_fin + flows_rst (convenience sum) |
+| `flows_expired` | integer | Flows closed by timeout or finalize |
+| `evictions` | integer | Flows evicted under memcap or max_flows pressure |
 | `bytes_reassembled` | integer | Total bytes delivered to StreamHandler |
 | `segments_inserted` | integer | Segments successfully inserted |
-| `segments_depth_exceeded` | integer | Segments fully dropped after max_depth hit |
-| `overlaps_detected` | integer | Total conflicting overlap events |
-| `findings_count` | integer | Total findings emitted (capped at MAX_FINDINGS=10000 plus finalize bypass) |
-| `unclassified_flows` | integer | Flows dispatcher could not classify (injected from dispatcher) |
+| `segments_duplicates` | integer | Duplicate segment insertions (already-buffered offset) |
+| `segments_overlaps` | integer | Conflicting overlap events (first-wins policy triggered) |
+| `segments_out_of_window` | integer | Segments rejected as outside max_receive_window |
+| `segments_segment_limit` | integer | Segments dropped because per-direction segment count cap hit |
+| `segments_depth_exceeded` | integer | Segments dropped because per-direction byte depth cap hit |
+| `dropped_findings` | integer | Findings suppressed because MAX_FINDINGS cap (10,000) was already full |
+| `unclassified_flows` | integer | Flows dispatcher could not classify (injected from dispatcher, not from reassembler stats) |
 
-#### http
+#### HTTP
+
+`analyzer_name`: `"HTTP"` (as returned by `HttpAnalyzer::summarize()`)
 
 | Key | Value Type | Description |
 |-----|-----------|-------------|
-| `flows_analyzed` | integer | Distinct HTTP flows seen |
-| `requests_parsed` | integer | Successfully parsed HTTP requests |
-| `responses_parsed` | integer | Successfully parsed HTTP responses |
-| `parse_errors` | integer | Accumulated parse-error increments |
-| `non_http_flows` | integer | Flows poisoned in at least one direction |
-| `poisoned_bytes_skipped` | integer | Bytes skipped after direction poisoning |
-| `top_methods` | object | Map of HTTP method to request count (top 20) |
+| `transactions` | integer | Successfully parsed HTTP responses (each counted as one transaction) |
+| `methods` | object | Map of HTTP method string to request count (all parsed methods; capped at MAX_MAP_ENTRIES=50,000) |
+| `status_codes` | object | Map of HTTP status code (as string) to response count |
 | `top_hosts` | array | Top 20 Host header values by frequency |
-| `recent_uris` | array | Up to MAX_URIS=10000 URIs seen (truncated in summarize to 20) |
-| `top_user_agents` | array | Top 20 User-Agent values by frequency |
-| `status_codes` | object | Map of HTTP status code to response count |
+| `recent_uris` | array | First 20 of up to MAX_URIS=10,000 URIs buffered (insertion order, not frequency) |
+| `user_agents` | object | Map of User-Agent string to count (all seen; capped at MAX_MAP_ENTRIES=50,000) |
+| `parse_errors` | integer | Accumulated parse-error increments (request + response combined) |
+| `non_http_flows` | integer | Flows poisoned in at least one direction (counted once per flow per direction) |
+| `poisoned_bytes_skipped` | integer | Bytes skipped after direction poisoning |
 
-#### tls
+#### TLS
+
+`analyzer_name`: `"TLS"` (as returned by `TlsAnalyzer::summarize()`)
+
+Note: `packets_analyzed` on the TLS summary object equals `handshakes_seen` (ClientHello count), not total TCP segments.
 
 | Key | Value Type | Description |
 |-----|-----------|-------------|
-| `handshakes` | integer | ClientHello events seen |
-| `parse_errors` | integer | Accumulated TLS parse-error increments |
-| `top_snis` | array | Top 20 SNI hostnames by frequency |
-| `top_ja3` | array | Top 20 JA3 fingerprint strings |
-| `top_ja3s` | array | Top 20 JA3S fingerprint strings |
-| `top_versions` | object | Map of TLS version string to count |
-| `top_ciphers` | object | Map of cipher name to count |
+| `top_snis` | array | Top 20 SNI hostnames by frequency (sorted descending) |
+| `ja3_hashes` | object | Map of JA3 MD5 hex string to count (all seen; capped at MAX_MAP_ENTRIES=50,000) |
+| `ja3s_hashes` | object | Map of JA3S MD5 hex string to count (all seen; capped at MAX_MAP_ENTRIES=50,000) |
+| `tls_versions` | object | Map of TLS version number (as string) to count |
+| `cipher_suites` | object | Map of cipher suite name (or hex fallback) to count |
+| `parse_errors` | integer | Accumulated TLS parse-error increments (includes oversized record drops) |
+| `truncated_records` | integer | Records dropped because declared payload length exceeded MAX_RECORD_PAYLOAD=18,432 bytes |
 
-#### dns
+#### DNS
+
+`analyzer_name`: `"DNS"` (as returned by `DnsAnalyzer::summarize()`)
 
 | Key | Value Type | Description |
 |-----|-----------|-------------|
