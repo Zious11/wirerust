@@ -14,21 +14,21 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 0/3
-adversary_pass_16_date: "2026-05-20"
-adversary_pass_16_verdict: NOT_CONVERGED
-adversary_pass_16_findings: "3 (1C/1M/1L) — counter remains 0/3; all fixed"
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3"
+adversary_pass_17_date: "2026-05-20"
+adversary_pass_17_verdict: NOT_CONVERGED
+adversary_pass_17_findings: "5 (0C/2H/1M/1L/1N) — all in ent-04; zero BC defects; counter remains 0/3; all fixed"
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Comprehensive BC-vs-source sweep complete (inter-pass
-16→17): 217 BCs re-verified against current src/; ~58 defects fixed (off-by-one citations
-+ ~6 semantic spec-vs-code defects). Addresses recurring P-CITE-PG defect class at root.
-Convergence counter: 0/3 unchanged. Pass 17 is next; must achieve 3 consecutive clean
-passes (0C/0H/0M) to satisfy gate.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 17 returned NOT CONVERGED (0C/2H/1M/1L/1N);
+all 5 findings in ent-04-findings-output.md only. Zero BC defects found — comprehensive
+BC-vs-source sweep (d038ace) held. All 5 findings fixed (0c16cad). Convergence counter:
+0/3 unchanged. Pass 18 is next; must achieve 3 consecutive clean passes (0C/0H/0M) to
+satisfy gate.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -43,7 +43,7 @@ passes (0C/0H/0M) to satisfy gate.
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–16 remediated; pass 11 CONVERGED then passes 12–16 NOT CONVERGED reset/held counter; pass 17 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–17 remediated; pass 11 CONVERGED then passes 12–17 NOT CONVERGED reset/held counter; pass 18 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -111,13 +111,14 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 15 | 2026-05-20 | 4 (0C/1H/2M/1N) | NOT CONVERGED | Counter remains 0/3 — H-1 VP-020 test_csv_safe_values_unchanged using wrong API; M-1 VP-020 Property Statement pt 3 mis-scoped AnalysisSummary; M-2/N-1 module-decomposition reporter Purity column wrong (effectful→pure). All fixed. |
 | 16 | 2026-05-20 | 3 (1C/1M/1L) | NOT CONVERGED | Counter remains 0/3 — C-1 BC-2.07.037 Postcondition 4 verdict Anomaly/Likely/High→Anomaly/Inconclusive/Low; M-1 stale correction-notes removed from BC-2.07.017/019; L-1. All fixed. |
 | SWEEP | 2026-05-20 | — (inter-pass) | REMEDIATION BURST | BC-vs-source sweep: all 217 BCs re-verified against current src/; ~58 defects fixed (off-by-one citations + ~6 semantic); addresses P-CITE-PG at root. 37 BC body files committed (d038ace). Counter: 0/3 unchanged. Pass 17 next. |
+| 17 | 2026-05-20 | 5 (0C/2H/1M/1L/1N) | NOT CONVERGED | Counter remains 0/3 — all 5 findings in ent-04 only; ZERO BC defects (BC sweep held). F-1 HashMap→BTreeMap; F-2 false inline-test claim+stale range; F-3 BC-RPT-007→BC-RPT-001; F-4 line range 12-17→38-50; F-5 Verdict cite 32-40→30-40. All fixed (0c16cad). |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
 1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (0/3).
-   Pass 17 is next; all three consecutive passes must be clean (0C/0H/0M) to satisfy gate.
+   Pass 18 is next; all three consecutive passes must be clean (0C/0H/0M) to satisfy gate.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 

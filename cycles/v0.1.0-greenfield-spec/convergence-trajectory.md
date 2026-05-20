@@ -34,10 +34,11 @@ traces_to: STATE.md
 | 15 | 2026-05-20 | 4 | 0 | 1 | 2 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — H-1 VP-020 test API wrong (CsvReporter/render()->String); M-1 VP-020 pt 3 mis-scoped AnalysisSummary; M-2 module-decomposition reporter Purity wrong; N-1 covered by M-2 fix. All 4 fixed. |
 | 16 | 2026-05-20 | 3 | 1 | 0 | 1 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — C-1 BC-2.07.037 Postcondition 4 verdict Anomaly/Likely/High→Anomaly/Inconclusive/Low; M-1 stale correction-notes removed from BC-2.07.017/019; L-1 minor wording. All 3 fixed. |
 | SWEEP | 2026-05-20 | — | — | — | — | — | — | — | **0/3** | **REMEDIATION BURST** — comprehensive BC-vs-source verification sweep; all 217 BCs re-verified against current src/; ~58 defects fixed (off-by-one citations + ~6 semantic spec-vs-code defects); 37 BC body files committed (d038ace); addresses recurring P-CITE-PG defect class at root; no adversary pass; counter unchanged |
+| 17 | 2026-05-20 | 5 | 0 | 2 | 1 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — all 5 findings concentrated in ent-04 only; ZERO BC defects found (BC sweep held). F-1 HIGH: AnalysisSummary.detail HashMap→BTreeMap; F-2 HIGH: false "only inline tests" claim + stale line range; F-3 MED: BC-RPT-007→BC-RPT-001 cross-ref; F-4 LOW: line range 12-17→38-50; F-5 NITPICK: Verdict citation 32-40→30-40. All fixed (0c16cad). |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3` (SWEEP between 16 and 17 — counter unchanged)
+`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects)
 
 ## Per-Pass Details
 
@@ -930,5 +931,50 @@ BC-INDEX.md NOT modified — index was current; body files only.
 **Committed in burst:**
 `spec: comprehensive BC-vs-source verification sweep - fix ~58 residual drift defects across 217 BCs`
 (SHA: d038ace). Pass 17 dispatched next.
+
+---
+
+### Pass 17 (2026-05-20) — NOT CONVERGED (counter remains 0/3)
+
+**Findings:** 5 (0 CRIT, 2 HIGH, 1 MED, 1 LOW, 1 NITPICK)
+**Delta from pass 16:** +2 total (CRIT -1, HIGH +2, MED 0, LOW 0, NITPICK +1) — no regression; findings concentrated in one entity shard not touched by BC sweep
+**Novelty:** LOW
+**Convergence counter:** 0/3 (unchanged — HIGH findings disqualify; a clean pass requires 0C/0H/0M)
+**Verdict:** NOT CONVERGED — 2 HIGH findings present. Counter remains 0/3. Pass 18 is next.
+
+**Key observation:** Pass 17 found ZERO BC defects. The comprehensive BC-vs-source sweep
+(d038ace, inter-pass 16→17, 217 BCs re-verified) held completely. All 5 findings were confined
+to `ent-04-findings-output.md`, a domain entity shard outside the BC sweep scope.
+
+**Key finding categories:**
+
+- HIGH (F-1): `domain/entities/ent-04-findings-output.md` — `AnalysisSummary.detail` field
+  typed as `HashMap<String, String>` in the spec; the actual source uses `BTreeMap<String, String>`
+  to guarantee deterministic output ordering (required for stable CSV/JSON serialization).
+  Corrected to `BTreeMap`.
+
+- HIGH (F-2): `domain/entities/ent-04-findings-output.md` — spec asserted that
+  `AnalysisSummary` is "only tested via inline unit tests in the same file." This claim was
+  false: `AnalysisSummary` is also covered by integration tests and reporter tests. Claim
+  removed; stale line range associated with the assertion also corrected.
+
+- MED (F-3): `domain/entities/ent-04-findings-output.md` — cross-reference cited
+  `BC-RPT-007`; correct reference is `BC-RPT-001`. Corrected.
+
+- LOW (F-4): `domain/entities/ent-04-findings-output.md` — `AnalysisSummary` struct line
+  range cited as `12-17`; correct post-refactor range is `38-50`. Corrected.
+
+- NITPICK (F-5): `domain/entities/ent-04-findings-output.md` — `Verdict` enum citation
+  `32-40` corrected to `30-40` (off-by-one on start line).
+
+**Files fixed (1):**
+`specs/domain/entities/ent-04-findings-output.md`
+
+**Remediation:** All 5 findings (0C/2H/1M/1L/1N) remediated. AnalysisSummary.detail type
+corrected HashMap→BTreeMap; false inline-test claim removed + stale range fixed; BC-RPT-007
+cross-ref corrected to BC-RPT-001; AnalysisSummary line range corrected 12-17→38-50;
+Verdict citation corrected 32-40→30-40. Fixes committed in burst
+`spec: fix adversarial-review pass-17 findings (2H/1M/1L) - ent-04 BTreeMap + inline-test claim`
+(SHA: 0c16cad). Pass 18 dispatched next.
 
 ---
