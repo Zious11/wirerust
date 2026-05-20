@@ -1,146 +1,115 @@
 ---
-pipeline: PHASE_0_COMPLETE
-phase: phase-0-ingestion-complete
+pipeline: REMEDIATION_COMPLETE
+phase: lesson-backlog-remediation-complete
 product: wirerust
 mode: brownfield
-timestamp: 2026-05-19T20:00:00Z
+timestamp: 2026-05-19T22:30:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
+remediation_completed: 2026-05-19T22:30:00Z
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_0_COMPLETE — brownfield ingestion finished, ready for spec crystallization or direct story decomposition.
+**Pipeline:** REMEDIATION_COMPLETE — the full Phase C lesson backlog (P0 + P1 +
+P2) has been delivered as 21 merged PRs on `develop`, plus the high-value P3
+documentation subset. Three cosmetic P3 items deliberately deferred.
+
 **Mode:** brownfield (in-repo: target == reference).
-**Phase 0 result:** All 6 deepening passes converged (NITPICK at convergence-anchor rounds); Phase B.5 coverage audit PASS (0 blind spots); Phase B.6 extraction validation PASS (18/20 CONFIRMED BCs sampled, 0 HALLUCINATED, all metrics Delta=0).
 
-## Phase 0 Ingestion Summary
+**Test suite:** 213 (Phase 0 baseline) → **265** passing. `cargo fmt --check`,
+`cargo clippy --all-targets -- -D warnings`, `cargo test --all-targets`,
+`cargo audit`, and `cargo deny` are all green on `develop`.
 
-### Artifacts (21 files in `.factory/semport/wirerust/`)
+## Phase 0 Ingestion Summary (historical)
 
-**Phase A broad sweep (7 files):**
-- `wirerust-pass-0-inventory.md`
-- `wirerust-pass-1-architecture.md`
-- `wirerust-pass-2-domain-model.md`
-- `wirerust-pass-3-behavioral-contracts.md`
-- `wirerust-pass-4-nfr-catalog.md`
-- `wirerust-pass-5-conventions.md`
-- `wirerust-pass-6-synthesis.md` (superseded by Phase C)
+Brownfield ingestion completed 2026-05-19T20:00:00Z. All 6 deepening passes
+converged; Phase B.5 coverage audit PASS; Phase B.6 extraction validation PASS
+(18/20 CONFIRMED BCs sampled, 0 HALLUCINATED). Canonical ground truth:
+`.factory/semport/wirerust/wirerust-pass-8-deep-synthesis.md` (Phase C). The 21
+ingestion artifacts under `.factory/semport/wirerust/` remain the reference
+corpus; the Phase 0 metric table and convergence record are preserved there.
 
-**Phase B deepening (11 files):**
-- `wirerust-pass-0-deep-inventory.md`
-- `wirerust-pass-1-deep-architecture.md`, `wirerust-pass-1-deep-architecture-r3.md`
-- `wirerust-pass-2-deep-domain-model.md`, `wirerust-pass-2-deep-domain-model-r3.md`
-- `wirerust-pass-3-deep-behavioral-contracts.md`, `wirerust-pass-3-deep-behavioral-contracts-r3.md`, `wirerust-pass-3-deep-behavioral-contracts-r4.md`
-- `wirerust-pass-4-deep-nfr-catalog.md`
-- `wirerust-pass-5-deep-conventions.md`, `wirerust-pass-5-deep-conventions-r3.md`
+## Remediation Cycle — 21 PRs (#69–#89)
 
-**Phase B.5 + B.6 audits (2 files):**
-- `wirerust-coverage-audit.md` (PASS)
-- `wirerust-extraction-validation.md` (PASS)
+### P0 — Correctness gaps — 5/5 CLOSED
 
-**Phase C final synthesis (1 file — canonical ground truth):**
-- `wirerust-pass-8-deep-synthesis.md`
+| Lesson | Fix | PR |
+|--------|-----|-----|
+| P0.01 | Declare MSRV `rust-version = "1.91"` (clippy `incompatible_msrv` corrected the date-inferred 1.86) | #69 |
+| P0.02 | Remove `*.pcapng` from the directory glob (reader rejects it) | #69 |
+| P0.03 | `impl Drop` lifecycle tripwire + `run_analyze` IIFE so `finalize()` always runs | #72 |
+| P0.04 | Wire `--json <FILE>` to `fs::write`; loud-bail on `--csv` (later superseded by P2.03) | #70 |
+| P0.05 | Empty-value `Host:` evasion closed; UA asymmetry preserved with research-cited rationale | #71 |
 
-### Convergence record
+### P1 — High-ROI improvements — 7/7 CLOSED
 
-| Pass | Rounds | Trajectory | Final |
-|------|--------|-----------|-------|
-| 0 Inventory | 3 (R1+R2+R3) | broad → SUBSTANTIVE → NITPICK | CONVERGED |
-| 1 Architecture | 3 (R1+R2+R3) | broad → SUBSTANTIVE → NITPICK | CONVERGED |
-| 2 Domain Model | 4 (R1+R2+R3+R4) | broad → SUB → SUB → NITPICK | CONVERGED |
-| 3 Behavioral Contracts | 5 (R1+R2+R3+R4+R5) | broad → SUB → SUB → SUB → NITPICK | CONVERGED |
-| 4 NFR Catalog | 3 (R1+R2+R3) | broad → SUBSTANTIVE → NITPICK | CONVERGED |
-| 5 Conventions | 4 (R1+R2+R3+R4) | broad → SUB → SUB → NITPICK | CONVERGED |
+| Lesson | Fix | PR |
+|--------|-----|-----|
+| P1.01 | `dropped_findings` counter on `ReassemblyStats` | #73 |
+| P1.02 | Symmetric `Option` JSON serialization on `Finding` | #73 |
+| P1.03 | `--hosts` flag wired to a per-host terminal breakdown | #74 |
+| P1.04 | "No unwired CLI flags" convention; 5 dead flags removed | #74 |
+| P1.05 | `truncated_records` counter on `TlsAnalyzer` | #73 |
+| P1.06 | `#![warn(missing_docs)]` phased rollout | #75 |
+| P1.07 | `//!` module headers on all 20 modules | #75 |
 
-Total Phase B agent dispatches: ~14 (1 retry on P1 R2 socket error).
+### P2 — Worth considering — 11/11 CLOSED
 
-### Final metrics (authoritative — supersedes any prior pass)
+| Lesson | Fix | PR |
+|--------|-----|-----|
+| P2.01 | `reassembly/mod.rs` split into config/stats/lifecycle + `process_packet` decomposed | #85 |
+| P2.02 | Inlined format args + `clippy::uninlined_format_args` enforcement lint | #78 |
+| P2.03 | CSV reporter implemented (with CSV-injection neutralization); loud-bail retired | #84 |
+| P2.04 | JA3/JA3S property tests via `proptest` (+ #82 lockfile/regressions follow-up) | #81 |
+| P2.05 | Anomaly thresholds made `ReassemblyConfig` fields + CLI flags, research-documented | #88 |
+| P2.06 | `cargo audit` + `cargo deny` CI jobs + `deny.toml` | #79 |
+| P2.07 | Criterion micro-benchmarks for the hot paths | #83 |
+| P2.08 | `direction` tag on `Finding` | #77 |
+| P2.09 | Deterministic (BTreeMap) JSON map ordering | #76 |
+| P2.10 | `#[non_exhaustive]` on `ThreatCategory` / `Verdict` / `Confidence` | #76 |
+| P2.11 | `max_classification_attempts` knob on `StreamDispatcher` | #80 |
 
-- Source files: 20 `.rs` (3,868 LOC)
-- Test files: 18 `.rs` (6,021 LOC)
-- Total Rust LOC: 9,889
-- Tests: 213 (202 in `tests/` + 11 inline in `reporter/terminal.rs` — R1 missed the inline)
-- Behavioral contracts: 218 (216 R1 corpus + BC-RAS-054 + BC-TLS-037); 74% HIGH-confidence; 10 ABS-dispositioned
-- Domain entities: 41; enums: 14; state machines: 5
-- Components: 20 (C-1..C-20) across 5 layers
-- Architecture smells: 10 (incl. new #9 no-Drop/finalize-fragile, #10 loose TLS gate)
-- NFRs: 79 (incl. 3 new: OBS-010 JSON asymmetry, RES-022 dropped_findings counter, RES-023 weak-cipher heap bound)
-- Magic numbers: ~31; saturating arithmetic sites: 12
-- Conventions: 90 (R1 had 73 stale rollup)
-- MITRE techniques: 15 catalogued; 6 emitted; 9 unused-staged
-- Pcap fixtures: 14 total; 6 consumed; 8 dead-staged
-- `unsafe` blocks: 0; `#[allow]`: 0; `impl Drop`: 0
+### P3 — Documentation tier — curated subset done (#89)
 
-### Hallucination-class corrections caught by deepening protocol
+DONE: ADR 0004 (process-wide warning atomics), MITRE staged-techniques module
+note, test-naming convention in README, `is_grease_u16` rationale comment,
+`tests/fixtures/README.md` provenance doc (#86).
 
-5+ R1 metric errors caught and corrected:
-- P3 R1 137 BCs → actual 216
-- P0 R1 202 tests → actual 213
-- P5 R1 73 conventions → actual 90
-- P4 R1 13 saturating sites → actual 12
-- P4 R1 28 magic numbers → actual ~31
-- P2 R1 16 MITRE techniques → actual 15
-- P2 R1 4 unused MITRE IDs → actual 9
-- P0 R2 "5 of 14 fixtures consumed" → actual 6 (caught by B.5)
+DEFERRED (cosmetic, per agreed curation): pluralization-helper extraction,
+`<type>/<slug>` branch-naming doc widening, services-taxonomy split doc.
 
-## Priority-ordered Lesson Backlog (from Phase C §8)
+### Non-lesson PRs
 
-**30 total lessons:** 5 P0 (correctness) + 7 P1 (high-ROI) + 11 P2 (worth considering) + 7 P3 (document).
+- **#86** — added 2 Wireshark-wiki TCP reassembly fixtures (benign baselines
+  toward P2.05) + `tests/fixtures/README.md`.
+- **#87** — `fix(reader)`: accept snaplen-truncated captures (`tcpdump -s`).
+  A genuine reader bug discovered while adding fixtures; pcap-file 2.0.0's
+  validated path wrongly rejects `orig_len > snap_len`.
+- **#82** — chore: commit `Cargo.lock` + proptest regressions for P2.04.
 
-### P0 — Correctness gaps (must fix before next release)
+## Drift Items / open follow-ups
 
-1. **LESSON-P0.01** — Declare `rust-version = "1.86"` in Cargo.toml (effective MSRV undeclared)
-2. **LESSON-P0.02** — Remove `*.pcapng` from main.rs:245-247 directory glob (reader rejects it)
-3. **LESSON-P0.03** — Add `impl Drop` so finalize() runs on `?`-Err propagation (not just panic)
-4. **LESSON-P0.04** — Wire `--csv <FILE>` and `--json <FILE>` to fs::write OR remove inner Option
-5. **LESSON-P0.05** — Fix inverted missing-Host vs missing-UA semantics (attacker can defeat)
-
-### P1 — High-ROI improvements (7 lessons)
-
-1. **LESSON-P1.01** — Add `dropped_findings: u64` to ReassemblyStats (~12 LOC)
-2. **LESSON-P1.02** — Symmetrize Finding Option JSON serialization (2 attribute lines)
-3. **LESSON-P1.03** — Wire `--hosts` flag (data exists; ~15 LOC)
-4. **LESSON-P1.04** — Codify "no unwired CLI flags" convention (hide 8 misleading flags)
-5. **LESSON-P1.05** — Add `truncated_records: u64` to TlsAnalyzer (CNV-PAT-002 follow-up)
-6. **LESSON-P1.06** — Enable `#![warn(missing_docs)]` on lib.rs with phased rollout
-7. **LESSON-P1.07** — Add `//!` module headers to all 20 modules
-
-### P2 — Worth considering (11 lessons)
-
-P2 covers: engine.rs refactor, format-string conversion, CSV reporter decision, JA3 property tests, threshold calibration, cargo audit/deny CI, criterion benchmarks, direction tag on Finding, deterministic JSON map ordering, `#[non_exhaustive]` ThreatCategory, `max_classification_attempts` knob.
-
-### P3 — Known divergences to document (7 lessons)
-
-P3 covers: services taxonomy split documentation, pluralization helper extraction, ADR 0004 for process-wide atomics, MITRE staged-techniques doc-comment, prose-style test naming codification, `<type>/<slug>` branch naming widening, dead-fixtures README or removal.
-
-## Next Steps
-
-### Direct paths forward
-
-1. **`/vsdd-factory:create-brief`** — product brief using Phase C §2 as seed
-2. **`/vsdd-factory:create-domain-spec`** — L2 spec using §5 (218 BC corpus) + §4 (architecture)
-3. **`/vsdd-factory:create-prd`** — L3 PRD using §8 (priority-ordered lessons) directly as backlog
-
-### Direct-to-story alternative
-
-The P0 + P1 lesson set (12 stories) is essentially a ready-to-execute backlog with file paths. The orchestrator can hand directly to story decomposition rather than full L2/L3 ceremony, since these are remediation tasks on an existing codebase rather than net-new features.
-
-### Recommended phase order
-
-1. P0 stories (5) — correctness blockers; all S/M cost; CI-gated
-2. P1 stories (7) — high-ROI improvements
-3. Then `/create-brief` and `/create-prd` for net-new features
-
-## Drift Items
-
-(none — Phase 0 complete with clean convergence)
+1. **P2.05 not empirically calibrated.** Research established no NIDS exposes
+   a comparable count-and-alert-at-N threshold; the lesson was closed as
+   *configurable + honestly documented*. True calibration needs a labelled
+   capture corpus (benign + adversarial) measured for FP/TP rates.
+2. **small-segment default `2048`** — research flags it as likely Snort's knob
+   *ceiling* mistaken for a default (near-inert). Kept unchanged (an 8× cut
+   without FP data is another guess); operators can lower it via
+   `--small-segment-threshold`. Candidate for a data-backed default change.
+3. **3 deferred P3 cosmetic items** (see above).
+4. **`nfs_bad_stalls.cap`** could now be re-added as a benign reassembly
+   fixture — #87 made snaplen-truncated captures readable.
 
 ## Notes
 
-- `.factory/logs/` is gitignored.
-- `.factory/logs/archive/dispatcher-internal-2026-05-19.pre-bootstrap.jsonl` preserves the pre-bootstrap log.
-- PR #68 on `develop` (chore: ignore .factory/ worktree at repo root) merged status pending.
-- Total factory-artifacts branch commits: ~25.
+- `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from
+  `develop`. `.factory/logs/` is gitignored.
+- `demo-evidence/` added to the repo `.gitignore` (#87).
+- Architecture smell #9 (no-Drop / finalize-fragile) closed by P0.03.
+- NFRs OBS-010 (JSON asymmetry), RES-022 (dropped_findings) addressed by P1.02
+  / P1.01; RES-023 weak-cipher heap bound remains as catalogued.
+- The pcap-file `orig_len > snap_len` bug (#87) is worth an upstream report.
