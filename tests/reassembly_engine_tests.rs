@@ -1131,6 +1131,55 @@ fn test_out_of_window_threshold_alert() {
 }
 
 #[test]
+fn test_out_of_window_threshold_silent_at_exactly_threshold() {
+    // The out-of-window alert fires on `count > threshold`, strictly.
+    // With the threshold configured to 5, exactly 5 out-of-window
+    // segments must NOT fire — pins the boundary so a regression from
+    // `>` to `>=` is caught (`test_out_of_window_threshold_alert`
+    // covers the threshold + 1 side).
+    let config = ReassemblyConfig {
+        max_receive_window: 1000,
+        out_of_window_alert_threshold: 5,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    for i in 0..5 {
+        let seq = 1000 + 5000 + i; // beyond base_offset + the 1000-byte window
+        let pkt = make_tcp_packet(
+            client, 12345, server, 80, seq, b"x", false, false, false, false,
+        );
+        reassembler.process_packet(&pkt, 2, &mut handler);
+    }
+
+    assert_eq!(reassembler.stats().segments_out_of_window, 5);
+    assert!(
+        !reassembler
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("out-of-window segments")),
+        "exactly the threshold count must stay silent (the test is `>`, not `>=`)"
+    );
+}
+
+#[test]
 fn test_out_of_window_alert_fires_only_once() {
     let config = ReassemblyConfig {
         max_receive_window: 1000,
@@ -1606,6 +1655,23 @@ fn test_default_overlap_threshold_silent_at_six_overlaps() {
             .iter()
             .any(|f| f.summary.contains("Excessive segment overlaps")),
         "6 overlaps must stay silent under the default threshold of 50"
+    );
+}
+
+#[test]
+fn test_overlap_threshold_silent_at_exactly_threshold() {
+    // The overlap alert fires on `overlap_count > threshold`, strictly.
+    // With the threshold configured to 5, exactly 5 overlaps must NOT
+    // fire — pins the boundary so a regression from `>` to `>=` is
+    // caught (`test_low_overlap_threshold_fires_earlier` covers the
+    // threshold + 1 side).
+    let reasm = run_overlapping_flow(5, 5);
+    assert!(
+        !reasm
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("Excessive segment overlaps")),
+        "exactly the threshold count must stay silent (the test is `>`, not `>=`)"
     );
 }
 

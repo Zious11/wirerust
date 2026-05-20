@@ -353,7 +353,7 @@ impl TcpReassembler {
                     | InsertResult::IsnMissing
             )
         {
-            if payload.len() < small_segment_max_bytes {
+            if payload.len() < usize::from(small_segment_max_bytes) {
                 flow_dir.small_segment_run = flow_dir.small_segment_run.saturating_add(1);
             } else {
                 flow_dir.small_segment_run = 0;

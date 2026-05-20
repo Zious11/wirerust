@@ -75,21 +75,24 @@ pub struct Cli {
     pub reassembly_memcap: usize,
 
     /// Override the overlapping-segment anomaly threshold (default: 50).
-    /// Per flow direction; see LESSON-P2.05 in the reassembly config.
-    #[arg(long, global = true)]
+    /// Per flow direction; accepted range 0–255 (Snort's
+    /// `overlap_limit` range). See LESSON-P2.05 in the reassembly config.
+    #[arg(long, global = true, value_parser = clap::value_parser!(u32).range(0..=255))]
     pub overlap_threshold: Option<u32>,
 
     /// Override the small-segment anomaly threshold (default: 100).
     /// Length of a consecutive run of undersized segments, per flow
-    /// direction, above which the anomaly fires. See LESSON-P2.05.
-    #[arg(long, global = true)]
+    /// direction, above which the anomaly fires. Accepted range 0–2048
+    /// (Snort's `small_segments` count range). See LESSON-P2.05.
+    #[arg(long, global = true, value_parser = clap::value_parser!(u32).range(0..=2048))]
     pub small_segment_threshold: Option<u32>,
 
     /// Override the small-segment payload-size cutoff in bytes
     /// (default: 16). A segment shorter than this counts as "small";
-    /// 0 disables small-segment detection. See LESSON-P2.05.
-    #[arg(long, global = true)]
-    pub small_segment_max_bytes: Option<usize>,
+    /// 0 disables small-segment detection. Accepted range 0–2048
+    /// (Snort's `small_segments` size range). See LESSON-P2.05.
+    #[arg(long, global = true, value_parser = clap::value_parser!(u16).range(0..=2048))]
+    pub small_segment_max_bytes: Option<u16>,
 
     /// Override the ports exempt from small-segment detection
     /// (default: 23,513 — telnet, rlogin). Comma-separated; a flow is

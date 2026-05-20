@@ -39,6 +39,13 @@
 use std::net::IpAddr;
 
 use anyhow::{Result, anyhow};
+// `SliceError::Len` is the strict-parser error class the truncation
+// fallback keys on (see `decode_packet`). That discrimination is part
+// of the etherparse 0.16 API contract; `Cargo.toml` constrains the
+// dependency to `0.16.x` accordingly. A future 0.17 bump must re-verify
+// the error taxonomy — `test_decode_snaplen_truncated_ipv6_recovers_via_lax_parsing`
+// and `test_decode_structurally_corrupt_packet_is_rejected_not_lax_recovered`
+// act as the contract tests for it.
 use etherparse::err::packet::SliceError;
 use etherparse::{
     EtherType, IpNumber, LaxNetSlice, LaxSlicedPacket, NetSlice, SlicedPacket, TransportSlice,

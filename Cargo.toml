@@ -11,6 +11,11 @@ httparse = "1"
 tls-parser = "0.12"
 md-5 = "0.11"
 clap = { version = "4", features = ["derive"] }
+# Pinned to the 0.16.x minor: the decoder's strict→lax truncation
+# fallback keys on the `SliceError::Len` variant, which is part of the
+# 0.16 API contract. A 0.17 bump must re-verify the error taxonomy
+# (see src/decoder.rs). `"0.16"` already excludes 0.17 via Cargo's
+# caret semantics for 0.x versions.
 etherparse = "0.16"
 pcap-file = "2"
 serde = { version = "1", features = ["derive"] }
