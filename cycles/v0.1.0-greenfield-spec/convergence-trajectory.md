@@ -35,10 +35,11 @@ traces_to: STATE.md
 | 16 | 2026-05-20 | 3 | 1 | 0 | 1 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — C-1 BC-2.07.037 Postcondition 4 verdict Anomaly/Likely/High→Anomaly/Inconclusive/Low; M-1 stale correction-notes removed from BC-2.07.017/019; L-1 minor wording. All 3 fixed. |
 | SWEEP | 2026-05-20 | — | — | — | — | — | — | — | **0/3** | **REMEDIATION BURST** — comprehensive BC-vs-source verification sweep; all 217 BCs re-verified against current src/; ~58 defects fixed (off-by-one citations + ~6 semantic spec-vs-code defects); 37 BC body files committed (d038ace); addresses recurring P-CITE-PG defect class at root; no adversary pass; counter unchanged |
 | 17 | 2026-05-20 | 5 | 0 | 2 | 1 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — all 5 findings concentrated in ent-04 only; ZERO BC defects found (BC sweep held). F-1 HIGH: AnalysisSummary.detail HashMap→BTreeMap; F-2 HIGH: false "only inline tests" claim + stale line range; F-3 MED: BC-RPT-007→BC-RPT-001 cross-ref; F-4 LOW: line range 12-17→38-50; F-5 NITPICK: Verdict citation 32-40→30-40. All fixed (0c16cad). |
+| 18 | 2026-05-20 | 5 | 0 | 3 | 0 | 2 | LOW | — | **0/3** | **NOT CONVERGED** — all 5 findings were stale-anchor drift from PR #75 `//!` header line shifts in last unreconciled domain shards. H-1 ent-01 8 entity anchors; H-2 ent-04 6 cross-file anchors; H-3 cap-10 unknown-ID rendering anchor; L-1 ent-02 C-range; L-2 domain-spec test count. All fixed (fc28b69). |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects)
+`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75)
 
 ## Per-Pass Details
 
@@ -976,5 +977,53 @@ cross-ref corrected to BC-RPT-001; AnalysisSummary line range corrected 12-17→
 Verdict citation corrected 32-40→30-40. Fixes committed in burst
 `spec: fix adversarial-review pass-17 findings (2H/1M/1L) - ent-04 BTreeMap + inline-test claim`
 (SHA: 0c16cad). Pass 18 dispatched next.
+
+---
+
+### Pass 18 (2026-05-20) — NOT CONVERGED (counter remains 0/3)
+
+**Findings:** 5 (0 CRIT, 3 HIGH, 0 MED, 2 LOW)
+**Delta from pass 17:** 0 total (CRIT 0, HIGH +1, MED -1, LOW +1, NITPICK -1) — no regression; root cause is same class (stale anchor drift) but in different shards
+**Novelty:** LOW
+**Convergence counter:** 0/3 (unchanged — HIGH findings disqualify; a clean pass requires 0C/0H/0M)
+**Verdict:** NOT CONVERGED — 3 HIGH findings present. Counter remains 0/3. Pass 19 is next.
+
+**Root cause:** PR #75 shifted `//!` doc-header line numbers across several modules. The
+inter-pass-16 BC-vs-source sweep (d038ace) corrected BC body files only; the domain entity
+and capability shards (ent-01, ent-04, cap-10, ent-02, domain-spec) were not in scope for
+that sweep and carried stale anchors from the same PR #75 header drift.
+
+**Key finding categories:**
+
+- HIGH (H-1): `domain/entities/ent-01-ingestion-decoding.md` — 8 entity anchors pointed at
+  pre-PR-#75 line numbers in `src/packet.rs`, `src/decoder.rs`, and `src/link.rs`. All 8
+  re-resolved to current line positions.
+
+- HIGH (H-2): `domain/entities/ent-04-findings-output.md` — 6 cross-file anchors for
+  `Finding`, `Verdict`, `Severity`, and `AnalysisSummary` pointed at pre-PR-#75 locations
+  in `src/analyzer/` and `src/reporter/`. All 6 re-resolved.
+
+- HIGH (H-3): `domain/capabilities/cap-10-mitre-mapping.md` — rendering anchor for
+  unknown-ID path used a pre-PR-#75 line number in `src/mitre.rs`. Corrected to current
+  position.
+
+- LOW (L-1): `domain/entities/ent-02-reassembly-flow.md` — component range `C-6..C-9`
+  missing `C-15` (added in PR #75 refactor). Expanded to `C-6..C-9,C-15`.
+
+- LOW (L-2): `domain/domain-spec.md` — test count expressed as approximate `"~282"`;
+  corrected to exact `"282"` to match the green CI suite.
+
+**Files fixed (5):**
+- `specs/domain/entities/ent-01-ingestion-decoding.md`
+- `specs/domain/entities/ent-04-findings-output.md`
+- `specs/domain/capabilities/cap-10-mitre-mapping.md`
+- `specs/domain/entities/ent-02-reassembly-flow.md`
+- `specs/domain/domain-spec.md`
+
+**Remediation:** All 5 findings (0C/3H/2L) remediated. All were stale source-line anchors
+from PR #75 `//!` header shifts in the last unreconciled domain shards — outside the scope
+of the prior BC sweep (d038ace). Fixes committed in burst
+`spec: fix adversarial-review pass-18 findings (3H/2L) - re-resolve stale entity/capability anchors`
+(SHA: fc28b69). Pass 19 dispatched next.
 
 ---
