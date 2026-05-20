@@ -52,7 +52,7 @@ renderer is the sole owner of escape logic.
 | Total #[test] functions | ~282 as of develop@aa2ece9 (264 in tests/ + 18 inline: 11 in reporter/terminal.rs + 7 in analyzer/tls.rs; exact count is commit-sensitive and should be re-verified against current tree) |
 | Components | 21 (C-1..C-20 + C-21); 24 source files map to 21 components because 2 reassembly sub-files (config.rs, stats.rs) are unnumbered data-only modules, and csv.rs (reporter/csv.rs) is unnumbered. dispatcher.rs = C-21 (added by ADR 0001 after the C-1..C-20 count was set). The 7 reassembly sub-files (mod, flow, segment, handler, lifecycle, config, stats) map to C-6, C-7, C-8, C-9, C-15 (config.rs and stats.rs unnumbered). |
 | Layers | 5 (L0..L4) |
-| Behavioral contracts catalogued | 218 ingested / 212 active |
+| Behavioral contracts catalogued | 218 ingested / 217 active (212 ingestion-derived + 5 pass-4 CsvReporter) |
 | Domain entities | 41 |
 | Semantic enums | 14 |
 | NFRs | 79 |

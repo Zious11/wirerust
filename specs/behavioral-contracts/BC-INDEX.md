@@ -278,7 +278,7 @@ traces_to: .factory/specs/prd.md
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
 | BC-2.12.001 | analyze Subcommand Parses Positional Targets and All Flags | P0 | [WRITTEN] | BC-CLI-001 |
-| BC-2.12.002 | summary Subcommand Parses Targets and --hosts/--services | P1 | [WRITTEN] | BC-CLI-002 |
+| BC-2.12.002 | summary Subcommand Parses Targets and --hosts Flag | P1 | [WRITTEN] | BC-CLI-002 |
 | BC-2.12.003 | Global Flag --no-color Parsed and Stored | P1 | [WRITTEN] | BC-CLI-003 |
 | BC-2.12.004 | --output-format json Parses to Some(OutputFormat::Json) | P0 | [WRITTEN] | BC-CLI-004 |
 | BC-2.12.005 | Reassembly CLI Flags: --reassemble, --no-reassemble, Depth, Memcap | P0 | [WRITTEN] | BC-CLI-005 |
@@ -329,7 +329,7 @@ traces_to: .factory/specs/prd.md
 | BC-SUM-001..004 | 4 | BC-2.12.018..021 |
 | BC-ABS-001..010 | 10 | BC-2.13.001..004 (6 ABS retired by remediation cycle) |
 
-**Total ingestion BCs mapped: 218 / 218 (plus 5 post-ingestion pass-4 additions = 223 total rows; 217 active after 6 retired + 1 reclassified to domain-debt)**
+**Total ingestion BCs mapped: 218 / 218 (plus 5 post-ingestion pass-4 additions = 223 total rows; 217 active = 218 ingested - 6 retired (BC-ABS-004..009) + 5 pass-4 additions)**
 
 Note: BC-ABS-004 (--hosts unwired), BC-ABS-005 (--services unwired), BC-ABS-006 (--json
 file unwired), BC-ABS-007 (CSV unwired), BC-ABS-009 (no e2e CLI tests) are RETIRED --

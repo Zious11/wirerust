@@ -404,7 +404,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC ID | Title | Priority | Origin BC |
 |-------|-------|----------|-----------|
 | BC-2.12.001 | analyze subcommand parses positional targets and all analysis flags | P0 | BC-CLI-001 |
-| BC-2.12.002 | summary subcommand parses positional targets and --hosts / --services flags | P1 | BC-CLI-002 |
+| BC-2.12.002 | summary subcommand parses positional targets and --hosts flag | P1 | BC-CLI-002 |
 | BC-2.12.003 | Global flag --no-color is parsed and stored | P1 | BC-CLI-003 |
 | BC-2.12.004 | Global flag --output-format json parses to Some(OutputFormat::Json); default is None | P0 | BC-CLI-004 |
 | BC-2.12.005 | Reassembly CLI flags: --reassemble, --no-reassemble, --reassembly-depth, --reassembly-memcap | P0 | BC-CLI-005 |

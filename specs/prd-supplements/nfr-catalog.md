@@ -217,11 +217,11 @@ are recorded here for traceability. Closed items were addressed in PRs #69-#98.
 |--------|------------|-------------|--------|
 | NFR-VIO-001 | "Multi-GB captures" README claim vs. eager `Vec<RawPacket>` load | document-and-accept | OPEN-DEBT (O-01 class) |
 | NFR-VIO-002 | `resolve_targets` glob included `*.pcapng` but reader rejects pcapng | fix (S) | CLOSED -- pcapng extension excluded from glob in remediation cycle |
-| NFR-VIO-003 | 7 unwired CLI flags (`--threats`, `--beacon`, `--filter`, `--verbose`, `--hosts`, `--services`, `--json <FILE>`, `--csv <FILE>`) | fix (mixed) | CLOSED -- unwired flags removed; `--json`/`--csv` wired; `--hosts` wired (LESSON-P1.03) |
+| NFR-VIO-003 | 8 unwired CLI flags (`--threats`, `--beacon`, `--filter`, `--verbose`, `--hosts`, `--services`, `--json <FILE>`, `--csv <FILE>`) | fix (mixed) | CLOSED -- unwired flags removed; `--json`/`--csv` wired; `--hosts` wired (LESSON-P1.03) |
 | NFR-VIO-004 | `--json/--csv <FILE>` wrote to stdout, not the specified file | fix (S) | CLOSED -- `std::fs::write` wired in `write_output()` |
 | NFR-VIO-005 | `OutputFormat::Csv` declared but dispatch fell through to terminal | fix (M) | CLOSED -- CsvReporter implemented and wired |
 | NFR-VIO-006 | `rayon` declared, zero uses | fix (S) | OPEN -- `rayon = "1"` still present at Cargo.toml:28 as of develop HEAD; zero src/ uses confirmed; single-line removal pending |
 | NFR-VIO-007 | `assert_cmd`, `predicates`, `tempfile` dev-deps unused | fix (S) | CLOSED -- integration tests added using these deps |
 | NFR-VIO-008 | `serde_json::to_string_pretty(&output).unwrap()` in JsonReporter | document-and-accept | CLOSED (LESSON cosmetic) -- infallible by construction; acceptable as-is per pass-4 R2 disposition |
-| NFR-VIO-009 | Effective MSRV 1.86 undeclared in Cargo.toml | fix (S) | CLOSED -- `rust-version = "1.91"` declared at Cargo.toml:5; 1.91 >= 1.86 so constraint is satisfied |
+| NFR-VIO-009 | Effective MSRV 1.86 undeclared in Cargo.toml | fix (S) | CLOSED -- `rust-version = "1.91"` declared at Cargo.toml:5. The declared value deliberately exceeds the computed minimum: 1.91 was chosen after clippy reported `incompatible_msrv` against a lower pin (LESSON-P0.01). This is an intentionally conservative declaration; it may be higher than the true minimum required to compile the crate, and that is accepted. |
 | NFR-VIO-010 | CI only on `ubuntu-latest` | document-and-accept with caveat | OPEN-DEBT -- macOS/Windows matrix expansion deferred; NFR-PORT-001 |

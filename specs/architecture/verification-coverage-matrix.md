@@ -21,7 +21,7 @@ timestamp: 2026-05-20T00:00:00Z
 | VP-005 | SNI 4-way ordered match (INV-5 boundary) | analyzer/tls.rs | Kani | P0 | draft |
 | VP-006 | HTTP poison monotonicity | analyzer/http.rs | proptest | P1 | draft |
 | VP-007 | MITRE technique ID format completeness | mitre.rs | Kani | P0 | draft |
-| VP-008 | decode_packet no-panic | decoder.rs | fuzz | P0 | draft |
+| VP-008 | decode_packet no-panic | decoder.rs | cargo-fuzz | P0 | draft |
 | VP-009 | FlowState machine validity | reassembly/flow.rs | Kani | P0 | draft |
 | VP-010 | buffered_bytes invariant | reassembly/segment.rs | proptest | P1 | draft |
 | VP-011 | flush_contiguous monotonicity | reassembly/segment.rs | proptest | P1 | draft |
@@ -38,7 +38,7 @@ timestamp: 2026-05-20T00:00:00Z
 
 ## Per-Module Coverage Totals
 
-| Module | Kani | proptest | fuzz | integration/unit | Total VPs |
+| Module | Kani | proptest | cargo-fuzz | integration/unit | Total VPs |
 |--------|------|----------|------|-----------------|-----------|
 | reassembly/flow.rs | 2 (VP-001, VP-009) | 0 | 0 | 0 | 2 |
 | reassembly/segment.rs | 2 (VP-002, VP-015) | 2 (VP-010, VP-011) | 0 | 0 | 4 |

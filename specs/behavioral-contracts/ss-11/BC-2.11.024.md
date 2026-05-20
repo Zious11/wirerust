@@ -27,7 +27,7 @@ removal_reason: null
 ## Description
 
 Four `Finding` fields are `Option<T>`: `mitre_technique` (column 6), `source_ip` (column 7),
-`direction` (column 9, in column-order position 8), and `timestamp` (column 9). When any of
+`direction` (column 8), and `timestamp` (column 9). When any of
 these is `None`, `CsvReporter` substitutes an empty string `""` for the cell value. When
 `Some`, each uses a type-specific string conversion: `mitre_technique` as `as_deref()`,
 `source_ip` via `IpAddr::to_string()`, `direction` via `format!("{d:?}")` (Debug formatting),
