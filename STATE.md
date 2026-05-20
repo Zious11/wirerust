@@ -13,21 +13,20 @@ dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
-adversary_convergence_counter: 1/3
-adversary_pass_11_date: "2026-05-20"
-adversary_pass_11_verdict: CONVERGED
-adversary_pass_11_findings: "1L/4 observations (0C/0H/0M/1L) — clean pass 1 of 3; polish applied"
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1"
+adversary_convergence_counter: 0/3
+adversary_pass_12_date: "2026-05-20"
+adversary_pass_12_verdict: NOT_CONVERGED
+adversary_pass_12_findings: "6 (0C/1H/1M/2L/2N) — counter RESET from 1/3; all fixed"
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 11 CONVERGED (0C/0H/0M/1L/4obs).
-First clean pass. Convergence counter: 1/3. Polish applied (BC-2.12.004→BC-2.12.001 ref,
-pseudocode render, NonAsciiUtf8 struct-variant, exit-2 row, dev-dep table). Pass 12 is next
-(confirmation pass). Two more clean passes (12 and 13) required to satisfy Phase 1d gate.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 12 NOT CONVERGED (0C/1H/1M/2L/2N).
+Counter RESET from 1/3 to 0/3 (HIGH+MED broke the consecutive-clean streak). All findings
+fixed. Pass 13 is next; must restart a fresh 3-consecutive-clean streak.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -42,7 +41,7 @@ pseudocode render, NonAsciiUtf8 struct-variant, exit-2 row, dev-dep table). Pass
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (1/3 clean; passes 1–10 NOT CONVERGED all remediated; pass 11 CONVERGED; passes 12–13 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–11 remediated; pass 11 CONVERGED then pass 12 NOT CONVERGED reset counter; pass 13 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -103,13 +102,14 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 9 | 2026-05-20 | 4 (0C/1H/1M/2L) | NOT_CONVERGED | REMEDIATED — all 4 fixed; stale citations BC-2.04.054/027, prd error-categories, ARCH-INDEX debt note |
 | 10 | 2026-05-20 | 6 (0C/3H/3M/0L) | NOT_CONVERGED | REMEDIATED — all 6 fixed; dependency table vs Cargo.toml, Reporter trait, ParsedPacket struct, CAP-03/SS IDs |
 | 11 | 2026-05-20 | 1L/4obs (0C/0H/0M/1L) | **CONVERGED** | CLEAN PASS 1/3 — polish applied (L-1 BC ref, O-1 pseudocode, O-2 struct-variant, O-3 exit-2, O-4 dev-deps) |
+| 12 | 2026-05-20 | 6 (0C/1H/1M/2L/2N) | NOT CONVERGED | RESET 1/3→0/3 — F-1 C1 postcondition, F-2 stale citation+unsupported claim, F-3/F-4 IPv6 bracket+citation, 2N csv.rs off-by-one. All fixed. |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
-1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (1/3).
-   Pass 12 is next (confirmation pass); passes 12 and 13 must be clean to satisfy gate.
+1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (0/3).
+   Pass 13 is next; all three of passes 13, 14, 15 must be clean to satisfy gate.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 
@@ -140,6 +140,7 @@ Full register: `.factory/tech-debt-register.md` (when populated).
 | P5-PG | BC-file on-disk verification used an existence check only; a NUL-byte-corrupted file (BC-2.07.020.md) was not detected until pass-5 adversarial audit (process gap, pass 5) | Tooling gap — no UTF-8 + control-byte validator on the spec package. Pass-5 remediation removed the NUL byte. | Codify as cycle-close follow-up: add spec-package validator asserting every BC/spec file is valid UTF-8 with no control bytes other than CR/LF/TAB. |
 | P8-DEFER | All 217 BC files carry `VP-TBD` placeholders in their Verification Properties field. The forward VP->BC mapping exists and is authoritative in VP-INDEX.md; the BC->VP back-reference back-fill is deferred as a Phase-1-exit polish item. | The adversary classified this as a deliberate Phase-1 convention, not drift — it is an Observation, not a blocking defect. Forward mapping in VP-INDEX.md is the authoritative source of VP->BC linkage; reverse back-references in individual BC files are editorial. | Surface as structured question at the Phase 1 human approval gate: does the human want BC->VP back-references back-filled before Phase 1 sign-off? |
 | P10-PG | Architecture-doc dependency tables were not diffed against Cargo.toml — authored from memory, causing stale versions, phantom crates, and missing crates (pass-10 H-1, M-3). | Tooling gap — no mechanical validator exists to assert dependency-graph.md matches Cargo.toml. Pass-10 remediation corrected the table manually. | Codify as cycle-close follow-up: add a `validate-deps-against-cargo` check that parses `[dependencies]` + `[dev-dependencies]` from Cargo.toml and asserts each crate appears in dependency-graph.md with the correct version. |
+| **P-CITE-PG** **(MANDATORY — 6 recurrences: passes 4, 6, 8, 9, 10, 12)** | No automated validator resolves `file.rs:NNN` anchors in spec artifacts. Stale line-citations have recurred across 6 passes, driving HIGH and MEDIUM findings repeatedly. | RECURRING PROCESS GAP — per Cycle-Closing Checklist, 6 occurrences = mandatory codification follow-up required before cycle can be declared closed. A follow-up story or a justified deferral must be recorded. | **Required action:** Create a spec-CI citation-checker that resolves every `file.rs:NNN` anchor in spec artifact files, flags when the cited line is a comment/blank, and flags when an asserted symbol name is absent from the surrounding 5-line context. File as a follow-up story or record an explicit justified deferral at cycle close. |
 
 ## Open Issues (from Phase 0 / deferred findings)
 

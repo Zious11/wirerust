@@ -27,10 +27,11 @@ traces_to: STATE.md
 | 9 | 2026-05-20 | 4 | 0 | 1 | 1 | 2 | LOW | — | 0/3 | NOT_CONVERGED — stale citations BC-2.04.054/027, prd error-categories, ARCH-INDEX debt note; all 4 fixed |
 | 10 | 2026-05-20 | 6 | 0 | 3 | 3 | 0 | LOW | — | 0/3 | NOT_CONVERGED — dependency table stale vs Cargo.toml, api-surface Reporter trait + ParsedPacket wrong, CAP-03/SS IDs; all 6 fixed |
 | 11 | 2026-05-20 | 1 | 0 | 0 | 0 | 1 | LOW | — | **1/3** | **CONVERGED** — clean pass 1 of 3 (0C/0H/0M/1L/4obs); 1L + 4 cosmetic observations polished |
+| 12 | 2026-05-20 | 6 | 0 | 1 | 1 | 2 | LOW | — | **0/3** | **NOT CONVERGED** — counter RESET from 1/3 (H+M findings broke streak); all 6 findings fixed |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1`
+`17→13→7→19→8→3→13→7→4→6→1→6`
 
 ## Per-Pass Details
 
@@ -564,5 +565,57 @@ must also return clean to satisfy the 3-clean-pass Phase 1d adversarial converge
 **Polish committed in burst:**
 `spec: pass-11 polish (1L/4 observations) - package CONVERGED, counter 1/3`
 (SHA: 4d4cf89). Pass 12 dispatched next (confirmation pass).
+
+---
+
+### Pass 12 (2026-05-20) — NOT CONVERGED (counter RESET 1/3 → 0/3)
+
+**Findings:** 6 (0 CRIT, 1 HIGH, 1 MED, 2 LOW, 2 NITPICK)
+**Delta from pass 11:** +5 total (HIGH +1, MED +1, LOW +1, NITPICK +2) — regression; streak broken
+**Novelty:** LOW
+**Convergence counter:** 0/3 (RESET — pass 12 was not clean; 3 consecutive clean passes required)
+**Verdict:** NOT CONVERGED — HIGH + MED findings disqualify this pass as a clean pass. Counter
+resets to 0/3. Pass 13 is next; must start a fresh consecutive-clean streak.
+
+**Key finding categories:**
+
+- HIGH (F-1): `behavioral-contracts/ss-11/BC-2.11.007.md` — Postcondition 3 asserted that only
+  the high-C1 range (0x80–0x9F) is escaped; this contradicted both the source code and the sibling
+  BC-2.11.009 which correctly specifies the full C1 range including NEL (0x85). Postcondition 3
+  rewritten to state that the entire C1 range (0x80–0x9F inclusive, including NEL) is escaped.
+
+- MED (F-2): `behavioral-contracts/ss-11/BC-2.11.001.md` — `json.rs` unwrap citation cited line 30;
+  correct line post-refactor is 59. Additionally, the BC body contained a claim that the module
+  comment in `json.rs` asserts RFC 8259 compliance — no such comment exists in source. Both the
+  stale citation and the unsupported claim removed.
+
+- LOW (F-3): `behavioral-contracts/ss-04/BC-2.04.049.md` — EC-002 postcondition described IPv6
+  addresses as bracket-less; the rendering in source includes brackets `[addr]`. Corrected.
+
+- LOW (F-4): `behavioral-contracts/ss-04/BC-2.04.049.md` — `flow.rs` citation line 69 was stale;
+  correct line is 70. Corrected.
+
+- NITPICK (N-1, N-2): `behavioral-contracts/ss-11/BC-2.11.020.md` — two `csv.rs` citation
+  off-by-one errors in the Architecture Anchors section. Both corrected.
+
+**Recurring process gap (6th occurrence — MANDATORY codification follow-up):**
+Stale source-line citations (`file.rs:NNN`) recurred in this pass (F-2, F-4) and were also
+present in passes 4, 6, 8, 9, and 10. This is the 6th recurrence of the same process gap.
+Per the Cycle-Closing Checklist, a recurring process gap with 6+ occurrences requires a
+mandatory codification follow-up (a follow-up story or justified deferral) before the cycle
+can be declared closed. See STATE.md Deferred Findings for the required action.
+
+**Files fixed (4):**
+`specs/behavioral-contracts/ss-11/BC-2.11.007.md`,
+`specs/behavioral-contracts/ss-11/BC-2.11.001.md`,
+`specs/behavioral-contracts/ss-04/BC-2.04.049.md`,
+`specs/behavioral-contracts/ss-11/BC-2.11.020.md`
+
+**Remediation:** All 6 findings (0C/1H/1M/2L/2N) fixed. C1 postcondition corrected in
+BC-2.11.007; stale citation + unsupported claim removed from BC-2.11.001; IPv6 bracket-less
+rendering and stale citation fixed in BC-2.04.049; csv.rs off-by-one citations fixed in
+BC-2.11.020. Fixes committed in burst
+`spec: fix adversarial-review pass-12 findings (1H/1M/2L) - C1-escape postcondition, stale citations`
+(SHA: c21b13c). Pass 13 dispatched next.
 
 ---
