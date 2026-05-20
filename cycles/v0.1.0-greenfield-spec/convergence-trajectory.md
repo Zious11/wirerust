@@ -36,10 +36,11 @@ traces_to: STATE.md
 | SWEEP | 2026-05-20 | — | — | — | — | — | — | — | **0/3** | **REMEDIATION BURST** — comprehensive BC-vs-source verification sweep; all 217 BCs re-verified against current src/; ~58 defects fixed (off-by-one citations + ~6 semantic spec-vs-code defects); 37 BC body files committed (d038ace); addresses recurring P-CITE-PG defect class at root; no adversary pass; counter unchanged |
 | 17 | 2026-05-20 | 5 | 0 | 2 | 1 | 1 | LOW | — | **0/3** | **NOT CONVERGED** — all 5 findings concentrated in ent-04 only; ZERO BC defects found (BC sweep held). F-1 HIGH: AnalysisSummary.detail HashMap→BTreeMap; F-2 HIGH: false "only inline tests" claim + stale line range; F-3 MED: BC-RPT-007→BC-RPT-001 cross-ref; F-4 LOW: line range 12-17→38-50; F-5 NITPICK: Verdict citation 32-40→30-40. All fixed (0c16cad). |
 | 18 | 2026-05-20 | 5 | 0 | 3 | 0 | 2 | LOW | — | **0/3** | **NOT CONVERGED** — all 5 findings were stale-anchor drift from PR #75 `//!` header line shifts in last unreconciled domain shards. H-1 ent-01 8 entity anchors; H-2 ent-04 6 cross-file anchors; H-3 cap-10 unknown-ID rendering anchor; L-1 ent-02 C-range; L-2 domain-spec test count. All fixed (fc28b69). |
+| 19 | 2026-05-20 | 2 | 0 | 0 | 2 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — 0C/0H/2M/0L; package described as "overwhelmingly clean". M-1 purity-boundary-map.md: 3 reporters (JsonReporter, CsvReporter, TextReporter) misclassified as Effectful-shell; corrected to Pure-core (consistent with module-decomposition.md). M-2 dependency-graph.md: test-count statement corrected to "264 in tests/ + 18 inline = 282". All fixed (f913004). |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75)
+`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only)
 
 ## Per-Pass Details
 
@@ -1025,5 +1026,36 @@ from PR #75 `//!` header shifts in the last unreconciled domain shards — outsi
 of the prior BC sweep (d038ace). Fixes committed in burst
 `spec: fix adversarial-review pass-18 findings (3H/2L) - re-resolve stale entity/capability anchors`
 (SHA: fc28b69). Pass 19 dispatched next.
+
+---
+
+### Pass 19 (2026-05-20)
+
+**Findings:** 2 (0 CRIT, 0 HIGH, 2 MED, 0 LOW)
+**Delta from pass 18:** -3 total (CRIT 0, HIGH -3, MED +2, LOW -2) — no regression; continued improvement
+**Novelty:** LOW
+**Convergence counter:** 0 of 3
+
+**Adversary assessment:** Package described as "overwhelmingly clean". Only 2 MEDIUM
+findings identified — both minor consistency gaps between architecture documents.
+
+**Key finding categories:**
+
+- MED (M-1): `specs/architecture/purity-boundary-map.md` — JsonReporter, CsvReporter, and
+  TextReporter classified as Effectful-shell. Incorrect: these reporters produce String or
+  byte output with no I/O side-effects and match the Pure-core definition used in
+  module-decomposition.md. Reclassified to Pure-core for all three.
+
+- MED (M-2): `specs/architecture/dependency-graph.md` — test-count statement was
+  inconsistent with the authoritative count established in prior passes. Corrected to
+  "264 in tests/ + 18 inline = 282".
+
+**Files fixed (2):**
+- `specs/architecture/purity-boundary-map.md`
+- `specs/architecture/dependency-graph.md`
+
+**Remediation:** All 2 findings (0C/0H/2M/0L) remediated. Fixes committed in burst
+`spec: fix adversarial-review pass-19 findings (2M) - reporter purity + test-count`
+(SHA: f913004). Pass 20 dispatched next.
 
 ---

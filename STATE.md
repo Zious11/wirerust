@@ -14,21 +14,23 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 0/3
-adversary_pass_18_date: "2026-05-20"
-adversary_pass_18_verdict: NOT_CONVERGED
-adversary_pass_18_findings: "5 (0C/3H/2L) — all stale-anchor drift from PR #75 line shifts in last unreconciled domain shards; counter remains 0/3; all fixed (fc28b69)"
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5"
+adversary_pass_19_date: "2026-05-20"
+adversary_pass_19_verdict: NOT_CONVERGED
+adversary_pass_19_findings: "2 (0C/0H/2M/0L) — M-1 reporter purity classification; M-2 test-count statement; package described as overwhelmingly clean; counter remains 0/3; all fixed (f913004)"
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 18 returned NOT CONVERGED (0C/3H/2L);
-all 5 findings were stale-anchor drift from PR #75 `//!` header line shifts in the
-last unreconciled domain shards (ent-01, ent-04, cap-10, ent-02, domain-spec). All 5
-findings fixed (fc28b69). Convergence counter: 0/3 unchanged. Pass 19 is next; must
-achieve 3 consecutive clean passes (0C/0H/0M) to satisfy gate.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 19 returned NOT CONVERGED (0C/0H/2M/0L);
+2 MEDIUM findings only: M-1 reporter purity classification drift in purity-boundary-map.md
+(3 reporters reclassified Effectful-shell→Pure-core, now consistent with
+module-decomposition.md); M-2 test-count statement corrected in dependency-graph.md
+("264 in tests/ + 18 inline = 282"). Package described as "overwhelmingly clean".
+Both findings fixed (f913004). Convergence counter: 0/3 unchanged. Pass 20 is next;
+must achieve 3 consecutive clean passes (0C/0H/0M) to satisfy gate.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -43,7 +45,7 @@ achieve 3 consecutive clean passes (0C/0H/0M) to satisfy gate.
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–18 remediated; pass 11 CONVERGED then passes 12–18 NOT CONVERGED reset/held counter; pass 19 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–19 remediated; pass 11 CONVERGED then passes 12–19 NOT CONVERGED reset/held counter; pass 20 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -113,13 +115,14 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | SWEEP | 2026-05-20 | — (inter-pass) | REMEDIATION BURST | BC-vs-source sweep: all 217 BCs re-verified against current src/; ~58 defects fixed (off-by-one citations + ~6 semantic); addresses P-CITE-PG at root. 37 BC body files committed (d038ace). Counter: 0/3 unchanged. Pass 17 next. |
 | 17 | 2026-05-20 | 5 (0C/2H/1M/1L/1N) | NOT CONVERGED | Counter remains 0/3 — all 5 findings in ent-04 only; ZERO BC defects (BC sweep held). F-1 HashMap→BTreeMap; F-2 false inline-test claim+stale range; F-3 BC-RPT-007→BC-RPT-001; F-4 line range 12-17→38-50; F-5 Verdict cite 32-40→30-40. All fixed (0c16cad). |
 | 18 | 2026-05-20 | 5 (0C/3H/2L) | NOT CONVERGED | Counter remains 0/3 — all 5 findings were stale-anchor drift from PR #75 `//!` header line shifts in last unreconciled domain shards. H-1 ent-01 8 entity anchors re-resolved; H-2 ent-04 6 cross-file anchors re-resolved; H-3 cap-10 unknown-ID rendering anchor corrected; L-1 ent-02 component range C-6..C-9→C-6..C-9,C-15; L-2 domain-spec "~282"→"282". All fixed (fc28b69). |
+| 19 | 2026-05-20 | 2 (0C/0H/2M/0L) | NOT CONVERGED | Counter remains 0/3 — M-1 purity-boundary-map.md 3 reporters misclassified Effectful-shell (should be Pure-core per module-decomposition.md); M-2 dependency-graph.md test-count statement inconsistent (corrected to "264 in tests/ + 18 inline = 282"). Package described as "overwhelmingly clean". All fixed (f913004). |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
 1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (0/3).
-   Pass 19 is next; all three consecutive passes must be clean (0C/0H/0M) to satisfy gate.
+   Pass 20 is next; all three consecutive passes must be clean (0C/0H/0M) to satisfy gate.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 
