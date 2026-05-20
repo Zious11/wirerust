@@ -2,7 +2,7 @@
 artifact: L2-ent-04
 traces_to: ../domain-spec.md
 title: Entities -- Findings and Output (L3-L4)
-status: descriptive (brownfield) -- reconciled against develop HEAD aa2ece9
+status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
 ---
 
@@ -10,7 +10,7 @@ reconciled: 2026-05-20
 
 Covers E-23 through E-28, E-36 through E-39. Source: pass-2-domain-model.md + pass-3-R4.md.
 
-## E-23: Verdict (src/findings.rs:7-22)
+## E-23: Verdict (src/findings.rs:32-40)
 
 ```
 enum Verdict { Likely, Unlikely, Inconclusive }
@@ -20,7 +20,7 @@ enum Verdict { Likely, Unlikely, Inconclusive }
 `Display` renders uppercase (`LIKELY`, etc.).
 `verdict_rank` order (for sorting): `Likely < Inconclusive < Unlikely` (terminal.rs:223-229).
 
-## E-24: Confidence (src/findings.rs:24-39)
+## E-24: Confidence (src/findings.rs:57-66)
 
 ```
 enum Confidence { High, Medium, Low }
@@ -29,12 +29,12 @@ enum Confidence { High, Medium, Low }
 `#[non_exhaustive]` (P2.10 / #76). Derives same as Verdict.
 `confidence_rank` order: `High < Medium < Low` (terminal.rs:230-236).
 
-## E-25: ThreatCategory (src/findings.rs:41-57)
+## E-25: ThreatCategory (src/findings.rs:88-111)
 
 ```
 enum ThreatCategory {
     Reconnaissance, LateralMovement, C2, Exfiltration,
-    CredentialAccess, Execution, Persistence, Anomaly
+    CredentialAccess, Persistence, Execution, Anomaly
 }
 ```
 
@@ -45,7 +45,7 @@ by any analyzer (grep for `::C2,` / `::LateralMovement,` in src/ returns zero hi
 **Consistency with MitreTactic:** Both `ThreatCategory` and `MitreTactic` are now
 `#[non_exhaustive]` (the prior inconsistency closed by P2.10).
 
-## E-26: Finding (src/findings.rs:59-70)
+## E-26: Finding (src/findings.rs:119-146)
 
 The critical output type. See CAP-09 for the full schema and all 22 emission sites.
 

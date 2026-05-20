@@ -50,7 +50,7 @@ renderer is the sole owner of escape logic.
 | Source LOC | 3,868 |
 | Test LOC | 6,021 |
 | Total #[test] functions | ~282 as of develop@aa2ece9 (264 in tests/ + 18 inline: 11 in reporter/terminal.rs + 7 in analyzer/tls.rs; exact count is commit-sensitive and should be re-verified against current tree) |
-| Components | 20 (C-1..C-20); note 24 source files map to 20 components because the 7 reassembly sub-files (mod, config, lifecycle, stats, flow, handler, segment) plus dispatcher.rs collapse into components C-6..C-9,C-15 |
+| Components | 21 (C-1..C-20 + C-21); 24 source files map to 21 components because 2 reassembly sub-files (config.rs, stats.rs) are unnumbered data-only modules, and csv.rs (reporter/csv.rs) is unnumbered. dispatcher.rs = C-21 (added by ADR 0001 after the C-1..C-20 count was set). The 7 reassembly sub-files (mod, flow, segment, handler, lifecycle, config, stats) map to C-6, C-7, C-8, C-9, C-15 (config.rs and stats.rs unnumbered). |
 | Layers | 5 (L0..L4) |
 | Behavioral contracts catalogued | 218 ingested / 212 active |
 | Domain entities | 41 |
@@ -71,15 +71,18 @@ L1 Ingest   reader.rs / decoder.rs              (C-4, C-5)
             Link-type whitelist gate; produce ParsedPackets
 
 L2 Stream   reassembly/{mod,flow,segment,       (C-6, C-7, C-8, C-9, C-15)
-            handler}.rs + dispatcher.rs
-            TCP stream state; content-first dispatch; MAX_FINDINGS cap
+            handler,lifecycle}.rs               config.rs and stats.rs unnumbered
+            TCP stream state; MAX_FINDINGS cap
+            dispatcher.rs                       (C-21)
+            Content-first dispatch; routes to HTTP/TLS analyzers
 
-L3 Domain   analyzer/{mod,dns,http,tls}.rs      (C-10..C-14, C-16, C-17)
-            findings.rs + mitre.rs + summary.rs
+L3 Domain   analyzer/{mod,dns,http,tls}.rs      (C-10, C-11, C-12, C-13)
+            findings.rs + mitre.rs + summary.rs (C-14, C-16, C-17)
             Three analyzers; Finding schema; MITRE catalog
 
 L4 Output   reporter/{mod,json,terminal}.rs     (C-18, C-19, C-20)
-            Terminal (with escaping) and JSON renderers
+            reporter/csv.rs                     (unnumbered)
+            Terminal (with escaping), JSON, and CSV renderers
 ```
 
 The file-level DAG is acyclic. One module-group cycle exists: analyzer <-> reassembly via
@@ -159,7 +162,7 @@ CAP-12. Behavioral contracts BC-CLI-* and BC-SUM-* are anchored here, not to CAP
 The following corpus identifiers from the ingestion passes are used throughout the shards:
 
 - BC-RAS-*, BC-DSP-*, BC-HTTP-*, BC-TLS-*, BC-DNS-*, BC-MIT-*, BC-FND-*, BC-RPT-*, BC-CLI-*, BC-SUM-*: Behavioral contract IDs (pass-3 corpus, 218 total)
-- C-1..C-20: Component IDs (pass-1 architecture)
+- C-1..C-21: Component IDs (C-1..C-20 from pass-1 architecture; C-21 = dispatcher.rs added by ADR 0001)
 - NFR-PERF/SEC/REL/OBS/RES/MNT/PORT/SUP/COMPAT-NNN: NFR IDs (pass-4 catalog, 79 total)
 - NFR-VIO-001..010: Violation IDs (pass-4)
 - ADR 0001/0002/0003: Architecture Decision Records (docs/adr/)

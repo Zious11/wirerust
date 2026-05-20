@@ -14,26 +14,21 @@ dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 0/3
-adversary_pass_1_date: "2026-05-20"
-adversary_pass_1_verdict: NOT_CONVERGED
-adversary_pass_1_findings: "17 (2C/8H/5M/2L) — all remediated"
-adversary_pass_2_date: "2026-05-20"
-adversary_pass_2_verdict: NOT_CONVERGED
-adversary_pass_2_findings: "13 (0C/4H/6M/3L) — all blocking remediated; 2 deferred (non-blocking)"
-adversary_pass_3_date: "2026-05-20"
-adversary_pass_3_verdict: NOT_CONVERGED
-adversary_pass_3_findings: "7 (0C/3H/2M/2N) — all remediated"
-convergence_trajectory: "17→13→7→..."
+adversary_pass_4_date: "2026-05-20"
+adversary_pass_4_verdict: NOT_CONVERGED
+adversary_pass_4_findings: "19 (4C/5H/5M/3L/2N) — all remediated; +5 CsvReporter BCs"
+convergence_trajectory: "17→13→7→19→..."
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 3 complete (NOT CONVERGED,
-7 findings: 0C/3H/2M/2N). All findings remediated (T0856 MITRE tactic + None-caching
-propagation gap). Pass 4 is next. Awaiting 3 clean adversarial passes, then
-consistency audit + human approval gate before Phase 1 is declared PASSED.
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Adversarial pass 4 complete (NOT CONVERGED,
+19 findings: 4C/5H/5M/3L/2N). Fresh-context audit discovered L2 capabilities/ shards and
+ent-04 never reconciled post PR #69–#98 remediation. All findings remediated; +5 CsvReporter
+BCs (BC-2.11.020–024). Pass 5 is next. Awaiting 3 clean adversarial passes, then consistency
+audit + human approval gate before Phase 1 is declared PASSED.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -48,7 +43,7 @@ consistency audit + human approval gate before Phase 1 is declared PASSED.
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; pass 1 NOT CONVERGED remediated; pass 2 NOT CONVERGED remediated; pass 3 NOT CONVERGED remediated; pass 4 pending) | 20 L2 shards, 212 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→...` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (0/3 clean; passes 1–4 NOT CONVERGED all remediated; pass 5 pending) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→...` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -64,7 +59,7 @@ consistency audit + human approval gate before Phase 1 is declared PASSED.
 |----------|----------|-------|
 | L2 Domain Specification | `.factory/specs/domain/` | 20 shards (1 index, 12 cap, 5 entity, 1 inv, 1 debt) |
 | L3 PRD | `.factory/specs/prd.md` | 1 file |
-| Behavioral Contracts | `.factory/specs/behavioral-contracts/ss-01..ss-13/` | 212 BCs across 12 subsystems (no ss-03) |
+| Behavioral Contracts | `.factory/specs/behavioral-contracts/ss-01..ss-13/` | 217 BCs across 12 subsystems (no ss-03) |
 | BC Index | `.factory/specs/behavioral-contracts/BC-INDEX.md` | 1 file |
 | Architecture Package | `.factory/specs/architecture/` | 9 files + ARCH-INDEX.md |
 | Module Criticality | `.factory/specs/module-criticality.md` | 1 file |
@@ -89,10 +84,10 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | SS-08 | 4 |
 | SS-09 | 6 |
 | SS-10 | 9 |
-| SS-11 | 19 |
+| SS-11 | 24 |
 | SS-12 | 21 |
 | SS-13 | 4 |
-| **Total** | **212** |
+| **Total** | **217** |
 
 ### Adversarial Spec-Convergence Log
 
@@ -100,14 +95,15 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 |------|------|----------|---------|--------|
 | 1 | 2026-05-20 | 17 (2C/8H/5M/2L) | NOT_CONVERGED | REMEDIATED — all 17 fixed |
 | 2 | 2026-05-20 | 13 (0C/4H/6M/3L) | NOT_CONVERGED | REMEDIATED — all blocking fixed; 2 deferred (non-blocking) |
-| 3 | 2026-05-20 | 7 (0C/3H/2M/2N) | NOT_CONVERGED | REMEDIATED — all 7 fixed; pass 4 next |
+| 3 | 2026-05-20 | 7 (0C/3H/2M/2N) | NOT_CONVERGED | REMEDIATED — all 7 fixed |
+| 4 | 2026-05-20 | 19 (4C/5H/5M/3L/2N) | NOT_CONVERGED | REMEDIATED — all 19 fixed; +5 CsvReporter BCs (020–024); pass 5 next |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
 1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (0/3).
-   Pass 3 is next; no regression allowed between passes.
+   Pass 5 is next; no regression allowed between passes.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 
@@ -132,6 +128,9 @@ Full register: `.factory/tech-debt-register.md` (when populated).
 | L-2 | `src/analyzer/dns.rs` module doc-comment is stale — references removed behavior | Source defect, not a spec defect. Spec is correct. | File as code follow-up issue on `develop` after Phase 1 gate. |
 | L-3 | No machine validator for BC-H1 <-> BC-INDEX title sync (process gap) | Tooling gap, not a spec gap. Spec BCs and INDEX are now in sync. | Codify as CI lint rule in a future sprint. |
 | P3-PG | BC body postcondition/invariant edits must trigger a propagation sweep across BC-INDEX, PRD, capability/entity docs, VP files, and architecture docs (process gap, pass 3) | Discipline gap — not a spec defect. All 8+ affected files corrected in pass-3 remediation. | Codify as checklist step or CI lint rule at cycle close. |
+| P4-PG1 | Reconciliation passes must cover capabilities/ and entities/ shards, not just invariants/architecture (process gap, pass 4) | Scope gap — fresh-context audit found 6 cap shards + ent-04 unreconciled post PR #69–#98. All corrected in pass-4 remediation. | Codify explicit cap+entity reconciliation pass in adversarial review checklist at cycle close. |
+| P4-PG2 | No component-ID consistency validator between domain-spec/capabilities and architecture/module-decomposition (process gap, pass 4) | Tooling gap — component IDs drift silently. No machine check exists. | Codify as CI lint rule or reviewer checklist item at cycle close. |
+| P4-PG3 | New reporter (csv.rs, PR #84) shipped without a BC — CsvReporter coverage gap not detected until pass-4 fresh-context audit (process gap, pass 4) | Coverage gap — 5 CsvReporter BCs (BC-2.11.020–024) added in pass-4 remediation. | Codify: every new src/ file in reporter/ or analyzer/ must trigger a BC coverage check at cycle close. |
 
 ## Open Issues (from Phase 0 / deferred findings)
 

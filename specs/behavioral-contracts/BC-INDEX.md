@@ -14,14 +14,16 @@ traces_to: .factory/specs/prd.md
 > **Navigation:** This file is the master index of all BC-S.SS.NNN contracts. Each entry
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
-> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 212 entries.
+> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 217 entries.
 > 218 draft ingestion BCs were produced; 6 were retired during the remediation cycle (BC-ABS-004
-> through BC-ABS-009) leaving 212 active L3 BCs mapped below via their origin BC-<SUBSYSTEM>-NNN IDs.
+> through BC-ABS-009) leaving 212 active L3 BCs from ingestion. BC-2.11.020 through BC-2.11.024
+> were added in adversarial-review pass-4 (finding H-1: CsvReporter coverage gap), bringing
+> the total to 217 active L3 BCs.
 >
 > **Status as of Phase 1a (current):**
-> - Fully written: 212 BCs (all body files verified on disk)
+> - Fully written: 217 BCs (all body files verified on disk)
 > - Remaining: 0 BCs
-> - PRD index (prd.md): COMPLETE -- all 212 L3 BC IDs are registered
+> - PRD index (prd.md): COMPLETE -- all 217 L3 BC IDs are registered
 
 ## ss-01: PCAP File Ingestion (CAP-01)
 
@@ -240,6 +242,10 @@ traces_to: .factory/specs/prd.md
 
 ## ss-11: Reporting and Output (CAP-11)
 
+> 24 BCs total; 24 fully written; 0 planned.
+> BCs 001-019: JsonReporter / TerminalReporter / MITRE grouping (brownfield ingestion).
+> BCs 020-024: CsvReporter (added pass-4, adversarial finding H-1).
+
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
 | BC-2.11.001 | JsonReporter Renders JSON Object with summary/findings/analyzers Keys | P0 | [WRITTEN] | BC-RPT-001 |
@@ -261,6 +267,11 @@ traces_to: .factory/specs/prd.md
 | BC-2.11.017 | Default Rendering Emits MITRE: <id> Only (No Em-Dash) | P1 | [WRITTEN] | BC-RPT-017 |
 | BC-2.11.018 | TerminalReporter Colorization: Likely/High=Red Bold, etc. | P2 | [WRITTEN] | BC-RPT-018 |
 | BC-2.11.019 | TerminalReporter Renders Sections in Correct Order | P1 | [WRITTEN] | BC-RPT-019 |
+| BC-2.11.020 | CsvReporter Emits Exactly Nine Columns in Fixed Header Order | P0 | [WRITTEN] | pass-4 H-1 |
+| BC-2.11.021 | CsvReporter Neutralizes CSV-Injection Trigger Characters with a Leading Single Quote | P0 | [WRITTEN] | pass-4 H-1 |
+| BC-2.11.022 | CsvReporter Joins Evidence Vec Elements with "; " into a Single Cell | P1 | [WRITTEN] | pass-4 H-1 |
+| BC-2.11.023 | CsvReporter Implements Reporter Trait and Emits One Row per Finding; Summary and AnalysisSummary Are Ignored | P0 | [WRITTEN] | pass-4 H-1 |
+| BC-2.11.024 | CsvReporter Encodes None Optional Fields as Empty Strings and Direction as Debug Variant Name | P1 | [WRITTEN] | pass-4 H-1 |
 
 ## ss-12: CLI and Entry Point (Cross-Cutting)
 
@@ -313,11 +324,12 @@ traces_to: .factory/specs/prd.md
 | BC-FND-001..006 | 6 | BC-2.09.001..006 |
 | BC-MIT-001..009 | 9 | BC-2.10.001..009 |
 | BC-RPT-001..019 | 19 | BC-2.11.001..019 |
+| pass-4 H-1 (CsvReporter) | 5 | BC-2.11.020..024 |
 | BC-CLI-001..017 | 17 | BC-2.12.001..017 |
 | BC-SUM-001..004 | 4 | BC-2.12.018..021 |
 | BC-ABS-001..010 | 10 | BC-2.13.001..004 (6 ABS retired by remediation cycle) |
 
-**Total ingestion BCs mapped: 218 / 218**
+**Total ingestion BCs mapped: 218 / 218 (plus 5 post-ingestion pass-4 additions = 223 total rows; 217 active after 6 retired + 1 reclassified to domain-debt)**
 
 Note: BC-ABS-004 (--hosts unwired), BC-ABS-005 (--services unwired), BC-ABS-006 (--json
 file unwired), BC-ABS-007 (CSV unwired), BC-ABS-009 (no e2e CLI tests) are RETIRED --

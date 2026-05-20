@@ -393,7 +393,8 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.11.018 | TerminalReporter colorization: Likely/High=red bold, Likely/other=yellow, Inconclusive=cyan, Unlikely=dimmed | P2 | BC-RPT-018 |
 | BC-2.11.019 | TerminalReporter renders sections in order: header, PROTOCOLS, SERVICES, FINDINGS, ANALYZER summaries | P1 | BC-RPT-019 |
 
-> Full contracts: `behavioral-contracts/ss-11/BC-2.11.001.md` through `BC-2.11.019.md`
+> Full contracts: `behavioral-contracts/ss-11/BC-2.11.001.md` through `BC-2.11.024.md`
+> (BC-2.11.020–024 added adversarial-review pass-4: CsvReporter coverage gap H-1)
 
 ### 2.12 CLI and Entry Point (CAP-01 / Cross-cutting)
 

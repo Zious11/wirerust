@@ -65,7 +65,7 @@ integration_unit_count: 5
 | VP-017 | JsonReporter BTreeMap Key Determinism | reporter/json.rs | integration | P1 | draft | BC-2.11.001, BC-2.11.003 |
 | VP-018 | CLI Reassemble Mutual Exclusion | cli.rs | integration | P1 | draft | BC-2.12.007, BC-2.12.009 |
 | VP-019 | DNS Analyzer Statistics-Only | analyzer/dns.rs | unit | P1 | draft | BC-2.08.004, BC-2.08.001, BC-2.08.002 |
-| VP-020 | CSV Injection Neutralization | reporter/csv.rs | unit | P1 | draft | BC-2.11.001 |
+| VP-020 | CSV Injection Neutralization | reporter/csv.rs | unit | P1 | draft | BC-2.11.021 |
 
 ## P0 Properties (required before Phase 5 gate)
 

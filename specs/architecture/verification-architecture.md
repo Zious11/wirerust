@@ -45,7 +45,7 @@ timestamp: 2026-05-20T00:00:00Z
 | VP-017 | JsonReporter BTreeMap key determinism: repeated calls with same input produce identical JSON | integration test |
 | VP-018 | CLI flag parsing: --reassemble/--no-reassemble mutual exclusion (BC-2.12.007) | integration test |
 | VP-019 | DNS statistics-only invariant: DnsAnalyzer.analyze() always returns empty Vec | unit test |
-| VP-020 | CsvReporter CSV-injection neutralization: cell values starting with =,+,-,@ are prefixed with tab | unit test |
+| VP-020 | CsvReporter CSV-injection neutralization: cell values starting with =,+,-,@,TAB,CR are prefixed with a single-quote (') | unit test |
 
 
 ## P0 Verification Properties (required before Phase 5 gate)

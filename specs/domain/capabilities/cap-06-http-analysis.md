@@ -3,7 +3,7 @@ artifact: L2-cap-06
 traces_to: ../domain-spec.md
 cap_id: CAP-06
 title: HTTP Traffic Analysis
-status: descriptive (brownfield) -- reconciled against develop HEAD aa2ece9
+status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
 ---
 
@@ -11,11 +11,11 @@ reconciled: 2026-05-20
 
 ## What the system does today
 
-`HttpAnalyzer` (E-31, C-14) implements `StreamHandler + StreamAnalyzer`. It buffers
+`HttpAnalyzer` (E-31, C-12) implements `StreamHandler + StreamAnalyzer`. It buffers
 reassembled TCP data per flow direction and drives httparse to parse HTTP/1.x requests and
 responses. Parsed fields trigger anomaly detections that emit `Finding` objects.
 
-**Sources:** C-14 analyzer/http.rs. BC-HTTP-001..026.
+**Sources:** C-12 analyzer/http.rs (module-decomposition.md L3 Domain Layer). BC-HTTP-001..026.
 
 ## Per-flow state: HttpFlowState (E-32)
 
@@ -55,18 +55,18 @@ without parsing. Buffer is cleared at poison time.
 All findings now carry `direction: Some(Direction::ClientToServer)` or
 `direction: Some(Direction::ServerToClient)` as appropriate (P2.08 / #77).
 
-| Detection | Condition | Finding | MITRE | Direction tag |
-|---|---|---|---|---|
-| Path traversal | URI contains `../` or `..\\` | Anomaly/Likely/High | T1083 | ClientToServer |
-| Web shell access | URI matches web-shell path patterns | Anomaly/Likely/High | T1505.003 | ClientToServer |
-| Admin panel access | URI matches admin-path patterns | Anomaly/Likely/Medium | T1046 | ClientToServer |
-| Unusual HTTP method | Method not in standard set | Anomaly/Likely/Medium | none | ClientToServer |
-| Missing Host (HTTP/1.1) | version==1 AND host.is_none() | Anomaly/Inconclusive/Medium | none | ClientToServer |
-| Empty Host (HTTP/1.1) | version==1 AND host == Some("") | Anomaly/Inconclusive/Medium | none | ClientToServer |
-| Abnormally long URI | uri.len() > 2048 | Execution/Likely/Medium | none | ClientToServer |
-| Empty User-Agent | user_agent.as_deref() == Some("") | Anomaly/Inconclusive/Low | none | ClientToServer |
-| Too many headers (request) | httparse::Error::TooManyHeaders | Anomaly/Likely/High | T1499.002 | ClientToServer |
-| Too many headers (response) | httparse::Error::TooManyHeaders | Anomaly/Likely/High | T1499.002 | ServerToClient |
+| Detection | Condition | Finding | MITRE | Direction tag | Source lines |
+|---|---|---|---|---|---|
+| Path traversal | URI contains `../`, `..%2f`, `..%252f`, or `....//` | Reconnaissance/Likely/High | T1083 | ClientToServer | http.rs:187-203 |
+| Web shell access | URI matches web-shell path patterns | Execution/Likely/Medium | T1505.003 | ClientToServer | http.rs:218-233 |
+| Admin panel access | URI matches admin-path patterns | Reconnaissance/Inconclusive/Low | T1046 | ClientToServer | http.rs:237-249 |
+| Unusual HTTP method | Method in CONNECT/TRACE/DELETE/OPTIONS | Reconnaissance/Inconclusive/Medium | none | ClientToServer | http.rs:253-265 |
+| Missing Host (HTTP/1.1) | version==1 AND host.is_none() | Anomaly/Inconclusive/Medium | none | ClientToServer | http.rs:283-301 |
+| Empty Host (HTTP/1.1) | version==1 AND host == Some("") | Anomaly/Inconclusive/Medium | none | ClientToServer | http.rs:283-301 |
+| Abnormally long URI | uri.len() > 2048 | Execution/Likely/Medium | none | ClientToServer | http.rs:305-317 |
+| Empty User-Agent | user_agent.as_deref() == Some("") | Anomaly/Inconclusive/Low | none | ClientToServer | http.rs:344-356 |
+| Too many headers (request) | httparse::Error::TooManyHeaders on request parse | Anomaly/Inconclusive/Medium | T1499.002 | ClientToServer | http.rs:416-428 |
+| Too many headers (response) | httparse::Error::TooManyHeaders on response parse | Anomaly/Inconclusive/Medium | T1499.002 | ServerToClient | http.rs:475-487 |
 
 **Host detection (fixed by #71 / P0.05):** Both absent Host (`None`) and empty-value Host
 (`Some("")`) now fire findings with distinct summary text: "HTTP/1.1 request without Host
@@ -100,5 +100,6 @@ is capped at 10,000.
 
 ## BC references
 
-BC-HTTP-001..026. Key: BC-HTTP-001..009 (detection logic), BC-HTTP-010..016 (poisoning state
-machine), BC-HTTP-017..022 (stats map update), BC-HTTP-023..026 (header overflow).
+BC-2.06.001..026. Key: BC-2.06.001..009 (detection logic), BC-2.06.010..016 (poisoning state
+machine), BC-2.06.017..022 (stats map update), BC-2.06.023..026 (header overflow).
+Component: C-12 (src/analyzer/http.rs) per module-decomposition.md.

@@ -3,7 +3,7 @@ artifact: L2-cap-11
 traces_to: ../domain-spec.md
 cap_id: CAP-11
 title: Reporting and Output
-status: descriptive (brownfield) -- reconciled against develop HEAD aa2ece9
+status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
 ---
 
@@ -15,7 +15,8 @@ reconciled: 2026-05-20
 (E-38), `JsonReporter` (E-39), and `CsvReporter` (E-39b). All output goes to stdout or a
 file path via `write_output()` in main.rs.
 
-**Sources:** C-18..C-20 reporter/{mod,json,terminal,csv}.rs. BC-RPT-001..019.
+**Sources:** C-18 (reporter/mod.rs), C-19 (reporter/json.rs), C-20 (reporter/terminal.rs),
+unnumbered (reporter/csv.rs). BC-RPT-001..019.
 
 ## Reporter trait
 
@@ -89,21 +90,25 @@ See CAP-09 for the full schema.
 
 ## CsvReporter (E-39b)
 
-Implemented by P2.03 (#84). Unit struct. Produces a CSV string with a fixed 9-column header:
+Implemented by P2.03 (#84). Unit struct. Produces a CSV string with a fixed 9-column header
+(column order as declared in csv.rs:63-73):
 
 ```
-timestamp,source_ip,category,verdict,confidence,mitre_technique,direction,summary,evidence
+category,verdict,confidence,summary,evidence,mitre_technique,source_ip,direction,timestamp
 ```
 
 **CSV injection neutralization:** The `neutralize_csv_injection()` function prefixes any
-field value starting with `=`, `+`, `-`, or `@` with a single quote `'`. This prevents
-spreadsheet formula injection when the CSV is opened in Excel or Google Sheets.
+field value starting with `=`, `+`, `-`, `@`, TAB (`\t`), or CR (`\r`) with a single
+quote `'`. This prevents spreadsheet formula injection when the CSV is opened in Excel or
+Google Sheets (csv.rs:42).
 
 **Field encoding:**
-- All string fields are double-quoted.
-- `evidence` is the first element of the Vec (not all entries); subsequent entries are dropped.
+- All string fields are double-quoted by the `csv` crate (RFC 4180).
+- `evidence`: all elements of the Vec are joined with `"; "` and placed in a single cell
+  (csv.rs:81: `f.evidence.join("; ")`).
 - `timestamp`: renders as empty string (all Finding timestamps are None; open item O-01).
-- `direction`: renders as "ClientToServer" or "ServerToClient" if Some; empty if None.
+- `direction`: renders as the Debug format of the Direction variant (e.g. "ClientToServer")
+  if Some; empty string if None.
 
 ## Output routing
 

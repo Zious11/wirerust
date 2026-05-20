@@ -11,11 +11,11 @@ reconciled: 2026-05-20
 
 ## What the system does today
 
-`mitre.rs` (C-11) provides a static lookup table (`technique_info`) mapping MITRE technique
+`mitre.rs` (C-16) provides a static lookup table (`technique_info`) mapping MITRE technique
 IDs to `(technique_name: &'static str, tactic: MitreTactic)` pairs. The `TerminalReporter`
 groups findings by tactic when `--mitre` is set.
 
-**Sources:** C-11 mitre.rs. BC-MIT-001..009.
+**Sources:** C-16 mitre.rs (module-decomposition.md). BC-2.10.001..009.
 
 ## Technique catalog
 
@@ -35,7 +35,7 @@ corrects pass-6's "16" claim):
 | T1499.002 | Service Exhaustion Flood | Impact |
 | T1505.003 | Web Shell | Persistence |
 | T1573 | Encrypted Channel | CommandAndControl (*catalogued, never emitted*) |
-| T0846 | Remote System Discovery | Discovery (ICS) |
+| T0846 | Remote System Discovery | Discovery |
 | T0855 | Unauthorized Command Message | IcsImpairProcessControl (*catalogued, never emitted*) |
 | T0856 | Spoof Reporting Message | IcsImpairProcessControl (*catalogued, never emitted*) |
 | T0885 | Commonly Used Port | CommandAndControl (*catalogued, never emitted*) |
@@ -52,6 +52,13 @@ and are intentionally present in the catalog without corresponding emission site
 16 variants: 14 Enterprise ATT&CK tactics (Reconnaissance through Impact) + 2 ICS-unique
 (`IcsInhibitResponseFunction`, `IcsImpairProcessControl`). The enum is `#[non_exhaustive]`
 so adding new tactics in a future ATT&CK version is non-breaking for downstream match consumers.
+
+**IcsInhibitResponseFunction (unreachable, open item):** `MitreTactic::IcsInhibitResponseFunction`
+is declared (mitre.rs:64), appears in `Display` (mitre.rs:85) and in `all_tactics_in_report_order`
+(mitre.rs:111), but no `technique_info` arm maps any technique ID to it. It is therefore
+unreachable via any current emission path. This is analogous to the staged ICS techniques
+(T0855, T0856): a forward declaration awaiting a Modbus/DNP3 analyzer that will assign a
+technique to this tactic. Tracked as part of O-04.
 
 ## CLI --mitre flag
 
@@ -70,5 +77,10 @@ If an analyzer emits a malformed or unrecognized MITRE technique ID:
 
 ## BC references
 
-BC-MIT-001..009: catalog lookup (001-004), unknown-ID handling (005), tactic-grouped render (006-008),
-non_exhaustive variant (009).
+BC-2.10.001..004: MitreTactic Display rendering + all_tactics_in_report_order.
+BC-2.10.005: technique_name returns Some for every seeded ID (15 total).
+BC-2.10.006: technique_name returns None for unknown IDs.
+BC-2.10.007: technique_tactic returns correct tactic for every seeded ID.
+BC-2.10.008: all emitted technique IDs resolve in lookup.
+BC-2.10.009: MitreTactic is #[non_exhaustive].
+Tactic-grouped rendering is in ss-11: BC-2.11.013..017 (TerminalReporter --mitre grouping).

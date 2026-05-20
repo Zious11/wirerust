@@ -3,7 +3,7 @@ artifact: L2-cap-07
 traces_to: ../domain-spec.md
 cap_id: CAP-07
 title: TLS Traffic Analysis
-status: descriptive (brownfield) -- reconciled against develop HEAD aa2ece9
+status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
 ---
 
@@ -11,12 +11,12 @@ reconciled: 2026-05-20
 
 ## What the system does today
 
-`TlsAnalyzer` (E-33, C-16) implements `StreamHandler + StreamAnalyzer`. It buffers
+`TlsAnalyzer` (E-33, C-13) implements `StreamHandler + StreamAnalyzer`. It buffers
 reassembled TCP data per flow direction, parses TLS records using `tls-parser`, and emits
 `Finding` objects for SNI anomalies, weak cipher suites, deprecated protocol versions, and
 related issues.
 
-**Sources:** C-16 analyzer/tls.rs. BC-TLS-001..037.
+**Sources:** C-13 analyzer/tls.rs (module-decomposition.md L3 Domain Layer). BC-TLS-001..037.
 
 ## Per-flow state: TlsFlowState (E-34)
 
@@ -30,7 +30,8 @@ TlsFlowState {
 ```
 
 Once both `client_hello_seen` and `server_hello_seen` are true, `TlsFlowState::done()`
-returns true and subsequent `on_data` calls early-exit without processing (tls.rs:665-668).
+returns true and subsequent `on_data` calls early-exit without processing. `done()` is
+defined at tls.rs:291-293; the early-exit guard in `on_data` is at tls.rs:721-724.
 The state record persists in the HashMap until `on_flow_close` fires.
 
 ## Limit constants
@@ -70,27 +71,27 @@ that SOC operators using summary-text search must know.
 
 All TLS findings carry a `direction` tag (P2.08 / #77):
 
-| Detection | Trigger | Finding | MITRE | Direction tag |
-|---|---|---|---|---|
-| SNI AsciiWithControl | Arm 2 of extract_sni | Anomaly/Likely/High | T1027 | ClientToServer |
-| SNI NonAsciiUtf8 | Arm 3 of extract_sni | Anomaly/Likely/High | T1027 | ClientToServer |
-| SNI NonUtf8 | Arm 4 of extract_sni | Anomaly/Likely/High | T1027 | ClientToServer |
-| Weak ClientHello ciphers | ClientHello contains NULL/anon/export ciphers | Anomaly/Likely/High | none | ClientToServer |
-| Deprecated ClientHello version | SSLv2 or SSLv3 in ClientHello | Anomaly/Likely/High | none | ClientToServer |
-| Weak ServerHello cipher selected | ServerHello cipher is weak | Anomaly/Likely/High | none | ServerToClient |
-| Deprecated ServerHello version | SSLv2 or SSLv3 negotiated | Anomaly/Likely/High | none | ServerToClient |
+| Detection | Trigger | Finding | MITRE | Direction tag | Source lines |
+|---|---|---|---|---|---|
+| SNI AsciiWithControl | Arm 2 of extract_sni | Anomaly/Inconclusive/Low | T1027 | ClientToServer | tls.rs:426-448 |
+| SNI NonAsciiUtf8 | Arm 3 of extract_sni | Anomaly/Inconclusive/Low | T1027 | ClientToServer | tls.rs:449-468 |
+| SNI NonUtf8 | Arm 4 of extract_sni | Anomaly/Inconclusive/Low | T1027 | ClientToServer | tls.rs:469-489 |
+| Weak ClientHello ciphers | ClientHello contains NULL/anon/export ciphers | Anomaly/Likely/High | none | ClientToServer | tls.rs:504-517 |
+| Deprecated ClientHello version | SSLv2 or SSLv3 in ClientHello | Anomaly/Likely/High | none | ClientToServer | tls.rs:526-539 |
+| Weak ServerHello cipher selected | ServerHello cipher is weak (NULL/anon/export/RC4) | Anomaly/Likely/Medium | none | ServerToClient | tls.rs:571-582 |
+| Deprecated ServerHello version | SSLv2 or SSLv3 negotiated | Anomaly/Likely/High | none | ServerToClient | tls.rs:591-604 |
 
 ## Truncation instrumentation (CNV-PAT-002 conformance)
 
 `TlsAnalyzer` carries `truncated_records: u64` (tls.rs:312), incremented at tls.rs:645 each
 time a TLS record is discarded due to exceeding `MAX_RECORD_PAYLOAD`. The counter is surfaced
-in `summarize()` at tls.rs:799-800 via `detail["truncated_records"]`. This was added by
+in `summarize()` at tls.rs:798-801 via `detail["truncated_records"]`. This was added by
 P1.05 (#73). TlsAnalyzer now fully conforms to CNV-PAT-002 (silent-drop instrumentation
 convention).
 
 ## Weak-cipher evidence cardinality (O-06)
 
-The weak-cipher ClientHello finding at tls.rs:454-473 uses `evidence: weak` where `weak` is
+The weak-cipher ClientHello finding at tls.rs:504-517 uses `evidence: weak` where `weak` is
 a filtered `Vec<String>` of cipher names. This is the ONLY evidence vec in the codebase with
 data-dependent cardinality. Upper bound: ~9,216 cipher names (MAX_RECORD_PAYLOAD / 2 bytes).
 Worst-case Finding heap: ~270-500 KB. No per-cipher cap exists (domain-debt O-06).
@@ -103,6 +104,7 @@ by `MAX_MAP_ENTRIES`). `handshakes_seen: u64`. `parse_errors: u64`. `truncated_r
 
 ## BC references
 
-BC-TLS-001..037 (37 contracts). Key: BC-TLS-014..020 (SNI 4-way classification),
-BC-TLS-021..030 (JA3/JA3S), BC-TLS-031..036 (weak cipher / deprecated version),
-BC-TLS-037 (SNI disambiguation for mixed control+non-ASCII).
+BC-2.07.001..037 (37 contracts). Key: BC-2.07.014..020 (SNI 4-way classification),
+BC-2.07.021..030 (JA3/JA3S), BC-2.07.031..036 (weak cipher / deprecated version),
+BC-2.07.037 (SNI disambiguation for mixed control+non-ASCII).
+Component: C-13 (src/analyzer/tls.rs) per module-decomposition.md.

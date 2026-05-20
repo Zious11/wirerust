@@ -65,7 +65,7 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 | SS-08 | DNS Analysis | CAP-08 | analyzer/dns.rs | 4 |
 | SS-09 | Finding Emission | CAP-09 | findings.rs | 6 |
 | SS-10 | MITRE Mapping | CAP-10 | mitre.rs | 9 |
-| SS-11 | Reporting | CAP-11 | reporter/{mod,json,terminal,csv}.rs | 19 |
+| SS-11 | Reporting | CAP-11 | reporter/{mod,json,terminal,csv}.rs | 24 |
 | SS-12 | CLI / Entry | CAP-12 | main.rs, cli.rs, lib.rs, summary.rs | 21 |
 | SS-13 | Absent Behaviors | N/A (intentionally unwired) | cli.rs (flag parse only) | 4 |
 
