@@ -19,7 +19,7 @@ dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3
 adversary_gate: SATISFIED
-story_adversary_convergence_counter: 0/3
+story_adversary_convergence_counter: 1/3
 story_adversary_pass_1_date: "2026-05-21"
 story_adversary_pass_1_verdict: NOT_CONVERGED
 story_adversary_pass_1_findings: "11 (1C/3H/3M/2L/2N) — all blocking findings remediated; 3 process-gap NITPICKs deferred for cycle-close codification."
@@ -35,6 +35,9 @@ story_adversary_pass_4_findings: "15 (0C/3H/5M/4L/3N) — all 8 blocking finding
 story_adversary_pass_5_date: "2026-05-21"
 story_adversary_pass_5_verdict: NOT_CONVERGED
 story_adversary_pass_5_findings: "7 (0C/1H/1M/3L/2N) — structural backbone (VP anchoring, BC traceability, dep-edges, wave compute, AC quality, HS rollups) clean. H-1 dependency-graph.md 48 Description cells mismatched to story H1 titles; M-1 HS-094 BC citation corrected to BC-2.12.005 only; L-1/L-2 STORY-INDEX title drift (STORY-054/057/002); L-3 BC-2.04.039 proof-method unit→Kani; 2 process-gap NITPICKs deferred. All blocking findings remediated. Pass 6 next."
+story_adversary_pass_6_date: "2026-05-21"
+story_adversary_pass_6_verdict: CONVERGED
+story_adversary_pass_6_findings: "5 non-blocking (0C/0H/0M/3L/2N) — CLEAN PASS 1/3 (first streak pass). Zero blocking findings; 7 focus areas independently re-derived and verified clean (VP anchoring, BC traceability, AC quality, dep-graph integrity, holdout coverage, cross-artifact counts, sprint-state). 5 non-blocking items deferred to pre-approval polish: F-06-01 HS-INDEX E-3 name label drift; F-06-02 wave-schedule STORY-054/057 truncated description cells; F-06-03 implementation_strategy vocabulary variance; F-06-04 input-hash placeholders (expected pre-dispatch); F-06-05 HS-085 wave attribution loosely derived. Pass 7 next."
 adversary_pass_30_date: "2026-05-20"
 adversary_pass_30_verdict: NOT_CONVERGED
 adversary_pass_30_findings: "3 (0C/0H/1M/0L/2N) — STREAK RESET 2/3→0/3. M-1 BC-2.12.020 C-16→C-17 prose; N-1 BC-2.05.006 guard-clause quote; N-2 inv-01 INV-9 citation. All 3 fixed (00f5094). Pass 31 next."
@@ -59,10 +62,9 @@ input_drift_check_date: "2026-05-21"
 ## Status
 
 **Pipeline:** PHASE_2_STORY_DECOMPOSITION — Phase 1 COMPLETE. All 4 gates PASSED; human-approved
-2026-05-21. Phase 2 Step G adversarial story-review in progress: Pass 5 NOT_CONVERGED
-(0C/1H/1M/3L/2N); structural backbone (VP anchoring, BC traceability, dep-edges, wave compute,
-AC quality, HS rollups) verified clean; all 2 blocking findings remediated; convergence counter
-0/3; Pass 6 next.
+2026-05-21. Phase 2 Step G adversarial story-review in progress: Pass 6 CONVERGED (0C/0H/0M/3L/2N);
+zero blocking findings; 7 structural focus areas independently verified clean; convergence counter
+1/3; Pass 7 next (second confirmation pass on unchanged package).
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -78,7 +80,7 @@ AC quality, HS rollups) verified clean; all 2 blocking findings remediated; conv
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
-| Phase 2 — Story Decomposition | **IN PROGRESS** — Steps A–F COMPLETE; Step G adversarial Pass 5 NOT_CONVERGED (all blocking findings remediated); Pass 6 next; convergence counter 0/3 | 10 epics, 217/217 BCs traced to ≥1 story, 48 stories, 77 edges, 27 waves, acyclic, 282 story points; 100 holdout scenarios; decomposition gate PASSED; story-adversary Pass 5 findings: 0C/1H/1M/3L/2N — structural backbone clean; H-1 dep-graph 48 Description cells title-drift; M-1 HS-094 BC cite corrected; L-1/L-2/L-3 STORY-INDEX title drift + BC-2.04.039 proof-method; all blocking remediated; 2 NITPICKs deferred; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M |
+| Phase 2 — Story Decomposition | **IN PROGRESS** — Steps A–F COMPLETE; Step G adversarial Pass 6 CONVERGED (streak 1/3); Pass 7 next; convergence counter 1/3 | 10 epics, 217/217 BCs traced to ≥1 story, 48 stories, 77 edges, 27 waves, acyclic, 282 story points; 100 holdout scenarios; decomposition gate PASSED; story-adversary Pass 6 findings: 0C/0H/0M/3L/2N — zero blocking; 7 focus areas clean; 5 non-blocking items deferred to pre-approval polish; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M (CONVERGED) |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
@@ -190,8 +192,21 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 | D. `wave-schedule` | **COMPLETE** 2026-05-21 | 27 waves; all 48 stories wave-assigned; `wave-schedule.md`, `STORY-INDEX.md` rebuilt, `sprint-state.yaml` initialized (48 entries, current_wave 1) — `cycles/v0.1.0-greenfield-spec/wave-schedule.md`, `stories/STORY-INDEX.md`, `stories/sprint-state.yaml`, `stories/STORY-*.md` |
 | E. `holdout-scenarios` | **COMPLETE** 2026-05-21 | 100 holdout scenarios HS-001–HS-100; 99 must-pass / 1 should-pass; 36 behavioral-subtleties, 19 edge-case-combinations, 18 integration-boundaries, 17 security-probes, 10 real-world-corpus; all 27 waves covered — `holdout-scenarios/` |
 | F. `decomposition-gate` | **COMPLETE** 2026-05-21 | Consistency audit found 3 blocking findings (B-1 BC matrix divergence 31/48 stories, B-2 edge-count off-by-one 64→64 fixed, B-3 stale cycle fields 37/48 stories); all 3 remediated; 2 NUL-byte sanitizations (STORY-070/076, same class as P5-PG); re-audit CONSISTENT 100/100. Gate PASSED. |
-| G. `adversarial-story-gate` | **IN PROGRESS** — Pass 5 NOT_CONVERGED (0C/1H/1M/3L/2N); all blocking findings remediated; Pass 6 next | Adversarial convergence review of story decomposition + holdout scenarios; 3 consecutive clean passes required; convergence counter 0/3; 12 process-gap NITPICKs (P1:N-1/N-2/N-3, P2:N-1/N-2, P3:N-1/N-2, P4:N-1/N-2/N-3, P5:N-1/N-2) deferred for cycle-close codification; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M; structural backbone (VP anchoring, BC traceability, dep-edges, wave compute, AC quality, HS rollups) verified clean in Pass 5 |
+| G. `adversarial-story-gate` | **IN PROGRESS** — Pass 6 CONVERGED (streak 1/3); Pass 7 next | Adversarial convergence review of story decomposition + holdout scenarios; 3 consecutive clean passes required; convergence counter 1/3; 12 process-gap NITPICKs (P1:N-1/N-2/N-3, P2:N-1/N-2, P3:N-1/N-2, P4:N-1/N-2/N-3, P5:N-1/N-2) deferred for cycle-close codification; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M (CONVERGED); structural backbone (VP anchoring, BC traceability, dep-edges, wave compute, AC quality, HS rollups, sprint-state) independently verified clean Pass 6 |
 | H. `human-approval` | NOT STARTED | Human sign-off before Phase 3 |
+
+## Pre-Approval Polish (Phase 2 Step G — deferred non-blocking items)
+
+Items deferred from story-adversary passes for resolution before Step H human approval.
+None are blocking convergence.
+
+| ID | Source | Location | Description | Status |
+|----|--------|----------|-------------|--------|
+| F-06-01 | Pass 6 LOW | `holdout-scenarios/HS-INDEX.md` E-3 | Name "Protocol Dispatcher and Content Classification" vs canonical "Content-First Protocol Dispatch" — label drift | OPEN |
+| F-06-02 | Pass 6 LOW | `cycles/v0.1.0-greenfield-spec/wave-schedule.md` | STORY-054 and STORY-057 Description cells truncated (trailing ellipsis) | OPEN |
+| F-06-03 | Pass 6 LOW | `stories/STORY-*.md` `implementation_strategy` field | Vocabulary variance: "brownfield-verify" / "brownfield" / "brownfield-formalization" — pending intent verification | OPEN |
+| F-06-04 | Pass 6 NITPICK | Multiple STORY files | `input_hash` placeholder values — expected pre-dispatch; not a defect | OPEN |
+| F-06-05 | Pass 6 NITPICK | `holdout-scenarios/HS-085.md` | Wave attribution loosely derived (no direct story-id citation); internally consistent | OPEN |
 
 ## Governance Policy
 
