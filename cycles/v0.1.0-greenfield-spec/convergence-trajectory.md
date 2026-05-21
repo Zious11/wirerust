@@ -49,10 +49,12 @@ traces_to: STATE.md
 | 27 | 2026-05-20 | 1 | 0 | 1 | 0 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — 0C/1H/0M/0L. H-1: verification-coverage-matrix.md VP-016..020 Phase column P1→test-sufficient (SWEEP48 propagation gap; P0(8)/P1(7)/test-sufficient(5)=20 invariant restored). Fixed (e758fb6). Counter remains 0/3. Pass 28 next. |
 | 28 | 2026-05-20 | 0 | 0 | 0 | 0 | 0 | NONE | — | **1/3** | **CONVERGED** — **CLEAN PASS 1/3 (new streak)**; 0C/0H/0M/0L/0N. Zero findings. No spec artifact modified. Passes 29 and 30 will review identical, stable content. Counter advances to **1/3**. Pass 29 next (second confirmation pass). |
 | 29 | 2026-05-20 | 1 | 0 | 0 | 0 | 1 | LOW | — | **2/3** | **CONVERGED** — **CLEAN PASS 2/3**; 0C/0H/0M/1L/1obs. Gate definition: 0C/0H/0M = clean pass. L-1: system-overview.md handler.rs import description corrected (Direction/CloseReason defined in-file, not imported). O-1 (obs): new debt item O-08 added — dns.rs module doc-comment stale; propagated to domain-debt.md, ARCH-INDEX.md, prd.md. Both L-1 and O-08 fixed before commit (04478ef). Counter advances to **2/3**. Pass 30 next — THIRD and final confirmation pass; if 0C/0H/0M the Phase 1d adversarial convergence gate is SATISFIED (3/3). |
+| 30 | 2026-05-20 | 3 | 0 | 0 | 1 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — **STREAK BROKEN — RESET 2/3→0/3**; 0C/0H/1M/0L/2N. M-1: BC-2.12.020 Summary section cited C-16 instead of C-17 (copy-paste error). N-1: BC-2.05.006 guard-clause in shorthand rather than actual Rust form. N-2: inv-01 INV-9 technique_info span cited as approximate; corrected to exact range mitre.rs:122-156. All 3 fixed (00f5094). Counter RESET to **0/3**. 30 passes total; spec package at ZERO known open defects. Pass 31 next (new streak restart). |
+| 31 | 2026-05-21 | 0 | 0 | 0 | 0 | 0 | NONE | — | **1/3** | **CONVERGED** — **CLEAN PASS 1/3 (new streak after pass-30 reset)**; 0C/0H/0M/0L/0N. Zero findings. 2 non-blocking observations only: (1) module-decomposition.md C-8 buffer described as `BTreeMap<u64,Segment>` — informal shorthand for actual `BTreeMap<u64, Vec<u8>>`; survived 30+ passes, non-misleading, not a defect; recorded as O-09. (2) BC-2.01.001 dual citation scoping (reader.rs:46-60 vs reader.rs:50-60) — both valid scopings of the same contract; internally consistent, not a defect. No spec artifact modified. Counter advances to **1/3**. Pass 32 next (second confirmation pass). |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only; pass 20 spec-precision gaps — 0C/0H/2M/1L/1N; pass 21 — 0C/0H/1M/0L/2N, C-10 re-anchor + PRD nitpicks; **pass 22 CONVERGED 0C/0H/0M/2L/1N — counter 1/3**; pass 23 NOT CONVERGED — streak broken, 0C/1H/1M/1N, counter reset 0/3; **pass 24 CONVERGED 0/0/0/0/0 — counter 1/3**; pass 25 NOT CONVERGED — streak RESET 1/3→0/3, 0C/2H/2M, all 4 in PRD supplements; SWEEP68 — comprehensive PRD-supplement sweep ~68 defects fixed, P-CITE-PG addressed; counter 0/3; pass 26 NOT CONVERGED 0C/3H/1M/1L, all 4 in VP files; SWEEP48 — comprehensive VP-file sweep ~48 defects fixed; counter 0/3; pass 27 NOT CONVERGED 0C/1H/0M/0L — VP-016..020 Phase column drift fixed (e758fb6); counter 0/3; **pass 28 CONVERGED 0C/0H/0M/0L/0N — counter 1/3, clean pass 1/3**; **pass 29 CONVERGED 0C/0H/0M/1L/1obs — counter 2/3, clean pass 2/3, L-1+O-08 fixed before commit 04478ef**; pass 30 next — FINAL confirmation pass; 3/3 satisfies Phase 1d gate)
+`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only; pass 20 spec-precision gaps — 0C/0H/2M/1L/1N; pass 21 — 0C/0H/1M/0L/2N, C-10 re-anchor + PRD nitpicks; **pass 22 CONVERGED 0C/0H/0M/2L/1N — counter 1/3**; pass 23 NOT CONVERGED — streak broken, 0C/1H/1M/1N, counter reset 0/3; **pass 24 CONVERGED 0/0/0/0/0 — counter 1/3**; pass 25 NOT CONVERGED — streak RESET 1/3→0/3, 0C/2H/2M, all 4 in PRD supplements; SWEEP68 — comprehensive PRD-supplement sweep ~68 defects fixed, P-CITE-PG addressed; counter 0/3; pass 26 NOT CONVERGED 0C/3H/1M/1L, all 4 in VP files; SWEEP48 — comprehensive VP-file sweep ~48 defects fixed; counter 0/3; pass 27 NOT CONVERGED 0C/1H/0M/0L — VP-016..020 Phase column drift fixed (e758fb6); counter 0/3; **pass 28 CONVERGED 0C/0H/0M/0L/0N — counter 1/3, clean pass 1/3**; **pass 29 CONVERGED 0C/0H/0M/1L/1obs — counter 2/3, clean pass 2/3, L-1+O-08 fixed before commit 04478ef**; pass 30 NOT CONVERGED — streak RESET 2/3→0/3, 0C/0H/1M/0L/2N, all 3 fixed (00f5094); **pass 31 CONVERGED 0C/0H/0M/0L/0N — counter 1/3, clean pass 1/3 of new streak, pass 32 next**)
 
 ## Per-Pass Details
 
@@ -1588,5 +1590,35 @@ VPs (~48 in SWEEP48). The single MEDIUM finding in this pass broke the 2-pass cl
 a new 3-pass streak must be established starting with Pass 31.
 
 **Verdict:** NOT CONVERGED — Counter RESET to **0/3**. Pass 31 next (new streak restart).
+
+---
+
+### Pass 31 (2026-05-21) — CONVERGED (clean pass 1 of 3, new streak)
+
+**Findings:** 0 (0 CRIT, 0 HIGH, 0 MED, 0 LOW, 0 NITPICK)
+**Delta from pass 30:** -3 total (MED -1, NITPICK -2) — no regression; all findings from pass 30 were fixed (00f5094)
+**Novelty:** NONE
+**Convergence counter:** 1/3
+**Verdict:** CONVERGED — zero findings. Spec package content stable and unchanged since pass-29 commit 04478ef.
+
+**Observations (non-blocking, NOT defects):**
+
+- O-1: `architecture/module-decomposition.md` C-8 describes the per-direction buffer as
+  `BTreeMap<u64,Segment>`; actual `flow.rs:89` type is `BTreeMap<u64, Vec<u8>>` (no `Segment`
+  struct exists). Informal shorthand, survived 30+ passes, non-misleading. Not a spec defect.
+  Recorded as tech-debt item O-09 in STATE.md for eventual doc-only alignment.
+
+- O-2: `behavioral-contracts/ss-01/BC-2.01.001.md` cites `reader.rs:46-60` (Architecture
+  Module field) vs `reader.rs:50-60` (Source Evidence Path field) — both are valid scopings of
+  the same contract; the wider window (46-60) covers the full function header context, the
+  narrower window (50-60) covers the body. Internally consistent. Not a spec defect.
+
+**Novelty assessment:** Fresh-context citation sampling across BCs (ss-01/04/05/07/11),
+architecture indexes, VP-INDEX, PRD, and domain-debt confirms all citations resolve correctly,
+all counts are arithmetically consistent, verdict labels match source, and no internal
+contradictions exist.
+
+**No spec artifact modified.** Counter advances to **1/3**. Pass 32 next (second confirmation
+pass; must return 0C/0H/0M to advance to 2/3).
 
 ---
