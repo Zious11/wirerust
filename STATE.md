@@ -19,7 +19,10 @@ dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3
 adversary_gate: SATISFIED
-story_adversary_convergence_counter: 1/3
+story_adversary_convergence_counter: 2/3
+story_adversary_pass_9_date: "2026-05-21"
+story_adversary_pass_9_verdict: CONVERGED
+story_adversary_pass_9_findings: "0 blocking (0C/0H/0M/1L/1N) — CLEAN PASS 2/3 (streak 1/3→2/3). Zero blocking findings; 7 focus areas independently re-derived clean. F-1 LOW STORY-088 stale AC range label + F-2 NITPICK glob note deferred to pre-approval polish. Pass 10 final."
 story_adversary_pass_8_date: "2026-05-21"
 story_adversary_pass_8_verdict: CONVERGED
 story_adversary_pass_8_findings: "0 blocking (0C/0H/0M/3L/1N) — CLEAN PASS 1/3 (streak 0/3→1/3). Zero blocking findings; 7 focus areas independently re-derived clean. 3L+1N deferred to pre-approval polish. Pass 9 next."
@@ -68,9 +71,9 @@ input_drift_check_date: "2026-05-21"
 ## Status
 
 **Pipeline:** PHASE_2_STORY_DECOMPOSITION — Phase 1 COMPLETE. All 4 gates PASSED; human-approved
-2026-05-21. Phase 2 Step G adversarial story-review in progress: Pass 8 CONVERGED (0C/0H/0M/3L/1N);
-streak advances 0/3→1/3; zero blocking findings; 7 focus areas clean; convergence counter 1/3;
-Pass 9 next.
+2026-05-21. Phase 2 Step G adversarial story-review in progress: Pass 9 CONVERGED (0C/0H/0M/1L/1N);
+streak advances 1/3→2/3; zero blocking findings; 7 focus areas clean; convergence counter 2/3;
+Pass 10 is the final required clean pass.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -86,7 +89,7 @@ Pass 9 next.
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
-| Phase 2 — Story Decomposition | **IN PROGRESS** — Steps A–F COMPLETE; Step G adversarial Pass 8 CONVERGED (streak 0/3→1/3); Pass 9 next; convergence counter 1/3 | 10 epics, 217/217 BCs traced to ≥1 story, 48 stories, 77 edges, 27 waves, acyclic, 282 story points; 100 holdout scenarios; decomposition gate PASSED; story-adversary Pass 8: 0 blocking (0C/0H/0M/3L/1N) CLEAN PASS 1/3; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M (CONVERGED)→0C/0H/1M (RESET)→0C/0H/0M (CONVERGED) |
+| Phase 2 — Story Decomposition | **IN PROGRESS** — Steps A–F COMPLETE; Step G adversarial Pass 9 CONVERGED (streak 1/3→2/3); Pass 10 final; convergence counter 2/3 | 10 epics, 217/217 BCs traced to ≥1 story, 48 stories, 77 edges, 27 waves, acyclic, 282 story points; 100 holdout scenarios; decomposition gate PASSED; story-adversary Pass 9: 0 blocking (0C/0H/0M/1L/1N) CLEAN PASS 2/3; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M (CONVERGED)→0C/0H/1M (RESET)→0C/0H/0M (CONVERGED)→0C/0H/0M (CONVERGED, streak 2/3) |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
@@ -198,7 +201,7 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 | D. `wave-schedule` | **COMPLETE** 2026-05-21 | 27 waves; all 48 stories wave-assigned; `wave-schedule.md`, `STORY-INDEX.md` rebuilt, `sprint-state.yaml` initialized (48 entries, current_wave 1) — `cycles/v0.1.0-greenfield-spec/wave-schedule.md`, `stories/STORY-INDEX.md`, `stories/sprint-state.yaml`, `stories/STORY-*.md` |
 | E. `holdout-scenarios` | **COMPLETE** 2026-05-21 | 100 holdout scenarios HS-001–HS-100; 99 must-pass / 1 should-pass; 36 behavioral-subtleties, 19 edge-case-combinations, 18 integration-boundaries, 17 security-probes, 10 real-world-corpus; all 27 waves covered — `holdout-scenarios/` |
 | F. `decomposition-gate` | **COMPLETE** 2026-05-21 | Consistency audit found 3 blocking findings (B-1 BC matrix divergence 31/48 stories, B-2 edge-count off-by-one 64→64 fixed, B-3 stale cycle fields 37/48 stories); all 3 remediated; 2 NUL-byte sanitizations (STORY-070/076, same class as P5-PG); re-audit CONSISTENT 100/100. Gate PASSED. |
-| G. `adversarial-story-gate` | **IN PROGRESS** — Pass 8 CONVERGED (streak 1/3); Pass 9 next | Adversarial convergence review of story decomposition + holdout scenarios; 3 consecutive clean passes required; convergence counter 1/3; 12 process-gap NITPICKs (P1:N-1/N-2/N-3, P2:N-1/N-2, P3:N-1/N-2, P4:N-1/N-2/N-3, P5:N-1/N-2) deferred for cycle-close codification; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M (CONVERGED)→0C/0H/1M (RESET)→0C/0H/0M (CONVERGED, streak 1/3); 7 focus areas clean; 3L+1N deferred to pre-approval polish |
+| G. `adversarial-story-gate` | **IN PROGRESS** — Pass 9 CONVERGED (streak 2/3); Pass 10 final | Adversarial convergence review of story decomposition + holdout scenarios; 3 consecutive clean passes required; convergence counter 2/3; 12 process-gap NITPICKs (P1:N-1/N-2/N-3, P2:N-1/N-2, P3:N-1/N-2, P4:N-1/N-2/N-3, P5:N-1/N-2) deferred for cycle-close codification; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M (CONVERGED)→0C/0H/1M (RESET)→0C/0H/0M (CONVERGED, streak 1/3)→0C/0H/0M (CONVERGED, streak 2/3); 7 focus areas clean; F-1 LOW STORY-088 AC range + F-2 NITPICK deferred to pre-approval polish |
 | H. `human-approval` | NOT STARTED | Human sign-off before Phase 3 |
 
 ## Pre-Approval Polish (Phase 2 Step G — deferred non-blocking items)
@@ -215,6 +218,8 @@ None are blocking convergence.
 | F-06-05 | Pass 6 NITPICK | `holdout-scenarios/HS-085.md` | Wave attribution loosely derived (no direct story-id citation); internally consistent | OPEN |
 | F-8-L2 | Pass 8 LOW | `holdout-scenarios/HS-INDEX.md` `traces_to` field | Some HS entries trace to epic-root story rather than most-specific implementing story — consistent convention, warrants documentation | OPEN |
 | F-8-N1 | Pass 8 NITPICK | `holdout-scenarios/HS-INDEX.md` | Self-asserted "PASS" block at end of HS-INDEX — harmless authoring artifact, may confuse out-of-context readers | OPEN |
+| F-9-L1 | Pass 9 LOW | `stories/STORY-088.md` — File Structure table | AC range label "AC-001..AC-013" is stale; story has AC-001..AC-014. AC list body is complete and correct; only the table header range label is off. Cosmetic. | OPEN |
+| F-9-N1 | Pass 9 NITPICK | Multiple STORY files — `glob` tooling note | Slightly inconsistent phrasing of glob tooling note across story files; harmless style variance. | OPEN |
 
 ## Governance Policy
 
