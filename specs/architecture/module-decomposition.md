@@ -35,7 +35,7 @@ All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by 
 |------|------|-------|------|--------|
 | C-6 | src/reassembly/mod.rs | SS-04 | `TcpReassembler`: flow table (`HashMap<FlowKey,TcpFlow>`), `process_packet`, `finalize`, `expire_flows`, `summarize` | Mixed: pure segment math; effectful: `static AtomicBool` latches, `eprintln!` tripwires |
 | C-7 | src/reassembly/flow.rs | SS-04 | `TcpFlow`, `FlowKey`, `FlowState` state machine, `direction()` | Pure core |
-| C-8 | src/reassembly/segment.rs | SS-04 | `FlowDirection`: per-direction `BTreeMap<u64,Segment>` buffer; `insert_segment`, `flush_contiguous` | Pure core |
+| C-8 | src/reassembly/segment.rs | SS-04 | `FlowDirection`: per-direction `BTreeMap<u64, Vec<u8>>` buffer; `insert_segment`, `flush_contiguous` | Pure core |
 | C-9 | src/reassembly/handler.rs | SS-04 | `StreamHandler` / `StreamAnalyzer` trait definitions (the L2<->L3 interface) | Pure (trait definitions only) |
 | C-15 | src/reassembly/lifecycle.rs | SS-04 | `close_flow`, eviction logic, `on_rst`, `on_fin` | Mixed: pure flow-table mutations; `static AtomicBool` warning latch for missing-key |
 | -- | src/reassembly/config.rs | SS-04 | `ReassemblyConfig` struct; threshold fields with research-documented defaults | Pure (data) |

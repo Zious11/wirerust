@@ -17,7 +17,7 @@ inputs:
   - src/analyzer/http.rs
   - src/analyzer/tls.rs
   - src/analyzer/dns.rs
-input-hash: "[md5-TBD]"
+input-hash: "592d3cb"
 traces_to: .factory/specs/prd.md
 ---
 

@@ -103,7 +103,7 @@ Sheets) from interpreting attacker-controlled packet payload bytes as formula di
 | L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- this BC describes a security property of the CSV output path: neutralizing formula injection for the analyst-facing spreadsheet export channel |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- Finding.summary/evidence carry raw attacker bytes; CsvReporter's neutralization is the display-layer sanitization, mirroring TerminalReporter's control-byte escaping per ADR 0003) |
-| Architecture Module | SS-11 (reporter/csv.rs:40-44, lines 89-97) |
+| Architecture Module | SS-11 (reporter/csv.rs:40-45, lines 89-97) |
 | Stories | S-TBD |
 | Origin BC | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
 
@@ -115,7 +115,7 @@ Sheets) from interpreting attacker-controlled packet payload bytes as formula di
 
 ## Architecture Anchors
 
-- `src/reporter/csv.rs:40-44` -- `neutralize_csv_injection` function definition
+- `src/reporter/csv.rs:40-45` -- `neutralize_csv_injection` function definition
 - `src/reporter/csv.rs:89-97` -- application of `neutralize_csv_injection` to all nine data columns
 - `src/reporter/csv.rs:18-31` -- module doc comment describing the OWASP CSV injection threat model
 
@@ -141,7 +141,7 @@ S-TBD -- CsvReporter implementation (LESSON-P2.03)
 
 #### Evidence Types Used
 
-- **guard clause**: `neutralize_csv_injection` at csv.rs:40-44 uses an explicit `match` on `s.chars().next()` with the six trigger characters listed as a pattern arm
+- **guard clause**: `neutralize_csv_injection` at csv.rs:40-45 uses an explicit `match` on `s.chars().next()` with the six trigger characters listed as a pattern arm
 - **documentation**: module doc comment at csv.rs:18-31 states the OWASP rationale and names all six trigger characters
 - **assertion**: function is called on all nine columns at csv.rs:89-97 with no bypass path
 

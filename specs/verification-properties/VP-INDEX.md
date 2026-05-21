@@ -52,19 +52,19 @@ integration_unit_count: 5
 | VP-004 | Content-First Dispatch Precedence | dispatcher.rs | Kani | P0 | draft | BC-2.05.001, BC-2.05.002, BC-2.05.003, BC-2.05.005, BC-2.05.006 |
 | VP-005 | SNI 4-Way Ordered Classification | analyzer/tls.rs | Kani | P0 | draft | BC-2.07.013..016, BC-2.07.037 |
 | VP-006 | HTTP Poison Monotonicity | analyzer/http.rs | proptest | P1 | draft | BC-2.06.015, BC-2.06.016, BC-2.06.017 |
-| VP-007 | MITRE Technique ID Format and Completeness | mitre.rs | Kani | P0 | draft | BC-2.10.005, BC-2.10.006, BC-2.10.007, BC-2.10.008 |
-| VP-008 | decode_packet Never Panics | decoder.rs | cargo-fuzz | P0 | draft | BC-2.02.007, BC-2.02.008, BC-2.02.009 |
+| VP-007 | MITRE Technique ID Format and Catalog Completeness | mitre.rs | Kani | P0 | draft | BC-2.10.005, BC-2.10.006, BC-2.10.007, BC-2.10.008 |
+| VP-008 | decode_packet Never Panics on Arbitrary Input | decoder.rs | cargo-fuzz | P0 | draft | BC-2.02.007, BC-2.02.008, BC-2.02.009 |
 | VP-009 | FlowState Machine Validity | reassembly/flow.rs | Kani | P0 | draft | BC-2.04.050, BC-2.04.051, BC-2.04.052 |
 | VP-010 | buffered_bytes Invariant | reassembly/segment.rs | proptest | P1 | draft | BC-2.04.047, BC-2.04.030 |
 | VP-011 | flush_contiguous Monotonicity | reassembly/segment.rs | proptest | P1 | draft | BC-2.04.034, BC-2.04.007, BC-2.04.008 |
 | VP-012 | escape_for_terminal Correctness | reporter/terminal.rs | proptest | P1 | draft | BC-2.11.007, BC-2.11.008, BC-2.11.009 |
 | VP-013 | JA3 GREASE Filter Correctness | analyzer/tls.rs | proptest | P1 | draft | BC-2.07.006, BC-2.07.007, BC-2.07.008 |
 | VP-014 | HttpAnalyzer Cross-Flow Isolation | analyzer/http.rs | proptest | P1 | draft | BC-2.06.021, BC-2.06.019 |
-| VP-015 | TCP Sequence Wraparound | reassembly/segment.rs | Kani | P1 | draft | BC-2.04.039 |
+| VP-015 | TCP Sequence Number Wraparound | reassembly/segment.rs | Kani | P1 | draft | BC-2.04.039 |
 | VP-016 | MITRE Tactic Grouping Order | reporter/terminal.rs | integration | test-sufficient | draft | BC-2.11.013, BC-2.11.014, BC-2.11.015, BC-2.10.003, BC-2.10.004 |
 | VP-017 | JsonReporter Key-Order Determinism | reporter/json.rs | integration | test-sufficient | draft | BC-2.11.001, BC-2.11.003 |
-| VP-018 | CLI Reassemble Mutual Exclusion | cli.rs | integration | test-sufficient | draft | BC-2.12.007, BC-2.12.009 |
-| VP-019 | DNS Analyzer Statistics-Only | analyzer/dns.rs | unit | test-sufficient | draft | BC-2.08.004, BC-2.08.001, BC-2.08.002 |
+| VP-018 | CLI Reassemble / No-Reassemble Mutual Exclusion | cli.rs | integration | test-sufficient | draft | BC-2.12.007, BC-2.12.009 |
+| VP-019 | DNS Analyzer Is Statistics-Only (Never Emits Findings) | analyzer/dns.rs | unit | test-sufficient | draft | BC-2.08.004, BC-2.08.001, BC-2.08.002 |
 | VP-020 | CSV Injection Neutralization | reporter/csv.rs | unit | test-sufficient | draft | BC-2.11.021 |
 
 ## P0 Properties (required before Phase 5 gate)

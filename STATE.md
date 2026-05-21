@@ -1,5 +1,5 @@
 ---
-pipeline: PHASE_1_SPEC_COMPLETE
+pipeline: PHASE_1_AWAITING_HUMAN_APPROVAL
 phase: phase-1-spec-crystallization
 product: wirerust
 mode: brownfield
@@ -28,18 +28,23 @@ adversary_pass_33_date: "2026-05-21"
 adversary_pass_33_verdict: CONVERGED
 adversary_pass_33_findings: "0 blocking (0C/0H/0M/0L/2N) — CLEAN PASS 3/3. ADVERSARIAL CONVERGENCE GATE SATISFIED. 2 NITPICKs (BC-2.12.016 doc-comment range 304-310→304-311; BC-2.11.021 csv.rs range 40-44→40-45) non-blocking, deferred to pre-approval polish."
 convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0"
+consistency_audit: CONSISTENT
+consistency_audit_date: "2026-05-21"
+input_drift_check: CLEAN
+input_drift_check_date: "2026-05-21"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 33 returned CONVERGED (0C/0H/0M/0L/2N); CLEAN
-PASS **3/3**. **ADVERSARIAL SPEC-CONVERGENCE GATE SATISFIED** (3 consecutive clean passes:
-31/32/33). 33 adversarial passes total; spec package at ZERO blocking defects. 2 NITPICKs
-(BC-2.12.016 doc-comment range slack; BC-2.11.021 csv.rs range slack) non-blocking, deferred
-to pre-approval polish alongside pass-32 N-1 and O-09. Remaining Phase 1 gates: consistency
-audit (IN PROGRESS), input-hash drift check (pending), human approval (pending).
+**Pipeline:** PHASE_1_AWAITING_HUMAN_APPROVAL — 3 of 4 Phase 1 gates PASSED.
+(1) **Adversarial spec-convergence gate SATISFIED** (3/3 — passes 31/32/33 CONVERGED, 0C/0H/0M;
+33 passes total; ZERO blocking defects). (2) **Consistency audit CONSISTENT** — 5 findings
+(1 MAJOR/3 MINOR/1 NITPICK); F-1 MAJOR (PRD RTM completeness) + F-2/F-3/F-4 MINOR remediated;
+F-5 confirmed not-a-defect; re-audit CONSISTENT with no new drift. (3) **Input-hash drift
+check CLEAN** — 5 STALE corrective-cluster hashes bumped; re-scan MATCH=5/STALE=0. Sole
+remaining gate: (4) human approval.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -54,7 +59,7 @@ audit (IN PROGRESS), input-hash drift check (pending), human approval (pending).
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate **SATISFIED** (**3/3** — passes 31/32/33 all CONVERGED 0C/0H/0M; 33 passes total; ZERO blocking defects; 4 NITPICKs deferred to pre-approval polish); remaining gates: consistency audit (IN PROGRESS), drift check (pending), human approval (pending) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
+| Phase 1 — Spec Crystallization | AWAITING_HUMAN_APPROVAL — (1) adversarial gate **SATISFIED** (3/3; passes 31/32/33; ZERO blocking defects); (2) consistency audit **CONSISTENT** (5 findings, F-1–F-4 remediated, F-5 not-a-defect); (3) drift check **CLEAN** (5 hashes bumped, re-scan 5/5 MATCH); (4) human approval **PENDING** | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -62,7 +67,7 @@ audit (IN PROGRESS), input-hash drift check (pending), human approval (pending).
 | Phase 6 — Formal Hardening | NOT STARTED | — |
 | Phase 7 — Convergence | NOT STARTED | — |
 
-## Phase 1 — Spec Crystallization (SPEC_PACKAGE_COMPLETE)
+## Phase 1 — Spec Crystallization (AWAITING_HUMAN_APPROVAL)
 
 ### Spec Package Contents
 
@@ -141,6 +146,7 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 31 | 2026-05-21 | 0 (0C/0H/0M/0L/0N) | **CONVERGED** | CLEAN PASS 1/3 — zero findings; 2 non-blocking observations (C-8 BTreeMap shorthand, BC-2.01.001 dual scoping), neither a spec defect; no spec artifact modified. Counter advances to **1/3**. Pass 32 next. |
 | 32 | 2026-05-21 | 0 blocking (0C/0H/0M/0L/1N) | **CONVERGED** | CLEAN PASS 2/3 — zero blocking findings; 1 NITPICK N-1 (domain-spec §8 omits ADR 0004; defensibly correct-by-construction) deferred to pre-approval polish; package left byte-identical for pass 33. Counter advances to **2/3**. Pass 33 final. |
 | 33 | 2026-05-21 | 0 blocking (0C/0H/0M/0L/2N) | **CONVERGED** | CLEAN PASS 3/3 — ADVERSARIAL CONVERGENCE GATE SATISFIED. Zero blocking findings; 2 NITPICKs (BC-2.12.016 + BC-2.11.021 doc-comment/brace range slack) deferred to pre-approval polish. 33 passes total. |
+| CONSISTENCY-REMEDIATION | 2026-05-21 | — | REMEDIATION BURST | Post-convergence consistency-remediation burst — 9 corrective edits across 7 spec files. F-1 MAJOR (PRD §2.11 RTM: 5 BC-2.11.020–024 rows added to table + §7 RTM); F-2 MINOR (PRD §2.12 header CAP-01→CAP-12); F-3 MINOR (VP-INDEX 5 title mismatches aligned); F-4 MINOR / pass-32 N-1 (domain-spec §8 ADR →0004); F-5 NITPICK confirmed not-a-defect; O-09 (module-decomposition C-8 BTreeMap<u64,Vec<u8>>); pass-33 N-1 (BC-2.12.016 range 304-311); pass-33 N-2 (BC-2.11.021 range 40-45); 5 prd-supplement input-hashes bumped (corrective cluster). Consistency re-audit: CONSISTENT. Input-drift re-scan: MATCH=5/STALE=0. All 4 pre-approval polish items RESOLVED. |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
@@ -148,13 +154,21 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 
 1. ~~**Adversarial spec-convergence gate**~~ — **DONE / SATISFIED** (3/3). Passes 31/32/33
    all returned CONVERGED (0C/0H/0M). 33 adversarial passes total; ZERO blocking defects.
-   4 NITPICKs deferred to pre-approval polish: (a) pass-32 N-1: domain-spec §8 ADR list
-   "0003"→"0003/0004"; (b) O-09: module-decomposition C-8 BTreeMap shorthand; (c) pass-33
-   N-1: BC-2.12.016 doc-comment range 304-310→304-311; (d) pass-33 N-2: BC-2.11.021
-   csv.rs range 40-44→40-45. Apply during pre-approval polish before human sign-off.
-2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch) — **IN PROGRESS**.
-3. **Input-hash drift check** — verify spec package against source HEAD (pending).
-4. **Human approval gate** — human review and sign-off on spec package (pending).
+   All 4 pre-approval polish items now RESOLVED (2026-05-21 consistency-remediation burst):
+   (a) pass-32 N-1 / F-4: domain-spec §8 ADR list →0004 — **RESOLVED 2026-05-21**;
+   (b) O-09: module-decomposition C-8 BTreeMap<u64,Vec<u8>> aligned — **RESOLVED 2026-05-21**;
+   (c) pass-33 N-1: BC-2.12.016 doc-comment range 304-311 — **RESOLVED 2026-05-21**;
+   (d) pass-33 N-2: BC-2.11.021 csv.rs range 40-45 — **RESOLVED 2026-05-21**.
+2. ~~**Consistency audit**~~ — **DONE / CONSISTENT** (2026-05-21). 5 findings: F-1 MAJOR
+   (PRD §2.11 RTM completeness — 5 BC rows added + §7 RTM updated), F-2 MINOR (PRD §2.12
+   header CAP-01→CAP-12), F-3 MINOR (VP-INDEX 5 title mismatches aligned to file H1s),
+   F-4 MINOR (domain-spec §8 ADR list →0004; same as pass-32 N-1), F-5 NITPICK (confirmed
+   not-a-defect). Remediation re-audit: CONSISTENT, no new drift introduced.
+3. ~~**Input-hash drift check**~~ — **DONE / CLEAN** (2026-05-21). 5 STALE corrective-cluster
+   hashes bumped in prd-supplements (nfr-catalog, interface-definitions, error-taxonomy,
+   test-vectors) and prd.md; re-scan MATCH=5/STALE=0.
+4. **Human approval gate** — human review and sign-off on spec package **(PENDING — sole
+   remaining Phase 1 gate)**.
 
 ## Governance Policy
 
@@ -168,10 +182,10 @@ GitHub issue. Pointer in `CLAUDE.md` on `develop` via PR #99 (0082a0c).
 |----|-------------|----------|--------|
 | O-07 | `rayon` declared in Cargo.toml but unused in `src/` — dead dependency | P2 | adversarial pass 1 (LOW finding) |
 | O-08 | `src/analyzer/dns.rs` module doc-comment is stale — references removed behavior | P3 | adversarial pass 29 (observation O-1); recorded in domain-debt.md |
-| O-09 | `architecture/module-decomposition.md` C-8 buffer described as `BTreeMap<u64,Segment>` (informal shorthand); actual `flow.rs:89` type is `BTreeMap<u64, Vec<u8>>` (no `Segment` struct). Non-misleading shorthand; not a spec defect. | P3 | adversarial pass 31 (non-blocking observation); doc-only alignment deferred |
-| N-1 | `specs/domain/domain-spec.md`:168 §8 "Cross-Reference to Corpus IDs" lists "ADR 0001/0002/0003"; intra-file consistency suggests "0001/0002/0003/0004". Defensibly correct-by-construction (§8 lists ingestion-corpus IDs; ADR 0004 post-dates ingestion, 2026-05-14). One-token fix. | P3 | adversarial pass 32 (NITPICK); deferred to Phase-1 pre-approval polish alongside O-09 |
-| N-2 | `specs/behavioral-contracts/ss-12/BC-2.12.016.md` "Evidence Types Used" cites `resolve_format` doc comment range as main.rs:304-310; actual span is 304-311 (one-line under-reach; lands on real content). Non-blocking. | P3 | adversarial pass 33 N-1 (NITPICK); deferred to Phase-1 pre-approval polish |
-| N-3 | `specs/behavioral-contracts/ss-11/BC-2.11.021.md` cites `neutralize_csv_injection` function as csv.rs:40-44; closing brace is at line 45. One-line under-reach; lands on real content. Non-blocking. | P3 | adversarial pass 33 N-2 (NITPICK); deferred to Phase-1 pre-approval polish |
+| O-09 | `architecture/module-decomposition.md` C-8 buffer described as `BTreeMap<u64,Segment>` (informal shorthand); actual `flow.rs:89` type is `BTreeMap<u64, Vec<u8>>` (no `Segment` struct). Non-misleading shorthand; not a spec defect. | P3 | **RESOLVED 2026-05-21** — consistency-remediation burst aligned to `BTreeMap<u64, Vec<u8>>` |
+| N-1 | `specs/domain/domain-spec.md`:168 §8 "Cross-Reference to Corpus IDs" lists "ADR 0001/0002/0003"; intra-file consistency suggests "0001/0002/0003/0004". Defensibly correct-by-construction (§8 lists ingestion-corpus IDs; ADR 0004 post-dates ingestion, 2026-05-14). One-token fix. | P3 | **RESOLVED 2026-05-21** — F-4 in consistency audit; §8 updated to "0001/0002/0003/0004" |
+| N-2 | `specs/behavioral-contracts/ss-12/BC-2.12.016.md` "Evidence Types Used" cites `resolve_format` doc comment range as main.rs:304-310; actual span is 304-311 (one-line under-reach; lands on real content). Non-blocking. | P3 | **RESOLVED 2026-05-21** — pass-33 N-1; range corrected to 304-311 |
+| N-3 | `specs/behavioral-contracts/ss-11/BC-2.11.021.md` cites `neutralize_csv_injection` function as csv.rs:40-44; closing brace is at line 45. One-line under-reach; lands on real content. Non-blocking. | P3 | **RESOLVED 2026-05-21** — pass-33 N-2; range corrected to 40-45 |
 
 Full register: `.factory/tech-debt-register.md` (when populated).
 

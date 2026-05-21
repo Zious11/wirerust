@@ -165,7 +165,7 @@ The following corpus identifiers from the ingestion passes are used throughout t
 - C-1..C-21: Component IDs (C-1..C-20 from pass-1 architecture; C-21 = dispatcher.rs added by ADR 0001)
 - NFR-PERF/SEC/REL/OBS/RES/MNT/PORT/SUP/COMPAT-NNN: NFR IDs (pass-4 catalog, 79 total)
 - NFR-VIO-001..010: Violation IDs (pass-4)
-- ADR 0001/0002/0003: Architecture Decision Records (docs/adr/)
+- ADR 0001/0002/0003/0004: Architecture Decision Records (docs/adr/)
 - E-1..E-41: Entity IDs (pass-2 domain model)
 - VO-1..VO-12: Value object IDs (pass-2 domain model)
 - LESSON-P0/P1/P2/P3.*: Action items from pass-8 synthesis

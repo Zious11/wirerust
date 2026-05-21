@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/architecture/api-surface.md
   - src/cli.rs
   - src/main.rs
-input-hash: "[md5-TBD]"
+input-hash: "592d3cb"
 traces_to: .factory/specs/prd.md
 ---
 

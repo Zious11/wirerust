@@ -116,7 +116,7 @@ any unhandled variant) -> `TerminalReporter`.
 
 #### Evidence Types Used
 
-- **documentation**: resolve_format has an explicit doc comment at line 304-310
+- **documentation**: resolve_format has an explicit doc comment at line 304-311
 
 #### Purity Classification
 

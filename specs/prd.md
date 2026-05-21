@@ -24,7 +24,7 @@ inputs:
   - .factory/specs/domain/capabilities/cap-11-reporting-output.md
   - .factory/semport/wirerust/wirerust-pass-3-behavioral-contracts.md
   - .factory/semport/wirerust/wirerust-pass-3-deep-behavioral-contracts-r4.md
-input-hash: "[md5-TBD]"
+input-hash: "ff3462e"
 traces_to: .factory/specs/domain/domain-spec.md
 supplements:
   - prd-supplements/interface-definitions.md
@@ -394,11 +394,16 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.11.017 | Default (flag-off) rendering emits MITRE: <id> only with no em-dash | P1 | BC-RPT-017 |
 | BC-2.11.018 | TerminalReporter colorization: Likely/High=red bold, Likely/other=yellow, Inconclusive=cyan, Unlikely=dimmed | P2 | BC-RPT-018 |
 | BC-2.11.019 | TerminalReporter renders sections in order: header, PROTOCOLS, SERVICES, FINDINGS, ANALYZER summaries | P1 | BC-RPT-019 |
+| BC-2.11.020 | CsvReporter Emits Exactly Nine Columns in Fixed Header Order | P0 | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
+| BC-2.11.021 | CsvReporter Neutralizes CSV-Injection Trigger Characters with a Leading Single Quote | P0 | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
+| BC-2.11.022 | CsvReporter Joins Evidence Vec Elements with "; " into a Single Cell | P1 | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
+| BC-2.11.023 | CsvReporter Implements Reporter Trait and Emits One Row per Finding; Summary and AnalysisSummary Are Ignored | P0 | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
+| BC-2.11.024 | CsvReporter Encodes None Optional Fields as Empty Strings and Direction as Debug Variant Name | P1 | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
 
 > Full contracts: `behavioral-contracts/ss-11/BC-2.11.001.md` through `BC-2.11.024.md`
 > (BC-2.11.020–024 added adversarial-review pass-4: CsvReporter coverage gap H-1)
 
-### 2.12 CLI and Entry Point (CAP-01 / Cross-cutting)
+### 2.12 CLI and Entry Point (CAP-12 / CLI Orchestration)
 
 > CLI BCs are cross-cutting: they describe the entry point (C-1..C-3) that wires all capabilities
 > together. Numbered under ss-12 for organizational clarity.
@@ -759,6 +764,11 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.11.017 | CAP-11 | SS-11 (reporter/) | P1 | unit |
 | BC-2.11.018 | CAP-11 | SS-11 (reporter/) | P2 | inferred |
 | BC-2.11.019 | CAP-11 | SS-11 (reporter/) | P1 | inferred |
+| BC-2.11.020 | CAP-11 | SS-11 (reporter/) | P0 | unit |
+| BC-2.11.021 | CAP-11 | SS-11 (reporter/) | P0 | unit |
+| BC-2.11.022 | CAP-11 | SS-11 (reporter/) | P1 | unit |
+| BC-2.11.023 | CAP-11 | SS-11 (reporter/) | P0 | unit |
+| BC-2.11.024 | CAP-11 | SS-11 (reporter/) | P1 | unit |
 | BC-2.12.001 | CAP-12 | SS-12 (cli.rs) | P0 | unit |
 | BC-2.12.002 | CAP-12 | SS-12 (cli.rs) | P1 | unit |
 | BC-2.12.003 | CAP-12 | SS-12 (cli.rs) | P1 | unit |

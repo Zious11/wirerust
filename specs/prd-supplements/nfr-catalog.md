@@ -13,7 +13,7 @@ inputs:
   - .factory/semport/wirerust/wirerust-pass-4-deep-nfr-catalog.md
   - .factory/specs/architecture/ARCH-INDEX.md
   - src/
-input-hash: "[md5-TBD]"
+input-hash: "592d3cb"
 traces_to: .factory/specs/prd.md
 ---
 
