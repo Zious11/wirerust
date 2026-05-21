@@ -45,13 +45,13 @@ risk_source: null
 When MITRE grouping mode is active, findings must be displayed grouped by attack phase in the
 canonical MITRE ATT&CK kill-chain progression — not sorted alphabetically or by insertion order.
 
-1. A set of findings is constructed spanning three MITRE tactics: one in Lateral Movement (T1021),
+1. A set of findings is constructed spanning three MITRE tactics: one in Command and Control (T1071),
    one in Defense Evasion (T1036), and one with no technique (uncategorized). Multiple findings
    exist within the Defense Evasion tactic with different verdicts and confidence levels.
 2. The tool is invoked with the MITRE grouping flag active.
 3. The output shows tactic section headers.
-4. Defense Evasion appears before Lateral Movement in the output (kill-chain ordering, not
-   alphabetical: Defense Evasion is mid-chain; Lateral Movement is later).
+4. Defense Evasion appears before Command and Control in the output (kill-chain ordering, not
+   alphabetical: Defense Evasion is mid-chain; Command and Control is later).
 5. Within the Defense Evasion section, findings are sorted: Likely/High verdict appears before
    Inconclusive/Medium.
 6. The "Uncategorized" section appears last, after all named tactic sections.
@@ -62,7 +62,7 @@ canonical MITRE ATT&CK kill-chain progression — not sorted alphabetically or b
 
 | BC ID | Clause Tested | Scenario Aspect |
 |-------|--------------|-----------------|
-| BC-2.11.013 | Postcondition 2: tactic headers in canonical order | Defense Evasion before Lateral Movement |
+| BC-2.11.013 | Postcondition 2: tactic headers in canonical order | Defense Evasion before Command and Control |
 | BC-2.11.013 | Postcondition 4: Uncategorized always last | No-technique finding appears in last section |
 | BC-2.11.014 | Postcondition 1: sort by verdict within bucket | Likely before Inconclusive in same tactic |
 | BC-2.11.014 | Postcondition 2: sort by confidence within same verdict | High before Medium for same verdict |
@@ -74,7 +74,7 @@ canonical MITRE ATT&CK kill-chain progression — not sorted alphabetically or b
 Invoke the tool with a set of findings spanning the described tactics. In the terminal output:
 
 1. Find the positions of each tactic section header using line scanning.
-2. Assert: Defense Evasion header position < Lateral Movement header position.
+2. Assert: Defense Evasion header position < Command and Control header position.
 3. Assert: Uncategorized section is the final section (nothing follows its header until EOF).
 4. Within the Defense Evasion section lines, assert that the Likely/High finding's line
    precedes the Inconclusive/Medium finding's line.

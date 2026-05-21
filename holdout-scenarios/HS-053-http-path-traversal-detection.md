@@ -48,7 +48,7 @@ risk_source: null
 1. A pcap contains four HTTP/1.1 GET requests across the same flow, with URIs: (a) `/images/photo.jpg`, (b) `/wp-admin/post.php`, (c) `/uploads/c99.php?cmd=id`, (d) `/etc/passwd/../..%2f..`.
 2. The analyst runs wirerust on this pcap.
 3. Request (a) produces zero findings.
-4. Request (b) produces exactly one finding with a MITRE tactic of T1046 (port scan / discovery) and verdict Inconclusive.
+4. Request (b) produces exactly one finding with MITRE technique T1046 (Network Service Discovery, Discovery tactic) and verdict Inconclusive.
 5. Request (c) produces exactly one finding for web-shell detection with MITRE T1505.003.
 6. Request (d) produces exactly one finding for path traversal with MITRE T1083.
 7. No finding from request (d) leaks MITRE technique from the web-shell check, and vice versa.
