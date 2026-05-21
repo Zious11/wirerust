@@ -1,6 +1,6 @@
 ---
-pipeline: PHASE_2_STORY_DECOMPOSITION
-phase: phase-2-story-decomposition
+pipeline: PHASE_3_TDD_IMPLEMENTATION
+phase: phase-3-tdd-implementation
 product: wirerust
 mode: brownfield
 timestamp: 2026-05-21T00:00:00Z
@@ -13,6 +13,9 @@ phase_1_human_approved: "2026-05-21"
 phase_1_completed: "2026-05-21"
 p8_defer_resolved: "2026-05-21"
 phase_2_started: "2026-05-21"
+phase_2_human_approved: "2026-05-21"
+phase_2_completed: "2026-05-21"
+phase_3_started: "2026-05-21"
 dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
@@ -80,12 +83,14 @@ phase_2_input_hash_drift_check_uncomputed: 0
 
 ## Status
 
-**Pipeline:** PHASE_2_STORY_DECOMPOSITION — Phase 1 COMPLETE. All 4 gates PASSED; human-approved
-2026-05-21. Phase 2 Step G adversarial story-review COMPLETE: Pass 10 CONVERGED (0C/0H/0M/1L/2N);
-3rd consecutive clean pass (8/9/10); 10 passes total; ADVERSARIAL STORY-CONVERGENCE GATE SATISFIED
-(3/3); pre-approval polish applied. Phase 2 input-hash drift check COMPLETE: CLEAN
-(TOTAL=153 MATCH=153 STALE=0 UNCOMPUTED=0; first-time population of 48 story + 100 holdout-scenario
-hashes). ONLY remaining Phase 2 step: human approval gate (Step H).
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Phase 2 COMPLETE & human-approved 2026-05-21. Deliverables:
+48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 story points. All Phase 2 gates passed:
+decomposition consistency gate PASSED; adversarial story-convergence gate SATISFIED 3/3 (10 passes);
+input-hash drift check CLEAN (TOTAL=153 MATCH=153 STALE=0 UNCOMPUTED=0); pre-approval polish applied;
+human approval GRANTED 2026-05-21. Pipeline now entering Phase 3: wave-by-wave TDD implementation
+(waves 1→27). BC story-anchor back-fill in progress as Phase-3 entry prep (217 BC files:
+`Story Anchor: S-TBD` → `Story Anchor: covering STORY-NNN`, per dependency-graph BC-to-Stories matrix;
+analogous to P8-DEFER VP back-fill). First wave: Wave 1 = STORY-001 + STORY-069.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -101,8 +106,8 @@ hashes). ONLY remaining Phase 2 step: human approval gate (Step H).
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
-| Phase 2 — Story Decomposition | **IN PROGRESS** — Steps A–G COMPLETE; input-hash drift check CLEAN (TOTAL=153 MATCH=153 STALE=0 UNCOMPUTED=0); Step H (human approval) next | 10 epics, 217/217 BCs traced to ≥1 story, 48 stories, 77 edges, 27 waves, acyclic, 282 story points; 100 holdout scenarios; decomposition gate PASSED; story-adversary Pass 10: 0 blocking (0C/0H/0M/1L/2N) CLEAN PASS 3/3 GATE SATISFIED; input-hash drift check CLEAN 2026-05-21; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M (CONVERGED)→0C/0H/1M (RESET)→0C/0H/0M (CONVERGED)→0C/0H/0M (CONVERGED)→0C/0H/0M (CONVERGED, GATE SATISFIED 3/3) |
-| Phase 3 — TDD Implementation | NOT STARTED | — |
+| Phase 2 — Story Decomposition | **PASSED** — all gates + human approval 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; decomposition gate PASSED; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153); trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M→0C/0H/1M (RESET)→0C/0H/0M→0C/0H/0M→0C/0H/0M (GATE SATISFIED 3/3) |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — STARTED 2026-05-21; Wave 1 next (STORY-001 + STORY-069); BC story-anchor back-fill in progress | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -201,7 +206,31 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 
 **Phase 1 CLOSED.**
 
-## Phase 2 — Story Decomposition (IN PROGRESS)
+## Phase 3 — TDD Implementation (IN PROGRESS — STARTED 2026-05-21)
+
+### Current Phase Steps
+
+| Step | Status | Notes |
+|------|--------|-------|
+| BC story-anchor back-fill (entry prep) | **IN PROGRESS** | 217 BC files: `Story Anchor: S-TBD` → `Story Anchor: covering STORY-NNN`; per dependency-graph BC-to-Stories matrix; analogous to P8-DEFER VP back-fill |
+| Wave 1 delivery (STORY-001 + STORY-069) | NOT STARTED | First wave; per-story TDD delivery via `vsdd-factory:deliver-story` |
+| Per-story adversarial convergence | NOT STARTED | 3 clean passes required per story |
+| Wave-level adversarial convergence | NOT STARTED | 3 clean passes required per wave (waves 1→27) |
+| Wave-gate implementation gate | NOT STARTED | Per-wave implementation gate before next wave |
+| Input-hash drift check | NOT STARTED | Per-wave drift check |
+| Waves 2→27 | NOT STARTED | Repeat per-story + wave-level convergence for each wave |
+
+### Cycle-Close Follow-Up Items (carried from Phase 2)
+
+Process-gap codification deferred from Phase 2 adversarial convergence — required before cycle can be declared closed:
+
+| ID | Item | Priority |
+|----|------|----------|
+| [process-gap] P1.1 | Story-writer template-completeness gate — verify all required YAML fields present per STORY-NNN.md template | P2 |
+| [process-gap] P1.2 | Story-writer VP-anchoring validation — assert every story cites ≥1 VP (or explicit `vp_anchors: []` with justification) | P2 |
+| [process-gap] P1.3 | Decomposition-consistency-audit check-matrix axes — codify as explicit checklist step (BC-coverage, edge-count, wave-count, sprint-state) | P2 |
+
+## Phase 2 — Story Decomposition (PASSED — 2026-05-21)
 
 ### Steps
 
@@ -215,7 +244,7 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 | F. `decomposition-gate` | **COMPLETE** 2026-05-21 | Consistency audit found 3 blocking findings (B-1 BC matrix divergence 31/48 stories, B-2 edge-count off-by-one 64→64 fixed, B-3 stale cycle fields 37/48 stories); all 3 remediated; 2 NUL-byte sanitizations (STORY-070/076, same class as P5-PG); re-audit CONSISTENT 100/100. Gate PASSED. |
 | G. `adversarial-story-gate` | **COMPLETE** 2026-05-21 — GATE SATISFIED (3/3; 10 passes total) | Adversarial convergence review of story decomposition + holdout scenarios; 3 consecutive clean passes required; convergence counter 3/3 SATISFIED; 12 process-gap NITPICKs (P1:N-1/N-2/N-3, P2:N-1/N-2, P3:N-1/N-2, P4:N-1/N-2/N-3, P5:N-1/N-2) deferred for cycle-close codification; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M (CONVERGED)→0C/0H/1M (RESET)→0C/0H/0M (CONVERGED, streak 1/3)→0C/0H/0M (CONVERGED, streak 2/3)→0C/0H/0M (CONVERGED, GATE SATISFIED 3/3); 7 focus areas clean; pre-approval polish applied (F-06-01/02/03, F-9-L1, F-1/N-1 pass 10 all RESOLVED); N-2 NITPICK [process-gap] BC Story Anchor S-TBD — open item for human approval gate |
 | G2. `input-hash-drift-check` | **COMPLETE** 2026-05-21 — CLEAN | TOTAL=153 MATCH=153 STALE=0 UNCOMPUTED=0; first-time population of `input_hash` field in 48 STORY-*.md + 100 HS-*.md files (artifacts freshly authored in Phase 2; content verified by 10-pass adversarial convergence; no producing-agent content review required) |
-| H. `human-approval` | NOT STARTED | Human sign-off before Phase 3 |
+| H. `human-approval` | **COMPLETE** 2026-05-21 — GRANTED | Human sign-off received 2026-05-21. Phase 2 CLOSED. |
 
 ## Pre-Approval Polish (Phase 2 Step G — deferred non-blocking items)
 
