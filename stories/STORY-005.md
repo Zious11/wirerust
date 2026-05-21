@@ -15,7 +15,7 @@ input-hash: "[md5-pending]"
 traces_to: .factory/specs/prd.md
 points: 3
 depends_on: [STORY-002, STORY-003, STORY-004]
-blocks: []
+blocks: [STORY-011, STORY-066]
 behavioral_contracts:
   - BC-2.02.014
   - BC-2.02.015

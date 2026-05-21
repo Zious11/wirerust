@@ -56,7 +56,7 @@ cumulative threshold crossing, with bounded finding generation.
      `overlap_count` toward the threshold.
    - When `overlap_count` exceeds the configured threshold, a cumulative
      T1036/Medium finding fires exactly once per direction.
-2. The user runs: `wirerust analyze <combined-evasion-pcap> --format json`
+2. The user runs: `wirerust analyze <combined-evasion-pcap> --output-format json`
 3. The tool emits 3 High confidence T1036 findings (one per conflict) plus at
    most 1 Medium confidence T1036 finding per direction (cumulative threshold).
 4. The total number of T1036 findings is bounded: not 25 findings for 25 retransmissions.
@@ -74,7 +74,7 @@ cumulative threshold crossing, with bounded finding generation.
 ## Verification Approach
 
 ```bash
-wirerust analyze <combined-evasion-pcap> --format json
+wirerust analyze <combined-evasion-pcap> --output-format json
 ```
 
 Count findings by confidence level:

@@ -47,7 +47,7 @@ capped.
 
 1. A pcap contains TCP flows with more than 10,000 total events that would
    each normally generate a finding.
-2. The user runs: `wirerust analyze <flood-pcap> --format json`
+2. The user runs: `wirerust analyze <flood-pcap> --output-format json`
 3. The tool completes with exit code 0 and a reasonable memory footprint.
 4. The JSON output's findings array has at most 10,001 entries (the hard cap
    is 10,000 for normal findings, plus at most 1 unconditional segment-limit
@@ -69,7 +69,7 @@ capped.
 Use a pcap engineered to flood the findings queue. Run:
 
 ```bash
-wirerust analyze <flood-pcap> --format json | jq '.findings | length'
+wirerust analyze <flood-pcap> --output-format json | jq '.findings | length'
 ```
 
 Verify the output is at most 10001. Verify the `dropped_findings` field in the

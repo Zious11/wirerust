@@ -49,7 +49,7 @@ same offsets, hoping one IDS sees the first and another sees the second.
    bytes spelling "AAAA..." and a second segment at byte offset 100-149 (same
    range, same direction) carries different bytes spelling "BBBB...". Both
    segments appear in the capture.
-2. The user runs: `wirerust analyze <spliced-pcap> --format json`
+2. The user runs: `wirerust analyze <spliced-pcap> --output-format json`
 3. The tool emits at least one finding with category "Anomaly", verdict "Likely",
    confidence "High", and a MITRE technique reference to T1036.
 4. The summary of the finding contains the flow key (source/destination IP and
@@ -76,7 +76,7 @@ exercise TCP evasion). The key property: same flow key, same direction, same
 byte range, different bytes.
 
 ```bash
-wirerust analyze <evasion-pcap> --format json
+wirerust analyze <evasion-pcap> --output-format json
 ```
 
 In the JSON findings array, verify:

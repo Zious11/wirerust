@@ -44,7 +44,7 @@ gradually drifting from the actual sum of buffered bytes across all active flows
 1. A pcap contains 20 concurrent TCP flows with interleaved traffic, some of
    which are evicted by the memory cap, some closed by RST, some by FIN, and
    some timed out at end-of-capture.
-2. The user runs: `wirerust analyze <complex-flows-pcap> --format json`
+2. The user runs: `wirerust analyze <complex-flows-pcap> --output-format json`
 3. The tool completes with exit code 0.
 4. No internal consistency assertion fails (no debug-mode panic from
    `memory_used()` mismatch).
@@ -63,7 +63,7 @@ gradually drifting from the actual sum of buffered bytes across all active flows
 ## Verification Approach
 
 ```bash
-wirerust analyze <complex-flows-pcap> --format json
+wirerust analyze <complex-flows-pcap> --output-format json
 ```
 
 The main observable here is that the tool completes without panic. In debug

@@ -54,7 +54,7 @@ these flows by their content, not by their port numbers.
 3. **Unknown content, unknown port:** A third pcap contains a flow on port 9999
    with binary content that is neither TLS nor HTTP. The tool must not crash;
    it should note the flow as unclassified.
-4. The user runs: `wirerust analyze <port-mismatch-pcap> --format json`
+4. The user runs: `wirerust analyze <port-mismatch-pcap> --output-format json`
 5. The tool completes with exit code 0 in all cases.
 
 ## Behavioral Contract Linkage
@@ -71,9 +71,9 @@ these flows by their content, not by their port numbers.
 Three pcap runs:
 
 ```bash
-wirerust analyze <tls-on-80.pcap> --format json
-wirerust analyze <http-on-443.pcap> --format json
-wirerust analyze <unknown-port-9999.pcap> --format json
+wirerust analyze <tls-on-80.pcap> --output-format json
+wirerust analyze <http-on-443.pcap> --output-format json
+wirerust analyze <unknown-port-9999.pcap> --output-format json
 ```
 
 For TLS on port 80: verify TLS-level findings or JA3 fingerprints appear

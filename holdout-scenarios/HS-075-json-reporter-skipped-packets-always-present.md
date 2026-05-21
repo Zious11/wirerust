@@ -33,7 +33,7 @@ risk_source: null
 
 ## Scenario
 
-1. An analyst runs wirerust with `--format json` on a small pcap containing only a few clean HTTP requests — no malformed packets, no skipped packets.
+1. An analyst runs wirerust with `--output-format json` on a small pcap containing only a few clean HTTP requests — no malformed packets, no skipped packets.
 2. The resulting JSON output is piped through `jq .summary.skipped_packets` by a downstream script.
 3. The jq command must return `0` (the integer zero) — not `null`, not an error, and not nothing (empty output).
 4. Additionally, the same downstream script queries `jq '.findings | length'` to get the finding count, and `jq '.analyzers | map(.analyzer_name) | sort'` to get a sorted list of analyzer names. All three queries must succeed without error.
@@ -50,13 +50,13 @@ risk_source: null
 
 Run wirerust on a minimal but valid pcap (e.g., a single HTTP request-response pair). Apply JSON output format.
 
-1. Run: `wirerust analyze --format json <pcap> | jq .summary.skipped_packets`
+1. Run: `wirerust analyze --output-format json <pcap> | jq .summary.skipped_packets`
    Assert output is `0` (integer zero, not null, not empty).
-2. Run: `wirerust analyze --format json <pcap> | jq '.findings | length'`
+2. Run: `wirerust analyze --output-format json <pcap> | jq '.findings | length'`
    Assert output is a non-negative integer.
-3. Run: `wirerust analyze --format json <pcap> | python3 -m json.tool > /dev/null`
+3. Run: `wirerust analyze --output-format json <pcap> | python3 -m json.tool > /dev/null`
    Assert exit code is 0 (valid JSON).
-4. Run: `wirerust analyze --format json <pcap> | jq 'keys'`
+4. Run: `wirerust analyze --output-format json <pcap> | jq 'keys'`
    Assert output is `["analyzers","findings","summary"]` (exactly 3 keys).
 5. Assert output is pretty-printed (contains newlines and indentation, not a single line).
 

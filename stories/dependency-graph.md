@@ -6,8 +6,8 @@ producer: story-writer
 phase: 2
 timestamp: 2026-05-21T00:00:00Z
 total_stories: 48
-total_edges: 78
-intra_epic_edges: 64
+total_edges: 77
+intra_epic_edges: 63
 cross_epic_edges: 14
 number_of_waves: 27
 acyclic: true
@@ -33,8 +33,8 @@ traces_to:
 | Metric | Value |
 |--------|-------|
 | Total stories | 48 |
-| Total dependency edges | 78 |
-| Intra-epic edges | 64 |
+| Total dependency edges | 77 |
+| Intra-epic edges | 63 |
 | Cross-epic edges | 14 |
 | Number of parallel waves | 27 |
 | Graph is acyclic | Yes (Kahn topological sort verified) |
@@ -65,7 +65,7 @@ Dependencies in this graph respect the layer rules from
 
 ## Dependencies (Edge List)
 
-### Intra-Epic Edges (64 edges)
+### Intra-Epic Edges (63 edges)
 
 #### Epic E-1: PCAP Ingestion and Packet Decoding
 
@@ -83,7 +83,6 @@ Dependencies in this graph respect the layer rules from
 | From | To | Justification |
 |------|----|---------------|
 | STORY-011 | STORY-012 | STORY-012 segment insertion builds on `TcpFlow` + `FlowKey` defined in STORY-011 |
-| STORY-011 | STORY-013 | STORY-013 flush logic requires both `TcpFlow` (STORY-011) and `SegmentBuffer` (STORY-012) |
 | STORY-012 | STORY-013 | STORY-013 flush logic builds on `insert_segment` + `BTreeMap` buffer from STORY-012 |
 | STORY-013 | STORY-014 | STORY-014 overlap detection requires `flush_contiguous` from STORY-013 |
 | STORY-013 | STORY-015 | STORY-015 lifecycle (RST/FIN) also depends on `flush_contiguous` from STORY-013 (confirmed in STORY-015 `depends_on` frontmatter) |

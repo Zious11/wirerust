@@ -49,7 +49,7 @@ flows without memory exhaustion.
 1. A pcap contains a single TCP flow that transfers 100 MB of data on one
    direction, but the tool is configured with a `max_depth` of 10 MB
    (per direction).
-2. The user runs: `wirerust analyze <deep-flow-pcap> --format json`
+2. The user runs: `wirerust analyze <deep-flow-pcap> --output-format json`
 3. The tool completes with exit code 0. It does NOT run out of memory or
    slow to a crawl.
 4. The JSON output contains a finding with category "Anomaly" and evidence
@@ -74,7 +74,7 @@ a traffic generation tool). The key check is that the tool terminates and
 does not OOM:
 
 ```bash
-wirerust analyze <large-flow-pcap> --format json
+wirerust analyze <large-flow-pcap> --output-format json
 ```
 
 Verify:

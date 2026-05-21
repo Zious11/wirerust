@@ -48,7 +48,7 @@ even if later TLS bytes arrive.
    data (no match), followed by a chunk starting with `GET /api HTTP/1.1`.
    The flow continues with more data including some bytes that happen to
    start with `0x16 0x03` (which look like TLS).
-2. The user runs: `wirerust analyze <late-classify-pcap> --format json`
+2. The user runs: `wirerust analyze <late-classify-pcap> --output-format json`
 3. The tool correctly classifies the flow as HTTP when the GET request arrives
    (within the retry budget).
 4. After HTTP classification, the flow stays classified as HTTP — later TLS-like
@@ -68,7 +68,7 @@ even if later TLS bytes arrive.
 ## Verification Approach
 
 ```bash
-wirerust analyze <late-classify-pcap> --format json
+wirerust analyze <late-classify-pcap> --output-format json
 ```
 
 Verify:

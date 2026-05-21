@@ -21,7 +21,7 @@ input-hash: ""
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-069, STORY-070]
-blocks: []
+blocks: [STORY-041, STORY-051, STORY-076]
 behavioral_contracts:
   - BC-2.10.001
   - BC-2.10.002

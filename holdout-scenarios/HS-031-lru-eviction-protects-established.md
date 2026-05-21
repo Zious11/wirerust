@@ -49,7 +49,7 @@ configured `max_flows` limit.
 1. A pcap contains: 100 half-open connections (SYN sent, no SYN-ACK) and
    10 fully established connections actively transferring data. The reassembler
    is configured with `max_flows = 50`.
-2. The user runs: `wirerust analyze <mixed-flows-pcap> --format json`
+2. The user runs: `wirerust analyze <mixed-flows-pcap> --output-format json`
 3. The tool completes with exit code 0.
 4. The established flows are preferentially preserved; the half-open SYN-only
    flows are evicted first when the limit is hit.
@@ -70,7 +70,7 @@ configured `max_flows` limit.
 Run the tool against a crafted pcap with mixed half-open and established flows:
 
 ```bash
-wirerust analyze <mixed-flows-pcap> --format json
+wirerust analyze <mixed-flows-pcap> --output-format json
 ```
 
 Verify:

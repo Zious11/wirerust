@@ -160,7 +160,7 @@ Reassembly anomaly findings in `reassembly/mod.rs` (overlap, small-segment, out-
 
 | Rule | Source | Enforcement |
 |------|--------|-------------|
-| `escape_for_terminal` has exactly ONE call site: inside `TerminalReporter` | BC-2.09.005 invariant 1 | `grep -rn 'escape_for_terminal' src/ | grep -v reporter` must return nothing |
+| `escape_for_terminal` has exactly ONE call site: inside `TerminalReporter` (cross-ref: BC-2.09.005 invariant 1 — owned by STORY-070) | BC-2.09.002 invariant 2 (display boundary) | `grep -rn 'escape_for_terminal' src/ | grep -v reporter` must return nothing |
 | `timestamp` field is always `None` at all 22 emission sites | BC-2.09.001 invariant 1 | Grep-based test: no `timestamp: Some` in production source |
 | Display uses `{self:?}` (Debug) for `ThreatCategory`, not Display | BC-2.09.002 invariant 2 | Format string contains `{cat:?}` not `{cat}` |
 | `#[non_exhaustive]` is NOT required on `Verdict` or `Confidence` (only `MitreTactic` is non_exhaustive) | BC-2.09.003 invariant 2 / BC-2.09.004 invariant 2 | Code review |

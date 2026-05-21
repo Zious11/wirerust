@@ -41,7 +41,7 @@ HTTP nor TLS analysis is enabled (perhaps to generate only statistics about
 flows, not protocol-level findings). The dispatcher should skip all classification
 and content inspection entirely when no analyzers are configured.
 
-1. The user runs: `wirerust analyze <any-pcap> --format json` with flags that
+1. The user runs: `wirerust analyze <any-pcap> --output-format json` with flags that
    disable all protocol analyzers (or wirerust is built with a configuration
    that omits analyzers).
 2. The tool completes with exit code 0.
@@ -62,7 +62,7 @@ and content inspection entirely when no analyzers are configured.
 ## Verification Approach
 
 ```bash
-wirerust analyze <any-pcap> --format json  # (no-analyzer build or mode)
+wirerust analyze <any-pcap> --output-format json  # (no-analyzer build or mode)
 ```
 
 Verify:

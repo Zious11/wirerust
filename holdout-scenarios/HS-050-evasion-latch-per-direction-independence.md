@@ -51,7 +51,7 @@ direction's latch suppressing the other.
      alert should fire for this direction when threshold crossed).
    - Server-to-client direction: 50 segments beyond the receive window (OOW alert
      should fire for this direction when threshold crossed).
-2. The user runs: `wirerust analyze <bidirectional-anomaly-pcap> --format json`
+2. The user runs: `wirerust analyze <bidirectional-anomaly-pcap> --output-format json`
 3. The tool emits:
    - Exactly one small-segment alert (one Anomaly/Inconclusive/Medium finding)
      for the client-to-server direction.
@@ -74,7 +74,7 @@ direction's latch suppressing the other.
 ## Verification Approach
 
 ```bash
-wirerust analyze <bidirectional-anomaly-pcap> --format json
+wirerust analyze <bidirectional-anomaly-pcap> --output-format json
 ```
 
 Inspect findings:

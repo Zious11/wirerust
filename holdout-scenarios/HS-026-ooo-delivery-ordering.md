@@ -70,7 +70,7 @@ last. The tool is run against this pcap.
 Craft or use a pcap with a three-segment out-of-order TCP flow. Run:
 
 ```bash
-wirerust analyze <ooo-pcap> --format json
+wirerust analyze <ooo-pcap> --output-format json
 ```
 
 Confirm the exit code is 0. If a debugging hook is available (or via

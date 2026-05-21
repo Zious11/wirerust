@@ -45,7 +45,7 @@ The pcap contains segments on both sides of this wrap boundary.
    flow transfers data across the wraparound point: some segments have sequence
    numbers near `4294967295` and subsequent segments have sequence numbers
    near `0`, `1`, `2`, etc.
-2. The user runs: `wirerust analyze <wraparound-pcap> --format json`
+2. The user runs: `wirerust analyze <wraparound-pcap> --output-format json`
 3. The tool completes with exit code 0. The reassembled byte stream is
    contiguous and correctly ordered — bytes from the high-sequence segments
    come before bytes from the low-sequence (wrapped) segments.
@@ -64,7 +64,7 @@ The pcap contains segments on both sides of this wrap boundary.
 Use a crafted or real-world pcap where TCP sequence numbers wrap. Run:
 
 ```bash
-wirerust analyze <wraparound-pcap> --format json
+wirerust analyze <wraparound-pcap> --output-format json
 ```
 
 Verify:

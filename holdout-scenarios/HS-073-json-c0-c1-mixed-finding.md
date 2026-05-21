@@ -34,7 +34,7 @@ risk_source: null
 ## Scenario
 
 1. A TLS analyzer emits a finding for a ClientHello whose SNI contains both a C0 control byte (ESC, 0x1B) and a C1 control byte (U+009B, encoded as UTF-8 bytes 0xC2 0x9B). The finding summary is a string containing both characters.
-2. The analyst runs wirerust with `--format json` on a pcap containing this ClientHello.
+2. The analyst runs wirerust with `--output-format json` on a pcap containing this ClientHello.
 3. The JSON output's `findings` array contains the anomaly finding.
 4. In the raw JSON bytes of the finding's `summary` field:
    - The ESC byte (0x1B, a C0 byte) appears as the six-character escape sequence `` (backslash-u-0-0-1-b), conforming to RFC 8259.

@@ -48,7 +48,7 @@ and contribute to protocol-level analysis.
    - Client-to-server direction: 50 MB of file upload data (far exceeding `max_depth`
      of, say, 10 MB).
    - Server-to-client direction: 100 small 200-byte HTTP response headers.
-2. The user runs: `wirerust analyze <asymmetric-upload-pcap> --format json`
+2. The user runs: `wirerust analyze <asymmetric-upload-pcap> --output-format json`
 3. The tool completes with exit code 0.
 4. A truncation finding is emitted for the client-to-server direction.
 5. The server-to-client HTTP response headers are still analyzed normally —
@@ -65,7 +65,7 @@ and contribute to protocol-level analysis.
 ## Verification Approach
 
 ```bash
-wirerust analyze <asymmetric-upload-pcap> --format json
+wirerust analyze <asymmetric-upload-pcap> --output-format json
 ```
 
 Verify:

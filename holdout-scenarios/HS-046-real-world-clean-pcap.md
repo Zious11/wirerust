@@ -62,7 +62,7 @@ This corpus is:
 
 ### Scenario Steps
 
-1. The user runs: `wirerust analyze <wireshark-sample-pcap> --format json`
+1. The user runs: `wirerust analyze <wireshark-sample-pcap> --output-format json`
 2. The tool completes with exit code 0.
 3. The JSON output contains HTTP-level findings and statistics (requests
    counted, methods seen, status codes).
@@ -81,7 +81,7 @@ This corpus is:
 ## Verification Approach
 
 ```bash
-wirerust analyze ~/sample.pcap --format json > output.json
+wirerust analyze ~/sample.pcap --output-format json > output.json
 cat output.json | jq '.findings | map(select(.mitre_technique == "T1036")) | length'
 ```
 

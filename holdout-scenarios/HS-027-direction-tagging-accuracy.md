@@ -42,7 +42,7 @@ this pcap and the HTTP analyzer is active.
 
 1. The pcap contains a complete TCP handshake followed by an HTTP request from
    the client (SYN initiator) and an HTTP response from the server.
-2. The user runs: `wirerust analyze <bidirectional-pcap> --format json`
+2. The user runs: `wirerust analyze <bidirectional-pcap> --output-format json`
 3. The tool's internal reassembly correctly labels the HTTP request bytes as
    coming from the client direction and the HTTP response bytes as coming from
    the server direction.
@@ -65,7 +65,7 @@ this pcap and the HTTP analyzer is active.
 Use a real or synthetic pcap with a valid HTTP exchange. Run:
 
 ```bash
-wirerust analyze <http-pcap> --format json
+wirerust analyze <http-pcap> --output-format json
 ```
 
 Inspect the JSON output for HTTP statistics or findings. Verify:
@@ -73,7 +73,7 @@ Inspect the JSON output for HTTP statistics or findings. Verify:
 - The HTTP status code was observed — it comes from server direction.
 - No directionality inversion is evident (e.g., status code appearing before method).
 
-For a stronger check: run with `--format json` and verify JSON fields that
+For a stronger check: run with `--output-format json` and verify JSON fields that
 indicate request/response detection are both populated correctly.
 
 ## Evaluation Rubric

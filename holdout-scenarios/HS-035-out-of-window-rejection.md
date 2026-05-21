@@ -46,7 +46,7 @@ an anomaly finding.
 1. A pcap contains a TCP flow where one side sends 50 segments with sequence
    numbers that place them beyond the current receive window. These segments
    arrive sequentially, not as retransmissions.
-2. The user runs: `wirerust analyze <oow-pcap> --format json`
+2. The user runs: `wirerust analyze <oow-pcap> --output-format json`
 3. The tool completes with exit code 0.
 4. The JSON output contains an anomaly finding for excessive out-of-window
    segments. The finding's evidence mentions the `max_receive_window` value.
@@ -65,7 +65,7 @@ an anomaly finding.
 ## Verification Approach
 
 ```bash
-wirerust analyze <oow-pcap> --format json
+wirerust analyze <oow-pcap> --output-format json
 ```
 
 Inspect JSON findings:

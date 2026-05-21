@@ -47,7 +47,7 @@ were detected. The tool should report an accurate count of such flows.
    - 2 flows with valid HTTP traffic (correctly classified and analyzed)
    - 2 flows with valid TLS traffic (correctly classified and analyzed)
    - 1 flow on port 8888 with MQTT-like binary content (not TLS, not HTTP)
-2. The user runs: `wirerust analyze <mixed-pcap> --format json`
+2. The user runs: `wirerust analyze <mixed-pcap> --output-format json`
 3. The JSON output's statistics show `unclassified_flows: 1`.
 4. The 4 classified flows receive full HTTP/TLS analysis.
 5. The MQTT flow does not crash the tool and is silently counted as unclassified.
@@ -64,7 +64,7 @@ were detected. The tool should report an accurate count of such flows.
 ## Verification Approach
 
 ```bash
-wirerust analyze <mixed-pcap> --format json
+wirerust analyze <mixed-pcap> --output-format json
 ```
 
 Inspect the JSON output:

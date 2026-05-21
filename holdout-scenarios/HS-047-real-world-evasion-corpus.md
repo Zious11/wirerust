@@ -60,7 +60,7 @@ segment interleaving, etc.).
 
 ### Scenario Steps
 
-1. The user runs: `wirerust analyze <evasion-corpus-pcap> --format json`
+1. The user runs: `wirerust analyze <evasion-corpus-pcap> --output-format json`
 2. The tool completes with exit code 0.
 3. The JSON findings array contains at least one finding with `mitre_technique == "T1036"`.
 4. No crash, panic, or memory exhaustion occurs even for adversarial inputs.
@@ -78,7 +78,7 @@ segment interleaving, etc.).
 ## Verification Approach
 
 ```bash
-wirerust analyze <evasion-pcap> --format json > evasion_output.json
+wirerust analyze <evasion-pcap> --output-format json > evasion_output.json
 cat evasion_output.json | jq '.findings | map(select(.mitre_technique == "T1036")) | length'
 ```
 

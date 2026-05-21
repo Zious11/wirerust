@@ -37,7 +37,7 @@ risk_source: null
 ## Scenario
 
 1. A pcap contains mixed HTTP and TLS traffic, including an HTTP request with an ESC byte (0x1B) in a URI, and a TLS ClientHello with a Cyrillic SNI hostname.
-2. The analyst runs wirerust with `--format json` on this pcap.
+2. The analyst runs wirerust with `--output-format json` on this pcap.
 3. The output is a pretty-printed JSON document (indented, one key per line).
 4. The analyst parses the JSON and verifies:
    - Exactly 3 top-level keys: `"summary"`, `"findings"`, `"analyzers"`.

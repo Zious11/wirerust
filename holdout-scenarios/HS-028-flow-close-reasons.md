@@ -54,7 +54,7 @@ a FIN packet also carrying a payload.
    The FIN payload SHOULD be delivered to the protocol analyzer before the
    flow is considered closed. The close event fires after the payload delivery.
 
-3. The user runs: `wirerust analyze <rst-and-fin-pcap> --format json`
+3. The user runs: `wirerust analyze <rst-and-fin-pcap> --output-format json`
 
 4. The tool completes with exit code 0. The output reflects the differing
    semantics: RST truncates immediately (payload lost), FIN includes the
@@ -74,8 +74,8 @@ Run against a pcap with RST and FIN flows. Alternatively, construct two small
 synthetic pcaps and run the tool on each:
 
 ```bash
-wirerust analyze <rst-payload-pcap> --format json
-wirerust analyze <fin-payload-pcap> --format json
+wirerust analyze <rst-payload-pcap> --output-format json
+wirerust analyze <fin-payload-pcap> --output-format json
 ```
 
 For the RST pcap: verify the `bytes_reassembled` count does NOT include the

@@ -49,7 +49,7 @@ segment-count cap and signal when this protection triggers.
    segments with large gaps between them — each segment arrives in-order but
    is spaced 1,000 bytes apart. This maximizes BTreeMap entries without triggering
    depth truncation.
-2. The user runs: `wirerust analyze <many-gaps-pcap> --format json`
+2. The user runs: `wirerust analyze <many-gaps-pcap> --output-format json`
 3. The tool completes with exit code 0 and reasonable memory usage.
 4. After the `max_segments_per_direction` limit is hit, further non-contiguous
    segments are dropped and counted in `segments_segment_limit`.
@@ -67,7 +67,7 @@ segment-count cap and signal when this protection triggers.
 ## Verification Approach
 
 ```bash
-wirerust analyze <many-gaps-pcap> --format json
+wirerust analyze <many-gaps-pcap> --output-format json
 ```
 
 Verify:

@@ -48,7 +48,7 @@ from long-lived stale sessions.
    - Flow B: exchanges data at t=0, then goes completely silent until t=3600
      seconds (1 hour). The tool's `flow_timeout_secs` is configured to 300
      seconds (5 minutes).
-2. The user runs: `wirerust analyze <idle-flow-pcap> --format json`
+2. The user runs: `wirerust analyze <idle-flow-pcap> --output-format json`
 3. The tool completes with exit code 0.
 4. Flow B is expired at some point during the 1-hour gap (when the next packet
    from any flow arrives after 300 seconds of silence for flow B).
@@ -67,7 +67,7 @@ from long-lived stale sessions.
 ## Verification Approach
 
 ```bash
-wirerust analyze <idle-flow-pcap> --format json
+wirerust analyze <idle-flow-pcap> --output-format json
 ```
 
 Verify:

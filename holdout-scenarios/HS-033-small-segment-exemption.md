@@ -44,7 +44,7 @@ simply because they use many small segments.
 1. A pcap contains a long Telnet session on port 23 where 500 consecutive
    1-byte TCP segments are exchanged (every keystroke is its own segment —
    normal Telnet behavior).
-2. The user runs: `wirerust analyze <telnet-pcap> --format json`
+2. The user runs: `wirerust analyze <telnet-pcap> --output-format json`
 3. The tool completes with exit code 0. No small-segment anomaly finding is
    emitted for the Telnet flow.
 4. A second pcap contains a suspicious flow on a non-exempt port (e.g., port
@@ -61,8 +61,8 @@ simply because they use many small segments.
 ## Verification Approach
 
 ```bash
-wirerust analyze <telnet-pcap> --format json   # Should: no small-segment finding
-wirerust analyze <port8080-small-pcap> --format json  # Should: small-segment anomaly finding
+wirerust analyze <telnet-pcap> --output-format json   # Should: no small-segment finding
+wirerust analyze <port8080-small-pcap> --output-format json  # Should: small-segment anomaly finding
 ```
 
 For the Telnet pcap: scan the JSON findings for any finding whose summary

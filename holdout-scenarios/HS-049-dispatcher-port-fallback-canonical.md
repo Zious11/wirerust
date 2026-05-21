@@ -44,7 +44,7 @@ port 443 from the canonically-ordered port pair, not just from the destination p
 1. A pcap contains a flow from `192.168.1.100:54321` to `10.0.0.1:443`. The first
    data chunk is a single byte (insufficient for TLS content check), and the byte
    is not an HTTP method prefix.
-2. The user runs: `wirerust analyze <short-first-chunk-pcap> --format json`
+2. The user runs: `wirerust analyze <short-first-chunk-pcap> --output-format json`
 3. Port fallback fires: `lower_port() = 443` is in the TLS port list, so the flow
    is classified as TLS.
 4. Subsequent chunks (the full TLS ClientHello) are forwarded to the TLS analyzer.
@@ -60,7 +60,7 @@ port 443 from the canonically-ordered port pair, not just from the destination p
 ## Verification Approach
 
 ```bash
-wirerust analyze <short-first-chunk-443.pcap> --format json
+wirerust analyze <short-first-chunk-443.pcap> --output-format json
 ```
 
 Verify:

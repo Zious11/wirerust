@@ -48,7 +48,7 @@ in production networks and should not be flagged as an attack.
 1. A pcap contains a legitimate TCP flow with 5 duplicate retransmissions
    (identical bytes at identical offsets, which is normal TCP behavior under
    packet loss conditions).
-2. The user runs: `wirerust analyze <retransmit-pcap> --format json`
+2. The user runs: `wirerust analyze <retransmit-pcap> --output-format json`
 3. The tool completes with exit code 0. No anomaly findings with MITRE T1036
    are emitted for the duplicate retransmissions.
 4. The `bytes_reassembled` statistic reflects the actual data bytes, not
@@ -71,7 +71,7 @@ or from a known-good repository (e.g., Wireshark sample captures) that
 contains TCP retransmissions:
 
 ```bash
-wirerust analyze <production-retransmit-pcap> --format json
+wirerust analyze <production-retransmit-pcap> --output-format json
 ```
 
 Inspect the JSON output:

@@ -43,7 +43,7 @@ data to the protocol analyzers and producing a clean, complete output.
 1. A pcap contains 5 TCP flows that transfer data but have no RST or FIN at
    the end — the capture ended before the connections closed naturally. The
    flows have residual bytes buffered in the reassembly engine.
-2. The user runs: `wirerust analyze <open-flows-pcap> --format json`
+2. The user runs: `wirerust analyze <open-flows-pcap> --output-format json`
 3. The tool completes with exit code 0.
 4. All 5 flows' data is delivered to the protocol analyzers before the output
    is produced — there are no "phantom" bytes that get silently dropped.
@@ -62,7 +62,7 @@ data to the protocol analyzers and producing a clean, complete output.
 ## Verification Approach
 
 ```bash
-wirerust analyze <open-flows-pcap> --format json
+wirerust analyze <open-flows-pcap> --output-format json
 ```
 
 Verify:
