@@ -94,6 +94,10 @@ Passing a valid Ethernet ARP frame (EtherType 0x0806, no IP layer) with `datalin
 The "No IP layer found" error fires on the strict-parse path when `slice.net` is `None`, and on the lax-parse path after a length-error retry if `lax.net` is also `None`. Lax retry is not attempted for structurally absent IP layers (non-length errors).
 - **Test:** `test_BC_2_02_009_lax_path_also_rejects_no_ip()`
 
+### AC-011 (traces to BC-2.02.007 postcondition 1; implements VP-008)
+A cargo-fuzz harness targeting `decode_packet` MUST exist at `fuzz/fuzz_targets/fuzz_decode_packet.rs` and MUST compile without errors (`cargo +nightly fuzz build fuzz_decode_packet` succeeds). The harness passes arbitrary byte slices to `decode_packet` with each supported `DataLink` variant and asserts that no call panics. VP-008 ("decode_packet Never Panics on Arbitrary Input") is a P0 verification property; this harness is its mandatory implementation vehicle.
+- **Test:** `test_VP_008_fuzz_harness_exists()` (compile-check: verify `fuzz/fuzz_targets/fuzz_decode_packet.rs` is present and non-empty)
+
 ## Architecture Mapping
 
 | Component | Module | Pure/Effectful |
@@ -135,14 +139,14 @@ The "No IP layer found" error fires on the strict-parse path when `slice.net` is
 
 ## Tasks (MANDATORY)
 
-1. [ ] Write failing tests for AC-001 through AC-010 (test-writer)
+1. [ ] Write failing tests for AC-001 through AC-011 (test-writer)
 2. [ ] Verify all tests fail at Red Gate
 3. [ ] Verify `src/decoder.rs` already satisfies all ACs (brownfield confirm)
 4. [ ] Confirm `SLL_HEADER_LEN = 16` constant at decoder.rs:119-121
 5. [ ] Confirm lax retry logic is triggered only for `SliceError::Len` (not structural errors)
 6. [ ] Confirm `decode_packet` has no `unwrap()` or `panic!` calls
 7. [ ] Run `cargo test --all-targets` to confirm green
-8. [ ] Consider fuzz target to confirm no panic on arbitrary LINUX_SLL frames
+8. [ ] MANDATORY: Create cargo-fuzz harness at `fuzz/fuzz_targets/fuzz_decode_packet.rs` implementing VP-008; harness must pass arbitrary bytes to `decode_packet` with each supported `DataLink` and assert no panic. Run `cargo +nightly fuzz build fuzz_decode_packet` to confirm compilation. This is a P0 obligation — do not skip.
 
 ## Previous Story Intelligence (MANDATORY)
 

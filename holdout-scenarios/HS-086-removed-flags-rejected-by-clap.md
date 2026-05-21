@@ -6,9 +6,14 @@ status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
-inputs: [stories/, behavioral-contracts/, prd.md]
+inputs:
+  - .factory/stories/STORY-096.md
+  - .factory/specs/behavioral-contracts/ss-13/BC-2.13.001.md
+  - .factory/specs/behavioral-contracts/ss-13/BC-2.13.002.md
+  - .factory/specs/behavioral-contracts/ss-13/BC-2.13.003.md
+  - .factory/specs/behavioral-contracts/ss-13/BC-2.13.004.md
 input-hash: "[md5-pending]"
-traces_to: ""
+traces_to: .factory/stories/STORY-096.md
 id: "HS-086"
 category: "behavioral-subtleties"
 must_pass: "true"

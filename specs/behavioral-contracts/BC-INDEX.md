@@ -329,7 +329,7 @@ traces_to: .factory/specs/prd.md
 | BC-SUM-001..004 | 4 | BC-2.12.018..021 |
 | BC-ABS-001..010 | 10 | BC-2.13.001..004 (6 ABS retired by remediation cycle) |
 
-**Total ingestion BCs mapped: 218 / 218 (plus 5 post-ingestion pass-4 additions = 223 total rows; 217 active = 218 ingested - 6 retired (BC-ABS-004..009) + 5 pass-4 additions)**
+**Total ingestion BCs mapped: 218 / 218. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217 active BCs. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) but the active BC count is 217.**
 
 Note: BC-ABS-004 (--hosts unwired), BC-ABS-005 (--services unwired), BC-ABS-006 (--json
 file unwired), BC-ABS-007 (CSV unwired), BC-ABS-009 (no e2e CLI tests) are RETIRED --

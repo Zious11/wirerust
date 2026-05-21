@@ -6,9 +6,22 @@ status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
-inputs: [stories/, behavioral-contracts/, prd.md]
+inputs:
+  - .factory/stories/STORY-051.md
+  - .factory/stories/STORY-052.md
+  - .factory/stories/STORY-053.md
+  - .factory/stories/STORY-054.md
+  - .factory/stories/STORY-055.md
+  - .factory/stories/STORY-056.md
+  - .factory/stories/STORY-057.md
+  - .factory/stories/STORY-058.md
+  - .factory/specs/behavioral-contracts/ss-07/BC-2.07.017.md
+  - .factory/specs/behavioral-contracts/ss-07/BC-2.07.019.md
+  - .factory/specs/behavioral-contracts/ss-07/BC-2.07.020.md
+  - .factory/specs/behavioral-contracts/ss-07/BC-2.07.021.md
+  - .factory/specs/behavioral-contracts/ss-07/BC-2.07.037.md
 input-hash: "[md5-pending]"
-traces_to: ".factory/specs/prd.md"
+traces_to: .factory/stories/STORY-051.md
 id: "HS-057"
 category: "security-probes"
 must_pass: "true"

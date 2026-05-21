@@ -6,9 +6,17 @@ status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
-inputs: [stories/, behavioral-contracts/, prd.md]
+inputs:
+  - .factory/stories/STORY-086.md
+  - .factory/stories/STORY-087.md
+  - .factory/stories/STORY-088.md
+  - .factory/stories/STORY-089.md
+  - .factory/stories/STORY-090.md
+  - .factory/specs/behavioral-contracts/ss-12/BC-2.12.004.md
+  - .factory/specs/behavioral-contracts/ss-12/BC-2.12.005.md
+  - .factory/specs/behavioral-contracts/ss-12/BC-2.12.007.md
 input-hash: "[md5-pending]"
-traces_to: ""
+traces_to: .factory/stories/STORY-086.md
 id: "HS-085"
 category: "edge-case-combinations"
 must_pass: "true"

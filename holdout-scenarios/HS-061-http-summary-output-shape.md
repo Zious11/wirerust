@@ -6,9 +6,16 @@ status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
-inputs: [stories/, behavioral-contracts/, prd.md]
+inputs:
+  - .factory/stories/STORY-041.md
+  - .factory/stories/STORY-042.md
+  - .factory/stories/STORY-043.md
+  - .factory/stories/STORY-044.md
+  - .factory/stories/STORY-045.md
+  - .factory/stories/STORY-046.md
+  - .factory/specs/behavioral-contracts/ss-06/BC-2.06.023.md
 input-hash: "[md5-pending]"
-traces_to: ".factory/specs/prd.md"
+traces_to: .factory/stories/STORY-041.md
 id: "HS-061"
 category: "integration-boundaries"
 must_pass: "true"

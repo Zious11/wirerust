@@ -29,11 +29,11 @@ wave: 24
 target_module: cli
 subsystems: [SS-13]
 estimated_days: 1
-tdd_mode: strict
+tdd_mode: facade
 implementation_strategy: brownfield-formalization
 ---
 
-> **tdd_mode:** strict — full TDD Iron Law enforced.
+> **tdd_mode:** facade — combined scaffold+impl delivery. This story proves ABSENCE of declared flags; there is no implementation to stub and no genuine red-state phase. Mutation testing at wave gate is the quality gate in place of the Red Gate density check.
 
 > **Execute:** `/vsdd-factory:deliver-story STORY-096`
 
@@ -132,8 +132,8 @@ A valid invocation without any removed flag (e.g., `wirerust analyze test.pcap`)
 
 ## Tasks (MANDATORY)
 
-1. [ ] Write failing tests for AC-001 through AC-010 (test-writer)
-2. [ ] Verify Red Gate: all tests fail (they currently pass because the flags are indeed absent — so the test-writer must write assertions that CONFIRM absence and rejection; the Red Gate is established by writing the assertion as a `todo!()` stub first)
+1. [ ] Write tests for AC-001 through AC-010 (test-writer; facade mode — scaffold and assertions delivered together)
+2. [ ] Confirm absence baseline: run `cargo test --all-targets` before writing new tests to establish that the four flags are already absent and `try_parse_from` already rejects them; document the baseline green state as proof of absence (no `todo!()` stubs — absence is proved by assertion, not by stubbing a missing implementation)
 3. [ ] Verify `--threats` is absent from `src/cli.rs` (no declaration)
 4. [ ] Verify `--beacon` is absent (no `C2BeaconAnalyzer` or related struct)
 5. [ ] Verify `--filter` is absent (no BPF library in `Cargo.toml`)

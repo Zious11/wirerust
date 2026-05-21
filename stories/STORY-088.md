@@ -69,8 +69,8 @@ When `Commands::Analyze` has `all = true`, `run_analyze` computes `enable_dns = 
 `--mitre` is NOT included in the `--all` expansion; when `all = true` and `mitre = false`, mitre-grouped rendering is not activated.
 - **Test:** `test_all_does_not_imply_mitre()`
 
-### AC-003 (traces to BC-2.12.009 postcondition 1)
-`needs_reassembly = cli.reassemble || enable_http || enable_tls` is computed correctly before reassembler construction.
+### AC-003 (traces to BC-2.12.009 postcondition 1; contributes to VP-018)
+`needs_reassembly = cli.reassemble || enable_http || enable_tls` is computed correctly before reassembler construction. This is the `needs_reassembly` half of the CLI reassemble/no-reassemble mutual-exclusion property (VP-018): BC-2.12.007 governs the parse-time conflict; BC-2.12.009 governs the runtime override behavior. STORY-088 owns the runtime half.
 - **Test:** `test_needs_reassembly_formula()`
 
 ### AC-004 (traces to BC-2.12.009 postcondition 5)
@@ -97,19 +97,23 @@ When `NO_COLOR` is absent and `--no-color` is also absent, `use_color = true`.
 `resolve_targets` on a directory returns a sorted `Vec<PathBuf>` of only `.pcap` files; `.pcapng`, `.txt`, and other extensions are excluded.
 - **Test:** `test_resolve_targets_directory_pcap_only_sorted()`
 
-### AC-010 (traces to BC-2.12.011 invariant 3)
+### AC-010 (traces to BC-2.12.011 invariant 1)
+`resolve_targets` on a directory excludes files with uppercase extensions such as `.PCAP`; extension matching is case-sensitive (`ext == "pcap"` verbatim, not case-folded).
+- **Test:** `test_resolve_targets_case_sensitive_extension_exclusion()`
+
+### AC-011 (traces to BC-2.12.011 invariant 3)
 Directory expansion is NOT recursive; subdirectories within the target directory are skipped.
 - **Test:** `test_resolve_targets_not_recursive()`
 
-### AC-011 (traces to BC-2.12.012 postcondition 1)
+### AC-012 (traces to BC-2.12.012 postcondition 1)
 `resolve_targets` on a non-existent path returns `Err` whose message matches `"Target not found: <path>"`.
 - **Test:** `test_resolve_targets_nonexistent_path_error()`
 
-### AC-012 (traces to BC-2.12.013 postcondition 3)
+### AC-013 (traces to BC-2.12.013 postcondition 3)
 The progress bar appears on stderr (not stdout) and is finished-and-cleared after each file's packet loop (`pb.finish_and_clear()` called).
 - **Test:** `test_progress_bar_does_not_appear_in_output()` (structural check: run_analyze output string does not contain ANSI progress bar bytes)
 
-### AC-013 (traces to BC-2.12.013 invariant 4)
+### AC-014 (traces to BC-2.12.013 invariant 4)
 `run_summary` has NO progress bar.
 - **Test:** `test_run_summary_has_no_progress_bar()`
 
@@ -126,7 +130,7 @@ The progress bar appears on stderr (not stdout) and is finished-and-cleared afte
 | ID | Scenario | Expected Behavior |
 |----|----------|-------------------|
 | EC-001 | Directory with zero `.pcap` files | `resolve_targets` returns `Ok(vec![])` |
-| EC-002 | Directory with `.PCAP` (uppercase extension) | Excluded (case-sensitive `== "pcap"`) |
+| EC-002 | Directory with `.PCAP` (uppercase extension) | Excluded (case-sensitive `== "pcap"`); promoted to AC-010 (BC-2.12.011 invariant 1) |
 | EC-003 | `--no-reassemble` without `--http`/`--tls` | No warning emitted; reassembler simply not built |
 | EC-004 | `NO_COLOR=""` (empty value) | `use_color = false` (any set value, including empty, counts) |
 | EC-005 | Two pcap files in directory: `b.pcap`, `a.pcap` | Returned in order `[a.pcap, b.pcap]` (sorted) |
@@ -146,7 +150,7 @@ The progress bar appears on stderr (not stdout) and is finished-and-cleared afte
 | This story spec | ~3,500 |
 | `src/main.rs` (run_analyze, resolve_targets) | ~8,000 |
 | `tests/cli_tests.rs` | ~3,000 |
-| BC files (6 BCs) | ~8,000 |
+| BC files (6 BCs — BC-2.12.008..013) | ~8,000 |
 | Tool outputs overhead | ~1,500 |
 | **Total** | **~24,000** |
 | Agent context window | 200K (Sonnet) |
@@ -154,10 +158,10 @@ The progress bar appears on stderr (not stdout) and is finished-and-cleared afte
 
 ## Tasks (MANDATORY)
 
-1. [ ] Write failing tests for AC-001 through AC-013 (test-writer)
+1. [ ] Write failing tests for AC-001 through AC-014 (test-writer)
 2. [ ] Verify Red Gate: all tests fail
 3. [ ] Implement `--all` OR-expansion in `run_analyze` (main.rs:57-59)
-4. [ ] Implement `needs_reassembly`/`skip_reassembly` logic with stderr warning
+4. [ ] Implement `needs_reassembly`/`skip_reassembly` logic with stderr warning (VP-018 runtime half)
 5. [ ] Implement `resolve_targets` function (directory expansion + non-existent bail)
 6. [ ] Implement `use_color` env-var check using `#[serial]` test infrastructure
 7. [ ] Implement progress bar creation and `finish_and_clear` pattern

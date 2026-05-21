@@ -614,6 +614,7 @@ STORY-076 <- STORY-066 (E-6)
 STORY-076 <- STORY-071 (E-7)
 ```
 
-Explicit `depends_on: [STORY-005, STORY-021]` edges on STORY-086 (present in its
-original frontmatter) are therefore redundant and have been superseded by the
-transitive chain through STORY-080. The dependency-graph.md is authoritative.
+STORY-086's authoritative `depends_on` is `[STORY-080]` (single cross-epic edge).
+Transitively, STORY-080 carries full coverage of E-1..E-8 as shown above.
+The dependency-graph.md is authoritative; individual story frontmatter `depends_on`
+fields are the canonical edge set.

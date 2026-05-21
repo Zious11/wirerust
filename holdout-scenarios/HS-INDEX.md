@@ -24,8 +24,9 @@ traces_to:
 >
 > Wave columns reflect which delivery waves a scenario exercises, derived from the
 > story inputs in each HS file cross-referenced against STORY-INDEX.md wave assignments.
-> For HS-051..100 (which use a generalized `inputs: [stories/]` reference), waves are
-> derived from the epic's story wave range per STORY-INDEX.md.
+> All HS files carry concrete per-file `inputs` listing the specific BC files and story
+> files they trace to; wave derivation uses those story inputs cross-referenced with
+> the wave assignments in STORY-INDEX.md.
 
 ---
 
@@ -85,6 +86,13 @@ traces_to:
 ---
 
 ## Per-Wave Coverage Table
+
+> **Note on Count column arithmetic:** The Count column intentionally counts each multi-wave
+> scenario once in every wave it spans. A scenario assigned to waves 15-18 therefore contributes
+> +1 to each of waves 15, 16, 17, and 18. As a result, the Count column total across all 27 waves
+> exceeds 100 by design — it is not an arithmetic error. The authoritative distinct-scenario total
+> is **100**, verified by the By-Epic and By-Category tables above, each of which sums to exactly
+> 100 because each scenario is counted only once.
 
 Every wave 1-27 has at least one scenario. Column shows count of scenarios covering that wave
 (scenarios spanning multiple waves are counted in each wave they cover).
@@ -287,5 +295,4 @@ None detected. All checks passed:
 - All 100 `behavioral_contracts` fields are non-empty
 - All 27 waves (1-27) have at least one scenario
 - One should-pass scenario: HS-025 (ICS Tactic Display — lower priority feature)
-- HS-051..100 use a generalized `inputs: [stories/]` reference rather than per-story
-  path references; wave derivation for these uses epic-to-wave mapping from STORY-INDEX.md
+- All 100 HS files carry concrete per-file `inputs` listing specific BC and story paths
