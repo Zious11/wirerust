@@ -76,8 +76,8 @@ produces the correct monotonically-increasing u64 offset relative to the ISN.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-015 | seq.wrapping_sub(isn) produces correct monotonic offset across u32::MAX boundary | unit: test_sequence_wraparound |
-| VP-015 | flush_contiguous delivers wrapped segments in correct byte order | unit: test_sequence_wraparound |
+| VP-015 | seq.wrapping_sub(isn) produces correct monotonic offset across u32::MAX boundary | Kani |
+| VP-015 | flush_contiguous delivers wrapped segments in correct byte order | Kani |
 
 ## Traceability
 

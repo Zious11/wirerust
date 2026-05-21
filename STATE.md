@@ -32,6 +32,9 @@ story_adversary_pass_3_findings: "6 (0C/1H/1M/2L/2N) — F-1 HIGH STORY-INDEX ep
 story_adversary_pass_4_date: "2026-05-21"
 story_adversary_pass_4_verdict: NOT_CONVERGED
 story_adversary_pass_4_findings: "15 (0C/3H/5M/4L/3N) — all 8 blocking findings (3H+5M) remediated; 4 LOWs resolved as co-remediation; 3 process-gap NITPICKs deferred. NON-MONOTONIC: pass scope expanded to BC-INDEX, HS-051..100 batch, STORY-088/096/003 internals. H-2 BC-INDEX arithmetic self-contradiction survived 33 Phase-1 passes. Pass 5 next."
+story_adversary_pass_5_date: "2026-05-21"
+story_adversary_pass_5_verdict: NOT_CONVERGED
+story_adversary_pass_5_findings: "7 (0C/1H/1M/3L/2N) — structural backbone (VP anchoring, BC traceability, dep-edges, wave compute, AC quality, HS rollups) clean. H-1 dependency-graph.md 48 Description cells mismatched to story H1 titles; M-1 HS-094 BC citation corrected to BC-2.12.005 only; L-1/L-2 STORY-INDEX title drift (STORY-054/057/002); L-3 BC-2.04.039 proof-method unit→Kani; 2 process-gap NITPICKs deferred. All blocking findings remediated. Pass 6 next."
 adversary_pass_30_date: "2026-05-20"
 adversary_pass_30_verdict: NOT_CONVERGED
 adversary_pass_30_findings: "3 (0C/0H/1M/0L/2N) — STREAK RESET 2/3→0/3. M-1 BC-2.12.020 C-16→C-17 prose; N-1 BC-2.05.006 guard-clause quote; N-2 inv-01 INV-9 citation. All 3 fixed (00f5094). Pass 31 next."
@@ -56,13 +59,10 @@ input_drift_check_date: "2026-05-21"
 ## Status
 
 **Pipeline:** PHASE_2_STORY_DECOMPOSITION — Phase 1 COMPLETE. All 4 gates PASSED; human-approved
-2026-05-21. (1) Adversarial spec-convergence gate **SATISFIED** (3/3; passes 31/32/33 CONVERGED,
-0C/0H/0M; 33 passes total; ZERO blocking defects). (2) Consistency audit **CONSISTENT** — 5
-findings (F-1 MAJOR/F-2–F-4 MINOR/F-5 NITPICK); all remediated; re-audit CONSISTENT. (3)
-Input-hash drift check **CLEAN** — 5 hashes bumped; re-scan MATCH=5/STALE=0. (4) Human approval
-**GRANTED 2026-05-21**. P8-DEFER VP back-reference back-fill **DONE** (2026-05-21): all 217 BC
-files updated; 69 BCs now cite formal VP IDs, 148 show `—`; BC versions bumped to 1.2. Pipeline
-now entering Phase 2 story decomposition.
+2026-05-21. Phase 2 Step G adversarial story-review in progress: Pass 5 NOT_CONVERGED
+(0C/1H/1M/3L/2N); structural backbone (VP anchoring, BC traceability, dep-edges, wave compute,
+AC quality, HS rollups) verified clean; all 2 blocking findings remediated; convergence counter
+0/3; Pass 6 next.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -78,7 +78,7 @@ now entering Phase 2 story decomposition.
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
-| Phase 2 — Story Decomposition | **IN PROGRESS** — Steps A–F COMPLETE; Step G adversarial Pass 4 NOT_CONVERGED (all 8 blocking findings remediated); Pass 5 next; convergence counter 0/3 | 10 epics, 217/217 BCs traced to ≥1 story, 48 stories, 77 edges, 27 waves, acyclic, 282 story points; 100 holdout scenarios; decomposition gate PASSED; story-adversary Pass 4 findings: 0C/3H/5M/4L/3N — H-1 VP-018 trace annotation, H-2 BC-INDEX arithmetic self-contradiction (survived 33 P1 passes), H-3 STORY-086 provenance, M-1 HS-051..100 concrete inputs, M-2 HS-INDEX Count column, M-3 STORY-088 AC-010, M-4 STORY-096 tdd_mode+Red-Gate, M-5 STORY-003 cargo-fuzz AC; all 8 blocking remediated; 3 NITPICKs deferred; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC — scope expansion) |
+| Phase 2 — Story Decomposition | **IN PROGRESS** — Steps A–F COMPLETE; Step G adversarial Pass 5 NOT_CONVERGED (all blocking findings remediated); Pass 6 next; convergence counter 0/3 | 10 epics, 217/217 BCs traced to ≥1 story, 48 stories, 77 edges, 27 waves, acyclic, 282 story points; 100 holdout scenarios; decomposition gate PASSED; story-adversary Pass 5 findings: 0C/1H/1M/3L/2N — structural backbone clean; H-1 dep-graph 48 Description cells title-drift; M-1 HS-094 BC cite corrected; L-1/L-2/L-3 STORY-INDEX title drift + BC-2.04.039 proof-method; all blocking remediated; 2 NITPICKs deferred; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
@@ -190,7 +190,7 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 | D. `wave-schedule` | **COMPLETE** 2026-05-21 | 27 waves; all 48 stories wave-assigned; `wave-schedule.md`, `STORY-INDEX.md` rebuilt, `sprint-state.yaml` initialized (48 entries, current_wave 1) — `cycles/v0.1.0-greenfield-spec/wave-schedule.md`, `stories/STORY-INDEX.md`, `stories/sprint-state.yaml`, `stories/STORY-*.md` |
 | E. `holdout-scenarios` | **COMPLETE** 2026-05-21 | 100 holdout scenarios HS-001–HS-100; 99 must-pass / 1 should-pass; 36 behavioral-subtleties, 19 edge-case-combinations, 18 integration-boundaries, 17 security-probes, 10 real-world-corpus; all 27 waves covered — `holdout-scenarios/` |
 | F. `decomposition-gate` | **COMPLETE** 2026-05-21 | Consistency audit found 3 blocking findings (B-1 BC matrix divergence 31/48 stories, B-2 edge-count off-by-one 64→64 fixed, B-3 stale cycle fields 37/48 stories); all 3 remediated; 2 NUL-byte sanitizations (STORY-070/076, same class as P5-PG); re-audit CONSISTENT 100/100. Gate PASSED. |
-| G. `adversarial-story-gate` | **IN PROGRESS** — Pass 4 NOT_CONVERGED (0C/3H/5M/4L/3N); all 8 blocking findings remediated; Pass 5 next | Adversarial convergence review of story decomposition + holdout scenarios; 3 consecutive clean passes required; convergence counter 0/3; 10 process-gap NITPICKs (P1:N-1/N-2/N-3, P2:N-1/N-2, P3:N-1/N-2, P4:N-1/N-2/N-3) deferred for cycle-close codification; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC — scope expansion to BC-INDEX + HS-051..100 batch + story internals) |
+| G. `adversarial-story-gate` | **IN PROGRESS** — Pass 5 NOT_CONVERGED (0C/1H/1M/3L/2N); all blocking findings remediated; Pass 6 next | Adversarial convergence review of story decomposition + holdout scenarios; 3 consecutive clean passes required; convergence counter 0/3; 12 process-gap NITPICKs (P1:N-1/N-2/N-3, P2:N-1/N-2, P3:N-1/N-2, P4:N-1/N-2/N-3, P5:N-1/N-2) deferred for cycle-close codification; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M; structural backbone (VP anchoring, BC traceability, dep-edges, wave compute, AC quality, HS rollups) verified clean in Pass 5 |
 | H. `human-approval` | NOT STARTED | Human sign-off before Phase 3 |
 
 ## Governance Policy

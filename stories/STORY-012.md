@@ -13,7 +13,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.030.md
 input-hash: "[md5-pending]"
 traces_to: .factory/specs/prd.md
-points: "5"
+points: 5
 depends_on: [STORY-011]
 blocks: [STORY-013]
 behavioral_contracts: [BC-2.04.002, BC-2.04.028, BC-2.04.030]
@@ -23,7 +23,7 @@ cycle: v0.1.0-greenfield-spec
 wave: 5
 target_module: reassembly
 subsystems: [SS-04]
-estimated_days: "1"
+estimated_days: 1
 assumption_validations: []
 risk_mitigations: []
 tdd_mode: strict

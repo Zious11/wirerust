@@ -28,7 +28,7 @@ traces_to:
 | Story ID | Title | Epic | Wave | Points | Status | Dependencies |
 |----------|-------|------|------|--------|--------|--------------|
 | STORY-001 | PCAP File Ingestion — Link-Type Gating, Eager Packet Load, and Error Surfaces | E-1 | 1 | 5 | draft | — |
-| STORY-002 | Packet Decoding — Ethernet, RAW/IPv4, and IPv6 Link-Layer Paths | E-1 | 2 | 5 | draft | STORY-001 |
+| STORY-002 | Packet Decoding — Ethernet, RAW/IPV4, and IPv6 Link-Layer Paths | E-1 | 2 | 5 | draft | STORY-001 |
 | STORY-003 | Packet Decoding — Linux SLL, No-Panic Safety, and Non-IP Frame Rejection | E-1 | 2 | 5 | draft | STORY-001 |
 | STORY-004 | Packet Decoding — ICMP, Protocol::Other, and app_protocol_hint Port Table | E-1 | 2 | 3 | draft | STORY-001 |
 | STORY-005 | Packet Decoding — packet_len Semantics and TCP Flag/Sequence Extraction | E-1 | 3 | 3 | draft | STORY-002, STORY-003, STORY-004 |
@@ -55,10 +55,10 @@ traces_to:
 | STORY-051 | JA3 and JA3S Computation — GREASE Filtering and String Format | E-5 | 15 | 5 | draft | STORY-033, STORY-071 |
 | STORY-052 | ClientHello Parsing — Handshake Counting, Version/JA3 Tracking, and Done Short-Circuit | E-5 | 16 | 8 | draft | STORY-051 |
 | STORY-053 | ServerHello Parsing — JA3S Fingerprinting and Cipher/Version Tracking | E-5 | 17 | 5 | draft | STORY-051, STORY-052 |
-| STORY-054 | Cipher and Protocol Weakness Findings — Weak Ciphers, Deprecated SSL Versions | E-5 | 18 | 8 | draft | STORY-052, STORY-053 |
+| STORY-054 | Cipher and Protocol Weakness Findings — Weak Ciphers, Deprecated SSL Versions, and Baseline Zero-Finding | E-5 | 18 | 8 | draft | STORY-052, STORY-053 |
 | STORY-055 | SNI Classification Arms 1 and 2 — Clean ASCII Baseline and C0/DEL Control-Byte Detection | E-5 | 17 | 8 | draft | STORY-052 |
 | STORY-056 | SNI Classification Arms 3 and 4 — Non-ASCII UTF-8 and Non-UTF-8 Byte Preservation | E-5 | 18 | 8 | draft | STORY-055 |
-| STORY-057 | SNI Edge Cases — Empty Lists, Empty Hostnames, Multi-Name, NameType, Trailing Bytes, Large SNI | E-5 | 19 | 8 | draft | STORY-055, STORY-056 |
+| STORY-057 | SNI Edge Cases — Empty Lists, Empty Hostnames, Multi-Name, NameType, Trailing Bytes, Large SNI, and Count-Cap Decoupling | E-5 | 19 | 8 | draft | STORY-055, STORY-056 |
 | STORY-058 | Buffer Management, Record Parsing Infrastructure, Flow Lifecycle, and summarize Output | E-5 | 18 | 8 | draft | STORY-052, STORY-053 |
 | STORY-066 | DNS Traffic Statistics — Port-53 Dispatch, QR-Bit Counting, and Never-Emit Contract | E-6 | 4 | 5 | draft | STORY-005 |
 | STORY-069 | Finding Struct, Verdict/Confidence Display, and Finding Display Format | E-7 | 1 | 5 | draft | — |
