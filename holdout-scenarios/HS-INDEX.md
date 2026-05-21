@@ -70,7 +70,7 @@ traces_to:
 |------|-------------|-------|
 | E-1 | PCAP Ingestion and Packet Decoding | 8 |
 | E-2 | TCP Stream Reassembly Engine | 28 |
-| E-3 | Protocol Dispatcher and Content Classification | 5 |
+| E-3 | Content-First Protocol Dispatch | 5 |
 | E-4 | HTTP Traffic Analysis and Threat Detection | 10 |
 | E-5 | TLS Traffic Analysis and Fingerprinting | 12 |
 | E-6 | DNS Traffic Statistics | 2 |
@@ -103,7 +103,7 @@ Every wave 1-27 has at least one scenario. Column shows count of scenarios cover
 | 2 | STORY-002, STORY-003, STORY-004, STORY-070 | HS-003, HS-004, HS-005, HS-007, HS-015, HS-017, HS-018, HS-022 | 8 |
 | 3 | STORY-005, STORY-071 | HS-005, HS-008, HS-009, HS-015, HS-023, HS-025 | 6 |
 | 4 | STORY-011, STORY-066 | HS-010, HS-011, HS-020, HS-023 | 4 |
-| 5 | STORY-012 | HS-012 | 1 |
+| 5 | STORY-012 | HS-012, HS-023 | 2 |
 | 6 | STORY-013 | HS-013, HS-016, HS-019, HS-021, HS-024 | 5 |
 | 7 | STORY-014 | HS-014, HS-016, HS-019, HS-021 | 4 |
 | 8 | STORY-015, STORY-019 | HS-026, HS-027, HS-028, HS-029, HS-043, HS-046 | 6 |
@@ -146,7 +146,7 @@ All 100 scenarios, one row each, grouped by epic.
 | [HS-005](HS-005-protocol-hint-and-packet-len-semantics.md) | App Protocol Hints, Frame Length Accounting, and TCP Flag Extraction | behavioral-subtleties | must-pass | 2, 3 | BC-2.02.012, BC-2.02.014, BC-2.02.015 |
 | [HS-015](HS-015-real-world-corpus-clean-pcap.md) | Real-World Corpus — Well-Maintained Public PCAP (Low False Positive Rate) | real-world-corpus | must-pass | 1, 2, 3 | BC-2.01.001, BC-2.01.002, BC-2.02.001, BC-2.04.003 |
 | [HS-022](HS-022-decoder-malformed-packet-no-panic.md) | Decoder No-Panic Safety — Malformed and Truncated Packets | security-probes | must-pass | 2 | BC-2.02.007, BC-2.02.008, BC-2.02.009 |
-| [HS-023](HS-023-e1-e2-e6-e7-integration-summary.md) | Waves 1-4 Full Integration — PCAP -> Decode -> Reassembly -> DNS -> MITRE | integration-boundaries | must-pass | 1, 3, 4 | BC-2.01.002, BC-2.04.028, BC-2.08.003, BC-2.10.003 |
+| [HS-023](HS-023-e1-e2-e6-e7-integration-summary.md) | Waves 1-5 Full Integration — PCAP -> Decode -> Reassembly -> DNS -> MITRE | integration-boundaries | must-pass | 1, 3, 4, 5 | BC-2.01.002, BC-2.04.028, BC-2.08.003, BC-2.10.003 |
 
 ### Epic E-2: TCP Stream Reassembly Engine (Waves 4-11)
 
@@ -181,7 +181,7 @@ All 100 scenarios, one row each, grouped by epic.
 | [HS-048](HS-048-per-direction-depth-independence.md) | Depth Truncation in One Direction Leaves Other Direction Intact | edge-case-combinations | must-pass | 10 | BC-2.04.041, BC-2.04.027 |
 | [HS-050](HS-050-evasion-latch-per-direction-independence.md) | Anomaly Alert Latches Are Per-Direction — Both Can Fire Independently | edge-case-combinations | must-pass | 10 | BC-2.04.022, BC-2.04.021, BC-2.04.020 |
 
-### Epic E-3: Protocol Dispatcher and Content Classification (Waves 12-14)
+### Epic E-3: Content-First Protocol Dispatch (Waves 12-14)
 
 | HS ID | Title | Category | Priority | Waves | Behavioral Contracts |
 |-------|-------|----------|----------|-------|---------------------|

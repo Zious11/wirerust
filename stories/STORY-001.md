@@ -41,7 +41,7 @@ estimated_days: 2
 assumption_validations: []
 risk_mitigations: []
 tdd_mode: strict
-implementation_strategy: brownfield-verify
+implementation_strategy: brownfield-formalization
 ---
 
 # STORY-001: PCAP File Ingestion — Link-Type Gating, Eager Packet Load, and Error Surfaces

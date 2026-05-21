@@ -53,7 +53,7 @@ cycle: v0.1.0-greenfield-spec
 
 | Story | Epic | Points | Description | Blocked By |
 |-------|------|--------|-------------|------------|
-| STORY-002 | E-1 | 5 | Packet Decoding — Ethernet, RAW/IPv4, and IPv6 Link-Layer Paths | STORY-001 |
+| STORY-002 | E-1 | 5 | Packet Decoding — Ethernet, RAW/IPV4, and IPv6 Link-Layer Paths | STORY-001 |
 | STORY-003 | E-1 | 5 | Packet Decoding — Linux SLL, No-Panic Safety, and Non-IP Frame Rejection | STORY-001 |
 | STORY-004 | E-1 | 3 | Packet Decoding — ICMP, Protocol::Other, and app_protocol_hint Port Table | STORY-001 |
 | STORY-070 | E-7 | 5 | Raw-Data Contract and JSON Serialization Symmetry (skip_serializing_if) | STORY-069 |
@@ -223,7 +223,7 @@ cycle: v0.1.0-greenfield-spec
 | Story | Epic | Points | Description | Blocked By |
 |-------|------|--------|-------------|------------|
 | STORY-046 | E-4 | 3 | HTTP Analyzer Summary Output | STORY-041, STORY-042, STORY-043, STORY-044, STORY-045 |
-| STORY-054 | E-5 | 8 | Cipher and Protocol Weakness Findings — Weak Ciphers, Deprecated SSL Versions | STORY-052, STORY-053 |
+| STORY-054 | E-5 | 8 | Cipher and Protocol Weakness Findings — Weak Ciphers, Deprecated SSL Versions, and Baseline Zero-Finding | STORY-052, STORY-053 |
 | STORY-056 | E-5 | 8 | SNI Classification Arms 3 and 4 — Non-ASCII UTF-8 and Non-UTF-8 Byte Preservation | STORY-055 |
 | STORY-058 | E-5 | 8 | Buffer Management, Record Parsing Infrastructure, Flow Lifecycle, and summarize Output | STORY-052, STORY-053 |
 
@@ -235,7 +235,7 @@ cycle: v0.1.0-greenfield-spec
 
 | Story | Epic | Points | Description | Blocked By |
 |-------|------|--------|-------------|------------|
-| STORY-057 | E-5 | 8 | SNI Edge Cases — Empty Lists, Empty Hostnames, Multi-Name, NameType, Trailing Bytes, Large SNI | STORY-055, STORY-056 |
+| STORY-057 | E-5 | 8 | SNI Edge Cases — Empty Lists, Empty Hostnames, Multi-Name, NameType, Trailing Bytes, Large SNI, and Count-Cap Decoupling | STORY-055, STORY-056 |
 
 > E-5 completes after Wave 19. Cross-epic edges E-4/E-5/E-6/E-7 -> E-8 now enabled.
 

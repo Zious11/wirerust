@@ -29,7 +29,7 @@ estimated_days: 1
 assumption_validations: []
 risk_mitigations: []
 tdd_mode: strict
-implementation_strategy: brownfield-verify
+implementation_strategy: brownfield-formalization
 ---
 
 # STORY-080: CsvReporter — Reporter Trait Compliance and Optional Field Encoding

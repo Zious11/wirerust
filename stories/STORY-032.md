@@ -30,7 +30,7 @@ estimated_days: 1
 assumption_validations: []
 risk_mitigations: []
 tdd_mode: strict
-implementation_strategy: brownfield
+implementation_strategy: brownfield-formalization
 ---
 
 > **Execute:** `/vsdd-factory:deliver-story STORY-032`

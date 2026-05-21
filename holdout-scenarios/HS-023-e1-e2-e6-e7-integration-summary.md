@@ -10,6 +10,7 @@ inputs:
   - .factory/stories/STORY-001.md
   - .factory/stories/STORY-005.md
   - .factory/stories/STORY-011.md
+  - .factory/stories/STORY-012.md
   - .factory/stories/STORY-066.md
   - .factory/stories/STORY-069.md
   - .factory/stories/STORY-071.md
@@ -39,7 +40,7 @@ assumption_source: null
 risk_source: null
 ---
 
-# Holdout Scenario: Waves 1-4 Full Integration — PCAP -> Decode -> Reassembly -> DNS -> MITRE
+# Holdout Scenario: Waves 1-5 Full Integration — PCAP -> Decode -> Reassembly -> DNS -> MITRE
 
 > **WARNING:** This file must NEVER be shown to the implementer or test-writer agents.
 
@@ -108,5 +109,5 @@ Verify no crash; output is organized with tactic headers.
 
 ## Failure Guidance
 
-"HOLDOUT LOW: HS-023 (satisfaction: 0.XX) — the integrated pipeline from waves 1-4 produces
+"HOLDOUT LOW: HS-023 (satisfaction: 0.XX) — the integrated pipeline from waves 1-5 produces
 incorrect JSON structure, missing analyzer sub-objects, or wrong summary statistics."

@@ -39,7 +39,7 @@ estimated_days: 2
 assumption_validations: []
 risk_mitigations: []
 tdd_mode: strict
-implementation_strategy: brownfield-verify
+implementation_strategy: brownfield-formalization
 ---
 
 # STORY-077: TerminalReporter — escape_for_terminal, skipped_packets, and End-to-End C1 Safety

@@ -555,40 +555,6 @@ E-8 (SS-11)
 
 ---
 
-## Wave Assignment Discrepancies vs. Story Frontmatter
-
-> **Historical record only.** The table below documents wave-tag drift that existed
-> at the time this dependency graph was constructed. The computed waves in this
-> dependency graph are authoritative; individual story-file `wave:` frontmatter
-> tags are non-binding and may lag behind.
-
-When this dependency graph was constructed, cross-epic edges were added that were
-not present in the original intra-epic-only story frontmatter. Several stories in
-E-2 also had wave tags that did not reflect the correct longest-path computation.
-The values below are the **authoritative computed waves**; the frontmatter wave
-tags in individual story files should be treated as non-binding.
-
-| Story | Frontmatter Wave | Computed Wave | Delta | Cause |
-|-------|-----------------|---------------|-------|-------|
-| STORY-013 | 2 | 6 | +4 | STORY-013 depends on STORY-012 (wave 5); cannot be wave 2 |
-| STORY-014 | 3 | 7 | +4 | STORY-014 depends on STORY-013 (wave 6) |
-| STORY-015 | 3 | 8 | +5 | STORY-015 depends on STORY-014 (wave 7) |
-| STORY-016 | 4 | 9 | +5 | STORY-016 depends on STORY-015 (wave 8) |
-| STORY-017 | 4 | 10 | +6 | STORY-017 depends on STORY-016 (wave 9) |
-| STORY-018 | 4 | 10 | +6 | STORY-018 depends on STORY-016 (wave 9) |
-| STORY-020 | 5 | 9 | +4 | STORY-020 depends on STORY-019 (wave 8) |
-| STORY-021 | 6 | 11 | +5 | STORY-021 depends on STORY-018/STORY-020 (wave 10) |
-| STORY-011 | 1 | 4 | +3 | Cross-epic dep E-1->E-2 added: STORY-011 depends on STORY-005 (wave 3) |
-| STORY-031..033 | null | 12..14 | n/a | Cross-epic dep E-2->E-3 added; no prior wave tag |
-| STORY-041..046 | null | 15..18 | n/a | Cross-epic deps E-3->E-4, E-7->E-4 added |
-| STORY-051..058 | null | 15..19 | n/a | Cross-epic deps E-3->E-5, E-7->E-5 added |
-| STORY-066 | 1 | 4 | +3 | Cross-epic dep E-1->E-6 added: STORY-066 depends on STORY-005 |
-| STORY-076..080 | 1..3 | 20..22 | n/a | Cross-epic deps E-4/E-5/E-6/E-7->E-8 added |
-| STORY-086..090 | 1..5 | 23..27 | n/a | Cross-epic dep E-8->E-9 added |
-| STORY-096 | 1 | 24 | +23 | Cross-epic dep E-9->E-10 added |
-
----
-
 ## Gap Register
 
 No story-decomposition gaps identified. All 217 BCs are covered across 48 stories.

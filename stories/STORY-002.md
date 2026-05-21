@@ -35,7 +35,7 @@ estimated_days: 2
 assumption_validations: []
 risk_mitigations: []
 tdd_mode: strict
-implementation_strategy: brownfield-verify
+implementation_strategy: brownfield-formalization
 ---
 
 # STORY-002: Packet Decoding — Ethernet, RAW/IPV4, and IPv6 Link-Layer Paths

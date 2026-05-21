@@ -33,7 +33,7 @@ estimated_days: 1
 assumption_validations: []
 risk_mitigations: []
 tdd_mode: strict
-implementation_strategy: brownfield-verify
+implementation_strategy: brownfield-formalization
 ---
 
 # STORY-004: Packet Decoding — ICMP, Protocol::Other, and app_protocol_hint Port Table

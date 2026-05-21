@@ -200,4 +200,4 @@ The progress bar appears on stderr (not stdout) and is finished-and-cleared afte
 |------|--------|---------|
 | `src/main.rs` | modify | `run_analyze` (analyzer enablement, reassembly logic, progress bar), `resolve_targets` |
 | `Cargo.toml` | modify | Add `serial_test` as dev-dependency if not already present |
-| `tests/cli_tests.rs` | modify | Add AC-001..AC-013 test functions; `#[serial]` on env-var tests |
+| `tests/cli_tests.rs` | modify | Add AC-001..AC-014 test functions; `#[serial]` on env-var tests |
