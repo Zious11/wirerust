@@ -1,0 +1,605 @@
+---
+document_type: dependency-graph
+version: "1.0"
+status: draft
+producer: story-writer
+phase: 2
+timestamp: 2026-05-21T00:00:00Z
+total_stories: 48
+total_edges: 78
+intra_epic_edges: 64
+cross_epic_edges: 14
+number_of_waves: 27
+acyclic: true
+traces_to:
+  - .factory/stories/epics.md
+  - .factory/specs/architecture/dependency-graph.md
+  - .factory/specs/architecture/module-decomposition.md
+---
+
+# wirerust Story Dependency Graph
+
+> **Brownfield context:** wirerust is a single-crate offline pcap forensic triage CLI.
+> All 48 stories formalize behavioral contracts for existing shipped code.
+> Cross-epic dependencies reflect the architecture pipeline layering
+> (L1 Ingest -> L2 Stream -> L3 Domain -> L4 Output -> L0 Entry) defined in
+> `architecture/dependency-graph.md` and `architecture/module-decomposition.md`.
+
+---
+
+## Summary Statistics
+
+| Metric | Value |
+|--------|-------|
+| Total stories | 48 |
+| Total dependency edges | 78 |
+| Intra-epic edges | 64 |
+| Cross-epic edges | 14 |
+| Number of parallel waves | 27 |
+| Graph is acyclic | Yes (Kahn topological sort verified) |
+| Total story points | 282 |
+
+---
+
+## Architecture Subsystem Boundary Rules
+
+Dependencies in this graph respect the layer rules from
+`architecture/dependency-graph.md`:
+
+| From Layer | May depend on | Must not depend on |
+|-----------|---------------|-------------------|
+| L0 Entry (SS-12, SS-13) | Everything | (no restriction) |
+| L1 Ingest (SS-01, SS-02) | types only | L3 analyzers, L4 reporters |
+| L2 Stream (SS-04) | L3 types via handler.rs traits | L4 reporters |
+| L3 Domain (SS-05..08) | findings.rs, mitre.rs | L2 internals, L4 reporters |
+| L4 Output (SS-11) | L3 findings/mitre/summary, L2 via summarize | L1 ingest, L2 internals |
+
+> **Accepted L2<->L3 cycle:** `reassembly/handler.rs` defines `StreamHandler`/`StreamAnalyzer`
+> traits (L2); `analyzer/http.rs` and `analyzer/tls.rs` implement them (L3). This cycle
+> is accepted per ADR 0002. It does not affect story ordering because E-7 (the Finding
+> data model) is independently buildable and E-4/E-5 both depend on E-3 (which includes
+> handler.rs) and E-7 via their root stories.
+
+---
+
+## Dependencies (Edge List)
+
+### Intra-Epic Edges (64 edges)
+
+#### Epic E-1: PCAP Ingestion and Packet Decoding
+
+| From | To | Justification |
+|------|----|---------------|
+| STORY-001 | STORY-002 | STORY-001 establishes `PcapSource` and `RawPacket`; STORY-002 decodes IPv4 and requires those types |
+| STORY-001 | STORY-003 | STORY-001 establishes `PcapSource` and `RawPacket`; STORY-003 decodes IPv6 and requires those types |
+| STORY-001 | STORY-004 | STORY-001 establishes link-type dispatch; STORY-004 builds Linux SLL support on the same dispatch gate |
+| STORY-002 | STORY-005 | STORY-005 (integration) exercises Ethernet+IPv4 decode established in STORY-002 |
+| STORY-003 | STORY-005 | STORY-005 exercises IPv6 decode established in STORY-003 |
+| STORY-004 | STORY-005 | STORY-005 exercises Linux SLL decode established in STORY-004 |
+
+#### Epic E-2: TCP Stream Reassembly Engine
+
+| From | To | Justification |
+|------|----|---------------|
+| STORY-011 | STORY-012 | STORY-012 segment insertion builds on `TcpFlow` + `FlowKey` defined in STORY-011 |
+| STORY-011 | STORY-013 | STORY-013 flush logic requires both `TcpFlow` (STORY-011) and `SegmentBuffer` (STORY-012) |
+| STORY-012 | STORY-013 | STORY-013 flush logic builds on `insert_segment` + `BTreeMap` buffer from STORY-012 |
+| STORY-013 | STORY-014 | STORY-014 overlap detection requires `flush_contiguous` from STORY-013 |
+| STORY-013 | STORY-019 | STORY-019 resource pressure management requires flow table from STORY-013 |
+| STORY-014 | STORY-015 | STORY-015 lifecycle (RST/FIN) builds on overlap detection from STORY-014 |
+| STORY-014 | STORY-019 | STORY-019 uses flow lifecycle events established in STORY-014 |
+| STORY-015 | STORY-016 | STORY-016 evasion detection requires completed lifecycle state machine from STORY-015 |
+| STORY-015 | STORY-017 | STORY-017 retransmission accounting builds on overlap logic from STORY-015 |
+| STORY-015 | STORY-018 | STORY-018 out-of-order handling requires `flush_contiguous` + lifecycle from STORY-015 |
+| STORY-016 | STORY-017 | STORY-017 retransmission accounting includes evasion markers from STORY-016 |
+| STORY-016 | STORY-018 | STORY-018 out-of-order handling includes evasion context from STORY-016 |
+| STORY-019 | STORY-020 | STORY-020 memory ceiling enforcement builds on flow expiry from STORY-019 |
+| STORY-017 | STORY-021 | STORY-021 reassembly statistics require retransmission counters from STORY-017 |
+| STORY-018 | STORY-021 | STORY-021 statistics require out-of-order counters from STORY-018 |
+| STORY-019 | STORY-021 | STORY-021 statistics require resource-pressure counters from STORY-019 |
+| STORY-020 | STORY-021 | STORY-021 statistics require memory-ceiling counters from STORY-020 |
+
+#### Epic E-3: Content-First Protocol Dispatch
+
+| From | To | Justification |
+|------|----|---------------|
+| STORY-031 | STORY-032 | STORY-032 cache and retry logic builds on `classify()` core from STORY-031 |
+| STORY-031 | STORY-033 | STORY-033 unclassified flow reporting requires both classify (STORY-031) and cache (STORY-032) |
+| STORY-032 | STORY-033 | STORY-033 reporting requires cache/retry state from STORY-032 |
+
+#### Epic E-4: HTTP Traffic Analysis and Threat Detection
+
+| From | To | Justification |
+|------|----|---------------|
+| STORY-041 | STORY-042 | STORY-042 path-traversal detection builds on request parser from STORY-041 |
+| STORY-041 | STORY-043 | STORY-043 web-shell/admin-probe detection uses parsed URI + method from STORY-041 |
+| STORY-041 | STORY-044 | STORY-044 method/header anomalies use parsed headers established in STORY-041 |
+| STORY-041 | STORY-045 | STORY-045 parse-error isolation requires request buffer model from STORY-041 |
+| STORY-044 | STORY-045 | STORY-045 poisoning logic interacts with header-anomaly detection from STORY-044 |
+| STORY-042 | STORY-046 | STORY-046 integration requires path-traversal findings from STORY-042 |
+| STORY-043 | STORY-046 | STORY-046 integration requires web-shell/admin findings from STORY-043 |
+| STORY-044 | STORY-046 | STORY-046 integration requires method/header anomaly findings from STORY-044 |
+| STORY-045 | STORY-046 | STORY-046 integration requires parse-error isolation from STORY-045 |
+| STORY-041 | STORY-046 | STORY-046 integration-test baseline requires core parser from STORY-041 |
+
+#### Epic E-5: TLS Traffic Analysis and Fingerprinting
+
+| From | To | Justification |
+|------|----|---------------|
+| STORY-051 | STORY-052 | STORY-052 ServerHello/JA3S builds on JA3 compute functions from STORY-051 |
+| STORY-051 | STORY-053 | STORY-053 SNI extraction requires ClientHello parse from STORY-051 |
+| STORY-052 | STORY-053 | STORY-053 SNI anomaly uses handshake parse state from STORY-052 |
+| STORY-052 | STORY-054 | STORY-054 cipher/protocol findings use extension parse from STORY-052 |
+| STORY-053 | STORY-054 | STORY-054 combines SNI findings (STORY-053) with cipher findings |
+| STORY-052 | STORY-055 | STORY-055 buffer management builds on handshake state from STORY-052 |
+| STORY-052 | STORY-058 | STORY-058 TLS summary requires full handshake data from STORY-052 |
+| STORY-053 | STORY-058 | STORY-058 summary includes SNI classification results from STORY-053 |
+| STORY-055 | STORY-056 | STORY-056 weak-cipher finding requires buffer health from STORY-055 |
+| STORY-055 | STORY-057 | STORY-057 deprecated-protocol finding builds on buffer model from STORY-055 |
+| STORY-056 | STORY-057 | STORY-057 deprecated-protocol finding follows weak-cipher (same detection sweep) |
+
+#### Epic E-7: Forensic Finding Data Model and MITRE Mapping
+
+| From | To | Justification |
+|------|----|---------------|
+| STORY-069 | STORY-070 | STORY-070 skip_serializing_if / raw-data contract builds on `Finding` struct from STORY-069 |
+| STORY-069 | STORY-071 | STORY-071 MITRE lookup table requires `ThreatCategory` + technique IDs from STORY-069 |
+| STORY-070 | STORY-071 | STORY-071 `MitreTactic` enum resolved via technique_id carried in `Finding` from STORY-070 |
+
+#### Epic E-8: Reporting and Output Formats
+
+| From | To | Justification |
+|------|----|---------------|
+| STORY-076 | STORY-077 | STORY-077 TerminalReporter escape logic builds on `Reporter` trait from STORY-076 |
+| STORY-076 | STORY-079 | STORY-079 CsvReporter structure builds on `Reporter` trait from STORY-076 |
+| STORY-077 | STORY-078 | STORY-078 MITRE tactic grouping + colorization builds on escape logic from STORY-077 |
+| STORY-079 | STORY-080 | STORY-080 CSV injection neutralization builds on column layout from STORY-079 |
+
+#### Epic E-9: CLI, Entry Point, and Analysis Orchestration
+
+| From | To | Justification |
+|------|----|---------------|
+| STORY-086 | STORY-087 | STORY-087 reassembly flags build on base `Cli`/`Commands` from STORY-086 |
+| STORY-086 | STORY-088 | STORY-088 output format flags build on `Cli` structure from STORY-086 |
+| STORY-087 | STORY-088 | STORY-088 includes `ReassemblyConfig` parsing established in STORY-087 |
+| STORY-086 | STORY-089 | STORY-089 multi-target + progress-bar logic requires base `Cli` from STORY-086 |
+| STORY-087 | STORY-089 | STORY-089 multi-target run uses reassembly config from STORY-087 |
+| STORY-088 | STORY-089 | STORY-089 output format dispatch requires output-format flags from STORY-088 |
+| STORY-086 | STORY-090 | STORY-090 integration requires base CLI wiring from STORY-086 |
+| STORY-088 | STORY-090 | STORY-090 integration exercises output-format dispatch from STORY-088 |
+| STORY-089 | STORY-090 | STORY-090 end-to-end integration requires multi-target + pipeline from STORY-089 |
+
+---
+
+### Cross-Epic Edges (14 edges)
+
+These edges reflect the architecture pipeline layers defined in
+`architecture/dependency-graph.md` and `architecture/module-decomposition.md`.
+
+| From | To | Epic | Subsystem Boundary | Justification |
+|------|----|------|--------------------|---------------|
+| STORY-005 | STORY-011 | E-1 -> E-2 | SS-01/02 -> SS-04 | SS-01/02 decoder's `ParsedPacket` is the input type consumed by `TcpReassembler.process_packet()` in SS-04; L1 Ingest feeds L2 Stream |
+| STORY-005 | STORY-066 | E-1 -> E-6 | SS-01/02 -> SS-08 | SS-08 `DnsAnalyzer.analyze()` receives `ParsedPacket` directly from the L1 ingest pipeline (packet-level, not stream-level; bypasses E-2/E-3) |
+| STORY-021 | STORY-031 | E-2 -> E-3 | SS-04 -> SS-05 | SS-04 reassembly emits stream data via the `StreamHandler`/`StreamAnalyzer` trait interface defined in `reassembly/handler.rs`; SS-05 `StreamDispatcher` implements `StreamHandler` and consumes that interface |
+| STORY-033 | STORY-041 | E-3 -> E-4 | SS-05 -> SS-06 | SS-05 `StreamDispatcher.on_data()` routes classified TCP streams to `HttpAnalyzer` (SS-06); STORY-041 builds `HttpAnalyzer` which must conform to the `StreamAnalyzer` trait from STORY-033 |
+| STORY-033 | STORY-051 | E-3 -> E-5 | SS-05 -> SS-07 | SS-05 `StreamDispatcher.on_data()` routes classified TCP streams to `TlsAnalyzer` (SS-07); STORY-051 builds `TlsAnalyzer` which must conform to the `StreamAnalyzer` trait from STORY-033 |
+| STORY-071 | STORY-041 | E-7 -> E-4 | SS-09/10 -> SS-06 | SS-06 `HttpAnalyzer` emits `Finding` structs using `ThreatCategory` + `MitreTactic` types established by E-7; STORY-041 requires those types before any finding can be constructed |
+| STORY-071 | STORY-051 | E-7 -> E-5 | SS-09/10 -> SS-07 | SS-07 `TlsAnalyzer` emits `Finding` structs using `ThreatCategory` + `MitreTactic` types established by E-7; STORY-051 requires those types before any finding can be constructed |
+| STORY-046 | STORY-076 | E-4 -> E-8 | SS-06 -> SS-11 | SS-11 reporters consume `Vec<Finding>` produced by `HttpAnalyzer`; STORY-076 (`JsonReporter`) requires the complete `Finding` contract validated by STORY-046 |
+| STORY-057 | STORY-076 | E-5 -> E-8 | SS-07 -> SS-11 | SS-11 reporters consume `Vec<Finding>` produced by `TlsAnalyzer` stream stories; STORY-057 is the last stream-finding story in E-5 |
+| STORY-058 | STORY-076 | E-5 -> E-8 | SS-07 -> SS-11 | SS-11 reporters consume the `TlsAnalyzer` summary struct established in STORY-058 |
+| STORY-066 | STORY-076 | E-6 -> E-8 | SS-08 -> SS-11 | SS-11 reporters include DNS statistics in their `analyzers` output section; STORY-076 requires the `DnsAnalyzer.summarize()` contract from STORY-066 |
+| STORY-071 | STORY-076 | E-7 -> E-8 | SS-09/10 -> SS-11 | SS-11 `TerminalReporter` groups findings by `MitreTactic` (from SS-10) and renders `Verdict`/`Confidence` display tokens (from SS-09); STORY-076 requires the fully-specified `Finding` + `MitreTactic` types |
+| STORY-080 | STORY-086 | E-8 -> E-9 | SS-11 -> SS-12 | SS-12 `run_analyze()` (L0 Entry) selects and dispatches to the correct `Reporter` (JsonReporter/TerminalReporter/CsvReporter) established in E-8; transitive coverage of E-1..E-7 is already guaranteed via STORY-080's ancestry |
+| STORY-086 | STORY-096 | E-9 -> E-10 | SS-12 -> SS-13 | SS-13 absent-behavior tests verify that removed flags are rejected by the `Cli` struct defined in STORY-086; the test vehicle is the CLI binary |
+
+---
+
+## Independent Groups (Wave Schedule)
+
+Waves are computed as `wave(story) = max(wave(dependency)) + 1` (longest-path /
+critical-path method). Stories in the same wave have no dependency between them
+and can be dispatched in parallel.
+
+> **Graph is acyclic:** Kahn's algorithm processes all 48 stories. No cycle detected.
+
+### Wave 1 — 2 stories | Epics: E-1, E-7
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-001 | E-1 | 5 | SS-01 | PCAP reader foundation — `PcapSource`, `RawPacket`, global header validation |
+| STORY-069 | E-7 | 5 | SS-09 | `Finding` struct, `Verdict`/`Confidence` enums, Display formatting |
+
+> **Rationale:** E-1 and E-7 are independently buildable. E-7's data model (pure types)
+> has no runtime dependency on anything in the pipeline.
+
+### Wave 2 — 4 stories | Epics: E-1, E-7
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-002 | E-1 | 5 | SS-02 | Ethernet/IPv4/TCP decode |
+| STORY-003 | E-1 | 5 | SS-02 | IPv6 decode |
+| STORY-004 | E-1 | 3 | SS-02 | Linux SLL and link-type gate |
+| STORY-070 | E-7 | 5 | SS-09 | Raw-data contract and `skip_serializing_if` JSON symmetry |
+
+### Wave 3 — 2 stories | Epics: E-1, E-7
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-005 | E-1 | 3 | SS-01/02 | Decode integration — `app_protocol_hint`, pcapng rejection, malformed records |
+| STORY-071 | E-7 | 8 | SS-10 | MITRE mapping table — `MitreTactic` enum, `technique_info`, tactic-order |
+
+### Wave 4 — 2 stories | Epics: E-2, E-6
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-011 | E-2 | 5 | SS-04 | TCP reassembly foundation — `TcpFlow`, `FlowKey`, `FlowState` struct definitions |
+| STORY-066 | E-6 | 5 | SS-08 | DNS traffic statistics — port-53 dispatch, QR-bit counting, never-emit contract |
+
+> **Note:** STORY-066 (DNS, packet-level) and STORY-011 (TCP reassembly) are both
+> unblocked once STORY-005 completes. They can proceed in parallel.
+
+### Wave 5 — 1 story | Epic: E-2
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-012 | E-2 | 5 | SS-04 | Segment buffer — `BTreeMap<u64, Vec<u8>>`, `insert_segment`, sequence number math |
+
+### Wave 6 — 1 story | Epic: E-2
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-013 | E-2 | 8 | SS-04 | Stream flush — `flush_contiguous`, data delivery to `StreamAnalyzer`, flush counts |
+
+### Wave 7 — 1 story | Epic: E-2
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-014 | E-2 | 5 | SS-04 | Overlap detection — byte-level overlap classification, evasion finding emission |
+
+### Wave 8 — 2 stories | Epic: E-2
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-015 | E-2 | 8 | SS-04 | RST/FIN lifecycle — `close_flow`, eviction, mid-stream join handling |
+| STORY-019 | E-2 | 5 | SS-04 | Resource pressure — flow count cap, `expire_flows`, eviction policy |
+
+> **Note:** STORY-015 and STORY-019 share only STORY-013/STORY-014 as common ancestors.
+> They touch different parts of SS-04 (`lifecycle.rs` vs resource management) and can
+> run in parallel.
+
+### Wave 9 — 2 stories | Epic: E-2
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-016 | E-2 | 8 | SS-04 | Evasion anomaly detection — overlap-type classification, `AtomicBool` warning latches |
+| STORY-020 | E-2 | 8 | SS-04 | Memory ceiling enforcement — `memcap` byte limit, eviction under memory pressure |
+
+### Wave 10 — 2 stories | Epic: E-2
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-017 | E-2 | 8 | SS-04 | Retransmission accounting — duplicate-segment counting, retransmit stats |
+| STORY-018 | E-2 | 8 | SS-04 | Out-of-order handling — held segment counts, reorder completions |
+
+### Wave 11 — 1 story | Epic: E-2
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-021 | E-2 | 5 | SS-04 | Reassembly statistics and summary — `ReassemblyStats`, `summarize()`, integration |
+
+### Wave 12 — 1 story | Epic: E-3
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-031 | E-3 | 5 | SS-05 | Content-first classification — TLS signature, HTTP method prefix, port fallback |
+
+### Wave 13 — 1 story | Epic: E-3
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-032 | E-3 | 5 | SS-05 | Classification caching and retry — `routes` HashMap, `max_classification_attempts` |
+
+### Wave 14 — 1 story | Epic: E-3
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-033 | E-3 | 3 | SS-05 | Unclassified flow lifecycle and reporting — `on_flow_close`, unclassified count |
+
+### Wave 15 — 2 stories | Epics: E-4, E-5
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-041 | E-4 | 8 | SS-06 | HTTP/1.1 request/response parsing and core statistics |
+| STORY-051 | E-5 | 5 | SS-07 | JA3 and JA3S computation — GREASE filtering and string format |
+
+> **Note:** E-4 and E-5 root stories both depend on STORY-033 and STORY-071.
+> They can proceed in parallel once both predecessors are complete.
+
+### Wave 16 — 4 stories | Epics: E-4, E-5
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-042 | E-4 | 5 | SS-06 | Path-traversal detection — `../` patterns, URI decode |
+| STORY-043 | E-4 | 5 | SS-06 | Web shell and admin panel probe detection |
+| STORY-044 | E-4 | 8 | SS-06 | Unusual methods, oversized URIs, missing Host, empty User-Agent |
+| STORY-052 | E-5 | 8 | SS-07 | ServerHello parsing and JA3S computation |
+
+### Wave 17 — 3 stories | Epics: E-4, E-5
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-045 | E-4 | 5 | SS-06 | Parse-error isolation — `request_error_count`, parse-error poisoning |
+| STORY-053 | E-5 | 5 | SS-07 | SNI extraction and 4-way anomaly classification |
+| STORY-055 | E-5 | 8 | SS-07 | TLS buffer management — per-direction caps, `handshake_buf` limits |
+
+### Wave 18 — 4 stories | Epics: E-4, E-5
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-046 | E-4 | 3 | SS-06 | HTTP analyzer integration — cross-flow isolation, per-direction buffer caps |
+| STORY-054 | E-5 | 8 | SS-07 | Weak cipher and deprecated protocol version findings |
+| STORY-056 | E-5 | 8 | SS-07 | Weak-cipher evidence vector and finding emission |
+| STORY-058 | E-5 | 8 | SS-07 | TLS analysis summary — `TlsAnalyzerSummary`, `summarize()` |
+
+### Wave 19 — 1 story | Epic: E-5
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-057 | E-5 | 8 | SS-07 | Deprecated protocol version finding — TLS 1.0/1.1/SSLv3 detection |
+
+### Wave 20 — 1 story | Epic: E-8
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-076 | E-8 | 5 | SS-11 | `JsonReporter` — structure, `skipped_packets`, RFC 8259 byte handling |
+
+### Wave 21 — 2 stories | Epic: E-8
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-077 | E-8 | 8 | SS-11 | `TerminalReporter` — `escape_for_terminal`, C0/non-ASCII logic |
+| STORY-079 | E-8 | 5 | SS-11 | `CsvReporter` — 9-column structure, CSV-injection neutralization |
+
+### Wave 22 — 2 stories | Epic: E-8
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-078 | E-8 | 8 | SS-11 | `TerminalReporter` MITRE tactic grouping, kill-chain sort, colorization |
+| STORY-080 | E-8 | 3 | SS-11 | CSV writer integration and reporting pipeline test |
+
+### Wave 23 — 1 story | Epic: E-9
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-086 | E-9 | 5 | SS-12 | CLI subcommand parsing — `analyze`, `summary`, `--no-color`, multiple targets |
+
+### Wave 24 — 2 stories | Epics: E-9, E-10
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-087 | E-9 | 5 | SS-12 | Reassembly flags — `--reassemble`, `--depth`, `--memcap`, five threshold flags |
+| STORY-096 | E-10 | 3 | SS-13 | Absent behavior contracts — `--threats`, `--beacon`, `--filter`, `--verbose` rejected by clap |
+
+> **Note:** STORY-096 can proceed in parallel with STORY-087 since both only require
+> the base CLI from STORY-086.
+
+### Wave 25 — 1 story | Epic: E-9
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-088 | E-9 | 8 | SS-12 | Output format flags — `--output-format json|csv`, `--json`/`--csv` legacy, reporter dispatch |
+
+### Wave 26 — 1 story | Epic: E-9
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-089 | E-9 | 5 | SS-12 | Multi-target directory walk, progress bar on stderr, per-target pipeline |
+
+### Wave 27 — 1 story | Epic: E-9
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-090 | E-9 | 5 | SS-12 | End-to-end integration — full `run_analyze()`, `finalize()` guarantee, error reporting |
+
+---
+
+## Topological Order (Full Sequence)
+
+```
+STORY-001 -> STORY-069 -> STORY-002 -> STORY-003 -> STORY-004 -> STORY-070 ->
+STORY-005 -> STORY-071 -> STORY-011 -> STORY-066 -> STORY-012 -> STORY-013 ->
+STORY-014 -> STORY-015 -> STORY-019 -> STORY-016 -> STORY-020 -> STORY-017 ->
+STORY-018 -> STORY-021 -> STORY-031 -> STORY-032 -> STORY-033 -> STORY-041 ->
+STORY-051 -> STORY-042 -> STORY-043 -> STORY-044 -> STORY-052 -> STORY-045 ->
+STORY-053 -> STORY-055 -> STORY-046 -> STORY-054 -> STORY-058 -> STORY-056 ->
+STORY-057 -> STORY-076 -> STORY-077 -> STORY-079 -> STORY-078 -> STORY-080 ->
+STORY-086 -> STORY-087 -> STORY-096 -> STORY-088 -> STORY-089 -> STORY-090
+```
+
+> **Cycle check:** All 48 nodes processed by Kahn's algorithm. No node remained
+> in the queue with non-zero in-degree after processing. Graph is acyclic.
+
+---
+
+## Acyclicity Proof
+
+Kahn's algorithm processes nodes by removing zero-in-degree nodes from the graph
+iteratively. Result:
+
+- Initial zero-in-degree nodes: STORY-001, STORY-069 (Wave 1)
+- Each wave removes its stories and decrements successor in-degrees
+- Final output: all 48 stories processed, queue empty, no cycle detected
+- Any cycle would leave unprocessed nodes with non-zero in-degree — none found
+
+---
+
+## BC to Stories Traceability Matrix
+
+| BC Range | Story | Epic | Subsystem |
+|----------|-------|------|-----------|
+| BC-2.01.001..008 | STORY-001 | E-1 | SS-01 |
+| BC-2.02.001..005 | STORY-002 | E-1 | SS-02 |
+| BC-2.02.006..009 | STORY-003 | E-1 | SS-02 |
+| BC-2.02.010..013 | STORY-004 | E-1 | SS-02 |
+| BC-2.02.014..015 | STORY-005 | E-1 | SS-01/02 |
+| BC-2.04.001, BC-2.04.003, BC-2.04.049 | STORY-011 | E-2 | SS-04 |
+| BC-2.04.002, BC-2.04.028, BC-2.04.030 | STORY-012 | E-2 | SS-04 |
+| BC-2.04.004..005, BC-2.04.050..053 | STORY-013 | E-2 | SS-04 |
+| BC-2.04.009, BC-2.04.031..032, BC-2.04.048 | STORY-014 | E-2 | SS-04 |
+| BC-2.04.006..008, BC-2.04.033..034, BC-2.04.039 | STORY-015 | E-2 | SS-04 |
+| BC-2.04.010..012, BC-2.04.035..038 | STORY-016 | E-2 | SS-04 |
+| BC-2.04.013..016, BC-2.04.040..042 | STORY-017 | E-2 | SS-04 |
+| BC-2.04.017..021, BC-2.04.043..045 | STORY-018 | E-2 | SS-04 |
+| BC-2.04.022..024, BC-2.04.046..047 | STORY-019 | E-2 | SS-04 |
+| BC-2.04.025..027 | STORY-020 | E-2 | SS-04 |
+| BC-2.04.029, BC-2.04.054 | STORY-021 | E-2 | SS-04 |
+| BC-2.05.001..004 | STORY-031 | E-3 | SS-05 |
+| BC-2.05.005..007 | STORY-032 | E-3 | SS-05 |
+| BC-2.05.008..009 | STORY-033 | E-3 | SS-05 |
+| BC-2.06.001..004, BC-2.06.026 | STORY-041 | E-4 | SS-06 |
+| BC-2.06.005..007 | STORY-042 | E-4 | SS-06 |
+| BC-2.06.008..010 | STORY-043 | E-4 | SS-06 |
+| BC-2.06.011..016 | STORY-044 | E-4 | SS-06 |
+| BC-2.06.017..019 | STORY-045 | E-4 | SS-06 |
+| BC-2.06.020..025 | STORY-046 | E-4 | SS-06 |
+| BC-2.07.001..006 | STORY-051 | E-5 | SS-07 |
+| BC-2.07.007..012 | STORY-052 | E-5 | SS-07 |
+| BC-2.07.013..018 | STORY-053 | E-5 | SS-07 |
+| BC-2.07.019..022 | STORY-054 | E-5 | SS-07 |
+| BC-2.07.023..026 | STORY-055 | E-5 | SS-07 |
+| BC-2.07.027..030 | STORY-056 | E-5 | SS-07 |
+| BC-2.07.031..034 | STORY-057 | E-5 | SS-07 |
+| BC-2.07.035..037 | STORY-058 | E-5 | SS-07 |
+| BC-2.08.001..004 | STORY-066 | E-6 | SS-08 |
+| BC-2.09.001..004 | STORY-069 | E-7 | SS-09 |
+| BC-2.09.005..006 | STORY-070 | E-7 | SS-09 |
+| BC-2.10.001..009 | STORY-071 | E-7 | SS-10 |
+| BC-2.11.001..005 | STORY-076 | E-8 | SS-11 |
+| BC-2.11.006..013 | STORY-077 | E-8 | SS-11 |
+| BC-2.11.014..018 | STORY-078 | E-8 | SS-11 |
+| BC-2.11.019..021 | STORY-079 | E-8 | SS-11 |
+| BC-2.11.022..024 | STORY-080 | E-8 | SS-11 |
+| BC-2.12.001..005 | STORY-086 | E-9 | SS-12 |
+| BC-2.12.006..010 | STORY-087 | E-9 | SS-12 |
+| BC-2.12.011..015 | STORY-088 | E-9 | SS-12 |
+| BC-2.12.016..018 | STORY-089 | E-9 | SS-12 |
+| BC-2.12.019..021 | STORY-090 | E-9 | SS-12 |
+| BC-2.13.001..004 | STORY-096 | E-10 | SS-13 |
+
+**Coverage: 217 / 217 BCs assigned across 48 stories.**
+
+---
+
+## VP to Stories Matrix
+
+| VP | Stories Exercising It | BC Source |
+|----|-----------------------|-----------|
+| VP-001 | STORY-001 | BC-2.01.x (PCAP file validation) |
+| VP-002 | STORY-002, STORY-003, STORY-004 | BC-2.02.x (packet decode correctness) |
+| VP-003 | STORY-013, STORY-014, STORY-015 | BC-2.04.x (segment ordering + overlap) |
+| VP-005 | STORY-016, STORY-017, STORY-018 | BC-2.04.x (evasion / retransmit) |
+| VP-009 | STORY-031, STORY-032 | BC-2.05.x (content-first classification) |
+| VP-010 | STORY-041, STORY-042, STORY-043, STORY-044 | BC-2.06.x (HTTP threat detection) |
+| VP-011 | STORY-051, STORY-052, STORY-053 | BC-2.07.x (TLS fingerprinting) |
+| VP-012 | STORY-053 | BC-2.07.x (SNI anomaly classification) |
+| VP-013 | STORY-076, STORY-077, STORY-078, STORY-079, STORY-080 | BC-2.11.x (reporter correctness) |
+| VP-016 | STORY-086, STORY-087, STORY-088 | BC-2.12.x (CLI flag parsing) |
+| VP-017 | STORY-076 | BC-2.11.001..005 (JSON structure) |
+| VP-020 | STORY-069, STORY-070, STORY-071 | BC-2.09.x / BC-2.10.x (finding model) |
+
+---
+
+## Epic-Level Dependency Summary
+
+```
+E-1 (SS-01/02)
+  |
+  +----> E-2 (SS-04) [via STORY-005 -> STORY-011]
+  |        |
+  |        +----> E-3 (SS-05) [via STORY-021 -> STORY-031]
+  |                 |
+  |                 +----> E-4 (SS-06) [via STORY-033 -> STORY-041]
+  |                 |        |
+  |                 |        +----> E-8 (SS-11) [via STORY-046 -> STORY-076]
+  |                 |
+  |                 +----> E-5 (SS-07) [via STORY-033 -> STORY-051]
+  |                          |
+  |                          +----> E-8 (SS-11) [via STORY-057/058 -> STORY-076]
+  |
+  +----> E-6 (SS-08) [via STORY-005 -> STORY-066; packet-level, bypasses E-2/E-3]
+           |
+           +----> E-8 (SS-11) [via STORY-066 -> STORY-076]
+
+E-7 (SS-09/10) [independent chain, no upstream deps]
+  |
+  +----> E-4 (SS-06) [via STORY-071 -> STORY-041]
+  +----> E-5 (SS-07) [via STORY-071 -> STORY-051]
+  +----> E-8 (SS-11) [via STORY-071 -> STORY-076]
+
+E-8 (SS-11)
+  |
+  +----> E-9 (SS-12) [via STORY-080 -> STORY-086]
+           |
+           +----> E-10 (SS-13) [via STORY-086 -> STORY-096]
+```
+
+---
+
+## Wave Assignment Discrepancies vs. Story Frontmatter
+
+When this dependency graph was constructed, cross-epic edges were added that were
+not present in the original intra-epic-only story frontmatter. Several stories in
+E-2 also had wave tags that did not reflect the correct longest-path computation.
+The values below are the **authoritative computed waves**; the frontmatter wave
+tags in individual story files should be treated as non-binding.
+
+| Story | Frontmatter Wave | Computed Wave | Delta | Cause |
+|-------|-----------------|---------------|-------|-------|
+| STORY-013 | 2 | 6 | +4 | STORY-013 depends on STORY-012 (wave 5); cannot be wave 2 |
+| STORY-014 | 3 | 7 | +4 | STORY-014 depends on STORY-013 (wave 6) |
+| STORY-015 | 3 | 8 | +5 | STORY-015 depends on STORY-014 (wave 7) |
+| STORY-016 | 4 | 9 | +5 | STORY-016 depends on STORY-015 (wave 8) |
+| STORY-017 | 4 | 10 | +6 | STORY-017 depends on STORY-016 (wave 9) |
+| STORY-018 | 4 | 10 | +6 | STORY-018 depends on STORY-016 (wave 9) |
+| STORY-020 | 5 | 9 | +4 | STORY-020 depends on STORY-019 (wave 8) |
+| STORY-021 | 6 | 11 | +5 | STORY-021 depends on STORY-018/STORY-020 (wave 10) |
+| STORY-011 | 1 | 4 | +3 | Cross-epic dep E-1->E-2 added: STORY-011 depends on STORY-005 (wave 3) |
+| STORY-031..033 | null | 12..14 | n/a | Cross-epic dep E-2->E-3 added; no prior wave tag |
+| STORY-041..046 | null | 15..18 | n/a | Cross-epic deps E-3->E-4, E-7->E-4 added |
+| STORY-051..058 | null | 15..19 | n/a | Cross-epic deps E-3->E-5, E-7->E-5 added |
+| STORY-066 | 1 | 4 | +3 | Cross-epic dep E-1->E-6 added: STORY-066 depends on STORY-005 |
+| STORY-076..080 | 1..3 | 20..22 | n/a | Cross-epic deps E-4/E-5/E-6/E-7->E-8 added |
+| STORY-086..090 | 1..5 | 23..27 | n/a | Cross-epic dep E-8->E-9 added |
+| STORY-096 | 1 | 24 | +23 | Cross-epic dep E-9->E-10 added |
+
+---
+
+## Gap Register
+
+No story-decomposition gaps identified. All 217 BCs are covered across 48 stories.
+All L2 domain capabilities (CAP-NNN) are covered by at least one story.
+All cross-epic architectural dependencies are captured in this graph.
+
+| Gap ID | Level | Source | Justification | Resolution Target |
+|--------|-------|--------|---------------|-------------------|
+| (none) | — | — | — | — |
+
+---
+
+## Notes on E-9 Transitive Coverage
+
+STORY-086's single cross-epic dep on STORY-080 (E-8 leaf) provides transitive
+coverage of all upstream epics:
+
+```
+STORY-080 -> STORY-079 -> STORY-076
+STORY-076 <- STORY-046 (E-4) <- STORY-041 <- STORY-033 (E-3) <- STORY-021 (E-2) <- STORY-011 <- STORY-005 (E-1)
+STORY-076 <- STORY-057/058 (E-5)
+STORY-076 <- STORY-066 (E-6)
+STORY-076 <- STORY-071 (E-7)
+```
+
+Explicit `depends_on: [STORY-005, STORY-021]` edges on STORY-086 (present in its
+original frontmatter) are therefore redundant and have been superseded by the
+transitive chain through STORY-080. The dependency-graph.md is authoritative.
