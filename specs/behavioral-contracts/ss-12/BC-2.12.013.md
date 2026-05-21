@@ -81,7 +81,7 @@ processed, leaving no artifacts on stderr.
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the indicatif ProgressBar is constructed and driven in run_analyze (main.rs:149-177) as part of the per-target packet loop; this is the entry-layer packet-loop orchestration owned by CAP-12, not a reporter rendering concern |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
-| Stories | S-TBD |
+| Stories | STORY-088 |
 | Origin BC | BC-CLI-013 (pass-3 ingestion corpus, LOW confidence -- cosmetic UI, not asserted) |
 
 ## Related BCs

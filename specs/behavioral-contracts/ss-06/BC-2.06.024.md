@@ -83,7 +83,7 @@ bounded by MAX_URIS (BC-2.06.025).
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- map cardinality cap is a memory-bounding mechanism for HTTP analysis statistics |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
 | Architecture Module | SS-06 (analyzer/http.rs:375-389, C-12) |
-| Stories | S-TBD |
+| Stories | STORY-045 |
 | Origin BC | BC-HTTP-024 (pass-3 ingestion corpus, MEDIUM confidence -- no direct test) |
 
 ## Related BCs

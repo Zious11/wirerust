@@ -92,7 +92,7 @@ section per `AnalysisSummary`. This order is documented in the module and verifi
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- the section order of the terminal report is a documented output structure contract that downstream grep-based pipelines depend on |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
-| Stories | S-TBD |
+| Stories | STORY-078 |
 | Origin BC | BC-RPT-019 (pass-3 ingestion corpus, MEDIUM confidence -- section presence covered; strict positional order not directly asserted in a single test) |
 
 ## Related BCs

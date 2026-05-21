@@ -90,7 +90,7 @@ segment. Each contiguous chunk is delivered to the handler as a separate `on_dat
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- contiguous delivery is the defining contract of stream reassembly |
 | L2 Domain Invariants | None directly (base_offset monotonicity is a derived invariant) |
 | Architecture Module | SS-04 (reassembly/segment.rs:236-248, flush_contiguous; mod.rs:517-533) |
-| Stories | S-TBD |
+| Stories | STORY-015 |
 | Origin BC | BC-RAS-007 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

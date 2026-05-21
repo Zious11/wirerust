@@ -88,7 +88,7 @@ the remediation cycle.
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- write_output (main.rs:322-338) routes the already-rendered string to a file or stdout based on CLI flag state; this delivery-routing decision is CAP-12's output-channel responsibility, distinct from CAP-11's rendering of the string itself |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
-| Stories | S-TBD |
+| Stories | STORY-089 |
 | Origin BC | BC-CLI-017 (pass-3 ingestion corpus, MEDIUM confidence -- file-write path now wired; was previously BC-ABS-006/BC-ABS-007 absent behaviors, now retired) |
 
 ## Related BCs

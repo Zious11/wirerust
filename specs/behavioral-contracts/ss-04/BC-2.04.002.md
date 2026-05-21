@@ -87,7 +87,7 @@ increments only when the protocol check passes.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- this BC defines the boundary filter that restricts reassembly to TCP streams only |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-04 (reassembly/mod.rs:186-190, extract_tcp_context, C-6) |
-| Stories | S-TBD |
+| Stories | STORY-012 |
 | Origin BC | BC-RAS-002 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

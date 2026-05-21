@@ -86,7 +86,7 @@ Only the reassembly engine enforces MAX_FINDINGS.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- MAX_FINDINGS cap is the primary resource-bounding mechanism for the reassembly engine |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap with cap-bypass for finalize) |
 | Architecture Module | SS-04 (reassembly/mod.rs:54,432,466,495, C-6; reassembly/lifecycle.rs:101,121, C-15) |
-| Stories | S-TBD |
+| Stories | STORY-021 |
 | Origin BC | BC-RAS-024 (pass-3 ingestion corpus, MEDIUM confidence -- not directly tested) |
 
 ## Related BCs

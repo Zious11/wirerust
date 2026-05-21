@@ -86,7 +86,7 @@ This BC covers the UDP decode path including the DNS-port case.
 | Capability Anchor Justification | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 -- UDP decode is part of the packet decoder that gates on link type |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
-| Stories | S-TBD |
+| Stories | STORY-002 |
 | Origin BC | BC-DEC-002 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

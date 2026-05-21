@@ -80,7 +80,7 @@ behavior, not a bug.
 | Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- rejection of pcapng is a boundary of the ingestion capability |
 | L2 Domain Invariants | None |
 | Architecture Module | SS-01 (reader.rs, C-4) |
-| Stories | S-TBD |
+| Stories | STORY-001 |
 | Origin BC | BC-RDR-004 (pass-3 ingestion corpus, MEDIUM confidence -- no explicit test assertion) |
 
 ## Related BCs

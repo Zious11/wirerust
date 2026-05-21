@@ -89,7 +89,7 @@ On subsequent IsnMissing encounters:
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- the ISN_MISSING_WARNED atomic is the observability mechanism for a programming-error guard in TCP reassembly |
 | L2 Domain Invariants | INV-6 (related -- the one-shot warning pattern prevents stderr flooding, analogous to the one-shot warning for finalize-skip) |
 | Architecture Module | SS-04 (reassembly/segment.rs:16, C-8) |
-| Stories | S-TBD |
+| Stories | STORY-014 |
 | Origin BC | BC-RAS-048 (pass-3 ingestion corpus, LOW confidence -- no direct test) |
 
 ## Related BCs

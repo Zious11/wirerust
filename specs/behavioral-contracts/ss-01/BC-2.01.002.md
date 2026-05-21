@@ -96,7 +96,7 @@ in `src/reader.rs:69-79`.
 | Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- this BC is the core reading contract that produces the packet vector for downstream processing |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-01 (reader.rs, C-4) |
-| Stories | S-TBD -- filled by story-writer |
+| Stories | STORY-001 |
 | Origin BC | BC-RDR-002 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

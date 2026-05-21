@@ -83,7 +83,7 @@ just when non-zero) allows downstream scripts to distinguish "no errors" from "f
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- skipped_packets is a required summary field for forensic completeness; its unconditional inclusion in JSON output is part of the machine-readable reporting contract |
 | L2 Domain Invariants | None directly; related to INV-4 (raw data flows through) |
 | Architecture Module | SS-11 (reporter/json.rs, C-19) |
-| Stories | S-TBD |
+| Stories | STORY-076 |
 | Origin BC | BC-RPT-002 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

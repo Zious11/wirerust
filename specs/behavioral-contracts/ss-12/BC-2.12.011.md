@@ -86,7 +86,7 @@ included.
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- resolve_targets (main.rs:340-360) is CAP-12's target-resolution step; choosing which files to read (filtering by .pcap extension, sorting, and expanding directories) is the entry-point orchestration that precedes any ingestion or analysis |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
-| Stories | S-TBD |
+| Stories | STORY-088 |
 | Origin BC | BC-CLI-011 (pass-3 ingestion corpus, MEDIUM confidence -- behavior is in code but not directly tested) |
 
 ## Related BCs

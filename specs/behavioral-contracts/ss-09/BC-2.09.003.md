@@ -79,7 +79,7 @@ convention is part of the wire-visible output contract.
 | Capability Anchor Justification | CAP-09 ("Forensic finding emission") per capabilities.md §CAP-09 -- Verdict display is part of the Finding output vocabulary defined in CAP-09 |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-09 (findings.rs, C-14) |
-| Stories | S-TBD |
+| Stories | STORY-069 |
 | Origin BC | BC-FND-003 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

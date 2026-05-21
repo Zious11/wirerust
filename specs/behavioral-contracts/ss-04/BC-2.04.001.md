@@ -97,7 +97,7 @@ policy. Valid configs always produce a zero-finding, zero-flow, un-finalized ins
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- constructor validation is the entry invariant for the reassembly engine |
 | L2 Domain Invariants | None directly (pre-invariant guard) |
 | Architecture Module | SS-04 (reassembly/mod.rs:107-127, C-6) |
-| Stories | S-TBD |
+| Stories | STORY-011 |
 | Origin BC | BC-RAS-001 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

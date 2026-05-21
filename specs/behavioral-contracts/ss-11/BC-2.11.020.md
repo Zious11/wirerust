@@ -95,7 +95,7 @@ analyst scripts) can rely on positional column indices without schema discovery.
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- this BC defines the CSV output column schema that is the fixed API surface of the CsvReporter, directly implementing the reporting output capability |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- CsvReporter applies neutralization at render time; the Finding retains raw bytes) |
 | Architecture Module | SS-11 (reporter/csv.rs, lines 62-73) |
-| Stories | S-TBD |
+| Stories | STORY-079 |
 | Origin BC | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
 
 ## Related BCs
@@ -112,7 +112,7 @@ analyst scripts) can rely on positional column indices without schema discovery.
 
 ## Story Anchor
 
-S-TBD -- CsvReporter implementation (LESSON-P2.03)
+STORY-079 -- CsvReporter implementation (LESSON-P2.03)
 
 ## VP Anchors
 

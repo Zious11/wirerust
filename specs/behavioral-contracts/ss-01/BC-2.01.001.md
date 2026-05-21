@@ -92,7 +92,7 @@ unsupported file are processed. This contract is enforced in `src/reader.rs:50-6
 | Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- this BC describes the initial link-type gate that gatekeeps all file ingestion |
 | L2 Domain Invariants | None directly (link-type gating is a precondition to all invariants) |
 | Architecture Module | SS-01 (reader.rs:46-60, C-4) |
-| Stories | S-TBD -- filled by story-writer |
+| Stories | STORY-001 |
 | Origin BC | BC-RDR-001 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

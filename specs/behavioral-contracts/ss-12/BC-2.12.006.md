@@ -80,7 +80,7 @@ may be file paths or directory paths (directory expansion is handled in `resolve
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- accepting multiple positional targets and iterating over them in run_analyze / run_summary is core to CAP-12's per-target file expansion and packet-loop orchestration |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (cli.rs, C-3) |
-| Stories | S-TBD |
+| Stories | STORY-086 |
 | Origin BC | BC-CLI-006 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

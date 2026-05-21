@@ -83,7 +83,7 @@ the pcap format's own type; no cast is required beyond the match-arm value.
 | Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- timestamp extraction is part of RawPacket production during ingestion |
 | L2 Domain Invariants | None (O-01: timestamps are read but never threaded to Finding constructors) |
 | Architecture Module | SS-01 (reader.rs, C-4) |
-| Stories | S-TBD |
+| Stories | STORY-001 |
 | Origin BC | BC-RDR-005 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

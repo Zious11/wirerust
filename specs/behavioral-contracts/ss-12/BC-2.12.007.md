@@ -89,7 +89,7 @@ If both flags were somehow passed simultaneously, the downstream code at main.rs
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the clap conflicts_with constraint between --reassemble and --no-reassemble is declared on the Cli struct (cli.rs:62) and enforced at parse time before any pipeline wiring; this is a CLI entry-point invariant, not a PCAP ingestion or reassembly behavior |
 | L2 Domain Invariants | None |
 | Architecture Module | SS-12 (cli.rs, C-3) |
-| Stories | S-TBD |
+| Stories | STORY-087 |
 | Origin BC | BC-CLI-007 (pass-3 ingestion corpus, MEDIUM confidence -- clap enforces; no test passes both flags; R4 finding) |
 
 ## Related BCs

@@ -92,7 +92,7 @@ delivered (truncated) to the handler; the `depth_exceeded` flag is set on the di
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- depth truncation signaling is part of the bounded-resource forensic contract |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap) |
 | Architecture Module | SS-04 (reassembly/lifecycle.rs:120-136, generate_truncated_finding; mod.rs:383-385, Truncated match arm) |
-| Stories | S-TBD |
+| Stories | STORY-018 |
 | Origin BC | BC-RAS-023 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

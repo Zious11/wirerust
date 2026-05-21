@@ -86,7 +86,7 @@ first data packet; for SYN+ACK flows, the initiator is the DESTINATION of the SY
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- direction determination is required for correct bidirectional data delivery in TCP stream reassembly |
 | L2 Domain Invariants | INV-1 (FlowKey canonical ordering -- direction is orthogonal to canonical key ordering; a client can be either lower or upper endpoint) |
 | Architecture Module | SS-04 (reassembly/flow.rs:214-220, C-7) |
-| Stories | S-TBD |
+| Stories | STORY-013 |
 | Origin BC | BC-RAS-053 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

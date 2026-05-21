@@ -88,7 +88,7 @@ passed to every `handler.on_data` invocation across all flows, in both direction
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- bytes_reassembled is the primary accounting metric for data delivered by the TCP reassembly engine |
 | L2 Domain Invariants | (none -- pure accounting invariant) |
 | Architecture Module | SS-04 (reassembly/mod.rs:531, C-6; reassembly/lifecycle.rs:56, C-15) |
-| Stories | S-TBD |
+| Stories | STORY-012 |
 | Origin BC | BC-RAS-030 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

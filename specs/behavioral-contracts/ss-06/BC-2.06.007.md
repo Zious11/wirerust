@@ -92,7 +92,7 @@ administrators; the finding is informational rather than definitive.
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- admin panel access detection is one of the HTTP reconnaissance findings |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
 | Architecture Module | SS-06 (analyzer/http.rs:235-249, C-12) |
-| Stories | S-TBD |
+| Stories | STORY-042 |
 | Origin BC | BC-HTTP-007 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

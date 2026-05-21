@@ -85,7 +85,7 @@ like `primer.rf` (Cyrillic) appears in the JSON output literally, not as `\u...`
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- preserving non-ASCII Unicode in JSON output is essential for forensic readability of internationalized hostnames and payloads |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- non-ASCII forensic data must not be lossy-encoded) |
 | Architecture Module | SS-11 (reporter/json.rs, C-19) |
-| Stories | S-TBD |
+| Stories | STORY-076 |
 | Origin BC | BC-RPT-004 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

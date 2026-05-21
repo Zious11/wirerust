@@ -87,7 +87,7 @@ for most real-world captures.
 | Capability Anchor Justification | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 -- this BC specifies the primary Ethernet decode path of the link-type-gated packet decoder |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
-| Stories | S-TBD |
+| Stories | STORY-002 |
 | Origin BC | BC-DEC-001 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

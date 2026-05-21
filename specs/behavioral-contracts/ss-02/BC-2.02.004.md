@@ -78,7 +78,7 @@ even for raw IP captures.
 | Capability Anchor Justification | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 -- link-type equivalence rules are part of the gating whitelist contract |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
-| Stories | S-TBD |
+| Stories | STORY-002 |
 | Origin BC | BC-DEC-004 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

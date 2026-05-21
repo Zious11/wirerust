@@ -92,7 +92,7 @@ finding (via `generate_truncated_finding`). Subsequent segments to the same dire
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- depth truncation is the per-direction resource bound enforcement of TCP reassembly |
 | L2 Domain Invariants | INV-6 (bounded-resource design -- max_depth is the per-direction memory cap) |
 | Architecture Module | SS-04 (reassembly/segment.rs:79-104, C-8) |
-| Stories | S-TBD |
+| Stories | STORY-018 |
 | Origin BC | BC-RAS-041 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

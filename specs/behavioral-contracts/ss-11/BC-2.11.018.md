@@ -89,7 +89,7 @@ packets warning use their own color rules.
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- colorization is a terminal output presentation feature of the reporting capability |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
-| Stories | S-TBD |
+| Stories | STORY-078 |
 | Origin BC | BC-RPT-018 (pass-3 ingestion corpus, MEDIUM confidence -- tests run with use_color=false; ANSI assertion cost-prohibitive per P3 R4 KEEP-MEDIUM rationale) |
 
 ## Related BCs

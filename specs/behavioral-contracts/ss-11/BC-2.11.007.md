@@ -104,7 +104,7 @@ contract.
 | Capability Anchor Justification | CAP-11 ("Reporting and output") per capabilities.md §CAP-11 -- terminal escaping is the display-layer safety contract that completes the raw-data pipeline |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation -- TerminalReporter is the sole escape owner) |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
-| Stories | S-TBD |
+| Stories | STORY-077 |
 | Origin BC | BC-RPT-007 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

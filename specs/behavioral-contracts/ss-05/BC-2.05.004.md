@@ -89,7 +89,7 @@ the flow and the classification_attempts counter entry is removed.
 | Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 -- DispatchTarget::None is the defined fallthrough for flows that match no classification rule |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- None is the explicit non-match result) |
 | Architecture Module | SS-05 (dispatcher.rs:116, 136-153, C-21) |
-| Stories | S-TBD |
+| Stories | STORY-032 |
 | Origin BC | BC-DSP-004 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

@@ -88,7 +88,7 @@ This counter drives the memcap eviction check after each packet.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- total_memory tracking is the measurement mechanism for the memcap eviction policy |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-04 (reassembly/mod.rs:337-340, insert; mod.rs:525-527, flush; lifecycle.rs:51, close_flow) |
-| Stories | S-TBD |
+| Stories | STORY-020 |
 | Origin BC | BC-RAS-014 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

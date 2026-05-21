@@ -80,7 +80,7 @@ so either `--no-color` or the `NO_COLOR` environment variable independently disa
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the --no-color global flag is declared on the Cli struct (cli.rs C-3) and consumed in main.rs to compute use_color before subcommand dispatch; this is CLI orchestration / entry-point wiring, not reporter rendering logic |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (cli.rs, C-3) |
-| Stories | S-TBD |
+| Stories | STORY-086 |
 | Origin BC | BC-CLI-003 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

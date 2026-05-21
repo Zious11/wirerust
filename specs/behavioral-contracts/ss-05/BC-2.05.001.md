@@ -90,7 +90,7 @@ an attacker running TLS on port 80 is still identified as TLS, not HTTP.
 | Capability Anchor Justification | CAP-05 ("Content-first protocol dispatch") per capabilities.md §CAP-05 -- TLS content signature routing is the primary dispatch rule per ADR 0001 |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence) |
 | Architecture Module | SS-05 (dispatcher.rs:90-116, C-21) |
-| Stories | S-TBD |
+| Stories | STORY-031 |
 | Origin BC | BC-DSP-001 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

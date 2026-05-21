@@ -89,7 +89,7 @@ reassembly logic proceeds identically to a fully-handshaked flow.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- mid-stream join is required for forensic analysis of captures that begin mid-connection |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-04 (reassembly/mod.rs:305-311, insert_payload_segment; flow.rs:241-246, on_data_without_syn; flow.rs:143-148, infer_isn) |
-| Stories | S-TBD |
+| Stories | STORY-014 |
 | Origin BC | BC-RAS-009 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

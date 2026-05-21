@@ -82,7 +82,7 @@ not application payload bytes.
 | Capability Anchor Justification | CAP-03 ("Packet decoding") per capabilities.md §CAP-03 -- packet_len is a decoded output field of the packet decoding layer |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
-| Stories | S-TBD |
+| Stories | STORY-005 |
 | Origin BC | BC-DEC-014 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

@@ -90,7 +90,7 @@ narrow but real vector where DEC S8C1T terminals can interpret 8-bit C1 sequence
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- C1 escaping is the second tier of the terminal injection defense; terminals in DEC S8C1T mode treat U+009B as 8-bit ESC[, which attackers can exploit via SNI or URI bytes |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- escape_for_terminal is the sole C1 escape owner) |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
-| Stories | S-TBD |
+| Stories | STORY-077 |
 | Origin BC | BC-RPT-009 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

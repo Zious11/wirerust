@@ -85,7 +85,7 @@ crashing.
 | Capability Anchor Justification | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 -- the no-panic guarantee is the safety property of the decode gate |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
-| Stories | S-TBD |
+| Stories | STORY-003 |
 | Origin BC | BC-DEC-007 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

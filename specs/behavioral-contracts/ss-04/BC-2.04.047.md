@@ -88,7 +88,7 @@ currently in the `segments` BTreeMap. After every insert, flush, or overlap oper
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- buffered_bytes accuracy is the foundation of the memory accounting invariant used by memcap eviction |
 | L2 Domain Invariants | INV-6 (bounded-resource design -- buffered_bytes feeds total_memory which is compared against memcap) |
 | Architecture Module | SS-04 (reassembly/flow.rs:170-177, C-7; reassembly/segment.rs, C-8) |
-| Stories | S-TBD |
+| Stories | STORY-016 |
 | Origin BC | BC-RAS-047 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

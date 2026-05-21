@@ -83,7 +83,7 @@ empty for the flow.
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- zero-findings for normal traffic is the baseline correctness guarantee for HTTP analysis |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
 | Architecture Module | SS-06 (analyzer/http.rs:183-357, C-12) |
-| Stories | S-TBD |
+| Stories | STORY-042 |
 | Origin BC | BC-HTTP-012 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

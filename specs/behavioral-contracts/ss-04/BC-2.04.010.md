@@ -92,7 +92,7 @@ this packet. The flow is removed from the `flows` HashMap by `close_flow`.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- RST handling is a required part of the TCP flow lifecycle |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-04 (reassembly/mod.rs:272-278, RST block; lifecycle.rs:36-62, close_flow) |
-| Stories | S-TBD |
+| Stories | STORY-019 |
 | Origin BC | BC-RAS-010 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

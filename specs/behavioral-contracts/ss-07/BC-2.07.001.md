@@ -105,7 +105,7 @@ processed.
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- this BC is the primary ClientHello processing entry point for all TLS analysis |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification), INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:379-540, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-052 |
 | Origin BC | BC-TLS-001 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

@@ -84,7 +84,7 @@ exceeds the cap will never parse to completion and will be silently discarded at
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- header buffer cap is the memory-bounding mechanism for HTTP analysis |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
 | Architecture Module | SS-06 (analyzer/http.rs:513-529, C-12) |
-| Stories | S-TBD |
+| Stories | STORY-045 |
 | Origin BC | BC-HTTP-022 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

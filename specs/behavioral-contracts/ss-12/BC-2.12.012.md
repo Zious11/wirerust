@@ -81,7 +81,7 @@ outer pipeline in `run_analyze` / `run_summary`.
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the bail! on an invalid target path (main.rs:359) is part of resolve_targets, which is CAP-12's target-resolution step; input validation at the entry point before any packet reading is precisely the orchestration concern CAP-12 owns |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
-| Stories | S-TBD |
+| Stories | STORY-088 |
 | Origin BC | BC-CLI-012 (pass-3 ingestion corpus, MEDIUM confidence -- behavior is explicit in code; no unit test) |
 
 ## Related BCs

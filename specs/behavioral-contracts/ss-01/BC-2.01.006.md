@@ -76,7 +76,7 @@ have a different magic number).
 | Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- this BC covers the error path for corrupted or wrong-format files |
 | L2 Domain Invariants | None |
 | Architecture Module | SS-01 (reader.rs, C-4) |
-| Stories | S-TBD |
+| Stories | STORY-001 |
 | Origin BC | BC-RDR-006 (pass-3 ingestion corpus, MEDIUM confidence -- no direct test) |
 
 ## Related BCs

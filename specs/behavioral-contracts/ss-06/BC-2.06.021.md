@@ -81,7 +81,7 @@ global, but per-flow decision gates (poisoning, error counts) are fully isolated
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- cross-flow isolation is required for forensic correctness in multi-flow captures |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation), INV-8 (HTTP poisoning is monotonic -- per flow, not global) |
 | Architecture Module | SS-06 (analyzer/http.rs:114-126, C-12) |
-| Stories | S-TBD |
+| Stories | STORY-045 |
 | Origin BC | BC-HTTP-021 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

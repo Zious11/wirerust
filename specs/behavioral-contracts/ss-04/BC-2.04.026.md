@@ -80,7 +80,7 @@ captures where no segment limit was hit.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- suppressing spurious findings on clean captures is part of the forensic correctness contract |
 | L2 Domain Invariants | INV-7 (finalize-once latch) |
 | Architecture Module | SS-04 (reassembly/mod.rs:571, `if count > 0` guard) |
-| Stories | S-TBD |
+| Stories | STORY-021 |
 | Origin BC | BC-RAS-026 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

@@ -92,7 +92,7 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 | Capability Anchor Justification | CAP-09 ("Forensic finding emission") per capabilities.md §CAP-09 -- the raw-data contract is the foundational invariant of the Finding type's data preservation guarantee |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
 | Architecture Module | SS-09 (findings.rs:120-145, C-14; all analyzer emission sites) |
-| Stories | S-TBD |
+| Stories | STORY-070 |
 | Origin BC | BC-FND-005 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

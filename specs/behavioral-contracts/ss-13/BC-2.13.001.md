@@ -79,7 +79,7 @@ accurate for the pre-PR-#74 codebase; it is wrong for the current shipped binary
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- this BC documents an absent CLI flag; the CLI entry-point surface (argument declarations, clap rejection behavior) is precisely what CAP-12 governs |
 | L2 Domain Invariants | None |
 | Architecture Module | SS-13 (cli.rs, C-3 -- flag absence documented by LESSON-P1.04 comment) |
-| Stories | S-TBD |
+| Stories | STORY-096 |
 | Origin BC | BC-ABS-001 (pass-3 ingestion corpus; updated: original body was pre-PR-#74 state) |
 
 ## Related BCs

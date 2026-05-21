@@ -84,7 +84,7 @@ returns `SegmentLimitReached` when `segments_exhausted` is set.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- overlapping segment limit handling is part of the BTreeMap overflow protection in TCP reassembly |
 | L2 Domain Invariants | INV-6 (bounded-resource design -- max_segments prevents unbounded BTreeMap growth) |
 | Architecture Module | SS-04 (reassembly/segment.rs:175-179, C-8) |
-| Stories | S-TBD |
+| Stories | STORY-018 |
 | Origin BC | BC-RAS-045 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

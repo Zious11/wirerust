@@ -77,7 +77,7 @@ rare in practice; this matches the prior behavior.
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- first-entry-only SNI processing is part of TLS analysis SNI classification design |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification) |
 | Architecture Module | SS-07 (analyzer/tls.rs:247-249, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-057 |
 | Origin BC | BC-TLS-024 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

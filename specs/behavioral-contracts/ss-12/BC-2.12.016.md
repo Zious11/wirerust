@@ -89,7 +89,7 @@ any unhandled variant) -> `TerminalReporter`.
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- resolve_format (main.rs:304-320) is CAP-12's output-channel selection step; it reads CLI flag state and returns the reporter variant to instantiate; this is entry-point orchestration (choosing which reporter to create), not the reporter's own rendering logic |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
-| Stories | S-TBD |
+| Stories | STORY-089 |
 | Origin BC | BC-CLI-016 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

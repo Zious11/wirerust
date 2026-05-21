@@ -93,7 +93,7 @@ arm 1 and produce no finding. Broader LDH compliance is out of scope (issue #54)
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- the no-finding arm of SNI classification defines the baseline TLS analysis behavior |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification ordered match -- arm 1 is the no-finding path) |
 | Architecture Module | SS-07 (analyzer/tls.rs:251-252, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-055 |
 | Origin BC | BC-TLS-013 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

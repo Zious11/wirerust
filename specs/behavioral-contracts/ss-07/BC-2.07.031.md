@@ -91,7 +91,7 @@ deterministic alphabetical key ordering in JSON output.
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- summarize is the statistics output method of TLS analysis |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation -- SNI strings in summary are raw) |
 | Architecture Module | SS-07 (analyzer/tls.rs:763-808, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-058 |
 | Origin BC | BC-TLS-031 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

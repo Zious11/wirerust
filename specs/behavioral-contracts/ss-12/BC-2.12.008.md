@@ -81,7 +81,7 @@ not in the clap `Commands::Analyze` struct itself.
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the OR-expansion of --all into enable_dns/enable_http/enable_tls (main.rs:57-59) is the wiring layer that routes subcommand flags to analyzer construction; this is exactly the orchestration concern CAP-12 owns |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
-| Stories | S-TBD |
+| Stories | STORY-088 |
 | Origin BC | BC-CLI-008 (pass-3 ingestion corpus, MEDIUM confidence -- no direct test passes --all and asserts all three analyzers activate) |
 
 ## Related BCs

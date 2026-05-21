@@ -92,7 +92,7 @@ analyzer-summary detail values (BC-2.11.011).
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- the C1 pass-through behavior is a documented asymmetry between JSON and terminal reporters that downstream consumers of the JSON API must understand |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- C1 bytes in JSON are the consumer's escaping responsibility) |
 | Architecture Module | SS-11 (reporter/json.rs, C-19) |
-| Stories | S-TBD |
+| Stories | STORY-076 |
 | Origin BC | BC-RPT-005 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

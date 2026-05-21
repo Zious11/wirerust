@@ -93,7 +93,7 @@ Web Shell). The URI is included in the evidence without escaping (ADR 0003).
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- web shell detection is one of the core HTTP anomaly findings |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
 | Architecture Module | SS-06 (analyzer/http.rs:206-233, C-12) |
-| Stories | S-TBD |
+| Stories | STORY-042 |
 | Origin BC | BC-HTTP-006 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

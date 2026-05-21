@@ -90,7 +90,7 @@ of the packet being processed).
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- idle flow expiry is required to bound memory use in long-running captures |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-04 (reassembly/mod.rs:536-552, expire_flows) |
-| Stories | S-TBD |
+| Stories | STORY-019 |
 | Origin BC | BC-RAS-013 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

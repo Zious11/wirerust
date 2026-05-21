@@ -93,7 +93,7 @@ no direction, and no MITRE technique.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- segment-limit summary finding is the forensic signal for BTreeMap overflow protection |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap; finalize bypass), INV-7 (finalize-once latch) |
 | Architecture Module | SS-04 (reassembly/mod.rs:571-590, segment-limit block in finalize) |
-| Stories | S-TBD |
+| Stories | STORY-021 |
 | Origin BC | BC-RAS-025 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

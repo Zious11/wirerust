@@ -83,7 +83,7 @@ transport-layer detail.
 | Capability Anchor Justification | CAP-03 ("Packet decoding") per capabilities.md §CAP-03 -- ICMP classification is part of the L2-L4 header parsing that CAP-03 describes; per architect CAP-03 is merged into SS-02 |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
-| Stories | S-TBD |
+| Stories | STORY-004 |
 | Origin BC | BC-DEC-010 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

@@ -89,7 +89,7 @@ distinct from the max_flows-triggered path in `get_or_create_flow`. Both paths c
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- memcap eviction bounds total memory use, a core resource constraint |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-04 (reassembly/mod.rs:176-179, memcap check; lifecycle.rs:67-92, evict_flows) |
-| Stories | S-TBD |
+| Stories | STORY-020 |
 | Origin BC | BC-RAS-016 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

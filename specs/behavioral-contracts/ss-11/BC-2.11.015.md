@@ -88,7 +88,7 @@ due to an unrecognized technique ID.
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- the Uncategorized bucket prevents finding loss; all findings must appear in output regardless of technique catalog coverage |
 | L2 Domain Invariants | INV-9 (MITRE Technique ID Format -- IDs not in catalog are not dropped but rendered as unknown) |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
-| Stories | S-TBD |
+| Stories | STORY-078 |
 | Origin BC | BC-RPT-015 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

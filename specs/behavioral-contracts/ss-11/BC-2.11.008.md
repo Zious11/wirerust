@@ -90,7 +90,7 @@ in the terminal output. Only control bytes and backslash are escaped.
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- printable Unicode preservation is a forensic requirement; mangling hostnames or SNI values would destroy forensic evidence |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- escape_for_terminal must not mangle legitimate forensic data) |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
-| Stories | S-TBD |
+| Stories | STORY-077 |
 | Origin BC | BC-RPT-008 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

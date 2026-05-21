@@ -88,9 +88,12 @@ phase_2_input_hash_drift_check_uncomputed: 0
 decomposition consistency gate PASSED; adversarial story-convergence gate SATISFIED 3/3 (10 passes);
 input-hash drift check CLEAN (TOTAL=153 MATCH=153 STALE=0 UNCOMPUTED=0); pre-approval polish applied;
 human approval GRANTED 2026-05-21. Pipeline now entering Phase 3: wave-by-wave TDD implementation
-(waves 1→27). BC story-anchor back-fill in progress as Phase-3 entry prep (217 BC files:
-`Story Anchor: S-TBD` → `Story Anchor: covering STORY-NNN`, per dependency-graph BC-to-Stories matrix;
-analogous to P8-DEFER VP back-fill). First wave: Wave 1 = STORY-001 + STORY-069.
+(waves 1→27). BC story-anchor back-fill COMPLETE (217/217 BC files; `Story Anchor: S-TBD` →
+`Story Anchor: covering STORY-NNN`, per dependency-graph BC-to-Stories matrix; analogous to
+P8-DEFER VP back-fill). Traceability chain complete end-to-end: BC ↔ Story ↔ VP all
+cross-referenced. Pre-Phase-3 prerequisites verified: CI/CD `ci.yml` present with
+test/clippy/fmt/semantic-PR jobs; DTU not required per dtu-assessment.
+Next: Phase 3 Wave 1 per-story TDD delivery (STORY-001, STORY-069).
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -107,7 +110,7 @@ analogous to P8-DEFER VP back-fill). First wave: Wave 1 = STORY-001 + STORY-069.
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
 | Phase 2 — Story Decomposition | **PASSED** — all gates + human approval 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; decomposition gate PASSED; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153); trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M→0C/0H/1M (RESET)→0C/0H/0M→0C/0H/0M→0C/0H/0M (GATE SATISFIED 3/3) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — STARTED 2026-05-21; Wave 1 next (STORY-001 + STORY-069); BC story-anchor back-fill in progress | — |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — STARTED 2026-05-21; BC story-anchor back-fill COMPLETE (217/217); Wave 1 next (STORY-001 + STORY-069) | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -212,7 +215,8 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 
 | Step | Status | Notes |
 |------|--------|-------|
-| BC story-anchor back-fill (entry prep) | **IN PROGRESS** | 217 BC files: `Story Anchor: S-TBD` → `Story Anchor: covering STORY-NNN`; per dependency-graph BC-to-Stories matrix; analogous to P8-DEFER VP back-fill |
+| BC story-anchor back-fill (entry prep) | **COMPLETE** 2026-05-21 | 217/217 BC files: `Story Anchor: S-TBD` → `Story Anchor: covering STORY-NNN`; per dependency-graph BC-to-Stories matrix; analogous to P8-DEFER VP back-fill; traceability chain complete BC ↔ Story ↔ VP |
+| Pre-Phase-3 prerequisites | **VERIFIED** 2026-05-21 | CI/CD `ci.yml` present (test/clippy/fmt/semantic-PR jobs); DTU not required per dtu-assessment |
 | Wave 1 delivery (STORY-001 + STORY-069) | NOT STARTED | First wave; per-story TDD delivery via `vsdd-factory:deliver-story` |
 | Per-story adversarial convergence | NOT STARTED | 3 clean passes required per story |
 | Wave-level adversarial convergence | NOT STARTED | 3 clean passes required per wave (waves 1→27) |
@@ -262,7 +266,7 @@ None are blocking convergence.
 | F-8-N1 | Pass 8 NITPICK | `holdout-scenarios/HS-INDEX.md` | Self-asserted "PASS" block at end of HS-INDEX — harmless authoring artifact | OPEN — cosmetic; no action required before approval |
 | F-9-L1 | Pass 9 LOW | `stories/STORY-088.md` — File Structure table | AC range label "AC-001..AC-013" stale; story has AC-001..AC-014 | **RESOLVED** — Pass 10 polish: corrected to AC-001..AC-014 |
 | F-9-N1 | Pass 9 NITPICK | Multiple STORY files — `glob` tooling note | Slightly inconsistent phrasing of glob tooling note across story files; harmless style variance | OPEN — style variance; no action required before approval |
-| N-2 [process-gap] | Pass 10 NITPICK | `specs/behavioral-contracts/ss-*/BC-*.md` | All BC files carry `Story Anchor: S-TBD` placeholders. Phase-1→Phase-2 hand-off procedure has no BC story-anchor back-fill step, analogous to P8-DEFER VP back-fill resolved at Phase-1 exit. Forward story→BC traceability is complete and correct. | OPEN — question for human approval gate: should a Phase-2-exit back-fill step be added? |
+| N-2 [process-gap] | Pass 10 NITPICK | `specs/behavioral-contracts/ss-*/BC-*.md` | All BC files carried `Story Anchor: S-TBD` placeholders. Phase-1→Phase-2 hand-off procedure had no BC story-anchor back-fill step, analogous to P8-DEFER VP back-fill resolved at Phase-1 exit. Forward story→BC traceability was complete and correct. | **RESOLVED** 2026-05-21 — Phase-3 entry back-fill complete: 217/217 BC files updated; zero `S-TBD` remain; traceability chain BC ↔ Story ↔ VP complete end-to-end. |
 
 ## Governance Policy
 

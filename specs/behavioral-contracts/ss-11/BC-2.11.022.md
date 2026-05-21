@@ -100,7 +100,7 @@ applies RFC 4180 quoting if the joined string contains commas, quotes, or newlin
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- this BC defines how multi-valued evidence is encoded for the spreadsheet-oriented CSV output channel |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- individual evidence strings contain raw bytes; encoding/joining is a display-layer decision) |
 | Architecture Module | SS-11 (reporter/csv.rs:81) |
-| Stories | S-TBD |
+| Stories | STORY-079 |
 | Origin BC | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
 
 ## Related BCs
@@ -116,7 +116,7 @@ applies RFC 4180 quoting if the joined string contains commas, quotes, or newlin
 
 ## Story Anchor
 
-S-TBD -- CsvReporter implementation (LESSON-P2.03)
+STORY-079 -- CsvReporter implementation (LESSON-P2.03)
 
 ## VP Anchors
 

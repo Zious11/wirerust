@@ -98,7 +98,7 @@ Both paths (when isn was already set):
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- ISN management is fundamental to TCP stream reassembly's offset computation |
 | L2 Domain Invariants | INV-1 (FlowKey canonical ordering -- ISN is per-direction within a canonically-ordered flow) |
 | Architecture Module | SS-04 (reassembly/flow.rs:136-148, C-7) |
-| Stories | S-TBD |
+| Stories | STORY-014 |
 | Origin BC | BC-RAS-031 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

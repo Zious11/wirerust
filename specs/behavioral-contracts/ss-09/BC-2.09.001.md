@@ -106,7 +106,7 @@ builder or constructor helper -- every site provides the full literal.
 | Capability Anchor Justification | CAP-09 ("Forensic finding emission") per capabilities.md §CAP-09 -- this BC defines the full schema of the Finding struct which is the core output type of CAP-09 |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
 | Architecture Module | SS-09 (findings.rs, C-14) |
-| Stories | S-TBD |
+| Stories | STORY-069 |
 | Origin BC | BC-FND-001 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

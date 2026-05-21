@@ -74,7 +74,7 @@ for test fixtures and for handling captures that were stopped before any traffic
 | Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- this BC covers the degenerate zero-packet case of file ingestion |
 | L2 Domain Invariants | None |
 | Architecture Module | SS-01 (reader.rs, C-4) |
-| Stories | S-TBD |
+| Stories | STORY-001 |
 | Origin BC | BC-RDR-003 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

@@ -95,7 +95,7 @@ or summary section appended.
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- this BC documents the Reporter trait compliance and the findings-only scope of CsvReporter, which is the core behavioral contract of the CSV output channel |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- CsvReporter is the display layer for the CSV channel; it applies injection neutralization at render time) |
 | Architecture Module | SS-11 (reporter/csv.rs:51-106, Reporter trait impl) |
-| Stories | S-TBD |
+| Stories | STORY-080 |
 | Origin BC | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
 
 ## Related BCs
@@ -115,7 +115,7 @@ or summary section appended.
 
 ## Story Anchor
 
-S-TBD -- CsvReporter implementation (LESSON-P2.03)
+STORY-080 -- CsvReporter implementation (LESSON-P2.03)
 
 ## VP Anchors
 

@@ -88,7 +88,7 @@ recurring bug.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- the close_flow missing-key guard is a lifecycle defensive contract for TCP flow retirement |
 | L2 Domain Invariants | INV-7 (Finalize-once latch -- this is a related lifecycle defensive pattern) |
 | Architecture Module | SS-04 (reassembly/lifecycle.rs:42-50, C-15) |
-| Stories | S-TBD |
+| Stories | STORY-019 |
 | Origin BC | BC-RAS-029 (pass-3 ingestion corpus, LOW confidence -- no direct test) |
 
 ## Related BCs

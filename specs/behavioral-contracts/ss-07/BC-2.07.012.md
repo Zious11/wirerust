@@ -88,7 +88,7 @@ selection.
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- deprecated server protocol detection is one of the 7 TLS anomaly findings described in cap-07 |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:584-604, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-054 |
 | Origin BC | BC-TLS-012 (pass-3 ingestion corpus, MEDIUM confidence -- no independent server-side test) |
 
 ## Related BCs

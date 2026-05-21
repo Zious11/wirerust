@@ -95,7 +95,7 @@ the reassembler is dropped without finalize having been called.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- finalize is the end-of-capture lifecycle contract for the reassembly engine |
 | L2 Domain Invariants | INV-7 (Finalize-Once Latch), INV-6 (MAX_FINDINGS cap; finalize bypass) |
 | Architecture Module | SS-04 (reassembly/mod.rs:557-591, finalize; mod.rs:677-690, impl Drop) |
-| Stories | S-TBD |
+| Stories | STORY-021 |
 | Origin BC | BC-RAS-012 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

@@ -87,7 +87,7 @@ termination conditions are met. The sort is computed fresh on every `evict_flows
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- eviction ordering policy is part of the memory management contract |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-04 (reassembly/lifecycle.rs:78-84, sort comparator) |
-| Stories | S-TBD |
+| Stories | STORY-020 |
 | Origin BC | BC-RAS-017 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

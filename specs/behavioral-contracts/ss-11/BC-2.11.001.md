@@ -93,7 +93,7 @@ by `serde_json::to_string_pretty`. The `unwrap()` call is infallible by construc
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- this BC defines the machine-readable JSON output shape that is the primary API surface of the reporting capability |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- JsonReporter does not escape, delegates to serde_json per ADR 0003) |
 | Architecture Module | SS-11 (reporter/json.rs, C-19) |
-| Stories | S-TBD |
+| Stories | STORY-076 |
 | Origin BC | BC-RPT-001 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

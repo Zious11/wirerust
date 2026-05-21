@@ -83,7 +83,7 @@ removed. Global flags from the `Cli` struct apply to this subcommand as well.
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the summary subcommand declaration (Commands::Summary variant, required targets, --hosts flag) is CLI orchestration owned by CAP-12; it is the lighter entry-point path in main.rs that runs run_summary without stream analyzers |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (cli.rs, C-3) |
-| Stories | S-TBD |
+| Stories | STORY-086 |
 | Origin BC | BC-CLI-002 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

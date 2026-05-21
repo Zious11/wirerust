@@ -85,7 +85,7 @@ absorbed as a parse-error counter increment.
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- graceful parse-error handling is a robustness property of TLS analysis |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:700-712, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-058 |
 | Origin BC | BC-TLS-029 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

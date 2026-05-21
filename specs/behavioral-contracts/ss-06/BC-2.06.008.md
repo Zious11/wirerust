@@ -94,7 +94,7 @@ actions, OPTIONS for fingerprinting).
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- unusual HTTP method detection is one of the HTTP anomaly findings |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
 | Architecture Module | SS-06 (analyzer/http.rs:251-265, C-12) |
-| Stories | S-TBD |
+| Stories | STORY-043 |
 | Origin BC | BC-HTTP-008 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

@@ -89,7 +89,7 @@ same as for overlap and small-segment alerts (LESSON-P1.01).
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- out-of-window detection bounds segment buffering and detects potential evasion |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap) |
 | Architecture Module | SS-04 (reassembly/mod.rs:489-512, out-of-window threshold block) |
-| Stories | S-TBD |
+| Stories | STORY-017 |
 | Origin BC | BC-RAS-021 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

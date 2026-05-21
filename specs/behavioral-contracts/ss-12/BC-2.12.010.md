@@ -84,7 +84,7 @@ returns `Ok(...)` and `is_err()` returns false, so `use_color = false`. This hon
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the NO_COLOR environment variable check (main.rs:43) is evaluated once at main() entry before subcommand dispatch; resolving use_color is an entry-point startup concern, not a reporter rendering concern |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
-| Stories | S-TBD |
+| Stories | STORY-088 |
 | Origin BC | BC-CLI-010 (pass-3 ingestion corpus, MEDIUM confidence -- env var tests require serial test infrastructure not yet in place) |
 
 ## Related BCs

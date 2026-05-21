@@ -90,7 +90,7 @@ and unescaping will recover the original raw bytes.
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- this BC defines the JSON escaping contract that downstream tooling relies on to safely decode attacker-controlled bytes from packet payloads |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- serde_json is the display layer for JSON; no escape at Finding construction) |
 | Architecture Module | SS-11 (reporter/json.rs, C-19) |
-| Stories | S-TBD |
+| Stories | STORY-076 |
 | Origin BC | BC-RPT-003 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

@@ -86,7 +86,7 @@ failing entirely.
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the decode-error handling loop (main.rs:165-173) and the summary.skipped_packets assignment (main.rs:183) are inside run_analyze / run_summary, which are CAP-12's per-target packet-processing loops; counting and suppressing decode errors is an entry-point orchestration responsibility |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
-| Stories | S-TBD |
+| Stories | STORY-089 |
 | Origin BC | BC-CLI-014 (pass-3 ingestion corpus, HIGH confidence for counter; MEDIUM for suppression not directly tested) |
 
 ## Related BCs

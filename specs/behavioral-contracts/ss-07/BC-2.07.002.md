@@ -98,7 +98,7 @@ are emitted. The flow's `server_hello_seen` flag is set to true.
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- ServerHello parsing and JA3S fingerprinting is a core TLS analysis capability |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:542-604, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-053 |
 | Origin BC | BC-TLS-002 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

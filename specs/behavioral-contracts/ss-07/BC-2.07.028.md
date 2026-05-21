@@ -85,7 +85,7 @@ observed malicious SNIs.
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- finding/count decoupling is a forensic-correctness property of TLS analysis |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification), INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:372-376, 402-490, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-057 |
 | Origin BC | BC-TLS-028 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

@@ -89,7 +89,7 @@ catalog includes 6 IDs currently emitted by analyzers and 9 staged IDs for futur
 | Capability Anchor Justification | CAP-10 ("MITRE ATT&CK mapping") per capabilities.md §CAP-10 -- technique_name is the primary lookup function of the MITRE catalog |
 | L2 Domain Invariants | INV-9 (MITRE technique ID format) |
 | Architecture Module | SS-10 (mitre.rs, C-16) |
-| Stories | S-TBD |
+| Stories | STORY-071 |
 | Origin BC | BC-MIT-005 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

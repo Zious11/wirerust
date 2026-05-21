@@ -84,7 +84,7 @@ The `--output-format` global flag accepts a `ValueEnum` variant: `json` or `csv`
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the --output-format flag is declared on the Cli struct and parsed at the L0 entry layer; it is an input to resolve_format in main.rs, which is CAP-12's output-channel selection responsibility, not CAP-11's rendering logic |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (cli.rs, C-3) |
-| Stories | S-TBD |
+| Stories | STORY-087 |
 | Origin BC | BC-CLI-004 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

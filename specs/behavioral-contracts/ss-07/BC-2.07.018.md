@@ -78,7 +78,7 @@ BC exists to document that properly-encoded IDN hostnames are NOT anomalies.
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- documenting that correctly-encoded IDN is excluded from TLS analysis findings |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification) |
 | Architecture Module | SS-07 (analyzer/tls.rs:251-252, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-055 |
 | Origin BC | BC-TLS-018 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

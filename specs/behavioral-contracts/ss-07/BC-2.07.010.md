@@ -95,7 +95,7 @@ cipher, a single `Anomaly/Likely/Medium` finding is pushed. The confidence is Me
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- weak server cipher selection is one of the 7 TLS anomaly findings described in cap-07 |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:570-582, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-054 |
 | Origin BC | BC-TLS-010 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

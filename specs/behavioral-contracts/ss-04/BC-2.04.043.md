@@ -90,7 +90,7 @@ segment ends does NOT trigger `has_overlap = true` and is inserted cleanly.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- correct boundary handling prevents false-positive overlap detection in normal sequential TCP flows |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- adjacency is not overlap; this BC ensures the policy is not over-triggered) |
 | Architecture Module | SS-04 (reassembly/segment.rs:118, C-8) |
-| Stories | S-TBD |
+| Stories | STORY-016 |
 | Origin BC | BC-RAS-043 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

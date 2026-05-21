@@ -100,7 +100,7 @@ States not in the table are unchanged (no-op).
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- the TCP flow state machine is the lifecycle management core of the reassembly engine |
 | L2 Domain Invariants | INV-7 (Finalize-once latch -- the state machine drives flow close events that finalize calls) |
 | Architecture Module | SS-04 (reassembly/flow.rs:229-259, C-7) |
-| Stories | S-TBD |
+| Stories | STORY-013 |
 | Origin BC | BC-RAS-050 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

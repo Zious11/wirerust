@@ -79,7 +79,7 @@ output, or log-level control is implemented. wirerust produces a fixed output st
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- this BC documents an absent CLI flag; the CLI argument surface and output-mode configuration are what CAP-12 governs |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-13 (cli.rs, C-3 -- flag absence) |
-| Stories | S-TBD |
+| Stories | STORY-096 |
 | Origin BC | BC-ABS-010 (pass-3 ingestion corpus, HIGH confidence absent) |
 
 ## Related BCs

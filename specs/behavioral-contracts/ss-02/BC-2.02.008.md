@@ -81,7 +81,7 @@ This provides defense-in-depth if the decoder is called directly, bypassing the 
 | Capability Anchor Justification | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 -- the decode-layer link-type gate is the defense-in-depth complement to the reader-layer gate |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
-| Stories | S-TBD |
+| Stories | STORY-003 |
 | Origin BC | BC-DEC-008 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

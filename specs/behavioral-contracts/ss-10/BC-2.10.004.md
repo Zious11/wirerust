@@ -81,7 +81,7 @@ enforcement.
 | Capability Anchor Justification | CAP-10 ("MITRE ATT&CK mapping") per capabilities.md §CAP-10 -- completeness of tactic enumeration is a correctness property of the MITRE mapping capability |
 | L2 Domain Invariants | INV-9 (MITRE technique ID format) |
 | Architecture Module | SS-10 (mitre.rs, C-16) |
-| Stories | S-TBD |
+| Stories | STORY-071 |
 | Origin BC | BC-MIT-004 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

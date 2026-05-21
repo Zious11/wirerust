@@ -72,7 +72,7 @@ are NOT returned as a partial result -- the entire from_pcap_reader call fails.
 | Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- per-packet error handling is part of the ingestion loop |
 | L2 Domain Invariants | None |
 | Architecture Module | SS-01 (reader.rs, C-4) |
-| Stories | S-TBD |
+| Stories | STORY-001 |
 | Origin BC | BC-RDR-007 (pass-3 ingestion corpus, MEDIUM confidence -- no direct test) |
 
 ## Architecture Anchors

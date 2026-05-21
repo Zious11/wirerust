@@ -92,7 +92,7 @@ in `mod.rs` then emits an `Anomaly/Likely/High` finding tagged T1036.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- ConflictingOverlap detection is the primary forensic signal of TCP evasion in the reassembly engine |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- ConflictingOverlap is the canonical enforcement point) |
 | Architecture Module | SS-04 (reassembly/segment.rs:142-154, C-8) |
-| Stories | S-TBD |
+| Stories | STORY-017 |
 | Origin BC | BC-RAS-037 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

@@ -86,7 +86,7 @@ transport-layer detail is available.
 | Capability Anchor Justification | CAP-03 ("Packet decoding") per capabilities.md §CAP-03 -- Protocol::Other is the CAP-03 degraded-but-safe decode result for unrecognized IP protocols |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
-| Stories | S-TBD |
+| Stories | STORY-004 |
 | Origin BC | BC-DEC-011 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

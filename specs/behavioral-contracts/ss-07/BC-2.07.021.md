@@ -80,7 +80,7 @@ summary string.
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- raw-byte preservation in non-ASCII UTF-8 SNI is load-bearing for forensic integrity |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation per ADR 0003) |
 | Architecture Module | SS-07 (analyzer/tls.rs:449-467, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-056 |
 | Origin BC | BC-TLS-021 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

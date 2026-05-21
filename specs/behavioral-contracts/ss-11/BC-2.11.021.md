@@ -105,7 +105,7 @@ Sheets) from interpreting attacker-controlled packet payload bytes as formula di
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- this BC describes a security property of the CSV output path: neutralizing formula injection for the analyst-facing spreadsheet export channel |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- Finding.summary/evidence carry raw attacker bytes; CsvReporter's neutralization is the display-layer sanitization, mirroring TerminalReporter's control-byte escaping per ADR 0003) |
 | Architecture Module | SS-11 (reporter/csv.rs:40-45, lines 89-97) |
-| Stories | S-TBD |
+| Stories | STORY-079 |
 | Origin BC | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
 
 ## Related BCs
@@ -122,7 +122,7 @@ Sheets) from interpreting attacker-controlled packet payload bytes as formula di
 
 ## Story Anchor
 
-S-TBD -- CsvReporter implementation (LESSON-P2.03)
+STORY-079 -- CsvReporter implementation (LESSON-P2.03)
 
 ## VP Anchors
 

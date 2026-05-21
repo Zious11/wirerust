@@ -87,7 +87,7 @@ is set before invoking `insert_segment`.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- IsnMissing is the segment insertion contract's programming-error defensive guard |
 | L2 Domain Invariants | INV-6 (IsnMissing does not consume findings capacity; it is not a forensic finding) |
 | Architecture Module | SS-04 (reassembly/segment.rs:51-58, C-8) |
-| Stories | S-TBD |
+| Stories | STORY-014 |
 | Origin BC | BC-RAS-032 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

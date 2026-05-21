@@ -89,7 +89,7 @@ The `TooManyHeaders` special case (BC-2.06.014) is the only error path that emit
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- parse error counting and no-finding-on-error policy is part of HTTP analysis resilience |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true -- error_count drives poisoning) |
 | Architecture Module | SS-06 (analyzer/http.rs:403-434, C-12) |
-| Stories | S-TBD |
+| Stories | STORY-044 |
 | Origin BC | BC-HTTP-013 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

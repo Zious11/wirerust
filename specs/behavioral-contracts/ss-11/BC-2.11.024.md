@@ -111,7 +111,7 @@ through `neutralize_csv_injection` before the csv write.
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- this BC defines the encoding convention for optional Finding fields in the CSV channel, directly determining what analysts see in their spreadsheet for absent data |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- direction and timestamp are formatted at render time; the raw Finding carries Option<T>) |
 | Architecture Module | SS-11 (reporter/csv.rs:82-97) |
-| Stories | S-TBD |
+| Stories | STORY-080 |
 | Origin BC | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
 
 ## Related BCs
@@ -130,7 +130,7 @@ through `neutralize_csv_injection` before the csv write.
 
 ## Story Anchor
 
-S-TBD -- CsvReporter implementation (LESSON-P2.03)
+STORY-080 -- CsvReporter implementation (LESSON-P2.03)
 
 ## VP Anchors
 

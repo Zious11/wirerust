@@ -82,7 +82,7 @@ on a non-standard port (e.g., HTTP on 8080) contributes nothing to the service m
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- Summary::ingest's service-counter step (summary.rs:65-67) is part of the Summary accumulation described in CAP-12; summary.rs (C-17) is listed under CAP-12 sources, and the service hint is a per-packet statistic accumulated in the entry-layer packet loop |
 | L2 Domain Invariants | INV-2 (Content-First Dispatch Precedence -- note: this service attribution is port-based, NOT content-first; the two can disagree per LESSON-P3.01) |
 | Architecture Module | SS-12 (summary.rs, C-17) |
-| Stories | S-TBD |
+| Stories | STORY-090 |
 | Origin BC | BC-SUM-002 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

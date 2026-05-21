@@ -96,7 +96,7 @@ counter, not a cumulative count -- a normal-sized segment resets the run to zero
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- small-segment detection is part of the IDS evasion detection contract |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap) |
 | Architecture Module | SS-04 (reassembly/mod.rs:457-488, small-segment threshold block) |
-| Stories | S-TBD |
+| Stories | STORY-017 |
 | Origin BC | BC-RAS-020 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

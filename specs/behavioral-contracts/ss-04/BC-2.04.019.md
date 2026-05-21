@@ -101,7 +101,7 @@ separate, per-event mechanism. This threshold alert is a cumulative count-based 
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- cumulative overlap detection is part of the evasion detection contract |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap) |
 | Architecture Module | SS-04 (reassembly/mod.rs:430-449, check_anomaly_thresholds overlap block) |
-| Stories | S-TBD |
+| Stories | STORY-017 |
 | Origin BC | BC-RAS-019 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

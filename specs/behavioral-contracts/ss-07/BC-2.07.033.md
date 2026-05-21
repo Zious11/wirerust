@@ -81,7 +81,7 @@ change. This covers TLS ChangeCipherSpec (0x14), Alert (0x15), and ApplicationDa
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- non-handshake record skipping is part of TLS analysis record dispatch |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:678-682, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-058 |
 | Origin BC | BC-TLS-033 (pass-3 ingestion corpus, MEDIUM confidence -- inferred from code; test_stop_after_handshake exercises it) |
 
 ## Related BCs

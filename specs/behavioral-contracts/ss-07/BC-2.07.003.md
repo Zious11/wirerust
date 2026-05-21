@@ -88,7 +88,7 @@ counter is incremented.
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- the done-short-circuit is the resource-bounding mechanism that prevents unbounded post-handshake buffering |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation -- raw bytes are not stored after done) |
 | Architecture Module | SS-07 (analyzer/tls.rs:718-724, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-052 |
 | Origin BC | BC-TLS-003 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

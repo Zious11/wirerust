@@ -84,7 +84,7 @@ is a first-class supported protocol, not a degraded path.
 | Capability Anchor Justification | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 -- IPv6 support is part of the 5-element accepted link-type whitelist |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
-| Stories | S-TBD |
+| Stories | STORY-002 |
 | Origin BC | BC-DEC-005 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

@@ -82,7 +82,7 @@ truncated length mismatches, not for absent IP layers.
 | Capability Anchor Justification | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 -- non-IP frame rejection is part of the decode gate that limits processing to IP traffic |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
-| Stories | S-TBD |
+| Stories | STORY-003 |
 | Origin BC | BC-DEC-009 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

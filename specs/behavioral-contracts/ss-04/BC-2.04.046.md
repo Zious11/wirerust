@@ -85,7 +85,7 @@ equals `max_segments`.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- mid-loop partial insertion is an edge case of the segment buffer overflow protection |
 | L2 Domain Invariants | INV-6 (bounded-resource design -- max_segments caps BTreeMap size even mid-loop) |
 | Architecture Module | SS-04 (reassembly/segment.rs:175-199, C-8) |
-| Stories | S-TBD |
+| Stories | STORY-018 |
 | Origin BC | BC-RAS-046 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

@@ -88,7 +88,7 @@ summary detail map (BC-2.12.015).
 | Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 -- unclassified_flows counter is the observability metric for flows the dispatcher could not classify |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- None flows are the unclassified population) |
 | Architecture Module | SS-05 (dispatcher.rs:171-194, C-21) |
-| Stories | S-TBD |
+| Stories | STORY-033 |
 | Origin BC | BC-DSP-007 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

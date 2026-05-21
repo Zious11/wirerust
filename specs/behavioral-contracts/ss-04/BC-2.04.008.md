@@ -91,7 +91,7 @@ the core out-of-order reassembly behavior.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- out-of-order buffering is the primary function that justifies the BTreeMap segment store |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-04 (reassembly/segment.rs:214-231, no-overlap insert; segment.rs:236-248, flush_contiguous) |
-| Stories | S-TBD |
+| Stories | STORY-015 |
 | Origin BC | BC-RAS-008 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

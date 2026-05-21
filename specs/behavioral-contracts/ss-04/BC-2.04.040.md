@@ -94,7 +94,7 @@ consecutive-run model (redesign per LESSON-P2.05 / #92/#93), not a cumulative co
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- small-segment detection is part of TCP reassembly anomaly detection |
 | L2 Domain Invariants | INV-3 (related -- small-segment detection uses reassembly window results) |
 | Architecture Module | SS-04 (reassembly/mod.rs:356-370, C-6; reassembly/flow.rs:101, C-7) |
-| Stories | S-TBD |
+| Stories | STORY-018 |
 | Origin BC | BC-RAS-040 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

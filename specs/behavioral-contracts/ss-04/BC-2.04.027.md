@@ -87,7 +87,7 @@ the per-direction depth limit having been reached. It is distinct from `Truncate
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- depth-exceeded tracking enables observability of segments dropped by the depth bound |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-04 (reassembly/mod.rs:387-389, DepthExceeded match arm; segment.rs:80-88, DepthExceeded check) |
-| Stories | S-TBD |
+| Stories | STORY-018 |
 | Origin BC | BC-RAS-027 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

@@ -74,7 +74,7 @@ removal_reason: null
 | Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- from_file is the public entry point for file-path based ingestion |
 | L2 Domain Invariants | None |
 | Architecture Module | SS-01 (reader.rs, C-4) |
-| Stories | S-TBD |
+| Stories | STORY-001 |
 | Origin BC | BC-RDR-008 (pass-3 ingestion corpus, MEDIUM confidence -- inferred from code) |
 
 ## Architecture Anchors

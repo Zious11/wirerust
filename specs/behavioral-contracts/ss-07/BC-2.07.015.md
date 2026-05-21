@@ -83,7 +83,7 @@ just the control bytes.
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- this BC constrains the cardinality of SNI findings, a core TLS analysis property |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification), INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:424-447, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-055 |
 | Origin BC | BC-TLS-015 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

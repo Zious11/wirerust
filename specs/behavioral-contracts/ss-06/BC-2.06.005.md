@@ -95,7 +95,7 @@ preserved in the finding evidence without escaping (ADR 0003).
 | Capability Anchor Justification | CAP-06 ("HTTP traffic analysis") per capabilities.md §CAP-06 -- path traversal detection is one of the core HTTP anomaly findings |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
 | Architecture Module | SS-06 (analyzer/http.rs:186-202, C-12) |
-| Stories | S-TBD |
+| Stories | STORY-042 |
 | Origin BC | BC-HTTP-005 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

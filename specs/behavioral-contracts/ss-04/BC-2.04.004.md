@@ -88,7 +88,7 @@ standard TCP three-way handshake and establishes the canonical direction tagging
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- handshake tracking is foundational to correct directional reassembly |
 | L2 Domain Invariants | INV-1 (FlowKey canonical ordering -- direction tagging depends on initiator identity) |
 | Architecture Module | SS-04 (reassembly/mod.rs:257-263, apply_handshake_flags; flow.rs:208-213) |
-| Stories | S-TBD |
+| Stories | STORY-013 |
 | Origin BC | BC-RAS-004 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

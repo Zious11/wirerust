@@ -81,7 +81,7 @@ bucketing or sorting. The `## Tactic` section headers are absent from the output
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- the default rendering contract is the baseline terminal output format; the expanded MITRE line format is an opt-in mode |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
-| Stories | S-TBD |
+| Stories | STORY-078 |
 | Origin BC | BC-RPT-017 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

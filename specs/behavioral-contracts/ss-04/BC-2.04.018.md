@@ -96,7 +96,7 @@ such as segment-splicing and IDS bypass attempts.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- conflicting overlap detection is the forensic core of TCP stream reassembly anomaly detection |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy), INV-6 (MAX_FINDINGS cap) |
 | Architecture Module | SS-04 (reassembly/mod.rs:372-405, C-6; reassembly/lifecycle.rs:96-120, C-15; reassembly/segment.rs, C-8) |
-| Stories | S-TBD |
+| Stories | STORY-017 |
 | Origin BC | BC-RAS-018 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

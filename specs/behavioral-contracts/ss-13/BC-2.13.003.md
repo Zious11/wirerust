@@ -78,7 +78,7 @@ behavior -- BPF-style filtering is out of scope for the current release (Section
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- this BC documents an absent CLI flag; the CLI argument surface (including the non-existence of --filter) is what CAP-12 governs |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-13 (cli.rs, C-3 -- flag absence documented) |
-| Stories | S-TBD |
+| Stories | STORY-096 |
 | Origin BC | BC-ABS-003 (pass-3 ingestion corpus, HIGH confidence absent) |
 
 ## Related BCs

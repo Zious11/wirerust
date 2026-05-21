@@ -91,7 +91,7 @@ as ready to accept data segments.
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- SYN+ACK handling completes the handshake model and enables bidirectional data reassembly |
 | L2 Domain Invariants | INV-1 (FlowKey canonical ordering -- initiator identity set here) |
 | Architecture Module | SS-04 (reassembly/mod.rs:265-270, apply_handshake_flags; flow.rs:235-238) |
-| Stories | S-TBD |
+| Stories | STORY-013 |
 | Origin BC | BC-RAS-005 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

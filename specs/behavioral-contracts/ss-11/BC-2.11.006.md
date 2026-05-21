@@ -87,7 +87,7 @@ When `skipped_packets = 0`, the line is completely absent from the output. This 
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- the conditional rendering of the skipped-packets warning is part of the terminal output formatting contract |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
-| Stories | S-TBD |
+| Stories | STORY-077 |
 | Origin BC | BC-RPT-006 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

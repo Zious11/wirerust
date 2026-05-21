@@ -93,7 +93,7 @@ There is no MITRE technique ID on this finding.
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- deprecated client protocol detection is one of the 7 TLS anomaly findings described in cap-07 |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:519-539, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-054 |
 | Origin BC | BC-TLS-011 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

@@ -79,7 +79,7 @@ as HTTP or TLS, in the same summary block as reassembly statistics.
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the injection of dispatcher.unclassified_flows() into the reassembly summary detail map (main.rs:204-208) is wiring performed in run_analyze after finalization; this is an entry-point assembly step that bridges the dispatcher stat into the summary object, not a reporter rendering concern |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
-| Stories | S-TBD |
+| Stories | STORY-089 |
 | Origin BC | BC-CLI-015 (pass-3 ingestion corpus, MEDIUM confidence -- code is explicit; no direct test) |
 
 ## Related BCs

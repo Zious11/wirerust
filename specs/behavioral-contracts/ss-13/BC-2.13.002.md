@@ -76,7 +76,7 @@ to pass `--beacon` to wirerust results in a clap unknown-argument error.
 | Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- this BC documents an absent CLI flag; the CLI argument surface and clap rejection behavior is what CAP-12 governs |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-13 (cli.rs, C-3 -- flag absence documented) |
-| Stories | S-TBD |
+| Stories | STORY-096 |
 | Origin BC | BC-ABS-002 (pass-3 ingestion corpus, HIGH confidence absent) |
 
 ## Related BCs

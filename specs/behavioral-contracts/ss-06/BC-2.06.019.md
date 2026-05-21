@@ -83,7 +83,7 @@ their zero/false values.
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- flow state cleanup on close is required for correct per-flow HTTP analysis lifecycle |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true -- on_flow_close is the ONLY reset path) |
 | Architecture Module | SS-06 (analyzer/http.rs:540-542, C-12) |
-| Stories | S-TBD |
+| Stories | STORY-045 |
 | Origin BC | BC-HTTP-019 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

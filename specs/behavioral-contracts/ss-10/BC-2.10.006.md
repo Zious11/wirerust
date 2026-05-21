@@ -84,7 +84,7 @@ for unknown IDs.
 | Capability Anchor Justification | CAP-10 ("MITRE ATT&CK mapping") per capabilities.md §CAP-10 -- the None path of technique_name is the explicit boundary of the MITRE catalog |
 | L2 Domain Invariants | INV-9 (MITRE technique ID format) |
 | Architecture Module | SS-10 (mitre.rs, C-16) |
-| Stories | S-TBD |
+| Stories | STORY-071 |
 | Origin BC | BC-MIT-006 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

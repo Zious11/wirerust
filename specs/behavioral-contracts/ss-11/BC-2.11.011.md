@@ -89,7 +89,7 @@ reporter must therefore re-escape the rendered JSON string to close the C1 gap.
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- escaping analyzer-summary detail values completes the terminal injection defense for all three attacker-controlled output fields |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- analyzer detail maps carry raw attacker data that must be escaped at terminal) |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
-| Stories | S-TBD |
+| Stories | STORY-077 |
 | Origin BC | BC-RPT-011 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

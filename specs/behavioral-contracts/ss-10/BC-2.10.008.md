@@ -84,7 +84,7 @@ by the current analyzers.
 | Capability Anchor Justification | CAP-10 ("MITRE ATT&CK mapping") per capabilities.md §CAP-10 -- emitted-ID resolution is the end-to-end correctness property of the MITRE mapping capability |
 | L2 Domain Invariants | INV-9 (MITRE technique ID format) |
 | Architecture Module | SS-10 (mitre.rs, C-16) |
-| Stories | S-TBD |
+| Stories | STORY-071 |
 | Origin BC | BC-MIT-008 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

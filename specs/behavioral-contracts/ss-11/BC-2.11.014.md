@@ -87,7 +87,7 @@ key). This ordering surfaces the highest-severity findings at the top of each ta
 | Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- sorting findings by severity within each tactic bucket is part of the MITRE-grouped reporting output contract |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
-| Stories | S-TBD |
+| Stories | STORY-078 |
 | Origin BC | BC-RPT-014 (pass-3 ingestion corpus, HIGH confidence) |
 
 ## Related BCs

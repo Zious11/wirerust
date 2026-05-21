@@ -81,7 +81,7 @@ and `all_findings` -- only the per-flow state is dropped.
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- per-flow state cleanup on close is part of TLS analysis lifecycle management |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:752-754, C-13) |
-| Stories | S-TBD |
+| Stories | STORY-058 |
 | Origin BC | BC-TLS-035 (pass-3 ingestion corpus, MEDIUM confidence -- inferred from code) |
 
 ## Related BCs
