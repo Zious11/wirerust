@@ -51,10 +51,11 @@ traces_to: STATE.md
 | 29 | 2026-05-20 | 1 | 0 | 0 | 0 | 1 | LOW | — | **2/3** | **CONVERGED** — **CLEAN PASS 2/3**; 0C/0H/0M/1L/1obs. Gate definition: 0C/0H/0M = clean pass. L-1: system-overview.md handler.rs import description corrected (Direction/CloseReason defined in-file, not imported). O-1 (obs): new debt item O-08 added — dns.rs module doc-comment stale; propagated to domain-debt.md, ARCH-INDEX.md, prd.md. Both L-1 and O-08 fixed before commit (04478ef). Counter advances to **2/3**. Pass 30 next — THIRD and final confirmation pass; if 0C/0H/0M the Phase 1d adversarial convergence gate is SATISFIED (3/3). |
 | 30 | 2026-05-20 | 3 | 0 | 0 | 1 | 0 | LOW | — | **0/3** | **NOT CONVERGED** — **STREAK BROKEN — RESET 2/3→0/3**; 0C/0H/1M/0L/2N. M-1: BC-2.12.020 Summary section cited C-16 instead of C-17 (copy-paste error). N-1: BC-2.05.006 guard-clause in shorthand rather than actual Rust form. N-2: inv-01 INV-9 technique_info span cited as approximate; corrected to exact range mitre.rs:122-156. All 3 fixed (00f5094). Counter RESET to **0/3**. 30 passes total; spec package at ZERO known open defects. Pass 31 next (new streak restart). |
 | 31 | 2026-05-21 | 0 | 0 | 0 | 0 | 0 | NONE | — | **1/3** | **CONVERGED** — **CLEAN PASS 1/3 (new streak after pass-30 reset)**; 0C/0H/0M/0L/0N. Zero findings. 2 non-blocking observations only: (1) module-decomposition.md C-8 buffer described as `BTreeMap<u64,Segment>` — informal shorthand for actual `BTreeMap<u64, Vec<u8>>`; survived 30+ passes, non-misleading, not a defect; recorded as O-09. (2) BC-2.01.001 dual citation scoping (reader.rs:46-60 vs reader.rs:50-60) — both valid scopings of the same contract; internally consistent, not a defect. No spec artifact modified. Counter advances to **1/3**. Pass 32 next (second confirmation pass). |
+| 32 | 2026-05-21 | 1N | 0 | 0 | 0 | 0 | LOW | — | **2/3** | **CONVERGED** — **CLEAN PASS 2/3**; 0C/0H/0M/0L/1N. 12 BCs sampled across 11 subsystems — zero stale/mis-anchored citations, zero count divergences, zero contradictions, zero behavioral defects. N-1 NITPICK: domain-spec.md:168 §8 ADR list reads "0001/0002/0003" (omits ADR 0004); defensibly correct-by-construction (§8 lists ingestion-corpus IDs; ADR 0004 post-dates ingestion). Non-blocking. Deferred to Phase-1 pre-approval polish; package left byte-identical to preserve stable content for pass 33. Counter advances to **2/3**. Pass 33 next — the THIRD and final confirmation pass required to satisfy the 3-consecutive-clean gate. |
 
 ## Trajectory Shorthand
 
-`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only; pass 20 spec-precision gaps — 0C/0H/2M/1L/1N; pass 21 — 0C/0H/1M/0L/2N, C-10 re-anchor + PRD nitpicks; **pass 22 CONVERGED 0C/0H/0M/2L/1N — counter 1/3**; pass 23 NOT CONVERGED — streak broken, 0C/1H/1M/1N, counter reset 0/3; **pass 24 CONVERGED 0/0/0/0/0 — counter 1/3**; pass 25 NOT CONVERGED — streak RESET 1/3→0/3, 0C/2H/2M, all 4 in PRD supplements; SWEEP68 — comprehensive PRD-supplement sweep ~68 defects fixed, P-CITE-PG addressed; counter 0/3; pass 26 NOT CONVERGED 0C/3H/1M/1L, all 4 in VP files; SWEEP48 — comprehensive VP-file sweep ~48 defects fixed; counter 0/3; pass 27 NOT CONVERGED 0C/1H/0M/0L — VP-016..020 Phase column drift fixed (e758fb6); counter 0/3; **pass 28 CONVERGED 0C/0H/0M/0L/0N — counter 1/3, clean pass 1/3**; **pass 29 CONVERGED 0C/0H/0M/1L/1obs — counter 2/3, clean pass 2/3, L-1+O-08 fixed before commit 04478ef**; pass 30 NOT CONVERGED — streak RESET 2/3→0/3, 0C/0H/1M/0L/2N, all 3 fixed (00f5094); **pass 31 CONVERGED 0C/0H/0M/0L/0N — counter 1/3, clean pass 1/3 of new streak, pass 32 next**)
+`17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0` (SWEEP between 16 and 17 — counter unchanged; pass 17 ZERO BC defects; pass 18 all stale-anchor drift from PR #75; pass 19 overwhelmingly clean — 0C/0H/2M only; pass 20 spec-precision gaps — 0C/0H/2M/1L/1N; pass 21 — 0C/0H/1M/0L/2N, C-10 re-anchor + PRD nitpicks; **pass 22 CONVERGED 0C/0H/0M/2L/1N — counter 1/3**; pass 23 NOT CONVERGED — streak broken, 0C/1H/1M/1N, counter reset 0/3; **pass 24 CONVERGED 0/0/0/0/0 — counter 1/3**; pass 25 NOT CONVERGED — streak RESET 1/3→0/3, 0C/2H/2M, all 4 in PRD supplements; SWEEP68 — comprehensive PRD-supplement sweep ~68 defects fixed, P-CITE-PG addressed; counter 0/3; pass 26 NOT CONVERGED 0C/3H/1M/1L, all 4 in VP files; SWEEP48 — comprehensive VP-file sweep ~48 defects fixed; counter 0/3; pass 27 NOT CONVERGED 0C/1H/0M/0L — VP-016..020 Phase column drift fixed (e758fb6); counter 0/3; **pass 28 CONVERGED 0C/0H/0M/0L/0N — counter 1/3, clean pass 1/3**; **pass 29 CONVERGED 0C/0H/0M/1L/1obs — counter 2/3, clean pass 2/3, L-1+O-08 fixed before commit 04478ef**; pass 30 NOT CONVERGED — streak RESET 2/3→0/3, 0C/0H/1M/0L/2N, all 3 fixed (00f5094); **pass 31 CONVERGED 0C/0H/0M/0L/0N — counter 1/3, clean pass 1/3 of new streak**; **pass 32 CONVERGED 0C/0H/0M/0L/1N — counter 2/3, clean pass 2/3, N-1 NITPICK deferred; pass 33 final**)
 
 ## Per-Pass Details
 
@@ -1620,5 +1621,42 @@ contradictions exist.
 
 **No spec artifact modified.** Counter advances to **1/3**. Pass 32 next (second confirmation
 pass; must return 0C/0H/0M to advance to 2/3).
+
+---
+
+### Pass 32 (2026-05-21) — CONVERGED (clean pass 2 of 3)
+
+**Findings:** 0 blocking, 1 NITPICK (0 CRIT, 0 HIGH, 0 MED, 0 LOW, 1 NITPICK)
+**Delta from pass 31:** +1N — no regression (NITPICK only; does not affect gate status)
+**Novelty:** LOW
+**Convergence counter:** 2/3
+**Verdict:** CONVERGED — clean pass 2 of 3. Gate definition: 0C/0H/0M = clean pass. N-1
+NITPICK is non-blocking.
+
+**Sampling scope:** 12 BCs across 11 subsystems (ss-01, ss-02, ss-04×3, ss-05, ss-06, ss-07,
+ss-08, ss-11, ss-12×2); every file.rs:NNN citation verified against live src/ at HEAD 0082a0c.
+
+**Findings (non-blocking):**
+
+- N-1 (NITPICK): `specs/domain/domain-spec.md`:168 §8 "Cross-Reference to Corpus IDs" lists
+  "ADR 0001/0002/0003" while the same file's metrics table (line 60) and §3 (lines 92-99)
+  correctly enumerate all 4 ADRs including ADR 0004. Defensibly correct-by-construction: §8
+  lists ingestion-corpus IDs and ADR 0004 post-dates the ingestion snapshot (2026-05-14).
+  One-token fix to "0001/0002/0003/0004" recommended for intra-file consistency.
+  DISPOSITION: deferred to Phase-1 pre-approval polish alongside O-09. Package left
+  byte-identical to preserve stable content for pass 33.
+
+**Positive observations:**
+
+- Citation accuracy excellent: all 12 sampled BCs had zero stale or mis-anchored file.rs:NNN
+  citations against src/ at HEAD 0082a0c.
+- ADR 0004 atomic-site citations verified (segment.rs:16, mod.rs:70, lifecycle.rs:31) — correct.
+- Cross-artifact counts consistent: BC 217, VP 20 (Kani 8/proptest 6/fuzz 1/integration-unit 5;
+  P0 8/P1 7/test-sufficient 5), component count 21.
+- BC H1 titles match BC-INDEX exactly for all 12 sampled; VP↔BC mapping coherent.
+
+**No spec artifact modified.** Counter advances to **2/3**. Pass 33 next — the THIRD and
+final confirmation pass. If pass 33 returns 0C/0H/0M, the Phase 1d adversarial spec-convergence
+gate is SATISFIED (3/3) and Phase 1 may proceed to the consistency audit and human approval gate.
 
 ---

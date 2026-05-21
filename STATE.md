@@ -13,24 +13,27 @@ dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
-adversary_convergence_counter: 1/3
+adversary_convergence_counter: 2/3
 adversary_pass_30_date: "2026-05-20"
 adversary_pass_30_verdict: NOT_CONVERGED
 adversary_pass_30_findings: "3 (0C/0H/1M/0L/2N) — STREAK RESET 2/3→0/3. M-1 BC-2.12.020 C-16→C-17 prose; N-1 BC-2.05.006 guard-clause quote; N-2 inv-01 INV-9 citation. All 3 fixed (00f5094). Pass 31 next."
 adversary_pass_31_date: "2026-05-21"
 adversary_pass_31_verdict: CONVERGED
 adversary_pass_31_findings: "0 (0C/0H/0M/0L/0N) — CLEAN PASS 1/3 (new streak after pass-30 reset). Zero findings; 2 non-blocking observations. Pass 32 next."
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0"
+adversary_pass_32_date: "2026-05-21"
+adversary_pass_32_verdict: CONVERGED
+adversary_pass_32_findings: "0 blocking (0C/0H/0M/0L/1N) — CLEAN PASS 2/3. N-1 NITPICK (domain-spec §8 ADR-0004 omission) non-blocking, deferred to pre-approval polish. Pass 33 final."
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 31 returned CONVERGED (0C/0H/0M/0L/0N); CLEAN
-PASS **1/3** (new streak). Zero findings; 2 non-blocking observations (C-8 BTreeMap shorthand,
-BC-2.01.001 dual scoping — neither a spec defect). 31 adversarial passes total; spec package
-at ZERO known open defects. Pass 32 next (second confirmation pass).
+**Pipeline:** PHASE_1_SPEC_COMPLETE — Pass 32 returned CONVERGED (0C/0H/0M/0L/1N); CLEAN
+PASS **2/3**. 1 NITPICK (domain-spec §8 ADR list omits ADR 0004; defensibly correct-by-
+construction; deferred to pre-approval polish). 32 adversarial passes total; spec package
+at ZERO blocking defects. Pass 33 next (third and final confirmation pass).
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -45,7 +48,7 @@ at ZERO known open defects. Pass 32 next (second confirmation pass).
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (**1/3** — pass 31 CONVERGED 0C/0H/0M/0L/0N; clean pass 1/3; 31 passes total; ZERO open defects; pass 32 next) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0` |
+| Phase 1 — Spec Crystallization | SPEC_PACKAGE_COMPLETE — adversarial gate in progress (**2/3** — pass 32 CONVERGED 0C/0H/0M/0L/1N; clean pass 2/3; 32 passes total; ZERO blocking defects; N-1 deferred to pre-approval polish; pass 33 next — final) | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0` |
 | Phase 2 — Story Decomposition | NOT STARTED | — |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
@@ -130,16 +133,17 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 | 29 | 2026-05-20 | 1 (0C/0H/0M/1L/1obs) | **CONVERGED** | **CLEAN PASS 2/3** — L-1 system-overview.md handler.rs import desc corrected; O-08 dns.rs stale doc-comment recorded as debt. Both fixed before commit 04478ef. Counter advances to **2/3**. |
 | 30 | 2026-05-20 | 3 (0C/0H/1M/0L/2N) | NOT CONVERGED | **STREAK RESET 2/3→0/3** — M-1 BC-2.12.020 C-16→C-17 prose anchor; N-1 BC-2.05.006 guard-clause quote; N-2 inv-01 INV-9 mitre.rs:122-156 citation. All 3 fixed (00f5094). Counter: **0/3**. 30 passes total; ZERO open defects. Pass 31 next. |
 | 31 | 2026-05-21 | 0 (0C/0H/0M/0L/0N) | **CONVERGED** | CLEAN PASS 1/3 — zero findings; 2 non-blocking observations (C-8 BTreeMap shorthand, BC-2.01.001 dual scoping), neither a spec defect; no spec artifact modified. Counter advances to **1/3**. Pass 32 next. |
+| 32 | 2026-05-21 | 0 blocking (0C/0H/0M/0L/1N) | **CONVERGED** | CLEAN PASS 2/3 — zero blocking findings; 1 NITPICK N-1 (domain-spec §8 omits ADR 0004; defensibly correct-by-construction) deferred to pre-approval polish; package left byte-identical for pass 33. Counter advances to **2/3**. Pass 33 final. |
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
 ### Next Steps (Phase 1 Gates)
 
-1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (**1/3 — pass 31
-   clean; pass 32 next**). Pass 31 returned CONVERGED (0C/0H/0M/0L/0N). Zero findings; 2
-   non-blocking observations (C-8 BTreeMap shorthand, BC-2.01.001 dual scoping). Spec package
-   at ZERO known open defects after 31 passes. All 4 major spec categories comprehensively
-   source-reconciled.
+1. **Adversarial spec-convergence gate** — 3 clean adversarial review passes (**2/3 — pass 32
+   clean; pass 33 next — final**). Pass 32 returned CONVERGED (0C/0H/0M/0L/1N). Zero blocking
+   findings; 1 NITPICK (domain-spec §8 ADR list; deferred to pre-approval polish; package
+   byte-identical). Spec package at ZERO known blocking defects after 32 passes. All 4 major
+   spec categories comprehensively source-reconciled.
 2. **Consistency audit** — cross-artifact consistency check (BCs vs. VPs vs. arch).
 3. **Human approval gate** — human review and sign-off on spec package.
 
@@ -156,6 +160,7 @@ GitHub issue. Pointer in `CLAUDE.md` on `develop` via PR #99 (0082a0c).
 | O-07 | `rayon` declared in Cargo.toml but unused in `src/` — dead dependency | P2 | adversarial pass 1 (LOW finding) |
 | O-08 | `src/analyzer/dns.rs` module doc-comment is stale — references removed behavior | P3 | adversarial pass 29 (observation O-1); recorded in domain-debt.md |
 | O-09 | `architecture/module-decomposition.md` C-8 buffer described as `BTreeMap<u64,Segment>` (informal shorthand); actual `flow.rs:89` type is `BTreeMap<u64, Vec<u8>>` (no `Segment` struct). Non-misleading shorthand; not a spec defect. | P3 | adversarial pass 31 (non-blocking observation); doc-only alignment deferred |
+| N-1 | `specs/domain/domain-spec.md`:168 §8 "Cross-Reference to Corpus IDs" lists "ADR 0001/0002/0003"; intra-file consistency suggests "0001/0002/0003/0004". Defensibly correct-by-construction (§8 lists ingestion-corpus IDs; ADR 0004 post-dates ingestion, 2026-05-14). One-token fix. | P3 | adversarial pass 32 (NITPICK); deferred to Phase-1 pre-approval polish alongside O-09 |
 
 Full register: `.factory/tech-debt-register.md` (when populated).
 
