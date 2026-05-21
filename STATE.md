@@ -65,7 +65,7 @@ now entering Phase 2 story decomposition.
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
-| Phase 2 — Story Decomposition | **IN PROGRESS** — STARTED 2026-05-21 | Epic / story decomposition, dependency graph, wave schedule |
+| Phase 2 — Story Decomposition | **IN PROGRESS** — Step A `define-epics` COMPLETE 2026-05-21 | 10 epics, 217/217 BCs covered, 48 stories estimated; next: `create-stories` |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
@@ -167,14 +167,16 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 
 ## Phase 2 — Story Decomposition (IN PROGRESS)
 
-### Next Steps
+### Steps
 
-1. **Epic decomposition** — identify epics from the PRD and capability map.
-2. **Story decomposition** — break epics into implementation stories; populate `stories/STORY-INDEX.md`.
-3. **Dependency graph** — build story dependency graph (`stories/dependency-graph.md`).
-4. **Wave schedule** — assign stories to waves (`cycles/v0.1.0-greenfield-spec/wave-schedule.md`).
-5. **Adversarial story-convergence gate** — adversarial pass over story decomposition for completeness and consistency.
-6. **Human approval** — human sign-off on story decomposition before Phase 3.
+| Step | Status | Notes |
+|------|--------|-------|
+| A. `define-epics` | **COMPLETE** 2026-05-21 | 10 epics; 217/217 BCs assigned; 48 stories estimated — `stories/epics.md` |
+| B. `create-stories` | **NEXT** | Break epics into implementation stories; populate `stories/STORY-INDEX.md` |
+| C. `dependency-graph` | NOT STARTED | Build story dependency graph (`stories/dependency-graph.md`) |
+| D. `wave-schedule` | NOT STARTED | Assign stories to waves (`cycles/v0.1.0-greenfield-spec/wave-schedule.md`) |
+| E. `adversarial-story-gate` | NOT STARTED | Adversarial pass over story decomposition |
+| F. `human-approval` | NOT STARTED | Human sign-off before Phase 3 |
 
 ## Governance Policy
 
