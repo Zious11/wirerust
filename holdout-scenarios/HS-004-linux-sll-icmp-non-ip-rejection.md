@@ -13,7 +13,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-02/BC-2.02.009.md
   - .factory/specs/behavioral-contracts/ss-02/BC-2.02.010.md
   - .factory/specs/behavioral-contracts/ss-02/BC-2.02.011.md
-input-hash: "[md5-pending]"
+input-hash: "a9b8cc0"
 traces_to: .factory/specs/prd.md
 id: "HS-004"
 category: "edge-case-combinations"

@@ -9,7 +9,7 @@ timestamp: 2026-05-21T00:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.002.md
-input-hash: "[md5-pending]"
+input-hash: "122eb50"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-051, STORY-052]

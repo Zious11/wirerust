@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-02/BC-2.02.007.md
   - .factory/specs/behavioral-contracts/ss-02/BC-2.02.008.md
   - .factory/specs/behavioral-contracts/ss-02/BC-2.02.009.md
-input-hash: "[md5-pending]"
+input-hash: "bd37226"
 traces_to: .factory/specs/prd.md
 id: "HS-022"
 category: "security-probes"

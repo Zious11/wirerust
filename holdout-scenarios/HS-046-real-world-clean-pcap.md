@@ -13,7 +13,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.006.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.035.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.001.md
-input-hash: "[md5-pending]"
+input-hash: "9dc8bb4"
 traces_to: .factory/stories/STORY-031.md
 id: "HS-046"
 category: "real-world-corpus"

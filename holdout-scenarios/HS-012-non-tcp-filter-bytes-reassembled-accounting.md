@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.002.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.028.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.030.md
-input-hash: "[md5-pending]"
+input-hash: "0bc39c3"
 traces_to: .factory/specs/prd.md
 id: "HS-012"
 category: "integration-boundaries"

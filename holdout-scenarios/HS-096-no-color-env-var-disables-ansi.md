@@ -13,7 +13,7 @@ inputs:
   - .factory/stories/STORY-089.md
   - .factory/stories/STORY-090.md
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.010.md
-input-hash: "[md5-pending]"
+input-hash: "529c948"
 traces_to: .factory/stories/STORY-086.md
 id: "HS-096"
 category: "behavioral-subtleties"

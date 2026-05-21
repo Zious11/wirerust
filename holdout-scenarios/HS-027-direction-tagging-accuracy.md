@@ -9,7 +9,7 @@ phase: 2
 inputs:
   - .factory/stories/STORY-015.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.006.md
-input-hash: "[md5-pending]"
+input-hash: "9dc8bb4"
 traces_to: .factory/stories/STORY-015.md
 id: "HS-027"
 category: "behavioral-subtleties"

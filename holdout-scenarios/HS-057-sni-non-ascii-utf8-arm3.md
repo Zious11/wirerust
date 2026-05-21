@@ -20,7 +20,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.020.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.021.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.037.md
-input-hash: "[md5-pending]"
+input-hash: "4d572e5"
 traces_to: .factory/stories/STORY-051.md
 id: "HS-057"
 category: "security-probes"

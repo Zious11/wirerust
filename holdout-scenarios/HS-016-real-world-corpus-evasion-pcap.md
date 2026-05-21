@@ -13,7 +13,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.018.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.037.md
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.005.md
-input-hash: "[md5-pending]"
+input-hash: "bfffc90"
 traces_to: .factory/specs/prd.md
 id: "HS-016"
 category: "real-world-corpus"

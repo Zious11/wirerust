@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.001.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.002.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.003.md
-input-hash: "[md5-pending]"
+input-hash: "7b041cf"
 traces_to: .factory/stories/STORY-031.md
 id: "HS-038"
 category: "security-probes"

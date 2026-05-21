@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-10/BC-2.10.006.md
   - .factory/specs/behavioral-contracts/ss-10/BC-2.10.007.md
   - .factory/specs/behavioral-contracts/ss-10/BC-2.10.008.md
-input-hash: "[md5-pending]"
+input-hash: "409bc32"
 traces_to: .factory/specs/prd.md
 id: "HS-009"
 category: "behavioral-subtleties"

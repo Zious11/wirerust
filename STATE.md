@@ -68,6 +68,12 @@ consistency_audit: CONSISTENT
 consistency_audit_date: "2026-05-21"
 input_drift_check: CLEAN
 input_drift_check_date: "2026-05-21"
+phase_2_input_hash_drift_check: CLEAN
+phase_2_input_hash_drift_check_date: "2026-05-21"
+phase_2_input_hash_drift_check_total: 153
+phase_2_input_hash_drift_check_match: 153
+phase_2_input_hash_drift_check_stale: 0
+phase_2_input_hash_drift_check_uncomputed: 0
 ---
 
 # VSDD Pipeline State — wirerust
@@ -77,8 +83,9 @@ input_drift_check_date: "2026-05-21"
 **Pipeline:** PHASE_2_STORY_DECOMPOSITION — Phase 1 COMPLETE. All 4 gates PASSED; human-approved
 2026-05-21. Phase 2 Step G adversarial story-review COMPLETE: Pass 10 CONVERGED (0C/0H/0M/1L/2N);
 3rd consecutive clean pass (8/9/10); 10 passes total; ADVERSARIAL STORY-CONVERGENCE GATE SATISFIED
-(3/3); pre-approval polish applied. Remaining Phase 2 steps: input-hash drift check, then human
-approval gate (Step H).
+(3/3); pre-approval polish applied. Phase 2 input-hash drift check COMPLETE: CLEAN
+(TOTAL=153 MATCH=153 STALE=0 UNCOMPUTED=0; first-time population of 48 story + 100 holdout-scenario
+hashes). ONLY remaining Phase 2 step: human approval gate (Step H).
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -94,7 +101,7 @@ approval gate (Step H).
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
-| Phase 2 — Story Decomposition | **IN PROGRESS** — Steps A–F COMPLETE; Step G GATE SATISFIED (3/3; 10 passes total; pre-approval polish applied); Step H (human approval) next | 10 epics, 217/217 BCs traced to ≥1 story, 48 stories, 77 edges, 27 waves, acyclic, 282 story points; 100 holdout scenarios; decomposition gate PASSED; story-adversary Pass 10: 0 blocking (0C/0H/0M/1L/2N) CLEAN PASS 3/3 GATE SATISFIED; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M (CONVERGED)→0C/0H/1M (RESET)→0C/0H/0M (CONVERGED)→0C/0H/0M (CONVERGED)→0C/0H/0M (CONVERGED, GATE SATISFIED 3/3) |
+| Phase 2 — Story Decomposition | **IN PROGRESS** — Steps A–G COMPLETE; input-hash drift check CLEAN (TOTAL=153 MATCH=153 STALE=0 UNCOMPUTED=0); Step H (human approval) next | 10 epics, 217/217 BCs traced to ≥1 story, 48 stories, 77 edges, 27 waves, acyclic, 282 story points; 100 holdout scenarios; decomposition gate PASSED; story-adversary Pass 10: 0 blocking (0C/0H/0M/1L/2N) CLEAN PASS 3/3 GATE SATISFIED; input-hash drift check CLEAN 2026-05-21; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M (CONVERGED)→0C/0H/1M (RESET)→0C/0H/0M (CONVERGED)→0C/0H/0M (CONVERGED)→0C/0H/0M (CONVERGED, GATE SATISFIED 3/3) |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
@@ -207,6 +214,7 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 | E. `holdout-scenarios` | **COMPLETE** 2026-05-21 | 100 holdout scenarios HS-001–HS-100; 99 must-pass / 1 should-pass; 36 behavioral-subtleties, 19 edge-case-combinations, 18 integration-boundaries, 17 security-probes, 10 real-world-corpus; all 27 waves covered — `holdout-scenarios/` |
 | F. `decomposition-gate` | **COMPLETE** 2026-05-21 | Consistency audit found 3 blocking findings (B-1 BC matrix divergence 31/48 stories, B-2 edge-count off-by-one 64→64 fixed, B-3 stale cycle fields 37/48 stories); all 3 remediated; 2 NUL-byte sanitizations (STORY-070/076, same class as P5-PG); re-audit CONSISTENT 100/100. Gate PASSED. |
 | G. `adversarial-story-gate` | **COMPLETE** 2026-05-21 — GATE SATISFIED (3/3; 10 passes total) | Adversarial convergence review of story decomposition + holdout scenarios; 3 consecutive clean passes required; convergence counter 3/3 SATISFIED; 12 process-gap NITPICKs (P1:N-1/N-2/N-3, P2:N-1/N-2, P3:N-1/N-2, P4:N-1/N-2/N-3, P5:N-1/N-2) deferred for cycle-close codification; trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M (CONVERGED)→0C/0H/1M (RESET)→0C/0H/0M (CONVERGED, streak 1/3)→0C/0H/0M (CONVERGED, streak 2/3)→0C/0H/0M (CONVERGED, GATE SATISFIED 3/3); 7 focus areas clean; pre-approval polish applied (F-06-01/02/03, F-9-L1, F-1/N-1 pass 10 all RESOLVED); N-2 NITPICK [process-gap] BC Story Anchor S-TBD — open item for human approval gate |
+| G2. `input-hash-drift-check` | **COMPLETE** 2026-05-21 — CLEAN | TOTAL=153 MATCH=153 STALE=0 UNCOMPUTED=0; first-time population of `input_hash` field in 48 STORY-*.md + 100 HS-*.md files (artifacts freshly authored in Phase 2; content verified by 10-pass adversarial convergence; no producing-agent content review required) |
 | H. `human-approval` | NOT STARTED | Human sign-off before Phase 3 |
 
 ## Pre-Approval Polish (Phase 2 Step G — deferred non-blocking items)
@@ -219,7 +227,7 @@ None are blocking convergence.
 | F-06-01/F-8-L1 | Pass 6 LOW + Pass 8 LOW | `holdout-scenarios/HS-INDEX.md` E-3; `stories/dependency-graph.md` historical table | (Consolidated) Label drift: HS-INDEX E-3 name vs canonical. Stale "Wave Assignment Discrepancies" section in dependency-graph.md. Both cosmetic. | **RESOLVED** — Pass 10 polish: E-3 corrected to "Content-First Protocol Dispatch"; stale section deleted |
 | F-06-02 | Pass 6 LOW | `cycles/v0.1.0-greenfield-spec/wave-schedule.md` | STORY-054, STORY-057, and STORY-088 Description cells truncated (trailing ellipsis) | **RESOLVED** — Pass 10 polish: 3 truncated descriptions restored to full titles |
 | F-06-03 | Pass 6 LOW | `stories/STORY-*.md` `implementation_strategy` field | Vocabulary variance: "brownfield-verify" / "brownfield" / "brownfield-formalization" across 48 stories | **RESOLVED** — Pass 10 polish: all 48 stories normalized to `brownfield-formalization` |
-| F-06-04/F-8-L3 | Pass 6 NITPICK + Pass 8 LOW | Multiple STORY files | `input_hash` placeholder values — expected pre-dispatch; not a defect (consolidated) | OPEN — expected; will populate at dispatch |
+| F-06-04/F-8-L3 | Pass 6 NITPICK + Pass 8 LOW | Multiple STORY files + HS files | `input_hash` placeholder values — expected pre-dispatch; not a defect (consolidated) | **RESOLVED** — input-hash drift check 2026-05-21: all 48 STORY + 100 HS hashes populated; TOTAL=153 MATCH=153 STALE=0 UNCOMPUTED=0 |
 | F-06-05 | Pass 6 NITPICK | `holdout-scenarios/HS-085.md` | Wave attribution loosely derived (no direct story-id citation); internally consistent | OPEN — cosmetic; no action required before approval |
 | F-8-L2 | Pass 8 LOW | `holdout-scenarios/HS-INDEX.md` `traces_to` field | Some HS entries trace to epic-root story rather than most-specific implementing story — consistent convention, warrants documentation | OPEN — consistent convention; no action required before approval |
 | F-8-N1 | Pass 8 NITPICK | `holdout-scenarios/HS-INDEX.md` | Self-asserted "PASS" block at end of HS-INDEX — harmless authoring artifact | OPEN — cosmetic; no action required before approval |

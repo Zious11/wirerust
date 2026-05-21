@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.035.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.043.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.047.md
-input-hash: "[md5-pending]"
+input-hash: "5f9ea13"
 traces_to: .factory/stories/STORY-016.md
 id: "HS-030"
 category: "behavioral-subtleties"
