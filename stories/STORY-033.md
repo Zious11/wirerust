@@ -22,7 +22,7 @@ behavioral_contracts:
   - BC-2.05.009
 verification_properties: []
 priority: "P0"
-cycle: v0.1.0-brownfield
+cycle: v0.1.0-greenfield-spec
 wave: 14
 target_module: src/dispatcher.rs
 subsystems: [SS-05]

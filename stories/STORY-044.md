@@ -30,7 +30,7 @@ behavioral_contracts:
   - BC-2.06.020
 verification_properties: []
 priority: "P0"
-cycle: v0.1.0-brownfield
+cycle: v0.1.0-greenfield-spec
 wave: 16
 target_module: src/analyzer/http.rs
 subsystems: [SS-06]

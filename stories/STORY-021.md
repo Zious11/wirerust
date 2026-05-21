@@ -21,7 +21,7 @@ blocks: []
 behavioral_contracts: [BC-2.04.012, BC-2.04.024, BC-2.04.025, BC-2.04.026, BC-2.04.054]
 verification_properties: [VP-003]
 priority: "P0"
-cycle: v0.1.0-brownfield
+cycle: v0.1.0-greenfield-spec
 wave: 11
 target_module: reassembly
 subsystems: [SS-04]

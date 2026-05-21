@@ -30,7 +30,7 @@ behavioral_contracts:
   - BC-2.07.028
 verification_properties: [VP-005]
 priority: "P0"
-cycle: v0.1.0-brownfield
+cycle: v0.1.0-greenfield-spec
 wave: 19
 target_module: src/analyzer/tls.rs
 subsystems: [SS-07]

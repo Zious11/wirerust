@@ -22,7 +22,7 @@ blocks: [STORY-019, STORY-021]
 behavioral_contracts: [BC-2.04.018, BC-2.04.019, BC-2.04.020, BC-2.04.021, BC-2.04.022, BC-2.04.037]
 verification_properties: [VP-002]
 priority: "P0"
-cycle: v0.1.0-brownfield
+cycle: v0.1.0-greenfield-spec
 wave: 10
 target_module: reassembly
 subsystems: [SS-04]

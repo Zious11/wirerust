@@ -24,7 +24,7 @@ behavioral_contracts:
   - BC-2.12.021
 verification_properties: []
 priority: P0
-cycle: v1.0.0-brownfield
+cycle: v0.1.0-greenfield-spec
 wave: 27
 target_module: summary
 subsystems: [SS-12]

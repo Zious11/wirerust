@@ -22,7 +22,7 @@ behavioral_contracts:
   - BC-2.12.007
 verification_properties: []
 priority: P0
-cycle: v1.0.0-brownfield
+cycle: v0.1.0-greenfield-spec
 wave: 24
 target_module: cli
 subsystems: [SS-12]

@@ -31,6 +31,7 @@ behavioral_contracts:
   - BC-2.11.012
 verification_properties: [VP-012]
 priority: "P0"
+cycle: v0.1.0-greenfield-spec
 wave: 21
 target_module: reporter/terminal
 subsystems: [SS-11]

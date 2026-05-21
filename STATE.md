@@ -65,7 +65,7 @@ now entering Phase 2 story decomposition.
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
-| Phase 2 — Story Decomposition | **IN PROGRESS** — Steps A–E COMPLETE 2026-05-21 | 10 epics, 217/217 BCs traced to ≥1 story, 48 stories, 78 edges, 27 waves, acyclic, 282 story points; 100 holdout scenarios (HS-001–HS-100; 99 must-pass / 1 should-pass; 5 categories across all 27 waves); next: decomposition gate → adversarial-story-convergence review |
+| Phase 2 — Story Decomposition | **IN PROGRESS** — Steps A–F (decomposition gate) COMPLETE 2026-05-21 | 10 epics, 217/217 BCs traced to ≥1 story, 48 stories, 78 edges, 27 waves, acyclic, 282 story points; 100 holdout scenarios (HS-001–HS-100; 99 must-pass / 1 should-pass; 5 categories across all 27 waves); decomposition gate PASSED (3 blocking findings B-1/B-2/B-3 remediated; re-audit CONSISTENT 100/100); next: adversarial-story-convergence review (3 consecutive clean passes required) |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
@@ -176,8 +176,9 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 | C. `dependency-graph` | **COMPLETE** 2026-05-21 | 48 stories, 78 dependency edges, 27 waves, acyclic, 282 story points — `stories/dependency-graph.md` |
 | D. `wave-schedule` | **COMPLETE** 2026-05-21 | 27 waves; all 48 stories wave-assigned; `wave-schedule.md`, `STORY-INDEX.md` rebuilt, `sprint-state.yaml` initialized (48 entries, current_wave 1) — `cycles/v0.1.0-greenfield-spec/wave-schedule.md`, `stories/STORY-INDEX.md`, `stories/sprint-state.yaml`, `stories/STORY-*.md` |
 | E. `holdout-scenarios` | **COMPLETE** 2026-05-21 | 100 holdout scenarios HS-001–HS-100; 99 must-pass / 1 should-pass; 36 behavioral-subtleties, 19 edge-case-combinations, 18 integration-boundaries, 17 security-probes, 10 real-world-corpus; all 27 waves covered — `holdout-scenarios/` |
-| F. `adversarial-story-gate` | **NEXT** | Adversarial convergence review of story decomposition + holdout scenarios |
-| G. `human-approval` | NOT STARTED | Human sign-off before Phase 3 |
+| F. `decomposition-gate` | **COMPLETE** 2026-05-21 | Consistency audit found 3 blocking findings (B-1 BC matrix divergence 31/48 stories, B-2 edge-count off-by-one 64→64 fixed, B-3 stale cycle fields 37/48 stories); all 3 remediated; 2 NUL-byte sanitizations (STORY-070/076, same class as P5-PG); re-audit CONSISTENT 100/100. Gate PASSED. |
+| G. `adversarial-story-gate` | **NEXT** | Adversarial convergence review of story decomposition + holdout scenarios; requires 3 consecutive clean passes |
+| H. `human-approval` | NOT STARTED | Human sign-off before Phase 3 |
 
 ## Governance Policy
 

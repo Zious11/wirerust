@@ -23,6 +23,7 @@ behavioral_contracts:
   - BC-2.11.022
 verification_properties: [VP-020]
 priority: "P0"
+cycle: v0.1.0-greenfield-spec
 wave: 21
 target_module: reporter/csv
 subsystems: [SS-11]

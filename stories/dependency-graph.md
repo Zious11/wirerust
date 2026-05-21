@@ -85,6 +85,7 @@ Dependencies in this graph respect the layer rules from
 | STORY-011 | STORY-013 | STORY-013 flush logic requires both `TcpFlow` (STORY-011) and `SegmentBuffer` (STORY-012) |
 | STORY-012 | STORY-013 | STORY-013 flush logic builds on `insert_segment` + `BTreeMap` buffer from STORY-012 |
 | STORY-013 | STORY-014 | STORY-014 overlap detection requires `flush_contiguous` from STORY-013 |
+| STORY-013 | STORY-015 | STORY-015 lifecycle (RST/FIN) also depends on `flush_contiguous` from STORY-013 (confirmed in STORY-015 `depends_on` frontmatter) |
 | STORY-013 | STORY-019 | STORY-019 resource pressure management requires flow table from STORY-013 |
 | STORY-014 | STORY-015 | STORY-015 lifecycle (RST/FIN) builds on overlap detection from STORY-014 |
 | STORY-014 | STORY-019 | STORY-019 uses flow lifecycle events established in STORY-014 |
@@ -445,46 +446,46 @@ iteratively. Result:
 | BC-2.02.014..015 | STORY-005 | E-1 | SS-01/02 |
 | BC-2.04.001, BC-2.04.003, BC-2.04.049 | STORY-011 | E-2 | SS-04 |
 | BC-2.04.002, BC-2.04.028, BC-2.04.030 | STORY-012 | E-2 | SS-04 |
-| BC-2.04.004..005, BC-2.04.050..053 | STORY-013 | E-2 | SS-04 |
-| BC-2.04.009, BC-2.04.031..032, BC-2.04.048 | STORY-014 | E-2 | SS-04 |
-| BC-2.04.006..008, BC-2.04.033..034, BC-2.04.039 | STORY-015 | E-2 | SS-04 |
-| BC-2.04.010..012, BC-2.04.035..038 | STORY-016 | E-2 | SS-04 |
-| BC-2.04.013..016, BC-2.04.040..042 | STORY-017 | E-2 | SS-04 |
-| BC-2.04.017..021, BC-2.04.043..045 | STORY-018 | E-2 | SS-04 |
-| BC-2.04.022..024, BC-2.04.046..047 | STORY-019 | E-2 | SS-04 |
-| BC-2.04.025..027 | STORY-020 | E-2 | SS-04 |
-| BC-2.04.029, BC-2.04.054 | STORY-021 | E-2 | SS-04 |
-| BC-2.05.001..004 | STORY-031 | E-3 | SS-05 |
-| BC-2.05.005..007 | STORY-032 | E-3 | SS-05 |
-| BC-2.05.008..009 | STORY-033 | E-3 | SS-05 |
+| BC-2.04.004, BC-2.04.005, BC-2.04.050..053 | STORY-013 | E-2 | SS-04 |
+| BC-2.04.009, BC-2.04.031, BC-2.04.032, BC-2.04.048 | STORY-014 | E-2 | SS-04 |
+| BC-2.04.006..008, BC-2.04.033, BC-2.04.034, BC-2.04.039 | STORY-015 | E-2 | SS-04 |
+| BC-2.04.035, BC-2.04.036, BC-2.04.038, BC-2.04.043, BC-2.04.047 | STORY-016 | E-2 | SS-04 |
+| BC-2.04.018..022, BC-2.04.037 | STORY-017 | E-2 | SS-04 |
+| BC-2.04.023, BC-2.04.027, BC-2.04.040..042, BC-2.04.044..046 | STORY-018 | E-2 | SS-04 |
+| BC-2.04.010, BC-2.04.011, BC-2.04.013, BC-2.04.029 | STORY-019 | E-2 | SS-04 |
+| BC-2.04.014..017 | STORY-020 | E-2 | SS-04 |
+| BC-2.04.012, BC-2.04.024..026, BC-2.04.054 | STORY-021 | E-2 | SS-04 |
+| BC-2.05.001..003 | STORY-031 | E-3 | SS-05 |
+| BC-2.05.004..006 | STORY-032 | E-3 | SS-05 |
+| BC-2.05.007..009 | STORY-033 | E-3 | SS-05 |
 | BC-2.06.001..004, BC-2.06.026 | STORY-041 | E-4 | SS-06 |
-| BC-2.06.005..007 | STORY-042 | E-4 | SS-06 |
-| BC-2.06.008..010 | STORY-043 | E-4 | SS-06 |
-| BC-2.06.011..016 | STORY-044 | E-4 | SS-06 |
-| BC-2.06.017..019 | STORY-045 | E-4 | SS-06 |
-| BC-2.06.020..025 | STORY-046 | E-4 | SS-06 |
-| BC-2.07.001..006 | STORY-051 | E-5 | SS-07 |
-| BC-2.07.007..012 | STORY-052 | E-5 | SS-07 |
-| BC-2.07.013..018 | STORY-053 | E-5 | SS-07 |
-| BC-2.07.019..022 | STORY-054 | E-5 | SS-07 |
-| BC-2.07.023..026 | STORY-055 | E-5 | SS-07 |
-| BC-2.07.027..030 | STORY-056 | E-5 | SS-07 |
-| BC-2.07.031..034 | STORY-057 | E-5 | SS-07 |
-| BC-2.07.035..037 | STORY-058 | E-5 | SS-07 |
+| BC-2.06.005..007, BC-2.06.012 | STORY-042 | E-4 | SS-06 |
+| BC-2.06.008..011 | STORY-043 | E-4 | SS-06 |
+| BC-2.06.013..018, BC-2.06.020 | STORY-044 | E-4 | SS-06 |
+| BC-2.06.019, BC-2.06.021, BC-2.06.022, BC-2.06.024, BC-2.06.025 | STORY-045 | E-4 | SS-06 |
+| BC-2.06.023 | STORY-046 | E-4 | SS-06 |
+| BC-2.07.006..008 | STORY-051 | E-5 | SS-07 |
+| BC-2.07.001, BC-2.07.003, BC-2.07.032, BC-2.07.034 | STORY-052 | E-5 | SS-07 |
+| BC-2.07.002 | STORY-053 | E-5 | SS-07 |
+| BC-2.07.009..012, BC-2.07.030, BC-2.07.036 | STORY-054 | E-5 | SS-07 |
+| BC-2.07.013..016, BC-2.07.018 | STORY-055 | E-5 | SS-07 |
+| BC-2.07.017, BC-2.07.019..021, BC-2.07.037 | STORY-056 | E-5 | SS-07 |
+| BC-2.07.022..028 | STORY-057 | E-5 | SS-07 |
+| BC-2.07.004, BC-2.07.005, BC-2.07.029, BC-2.07.031, BC-2.07.033, BC-2.07.035 | STORY-058 | E-5 | SS-07 |
 | BC-2.08.001..004 | STORY-066 | E-6 | SS-08 |
 | BC-2.09.001..004 | STORY-069 | E-7 | SS-09 |
 | BC-2.09.005..006 | STORY-070 | E-7 | SS-09 |
 | BC-2.10.001..009 | STORY-071 | E-7 | SS-10 |
 | BC-2.11.001..005 | STORY-076 | E-8 | SS-11 |
-| BC-2.11.006..013 | STORY-077 | E-8 | SS-11 |
-| BC-2.11.014..018 | STORY-078 | E-8 | SS-11 |
-| BC-2.11.019..021 | STORY-079 | E-8 | SS-11 |
-| BC-2.11.022..024 | STORY-080 | E-8 | SS-11 |
-| BC-2.12.001..005 | STORY-086 | E-9 | SS-12 |
-| BC-2.12.006..010 | STORY-087 | E-9 | SS-12 |
-| BC-2.12.011..015 | STORY-088 | E-9 | SS-12 |
-| BC-2.12.016..018 | STORY-089 | E-9 | SS-12 |
-| BC-2.12.019..021 | STORY-090 | E-9 | SS-12 |
+| BC-2.11.006..012 | STORY-077 | E-8 | SS-11 |
+| BC-2.11.013..019 | STORY-078 | E-8 | SS-11 |
+| BC-2.11.020..022 | STORY-079 | E-8 | SS-11 |
+| BC-2.11.023..024 | STORY-080 | E-8 | SS-11 |
+| BC-2.12.001..003, BC-2.12.006 | STORY-086 | E-9 | SS-12 |
+| BC-2.12.004, BC-2.12.005, BC-2.12.007 | STORY-087 | E-9 | SS-12 |
+| BC-2.12.008..013 | STORY-088 | E-9 | SS-12 |
+| BC-2.12.014..017 | STORY-089 | E-9 | SS-12 |
+| BC-2.12.018..021 | STORY-090 | E-9 | SS-12 |
 | BC-2.13.001..004 | STORY-096 | E-10 | SS-13 |
 
 **Coverage: 217 / 217 BCs assigned across 48 stories.**
@@ -547,6 +548,11 @@ E-8 (SS-11)
 ---
 
 ## Wave Assignment Discrepancies vs. Story Frontmatter
+
+> **Historical record only.** The table below documents wave-tag drift that existed
+> at the time this dependency graph was constructed. The computed waves in this
+> dependency graph are authoritative; individual story-file `wave:` frontmatter
+> tags are non-binding and may lag behind.
 
 When this dependency graph was constructed, cross-epic edges were added that were
 not present in the original intra-epic-only story frontmatter. Several stories in
