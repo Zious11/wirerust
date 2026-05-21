@@ -16,7 +16,6 @@ priority: "must-pass"
 epic_id: "E-9"
 behavioral_contracts:
   - BC-2.12.005
-  - BC-2.12.004
 lifecycle_status: active
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
@@ -51,7 +50,6 @@ silent clamp or runtime crash.
 | BC-2.12.005 | Postcondition 6: --overlap-threshold rejected above 255 | Item 1: 256 is rejected |
 | BC-2.12.005 | Postcondition 3: --reassembly-depth default is 10 | Item 5: default behavior |
 | BC-2.12.005 | Postcondition 4: --reassembly-memcap default is 1024 | Item 6: default behavior |
-| BC-2.12.004 | Postcondition 3: --output-format absent → None | Context for these flags working together |
 
 ## Verification Approach
 

@@ -121,7 +121,7 @@ stories:
     wave: 6
     branch: null
     worktree: null
-    blocked_by: [STORY-011, STORY-012]
+    blocked_by: [STORY-012]
 
   # ---------------------------------------------------------------------------
   # Wave 7 — 1 story

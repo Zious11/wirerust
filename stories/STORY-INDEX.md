@@ -34,7 +34,7 @@ traces_to:
 | STORY-005 | Packet Decoding — packet_len Semantics and TCP Flag/Sequence Extraction | E-1 | 3 | 3 | draft | STORY-002, STORY-003, STORY-004 |
 | STORY-011 | TcpReassembler Constructor Validation and FlowKey Canonicalization | E-2 | 4 | 5 | draft | STORY-005 |
 | STORY-012 | Non-TCP Packet Filter, Statistics Summary, and bytes_reassembled Accounting | E-2 | 5 | 5 | draft | STORY-011 |
-| STORY-013 | TCP Three-Way Handshake State Machine and Direction Tagging | E-2 | 6 | 8 | draft | STORY-011, STORY-012 |
+| STORY-013 | TCP Three-Way Handshake State Machine and Direction Tagging | E-2 | 6 | 8 | draft | STORY-012 |
 | STORY-014 | Mid-Stream Join, ISN Management, and IsnMissing Guard | E-2 | 7 | 5 | draft | STORY-013 |
 | STORY-015 | In-Order Delivery, Out-of-Order Buffering, and Bidirectional Direction Tagging | E-2 | 8 | 8 | draft | STORY-013, STORY-014 |
 | STORY-016 | Overlap Detection — Duplicate Retransmissions, Partial Overlap, and buffered_bytes Accounting | E-2 | 9 | 8 | draft | STORY-015 |
@@ -118,10 +118,10 @@ traces_to:
 | Epic | Story IDs | Count | Points |
 |------|-----------|-------|--------|
 | E-1: PCAP Ingestion and Packet Decoding | STORY-001, STORY-002, STORY-003, STORY-004, STORY-005 | 5 | 21 |
-| E-2: TCP Stream Reassembly Engine | STORY-011, STORY-012, STORY-013, STORY-014, STORY-015, STORY-016, STORY-017, STORY-018, STORY-019, STORY-020, STORY-021 | 11 | 69 |
+| E-2: TCP Stream Reassembly Engine | STORY-011, STORY-012, STORY-013, STORY-014, STORY-015, STORY-016, STORY-017, STORY-018, STORY-019, STORY-020, STORY-021 | 11 | 73 |
 | E-3: Content-First Protocol Dispatch | STORY-031, STORY-032, STORY-033 | 3 | 13 |
 | E-4: HTTP Traffic Analysis and Threat Detection | STORY-041, STORY-042, STORY-043, STORY-044, STORY-045, STORY-046 | 6 | 34 |
-| E-5: TLS Traffic Analysis and Fingerprinting | STORY-051, STORY-052, STORY-053, STORY-054, STORY-055, STORY-056, STORY-057, STORY-058 | 8 | 55 |
+| E-5: TLS Traffic Analysis and Fingerprinting | STORY-051, STORY-052, STORY-053, STORY-054, STORY-055, STORY-056, STORY-057, STORY-058 | 8 | 58 |
 | E-6: DNS Traffic Statistics | STORY-066 | 1 | 5 |
 | E-7: Forensic Finding Data Model and MITRE Mapping | STORY-069, STORY-070, STORY-071 | 3 | 18 |
 | E-8: Reporting and Output Formats | STORY-076, STORY-077, STORY-078, STORY-079, STORY-080 | 5 | 29 |

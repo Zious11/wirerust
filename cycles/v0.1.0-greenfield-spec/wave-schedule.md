@@ -98,7 +98,7 @@ cycle: v0.1.0-greenfield-spec
 
 | Story | Epic | Points | Description | Blocked By |
 |-------|------|--------|-------------|------------|
-| STORY-013 | E-2 | 8 | TCP Three-Way Handshake State Machine and Direction Tagging | STORY-011, STORY-012 |
+| STORY-013 | E-2 | 8 | TCP Three-Way Handshake State Machine and Direction Tagging | STORY-012 |
 
 ---
 
