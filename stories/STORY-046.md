@@ -19,7 +19,7 @@ behavioral_contracts:
 verification_properties: []
 priority: "P0"
 cycle: v0.1.0-brownfield
-wave: null
+wave: 18
 target_module: src/analyzer/http.rs
 subsystems: [SS-06]
 estimated_days: 1

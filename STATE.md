@@ -65,7 +65,7 @@ now entering Phase 2 story decomposition.
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
-| Phase 2 — Story Decomposition | **IN PROGRESS** — Steps A+B+C COMPLETE 2026-05-21 | 10 epics, 217/217 BCs traced to ≥1 story, 48 stories, 78 edges, 27 waves, acyclic, 282 story points; next: `wave-schedule` |
+| Phase 2 — Story Decomposition | **IN PROGRESS** — Steps A+B+C+D COMPLETE 2026-05-21 | 10 epics, 217/217 BCs traced to ≥1 story, 48 stories, 78 edges, 27 waves, acyclic, 282 story points; STORY-INDEX rebuilt, sprint-state initialized (48 entries, current_wave 1); next: `adversarial-story-gate` |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
@@ -174,8 +174,8 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 | A. `define-epics` | **COMPLETE** 2026-05-21 | 10 epics; 217/217 BCs assigned; 48 stories estimated — `stories/epics.md` |
 | B. `create-stories` | **COMPLETE** 2026-05-21 | 48 STORY-NNN.md files across 10 epics; all 217 BCs traced to ≥1 story; STORY-INDEX.md draft committed — `stories/STORY-*.md` |
 | C. `dependency-graph` | **COMPLETE** 2026-05-21 | 48 stories, 78 dependency edges, 27 waves, acyclic, 282 story points — `stories/dependency-graph.md` |
-| D. `wave-schedule` | **NEXT** | Assign stories to waves (`cycles/v0.1.0-greenfield-spec/wave-schedule.md`) |
-| E. `adversarial-story-gate` | NOT STARTED | Adversarial pass over story decomposition |
+| D. `wave-schedule` | **COMPLETE** 2026-05-21 | 27 waves; all 48 stories wave-assigned; `wave-schedule.md`, `STORY-INDEX.md` rebuilt, `sprint-state.yaml` initialized (48 entries, current_wave 1) — `cycles/v0.1.0-greenfield-spec/wave-schedule.md`, `stories/STORY-INDEX.md`, `stories/sprint-state.yaml`, `stories/STORY-*.md` |
+| E. `adversarial-story-gate` | **NEXT** | Adversarial pass over story decomposition |
 | F. `human-approval` | NOT STARTED | Human sign-off before Phase 3 |
 
 ## Governance Policy

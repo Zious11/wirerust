@@ -1,0 +1,460 @@
+# wirerust sprint-state.yaml
+# Authoritative dispatch state for the v0.1.0-greenfield-spec cycle.
+# Updated by state-manager after each story dispatch or completion.
+# Wave 1 stories are `pending` (ready to dispatch). All later stories are `blocked`.
+# Fields: status, wave, branch, worktree, blocked_by
+
+document_type: sprint-state
+version: "1.0"
+produced_by: story-writer
+timestamp: 2026-05-21T00:00:00Z
+cycle: v0.1.0-greenfield-spec
+current_wave: 1
+total_stories: 48
+total_waves: 27
+
+stories:
+
+  # ---------------------------------------------------------------------------
+  # Wave 1 — 2 stories (no dependencies; pending immediately)
+  # ---------------------------------------------------------------------------
+
+  STORY-001:
+    status: pending
+    wave: 1
+    branch: null
+    worktree: null
+    blocked_by: []
+
+  STORY-069:
+    status: pending
+    wave: 1
+    branch: null
+    worktree: null
+    blocked_by: []
+
+  # ---------------------------------------------------------------------------
+  # Wave 2 — 4 stories
+  # ---------------------------------------------------------------------------
+
+  STORY-002:
+    status: blocked
+    wave: 2
+    branch: null
+    worktree: null
+    blocked_by: [STORY-001]
+
+  STORY-003:
+    status: blocked
+    wave: 2
+    branch: null
+    worktree: null
+    blocked_by: [STORY-001]
+
+  STORY-004:
+    status: blocked
+    wave: 2
+    branch: null
+    worktree: null
+    blocked_by: [STORY-001]
+
+  STORY-070:
+    status: blocked
+    wave: 2
+    branch: null
+    worktree: null
+    blocked_by: [STORY-069]
+
+  # ---------------------------------------------------------------------------
+  # Wave 3 — 2 stories
+  # ---------------------------------------------------------------------------
+
+  STORY-005:
+    status: blocked
+    wave: 3
+    branch: null
+    worktree: null
+    blocked_by: [STORY-002, STORY-003, STORY-004]
+
+  STORY-071:
+    status: blocked
+    wave: 3
+    branch: null
+    worktree: null
+    blocked_by: [STORY-069, STORY-070]
+
+  # ---------------------------------------------------------------------------
+  # Wave 4 — 2 stories
+  # ---------------------------------------------------------------------------
+
+  STORY-011:
+    status: blocked
+    wave: 4
+    branch: null
+    worktree: null
+    blocked_by: [STORY-005]
+
+  STORY-066:
+    status: blocked
+    wave: 4
+    branch: null
+    worktree: null
+    blocked_by: [STORY-005]
+
+  # ---------------------------------------------------------------------------
+  # Wave 5 — 1 story
+  # ---------------------------------------------------------------------------
+
+  STORY-012:
+    status: blocked
+    wave: 5
+    branch: null
+    worktree: null
+    blocked_by: [STORY-011]
+
+  # ---------------------------------------------------------------------------
+  # Wave 6 — 1 story
+  # ---------------------------------------------------------------------------
+
+  STORY-013:
+    status: blocked
+    wave: 6
+    branch: null
+    worktree: null
+    blocked_by: [STORY-011, STORY-012]
+
+  # ---------------------------------------------------------------------------
+  # Wave 7 — 1 story
+  # ---------------------------------------------------------------------------
+
+  STORY-014:
+    status: blocked
+    wave: 7
+    branch: null
+    worktree: null
+    blocked_by: [STORY-013]
+
+  # ---------------------------------------------------------------------------
+  # Wave 8 — 2 stories
+  # ---------------------------------------------------------------------------
+
+  STORY-015:
+    status: blocked
+    wave: 8
+    branch: null
+    worktree: null
+    blocked_by: [STORY-013, STORY-014]
+
+  STORY-019:
+    status: blocked
+    wave: 8
+    branch: null
+    worktree: null
+    blocked_by: [STORY-013, STORY-014]
+
+  # ---------------------------------------------------------------------------
+  # Wave 9 — 2 stories
+  # ---------------------------------------------------------------------------
+
+  STORY-016:
+    status: blocked
+    wave: 9
+    branch: null
+    worktree: null
+    blocked_by: [STORY-015]
+
+  STORY-020:
+    status: blocked
+    wave: 9
+    branch: null
+    worktree: null
+    blocked_by: [STORY-019]
+
+  # ---------------------------------------------------------------------------
+  # Wave 10 — 2 stories
+  # ---------------------------------------------------------------------------
+
+  STORY-017:
+    status: blocked
+    wave: 10
+    branch: null
+    worktree: null
+    blocked_by: [STORY-015, STORY-016]
+
+  STORY-018:
+    status: blocked
+    wave: 10
+    branch: null
+    worktree: null
+    blocked_by: [STORY-015, STORY-016]
+
+  # ---------------------------------------------------------------------------
+  # Wave 11 — 1 story
+  # ---------------------------------------------------------------------------
+
+  STORY-021:
+    status: blocked
+    wave: 11
+    branch: null
+    worktree: null
+    blocked_by: [STORY-017, STORY-018, STORY-019, STORY-020]
+
+  # ---------------------------------------------------------------------------
+  # Wave 12 — 1 story
+  # ---------------------------------------------------------------------------
+
+  STORY-031:
+    status: blocked
+    wave: 12
+    branch: null
+    worktree: null
+    blocked_by: [STORY-021]
+
+  # ---------------------------------------------------------------------------
+  # Wave 13 — 1 story
+  # ---------------------------------------------------------------------------
+
+  STORY-032:
+    status: blocked
+    wave: 13
+    branch: null
+    worktree: null
+    blocked_by: [STORY-031]
+
+  # ---------------------------------------------------------------------------
+  # Wave 14 — 1 story
+  # ---------------------------------------------------------------------------
+
+  STORY-033:
+    status: blocked
+    wave: 14
+    branch: null
+    worktree: null
+    blocked_by: [STORY-031, STORY-032]
+
+  # ---------------------------------------------------------------------------
+  # Wave 15 — 2 stories
+  # ---------------------------------------------------------------------------
+
+  STORY-041:
+    status: blocked
+    wave: 15
+    branch: null
+    worktree: null
+    blocked_by: [STORY-033, STORY-071]
+
+  STORY-051:
+    status: blocked
+    wave: 15
+    branch: null
+    worktree: null
+    blocked_by: [STORY-033, STORY-071]
+
+  # ---------------------------------------------------------------------------
+  # Wave 16 — 4 stories
+  # ---------------------------------------------------------------------------
+
+  STORY-042:
+    status: blocked
+    wave: 16
+    branch: null
+    worktree: null
+    blocked_by: [STORY-041]
+
+  STORY-043:
+    status: blocked
+    wave: 16
+    branch: null
+    worktree: null
+    blocked_by: [STORY-041]
+
+  STORY-044:
+    status: blocked
+    wave: 16
+    branch: null
+    worktree: null
+    blocked_by: [STORY-041]
+
+  STORY-052:
+    status: blocked
+    wave: 16
+    branch: null
+    worktree: null
+    blocked_by: [STORY-051]
+
+  # ---------------------------------------------------------------------------
+  # Wave 17 — 3 stories
+  # ---------------------------------------------------------------------------
+
+  STORY-045:
+    status: blocked
+    wave: 17
+    branch: null
+    worktree: null
+    blocked_by: [STORY-041, STORY-044]
+
+  STORY-053:
+    status: blocked
+    wave: 17
+    branch: null
+    worktree: null
+    blocked_by: [STORY-051, STORY-052]
+
+  STORY-055:
+    status: blocked
+    wave: 17
+    branch: null
+    worktree: null
+    blocked_by: [STORY-052]
+
+  # ---------------------------------------------------------------------------
+  # Wave 18 — 4 stories
+  # ---------------------------------------------------------------------------
+
+  STORY-046:
+    status: blocked
+    wave: 18
+    branch: null
+    worktree: null
+    blocked_by: [STORY-041, STORY-042, STORY-043, STORY-044, STORY-045]
+
+  STORY-054:
+    status: blocked
+    wave: 18
+    branch: null
+    worktree: null
+    blocked_by: [STORY-052, STORY-053]
+
+  STORY-056:
+    status: blocked
+    wave: 18
+    branch: null
+    worktree: null
+    blocked_by: [STORY-055]
+
+  STORY-058:
+    status: blocked
+    wave: 18
+    branch: null
+    worktree: null
+    blocked_by: [STORY-052, STORY-053]
+
+  # ---------------------------------------------------------------------------
+  # Wave 19 — 1 story
+  # ---------------------------------------------------------------------------
+
+  STORY-057:
+    status: blocked
+    wave: 19
+    branch: null
+    worktree: null
+    blocked_by: [STORY-055, STORY-056]
+
+  # ---------------------------------------------------------------------------
+  # Wave 20 — 1 story
+  # ---------------------------------------------------------------------------
+
+  STORY-076:
+    status: blocked
+    wave: 20
+    branch: null
+    worktree: null
+    blocked_by: [STORY-046, STORY-057, STORY-058, STORY-066, STORY-071]
+
+  # ---------------------------------------------------------------------------
+  # Wave 21 — 2 stories
+  # ---------------------------------------------------------------------------
+
+  STORY-077:
+    status: blocked
+    wave: 21
+    branch: null
+    worktree: null
+    blocked_by: [STORY-076]
+
+  STORY-079:
+    status: blocked
+    wave: 21
+    branch: null
+    worktree: null
+    blocked_by: [STORY-076]
+
+  # ---------------------------------------------------------------------------
+  # Wave 22 — 2 stories
+  # ---------------------------------------------------------------------------
+
+  STORY-078:
+    status: blocked
+    wave: 22
+    branch: null
+    worktree: null
+    blocked_by: [STORY-077]
+
+  STORY-080:
+    status: blocked
+    wave: 22
+    branch: null
+    worktree: null
+    blocked_by: [STORY-079]
+
+  # ---------------------------------------------------------------------------
+  # Wave 23 — 1 story
+  # ---------------------------------------------------------------------------
+
+  STORY-086:
+    status: blocked
+    wave: 23
+    branch: null
+    worktree: null
+    blocked_by: [STORY-080]
+
+  # ---------------------------------------------------------------------------
+  # Wave 24 — 2 stories
+  # ---------------------------------------------------------------------------
+
+  STORY-087:
+    status: blocked
+    wave: 24
+    branch: null
+    worktree: null
+    blocked_by: [STORY-086]
+
+  STORY-096:
+    status: blocked
+    wave: 24
+    branch: null
+    worktree: null
+    blocked_by: [STORY-086]
+
+  # ---------------------------------------------------------------------------
+  # Wave 25 — 1 story
+  # ---------------------------------------------------------------------------
+
+  STORY-088:
+    status: blocked
+    wave: 25
+    branch: null
+    worktree: null
+    blocked_by: [STORY-086, STORY-087]
+
+  # ---------------------------------------------------------------------------
+  # Wave 26 — 1 story
+  # ---------------------------------------------------------------------------
+
+  STORY-089:
+    status: blocked
+    wave: 26
+    branch: null
+    worktree: null
+    blocked_by: [STORY-086, STORY-087, STORY-088]
+
+  # ---------------------------------------------------------------------------
+  # Wave 27 — 1 story
+  # ---------------------------------------------------------------------------
+
+  STORY-090:
+    status: blocked
+    wave: 27
+    branch: null
+    worktree: null
+    blocked_by: [STORY-086, STORY-088, STORY-089]

@@ -25,7 +25,7 @@ behavioral_contracts:
 verification_properties: []
 priority: P1
 cycle: v1.0.0-brownfield
-wave: 1
+wave: 24
 target_module: cli
 subsystems: [SS-13]
 estimated_days: 1

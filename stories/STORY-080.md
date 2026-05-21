@@ -21,7 +21,7 @@ behavioral_contracts:
   - BC-2.11.024
 verification_properties: []
 priority: "P0"
-wave: 3
+wave: 22
 target_module: reporter/csv
 subsystems: [SS-11]
 estimated_days: 1

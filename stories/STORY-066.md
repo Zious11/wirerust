@@ -25,7 +25,7 @@ behavioral_contracts:
 verification_properties: []
 priority: P1
 cycle: v1.0.0-brownfield
-wave: 1
+wave: 4
 target_module: analyzer/dns
 subsystems: [SS-08]
 estimated_days: 2

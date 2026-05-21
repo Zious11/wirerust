@@ -31,7 +31,7 @@ behavioral_contracts:
   - BC-2.11.019
 verification_properties: [VP-016]
 priority: "P0"
-wave: 3
+wave: 22
 target_module: reporter/terminal
 subsystems: [SS-11]
 estimated_days: 2

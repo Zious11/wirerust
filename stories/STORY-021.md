@@ -22,7 +22,7 @@ behavioral_contracts: [BC-2.04.012, BC-2.04.024, BC-2.04.025, BC-2.04.026, BC-2.
 verification_properties: [VP-003]
 priority: "P0"
 cycle: v0.1.0-brownfield
-wave: 6
+wave: 11
 target_module: reassembly
 subsystems: [SS-04]
 estimated_days: "1"
