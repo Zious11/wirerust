@@ -15,7 +15,7 @@ inputs:
 input-hash: ""
 traces_to: .factory/specs/prd.md
 points: 3
-depends_on: []
+depends_on: [STORY-086]
 blocks: []
 behavioral_contracts:
   - BC-2.13.001
@@ -43,6 +43,15 @@ implementation_strategy: brownfield-formalization
 - **As a** forensic analyst who may be familiar with older wirerust versions
 - **I want** `--threats`, `--beacon`, `--filter`, and `--verbose` to be actively rejected by clap with an unknown-argument error
 - **So that** I receive immediate, clear feedback when typing an obsolete flag rather than silent misuse of a removed feature
+
+## Behavioral Contracts
+
+| BC | Title |
+|----|-------|
+| BC-2.13.001 | --threats Flag Does Not Exist; clap Rejects It as Unknown Argument |
+| BC-2.13.002 | --beacon Flag Does Not Exist; No C2 Beacon Analyzer Exists |
+| BC-2.13.003 | --filter <BPF> Flag Does Not Exist; No BPF Filter Applied |
+| BC-2.13.004 | --verbose Flag Does Not Exist; No Verbose Logging Mode |
 
 ## Acceptance Criteria
 

@@ -40,6 +40,13 @@ implementation_strategy: brownfield-formalization
 - **I want** all Finding optional fields (mitre_technique, source_ip, timestamp, direction) to be completely absent from JSON when `None` (never `null`), and `Finding.summary`/`evidence` to carry raw attacker-controlled bytes without pre-escaping
 - **So that** SIEM ingestion logic can use key-presence to detect optional fields, and forensic byte evidence is preserved intact for analysis
 
+## Behavioral Contracts
+
+| BC | Title |
+|----|-------|
+| BC-2.09.005 | Finding.summary and Evidence Store RAW Post-from_utf8_lossy Bytes per ADR 0003 |
+| BC-2.09.006 | Finding JSON Serialization: All None Option Fields Omitted via skip_serializing_if |
+
 ## Acceptance Criteria
 
 ### AC-001 (traces to BC-2.09.005 postcondition 1)

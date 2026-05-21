@@ -32,7 +32,7 @@ behavioral_contracts:
   - BC-2.10.007
   - BC-2.10.008
   - BC-2.10.009
-verification_properties: []
+verification_properties: [VP-007, VP-016]
 priority: P0
 cycle: v0.1.0-greenfield-spec
 wave: 3
@@ -53,6 +53,20 @@ implementation_strategy: brownfield-formalization
 - **As a** SOC operator using `--mitre` grouped output
 - **I want** all 16 MITRE ATT&CK tactic variants (14 Enterprise + 2 ICS) to render with canonical display names, appear once each in kill-chain order via `all_tactics_in_report_order`, and have all 15 seeded technique IDs resolve correctly while unknown IDs return None
 - **So that** the terminal reporter can group findings under correct tactic headers and SIEM consumers can verify technique-to-tactic mapping integrity
+
+## Behavioral Contracts
+
+| BC | Title |
+|----|-------|
+| BC-2.10.001 | MitreTactic Display Renders Enterprise Tactics with Canonical Spacing |
+| BC-2.10.002 | ICS Tactics Render Unprefixed |
+| BC-2.10.003 | all_tactics_in_report_order Returns Kill-Chain Order First Then ICS |
+| BC-2.10.004 | all_tactics_in_report_order Contains Every Variant Exactly Once |
+| BC-2.10.005 | technique_name Returns Some for Every Seeded ID (15 Total) |
+| BC-2.10.006 | technique_name Returns None for Unknown IDs |
+| BC-2.10.007 | technique_tactic Returns Correct Tactic for Every Seeded ID |
+| BC-2.10.008 | All Emitted Technique IDs Resolve in Lookup |
+| BC-2.10.009 | MitreTactic is #[non_exhaustive] |
 
 ## Acceptance Criteria
 

@@ -14,8 +14,8 @@ inputs:
 input-hash: "[md5-pending]"
 traces_to: .factory/specs/prd.md
 points: "5"
-depends_on: []
-blocks: [STORY-012, STORY-013, STORY-014, STORY-015]
+depends_on: [STORY-005]
+blocks: [STORY-012, STORY-013]
 behavioral_contracts: [BC-2.04.001, BC-2.04.003, BC-2.04.049]
 verification_properties: [VP-001]
 priority: "P0"

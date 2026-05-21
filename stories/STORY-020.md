@@ -18,7 +18,7 @@ points: "8"
 depends_on: [STORY-019]
 blocks: [STORY-021]
 behavioral_contracts: [BC-2.04.014, BC-2.04.015, BC-2.04.016, BC-2.04.017]
-verification_properties: [VP-010]
+verification_properties: []
 priority: "P0"
 cycle: v0.1.0-greenfield-spec
 wave: 9

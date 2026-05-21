@@ -44,6 +44,15 @@ implementation_strategy: brownfield-formalization
 - **I want** the `Finding` struct to hold all required and optional fields, have correct uppercase Display tokens for `Verdict` and `Confidence`, and render a `[Category] VERDICT (CONFIDENCE) — summary` one-liner via `fmt::Display`
 - **So that** all downstream reporters and log consumers receive a consistent, well-typed forensic finding with no escape logic at construction time
 
+## Behavioral Contracts
+
+| BC | Title |
+|----|-------|
+| BC-2.09.001 | Finding Constructed with Required Fields and Optional Fields |
+| BC-2.09.002 | Finding Display Renders [Category] VERDICT (CONFIDENCE) — summary |
+| BC-2.09.003 | Verdict Display: Uppercase Tokens |
+| BC-2.09.004 | Confidence Display: Uppercase Tokens |
+
 ## Acceptance Criteria
 
 ### AC-001 (traces to BC-2.09.001 postcondition 1)

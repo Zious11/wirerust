@@ -20,7 +20,7 @@ points: "8"
 depends_on: [STORY-011, STORY-012]
 blocks: [STORY-014, STORY-015]
 behavioral_contracts: [BC-2.04.004, BC-2.04.005, BC-2.04.050, BC-2.04.051, BC-2.04.052, BC-2.04.053]
-verification_properties: [VP-009]
+verification_properties: [VP-001, VP-009]
 priority: "P0"
 cycle: v0.1.0-greenfield-spec
 wave: 6
@@ -85,9 +85,18 @@ implementation_strategy: brownfield-verify
 - A SYN+ACK received without a prior SYN (mid-capture) still transitions the flow from `New` directly to `Established`.
 - **Test:** `test_BC_2_04_005_syn_ack_without_prior_syn()`
 
-### AC-008 (traces to BC-2.04.050 postcondition, all transitions)
-- The flow state machine implements the full transition table: `on_syn()` New->SynSent; `on_syn_ack()` SynSent->Established or New->Established; first `on_fin()` any->Closing; second `on_fin()` Closing->Closed; `on_rst()` any->Closed.
-- **Test:** `test_BC_2_04_050_state_machine_all_transitions()`
+### AC-008 (traces to BC-2.04.050 postcondition, all 9 transitions)
+- The flow state machine implements the full 9-row transition table from BC-2.04.050:
+  1. `on_syn()` New → SynSent
+  2. `on_syn()` SynSent → SynSent (no-op guard; state unchanged)
+  3. `on_syn_ack()` SynSent → Established
+  4. `on_syn_ack()` New → Established (server-first: SYN+ACK without prior SYN)
+  5. `on_data_without_syn()` New → Established (+ sets `partial = true`)
+  6. `on_fin()` (first, `fin_count` becomes 1) Established → Closing
+  7. `on_fin()` (first, `fin_count` becomes 1) SynSent → Closing
+  8. `on_fin()` (second, `fin_count >= 2`) any → Closed
+  9. `on_rst()` any → Closed
+- **Test:** `test_BC_2_04_050_state_machine_all_transitions()` (must assert each of the 9 rows above individually)
 
 ### AC-009 (traces to BC-2.04.050 invariant 1)
 - `on_syn()` is a no-op when the flow is already in `SynSent`, `Established`, `Closing`, or `Closed` state.

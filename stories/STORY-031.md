@@ -14,13 +14,13 @@ inputs:
 input-hash: "[md5-pending]"
 traces_to: .factory/specs/prd.md
 points: 5
-depends_on: []
+depends_on: [STORY-021]
 blocks: [STORY-032, STORY-033]
 behavioral_contracts:
   - BC-2.05.001
   - BC-2.05.002
   - BC-2.05.003
-verification_properties: []
+verification_properties: [VP-004]
 priority: "P0"
 cycle: v0.1.0-greenfield-spec
 wave: 12

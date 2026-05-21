@@ -68,20 +68,19 @@ traces_to:
 | Epic | Description | Count |
 |------|-------------|-------|
 | E-1 | PCAP Ingestion and Packet Decoding | 8 |
-| E-2 | TCP Stream Reassembly Engine | 27 |
+| E-2 | TCP Stream Reassembly Engine | 28 |
 | E-3 | Protocol Dispatcher and Content Classification | 5 |
-| E-4 | HTTP Traffic Analysis and Threat Detection | 14 |
-| E-5 | TLS Traffic Analysis and Fingerprinting | 16 |
+| E-4 | HTTP Traffic Analysis and Threat Detection | 10 |
+| E-5 | TLS Traffic Analysis and Fingerprinting | 12 |
 | E-6 | DNS Traffic Statistics | 2 |
 | E-7 | Forensic Finding Data Model and MITRE Mapping | 7 |
-| E-8 | Reporting and Output Formats | 14 |
-| E-9 | CLI, Entry Point, and Analysis Orchestration | 13 |
+| E-8 | Reporting and Output Formats | 15 |
+| E-9 | CLI, Entry Point, and Analysis Orchestration | 12 |
 | E-10 | Absent Behavior Contracts (Flag Rejection) | 1 |
-| **TOTAL** | | **107*** |
+| **TOTAL** | | **100** |
 
-> *Scenarios that span multiple epics (cross-subsystem) are counted once under their
-> primary `epic_id`. The per-epic count reflects `epic_id` values from frontmatter;
-> total is 100 unique scenarios.
+> Each scenario is counted once under its primary `epic_id` from frontmatter.
+> Counts are derived directly from the Scenario Index rows below.
 
 ---
 

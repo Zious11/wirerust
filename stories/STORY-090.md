@@ -44,6 +44,15 @@ implementation_strategy: brownfield-formalization
 - **I want** the `Summary` struct to accurately accumulate per-packet statistics (packet count, bytes, unique hosts, protocol distribution, port-based service hints) and expose them via sorted accessors and serde serialization
 - **So that** any reporter can produce a complete and accurate summary block without reimplementing the accumulation logic
 
+## Behavioral Contracts
+
+| BC | Title |
+|----|-------|
+| BC-2.12.018 | Summary::ingest Increments total_packets, total_bytes, hosts, protocols |
+| BC-2.12.019 | Summary::ingest Derives Service Name from app_protocol_hint |
+| BC-2.12.020 | Summary::unique_hosts Returns Sorted Deduplicated Vec<IpAddr> |
+| BC-2.12.021 | Summary Serializes with total_packets/total_bytes/skipped_packets Fields |
+
 ## Acceptance Criteria
 
 ### AC-001 (traces to BC-2.12.018 postcondition 1)

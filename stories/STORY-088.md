@@ -26,7 +26,7 @@ behavioral_contracts:
   - BC-2.12.011
   - BC-2.12.012
   - BC-2.12.013
-verification_properties: []
+verification_properties: [VP-018]
 priority: P0
 cycle: v0.1.0-greenfield-spec
 wave: 25
@@ -47,6 +47,17 @@ implementation_strategy: brownfield-formalization
 - **As a** forensic analyst
 - **I want** `run_analyze` to correctly wire `--all` into individual analyzer enables, enforce the `--no-reassemble` override with a warning, expand directory targets to sorted `.pcap` files, surface a per-file progress bar, and produce a clear error for non-existent targets
 - **So that** the analysis pipeline starts with the correct set of analyzers regardless of which flag combination the operator used
+
+## Behavioral Contracts
+
+| BC | Title |
+|----|-------|
+| BC-2.12.008 | --all Enables dns/http/tls Together |
+| BC-2.12.009 | needs_reassembly Logic; --no-reassemble Forces Off with Warning |
+| BC-2.12.010 | NO_COLOR Env Var Disables Color |
+| BC-2.12.011 | Directory Target Expands to *.pcap Sorted; *.pcapng Excluded |
+| BC-2.12.012 | Non-Existent Target Yields bail! with Target Not Found |
+| BC-2.12.013 | Per-Target Progress Bar on stderr via indicatif |
 
 ## Acceptance Criteria
 

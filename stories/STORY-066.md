@@ -15,14 +15,14 @@ inputs:
 input-hash: ""
 traces_to: .factory/specs/prd.md
 points: 5
-depends_on: []
-blocks: []
+depends_on: [STORY-005]
+blocks: [STORY-076]
 behavioral_contracts:
   - BC-2.08.001
   - BC-2.08.002
   - BC-2.08.003
   - BC-2.08.004
-verification_properties: []
+verification_properties: [VP-019]
 priority: P1
 cycle: v0.1.0-greenfield-spec
 wave: 4
@@ -43,6 +43,15 @@ implementation_strategy: brownfield-formalization
 - **As a** forensic analyst or SOC operator
 - **I want** wirerust to count DNS queries and responses in any pcap with port-53 traffic (TCP or UDP), report those counts in the analysis summary, and guarantee that no DNS-based `Finding` is ever emitted
 - **So that** the analysis summary provides a baseline DNS traffic picture for triage without false-positive findings from DNS anomaly detection that does not yet exist
+
+## Behavioral Contracts
+
+| BC | Title |
+|----|-------|
+| BC-2.08.001 | DnsAnalyzer Matches Packets Where Port == 53 (TCP or UDP) |
+| BC-2.08.002 | DNS QR-Bit Dispatch: response_count Incremented if Set; query_count Otherwise |
+| BC-2.08.003 | summarize Emits AnalysisSummary with dns_queries and dns_responses |
+| BC-2.08.004 | DnsAnalyzer NEVER Emits Findings (Statistics-Only by Design) |
 
 ## Acceptance Criteria
 

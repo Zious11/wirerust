@@ -19,6 +19,10 @@ dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3
 adversary_gate: SATISFIED
+story_adversary_convergence_counter: 0/3
+story_adversary_pass_1_date: "2026-05-21"
+story_adversary_pass_1_verdict: NOT_CONVERGED
+story_adversary_pass_1_findings: "11 (1C/3H/3M/2L/2N) — all blocking findings remediated; 3 process-gap NITPICKs deferred for cycle-close codification. Pass 2 next."
 adversary_pass_30_date: "2026-05-20"
 adversary_pass_30_verdict: NOT_CONVERGED
 adversary_pass_30_findings: "3 (0C/0H/1M/0L/2N) — STREAK RESET 2/3→0/3. M-1 BC-2.12.020 C-16→C-17 prose; N-1 BC-2.05.006 guard-clause quote; N-2 inv-01 INV-9 citation. All 3 fixed (00f5094). Pass 31 next."
@@ -65,7 +69,7 @@ now entering Phase 2 story decomposition.
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
-| Phase 2 — Story Decomposition | **IN PROGRESS** — Steps A–F (decomposition gate) COMPLETE 2026-05-21 | 10 epics, 217/217 BCs traced to ≥1 story, 48 stories, 78 edges, 27 waves, acyclic, 282 story points; 100 holdout scenarios (HS-001–HS-100; 99 must-pass / 1 should-pass; 5 categories across all 27 waves); decomposition gate PASSED (3 blocking findings B-1/B-2/B-3 remediated; re-audit CONSISTENT 100/100); next: adversarial-story-convergence review (3 consecutive clean passes required) |
+| Phase 2 — Story Decomposition | **IN PROGRESS** — Steps A–F COMPLETE; Step G adversarial Pass 1 NOT_CONVERGED (remediated); Pass 2 next; convergence counter 0/3 | 10 epics, 217/217 BCs traced to ≥1 story, 48 stories, 78 edges, 27 waves, acyclic, 282 story points; 100 holdout scenarios; decomposition gate PASSED; story-adversary Pass 1 findings: 1C/3H/3M/2L/2N — all blocking remediated (VP matrix, VP assignments, HS subtotals, BC body tables, depends_on/blocks, STORY-013 AC-008); 3 process-gap NITPICKs deferred |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
@@ -177,7 +181,7 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 | D. `wave-schedule` | **COMPLETE** 2026-05-21 | 27 waves; all 48 stories wave-assigned; `wave-schedule.md`, `STORY-INDEX.md` rebuilt, `sprint-state.yaml` initialized (48 entries, current_wave 1) — `cycles/v0.1.0-greenfield-spec/wave-schedule.md`, `stories/STORY-INDEX.md`, `stories/sprint-state.yaml`, `stories/STORY-*.md` |
 | E. `holdout-scenarios` | **COMPLETE** 2026-05-21 | 100 holdout scenarios HS-001–HS-100; 99 must-pass / 1 should-pass; 36 behavioral-subtleties, 19 edge-case-combinations, 18 integration-boundaries, 17 security-probes, 10 real-world-corpus; all 27 waves covered — `holdout-scenarios/` |
 | F. `decomposition-gate` | **COMPLETE** 2026-05-21 | Consistency audit found 3 blocking findings (B-1 BC matrix divergence 31/48 stories, B-2 edge-count off-by-one 64→64 fixed, B-3 stale cycle fields 37/48 stories); all 3 remediated; 2 NUL-byte sanitizations (STORY-070/076, same class as P5-PG); re-audit CONSISTENT 100/100. Gate PASSED. |
-| G. `adversarial-story-gate` | **NEXT** | Adversarial convergence review of story decomposition + holdout scenarios; requires 3 consecutive clean passes |
+| G. `adversarial-story-gate` | **IN PROGRESS** — Pass 1 NOT_CONVERGED (1C/3H/3M/2L/2N); all blocking findings remediated; Pass 2 next | Adversarial convergence review of story decomposition + holdout scenarios; 3 consecutive clean passes required; convergence counter 0/3; 3 process-gap NITPICKs (N-1/N-2/N-3) deferred for cycle-close codification |
 | H. `human-approval` | NOT STARTED | Human sign-off before Phase 3 |
 
 ## Governance Policy

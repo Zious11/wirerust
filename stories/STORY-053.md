@@ -16,7 +16,7 @@ depends_on: [STORY-051, STORY-052]
 blocks: [STORY-054]
 behavioral_contracts:
   - BC-2.07.002
-verification_properties: [VP-013]
+verification_properties: []
 priority: "P0"
 cycle: v0.1.0-greenfield-spec
 wave: 17

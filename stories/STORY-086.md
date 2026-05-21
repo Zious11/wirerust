@@ -15,8 +15,8 @@ inputs:
 input-hash: ""
 traces_to: .factory/specs/prd.md
 points: 5
-depends_on: []
-blocks: [STORY-087, STORY-088, STORY-089, STORY-090]
+depends_on: [STORY-080]
+blocks: [STORY-087, STORY-088, STORY-089, STORY-090, STORY-096]
 behavioral_contracts:
   - BC-2.12.001
   - BC-2.12.002
@@ -43,6 +43,15 @@ implementation_strategy: brownfield-formalization
 - **As a** forensic analyst
 - **I want to** invoke `wirerust analyze` or `wirerust summary` with one or more positional target paths and global flags like `--no-color`
 - **So that** the CLI surface is correctly structured, required arguments are enforced by clap, and the flag state is accurately captured in the parsed struct
+
+## Behavioral Contracts
+
+| BC | Title |
+|----|-------|
+| BC-2.12.001 | analyze Subcommand Parses Positional Targets and All Flags |
+| BC-2.12.002 | summary Subcommand Parses Targets and --hosts Flag |
+| BC-2.12.003 | Global Flag --no-color Parsed and Stored |
+| BC-2.12.006 | Multiple Positional Targets Accepted in analyze |
 
 ## Acceptance Criteria
 

@@ -44,6 +44,15 @@ implementation_strategy: brownfield-formalization
 - **I want** decode errors to be counted without aborting the run (first error warned once, rest silent), unclassified flow counts from the dispatcher to appear in the reassembly summary, output format to be resolved with `--json`/`--csv` taking precedence over `--output-format`, and the final output routed to a file or stdout based on the flag
 - **So that** partial captures produce results, the full summary is complete, and output lands in the expected place
 
+## Behavioral Contracts
+
+| BC | Title |
+|----|-------|
+| BC-2.12.014 | Per-Target Decode Errors Counted into skipped_packets |
+| BC-2.12.015 | dispatcher.unclassified_flows() Injected into Reassembly Summary |
+| BC-2.12.016 | Output Format Selection: json->JsonReporter, csv->CsvReporter, else Terminal |
+| BC-2.12.017 | Output Routed to File if --json/--csv <FILE>; Stdout Otherwise |
+
 ## Acceptance Criteria
 
 ### AC-001 (traces to BC-2.12.014 postcondition 1)

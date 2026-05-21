@@ -15,6 +15,7 @@ traces_to:
   - .factory/stories/epics.md
   - .factory/specs/architecture/dependency-graph.md
   - .factory/specs/architecture/module-decomposition.md
+  - .factory/specs/verification-properties/VP-INDEX.md
 ---
 
 # wirerust Story Dependency Graph
@@ -494,20 +495,28 @@ iteratively. Result:
 
 ## VP to Stories Matrix
 
-| VP | Stories Exercising It | BC Source |
-|----|-----------------------|-----------|
-| VP-001 | STORY-001 | BC-2.01.x (PCAP file validation) |
-| VP-002 | STORY-002, STORY-003, STORY-004 | BC-2.02.x (packet decode correctness) |
-| VP-003 | STORY-013, STORY-014, STORY-015 | BC-2.04.x (segment ordering + overlap) |
-| VP-005 | STORY-016, STORY-017, STORY-018 | BC-2.04.x (evasion / retransmit) |
-| VP-009 | STORY-031, STORY-032 | BC-2.05.x (content-first classification) |
-| VP-010 | STORY-041, STORY-042, STORY-043, STORY-044 | BC-2.06.x (HTTP threat detection) |
-| VP-011 | STORY-051, STORY-052, STORY-053 | BC-2.07.x (TLS fingerprinting) |
-| VP-012 | STORY-053 | BC-2.07.x (SNI anomaly classification) |
-| VP-013 | STORY-076, STORY-077, STORY-078, STORY-079, STORY-080 | BC-2.11.x (reporter correctness) |
-| VP-016 | STORY-086, STORY-087, STORY-088 | BC-2.12.x (CLI flag parsing) |
-| VP-017 | STORY-076 | BC-2.11.001..005 (JSON structure) |
-| VP-020 | STORY-069, STORY-070, STORY-071 | BC-2.09.x / BC-2.10.x (finding model) |
+| VP | Title | Module | Stories Exercising It | BC Source |
+|----|-------|--------|----------------------|-----------|
+| VP-001 | FlowKey Canonical Ordering | reassembly/flow.rs | STORY-011, STORY-013 | BC-2.04.003 (STORY-011), BC-2.04.053 (STORY-013) |
+| VP-002 | First-Wins Overlap Policy | reassembly/segment.rs | STORY-016, STORY-017 | BC-2.04.035, BC-2.04.036, BC-2.04.038, BC-2.04.043 (STORY-016); BC-2.04.018, BC-2.04.037 (STORY-017) |
+| VP-003 | MAX_FINDINGS Cap with Finalize Bypass | reassembly/mod.rs | STORY-021 | BC-2.04.024, BC-2.04.054 |
+| VP-004 | Content-First Dispatch Precedence | dispatcher.rs | STORY-031, STORY-032 | BC-2.05.001..003 (STORY-031); BC-2.05.004..006 (STORY-032) |
+| VP-005 | SNI 4-Way Ordered Classification | analyzer/tls.rs | STORY-055, STORY-056 | BC-2.07.013..016 (STORY-055); BC-2.07.017, BC-2.07.019, BC-2.07.037 (STORY-056) |
+| VP-006 | HTTP Poison Monotonicity | analyzer/http.rs | STORY-044 | BC-2.06.015, BC-2.06.016, BC-2.06.017 |
+| VP-007 | MITRE Technique ID Format and Catalog Completeness | mitre.rs | STORY-071 | BC-2.10.005..008 |
+| VP-008 | decode_packet Never Panics on Arbitrary Input | decoder.rs | STORY-003 | BC-2.02.007, BC-2.02.008, BC-2.02.009 |
+| VP-009 | FlowState Machine Validity | reassembly/flow.rs | STORY-013 | BC-2.04.004, BC-2.04.005, BC-2.04.050..052 |
+| VP-010 | buffered_bytes Invariant | reassembly/segment.rs | STORY-012, STORY-016 | BC-2.04.030 (STORY-012); BC-2.04.047 (STORY-016) |
+| VP-011 | flush_contiguous Monotonicity | reassembly/segment.rs | STORY-015 | BC-2.04.007, BC-2.04.008, BC-2.04.034 |
+| VP-012 | escape_for_terminal Correctness | reporter/terminal.rs | STORY-077 | BC-2.11.007..012 |
+| VP-013 | JA3 GREASE Filter Correctness | analyzer/tls.rs | STORY-051 | BC-2.07.006..008 |
+| VP-014 | HttpAnalyzer Cross-Flow Isolation | analyzer/http.rs | STORY-045 | BC-2.06.019, BC-2.06.021 |
+| VP-015 | TCP Sequence Number Wraparound | reassembly/segment.rs | STORY-015 | BC-2.04.039 |
+| VP-016 | MITRE Tactic Grouping Order | reporter/terminal.rs | STORY-071, STORY-078 | BC-2.10.003, BC-2.10.004 (STORY-071); BC-2.11.013..015 (STORY-078) |
+| VP-017 | JsonReporter Key-Order Determinism | reporter/json.rs | STORY-076 | BC-2.11.001, BC-2.11.003 |
+| VP-018 | CLI Reassemble / No-Reassemble Mutual Exclusion | cli.rs | STORY-087, STORY-088 | BC-2.12.007 (STORY-087); BC-2.12.009 (STORY-088) |
+| VP-019 | DNS Analyzer Is Statistics-Only (Never Emits Findings) | analyzer/dns.rs | STORY-066 | BC-2.08.001..004 |
+| VP-020 | CSV Injection Neutralization | reporter/csv.rs | STORY-079 | BC-2.11.021 |
 
 ---
 

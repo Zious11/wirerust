@@ -20,7 +20,7 @@ behavioral_contracts:
   - BC-2.05.004
   - BC-2.05.005
   - BC-2.05.006
-verification_properties: []
+verification_properties: [VP-004]
 priority: "P0"
 cycle: v0.1.0-greenfield-spec
 wave: 13

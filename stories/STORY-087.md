@@ -20,7 +20,7 @@ behavioral_contracts:
   - BC-2.12.004
   - BC-2.12.005
   - BC-2.12.007
-verification_properties: []
+verification_properties: [VP-018]
 priority: P0
 cycle: v0.1.0-greenfield-spec
 wave: 24
@@ -41,6 +41,14 @@ implementation_strategy: brownfield-formalization
 - **As a** forensic analyst
 - **I want to** control output format (`--output-format json|csv`, `--json`, `--csv`) and TCP reassembly parameters (`--reassemble`, `--no-reassemble`, `--reassembly-depth`, `--reassembly-memcap`, five threshold flags)
 - **So that** the output channel and reassembly tuning are correctly encoded in the parsed CLI struct with proper defaults and mutual-exclusion enforcement
+
+## Behavioral Contracts
+
+| BC | Title |
+|----|-------|
+| BC-2.12.004 | --output-format json Parses to Some(OutputFormat::Json) |
+| BC-2.12.005 | Reassembly CLI Flags: --reassemble/--no-reassemble, depth, memcap, and five anomaly-threshold flags |
+| BC-2.12.007 | --reassemble and --no-reassemble are Mutually Exclusive (clap conflicts_with) |
 
 ## Acceptance Criteria
 
