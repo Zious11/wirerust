@@ -1,0 +1,171 @@
+---
+document_type: story
+story_id: "STORY-032"
+epic_id: "E-3"
+version: "1.0"
+status: draft
+producer: story-writer
+timestamp: 2026-05-21T00:00:00Z
+phase: 2
+inputs:
+  - .factory/specs/behavioral-contracts/ss-05/BC-2.05.004.md
+  - .factory/specs/behavioral-contracts/ss-05/BC-2.05.005.md
+  - .factory/specs/behavioral-contracts/ss-05/BC-2.05.006.md
+input-hash: "[md5-pending]"
+traces_to: .factory/specs/prd.md
+points: 5
+depends_on: [STORY-031]
+blocks: [STORY-033]
+behavioral_contracts:
+  - BC-2.05.004
+  - BC-2.05.005
+  - BC-2.05.006
+verification_properties: []
+priority: "P0"
+cycle: v0.1.0-brownfield
+wave: null
+target_module: src/dispatcher.rs
+subsystems: [SS-05]
+estimated_days: 1
+assumption_validations: []
+risk_mitigations: []
+tdd_mode: strict
+implementation_strategy: brownfield
+---
+
+> **Execute:** `/vsdd-factory:deliver-story STORY-032`
+
+# STORY-032: Classification Caching and DispatchTarget::None Retry Budget
+
+## Narrative
+- **As a** forensic analyst
+- **I want to** have the dispatcher cache flow classifications after the first successful match — so subsequent data chunks for the same flow skip re-classification — and retry unclassified flows up to `max_classification_attempts` times before permanently marking them as None
+- **So that** analysis is efficient for long-lived flows and late-arriving content (e.g., mid-stream join) can eventually be classified
+
+## Behavioral Contracts
+
+| BC ID | Title |
+|-------|-------|
+| BC-2.05.004 | Unknown Content + Unknown Port Returns DispatchTarget::None |
+| BC-2.05.005 | Classification Cached Per FlowKey After First Non-None Result |
+| BC-2.05.006 | DispatchTarget::None NOT Cached Until Retry Cap; Reclassification Retried Until Cap Then Cached Permanently |
+
+## Acceptance Criteria
+
+### AC-001 (traces to BC-2.05.004 postcondition 1-4)
+When all three classification checks fail (TLS content, HTTP method prefix, and port fallback), `classify` returns `DispatchTarget::None`. Data is not forwarded to any analyzer. `classification_attempts[flow_key]` is incremented by 1.
+- **Test:** `test_unclassified_flows_counter`
+
+### AC-002 (traces to BC-2.05.004 postcondition 4)
+When `classification_attempts[flow_key] >= max_classification_attempts` after increment, `DispatchTarget::None` is inserted into `routes` permanently, `classification_attempts` entry is removed, and future `on_data` calls short-circuit via the cached None route without calling `classify` again.
+- **Test:** `test_none_cached_permanently_after_retry_cap`
+
+### AC-003 (traces to BC-2.05.004 invariant 1-2)
+`DispatchTarget::None` is never cached in `routes` before the retry cap is hit (pre-cap calls re-run `classify` on every `on_data`). After the cap is hit, `DispatchTarget::None` IS cached and `classify` never runs again for that flow.
+- **Test:** `test_none_not_cached_before_retry_cap`
+
+### AC-004 (traces to BC-2.05.005 postcondition 1-4)
+After a flow is classified as Http or Tls, the result is stored in `routes: HashMap<FlowKey, DispatchTarget>`. Subsequent `on_data` calls for the same FlowKey use the cached target without re-running `classify`. The classification result is immutable — a cached Http flow cannot be reclassified as Tls even if later data starts with TLS bytes.
+- **Test:** `test_classification_cached_after_first_match`
+
+### AC-005 (traces to BC-2.05.005 invariant 1)
+Http and Tls are inserted into `routes` on first non-None classification. `DispatchTarget::None` is NOT inserted during the retry phase. Cached routes are removed only on `on_flow_close`.
+- **Test:** `test_classification_cached_after_first_match`
+
+### AC-006 (traces to BC-2.05.006 postcondition Phase A)
+Before the retry cap is reached, when `classify` returns None: `routes` does NOT contain an entry for this FlowKey, `classification_attempts[flow_key]` is incremented by 1, and on the next `on_data`, `routes.get(flow_key)` returns None triggering another `classify` call.
+- **Test:** `test_none_not_cached_before_retry_cap`
+
+### AC-007 (traces to BC-2.05.006 postcondition Phase B)
+When the retry cap is reached (`classification_attempts[flow_key]` reaches `max_classification_attempts`): `routes[flow_key] = DispatchTarget::None` is inserted permanently (dispatcher.rs:146), `classification_attempts[flow_key]` is removed (dispatcher.rs:147), and all subsequent `on_data` calls for this FlowKey short-circuit via the cached None route.
+- **Test:** `test_none_cached_permanently_after_retry_cap`
+
+### AC-008 (traces to BC-2.05.006 invariant 3-4)
+`max_classification_attempts` defaults to `DEFAULT_MAX_CLASSIFICATION_ATTEMPTS = 8` (dispatcher.rs:40). None is never inserted into `routes` BEFORE the cap; it IS inserted once the cap is hit. The cap is configurable (not hardcoded in the dispatch logic).
+- **Test:** `test_none_cached_permanently_after_retry_cap`
+
+### AC-009 (traces to BC-2.05.006 edge case EC-001)
+If the first N `on_data` calls return None and the (N+1)th returns TLS, on the (N+1)th call `routes[FlowKey]=Tls` is cached (dispatcher.rs:150) and `classification_attempts[FlowKey]` is removed (dispatcher.rs:151) — as long as N+1 <= max_classification_attempts.
+- **Test:** `test_late_classification_after_nones`
+
+## Architecture Mapping
+
+| Component | Module | Pure/Effectful |
+|-----------|--------|---------------|
+| routes HashMap | src/dispatcher.rs:133-154 | effectful-shell (stores FlowKey->DispatchTarget) |
+| classification_attempts | src/dispatcher.rs:136-148 | effectful-shell (stores FlowKey->attempt count) |
+| DEFAULT_MAX_CLASSIFICATION_ATTEMPTS const | src/dispatcher.rs:40 | pure-core (named constant) |
+
+## Edge Cases
+
+| ID | Scenario | Expected Behavior |
+|----|----------|-------------------|
+| EC-001 | SSH bytes on port 22 (no match) | DispatchTarget::None; no analyzer call |
+| EC-002 | 8 consecutive None results (default cap=8) | After 8th: None cached permanently |
+| EC-003 | 9th call after cap hit | Cached None used; classify not called |
+| EC-004 | max_classification_attempts=0 | Every flow immediately gets None cached on first chunk |
+| EC-005 | Flow cached as Http; later TLS data on same flow | Stays Http (immutable cache) |
+| EC-006 | 3 None then 1 TLS (cap=8) | Tls cached on 4th call; attempts removed |
+| EC-007 | 7 None then 1 TLS (cap=8) | Tls cached on 8th call (cap not yet hit when Tls arrives) |
+| EC-008 | 8 None (cap=8), then flow closed, same key reopened | New flow starts with no cache; re-classified from scratch |
+
+## Purity Classification
+
+| Module | Classification | Justification |
+|--------|---------------|---------------|
+| src/dispatcher.rs (routes/classification_attempts management) | effectful-shell | Mutates HashMaps on every on_data call |
+
+## Token Budget Estimate (MANDATORY)
+
+| Context Source | Estimated Tokens |
+|---------------|-----------------|
+| This story spec | ~3,000 |
+| Referenced code (dispatcher.rs:133-154) | ~2,500 |
+| Test files (dispatcher_tests.rs) | ~3,000 |
+| BC files (3 BCs) | ~4,000 |
+| Tool outputs overhead | ~1,500 |
+| **Total** | **~14,000** |
+| Agent context window | 200K for Sonnet |
+| **Budget usage** | **~7%** |
+
+## Tasks (MANDATORY)
+
+1. [ ] Write failing tests for AC-001 through AC-009 (test-writer)
+2. [ ] Verify Red Gate: all tests fail before implementation
+3. [ ] Implement cache-hit path per BC-2.05.005 (routes.get on every on_data; use cached target; skip classify)
+4. [ ] Implement classification caching for Http/Tls per BC-2.05.005 (routes.insert when target != None; attempts.remove)
+5. [ ] Implement None non-caching + retry budget per BC-2.05.006 Phase A (increment attempts; do NOT insert routes)
+6. [ ] Implement None permanent caching per BC-2.05.006 Phase B (at cap: routes.insert(None); attempts.remove)
+7. [ ] Implement None return (unknown content + unknown port) per BC-2.05.004
+8. [ ] Test late-classification scenario (N Nones then valid match per AC-009)
+9. [ ] Run all tests; verify all pass
+10. [ ] Update STATE.md
+
+## Previous Story Intelligence (MANDATORY)
+
+| Story | Key Decisions | Patterns Established | Gotchas Discovered |
+|-------|--------------|---------------------|-------------------|
+| STORY-031 | `classify` is a pure function that takes `data` and `flow_key` and returns `DispatchTarget` without mutating state | Route caching happens in `on_data`, NOT in `classify` — classify is stateless | `DispatchTarget::None` has two distinct states: "not-yet-cached" (absent from routes) and "permanently-cached-None" (Some(None) in routes) |
+
+## Architecture Compliance Rules (MANDATORY)
+
+| Rule | Source | Enforcement |
+|------|--------|-------------|
+| `DispatchTarget::None` is NEVER inserted into routes before the retry cap is reached | BC-2.05.006 invariant 4 | Unit test: AC-006 |
+| `DispatchTarget::None` IS inserted permanently once cap is hit | BC-2.05.006 postcondition Phase B | Unit test: AC-007 |
+| `DEFAULT_MAX_CLASSIFICATION_ATTEMPTS = 8` is a named constant at dispatcher.rs:40 | BC-2.05.006 invariant 3 | Code review |
+| Cached classifications are immutable — Http flows stay Http even if later TLS data arrives | BC-2.05.005 postcondition 4 | Unit test: AC-004 |
+| `classification_attempts` entry is removed when a non-None target is cached (both Http/Tls AND permanent-None paths) | BC-2.05.006 (line 147 and 151) | Code review |
+
+## Library & Framework Requirements (MANDATORY)
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| Rust std | 2024 edition (stable) | HashMap::get, HashMap::insert, HashMap::remove, entry API |
+
+## File Structure Requirements (MANDATORY)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| src/dispatcher.rs | modify | on_data classification cache block (133-154): cache hit, None branch (136-148), non-None branch (149-151) |
+| tests/dispatcher_tests.rs | modify | Add: test_classification_cached_after_first_match, test_none_not_cached_before_retry_cap, test_none_cached_permanently_after_retry_cap, test_late_classification_after_nones |

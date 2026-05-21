@@ -1,0 +1,174 @@
+---
+document_type: story
+story_id: "STORY-003"
+epic_id: "E-1"
+version: "1.1"
+status: draft
+producer: story-writer
+timestamp: 2026-05-21T00:00:00Z
+phase: 2
+inputs:
+  - .factory/specs/behavioral-contracts/ss-02/BC-2.02.006.md
+  - .factory/specs/behavioral-contracts/ss-02/BC-2.02.007.md
+  - .factory/specs/behavioral-contracts/ss-02/BC-2.02.008.md
+  - .factory/specs/behavioral-contracts/ss-02/BC-2.02.009.md
+  - .factory/specs/prd.md
+input-hash: "[md5-pending]"
+traces_to: .factory/specs/prd.md
+points: 5
+depends_on: [STORY-001]
+blocks: [STORY-005]
+behavioral_contracts:
+  - BC-2.02.006
+  - BC-2.02.007
+  - BC-2.02.008
+  - BC-2.02.009
+verification_properties: []
+priority: "P0"
+wave: 2
+target_module: decoder
+subsystems: [SS-02]
+estimated_days: 2
+assumption_validations: []
+risk_mitigations: []
+tdd_mode: strict
+implementation_strategy: brownfield-verify
+---
+
+# STORY-003: Packet Decoding — Linux SLL, No-Panic Safety, and Non-IP Frame Rejection
+
+## Narrative
+- **As a** forensic analyst
+- **I want** wirerust to handle Linux cooked-capture (SLL) frames correctly, never panic on any malformed or attacker-crafted byte input, and clearly reject non-IP frames
+- **So that** I can safely process captures from `tcpdump -i any`, corrupted files, and adversarial inputs without the tool crashing or silently dropping frames
+
+## Behavioral Contracts
+
+| BC | Title |
+|----|-------|
+| BC-2.02.006 | Decode Linux SLL (Cooked) TCP Packets |
+| BC-2.02.007 | Reject Malformed Input Bytes with anyhow Error (No Panic) |
+| BC-2.02.008 | Reject Unsupported Link Types in decode_packet |
+| BC-2.02.009 | Surface No IP Layer Found Error for Non-IP Frames |
+
+## Acceptance Criteria
+
+### AC-001 (traces to BC-2.02.006 postcondition 1)
+Given a valid Linux SLL (16-byte cooked header + IPv4 TCP payload) frame bytes with `datalink = LINUX_SLL`, `decode_packet` returns `Ok(ParsedPacket)` with correct IP addresses, `protocol = Protocol::Tcp`, and `transport = TransportInfo::Tcp`.
+- **Test:** `test_BC_2_02_006_linux_sll_ipv4_tcp()`
+
+### AC-002 (traces to BC-2.02.006 postcondition 1)
+Given a Linux SLL frame containing an IPv6 TCP payload, `decode_packet` returns `Ok(ParsedPacket)` with `src_ip` and `dst_ip` as `IpAddr::V6`.
+- **Test:** `test_BC_2_02_006_linux_sll_ipv6_tcp()`
+
+### AC-003 (traces to BC-2.02.006 invariant 2)
+When a snaplen-truncated SLL frame causes the strict parse to fail with a length error (SliceError::Len), the lax fallback path strips the 16-byte SLL header manually and invokes `LaxSlicedPacket::from_ether_type` to recover the IP layer.
+- **Test:** `test_BC_2_02_006_linux_sll_snaplen_truncated_lax_recovery()`
+
+### AC-004 (traces to BC-2.02.006 invariant 3)
+A LINUX_SLL frame shorter than 16 bytes fails the strict parse with a non-Len error and is immediately rejected with `Err`; the lax fallback is NOT invoked.
+- **Test:** `test_BC_2_02_006_linux_sll_sub_16_bytes_rejected()`
+
+### AC-005 (traces to BC-2.02.007 postcondition 1)
+Calling `decode_packet` with random byte inputs (e.g., 20 random bytes with any supported link type) returns `Err` with message containing "Parse error:" and does NOT panic.
+- **Test:** `test_BC_2_02_007_random_bytes_no_panic()`
+
+### AC-006 (traces to BC-2.02.007 postcondition 1)
+Calling `decode_packet` with an empty slice (`data = &[]`) returns `Err` (no panic).
+- **Test:** `test_BC_2_02_007_empty_slice_no_panic()`
+
+### AC-007 (traces to BC-2.02.007 invariant 1)
+The only three error message prefixes ever produced by `decode_packet` are "Unsupported link type:", "No IP layer found", and "Parse error:". No other string prefix appears.
+- **Test:** `test_BC_2_02_007_error_prefix_exhaustiveness()`
+
+### AC-008 (traces to BC-2.02.008 postcondition 1)
+Calling `decode_packet` with a `DataLink` variant outside the whitelist (e.g., IEEE802_11) returns `Err` containing "Unsupported link type:" immediately, without reading any bytes from `data`.
+- **Test:** `test_BC_2_02_008_unsupported_link_type_error()`
+
+### AC-009 (traces to BC-2.02.009 postcondition 1)
+Passing a valid Ethernet ARP frame (EtherType 0x0806, no IP layer) with `datalink = ETHERNET` to `decode_packet` returns `Err` containing "No IP layer found".
+- **Test:** `test_BC_2_02_009_non_ip_frame_rejected()`
+
+### AC-010 (traces to BC-2.02.009 invariant 1)
+The "No IP layer found" error fires on the strict-parse path when `slice.net` is `None`, and on the lax-parse path after a length-error retry if `lax.net` is also `None`. Lax retry is not attempted for structurally absent IP layers (non-length errors).
+- **Test:** `test_BC_2_02_009_lax_path_also_rejects_no_ip()`
+
+## Architecture Mapping
+
+| Component | Module | Pure/Effectful |
+|-----------|--------|---------------|
+| decode_packet (strict path) | src/decoder.rs:128-172 | pure |
+| lax_parse (SLL lax fallback) | src/decoder.rs:184-205 | pure |
+| SLL_HEADER_LEN constant | src/decoder.rs:119-121 | pure |
+
+## Edge Cases
+
+| ID | Scenario | Expected Behavior |
+|----|----------|-------------------|
+| EC-001 | SLL frame with IPv4 TCP | Decoded correctly via SlicedPacket::from_linux_sll |
+| EC-002 | SLL frame snaplen-truncated (Len error) | Lax path invoked; 16-byte header stripped; from_ether_type called |
+| EC-003 | SLL frame < 16 bytes | Non-Len error; immediate Err; NO lax retry |
+| EC-004 | Empty data slice | Err("Parse error: ...") |
+| EC-005 | DataLink::IEEE802_11 | Err("Unsupported link type: IEEE802_11") |
+| EC-006 | ARP Ethernet frame | Err("No IP layer found") |
+| EC-007 | Custom EtherType 0x9000 | Err("No IP layer found") |
+
+## Purity Classification
+
+| Module | Classification | Justification |
+|--------|---------------|---------------|
+| src/decoder.rs | pure | In-memory byte slice operations only; no I/O |
+
+## Token Budget Estimate (MANDATORY)
+
+| Context Source | Estimated Tokens |
+|---------------|-----------------|
+| This story spec | ~2,000 |
+| src/decoder.rs (focus on lax_parse and error paths) | ~2,500 |
+| BC files (4 BCs) | ~3,500 |
+| Test files | ~800 |
+| Tool outputs overhead | ~500 |
+| **Total** | **~9,300** |
+| Agent context window | 200K for Sonnet |
+| **Budget usage** | **~4.7%** |
+
+## Tasks (MANDATORY)
+
+1. [ ] Write failing tests for AC-001 through AC-010 (test-writer)
+2. [ ] Verify all tests fail at Red Gate
+3. [ ] Verify `src/decoder.rs` already satisfies all ACs (brownfield confirm)
+4. [ ] Confirm `SLL_HEADER_LEN = 16` constant at decoder.rs:119-121
+5. [ ] Confirm lax retry logic is triggered only for `SliceError::Len` (not structural errors)
+6. [ ] Confirm `decode_packet` has no `unwrap()` or `panic!` calls
+7. [ ] Run `cargo test --all-targets` to confirm green
+8. [ ] Consider fuzz target to confirm no panic on arbitrary LINUX_SLL frames
+
+## Previous Story Intelligence (MANDATORY)
+
+| Story | Key Decisions | Patterns Established | Gotchas Discovered |
+|-------|--------------|---------------------|-------------------|
+| STORY-001 | PcapSource reads RawPacket with raw bytes | Reader is effectful; decoder is pure | N/A |
+| STORY-002 | Ethernet/RAW/IPV4/IPv6 decode paths confirmed pure | `app_protocol_hint` uses 7-entry port table | DataLink::RAW | IPV4 | IPV6 share a single match arm |
+
+## Architecture Compliance Rules (MANDATORY)
+
+| Rule | Source | Enforcement |
+|------|--------|-------------|
+| Lax retry fires ONLY for `SliceError::Len`, not structural errors | BC-2.02.006 invariant 3 | Code review: match arm on `EthernetSliceError::Len` variant |
+| SLL header is exactly 16 bytes; `SLL_HEADER_LEN` is the only constant used | BC-2.02.006 invariant 1 | No magic number 16 outside the constant |
+| Three error prefixes only: "Unsupported link type:", "No IP layer found", "Parse error:" | BC-2.02.007 invariant 1 | Grep decoder.rs for `anyhow!` calls to audit prefixes |
+| No `unwrap()` or `panic!` in `decode_packet` or `lax_parse` | BC-2.02.007 invariant 2 | Code review |
+
+## Library & Framework Requirements (MANDATORY)
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| etherparse | (per Cargo.lock) | SlicedPacket::from_linux_sll (strict), LaxSlicedPacket::from_ether_type (lax fallback) |
+| anyhow | (per Cargo.lock) | Error construction with anyhow! macro |
+
+## File Structure Requirements (MANDATORY)
+
+| File | Action | Purpose |
+|------|--------|---------|
+| src/decoder.rs | verify/modify | lax_parse (SLL fallback), error paths — all 4 BCs live here |
+| tests/ | create or modify | Synthetic SLL frame bytes, malformed inputs, ARP frames |
