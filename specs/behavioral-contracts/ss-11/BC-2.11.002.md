@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -71,8 +72,8 @@ just when non-zero) allows downstream scripts to distinguish "no errors" from "f
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | skipped_packets present when zero | unit: test_json_reporter_skipped_packets_zero_by_default |
-| VP-TBD | skipped_packets present when non-zero | unit: test_json_reporter_includes_skipped_packets |
+| — | skipped_packets present when zero | unit: test_json_reporter_skipped_packets_zero_by_default |
+| — | skipped_packets present when non-zero | unit: test_json_reporter_includes_skipped_packets |
 
 ## Traceability
 

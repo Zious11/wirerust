@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,8 +77,8 @@ passed to every `handler.on_data` invocation across all flows, in both direction
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | bytes_reassembled == sum of on_data len args after finalize | unit: test_finalize_bytes_reassembled_consistent |
-| VP-TBD | bytes_reassembled is monotonically non-decreasing | proptest: any packet sequence yields non-negative delta |
+| VP-010 | bytes_reassembled == sum of on_data len args after finalize | unit: test_finalize_bytes_reassembled_consistent |
+| VP-010 | bytes_reassembled is monotonically non-decreasing | proptest: any packet sequence yields non-negative delta |
 
 ## Traceability
 

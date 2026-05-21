@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -75,8 +76,8 @@ termination conditions are met. The sort is computed fresh on every `evict_flows
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Non-Established always evicted before Established | unit: mixed state flows at capacity; assert first eviction is non-Established |
-| VP-TBD | Within group: oldest last_seen evicted first | unit: two same-state flows; different last_seen |
+| — | Non-Established always evicted before Established | unit: mixed state flows at capacity; assert first eviction is non-Established |
+| — | Within group: oldest last_seen evicted first | unit: two same-state flows; different last_seen |
 
 ## Traceability
 

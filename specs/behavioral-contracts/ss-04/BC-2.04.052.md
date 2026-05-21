@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -74,9 +75,9 @@ flow state from `New` to `Established` and sets `self.partial = true`. The engin
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | on_data_without_syn: state=Established, partial=true | unit: test_mid_stream_pickup |
-| VP-TBD | on_data_without_syn is a no-op when not in New state | unit |
-| VP-TBD | flows_partial counter increments for each mid-stream join | unit: test_mid_stream_no_syn |
+| VP-009 | on_data_without_syn: state=Established, partial=true | unit: test_mid_stream_pickup |
+| VP-009 | on_data_without_syn is a no-op when not in New state | unit |
+| VP-009 | flows_partial counter increments for each mid-stream join | unit: test_mid_stream_no_syn |
 
 ## Traceability
 

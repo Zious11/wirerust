@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-06
 capability: CAP-06
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -79,8 +80,8 @@ is routine for cron jobs and microservices. No MITRE technique ID is assigned.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Empty UA emits Anomaly/Inconclusive/Low | unit: test_detect_empty_user_agent |
-| VP-TBD | Absent UA emits no finding | unit: test_missing_user_agent_no_finding |
+| — | Empty UA emits Anomaly/Inconclusive/Low | unit: test_detect_empty_user_agent |
+| — | Absent UA emits no finding | unit: test_missing_user_agent_no_finding |
 
 ## Traceability
 

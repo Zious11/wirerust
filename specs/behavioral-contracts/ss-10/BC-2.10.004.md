@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-10
 capability: CAP-10
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -69,8 +70,8 @@ enforcement.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | No duplicates in all_tactics_in_report_order | unit: HashSet deduplication + len check |
-| VP-TBD | All 16 variants are present | unit: iterate expected set, assert membership |
+| VP-016 | No duplicates in all_tactics_in_report_order | unit: HashSet deduplication + len check |
+| VP-016 | All 16 variants are present | unit: iterate expected set, assert membership |
 
 ## Traceability
 

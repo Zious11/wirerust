@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-06
 capability: CAP-06
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -86,9 +87,9 @@ PR #71 which closed the empty-value evasion lane.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | HTTP/1.1 missing Host emits finding | unit: test_detect_missing_host_header |
-| VP-TBD | HTTP/1.0 missing Host does not emit finding | unit |
-| VP-TBD | Empty Host value also emits finding | unit |
+| — | HTTP/1.1 missing Host emits finding | unit: test_detect_missing_host_header |
+| — | HTTP/1.0 missing Host does not emit finding | unit |
+| — | Empty Host value also emits finding | unit |
 
 ## Traceability
 

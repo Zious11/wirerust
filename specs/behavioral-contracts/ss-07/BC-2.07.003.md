@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -77,8 +77,8 @@ counter is incremented.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | parse_errors stays 0 after application data post-done | unit: test_stop_after_handshake |
-| VP-TBD | handshakes_seen not incremented by post-done ClientHello | unit: assert count after re-sending ClientHello bytes |
+| — | parse_errors stays 0 after application data post-done | unit: test_stop_after_handshake |
+| — | handshakes_seen not incremented by post-done ClientHello | unit: assert count after re-sending ClientHello bytes |
 
 ## Traceability
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,8 +77,8 @@ due to an unrecognized technique ID.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | None and unknown-ID bucket under Uncategorized | unit: mitre_grouping_buckets_none_and_unknown_under_uncategorized |
-| VP-TBD | Known and unknown IDs in separate sections | unit: mitre_grouping_keeps_known_and_unknown_ids_in_separate_buckets |
+| VP-016 | None and unknown-ID bucket under Uncategorized | unit: mitre_grouping_buckets_none_and_unknown_under_uncategorized |
+| VP-016 | Known and unknown IDs in separate sections | unit: mitre_grouping_keeps_known_and_unknown_ids_in_separate_buckets |
 
 ## Traceability
 

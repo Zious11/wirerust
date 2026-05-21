@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -92,9 +92,9 @@ hostname with MITRE technique T1027 (Obfuscated Files or Information).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | AsciiWithControl SNI produces exactly one Anomaly/Inconclusive/Low T1027 finding | unit: multiple test variants (ESC, BEL, DEL, tab, CR, LF) |
-| VP-TBD | Space (0x20) does not trigger finding | unit: test_ascii_control_boundary_bytes |
-| VP-TBD | Raw bytes preserved in finding summary | unit: assert finding.summary contains raw hostname |
+| VP-005 | AsciiWithControl SNI produces exactly one Anomaly/Inconclusive/Low T1027 finding | unit: multiple test variants (ESC, BEL, DEL, tab, CR, LF) |
+| VP-005 | Space (0x20) does not trigger finding | unit: test_ascii_control_boundary_bytes |
+| VP-005 | Raw bytes preserved in finding summary | unit: assert finding.summary contains raw hostname |
 
 ## Traceability
 

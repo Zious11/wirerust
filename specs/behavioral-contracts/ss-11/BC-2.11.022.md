@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -88,8 +89,8 @@ applies RFC 4180 quoting if the joined string contains commas, quotes, or newlin
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Empty evidence produces empty cell | unit |
-| VP-TBD | N elements produce exactly N-1 occurrences of `"; "` separator in the joined string | unit / proptest |
+| — | Empty evidence produces empty cell | unit |
+| — | N elements produce exactly N-1 occurrences of `"; "` separator in the joined string | unit / proptest |
 
 ## Traceability
 
@@ -119,7 +120,7 @@ S-TBD -- CsvReporter implementation (LESSON-P2.03)
 
 ## VP Anchors
 
-- VP-TBD -- evidence join unit tests
+- — -- evidence join unit tests
 
 ---
 

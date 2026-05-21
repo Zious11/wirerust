@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-13
 capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -65,8 +65,8 @@ to pass `--beacon` to wirerust results in a clap unknown-argument error.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | --beacon argument is rejected by clap | unit: try_parse_from returns Err for --beacon |
-| VP-TBD | No beacon analyzer exists in src/ | code: grep -r 'beacon\|Beacon' src/ finds no analyzer |
+| — | --beacon argument is rejected by clap | unit: try_parse_from returns Err for --beacon |
+| — | No beacon analyzer exists in src/ | code: grep -r 'beacon\|Beacon' src/ finds no analyzer |
 
 ## Traceability
 

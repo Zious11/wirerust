@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -82,8 +82,8 @@ There is no MITRE technique ID on this finding.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | SSL 3.0 ClientHello produces Anomaly/Likely/High finding | integration: test_ssl30_pcap_generates_findings |
-| VP-TBD | TLS 1.0 ClientHello does not produce deprecated-protocol finding | unit: threshold boundary test |
+| — | SSL 3.0 ClientHello produces Anomaly/Likely/High finding | integration: test_ssl30_pcap_generates_findings |
+| — | TLS 1.0 ClientHello does not produce deprecated-protocol finding | unit: threshold boundary test |
 
 ## Traceability
 

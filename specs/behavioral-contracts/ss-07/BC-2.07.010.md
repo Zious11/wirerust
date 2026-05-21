@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -84,8 +84,8 @@ cipher, a single `Anomaly/Likely/Medium` finding is pushed. The confidence is Me
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Weak server cipher produces Anomaly/Likely/Medium finding | unit: test_weak_cipher_finding_server |
-| VP-TBD | Direction is ServerToClient | unit: test_weak_cipher_finding_server asserts direction |
+| — | Weak server cipher produces Anomaly/Likely/Medium finding | unit: test_weak_cipher_finding_server |
+| — | Direction is ServerToClient | unit: test_weak_cipher_finding_server asserts direction |
 
 ## Traceability
 

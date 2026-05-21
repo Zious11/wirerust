@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -75,8 +76,8 @@ increments only when the protocol check passes.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | packets_skipped_non_tcp increments exactly once per non-TCP call | unit: single UDP packet |
-| VP-TBD | No flow state created for non-TCP input | unit: assert flows.is_empty() after N non-TCP packets |
+| — | packets_skipped_non_tcp increments exactly once per non-TCP call | unit: single UDP packet |
+| — | No flow state created for non-TCP input | unit: assert flows.is_empty() after N non-TCP packets |
 
 ## Traceability
 

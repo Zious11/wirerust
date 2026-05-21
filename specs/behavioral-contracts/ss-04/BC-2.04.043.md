@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -78,8 +79,8 @@ segment ends does NOT trigger `has_overlap = true` and is inserted cleanly.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Adjacent segment (new_start == existing_end) returns Inserted, not Overlap | unit: test_range_boundary_exact_new_end |
-| VP-TBD | overlap_count not incremented for adjacent segments | unit |
+| VP-002 | Adjacent segment (new_start == existing_end) returns Inserted, not Overlap | unit: test_range_boundary_exact_new_end |
+| VP-002 | overlap_count not incremented for adjacent segments | unit |
 
 ## Traceability
 

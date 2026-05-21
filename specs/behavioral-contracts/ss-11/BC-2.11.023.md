@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -82,9 +83,9 @@ or summary section appended.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Row count equals 1 + findings.len() for all input sizes | unit / proptest |
-| VP-TBD | Summary fields (total_packets, etc.) do not appear anywhere in CSV output | unit |
-| VP-TBD | Row order matches findings slice order | unit |
+| — | Row count equals 1 + findings.len() for all input sizes | unit / proptest |
+| — | Summary fields (total_packets, etc.) do not appear anywhere in CSV output | unit |
+| — | Row order matches findings slice order | unit |
 
 ## Traceability
 
@@ -118,7 +119,7 @@ S-TBD -- CsvReporter implementation (LESSON-P2.03)
 
 ## VP Anchors
 
-- VP-TBD -- Reporter trait impl unit tests
+- — -- Reporter trait impl unit tests
 
 ---
 

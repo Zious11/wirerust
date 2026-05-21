@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -77,8 +78,8 @@ same as for overlap and small-segment alerts (LESSON-P1.01).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Out-of-window alert fires exactly once per direction | unit |
-| VP-TBD | Evidence string contains max_receive_window value | unit: assert evidence[0] contains window bytes |
+| — | Out-of-window alert fires exactly once per direction | unit |
+| — | Evidence string contains max_receive_window value | unit: assert evidence[0] contains window bytes |
 
 ## Traceability
 

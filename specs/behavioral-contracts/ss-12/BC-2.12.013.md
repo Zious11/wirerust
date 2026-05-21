@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-12
 capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -70,7 +71,7 @@ processed, leaving no artifacts on stderr.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Progress bar does not appear in stdout/final output | manual / visual (LOW confidence -- cosmetic UI, no assertion) |
+| — | Progress bar does not appear in stdout/final output | manual / visual (LOW confidence -- cosmetic UI, no assertion) |
 
 ## Traceability
 

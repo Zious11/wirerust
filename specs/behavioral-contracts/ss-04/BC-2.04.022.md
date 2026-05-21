@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -77,8 +78,8 @@ or incrementing dropped_findings again. This is LESSON-P1.01 (LESSON-P0.03 in ol
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Latch-before-cap: latch=true even when finding suppressed | unit: fill to cap; trigger threshold; assert latch=true and dropped_findings==1 |
-| VP-TBD | Three alert types each fire at most once per direction per flow | proptest: generate stream with all three threshold crossings |
+| — | Latch-before-cap: latch=true even when finding suppressed | unit: fill to cap; trigger threshold; assert latch=true and dropped_findings==1 |
+| — | Three alert types each fire at most once per direction per flow | proptest: generate stream with all three threshold crossings |
 
 ## Traceability
 

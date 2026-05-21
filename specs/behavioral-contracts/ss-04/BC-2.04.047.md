@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -75,9 +76,9 @@ currently in the `segments` BTreeMap. After every insert, flush, or overlap oper
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | buffered_bytes == sum of segment lengths after each operation | unit: test_buffered_bytes_after_insert, _after_overlap, _after_flush, _partial_flush |
-| VP-TBD | debug_assert fires on drift | debug-build test |
-| VP-TBD | buffered_bytes never underflows on flush of 0 bytes | proptest |
+| VP-010 | buffered_bytes == sum of segment lengths after each operation | unit: test_buffered_bytes_after_insert, _after_overlap, _after_flush, _partial_flush |
+| VP-010 | debug_assert fires on drift | debug-build test |
+| VP-010 | buffered_bytes never underflows on flush of 0 bytes | proptest |
 
 ## Traceability
 

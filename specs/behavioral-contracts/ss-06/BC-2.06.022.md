@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-06
 capability: CAP-06
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -73,7 +74,7 @@ exceeds the cap will never parse to completion and will be silently discarded at
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Buffer cap prevents OOM from large headers | unit: test_buffer_cap_no_panic_on_oversized_headers |
+| — | Buffer cap prevents OOM from large headers | unit: test_buffer_cap_no_panic_on_oversized_headers |
 
 ## Traceability
 

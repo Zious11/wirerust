@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -72,7 +72,7 @@ correctly: MAX_RECORD_PAYLOAD is the binding constraint, not MAX_BUF.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | 16 KB SNI parses without error | unit: test_large_sni_near_record_payload_limit |
+| — | 16 KB SNI parses without error | unit: test_large_sni_near_record_payload_limit |
 
 ## Traceability
 

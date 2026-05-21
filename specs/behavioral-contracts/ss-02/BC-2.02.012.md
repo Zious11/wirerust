@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-02
 capability: CAP-03
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -80,8 +81,8 @@ routing, summary statistics, and the content-first dispatch fallback (BC-2.05.00
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | All 7 recognized ports return the correct string | unit: test_app_protocol_hint_port_map |
-| VP-TBD | Unknown ports return None | proptest: generate ports 0..65535, filter out known ports, assert None |
+| — | All 7 recognized ports return the correct string | unit: test_app_protocol_hint_port_map |
+| — | Unknown ports return None | proptest: generate ports 0..65535, filter out known ports, assert None |
 
 ## Traceability
 

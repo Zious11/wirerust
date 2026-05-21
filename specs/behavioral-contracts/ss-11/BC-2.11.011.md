@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -77,8 +78,8 @@ reporter must therefore re-escape the rendered JSON string to close the C1 gap.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | C1 in detail value is escaped | unit: test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries |
-| VP-TBD | End-to-end HTTP analyzer detail with C1 escaped | unit: test_http_analyzer_summary_c1_csi_escaped_by_terminal_reporter |
+| VP-012 | C1 in detail value is escaped | unit: test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries |
+| VP-012 | End-to-end HTTP analyzer detail with C1 escaped | unit: test_http_analyzer_summary_c1_csi_escaped_by_terminal_reporter |
 
 ## Traceability
 

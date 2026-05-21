@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-06
 capability: CAP-06
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -85,9 +86,9 @@ increment `transactions`; only a parsed response does (per BC-2.06.004).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Complete request yields all five fields extracted | unit: test_parse_get_request |
-| VP-TBD | Partial request is buffered without stats change | unit: test_parse_partial_request |
-| VP-TBD | Pipelined requests processed independently | unit: test_parse_pipelined_requests |
+| — | Complete request yields all five fields extracted | unit: test_parse_get_request |
+| — | Partial request is buffered without stats change | unit: test_parse_partial_request |
+| — | Pipelined requests processed independently | unit: test_parse_pipelined_requests |
 
 ## Traceability
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,10 +77,10 @@ in the terminal output. Only control bytes and backslash are escaped.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Printable ASCII passes through | unit: preserves_printable_ascii (terminal.rs) |
-| VP-TBD | Cyrillic passes through | unit: preserves_cyrillic (terminal.rs) |
-| VP-TBD | Emoji passes through | unit: preserves_emoji (terminal.rs) |
-| VP-TBD | Mixed content escapes only dangerous bytes | unit: mixed_content_escapes_only_dangerous_bytes (terminal.rs) |
+| VP-012 | Printable ASCII passes through | unit: preserves_printable_ascii (terminal.rs) |
+| VP-012 | Cyrillic passes through | unit: preserves_cyrillic (terminal.rs) |
+| VP-012 | Emoji passes through | unit: preserves_emoji (terminal.rs) |
+| VP-012 | Mixed content escapes only dangerous bytes | unit: mixed_content_escapes_only_dangerous_bytes (terminal.rs) |
 
 ## Traceability
 

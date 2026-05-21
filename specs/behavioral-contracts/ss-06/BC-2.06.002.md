@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-06
 capability: CAP-06
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -77,8 +78,8 @@ detection separately per request. The loop exits when the buffer is exhausted (r
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Each pipelined request counted independently | unit: test_parse_pipelined_requests |
-| VP-TBD | Loop stops cleanly on partial; partial retained | unit: test_parse_partial_request |
+| — | Each pipelined request counted independently | unit: test_parse_pipelined_requests |
+| — | Loop stops cleanly on partial; partial retained | unit: test_parse_partial_request |
 
 ## Traceability
 

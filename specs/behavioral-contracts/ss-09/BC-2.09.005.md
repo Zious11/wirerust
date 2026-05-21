@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-09
 capability: CAP-09
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -79,9 +80,9 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Finding.summary contains raw C0 bytes (not escaped form) at construction | unit: test_non_utf8_sni_preserves_raw_bytes_in_summary |
-| VP-TBD | escape_for_terminal has exactly one production call site | manual/grep: assert not called in any analyzer |
-| VP-TBD | JSON output of finding with ESC byte produces  (serde) not escaped with \\u{1b} | unit: test_output_sanitization_layering_contract |
+| — | Finding.summary contains raw C0 bytes (not escaped form) at construction | unit: test_non_utf8_sni_preserves_raw_bytes_in_summary |
+| — | escape_for_terminal has exactly one production call site | manual/grep: assert not called in any analyzer |
+| — | JSON output of finding with ESC byte produces  (serde) not escaped with \\u{1b} | unit: test_output_sanitization_layering_contract |
 
 ## Traceability
 

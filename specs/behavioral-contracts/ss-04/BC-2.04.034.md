@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -78,9 +79,9 @@ ascending offset order.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | flush_contiguous returns segments in ascending offset order | unit: test_flush_contiguous_ordered |
-| VP-TBD | buffered_bytes decrements by exactly the flushed byte count | unit: test_flush_contiguous_single |
-| VP-TBD | base_offset advances by exactly the flushed byte count | unit |
+| VP-011 | flush_contiguous returns segments in ascending offset order | unit: test_flush_contiguous_ordered |
+| VP-011 | buffered_bytes decrements by exactly the flushed byte count | unit: test_flush_contiguous_single |
+| VP-011 | base_offset advances by exactly the flushed byte count | unit |
 
 ## Traceability
 

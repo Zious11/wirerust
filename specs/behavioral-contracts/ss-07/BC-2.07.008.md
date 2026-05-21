@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -71,8 +71,8 @@ The function returns only the MD5 hex string, not the underlying JA3S string.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | JA3S hash is deterministic (same inputs, same output) | proptest: compute_ja3s_is_deterministic_and_hex |
-| VP-TBD | JA3S hash is 32 lowercase hex chars | proptest: compute_ja3s_is_deterministic_and_hex |
+| VP-013 | JA3S hash is deterministic (same inputs, same output) | proptest: compute_ja3s_is_deterministic_and_hex |
+| VP-013 | JA3S hash is 32 lowercase hex chars | proptest: compute_ja3s_is_deterministic_and_hex |
 
 ## Traceability
 

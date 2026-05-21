@@ -1,14 +1,18 @@
 ---
-pipeline: PHASE_1_AWAITING_HUMAN_APPROVAL
-phase: phase-1-spec-crystallization
+pipeline: PHASE_2_STORY_DECOMPOSITION
+phase: phase-2-story-decomposition
 product: wirerust
 mode: brownfield
-timestamp: 2026-05-20T00:00:00Z
+timestamp: 2026-05-21T00:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 remediation_completed: 2026-05-19T22:30:00Z
 phase_1_started: 2026-05-20T00:00:00Z
 phase_1_spec_package_committed: 2026-05-20
+phase_1_human_approved: "2026-05-21"
+phase_1_completed: "2026-05-21"
+p8_defer_resolved: "2026-05-21"
+phase_2_started: "2026-05-21"
 dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
@@ -38,13 +42,14 @@ input_drift_check_date: "2026-05-21"
 
 ## Status
 
-**Pipeline:** PHASE_1_AWAITING_HUMAN_APPROVAL — 3 of 4 Phase 1 gates PASSED.
-(1) **Adversarial spec-convergence gate SATISFIED** (3/3 — passes 31/32/33 CONVERGED, 0C/0H/0M;
-33 passes total; ZERO blocking defects). (2) **Consistency audit CONSISTENT** — 5 findings
-(1 MAJOR/3 MINOR/1 NITPICK); F-1 MAJOR (PRD RTM completeness) + F-2/F-3/F-4 MINOR remediated;
-F-5 confirmed not-a-defect; re-audit CONSISTENT with no new drift. (3) **Input-hash drift
-check CLEAN** — 5 STALE corrective-cluster hashes bumped; re-scan MATCH=5/STALE=0. Sole
-remaining gate: (4) human approval.
+**Pipeline:** PHASE_2_STORY_DECOMPOSITION — Phase 1 COMPLETE. All 4 gates PASSED; human-approved
+2026-05-21. (1) Adversarial spec-convergence gate **SATISFIED** (3/3; passes 31/32/33 CONVERGED,
+0C/0H/0M; 33 passes total; ZERO blocking defects). (2) Consistency audit **CONSISTENT** — 5
+findings (F-1 MAJOR/F-2–F-4 MINOR/F-5 NITPICK); all remediated; re-audit CONSISTENT. (3)
+Input-hash drift check **CLEAN** — 5 hashes bumped; re-scan MATCH=5/STALE=0. (4) Human approval
+**GRANTED 2026-05-21**. P8-DEFER VP back-reference back-fill **DONE** (2026-05-21): all 217 BC
+files updated; 69 BCs now cite formal VP IDs, 148 show `—`; BC versions bumped to 1.2. Pipeline
+now entering Phase 2 story decomposition.
 
 **Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
 
@@ -59,15 +64,15 @@ remaining gate: (4) human approval.
 |-------|--------|-------|
 | Phase 0 — Brownfield Ingestion | PASSED | 2026-05-19T20:00:00Z |
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
-| Phase 1 — Spec Crystallization | AWAITING_HUMAN_APPROVAL — (1) adversarial gate **SATISFIED** (3/3; passes 31/32/33; ZERO blocking defects); (2) consistency audit **CONSISTENT** (5 findings, F-1–F-4 remediated, F-5 not-a-defect); (3) drift check **CLEAN** (5 hashes bumped, re-scan 5/5 MATCH); (4) human approval **PENDING** | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
-| Phase 2 — Story Decomposition | NOT STARTED | — |
+| Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
+| Phase 2 — Story Decomposition | **IN PROGRESS** — STARTED 2026-05-21 | Epic / story decomposition, dependency graph, wave schedule |
 | Phase 3 — TDD Implementation | NOT STARTED | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
 | Phase 7 — Convergence | NOT STARTED | — |
 
-## Phase 1 — Spec Crystallization (AWAITING_HUMAN_APPROVAL)
+## Phase 1 — Spec Crystallization (PASSED — 2026-05-21)
 
 ### Spec Package Contents
 
@@ -150,25 +155,26 @@ verification-architecture.md, tooling-selection.md, verification-coverage-matrix
 
 Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-### Next Steps (Phase 1 Gates)
+### Phase 1 Gate Summary (ALL PASSED)
 
-1. ~~**Adversarial spec-convergence gate**~~ — **DONE / SATISFIED** (3/3). Passes 31/32/33
-   all returned CONVERGED (0C/0H/0M). 33 adversarial passes total; ZERO blocking defects.
-   All 4 pre-approval polish items now RESOLVED (2026-05-21 consistency-remediation burst):
-   (a) pass-32 N-1 / F-4: domain-spec §8 ADR list →0004 — **RESOLVED 2026-05-21**;
-   (b) O-09: module-decomposition C-8 BTreeMap<u64,Vec<u8>> aligned — **RESOLVED 2026-05-21**;
-   (c) pass-33 N-1: BC-2.12.016 doc-comment range 304-311 — **RESOLVED 2026-05-21**;
-   (d) pass-33 N-2: BC-2.11.021 csv.rs range 40-45 — **RESOLVED 2026-05-21**.
-2. ~~**Consistency audit**~~ — **DONE / CONSISTENT** (2026-05-21). 5 findings: F-1 MAJOR
-   (PRD §2.11 RTM completeness — 5 BC rows added + §7 RTM updated), F-2 MINOR (PRD §2.12
-   header CAP-01→CAP-12), F-3 MINOR (VP-INDEX 5 title mismatches aligned to file H1s),
-   F-4 MINOR (domain-spec §8 ADR list →0004; same as pass-32 N-1), F-5 NITPICK (confirmed
-   not-a-defect). Remediation re-audit: CONSISTENT, no new drift introduced.
-3. ~~**Input-hash drift check**~~ — **DONE / CLEAN** (2026-05-21). 5 STALE corrective-cluster
-   hashes bumped in prd-supplements (nfr-catalog, interface-definitions, error-taxonomy,
-   test-vectors) and prd.md; re-scan MATCH=5/STALE=0.
-4. **Human approval gate** — human review and sign-off on spec package **(PENDING — sole
-   remaining Phase 1 gate)**.
+1. ~~**Adversarial spec-convergence gate**~~ — **SATISFIED** (3/3; passes 31/32/33; 33 total; ZERO blocking defects).
+2. ~~**Consistency audit**~~ — **CONSISTENT** (2026-05-21; 5 findings F-1–F-5; F-1–F-4 remediated; F-5 not-a-defect).
+3. ~~**Input-hash drift check**~~ — **CLEAN** (2026-05-21; 5 STALE hashes bumped; re-scan 5/5 MATCH).
+4. ~~**Human approval**~~ — **GRANTED** 2026-05-21.
+5. ~~**P8-DEFER VP back-reference back-fill**~~ — **DONE** 2026-05-21 (human-directed; 217 BCs updated; 69→formal VP IDs, 148→`—`; versions 1.1→1.2).
+
+**Phase 1 CLOSED.**
+
+## Phase 2 — Story Decomposition (IN PROGRESS)
+
+### Next Steps
+
+1. **Epic decomposition** — identify epics from the PRD and capability map.
+2. **Story decomposition** — break epics into implementation stories; populate `stories/STORY-INDEX.md`.
+3. **Dependency graph** — build story dependency graph (`stories/dependency-graph.md`).
+4. **Wave schedule** — assign stories to waves (`cycles/v0.1.0-greenfield-spec/wave-schedule.md`).
+5. **Adversarial story-convergence gate** — adversarial pass over story decomposition for completeness and consistency.
+6. **Human approval** — human sign-off on story decomposition before Phase 3.
 
 ## Governance Policy
 
@@ -200,7 +206,7 @@ Full register: `.factory/tech-debt-register.md` (when populated).
 | P4-PG2 | No component-ID consistency validator between domain-spec/capabilities and architecture/module-decomposition (process gap, pass 4) | Tooling gap — component IDs drift silently. No machine check exists. | Codify as CI lint rule or reviewer checklist item at cycle close. |
 | P4-PG3 | New reporter (csv.rs, PR #84) shipped without a BC — CsvReporter coverage gap not detected until pass-4 fresh-context audit (process gap, pass 4) | Coverage gap — 5 CsvReporter BCs (BC-2.11.020–024) added in pass-4 remediation. | Codify: every new src/ file in reporter/ or analyzer/ must trigger a BC coverage check at cycle close. |
 | P5-PG | BC-file on-disk verification used an existence check only; a NUL-byte-corrupted file (BC-2.07.020.md) was not detected until pass-5 adversarial audit (process gap, pass 5) | Tooling gap — no UTF-8 + control-byte validator on the spec package. Pass-5 remediation removed the NUL byte. | Codify as cycle-close follow-up: add spec-package validator asserting every BC/spec file is valid UTF-8 with no control bytes other than CR/LF/TAB. |
-| P8-DEFER | All 217 BC files carry `VP-TBD` placeholders in their Verification Properties field. The forward VP->BC mapping exists and is authoritative in VP-INDEX.md; the BC->VP back-reference back-fill is deferred as a Phase-1-exit polish item. | The adversary classified this as a deliberate Phase-1 convention, not drift — it is an Observation, not a blocking defect. Forward mapping in VP-INDEX.md is the authoritative source of VP->BC linkage; reverse back-references in individual BC files are editorial. | Surface as structured question at the Phase 1 human approval gate: does the human want BC->VP back-references back-filled before Phase 1 sign-off? |
+| P8-DEFER | All 217 BC files carry `VP-TBD` placeholders in their Verification Properties field. The forward VP->BC mapping exists and is authoritative in VP-INDEX.md; the BC->VP back-reference back-fill is deferred as a Phase-1-exit polish item. | **RESOLVED 2026-05-21** — human directed back-fill before Phase 1 sign-off. All 217 BC files updated: 69 BCs now cite formal VP IDs; 148 show `—`. BC versions bumped 1.1→1.2 with `modified:` entry. Zero `VP-TBD` remain. | CLOSED. |
 | P10-PG | Architecture-doc dependency tables were not diffed against Cargo.toml — authored from memory, causing stale versions, phantom crates, and missing crates (pass-10 H-1, M-3). | Tooling gap — no mechanical validator exists to assert dependency-graph.md matches Cargo.toml. Pass-10 remediation corrected the table manually. | Codify as cycle-close follow-up: add a `validate-deps-against-cargo` check that parses `[dependencies]` + `[dev-dependencies]` from Cargo.toml and asserts each crate appears in dependency-graph.md with the correct version. |
 | **P-CITE-PG** **(MANDATORY — 6 recurrences: passes 4, 6, 8, 9, 10, 12)** | No automated validator resolves `file.rs:NNN` anchors in spec artifacts. Stale line-citations have recurred across 6 passes, driving HIGH and MEDIUM findings repeatedly. | RECURRING PROCESS GAP — per Cycle-Closing Checklist, 6 occurrences = mandatory codification follow-up required before cycle can be declared closed. A follow-up story or a justified deferral must be recorded. | **Required action:** Create a spec-CI citation-checker that resolves every `file.rs:NNN` anchor in spec artifact files, flags when the cited line is a comment/blank, and flags when an asserted symbol name is absent from the surrounding 5-line context. File as a follow-up story or record an explicit justified deferral at cycle close. **DONE — research-agent validated under DF-VALIDATION-001 (verdict VALIDATED-WITH-CHANGES; report at `.factory/research/citation-checker-validation.md`); follow-up filed as engine issue drbothen/vsdd-factory#151 (reframed: drift-resistant citation convention + checker). Mandatory-codification requirement satisfied.** |
 
@@ -221,3 +227,8 @@ Full register: `.factory/tech-debt-register.md` (when populated).
 - SS-03 gap in BC numbering is intentional (subsystem not applicable).
 - DTU assessment confirmed: no external service clones required.
 - Phase 0 canonical ground truth: `.factory/semport/wirerust/wirerust-pass-8-deep-synthesis.md`.
+- **2026-05-21 — P8-DEFER VP back-reference back-fill:** all 217 BC files updated; 69 BCs
+  now carry formal VP IDs (VP-001:2, VP-002:6, VP-003:2, VP-004:6, VP-005:7, VP-006:3,
+  VP-007:4, VP-008:3, VP-009:5, VP-010:2, VP-011:3, VP-012:6, VP-013:3, VP-014:2, VP-015:1,
+  VP-016:5, VP-017:2, VP-018:2, VP-019:4, VP-020:1); 148 BCs show `—` (covered by story-level
+  tests only); all BC versions bumped 1.1→1.2. Zero `VP-TBD` remain. **Phase 1 CLOSED.**

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-10
 capability: CAP-10
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -77,8 +78,8 @@ catalog includes 6 IDs currently emitted by analyzers and 9 staged IDs for futur
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | All 15 seeded IDs return Some | unit: technique_name_resolves_every_seeded_id |
-| VP-TBD | Non-seeded IDs return None | unit: technique_name_returns_none_for_unknown_ids |
+| VP-007 | All 15 seeded IDs return Some | unit: technique_name_resolves_every_seeded_id |
+| VP-007 | Non-seeded IDs return None | unit: technique_name_returns_none_for_unknown_ids |
 
 ## Traceability
 

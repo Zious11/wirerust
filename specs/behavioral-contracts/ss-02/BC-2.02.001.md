@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-02
 capability: CAP-02
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -75,8 +76,8 @@ for most real-world captures.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Ethernet/IPv4/TCP decodes to correct src/dst IP and ports | unit: build synthetic Ethernet frame, assert fields |
-| VP-TBD | packet_len == data.len() for all decode paths | proptest: generate frames of varying lengths |
+| — | Ethernet/IPv4/TCP decodes to correct src/dst IP and ports | unit: build synthetic Ethernet frame, assert fields |
+| — | packet_len == data.len() for all decode paths | proptest: generate frames of varying lengths |
 
 ## Traceability
 

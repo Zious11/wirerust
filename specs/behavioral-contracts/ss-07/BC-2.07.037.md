@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -78,8 +78,8 @@ observable behavior, not a bug (pass-2 R3 Target 2).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Mixed non-ASCII + C0 SNI fires arm 3 not arm 2 | unit: assert SniValue::NonAsciiUtf8 result for mixed bytes |
-| VP-TBD | is_ascii() is the arm 2/3 gate (not contains_c0_or_del) | unit: confirm arm 3 fires before C0 check is evaluated |
+| VP-005 | Mixed non-ASCII + C0 SNI fires arm 3 not arm 2 | unit: assert SniValue::NonAsciiUtf8 result for mixed bytes |
+| VP-005 | is_ascii() is the arm 2/3 gate (not contains_c0_or_del) | unit: confirm arm 3 fires before C0 check is evaluated |
 
 ## Traceability
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-02
 capability: CAP-02
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,8 +77,8 @@ same `ParsedPacket` structure as Ethernet and RAW paths.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | LINUX_SLL frames decode successfully for IPv4 and IPv6 | unit: synthetic SLL frame bytes |
-| VP-TBD | Sub-16-byte SLL frame is rejected, never lax-retried | unit: assert Err on 15-byte frame |
+| — | LINUX_SLL frames decode successfully for IPv4 and IPv6 | unit: synthetic SLL frame bytes |
+| — | Sub-16-byte SLL frame is rejected, never lax-retried | unit: assert Err on 15-byte frame |
 
 ## Traceability
 

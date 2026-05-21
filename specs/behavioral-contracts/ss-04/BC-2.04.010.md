@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -79,9 +80,9 @@ this packet. The flow is removed from the `flows` HashMap by `close_flow`.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | RST always results in flow removal | unit: process RST; assert flows.is_empty() |
-| VP-TBD | CloseReason::Rst delivered to handler | unit: capture on_flow_close reason |
-| VP-TBD | Buffered data flushed before on_flow_close | unit: buffer data, send RST, assert on_data before on_flow_close |
+| — | RST always results in flow removal | unit: process RST; assert flows.is_empty() |
+| — | CloseReason::Rst delivered to handler | unit: capture on_flow_close reason |
+| — | Buffered data flushed before on_flow_close | unit: buffer data, send RST, assert on_data before on_flow_close |
 
 ## Traceability
 

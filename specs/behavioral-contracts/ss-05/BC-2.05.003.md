@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-05
 capability: CAP-05
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -80,7 +81,7 @@ FlowKey (INV-1).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Port fallback fires when content check fails | unit: test_dispatcher_port_fallback_short_data |
+| VP-004 | Port fallback fires when content check fails | unit: test_dispatcher_port_fallback_short_data |
 
 ## Traceability
 

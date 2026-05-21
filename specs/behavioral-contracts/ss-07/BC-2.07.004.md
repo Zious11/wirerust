@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -81,8 +81,8 @@ instrumentation added in LESSON-P1.05.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | payload_len > 18432 increments both parse_errors and truncated_records | unit: test_oversized_sni_exceeds_record_payload_limit |
-| VP-TBD | payload_len == 18432 does not increment truncated_records | unit: boundary test |
+| — | payload_len > 18432 increments both parse_errors and truncated_records | unit: test_oversized_sni_exceeds_record_payload_limit |
+| — | payload_len == 18432 does not increment truncated_records | unit: boundary test |
 
 ## Traceability
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,8 +76,8 @@ This BC defines the precise predicate boundary for the AsciiWithControl arm.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | 0x1F trips finding; 0x20 does not | unit: test_ascii_control_boundary_bytes |
-| VP-TBD | DEL (0x7F) trips finding | unit: test_ascii_sni_with_del |
+| VP-005 | 0x1F trips finding; 0x20 does not | unit: test_ascii_control_boundary_bytes |
+| VP-005 | DEL (0x7F) trips finding | unit: test_ascii_sni_with_del |
 
 ## Traceability
 

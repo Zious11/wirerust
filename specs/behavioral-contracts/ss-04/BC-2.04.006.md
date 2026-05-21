@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -80,8 +81,8 @@ segment buffers; flushing one never affects the other.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Data from initiator always tagged ClientToServer | unit: process c2s and s2c packets; assert direction in on_data callbacks |
-| VP-TBD | bytes_reassembled equals sum of all on_data lengths | unit: capture all on_data callbacks; assert sum == stats.bytes_reassembled |
+| — | Data from initiator always tagged ClientToServer | unit: process c2s and s2c packets; assert direction in on_data callbacks |
+| — | bytes_reassembled equals sum of all on_data lengths | unit: capture all on_data callbacks; assert sum == stats.bytes_reassembled |
 
 ## Traceability
 

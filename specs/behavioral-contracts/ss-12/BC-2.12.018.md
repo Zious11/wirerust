@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-12
 capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -74,8 +75,8 @@ per-protocol counter in `protocols: HashMap<Protocol, u64>`.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | total_packets and hosts incremented correctly | unit: test_summary_host_counting |
-| VP-TBD | protocol counters incremented | unit: test_summary_protocol_breakdown |
+| — | total_packets and hosts incremented correctly | unit: test_summary_host_counting |
+| — | protocol counters incremented | unit: test_summary_protocol_breakdown |
 
 ## Traceability
 

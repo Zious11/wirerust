@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-05
 capability: CAP-05
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -80,8 +81,8 @@ The analyzer-forward side-effect is less directly tested (pass-3 R4 finding).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Route removed on flow close (route-remove side effect) | HIGH (partial): test_unclassified_flows_counter indirectly pins route-remove via counter |
-| VP-TBD | Analyzer-forward close side effect | MEDIUM: not independently tested; refactor risk |
+| — | Route removed on flow close (route-remove side effect) | HIGH (partial): test_unclassified_flows_counter indirectly pins route-remove via counter |
+| — | Analyzer-forward close side effect | MEDIUM: not independently tested; refactor risk |
 
 ## Traceability
 

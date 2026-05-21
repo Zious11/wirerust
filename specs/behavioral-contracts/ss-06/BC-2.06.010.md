@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-06
 capability: CAP-06
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -78,8 +79,8 @@ No MITRE technique ID is assigned.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | URI > 2048 chars emits Execution/Likely/Medium finding | unit: test_detect_long_uri |
-| VP-TBD | URI of exactly 2048 does not emit long-URI finding | unit |
+| — | URI > 2048 chars emits Execution/Likely/Medium finding | unit: test_detect_long_uri |
+| — | URI of exactly 2048 does not emit long-URI finding | unit |
 
 ## Traceability
 

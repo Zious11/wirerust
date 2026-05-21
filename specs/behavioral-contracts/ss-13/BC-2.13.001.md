@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-13
 capability: CAP-12
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["2026-05-20: corrected -- flag was removed by PR #74, not merely unwired"]
+modified: ["2026-05-20: corrected -- flag was removed by PR #74, not merely unwired", "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -68,8 +68,8 @@ accurate for the pre-PR-#74 codebase; it is wrong for the current shipped binary
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | --threats argument is rejected by clap | unit: try_parse_from returns Err for --threats |
-| VP-TBD | No threats-related field exists in Cli or Commands | code: grep finds no threats field declaration |
+| — | --threats argument is rejected by clap | unit: try_parse_from returns Err for --threats |
+| — | No threats-related field exists in Cli or Commands | code: grep finds no threats field declaration |
 
 ## Traceability
 

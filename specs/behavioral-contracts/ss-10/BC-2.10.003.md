@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-10
 capability: CAP-10
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -74,9 +75,9 @@ consistent, predictable sequence.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Slice length is 16 | unit: assert_eq!(all_tactics_in_report_order().len(), 16) |
-| VP-TBD | No duplicate variants in the slice | unit: HashSet dedup check |
-| VP-TBD | Kill-chain order for first 14 | unit: assert positions 0..14 |
+| VP-016 | Slice length is 16 | unit: assert_eq!(all_tactics_in_report_order().len(), 16) |
+| VP-016 | No duplicate variants in the slice | unit: HashSet dedup check |
+| VP-016 | Kill-chain order for first 14 | unit: assert positions 0..14 |
 
 ## Traceability
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-06
 capability: CAP-06
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,9 +77,9 @@ The `TooManyHeaders` special case (BC-2.06.014) is the only error path that emit
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Non-HTTP bytes increment parse_errors without findings | unit: test_parse_error_increments_counter |
-| VP-TBD | Response parse error also increments parse_errors | unit: test_parse_error_in_response |
-| VP-TBD | Body bytes after success do not inflate parse_errors | unit: test_body_bytes_do_not_inflate_parse_errors |
+| — | Non-HTTP bytes increment parse_errors without findings | unit: test_parse_error_increments_counter |
+| — | Response parse error also increments parse_errors | unit: test_parse_error_in_response |
+| — | Body bytes after success do not inflate parse_errors | unit: test_body_bytes_do_not_inflate_parse_errors |
 
 ## Traceability
 

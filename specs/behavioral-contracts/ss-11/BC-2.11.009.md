@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -78,8 +79,8 @@ narrow but real vector where DEC S8C1T terminals can interpret 8-bit C1 sequence
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | NEL and CSI are escaped | unit: escapes_c1_nel_and_csi (terminal.rs) |
-| VP-TBD | Boundary values U+0080/U+009F escape; U+00A0 preserved | unit: escapes_c1_range_boundaries (terminal.rs) |
+| VP-012 | NEL and CSI are escaped | unit: escapes_c1_nel_and_csi (terminal.rs) |
+| VP-012 | Boundary values U+0080/U+009F escape; U+00A0 preserved | unit: escapes_c1_range_boundaries (terminal.rs) |
 
 ## Traceability
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -89,8 +90,8 @@ separate, per-event mechanism. This threshold alert is a cumulative count-based 
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Overlap alert fires exactly once per direction per flow | unit: exceed threshold multiple times; assert findings.len() == 1 |
-| VP-TBD | Latch fires even when finding is dropped | unit: fill to MAX_FINDINGS; trigger overlap threshold; assert latch=true and dropped++ |
+| — | Overlap alert fires exactly once per direction per flow | unit: exceed threshold multiple times; assert findings.len() == 1 |
+| — | Latch fires even when finding is dropped | unit: fill to MAX_FINDINGS; trigger overlap threshold; assert latch=true and dropped++ |
 
 ## Traceability
 

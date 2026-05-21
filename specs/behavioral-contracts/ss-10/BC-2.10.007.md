@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-10
 capability: CAP-10
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -84,7 +85,7 @@ assignments (e.g., T1027 => DefenseEvasion, T1036 => DefenseEvasion, T1046 => Di
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | All 15 seeded IDs return correct tactic | unit: exhaustive tactic-assignment assertions |
+| VP-007 | All 15 seeded IDs return correct tactic | unit: exhaustive tactic-assignment assertions |
 
 ## Traceability
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-01
 capability: CAP-01
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -80,8 +81,8 @@ unsupported file are processed. This contract is enforced in `src/reader.rs:50-6
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Accepted DataLink values are exactly {ETHERNET, RAW, IPV4, IPV6, LINUX_SLL} | proptest: generate arbitrary DataLink variants; assert Ok iff in whitelist |
-| VP-TBD | Rejection path never panics | fuzz: fuzz pcap header bytes, assert no panic |
+| — | Accepted DataLink values are exactly {ETHERNET, RAW, IPV4, IPV6, LINUX_SLL} | proptest: generate arbitrary DataLink variants; assert Ok iff in whitelist |
+| — | Rejection path never panics | fuzz: fuzz pcap header bytes, assert no panic |
 
 ## Traceability
 

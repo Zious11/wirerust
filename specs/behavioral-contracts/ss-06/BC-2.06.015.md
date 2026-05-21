@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-06
 capability: CAP-06
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -81,9 +82,9 @@ resets to false within the flow's lifetime (INV-8).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | 3 consecutive errors trigger poisoning | unit: test_parse_error_poisons_direction_after_threshold |
-| VP-TBD | Poisoning is monotonic false->true (never resets within flow) | unit: test absence of = false assignments |
-| VP-TBD | Bytes after poisoning counted in poisoned_bytes_skipped | unit |
+| VP-006 | 3 consecutive errors trigger poisoning | unit: test_parse_error_poisons_direction_after_threshold |
+| VP-006 | Poisoning is monotonic false->true (never resets within flow) | unit: test absence of = false assignments |
+| VP-006 | Bytes after poisoning counted in poisoned_bytes_skipped | unit |
 
 ## Traceability
 

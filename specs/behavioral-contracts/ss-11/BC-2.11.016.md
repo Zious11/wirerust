@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -72,7 +73,7 @@ render as `MITRE: <id> (unknown)`.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Em-dash and name in grouped MITRE line | unit: mitre_grouping_expands_per_finding_line_with_technique_name |
+| — | Em-dash and name in grouped MITRE line | unit: mitre_grouping_expands_per_finding_line_with_technique_name |
 
 ## Traceability
 

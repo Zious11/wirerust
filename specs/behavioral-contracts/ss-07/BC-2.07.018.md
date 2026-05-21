@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -68,7 +68,7 @@ BC exists to document that properly-encoded IDN hostnames are NOT anomalies.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Punycode A-label emits no finding | unit: test_punycode_a_label_does_not_emit_non_ascii_finding; test_punycode_a_label_emits_no_control_finding |
+| — | Punycode A-label emits no finding | unit: test_punycode_a_label_does_not_emit_non_ascii_finding; test_punycode_a_label_emits_no_control_finding |
 
 ## Traceability
 

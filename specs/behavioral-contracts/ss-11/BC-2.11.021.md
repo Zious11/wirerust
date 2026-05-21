@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -92,9 +93,9 @@ Sheets) from interpreting attacker-controlled packet payload bytes as formula di
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | neutralize_csv_injection produces `'`-prefix for all 6 trigger chars and only those | unit: parametric test over trigger set |
-| VP-TBD | neutralize_csv_injection returns identity for empty string | unit |
-| VP-TBD | neutralize_csv_injection does not alter bytes after position 0 | proptest: for all non-trigger-prefixed inputs, output == input |
+| VP-020 | neutralize_csv_injection produces `'`-prefix for all 6 trigger chars and only those | unit: parametric test over trigger set |
+| VP-020 | neutralize_csv_injection returns identity for empty string | unit |
+| VP-020 | neutralize_csv_injection does not alter bytes after position 0 | proptest: for all non-trigger-prefixed inputs, output == input |
 
 ## Traceability
 
@@ -125,7 +126,7 @@ S-TBD -- CsvReporter implementation (LESSON-P2.03)
 
 ## VP Anchors
 
-- VP-TBD -- neutralization unit tests
+- VP-020 -- neutralization unit tests
 
 ---
 

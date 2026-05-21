@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -77,8 +78,8 @@ distinct from the max_flows-triggered path in `get_or_create_flow`. Both paths c
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | total_memory <= memcap after eviction (when flows exist to evict) | unit: configure small memcap; insert large segment |
-| VP-TBD | Eviction uses MemoryPressure reason | unit: capture on_flow_close reason during eviction |
+| — | total_memory <= memcap after eviction (when flows exist to evict) | unit: configure small memcap; insert large segment |
+| — | Eviction uses MemoryPressure reason | unit: capture on_flow_close reason during eviction |
 
 ## Traceability
 

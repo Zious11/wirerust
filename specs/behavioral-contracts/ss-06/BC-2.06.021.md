@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-06
 capability: CAP-06
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -69,8 +70,8 @@ global, but per-flow decision gates (poisoning, error counts) are fully isolated
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Parse errors in flow A do not affect flow B | unit: test_cross_flow_isolation_parse_errors |
-| VP-TBD | Poisoning in flow A does not affect flow B | unit: test_cross_flow_isolation_poisoning |
+| VP-014 | Parse errors in flow A do not affect flow B | unit: test_cross_flow_isolation_parse_errors |
+| VP-014 | Poisoning in flow A does not affect flow B | unit: test_cross_flow_isolation_poisoning |
 
 ## Traceability
 

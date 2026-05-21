@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -82,8 +82,8 @@ arm 1 and produce no finding. Broader LDH compliance is out of scope (issue #54)
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Clean ASCII SNI produces no finding | unit: test_parse_client_hello; test_ascii_sni_does_not_emit_non_utf8_finding; test_printable_ascii_sni_emits_no_control_finding |
-| VP-TBD | SNI is counted in sni_counts | unit: test_parse_client_hello asserts sni_counts |
+| VP-005 | Clean ASCII SNI produces no finding | unit: test_parse_client_hello; test_ascii_sni_does_not_emit_non_utf8_finding; test_printable_ascii_sni_emits_no_control_finding |
+| VP-005 | SNI is counted in sni_counts | unit: test_parse_client_hello asserts sni_counts |
 
 ## Traceability
 

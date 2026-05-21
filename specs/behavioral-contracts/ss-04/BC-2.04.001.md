@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -85,8 +86,8 @@ policy. Valid configs always produce a zero-finding, zero-flow, un-finalized ins
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | All five invalid configs cause panic | unit: #[should_panic(expected = "...")] for each |
-| VP-TBD | Valid config (all > 0) never panics | unit: new with min valid config (all fields = 1) |
+| — | All five invalid configs cause panic | unit: #[should_panic(expected = "...")] for each |
+| — | Valid config (all > 0) never panics | unit: new with min valid config (all fields = 1) |
 
 ## Traceability
 

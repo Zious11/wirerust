@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,8 +77,8 @@ expecting ASCII `->` will silently fail to match, because the actual separator i
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Display output contains U+2192, not ASCII -> | unit: dedicated test asserting exact UTF-8 bytes |
-| VP-TBD | Display output format matches "ip:port ARROW ip:port" pattern | unit |
+| — | Display output contains U+2192, not ASCII -> | unit: dedicated test asserting exact UTF-8 bytes |
+| — | Display output format matches "ip:port ARROW ip:port" pattern | unit |
 
 ## Traceability
 

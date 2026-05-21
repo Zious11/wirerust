@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -80,8 +81,8 @@ analyzer-summary detail values (BC-2.11.011).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | C1 codepoints pass through as raw UTF-8 | unit: test_http_finding_c1_csi_in_json_reporter |
-| VP-TBD | Round-trip preserves C1 bytes | unit: test_http_finding_c1_csi_in_json_reporter |
+| — | C1 codepoints pass through as raw UTF-8 | unit: test_http_finding_c1_csi_in_json_reporter |
+| — | Round-trip preserves C1 bytes | unit: test_http_finding_c1_csi_in_json_reporter |
 
 ## Traceability
 

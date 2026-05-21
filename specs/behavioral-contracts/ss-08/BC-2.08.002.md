@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-08
 capability: CAP-08
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -74,8 +75,8 @@ fires before the bit test), so the `else` branch in `analyze` increments `respon
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | QR bit at payload[2] bit 7 controls which counter increments | unit: test_dns_analyzer_counts_queries |
-| VP-TBD | Short payload increments response_count | unit: short-payload test |
+| VP-019 | QR bit at payload[2] bit 7 controls which counter increments | unit: test_dns_analyzer_counts_queries |
+| VP-019 | Short payload increments response_count | unit: short-payload test |
 
 ## Traceability
 

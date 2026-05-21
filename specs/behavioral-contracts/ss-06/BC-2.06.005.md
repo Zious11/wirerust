@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-06
 capability: CAP-06
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -82,9 +83,9 @@ preserved in the finding evidence without escaping (ADR 0003).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Path traversal URI emits T1083 finding | unit: test_detect_path_traversal |
-| VP-TBD | URL-encoded traversal is detected | unit: test_detect_encoded_traversal |
-| VP-TBD | Normal path emits no finding | unit: test_no_findings_for_normal_request |
+| — | Path traversal URI emits T1083 finding | unit: test_detect_path_traversal |
+| — | URL-encoded traversal is detected | unit: test_detect_encoded_traversal |
+| — | Normal path emits no finding | unit: test_no_findings_for_normal_request |
 
 ## Traceability
 

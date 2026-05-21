@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,8 +77,8 @@ therefore map to the same flow entry. This is INV-1 and is load-bearing for the 
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | FlowKey::new is commutative: new(a,pa,b,pb) == new(b,pb,a,pa) for all (a,pa,b,pb) | proptest: generate random IP+port pairs |
-| VP-TBD | Ordering uses tuple-pair comparison not independent field ordering | unit: construct case where tuple-pair differs from independent-field ordering |
+| VP-001 | FlowKey::new is commutative: new(a,pa,b,pb) == new(b,pb,a,pa) for all (a,pa,b,pb) | proptest: generate random IP+port pairs |
+| VP-001 | Ordering uses tuple-pair comparison not independent field ordering | unit: construct case where tuple-pair differs from independent-field ordering |
 
 ## Traceability
 

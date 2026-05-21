@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -87,9 +88,9 @@ States not in the table are unchanged (no-op).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | All state transitions match the table above | unit: test_flow_state_transitions |
-| VP-TBD | on_syn() no-op when not in New state | unit |
-| VP-TBD | fin_count saturating_add prevents overflow | unit: boundary test |
+| VP-009 | All state transitions match the table above | unit: test_flow_state_transitions |
+| VP-009 | on_syn() no-op when not in New state | unit |
+| VP-009 | fin_count saturating_add prevents overflow | unit: boundary test |
 
 ## Traceability
 

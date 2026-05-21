@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -91,9 +92,9 @@ contract.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | No raw C0 byte appears in TerminalReporter output | unit: test_terminal_reporter_escapes_esc_bytes_in_summary |
-| VP-TBD | Printable ASCII and UTF-8 pass through unchanged | unit: inline tests in terminal.rs |
-| VP-TBD | Both summary AND evidence are escaped | unit: test_terminal_reporter_escapes_esc_bytes_in_summary asserts both |
+| VP-012 | No raw C0 byte appears in TerminalReporter output | unit: test_terminal_reporter_escapes_esc_bytes_in_summary |
+| VP-012 | Printable ASCII and UTF-8 pass through unchanged | unit: inline tests in terminal.rs |
+| VP-012 | Both summary AND evidence are escaped | unit: test_terminal_reporter_escapes_esc_bytes_in_summary asserts both |
 
 ## Traceability
 

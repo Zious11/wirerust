@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-05
 capability: CAP-05
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -78,8 +79,8 @@ an attacker running TLS on port 80 is still identified as TLS, not HTTP.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | 0x16,0x03 prefix always routes to TLS regardless of port | unit: test_dispatcher_content_detection_tls_on_port_80 |
-| VP-TBD | TLS classification is cached after first match | unit |
+| VP-004 | 0x16,0x03 prefix always routes to TLS regardless of port | unit: test_dispatcher_content_detection_tls_on_port_80 |
+| VP-004 | TLS classification is cached after first match | unit |
 
 ## Traceability
 

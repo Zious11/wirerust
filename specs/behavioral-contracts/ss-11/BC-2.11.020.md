@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -83,8 +84,8 @@ analyst scripts) can rely on positional column indices without schema discovery.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Header row is first line and contains exactly the 9 expected column names in order | unit |
-| VP-TBD | Every row in output has exactly 9 comma-separated fields | unit / proptest |
+| — | Header row is first line and contains exactly the 9 expected column names in order | unit |
+| — | Every row in output has exactly 9 comma-separated fields | unit / proptest |
 
 ## Traceability
 
@@ -115,7 +116,7 @@ S-TBD -- CsvReporter implementation (LESSON-P2.03)
 
 ## VP Anchors
 
-- VP-TBD -- column schema unit test
+- — -- column schema unit test
 
 ---
 

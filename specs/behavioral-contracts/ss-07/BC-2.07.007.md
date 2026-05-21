@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -80,10 +80,10 @@ returns `(md5_hex, ja3_string)` as a pair.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | JA3 string has exactly 4 commas | proptest: compute_ja3_has_five_fields_and_hex_hash |
-| VP-TBD | Hash is 32 lowercase hex chars | proptest: compute_ja3_has_five_fields_and_hex_hash |
-| VP-TBD | First field is the version | proptest: compute_ja3_has_five_fields_and_hex_hash checks starts_with version |
-| VP-TBD | Order-sensitivity: [A,B] != [B,A] | proptest: compute_ja3_is_order_sensitive |
+| VP-013 | JA3 string has exactly 4 commas | proptest: compute_ja3_has_five_fields_and_hex_hash |
+| VP-013 | Hash is 32 lowercase hex chars | proptest: compute_ja3_has_five_fields_and_hex_hash |
+| VP-013 | First field is the version | proptest: compute_ja3_has_five_fields_and_hex_hash checks starts_with version |
+| VP-013 | Order-sensitivity: [A,B] != [B,A] | proptest: compute_ja3_is_order_sensitive |
 
 ## Traceability
 

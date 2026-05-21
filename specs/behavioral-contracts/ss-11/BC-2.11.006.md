@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-11
 capability: CAP-11
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -75,8 +76,8 @@ When `skipped_packets = 0`, the line is completely absent from the output. This 
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | Line present when skipped_packets > 0 | unit: test_terminal_reporter_shows_skipped_when_nonzero |
-| VP-TBD | Line absent when skipped_packets = 0 | unit: test_terminal_reporter_hides_skipped_when_zero |
+| — | Line present when skipped_packets > 0 | unit: test_terminal_reporter_shows_skipped_when_nonzero |
+| — | Line absent when skipped_packets = 0 | unit: test_terminal_reporter_hides_skipped_when_zero |
 
 ## Traceability
 

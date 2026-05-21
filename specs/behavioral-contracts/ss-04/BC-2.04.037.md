@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -79,9 +80,9 @@ in `mod.rs` then emits an `Anomaly/Likely/High` finding tagged T1036.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-TBD | ConflictingOverlap: original bytes unchanged in segments | unit: test_overlap_conflicting_data_detected |
-| VP-TBD | ConflictingOverlap: buffered_bytes unchanged | unit |
-| VP-TBD | ConflictingOverlap: overlap_count incremented | unit |
+| VP-002 | ConflictingOverlap: original bytes unchanged in segments | unit: test_overlap_conflicting_data_detected |
+| VP-002 | ConflictingOverlap: buffered_bytes unchanged | unit |
+| VP-002 | ConflictingOverlap: overlap_count incremented | unit |
 
 ## Traceability
 
