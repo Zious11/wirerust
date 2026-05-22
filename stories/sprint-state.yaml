@@ -88,17 +88,17 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-005:
-    status: pending
+    status: in_progress
     wave: 3
-    branch: null
-    worktree: null
+    branch: feature/story-005-decoder-packetlen-tcp
+    worktree: .worktrees/story-005
     blocked_by: []
 
   STORY-071:
-    status: pending
+    status: in_progress
     wave: 3
-    branch: null
-    worktree: null
+    branch: feature/story-071-mitre-mapping
+    worktree: .worktrees/story-071
     blocked_by: []
 
   # ---------------------------------------------------------------------------

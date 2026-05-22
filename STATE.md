@@ -29,6 +29,11 @@ wave_2_story_003_merge_commit: 3b2481c
 ci_hotfix_pr: 111
 ci_hotfix_merge_commit: 7c1ab2c
 ci_hotfix_date: "2026-05-22"
+ci_hotfix_2_pr: 112
+ci_hotfix_2_merge_commit: 5d4c2c6
+ci_hotfix_2_date: "2026-05-22"
+ci_hotfix_2_run: 26300783841
+wave_3_started: "2026-05-22"
 wave_2_story_004_pr: 107
 wave_2_story_004_merge_commit: 385e763
 wave_2_story_070_pr: 108
@@ -102,13 +107,14 @@ phase_2_input_hash_drift_check_uncomputed: 0
 ## Status
 
 **Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Wave 1 CLOSED 2026-05-22. Wave 2 CLOSED 2026-05-22.
-6 stories merged total (STORY-001/069/002/003/004/070). Wave 3 ready to dispatch.
-Per-story convergence ACHIEVED for all Wave 2 stories. Wave-level adversarial convergence
-ACHIEVED — 3 consecutive clean passes (wave passes 1/2/3). Demo recordings are local-only;
-factory-artifacts branch gitignores `cycles/**/demos/` (commit f4e52fb; 49 prior demo files
-untracked). Next: Wave 3 dispatch (STORY-005, STORY-071).
+6 stories merged total (STORY-001/069/002/003/004/070). Wave 3 IN PROGRESS (STORY-005,
+STORY-071 dispatched 2026-05-22). Per-story convergence ACHIEVED for all Wave 2 stories.
+Wave-level adversarial convergence ACHIEVED — 3 consecutive clean passes (wave passes 1/2/3).
+CI hotfix PR #112 (5d4c2c6) merged 2026-05-22 — audit-action replaced with cargo audit shell
+step. Demo recordings are local-only; factory-artifacts branch gitignores `cycles/**/demos/`
+(commit f4e52fb; 49 prior demo files untracked).
 
-**Current develop HEAD:** 7c1ab2c (PR #111 — CI hotfix: pin fuzz-build to nightly-2026-05-21 + cargo-fuzz 0.13.1 + timeout-minutes: 25, merged 2026-05-22). Previous: 3b2481c (PR #110).
+**Current develop HEAD:** 5d4c2c6 (PR #112 — CI hotfix: replace `rustsec/audit-check@v2.0.0` with plain `cargo audit` shell step; resolves "Resource not accessible by integration" failure on push-event runs; post-merge push run 26300783841 all jobs green, merged 2026-05-22). Previous: 7c1ab2c (PR #111).
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -126,7 +132,7 @@ automated dependency bumping for it; bumping requires verifying the fuzz build s
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
 | Phase 2 — Story Decomposition | **PASSED** — all gates + human approval 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; decomposition gate PASSED; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153); trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M→0C/0H/1M (RESET)→0C/0H/0M→0C/0H/0M→0C/0H/0M (GATE SATISFIED 3/3) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Wave 1 CLOSED 2026-05-22; Wave 2 CLOSED 2026-05-22 (PRs #109/#110/#107/#108; per-story + wave-level convergence ACHIEVED; develop at 7c1ab2c after CI hotfix PR #111; 376 tests); Wave 3 ready to dispatch | — |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Wave 1 CLOSED 2026-05-22; Wave 2 CLOSED 2026-05-22 (PRs #109/#110/#107/#108; per-story + wave-level convergence ACHIEVED; CI hotfix PR #112 → develop at 5d4c2c6; 376 tests); Wave 3 IN PROGRESS (STORY-005, STORY-071) | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -241,7 +247,8 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 | Per-story adversarial convergence — Wave 2 | **COMPLETE** 2026-05-22 | All 4 stories: 3/3 consecutive clean passes each; per-story gate SATISFIED |
 | Wave-level adversarial convergence — Wave 2 | **COMPLETE** 2026-05-22 | 3 consecutive clean wave-level passes; wave-level gate SATISFIED |
 | Wave-gate — Wave 2 | **CLOSED** 2026-05-22 | Wave 2 CLOSED: develop at 3b2481c; 376 tests green |
-| Wave 3 dispatch (STORY-005, STORY-071) | READY | Wave 3 stories unblocked; sprint-state pending |
+| CI hotfix — PR #112 | **COMPLETE** 2026-05-22 | Replaced `rustsec/audit-check@v2.0.0` with `cargo audit` shell step; resolves push-event "Resource not accessible by integration" failure; run 26300783841 all green; develop at 5d4c2c6 |
+| Wave 3 dispatch (STORY-005, STORY-071) | **IN PROGRESS** 2026-05-22 | STORY-005 (feature/story-005-decoder-packetlen-tcp, .worktrees/story-005); STORY-071 (feature/story-071-mitre-mapping, .worktrees/story-071) |
 | Waves 4→27 | NOT STARTED | Repeat per-story + wave-level convergence for each wave |
 
 ### Wave 1 Delivery Summary (2026-05-22)
@@ -265,13 +272,14 @@ All 4 Wave 2 stories delivered, merged, per-story converged, and wave-level conv
 Wave-level adversarial convergence: **ACHIEVED** — 3 consecutive clean passes (wave passes 1/2/3).
 develop synced at 3b2481c; 376 tests pass; clippy clean; fmt clean.
 
-**Session resume checkpoint — Wave 3:**
-1. Dispatch Wave 3 (STORY-005, STORY-071) — both stories are now unblocked (sprint-state updated to `pending`; current_wave=3).
+**Session resume checkpoint — Wave 3 (IN PROGRESS 2026-05-22):**
+1. Wave 3 dispatched — STORY-005 (`feature/story-005-decoder-packetlen-tcp`, `.worktrees/story-005`) and STORY-071 (`feature/story-071-mitre-mapping`, `.worktrees/story-071`); sprint-state updated to `in_progress`; current_wave=3.
 2. Author implementation + tests for STORY-005 (packet_len semantics, TCP flag/sequence extraction, SS-02).
 3. Author implementation + tests for STORY-071 (MITRE ATT&CK mapping, tactic display, catalog lookup, SS-07).
 4. Run per-story adversarial convergence to 3/3 clean passes each.
 5. After both stories converged: PRs + Wave 3 wave-level adversarial convergence (3 clean passes).
 6. Then proceed to Wave 4 (STORY-011, STORY-066).
+Note: develop HEAD is 5d4c2c6 (CI hotfix PR #112, audit-action fix, 376 tests green).
 
 ### Drift Items (STATE.md)
 
