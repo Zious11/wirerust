@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-005"
 epic_id: "E-1"
-version: "1.6"
-status: draft
+version: "1.7"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -171,6 +171,7 @@ PSH and URG are NOT present as fields of `TransportInfo::Tcp`. Adding them would
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| 1.7 | 2026-05-22 | story-writer | Wave 3 wave-level adversarial fix F-2: status advanced draft → completed — STORY-005 delivered via PR #114, merge f0b5007 |
 | 1.6 | 2026-05-22 | story-writer | Wave 3 Ph3 pass-4 adversarial fixes: F-2 payload-extraction anchor added (decoder.rs:288-292), F-3 AC-002 over-claim removed ("or TCP segment length"); full AC trace-annotation self-audit — all 9 ACs confirmed clean |
 | 1.5 | 2026-05-22 | story-writer | Wave 3 Ph3 pass-2 adversarial fixes: F-1, F-3, F-4, F-5, F-6, F-7 |
 | 1.4 | 2026-05-22 | story-writer | Wave 3 Ph3 pass-1 adversarial fixes: F-1, F-3, F-6, F-4, F-7, N-1 |

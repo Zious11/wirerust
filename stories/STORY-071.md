@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-071
 epic_id: E-7
-version: "1.3"
-status: draft
+version: "1.4"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -224,4 +224,5 @@ All 6 currently-emitted technique IDs (T1027, T1036, T1046, T1083, T1499.002, T1
 |---------|------|--------|--------|
 | 1.1 | 2026-05-21 | story-writer | Initial story decomposition |
 | 1.2 | 2026-05-22 | story-writer | Wave 3 Ph3 implementer-confirm anchor-drift correction: `MitreTactic` enum anchor corrected from `:46-90` to `:46-66` (enum declaration only; Display impl is `:68-90`); `technique_info` closing-brace anchor corrected from `:122-155` to `:122-156` |
+| 1.4 | 2026-05-22 | story-writer | Wave 3 wave-level adversarial fix F-2: status advanced draft → completed — STORY-071 delivered via PR #113, merge 991e821 |
 | 1.3 | 2026-05-22 | story-writer | Wave 3 Ph3 pass-1 adversarial fixes: m-2 AC-008 trace postcondition 1→2; m-3 AC-009 trace postconditions 1,3 + joint-coverage note; m-5 technique_name line anchor :160-162; n-1 AC-002 test reference to standalone function; n-2 Task 2 count 16→19 |
