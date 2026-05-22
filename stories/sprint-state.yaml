@@ -112,18 +112,18 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-011:
-    status: blocked
+    status: pending
     wave: 4
     branch: null
     worktree: null
-    blocked_by: [STORY-005]
+    blocked_by: []
 
   STORY-066:
-    status: blocked
+    status: pending
     wave: 4
     branch: null
     worktree: null
-    blocked_by: [STORY-005]
+    blocked_by: []
 
   # ---------------------------------------------------------------------------
   # Wave 5 — 1 story
