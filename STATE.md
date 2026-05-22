@@ -16,6 +16,11 @@ phase_2_started: "2026-05-21"
 phase_2_human_approved: "2026-05-21"
 phase_2_completed: "2026-05-21"
 phase_3_started: "2026-05-21"
+wave_1_delivered: "2026-05-22"
+wave_1_story_001_pr: 106
+wave_1_story_001_merge_commit: b7424b7
+wave_1_story_069_pr: 105
+wave_1_story_069_merge_commit: 2840caf
 dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
@@ -83,19 +88,12 @@ phase_2_input_hash_drift_check_uncomputed: 0
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Phase 2 COMPLETE & human-approved 2026-05-21. Deliverables:
-48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 story points. All Phase 2 gates passed:
-decomposition consistency gate PASSED; adversarial story-convergence gate SATISFIED 3/3 (10 passes);
-input-hash drift check CLEAN (TOTAL=153 MATCH=153 STALE=0 UNCOMPUTED=0); pre-approval polish applied;
-human approval GRANTED 2026-05-21. Pipeline now entering Phase 3: wave-by-wave TDD implementation
-(waves 1→27). BC story-anchor back-fill COMPLETE (217/217 BC files; `Story Anchor: S-TBD` →
-`Story Anchor: covering STORY-NNN`, per dependency-graph BC-to-Stories matrix; analogous to
-P8-DEFER VP back-fill). Traceability chain complete end-to-end: BC ↔ Story ↔ VP all
-cross-referenced. Pre-Phase-3 prerequisites verified: CI/CD `ci.yml` present with
-test/clippy/fmt/semantic-PR jobs; DTU not required per dtu-assessment.
-Next: Phase 3 Wave 1 per-story TDD delivery (STORY-001, STORY-069).
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Wave 1 DELIVERED 2026-05-22. Both Wave 1 stories
+merged into develop; per-story adversarial convergence achieved for both. Current develop HEAD:
+b7424b7 (PR #106 — STORY-001 squash-merge). Test suite: 329 passing. cargo test/clippy/fmt all
+green. Wave 2 next (STORY-002, STORY-003, STORY-004, STORY-070).
 
-**Current develop HEAD:** 0082a0c (PR #99 — CLAUDE.md governance pointer).
+**Current develop HEAD:** b7424b7 (PR #106 — STORY-001 PCAP File Ingestion, squash-merged 2026-05-22).
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -110,7 +108,7 @@ Next: Phase 3 Wave 1 per-story TDD delivery (STORY-001, STORY-069).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
 | Phase 2 — Story Decomposition | **PASSED** — all gates + human approval 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; decomposition gate PASSED; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153); trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M→0C/0H/1M (RESET)→0C/0H/0M→0C/0H/0M→0C/0H/0M (GATE SATISFIED 3/3) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — STARTED 2026-05-21; BC story-anchor back-fill COMPLETE (217/217); Wave 1 next (STORY-001 + STORY-069) | — |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Wave 1 DELIVERED 2026-05-22 (STORY-001 PR #106 b7424b7; STORY-069 PR #105 2840caf); per-story convergence SATISFIED both stories; develop at b7424b7; 329 tests green; Wave 2 next | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -217,12 +215,25 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 |------|--------|-------|
 | BC story-anchor back-fill (entry prep) | **COMPLETE** 2026-05-21 | 217/217 BC files: `Story Anchor: S-TBD` → `Story Anchor: covering STORY-NNN`; per dependency-graph BC-to-Stories matrix; analogous to P8-DEFER VP back-fill; traceability chain complete BC ↔ Story ↔ VP |
 | Pre-Phase-3 prerequisites | **VERIFIED** 2026-05-21 | CI/CD `ci.yml` present (test/clippy/fmt/semantic-PR jobs); DTU not required per dtu-assessment |
-| Wave 1 delivery (STORY-001 + STORY-069) | NOT STARTED | First wave; per-story TDD delivery via `vsdd-factory:deliver-story` |
-| Per-story adversarial convergence | NOT STARTED | 3 clean passes required per story |
-| Wave-level adversarial convergence | NOT STARTED | 3 clean passes required per wave (waves 1→27) |
-| Wave-gate implementation gate | NOT STARTED | Per-wave implementation gate before next wave |
-| Input-hash drift check | NOT STARTED | Per-wave drift check |
+| Wave 1 delivery (STORY-001 + STORY-069) | **COMPLETE** 2026-05-22 | STORY-001 PR #106 (b7424b7, 20 tests); STORY-069 PR #105 (2840caf); brownfield-formalization; 329 tests green; per-story convergence SATISFIED both stories |
+| Per-story adversarial convergence — Wave 1 | **COMPLETE** 2026-05-22 | STORY-001: 16 passes (14/15/16 clean); STORY-069: 7 passes (5/6/7 clean) |
+| Wave-level adversarial convergence — Wave 1 | NOT STARTED | 3 clean passes required per wave |
+| Wave-gate implementation gate — Wave 1 | NOT STARTED | Per-wave implementation gate before Wave 2 |
+| Input-hash drift check — Wave 1 | NOT STARTED | Per-wave drift check |
 | Waves 2→27 | NOT STARTED | Repeat per-story + wave-level convergence for each wave |
+
+### Wave 1 Delivery Summary (2026-05-22)
+
+| Story | PRs | Merge Commit | Tests Added | ACs Demoed | Convergence |
+|-------|-----|-------------|-------------|------------|-------------|
+| STORY-001 | #106 | b7424b7 | 20 (tests/bc_2_01_story001_tests.rs; BC-2.01.001..008) | 10 ACs | 16 passes; 14/15/16 clean |
+| STORY-069 | #105 | 2840caf | BC-2.09.001..004 added to tests/reporter_tests.rs | 11 ACs + 5 ECs | 7 passes; 5/6/7 clean |
+
+### Drift Items (STATE.md)
+
+| ID | Finding | Category | Target Phase | Validation Status |
+|----|---------|----------|-------------|-------------------|
+| DF-16.A | BC-2.01.001..008 all anchor capability CAP-01; a dedicated CAP-02 (Link-Type Gating) capability also describes BC-2.01.001's behavior; capabilities.md not found under .factory/specs/. The capability column for BC-2.01.001 may be under-specified or capabilities.md may have been archived/renamed. | architectural | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
 
 ### Cycle-Close Follow-Up Items (carried from Phase 2)
 
@@ -233,6 +244,9 @@ Process-gap codification deferred from Phase 2 adversarial convergence — requi
 | [process-gap] P1.1 | Story-writer template-completeness gate — verify all required YAML fields present per STORY-NNN.md template | P2 |
 | [process-gap] P1.2 | Story-writer VP-anchoring validation — assert every story cites ≥1 VP (or explicit `vp_anchors: []` with justification) | P2 |
 | [process-gap] P1.3 | Decomposition-consistency-audit check-matrix axes — codify as explicit checklist step (BC-coverage, edge-count, wave-count, sprint-state) | P2 |
+| [process-gap] W1.1 | Wave-gate dispatch lacks a deliverable-existence / local-checkout-sync pre-check — local develop was stale after `gh pr merge`; wave-gate ran against old HEAD. Add `git pull origin develop` verification step before any wave-gate adversarial review. | P1 |
+| [process-gap] W1.2 | Brownfield-formalization static-assertion tests scan whole-file text and can drift if emission sites move into `#[cfg(test)]` regions — the `assert!(content.contains(...))` pattern does not distinguish test-only vs production code paths. Codify: static-assertion tests must anchor to a specific non-test function or use line-range verification. | P2 |
+| [process-gap] W1.3 | Story Tasks checkboxes and frontmatter `status:` field are not reconciled with delivery state automatically — state-manager must be explicitly dispatched. Codify: deliver-story skill must emit a state-manager update command on completion. | P1 |
 
 ## Phase 2 — Story Decomposition (PASSED — 2026-05-21)
 

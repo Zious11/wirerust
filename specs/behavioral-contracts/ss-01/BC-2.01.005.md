@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,8 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Phase 3 per-story adversarial review — corrected Architecture Anchor line range: timestamp conversion block ends at :73, not :74 (line 74 is blank in reader.rs) — 2026-05-21
+  - v1.4: Phase 3 per-story adversarial review pass 5 — corrected false claim in v1.3 changelog: line 74 is NOT blank; it is the closing `};` of the match expression. Architecture Anchor corrected to 71-74 (full match span: let-binding at :71, two arms at :72-73, closing brace at :74) — 2026-05-21
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -93,7 +95,7 @@ the pcap format's own type; no cast is required beyond the match-arm value.
 
 ## Architecture Anchors
 
-- `src/reader.rs:71-74` -- timestamp conversion: `ts_frac` used directly for MicroSecond; divided by 1000 for NanoSecond
+- `src/reader.rs:71-74` -- timestamp conversion: `let timestamp_usecs = match ts_resolution {` at :71, two match arms at :72-73, closing `};` at :74
 - `src/reader.rs:76-77` -- `timestamp_secs: raw_packet.ts_sec`, `timestamp_usecs` from ts_frac conversion
 
 ## Source Evidence

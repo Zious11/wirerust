@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Phase 3 per-story adversarial review pass 5 — upgraded Source Evidence Confidence from medium to high; updated Origin BC and Evidence Types to reflect direct test delivered in STORY-001: test_BC_2_01_007_truncated_packet_error — 2026-05-21
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -73,7 +74,7 @@ are NOT returned as a partial result -- the entire from_pcap_reader call fails.
 | L2 Domain Invariants | None |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-001 |
-| Origin BC | BC-RDR-007 (pass-3 ingestion corpus, MEDIUM confidence -- no direct test) |
+| Origin BC | BC-RDR-007 (pass-3 ingestion corpus; confidence upgraded to HIGH -- test_BC_2_01_007_truncated_packet_error delivered in STORY-001) |
 
 ## Architecture Anchors
 
@@ -84,12 +85,12 @@ are NOT returned as a partial result -- the entire from_pcap_reader call fails.
 | Property | Value |
 |----------|-------|
 | **Path** | `src/reader.rs:70` |
-| **Confidence** | medium |
+| **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 
 ## Evidence Types Used
 
-- **guard clause**: anyhow::Context chain; no direct test
+- **assertion**: test_BC_2_01_007_truncated_packet_error asserts Err chain contains "Failed to read packet" for a truncated mid-stream packet record
 
 ## Purity Classification
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,9 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Phase 3 per-story adversarial review — corrected extracted_from accuracy: EC-001 and Postcondition 2 now state the rejection message contains the DataLink Debug variant name (e.g. "IEEE802_11") plus the supported-types suffix, not "the numeric value" — 2026-05-21
+  - v1.4: Phase 3 per-story adversarial review — corrected Architecture Anchor line ranges: DataLink match block closes at :61, not :60; Traceability Architecture Module updated to match — 2026-05-21
+  - v1.5: Phase 3 per-story adversarial review — F-8.1: corrected Traceability "Architecture Module" range from reader.rs:46-61 to reader.rs:50-61 (46 is the header-parse line, not the link-type gate); F-9.06: rewrote EC-004 to remove out-of-scope decoder `from_ip` reference, keeping behavior description within reader link-type-gate scope — 2026-05-21
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -30,7 +33,7 @@ removal_reason: null
 The PCAP reader performs link-type gating at file-open time: it accepts exactly five
 `pcap_file::DataLink` variants (ETHERNET, RAW, IPV4, IPV6, LINUX_SLL) and immediately returns
 an anyhow error for any other value. This is the primary ingestion gate -- no packets from an
-unsupported file are processed. This contract is enforced in `src/reader.rs:50-60`.
+unsupported file are processed. This contract is enforced in `src/reader.rs:50-61`.
 
 ## Preconditions
 
@@ -43,7 +46,8 @@ unsupported file are processed. This contract is enforced in `src/reader.rs:50-6
 
 1. If `DataLink` is one of {ETHERNET, RAW, IPV4, IPV6, LINUX_SLL}: returns `Ok(PcapSource)`
    with `datalink` set to the accepted variant. Packet reading proceeds.
-2. If `DataLink` is any other value: returns `Err(anyhow!("Unsupported pcap link type: ..."))`.
+2. If `DataLink` is any other value: returns `Err(anyhow!("Unsupported pcap link type: {other:?}. Supported: Ethernet (1), Raw IP (101), Linux Cooked (113), IPv4 (228), IPv6 (229)"))`.
+   `{other:?}` expands to the `DataLink` enum's Debug variant name (e.g., `"IEEE802_11"`), not a raw integer.
    No packets are loaded. No panic occurs.
 3. The returned `PcapSource.datalink` is always a member of the accepted whitelist.
 
@@ -59,10 +63,10 @@ unsupported file are processed. This contract is enforced in `src/reader.rs:50-6
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | DataLink = IEEE 802.11 (numeric 105) | Returns Err containing "Unsupported pcap link type" and the numeric value |
+| EC-001 | DataLink = IEEE 802.11 (numeric 105) | Returns Err whose message is `"Unsupported pcap link type: IEEE802_11. Supported: Ethernet (1), Raw IP (101), Linux Cooked (113), IPv4 (228), IPv6 (229)"` — the token after the colon is the DataLink Debug variant name, not a raw integer |
 | EC-002 | DataLink = ETHERNET (most common case) | Returns Ok(PcapSource { datalink: ETHERNET, ... }) |
 | EC-003 | DataLink = LINUX_SLL (tcpdump -i any captures) | Returns Ok(PcapSource { datalink: LINUX_SLL, ... }) |
-| EC-004 | DataLink = RAW and DataLink = IPV4 | Both accepted via the same `from_ip` decode path |
+| EC-004 | DataLink = RAW and DataLink = IPV4 | Both are members of the accepted whitelist; the reader's link-type gate returns Ok(PcapSource) for each without any decode step |
 | EC-005 | pcapng file (different magic number) | pcap_file crate header parse fails before link-type check; error wraps as "Failed to parse pcap header" |
 
 ## Canonical Test Vectors
@@ -91,7 +95,7 @@ unsupported file are processed. This contract is enforced in `src/reader.rs:50-6
 | L2 Capability | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 |
 | Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- this BC describes the initial link-type gate that gatekeeps all file ingestion |
 | L2 Domain Invariants | None directly (link-type gating is a precondition to all invariants) |
-| Architecture Module | SS-01 (reader.rs:46-60, C-4) |
+| Architecture Module | SS-01 (reader.rs:50-61, C-4) |
 | Stories | STORY-001 |
 | Origin BC | BC-RDR-001 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -103,14 +107,14 @@ unsupported file are processed. This contract is enforced in `src/reader.rs:50-6
 ## Architecture Anchors
 
 - `src/reader.rs:46` -- `PcapReader::new(reader).context("Failed to parse pcap header")` -- header parse
-- `src/reader.rs:50-60` -- DataLink match: whitelist arms at :51-55, rejection branch at :57-60
+- `src/reader.rs:50-61` -- DataLink match: whitelist arms at :51-55, rejection branch at :56-60, closing brace at :61
 - `src/reader.rs:51-55` -- acceptance whitelist (ETHERNET, RAW, IPV4, IPV6, LINUX_SLL)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reader.rs:50-60` |
+| **Path** | `src/reader.rs:50-61` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

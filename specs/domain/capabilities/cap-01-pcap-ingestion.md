@@ -5,6 +5,8 @@ cap_id: CAP-01
 title: PCAP File Ingestion
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
+changelog:
+  - 2026-05-21: Phase 3 per-story adversarial review — corrected Scope/limitations: smb3.pcapng IS now used as an active negative-test fixture (test_BC_2_01_004_rejects_pcapng, STORY-001)
 ---
 
 # CAP-01: PCAP File Ingestion
@@ -51,8 +53,9 @@ strict-first then lax-fallback strategy (see CAP-03).
 ## Scope / limitations
 
 - Classic pcap ONLY. pcapng is NOT supported; reader.rs returns an error for pcapng files.
-- smb3.pcapng exists in tests/fixtures but was added for future pcapng support, not as a
-  negative-test fixture (finding from pass-0 R2 refuting prior hypothesis).
+- smb3.pcapng is used as an active negative-test fixture: `test_BC_2_01_004_rejects_pcapng`
+  (delivered in STORY-001) asserts that passing it to `from_file` returns Err containing
+  "Failed to parse pcap header". It is no longer merely a future-coverage placeholder.
 - Timestamp fields (`timestamp_secs`, `timestamp_usecs`) are read and stored in `RawPacket`
   but are NEVER threaded through to `Finding.timestamp` at any emission site.
   See domain-debt.md item O-01.

@@ -1,0 +1,57 @@
+$ cargo test --test reporter_tests
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.06s
+     Running tests/reporter_tests.rs (target/debug/deps/reporter_tests-d7f1f66bcc4a6eb4)
+
+running 50 tests
+test default_rendering_unchanged_when_mitre_flag_off ... ok
+test test_bc_2_09_001_ec004_direction_some_server_to_client ... ok
+test mitre_grouping_expands_per_finding_line_with_technique_name ... ok
+test test_bc_2_09_002_ec003_esc_byte_in_summary_preserved_in_display ... ok
+test test_bc_2_09_002_ec002_empty_summary_display ... ok
+test test_bc_2_09_002_ec005_reconnaissance_category_display ... ok
+test test_bc_2_09_001_ec001_empty_evidence_is_valid ... ok
+test test_confidence_display_high ... ok
+test mitre_grouping_keeps_known_and_unknown_ids_in_separate_buckets ... ok
+test mitre_grouping_emits_tactic_headers_in_canonical_order ... ok
+test mitre_grouping_buckets_none_and_unknown_under_uncategorized ... ok
+test mitre_grouping_preserves_emission_order_when_verdict_and_confidence_tie ... ok
+test mitre_grouping_sorts_within_tactic_by_verdict_then_confidence ... ok
+test test_confidence_display_low ... ok
+test test_confidence_display_medium ... ok
+test test_csv_reporter_emits_header_and_one_row_per_finding ... ok
+test test_csv_reporter_empty_findings_emits_header_only ... ok
+test test_csv_reporter_ignores_summary_and_analyzer_data ... ok
+test test_finding_construction_with_all_fields ... ok
+test test_finding_display_format ... ok
+test test_finding_display_preserves_raw_summary ... ok
+test test_csv_reporter_neutralizes_formula_injection ... ok
+test test_http_finding_c1_csi_escaped_by_terminal_reporter ... ok
+test test_http_analyzer_summary_c1_csi_escaped_by_terminal_reporter ... ok
+test test_http_finding_c1_csi_in_json_reporter ... ok
+test test_direction_at_reassembly_emission_sites ... ok
+test test_json_finding_omits_absent_optional_fields_symmetrically ... ok
+test test_json_finding_emits_present_optional_fields ... ok
+test test_json_finding_emits_direction_when_set ... ok
+test test_json_reporter_emits_deterministic_analyzer_detail_ordering ... ok
+test test_json_finding_omits_direction_when_none ... ok
+test test_json_reporter_includes_skipped_packets ... ok
+test test_json_reporter_emits_deterministic_protocols_ordering ... ok
+test test_json_reporter_preserves_cyrillic_as_readable_unicode ... ok
+test test_json_reporter_skipped_packets_zero_by_default ... ok
+test test_json_reporter_produces_valid_json ... ok
+test test_output_sanitization_layering_contract ... ok
+test test_direction_some_at_all_http_tls_emission_sites ... ok
+test test_terminal_hosts_breakdown_lists_each_host_when_enabled ... ok
+test test_terminal_hosts_breakdown_off_by_default ... ok
+test test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries ... ok
+test test_terminal_reporter_escapes_esc_bytes_in_summary ... ok
+test test_terminal_reporter_hides_skipped_when_zero ... ok
+test test_source_ip_set_at_reassembly_sites ... ok
+test test_terminal_reporter_shows_skipped_when_nonzero ... ok
+test test_verdict_display_inconclusive ... ok
+test test_verdict_display_likely ... ok
+test test_verdict_display_unlikely ... ok
+test test_source_ip_none_at_http_tls_sites ... ok
+test test_timestamp_always_none_in_all_emission_sites ... ok
+
+test result: ok. 50 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

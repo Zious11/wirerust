@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Phase 3 per-story adversarial review — corrected Invariant 2: smb3.pcapng IS now used as an active negative-coverage assertion by test_BC_2_01_004_rejects_pcapng delivered in STORY-001 — 2026-05-21
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,8 +49,9 @@ behavior, not a bug.
 
 1. pcapng support is explicitly out of scope (README documents this; *.pcapng excluded from
    directory glob by LESSON-P0.02 / #69).
-2. The `tests/fixtures/smb3.pcapng` fixture exists for future negative coverage; it is NOT
-   currently used as a test assertion.
+2. The `tests/fixtures/smb3.pcapng` fixture IS used as an active negative-coverage assertion:
+   `test_BC_2_01_004_rejects_pcapng` (delivered in STORY-001) passes it to `from_file` and
+   asserts the Err result contains "Failed to parse pcap header".
 
 ## Edge Cases
 
@@ -81,7 +83,7 @@ behavior, not a bug.
 | L2 Domain Invariants | None |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-001 |
-| Origin BC | BC-RDR-004 (pass-3 ingestion corpus, MEDIUM confidence -- no explicit test assertion) |
+| Origin BC | BC-RDR-004 (pass-3 ingestion corpus; confidence upgraded to HIGH -- test_BC_2_01_004_rejects_pcapng delivered in STORY-001) |
 
 ## Related BCs
 

@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-069
 epic_id: E-7
-version: "1.1"
-status: draft
+version: "1.3"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -64,7 +64,7 @@ All 22 emission sites set `timestamp: None`; no production code path sets `times
 - **Test:** `test_timestamp_always_none_in_all_emission_sites()` (grep-based assertion)
 
 ### AC-003 (traces to BC-2.09.001 invariant 2)
-Reassembly anomaly findings in `reassembly/mod.rs` (overlap, small-segment, out-of-window) have `source_ip: Some(packet.src_ip)`; HTTP and TLS findings have `source_ip: None`.
+All five reassembly anomaly emission sites set `source_ip: Some(src_ip)`: the three sites in `reassembly/mod.rs` (overlap, small-segment, out-of-window) and the two sites in `reassembly/lifecycle.rs` (conflicting-overlap, stream-depth-exceeded). HTTP and TLS findings have `source_ip: None`.
 - **Test:** `test_source_ip_set_at_reassembly_sites()` and `test_source_ip_none_at_http_tls_sites()`
 
 ### AC-004 (traces to BC-2.09.002 postcondition 1)
@@ -144,7 +144,7 @@ Reassembly anomaly findings in `reassembly/mod.rs` (overlap, small-segment, out-
 3. [ ] Define `Finding` struct with all required and optional fields and correct serde/derive attributes
 4. [ ] Implement `fmt::Display for Verdict` with exact uppercase tokens
 5. [ ] Implement `fmt::Display for Confidence` with exact uppercase tokens
-6. [ ] Implement `fmt::Display for Finding` with template `"[{cat:?}] {verdict} ({conf}) — {summary}"`
+6. [ ] Implement `fmt::Display for Finding` with template `"[{cat}] {verdict} ({conf}) — {summary}"` (plain Display on `ThreatCategory`; its `Display` impl delegates to `Debug` internally, producing the variant name)
 7. [ ] Add `ThreatCategory`, `Direction` enums as referenced by `Finding`
 8. [ ] Write edge-case tests for EC-001 through EC-005
 9. [ ] Verify no escape function is called in any Finding construction site (`grep -rn 'escape_for_terminal' src/ | grep -v reporter`)
@@ -162,8 +162,8 @@ Reassembly anomaly findings in `reassembly/mod.rs` (overlap, small-segment, out-
 |------|--------|-------------|
 | `escape_for_terminal` has exactly ONE call site: inside `TerminalReporter` (cross-ref: BC-2.09.005 invariant 1 — owned by STORY-070) | BC-2.09.002 invariant 2 (display boundary) | `grep -rn 'escape_for_terminal' src/ | grep -v reporter` must return nothing |
 | `timestamp` field is always `None` at all 22 emission sites | BC-2.09.001 invariant 1 | Grep-based test: no `timestamp: Some` in production source |
-| Display uses `{self:?}` (Debug) for `ThreatCategory`, not Display | BC-2.09.002 invariant 2 | Format string contains `{cat:?}` not `{cat}` |
-| `#[non_exhaustive]` is NOT required on `Verdict` or `Confidence` (only `MitreTactic` is non_exhaustive) | BC-2.09.003 invariant 2 / BC-2.09.004 invariant 2 | Code review |
+| Display uses plain `{cat}` (Display) for `ThreatCategory`; `ThreatCategory::Display` delegates to Debug internally, so the rendered token is the variant name | BC-2.09.002 invariant 2 (v1.3) | Format string must use `{cat}` (plain Display), not `{cat:?}` (Debug) |
+| `#[non_exhaustive]` is permitted on `Verdict` and `Confidence` and is applied per LESSON-P2.10; it is not forbidden | BC-2.09.003 invariant 2 / BC-2.09.004 invariant 2 | Code review |
 
 ## Library & Framework Requirements (MANDATORY)
 
@@ -179,3 +179,11 @@ Reassembly anomaly findings in `reassembly/mod.rs` (overlap, small-segment, out-
 |------|--------|---------|
 | `src/findings.rs` | modify | `Finding` struct, all enum types, Display impls |
 | `tests/reporter_tests.rs` | modify | Add AC-001..AC-011 test functions and edge-case tests |
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.3 | 2026-05-21 | phase-3-adversarial-review | Minor-1: AC-003 prose expanded to cover all 5 source_ip: Some sites per BC-2.09.001 invariant 2 — added the two reassembly/lifecycle.rs sites (conflicting-overlap, stream-depth-exceeded) that were missing from the story prose; delivered test already covered all 5 sites |
+| 1.2 | 2026-05-21 | phase-3-adversarial-review | Phase 3 per-story adversarial review — corrected Display template wording to match BC-2.09.002 v1.3 and `src/findings.rs`: Task 6 and Architecture Compliance Rules row 3 updated from `{cat:?}` to `{cat}` (plain Display); row 4 reworded to reflect that `#[non_exhaustive]` on `Verdict`/`Confidence` is permitted per LESSON-P2.10, not forbidden |
+| 1.1 | 2026-05-21 | story-writer | Initial story decomposition |

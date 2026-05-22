@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Phase 3 per-story adversarial review — corrected extracted_from accuracy: Postcondition 1 and Invariant 1 now use {cat} (plain Display) not {cat:?}, with an explicit note that ThreatCategory::Display delegates to Debug so rendered output is the variant name — 2026-05-21"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -41,16 +42,22 @@ rendering uses the reporter layer.
 
 ## Postconditions
 
-1. The formatted string matches: `"[{category:?}] {verdict} ({confidence}) — {summary}"`.
-2. `category` renders via `{self:?}` (Debug format of ThreatCategory) -- e.g., "Anomaly".
+1. The formatted string matches: `"[{cat}] {verdict} ({conf}) — {summary}"` (plain `{}` Display tokens, not `{:?}`).
+   `ThreatCategory`'s `Display` impl delegates to `{self:?}`, so the rendered category token is the
+   variant name (e.g., `"Anomaly"`) — observationally identical to Debug, but via Display dispatch.
+2. `category` renders via `ThreatCategory::fmt` (Display), which internally writes `{self:?}` -- e.g., "Anomaly".
 3. `verdict` renders via Display -- "LIKELY", "UNLIKELY", or "INCONCLUSIVE".
 4. `confidence` renders via Display -- "HIGH", "MEDIUM", or "LOW".
 5. `summary` is included as-is (raw bytes, no escaping -- see ADR 0003).
 
 ## Invariants
 
-1. The template is hardcoded: `[{cat}] {verdict} ({conf}) — {summary}`.
-2. `ThreatCategory::fmt` uses `{self:?}` (Debug), which produces the variant name (e.g., "Anomaly").
+1. The template is hardcoded: `[{cat}] {verdict} ({conf}) — {summary}` (plain `{}` Display for all tokens).
+   `ThreatCategory::Display` delegates to `{self:?}` internally (`src/findings.rs:115`), so the `{cat}`
+   token renders the variant name (e.g., `"Anomaly"`). The format token in the write! call is `{cat}`,
+   not `{cat:?}`.
+2. `ThreatCategory::fmt` uses `write!(f, "{self:?}")` (Debug), which produces the variant name (e.g., "Anomaly").
+   Callers invoke this via Display dispatch (`{cat}`), not direct Debug dispatch.
 3. The summary may contain control bytes; Display is NOT safe for direct terminal output.
 
 ## Edge Cases

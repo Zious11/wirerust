@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-001"
 epic_id: "E-1"
-version: "1.1"
-status: draft
+version: "1.3"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -71,14 +71,14 @@ Calling `PcapSource::from_file` on a pcap with any of the five accepted link typ
 - **Test:** `test_BC_2_01_001_accepts_all_five_link_types()`
 
 ### AC-002 (traces to BC-2.01.001 postcondition 2)
-Calling `PcapSource::from_file` on a pcap whose link type is not in the accepted set (e.g., IEEE 802.11 = 105) returns `Err` containing the string "Unsupported pcap link type" without panicking.
+Calling `PcapSource::from_file` on a pcap whose link type is not in the accepted set (e.g., IEEE 802.11 = 105) returns `Err` containing the string "Unsupported pcap link type" AND the rejected DataLink variant name in Debug form (e.g., "IEEE802_11" for link type 105) without panicking.
 - **Test:** `test_BC_2_01_001_rejects_unsupported_link_type()`
 
 ### AC-003 (traces to BC-2.01.002 postcondition 1)
 For a pcap with N packet records, the returned `PcapSource.packets` contains exactly N `RawPacket` entries in file order.
 - **Test:** `test_BC_2_01_002_packet_count_and_order()`
 
-### AC-004 (traces to BC-2.01.002 postcondition 2)
+### AC-004 (traces to BC-2.01.002 postcondition 2 + BC-2.01.005 postcondition 1/2)
 Each `RawPacket` in the returned `Vec` has `timestamp_secs` equal to the pcap record's `ts_sec` field and `timestamp_usecs` equal to `ts_frac` (for microsecond-resolution files) or `ts_frac / 1_000` (for nanosecond-resolution files).
 - **Test:** `test_BC_2_01_002_timestamp_preserved_microsecond()`
 - **Test:** `test_BC_2_01_002_timestamp_preserved_nanosecond()`
@@ -99,7 +99,7 @@ For a nanosecond-resolution pcap record with `ts_frac = 500_000`, the resulting 
 Passing a zero-byte file or a file with invalid pcap magic bytes to `from_file` returns `Err` whose error chain contains "Failed to parse pcap header".
 - **Test:** `test_BC_2_01_006_corrupt_header_error_message()`
 
-### AC-009 (traces to BC-2.01.007 invariant 1)
+### AC-009 (traces to BC-2.01.007 postcondition 1; invariant 1 'all-or-nothing' is structurally guaranteed by the Result<PcapSource> return type, not by test exercise)
 When a pcap has a valid header but a truncated packet record mid-stream, `from_pcap_reader` returns `Err` with context "Failed to read packet" and does NOT return a partial `Vec`.
 - **Test:** `test_BC_2_01_007_truncated_packet_error()`
 
@@ -113,7 +113,7 @@ Calling `from_file` on a path that does not exist returns `Err` with context "Fa
 |-----------|--------|---------------|
 | PcapSource | src/reader.rs | effectful-shell (file I/O) |
 | PcapSource::from_file | src/reader.rs:85-90 | effectful-shell |
-| PcapSource::from_pcap_reader | src/reader.rs:69-79 | effectful-shell |
+| PcapSource::from_pcap_reader | src/reader.rs:45-83 | effectful-shell |
 
 ## Edge Cases
 
@@ -153,8 +153,8 @@ Calling `from_file` on a path that does not exist returns `Err` with context "Fa
 2. [ ] Verify all tests fail at Red Gate (no implementation bypasses the gate)
 3. [ ] Verify `src/reader.rs` already satisfies all ACs (brownfield confirm pass)
 4. [ ] Run `cargo test --all-targets` to confirm green
-5. [ ] Confirm `src/reader.rs:50-60` link-type whitelist contains exactly 5 variants
-6. [ ] Confirm `src/reader.rs:69-79` timestamp extraction matches BC-2.01.005
+5. [ ] Confirm `src/reader.rs:50-61` link-type whitelist match block contains exactly 5 accepted variants (ETHERNET, RAW, IPV4, IPV6, LINUX_SLL)
+6. [ ] Confirm `src/reader.rs:71-74` timestamp extraction (`match ts_resolution`) matches BC-2.01.005
 7. [ ] Confirm error message strings match BC-2.01.006/007/008 exactly
 8. [ ] Write property-based test: any DataLink not in whitelist produces Err (no panic)
 9. [ ] Update STORY-INDEX.md status to completed
@@ -171,7 +171,7 @@ Calling `from_file` on a path that does not exist returns `Err` with context "Fa
 |------|--------|-------------|
 | `from_file` is a thin wrapper delegating to `from_pcap_reader`; no logic duplication | BC-2.01.008 / src/reader.rs:85-90 | Code review: `from_file` body must contain only File::open + BufReader + from_pcap_reader call |
 | No panic in any error path; use `anyhow::Error` returns | BC-2.01.001 invariant 2, BC-2.01.007 | `cargo test` + proptest fuzzing |
-| Link-type whitelist contains exactly 5 variants (ETHERNET, RAW, IPV4, IPV6, LINUX_SLL) | BC-2.01.001 invariant 1 | Code review of match arms at reader.rs:51-55 |
+| Link-type whitelist contains exactly 5 variants (ETHERNET, RAW, IPV4, IPV6, LINUX_SLL) | BC-2.01.001 invariant 1 | Code review of match arms at reader.rs:51-55 (inside match block reader.rs:50-61) |
 | Eager load only — no streaming API | BC-2.01.002 invariant 1 | API surface review: no Iterator or Stream return type |
 
 ## Library & Framework Requirements (MANDATORY)
@@ -189,3 +189,11 @@ Calling `from_file` on a path that does not exist returns `Err` with context "Fa
 | src/reader.rs | verify/modify | Core ingestion module; all 8 BCs live here |
 | tests/ (integration tests) | create or modify | Add/verify tests for AC-001 through AC-010 |
 | tests/fixtures/ | verify | Confirm existing pcap fixtures cover link-type variants |
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.3 | 2026-05-21 | phase-3-adversarial-review | F-9.01 [Major]: AC-002 updated to require the rejected DataLink variant name in Debug form (e.g. "IEEE802_11") in addition to "Unsupported pcap link type", aligning AC text with BC-2.01.001 v1.3 postcondition 2 and EC-001. F-10.1 [Minor]: AC-004 trace annotation widened from "BC-2.01.002 postcondition 2" to "BC-2.01.002 postcondition 2 + BC-2.01.005 postcondition 1/2" to match dual-credit already present in the red-gate log. |
+| 1.2 | 2026-05-21 | phase-3-adversarial-review | F-m1: AC-009 trace corrected from BC-2.01.007 invariant 1 to BC-2.01.007 postcondition 1 with note that invariant 1 all-or-nothing is structurally guaranteed by Result<PcapSource> return type. F-m2: Architecture Mapping from_pcap_reader line range corrected from 69-79 to 45-83 (full function); Tasks 5/6 line ranges corrected to 50-61 (link-type match block) and 71-74 (timestamp extraction); Architecture Compliance Rules row clarified to cite both 51-55 (arms) and 50-61 (full match block). |
+| 1.1 | 2026-05-21 | story-writer | Initial story decomposition |

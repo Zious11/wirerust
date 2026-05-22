@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,8 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Phase 3 per-story adversarial review — corrected Architecture Anchor line ranges: packet loop closes at :80 (not :79); timestamp conversion block ends at :73 (not :74) — 2026-05-21
+  - v1.4: Phase 3 per-story adversarial review pass 5 — corrected Description and Source Evidence Path: from_pcap_reader spans reader.rs:45-83 (full function); 69-80 is the packet-read loop sub-anchor, not the full function extent — 2026-05-21
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -31,7 +33,7 @@ After link-type acceptance, the reader performs an eager in-memory load of all p
 into a `Vec<RawPacket>`. Each `RawPacket` carries the raw frame bytes and a split timestamp
 (seconds and microseconds) copied from the pcap record header. The entire file must fit in RAM
 because no streaming or lazy-read mode exists. This contract covers `PcapSource::from_pcap_reader`
-in `src/reader.rs:69-79`.
+in `src/reader.rs:45-83` (full function extent; the packet-read loop is the sub-anchor at 69-80).
 
 ## Preconditions
 
@@ -48,7 +50,7 @@ in `src/reader.rs:69-79`.
      seconds field; reader.rs:76).
    - `timestamp_usecs: u32` -- derived from `raw_packet.ts_frac`: used as-is for
      `TsResolution::MicroSecond`, divided by 1_000 for `TsResolution::NanoSecond`
-     (reader.rs:72-73).
+     (reader.rs:71-73).
    - `data: Vec<u8>` -- raw frame bytes, cloned via `into_owned()` (reader.rs:78).
 3. Packet order matches pcap record order (no sorting or reordering).
 4. On any packet read error, returns `Err` with context "Failed to read packet"; previously
@@ -107,15 +109,15 @@ in `src/reader.rs:69-79`.
 
 ## Architecture Anchors
 
-- `src/reader.rs:69-79` -- PcapSource::from_pcap_reader packet loop (while-let at :69, context at :70)
-- `src/reader.rs:71-74` -- timestamp extraction: ts_frac for MicroSecond / NanoSecond resolution
+- `src/reader.rs:69-80` -- PcapSource::from_pcap_reader packet loop (while-let at :69, context at :70)
+- `src/reader.rs:71-73` -- timestamp extraction: ts_frac for MicroSecond / NanoSecond resolution
 - `src/reader.rs:75-79` -- RawPacket construction: timestamp_secs, timestamp_usecs, data
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reader.rs:69-79` |
+| **Path** | `src/reader.rs:45-83` (full function; packet-read loop sub-anchor: 69-80) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 
