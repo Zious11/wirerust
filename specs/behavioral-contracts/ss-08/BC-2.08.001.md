@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Wave 4 Ph3 per-story adversarial fix N-1: is_dns_port anchor :34-35 → :34-36 synced with STORY-066 v1.2 — 2026-05-22
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -95,7 +96,7 @@ This gate is the entry condition for DNS analysis.
 
 ## Architecture Anchors
 
-- `src/analyzer/dns.rs:34-35` -- is_dns_port helper: `src == 53 || dst == 53`
+- `src/analyzer/dns.rs:34-36` -- is_dns_port helper: `src == 53 || dst == 53`
 - `src/analyzer/dns.rs:52-60` -- can_decode dispatches on transport variant
 
 ## Source Evidence
