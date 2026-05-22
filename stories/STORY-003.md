@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-003"
 epic_id: "E-1"
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -79,8 +79,8 @@ Calling `decode_packet` with an empty slice (`data = &[]`) returns `Err` (no pan
 - **Test:** `test_BC_2_02_007_empty_slice_no_panic()`
 
 ### AC-007 (traces to BC-2.02.007 invariant 1)
-The only three error message prefixes ever produced by `decode_packet` are "Unsupported link type:", "No IP layer found", and "Parse error:". No other string prefix appears.
-- **Test:** `test_BC_2_02_007_error_prefix_exhaustiveness()`
+Each of the three known error prefixes ("Unsupported link type:", "No IP layer found", "Parse error:") is produced by a representative input, and no representative input's error message contains a foreign prefix. This is a representative spot-check, not an exhaustive proof — universal exhaustiveness of the three-prefix set is a BC-2.02.007 invariant verified by code review, not by this test.
+- **Test:** `test_BC_2_02_007_error_prefix_representative_check()`
 
 ### AC-008 (traces to BC-2.02.008 postcondition 1)
 Calling `decode_packet` with a `DataLink` variant outside the whitelist (e.g., IEEE802_11) returns `Err` containing "Unsupported link type:" immediately, without reading any bytes from `data`.
@@ -177,3 +177,10 @@ A cargo-fuzz harness targeting `decode_packet` MUST exist at `fuzz/fuzz_targets/
 |------|--------|---------|
 | src/decoder.rs | verify/modify | lax_parse (SLL fallback), error paths — all 4 BCs live here |
 | tests/ | create or modify | Synthetic SLL frame bytes, malformed inputs, ARP frames |
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.2 | 2026-05-22 | story-writer | Wave 2 Ph3 adversarial fix: AC-007 reworded from exhaustive universal claim to representative spot-check; test renamed to test_BC_2_02_007_error_prefix_representative_check; code-review note added for invariant exhaustiveness |
+| 1.1 | 2026-05-21 | story-writer | Initial story decomposition |

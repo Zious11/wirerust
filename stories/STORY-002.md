@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-002"
 epic_id: "E-1"
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -57,7 +57,7 @@ implementation_strategy: brownfield-formalization
 
 ## Acceptance Criteria
 
-### AC-001 (traces to BC-2.02.001 postcondition 2)
+### AC-001 (traces to BC-2.02.001 postcondition 2, 3, 4, 5)
 Given a valid Ethernet II / IPv4 / TCP frame bytes and `datalink = ETHERNET`, `decode_packet` returns `Ok(ParsedPacket)` where `src_ip` and `dst_ip` are `IpAddr::V4` values matching the IPv4 header, `protocol = Protocol::Tcp`, `transport = TransportInfo::Tcp { src_port, dst_port, seq_number, syn, ack, fin, rst }` with correct values, and `payload` contains the TCP segment payload bytes.
 - **Test:** `test_BC_2_02_001_ethernet_ipv4_tcp_decode()`
 
@@ -81,11 +81,11 @@ Given raw IPv4 TCP bytes (no link-layer header) with `datalink = RAW`, `decode_p
 Calling `decode_packet` with the same IPv4 TCP byte slice using `DataLink::RAW` and then `DataLink::IPV4` produces field-for-field identical `ParsedPacket` values.
 - **Test:** `test_BC_2_02_004_raw_and_ipv4_identical()`
 
-### AC-007 (traces to BC-2.02.005 postcondition 2)
+### AC-007 (traces to BC-2.02.005 postcondition 2 + 3)
 Given raw IPv6 TCP bytes with `datalink = RAW`, `decode_packet` returns `Ok(ParsedPacket)` where `src_ip` and `dst_ip` are `IpAddr::V6` values containing the IPv6 addresses from the IP header.
 - **Test:** `test_BC_2_02_005_raw_ipv6_tcp_decode()`
 
-### AC-008 (traces to BC-2.02.005 postcondition 4)
+### AC-008 (traces to BC-2.02.005 postcondition 4, 5, 6)
 For an IPv6 TCP frame, `protocol = Protocol::Tcp` and `transport = TransportInfo::Tcp { ... }` with correct port and flag values.
 - **Test:** `test_BC_2_02_005_ipv6_tcp_transport()`
 
@@ -95,7 +95,7 @@ For an IPv6 TCP frame, `protocol = Protocol::Tcp` and `transport = TransportInfo
 |-----------|--------|---------------|
 | decode_packet | src/decoder.rs:128-172 | pure |
 | strict_ip_triple | src/decoder.rs:209-228 | pure |
-| lax_parse | src/decoder.rs:184-205 | pure |
+| lax_parse | src/decoder.rs:176-206 | pure |
 | build_parsed | src/decoder.rs:255-302 | pure |
 | app_protocol_hint | src/decoder.rs:94-116 | pure |
 
@@ -170,3 +170,10 @@ For an IPv6 TCP frame, `protocol = Protocol::Tcp` and `transport = TransportInfo
 |------|--------|---------|
 | src/decoder.rs | verify/modify | All 5 BCs live here (decode_packet, build_parsed, app_protocol_hint) |
 | tests/ | create or modify | Add tests for AC-001 through AC-008 using synthetic frame bytes |
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.2 | 2026-05-22 | story-writer | Wave 2 Ph3 adversarial fixes: widened AC-001 trace to BC-2.02.001 PC2,3,4,5; AC-007 trace to BC-2.02.005 PC2+3; AC-008 trace to BC-2.02.005 PC4,5,6; corrected lax_parse Architecture Mapping span to 176-206 (was 184-205) |
+| 1.1 | 2026-05-21 | story-writer | Initial story decomposition |

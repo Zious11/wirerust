@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Reframe PC2 as structural invariant; fix Architecture Anchor line range; expand Invariant 1 to cover both dst and src early-return arms — 2026-05-22
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -39,11 +40,19 @@ parsed. The early return is explicit in the source; no fallthrough to the port t
 ## Postconditions
 
 1. `app_protocol_hint()` returns `None`.
-2. The port match table is not consulted.
+2. (Structural invariant — verified by code inspection, not black-box test.) The port match
+   table is not consulted. A function returning `None` is observationally indistinguishable
+   from one that consulted and then discarded a table result; this property is confirmed by
+   inspecting that both `TransportInfo::None` arms in `app_protocol_hint` are explicit
+   `return None` statements (src/decoder.rs:98 and :103) that precede the `match (src, dst)`
+   port table entirely.
 
 ## Invariants
 
-1. `TransportInfo::None` as the `dst` pattern always returns `None` immediately.
+1. `TransportInfo::None` triggers an early `return None` in BOTH the `dst` extraction match
+   (src/decoder.rs:98) and the `src` extraction match (src/decoder.rs:103). Either arm
+   encountered first short-circuits the function before the port table is reached. The
+   invariant therefore holds for both arms, not only the `dst` arm.
 2. This invariant holds even if port 53 or 443 appears in some other field -- only
    `TransportInfo::Tcp` and `TransportInfo::Udp` carry port numbers.
 
@@ -84,13 +93,14 @@ parsed. The early return is explicit in the source; no fallthrough to the port t
 
 ## Architecture Anchors
 
-- `src/decoder.rs:98-99` -- `TransportInfo::None => return None`
+- `src/decoder.rs:98` -- `TransportInfo::None => return None` (dst extraction match arm)
+- `src/decoder.rs:103` -- `TransportInfo::None => return None` (src extraction match arm)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/decoder.rs:98-99` |
+| **Path** | `src/decoder.rs:98` (dst arm), `src/decoder.rs:103` (src arm) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

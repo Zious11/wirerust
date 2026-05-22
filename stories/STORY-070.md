@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-070
 epic_id: E-7
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -54,7 +54,7 @@ implementation_strategy: brownfield-formalization
 - **Test:** `test_finding_summary_preserves_raw_c0_bytes()`
 
 ### AC-002 (traces to BC-2.09.005 postcondition 3)
-`escape_for_terminal` is NOT called at any `Finding` construction site. Grep-based assertion: `grep -rn 'escape_for_terminal' src/ | grep -v reporter/terminal` returns no output.
+`escape_for_terminal` is NOT called at any `Finding` construction site. Grep-based assertion: `grep -rn 'escape_for_terminal' src/ | grep -v reporter/terminal` returns no output — confirming that no occurrence of `escape_for_terminal` exists outside `src/reporter/terminal.rs`.
 - **Test:** `test_escape_for_terminal_single_call_site()` (code-level assertion)
 
 ### AC-003 (traces to BC-2.09.005 postcondition 4)
@@ -107,7 +107,7 @@ Reassembly-engine findings with `direction: None` (lifecycle, segment-limit-summ
 |----|----------|-------------------|
 | EC-001 | Full pipeline: Finding with ESC in URI | JSON has ``; terminal output has escape form; Finding.summary has literal 0x1B |
 | EC-002 | Finding with `source_ip = Some(IpAddr::V4(...))` | JSON has `"source_ip": "1.2.3.4"` |
-| EC-003 | All four Option fields are Some | All four keys present in JSON |
+| EC-003 | The three serializable Option fields (mitre_technique, source_ip, direction) are Some | Those three keys present in JSON; timestamp always absent (O-01 domain debt) — bound test: `test_story_070_ec003_three_some_option_fields_present_in_json` |
 | EC-004 | All four Option fields are None | Zero of the four keys present in JSON |
 | EC-005 | `evidence = vec!["raw\x00bytes"]` | JSON encodes null byte as `\x00` via serde; `finding.evidence[0]` contains literal `\x00` |
 
@@ -156,7 +156,7 @@ Reassembly-engine findings with `direction: None` (lifecycle, segment-limit-summ
 | Rule | Source | Enforcement |
 |------|--------|-------------|
 | All four Option fields use `skip_serializing_if = "Option::is_none"` (symmetric — fixed in P1.02) | BC-2.09.006 invariant (symmetric after P1.02 fix) | Test: parse JSON, assert key absent when value is None |
-| `escape_for_terminal` has exactly one call site | BC-2.09.005 invariant 1 | Grep: `grep -rn 'escape_for_terminal' src/ | wc -l` must be 1 |
+| `escape_for_terminal` is defined and invoked exclusively within `src/reporter/terminal.rs`; no occurrence exists outside that file | BC-2.09.005 invariant 1 | Grep: `grep -rn 'escape_for_terminal' src/ | grep -v reporter/terminal` returns no output |
 | `from_utf8_lossy` is the only transformation at construction time | BC-2.09.005 invariant 3 | Code review: no other byte transformation in analyzer emission sites |
 | Downstream consumers must use key-absence (not null check) for option detection | BC-2.09.006 invariant 1 | Test: JSON has no `null` values for Finding Option fields |
 
@@ -176,3 +176,10 @@ Reassembly-engine findings with `direction: None` (lifecycle, segment-limit-summ
 |------|--------|---------|
 | `src/findings.rs` | modify | Add `skip_serializing_if` to all four Option fields |
 | `tests/reporter_tests.rs` | modify | Add AC-001..AC-011 test functions |
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.2 | 2026-05-22 | story-writer | Wave 2 Ph3 adversarial fixes: AC-002 grep command kept, contradiction resolved by removing false "wc -l == 1" exclusivity from both AC and Architecture Compliance Rule; both now state the verifiable property (no escape_for_terminal outside terminal.rs); EC-003 relabeled to "three serializable Option fields" (timestamp always None per O-01 domain debt); bound test name updated to test_story_070_ec003_three_some_option_fields_present_in_json |
+| 1.1 | 2026-05-21 | story-writer | Initial story decomposition |

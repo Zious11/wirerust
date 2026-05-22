@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-004"
 epic_id: "E-1"
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -94,15 +94,15 @@ When both src and dst ports are known but different (e.g., src=80, dst=443), the
 - **Test:** `test_BC_2_02_012_app_protocol_hint_match_order()`
 
 ### AC-009 (traces to BC-2.02.013 postcondition 1)
-`app_protocol_hint()` returns `None` immediately when `transport = TransportInfo::None`, without consulting the port table.
+`app_protocol_hint()` returns `None` when `transport = TransportInfo::None`. Note: the structural property that the port table is not consulted in this path is a BC-2.02.013 precondition 2 invariant verified by code review, not by this test.
 - **Test:** `test_BC_2_02_013_transport_none_returns_none_hint()`
 
 ## Architecture Mapping
 
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
-| build_parsed (Icmpv4/Icmpv6 arm) | src/decoder.rs:282-284 | pure |
-| build_parsed (None/Other arm) | src/decoder.rs:285 | pure |
+| build_parsed — Icmpv4/Icmpv6 match arm | src/decoder.rs:282-284 | pure |
+| build_parsed — None/Other match arm | src/decoder.rs:285 | pure |
 | app_protocol_hint | src/decoder.rs:94-116 | pure |
 
 ## Edge Cases
@@ -177,3 +177,10 @@ When both src and dst ports are known but different (e.g., src=80, dst=443), the
 |------|--------|---------|
 | src/decoder.rs | verify/modify | ICMP/Other classification (build_parsed); port table (app_protocol_hint) |
 | tests/ | create or modify | ICMP frame bytes, GRE IP packet, port table exhaustive test |
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.2 | 2026-05-22 | story-writer | Wave 2 Ph3 adversarial fixes: AC-009 testable claim narrowed to TransportInfo::None returns None; port-table non-consultation relegated to BC-2.02.013 PC2 structural invariant (code review only); Architecture Mapping row labels updated from "(Icmpv4/Icmpv6 arm)" to "— Icmpv4/Icmpv6 match arm" to accurately describe cited line ranges |
+| 1.1 | 2026-05-21 | story-writer | Initial story decomposition |

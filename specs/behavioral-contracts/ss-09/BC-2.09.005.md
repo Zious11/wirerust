@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Correct Invariant 1 — escape_for_terminal has 3 call sites in terminal.rs (not 1); true invariant is module-containment, not call-count — 2026-05-22"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -50,8 +51,11 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 
 ## Invariants
 
-1. `escape_for_terminal` has exactly ONE call site in production code: inside `TerminalReporter`.
-   Any other call site is a violation of ADR 0003.
+1. `escape_for_terminal` is defined and invoked exclusively within `src/reporter/terminal.rs`.
+   No other module — in particular no Finding-construction site in the data layer (analyzers,
+   findings.rs) — calls it. The function has three call sites within terminal.rs (lines 172,
+   197, and 216), all within `TerminalReporter`'s rendering methods. Any call site outside
+   `src/reporter/terminal.rs` is a violation of ADR 0003's display-boundary invariant.
 2. The compiler does NOT enforce this. Any analyzer that calls `escape_for_terminal` at
    construction time violates the invariant silently.
 3. `from_utf8_lossy` is the only transformation applied: invalid UTF-8 sequences are replaced
@@ -81,7 +85,7 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | — | Finding.summary contains raw C0 bytes (not escaped form) at construction | unit: test_non_utf8_sni_preserves_raw_bytes_in_summary |
-| — | escape_for_terminal has exactly one production call site | manual/grep: assert not called in any analyzer |
+| — | escape_for_terminal is defined and called only within src/reporter/terminal.rs | grep/ripgrep: confirm zero matches outside terminal.rs |
 | — | JSON output of finding with ESC byte produces  (serde) not escaped with \\u{1b} | unit: test_output_sanitization_layering_contract |
 
 ## Traceability
@@ -107,7 +111,10 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 - `src/findings.rs:120` -- `pub struct Finding` definition
 - `src/findings.rs:124-125` -- `pub summary: String`, `pub evidence: Vec<String>` fields
 - `src/findings.rs:155-156` -- `See ADR 0003` doc comment on Display impl
-- `src/reporter/terminal.rs:44` -- `fn escape_for_terminal(s: &str) -> String` -- the sole production call site
+- `src/reporter/terminal.rs:44` -- `fn escape_for_terminal(s: &str) -> String` -- function definition
+- `src/reporter/terminal.rs:172` -- call site 1: analyzer summary detail values (ADR 0003 C1 gap comment)
+- `src/reporter/terminal.rs:197` -- call site 2: `render_finding_prefix` escapes `f.summary`
+- `src/reporter/terminal.rs:216` -- call site 3: `render_finding_prefix` escapes each `f.evidence` element
 - `tests/reporter_tests.rs` -- test_output_sanitization_layering_contract
 
 ## Source Evidence

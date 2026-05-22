@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.0"
+version: "1.1"
 status: draft
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -20,7 +20,8 @@ proof_completed_date: null
 proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v1.1: Correct fuzz target filename from decode_packet.rs to fuzz_decode_packet.rs to match delivered harness and STORY-003 AC-011; annotate pcap_source harness as unowned obligation — 2026-05-22"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,7 +77,7 @@ exercises the integration boundary.
 ## Proof Harness Skeleton
 
 ```rust
-// File: fuzz/fuzz_targets/decode_packet.rs
+// File: fuzz/fuzz_targets/fuzz_decode_packet.rs
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
@@ -100,10 +101,18 @@ fuzz_target!(|data: &[u8]| {
 });
 ```
 
-Secondary fuzz target for the full pcap read path:
+Secondary fuzz target for the full pcap read path (UNOWNED — NOT scoped to any current story):
+
+> **Note (added v1.1):** The harness below (`fuzz/fuzz_targets/pcap_source.rs`) was
+> sketched here at spec-creation time but has NOT been delivered. STORY-003 scopes only
+> the `fuzz_decode_packet.rs` harness above. The `pcap_source` harness is a separate,
+> not-yet-scoped obligation that must be assigned to a future story before it can be
+> considered part of VP-008's verification evidence. Until then it remains aspirational
+> skeleton only.
 
 ```rust
 // File: fuzz/fuzz_targets/pcap_source.rs
+// STATUS: unowned — not delivered, not scoped to any story as of 2026-05-22
 fuzz_target!(|data: &[u8]| {
     use std::io::Cursor;
     use wirerust::reader::PcapSource;

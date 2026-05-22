@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Fix Invariant 1 — name accurate accessor chain `Ipv6Slice::header()` instead of free-standing `Ipv6HeaderSlice` — 2026-05-22
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,7 +50,11 @@ is a first-class supported protocol, not a degraded path.
 
 ## Invariants
 
-1. IPv6 address extraction uses etherparse's `Ipv6HeaderSlice::source_addr()` and `destination_addr()`.
+1. IPv6 address extraction calls `source_addr()` / `destination_addr()` on the `Ipv6HeaderSlice`
+   returned by `Ipv6Slice::header()` (i.e., via the `Ipv6Slice::header()` accessor, NOT a
+   free-standing `Ipv6HeaderSlice`). The actual code path in both `strict_ip_triple` and
+   `lax_ip_triple` is `ipv6.header().source_addr()` / `ipv6.header().destination_addr()`,
+   where `ipv6` is a `NetSlice::Ipv6` / `LaxNetSlice::Ipv6` variant.
 2. Extension headers are handled by etherparse; the transport after extension headers is surfaced normally.
 3. IPv6 is decoded via the same `from_ip` call as IPv4; no separate code path exists.
 
