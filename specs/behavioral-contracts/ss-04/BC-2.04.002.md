@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 5 Ph3 per-story adversarial fix Min-1: synced Traceability anchor 186-190 → 187-190 to match the BC's own Architecture Anchors and STORY-012 v1.3 — author: product-owner — 2026-05-22"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -86,7 +87,7 @@ increments only when the protocol check passes.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- this BC defines the boundary filter that restricts reassembly to TCP streams only |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:186-190, extract_tcp_context, C-6) |
+| Architecture Module | SS-04 (reassembly/mod.rs:187-190, extract_tcp_context, C-6) |
 | Stories | STORY-012 |
 | Origin BC | BC-RAS-002 (pass-3 ingestion corpus, HIGH confidence) |
 
