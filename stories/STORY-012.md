@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-012"
 epic_id: "E-2"
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -153,7 +153,7 @@ implementation_strategy: brownfield-formalization
 1. [ ] Write failing tests for all 13 ACs in `tests/reassembly_engine_tests.rs`
 2. [ ] Verify Red Gate: all tests fail before any implementation changes
 3. [ ] Verify existing implementation satisfies all ACs (brownfield: tests should pass against existing code)
-4. [ ] Add test capturing all 16 `on_data` calls and summing `data.len()` for AC-011
+4. [ ] Add a test (AC-011) that captures ALL `on_data` callbacks across both flow directions and asserts `bytes_reassembled` equals the sum of their `data.len()` values
 5. [ ] Add test verifying exact key set in detail map for AC-008 (no missing, no extra keys)
 6. [ ] Verify purity: `summarize()` never mutates `self`
 7. [ ] Update STATE.md
@@ -186,3 +186,10 @@ implementation_strategy: brownfield-formalization
 | `src/reassembly/mod.rs` | verify (lines 140-145, 186-190, 620-658) | Non-TCP skip, process_packet entry, summarize |
 | `src/reassembly/stats.rs` | verify | ReassemblyStats struct fields |
 | `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-013 tests |
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.2 | 2026-05-22 | story-writer | Wave 5 Ph3 per-story adversarial fix M-2: Task 4 corrected — removed stale '16 on_data calls' planning estimate that did not match the delivered AC-011 test |
+| 1.1 | 2026-05-21 | story-writer | Initial story decomposition |
