@@ -1,4 +1,5 @@
 /target
 .claude/worktrees/
+.worktrees/
 .factory/
 demo-evidence/
