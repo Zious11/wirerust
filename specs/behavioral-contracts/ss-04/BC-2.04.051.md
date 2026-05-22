@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 6 Ph3 pass-1 re-run adversarial fix F-3: re-synced flow.rs anchors after fin_count() accessor insertion shifted state-machine methods +7 lines; verified mod.rs anchors — product-owner 2026-05-22"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,7 +50,7 @@ no guard: a RST from `New`, `SynSent`, `Established`, `Closing`, or `Closed` all
 ## Invariants
 
 1. `on_rst()` has no state guard: `self.state = FlowState::Closed` is executed unconditionally
-   (flow.rs:257).
+   (flow.rs:264).
 2. The RST close is performed before payload processing in `process_packet` (the
    `PostHandshake::FlowClosed` return prevents payload processing).
 3. A RST-closed flow is counted in `stats.flows_rst`, not in `stats.flows_fin`.
@@ -85,7 +86,7 @@ no guard: a RST from `New`, `SynSent`, `Established`, `Closing`, or `Closed` all
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- RST handling is a critical TCP lifecycle event in the reassembly engine |
 | L2 Domain Invariants | INV-7 (Finalize-once latch -- RST is one of the paths that triggers close_flow, which is also called by finalize) |
-| Architecture Module | SS-04 (reassembly/flow.rs:257-259, C-7; reassembly/mod.rs:273-278, C-6) |
+| Architecture Module | SS-04 (reassembly/flow.rs:264-266, C-7; reassembly/mod.rs:273-279, C-6) |
 | Stories | STORY-013 |
 | Origin BC | BC-RAS-051 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -96,14 +97,14 @@ no guard: a RST from `New`, `SynSent`, `Established`, `Closing`, or `Closed` all
 
 ## Architecture Anchors
 
-- `src/reassembly/flow.rs:257-259` -- on_rst() implementation
-- `src/reassembly/mod.rs:273-278` -- engine RST handling calling on_rst and close_flow
+- `src/reassembly/flow.rs:264-266` -- on_rst() implementation
+- `src/reassembly/mod.rs:273-279` -- engine RST handling calling on_rst and close_flow
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/flow.rs:257-259` |
+| **Path** | `src/reassembly/flow.rs:264-266` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

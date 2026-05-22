@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 6 Ph3 pass-1 re-run adversarial fix F-3: re-synced flow.rs anchors after fin_count() accessor insertion shifted state-machine methods +7 lines; verified mod.rs anchors — product-owner 2026-05-22"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -99,7 +100,7 @@ States not in the table are unchanged (no-op).
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- the TCP flow state machine is the lifecycle management core of the reassembly engine |
 | L2 Domain Invariants | INV-7 (Finalize-once latch -- the state machine drives flow close events that finalize calls) |
-| Architecture Module | SS-04 (reassembly/flow.rs:229-259, C-7) |
+| Architecture Module | SS-04 (reassembly/flow.rs:236-266, C-7) |
 | Stories | STORY-013 |
 | Origin BC | BC-RAS-050 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -114,13 +115,13 @@ States not in the table are unchanged (no-op).
 
 ## Architecture Anchors
 
-- `src/reassembly/flow.rs:229-259` -- on_syn, on_syn_ack, on_data_without_syn, on_fin, on_rst
+- `src/reassembly/flow.rs:236-266` -- on_syn, on_syn_ack, on_data_without_syn, on_fin, on_rst
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/flow.rs:229-259` |
+| **Path** | `src/reassembly/flow.rs:236-266` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

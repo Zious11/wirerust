@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 6 Ph3 pass-1 re-run adversarial fix F-3: re-synced flow.rs anchors after fin_count() accessor insertion shifted state-machine methods +7 lines; verified mod.rs anchors — product-owner 2026-05-22"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -86,7 +87,7 @@ flow state from `New` to `Established` and sets `self.partial = true`. The engin
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- mid-stream join handling is a core requirement for real-world TCP capture analysis |
 | L2 Domain Invariants | INV-1 (FlowKey canonical ordering -- initiator is set here for mid-stream flows) |
-| Architecture Module | SS-04 (reassembly/flow.rs:241-246, C-7; reassembly/mod.rs:306-311, C-6) |
+| Architecture Module | SS-04 (reassembly/flow.rs:248-253, C-7; reassembly/mod.rs:306-312, C-6) |
 | Stories | STORY-013 |
 | Origin BC | BC-RAS-052 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -98,14 +99,14 @@ flow state from `New` to `Established` and sets `self.partial = true`. The engin
 
 ## Architecture Anchors
 
-- `src/reassembly/flow.rs:241-246` -- on_data_without_syn implementation
-- `src/reassembly/mod.rs:306-311` -- engine calling on_data_without_syn for New flows with data
+- `src/reassembly/flow.rs:248-253` -- on_data_without_syn implementation
+- `src/reassembly/mod.rs:306-312` -- engine calling on_data_without_syn for New flows with data
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/flow.rs:241-246` |
+| **Path** | `src/reassembly/flow.rs:248-253` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

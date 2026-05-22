@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 6 Ph3 pass-1 re-run adversarial fix F-3: verified flow.rs anchors (set_initiator 208-212, direction 214-220) are above the fin_count() insertion and remain correct; no line number changes required — product-owner 2026-05-22"
 deprecated: null
 deprecated_by: null
 replacement: null
