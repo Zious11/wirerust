@@ -2676,15 +2676,25 @@ fn test_BC_2_04_030_bytes_reassembled_is_monotonic() {
 // ---- AC-013 ----------------------------------------------------------------
 
 /// AC-013 (BC-2.04.030 postcondition 4)
-/// Postcondition: duplicate retransmissions do NOT contribute to
-/// bytes_reassembled (discarded before flush).
+/// Postcondition: BOTH duplicate retransmissions AND out-of-window segments do
+/// NOT contribute to bytes_reassembled (both are discarded before flush).
 ///
 /// Canonical test vector from BC-2.04.030: 1 segment (100 bytes) + 1 exact
 /// duplicate retransmission + finalize() → bytes_reassembled == 100.
+///
+/// Extended per M-1 gap: also injects an out-of-window segment and asserts it
+/// does not increment bytes_reassembled.  A small max_receive_window (200) is
+/// used so the out-of-window boundary is close enough to construct easily:
+///   ISN = 1000, after flushing 100 bytes → base_offset = 101.
+///   window limit = 101 + 200 = 301 (as an offset from ISN).
+///   OOW seq = 1000 + 400 = 1400 (offset 400 > 301 → rejected).
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_030_duplicates_not_counted_in_bytes_reassembled() {
-    let config = ReassemblyConfig::default();
+    let config = ReassemblyConfig {
+        max_receive_window: 200, // small window so OOW boundary is unambiguous
+        ..ReassemblyConfig::default()
+    };
     let mut reassembler = TcpReassembler::new(config);
     let mut handler = RecordingHandler::new();
 
@@ -2707,6 +2717,7 @@ fn test_BC_2_04_030_duplicates_not_counted_in_bytes_reassembled() {
     reassembler.process_packet(&syn, 1, &mut handler);
 
     // Payload: 100 bytes at seq=1001 (offset=1, contiguous → flushed immediately)
+    // After flush: base_offset = 101.
     let payload = vec![b'A'; 100];
     let original = make_tcp_packet(
         client, 12345, server, 80, 1001, &payload, false, false, false, false,
@@ -2719,7 +2730,7 @@ fn test_BC_2_04_030_duplicates_not_counted_in_bytes_reassembled() {
         "BC-2.04.030 post-4: 100-byte segment must be counted in bytes_reassembled"
     );
 
-    // Exact duplicate retransmission (same seq, same data) — must be discarded
+    // Exact duplicate retransmission (same seq, same data) — must be discarded.
     let dup = make_tcp_packet(
         client, 12345, server, 80, 1001, &payload, false, false, false, false,
     );
@@ -2730,6 +2741,35 @@ fn test_BC_2_04_030_duplicates_not_counted_in_bytes_reassembled() {
         bytes_after_dup, 100,
         "BC-2.04.030 post-4: duplicate retransmission must NOT contribute to bytes_reassembled; \
          expected 100, got {bytes_after_dup}"
+    );
+
+    // Out-of-window segment: base_offset=101, window=200 → limit offset = 301.
+    // seq = ISN + 400 = 1400 → offset = 400 > 301 → rejected as OutOfWindow.
+    let oow_payload = vec![b'B'; 50];
+    let oow = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1400,
+        &oow_payload,
+        false,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&oow, 4, &mut handler);
+
+    assert_eq!(
+        reassembler.stats().segments_out_of_window,
+        1,
+        "BC-2.04.030 post-4: out-of-window segment must be counted in segments_out_of_window"
+    );
+    let bytes_after_oow = reassembler.stats().bytes_reassembled;
+    assert_eq!(
+        bytes_after_oow, 100,
+        "BC-2.04.030 post-4: out-of-window segment must NOT contribute to bytes_reassembled; \
+         expected 100, got {bytes_after_oow}"
     );
 
     // finalize — no additional bytes (no buffered segments remain)
@@ -2921,6 +2961,26 @@ fn test_ec_005_summarize_before_any_packets() {
 /// summarize() called after finalize() returns an accurate snapshot;
 /// finalize does not reset stats. Specifically: flows_total, bytes_reassembled,
 /// and packets_tcp must survive finalize() unchanged.
+///
+/// Strengthened per M-3 gap: bytes_reassembled is asserted to its EXACT expected
+/// value after finalize() so that a hypothetical reset-then-recount bug cannot
+/// pass.  The `>=` check in the original test would pass even if finalize
+/// wrongly zeroed the counter and re-flushed data into it.
+///
+/// Sequence layout (ISN=1000):
+///   seq=1001, 7 bytes "persist"  → flushed immediately (in-order) → bytes_before = 7.
+///   seq=1009, 5 bytes "later"    → buffered ahead of a gap at offset 8.
+///     (finalize calls close_flow → flush_contiguous from base_offset=8 → gap present
+///      → "later" stays unflushed; bytes_after stays 7.)
+///   seq=1008, 1 byte  "X"        → fills the gap; flush_contiguous now chains
+///     through "X" then "later" → bytes_after = 7 + 1 + 5 = 13.
+///
+/// All three segments are sent before finalize so that the in-order data is
+/// fully accounted before the stats snapshot.  The chain-flush of the
+/// gap-plus-successor happens in the process_packet call for "X", leaving
+/// no new bytes for finalize itself (the flow is still open, finalize later
+/// closes it via close_flow → flush_contiguous → nothing remaining).
+/// Therefore bytes_after == bytes_before_finalize_snapshot == 13 exactly.
 #[test]
 fn test_ec_006_summarize_after_finalize_accurate() {
     let config = ReassemblyConfig::default();
@@ -2943,12 +3003,36 @@ fn test_ec_006_summarize_after_finalize_accurate() {
         false,
     );
     reassembler.process_packet(&syn, 1, &mut handler);
+
+    // seq=1001: in-order, flushed immediately.  bytes_reassembled += 7 → 7.
+    // After flush: base_offset = 8.
     let data = make_tcp_packet(
         client, 12345, server, 80, 1001, b"persist", false, false, false, false,
     );
     reassembler.process_packet(&data, 2, &mut handler);
 
-    // Capture stats before finalize
+    // seq=1009 (offset 9): out-of-order — buffered because offset 8 is a gap.
+    // bytes_reassembled still == 7.
+    let later = make_tcp_packet(
+        client, 12345, server, 80, 1009, b"later", false, false, false, false,
+    );
+    reassembler.process_packet(&later, 3, &mut handler);
+
+    // seq=1008 (offset 8): fills the gap; flush_contiguous now delivers both
+    // "X" (1 byte) and "later" (5 bytes) → bytes_reassembled += 6 → 13.
+    let gap_filler = make_tcp_packet(
+        client, 12345, server, 80, 1008, b"X", false, false, false, false,
+    );
+    reassembler.process_packet(&gap_filler, 4, &mut handler);
+
+    // Sanity check: all in-order data is already flushed before finalize.
+    assert_eq!(
+        reassembler.stats().bytes_reassembled,
+        13,
+        "EC-006 setup: 7 + 1 + 5 = 13 bytes must be counted before finalize"
+    );
+
+    // Capture stats before finalize.
     let tcp_before = reassembler.stats().packets_tcp;
     let flows_before = reassembler.stats().flows_total;
     let bytes_before = reassembler.stats().bytes_reassembled;
@@ -2957,7 +3041,7 @@ fn test_ec_006_summarize_after_finalize_accurate() {
 
     let summary = reassembler.summarize();
 
-    // Counters accumulated before finalize must still be present
+    // Counters accumulated before finalize must still be present.
     assert_eq!(
         summary.packets_analyzed, tcp_before,
         "EC-006: finalize must not reset packets_tcp (packets_analyzed)"
@@ -2967,11 +3051,15 @@ fn test_ec_006_summarize_after_finalize_accurate() {
         Some(flows_before),
         "EC-006: finalize must not reset flows_total"
     );
-    // bytes_reassembled may have grown (finalize flushes buffered data)
+    // Exact assertion: all data was flushed before finalize, so bytes_after must
+    // equal bytes_before exactly.  A reset-then-recount bug would yield
+    // bytes_after == 0 (reset) or bytes_after > bytes_before (double-count),
+    // both of which are caught by strict equality.
     let bytes_after = reassembler.stats().bytes_reassembled;
-    assert!(
-        bytes_after >= bytes_before,
-        "EC-006: bytes_reassembled must not decrease after finalize"
+    assert_eq!(
+        bytes_after, bytes_before,
+        "EC-006: bytes_reassembled must not change across finalize (no reset, no double-count); \
+         before={bytes_before}, after={bytes_after}"
     );
 }
 
