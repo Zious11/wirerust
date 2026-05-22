@@ -122,11 +122,14 @@ stories:
     merged_date: "2026-05-22"
 
   STORY-066:
-    status: in_progress
+    status: done
     wave: 4
-    branch: feature/story-066-dns-stats
-    worktree: .worktrees/story-066
+    branch: null
+    worktree: null
     blocked_by: []
+    pr: 117
+    merge_commit: f628c33
+    merged_date: "2026-05-22"
 
   # ---------------------------------------------------------------------------
   # Wave 5 — 1 story
