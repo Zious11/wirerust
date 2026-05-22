@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-011"
 epic_id: "E-2"
-version: "1.1"
-status: draft
+version: "1.2"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -188,4 +188,10 @@ implementation_strategy: brownfield-formalization
 | `src/reassembly/flow.rs` | verify (lines 45-74) | FlowKey::new and Display implementation |
 | `src/reassembly/config.rs` | verify | ReassemblyConfig field definitions |
 | `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-007 tests |
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.2 | 2026-05-22 | story-writer | Wave 4 delivery: status advanced draft → completed — STORY-011 delivered via PR #116, merge c844b3b |
 | `tests/reassembly_flow_tests.rs` | modify | Add AC-008 through AC-012 tests |

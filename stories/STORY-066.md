@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-066
 epic_id: E-6
-version: "1.3"
-status: draft
+version: "1.4"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -198,5 +198,6 @@ Even with a very high DNS query volume (e.g., 1000 packets), `analyze` returns `
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
 | 1.3 | 2026-05-22 | story-writer | Phase 3 Wave 4 per-story convergence (F-1/F-2): all dns.rs Architecture Mapping anchors re-synced against current 98-line file after module-doc-comment expansion shifted every function ~8-10 lines down. is_dns_port :34-36 → :42-44; is_query :38-44 → :46-52; can_decode :52-60 → :60-68; analyze :62-70 → :70-78; summarize :72-88 → :80-96 |
+| 1.4 | 2026-05-22 | story-writer | Wave 4 delivery: status advanced draft → completed — STORY-066 delivered via PR #117, merge f628c33 |
 | 1.2 | 2026-05-22 | story-writer | Wave 4 Ph3 implementer-confirm anchor-drift correction: is_dns_port anchor :34-35 → :34-36 |
 | 1.1 | 2026-05-21 | story-writer | Initial story (brownfield-formalization of existing dns.rs) |
