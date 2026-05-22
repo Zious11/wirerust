@@ -1,10 +1,18 @@
-//! DNS query/response analyzer.
+//! Statistics-only DNS analyzer (BC-2.08.004).
 //!
-//! Operates on raw UDP/53 packets directly (not via TCP reassembly), parsing
-//! the question section to extract qnames and tracking suspicious patterns:
-//! DGA-class entropy on labels, unusually long subdomains, NXDOMAIN spikes,
-//! and rare-TLD lookups. Findings carry confidence levels reflecting how
-//! noisy each pattern is in benign traffic.
+//! Matches port-53 traffic on both TCP and UDP. For each packet it inspects
+//! the DNS header QR bit (byte 2, bit 7) to classify the packet as a query
+//! (QR = 0) or a response (QR = 1), then increments the corresponding
+//! counter. Payloads shorter than 12 bytes (the minimum DNS header length)
+//! are classified as responses via the length guard in `is_query`.
+//!
+//! `summarize()` reports two counters — `dns_queries` and `dns_responses` —
+//! in the [`AnalysisSummary`] detail map.
+//!
+//! `analyze()` unconditionally returns an empty `Vec<Finding>`. DNS anomaly
+//! detection (qname parsing, DGA-class entropy, NXDOMAIN spike detection,
+//! confidence-leveled findings) does not exist in this implementation and is
+//! explicitly out of scope (see BC-2.08.004).
 
 use std::collections::BTreeMap;
 
