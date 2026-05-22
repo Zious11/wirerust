@@ -68,8 +68,10 @@ wave_4_wave_level_convergence: closed
 wave_4_wave_level_passes: 3/3
 wave_4_wave_level_converged: "3/3 clean fresh-context wave-level passes (all VERDICT: CLEAN; only non-blocking Nits found)"
 wave_4_closed_date: "2026-05-22"
-wave_5_status: ready_to_dispatch
+wave_5_status: in_progress
+wave_5_started: "2026-05-22"
 wave_5_stories: [STORY-012]
+wave_5_dispatched_from: develop@f628c33
 wave_2_story_004_pr: 107
 wave_2_story_004_merge_commit: 385e763
 wave_2_story_070_pr: 108
@@ -144,14 +146,14 @@ phase_2_input_hash_drift_check_uncomputed: 0
 
 **Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Wave 1 CLOSED 2026-05-22. Wave 2 CLOSED 2026-05-22.
 Wave 3 CLOSED/CONVERGED 2026-05-22. Wave 4 CLOSED/CONVERGED 2026-05-22. 11 stories merged
-total across Waves 1-4 (STORY-001/069/002/003/004/070/071/005/011/066). STORY-011 completion
-unblocks Wave 5 (STORY-012); Wave 5 READY TO DISPATCH. develop HEAD: f628c33. CI hotfix PR #112
-(5d4c2c6) merged 2026-05-22 — audit-action replaced with cargo audit shell step. Demo recordings
-are local-only; factory-artifacts branch gitignores `cycles/**/demos/` (commit f4e52fb; 49 prior
-demo files untracked). Chore PR #115 (652f48b) merged 2026-05-22 — single-line .gitignore
-hygiene fix (ignore .worktrees/); no code/behavior change; post-Wave-3-close housekeeping; CI
-all jobs green. Both Wave 4 worktrees removed; only main develop worktree and .factory worktree
-remain.
+total across Waves 1-4 (STORY-001/069/002/003/004/070/071/005/011/066). Wave 5 IN PROGRESS —
+STORY-012 dispatched from develop@f628c33; branch feature/story-012-nontcp-stats; worktree
+.worktrees/story-012. develop HEAD: f628c33. CI hotfix PR #112 (5d4c2c6) merged 2026-05-22 —
+audit-action replaced with cargo audit shell step. Demo recordings are local-only;
+factory-artifacts branch gitignores `cycles/**/demos/` (commit f4e52fb; 49 prior demo files
+untracked). Chore PR #115 (652f48b) merged 2026-05-22 — single-line .gitignore hygiene fix
+(ignore .worktrees/); no code/behavior change; post-Wave-3-close housekeeping; CI all jobs
+green. Both Wave 4 worktrees removed; Wave 5 worktree (.worktrees/story-012) active.
 
 **Current develop HEAD:** f628c33 (PR #117 — STORY-066: 18 BC tests in tests/dns_tests.rs
 formalizing src/analyzer/dns.rs DNS traffic statistics; brownfield, only src change was a
@@ -179,7 +181,7 @@ automated dependency bumping for it; bumping requires verifying the fuzz build s
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
 | Phase 2 — Story Decomposition | **PASSED** — all gates + human approval 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; decomposition gate PASSED; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153); trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M→0C/0H/1M (RESET)→0C/0H/0M→0C/0H/0M→0C/0H/0M (GATE SATISFIED 3/3) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-4 CLOSED/CONVERGED; 11 stories merged; Wave 4 CLOSED 2026-05-22 (3/3 clean wave-level passes; develop HEAD f628c33); Wave 5 (STORY-012) READY TO DISPATCH | — |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-4 CLOSED/CONVERGED; 11 stories merged; Wave 5 IN PROGRESS — STORY-012 dispatched 2026-05-22 (non-TCP stats, AnalysisSummary, bytes_reassembled; BCs BC-2.04.002/028/030; brownfield-formalization; tdd_mode strict; from develop@f628c33) | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -305,7 +307,8 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 | Wave 4 — STORY-066 delivery (PR + merge) | **COMPLETE** 2026-05-22 | PR #117 squash-merged → f628c33; 18 BC tests (tests/dns_tests.rs) formalizing src/analyzer/dns.rs; brownfield (module-doc-comment correction only, no behavior change); per-story convergence 3/3 CLEAN; demo LOCAL-ONLY (gitignored); CI run 26309320105 all jobs green; worktree removed, branch deleted post-merge |
 | Wave 4 — wave-level adversarial convergence | **COMPLETE** 2026-05-22 | 3/3 clean fresh-context wave-level passes (all VERDICT: CLEAN; only non-blocking Nits found) |
 | Wave-gate — Wave 4 | **CLOSED** 2026-05-22 | Wave 4 CLOSED/CONVERGED; develop HEAD at close f628c33; 11 stories total across Waves 1-4; Wave 5 (STORY-012) READY TO DISPATCH |
-| Waves 5→27 | NOT STARTED | Repeat per-story + wave-level convergence for each wave |
+| Wave 5 — STORY-012 dispatch | **IN PROGRESS** 2026-05-22 | STORY-012 dispatched from develop@f628c33; branch feature/story-012-nontcp-stats; worktree .worktrees/story-012; scope: non-TCP packet filter, AnalysisSummary statistics, bytes_reassembled accounting; BCs BC-2.04.002/028/030; brownfield-formalization; tdd_mode strict |
+| Waves 6→27 | NOT STARTED | Repeat per-story + wave-level convergence for each wave |
 
 ### Wave 1 Delivery Summary (2026-05-22)
 
@@ -352,7 +355,7 @@ Non-blocking Nits recorded for awareness (no action required; may be tidied in a
 sweep): STORY-011.md N-2 (anchor line ranges carry no resync-discipline note, though they
 currently resolve correctly); STORY-071.md changelog row ordering (from Wave 3).
 
-**Session resume checkpoint — Wave 5 DISPATCH READY (2026-05-22):**
+**Session resume checkpoint — Wave 5 IN PROGRESS (2026-05-22):**
 1. Waves 1-4 all CLOSED/CONVERGED — 11 stories delivered across Waves 1-4.
    STORY-001/069/002/003/004/070/071/005/011/066 all merged; develop HEAD: f628c33.
 2. Wave 4 STORY-011 DELIVERED: PR #116 squash-merged → c844b3b (2026-05-22). 16 BC tests
@@ -364,13 +367,17 @@ currently resolve correctly); STORY-071.md changelog row ordering (from Wave 3).
    3/3 CLEAN (fresh-context); CI run 26309320105 green. Branch + worktree removed post-merge.
 4. Wave 4 wave-level adversarial convergence COMPLETE — 3/3 clean fresh-context passes (all
    VERDICT: CLEAN; only non-blocking Nits). Wave 4 CLOSED/CONVERGED 2026-05-22.
-5. STORY-012 unblocked by STORY-011 completion; sprint-state.yaml updated: status
-   blocked→pending, blocked_by [] satisfied. Wave 5 READY TO DISPATCH.
+5. Wave 5 DISPATCHED 2026-05-22 — STORY-012 in_progress; branch
+   feature/story-012-nontcp-stats; worktree .worktrees/story-012; dispatched from
+   develop@f628c33; scope: non-TCP packet filter, AnalysisSummary statistics,
+   bytes_reassembled accounting; BCs BC-2.04.002/028/030; brownfield-formalization;
+   tdd_mode strict. Single-story wave.
 6. Process-gap W3.2 CONFIRMED RECURRING (Wave 3 + Wave 4): story spec frontmatter
    status:draft not advanced to completed on merge — recurrence raises priority for
    codification. See Cycle-Close Follow-Up table. No GitHub issue until research-agent
    validates (policy DF-VALIDATION-001).
-7. NEXT: Dispatch Wave 5 (STORY-012) — orchestrator decision.
+7. NEXT: Complete STORY-012 per-story TDD delivery — per-story adversarial convergence,
+   then wave-level convergence, then Wave 5 wave-gate.
 
 ### Drift Items (STATE.md)
 
