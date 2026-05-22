@@ -4,11 +4,11 @@
 //! Strategy: brownfield-formalization. Every test maps to one or more ACs
 //! from STORY-003.md and a clause from BC-2.02.006 through BC-2.02.009.
 //!
-//! On the first run the implementation already exists, so all tests EXCEPT
-//! `test_VP_008_fuzz_harness_exists` are expected to PASS (brownfield-confirm).
-//! `test_VP_008_fuzz_harness_exists` is the genuine Red Gate failure: the
-//! cargo-fuzz harness at `fuzz/fuzz_targets/fuzz_decode_packet.rs` does not
-//! yet exist and must be created by the implementer.
+//! On the first run (Red Gate), the implementation already exists so all tests
+//! EXCEPT `test_VP_008_fuzz_harness_exists` pass (brownfield-confirm). That
+//! test was the genuine Red Gate for AC-011; the cargo-fuzz harness has since
+//! been created at `fuzz/fuzz_targets/fuzz_decode_packet.rs` and all 21 tests
+//! now pass.
 //!
 //! Test naming convention: `test_BC_S_SS_NNN_<assertion>()` and
 //! `test_VP_NNN_<assertion>()` — uppercase letters violate Rust's snake_case
@@ -726,9 +726,9 @@ fn test_BC_2_02_009_strict_path_sll_arp_no_ip() {
 // The cargo-fuzz harness MUST exist at fuzz/fuzz_targets/fuzz_decode_packet.rs
 // and MUST be non-empty. This test is a compile-check / file-presence assertion.
 //
-// EXPECTED: FAIL at this stage — the fuzz harness has NOT been created yet.
-// This is the genuine Red Gate for AC-011. The implementer must create
-// fuzz/fuzz_targets/fuzz_decode_packet.rs (task 8 in STORY-003.md).
+// Red Gate: this test was the genuine Red Gate for AC-011 (harness absent).
+// The harness has been created at fuzz/fuzz_targets/fuzz_decode_packet.rs
+// (task 8 in STORY-003.md) and this test now passes.
 // ---------------------------------------------------------------------------
 /// Exercises VP-008: decode_packet Never Panics on Arbitrary Input.
 /// The fuzz harness is the mandatory P0 implementation vehicle for VP-008.
