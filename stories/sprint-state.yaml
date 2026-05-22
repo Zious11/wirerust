@@ -9,7 +9,7 @@ version: "1.0"
 produced_by: story-writer
 timestamp: 2026-05-21T00:00:00Z
 cycle: v0.1.0-greenfield-spec
-current_wave: 2
+current_wave: 3
 total_stories: 48
 total_waves: 27
 
@@ -44,50 +44,62 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-002:
-    status: blocked
+    status: done
     wave: 2
     branch: null
     worktree: null
-    blocked_by: [STORY-001]
+    blocked_by: []
+    pr: 109
+    merge_commit: 34c592b
+    merged_date: "2026-05-22"
 
   STORY-003:
-    status: blocked
+    status: done
     wave: 2
     branch: null
     worktree: null
-    blocked_by: [STORY-001]
+    blocked_by: []
+    pr: 110
+    merge_commit: 3b2481c
+    merged_date: "2026-05-22"
 
   STORY-004:
-    status: blocked
+    status: done
     wave: 2
     branch: null
     worktree: null
-    blocked_by: [STORY-001]
+    blocked_by: []
+    pr: 107
+    merge_commit: 385e763
+    merged_date: "2026-05-22"
 
   STORY-070:
-    status: blocked
+    status: done
     wave: 2
     branch: null
     worktree: null
-    blocked_by: [STORY-069]
+    blocked_by: []
+    pr: 108
+    merge_commit: 8b514c00
+    merged_date: "2026-05-22"
 
   # ---------------------------------------------------------------------------
   # Wave 3 — 2 stories
   # ---------------------------------------------------------------------------
 
   STORY-005:
-    status: blocked
+    status: pending
     wave: 3
     branch: null
     worktree: null
-    blocked_by: [STORY-002, STORY-003, STORY-004]
+    blocked_by: []
 
   STORY-071:
-    status: blocked
+    status: pending
     wave: 3
     branch: null
     worktree: null
-    blocked_by: [STORY-069, STORY-070]
+    blocked_by: []
 
   # ---------------------------------------------------------------------------
   # Wave 4 — 2 stories

@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.1"
+version: "1.2"
 status: draft
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -22,6 +22,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v1.1: Correct fuzz target filename from decode_packet.rs to fuzz_decode_packet.rs to match delivered harness and STORY-003 AC-011; annotate pcap_source harness as unowned obligation — 2026-05-22"
+  - "v1.2: Note that delivered harness is wider than skeleton (also fuzzes unsupported variants IEEE802_11, NULL, LOOP); update skeleton import to pcap_file::DataLink (STORY-003 pass-3 Nit-1) — 2026-05-22"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,17 +77,22 @@ exercises the integration boundary.
 
 ## Proof Harness Skeleton
 
+> **Note (v1.2):** The skeleton below is illustrative/minimal. The delivered harness
+> (`fuzz/fuzz_targets/fuzz_decode_packet.rs`, committed in STORY-003 pass-2) is wider:
+> it additionally fuzzes unsupported `DataLink` variants (`IEEE802_11`, `NULL`, `LOOP`)
+> to verify that the `Err("Unsupported link type")` arm never panics either. The skeleton
+> is retained here as a readable baseline; the delivered harness is the authoritative source.
+
 ```rust
 // File: fuzz/fuzz_targets/fuzz_decode_packet.rs
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
 use wirerust::decoder::decode_packet;
-use pcap_file::pcap::PcapHeader;  // for DataLink enum
+use pcap_file::DataLink;
 
 fuzz_target!(|data: &[u8]| {
     // Test all supported link types for every input
-    use pcap_file::DataLink;
     let link_types = [
         DataLink::ETHERNET,
         DataLink::RAW,
@@ -98,6 +104,8 @@ fuzz_target!(|data: &[u8]| {
         // Must never panic -- Ok or Err both acceptable
         let _ = decode_packet(data, link_type);
     }
+    // Delivered harness also covers unsupported variants (IEEE802_11, NULL, LOOP)
+    // to confirm the Err arm is also panic-free.
 });
 ```
 

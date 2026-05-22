@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-004"
 epic_id: "E-1"
-version: "1.2"
-status: draft
+version: "1.3"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -145,7 +145,7 @@ When both src and dst ports are known but different (e.g., src=80, dst=443), the
 4. [ ] Confirm `Icmpv4 | Icmpv6 => (Protocol::Icmp, TransportInfo::None)` at decoder.rs:282-284
 5. [ ] Confirm `None => (Protocol::Other(ip_protocol.0), TransportInfo::None)` at decoder.rs:285
 6. [ ] Confirm `app_protocol_hint` match has exactly 7 recognized port pairs in correct order
-7. [ ] Confirm `TransportInfo::None => return None` early-return at decoder.rs:98-99
+7. [ ] Confirm `TransportInfo::None` early-return arms at src/decoder.rs:98 (dst extraction match) and src/decoder.rs:103 (src extraction match) — both arms must be present
 8. [ ] Run `cargo test --all-targets` to confirm green
 
 ## Previous Story Intelligence (MANDATORY)
@@ -162,7 +162,7 @@ When both src and dst ports are known but different (e.g., src=80, dst=443), the
 | `Protocol::Icmp` is produced for BOTH ICMPv4 AND ICMPv6; no separate `Protocol::Icmpv6` | BC-2.02.010 invariant 1 | Check Protocol enum definition; confirm single Icmp variant |
 | `Protocol::Other(u8)` preserves raw IP protocol byte from IpTriple | BC-2.02.011 invariant 1 | Code review of None arm at decoder.rs:285 |
 | `app_protocol_hint` port table has exactly 7 entries; no 8th entry silently added | BC-2.02.012 postcondition 3 | Code review of match arms at decoder.rs:94-116 |
-| `TransportInfo::None` arm in `app_protocol_hint` is the FIRST arm (early return) | BC-2.02.013 invariant 1 | Code review: None arm at decoder.rs:98-99 precedes port table |
+| `TransportInfo::None` triggers early returns at src/decoder.rs:98 (dst extraction match) AND src/decoder.rs:103 (src extraction match); both arms precede the port table | BC-2.02.013 invariant 1 | Code review: verify both early-return arms at :98 and :103 precede the port table |
 
 ## Library & Framework Requirements (MANDATORY)
 
@@ -182,5 +182,6 @@ When both src and dst ports are known but different (e.g., src=80, dst=443), the
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.3 | 2026-05-22 | story-writer | Wave 2 Ph3 pass-3 adversarial fix: MINOR-1 — corrected stale anchor "decoder.rs:98-99" in Task 7 and Architecture Compliance Rule to "src/decoder.rs:98 and :103" (dst extraction match arm and src extraction match arm respectively); aligns with BC-2.02.013 v1.3 invariant 1 |
 | 1.2 | 2026-05-22 | story-writer | Wave 2 Ph3 adversarial fixes: AC-009 testable claim narrowed to TransportInfo::None returns None; port-table non-consultation relegated to BC-2.02.013 PC2 structural invariant (code review only); Architecture Mapping row labels updated from "(Icmpv4/Icmpv6 arm)" to "— Icmpv4/Icmpv6 match arm" to accurately describe cited line ranges |
 | 1.1 | 2026-05-21 | story-writer | Initial story decomposition |

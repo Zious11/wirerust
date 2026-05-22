@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-003"
 epic_id: "E-1"
-version: "1.2"
-status: draft
+version: "1.5"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -91,11 +91,11 @@ Passing a valid Ethernet ARP frame (EtherType 0x0806, no IP layer) with `datalin
 - **Test:** `test_BC_2_02_009_non_ip_frame_rejected()`
 
 ### AC-010 (traces to BC-2.02.009 invariant 1)
-The "No IP layer found" error fires on the strict-parse path when `slice.net` is `None`, and on the lax-parse path after a length-error retry if `lax.net` is also `None`. Lax retry is not attempted for structurally absent IP layers (non-length errors).
-- **Test:** `test_BC_2_02_009_lax_path_also_rejects_no_ip()`
+The "No IP layer found" error fires on the strict-parse path (decoder.rs:150) when `slice.net == None` — verified by a complete SLL ARP frame whose strict parse succeeds but yields no IP layer. The corresponding lax-path arm (decoder.rs:163) exists only for Rust match-exhaustiveness and is structurally unreachable against etherparse 0.16: when the strict parse fails with `SliceError::Len` the lax re-parse always recovers the IP header (`net = Some`); when the EtherType is non-IP the strict path returns `Ok(net=None)` and the lax fallback is never invoked. Therefore the lax arm is not separately test-exercised.
+- **Test:** `test_BC_2_02_009_strict_path_sll_arp_no_ip()`
 
 ### AC-011 (traces to BC-2.02.007 postcondition 1; implements VP-008)
-A cargo-fuzz harness targeting `decode_packet` MUST exist at `fuzz/fuzz_targets/fuzz_decode_packet.rs` and MUST compile without errors (`cargo +nightly fuzz build fuzz_decode_packet` succeeds). The harness passes arbitrary byte slices to `decode_packet` with each supported `DataLink` variant and asserts that no call panics. VP-008 ("decode_packet Never Panics on Arbitrary Input") is a P0 verification property; this harness is its mandatory implementation vehicle.
+A cargo-fuzz harness targeting `decode_packet` MUST exist at `fuzz/fuzz_targets/fuzz_decode_packet.rs` and MUST compile without errors (`cargo +nightly fuzz build fuzz_decode_packet` succeeds). The harness passes arbitrary byte slices to `decode_packet` with both the supported (whitelisted) `DataLink` variants AND representative unsupported `DataLink` variants, asserting that no call panics on either path. VP-008 ("decode_packet Never Panics on Arbitrary Input") is a P0 verification property; this harness is its mandatory implementation vehicle.
 - **Test:** `test_VP_008_fuzz_harness_exists()` (compile-check: verify `fuzz/fuzz_targets/fuzz_decode_packet.rs` is present and non-empty)
 
 ## Architecture Mapping
@@ -103,7 +103,7 @@ A cargo-fuzz harness targeting `decode_packet` MUST exist at `fuzz/fuzz_targets/
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
 | decode_packet (strict path) | src/decoder.rs:128-172 | pure |
-| lax_parse (SLL lax fallback) | src/decoder.rs:184-205 | pure |
+| lax_parse (SLL lax fallback) | src/decoder.rs:176-206 | pure |
 | SLL_HEADER_LEN constant | src/decoder.rs:119-121 | pure |
 
 ## Edge Cases
@@ -182,5 +182,8 @@ A cargo-fuzz harness targeting `decode_packet` MUST exist at `fuzz/fuzz_targets/
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.5 | 2026-05-22 | story-writer | AC-010 corrected: test renamed to test_BC_2_02_009_strict_path_sll_arp_no_ip; prose updated to cover strict-path only (decoder.rs:150); lax-path arm (decoder.rs:163) documented as structurally unreachable per etherparse 0.16 analysis; no claim of lax-path coverage |
+| 1.4 | 2026-05-22 | story-writer | Wave 2 Ph3 pass-3 adversarial fix: AC-011 description updated to state the harness exercises both supported (whitelisted) AND representative unsupported DataLink variants, asserting no panic on either path |
+| 1.3 | 2026-05-22 | story-writer | Wave 2 Ph3 pass-2 adversarial fix: corrected lax_parse Architecture Mapping line range from 184-205 to 176-206 (full function body per decoder.rs); aligns with BC-2.02.006 v1.3 anchor |
 | 1.2 | 2026-05-22 | story-writer | Wave 2 Ph3 adversarial fix: AC-007 reworded from exhaustive universal claim to representative spot-check; test renamed to test_BC_2_02_007_error_prefix_representative_check; code-review note added for invariant exhaustiveness |
 | 1.1 | 2026-05-21 | story-writer | Initial story decomposition |

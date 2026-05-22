@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,8 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Correct Architecture Anchors and Invariants — strict-path None arm is line 150, lax-path None arm is line 163; narrow ranges from comment-inclusive spans to the statement lines (STORY-003 m-2) — 2026-05-22
+  - v1.4: Reclassify lax-path None arm (decoder.rs:163) as structurally unreachable; reword Invariant 2, EC-003, and Architecture Anchor for :163 to reflect etherparse 0.16 analysis — 2026-05-22
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,10 +50,18 @@ truncated length mismatches, not for absent IP layers.
 ## Invariants
 
 1. The "No IP layer found" error fires whenever `slice.net` is `None` after a successful
-   strict parse (decoder.rs:148-151).
-2. The same check fires on the lax path after a length-error retry (decoder.rs:162-164).
+   strict parse (decoder.rs:150).
+2. The `None` arm at decoder.rs:163 (lax path, inside the `Err(SliceError::Len(_))` retry
+   arm) exists solely for Rust match-exhaustiveness and is structurally unreachable at
+   runtime. No constructible input can simultaneously satisfy "strict parse fails with
+   `SliceError::Len`" and "lax re-parse succeeds but yields `net == None`": for
+   ETHERNET/LINUX_SLL, `SliceError::Len` fires only when the EtherType is IPv4/IPv6 with a
+   truncated payload, and in that case `LaxSlicedPacket` always recovers the IP header
+   (`net = Some`); for RAW/IPV4/IPV6, `LaxSlicedPacket::from_ip` returns `Err` (not `Ok`)
+   on a too-short header, so the inner `Ok` arm is never reached. Verified against
+   etherparse 0.16.
 3. Neither ARP packets nor other non-IP EtherTypes cause lax-retry; they are rejected on
-   the strict-parse-no-IP path.
+   the strict-parse-no-IP path (decoder.rs:150, Invariant 1).
 
 ## Edge Cases
 
@@ -59,7 +69,7 @@ truncated length mismatches, not for absent IP layers.
 |----|-------------|-------------------|
 | EC-001 | ARP frame (EtherType 0x0806) with ETHERNET link type | Strict parses OK but net=None; Err("No IP layer found") |
 | EC-002 | IPv6 content via ETHERNET with IPv6 EtherType | IP layer present; Ok returned (no error) |
-| EC-003 | Snaplen-truncated frame with no IP bytes at all | Lax retry; if lax also finds net=None, Err("No IP layer found") |
+| EC-003 | Snaplen-truncated frame with no IP bytes at all | Lax retry executes; lax-path net=None arm (decoder.rs:163) is structurally unreachable — etherparse 0.16 guarantees lax yields net=Some when strict fails with SliceError::Len on an IP EtherType; test-writers MUST NOT construct a test vector for this sub-path |
 
 ## Canonical Test Vectors
 
@@ -91,14 +101,14 @@ truncated length mismatches, not for absent IP layers.
 
 ## Architecture Anchors
 
-- `src/decoder.rs:148-151` -- `None => Err(anyhow!("No IP layer found"))` (strict path)
-- `src/decoder.rs:162-164` -- same guard on lax path
+- `src/decoder.rs:150` -- `None => Err(anyhow!("No IP layer found"))` (strict path, within the Ok(slice) match arm)
+- `src/decoder.rs:163` -- `None` arm on lax path (within the `Err(SliceError::Len(_))` retry arm); match-exhaustiveness only / structurally unreachable at runtime (see Invariant 2)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/decoder.rs:148-151` |
+| **Path** | `src/decoder.rs:150` (strict path, live); `src/decoder.rs:163` (lax path, match-exhaustiveness only / unreachable) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

@@ -2,8 +2,8 @@
 document_type: story
 story_id: STORY-070
 epic_id: E-7
-version: "1.2"
-status: draft
+version: "1.5"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -50,15 +50,15 @@ implementation_strategy: brownfield-formalization
 ## Acceptance Criteria
 
 ### AC-001 (traces to BC-2.09.005 postcondition 1)
-`Finding.summary` contains the post-`from_utf8_lossy` bytes without any additional escaping at construction time. Given a URI containing ESC byte 0x1B, `finding.summary` contains the literal 0x1B byte (not `\u{1b}` or any escape form).
-- **Test:** `test_finding_summary_preserves_raw_c0_bytes()`
+`Finding.summary` contains the post-`from_utf8_lossy` bytes without any additional escaping at construction time. Given a URI containing C1 control byte U+009B (CSI), `finding.summary` contains the literal U+009B byte (not any escape form).
+- **Test:** `test_finding_summary_preserves_raw_c1_bytes()`
 
 ### AC-002 (traces to BC-2.09.005 postcondition 3)
 `escape_for_terminal` is NOT called at any `Finding` construction site. Grep-based assertion: `grep -rn 'escape_for_terminal' src/ | grep -v reporter/terminal` returns no output — confirming that no occurrence of `escape_for_terminal` exists outside `src/reporter/terminal.rs`.
-- **Test:** `test_escape_for_terminal_single_call_site()` (code-level assertion)
+- **Test:** `test_escape_for_terminal_contained_to_terminal_module()` (code-level assertion)
 
 ### AC-003 (traces to BC-2.09.005 postcondition 4)
-When a `Finding` with an ESC byte in `summary` is serialized by `JsonReporter`, the JSON output contains `` (RFC 8259 serde encoding by `serde_json`), NOT the literal ESC byte.
+When a `Finding` with an ESC byte in `summary` is serialized by `JsonReporter`, the JSON output contains `\u{1b}` (RFC 8259 serde encoding by `serde_json`), NOT the literal ESC byte.
 - **Test:** `test_output_sanitization_layering_contract()`
 
 ### AC-004 (traces to BC-2.09.005 invariant 3)
@@ -105,11 +105,11 @@ Reassembly-engine findings with `direction: None` (lifecycle, segment-limit-summ
 
 | ID | Scenario | Expected Behavior |
 |----|----------|-------------------|
-| EC-001 | Full pipeline: Finding with ESC in URI | JSON has ``; terminal output has escape form; Finding.summary has literal 0x1B |
+| EC-001 | Full pipeline: Finding with ESC in URI | JSON has `\u{1b}`; terminal output has escape form; Finding.summary has literal 0x1B |
 | EC-002 | Finding with `source_ip = Some(IpAddr::V4(...))` | JSON has `"source_ip": "1.2.3.4"` |
 | EC-003 | The three serializable Option fields (mitre_technique, source_ip, direction) are Some | Those three keys present in JSON; timestamp always absent (O-01 domain debt) — bound test: `test_story_070_ec003_three_some_option_fields_present_in_json` |
 | EC-004 | All four Option fields are None | Zero of the four keys present in JSON |
-| EC-005 | `evidence = vec!["raw\x00bytes"]` | JSON encodes null byte as `\x00` via serde; `finding.evidence[0]` contains literal `\x00` |
+| EC-005 | `evidence = vec!["raw\x00bytes"]` | JSON encodes null byte as the literal six-character string `\u0000` (RFC 8259); `finding.evidence[0]` contains the literal raw NUL byte at construction time |
 
 ## Purity Classification
 
@@ -139,8 +139,8 @@ Reassembly-engine findings with `direction: None` (lifecycle, segment-limit-summ
 2. [ ] Verify Red Gate: all tests fail
 3. [ ] Add `#[serde(skip_serializing_if = "Option::is_none")]` to all four Option fields on `Finding`
 4. [ ] Verify the serde attribute is present on `mitre_technique`, `source_ip`, `timestamp`, and `direction`
-5. [ ] Write `test_output_sanitization_layering_contract` to assert JSON output contains `` (not literal ESC)
-6. [ ] Write grep-based test asserting `escape_for_terminal` has exactly one call site in production
+5. [ ] Write `test_output_sanitization_layering_contract` to assert JSON output contains `\u{1b}` (not literal ESC)
+6. [ ] Write a code-level test asserting `escape_for_terminal` has no occurrence/call outside `src/reporter/terminal.rs` (module-containment invariant per BC-2.09.005)
 7. [ ] Write edge-case tests for EC-001 through EC-005
 8. [ ] Verify: no analyzer file calls `escape_for_terminal` at Finding construction sites
 9. [ ] Run `cargo test --all-targets` and `cargo clippy -- -D warnings`
@@ -181,5 +181,8 @@ Reassembly-engine findings with `direction: None` (lifecycle, segment-limit-summ
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.5 | 2026-05-22 | story-writer | Wave 2 Ph3 pass-4 adversarial fix: M-1 — removed embedded raw NUL bytes (0x00) from EC-005 Expected Behavior cell (and from changelog v1.4 row); EC-005 now reads with literal six ASCII characters \\u0000 (RFC 8259 JSON encoding of null byte); no binary NUL bytes remain in file (verified: grep -c $'\000' returns 0) |
+| 1.4 | 2026-05-22 | story-writer | Wave 2 Ph3 pass-3 adversarial fixes: M-1 — corrected EC-005 Expected Behavior: null byte JSON-encodes as \u0000 (RFC 8259), not \x00 (invalid JSON escape); kept separate claim that finding.evidence[0] holds literal raw NUL at construction time. N-1 — AC-001 test reference updated from test_finding_summary_preserves_raw_c0_bytes to test_finding_summary_preserves_raw_c1_bytes; description corrected to C1 control byte U+009B (CSI) instead of C0/ESC byte 0x1B, reflecting httparse URI rejection of C0 bytes |
+| 1.3 | 2026-05-22 | story-writer | Wave 2 Ph3 pass-2 adversarial fixes: M-1 Task 6 reworded to module-containment invariant per BC-2.09.005 (no longer implies single call site); m-1 raw ESC byte (0x1B) in AC-003, EC-001, and Task 5 replaced with literal \u{1b} (now readable); m-3 AC-002 test name updated to test_escape_for_terminal_contained_to_terminal_module |
 | 1.2 | 2026-05-22 | story-writer | Wave 2 Ph3 adversarial fixes: AC-002 grep command kept, contradiction resolved by removing false "wc -l == 1" exclusivity from both AC and Architecture Compliance Rule; both now state the verifiable property (no escape_for_terminal outside terminal.rs); EC-003 relabeled to "three serializable Option fields" (timestamp always None per O-01 domain debt); bound test name updated to test_story_070_ec003_three_some_option_fields_present_in_json |
 | 1.1 | 2026-05-21 | story-writer | Initial story decomposition |

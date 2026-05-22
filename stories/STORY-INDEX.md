@@ -28,9 +28,9 @@ traces_to:
 | Story ID | Title | Epic | Wave | Points | Status | Dependencies |
 |----------|-------|------|------|--------|--------|--------------|
 | STORY-001 | PCAP File Ingestion — Link-Type Gating, Eager Packet Load, and Error Surfaces | E-1 | 1 | 5 | completed | — |
-| STORY-002 | Packet Decoding — Ethernet, RAW/IPV4, and IPv6 Link-Layer Paths | E-1 | 2 | 5 | draft | STORY-001 |
-| STORY-003 | Packet Decoding — Linux SLL, No-Panic Safety, and Non-IP Frame Rejection | E-1 | 2 | 5 | draft | STORY-001 |
-| STORY-004 | Packet Decoding — ICMP, Protocol::Other, and app_protocol_hint Port Table | E-1 | 2 | 3 | draft | STORY-001 |
+| STORY-002 | Packet Decoding — Ethernet, RAW/IPV4, and IPv6 Link-Layer Paths | E-1 | 2 | 5 | completed | STORY-001 |
+| STORY-003 | Packet Decoding — Linux SLL, No-Panic Safety, and Non-IP Frame Rejection | E-1 | 2 | 5 | completed | STORY-001 |
+| STORY-004 | Packet Decoding — ICMP, Protocol::Other, and app_protocol_hint Port Table | E-1 | 2 | 3 | completed | STORY-001 |
 | STORY-005 | Packet Decoding — packet_len Semantics and TCP Flag/Sequence Extraction | E-1 | 3 | 3 | draft | STORY-002, STORY-003, STORY-004 |
 | STORY-011 | TcpReassembler Constructor Validation and FlowKey Canonicalization | E-2 | 4 | 5 | draft | STORY-005 |
 | STORY-012 | Non-TCP Packet Filter, Statistics Summary, and bytes_reassembled Accounting | E-2 | 5 | 5 | draft | STORY-011 |
@@ -62,7 +62,7 @@ traces_to:
 | STORY-058 | Buffer Management, Record Parsing Infrastructure, Flow Lifecycle, and summarize Output | E-5 | 18 | 8 | draft | STORY-052, STORY-053 |
 | STORY-066 | DNS Traffic Statistics — Port-53 Dispatch, QR-Bit Counting, and Never-Emit Contract | E-6 | 4 | 5 | draft | STORY-005 |
 | STORY-069 | Finding Struct, Verdict/Confidence Display, and Finding Display Format | E-7 | 1 | 5 | completed | — |
-| STORY-070 | Raw-Data Contract and JSON Serialization Symmetry (skip_serializing_if) | E-7 | 2 | 5 | draft | STORY-069 |
+| STORY-070 | Raw-Data Contract and JSON Serialization Symmetry (skip_serializing_if) | E-7 | 2 | 5 | completed | STORY-069 |
 | STORY-071 | MITRE ATT&CK Mapping — Tactic Display, Catalog Lookup, all_tactics_in_report_order | E-7 | 3 | 8 | draft | STORY-069, STORY-070 |
 | STORY-076 | JsonReporter — Structure, skipped_packets, and RFC 8259 Byte Handling | E-8 | 20 | 5 | draft | STORY-046, STORY-057, STORY-058, STORY-066, STORY-071 |
 | STORY-077 | TerminalReporter — escape_for_terminal, skipped_packets, and End-to-End C1 Safety | E-8 | 21 | 8 | draft | STORY-076 |
@@ -135,7 +135,8 @@ traces_to:
 
 | Wave | Stories | Status | PRs | Merge Commits | Date |
 |------|---------|--------|-----|---------------|------|
-| 1 | STORY-001, STORY-069 | **DELIVERED** | #106, #105 | b7424b7, 2840caf | 2026-05-22 |
+| 1 | STORY-001, STORY-069 | **DELIVERED & CLOSED** | #106, #105 | b7424b7, 2840caf | 2026-05-22 |
+| 2 | STORY-002, STORY-003, STORY-004, STORY-070 | **DELIVERED & CLOSED** | #109, #110, #107, #108 | 34c592b, 3b2481c, 385e763, 8b514c00 | 2026-05-22 |
 
 ## Coverage Verification
 

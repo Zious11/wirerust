@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,8 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Correct Invariant 1 — escape_for_terminal has 3 call sites in terminal.rs (not 1); true invariant is module-containment, not call-count — 2026-05-22"
+  - "v1.4: Replace raw ESC control byte (0x1B) with literal \\u001b in EC-001, test vectors, and VP rows (STORY-070 m-1) — 2026-05-22"
+  - "v1.5: Correct Architecture Anchor for ADR 0003 doc comment — was findings.rs:155-156, corrected to 150-158 (full block) / :157 (cited line); verified against STORY-070 worktree (STORY-070 pass-5 M-2) — 2026-05-22"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -65,7 +67,7 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | URI contains ESC byte (0x1B) | Finding.summary contains literal 0x1B byte; JSON output encodes as  |
+| EC-001 | URI contains ESC byte (0x1B) | Finding.summary contains literal 0x1B byte; JSON output encodes as \u001b |
 | EC-002 | SNI hostname contains C0 control bytes | Raw bytes in Finding.summary; TerminalReporter escapes on display |
 | EC-003 | HTTP header contains non-UTF-8 bytes | from_utf8_lossy replaces invalid sequences with U+FFFD |
 | EC-004 | Evidence contains newline | Raw newline preserved; JsonReporter encodes as \n via serde |
@@ -78,7 +80,7 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 | HTTP finding with ESC byte in URI | finding.summary contains 0x1B (not \\u001b) | happy-path |
 | TLS finding with non-UTF-8 SNI | finding.summary contains from_utf8_lossy output (U+FFFD for invalid bytes) | happy-path |
 | TerminalReporter renders finding with ESC byte | Output contains \\u{1b} or similar escape form | integration |
-| JsonReporter renders finding with ESC byte | Output contains  (RFC 8259 serde encoding) | integration |
+| JsonReporter renders finding with ESC byte | Output contains \u001b (RFC 8259 serde encoding) | integration |
 
 ## Verification Properties
 
@@ -86,7 +88,7 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 |--------|----------|-------------|
 | — | Finding.summary contains raw C0 bytes (not escaped form) at construction | unit: test_non_utf8_sni_preserves_raw_bytes_in_summary |
 | — | escape_for_terminal is defined and called only within src/reporter/terminal.rs | grep/ripgrep: confirm zero matches outside terminal.rs |
-| — | JSON output of finding with ESC byte produces  (serde) not escaped with \\u{1b} | unit: test_output_sanitization_layering_contract |
+| — | JSON output of finding with ESC byte produces \u001b (serde) not escaped with \\u{1b} | unit: test_output_sanitization_layering_contract |
 
 ## Traceability
 
@@ -110,7 +112,7 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 
 - `src/findings.rs:120` -- `pub struct Finding` definition
 - `src/findings.rs:124-125` -- `pub summary: String`, `pub evidence: Vec<String>` fields
-- `src/findings.rs:155-156` -- `See ADR 0003` doc comment on Display impl
+- `src/findings.rs:150-158` -- doc comment block on Display impl (full block); literal "See ADR 0003" text at line 157
 - `src/reporter/terminal.rs:44` -- `fn escape_for_terminal(s: &str) -> String` -- function definition
 - `src/reporter/terminal.rs:172` -- call site 1: analyzer summary detail values (ADR 0003 C1 gap comment)
 - `src/reporter/terminal.rs:197` -- call site 2: `render_finding_prefix` escapes `f.summary`
@@ -121,7 +123,7 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/findings.rs:120-145` (struct + serde attrs), `:155-156` (ADR 0003 doc comment) |
+| **Path** | `src/findings.rs:120-145` (struct + serde attrs), `:150-158` (ADR 0003 doc comment block, cited line :157) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

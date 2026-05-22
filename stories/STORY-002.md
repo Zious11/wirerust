@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-002"
 epic_id: "E-1"
-version: "1.2"
-status: draft
+version: "1.6"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -61,23 +61,23 @@ implementation_strategy: brownfield-formalization
 Given a valid Ethernet II / IPv4 / TCP frame bytes and `datalink = ETHERNET`, `decode_packet` returns `Ok(ParsedPacket)` where `src_ip` and `dst_ip` are `IpAddr::V4` values matching the IPv4 header, `protocol = Protocol::Tcp`, `transport = TransportInfo::Tcp { src_port, dst_port, seq_number, syn, ack, fin, rst }` with correct values, and `payload` contains the TCP segment payload bytes.
 - **Test:** `test_BC_2_02_001_ethernet_ipv4_tcp_decode()`
 
-### AC-002 (traces to BC-2.02.001 postcondition 6)
+### AC-002 (traces to BC-2.02.001 postcondition 6 + invariant 1)
 For any successfully decoded frame, `ParsedPacket.packet_len` equals `data.len()` (the total frame byte length including all headers).
 - **Test:** `test_BC_2_02_001_packet_len_is_total_frame_length()`
 
-### AC-003 (traces to BC-2.02.002 postcondition 3)
+### AC-003 (traces to BC-2.02.002 postcondition 2, 3, 4, 6)
 Given an Ethernet / IPv4 / UDP frame with `dst_port = 53`, `decode_packet` returns `Ok(ParsedPacket)` with `protocol = Protocol::Udp`, `transport = TransportInfo::Udp { src_port, dst_port }`, and `app_protocol_hint()` returns `Some("DNS")`.
 - **Test:** `test_BC_2_02_002_udp_dns_port_hint()`
 
-### AC-004 (traces to BC-2.02.002 postcondition 6)
-Given a UDP frame with `src_port = 53` (DNS response direction), `app_protocol_hint()` also returns `Some("DNS")`.
+### AC-004 (traces to BC-2.02.002 postcondition 2, 6)
+Given a UDP frame with `src_port = 53` (DNS response direction), `protocol = Protocol::Udp` and `app_protocol_hint()` also returns `Some("DNS")`.
 - **Test:** `test_BC_2_02_002_udp_dns_src_port_hint()`
 
-### AC-005 (traces to BC-2.02.003 postcondition 1)
-Given raw IPv4 TCP bytes (no link-layer header) with `datalink = RAW`, `decode_packet` returns `Ok(ParsedPacket)` with the same structure as the Ethernet path for identical IP+TCP content.
+### AC-005 (traces to BC-2.02.003 postcondition 1, 2, 3, 4)
+Given raw IPv4 TCP bytes (no link-layer header) with `datalink = RAW`, `decode_packet` returns `Ok(ParsedPacket)` where `src_ip` and `dst_ip` are `IpAddr::V4` values, `protocol = Protocol::Tcp`, `transport = TransportInfo::Tcp { src_port, dst_port, syn, ... }` with correct values, `payload` contains the TCP segment bytes, and `packet_len` equals `data.len()`.
 - **Test:** `test_BC_2_02_003_raw_ipv4_tcp_decode()`
 
-### AC-006 (traces to BC-2.02.004 postcondition 3)
+### AC-006 (traces to BC-2.02.004 postcondition 2, 3)
 Calling `decode_packet` with the same IPv4 TCP byte slice using `DataLink::RAW` and then `DataLink::IPV4` produces field-for-field identical `ParsedPacket` values.
 - **Test:** `test_BC_2_02_004_raw_and_ipv4_identical()`
 
@@ -86,7 +86,7 @@ Given raw IPv6 TCP bytes with `datalink = RAW`, `decode_packet` returns `Ok(Pars
 - **Test:** `test_BC_2_02_005_raw_ipv6_tcp_decode()`
 
 ### AC-008 (traces to BC-2.02.005 postcondition 4, 5, 6)
-For an IPv6 TCP frame, `protocol = Protocol::Tcp` and `transport = TransportInfo::Tcp { ... }` with correct port and flag values.
+For an IPv6 TCP frame, `protocol = Protocol::Tcp`, `transport = TransportInfo::Tcp { ... }` with correct port and flag values, and `packet_len` equals `data.len()`.
 - **Test:** `test_BC_2_02_005_ipv6_tcp_transport()`
 
 ## Architecture Mapping
@@ -95,6 +95,7 @@ For an IPv6 TCP frame, `protocol = Protocol::Tcp` and `transport = TransportInfo
 |-----------|--------|---------------|
 | decode_packet | src/decoder.rs:128-172 | pure |
 | strict_ip_triple | src/decoder.rs:209-228 | pure |
+| lax_ip_triple | src/decoder.rs:231-250 | pure |
 | lax_parse | src/decoder.rs:176-206 | pure |
 | build_parsed | src/decoder.rs:255-302 | pure |
 | app_protocol_hint | src/decoder.rs:94-116 | pure |
@@ -137,7 +138,7 @@ For an IPv6 TCP frame, `protocol = Protocol::Tcp` and `transport = TransportInfo
 3. [ ] Verify `src/decoder.rs` already satisfies all ACs (brownfield confirm pass)
 4. [ ] Run `cargo test --all-targets` to confirm green
 5. [ ] Confirm `decode_packet` match arm for `DataLink::RAW | DataLink::IPV4 | DataLink::IPV6` is a single arm (BC-2.02.004)
-6. [ ] Confirm `build_parsed` extracts IPv4 and IPv6 addresses via separate match arms (BC-2.02.005)
+6. [ ] Confirm `strict_ip_triple` and `lax_ip_triple` extract IPv4 and IPv6 addresses via separate match arms (BC-2.02.005)
 7. [ ] Verify `app_protocol_hint` 7-entry port table is complete (ports 53, 80, 443, 22, 445, 502, 20000)
 8. [ ] Write property-based test: `packet_len == data.len()` for all decoded frames
 
@@ -175,5 +176,9 @@ For an IPv6 TCP frame, `protocol = Protocol::Tcp` and `transport = TransportInfo
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.6 | 2026-05-22 | story-writer | Wave 2 Ph3 pass-6 comprehensive AC-trace audit: AC-004 widened from BC-2.02.002 postcondition 6 to postcondition 2, 6 (test also asserts Protocol::Udp = PC2; prose updated to match); AC-005 widened from BC-2.02.003 postcondition 1 to postcondition 1, 2, 3, 4 (test body explicitly annotates PC2 src/dst V4, PC3 Protocol::Tcp, PC4 transport/payload/packet_len; prose rewritten to enumerate all asserted fields); AC-008 M-2 prose fix: appended "and packet_len equals data.len()" so prose matches PC6 claim and test assertion; AC-001, AC-002, AC-003, AC-006, AC-007 confirmed correct (no change needed) |
+| 1.5 | 2026-05-22 | story-writer | Wave 2 Ph3 pass-5 adversarial fix: M-1 — widened AC-006 trace from BC-2.02.004 postcondition 3 to postcondition 2, 3; PC2 ("field-for-field identical ParsedPacket values") is the primary assertion exercised by test_BC_2_02_004_raw_and_ipv4_identical, which was previously omitted |
+| 1.4 | 2026-05-22 | story-writer | Wave 2 Ph3 pass-4 adversarial fixes: M-1 — widened AC-003 trace to BC-2.02.002 postcondition 2, 3, 4, 6 (covers PC2 protocol=Udp, PC3, PC4 payload bytes, PC6 app_protocol_hint); m-2 — added lax_ip_triple (src/decoder.rs:231-250, pure) to Architecture Mapping; m-4 — Task 6 reworded from build_parsed to strict_ip_triple and lax_ip_triple as the actual IPv4/IPv6 extraction sites |
+| 1.3 | 2026-05-22 | story-writer | Wave 2 Ph3 pass-3 adversarial fix: widened AC-002 trace to BC-2.02.001 postcondition 6 + invariant 1 (test also pins invariant 1: packet_len is always total captured frame length) |
 | 1.2 | 2026-05-22 | story-writer | Wave 2 Ph3 adversarial fixes: widened AC-001 trace to BC-2.02.001 PC2,3,4,5; AC-007 trace to BC-2.02.005 PC2+3; AC-008 trace to BC-2.02.005 PC4,5,6; corrected lax_parse Architecture Mapping span to 176-206 (was 184-205) |
 | 1.1 | 2026-05-21 | story-writer | Initial story decomposition |

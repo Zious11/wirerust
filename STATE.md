@@ -21,6 +21,16 @@ wave_1_story_001_pr: 106
 wave_1_story_001_merge_commit: b7424b7
 wave_1_story_069_pr: 105
 wave_1_story_069_merge_commit: 2840caf
+wave_2_delivered: "2026-05-22"
+wave_2_story_002_pr: 109
+wave_2_story_002_merge_commit: 34c592b
+wave_2_story_003_pr: 110
+wave_2_story_003_merge_commit: 3b2481c
+wave_2_story_004_pr: 107
+wave_2_story_004_merge_commit: 385e763
+wave_2_story_070_pr: 108
+wave_2_story_070_merge_commit: 8b514c00
+demo_recordings: local-only-gitignored
 dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
@@ -88,22 +98,19 @@ phase_2_input_hash_drift_check_uncomputed: 0
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Wave 1 CLOSED 2026-05-22. Wave 2 IN PROGRESS —
-per-story convergence underway. Worktrees active: STORY-002 (feature/story-002-decoder-paths),
-STORY-003 (feature/story-003-decoder-safety), STORY-004 (feature/story-004-decoder-icmp-ports),
-STORY-070 (feature/story-070-json-serialization), all branched off develop b7424b7.
-STORY-002: 23 tests written; adversary pass 2 CLEAN (1/3). STORY-003: 18 tests written + fuzz
-harness committed; adversary pass 2 NOT CLEAN — needs remediation (M-1: fuzz harness variant
-coverage gap). STORY-004: 17 tests written; adversary pass 2 light remediation pending.
-STORY-070: tests written; adversary pass 2 NOT CLEAN — needs remediation (M-1: story Task 6
-contradicts BC-2.09.005 v1.3).
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Wave 1 CLOSED 2026-05-22. Wave 2 CLOSED 2026-05-22.
+6 stories merged total (STORY-001/069/002/003/004/070). Wave 3 ready to dispatch.
+Per-story convergence ACHIEVED for all Wave 2 stories. Wave-level adversarial convergence
+ACHIEVED — 3 consecutive clean passes (wave passes 1/2/3). Demo recordings are local-only;
+factory-artifacts branch gitignores `cycles/**/demos/` (commit f4e52fb; 49 prior demo files
+untracked). Next: Wave 3 dispatch (STORY-005, STORY-071).
 
-**Current develop HEAD:** b7424b7 (PR #106 — STORY-001 PCAP File Ingestion, squash-merged 2026-05-22).
+**Current develop HEAD:** 3b2481c (PR #110 — STORY-003 decoder SLL/no-panic + VP-008 fuzz harness, merged 2026-05-22).
 
 **Mode:** brownfield (in-repo: target == reference).
 
-**Test suite:** 282 passing on develop. `cargo fmt --check`, `cargo clippy`,
-`cargo test --all-targets`, `cargo audit`, `cargo deny` all green.
+**Test suite:** 376 passing on develop. `cargo fmt --check`, `cargo clippy`,
+`cargo test --all-targets` all green. CI: 7 checks including new `fuzz-build` job.
 
 ## Phase Progress
 
@@ -113,7 +120,7 @@ contradicts BC-2.09.005 v1.3).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
 | Phase 2 — Story Decomposition | **PASSED** — all gates + human approval 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; decomposition gate PASSED; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153); trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M→0C/0H/1M (RESET)→0C/0H/0M→0C/0H/0M→0C/0H/0M (GATE SATISFIED 3/3) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Wave 1 CLOSED 2026-05-22; Wave 2 IN PROGRESS — per-story convergence underway (STORY-002 pass-2 1/3 clean; STORY-003/004/070 need pass-2 remediation) | — |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Wave 1 CLOSED 2026-05-22; Wave 2 CLOSED 2026-05-22 (PRs #109/#110/#107/#108; per-story + wave-level convergence ACHIEVED; develop at 3b2481c; 376 tests); Wave 3 ready to dispatch | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -220,14 +227,16 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 |------|--------|-------|
 | BC story-anchor back-fill (entry prep) | **COMPLETE** 2026-05-21 | 217/217 BC files: `Story Anchor: S-TBD` → `Story Anchor: covering STORY-NNN`; per dependency-graph BC-to-Stories matrix; analogous to P8-DEFER VP back-fill; traceability chain complete BC ↔ Story ↔ VP |
 | Pre-Phase-3 prerequisites | **VERIFIED** 2026-05-21 | CI/CD `ci.yml` present (test/clippy/fmt/semantic-PR jobs); DTU not required per dtu-assessment |
-| Wave 1 delivery (STORY-001 + STORY-069) | **COMPLETE** 2026-05-22 | STORY-001 PR #106 (b7424b7, 20 tests); STORY-069 PR #105 (2840caf); brownfield-formalization; 329 tests green; per-story convergence SATISFIED both stories |
+| Wave 1 delivery (STORY-001 + STORY-069) | **COMPLETE** 2026-05-22 | STORY-001 PR #106 (b7424b7, 20 tests); STORY-069 PR #105 (2840caf); 329 tests green; per-story convergence SATISFIED both stories |
 | Per-story adversarial convergence — Wave 1 | **COMPLETE** 2026-05-22 | STORY-001: 16 passes (14/15/16 clean); STORY-069: 7 passes (5/6/7 clean) |
-| Wave-level adversarial convergence — Wave 1 | **COMPLETE** 2026-05-21 | 3 consecutive clean passes (wave passes 1/2/3); 0 blocking findings all three passes; convergence ACHIEVED |
-| Wave-gate implementation gate — Wave 1 | **PASSED** 2026-05-22 | Wave 1 fully CLOSED: STORY-001 + STORY-069 delivered, merged, per-story converged, wave-level converged; develop at b7424b7; 329 tests green |
-| Input-hash drift check — Wave 1 | NOT STARTED | Per-wave drift check |
-| Wave 2 dispatch | **IN PROGRESS** 2026-05-22 | Worktrees active off b7424b7: STORY-002, STORY-003, STORY-004, STORY-070 |
-| Wave 2 — per-story adversarial convergence | **IN PROGRESS** 2026-05-22 | See Wave 2 Progress table below |
-| Waves 3→27 | NOT STARTED | Repeat per-story + wave-level convergence for each wave |
+| Wave-level adversarial convergence — Wave 1 | **COMPLETE** 2026-05-22 | 3 consecutive clean passes; convergence ACHIEVED |
+| Wave-gate — Wave 1 | **CLOSED** 2026-05-22 | Wave 1 CLOSED: develop at b7424b7; 329 tests green |
+| Wave 2 delivery (STORY-002/003/004/070) | **COMPLETE** 2026-05-22 | PR #109 (34c592b, STORY-002, 9 passes, 7/8/9 clean); PR #110 (3b2481c, STORY-003, 10 passes, 8/9/10 clean, fuzz/ sub-crate + CI fuzz-build); PR #107 (385e763, STORY-004, 6 passes, 4/5/6 clean); PR #108 (8b514c00, STORY-070, 7 passes, 5/6/7 clean) |
+| Per-story adversarial convergence — Wave 2 | **COMPLETE** 2026-05-22 | All 4 stories: 3/3 consecutive clean passes each; per-story gate SATISFIED |
+| Wave-level adversarial convergence — Wave 2 | **COMPLETE** 2026-05-22 | 3 consecutive clean wave-level passes; wave-level gate SATISFIED |
+| Wave-gate — Wave 2 | **CLOSED** 2026-05-22 | Wave 2 CLOSED: develop at 3b2481c; 376 tests green |
+| Wave 3 dispatch (STORY-005, STORY-071) | READY | Wave 3 stories unblocked; sprint-state pending |
+| Waves 4→27 | NOT STARTED | Repeat per-story + wave-level convergence for each wave |
 
 ### Wave 1 Delivery Summary (2026-05-22)
 
@@ -236,24 +245,27 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 | STORY-001 | #106 | b7424b7 | 20 (tests/bc_2_01_story001_tests.rs; BC-2.01.001..008) | 10 ACs | 16 passes; 14/15/16 clean |
 | STORY-069 | #105 | 2840caf | BC-2.09.001..004 added to tests/reporter_tests.rs | 11 ACs + 5 ECs | 7 passes; 5/6/7 clean |
 
-### Wave 2 Progress (IN PROGRESS — 2026-05-22)
+### Wave 2 Delivery Summary (CLOSED — 2026-05-22)
 
-Worktrees branched off develop b7424b7. Tests uncommitted in each worktree; spec artifacts (stories v1.2, BCs v1.3, VP-008 v1.1) committed to factory-artifacts.
+All 4 Wave 2 stories delivered, merged, per-story converged, and wave-level converged.
 
-| Story | Worktree Branch | Tests Written | Fuzz | Adv Pass 1 | Adv Pass 2 | Clean Passes | Next Action |
-|-------|----------------|--------------|------|-----------|-----------|-------------|-------------|
-| STORY-002 | feature/story-002-decoder-paths | 23 (tests/bc_2_02_story002_tests.rs) | — | Findings remediated | **CLEAN** | **1/3** | Pass 3 (need 2 more clean) |
-| STORY-003 | feature/story-003-decoder-safety | 18 (tests/bc_2_02_story003_tests.rs) | fuzz/fuzz_targets/fuzz_decode_packet.rs committed (c729579); CI fuzz-build job added (60ee28b) | 1C+2M remediated | **NOT CLEAN** — 1M+3m+2n; M-1: fuzz harness exercises only 5 whitelisted DataLink variants, never an unsupported variant, so VP-008 BC-2.02.008 source contract is uncovered | 0/3 | **Remediate pass-2 M-1** then pass 3 |
-| STORY-004 | feature/story-004-decoder-icmp-ports | 17 (tests/bc_2_02_story004_tests.rs) | — | Findings remediated | **NOT CLEAN** — 0C/0M, 3 Minor + 1 process-gap | 0/3 | **Light remediation** (comment/scoping touch-ups) then pass 3 |
-| STORY-070 | feature/story-070-json-serialization | tests in tests/reporter_tests.rs; src comment fix committed (eb83551) | — | 1M remediated | **NOT CLEAN** — 1M+3m+1n; M-1: story Task 6 says "exactly one call site", contradicting BC-2.09.005 v1.3 | 0/3 | **Remediate pass-2 M-1** then pass 3 |
+| Story | PR | Merge Commit | Per-Story Convergence | Wave-Level |
+|-------|----|--------------|-----------------------|------------|
+| STORY-002 (Ethernet/RAW/IPv6) | #109 | 34c592b | 9 passes; 7/8/9 clean | ACHIEVED |
+| STORY-003 (SLL/no-panic + VP-008 fuzz) | #110 | 3b2481c | 10 passes; 8/9/10 clean; fuzz/ sub-crate + CI fuzz-build | ACHIEVED |
+| STORY-004 (ICMP/Other/port-table) | #107 | 385e763 | 6 passes; 4/5/6 clean | ACHIEVED |
+| STORY-070 (skip_serializing_if) | #108 | 8b514c00 | 7 passes; 5/6/7 clean | ACHIEVED |
 
-**Session resume checkpoint — Wave 2:**
-1. Remediate STORY-003 pass-2 M-1 (fuzz harness must exercise at least one unsupported DataLink variant; update fuzz/fuzz_targets/fuzz_decode_packet.rs + re-run adversary pass 3).
-2. Remediate STORY-004 pass-2 findings (3 Minor comment/scoping touch-ups + process-gap OBS-5) + adversary pass 3.
-3. Remediate STORY-070 pass-2 M-1 (update STORY-070.md Task 6 text to match BC-2.09.005 v1.3 "all call sites") + adversary pass 3.
-4. For STORY-002: dispatch adversary pass 3 (must be 2nd of 3 clean).
-5. Continue per-story adversarial convergence to 3 clean passes each.
-6. After all 4 stories reach 3/3 clean: demos + PRs + Wave 2 wave-level adversarial convergence (3 clean wave-level passes).
+Wave-level adversarial convergence: **ACHIEVED** — 3 consecutive clean passes (wave passes 1/2/3).
+develop synced at 3b2481c; 376 tests pass; clippy clean; fmt clean.
+
+**Session resume checkpoint — Wave 3:**
+1. Dispatch Wave 3 (STORY-005, STORY-071) — both stories are now unblocked (sprint-state updated to `pending`; current_wave=3).
+2. Author implementation + tests for STORY-005 (packet_len semantics, TCP flag/sequence extraction, SS-02).
+3. Author implementation + tests for STORY-071 (MITRE ATT&CK mapping, tactic display, catalog lookup, SS-07).
+4. Run per-story adversarial convergence to 3/3 clean passes each.
+5. After both stories converged: PRs + Wave 3 wave-level adversarial convergence (3 clean passes).
+6. Then proceed to Wave 4 (STORY-011, STORY-066).
 
 ### Drift Items (STATE.md)
 
@@ -277,6 +289,9 @@ Process-gap codification deferred from Phase 2 adversarial convergence — requi
 | [process-gap] W2.1 | Presence-assertion tests should be paired with content greps — a test that asserts a file exists (e.g., `test_VP_008_fuzz_harness_exists`) does not verify the file content is semantically correct. Codify: VP-anchored file-existence tests must also assert at least one structural invariant of the file's content (e.g., function name, key keyword). Observed in STORY-003 pass-2 review. | P2 |
 | [process-gap] W2.2 | CI regression-detector jobs lack positive-coverage assertions — the fuzz-build CI job added for STORY-003 verifies the harness compiles but does not assert that it exercises any particular code path. Codify: CI jobs that guard VP-anchored verification properties must include a smoke assertion (e.g., `cargo fuzz run fuzz_decode_packet -- -runs=100`). Observed in STORY-003 pass-2 review. | P2 |
 | [process-gap] W2.3 | Story frontmatter has no per-input BC version pin — STORY-004 OBS-5: the story references BC-2.02.010..013 but records no BC version pin in frontmatter, so a BC version bump (e.g., v1.2→v1.3 for BC-2.02.013) is not mechanically detectable as a story staleness signal. Codify: story frontmatter should include a `bc_versions:` map listing each cited BC and its version at story-authoring time. Observed in STORY-004 pass-2 review. | Minor / process-gap |
+| [process-gap] W2.4 | CI `fuzz-build` job in `.github/workflows/ci.yml` has no explicit `timeout-minutes`; a cold-cache slowdown is unbounded. Recommend adding an explicit generous bound (e.g., 20–30 min) so slow runs are visibly time-boxed. Observed in STORY-003 CI delivery. | Minor / process-gap |
+| [process-gap] W2.5 | Story `status:` frontmatter is not automatically transitioned from `draft` to `completed` on PR merge — no pipeline gate enforces this. Adversary passes repeatedly flagged delivered stories still showing `status: draft`. Recommend: deliver-story skill must emit a state-manager update command that flips story status on completion. This update is the manual fix for Wave 2's four stories. | P1 |
+| [process-gap] W2.6 | MSRV documentation divergence: root `Cargo.toml` pins `rust-version = "1.91"` while `CLAUDE.md` states "requires Rust 1.85+". Pre-existing divergence; recommend reconciling in a maintenance/doc sweep. | Minor / process-gap |
 
 ## Phase 2 — Story Decomposition (PASSED — 2026-05-21)
 

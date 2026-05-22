@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Correct Architecture Anchors — lax_parse function spans 176-206 (not 184-205); add LINUX_SLL arm sub-range; fix Source Evidence path (STORY-003 m-1) — 2026-05-22
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -98,14 +99,15 @@ same `ParsedPacket` structure as Ethernet and RAW paths.
 ## Architecture Anchors
 
 - `src/decoder.rs:135` -- `DataLink::LINUX_SLL => SlicedPacket::from_linux_sll(data)` -- LINUX_SLL strict dispatch
-- `src/decoder.rs:184-205` -- lax_parse LINUX_SLL fallback with manual header strip
+- `src/decoder.rs:176-206` -- `fn lax_parse` function (full span: signature at 176, closing brace at 206)
+- `src/decoder.rs:184-203` -- LINUX_SLL arm within lax_parse: manual 16-byte header strip and `LaxSlicedPacket::from_ether_type` call
 - `src/decoder.rs:119-121` -- SLL_HEADER_LEN constant
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/decoder.rs:184-205` |
+| **Path** | `src/decoder.rs:176-206` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
