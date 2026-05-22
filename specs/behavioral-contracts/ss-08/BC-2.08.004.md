@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Wave 4 Ph3 per-story adversarial fix F-1/F-2/N-1: re-synced all dns.rs anchors after module-doc-comment expansion shifted functions ~8-10 lines; N-1: analyze anchor had no line range — added :70-78 (analyze function) with explicit note that Vec::new() is at line 77; Source Evidence Path bare path → :70-78 — 2026-05-22
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -89,13 +90,13 @@ low severity, by design, not a bug.
 
 ## Architecture Anchors
 
-- `src/analyzer/dns.rs` -- analyze() returning vec![]
+- `src/analyzer/dns.rs:70-78` -- analyze() returning vec![] (the unconditional `Vec::new()` return is at line 77)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/dns.rs` |
+| **Path** | `src/analyzer/dns.rs:70-78` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Wave 4 Ph3 per-story adversarial fix F-1/F-2: re-synced all dns.rs anchors after module-doc-comment expansion shifted functions ~8-10 lines; is_query :38-44 → :46-52, analyze :62-70 → :70-78, inline prose length-guard reference "at dns.rs:40" → lines 48-50, Source Evidence Path :38-70 → :46-78 — 2026-05-22
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -31,7 +32,7 @@ removal_reason: null
 of the DNS payload. If the QR bit (bit 7 of `payload[2]`) is set (value 1), the packet is
 a DNS response and `response_count` is incremented. If the bit is clear (value 0), the
 packet is a DNS query and `query_count` is incremented. Payloads shorter than 12 bytes
-cannot be inspected: `is_query` returns `false` (because the length guard at `dns.rs:40`
+cannot be inspected: `is_query` returns `false` (because the length guard at `dns.rs:48-50`
 fires before the bit test), so the `else` branch in `analyze` increments `response_count`.
 
 ## Preconditions
@@ -96,14 +97,14 @@ fires before the bit test), so the `else` branch in `analyze` increments `respon
 
 ## Architecture Anchors
 
-- `src/analyzer/dns.rs:38-44` -- is_query helper: payload length guard + bit test
-- `src/analyzer/dns.rs:62-70` -- analyze: increment logic based on is_query result, returns Vec::new()
+- `src/analyzer/dns.rs:46-52` -- is_query helper: payload length guard + bit test
+- `src/analyzer/dns.rs:70-78` -- analyze: increment logic based on is_query result, returns Vec::new()
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/dns.rs:38-70` |
+| **Path** | `src/analyzer/dns.rs:46-78` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

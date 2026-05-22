@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: Wave 4 Ph3 per-story adversarial fix N-1: is_dns_port anchor :34-35 → :34-36 synced with STORY-066 v1.2 — 2026-05-22
+  - v1.4: Wave 4 Ph3 per-story adversarial fix F-1/F-2/F-3: re-synced all dns.rs anchors after module-doc-comment expansion shifted functions ~8-10 lines; is_dns_port :34-36 → :42-44, can_decode :52-60 → :60-68, Source Evidence Path :34-60 → :42-68; F-3: corrected VP-019 proof-method test from test_dns_analyzer_counts_queries (exercises analyze/summarize, not can_decode) to test_dns_can_decode_port_53_tcp_and_udp — 2026-05-22
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,7 +77,7 @@ This gate is the entry condition for DNS analysis.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-019 | can_decode is true iff port 53 is src or dst | unit: test_dns_analyzer_counts_queries |
+| VP-019 | can_decode is true iff port 53 is src or dst | unit: test_dns_can_decode_port_53_tcp_and_udp |
 
 ## Traceability
 
@@ -96,14 +97,14 @@ This gate is the entry condition for DNS analysis.
 
 ## Architecture Anchors
 
-- `src/analyzer/dns.rs:34-36` -- is_dns_port helper: `src == 53 || dst == 53`
-- `src/analyzer/dns.rs:52-60` -- can_decode dispatches on transport variant
+- `src/analyzer/dns.rs:42-44` -- is_dns_port helper: `src == 53 || dst == 53`
+- `src/analyzer/dns.rs:60-68` -- can_decode dispatches on transport variant
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/dns.rs:34-60` |
+| **Path** | `src/analyzer/dns.rs:42-68` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

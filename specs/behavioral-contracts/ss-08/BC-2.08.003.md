@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Wave 4 Ph3 per-story adversarial fix F-1/F-2: re-synced all dns.rs anchors after module-doc-comment expansion shifted functions ~8-10 lines; summarize :72-88 → :80-96, Source Evidence Path :72-88 → :80-96 — 2026-05-22
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -94,13 +95,13 @@ the reporter layer to display DNS statistics.
 
 ## Architecture Anchors
 
-- `src/analyzer/dns.rs:72-88` -- summarize implementation
+- `src/analyzer/dns.rs:80-96` -- summarize implementation
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/dns.rs:72-88` |
+| **Path** | `src/analyzer/dns.rs:80-96` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
