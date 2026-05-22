@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: Wave 4 Ph3 per-story adversarial fix F-1/F-2: re-synced all dns.rs anchors after module-doc-comment expansion shifted functions ~8-10 lines; is_query :38-44 → :46-52, analyze :62-70 → :70-78, inline prose length-guard reference "at dns.rs:40" → lines 48-50, Source Evidence Path :38-70 → :46-78 — 2026-05-22
+  - v1.4: Wave 4 Ph3 per-story adversarial fix M-2/M-3: corrected VP proof-method test references to real tests that genuinely exercise the property — propagating the BC-2.08.001 v1.4 fix to sibling BCs; row 1 now cites both test_dns_analyzer_counts_queries and test_dns_analyzer_counts_responses (QR=0 and QR=1 sides); row 2 replaced description "short-payload test" with test_dns_short_payload_counted_as_response — 2026-05-22
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,8 +77,8 @@ fires before the bit test), so the `else` branch in `analyze` increments `respon
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-019 | QR bit at payload[2] bit 7 controls which counter increments | unit: test_dns_analyzer_counts_queries |
-| VP-019 | Short payload increments response_count | unit: short-payload test |
+| VP-019 | QR bit at payload[2] bit 7 controls which counter increments | unit: test_dns_analyzer_counts_queries (QR=0 → query_count++), test_dns_analyzer_counts_responses (QR=1 → response_count++) |
+| VP-019 | Short payload increments response_count | unit: test_dns_short_payload_counted_as_response |
 
 ## Traceability
 
@@ -111,7 +112,7 @@ fires before the bit test), so the `else` branch in `analyze` increments `respon
 ## Evidence Types Used
 
 - **guard clause**: `if payload.len() < 12 { return false }` in is_query
-- **assertion**: test_dns_analyzer_counts_queries
+- **assertion**: test_dns_analyzer_counts_queries; test_dns_analyzer_counts_responses; test_dns_short_payload_counted_as_response
 
 ## Purity Classification
 

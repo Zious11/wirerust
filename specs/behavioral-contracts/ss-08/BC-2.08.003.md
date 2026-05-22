@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: Wave 4 Ph3 per-story adversarial fix F-1/F-2: re-synced all dns.rs anchors after module-doc-comment expansion shifted functions ~8-10 lines; summarize :72-88 → :80-96, Source Evidence Path :72-88 → :80-96 — 2026-05-22
+  - v1.4: Wave 4 Ph3 per-story adversarial fix M-2/M-3: corrected VP proof-method test references to real tests that genuinely exercise the property — propagating the BC-2.08.001 v1.4 fix to sibling BCs; row 1 replaced description "assert detail keys == {dns_queries, dns_responses}" with test_dns_summarize_exactly_two_detail_keys; row 2 replaced nonexistent test_dns_summarize with test_dns_summarize_packets_analyzed_is_sum — 2026-05-22
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -74,8 +75,8 @@ the reporter layer to display DNS statistics.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-019 | detail map contains exactly dns_queries and dns_responses keys | unit: assert detail keys == {"dns_queries", "dns_responses"} |
-| VP-019 | packets_analyzed == query_count + response_count | unit: test_dns_summarize |
+| VP-019 | detail map contains exactly dns_queries and dns_responses keys | unit: test_dns_summarize_exactly_two_detail_keys |
+| VP-019 | packets_analyzed == query_count + response_count | unit: test_dns_summarize_packets_analyzed_is_sum |
 
 ## Traceability
 
