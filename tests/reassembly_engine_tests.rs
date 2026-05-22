@@ -1583,6 +1583,166 @@ fn test_dropped_findings_key_present_in_summarize() {
     );
 }
 
+// ---------------------------------------------------------------------------
+// STORY-011: BC-2.04.001 — TcpReassembler::new constructor validation
+//
+// AC-001 through AC-007 (and EC-001..EC-007) formalize the five assert!
+// guards in TcpReassembler::new and the legal-value invariant for
+// flow_timeout_secs.  Each test's name is prescribed by the story spec
+// (W1.4 decision); the BC postcondition being exercised is cited in the
+// doc comment.
+// ---------------------------------------------------------------------------
+
+// ---- RED GATE stubs — #[should_panic] tests use an empty body so that
+//      the should_panic contract is NOT satisfied (test fails because no
+//      panic is raised).  Regular tests use panic!("RED GATE: ...").
+// ---- After RED GATE is verified, stubs are replaced with real assertions.
+
+/// AC-001 / EC-001 (BC-2.04.001 postcondition 1)
+/// Postcondition: if config.max_depth == 0, constructor panics with a
+/// message containing "max_depth must be > 0".
+#[test]
+#[allow(non_snake_case)]
+#[should_panic(expected = "max_depth must be > 0")]
+fn test_BC_2_04_001_max_depth_zero_panics() {
+    let config = ReassemblyConfig {
+        max_depth: 0,
+        ..ReassemblyConfig::default()
+    };
+    let _ = TcpReassembler::new(config);
+}
+
+/// AC-002 / EC-002 (BC-2.04.001 postcondition 2)
+/// Postcondition: if config.memcap == 0, constructor panics with a message
+/// containing "memcap must be > 0".
+#[test]
+#[allow(non_snake_case)]
+#[should_panic(expected = "memcap must be > 0")]
+fn test_BC_2_04_001_memcap_zero_panics() {
+    let config = ReassemblyConfig {
+        memcap: 0,
+        ..ReassemblyConfig::default()
+    };
+    let _ = TcpReassembler::new(config);
+}
+
+/// AC-003 / EC-003 (BC-2.04.001 postcondition 3)
+/// Postcondition: if config.max_flows == 0, constructor panics with a
+/// message containing "max_flows must be > 0".
+#[test]
+#[allow(non_snake_case)]
+#[should_panic(expected = "max_flows must be > 0")]
+fn test_BC_2_04_001_max_flows_zero_panics() {
+    let config = ReassemblyConfig {
+        max_flows: 0,
+        ..ReassemblyConfig::default()
+    };
+    let _ = TcpReassembler::new(config);
+}
+
+/// AC-004 / EC-004 (BC-2.04.001 postcondition 4)
+/// Postcondition: if config.max_segments_per_direction == 0, constructor
+/// panics with a message containing "max_segments_per_direction must be > 0".
+#[test]
+#[allow(non_snake_case)]
+#[should_panic(expected = "max_segments_per_direction must be > 0")]
+fn test_BC_2_04_001_max_segments_per_direction_zero_panics() {
+    let config = ReassemblyConfig {
+        max_segments_per_direction: 0,
+        ..ReassemblyConfig::default()
+    };
+    let _ = TcpReassembler::new(config);
+}
+
+/// AC-005 / EC-005 (BC-2.04.001 postcondition 5)
+/// Postcondition: if config.max_receive_window == 0, constructor panics
+/// with a message containing "max_receive_window must be > 0".
+#[test]
+#[allow(non_snake_case)]
+#[should_panic(expected = "max_receive_window must be > 0")]
+fn test_BC_2_04_001_max_receive_window_zero_panics() {
+    let config = ReassemblyConfig {
+        max_receive_window: 0,
+        ..ReassemblyConfig::default()
+    };
+    let _ = TcpReassembler::new(config);
+}
+
+/// AC-006 / EC-006 (BC-2.04.001 postcondition 6)
+/// Postcondition: when all five validated fields are > 0 (ReassemblyConfig::default()
+/// satisfies this), the constructor returns a TcpReassembler with:
+/// - empty flows (total_memory == 0)
+/// - empty findings (findings().is_empty())
+/// - finalized == false
+///
+/// Also verified with a minimal config (all five validated fields = 1) to
+/// confirm the boundary: the smallest legal value for each field must not panic.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_001_valid_config_constructs_successfully() {
+    // Default config: all five validated fields are well above 0.
+    let reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "fresh reassembler must have total_memory == 0"
+    );
+    assert!(
+        reassembler.findings().is_empty(),
+        "fresh reassembler must have no findings"
+    );
+    assert!(
+        !reassembler.is_finalized(),
+        "fresh reassembler must not be finalized"
+    );
+
+    // Minimal config: all five validated fields set to 1 (boundary case).
+    let min_config = ReassemblyConfig {
+        max_depth: 1,
+        memcap: 1,
+        max_flows: 1,
+        max_segments_per_direction: 1,
+        max_receive_window: 1,
+        ..ReassemblyConfig::default()
+    };
+    let min_reassembler = TcpReassembler::new(min_config);
+    assert_eq!(
+        min_reassembler.total_memory(),
+        0,
+        "minimal-config reassembler must also have total_memory == 0"
+    );
+    assert!(
+        min_reassembler.findings().is_empty(),
+        "minimal-config reassembler must have no findings"
+    );
+    assert!(
+        !min_reassembler.is_finalized(),
+        "minimal-config reassembler must not be finalized"
+    );
+}
+
+/// AC-007 / EC-007 (BC-2.04.001 invariant 2)
+/// Invariant: flow_timeout_secs == 0 is NOT validated at construction;
+/// the constructor must accept it as a legal value and not panic.
+///
+/// BC-2.04.001 §Invariants ¶2: "Other config fields (flow_timeout_secs,
+/// threshold fields) are NOT validated at construction; zero values in
+/// those fields are legal."
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_001_flow_timeout_zero_is_legal() {
+    let config = ReassemblyConfig {
+        flow_timeout_secs: 0,
+        ..ReassemblyConfig::default()
+    };
+    // Must not panic — if it does the test fails.
+    let reassembler = TcpReassembler::new(config);
+    assert!(
+        !reassembler.is_finalized(),
+        "reassembler with flow_timeout_secs=0 must construct successfully"
+    );
+}
+
 // ---- LESSON-P2.05: configurable anomaly thresholds ----
 
 /// Drive a flow to `n` overlapping duplicate segments and return the
