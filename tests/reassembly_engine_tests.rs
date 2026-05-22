@@ -2010,3 +2010,276 @@ fn test_small_segment_anomaly_suppressed_on_client_side_ignored_port() {
         "small-segment detection must be suppressed when the client port is ignored"
     );
 }
+
+// ---------------------------------------------------------------------------
+// STORY-012: BC-2.04.002, BC-2.04.028, BC-2.04.030
+//   Non-TCP Packet Filter, Statistics Summary, bytes_reassembled Accounting
+//
+// AC-001 through AC-013 (prescribes exact test names per W1.4 decision)
+// EC-001 through EC-008 (edge cases from story spec + BCs)
+// ---------------------------------------------------------------------------
+
+/// Build a UDP packet (non-TCP, has TransportInfo::Udp).
+fn make_udp_packet(
+    src_ip: [u8; 4],
+    src_port: u16,
+    dst_ip: [u8; 4],
+    dst_port: u16,
+    payload: &[u8],
+) -> ParsedPacket {
+    use wirerust::decoder::TransportInfo;
+    ParsedPacket {
+        src_ip: IpAddr::V4(Ipv4Addr::from(src_ip)),
+        dst_ip: IpAddr::V4(Ipv4Addr::from(dst_ip)),
+        protocol: Protocol::Udp,
+        transport: TransportInfo::Udp { src_port, dst_port },
+        payload: payload.to_vec(),
+        packet_len: 28 + payload.len(),
+    }
+}
+
+/// Build an ICMP packet (non-TCP, TransportInfo::None).
+fn make_icmp_packet(src_ip: [u8; 4], dst_ip: [u8; 4]) -> ParsedPacket {
+    use wirerust::decoder::TransportInfo;
+    ParsedPacket {
+        src_ip: IpAddr::V4(Ipv4Addr::from(src_ip)),
+        dst_ip: IpAddr::V4(Ipv4Addr::from(dst_ip)),
+        protocol: Protocol::Icmp,
+        transport: TransportInfo::None,
+        payload: vec![],
+        packet_len: 28,
+    }
+}
+
+/// Build a Protocol::Other(n) packet (non-TCP, TransportInfo::None).
+fn make_other_protocol_packet(src_ip: [u8; 4], dst_ip: [u8; 4], proto: u8) -> ParsedPacket {
+    use wirerust::decoder::TransportInfo;
+    ParsedPacket {
+        src_ip: IpAddr::V4(Ipv4Addr::from(src_ip)),
+        dst_ip: IpAddr::V4(Ipv4Addr::from(dst_ip)),
+        protocol: Protocol::Other(proto),
+        transport: TransportInfo::None,
+        payload: vec![],
+        packet_len: 28,
+    }
+}
+
+// ---- AC-001 ----------------------------------------------------------------
+
+/// AC-001 (BC-2.04.002 postcondition 1)
+/// Postcondition: when process_packet is called with a non-TCP (UDP) packet,
+/// stats.packets_processed increments by 1.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_002_non_tcp_increments_packets_processed() {
+    panic!("RED GATE: AC-001 not yet verified");
+}
+
+// ---- AC-002 ----------------------------------------------------------------
+
+/// AC-002 (BC-2.04.002 postcondition 2)
+/// Postcondition: when process_packet is called with a non-TCP packet,
+/// stats.packets_skipped_non_tcp increments by 1.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_002_non_tcp_increments_skipped_counter() {
+    panic!("RED GATE: AC-002 not yet verified");
+}
+
+// ---- AC-003 ----------------------------------------------------------------
+
+/// AC-003 (BC-2.04.002 postcondition 3)
+/// Postcondition: when process_packet is called with a non-TCP packet,
+/// stats.packets_tcp does NOT change.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_002_non_tcp_does_not_increment_tcp_counter() {
+    panic!("RED GATE: AC-003 not yet verified");
+}
+
+// ---- AC-004 ----------------------------------------------------------------
+
+/// AC-004 (BC-2.04.002 postconditions 4-6)
+/// Postconditions: no flow created/modified, no findings emitted, no handler
+/// callbacks (on_data, on_flow_close) triggered for a non-TCP packet.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_002_non_tcp_creates_no_flow_no_callbacks() {
+    panic!("RED GATE: AC-004 not yet verified");
+}
+
+// ---- AC-005 ----------------------------------------------------------------
+
+/// AC-005 (BC-2.04.002 invariant 1)
+/// Invariant: after N non-TCP and M TCP packets, packets_processed == N+M,
+/// packets_skipped_non_tcp == N, and packets_tcp == M.
+/// Canonical test vector: 5 UDP + 3 TCP → packets_processed=8, skipped=5, tcp=3.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_002_mixed_protocol_counter_arithmetic() {
+    panic!("RED GATE: AC-005 not yet verified");
+}
+
+// ---- AC-006 ----------------------------------------------------------------
+
+/// AC-006 (BC-2.04.028 postcondition 1)
+/// Postcondition: summarize() returns an AnalysisSummary with
+/// analyzer_name == "TCP Reassembly".
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_028_summarize_analyzer_name() {
+    panic!("RED GATE: AC-006 not yet verified");
+}
+
+// ---- AC-007 ----------------------------------------------------------------
+
+/// AC-007 (BC-2.04.028 postcondition 2)
+/// Postcondition: summarize() returns packets_analyzed == stats.packets_tcp,
+/// not packets_processed.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_028_summarize_packets_analyzed_equals_tcp_count() {
+    panic!("RED GATE: AC-007 not yet verified");
+}
+
+// ---- AC-008 ----------------------------------------------------------------
+
+/// AC-008 (BC-2.04.028 postcondition 3)
+/// Postcondition: the detail BTreeMap contains EXACTLY the 17 documented keys.
+/// Any missing key or extra key is a test failure.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_028_summarize_exact_key_set() {
+    panic!("RED GATE: AC-008 not yet verified");
+}
+
+// ---- AC-009 ----------------------------------------------------------------
+
+/// AC-009 (BC-2.04.028 invariant 1)
+/// Invariant: flows_completed in the detail map always equals flows_fin + flows_rst.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_028_flows_completed_derived_correctly() {
+    panic!("RED GATE: AC-009 not yet verified");
+}
+
+// ---- AC-010 ----------------------------------------------------------------
+
+/// AC-010 (BC-2.04.028 invariant 3)
+/// Invariant: the detail BTreeMap uses BTreeMap ordering, guaranteeing
+/// alphabetical key ordering in JSON serialization across runs.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_028_detail_is_btreemap_ordered() {
+    panic!("RED GATE: AC-010 not yet verified");
+}
+
+// ---- AC-011 ----------------------------------------------------------------
+
+/// AC-011 (BC-2.04.030 postcondition 1)
+/// Postcondition: after processing packets and calling finalize(), bytes_reassembled
+/// equals the sum of all data.len() values passed to handler.on_data callbacks.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_030_bytes_reassembled_matches_handler_total() {
+    panic!("RED GATE: AC-011 not yet verified");
+}
+
+// ---- AC-012 ----------------------------------------------------------------
+
+/// AC-012 (BC-2.04.030 invariant 1)
+/// Invariant: bytes_reassembled is monotonically non-decreasing; it never
+/// decreases between any two observations.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_030_bytes_reassembled_is_monotonic() {
+    panic!("RED GATE: AC-012 not yet verified");
+}
+
+// ---- AC-013 ----------------------------------------------------------------
+
+/// AC-013 (BC-2.04.030 postcondition 4)
+/// Postcondition: duplicate retransmissions and out-of-window segments do NOT
+/// contribute to bytes_reassembled (discarded before flush).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_030_duplicates_not_counted_in_bytes_reassembled() {
+    panic!("RED GATE: AC-013 not yet verified");
+}
+
+// ---- EC-001: UDP packet skipped ----
+
+/// EC-001 (BC-2.04.002 edge case)
+/// UDP packet is skipped; packets_skipped_non_tcp increments.
+#[test]
+fn test_ec_001_udp_packet_skipped() {
+    panic!("RED GATE: EC-001 not yet verified");
+}
+
+// ---- EC-002: ICMP packet skipped ----
+
+/// EC-002 (BC-2.04.002 edge case)
+/// ICMP packet (Protocol::Icmp) is skipped; packets_skipped_non_tcp increments.
+#[test]
+fn test_ec_002_icmp_packet_skipped() {
+    panic!("RED GATE: EC-002 not yet verified");
+}
+
+// ---- EC-003: Protocol::Other(n) skipped ----
+
+/// EC-003 (BC-2.04.002 edge case)
+/// Protocol::Other(n) packet is skipped; packets_skipped_non_tcp increments.
+#[test]
+fn test_ec_003_other_protocol_skipped() {
+    panic!("RED GATE: EC-003 not yet verified");
+}
+
+// ---- EC-004: All packets non-TCP ----
+
+/// EC-004 (BC-2.04.002 edge case + story EC-004)
+/// When all packets are non-TCP, flows table is empty and findings are empty
+/// after all packets processed.
+#[test]
+fn test_ec_004_all_non_tcp_flows_empty() {
+    panic!("RED GATE: EC-004 not yet verified");
+}
+
+// ---- EC-005: summarize() before any packets ----
+
+/// EC-005 (BC-2.04.028 edge case EC-001 / story EC-005)
+/// summarize() called on a freshly-constructed reassembler before any packets:
+/// all counters are 0; all-zero detail map returned.
+#[test]
+fn test_ec_005_summarize_before_any_packets() {
+    panic!("RED GATE: EC-005 not yet verified");
+}
+
+// ---- EC-006: summarize() after finalize() ----
+
+/// EC-006 (BC-2.04.028 edge case EC-002 / story EC-006)
+/// summarize() called after finalize() returns an accurate snapshot;
+/// finalize does not reset stats.
+#[test]
+fn test_ec_006_summarize_after_finalize_accurate() {
+    panic!("RED GATE: EC-006 not yet verified");
+}
+
+// ---- EC-007: non-TCP excluded from packets_analyzed ----
+
+/// EC-007 (BC-2.04.028 edge case EC-003 / story EC-007)
+/// When non-TCP packets are injected before summarize(), packets_analyzed
+/// equals packets_tcp, not packets_processed.
+#[test]
+fn test_ec_007_non_tcp_excluded_from_packets_analyzed() {
+    panic!("RED GATE: EC-007 not yet verified");
+}
+
+// ---- EC-008: bytes_reassembled after out-of-order segment ----
+
+/// EC-008 (BC-2.04.030 invariant 3 / story EC-008)
+/// bytes_reassembled only counts after flush, not while a segment is buffered
+/// (out-of-order, waiting for the gap to be filled).
+#[test]
+fn test_ec_008_bytes_reassembled_only_after_flush() {
+    panic!("RED GATE: EC-008 not yet verified");
+}
