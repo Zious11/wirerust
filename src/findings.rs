@@ -123,12 +123,14 @@ pub struct Finding {
     pub confidence: Confidence,
     pub summary: String,
     pub evidence: Vec<String>,
-    // LESSON-P1.02 / NFR OBS-010: all three `Option<_>` fields are
+    // LESSON-P1.02 / NFR OBS-010: all four `Option<_>` fields are
     // emitted symmetrically — absent values are omitted from the JSON
     // object rather than serialized as `null`. Previously only
-    // `timestamp` carried this attribute, producing an asymmetric
-    // mixed-shape output (`mitre_technique: null` vs no `timestamp`
-    // key at all) that made JSON consumers harder to write.
+    // `timestamp` carried this attribute; the P1.02 symmetry fix
+    // added it to `mitre_technique`, `source_ip`, and `direction` as
+    // well, so all four fields (`mitre_technique`, `source_ip`,
+    // `timestamp`, `direction`) now behave consistently and JSON
+    // consumers see a uniform shape with no `null`-valued keys.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mitre_technique: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

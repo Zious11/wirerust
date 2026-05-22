@@ -590,6 +590,11 @@ fn test_terminal_reporter_escapes_esc_bytes_in_summary() {
     );
 }
 
+/// STORY-070 AC-003 (BC-2.09.005 postcondition 4): JSON output produced by
+/// `JsonReporter` contains the raw bytes escaped only per RFC 8259 by serde_json
+/// (ESC 0x1B appears as `\u001b` in JSON, not the literal byte). This test is
+/// the canonical coverage point for STORY-070 AC-003 — it predates STORY-070 and
+/// satisfies the requirement in full. See STORY-070 §AC-003 for traceability.
 #[test]
 fn test_output_sanitization_layering_contract() {
     // End-to-end contract test for ADR 0003. A single Finding flows through
@@ -1782,5 +1787,840 @@ fn test_bc_2_09_002_ec005_reconnaissance_category_display() {
         formatted, "[Reconnaissance] INCONCLUSIVE (LOW) \u{2014} scan",
         "EC-005: Reconnaissance category must render as '[Reconnaissance]' \
          (Debug variant name per BC-2.09.002 postcondition 2)"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// STORY-070 (BC-2.09.005 / BC-2.09.006): Raw-Data Contract and JSON
+// Serialization Symmetry (skip_serializing_if)
+//
+// NOTE: The STORY-069 block above also uses AC-001..AC-011 / EC-001..EC-005
+// numbering (for BC-2.09.001..BC-2.09.004). The two blocks are DISTINCT:
+//   STORY-069 AC-001..AC-011 → BC-2.09.001 (Finding struct) / BC-2.09.002
+//             (Display) / BC-2.09.003 (Verdict) / BC-2.09.004 (Confidence)
+//   STORY-070 AC-001..AC-011 → BC-2.09.005 (raw-data contract) /
+//             BC-2.09.006 (JSON skip_serializing_if symmetry)
+//
+// implementation_strategy: brownfield-formalization
+// All tests are expected to PASS (brownfield-confirm) because the serde
+// skip_serializing_if attributes already exist on all four Option fields.
+// Any FAIL indicates a real gap where existing code does not satisfy the BC.
+// ---------------------------------------------------------------------------
+
+// --- AC-001 / BC-2.09.005 postcondition 1 ---
+
+/// AC-001 (BC-2.09.005 postcondition 1): `Finding.summary` contains raw
+/// post-`from_utf8_lossy` bytes without any additional escaping at construction
+/// time. This is verified by driving a real analyzer construction site
+/// (HttpAnalyzer) rather than constructing a Finding directly, so the test
+/// exercises the actual analyzer code path rather than just `String` behavior.
+///
+/// httparse accepts C1 control bytes (e.g., U+009B CSI, encoded as 0xC2 0x9B)
+/// in URIs because they are high bytes; it rejects C0 bytes (0x00-0x1F). The
+/// test uses C1 CSI — a genuine control byte that `String::from_utf8_lossy`
+/// passes through unchanged — to verify the raw-data contract on a real analyzer
+/// path. The property under test is that the analyzer does NOT call
+/// `escape_for_terminal` or any other byte transformation: the control byte
+/// present in the attacker-controlled input must appear verbatim in the Finding.
+///
+/// Canonical test vector: path-traversal request with C1 CSI in the URI
+/// (same payload as `test_http_finding_c1_csi_escaped_by_terminal_reporter`).
+#[test]
+fn test_finding_summary_preserves_raw_c1_bytes() {
+    // Build an HTTP request whose URI contains a C1 CSI byte (U+009B, 0xC2 0x9B).
+    // httparse accepts this because the UTF-8 encoding uses high bytes (>= 0x80).
+    // The path-traversal prefix "/../" triggers the path-traversal Finding, which
+    // puts the URI (via truncate_uri) into Finding.summary via from_utf8_lossy.
+    let mut request = b"GET /../../etc/passwd".to_vec();
+    request.extend_from_slice(&[0xC2, 0x9B]); // U+009B CSI — control byte httparse accepts
+    request.extend_from_slice(b"31mHACKED HTTP/1.1\r\nHost: target.com\r\n\r\n");
+
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = http_test_flow_key();
+    analyzer.on_data(&fk, Direction::ClientToServer, &request, 0);
+
+    let findings = analyzer.findings();
+    assert!(
+        !findings.is_empty(),
+        "AC-001: path-traversal request must produce at least one Finding"
+    );
+
+    // The path-traversal Finding puts the raw URI bytes into summary via
+    // from_utf8_lossy. The C1 CSI byte (0xC2 0x9B) must appear verbatim —
+    // no escape_for_terminal, no Debug-format, no other transformation.
+    let traversal = findings
+        .iter()
+        .find(|f| f.summary.contains("Path traversal"))
+        .expect("AC-001: expected a path-traversal Finding with the C1 CSI URI");
+
+    assert!(
+        traversal
+            .summary
+            .as_bytes()
+            .windows(2)
+            .any(|w| w == [0xC2, 0x9B]),
+        "BC-2.09.005 postcondition 1: Finding.summary must contain the raw C1 CSI bytes \
+         (0xC2 0x9B) without any escaping at the analyzer construction site; \
+         got: {:?}",
+        traversal.summary
+    );
+    // Confirm the escaped form is NOT present (would indicate construction-site escaping).
+    assert!(
+        !traversal.summary.contains("\\u{9b}"),
+        "BC-2.09.005 postcondition 1: Finding.summary must not contain the escape-form \
+         '\\u{{9b}}'; the analyzer must not call escape_for_terminal; \
+         got: {:?}",
+        traversal.summary
+    );
+}
+
+// --- BC-2.09.005 postcondition 2 (evidence raw-byte preservation) ---
+
+/// BC-2.09.005 postcondition 2: `Finding.evidence` carries raw post-`from_utf8_lossy`
+/// bytes with the same guarantee as `summary`. An evidence entry containing ESC
+/// byte 0x1B must store the literal 0x1B byte at construction time — not any
+/// escaped form.
+///
+/// This mirrors `test_finding_summary_preserves_raw_c1_bytes` but exercises the
+/// `evidence` field, which BC-2.09.005 §Postconditions explicitly covers as
+/// carrying the same raw-byte guarantee (postcondition 2).
+#[test]
+fn test_finding_evidence_preserves_raw_c0_bytes() {
+    // Simulate what an analyzer produces via from_utf8_lossy on attacker-
+    // controlled payload bytes containing ESC (0x1B) in an evidence entry.
+    let raw_bytes: Vec<u8> = b"header: \x1b[31mINJECTED\x1b[0m".to_vec();
+    let evidence_entry = String::from_utf8_lossy(&raw_bytes).into_owned();
+
+    let finding = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Likely,
+        confidence: Confidence::High,
+        summary: "payload with injected evidence".to_string(),
+        evidence: vec![evidence_entry.clone()],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    // Postcondition 2: the literal 0x1B byte is present in evidence[0].
+    assert!(
+        finding.evidence[0].as_bytes().contains(&0x1b),
+        "BC-2.09.005 postcondition 2: Finding.evidence[0] must contain the literal ESC byte \
+         (0x1B) without any additional escaping at construction time; got: {:?}",
+        finding.evidence[0]
+    );
+    // Must NOT contain the escaped string form.
+    assert!(
+        !finding.evidence[0].contains("\\u{1b}"),
+        "BC-2.09.005 postcondition 2: Finding.evidence[0] must not contain the escape-form \
+         '\\u{{1b}}'; raw bytes must pass through; got: {:?}",
+        finding.evidence[0]
+    );
+    // Round-trip: the field must equal the from_utf8_lossy output exactly.
+    assert_eq!(
+        finding.evidence[0], evidence_entry,
+        "BC-2.09.005 postcondition 2: Finding.evidence[0] must equal the from_utf8_lossy output"
+    );
+}
+
+// --- AC-002 / BC-2.09.005 invariant 1 ---
+
+/// AC-002 (BC-2.09.005 invariant 1): `escape_for_terminal` is defined and
+/// invoked exclusively within `src/reporter/terminal.rs` (module-containment
+/// property). BC-2.09.005 v1.3 establishes three call sites inside that file
+/// (render_finding_prefix ×2, analyzer-summary rendering ×1); the property
+/// enforced here is that no OTHER source file references the function on a
+/// non-comment line. This prevents any analyzer from calling escape_for_terminal
+/// at a Finding construction site — which would violate ADR 0003 and corrupt
+/// forensic byte fidelity.
+///
+/// Uses in-process `std::fs::read_to_string` (hardened pattern from STORY-069)
+/// — no dependency on grep being on PATH; a missing file panics the test rather
+/// than silently passing.
+///
+/// Robustness: the scan filters out comment and doc lines (those whose trimmed
+/// form starts with `//`) before counting occurrences. This prevents a future
+/// doc comment mentioning the function name from producing a false failure.
+/// Only non-comment code lines are checked, which is where call sites live.
+#[test]
+fn test_escape_for_terminal_contained_to_terminal_module() {
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let src_root = std::path::Path::new(manifest_dir).join("src");
+
+    // Walk the src tree and accumulate all .rs files that are NOT terminal.rs.
+    let mut violations: Vec<String> = Vec::new();
+    let mut scanned_files: usize = 0;
+    let mut found_terminal_rs = false;
+
+    for entry in walkdir_rs_files(&src_root) {
+        let path = &entry;
+        // Track whether the walk reached src/reporter/terminal.rs — this proves
+        // the walk descended into the reporter subdirectory and was not vacuous.
+        if path.ends_with("reporter/terminal.rs") {
+            found_terminal_rs = true;
+            continue;
+        }
+        scanned_files += 1;
+        let content = std::fs::read_to_string(path).unwrap_or_else(|e| {
+            panic!(
+                "BC-2.09.005 invariant 1: source file '{}' must be readable: {e}",
+                path.display()
+            )
+        });
+        // Count only non-comment lines — strip lines whose trimmed form begins
+        // with `//` (line comments and doc comments). This makes the test
+        // resilient to doc comments that mention the function name without
+        // calling it, avoiding false positives from future documentation edits.
+        let call_site_count = content
+            .lines()
+            .filter(|line| !line.trim_start().starts_with("//"))
+            .filter(|line| line.contains("escape_for_terminal"))
+            .count();
+        if call_site_count > 0 {
+            violations.push(format!(
+                "'{}': {} non-comment occurrence(s)",
+                path.strip_prefix(manifest_dir).unwrap_or(path).display(),
+                call_site_count
+            ));
+        }
+    }
+
+    // Positive-coverage assertion 1: the walk must have found and skipped
+    // src/reporter/terminal.rs, proving it descended into the reporter directory.
+    // A vacuous walk (e.g. src_root resolves to a non-existent path) would leave
+    // this false, turning a silent false-pass into an explicit failure.
+    assert!(
+        found_terminal_rs,
+        "BC-2.09.005 invariant 1: walk did not find src/reporter/terminal.rs — \
+         the src/ tree was not scanned correctly. Check that CARGO_MANIFEST_DIR \
+         resolves to the crate root and src/reporter/terminal.rs exists."
+    );
+
+    // Positive-coverage assertion 2: at least 10 other .rs files must have been
+    // scanned. The codebase currently has many more; this floor ensures a partial
+    // or empty walk cannot silently pass the violation check.
+    assert!(
+        scanned_files >= 10,
+        "BC-2.09.005 invariant 1: only {scanned_files} .rs file(s) scanned (expected >= 10). \
+         The src/ walk is incomplete — a structural change may have broken the file discovery."
+    );
+
+    assert!(
+        violations.is_empty(),
+        "BC-2.09.005 invariant 1 violated: `escape_for_terminal` referenced outside \
+         src/reporter/terminal.rs on non-comment lines. ADR 0003 mandates the function \
+         is defined and invoked exclusively within that file. Violations:\n{}",
+        violations.join("\n")
+    );
+}
+
+/// Walk all `.rs` files under `root`, returning their absolute paths.
+/// Used by `test_escape_for_terminal_contained_to_terminal_module` — written as
+/// a free function so the logic is easy to read and the test remains concise.
+fn walkdir_rs_files(root: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut results = Vec::new();
+    collect_rs_files(root, &mut results);
+    results
+}
+
+fn collect_rs_files(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+    let entries = match std::fs::read_dir(dir) {
+        Ok(e) => e,
+        Err(_) => return,
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_rs_files(&path, out);
+        } else if path.extension().is_some_and(|ext| ext == "rs") {
+            out.push(path);
+        }
+    }
+}
+
+// --- AC-003 / BC-2.09.005 postcondition 4 ---
+// test_output_sanitization_layering_contract already exists above (line 594).
+// It covers this AC: JSON output contains \u001b (not literal ESC) for a
+// Finding whose summary contains 0x1B. No duplicate needed.
+
+// --- AC-004 / BC-2.09.005 invariant 3 ---
+
+/// AC-004 (BC-2.09.005 invariant 3): Invalid UTF-8 sequences in `summary` or
+/// `evidence` are replaced by U+FFFD (replacement character) via
+/// `String::from_utf8_lossy`; no panic occurs.
+///
+/// Canonical test vector: TLS finding with non-UTF-8 SNI (invalid UTF-8 bytes).
+#[test]
+fn test_non_utf8_bytes_in_summary_replaced_with_fffd() {
+    // 0x80 and 0xFF are invalid as standalone UTF-8 bytes.
+    let bad_bytes: Vec<u8> = vec![b'S', b'N', b'I', b':', 0x80, 0xFF, b'!'];
+    let summary = String::from_utf8_lossy(&bad_bytes).into_owned();
+
+    // Must not panic — from_utf8_lossy replaces invalid sequences with U+FFFD.
+    let finding = Finding {
+        category: ThreatCategory::C2,
+        verdict: Verdict::Likely,
+        confidence: Confidence::High,
+        summary: summary.clone(),
+        evidence: vec![String::from_utf8_lossy(&[0xfe, 0xfe]).into_owned()],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    // U+FFFD replacement character must appear where invalid bytes were.
+    assert!(
+        finding.summary.contains('\u{FFFD}'),
+        "BC-2.09.005 invariant 3: invalid UTF-8 bytes must be replaced by U+FFFD; \
+         got summary: {:?}",
+        finding.summary
+    );
+    assert!(
+        finding.evidence[0].contains('\u{FFFD}'),
+        "BC-2.09.005 invariant 3: invalid UTF-8 bytes in evidence must be replaced by U+FFFD; \
+         got evidence[0]: {:?}",
+        finding.evidence[0]
+    );
+
+    // No panic — the finding serializes without incident.
+    let json_out = JsonReporter.render(&Summary::new(), &[finding], &[]);
+    let parsed: serde_json::Value =
+        serde_json::from_str(&json_out).expect("JSON must be valid even with U+FFFD in summary");
+    let summary_str = parsed["findings"][0]["summary"].as_str().unwrap();
+    assert!(
+        summary_str.contains('\u{FFFD}'),
+        "BC-2.09.005 invariant 3: U+FFFD must survive JSON round-trip; got: {summary_str:?}"
+    );
+}
+
+// --- AC-005 / BC-2.09.006 postcondition 2 ---
+
+/// AC-005 (BC-2.09.006 postcondition 2): When `mitre_technique = None`, the
+/// JSON object has NO `"mitre_technique"` key (not `"mitre_technique": null`).
+///
+/// Canonical test vector: Finding { mitre_technique: None, ... }.
+#[test]
+fn test_none_mitre_technique_absent_from_json() {
+    let finding = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Inconclusive,
+        confidence: Confidence::Low,
+        summary: "test".to_string(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    let json_out = JsonReporter.render(&Summary::new(), &[finding], &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&json_out).expect("valid JSON");
+    let obj = parsed["findings"][0]
+        .as_object()
+        .expect("finding must be a JSON object");
+
+    assert!(
+        !obj.contains_key("mitre_technique"),
+        "BC-2.09.006 postcondition 2: mitre_technique=None must produce NO key in JSON \
+         (not null); got: {}",
+        parsed["findings"][0]
+    );
+}
+
+// --- AC-006 / BC-2.09.006 postcondition 2 ---
+
+/// AC-006 (BC-2.09.006 postcondition 2): When `source_ip = None`, the JSON
+/// object has NO `"source_ip"` key.
+#[test]
+fn test_none_source_ip_absent_from_json() {
+    let finding = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Inconclusive,
+        confidence: Confidence::Low,
+        summary: "test".to_string(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    let json_out = JsonReporter.render(&Summary::new(), &[finding], &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&json_out).expect("valid JSON");
+    let obj = parsed["findings"][0]
+        .as_object()
+        .expect("finding must be a JSON object");
+
+    assert!(
+        !obj.contains_key("source_ip"),
+        "BC-2.09.006 postcondition 2: source_ip=None must produce NO key in JSON; got: {}",
+        parsed["findings"][0]
+    );
+}
+
+// --- AC-007 / BC-2.09.006 postcondition 2 ---
+
+/// AC-007 (BC-2.09.006 postcondition 2): When `direction = None`, the JSON
+/// object has NO `"direction"` key.
+#[test]
+fn test_none_direction_absent_from_json() {
+    let finding = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Inconclusive,
+        confidence: Confidence::Low,
+        summary: "test".to_string(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    let json_out = JsonReporter.render(&Summary::new(), &[finding], &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&json_out).expect("valid JSON");
+    let obj = parsed["findings"][0]
+        .as_object()
+        .expect("finding must be a JSON object");
+
+    assert!(
+        !obj.contains_key("direction"),
+        "BC-2.09.006 postcondition 2: direction=None must produce NO key in JSON; got: {}",
+        parsed["findings"][0]
+    );
+}
+
+// --- AC-008 / BC-2.09.006 postcondition 2 + invariant 2 ---
+
+/// AC-008 (BC-2.09.006 postcondition 2 + invariant 2): When `timestamp = None`
+/// (always, per domain-debt O-01), the JSON object has NO `"timestamp"` key in
+/// any produced Finding.
+///
+/// Covers all four emission-site categories:
+///   1. HTTP analyzer findings (direction: Some, source_ip: None)
+///   2. TLS analyzer findings (direction: Some, source_ip: None)
+///   3. Reassembly anomaly findings (direction: Some, source_ip: Some) — per
+///      BC-2.09.001 invariant 4: overlap/small-segment/out-of-window findings
+///      set both direction and source_ip.
+///   4. Reassembly lifecycle findings (direction: None, source_ip: None or Some)
+#[test]
+fn test_timestamp_absent_from_all_finding_json() {
+    // Construct four distinct Finding shapes (synthesized — all set timestamp: None
+    // per BC-2.09.006 invariant 2 / O-01), one per emission-site category.
+    let findings = vec![
+        // 1. HTTP-analyzer shape: direction Some, source_ip None.
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::High,
+            summary: "http-finding".to_string(),
+            evidence: vec![],
+            mitre_technique: Some("T1190".to_string()),
+            source_ip: None,
+            timestamp: None,
+            direction: Some(Direction::ClientToServer),
+        },
+        // 2. TLS-analyzer shape: direction Some, source_ip None.
+        Finding {
+            category: ThreatCategory::C2,
+            verdict: Verdict::Likely,
+            confidence: Confidence::High,
+            summary: "tls-finding".to_string(),
+            evidence: vec![],
+            mitre_technique: Some("T1573".to_string()),
+            source_ip: None,
+            timestamp: None,
+            direction: Some(Direction::ClientToServer),
+        },
+        // 3. Reassembly-anomaly shape: direction Some, source_ip Some.
+        // Per BC-2.09.001 invariant 4: overlap/small-segment/out-of-window
+        // anomaly findings in reassembly/mod.rs set both fields.
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::Medium,
+            summary: "TCP segment overlap anomaly".to_string(),
+            evidence: vec!["overlap at seq 1000".to_string()],
+            mitre_technique: None,
+            source_ip: Some("10.0.0.1".parse().unwrap()),
+            timestamp: None,
+            direction: Some(Direction::ClientToServer),
+        },
+        // 4. Reassembly-lifecycle shape: direction None, source_ip None.
+        // Per BC-2.09.001 invariant 4: lifecycle findings set direction: None.
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Unlikely,
+            confidence: Confidence::Low,
+            summary: "reassembly-lifecycle-finding".to_string(),
+            evidence: vec![],
+            mitre_technique: None,
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        },
+    ];
+
+    let json_out = JsonReporter.render(&Summary::new(), &findings, &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&json_out).expect("valid JSON");
+    let arr = parsed["findings"].as_array().expect("findings array");
+
+    for (i, finding_val) in arr.iter().enumerate() {
+        let obj = finding_val
+            .as_object()
+            .unwrap_or_else(|| panic!("finding[{i}] must be a JSON object"));
+        assert!(
+            !obj.contains_key("timestamp"),
+            "BC-2.09.006 postcondition 2 + invariant 2 (O-01): \
+             findings[{i}] must have NO 'timestamp' key (timestamp is always None); \
+             got: {finding_val}"
+        );
+    }
+}
+
+// --- AC-009 / BC-2.09.006 postcondition 1 ---
+
+/// AC-009 (BC-2.09.006 postcondition 1): When `mitre_technique = Some("T1036")`,
+/// the JSON object contains `"mitre_technique": "T1036"`.
+///
+/// Canonical test vector: Finding { mitre_technique: Some("T1036"), ... }.
+#[test]
+fn test_some_mitre_technique_present_in_json() {
+    let finding = Finding {
+        category: ThreatCategory::LateralMovement,
+        verdict: Verdict::Likely,
+        confidence: Confidence::High,
+        summary: "masquerading".to_string(),
+        evidence: vec![],
+        mitre_technique: Some("T1036".to_string()),
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    let json_out = JsonReporter.render(&Summary::new(), &[finding], &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&json_out).expect("valid JSON");
+
+    assert_eq!(
+        parsed["findings"][0]["mitre_technique"],
+        serde_json::json!("T1036"),
+        "BC-2.09.006 postcondition 1: mitre_technique=Some(\"T1036\") must produce \
+         '\"mitre_technique\": \"T1036\"' in JSON"
+    );
+}
+
+// --- AC-010 / BC-2.09.006 postcondition 1 ---
+
+/// AC-010 (BC-2.09.006 postcondition 1): When `direction = Some(ClientToServer)`,
+/// the JSON object contains `"direction": "ClientToServer"`.
+///
+/// Canonical test vector: Finding { direction: Some(ClientToServer), ... }.
+#[test]
+fn test_some_direction_present_in_json() {
+    let finding = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Likely,
+        confidence: Confidence::Medium,
+        summary: "directional-finding".to_string(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: Some(Direction::ClientToServer),
+    };
+
+    let json_out = JsonReporter.render(&Summary::new(), &[finding], &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&json_out).expect("valid JSON");
+
+    assert_eq!(
+        parsed["findings"][0]["direction"],
+        serde_json::json!("ClientToServer"),
+        "BC-2.09.006 postcondition 1: direction=Some(ClientToServer) must produce \
+         '\"direction\": \"ClientToServer\"' in JSON"
+    );
+}
+
+// --- AC-011 / BC-2.09.006 invariant 3 ---
+
+/// AC-011 (BC-2.09.006 invariant 3): Reassembly-engine findings with
+/// `direction: None` (lifecycle, segment-limit-summary) produce JSON with no
+/// `"direction"` key.
+///
+/// These findings come from `reassembly/lifecycle.rs` (conflicting-overlap,
+/// stream-depth-exceeded) and the segment-limit summary in `reassembly/mod.rs`.
+/// All set direction: None and must produce no JSON key for that field.
+#[test]
+fn test_reassembly_lifecycle_finding_no_direction_in_json() {
+    // Synthesized to match the shape emitted by reassembly/lifecycle.rs.
+    let lifecycle_finding = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Likely,
+        confidence: Confidence::Medium,
+        summary: "Stream depth limit exceeded".to_string(),
+        evidence: vec!["stream-depth: 65536".to_string()],
+        mitre_technique: None,
+        source_ip: Some("10.0.0.1".parse().unwrap()),
+        timestamp: None,
+        direction: None, // lifecycle findings always set direction: None
+    };
+
+    let json_out = JsonReporter.render(&Summary::new(), &[lifecycle_finding], &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&json_out).expect("valid JSON");
+    let obj = parsed["findings"][0]
+        .as_object()
+        .expect("finding must be a JSON object");
+
+    assert!(
+        !obj.contains_key("direction"),
+        "BC-2.09.006 invariant 3: reassembly lifecycle/segment-limit findings must have \
+         no 'direction' key in JSON (direction is always None for these); got: {}",
+        parsed["findings"][0]
+    );
+    // Verify source_ip IS present (these findings do set source_ip).
+    assert!(
+        obj.contains_key("source_ip"),
+        "BC-2.09.006: reassembly lifecycle findings must include source_ip when Some; \
+         got: {}",
+        parsed["findings"][0]
+    );
+}
+
+// ---------------------------------------------------------------------------
+// STORY-070 Edge Cases EC-001 through EC-005
+// ---------------------------------------------------------------------------
+
+/// EC-001 (STORY-070): Full pipeline — Finding with ESC in summary:
+///   - JSON output contains `\u001b` (RFC 8259 escape), not the literal 0x1B byte.
+///   - Terminal output contains the display-escaped form `\u{1b}`.
+///   - Finding.summary has the literal 0x1B byte (forensic preservation).
+///
+/// This is the three-layer ADR 0003 contract in one end-to-end test.
+/// Note: test_output_sanitization_layering_contract above covers these three
+/// layers in detail; this test restates them in the EC-001 naming.
+#[test]
+fn test_story_070_ec001_full_pipeline_esc_in_uri() {
+    let raw_bytes = b"GET /\x1b[31mEVIL HTTP/1.1";
+    let summary = String::from_utf8_lossy(raw_bytes).into_owned();
+
+    let finding = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Likely,
+        confidence: Confidence::High,
+        summary: summary.clone(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    // Layer 1: struct preserves literal 0x1B.
+    assert!(
+        finding.summary.as_bytes().contains(&0x1b),
+        "EC-001: Finding.summary must contain literal 0x1B byte; got: {:?}",
+        finding.summary
+    );
+
+    // Layer 2: terminal reporter escapes to \u{1b} form.
+    let terminal_out = TerminalReporter {
+        use_color: false,
+        show_mitre_grouping: false,
+        show_hosts_breakdown: false,
+    }
+    .render(&Summary::new(), std::slice::from_ref(&finding), &[]);
+    assert!(
+        !terminal_out.as_bytes().contains(&0x1b),
+        "EC-001: terminal output must not contain raw ESC byte; got: {terminal_out:?}"
+    );
+    assert!(
+        terminal_out.contains("\\u{1b}"),
+        "EC-001: terminal output must contain '\\u{{1b}}' escape form; got: {terminal_out}"
+    );
+
+    // Layer 3: JSON reporter escapes via serde RFC 8259 \u001b form.
+    let json_out = JsonReporter.render(&Summary::new(), &[finding], &[]);
+    assert!(
+        !json_out.as_bytes().contains(&0x1b),
+        "EC-001: JSON output must not contain raw ESC byte; got: {json_out:?}"
+    );
+    assert!(
+        json_out.contains("\\u001b"),
+        "EC-001: JSON output must contain '\\u001b' (RFC 8259); got: {json_out}"
+    );
+}
+
+/// EC-002 (STORY-070 / BC-2.09.006 EC-002): Finding with
+/// `source_ip = Some(IpAddr::V4(1.2.3.4))` — JSON has `"source_ip": "1.2.3.4"`.
+#[test]
+fn test_story_070_ec002_source_ip_some_in_json() {
+    use std::net::{IpAddr, Ipv4Addr};
+
+    let ip = IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4));
+    let finding = Finding {
+        category: ThreatCategory::Reconnaissance,
+        verdict: Verdict::Likely,
+        confidence: Confidence::High,
+        summary: "probe".to_string(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: Some(ip),
+        timestamp: None,
+        direction: None,
+    };
+
+    let json_out = JsonReporter.render(&Summary::new(), &[finding], &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&json_out).expect("valid JSON");
+
+    assert_eq!(
+        parsed["findings"][0]["source_ip"],
+        serde_json::json!("1.2.3.4"),
+        "EC-002: source_ip=Some(V4(1.2.3.4)) must serialize as '1.2.3.4'"
+    );
+}
+
+/// EC-003 (STORY-070): The three serializable Option fields (`mitre_technique`,
+/// `source_ip`, `direction`) are all `Some` — all three keys are present in
+/// JSON with the correct values. `timestamp` is always `None` per domain-debt
+/// O-01 and is therefore excluded from this scenario.
+#[test]
+fn test_story_070_ec003_three_some_option_fields_present_in_json() {
+    use std::net::{IpAddr, Ipv4Addr};
+
+    let ip = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 100));
+    let finding = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Likely,
+        confidence: Confidence::High,
+        summary: "three-some-optional-fields".to_string(),
+        evidence: vec![],
+        mitre_technique: Some("T1190".to_string()),
+        source_ip: Some(ip),
+        // timestamp is always None (O-01) — setting it here would violate the
+        // domain invariant. Only the three realistically-Some fields are tested.
+        timestamp: None,
+        direction: Some(Direction::ClientToServer),
+    };
+
+    let json_out = JsonReporter.render(&Summary::new(), &[finding], &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&json_out).expect("valid JSON");
+    let obj = parsed["findings"][0]
+        .as_object()
+        .expect("finding must be a JSON object");
+
+    assert!(
+        obj.contains_key("mitre_technique"),
+        "EC-003: mitre_technique=Some(...) must produce a JSON key; got: {}",
+        parsed["findings"][0]
+    );
+    assert!(
+        obj.contains_key("source_ip"),
+        "EC-003: source_ip=Some(...) must produce a JSON key; got: {}",
+        parsed["findings"][0]
+    );
+    assert!(
+        obj.contains_key("direction"),
+        "EC-003: direction=Some(...) must produce a JSON key; got: {}",
+        parsed["findings"][0]
+    );
+    // timestamp is always None per O-01; its absence is expected.
+    assert!(
+        !obj.contains_key("timestamp"),
+        "EC-003: timestamp=None must produce NO JSON key; got: {}",
+        parsed["findings"][0]
+    );
+    assert_eq!(
+        obj["mitre_technique"],
+        serde_json::json!("T1190"),
+        "EC-003: mitre_technique value must match"
+    );
+    assert_eq!(
+        obj["direction"],
+        serde_json::json!("ClientToServer"),
+        "EC-003: direction value must be 'ClientToServer'"
+    );
+}
+
+/// EC-004 (STORY-070): All four Option fields are None — zero of the four
+/// keys appear in JSON.
+#[test]
+fn test_story_070_ec004_all_four_option_fields_none_all_absent_from_json() {
+    let finding = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Inconclusive,
+        confidence: Confidence::Low,
+        summary: "no-optional-fields".to_string(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    let json_out = JsonReporter.render(&Summary::new(), &[finding], &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&json_out).expect("valid JSON");
+    let obj = parsed["findings"][0]
+        .as_object()
+        .expect("finding must be a JSON object");
+
+    for key in &["mitre_technique", "source_ip", "timestamp", "direction"] {
+        assert!(
+            !obj.contains_key(*key),
+            "EC-004: all four Option fields are None — '{}' must be absent from JSON \
+             (no key, not null); got: {}",
+            key,
+            parsed["findings"][0]
+        );
+    }
+}
+
+/// EC-005 (STORY-070): `evidence = vec!["raw\x00bytes"]` — JSON encodes the
+/// null byte via serde (as `\u0000`); `finding.evidence[0]` contains the
+/// literal `\x00` byte (forensic preservation).
+#[test]
+fn test_story_070_ec005_null_byte_in_evidence_preserved_and_encoded_in_json() {
+    let raw_evidence = "raw\x00bytes".to_string();
+
+    let finding = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Inconclusive,
+        confidence: Confidence::Low,
+        summary: "null-byte-test".to_string(),
+        evidence: vec![raw_evidence.clone()],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    // The struct preserves the literal null byte (forensic layer).
+    assert!(
+        finding.evidence[0].as_bytes().contains(&0x00),
+        "EC-005: Finding.evidence[0] must contain the literal null byte (0x00); \
+         got: {:?}",
+        finding.evidence[0]
+    );
+
+    // JSON reporter encodes the null byte via serde (RFC 8259 \u0000 form).
+    let json_out = JsonReporter.render(&Summary::new(), std::slice::from_ref(&finding), &[]);
+    assert!(
+        !json_out.as_bytes().contains(&0x00),
+        "EC-005: JSON output must not contain a raw null byte; got bytes: {:?}",
+        &json_out.as_bytes()[..json_out.len().min(200)]
+    );
+    assert!(
+        json_out.contains("\\u0000"),
+        "EC-005: JSON output must encode null byte as '\\u0000' (serde RFC 8259); \
+         got: {json_out}"
+    );
+
+    // Round-trip: the deserialized evidence must match the original.
+    let parsed: serde_json::Value = serde_json::from_str(&json_out).expect("valid JSON");
+    let evidence_str = parsed["findings"][0]["evidence"][0]
+        .as_str()
+        .expect("evidence[0] must be a string");
+    assert_eq!(
+        evidence_str, raw_evidence,
+        "EC-005: JSON round-trip must recover the original evidence string with literal null byte"
     );
 }
