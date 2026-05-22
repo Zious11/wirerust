@@ -26,6 +26,9 @@ wave_2_story_002_pr: 109
 wave_2_story_002_merge_commit: 34c592b
 wave_2_story_003_pr: 110
 wave_2_story_003_merge_commit: 3b2481c
+ci_hotfix_pr: 111
+ci_hotfix_merge_commit: 7c1ab2c
+ci_hotfix_date: "2026-05-22"
 wave_2_story_004_pr: 107
 wave_2_story_004_merge_commit: 385e763
 wave_2_story_070_pr: 108
@@ -105,12 +108,15 @@ ACHIEVED — 3 consecutive clean passes (wave passes 1/2/3). Demo recordings are
 factory-artifacts branch gitignores `cycles/**/demos/` (commit f4e52fb; 49 prior demo files
 untracked). Next: Wave 3 dispatch (STORY-005, STORY-071).
 
-**Current develop HEAD:** 3b2481c (PR #110 — STORY-003 decoder SLL/no-panic + VP-008 fuzz harness, merged 2026-05-22).
+**Current develop HEAD:** 7c1ab2c (PR #111 — CI hotfix: pin fuzz-build to nightly-2026-05-21 + cargo-fuzz 0.13.1 + timeout-minutes: 25, merged 2026-05-22). Previous: 3b2481c (PR #110).
 
 **Mode:** brownfield (in-repo: target == reference).
 
 **Test suite:** 376 passing on develop. `cargo fmt --check`, `cargo clippy`,
-`cargo test --all-targets` all green. CI: 7 checks including new `fuzz-build` job.
+`cargo test --all-targets` all green. CI: 7 checks including `fuzz-build` job (pinned
+`nightly-2026-05-21` + `cargo-fuzz 0.13.1` + `timeout-minutes: 25` after PR #111 hotfix;
+see W2.4 note — the nightly pin is a deliberate periodic-maintenance item, do NOT enable
+automated dependency bumping for it; bumping requires verifying the fuzz build still passes).
 
 ## Phase Progress
 
@@ -120,7 +126,7 @@ untracked). Next: Wave 3 dispatch (STORY-005, STORY-071).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
 | Phase 2 — Story Decomposition | **PASSED** — all gates + human approval 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; decomposition gate PASSED; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153); trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M→0C/0H/1M (RESET)→0C/0H/0M→0C/0H/0M→0C/0H/0M (GATE SATISFIED 3/3) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Wave 1 CLOSED 2026-05-22; Wave 2 CLOSED 2026-05-22 (PRs #109/#110/#107/#108; per-story + wave-level convergence ACHIEVED; develop at 3b2481c; 376 tests); Wave 3 ready to dispatch | — |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Wave 1 CLOSED 2026-05-22; Wave 2 CLOSED 2026-05-22 (PRs #109/#110/#107/#108; per-story + wave-level convergence ACHIEVED; develop at 7c1ab2c after CI hotfix PR #111; 376 tests); Wave 3 ready to dispatch | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -289,7 +295,7 @@ Process-gap codification deferred from Phase 2 adversarial convergence — requi
 | [process-gap] W2.1 | Presence-assertion tests should be paired with content greps — a test that asserts a file exists (e.g., `test_VP_008_fuzz_harness_exists`) does not verify the file content is semantically correct. Codify: VP-anchored file-existence tests must also assert at least one structural invariant of the file's content (e.g., function name, key keyword). Observed in STORY-003 pass-2 review. | P2 |
 | [process-gap] W2.2 | CI regression-detector jobs lack positive-coverage assertions — the fuzz-build CI job added for STORY-003 verifies the harness compiles but does not assert that it exercises any particular code path. Codify: CI jobs that guard VP-anchored verification properties must include a smoke assertion (e.g., `cargo fuzz run fuzz_decode_packet -- -runs=100`). Observed in STORY-003 pass-2 review. | P2 |
 | [process-gap] W2.3 | Story frontmatter has no per-input BC version pin — STORY-004 OBS-5: the story references BC-2.02.010..013 but records no BC version pin in frontmatter, so a BC version bump (e.g., v1.2→v1.3 for BC-2.02.013) is not mechanically detectable as a story staleness signal. Codify: story frontmatter should include a `bc_versions:` map listing each cited BC and its version at story-authoring time. Observed in STORY-004 pass-2 review. | Minor / process-gap |
-| [process-gap] W2.4 | CI `fuzz-build` job in `.github/workflows/ci.yml` has no explicit `timeout-minutes`; a cold-cache slowdown is unbounded. Recommend adding an explicit generous bound (e.g., 20–30 min) so slow runs are visibly time-boxed. Observed in STORY-003 CI delivery. | Minor / process-gap |
+| [process-gap] W2.4 | ~~CI `fuzz-build` job in `.github/workflows/ci.yml` has no explicit `timeout-minutes`; a cold-cache slowdown is unbounded.~~ **RESOLVED PR #111 (7c1ab2c, 2026-05-22)** — `timeout-minutes: 25` added; nightly toolchain pinned to `nightly-2026-05-21` + `cargo-fuzz 0.13.1`; date-stamped cache key. NOTE: the pinned nightly date is a periodic-maintenance item — bumping requires verifying the fuzz build still passes; do NOT enable automated dependency bumping for this pin. | Minor / process-gap |
 | [process-gap] W2.5 | Story `status:` frontmatter is not automatically transitioned from `draft` to `completed` on PR merge — no pipeline gate enforces this. Adversary passes repeatedly flagged delivered stories still showing `status: draft`. Recommend: deliver-story skill must emit a state-manager update command that flips story status on completion. This update is the manual fix for Wave 2's four stories. | P1 |
 | [process-gap] W2.6 | MSRV documentation divergence: root `Cargo.toml` pins `rust-version = "1.91"` while `CLAUDE.md` states "requires Rust 1.85+". Pre-existing divergence; recommend reconciling in a maintenance/doc sweep. | Minor / process-gap |
 
