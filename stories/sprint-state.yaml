@@ -88,11 +88,14 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-005:
-    status: in_progress
+    status: done
     wave: 3
-    branch: feature/story-005-decoder-packetlen-tcp
-    worktree: .worktrees/story-005
+    branch: null
+    worktree: null
     blocked_by: []
+    pr: 114
+    merge_commit: f0b5007
+    merged_date: "2026-05-22"
 
   STORY-071:
     status: done
