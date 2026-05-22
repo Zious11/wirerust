@@ -1605,7 +1605,11 @@ fn test_dropped_findings_key_present_in_summarize() {
 #[allow(non_snake_case)]
 #[should_panic(expected = "max_depth must be > 0")]
 fn test_BC_2_04_001_max_depth_zero_panics() {
-    // RED GATE stub: empty body → should_panic test fails (no panic raised)
+    let config = ReassemblyConfig {
+        max_depth: 0,
+        ..ReassemblyConfig::default()
+    };
+    let _ = TcpReassembler::new(config);
 }
 
 /// AC-002 / EC-002 (BC-2.04.001 postcondition 2)
@@ -1615,7 +1619,11 @@ fn test_BC_2_04_001_max_depth_zero_panics() {
 #[allow(non_snake_case)]
 #[should_panic(expected = "memcap must be > 0")]
 fn test_BC_2_04_001_memcap_zero_panics() {
-    // RED GATE stub: empty body → should_panic test fails (no panic raised)
+    let config = ReassemblyConfig {
+        memcap: 0,
+        ..ReassemblyConfig::default()
+    };
+    let _ = TcpReassembler::new(config);
 }
 
 /// AC-003 / EC-003 (BC-2.04.001 postcondition 3)
@@ -1625,7 +1633,11 @@ fn test_BC_2_04_001_memcap_zero_panics() {
 #[allow(non_snake_case)]
 #[should_panic(expected = "max_flows must be > 0")]
 fn test_BC_2_04_001_max_flows_zero_panics() {
-    // RED GATE stub: empty body → should_panic test fails (no panic raised)
+    let config = ReassemblyConfig {
+        max_flows: 0,
+        ..ReassemblyConfig::default()
+    };
+    let _ = TcpReassembler::new(config);
 }
 
 /// AC-004 / EC-004 (BC-2.04.001 postcondition 4)
@@ -1635,7 +1647,11 @@ fn test_BC_2_04_001_max_flows_zero_panics() {
 #[allow(non_snake_case)]
 #[should_panic(expected = "max_segments_per_direction must be > 0")]
 fn test_BC_2_04_001_max_segments_per_direction_zero_panics() {
-    // RED GATE stub: empty body → should_panic test fails (no panic raised)
+    let config = ReassemblyConfig {
+        max_segments_per_direction: 0,
+        ..ReassemblyConfig::default()
+    };
+    let _ = TcpReassembler::new(config);
 }
 
 /// AC-005 / EC-005 (BC-2.04.001 postcondition 5)
@@ -1645,26 +1661,86 @@ fn test_BC_2_04_001_max_segments_per_direction_zero_panics() {
 #[allow(non_snake_case)]
 #[should_panic(expected = "max_receive_window must be > 0")]
 fn test_BC_2_04_001_max_receive_window_zero_panics() {
-    // RED GATE stub: empty body → should_panic test fails (no panic raised)
+    let config = ReassemblyConfig {
+        max_receive_window: 0,
+        ..ReassemblyConfig::default()
+    };
+    let _ = TcpReassembler::new(config);
 }
 
 /// AC-006 / EC-006 (BC-2.04.001 postcondition 6)
 /// Postcondition: when all five validated fields are > 0 (ReassemblyConfig::default()
-/// satisfies this), the constructor returns a TcpReassembler with empty flows,
-/// empty findings, total_memory == 0, and finalized == false.
+/// satisfies this), the constructor returns a TcpReassembler with:
+/// - empty flows (total_memory == 0)
+/// - empty findings (findings().is_empty())
+/// - finalized == false
+///
+/// Also verified with a minimal config (all five validated fields = 1) to
+/// confirm the boundary: the smallest legal value for each field must not panic.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_001_valid_config_constructs_successfully() {
-    panic!("RED GATE: AC-006 not yet verified");
+    // Default config: all five validated fields are well above 0.
+    let reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "fresh reassembler must have total_memory == 0"
+    );
+    assert!(
+        reassembler.findings().is_empty(),
+        "fresh reassembler must have no findings"
+    );
+    assert!(
+        !reassembler.is_finalized(),
+        "fresh reassembler must not be finalized"
+    );
+
+    // Minimal config: all five validated fields set to 1 (boundary case).
+    let min_config = ReassemblyConfig {
+        max_depth: 1,
+        memcap: 1,
+        max_flows: 1,
+        max_segments_per_direction: 1,
+        max_receive_window: 1,
+        ..ReassemblyConfig::default()
+    };
+    let min_reassembler = TcpReassembler::new(min_config);
+    assert_eq!(
+        min_reassembler.total_memory(),
+        0,
+        "minimal-config reassembler must also have total_memory == 0"
+    );
+    assert!(
+        min_reassembler.findings().is_empty(),
+        "minimal-config reassembler must have no findings"
+    );
+    assert!(
+        !min_reassembler.is_finalized(),
+        "minimal-config reassembler must not be finalized"
+    );
 }
 
 /// AC-007 / EC-007 (BC-2.04.001 invariant 2)
 /// Invariant: flow_timeout_secs == 0 is NOT validated at construction;
 /// the constructor must accept it as a legal value and not panic.
+///
+/// BC-2.04.001 §Invariants ¶2: "Other config fields (flow_timeout_secs,
+/// threshold fields) are NOT validated at construction; zero values in
+/// those fields are legal."
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_001_flow_timeout_zero_is_legal() {
-    panic!("RED GATE: AC-007 not yet verified");
+    let config = ReassemblyConfig {
+        flow_timeout_secs: 0,
+        ..ReassemblyConfig::default()
+    };
+    // Must not panic — if it does the test fails.
+    let reassembler = TcpReassembler::new(config);
+    assert!(
+        !reassembler.is_finalized(),
+        "reassembler with flow_timeout_secs=0 must construct successfully"
+    );
 }
 
 // ---- LESSON-P2.05: configurable anomaly thresholds ----
