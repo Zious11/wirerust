@@ -1,0 +1,24 @@
+[package]
+name = "wirerust-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+pcap-file = "2"
+
+[dependencies.wirerust]
+path = ".."
+
+# Cargo.toml for fuzz targets requires all fuzz targets to be declared here.
+# cargo-fuzz will not discover them automatically without this section.
+[[bin]]
+name = "fuzz_decode_packet"
+path = "fuzz_targets/fuzz_decode_packet.rs"
+test = false
+doc = false
+bench = false
