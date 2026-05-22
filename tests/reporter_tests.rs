@@ -1174,3 +1174,613 @@ fn mitre_grouping_keeps_known_and_unknown_ids_in_separate_buckets() {
         "typo variant must render with '(unknown)' label",
     );
 }
+
+// ---------------------------------------------------------------------------
+// STORY-069: Finding Struct, Verdict/Confidence Display, and Finding Display
+// Format
+//
+// These tests cover AC-001 through AC-011 and EC-001 through EC-005.
+//
+// implementation_strategy: brownfield-formalization
+// All tests are expected to PASS (brownfield-confirm) because the implementation
+// already exists. Any FAIL indicates a real gap where existing code does not
+// satisfy the BC.
+// ---------------------------------------------------------------------------
+
+// --- AC-001 / BC-2.09.001 postcondition 1 ---
+
+/// AC-001 (BC-2.09.001 postcondition 1): A `Finding` constructed with all
+/// required and optional fields compiles and holds the expected values.
+#[test]
+fn test_finding_construction_with_all_fields() {
+    use std::net::{IpAddr, Ipv4Addr};
+    use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+    use wirerust::reassembly::handler::Direction;
+
+    let ip: IpAddr = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1));
+    let f = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Likely,
+        confidence: Confidence::High,
+        summary: "test summary".to_string(),
+        evidence: vec!["ev1".to_string(), "ev2".to_string()],
+        mitre_technique: Some("T1027".to_string()),
+        source_ip: Some(ip),
+        timestamp: None,
+        direction: Some(Direction::ClientToServer),
+    };
+
+    assert!(matches!(f.category, ThreatCategory::Anomaly));
+    assert!(matches!(f.verdict, Verdict::Likely));
+    assert!(matches!(f.confidence, Confidence::High));
+    assert_eq!(f.summary, "test summary");
+    assert_eq!(f.evidence.len(), 2);
+    assert_eq!(f.mitre_technique.as_deref(), Some("T1027"));
+    assert_eq!(f.source_ip, Some(ip));
+    assert!(
+        f.timestamp.is_none(),
+        "BC-2.09.001 invariant 1: timestamp must be None at all emission sites (O-01)"
+    );
+    assert!(matches!(f.direction, Some(Direction::ClientToServer)));
+}
+
+// --- AC-002 / BC-2.09.001 invariant 1 (in-process file scan) ---
+
+/// Helper: read a source file, asserting it exists. A missing file is a test
+/// failure — a silent missing file would cause false-passes on zero-match
+/// assertions.
+fn read_src_file(manifest_dir: &str, rel_path: &str) -> String {
+    let path = std::path::Path::new(manifest_dir)
+        .join("src")
+        .join(rel_path);
+    std::fs::read_to_string(&path).unwrap_or_else(|e| {
+        panic!(
+            "source file '{}' must exist and be readable — \
+             a missing file would cause false-passes on zero-match assertions: {e}",
+            path.display()
+        )
+    })
+}
+
+/// AC-002 (BC-2.09.001 invariant 1): All 22 Finding emission sites in
+/// production source set `timestamp: None`. No site sets `timestamp: Some(...)`.
+///
+/// Uses in-process `std::fs::read_to_string` — no dependency on grep being on
+/// PATH, and a missing file fails the test rather than silently passing.
+///
+/// Positive-coverage assertion: counts `timestamp: None` across the four
+/// emission-site files and asserts the count == 22 (the BC-stated total).
+#[test]
+fn test_timestamp_always_none_in_all_emission_sites() {
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+
+    // All four files that contain Finding emission sites.
+    let emission_files = [
+        "analyzer/http.rs",
+        "analyzer/tls.rs",
+        "reassembly/mod.rs",
+        "reassembly/lifecycle.rs",
+    ];
+
+    let mut total_none_count: usize = 0;
+
+    for rel_path in &emission_files {
+        let src = read_src_file(manifest_dir, rel_path);
+
+        // Negative: zero `timestamp: Some` anywhere in this file.
+        let some_count = src.matches("timestamp: Some").count();
+        assert!(
+            some_count == 0,
+            "BC-2.09.001 invariant 1 violated in '{rel_path}': \
+             found {some_count} occurrence(s) of `timestamp: Some(...)`. \
+             All emission sites must set `timestamp: None` (domain-debt O-01)."
+        );
+
+        // Accumulate positive count.
+        total_none_count += src.matches("timestamp: None").count();
+    }
+
+    // Positive: exactly 22 emission sites set timestamp: None.
+    assert_eq!(
+        total_none_count, 22,
+        "BC-2.09.001 invariant 1: expected exactly 22 `timestamp: None` occurrences \
+         across emission-site files, found {total_none_count}. \
+         A new emission site was added (or removed) without updating this test."
+    );
+}
+
+// --- AC-003 / BC-2.09.001 invariant 2 (in-process file scan, two tests) ---
+
+/// AC-003a (BC-2.09.001 invariant 2): Reassembly anomaly findings set
+/// `source_ip: Some(...)` at EXACTLY 5 sites:
+///   reassembly/mod.rs lines 443, 481, 505 (overlap, small-segment, out-of-window)
+///   reassembly/lifecycle.rs lines 112, 132 (conflicting-overlap, stream-depth-exceeded)
+///
+/// Uses in-process file reading; a missing file fails the test.
+#[test]
+fn test_source_ip_set_at_reassembly_sites() {
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+
+    let mod_src = read_src_file(manifest_dir, "reassembly/mod.rs");
+    let lifecycle_src = read_src_file(manifest_dir, "reassembly/lifecycle.rs");
+
+    let mod_some_count = mod_src.matches("source_ip: Some").count();
+    let lifecycle_some_count = lifecycle_src.matches("source_ip: Some").count();
+    let total = mod_some_count + lifecycle_some_count;
+
+    // reassembly/mod.rs must have exactly 3 Some sites.
+    assert_eq!(
+        mod_some_count, 3,
+        "BC-2.09.001 invariant 2: reassembly/mod.rs must have exactly 3 \
+         `source_ip: Some(...)` emission sites (overlap, small-segment, out-of-window), \
+         found {mod_some_count}"
+    );
+
+    // reassembly/lifecycle.rs must have exactly 2 Some sites.
+    assert_eq!(
+        lifecycle_some_count, 2,
+        "BC-2.09.001 invariant 2: reassembly/lifecycle.rs must have exactly 2 \
+         `source_ip: Some(...)` emission sites (conflicting-overlap, stream-depth-exceeded), \
+         found {lifecycle_some_count}"
+    );
+
+    // Total across both files must be exactly 5.
+    assert_eq!(
+        total, 5,
+        "BC-2.09.001 invariant 2: expected exactly 5 reassembly `source_ip: Some(...)` \
+         sites across mod.rs + lifecycle.rs, found {total}"
+    );
+}
+
+/// AC-003b (BC-2.09.001 invariant 2): HTTP and TLS analyzer findings set
+/// `source_ip: None` at every emission site — no HTTP or TLS site uses
+/// `source_ip: Some(...)`.
+///
+/// Uses in-process file reading; a missing file fails the test.
+#[test]
+fn test_source_ip_none_at_http_tls_sites() {
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+
+    let http_src = read_src_file(manifest_dir, "analyzer/http.rs");
+    let tls_src = read_src_file(manifest_dir, "analyzer/tls.rs");
+
+    let http_some_count = http_src.matches("source_ip: Some").count();
+    assert_eq!(
+        http_some_count, 0,
+        "BC-2.09.001 invariant 2 violated: analyzer/http.rs must not set \
+         source_ip: Some(...) at any emission site, found {http_some_count} occurrence(s)"
+    );
+
+    // Positive: exactly 9 HTTP emission sites set source_ip: None.
+    let http_none_count = http_src.matches("source_ip: None").count();
+    assert_eq!(
+        http_none_count, 9,
+        "BC-2.09.001 invariant 2: analyzer/http.rs must have exactly 9 \
+         `source_ip: None` emission sites, found {http_none_count}. \
+         A new emission site was added or removed without updating this test."
+    );
+
+    let tls_some_count = tls_src.matches("source_ip: Some").count();
+    assert_eq!(
+        tls_some_count, 0,
+        "BC-2.09.001 invariant 2 violated: analyzer/tls.rs must not set \
+         source_ip: Some(...) at any emission site, found {tls_some_count} occurrence(s)"
+    );
+
+    // Positive: exactly 7 TLS emission sites set source_ip: None.
+    let tls_none_count = tls_src.matches("source_ip: None").count();
+    assert_eq!(
+        tls_none_count, 7,
+        "BC-2.09.001 invariant 2: analyzer/tls.rs must have exactly 7 \
+         `source_ip: None` emission sites, found {tls_none_count}. \
+         A new emission site was added or removed without updating this test."
+    );
+}
+
+// --- BC-2.09.001 invariant 3 (direction: HTTP/TLS emission sites all set Some) ---
+
+/// BC-2.09.001 invariant 3: HTTP and TLS analyzer findings all set
+/// `direction: Some(...)`. No HTTP or TLS emission site leaves direction as None.
+///
+/// Per BC-2.09.001 invariant 3: "HTTP and TLS analyzer findings set
+/// direction: Some(...)".
+///
+/// Counts:
+///   analyzer/http.rs — 9 emission sites, all `direction: Some`
+///   analyzer/tls.rs  — 7 emission sites, all `direction: Some`
+///
+/// Uses in-process file reading; a missing file fails the test.
+#[test]
+fn test_direction_some_at_all_http_tls_emission_sites() {
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+
+    let http_src = read_src_file(manifest_dir, "analyzer/http.rs");
+    let tls_src = read_src_file(manifest_dir, "analyzer/tls.rs");
+
+    // Negative: no `direction: None` at any HTTP or TLS emission site.
+    let http_none_count = http_src.matches("direction: None").count();
+    assert_eq!(
+        http_none_count, 0,
+        "BC-2.09.001 invariant 3 violated: analyzer/http.rs must not set \
+         direction: None at any emission site, found {http_none_count} occurrence(s)"
+    );
+
+    let tls_none_count = tls_src.matches("direction: None").count();
+    assert_eq!(
+        tls_none_count, 0,
+        "BC-2.09.001 invariant 3 violated: analyzer/tls.rs must not set \
+         direction: None at any emission site, found {tls_none_count} occurrence(s)"
+    );
+
+    // Positive: exactly 9 HTTP sites and 7 TLS sites set direction: Some.
+    let http_some_count = http_src.matches("direction: Some").count();
+    assert_eq!(
+        http_some_count, 9,
+        "BC-2.09.001 invariant 3: analyzer/http.rs must have exactly 9 \
+         `direction: Some(...)` emission sites, found {http_some_count}. \
+         A new emission site was added or removed without updating this test."
+    );
+
+    let tls_some_count = tls_src.matches("direction: Some").count();
+    assert_eq!(
+        tls_some_count, 7,
+        "BC-2.09.001 invariant 3: analyzer/tls.rs must have exactly 7 \
+         `direction: Some(...)` emission sites, found {tls_some_count}. \
+         A new emission site was added or removed without updating this test."
+    );
+}
+
+// --- BC-2.09.001 invariant 4 (direction: reassembly emission sites) ---
+
+/// BC-2.09.001 invariant 4: Reassembly anomaly findings in reassembly/mod.rs
+/// (overlap, small-segment, out-of-window) set `direction: Some(dir)`.
+/// Reassembly lifecycle findings (reassembly/lifecycle.rs) and the
+/// segment-limit summary finding (reassembly/mod.rs) set `direction: None`.
+///
+/// Counts (per BC-2.09.001 invariant 4):
+///   reassembly/mod.rs      — 3 × `direction: Some(dir)`, 1 × `direction: None`
+///   reassembly/lifecycle.rs — 0 × `direction: Some`,      2 × `direction: None`
+///
+/// Uses in-process file reading; a missing file fails the test.
+#[test]
+fn test_direction_at_reassembly_emission_sites() {
+    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+
+    let mod_src = read_src_file(manifest_dir, "reassembly/mod.rs");
+    let lifecycle_src = read_src_file(manifest_dir, "reassembly/lifecycle.rs");
+
+    // reassembly/mod.rs: exactly 3 Some sites (the three anomaly findings).
+    let mod_some_count = mod_src.matches("direction: Some").count();
+    assert_eq!(
+        mod_some_count, 3,
+        "BC-2.09.001 invariant 4: reassembly/mod.rs must have exactly 3 \
+         `direction: Some(...)` emission sites (overlap, small-segment, out-of-window), \
+         found {mod_some_count}"
+    );
+
+    // reassembly/mod.rs: exactly 1 None site (the segment-limit summary finding).
+    let mod_none_count = mod_src.matches("direction: None").count();
+    assert_eq!(
+        mod_none_count, 1,
+        "BC-2.09.001 invariant 4: reassembly/mod.rs must have exactly 1 \
+         `direction: None` emission site (segment-limit summary), \
+         found {mod_none_count}"
+    );
+
+    // reassembly/lifecycle.rs: no Some — lifecycle findings set direction: None.
+    let lifecycle_some_count = lifecycle_src.matches("direction: Some").count();
+    assert_eq!(
+        lifecycle_some_count, 0,
+        "BC-2.09.001 invariant 4 violated: reassembly/lifecycle.rs must not set \
+         direction: Some(...) at any emission site, found {lifecycle_some_count} occurrence(s)"
+    );
+
+    // reassembly/lifecycle.rs: exactly 2 None sites.
+    let lifecycle_none_count = lifecycle_src.matches("direction: None").count();
+    assert_eq!(
+        lifecycle_none_count, 2,
+        "BC-2.09.001 invariant 4: reassembly/lifecycle.rs must have exactly 2 \
+         `direction: None` emission sites (conflicting-overlap, stream-depth-exceeded), \
+         found {lifecycle_none_count}"
+    );
+}
+
+// --- AC-004 / BC-2.09.002 postcondition 1 ---
+
+/// AC-004 (BC-2.09.002 postcondition 1): `format!("{finding}")` produces exactly
+/// `"[Anomaly] LIKELY (HIGH) \u{2014} test"` for the canonical test vector.
+#[test]
+fn test_finding_display_format() {
+    use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+
+    let finding = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Likely,
+        confidence: Confidence::High,
+        summary: "test".to_string(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    let formatted = format!("{finding}");
+    assert_eq!(
+        formatted, "[Anomaly] LIKELY (HIGH) \u{2014} test",
+        "BC-2.09.002 postcondition 1: Finding Display must match canonical test vector"
+    );
+}
+
+// --- AC-005 / BC-2.09.002 postcondition 5 ---
+
+/// AC-005 (BC-2.09.002 postcondition 5): `Finding::Display` includes `summary`
+/// as-is — no escaping applied, raw bytes preserved (ADR 0003).
+#[test]
+fn test_finding_display_preserves_raw_summary() {
+    use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+
+    let raw_summary = "payload \x1b[31mRED\x1b[0m".to_string();
+    let finding = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Likely,
+        confidence: Confidence::High,
+        summary: raw_summary.clone(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    let formatted = format!("{finding}");
+    assert!(
+        formatted.as_bytes().contains(&0x1b),
+        "BC-2.09.002 postcondition 5 / ADR 0003: Finding::Display must preserve raw ESC byte \
+         in summary without escaping; got: {formatted:?}"
+    );
+    assert!(
+        formatted.contains(&raw_summary as &str),
+        "BC-2.09.002: summary must appear verbatim in Display output; got: {formatted:?}"
+    );
+}
+
+// --- AC-006 / BC-2.09.003 postcondition 1 ---
+
+/// AC-006 (BC-2.09.003 postcondition 1): `Verdict::Likely` displays as `"LIKELY"`.
+#[test]
+fn test_verdict_display_likely() {
+    use wirerust::findings::Verdict;
+
+    assert_eq!(
+        format!("{}", Verdict::Likely),
+        "LIKELY",
+        "BC-2.09.003: Verdict::Likely must display as 'LIKELY'"
+    );
+}
+
+// --- AC-007 / BC-2.09.003 postcondition 2 ---
+
+/// AC-007 (BC-2.09.003 postcondition 2): `Verdict::Unlikely` displays as
+/// `"UNLIKELY"`.
+#[test]
+fn test_verdict_display_unlikely() {
+    use wirerust::findings::Verdict;
+
+    assert_eq!(
+        format!("{}", Verdict::Unlikely),
+        "UNLIKELY",
+        "BC-2.09.003: Verdict::Unlikely must display as 'UNLIKELY'"
+    );
+}
+
+// --- AC-008 / BC-2.09.003 postcondition 3 ---
+
+/// AC-008 (BC-2.09.003 postcondition 3): `Verdict::Inconclusive` displays as
+/// `"INCONCLUSIVE"`.
+#[test]
+fn test_verdict_display_inconclusive() {
+    use wirerust::findings::Verdict;
+
+    assert_eq!(
+        format!("{}", Verdict::Inconclusive),
+        "INCONCLUSIVE",
+        "BC-2.09.003: Verdict::Inconclusive must display as 'INCONCLUSIVE'"
+    );
+}
+
+// --- AC-009 / BC-2.09.004 postcondition 1 ---
+
+/// AC-009 (BC-2.09.004 postcondition 1): `Confidence::High` displays as `"HIGH"`.
+#[test]
+fn test_confidence_display_high() {
+    use wirerust::findings::Confidence;
+
+    assert_eq!(
+        format!("{}", Confidence::High),
+        "HIGH",
+        "BC-2.09.004: Confidence::High must display as 'HIGH'"
+    );
+}
+
+// --- AC-010 / BC-2.09.004 postcondition 2 ---
+
+/// AC-010 (BC-2.09.004 postcondition 2): `Confidence::Medium` displays as
+/// `"MEDIUM"`.
+#[test]
+fn test_confidence_display_medium() {
+    use wirerust::findings::Confidence;
+
+    assert_eq!(
+        format!("{}", Confidence::Medium),
+        "MEDIUM",
+        "BC-2.09.004: Confidence::Medium must display as 'MEDIUM'"
+    );
+}
+
+// --- AC-011 / BC-2.09.004 postcondition 3 ---
+
+/// AC-011 (BC-2.09.004 postcondition 3): `Confidence::Low` displays as `"LOW"`.
+#[test]
+fn test_confidence_display_low() {
+    use wirerust::findings::Confidence;
+
+    assert_eq!(
+        format!("{}", Confidence::Low),
+        "LOW",
+        "BC-2.09.004: Confidence::Low must display as 'LOW'"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Edge cases EC-001 through EC-005 (STORY-069 edge case table)
+// ---------------------------------------------------------------------------
+
+/// EC-001 (BC-2.09.001 EC-001 / STORY-069 EC-001): `evidence = vec![]` is a
+/// valid Finding; reporters handle empty evidence list gracefully.
+/// Test name follows snake_case per Rust convention; BC identifier is bc_2_09_001.
+#[test]
+fn test_bc_2_09_001_ec001_empty_evidence_is_valid() {
+    use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+    use wirerust::reporter::Reporter;
+    use wirerust::reporter::json::JsonReporter;
+    use wirerust::summary::Summary;
+
+    let f = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Likely,
+        confidence: Confidence::High,
+        summary: "no evidence".to_string(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    assert!(f.evidence.is_empty(), "EC-001: evidence vec must be empty");
+
+    let out = JsonReporter.render(&Summary::new(), &[f], &[]);
+    let parsed: serde_json::Value = serde_json::from_str(&out).expect("valid JSON");
+    assert_eq!(
+        parsed["findings"][0]["evidence"]
+            .as_array()
+            .map(|a| a.len()),
+        Some(0),
+        "EC-001: JSON reporter must emit empty evidence array without panicking"
+    );
+}
+
+/// EC-002 (BC-2.09.002 EC-003 / STORY-069 EC-002): `summary = ""` — Display
+/// renders `"[Anomaly] LIKELY (HIGH) \u{2014} "` (em-dash then space, summary empty).
+#[test]
+fn test_bc_2_09_002_ec002_empty_summary_display() {
+    use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+
+    let f = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Likely,
+        confidence: Confidence::High,
+        summary: String::new(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    let formatted = format!("{f}");
+    assert_eq!(
+        formatted, "[Anomaly] LIKELY (HIGH) \u{2014} ",
+        "EC-002: empty summary must produce trailing em-dash space with nothing after"
+    );
+}
+
+/// EC-003 (BC-2.09.002 EC-002 / STORY-069 EC-003): `summary` contains ESC byte
+/// (0x1B) — ESC byte appears literally in Display output (no escaping applied).
+#[test]
+fn test_bc_2_09_002_ec003_esc_byte_in_summary_preserved_in_display() {
+    use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+
+    let f = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Likely,
+        confidence: Confidence::High,
+        summary: "before\x1bafter".to_string(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    let formatted = format!("{f}");
+    assert!(
+        formatted.as_bytes().contains(&0x1b),
+        "EC-003: ESC byte (0x1B) must appear literally in Finding Display output; \
+         got: {formatted:?}"
+    );
+    assert!(
+        formatted.contains("before\x1bafter"),
+        "EC-003: raw summary with ESC byte must appear verbatim in Display; got: {formatted:?}"
+    );
+}
+
+/// EC-004 (STORY-069 EC-004): `direction = Some(ServerToClient)` — field holds
+/// value; Display does not render the direction field.
+#[test]
+fn test_bc_2_09_001_ec004_direction_some_server_to_client() {
+    use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+    use wirerust::reassembly::handler::Direction;
+
+    let f = Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Likely,
+        confidence: Confidence::High,
+        summary: "directional".to_string(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: Some(Direction::ServerToClient),
+    };
+
+    assert!(
+        matches!(f.direction, Some(Direction::ServerToClient)),
+        "EC-004: direction field must hold Some(ServerToClient)"
+    );
+
+    // BC-2.09.002: Display format is [Category] VERDICT (CONFIDENCE) — summary;
+    // direction is not part of the template.
+    let formatted = format!("{f}");
+    assert!(
+        !formatted.contains("ServerToClient"),
+        "EC-004: Finding Display must not render the direction field; got: {formatted}"
+    );
+}
+
+/// EC-005 (STORY-069 EC-005): `category = Reconnaissance` — Display renders
+/// `"[Reconnaissance] ..."` using the Debug variant name.
+#[test]
+fn test_bc_2_09_002_ec005_reconnaissance_category_display() {
+    use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
+
+    let f = Finding {
+        category: ThreatCategory::Reconnaissance,
+        verdict: Verdict::Inconclusive,
+        confidence: Confidence::Low,
+        summary: "scan".to_string(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    let formatted = format!("{f}");
+    assert_eq!(
+        formatted, "[Reconnaissance] INCONCLUSIVE (LOW) \u{2014} scan",
+        "EC-005: Reconnaissance category must render as '[Reconnaissance]' \
+         (Debug variant name per BC-2.09.002 postcondition 2)"
+    );
+}
