@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-066
 epic_id: E-6
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -118,7 +118,7 @@ Even with a very high DNS query volume (e.g., 1000 packets), `analyze` returns `
 | `DnsAnalyzer::can_decode` | `src/analyzer/dns.rs:52-60` | pure-core |
 | `DnsAnalyzer::analyze` | `src/analyzer/dns.rs:62-70` | mixed (pure logic; counter mutation trivial) |
 | `DnsAnalyzer::summarize` | `src/analyzer/dns.rs:72-88` | pure-core (snapshot) |
-| `is_dns_port` helper | `src/analyzer/dns.rs:34-35` | pure-core |
+| `is_dns_port` helper | `src/analyzer/dns.rs:34-36` | pure-core |
 | `is_query` helper | `src/analyzer/dns.rs:38-44` | pure-core |
 
 ## Edge Cases
@@ -192,3 +192,10 @@ Even with a very high DNS query volume (e.g., 1000 packets), `analyze` returns `
 |------|--------|---------|
 | `src/analyzer/dns.rs` | modify | `DnsAnalyzer` struct, `can_decode`, `analyze`, `summarize`, `is_dns_port`, `is_query` |
 | `tests/dns_tests.rs` | create or modify | All AC test functions and edge-case tests |
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.2 | 2026-05-22 | story-writer | Wave 4 Ph3 implementer-confirm anchor-drift correction: is_dns_port anchor :34-35 → :34-36 |
+| 1.1 | 2026-05-21 | story-writer | Initial story (brownfield-formalization of existing dns.rs) |
