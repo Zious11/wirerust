@@ -136,11 +136,11 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-012:
-    status: blocked
+    status: pending
     wave: 5
     branch: null
     worktree: null
-    blocked_by: [STORY-011]
+    blocked_by: []
 
   # ---------------------------------------------------------------------------
   # Wave 6 — 1 story
