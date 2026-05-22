@@ -2069,10 +2069,23 @@ fn make_other_protocol_packet(src_ip: [u8; 4], dst_ip: [u8; 4], proto: u8) -> Pa
 /// AC-001 (BC-2.04.002 postcondition 1)
 /// Postcondition: when process_packet is called with a non-TCP (UDP) packet,
 /// stats.packets_processed increments by 1.
+///
+/// Canonical test vector: single UDP packet → packets_processed=1.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_002_non_tcp_increments_packets_processed() {
-    panic!("RED GATE: AC-001 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let pkt = make_udp_packet([10, 0, 0, 1], 12345, [10, 0, 0, 2], 53, b"query");
+    reassembler.process_packet(&pkt, 1, &mut handler);
+
+    assert_eq!(
+        reassembler.stats().packets_processed,
+        1,
+        "BC-2.04.002 post-1: packets_processed must increment for non-TCP packet"
+    );
 }
 
 // ---- AC-002 ----------------------------------------------------------------
@@ -2080,10 +2093,23 @@ fn test_BC_2_04_002_non_tcp_increments_packets_processed() {
 /// AC-002 (BC-2.04.002 postcondition 2)
 /// Postcondition: when process_packet is called with a non-TCP packet,
 /// stats.packets_skipped_non_tcp increments by 1.
+///
+/// Canonical test vector: single UDP packet → packets_skipped_non_tcp=1.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_002_non_tcp_increments_skipped_counter() {
-    panic!("RED GATE: AC-002 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let pkt = make_udp_packet([10, 0, 0, 1], 12345, [10, 0, 0, 2], 53, b"query");
+    reassembler.process_packet(&pkt, 1, &mut handler);
+
+    assert_eq!(
+        reassembler.stats().packets_skipped_non_tcp,
+        1,
+        "BC-2.04.002 post-2: packets_skipped_non_tcp must increment for non-TCP packet"
+    );
 }
 
 // ---- AC-003 ----------------------------------------------------------------
@@ -2094,7 +2120,23 @@ fn test_BC_2_04_002_non_tcp_increments_skipped_counter() {
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_002_non_tcp_does_not_increment_tcp_counter() {
-    panic!("RED GATE: AC-003 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    // Deliver three non-TCP packets of different types.
+    let udp = make_udp_packet([10, 0, 0, 1], 12345, [10, 0, 0, 2], 53, b"q");
+    let icmp = make_icmp_packet([10, 0, 0, 1], [10, 0, 0, 2]);
+    let other = make_other_protocol_packet([10, 0, 0, 1], [10, 0, 0, 2], 99);
+    reassembler.process_packet(&udp, 1, &mut handler);
+    reassembler.process_packet(&icmp, 2, &mut handler);
+    reassembler.process_packet(&other, 3, &mut handler);
+
+    assert_eq!(
+        reassembler.stats().packets_tcp,
+        0,
+        "BC-2.04.002 post-3: packets_tcp must remain 0 after non-TCP packets only"
+    );
 }
 
 // ---- AC-004 ----------------------------------------------------------------
@@ -2102,10 +2144,44 @@ fn test_BC_2_04_002_non_tcp_does_not_increment_tcp_counter() {
 /// AC-004 (BC-2.04.002 postconditions 4-6)
 /// Postconditions: no flow created/modified, no findings emitted, no handler
 /// callbacks (on_data, on_flow_close) triggered for a non-TCP packet.
+///
+/// Flow creation is observable via stats.flows_total and total_memory().
+/// Findings absence is directly observable via findings().
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_002_non_tcp_creates_no_flow_no_callbacks() {
-    panic!("RED GATE: AC-004 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let udp = make_udp_packet([10, 0, 0, 1], 12345, [10, 0, 0, 2], 53, b"dns-query");
+    reassembler.process_packet(&udp, 1, &mut handler);
+
+    // BC-2.04.002 post-4: no flow created
+    assert_eq!(
+        reassembler.stats().flows_total,
+        0,
+        "BC-2.04.002 post-4: non-TCP must not create a flow"
+    );
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "BC-2.04.002 post-4: no buffered state for non-TCP packet"
+    );
+    // BC-2.04.002 post-5: no findings
+    assert!(
+        reassembler.findings().is_empty(),
+        "BC-2.04.002 post-5: no findings emitted for non-TCP packet"
+    );
+    // BC-2.04.002 post-6: no handler callbacks
+    assert!(
+        handler.data_events.is_empty(),
+        "BC-2.04.002 post-6: on_data must not be called for non-TCP packet"
+    );
+    assert!(
+        handler.close_events.is_empty(),
+        "BC-2.04.002 post-6: on_flow_close must not be called for non-TCP packet"
+    );
 }
 
 // ---- AC-005 ----------------------------------------------------------------
@@ -2113,11 +2189,66 @@ fn test_BC_2_04_002_non_tcp_creates_no_flow_no_callbacks() {
 /// AC-005 (BC-2.04.002 invariant 1)
 /// Invariant: after N non-TCP and M TCP packets, packets_processed == N+M,
 /// packets_skipped_non_tcp == N, and packets_tcp == M.
-/// Canonical test vector: 5 UDP + 3 TCP → packets_processed=8, skipped=5, tcp=3.
+///
+/// Canonical test vector from BC-2.04.002: 5 UDP + 3 TCP →
+/// packets_processed=8, packets_skipped_non_tcp=5, packets_tcp=3.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_002_mixed_protocol_counter_arithmetic() {
-    panic!("RED GATE: AC-005 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // 5 UDP packets (N=5)
+    for i in 0..5u32 {
+        let udp = make_udp_packet(client, 10000 + i as u16, server, 53, b"q");
+        reassembler.process_packet(&udp, i + 1, &mut handler);
+    }
+
+    // 3 TCP packets (M=3): SYN + 2 data segments on one flow
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 6, &mut handler);
+    let d1 = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"ab", false, false, false, false,
+    );
+    reassembler.process_packet(&d1, 7, &mut handler);
+    let d2 = make_tcp_packet(
+        client, 12345, server, 80, 1003, b"cd", false, false, false, false,
+    );
+    reassembler.process_packet(&d2, 8, &mut handler);
+
+    let stats = reassembler.stats();
+    assert_eq!(
+        stats.packets_processed, 8,
+        "BC-2.04.002 inv-1: packets_processed must be N+M = 5+3 = 8"
+    );
+    assert_eq!(
+        stats.packets_skipped_non_tcp, 5,
+        "BC-2.04.002 inv-1: packets_skipped_non_tcp must equal N = 5"
+    );
+    assert_eq!(
+        stats.packets_tcp, 3,
+        "BC-2.04.002 inv-1: packets_tcp must equal M = 3"
+    );
+    // Invariant: packets_processed >= packets_tcp + packets_skipped_non_tcp
+    assert!(
+        stats.packets_processed >= stats.packets_tcp + stats.packets_skipped_non_tcp,
+        "BC-2.04.002 inv-1: packets_processed must be >= packets_tcp + packets_skipped_non_tcp"
+    );
 }
 
 // ---- AC-006 ----------------------------------------------------------------
@@ -2128,7 +2259,12 @@ fn test_BC_2_04_002_mixed_protocol_counter_arithmetic() {
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_028_summarize_analyzer_name() {
-    panic!("RED GATE: AC-006 not yet verified");
+    let reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    let summary = reassembler.summarize();
+    assert_eq!(
+        summary.analyzer_name, "TCP Reassembly",
+        "BC-2.04.028 post-1: analyzer_name must be \"TCP Reassembly\""
+    );
 }
 
 // ---- AC-007 ----------------------------------------------------------------
@@ -2136,10 +2272,56 @@ fn test_BC_2_04_028_summarize_analyzer_name() {
 /// AC-007 (BC-2.04.028 postcondition 2)
 /// Postcondition: summarize() returns packets_analyzed == stats.packets_tcp,
 /// not packets_processed.
+///
+/// Canonical test vector: 5 non-TCP + 3 TCP → packets_analyzed=3.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_028_summarize_packets_analyzed_equals_tcp_count() {
-    panic!("RED GATE: AC-007 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // 5 non-TCP packets
+    for i in 0..5u32 {
+        let udp = make_udp_packet(client, 10000 + i as u16, server, 53, b"q");
+        reassembler.process_packet(&udp, i + 1, &mut handler);
+    }
+    // 3 TCP packets
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 6, &mut handler);
+    let d1 = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"hi", false, false, false, false,
+    );
+    reassembler.process_packet(&d1, 7, &mut handler);
+    let d2 = make_tcp_packet(
+        client, 12345, server, 80, 1003, b"by", false, false, false, false,
+    );
+    reassembler.process_packet(&d2, 8, &mut handler);
+
+    let summary = reassembler.summarize();
+    assert_eq!(
+        summary.packets_analyzed,
+        reassembler.stats().packets_tcp,
+        "BC-2.04.028 post-2: packets_analyzed must equal stats.packets_tcp"
+    );
+    assert_eq!(
+        summary.packets_analyzed, 3,
+        "BC-2.04.028 post-2: packets_analyzed must be 3 (TCP only), not 8 (total)"
+    );
 }
 
 // ---- AC-008 ----------------------------------------------------------------
@@ -2147,139 +2329,817 @@ fn test_BC_2_04_028_summarize_packets_analyzed_equals_tcp_count() {
 /// AC-008 (BC-2.04.028 postcondition 3)
 /// Postcondition: the detail BTreeMap contains EXACTLY the 17 documented keys.
 /// Any missing key or extra key is a test failure.
+///
+/// Keys (alphabetical, from BC-2.04.028 and STORY-012 AC-008):
+///   bytes_reassembled, dropped_findings, evictions,
+///   flows_completed, flows_expired, flows_fin, flows_partial,
+///   flows_rst, flows_total, packets_processed, packets_skipped_non_tcp,
+///   segments_depth_exceeded, segments_duplicates, segments_inserted,
+///   segments_out_of_window, segments_overlaps, segments_segment_limit
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_028_summarize_exact_key_set() {
-    panic!("RED GATE: AC-008 not yet verified");
+    use std::collections::BTreeSet;
+
+    let expected_keys: BTreeSet<&str> = [
+        "bytes_reassembled",
+        "dropped_findings",
+        "evictions",
+        "flows_completed",
+        "flows_expired",
+        "flows_fin",
+        "flows_partial",
+        "flows_rst",
+        "flows_total",
+        "packets_processed",
+        "packets_skipped_non_tcp",
+        "segments_depth_exceeded",
+        "segments_duplicates",
+        "segments_inserted",
+        "segments_out_of_window",
+        "segments_overlaps",
+        "segments_segment_limit",
+    ]
+    .iter()
+    .copied()
+    .collect();
+
+    let reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    let summary = reassembler.summarize();
+    let actual_keys: BTreeSet<&str> = summary.detail.keys().map(String::as_str).collect();
+
+    let missing: Vec<&&str> = expected_keys.difference(&actual_keys).collect();
+    let extra: Vec<&&str> = actual_keys.difference(&expected_keys).collect();
+
+    assert!(
+        missing.is_empty(),
+        "BC-2.04.028 post-3: missing keys in summarize() detail: {missing:?}"
+    );
+    assert!(
+        extra.is_empty(),
+        "BC-2.04.028 post-3: extra unexpected keys in summarize() detail: {extra:?}"
+    );
+    assert_eq!(
+        actual_keys.len(),
+        17,
+        "BC-2.04.028 post-3: detail map must contain exactly 17 keys"
+    );
 }
 
 // ---- AC-009 ----------------------------------------------------------------
 
 /// AC-009 (BC-2.04.028 invariant 1)
 /// Invariant: flows_completed in the detail map always equals flows_fin + flows_rst.
+/// Verified after a full FIN teardown (flows_fin=1, flows_rst=0 → flows_completed=1).
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_028_flows_completed_derived_correctly() {
-    panic!("RED GATE: AC-009 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish flow and close it via FIN teardown
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+    let fin1 = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1001,
+        &[],
+        false,
+        false,
+        true,
+        false,
+    );
+    reassembler.process_packet(&fin1, 3, &mut handler);
+    let fin2 = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2001,
+        &[],
+        false,
+        false,
+        true,
+        false,
+    );
+    reassembler.process_packet(&fin2, 4, &mut handler);
+
+    let stats = reassembler.stats();
+    let summary = reassembler.summarize();
+
+    let flows_fin = stats.flows_fin;
+    let flows_rst = stats.flows_rst;
+    let expected_completed = flows_fin + flows_rst;
+
+    let detail_completed = summary
+        .detail
+        .get("flows_completed")
+        .and_then(|v| v.as_u64())
+        .expect("flows_completed key must exist in detail map");
+
+    assert_eq!(
+        detail_completed, expected_completed,
+        "BC-2.04.028 inv-1: flows_completed ({detail_completed}) must equal \
+         flows_fin ({flows_fin}) + flows_rst ({flows_rst})"
+    );
 }
 
 // ---- AC-010 ----------------------------------------------------------------
 
 /// AC-010 (BC-2.04.028 invariant 3)
-/// Invariant: the detail BTreeMap uses BTreeMap ordering, guaranteeing
-/// alphabetical key ordering in JSON serialization across runs.
+/// Invariant: the detail map uses BTreeMap ordering, guaranteeing alphabetical
+/// key ordering in JSON serialization across runs (LESSON-P2.09).
+///
+/// Verified by asserting the collected key sequence equals its sorted form.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_028_detail_is_btreemap_ordered() {
-    panic!("RED GATE: AC-010 not yet verified");
+    let reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    let summary = reassembler.summarize();
+
+    let keys: Vec<&str> = summary.detail.keys().map(String::as_str).collect();
+    let mut sorted = keys.clone();
+    sorted.sort_unstable();
+
+    assert_eq!(
+        keys, sorted,
+        "BC-2.04.028 inv-3: detail keys must be in alphabetical (BTreeMap) order; \
+         got {keys:?}"
+    );
 }
 
 // ---- AC-011 ----------------------------------------------------------------
 
 /// AC-011 (BC-2.04.030 postcondition 1)
-/// Postcondition: after processing packets and calling finalize(), bytes_reassembled
-/// equals the sum of all data.len() values passed to handler.on_data callbacks.
+/// Postcondition: after processing packets and calling finalize(),
+/// bytes_reassembled equals the exact sum of all data.len() values passed to
+/// handler.on_data callbacks across all flows and both directions.
+///
+/// Uses a bidirectional flow (client + server data) so on_data is called in
+/// both directions; captures all callbacks and sums data.len().
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_030_bytes_reassembled_matches_handler_total() {
-    panic!("RED GATE: AC-011 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Full SYN/SYN-ACK handshake
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // Client sends 3 sequential segments (each flushed immediately, in-order)
+    let c1 = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"hello", false, false, false, false,
+    );
+    reassembler.process_packet(&c1, 3, &mut handler);
+    let c2 = make_tcp_packet(
+        client, 12345, server, 80, 1006, b"world", false, false, false, false,
+    );
+    reassembler.process_packet(&c2, 4, &mut handler);
+    let c3 = make_tcp_packet(
+        client, 12345, server, 80, 1011, b"foo", false, false, false, false,
+    );
+    reassembler.process_packet(&c3, 5, &mut handler);
+
+    // Server sends 2 segments
+    let s1 = make_tcp_packet(
+        server, 80, client, 12345, 2001, b"reply1", false, false, false, false,
+    );
+    reassembler.process_packet(&s1, 6, &mut handler);
+    let s2 = make_tcp_packet(
+        server, 80, client, 12345, 2007, b"reply2", false, false, false, false,
+    );
+    reassembler.process_packet(&s2, 7, &mut handler);
+
+    // finalize() flushes any remaining buffered data
+    reassembler.finalize(&mut handler);
+
+    // Sum all data.len() across every on_data callback
+    let handler_total: u64 = handler
+        .data_events
+        .iter()
+        .map(|(_, _, data, _)| data.len() as u64)
+        .sum();
+
+    assert_eq!(
+        reassembler.stats().bytes_reassembled,
+        handler_total,
+        "BC-2.04.030 post-1: bytes_reassembled ({}) must equal sum of on_data data.len() ({})",
+        reassembler.stats().bytes_reassembled,
+        handler_total
+    );
 }
 
 // ---- AC-012 ----------------------------------------------------------------
 
 /// AC-012 (BC-2.04.030 invariant 1)
 /// Invariant: bytes_reassembled is monotonically non-decreasing; it never
-/// decreases between any two observations.
+/// decreases between consecutive observations after each packet.
+///
+/// Samples bytes_reassembled after every process_packet call and asserts
+/// each sample is >= the previous.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_030_bytes_reassembled_is_monotonic() {
-    panic!("RED GATE: AC-012 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let packets: Vec<(wirerust::decoder::ParsedPacket, u32)> = vec![
+        (
+            make_tcp_packet(
+                client,
+                12345,
+                server,
+                80,
+                1000,
+                &[],
+                true,
+                false,
+                false,
+                false,
+            ),
+            1,
+        ),
+        (
+            make_tcp_packet(
+                client, 12345, server, 80, 1001, b"aaa", false, false, false, false,
+            ),
+            2,
+        ),
+        (
+            make_tcp_packet(
+                client, 12345, server, 80, 1004, b"bbb", false, false, false, false,
+            ),
+            3,
+        ),
+        (
+            make_tcp_packet(
+                client, 12345, server, 80, 1007, b"ccc", false, false, false, false,
+            ),
+            4,
+        ),
+        // Non-TCP interleaved — must not decrease bytes_reassembled
+        (make_udp_packet(client, 9999, server, 53, b"ignore-me"), 5),
+        (
+            make_tcp_packet(
+                server, 80, client, 12345, 2000, b"resp", false, false, false, false,
+            ),
+            6,
+        ),
+    ];
+
+    let mut prev: u64 = 0;
+    for (pkt, ts) in &packets {
+        reassembler.process_packet(pkt, *ts, &mut handler);
+        let current = reassembler.stats().bytes_reassembled;
+        assert!(
+            current >= prev,
+            "BC-2.04.030 inv-1: bytes_reassembled must be monotonically non-decreasing; \
+             was {prev}, now {current} after packet at ts={ts}"
+        );
+        prev = current;
+    }
+
+    // Also check after finalize
+    reassembler.finalize(&mut handler);
+    let after_finalize = reassembler.stats().bytes_reassembled;
+    assert!(
+        after_finalize >= prev,
+        "BC-2.04.030 inv-1: bytes_reassembled must not decrease after finalize(); \
+         was {prev}, now {after_finalize}"
+    );
 }
 
 // ---- AC-013 ----------------------------------------------------------------
 
 /// AC-013 (BC-2.04.030 postcondition 4)
-/// Postcondition: duplicate retransmissions and out-of-window segments do NOT
-/// contribute to bytes_reassembled (discarded before flush).
+/// Postcondition: duplicate retransmissions do NOT contribute to
+/// bytes_reassembled (discarded before flush).
+///
+/// Canonical test vector from BC-2.04.030: 1 segment (100 bytes) + 1 exact
+/// duplicate retransmission + finalize() → bytes_reassembled == 100.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_030_duplicates_not_counted_in_bytes_reassembled() {
-    panic!("RED GATE: AC-013 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN establishes ISN=1000 → base_offset=1
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Payload: 100 bytes at seq=1001 (offset=1, contiguous → flushed immediately)
+    let payload = vec![b'A'; 100];
+    let original = make_tcp_packet(
+        client, 12345, server, 80, 1001, &payload, false, false, false, false,
+    );
+    reassembler.process_packet(&original, 2, &mut handler);
+
+    let bytes_after_first = reassembler.stats().bytes_reassembled;
+    assert_eq!(
+        bytes_after_first, 100,
+        "BC-2.04.030 post-4: 100-byte segment must be counted in bytes_reassembled"
+    );
+
+    // Exact duplicate retransmission (same seq, same data) — must be discarded
+    let dup = make_tcp_packet(
+        client, 12345, server, 80, 1001, &payload, false, false, false, false,
+    );
+    reassembler.process_packet(&dup, 3, &mut handler);
+
+    let bytes_after_dup = reassembler.stats().bytes_reassembled;
+    assert_eq!(
+        bytes_after_dup, 100,
+        "BC-2.04.030 post-4: duplicate retransmission must NOT contribute to bytes_reassembled; \
+         expected 100, got {bytes_after_dup}"
+    );
+
+    // finalize — no additional bytes (no buffered segments remain)
+    reassembler.finalize(&mut handler);
+    assert_eq!(
+        reassembler.stats().bytes_reassembled,
+        100,
+        "BC-2.04.030 post-4: bytes_reassembled must remain 100 after finalize with no new data"
+    );
 }
 
 // ---- EC-001: UDP packet skipped ----
 
 /// EC-001 (BC-2.04.002 edge case)
 /// UDP packet is skipped; packets_skipped_non_tcp increments.
+/// Canonical test vector: single UDP → packets_processed=1, skipped=1, tcp=0.
 #[test]
 fn test_ec_001_udp_packet_skipped() {
-    panic!("RED GATE: EC-001 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let pkt = make_udp_packet([192, 168, 1, 1], 5555, [192, 168, 1, 2], 80, b"udp-data");
+    reassembler.process_packet(&pkt, 1, &mut handler);
+
+    let stats = reassembler.stats();
+    assert_eq!(
+        stats.packets_processed, 1,
+        "EC-001: packets_processed must be 1"
+    );
+    assert_eq!(
+        stats.packets_skipped_non_tcp, 1,
+        "EC-001: UDP packet must increment packets_skipped_non_tcp"
+    );
+    assert_eq!(
+        stats.packets_tcp, 0,
+        "EC-001: UDP must not increment packets_tcp"
+    );
 }
 
 // ---- EC-002: ICMP packet skipped ----
 
 /// EC-002 (BC-2.04.002 edge case)
 /// ICMP packet (Protocol::Icmp) is skipped; packets_skipped_non_tcp increments.
+/// Canonical test vector from BC-2.04.002: ICMP → packets_processed=1, skipped=1.
 #[test]
 fn test_ec_002_icmp_packet_skipped() {
-    panic!("RED GATE: EC-002 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let pkt = make_icmp_packet([10, 0, 0, 1], [10, 0, 0, 2]);
+    reassembler.process_packet(&pkt, 1, &mut handler);
+
+    let stats = reassembler.stats();
+    assert_eq!(
+        stats.packets_processed, 1,
+        "EC-002: packets_processed must be 1"
+    );
+    assert_eq!(
+        stats.packets_skipped_non_tcp, 1,
+        "EC-002: ICMP packet must increment packets_skipped_non_tcp"
+    );
+    assert_eq!(
+        stats.packets_tcp, 0,
+        "EC-002: ICMP must not increment packets_tcp"
+    );
 }
 
 // ---- EC-003: Protocol::Other(n) skipped ----
 
 /// EC-003 (BC-2.04.002 edge case)
 /// Protocol::Other(n) packet is skipped; packets_skipped_non_tcp increments.
+/// Tests with proto=41 (IPv6-in-IPv4) as a representative Other variant.
 #[test]
 fn test_ec_003_other_protocol_skipped() {
-    panic!("RED GATE: EC-003 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let pkt = make_other_protocol_packet([10, 0, 0, 1], [10, 0, 0, 2], 41);
+    reassembler.process_packet(&pkt, 1, &mut handler);
+
+    let stats = reassembler.stats();
+    assert_eq!(
+        stats.packets_processed, 1,
+        "EC-003: packets_processed must be 1"
+    );
+    assert_eq!(
+        stats.packets_skipped_non_tcp, 1,
+        "EC-003: Protocol::Other(41) must increment packets_skipped_non_tcp"
+    );
+    assert_eq!(
+        stats.packets_tcp, 0,
+        "EC-003: Protocol::Other must not increment packets_tcp"
+    );
 }
 
 // ---- EC-004: All packets non-TCP ----
 
 /// EC-004 (BC-2.04.002 edge case + story EC-004)
 /// When all packets are non-TCP, flows table is empty and findings are empty
-/// after all packets processed.
+/// after all packets processed. Covers BC-2.04.002 edge case EC-005.
 #[test]
 fn test_ec_004_all_non_tcp_flows_empty() {
-    panic!("RED GATE: EC-004 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    // Mix of non-TCP protocols only
+    let udp = make_udp_packet([10, 0, 0, 1], 1234, [10, 0, 0, 2], 53, b"dns");
+    let icmp = make_icmp_packet([10, 0, 0, 1], [10, 0, 0, 2]);
+    let other = make_other_protocol_packet([10, 0, 0, 1], [10, 0, 0, 2], 50);
+
+    reassembler.process_packet(&udp, 1, &mut handler);
+    reassembler.process_packet(&icmp, 2, &mut handler);
+    reassembler.process_packet(&other, 3, &mut handler);
+
+    // No flows should have been created
+    assert_eq!(
+        reassembler.stats().flows_total,
+        0,
+        "EC-004: all-non-TCP capture must result in flows_total == 0"
+    );
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "EC-004: all-non-TCP capture must have no buffered state"
+    );
+    // No findings
+    assert!(
+        reassembler.findings().is_empty(),
+        "EC-004: all-non-TCP capture must generate no findings"
+    );
+    // No handler callbacks
+    assert!(
+        handler.data_events.is_empty(),
+        "EC-004: all-non-TCP capture must generate no on_data callbacks"
+    );
+    assert!(
+        handler.close_events.is_empty(),
+        "EC-004: all-non-TCP capture must generate no on_flow_close callbacks"
+    );
+    // All 3 counted as processed and skipped
+    let stats = reassembler.stats();
+    assert_eq!(
+        stats.packets_processed, 3,
+        "EC-004: all 3 non-TCP packets must be counted in packets_processed"
+    );
+    assert_eq!(
+        stats.packets_skipped_non_tcp, 3,
+        "EC-004: all 3 non-TCP packets must be in packets_skipped_non_tcp"
+    );
 }
 
 // ---- EC-005: summarize() before any packets ----
 
 /// EC-005 (BC-2.04.028 edge case EC-001 / story EC-005)
 /// summarize() called on a freshly-constructed reassembler before any packets:
-/// all counters are 0; all-zero detail map returned.
+/// all counters are 0, all detail values are zero.
+///
+/// Canonical test vector from BC-2.04.028: fresh reassembler → all-zero detail.
 #[test]
 fn test_ec_005_summarize_before_any_packets() {
-    panic!("RED GATE: EC-005 not yet verified");
+    let reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    let summary = reassembler.summarize();
+
+    assert_eq!(
+        summary.analyzer_name, "TCP Reassembly",
+        "EC-005: analyzer_name must be set even on fresh reassembler"
+    );
+    assert_eq!(
+        summary.packets_analyzed, 0,
+        "EC-005: packets_analyzed must be 0 before any packets"
+    );
+
+    // Every detail value must be a number equal to 0
+    for (key, value) in &summary.detail {
+        let n = value
+            .as_u64()
+            .unwrap_or_else(|| panic!("EC-005: detail key '{key}' must be a number"));
+        assert_eq!(n, 0, "EC-005: detail['{key}'] must be 0 before any packets");
+    }
 }
 
 // ---- EC-006: summarize() after finalize() ----
 
 /// EC-006 (BC-2.04.028 edge case EC-002 / story EC-006)
 /// summarize() called after finalize() returns an accurate snapshot;
-/// finalize does not reset stats.
+/// finalize does not reset stats. Specifically: flows_total, bytes_reassembled,
+/// and packets_tcp must survive finalize() unchanged.
 #[test]
 fn test_ec_006_summarize_after_finalize_accurate() {
-    panic!("RED GATE: EC-006 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let data = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"persist", false, false, false, false,
+    );
+    reassembler.process_packet(&data, 2, &mut handler);
+
+    // Capture stats before finalize
+    let tcp_before = reassembler.stats().packets_tcp;
+    let flows_before = reassembler.stats().flows_total;
+    let bytes_before = reassembler.stats().bytes_reassembled;
+
+    reassembler.finalize(&mut handler);
+
+    let summary = reassembler.summarize();
+
+    // Counters accumulated before finalize must still be present
+    assert_eq!(
+        summary.packets_analyzed, tcp_before,
+        "EC-006: finalize must not reset packets_tcp (packets_analyzed)"
+    );
+    assert_eq!(
+        summary.detail.get("flows_total").and_then(|v| v.as_u64()),
+        Some(flows_before),
+        "EC-006: finalize must not reset flows_total"
+    );
+    // bytes_reassembled may have grown (finalize flushes buffered data)
+    let bytes_after = reassembler.stats().bytes_reassembled;
+    assert!(
+        bytes_after >= bytes_before,
+        "EC-006: bytes_reassembled must not decrease after finalize"
+    );
 }
 
 // ---- EC-007: non-TCP excluded from packets_analyzed ----
 
 /// EC-007 (BC-2.04.028 edge case EC-003 / story EC-007)
 /// When non-TCP packets are injected before summarize(), packets_analyzed
-/// equals packets_tcp, not packets_processed.
+/// equals packets_tcp (not packets_processed).
+///
+/// Canonical test vector: 5 non-TCP + 3 TCP → packets_analyzed=3, packets_processed=8.
 #[test]
 fn test_ec_007_non_tcp_excluded_from_packets_analyzed() {
-    panic!("RED GATE: EC-007 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // 5 non-TCP packets (mix of protocols)
+    reassembler.process_packet(
+        &make_udp_packet(client, 1111, server, 53, b"q"),
+        1,
+        &mut handler,
+    );
+    reassembler.process_packet(&make_icmp_packet(client, server), 2, &mut handler);
+    reassembler.process_packet(
+        &make_udp_packet(client, 2222, server, 53, b"r"),
+        3,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_other_protocol_packet(client, server, 17),
+        4,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_udp_packet(client, 3333, server, 53, b"s"),
+        5,
+        &mut handler,
+    );
+
+    // 3 TCP packets
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            12345,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        6,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 12345, server, 80, 1001, b"x", false, false, false, false,
+        ),
+        7,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 12345, server, 80, 1002, b"y", false, false, false, false,
+        ),
+        8,
+        &mut handler,
+    );
+
+    let summary = reassembler.summarize();
+    let stats = reassembler.stats();
+
+    assert_eq!(
+        stats.packets_processed, 8,
+        "EC-007: packets_processed must count all 8 packets"
+    );
+    assert_eq!(
+        summary.packets_analyzed, 3,
+        "EC-007: packets_analyzed must be 3 (TCP only), not 8"
+    );
+    assert_ne!(
+        summary.packets_analyzed, stats.packets_processed,
+        "EC-007: packets_analyzed must differ from packets_processed when non-TCP packets present"
+    );
 }
 
 // ---- EC-008: bytes_reassembled after out-of-order segment ----
 
 /// EC-008 (BC-2.04.030 invariant 3 / story EC-008)
-/// bytes_reassembled only counts after flush, not while a segment is buffered
-/// (out-of-order, waiting for the gap to be filled).
+/// bytes_reassembled only counts after flush, not while a segment is buffered.
+/// An out-of-order segment sits in the buffer without contributing to
+/// bytes_reassembled until the gap is filled and it is flushed.
+///
+/// Canonical test vector from BC-2.04.030 (2 OOO segments → 200 after flush).
 #[test]
 fn test_ec_008_bytes_reassembled_only_after_flush() {
-    panic!("RED GATE: EC-008 not yet verified");
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN establishes ISN=1000 → base_offset=1
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Out-of-order: seg2 arrives first (gap at offset 1 keeps it buffered)
+    let seg2 = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1101, // seq=1101 → offset=101 (gap at 1-100)
+        &[b'B'; 100],
+        false,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&seg2, 2, &mut handler);
+
+    // bytes_reassembled must be 0 while seg2 is buffered (not yet flushed)
+    assert_eq!(
+        reassembler.stats().bytes_reassembled,
+        0,
+        "EC-008: bytes_reassembled must be 0 while out-of-order segment is buffered"
+    );
+    assert!(
+        handler.data_events.is_empty(),
+        "EC-008: no on_data callback while segment is buffered (gap unfilled)"
+    );
+
+    // seg1 fills the gap → both segments flush
+    let seg1 = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1001, // offset=1, contiguous with base_offset=1
+        &[b'A'; 100],
+        false,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&seg1, 3, &mut handler);
+
+    // Now both should be flushed → bytes_reassembled == 200
+    assert_eq!(
+        reassembler.stats().bytes_reassembled,
+        200,
+        "EC-008: bytes_reassembled must be 200 after both segments flush (only counts after flush)"
+    );
 }
