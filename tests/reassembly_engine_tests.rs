@@ -1583,6 +1583,90 @@ fn test_dropped_findings_key_present_in_summarize() {
     );
 }
 
+// ---------------------------------------------------------------------------
+// STORY-011: BC-2.04.001 — TcpReassembler::new constructor validation
+//
+// AC-001 through AC-007 (and EC-001..EC-007) formalize the five assert!
+// guards in TcpReassembler::new and the legal-value invariant for
+// flow_timeout_secs.  Each test's name is prescribed by the story spec
+// (W1.4 decision); the BC postcondition being exercised is cited in the
+// doc comment.
+// ---------------------------------------------------------------------------
+
+// ---- RED GATE stubs — #[should_panic] tests use an empty body so that
+//      the should_panic contract is NOT satisfied (test fails because no
+//      panic is raised).  Regular tests use panic!("RED GATE: ...").
+// ---- After RED GATE is verified, stubs are replaced with real assertions.
+
+/// AC-001 / EC-001 (BC-2.04.001 postcondition 1)
+/// Postcondition: if config.max_depth == 0, constructor panics with a
+/// message containing "max_depth must be > 0".
+#[test]
+#[allow(non_snake_case)]
+#[should_panic(expected = "max_depth must be > 0")]
+fn test_BC_2_04_001_max_depth_zero_panics() {
+    // RED GATE stub: empty body → should_panic test fails (no panic raised)
+}
+
+/// AC-002 / EC-002 (BC-2.04.001 postcondition 2)
+/// Postcondition: if config.memcap == 0, constructor panics with a message
+/// containing "memcap must be > 0".
+#[test]
+#[allow(non_snake_case)]
+#[should_panic(expected = "memcap must be > 0")]
+fn test_BC_2_04_001_memcap_zero_panics() {
+    // RED GATE stub: empty body → should_panic test fails (no panic raised)
+}
+
+/// AC-003 / EC-003 (BC-2.04.001 postcondition 3)
+/// Postcondition: if config.max_flows == 0, constructor panics with a
+/// message containing "max_flows must be > 0".
+#[test]
+#[allow(non_snake_case)]
+#[should_panic(expected = "max_flows must be > 0")]
+fn test_BC_2_04_001_max_flows_zero_panics() {
+    // RED GATE stub: empty body → should_panic test fails (no panic raised)
+}
+
+/// AC-004 / EC-004 (BC-2.04.001 postcondition 4)
+/// Postcondition: if config.max_segments_per_direction == 0, constructor
+/// panics with a message containing "max_segments_per_direction must be > 0".
+#[test]
+#[allow(non_snake_case)]
+#[should_panic(expected = "max_segments_per_direction must be > 0")]
+fn test_BC_2_04_001_max_segments_per_direction_zero_panics() {
+    // RED GATE stub: empty body → should_panic test fails (no panic raised)
+}
+
+/// AC-005 / EC-005 (BC-2.04.001 postcondition 5)
+/// Postcondition: if config.max_receive_window == 0, constructor panics
+/// with a message containing "max_receive_window must be > 0".
+#[test]
+#[allow(non_snake_case)]
+#[should_panic(expected = "max_receive_window must be > 0")]
+fn test_BC_2_04_001_max_receive_window_zero_panics() {
+    // RED GATE stub: empty body → should_panic test fails (no panic raised)
+}
+
+/// AC-006 / EC-006 (BC-2.04.001 postcondition 6)
+/// Postcondition: when all five validated fields are > 0 (ReassemblyConfig::default()
+/// satisfies this), the constructor returns a TcpReassembler with empty flows,
+/// empty findings, total_memory == 0, and finalized == false.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_001_valid_config_constructs_successfully() {
+    panic!("RED GATE: AC-006 not yet verified");
+}
+
+/// AC-007 / EC-007 (BC-2.04.001 invariant 2)
+/// Invariant: flow_timeout_secs == 0 is NOT validated at construction;
+/// the constructor must accept it as a legal value and not panic.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_001_flow_timeout_zero_is_legal() {
+    panic!("RED GATE: AC-007 not yet verified");
+}
+
 // ---- LESSON-P2.05: configurable anomaly thresholds ----
 
 /// Drive a flow to `n` overlapping duplicate segments and return the
