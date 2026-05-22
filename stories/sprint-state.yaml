@@ -9,7 +9,7 @@ version: "1.0"
 produced_by: story-writer
 timestamp: 2026-05-21T00:00:00Z
 cycle: v0.1.0-greenfield-spec
-current_wave: 3
+current_wave: 4
 total_stories: 48
 total_waves: 27
 
@@ -112,17 +112,17 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-011:
-    status: pending
+    status: in_progress
     wave: 4
-    branch: null
-    worktree: null
+    branch: feature/story-011-reassembler-flowkey
+    worktree: .worktrees/story-011
     blocked_by: []
 
   STORY-066:
-    status: pending
+    status: in_progress
     wave: 4
-    branch: null
-    worktree: null
+    branch: feature/story-066-dns-stats
+    worktree: .worktrees/story-066
     blocked_by: []
 
   # ---------------------------------------------------------------------------
