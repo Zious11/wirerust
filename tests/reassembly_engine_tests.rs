@@ -2390,7 +2390,16 @@ fn test_BC_2_04_028_summarize_exact_key_set() {
 
 /// AC-009 (BC-2.04.028 invariant 1)
 /// Invariant: flows_completed in the detail map always equals flows_fin + flows_rst.
-/// Verified after a full FIN teardown (flows_fin=1, flows_rst=0 → flows_completed=1).
+///
+/// Both addends are driven to >= 1 within the same reassembler:
+///   Flow A — closed via full FIN teardown  → contributes to flows_fin
+///   Flow B — closed via RST               → contributes to flows_rst
+///
+/// At summarize() time both flows_fin >= 1 AND flows_rst >= 1, so a buggy
+/// summarize() that computed `flows_completed = flows_fin` (dropping the
+/// `+ s.flows_rst` term) would produce 1 instead of 2 and fail the
+/// assertion.  This closes the coverage gap identified in Phase 3 Wave 5
+/// adversarial review finding Min-1.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_028_flows_completed_derived_correctly() {
@@ -2401,8 +2410,8 @@ fn test_BC_2_04_028_flows_completed_derived_correctly() {
     let client = [10, 0, 0, 1];
     let server = [10, 0, 0, 2];
 
-    // Establish flow and close it via FIN teardown
-    let syn = make_tcp_packet(
+    // ---- Flow A: close via FIN teardown (contributes flows_fin += 1) ----
+    let syn_a = make_tcp_packet(
         client,
         12345,
         server,
@@ -2414,8 +2423,8 @@ fn test_BC_2_04_028_flows_completed_derived_correctly() {
         false,
         false,
     );
-    reassembler.process_packet(&syn, 1, &mut handler);
-    let syn_ack = make_tcp_packet(
+    reassembler.process_packet(&syn_a, 1, &mut handler);
+    let syn_ack_a = make_tcp_packet(
         server,
         80,
         client,
@@ -2427,7 +2436,7 @@ fn test_BC_2_04_028_flows_completed_derived_correctly() {
         false,
         false,
     );
-    reassembler.process_packet(&syn_ack, 2, &mut handler);
+    reassembler.process_packet(&syn_ack_a, 2, &mut handler);
     let fin1 = make_tcp_packet(
         client,
         12345,
@@ -2455,12 +2464,55 @@ fn test_BC_2_04_028_flows_completed_derived_correctly() {
     );
     reassembler.process_packet(&fin2, 4, &mut handler);
 
+    // ---- Flow B (distinct port): close via RST (contributes flows_rst += 1) ----
+    let syn_b = make_tcp_packet(
+        client,
+        54321,
+        server,
+        443,
+        3000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_b, 5, &mut handler);
+    let data_b = make_tcp_packet(
+        client, 54321, server, 443, 3001, b"payload", false, false, false, false,
+    );
+    reassembler.process_packet(&data_b, 6, &mut handler);
+    let rst_b = make_tcp_packet(
+        server,
+        443,
+        client,
+        54321,
+        4000,
+        &[],
+        false,
+        false,
+        false,
+        true, // RST flag
+    );
+    reassembler.process_packet(&rst_b, 7, &mut handler);
+
     let stats = reassembler.stats();
     let summary = reassembler.summarize();
 
     let flows_fin = stats.flows_fin;
     let flows_rst = stats.flows_rst;
     let expected_completed = flows_fin + flows_rst;
+
+    // Both addends must be non-zero — otherwise the test has not closed the
+    // Min-1 coverage gap.
+    assert!(
+        flows_fin >= 1,
+        "BC-2.04.028 inv-1 setup: flows_fin must be >= 1 (got {flows_fin})"
+    );
+    assert!(
+        flows_rst >= 1,
+        "BC-2.04.028 inv-1 setup: flows_rst must be >= 1 (got {flows_rst})"
+    );
 
     let detail_completed = summary
         .detail
