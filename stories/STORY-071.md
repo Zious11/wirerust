@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-071
 epic_id: E-7
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -138,9 +138,9 @@ All 6 currently-emitted technique IDs (T1027, T1036, T1046, T1083, T1499.002, T1
 
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
-| `MitreTactic` enum | `src/mitre.rs:46-90` | pure-core |
+| `MitreTactic` enum | `src/mitre.rs:46-66` | pure-core |
 | `all_tactics_in_report_order` | `src/mitre.rs:95-114` | pure-core |
-| `technique_info` (lookup table) | `src/mitre.rs:122-155` | pure-core |
+| `technique_info` (lookup table) | `src/mitre.rs:122-156` | pure-core |
 | `technique_name` | `src/mitre.rs` | pure-core |
 | `technique_tactic` | `src/mitre.rs:166-168` | pure-core |
 
@@ -216,3 +216,10 @@ All 6 currently-emitted technique IDs (T1027, T1036, T1046, T1083, T1499.002, T1
 |------|--------|---------|
 | `src/mitre.rs` | modify | `MitreTactic` enum, Display impl, `all_tactics_in_report_order`, `technique_info`, `technique_name`, `technique_tactic` |
 | `tests/mitre_tests.rs` | create or modify | All AC test functions and edge-case tests |
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.1 | 2026-05-21 | story-writer | Initial story decomposition |
+| 1.2 | 2026-05-22 | story-writer | Wave 3 Ph3 implementer-confirm anchor-drift correction: `MitreTactic` enum anchor corrected from `:46-90` to `:46-66` (enum declaration only; Display impl is `:68-90`); `technique_info` closing-brace anchor corrected from `:122-155` to `:122-156` |
