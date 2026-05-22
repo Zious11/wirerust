@@ -5,7 +5,7 @@
 //! owns two [`FlowDirection`] segment buffers (client→server and
 //! server→client), tracks ISN (initial sequence number) per direction, and
 //! advances through the [`FlowState`] machine (`New` → `SynSent` → `Established`
-//! → `Closed`).
+//! → `Closing` → `Closed`).
 //!
 //! Memory accounting (`memory_used`) is consulted by the reassembler's
 //! memcap eviction strategy; per-direction `overlap_count`,
@@ -217,6 +217,13 @@ impl TcpFlow {
         } else {
             Direction::ServerToClient
         }
+    }
+
+    /// Returns the count of FIN flags observed on this flow.
+    ///
+    /// Saturates at u8::MAX (255) — see BC-2.04.050 invariant 4.
+    pub fn fin_count(&self) -> u8 {
+        self.fin_count
     }
 
     pub fn get_direction_mut(&mut self, dir: Direction) -> &mut FlowDirection {

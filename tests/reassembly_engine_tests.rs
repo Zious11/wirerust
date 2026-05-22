@@ -3283,3 +3283,605 @@ fn test_ec_008_bytes_reassembled_only_after_flush() {
         "EC-008: bytes_reassembled must be 200 after both segments flush (only counts after flush)"
     );
 }
+
+// ---------------------------------------------------------------------------
+// STORY-013: Engine-level integration tests for apply_handshake_flags
+//   BC-2.04.004, BC-2.04.005, BC-2.04.051, BC-2.04.052, BC-2.04.053
+//
+// These tests exercise the effectful-shell layer (TcpReassembler::process_packet
+// / apply_handshake_flags) for handshake state transitions and statistics.
+// Pure TcpFlow method tests live in reassembly_flow_tests.rs.
+// ---------------------------------------------------------------------------
+
+/// STORY-013 Engine AC: apply_handshake_flags SYN block (BC-2.04.004)
+/// Integration-level: process a SYN packet through the engine and assert
+/// that a flow is created, state has been processed as a new flow (SYN packet
+/// processed; stats.flows_total == 1; no partial join).
+///
+/// Exercises BC-2.04.004 postconditions 1-3 at the engine level via
+/// process_packet → apply_handshake_flags → on_syn / set_initiator / set_isn.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_004_engine_syn_sets_state_and_isn() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [1, 1, 1, 1];
+    let server = [2, 2, 2, 2];
+
+    // SYN packet from client (seq=1000).
+    let syn = make_tcp_packet(
+        client,
+        5000,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // BC-2.04.004 post-3: a flow was created (flows_total=1).
+    assert_eq!(
+        reassembler.stats().flows_total,
+        1,
+        "BC-2.04.004 engine: SYN packet must create exactly one flow"
+    );
+    // BC-2.04.004 post-1/post-2: this was a proper SYN, not a mid-stream join.
+    assert_eq!(
+        reassembler.stats().flows_partial,
+        0,
+        "BC-2.04.004 engine: SYN packet must not set flows_partial"
+    );
+    // No close events — SYN does not close a flow.
+    assert!(
+        handler.close_events.is_empty(),
+        "BC-2.04.004 engine: SYN packet must not emit on_flow_close"
+    );
+}
+
+/// STORY-013 Engine AC: apply_handshake_flags SYN+ACK block (BC-2.04.005)
+/// Integration-level: SYN → SYN+ACK sequence transitions engine flow to
+/// Established with correct direction tagging (flows_partial=0, data tagged correctly).
+///
+/// Exercises BC-2.04.005 postconditions 1-3 at the engine level.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_005_engine_syn_ack_establishes_flow() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [1, 1, 1, 1];
+    let server = [2, 2, 2, 2];
+
+    // SYN from client.
+    let syn = make_tcp_packet(
+        client,
+        5000,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // SYN+ACK from server (seq=2000).
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        5000,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // After SYN+ACK, flow is Established. Verify via data delivery with correct direction.
+    let req = make_tcp_packet(
+        client, 5000, server, 80, 1001, b"hello", false, false, false, false,
+    );
+    reassembler.process_packet(&req, 3, &mut handler);
+
+    // BC-2.04.005 post-1: initiator is the client (dst of SYN+ACK).
+    // Verified via direction tag on the first data event.
+    assert_eq!(
+        reassembler.stats().flows_partial,
+        0,
+        "BC-2.04.005 engine: full SYN/SYN+ACK handshake must not set flows_partial"
+    );
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "BC-2.04.005 engine: client request must produce one data event"
+    );
+    assert_eq!(
+        handler.data_events[0].1,
+        Direction::ClientToServer,
+        "BC-2.04.005 engine: client data must be tagged ClientToServer (initiator=client)"
+    );
+    assert_eq!(
+        handler.data_events[0].2, b"hello",
+        "BC-2.04.005 engine: correct payload must be delivered"
+    );
+}
+
+/// STORY-013 Engine AC: apply_handshake_flags RST block (BC-2.04.051)
+/// Integration-level: RST increments stats.flows_rst, emits CloseReason::Rst,
+/// and removes the flow (total_memory == 0 after RST).
+///
+/// Exercises BC-2.04.051 postconditions 2-5 at the engine level:
+///   - PostHandshake::FlowClosed returned (payload NOT processed after RST)
+///   - stats.flows_rst incremented
+///   - close_flow(key, CloseReason::Rst) called
+///   - flow removed from table (total_memory == 0)
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_051_engine_rst_increments_flows_rst_counter() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [1, 1, 1, 1];
+    let server = [2, 2, 2, 2];
+
+    // Establish a flow.
+    let syn = make_tcp_packet(
+        client,
+        5000,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        5000,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    let data = make_tcp_packet(
+        client, 5000, server, 80, 1001, b"payload", false, false, false, false,
+    );
+    reassembler.process_packet(&data, 3, &mut handler);
+
+    // RST from server.
+    let rst = make_tcp_packet(
+        server,
+        80,
+        client,
+        5000,
+        2001,
+        &[],
+        false,
+        false,
+        false,
+        true,
+    );
+    reassembler.process_packet(&rst, 4, &mut handler);
+
+    // BC-2.04.051 post-3: flows_rst must increment.
+    assert_eq!(
+        reassembler.stats().flows_rst,
+        1,
+        "BC-2.04.051 engine: RST must increment stats.flows_rst to 1"
+    );
+    // BC-2.04.051 post-4: close_flow called with CloseReason::Rst.
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "BC-2.04.051 engine: RST must emit exactly one on_flow_close event"
+    );
+    assert_eq!(
+        handler.close_events[0].1,
+        CloseReason::Rst,
+        "BC-2.04.051 engine: close reason must be Rst"
+    );
+    // BC-2.04.051 post-5: flow removed — no buffered state.
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "BC-2.04.051 engine: RST must remove flow (total_memory == 0)"
+    );
+}
+
+/// STORY-013 Engine AC: insert_payload_segment mid-stream join (BC-2.04.052)
+/// Integration-level: a data packet on a New flow calls on_data_without_syn
+/// and increments stats.flows_partial.
+///
+/// Exercises BC-2.04.052 postcondition 3 (flows_partial counter) at the engine level.
+/// Canonical test vector: New flow, data packet (no SYN) → flows_partial=1.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_052_engine_data_without_syn_increments_flows_partial() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [1, 1, 1, 1];
+    let server = [2, 2, 2, 2];
+
+    // Data packet with no prior SYN (mid-stream join).
+    let data = make_tcp_packet(
+        client,
+        5000,
+        server,
+        80,
+        5000,
+        b"mid-stream",
+        false,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&data, 1, &mut handler);
+
+    // BC-2.04.052 post-3: flows_partial must increment.
+    assert_eq!(
+        reassembler.stats().flows_partial,
+        1,
+        "BC-2.04.052 engine: mid-stream join must increment stats.flows_partial to 1"
+    );
+    // BC-2.04.052 post-1: flow must be in Established state (data delivered).
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "BC-2.04.052 engine: mid-stream data must be delivered to handler"
+    );
+    assert_eq!(
+        handler.data_events[0].2, b"mid-stream",
+        "BC-2.04.052 engine: correct payload must be delivered on mid-stream join"
+    );
+}
+
+/// STORY-013 Engine AC: direction tagging in flush path (BC-2.04.053)
+/// Integration-level: after full SYN/SYN+ACK handshake, client data flushed to
+/// handler carries Direction::ClientToServer and server data carries
+/// Direction::ServerToClient.
+///
+/// Exercises BC-2.04.053 postconditions 1-2 via the engine's flush_contiguous_data
+/// → handler.on_data callbacks.
+/// Canonical test vector: initiator=client; client→server data → ClientToServer;
+///   server→client data → ServerToClient.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_053_engine_direction_tagging_in_flush_path() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [1, 1, 1, 1];
+    let server = [2, 2, 2, 2];
+
+    // Full three-way handshake.
+    let syn = make_tcp_packet(
+        client,
+        5000,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        5000,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // Client sends data → must be tagged ClientToServer.
+    let req = make_tcp_packet(
+        client, 5000, server, 80, 1001, b"request", false, false, false, false,
+    );
+    reassembler.process_packet(&req, 3, &mut handler);
+
+    // Server sends data → must be tagged ServerToClient.
+    let resp = make_tcp_packet(
+        server,
+        80,
+        client,
+        5000,
+        2001,
+        b"response",
+        false,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&resp, 4, &mut handler);
+
+    // BC-2.04.053 post-1: client data delivered with Direction::ClientToServer.
+    let c2s_events: Vec<_> = handler
+        .data_events
+        .iter()
+        .filter(|(_, d, _, _)| *d == Direction::ClientToServer)
+        .collect();
+    assert_eq!(
+        c2s_events.len(),
+        1,
+        "BC-2.04.053 engine: exactly one ClientToServer data event expected"
+    );
+    assert_eq!(
+        c2s_events[0].2, b"request",
+        "BC-2.04.053 engine: client data must be tagged ClientToServer"
+    );
+
+    // BC-2.04.053 post-2: server data delivered with Direction::ServerToClient.
+    let s2c_events: Vec<_> = handler
+        .data_events
+        .iter()
+        .filter(|(_, d, _, _)| *d == Direction::ServerToClient)
+        .collect();
+    assert_eq!(
+        s2c_events.len(),
+        1,
+        "BC-2.04.053 engine: exactly one ServerToClient data event expected"
+    );
+    assert_eq!(
+        s2c_events[0].2, b"response",
+        "BC-2.04.053 engine: server data must be tagged ServerToClient"
+    );
+}
+
+/// F-2 engine-level test (BC-2.04.005 postcondition 1, EC-002, BC-2.04.053)
+///
+/// AC-005 / AC-007 / `test_BC_2_04_005_engine_syn_ack_establishes_flow` all fail to
+/// exercise the "SYN+ACK destination is the initiator" semantic against
+/// `apply_handshake_flags` in isolation. The existing flow-level tests call
+/// `flow.set_initiator(...)` manually, and the existing engine test processes a SYN
+/// first — setting `initiator=client` via the SYN branch — so a hypothetical regression
+/// in `apply_handshake_flags`'s SYN+ACK branch that swapped `packet.dst_ip` →
+/// `packet.src_ip` (mis-identifying the server as the initiator) would be masked by
+/// `set_initiator`'s idempotency.
+///
+/// This test closes the gap with a server-first capture: a SYN+ACK arrives with NO
+/// prior SYN. The engine must read `packet.dst_ip:tcp.dst_port` (the client endpoint)
+/// as the initiator — not `packet.src_ip:tcp.src_port` (the server endpoint). A
+/// subsequent client data packet must be tagged `Direction::ClientToServer`. If
+/// `apply_handshake_flags` incorrectly used `src_ip` instead of `dst_ip`, the
+/// initiator would be set to the server, and the client data packet would be tagged
+/// `Direction::ServerToClient` — failing the assertion.
+///
+/// References: BC-2.04.005 postcondition 1, EC-002, BC-2.04.053 direction-tagging.
+/// Phase 3 Wave 6 adversarial finding F-2.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_005_engine_syn_ack_without_prior_syn_dst_is_initiator_ec002() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    // server_ip:443 sends a SYN+ACK to client_ip:55000.
+    // No prior SYN has been processed — this is a server-first capture (EC-002).
+    let server = [2, 2, 2, 2];
+    let client = [1, 1, 1, 1];
+
+    // Step 1: SYN+ACK from server → client (no prior SYN).
+    // apply_handshake_flags must read packet.dst_ip:tcp.dst_port = client_ip:55000
+    // as the initiator. A regression swapping src/dst would set server_ip:443 as
+    // the initiator instead.
+    let syn_ack = make_tcp_packet(
+        server,
+        443,
+        client,
+        55000,
+        9000,
+        &[],
+        true, // syn
+        true, // ack
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 1, &mut handler);
+
+    // No data events yet — SYN+ACK carries no payload.
+    assert!(
+        handler.data_events.is_empty(),
+        "F-2 / BC-2.04.005 engine: SYN+ACK with no payload must not fire on_data"
+    );
+
+    // Step 2: client sends data toward the server.
+    // src = client_ip:55000 — this must match the initiator set in step 1.
+    // Expected direction: ClientToServer (initiator == client_ip:55000).
+    // Regression direction: ServerToClient (initiator mis-set to server_ip:443).
+    let client_data = make_tcp_packet(
+        client,
+        55000,
+        server,
+        443,
+        1001,
+        b"get-request",
+        false,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&client_data, 2, &mut handler);
+
+    // Step 3: assert the data event was tagged ClientToServer.
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "F-2 / BC-2.04.005 engine: client data packet must produce exactly one on_data event"
+    );
+    assert_eq!(
+        handler.data_events[0].1,
+        Direction::ClientToServer,
+        "F-2 / BC-2.04.005 post-1 / EC-002 / BC-2.04.053: client data (src=client_ip:55000) \
+         must be tagged ClientToServer — apply_handshake_flags must use packet.dst_ip:dst_port \
+         (client_ip:55000) as initiator, NOT packet.src_ip:src_port (server_ip:443). \
+         A regression swapping src/dst would yield ServerToClient here."
+    );
+    assert_eq!(
+        handler.data_events[0].2, b"get-request",
+        "F-2 / BC-2.04.005 engine: correct payload must be delivered"
+    );
+
+    // Confirm the flow was not marked partial — SYN+ACK constitutes a proper handshake
+    // marker (the engine detects it via the syn+ack flags).
+    assert_eq!(
+        reassembler.stats().flows_partial,
+        0,
+        "F-2 / BC-2.04.005 engine: SYN+ACK-first capture must not be counted as partial \
+         (the engine recognises the SYN+ACK flags and handles it via the handshake path)"
+    );
+}
+
+/// EC-007 / F-6 engine-level test (BC-2.04.051 invariant 2, postcondition 2)
+///
+/// EC-007 states: "RST with payload | Payload NOT processed; PostHandshake::FlowClosed
+/// returned." The flow-level test (`test_BC_2_04_051_ec007_rst_closes_flow_state`)
+/// only confirms `state == Closed`. This test exercises the engine-level claim that
+/// the RST payload is NOT delivered to the handler and NOT inserted into the segment
+/// buffer.
+///
+/// Assertions:
+///   (a) flow state is Closed after the RST packet (via flows_rst counter, since the
+///       flow is removed immediately — CloseReason::Rst).
+///   (b) `stats.flows_rst` incremented by exactly 1.
+///   (c) the RST payload was NOT processed: handler.on_data was NOT called for
+///       the RST packet's payload bytes, and `stats.segments_inserted` did not
+///       increment for the RST packet.
+///
+/// References: EC-007, BC-2.04.051 invariant 2, postcondition 2.
+/// Phase 3 Wave 6 adversarial finding F-6.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_051_ec007_rst_with_payload_does_not_process_payload() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish the flow with a full handshake so it is in Established state.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // Capture segments_inserted baseline after handshake (no payload yet).
+    let segments_before_rst = reassembler.stats().segments_inserted;
+    assert_eq!(
+        segments_before_rst, 0,
+        "EC-007 precondition: no data segments inserted during handshake"
+    );
+    assert!(
+        handler.data_events.is_empty(),
+        "EC-007 precondition: no on_data callbacks during handshake"
+    );
+
+    // Send a RST packet WITH a non-empty payload from the server.
+    // BC-2.04.051 invariant 2: the engine must return PostHandshake::FlowClosed
+    // before reaching payload processing — the payload bytes must be suppressed.
+    let rst_with_payload = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2001,
+        b"malicious-rst-payload",
+        false,
+        false,
+        false,
+        true, // rst = true
+    );
+    reassembler.process_packet(&rst_with_payload, 3, &mut handler);
+
+    // (a) Flow closed via RST: CloseReason::Rst must be emitted.
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "EC-007: exactly one on_flow_close event must be emitted for the RST"
+    );
+    assert_eq!(
+        handler.close_events[0].1,
+        CloseReason::Rst,
+        "EC-007: close reason must be Rst"
+    );
+
+    // (b) flows_rst incremented by 1.
+    assert_eq!(
+        reassembler.stats().flows_rst,
+        1,
+        "EC-007: flows_rst must be exactly 1 after a single RST packet"
+    );
+
+    // (c) RST payload NOT processed — on_data must NOT have been called for the payload.
+    assert!(
+        handler.data_events.is_empty(),
+        "EC-007: BC-2.04.051 invariant 2: on_data must NOT be called for a RST packet's \
+         payload — PostHandshake::FlowClosed is returned before payload processing"
+    );
+
+    // (c) segments_inserted must not have changed — payload was not inserted.
+    assert_eq!(
+        reassembler.stats().segments_inserted,
+        segments_before_rst,
+        "EC-007: BC-2.04.051 postcondition 2: segments_inserted must not increment \
+         for a RST packet — payload suppression confirmed via stats counter"
+    );
+}

@@ -574,3 +574,1085 @@ mod proptest_flowkey {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// STORY-013: BC-2.04.004, BC-2.04.005, BC-2.04.050, BC-2.04.051,
+//            BC-2.04.052, BC-2.04.053
+//
+// TCP three-way handshake state machine and direction tagging.
+// AC-001..AC-016 and EC-001..EC-010 (story spec + BC postconditions/invariants).
+// Test names are prescribed by the story spec (W1.4 decision).
+// ---------------------------------------------------------------------------
+
+// ---- AC-001 to AC-016: RED GATE stubs ----
+
+/// AC-001 (BC-2.04.004 postcondition 1)
+/// Postcondition: after set_initiator(src_ip, src_port) (called by apply_handshake_flags
+/// for a SYN), flow.initiator == Some((src_ip, src_port)).
+/// Canonical test vector: SYN from 1.1.1.1:5000 → initiator=(1.1.1.1, 5000).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_004_syn_sets_initiator() {
+    let ip_client = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
+    let ip_server = IpAddr::V4(Ipv4Addr::new(2, 2, 2, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_client, 5000, ip_server, 80), 0);
+
+    // Simulate SYN processing: set_initiator called with src endpoint.
+    flow.set_initiator(ip_client, 5000);
+
+    assert_eq!(
+        flow.direction(ip_client, 5000),
+        Direction::ClientToServer,
+        "BC-2.04.004 post-1: initiator must be set to the SYN source endpoint"
+    );
+    // Confirm via direction: only ClientToServer if initiator matches.
+    assert_eq!(
+        flow.direction(ip_server, 80),
+        Direction::ServerToClient,
+        "BC-2.04.004 post-1: server endpoint must yield ServerToClient direction"
+    );
+}
+
+/// AC-002 (BC-2.04.004 postcondition 2)
+/// Postcondition: after processing a SYN, the ClientToServer direction
+/// has isn == Some(tcp.seq), and base_offset == 1 (ISN+1 is first data byte).
+/// Canonical test vector: SYN seq=1000 → c2s.isn=Some(1000), base_offset=1.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_004_syn_sets_client_isn() {
+    let ip_client = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
+    let ip_server = IpAddr::V4(Ipv4Addr::new(2, 2, 2, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_client, 5000, ip_server, 80), 0);
+
+    // Simulate SYN processing: set_initiator, then set_isn on the c2s direction.
+    flow.set_initiator(ip_client, 5000);
+    let dir = flow.direction(ip_client, 5000);
+    flow.get_direction_mut(dir).set_isn(1000);
+
+    assert_eq!(
+        flow.client_to_server.isn,
+        Some(1000),
+        "BC-2.04.004 post-2: ClientToServer ISN must be set to tcp.seq=1000"
+    );
+    assert_eq!(
+        flow.client_to_server.base_offset, 1,
+        "BC-2.04.004 post-2: base_offset must be 1 (ISN+1 is first data byte)"
+    );
+}
+
+/// AC-003 (BC-2.04.004 postcondition 3)
+/// Postcondition: after on_syn(), flow.state == FlowState::SynSent.
+/// Canonical test vector: New flow, on_syn() → state=SynSent.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_004_syn_transitions_to_synsent() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(2, 2, 2, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_a, 5000, ip_b, 80), 0);
+
+    assert_eq!(
+        flow.state,
+        FlowState::New,
+        "precondition: flow starts in New state"
+    );
+    flow.on_syn();
+    assert_eq!(
+        flow.state,
+        FlowState::SynSent,
+        "BC-2.04.004 post-3: on_syn() from New must transition to SynSent"
+    );
+}
+
+/// AC-004 (BC-2.04.004 invariants 1-2)
+/// Invariant: set_initiator and set_isn are idempotent — a retransmitted SYN
+/// does not change the stored initiator or ISN.
+/// Canonical test vector: two SYNs from same source → ISN and initiator unchanged.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_004_retransmitted_syn_is_idempotent() {
+    let ip_client = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
+    let ip_server = IpAddr::V4(Ipv4Addr::new(2, 2, 2, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_client, 5000, ip_server, 80), 0);
+
+    // First SYN — seq=1000.
+    flow.set_initiator(ip_client, 5000);
+    let dir = flow.direction(ip_client, 5000);
+    flow.get_direction_mut(dir).set_isn(1000);
+    flow.on_syn();
+
+    let isn_after_first = flow.client_to_server.isn;
+    let state_after_first = flow.state;
+
+    // Retransmitted SYN — seq=1001 (different seq, but set_isn must not override).
+    flow.set_initiator(ip_client, 5000); // idempotent
+    let dir2 = flow.direction(ip_client, 5000);
+    flow.get_direction_mut(dir2).set_isn(1001); // idempotent — must not change
+    flow.on_syn(); // on_syn in SynSent state → no-op
+
+    assert_eq!(
+        flow.client_to_server.isn, isn_after_first,
+        "BC-2.04.004 inv-2: set_isn must be idempotent; retransmit must not change ISN"
+    );
+    assert_eq!(
+        flow.state, state_after_first,
+        "BC-2.04.004 inv-3: on_syn in SynSent is a no-op; state must remain SynSent"
+    );
+    // Initiator also unchanged (direction still maps correctly).
+    assert_eq!(
+        flow.direction(ip_client, 5000),
+        Direction::ClientToServer,
+        "BC-2.04.004 inv-1: set_initiator is idempotent; initiator unchanged after retransmit"
+    );
+}
+
+/// AC-005 (BC-2.04.005 postcondition 1)
+/// Postcondition: after processing a SYN+ACK, flow.initiator == Some((dst_ip, dst_port))
+/// — the DESTINATION of the SYN+ACK is the initiator (the original SYN sender).
+/// Canonical test vector: SYN from C, SYN+ACK from S → initiator = C (dst of SYN+ACK).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_005_syn_ack_sets_initiator_to_dst() {
+    let ip_client = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
+    let ip_server = IpAddr::V4(Ipv4Addr::new(2, 2, 2, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_client, 5000, ip_server, 80), 0);
+
+    // SYN+ACK from server (src=server, dst=client).
+    // apply_handshake_flags calls set_initiator(packet.dst_ip, tcp.dst_port).
+    flow.set_initiator(ip_client, 5000); // dst of SYN+ACK is the initiator
+    flow.on_syn_ack();
+
+    assert_eq!(
+        flow.direction(ip_client, 5000),
+        Direction::ClientToServer,
+        "BC-2.04.005 post-1: the DESTINATION of the SYN+ACK (client) must be the initiator"
+    );
+    assert_eq!(
+        flow.direction(ip_server, 80),
+        Direction::ServerToClient,
+        "BC-2.04.005 post-1: server (src of SYN+ACK) must be ServerToClient"
+    );
+}
+
+/// AC-006 (BC-2.04.005 postconditions 2-3)
+/// Postcondition: after processing SYN+ACK, the server-to-client direction has
+/// isn == Some(tcp.seq), base_offset == 1, and flow.state == FlowState::Established.
+/// Canonical test vector: SYN from C (seq=1000), SYN+ACK from S (seq=2000) →
+///   s2c.isn=Some(2000), state=Established.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_005_syn_ack_establishes_flow() {
+    let ip_client = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
+    let ip_server = IpAddr::V4(Ipv4Addr::new(2, 2, 2, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_client, 5000, ip_server, 80), 0);
+
+    // First process SYN to set initiator.
+    flow.set_initiator(ip_client, 5000);
+    let c2s_dir = flow.direction(ip_client, 5000);
+    flow.get_direction_mut(c2s_dir).set_isn(1000);
+    flow.on_syn();
+
+    // Now process SYN+ACK (src=server, dst=client, seq=2000).
+    // apply_handshake_flags: set_initiator(dst=client) — already set, idempotent.
+    // Then: direction(src=server) → ServerToClient; set_isn(2000) on s2c; on_syn_ack().
+    let s2c_dir = flow.direction(ip_server, 80);
+    flow.get_direction_mut(s2c_dir).set_isn(2000);
+    flow.on_syn_ack();
+
+    assert_eq!(
+        flow.server_to_client.isn,
+        Some(2000),
+        "BC-2.04.005 post-2: s2c ISN must be set to SYN+ACK seq=2000"
+    );
+    assert_eq!(
+        flow.server_to_client.base_offset, 1,
+        "BC-2.04.005 post-2: s2c base_offset must be 1 (ISN+1)"
+    );
+    assert_eq!(
+        flow.state,
+        FlowState::Established,
+        "BC-2.04.005 post-3: on_syn_ack() from SynSent must transition to Established"
+    );
+}
+
+/// AC-007 (BC-2.04.005 invariant 3)
+/// Invariant: on_syn_ack() transitions from New directly to Established (server-first
+/// capture: SYN+ACK without prior SYN).
+/// Canonical test vector: SYN+ACK on New flow → state=Established; initiator=dst.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_005_syn_ack_without_prior_syn() {
+    let ip_client = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
+    let ip_server = IpAddr::V4(Ipv4Addr::new(2, 2, 2, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_client, 5000, ip_server, 80), 0);
+
+    assert_eq!(
+        flow.state,
+        FlowState::New,
+        "precondition: no prior SYN seen"
+    );
+
+    // SYN+ACK without prior SYN: set_initiator(dst=client), on_syn_ack().
+    flow.set_initiator(ip_client, 5000); // initiator = dst of SYN+ACK
+    flow.on_syn_ack();
+
+    assert_eq!(
+        flow.state,
+        FlowState::Established,
+        "BC-2.04.005 inv-3: on_syn_ack() from New must transition directly to Established"
+    );
+    assert_eq!(
+        flow.direction(ip_client, 5000),
+        Direction::ClientToServer,
+        "BC-2.04.005 inv-3: initiator must be set to the SYN+ACK destination"
+    );
+}
+
+/// AC-008 (BC-2.04.050 postcondition — all 9 transitions)
+/// Each of the 9 rows in the BC-2.04.050 state transition table is verified
+/// individually within this single test function.
+///
+/// Rows:
+///   1. on_syn()                New         → SynSent
+///   2. on_syn()                SynSent     → SynSent (no-op guard; state unchanged)
+///   3. on_syn_ack()            SynSent     → Established
+///   4. on_syn_ack()            New         → Established (server-first)
+///   5. on_data_without_syn()   New         → Established + partial=true
+///   6. on_fin() (first)        Established → Closing
+///   7. on_fin() (first)        SynSent     → Closing
+///   8. on_fin() (second, fin_count >= 2) any → Closed
+///   9. on_rst()                any         → Closed
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_050_state_machine_all_transitions() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    let key = FlowKey::new(ip_a, 1000, ip_b, 80);
+
+    // ---- Row 1: on_syn() New → SynSent ----
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        assert_eq!(flow.state, FlowState::New);
+        flow.on_syn();
+        assert_eq!(
+            flow.state,
+            FlowState::SynSent,
+            "BC-2.04.050 row-1: on_syn() from New must → SynSent"
+        );
+    }
+
+    // ---- Row 2: on_syn() SynSent → SynSent (no-op guard) ----
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_syn(); // New → SynSent
+        assert_eq!(flow.state, FlowState::SynSent);
+        flow.on_syn(); // must be no-op
+        assert_eq!(
+            flow.state,
+            FlowState::SynSent,
+            "BC-2.04.050 row-2: on_syn() from SynSent must stay in SynSent (no-op guard)"
+        );
+    }
+
+    // ---- Row 3: on_syn_ack() SynSent → Established ----
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_syn(); // New → SynSent
+        assert_eq!(flow.state, FlowState::SynSent);
+        flow.on_syn_ack();
+        assert_eq!(
+            flow.state,
+            FlowState::Established,
+            "BC-2.04.050 row-3: on_syn_ack() from SynSent must → Established"
+        );
+    }
+
+    // ---- Row 4: on_syn_ack() New → Established (server-first) ----
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        assert_eq!(flow.state, FlowState::New);
+        flow.on_syn_ack();
+        assert_eq!(
+            flow.state,
+            FlowState::Established,
+            "BC-2.04.050 row-4: on_syn_ack() from New must → Established (server-first)"
+        );
+    }
+
+    // ---- Row 5: on_data_without_syn() New → Established + partial=true ----
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        assert_eq!(flow.state, FlowState::New);
+        assert!(!flow.partial);
+        flow.on_data_without_syn();
+        assert_eq!(
+            flow.state,
+            FlowState::Established,
+            "BC-2.04.050 row-5: on_data_without_syn() from New must → Established"
+        );
+        assert!(
+            flow.partial,
+            "BC-2.04.050 row-5: on_data_without_syn() must set partial=true"
+        );
+    }
+
+    // ---- Row 6: on_fin() (first) Established → Closing ----
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_syn_ack(); // New → Established
+        assert_eq!(flow.state, FlowState::Established);
+        flow.on_fin();
+        assert_eq!(
+            flow.state,
+            FlowState::Closing,
+            "BC-2.04.050 row-6: first on_fin() from Established must → Closing"
+        );
+        // F-6: assert fin_count == 1 so the "fin_count becomes 1" row text is
+        // genuinely verified, not just narrated. A buggy implementation that
+        // never increments fin_count would still reach Closing if it used an
+        // independent boolean flag, but would fail this assertion.
+        assert_eq!(
+            flow.fin_count(),
+            1,
+            "BC-2.04.050 row-6: fin_count() must be 1 after the first on_fin() from Established"
+        );
+    }
+
+    // ---- Row 7: on_fin() (first) SynSent → Closing ----
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_syn(); // New → SynSent
+        assert_eq!(flow.state, FlowState::SynSent);
+        flow.on_fin();
+        assert_eq!(
+            flow.state,
+            FlowState::Closing,
+            "BC-2.04.050 row-7: first on_fin() from SynSent must → Closing"
+        );
+        // F-6: assert fin_count == 1 — same rationale as row-6 above.
+        assert_eq!(
+            flow.fin_count(),
+            1,
+            "BC-2.04.050 row-7: fin_count() must be 1 after the first on_fin() from SynSent"
+        );
+    }
+
+    // ---- Row 8: on_fin() (second, fin_count >= 2) any → Closed ----
+    // BC-2.04.050 claims "any state" for the second FIN. We exercise the
+    // path from at least two distinct prior states so the "any" claim is
+    // not just asserted but verified. fin_count() is now observable, so
+    // we confirm fin_count == 2 in each sub-case (not merely narrated).
+
+    // Row 8a: second FIN from Closing (canonical path — Established → Closing → Closed).
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_syn_ack(); // New → Established
+        flow.on_fin(); // Established → Closing; fin_count=1
+        assert_eq!(flow.state, FlowState::Closing);
+        flow.on_fin(); // fin_count=2 → Closed
+        assert_eq!(
+            flow.state,
+            FlowState::Closed,
+            "BC-2.04.050 row-8a: second on_fin() from Closing (fin_count >= 2) must → Closed"
+        );
+        assert_eq!(
+            flow.fin_count(),
+            2,
+            "BC-2.04.050 row-8a: fin_count() must be exactly 2 after two on_fin() calls"
+        );
+    }
+
+    // Row 8b: second FIN from SynSent (FIN arrives before full handshake — "any" coverage).
+    // First FIN on SynSent → Closing (row-7 path); second FIN → Closed.
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_syn(); // New → SynSent
+        assert_eq!(flow.state, FlowState::SynSent);
+        flow.on_fin(); // SynSent → Closing; fin_count=1
+        assert_eq!(flow.state, FlowState::Closing);
+        flow.on_fin(); // fin_count=2 → Closed
+        assert_eq!(
+            flow.state,
+            FlowState::Closed,
+            "BC-2.04.050 row-8b: second on_fin() from Closing (prior SynSent path) \
+             must → Closed — exercises 'any state' claim with SynSent as origin"
+        );
+        assert_eq!(
+            flow.fin_count(),
+            2,
+            "BC-2.04.050 row-8b: fin_count() must be exactly 2 after two on_fin() calls"
+        );
+    }
+
+    // Row 8c: second FIN on a New flow — discriminates a buggy "state == Closing" guard.
+    //
+    // F-5: rows 8a and 8b both pass through Closing before the second FIN. A
+    // regressed guard like `if fin_count >= 2 && state == FlowState::Closing { Closed }`
+    // would pass both. This sub-case never reaches Closing: the first FIN leaves the
+    // flow in New (EC-009 — state stays New because the Closing guard covers only
+    // Established and SynSent), so the second FIN must fire the `fin_count >= 2` branch
+    // from New directly to Closed. A buggy state == Closing guard would fail here.
+    //
+    // References: BC-2.04.050 row-8 ("any → Closed"), EC-009.
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        assert_eq!(
+            flow.state,
+            FlowState::New,
+            "row-8c precondition: flow starts in New"
+        );
+        // First FIN: fin_count becomes 1; state stays New (EC-009 — no Closing guard for New).
+        flow.on_fin();
+        assert_eq!(
+            flow.state,
+            FlowState::New,
+            "BC-2.04.050 row-8c precondition: first on_fin() from New must leave state=New \
+             (EC-009: Closing guard only covers Established and SynSent)"
+        );
+        assert_eq!(
+            flow.fin_count(),
+            1,
+            "BC-2.04.050 row-8c precondition: fin_count() must be 1 after first on_fin() from New"
+        );
+        // Second FIN: fin_count becomes 2 → `if fin_count >= 2` must fire → Closed.
+        // A buggy `if fin_count >= 2 && state == FlowState::Closing` would NOT fire here
+        // (state is New, not Closing) and the flow would stay in New, failing this assertion.
+        flow.on_fin();
+        assert_eq!(
+            flow.state,
+            FlowState::Closed,
+            "BC-2.04.050 row-8c: second on_fin() from New (fin_count >= 2) must → Closed \
+             even though state was never Closing — discriminates a buggy 'state==Closing' guard"
+        );
+        assert_eq!(
+            flow.fin_count(),
+            2,
+            "BC-2.04.050 row-8c: fin_count() must be exactly 2 after two on_fin() calls on New flow"
+        );
+    }
+
+    // ---- Row 9: on_rst() any → Closed ----
+    {
+        // Test from Established (representative of "any").
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_syn_ack(); // New → Established
+        assert_eq!(flow.state, FlowState::Established);
+        flow.on_rst();
+        assert_eq!(
+            flow.state,
+            FlowState::Closed,
+            "BC-2.04.050 row-9: on_rst() from any state must → Closed"
+        );
+    }
+}
+
+/// AC-009 (BC-2.04.050 invariant 1)
+/// Invariant: on_syn() is a no-op when flow is already in SynSent, Established,
+/// Closing, or Closed state. All four non-New states verified.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_050_on_syn_no_op_when_not_new() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    let key = FlowKey::new(ip_a, 1000, ip_b, 80);
+
+    // SynSent: on_syn() must not advance state.
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_syn();
+        assert_eq!(flow.state, FlowState::SynSent);
+        flow.on_syn();
+        assert_eq!(
+            flow.state,
+            FlowState::SynSent,
+            "BC-2.04.050 inv-1: on_syn() in SynSent must be a no-op"
+        );
+    }
+
+    // Established: on_syn() must not change state.
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_syn_ack(); // New → Established
+        assert_eq!(flow.state, FlowState::Established);
+        flow.on_syn();
+        assert_eq!(
+            flow.state,
+            FlowState::Established,
+            "BC-2.04.050 inv-1: on_syn() in Established must be a no-op"
+        );
+    }
+
+    // Closing: on_syn() must not change state.
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_syn_ack(); // New → Established
+        flow.on_fin(); // Established → Closing
+        assert_eq!(flow.state, FlowState::Closing);
+        flow.on_syn();
+        assert_eq!(
+            flow.state,
+            FlowState::Closing,
+            "BC-2.04.050 inv-1: on_syn() in Closing must be a no-op"
+        );
+    }
+
+    // Closed: on_syn() must not change state.
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_rst(); // New → Closed
+        assert_eq!(flow.state, FlowState::Closed);
+        flow.on_syn();
+        assert_eq!(
+            flow.state,
+            FlowState::Closed,
+            "BC-2.04.050 inv-1: on_syn() in Closed must be a no-op"
+        );
+    }
+}
+
+/// AC-010 (BC-2.04.050 invariant 4)
+/// Invariant: fin_count uses saturating_add(1) to prevent u8 overflow at 255.
+/// After 256 on_fin() calls, fin_count() must return 255 — not 0 (wrapping_add
+/// regression) and not a panic (plain `+` overflow-checks regression).
+///
+/// Discrimination:
+/// - saturating_add: fin_count() == 255 after 256 calls  ← correct
+/// - wrapping_add:   fin_count() == 0  after 256 calls   ← would fail assertion
+/// - plain `+`:      panic under dev-profile overflow-checks ← would fail test
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_050_fin_count_saturates_at_255() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    // Use a flow where state transitions to Established first, then drive fin_count high.
+    // After fin_count >= 2, state=Closed; on_fin() continues to increment (saturating).
+    let mut flow = TcpFlow::new(FlowKey::new(ip_a, 1000, ip_b, 80), 0);
+    flow.on_syn_ack(); // New → Established
+
+    // Call on_fin() 256 times — fin_count must saturate at u8::MAX (255), not wrap.
+    for _ in 0..256u32 {
+        flow.on_fin();
+    }
+
+    // BC-2.04.050 inv-4: fin_count() must be exactly 255 (saturated at u8::MAX).
+    // A wrapping_add regression would yield 0; a plain-`+` regression would panic.
+    assert_eq!(
+        flow.fin_count(),
+        255,
+        "BC-2.04.050 inv-4: fin_count() must be 255 after 256 on_fin() calls \
+         (saturating_add at u8::MAX — wrapping_add would give 0)"
+    );
+    // State must also be Closed (fin_count >= 2 triggered early).
+    assert_eq!(
+        flow.state,
+        FlowState::Closed,
+        "BC-2.04.050 inv-4: state must be Closed after many on_fin() calls"
+    );
+}
+
+/// AC-011 (BC-2.04.051 invariant 1)
+/// Invariant: on_rst() unconditionally transitions to Closed from any prior state —
+/// New, SynSent, Established, Closing, Closed — without any state guard.
+/// All five states verified per BC-2.04.051.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_051_rst_closes_from_any_state() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    let key = FlowKey::new(ip_a, 1000, ip_b, 80);
+
+    // From New.
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        assert_eq!(flow.state, FlowState::New);
+        flow.on_rst();
+        assert_eq!(
+            flow.state,
+            FlowState::Closed,
+            "BC-2.04.051 inv-1: on_rst() from New must → Closed"
+        );
+    }
+
+    // From SynSent.
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_syn();
+        assert_eq!(flow.state, FlowState::SynSent);
+        flow.on_rst();
+        assert_eq!(
+            flow.state,
+            FlowState::Closed,
+            "BC-2.04.051 inv-1: on_rst() from SynSent must → Closed"
+        );
+    }
+
+    // From Established.
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_syn_ack();
+        assert_eq!(flow.state, FlowState::Established);
+        flow.on_rst();
+        assert_eq!(
+            flow.state,
+            FlowState::Closed,
+            "BC-2.04.051 inv-1: on_rst() from Established must → Closed"
+        );
+    }
+
+    // From Closing.
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_syn_ack();
+        flow.on_fin(); // Established → Closing
+        assert_eq!(flow.state, FlowState::Closing);
+        flow.on_rst();
+        assert_eq!(
+            flow.state,
+            FlowState::Closed,
+            "BC-2.04.051 inv-1: on_rst() from Closing must → Closed"
+        );
+    }
+
+    // From Closed: RST on already-Closed flow stays Closed (no-op in practice).
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_rst(); // New → Closed
+        assert_eq!(flow.state, FlowState::Closed);
+        flow.on_rst(); // must not panic; stays Closed
+        assert_eq!(
+            flow.state,
+            FlowState::Closed,
+            "BC-2.04.051 inv-1: on_rst() from Closed must stay Closed"
+        );
+    }
+}
+
+/// AC-012 (BC-2.04.052 postconditions 1-2)
+/// Postcondition: on_data_without_syn() on a New flow transitions state to
+/// Established and sets partial = true.
+/// Canonical test vector: New flow, data packet (no SYN) → state=Established, partial=true.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_052_data_without_syn_sets_partial() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_a, 1000, ip_b, 80), 0);
+
+    assert_eq!(flow.state, FlowState::New, "precondition: flow must be New");
+    assert!(
+        !flow.partial,
+        "precondition: partial must be false initially"
+    );
+
+    flow.on_data_without_syn();
+
+    assert_eq!(
+        flow.state,
+        FlowState::Established,
+        "BC-2.04.052 post-1: on_data_without_syn() must → Established"
+    );
+    assert!(
+        flow.partial,
+        "BC-2.04.052 post-2: on_data_without_syn() must set partial = true"
+    );
+}
+
+/// AC-013 (BC-2.04.052 invariant 1)
+/// Invariant: on_data_without_syn() is a no-op when flow is already Established
+/// (the guard: `if self.state == FlowState::New` prevents re-transition).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_052_on_data_without_syn_no_op_when_established() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_a, 1000, ip_b, 80), 0);
+
+    // Reach Established via normal handshake.
+    flow.on_syn();
+    flow.on_syn_ack();
+    assert_eq!(flow.state, FlowState::Established);
+    assert!(!flow.partial, "normal handshake: partial must be false");
+
+    // Call on_data_without_syn() on an already-Established flow.
+    flow.on_data_without_syn();
+
+    assert_eq!(
+        flow.state,
+        FlowState::Established,
+        "BC-2.04.052 inv-1: on_data_without_syn() in Established must be a no-op"
+    );
+    assert!(
+        !flow.partial,
+        "BC-2.04.052 inv-1: partial must remain false when on_data_without_syn() is a no-op"
+    );
+}
+
+/// AC-014 (BC-2.04.053 postcondition 1)
+/// Postcondition: direction(src_ip, src_port) returns ClientToServer when
+/// src_ip:src_port matches the stored initiator.
+/// Canonical test vector: initiator=1.2.3.4:1000, direction(1.2.3.4, 1000) → ClientToServer.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_053_direction_client_to_server_when_src_is_initiator() {
+    let ip_initiator = IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4));
+    let ip_server = IpAddr::V4(Ipv4Addr::new(5, 6, 7, 8));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_initiator, 1000, ip_server, 80), 0);
+
+    flow.set_initiator(ip_initiator, 1000);
+
+    assert_eq!(
+        flow.direction(ip_initiator, 1000),
+        Direction::ClientToServer,
+        "BC-2.04.053 post-1: direction must return ClientToServer when src matches initiator"
+    );
+}
+
+/// AC-015 (BC-2.04.053 postcondition 2)
+/// Postcondition: direction(src_ip, src_port) returns ServerToClient when
+/// src_ip:src_port does NOT match the stored initiator.
+/// Canonical test vector: initiator=1.2.3.4:1000, direction(5.6.7.8, 80) → ServerToClient.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_053_direction_server_to_client_when_src_is_not_initiator() {
+    let ip_initiator = IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4));
+    let ip_server = IpAddr::V4(Ipv4Addr::new(5, 6, 7, 8));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_initiator, 1000, ip_server, 80), 0);
+
+    flow.set_initiator(ip_initiator, 1000);
+
+    assert_eq!(
+        flow.direction(ip_server, 80),
+        Direction::ServerToClient,
+        "BC-2.04.053 post-2: direction must return ServerToClient when src does not match initiator"
+    );
+}
+
+/// AC-016 (BC-2.04.053 invariant 2)
+/// Invariant: when initiator is None, direction() returns ServerToClient as a
+/// conservative default regardless of the src argument.
+/// Canonical test vector: initiator=None, direction(any) → ServerToClient.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_053_direction_server_to_client_when_no_initiator() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    // Do NOT call set_initiator — initiator remains None.
+    let flow = TcpFlow::new(FlowKey::new(ip_a, 1000, ip_b, 80), 0);
+
+    assert_eq!(
+        flow.direction(ip_a, 1000),
+        Direction::ServerToClient,
+        "BC-2.04.053 inv-2: direction with initiator=None must return ServerToClient (conservative)"
+    );
+    assert_eq!(
+        flow.direction(ip_b, 80),
+        Direction::ServerToClient,
+        "BC-2.04.053 inv-2: direction with initiator=None must always return ServerToClient"
+    );
+}
+
+// ---- EC-001..EC-010: edge-case stubs ----
+
+/// EC-001 (BC-2.04.004 edge case — retransmitted SYN)
+/// set_initiator and set_isn are no-ops; state stays SynSent after a second SYN
+/// (on_syn() guards on FlowState::New — already SynSent is a no-op).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_004_ec001_retransmitted_syn_state_unchanged() {
+    let ip_client = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
+    let ip_server = IpAddr::V4(Ipv4Addr::new(2, 2, 2, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_client, 5000, ip_server, 80), 0);
+
+    // First SYN.
+    flow.set_initiator(ip_client, 5000);
+    let dir = flow.direction(ip_client, 5000);
+    flow.get_direction_mut(dir).set_isn(1000);
+    flow.on_syn();
+    assert_eq!(flow.state, FlowState::SynSent);
+    let isn_first = flow.client_to_server.isn;
+
+    // Retransmitted SYN with a different seq — all setters must be no-ops.
+    flow.set_initiator(ip_server, 80); // attempt to override initiator — must fail
+    let dir2 = flow.direction(ip_client, 5000); // initiator unchanged → still ClientToServer
+    flow.get_direction_mut(dir2).set_isn(9999); // attempt to override ISN — must fail
+    flow.on_syn(); // SynSent → no-op
+
+    assert_eq!(
+        flow.state,
+        FlowState::SynSent,
+        "EC-001: state must remain SynSent after retransmitted SYN"
+    );
+    assert_eq!(
+        flow.client_to_server.isn, isn_first,
+        "EC-001: ISN must be unchanged after retransmitted SYN (set_isn idempotent)"
+    );
+    assert_eq!(
+        flow.direction(ip_client, 5000),
+        Direction::ClientToServer,
+        "EC-001: initiator must be unchanged after retransmitted SYN (set_initiator idempotent)"
+    );
+}
+
+/// EC-002 (BC-2.04.005 edge case — SYN+ACK without prior SYN)
+/// SYN+ACK is the first packet: initiator = dst_ip:dst_port (the inferred SYN sender);
+/// state transitions directly from New to Established.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_005_ec002_syn_ack_first_sets_initiator_to_dst() {
+    let ip_client = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
+    let ip_server = IpAddr::V4(Ipv4Addr::new(2, 2, 2, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_client, 5000, ip_server, 80), 0);
+
+    assert_eq!(flow.state, FlowState::New);
+
+    // SYN+ACK: src=server, dst=client; set_initiator(dst=client).
+    flow.set_initiator(ip_client, 5000);
+    flow.on_syn_ack();
+
+    assert_eq!(
+        flow.state,
+        FlowState::Established,
+        "EC-002: SYN+ACK first packet must transition New → Established"
+    );
+    assert_eq!(
+        flow.direction(ip_client, 5000),
+        Direction::ClientToServer,
+        "EC-002: initiator must be set to the SYN+ACK destination (inferred SYN sender)"
+    );
+}
+
+/// EC-003 (BC-2.04.005 edge case — SYN+ACK retransmission)
+/// All setters are idempotent; if already Established, on_syn_ack() is a no-op
+/// (Established is not in {SynSent, New} so the guard prevents re-transition).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_005_ec003_syn_ack_retransmission_is_idempotent() {
+    let ip_client = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
+    let ip_server = IpAddr::V4(Ipv4Addr::new(2, 2, 2, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_client, 5000, ip_server, 80), 0);
+
+    // First SYN → SYN+ACK.
+    flow.set_initiator(ip_client, 5000);
+    let c2s_dir = flow.direction(ip_client, 5000);
+    flow.get_direction_mut(c2s_dir).set_isn(1000);
+    flow.on_syn();
+    let s2c_dir = flow.direction(ip_server, 80);
+    flow.get_direction_mut(s2c_dir).set_isn(2000);
+    flow.on_syn_ack();
+    assert_eq!(flow.state, FlowState::Established);
+    let s2c_isn_first = flow.server_to_client.isn;
+
+    // Retransmitted SYN+ACK — set_initiator and set_isn must both be no-ops.
+    flow.set_initiator(ip_server, 80); // attempt to override — must fail
+    let s2c_dir2 = flow.direction(ip_server, 80);
+    flow.get_direction_mut(s2c_dir2).set_isn(9999); // must fail — idempotent
+    flow.on_syn_ack(); // Established → not in guard → no-op
+
+    assert_eq!(
+        flow.state,
+        FlowState::Established,
+        "EC-003: on_syn_ack() retransmission from Established must be a no-op"
+    );
+    assert_eq!(
+        flow.server_to_client.isn, s2c_isn_first,
+        "EC-003: set_isn idempotent — s2c ISN must be unchanged after retransmit"
+    );
+    assert_eq!(
+        flow.direction(ip_client, 5000),
+        Direction::ClientToServer,
+        "EC-003: set_initiator idempotent — initiator unchanged after retransmit"
+    );
+}
+
+/// EC-004 (BC-2.04.004 edge case — SYN with payload)
+/// At the TcpFlow level: set_initiator, set_isn, and on_syn all succeed correctly
+/// regardless of whether the packet carries a payload. The ISN is set from seq.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_004_ec004_syn_with_payload_sets_isn() {
+    let ip_client = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
+    let ip_server = IpAddr::V4(Ipv4Addr::new(2, 2, 2, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_client, 5000, ip_server, 80), 0);
+
+    // SYN with seq=500 (unusual but valid TCP — RFC allows SYN with data).
+    flow.set_initiator(ip_client, 5000);
+    let dir = flow.direction(ip_client, 5000);
+    flow.get_direction_mut(dir).set_isn(500);
+    flow.on_syn();
+
+    assert_eq!(
+        flow.client_to_server.isn,
+        Some(500),
+        "EC-004: ISN must be set from SYN seq even when SYN carries a payload"
+    );
+    assert_eq!(
+        flow.state,
+        FlowState::SynSent,
+        "EC-004: state must be SynSent after SYN-with-payload"
+    );
+    assert_eq!(
+        flow.client_to_server.base_offset, 1,
+        "EC-004: base_offset must be 1 (ISN+1 is first data byte)"
+    );
+}
+
+/// EC-005 (BC-2.04.051 edge case — RST on New flow)
+/// on_rst() from New (no SYN ever seen) must unconditionally set state = Closed.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_051_ec005_rst_on_new_flow() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_a, 1000, ip_b, 80), 0);
+
+    assert_eq!(
+        flow.state,
+        FlowState::New,
+        "precondition: flow starts in New"
+    );
+    flow.on_rst();
+    assert_eq!(
+        flow.state,
+        FlowState::Closed,
+        "EC-005: on_rst() from New must unconditionally → Closed"
+    );
+}
+
+/// EC-006 (BC-2.04.051 edge case — RST on Closing flow)
+/// on_rst() from Closing must unconditionally set state = Closed (no guard).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_051_ec006_rst_on_closing_flow() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_a, 1000, ip_b, 80), 0);
+
+    flow.on_syn_ack(); // New → Established
+    flow.on_fin(); // Established → Closing
+    assert_eq!(
+        flow.state,
+        FlowState::Closing,
+        "precondition: flow in Closing"
+    );
+
+    flow.on_rst();
+    assert_eq!(
+        flow.state,
+        FlowState::Closed,
+        "EC-006: on_rst() from Closing must unconditionally → Closed"
+    );
+}
+
+/// EC-007 (BC-2.04.051 invariant 2 — RST with payload)
+/// At the TcpFlow level: on_rst() sets state = Closed regardless. The payload
+/// suppression (PostHandshake::FlowClosed returned before payload processing)
+/// is an engine-level behavior; here the TcpFlow state transition is confirmed.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_051_ec007_rst_closes_flow_state() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_a, 1000, ip_b, 80), 0);
+
+    flow.on_syn_ack(); // reach Established
+    assert_eq!(flow.state, FlowState::Established);
+
+    // Simulate RST packet arriving with payload (payload processing is engine-level;
+    // on_rst() itself is the TcpFlow-level primitive).
+    flow.on_rst();
+    assert_eq!(
+        flow.state,
+        FlowState::Closed,
+        "EC-007: on_rst() must set state=Closed even when packet carries a payload"
+    );
+}
+
+/// EC-008 (BC-2.04.050 edge case — both FINs from same direction / retransmit)
+/// fin_count reaches 2 via two on_fin() calls (both from same direction, i.e.,
+/// a retransmit); fin_count >= 2 → state transitions to Closed.
+///
+/// With the fin_count() accessor now available, fin_count == 2 is explicitly
+/// asserted (previously it was only narrated in this comment). This makes the
+/// "fin_count = 2" claim verifiable, not just descriptive.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_050_ec008_both_fins_same_direction_closes_flow() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_a, 1000, ip_b, 80), 0);
+
+    flow.on_syn_ack(); // New → Established
+
+    // First FIN from client direction: fin_count = 1, state → Closing.
+    flow.on_fin();
+    assert_eq!(flow.state, FlowState::Closing);
+    assert_eq!(
+        flow.fin_count(),
+        1,
+        "EC-008: fin_count() must be 1 after the first on_fin() call"
+    );
+
+    // Second FIN from same direction (retransmit): fin_count = 2 → Closed.
+    flow.on_fin();
+    assert_eq!(
+        flow.state,
+        FlowState::Closed,
+        "EC-008: second on_fin() (fin_count >= 2) must → Closed even from same direction"
+    );
+    assert_eq!(
+        flow.fin_count(),
+        2,
+        "EC-008: fin_count() must be exactly 2 after two on_fin() calls — \
+         confirms the 'fin_count = 2' claim is verifiable, not just narrated"
+    );
+}
+
+/// EC-009 (BC-2.04.050 edge case — FIN on New flow)
+/// on_fin() from New state: fin_count = 1 but state remains New because the
+/// Closing guard only applies to Established and SynSent. The flow does NOT
+/// transition to Closing from New (only fin_count >= 2 would force Closed).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_050_ec009_fin_on_new_flow() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_a, 1000, ip_b, 80), 0);
+
+    assert_eq!(flow.state, FlowState::New);
+    // First FIN on a New flow: fin_count becomes 1 but state is not in
+    // {Established, SynSent} — the Closing guard is not triggered.
+    flow.on_fin();
+
+    // The on_fin() implementation: saturating_add(1) → fin_count=1;
+    // then: fin_count >= 2 is false; else-if Established || SynSent is false.
+    // So state remains New.
+    assert_eq!(
+        flow.state,
+        FlowState::New,
+        "EC-009: on_fin() from New must not transition to Closing (guard only covers \
+         Established and SynSent)"
+    );
+}
+
+/// EC-010 (BC-2.04.053 invariant 2 — initiator = None)
+/// When initiator is None (no SYN/SYN+ACK/data-without-SYN ever seen), direction()
+/// returns ServerToClient as the conservative default for any src argument.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_053_ec010_direction_none_initiator_returns_server_to_client() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    // initiator remains None — no set_initiator call.
+    let flow = TcpFlow::new(FlowKey::new(ip_a, 9999, ip_b, 80), 0);
+
+    // Any endpoint queried with initiator=None must return ServerToClient.
+    assert_eq!(
+        flow.direction(ip_a, 9999),
+        Direction::ServerToClient,
+        "EC-010: initiator=None → direction() must return ServerToClient (conservative default)"
+    );
+    assert_eq!(
+        flow.direction(ip_b, 80),
+        Direction::ServerToClient,
+        "EC-010: initiator=None → direction() always returns ServerToClient for any src"
+    );
+}
