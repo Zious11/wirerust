@@ -105,6 +105,42 @@ fn make_sll_ipv6_tcp() -> Vec<u8> {
     pkt
 }
 
+/// Build an SLL frame carrying an IPv6/UDP payload.
+///
+/// Layout:
+///   [0..16]   SLL header  (EtherType 0x86DD = IPv6)
+///   [16..56]  IPv6 header (40 bytes, next-header=UDP(0x11), payload_length=8)
+///   [56..64]  UDP header  (8 bytes)
+///
+/// Addresses: src 2001:db8::1, dst 2001:db8::2.  Ports: 12345 → 53.
+fn make_sll_ipv6_udp() -> Vec<u8> {
+    let mut pkt = Vec::with_capacity(64);
+    // SLL header (16 bytes)
+    pkt.extend_from_slice(&[0x00, 0x00]); // packet type: sent by us
+    pkt.extend_from_slice(&[0x00, 0x01]); // ARPHRD_ETHER
+    pkt.extend_from_slice(&[0x00, 0x06]); // link-addr length
+    pkt.extend_from_slice(&[0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x00, 0x00]);
+    pkt.extend_from_slice(&[0x86, 0xdd]); // EtherType: IPv6
+    // IPv6 header (40 bytes) — payload_length=8 covers exactly the UDP header
+    pkt.extend_from_slice(&[
+        0x60, 0x00, 0x00, 0x00, // version=6, traffic class, flow label
+        0x00, 0x08, 0x11, 0x40, // payload_length=8, next-header=UDP(0x11), hop-limit=64
+        // src: 2001:db8::1
+        0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, // dst: 2001:db8::2
+        0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x02,
+    ]);
+    // UDP header (8 bytes) — src 12345, dst 53, length=8, checksum=0
+    pkt.extend_from_slice(&[
+        0x30, 0x39, // src port 12345
+        0x00, 0x35, // dst port 53
+        0x00, 0x08, // length = 8 (header only, no payload)
+        0x00, 0x00, // checksum (zeroed)
+    ]);
+    pkt
+}
+
 /// Build an `make_sll_ipv4_tcp()` frame with the IPv4 `total_length` field
 /// inflated to 1500 to simulate a snaplen-truncated capture.
 ///
@@ -116,6 +152,34 @@ fn make_sll_ipv4_tcp_snaplen_truncated() -> Vec<u8> {
     pkt[18] = 0x05; // 0x05dc = 1500
     pkt[19] = 0xdc;
     pkt
+}
+
+/// Build an SLL/IPv4/TCP frame physically cut mid-TCP-header (only 10 of the
+/// 20 TCP header bytes are present) with `total_length` still claiming the
+/// full 40-byte IP payload.
+///
+/// This forces the strict parser to fail with a length error (Len), the lax
+/// path to be invoked, the IP layer to be recovered (both addresses intact),
+/// and the transport layer to degrade to `Protocol::Other(6)` /
+/// `TransportInfo::None` — because the captured TCP header bytes are
+/// insufficient for lax parsing to extract ports and flags.
+///
+/// Layout (46 bytes total):
+///   [0..16]   SLL header   (16 bytes, EtherType 0x0800 IPv4)
+///   [16..36]  IPv4 header  (20 bytes, total_length = 40 = 20 IP + 20 TCP)
+///   [36..46]  TCP header   (10 bytes — physically truncated at byte 46)
+///
+/// The `total_length` field (offset 18..20 in the full frame) is left at 40
+/// (0x00, 0x28) — matching the full original frame — so the strict parser
+/// sees total_length=40 but only 10 bytes of TCP are captured, triggering a
+/// Len error. The lax path then clamps to the captured bytes.
+fn make_sll_ipv4_tcp_mid_header_truncated() -> Vec<u8> {
+    // Start with the full 56-byte frame and drop the last 10 TCP bytes.
+    let full = make_sll_ipv4_tcp();
+    // Keep SLL(16) + IPv4(20) + 10 TCP bytes = 46 bytes.
+    // total_length at offset 18..20 is already 0x00, 0x28 (= 40), which
+    // claims 20 bytes of TCP — 10 more than are present — producing a Len error.
+    full[..46].to_vec()
 }
 
 /// Build a valid Ethernet ARP frame (EtherType 0x0806, no IP layer).
@@ -236,7 +300,65 @@ fn test_BC_2_02_006_linux_sll_ipv6_tcp() {
     let expected_dst = IpAddr::V6(Ipv6Addr::new(0x2001, 0x0db8, 0, 0, 0, 0, 0, 2));
     assert_eq!(pkt.src_ip, expected_src, "src_ip must be 2001:db8::1");
     assert_eq!(pkt.dst_ip, expected_dst, "dst_ip must be 2001:db8::2");
-    assert_eq!(pkt.protocol, Protocol::Tcp, "protocol must be Tcp for IPv6/TCP");
+    assert_eq!(
+        pkt.protocol,
+        Protocol::Tcp,
+        "protocol must be Tcp for IPv6/TCP"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// BC-2.02.006 canonical test vector: SLL/IPv6/UDP happy path
+//
+// BC-2.02.006 postcondition 4 and its canonical test vector table include
+// "SLL/IPv6/UDP frame → Ok(ParsedPacket { protocol: Udp })". This test
+// exercises that vector: a Linux SLL frame carrying an IPv6 UDP payload
+// decodes to IpAddr::V6 source/destination addresses, Protocol::Udp, and
+// TransportInfo::Udp with the correct port numbers.
+// ---------------------------------------------------------------------------
+#[test]
+fn test_BC_2_02_006_linux_sll_ipv6_udp() {
+    let data = make_sll_ipv6_udp();
+    let result = decode_packet(&data, DataLink::LINUX_SLL);
+    assert!(
+        result.is_ok(),
+        "SLL IPv6 UDP frame must decode to Ok; got: {:?}",
+        result.unwrap_err()
+    );
+    let pkt = result.unwrap();
+
+    // Both addresses must be V6 variants.
+    assert!(
+        matches!(pkt.src_ip, IpAddr::V6(_)),
+        "src_ip must be IpAddr::V6; got {:?}",
+        pkt.src_ip
+    );
+    assert!(
+        matches!(pkt.dst_ip, IpAddr::V6(_)),
+        "dst_ip must be IpAddr::V6; got {:?}",
+        pkt.dst_ip
+    );
+    let expected_src = IpAddr::V6(Ipv6Addr::new(0x2001, 0x0db8, 0, 0, 0, 0, 0, 1));
+    let expected_dst = IpAddr::V6(Ipv6Addr::new(0x2001, 0x0db8, 0, 0, 0, 0, 0, 2));
+    assert_eq!(pkt.src_ip, expected_src, "src_ip must be 2001:db8::1");
+    assert_eq!(pkt.dst_ip, expected_dst, "dst_ip must be 2001:db8::2");
+
+    // BC-2.02.006 postcondition 4: UDP payload gives Protocol::Udp.
+    assert_eq!(pkt.protocol, Protocol::Udp, "protocol must be Udp");
+    match &pkt.transport {
+        TransportInfo::Udp { src_port, dst_port } => {
+            assert_eq!(*src_port, 12345, "src_port must be 12345");
+            assert_eq!(*dst_port, 53, "dst_port must be 53");
+        }
+        other => panic!("transport must be Udp; got {other:?}"),
+    }
+
+    // BC-2.02.006 postcondition 2: packet_len == data.len()
+    assert_eq!(
+        pkt.packet_len,
+        data.len(),
+        "packet_len must equal data.len()"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -340,8 +462,8 @@ fn test_BC_2_02_007_random_bytes_no_panic() {
     // strict IP parser immediately rejects this as a structural error.
     // Canonical test vector from BC-2.02.007 (adapted to RAW path).
     let random_bytes: &[u8] = &[
-        0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE, 0x00, 0xFF, 0x01, 0x02, 0x03, 0x04,
-        0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
+        0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE, 0x00, 0xFF, 0x01, 0x02, 0x03, 0x04, 0x05,
+        0x06, 0x07, 0x08, 0x09, 0x0A,
     ];
 
     // The test runner catches panics as test failures — a panic inside
@@ -358,6 +480,43 @@ fn test_BC_2_02_007_random_bytes_no_panic() {
     assert!(
         msg.contains("Parse error:"),
         "random-bytes error on RAW path must contain 'Parse error:'; got: {msg}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// AC-005 (ETHERNET variant) / BC-2.02.007 postcondition 1 + invariant 3
+//
+// Canonical test vector from BC-2.02.007: "Random 20 bytes with ETHERNET →
+// Err (no panic)". The preceding test uses DataLink::RAW to guarantee a
+// specific "Parse error:" prefix; this test exercises the canonical ETHERNET
+// path and accepts EITHER "Parse error:" OR "No IP layer found" — both are
+// correct non-panicking Err responses per BC-2.02.007. Some 20-byte inputs
+// pass Ethernet header parsing (14 bytes MAC + EtherType) and produce "No IP
+// layer found" if the EtherType is unknown/non-IP; others fail at the link
+// layer and produce "Parse error:". Either outcome satisfies the contract.
+// ---------------------------------------------------------------------------
+#[test]
+fn test_BC_2_02_007_random_bytes_ethernet_no_panic() {
+    // Same 20 canonical bytes, now fed to DataLink::ETHERNET.
+    // The EtherType at bytes 12..14 is 0xBE, 0xEF (= 0xBEEF) — an unknown
+    // non-IP EtherType — so etherparse parses the Ethernet header cleanly
+    // and returns net=None, yielding "No IP layer found". Either way the call
+    // must return Err without panicking.
+    let random_bytes: &[u8] = &[
+        0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE, 0x00, 0xFF, 0x01, 0x02, 0x03, 0x04, 0x05,
+        0x06, 0x07, 0x08, 0x09, 0x0A,
+    ];
+
+    let result = decode_packet(random_bytes, DataLink::ETHERNET);
+    assert!(
+        result.is_err(),
+        "random bytes with ETHERNET must return Err, not Ok; got Ok"
+    );
+    let msg = result.unwrap_err().to_string();
+    // Both prefixes are valid per BC-2.02.007 postcondition 1 and invariant 1.
+    assert!(
+        msg.contains("Parse error:") || msg.contains("No IP layer found"),
+        "ETHERNET random-bytes error must be 'Parse error:' or 'No IP layer found'; got: {msg}"
     );
 }
 
@@ -392,20 +551,34 @@ fn test_BC_2_02_007_empty_slice_no_panic() {
 //   2. "No IP layer found"
 //   3. "Parse error:"
 //
-// Exhaustiveness test: exercise one representative input for each prefix and
-// assert that the resulting error matches one of the three and no others.
+// Representative check: exercise one canonical input for each prefix and
+// verify (a) the expected prefix is present and (b) neither of the other two
+// appears in the same message. This does NOT prove universal exhaustiveness —
+// that is a BC invariant, enforced by code review of every `anyhow!` call in
+// decoder.rs, not by a unit test. The test's purpose is to confirm that each
+// prefix is reachable via a known input and that the prefixes are mutually
+// exclusive at the message level.
 // ---------------------------------------------------------------------------
 #[test]
-fn test_BC_2_02_007_error_prefix_exhaustiveness() {
-    let valid_prefixes = ["Unsupported link type:", "No IP layer found", "Parse error:"];
+fn test_BC_2_02_007_error_prefix_representative_check() {
+    let valid_prefixes = [
+        "Unsupported link type:",
+        "No IP layer found",
+        "Parse error:",
+    ];
+
+    // Hold owned Vec<u8> values so borrows into the cases slice live long
+    // enough — no .leak() required.
+    let arp_frame = make_ethernet_arp();
+    let garbage: Vec<u8> = vec![0xFF, 0x00, 0x01];
 
     let cases: &[(&[u8], DataLink, &str)] = &[
         // Prefix 1: unsupported link type (BC-2.02.008)
         (&[], DataLink::IEEE802_11, "Unsupported link type:"),
         // Prefix 2: valid ARP frame parsed but no IP layer (BC-2.02.009)
-        (make_ethernet_arp().leak(), DataLink::ETHERNET, "No IP layer found"),
+        (&arp_frame, DataLink::ETHERNET, "No IP layer found"),
         // Prefix 3: garbage bytes on a supported link type (BC-2.02.007)
-        (&[0xFF, 0x00, 0x01], DataLink::ETHERNET, "Parse error:"),
+        (&garbage, DataLink::ETHERNET, "Parse error:"),
     ];
 
     for (data, datalink, expected_prefix) in cases {
@@ -422,9 +595,9 @@ fn test_BC_2_02_007_error_prefix_exhaustiveness() {
             "expected prefix '{expected_prefix}' in error; got: {msg}"
         );
 
-        // Assert no other prefix appears when it shouldn't
+        // Assert neither of the other two prefixes appears in this message
         for other_prefix in valid_prefixes {
-            if *other_prefix == **expected_prefix {
+            if other_prefix == *expected_prefix {
                 continue;
             }
             assert!(
@@ -448,10 +621,7 @@ fn test_BC_2_02_008_unsupported_link_type_error() {
     // byte access (BC-2.02.008 postcondition 4).
     let data: &[u8] = &[0x00; 64];
     let result = decode_packet(data, DataLink::IEEE802_11);
-    assert!(
-        result.is_err(),
-        "IEEE802_11 must be rejected; got Ok"
-    );
+    assert!(result.is_err(), "IEEE802_11 must be rejected; got Ok");
     let msg = result.unwrap_err().to_string();
 
     // BC-2.02.008 postcondition 2: message contains the prefix AND the debug
@@ -477,10 +647,7 @@ fn test_BC_2_02_008_unsupported_link_type_error() {
 fn test_BC_2_02_009_non_ip_frame_rejected() {
     let data = make_ethernet_arp();
     let result = decode_packet(&data, DataLink::ETHERNET);
-    assert!(
-        result.is_err(),
-        "ARP frame must return Err; got Ok"
-    );
+    assert!(result.is_err(), "ARP frame must return Err; got Ok");
     let msg = result.unwrap_err().to_string();
     assert!(
         msg.contains("No IP layer found"),
@@ -491,19 +658,38 @@ fn test_BC_2_02_009_non_ip_frame_rejected() {
 // ---------------------------------------------------------------------------
 // AC-010 / BC-2.02.009 invariant 1 + invariant 2 + invariant 3
 //
-// Lax retry is NOT attempted for structurally absent IP layers (non-length
-// errors).  On the strict-parse path, if slice.net is None (non-IP frame),
-// the error is returned immediately; lax parsing is not invoked.
+// Strict-path No-IP rejection for SLL frames carrying non-IP payloads.
 //
-// Tested with an SLL frame whose strict parse succeeds (no length error) but
-// carries no IP layer — specifically a 16-byte SLL header with EtherType
-// 0x0806 (ARP) and a minimal ARP body.
+// When decode_packet receives an SLL frame whose EtherType is non-IP (e.g.
+// ARP, 0x0806), SlicedPacket::from_linux_sll succeeds (the SLL header is
+// valid and the EtherType is recognised), but slice.net is None. The Ok arm
+// in decoder.rs:142-151 immediately returns Err("No IP layer found") — this
+// is the STRICT-PATH No-IP arm at decoder.rs:150. The lax fallback at
+// decoder.rs:158 is never reached because strict did NOT fail with a Len
+// error.
+//
+// Decoder.rs:163 (the LAX-PATH No-IP arm — `None => Err(…)` inside the
+// `Err(SliceError::Len(_))` branch after a successful lax re-parse) is
+// unreachable in practice across all supported link types:
+//   - For ETHERNET/SLL: strict fails with Len only when EtherType is IP and
+//     the IP payload is truncated; in that case lax WILL recover the IP
+//     header (lax.net = Some). If EtherType is non-IP, strict returns
+//     Ok(net=None) — hitting decoder.rs:150, not 163.
+//   - For RAW/IPV4/IPV6: LaxSlicedPacket::from_ip returns Err (not Ok) when
+//     the IP header itself is too short; Ok implies net is always Some for
+//     the IP path.
+// No constructible frame can satisfy both "strict → SliceError::Len" AND
+// "lax → net=None" simultaneously. The arm exists as a defensive guard for
+// hypothetical future link-type extensions or etherparse API changes. It is
+// correctly left without a unit test; its absence from the executed paths is
+// documented here so reviewers need not investigate it independently.
 // ---------------------------------------------------------------------------
 #[test]
-fn test_BC_2_02_009_lax_path_also_rejects_no_ip() {
+fn test_BC_2_02_009_strict_path_sll_arp_no_ip() {
     // Construct an SLL frame carrying ARP (no IP layer). The strict parse
-    // of the SLL header succeeds (≥ 16 bytes, valid EtherType), but the
-    // network layer is None.  Verify the error is "No IP layer found".
+    // of the SLL header succeeds (≥ 16 bytes, valid EtherType 0x0806), but
+    // slice.net is None — the strict-path No-IP arm at decoder.rs:150 fires
+    // and returns Err("No IP layer found") before the lax fallback is reached.
     let mut frame = Vec::new();
     // SLL header (16 bytes) — EtherType 0x0806 = ARP
     frame.extend_from_slice(&[0x00, 0x00]); // packet type
@@ -513,26 +699,24 @@ fn test_BC_2_02_009_lax_path_also_rejects_no_ip() {
     frame.extend_from_slice(&[0x08, 0x06]); // EtherType: ARP
     // ARP payload (28 bytes)
     frame.extend_from_slice(&[
-        0x00, 0x01, 0x08, 0x00, 0x06, 0x04, 0x00, 0x01, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55,
-        0xc0, 0xa8, 0x01, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0xa8, 0x01, 0x01,
+        0x00, 0x01, 0x08, 0x00, 0x06, 0x04, 0x00, 0x01, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0xc0,
+        0xa8, 0x01, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0xa8, 0x01, 0x01,
     ]);
 
     let result = decode_packet(&frame, DataLink::LINUX_SLL);
-    assert!(
-        result.is_err(),
-        "SLL ARP frame must return Err; got Ok"
-    );
+    assert!(result.is_err(), "SLL ARP frame must return Err; got Ok");
     let msg = result.unwrap_err().to_string();
+    // BC-2.02.009 postcondition 1: error is "No IP layer found"
     assert!(
         msg.contains("No IP layer found"),
         "SLL ARP frame error must be 'No IP layer found'; got: {msg}"
     );
-    // The lax path would NOT produce "Parse error:" for this case;
-    // the error must be "No IP layer found", confirming the strict
-    // path rejected it (not a lax-fallback rejection).
+    // The strict path does not produce "Parse error:" for a successfully
+    // parsed SLL header with non-IP EtherType — confirming decoder.rs:150
+    // (strict path) fired, not decoder.rs:170 (structural parse error).
     assert!(
         !msg.contains("Parse error:"),
-        "non-IP SLL frame must be rejected on strict path, not via parse error; got: {msg}"
+        "strict-path SLL non-IP rejection must not produce 'Parse error:'; got: {msg}"
     );
 }
 
@@ -550,7 +734,10 @@ fn test_BC_2_02_009_lax_path_also_rejects_no_ip() {
 /// The fuzz harness is the mandatory P0 implementation vehicle for VP-008.
 #[test]
 fn test_VP_008_fuzz_harness_exists() {
-    // Resolve path relative to the workspace root (CARGO_MANIFEST_DIR).
+    // CARGO_MANIFEST_DIR is the wirerust crate root (the directory containing
+    // Cargo.toml). There is no workspace; fuzz/ is a nested non-workspace
+    // sub-crate that lives inside the crate root — hence the harness resolves
+    // at <crate-root>/fuzz/fuzz_targets/fuzz_decode_packet.rs.
     let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let harness_path = manifest_dir.join("fuzz/fuzz_targets/fuzz_decode_packet.rs");
 
@@ -562,13 +749,44 @@ fn test_VP_008_fuzz_harness_exists() {
         harness_path.display()
     );
 
-    let metadata = std::fs::metadata(&harness_path)
-        .expect("metadata must be readable if the file exists");
+    let metadata =
+        std::fs::metadata(&harness_path).expect("metadata must be readable if the file exists");
     assert!(
         metadata.len() > 0,
         "VP-008 FAIL: fuzz harness at {} exists but is empty. \
          It must implement a harness that passes arbitrary bytes to \
          decode_packet with each supported DataLink variant.",
+        harness_path.display()
+    );
+
+    // Lightweight content check: confirm the harness references the two key
+    // symbols that any valid implementation must contain. A file with only junk
+    // bytes passes the non-empty check above but would fail here. The full
+    // compile check is separately gated by the CI fuzz-build job
+    // (`cargo +nightly fuzz build fuzz_decode_packet`).
+    let content = std::fs::read_to_string(&harness_path)
+        .expect("fuzz harness must be valid UTF-8 and readable");
+    assert!(
+        content.contains("decode_packet"),
+        "VP-008 FAIL: fuzz harness at {} does not reference 'decode_packet'. \
+         The harness must call wirerust::decoder::decode_packet with arbitrary input.",
+        harness_path.display()
+    );
+    assert!(
+        content.contains("fuzz_target!"),
+        "VP-008 FAIL: fuzz harness at {} does not contain 'fuzz_target!'. \
+         The harness must use the libfuzzer_sys::fuzz_target! macro.",
+        harness_path.display()
+    );
+    // Verify the harness still exercises at least one unsupported DataLink
+    // variant (widened in adversary pass 2 to cover the rejection arm in
+    // decode_packet). IEEE802_11 is the representative unsupported variant;
+    // its absence would indicate a regression of that coverage.
+    assert!(
+        content.contains("IEEE802_11"),
+        "VP-008 FAIL: fuzz harness at {} does not reference 'IEEE802_11'. \
+         The harness must exercise unsupported DataLink variants to cover the \
+         'Unsupported link type:' rejection arm (BC-2.02.008 / VP-008).",
         harness_path.display()
     );
 }
@@ -603,28 +821,56 @@ fn test_BC_2_02_006_ec001_sll_ipv4_tcp_strict_path() {
 // ---------------------------------------------------------------------------
 // EC-002 — SLL frame snaplen-truncated (Len error) → lax path invoked
 //
-// This overlaps with AC-003 but focuses on the lax path being invoked
-// specifically for the Len-error subclass, not any other error.
+// Uses a frame that is physically cut mid-TCP-header so the strict parser
+// fails with a Len error (total_length=40 claims 20 TCP bytes but only 10
+// are present). The lax fallback is invoked and recovers the IP layer, but
+// cannot reconstruct the TCP header — the decode degrades to
+// Protocol::Other(6) / TransportInfo::None. This outcome is ONLY reachable
+// via the lax path, which distinguishes it from any strict-path success: the
+// strict path would either return Ok with full TCP detail or return Err
+// (never Ok with Protocol::Other for a TCP-EtherType frame on the strict
+// path). The degraded-protocol assertion is therefore direct observable
+// evidence that the lax fallback ran.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_BC_2_02_006_ec002_sll_snaplen_lax_invoked() {
-    let data = make_sll_ipv4_tcp_snaplen_truncated();
-    // The total_length in the IPv4 header is 1500 but only 56 bytes were
-    // captured, so the strict parser MUST fail with a length error and the
-    // lax fallback MUST be invoked. Verify by checking the result is Ok
-    // (the lax path succeeds), not Err (which would mean it wasn't retried).
+    let data = make_sll_ipv4_tcp_mid_header_truncated();
+    // total_length=40 but only 10 TCP bytes captured → strict Len error →
+    // lax fallback invoked.
     let result = decode_packet(&data, DataLink::LINUX_SLL);
     assert!(
         result.is_ok(),
-        "EC-002: snaplen-truncated SLL frame must be recovered by lax path; got: {:?}",
+        "EC-002: mid-TCP-header-truncated SLL frame must be recovered by lax path; got: {:?}",
         result.unwrap_err()
     );
-    // Addresses are preserved because the IP header bytes were captured.
     let pkt = result.unwrap();
+
+    // IP layer was captured in full — addresses must be correct.
     assert_eq!(
         pkt.src_ip,
         IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)),
-        "EC-002: src_ip must be recovered by lax path"
+        "EC-002: lax path must recover src_ip 10.0.0.1"
+    );
+    assert_eq!(
+        pkt.dst_ip,
+        IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)),
+        "EC-002: lax path must recover dst_ip 10.0.0.2"
+    );
+
+    // Transport header was NOT fully captured — lax path degrades to
+    // Protocol::Other(6) + TransportInfo::None. This is the lax-path-specific
+    // behavior documented in the decoder module: "the lax parser recovers the
+    // IP layer but not the transport layer". A strict-path success would have
+    // returned Protocol::Tcp with port detail, so this assertion is direct
+    // evidence that the lax fallback — not the strict path — produced the result.
+    assert_eq!(
+        pkt.protocol,
+        Protocol::Other(6),
+        "EC-002: incomplete TCP header must degrade to Protocol::Other(6) on lax path"
+    );
+    assert!(
+        matches!(pkt.transport, TransportInfo::None),
+        "EC-002: incomplete TCP header must yield TransportInfo::None on lax path"
     );
 }
 
@@ -637,10 +883,7 @@ fn test_BC_2_02_006_ec003_sll_sub_16_bytes_no_lax_retry() {
     // 8-byte frame — far below the 16-byte SLL header minimum.
     let data: &[u8] = &[0x00, 0x00, 0x00, 0x01, 0x00, 0x06, 0x00, 0x11];
     let result = decode_packet(data, DataLink::LINUX_SLL);
-    assert!(
-        result.is_err(),
-        "EC-003: 8-byte SLL frame must return Err"
-    );
+    assert!(result.is_err(), "EC-003: 8-byte SLL frame must return Err");
     // Must not be "No IP layer found" (that would mean lax was tried and failed).
     let msg = result.unwrap_err().to_string();
     assert!(
@@ -725,5 +968,41 @@ fn test_BC_2_02_009_ec007_custom_ethertype_no_ip_layer() {
     assert!(
         msg.contains("No IP layer found"),
         "EC-007: custom EtherType error must be 'No IP layer found'; got: {msg}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// BC-2.02.006 EC-005 — exactly-16-byte SLL frame (header only, no IP payload)
+//
+// BC-2.02.006 EC-005 specifies: "SLL frame exactly 16 bytes (no payload) →
+// strict parse fails; likely 'No IP layer found'". The frame is a complete,
+// valid SLL header with EtherType 0x0800 (IPv4) but zero payload bytes — the
+// IP layer is structurally absent because there are no bytes after the header.
+// The call must return a non-panicking Err; either "No IP layer found" or
+// "Parse error:" is accepted (both are valid BC-2.02.007 prefixes).
+// ---------------------------------------------------------------------------
+#[test]
+fn test_BC_2_02_006_linux_sll_exactly_16_bytes_no_payload() {
+    // A syntactically complete SLL header (16 bytes) with EtherType 0x0800
+    // (IPv4) and no bytes following it.
+    let data: &[u8] = &[
+        0x00, 0x00, // packet type: sent by us
+        0x00, 0x01, // ARPHRD_ETHER
+        0x00, 0x06, // link-addr length
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x00, 0x00, // addr (padded)
+        0x08, 0x00, // EtherType: IPv4
+    ];
+    assert_eq!(data.len(), 16, "pre-condition: frame is exactly 16 bytes");
+
+    let result = decode_packet(data, DataLink::LINUX_SLL);
+    assert!(
+        result.is_err(),
+        "exactly-16-byte SLL frame must return Err (no IP payload present)"
+    );
+    // Accept either valid BC-2.02.007 error prefix — both are non-panicking Err.
+    let msg = result.unwrap_err().to_string();
+    assert!(
+        msg.contains("No IP layer found") || msg.contains("Parse error:"),
+        "exactly-16-byte SLL error must be 'No IP layer found' or 'Parse error:'; got: {msg}"
     );
 }
