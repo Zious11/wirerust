@@ -112,11 +112,14 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-011:
-    status: in_progress
+    status: done
     wave: 4
-    branch: feature/story-011-reassembler-flowkey
-    worktree: .worktrees/story-011
+    branch: null
+    worktree: null
     blocked_by: []
+    pr: 116
+    merge_commit: c844b3b
+    merged_date: "2026-05-22"
 
   STORY-066:
     status: in_progress
