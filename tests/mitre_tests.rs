@@ -339,10 +339,15 @@ fn test_all_emitted_ids_resolve() {
     // BC-2.10.008 postcondition 1: emitted set {T1027, T1036, T1046, T1083,
     // T1499.002, T1505.003} is a strict subset of the catalogued 15 IDs.
     // No emitted ID may return None from either lookup function.
-    // Sources: src/analyzer/http.rs, src/analyzer/tls.rs, src/reassembly/mod.rs.
+    // Sources (ground truth: `grep -rn 'mitre_technique: Some' src/`):
+    //   src/analyzer/tls.rs          — T1027 (×3 sites)
+    //   src/analyzer/http.rs         — T1083, T1505.003, T1046, T1499.002 (×2 sites)
+    //   src/reassembly/mod.rs        — T1036
+    //   src/reassembly/lifecycle.rs  — T1036
+    // Total: 10 emission sites across 4 files, producing 6 unique technique IDs.
     let emitted_ids = [
         "T1027",     // src/analyzer/tls.rs
-        "T1036",     // src/reassembly/mod.rs
+        "T1036",     // src/reassembly/mod.rs AND src/reassembly/lifecycle.rs
         "T1046",     // src/analyzer/http.rs
         "T1083",     // src/analyzer/http.rs
         "T1499.002", // src/analyzer/http.rs
@@ -374,14 +379,21 @@ fn test_all_emitted_ids_resolve() {
 // ---------------------------------------------------------------------------
 #[test]
 fn test_mitre_tactic_is_non_exhaustive() {
-    // BC-2.10.009 postcondition 1: #[non_exhaustive] is present on the
-    // MitreTactic enum definition, enabling non-breaking variant additions.
-    // Verified by reading src/mitre.rs and asserting the attribute text exists.
+    // BC-2.10.009 invariant 1: #[non_exhaustive] must be placed directly on the
+    // MitreTactic enum definition, enabling non-breaking variant additions when
+    // new ATT&CK versions introduce new tactics.
+    //
+    // The assertion checks adjacency — that `#[non_exhaustive]` immediately
+    // precedes `pub enum MitreTactic` in the source — rather than merely
+    // checking that the attribute exists somewhere in the file. A weaker
+    // `src.contains("#[non_exhaustive]")` check would pass even if the
+    // attribute were removed from MitreTactic and placed on a different item.
     let src = std::fs::read_to_string("src/mitre.rs")
         .expect("src/mitre.rs must be readable from the worktree root");
     assert!(
-        src.contains("#[non_exhaustive]"),
-        "src/mitre.rs must contain '#[non_exhaustive]' on MitreTactic"
+        src.contains("#[non_exhaustive]\npub enum MitreTactic"),
+        "src/mitre.rs must have '#[non_exhaustive]' immediately preceding \
+         'pub enum MitreTactic' (BC-2.10.009 invariant 1)"
     );
 }
 
