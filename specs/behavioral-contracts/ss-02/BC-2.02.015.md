@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Wave 3 Ph3 pass-4 adversarial fix: F-2 — added Architecture Anchor for TCP payload-extraction block (postcondition 8); verified all line anchors — 2026-05-22 (author: product-owner)
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -100,13 +101,14 @@ detect anomalies.
 
 ## Architecture Anchors
 
-- `src/decoder.rs:263-274` -- TransportSlice::Tcp arm in build_parsed
+- `src/decoder.rs:263-274` -- `TransportSlice::Tcp(tcp)` match arm in `build_parsed`; constructs `(Protocol::Tcp, TransportInfo::Tcp { src_port, dst_port, seq_number, syn, ack, fin, rst })` (postconditions 1-7)
+- `src/decoder.rs:288-292` -- payload-extraction match block in `build_parsed`; `Some(TransportSlice::Tcp(tcp)) => tcp.payload().to_vec()` implements postcondition 8
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/decoder.rs:263-274` |
+| **Path** | `src/decoder.rs:263-274` (flags/seq/ports), `src/decoder.rs:288-292` (payload extraction) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
