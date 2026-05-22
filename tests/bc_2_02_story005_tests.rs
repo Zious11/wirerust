@@ -15,7 +15,7 @@
 #![allow(non_snake_case)]
 
 use pcap_file::DataLink;
-use wirerust::decoder::{TransportInfo, decode_packet};
+use wirerust::decoder::{ParsedPacket, TransportInfo, decode_packet};
 
 // ---------------------------------------------------------------------------
 // Frame builders — synthetic packet bytes constructed inline.
@@ -276,13 +276,20 @@ fn test_BC_2_02_014_packet_len_set_on_both_strict_and_lax_paths() {
 
 /// BC-2.02.014 invariant 2: snaplen-truncated packet_len equals captured length.
 ///
-/// Constructs a frame with IP total_length advertising 1500 bytes total (on-wire)
-/// but only 100 bytes are passed to decode_packet (captured). packet_len must be
-/// 100 (the captured length), not 1500 (the on-wire length). No `on_wire_len`
-/// field exists on ParsedPacket — this is a deliberate design constraint.
+/// Constructs a frame with IP total_length advertising 1500 bytes (IP-datagram on-wire
+/// length: 20 IP + 20 TCP + 1460 payload) but only 100 bytes are passed to
+/// decode_packet (captured). The Ethernet-frame on-wire length would be 1514 bytes
+/// (Ethernet header 14 + IP-datagram 1500). packet_len must be 100 (the captured
+/// length), not 1500 (IP-datagram on-wire) nor 1514 (Ethernet-frame on-wire).
+///
+/// No `on_wire_len` field exists on ParsedPacket — this is BC-2.02.014 invariant 2's
+/// deliberate design constraint. The exhaustive destructuring match of ParsedPacket
+/// below enforces that guarantee at compile time: if an `on_wire_len` field were ever
+/// added, this test would fail to compile, turning the invariant into a compiler error.
 #[test]
 fn test_BC_2_02_014_snaplen_truncated_packet_len() {
-    // IP total_length = 20 (IP) + 20 (TCP) + 1460 (payload) = 1500 on-wire bytes.
+    // IP-datagram on-wire length = 20 (IP) + 20 (TCP) + 1460 (payload) = 1500 bytes.
+    // Ethernet-frame on-wire length = 14 (Ethernet) + 1500 (IP-datagram) = 1514 bytes.
     // We capture only the first 100 bytes (headers + start of payload).
     let on_wire_payload_len: u16 = 1460;
     let captured_len: usize = 100;
@@ -308,13 +315,33 @@ fn test_BC_2_02_014_snaplen_truncated_packet_len() {
     let parsed = decode_packet(&data, DataLink::ETHERNET)
         .expect("AC-003: snaplen-truncated frame must decode via lax fallback");
 
-    // BC-2.02.014 invariant 2: packet_len == captured length, not on-wire length
+    // BC-2.02.014 invariant 2: packet_len == captured length, not on-wire length.
+    // IP-datagram on-wire = 1500; Ethernet-frame on-wire = 1514. packet_len must be
+    // the captured length (100), not either on-wire figure.
+    let ip_datagram_on_wire: usize = 20 + 20 + on_wire_payload_len as usize; // 1500
+    let eth_frame_on_wire: usize = 14 + ip_datagram_on_wire; // 1514
     assert_eq!(
+        parsed.packet_len, captured_len,
+        "AC-003: packet_len ({}) must equal the captured length ({captured_len}), \
+         not IP-datagram on-wire ({ip_datagram_on_wire}) nor Ethernet-frame on-wire ({eth_frame_on_wire})",
         parsed.packet_len,
-        captured_len,
-        "AC-003: packet_len ({}) must equal the captured length ({captured_len}), not the on-wire length ({})",
-        parsed.packet_len,
-        14 + 20 + 20 + on_wire_payload_len as usize // full on-wire = 1514 bytes
+    );
+
+    // BC-2.02.014 invariant 2: exhaustive destructuring of ParsedPacket proves no
+    // `on_wire_len` field exists. If such a field were added to the struct, this match
+    // would become non-exhaustive and the test would refuse to compile — making the
+    // "no separate on_wire_len field" invariant a compiler-enforced guarantee.
+    let ParsedPacket {
+        packet_len,
+        protocol: _,
+        transport: _,
+        payload: _,
+        src_ip: _,
+        dst_ip: _,
+    } = parsed;
+    assert_eq!(
+        packet_len, captured_len,
+        "AC-003: exhaustive-match packet_len ({packet_len}) must equal captured length ({captured_len})"
     );
 }
 
@@ -888,4 +915,75 @@ fn test_BC_2_02_015_ec006_no_flags_set() {
         }
         other => panic!("EC-006: expected TransportInfo::Tcp, got: {other:?}"),
     }
+}
+
+// ---------------------------------------------------------------------------
+// EC-007 / BC-2.02.014 EC-002: 60-byte minimum Ethernet frame with padding
+// ---------------------------------------------------------------------------
+
+/// EC-007 (BC-2.02.014 EC-002): 60-byte minimum Ethernet frame with padding.
+///
+/// Ethernet mandates a minimum frame body of 60 bytes (excluding the 4-byte FCS
+/// that the NIC strips before the OS delivers the frame to the capture buffer).
+/// When a real IP datagram is smaller than 46 bytes of Ethernet payload, the NIC
+/// or switch pads the frame to the minimum. The pad bytes are NOT part of the IP
+/// datagram.
+///
+/// Frame layout:
+///   Ethernet header : 14 bytes
+///   IPv4 header     : 20 bytes
+///   TCP header      : 20 bytes
+///   TCP payload     :  0 bytes  (pure ACK, no data)
+///   Ethernet padding:  6 bytes  (injected after the real IP datagram)
+///   Total           : 60 bytes
+///
+/// The IPv4 total_length field is 40 (20 IP + 20 TCP + 0 payload) — it reflects
+/// only the real IP datagram; it does NOT count the 6 Ethernet pad bytes.
+///
+/// BC-2.02.014 invariant on packet_len: packet_len must be 60 (data.len()), not 40.
+/// BC-2.02.014 / BC-2.02.015: the 6 Ethernet padding bytes must NOT appear in payload
+/// — they are outside the IP datagram boundary and are not TCP payload.
+#[test]
+fn test_BC_2_02_014_ec007_60_byte_padded_frame() {
+    // Build the real IP + TCP headers with zero payload.
+    // make_eth_ipv4_tcp sets IP total_length = 20 (IP) + 20 (TCP) + 0 (payload) = 40.
+    let mut frame = make_eth_ipv4_tcp(
+        [10, 20, 30, 40],
+        [10, 20, 30, 41],
+        1234,
+        80,
+        0x0000_0001, // seq
+        0,           // ack number
+        TCP_ACK,
+        &[], // zero TCP payload
+    );
+
+    // frame is 54 bytes (14 Eth + 20 IP + 20 TCP). Ethernet minimum body is 46 bytes
+    // (60 - 14 Eth header), so we need 60 - 54 = 6 bytes of padding.
+    let eth_pad_len = 6usize;
+    frame.extend(std::iter::repeat_n(0x00u8, eth_pad_len));
+
+    assert_eq!(
+        frame.len(),
+        60,
+        "EC-007: padded frame must be exactly 60 bytes"
+    );
+
+    let parsed = decode_packet(&frame, DataLink::ETHERNET)
+        .expect("EC-007: 60-byte padded Ethernet frame must decode");
+
+    // (a) packet_len == 60: equals data.len(), the full padded frame.
+    assert_eq!(
+        parsed.packet_len, 60,
+        "EC-007: packet_len must be 60 (full padded frame length), not 54 (IP datagram)"
+    );
+
+    // (b) payload is empty: the 6 Ethernet padding bytes are outside the IP datagram
+    // and must NOT be counted as TCP payload. The IP total_length (40) correctly
+    // delimits the real datagram; etherparse uses it to bound the TCP payload slice.
+    assert_eq!(
+        parsed.payload,
+        Vec::<u8>::new(),
+        "EC-007: payload must be empty — Ethernet padding bytes must not appear in TCP payload"
+    );
 }
