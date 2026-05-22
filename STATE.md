@@ -33,7 +33,9 @@ ci_hotfix_2_pr: 112
 ci_hotfix_2_merge_commit: 5d4c2c6
 ci_hotfix_2_date: "2026-05-22"
 ci_hotfix_2_run: 26300783841
-develop_head: f0b5007
+develop_head: 652f48b
+chore_pr_115_merge_commit: 652f48b
+chore_pr_115_date: "2026-05-22"
 wave_3_started: "2026-05-22"
 wave_3_story_071_pr: 113
 wave_3_story_071_merge_commit: 991e821
@@ -125,15 +127,19 @@ phase_2_input_hash_drift_check_uncomputed: 0
 Wave 3 CLOSED/CONVERGED 2026-05-22. 9 stories merged total across Waves 1-3
 (STORY-001/069/002/003/004/070/071/005). Wave 3 wave-level adversarial convergence ACHIEVED:
 3 consecutive clean passes (pass 1 VERDICT CLEAN; passes 2+3 Nit-only = convergence criterion
-satisfied). develop HEAD: f0b5007. Wave 4 (STORY-011, STORY-066) READY TO DISPATCH — unblocked
+satisfied). develop HEAD: 652f48b. Wave 4 (STORY-011, STORY-066) READY TO DISPATCH — unblocked
 by STORY-005 completion. CI hotfix PR #112 (5d4c2c6) merged 2026-05-22 — audit-action replaced
 with cargo audit shell step. Demo recordings are local-only; factory-artifacts branch gitignores
-`cycles/**/demos/` (commit f4e52fb; 49 prior demo files untracked).
+`cycles/**/demos/` (commit f4e52fb; 49 prior demo files untracked). Chore PR #115 (652f48b)
+merged 2026-05-22 — single-line .gitignore hygiene fix (ignore .worktrees/); no code/behavior
+change; post-Wave-3-close housekeeping; CI all jobs green.
 
-**Current develop HEAD:** f0b5007 (PR #114 — STORY-005: 16 behavioral-contract tests in
+**Current develop HEAD:** 652f48b (PR #115 — chore: ignore .worktrees/ directory for
+per-story VSDD worktrees; single-line .gitignore hygiene fix; no code/behavior change;
+post-Wave-3-close housekeeping; CI all jobs green, merged 2026-05-22).
+Previous: f0b5007 (PR #114 — STORY-005: 16 behavioral-contract tests in
 tests/bc_2_02_story005_tests.rs formalizing src/decoder.rs packet_len + TCP flag/seq
 extraction; brownfield, no src changes; CI run 26305060593 all jobs green, merged 2026-05-22).
-Previous: 991e821 (PR #113 — STORY-071).
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -151,7 +157,7 @@ automated dependency bumping for it; bumping requires verifying the fuzz build s
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
 | Phase 2 — Story Decomposition | **PASSED** — all gates + human approval 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; decomposition gate PASSED; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153); trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M→0C/0H/1M (RESET)→0C/0H/0M→0C/0H/0M→0C/0H/0M (GATE SATISFIED 3/3) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Wave 1 CLOSED 2026-05-22; Wave 2 CLOSED 2026-05-22 (PRs #109/#110/#107/#108; 376 tests); Wave 3 CLOSED/CONVERGED 2026-05-22 (STORY-071 PR #113 991e821; STORY-005 PR #114 f0b5007; 3/3 clean wave-level passes; 9 stories total Waves 1-3); develop HEAD f0b5007; Wave 4 (STORY-011, STORY-066) READY TO DISPATCH | — |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Wave 1 CLOSED 2026-05-22; Wave 2 CLOSED 2026-05-22 (PRs #109/#110/#107/#108; 376 tests); Wave 3 CLOSED/CONVERGED 2026-05-22 (STORY-071 PR #113 991e821; STORY-005 PR #114 f0b5007; 3/3 clean wave-level passes; 9 stories total Waves 1-3); chore PR #115 (652f48b) merged post-Wave-3-close; develop HEAD 652f48b; Wave 4 (STORY-011, STORY-066) READY TO DISPATCH | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -271,7 +277,7 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 | Wave 3 — STORY-005 per-story adversarial convergence | **COMPLETE** 2026-05-22 | 8 total passes; final 3 (passes 6/7/8) VERDICT: CLEAN on frozen artifact (story v1.6, test commit a959dee); BC-5.39.001 |
 | Wave 3 — STORY-005 delivery (PR + merge) | **COMPLETE** 2026-05-22 | PR #114 squash-merged → f0b5007; 16 BC tests (tests/bc_2_02_story005_tests.rs); brownfield, no src changes; CI run 26305060593 all jobs green; demo evidence LOCAL-ONLY (gitignored) |
 | Wave 3 — wave-level adversarial convergence | **COMPLETE** 2026-05-22 | 3/3 consecutive clean wave-level passes: pass 1 VERDICT CLEAN; passes 2+3 Nit-only (convergence criterion satisfied) |
-| Wave-gate — Wave 3 | **CLOSED** 2026-05-22 | Wave 3 CLOSED/CONVERGED; develop HEAD f0b5007; 9 stories total across Waves 1-3; Wave 4 READY |
+| Wave-gate — Wave 3 | **CLOSED** 2026-05-22 | Wave 3 CLOSED/CONVERGED; develop HEAD at close f0b5007; 9 stories total across Waves 1-3; Wave 4 READY |
 | Wave 4 (STORY-011, STORY-066) | **READY TO DISPATCH** | Unblocked by STORY-005; sprint-state updated; awaiting orchestrator dispatch |
 | Waves 5→27 | NOT STARTED | Repeat per-story + wave-level convergence for each wave |
 
@@ -303,13 +309,14 @@ develop synced at 3b2481c; 376 tests pass; clippy clean; fmt clean.
 | STORY-071 (MITRE ATT&CK mapping BC tests) | #113 | 991e821 | 3/3 CLEAN (passes 1/2/3) | 19 tests in tests/mitre_tests.rs; brownfield (no src changes); CI run 26304328447 green |
 | STORY-005 (decoder packet_len + TCP, SS-02) | #114 | f0b5007 | **COMPLETE** — 8 passes; 6/7/8 CLEAN | 16 tests in tests/bc_2_02_story005_tests.rs; brownfield (no src changes); CI run 26305060593 green; demo LOCAL-ONLY |
 
-Wave-level adversarial convergence: **ACHIEVED** — 3/3 consecutive clean passes (pass 1 VERDICT CLEAN; passes 2+3 Nit-only = convergence criterion satisfied). Wave 3 CLOSED. develop HEAD f0b5007. 9 stories delivered across Waves 1-3. Wave 4 (STORY-011, STORY-066) READY TO DISPATCH.
+Wave-level adversarial convergence: **ACHIEVED** — 3/3 consecutive clean passes (pass 1 VERDICT CLEAN; passes 2+3 Nit-only = convergence criterion satisfied). Wave 3 CLOSED. develop HEAD at close: f0b5007. Post-close chore PR #115 (652f48b) merged 2026-05-22 (.gitignore hygiene; no code/behavior change). Current develop HEAD: 652f48b. 9 stories delivered across Waves 1-3. Wave 4 (STORY-011, STORY-066) READY TO DISPATCH.
 
 **Session resume checkpoint — Wave 3 CLOSED / Wave 4 READY (2026-05-22):**
 1. Wave 3 CLOSED/CONVERGED — STORY-071 (PR #113, 991e821) + STORY-005 (PR #114, f0b5007).
    Per-story convergence: both 3/3 clean. Wave-level adversarial convergence: 3/3 consecutive
    clean passes (pass 1 VERDICT CLEAN; passes 2+3 Nit-only = criterion satisfied). 9 stories
-   delivered across Waves 1-3. develop HEAD: f0b5007.
+   delivered across Waves 1-3. develop HEAD: 652f48b (post-close chore PR #115 — .gitignore
+   hygiene; Wave 3 CLOSED/CONVERGED status and Wave 4 READY-TO-DISPATCH status unchanged).
 2. Wave 4 READY TO DISPATCH — STORY-011 and STORY-066 unblocked by STORY-005 completion.
    sprint-state.yaml updated: STORY-011 status=pending, blocked_by=[]; STORY-066 status=pending,
    blocked_by=[]. current_wave remains 3 (Wave 4 not yet dispatched; awaiting orchestrator).
