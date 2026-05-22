@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-005"
 epic_id: "E-1"
-version: "1.5"
+version: "1.6"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -53,7 +53,7 @@ For any successfully decoded frame, `ParsedPacket.packet_len` equals `data.len()
 - **Test:** `test_BC_2_02_014_packet_len_equals_data_len()`
 
 ### AC-002 (traces to BC-2.02.014 postcondition 2)
-`packet_len` is set to the full frame length (`data.len()`) on BOTH the strict parse path (decoder.rs:142-146 (the build_parsed call; the data.len() argument is on line 145)) and the lax parse path (decoder.rs:161). Neither path uses IP header `total_length` or TCP segment length for this field. Invariant 1 (never payload-only/partial length) is verified by AC-001's variable-header and non-trivial-payload cases; AC-002 verifies only that both code paths set the field via the same data.len() mechanism.
+`packet_len` is set to the full frame length (`data.len()`) on BOTH the strict parse path (decoder.rs:142-146 (the build_parsed call; the data.len() argument is on line 145)) and the lax parse path (decoder.rs:161). Neither path uses IP header `total_length` for this field. Invariant 1 (never payload-only/partial length) is verified by AC-001's variable-header and non-trivial-payload cases; AC-002 verifies only that both code paths set the field via the same data.len() mechanism.
 - **Test:** `test_BC_2_02_014_packet_len_set_on_both_strict_and_lax_paths()`
 
 ### AC-003 (traces to BC-2.02.014 invariant 2)
@@ -90,6 +90,7 @@ PSH and URG are NOT present as fields of `TransportInfo::Tcp`. Adding them would
 |-----------|--------|---------------|
 | build_parsed (packet_len) | src/decoder.rs:255-302 | pure |
 | build_parsed (Tcp arm, flags/seq) | src/decoder.rs:263-274 | pure |
+| build_parsed (Tcp payload extraction) | src/decoder.rs:288-292 | pure |
 | TransportInfo::Tcp struct | src/decoder.rs | pure |
 
 ## Edge Cases
@@ -149,6 +150,7 @@ PSH and URG are NOT present as fields of `TransportInfo::Tcp`. Adding them would
 | `packet_len` is ALWAYS `data.len()`; never derived from IP or TCP header length fields | BC-2.02.014 invariant 1 | Code review: both call sites to `build_parsed` pass `data.len()` as third argument |
 | `TransportInfo::Tcp` struct has exactly these fields: src_port, dst_port, seq_number, syn, ack, fin, rst | BC-2.02.015 invariant 3 | Struct definition review; no psh/urg fields present |
 | seq_number extraction uses `tcp.to_header().sequence_number` (etherparse API) | BC-2.02.015 invariant 1 | Code review of decoder.rs:263-274 |
+| TCP payload extraction uses `tcp.payload().to_vec()` in the separate payload match block | BC-2.02.015 postcondition 8 | Code review of decoder.rs:288-292 |
 | packet_len is set on BOTH strict and lax paths | BC-2.02.014 postcondition 2 | Code review: decoder.rs:142-146 (the build_parsed call; the data.len() argument is on line 145) (strict) and decoder.rs:161 (lax) |
 
 ## Library & Framework Requirements (MANDATORY)
@@ -169,5 +171,6 @@ PSH and URG are NOT present as fields of `TransportInfo::Tcp`. Adding them would
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| 1.6 | 2026-05-22 | story-writer | Wave 3 Ph3 pass-4 adversarial fixes: F-2 payload-extraction anchor added (decoder.rs:288-292), F-3 AC-002 over-claim removed ("or TCP segment length"); full AC trace-annotation self-audit — all 9 ACs confirmed clean |
 | 1.5 | 2026-05-22 | story-writer | Wave 3 Ph3 pass-2 adversarial fixes: F-1, F-3, F-4, F-5, F-6, F-7 |
 | 1.4 | 2026-05-22 | story-writer | Wave 3 Ph3 pass-1 adversarial fixes: F-1, F-3, F-6, F-4, F-7, N-1 |
