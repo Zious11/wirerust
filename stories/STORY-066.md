@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-066
 epic_id: E-6
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -115,11 +115,11 @@ Even with a very high DNS query volume (e.g., 1000 packets), `analyze` returns `
 
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
-| `DnsAnalyzer::can_decode` | `src/analyzer/dns.rs:52-60` | pure-core |
-| `DnsAnalyzer::analyze` | `src/analyzer/dns.rs:62-70` | mixed (pure logic; counter mutation trivial) |
-| `DnsAnalyzer::summarize` | `src/analyzer/dns.rs:72-88` | pure-core (snapshot) |
-| `is_dns_port` helper | `src/analyzer/dns.rs:34-36` | pure-core |
-| `is_query` helper | `src/analyzer/dns.rs:38-44` | pure-core |
+| `DnsAnalyzer::can_decode` | `src/analyzer/dns.rs:60-68` | pure-core |
+| `DnsAnalyzer::analyze` | `src/analyzer/dns.rs:70-78` | mixed (pure logic; counter mutation trivial) |
+| `DnsAnalyzer::summarize` | `src/analyzer/dns.rs:80-96` | pure-core (snapshot) |
+| `is_dns_port` helper | `src/analyzer/dns.rs:42-44` | pure-core |
+| `is_query` helper | `src/analyzer/dns.rs:46-52` | pure-core |
 
 ## Edge Cases
 
@@ -197,5 +197,6 @@ Even with a very high DNS query volume (e.g., 1000 packets), `analyze` returns `
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.3 | 2026-05-22 | story-writer | Phase 3 Wave 4 per-story convergence (F-1/F-2): all dns.rs Architecture Mapping anchors re-synced against current 98-line file after module-doc-comment expansion shifted every function ~8-10 lines down. is_dns_port :34-36 → :42-44; is_query :38-44 → :46-52; can_decode :52-60 → :60-68; analyze :62-70 → :70-78; summarize :72-88 → :80-96 |
 | 1.2 | 2026-05-22 | story-writer | Wave 4 Ph3 implementer-confirm anchor-drift correction: is_dns_port anchor :34-35 → :34-36 |
 | 1.1 | 2026-05-21 | story-writer | Initial story (brownfield-formalization of existing dns.rs) |
