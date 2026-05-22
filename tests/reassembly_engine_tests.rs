@@ -3283,3 +3283,70 @@ fn test_ec_008_bytes_reassembled_only_after_flush() {
         "EC-008: bytes_reassembled must be 200 after both segments flush (only counts after flush)"
     );
 }
+
+// ---------------------------------------------------------------------------
+// STORY-013: Engine-level integration tests for apply_handshake_flags
+//   BC-2.04.004, BC-2.04.005, BC-2.04.051, BC-2.04.052, BC-2.04.053
+//
+// These tests exercise the effectful-shell layer (TcpReassembler::process_packet
+// / apply_handshake_flags) for handshake state transitions and statistics.
+// Pure TcpFlow method tests live in reassembly_flow_tests.rs.
+// ---------------------------------------------------------------------------
+
+/// STORY-013 Engine AC: apply_handshake_flags SYN block (BC-2.04.004)
+/// Integration-level: process a SYN packet through the engine and assert
+/// that the flow state transitions to SynSent and the ISN is set.
+///
+/// Exercises BC-2.04.004 postconditions 1-3 at the engine level via
+/// process_packet → apply_handshake_flags → on_syn / set_initiator / set_isn.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_004_engine_syn_sets_state_and_isn() {
+    panic!("RED GATE: STORY-013 engine AC (BC-2.04.004) not yet verified");
+}
+
+/// STORY-013 Engine AC: apply_handshake_flags SYN+ACK block (BC-2.04.005)
+/// Integration-level: SYN → SYN+ACK sequence transitions engine flow to
+/// Established with correct server ISN and direction tagging.
+///
+/// Exercises BC-2.04.005 postconditions 1-3 at the engine level.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_005_engine_syn_ack_establishes_flow() {
+    panic!("RED GATE: STORY-013 engine AC (BC-2.04.005) not yet verified");
+}
+
+/// STORY-013 Engine AC: apply_handshake_flags RST block (BC-2.04.051)
+/// Integration-level: RST increments stats.flows_rst and emits CloseReason::Rst.
+///
+/// Exercises BC-2.04.051 postconditions 2-3 (PostHandshake::FlowClosed returned;
+/// stats.flows_rst incremented) at the engine level.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_051_engine_rst_increments_flows_rst_counter() {
+    panic!("RED GATE: STORY-013 engine AC (BC-2.04.051) not yet verified");
+}
+
+/// STORY-013 Engine AC: insert_payload_segment mid-stream join (BC-2.04.052)
+/// Integration-level: a data packet on a New flow calls on_data_without_syn
+/// and increments stats.flows_partial.
+///
+/// Exercises BC-2.04.052 postcondition 3 (flows_partial counter) at the engine level.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_052_engine_data_without_syn_increments_flows_partial() {
+    panic!("RED GATE: STORY-013 engine AC (BC-2.04.052) not yet verified");
+}
+
+/// STORY-013 Engine AC: direction tagging in flush path (BC-2.04.053)
+/// Integration-level: after SYN + SYN+ACK, client data flushed to handler has
+/// Direction::ClientToServer and server data has Direction::ServerToClient.
+///
+/// Exercises BC-2.04.053 postconditions 1-2 via the engine's flush_contiguous_data
+/// → handler.on_data callbacks.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_053_engine_direction_tagging_in_flush_path() {
+    panic!("RED GATE: STORY-013 engine AC (BC-2.04.053) not yet verified");
+}
+

@@ -574,3 +574,251 @@ mod proptest_flowkey {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// STORY-013: BC-2.04.004, BC-2.04.005, BC-2.04.050, BC-2.04.051,
+//            BC-2.04.052, BC-2.04.053
+//
+// TCP three-way handshake state machine and direction tagging.
+// AC-001..AC-016 and EC-001..EC-010 (story spec + BC postconditions/invariants).
+// Test names are prescribed by the story spec (W1.4 decision).
+// ---------------------------------------------------------------------------
+
+// ---- AC-001 to AC-016: RED GATE stubs ----
+
+/// AC-001 (BC-2.04.004 postcondition 1)
+/// Postcondition: after on_syn() from src_ip:src_port, flow.initiator == Some((src_ip, src_port)).
+/// set_initiator records the source endpoint as the initiator.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_004_syn_sets_initiator() {
+    panic!("RED GATE: AC-001 not yet verified");
+}
+
+/// AC-002 (BC-2.04.004 postcondition 2)
+/// Postcondition: after processing a SYN, the ClientToServer direction
+/// has isn == Some(tcp.seq).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_004_syn_sets_client_isn() {
+    panic!("RED GATE: AC-002 not yet verified");
+}
+
+/// AC-003 (BC-2.04.004 postcondition 3)
+/// Postcondition: after processing a SYN, flow.state == FlowState::SynSent.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_004_syn_transitions_to_synsent() {
+    panic!("RED GATE: AC-003 not yet verified");
+}
+
+/// AC-004 (BC-2.04.004 invariants 1-2)
+/// Invariant: set_initiator and set_isn are idempotent — a retransmitted SYN
+/// does not change the stored initiator or ISN.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_004_retransmitted_syn_is_idempotent() {
+    panic!("RED GATE: AC-004 not yet verified");
+}
+
+/// AC-005 (BC-2.04.005 postcondition 1)
+/// Postcondition: after processing a SYN+ACK, flow.initiator == Some((dst_ip, dst_port))
+/// — the DESTINATION of the SYN+ACK is the initiator.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_005_syn_ack_sets_initiator_to_dst() {
+    panic!("RED GATE: AC-005 not yet verified");
+}
+
+/// AC-006 (BC-2.04.005 postconditions 2-3)
+/// Postcondition: after processing SYN+ACK, the server-to-client direction has
+/// isn == Some(tcp.seq) and flow.state == FlowState::Established.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_005_syn_ack_establishes_flow() {
+    panic!("RED GATE: AC-006 not yet verified");
+}
+
+/// AC-007 (BC-2.04.005 invariant 3)
+/// Invariant: a SYN+ACK received without a prior SYN (mid-capture) still
+/// transitions the flow from New directly to Established.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_005_syn_ack_without_prior_syn() {
+    panic!("RED GATE: AC-007 not yet verified");
+}
+
+/// AC-008 (BC-2.04.050 postcondition — all 9 transitions)
+/// Each of the 9 rows in the BC-2.04.050 state transition table is verified
+/// individually within this single test function.
+///
+/// Rows:
+///   1. on_syn()                New       → SynSent
+///   2. on_syn()                SynSent   → SynSent (no-op guard)
+///   3. on_syn_ack()            SynSent   → Established
+///   4. on_syn_ack()            New       → Established (server-first)
+///   5. on_data_without_syn()   New       → Established + partial=true
+///   6. on_fin() (first)        Established → Closing
+///   7. on_fin() (first)        SynSent   → Closing
+///   8. on_fin() (second, fin_count >= 2) any → Closed
+///   9. on_rst()                any       → Closed
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_050_state_machine_all_transitions() {
+    panic!("RED GATE: AC-008 not yet verified");
+}
+
+/// AC-009 (BC-2.04.050 invariant 1)
+/// Invariant: on_syn() is a no-op when flow is already in SynSent, Established,
+/// Closing, or Closed state.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_050_on_syn_no_op_when_not_new() {
+    panic!("RED GATE: AC-009 not yet verified");
+}
+
+/// AC-010 (BC-2.04.050 invariant 4)
+/// Invariant: fin_count uses saturating_add(1) to prevent u8 overflow at 255.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_050_fin_count_saturates_at_255() {
+    panic!("RED GATE: AC-010 not yet verified");
+}
+
+/// AC-011 (BC-2.04.051 invariant 1)
+/// Invariant: on_rst() transitions to Closed from any prior state (New, SynSent,
+/// Established, Closing, Closed) with no state guard.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_051_rst_closes_from_any_state() {
+    panic!("RED GATE: AC-011 not yet verified");
+}
+
+/// AC-012 (BC-2.04.052 postconditions 1-2)
+/// Postcondition: on_data_without_syn() on a New flow transitions state to
+/// Established and sets partial = true.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_052_data_without_syn_sets_partial() {
+    panic!("RED GATE: AC-012 not yet verified");
+}
+
+/// AC-013 (BC-2.04.052 invariant 1)
+/// Invariant: on_data_without_syn() is a no-op when flow is already Established.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_052_on_data_without_syn_no_op_when_established() {
+    panic!("RED GATE: AC-013 not yet verified");
+}
+
+/// AC-014 (BC-2.04.053 postcondition 1)
+/// Postcondition: direction(src_ip, src_port) returns ClientToServer when
+/// src_ip:src_port matches the stored initiator.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_053_direction_client_to_server_when_src_is_initiator() {
+    panic!("RED GATE: AC-014 not yet verified");
+}
+
+/// AC-015 (BC-2.04.053 postcondition 2)
+/// Postcondition: direction(src_ip, src_port) returns ServerToClient when
+/// src_ip:src_port does NOT match the stored initiator.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_053_direction_server_to_client_when_src_is_not_initiator() {
+    panic!("RED GATE: AC-015 not yet verified");
+}
+
+/// AC-016 (BC-2.04.053 invariant 2)
+/// Invariant: when initiator is None, direction() returns ServerToClient as a
+/// conservative default.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_053_direction_server_to_client_when_no_initiator() {
+    panic!("RED GATE: AC-016 not yet verified");
+}
+
+// ---- EC-001..EC-010: edge-case stubs ----
+
+/// EC-001 (BC-2.04.004 edge case — retransmitted SYN)
+/// set_initiator/set_isn no-ops; state stays SynSent after a second SYN.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_004_ec001_retransmitted_syn_state_unchanged() {
+    panic!("RED GATE: EC-001 not yet verified");
+}
+
+/// EC-002 (BC-2.04.005 edge case — SYN+ACK without prior SYN)
+/// initiator = dst_ip:dst_port; state → Established from New.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_005_ec002_syn_ack_first_sets_initiator_to_dst() {
+    panic!("RED GATE: EC-002 not yet verified");
+}
+
+/// EC-003 (BC-2.04.005 edge case — SYN+ACK retransmission)
+/// All setters idempotent; if already Established, on_syn_ack() is a no-op.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_005_ec003_syn_ack_retransmission_is_idempotent() {
+    panic!("RED GATE: EC-003 not yet verified");
+}
+
+/// EC-004 (BC-2.04.004 edge case — SYN with payload)
+/// ISN is set; the payload would be processed separately by the engine.
+/// At the TcpFlow level: set_initiator + set_isn + on_syn all succeed.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_004_ec004_syn_with_payload_sets_isn() {
+    panic!("RED GATE: EC-004 not yet verified");
+}
+
+/// EC-005 (BC-2.04.051 edge case — RST on New flow)
+/// state = Closed; the flow level confirms unconditional close from New.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_051_ec005_rst_on_new_flow() {
+    panic!("RED GATE: EC-005 not yet verified");
+}
+
+/// EC-006 (BC-2.04.051 edge case — RST on Closing flow)
+/// state = Closed; on_rst() from Closing is unconditional.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_051_ec006_rst_on_closing_flow() {
+    panic!("RED GATE: EC-006 not yet verified");
+}
+
+/// EC-007 (BC-2.04.051 invariant 2 — RST with payload)
+/// At the TcpFlow level: on_rst() sets state = Closed regardless.
+/// Payload suppression is tested at engine level; here we confirm state transition.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_051_ec007_rst_closes_flow_state() {
+    panic!("RED GATE: EC-007 not yet verified");
+}
+
+/// EC-008 (BC-2.04.050 edge case — both FINs from same direction)
+/// fin_count reaches 2 via two on_fin() calls; flow transitions to Closed.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_050_ec008_both_fins_same_direction_closes_flow() {
+    panic!("RED GATE: EC-008 not yet verified");
+}
+
+/// EC-009 (BC-2.04.050 edge case — FIN on New flow)
+/// on_fin() from New state: fin_count = 1; but New is not in {Established, SynSent},
+/// so state does NOT transition to Closing (no-op for state; fin_count increments).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_050_ec009_fin_on_new_flow() {
+    panic!("RED GATE: EC-009 not yet verified");
+}
+
+/// EC-010 (BC-2.04.053 invariant 2 — initiator = None)
+/// When initiator is None, direction() returns ServerToClient (conservative default).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_053_ec010_direction_none_initiator_returns_server_to_client() {
+    panic!("RED GATE: EC-010 not yet verified");
+}
