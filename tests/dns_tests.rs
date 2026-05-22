@@ -245,10 +245,11 @@ fn test_dns_analyzer_counts_responses() {
 // Short payload (<12 bytes): is_query returns false, response_count increments.
 // ---------------------------------------------------------------------------
 
-/// AC-006 / BC-2.08.002 postcondition 3 / invariant 2:
+/// AC-006 / BC-2.08.002 postcondition 3 / EC-003:
 /// When `payload.len() < 12`, `is_query` returns `false` (length guard fires
 /// before the QR-bit test), and `response_count` (not `query_count`) is
-/// incremented. Canonical test vector: 6-byte payload.
+/// incremented. Canonical test vector: 11-byte payload (one byte below the
+/// 12-byte DNS-header minimum).
 #[test]
 fn test_dns_short_payload_counted_as_response() {
     let mut a = DnsAnalyzer::new();
