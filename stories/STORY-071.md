@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-071
 epic_id: E-7
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -76,7 +76,7 @@ All 14 Enterprise `MitreTactic` variants render with their canonical ATT&CK tact
 
 ### AC-002 (traces to BC-2.10.001 invariant 3)
 `"Command and Control"` uses lowercase "and" (canonical ATT&CK form), not "And".
-- **Test:** `test_command_and_control_lowercase_and()` (part of AC-001 test)
+- **Test:** `test_command_and_control_lowercase_and()`
 
 ### AC-003 (traces to BC-2.10.002 postcondition 1)
 `MitreTactic::IcsInhibitResponseFunction` displays as `"Inhibit Response Function"` (no "ICS:" prefix).
@@ -98,13 +98,14 @@ The first 14 elements are the Enterprise tactics in canonical kill-chain order: 
 Elements [14] and [15] are `IcsInhibitResponseFunction` and `IcsImpairProcessControl` respectively.
 - **Test:** `test_all_tactics_ics_at_end()`
 
-### AC-008 (traces to BC-2.10.004 postcondition 1)
+### AC-008 (traces to BC-2.10.004 postcondition 2)
 Collecting `all_tactics_in_report_order()` into a `HashSet` produces a set of size 16 (no duplicates).
 - **Test:** `test_all_tactics_no_duplicates()`
 
-### AC-009 (traces to BC-2.10.004 postcondition 3)
+### AC-009 (traces to BC-2.10.004 postconditions 1, 3)
 No variant is omitted — all 16 variants appear in the slice (checked by comparing HashSet against the full expected set).
 - **Test:** `test_all_tactics_all_variants_present()`
+- **Note:** BC-2.10.004 postcondition 1 ("each variant appears exactly once") is verified jointly: AC-008's no-duplicate check plus AC-009's no-omission set-equality check together establish "exactly once."
 
 ### AC-010 (traces to BC-2.10.005 postcondition 1)
 `technique_name("T1027")` returns `Some("Obfuscated Files or Information")`.
@@ -141,7 +142,7 @@ All 6 currently-emitted technique IDs (T1027, T1036, T1046, T1083, T1499.002, T1
 | `MitreTactic` enum | `src/mitre.rs:46-66` | pure-core |
 | `all_tactics_in_report_order` | `src/mitre.rs:95-114` | pure-core |
 | `technique_info` (lookup table) | `src/mitre.rs:122-156` | pure-core |
-| `technique_name` | `src/mitre.rs` | pure-core |
+| `technique_name` | `src/mitre.rs:160-162` | pure-core |
 | `technique_tactic` | `src/mitre.rs:166-168` | pure-core |
 
 ## Edge Cases
@@ -176,7 +177,7 @@ All 6 currently-emitted technique IDs (T1027, T1036, T1046, T1083, T1499.002, T1
 ## Tasks (MANDATORY)
 
 1. [ ] Write failing tests for AC-001 through AC-016 (test-writer)
-2. [ ] Verify Red Gate: all 16 tests fail
+2. [ ] Verify Red Gate: all 19 tests fail
 3. [ ] Define `MitreTactic` enum with all 16 variants + `#[non_exhaustive]`
 4. [ ] Implement `fmt::Display for MitreTactic` with all 14 Enterprise + 2 ICS canonical strings
 5. [ ] Implement `all_tactics_in_report_order()` returning `&'static [MitreTactic]` of length 16 in kill-chain order
@@ -223,3 +224,4 @@ All 6 currently-emitted technique IDs (T1027, T1036, T1046, T1083, T1499.002, T1
 |---------|------|--------|--------|
 | 1.1 | 2026-05-21 | story-writer | Initial story decomposition |
 | 1.2 | 2026-05-22 | story-writer | Wave 3 Ph3 implementer-confirm anchor-drift correction: `MitreTactic` enum anchor corrected from `:46-90` to `:46-66` (enum declaration only; Display impl is `:68-90`); `technique_info` closing-brace anchor corrected from `:122-155` to `:122-156` |
+| 1.3 | 2026-05-22 | story-writer | Wave 3 Ph3 pass-1 adversarial fixes: m-2 AC-008 trace postcondition 1→2; m-3 AC-009 trace postconditions 1,3 + joint-coverage note; m-5 technique_name line anchor :160-162; n-1 AC-002 test reference to standalone function; n-2 Task 2 count 16→19 |
