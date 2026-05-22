@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-012"
 epic_id: "E-2"
-version: "1.3"
-status: draft
+version: "1.4"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -191,6 +191,7 @@ implementation_strategy: brownfield-formalization
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
+| 1.4 | 2026-05-22 | story-writer | Wave 5 delivery: status advanced draft → completed — STORY-012 delivered via PR #118, merge bbddac6 |
 | 1.3 | 2026-05-22 | story-writer | Wave 5 Ph3 per-story adversarial fix Min-3: File Structure anchor synced with BC-2.04.002 and actual src/reassembly/mod.rs — non-TCP guard range corrected from 186-190 to 187-190 (line 186 is the fn signature; lines 187-190 are the guard body) |
 | 1.2 | 2026-05-22 | story-writer | Wave 5 Ph3 per-story adversarial fix M-2: Task 4 corrected — removed stale '16 on_data calls' planning estimate that did not match the delivered AC-011 test |
 | 1.1 | 2026-05-21 | story-writer | Initial story decomposition |
