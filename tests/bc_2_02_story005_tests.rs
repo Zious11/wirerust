@@ -294,7 +294,7 @@ fn test_BC_2_02_014_packet_len_equals_data_len() {
 //
 // packet_len is set to the full frame length (data.len()) on BOTH the strict
 // parse path (decoder.rs:142-146) and the lax parse path (decoder.rs:161).
-// Neither path uses IP header total_length or TCP segment length for this field.
+// Neither path uses IP header total_length for this field.
 // ---------------------------------------------------------------------------
 
 /// BC-2.02.014 postcondition 2: packet_len is set on both the strict and lax parse paths.
@@ -507,10 +507,10 @@ fn test_BC_2_02_015_tcp_syn_ack_flags() {
 }
 
 // ---------------------------------------------------------------------------
-// AC-006 / BC-2.02.015 postcondition 7 (RST) and postcondition 6 (FIN)
+// AC-006 / BC-2.02.015 postconditions 6 (FIN) and 7 (RST)
 //
-// For a TCP RST packet, rst = true.
 // For a TCP FIN-ACK packet, fin = true and ack = true.
+// For a TCP RST packet, rst = true.
 // ---------------------------------------------------------------------------
 
 /// BC-2.02.015 postconditions 6+7: RST packet has rst=true; FIN-ACK has fin=true, ack=true.
