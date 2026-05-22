@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 6 Ph3 pass-1 re-run adversarial fix F-3: verified flow.rs anchors (set_initiator 208-212, direction 214-220) are above the fin_count() insertion and remain correct; no line number changes required — product-owner 2026-05-22"
+  - "v1.4: Wave 6 Ph3 per-story convergence cleanup M-1: split conflated flow.rs:214-220 anchor into set_initiator (208-212) and direction() (214-220) — fixes internal label inconsistency — product-owner 2026-05-22"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -86,7 +87,7 @@ first data packet; for SYN+ACK flows, the initiator is the DESTINATION of the SY
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- direction determination is required for correct bidirectional data delivery in TCP stream reassembly |
 | L2 Domain Invariants | INV-1 (FlowKey canonical ordering -- direction is orthogonal to canonical key ordering; a client can be either lower or upper endpoint) |
-| Architecture Module | SS-04 (reassembly/flow.rs:214-220, C-7) |
+| Architecture Module | SS-04 (reassembly/flow.rs:208-212 set_initiator, reassembly/flow.rs:214-220 direction(), C-7) |
 | Stories | STORY-013 |
 | Origin BC | BC-RAS-053 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -98,13 +99,14 @@ first data packet; for SYN+ACK flows, the initiator is the DESTINATION of the SY
 
 ## Architecture Anchors
 
-- `src/reassembly/flow.rs:214-220` -- direction() and set_initiator() implementations
+- `src/reassembly/flow.rs:208-212` -- set_initiator() implementation
+- `src/reassembly/flow.rs:214-220` -- direction() implementation
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/flow.rs:214-220` |
+| **Path** | `src/reassembly/flow.rs:214-220` (direction()); `src/reassembly/flow.rs:208-212` (set_initiator()) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
