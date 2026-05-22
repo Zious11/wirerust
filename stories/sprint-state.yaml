@@ -136,11 +136,14 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-012:
-    status: in_progress
+    status: done
     wave: 5
-    branch: feature/story-012-nontcp-stats
-    worktree: .worktrees/story-012
+    branch: null
+    worktree: null
     blocked_by: []
+    pr: 118
+    merge_commit: bbddac6
+    merged_date: "2026-05-22"
 
   # ---------------------------------------------------------------------------
   # Wave 6 — 1 story
