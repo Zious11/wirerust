@@ -906,7 +906,15 @@ fn test_BC_2_04_050_state_machine_all_transitions() {
             FlowState::Closing,
             "BC-2.04.050 row-6: first on_fin() from Established must → Closing"
         );
-        // fin_count = 1 verified indirectly via the Closing state transition.
+        // F-6: assert fin_count == 1 so the "fin_count becomes 1" row text is
+        // genuinely verified, not just narrated. A buggy implementation that
+        // never increments fin_count would still reach Closing if it used an
+        // independent boolean flag, but would fail this assertion.
+        assert_eq!(
+            flow.fin_count(),
+            1,
+            "BC-2.04.050 row-6: fin_count() must be 1 after the first on_fin() from Established"
+        );
     }
 
     // ---- Row 7: on_fin() (first) SynSent → Closing ----
@@ -919,6 +927,12 @@ fn test_BC_2_04_050_state_machine_all_transitions() {
             flow.state,
             FlowState::Closing,
             "BC-2.04.050 row-7: first on_fin() from SynSent must → Closing"
+        );
+        // F-6: assert fin_count == 1 — same rationale as row-6 above.
+        assert_eq!(
+            flow.fin_count(),
+            1,
+            "BC-2.04.050 row-7: fin_count() must be 1 after the first on_fin() from SynSent"
         );
     }
 
@@ -966,6 +980,53 @@ fn test_BC_2_04_050_state_machine_all_transitions() {
             flow.fin_count(),
             2,
             "BC-2.04.050 row-8b: fin_count() must be exactly 2 after two on_fin() calls"
+        );
+    }
+
+    // Row 8c: second FIN on a New flow — discriminates a buggy "state == Closing" guard.
+    //
+    // F-5: rows 8a and 8b both pass through Closing before the second FIN. A
+    // regressed guard like `if fin_count >= 2 && state == FlowState::Closing { Closed }`
+    // would pass both. This sub-case never reaches Closing: the first FIN leaves the
+    // flow in New (EC-009 — state stays New because the Closing guard covers only
+    // Established and SynSent), so the second FIN must fire the `fin_count >= 2` branch
+    // from New directly to Closed. A buggy state == Closing guard would fail here.
+    //
+    // References: BC-2.04.050 row-8 ("any → Closed"), EC-009.
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        assert_eq!(
+            flow.state,
+            FlowState::New,
+            "row-8c precondition: flow starts in New"
+        );
+        // First FIN: fin_count becomes 1; state stays New (EC-009 — no Closing guard for New).
+        flow.on_fin();
+        assert_eq!(
+            flow.state,
+            FlowState::New,
+            "BC-2.04.050 row-8c precondition: first on_fin() from New must leave state=New \
+             (EC-009: Closing guard only covers Established and SynSent)"
+        );
+        assert_eq!(
+            flow.fin_count(),
+            1,
+            "BC-2.04.050 row-8c precondition: fin_count() must be 1 after first on_fin() from New"
+        );
+        // Second FIN: fin_count becomes 2 → `if fin_count >= 2` must fire → Closed.
+        // A buggy `if fin_count >= 2 && state == FlowState::Closing` would NOT fire here
+        // (state is New, not Closing) and the flow would stay in New, failing this assertion.
+        flow.on_fin();
+        assert_eq!(
+            flow.state,
+            FlowState::Closed,
+            "BC-2.04.050 row-8c: second on_fin() from New (fin_count >= 2) must → Closed \
+             even though state was never Closing — discriminates a buggy 'state==Closing' guard"
+        );
+        assert_eq!(
+            flow.fin_count(),
+            2,
+            "BC-2.04.050 row-8c: fin_count() must be exactly 2 after two on_fin() calls on New flow"
         );
     }
 

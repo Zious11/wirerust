@@ -3662,6 +3662,110 @@ fn test_BC_2_04_053_engine_direction_tagging_in_flush_path() {
     );
 }
 
+/// F-2 engine-level test (BC-2.04.005 postcondition 1, EC-002, BC-2.04.053)
+///
+/// AC-005 / AC-007 / `test_BC_2_04_005_engine_syn_ack_establishes_flow` all fail to
+/// exercise the "SYN+ACK destination is the initiator" semantic against
+/// `apply_handshake_flags` in isolation. The existing flow-level tests call
+/// `flow.set_initiator(...)` manually, and the existing engine test processes a SYN
+/// first — setting `initiator=client` via the SYN branch — so a hypothetical regression
+/// in `apply_handshake_flags`'s SYN+ACK branch that swapped `packet.dst_ip` →
+/// `packet.src_ip` (mis-identifying the server as the initiator) would be masked by
+/// `set_initiator`'s idempotency.
+///
+/// This test closes the gap with a server-first capture: a SYN+ACK arrives with NO
+/// prior SYN. The engine must read `packet.dst_ip:tcp.dst_port` (the client endpoint)
+/// as the initiator — not `packet.src_ip:tcp.src_port` (the server endpoint). A
+/// subsequent client data packet must be tagged `Direction::ClientToServer`. If
+/// `apply_handshake_flags` incorrectly used `src_ip` instead of `dst_ip`, the
+/// initiator would be set to the server, and the client data packet would be tagged
+/// `Direction::ServerToClient` — failing the assertion.
+///
+/// References: BC-2.04.005 postcondition 1, EC-002, BC-2.04.053 direction-tagging.
+/// Phase 3 Wave 6 adversarial finding F-2.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_005_engine_syn_ack_without_prior_syn_dst_is_initiator_ec002() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    // server_ip:443 sends a SYN+ACK to client_ip:55000.
+    // No prior SYN has been processed — this is a server-first capture (EC-002).
+    let server = [2, 2, 2, 2];
+    let client = [1, 1, 1, 1];
+
+    // Step 1: SYN+ACK from server → client (no prior SYN).
+    // apply_handshake_flags must read packet.dst_ip:tcp.dst_port = client_ip:55000
+    // as the initiator. A regression swapping src/dst would set server_ip:443 as
+    // the initiator instead.
+    let syn_ack = make_tcp_packet(
+        server,
+        443,
+        client,
+        55000,
+        9000,
+        &[],
+        true, // syn
+        true, // ack
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 1, &mut handler);
+
+    // No data events yet — SYN+ACK carries no payload.
+    assert!(
+        handler.data_events.is_empty(),
+        "F-2 / BC-2.04.005 engine: SYN+ACK with no payload must not fire on_data"
+    );
+
+    // Step 2: client sends data toward the server.
+    // src = client_ip:55000 — this must match the initiator set in step 1.
+    // Expected direction: ClientToServer (initiator == client_ip:55000).
+    // Regression direction: ServerToClient (initiator mis-set to server_ip:443).
+    let client_data = make_tcp_packet(
+        client,
+        55000,
+        server,
+        443,
+        1001,
+        b"get-request",
+        false,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&client_data, 2, &mut handler);
+
+    // Step 3: assert the data event was tagged ClientToServer.
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "F-2 / BC-2.04.005 engine: client data packet must produce exactly one on_data event"
+    );
+    assert_eq!(
+        handler.data_events[0].1,
+        Direction::ClientToServer,
+        "F-2 / BC-2.04.005 post-1 / EC-002 / BC-2.04.053: client data (src=client_ip:55000) \
+         must be tagged ClientToServer — apply_handshake_flags must use packet.dst_ip:dst_port \
+         (client_ip:55000) as initiator, NOT packet.src_ip:src_port (server_ip:443). \
+         A regression swapping src/dst would yield ServerToClient here."
+    );
+    assert_eq!(
+        handler.data_events[0].2, b"get-request",
+        "F-2 / BC-2.04.005 engine: correct payload must be delivered"
+    );
+
+    // Confirm the flow was not marked partial — SYN+ACK constitutes a proper handshake
+    // marker (the engine detects it via the syn+ack flags).
+    assert_eq!(
+        reassembler.stats().flows_partial,
+        0,
+        "F-2 / BC-2.04.005 engine: SYN+ACK-first capture must not be counted as partial \
+         (the engine recognises the SYN+ACK flags and handles it via the handshake path)"
+    );
+}
+
 /// EC-007 / F-6 engine-level test (BC-2.04.051 invariant 2, postcondition 2)
 ///
 /// EC-007 states: "RST with payload | Payload NOT processed; PostHandshake::FlowClosed
