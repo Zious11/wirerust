@@ -91,6 +91,8 @@ jobs:
         run: cargo install cargo-fuzz --locked
       - name: Build fuzz harness (compile check only)
         run: cargo +nightly fuzz build fuzz_decode_packet
+      - name: Verify fuzz target is listed (positive coverage assertion)
+        run: cargo +nightly fuzz list | grep -qx fuzz_decode_packet
 
   # LESSON-P2.06: supply-chain scanning split into two complementary
   # jobs so a noisy advisory in one source does not block merges on
