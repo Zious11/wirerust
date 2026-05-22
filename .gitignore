@@ -1,2 +1,9 @@
 # Observability / dispatcher hook output — not factory artifacts.
 logs/
+
+# Demo evidence — recordings stay local-only, never committed.
+# Per user directive 2026-05-21: demo files (.gif, .webm, .tape,
+# evidence-report.md, demo-summary.md, etc.) must remain on disk
+# but must never be tracked in factory-artifacts.
+cycles/**/demos/
+cycles/*/*/demos/
