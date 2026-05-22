@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-013"
 epic_id: "E-2"
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -69,7 +69,7 @@ implementation_strategy: brownfield-formalization
 - After processing a SYN packet, `flow.state == FlowState::SynSent`.
 - **Test:** `test_BC_2_04_004_syn_transitions_to_synsent()`
 
-### AC-004 (traces to BC-2.04.004 invariant 1-2)
+### AC-004 (traces to BC-2.04.004 invariant 1-3)
 - A retransmitted SYN on the same flow does not change the stored initiator or ISN (both `set_initiator` and `set_isn` are idempotent).
 - **Test:** `test_BC_2_04_004_retransmitted_syn_is_idempotent()`
 
@@ -171,7 +171,7 @@ implementation_strategy: brownfield-formalization
 | This story spec | ~3,000 |
 | BC files (6 BCs) | ~6,000 |
 | src/reassembly/flow.rs (state machine section ~lines 208-259) | ~1,500 |
-| src/reassembly/mod.rs (apply_handshake_flags ~lines 257-289) | ~1,000 |
+| src/reassembly/mod.rs (apply_handshake_flags ~lines 248-290) | ~1,000 |
 | Test files | ~4,000 |
 | Tool outputs overhead | ~1,000 |
 | **Total** | **~16,500** |
@@ -216,7 +216,7 @@ implementation_strategy: brownfield-formalization
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/reassembly/flow.rs` | verify (lines 208-259) | on_syn, on_syn_ack, on_fin, on_rst, on_data_without_syn, direction |
-| `src/reassembly/mod.rs` | verify (lines 257-289) | apply_handshake_flags with SYN/SYN+ACK/RST/FIN blocks |
+| `src/reassembly/mod.rs` | verify (lines 248-290) | apply_handshake_flags with SYN/SYN+ACK/RST/FIN blocks |
 | `tests/reassembly_flow_tests.rs` | modify | Add AC-001 through AC-016 |
 | `tests/reassembly_engine_tests.rs` | modify | Add integration-level state transition tests |
 
@@ -225,3 +225,4 @@ implementation_strategy: brownfield-formalization
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
 | 1.2 | 2026-05-22 | story-writer | Wave 6 Ph3 implementer-confirm anchor correction: apply_handshake_flags mod.rs anchor 257-287 → full-function range 257-289 |
+| 1.3 | 2026-05-22 | story-writer | Wave 6 Ph3 pass-1 adversarial fixes: F-4 AC-004 trace widened to invariant 1-3 to match its test; F-5 apply_handshake_flags anchor corrected to full-function range 248-290 |
