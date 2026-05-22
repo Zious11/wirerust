@@ -150,11 +150,11 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-013:
-    status: blocked
+    status: pending
     wave: 6
     branch: null
     worktree: null
-    blocked_by: [STORY-012]
+    blocked_by: []
 
   # ---------------------------------------------------------------------------
   # Wave 7 — 1 story
