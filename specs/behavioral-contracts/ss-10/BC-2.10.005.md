@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 3 Ph3 pass-1 adversarial fix: m-1 correct technique_info line-anchor range to :122-156 (closing brace verified) in Architecture Anchors and Source Evidence — 2026-05-22 (product-owner)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -101,13 +102,13 @@ catalog includes 6 IDs currently emitted by analyzers and 9 staged IDs for futur
 ## Architecture Anchors
 
 - `src/mitre.rs:122` -- `pub fn technique_info(id: &str)` function declaration
-- `src/mitre.rs:123-155` -- static match table (T1027 at :125, T0885 at :152, `_ => return None` at :153)
+- `src/mitre.rs:123-156` -- static match table (T1027 at :125, T0885 at :152, `_ => return None` at :153, closing brace at :156)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/mitre.rs:122-155` |
+| **Path** | `src/mitre.rs:122-156` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

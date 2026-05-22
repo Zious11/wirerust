@@ -1,13 +1,13 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
 phase: 1a
 origin: brownfield
-extracted_from: src/mitre.rs
+extracted_from: "src/mitre.rs (catalog); emission-site evidence spans src/analyzer/tls.rs, src/analyzer/http.rs, src/reassembly/mod.rs, src/reassembly/lifecycle.rs"
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-10
 capability: CAP-10
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 3 Ph3 pass-1 adversarial fix: M-1 add missing T1036 emission site src/reassembly/lifecycle.rs:111; correct total to 10 sites across 4 files; n-3 broaden extracted_from note — 2026-05-22 (product-owner)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -33,6 +34,14 @@ Every technique ID that any analyzer or reassembly engine currently emits as
 T1046, T1083, T1499.002, T1505.003. No emitted ID may return None from the lookup --
 that would cause the terminal reporter to display `<id> (unknown)` for a Finding produced
 by the current analyzers.
+
+Emission sites verified via `grep -rn 'mitre_technique: Some' src/` (10 sites across 4 files):
+- `src/analyzer/tls.rs:443,463,483` — T1027 x3
+- `src/analyzer/http.rs:198` — T1083; `:228` — T1505.003; `:244` — T1046; `:423,482` — T1499.002 x2
+- `src/reassembly/mod.rs:442` — T1036
+- `src/reassembly/lifecycle.rs:111` — T1036
+
+The emitted-ID set remains 6 distinct IDs despite 10 emission sites (T1036 appears at 2 reassembly sites, T1027 at 3 TLS sites, T1499.002 at 2 HTTP sites).
 
 ## Preconditions
 
@@ -95,7 +104,11 @@ by the current analyzers.
 ## Architecture Anchors
 
 - `src/mitre.rs:123-154` -- technique_info match table covering all 6 emitted IDs
-- Emitted sites: `src/analyzer/tls.rs:443,463,483` (T1027 x3), `src/analyzer/http.rs:198,228,244,423,482` (T1083, T1505.003, T1046, T1499.002 x2), `src/reassembly/mod.rs:442` (T1036)
+- Emitted sites (10 total across 4 files, verified via grep):
+  - `src/analyzer/tls.rs:443` (T1027), `src/analyzer/tls.rs:463` (T1027), `src/analyzer/tls.rs:483` (T1027)
+  - `src/analyzer/http.rs:198` (T1083), `src/analyzer/http.rs:228` (T1505.003), `src/analyzer/http.rs:244` (T1046), `src/analyzer/http.rs:423` (T1499.002), `src/analyzer/http.rs:482` (T1499.002)
+  - `src/reassembly/mod.rs:442` (T1036)
+  - `src/reassembly/lifecycle.rs:111` (T1036)
 
 ## Source Evidence
 
