@@ -3661,3 +3661,123 @@ fn test_BC_2_04_053_engine_direction_tagging_in_flush_path() {
         "BC-2.04.053 engine: server data must be tagged ServerToClient"
     );
 }
+
+/// EC-007 / F-6 engine-level test (BC-2.04.051 invariant 2, postcondition 2)
+///
+/// EC-007 states: "RST with payload | Payload NOT processed; PostHandshake::FlowClosed
+/// returned." The flow-level test (`test_BC_2_04_051_ec007_rst_closes_flow_state`)
+/// only confirms `state == Closed`. This test exercises the engine-level claim that
+/// the RST payload is NOT delivered to the handler and NOT inserted into the segment
+/// buffer.
+///
+/// Assertions:
+///   (a) flow state is Closed after the RST packet (via flows_rst counter, since the
+///       flow is removed immediately — CloseReason::Rst).
+///   (b) `stats.flows_rst` incremented by exactly 1.
+///   (c) the RST payload was NOT processed: handler.on_data was NOT called for
+///       the RST packet's payload bytes, and `stats.segments_inserted` did not
+///       increment for the RST packet.
+///
+/// References: EC-007, BC-2.04.051 invariant 2, postcondition 2.
+/// Phase 3 Wave 6 adversarial finding F-6.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_051_ec007_rst_with_payload_does_not_process_payload() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish the flow with a full handshake so it is in Established state.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // Capture segments_inserted baseline after handshake (no payload yet).
+    let segments_before_rst = reassembler.stats().segments_inserted;
+    assert_eq!(
+        segments_before_rst, 0,
+        "EC-007 precondition: no data segments inserted during handshake"
+    );
+    assert!(
+        handler.data_events.is_empty(),
+        "EC-007 precondition: no on_data callbacks during handshake"
+    );
+
+    // Send a RST packet WITH a non-empty payload from the server.
+    // BC-2.04.051 invariant 2: the engine must return PostHandshake::FlowClosed
+    // before reaching payload processing — the payload bytes must be suppressed.
+    let rst_with_payload = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2001,
+        b"malicious-rst-payload",
+        false,
+        false,
+        false,
+        true, // rst = true
+    );
+    reassembler.process_packet(&rst_with_payload, 3, &mut handler);
+
+    // (a) Flow closed via RST: CloseReason::Rst must be emitted.
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "EC-007: exactly one on_flow_close event must be emitted for the RST"
+    );
+    assert_eq!(
+        handler.close_events[0].1,
+        CloseReason::Rst,
+        "EC-007: close reason must be Rst"
+    );
+
+    // (b) flows_rst incremented by 1.
+    assert_eq!(
+        reassembler.stats().flows_rst,
+        1,
+        "EC-007: flows_rst must be exactly 1 after a single RST packet"
+    );
+
+    // (c) RST payload NOT processed — on_data must NOT have been called for the payload.
+    assert!(
+        handler.data_events.is_empty(),
+        "EC-007: BC-2.04.051 invariant 2: on_data must NOT be called for a RST packet's \
+         payload — PostHandshake::FlowClosed is returned before payload processing"
+    );
+
+    // (c) segments_inserted must not have changed — payload was not inserted.
+    assert_eq!(
+        reassembler.stats().segments_inserted,
+        segments_before_rst,
+        "EC-007: BC-2.04.051 postcondition 2: segments_inserted must not increment \
+         for a RST packet — payload suppression confirmed via stats counter"
+    );
+}

@@ -923,6 +923,12 @@ fn test_BC_2_04_050_state_machine_all_transitions() {
     }
 
     // ---- Row 8: on_fin() (second, fin_count >= 2) any → Closed ----
+    // BC-2.04.050 claims "any state" for the second FIN. We exercise the
+    // path from at least two distinct prior states so the "any" claim is
+    // not just asserted but verified. fin_count() is now observable, so
+    // we confirm fin_count == 2 in each sub-case (not merely narrated).
+
+    // Row 8a: second FIN from Closing (canonical path — Established → Closing → Closed).
     {
         let mut flow = TcpFlow::new(key.clone(), 0);
         flow.on_syn_ack(); // New → Established
@@ -932,7 +938,34 @@ fn test_BC_2_04_050_state_machine_all_transitions() {
         assert_eq!(
             flow.state,
             FlowState::Closed,
-            "BC-2.04.050 row-8: second on_fin() (fin_count >= 2) must → Closed"
+            "BC-2.04.050 row-8a: second on_fin() from Closing (fin_count >= 2) must → Closed"
+        );
+        assert_eq!(
+            flow.fin_count(),
+            2,
+            "BC-2.04.050 row-8a: fin_count() must be exactly 2 after two on_fin() calls"
+        );
+    }
+
+    // Row 8b: second FIN from SynSent (FIN arrives before full handshake — "any" coverage).
+    // First FIN on SynSent → Closing (row-7 path); second FIN → Closed.
+    {
+        let mut flow = TcpFlow::new(key.clone(), 0);
+        flow.on_syn(); // New → SynSent
+        assert_eq!(flow.state, FlowState::SynSent);
+        flow.on_fin(); // SynSent → Closing; fin_count=1
+        assert_eq!(flow.state, FlowState::Closing);
+        flow.on_fin(); // fin_count=2 → Closed
+        assert_eq!(
+            flow.state,
+            FlowState::Closed,
+            "BC-2.04.050 row-8b: second on_fin() from Closing (prior SynSent path) \
+             must → Closed — exercises 'any state' claim with SynSent as origin"
+        );
+        assert_eq!(
+            flow.fin_count(),
+            2,
+            "BC-2.04.050 row-8b: fin_count() must be exactly 2 after two on_fin() calls"
         );
     }
 
@@ -1017,38 +1050,41 @@ fn test_BC_2_04_050_on_syn_no_op_when_not_new() {
 
 /// AC-010 (BC-2.04.050 invariant 4)
 /// Invariant: fin_count uses saturating_add(1) to prevent u8 overflow at 255.
-/// After 255 on_fin() calls, fin_count stays at 255 (not wrapping to 0).
+/// After 256 on_fin() calls, fin_count() must return 255 — not 0 (wrapping_add
+/// regression) and not a panic (plain `+` overflow-checks regression).
+///
+/// Discrimination:
+/// - saturating_add: fin_count() == 255 after 256 calls  ← correct
+/// - wrapping_add:   fin_count() == 0  after 256 calls   ← would fail assertion
+/// - plain `+`:      panic under dev-profile overflow-checks ← would fail test
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_050_fin_count_saturates_at_255() {
     let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
     let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
     // Use a flow where state transitions to Established first, then drive fin_count high.
-    // After fin_count >= 2, state=Closed; on_fin() still increments fin_count.
+    // After fin_count >= 2, state=Closed; on_fin() continues to increment (saturating).
     let mut flow = TcpFlow::new(FlowKey::new(ip_a, 1000, ip_b, 80), 0);
     flow.on_syn_ack(); // New → Established
 
-    // Call on_fin() 255 times — fin_count must saturate at 255, not wrap.
-    for _ in 0..255u32 {
+    // Call on_fin() 256 times — fin_count must saturate at u8::MAX (255), not wrap.
+    for _ in 0..256u32 {
         flow.on_fin();
     }
 
-    // Access fin_count via public field (it's private — test via the state behavior).
-    // We can infer saturation: if it wrapped, fin_count would be 255 - 256 = 255 at
-    // first wrap but then continue. The key invariant is that after u8::MAX calls
-    // the program does not panic and state is Closed (from fin_count >= 2 early on).
+    // BC-2.04.050 inv-4: fin_count() must be exactly 255 (saturated at u8::MAX).
+    // A wrapping_add regression would yield 0; a plain-`+` regression would panic.
+    assert_eq!(
+        flow.fin_count(),
+        255,
+        "BC-2.04.050 inv-4: fin_count() must be 255 after 256 on_fin() calls \
+         (saturating_add at u8::MAX — wrapping_add would give 0)"
+    );
+    // State must also be Closed (fin_count >= 2 triggered early).
     assert_eq!(
         flow.state,
         FlowState::Closed,
         "BC-2.04.050 inv-4: state must be Closed after many on_fin() calls"
-    );
-
-    // One more call must not panic (saturating_add keeps it at 255, not overflow).
-    flow.on_fin(); // must not panic
-    assert_eq!(
-        flow.state,
-        FlowState::Closed,
-        "BC-2.04.050 inv-4: 256th on_fin() call must not panic (saturating_add at u8::MAX)"
     );
 }
 
@@ -1472,6 +1508,10 @@ fn test_BC_2_04_051_ec007_rst_closes_flow_state() {
 /// EC-008 (BC-2.04.050 edge case — both FINs from same direction / retransmit)
 /// fin_count reaches 2 via two on_fin() calls (both from same direction, i.e.,
 /// a retransmit); fin_count >= 2 → state transitions to Closed.
+///
+/// With the fin_count() accessor now available, fin_count == 2 is explicitly
+/// asserted (previously it was only narrated in this comment). This makes the
+/// "fin_count = 2" claim verifiable, not just descriptive.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_050_ec008_both_fins_same_direction_closes_flow() {
@@ -1481,16 +1521,27 @@ fn test_BC_2_04_050_ec008_both_fins_same_direction_closes_flow() {
 
     flow.on_syn_ack(); // New → Established
 
-    // First FIN from client direction.
-    flow.on_fin(); // Established → Closing; fin_count=1
+    // First FIN from client direction: fin_count = 1, state → Closing.
+    flow.on_fin();
     assert_eq!(flow.state, FlowState::Closing);
+    assert_eq!(
+        flow.fin_count(),
+        1,
+        "EC-008: fin_count() must be 1 after the first on_fin() call"
+    );
 
-    // Second FIN from same direction (retransmit): fin_count → 2 → Closed.
+    // Second FIN from same direction (retransmit): fin_count = 2 → Closed.
     flow.on_fin();
     assert_eq!(
         flow.state,
         FlowState::Closed,
         "EC-008: second on_fin() (fin_count >= 2) must → Closed even from same direction"
+    );
+    assert_eq!(
+        flow.fin_count(),
+        2,
+        "EC-008: fin_count() must be exactly 2 after two on_fin() calls — \
+         confirms the 'fin_count = 2' claim is verifiable, not just narrated"
     );
 }
 
