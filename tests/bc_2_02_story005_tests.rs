@@ -168,6 +168,13 @@ const TCP_ALL_FOUR: u8 = TCP_FIN | TCP_SYN | TCP_RST | TCP_ACK;
 ///
 /// Uses three different payload sizes to cover the invariant beyond a single case.
 /// This exercises the strict parse path (well-formed frames, no snaplen truncation).
+///
+/// Also includes a variable-header-size sub-case (IPv4 IHL=6, 24-byte IPv4 header)
+/// that exercises BC-2.02.014 invariant 1 ("never a header-dependent partial length"):
+/// a decoder bug that computed `packet_len = data.len() - variable_header_len` instead
+/// of `data.len()` would pass the fixed-54-byte-header cases but fail here. The
+/// non-standard 24-byte IPv4 header (IHL=6 = 20 base + 4 NOP option bytes) shifts the
+/// total header to 14+24+20 = 58 bytes, breaking any header-offset-dependent formula.
 #[test]
 fn test_BC_2_02_014_packet_len_equals_data_len() {
     // BC-2.02.014 canonical test vectors: 0-byte, 10-byte, 100-byte payloads
@@ -198,6 +205,86 @@ fn test_BC_2_02_014_packet_len_equals_data_len() {
             parsed.packet_len, expected_len,
             "AC-001: packet_len ({}) must equal data.len() ({}) for {label}",
             parsed.packet_len, expected_len
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Variable-header-size sub-case: IPv4 IHL=6 (24-byte IPv4 header).
+    //
+    // Exercises BC-2.02.014 invariant 1 ("never a header-dependent partial
+    // length"). A buggy decoder computing `packet_len = data.len() -
+    // variable_header_len` (where variable_header_len adapts to IHL) would
+    // yield 40 (the payload length), not 98 (data.len()). This sub-case
+    // catches that class of bug, which the fixed-54-byte-header cases above
+    // cannot detect.
+    //
+    // Frame layout:
+    //   Ethernet header      : 14 bytes
+    //   IPv4 header (IHL=6)  : 24 bytes (20 base + 4 NOP option bytes)
+    //   TCP header           : 20 bytes  (data-offset=5)
+    //   Payload              : 40 bytes
+    //   Total                : 98 bytes
+    //
+    // IPv4 options: 3× NOP (0x01) + End-of-options (0x00) = 4 bytes.
+    // IPv4 total_length = 24 + 20 + 40 = 84.
+    // -----------------------------------------------------------------------
+    {
+        let tcp_payload = [0xCC; 40];
+        let ip_options = [0x01u8, 0x01, 0x01, 0x00]; // NOP, NOP, NOP, End-of-options
+        let ip_header_len: usize = 20 + ip_options.len(); // 24 bytes
+        let ip_total: u16 = (ip_header_len + 20 + tcp_payload.len()) as u16; // 84
+
+        let mut frame = Vec::new();
+
+        // Ethernet II header (14 bytes)
+        frame.extend_from_slice(&[0xff, 0xff, 0xff, 0xff, 0xff, 0xff]); // dst MAC
+        frame.extend_from_slice(&[0x00, 0x11, 0x22, 0x33, 0x44, 0x55]); // src MAC
+        frame.extend_from_slice(&[0x08, 0x00]); // EtherType: IPv4
+
+        // IPv4 header (24 bytes: IHL=6 → first nibble of first byte = 0x46)
+        frame.push(0x46); // version=4, IHL=6 (24 bytes)
+        frame.push(0x00); // DSCP/ECN
+        frame.extend_from_slice(&ip_total.to_be_bytes()); // total length = 84
+        frame.extend_from_slice(&[0x00, 0x01]); // identification
+        frame.extend_from_slice(&[0x00, 0x00]); // flags / fragment offset
+        frame.push(0x40); // TTL = 64
+        frame.push(0x06); // protocol = TCP
+        frame.extend_from_slice(&[0x00, 0x00]); // checksum (zero; etherparse does not verify)
+        frame.extend_from_slice(&[192u8, 168, 1, 10]); // source IP
+        frame.extend_from_slice(&[10u8, 0, 0, 1]); // destination IP
+        frame.extend_from_slice(&ip_options); // 4 bytes of IPv4 options (NOP×3 + EOL)
+
+        // TCP header (20 bytes, data-offset=5)
+        frame.extend_from_slice(&12345u16.to_be_bytes()); // src port
+        frame.extend_from_slice(&80u16.to_be_bytes()); // dst port
+        frame.extend_from_slice(&1u32.to_be_bytes()); // sequence number
+        frame.extend_from_slice(&0u32.to_be_bytes()); // acknowledgement number
+        frame.push(0x50); // data offset = 5, reserved = 0
+        frame.push(TCP_ACK); // flags
+        frame.extend_from_slice(&[0xff, 0xff]); // window size
+        frame.extend_from_slice(&[0x00, 0x00]); // checksum
+        frame.extend_from_slice(&[0x00, 0x00]); // urgent pointer
+
+        // Payload (40 bytes)
+        frame.extend_from_slice(&tcp_payload);
+
+        let expected_len = frame.len(); // must be 98
+
+        let parsed = decode_packet(&frame, DataLink::ETHERNET).unwrap_or_else(|e| {
+            panic!(
+                "AC-001 variable-header sub-case: IPv4-with-options frame (IHL=6, {expected_len} bytes) \
+                 must decode successfully, but got: {e}"
+            )
+        });
+
+        // BC-2.02.014 postcondition 1 + invariant 1: packet_len == data.len() == 98,
+        // not 40 (payload length) nor 84 (ip_total) nor any header-derived partial value.
+        assert_eq!(
+            parsed.packet_len, expected_len,
+            "AC-001 variable-header sub-case: packet_len ({}) must equal data.len() ({expected_len}) \
+             for an IPv4-with-options frame — any header-offset-dependent bug would yield a \
+             different value (e.g. 40 for payload-length or 84 for ip_total)",
+            parsed.packet_len
         );
     }
 }
