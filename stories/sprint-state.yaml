@@ -9,7 +9,7 @@ version: "1.0"
 produced_by: story-writer
 timestamp: 2026-05-21T00:00:00Z
 cycle: v0.1.0-greenfield-spec
-current_wave: 5
+current_wave: 6
 total_stories: 48
 total_waves: 27
 
@@ -150,10 +150,10 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-013:
-    status: pending
+    status: in_progress
     wave: 6
-    branch: null
-    worktree: null
+    branch: feature/story-013-handshake-state-machine
+    worktree: .worktrees/story-013
     blocked_by: []
 
   # ---------------------------------------------------------------------------

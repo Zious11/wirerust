@@ -17,8 +17,8 @@ wave_4_closed: "2026-05-22"
 wave_5_closed: "2026-05-22"
 wave_5_status: closed
 wave_5_wave_level_convergence: "3/3 clean fresh-context passes (all VERDICT: CLEAN; only 2 non-blocking cosmetic Nits)"
-wave_6_status: ready_to_dispatch
-current_wave: 5
+wave_6_status: in_progress
+current_wave: 6
 stories_delivered: 12
 dtu_required: false
 dtu_assessment: 2026-05-20
@@ -39,8 +39,9 @@ phase_2_input_hash_drift_check_total: 153
 
 **Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-5 all CLOSED/CONVERGED.
 12 stories delivered across Waves 1-5 (STORY-001/069/002/003/004/070/071/005/011/066/012).
-Wave 5 (STORY-012) wave-level adversarial convergence COMPLETE — 3/3 clean fresh-context passes.
-Wave 5 CLOSED 2026-05-22. Wave 6 (STORY-013) READY TO DISPATCH.
+Wave 5 CLOSED 2026-05-22. Wave 6 (STORY-013) IN PROGRESS.
+STORY-013: TCP three-way handshake state machine + direction tagging (BCs BC-2.04.004/005/050/051/052/053).
+brownfield-formalization, tdd_mode strict, dispatched from develop@bbddac6.
 develop HEAD: bbddac6 (PR #118 — STORY-012 merged 2026-05-22; 415 tests green).
 
 **Mode:** brownfield (in-repo: target == reference).
@@ -59,7 +60,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-5 CLOSED/CONVERGED; 12 stories delivered; Wave 6 (STORY-013) READY TO DISPATCH | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-5 CLOSED/CONVERGED; 12 stories delivered; Wave 6 (STORY-013) IN PROGRESS | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -74,18 +75,18 @@ dependency bumping for it).
 | 3 | STORY-071, STORY-005 | CLOSED/CONVERGED | f0b5007 | CI hotfix #112; chore #115 |
 | 4 | STORY-011, STORY-066 | CLOSED/CONVERGED | f628c33 | 394 tests |
 | 5 | STORY-012 | **CLOSED/CONVERGED** | bbddac6 | 415 tests; 3/3 clean wave-level passes |
-| 6 | STORY-013 | **READY TO DISPATCH** | — | STORY-013 unblocked; sprint-state.yaml updated |
+| 6 | STORY-013 | **IN PROGRESS** | bbddac6 | brownfield-formalization; tdd_mode strict; BCs BC-2.04.004/005/050/051/052/053; branch feature/story-013-handshake-state-machine; worktree .worktrees/story-013 |
 | 7–27 | (remaining) | NOT STARTED | — | — |
 
 ## Phase 3 — Current Phase Steps (last 5)
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Wave 5 — STORY-012 per-story convergence | **COMPLETE** 2026-05-22 | 3/3 CLEAN fresh-context (10 total passes); 21 BC tests; brownfield |
 | Wave 5 — STORY-012 delivery (PR #118) | **COMPLETE** 2026-05-22 | squash-merged → bbddac6; CI run 26312928311 all 6 jobs green |
 | Wave 5 — wave-level adversarial convergence | **COMPLETE** 2026-05-22 | 3/3 clean fresh-context passes; 2 cosmetic Nits only (non-blocking) |
 | Wave-gate — Wave 5 | **CLOSED** 2026-05-22 | develop HEAD bbddac6; 12 stories total Waves 1-5; sprint-state STORY-013 → pending |
-| Wave 6 dispatch | **READY** | STORY-013 status=pending; blocked_by=[]; awaiting orchestrator dispatch |
+| Wave 6 dispatch — STORY-013 | **DISPATCHED** 2026-05-22 | status in_progress; branch feature/story-013-handshake-state-machine; worktree .worktrees/story-013; develop@bbddac6 |
+| Wave 6 — STORY-013 implementation | **IN PROGRESS** | TCP three-way handshake state machine + direction tagging; BCs BC-2.04.004/005/050/051/052/053; brownfield-formalization; tdd_mode strict |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -103,25 +104,20 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-22 — Wave 5 CLOSED, Wave 6 READY)
+## Session Resume Checkpoint (2026-05-22 — Wave 6 IN PROGRESS)
 
 1. Waves 1-5 all CLOSED/CONVERGED — 12 stories delivered.
    STORY-001/069/002/003/004/070/071/005/011/066/012 all merged to develop.
-2. Wave 5 STORY-012 DELIVERED: PR #118 squash-merged → bbddac6 (2026-05-22). 21 BC tests
-   (13 AC + 8 EC) in tests/reassembly_engine_tests.rs formalizing BC-2.04.002/028/030
-   (non-TCP filter, AnalysisSummary, bytes_reassembled); brownfield, no src changes;
-   per-story convergence 3/3 CLEAN (10 total passes); CI run 26312928311 all 6 jobs green.
-   Branch feature/story-012-nontcp-stats deleted; worktree removed. develop HEAD: bbddac6.
-   415 tests; clippy clean; fmt clean.
-3. Wave 5 wave-level convergence COMPLETE: 3/3 clean fresh-context passes (all VERDICT: CLEAN;
-   2 cosmetic Nits only — redundant inner use in 3 STORY-012 helpers + stale "EC-005" label
-   in test_ec_004; both in tests/reassembly_engine_tests.rs; no behavior/CI impact).
-   Wave 5 CLOSED/CONVERGED 2026-05-22. Wave 5 wave-gate PASSED.
-4. STORY-013 unblocked: sprint-state.yaml status=pending; blocked_by=[].
-5. Process-gap items W3.1/W3.2/W4.1 remain open (no GitHub issues until research-agent
+2. Wave 5 STORY-012 DELIVERED: PR #118 squash-merged → bbddac6 (2026-05-22). 21 BC tests;
+   wave-level convergence 3/3 CLEAN. Wave 5 CLOSED/CONVERGED. develop HEAD: bbddac6. 415 tests.
+3. Wave 6 DISPATCHED 2026-05-22: STORY-013 — TCP three-way handshake state machine +
+   direction tagging. BCs: BC-2.04.004/005/050/051/052/053. brownfield-formalization,
+   tdd_mode strict, dispatched from develop@bbddac6.
+   Branch: feature/story-013-handshake-state-machine. Worktree: .worktrees/story-013.
+   sprint-state.yaml: current_wave=6, STORY-013 status=in_progress.
+4. Process-gap items W3.1/W3.2/W4.1 remain open (no GitHub issues until research-agent
    validates per DF-VALIDATION-001). W3.2 confirmed recurring across Waves 3+4+5.
-6. NEXT: Dispatch Wave 6 (STORY-013). Follow standard wave procedure:
-   per-story convergence → deliver → wave-level convergence → wave-gate.
+5. NEXT: STORY-013 per-story convergence → deliver → wave-level convergence → wave-gate.
 
 ## Decisions Log
 
