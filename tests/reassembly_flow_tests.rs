@@ -117,41 +117,83 @@ fn test_flow_direction_new() {
 
 /// AC-008 (BC-2.04.003 postcondition 1)
 /// Postcondition: FlowKey::new stores the endpoint where (ip, port) <=
-/// (other_ip, other_port) as (lower_ip, lower_port) using tuple-pair
-/// comparison.
+/// (other_ip, other_port) as (lower_ip, lower_port) using TUPLE-PAIR
+/// comparison (BC-2.04.003 invariant 1).
 ///
-/// Canonical test vector (BC-2.04.003 §Canonical Test Vectors row 1):
+/// Two vectors are exercised:
+///
+/// Vector 1 — canonical (BC-2.04.003 §Canonical Test Vectors row 1):
 /// new(1.1.1.1, 5000, 2.2.2.2, 80) →
 /// FlowKey { lower: (1.1.1.1, 5000), upper: (2.2.2.2, 80) }
+/// IPs differ so both tuple-pair and per-field agree here.
 ///
-/// (1.1.1.1, 5000) < (2.2.2.2, 80) because 1.1.1.1 < 2.2.2.2 as IPv4 addresses.
+/// Vector 2 — field-crossing discriminator:
+/// new(2.2.2.2, 80, 1.1.1.1, 5000) — IP order and port order cross:
+///
+/// - 1.1.1.1 < 2.2.2.2 (lower IP is 1.1.1.1)
+/// - 80 < 5000         (lower port by value is 80)
+///
+/// Tuple-pair: (1.1.1.1, 5000) < (2.2.2.2, 80) → lower = (1.1.1.1, 5000),
+/// lower_port = 5000.
+///
+/// A buggy per-field sort would yield lower_ip=1.1.1.1, lower_port=80
+/// (fabricating an endpoint that exists in neither input).
+/// Asserting lower_port == 5000 (NOT 80) is the discriminating claim.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_003_lower_endpoint_stored_correctly() {
     let ip_a = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
     let ip_b = IpAddr::V4(Ipv4Addr::new(2, 2, 2, 2));
 
-    let key = FlowKey::new(ip_a, 5000, ip_b, 80);
-
+    // Vector 1: canonical BC test vector — IPs alone determine ordering.
+    let key_v1 = FlowKey::new(ip_a, 5000, ip_b, 80);
     assert_eq!(
-        key.lower_ip(),
+        key_v1.lower_ip(),
         ip_a,
         "lower_ip must be the smaller IP (1.1.1.1 < 2.2.2.2)"
     );
     assert_eq!(
-        key.lower_port(),
+        key_v1.lower_port(),
         5000,
-        "lower_port must be paired with lower_ip (tuple-pair comparison)"
+        "lower_port must be paired with lower_ip via tuple-pair comparison"
     );
     assert_eq!(
-        key.upper_ip(),
+        key_v1.upper_ip(),
         ip_b,
         "upper_ip must be the larger IP (2.2.2.2)"
     );
     assert_eq!(
-        key.upper_port(),
+        key_v1.upper_port(),
         80,
-        "upper_port must be paired with upper_ip (tuple-pair comparison)"
+        "upper_port must be paired with upper_ip via tuple-pair comparison"
+    );
+
+    // Vector 2: field-crossing discriminator — IP order and port order cross.
+    // Endpoint A = (2.2.2.2, 80), Endpoint B = (1.1.1.1, 5000).
+    // Tuple-pair: (1.1.1.1, 5000) < (2.2.2.2, 80) → lower = (1.1.1.1, 5000).
+    // Per-field (buggy): lower_ip=1.1.1.1, lower_port=80 — fabricated endpoint.
+    // Asserting lower_port == 5000 discriminates tuple-pair from per-field sort.
+    let key_v2 = FlowKey::new(ip_b, 80, ip_a, 5000);
+    assert_eq!(
+        key_v2.lower_ip(),
+        ip_a,
+        "field-crossing: tuple-pair places 1.1.1.1 as lower_ip"
+    );
+    assert_eq!(
+        key_v2.lower_port(),
+        5000,
+        "field-crossing: lower_port must be 5000 (paired with 1.1.1.1), NOT 80 — \
+         a per-field sort would wrongly yield 80 here"
+    );
+    assert_eq!(
+        key_v2.upper_ip(),
+        ip_b,
+        "field-crossing: tuple-pair places 2.2.2.2 as upper_ip"
+    );
+    assert_eq!(
+        key_v2.upper_port(),
+        80,
+        "field-crossing: upper_port must be 80 (paired with 2.2.2.2)"
     );
 }
 
@@ -188,47 +230,94 @@ fn test_BC_2_04_003_flow_key_is_commutative() {
 /// Invariant: ordering is TUPLE-PAIR comparison (ip_a, port_a) <=
 /// (ip_b, port_b), NOT independent per-field sorting.
 ///
-/// The distinguishing case is identical IPs with different ports — independent
-/// per-field sorting would sort by IP (tie) then by port (same result as tuple
-/// comparison in this degenerate case), but for clarity we also test a case
-/// where ports are in the "opposite" order from what independent sorting would
-/// predict if it sorted ports separately: same IP, port_a=55000, port_b=443.
-/// Under independent sorting, IP tie → sort by port → 443 < 55000, so 443 is
-/// lower. Under tuple-pair: (ip, 55000) vs (ip, 443): 443 < 55000, so the
-/// 443 side is lower. Both orderings agree here, so the real distinguishing
-/// test is the canonical test vector from the BC.
+/// AC-010's stated criterion requires "a case that distinguishes the two
+/// orderings." The discriminating vector is one where the IP order and the
+/// port order cross:
 ///
-/// Canonical test vector (BC-2.04.003 §Canonical Test Vectors rows 3–4):
-/// new(1.1.1.1, 443, 1.1.1.1, 55000) → lower_port=443, upper_port=55000.
-/// new(1.1.1.1, 55000, 1.1.1.1, 443) → same key (commutativity + tuple ordering).
+///   Endpoint A = (2.2.2.2, 80)   — larger IP, smaller port
+///   Endpoint B = (1.1.1.1, 5000) — smaller IP, larger port
+///
+/// Tuple-pair comparison:
+///   (1.1.1.1, 5000) < (2.2.2.2, 80) because 1.1.1.1 < 2.2.2.2
+///   → lower = (1.1.1.1, 5000), lower_port = 5000
+///
+/// A buggy per-field sort (sort IPs independently, sort ports independently):
+///   lower_ip = min(2.2.2.2, 1.1.1.1) = 1.1.1.1
+///   lower_port = min(80, 5000) = 80
+///   → fabricated endpoint (1.1.1.1, 80), which exists in NEITHER input
+///   → lower_port would be 80, not 5000
+///
+/// Asserting lower_port == 5000 (not 80) genuinely fails against a
+/// per-field-sort implementation while passing against the correct
+/// tuple-pair implementation (BC-2.04.003 invariant 1).
+///
+/// A same-IP case (BC-2.04.003 §Canonical Test Vectors rows 3–4) is also
+/// retained for completeness; that case does not discriminate the orderings
+/// on its own but is a valid canonical vector.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_003_tuple_pair_ordering_not_independent_field() {
-    let ip = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
+    let ip_lo = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1)); // smaller IP
+    let ip_hi = IpAddr::V4(Ipv4Addr::new(2, 2, 2, 2)); // larger IP
 
-    // Tuple-pair: (ip, 443) < (ip, 55000) → 443 is lower.
-    let key1 = FlowKey::new(ip, 443, ip, 55000);
-    assert_eq!(key1.lower_ip(), ip);
+    // ---- Discriminating field-crossing vector (AC-010 requirement) ----
+    // Endpoint A = (2.2.2.2, 80): larger IP, smaller port.
+    // Endpoint B = (1.1.1.1, 5000): smaller IP, larger port.
+    // Tuple-pair: (1.1.1.1, 5000) < (2.2.2.2, 80) → lower = (1.1.1.1, 5000).
+    let key_cross = FlowKey::new(ip_hi, 80, ip_lo, 5000);
     assert_eq!(
-        key1.lower_port(),
-        443,
-        "tuple-pair ordering: lower port (443) wins"
+        key_cross.lower_ip(),
+        ip_lo,
+        "field-crossing: tuple-pair places 1.1.1.1 as lower_ip (IP ordering wins)"
     );
-    assert_eq!(key1.upper_ip(), ip);
-    assert_eq!(key1.upper_port(), 55000);
-
-    // Same key from the reversed argument order (commutativity check).
-    let key2 = FlowKey::new(ip, 55000, ip, 443);
     assert_eq!(
-        key1, key2,
+        key_cross.lower_port(),
+        5000,
+        "field-crossing: lower_port must be 5000 (paired with 1.1.1.1) — \
+         a per-field sort would wrongly yield 80 here, distinguishing the two orderings"
+    );
+    assert_eq!(
+        key_cross.upper_ip(),
+        ip_hi,
+        "field-crossing: 2.2.2.2 is the upper endpoint"
+    );
+    assert_eq!(
+        key_cross.upper_port(),
+        80,
+        "field-crossing: upper_port must be 80 (paired with 2.2.2.2)"
+    );
+
+    // Commutativity: reversed argument order must produce the identical key.
+    let key_cross_rev = FlowKey::new(ip_lo, 5000, ip_hi, 80);
+    assert_eq!(
+        key_cross, key_cross_rev,
+        "field-crossing vector must be commutative"
+    );
+
+    // ---- Same-IP canonical vector (BC-2.04.003 §Canonical Test Vectors rows 3–4) ----
+    // Retained as a canonical BC vector; does not on its own discriminate orderings.
+    let ip = IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1));
+    let key_same_ip = FlowKey::new(ip, 443, ip, 55000);
+    assert_eq!(key_same_ip.lower_ip(), ip);
+    assert_eq!(
+        key_same_ip.lower_port(),
+        443,
+        "same-IP: tuple-pair ordering — lower port (443) wins"
+    );
+    assert_eq!(key_same_ip.upper_ip(), ip);
+    assert_eq!(key_same_ip.upper_port(), 55000);
+
+    let key_same_ip_rev = FlowKey::new(ip, 55000, ip, 443);
+    assert_eq!(
+        key_same_ip, key_same_ip_rev,
         "same-IP different-port keys must be commutative"
     );
     assert_eq!(
-        key2.lower_port(),
+        key_same_ip_rev.lower_port(),
         443,
-        "reversed input must produce same canonical ordering"
+        "same-IP reversed: must produce same canonical ordering"
     );
-    assert_eq!(key2.upper_port(), 55000);
+    assert_eq!(key_same_ip_rev.upper_port(), 55000);
 }
 
 /// AC-011 (BC-2.04.049 postcondition 1)
