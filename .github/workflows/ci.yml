@@ -88,7 +88,11 @@ jobs:
           # pollute the stable-toolchain cache shared by test/clippy/fmt.
           key: fuzz-nightly
       - name: Install cargo-fuzz
-        run: cargo install cargo-fuzz --locked
+        # Drop --locked: cargo-fuzz 0.13.1's transitive dep rustix 0.36.5
+        # uses rustc_layout_scalar_valid_range_start which was removed from
+        # current nightly. Without --locked cargo resolves a newer compatible
+        # rustix automatically against the current nightly toolchain.
+        run: cargo install cargo-fuzz
       - name: Build fuzz harness (compile check only)
         run: cargo +nightly fuzz build fuzz_decode_packet
       - name: Verify fuzz target is listed (positive coverage assertion)
