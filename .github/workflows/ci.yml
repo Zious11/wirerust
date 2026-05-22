@@ -124,13 +124,36 @@ jobs:
     # Advisory database may surface new findings between code changes,
     # so this job is informational on PRs (continue-on-error: true)
     # and run on a schedule against develop to catch zero-days.
+    #
+    # Implementation note: rustsec/audit-check@v2.0.0 was replaced with
+    # a direct `cargo audit` shell invocation. The action required
+    # `checks: write` permission to post GitHub Checks API annotations,
+    # which the default GITHUB_TOKEN does not provide, causing:
+    #   "Resource not accessible by integration" (exit 1)
+    # on every push run even when no vulnerabilities were found.
+    # Using plain cargo audit avoids the API call entirely.
     continue-on-error: true
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
       - name: Run cargo audit
-        uses: rustsec/audit-check@v2.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+        # --ignore flags suppress informational (non-vulnerability) advisories
+        # that are blocked by transitive dependency constraints:
+        #   RUSTSEC-2025-0119: number_prefix unmaintained (via indicatif 0.17.x
+        #     — no newer release fixes this; indicatif is a dev/progress dep)
+        #   RUSTSEC-2026-0097: rand 0.8.5 unsound (via phf_generator -> tls-parser
+        #     — rand upgrade is tls-parser upstream's responsibility; not a direct
+        #     dep and the unsound path requires a custom logger + reseed race)
+        # Both are informational findings, not CVE-severity vulnerabilities.
+        # Revisit when indicatif or tls-parser releases a fix.
+        run: |
+          cargo audit \
+            --ignore RUSTSEC-2025-0119 \
+            --ignore RUSTSEC-2026-0097
 
   deny:
     name: Deny
