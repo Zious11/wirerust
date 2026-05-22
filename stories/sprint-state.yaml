@@ -95,11 +95,14 @@ stories:
     blocked_by: []
 
   STORY-071:
-    status: in_progress
+    status: done
     wave: 3
-    branch: feature/story-071-mitre-mapping
-    worktree: .worktrees/story-071
+    branch: null
+    worktree: null
     blocked_by: []
+    pr: 113
+    merge_commit: 991e821
+    merged_date: "2026-05-22"
 
   # ---------------------------------------------------------------------------
   # Wave 4 — 2 stories

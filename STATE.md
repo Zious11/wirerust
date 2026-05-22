@@ -33,7 +33,12 @@ ci_hotfix_2_pr: 112
 ci_hotfix_2_merge_commit: 5d4c2c6
 ci_hotfix_2_date: "2026-05-22"
 ci_hotfix_2_run: 26300783841
+develop_head: 991e821
 wave_3_started: "2026-05-22"
+wave_3_story_071_pr: 113
+wave_3_story_071_merge_commit: 991e821
+wave_3_story_071_merged_date: "2026-05-22"
+wave_3_story_071_ci_run: 26304328447
 wave_2_story_004_pr: 107
 wave_2_story_004_merge_commit: 385e763
 wave_2_story_070_pr: 108
@@ -107,14 +112,17 @@ phase_2_input_hash_drift_check_uncomputed: 0
 ## Status
 
 **Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Wave 1 CLOSED 2026-05-22. Wave 2 CLOSED 2026-05-22.
-6 stories merged total (STORY-001/069/002/003/004/070). Wave 3 IN PROGRESS (STORY-005,
-STORY-071 dispatched 2026-05-22). Per-story convergence ACHIEVED for all Wave 2 stories.
-Wave-level adversarial convergence ACHIEVED — 3 consecutive clean passes (wave passes 1/2/3).
+7 stories merged total (STORY-001/069/002/003/004/070/071). Wave 3 IN PROGRESS — STORY-071
+done (PR #113, 991e821); STORY-005 per-story adversarial convergence COMPLETE (8 passes;
+final 3 passes 6/7/8 CLEAN on frozen artifact story v1.6 / test commit a959dee); demo/PR stage.
+Wave 3 wave-level adversarial convergence still pending after STORY-005 merges.
 CI hotfix PR #112 (5d4c2c6) merged 2026-05-22 — audit-action replaced with cargo audit shell
 step. Demo recordings are local-only; factory-artifacts branch gitignores `cycles/**/demos/`
 (commit f4e52fb; 49 prior demo files untracked).
 
-**Current develop HEAD:** 5d4c2c6 (PR #112 — CI hotfix: replace `rustsec/audit-check@v2.0.0` with plain `cargo audit` shell step; resolves "Resource not accessible by integration" failure on push-event runs; post-merge push run 26300783841 all jobs green, merged 2026-05-22). Previous: 7c1ab2c (PR #111).
+**Current develop HEAD:** 991e821 (PR #113 — STORY-071: 19 behavioral-contract tests in
+tests/mitre_tests.rs formalizing src/mitre.rs; brownfield, no src changes; CI run 26304328447
+all jobs green, merged 2026-05-22). Previous: 5d4c2c6 (PR #112 — CI hotfix).
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -132,7 +140,7 @@ automated dependency bumping for it; bumping requires verifying the fuzz build s
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** — all 4 gates + human approval 2026-05-21; P8-DEFER back-fill DONE | 20 L2 shards, 217 BCs, 11 arch files, 20 VPs, 4 supplements; trajectory: `17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0` |
 | Phase 2 — Story Decomposition | **PASSED** — all gates + human approval 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; decomposition gate PASSED; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153); trajectory 1C/3H/3M→0C/1H/2M→0C/1H/1M→0C/3H/5M (NON-MONOTONIC)→0C/1H/1M→0C/0H/0M→0C/0H/1M (RESET)→0C/0H/0M→0C/0H/0M→0C/0H/0M (GATE SATISFIED 3/3) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Wave 1 CLOSED 2026-05-22; Wave 2 CLOSED 2026-05-22 (PRs #109/#110/#107/#108; per-story + wave-level convergence ACHIEVED; CI hotfix PR #112 → develop at 5d4c2c6; 376 tests); Wave 3 IN PROGRESS (STORY-005, STORY-071) | — |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Wave 1 CLOSED 2026-05-22; Wave 2 CLOSED 2026-05-22 (PRs #109/#110/#107/#108; per-story + wave-level convergence ACHIEVED; CI hotfix PR #112 → develop at 5d4c2c6; 376 tests); Wave 3 IN PROGRESS — STORY-071 DONE (PR #113, 991e821; 19 BC tests; CI run 26304328447 green); STORY-005 per-story convergence COMPLETE (8 passes; 6/7/8 CLEAN); STORY-005 in demo/PR stage | — |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -248,7 +256,10 @@ Full per-pass details: `.factory/cycles/v0.1.0-greenfield-spec/convergence-traje
 | Wave-level adversarial convergence — Wave 2 | **COMPLETE** 2026-05-22 | 3 consecutive clean wave-level passes; wave-level gate SATISFIED |
 | Wave-gate — Wave 2 | **CLOSED** 2026-05-22 | Wave 2 CLOSED: develop at 3b2481c; 376 tests green |
 | CI hotfix — PR #112 | **COMPLETE** 2026-05-22 | Replaced `rustsec/audit-check@v2.0.0` with `cargo audit` shell step; resolves push-event "Resource not accessible by integration" failure; run 26300783841 all green; develop at 5d4c2c6 |
-| Wave 3 dispatch (STORY-005, STORY-071) | **IN PROGRESS** 2026-05-22 | STORY-005 (feature/story-005-decoder-packetlen-tcp, .worktrees/story-005); STORY-071 (feature/story-071-mitre-mapping, .worktrees/story-071) |
+| Wave 3 — STORY-071 delivery | **COMPLETE** 2026-05-22 | PR #113 (991e821); 19 BC tests in tests/mitre_tests.rs (BC-5.39.001); brownfield — no src changes; per-story convergence 3/3 consecutive CLEAN; CI run 26304328447 all jobs green |
+| Wave 3 — STORY-005 per-story adversarial convergence | **COMPLETE** 2026-05-22 | 8 total passes; final 3 (passes 6/7/8) VERDICT: CLEAN on frozen artifact (story v1.6, test commit a959dee); now in demo/PR delivery stage; worktree .worktrees/story-005, branch feature/story-005-decoder-packetlen-tcp |
+| Wave 3 — STORY-005 demo + PR | **IN PROGRESS** 2026-05-22 | Demo evidence recorded LOCAL-ONLY (gitignored); PR creation pending |
+| Wave 3 — wave-level adversarial convergence | NOT STARTED | Pending STORY-005 merge |
 | Waves 4→27 | NOT STARTED | Repeat per-story + wave-level convergence for each wave |
 
 ### Wave 1 Delivery Summary (2026-05-22)
@@ -272,14 +283,26 @@ All 4 Wave 2 stories delivered, merged, per-story converged, and wave-level conv
 Wave-level adversarial convergence: **ACHIEVED** — 3 consecutive clean passes (wave passes 1/2/3).
 develop synced at 3b2481c; 376 tests pass; clippy clean; fmt clean.
 
-**Session resume checkpoint — Wave 3 (IN PROGRESS 2026-05-22):**
-1. Wave 3 dispatched — STORY-005 (`feature/story-005-decoder-packetlen-tcp`, `.worktrees/story-005`) and STORY-071 (`feature/story-071-mitre-mapping`, `.worktrees/story-071`); sprint-state updated to `in_progress`; current_wave=3.
-2. Author implementation + tests for STORY-005 (packet_len semantics, TCP flag/sequence extraction, SS-02).
-3. Author implementation + tests for STORY-071 (MITRE ATT&CK mapping, tactic display, catalog lookup, SS-07).
-4. Run per-story adversarial convergence to 3/3 clean passes each.
-5. After both stories converged: PRs + Wave 3 wave-level adversarial convergence (3 clean passes).
-6. Then proceed to Wave 4 (STORY-011, STORY-066).
-Note: develop HEAD is 5d4c2c6 (CI hotfix PR #112, audit-action fix, 376 tests green).
+### Wave 3 Delivery Summary (IN PROGRESS — 2026-05-22)
+
+| Story | PR | Merge Commit | Per-Story Convergence | Notes |
+|-------|----|--------------|-----------------------|-------|
+| STORY-071 (MITRE ATT&CK mapping BC tests) | #113 | 991e821 | 3/3 CLEAN (passes 1/2/3); BC-5.39.001 | 19 tests in tests/mitre_tests.rs; brownfield (no src changes); CI run 26304328447 green |
+| STORY-005 (decoder packet_len + TCP, SS-02) | pending | — | **COMPLETE** — 8 passes; 6/7/8 CLEAN on story v1.6 / test commit a959dee | In demo/PR stage; worktree .worktrees/story-005, branch feature/story-005-decoder-packetlen-tcp |
+
+Wave-level adversarial convergence: **PENDING** — awaiting STORY-005 merge.
+
+**Session resume checkpoint — Wave 3 (2026-05-22):**
+1. STORY-071 MERGED — PR #113 (991e821); 19 BC tests in tests/mitre_tests.rs (BC-5.39.001);
+   brownfield, no src changes; per-story convergence 3/3 clean; CI run 26304328447 all green.
+   sprint-state: STORY-071 status=done, pr=113, merge_commit=991e821, branch/worktree=null.
+2. STORY-005 per-story adversarial convergence COMPLETE — 8 passes; passes 6/7/8 CLEAN on
+   frozen artifact (story v1.6, test commit a959dee). Process-gap W3.1 recorded (ecNNN suffix
+   naming convention). Demo evidence recorded LOCAL-ONLY (gitignored).
+3. NEXT: Create PR for STORY-005; after merge run Wave 3 wave-level adversarial convergence (3 clean passes).
+4. Then proceed to Wave 4 (STORY-011, STORY-066).
+Note: develop HEAD is 991e821 (STORY-071 PR #113, merged 2026-05-22). STORY-005 worktree:
+.worktrees/story-005, branch feature/story-005-decoder-packetlen-tcp (still active).
 
 ### Drift Items (STATE.md)
 
@@ -306,6 +329,7 @@ Process-gap codification deferred from Phase 2 adversarial convergence — requi
 | [process-gap] W2.4 | ~~CI `fuzz-build` job in `.github/workflows/ci.yml` has no explicit `timeout-minutes`; a cold-cache slowdown is unbounded.~~ **RESOLVED PR #111 (7c1ab2c, 2026-05-22)** — `timeout-minutes: 25` added; nightly toolchain pinned to `nightly-2026-05-21` + `cargo-fuzz 0.13.1`; date-stamped cache key. NOTE: the pinned nightly date is a periodic-maintenance item — bumping requires verifying the fuzz build still passes; do NOT enable automated dependency bumping for this pin. | Minor / process-gap |
 | [process-gap] W2.5 | Story `status:` frontmatter is not automatically transitioned from `draft` to `completed` on PR merge — no pipeline gate enforces this. Adversary passes repeatedly flagged delivered stories still showing `status: draft`. Recommend: deliver-story skill must emit a state-manager update command that flips story status on completion. This update is the manual fix for Wave 2's four stories. | P1 |
 | [process-gap] W2.6 | MSRV documentation divergence: root `Cargo.toml` pins `rust-version = "1.91"` while `CLAUDE.md` states "requires Rust 1.85+". Pre-existing divergence; recommend reconciling in a maintenance/doc sweep. | Minor / process-gap |
+| [process-gap] W3.1 | Test-naming `ecNNN` suffix tracks story edge-case IDs, not BC edge-case IDs. A story that renumbers its ECs produces a test name like `test_BC_2_02_015_ec005_...` where `ec005` does NOT correspond to BC-2.02.015 EC-005 (a different scenario). Raised in STORY-005 pass-8 adversarial review. Requires either a follow-up story defining a stable test-naming convention anchored to BC EC IDs, or a justified deferral, per the Cycle-Closing Checklist. NOTE: do NOT file a GitHub issue until research-agent validates per policy DF-VALIDATION-001. | Minor / process-gap |
 
 ## Phase 2 — Story Decomposition (PASSED — 2026-05-21)
 

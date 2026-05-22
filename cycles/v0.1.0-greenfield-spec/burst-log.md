@@ -80,3 +80,22 @@ rewrote BC-2.05.006 two-phase-commit contract; added tech-debt O-07 (rayon unuse
 | spec-writer (vps) | Fix VP-INDEX.md stale entries; update vp-005 | `specs/verification-properties/VP-INDEX.md`, `specs/verification-properties/vp-005-sni-four-way-classification.md` |
 
 ---
+
+## Burst 4 (2026-05-22) — Wave 3 STORY-071 Merge + STORY-005 Per-Story Convergence
+
+**Agents dispatched:** test-writer (STORY-071), adversary (STORY-071 passes 1/2/3; STORY-005 passes 1–8), state-manager (sprint-state + STATE.md + burst-log)
+**Files touched:** stories/sprint-state.yaml (STORY-071 status→done, pr=113, merge_commit=991e821); STATE.md (develop HEAD, Status, Phase Progress, Current Phase Steps, Wave 3 delivery summary, session checkpoint, W3.1 process-gap); cycles/v0.1.0-greenfield-spec/burst-log.md (this entry)
+
+### Summary
+
+STORY-071 squash-merged to develop as PR #113 (991e821, 2026-05-22). 19 behavioral-contract tests in tests/mitre_tests.rs formalizing src/mitre.rs (brownfield — no src/ changes). Per-story adversarial convergence achieved in 3 consecutive clean passes (BC-5.39.001). CI run 26304328447 all jobs green. Demo evidence recorded local-only (gitignored).
+
+STORY-005 (feature/story-005-decoder-packetlen-tcp, .worktrees/story-005) achieved per-story adversarial convergence: 8 total passes; final 3 passes (6, 7, 8) VERDICT: CLEAN on frozen artifact (story v1.6, test commit a959dee). Story is now in demo-recording / PR delivery stage.
+
+Process-gap W3.1 raised during STORY-005 pass-8 adversarial review: the `ecNNN` suffix in test names tracks story edge-case IDs, not BC edge-case IDs — a story that renumbers its ECs produces misleading test names (e.g., `test_BC_2_02_015_ec005_...` where `ec005` refers to story EC-005, not BC-2.02.015 EC-005). Recorded in Cycle-Close Follow-Up Items; requires a follow-up story or justified deferral before cycle-close. GitHub issue filing blocked until research-agent validates per policy DF-VALIDATION-001.
+
+Wave 3 status: STORY-071 done; STORY-005 in demo/PR stage. Wave-level adversarial convergence pending after STORY-005 merges.
+
+**Develop HEAD:** 991e821 (was 5d4c2c6). 7 stories merged total (STORY-001/069/002/003/004/070/071).
+
+---
