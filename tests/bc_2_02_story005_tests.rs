@@ -290,14 +290,14 @@ fn test_BC_2_02_014_packet_len_equals_data_len() {
 }
 
 // ---------------------------------------------------------------------------
-// AC-002 / BC-2.02.014 invariant 1
+// AC-002 / BC-2.02.014 postcondition 2
 //
 // packet_len is set to the full frame length (data.len()) on BOTH the strict
 // parse path (decoder.rs:142-146) and the lax parse path (decoder.rs:161).
 // Neither path uses IP header total_length or TCP segment length for this field.
 // ---------------------------------------------------------------------------
 
-/// BC-2.02.014 invariant 1: packet_len is set on both the strict and lax parse paths.
+/// BC-2.02.014 postcondition 2: packet_len is set on both the strict and lax parse paths.
 ///
 /// Strict path: well-formed frame where IP total_length matches captured bytes.
 /// Lax path: snaplen-truncated frame (IP total_length > captured bytes) that forces
@@ -321,7 +321,7 @@ fn test_BC_2_02_014_packet_len_set_on_both_strict_and_lax_paths() {
     let strict_parsed = decode_packet(&strict_data, DataLink::ETHERNET)
         .expect("AC-002: strict-path frame must decode successfully");
 
-    // BC-2.02.014 invariant 1 (strict path): packet_len == data.len()
+    // BC-2.02.014 postcondition 2 (strict path): packet_len == data.len()
     assert_eq!(
         strict_parsed.packet_len, strict_expected,
         "AC-002: strict path — packet_len ({}) must equal data.len() ({})",
@@ -346,7 +346,7 @@ fn test_BC_2_02_014_packet_len_set_on_both_strict_and_lax_paths() {
     let lax_parsed = decode_packet(&lax_data, DataLink::ETHERNET)
         .expect("AC-002: lax-path truncated frame must decode successfully via lax fallback");
 
-    // BC-2.02.014 invariant 1 (lax path): packet_len == captured data.len(), not IP total_length
+    // BC-2.02.014 postcondition 2 (lax path): packet_len == captured data.len(), not IP total_length
     assert_eq!(
         lax_parsed.packet_len, lax_expected,
         "AC-002: lax path — packet_len ({}) must equal captured data.len() ({}), not IP total_length",
