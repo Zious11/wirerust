@@ -67,6 +67,31 @@ jobs:
           components: rustfmt
       - run: cargo fmt --all --check
 
+  # M-2 (adversary finding): gate the cargo-fuzz harness compilation so a
+  # broken harness is not silently ignored by the existing stable-toolchain
+  # jobs. AC-011 requires `cargo +nightly fuzz build fuzz_decode_packet` to
+  # succeed. This is a build-only check — the fuzzer is never executed in CI.
+  fuzz-build:
+    name: Fuzz build
+    runs-on: ubuntu-latest
+    env:
+      # The fuzz sub-crate builds under nightly with libfuzzer-sys flags that
+      # are incompatible with -Dwarnings. Override the workflow-level env for
+      # this job only; the stable-toolchain jobs are unaffected.
+      RUSTFLAGS: ""
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # Use a separate cache key so the nightly fuzz build does not
+          # pollute the stable-toolchain cache shared by test/clippy/fmt.
+          key: fuzz-nightly
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+      - name: Build fuzz harness (compile check only)
+        run: cargo +nightly fuzz build fuzz_decode_packet
+
   # LESSON-P2.06: supply-chain scanning split into two complementary
   # jobs so a noisy advisory in one source does not block merges on
   # an unrelated regression.
