@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-005"
 epic_id: "E-1"
-version: "1.4"
+version: "1.5"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -48,12 +48,12 @@ implementation_strategy: brownfield-formalization
 
 ## Acceptance Criteria
 
-### AC-001 (traces to BC-2.02.014 postcondition 1)
-For any successfully decoded frame, `ParsedPacket.packet_len` equals `data.len()` — the total byte length of the raw frame slice passed to `decode_packet`, regardless of header sizes or payload content.
+### AC-001 (traces to BC-2.02.014 postcondition 1, invariant 1)
+For any successfully decoded frame, `ParsedPacket.packet_len` equals `data.len()` — the total byte length of the raw frame slice passed to `decode_packet`, regardless of header sizes or payload content. This AC covers both a non-trivial payload (data.len() != payload.len()) and a variable header size (a frame with IPv4 options, header > 54 bytes), so a buggy header-dependent `packet_len` formula that violates invariant 1 ("packet_len is always the full frame length, never a partial or payload-only length") is caught.
 - **Test:** `test_BC_2_02_014_packet_len_equals_data_len()`
 
-### AC-002 (traces to BC-2.02.014 postcondition 2, invariant 1)
-`packet_len` is set to the full frame length (`data.len()`) on BOTH the strict parse path (decoder.rs:142-146) and the lax parse path (decoder.rs:161). Neither path uses IP header `total_length` or TCP segment length for this field.
+### AC-002 (traces to BC-2.02.014 postcondition 2)
+`packet_len` is set to the full frame length (`data.len()`) on BOTH the strict parse path (decoder.rs:142-146 (the build_parsed call; the data.len() argument is on line 145)) and the lax parse path (decoder.rs:161). Neither path uses IP header `total_length` or TCP segment length for this field. Invariant 1 (never payload-only/partial length) is verified by AC-001's variable-header and non-trivial-payload cases; AC-002 verifies only that both code paths set the field via the same data.len() mechanism.
 - **Test:** `test_BC_2_02_014_packet_len_set_on_both_strict_and_lax_paths()`
 
 ### AC-003 (traces to BC-2.02.014 invariant 2)
@@ -69,11 +69,11 @@ For a TCP SYN-ACK packet, `syn = true` and `ack = true`.
 - **Test:** `test_BC_2_02_015_tcp_syn_ack_flags()`
 
 ### AC-006 (traces to BC-2.02.015 postconditions 6, 7)
-For a TCP RST packet, `rst = true`; for a TCP FIN-ACK packet, `fin = true` and `ack = true`.
+For a TCP FIN-ACK packet, `fin = true` and `ack = true`; for a TCP RST packet, `rst = true`.
 - **Test:** `test_BC_2_02_015_tcp_rst_and_fin_ack_flags()`
 
 ### AC-007 (traces to BC-2.02.015 postcondition 3)
-`TransportInfo::Tcp.seq_number` equals the 32-bit sequence number from the TCP header (from etherparse's `to_header().sequence_number` API).
+`TransportInfo::Tcp.seq_number` equals the 32-bit sequence number from the TCP header.
 - **Test:** `test_BC_2_02_015_tcp_seq_number_extracted()`
 
 ### AC-008 (traces to BC-2.02.015 postcondition 8)
@@ -81,7 +81,7 @@ For a TCP RST packet, `rst = true`; for a TCP FIN-ACK packet, `fin = true` and `
 - **Test:** `test_BC_2_02_015_tcp_payload_bytes()`
 
 ### AC-009 (traces to BC-2.02.015 invariant 3)
-PSH and URG flags are NOT extracted; they are absent from `TransportInfo::Tcp`. Adding them would require a struct change — this is a deliberate scope constraint.
+PSH and URG are NOT present as fields of `TransportInfo::Tcp`. Adding them would require a struct change — this is a deliberate scope constraint.
 - **Test:** `test_BC_2_02_015_psh_urg_not_in_transport_info()` (verify TransportInfo::Tcp struct fields)
 
 ## Architecture Mapping
@@ -94,15 +94,15 @@ PSH and URG flags are NOT extracted; they are absent from `TransportInfo::Tcp`. 
 
 ## Edge Cases
 
-| ID | Scenario | Expected Behavior |
-|----|----------|-------------------|
-| EC-001 | 1500-byte Ethernet frame | packet_len == 1500 |
-| EC-002 | 54-byte TCP ACK (no payload) | packet_len == 54; payload is empty Vec |
-| EC-003 | Snaplen-truncated at 100 bytes | packet_len == 100 (not 1500) |
-| EC-004 | seq_number = 0xFFFFFFFF (max u32) | seq_number == 4294967295; no overflow |
-| EC-005 | All four flags simultaneously set | syn=true, ack=true, fin=true, rst=true |
-| EC-006 | No flags set (data segment) | syn=false, ack=false, fin=false, rst=false |
-| EC-007 | 60-byte minimum Ethernet frame (small IP packet + Ethernet padding to reach the 60-byte minimum) | packet_len == 60 (== data.len()); Ethernet padding is NOT counted into the TCP payload — test: `test_BC_2_02_014_ec007_60_byte_padded_frame` |
+| ID | Scenario | Expected Behavior | BC Edge Case |
+|----|----------|-------------------|-------------|
+| EC-001 | 1500-byte Ethernet frame | packet_len == 1500 | BC-2.02.014 EC-001 |
+| EC-002 | 54-byte TCP ACK (no payload) | packet_len == 54; payload is empty Vec | BC-2.02.014 EC-004 |
+| EC-003 | Snaplen-truncated at 100 bytes | packet_len == 100 (not 1500) | BC-2.02.014 EC-003 |
+| EC-004 | seq_number = 0xFFFFFFFF (max u32) | seq_number == 4294967295; no overflow | BC-2.02.015 EC-005 |
+| EC-005 | All four flags simultaneously set | syn=true, ack=true, fin=true, rst=true | — |
+| EC-006 | No flags set (data segment) | syn=false, ack=false, fin=false, rst=false | BC-2.02.015 EC-007 |
+| EC-007 | 60-byte minimum Ethernet frame (small IP packet + Ethernet padding to reach the 60-byte minimum) | packet_len == 60 (== data.len()); Ethernet padding is NOT counted into the TCP payload — test: `test_BC_2_02_014_ec007_60_byte_padded_frame` | BC-2.02.014 EC-002 |
 
 ## Purity Classification
 
@@ -132,7 +132,7 @@ PSH and URG flags are NOT extracted; they are absent from `TransportInfo::Tcp`. 
 5. [ ] Confirm `TransportSlice::Tcp` arm at decoder.rs:263-274 extracts syn/ack/fin/rst and seq_number via etherparse API
 6. [ ] Confirm `TransportInfo::Tcp` struct lacks psh and urg fields
 7. [ ] Run `cargo test --all-targets` to confirm green
-8. [ ] Confirm the 15 BC tests in `tests/bc_2_02_story005_tests.rs` cover all AC/EC clauses; property-based verification of `packet_len` is out of scope for this story — no VP assigned
+8. [ ] Confirm the 16 BC tests in `tests/bc_2_02_story005_tests.rs` cover all AC/EC clauses; property-based verification of `packet_len` is out of scope for this story — no VP assigned
 
 ## Previous Story Intelligence (MANDATORY)
 
@@ -149,7 +149,7 @@ PSH and URG flags are NOT extracted; they are absent from `TransportInfo::Tcp`. 
 | `packet_len` is ALWAYS `data.len()`; never derived from IP or TCP header length fields | BC-2.02.014 invariant 1 | Code review: both call sites to `build_parsed` pass `data.len()` as third argument |
 | `TransportInfo::Tcp` struct has exactly these fields: src_port, dst_port, seq_number, syn, ack, fin, rst | BC-2.02.015 invariant 3 | Struct definition review; no psh/urg fields present |
 | seq_number extraction uses `tcp.to_header().sequence_number` (etherparse API) | BC-2.02.015 invariant 1 | Code review of decoder.rs:263-274 |
-| packet_len is set on BOTH strict and lax paths | BC-2.02.014 postcondition 2 | Code review: decoder.rs:145 (strict) and decoder.rs:161 (lax) |
+| packet_len is set on BOTH strict and lax paths | BC-2.02.014 postcondition 2 | Code review: decoder.rs:142-146 (the build_parsed call; the data.len() argument is on line 145) (strict) and decoder.rs:161 (lax) |
 
 ## Library & Framework Requirements (MANDATORY)
 
@@ -169,4 +169,5 @@ PSH and URG flags are NOT extracted; they are absent from `TransportInfo::Tcp`. 
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| 1.5 | 2026-05-22 | story-writer | Wave 3 Ph3 pass-2 adversarial fixes: F-1, F-3, F-4, F-5, F-6, F-7 |
 | 1.4 | 2026-05-22 | story-writer | Wave 3 Ph3 pass-1 adversarial fixes: F-1, F-3, F-6, F-4, F-7, N-1 |
