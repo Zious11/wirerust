@@ -17,9 +17,11 @@ wave_4_closed: "2026-05-22"
 wave_5_closed: "2026-05-22"
 wave_5_status: closed
 wave_5_wave_level_convergence: "3/3 clean fresh-context passes (all VERDICT: CLEAN; only 2 non-blocking cosmetic Nits)"
-wave_6_status: in_progress
+wave_6_closed: "2026-05-22"
+wave_6_status: closed
 wave_6_per_story_delivery: complete
-wave_6_wave_level_convergence: "0/3 clean passes — IN PROGRESS"
+wave_6_wave_level_convergence: "3/3 clean fresh-context passes (all VERDICT: CLEAN; ZERO findings of any severity across all three passes)"
+wave_7_status: ready_to_dispatch
 current_wave: 6
 stories_delivered: 13
 dtu_required: false
@@ -39,11 +41,11 @@ phase_2_input_hash_drift_check_total: 153
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-5 CLOSED/CONVERGED; Wave 6 per-story delivery COMPLETE.
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-6 CLOSED/CONVERGED; Wave 7 READY TO DISPATCH.
 13 stories delivered across Waves 1-6 (STORY-001/069/002/003/004/070/071/005/011/066/012/013).
 STORY-013: PR #119 squash-merged → 3e705b5 (2026-05-22). 31 BC tests (26 reassembly_flow_tests +
-5 reassembly_engine_tests). Per-story adversarial convergence: 3/3 clean fresh-context passes.
-Wave 6 now entering WAVE-LEVEL ADVERSARIAL CONVERGENCE (0/3 clean passes — IN PROGRESS).
+5 reassembly_engine_tests). Wave 6 wave-level convergence: 3/3 CLEAN (ZERO findings of any severity).
+Wave 6 CLOSED/CONVERGED. STORY-014 unblocked — Wave 7 READY TO DISPATCH.
 develop HEAD: 3e705b5 (PR #119 — STORY-013 merged 2026-05-22; CI run 26317412621 all green).
 
 **Mode:** brownfield (in-repo: target == reference).
@@ -62,7 +64,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-5 CLOSED/CONVERGED; 13 stories delivered; Wave 6 per-story COMPLETE, wave-level adversarial convergence IN PROGRESS (0/3) | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-6 CLOSED/CONVERGED; 13 stories delivered; Wave 7 READY TO DISPATCH | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -77,7 +79,7 @@ dependency bumping for it).
 | 3 | STORY-071, STORY-005 | CLOSED/CONVERGED | f0b5007 | CI hotfix #112; chore #115 |
 | 4 | STORY-011, STORY-066 | CLOSED/CONVERGED | f628c33 | 394 tests |
 | 5 | STORY-012 | **CLOSED/CONVERGED** | bbddac6 | 415 tests; 3/3 clean wave-level passes |
-| 6 | STORY-013 | **WAVE-LEVEL CONVERGENCE IN PROGRESS** (0/3) | 3e705b5 | PR #119 squash-merged 2026-05-22; 31 BC tests; per-story 3/3 clean; wave-level adversarial convergence 0/3 |
+| 6 | STORY-013 | **CLOSED/CONVERGED** | 3e705b5 | PR #119 squash-merged 2026-05-22; 31 BC tests; per-story 3/3 clean; wave-level 3/3 CLEAN (ZERO findings) |
 | 7–27 | (remaining) | NOT STARTED | — | — |
 
 ## Phase 3 — Current Phase Steps (last 5)
@@ -88,7 +90,8 @@ dependency bumping for it).
 | Wave-gate — Wave 5 | **CLOSED** 2026-05-22 | develop HEAD bbddac6; 12 stories total Waves 1-5; sprint-state STORY-013 → pending |
 | Wave 6 — STORY-013 delivery (PR #119) | **COMPLETE** 2026-05-22 | squash-merged → 3e705b5; 31 BC tests (26 reassembly_flow + 5 engine integration); TcpFlow::fin_count() accessor added; per-story 3/3 clean; CI run 26317412621 all green |
 | Wave 6 — per-story convergence | **COMPLETE** 2026-05-22 | 3/3 clean fresh-context passes; demo evidence 25 artifacts LOCAL-ONLY (gitignored) |
-| Wave 6 — wave-level adversarial convergence | **IN PROGRESS** | 0/3 clean passes — awaiting first adversarial pass dispatch |
+| Wave 6 — wave-level adversarial convergence | **COMPLETE** 2026-05-22 | 3/3 clean fresh-context passes; ZERO findings of any severity across all three passes |
+| Wave-gate — Wave 6 | **CLOSED** 2026-05-22 | develop HEAD 3e705b5; 13 stories total Waves 1-6; sprint-state STORY-014 → pending |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -106,20 +109,20 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-22 — Wave 6 IN PROGRESS)
+## Session Resume Checkpoint (2026-05-22 — Wave 6 CLOSED; Wave 7 READY)
 
-1. Waves 1-5 all CLOSED/CONVERGED — 12 stories delivered.
-   STORY-001/069/002/003/004/070/071/005/011/066/012 all merged to develop.
-2. Wave 5 STORY-012 DELIVERED: PR #118 squash-merged → bbddac6 (2026-05-22). 21 BC tests;
-   wave-level convergence 3/3 CLEAN. Wave 5 CLOSED/CONVERGED. develop HEAD: bbddac6. 415 tests.
-3. Wave 6 DISPATCHED 2026-05-22: STORY-013 — TCP three-way handshake state machine +
-   direction tagging. BCs: BC-2.04.004/005/050/051/052/053. brownfield-formalization,
-   tdd_mode strict, dispatched from develop@bbddac6.
-   Branch: feature/story-013-handshake-state-machine. Worktree: .worktrees/story-013.
-   sprint-state.yaml: current_wave=6, STORY-013 status=in_progress.
+1. Waves 1-6 all CLOSED/CONVERGED — 13 stories delivered.
+   STORY-001/069/002/003/004/070/071/005/011/066/012/013 all merged to develop.
+2. Wave 6 STORY-013 DELIVERED: PR #119 squash-merged → 3e705b5 (2026-05-22). 31 BC tests
+   (26 reassembly_flow_tests + 5 reassembly_engine_tests); TcpFlow::fin_count() accessor added.
+   Per-story convergence 3/3 CLEAN. Wave-level convergence 3/3 CLEAN (ZERO findings of any
+   severity across all three passes). Wave 6 CLOSED/CONVERGED. develop HEAD: 3e705b5. 446 tests.
+3. STORY-014 unblocked (was blocked_by [STORY-013]; STORY-013 now done). sprint-state.yaml:
+   STORY-014 status=pending, blocked_by=[]. STORY-015/019 remain blocked (blocked_by includes
+   STORY-014 which is not yet done). current_wave=6.
 4. Process-gap items W3.1/W3.2/W4.1 remain open (no GitHub issues until research-agent
-   validates per DF-VALIDATION-001). W3.2 confirmed recurring across Waves 3+4+5.
-5. NEXT: STORY-013 per-story convergence → deliver → wave-level convergence → wave-gate.
+   validates per DF-VALIDATION-001). W3.2/W4.1 confirmed recurring across multiple waves.
+5. NEXT: Dispatch Wave 7 (STORY-014) — per-story adversarial convergence → deliver → wave-gate.
 
 ## Decisions Log
 

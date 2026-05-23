@@ -164,11 +164,11 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-014:
-    status: blocked
+    status: pending
     wave: 7
     branch: null
     worktree: null
-    blocked_by: [STORY-013]
+    blocked_by: []
 
   # ---------------------------------------------------------------------------
   # Wave 8 — 2 stories
