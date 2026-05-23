@@ -150,11 +150,14 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-013:
-    status: in_progress
+    status: done
     wave: 6
-    branch: feature/story-013-handshake-state-machine
-    worktree: .worktrees/story-013
+    branch: null
+    worktree: null
     blocked_by: []
+    pr: 119
+    merge_commit: 3e705b5
+    merged_date: "2026-05-22"
 
   # ---------------------------------------------------------------------------
   # Wave 7 — 1 story

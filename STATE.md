@@ -9,7 +9,7 @@ phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
 phase_2_completed: "2026-05-21"
 phase_3_started: "2026-05-21"
-develop_head: bbddac6
+develop_head: 3e705b5
 wave_1_closed: "2026-05-22"
 wave_2_closed: "2026-05-22"
 wave_3_closed: "2026-05-22"
@@ -18,8 +18,10 @@ wave_5_closed: "2026-05-22"
 wave_5_status: closed
 wave_5_wave_level_convergence: "3/3 clean fresh-context passes (all VERDICT: CLEAN; only 2 non-blocking cosmetic Nits)"
 wave_6_status: in_progress
+wave_6_per_story_delivery: complete
+wave_6_wave_level_convergence: "0/3 clean passes — IN PROGRESS"
 current_wave: 6
-stories_delivered: 12
+stories_delivered: 13
 dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
@@ -37,18 +39,18 @@ phase_2_input_hash_drift_check_total: 153
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-5 all CLOSED/CONVERGED.
-12 stories delivered across Waves 1-5 (STORY-001/069/002/003/004/070/071/005/011/066/012).
-Wave 5 CLOSED 2026-05-22. Wave 6 (STORY-013) IN PROGRESS.
-STORY-013: TCP three-way handshake state machine + direction tagging (BCs BC-2.04.004/005/050/051/052/053).
-brownfield-formalization, tdd_mode strict, dispatched from develop@bbddac6.
-develop HEAD: bbddac6 (PR #118 — STORY-012 merged 2026-05-22; 415 tests green).
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-5 CLOSED/CONVERGED; Wave 6 per-story delivery COMPLETE.
+13 stories delivered across Waves 1-6 (STORY-001/069/002/003/004/070/071/005/011/066/012/013).
+STORY-013: PR #119 squash-merged → 3e705b5 (2026-05-22). 31 BC tests (26 reassembly_flow_tests +
+5 reassembly_engine_tests). Per-story adversarial convergence: 3/3 clean fresh-context passes.
+Wave 6 now entering WAVE-LEVEL ADVERSARIAL CONVERGENCE (0/3 clean passes — IN PROGRESS).
+develop HEAD: 3e705b5 (PR #119 — STORY-013 merged 2026-05-22; CI run 26317412621 all green).
 
 **Mode:** brownfield (in-repo: target == reference).
 
-**Test suite:** 415 passing on develop. `cargo fmt --check`, `cargo clippy`,
-`cargo test --all-targets` all green. CI: 7 checks including `fuzz-build` job (pinned
-`nightly-2026-05-21` + `cargo-fuzz 0.13.1` + `timeout-minutes: 25` after PR #111 hotfix;
+**Test suite:** 446 passing on develop (415 + 31 new STORY-013 BC tests). `cargo fmt --check`,
+`cargo clippy`, `cargo test --all-targets` all green. CI: 7 checks including `fuzz-build` job
+(pinned `nightly-2026-05-21` + `cargo-fuzz 0.13.1` + `timeout-minutes: 25` after PR #111 hotfix;
 the nightly pin is a deliberate periodic-maintenance item — do NOT enable automated
 dependency bumping for it).
 
@@ -60,7 +62,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-5 CLOSED/CONVERGED; 12 stories delivered; Wave 6 (STORY-013) IN PROGRESS | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-5 CLOSED/CONVERGED; 13 stories delivered; Wave 6 per-story COMPLETE, wave-level adversarial convergence IN PROGRESS (0/3) | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -75,18 +77,18 @@ dependency bumping for it).
 | 3 | STORY-071, STORY-005 | CLOSED/CONVERGED | f0b5007 | CI hotfix #112; chore #115 |
 | 4 | STORY-011, STORY-066 | CLOSED/CONVERGED | f628c33 | 394 tests |
 | 5 | STORY-012 | **CLOSED/CONVERGED** | bbddac6 | 415 tests; 3/3 clean wave-level passes |
-| 6 | STORY-013 | **IN PROGRESS** | bbddac6 | brownfield-formalization; tdd_mode strict; BCs BC-2.04.004/005/050/051/052/053; branch feature/story-013-handshake-state-machine; worktree .worktrees/story-013 |
+| 6 | STORY-013 | **WAVE-LEVEL CONVERGENCE IN PROGRESS** (0/3) | 3e705b5 | PR #119 squash-merged 2026-05-22; 31 BC tests; per-story 3/3 clean; wave-level adversarial convergence 0/3 |
 | 7–27 | (remaining) | NOT STARTED | — | — |
 
 ## Phase 3 — Current Phase Steps (last 5)
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Wave 5 — STORY-012 delivery (PR #118) | **COMPLETE** 2026-05-22 | squash-merged → bbddac6; CI run 26312928311 all 6 jobs green |
 | Wave 5 — wave-level adversarial convergence | **COMPLETE** 2026-05-22 | 3/3 clean fresh-context passes; 2 cosmetic Nits only (non-blocking) |
 | Wave-gate — Wave 5 | **CLOSED** 2026-05-22 | develop HEAD bbddac6; 12 stories total Waves 1-5; sprint-state STORY-013 → pending |
-| Wave 6 dispatch — STORY-013 | **DISPATCHED** 2026-05-22 | status in_progress; branch feature/story-013-handshake-state-machine; worktree .worktrees/story-013; develop@bbddac6 |
-| Wave 6 — STORY-013 implementation | **IN PROGRESS** | TCP three-way handshake state machine + direction tagging; BCs BC-2.04.004/005/050/051/052/053; brownfield-formalization; tdd_mode strict |
+| Wave 6 — STORY-013 delivery (PR #119) | **COMPLETE** 2026-05-22 | squash-merged → 3e705b5; 31 BC tests (26 reassembly_flow + 5 engine integration); TcpFlow::fin_count() accessor added; per-story 3/3 clean; CI run 26317412621 all green |
+| Wave 6 — per-story convergence | **COMPLETE** 2026-05-22 | 3/3 clean fresh-context passes; demo evidence 25 artifacts LOCAL-ONLY (gitignored) |
+| Wave 6 — wave-level adversarial convergence | **IN PROGRESS** | 0/3 clean passes — awaiting first adversarial pass dispatch |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -155,7 +157,7 @@ Process-gap codification required before cycle can be declared closed:
 | W2.6 | Cargo.toml pins `rust-version = "1.91"` while CLAUDE.md states "requires Rust 1.85+"; reconcile in a maintenance sweep. | Minor |
 | W3.1 | Test-naming `ecNNN` suffix tracks story EC IDs, not BC EC IDs — drift risk. Raised STORY-005 pass-8. Do NOT file GitHub issue until research-agent validates (DF-VALIDATION-001). | Minor |
 | W3.2 **[CONFIRMED RECURRING — Waves 3+4+5]** | No pipeline gate advances story `status: draft` → `completed` on merge. Recurred in Wave 3 (STORY-005/071), Wave 4 (STORY-011/066), and Wave 5 (STORY-012). Three-wave recurrence confirms P1 priority. Do NOT file GitHub issue until research-agent validates (DF-VALIDATION-001). | **P1 — RAISED PRIORITY** |
-| W4.1 | Src edits that shift line counts must land and commit BEFORE anchor re-derivation agents are dispatched; anchor agents must re-read from disk, not use offsets computed in the same burst. Raised STORY-066. Do NOT file GitHub issue until research-agent validates (DF-VALIDATION-001). | P1 |
+| W4.1 **[CONFIRMED RECURRING — Wave 4 + Wave 6]** | Src edits that shift line counts must land and commit BEFORE anchor re-derivation agents are dispatched; anchor agents must re-read from disk, not use offsets computed in the same burst. First raised STORY-066 (Wave 4); recurred STORY-013 (Wave 6): adding TcpFlow::fin_count() at flow.rs:222-227 shifted all state-machine methods +7 lines, staling 5 BC file anchors, requiring re-sync round. Two-wave recurrence raises priority — codification urgent. Do NOT file GitHub issue until research-agent validates (DF-VALIDATION-001). | **P1 — RAISED PRIORITY (second recurrence)** |
 
 Historical process-gap items from Phase 1 (P1.1–P1.3, P3-PG, P4-PG1/2/3, P5-PG, P8-DEFER,
 P10-PG, P-CITE-PG): archived in `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`.

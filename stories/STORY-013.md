@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-013"
 epic_id: "E-2"
-version: "1.4"
-status: draft
+version: "1.5"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -227,3 +227,4 @@ implementation_strategy: brownfield-formalization
 | 1.2 | 2026-05-22 | story-writer | Wave 6 Ph3 implementer-confirm anchor correction: apply_handshake_flags mod.rs anchor 257-287 → full-function range 257-289 |
 | 1.3 | 2026-05-22 | story-writer | Wave 6 Ph3 pass-1 adversarial fixes: F-4 AC-004 trace widened to invariant 1-3 to match its test; F-5 apply_handshake_flags anchor corrected to full-function range 248-290 |
 | 1.4 | 2026-05-22 | story-writer | Wave 6 Ph3 pass-1 re-run adversarial fixes: F-1 EC-009 corrected (state stays New, not Closing); F-4 flow.rs anchor re-synced after fin_count() insertion shifted state-machine methods +7 lines |
+| 1.5 | 2026-05-22 | story-writer | Wave 6 delivery: status advanced draft → completed — STORY-013 delivered via PR #119, merge 3e705b5 |
