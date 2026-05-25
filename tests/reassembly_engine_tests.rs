@@ -2,9 +2,28 @@ use std::net::{IpAddr, Ipv4Addr};
 
 use wirerust::decoder::{ParsedPacket, Protocol, TransportInfo};
 use wirerust::findings::{Confidence, ThreatCategory, Verdict};
-use wirerust::reassembly::flow::FlowKey;
+use wirerust::reassembly::flow::{FlowDirection, FlowKey};
 use wirerust::reassembly::handler::{CloseReason, Direction, StreamHandler};
+use wirerust::reassembly::segment::InsertResult;
 use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
+
+/// Process-global lock serializing tests that read or interact with the
+/// `ISN_MISSING_WARNED` atomic in `src/reassembly/segment.rs`.
+///
+/// Cargo's libtest runs integration tests in parallel within a binary, and
+/// any test that triggers `IsnMissing` performs an atomic `swap(true)` on
+/// the static. Tests that observe the atomic via
+/// `isn_missing_warned_for_testing()` or reset it via
+/// `reset_isn_missing_warned_for_testing()` must hold this lock for the
+/// duration of their test body, otherwise sibling tests in this same
+/// binary can interleave a `swap(true)` between an observation and
+/// invalidate the deterministic state assumption (see STORY-014 adv-pass-3
+/// F-1).
+///
+/// Any NEW test in this file that interacts with `ISN_MISSING_WARNED`
+/// MUST take this lock as its first line. Failure to do so re-introduces
+/// the race.
+static ISN_MISSING_WARNED_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 /// Test handler that records all callbacks.
 struct RecordingHandler {
@@ -3883,5 +3902,759 @@ fn test_BC_2_04_051_ec007_rst_with_payload_does_not_process_payload() {
         segments_before_rst,
         "EC-007: BC-2.04.051 postcondition 2: segments_inserted must not increment \
          for a RST packet — payload suppression confirmed via stats counter"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// STORY-014: BC-2.04.009, BC-2.04.032, BC-2.04.048
+//   Mid-stream join, IsnMissing guard, ISN_MISSING_WARNED one-shot atomic.
+//
+// AC-001..AC-005  (BC-2.04.009) mid-stream join path — engine level.
+// AC-010..AC-012  (BC-2.04.032) insert_segment IsnMissing guard.
+// AC-013..AC-014  (BC-2.04.048) ISN_MISSING_WARNED one-shot atomic.
+// EC-002..EC-004, EC-006..EC-007 engine-level edge cases.
+//
+// PROCESS-GLOBAL ATOMIC NOTE: ISN_MISSING_WARNED is a `static AtomicBool`
+// in src/reassembly/segment.rs. Cargo compiles each integration-test file
+// into ONE binary; all tests inside this file share the same process image
+// and therefore share that atomic. To prevent ordering-dependent behaviour,
+// AC-013 + AC-014 + EC-007 are combined into a single test function that
+// exercises the first-call and subsequent-call paths in a known sequential
+// order. The combined test name follows the primary BC (BC-2.04.048).
+// ---------------------------------------------------------------------------
+
+/// STORY-014 / BC-2.04.009 AC-001: mid-stream join sets state=Established, partial=true.
+/// Precondition: data packet arrives for a flow in FlowState::New (no SYN seen).
+/// Postconditions 1-2: flow.state==Established, flow.partial==true.
+/// Canonical test vector: data from 1.1.1.1:5000 with no prior SYN.
+///
+/// Observable engine-level signals:
+///   - flows_partial == 1 (BC-2.04.009 post-2, post-6)
+///   - data delivered to handler (Established means the segment was inserted and flushed)
+///   - no close event (flow remains open)
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_009_mid_stream_sets_established_partial() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [1, 1, 1, 1];
+    let server = [2, 2, 2, 2];
+
+    // Data packet with no prior SYN (mid-stream join).
+    // BC-2.04.009 canonical test vector: data from 1.1.1.1:5000, seq=1001.
+    let data = make_tcp_packet(
+        client, 5000, server, 80, 1001, b"payload", false, false, false, false,
+    );
+    reassembler.process_packet(&data, 1, &mut handler);
+
+    // BC-2.04.009 post-2 + post-6: partial=true and flows_partial incremented.
+    // partial=true is not directly observable, but flows_partial == 1 is the
+    // observable proxy for "on_data_without_syn was called, which sets partial=true".
+    assert_eq!(
+        reassembler.stats().flows_partial,
+        1,
+        "BC-2.04.009 post-2/post-6: mid-stream join must set partial=true and \
+         increment flows_partial to 1"
+    );
+
+    // BC-2.04.009 post-1 (state=Established): segment was inserted and flushed
+    // (only an Established flow allows insert_payload_segment to proceed to flush).
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "BC-2.04.009 post-1: state=Established must allow data to be flushed to handler"
+    );
+    assert_eq!(
+        handler.data_events[0].2, b"payload",
+        "BC-2.04.009 post-7: the segment is inserted and flushed normally"
+    );
+
+    // BC-2.04.009 PC3 — initiator set to packet src; observable as ClientToServer direction tag on first data event.
+    assert!(
+        !handler.data_events.is_empty(),
+        "expected at least one data event from mid-stream packet"
+    );
+    assert_eq!(
+        handler.data_events[0].1,
+        Direction::ClientToServer,
+        "BC-2.04.009 PC3 — initiator (client src) must be tagged ClientToServer"
+    );
+
+    // Confirm the flow is not closed.
+    assert!(
+        handler.close_events.is_empty(),
+        "BC-2.04.009: mid-stream join must not close the flow"
+    );
+}
+
+/// STORY-014 / BC-2.04.009 AC-002: mid-stream join infers ISN as seq-1.
+/// Postcondition 4: the c2s direction has isn == Some(tcp.seq.wrapping_sub(1)).
+/// Canonical test vector: data seq=1001 → isn=Some(1000).
+///
+/// Observable: after infer_isn(1001) sets isn=1000, the stream offset delivered
+/// to the handler for that first packet is seq_offset(1001, 1000) = 1.
+/// A regression to isn=1001 (storing seq itself) would give offset=0.
+/// A regression to saturating_sub would give the same result for non-zero seq,
+/// but fails the wrap test (AC-005). This test pins the non-wrap case.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_009_mid_stream_isn_is_seq_minus_one() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [1, 1, 1, 1];
+    let server = [2, 2, 2, 2];
+
+    // First data packet with seq=1001 and no prior SYN.
+    // infer_isn(1001) must store isn=1000 (= 1001.wrapping_sub(1)).
+    // The on_data handler receives stream offset = seq_offset(1001, 1000) = 1.
+    let data = make_tcp_packet(
+        client, 5000, server, 80, 1001, b"hello", false, false, false, false,
+    );
+    reassembler.process_packet(&data, 1, &mut handler);
+
+    // Exactly one data event must have been delivered.
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "BC-2.04.009 post-4: mid-stream data must be delivered to handler after ISN inference"
+    );
+
+    // The stream offset for seq=1001 with isn=1000 is seq.wrapping_sub(isn) = 1.
+    // If isn were stored as 1001 (the seq itself), offset would be 0.
+    // If isn were stored as 1002 (off-by-one), offset would be u32::MAX (wrapping) = very large.
+    assert_eq!(
+        handler.data_events[0].3, 1,
+        "BC-2.04.009 post-4: stream offset must be 1 (isn=seq-1=1000; \
+         offset=seq.wrapping_sub(isn)=1001-1000=1) — \
+         isn=seq regression gives offset=0; off-by-one gives u32::MAX-range value"
+    );
+}
+
+/// STORY-014 / BC-2.04.009 AC-003: mid-stream join sets base_offset=1.
+/// Postcondition 5: flow.client_to_server.base_offset == 1 after infer_isn.
+///
+/// Observable: base_offset=1 means the first contiguous flush starts at offset 1.
+/// We verify this by sending two packets — the first at seq=1001 (delivered at
+/// offset=1), and a second in-sequence packet at seq=1006 (delivered at offset=6).
+/// The flush of contiguous segments confirms base_offset advances correctly from 1.
+/// If base_offset were 0 instead of 1, the first packet's offset computation would
+/// differ: it would arrive "at offset 0 but base_offset=0" → a gap check mismatch.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_009_mid_stream_base_offset_is_one() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [1, 1, 1, 1];
+    let server = [2, 2, 2, 2];
+
+    // First mid-stream data: seq=1001, payload="hello" (5 bytes).
+    // infer_isn(1001) → isn=1000, base_offset=1.
+    // Segment arrives at offset=1, which equals base_offset=1 → flushed immediately.
+    let p1 = make_tcp_packet(
+        client, 5000, server, 80, 1001, b"hello", false, false, false, false,
+    );
+    reassembler.process_packet(&p1, 1, &mut handler);
+
+    // First packet must be flushed (arrives at base_offset=1 = offset 1).
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "BC-2.04.009 post-5: first packet must be flushed (base_offset=1 matches offset=1)"
+    );
+    assert_eq!(
+        handler.data_events[0].3, 1,
+        "BC-2.04.009 post-5: first packet stream offset must be 1 (base_offset starts at 1)"
+    );
+
+    // Second in-sequence packet: seq=1006, payload="world" (5 bytes).
+    // After flushing p1 (5 bytes), base_offset advances to 6.
+    // Offset of p2 = 1006 - 1000 = 6 = base_offset → contiguous → flushed.
+    let p2 = make_tcp_packet(
+        client, 5000, server, 80, 1006, b"world", false, false, false, false,
+    );
+    reassembler.process_packet(&p2, 2, &mut handler);
+
+    assert_eq!(
+        handler.data_events.len(),
+        2,
+        "BC-2.04.009 post-5: second contiguous packet must also be flushed"
+    );
+    assert_eq!(
+        handler.data_events[1].3, 6,
+        "BC-2.04.009 post-5: second packet stream offset must be 6 \
+         (base_offset advanced from 1 to 6 after flushing 5 bytes)"
+    );
+}
+
+/// STORY-014 / BC-2.04.009 AC-004: stats.flows_partial increments on mid-stream join.
+/// Postcondition 6: flows_partial increments by 1 per partial flow.
+/// Canonical test vector: one mid-stream flow → flows_partial=1.
+///
+/// Discriminant: a full SYN-handshaked flow must NOT increment flows_partial.
+/// We verify by sending one proper SYN flow (flows_partial=0) then one mid-stream
+/// flow (flows_partial=1). This ensures the increment is specific to the
+/// on_data_without_syn path, not a general "flow created" counter.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_009_flows_partial_increments_on_mid_stream() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client_a = [1, 1, 1, 1];
+    let client_b = [3, 3, 3, 3];
+    let server = [2, 2, 2, 2];
+
+    // Flow A: proper SYN handshake — must NOT increment flows_partial.
+    let syn_a = make_tcp_packet(
+        client_a,
+        5000,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_a, 1, &mut handler);
+    assert_eq!(
+        reassembler.stats().flows_partial,
+        0,
+        "BC-2.04.009 post-6 discriminant: SYN-handshaked flow must not increment flows_partial"
+    );
+
+    // Flow B: mid-stream (no SYN) — must increment flows_partial to 1.
+    let data_b = make_tcp_packet(
+        client_b, 6000, server, 80, 5000, b"mid", false, false, false, false,
+    );
+    reassembler.process_packet(&data_b, 2, &mut handler);
+
+    assert_eq!(
+        reassembler.stats().flows_partial,
+        1,
+        "BC-2.04.009 post-6: one mid-stream join must increment flows_partial to exactly 1"
+    );
+    assert_eq!(
+        reassembler.stats().flows_total,
+        2,
+        "BC-2.04.009: both flows (SYN + mid-stream) must be counted in flows_total"
+    );
+}
+
+/// STORY-014 / BC-2.04.009 AC-005 / EC-001: infer_isn(0) wraps correctly at the engine level.
+/// Invariant 1: wrapping_sub(1) on seq=0 gives isn=u32::MAX without panic.
+/// Canonical test vector: data seq=0 → isn=u32::MAX, base_offset=1.
+///
+/// Discrimination: three possible implementations for ISN inference from seq=0:
+///   - wrapping_sub(1): 0u32.wrapping_sub(1) = u32::MAX = 4294967295 → stream offset = 1 ✓
+///   - saturating_sub(1): 0u32.saturating_sub(1) = 0 → stream offset = 0 (wrong) ✗
+///   - plain `- 1`: 0u32 - 1 panics under debug/overflow-checks (release has overflow-checks) ✗
+///
+/// After infer_isn(0) → isn=u32::MAX, seq=0 maps to:
+///   seq_offset(0, u32::MAX) = 0u32.wrapping_sub(u32::MAX) as u64 = 1u64
+/// This observable stream offset=1 distinguishes wrapping_sub from saturating_sub,
+/// and the absence of panic distinguishes it from plain subtraction.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_009_mid_stream_isn_wraps_correctly_at_seq_zero() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [1, 1, 1, 1];
+    let server = [2, 2, 2, 2];
+
+    // Data packet with tcp.seq = 0 and no prior SYN.
+    // infer_isn(0) must compute isn = 0u32.wrapping_sub(1) = u32::MAX.
+    // The engine must NOT panic (neither plain sub nor debug overflow).
+    let data = make_tcp_packet(
+        client, 5000, server, 80, 0, // seq = 0: the wrap case
+        b"wrap", false, false, false, false,
+    );
+    reassembler.process_packet(&data, 1, &mut handler);
+
+    // No panic means wrapping_sub was used (plain `- 1` would panic; CLAUDE.md confirms
+    // release profile has overflow-checks = true, so there is no "escape hatch" to prod).
+
+    // The stream offset delivered to the handler must be 1 (not 0, not a huge wrap value).
+    // seq_offset(0, u32::MAX) = 0u32.wrapping_sub(u32::MAX) as u64 = 1u64.
+    // saturating_sub regression: isn=0 → seq_offset(0, 0) = 0 (wrong, offset=0).
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "BC-2.04.009 inv-1: seq=0 mid-stream join must deliver data (no panic, no ISN failure)"
+    );
+    assert_eq!(
+        handler.data_events[0].3, 1,
+        "BC-2.04.009 inv-1 / EC-001: stream offset must be 1 for seq=0 with inferred \
+         isn=u32::MAX (seq_offset(0, u32::MAX)=1) — saturating_sub regression gives \
+         isn=0 → offset=0; plain-sub panics before reaching this assert"
+    );
+    assert_eq!(
+        handler.data_events[0].2, b"wrap",
+        "BC-2.04.009 inv-1: correct payload must be delivered for seq=0 wrap case"
+    );
+
+    // flows_partial must be 1 — this is still a mid-stream join.
+    assert_eq!(
+        reassembler.stats().flows_partial,
+        1,
+        "BC-2.04.009 inv-1: seq=0 mid-stream join must still increment flows_partial"
+    );
+}
+
+/// STORY-014 / BC-2.04.032 AC-010: insert_segment with isn==None returns IsnMissing.
+/// Postcondition 1: InsertResult::IsnMissing is returned when direction has no ISN.
+/// Canonical test vector: insert_segment with isn=None, data=b"hello" → IsnMissing.
+///
+/// Discrimination: a fresh FlowDirection has isn=None; any non-empty data segment
+/// must trigger the IsnMissing guard. The return value discriminates against
+/// InsertResult::Inserted (the happy-path result), which would indicate the guard
+/// is missing or the isn.is_none() check is incorrect.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_032_isn_missing_returns_isn_missing() {
+    let _guard = ISN_MISSING_WARNED_LOCK.lock().expect("test lock poisoned");
+    let mut dir = FlowDirection::new();
+
+    // Precondition: isn is None (no set_isn or infer_isn called).
+    assert_eq!(dir.isn, None, "precondition: direction must have isn=None");
+
+    // BC-2.04.032 precondition 2: data is non-empty (b"hello").
+    // BC-2.04.032 postcondition 1: must return InsertResult::IsnMissing.
+    let result = dir.insert_segment(1000, b"hello", usize::MAX, usize::MAX, usize::MAX);
+
+    assert_eq!(
+        result,
+        InsertResult::IsnMissing,
+        "BC-2.04.032 post-1: insert_segment with isn=None and non-empty data must \
+         return InsertResult::IsnMissing — Inserted return would indicate missing guard"
+    );
+}
+
+/// STORY-014 / BC-2.04.032 AC-011: IsnMissing inserts nothing and leaves counters unchanged.
+/// Postconditions 2-4: segments unchanged, buffered_bytes unchanged, counters unchanged.
+///
+/// Strategy: snapshot all observable counters before the failing call, then assert
+/// each is identical after. This is a multi-property assertion that catches any
+/// side-effecting regression (e.g., incrementing buffered_bytes before the guard).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_032_isn_missing_inserts_nothing() {
+    let _guard = ISN_MISSING_WARNED_LOCK.lock().expect("test lock poisoned");
+    let mut dir = FlowDirection::new();
+
+    // Precondition: isn=None, direction is completely empty.
+    assert_eq!(dir.isn, None, "precondition: isn must be None");
+    assert!(dir.segments_is_empty(), "precondition: no segments yet");
+    assert_eq!(
+        dir.buffered_bytes(),
+        0,
+        "precondition: buffered_bytes must be 0"
+    );
+
+    // Snapshot before.
+    let segments_empty_before = dir.segments_is_empty();
+    let buffered_before = dir.buffered_bytes();
+    let overlap_before = dir.overlap_count;
+    let oow_before = dir.out_of_window_count;
+
+    // BC-2.04.032: insert non-empty data with isn=None → IsnMissing, nothing inserted.
+    let result = dir.insert_segment(500, b"world", usize::MAX, usize::MAX, usize::MAX);
+
+    assert_eq!(
+        result,
+        InsertResult::IsnMissing,
+        "BC-2.04.032 post-1: must return IsnMissing (prerequisite for this test)"
+    );
+
+    // BC-2.04.032 post-2: segments must be unchanged.
+    assert_eq!(
+        dir.segments_is_empty(),
+        segments_empty_before,
+        "BC-2.04.032 post-2: segments must be unchanged after IsnMissing — \
+         data must not have been inserted into the buffer"
+    );
+
+    // BC-2.04.032 post-3: buffered_bytes must be unchanged.
+    assert_eq!(
+        dir.buffered_bytes(),
+        buffered_before,
+        "BC-2.04.032 post-3: buffered_bytes must be unchanged after IsnMissing"
+    );
+
+    // BC-2.04.032 post-4: no segment should be findable at the attempted offset.
+    // Additional structural check: segment count is still 0.
+    assert_eq!(
+        dir.segment_count(),
+        0,
+        "BC-2.04.032 post-4: segment_count must remain 0 — IsnMissing must insert nothing"
+    );
+
+    // BC-2.04.032 PC4 — overlap_count and out_of_window_count must be unchanged.
+    assert_eq!(
+        dir.overlap_count, overlap_before,
+        "BC-2.04.032 PC4 — overlap_count must be unchanged on IsnMissing"
+    );
+    assert_eq!(
+        dir.out_of_window_count, oow_before,
+        "BC-2.04.032 PC4 — out_of_window_count must be unchanged on IsnMissing"
+    );
+}
+
+/// STORY-014 / BC-2.04.032 AC-012 / EC-006: empty data returns Inserted without ISN check.
+/// Precondition 2 (negated): data.is_empty() fires the early return before the ISN guard.
+/// STORY-014 / BC-2.04.032 AC-012 / EC-006: empty data slice with no ISN.
+///
+/// Asserts `insert_segment(.., &[], ..)` returns `InsertResult::Inserted` even
+/// when `isn == None`, because the empty-data early return at
+/// `src/reassembly/segment.rs:47-49` structurally precedes the ISN guard at
+/// `:51-58`. This is the discriminating test for check ordering: if the
+/// implementation swapped the two guards (ISN first, empty-data second), this
+/// call would return `IsnMissing` instead of `Inserted`.
+///
+/// The "atomic ISN_MISSING_WARNED is not flipped by this path" sub-property is
+/// enforced structurally by the order of these two checks in `insert_segment`
+/// and is verified by code review (mirrors the BC-2.04.048 PC2 and inv-3
+/// enforcement-mode precedents). No direct assertion on the atomic is performed
+/// here, and therefore no `ISN_MISSING_WARNED_LOCK` acquisition is required.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_032_empty_data_returns_inserted_without_isn_check() {
+    let mut dir = FlowDirection::new();
+
+    // Precondition: isn=None (the ISN check would trigger IsnMissing if reached).
+    assert_eq!(
+        dir.isn, None,
+        "precondition: isn must be None so ISN check is the adversary"
+    );
+
+    // BC-2.04.032 EC-006: empty data must return Inserted via the early-return path.
+    // If check order were swapped (ISN before empty-data), this would return IsnMissing.
+    let result = dir.insert_segment(1234, &[], usize::MAX, usize::MAX, usize::MAX);
+
+    assert_eq!(
+        result,
+        InsertResult::Inserted,
+        "BC-2.04.032 EC-006: insert_segment with data=[] and isn=None must return \
+         InsertResult::Inserted (empty-data early return fires BEFORE ISN check) — \
+         IsnMissing return indicates the check order was swapped"
+    );
+
+    // The direction state must remain completely unchanged (nothing was inserted).
+    assert!(
+        dir.segments_is_empty(),
+        "BC-2.04.032 EC-006: empty insert must leave segments unchanged"
+    );
+    assert_eq!(
+        dir.buffered_bytes(),
+        0,
+        "BC-2.04.032 EC-006: empty insert must leave buffered_bytes at 0"
+    );
+}
+
+/// STORY-014 / BC-2.04.009 EC-002: second data packet (different direction) on partial flow.
+/// set_initiator is a no-op; ISN is inferred for the s2c direction if not yet set.
+///
+/// Sequence: client sends first data (mid-stream join, c2s ISN inferred). Then server
+/// sends a response. The server-to-client direction must also get its ISN inferred
+/// (not left as None, which would return IsnMissing). The engine delivers both
+/// payloads to the handler — one per direction — with the correct Direction tags.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_009_ec002_second_packet_different_direction_infers_s2c_isn() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [1, 1, 1, 1];
+    let server = [2, 2, 2, 2];
+
+    // First packet: client data, no prior SYN (mid-stream join; c2s ISN inferred).
+    let c2s = make_tcp_packet(
+        client, 5000, server, 80, 3000, b"request", false, false, false, false,
+    );
+    reassembler.process_packet(&c2s, 1, &mut handler);
+
+    // First packet delivered, initiator set to client, c2s ISN inferred.
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "EC-002: first (c2s) mid-stream packet must be delivered"
+    );
+    assert_eq!(
+        handler.data_events[0].1,
+        Direction::ClientToServer,
+        "EC-002: first packet must be tagged ClientToServer (initiator = client src)"
+    );
+
+    // Second packet: server response on the same flow (s2c direction, no prior SYN+ACK).
+    // The engine must infer the s2c ISN from this first server packet.
+    let s2c = make_tcp_packet(
+        server,
+        80,
+        client,
+        5000,
+        7000,
+        b"response",
+        false,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&s2c, 2, &mut handler);
+
+    // s2c data must also be delivered — meaning s2c ISN was inferred (not IsnMissing).
+    assert_eq!(
+        handler.data_events.len(),
+        2,
+        "BC-2.04.009 EC-002: second packet (s2c direction) must also be delivered — \
+         IsnMissing would suppress delivery"
+    );
+    assert_eq!(
+        handler.data_events[1].1,
+        Direction::ServerToClient,
+        "BC-2.04.009 EC-002: second packet must be tagged ServerToClient"
+    );
+    assert_eq!(
+        handler.data_events[1].2, b"response",
+        "BC-2.04.009 EC-002: correct payload must be delivered for s2c direction"
+    );
+
+    // s2c stream offset: infer_isn(7000) → isn=6999; seq_offset(7000, 6999) = 1.
+    assert_eq!(
+        handler.data_events[1].3, 1,
+        "BC-2.04.009 EC-002: s2c stream offset must be 1 (inferred isn=7000-1=6999)"
+    );
+
+    // Still one partial flow (only one mid-stream join, for the flow — not one per direction).
+    assert_eq!(
+        reassembler.stats().flows_partial,
+        1,
+        "BC-2.04.009 EC-002: flows_partial must be 1 (one flow, not incremented per direction)"
+    );
+}
+
+/// STORY-014 / BC-2.04.009 EC-003: SYN arrives after data on partial flow.
+/// set_initiator / set_isn / on_syn are all no-ops (already Established + ISN set).
+///
+/// Regression to catch: a late SYN might attempt to call set_isn(syn.seq) on the
+/// already-inferred direction. If set_isn were not idempotent, the ISN would change,
+/// corrupting all future sequence number computations.
+///
+/// Observable: after the SYN, the stream offset for the next data packet must
+/// still be consistent with the originally-inferred ISN (not the SYN seq).
+/// Also, flows_partial must still be 1 (the flow stays partial; SYN doesn't
+/// un-mark it) and flows_total must still be 1.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_009_ec003_syn_after_data_on_partial_flow_is_noop() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [1, 1, 1, 1];
+    let server = [2, 2, 2, 2];
+
+    // Step 1: Data packet first (mid-stream join), seq=1001.
+    // infer_isn(1001) → c2s.isn=1000. Offset=1.
+    let data1 = make_tcp_packet(
+        client, 5000, server, 80, 1001, b"first", false, false, false, false,
+    );
+    reassembler.process_packet(&data1, 1, &mut handler);
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "EC-003: first data packet must be delivered"
+    );
+    // Stream offset for seq=1001 with isn=1000 is 1.
+    assert_eq!(
+        handler.data_events[0].3, 1,
+        "EC-003 precondition: first packet offset must be 1 (isn=1000 inferred)"
+    );
+
+    // Step 2: Late SYN arrives on the same flow (from the same client, seq=500).
+    // The engine's apply_handshake_flags must call set_isn(500) — but since isn is
+    // already Some(1000), set_isn(500) must be a no-op.
+    // The SYN packet has a different seq (500 ≠ 1000), so any isn overwrite is detectable.
+    let late_syn = make_tcp_packet(
+        client,
+        5000,
+        server,
+        80,
+        500, // SYN seq deliberately different from inferred isn=1000
+        &[],
+        true, // SYN flag set
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&late_syn, 2, &mut handler);
+
+    // Flow state: still Established (no regression to SynSent).
+    // flows_partial: still 1 (SYN does not un-mark a partial flow).
+    assert_eq!(
+        reassembler.stats().flows_partial,
+        1,
+        "BC-2.04.009 EC-003: flows_partial must remain 1 after late SYN — \
+         SYN must not reset the partial flag"
+    );
+    assert_eq!(
+        reassembler.stats().flows_total,
+        1,
+        "BC-2.04.009 EC-003: flows_total must remain 1 (no new flow created by late SYN)"
+    );
+
+    // Step 3: Second data packet at seq=1006 (follows seq=1001 + 5 bytes "first").
+    // If isn were overwritten to 500 by the late SYN, seq_offset(1006, 500) = 506,
+    // which is NOT equal to base_offset=6. The packet would be buffered (gap at 6)
+    // but NOT flushed, so no new data event would appear.
+    // With correctly preserved isn=1000: seq_offset(1006, 1000) = 6 = base_offset → flushed.
+    let data2 = make_tcp_packet(
+        client, 5000, server, 80, 1006, b"second", false, false, false, false,
+    );
+    reassembler.process_packet(&data2, 3, &mut handler);
+
+    assert_eq!(
+        handler.data_events.len(),
+        2,
+        "BC-2.04.009 EC-003: second data packet must be flushed (isn preserved from inferred=1000) — \
+         isn overwrite to SYN seq=500 would make offset=506 ≠ base_offset=6, preventing flush"
+    );
+    assert_eq!(
+        handler.data_events[1].3, 6,
+        "BC-2.04.009 EC-003: second data packet stream offset must be 6 \
+         (isn=1000 preserved; seq=1006-1000=6)"
+    );
+    assert_eq!(
+        handler.data_events[1].2, b"second",
+        "BC-2.04.009 EC-003: correct payload must be delivered for second data packet"
+    );
+}
+
+/// STORY-014 / BC-2.04.009 EC-004: multiple partial flows counted independently.
+/// flows_partial increments once per mid-stream flow; each is independent.
+///
+/// BC-2.04.009 invariant 2: flows_partial counts flows that entered via this path;
+/// it is not reset when the flow later closes.
+///
+/// Scenario: two distinct flows each receive a first data packet without SYN.
+/// flows_partial must be exactly 2 after both joins.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_009_ec004_multiple_partial_flows_counted_independently() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client_a = [1, 1, 1, 1];
+    let client_b = [3, 3, 3, 3];
+    let server = [2, 2, 2, 2];
+
+    // Flow 1: mid-stream join — first data, no SYN.
+    let data_a = make_tcp_packet(
+        client_a, 5000, server, 80, 2001, b"flow-a", false, false, false, false,
+    );
+    reassembler.process_packet(&data_a, 1, &mut handler);
+
+    assert_eq!(
+        reassembler.stats().flows_partial,
+        1,
+        "BC-2.04.009 EC-004: after first mid-stream join, flows_partial must be 1"
+    );
+    assert_eq!(
+        reassembler.stats().flows_total,
+        1,
+        "BC-2.04.009 EC-004: flows_total must be 1 after first flow"
+    );
+
+    // Flow 2: distinct key (different client IP), also mid-stream join.
+    let data_b = make_tcp_packet(
+        client_b, 6000, server, 80, 9001, b"flow-b", false, false, false, false,
+    );
+    reassembler.process_packet(&data_b, 2, &mut handler);
+
+    assert_eq!(
+        reassembler.stats().flows_partial,
+        2,
+        "BC-2.04.009 EC-004: after second independent mid-stream join, flows_partial must be 2 — \
+         each partial flow is counted independently"
+    );
+    assert_eq!(
+        reassembler.stats().flows_total,
+        2,
+        "BC-2.04.009 EC-004: flows_total must be 2 (two independent flows)"
+    );
+
+    // Both data payloads must have been delivered.
+    assert_eq!(
+        handler.data_events.len(),
+        2,
+        "BC-2.04.009 EC-004: both mid-stream flows must deliver their data"
+    );
+}
+
+/// STORY-014 / BC-2.04.048 AC-013 + AC-014 + EC-007 combined.
+///
+/// Verifies that ISN_MISSING_WARNED latches false→true on the FIRST IsnMissing
+/// encounter and stays true on subsequent encounters within the same process.
+///
+/// AC-014's "no additional eprintln on subsequent calls" property cannot be
+/// asserted in-process without fragile stderr capture; it is enforced
+/// structurally by the swap-guarded if-block in src/reassembly/segment.rs:51-58
+/// (Architecture Compliance Rule — code review). The atomic-state-latches
+/// property below IS testable and IS asserted.
+///
+/// AC-013, AC-014, EC-007 are combined into one function because
+/// ISN_MISSING_WARNED is a process-global static and the cargo integration-test
+/// binary shares it across all tests in this file. The reset accessor
+/// (added in src/reassembly/segment.rs) makes the discrimination deterministic
+/// regardless of run order.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_048_isn_missing_warned_fires_once_then_suppressed() {
+    let _guard = ISN_MISSING_WARNED_LOCK.lock().expect("test lock poisoned");
+    // Deterministic precondition: reset the process-global atomic so the
+    // first call below is GUARANTEED to be the false→true transition.
+    wirerust::reassembly::segment::reset_isn_missing_warned_for_testing();
+    assert!(
+        !wirerust::reassembly::segment::isn_missing_warned_for_testing(),
+        "BC-2.04.048 — atomic should be false after reset_for_testing"
+    );
+
+    // Build two FlowDirections with isn=None.
+    let mut dir1 = FlowDirection::new();
+    let mut dir2 = FlowDirection::new();
+    assert!(dir1.isn.is_none(), "precondition: ISN must be unset");
+    assert!(dir2.isn.is_none(), "precondition: ISN must be unset");
+
+    // FIRST call — atomic must transition false → true (BC-2.04.048 PC1).
+    let r1 = dir1.insert_segment(100, b"first", usize::MAX, usize::MAX, usize::MAX);
+    assert!(
+        matches!(r1, InsertResult::IsnMissing),
+        "AC-010 — IsnMissing returned on first call"
+    );
+    assert!(
+        wirerust::reassembly::segment::isn_missing_warned_for_testing(),
+        "AC-013 / BC-2.04.048 PC1 — atomic must be true after first IsnMissing"
+    );
+
+    // SECOND call — atomic stays true (BC-2.04.048 PC2 latching property).
+    let r2 = dir2.insert_segment(200, b"second", usize::MAX, usize::MAX, usize::MAX);
+    assert!(
+        matches!(r2, InsertResult::IsnMissing),
+        "AC-014 / EC-007 — IsnMissing still returned on subsequent call"
+    );
+    assert!(
+        wirerust::reassembly::segment::isn_missing_warned_for_testing(),
+        "AC-014 / EC-007 / BC-2.04.048 PC2 — atomic latches; remains true after subsequent call"
     );
 }

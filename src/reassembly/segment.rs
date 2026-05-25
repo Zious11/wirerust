@@ -247,3 +247,28 @@ impl FlowDirection {
         flushed
     }
 }
+
+/// Test-only accessor for the process-global ISN_MISSING_WARNED flag.
+///
+/// Exposes a read of [`ISN_MISSING_WARNED`] so integration tests can verify the
+/// one-shot behavior asserted by BC-2.04.048 PC1 — the flag transitions
+/// `false → true` exactly once across the process lifetime.
+///
+/// The accessor is `pub` (not `#[cfg(test)]`-gated) because integration tests
+/// in `tests/` are separate crates and cannot see `#[cfg(test)]` items.
+/// Naming includes `_for_testing` to flag intent to readers of public API.
+#[doc(hidden)]
+pub fn isn_missing_warned_for_testing() -> bool {
+    ISN_MISSING_WARNED.load(Ordering::Relaxed)
+}
+
+/// Test-only reset of the process-global ISN_MISSING_WARNED flag.
+///
+/// Allows tests to deterministically observe the BC-2.04.048 PC1
+/// `false → true` swap transition, which would otherwise be non-deterministic
+/// across test ordering because the atomic is process-global. This function
+/// MUST NOT be called from production code paths; it is a test seam only.
+#[doc(hidden)]
+pub fn reset_isn_missing_warned_for_testing() {
+    ISN_MISSING_WARNED.store(false, Ordering::Relaxed);
+}
