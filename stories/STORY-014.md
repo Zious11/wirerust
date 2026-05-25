@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-014"
 epic_id: "E-2"
-version: "1.1"
-status: draft
+version: "1.2"
+status: in_progress
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -53,8 +53,8 @@ implementation_strategy: brownfield-formalization
 
 ## Acceptance Criteria
 
-### AC-001 (traces to BC-2.04.009 postcondition 1-2)
-- When a data packet arrives for a flow in `FlowState::New`, the flow state transitions to `Established` and `flow.partial == true`.
+### AC-001 (traces to BC-2.04.009 postcondition 1-2, postcondition 3)
+- When a data packet arrives for a flow in `FlowState::New`, the flow state transitions to `Established` and `flow.partial == true`. Additionally, the first emitted data event has `Direction::ClientToServer` — observable proof that BC-2.04.009 PC3 sets the initiator to the packet's source.
 - **Test:** `test_BC_2_04_009_mid_stream_sets_established_partial()`
 
 ### AC-002 (traces to BC-2.04.009 postcondition 4)
@@ -94,20 +94,24 @@ implementation_strategy: brownfield-formalization
 - **Test:** `test_BC_2_04_032_isn_missing_returns_isn_missing()`
 
 ### AC-011 (traces to BC-2.04.032 postcondition 2-4)
-- When `InsertResult::IsnMissing` is returned, `self.segments` is unchanged, `self.buffered_bytes` is unchanged, and no counters are modified.
+- When `InsertResult::IsnMissing` is returned, `self.segments` is unchanged, `self.buffered_bytes` is unchanged, `self.overlap_count` is unchanged, `self.out_of_window_count` is unchanged, and no counters are modified (full BC-2.04.032 PC4 coverage).
 - **Test:** `test_BC_2_04_032_isn_missing_inserts_nothing()`
 
 ### AC-012 (traces to BC-2.04.032 edge case EC-003)
 - When `insert_segment` is called with an empty data slice (`data.is_empty()`) and `isn == None`, it returns `Inserted` (the empty-data early return fires before the ISN check).
 - **Test:** `test_BC_2_04_032_empty_data_returns_inserted_without_isn_check()`
 
-### AC-013 (traces to BC-2.04.048 postcondition 1)
-- On the first call to `insert_segment` with `isn == None`, `ISN_MISSING_WARNED` is set to `true` and `eprintln!` fires exactly once.
-- **Test:** `test_BC_2_04_048_isn_missing_warned_fires_once()`
+### AC-013 + AC-014 + EC-007 (combined — traces to BC-2.04.048 PC1, PC2; EC-007)
 
-### AC-014 (traces to BC-2.04.048 postcondition on subsequent calls)
-- On subsequent calls with `isn == None` (after the first), `ISN_MISSING_WARNED` is already `true`; no additional `eprintln!` is emitted.
-- **Test:** `test_BC_2_04_048_isn_missing_warned_suppresses_repeat()`
+The three sub-assertions are combined into one test function because `ISN_MISSING_WARNED` is a process-global static and the cargo integration-test binary shares it across all tests in `reassembly_engine_tests.rs`. The combined test uses the `#[doc(hidden)] reset_isn_missing_warned_for_testing()` accessor to deterministically observe the BC-2.04.048 PC1 `false → true` swap transition.
+
+Sub-assertions:
+- **AC-013 (BC-2.04.048 PC1):** After resetting the atomic, the first call to `insert_segment` with `isn == None` flips `ISN_MISSING_WARNED` from `false` to `true`. Observed via the `isn_missing_warned_for_testing()` accessor.
+- **AC-014 (BC-2.04.048 PC2, latching state):** A subsequent call with `isn == None` keeps the atomic at `true`. Observed via the accessor.
+- **AC-014 (BC-2.04.048 PC2, no second eprintln):** The "no additional `eprintln!` is emitted on subsequent calls" sub-property is enforced **structurally** by the swap-guarded `if`-block in `src/reassembly/segment.rs:51-58` and verified by code review (Architecture Compliance Rule — mirrors the BC-2.04.048 invariant 3 precedent that also relies on code review). In-process stderr capture is fragile and out of scope for this story.
+- **EC-007 (already-warned-at-test-start safety):** Pre-reset eliminates EC-007's "ISN_MISSING_WARNED already true on test run" concern by making the test order-independent.
+
+- **Test:** `test_BC_2_04_048_isn_missing_warned_fires_once_then_suppressed()` (combined name; rationale documented in test doc-comment)
 
 ## Architecture Mapping
 
@@ -177,6 +181,8 @@ implementation_strategy: brownfield-formalization
 | ISN_MISSING_WARNED uses `Ordering::Relaxed` | BC-2.04.048 invariant 2 | Code review: AtomicBool::swap call |
 | `swap(true)` pattern (not load+store) | BC-2.04.048 invariant 3 | Code review: swap-based one-shot guard |
 | No `unsafe` blocks | prd.md §1.2 | cargo clippy |
+| **No additional eprintln on subsequent IsnMissing calls** | BC-2.04.048 PC2 | Code review of swap-guarded if-block at `src/reassembly/segment.rs:51-58` (matches BC-2.04.048 invariant 3 precedent) |
+| **`#[doc(hidden)]` on test-only accessors** | BC-2.04.048 + brownfield-formalization API hygiene | Code review: `isn_missing_warned_for_testing()` and `reset_isn_missing_warned_for_testing()` both carry `#[doc(hidden)]` |
 
 ## Library & Framework Requirements (MANDATORY)
 
@@ -191,5 +197,13 @@ implementation_strategy: brownfield-formalization
 | `src/reassembly/flow.rs` | verify (lines 136-148) | set_isn and infer_isn implementations |
 | `src/reassembly/mod.rs` | verify (lines 305-312) | Mid-stream join handling in insert_payload_segment |
 | `src/reassembly/segment.rs` | verify (lines 16, 51-58) | ISN_MISSING_WARNED AtomicBool and IsnMissing guard |
+| `src/reassembly/segment.rs` | append | Added `#[doc(hidden)] pub fn isn_missing_warned_for_testing()` and `#[doc(hidden)] pub fn reset_isn_missing_warned_for_testing()` accessors at end-of-file (no anchor shift of BC anchors at :16 or :51-58) |
 | `tests/reassembly_flow_tests.rs` | modify | Add AC-006 through AC-009 tests |
 | `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-005, AC-010 through AC-014 |
+
+## Changelog
+
+| Version | Date | Author | Notes |
+|---------|------|--------|-------|
+| 1.2 | 2026-05-25 | story-writer | Wave 7 Ph3 adv-pass-1 fixes: F-2 (AC-014 "no second eprintln" sub-property promoted to BC-2.04.048 Architecture Compliance Rule with code-review enforcement, mirroring BC-2.04.048 inv-3 precedent); F-3 (AC-011 amended to explicitly include `overlap_count` and `out_of_window_count` for full BC-2.04.032 PC4 coverage); F-5 (AC-013 + AC-014 + EC-007 collapsed into a single combined-test entry with documented rationale for the process-global atomic ordering constraint; combined test name `test_BC_2_04_048_isn_missing_warned_fires_once_then_suppressed()` formally recorded); F-6 (AC-001 amended to assert first data event has `Direction::ClientToServer`, providing observable proof of BC-2.04.009 PC3 initiator-set property). Added Architecture Compliance Rule rows for swap-guard code review and `#[doc(hidden)]` test-accessor hygiene. Added segment.rs to File Structure Requirements with append-only annotation. |
+| 1.1 | 2026-05-21 | story-writer | Initial brownfield-formalization story with full AC traceability to BC-2.04.009, BC-2.04.031, BC-2.04.032, BC-2.04.048. |
