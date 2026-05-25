@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.1"
+version: "1.2"
 status: draft
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -24,6 +24,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v1.1: Wave 7 wave-level adv-pass-1 F-1: corrected on_data_without_syn anchor references from flow.rs:241 to flow.rs:248 (Wave 6 fin_count addition shifted lines +7; W4.1 recurrence). — 2026-05-25"
+  - "v1.2: Wave 7 wave-level adv-pass-2 F-1 CRITICAL: completed the partial v1.1 fix by updating the Source Location section's on_syn/on_syn_ack/on_fin/on_rst anchors from pre-Wave-6 line numbers (229/235/248/257) to post-Wave-6 line numbers (236/242/255/264). The on_fin entry was previously colliding with on_data_without_syn at line 248 (same line claim) — corrected. Sibling-anchor sweep across all SS-04 BCs/VPs verified independently. — 2026-05-25"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -211,11 +212,11 @@ mod kani_proofs {
 ## Source Location
 
 `src/reassembly/flow.rs:77` -- `FlowState` enum definition.
-`src/reassembly/flow.rs:229` -- `TcpFlow::on_syn` (New -> SynSent).
-`src/reassembly/flow.rs:235` -- `TcpFlow::on_syn_ack` (SynSent/New -> Established).
+`src/reassembly/flow.rs:236` -- `TcpFlow::on_syn` (New -> SynSent).
+`src/reassembly/flow.rs:242` -- `TcpFlow::on_syn_ack` (SynSent/New -> Established).
 `src/reassembly/flow.rs:248` -- `TcpFlow::on_data_without_syn` (no-arg; New -> Established, sets partial=true).
-`src/reassembly/flow.rs:248` -- `TcpFlow::on_fin` (Established/SynSent -> Closing; second FIN -> Closed).
-`src/reassembly/flow.rs:257` -- `TcpFlow::on_rst` (any state -> Closed).
+`src/reassembly/flow.rs:255` -- `TcpFlow::on_fin` (Established/SynSent -> Closing; second FIN -> Closed).
+`src/reassembly/flow.rs:264` -- `TcpFlow::on_rst` (any state -> Closed).
 `src/reassembly/flow.rs:185` -- `TcpFlow::state` pub field (access as `flow.state`, not `flow.state()`).
 Note: FIN/RST state changes are implemented directly on `TcpFlow` in `flow.rs`;
 `lifecycle.rs` handles flow retirement (memcap eviction, close_flow), not state transitions.

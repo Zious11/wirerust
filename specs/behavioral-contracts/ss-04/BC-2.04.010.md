@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 7 wave-level adv-pass-2 F-2 HIGH: comprehensive SS-04 anchor sweep (W4.1 axis #3). Corrected Architecture Anchors on_rst reference from flow.rs:257-259 (pre-Wave-6) to flow.rs:264-266 (post-Wave-6 +7 line shift from fin_count addition). — 2026-05-25"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -106,7 +107,7 @@ this packet. The flow is removed from the `flows` HashMap by `close_flow`.
 
 - `src/reassembly/mod.rs:272-278` -- RST block in apply_handshake_flags
 - `src/reassembly/lifecycle.rs:36-62` -- close_flow: flush + remove + on_flow_close
-- `src/reassembly/flow.rs:257-259` -- on_rst: unconditional state=Closed
+- `src/reassembly/flow.rs:264-266` -- on_rst: unconditional state=Closed
 
 ## Source Evidence
 

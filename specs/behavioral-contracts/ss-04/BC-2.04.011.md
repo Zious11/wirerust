@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 7 wave-level adv-pass-2 F-2 HIGH: comprehensive SS-04 anchor sweep (W4.1 axis #3). Corrected on_fin reference from flow.rs:248-256 (pre-Wave-6, also semantically colliding with on_data_without_syn) to flow.rs:255-262 (post-Wave-6). Fixed in both Traceability Architecture Module row and Architecture Anchors section. — 2026-05-25"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -89,7 +90,7 @@ FIN also transitions the state toward `Closing`.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- FIN-based flow close is required for correct TCP lifecycle management |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:166-173, FIN-close detection; mod.rs:281-287, FIN flag block; flow.rs:248-256, on_fin) |
+| Architecture Module | SS-04 (reassembly/mod.rs:166-173, FIN-close detection; mod.rs:281-287, FIN flag block; flow.rs:255-262, on_fin) |
 | Stories | STORY-019 |
 | Origin BC | BC-RAS-011 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -103,7 +104,7 @@ FIN also transitions the state toward `Closing`.
 
 - `src/reassembly/mod.rs:166-173` -- process_packet: if state==Closed after payload, close_flow(Fin)
 - `src/reassembly/mod.rs:281-287` -- FIN flag block: set fin_seen, call on_fin
-- `src/reassembly/flow.rs:248-256` -- on_fin: fin_count++; state transitions
+- `src/reassembly/flow.rs:255-262` -- on_fin: fin_count++; state transitions
 
 ## Source Evidence
 
