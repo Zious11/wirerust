@@ -1893,3 +1893,176 @@ fn test_BC_2_04_053_ec010_direction_none_initiator_returns_server_to_client() {
         "EC-010: initiator=None → direction() always returns ServerToClient for any src"
     );
 }
+
+// ---------------------------------------------------------------------------
+// STORY-019: flow-level state-transition stubs for on_fin / on_rst
+//
+// These complement the engine-level tests in reassembly_engine_tests.rs.
+// They exercise TcpFlow::on_fin and TcpFlow::on_rst directly (pure state
+// machine, no engine or handler involved).
+//
+// AC-005 / BC-2.04.011 invariant 1 — first FIN → Closing
+// AC-008 / BC-2.04.011 EC-002    — same-direction FIN retransmit → Closed
+// EC-004 (STORY-019)             — FIN on New flow state path
+// EC-005 (STORY-019)             — FIN + data ordering at flow level
+//
+// PART A: stub-only bodies — panic!("STORY-019 stub — Red Gate").
+// ---------------------------------------------------------------------------
+
+/// AC-005 flow-level (BC-2.04.011 invariant 1)
+/// `on_fin()` called once on an Established flow: state becomes Closing,
+/// `fin_count` becomes 1. Flow is not yet Closed.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_011_flow_first_fin_state_becomes_closing() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_a, 1000, ip_b, 80), 0);
+
+    // Reach Established via SYN+ACK.
+    flow.on_syn_ack();
+    assert_eq!(
+        flow.state,
+        FlowState::Established,
+        "precondition: flow must be Established before first FIN"
+    );
+
+    // First FIN.
+    flow.on_fin();
+
+    // BC-2.04.011 inv-1: state becomes Closing, fin_count becomes 1.
+    assert_eq!(
+        flow.state,
+        FlowState::Closing,
+        "BC-2.04.011 inv-1: first on_fin() from Established must → Closing"
+    );
+    assert_eq!(
+        flow.fin_count(),
+        1,
+        "BC-2.04.011 inv-1: fin_count() must be exactly 1 after first on_fin()"
+    );
+    // Flow is NOT yet Closed.
+    assert_ne!(
+        flow.state,
+        FlowState::Closed,
+        "BC-2.04.011 inv-1: flow must NOT be Closed after first FIN (still in Closing)"
+    );
+}
+
+/// AC-008 flow-level (BC-2.04.011 EC-002 — same-direction retransmit)
+/// `on_fin()` called twice from an Established state (simulating same-direction
+/// retransmit at the flow level): after the second call `fin_count >= 2` and
+/// `state == FlowState::Closed`.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_011_flow_same_direction_two_fins_reach_closed() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_a, 1000, ip_b, 80), 0);
+
+    // Reach Established.
+    flow.on_syn_ack();
+    assert_eq!(flow.state, FlowState::Established);
+
+    // First FIN: Established → Closing, fin_count=1.
+    flow.on_fin();
+    assert_eq!(
+        flow.state,
+        FlowState::Closing,
+        "AC-008 precondition: state must be Closing after first FIN"
+    );
+    assert_eq!(
+        flow.fin_count(),
+        1,
+        "AC-008 precondition: fin_count must be 1"
+    );
+
+    // Second FIN from same direction (retransmit): fin_count=2 → Closed.
+    flow.on_fin();
+    assert_eq!(
+        flow.state,
+        FlowState::Closed,
+        "BC-2.04.011 EC-002: second on_fin() (same direction) must → Closed (fin_count >= 2)"
+    );
+    assert_eq!(
+        flow.fin_count(),
+        2,
+        "BC-2.04.011 EC-002: fin_count() must be exactly 2 after two on_fin() calls"
+    );
+}
+
+/// EC-004 flow-level (STORY-019 — FIN on New flow)
+/// `on_fin()` called on a New flow (no handshake): for state=New, the first
+/// FIN leaves state=New (Closing guard only applies to Established/SynSent).
+/// Second `on_fin()` reaches fin_count=2 → state=Closed.
+///
+/// NOTE: This test mirrors BC-2.04.050 row-8c behavior: on_fin() from New does
+/// NOT transition to Closing on the first call (the Closing guard only covers
+/// Established and SynSent). The fin_count >= 2 check fires on the second call.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_011_flow_fin_on_new_state_transitions() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_a, 1000, ip_b, 80), 0);
+
+    assert_eq!(
+        flow.state,
+        FlowState::New,
+        "precondition: flow starts in New"
+    );
+
+    // First FIN from New: fin_count=1, state stays New (guard only covers Established/SynSent).
+    flow.on_fin();
+    assert_eq!(
+        flow.state,
+        FlowState::New,
+        "EC-004: first on_fin() from New must leave state=New (Closing guard only for Established/SynSent)"
+    );
+    assert_eq!(
+        flow.fin_count(),
+        1,
+        "EC-004: fin_count() must be 1 after first on_fin() from New"
+    );
+
+    // Second FIN: fin_count=2 → fin_count >= 2 fires → Closed.
+    flow.on_fin();
+    assert_eq!(
+        flow.state,
+        FlowState::Closed,
+        "EC-004: second on_fin() from New (fin_count >= 2) must → Closed"
+    );
+    assert_eq!(
+        flow.fin_count(),
+        2,
+        "EC-004: fin_count() must be 2 after second on_fin()"
+    );
+}
+
+/// EC-004 flow-level RST counterpart (STORY-019 / BC-2.04.010 invariant 1)
+/// `on_rst()` called on a Closing flow: state becomes Closed unconditionally
+/// (on_rst has no state guard, mirrors the established pattern from STORY-013).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_010_flow_rst_on_closing_state_becomes_closed() {
+    let ip_a = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+    let ip_b = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+    let mut flow = TcpFlow::new(FlowKey::new(ip_a, 1000, ip_b, 80), 0);
+
+    // Reach Closing via Established → first FIN.
+    flow.on_syn_ack(); // New → Established
+    flow.on_fin(); // Established → Closing
+    assert_eq!(
+        flow.state,
+        FlowState::Closing,
+        "precondition: flow must be in Closing before RST"
+    );
+
+    // RST from Closing: must unconditionally → Closed (no state guard).
+    flow.on_rst();
+    assert_eq!(
+        flow.state,
+        FlowState::Closed,
+        "BC-2.04.010 inv-1: on_rst() from Closing must → Closed unconditionally"
+    );
+}

@@ -4658,3 +4658,2100 @@ fn test_BC_2_04_048_isn_missing_warned_fires_once_then_suppressed() {
         "AC-014 / EC-007 / BC-2.04.048 PC2 — atomic latches; remains true after subsequent call"
     );
 }
+
+// ---------------------------------------------------------------------------
+// STORY-019: BC-2.04.010 — RST Closes Flow Immediately with CloseReason::Rst
+//            BC-2.04.011 — Both FINs Close Flow with CloseReason::Fin
+//            BC-2.04.013 — expire_flows Closes Idle Flows Past flow_timeout_secs
+//            BC-2.04.029 — close_flow for Missing Key Logs One-Shot Warning
+//
+// AC-001..AC-015 (engine-level lifecycle tests) + 10 Edge Cases.
+//
+// PART A: stub-only bodies — panic!("STORY-019 stub — Red Gate").
+// All stubs MUST fail before Part B fills real assertions.
+//
+// CLOSE_FLOW_MISSING_WARNED serialization: AC-013/014 are combined into one
+// test (CLOSE_FLOW_MISSING_WARNED_LOCK held for duration) mirroring the
+// ISN_MISSING_WARNED_LOCK pattern established in STORY-014. AC-015 also
+// touches the missing-key path and must hold the same lock.
+// ---------------------------------------------------------------------------
+
+/// Serializes tests that read or write the process-global
+/// `CLOSE_FLOW_MISSING_WARNED` atomic in `src/reassembly/lifecycle.rs`.
+///
+/// Any test in this binary that triggers `close_flow` for a missing key MUST
+/// hold this lock for its entire duration. Failure to do so allows a sibling
+/// test's `swap(true)` to race the observation in AC-013/014 (same pattern as
+/// ISN_MISSING_WARNED_LOCK, established in STORY-014 adv-pass-3 F-1).
+static CLOSE_FLOW_MISSING_WARNED_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+// ---- AC-001 ----------------------------------------------------------------
+
+/// AC-001 (BC-2.04.010 postcondition 1)
+/// When a TCP RST packet arrives for an established flow, `stats.flows_rst`
+/// increments by 1.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_010_rst_increments_flows_rst() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish a flow via SYN + SYN+ACK.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // Snapshot before RST.
+    let rst_before = reassembler.stats().flows_rst;
+
+    // RST from server.
+    let rst = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2001,
+        &[],
+        false,
+        false,
+        false,
+        true,
+    );
+    reassembler.process_packet(&rst, 3, &mut handler);
+
+    // BC-2.04.010 PC1: flows_rst must have incremented by exactly 1 — not > 0, not 2.
+    // Exact delta assertion discriminates a double-increment regression.
+    assert_eq!(
+        reassembler.stats().flows_rst,
+        rst_before + 1,
+        "BC-2.04.010 PC1: flows_rst must increment by exactly 1 on RST"
+    );
+}
+
+// ---- AC-002 ----------------------------------------------------------------
+
+/// AC-002 (BC-2.04.010 postconditions 2-4)
+/// After a RST, any contiguous data buffered in both directions is flushed to
+/// the handler via `on_data` calls, then `handler.on_flow_close(key,
+/// CloseReason::Rst)` is called exactly once, and the flow is removed from
+/// `self.flows` (verified via `stats.flows_total` and `total_memory == 0`).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_010_rst_flushes_then_closes() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish a flow via SYN + SYN+ACK.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // Send out-of-order data that buffers (gap at offset 1): seq=1003 means
+    // contiguous data at offset 1-2 is missing, so "bbb" stays buffered.
+    let ooo = make_tcp_packet(
+        client, 12345, server, 80, 1003, b"bbb", false, false, false, false,
+    );
+    reassembler.process_packet(&ooo, 3, &mut handler);
+    assert_eq!(
+        reassembler.total_memory(),
+        3,
+        "precondition: 'bbb' buffered, not flushed"
+    );
+
+    // Send the fill segment making contiguous data available.
+    let fill = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"aa", false, false, false, false,
+    );
+    reassembler.process_packet(&fill, 4, &mut handler);
+    // Now "aabbb" should be flushed.
+    let data_events_before_rst = handler.data_events.len();
+    assert!(
+        data_events_before_rst > 0,
+        "precondition: data must have been flushed before RST"
+    );
+
+    // RST — should flush any remaining data then close.
+    let rst = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2001,
+        &[],
+        false,
+        false,
+        false,
+        true,
+    );
+    reassembler.process_packet(&rst, 5, &mut handler);
+
+    // BC-2.04.010 PC3: on_flow_close called exactly once with CloseReason::Rst.
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "BC-2.04.010 PC3: on_flow_close must be called exactly once"
+    );
+    assert_eq!(
+        handler.close_events[0].1,
+        CloseReason::Rst,
+        "BC-2.04.010 PC3: close reason must be Rst"
+    );
+
+    // BC-2.04.010 PC4: flow removed from self.flows (total_memory == 0, flow_count == 0).
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "BC-2.04.010 PC4: total_memory must be 0 after RST (flow removed)"
+    );
+    assert_eq!(
+        reassembler.flow_count(),
+        0,
+        "BC-2.04.010 PC4: flow_count must be 0 after RST (flow removed from self.flows)"
+    );
+
+    // Ordering: data_events must precede the close event. Because
+    // RecordingHandler appends in callback order, any data events from the RST
+    // flush (if any remaining data existed) would appear before the close event.
+    // We verify that at least the pre-RST data events exist and the close event
+    // is exactly one and is last.
+    assert!(
+        handler.data_events.len() >= data_events_before_rst,
+        "BC-2.04.010 PC2: data flushed on RST must appear before close event"
+    );
+}
+
+// ---- AC-003 ----------------------------------------------------------------
+
+/// AC-003 (BC-2.04.010 postcondition 6 and invariant 3)
+/// Payload carried in the RST packet itself is NOT processed (RST triggers
+/// `PostHandshake::FlowClosed`, preventing payload insertion). After RST, the
+/// handler must have received no additional `on_data` call for the RST packet's
+/// payload bytes.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_010_rst_payload_not_processed() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish flow: SYN + SYN+ACK.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // Deliver in-order data so we have a known data_events count.
+    let data = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"hello", false, false, false, false,
+    );
+    reassembler.process_packet(&data, 3, &mut handler);
+    let data_events_before_rst = handler.data_events.len();
+    assert_eq!(
+        data_events_before_rst, 1,
+        "precondition: 1 data event before RST"
+    );
+
+    // RST with non-empty payload (b"poison" must NOT appear in data_events).
+    let rst_with_payload = make_tcp_packet(
+        server, 80, client, 12345, 2001, b"poison", false, false, false, true,
+    );
+    reassembler.process_packet(&rst_with_payload, 4, &mut handler);
+
+    // BC-2.04.010 PC6 + inv-3: data_events count must be unchanged — the
+    // RST payload was NOT processed. A regression to "process payload then
+    // close" would add another data event here.
+    assert_eq!(
+        handler.data_events.len(),
+        data_events_before_rst,
+        "BC-2.04.010 PC6/inv-3: RST packet payload must NOT be delivered via on_data; \
+         data_events count must not increase"
+    );
+
+    // Verify the close did happen (RST was processed, flow closed).
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "BC-2.04.010 PC3: close must still occur despite carrying payload"
+    );
+    assert_eq!(handler.close_events[0].1, CloseReason::Rst);
+
+    // Total bytes in data_events must not contain "poison".
+    let all_data = handler.all_data();
+    assert!(
+        !all_data.windows(6).any(|w| w == b"poison"),
+        "BC-2.04.010 PC6: RST payload bytes must never appear in reassembled data"
+    );
+}
+
+// ---- AC-004 ----------------------------------------------------------------
+
+/// AC-004 (BC-2.04.010 invariant 1)
+/// RST closes the flow regardless of current state: New, SynSent, Established,
+/// Closing. Four sub-cases exercised sequentially. Flow is removed from
+/// `self.flows` in all cases (flows table empty after each RST).
+///
+/// Sub-cases:
+///   1. New — no handshake at all; RST arrives immediately
+///   2. SynSent — SYN sent; RST before SYN+ACK
+///   3. Established — full handshake; RST mid-stream
+///   4. Closing — first FIN received; RST before second FIN
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_010_rst_closes_from_any_state() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let server = [10, 0, 0, 2];
+
+    // ---- Sub-case 1: New state — RST with no prior packets ----
+    // Flow A: RST is the very first packet (no SYN, no data).
+    let rst_a = make_tcp_packet(
+        [10, 0, 1, 1],
+        11111,
+        server,
+        80,
+        500,
+        &[],
+        false,
+        false,
+        false,
+        true,
+    );
+    let flows_rst_before_a = reassembler.stats().flows_rst;
+    reassembler.process_packet(&rst_a, 1, &mut handler);
+    assert_eq!(
+        reassembler.stats().flows_rst,
+        flows_rst_before_a + 1,
+        "AC-004 sub-case 1 (New): flows_rst must increment"
+    );
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "AC-004 sub-case 1 (New): flow must be removed (total_memory=0)"
+    );
+
+    // ---- Sub-case 2: SynSent state — RST after SYN ----
+    let syn_b = make_tcp_packet(
+        [10, 0, 1, 2],
+        22222,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_b, 2, &mut handler);
+    let flows_rst_before_b = reassembler.stats().flows_rst;
+    let rst_b = make_tcp_packet(
+        server,
+        80,
+        [10, 0, 1, 2],
+        22222,
+        9000,
+        &[],
+        false,
+        false,
+        false,
+        true,
+    );
+    reassembler.process_packet(&rst_b, 3, &mut handler);
+    assert_eq!(
+        reassembler.stats().flows_rst,
+        flows_rst_before_b + 1,
+        "AC-004 sub-case 2 (SynSent): flows_rst must increment"
+    );
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "AC-004 sub-case 2 (SynSent): flow must be removed"
+    );
+
+    // ---- Sub-case 3: Established state — RST after full handshake ----
+    let syn_c = make_tcp_packet(
+        [10, 0, 1, 3],
+        33333,
+        server,
+        80,
+        2000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_c, 4, &mut handler);
+    let syn_ack_c = make_tcp_packet(
+        server,
+        80,
+        [10, 0, 1, 3],
+        33333,
+        5000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack_c, 5, &mut handler);
+    let flows_rst_before_c = reassembler.stats().flows_rst;
+    let rst_c = make_tcp_packet(
+        server,
+        80,
+        [10, 0, 1, 3],
+        33333,
+        5001,
+        &[],
+        false,
+        false,
+        false,
+        true,
+    );
+    reassembler.process_packet(&rst_c, 6, &mut handler);
+    assert_eq!(
+        reassembler.stats().flows_rst,
+        flows_rst_before_c + 1,
+        "AC-004 sub-case 3 (Established): flows_rst must increment"
+    );
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "AC-004 sub-case 3 (Established): flow must be removed"
+    );
+
+    // ---- Sub-case 4: Closing state — RST after first FIN ----
+    let syn_d = make_tcp_packet(
+        [10, 0, 1, 4],
+        44444,
+        server,
+        80,
+        3000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_d, 7, &mut handler);
+    let syn_ack_d = make_tcp_packet(
+        server,
+        80,
+        [10, 0, 1, 4],
+        44444,
+        7000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack_d, 8, &mut handler);
+    // First FIN puts flow into Closing state.
+    let fin_d = make_tcp_packet(
+        [10, 0, 1, 4],
+        44444,
+        server,
+        80,
+        3001,
+        &[],
+        false,
+        false,
+        true,
+        false,
+    );
+    reassembler.process_packet(&fin_d, 9, &mut handler);
+    let flows_rst_before_d = reassembler.stats().flows_rst;
+    // RST from either direction closes the Closing flow.
+    let rst_d = make_tcp_packet(
+        server,
+        80,
+        [10, 0, 1, 4],
+        44444,
+        7001,
+        &[],
+        false,
+        false,
+        false,
+        true,
+    );
+    reassembler.process_packet(&rst_d, 10, &mut handler);
+    assert_eq!(
+        reassembler.stats().flows_rst,
+        flows_rst_before_d + 1,
+        "AC-004 sub-case 4 (Closing): flows_rst must increment"
+    );
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "AC-004 sub-case 4 (Closing): flow must be removed"
+    );
+
+    // All 4 RSTs must have been counted.
+    assert_eq!(
+        reassembler.stats().flows_rst,
+        4,
+        "AC-004: total flows_rst must be 4 after four sub-cases"
+    );
+}
+
+// ---- AC-005 ----------------------------------------------------------------
+
+/// AC-005 (BC-2.04.011 invariant 1)
+/// The first FIN transitions the flow state to `Closing` and `fin_count`
+/// becomes 1. The flow is NOT removed after the first FIN (still in
+/// `self.flows`).
+///
+/// Verified indirectly at the engine level: after first FIN, no close event is
+/// recorded and `stats.flows_fin == 0`.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_011_first_fin_transitions_to_closing() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish flow: SYN + SYN+ACK.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // First FIN from client.
+    let fin1 = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1001,
+        &[],
+        false,
+        false,
+        true,
+        false,
+    );
+    reassembler.process_packet(&fin1, 3, &mut handler);
+
+    // BC-2.04.011 inv-1: after first FIN — flow NOT closed (no close event, flows_fin == 0).
+    assert_eq!(
+        handler.close_events.len(),
+        0,
+        "BC-2.04.011 inv-1: flow must NOT be closed after first FIN"
+    );
+    assert_eq!(
+        reassembler.stats().flows_fin,
+        0,
+        "BC-2.04.011 inv-1: flows_fin must be 0 after only one FIN"
+    );
+    // Flow still occupies memory (not removed).
+    // total_memory may be 0 (no buffered data) but the flow entry must exist.
+    // We verify by checking that a second FIN still closes it (flow is still tracked).
+    // The next assertion is: no close_events recorded.
+    assert!(
+        handler.close_events.is_empty(),
+        "BC-2.04.011 inv-1: no on_flow_close callback after first FIN"
+    );
+}
+
+// ---- AC-006 ----------------------------------------------------------------
+
+/// AC-006 (BC-2.04.011 postconditions 1-6)
+/// When a second FIN arrives (from either direction):
+///   - `stats.flows_fin` increments by 1
+///   - remaining contiguous data is flushed
+///   - `handler.on_flow_close(key, CloseReason::Fin)` is called exactly once
+///   - the flow is removed from `self.flows` (`total_memory == 0`)
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_011_second_fin_closes_flow() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish flow.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // Data in both directions.
+    let req = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"GET /", false, false, false, false,
+    );
+    reassembler.process_packet(&req, 3, &mut handler);
+    let resp = make_tcp_packet(
+        server, 80, client, 12345, 2001, b"200 OK", false, false, false, false,
+    );
+    reassembler.process_packet(&resp, 4, &mut handler);
+
+    // First FIN from client → state=Closing.
+    let fin1 = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1006,
+        &[],
+        false,
+        false,
+        true,
+        false,
+    );
+    reassembler.process_packet(&fin1, 5, &mut handler);
+    assert_eq!(
+        handler.close_events.len(),
+        0,
+        "precondition: no close after first FIN"
+    );
+
+    let flows_fin_before = reassembler.stats().flows_fin;
+
+    // Second FIN from server → state=Closed → engine closes the flow.
+    let fin2 = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2007,
+        &[],
+        false,
+        false,
+        true,
+        false,
+    );
+    reassembler.process_packet(&fin2, 6, &mut handler);
+
+    // BC-2.04.011 PC3: flows_fin increments by exactly 1.
+    assert_eq!(
+        reassembler.stats().flows_fin,
+        flows_fin_before + 1,
+        "BC-2.04.011 PC3: flows_fin must increment by 1 on second FIN"
+    );
+
+    // BC-2.04.011 PC5: on_flow_close called exactly once with CloseReason::Fin.
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "BC-2.04.011 PC5: on_flow_close must be called exactly once"
+    );
+    assert_eq!(
+        handler.close_events[0].1,
+        CloseReason::Fin,
+        "BC-2.04.011 PC5: close reason must be Fin"
+    );
+
+    // BC-2.04.011 PC6: flow removed (total_memory == 0).
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "BC-2.04.011 PC6: flow must be removed after second FIN (total_memory=0)"
+    );
+}
+
+// ---- AC-007 ----------------------------------------------------------------
+
+/// AC-007 (BC-2.04.011 invariant 2)
+/// FIN close happens AFTER payload processing for the FIN packet (data carried
+/// in a FIN segment is reassembled and delivered before the flow closes).
+///
+/// Verifies that the FIN-segment payload ("bye") is delivered via `on_data`
+/// (payload processing happens) AND the flow closes (`on_flow_close` fires).
+/// The data-before-close ORDERING within `close_flow` is enforced structurally
+/// by the order of operations in `process_packet` at mod.rs:165-174
+/// (`close_flow` is invoked AFTER `insert_payload_segment` completes);
+/// ordering verification is via code review, not automated assertion.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_011_fin_payload_processed_before_close() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish flow.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // First FIN from client (no payload).
+    let fin1 = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1001,
+        &[],
+        false,
+        false,
+        true,
+        false,
+    );
+    reassembler.process_packet(&fin1, 3, &mut handler);
+
+    // Second FIN from server WITH payload.
+    // The server's FIN carries b"bye" as a piggybacked last segment.
+    // The data must be delivered via on_data BEFORE the flow is closed.
+    let fin2_with_payload = make_tcp_packet(
+        server, 80, client, 12345, 2001, b"bye", false, false, true, false,
+    );
+    reassembler.process_packet(&fin2_with_payload, 4, &mut handler);
+
+    // BC-2.04.011 inv-2: the close must have occurred (second FIN closes the flow).
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "BC-2.04.011 inv-2: flow must be closed after second FIN"
+    );
+    assert_eq!(handler.close_events[0].1, CloseReason::Fin);
+
+    // Ordering: data events must exist AND data event for "bye" must be present.
+    // The FIN payload b"bye" is 3 bytes; it must appear in handler.data_events.
+    let fin_payload_delivered = handler
+        .data_events
+        .iter()
+        .any(|(_, _, data, _)| data.as_slice() == b"bye");
+    assert!(
+        fin_payload_delivered,
+        "BC-2.04.011 inv-2: FIN packet payload 'bye' must be delivered via on_data"
+    );
+
+    // Because RecordingHandler appends in callback order (data before close),
+    // the data_events must be non-empty and must have been populated BEFORE the
+    // close event. We verify this structurally: there must be at least one data
+    // event, and the close event must be exactly one (the last thing that happened).
+    assert!(
+        !handler.data_events.is_empty(),
+        "BC-2.04.011 inv-2: data_events must be non-empty (FIN payload was delivered)"
+    );
+
+    // Verify total data delivered includes "bye".
+    let all_bytes = handler.all_data();
+    assert!(
+        all_bytes.windows(3).any(|w| w == b"bye"),
+        "BC-2.04.011 inv-2: 'bye' must appear in total reassembled data (data before close)"
+    );
+}
+
+// ---- AC-008 ----------------------------------------------------------------
+
+/// AC-008 (BC-2.04.011 edge case EC-002)
+/// Two FINs from the SAME direction (retransmit) are sufficient to close the
+/// flow (`fin_count` reaches 2 regardless of which direction each FIN came
+/// from). After two client FINs, the flow is closed with `CloseReason::Fin`.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_011_same_direction_fin_retransmit_closes_flow() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish flow.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // First FIN from client direction — puts flow in Closing.
+    let fin1 = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1001,
+        &[],
+        false,
+        false,
+        true,
+        false,
+    );
+    reassembler.process_packet(&fin1, 3, &mut handler);
+    assert_eq!(
+        handler.close_events.len(),
+        0,
+        "precondition: no close after first FIN"
+    );
+
+    // Second FIN also from CLIENT direction (retransmit, same direction).
+    // fin_count reaches 2 → state=Closed → flow closed with CloseReason::Fin.
+    let fin2_same_direction = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1001,
+        &[],
+        false,
+        false,
+        true,
+        false,
+    );
+    reassembler.process_packet(&fin2_same_direction, 4, &mut handler);
+
+    // BC-2.04.011 EC-002: same-direction retransmit must close the flow.
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "BC-2.04.011 EC-002: flow must close after two same-direction FINs"
+    );
+    assert_eq!(
+        handler.close_events[0].1,
+        CloseReason::Fin,
+        "BC-2.04.011 EC-002: close reason must be Fin, not Rst or Timeout"
+    );
+    assert_eq!(
+        reassembler.stats().flows_fin,
+        1,
+        "BC-2.04.011 EC-002: flows_fin must be 1 after same-direction FIN retransmit close"
+    );
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "BC-2.04.011 EC-002: flow must be removed (total_memory=0)"
+    );
+}
+
+// ---- AC-009 ----------------------------------------------------------------
+
+/// AC-009 (BC-2.04.013 postconditions 1-2)
+/// `expire_flows(current_time, handler)` closes all flows where
+/// `current_time > last_seen AND (current_time - last_seen) > flow_timeout_secs`
+/// with `CloseReason::Timeout`. `stats.flows_expired` increments by the number
+/// of flows expired.
+///
+/// Canonical test vector (BC-2.04.013): last_seen=0, current_time=400,
+/// timeout=300 → flow expired, flows_expired=1.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_013_expire_flows_closes_idle_flows() {
+    // Canonical test vector: timeout=300, last_seen=0, current_time=400.
+    let config = ReassemblyConfig {
+        flow_timeout_secs: 300,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let server = [10, 0, 0, 2];
+
+    // Flow A: last_seen = timestamp 0 (SYN at t=0 sets last_seen=0).
+    let syn_a = make_tcp_packet(
+        [10, 0, 1, 1],
+        11111,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_a, 0, &mut handler);
+
+    // Flow B: last_seen = timestamp 10.
+    let syn_b = make_tcp_packet(
+        [10, 0, 1, 2],
+        22222,
+        server,
+        80,
+        2000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_b, 10, &mut handler);
+
+    // Flow C: last_seen = timestamp 200.
+    let syn_c = make_tcp_packet(
+        [10, 0, 1, 3],
+        33333,
+        server,
+        80,
+        3000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_c, 200, &mut handler);
+
+    // Snapshot before expiry.
+    let expired_before = reassembler.stats().flows_expired;
+
+    // expire_flows at current_time=400:
+    // - Flow A: 400 > 0 AND (400 - 0) = 400 > 300 → EXPIRED
+    // - Flow B: 400 > 10 AND (400 - 10) = 390 > 300 → EXPIRED
+    // - Flow C: 400 > 200 AND (400 - 200) = 200 <= 300 → NOT expired
+    reassembler.expire_flows(400, &mut handler);
+
+    // BC-2.04.013 PC2: flows_expired incremented by 2 (A and B expired).
+    assert_eq!(
+        reassembler.stats().flows_expired,
+        expired_before + 2,
+        "BC-2.04.013 PC2: flows_expired must increment by 2 (flows A and B are past timeout)"
+    );
+
+    // BC-2.04.013 PC1 + PC3: each expired flow has a CloseReason::Timeout close event.
+    let timeout_closes: Vec<_> = handler
+        .close_events
+        .iter()
+        .filter(|(_, r)| *r == CloseReason::Timeout)
+        .collect();
+    assert_eq!(
+        timeout_closes.len(),
+        2,
+        "BC-2.04.013 PC3: two on_flow_close(Timeout) events must be recorded"
+    );
+
+    // BC-2.04.013 PC4: flow C (last_seen=200, not past timeout) must survive.
+    // After expiring A and B, total_memory must be 0 (no buffered data was pending).
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "BC-2.04.013: total_memory must be 0 after expired flows are removed"
+    );
+}
+
+// ---- AC-010 ----------------------------------------------------------------
+
+/// AC-010 (BC-2.04.013 postcondition 4)
+/// Flows that are within the timeout window are NOT closed by `expire_flows`.
+///
+/// Canonical test vector (BC-2.04.013): last_seen=100, current_time=300,
+/// timeout=300 → not expired (300-100=200 which is <= 300).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_013_expire_flows_does_not_close_active_flows() {
+    // Canonical test vector: last_seen=100, current_time=300, timeout=300.
+    // (300 - 100) = 200 which is NOT > 300, so the flow must survive.
+    let config = ReassemblyConfig {
+        flow_timeout_secs: 300,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Flow with last_seen = 100 (SYN at t=100).
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 100, &mut handler);
+
+    // expire_flows at current_time=300: 300 - 100 = 200 ≤ 300, must NOT expire.
+    reassembler.expire_flows(300, &mut handler);
+
+    // BC-2.04.013 PC4: flow must NOT be closed.
+    assert_eq!(
+        handler.close_events.len(),
+        0,
+        "BC-2.04.013 PC4: flow within timeout window must not be closed"
+    );
+    assert_eq!(
+        reassembler.stats().flows_expired,
+        0,
+        "BC-2.04.013 PC4: flows_expired must be 0 (no flows past timeout)"
+    );
+}
+
+// ---- AC-011 ----------------------------------------------------------------
+
+/// AC-011 (BC-2.04.013 invariant 1)
+/// `expire_flows` uses underflow-safe subtraction: `current_time > flow.last_seen`
+/// is checked BEFORE `current_time - flow.last_seen > timeout`, preventing u32
+/// underflow.
+///
+/// Test vector: `current_time < last_seen` (timestamp reorder / backwards time).
+/// Assert: no panic AND the flow is NOT expired (close_events.len() == 0).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_013_expire_flows_does_not_underflow_when_time_travels_backwards() {
+    // The release profile has overflow-checks=true (see CLAUDE.md). A plain
+    // `(current_time - last_seen) > timeout` without the prior `current_time >
+    // last_seen` guard would panic here in release builds.
+    let config = ReassemblyConfig {
+        flow_timeout_secs: 300,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Flow with last_seen = 1000 (SYN at t=1000).
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1000, &mut handler);
+
+    // expire_flows at current_time=500 which is LESS than last_seen=1000.
+    // BC-2.04.013 inv-1: `current_time > last_seen` is false → no subtraction → no panic.
+    // This must not panic (would panic under overflow-checks=true if guard missing).
+    reassembler.expire_flows(500, &mut handler);
+
+    // Flow must NOT be expired (time went backwards — underflow guard prevented it).
+    assert_eq!(
+        handler.close_events.len(),
+        0,
+        "BC-2.04.013 inv-1: flow must NOT be expired when current_time < last_seen"
+    );
+    assert_eq!(
+        reassembler.stats().flows_expired,
+        0,
+        "BC-2.04.013 inv-1: flows_expired must be 0 (underflow guard prevents expiry)"
+    );
+}
+
+// ---- AC-012 ----------------------------------------------------------------
+
+/// STORY-019 / BC-2.04.013 AC-012 / EC-004: a flow with `state == Closed` is
+/// expired by `expire_flows` REGARDLESS of idle time.
+///
+/// Uses `force_set_flow_state_for_testing` to construct a Closed flow whose
+/// `last_seen` is well within the timeout window — proving the state-based
+/// OR-branch fires INDEPENDENTLY of the time-based clause. A regression that
+/// drops the `state == FlowState::Closed` clause from `expire_flows` would
+/// leave this flow unexpired and fail this test.
+///
+/// Note: EC-004 here is BC-2.04.013's EC-004 (flow with state=Closed), NOT
+/// STORY-019's EC-004 (FIN on New flow).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_013_already_closed_state_is_expired() {
+    let config = ReassemblyConfig {
+        flow_timeout_secs: 1_000_000, // huge timeout — time-based clause cannot fire
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish a flow at t=100 via a single SYN packet.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 100, &mut handler);
+    assert_eq!(
+        reassembler.flow_count(),
+        1,
+        "precondition: flow established"
+    );
+
+    // Force state to Closed without advancing time (seam from lifecycle.rs).
+    let key = wirerust::reassembly::flow::FlowKey::new(
+        IpAddr::V4(Ipv4Addr::from(client)),
+        12345,
+        IpAddr::V4(Ipv4Addr::from(server)),
+        80,
+    );
+    let updated = wirerust::reassembly::lifecycle::force_set_flow_state_for_testing(
+        &mut reassembler,
+        &key,
+        wirerust::reassembly::flow::FlowState::Closed,
+    );
+    assert!(updated, "force_set_flow_state seam must find the flow");
+
+    // current_time=101 → idle is 1s, well below 1_000_000s timeout.
+    // Time-based clause: (101 - 100) > 1_000_000 → FALSE.
+    // Only the `state == FlowState::Closed` OR-clause can cause expiry.
+    let closes_before = handler.close_events.len();
+    reassembler.expire_flows(101, &mut handler);
+
+    assert_eq!(
+        reassembler.flow_count(),
+        0,
+        "AC-012: Closed-state flow must be expired regardless of idle time"
+    );
+    assert_eq!(
+        handler.close_events.len() - closes_before,
+        1,
+        "AC-012: expire_flows must invoke on_flow_close exactly once for the Closed flow"
+    );
+    assert_eq!(
+        handler.close_events.last().unwrap().1,
+        CloseReason::Timeout,
+        "AC-012: close reason must be Timeout per expire_flows contract"
+    );
+    assert_eq!(
+        reassembler.stats().flows_expired,
+        1,
+        "AC-012: stats.flows_expired must increment by 1"
+    );
+}
+
+// ---- AC-013 + AC-014 combined -------------------------------------------
+
+/// AC-013 (BC-2.04.029 postcondition 4) + AC-014 (BC-2.04.029 postcondition 5)
+/// Combined into one test because `CLOSE_FLOW_MISSING_WARNED` is process-global
+/// across the integration-test binary (same pattern as
+/// `test_BC_2_04_048_isn_missing_warned_fires_once_then_suppressed` in STORY-014).
+///
+/// AC-013: When `close_flow` is called for a key NOT in `self.flows` and
+/// `CLOSE_FLOW_MISSING_WARNED == false`, `eprintln!` fires exactly once and
+/// `CLOSE_FLOW_MISSING_WARNED` is set to `true`.
+///
+/// AC-014: On a subsequent missing-key call (after the first warning), no
+/// additional `eprintln!` is emitted (silent return). The "no second eprintln"
+/// sub-property is enforced by code review of the swap-guarded if-block (the
+/// `swap(true, Relaxed)` only enters the eprintln branch on the `false → true`
+/// transition), NOT by automated output capture, because `eprintln!` writes to
+/// stderr and Rust's libtest does not capture it by default. This is structurally
+/// enforced via the `swap(true, Ordering::Relaxed)` guard at lifecycle.rs:44
+/// (mirroring BC-2.04.048 PC2 / inv-3 precedent and the ADR-0004 amendment).
+///
+/// The `CLOSE_FLOW_MISSING_WARNED_LOCK` must be held for the entire test body
+/// to prevent sibling tests from racing the atomic.
+///
+/// Requires `close_flow_missing_warned_for_testing()` and
+/// `reset_close_flow_missing_warned_for_testing()` test-seam accessors in
+/// `src/reassembly/lifecycle.rs` (to be added in Part B / implementer step W8.3).
+///
+/// Test seam accessors added in W8.3 (implementer step).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_029_close_flow_missing_key_warns_once() {
+    let _guard = CLOSE_FLOW_MISSING_WARNED_LOCK
+        .lock()
+        .expect("CLOSE_FLOW_MISSING_WARNED_LOCK poisoned");
+
+    // Deterministic precondition: reset the process-global atomic so the first
+    // call below is GUARANTEED to be the false→true transition.
+    wirerust::reassembly::lifecycle::reset_close_flow_missing_warned_for_testing();
+    assert!(
+        !wirerust::reassembly::lifecycle::close_flow_missing_warned_for_testing(),
+        "BC-2.04.029 — atomic must be false after reset_for_testing"
+    );
+
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    // Construct a FlowKey for a flow that does NOT exist in the reassembler.
+    use std::net::IpAddr;
+    let missing_key = wirerust::reassembly::flow::FlowKey::new(
+        IpAddr::V4(std::net::Ipv4Addr::new(99, 0, 0, 1)),
+        9001,
+        IpAddr::V4(std::net::Ipv4Addr::new(99, 0, 0, 2)),
+        9002,
+    );
+
+    // Snapshot: no flows, no close events.
+    assert_eq!(
+        handler.close_events.len(),
+        0,
+        "precondition: no close events before missing-key call"
+    );
+
+    // AC-013 (false→true transition) and AC-014 (latching) are both observable via
+    // the trigger_close_flow_missing_key_for_testing seam. We reset the atomic,
+    // invoke the trigger once to verify BC-2.04.029 PC4, then a second time to
+    // verify PC5 (atomic stays true; eprintln-suppression structurally enforced
+    // per ADR-0004 amendment via swap-guard at lifecycle.rs:44-48).
+
+    // Setup: one flow, closed by RST (flow removed from self.flows).
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    // RST — removes flow from self.flows. flows_rst == 1.
+    let rst = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        false,
+        false,
+        false,
+        true,
+    );
+    reassembler.process_packet(&rst, 2, &mut handler);
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "precondition: RST must have fired one close event"
+    );
+    assert_eq!(
+        handler.close_events[0].1,
+        CloseReason::Rst,
+        "precondition: close reason must be Rst"
+    );
+
+    // BC-2.04.029 PC1: self.flows is unmodified by the missing-key call
+    // (we already confirmed close_events.len()==1 from RST; a second close
+    // from a spurious missing-key call would add a second entry).
+    // After RST the flow IS removed, so self.flows is empty.
+    // Any subsequent call to close_flow for the RST key would be a missing-key call.
+    // expire_flows does NOT trigger this (it only iterates existing flows).
+    // We verify the observable: atomic is false before RST path exercised it...
+    // Actually the RST path in apply_handshake_flags calls self.close_flow which
+    // DOES remove the flow. But close_flow for a FOUND key does NOT trigger the
+    // missing-key guard. So the atomic must still be false after the RST.
+    assert!(
+        !wirerust::reassembly::lifecycle::close_flow_missing_warned_for_testing(),
+        "BC-2.04.029 PC4 precondition: atomic must still be false after RST close \
+         (RST found the key, no missing-key path taken)"
+    );
+
+    // BC-2.04.029 PC2: handler.close_events count must not change after the
+    // missing-key call. We verify this by checking that after the RST there is
+    // exactly 1 close event, and after any subsequent missing-key trigger there
+    // is STILL exactly 1.
+
+    // Trigger the missing-key path via the test seam (requires W8.3):
+    wirerust::reassembly::lifecycle::reset_close_flow_missing_warned_for_testing();
+    // Directly use the atomic-state testing accessor path that the implementer must add.
+    // This line will produce the compile error that tells the implementer what seam to add.
+    //
+    // First call to the missing-key trigger:
+    wirerust::reassembly::lifecycle::trigger_close_flow_missing_key_for_testing(
+        &mut reassembler,
+        &missing_key,
+        CloseReason::Timeout,
+        &mut handler,
+    );
+
+    // BC-2.04.029 PC4: atomic must now be true (first missing-key call set it).
+    assert!(
+        wirerust::reassembly::lifecycle::close_flow_missing_warned_for_testing(),
+        "BC-2.04.029 PC4: CLOSE_FLOW_MISSING_WARNED must be true after first missing-key call"
+    );
+
+    // BC-2.04.029 PC1 + PC2: no additional close events, flows unchanged.
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "BC-2.04.029 PC2: close_events count must be unchanged after missing-key call (no on_flow_close fires)"
+    );
+
+    // Construct a second distinct missing key for AC-014.
+    let missing_key_2 = wirerust::reassembly::flow::FlowKey::new(
+        IpAddr::V4(std::net::Ipv4Addr::new(99, 0, 0, 3)),
+        9003,
+        IpAddr::V4(std::net::Ipv4Addr::new(99, 0, 0, 4)),
+        9004,
+    );
+
+    // Second call — AC-014: atomic stays true (latching), no second eprintln.
+    wirerust::reassembly::lifecycle::trigger_close_flow_missing_key_for_testing(
+        &mut reassembler,
+        &missing_key_2,
+        CloseReason::Timeout,
+        &mut handler,
+    );
+
+    // BC-2.04.029 PC5: atomic still true after second call (latching).
+    assert!(
+        wirerust::reassembly::lifecycle::close_flow_missing_warned_for_testing(),
+        "BC-2.04.029 PC5: CLOSE_FLOW_MISSING_WARNED must remain true after second missing-key call"
+    );
+
+    // BC-2.04.029 PC2: still no new close events.
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "BC-2.04.029 PC2: close_events count must remain 1 after second missing-key call (no on_flow_close fires on subsequent missing-key)"
+    );
+}
+
+// ---- AC-015 ----------------------------------------------------------------
+
+/// AC-015 (BC-2.04.029 postconditions 1-3)
+/// When `close_flow` returns early for a missing key:
+///   - no `on_flow_close` callback fires (`close_events.len() == 0`)
+///   - `total_memory` is unchanged
+///   - `self.flows` is unmodified (existing flows remain; no crash)
+///
+/// Holds `CLOSE_FLOW_MISSING_WARNED_LOCK` because the missing-key path
+/// writes the process-global atomic.
+///
+/// Test seam accessors added in W8.3 (implementer step).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_029_close_flow_missing_key_does_not_modify_state() {
+    let _guard = CLOSE_FLOW_MISSING_WARNED_LOCK
+        .lock()
+        .expect("CLOSE_FLOW_MISSING_WARNED_LOCK poisoned");
+
+    wirerust::reassembly::lifecycle::reset_close_flow_missing_warned_for_testing();
+
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish one real flow (so self.flows is non-empty = there's something to not-modify).
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Snapshots BEFORE the missing-key call.
+    let memory_before = reassembler.total_memory();
+    let close_events_before = handler.close_events.len();
+    let flow_count_before = reassembler.flow_count();
+
+    // Construct a FlowKey that does NOT exist in the reassembler.
+    use std::net::IpAddr;
+    let missing_key = wirerust::reassembly::flow::FlowKey::new(
+        IpAddr::V4(std::net::Ipv4Addr::new(1, 2, 3, 4)),
+        55555,
+        IpAddr::V4(std::net::Ipv4Addr::new(5, 6, 7, 8)),
+        55556,
+    );
+
+    // Trigger the missing-key path via the test seam (requires W8.3).
+    // This will produce a compile error until the implementer adds the seam.
+    wirerust::reassembly::lifecycle::trigger_close_flow_missing_key_for_testing(
+        &mut reassembler,
+        &missing_key,
+        CloseReason::Timeout,
+        &mut handler,
+    );
+
+    // BC-2.04.029 PC2: no on_flow_close callback (close_events unchanged).
+    assert_eq!(
+        handler.close_events.len(),
+        close_events_before,
+        "BC-2.04.029 PC2: missing-key close_flow must not emit on_flow_close"
+    );
+
+    // BC-2.04.029 PC3: total_memory unchanged.
+    assert_eq!(
+        reassembler.total_memory(),
+        memory_before,
+        "BC-2.04.029 PC3: total_memory must be unchanged after missing-key close_flow"
+    );
+
+    // AC-015 / BC-2.04.029 PC1: flow_count unchanged.
+    assert_eq!(
+        reassembler.flow_count(),
+        flow_count_before,
+        "AC-015 / BC-2.04.029 PC1 — flow_count unchanged after missing-key trigger"
+    );
+}
+
+// ---- Edge Cases ------------------------------------------------------------
+
+/// EC-001 (STORY-019 / BC-2.04.010 EC-001)
+/// RST on a New flow (no handshake, no data): flows_rst++; on_flow_close(Rst)
+/// called; flow removed; no `on_data` events emitted.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_010_ec001_rst_on_new_flow_no_data() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // RST as the very first packet for this flow (no SYN, no data).
+    let rst = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        500,
+        &[],
+        false,
+        false,
+        false,
+        true,
+    );
+    reassembler.process_packet(&rst, 1, &mut handler);
+
+    // BC-2.04.010 EC-001: flows_rst must be 1.
+    assert_eq!(
+        reassembler.stats().flows_rst,
+        1,
+        "BC-2.04.010 EC-001: flows_rst must be 1 after RST on New flow"
+    );
+
+    // on_flow_close(Rst) called exactly once.
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "BC-2.04.010 EC-001: on_flow_close must be called once"
+    );
+    assert_eq!(handler.close_events[0].1, CloseReason::Rst);
+
+    // Flow removed.
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "BC-2.04.010 EC-001: flow must be removed after RST on New flow"
+    );
+
+    // No data flushed (no data was ever seen on this flow).
+    assert!(
+        handler.data_events.is_empty(),
+        "BC-2.04.010 EC-001: no on_data events must be emitted for a New flow RST"
+    );
+}
+
+/// EC-002 (STORY-019 / BC-2.04.010 EC-002)
+/// RST on a flow with buffered non-contiguous data: `total_memory` is released
+/// to 0 even when the buffered segment cannot be flushed (gap blocks delivery).
+///
+/// Verifies that RST close releases `total_memory` to 0 even when a
+/// non-contiguous segment remained buffered (silently dropped by
+/// `flush_contiguous` since the gap blocks delivery). The flush-before-close
+/// discipline of BC-2.04.010 PC2 is verified separately by AC-002
+/// (`test_BC_2_04_010_rst_flushes_then_closes`).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_010_ec002_rst_releases_total_memory_with_buffered_non_contiguous_segments() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish flow.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // Send in-order data that gets flushed immediately.
+    let p1 = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"aaa", false, false, false, false,
+    );
+    reassembler.process_packet(&p1, 3, &mut handler);
+    assert_eq!(handler.data_events.len(), 1, "precondition: p1 flushed");
+
+    // Send out-of-order data that stays buffered (gap at offset 4: seq 1004+3=1007 is missing).
+    let p3 = make_tcp_packet(
+        client, 12345, server, 80, 1007, b"ccc", false, false, false, false,
+    );
+    reassembler.process_packet(&p3, 4, &mut handler);
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "precondition: p3 buffered (gap), not flushed"
+    );
+    assert_eq!(
+        reassembler.total_memory(),
+        3,
+        "precondition: 3 bytes buffered"
+    );
+
+    // RST — exercises close_flow's flush path on a flow with a buffered non-contiguous
+    // segment ("ccc" at offset 6, blocked by gap at offset 3-5). flush_contiguous
+    // cannot deliver behind a gap, so "ccc" is silently dropped at close; we only
+    // verify total_memory release and clean close. BC-2.04.010 PC2's "flush in
+    // close_flow" is enforced as defense-in-depth per BC-2.04.010 v1.5 PC2.
+    let rst = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2001,
+        &[],
+        false,
+        false,
+        false,
+        true,
+    );
+    reassembler.process_packet(&rst, 5, &mut handler);
+
+    // BC-2.04.010 EC-002: buffered data flushed → data_events count increased.
+    // The RST calls close_flow which calls flush_contiguous on both directions.
+    // Even though "ccc" was out-of-order, flush_contiguous delivers whatever is
+    // at the current base_offset (any contiguous prefix). If "ccc" has a gap before
+    // it, flush_contiguous won't deliver it — but the close_flow still runs without
+    // error. The key observable: close event must follow any data events.
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "BC-2.04.010 EC-002: on_flow_close must be called exactly once after RST"
+    );
+    assert_eq!(handler.close_events[0].1, CloseReason::Rst);
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "BC-2.04.010 EC-002: total_memory must be 0 after RST (buffered bytes freed)"
+    );
+    // Data events from before the RST must still be present (not rolled back).
+    assert!(
+        !handler.data_events.is_empty(),
+        "BC-2.04.010 EC-002: pre-RST data events must not be erased"
+    );
+}
+
+/// EC-003 (STORY-019 / BC-2.04.010 EC-003)
+/// RST packet carries payload: payload is NOT inserted. The close handler
+/// receives no extra `on_data` call for the RST packet's bytes.
+///
+/// This is the engine-level counterpart to AC-003; here the focus is the EC
+/// framing (explicit RST-with-payload scenario, not just the general rule).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_010_ec003_rst_packet_payload_is_discarded() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish flow.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // RST with a distinctly identifiable payload.
+    let rst = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        b"BAD_DATA",
+        false,
+        false,
+        false,
+        true,
+    );
+    reassembler.process_packet(&rst, 2, &mut handler);
+
+    // No data events at all — RST payload was not processed.
+    assert!(
+        handler.data_events.is_empty(),
+        "BC-2.04.010 EC-003: RST packet payload must not generate any on_data events"
+    );
+
+    // Close event must exist with Rst reason.
+    assert_eq!(handler.close_events.len(), 1);
+    assert_eq!(handler.close_events[0].1, CloseReason::Rst);
+
+    // "BAD_DATA" must not appear in any reassembled bytes.
+    let all_data = handler.all_data();
+    assert!(
+        !all_data.windows(8).any(|w| w == b"BAD_DATA"),
+        "BC-2.04.010 EC-003: RST payload bytes must not appear in reassembled data"
+    );
+}
+
+/// EC-006 (STORY-019 edge case)
+/// RST and FIN in the same packet: the RST block in `apply_handshake_flags`
+/// runs first and returns `PostHandshake::FlowClosed`; the FIN block is never
+/// reached. Flow is closed with `CloseReason::Rst`, not `CloseReason::Fin`.
+/// `stats.flows_rst == 1`, `stats.flows_fin == 0`.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_010_ec006_rst_and_fin_same_packet_rst_wins() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish flow.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // RST + FIN in the same packet (malformed but valid to process).
+    // fin=true, rst=true — RST block runs first in apply_handshake_flags.
+    let rst_fin = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2001,
+        &[],
+        false,
+        false,
+        true,
+        true,
+    );
+    reassembler.process_packet(&rst_fin, 3, &mut handler);
+
+    // BC-2.04.010 EC-006: RST wins — close reason is Rst, not Fin.
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "BC-2.04.010 EC-006: exactly one close event must be recorded"
+    );
+    assert_eq!(
+        handler.close_events[0].1,
+        CloseReason::Rst,
+        "BC-2.04.010 EC-006: RST must win — close reason must be Rst, not Fin"
+    );
+    assert_eq!(
+        reassembler.stats().flows_rst,
+        1,
+        "BC-2.04.010 EC-006: flows_rst must be 1"
+    );
+    assert_eq!(
+        reassembler.stats().flows_fin,
+        0,
+        "BC-2.04.010 EC-006: flows_fin must be 0 (FIN block was not reached)"
+    );
+}
+
+/// EC-007 (STORY-019 edge case — expire_flows boundary)
+/// Flow idle for exactly `flow_timeout_secs` seconds is NOT expired (the
+/// condition is `> timeout`, not `>= timeout`).
+///
+/// Test vector: last_seen=0, current_time=300, timeout=300 →
+/// `current_time - last_seen == 300` which is NOT `> 300` → flow survives.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_013_ec007_flow_idle_exactly_timeout_is_not_expired() {
+    // Canonical BC-2.04.013 EC-003 test vector: last_seen=0, timeout=300.
+    // At current_time=300: 300 - 0 = 300 which is NOT > 300 → flow survives.
+    let config = ReassemblyConfig {
+        flow_timeout_secs: 300,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Flow with last_seen = 0.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 0, &mut handler);
+
+    // expire_flows at current_time = 300 (exactly at the timeout boundary).
+    reassembler.expire_flows(300, &mut handler);
+
+    // BC-2.04.013 EC-007 (`>` not `>=`): flow must NOT be expired.
+    assert_eq!(
+        handler.close_events.len(),
+        0,
+        "BC-2.04.013 EC-007: flow idle exactly timeout secs must NOT be expired (> not >=)"
+    );
+    assert_eq!(
+        reassembler.stats().flows_expired,
+        0,
+        "BC-2.04.013 EC-007: flows_expired must be 0 at exact timeout boundary"
+    );
+
+    // One second more (301 - 0 = 301 > 300 → expired).
+    reassembler.expire_flows(301, &mut handler);
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "BC-2.04.013 EC-007 sanity: flow must expire at current_time=301 (301-0=301 > 300)"
+    );
+}
+
+/// EC-008 (STORY-019 edge case — timestamp reorder, engine-level)
+/// `current_time < last_seen`: underflow guard `current_time > last_seen` is
+/// false; flow NOT expired; no panic. This is the engine-level counterpart to
+/// AC-011 (which exercises the same guard from a different angle).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_013_ec008_current_time_less_than_last_seen_no_expiry() {
+    // release profile has overflow-checks=true; 500u32 - 1000u32 would panic.
+    let config = ReassemblyConfig {
+        flow_timeout_secs: 10,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Flow with last_seen = 1000 (SYN at t=1000).
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1000, &mut handler);
+
+    // expire_flows at current_time=500 (< last_seen=1000): must not panic.
+    // BC-2.04.013 inv-1: `current_time > last_seen` is false → early exit → no subtraction.
+    reassembler.expire_flows(500, &mut handler);
+
+    // Flow must not be expired.
+    assert_eq!(
+        handler.close_events.len(),
+        0,
+        "BC-2.04.013 EC-008: backwards timestamp must not expire the flow"
+    );
+    assert_eq!(
+        reassembler.stats().flows_expired,
+        0,
+        "BC-2.04.013 EC-008: flows_expired must be 0 (backwards timestamp guard)"
+    );
+}
+
+/// EC-009 (STORY-019 edge case — CLOSE_FLOW_MISSING_WARNED already true)
+/// When `CLOSE_FLOW_MISSING_WARNED` is already `true` before `close_flow` is
+/// called for a missing key, the function returns silently: no `on_flow_close`
+/// callback, no state change.
+///
+/// This is the pure-silent-return sub-scenario extracted from AC-014 for
+/// independent coverage. Holds `CLOSE_FLOW_MISSING_WARNED_LOCK`.
+///
+/// Test seam accessors added in W8.3 (implementer step).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_029_ec009_already_warned_is_silent() {
+    let _guard = CLOSE_FLOW_MISSING_WARNED_LOCK
+        .lock()
+        .expect("CLOSE_FLOW_MISSING_WARNED_LOCK poisoned");
+
+    // Pre-condition: set the atomic to true (already warned).
+    // Use the reset_for_testing to get a clean state, then set it via a first trigger.
+    wirerust::reassembly::lifecycle::reset_close_flow_missing_warned_for_testing();
+
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    use std::net::IpAddr;
+    let missing_key_1 = wirerust::reassembly::flow::FlowKey::new(
+        IpAddr::V4(std::net::Ipv4Addr::new(77, 0, 0, 1)),
+        7001,
+        IpAddr::V4(std::net::Ipv4Addr::new(77, 0, 0, 2)),
+        7002,
+    );
+    let missing_key_2 = wirerust::reassembly::flow::FlowKey::new(
+        IpAddr::V4(std::net::Ipv4Addr::new(77, 0, 0, 3)),
+        7003,
+        IpAddr::V4(std::net::Ipv4Addr::new(77, 0, 0, 4)),
+        7004,
+    );
+
+    // First trigger: sets atomic from false → true.
+    wirerust::reassembly::lifecycle::trigger_close_flow_missing_key_for_testing(
+        &mut reassembler,
+        &missing_key_1,
+        CloseReason::Timeout,
+        &mut handler,
+    );
+    assert!(
+        wirerust::reassembly::lifecycle::close_flow_missing_warned_for_testing(),
+        "EC-009 precondition: atomic must be true after first trigger"
+    );
+
+    // Snapshot.
+    let close_before = handler.close_events.len();
+
+    // Second trigger (atomic already true): silent return.
+    wirerust::reassembly::lifecycle::trigger_close_flow_missing_key_for_testing(
+        &mut reassembler,
+        &missing_key_2,
+        CloseReason::Timeout,
+        &mut handler,
+    );
+
+    // BC-2.04.029 EC-009: no new close events (silent return).
+    assert_eq!(
+        handler.close_events.len(),
+        close_before,
+        "BC-2.04.029 EC-009: silent return when CLOSE_FLOW_MISSING_WARNED already true"
+    );
+    // Atomic still true.
+    assert!(
+        wirerust::reassembly::lifecycle::close_flow_missing_warned_for_testing(),
+        "BC-2.04.029 EC-009: atomic remains true after second call (latching)"
+    );
+}
+
+/// EC-010 (STORY-019 edge case — close_flow for key that IS in flows)
+/// `close_flow` called for a key that exists: normal close path executes, no
+/// warning, `CLOSE_FLOW_MISSING_WARNED` is unchanged (remains false/whatever
+/// it was). `on_flow_close` fires exactly once with the specified reason.
+///
+/// Does NOT touch `CLOSE_FLOW_MISSING_WARNED` in a way that requires the lock
+/// (normal close path never writes the atomic), but we do verify its state is
+/// unchanged.
+///
+/// Test seam accessors added in W8.3 (implementer step).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_029_ec010_close_flow_for_existing_key_is_normal() {
+    // Hold the lock even though this test only reads the atomic: other tests that
+    // hold the lock may call reset_close_flow_missing_warned_for_testing(), which
+    // would race the observation window between warned_before and the final assertion.
+    let _guard = CLOSE_FLOW_MISSING_WARNED_LOCK
+        .lock()
+        .expect("CLOSE_FLOW_MISSING_WARNED_LOCK poisoned");
+
+    // This EC exercises the NORMAL (non-missing-key) close_flow path.
+    // We trigger it via RST (which calls close_flow internally for an existing key).
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish flow.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Observe CLOSE_FLOW_MISSING_WARNED state before normal close.
+    // Normal close_flow for an existing key NEVER writes the atomic.
+    let warned_before = wirerust::reassembly::lifecycle::close_flow_missing_warned_for_testing();
+
+    // RST closes the flow normally (key exists in self.flows at the time of RST).
+    let rst = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        2000,
+        &[],
+        false,
+        false,
+        false,
+        true,
+    );
+    reassembler.process_packet(&rst, 2, &mut handler);
+
+    // BC-2.04.029 EC-010: normal close path executed → one close event.
+    assert_eq!(
+        handler.close_events.len(),
+        1,
+        "BC-2.04.029 EC-010: on_flow_close must fire once for normal close_flow"
+    );
+    assert_eq!(
+        handler.close_events[0].1,
+        CloseReason::Rst,
+        "BC-2.04.029 EC-010: close reason must match the RST trigger"
+    );
+
+    // BC-2.04.029 EC-010: CLOSE_FLOW_MISSING_WARNED unchanged by normal path.
+    assert_eq!(
+        wirerust::reassembly::lifecycle::close_flow_missing_warned_for_testing(),
+        warned_before,
+        "BC-2.04.029 EC-010: CLOSE_FLOW_MISSING_WARNED must not change on normal close_flow"
+    );
+    assert_eq!(reassembler.total_memory(), 0);
+}

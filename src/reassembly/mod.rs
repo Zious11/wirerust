@@ -35,7 +35,7 @@ pub mod handler;
 pub mod segment;
 
 mod config;
-mod lifecycle;
+pub mod lifecycle;
 mod stats;
 
 pub use config::ReassemblyConfig;
@@ -610,6 +610,23 @@ impl TcpReassembler {
     /// Return the current total memory used by all flow buffers.
     pub fn total_memory(&self) -> usize {
         self.total_memory
+    }
+
+    /// Return the number of flows currently tracked.
+    ///
+    /// Exposed for testing so AC-012 and similar tests can assert the flow
+    /// table is empty without needing access to the private `flows` field.
+    pub fn flow_count(&self) -> usize {
+        self.flows.len()
+    }
+
+    /// Mutable access to the flow table for test-only seams in `lifecycle.rs`.
+    ///
+    /// `pub(crate)` keeps this invisible outside the crate; the production
+    /// API is unchanged. Required by `force_set_flow_state_for_testing` in
+    /// `lifecycle.rs` (ADR-0004 amendment, choice (b)).
+    pub(crate) fn flows_mut(&mut self) -> &mut HashMap<FlowKey, TcpFlow> {
+        &mut self.flows
     }
 
     /// Produce an AnalysisSummary for the reassembly engine stats.
