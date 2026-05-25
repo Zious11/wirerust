@@ -5380,11 +5380,12 @@ fn test_BC_2_04_011_second_fin_closes_flow() {
 /// FIN close happens AFTER payload processing for the FIN packet (data carried
 /// in a FIN segment is reassembled and delivered before the flow closes).
 ///
-/// Ordering is asserted by verifying that the last `on_data` event index in
-/// `handler.data_events` precedes the `on_flow_close` event: the `on_data`
-/// call for the FIN packet's payload must appear BEFORE the single close event.
-/// Since `RecordingHandler` appends events in callback order, comparing indices
-/// (data_events.len() > 0 before close_events.len() > 0) is sufficient.
+/// Verifies that the FIN-segment payload ("bye") is delivered via `on_data`
+/// (payload processing happens) AND the flow closes (`on_flow_close` fires).
+/// The data-before-close ORDERING within `close_flow` is enforced structurally
+/// by the order of operations in `process_packet` at mod.rs:165-174
+/// (`close_flow` is invoked AFTER `insert_payload_segment` completes);
+/// ordering verification is via code review, not automated assertion.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_011_fin_payload_processed_before_close() {
@@ -6043,7 +6044,7 @@ fn test_BC_2_04_029_close_flow_missing_key_warns_once() {
     assert_eq!(
         handler.close_events.len(),
         1,
-        "BC-2.04.029 PC1/PC3: close_events count must be unchanged after missing-key call"
+        "BC-2.04.029 PC2: close_events count must be unchanged after missing-key call (no on_flow_close fires)"
     );
 
     // Construct a second distinct missing key for AC-014.
@@ -6072,7 +6073,7 @@ fn test_BC_2_04_029_close_flow_missing_key_warns_once() {
     assert_eq!(
         handler.close_events.len(),
         1,
-        "BC-2.04.029 PC3: close_events count must remain 1 after second missing-key call"
+        "BC-2.04.029 PC2: close_events count must remain 1 after second missing-key call (no on_flow_close fires on subsequent missing-key)"
     );
 }
 
@@ -6146,7 +6147,7 @@ fn test_BC_2_04_029_close_flow_missing_key_does_not_modify_state() {
     assert_eq!(
         handler.close_events.len(),
         close_events_before,
-        "BC-2.04.029 PC1: missing-key close_flow must not emit on_flow_close"
+        "BC-2.04.029 PC2: missing-key close_flow must not emit on_flow_close"
     );
 
     // BC-2.04.029 PC3: total_memory unchanged.
