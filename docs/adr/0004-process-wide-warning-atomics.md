@@ -135,3 +135,52 @@ correct; the atomic is the simpler fit for a boolean latch.
 - The behavior is exercised indirectly by the reassembly engine tests, which
   pass without warning floods, and directly by the LESSON-P0.03 `Drop` tests,
   which confirm the un-finalized path does not panic.
+
+## Amendments
+
+### 2026-05-25 — STORY-014 / BC-2.04.048 v1.3: test-seam exception for `ISN_MISSING_WARNED`
+
+STORY-014 added two `#[doc(hidden)] pub fn` test seams in
+`src/reassembly/segment.rs`:
+
+- `pub fn isn_missing_warned_for_testing() -> bool` — reads `ISN_MISSING_WARNED`.
+- `pub fn reset_isn_missing_warned_for_testing()` — stores `false` to `ISN_MISSING_WARNED`.
+
+These accessors are formalized in BC-2.04.048 v1.3 PC4 and exist solely to
+allow STORY-014's combined AC-013/AC-014/EC-007 integration test to
+deterministically observe the BC-2.04.048 PC1 `false → true` swap
+transition. The `reset_isn_missing_warned_for_testing` call at the top
+of the combined test eliminates the original ADR guidance's "an earlier
+test in the same process may have already flipped the flag" concern by
+forcing a known precondition for the first observation.
+
+**Hygiene constraints (mandatory):**
+
+- Both functions carry `#[doc(hidden)]` to keep them out of public
+  `cargo doc` output despite being on the `pub` API. They are `pub`
+  (rather than `#[cfg(test)]`) because integration tests are separate
+  crates and cannot see `#[cfg(test)]` items.
+- Both function names end with the `_for_testing` suffix as a flag to
+  readers of the public API.
+- Neither function may be called from production code paths. Any future
+  call site outside `tests/` is a defect.
+
+**Scope of the exception:** the test-seam exception applies ONLY to
+`ISN_MISSING_WARNED`. Sibling guards `CLOSE_FLOW_MISSING_WARNED`
+(`src/reassembly/lifecycle.rs:31`) and `FINALIZE_SKIPPED_WARNED`
+(`src/reassembly/mod.rs:70`) do NOT have test seams as of Wave 7, and
+continue to follow the original ADR-0004 guidance: tests for those sites
+assert the real contract (no panic, correct control flow, correct
+counters) and treat the `stderr` line as a developer-facing side effect
+only. Test seams will be added for those guards ONLY when a future BC
+introduces an AC that requires deterministic observation of the
+sibling's `false → true` swap transition. This asymmetry is
+intentional — the seam is opt-in per-guard, gated by BC-driven need.
+
+**Validation lemma refinement:** the original Validation section's
+`grep -rn '_WARNED' src/` invariant ("all three guards use the
+identical `static AtomicBool + swap(true, Relaxed)` shape") continues
+to apply to the GUARD SITES themselves. The `_for_testing` accessor
+functions introduced for `ISN_MISSING_WARNED` are read/reset wrappers,
+not guard sites; they are expected to appear as additional matches and
+do not violate the canonical-shape claim about the guards.
