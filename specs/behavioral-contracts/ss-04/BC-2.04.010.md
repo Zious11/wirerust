@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 7 wave-level adv-pass-2 F-2 HIGH: comprehensive SS-04 anchor sweep (W4.1 axis #3). Corrected Architecture Anchors on_rst reference from flow.rs:257-259 (pre-Wave-6) to flow.rs:264-266 (post-Wave-6 +7 line shift from fin_count addition). — 2026-05-25"
   - "v1.4: Wave 7 wave-level adv-pass-3 F-1 HIGH: mega-sweep (W4.1 axis #4). Fixed mod.rs:272-278 → 273-279 (off-by-one both bounds; line 272 is a blank line; RST block runs 273-279 with closing brace). Applied to Architecture Module table, Architecture Anchors section, and Source Evidence Path. — 2026-05-25"
+  - "v1.5: Wave 8 STORY-019 adv-pass-4 F-2 closure (MEDIUM): PC2 enforcement-mode notation — \"any remaining contiguous data flushed in close_flow\" is structurally a defense-in-depth invariant (per-packet flush at mod.rs:162 already drains buffer pre-close), enforced via code-review of the flush_contiguous loop body at lifecycle.rs:52-59. Mirrors BC-2.04.029 v1.4 PC1/PC2/PC3 + BC-2.04.048 v1.3 PC2 + ADR-0004 amendment enforcement-mode pattern. — 2026-05-25"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -44,7 +45,15 @@ this packet. The flow is removed from the `flows` HashMap by `close_flow`.
 
 1. `stats.flows_rst` increments by 1.
 2. Any remaining contiguous data in both directions is flushed to the handler via `on_data`
-   calls (in `close_flow`).
+   calls (in `close_flow`). (Enforcement: in the current engine architecture, the per-packet
+   flush at `src/reassembly/mod.rs:162` (unconditional `flush_contiguous_data` after every
+   `insert_payload_segment`) already delivers all contiguous-prefix data BEFORE any close path
+   runs. The `flush_contiguous` loop at `src/reassembly/lifecycle.rs:52-59` inside `close_flow`
+   is therefore structurally a defense-in-depth invariant — it CAN deliver if a future refactor
+   breaks per-packet flush, but cannot be triggered to deliver under current engine semantics.
+   STORY-019 AC-002 verifies the close path runs without error; PC2 is enforced via code-review
+   of the close_flow flush loop body's presence (mirrors the BC-2.04.029 v1.4 PC1/PC2/PC3 +
+   BC-2.04.048 v1.3 PC2 / ADR-0004 amendment enforcement-mode precedent).)
 3. `handler.on_flow_close(key, CloseReason::Rst)` is called exactly once.
 4. The flow is removed from `self.flows`.
 5. `total_memory` decrements by the bytes freed from the flow's buffers.
