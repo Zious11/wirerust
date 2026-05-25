@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 8 STORY-019 adv-pass-1 F-4 closure: PC5 enforcement-mode notation (atomic state via automated test; no-second-eprintln sub-property via code review of swap-guarded if-block at lifecycle.rs:42-50, mirroring BC-2.04.048 PC2 / inv-3 / ADR-0004 amendment precedent). Added new PC for the close_flow_missing_warned_for_testing + reset_close_flow_missing_warned_for_testing + trigger_close_flow_missing_key_for_testing test-seam accessors (#[doc(hidden)] hygiene; replicate-body rationale due to production debug_assert per PC6) — 2026-05-25"
+  - "v1.4: Wave 8 STORY-019 adv-pass-2 F-1 closure (MEDIUM): explicit enforcement-mode notation on PC1, PC2, PC3 (no on_flow_close callback / no total_memory change / no self.flows change on missing-key path) — these are structurally enforced by the `let-else` early-return at lifecycle.rs:42-50 (code review), NOT by the trigger seam (which replicates only swap+eprintln body). PC7 cross-references this. Mirrors the v1.3 PC5 enforcement-mode pattern established in Wave 7 / BC-2.04.048 PC2 / ADR-0004 amendment — 2026-05-25"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -42,9 +43,12 @@ recurring bug.
 
 ## Postconditions
 
-1. No flow is closed; `self.flows` is unmodified.
-2. No `handler.on_flow_close` callback is issued.
-3. No memory accounting change (`self.total_memory` unchanged).
+1. No flow is closed; `self.flows` is unmodified. (Enforcement: see PC1/PC2/PC3 structural note below.)
+2. No `handler.on_flow_close` callback is issued. (Enforcement: see PC1/PC2/PC3 structural note below.)
+3. No memory accounting change (`self.total_memory` unchanged). (Enforcement: see PC1/PC2/PC3 structural note below.)
+
+   **PC1/PC2/PC3 Structural Enforcement Note:** These three no-side-effect properties are enforced by the `let Some(mut flow) = self.flows.remove(key) else { ... return; }` early-return at `src/reassembly/lifecycle.rs:42-50`. The missing-key branch of that `else` block contains ONLY the `debug_assert!(false, ...)` + atomic swap + `eprintln!` + `return` — it has no access to `self.flows` (the remove failed), `self.total_memory`, or the `handler` argument. Code review of the early-return shape confirms this structurally. The integration tests at `tests/reassembly_engine_tests.rs` (STORY-019 AC-015 and the AC-013/AC-014 combined test) that invoke `trigger_close_flow_missing_key_for_testing` and assert unchanged callback/memory/flow state are verifying the seam's own no-op semantics — they do NOT exercise the production `close_flow` missing-key path, which is instead covered by this code-review-mode enforcement.
+
 4. If `CLOSE_FLOW_MISSING_WARNED` was `false` before the call: it is set to `true` and
    `eprintln!` fires with a message containing the key and reason.
 5. If `CLOSE_FLOW_MISSING_WARNED` was already `true`: silent return, no eprintln.
@@ -61,6 +65,12 @@ recurring bug.
    per PC6 (cargo's default test profile is debug-mode). All three functions are `#[doc(hidden)]`
    to keep them out of public `cargo doc` output despite being on the `pub` API (integration tests
    are separate crates; `#[cfg(test)]` items are not visible).
+   **Design note (v1.4):** Because `trigger_close_flow_missing_key_for_testing` accepts
+   `_reassembler: &mut TcpReassembler` and `_handler: &mut dyn StreamHandler` but uses neither,
+   its replicate-body design means PC1, PC2, and PC3 are NOT verified against the production
+   `close_flow` missing-key path by this seam. Those properties are verified structurally per the
+   PC1/PC2/PC3 Structural Enforcement Note above (code review of the `let-else` early-return shape
+   at lifecycle.rs:42-50).
 
 ## Invariants
 
