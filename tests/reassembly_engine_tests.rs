@@ -6122,6 +6122,7 @@ fn test_BC_2_04_029_close_flow_missing_key_does_not_modify_state() {
     // Snapshots BEFORE the missing-key call.
     let memory_before = reassembler.total_memory();
     let close_events_before = handler.close_events.len();
+    let flow_count_before = reassembler.flow_count();
 
     // Construct a FlowKey that does NOT exist in the reassembler.
     use std::net::IpAddr;
@@ -6153,6 +6154,13 @@ fn test_BC_2_04_029_close_flow_missing_key_does_not_modify_state() {
         reassembler.total_memory(),
         memory_before,
         "BC-2.04.029 PC3: total_memory must be unchanged after missing-key close_flow"
+    );
+
+    // AC-015 / BC-2.04.029 PC1: flow_count unchanged.
+    assert_eq!(
+        reassembler.flow_count(),
+        flow_count_before,
+        "AC-015 / BC-2.04.029 PC1 — flow_count unchanged after missing-key trigger"
     );
 }
 
