@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 8 STORY-019 adv-pass-1 F-4 closure: PC5 enforcement-mode notation (atomic state via automated test; no-second-eprintln sub-property via code review of swap-guarded if-block at lifecycle.rs:42-50, mirroring BC-2.04.048 PC2 / inv-3 / ADR-0004 amendment precedent). Added new PC for the close_flow_missing_warned_for_testing + reset_close_flow_missing_warned_for_testing + trigger_close_flow_missing_key_for_testing test-seam accessors (#[doc(hidden)] hygiene; replicate-body rationale due to production debug_assert per PC6) — 2026-05-25"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,7 +48,19 @@ recurring bug.
 4. If `CLOSE_FLOW_MISSING_WARNED` was `false` before the call: it is set to `true` and
    `eprintln!` fires with a message containing the key and reason.
 5. If `CLOSE_FLOW_MISSING_WARNED` was already `true`: silent return, no eprintln.
+   (Enforcement: the atomic-state latching property (`CLOSE_FLOW_MISSING_WARNED` remains `true`) is automated-test-verifiable via `close_flow_missing_warned_for_testing()` (see STORY-019 AC-014 combined test); the "no `eprintln!` on subsequent calls" sub-property is enforced structurally by the swap-guarded `if`-block at `src/reassembly/lifecycle.rs:42-50` and verified by code review, matching the BC-2.04.048 PC2 / invariant 3 enforcement-mode precedent and the ADR-0004 amendment.)
 6. A `debug_assert!(false, ...)` fires in debug builds (expected to surface in test runs).
+7. **PC7 (Test Seam):** A `#[doc(hidden)] pub fn close_flow_missing_warned_for_testing() -> bool`
+   accessor in `src/reassembly/lifecycle.rs` exposes the current value of
+   `CLOSE_FLOW_MISSING_WARNED` for integration-test verification. A companion
+   `#[doc(hidden)] pub fn reset_close_flow_missing_warned_for_testing()` resets the atomic to
+   `false` so tests can deterministically observe the PC4 `false → true` swap transition. A third
+   `#[doc(hidden)] pub fn trigger_close_flow_missing_key_for_testing(...)` replicates the
+   post-debug_assert body of the missing-key branch (atomic swap + one-shot eprintln) so tests can
+   observe the post-call atomic state without panicking on the production `debug_assert!(false, ...)`
+   per PC6 (cargo's default test profile is debug-mode). All three functions are `#[doc(hidden)]`
+   to keep them out of public `cargo doc` output despite being on the `pub` API (integration tests
+   are separate crates; `#[cfg(test)]` items are not visible).
 
 ## Invariants
 
