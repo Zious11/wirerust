@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-019"
 epic_id: "E-2"
-version: "1.1"
-status: draft
+version: "1.2"
+status: in_progress
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -117,8 +117,8 @@ implementation_strategy: brownfield-formalization
 
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
-| RST handling in apply_handshake_flags | src/reassembly/mod.rs:272-278 | effectful-shell |
-| FIN close detection in process_packet | src/reassembly/mod.rs:166-173 | effectful-shell |
+| RST handling in apply_handshake_flags | src/reassembly/mod.rs:273-279 | effectful-shell |
+| FIN close detection in process_packet | src/reassembly/mod.rs:165-174 | effectful-shell |
 | FIN flag block in apply_handshake_flags | src/reassembly/mod.rs:281-287 | effectful-shell |
 | expire_flows | src/reassembly/mod.rs:536-552 | effectful-shell |
 | close_flow (missing-key guard) | src/reassembly/lifecycle.rs:42-50 | effectful-shell (stderr write) |
@@ -152,9 +152,9 @@ implementation_strategy: brownfield-formalization
 |---------------|-----------------|
 | This story spec | ~2,800 |
 | BC files (4 BCs) | ~5,000 |
-| src/reassembly/mod.rs (RST block ~272-278, FIN close ~166-173, expire_flows ~536-552) | ~1,500 |
+| src/reassembly/mod.rs (RST block ~273-279, FIN close ~165-174, expire_flows ~536-552) | ~1,500 |
 | src/reassembly/lifecycle.rs (close_flow missing-key ~31-50) | ~600 |
-| src/reassembly/flow.rs (on_rst ~257-259, on_fin ~248-256) | ~400 |
+| src/reassembly/flow.rs (on_fin ~255-262, on_rst ~264-266) | ~400 |
 | Test files | ~4,000 |
 | Tool outputs overhead | ~1,000 |
 | **Total** | **~15,300** |
@@ -186,7 +186,7 @@ implementation_strategy: brownfield-formalization
 |------|--------|-------------|
 | RST triggers `PostHandshake::FlowClosed`; payload processing skipped | BC-2.04.010 invariant 3 | Code review: RST block returns FlowClosed before payload branch |
 | FIN close fires AFTER payload processing (fin-close detection is post-flush) | BC-2.04.011 invariant 2 | Test: insert data in FIN packet; assert data delivered before on_flow_close |
-| expire_flows underflow guard: `current_time > last_seen` checked BEFORE subtraction | BC-2.04.013 invariant 1 | Code review: guard ordering in mod.rs:536-552 |
+| expire_flows underflow guard: `current_time > last_seen` checked BEFORE subtraction | BC-2.04.013 invariant 1 | Code review: guard ordering in mod.rs:536-552 (fn decl :536, closing :552) |
 | `CLOSE_FLOW_MISSING_WARNED` uses `swap(true, Ordering::Relaxed)` one-shot pattern | BC-2.04.029 invariant 1 | Code review: grep for swap in lifecycle.rs |
 | debug_assert fires in debug builds when close_flow called for missing key | BC-2.04.029 postcondition 6 | Compile with debug assertions; run tests |
 
@@ -200,8 +200,16 @@ implementation_strategy: brownfield-formalization
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `src/reassembly/mod.rs` | verify (lines 166-173, 272-287, 536-552) | FIN-close detection, RST block, expire_flows |
+| `src/reassembly/mod.rs` | verify (lines 165-174, 273-279, 281-287, 536-552) | FIN-close detection, RST block, FIN flag block, expire_flows |
 | `src/reassembly/lifecycle.rs` | verify (lines 31, 42-50) | CLOSE_FLOW_MISSING_WARNED, close_flow missing-key guard |
-| `src/reassembly/flow.rs` | verify (lines 248-259) | on_fin and on_rst implementations |
+| `src/reassembly/flow.rs` | verify (lines 255-262, 264-266) | on_fin and on_rst implementations |
 | `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-015 (engine-level lifecycle tests) |
 | `tests/reassembly_flow_tests.rs` | modify | Add flow-level state transition tests for on_fin/on_rst |
+
+## Changelog
+
+| Version | Date | Author | Notes |
+|---------|------|--------|-------|
+| v1.0 | 2026-05-21 | story-writer | Initial decomposition |
+| v1.1 | 2026-05-21 | story-writer | Wave 7 partial anchor refresh |
+| v1.2 | 2026-05-25 | story-writer | Wave 8 pre-flight — refreshed body line-anchors to match post-Wave-7 source state (BC-2.04.010 v1.4 mod.rs:273-279 RST block; BC-2.04.011 v1.4 mod.rs:165-174 FIN-close; flow.rs:255-262 on_fin; flow.rs:264-266 on_rst; and verified expire_flows mod.rs:536-552, FIN flag block mod.rs:281-287, close_flow guard lifecycle.rs:42-50, CLOSE_FLOW_MISSING_WARNED lifecycle.rs:31 against current source). Frontmatter status → in_progress. |
