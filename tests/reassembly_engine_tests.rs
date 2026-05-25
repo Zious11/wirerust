@@ -3953,6 +3953,17 @@ fn test_BC_2_04_009_mid_stream_sets_established_partial() {
         "BC-2.04.009 post-7: the segment is inserted and flushed normally"
     );
 
+    // BC-2.04.009 PC3 — initiator set to packet src; observable as ClientToServer direction tag on first data event.
+    assert!(
+        !handler.data_events.is_empty(),
+        "expected at least one data event from mid-stream packet"
+    );
+    assert_eq!(
+        handler.data_events[0].1,
+        Direction::ClientToServer,
+        "BC-2.04.009 PC3 — initiator (client src) must be tagged ClientToServer"
+    );
+
     // Confirm the flow is not closed.
     assert!(
         handler.close_events.is_empty(),
@@ -4233,6 +4244,8 @@ fn test_BC_2_04_032_isn_missing_inserts_nothing() {
     // Snapshot before.
     let segments_empty_before = dir.segments_is_empty();
     let buffered_before = dir.buffered_bytes();
+    let overlap_before = dir.overlap_count;
+    let oow_before = dir.out_of_window_count;
 
     // BC-2.04.032: insert non-empty data with isn=None → IsnMissing, nothing inserted.
     let result = dir.insert_segment(500, b"world", usize::MAX, usize::MAX, usize::MAX);
@@ -4259,12 +4272,21 @@ fn test_BC_2_04_032_isn_missing_inserts_nothing() {
     );
 
     // BC-2.04.032 post-4: no segment should be findable at the attempted offset.
-    // (Can't check overlap_count directly, but segments_is_empty covers post-2.)
     // Additional structural check: segment count is still 0.
     assert_eq!(
         dir.segment_count(),
         0,
         "BC-2.04.032 post-4: segment_count must remain 0 — IsnMissing must insert nothing"
+    );
+
+    // BC-2.04.032 PC4 — overlap_count and out_of_window_count must be unchanged.
+    assert_eq!(
+        dir.overlap_count, overlap_before,
+        "BC-2.04.032 PC4 — overlap_count must be unchanged on IsnMissing"
+    );
+    assert_eq!(
+        dir.out_of_window_count, oow_before,
+        "BC-2.04.032 PC4 — out_of_window_count must be unchanged on IsnMissing"
     );
 }
 
@@ -4557,98 +4579,58 @@ fn test_BC_2_04_009_ec004_multiple_partial_flows_counted_independently() {
     );
 }
 
-/// STORY-014 / BC-2.04.048 AC-013 + AC-014 + EC-007 (combined — process-global atomic).
+/// STORY-014 / BC-2.04.048 AC-013 + AC-014 + EC-007 combined.
 ///
-/// RATIONALE FOR COMBINING: ISN_MISSING_WARNED is a `static AtomicBool` shared across
-/// the entire test binary (process-wide). Splitting AC-013 and AC-014 into separate
-/// test functions would make the "first call" vs. "subsequent call" semantics
-/// order-dependent (test execution order is not guaranteed). Combining them into one
-/// function runs the first-call path then the subsequent-call path in a known
-/// sequential order within the same test, which is the only safe way to verify both
-/// sides of the one-shot warning property without a reset mechanism.
+/// Verifies that ISN_MISSING_WARNED latches false→true on the FIRST IsnMissing
+/// encounter and stays true on subsequent encounters within the same process.
 ///
-/// What is tested:
-///   AC-013 (BC-2.04.048 post-1): on the first IsnMissing encounter,
-///     ISN_MISSING_WARNED transitions false→true (swap returns false).
-///   AC-014 (BC-2.04.048 subsequent-call post): on a second IsnMissing call,
-///     ISN_MISSING_WARNED is already true; swap returns true; no eprintln.
-///   EC-007 (BC-2.04.048 EC-002): subsequent IsnMissing is a silent return.
+/// AC-014's "no additional eprintln on subsequent calls" property cannot be
+/// asserted in-process without fragile stderr capture; it is enforced
+/// structurally by the swap-guarded if-block in src/reassembly/segment.rs:51-58
+/// (Architecture Compliance Rule — code review). The atomic-state-latches
+/// property below IS testable and IS asserted.
 ///
-/// The test uses `wirerust::reassembly::segment::isn_missing_warned_for_testing()`
-/// to observe the atomic state. That function must be added to src/reassembly/segment.rs
-/// by the implementer (pub fn + crate re-export). Until it exists, this test will
-/// FAIL TO COMPILE — that compile error is the new red signal for the implementer.
-///
-/// Process-global robustness: if ISN_MISSING_WARNED is already true at the start
-/// (because another test in the binary triggered it first), the "first call flips to true"
-/// path cannot be re-observed. The test handles this gracefully: it verifies that both
-/// calls return IsnMissing and that the atomic is true after both calls, which satisfies
-/// BC-2.04.048 postconditions regardless of prior state. The "fires exactly once" property
-/// is verified via the if-not-already-warned branch.
+/// AC-013, AC-014, EC-007 are combined into one function because
+/// ISN_MISSING_WARNED is a process-global static and the cargo integration-test
+/// binary shares it across all tests in this file. The reset accessor
+/// (added in src/reassembly/segment.rs) makes the discrimination deterministic
+/// regardless of run order.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_048_isn_missing_warned_fires_once_then_suppressed() {
+    // Deterministic precondition: reset the process-global atomic so the
+    // first call below is GUARANTEED to be the false→true transition.
+    wirerust::reassembly::segment::reset_isn_missing_warned_for_testing();
+    assert!(
+        !wirerust::reassembly::segment::isn_missing_warned_for_testing(),
+        "BC-2.04.048 — atomic should be false after reset_for_testing"
+    );
+
+    // Build two FlowDirections with isn=None.
     let mut dir1 = FlowDirection::new();
     let mut dir2 = FlowDirection::new();
+    assert!(dir1.isn.is_none(), "precondition: ISN must be unset");
+    assert!(dir2.isn.is_none(), "precondition: ISN must be unset");
 
-    // Both directions have isn=None — ready to trigger IsnMissing.
-    assert_eq!(dir1.isn, None, "precondition: dir1 must have isn=None");
-    assert_eq!(dir2.isn, None, "precondition: dir2 must have isn=None");
-
-    // Observe initial atomic state (may already be true if another test fired first).
-    let warned_at_start = wirerust::reassembly::segment::isn_missing_warned_for_testing();
-
-    // First IsnMissing call.
-    let result1 = dir1.insert_segment(100, b"abc", usize::MAX, usize::MAX, usize::MAX);
-    assert_eq!(
-        result1,
-        InsertResult::IsnMissing,
-        "AC-013: first call with isn=None must return IsnMissing"
-    );
-
-    // After first call, atomic must be true (either it was already true, or just flipped).
-    let warned_after_first = wirerust::reassembly::segment::isn_missing_warned_for_testing();
+    // FIRST call — atomic must transition false → true (BC-2.04.048 PC1).
+    let r1 = dir1.insert_segment(100, b"first", usize::MAX, usize::MAX, usize::MAX);
     assert!(
-        warned_after_first,
-        "BC-2.04.048 post-1 (AC-013): ISN_MISSING_WARNED must be true after the first \
-         IsnMissing call — it was {} before",
-        warned_at_start
+        matches!(r1, InsertResult::IsnMissing),
+        "AC-010 — IsnMissing returned on first call"
     );
-
-    // If atomic was false at start: first call must have flipped it to true.
-    // This is the "fires exactly once" verification when we can observe it.
-    if !warned_at_start {
-        // Atomic transitioned false → true on the first call.
-        // The eprintln fired exactly once (not directly observable here, but the
-        // swap(true) returning false is the contractual mechanism per BC-2.04.048 post-1).
-        assert!(
-            warned_after_first,
-            "BC-2.04.048 post-1: atomic must have flipped false→true on first IsnMissing call"
-        );
-    }
-
-    // Second IsnMissing call (same process, atomic is already true).
-    let result2 = dir2.insert_segment(200, b"def", usize::MAX, usize::MAX, usize::MAX);
-    assert_eq!(
-        result2,
-        InsertResult::IsnMissing,
-        "AC-014 / EC-007: second call with isn=None must also return IsnMissing \
-         (one-shot warning does not suppress the IsnMissing return value)"
-    );
-
-    // After second call, atomic must still be true (it never resets).
-    let warned_after_second = wirerust::reassembly::segment::isn_missing_warned_for_testing();
     assert!(
-        warned_after_second,
-        "BC-2.04.048 inv-1 (AC-014): ISN_MISSING_WARNED must remain true after \
-         subsequent IsnMissing calls — it is never reset within the process lifetime"
+        wirerust::reassembly::segment::isn_missing_warned_for_testing(),
+        "AC-013 / BC-2.04.048 PC1 — atomic must be true after first IsnMissing"
     );
 
-    // The atomic state must not have changed between the two calls (already-true → still true).
-    // This assertion is structurally equivalent to BC-2.04.048's "once set, never reset" invariant.
-    assert_eq!(
-        warned_after_first, warned_after_second,
-        "BC-2.04.048 inv-1: ISN_MISSING_WARNED must not change state on subsequent calls \
-         (first-call side-effect is idempotent — swap(true) on already-true is a no-op)"
+    // SECOND call — atomic stays true (BC-2.04.048 PC2 latching property).
+    let r2 = dir2.insert_segment(200, b"second", usize::MAX, usize::MAX, usize::MAX);
+    assert!(
+        matches!(r2, InsertResult::IsnMissing),
+        "AC-014 / EC-007 — IsnMissing still returned on subsequent call"
+    );
+    assert!(
+        wirerust::reassembly::segment::isn_missing_warned_for_testing(),
+        "AC-014 / EC-007 / BC-2.04.048 PC2 — atomic latches; remains true after subsequent call"
     );
 }
