@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 7 wave-level adv-pass-1 F-1: corrected on_data_without_syn anchor from flow.rs:241-246 to flow.rs:248-253 (Wave 6 fin_count addition shifted lines +7; W4.1 recurrence). Verified mod.rs:305-311 → 305-312 anchor against current source. — 2026-05-25"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -88,7 +89,7 @@ reassembly logic proceeds identically to a fully-handshaked flow.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- mid-stream join is required for forensic analysis of captures that begin mid-connection |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:305-311, insert_payload_segment; flow.rs:241-246, on_data_without_syn; flow.rs:143-148, infer_isn) |
+| Architecture Module | SS-04 (reassembly/mod.rs:305-312, insert_payload_segment; flow.rs:248-253, on_data_without_syn; flow.rs:143-148, infer_isn) |
 | Stories | STORY-014 |
 | Origin BC | BC-RAS-009 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -101,7 +102,7 @@ reassembly logic proceeds identically to a fully-handshaked flow.
 ## Architecture Anchors
 
 - `src/reassembly/mod.rs:305-312` -- on_data_without_syn + set_initiator + infer_isn block
-- `src/reassembly/flow.rs:241-246` -- on_data_without_syn: state=Established, partial=true
+- `src/reassembly/flow.rs:248-253` -- on_data_without_syn: state=Established, partial=true
 - `src/reassembly/flow.rs:143-148` -- infer_isn: wrapping_sub(1), base_offset=1
 
 ## Source Evidence

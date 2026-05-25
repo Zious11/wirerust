@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.0"
+version: "1.1"
 status: draft
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -22,7 +22,8 @@ proof_completed_date: null
 proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v1.1: Wave 7 wave-level adv-pass-1 F-1: corrected on_data_without_syn anchor references from flow.rs:241 to flow.rs:248 (Wave 6 fin_count addition shifted lines +7; W4.1 recurrence). — 2026-05-25"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -85,7 +86,7 @@ Notes on `TcpFlow` API:
 - `flow.state` is a `pub` field (`FlowState`), not a getter method. Access it
   as `flow.state`, not `flow.state()`.
 - `on_data_without_syn(&mut self)` takes NO arguments
-  (`src/reassembly/flow.rs:241`). It does not accept an ISN; the ISN is set
+  (`src/reassembly/flow.rs:248`). It does not accept an ISN; the ISN is set
   separately via `flow_dir.set_isn(isn)` on a `FlowDirection`.
 - `apply_event` is a test-only helper that must be defined inside the proof
   module; it does not exist in production code.
@@ -161,7 +162,7 @@ mod kani_proofs {
 
     #[kani::proof]
     fn verify_data_without_syn_sets_partial() {
-        // on_data_without_syn takes NO arguments (src/reassembly/flow.rs:241).
+        // on_data_without_syn takes NO arguments (src/reassembly/flow.rs:248).
         let key = FlowKey::new(
             IpAddr::V4(Ipv4Addr::new(1, 0, 0, 1)), 1000,
             IpAddr::V4(Ipv4Addr::new(1, 0, 0, 2)), 80,
@@ -212,7 +213,7 @@ mod kani_proofs {
 `src/reassembly/flow.rs:77` -- `FlowState` enum definition.
 `src/reassembly/flow.rs:229` -- `TcpFlow::on_syn` (New -> SynSent).
 `src/reassembly/flow.rs:235` -- `TcpFlow::on_syn_ack` (SynSent/New -> Established).
-`src/reassembly/flow.rs:241` -- `TcpFlow::on_data_without_syn` (no-arg; New -> Established, sets partial=true).
+`src/reassembly/flow.rs:248` -- `TcpFlow::on_data_without_syn` (no-arg; New -> Established, sets partial=true).
 `src/reassembly/flow.rs:248` -- `TcpFlow::on_fin` (Established/SynSent -> Closing; second FIN -> Closed).
 `src/reassembly/flow.rs:257` -- `TcpFlow::on_rst` (any state -> Closed).
 `src/reassembly/flow.rs:185` -- `TcpFlow::state` pub field (access as `flow.state`, not `flow.state()`).
