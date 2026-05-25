@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 7 wave-level adv-pass-3 F-2 MEDIUM: mega-sweep (W4.1 axis #4). Fixed flow.rs:100-105 → 93-104 (stale range: overlap_alert_fired is at line 93, outside the cited range; correct range 93-104 covers all three _alert_fired latch fields: overlap@93, small_segment@102, out_of_window@104). — 2026-05-25"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -102,7 +103,7 @@ or incrementing dropped_findings again. This is LESSON-P1.01 (LESSON-P0.03 in ol
 ## Architecture Anchors
 
 - `src/reassembly/mod.rs:420-426` -- LESSON-P1.01 comment explaining design
-- `src/reassembly/flow.rs:100-105` -- latch fields: overlap_alert_fired, small_segment_alert_fired, out_of_window_alert_fired
+- `src/reassembly/flow.rs:93-104` -- latch fields: overlap_alert_fired (line 93), small_segment_alert_fired (line 102), out_of_window_alert_fired (line 104)
 
 ## Source Evidence
 

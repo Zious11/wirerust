@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 7 wave-level adv-pass-2 F-2 HIGH: comprehensive SS-04 anchor sweep (W4.1 axis #3). Corrected Architecture Anchors on_rst reference from flow.rs:257-259 (pre-Wave-6) to flow.rs:264-266 (post-Wave-6 +7 line shift from fin_count addition). — 2026-05-25"
+  - "v1.4: Wave 7 wave-level adv-pass-3 F-1 HIGH: mega-sweep (W4.1 axis #4). Fixed mod.rs:272-278 → 273-279 (off-by-one both bounds; line 272 is a blank line; RST block runs 273-279 with closing brace). Applied to Architecture Module table, Architecture Anchors section, and Source Evidence Path. — 2026-05-25"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -92,7 +93,7 @@ this packet. The flow is removed from the `flows` HashMap by `close_flow`.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- RST handling is a required part of the TCP flow lifecycle |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:272-278, RST block; lifecycle.rs:36-62, close_flow) |
+| Architecture Module | SS-04 (reassembly/mod.rs:273-279, RST block; lifecycle.rs:36-62, close_flow) |
 | Stories | STORY-019 |
 | Origin BC | BC-RAS-010 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -105,7 +106,7 @@ this packet. The flow is removed from the `flows` HashMap by `close_flow`.
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:272-278` -- RST block in apply_handshake_flags
+- `src/reassembly/mod.rs:273-279` -- RST block in apply_handshake_flags
 - `src/reassembly/lifecycle.rs:36-62` -- close_flow: flush + remove + on_flow_close
 - `src/reassembly/flow.rs:264-266` -- on_rst: unconditional state=Closed
 
@@ -113,7 +114,7 @@ this packet. The flow is removed from the `flows` HashMap by `close_flow`.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:272-278` |
+| **Path** | `src/reassembly/mod.rs:273-279` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
