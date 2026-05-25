@@ -204,6 +204,13 @@ pub fn trigger_close_flow_missing_key_for_testing(
     // `close_flow` (lifecycle.rs lines 44-48). The debug_assert! itself is
     // intentionally not replicated here — this seam exists to let tests
     // observe the atomic transition without crashing the test thread.
+    // The _reassembler and _handler params are accepted purely for signature
+    // symmetry with close_flow at call sites. This seam directly replicates
+    // the post-debug_assert body of the missing-key branch (atomic swap +
+    // one-shot eprintln) without touching either; BC-2.04.029 v1.4 PC1/PC2/PC3
+    // are enforced STRUCTURALLY (let-else early-return at lifecycle.rs:42-50,
+    // verified by code review), not by this seam. See the doc-comment above
+    // for the catch_unwind-avoidance rationale.
     if !CLOSE_FLOW_MISSING_WARNED.swap(true, Ordering::Relaxed) {
         eprintln!("wirerust: close_flow called for non-existent key: {key} (reason: {reason:?})");
     }
