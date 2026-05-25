@@ -4312,17 +4312,20 @@ fn test_BC_2_04_032_isn_missing_inserts_nothing() {
 
 /// STORY-014 / BC-2.04.032 AC-012 / EC-006: empty data returns Inserted without ISN check.
 /// Precondition 2 (negated): data.is_empty() fires the early return before the ISN guard.
-/// Canonical test vector: insert_segment isn=None, data=b"" → Inserted.
+/// STORY-014 / BC-2.04.032 AC-012 / EC-006: empty data slice with no ISN.
 ///
-/// This is the discriminating test for check ordering: the BC requires the empty-data
-/// early return to happen BEFORE the ISN check. If the implementation placed the ISN
-/// check first and the empty-data check second (swapped order), the call with isn=None
-/// and data=b"" would return IsnMissing instead of Inserted. This test catches that swap.
+/// Asserts `insert_segment(.., &[], ..)` returns `InsertResult::Inserted` even
+/// when `isn == None`, because the empty-data early return at
+/// `src/reassembly/segment.rs:47-49` structurally precedes the ISN guard at
+/// `:51-58`. This is the discriminating test for check ordering: if the
+/// implementation swapped the two guards (ISN first, empty-data second), this
+/// call would return `IsnMissing` instead of `Inserted`.
 ///
-/// Also verifies the atomic ISN_MISSING_WARNED is NOT set by the empty-data path
-/// (it returns before reaching the ISN guard, so no warning should fire from this call).
-/// Observable: an ISN_MISSING_WARNED state flip after this call would indicate the
-/// ISN guard was reached despite empty data.
+/// The "atomic ISN_MISSING_WARNED is not flipped by this path" sub-property is
+/// enforced structurally by the order of these two checks in `insert_segment`
+/// and is verified by code review (mirrors the BC-2.04.048 PC2 and inv-3
+/// enforcement-mode precedents). No direct assertion on the atomic is performed
+/// here, and therefore no `ISN_MISSING_WARNED_LOCK` acquisition is required.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_032_empty_data_returns_inserted_without_isn_check() {
