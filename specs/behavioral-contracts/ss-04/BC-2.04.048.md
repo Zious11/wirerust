@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -14,6 +14,7 @@ capability: CAP-04
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
+  - "v1.3: Wave 7 STORY-014 adv-pass-1 F-2 closure: explicit enforcement-mode notation on PC2 (atomic state via automated test; no-second-eprintln sub-property via code review, matching invariant 3 precedent). Added new PC for the `isn_missing_warned_for_testing` / `reset_isn_missing_warned_for_testing` test-seam accessors with the `#[doc(hidden)]` hygiene rationale. — 2026-05-25"
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
 deprecated: null
 deprecated_by: null
@@ -46,8 +47,20 @@ On first IsnMissing encounter:
 
 On subsequent IsnMissing encounters:
 1. `ISN_MISSING_WARNED.swap(true, Ordering::Relaxed)` returns `true` (already warned).
-2. No eprintln.
+2. No eprintln. (Enforcement: the atomic-state latching property is automated-test-verifiable via
+   `isn_missing_warned_for_testing()` (see STORY-014 AC-014 combined test); the "no `eprintln!` on
+   subsequent calls" sub-property is enforced structurally by the swap-guarded `if`-block at
+   `src/reassembly/segment.rs:51-58` and verified by code review, matching the BC-2.04.048
+   invariant 3 enforcement precedent.)
 3. Both paths return `InsertResult::IsnMissing`.
+
+**PC4 (Test Seam):** A `#[doc(hidden)] pub fn isn_missing_warned_for_testing() -> bool` accessor
+in `src/reassembly/segment.rs` exposes the current value of `ISN_MISSING_WARNED` for
+integration-test verification. A companion `#[doc(hidden)] pub fn reset_isn_missing_warned_for_testing()`
+resets the atomic to `false` so tests can deterministically observe the PC1 `false → true` swap
+transition. Both functions are `#[doc(hidden)]` to keep them out of public `cargo doc` output
+despite being on the `pub` API (required because integration tests are separate crates and
+`#[cfg(test)]` items are not visible to them).
 
 ## Invariants
 
