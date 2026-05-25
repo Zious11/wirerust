@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 7 wave-level adv-pass-3 F-2 MEDIUM: mega-sweep (W4.1 axis #4). Fixed flow.rs:100-105 → 93-104 (stale range: overlap_alert_fired is at line 93, outside the cited range; correct range 93-104 covers all three _alert_fired latch fields: overlap@93, small_segment@102, out_of_window@104). — 2026-05-25"
+  - "v1.4: Wave 7 wave-level adv-pass-4 F-3+F-4 (process-gap): mega-sweep false-CORRECT — LESSON-P1.01 comment actually at 413-419 (cited range 420-426 contained LESSON-P2.05 instead); check_anomaly_thresholds outer closing brace at 513 (cited 420-512 off-by-one). — 2026-05-25"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -89,7 +90,7 @@ or incrementing dropped_findings again. This is LESSON-P1.01 (LESSON-P0.03 in ol
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- the sticky latch is the resource-bounding mechanism for the three anomaly detectors |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap; dropped_findings observability) |
-| Architecture Module | SS-04 (reassembly/mod.rs:420-512, check_anomaly_thresholds; flow.rs:86-108, FlowDirection fields) |
+| Architecture Module | SS-04 (reassembly/mod.rs:420-513, check_anomaly_thresholds; flow.rs:86-108, FlowDirection fields) |
 | Stories | STORY-017 |
 | Origin BC | BC-RAS-022 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -102,7 +103,7 @@ or incrementing dropped_findings again. This is LESSON-P1.01 (LESSON-P0.03 in ol
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:420-426` -- LESSON-P1.01 comment explaining design
+- `src/reassembly/mod.rs:413-419` -- LESSON-P1.01 doc-comment on check_anomaly_thresholds explaining latch-before-cap design
 - `src/reassembly/flow.rs:93-104` -- latch fields: overlap_alert_fired (line 93), small_segment_alert_fired (line 102), out_of_window_alert_fired (line 104)
 
 ## Source Evidence

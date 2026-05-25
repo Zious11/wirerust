@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -11,6 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.009.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.031.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.032.md
+  - .factory/specs/behavioral-contracts/ss-04/BC-2.04.048.md
 input-hash: "e83aa7b"
 traces_to: .factory/specs/prd.md
 id: "HS-014"
@@ -22,6 +23,7 @@ behavioral_contracts:
   - BC-2.04.009
   - BC-2.04.031
   - BC-2.04.032
+  - BC-2.04.048
 lifecycle_status: active
 introduced: v0.1.0-greenfield-spec
 last_evaluated: null
@@ -57,6 +59,7 @@ risk_source: null
 | BC-2.04.009 | Postcondition 1-2 — mid-stream join: ISN inferred as seq-1; flow marked partial | Steps 1-2: partial capture processing |
 | BC-2.04.031 | Postcondition 2 — ISN inferred as seq-1 on data-without-SYN | Step 1-2: ISN inference |
 | BC-2.04.032 | Postcondition 1 — insert_segment with no ISN returns IsnMissing; inserts nothing | Step 1 edge: safe guard if ISN never set |
+| BC-2.04.048 | PC2 — ISN_MISSING_WARNED prevents repeated eprintln | Rubric "Error quality": warning fires at most once per process |
 
 ## Verification Approach
 
@@ -97,6 +100,10 @@ buffered segments.
 - A TCP session that arrives with only ACK packets (no data) and no SYN: the flow should
   not produce a spurious finding or crash.
 - Multiple concurrent mid-stream flows: each infers its own ISN independently.
+
+## Changelog
+
+- **v1.1 — 2026-05-25**: Wave 7 wave-level adv-pass-4 F-1 closure. Added BC-2.04.048 to frontmatter `behavioral_contracts:` array, `inputs:` array, and BC Linkage table. The rubric "Error quality" row explicitly tests BC-2.04.048 PC2 (ISN_MISSING_WARNED prevents repeated eprintln — warning fires at most once per process), which was previously unlinked from its governing contract.
 
 ## Failure Guidance
 
