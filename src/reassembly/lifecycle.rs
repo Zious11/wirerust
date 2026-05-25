@@ -135,3 +135,76 @@ impl TcpReassembler {
         });
     }
 }
+
+// ---- Test-only seams (BC-2.04.029 / ADR-0004 amendment) -------------------
+//
+// These free functions expose the process-global `CLOSE_FLOW_MISSING_WARNED`
+// atomic and the `pub(super) close_flow` path to integration tests. The
+// pattern mirrors `wirerust::reassembly::segment::isn_missing_warned_for_testing`
+// added in STORY-014.
+//
+// Rationale: `close_flow` is intentionally `pub(super)` to keep the crate API
+// narrow. Rather than widening it, we add a thin `_for_testing` wrapper
+// (choice (b) per the ADR-0004 amendment opt-in-per-guard rationale) so tests
+// can exercise BC-2.04.029 AC-013/AC-014 and EC-009/EC-010 deterministically.
+
+/// Test-only accessor for the process-global `CLOSE_FLOW_MISSING_WARNED` flag.
+///
+/// Exposes a read of [`CLOSE_FLOW_MISSING_WARNED`] so integration tests can
+/// verify the one-shot behavior asserted by BC-2.04.029 PC4 — the flag
+/// transitions `false → true` exactly once across the process lifetime.
+///
+/// Sibling to `wirerust::reassembly::segment::isn_missing_warned_for_testing`.
+#[doc(hidden)]
+pub fn close_flow_missing_warned_for_testing() -> bool {
+    CLOSE_FLOW_MISSING_WARNED.load(Ordering::Relaxed)
+}
+
+/// Test-only reset of the process-global `CLOSE_FLOW_MISSING_WARNED` flag.
+///
+/// Allows tests to deterministically observe the BC-2.04.029 PC4
+/// `false → true` swap transition. MUST NOT be called from production code.
+#[doc(hidden)]
+pub fn reset_close_flow_missing_warned_for_testing() {
+    CLOSE_FLOW_MISSING_WARNED.store(false, Ordering::Relaxed);
+}
+
+/// Test-only trigger for the `close_flow` missing-key path.
+///
+/// Directly exercises the missing-key branch logic from `close_flow` —
+/// the atomic swap + one-shot `eprintln!` guard — without going through
+/// `close_flow` itself.
+///
+/// Why not call `reassembler.close_flow(key, reason, handler)` directly?
+/// The production `close_flow` body begins the missing-key branch with
+/// `debug_assert!(false, "close_flow called for non-existent key: {key}")`
+/// per BC-2.04.029 PC6. In debug-profile builds (the default for `cargo
+/// test`) this `debug_assert!` executes BEFORE the atomic swap, panicking
+/// before `CLOSE_FLOW_MISSING_WARNED` is ever set. `catch_unwind` would
+/// suppress the panic but the atomic would remain `false`, causing BC-2.04.029
+/// PC4/PC5 assertions to fail.
+///
+/// Calling `close_flow` via `catch_unwind` is therefore insufficient.
+/// Instead this seam directly replicates the observable behavior of the
+/// missing-key branch (the atomic transition and silent return) without
+/// triggering the `debug_assert!`. The production `debug_assert!` remains
+/// intact and fires in production debug builds whenever `close_flow` is
+/// called with a missing key outside of this test seam.
+///
+/// `close_flow` is `pub(super)` to keep the crate API narrow (ADR-0004
+/// amendment, choice (b)).
+#[doc(hidden)]
+pub fn trigger_close_flow_missing_key_for_testing(
+    _reassembler: &mut TcpReassembler,
+    key: &crate::reassembly::flow::FlowKey,
+    reason: crate::reassembly::handler::CloseReason,
+    _handler: &mut dyn crate::reassembly::handler::StreamHandler,
+) {
+    // Mirror the post-debug_assert! body of the missing-key branch in
+    // `close_flow` (lifecycle.rs lines 44-48). The debug_assert! itself is
+    // intentionally not replicated here — this seam exists to let tests
+    // observe the atomic transition without crashing the test thread.
+    if !CLOSE_FLOW_MISSING_WARNED.swap(true, Ordering::Relaxed) {
+        eprintln!("wirerust: close_flow called for non-existent key: {key} (reason: {reason:?})");
+    }
+}

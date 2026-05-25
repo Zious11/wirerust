@@ -35,7 +35,7 @@ pub mod handler;
 pub mod segment;
 
 mod config;
-mod lifecycle;
+pub mod lifecycle;
 mod stats;
 
 pub use config::ReassemblyConfig;
