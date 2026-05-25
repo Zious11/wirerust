@@ -1633,6 +1633,243 @@ fn test_BC_2_04_050_ec009_fin_on_new_flow() {
     );
 }
 
+// ---------------------------------------------------------------------------
+// STORY-014: BC-2.04.031, BC-2.04.009 (partial)
+//   ISN management — set_isn / infer_isn unit tests.
+//   AC-006..AC-009, EC-001 (seq=0 wrap), EC-005 (ISN already set via SYN).
+//
+// These tests operate directly on FlowDirection and require no engine-level
+// setup. They belong here because set_isn / infer_isn are pure-core methods
+// on the same types exercised by STORY-011 and STORY-013 tests above.
+//
+// NOTE: ISN_MISSING_WARNED accessor — AC-013/AC-014 (BC-2.04.048) in
+// reassembly_engine_tests.rs need to observe the ISN_MISSING_WARNED
+// AtomicBool. That static is currently `static` (not `pub`). Part B /
+// the implementer will need to add:
+//   pub fn isn_missing_warned_for_testing() -> bool {
+//       ISN_MISSING_WARNED.load(Ordering::Relaxed)
+//   }
+// in src/reassembly/segment.rs and re-export from the crate's pub API.
+// ---------------------------------------------------------------------------
+
+/// STORY-014 / BC-2.04.031 AC-006: set_isn stores isn and sets base_offset=1.
+/// Postconditions: self.isn = Some(seq), self.base_offset = 1.
+/// Canonical test vector: set_isn(1000) → isn=Some(1000), base_offset=1.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_031_set_isn_stores_isn_and_base_offset() {
+    let mut dir = FlowDirection::new();
+
+    // Precondition: fresh direction has no ISN.
+    assert_eq!(
+        dir.isn, None,
+        "precondition: isn must be None before set_isn"
+    );
+    assert_eq!(
+        dir.base_offset, 0,
+        "precondition: base_offset must be 0 before set_isn"
+    );
+
+    // BC-2.04.031 postcondition 1-2: set_isn(1000) → isn=Some(1000), base_offset=1.
+    dir.set_isn(1000);
+
+    assert_eq!(
+        dir.isn,
+        Some(1000),
+        "BC-2.04.031 post-1: set_isn(1000) must set isn = Some(1000)"
+    );
+    assert_eq!(
+        dir.base_offset, 1,
+        "BC-2.04.031 post-2: set_isn must set base_offset = 1 (ISN+1 is first data byte)"
+    );
+}
+
+/// STORY-014 / BC-2.04.031 AC-007: infer_isn stores seq-1 and sets base_offset=1.
+/// Postconditions: self.isn = Some(first_seq.wrapping_sub(1)), self.base_offset = 1.
+/// Canonical test vector: infer_isn(500) → isn=Some(499), base_offset=1.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_031_infer_isn_stores_seq_minus_one() {
+    let mut dir = FlowDirection::new();
+
+    // Precondition: fresh direction has no ISN.
+    assert_eq!(
+        dir.isn, None,
+        "precondition: isn must be None before infer_isn"
+    );
+    assert_eq!(
+        dir.base_offset, 0,
+        "precondition: base_offset must be 0 before infer_isn"
+    );
+
+    // BC-2.04.031 postcondition 1-2 (infer path): infer_isn(500) → isn=Some(499), base_offset=1.
+    // Canonical test vector from BC-2.04.031 §Canonical Test Vectors row 2.
+    dir.infer_isn(500);
+
+    assert_eq!(
+        dir.isn,
+        Some(499),
+        "BC-2.04.031 post-1 (infer): infer_isn(500) must set isn = Some(499) = 500.wrapping_sub(1)"
+    );
+    assert_eq!(
+        dir.base_offset, 1,
+        "BC-2.04.031 post-2 (infer): infer_isn must set base_offset = 1"
+    );
+}
+
+/// STORY-014 / BC-2.04.031 AC-008: both set_isn and infer_isn are idempotent.
+/// Postcondition 3 (both paths): second call is a no-op; first ISN preserved.
+/// Canonical test vectors: set_isn(1000) then set_isn(2000) → isn=Some(1000).
+///
+/// Covers three cross-setter scenarios:
+///   (a) set_isn then set_isn — second call uses a clearly different value (2000 ≠ 100).
+///   (b) infer_isn then infer_isn — second call uses a clearly different value (800 ≠ 500),
+///       which would produce a different inferred ISN (799 ≠ 499).
+///   (c) set_isn then infer_isn — first setter (set_isn) must win.
+///
+/// Using obviously different second-call values prevents a no-op that masks the
+/// idempotency bug by coincidence (e.g., same arg twice would pass even if isn
+/// were simply overwritten each time).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_031_isn_setters_are_idempotent() {
+    // (a) set_isn then set_isn: second call is a no-op.
+    // Canonical test vector: set_isn(100) then set_isn(200) → isn=Some(100).
+    // Discriminant: second value is 200 (≠ 100), so any overwrite would yield Some(200).
+    {
+        let mut dir = FlowDirection::new();
+        dir.set_isn(100);
+        assert_eq!(
+            dir.isn,
+            Some(100),
+            "(a) first set_isn(100) must store Some(100)"
+        );
+        dir.set_isn(200); // must be a no-op
+        assert_eq!(
+            dir.isn,
+            Some(100),
+            "BC-2.04.031 post-3 (a): second set_isn(200) must be a no-op; \
+             first ISN (100) must be preserved — overwrite regression would give Some(200)"
+        );
+        assert_eq!(
+            dir.base_offset, 1,
+            "(a) base_offset must remain 1 after idempotent set_isn"
+        );
+    }
+
+    // (b) infer_isn then infer_isn: second call is a no-op.
+    // infer_isn(500) stores 499; infer_isn(800) would store 799 if not idempotent.
+    {
+        let mut dir = FlowDirection::new();
+        dir.infer_isn(500);
+        assert_eq!(
+            dir.isn,
+            Some(499),
+            "(b) first infer_isn(500) must store Some(499)"
+        );
+        dir.infer_isn(800); // must be a no-op; 800.wrapping_sub(1)=799 would overwrite
+        assert_eq!(
+            dir.isn,
+            Some(499),
+            "BC-2.04.031 post-3 (b): second infer_isn(800) must be a no-op; \
+             first ISN (499) must be preserved — overwrite regression would give Some(799)"
+        );
+        assert_eq!(
+            dir.base_offset, 1,
+            "(b) base_offset must remain 1 after idempotent infer_isn"
+        );
+    }
+
+    // (c) set_isn then infer_isn (cross-setter): set_isn wins; infer_isn is a no-op.
+    // set_isn(300) stores 300; infer_isn(700) would store 699 if the isn.is_none() guard
+    // were absent or incorrect.
+    {
+        let mut dir = FlowDirection::new();
+        dir.set_isn(300);
+        assert_eq!(dir.isn, Some(300), "(c) set_isn(300) must store Some(300)");
+        dir.infer_isn(700); // must be a no-op; 700.wrapping_sub(1)=699 would overwrite
+        assert_eq!(
+            dir.isn,
+            Some(300),
+            "BC-2.04.031 post-3 (c): infer_isn after set_isn must be a no-op; \
+             first setter (set_isn=300) must win — cross-setter overwrite regression \
+             would give Some(699)"
+        );
+        assert_eq!(
+            dir.base_offset, 1,
+            "(c) base_offset must remain 1 after cross-setter no-op"
+        );
+    }
+}
+
+/// STORY-014 / BC-2.04.031 AC-009 / EC-001 (seq=0 wrap):
+/// infer_isn(0) wraps correctly: ISN = 0u32.wrapping_sub(1) = u32::MAX, base_offset=1.
+/// Invariant 2: wrapping_sub handles first_seq==0 without integer underflow.
+/// Canonical test vector: infer_isn(0) → isn=Some(4294967295), base_offset=1.
+///
+/// Discrimination: saturating_sub(1) on 0 yields 0, not u32::MAX.
+/// Plain `- 1` on 0 panics in debug/overflow-checked release builds.
+/// Only wrapping_sub(1) correctly yields u32::MAX (4294967295).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_031_infer_isn_zero_wraps_to_max() {
+    let mut dir = FlowDirection::new();
+
+    // infer_isn(0): 0u32.wrapping_sub(1) must equal u32::MAX (4294967295).
+    dir.infer_isn(0);
+
+    assert_eq!(
+        dir.isn,
+        Some(u32::MAX),
+        "BC-2.04.031 inv-2 / EC-001: infer_isn(0) must yield isn=Some(u32::MAX) via \
+         wrapping_sub — saturating_sub would give Some(0); plain sub would panic under \
+         overflow-checks (release profile has overflow-checks=true per CLAUDE.md)"
+    );
+    assert_eq!(
+        dir.base_offset, 1,
+        "BC-2.04.031 post-2: base_offset must be 1 even when seq=0 wraps"
+    );
+}
+
+/// STORY-014 / BC-2.04.031 EC-005: ISN already set via set_isn; infer_isn is then
+/// a no-op (isn.is_some() guard). State unchanged after second-call attempt.
+///
+/// Scenario: SYN arrives first (sets ISN via set_isn), then engine calls infer_isn
+/// on the same direction (e.g., after a mid-stream path executes for a second packet).
+/// Both isn and base_offset must remain from the original set_isn call.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_031_ec005_infer_isn_no_op_when_isn_already_set() {
+    let mut dir = FlowDirection::new();
+
+    // SYN path: set_isn(1000) — ISN locked in from the SYN sequence number.
+    dir.set_isn(1000);
+    assert_eq!(
+        dir.isn,
+        Some(1000),
+        "precondition: set_isn(1000) must store Some(1000)"
+    );
+    assert_eq!(
+        dir.base_offset, 1,
+        "precondition: base_offset must be 1 after set_isn"
+    );
+
+    // Mid-stream infer_isn called on the same direction — must be a no-op.
+    // infer_isn(2000) would store 1999 if the guard fails; 1999 ≠ 1000 is the discriminant.
+    dir.infer_isn(2000);
+
+    assert_eq!(
+        dir.isn,
+        Some(1000),
+        "BC-2.04.031 EC-005: infer_isn after set_isn must be a no-op; \
+         SYN-derived ISN (1000) must be preserved — regression would give Some(1999)"
+    );
+    assert_eq!(
+        dir.base_offset, 1,
+        "BC-2.04.031 EC-005: base_offset must remain 1 after no-op infer_isn"
+    );
+}
+
 /// EC-010 (BC-2.04.053 invariant 2 — initiator = None)
 /// When initiator is None (no SYN/SYN+ACK/data-without-SYN ever seen), direction()
 /// returns ServerToClient as the conservative default for any src argument.
