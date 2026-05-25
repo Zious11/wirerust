@@ -7,6 +7,24 @@ use wirerust::reassembly::handler::{CloseReason, Direction, StreamHandler};
 use wirerust::reassembly::segment::InsertResult;
 use wirerust::reassembly::{ReassemblyConfig, TcpReassembler};
 
+/// Process-global lock serializing tests that read or interact with the
+/// `ISN_MISSING_WARNED` atomic in `src/reassembly/segment.rs`.
+///
+/// Cargo's libtest runs integration tests in parallel within a binary, and
+/// any test that triggers `IsnMissing` performs an atomic `swap(true)` on
+/// the static. Tests that observe the atomic via
+/// `isn_missing_warned_for_testing()` or reset it via
+/// `reset_isn_missing_warned_for_testing()` must hold this lock for the
+/// duration of their test body, otherwise sibling tests in this same
+/// binary can interleave a `swap(true)` between an observation and
+/// invalidate the deterministic state assumption (see STORY-014 adv-pass-3
+/// F-1).
+///
+/// Any NEW test in this file that interacts with `ISN_MISSING_WARNED`
+/// MUST take this lock as its first line. Failure to do so re-introduces
+/// the race.
+static ISN_MISSING_WARNED_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 /// Test handler that records all callbacks.
 struct RecordingHandler {
     data_events: Vec<(FlowKey, Direction, Vec<u8>, u64)>,
@@ -4204,6 +4222,7 @@ fn test_BC_2_04_009_mid_stream_isn_wraps_correctly_at_seq_zero() {
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_032_isn_missing_returns_isn_missing() {
+    let _guard = ISN_MISSING_WARNED_LOCK.lock().expect("test lock poisoned");
     let mut dir = FlowDirection::new();
 
     // Precondition: isn is None (no set_isn or infer_isn called).
@@ -4230,6 +4249,7 @@ fn test_BC_2_04_032_isn_missing_returns_isn_missing() {
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_032_isn_missing_inserts_nothing() {
+    let _guard = ISN_MISSING_WARNED_LOCK.lock().expect("test lock poisoned");
     let mut dir = FlowDirection::new();
 
     // Precondition: isn=None, direction is completely empty.
@@ -4598,6 +4618,7 @@ fn test_BC_2_04_009_ec004_multiple_partial_flows_counted_independently() {
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_048_isn_missing_warned_fires_once_then_suppressed() {
+    let _guard = ISN_MISSING_WARNED_LOCK.lock().expect("test lock poisoned");
     // Deterministic precondition: reset the process-global atomic so the
     // first call below is GUARANTEED to be the false→true transition.
     wirerust::reassembly::segment::reset_isn_missing_warned_for_testing();
