@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -56,8 +56,8 @@ risk_source: null
 
 | BC ID | Clause Tested | Scenario Aspect |
 |-------|--------------|-----------------|
-| BC-2.04.009 | Postcondition 1-2 — mid-stream join: ISN inferred as seq-1; flow marked partial | Steps 1-2: partial capture processing |
-| BC-2.04.031 | Postcondition 2 — ISN inferred as seq-1 on data-without-SYN | Step 1-2: ISN inference |
+| BC-2.04.009 | Postconditions 2, 4 — flow marked partial; ISN inferred as seq-1 | Steps 1-2: partial capture processing |
+| BC-2.04.031 | Postcondition 1 (infer_isn path) — ISN inferred as seq-1 on data-without-SYN | Step 1-2: ISN inference |
 | BC-2.04.032 | Postcondition 1 — insert_segment with no ISN returns IsnMissing; inserts nothing | Step 1 edge: safe guard if ISN never set |
 | BC-2.04.048 | PC2 — ISN_MISSING_WARNED prevents repeated eprintln | Rubric "Error quality": warning fires at most once per process |
 
@@ -103,6 +103,7 @@ buffered segments.
 
 ## Changelog
 
+- **v1.2 — 2026-05-25**: Wave 7 wave-level adv-pass-5 F-1 closure. Corrected PC labels for BC-2.04.009 row (1-2 → 2,4) and BC-2.04.031 row (PC2 → PC1 of infer_isn path); pre-existing drift uncovered by pass-4's BC-2.04.048 row addition (Partial-Fix Regression Discipline).
 - **v1.1 — 2026-05-25**: Wave 7 wave-level adv-pass-4 F-1 closure. Added BC-2.04.048 to frontmatter `behavioral_contracts:` array, `inputs:` array, and BC Linkage table. The rubric "Error quality" row explicitly tests BC-2.04.048 PC2 (ISN_MISSING_WARNED prevents repeated eprintln — warning fires at most once per process), which was previously unlinked from its governing contract.
 
 ## Failure Guidance
