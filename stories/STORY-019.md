@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-019"
 epic_id: "E-2"
-version: "1.2"
+version: "1.3"
 status: in_progress
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -105,9 +105,13 @@ implementation_strategy: brownfield-formalization
 - When `close_flow` is called for a key NOT in `self.flows` and `CLOSE_FLOW_MISSING_WARNED == false`, `eprintln!` fires exactly once, `CLOSE_FLOW_MISSING_WARNED` is set to `true`, and `self.flows` is unmodified.
 - **Test:** `test_BC_2_04_029_close_flow_missing_key_warns_once()`
 
-### AC-014 (traces to BC-2.04.029 postcondition 5)
-- On subsequent calls to `close_flow` for a missing key (after the first warning), no additional `eprintln!` is emitted (silent return).
-- **Test:** `test_BC_2_04_029_close_flow_missing_key_second_call_is_silent()`
+### AC-014 (traces to BC-2.04.029 PC5)
+
+On subsequent calls to `close_flow` for a missing key (after the first warning):
+- The atomic-state latching property (`CLOSE_FLOW_MISSING_WARNED` remains `true`) is automated-test-verified via `close_flow_missing_warned_for_testing()`.
+- The "no additional `eprintln!` is emitted" sub-property is enforced **structurally** by the swap-guarded `if`-block at `src/reassembly/lifecycle.rs:42-50` and verified by code review (mirrors the BC-2.04.048 PC2 / inv-3 enforcement-mode precedent established in STORY-014 / Wave 7 / ADR-0004 amendment). In-process stderr capture is fragile and out of scope for this story.
+
+- **Test:** `test_BC_2_04_029_close_flow_missing_key_warns_once` (combined with AC-013 + EC-009; rationale: process-global atomic ordering)
 
 ### AC-015 (traces to BC-2.04.029 postcondition 1-3)
 - When `close_flow` returns early for a missing key: no `on_flow_close` callback fires, `total_memory` is unchanged, and `self.flows` is unmodified.
@@ -189,6 +193,8 @@ implementation_strategy: brownfield-formalization
 | expire_flows underflow guard: `current_time > last_seen` checked BEFORE subtraction | BC-2.04.013 invariant 1 | Code review: guard ordering in mod.rs:536-552 (fn decl :536, closing :552) |
 | `CLOSE_FLOW_MISSING_WARNED` uses `swap(true, Ordering::Relaxed)` one-shot pattern | BC-2.04.029 invariant 1 | Code review: grep for swap in lifecycle.rs |
 | debug_assert fires in debug builds when close_flow called for missing key | BC-2.04.029 postcondition 6 | Compile with debug assertions; run tests |
+| **No additional eprintln on subsequent missing-key calls** | BC-2.04.029 PC5 | Code review of swap-guarded if-block at `src/reassembly/lifecycle.rs:42-50` (matches BC-2.04.048 PC2 / inv-3 / ADR-0004 amendment precedent) |
+| **`#[doc(hidden)]` on test-only accessors** | BC-2.04.029 + brownfield-formalization API hygiene | Code review: `close_flow_missing_warned_for_testing()`, `reset_close_flow_missing_warned_for_testing()`, `trigger_close_flow_missing_key_for_testing()`, and `force_set_flow_state_for_testing()` (added in W8.3 + F-1 pre-empt) all carry `#[doc(hidden)]` |
 
 ## Library & Framework Requirements (MANDATORY)
 
@@ -200,8 +206,8 @@ implementation_strategy: brownfield-formalization
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `src/reassembly/mod.rs` | verify (lines 165-174, 273-279, 281-287, 536-552) | FIN-close detection, RST block, FIN flag block, expire_flows |
-| `src/reassembly/lifecycle.rs` | verify (lines 31, 42-50) | CLOSE_FLOW_MISSING_WARNED, close_flow missing-key guard |
+| `src/reassembly/lifecycle.rs` | verify + append | Verified close_flow missing-key guard at :42-50. Appended #[doc(hidden)] pub fn test seams at end-of-file: close_flow_missing_warned_for_testing(), reset_close_flow_missing_warned_for_testing(), trigger_close_flow_missing_key_for_testing(), force_set_flow_state_for_testing() — opt-in-per-guard per ADR-0004 amendment |
+| `src/reassembly/mod.rs` | verify + visibility widen | Widened `mod lifecycle` → `pub mod lifecycle` to expose test-seam accessors; verified RST/FIN/expire_flows blocks at lines 165-174, 273-279, 281-287, 536-552 |
 | `src/reassembly/flow.rs` | verify (lines 255-262, 264-266) | on_fin and on_rst implementations |
 | `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-015 (engine-level lifecycle tests) |
 | `tests/reassembly_flow_tests.rs` | modify | Add flow-level state transition tests for on_fin/on_rst |
@@ -210,6 +216,7 @@ implementation_strategy: brownfield-formalization
 
 | Version | Date | Author | Notes |
 |---------|------|--------|-------|
+| 1.3 | 2026-05-25 | story-writer | Wave 8 STORY-019 adv-pass-1 F-4 closure: explicit enforcement-mode notation on AC-014 ("no additional eprintln" sub-property moved from automated-test to code-review enforcement per BC-2.04.029 PC5; mirrors BC-2.04.048 PC2 / inv-3 / Wave-7 ADR-0004 amendment precedent). Added Architecture Compliance Rules rows for swap-guard code review + #[doc(hidden)] test-accessor hygiene (covers 4 test seams including the F-1 pre-empt force_set_flow_state_for_testing). Updated File Structure Requirements to acknowledge the appended lifecycle.rs test seams and the mod.rs visibility widening. |
 | v1.0 | 2026-05-21 | story-writer | Initial decomposition |
 | v1.1 | 2026-05-21 | story-writer | Wave 7 partial anchor refresh |
 | v1.2 | 2026-05-25 | story-writer | Wave 8 pre-flight — refreshed body line-anchors to match post-Wave-7 source state (BC-2.04.010 v1.4 mod.rs:273-279 RST block; BC-2.04.011 v1.4 mod.rs:165-174 FIN-close; flow.rs:255-262 on_fin; flow.rs:264-266 on_rst; and verified expire_flows mod.rs:536-552, FIN flag block mod.rs:281-287, close_flow guard lifecycle.rs:42-50, CLOSE_FLOW_MISSING_WARNED lifecycle.rs:31 against current source). Frontmatter status → in_progress. |
