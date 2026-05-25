@@ -208,3 +208,30 @@ pub fn trigger_close_flow_missing_key_for_testing(
         eprintln!("wirerust: close_flow called for non-existent key: {key} (reason: {reason:?})");
     }
 }
+
+/// Test-only seam to force a flow's state to a specific [`FlowState`] without
+/// going through the on_fin / on_rst / on_syn state-machine transitions.
+///
+/// Required by BC-2.04.013 inv-2 ("a flow with `state == FlowState::Closed`
+/// is also expired here") to construct a flow in `Closed` state while keeping
+/// its `last_seen` within the timeout window — proving the state-based
+/// expiry clause is independent of the time-based clause.
+///
+/// MUST NOT be called from production code. `#[doc(hidden)]` per ADR-0004
+/// amendment opt-in-per-guard seam hygiene.
+///
+/// Returns `true` if the flow was found and its state updated; `false` if no
+/// flow with the given key exists (no-op, no panic).
+#[doc(hidden)]
+pub fn force_set_flow_state_for_testing(
+    reassembler: &mut TcpReassembler,
+    key: &crate::reassembly::flow::FlowKey,
+    state: crate::reassembly::flow::FlowState,
+) -> bool {
+    if let Some(flow) = reassembler.flows_mut().get_mut(key) {
+        flow.state = state;
+        true
+    } else {
+        false
+    }
+}

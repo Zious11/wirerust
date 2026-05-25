@@ -5803,52 +5803,22 @@ fn test_BC_2_04_013_expire_flows_does_not_underflow_when_time_travels_backwards(
 
 // ---- AC-012 ----------------------------------------------------------------
 
-/// AC-012 (BC-2.04.013 invariant 2 and edge case EC-004)
-/// A flow with `state == FlowState::Closed` is also expired by `expire_flows`
-/// regardless of its idle time (handles flows that were FIN-closed but not yet
-/// removed). `close_events` must contain exactly one `CloseReason::Timeout`
-/// entry after `expire_flows` runs on such a flow.
+/// STORY-019 / BC-2.04.013 AC-012 / EC-004: a flow with `state == Closed` is
+/// expired by `expire_flows` REGARDLESS of idle time.
+///
+/// Uses `force_set_flow_state_for_testing` to construct a Closed flow whose
+/// `last_seen` is well within the timeout window — proving the state-based
+/// OR-branch fires INDEPENDENTLY of the time-based clause. A regression that
+/// drops the `state == FlowState::Closed` clause from `expire_flows` would
+/// leave this flow unexpired and fail this test.
 ///
 /// Note: EC-004 here is BC-2.04.013's EC-004 (flow with state=Closed), NOT
 /// STORY-019's EC-004 (FIN on New flow).
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_013_already_closed_state_is_expired() {
-    // We need a flow to reach state=Closed WITHOUT being removed by the engine.
-    // The only way to reach Closed without immediate removal is through the
-    // FIN-close path: two FINs close the flow. But the FIN-close path DOES
-    // remove the flow via close_flow. So we must rely on the expire_flows
-    // explicit Closed-state check being hit in a different scenario.
-    //
-    // Strategy: use a very large timeout so the flow does NOT expire by time,
-    // then verify expire_flows still closes a Closed-state flow.
-    //
-    // NOTE: In the current implementation, two FINs cause the engine to call
-    // close_flow immediately (removing the flow). To test the Closed-state-expire
-    // path, we simulate the scenario where expire_flows is called with a flow
-    // that was closed but not yet removed. We verify the behavior is correct.
-    //
-    // The canonical edge case: flow that reached Closed state (e.g., from RST
-    // which closes immediately) is treated exactly the same as an already-removed
-    // flow from expire_flows perspective. So we test: normal flow expiry by time
-    // matching the Closed-state condition.
-    //
-    // The actual BC-2.04.013 invariant 2 says: `state == FlowState::Closed` is
-    // explicitly checked as an OR condition in expire_flows. We verify this by
-    // creating a flow that has been closed by RST (removed) and then verifying
-    // expire_flows does not double-count or panic. Then we also test the
-    // canonical time-based path, since RST removes immediately. The structural
-    // coverage of `state == Closed` is confirmed by reading mod.rs:540-543.
-    //
-    // For pure observable testing: use a small timeout and a flow that is WITHIN
-    // timeout but already at state=Closed via the flow's state machine being
-    // exercised. Since the FIN path removes the flow immediately after both FINs,
-    // the only scenario where a Closed-state flow survives in the table is if
-    // expire_flows is triggered BETWEEN the on_fin calls. This is timing-sensitive
-    // in the engine. We instead verify the simpler observable: that expire_flows
-    // on a timed-out flow emits CloseReason::Timeout (not Rst or Fin).
     let config = ReassemblyConfig {
-        flow_timeout_secs: 10,
+        flow_timeout_secs: 1_000_000, // huge timeout — time-based clause cannot fire
         ..ReassemblyConfig::default()
     };
     let mut reassembler = TcpReassembler::new(config);
@@ -5857,7 +5827,7 @@ fn test_BC_2_04_013_already_closed_state_is_expired() {
     let client = [10, 0, 0, 1];
     let server = [10, 0, 0, 2];
 
-    // Create a flow at t=0.
+    // Establish a flow at t=100 via a single SYN packet.
     let syn = make_tcp_packet(
         client,
         12345,
@@ -5870,26 +5840,52 @@ fn test_BC_2_04_013_already_closed_state_is_expired() {
         false,
         false,
     );
-    reassembler.process_packet(&syn, 0, &mut handler);
-
-    // expire_flows at t=11 (0 + 10 timeout = 10; 11 > 10 → expired).
-    reassembler.expire_flows(11, &mut handler);
-
-    // BC-2.04.013 inv-2: the flow must be expired with CloseReason::Timeout.
+    reassembler.process_packet(&syn, 100, &mut handler);
     assert_eq!(
-        handler.close_events.len(),
+        reassembler.flow_count(),
         1,
-        "BC-2.04.013 inv-2: idle flow must be closed by expire_flows"
+        "precondition: flow established"
+    );
+
+    // Force state to Closed without advancing time (seam from lifecycle.rs).
+    let key = wirerust::reassembly::flow::FlowKey::new(
+        IpAddr::V4(Ipv4Addr::from(client)),
+        12345,
+        IpAddr::V4(Ipv4Addr::from(server)),
+        80,
+    );
+    let updated = wirerust::reassembly::lifecycle::force_set_flow_state_for_testing(
+        &mut reassembler,
+        &key,
+        wirerust::reassembly::flow::FlowState::Closed,
+    );
+    assert!(updated, "force_set_flow_state seam must find the flow");
+
+    // current_time=101 → idle is 1s, well below 1_000_000s timeout.
+    // Time-based clause: (101 - 100) > 1_000_000 → FALSE.
+    // Only the `state == FlowState::Closed` OR-clause can cause expiry.
+    let closes_before = handler.close_events.len();
+    reassembler.expire_flows(101, &mut handler);
+
+    assert_eq!(
+        reassembler.flow_count(),
+        0,
+        "AC-012: Closed-state flow must be expired regardless of idle time"
     );
     assert_eq!(
-        handler.close_events[0].1,
+        handler.close_events.len() - closes_before,
+        1,
+        "AC-012: expire_flows must invoke on_flow_close exactly once for the Closed flow"
+    );
+    assert_eq!(
+        handler.close_events.last().unwrap().1,
         CloseReason::Timeout,
-        "BC-2.04.013 EC-004: expired flow must use CloseReason::Timeout"
+        "AC-012: close reason must be Timeout per expire_flows contract"
     );
     assert_eq!(
         reassembler.stats().flows_expired,
         1,
-        "BC-2.04.013 inv-2: flows_expired must be 1"
+        "AC-012: stats.flows_expired must increment by 1"
     );
 }
 
@@ -5956,57 +5952,11 @@ fn test_BC_2_04_029_close_flow_missing_key_warns_once() {
         "precondition: no close events before missing-key call"
     );
 
-    // FIRST call — atomic must transition false → true (BC-2.04.029 PC4).
-    // Note: close_flow is pub(super) so we cannot call it directly from integration
-    // tests. We trigger the missing-key path by finalize() on a reassembler that
-    // has no flows, then forcibly observe the atomic. However, finalize() calls
-    // close_flow for each flow in self.flows — if flows is empty there's nothing
-    // to call. Instead we use the engine-level RST path: create a flow, close it
-    // via RST (removes from self.flows), then call expire_flows to trigger the
-    // Closed-state path which has already removed the flow.
-    //
-    // The direct way to exercise the missing-key path from tests is to manually
-    // trigger it. Since close_flow is pub(super), we rely on the fact that the
-    // existing test infrastructure can produce a call to close_flow with a missing
-    // key by: create one reassembler, RST-close its only flow, then call
-    // expire_flows (which would try to close an already-missing key if the expiry
-    // runs AFTER the RST). This is tricky to arrange. The simplest approach: use
-    // the test seam directly. The implementer's W8.3 task ALSO adds a
-    // `pub fn close_flow_for_testing` or exposes the path differently.
-    //
-    // For now: we verify the observable invariants (PC1, PC3) using the scenario
-    // where we establish a flow, RST-close it (flow removed from self.flows), then
-    // call finalize() on the now-empty reassembler. finalize() iterates self.flows
-    // and calls close_flow for each — if empty, no missing-key call happens.
-    //
-    // The correct way to exercise BC-2.04.029 PC4/PC5 is via the test seam. The
-    // implementer must add `pub fn trigger_close_flow_missing_for_testing()` or
-    // expose `close_flow` publicly with `#[cfg(test)]`. For Part B we record the
-    // compile error so the implementer knows what seam to add.
-    //
-    // THIS CALL WILL FAIL TO COMPILE until the implementer adds:
-    //   pub fn reset_close_flow_missing_warned_for_testing() in lifecycle.rs
-    //   pub fn close_flow_missing_warned_for_testing() -> bool in lifecycle.rs
-    // (mirroring the ISN_MISSING_WARNED pattern in segment.rs)
-
-    // Trigger the missing-key path by calling close_flow indirectly.
-    // We use the expire_flows path: create a flow, close it via RST to remove it,
-    // then forcibly call expire_flows again which would find no flow and would not
-    // call close_flow for any missing key. That does NOT trigger BC-2.04.029.
-    //
-    // The ONLY way to trigger it deterministically from an integration test is via
-    // the accessor that the implementer must provide. We spell out the required
-    // calls here (they will fail until W8.3 adds them):
-    //
-    // wirerust::reassembly::lifecycle::trigger_close_flow_missing_key_for_testing(
-    //     &mut reassembler, &missing_key, CloseReason::Manual, &mut handler
-    // )
-    //
-    // Since that accessor does not exist yet, we use a workaround: create the
-    // reassembler with ONE flow, expire it with RST (removes it), then call
-    // expire_flows at a very old time to force the Closed path. The Closed-state
-    // path in expire_flows calls close_flow, which finds the key ALREADY REMOVED
-    // (because RST already removed it). That IS the BC-2.04.029 path.
+    // AC-013 (false→true transition) and AC-014 (latching) are both observable via
+    // the trigger_close_flow_missing_key_for_testing seam. We reset the atomic,
+    // invoke the trigger once to verify BC-2.04.029 PC4, then a second time to
+    // verify PC5 (atomic stays true; eprintln-suppression structurally enforced
+    // per ADR-0004 amendment via swap-guard at lifecycle.rs:44-48).
 
     // Setup: one flow, closed by RST (flow removed from self.flows).
     let client = [10, 0, 0, 1];
@@ -6266,11 +6216,17 @@ fn test_BC_2_04_010_ec001_rst_on_new_flow_no_data() {
 }
 
 /// EC-002 (STORY-019 / BC-2.04.010 EC-002)
-/// RST on a flow with buffered (out-of-order) data: buffered data is flushed
-/// via `on_data` before `on_flow_close(Rst)` is called.
+/// RST on a flow with buffered non-contiguous data: `total_memory` is released
+/// to 0 even when the buffered segment cannot be flushed (gap blocks delivery).
+///
+/// Verifies that RST close releases `total_memory` to 0 even when a
+/// non-contiguous segment remained buffered (silently dropped by
+/// `flush_contiguous` since the gap blocks delivery). The flush-before-close
+/// discipline of BC-2.04.010 PC2 is verified separately by AC-002
+/// (`test_BC_2_04_010_rst_flushes_then_closes`).
 #[test]
 #[allow(non_snake_case)]
-fn test_BC_2_04_010_ec002_rst_on_flow_with_buffered_data_flushes_first() {
+fn test_BC_2_04_010_ec002_rst_releases_total_memory_with_buffered_non_contiguous_segments() {
     let config = ReassemblyConfig::default();
     let mut reassembler = TcpReassembler::new(config);
     let mut handler = RecordingHandler::new();
