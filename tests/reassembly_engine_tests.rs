@@ -4851,11 +4851,16 @@ fn test_BC_2_04_010_rst_flushes_then_closes() {
         "BC-2.04.010 PC3: close reason must be Rst"
     );
 
-    // BC-2.04.010 PC4: flow removed from self.flows (total_memory == 0).
+    // BC-2.04.010 PC4: flow removed from self.flows (total_memory == 0, flow_count == 0).
     assert_eq!(
         reassembler.total_memory(),
         0,
         "BC-2.04.010 PC4: total_memory must be 0 after RST (flow removed)"
+    );
+    assert_eq!(
+        reassembler.flow_count(),
+        0,
+        "BC-2.04.010 PC4: flow_count must be 0 after RST (flow removed from self.flows)"
     );
 
     // Ordering: data_events must precede the close event. Because
@@ -6016,7 +6021,7 @@ fn test_BC_2_04_029_close_flow_missing_key_warns_once() {
          (RST found the key, no missing-key path taken)"
     );
 
-    // BC-2.04.029 PC3: handler.close_events count must not change after the
+    // BC-2.04.029 PC2: handler.close_events count must not change after the
     // missing-key call. We verify this by checking that after the RST there is
     // exactly 1 close event, and after any subsequent missing-key trigger there
     // is STILL exactly 1.
@@ -6040,7 +6045,7 @@ fn test_BC_2_04_029_close_flow_missing_key_warns_once() {
         "BC-2.04.029 PC4: CLOSE_FLOW_MISSING_WARNED must be true after first missing-key call"
     );
 
-    // BC-2.04.029 PC1 + PC3: no additional close events, flows unchanged.
+    // BC-2.04.029 PC1 + PC2: no additional close events, flows unchanged.
     assert_eq!(
         handler.close_events.len(),
         1,
@@ -6069,7 +6074,7 @@ fn test_BC_2_04_029_close_flow_missing_key_warns_once() {
         "BC-2.04.029 PC5: CLOSE_FLOW_MISSING_WARNED must remain true after second missing-key call"
     );
 
-    // BC-2.04.029 PC3: still no new close events.
+    // BC-2.04.029 PC2: still no new close events.
     assert_eq!(
         handler.close_events.len(),
         1,
@@ -6143,7 +6148,7 @@ fn test_BC_2_04_029_close_flow_missing_key_does_not_modify_state() {
         &mut handler,
     );
 
-    // BC-2.04.029 PC1: no on_flow_close callback (close_events unchanged).
+    // BC-2.04.029 PC2: no on_flow_close callback (close_events unchanged).
     assert_eq!(
         handler.close_events.len(),
         close_events_before,
@@ -6294,7 +6299,11 @@ fn test_BC_2_04_010_ec002_rst_releases_total_memory_with_buffered_non_contiguous
         "precondition: 3 bytes buffered"
     );
 
-    // RST — must flush the buffered "ccc" via on_data BEFORE calling on_flow_close.
+    // RST — exercises close_flow's flush path on a flow with a buffered non-contiguous
+    // segment ("ccc" at offset 6, blocked by gap at offset 3-5). flush_contiguous
+    // cannot deliver behind a gap, so "ccc" is silently dropped at close; we only
+    // verify total_memory release and clean close. BC-2.04.010 PC2's "flush in
+    // close_flow" is enforced as defense-in-depth per BC-2.04.010 v1.5 PC2.
     let rst = make_tcp_packet(
         server,
         80,
