@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-019"
 epic_id: "E-2"
-version: "1.3"
+version: "1.4"
 status: in_progress
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -113,9 +113,16 @@ On subsequent calls to `close_flow` for a missing key (after the first warning):
 
 - **Test:** `test_BC_2_04_029_close_flow_missing_key_warns_once` (combined with AC-013 + EC-009; rationale: process-global atomic ordering)
 
-### AC-015 (traces to BC-2.04.029 postcondition 1-3)
-- When `close_flow` returns early for a missing key: no `on_flow_close` callback fires, `total_memory` is unchanged, and `self.flows` is unmodified.
-- **Test:** `test_BC_2_04_029_close_flow_missing_key_does_not_modify_state()`
+> **Additional note (BC-2.04.029 PC1/PC2/PC3 enforcement):** the combined test's "handler.close_events.len() unchanged after trigger" assertions verify the trigger seam's no-op semantics; the production close_flow path's no-side-effect guarantee on the missing-key branch is enforced structurally by the let-else early-return at lifecycle.rs:42-50 (code review). See BC-2.04.029 v1.4 PC1/PC2/PC3 enforcement-mode parentheticals.
+
+### AC-015 (traces to BC-2.04.029 PC1, PC2, PC3)
+
+When `close_flow` returns early for a missing key:
+- The early-return guarantee (no on_flow_close callback fires, total_memory unchanged, self.flows unmodified) is enforced **structurally** by the `let Some(mut flow) = self.flows.remove(key) else { ... return; }` early-return at `src/reassembly/lifecycle.rs:42-50` and verified by code review. The branch contains only debug_assert + swap + eprintln + return, with no access to flows/total_memory/handler state.
+- The automated `test_BC_2_04_029_close_flow_missing_key_does_not_modify_state` test exercises the `trigger_close_flow_missing_key_for_testing` seam (BC-2.04.029 v1.4 PC7) and verifies the seam's no-op semantics against handler.close_events / total_memory / flow_count snapshots. This is COVERAGE FOR THE SEAM, not for production `close_flow` (which is enforced structurally per the parent bullet).
+- Mirrors the AC-014 (v1.3) / BC-2.04.048 PC2 (v1.3) / ADR-0004 amendment enforcement-mode precedent established in Wave 7.
+
+- **Test:** `test_BC_2_04_029_close_flow_missing_key_does_not_modify_state`
 
 ## Architecture Mapping
 
@@ -195,6 +202,7 @@ On subsequent calls to `close_flow` for a missing key (after the first warning):
 | debug_assert fires in debug builds when close_flow called for missing key | BC-2.04.029 postcondition 6 | Compile with debug assertions; run tests |
 | **No additional eprintln on subsequent missing-key calls** | BC-2.04.029 PC5 | Code review of swap-guarded if-block at `src/reassembly/lifecycle.rs:42-50` (matches BC-2.04.048 PC2 / inv-3 / ADR-0004 amendment precedent) |
 | **`#[doc(hidden)]` on test-only accessors** | BC-2.04.029 + brownfield-formalization API hygiene | Code review: `close_flow_missing_warned_for_testing()`, `reset_close_flow_missing_warned_for_testing()`, `trigger_close_flow_missing_key_for_testing()`, and `force_set_flow_state_for_testing()` (added in W8.3 + F-1 pre-empt) all carry `#[doc(hidden)]` |
+| **Missing-key path is side-effect-free (no on_flow_close, no memory change, no flows change)** | BC-2.04.029 PC1/PC2/PC3 | Code review of the `let Some(mut flow) = self.flows.remove(key) else { ... return; }` early-return at `src/reassembly/lifecycle.rs:42-50` — the missing-key branch contains only debug_assert + swap + eprintln + return, with no access to mutable state. Automated tests exercise the trigger seam, NOT production close_flow (cannot, due to PC6 debug_assert in debug builds). |
 
 ## Library & Framework Requirements (MANDATORY)
 
@@ -216,6 +224,7 @@ On subsequent calls to `close_flow` for a missing key (after the first warning):
 
 | Version | Date | Author | Notes |
 |---------|------|--------|-------|
+| 1.4 | 2026-05-25 | story-writer | Wave 8 STORY-019 adv-pass-2 F-1 closure (MEDIUM): AC-015 rewritten with enforcement-mode split (structural code-review for production close_flow's no-side-effect guarantee; automated test covers trigger-seam's no-op semantics). AC-013/AC-014 combined-test entry annotated with same caveat for its close_events assertions. Added Architecture Compliance Rule row covering the let-else early-return structural enforcement. Mirrors v1.3 AC-014 / BC-2.04.048 PC2 / ADR-0004 amendment enforcement-mode pattern. |
 | 1.3 | 2026-05-25 | story-writer | Wave 8 STORY-019 adv-pass-1 F-4 closure: explicit enforcement-mode notation on AC-014 ("no additional eprintln" sub-property moved from automated-test to code-review enforcement per BC-2.04.029 PC5; mirrors BC-2.04.048 PC2 / inv-3 / Wave-7 ADR-0004 amendment precedent). Added Architecture Compliance Rules rows for swap-guard code review + #[doc(hidden)] test-accessor hygiene (covers 4 test seams including the F-1 pre-empt force_set_flow_state_for_testing). Updated File Structure Requirements to acknowledge the appended lifecycle.rs test seams and the mod.rs visibility widening. |
 | v1.0 | 2026-05-21 | story-writer | Initial decomposition |
 | v1.1 | 2026-05-21 | story-writer | Wave 7 partial anchor refresh |
