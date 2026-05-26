@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 9 STORY-016 adv pass-2 F-5: removed 'Wait -- re-check' drafting artifact from invariant 1 prose; replaced with concise canonical statement — 2026-05-26"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -50,11 +51,9 @@ segment ends does NOT trigger `has_overlap = true` and is inserted cleanly.
 ## Invariants
 
 1. The half-open interval test `new_start < existing_end && new_end > existing_offset` is
-   the canonical overlap check. Adjacency (`new_start == existing_end`) satisfies
-   `new_start < existing_end` as False for a segment immediately following (since
-   `new_start == existing_end` means `new_start < existing_end` is false).
-   Wait -- re-check: if `new_start == existing_end`, then `new_start < existing_end` is
-   FALSE; the condition is not entered; no overlap recorded. This is the correct behavior.
+   the canonical overlap check. When `new_start == existing_end`, the first conjunct
+   evaluates to false and the overlap branch is not entered, so no overlap is recorded —
+   the correct behavior for adjacent (touching) segments.
 2. After adjacent segments are inserted, `flush_contiguous` delivers them in order because
    the BTreeMap keys are `existing_offset` and `existing_end = new_start`, and the flush
    loop advances `base_offset` incrementally.

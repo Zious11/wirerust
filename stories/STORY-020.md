@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-020"
 epic_id: "E-2"
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -35,6 +35,7 @@ implementation_strategy: brownfield-formalization
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| 1.3 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-020 adv pass-2 fix: F-002 (HIGH) — clarified AC-005 wording to make 'after eviction' explicit (eviction may be a no-op per v1.3 Inv 4); AC-005 + EC-005 jointly characterize rejection path (EC-005: no-op case; AC-005: structural rejection). F-003 (HIGH) requires test rewrite (test-writer parallel), not story revision; AC-013 wording unchanged. |
 | 1.2 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-020 adv-prep fix: revised EC-005 to match BC-2.04.015 v1.3 PC-5 implementation reality (evict_flows is no-op at max_flows without memcap pressure; packet dropped, not evicted); added EC-011 for dual-pressure case; AC-005 already consistent. Coordinated with BC-2.04.015 v1.3 EC-004 revision in same burst. |
 | 1.1 | 2026-05-21 | story-writer | Initial release |
 
@@ -77,7 +78,7 @@ implementation_strategy: brownfield-formalization
 - **Test:** `test_BC_2_04_014_total_memory_equals_sum_of_flow_memory()`
 
 ### AC-005 (traces to BC-2.04.015 postcondition 5-6)
-- When `self.flows.len() >= config.max_flows` and a new flow packet arrives, `evict_flows` is called. After eviction, if the table is STILL at capacity, `get_or_create_flow` returns `false` and the packet is dropped (no flow created).
+- When `self.flows.len() >= config.max_flows` and a new flow packet arrives, `evict_flows` is called. After `evict_flows` returns (whether or not it evicted any flow — under v1.3 Invariant 4 the call may be a no-op when only max_flows pressure exists), if the table remains at capacity, `get_or_create_flow` returns `false` and the packet is dropped. This AC and EC-005 jointly characterize the rejection path: EC-005 covers the no-op-eviction case explicitly; this AC covers the structural rejection behavior.
 - **Test:** `test_BC_2_04_015_new_flow_dropped_when_table_full_after_eviction()`
 
 ### AC-006 (traces to BC-2.04.015 postcondition 1 and 3)

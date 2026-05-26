@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 9 STORY-016 adversarial pass-1 fix: F-3 — stale architecture-anchor line range corrected from segment.rs:199-212 to segment.rs:201-212 (line shift from Wave 8 STORY-019 test-seam additions) — 2026-05-26"
+  - "v1.4: Wave 9 STORY-016 adv pass-2 F-7 (sibling-discipline regression of pass-1 F-3): invariant 1 prose anchor 'segment.rs:201' → 'segment.rs:204 (within block at 201-212)' (line 201 is comment, line 204 is the actual return) — 2026-05-26"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -54,7 +55,7 @@ handled by the same `fully_covered` check that handles single-segment coverage.
 1. The `fully_covered` computation (segment.rs:145) checks whether any single existing range
    covers `[new_start, new_end)` entirely: `es <= new_start && ee >= new_end`. Multi-segment
    union coverage is handled by the gap-computation path that produces an empty gaps vec,
-   which then falls through to the `!had_gap` return at segment.rs:201.
+   which then falls through to the `!had_gap` return arm at segment.rs:204 (within the block at 201-212).
 2. First-wins (INV-3) applies identically here: multi-segment union does not change the
    conflict detection or preservation semantics.
 

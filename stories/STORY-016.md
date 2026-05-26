@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-016"
 epic_id: "E-2"
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -162,7 +162,7 @@ implementation_strategy: brownfield-formalization
 3. [ ] Verify existing implementation satisfies all ACs (brownfield)
 4. [ ] Add proptest for buffered_bytes invariant: random insert/flush sequences (AC-012)
 5. [ ] Verify adjacency boundary test: new_start == existing_end should NOT trigger overlap
-6. [ ] Verify union-coverage path: two existing non-contiguous segments covering a new range
+6. [ ] Verify union-coverage path: two existing adjacent (contiguous) segments jointly covering a new range
 7. [ ] Update STATE.md
 
 ## Previous Story Intelligence (MANDATORY)
@@ -200,5 +200,6 @@ implementation_strategy: brownfield-formalization
 
 | Version | Date | Author | Notes |
 |---------|------|--------|-------|
+| 1.3 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-016 adv pass-2 fix: F-1 (HIGH, sibling-discipline regression of pass-1 F-1) — Tasks line 165 'non-contiguous' → 'adjacent (contiguous)' to match v1.2 EC-002 correction; full-file sweep for stragglers completed |
 | 1.2 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-016 adversarial pass-1 fix: F-1 (HIGH) — corrected EC-002 description from 'non-contiguous' to 'adjacent (contiguous)' to match the actual test setup [1,4)+[4,7); test function renamed in parallel to test_story_016_ec002_adjacent_union_coverage_duplicate; the 'non-contiguous union → Duplicate' outcome was logically impossible (non-contiguous segments create a gap → PartialOverlap, never Duplicate) |
 | 1.1 | 2026-05-21 | story-writer | Initial story version |
