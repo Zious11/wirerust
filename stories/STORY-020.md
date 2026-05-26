@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-020"
 epic_id: "E-2"
-version: "1.8"
+version: "1.9"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -35,6 +35,7 @@ implementation_strategy: brownfield-formalization
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| 1.9 | 2026-05-26 | story-writer | Wave 9 wave-level adv pass-3 fixes (5TH CONSECUTIVE CYCLE of sibling-regression pattern — W9-D8 codification critical): F-W9P3-001 PC-N → PC-5 (resolves placeholder left by pass-2 F-W9P2-003 burst); F-W9P3-003 EC-012 memcap=12 → memcap=4 (matches actual test value; was arithmetically impossible against described 5-byte buffer). |
 | 1.8 | 2026-05-26 | story-writer | Wave 9 wave-level adv pass-2 F-W9P2-003 (sibling-regression of pass-1 F-W9P1-002): added AC-014 tracing to BC-2.04.015 v1.5 PC-7 + BC-2.04.016 sibling PC (data-loss-on-MemoryPressure-eviction); added EC-012 to Edge Cases for the canonical 5+5 byte test vector; AC-014 test target name aligned with parallel test-writer dispatch. |
 | 1.7 | 2026-05-26 | story-writer | Wave 9 wave-level adv pass-1 F-W9P1-003 (sibling-discipline regression in spec hierarchy): Architecture Mapping anchor `lifecycle.rs:51` → `lifecycle.rs:60` (line 51 is capture, line 60 is decrement; STORY-019 inserted let-else at 42-50 shifting decrement down). Resolves W9-D9 deferral by being explicit at the spec/BC level rather than just drift-item-tracked. Also swept and corrected two secondary stale anchors: Token Budget table and File Structure Requirements both cited `lifecycle.rs:51` — updated to `lifecycle.rs:60`. |
 | 1.6 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-020 adv pass-5 fix: F-PASS5-003 (HIGH) — revised EC-005 row to remove false 'protects Established sessions' claim (test setup is SynSent flow, not Established); clarified that dual-conjunction termination is state-independent (mechanical); preserved general DESIGN INTENT reference per BC-2.04.015 Inv 4. |
@@ -122,7 +123,7 @@ NOTE: The 'evict_flows runs and frees ≥1 slot but table still at capacity' sce
   The test (`test_BC_2_04_015_both_eviction_paths_use_same_function`) verifies PATH 2 behaviorally; PATH 1 is verified by code review against the cited source line.
 - **Test:** `test_BC_2_04_015_both_eviction_paths_use_same_function()`
 
-### AC-014 (traces to BC-2.04.015 PC-7 + BC-2.04.016 PC-N)
+### AC-014 (traces to BC-2.04.015 PC-7 + BC-2.04.016 PC-5)
 
 When a flow with both contiguous head-of-buffer bytes and non-contiguous buffered
 segments is evicted via CloseReason::MemoryPressure (either max_flows or memcap trigger),
@@ -161,7 +162,7 @@ codepath.
 | EC-009 | All flows evicted but still over memcap | Loop exits; total_memory stays over cap; processing continues |
 | EC-010 | finalize closes all flows | total_memory reaches 0 after finalize |
 | EC-011 | Single flow with buffered data > memcap (`max_flows=1`, `total_memory > memcap`), new SYN arrives | Dual pressure triggers eviction; existing flow evicted via CloseReason::MemoryPressure; new flow created |
-| EC-012 | Flow with 5 contiguous + 5 non-contiguous bytes; memcap=12; eviction triggers | handler.on_data delivers first 5 bytes only; non-contiguous bytes [10..15) silently discarded; CloseReason::MemoryPressure emitted (data-loss-on-eviction documented in BC-2.04.015 PC-7 + BC-2.04.016 sibling PC) |
+| EC-012 | Flow with 5 contiguous + 5 non-contiguous bytes; memcap=4; eviction triggers | handler.on_data delivers first 5 bytes only; non-contiguous bytes [10..15) silently discarded; CloseReason::MemoryPressure emitted (data-loss-on-eviction documented in BC-2.04.015 PC-7 + BC-2.04.016 sibling PC) |
 
 ## Purity Classification
 

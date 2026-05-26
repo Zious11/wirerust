@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -85,7 +85,7 @@ distinct from the max_flows-triggered path in `get_or_create_flow`. Both paths c
 | memcap=1000; insert 1001 bytes across 2 flows | evict_flows called; at least one flow evicted; evictions++ | happy-path |
 | memcap=1000; insert exactly 1000 bytes | No eviction | edge-case |
 | memcap=1000; insert 1001 bytes; only one flow | That flow evicted; total_memory drops to 0 | edge-case |
-| flow with 5 contiguous bytes [0..5) + 5 non-contiguous bytes [10..15) buffered (gap at [5..10)); memcap=12 so total_memory > memcap; eviction triggers via process_packet path | handler.on_data called for contiguous prefix [0..5) only; bytes [10..15) discarded silently; on_flow_close called with CloseReason::MemoryPressure | data-loss-on-memcap-eviction (sibling of BC-2.04.015 case) |
+| flow with 5 contiguous bytes [0..5) + 5 non-contiguous bytes [10..15) buffered (gap at [5..10)); memcap=4 so total_memory > memcap; eviction triggers via process_packet path | handler.on_data called for contiguous prefix [0..5) only; bytes [10..15) discarded silently; on_flow_close called with CloseReason::MemoryPressure | data-loss-on-memcap-eviction (sibling of BC-2.04.015 case) |
 
 ## Verification Properties
 
@@ -150,3 +150,4 @@ separated and both delegate to the same evict_flows function.
 | 1.1 | 2026-05-20 | product-owner | Initial brownfield extraction |
 | 1.2 | 2026-05-21 | product-owner | VP back-reference back-fill (P8-DEFER) |
 | 1.3 | 2026-05-26 | product-owner | Wave 9 wave-level adv pass-2 F-W9P2-002 (sibling-regression of pass-1 F-W9P1-002): added PC-5 documenting data-delivery semantics under MemoryPressure eviction (sibling of BC-2.04.015 v1.5 PC-7; same evict_flows codepath; non-contiguous segments discarded). Added canonical test vector row for memcap-trigger data-loss case. |
+| 1.4 | 2026-05-26 | product-owner | Wave 9 wave-level adv pass-3 F-W9P3-002 (5TH CONSECUTIVE CYCLE of sibling-regression — W9-D8 codification critical): canonical test vector memcap=12 → memcap=4 (matches actual test value; was arithmetically impossible against described 5-byte buffer because contiguous prefix is flushed before memcap check). |
