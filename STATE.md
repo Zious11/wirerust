@@ -110,7 +110,8 @@ dependency bumping for it).
 | Wave-gate — Wave 8 | **CLOSED** 2026-05-26 | develop HEAD 4b9b85f; 16 stories total Waves 1-8; STORY-016/020 unblocked |
 | Wave 9 — dispatch | **COMPLETE** 2026-05-26 | STORY-016 (overlap detection; BCs 2.04.035/036/038/043/047; worktree-story-016) + STORY-020 (memory management; BCs 2.04.014-017; worktree-story-020); parallel-eligible (disjoint files) |
 | Wave 9 — burst-1 spec+story revisions | **COMPLETE** 2026-05-26 | BC-2.04.015 v1.3 (EC-004 fix + DESIGN INTENT inv4 + EC-005); BC-2.04.036/038/047 v1.3 (anchor drift fix); STORY-016 v1.2 (EC-002 "adjacent (contiguous)"); STORY-020 v1.2 (EC-005 revised + EC-011 dual-pressure); input-hashes refreshed (STORY-016: 8cc2ec9→3f3509b; STORY-020: c859b44→6527afc) |
-| Wave 9 — per-story adversarial pass 1 | **IN PROGRESS** 2026-05-26 | STORY-016: 11 findings — remediated per burst-1; 4 deferred (W9-D1..W9-D4). STORY-020: 5 findings — 3 actioned per burst-1; 2 deferred (W9-D5). Per-story convergence passes ongoing. |
+| Wave 9 — per-story adversarial passes 1+2 + bursts 3+4 | **IN PROGRESS** 2026-05-26 | STORY-016: pass-1 11 findings (burst-1 remediated; W9-D1..W9-D4 deferred). Pass-2 DIRTY: burst-3 fixes BC-2.04.043 v1.3 (drafting artifact), BC-2.04.047 v1.4 (anchor + traceability), BC-2.04.038 v1.4 (prose anchor 201→204), STORY-016 v1.3 (non-contiguous→adjacent contiguous). STORY-020: pass-1 5 findings (3 actioned, W9-D5 deferred). Pass-2 DIRTY: burst-4 fixes STORY-020 v1.3 (AC-005 "after eviction" disambiguated; AC-005+EC-005 jointly characterize rejection path). Both stories at pass-3 dispatched. |
+| Wave 9 — sibling-discipline observation (accumulating evidence) | **OBSERVATION** 2026-05-26 | Partial-fix / sibling-discipline pattern recurred 3× in STORY-016 pass-2 + 3× in STORY-020 pass-2 (W7.2/W8.4 pattern, same category). Evidence accumulating across W7/W8/W9; codification candidate. Recommend cycle-close codification action. No new Drift Item — see existing W7.2/W8.4 in Cycle-Close Follow-Up. |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -128,7 +129,7 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-26 — Wave 9 burst-1 COMPLETE)
+## Session Resume Checkpoint (2026-05-26 — Wave 9 burst-3+4 COMPLETE)
 
 1. Waves 1-8 all CLOSED/CONVERGED — 16 stories delivered.
    STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015 all merged to develop.
@@ -138,16 +139,20 @@ Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/converg
 3. Wave 9 IN PROGRESS: sprint-state.yaml current_wave=9.
    STORY-016: status=in_progress, branch=worktree-story-016, worktree=.worktrees/story-016.
      Scope: overlap detection; BCs 2.04.035/036/038/043/047; depends on STORY-015.
-     Burst-1: v1.2 (EC-002 "adjacent (contiguous)"); BC-2.04.036/038/047 v1.3 anchor fixes.
-     Adv pass-1: 11 findings — burst-1 remediated; 4 deferred (W9-D1..W9-D4).
+     Burst-1: v1.2 (EC-002 adj); BC-2.04.036/038/047 v1.3 anchor fixes. Adv pass-1: 11 findings — remediated; W9-D1..W9-D4 deferred.
+     Burst-3: BC-2.04.043 v1.3 (drafting artifact removed); BC-2.04.047 v1.4 (anchor 171-176→171-175 + traceability anchor); BC-2.04.038 v1.4 (prose anchor 201→204); STORY-016 v1.3 (non-contiguous→adjacent contiguous). Adv pass-2: DIRTY — pass-3 dispatched.
    STORY-020: status=in_progress, branch=worktree-story-020, worktree=.worktrees/story-020.
      Scope: memory management; BCs 2.04.014-017; depends on STORY-019.
-     Burst-1: v1.2 (EC-005 revised + EC-011 dual-pressure); BC-2.04.015 v1.3 (EC-004 + inv4 + EC-005).
-     Adv pass-1: 5 findings — 3 actioned; 1 deferred (W9-D5).
+     Burst-1: v1.2 (EC-005 revised + EC-011 dual-pressure); BC-2.04.015 v1.3. Adv pass-1: 5 findings — 3 actioned; W9-D5 deferred.
+     Burst-4: STORY-020 v1.3 (AC-005 "after eviction" disambiguated; AC-005+EC-005 jointly characterize rejection path). Adv pass-2: DIRTY — pass-3 dispatched.
+   Per-story adversarial cost so far: STORY-016 = 2 passes (DIRTY/DIRTY); STORY-020 = 2 passes (DIRTY/DIRTY).
 4. STORY-017/018: still blocked (blocked_by includes STORY-016, not yet done).
 5. Drift items W9-D1..W9-D5 logged — see Drift Items table. All require
    research-agent validation per DF-VALIDATION-001 before any GitHub issue is filed.
-6. NEXT: continue per-story adversarial passes for STORY-016 + STORY-020 toward 3-clean streak.
+6. Sibling-discipline pattern: recurred 3× in STORY-016 pass-2 + 3× in STORY-020 pass-2.
+   Evidence accumulating (W7.2→W8.4→W9). Cycle-close codification action recommended.
+7. NEXT: receive per-story adversarial pass-3 results for STORY-016 + STORY-020; remediate
+   if DIRTY; target 3-clean streak.
 
 ## Decisions Log
 
