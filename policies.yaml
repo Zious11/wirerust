@@ -120,3 +120,84 @@ policies:
       enforcement level.
     added: "2026-05-26"
     derived-from: W9-D8 (closed during codification)
+
+  - id: DF-PR-MANAGER-COMPLETE-001
+    name: pr-manager-must-complete-merge
+    description: >
+      The pr-manager agent runs a 9-step PR lifecycle for every story PR.
+      The pr-reviewer's APPROVE verdict is step 6 of 9 — NOT the
+      stopping point. Steps 7 (handle approval), 8 (squash merge), and 9
+      (post-merge cleanup) are mandatory completions of the dispatch and
+      MUST execute before pr-manager reports back to the orchestrator.
+
+      pr-manager MUST NOT terminate its dispatch after receiving an
+      APPROVE verdict from pr-reviewer (or a third-party reviewer agent
+      it spawned, e.g., zclaude:security-reviewer). The dispatch ends
+      ONLY after the merge commit SHA is confirmed on develop AND the
+      worktree branch is deleted both locally and remotely.
+
+      Concrete completion criteria (ALL required before reporting back):
+
+      Step 7 — Handle approval:
+        - If formal `gh pr review --approve` is blocked by GitHub's
+          self-review policy (common in single-author repos), the
+          pr-reviewer's textual APPROVE in a review comment IS the
+          canonical sign-off per project Wave 8/9 convention.
+        - Document this in the merge commit body if relevant.
+
+      Step 8 — Squash merge:
+        - Execute: `gh pr merge <#> --squash --admin --delete-branch
+          --subject "<semantic-PR-compliant>" --body "<description>"`
+        - The `--admin` flag bypasses self-merge restriction per project
+          convention.
+        - The `--delete-branch` flag removes the worktree branch from
+          remote (local branch deletion happens in step 9).
+        - Verify the merge commit SHA appears on develop via
+          `gh pr view <#> --json mergeCommit` or `git fetch && git log
+          origin/develop`.
+
+      Step 9 — Post-merge cleanup:
+        - `cd <repo-root> && git fetch origin && git checkout develop &&
+          git pull origin develop --ff-only`
+        - `git worktree remove .worktrees/<branch> --force || true`
+        - `git worktree prune`
+        - `git branch -D <branch> 2>&1 || true`
+        - Verify final state: `git worktree list` shows the branch is
+          gone; `git branch -a` shows no local copy.
+
+      Report back ONLY after all three steps complete with:
+        1. Final merge commit SHA on develop
+        2. CI status post-merge (still green)
+        3. Branch + worktree cleanup confirmation
+        4. New develop HEAD
+
+    severity: HIGH
+    scope:
+      - orchestrator
+      - pr-manager
+    rationale: >
+      Wave 8-9 evidence: pr-manager stopped at APPROVE verdict on 7
+      consecutive PRs (#122/123/126/127/128/129/130), each requiring
+      orchestrator-direct gh CLI follow-through. Cumulative orchestrator
+      cost: ~7 round-trips of merge intervention per wave. The pattern
+      is structural — the pr-manager agent prompt under-emphasizes
+      steps 7-9 relative to the review loop in steps 4-6. Codifying the
+      completion criteria as a project policy gives the orchestrator a
+      concrete enforcement target when dispatching pr-manager: inject
+      this policy explicitly into the dispatch task, and if the agent
+      still reports back at step 6, the policy violation justifies
+      either a fresh dispatch or direct orchestrator merge.
+    enforcement: >
+      Orchestrator MUST inject this policy into every pr-manager
+      dispatch under a "## PR Completion Policy (MANDATORY per
+      DF-PR-MANAGER-COMPLETE-001)" heading. The injection MUST quote the
+      specific gh pr merge command template above with `<#>` and
+      `<branch>` substituted. If pr-manager reports back at step 6
+      without executing steps 7-9, the orchestrator MAY (a) re-dispatch
+      pr-manager with explicit "complete steps 7-9 NOW" SendMessage, OR
+      (b) execute the merge directly via gh CLI and tag the bypass as
+      a policy violation in the wave retrospective. Persistent violations
+      should be escalated as agent-prompt-defect bugs to the
+      vsdd-factory plugin maintainer.
+    added: "2026-05-26"
+    derived-from: W9.L3 (closed during codification)

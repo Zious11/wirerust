@@ -40,7 +40,7 @@ wave_9_prs: "#127, #128, #129, #130"
 wave_9_per_story_convergence: "STORY-016: 6 passes (DIRTY×3 + CLEAN×3); STORY-020: 8 passes (DIRTY×5 + CLEAN×3)"
 wave_9_wave_level_convergence: "6 passes (DIRTY×3 + CLEAN×3; passes 4/5/6 clean)"
 wave_10_status: ready_to_dispatch
-wave_10_prerequisites: "W9-D8 codified (DF-SIBLING-SWEEP-001) — ready to start"
+wave_10_prerequisites: "W9-D8 codified (DF-SIBLING-SWEEP-001) + W9.L3 codified (DF-PR-MANAGER-COMPLETE-001) — both pre-Wave-10 gates resolved; ready to start"
 wave_10_stories: STORY-017 + STORY-018
 current_wave: 10
 stories_delivered: 18
@@ -67,7 +67,7 @@ Wave 9 CLOSED 2026-05-26: STORY-016 (PR #127 → d636285, overlap detection, 24 
 STORY-020 (PR #128 → 8cb907e, memory mgmt, 25 tests + 1 proptest + 1 additive #[doc(hidden)] seam).
 Wave-level remediation: PR #129 → 2037f88 (F-W9P1-001 + F-W9P1-004) + PR #130 → e237747 (F-W9P2-001 + F-W9P2-003).
 Wave-level convergence: 6 passes (DIRTY×3 + CLEAN×3; passes 4/5/6 clean; 11 findings remediated).
-W9-D8 RESOLVED — codified as DF-SIBLING-SWEEP-001 in .factory/policies.yaml (2026-05-26). Wave 10 dispatch unblocked.
+W9-D8 RESOLVED — codified as DF-SIBLING-SWEEP-001 in .factory/policies.yaml (2026-05-26). W9.L3 RESOLVED — codified as DF-PR-MANAGER-COMPLETE-001 in .factory/policies.yaml (2026-05-26). Both pre-Wave-10 gates resolved. Wave 10 dispatch unblocked.
 develop HEAD: e237747 (PR #130 — wave-followup-2 merged 2026-05-26).
 
 **Mode:** brownfield (in-repo: target == reference).
@@ -120,6 +120,7 @@ dependency bumping for it).
 | Wave 9 — wave-level adversarial passes 4/5/6 (CLEAN) | **CONVERGED** 2026-05-26 | Passes 4/5/6 all VERDICT: CLEAN — zero findings. 3-clean streak satisfied (BC-5.39.001). Wave-level CONVERGED. Total wave-level: 6 passes (DIRTY×3 + CLEAN×3), 11 findings remediated. |
 | Wave-gate — Wave 9 | **CLOSED** 2026-05-26 | develop HEAD e237747; 18 stories total Waves 1-9; 632 tests passing; STORY-017 + STORY-018 unblocked; Wave 10 READY TO DISPATCH. |
 | Wave 9 → Wave 10 — W9-D8 CODIFIED | **COMPLETE** 2026-05-26 | W9-D8 codified as DF-SIBLING-SWEEP-001 in .factory/policies.yaml. Orchestrator policy-rubric injection now extended to all remediation dispatches. Wave 10 dispatch unblocked. W9.L3 (pr-manager merge-step gap) remains OPEN — separate codification target. |
+| Wave 9 → Wave 10 — W9.L3 CODIFIED | **COMPLETE** 2026-05-26 | W9.L3 codified as DF-PR-MANAGER-COMPLETE-001 in .factory/policies.yaml. pr-manager merge-step completion now enforced policy; orchestrator must inject policy with concrete gh CLI template into every pr-manager dispatch. Both pre-Wave-10 codification targets resolved. |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -155,8 +156,10 @@ Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/converg
    research-agent validation per DF-VALIDATION-001 before any GitHub issue is filed.
    W9-D8 RESOLVED: codified as DF-SIBLING-SWEEP-001 in .factory/policies.yaml (2026-05-26,
    pre-Wave-10). W9-D9: RESOLVED (F-W9P1-003; factory commit a3e8927).
-5. NEXT: Dispatch Wave 10 (STORY-017 + STORY-018). W9-D8 codification complete; Wave 10
-   unblocked. Orchestrator to inject DF-SIBLING-SWEEP-001 checklist into all remediation dispatches.
+5. NEXT: Dispatch Wave 10 (STORY-017 + STORY-018). Both pre-Wave-10 codification targets resolved:
+   W9-D8 → DF-SIBLING-SWEEP-001 (2026-05-26) and W9.L3 → DF-PR-MANAGER-COMPLETE-001 (2026-05-26).
+   Orchestrator to inject DF-SIBLING-SWEEP-001 checklist into all remediation dispatches AND
+   DF-PR-MANAGER-COMPLETE-001 (with concrete gh pr merge command template) into every pr-manager dispatch.
 
 ## Wave Retrospectives
 
@@ -185,6 +188,7 @@ semantics); AC-013 PATH 1/PATH 2 bifurcation; AC-012 covers all 4 non-Establishe
 
 **Active drift items:** W9-D5 (LOW), W9-D8 (RESOLVED — DF-SIBLING-SWEEP-001 codified 2026-05-26), W9-D11 (LOW), W9-D12 (LOW pending intent),
 W9-D1..D4 (LOW story template gaps), W9-D6/D7 (LOW line-citation). W9-D9: RESOLVED.
+W9.L3: RESOLVED — codified as DF-PR-MANAGER-COMPLETE-001 in .factory/policies.yaml (2026-05-26, pre-Wave-10).
 
 Full retrospective detail: `.factory/cycles/phase-3-tdd/lessons.md` (W9 lessons)
 
@@ -253,6 +257,15 @@ include an explicit sibling-sweep checklist. Orchestrator MUST inject the
 checklist under "## Sibling-Sweep Checklist (MANDATORY per DF-SIBLING-SWEEP-001)"
 into every dispatch prompt. Derived from W9-D8 (6 consecutive recurrences in
 Wave 9). Severity: CRITICAL.
+
+**DF-PR-MANAGER-COMPLETE-001** (added 2026-05-26, `.factory/policies.yaml`):
+pr-manager MUST complete steps 7-9 (handle approval, squash merge, post-merge
+cleanup) before reporting back to the orchestrator. APPROVE verdict is step 6
+of 9 — NOT the stopping point. Orchestrator MUST inject this policy with the
+concrete `gh pr merge <#> --squash --admin --delete-branch` command template
+under "## PR Completion Policy (MANDATORY per DF-PR-MANAGER-COMPLETE-001)"
+into every pr-manager dispatch. Derived from W9.L3 (7 consecutive PRs
+#122/123/126/127/128/129/130 across Waves 8-9). Severity: HIGH.
 
 ## Tech Debt (Open)
 

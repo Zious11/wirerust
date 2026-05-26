@@ -276,7 +276,27 @@ and 9 (confirm merge commit SHA) are all non-optional and sequential. Do NOT rep
 orchestrator until the merge commit SHA is confirmed on develop. APPROVE alone is NOT task completion."
 **Target:** Cycle-close codification — update pr-manager agent prompt before Wave 10. Research-agent
 validation required per DF-VALIDATION-001 before filing GitHub issue.
-**Status:** [deferred — cycle-close codification; target: before Wave 10 dispatch]
+**Status:** [codified — DF-PR-MANAGER-COMPLETE-001 in .factory/policies.yaml on 2026-05-26]
+
+---
+
+### W9.L5 — W9.L3 Codified as DF-PR-MANAGER-COMPLETE-001 [codified — 2026-05-26]
+
+**Finding ID:** W9.L3 (closed during codification)
+**Category:** process-discipline / policy-codification
+**Observed:** W9.L3 (pr-manager merge-step gap; recurring across 7 PRs in Waves 8-9) was codified
+as policy DF-PR-MANAGER-COMPLETE-001 in `.factory/policies.yaml` before Wave 10 dispatch. The policy
+enumerates concrete completion criteria for steps 7 (handle approval), 8 (squash merge), and 9
+(post-merge cleanup) with exact `gh pr merge <#> --squash --admin --delete-branch` command template.
+**Orchestrator enforcement:** Inject policy under "## PR Completion Policy (MANDATORY per
+DF-PR-MANAGER-COMPLETE-001)" heading into every pr-manager dispatch, with `<#>` and `<branch>`
+substituted. If pr-manager still reports back at step 6, orchestrator may re-dispatch with
+"complete steps 7-9 NOW" or execute merge directly and tag as policy violation.
+**Validation test for Wave 10:** Did the codification eliminate orchestrator merge-intervention?
+Expected: pr-manager completes steps 7-9 autonomously per the injected policy with no extra
+orchestrator round-trips. If the pattern recurs in Wave 10 despite injection, escalate as
+agent-prompt-defect bug to vsdd-factory plugin maintainer.
+**Status:** [codified — 2026-05-26]
 
 ---
 
