@@ -8630,6 +8630,13 @@ fn test_BC_2_04_015_evicted_flow_receives_memory_pressure_reason() {
         "AC-007: flow A (oldest SynSent) must have received CloseReason::MemoryPressure"
     );
 
+    // W9 wave-level integration: BC-2.04.014 PC-4 joint invariant holds POST-EVICTION
+    assert_eq!(
+        reassembler.total_memory(),
+        reassembler.flows_memory_sum_for_testing(),
+        "BC-2.04.014 PC-4 / BC-2.04.047 PC-1 joint invariant must hold after eviction"
+    );
+
     reassembler.finalize(&mut handler);
 }
 
@@ -8750,6 +8757,13 @@ fn test_BC_2_04_016_memcap_eviction_triggers_after_insert() {
             .iter()
             .any(|(_, r)| *r == CloseReason::MemoryPressure),
         "AC-008: MemoryPressure close event must be present"
+    );
+
+    // W9 wave-level integration: BC-2.04.014 PC-4 joint invariant holds POST-EVICTION
+    assert_eq!(
+        reassembler.total_memory(),
+        reassembler.flows_memory_sum_for_testing(),
+        "BC-2.04.014 PC-4 / BC-2.04.047 PC-1 joint invariant must hold after eviction"
     );
 
     reassembler.finalize(&mut handler);
@@ -11068,6 +11082,181 @@ mod ac004_proptest {
                     r.total_memory(),
                     r.flows_memory_sum_for_testing(),
                     "BC-2.04.014 PC-4 invariant violated after op: {:?}",
+                    op
+                );
+            }
+        }
+    }
+}
+
+// ---- F-W9P1-001: proptest with tight limits that force eviction paths ------
+
+/// F-W9P1-001 follow-up proptest: same invariant as ac004_proptest but with
+/// TIGHT memcap and max_flows limits that naturally force eviction on almost
+/// every run. Verifies `total_memory == flows_memory_sum_for_testing()` holds
+/// after EACH op even when memcap-eviction and max_flows-eviction fire.
+///
+/// Wave-9 wave-level adversarial finding F-W9P1-001: joint invariant must be
+/// asserted post-eviction (not only in the no-eviction happy path).
+#[cfg(test)]
+mod ac004_proptest_eviction {
+    use super::*;
+    use proptest::prelude::*;
+
+    #[derive(Debug, Clone)]
+    enum Op {
+        Syn(usize),           // flow index 0..2
+        Data(usize, u32, u8), // flow index, seq_offset (1..=30), byte_count (1..=8)
+        Flush(usize),         // fill gap to trigger flush_contiguous
+        Close(usize),         // finalize (closes all flows)
+    }
+
+    fn op_strategy() -> impl Strategy<Value = Op> {
+        prop_oneof![
+            (0usize..2).prop_map(Op::Syn),
+            (0usize..2, 1u32..=30, 1u8..=8).prop_map(|(i, o, b)| Op::Data(i, o, b)),
+            (0usize..2).prop_map(Op::Flush),
+            (0usize..2).prop_map(Op::Close),
+        ]
+    }
+
+    struct FlowState {
+        isn: u32,
+        src_port: u16,
+        created: bool,
+        finalized: bool,
+    }
+
+    impl FlowState {
+        fn new(src_port: u16, isn: u32) -> Self {
+            Self {
+                isn,
+                src_port,
+                created: false,
+                finalized: false,
+            }
+        }
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig {
+            cases: 256,
+            ..ProptestConfig::default()
+        })]
+
+        /// BC-2.04.014 PC-4 joint invariant holds under eviction pressure.
+        ///
+        /// Uses memcap=50 and max_flows=4 so that Data ops quickly exceed the
+        /// memcap and trigger `evict_flows`. The invariant
+        /// `total_memory == flows_memory_sum_for_testing()` must hold after
+        /// every op, including immediately after an eviction cycle.
+        ///
+        /// Exercises the eviction paths that AC-007 and AC-008 cover in the
+        /// unit tests, but via randomized op sequences (F-W9P1-001 fix).
+        #[test]
+        #[allow(non_snake_case)]
+        fn test_BC_2_04_014_proptest_total_memory_invariant_under_eviction(
+            ops in proptest::collection::vec(op_strategy(), 5..=30)
+        ) {
+            // Tight limits: memcap=50 bytes, max_flows=4.
+            // Data ops produce 1–8 bytes each; a handful of Data ops will
+            // exceed memcap and trigger evict_flows, exercising the eviction
+            // code paths on almost every proptest case.
+            let config = ReassemblyConfig {
+                memcap: 50,
+                max_flows: 4,
+                ..ReassemblyConfig::default()
+            };
+            let mut r = TcpReassembler::new(config);
+            let mut h = RecordingHandler::new();
+
+            let server: [u8; 4] = [10, 0, 0, 2];
+            let mut flows = [
+                FlowState::new(10001, 1000),
+                FlowState::new(10002, 2000),
+            ];
+
+            for op in &ops {
+                match op {
+                    Op::Syn(idx) => {
+                        let f = &mut flows[*idx];
+                        if !f.created && !f.finalized {
+                            let src: [u8; 4] = [10, 0, 1, *idx as u8];
+                            r.process_packet(
+                                &make_tcp_packet(
+                                    src, f.src_port, server, 80,
+                                    f.isn, &[], true, false, false, false,
+                                ),
+                                1,
+                                &mut h,
+                            );
+                            // SYN-ACK to reach Established.
+                            r.process_packet(
+                                &make_tcp_packet(
+                                    server, 80, src, f.src_port,
+                                    f.isn.wrapping_add(5000), &[],
+                                    true, true, false, false,
+                                ),
+                                2,
+                                &mut h,
+                            );
+                            f.created = true;
+                        }
+                    }
+                    Op::Data(idx, offset, byte_count) => {
+                        let f = &flows[*idx];
+                        if f.created && !f.finalized {
+                            let src: [u8; 4] = [10, 0, 1, *idx as u8];
+                            // Out-of-order: keep bytes buffered so they contribute
+                            // to total_memory and build toward memcap quickly.
+                            let seq = f.isn.wrapping_add(1).wrapping_add(*offset);
+                            r.process_packet(
+                                &make_tcp_packet(
+                                    src, f.src_port, server, 80,
+                                    seq, &vec![0xAA; *byte_count as usize],
+                                    false, false, false, false,
+                                ),
+                                3,
+                                &mut h,
+                            );
+                        }
+                    }
+                    Op::Flush(idx) => {
+                        let f = &flows[*idx];
+                        if f.created && !f.finalized {
+                            let src: [u8; 4] = [10, 0, 1, *idx as u8];
+                            // Fill gap at offset 1 to trigger flush_contiguous.
+                            let seq = f.isn.wrapping_add(1);
+                            r.process_packet(
+                                &make_tcp_packet(
+                                    src, f.src_port, server, 80,
+                                    seq, &[0xCC; 1],
+                                    false, false, false, false,
+                                ),
+                                4,
+                                &mut h,
+                            );
+                        }
+                    }
+                    Op::Close(idx) => {
+                        let f = &mut flows[*idx];
+                        if f.created && !f.finalized {
+                            r.finalize(&mut h);
+                            // finalize() closes all flows.
+                            for fl in flows.iter_mut() {
+                                fl.finalized = true;
+                            }
+                        }
+                    }
+                }
+
+                // F-W9P1-001: BC-2.04.014 PC-4 joint invariant must hold after
+                // EVERY op, including immediately after eviction fires.
+                prop_assert_eq!(
+                    r.total_memory(),
+                    r.flows_memory_sum_for_testing(),
+                    "BC-2.04.014 PC-4 / BC-2.04.047 PC-1 joint invariant \
+                     violated after op (eviction path): {:?}",
                     op
                 );
             }
