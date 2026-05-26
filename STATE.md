@@ -9,7 +9,7 @@ phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
 phase_2_completed: "2026-05-21"
 phase_3_started: "2026-05-21"
-develop_head: b23c6d3
+develop_head: 4b9b85f
 wave_1_closed: "2026-05-22"
 wave_2_closed: "2026-05-22"
 wave_3_closed: "2026-05-22"
@@ -26,16 +26,21 @@ wave_7_status: closed
 wave_7_per_story_delivery: complete
 wave_7_per_story_convergence: "8 passes; 3/3 clean streak on passes 6/7/8"
 wave_7_wave_level_convergence: "8 passes; 3/3 clean streak on passes 6/7/8"
-wave_8_status: ready_to_dispatch
-current_wave: 7
-stories_delivered: 14
+wave_8_closed: "2026-05-26"
+wave_8_status: closed
+wave_8_per_story_delivery: complete
+wave_8_per_story_convergence: "STORY-019: 8 passes; 3/3 clean streak on passes 6/7/8 (14 findings remediated); STORY-015: 8 passes; 3/3 clean streak on passes 6/7/8 (14 findings remediated)"
+wave_8_wave_level_convergence: "9 passes; 3/3 clean streak on passes 7/8/9 (12 findings remediated; 3 develop PRs + 4 factory BC commits)"
+wave_9_status: ready_to_dispatch
+current_wave: 8
+stories_delivered: 16
 dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3
 adversary_gate: SATISFIED
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0|W7-story:8ps-3clean|W7-wave:8ps-3clean"
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0|W7-story:8ps-3clean|W7-wave:8ps-3clean|W8-S019-story:8ps-3clean(14rem)|W8-S015-story:8ps-3clean(14rem)|W8-wave:9ps-3clean(12rem)"
 consistency_audit: CONSISTENT
 input_drift_check: CLEAN
 phase_2_input_hash_drift_check: CLEAN
@@ -46,17 +51,20 @@ phase_2_input_hash_drift_check_total: 153
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-7 CLOSED/CONVERGED; Wave 8 READY TO DISPATCH.
-14 stories delivered across Waves 1-7 (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014).
-STORY-014: PR #120 squash-merged → bc5d23e (2026-05-25). 17 tests + 2 #[doc(hidden)] test seams;
-mid-stream join + ISN management + IsnMissing guard. ADR-0004 amended via PR #121 → b23c6d3.
-Per-story convergence: 8 passes, 3-clean streak passes 6/7/8. Wave-level convergence: 8 passes,
-3-clean streak passes 6/7/8. Wave 7 CLOSED/CONVERGED. STORY-015/019 unblocked — Wave 8 READY.
-develop HEAD: b23c6d3 (PR #121 — ADR-0004 amendment merged 2026-05-25).
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-8 CLOSED/CONVERGED; Wave 9 READY TO DISPATCH.
+16 stories delivered across Waves 1-8 (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015).
+STORY-019: PR #122 squash-merged → c141c094 (2026-05-26). RST/FIN/expire_flows/missing-key lifecycle;
+per-story 8 passes, 3-clean streak passes 6/7/8 (14 findings remediated).
+STORY-015: PR #123 squash-merged → 6c53fc14 (2026-05-26). In-order delivery + OOO + bidirectional +
+wraparound; per-story 8 passes, 3-clean streak passes 6/7/8 (14 findings remediated).
+ADR-0004 v2 amendment: PR #124 → d6614d22 (CLOSE_FLOW_MISSING_WARNED seams + state-injection seam class).
+Wave-level convergence: 9 passes, 3-clean streak passes 7/8/9 (12 findings remediated; 3 develop PRs +
+4 factory BC commits). Wave 8 CLOSED/CONVERGED. STORY-016/020 unblocked — Wave 9 READY.
+develop HEAD: 4b9b85f (PR #126 — ADR-0004 visibility-widening enumeration fix merged 2026-05-26).
 
 **Mode:** brownfield (in-repo: target == reference).
 
-**Test suite:** 463 passing on develop (446 + 17 new STORY-014 BC tests). `cargo fmt --check`,
+**Test suite:** passing on develop (Wave 8 stories delivered). `cargo fmt --check`,
 `cargo clippy`, `cargo test --all-targets` all green. CI: 7 checks including `fuzz-build` job
 (pinned `nightly-2026-05-21` + `cargo-fuzz 0.13.1` + `timeout-minutes: 25` after PR #111 hotfix;
 the nightly pin is a deliberate periodic-maintenance item — do NOT enable automated
@@ -70,7 +78,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-7 CLOSED/CONVERGED; 14 stories delivered; Wave 8 READY TO DISPATCH | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-8 CLOSED/CONVERGED; 16 stories delivered; Wave 9 READY TO DISPATCH | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -87,17 +95,18 @@ dependency bumping for it).
 | 5 | STORY-012 | **CLOSED/CONVERGED** | bbddac6 | 415 tests; 3/3 clean wave-level passes |
 | 6 | STORY-013 | **CLOSED/CONVERGED** | 3e705b5 | PR #119 squash-merged 2026-05-22; 31 BC tests; per-story 3/3 clean; wave-level 3/3 CLEAN (ZERO findings) |
 | 7 | STORY-014 | **CLOSED/CONVERGED** | b23c6d3 | PR #120 squash-merged 2026-05-25; 17 tests + 2 doc(hidden) seams; ADR-0004 amended PR #121; per-story 8 passes 3/3 clean streak; wave-level 8 passes 3/3 clean streak |
-| 8–27 | (remaining) | NOT STARTED | — | — |
+| 8 | STORY-019, STORY-015 | **CLOSED/CONVERGED** | 4b9b85f | PR #122 (STORY-019) + PR #123 (STORY-015) squash-merged 2026-05-26; ADR-0004 v2 PRs #124/#125/#126; per-story 8 passes each (3/3 clean); wave-level 9 passes 3/3 clean streak; 4 drift items logged |
+| 9–27 | (remaining) | NOT STARTED | — | — |
 
 ## Phase 3 — Current Phase Steps (last 5)
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Wave 7 — STORY-014 delivery (PR #120) | **COMPLETE** 2026-05-25 | squash-merged → bc5d23e; 17 tests + 2 #[doc(hidden)] test seams; mid-stream join + ISN management + IsnMissing guard; per-story 8 passes, 3-clean streak passes 6/7/8 |
-| Wave 7 — ADR-0004 amendment (PR #121) | **COMPLETE** 2026-05-25 | squash-merged → b23c6d3; documents test-seam exception for #[doc(hidden)] pub fn accessors |
-| Wave 7 — wave-level adversarial convergence | **COMPLETE** 2026-05-25 | 8 passes; 3/3 clean streak passes 6/7/8; factory-artifacts: c2a0181 → 4a200d0 → 5e6cc59 → 6db1772 → aeacc6a → 6d9c1fc |
-| Wave-gate — Wave 7 | **CLOSED** 2026-05-25 | develop HEAD b23c6d3; 14 stories total Waves 1-7; sprint-state STORY-014 → done; STORY-015/019 → pending |
-| Wave 8 — dispatch ready | **READY** 2026-05-25 | STORY-015 (TCP half-close) + STORY-019 (reassembly limits) both unblocked |
+| Wave 8 — STORY-019 delivery (PR #122) | **COMPLETE** 2026-05-26 | squash-merged → c141c094; RST/FIN/expire_flows/missing-key lifecycle; per-story 8 passes, 3-clean streak passes 6/7/8 (14 findings remediated) |
+| Wave 8 — STORY-015 delivery (PR #123) | **COMPLETE** 2026-05-26 | squash-merged → 6c53fc14; in-order delivery + OOO + bidirectional + wraparound; per-story 8 passes, 3-clean streak passes 6/7/8 (14 findings remediated) |
+| Wave 8 — ADR-0004 v2 + chore PRs (#124/#125/#126) | **COMPLETE** 2026-05-26 | ADR amendment (CLOSE_FLOW_MISSING_WARNED seams + state-injection class) + source-comment alignment + visibility-widening fix; develop HEAD → 4b9b85f |
+| Wave 8 — wave-level adversarial convergence | **COMPLETE** 2026-05-26 | 9 passes; 3/3 clean streak passes 7/8/9; 12 findings remediated; 3 develop PRs + 4 factory BC commits; 4 drift items logged (W8.1–W8.4) |
+| Wave-gate — Wave 8 | **CLOSED** 2026-05-26 | develop HEAD 4b9b85f; 16 stories total Waves 1-8; STORY-016/020 unblocked → Wave 9 READY TO DISPATCH |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -115,21 +124,24 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-25 — Wave 7 CLOSED; Wave 8 READY)
+## Session Resume Checkpoint (2026-05-26 — Wave 8 CLOSED; Wave 9 READY)
 
-1. Waves 1-7 all CLOSED/CONVERGED — 14 stories delivered.
-   STORY-001/069/002/003/004/070/071/005/011/066/012/013/014 all merged to develop.
-2. Wave 7 STORY-014 DELIVERED: PR #120 squash-merged → bc5d23e (2026-05-25). 17 tests +
-   2 #[doc(hidden)] test seams (mid-stream join + ISN management + IsnMissing guard).
-   Per-story convergence 8 passes, 3-clean streak passes 6/7/8.
-   ADR-0004 amended via PR #121 → b23c6d3 (2026-05-25) — documents test-seam exception.
-   Wave-level convergence 8 passes, 3-clean streak passes 6/7/8. Wave 7 CLOSED/CONVERGED.
-   develop HEAD: b23c6d3. 463 tests.
-3. STORY-015 and STORY-019 unblocked (blocked_by [STORY-013, STORY-014]; both now done).
-   sprint-state.yaml: STORY-015 status=pending, STORY-019 status=pending. current_wave=7.
-4. 4 cycle-close drift items logged (W7.1–W7.4) — see Drift Items below. All require
+1. Waves 1-8 all CLOSED/CONVERGED — 16 stories delivered.
+   STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015 all merged to develop.
+2. Wave 8 STORY-019 DELIVERED: PR #122 squash-merged → c141c094 (2026-05-26).
+   RST/FIN/expire_flows/missing-key lifecycle. Per-story convergence 8 passes, 3-clean streak
+   passes 6/7/8 (14 findings remediated).
+3. Wave 8 STORY-015 DELIVERED: PR #123 squash-merged → 6c53fc14 (2026-05-26).
+   In-order delivery + OOO + bidirectional + wraparound. Per-story convergence 8 passes,
+   3-clean streak passes 6/7/8 (14 findings remediated).
+4. ADR-0004 v2 amendment + chore PRs #124/#125/#126 merged. develop HEAD: 4b9b85f.
+5. Wave-level convergence: 9 passes, 3-clean streak passes 7/8/9 (12 findings remediated;
+   3 develop PRs + 4 factory BC commits). Wave 8 CLOSED/CONVERGED.
+6. STORY-016 and STORY-020 unblocked — sprint-state.yaml: status=pending, current_wave=8.
+   STORY-017/018: still blocked (blocked_by includes STORY-016, which is pending not done).
+7. 4 cycle-close drift items logged (W8.1–W8.4) — see Drift Items below. All require
    research-agent validation per DF-VALIDATION-001 before any GitHub issue is filed.
-5. NEXT: Dispatch Wave 8 (STORY-015 + STORY-019) — per-story adversarial → deliver → wave-gate.
+8. NEXT: Dispatch Wave 9 (STORY-016 + STORY-020) — per-story adversarial → deliver → wave-gate.
 
 ## Decisions Log
 
@@ -157,20 +169,21 @@ Process-gap codification required before cycle can be declared closed:
 
 | ID | Item | Priority |
 |----|------|----------|
-| W1.1 | Wave-gate dispatch pre-check: add `git pull origin develop` verification step before wave-gate adversarial review. Observed: local develop stale after `gh pr merge`. | P1 |
-| W1.2 | Brownfield static-assertion tests must anchor to non-test code or use line-range verification; `assert!(content.contains(...))` does not distinguish test-only vs production paths. | P2 |
-| W1.3 | Deliver-story skill must emit a state-manager update command on completion to flip story status. | P1 |
-| W2.1 | VP-anchored file-existence tests must also assert at least one structural invariant of file content. | P2 |
-| W2.2 | CI jobs guarding VP-anchored verification properties must include a smoke assertion (e.g., `-runs=100`). | P2 |
-| W2.3 | Story frontmatter should include `bc_versions:` map listing each cited BC and version at authoring time. | Minor |
-| W2.5 | Deliver-story skill must flip story `status: draft` → `completed` on PR merge (same as W1.3; recurrence in Wave 2). | P1 |
-| W2.6 | Cargo.toml pins `rust-version = "1.91"` while CLAUDE.md states "requires Rust 1.85+"; reconcile in a maintenance sweep. | Minor |
-| W3.1 | Test-naming `ecNNN` suffix tracks story EC IDs, not BC EC IDs — drift risk. Raised STORY-005 pass-8. Do NOT file GitHub issue until research-agent validates (DF-VALIDATION-001). | Minor |
-| W3.2 **[CONFIRMED RECURRING — Waves 3+4+5]** | No pipeline gate advances story `status: draft` → `completed` on merge. Recurred in Wave 3 (STORY-005/071), Wave 4 (STORY-011/066), and Wave 5 (STORY-012). Three-wave recurrence confirms P1 priority. Do NOT file GitHub issue until research-agent validates (DF-VALIDATION-001). | **P1 — RAISED PRIORITY** |
-| W4.1 **[CONFIRMED RECURRING — Waves 4+6+7 (recurrence #4)]** | Src edits that shift line counts must land and commit BEFORE anchor re-derivation agents are dispatched; anchor agents must re-read from disk, not use offsets computed in the same burst. Wave 7 pass-4: mega-sweep at 6db1772 verified function-start lines but missed closing-brace boundary correctness and description-vs-line-range semantic correspondence. Three-wave recurrence (4, 6, 7). Cycle-close codification candidate: enhanced anchor-validation pre-commit hook or scripted sweep tool checking both bounds AND semantic descriptions. Do NOT file GitHub issue until research-agent validates (DF-VALIDATION-001). | **P1 — RAISED PRIORITY (recurrence #4 — Wave 7)** |
-| W7.1 **[NEW — Wave 7 pass-1]** | No public-API surface gate: project has no `cargo public-api`/`cargo semver-checks` CI gate. Two `#[doc(hidden)] pub fn` test-seam accessors landed without surface-diff visibility. Cycle-close codification candidate: add `cargo public-api` snapshot CI job OR document in CLAUDE.md that pub-fn additions require explicit PR call-out. Target: v0.1.0-release. Do NOT file GitHub issue until research-agent validates (DF-VALIDATION-001). | P2 |
-| W7.2 **[NEW — Wave 7 passes 4+5+6+7, recurring]** | Partial-fix regression discipline recurrence: every "comprehensive" remediation in Wave 7 tended to be too narrowly scoped — sibling BCs missed (pass-2), mod.rs cites missed (pass-3), closing-brace + semantic missed (pass-4), sibling-row missed in HS-014 fix (pass-5). Each fresh-context adversary found the same class of issue in adjacent positions. Rule affirmed: every remediation MUST sweep the same axis across the entire affected surface. This is already in established rules; Wave 7 confirms the rule is not consistently followed. Target: cycle-close codification. Do NOT file GitHub issue until research-agent validates (DF-VALIDATION-001). | P2 |
-| W7.3 **[NEW — Wave 7 mega-sweep, out-of-scope]** | Out-of-scope src/analyzer + src/decoder anchor drift noted by mega-sweep at 6db1772 but explicitly NOT in Wave 7 scope. Future scoped sweep needed when analyzer subsystem changes are anchored (Wave 9+ or whenever src/analyzer is next touched). Do NOT file GitHub issue until research-agent validates (DF-VALIDATION-001). | P3 — Wave 9+ |
+| W1.1 | Wave-gate dispatch: verify `git pull origin develop` before adversarial review. | P1 |
+| W1.2 | Brownfield static-assertion tests must anchor to non-test code or use line-range verification. | P2 |
+| W1.3/W2.5 **[RECURRING Waves 1-5]** | No pipeline gate advances story status on merge. 5-wave recurrence. Req. research-agent validation. | P1 |
+| W2.1 | VP-anchored file-existence tests must assert ≥1 structural content invariant. | P2 |
+| W2.2 | CI VP-anchored jobs must include smoke assertion (e.g., `-runs=100`). | P2 |
+| W2.3 | Story frontmatter should include `bc_versions:` map at authoring time. | Minor |
+| W2.6 | Cargo.toml `rust-version = "1.91"` vs CLAUDE.md "requires Rust 1.85+"; reconcile. | Minor |
+| W3.1 | Test-naming `ecNNN` suffix tracks story EC IDs not BC EC IDs — drift risk. Req. research-agent. | Minor |
+| W4.1 **[RECURRING Waves 4+6+7 — recurrence #4]** | Anchor agents must re-read from disk after src edits; sweep must verify end-line AND description semantics, not only start-line. Cycle-close codification: anchor-validation hook checking both bounds AND semantic descriptions. Req. research-agent. | P1 |
+| W7.1 | No public-API surface gate for pub fn additions. Candidate: `cargo public-api` CI job. Req. research-agent. | P2 |
+| W7.2/W8.4 **[RECURRING Waves 7+8 — W7.2 recurrence in W8]** | Partial-fix regression: every remediation must sweep entire axis surface. W8 instances: sibling-BC enforcement-mode (p1), within-BC sibling-section (p4), ADR-narrative (p5), BC↔test (p6). Codification: pre-merge sibling-discipline checklist for BC updates. Req. research-agent. | P1 |
+| W7.3 | Out-of-scope anchor drift in src/analyzer + src/decoder. Proactive sweep when Wave 9+ touches analyzer. Req. research-agent. | P3 |
+| W8.1 | Stale local develop caused FALSE-POSITIVE F-1/F-2 HIGH in wave-level pass-3. Orchestrator MUST `git pull origin develop --ff-only` before each wave-level adversary dispatch. Req. research-agent. | P1 |
+| W8.2 | ADR amendment dialect drift: STORY-019 src comments used "(choice (b))" vocab not present in ADR-0004. Enforcement reviews must verify cited vocab exists in ADR. Req. research-agent. | P2 |
+| W8.3 | Wave-level adversarial cost escalation (9 passes vs 7's 8). Likely W7.2 pattern at wave scale. Codification: pass-N+1 must-not-recur assertion. Req. research-agent. | P2 |
 
 Historical process-gap items from Phase 1 (P1.1–P1.3, P3-PG, P4-PG1/2/3, P5-PG, P8-DEFER,
 P10-PG, P-CITE-PG): archived in `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`.

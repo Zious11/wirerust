@@ -133,6 +133,60 @@ Cycle-close drift items logged: W7.1 (no public-API surface gate), W7.2 (partial
 discipline recurrence), W7.3 (out-of-scope analyzer/decoder anchor drift), W4.1 raised to
 recurrence #4. All require research-agent validation per DF-VALIDATION-001 before issue filing.
 
+### Wave 8 (STORY-019 + STORY-015) — CLOSED/CONVERGED 2026-05-26
+
+Per-story convergence (STORY-019): 8 passes; 3/3 clean streak on passes 6/7/8 (14 findings remediated).
+Per-story convergence (STORY-015): 8 passes; 3/3 clean streak on passes 6/7/8 (14 findings remediated).
+Wave-level convergence: 9 passes; 3/3 clean streak on passes 7/8/9 (12 findings remediated).
+Remediation vehicles: 3 develop PRs (#124 ADR-0004 v2 amendment, #125 chore cleanup, #126 ADR visibility fix)
++ 4 factory BC commits (BC-2.04.029 v1.4, BC-2.04.013 v1.4, BC-2.04.011 v1.5, BC-2.04.010 v1.5/v1.6, BC-2.04.039 v1.4).
+Factory-artifacts key commits this wave: c4d6a1f (STORY-019 v1.2 anchor refresh), e49bdae (STORY-015 +
+STORY-019 input-hash bumps), + BC update commits + STORY-019 v1.3/1.4/1.5 + STORY-015 v1.2 amendments.
+
+Per-story STORY-019 passes:
+
+| Pass | Date | Findings | Verdict | Notes |
+|------|------|----------|---------|-------|
+| W8-S019-story-1 | 2026-05-26 | enforcement-mode sibling-BC gap | BLOCKED | sibling-BC propagation gap; factory BC commits |
+| W8-S019-story-2 | 2026-05-26 | within-BC sibling-section gap | BLOCKED | BC body vs ECs/CVs sync; factory BC commits |
+| W8-S019-story-3 | 2026-05-26 | ADR-narrative accuracy | BLOCKED | STORY-019 v1.3 amendment |
+| W8-S019-story-4 | 2026-05-26 | BC↔test correspondence | BLOCKED | STORY-019 v1.4 amendment |
+| W8-S019-story-5 | 2026-05-26 | minor doc | BLOCKED | STORY-019 v1.5 amendment |
+| W8-S019-story-6 | 2026-05-26 | 0 | CLEAN 1/3 | Fresh-context |
+| W8-S019-story-7 | 2026-05-26 | 0 | CLEAN 2/3 | Fresh-context |
+| W8-S019-story-8 | 2026-05-26 | 0 | CLEAN 3/3 — PER-STORY GATE SATISFIED | Fresh-context; PR #122 dispatched |
+
+Per-story STORY-015 passes:
+
+| Pass | Date | Findings | Verdict | Notes |
+|------|------|----------|---------|-------|
+| W8-S015-story-1 | 2026-05-26 | enforcement-mode sibling-BC gap | BLOCKED | sibling-BC propagation gap; factory BC commits |
+| W8-S015-story-2 | 2026-05-26 | within-BC sibling-section gap | BLOCKED | BC body vs ECs/CVs sync; factory BC commits |
+| W8-S015-story-3 | 2026-05-26 | ADR-narrative accuracy | BLOCKED | STORY-015 v1.2 amendment |
+| W8-S015-story-4 | 2026-05-26 | BC↔test correspondence | BLOCKED | factory BC commits |
+| W8-S015-story-5 | 2026-05-26 | minor doc | BLOCKED | STORY-015 v1.2 amendment |
+| W8-S015-story-6 | 2026-05-26 | 0 | CLEAN 1/3 | Fresh-context |
+| W8-S015-story-7 | 2026-05-26 | 0 | CLEAN 2/3 | Fresh-context |
+| W8-S015-story-8 | 2026-05-26 | 0 | CLEAN 3/3 — PER-STORY GATE SATISFIED | Fresh-context; PR #123 dispatched |
+
+Wave-level passes:
+
+| Pass | Date | Findings | Verdict | Notes |
+|------|------|----------|---------|-------|
+| W8-wave-1 | 2026-05-26 | sibling-BC enforcement-mode gaps | BLOCKED | PR remediation + factory BC commits |
+| W8-wave-2 | 2026-05-26 | ADR vocabulary drift (W8.2) | BLOCKED | PR #125 chore: source-comment alignment |
+| W8-wave-3 | 2026-05-26 | FALSE-POSITIVES F-1/F-2 HIGH | STALE-SOURCE | Caused by stale local develop (W8.1); git pull resolved |
+| W8-wave-4 | 2026-05-26 | within-BC sibling-section gap | BLOCKED | factory BC commits |
+| W8-wave-5 | 2026-05-26 | ADR-narrative accuracy | BLOCKED | PR #124 ADR-0004 v2 amendment |
+| W8-wave-6 | 2026-05-26 | enum visibility gap | BLOCKED | PR #126 ADR visibility-widening fix → 4b9b85f |
+| W8-wave-7 | 2026-05-26 | 0 | CLEAN 1/3 | Fresh-context |
+| W8-wave-8 | 2026-05-26 | 0 | CLEAN 2/3 | Fresh-context |
+| W8-wave-9 | 2026-05-26 | 0 | CLEAN 3/3 — WAVE GATE SATISFIED | Fresh-context; develop HEAD at close: 4b9b85f; 16 stories total Waves 1-8 |
+
+Cycle-close drift items logged: W8.1 (stale-local-develop false positives), W8.2 (ADR amendment dialect
+drift), W8.3 (wave-level adversarial cost escalation), W8.4 (W7.2 partial-fix regression recurrence in W8).
+All require research-agent validation per DF-VALIDATION-001 before issue filing.
+
 ## Wave-Level Summary
 
 | Wave | Stories | Gate Status | develop HEAD at Close | Stories Cumulative |
@@ -144,5 +198,6 @@ recurrence #4. All require research-agent validation per DF-VALIDATION-001 befor
 | 5 | STORY-012 | CLOSED/CONVERGED | bbddac6 | 12 |
 | 6 | STORY-013 | CLOSED/CONVERGED | 3e705b5 | 13 |
 | 7 | STORY-014 | CLOSED/CONVERGED | b23c6d3 | 14 |
+| 8 | STORY-019, STORY-015 | CLOSED/CONVERGED | 4b9b85f | 16 |
 
-Wave 8 (STORY-015 + STORY-019): READY TO DISPATCH. develop HEAD: b23c6d3.
+Wave 9 (STORY-016 + STORY-020): READY TO DISPATCH. develop HEAD: 4b9b85f.
