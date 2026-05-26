@@ -624,7 +624,7 @@ impl TcpReassembler {
     ///
     /// `pub(crate)` keeps this invisible outside the crate; the production
     /// API is unchanged. Required by `force_set_flow_state_for_testing` in
-    /// `lifecycle.rs` (ADR-0004 amendment, choice (b)).
+    /// `lifecycle.rs` (ADR-0004 amendment, opt-in-per-guard doctrine).
     pub(crate) fn flows_mut(&mut self) -> &mut HashMap<FlowKey, TcpFlow> {
         &mut self.flows
     }

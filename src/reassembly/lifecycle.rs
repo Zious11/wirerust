@@ -145,7 +145,7 @@ impl TcpReassembler {
 //
 // Rationale: `close_flow` is intentionally `pub(super)` to keep the crate API
 // narrow. Rather than widening it, we add a thin `_for_testing` wrapper
-// (choice (b) per the ADR-0004 amendment opt-in-per-guard rationale) so tests
+// (per the ADR-0004 amendment opt-in-per-guard doctrine) so tests
 // can exercise BC-2.04.029 AC-013/AC-014 and EC-009/EC-010 deterministically.
 
 /// Test-only accessor for the process-global `CLOSE_FLOW_MISSING_WARNED` flag.
@@ -192,7 +192,7 @@ pub fn reset_close_flow_missing_warned_for_testing() {
 /// called with a missing key outside of this test seam.
 ///
 /// `close_flow` is `pub(super)` to keep the crate API narrow (ADR-0004
-/// amendment, choice (b)).
+/// amendment, opt-in-per-guard doctrine).
 #[doc(hidden)]
 pub fn trigger_close_flow_missing_key_for_testing(
     _reassembler: &mut TcpReassembler,

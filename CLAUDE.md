@@ -53,7 +53,7 @@ Deferred or open findings — STATE.md Drift Items, spec contradictions, and rev
 | Path | Purpose |
 |------|---------|
 | `README.md` | Project overview |
-| `docs/adr/` | Architecture Decision Records (0001 stream dispatch, 0002 modular analyzers, 0003 reporting pipeline) |
+| `docs/adr/` | Architecture Decision Records (0001 stream dispatch, 0002 modular analyzers, 0003 reporting pipeline, 0004 process-wide warning atomics) |
 | `docs/superpowers/plans/` | Implementation plans (from the superpowers skill) |
 | `docs/superpowers/specs/` | Specifications (from the superpowers skill) |
 | `.github/workflows/ci.yml` | CI pipeline (test, clippy, fmt, semantic PR) |
