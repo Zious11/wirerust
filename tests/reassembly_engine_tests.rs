@@ -7113,9 +7113,9 @@ fn test_BC_2_04_006_directions_are_independent() {
         &mut handler,
     );
 
-    // c2s now has ABC (offset=1) + GHI (offset=4) but there's still a gap at 4
-    // (base_offset after flushing ABC=1..3 is 4, and offset=4 exists → also flushed).
-    // Actually seq=1001+3=1004 is contiguous with offset=4; all flush together.
+    // c2s now has ABC (offset=1, 3 bytes) feeding into GHI (offset=4); after ABC
+    // flushes, base_offset advances to 4 where GHI is contiguous, so the entire
+    // chain flushes in one go.
 
     let c2s_events: Vec<_> = handler
         .data_events
@@ -7143,9 +7143,10 @@ fn test_BC_2_04_006_directions_are_independent() {
 // STORY-015: BC-2.04.007 — In-Order Data Flushes Contiguously
 // =============================================================================
 
-/// BC-2.04.007 PC1–PC2: When a segment arrives at exactly base_offset,
+/// BC-2.04.007 PC1, PC3: When a segment arrives at exactly base_offset,
 /// flush_contiguous_data removes all contiguous segments and delivers them
-/// via on_data. base_offset advances by total bytes flushed.
+/// via on_data, and stats.bytes_reassembled increments by the total flushed bytes.
+/// The ISN-relative offset in on_data is governed by BC-2.04.006 PC3.
 /// Canonical vector: SYN at seq=1000; data at seq=1001 (immediately in-order).
 #[allow(non_snake_case)]
 #[test]
@@ -7196,12 +7197,12 @@ fn test_BC_2_04_007_in_order_segment_flushed_immediately() {
     );
     assert_eq!(
         handler.data_events[0].3, 1u64,
-        "BC-2.04.007 PC1: offset must be ISN-relative (1 = seq 1001 - ISN 1000)"
+        "BC-2.04.006 PC3: offset must be ISN-relative (1 = seq 1001 - ISN 1000)"
     );
     assert_eq!(
         reassembler.stats().bytes_reassembled,
         bytes_before + 5,
-        "BC-2.04.007 PC2: bytes_reassembled must advance by 5 (total flushed bytes)"
+        "BC-2.04.007 PC3: bytes_reassembled must advance by 5 (total flushed bytes)"
     );
 }
 
