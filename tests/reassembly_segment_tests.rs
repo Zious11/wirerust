@@ -1658,3 +1658,170 @@ proptest! {
         }
     }
 }
+
+// =============== STORY-018: Resource Bounds — Segment-Level (Wave 10) ===============
+// BCs: 2.04.041 (depth truncation), 2.04.042 (out-of-window), 2.04.044 (segment limit
+// non-overlap), 2.04.045 (segment limit overlap), 2.04.046 (partial insertion mid-loop)
+// ACs: 001, 002, 003, 010, 011, 012, 016, 017, 018, 019
+// ECs: 001, 002, 003, 004, 005, 006, 007, 009, 010
+// All test bodies panic — Red Gate (Part A stubs).
+// ======================================================================================
+
+// --- AC-001 (BC-2.04.041 postcondition 1) ---
+/// When reassembled_bytes + buffered_bytes + data.len() > max_depth and
+/// depth_exceeded == false, insert_segment returns InsertResult::Truncated.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_041_depth_truncation_returns_truncated() {
+    panic!("STORY-018 AC-001 not yet implemented");
+}
+
+// --- AC-002 (BC-2.04.041 postconditions 2-4) ---
+/// After a Truncated result, only allowed = max_depth.saturating_sub(reassembled_bytes
+/// + buffered_bytes) bytes are stored, and buffered_bytes increases by exactly allowed.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_041_truncated_stores_only_allowed_bytes() {
+    panic!("STORY-018 AC-002 not yet implemented");
+}
+
+// --- AC-003 (BC-2.04.041 postcondition 5 and invariant 1) ---
+/// After Truncated, depth_exceeded == true and all subsequent inserts return
+/// InsertResult::DepthExceeded (not Truncated again).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_041_depth_exceeded_flag_set_after_truncated() {
+    panic!("STORY-018 AC-003 not yet implemented");
+}
+
+// --- AC-010 (BC-2.04.042 postcondition 1 and invariant 1) ---
+/// When a segment's computed offset exceeds base_offset.saturating_add(max_receive_window
+/// as u64), insert_segment returns InsertResult::OutOfWindow and no bytes are stored.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_042_out_of_window_returns_out_of_window() {
+    panic!("STORY-018 AC-010 not yet implemented");
+}
+
+// --- AC-011 (BC-2.04.042 postcondition 4) ---
+/// out_of_window_count increments by 1 for each out-of-window segment.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_042_out_of_window_count_increments() {
+    panic!("STORY-018 AC-011 not yet implemented");
+}
+
+// --- AC-012 (BC-2.04.042 edge case EC-001) ---
+/// A segment at exactly base_offset + max_receive_window (the boundary) is accepted
+/// with InsertResult::Inserted (boundary is exclusive: offset > window, not >=).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_042_segment_at_exact_window_boundary_is_inserted() {
+    panic!("STORY-018 AC-012 not yet implemented");
+}
+
+// --- AC-016 (BC-2.04.044 postcondition 1 and invariant 1) ---
+/// When segments.len() >= max_segments and the new segment does not overlap any existing
+/// entry, insert_segment returns InsertResult::SegmentLimitReached and segments.len()
+/// is unchanged.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_044_segment_limit_non_overlapping_path() {
+    panic!("STORY-018 AC-016 not yet implemented");
+}
+
+// --- AC-017 (BC-2.04.044 edge case EC-001) ---
+/// When segments.len() == max_segments - 1, a new non-overlapping segment is inserted
+/// successfully (not rejected).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_044_segment_one_below_limit_is_inserted() {
+    panic!("STORY-018 AC-017 not yet implemented");
+}
+
+// --- AC-018 (BC-2.04.045 postcondition 1 and invariant 2) ---
+/// When segments.len() >= max_segments and the new segment overlaps existing entries but
+/// gaps cannot be inserted, insert_segment returns SegmentLimitReached and overlap_count
+/// is incremented (overlap was detected before the limit check).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_045_segment_limit_overlapping_path_increments_overlap_count() {
+    panic!("STORY-018 AC-018 not yet implemented");
+}
+
+// --- AC-019 (BC-2.04.046 postconditions 1-3 and invariant 1) ---
+/// When the BTreeMap fills to max_segments mid-way through a multi-gap insertion,
+/// SegmentLimitReached is returned, earlier gaps are in the map, later gaps are dropped,
+/// and buffered_bytes has increased only by the bytes of the inserted gaps.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_046_segment_limit_partial_insertion_mid_loop() {
+    panic!("STORY-018 AC-019 not yet implemented");
+}
+
+// --- EC-001 (depth: segment exactly at max_depth, no truncation needed) ---
+/// Segment exactly at max_depth (no truncation needed): Inserted; no Truncated result.
+#[test]
+fn test_story_018_ec001_segment_exactly_at_max_depth_is_inserted() {
+    panic!("STORY-018 EC-001 not yet implemented");
+}
+
+// --- EC-002 (depth: segment crosses depth limit by 1 byte) ---
+/// Segment crosses depth limit by 1 byte: Truncated; 1 byte dropped.
+#[test]
+fn test_story_018_ec002_segment_crosses_depth_by_one_byte_truncated() {
+    panic!("STORY-018 EC-002 not yet implemented");
+}
+
+// --- EC-003 (depth: two segments after depth hit) ---
+/// Two segments after depth hit: both return DepthExceeded; depth_exceeded flag is
+/// permanent after first Truncated result.
+#[test]
+fn test_story_018_ec003_two_segments_after_depth_hit_both_depth_exceeded() {
+    panic!("STORY-018 EC-003 not yet implemented");
+}
+
+// --- EC-004 (out-of-window: segment at exact receive window boundary) ---
+/// Segment at exact receive window boundary is Inserted (boundary is exclusive: > not >=).
+#[test]
+fn test_story_018_ec004_segment_at_exact_window_boundary_inserted() {
+    panic!("STORY-018 EC-004 not yet implemented");
+}
+
+// --- EC-005 (out-of-window: segment 1 byte beyond receive window) ---
+/// Segment 1 byte beyond receive window: OutOfWindow; out_of_window_count=1.
+#[test]
+fn test_story_018_ec005_segment_one_byte_beyond_window_out_of_window() {
+    panic!("STORY-018 EC-005 not yet implemented");
+}
+
+// --- EC-006 (out-of-window: base_offset near u64::MAX) ---
+/// base_offset near u64::MAX: saturating_add prevents overflow; OutOfWindow returned correctly.
+#[test]
+fn test_story_018_ec006_base_offset_near_u64_max_saturating_add() {
+    panic!("STORY-018 EC-006 not yet implemented");
+}
+
+// --- EC-007 (segment limit: pure overlap, no gap) ---
+/// segments.len() == max_segments, new segment is pure overlap (no gap): not
+/// SegmentLimitReached — fully-covered path returns Duplicate or ConflictingOverlap.
+#[test]
+fn test_story_018_ec007_full_map_pure_overlap_not_segment_limit_reached() {
+    panic!("STORY-018 EC-007 not yet implemented");
+}
+
+// --- EC-009 (small_segment_run: OutOfWindow result after 2 small segments) ---
+/// OutOfWindow result after 2 small segments: small_segment_run unchanged at 2.
+/// Tests that the out_of_window path on FlowDirection does not reset the run counter.
+#[test]
+fn test_story_018_ec009_out_of_window_does_not_change_small_segment_run() {
+    panic!("STORY-018 EC-009 not yet implemented");
+}
+
+// --- EC-010 (small_segment_run: DepthExceeded result after 3 small segments) ---
+/// DepthExceeded result after 3 small segments: small_segment_run unchanged at 3.
+/// Verifies the segment-level depth_exceeded path does not touch the run counter.
+#[test]
+fn test_story_018_ec010_depth_exceeded_does_not_change_small_segment_run() {
+    panic!("STORY-018 EC-010 not yet implemented");
+}

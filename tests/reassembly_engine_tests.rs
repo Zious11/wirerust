@@ -13085,3 +13085,99 @@ fn test_story_017_ec009_duplicate_overlap_increments_count_no_finding() {
         "exact-byte duplicate must NOT emit a ConflictingOverlap finding"
     );
 }
+
+// =============== STORY-018: Resource Bounds — Engine-Level (Wave 10) ===============
+// BCs: 2.04.023 (truncated finding), 2.04.027 (depth-exceeded counter),
+//      2.04.040 (small_segment_run update rules)
+// ACs: 004, 005, 006, 007, 008, 009, 013, 014, 015
+// ECs: 008 (truncated at MAX_FINDINGS cap)
+// All test bodies panic — Red Gate (Part A stubs).
+// ====================================================================================
+
+// --- AC-004 (BC-2.04.023 postcondition 1) ---
+/// The engine emits one Anomaly/Inconclusive/Low finding with mitre_technique: None,
+/// summary: "Stream depth exceeded on flow <key>", and evidence: ["Max depth N bytes
+/// reached"] where N matches config.max_depth.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_023_truncated_finding_emitted() {
+    panic!("STORY-018 AC-004 not yet implemented");
+}
+
+// --- AC-005 (BC-2.04.023 postcondition 2 and invariant 2) ---
+/// When findings.len() >= MAX_FINDINGS at the time of truncation, no finding is pushed
+/// and stats.dropped_findings increments instead.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_023_truncated_finding_dropped_at_cap() {
+    panic!("STORY-018 AC-005 not yet implemented");
+}
+
+// --- AC-006 (BC-2.04.023 invariant 3) ---
+/// The truncated finding sets source_ip: Some(packet.src_ip) but direction: None.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_023_truncated_finding_has_source_ip_no_direction() {
+    panic!("STORY-018 AC-006 not yet implemented");
+}
+
+// --- AC-007 (BC-2.04.027 postconditions 1-2) ---
+/// For each segment arriving after depth_exceeded == true, stats.segments_depth_exceeded
+/// increments by 1 and no bytes are stored.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_027_depth_exceeded_counter_increments() {
+    panic!("STORY-018 AC-007 not yet implemented");
+}
+
+// --- AC-008 (BC-2.04.027 postcondition 4 and invariant 2) ---
+/// DepthExceeded segments do not change total_memory or buffered_bytes.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_027_depth_exceeded_does_not_affect_memory() {
+    panic!("STORY-018 AC-008 not yet implemented");
+}
+
+// --- AC-009 (BC-2.04.027 edge case EC-004) ---
+/// Depth exceedance is per-direction: if the client-to-server direction exceeds max_depth,
+/// the server-to-client direction continues to accept segments normally.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_027_depth_exceeded_is_per_direction() {
+    panic!("STORY-018 AC-009 not yet implemented");
+}
+
+// --- AC-013 (BC-2.04.040 postconditions 1-2) ---
+/// After a segment with payload.len() < small_segment_max_bytes, flow_dir.small_segment_run
+/// increments by 1 (saturating). After a segment with payload.len() >=
+/// small_segment_max_bytes, small_segment_run resets to 0.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_040_small_segment_run_increments_and_resets() {
+    panic!("STORY-018 AC-013 not yet implemented");
+}
+
+// --- AC-014 (BC-2.04.040 postcondition 3 and invariant 1) ---
+/// small_segment_run is tracked independently per direction (client-to-server and
+/// server-to-client have separate counters).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_040_small_segment_run_is_per_direction() {
+    panic!("STORY-018 AC-014 not yet implemented");
+}
+
+// --- AC-015 (BC-2.04.040 invariant 1 and edge cases EC-004) ---
+/// Results OutOfWindow, SegmentLimitReached, DepthExceeded, and IsnMissing do NOT update
+/// small_segment_run (neither increment nor reset).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_040_excluded_results_do_not_update_small_segment_run() {
+    panic!("STORY-018 AC-015 not yet implemented");
+}
+
+// --- EC-008 (truncated at MAX_FINDINGS cap) ---
+/// Truncated result at MAX_FINDINGS cap: dropped_findings++; no finding pushed.
+#[test]
+fn test_story_018_ec008_truncated_at_max_findings_cap_drops_finding() {
+    panic!("STORY-018 EC-008 not yet implemented");
+}
