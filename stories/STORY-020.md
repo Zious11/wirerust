@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-020"
 epic_id: "E-2"
-version: "1.5"
+version: "1.7"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.015.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.016.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.017.md
-input-hash: "6527afc"
+input-hash: "da8045f"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-019]
@@ -35,6 +35,8 @@ implementation_strategy: brownfield-formalization
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| 1.7 | 2026-05-26 | story-writer | Wave 9 wave-level adv pass-1 F-W9P1-003 (sibling-discipline regression in spec hierarchy): Architecture Mapping anchor `lifecycle.rs:51` → `lifecycle.rs:60` (line 51 is capture, line 60 is decrement; STORY-019 inserted let-else at 42-50 shifting decrement down). Resolves W9-D9 deferral by being explicit at the spec/BC level rather than just drift-item-tracked. Also swept and corrected two secondary stale anchors: Token Budget table and File Structure Requirements both cited `lifecycle.rs:51` — updated to `lifecycle.rs:60`. |
+| 1.6 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-020 adv pass-5 fix: F-PASS5-003 (HIGH) — revised EC-005 row to remove false 'protects Established sessions' claim (test setup is SynSent flow, not Established); clarified that dual-conjunction termination is state-independent (mechanical); preserved general DESIGN INTENT reference per BC-2.04.015 Inv 4. |
 | 1.5 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-020 adv pass-4 fixes: F-PASS4-001 (HIGH, sibling-regression of pass-3 F-005) — story line 84 stale test name updated to renamed function; LOW — Task #5 added 'Closed' state to AC-012 mix; Task #8 reworded for PATH 1 code-review vs PATH 2 behavioral-test bifurcation per v1.4 AC-013 |
 | 1.4 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-020 adv pass-3 fix: F-002 (HIGH) — AC-005 re-scoped to honestly describe the no-op-eviction case; added NOTE acknowledging that 'evict_flows runs+still-full' is structurally unreachable under v1.3 Inv 4; F-001 (HIGH) — AC-013 wording revised to acknowledge PATH 1 structural verification (code review at mod.rs:227-232) vs PATH 2 behavioral verification; F-006 (MED, sibling-regression of pass-2 F-002) — Task 7 wording aligned with AC-005 v1.4 phrasing |
 | 1.3 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-020 adv pass-2 fix: F-002 (HIGH) — clarified AC-005 wording to make 'after eviction' explicit (eviction may be a no-op per v1.3 Inv 4); AC-005 + EC-005 jointly characterize rejection path (EC-005: no-op case; AC-005: structural rejection). F-003 (HIGH) requires test rewrite (test-writer parallel), not story revision; AC-013 wording unchanged. |
@@ -125,7 +127,7 @@ NOTE: The 'evict_flows runs and frees ≥1 slot but table still at capacity' sce
 |-----------|--------|---------------|
 | total_memory increment on insert | src/reassembly/mod.rs:337-340 | effectful-shell (mutates self.total_memory) |
 | total_memory decrement on flush | src/reassembly/mod.rs:525-527 | effectful-shell |
-| total_memory decrement on close | src/reassembly/lifecycle.rs:51 | effectful-shell |
+| total_memory decrement on close | src/reassembly/lifecycle.rs:60 | effectful-shell |
 | evict_flows (sort + close loop) | src/reassembly/lifecycle.rs:67-92 | effectful-shell (sort alloc + close callbacks) |
 | get_or_create_flow max_flows check | src/reassembly/mod.rs:225-235 | effectful-shell |
 | memcap check in process_packet | src/reassembly/mod.rs:176-179 | effectful-shell |
@@ -138,7 +140,7 @@ NOTE: The 'evict_flows runs and frees ≥1 slot but table still at capacity' sce
 | EC-002 | Close flow with buffered data | total_memory -= all buffered bytes in both directions |
 | EC-003 | Zero-length segment insert | total_memory unchanged (empty data early return) |
 | EC-004 | All flows are Established at eviction time | LRU Established flows evicted (oldest first) |
-| EC-005 | Single flow in table (`max_flows=1`, `total_memory <= memcap`), new SYN arrives | evict_flows exits immediately (both PC-5 termination conditions already satisfied); packet dropped, no flow created. max_flows-only pressure without memcap pressure is insufficient to trigger eviction; protects Established sessions when memory budget is ample. |
+| EC-005 | Single flow in table (`max_flows=1`, `total_memory <= memcap`), new SYN arrives | evict_flows exits immediately (both PC-5 termination conditions already satisfied); packet dropped, no flow created. max_flows-only pressure without memcap pressure is insufficient to trigger eviction; the existing flow is preserved (regardless of flow state — the dual-conjunction termination is mechanical, not state-specific). Per BC-2.04.015 v1.3 Invariant 4 DESIGN INTENT, this protection has its most salient application to Established sessions (which under pure LRU would be evictable by flow-count pressure alone). |
 | EC-006 | total_memory == memcap exactly | No eviction triggered (strict `>`) |
 | EC-007 | total_memory == memcap + 1 | Eviction triggered |
 | EC-008 | evict_flows with Closing flow + Established flow | Closing (non-Established) evicted first |
@@ -160,7 +162,7 @@ NOTE: The 'evict_flows runs and frees ≥1 slot but table still at capacity' sce
 | This story spec | ~3,000 |
 | BC files (4 BCs) | ~5,000 |
 | src/reassembly/mod.rs (total_memory sites ~337-340, ~525-527, memcap check ~176-179, get_or_create_flow ~225-235) | ~2,000 |
-| src/reassembly/lifecycle.rs (evict_flows ~67-92, total_memory decrement ~51) | ~1,500 |
+| src/reassembly/lifecycle.rs (evict_flows ~67-92, total_memory decrement ~60) | ~1,500 |
 | Test files | ~4,500 |
 | Tool outputs overhead | ~1,000 |
 | **Total** | **~17,000** |
@@ -210,5 +212,5 @@ NOTE: The 'evict_flows runs and frees ≥1 slot but table still at capacity' sce
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/reassembly/mod.rs` | verify (lines 176-179, 225-235, 337-340, 525-527) | memcap check, max_flows check, total_memory increment/decrement sites |
-| `src/reassembly/lifecycle.rs` | verify (lines 51, 67-92) | total_memory close decrement, evict_flows sort + loop |
+| `src/reassembly/lifecycle.rs` | verify (lines 60, 67-92) | total_memory close decrement, evict_flows sort + loop |
 | `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-013 |

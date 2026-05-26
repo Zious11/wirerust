@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 9 wave-level adv pass-1 F-W9P1-003: lifecycle.rs:51 → lifecycle.rs:60 in 2 occurrences — 2026-05-26"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -87,7 +88,7 @@ This counter drives the memcap eviction check after each packet.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- total_memory tracking is the measurement mechanism for the memcap eviction policy |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:337-340, insert; mod.rs:525-527, flush; lifecycle.rs:51, close_flow) |
+| Architecture Module | SS-04 (reassembly/mod.rs:337-340, insert; mod.rs:525-527, flush; lifecycle.rs:60, close_flow) |
 | Stories | STORY-020 |
 | Origin BC | BC-RAS-014 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -101,7 +102,7 @@ This counter drives the memcap eviction check after each packet.
 
 - `src/reassembly/mod.rs:337-340` -- total_memory += bytes_added after insert
 - `src/reassembly/mod.rs:525-527` -- total_memory -= flushed bytes
-- `src/reassembly/lifecycle.rs:51` -- total_memory -= flow_mem on close
+- `src/reassembly/lifecycle.rs:60` -- total_memory -= flow_mem on close
 
 ## Source Evidence
 
@@ -130,3 +131,11 @@ This counter drives the memcap eviction check after each packet.
 The three sites (insert, flush, close) are consistent. A debug_assert reconciling total_memory
 against sum(flow.memory_used()) would catch drift; currently this invariant is unverified at
 runtime outside debug builds.
+
+## Changelog
+
+| Version | Date | Author | Notes |
+|---------|------|--------|-------|
+| 1.1 | 2026-05-20 | product-owner | Initial brownfield extraction |
+| 1.2 | 2026-05-21 | product-owner | VP back-reference back-fill (P8-DEFER) |
+| 1.3 | 2026-05-26 | product-owner | Wave 9 wave-level adv pass-1 F-W9P1-003: lifecycle.rs:51 → lifecycle.rs:60 in 2 occurrences (line 51 is the let-binding capture; line 60 is the actual decrement, shifted by STORY-019 let-else block at lifecycle.rs:42-50). Full BC anchor freshness verified against current source. |

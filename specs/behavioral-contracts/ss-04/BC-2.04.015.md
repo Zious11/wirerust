@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -50,6 +50,14 @@ both `total_memory <= memcap` AND `flows.len() <= max_flows`.
 6. If the table is still at capacity after eviction (under v1.3 Invariant 4, this only occurs
    when evict_flows ran as a no-op), `get_or_create_flow` returns `false` and the packet is
    dropped (no flow created).
+7. **Data-delivery semantics under CloseReason::MemoryPressure eviction:** On `CloseReason::MemoryPressure`,
+   only the contiguous head-of-buffer prefix is delivered to the handler via `on_data` callback
+   (via `flush_contiguous()` per direction). Non-contiguous buffered segments (segments held waiting
+   on a gap fill) are DISCARDED — no `on_data` callback fires for them. The number of discarded bytes
+   equals `flow.memory_used() at close time − bytes delivered by flush_contiguous()`. Forensic
+   analysts should account for this potential data loss when evictions occur under memory pressure:
+   an eviction-heavy capture may have non-contiguous segments dropped that would otherwise have been
+   reassembled if memory budget had been larger.
 
 ## Invariants
 
@@ -76,6 +84,7 @@ both `total_memory <= memcap` AND `flows.len() <= max_flows`.
 | max_flows=2; two Established flows; new SYN | Oldest Established evicted; new flow created | happy-path |
 | max_flows=1; one New flow + one Established; new SYN | New (non-Established) evicted first | happy-path |
 | max_flows=1; total ≤ memcap; new SYN | evict_flows no-op (dual-conjunction terminates at head per Inv 4); packet dropped; existing flow preserved | edge-case |
+| flow with 5 contiguous bytes [0..5) + 5 non-contiguous bytes [10..15) buffered (gap at [5..10)); evicted via MemoryPressure | handler.on_data called with first 5 bytes; bytes [10..15) discarded silently; on_flow_close called with CloseReason::MemoryPressure | data-loss-on-eviction |
 
 ## Verification Properties
 
@@ -142,3 +151,4 @@ could be optimized, but it is not on the hot path (eviction is rare in normal tr
 | 1.2 | 2026-05-21 | product-owner | VP back-reference back-fill (P8-DEFER) |
 | 1.3 | 2026-05-26 | product-owner | Wave 9 STORY-020 implementer investigation: revised EC-004 to match actual implementation (evict_flows is no-op when only max_flows pressure exists without memcap pressure); added EC-005 for dual-pressure case; added DESIGN INTENT invariant (Invariant 4). PC-5 termination condition is correct; EC-004 was the misstatement. |
 | 1.4 | 2026-05-26 | product-owner | Wave 9 STORY-020 adv pass-4 F-PASS4-002 (HIGH, sibling-regression of pass-3 F-002): Canonical Test Vector row at line 77 revised — the 'one flow evicted but still at cap' scenario is structurally unreachable under v1.3 Invariant 4 (evicting brings flows.len to 0 < 1); replaced with the actually-reachable no-op-eviction path. Description/PC-6/EC-003 'still at capacity after eviction' wording clarified with Inv 4 parenthetical. |
+| 1.5 | 2026-05-26 | product-owner | Wave 9 wave-level adv pass-1 F-W9P1-002: added PC-7 documenting data-delivery semantics under MemoryPressure eviction (non-contiguous buffered segments are silently discarded; flush_contiguous delivers only head-of-buffer prefix); added canonical test vector row showing data-loss case. |
