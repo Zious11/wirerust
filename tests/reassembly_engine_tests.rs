@@ -8370,8 +8370,10 @@ fn test_BC_2_04_015_new_flow_dropped_after_no_op_eviction_under_max_flows_only_p
     // Flow B SYN: get_or_create_flow calls evict_flows (flows.len()=1 >= max_flows=1).
     // evict_flows: total=4 <= memcap=4 AND flows.len()=1 <= max_flows=1 → dual-conjunction
     // breaks immediately — no eviction. Re-check: flows.len() still >= max_flows → B dropped.
-    // Per BC-2.04.015 v1.3 Invariant 4: Established session A is protected when
-    // total_memory does not exceed memcap.
+    // Per BC-2.04.015 v1.3 Invariant 4: dual-conjunction termination is mechanical
+    // (state-independent); flow A is preserved when total_memory does not exceed memcap.
+    // (Note: A is SynSent in this setup; the protection applies to any state, with
+    // Established being the most salient design-intent application.)
     let syn_b = make_tcp_packet(
         client_b,
         22222,
@@ -10009,7 +10011,7 @@ fn test_story_020_ec004_all_established_flows_evict_lru_order() {
 /// EC-011 (below) tests the positive dual-pressure case where A IS evicted
 /// and B IS admitted when total_memory genuinely exceeds memcap.
 #[test]
-fn test_story_020_ec005_max_flows_only_pressure_drops_new_syn_preserves_established() {
+fn test_story_020_ec005_max_flows_only_pressure_drops_new_syn_preserves_existing_flow() {
     // max_flows=1, memcap=3. A buffers exactly 3 bytes (total == memcap; no eviction).
     // B SYN: evict_flows dual-conjunction exits immediately → A survives, B dropped.
     let config = ReassemblyConfig {
@@ -10189,7 +10191,7 @@ fn test_story_020_ec006_total_memory_equals_memcap_no_eviction() {
 /// EC-007: total_memory == memcap + 1; eviction triggered.
 #[test]
 fn test_story_020_ec007_total_memory_one_over_memcap_triggers_eviction() {
-    // Two flows: flow A (non-Established) holds 5 bytes.
+    // Two flows: flow A (Established) holds 5 bytes.
     // memcap=5. Inserting 1 more byte (into flow B) pushes total to 6 > 5.
     let config = ReassemblyConfig {
         memcap: 5,
@@ -10735,11 +10737,13 @@ fn test_story_020_ec010_finalize_zeroes_total_memory() {
 /// memcap); new SYN arrives → dual resource pressure triggers eviction; existing
 /// flow evicted via CloseReason::MemoryPressure; new flow created.
 ///
-/// This exercises BC-2.04.015 v1.3 Invariant 4 dual-pressure POSITIVE case:
-/// when total_memory > memcap AND flows.len() >= max_flows, both resource
-/// thresholds are simultaneously exceeded, so evict_flows evicts the oldest
-/// flow (flow A) and the new flow (B) is admitted. This is the DESIGN INTENT
-/// positive path that complements EC-005's negative (single-pressure) path.
+/// This exercises BC-2.04.015 v1.3 Invariant 4 dual-pressure POSITIVE case at the
+/// mechanical level: when total_memory > memcap AND flows.len() >= max_flows, both
+/// resource thresholds are simultaneously exceeded, so evict_flows evicts the oldest
+/// flow (flow A) and the new flow (B) is admitted. (Note: A is SynSent in this setup;
+/// the narrow design-intent positive case for Established eviction under dual pressure
+/// would require A to be Established — this test verifies the mechanical eviction loop
+/// unblocks, which is the necessary-but-not-sufficient condition for Established eviction.)
 ///
 /// Exercises: BC-2.04.015 v1.3 EC-005 (Invariant 4 dual-pressure case).
 #[test]
