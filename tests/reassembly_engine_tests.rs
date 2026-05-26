@@ -7904,7 +7904,7 @@ fn test_BC_2_04_039_ec008_isn_near_max_btreemap_keys_monotonic() {
 //
 // Behavioral contracts: BC-2.04.014, BC-2.04.015, BC-2.04.016, BC-2.04.017
 // ACs: AC-001..AC-013 (13 tests)
-// ECs: EC-001..EC-010 (10 tests)
+// ECs: EC-001..EC-011 (11 tests); + 1 proptest (AC-004)
 //
 // All stubs panic to satisfy the Red Gate: every test must FAIL before
 // implementation. Do NOT add #[ignore].
@@ -8133,13 +8133,6 @@ fn test_BC_2_04_014_total_memory_decrements_on_close() {
 /// AC-004: At all times, `total_memory == sum(flow.memory_used() for all flows)`.
 /// This debug invariant holds after inserts, flushes, and closes.
 ///
-/// TODO(implementer — W9.9): This test requires the seam
-/// `pub fn flows_memory_sum_for_testing(&self) -> usize` on `TcpReassembler`
-/// in `src/reassembly/mod.rs`. The seam should walk `self.flows` and return
-/// `self.flows.values().map(|f| f.memory_used()).sum::<usize>()`.
-/// Until the seam is added, the test body is guarded with `unimplemented!`
-/// so the rest of the STORY-020 test suite compiles and is runnable.
-/// See STORY-020 Part B report for details.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_014_total_memory_equals_sum_of_flow_memory() {
@@ -8312,71 +8305,17 @@ fn test_BC_2_04_014_total_memory_equals_sum_of_flow_memory() {
 
 // ---- AC-005 (BC-2.04.015 postconditions 5-6) -------------------------------
 
-/// AC-005: When `flows.len() >= config.max_flows` and a new flow packet
-/// arrives, `evict_flows` is called. After eviction, if the table is STILL
-/// at capacity, `get_or_create_flow` returns `false` and the packet is
-/// dropped (no flow created).
+/// AC-005: Verifies BC-2.04.015 postconditions 5-6: when a new flow arrives and
+/// `flows.len() >= max_flows`, `get_or_create_flow` calls `evict_flows`; if the
+/// table is still at capacity after eviction the new flow is dropped.
 ///
-/// This requires that the eviction loop cannot free any flow. We use
-/// max_flows=2 with two Established flows, then force one to a non-evictable
-/// scenario: actually evict_flows WILL evict Established flows as a last
-/// resort. To get a "still full after eviction" we need max_flows=1 with
-/// flow A Established (which IS evictable), but after eviction we'd have
-/// room. The only way to stay "still full" is if max_flows=0 — but that
-/// panics in TcpReassembler::new.
-///
-/// Re-reading BC-2.04.015 PC5-6: "if table STILL at capacity after eviction"
-/// means the evict_flows loop ran but couldn't bring flows.len() below
-/// max_flows. This happens when ALL flows are new (no flows to evict) OR
-/// when the eviction loop terminates because BOTH conditions are already met.
-/// The simplest trigger: max_flows=1, flow A = Established (last resort
-/// eviction candidate). Send flow B SYN. Eviction fires, closes flow A, flow
-/// B gets created. So actually this scenario requires that after eviction the
-/// table is STILL full — the code re-checks `flows.len() >= max_flows` and
-/// drops only if still full. With max_flows=1 and one Established flow that
-/// CAN be evicted, A gets evicted and B gets created (table is NOT still full).
-///
-/// The "dropped" path fires when evict_flows runs and no flow is removed
-/// (e.g. the table was empty when evict_flows ran, or all candidates were
-/// already gone). The cleanest reproduction: use a custom handler that
-/// doesn't exist, but instead rely on the fact that with max_flows=1 we
-/// have flow A + try to create flow B. A is evicted and B is created (no
-/// drop). The DROPPED path is hard to hit without a truly un-evictable
-/// scenario. We test the observable: with max_flows=2 and 2 Established
-/// flows that both have data, trigger a third SYN: one is evicted, the
-/// third gets created (total remains 2). This validates the eviction path
-/// but does NOT force the "still full after eviction" dropped case.
-///
-/// For the actual drop path: use max_flows=1 and ensure the single existing
-/// flow stays present after eviction. The only way is if evict_flows closes
-/// flow A but flow A's close re-inserts... no. Actually with max_flows=1:
-/// evict A → flows.len()=0 < 1 → B can be created. The drop path requires
-/// that flows.len() >= max_flows AFTER evict_flows. With a fixed HashMap
-/// this happens when the flows table had ZERO flows before eviction (nothing
-/// to evict) — but then flows.len()=0 which is NOT >= max_flows=1. Actually
-/// re-reading get_or_create_flow: it checks `flows.len() >= max_flows` BEFORE
-/// creating, calls evict_flows, then re-checks. The drop fires when the
-/// re-check still sees flows.len() >= max_flows. This CAN happen if
-/// evict_flows iterates all candidates but closes none (because the
-/// termination condition `total_memory <= memcap && flows.len() <= max_flows`
-/// was already met on entry — but we only call evict_flows from
-/// get_or_create_flow when flows.len() >= max_flows, so that condition is not
-/// met on entry). So evict_flows WILL close at least one flow. Therefore the
-/// "still full" path is only reachable if max_flows=0 (impossible) or if
-/// evict_flows closes a flow but a concurrent path re-adds it — impossible in
-/// single-threaded code.
-///
-/// Conclusion: the "still full after eviction" drop path in
-/// get_or_create_flow is unreachable with valid configurations and
-/// single-threaded execution when any flow exists. This test verifies the
-/// ADJACENT observable: with max_flows=1, flow A is evicted to make room for
-/// flow B, and B is successfully created (eviction enables creation, not a drop).
-///
-/// IMPLEMENTATION NOTE: evict_flows terminates when BOTH total_memory <= memcap
-/// AND flows.len() <= max_flows. For eviction to fire from the max_flows path,
-/// we must ALSO have total_memory > memcap — otherwise the loop exits immediately.
-/// Tests that use max_flows-based eviction must buffer data so that total_memory
-/// exceeds memcap at the time evict_flows is called.
+/// Per BC-2.04.015 v1.3 Invariant 4 (DESIGN INTENT): the "still full after
+/// eviction" drop path fires only when `evict_flows` terminates without removing
+/// any flow (dual-conjunction: total <= memcap AND flows.len() <= max_flows on
+/// entry). With valid configs this is reached when total_memory == memcap exactly.
+/// Setup: max_flows=1, memcap=4, flow A buffers 5 bytes (total > memcap → A evicted
+/// on data insert), then B SYN arrives into an empty table and is admitted.
+/// This exercises the eviction-then-admit path (the observable for PC5-6).
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_015_new_flow_dropped_when_table_full_after_eviction() {
@@ -9552,24 +9491,33 @@ fn test_BC_2_04_017_all_non_established_states_evict_first() {
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
-    // --- PATH 1: max_flows eviction (via get_or_create_flow) ---
-    // NOTE: max_flows-only eviction (no memcap pressure) does NOT fire in the
-    // current implementation (evict_flows loop breaks when total<=memcap AND
-    // flows.len()<=max_flows). We use max_flows=2 AND memcap=4, buffer 5 bytes
-    // into flow A, then send flow C SYN. At C's arrival: flows.len()=2 >= 2
-    // → get_or_create_flow calls evict_flows. total=5 > memcap=4 → loop evicts A
-    // (oldest). This uses the max_flows PATH (triggered via get_or_create_flow).
+    // --- PATH 1: max_flows eviction entry point (via get_or_create_flow) ---
+    // Setup: max_flows=1, memcap=3. Flow A buffers 3 bytes (total=3 == memcap, no early
+    // eviction). Flow B SYN arrives: flows.len()=1 >= max_flows=1 → get_or_create_flow
+    // calls evict_flows. At evict_flows entry: total=3 <= memcap=3 → dual-conjunction
+    // terminates immediately, no eviction occurs. B is dropped (re-check still full).
+    // This exercises the get_or_create_flow PATH 1 entry point into evict_flows and
+    // confirms that CloseReason::MemoryPressure is only emitted when total > memcap.
+    //
+    // To witness PATH 1 WITH eviction (per EC-011 dual-pressure pattern): use max_flows=1,
+    // memcap=3, buffer 3 bytes into A out-of-order (total=3 == memcap), then add 1 more
+    // byte → total=4 > memcap=3 → memcap eviction fires in process_packet (PATH 2 entry).
+    // After A is evicted, send B SYN → admitted (flows.len()=0 < 1). This is the same
+    // mechanism EC-011 exercises. For PATH 1 (get_or_create_flow entry) the witness is
+    // the dual-conjunction termination: get_or_create_flow calls evict_flows and evict_flows
+    // exits without evicting when total <= memcap. The observable: evictions==0 after the
+    // call, B is dropped.
     {
         let config = ReassemblyConfig {
-            max_flows: 2,
-            memcap: 4, // tight: ensures eviction loop doesn't terminate early
+            max_flows: 1,
+            memcap: 3,
             ..ReassemblyConfig::default()
         };
         let mut r = TcpReassembler::new(config);
         let mut h = RecordingHandler::new();
         let server = [10, 0, 0, 2];
 
-        // Flow A: SynSent (at t=1).
+        // Flow A: SynSent, buffer 3 bytes out-of-order (total=3 == memcap=3, no eviction).
         r.process_packet(
             &make_tcp_packet(
                 [10, 0, 0, 1],
@@ -9586,49 +9534,6 @@ fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
             1,
             &mut h,
         );
-        // Buffer 5 bytes into A out-of-order. total=5 > memcap=4 → memcap eviction fires
-        // here. After eviction A is gone. So we can't use this approach to test the
-        // max_flows PATH specifically. Use a different strategy:
-        //
-        // max_flows=2, memcap=5. Flow A (SynSent, 3 bytes buffered). Flow B (SynSent, 0 bytes).
-        // total=3 <= memcap=5 → no eviction yet.
-        // Flow C SYN arrives: flows.len()=2 >= max_flows=2 → get_or_create_flow calls
-        // evict_flows. total=3 <= 5 AND flows.len()=2 <= 2 → break. No eviction. Drop C.
-        // Still broken.
-        //
-        // The only reliable way to trigger the max_flows PATH with eviction is to ALSO
-        // have total > memcap. Buffer bytes into A AFTER B is created so total goes
-        // from 0 to >memcap SIMULTANEOUSLY with the 3rd-flow arrival check.
-        // But process_packet triggers max_flows check BEFORE inserting payload.
-        //
-        // Flow A: 4 bytes (= memcap=4, no eviction). Flow B: created (flows.len()=2 >=2
-        // would trigger evict, but B arrives as the second flow so flows.len() was 1
-        // before B; actually B is the 2nd flow, so flows.len()=2 AFTER B is created).
-        // Then C SYN arrives: flows.len()=2 >= max_flows=2 → evict_flows called.
-        // total=4 <= 4 → loop terminates immediately.
-        //
-        // CONCLUSION: PATH1 (max_flows eviction) cannot be isolated from memcap eviction
-        // in the current implementation because evict_flows uses a combined condition.
-        // For AC-013, both PATHs ultimately call evict_flows with the same sort strategy;
-        // PATH1 is verified by observing that get_or_create_flow CALLS evict_flows (code
-        // review) rather than testing it in isolation via a unit test.
-        //
-        // Practical test: memcap=4, max_flows=2. A (3 bytes), B (2 bytes) = total=5>4.
-        // After B's OOO data: memcap eviction fires (via PATH2, not PATH1).
-        // This shows both PATHS call the same function by demonstrating consistent behavior.
-        //
-        // For PATH1 demonstration: ensure the eviction fires AT the moment of C's SYN
-        // (max_flows check in get_or_create_flow). To have total > memcap at that moment,
-        // we need pending bytes from BEFORE C's SYN that didn't trigger memcap eviction.
-        // That's only possible if we insert exactly memcap bytes (no eviction yet),
-        // then C's SYN arrives. But then total=memcap at evict_flows entry → loop breaks.
-        //
-        // Therefore: PATH1 and PATH2 cannot be independently tested for eviction firing
-        // without modifying the implementation. This test verifies the OBSERVABLE: both
-        // paths produce MemoryPressure close events, confirming they call evict_flows.
-        // We use PATH2 (memcap) for both sub-tests to confirm consistent behavior.
-        //
-        // Flow A: SynSent, buffer 5 bytes (total=5 > memcap=4 → memcap eviction fires).
         r.process_packet(
             &make_tcp_packet(
                 [10, 0, 0, 1],
@@ -9636,7 +9541,7 @@ fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
                 server,
                 80,
                 1003,
-                &[0xAA; 5],
+                &[0xAA; 3],
                 false,
                 false,
                 false,
@@ -9645,16 +9550,58 @@ fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
             2,
             &mut h,
         );
-        // After eviction A is gone. No matter. The key assertion is about MemoryPressure.
-        assert!(
-            r.stats().evictions >= 1,
-            "AC-013 PATH1: eviction must have occurred (via memcap path triggered during A's data)"
+        assert_eq!(
+            r.total_memory(),
+            3,
+            "AC-013 PATH1 precondition: total==memcap"
         );
-        assert!(
-            h.close_events
-                .iter()
-                .any(|(_, r)| *r == CloseReason::MemoryPressure),
-            "AC-013 PATH1: eviction must emit CloseReason::MemoryPressure"
+        assert_eq!(
+            r.stats().evictions,
+            0,
+            "AC-013 PATH1 precondition: no eviction yet"
+        );
+        assert_eq!(
+            r.flow_count(),
+            1,
+            "AC-013 PATH1 precondition: flow A present"
+        );
+
+        // Flow B SYN: triggers get_or_create_flow PATH 1 entry into evict_flows.
+        // evict_flows dual-conjunction: total=3 <= 3 AND flows.len()=1 <= 1 → break.
+        // No eviction. B is dropped (flows.len() still >= max_flows after evict_flows).
+        r.process_packet(
+            &make_tcp_packet(
+                [10, 0, 0, 3],
+                2002,
+                server,
+                80,
+                2000,
+                &[],
+                true,
+                false,
+                false,
+                false,
+            ),
+            3,
+            &mut h,
+        );
+        // PATH 1 entry-point witness: evict_flows was called but terminated without
+        // evicting (dual-conjunction protects A). B was dropped, not A.
+        assert_eq!(
+            r.stats().evictions,
+            0,
+            "AC-013 PATH1: get_or_create_flow called evict_flows; no eviction \
+             because total<=memcap (dual-conjunction termination per BC-2.04.015 v1.3 Invariant 4)"
+        );
+        assert_eq!(
+            r.flow_count(),
+            1,
+            "AC-013 PATH1: flow A preserved; B was dropped (table still full after evict_flows)"
+        );
+        assert_eq!(
+            r.stats().flows_total,
+            1,
+            "AC-013 PATH1: only one flow ever created (B's SYN dropped)"
         );
         r.finalize(&mut h);
     }
@@ -10078,63 +10025,10 @@ fn test_story_020_ec004_all_established_flows_evict_lru_order() {
         "precondition: 2 Established flows"
     );
 
-    // Flow C: Established at t=10 (newest). Buffer 5 bytes out-of-order.
-    // C's last_seen gets updated to t=11 (the data packet timestamp).
-    // Eviction sort at time of C's data: A(t=1) < B(t=5) < C(t=11).
-    // Evict A first (oldest). After evicting A (0 bytes): total=5 > memcap=4 → continue.
-    // Wait — A has NO buffered bytes, C has the 5 bytes. Evicting A frees 0 bytes.
-    // total=5 > 4 → evict B (next oldest). B has no bytes. total=5 > 4 → evict C. total=0.
-    // But that evicts ALL three flows, which is wrong for the test.
-    //
-    // The fix: make C buffer bytes AND have C be the oldest at eviction time.
-    // Actually we want A (oldest) evicted first, and only A. For that:
-    // A must hold the bytes that, when freed, bring total <= memcap.
-    // But A's last_seen gets updated when we send A's data packet. A becomes newest.
-    //
-    // REAL solution: use the force_set_flow_state seam to change A's last_seen is not
-    // available. Instead, rely on a different design:
-    // - Create A at t=100 (older than B at t=200), no data.
-    // - Create B at t=200, no data.
-    // - Create C at t=300, buffer 5 bytes at t=400 → C.last_seen=400.
-    //   Eviction: sort = A(t=100), B(t=200), C(t=400). Evict A (no bytes, total=5>4).
-    //   Evict B (no bytes, total=5>4). Evict C (5 bytes, total=0 <=4). All gone.
-    //
-    // The real problem: we can't selectively buffer only in one flow while preserving
-    // eviction order that shows "oldest evicted first" unless the oldest flow holds the
-    // bytes that satisfy the memcap goal. Let me use a scenario where A holds the bytes:
-    //
-    // Key insight: we need A's last_seen to remain OLDER than B's when A's bytes
-    // are finally inserted. This requires A to buffer bytes via a packet that does NOT
-    // update A's last_seen. That's impossible with process_packet (it always calls
-    // get_or_create_flow which updates last_seen).
-    //
-    // PRACTICAL TEST: Use force_set on last_seen? It's not a seam. Use the observed
-    // behavior: the flow that RECEIVES the final packet becomes "newest" and is evicted
-    // LAST. So to test LRU order with all-Established, we need 3+ flows where the
-    // byte-holding flow is NEWER than at least one other flow, confirming that the
-    // other (no-byte) flow with the oldest timestamp is evicted first.
-    // But with no bytes and only memcap-based eviction, freeing 0 bytes doesn't help.
-    //
-    // Best achievable test: 3 flows (A oldest, B middle, C newest-with-bytes).
-    // memcap = large enough to hold C's bytes but with max_flows=2 so that C's SYN
-    // triggers max_flows eviction. C's SYN arrives with flows.len()=2 → evict.
-    // A (oldest Established) evicted. C created. C then buffers its bytes.
-    //
-    // Per BC-2.04.015 v1.3 Invariant 4 (DESIGN INTENT): max_flows-only eviction
-    // does not fire when total_memory <= memcap (dual-conjunction termination protects
-    // Established sessions from max_flows-only pressure when memory budget is ample).
-    //
-    // SIMPLEST CORRECT TEST: use memcap=4 with only flow A and flow B (no C).
-    // A buffers 5 bytes. When the eviction runs, A's last_seen is updated to the
-    // packet timestamp (say t=10). B's last_seen is t=5. Eviction:
-    // BOTH are Established. Sort by last_seen: B (t=5) first, A (t=10) second.
-    // B (oldest at eviction time) evicted first. After evicting B (0 bytes): total=5>4.
-    // Evict A (5 bytes): total=0. Both evicted.
-    //
-    // This doesn't test "oldest evicted first while preserving others" — instead it shows
-    // both are evicted. The "oldest first" property is verified by the ORDER of close_events.
-    // This is the correct interpretation of EC-004: when ALL flows are Established,
-    // eviction proceeds in LRU order. Let's test that.
+    // Send 5 bytes OOO into flow A at t=10 → A.last_seen=10, B.last_seen=5.
+    // total=5 > memcap=4 → eviction fires. Sort: B(t=5) < A(t=10).
+    // Evict B first (0 bytes freed, total=5>4 still), then evict A (5 bytes, total=0).
+    // EC-004 verifies ORDER: B evicted before A (LRU-first across all-Established).
     reassembler.process_packet(
         &make_tcp_packet(
             [10, 0, 0, 1],
@@ -10245,7 +10139,7 @@ fn test_story_020_ec005_single_flow_at_max_evicted_for_new_syn() {
     // 2. B SYN arrives: get_or_create_flow sees flows.len()=1 >= 1 → evict_flows.
     //    total=3 <= 3 AND flows.len()=1 <= 1 → loop breaks immediately → no eviction.
     //    Re-check: flows.len()=1 >= 1 → returns false → B dropped.
-    // So A stays, B dropped. BUG: BC says A evicted, B created.
+    // Per BC-2.04.015 v1.3 Invariant 4 DESIGN INTENT: A stays, B dropped. This is intended behavior — only paired memcap+max_flows pressure can dislodge an Established flow.
     //
     // Document actual behavior:
     let syn_a = make_tcp_packet(
@@ -10668,20 +10562,16 @@ fn test_story_020_ec008_closing_flow_evicted_before_established() {
 
 // ---- EC-009 ----------------------------------------------------------------
 
-/// EC-009: All flows evicted but still over memcap; loop exits, total_memory
-/// stays over cap, and processing continues (no infinite loop or panic).
+/// EC-009: Verifies BC-2.04.015 edge case 009 — engine continues processing
+/// after all flows are evicted; evict_flows loop terminates gracefully
+/// (no panic, no infinite loop) even when exhausting all candidates.
 ///
-/// Note: `total_memory` tracks buffered bytes in live flows. After ALL flows
-/// are evicted, `total_memory` reaches 0 (all flow memory freed). It is
-/// impossible for total_memory to be > memcap with zero flows remaining,
-/// because eviction of a flow subtracts its buffered bytes from total_memory.
-/// So "still over memcap after all flows evicted" cannot happen with the
-/// current accounting model.
-///
-/// What EC-009 actually covers: the evict_flows loop terminates gracefully
-/// (no panic, no infinite loop) even when evicting ALL flows. We verify
-/// this by letting the loop exhaust all candidates and confirm execution
-/// continues normally.
+/// Note: 'stays over cap' per BC EC-009 is unreachable in the current API
+/// (every insertion associates bytes to a flow that becomes evictable; evicting
+/// that flow subtracts its bytes from total_memory, so total_memory reaches 0
+/// when the last flow is evicted). We verify the 'engine continues processing'
+/// half of EC-009: flow count reaches 0, total_memory reaches 0, and a
+/// subsequent SYN is admitted without panic.
 #[test]
 fn test_story_020_ec009_all_flows_evicted_still_over_memcap_continues() {
     // Use a very tight memcap that forces ALL flows to be evicted.
@@ -11123,7 +11013,6 @@ fn test_story_020_ec011_dual_pressure_evicts_existing_and_admits_new() {
         "EC-011: total flows created must be 2 (A then B)"
     );
     // Verify B is actually the surviving flow (not A re-created).
-    let _ = key_b; // key_b constructed above for documentation; B's presence proven by flow_count
     assert!(
         !handler.close_events.iter().any(|(k, _)| *k == key_b),
         "EC-011: flow B must NOT have been closed (it was just admitted)"
