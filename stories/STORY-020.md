@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-020"
 epic_id: "E-2"
-version: "1.7"
+version: "1.8"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -35,6 +35,7 @@ implementation_strategy: brownfield-formalization
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| 1.8 | 2026-05-26 | story-writer | Wave 9 wave-level adv pass-2 F-W9P2-003 (sibling-regression of pass-1 F-W9P1-002): added AC-014 tracing to BC-2.04.015 v1.5 PC-7 + BC-2.04.016 sibling PC (data-loss-on-MemoryPressure-eviction); added EC-012 to Edge Cases for the canonical 5+5 byte test vector; AC-014 test target name aligned with parallel test-writer dispatch. |
 | 1.7 | 2026-05-26 | story-writer | Wave 9 wave-level adv pass-1 F-W9P1-003 (sibling-discipline regression in spec hierarchy): Architecture Mapping anchor `lifecycle.rs:51` → `lifecycle.rs:60` (line 51 is capture, line 60 is decrement; STORY-019 inserted let-else at 42-50 shifting decrement down). Resolves W9-D9 deferral by being explicit at the spec/BC level rather than just drift-item-tracked. Also swept and corrected two secondary stale anchors: Token Budget table and File Structure Requirements both cited `lifecycle.rs:51` — updated to `lifecycle.rs:60`. |
 | 1.6 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-020 adv pass-5 fix: F-PASS5-003 (HIGH) — revised EC-005 row to remove false 'protects Established sessions' claim (test setup is SynSent flow, not Established); clarified that dual-conjunction termination is state-independent (mechanical); preserved general DESIGN INTENT reference per BC-2.04.015 Inv 4. |
 | 1.5 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-020 adv pass-4 fixes: F-PASS4-001 (HIGH, sibling-regression of pass-3 F-005) — story line 84 stale test name updated to renamed function; LOW — Task #5 added 'Closed' state to AC-012 mix; Task #8 reworded for PATH 1 code-review vs PATH 2 behavioral-test bifurcation per v1.4 AC-013 |
@@ -121,6 +122,19 @@ NOTE: The 'evict_flows runs and frees ≥1 slot but table still at capacity' sce
   The test (`test_BC_2_04_015_both_eviction_paths_use_same_function`) verifies PATH 2 behaviorally; PATH 1 is verified by code review against the cited source line.
 - **Test:** `test_BC_2_04_015_both_eviction_paths_use_same_function()`
 
+### AC-014 (traces to BC-2.04.015 PC-7 + BC-2.04.016 PC-N)
+
+When a flow with both contiguous head-of-buffer bytes and non-contiguous buffered
+segments is evicted via CloseReason::MemoryPressure (either max_flows or memcap trigger),
+`handler.on_data` is called for the contiguous prefix only; the non-contiguous segments
+are silently discarded (no on_data callback fires for them, no error returned).
+
+This applies identically to BC-2.04.015 (max_flows trigger) and BC-2.04.016 (memcap
+trigger) since both call the same `evict_flows → close_flow(_, MemoryPressure, _)`
+codepath.
+
+**Test:** `test_BC_2_04_015_pc7_non_contiguous_segments_discarded_on_memory_pressure_eviction()`
+
 ## Architecture Mapping
 
 | Component | Module | Pure/Effectful |
@@ -147,6 +161,7 @@ NOTE: The 'evict_flows runs and frees ≥1 slot but table still at capacity' sce
 | EC-009 | All flows evicted but still over memcap | Loop exits; total_memory stays over cap; processing continues |
 | EC-010 | finalize closes all flows | total_memory reaches 0 after finalize |
 | EC-011 | Single flow with buffered data > memcap (`max_flows=1`, `total_memory > memcap`), new SYN arrives | Dual pressure triggers eviction; existing flow evicted via CloseReason::MemoryPressure; new flow created |
+| EC-012 | Flow with 5 contiguous + 5 non-contiguous bytes; memcap=12; eviction triggers | handler.on_data delivers first 5 bytes only; non-contiguous bytes [10..15) silently discarded; CloseReason::MemoryPressure emitted (data-loss-on-eviction documented in BC-2.04.015 PC-7 + BC-2.04.016 sibling PC) |
 
 ## Purity Classification
 
@@ -171,7 +186,7 @@ NOTE: The 'evict_flows runs and frees ≥1 slot but table still at capacity' sce
 
 ## Tasks (MANDATORY)
 
-1. [ ] Write failing tests for all 13 ACs in `tests/reassembly_engine_tests.rs`
+1. [ ] Write failing tests for all 14 ACs in `tests/reassembly_engine_tests.rs`
 2. [ ] Verify Red Gate: all tests fail before implementation changes
 3. [ ] Verify existing implementation satisfies all ACs (brownfield)
 4. [ ] Add proptest for `total_memory == sum(flow.memory_used())` over random insert/flush/close sequences (AC-004)
@@ -213,4 +228,4 @@ NOTE: The 'evict_flows runs and frees ≥1 slot but table still at capacity' sce
 |------|--------|---------|
 | `src/reassembly/mod.rs` | verify (lines 176-179, 225-235, 337-340, 525-527) | memcap check, max_flows check, total_memory increment/decrement sites |
 | `src/reassembly/lifecycle.rs` | verify (lines 60, 67-92) | total_memory close decrement, evict_flows sort + loop |
-| `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-013 |
+| `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-014 |
