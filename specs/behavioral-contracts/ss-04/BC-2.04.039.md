@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 8 STORY-015 adv-pass-5 F-1 HIGH closure: corrected Canonical Test Vectors table to be mathematically consistent with EC-001 and the actual test arithmetic — row 1 changed seq=u32::MAX-1 (was incorrectly claimed offset=2; correct value is offset=1); row 2 updated seq=0 annotation to match actual wrapping arithmetic (offset=3 is already correct); row 3 changed to use seq=u32::MAX-1 (offset=1) and seq=u32::MAX (offset=2) which deliver contiguously as AB — mirrors tests/reassembly_segment_tests.rs:612-616. — 2026-05-26"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -68,9 +69,9 @@ produces the correct monotonically-increasing u64 offset relative to the ISN.
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| ISN=u32::MAX-2, seq=u32::MAX-1 (offset=2), data=b"A" | Inserted at offset 2 | happy-path |
+| ISN=u32::MAX-2, seq=u32::MAX-1 (offset=1), data=b"A" | Inserted at offset 1 | happy-path |
 | ISN=u32::MAX-2, seq=0 (wrapped, offset=3), data=b"B" | Inserted at offset 3 | edge-case |
-| Sequence: ISN=u32::MAX-2, segments at seq=u32::MAX-1 and seq=0, then flush | b"AB" delivered in order | edge-case |
+| Sequence: ISN=u32::MAX-2, segments at seq=u32::MAX-1 (offset=1) and seq=u32::MAX (offset=2), data=b"A" and b"B" (bridge), then flush | b"AB" delivered contiguously in order (offsets 1,2 are adjacent; no gap) | edge-case |
 
 ## Verification Properties
 
