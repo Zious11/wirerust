@@ -31,8 +31,11 @@ wave_8_status: closed
 wave_8_per_story_delivery: complete
 wave_8_per_story_convergence: "STORY-019: 8 passes; 3/3 clean streak on passes 6/7/8 (14 findings remediated); STORY-015: 8 passes; 3/3 clean streak on passes 6/7/8 (14 findings remediated)"
 wave_8_wave_level_convergence: "9 passes; 3/3 clean streak on passes 7/8/9 (12 findings remediated; 3 develop PRs + 4 factory BC commits)"
-wave_9_status: ready_to_dispatch
-current_wave: 8
+wave_9_status: in_progress
+wave_9_started: "2026-05-26"
+wave_9_stories: STORY-016 + STORY-020
+wave_9_notes: "parallel-eligible (disjoint files: segment.rs+flow.rs vs mod.rs+lifecycle.rs)"
+current_wave: 9
 stories_delivered: 16
 dtu_required: false
 dtu_assessment: 2026-05-20
@@ -51,7 +54,7 @@ phase_2_input_hash_drift_check_total: 153
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-8 CLOSED/CONVERGED; Wave 9 READY TO DISPATCH.
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-8 CLOSED/CONVERGED; Wave 9 IN PROGRESS.
 16 stories delivered across Waves 1-8 (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015).
 STORY-019: PR #122 squash-merged → c141c094 (2026-05-26). RST/FIN/expire_flows/missing-key lifecycle;
 per-story 8 passes, 3-clean streak passes 6/7/8 (14 findings remediated).
@@ -78,7 +81,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-8 CLOSED/CONVERGED; 16 stories delivered; Wave 9 READY TO DISPATCH | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-8 CLOSED/CONVERGED; 16 stories delivered; Wave 9 IN PROGRESS (STORY-016 + STORY-020 dispatched 2026-05-26) | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -96,17 +99,18 @@ dependency bumping for it).
 | 6 | STORY-013 | **CLOSED/CONVERGED** | 3e705b5 | PR #119 squash-merged 2026-05-22; 31 BC tests; per-story 3/3 clean; wave-level 3/3 CLEAN (ZERO findings) |
 | 7 | STORY-014 | **CLOSED/CONVERGED** | b23c6d3 | PR #120 squash-merged 2026-05-25; 17 tests + 2 doc(hidden) seams; ADR-0004 amended PR #121; per-story 8 passes 3/3 clean streak; wave-level 8 passes 3/3 clean streak |
 | 8 | STORY-019, STORY-015 | **CLOSED/CONVERGED** | 4b9b85f | PR #122 (STORY-019) + PR #123 (STORY-015) squash-merged 2026-05-26; ADR-0004 v2 PRs #124/#125/#126; per-story 8 passes each (3/3 clean); wave-level 9 passes 3/3 clean streak; 4 drift items logged |
-| 9–27 | (remaining) | NOT STARTED | — | — |
+| 9 | STORY-016, STORY-020 | **IN PROGRESS** 2026-05-26 | — | STORY-016: overlap detection (BCs 2.04.035/036/038/043/047); STORY-020: memory management (BCs 2.04.014-017); parallel-eligible (disjoint files: segment.rs+flow.rs vs mod.rs+lifecycle.rs) |
+| 10–27 | (remaining) | NOT STARTED | — | — |
 
 ## Phase 3 — Current Phase Steps (last 5)
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Wave 8 — STORY-019 delivery (PR #122) | **COMPLETE** 2026-05-26 | squash-merged → c141c094; RST/FIN/expire_flows/missing-key lifecycle; per-story 8 passes, 3-clean streak passes 6/7/8 (14 findings remediated) |
 | Wave 8 — STORY-015 delivery (PR #123) | **COMPLETE** 2026-05-26 | squash-merged → 6c53fc14; in-order delivery + OOO + bidirectional + wraparound; per-story 8 passes, 3-clean streak passes 6/7/8 (14 findings remediated) |
 | Wave 8 — ADR-0004 v2 + chore PRs (#124/#125/#126) | **COMPLETE** 2026-05-26 | ADR amendment (CLOSE_FLOW_MISSING_WARNED seams + state-injection class) + source-comment alignment + visibility-widening fix; develop HEAD → 4b9b85f |
 | Wave 8 — wave-level adversarial convergence | **COMPLETE** 2026-05-26 | 9 passes; 3/3 clean streak passes 7/8/9; 12 findings remediated; 3 develop PRs + 4 factory BC commits; 4 drift items logged (W8.1–W8.4) |
-| Wave-gate — Wave 8 | **CLOSED** 2026-05-26 | develop HEAD 4b9b85f; 16 stories total Waves 1-8; STORY-016/020 unblocked → Wave 9 READY TO DISPATCH |
+| Wave-gate — Wave 8 | **CLOSED** 2026-05-26 | develop HEAD 4b9b85f; 16 stories total Waves 1-8; STORY-016/020 unblocked |
+| Wave 9 — dispatch | **IN PROGRESS** 2026-05-26 | STORY-016 (overlap detection; BCs 2.04.035/036/038/043/047; worktree-story-016) + STORY-020 (memory management; BCs 2.04.014-017; worktree-story-020); parallel-eligible (disjoint files) |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -124,24 +128,23 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-26 — Wave 8 CLOSED; Wave 9 READY)
+## Session Resume Checkpoint (2026-05-26 — Wave 9 IN PROGRESS)
 
 1. Waves 1-8 all CLOSED/CONVERGED — 16 stories delivered.
    STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015 all merged to develop.
-2. Wave 8 STORY-019 DELIVERED: PR #122 squash-merged → c141c094 (2026-05-26).
-   RST/FIN/expire_flows/missing-key lifecycle. Per-story convergence 8 passes, 3-clean streak
-   passes 6/7/8 (14 findings remediated).
-3. Wave 8 STORY-015 DELIVERED: PR #123 squash-merged → 6c53fc14 (2026-05-26).
-   In-order delivery + OOO + bidirectional + wraparound. Per-story convergence 8 passes,
-   3-clean streak passes 6/7/8 (14 findings remediated).
-4. ADR-0004 v2 amendment + chore PRs #124/#125/#126 merged. develop HEAD: 4b9b85f.
-5. Wave-level convergence: 9 passes, 3-clean streak passes 7/8/9 (12 findings remediated;
-   3 develop PRs + 4 factory BC commits). Wave 8 CLOSED/CONVERGED.
-6. STORY-016 and STORY-020 unblocked — sprint-state.yaml: status=pending, current_wave=8.
-   STORY-017/018: still blocked (blocked_by includes STORY-016, which is pending not done).
-7. 4 cycle-close drift items logged (W8.1–W8.4) — see Drift Items below. All require
+2. Wave 8 CLOSED: STORY-019 (PR #122 → c141c094) + STORY-015 (PR #123 → 6c53fc14) + ADR-0004 v2
+   PRs #124/#125/#126. develop HEAD: 4b9b85f. Wave-level convergence: 9 passes, 3-clean streak
+   passes 7/8/9 (12 findings remediated). Wave 8 factory-artifacts HEAD: 6d9d700.
+3. Wave 9 DISPATCHED 2026-05-26: sprint-state.yaml current_wave=9.
+   STORY-016: status=in_progress, branch=worktree-story-016, worktree=.worktrees/story-016.
+     Scope: overlap detection; BCs 2.04.035/036/038/043/047; depends on STORY-015.
+   STORY-020: status=in_progress, branch=worktree-story-020, worktree=.worktrees/story-020.
+     Scope: memory management; BCs 2.04.014-017; depends on STORY-019.
+   Parallel-eligible: disjoint files (segment.rs+flow.rs vs mod.rs+lifecycle.rs).
+4. STORY-017/018: still blocked (blocked_by includes STORY-016, not yet done).
+5. 4 cycle-close drift items logged (W8.1–W8.4) — see Drift Items below. All require
    research-agent validation per DF-VALIDATION-001 before any GitHub issue is filed.
-8. NEXT: Dispatch Wave 9 (STORY-016 + STORY-020) — per-story adversarial → deliver → wave-gate.
+6. NEXT: per-story adversarial → deliver → wave-gate for Wave 9 (STORY-016 + STORY-020).
 
 ## Decisions Log
 
