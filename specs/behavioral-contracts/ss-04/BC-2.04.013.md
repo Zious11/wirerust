@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 8 wave-level adv-pass-1 F-1 HIGH closure (S-7.01 sibling-BC propagation, W7.2 recurrence #5): PC3 enforcement-mode notation — \"remaining buffered data flushed in close_flow\" is structurally a defense-in-depth invariant (per-packet flush at mod.rs:162 drains buffer pre-close); enforced via code-review of close_flow flush loop body at lifecycle.rs:52-59; on_flow_close(Timeout) invocation and stats.flows_expired increment are automated-test-verifiable via STORY-019 AC-009/010/011/012. Mirrors BC-2.04.010 v1.5 PC2 + BC-2.04.029 v1.4 + ADR-0004 amendment precedent. — 2026-05-26"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -46,7 +47,15 @@ of the packet being processed).
    last_seen > timeout)` are closed via `close_flow(key, CloseReason::Timeout, handler)`.
 2. `stats.flows_expired` increments by the number of flows expired.
 3. Each expired flow's remaining buffered data is flushed and `on_flow_close(Timeout)` is
-   called.
+   called. (Enforcement: in the current engine architecture, the per-packet flush at
+   `src/reassembly/mod.rs:162` already delivers all contiguous-prefix data BEFORE
+   `expire_flows` invokes `close_flow`. The `flush_contiguous` loop at
+   `src/reassembly/lifecycle.rs:52-59` inside `close_flow` is therefore structurally a
+   defense-in-depth invariant — cannot be triggered to deliver under current engine semantics.
+   PC3's flush sub-property is enforced via code-review of the close_flow flush loop body's
+   presence; the `on_flow_close(Timeout)` invocation and `stats.flows_expired` increment are
+   automated-test-verifiable via STORY-019 AC-009/010/011/012 (mirrors BC-2.04.010 v1.5 PC2 /
+   BC-2.04.029 v1.4 PC1-PC3 / ADR-0004 amendment enforcement-mode precedent).)
 4. Flows not meeting either expiry condition are untouched.
 
 ## Invariants

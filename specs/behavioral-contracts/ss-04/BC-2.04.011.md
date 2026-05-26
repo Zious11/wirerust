@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 7 wave-level adv-pass-2 F-2 HIGH: comprehensive SS-04 anchor sweep (W4.1 axis #3). Corrected on_fin reference from flow.rs:248-256 (pre-Wave-6, also semantically colliding with on_data_without_syn) to flow.rs:255-262 (post-Wave-6). Fixed in both Traceability Architecture Module row and Architecture Anchors section. — 2026-05-25"
   - "v1.4: Wave 7 wave-level adv-pass-4 F-2 (process-gap): mega-sweep false-CORRECT — closing brace at mod.rs:174 not included in cited range 166-173; corrected to 165-174. — 2026-05-25"
+  - "v1.5: Wave 8 wave-level adv-pass-1 F-1 HIGH closure (S-7.01 sibling-BC propagation, W7.2 recurrence #5): PC4 enforcement-mode notation — \"remaining contiguous data flushed in close_flow\" is structurally a defense-in-depth invariant (per-packet flush at mod.rs:162 drains buffer pre-close); enforced via code-review of close_flow flush loop body at lifecycle.rs:52-59. Mirrors BC-2.04.010 v1.5 PC2 + BC-2.04.029 v1.4 + BC-2.04.048 v1.3 / ADR-0004 amendment precedent. — 2026-05-26"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,6 +49,15 @@ FIN also transitions the state toward `Closing`.
 2. `flow.state == FlowState::Closed` (via `on_fin`).
 3. `stats.flows_fin` increments by 1.
 4. Any remaining contiguous data in both directions is flushed to handler.
+   (Enforcement: in the current engine architecture, the per-packet flush at
+   `src/reassembly/mod.rs:162` (unconditional `flush_contiguous_data` after every
+   `insert_payload_segment`) already delivers all contiguous-prefix data BEFORE any close path
+   runs. The `flush_contiguous` loop at `src/reassembly/lifecycle.rs:52-59` inside `close_flow`
+   is therefore structurally a defense-in-depth invariant — it CAN deliver if a future refactor
+   breaks per-packet flush, but cannot be triggered to deliver under current engine semantics.
+   PC4 is enforced via code-review of the close_flow flush loop body's presence (mirrors
+   BC-2.04.010 v1.5 PC2 / BC-2.04.029 v1.4 PC1-PC3 / BC-2.04.048 v1.3 PC2 / ADR-0004
+   amendment enforcement-mode precedent).)
 5. `handler.on_flow_close(key, CloseReason::Fin)` is called exactly once.
 6. The flow is removed from `self.flows`.
 
