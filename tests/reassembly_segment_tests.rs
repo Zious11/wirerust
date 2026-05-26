@@ -486,7 +486,7 @@ fn test_BC_2_04_034_flush_contiguous_accounting() {
     assert_eq!(
         dir.base_offset,
         pre_base + 5,
-        "BC-2.04.034 PC3: base_offset must advance by exactly 5 (total flushed bytes)"
+        "BC-2.04.034 PC2: base_offset must advance by exactly 5 (total flushed bytes)"
     );
     assert_eq!(
         dir.reassembled_bytes,
@@ -510,7 +510,7 @@ fn test_BC_2_04_034_flush_contiguous_empty_when_no_segment_at_base() {
     let pre_base = dir.base_offset;
     assert_eq!(
         pre_base, 1,
-        "BC-2.04.033 inv-1: set_isn(0) yields base_offset=1"
+        "BC-2.04.031 PC2: set_isn(0) yields base_offset=1"
     );
     let pre_reassembled = dir.reassembled_bytes;
 
@@ -543,21 +543,6 @@ fn test_BC_2_04_034_flush_contiguous_empty_when_no_segment_at_base() {
 #[allow(non_snake_case)]
 #[test]
 fn test_BC_2_04_034_flush_contiguous_returns_ordered_segments() {
-    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
-    // ISN=0 so seq == offset directly.
-    dir.set_isn(0);
-
-    // Insert contiguous segments at seq 10, 11, 12 (offsets 10, 11, 12)
-    // in intentionally out-of-insertion order: 12 first, then 10, then 11.
-    // After flush each call returns one byte; use 1-byte segments for clarity.
-    dir.insert_segment(12, b"C", 10_485_760, 10_000, 10_485_760);
-    dir.insert_segment(10, b"A", 10_485_760, 10_000, 10_485_760);
-    dir.insert_segment(11, b"B", 10_485_760, 10_000, 10_485_760);
-
-    // base_offset == 0, first gap is at 0-9; no flush possible yet.
-    // Now insert segments at offsets 0..9 to allow contiguous flush.
-    // Simplest: just set ISN=9 and use seqs 10,11,12 → offsets 1,2,3.
-    // Actually easier: re-create with ISN=9 so first segment starts at base.
     let mut dir2 = wirerust::reassembly::flow::FlowDirection::new();
     dir2.set_isn(9);
     // Offsets: seq=12 → 3, seq=10 → 1, seq=11 → 2. Insert out-of-order.

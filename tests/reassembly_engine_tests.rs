@@ -7334,7 +7334,7 @@ fn test_BC_2_04_008_out_of_order_segment_buffered_not_delivered() {
     assert_eq!(
         reassembler.total_memory(),
         memory_before + 3,
-        "BC-2.04.008 PC1+PC3: exactly 3 bytes (the OOO segment) added to buffer accounting"
+        "BC-2.04.008 PC2+PC3: exactly 3 bytes (the OOO segment) added to buffer accounting"
     );
 }
 
