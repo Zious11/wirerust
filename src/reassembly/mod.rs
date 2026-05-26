@@ -620,6 +620,18 @@ impl TcpReassembler {
         self.flows.len()
     }
 
+    /// Test-only: return the sum of memory_used() across all flows.
+    /// Used by test_BC_2_04_014_total_memory_equals_sum_of_flow_memory
+    /// to assert the total_memory invariant.
+    ///
+    /// This seam observes the BC-2.04.014 invariant:
+    ///   total_memory == sum(flow.memory_used() for all flows)
+    /// without breaking encapsulation of the private `flows` field.
+    #[doc(hidden)]
+    pub fn flows_memory_sum_for_testing(&self) -> usize {
+        self.flows.values().map(|f| f.memory_used()).sum()
+    }
+
     /// Mutable access to the flow table for test-only seams in `lifecycle.rs`.
     ///
     /// `pub(crate)` keeps this invisible outside the crate; the production

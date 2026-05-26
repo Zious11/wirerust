@@ -7941,11 +7941,32 @@ fn test_BC_2_04_014_total_memory_increments_on_insert() {
     let server = [10, 0, 0, 2];
 
     // SYN establishes the flow.
-    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false, false);
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn, 1, &mut handler);
     // SYN+ACK advances state to Established and sets server ISN.
-    let syn_ack =
-        make_tcp_packet(server, 80, client, 12345, 5000, &[], true, true, false, false);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        5000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_ack, 2, &mut handler);
 
     let before = reassembler.total_memory();
@@ -7956,16 +7977,7 @@ fn test_BC_2_04_014_total_memory_increments_on_insert() {
     // We send at seq 1003 (offset 3), skipping offsets 1 and 2, so it buffers.
     let n: usize = 5;
     let data = make_tcp_packet(
-        client,
-        12345,
-        server,
-        80,
-        1003,
-        &[0xAA; 5],
-        false,
-        false,
-        false,
-        false,
+        client, 12345, server, 80, 1003, &[0xAA; 5], false, false, false, false,
     );
     reassembler.process_packet(&data, 3, &mut handler);
 
@@ -7995,24 +8007,36 @@ fn test_BC_2_04_014_total_memory_decrements_on_flush() {
     let server = [10, 0, 0, 2];
 
     // Establish the flow: SYN sets ISN=1000 → base_offset=1.
-    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false, false);
-    reassembler.process_packet(&syn, 1, &mut handler);
-    let syn_ack =
-        make_tcp_packet(server, 80, client, 12345, 5000, &[], true, true, false, false);
-    reassembler.process_packet(&syn_ack, 2, &mut handler);
-
-    // Buffer an out-of-order segment at offset 3 (5 bytes). Won't flush yet.
-    let ooo = make_tcp_packet(
+    let syn = make_tcp_packet(
         client,
         12345,
         server,
         80,
-        1003,
-        &[0xBB; 5],
+        1000,
+        &[],
+        true,
         false,
         false,
         false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        5000,
+        &[],
+        true,
+        true,
         false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // Buffer an out-of-order segment at offset 3 (5 bytes). Won't flush yet.
+    let ooo = make_tcp_packet(
+        client, 12345, server, 80, 1003, &[0xBB; 5], false, false, false, false,
     );
     reassembler.process_packet(&ooo, 3, &mut handler);
     let after_insert = reassembler.total_memory();
@@ -8021,16 +8045,7 @@ fn test_BC_2_04_014_total_memory_decrements_on_flush() {
     // Now send the in-order head segment at offset 1 (2 bytes: seq=1001).
     // This fills the gap → flush_contiguous delivers 2+5=7 bytes to handler.
     let head = make_tcp_packet(
-        client,
-        12345,
-        server,
-        80,
-        1001,
-        &[0xCC; 2],
-        false,
-        false,
-        false,
-        false,
+        client, 12345, server, 80, 1001, &[0xCC; 2], false, false, false, false,
     );
     reassembler.process_packet(&head, 4, &mut handler);
 
@@ -8068,24 +8083,36 @@ fn test_BC_2_04_014_total_memory_decrements_on_close() {
     let server = [10, 0, 0, 2];
 
     // Establish the flow.
-    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false, false);
-    reassembler.process_packet(&syn, 1, &mut handler);
-    let syn_ack =
-        make_tcp_packet(server, 80, client, 12345, 5000, &[], true, true, false, false);
-    reassembler.process_packet(&syn_ack, 2, &mut handler);
-
-    // Insert an out-of-order segment — it stays buffered (unflushed).
-    let ooo = make_tcp_packet(
+    let syn = make_tcp_packet(
         client,
         12345,
         server,
         80,
-        1003,
-        &[0xDD; 8],
+        1000,
+        &[],
+        true,
         false,
         false,
         false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        5000,
+        &[],
+        true,
+        true,
         false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // Insert an out-of-order segment — it stays buffered (unflushed).
+    let ooo = make_tcp_packet(
+        client, 12345, server, 80, 1003, &[0xDD; 8], false, false, false, false,
     );
     reassembler.process_packet(&ooo, 3, &mut handler);
     let mem_before_close = reassembler.total_memory();
@@ -8116,44 +8143,171 @@ fn test_BC_2_04_014_total_memory_decrements_on_close() {
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_014_total_memory_equals_sum_of_flow_memory() {
-    // SEAM REQUIRED: flows_memory_sum_for_testing() on TcpReassembler.
-    // Body is blocked until implementer adds the seam (W9.9).
-    unimplemented!(
-        "STORY-020 AC-004 awaits implementer seam: \
-         TcpReassembler::flows_memory_sum_for_testing() in src/reassembly/mod.rs"
+    // Seam flows_memory_sum_for_testing() is now present in src/reassembly/mod.rs.
+    // This test exercises BC-2.04.014 postcondition 4 + invariant 2:
+    //   total_memory == sum(flow.memory_used() for all flows in self.flows)
+    // across inserts, flushes, and closes on multiple concurrent flows.
+    let config = ReassemblyConfig {
+        memcap: 1024 * 1024,
+        max_flows: 1000,
+        ..ReassemblyConfig::default()
+    };
+    let mut r = TcpReassembler::new(config);
+    let mut h = RecordingHandler::new();
+
+    // Helper macro: assert the invariant at a checkpoint.
+    macro_rules! assert_invariant {
+        ($label:expr) => {
+            assert_eq!(
+                r.total_memory(),
+                r.flows_memory_sum_for_testing(),
+                "AC-004 invariant violated at: {}",
+                $label
+            );
+        };
+    }
+
+    assert_invariant!("initial state (empty)");
+
+    // ---- Flow A on port 1 (client [10,0,0,1]:1 <-> server [10,0,0,2]:80) ----
+    // SYN + SYN-ACK to reach Established.
+    r.process_packet(
+        &make_tcp_packet(
+            [10, 0, 0, 1],
+            1,
+            [10, 0, 0, 2],
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut h,
     );
-    // When the seam exists, replace the unimplemented! above with:
-    //
-    // use wirerust::reassembly::ReassemblyConfig;
-    //
-    // let config = ReassemblyConfig { memcap: 1024 * 1024, max_flows: 1000,
-    //     ..ReassemblyConfig::default() };
-    // let mut r = TcpReassembler::new(config);
-    // let mut h = RecordingHandler::new();
-    //
-    // // Three flows, various amounts buffered.
-    // // Flow A: 5 bytes buffered
-    // r.process_packet(&make_tcp_packet([10,0,0,1],1,[ 10,0,0,2],80,1000,&[],true,false,false,false), 1, &mut h);
-    // r.process_packet(&make_tcp_packet([10,0,0,2],80,[10,0,0,1],1, 2000,&[],true,true, false,false), 2, &mut h);
-    // r.process_packet(&make_tcp_packet([10,0,0,1],1,[ 10,0,0,2],80,1003,&[0xAA;5],false,false,false,false), 3, &mut h);
-    // assert_eq!(r.total_memory(), r.flows_memory_sum_for_testing(),
-    //     "invariant: total_memory == sum(flow.memory_used())");
-    //
-    // // Flow B: 3 bytes buffered
-    // r.process_packet(&make_tcp_packet([10,0,0,1],2,[ 10,0,0,2],80,3000,&[],true,false,false,false), 4, &mut h);
-    // r.process_packet(&make_tcp_packet([10,0,0,2],80,[10,0,0,1],2, 4000,&[],true,true, false,false), 5, &mut h);
-    // r.process_packet(&make_tcp_packet([10,0,0,1],2,[ 10,0,0,2],80,3003,&[0xBB;3],false,false,false,false), 6, &mut h);
-    // assert_eq!(r.total_memory(), r.flows_memory_sum_for_testing(),
-    //     "invariant holds after second flow insert");
-    //
-    // // Flush flow A by filling gap
-    // r.process_packet(&make_tcp_packet([10,0,0,1],1,[ 10,0,0,2],80,1001,&[0xCC;2],false,false,false,false), 7, &mut h);
-    // assert_eq!(r.total_memory(), r.flows_memory_sum_for_testing(),
-    //     "invariant holds after flush");
-    //
-    // r.finalize(&mut h);
-    // assert_eq!(r.total_memory(), 0, "invariant: 0 after finalize");
-    // assert_eq!(r.flows_memory_sum_for_testing(), 0, "sum is 0 after finalize");
+    r.process_packet(
+        &make_tcp_packet(
+            [10, 0, 0, 2],
+            80,
+            [10, 0, 0, 1],
+            1,
+            2000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        ),
+        2,
+        &mut h,
+    );
+    assert_invariant!("after Flow A handshake");
+
+    // Out-of-order segment at seq=1003 (offset 3 past ISN=1000+1=1001); gap at
+    // offsets 1-2 prevents flush → bytes stay buffered.
+    r.process_packet(
+        &make_tcp_packet(
+            [10, 0, 0, 1],
+            1,
+            [10, 0, 0, 2],
+            80,
+            1003,
+            &[0xAA; 5],
+            false,
+            false,
+            false,
+            false,
+        ),
+        3,
+        &mut h,
+    );
+    assert_invariant!("after Flow A inserts 5 bytes (buffered, gap)");
+
+    // ---- Flow B on port 2 (client [10,0,0,1]:2 <-> server [10,0,0,2]:80) ----
+    r.process_packet(
+        &make_tcp_packet(
+            [10, 0, 0, 1],
+            2,
+            [10, 0, 0, 2],
+            80,
+            3000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        4,
+        &mut h,
+    );
+    r.process_packet(
+        &make_tcp_packet(
+            [10, 0, 0, 2],
+            80,
+            [10, 0, 0, 1],
+            2,
+            4000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        ),
+        5,
+        &mut h,
+    );
+    r.process_packet(
+        &make_tcp_packet(
+            [10, 0, 0, 1],
+            2,
+            [10, 0, 0, 2],
+            80,
+            3003,
+            &[0xBB; 3],
+            false,
+            false,
+            false,
+            false,
+        ),
+        6,
+        &mut h,
+    );
+    assert_invariant!("after Flow B inserts 3 bytes (buffered, gap)");
+
+    // ---- Flush Flow A: fill gap at offset 1-2 (seq 1001, 2 bytes) ----
+    // This allows flush_contiguous to deliver the 2 gap bytes + 5 buffered bytes.
+    r.process_packet(
+        &make_tcp_packet(
+            [10, 0, 0, 1],
+            1,
+            [10, 0, 0, 2],
+            80,
+            1001,
+            &[0xCC; 2],
+            false,
+            false,
+            false,
+            false,
+        ),
+        7,
+        &mut h,
+    );
+    assert_invariant!("after Flow A gap filled (flush triggered)");
+
+    // ---- Finalize: closes all remaining flows → total_memory should reach 0 ----
+    r.finalize(&mut h);
+    assert_eq!(
+        r.total_memory(),
+        0,
+        "AC-004: total_memory must be 0 after finalize"
+    );
+    assert_eq!(
+        r.flows_memory_sum_for_testing(),
+        0,
+        "AC-004: flows_memory_sum must be 0 after finalize (flows map is empty)"
+    );
 }
 
 // ---- AC-005 (BC-2.04.015 postconditions 5-6) -------------------------------
@@ -8242,8 +8396,18 @@ fn test_BC_2_04_015_new_flow_dropped_when_table_full_after_eviction() {
     let server = [10, 0, 0, 2];
 
     // Create flow A via SYN.
-    let syn_a =
-        make_tcp_packet(client_a, 11111, server, 80, 1000, &[], true, false, false, false);
+    let syn_a = make_tcp_packet(
+        client_a,
+        11111,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_a, 1, &mut handler);
     // Buffer 5 bytes out-of-order in flow A → total=5 > memcap=4 → eviction fires now
     // (memcap path). Flow A is the only flow and will be evicted.
@@ -8251,21 +8415,20 @@ fn test_BC_2_04_015_new_flow_dropped_when_table_full_after_eviction() {
     // at memcap (= not >, no eviction yet), then flow B arrival triggers max_flows check.
     // 4 bytes: total=4 = memcap → NO eviction (strict >). Flow A survives.
     let ooo_a = make_tcp_packet(
-        client_a,
-        11111,
-        server,
-        80,
-        1003,
-        &[0xAA; 4],
-        false,
-        false,
-        false,
-        false,
+        client_a, 11111, server, 80, 1003, &[0xAA; 4], false, false, false, false,
     );
     reassembler.process_packet(&ooo_a, 2, &mut handler);
     // total_memory=4 = memcap=4 → strict > check: no eviction. Flow A still present.
-    assert_eq!(reassembler.flow_count(), 1, "precondition: flow A exists with 4 bytes");
-    assert_eq!(reassembler.stats().evictions, 0, "precondition: no eviction yet at exactly memcap");
+    assert_eq!(
+        reassembler.flow_count(),
+        1,
+        "precondition: flow A exists with 4 bytes"
+    );
+    assert_eq!(
+        reassembler.stats().evictions,
+        0,
+        "precondition: no eviction yet at exactly memcap"
+    );
 
     // Flow B SYN: table is at capacity (1/1). get_or_create_flow calls evict_flows.
     // evict_flows loop: total_memory=4 <= memcap=4 AND flows.len()=1 <= max_flows=1
@@ -8304,8 +8467,18 @@ fn test_BC_2_04_015_new_flow_dropped_when_table_full_after_eviction() {
     // Test what the current implementation DOES do: the SYN for flow B is DROPPED
     // (flow B never gets created) because get_or_create_flow returns false when
     // flows.len() >= max_flows and evict_flows doesn't actually evict.
-    let syn_b =
-        make_tcp_packet(client_b, 22222, server, 80, 2000, &[], true, false, false, false);
+    let syn_b = make_tcp_packet(
+        client_b,
+        22222,
+        server,
+        80,
+        2000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_b, 2, &mut handler);
 
     // ACTUAL behavior: evict_flows fires but does nothing (total_memory=4 <= memcap=4
@@ -8366,8 +8539,18 @@ fn test_BC_2_04_015_non_established_evicted_before_established() {
     let server = [10, 0, 0, 2];
 
     // Flow A: SYN+SYN_ACK → Established, at t=1.
-    let syn_a =
-        make_tcp_packet([10, 0, 0, 1], 1001, server, 80, 1000, &[], true, false, false, false);
+    let syn_a = make_tcp_packet(
+        [10, 0, 0, 1],
+        1001,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_a, 1, &mut handler);
     let syn_ack_a = make_tcp_packet(
         server,
@@ -8384,8 +8567,18 @@ fn test_BC_2_04_015_non_established_evicted_before_established() {
     reassembler.process_packet(&syn_ack_a, 1, &mut handler);
 
     // Flow B: SYN only → SynSent, at t=10.
-    let syn_b =
-        make_tcp_packet([10, 0, 0, 3], 2002, server, 80, 3000, &[], true, false, false, false);
+    let syn_b = make_tcp_packet(
+        [10, 0, 0, 3],
+        2002,
+        server,
+        80,
+        3000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_b, 10, &mut handler);
     // Verify B is in SynSent: force_set not needed since on_syn() transitions to SynSent.
     assert_eq!(reassembler.flow_count(), 2, "precondition: 2 flows exist");
@@ -8469,8 +8662,18 @@ fn test_BC_2_04_015_evicted_flow_receives_memory_pressure_reason() {
     let server = [10, 0, 0, 2];
 
     // Flow A: SynSent, buffer 4 bytes (out-of-order after SYN).
-    let syn_a =
-        make_tcp_packet([10, 0, 0, 1], 11111, server, 80, 1000, &[], true, false, false, false);
+    let syn_a = make_tcp_packet(
+        [10, 0, 0, 1],
+        11111,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_a, 1, &mut handler);
     let ooo_a = make_tcp_packet(
         [10, 0, 0, 1],
@@ -8489,8 +8692,18 @@ fn test_BC_2_04_015_evicted_flow_receives_memory_pressure_reason() {
 
     // Flow B: SynSent, buffer 3 bytes → total=7 > memcap=6 → eviction fires.
     // A (SynSent, older last_seen=2) evicted before B (SynSent, newer last_seen=3+).
-    let syn_b =
-        make_tcp_packet([10, 0, 0, 3], 22222, server, 80, 2000, &[], true, false, false, false);
+    let syn_b = make_tcp_packet(
+        [10, 0, 0, 3],
+        22222,
+        server,
+        80,
+        2000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_b, 3, &mut handler);
     let ooo_b = make_tcp_packet(
         [10, 0, 0, 3],
@@ -8549,8 +8762,18 @@ fn test_BC_2_04_016_memcap_eviction_triggers_after_insert() {
     let server = [10, 0, 0, 2];
 
     // Flow A: establish and buffer 7 bytes (out of order, no flush).
-    let syn_a =
-        make_tcp_packet([10, 0, 0, 1], 1001, server, 80, 1000, &[], true, false, false, false);
+    let syn_a = make_tcp_packet(
+        [10, 0, 0, 1],
+        1001,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_a, 1, &mut handler);
     let syn_ack_a = make_tcp_packet(
         server,
@@ -8581,8 +8804,18 @@ fn test_BC_2_04_016_memcap_eviction_triggers_after_insert() {
     assert_eq!(reassembler.total_memory(), 7, "precondition: 7 bytes in A");
 
     // Flow B: establish and buffer 5 more bytes → total=12 > memcap=10.
-    let syn_b =
-        make_tcp_packet([10, 0, 0, 3], 2002, server, 80, 2000, &[], true, false, false, false);
+    let syn_b = make_tcp_packet(
+        [10, 0, 0, 3],
+        2002,
+        server,
+        80,
+        2000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_b, 3, &mut handler);
     let syn_ack_b = make_tcp_packet(
         server,
@@ -8650,8 +8883,18 @@ fn test_BC_2_04_016_no_eviction_at_exactly_memcap() {
     let server = [10, 0, 0, 2];
 
     // Establish flow A.
-    let syn_a =
-        make_tcp_packet([10, 0, 0, 1], 1001, server, 80, 1000, &[], true, false, false, false);
+    let syn_a = make_tcp_packet(
+        [10, 0, 0, 1],
+        1001,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_a, 1, &mut handler);
     let syn_ack_a = make_tcp_packet(
         server,
@@ -8745,8 +8988,18 @@ fn test_BC_2_04_017_eviction_sort_non_established_first_then_lru() {
     let server = [10, 0, 0, 2];
 
     // Flow A: SYN (t=1) + SYN_ACK (t=1) → Established, last_seen=1.
-    let syn_a =
-        make_tcp_packet([10, 0, 0, 1], 1001, server, 80, 1000, &[], true, false, false, false);
+    let syn_a = make_tcp_packet(
+        [10, 0, 0, 1],
+        1001,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_a, 1, &mut handler);
     let syn_ack_a = make_tcp_packet(
         server,
@@ -8763,8 +9016,18 @@ fn test_BC_2_04_017_eviction_sort_non_established_first_then_lru() {
     reassembler.process_packet(&syn_ack_a, 1, &mut handler);
 
     // Flow B: SYN only (t=2) → SynSent, last_seen=2 (newer but non-Established).
-    let syn_b =
-        make_tcp_packet([10, 0, 0, 3], 2002, server, 80, 2000, &[], true, false, false, false);
+    let syn_b = make_tcp_packet(
+        [10, 0, 0, 3],
+        2002,
+        server,
+        80,
+        2000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_b, 2, &mut handler);
     // Buffer 5 bytes out-of-order into B. total_memory=5 > memcap=4 → MEMCAP eviction fires!
     // B (SynSent, last_seen=2) evicted; A (Established) survives.
@@ -8899,8 +9162,18 @@ fn test_BC_2_04_017_non_established_newer_evicted_before_established_older() {
     let server = [10, 0, 0, 2];
 
     // Flow A: Established at t=1.
-    let syn_a =
-        make_tcp_packet([10, 0, 0, 1], 1001, server, 80, 1000, &[], true, false, false, false);
+    let syn_a = make_tcp_packet(
+        [10, 0, 0, 1],
+        1001,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_a, 1, &mut handler);
     let syn_ack_a = make_tcp_packet(
         server,
@@ -8917,8 +9190,18 @@ fn test_BC_2_04_017_non_established_newer_evicted_before_established_older() {
     reassembler.process_packet(&syn_ack_a, 1, &mut handler);
 
     // Flow B: SynSent at t=100 (much newer than A).
-    let syn_b =
-        make_tcp_packet([10, 0, 0, 3], 2002, server, 80, 2000, &[], true, false, false, false);
+    let syn_b = make_tcp_packet(
+        [10, 0, 0, 3],
+        2002,
+        server,
+        80,
+        2000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_b, 100, &mut handler);
 
     assert_eq!(reassembler.flow_count(), 2, "precondition: 2 flows (A, B)");
@@ -9012,8 +9295,18 @@ fn test_BC_2_04_017_all_non_established_states_evict_first() {
     let server = [10, 0, 0, 2];
 
     // Flow A: Established, last_seen=1.
-    let syn_a =
-        make_tcp_packet([10, 0, 0, 1], 1001, server, 80, 1000, &[], true, false, false, false);
+    let syn_a = make_tcp_packet(
+        [10, 0, 0, 1],
+        1001,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_a, 1, &mut handler);
     let syn_ack_a = make_tcp_packet(
         server,
@@ -9031,13 +9324,33 @@ fn test_BC_2_04_017_all_non_established_states_evict_first() {
     // A is Established, last_seen=1.
 
     // Flow B: SYN → SynSent (no seam needed), last_seen=2.
-    let syn_b =
-        make_tcp_packet([10, 0, 0, 3], 2002, server, 80, 2000, &[], true, false, false, false);
+    let syn_b = make_tcp_packet(
+        [10, 0, 0, 3],
+        2002,
+        server,
+        80,
+        2000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_b, 2, &mut handler);
 
     // Flow C: SYN+SYN_ACK → Established, then force to Closing via seam.
-    let syn_c =
-        make_tcp_packet([10, 0, 0, 4], 3003, server, 80, 3000, &[], true, false, false, false);
+    let syn_c = make_tcp_packet(
+        [10, 0, 0, 4],
+        3003,
+        server,
+        80,
+        3000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_c, 3, &mut handler);
     let syn_ack_c = make_tcp_packet(
         server,
@@ -9072,8 +9385,18 @@ fn test_BC_2_04_017_all_non_established_states_evict_first() {
     // flush_contiguous_data, it checks if state==Closed and closes immediately.
     // So to have a Closed flow linger we must force it after building, THEN
     // NOT send more packets to it.
-    let syn_d =
-        make_tcp_packet([10, 0, 0, 5], 4004, server, 80, 4000, &[], true, false, false, false);
+    let syn_d = make_tcp_packet(
+        [10, 0, 0, 5],
+        4004,
+        server,
+        80,
+        4000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_d, 4, &mut handler);
     let syn_ack_d = make_tcp_packet(
         server,
@@ -9104,8 +9427,18 @@ fn test_BC_2_04_017_all_non_established_states_evict_first() {
     // before any SYN). We build the flow manually: send a data packet without SYN
     // so the flow is created in New state and data_without_syn transitions it to
     // Established. Instead, use a SYN→SynSent flow and then force to New.
-    let syn_e =
-        make_tcp_packet([10, 0, 0, 6], 5005, server, 80, 5000, &[], true, false, false, false);
+    let syn_e = make_tcp_packet(
+        [10, 0, 0, 6],
+        5005,
+        server,
+        80,
+        5000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_e, 5, &mut handler);
     let key_e = FlowKey::new(
         IpAddr::V4(Ipv4Addr::from([10, 0, 0, 6])),
@@ -9195,7 +9528,10 @@ fn test_BC_2_04_017_all_non_established_states_evict_first() {
 
     // A (Established) must NOT be evicted.
     assert!(
-        !handler.close_events.iter().any(|(k, r)| *k == key_a && *r == CloseReason::MemoryPressure),
+        !handler
+            .close_events
+            .iter()
+            .any(|(k, r)| *k == key_a && *r == CloseReason::MemoryPressure),
         "AC-012: Established flow A must NOT be evicted when non-Established flows with bytes exist"
     );
 
@@ -9312,7 +9648,9 @@ fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
             "AC-013 PATH1: eviction must have occurred (via memcap path triggered during A's data)"
         );
         assert!(
-            h.close_events.iter().any(|(_, r)| *r == CloseReason::MemoryPressure),
+            h.close_events
+                .iter()
+                .any(|(_, r)| *r == CloseReason::MemoryPressure),
             "AC-013 PATH1: eviction must emit CloseReason::MemoryPressure"
         );
         r.finalize(&mut h);
@@ -9402,7 +9740,9 @@ fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
             "AC-013 PATH2: memcap eviction must have occurred"
         );
         assert!(
-            h.close_events.iter().any(|(_, r)| *r == CloseReason::MemoryPressure),
+            h.close_events
+                .iter()
+                .any(|(_, r)| *r == CloseReason::MemoryPressure),
             "AC-013 PATH2: memcap eviction must emit CloseReason::MemoryPressure"
         );
         // Both paths: non-Established evicted first.
@@ -9440,10 +9780,31 @@ fn test_story_020_ec001_insert_then_flush_returns_to_zero() {
     let server = [10, 0, 0, 2];
 
     // Establish flow: SYN sets client ISN=1000 → base_offset=1.
-    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false, false);
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn, 1, &mut handler);
-    let syn_ack =
-        make_tcp_packet(server, 80, client, 12345, 5000, &[], true, true, false, false);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        5000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_ack, 2, &mut handler);
 
     assert_eq!(reassembler.total_memory(), 0, "precondition: empty");
@@ -9451,16 +9812,7 @@ fn test_story_020_ec001_insert_then_flush_returns_to_zero() {
     // Send in-order data at seq=1001 (base_offset=1). This IS the contiguous
     // start → flush_contiguous delivers immediately → total_memory returns to 0.
     let data = make_tcp_packet(
-        client,
-        12345,
-        server,
-        80,
-        1001,
-        &[0xAA; 4],
-        false,
-        false,
-        false,
-        false,
+        client, 12345, server, 80, 1001, &[0xAA; 4], false, false, false, false,
     );
     reassembler.process_packet(&data, 3, &mut handler);
 
@@ -9497,44 +9849,50 @@ fn test_story_020_ec002_close_flow_with_buffered_data() {
     let server = [10, 0, 0, 2];
 
     // Establish flow bidirectionally.
-    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false, false);
-    reassembler.process_packet(&syn, 1, &mut handler);
-    let syn_ack =
-        make_tcp_packet(server, 80, client, 12345, 5000, &[], true, true, false, false);
-    reassembler.process_packet(&syn_ack, 2, &mut handler);
-
-    // Buffer 6 bytes client→server (out-of-order: gap at offset 1 & 2).
-    let ooo_c2s = make_tcp_packet(
+    let syn = make_tcp_packet(
         client,
         12345,
         server,
         80,
-        1003,
-        &[0xAA; 6],
+        1000,
+        &[],
+        true,
         false,
         false,
         false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        5000,
+        &[],
+        true,
+        true,
         false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // Buffer 6 bytes client→server (out-of-order: gap at offset 1 & 2).
+    let ooo_c2s = make_tcp_packet(
+        client, 12345, server, 80, 1003, &[0xAA; 6], false, false, false, false,
     );
     reassembler.process_packet(&ooo_c2s, 3, &mut handler);
 
     // Buffer 4 bytes server→client (out-of-order: server ISN=5000 → base=1, seq=5003).
     let ooo_s2c = make_tcp_packet(
-        server,
-        80,
-        client,
-        12345,
-        5003,
-        &[0xBB; 4],
-        false,
-        false,
-        false,
-        false,
+        server, 80, client, 12345, 5003, &[0xBB; 4], false, false, false, false,
     );
     reassembler.process_packet(&ooo_s2c, 4, &mut handler);
 
     let buffered = reassembler.total_memory();
-    assert_eq!(buffered, 10, "precondition: 10 bytes buffered (6 c2s + 4 s2c)");
+    assert_eq!(
+        buffered, 10,
+        "precondition: 10 bytes buffered (6 c2s + 4 s2c)"
+    );
 
     // finalize() closes all flows → total_memory must reach 0.
     reassembler.finalize(&mut handler);
@@ -9564,10 +9922,31 @@ fn test_story_020_ec003_zero_length_segment_no_memory_change() {
     let server = [10, 0, 0, 2];
 
     // Establish flow.
-    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false, false);
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn, 1, &mut handler);
-    let syn_ack =
-        make_tcp_packet(server, 80, client, 12345, 5000, &[], true, true, false, false);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        5000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_ack, 2, &mut handler);
 
     let before = reassembler.total_memory();
@@ -9580,7 +9959,7 @@ fn test_story_020_ec003_zero_length_segment_no_memory_change() {
         server,
         80,
         1001,
-        &[],  // zero-length
+        &[], // zero-length
         false,
         true, // ACK flag set
         false,
@@ -9863,8 +10242,18 @@ fn test_story_020_ec005_single_flow_at_max_evicted_for_new_syn() {
     // So A stays, B dropped. BUG: BC says A evicted, B created.
     //
     // Document actual behavior:
-    let syn_a =
-        make_tcp_packet([10, 0, 0, 1], 11111, server, 80, 1000, &[], true, false, false, false);
+    let syn_a = make_tcp_packet(
+        [10, 0, 0, 1],
+        11111,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_a, 1, &mut handler);
     // Buffer 3 bytes (= memcap) into A, out-of-order.
     reassembler.process_packet(
@@ -9883,8 +10272,16 @@ fn test_story_020_ec005_single_flow_at_max_evicted_for_new_syn() {
         2,
         &mut handler,
     );
-    assert_eq!(reassembler.total_memory(), 3, "precondition: total=memcap=3");
-    assert_eq!(reassembler.stats().evictions, 0, "precondition: no eviction at exactly memcap");
+    assert_eq!(
+        reassembler.total_memory(),
+        3,
+        "precondition: total=memcap=3"
+    );
+    assert_eq!(
+        reassembler.stats().evictions,
+        0,
+        "precondition: no eviction at exactly memcap"
+    );
     assert_eq!(reassembler.flow_count(), 1, "precondition: flow A present");
 
     let key_a = FlowKey::new(
@@ -9896,8 +10293,18 @@ fn test_story_020_ec005_single_flow_at_max_evicted_for_new_syn() {
 
     // Flow B SYN: BUG CANDIDATE — A is NOT evicted (total=3 <= memcap=3).
     // B's SYN is DROPPED (get_or_create_flow returns false).
-    let syn_b =
-        make_tcp_packet([10, 0, 0, 3], 22222, server, 80, 2000, &[], true, false, false, false);
+    let syn_b = make_tcp_packet(
+        [10, 0, 0, 3],
+        22222,
+        server,
+        80,
+        2000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_b, 2, &mut handler);
 
     // ACTUAL behavior: A survives (not evicted), B was dropped (never created).
@@ -9943,28 +10350,44 @@ fn test_story_020_ec006_total_memory_equals_memcap_no_eviction() {
     let client = [10, 0, 0, 1];
     let server = [10, 0, 0, 2];
 
-    let syn = make_tcp_packet(client, 12345, server, 80, 1000, &[], true, false, false, false);
-    reassembler.process_packet(&syn, 1, &mut handler);
-    let syn_ack =
-        make_tcp_packet(server, 80, client, 12345, 5000, &[], true, true, false, false);
-    reassembler.process_packet(&syn_ack, 2, &mut handler);
-
-    // Buffer exactly 5 bytes (= memcap).
-    let ooo = make_tcp_packet(
+    let syn = make_tcp_packet(
         client,
         12345,
         server,
         80,
-        1003,
-        &[0xEE; 5],
-        false,
+        1000,
+        &[],
+        true,
         false,
         false,
         false,
     );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        5000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // Buffer exactly 5 bytes (= memcap).
+    let ooo = make_tcp_packet(
+        client, 12345, server, 80, 1003, &[0xEE; 5], false, false, false, false,
+    );
     reassembler.process_packet(&ooo, 3, &mut handler);
 
-    assert_eq!(reassembler.total_memory(), 5, "precondition: total == memcap == 5");
+    assert_eq!(
+        reassembler.total_memory(),
+        5,
+        "precondition: total == memcap == 5"
+    );
     assert_eq!(
         reassembler.stats().evictions,
         0,
@@ -9992,8 +10415,18 @@ fn test_story_020_ec007_total_memory_one_over_memcap_triggers_eviction() {
     let server = [10, 0, 0, 2];
 
     // Flow A: Established, buffer 5 bytes (at exactly memcap — no eviction yet).
-    let syn_a =
-        make_tcp_packet([10, 0, 0, 1], 1001, server, 80, 1000, &[], true, false, false, false);
+    let syn_a = make_tcp_packet(
+        [10, 0, 0, 1],
+        1001,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_a, 1, &mut handler);
     let syn_ack_a = make_tcp_packet(
         server,
@@ -10033,8 +10466,18 @@ fn test_story_020_ec007_total_memory_one_over_memcap_triggers_eviction() {
     );
 
     // Flow B: SynSent (non-Established, will be evicted first).
-    let syn_b =
-        make_tcp_packet([10, 0, 0, 3], 2002, server, 80, 2000, &[], true, false, false, false);
+    let syn_b = make_tcp_packet(
+        [10, 0, 0, 3],
+        2002,
+        server,
+        80,
+        2000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
     reassembler.process_packet(&syn_b, 3, &mut handler);
 
     // Insert 1 byte into flow B → total becomes 5+1=6 > memcap=5 → eviction fires.
@@ -10202,7 +10645,10 @@ fn test_story_020_ec008_closing_flow_evicted_before_established() {
         "EC-008: Closing flow B must be evicted before Established flow A"
     );
     assert!(
-        !handler.close_events.iter().any(|(k, r)| *k == key_a && *r == CloseReason::MemoryPressure),
+        !handler
+            .close_events
+            .iter()
+            .any(|(k, r)| *k == key_a && *r == CloseReason::MemoryPressure),
         "EC-008: Established flow A must NOT be evicted when Closing flow B exists"
     );
 
