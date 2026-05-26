@@ -1011,7 +1011,7 @@ fn test_BC_2_04_043_adjacent_segment_does_not_increment_overlap_count() {
 // --- AC-012 (BC-2.04.047 postcondition 1) ---
 /// buffered_bytes == sum(segments.values().map(|v| v.len())) at all times.
 ///
-/// Exercises VP-002: the buffered_bytes counter must mirror actual segment storage.
+/// Exercises VP-010: the buffered_bytes counter must mirror actual segment storage.
 /// Uses proptest: random insert/flush sequences; after each op, memory_used()
 /// triggers the debug_assert that verifies the invariant internally.
 /// Additionally, explicit spot-checks verify specific states.
@@ -1337,6 +1337,18 @@ fn test_story_016_ec004_append_extension_partial_overlap() {
         before + 3,
         "EC-004: buffered_bytes must increase by 3 (tail gap bytes only)"
     );
+    // first-wins: A's original bytes at offset 1 must be preserved
+    assert_eq!(
+        dir.segment_at(1),
+        Some(b"AAAAA".as_slice()),
+        "EC-004: first-wins preserves A's original AAAAA at offset 1"
+    );
+    // tail gap at offset 6 must be filled with B's tail bytes b\"BBB\"
+    assert_eq!(
+        dir.segment_at(6),
+        Some(b"BBB".as_slice()),
+        "EC-004: tail gap at offset 6 must be filled with b\"BBB\""
+    );
 }
 
 // --- EC-005 — New segment extends existing at the start (prepend) → PartialOverlap, head gap added ---
@@ -1372,13 +1384,17 @@ fn test_story_016_ec005_prepend_extension_partial_overlap() {
         Some(b"BBB".as_slice()),
         "EC-005: head gap at offset 1 must be filled with b\"BBB\""
     );
+    // first-wins: A's original bytes at offset 4 must be preserved (overlap region not overwritten)
+    assert_eq!(
+        dir.segment_at(4),
+        Some(b"AAAAA".as_slice()),
+        "EC-005: first-wins preserves A's original AAAAA at offset 4"
+    );
 }
 
 // --- EC-006 — New segment spans two existing segments with a gap between → gap bytes filled ---
 /// ISN=1000. A=b"AAA" at [1,4). B=b"BBB" at [7,10). Gap at [4,7).
 /// Insert C=b"AAAXYZBB" at [1,9) — spans A and part of B, fills gap [4,7).
-/// Wait: let's use a clean setup. A=[1,4), B=[7,10), insert C=[1,10) = b"AAAXYZBBBB" (9 bytes).
-/// Overlap at [1,4) (matches A), gap at [4,7) = b"XYZ", overlap at [7,10) (matches B's start).
 /// Expected: PartialOverlap; buffered_bytes increases by 3 (gap only).
 #[test]
 fn test_story_016_ec006_spans_two_segments_gap_filled() {
@@ -1407,11 +1423,29 @@ fn test_story_016_ec006_spans_two_segments_gap_filled() {
         dir.has_segment_at(4),
         "EC-006: gap at offset 4 must be filled"
     );
+    // gap bytes at offset 4 must be b"XYZ" (C[3..6])
+    assert_eq!(
+        dir.segment_at(4),
+        Some(b"XYZ".as_slice()),
+        "EC-006: gap bytes at offset 4 must be b\"XYZ\""
+    );
     // buffered_bytes increased by 3 (the gap bytes at [4,7))
     assert_eq!(
         dir.buffered_bytes(),
         before + 3,
         "EC-006: buffered_bytes must increase by 3 (gap bytes only)"
+    );
+    // first-wins: A's original bytes at offset 1 must be preserved
+    assert_eq!(
+        dir.segment_at(1),
+        Some(b"AAA".as_slice()),
+        "EC-006: first-wins preserves A's original AAA at offset 1"
+    );
+    // first-wins: B's original bytes at offset 7 must be preserved
+    assert_eq!(
+        dir.segment_at(7),
+        Some(b"BBB".as_slice()),
+        "EC-006: first-wins preserves B's original BBB at offset 7"
     );
 }
 
