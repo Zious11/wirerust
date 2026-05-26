@@ -8305,9 +8305,10 @@ fn test_BC_2_04_014_total_memory_equals_sum_of_flow_memory() {
 
 // ---- AC-005 (BC-2.04.015 postconditions 5-6) -------------------------------
 
-/// AC-005: Verifies BC-2.04.015 postconditions 5-6: when a new flow arrives and
-/// `flows.len() >= max_flows`, `get_or_create_flow` calls `evict_flows`; if the
-/// table is still at capacity after eviction the new flow is dropped.
+/// AC-005: Verifies the no-op-eviction rejection path: when max_flows is at capacity but
+/// total_memory <= memcap, evict_flows is called and exits at head under dual-conjunction
+/// termination (per BC-2.04.015 v1.3 Invariant 4); new flow's SYN is dropped, existing
+/// flow preserved.
 ///
 /// Per BC-2.04.015 v1.3 Invariant 4: when `total_memory == memcap` exactly, the
 /// dual-conjunction termination exits immediately — the existing flow is NOT evicted
@@ -8390,7 +8391,7 @@ fn test_BC_2_04_015_new_flow_dropped_after_no_op_eviction_under_max_flows_only_p
         reassembler.stats().evictions,
         0,
         "AC-005: no eviction fires when total_memory==memcap (dual-conjunction termination \
-         per BC-2.04.015 v1.3 Invariant 4 DESIGN INTENT)"
+         per BC-2.04.015 v1.3 Invariant 4)"
     );
     // Flow A still present (not evicted). Flow B was dropped.
     assert_eq!(
@@ -8414,15 +8415,8 @@ fn test_BC_2_04_015_new_flow_dropped_after_no_op_eviction_under_max_flows_only_p
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_015_non_established_evicted_before_established() {
-    // Two flows in the table: A (Established, last_seen=1) and B (SynSent, last_seen=10).
-    // B is newer but non-Established → B must be evicted before A.
-    // Use max_flows=2, memcap=small so inserting 1 byte into A causes eviction.
-    // But we need fine control: use max_flows=1 and force B's state to SynSent.
-    //
-    // Approach: max_flows=3, memcap=small (to use memcap-based eviction).
-    // Build flow A (Established, last_seen=1) and flow B (SynSent, last_seen=10).
-    // Insert buffered data into flow A to push total_memory over memcap.
-    // Eviction fires → B (non-Established) should be evicted before A.
+    // max_flows=100 (no max_flows pressure), memcap=12 (tight). A=Established(t=1) + B=SynSent(t=10);
+    // buffer 13 bytes into A → memcap eviction fires; B evicted first (non-Established wins despite newer last_seen).
     let config = ReassemblyConfig {
         max_flows: 100,
         memcap: 12, // tight — will be exceeded when we buffer 13+ bytes
@@ -8853,24 +8847,9 @@ fn test_BC_2_04_017_eviction_sort_non_established_first_then_lru() {
     //   B: SynSent,     last_seen=10 (newer but non-Established)
     //   C: Established, last_seen=1  (oldest overall, but Established)
     //
-    // Sort order: B (non-Est, t=10) < A (Est, t=5) — no, non-Est goes first.
-    // Actually sort: non-Established < Established; within non-Est: oldest first.
-    // B is the only non-Established → B is evicted first.
-    // Then among Established: C (t=1) < A (t=5) → C next, then A.
-    //
-    // We trigger eviction by memcap pressure and evict ONE flow at a time.
-    // Use max_flows=3, memcap=16: build 3 flows with 7+5+6=18 bytes total.
-    // After the first packet that pushes over memcap, evict_flows evicts until
-    // total <= 16. B holds 0 bytes (no data), so evicting B brings total to 18
-    // (unchanged). We need bytes in B too. Alternative: use max_flows=2 to
-    // force eviction via max_flows path.
-    //
-    // Approach: max_flows=2 and memcap=4 (tight). Buffer 5 bytes into flow B.
-    // When flow C arrives: flows.len()=2 >= max_flows=2 → get_or_create_flow calls
-    // evict_flows. In evict_flows: total_memory=5 > memcap=4 → loop does NOT break.
-    // B (SynSent, newer but non-Established) is evicted first.
-    // After evicting B: total_memory becomes 0 <= 4 AND flows.len()=1 <= 2 → loop stops.
-    // Flow C is admitted. A (Established) survives.
+    // max_flows=2, memcap=4 (tight). A=Established(t=1), B=SynSent(t=10) with 5 buffered bytes.
+    // When C arrives: flows.len()=2 >= max_flows=2 → evict_flows; total=5 > memcap=4 → loop runs;
+    // B (non-Established, newer) evicted first; after B: total=0 <= 4 → loop stops. C admitted, A survives.
     let config = ReassemblyConfig {
         max_flows: 2,
         memcap: 4, // tight: B will buffer 5 bytes > 4 to ensure loop doesn't break early
@@ -9422,8 +9401,10 @@ fn test_BC_2_04_017_all_non_established_states_evict_first() {
 /// memcap via `process_packet`) call the same `evict_flows` function with
 /// the same LRU non-established-first strategy.
 ///
-/// Verified by exercising BOTH paths and confirming both emit
-/// CloseReason::MemoryPressure with a non-Established-first ordering.
+/// Verified by exercising BOTH paths. PATH 1 (get_or_create_flow no-op entry) asserts
+/// evict_flows is called and exits without eviction under dual-conjunction termination
+/// (evictions==0, B dropped). PATH 2 (process_packet memcap entry) asserts eviction fires
+/// and emits CloseReason::MemoryPressure with non-Established-first ordering.
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
@@ -9432,17 +9413,7 @@ fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
     // eviction). Flow B SYN arrives: flows.len()=1 >= max_flows=1 → get_or_create_flow
     // calls evict_flows. At evict_flows entry: total=3 <= memcap=3 → dual-conjunction
     // terminates immediately, no eviction occurs. B is dropped (re-check still full).
-    // This exercises the get_or_create_flow PATH 1 entry point into evict_flows and
-    // confirms that CloseReason::MemoryPressure is only emitted when total > memcap.
-    //
-    // To witness PATH 1 WITH eviction (per EC-011 dual-pressure pattern): use max_flows=1,
-    // memcap=3, buffer 3 bytes into A out-of-order (total=3 == memcap), then add 1 more
-    // byte → total=4 > memcap=3 → memcap eviction fires in process_packet (PATH 2 entry).
-    // After A is evicted, send B SYN → admitted (flows.len()=0 < 1). This is the same
-    // mechanism EC-011 exercises. For PATH 1 (get_or_create_flow entry) the witness is
-    // the dual-conjunction termination: get_or_create_flow calls evict_flows and evict_flows
-    // exits without evicting when total <= memcap. The observable: evictions==0 after the
-    // call, B is dropped.
+    // PATH 1 witness is the dual-conjunction no-op (evictions==0, B dropped); PATH 2 witness is CloseReason::MemoryPressure emission.
     {
         let config = ReassemblyConfig {
             max_flows: 1,
@@ -10029,15 +10000,11 @@ fn test_story_020_ec004_all_established_flows_evict_lru_order() {
 /// flow survives and new SYN is dropped (pure max_flows pressure, no memcap
 /// violation).
 ///
-/// Per BC-2.04.015 v1.3 Invariant 4 (DESIGN INTENT): evict_flows uses
-/// dual-conjunction termination (total_memory <= memcap AND flows.len() <=
-/// max_flows) to protect Established sessions from max_flows-only pressure
-/// when memory budget is ample. With total_memory=3 == memcap=3 and
-/// flows.len()=1 == max_flows=1, neither resource threshold is exceeded in
-/// the strict sense (total_memory is NOT > memcap), so the eviction loop
-/// exits immediately — flow A is preserved and flow B's SYN is dropped.
-/// This is intended behavior: only paired resource pressure (both total_memory
-/// > memcap AND flows.len() > max_flows) can evict an Established flow.
+/// Per BC-2.04.015 v1.3 Invariant 4: evict_flows uses dual-conjunction termination
+/// (total_memory <= memcap AND flows.len() <= max_flows) to exit without evicting when
+/// neither resource threshold is strictly exceeded. With total_memory=3 == memcap=3 and
+/// flows.len()=1 == max_flows=1, the eviction loop exits immediately — flow A is preserved
+/// and flow B's SYN is dropped (dual-conjunction termination).
 ///
 /// EC-011 (below) tests the positive dual-pressure case where A IS evicted
 /// and B IS admitted when total_memory genuinely exceeds memcap.
@@ -10107,10 +10074,11 @@ fn test_story_020_ec005_max_flows_only_pressure_drops_new_syn_preserves_establis
         80,
     );
 
-    // Flow B SYN: per BC-2.04.015 v1.3 Invariant 4 DESIGN INTENT — A is NOT evicted
+    // Flow B SYN: per BC-2.04.015 v1.3 Invariant 4 — A is NOT evicted
     // (total=3 == memcap=3, so total_memory is NOT strictly > memcap).
     // B's SYN is DROPPED (get_or_create_flow returns false) because the eviction
-    // loop correctly terminates without action when memory budget is not exceeded.
+    // loop correctly terminates without action (dual-conjunction) when neither
+    // resource threshold is exceeded.
     let syn_b = make_tcp_packet(
         [10, 0, 0, 3],
         22222,
@@ -10130,7 +10098,7 @@ fn test_story_020_ec005_max_flows_only_pressure_drops_new_syn_preserves_establis
         reassembler.stats().evictions,
         0,
         "EC-005: no eviction fires when total_memory==memcap — dual-conjunction \
-         termination per BC-2.04.015 v1.3 Invariant 4 DESIGN INTENT"
+         termination per BC-2.04.015 v1.3 Invariant 4"
     );
     assert_eq!(
         reassembler.flow_count(),
@@ -10144,8 +10112,8 @@ fn test_story_020_ec005_max_flows_only_pressure_drops_new_syn_preserves_establis
     );
     assert!(
         !handler.close_events.iter().any(|(k, _)| *k == key_a),
-        "EC-005: flow A must NOT have been evicted (Established session protected \
-         from max_flows-only pressure per BC-2.04.015 v1.3 Invariant 4 DESIGN INTENT)"
+        "EC-005: flow A must NOT have been evicted (dual-conjunction termination \
+         per BC-2.04.015 v1.3 Invariant 4)"
     );
 
     reassembler.finalize(&mut handler);
