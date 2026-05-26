@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -29,8 +29,8 @@ removal_reason: null
 ## Description
 
 When a new flow would be created but `self.flows.len() >= config.max_flows`, `get_or_create_flow`
-calls `evict_flows`. If after eviction the table is still at capacity, the new packet is
-dropped (returns `false`). The eviction strategy (in `lifecycle.rs::evict_flows`) sorts all
+calls `evict_flows`. If after eviction the table is still at capacity (under v1.3 Invariant 4,
+this only occurs when evict_flows ran as a no-op), the new packet is dropped (returns `false`). The eviction strategy (in `lifecycle.rs::evict_flows`) sorts all
 current flows: non-Established flows come first (sorted by `last_seen` ascending), then
 Established flows (sorted by `last_seen` ascending). Flows are closed in that order until
 both `total_memory <= memcap` AND `flows.len() <= max_flows`.
@@ -47,8 +47,9 @@ both `total_memory <= memcap` AND `flows.len() <= max_flows`.
 3. `stats.evictions` increments by the number of flows evicted.
 4. Each evicted flow triggers `close_flow(key, CloseReason::MemoryPressure, handler)`.
 5. Eviction stops as soon as `flows.len() <= max_flows` AND `total_memory <= memcap`.
-6. If the table is still at capacity after eviction, `get_or_create_flow` returns `false`
-   and the packet is dropped (no flow created).
+6. If the table is still at capacity after eviction (under v1.3 Invariant 4, this only occurs
+   when evict_flows ran as a no-op), `get_or_create_flow` returns `false` and the packet is
+   dropped (no flow created).
 
 ## Invariants
 
@@ -64,7 +65,7 @@ both `total_memory <= memcap` AND `flows.len() <= max_flows`.
 |----|-------------|-------------------|
 | EC-001 | All flows are Established | LRU Established flows evicted; oldest first |
 | EC-002 | All flows are New (no SYN seen) | All are non-Established; LRU evicted first |
-| EC-003 | After eviction, table still at capacity | get_or_create_flow returns false; packet dropped |
+| EC-003 | After eviction, table still at capacity (under v1.3 Invariant 4, this only occurs when evict_flows ran as a no-op) | get_or_create_flow returns false; packet dropped |
 | EC-004 | Single flow in table (`max_flows=1`, `total_memory <= memcap`), new flow arrives | evict_flows exits immediately (both PC-5 termination conditions already satisfied); packet dropped (no flow created). max_flows-only pressure without memcap pressure is insufficient to trigger eviction; this protects Established sessions from being dislodged by mere flow-count pressure when memory budget is ample. |
 | EC-005 | Single flow in table with buffered data exceeding memcap (`max_flows=1`, `total_memory > memcap`), new SYN arrives | memcap pressure triggers eviction; existing flow evicted via CloseReason::MemoryPressure; new flow created. Both max_flows AND memcap pressure together can evict Established sessions. |
 
@@ -74,7 +75,7 @@ both `total_memory <= memcap` AND `flows.len() <= max_flows`.
 |-------|----------------|----------|
 | max_flows=2; two Established flows; new SYN | Oldest Established evicted; new flow created | happy-path |
 | max_flows=1; one New flow + one Established; new SYN | New (non-Established) evicted first | happy-path |
-| max_flows=1; one flow evicted but still at cap | Packet dropped; flows.len() == 1 | edge-case |
+| max_flows=1; total ≤ memcap; new SYN | evict_flows no-op (dual-conjunction terminates at head per Inv 4); packet dropped; existing flow preserved | edge-case |
 
 ## Verification Properties
 
@@ -140,3 +141,4 @@ could be optimized, but it is not on the hot path (eviction is rare in normal tr
 | 1.1 | 2026-05-20 | product-owner | Initial brownfield extraction |
 | 1.2 | 2026-05-21 | product-owner | VP back-reference back-fill (P8-DEFER) |
 | 1.3 | 2026-05-26 | product-owner | Wave 9 STORY-020 implementer investigation: revised EC-004 to match actual implementation (evict_flows is no-op when only max_flows pressure exists without memcap pressure); added EC-005 for dual-pressure case; added DESIGN INTENT invariant (Invariant 4). PC-5 termination condition is correct; EC-004 was the misstatement. |
+| 1.4 | 2026-05-26 | product-owner | Wave 9 STORY-020 adv pass-4 F-PASS4-002 (HIGH, sibling-regression of pass-3 F-002): Canonical Test Vector row at line 77 revised — the 'one flow evicted but still at cap' scenario is structurally unreachable under v1.3 Invariant 4 (evicting brings flows.len to 0 < 1); replaced with the actually-reachable no-op-eviction path. Description/PC-6/EC-003 'still at capacity after eviction' wording clarified with Inv 4 parenthetical. |

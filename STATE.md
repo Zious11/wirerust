@@ -110,8 +110,9 @@ dependency bumping for it).
 | Wave-gate — Wave 8 | **CLOSED** 2026-05-26 | develop HEAD 4b9b85f; 16 stories total Waves 1-8; STORY-016/020 unblocked |
 | Wave 9 — dispatch | **COMPLETE** 2026-05-26 | STORY-016 (overlap detection; BCs 2.04.035/036/038/043/047; worktree-story-016) + STORY-020 (memory management; BCs 2.04.014-017; worktree-story-020); parallel-eligible (disjoint files) |
 | Wave 9 — burst-1 spec+story revisions | **COMPLETE** 2026-05-26 | BC-2.04.015 v1.3 (EC-004 fix + DESIGN INTENT inv4 + EC-005); BC-2.04.036/038/047 v1.3 (anchor drift fix); STORY-016 v1.2 (EC-002 "adjacent (contiguous)"); STORY-020 v1.2 (EC-005 revised + EC-011 dual-pressure); input-hashes refreshed (STORY-016: 8cc2ec9→3f3509b; STORY-020: c859b44→6527afc) |
-| Wave 9 — per-story adversarial passes 1+2 + bursts 3+4 | **IN PROGRESS** 2026-05-26 | STORY-016: pass-1 11 findings (burst-1 remediated; W9-D1..W9-D4 deferred). Pass-2 DIRTY: burst-3 fixes BC-2.04.043 v1.3 (drafting artifact), BC-2.04.047 v1.4 (anchor + traceability), BC-2.04.038 v1.4 (prose anchor 201→204), STORY-016 v1.3 (non-contiguous→adjacent contiguous). STORY-020: pass-1 5 findings (3 actioned, W9-D5 deferred). Pass-2 DIRTY: burst-4 fixes STORY-020 v1.3 (AC-005 "after eviction" disambiguated; AC-005+EC-005 jointly characterize rejection path). Both stories at pass-3 dispatched. |
-| Wave 9 — sibling-discipline observation (accumulating evidence) | **OBSERVATION** 2026-05-26 | Partial-fix / sibling-discipline pattern recurred 3× in STORY-016 pass-2 + 3× in STORY-020 pass-2 (W7.2/W8.4 pattern, same category). Evidence accumulating across W7/W8/W9; codification candidate. Recommend cycle-close codification action. No new Drift Item — see existing W7.2/W8.4 in Cycle-Close Follow-Up. |
+| Wave 9 — per-story adversarial passes 1–4 + bursts 3–6 | **IN PROGRESS** 2026-05-26 | STORY-016: pass-1 11 findings → burst-1 remediated (W9-D1..W9-D4 deferred); pass-2 DIRTY → burst-3 (BC-2.04.043 v1.3, BC-2.04.047 v1.4, BC-2.04.038 v1.4, STORY-016 v1.3); pass-3 DIRTY → burst-5 (STORY-016 v1.4); pass-4 DIRTY → pass-5 dispatched. STORY-016 converged: 3 consecutive clean passes P4+P5+P6 (BC-5.39.001). 6 total passes (DIRTY×3+CLEAN×3). STORY-020: pass-1 5 findings → 3 actioned, W9-D5 deferred; pass-2 DIRTY → burst-4 (STORY-020 v1.3); pass-3 DIRTY → burst-5 (STORY-020 v1.4); pass-4 DIRTY 4 findings + 6 LOW obs → burst-6 (STORY-020 v1.5 + BC-2.04.015 v1.4); pass-5 dispatched in parallel with this commit. |
+| Wave 9 — STORY-016 CONVERGED | **COMPLETE** 2026-05-26 | 6 passes total (DIRTY×3 + CLEAN×3); per BC-5.39.001 convergence criterion satisfied. STORY-016 ready for demo + PR. |
+| Wave 9 — sibling-discipline pattern (W9-D8 filed) | **OBSERVATION** 2026-05-26 | Sibling-discipline pattern recurred in STORY-020 passes 2/3/4 (3-cycle recurrence). Cumulative evidence: ~10 sibling-regression findings across waves 7–9. W9-D8 filed as [process-gap] drift item. Requires research-agent validation per DF-VALIDATION-001. |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -129,7 +130,7 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-26 — Wave 9 burst-3+4 COMPLETE)
+## Session Resume Checkpoint (2026-05-26 — Wave 9 burst-4/5/6 COMPLETE)
 
 1. Waves 1-8 all CLOSED/CONVERGED — 16 stories delivered.
    STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015 all merged to develop.
@@ -137,22 +138,22 @@ Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/converg
    PRs #124/#125/#126. develop HEAD: 4b9b85f. Wave-level convergence: 9 passes, 3-clean streak
    passes 7/8/9 (12 findings remediated).
 3. Wave 9 IN PROGRESS: sprint-state.yaml current_wave=9.
-   STORY-016: status=in_progress, branch=worktree-story-016, worktree=.worktrees/story-016.
-     Scope: overlap detection; BCs 2.04.035/036/038/043/047; depends on STORY-015.
-     Burst-1: v1.2 (EC-002 adj); BC-2.04.036/038/047 v1.3 anchor fixes. Adv pass-1: 11 findings — remediated; W9-D1..W9-D4 deferred.
-     Burst-3: BC-2.04.043 v1.3 (drafting artifact removed); BC-2.04.047 v1.4 (anchor 171-176→171-175 + traceability anchor); BC-2.04.038 v1.4 (prose anchor 201→204); STORY-016 v1.3 (non-contiguous→adjacent contiguous). Adv pass-2: DIRTY — pass-3 dispatched.
+   STORY-016: status=CONVERGED (per BC-5.39.001), branch=worktree-story-016.
+     6 passes total: DIRTY(P1)/DIRTY(P2)/DIRTY(P3)/CLEAN(P4)/CLEAN(P5)/CLEAN(P6). 3-clean streak satisfied.
+     Burst-3: BC-2.04.043 v1.3, BC-2.04.047 v1.4, BC-2.04.038 v1.4, STORY-016 v1.3.
+     Burst-5: STORY-016 v1.4 (pass-3 fixes). Passes 4/5/6 CLEAN. READY for demo + PR.
    STORY-020: status=in_progress, branch=worktree-story-020, worktree=.worktrees/story-020.
      Scope: memory management; BCs 2.04.014-017; depends on STORY-019.
-     Burst-1: v1.2 (EC-005 revised + EC-011 dual-pressure); BC-2.04.015 v1.3. Adv pass-1: 5 findings — 3 actioned; W9-D5 deferred.
-     Burst-4: STORY-020 v1.3 (AC-005 "after eviction" disambiguated; AC-005+EC-005 jointly characterize rejection path). Adv pass-2: DIRTY — pass-3 dispatched.
-   Per-story adversarial cost so far: STORY-016 = 2 passes (DIRTY/DIRTY); STORY-020 = 2 passes (DIRTY/DIRTY).
-4. STORY-017/018: still blocked (blocked_by includes STORY-016, not yet done).
-5. Drift items W9-D1..W9-D5 logged — see Drift Items table. All require
+     5 passes so far: DIRTY(P1)/DIRTY(P2)/DIRTY(P3)/DIRTY(P4); pass-5 IN FLIGHT.
+     Burst-4: STORY-020 v1.3 (AC-005 after-eviction + EC-005 rejection path).
+     Burst-5: STORY-020 v1.4 (AC-005 re-scoped; AC-013 PATH 1/PATH 2 bifurcation; Task #7 aligned).
+     Burst-6: STORY-020 v1.5 (pass-4 F-PASS4-001 stale test name; Task #5 Closed state; Task #8 reworded) + BC-2.04.015 v1.4 (Canonical Test Vector + Description/PC-6/EC-003 Inv 4 clarifications).
+     input-hash: 6527afc (unchanged — compute-input-hash confirmed current).
+   Sibling-discipline recurrence in STORY-020: passes 2/3/4 each had sibling-regression findings (3-cycle). W9-D8 filed.
+4. STORY-017/018: still blocked (blocked_by includes STORY-016; STORY-016 converged but PR not yet merged).
+5. Drift items W9-D1..W9-D8 logged — see Drift Items table. All require
    research-agent validation per DF-VALIDATION-001 before any GitHub issue is filed.
-6. Sibling-discipline pattern: recurred 3× in STORY-016 pass-2 + 3× in STORY-020 pass-2.
-   Evidence accumulating (W7.2→W8.4→W9). Cycle-close codification action recommended.
-7. NEXT: receive per-story adversarial pass-3 results for STORY-016 + STORY-020; remediate
-   if DIRTY; target 3-clean streak.
+6. NEXT: receive STORY-020 pass-5 result; remediate if DIRTY; target 3-clean streak; then demo+PR for STORY-016 (can proceed in parallel).
 
 ## Decisions Log
 
@@ -178,6 +179,7 @@ None open.
 | W9-D3 | STORY-016 F-11 [process-gap] — story template lacks per-AC VP trace column; needs template enhancement | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
 | W9-D4 | STORY-016 F-12 — story Token Budget template hardcodes "200K for Sonnet"; needs parameterization or removal | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
 | W9-D5 | STORY-020 F-004 — AC-005 test cannot distinguish "evict_flows called but exits immediately" from "never called"; would require evict_flows_calls_for_testing seam; acceptable since production code is observable in behavior | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
+| W9-D8 | [process-gap] Sibling-discipline pattern recurred in STORY-020 passes 2/3/4 (3-cycle recurrence within a single story). Cumulative evidence: ~10 sibling-regression findings across waves 7–9. Codification needed: sibling-sweep should be an explicit checklist step in story-writer/test-writer/PO remediation prompts, not a hopeful adversary-axis catch. MED severity (will be re-classified at convergence if pattern recurs in wave-level adversary). | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
 
 ## Cycle-Close Follow-Up Items
 

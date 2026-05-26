@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-020"
 epic_id: "E-2"
-version: "1.3"
+version: "1.5"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -35,6 +35,8 @@ implementation_strategy: brownfield-formalization
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| 1.5 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-020 adv pass-4 fixes: F-PASS4-001 (HIGH, sibling-regression of pass-3 F-005) — story line 84 stale test name updated to renamed function; LOW — Task #5 added 'Closed' state to AC-012 mix; Task #8 reworded for PATH 1 code-review vs PATH 2 behavioral-test bifurcation per v1.4 AC-013 |
+| 1.4 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-020 adv pass-3 fix: F-002 (HIGH) — AC-005 re-scoped to honestly describe the no-op-eviction case; added NOTE acknowledging that 'evict_flows runs+still-full' is structurally unreachable under v1.3 Inv 4; F-001 (HIGH) — AC-013 wording revised to acknowledge PATH 1 structural verification (code review at mod.rs:227-232) vs PATH 2 behavioral verification; F-006 (MED, sibling-regression of pass-2 F-002) — Task 7 wording aligned with AC-005 v1.4 phrasing |
 | 1.3 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-020 adv pass-2 fix: F-002 (HIGH) — clarified AC-005 wording to make 'after eviction' explicit (eviction may be a no-op per v1.3 Inv 4); AC-005 + EC-005 jointly characterize rejection path (EC-005: no-op case; AC-005: structural rejection). F-003 (HIGH) requires test rewrite (test-writer parallel), not story revision; AC-013 wording unchanged. |
 | 1.2 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-020 adv-prep fix: revised EC-005 to match BC-2.04.015 v1.3 PC-5 implementation reality (evict_flows is no-op at max_flows without memcap pressure; packet dropped, not evicted); added EC-011 for dual-pressure case; AC-005 already consistent. Coordinated with BC-2.04.015 v1.3 EC-004 revision in same burst. |
 | 1.1 | 2026-05-21 | story-writer | Initial release |
@@ -78,8 +80,9 @@ implementation_strategy: brownfield-formalization
 - **Test:** `test_BC_2_04_014_total_memory_equals_sum_of_flow_memory()`
 
 ### AC-005 (traces to BC-2.04.015 postcondition 5-6)
-- When `self.flows.len() >= config.max_flows` and a new flow packet arrives, `evict_flows` is called. After `evict_flows` returns (whether or not it evicted any flow — under v1.3 Invariant 4 the call may be a no-op when only max_flows pressure exists), if the table remains at capacity, `get_or_create_flow` returns `false` and the packet is dropped. This AC and EC-005 jointly characterize the rejection path: EC-005 covers the no-op-eviction case explicitly; this AC covers the structural rejection behavior.
-- **Test:** `test_BC_2_04_015_new_flow_dropped_when_table_full_after_eviction()`
+- When `self.flows.len() >= config.max_flows` and a new flow packet arrives, `evict_flows` is called. Under v1.3 Invariant 4 dual-conjunction termination, `evict_flows` exits as a no-op when only max_flows pressure exists (no memcap pressure). After the no-op eviction, the table remains at capacity, `get_or_create_flow` returns `false`, and the packet is dropped.
+NOTE: The 'evict_flows runs and frees ≥1 slot but table still at capacity' scenario is structurally unreachable under v1.3 Invariant 4 — once memcap pressure exists to permit Established eviction, successful eviction brings total ≤ memcap (PC-5) and reduces flows.len, so the post-eviction-still-full case cannot be constructed. AC-005 and EC-005 jointly cover the only reachable rejection-after-evict_flows path: the no-op case.
+- **Test:** `test_BC_2_04_015_new_flow_dropped_after_no_op_eviction_under_max_flows_only_pressure()`
 
 ### AC-006 (traces to BC-2.04.015 postcondition 1 and 3)
 - Non-Established flows (state != Established) are evicted before Established flows, regardless of their `last_seen` timestamps. `stats.evictions` increments by the number of flows evicted.
@@ -110,7 +113,10 @@ implementation_strategy: brownfield-formalization
 - **Test:** `test_BC_2_04_017_all_non_established_states_evict_first()`
 
 ### AC-013 (traces to BC-2.04.015 invariant 1)
-- Both eviction triggers (max_flows via `get_or_create_flow` and memcap via `process_packet`) call the same `evict_flows` function with the same LRU non-established-first strategy.
+- Both eviction triggers reach the same `evict_flows` function:
+  - max_flows trigger via `get_or_create_flow` (src/reassembly/mod.rs:227-232) is verified by code review — the unconditional `self.evict_flows(handler)` call at this line is the witness; the call is structurally observable in source but not behaviorally observable when evict_flows exits as a no-op (PATH 1 / no-op case).
+  - memcap trigger via `process_packet` (src/reassembly/mod.rs:176-179) is verified by test — when total > memcap, evict_flows is called and (under valid configs) evicts at least one flow, witnessed via CloseReason::MemoryPressure on close_events (PATH 2 / observable case).
+  The test (`test_BC_2_04_015_both_eviction_paths_use_same_function`) verifies PATH 2 behaviorally; PATH 1 is verified by code review against the cited source line.
 - **Test:** `test_BC_2_04_015_both_eviction_paths_use_same_function()`
 
 ## Architecture Mapping
@@ -167,10 +173,10 @@ implementation_strategy: brownfield-formalization
 2. [ ] Verify Red Gate: all tests fail before implementation changes
 3. [ ] Verify existing implementation satisfies all ACs (brownfield)
 4. [ ] Add proptest for `total_memory == sum(flow.memory_used())` over random insert/flush/close sequences (AC-004)
-5. [ ] Build eviction order test: mix New, SynSent, Closing, Established flows with varying last_seen; assert first eviction picks non-Established with lowest last_seen
+5. [ ] Build eviction order test: mix New, SynSent, Closing, Closed, Established flows with varying last_seen; assert first eviction picks non-Established with lowest last_seen
 6. [ ] Test memcap boundary: `total_memory == memcap` (no eviction) vs `memcap + 1` (eviction triggers)
-7. [ ] Test `get_or_create_flow` returns false when table still full after eviction (EC-005 full rejection scenario)
-8. [ ] Verify both eviction trigger sites reach `evict_flows` (AC-013)
+7. [ ] Test `get_or_create_flow` returns false when `evict_flows` is a no-op (max_flows-only pressure, total_memory ≤ memcap) per BC-2.04.015 v1.3 Invariant 4 (EC-005 no-op rejection scenario; AC-005 also exercises this — see AC-005 note re: 'structural rejection' being unreachable)
+8. [ ] Verify PATH 1 entry point structurally (code review at mod.rs:227-232) and PATH 2 behaviorally (CloseReason::MemoryPressure emission)
 9. [ ] Update STATE.md
 
 ## Previous Story Intelligence (MANDATORY)
