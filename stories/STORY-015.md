@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-015"
 epic_id: "E-2"
-version: "1.1"
-status: draft
+version: "1.2"
+status: in_progress
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -210,3 +210,10 @@ implementation_strategy: brownfield-formalization
 | `src/reassembly/mod.rs` | verify (lines 517-533) | flush_contiguous_data with on_data callback |
 | `tests/reassembly_segment_tests.rs` | modify | Add AC-011 through AC-017 (segment-level tests) |
 | `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-010 (engine-level tests) |
+
+## Changelog
+
+| Version | Date | Author | Notes |
+|---------|------|--------|-------|
+| v1.1 | 2026-05-21 | story-writer | Initial brownfield story release |
+| v1.2 | 2026-05-26 | story-writer | Wave 8 wave-level adv-pass-3 F-3 closure: bumped `status: draft` → `in_progress` to match STORY-019's transient-state convention (S-7.01 sibling-discipline). State-manager will advance both to `done` on Wave 8 close (W8.12). |
