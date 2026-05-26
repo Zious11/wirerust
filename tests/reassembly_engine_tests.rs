@@ -8309,22 +8309,19 @@ fn test_BC_2_04_014_total_memory_equals_sum_of_flow_memory() {
 /// `flows.len() >= max_flows`, `get_or_create_flow` calls `evict_flows`; if the
 /// table is still at capacity after eviction the new flow is dropped.
 ///
-/// Per BC-2.04.015 v1.3 Invariant 4 (DESIGN INTENT): the "still full after
-/// eviction" drop path fires only when `evict_flows` terminates without removing
-/// any flow (dual-conjunction: total <= memcap AND flows.len() <= max_flows on
-/// entry). With valid configs this is reached when total_memory == memcap exactly.
-/// Setup: max_flows=1, memcap=4, flow A buffers 5 bytes (total > memcap → A evicted
-/// on data insert), then B SYN arrives into an empty table and is admitted.
-/// This exercises the eviction-then-admit path (the observable for PC5-6).
+/// Per BC-2.04.015 v1.3 Invariant 4: when `total_memory == memcap` exactly, the
+/// dual-conjunction termination exits immediately — the existing flow is NOT evicted
+/// and the new flow is dropped. Setup: max_flows=1, memcap=4, flow A buffers 4 bytes
+/// (total == memcap, no eviction), B SYN arrives, evict_flows no-ops, B is dropped.
 #[test]
 #[allow(non_snake_case)]
-fn test_BC_2_04_015_new_flow_dropped_when_table_full_after_eviction() {
-    // max_flows=1 AND memcap=4 (tight). Flow A must have > 4 bytes buffered
-    // so that at eviction time: flows.len()=1 >= 1 (max_flows hit) AND
-    // total_memory > 4 (memcap hit). Both conditions drive the eviction.
+fn test_BC_2_04_015_new_flow_dropped_after_no_op_eviction_under_max_flows_only_pressure() {
+    // max_flows=1, memcap=4. Flow A buffers 4 bytes (total == memcap; strict > not met,
+    // no memcap eviction). When B SYN arrives: dual-conjunction exits immediately — A stays,
+    // B dropped (BC-2.04.015 v1.3 Invariant 4).
     let config = ReassemblyConfig {
         max_flows: 1,
-        memcap: 4, // tight: flow A will buffer 5 bytes > 4
+        memcap: 4,
         ..ReassemblyConfig::default()
     };
     let mut reassembler = TcpReassembler::new(config);
@@ -8334,7 +8331,7 @@ fn test_BC_2_04_015_new_flow_dropped_when_table_full_after_eviction() {
     let client_b = [10, 0, 0, 3];
     let server = [10, 0, 0, 2];
 
-    // Create flow A via SYN.
+    // Flow A: SYN → SynSent; buffer 4 bytes OOO (total=4 == memcap=4, no eviction).
     let syn_a = make_tcp_packet(
         client_a,
         11111,
@@ -8348,16 +8345,11 @@ fn test_BC_2_04_015_new_flow_dropped_when_table_full_after_eviction() {
         false,
     );
     reassembler.process_packet(&syn_a, 1, &mut handler);
-    // Buffer 5 bytes out-of-order in flow A → total=5 > memcap=4 → eviction fires now
-    // (memcap path). Flow A is the only flow and will be evicted.
-    // Re-check: we need A to survive until flow B arrives. Send only 4 bytes to stay
-    // at memcap (= not >, no eviction yet), then flow B arrival triggers max_flows check.
-    // 4 bytes: total=4 = memcap → NO eviction (strict >). Flow A survives.
     let ooo_a = make_tcp_packet(
         client_a, 11111, server, 80, 1003, &[0xAA; 4], false, false, false, false,
     );
     reassembler.process_packet(&ooo_a, 2, &mut handler);
-    // total_memory=4 = memcap=4 → strict > check: no eviction. Flow A still present.
+    // total=4 == memcap=4; strict > check does not fire — no eviction yet.
     assert_eq!(
         reassembler.flow_count(),
         1,
@@ -8368,46 +8360,17 @@ fn test_BC_2_04_015_new_flow_dropped_when_table_full_after_eviction() {
         0,
         "precondition: no eviction yet at exactly memcap"
     );
+    assert_eq!(
+        reassembler.total_memory(),
+        4,
+        "precondition: total_memory==memcap==4"
+    );
 
-    // Flow B SYN: table is at capacity (1/1). get_or_create_flow calls evict_flows.
-    // evict_flows loop: total_memory=4 <= memcap=4 AND flows.len()=1 <= max_flows=1
-    // → breaks immediately! Eviction DOES NOT FIRE from max_flows alone when
-    // total_memory == memcap.
-    // To force eviction, we need total_memory > memcap at the time flow B arrives.
-    // Add 1 more byte to flow A first (total=5 > memcap=4 → memcap eviction fires
-    // immediately, before flow B even arrives — not what we want).
-    //
-    // The only way to trigger max_flows eviction without also triggering memcap
-    // eviction is if total_memory > memcap at the start of get_or_create_flow
-    // for flow B. This happens when:
-    //   - The last packet inserted bytes into flow A, pushing total > memcap
-    //   - But the MEMCAP check (post-packet) didn't evict A because... it always does.
-    //
-    // Reality: evict_flows is called BOTH from memcap path (post-packet) AND from
-    // max_flows path (get_or_create_flow). The memcap path fires if total > memcap
-    // after ANY packet. So total_memory CANNOT be > memcap when flow B arrives,
-    // unless the packet that pushed total > memcap was exactly the flow B packet itself.
-    //
-    // Corrected scenario: set memcap=0+1=1. Buffer 2 bytes into A (total=2 > 1 → eviction
-    // fires immediately via memcap path after the data packet). A is evicted.
-    // No flow B needed. This tests memcap eviction, not max_flows eviction.
-    //
-    // For PURE max_flows eviction (total_memory=0 at eviction time), the evict_flows
-    // loop terminates immediately when flows.len() <= max_flows AND total_memory <= memcap.
-    // With total_memory=0 and flows.len()=1 <= max_flows=1, both conditions are true →
-    // loop exits without evicting. This means max_flows-only eviction with no buffered
-    // data is UNREACHABLE in the current implementation.
-    //
-    // Per BC-2.04.015 v1.3 Invariant 4 (DESIGN INTENT): evict_flows uses
-    // dual-conjunction termination (total_memory <= memcap AND flows.len() <= max_flows)
-    // to protect Established sessions from max_flows-only pressure when memory budget is
-    // ample. Only paired resource pressure (both memcap AND max_flows exceeded) can evict
-    // an Established flow. With total_memory=4 == memcap=4, no memcap pressure exists,
-    // so the eviction loop exits immediately — flow A is NOT evicted.
-    //
-    // Test what the implementation does: the SYN for flow B is DROPPED (flow B never
-    // gets created) because get_or_create_flow returns false when flows.len() >= max_flows
-    // and evict_flows correctly leaves flow A (an Established session) undisturbed.
+    // Flow B SYN: get_or_create_flow calls evict_flows (flows.len()=1 >= max_flows=1).
+    // evict_flows: total=4 <= memcap=4 AND flows.len()=1 <= max_flows=1 → dual-conjunction
+    // breaks immediately — no eviction. Re-check: flows.len() still >= max_flows → B dropped.
+    // Per BC-2.04.015 v1.3 Invariant 4: Established session A is protected when
+    // total_memory does not exceed memcap.
     let syn_b = make_tcp_packet(
         client_b,
         22222,
@@ -8422,16 +8385,7 @@ fn test_BC_2_04_015_new_flow_dropped_when_table_full_after_eviction() {
     );
     reassembler.process_packet(&syn_b, 2, &mut handler);
 
-    // ACTUAL behavior: evict_flows fires but does nothing (total_memory=4 <= memcap=4
-    // AND flows.len()=1 <= max_flows=1 → loop exits immediately). get_or_create_flow
-    // re-checks flows.len() >= max_flows: 1 >= 1 = true → returns false → B dropped.
-    // Flow A remains. No eviction occurred.
-    //
-    // Per BC-2.04.015 v1.3 Invariant 4 (DESIGN INTENT): the eviction loop terminates
-    // when both total_memory <= memcap AND flows.len() <= max_flows. With total_memory=4
-    // == memcap=4 and flows.len()=1 == max_flows=1, both conditions hold — the loop exits
-    // without evicting. This is correct behavior: Established sessions are protected when
-    // memory budget is not exceeded. Only paired resource pressure triggers eviction.
+    // evict_flows exited without evicting; B's SYN was dropped.
     assert_eq!(
         reassembler.stats().evictions,
         0,
@@ -8585,9 +8539,7 @@ fn test_BC_2_04_015_non_established_evicted_before_established() {
 /// AC-007: Each evicted flow triggers
 /// `handler.on_flow_close(key, CloseReason::MemoryPressure)`.
 ///
-/// Uses memcap-based eviction (the path that fires when total_memory > memcap;
-/// per BC-2.04.015 v1.3 Invariant 4 DESIGN INTENT, paired resource pressure
-/// is required to evict an Established flow).
+/// Uses memcap-based eviction (the path that fires when total_memory > memcap).
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_015_evicted_flow_receives_memory_pressure_reason() {
@@ -8971,51 +8923,9 @@ fn test_BC_2_04_017_eviction_sort_non_established_first_then_lru() {
         false,
     );
     reassembler.process_packet(&syn_b, 2, &mut handler);
-    // Buffer 5 bytes out-of-order into B. total_memory=5 > memcap=4 → MEMCAP eviction fires!
-    // B (SynSent, last_seen=2) evicted; A (Established) survives.
-    // After this ooo_b packet: B is evicted immediately (memcap path).
-    // So flows.len()=1 after this. We need BOTH A and B present when C arrives.
-    // Problem: if we buffer into B and total > memcap, B gets evicted IMMEDIATELY.
-    //
-    // Solution: buffer into A instead (Established, older). B has no buffered bytes.
-    // Then when C's SYN arrives: flows.len()=2 >= 2 → evict_flows called.
-    // total_memory = A's bytes. If A's bytes > memcap=4 → loop doesn't break.
-    // BUT we want B evicted first (non-Established), not A. Evict_flows will evict B
-    // (non-Established) first → total_memory unchanged (B had 0 bytes) → check again:
-    // total_memory still > memcap → keep evicting → A evicted too!
-    //
-    // We need B to hold bytes so that evicting B brings total <= memcap.
-    // AND we need total > memcap only DURING the evict_flows call (not after insertion).
-    //
-    // The trick: buffer EXACTLY memcap bytes into B (total = memcap, no eviction yet).
-    // Then C's SYN arrives: flows.len()=2 >= 2 → evict_flows. Inside:
-    //   total_memory = memcap (not > memcap) AND flows.len()=2 > max_flows=2? No, 2 <= 2.
-    // Both conditions met → loop breaks immediately. No eviction again!
-    //
-    // Root issue: the evict_flows termination condition uses <=, not <.
-    // flows.len() <= max_flows means it stops at EXACTLY max_flows, not strictly under.
-    // For the loop to evict, we need flows.len() > max_flows (strictly), OR total > memcap.
-    // But get_or_create_flow calls evict_flows only when flows.len() >= max_flows (could be ==).
-    // If flows.len() == max_flows == 2 and total <= memcap → immediate break.
-    //
-    // The ONLY reliable way: ensure total_memory > memcap at the time C arrives.
-    // This requires that no memcap eviction fires before C arrives.
-    // Buffer 4 bytes into B (total=4 = memcap=4 → no memcap eviction).
-    // C arrives: flows.len()=2 >= 2 → evict_flows. total=4 <= 4 AND flows.len()=2 <= 2 → break.
-    // Still no eviction!
-    //
-    // FINAL solution: use memcap=3 and buffer 4 bytes into B when the C SYN arrives.
-    // Embed the ooo_b packet INTO the same packet delivery as C... that's not possible.
-    //
-    // Actually, let me reconsider entirely. Use max_flows=100 and memcap=4.
-    // Buffer 3 bytes into A (Established) and 3 bytes into B (SynSent). total=6 > memcap=4.
-    // Memcap eviction fires AFTER ooo_b. B (SynSent, non-Established) is evicted first
-    // because it sorts before A. This tests the same property (non-Established evicted first)
-    // via the memcap path, without needing max_flows pressure.
-    // The max_flows path is tested by AC-013 which covers BOTH paths.
 
-    // Rebind: use memcap-based eviction directly.
-    // We already have A (Established) present. Buffer 3 bytes into A.
+    // Use memcap-based eviction (max_flows=100 → no max_flows pressure).
+    // Buffer 3 bytes into A first (total=3 ≤ memcap=4, no eviction yet).
     let ooo_a = make_tcp_packet(
         [10, 0, 0, 1],
         1001,
@@ -9198,37 +9108,25 @@ fn test_BC_2_04_017_non_established_newer_evicted_before_established_older() {
 /// AC-012: The eviction sort treats ALL states other than
 /// `FlowState::Established` as "non-Established": `New`, `SynSent`,
 /// `Closing`, and `Closed` all sort before any Established flow.
+///
+/// Verified by building 5 flows (A=Established, B=SynSent, C=Closing,
+/// D=Closed, E=New), buffering bytes only into A, then triggering memcap
+/// eviction. All 4 non-Established states (B/C/D/E) must appear in
+/// close_events before A (per BC-2.04.017 invariant 3).
 #[test]
 #[allow(non_snake_case)]
 fn test_BC_2_04_017_all_non_established_states_evict_first() {
-    // Build 5 flows:
-    //   A: Established (last_seen=1, oldest)
-    //   B: New         (last_seen=2 — force via seam)
-    //   C: SynSent     (last_seen=3)
-    //   D: Closing     (last_seen=4 — force via seam)
-    //   E: Closed      (last_seen=5 — force via seam, newest)
-    //
-    // Trigger eviction. All non-Established (B, C, D, E) must be evicted before A.
-    // Use max_flows=4 so the 5th flow triggers eviction that must free at least 1.
-    // Actually to evict all 4 non-Established before touching A, we need the
-    // eviction loop to run until flows.len() <= max_flows (which it already is
-    // when 1 is evicted, since we go from 5 to 4 = max_flows). Let's instead
-    // use memcap eviction: buffer bytes in A to push total_memory high, then
-    // reset state with seam.
-    //
-    // Simplest approach: max_flows=4, build flows A..D (4 total). Force states.
-    // Then 5th flow arrives → eviction evicts exactly 1 (the highest-priority
-    // non-Established candidate). We run this 4 times with different states to
-    // cover all 4 non-Established variants.
-    //
-    // Alternatively: use memcap to keep evicting until only A remains.
-    // Use max_flows=100, memcap=1 (minimum valid). Buffer 2 bytes into flow A
-    // (total=2 > memcap=1 → evict 4 non-Established flows, A survives).
-    // But memcap=1 is checked after EACH packet and the assertion requires
-    // `memcap > 0`, so memcap=1 is valid.
+    // 5 flows are constructed with 0 data bytes each (handshake packets only,
+    // no memcap pressure during setup). States forced via seam after last packet.
+    // A single OOO data insert into A pushes total > memcap with all 5 flows
+    // present, driving eviction in sort order: B/C/D/E (non-Established) before A.
+    // Each non-Established flow holds 0 bytes → evicting them does not reduce
+    // total_memory → loop continues until A (5 bytes) is also evicted.
+    // Assertion: all 4 non-Established keys appear in close_events at positions
+    // strictly before A's position.
     let config = ReassemblyConfig {
-        max_flows: 100,
-        memcap: 1, // 1 byte: any buffered data triggers eviction
+        max_flows: 100, // no max_flows pressure
+        memcap: 4,      // 5 bytes in A will exceed this and drive eviction
         ..ReassemblyConfig::default()
     };
     let mut reassembler = TcpReassembler::new(config);
@@ -9236,77 +9134,104 @@ fn test_BC_2_04_017_all_non_established_states_evict_first() {
 
     let server = [10, 0, 0, 2];
 
-    // Flow A: Established, last_seen=1.
-    let syn_a = make_tcp_packet(
-        [10, 0, 0, 1],
-        1001,
-        server,
-        80,
-        1000,
-        &[],
-        true,
-        false,
-        false,
-        false,
+    // Flow A: SYN + SYN_ACK → Established, last_seen=1.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            [10, 0, 0, 1],
+            1001,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
     );
-    reassembler.process_packet(&syn_a, 1, &mut handler);
-    let syn_ack_a = make_tcp_packet(
-        server,
-        80,
-        [10, 0, 0, 1],
-        1001,
-        5000,
-        &[],
-        true,
-        true,
-        false,
-        false,
+    reassembler.process_packet(
+        &make_tcp_packet(
+            server,
+            80,
+            [10, 0, 0, 1],
+            1001,
+            5000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
     );
-    reassembler.process_packet(&syn_ack_a, 1, &mut handler);
-    // A is Established, last_seen=1.
+    let key_a = FlowKey::new(
+        IpAddr::V4(Ipv4Addr::from([10, 0, 0, 1])),
+        1001,
+        IpAddr::V4(Ipv4Addr::from(server)),
+        80,
+    );
 
-    // Flow B: SYN → SynSent (no seam needed), last_seen=2.
-    let syn_b = make_tcp_packet(
-        [10, 0, 0, 3],
+    // Flow B: SYN only → SynSent (no seam needed), last_seen=2.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            [10, 0, 0, 3],
+            2002,
+            server,
+            80,
+            2000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        2,
+        &mut handler,
+    );
+    let key_b = FlowKey::new(
+        IpAddr::V4(Ipv4Addr::from([10, 0, 0, 3])),
         2002,
-        server,
+        IpAddr::V4(Ipv4Addr::from(server)),
         80,
-        2000,
-        &[],
-        true,
-        false,
-        false,
-        false,
     );
-    reassembler.process_packet(&syn_b, 2, &mut handler);
 
-    // Flow C: SYN+SYN_ACK → Established, then force to Closing via seam.
-    let syn_c = make_tcp_packet(
-        [10, 0, 0, 4],
-        3003,
-        server,
-        80,
-        3000,
-        &[],
-        true,
-        false,
-        false,
-        false,
+    // Flow C: SYN + SYN_ACK → Established, then forced to Closing via seam, last_seen=3.
+    // force_set_flow_state_for_testing sets only flow.state; buffered bytes are unaffected.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            [10, 0, 0, 4],
+            3003,
+            server,
+            80,
+            3000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        3,
+        &mut handler,
     );
-    reassembler.process_packet(&syn_c, 3, &mut handler);
-    let syn_ack_c = make_tcp_packet(
-        server,
-        80,
-        [10, 0, 0, 4],
-        3003,
-        7000,
-        &[],
-        true,
-        true,
-        false,
-        false,
+    reassembler.process_packet(
+        &make_tcp_packet(
+            server,
+            80,
+            [10, 0, 0, 4],
+            3003,
+            7000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        ),
+        3,
+        &mut handler,
     );
-    reassembler.process_packet(&syn_ack_c, 3, &mut handler);
     let key_c = FlowKey::new(
         IpAddr::V4(Ipv4Addr::from([10, 0, 0, 4])),
         3003,
@@ -9319,40 +9244,40 @@ fn test_BC_2_04_017_all_non_established_states_evict_first() {
         wirerust::reassembly::flow::FlowState::Closing,
     );
 
-    // Flow D: SYN+SYN_ACK → Established, then force to Closed via seam.
-    // Note: process_packet will immediately expire a Closed-state flow (it calls
-    // close_flow on FlowState::Closed flows). So we force state to Closed AFTER
-    // the last packet but trust that no more packets arrive for D.
-    // Actually re-reading process_packet: after apply_handshake_flags and
-    // flush_contiguous_data, it checks if state==Closed and closes immediately.
-    // So to have a Closed flow linger we must force it after building, THEN
-    // NOT send more packets to it.
-    let syn_d = make_tcp_packet(
-        [10, 0, 0, 5],
-        4004,
-        server,
-        80,
-        4000,
-        &[],
-        true,
-        false,
-        false,
-        false,
+    // Flow D: SYN + SYN_ACK → Established, then forced to Closed via seam, last_seen=4.
+    // No further packets are sent to D so process_packet's Closed-state check never fires.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            [10, 0, 0, 5],
+            4004,
+            server,
+            80,
+            4000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        4,
+        &mut handler,
     );
-    reassembler.process_packet(&syn_d, 4, &mut handler);
-    let syn_ack_d = make_tcp_packet(
-        server,
-        80,
-        [10, 0, 0, 5],
-        4004,
-        8000,
-        &[],
-        true,
-        true,
-        false,
-        false,
+    reassembler.process_packet(
+        &make_tcp_packet(
+            server,
+            80,
+            [10, 0, 0, 5],
+            4004,
+            8000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        ),
+        4,
+        &mut handler,
     );
-    reassembler.process_packet(&syn_ack_d, 4, &mut handler);
     let key_d = FlowKey::new(
         IpAddr::V4(Ipv4Addr::from([10, 0, 0, 5])),
         4004,
@@ -9365,118 +9290,129 @@ fn test_BC_2_04_017_all_non_established_states_evict_first() {
         wirerust::reassembly::flow::FlowState::Closed,
     );
 
-    // Flow E: New (just arrived as SYN → SynSent... actually New is the initial state
-    // before any SYN). We build the flow manually: send a data packet without SYN
-    // so the flow is created in New state and data_without_syn transitions it to
-    // Established. Instead, use a SYN→SynSent flow and then force to New.
-    let syn_e = make_tcp_packet(
-        [10, 0, 0, 6],
-        5005,
-        server,
-        80,
-        5000,
-        &[],
-        true,
-        false,
-        false,
-        false,
+    // Flow E: SYN → SynSent, then forced back to New via seam, last_seen=5.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            [10, 0, 0, 6],
+            5005,
+            server,
+            80,
+            5000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        5,
+        &mut handler,
     );
-    reassembler.process_packet(&syn_e, 5, &mut handler);
     let key_e = FlowKey::new(
         IpAddr::V4(Ipv4Addr::from([10, 0, 0, 6])),
         5005,
         IpAddr::V4(Ipv4Addr::from(server)),
         80,
     );
-    // Force E back to New state.
     wirerust::reassembly::lifecycle::force_set_flow_state_for_testing(
         &mut reassembler,
         &key_e,
         wirerust::reassembly::flow::FlowState::New,
     );
 
-    // Precondition: 5 flows in the table.
     assert_eq!(
         reassembler.flow_count(),
         5,
         "precondition: 5 flows (A=Established, B=SynSent, C=Closing, D=Closed, E=New)"
     );
-
-    // Now buffer 2 bytes into flow A (out-of-order) → total=2 > memcap=1 → evict_flows.
-    // Eviction should remove all non-Established flows (B, C, D, E) before touching A.
-    // The evict loop stops when total_memory <= memcap AND flows.len() <= max_flows.
-    // With memcap=1 and 5 flows (total_memory=0 before this insert), after the
-    // out-of-order insert total_memory=2 > 1 → evict. Each non-Established eviction
-    // frees 0 bytes (no buffered data) so the loop keeps going until total_memory<=1.
-    // After evicting B, C, D, E (0 bytes each): total_memory still=2 > 1.
-    // Then A (Established, 2 bytes) is evicted → total_memory=0 <= 1. Loop stops.
-    // This means A might also be evicted. To protect A, give only A buffered bytes
-    // and ensure one non-Established has enough bytes to satisfy the memcap.
-    //
-    // Revised: assign 2 bytes to flow B (out-of-order) instead of A.
-    // Then evicting B (non-Established) frees 2 bytes → total=0 <= 1 → loop stops.
-    // A (Established) survives.
-    //
-    // Problem: we've already established the flows; we need to buffer into B.
-    // B is in SynSent — can we buffer data? SynSent has ISN set from the SYN.
-    // We can send an out-of-order data packet to B (seq > ISN+1).
-    let ooo_b = make_tcp_packet(
-        [10, 0, 0, 3],
-        2002,
-        server,
-        80,
-        2003,
-        &[0xBB; 2],
-        false,
-        false,
-        false,
-        false,
-    );
-    reassembler.process_packet(&ooo_b, 6, &mut handler);
-    // After this insert: total_memory may be 2 (B has 2 bytes buffered).
-    // memcap=1 → 2 > 1 → evict_flows fires right here.
-    // B (non-Established) holds the 2 bytes → evicting B brings total=0 <= 1 → stop.
-    // A (Established) must survive.
-
-    let key_a = FlowKey::new(
-        IpAddr::V4(Ipv4Addr::from([10, 0, 0, 1])),
-        1001,
-        IpAddr::V4(Ipv4Addr::from(server)),
-        80,
-    );
-    let key_b = FlowKey::new(
-        IpAddr::V4(Ipv4Addr::from([10, 0, 0, 3])),
-        2002,
-        IpAddr::V4(Ipv4Addr::from(server)),
-        80,
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "precondition: 0 bytes buffered before data insert (handshake packets only)"
     );
 
-    // At least one of B, C, D, E was evicted (the one holding the bytes = B).
-    let mp_evictions: Vec<_> = handler
+    // Insert 5 bytes OOO into A → total=5 > memcap=4 → evict_flows fires with all 5 present.
+    // Sort: B/C/D/E (non-Established, 0 bytes each) before A (Established, 5 bytes).
+    // Each non-Established eviction frees 0 bytes → loop continues past each until A is hit.
+    // Eviction order in close_events: B, C, D, E, then A.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            [10, 0, 0, 1],
+            1001,
+            server,
+            80,
+            1003,
+            &[0xAA; 5],
+            false,
+            false,
+            false,
+            false,
+        ),
+        6,
+        &mut handler,
+    );
+
+    let mp_events: Vec<_> = handler
         .close_events
         .iter()
         .filter(|(_, r)| *r == CloseReason::MemoryPressure)
         .collect();
-    assert!(
-        !mp_evictions.is_empty(),
-        "AC-012: at least one MemoryPressure eviction must have occurred"
+
+    // All 5 flows must appear in close_events (non-Established can't satisfy memcap alone).
+    assert_eq!(
+        mp_events.len(),
+        5,
+        "AC-012: all 5 flows (4 non-Established + 1 Established) must be evicted"
     );
 
-    // B (SynSent) must be evicted (it held the bytes, was non-Established).
+    // Find A's position in the eviction sequence.
+    let pos_a = handler
+        .close_events
+        .iter()
+        .position(|(k, r)| *k == key_a && *r == CloseReason::MemoryPressure)
+        .expect("AC-012: Established flow A must appear in close_events");
+
+    // Each non-Established state must appear before A (BC-2.04.017 invariant 3).
+    let pos_b = handler
+        .close_events
+        .iter()
+        .position(|(k, r)| *k == key_b && *r == CloseReason::MemoryPressure)
+        .expect("AC-012: SynSent flow B must appear in close_events");
     assert!(
-        mp_evictions.iter().any(|(k, _)| *k == key_b),
-        "AC-012: non-Established flow B (SynSent) must be evicted before Established A"
+        pos_b < pos_a,
+        "AC-012: SynSent flow B (pos={pos_b}) must be evicted before Established flow A (pos={pos_a})"
     );
 
-    // A (Established) must NOT be evicted.
+    let pos_c = handler
+        .close_events
+        .iter()
+        .position(|(k, r)| *k == key_c && *r == CloseReason::MemoryPressure)
+        .expect("AC-012: Closing flow C must appear in close_events");
     assert!(
-        !handler
-            .close_events
-            .iter()
-            .any(|(k, r)| *k == key_a && *r == CloseReason::MemoryPressure),
-        "AC-012: Established flow A must NOT be evicted when non-Established flows with bytes exist"
+        pos_c < pos_a,
+        "AC-012: Closing flow C (pos={pos_c}) must be evicted before Established flow A (pos={pos_a})"
     );
 
+    let pos_d = handler
+        .close_events
+        .iter()
+        .position(|(k, r)| *k == key_d && *r == CloseReason::MemoryPressure)
+        .expect("AC-012: Closed flow D must appear in close_events");
+    assert!(
+        pos_d < pos_a,
+        "AC-012: Closed flow D (pos={pos_d}) must be evicted before Established flow A (pos={pos_a})"
+    );
+
+    let pos_e = handler
+        .close_events
+        .iter()
+        .position(|(k, r)| *k == key_e && *r == CloseReason::MemoryPressure)
+        .expect("AC-012: New flow E must appear in close_events");
+    assert!(
+        pos_e < pos_a,
+        "AC-012: New flow E (pos={pos_e}) must be evicted before Established flow A (pos={pos_a})"
+    );
+
+    // No more packets; finalize is a no-op (all flows already evicted).
     reassembler.finalize(&mut handler);
 }
 
@@ -10106,16 +10042,12 @@ fn test_story_020_ec004_all_established_flows_evict_lru_order() {
 /// EC-011 (below) tests the positive dual-pressure case where A IS evicted
 /// and B IS admitted when total_memory genuinely exceeds memcap.
 #[test]
-fn test_story_020_ec005_single_flow_at_max_evicted_for_new_syn() {
-    // max_flows=1 AND memcap=3 (tight). Flow A buffers 5 bytes (> memcap=3).
-    // When flow B's SYN arrives: get_or_create_flow calls evict_flows because
-    // flows.len()=1 >= max_flows=1. Inside evict_flows:
-    //   total_memory=5 > memcap=3 → loop does NOT break → A is evicted.
-    // After evicting A: total=0 <= 3 AND flows.len()=0 <= 1 → loop stops.
-    // get_or_create_flow re-checks: flows.len()=0 < max_flows=1 → admits B.
+fn test_story_020_ec005_max_flows_only_pressure_drops_new_syn_preserves_established() {
+    // max_flows=1, memcap=3. A buffers exactly 3 bytes (total == memcap; no eviction).
+    // B SYN: evict_flows dual-conjunction exits immediately → A survives, B dropped.
     let config = ReassemblyConfig {
         max_flows: 1,
-        memcap: 3, // tight: forces both max_flows and memcap conditions to drive eviction
+        memcap: 3,
         ..ReassemblyConfig::default()
     };
     let mut reassembler = TcpReassembler::new(config);
@@ -10123,25 +10055,9 @@ fn test_story_020_ec005_single_flow_at_max_evicted_for_new_syn() {
 
     let server = [10, 0, 0, 2];
 
-    // Build flow A (SynSent), buffer 5 bytes so total=5 > memcap=3.
-    // But wait: buffering into A triggers memcap eviction IMMEDIATELY (not on B's arrival).
-    // With 5 bytes buffered: total=5 > memcap=3 → evict_flows fires → A evicted.
-    // No flow present when B arrives.
-    //
-    // We need A to survive until B's SYN. The only way: buffer EXACTLY memcap bytes
-    // into A (total=3 = memcap=3 → no eviction), then have B's SYN NOT add bytes.
-    // But B's SYN is empty → no bytes → total stays 3 = memcap. In get_or_create_flow:
-    // flows.len()=1 >= 1 → evict_flows. total=3 <= 3 AND flows.len()=1 <= 1 → break!
-    // Back to square one: max_flows-only eviction does not fire when total <= memcap.
-    //
-    // The actual testable scenario with memcap=3:
-    // 1. A buffers 3 bytes exactly (total=3 = memcap → no eviction).
-    // 2. B SYN arrives: get_or_create_flow sees flows.len()=1 >= 1 → evict_flows.
-    //    total=3 <= 3 AND flows.len()=1 <= 1 → loop breaks immediately → no eviction.
-    //    Re-check: flows.len()=1 >= 1 → returns false → B dropped.
-    // Per BC-2.04.015 v1.3 Invariant 4 DESIGN INTENT: A stays, B dropped. This is intended behavior — only paired memcap+max_flows pressure can dislodge an Established flow.
-    //
-    // Document actual behavior:
+    // A buffers exactly memcap=3 bytes (total=3 = memcap → strict > not met, no eviction).
+    // Per BC-2.04.015 v1.3 Invariant 4: dual-conjunction termination protects A when
+    // total_memory does not strictly exceed memcap; B's SYN is dropped, not A.
     let syn_a = make_tcp_packet(
         [10, 0, 0, 1],
         11111,
@@ -10209,9 +10125,7 @@ fn test_story_020_ec005_single_flow_at_max_evicted_for_new_syn() {
     );
     reassembler.process_packet(&syn_b, 2, &mut handler);
 
-    // ACTUAL behavior: A survives (not evicted), B was dropped (never created).
-    // ACTUAL behavior per BC-2.04.015 v1.3 Invariant 4 (DESIGN INTENT):
-    // A survives (not evicted), B was dropped (never created).
+    // evict_flows called but terminates immediately (dual-conjunction); A survives, B dropped.
     assert_eq!(
         reassembler.stats().evictions,
         0,
