@@ -226,17 +226,17 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-017:
-    status: pending
+    status: in_progress
     wave: 10
-    branch: null
-    worktree: null
+    branch: worktree-story-017
+    worktree: .worktrees/story-017
     blocked_by: [STORY-015, STORY-016]
 
   STORY-018:
-    status: pending
+    status: in_progress
     wave: 10
-    branch: null
-    worktree: null
+    branch: worktree-story-018
+    worktree: .worktrees/story-018
     blocked_by: [STORY-015, STORY-016]
 
   # ---------------------------------------------------------------------------
