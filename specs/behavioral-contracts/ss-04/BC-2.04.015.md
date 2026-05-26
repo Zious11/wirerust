@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 9 STORY-020 EC-004 correction and EC-005 addition — 2026-05-26"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -55,6 +56,7 @@ both `total_memory <= memcap` AND `flows.len() <= max_flows`.
    `memcap` pressure (in `process_packet` after each packet). Both call the same function.
 2. The sort is computed fresh on each evict_flows call (not cached).
 3. `CloseReason::MemoryPressure` distinguishes eviction closes from RST/FIN/Timeout closes.
+4. DESIGN INTENT: `evict_flows` uses dual-conjunction termination (`total_memory <= memcap AND flows.len() <= max_flows`) deliberately. This protects Established sessions from eviction under max_flows-only pressure when memory budget is ample. Only paired resource pressure (both memcap and max_flows exhausted simultaneously) can evict an Established flow.
 
 ## Edge Cases
 
@@ -63,7 +65,8 @@ both `total_memory <= memcap` AND `flows.len() <= max_flows`.
 | EC-001 | All flows are Established | LRU Established flows evicted; oldest first |
 | EC-002 | All flows are New (no SYN seen) | All are non-Established; LRU evicted first |
 | EC-003 | After eviction, table still at capacity | get_or_create_flow returns false; packet dropped |
-| EC-004 | Single flow in table, max_flows=1, new flow arrives | The one flow is evicted; new flow created |
+| EC-004 | Single flow in table (`max_flows=1`, `total_memory <= memcap`), new flow arrives | evict_flows exits immediately (both PC-5 termination conditions already satisfied); packet dropped (no flow created). max_flows-only pressure without memcap pressure is insufficient to trigger eviction; this protects Established sessions from being dislodged by mere flow-count pressure when memory budget is ample. |
+| EC-005 | Single flow in table with buffered data exceeding memcap (`max_flows=1`, `total_memory > memcap`), new SYN arrives | memcap pressure triggers eviction; existing flow evicted via CloseReason::MemoryPressure; new flow created. Both max_flows AND memcap pressure together can evict Established sessions. |
 
 ## Canonical Test Vectors
 
@@ -129,3 +132,11 @@ both `total_memory <= memcap` AND `flows.len() <= max_flows`.
 
 The sort-then-evict pattern allocates a Vec on every call. For very large flow tables this
 could be optimized, but it is not on the hot path (eviction is rare in normal traffic).
+
+## Changelog
+
+| Version | Date | Author | Notes |
+|---------|------|--------|-------|
+| 1.1 | 2026-05-20 | product-owner | Initial brownfield extraction |
+| 1.2 | 2026-05-21 | product-owner | VP back-reference back-fill (P8-DEFER) |
+| 1.3 | 2026-05-26 | product-owner | Wave 9 STORY-020 implementer investigation: revised EC-004 to match actual implementation (evict_flows is no-op when only max_flows pressure exists without memcap pressure); added EC-005 for dual-pressure case; added DESIGN INTENT invariant (Invariant 4). PC-5 termination condition is correct; EC-004 was the misstatement. |

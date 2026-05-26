@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 9 STORY-016 adversarial pass-1 fix: F-2 — stale architecture-anchor line range corrected from segment.rs:194-198, 223-226 to segment.rs:196 and 225 (line shift from Wave 8 STORY-019 test-seam additions) — 2026-05-26"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -100,7 +101,7 @@ currently in the `segments` BTreeMap. After every insert, flush, or overlap oper
 ## Architecture Anchors
 
 - `src/reassembly/flow.rs:170-177` -- memory_used() with debug_assert for buffered_bytes consistency
-- `src/reassembly/segment.rs:194-198, 223-226` -- buffered_bytes increment sites in insert_segment
+- `src/reassembly/segment.rs:196 and 225` -- buffered_bytes increment sites in insert_segment
 
 ## Source Evidence
 

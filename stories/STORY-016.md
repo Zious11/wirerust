@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-016"
 epic_id: "E-2"
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -13,7 +13,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.038.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.043.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.047.md
-input-hash: "8cc2ec9"
+input-hash: "3f3509b"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-015]
@@ -124,7 +124,7 @@ implementation_strategy: brownfield-formalization
 | ID | Scenario | Expected Behavior |
 |----|----------|-------------------|
 | EC-001 | Exact same seq, exact same bytes | Duplicate |
-| EC-002 | New segment byte range covered by 2 non-contiguous existing segments with matching bytes | Duplicate (via union-coverage path) |
+| EC-002 | New segment byte range covered by 2 adjacent (contiguous) existing segments with matching bytes | Duplicate (via union-coverage path) |
 | EC-003 | Same range, one byte differs | ConflictingOverlap (not Duplicate) |
 | EC-004 | New segment extends existing at the end (append) | PartialOverlap; tail gap bytes appended |
 | EC-005 | New segment extends existing at the start (prepend) | PartialOverlap; head gap bytes prepended |
@@ -195,3 +195,10 @@ implementation_strategy: brownfield-formalization
 | `src/reassembly/segment.rs` | verify (lines 118-212) | Overlap detection and gap-fill logic |
 | `src/reassembly/flow.rs` | verify (lines 170-177) | memory_used() with debug_assert |
 | `tests/reassembly_segment_tests.rs` | modify | Add AC-001 through AC-014 |
+
+## Changelog
+
+| Version | Date | Author | Notes |
+|---------|------|--------|-------|
+| 1.2 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-016 adversarial pass-1 fix: F-1 (HIGH) — corrected EC-002 description from 'non-contiguous' to 'adjacent (contiguous)' to match the actual test setup [1,4)+[4,7); test function renamed in parallel to test_story_016_ec002_adjacent_union_coverage_duplicate; the 'non-contiguous union → Duplicate' outcome was logically impossible (non-contiguous segments create a gap → PartialOverlap, never Duplicate) |
+| 1.1 | 2026-05-21 | story-writer | Initial story version |

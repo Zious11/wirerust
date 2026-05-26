@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 9 STORY-016 adversarial pass-1 fix: F-3 — stale architecture-anchor line range corrected from segment.rs:199-212 to segment.rs:201-212 (line shift from Wave 8 STORY-019 test-seam additions) — 2026-05-26"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -88,7 +89,7 @@ handled by the same `fully_covered` check that handles single-segment coverage.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- multi-segment coverage handling is part of the first-wins overlap policy completeness |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- applies identically to multi-segment coverage as to single-segment coverage) |
-| Architecture Module | SS-04 (reassembly/segment.rs:199-212, C-8) |
+| Architecture Module | SS-04 (reassembly/segment.rs:201-212, C-8) |
 | Stories | STORY-016 |
 | Origin BC | BC-RAS-038 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -100,13 +101,13 @@ handled by the same `fully_covered` check that handles single-segment coverage.
 
 ## Architecture Anchors
 
-- `src/reassembly/segment.rs:199-212` -- the `!had_gap` path returning Duplicate or ConflictingOverlap
+- `src/reassembly/segment.rs:201-212` -- the `!had_gap` path returning Duplicate or ConflictingOverlap
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/segment.rs:199-212` |
+| **Path** | `src/reassembly/segment.rs:201-212` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

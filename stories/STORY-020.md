@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-020"
 epic_id: "E-2"
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.015.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.016.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.017.md
-input-hash: "c859b44"
+input-hash: "6527afc"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-019]
@@ -30,6 +30,13 @@ risk_mitigations: []
 tdd_mode: strict
 implementation_strategy: brownfield-formalization
 ---
+
+## Changelog
+
+| Version | Date | Author | Summary |
+|---------|------|--------|---------|
+| 1.2 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-020 adv-prep fix: revised EC-005 to match BC-2.04.015 v1.3 PC-5 implementation reality (evict_flows is no-op at max_flows without memcap pressure; packet dropped, not evicted); added EC-011 for dual-pressure case; AC-005 already consistent. Coordinated with BC-2.04.015 v1.3 EC-004 revision in same burst. |
+| 1.1 | 2026-05-21 | story-writer | Initial release |
 
 > **tdd_mode:** strict — all ACs must be backed by tests.
 
@@ -124,12 +131,13 @@ implementation_strategy: brownfield-formalization
 | EC-002 | Close flow with buffered data | total_memory -= all buffered bytes in both directions |
 | EC-003 | Zero-length segment insert | total_memory unchanged (empty data early return) |
 | EC-004 | All flows are Established at eviction time | LRU Established flows evicted (oldest first) |
-| EC-005 | Single flow in table at max_flows=1, new SYN arrives | Existing flow evicted; new flow created |
+| EC-005 | Single flow in table (`max_flows=1`, `total_memory <= memcap`), new SYN arrives | evict_flows exits immediately (both PC-5 termination conditions already satisfied); packet dropped, no flow created. max_flows-only pressure without memcap pressure is insufficient to trigger eviction; protects Established sessions when memory budget is ample. |
 | EC-006 | total_memory == memcap exactly | No eviction triggered (strict `>`) |
 | EC-007 | total_memory == memcap + 1 | Eviction triggered |
 | EC-008 | evict_flows with Closing flow + Established flow | Closing (non-Established) evicted first |
 | EC-009 | All flows evicted but still over memcap | Loop exits; total_memory stays over cap; processing continues |
 | EC-010 | finalize closes all flows | total_memory reaches 0 after finalize |
+| EC-011 | Single flow with buffered data > memcap (`max_flows=1`, `total_memory > memcap`), new SYN arrives | Dual pressure triggers eviction; existing flow evicted via CloseReason::MemoryPressure; new flow created |
 
 ## Purity Classification
 
