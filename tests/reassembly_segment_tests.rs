@@ -6,9 +6,10 @@ use wirerust::reassembly::segment::InsertResult;
 //
 // This integration test binary is COMPILED SEPARATELY from
 // reassembly_engine_tests.rs. As a result, the process-global atomics in
-// src/reassembly/segment.rs (e.g., ISN_MISSING_WARNED at segment.rs:53) and
-// src/reassembly/lifecycle.rs (e.g., CLOSE_FLOW_MISSING_WARNED at
-// lifecycle.rs:142) are SEPARATE INSTANCES per test binary — tests in THIS
+// src/reassembly/segment.rs (e.g., ISN_MISSING_WARNED at segment.rs:16
+// (declaration; swap site at :54)) and src/reassembly/lifecycle.rs (e.g.,
+// CLOSE_FLOW_MISSING_WARNED at lifecycle.rs:31 (declaration; swap site at
+// :44)) are SEPARATE INSTANCES per test binary — tests in THIS
 // binary do not race against tests in reassembly_engine_tests.rs.
 //
 // HOWEVER, the sibling-discipline doctrine established in STORY-014

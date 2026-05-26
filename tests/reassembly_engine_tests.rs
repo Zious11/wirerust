@@ -10921,6 +10921,195 @@ fn test_story_020_ec011_dual_pressure_evicts_existing_and_admits_new() {
     reassembler.finalize(&mut handler);
 }
 
+// ---- AC-014 (BC-2.04.015 PC-7): non-contiguous segments discarded on MemoryPressure ----
+
+/// AC-014 (traces to BC-2.04.015 PC-7): Data-delivery semantics under
+/// CloseReason::MemoryPressure — only the contiguous head-of-buffer prefix is
+/// delivered via on_data; non-contiguous buffered segments are silently discarded.
+///
+/// Canonical test vector (from BC-2.04.015 v1.5 line 87): flow with 5 contiguous
+/// bytes [0..5) already flushed in-order + 5 non-contiguous bytes [10..15) buffered
+/// (gap at [5..10) blocks delivery); evicted via MemoryPressure →
+/// on_data NOT called for [10..15); those bytes are discarded silently.
+///
+/// Mechanism: `close_flow` calls `flush_contiguous()` which advances from
+/// `base_offset` and stops at the first gap — the non-contiguous segment at
+/// offset 10 is never reached and is dropped when the flow is removed.
+///
+/// Wave-9 pass-2 adversarial finding F-W9P2-003: no prior test exercised PC-7.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_015_pc7_non_contiguous_segments_discarded_on_memory_pressure_eviction() {
+    // memcap=4: after the in-order flush, 5 non-contiguous bytes remain buffered
+    // (total_memory=5 > memcap=4) → evict_flows fires on the next packet.
+    let config = ReassemblyConfig {
+        memcap: 4,
+        max_flows: 100,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client_a = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+    let client_isn: u32 = 1000;
+
+    // Establish flow A (SYN + SYN-ACK → Established; base_offset=1 for client dir).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client_a,
+            11111,
+            server,
+            80,
+            client_isn,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_tcp_packet(
+            server,
+            80,
+            client_a,
+            11111,
+            5000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        ),
+        2,
+        &mut handler,
+    );
+
+    // Insert 5 in-order bytes at seq=client_isn+1 (offset=1 == base_offset) →
+    // flush_contiguous fires immediately; base_offset advances to 6; total_memory=0.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client_a,
+            11111,
+            server,
+            80,
+            client_isn.wrapping_add(1),
+            &[0xAA; 5],
+            false,
+            false,
+            false,
+            false,
+        ),
+        3,
+        &mut handler,
+    );
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "precondition: in-order bytes flushed immediately, total_memory=0"
+    );
+
+    // Count data_events for flow A so far (should be 1 event with 5 bytes).
+    let key_a = FlowKey::new(
+        IpAddr::V4(Ipv4Addr::from(client_a)),
+        11111,
+        IpAddr::V4(Ipv4Addr::from(server)),
+        80,
+    );
+    let pre_eviction_delivered: usize = handler
+        .data_events
+        .iter()
+        .filter(|(k, _, _, _)| *k == key_a)
+        .map(|(_, _, data, _)| data.len())
+        .sum();
+    assert_eq!(
+        pre_eviction_delivered, 5,
+        "precondition: exactly 5 bytes delivered before eviction"
+    );
+
+    // Insert 5 non-contiguous bytes at seq=client_isn+11 (offset=11; gap at 6..11) →
+    // buffered; total_memory=5 > memcap=4 → evict_flows fires immediately after
+    // this process_packet call; flow A evicted with CloseReason::MemoryPressure.
+    //
+    // close_flow calls flush_contiguous() starting at base_offset=6; no segment
+    // at offset 6 → returns empty; bytes at offset 11 are DISCARDED (PC-7).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client_a,
+            11111,
+            server,
+            80,
+            client_isn.wrapping_add(11),
+            &[0xBB; 5],
+            false,
+            false,
+            false,
+            false,
+        ),
+        4,
+        &mut handler,
+    );
+
+    // BC-2.04.015 PC-4: flow A evicted with MemoryPressure.
+    assert!(
+        handler
+            .close_events
+            .iter()
+            .any(|(k, r)| *k == key_a && *r == CloseReason::MemoryPressure),
+        "BC-2.04.015 PC-4: flow A must be evicted with CloseReason::MemoryPressure"
+    );
+
+    // BC-2.04.015 PC-7 (KEY ASSERTION): the TOTAL bytes delivered for flow A
+    // must be exactly 5 (the in-order prefix). The non-contiguous [0xBB; 5]
+    // at offset 11 must NOT appear in data_events — they are silently discarded.
+    //
+    // If close_flow incorrectly flushed all buffered bytes (not just the
+    // contiguous prefix), total_delivered would be 10.
+    let total_delivered: usize = handler
+        .data_events
+        .iter()
+        .filter(|(k, _, _, _)| *k == key_a)
+        .map(|(_, _, data, _)| data.len())
+        .sum();
+    assert_eq!(
+        total_delivered, 5,
+        "BC-2.04.015 PC-7: only contiguous head-of-buffer prefix (5 bytes) \
+         must be delivered; non-contiguous bytes at offset 11 must be discarded \
+         silently (got {} bytes — expected 5)",
+        total_delivered
+    );
+
+    // Confirm none of the 0xBB bytes appear in any on_data callback for flow A.
+    let has_bb_bytes = handler
+        .data_events
+        .iter()
+        .filter(|(k, _, _, _)| *k == key_a)
+        .any(|(_, _, data, _)| data.contains(&0xBB));
+    assert!(
+        !has_bb_bytes,
+        "BC-2.04.015 PC-7: 0xBB bytes (non-contiguous segment) must not \
+         appear in any on_data callback — they must be discarded on eviction"
+    );
+
+    // BC-2.04.014 PC-4: joint invariant holds post-eviction.
+    assert_eq!(
+        reassembler.total_memory(),
+        reassembler.flows_memory_sum_for_testing(),
+        "BC-2.04.014 PC-4: total_memory == flows_memory_sum_for_testing() \
+         after MemoryPressure eviction (PC-7 path)"
+    );
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "BC-2.04.015 PC-7: total_memory must be 0 after flow A evicted"
+    );
+
+    reassembler.finalize(&mut handler);
+}
+
 // ---- AC-004 proptest (BC-2.04.014 postcondition 4 + invariant 2) -----------
 
 /// AC-004 proptest: For any random sequence of SYN / DATA / FLUSH / CLOSE
