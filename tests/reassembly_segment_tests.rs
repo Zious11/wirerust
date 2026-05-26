@@ -393,3 +393,383 @@ fn test_isn_missing_returns_isn_missing() {
     assert!(dir.segments_is_empty()); // No data inserted
     assert_eq!(dir.buffered_bytes(), 0);
 }
+
+// =============================================================================
+// STORY-015: BC-2.04.033 — Single Segment Insertion
+// =============================================================================
+
+/// BC-2.04.033 PC1–PC2: Single non-overlapping, in-window segment insertion
+/// returns Inserted and stores the segment at its ISN-relative offset.
+/// Canonical vector: ISN=1000, seq=1001, data=b"hello" → offset=1, result=Inserted.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_033_single_segment_insert_returns_inserted() {
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let result = dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 10_485_760);
+
+    assert_eq!(
+        result,
+        InsertResult::Inserted,
+        "BC-2.04.033 PC1: insert_segment must return Inserted for a clean, non-overlapping segment"
+    );
+    // BC-2.04.033 PC2: stored under ISN-relative offset key = seq - isn = 1.
+    assert_eq!(
+        dir.segment_at(1),
+        Some(b"hello".as_slice()),
+        "BC-2.04.033 PC2: segment must be stored at ISN-relative offset 1"
+    );
+    assert_eq!(
+        dir.segment_count(),
+        1,
+        "BC-2.04.033 PC2: exactly one segment in the BTreeMap"
+    );
+}
+
+/// BC-2.04.033 PC3: buffered_bytes increases by data.len() after a successful
+/// single-segment insertion.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_033_buffered_bytes_increments_after_insert() {
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(999);
+
+    assert_eq!(
+        dir.buffered_bytes(),
+        0,
+        "BC-2.04.033 PC3: buffered_bytes starts at 0"
+    );
+
+    // Canonical vector: ISN=999, seq=1000, data=b"AB" → offset=1, buffered_bytes=2.
+    dir.insert_segment(1000, b"AB", 10_485_760, 10_000, 10_485_760);
+
+    assert_eq!(
+        dir.buffered_bytes(),
+        2,
+        "BC-2.04.033 PC3: buffered_bytes must increase by data.len() == 2 after insert"
+    );
+}
+
+// =============================================================================
+// STORY-015: BC-2.04.034 — flush_contiguous Consumes from base_offset in Order
+// =============================================================================
+
+/// BC-2.04.034 PC2–PC3: flush_contiguous() decrements buffered_bytes and
+/// advances base_offset by exactly the total flushed bytes.
+/// Also verifies reassembled_bytes increments (BC-2.04.034 PC2).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_034_flush_contiguous_accounting() {
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(0);
+    // Insert 5 bytes at offset 1 (seq=1 with ISN=0).
+    dir.insert_segment(1, b"hello", 10_485_760, 10_000, 10_485_760);
+
+    let pre_buffered = dir.buffered_bytes();
+    let pre_base = dir.base_offset;
+    let pre_reassembled = dir.reassembled_bytes;
+
+    assert_eq!(
+        pre_buffered, 5,
+        "BC-2.04.034 pre-flush: buffered_bytes must be 5"
+    );
+
+    let flushed = dir.flush_contiguous();
+
+    assert_eq!(flushed.len(), 1, "BC-2.04.034: exactly one segment flushed");
+    assert_eq!(
+        dir.buffered_bytes(),
+        0,
+        "BC-2.04.034 PC2: buffered_bytes must decrement to 0 after flushing all 5 bytes"
+    );
+    assert_eq!(
+        dir.base_offset,
+        pre_base + 5,
+        "BC-2.04.034 PC3: base_offset must advance by exactly 5 (total flushed bytes)"
+    );
+    assert_eq!(
+        dir.reassembled_bytes,
+        pre_reassembled + 5,
+        "BC-2.04.034 PC2: reassembled_bytes must increment by 5"
+    );
+}
+
+/// BC-2.04.034 PC4: When no segment exists at base_offset, flush_contiguous()
+/// returns an empty Vec and leaves base_offset unchanged.
+/// Canonical vector: segments={5: "XY"}, base_offset=0 (gap) → [] returned, base_offset=0.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_034_flush_contiguous_empty_when_no_segment_at_base() {
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(0);
+    // Insert segment at offset 5 — leaves gap at offset 0 (base_offset).
+    dir.insert_segment(5, b"XY", 10_485_760, 10_000, 10_485_760);
+
+    let pre_base = dir.base_offset;
+
+    let flushed = dir.flush_contiguous();
+
+    assert!(
+        flushed.is_empty(),
+        "BC-2.04.034 PC4: flush_contiguous must return empty Vec when no segment at base_offset"
+    );
+    assert_eq!(
+        dir.base_offset, pre_base,
+        "BC-2.04.034 PC4: base_offset must not change when no segment at base_offset"
+    );
+    assert_eq!(
+        dir.buffered_bytes(),
+        2,
+        "BC-2.04.034 PC4: buffered segment (\"XY\") must remain in buffer"
+    );
+}
+
+/// BC-2.04.034 PC3 (ordering): flush_contiguous() returns segments in
+/// ascending offset order regardless of insertion order.
+/// Discriminating vector: insert at offsets 10, 20, 30 (via ISN-relative seqs)
+/// in insertion order 30, 10, 20; flush must return [(10,"A"),(20,"B"),(30,"C")].
+/// A HashMap or insertion-order store would return a different order.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_034_flush_contiguous_returns_ordered_segments() {
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    // ISN=0 so seq == offset directly.
+    dir.set_isn(0);
+
+    // Insert contiguous segments at seq 10, 11, 12 (offsets 10, 11, 12)
+    // in intentionally out-of-insertion order: 12 first, then 10, then 11.
+    // After flush each call returns one byte; use 1-byte segments for clarity.
+    dir.insert_segment(12, b"C", 10_485_760, 10_000, 10_485_760);
+    dir.insert_segment(10, b"A", 10_485_760, 10_000, 10_485_760);
+    dir.insert_segment(11, b"B", 10_485_760, 10_000, 10_485_760);
+
+    // base_offset == 0, first gap is at 0-9; no flush possible yet.
+    // Now insert segments at offsets 0..9 to allow contiguous flush.
+    // Simplest: just set ISN=9 and use seqs 10,11,12 → offsets 1,2,3.
+    // Actually easier: re-create with ISN=9 so first segment starts at base.
+    let mut dir2 = wirerust::reassembly::flow::FlowDirection::new();
+    dir2.set_isn(9);
+    // Offsets: seq=12 → 3, seq=10 → 1, seq=11 → 2. Insert out-of-order.
+    dir2.insert_segment(12, b"C", 10_485_760, 10_000, 10_485_760);
+    dir2.insert_segment(10, b"A", 10_485_760, 10_000, 10_485_760);
+    dir2.insert_segment(11, b"B", 10_485_760, 10_000, 10_485_760);
+
+    let flushed = dir2.flush_contiguous();
+
+    // All three segments are contiguous starting from base_offset=1; all flushed.
+    assert_eq!(
+        flushed.len(),
+        3,
+        "BC-2.04.034 PC3: three contiguous segments must all be flushed"
+    );
+    assert_eq!(
+        flushed[0].0, 1,
+        "BC-2.04.034 PC3: first flushed segment must have offset 1 (ascending order)"
+    );
+    assert_eq!(
+        flushed[0].1, b"A",
+        "BC-2.04.034 PC3: first flushed data must be 'A' (offset 1)"
+    );
+    assert_eq!(
+        flushed[1].0, 2,
+        "BC-2.04.034 PC3: second flushed segment must have offset 2"
+    );
+    assert_eq!(
+        flushed[1].1, b"B",
+        "BC-2.04.034 PC3: second flushed data must be 'B' (offset 2)"
+    );
+    assert_eq!(
+        flushed[2].0, 3,
+        "BC-2.04.034 PC3: third flushed segment must have offset 3"
+    );
+    assert_eq!(
+        flushed[2].1, b"C",
+        "BC-2.04.034 PC3: third flushed data must be 'C' (offset 3)"
+    );
+}
+
+// =============================================================================
+// STORY-015: BC-2.04.039 — TCP Sequence Wraparound
+// =============================================================================
+
+/// BC-2.04.039 PC1: seq.wrapping_sub(isn) as u64 correctly computes the
+/// monotonically-increasing byte offset even when the TCP sequence number
+/// wraps around u32::MAX.
+/// Discriminating vector: ISN=u32::MAX-2; seq=u32::MAX-1 → offset=1;
+/// seq=0 (wrapped) → offset=3; seq=2 → offset=5.
+/// A regression to plain seq-isn arithmetic (without wrapping_sub) would produce
+/// offsets near u64::MAX for the wrapped values.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_039_sequence_wraparound_correct_offsets() {
+    let isn: u32 = u32::MAX - 2;
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(isn);
+
+    // seq = ISN+1 = u32::MAX-1 → offset = 1
+    let r1 = dir.insert_segment(u32::MAX - 1, b"A", 10_485_760, 10_000, 10_485_760);
+    assert_eq!(
+        r1,
+        InsertResult::Inserted,
+        "BC-2.04.039 PC1: first segment must insert"
+    );
+    assert_eq!(
+        dir.segment_at(1),
+        Some(b"A".as_slice()),
+        "BC-2.04.039 PC1: seq=u32::MAX-1 with ISN=u32::MAX-2 → ISN-relative offset must be 1"
+    );
+
+    // seq = ISN+3 = u32::MAX+1 = 0 (wrapped) → offset = 3
+    let r2 = dir.insert_segment(0, b"B", 10_485_760, 10_000, 10_485_760);
+    assert_eq!(
+        r2,
+        InsertResult::Inserted,
+        "BC-2.04.039 PC1: wrapped segment must insert"
+    );
+    assert_eq!(
+        dir.segment_at(3),
+        Some(b"B".as_slice()),
+        "BC-2.04.039 PC1: seq=0 (wrapped past u32::MAX) with ISN=u32::MAX-2 → offset must be 3"
+    );
+
+    // seq = ISN+5 = 2 (wrapped) → offset = 5
+    let r3 = dir.insert_segment(2, b"C", 10_485_760, 10_000, 10_485_760);
+    assert_eq!(
+        r3,
+        InsertResult::Inserted,
+        "BC-2.04.039 PC1: double-wrapped segment must insert"
+    );
+    assert_eq!(
+        dir.segment_at(5),
+        Some(b"C".as_slice()),
+        "BC-2.04.039 PC1: seq=2 (double wrap) with ISN=u32::MAX-2 → offset must be 5"
+    );
+}
+
+/// BC-2.04.039 PC3: After wraparound, flush_contiguous delivers wrapped
+/// segments in the correct byte order regardless of arrival order.
+/// Discriminating: insert wrapped segments out-of-arrival-order; assert flush
+/// delivers in offset order (1,3), not arrival order (3,1).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_039_flush_delivers_wrapped_segments_in_order() {
+    let isn: u32 = u32::MAX - 2;
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(isn);
+
+    // Insert in reverse arrival order: seq=0 (offset=3) first, seq=u32::MAX-1
+    // (offset=1) second. Flush must deliver offset=1 before offset=3.
+    let r_later = dir.insert_segment(0, b"B", 10_485_760, 10_000, 10_485_760);
+    assert_eq!(r_later, InsertResult::Inserted);
+
+    // base_offset starts at 0; segment at offset=3 is buffered (gap at 0,1,2).
+    // No flush yet.
+    let flushed_empty = dir.flush_contiguous();
+    assert!(
+        flushed_empty.is_empty(),
+        "BC-2.04.039 PC3: gap at offset 0 must prevent flush of offset-3 segment"
+    );
+
+    // Now insert segment at offset=1 (seq=u32::MAX-1) — this is immediately contiguous.
+    let r_first = dir.insert_segment(u32::MAX - 1, b"A", 10_485_760, 10_000, 10_485_760);
+    assert_eq!(r_first, InsertResult::Inserted);
+
+    // Flush: segment A (offset=1) flushed; then offset=2 is missing (gap before B at offset=3).
+    let flushed = dir.flush_contiguous();
+
+    assert_eq!(
+        flushed.len(),
+        1,
+        "BC-2.04.039 PC3: only contiguous prefix (offset=1) flushed; gap at offset=2 stops flush"
+    );
+    assert_eq!(
+        flushed[0].0, 1,
+        "BC-2.04.039 PC3: flushed segment must have ISN-relative offset 1"
+    );
+    assert_eq!(
+        flushed[0].1, b"A",
+        "BC-2.04.039 PC3: flushed data must be 'A' (the offset-1 segment)"
+    );
+
+    // Insert segment at offset=2 (seq=u32::MAX) to bridge the gap; now B at offset=3 flushes.
+    let r_bridge = dir.insert_segment(u32::MAX, b"X", 10_485_760, 10_000, 10_485_760);
+    assert_eq!(r_bridge, InsertResult::Inserted);
+
+    let flushed2 = dir.flush_contiguous();
+    assert_eq!(
+        flushed2.len(),
+        2,
+        "BC-2.04.039 PC3: bridge segment and B must both flush after gap filled"
+    );
+    assert_eq!(
+        flushed2[0].0, 2,
+        "BC-2.04.039 PC3: bridge at offset=2 must come first"
+    );
+    assert_eq!(
+        flushed2[1].0, 3,
+        "BC-2.04.039 PC3: 'B' segment at offset=3 must come second"
+    );
+    assert_eq!(
+        flushed2[1].1, b"B",
+        "BC-2.04.039 PC3: second flushed data must be 'B'"
+    );
+}
+
+// =============================================================================
+// STORY-015: BC-2.04.007 inv-3 — base_offset is monotonically non-decreasing
+// VP-011 proptest
+// =============================================================================
+
+use proptest::prelude::*;
+
+#[derive(Debug, Clone)]
+enum SegOp {
+    Insert { seq_delta: u32, len: u8 },
+    Flush,
+}
+
+fn seg_op_strategy() -> impl Strategy<Value = SegOp> {
+    prop_oneof![
+        (0u32..20u32, 1u8..16u8).prop_map(|(delta, len)| SegOp::Insert {
+            seq_delta: delta,
+            len
+        }),
+        Just(SegOp::Flush),
+    ]
+}
+
+proptest! {
+    /// VP-011 / BC-2.04.007 inv-3: base_offset is monotonically non-decreasing
+    /// across any sequence of Insert and Flush operations.
+    /// Strategy generates up to 20 ops per case; asserts base_offset never
+    /// decreases between consecutive observations.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_04_007_base_offset_is_monotonic(ops in proptest::collection::vec(seg_op_strategy(), 1..=20)) {
+        let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+        let isn: u32 = 1000;
+        dir.set_isn(isn);
+
+        let mut prev_base: u64 = dir.base_offset;
+        for op in &ops {
+            match op {
+                SegOp::Insert { seq_delta, len } => {
+                    let seq = isn.wrapping_add(*seq_delta).wrapping_add(1);
+                    let data = vec![0u8; *len as usize];
+                    let _ = dir.insert_segment(seq, &data, 10_485_760, 10_000, 10_485_760);
+                }
+                SegOp::Flush => {
+                    let _ = dir.flush_contiguous();
+                }
+            }
+            assert!(
+                dir.base_offset >= prev_base,
+                "BC-2.04.007 inv-3: base_offset decreased from {} to {} — monotonicity violated",
+                prev_base,
+                dir.base_offset
+            );
+            prev_base = dir.base_offset;
+        }
+    }
+}
