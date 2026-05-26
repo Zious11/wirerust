@@ -6755,3 +6755,1147 @@ fn test_BC_2_04_029_ec010_close_flow_for_existing_key_is_normal() {
     );
     assert_eq!(reassembler.total_memory(), 0);
 }
+
+// =============================================================================
+// STORY-015: BC-2.04.006 — Bidirectional Data with Direction Tag
+// =============================================================================
+
+/// BC-2.04.006 PC1: handler.on_data is called with direction == ClientToServer
+/// for bytes originating from the initiator endpoint.
+/// Canonical vector: SYN from C, SYN+ACK from S, data from C → on_data tagged ClientToServer.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_006_client_to_server_data_tagged_correctly() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN from client sets initiator to client.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+    // SYN+ACK from server (engine sets initiator to dst = client).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            server,
+            80,
+            client,
+            5000,
+            2000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        ),
+        2,
+        &mut handler,
+    );
+    // Data from client (seq=1001, 3 bytes).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1001, b"abc", false, true, false, false,
+        ),
+        3,
+        &mut handler,
+    );
+
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "BC-2.04.006 PC1: exactly one on_data event expected"
+    );
+    assert_eq!(
+        handler.data_events[0].1,
+        Direction::ClientToServer,
+        "BC-2.04.006 PC1: direction must be ClientToServer for data from initiator"
+    );
+    assert_eq!(
+        handler.data_events[0].2, b"abc",
+        "BC-2.04.006 PC1: data content must match"
+    );
+}
+
+/// BC-2.04.006 PC2: handler.on_data is called with direction == ServerToClient
+/// for bytes originating from the responder endpoint.
+/// Canonical vector: SYN from C, SYN+ACK from S, data from S → on_data tagged ServerToClient.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_006_server_to_client_data_tagged_correctly() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN from client.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+    // SYN+ACK from server — engine sets initiator to dst = client.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            server,
+            80,
+            client,
+            5000,
+            2000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        ),
+        2,
+        &mut handler,
+    );
+    // Data from server (seq=2001, 4 bytes).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            server, 80, client, 5000, 2001, b"wxyz", false, true, false, false,
+        ),
+        3,
+        &mut handler,
+    );
+
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "BC-2.04.006 PC2: exactly one on_data event expected"
+    );
+    assert_eq!(
+        handler.data_events[0].1,
+        Direction::ServerToClient,
+        "BC-2.04.006 PC2: direction must be ServerToClient for data from responder"
+    );
+    assert_eq!(
+        handler.data_events[0].2, b"wxyz",
+        "BC-2.04.006 PC2: data content must match"
+    );
+}
+
+/// BC-2.04.006 PC3: The offset parameter in each on_data call is the
+/// ISN-relative stream offset of the first byte of that chunk.
+/// Discriminating vector: SYN at seq=1000 sets ISN=1000, base_offset=1.
+/// First data at seq=1001 → offset = seq.wrapping_sub(isn) = 1001-1000 = 1.
+/// The offset must be 1, not the raw sequence number 1001.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_006_on_data_offset_is_isn_relative() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN at seq=1000 → ISN=1000, base_offset=1 for client_to_server direction.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+    // Data at seq=1001 (3 bytes, contiguous at base_offset=1):
+    // ISN-relative offset = seq.wrapping_sub(ISN) = 1001 - 1000 = 1.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1001, b"abc", false, true, false, false,
+        ),
+        2,
+        &mut handler,
+    );
+
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "BC-2.04.006 PC3: one on_data event expected"
+    );
+    assert_eq!(
+        handler.data_events[0].3, 1u64,
+        "BC-2.04.006 PC3: offset must be ISN-relative: seq(1001) - ISN(1000) = 1, not the raw seq 1001"
+    );
+    assert_eq!(
+        handler.data_events[0].2, b"abc",
+        "BC-2.04.006 PC3: data content must match"
+    );
+}
+
+/// BC-2.04.006 PC4: stats.bytes_reassembled increments by the total bytes
+/// across all on_data calls in both directions.
+/// Snapshot-and-delta: takes snapshot before, sends 3 c2s bytes + 4 s2c bytes,
+/// asserts exact delta == 7.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_006_bytes_reassembled_counts_both_directions() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Establish flow.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+
+    let stats_before = reassembler.stats().bytes_reassembled;
+
+    // 3 bytes c2s (seq=1001).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1001, b"abc", false, true, false, false,
+        ),
+        2,
+        &mut handler,
+    );
+    // 4 bytes s2c (seq=2001, mid-stream: ISN inferred as 2001-1=2000).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            server, 80, client, 5000, 2001, b"wxyz", false, true, false, false,
+        ),
+        3,
+        &mut handler,
+    );
+
+    let stats_after = reassembler.stats().bytes_reassembled;
+
+    assert_eq!(
+        stats_after,
+        stats_before + 7,
+        "BC-2.04.006 PC4: bytes_reassembled must increment by exactly 3+4=7 across both directions"
+    );
+    assert_eq!(
+        handler.data_events.len(),
+        2,
+        "BC-2.04.006 PC4: exactly two on_data events (one per direction)"
+    );
+}
+
+/// BC-2.04.006 inv-2: Client-to-server and server-to-client buffers are fully
+/// independent; flushing one direction never drains the other.
+/// Setup: SYN sets c2s ISN=1000. SYN-ACK sets s2c ISN=2000. Buffer OOO
+/// segments in both directions (neither contiguous). Then fill c2s gap only
+/// → c2s flushed; s2c still fully blocked.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_006_directions_are_independent() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Full handshake so both ISNs are set via SYN/SYN-ACK (no mid-stream inference).
+    // SYN from client: c2s ISN=1000, base_offset=1.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+    // SYN-ACK from server: s2c ISN=2000, base_offset=1.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            server,
+            80,
+            client,
+            5000,
+            2000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        ),
+        2,
+        &mut handler,
+    );
+
+    // Buffer c2s OOO: seq=1004 (offset=4, gap at 1-3).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1004, b"GHI", false, true, false, false,
+        ),
+        3,
+        &mut handler,
+    );
+    // Buffer s2c OOO: seq=2005 (offset=5, gap at 1-4).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            server, 80, client, 5000, 2005, b"WXYZ", false, true, false, false,
+        ),
+        4,
+        &mut handler,
+    );
+
+    // Both are OOO — no flush yet.
+    assert_eq!(
+        handler.data_events.len(),
+        0,
+        "BC-2.04.006 inv-2: neither direction should flush with a gap"
+    );
+
+    // Fill c2s gap: seq=1001 (3 bytes) makes offsets 1,2,3 contiguous, but
+    // seq=1004 is at offset 4; fill with seq=1001 (1 byte) to advance base to 2,
+    // then 1002, 1003 to reach 1004. Simpler: send one 3-byte fill at seq=1001
+    // so offsets 1,2,3 are filled → then 1004 (offset=4) is contiguous.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1001, b"ABC", false, true, false, false,
+        ),
+        5,
+        &mut handler,
+    );
+
+    // c2s now has ABC (offset=1, 3 bytes) feeding into GHI (offset=4); after ABC
+    // flushes, base_offset advances to 4 where GHI is contiguous, so the entire
+    // chain flushes in one go.
+
+    let c2s_events: Vec<_> = handler
+        .data_events
+        .iter()
+        .filter(|(_, dir, _, _)| *dir == Direction::ClientToServer)
+        .collect();
+    let s2c_events: Vec<_> = handler
+        .data_events
+        .iter()
+        .filter(|(_, dir, _, _)| *dir == Direction::ServerToClient)
+        .collect();
+
+    assert!(
+        !c2s_events.is_empty(),
+        "BC-2.04.006 inv-2: c2s must have flushed after gap was filled"
+    );
+    assert_eq!(
+        s2c_events.len(),
+        0,
+        "BC-2.04.006 inv-2: s2c must NOT have been flushed when only c2s gap was filled — directions are independent"
+    );
+}
+
+// =============================================================================
+// STORY-015: BC-2.04.007 — In-Order Data Flushes Contiguously
+// =============================================================================
+
+/// BC-2.04.007 PC1, PC3: When a segment arrives at exactly base_offset,
+/// flush_contiguous_data removes all contiguous segments and delivers them
+/// via on_data, and stats.bytes_reassembled increments by the total flushed bytes.
+/// The ISN-relative offset in on_data is governed by BC-2.04.006 PC3.
+/// Canonical vector: SYN at seq=1000; data at seq=1001 (immediately in-order).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_007_in_order_segment_flushed_immediately() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+
+    let bytes_before = reassembler.stats().bytes_reassembled;
+
+    // In-order data at seq=1001 (offset=1, contiguous with base_offset=1).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1001, b"hello", false, true, false, false,
+        ),
+        2,
+        &mut handler,
+    );
+
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "BC-2.04.007 PC1: in-order segment must be immediately delivered via on_data"
+    );
+    assert_eq!(
+        handler.data_events[0].2, b"hello",
+        "BC-2.04.007 PC1: delivered data must match the inserted segment"
+    );
+    assert_eq!(
+        handler.data_events[0].3, 1u64,
+        "BC-2.04.006 PC3: offset must be ISN-relative (1 = seq 1001 - ISN 1000)"
+    );
+    assert_eq!(
+        reassembler.stats().bytes_reassembled,
+        bytes_before + 5,
+        "BC-2.04.007 PC3: bytes_reassembled must advance by 5 (total flushed bytes)"
+    );
+}
+
+/// BC-2.04.007 inv-1: Segments at offsets beyond the first gap are NOT flushed;
+/// only the contiguous prefix from base_offset is consumed.
+/// Discriminating: send in-order segment (offset=1), then OOO segment (offset=4,
+/// gap at offset=4). Only the in-order bytes are flushed; the OOO segment stays buffered.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_007_gap_halts_flush() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN: ISN=1000.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+
+    // In-order segment: seq=1001, 3 bytes → offset=1 (contiguous at base_offset).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1001, b"abc", false, true, false, false,
+        ),
+        2,
+        &mut handler,
+    );
+
+    // OOO segment: seq=1007, 3 bytes → offset=7 (gap at offset=4,5,6).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1007, b"xyz", false, true, false, false,
+        ),
+        3,
+        &mut handler,
+    );
+
+    // Only the in-order segment (offset=1) should have been delivered; OOO is buffered.
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "BC-2.04.007 inv-1: only the in-order contiguous prefix must be flushed; gap halts flush"
+    );
+    assert_eq!(
+        handler.data_events[0].2, b"abc",
+        "BC-2.04.007 inv-1: flushed data must be 'abc' (the contiguous prefix)"
+    );
+    // The OOO bytes must NOT appear in any on_data event.
+    let all_delivered: Vec<u8> = handler
+        .data_events
+        .iter()
+        .flat_map(|(_, _, d, _)| d.iter().copied())
+        .collect();
+    assert!(
+        !all_delivered.contains(&b'x'),
+        "BC-2.04.007 inv-1: 'xyz' (beyond gap) must NOT have been delivered via on_data"
+    );
+}
+
+// =============================================================================
+// STORY-015: BC-2.04.008 — OOO Segments Buffer Until Gap Filled
+// =============================================================================
+
+/// BC-2.04.008 PC1–PC4: When a segment arrives ahead of base_offset (gap),
+/// it is stored in the BTreeMap but NOT delivered. buffered_bytes increases;
+/// on_data is NOT called.
+/// Discriminating: expect data_events.len() == 0 and total_memory > 0.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_008_out_of_order_segment_buffered_not_delivered() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN: ISN=1000.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+
+    let memory_before = reassembler.total_memory();
+
+    // OOO segment: seq=1004 (offset=4), gap at offsets 1-3.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1004, b"def", false, true, false, false,
+        ),
+        2,
+        &mut handler,
+    );
+
+    // BC-2.04.008 PC4: on_data must NOT be called for an OOO segment.
+    assert_eq!(
+        handler.data_events.len(),
+        0,
+        "BC-2.04.008 PC4: on_data must NOT be called for OOO segment with gap"
+    );
+    // BC-2.04.008 PC2-3: buffered_bytes/total_memory increases by exactly 3 bytes ("def").
+    assert_eq!(
+        reassembler.total_memory(),
+        memory_before + 3,
+        "BC-2.04.008 PC2+PC3: exactly 3 bytes (the OOO segment) added to buffer accounting"
+    );
+}
+
+/// BC-2.04.008 PC5: When a later segment fills the gap, flush_contiguous
+/// delivers both the fill segment and all previously-buffered contiguous
+/// segments in ISN-relative order.
+/// Canonical vector: segments arrive as [3,2,1]; assert flush delivers bytes in order [1,2,3].
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_008_gap_fill_delivers_all_contiguous() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN: ISN=1000.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+
+    // Segment 3: seq=1007, data="ccc" (offset=7 — OOO).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1007, b"ccc", false, true, false, false,
+        ),
+        2,
+        &mut handler,
+    );
+    // Segment 2: seq=1004, data="bbb" (offset=4 — OOO, gap at 1-3 still).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1004, b"bbb", false, true, false, false,
+        ),
+        3,
+        &mut handler,
+    );
+
+    // Neither should have flushed yet.
+    assert_eq!(
+        handler.data_events.len(),
+        0,
+        "BC-2.04.008 PC5: neither OOO segment should have been delivered before gap fill"
+    );
+
+    // Segment 1: seq=1001, data="aaa" (offset=1 — fills gap; now all contiguous).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1001, b"aaa", false, true, false, false,
+        ),
+        4,
+        &mut handler,
+    );
+
+    // All three should now be delivered in ISN-relative order.
+    let all_bytes: Vec<u8> = handler
+        .data_events
+        .iter()
+        .flat_map(|(_, _, d, _)| d.iter().copied())
+        .collect();
+
+    assert_eq!(
+        all_bytes, b"aaabbbccc",
+        "BC-2.04.008 PC5: fill segment must cause flush of all contiguous segments in order"
+    );
+
+    // Verify offsets are ascending across events.
+    let offsets: Vec<u64> = handler.data_events.iter().map(|(_, _, _, o)| *o).collect();
+    let is_ascending = offsets.windows(2).all(|w| w[0] < w[1]);
+    assert!(
+        is_ascending,
+        "BC-2.04.008 PC5: on_data offsets must be in ascending ISN-relative order; got {:?}",
+        offsets
+    );
+}
+
+// =============================================================================
+// STORY-015: Edge Cases
+// =============================================================================
+
+/// EC-001: Segment arrives in-order (no gap); immediately flushed; no buffering.
+/// total_memory returns to 0 immediately after flush (no residue in buffer).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_007_ec001_in_order_no_buffering() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+
+    // In-order: no buffering should occur.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1001, b"hello", false, true, false, false,
+        ),
+        2,
+        &mut handler,
+    );
+
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "EC-001: in-order segment must be immediately delivered"
+    );
+    assert_eq!(
+        reassembler.total_memory(),
+        0,
+        "EC-001: total_memory must be 0 after in-order flush — no buffering occurred"
+    );
+}
+
+/// EC-002: Gap exists before flush; only prefix delivered (stop at gap).
+/// Verify: send in-order segment then OOO segment; only in-order delivered; OOO buffered.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_007_ec002_gap_stops_flush() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+    // In-order: seq=1001, "abc" (offset=1).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1001, b"abc", false, true, false, false,
+        ),
+        2,
+        &mut handler,
+    );
+    // OOO: seq=1010, "xyz" (offset=10, gap at 4-9).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1010, b"xyz", false, true, false, false,
+        ),
+        3,
+        &mut handler,
+    );
+
+    // Only 1 on_data call (for "abc"); "xyz" must remain buffered.
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "EC-002: only the contiguous prefix must be delivered; gap stops flush"
+    );
+    assert_eq!(
+        handler.data_events[0].2, b"abc",
+        "EC-002: delivered data must be the in-order 'abc' segment"
+    );
+    assert!(
+        reassembler.total_memory() > 0,
+        "EC-002: total_memory must be > 0 because 'xyz' is still buffered beyond the gap"
+    );
+}
+
+/// EC-004: Empty payload (pure ACK); engine skips empty payloads before insert;
+/// no on_data callback, no segment stored, total_memory unchanged.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_006_ec004_empty_payload_not_inserted() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+
+    let memory_after_syn = reassembler.total_memory();
+
+    // Pure ACK — empty payload.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1001,
+            &[],
+            false,
+            true,
+            false,
+            false,
+        ),
+        2,
+        &mut handler,
+    );
+
+    assert_eq!(
+        handler.data_events.len(),
+        0,
+        "EC-004: pure ACK (empty payload) must not trigger on_data"
+    );
+    assert_eq!(
+        reassembler.total_memory(),
+        memory_after_syn,
+        "EC-004: total_memory must not change after a pure ACK — no segment stored"
+    );
+}
+
+/// EC-005: Multiple contiguous segments flushed in one call are delivered as
+/// separate on_data calls (one per segment).
+/// Discriminating: buffer 2 OOO segments, then fill gap → all 3 flushed as
+/// 3 separate on_data events (not 1 merged event).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_007_ec005_multiple_contiguous_delivered_separately() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+
+    // Buffer 2 OOO segments.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1004, b"bbb", false, true, false, false,
+        ),
+        2,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1007, b"ccc", false, true, false, false,
+        ),
+        3,
+        &mut handler,
+    );
+
+    assert_eq!(handler.data_events.len(), 0);
+
+    // Fill gap — triggers flush of all 3 contiguous segments.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1001, b"aaa", false, true, false, false,
+        ),
+        4,
+        &mut handler,
+    );
+
+    assert_eq!(
+        handler.data_events.len(),
+        3,
+        "EC-005: three contiguous segments flushed must produce 3 separate on_data events"
+    );
+    // Verify each is a distinct segment (not one merged blob).
+    assert_eq!(
+        handler.data_events[0].2, b"aaa",
+        "EC-005: first event must be 'aaa'"
+    );
+    assert_eq!(
+        handler.data_events[1].2, b"bbb",
+        "EC-005: second event must be 'bbb'"
+    );
+    assert_eq!(
+        handler.data_events[2].2, b"ccc",
+        "EC-005: third event must be 'ccc'"
+    );
+}
+
+/// EC-006: Three-segment out-of-order sequence (3,2,1): segments 3 and 2
+/// buffered; segment 1 arrives and all three are flushed in order.
+/// Canonical vector from BC-2.04.008: segments arrive as 3,2,1 → all three flushed in order.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_008_ec006_three_segment_ooo_321() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+
+    // Arrival order: 3 → 2 → 1.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1007, b"333", false, true, false, false,
+        ),
+        2,
+        &mut handler,
+    );
+    assert_eq!(
+        handler.data_events.len(),
+        0,
+        "EC-006: segment 3 must be buffered (gap)"
+    );
+
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1004, b"222", false, true, false, false,
+        ),
+        3,
+        &mut handler,
+    );
+    assert_eq!(
+        handler.data_events.len(),
+        0,
+        "EC-006: segment 2 must be buffered (gap)"
+    );
+
+    // Segment 1 fills gap → all three flush.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, 1001, b"111", false, true, false, false,
+        ),
+        4,
+        &mut handler,
+    );
+
+    let all_bytes: Vec<u8> = handler
+        .data_events
+        .iter()
+        .flat_map(|(_, _, d, _)| d.iter().copied())
+        .collect();
+
+    assert_eq!(
+        all_bytes, b"111222333",
+        "EC-006: all three segments must flush in ISN-relative order after gap fill"
+    );
+}
+
+/// Baseline coverage for EC-009 ('Empty segments BTreeMap; flush_contiguous called → returns
+/// empty Vec'). Engine-level: SYN-only flow has no payload, so insert_payload_segment +
+/// flush_contiguous_data are never invoked. The actual empty-BTreeMap flush coverage is at the
+/// segment-level: `test_BC_2_04_034_flush_contiguous_empty_when_no_segment_at_base`. This engine
+/// test verifies the no-side-effect baseline for a flow with no data, not the empty-BTreeMap
+/// flush path itself.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_034_ec009_syn_only_flow_no_data_events_baseline() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Only SYN — no data segments inserted.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+
+    assert_eq!(
+        handler.data_events.len(),
+        0,
+        "EC-009: empty BTreeMap flush (SYN-only) must produce no on_data events"
+    );
+    assert_eq!(
+        reassembler.stats().bytes_reassembled,
+        0,
+        "EC-009: bytes_reassembled must remain 0 when no data segments have been inserted"
+    );
+}
+
+/// EC-008: ISN near u32::MAX; segments wrap around; all offsets correct
+/// via wrapping_sub; BTreeMap keys monotonic; flush delivers in correct order.
+/// Uses mid-stream ISN inference: first packet sets ISN to seq-1.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_039_ec008_isn_near_max_btreemap_keys_monotonic() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Use mid-stream inference: first c2s packet sets ISN = seq - 1.
+    // ISN = u32::MAX - 2, so first data seq = u32::MAX - 1 (offset=1).
+    let isn: u32 = u32::MAX - 2;
+    let first_seq: u32 = isn.wrapping_add(1); // u32::MAX - 1
+
+    // First segment: seq=u32::MAX-1, data="A" (offset=1 relative to ISN).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, first_seq, b"A", false, true, false, false,
+        ),
+        1,
+        &mut handler,
+    );
+
+    // Wrapped segment: seq=1 (= ISN+4 = u32::MAX-2+4 = 2, mod u32::MAX+1),
+    // so offset = 1u32.wrapping_sub(isn) as u64.
+    // ISN inferred as first_seq - 1 = u32::MAX - 2.
+    // seq=1: 1u32.wrapping_sub(u32::MAX-2) = 4.
+    let wrapped_seq: u32 = 1;
+
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            5000,
+            server,
+            80,
+            wrapped_seq,
+            b"D",
+            false,
+            true,
+            false,
+            false,
+        ),
+        2,
+        &mut handler,
+    );
+
+    // Fill the gap: seq=u32::MAX (offset=2) and seq=0 (offset=3).
+    let gap_seq1: u32 = u32::MAX;
+    let gap_seq2: u32 = 0;
+
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, gap_seq1, b"B", false, true, false, false,
+        ),
+        3,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 5000, server, 80, gap_seq2, b"C", false, true, false, false,
+        ),
+        4,
+        &mut handler,
+    );
+
+    let all_bytes: Vec<u8> = handler
+        .data_events
+        .iter()
+        .flat_map(|(_, _, d, _)| d.iter().copied())
+        .collect();
+
+    assert!(
+        !all_bytes.is_empty(),
+        "EC-008: wraparound segments must eventually be delivered via on_data"
+    );
+
+    assert_eq!(
+        all_bytes, b"ABCD",
+        "EC-008: wrapped segments must deliver in byte order A,B,C,D (offset order, not arrival order); got {:?}",
+        all_bytes
+    );
+
+    // Verify all delivered offsets are monotonically increasing.
+    let offsets: Vec<u64> = handler.data_events.iter().map(|(_, _, _, o)| *o).collect();
+    let is_monotonic = offsets.windows(2).all(|w| w[0] < w[1]);
+    assert!(
+        is_monotonic,
+        "EC-008: on_data offsets must be monotonically increasing across wraparound; got {:?}",
+        offsets
+    );
+}
