@@ -40,6 +40,7 @@ wave_9_prs: "#127, #128, #129, #130"
 wave_9_per_story_convergence: "STORY-016: 6 passes (DIRTY×3 + CLEAN×3); STORY-020: 8 passes (DIRTY×5 + CLEAN×3)"
 wave_9_wave_level_convergence: "6 passes (DIRTY×3 + CLEAN×3; passes 4/5/6 clean)"
 wave_10_status: ready_to_dispatch
+wave_10_prerequisites: "W9-D8 codified (DF-SIBLING-SWEEP-001) — ready to start"
 wave_10_stories: STORY-017 + STORY-018
 current_wave: 10
 stories_delivered: 18
@@ -66,7 +67,7 @@ Wave 9 CLOSED 2026-05-26: STORY-016 (PR #127 → d636285, overlap detection, 24 
 STORY-020 (PR #128 → 8cb907e, memory mgmt, 25 tests + 1 proptest + 1 additive #[doc(hidden)] seam).
 Wave-level remediation: PR #129 → 2037f88 (F-W9P1-001 + F-W9P1-004) + PR #130 → e237747 (F-W9P2-001 + F-W9P2-003).
 Wave-level convergence: 6 passes (DIRTY×3 + CLEAN×3; passes 4/5/6 clean; 11 findings remediated).
-W9-D8 ESCALATED to CRITICAL — codification REQUIRED before Wave 10 dispatch.
+W9-D8 RESOLVED — codified as DF-SIBLING-SWEEP-001 in .factory/policies.yaml (2026-05-26). Wave 10 dispatch unblocked.
 develop HEAD: e237747 (PR #130 — wave-followup-2 merged 2026-05-26).
 
 **Mode:** brownfield (in-repo: target == reference).
@@ -117,7 +118,8 @@ dependency bumping for it).
 | Wave 9 — STORY-016 CONVERGED + sibling-discipline W9-D8 | **COMPLETE** 2026-05-26 | STORY-016: 6 passes (DIRTY×3 + CLEAN×3); BC-5.39.001 satisfied. STORY-020: W9-D8 filed — sibling-discipline pattern (3-cycle recurrence, ~10 sibling-regressions across waves 7–9). Research-agent validation per DF-VALIDATION-001 required before GitHub issue. |
 | Wave 9 — wave-level adversarial passes 1–3 (DIRTY) | **REMEDIATED** 2026-05-26 | P1: 5 findings (4 MED rem. + W9-D12 deferred) → PRs #129/#130 + factory commits a3e8927/f5330a4/152acbb. P2: 3 MED sibling-regressions all rem. P3: 3 MED sibling-regressions all rem as trivial text edits (no new PR needed; BC-2.04.016 v1.4 + STORY-020 v1.9). W9-D8 escalated to CRITICAL after P3. |
 | Wave 9 — wave-level adversarial passes 4/5/6 (CLEAN) | **CONVERGED** 2026-05-26 | Passes 4/5/6 all VERDICT: CLEAN — zero findings. 3-clean streak satisfied (BC-5.39.001). Wave-level CONVERGED. Total wave-level: 6 passes (DIRTY×3 + CLEAN×3), 11 findings remediated. |
-| Wave-gate — Wave 9 | **CLOSED** 2026-05-26 | develop HEAD e237747; 18 stories total Waves 1-9; 632 tests passing; STORY-017 + STORY-018 unblocked; Wave 10 READY TO DISPATCH. W9-D8 CRITICAL — codification REQUIRED before Wave 10 dispatch. |
+| Wave-gate — Wave 9 | **CLOSED** 2026-05-26 | develop HEAD e237747; 18 stories total Waves 1-9; 632 tests passing; STORY-017 + STORY-018 unblocked; Wave 10 READY TO DISPATCH. |
+| Wave 9 → Wave 10 — W9-D8 CODIFIED | **COMPLETE** 2026-05-26 | W9-D8 codified as DF-SIBLING-SWEEP-001 in .factory/policies.yaml. Orchestrator policy-rubric injection now extended to all remediation dispatches. Wave 10 dispatch unblocked. W9.L3 (pr-manager merge-step gap) remains OPEN — separate codification target. |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -151,10 +153,10 @@ Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/converg
    STORY-018: status=pending (same deps).
 4. Drift items W9-D1..W9-D8 + W9-D12 logged — see Drift Items table. All require
    research-agent validation per DF-VALIDATION-001 before any GitHub issue is filed.
-   W9-D8 CRITICAL: 6 total recurrences in Wave 9 (3 per-story + 3 wave-level). Codification
-   REQUIRED before Wave 10 dispatch. W9-D9: RESOLVED (F-W9P1-003; factory commit a3e8927).
-5. NEXT: W9-D8 codification (sibling-discipline process-gap) → then dispatch Wave 10
-   (STORY-017 + STORY-018).
+   W9-D8 RESOLVED: codified as DF-SIBLING-SWEEP-001 in .factory/policies.yaml (2026-05-26,
+   pre-Wave-10). W9-D9: RESOLVED (F-W9P1-003; factory commit a3e8927).
+5. NEXT: Dispatch Wave 10 (STORY-017 + STORY-018). W9-D8 codification complete; Wave 10
+   unblocked. Orchestrator to inject DF-SIBLING-SWEEP-001 checklist into all remediation dispatches.
 
 ## Wave Retrospectives
 
@@ -172,8 +174,8 @@ CLEAN). Cumulative passes Wave 9: 20.
 passes 1/2/3).
 
 **Sibling-discipline pattern (W9-D8):** Fired 6 consecutive times (STORY-020 per-story P2/P3/P4 +
-wave-level P1/P2/P3). Broke at wave-level pass 4 (trivial text-only fixes). W9-D8 ESCALATED to
-CRITICAL; codification REQUIRED before Wave 10.
+wave-level P1/P2/P3). Broke at wave-level pass 4 (trivial text-only fixes). W9-D8 RESOLVED:
+codified as DF-SIBLING-SWEEP-001 in .factory/policies.yaml (2026-05-26, pre-Wave-10).
 
 **Brownfield-formalization integrity:** Zero production behavior changes. 1 additive
 `#[doc(hidden)] pub fn flows_memory_sum_for_testing` seam (STORY-020 AC-004; opt-in per ADR-0004 v2).
@@ -181,7 +183,7 @@ CRITICAL; codification REQUIRED before Wave 10.
 **Notable artifacts:** BC-2.04.015 v1.5 PC-7 + BC-2.04.016 v1.4 PC-5 (data-loss-on-MemoryPressure
 semantics); AC-013 PATH 1/PATH 2 bifurcation; AC-012 covers all 4 non-Established states.
 
-**Active drift items:** W9-D5 (LOW), W9-D8 (CRITICAL), W9-D11 (LOW), W9-D12 (LOW pending intent),
+**Active drift items:** W9-D5 (LOW), W9-D8 (RESOLVED — DF-SIBLING-SWEEP-001 codified 2026-05-26), W9-D11 (LOW), W9-D12 (LOW pending intent),
 W9-D1..D4 (LOW story template gaps), W9-D6/D7 (LOW line-citation). W9-D9: RESOLVED.
 
 Full retrospective detail: `.factory/cycles/phase-3-tdd/lessons.md` (W9 lessons)
@@ -210,7 +212,7 @@ None open.
 | W9-D3 | STORY-016 F-11 [process-gap] — story template lacks per-AC VP trace column; needs template enhancement | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
 | W9-D4 | STORY-016 F-12 — story Token Budget template hardcodes "200K for Sonnet"; needs parameterization or removal | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
 | W9-D5 | STORY-020 F-004 — AC-005 test cannot distinguish "evict_flows called but exits immediately" from "never called"; would require evict_flows_calls_for_testing seam; acceptable since production code is observable in behavior | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W9-D8 | **[CRITICAL — ESCALATED 2026-05-26]** [process-gap] Sibling-discipline pattern is self-perpetuating: STORY-020 per-story P2/P3/P4 (3 cycles) + wave-level P1/P2/P3 (3 cycles) = **6 total recurrences in Wave 9 alone**; each remediation creates a new sibling-regression next pass. Cumulative evidence: ~10+ sibling-regression findings across waves 7–9 across 5 consecutive adversary cycles. Codification MUST happen BEFORE Wave 10 starts (not post-W10 as originally targeted). Required: sibling-sweep as explicit checklist step in story-writer/test-writer/PO remediation prompts. | process-gap | **BEFORE Wave 10** | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
+| W9-D8 | **[RESOLVED 2026-05-26]** [process-gap] Sibling-discipline pattern codified as DF-SIBLING-SWEEP-001 in `.factory/policies.yaml` on 2026-05-26 (pre-Wave-10). Orchestrator now injects sibling-sweep checklist into every remediation dispatch. Original finding: STORY-020 per-story P2/P3/P4 + wave-level P1/P2/P3 = 6 total recurrences; each remediation created a new sibling-regression next pass. | process-gap | **RESOLVED** | **RESOLVED** 2026-05-26 — Codified as DF-SIBLING-SWEEP-001 in .factory/policies.yaml. No GitHub issue required (structural codification is the resolution). |
 | W9-D9 | BC-2.04.014 + STORY-020 anchor drift: lifecycle.rs:51 cited but correct anchor is lifecycle.rs:60. 3 occurrences in STORY-020 (Architecture Mapping, Token Budget, File Structure tables); 2 occurrences in BC-2.04.014. | spec-gap | — | **RESOLVED** 2026-05-26 by F-W9P1-003 remediation — BC-2.04.014 v1.3 + STORY-020 v1.7; factory commit a3e8927 |
 | W9-D12 | F-W9P1-005 (LOW pending intent): `packets_dropped_capacity` stats counter not present in production code. Observability gap on BC-2.04.015 PC-6 drop event. May be intentional design (stats.evictions counts evicted flows, not refused new flows). Requires intent adjudication before filing as issue. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
 
@@ -244,6 +246,13 @@ P10-PG, P-CITE-PG): archived in `.factory/cycles/v0.1.0-greenfield-spec/converge
 **DF-VALIDATION-001** (commit 9b6efd3, `.factory/policies.yaml`): every
 deferred/open finding must be research-agent validated before filing as a
 GitHub issue. Pointer in `CLAUDE.md` on `develop` via PR #99 (0082a0c).
+
+**DF-SIBLING-SWEEP-001** (added 2026-05-26, `.factory/policies.yaml`): every
+remediation dispatch to story-writer, test-writer, or product-owner MUST
+include an explicit sibling-sweep checklist. Orchestrator MUST inject the
+checklist under "## Sibling-Sweep Checklist (MANDATORY per DF-SIBLING-SWEEP-001)"
+into every dispatch prompt. Derived from W9-D8 (6 consecutive recurrences in
+Wave 9). Severity: CRITICAL.
 
 ## Tech Debt (Open)
 

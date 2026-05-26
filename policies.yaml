@@ -21,3 +21,102 @@ policies:
       be resolved, invalid, or mis-stated. Research-agent validation
       prevents filing noise and stale issues.
     added: "2026-05-20"
+
+  - id: DF-SIBLING-SWEEP-001
+    name: mandatory-sibling-sweep-on-remediation
+    description: >
+      Every remediation dispatch to story-writer, test-writer, or
+      product-owner MUST include an explicit sibling-sweep checklist with
+      concrete grep commands. The dispatching orchestrator MUST inject the
+      relevant checklist into the agent's task prompt before sending. The
+      agent MUST execute the listed greps, report all hits with verdicts,
+      and fix ALL instances of the same pattern in the same burst — not
+      just the cited location. Single-site remediations that leave sibling
+      instances unfixed are a sibling-discipline regression and MUST be
+      caught by the agent's own sweep, not by the next adversarial pass.
+
+      Concrete sibling-sweep targets per artifact type:
+
+      STORY edits (story-writer):
+        - After AC/EC content change: grep the entire story file for the
+          same wording in (a) Tasks list, (b) Architecture Compliance
+          Rules table, (c) body prose, (d) related EC rows. Fix every
+          live occurrence; preserve historical changelog entries.
+        - After test-name rename: grep .factory/ for old test name (some
+          stories cite test names in AC trace fields).
+        - After BC reference change: verify all BC citations in story
+          body match new BC version; recompute input-hash if any input BC
+          changed content.
+        - Verify story frontmatter (behavioral_contracts,
+          verification_properties) matches body BC table and AC traces.
+
+      BC edits (product-owner):
+        - After PC/Inv/EC content change: grep the BC file for
+          cross-references; verify all anchor citations against current
+          source via Read of cited file:line range.
+        - After version bump: identify sibling BCs in same subsystem
+          (BC-2.04.0XX peers) and check for symmetric updates required
+          (e.g., if a PC is added to one BC about a shared codepath, the
+          sibling BC needs the same PC). Sibling BC = any BC whose
+          Architecture Anchor references the same source function or any
+          BC in the Related-BCs section.
+        - After anchor citation: for every cited line number, verify
+          against actual source code. If lines shift due to prior
+          remediation, sweep ALL anchor citations across the BC + body
+          prose + canonical test vectors. Numeric values in canonical
+          test vectors MUST be arithmetically valid against the described
+          scenario.
+        - For every placeholder (PC-N, AC-N, EC-N, VP-NNN in data rows):
+          verify it has been replaced with a concrete value before commit.
+
+      TEST edits (test-writer):
+        - After test fix: grep the entire test file for the same
+          anti-pattern (exploratory comment chains, stale references,
+          scope-misapplications, "BUG CANDIDATE" leftover prose).
+        - After test rename: grep the entire repo for old function name
+          in stories, BCs, comments, other tests. Update all references.
+        - After assertion strengthening (e.g., adding gap-content +
+          first-wins): check sibling tests exercising the same code path
+          for the same coverage gap. Apply same strengthening to all
+          siblings.
+        - After test docstring updates: verify the prose actually
+          matches the test body (no "Wait:", "Actually:", "Approach X but
+          Y" exploratory chains that contradict the final implementation).
+
+      ALL remediations:
+        - Before commit: execute the grep commands listed above and
+          report results in the burst report.
+        - If the pattern appears in multiple places, fix ALL in the same
+          burst — do not leave siblings as "follow-up".
+        - If a sibling-regression IS introduced, the next-pass adversary
+          will catch it; reporting the regression in the same-pass
+          report is a sign the sweep was incomplete.
+    severity: CRITICAL
+    scope:
+      - orchestrator
+      - remediation
+      - story-writer
+      - test-writer
+      - product-owner
+    rationale: >
+      Wave 9 evidence: the sibling-discipline pattern fired 6 consecutive
+      times in a single wave (STORY-020 per-story P2/P3/P4 + wave-level
+      P1/P2/P3), inflating wave cost from ~10 adversarial passes to ~20.
+      Each remediation created new regressions because no agent prompt
+      mandated explicit sibling-sweep. The pattern broke only when fixes
+      were trivial text-only edits (no semantic propagation needed). The
+      structural fix is to make sibling-sweep a non-optional checklist
+      step at every remediation dispatch site, not a hopeful adversary
+      axis catch. See W9-D8 in STATE.md drift items for cumulative
+      evidence across Waves 7-9.
+    enforcement: >
+      Orchestrator MUST inject the relevant sibling-sweep section into
+      every story-writer/test-writer/product-owner task prompt under a
+      "## Sibling-Sweep Checklist (MANDATORY per DF-SIBLING-SWEEP-001)"
+      heading. Agents MUST execute the checklist and report grep results
+      in their burst report. Adversaries should flag any sibling-
+      regression that escapes the sweep as a process-gap with a pointer
+      to DF-SIBLING-SWEEP-001 — repeated violations escalate the policy
+      enforcement level.
+    added: "2026-05-26"
+    derived-from: W9-D8 (closed during codification)

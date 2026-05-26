@@ -236,6 +236,27 @@ filing GitHub issue.
 
 ---
 
+### W9.L4 — W9-D8 Codified as DF-SIBLING-SWEEP-001 [codified — 2026-05-26]
+
+**Finding ID:** W9-D8 (Drift Items table, STATE.md; resolved via codification 2026-05-26)
+**Category:** process-discipline / policy-codification
+**Observed:** W9-D8 (sibling-discipline process-gap, CRITICAL) was codified as policy
+DF-SIBLING-SWEEP-001 in `.factory/policies.yaml` before Wave 10 dispatch. Concrete
+sibling-sweep checklists were added per artifact type (STORY, BC, TEST). Orchestrator-side
+enforcement: inject checklist into every remediation dispatch under
+"## Sibling-Sweep Checklist (MANDATORY per DF-SIBLING-SWEEP-001)" heading.
+**Validation test for Wave 10:** Did the codification break the 6-cycle recurrence pattern?
+Expected: YES — if orchestrator dispatch templates are updated to inject the checklist, each
+remediation burst will self-sweep before the next adversary pass, preventing sibling-regressions
+from surfacing as new findings. If Wave 10 shows zero sibling-discipline findings across per-story
+and wave-level passes, the codification is effective. If the pattern recurs, escalate to structural
+tooling (pre-commit hook or script).
+**W9.L3 status:** W9.L3 (pr-manager merge-step gap) remains OPEN — separate codification target.
+That is not a blocker for Wave 10 dispatch.
+**Status:** [codified — 2026-05-26]
+
+---
+
 ### W9.L3 — PR Manager Stops at Approve; Merge Step Requires Orchestrator [deferred — cycle-close codification]
 
 **Finding ID:** Wave 9 retrospective observation (recurring; also observed Waves 8+9)
