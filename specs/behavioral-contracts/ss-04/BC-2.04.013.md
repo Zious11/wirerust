@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 8 wave-level adv-pass-1 F-1 HIGH closure (S-7.01 sibling-BC propagation, W7.2 recurrence #5): PC3 enforcement-mode notation — \"remaining buffered data flushed in close_flow\" is structurally a defense-in-depth invariant (per-packet flush at mod.rs:162 drains buffer pre-close); enforced via code-review of close_flow flush loop body at lifecycle.rs:52-59; on_flow_close(Timeout) invocation and stats.flows_expired increment are automated-test-verifiable via STORY-019 AC-009/010/011/012. Mirrors BC-2.04.010 v1.5 PC2 + BC-2.04.029 v1.4 + ADR-0004 amendment precedent. — 2026-05-26"
+  - "v1.4: Wave 8 wave-level adv-pass-2 F-1 MEDIUM closure (S-7.01 sibling-discipline): added PC5 documenting the force_set_flow_state_for_testing test seam (lifecycle.rs:232-244) — required by STORY-019 AC-012 to discriminate the Closed-state OR-branch of expire_flows (invariant 2). Mirrors BC-2.04.029 v1.4 PC7 pattern; authorized under ADR-0004 Amendment 2 state-injection seam class. — 2026-05-26"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -57,6 +58,9 @@ of the packet being processed).
    automated-test-verifiable via STORY-019 AC-009/010/011/012 (mirrors BC-2.04.010 v1.5 PC2 /
    BC-2.04.029 v1.4 PC1-PC3 / ADR-0004 amendment enforcement-mode precedent).)
 4. Flows not meeting either expiry condition are untouched.
+- **PC5 (Test Seam):** A `#[doc(hidden)] pub fn force_set_flow_state_for_testing(reassembler: &mut TcpReassembler, key: &FlowKey, state: FlowState) -> bool` accessor in `src/reassembly/lifecycle.rs` allows tests to directly mutate a flow's state without going through the state machine. Returns `true` if the flow was found and updated; `false` if no flow with the given key exists. Required by STORY-019 AC-012 to discriminate the state-based OR-branch of expire_flows (invariant 2) from the time-based clause — the test constructs a flow in `FlowState::Closed` with `last_seen` well within the timeout window, proving the state-based clause fires independently.
+
+  **Hygiene constraints:** `#[doc(hidden)]` (kept out of `cargo doc`); `_for_testing` suffix flags intent; MUST NOT be called from production code paths. Authorized as a NEW test-seam class (state-injection, NOT warning-guard) under ADR-0004 Amendment 2 (2026-05-26) "opt-in per-guard, gated by BC-driven need" doctrine.
 
 ## Invariants
 
