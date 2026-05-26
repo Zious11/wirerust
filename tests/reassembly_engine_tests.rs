@@ -7899,3 +7899,251 @@ fn test_BC_2_04_039_ec008_isn_near_max_btreemap_keys_monotonic() {
         offsets
     );
 }
+
+// =============== STORY-020: total_memory + Eviction (Wave 9) ===============
+//
+// Behavioral contracts: BC-2.04.014, BC-2.04.015, BC-2.04.016, BC-2.04.017
+// ACs: AC-001..AC-013 (13 tests)
+// ECs: EC-001..EC-010 (10 tests)
+//
+// All stubs panic to satisfy the Red Gate: every test must FAIL before
+// implementation. Do NOT add #[ignore].
+//
+// Part B note: AC-004 requires asserting `total_memory == sum(flow.memory_used())`
+// over the private `flows` map. The existing `total_memory()` public accessor
+// gives the aggregate but NOT per-flow breakdown. To make the per-flow sum
+// assertion feasible without reaching into private fields, Part B will need a
+// `#[doc(hidden)] pub fn total_memory_for_testing(&self) -> usize` seam in
+// `src/reassembly/mod.rs` that exposes the raw `self.total_memory` counter
+// (which IS separately maintained from the sum), plus either a per-flow
+// iterator or a `flows_memory_sum_for_testing() -> usize` helper that walks
+// `self.flows` and sums `flow.memory_used()`. Both must be gated behind
+// `#[cfg(test)]` or `#[doc(hidden)]` to avoid polluting the public API.
+// ============================================================================
+
+// ---- AC-001 (BC-2.04.014 postcondition 1) ----------------------------------
+
+/// AC-001: After inserting N bytes into a flow direction's buffer,
+/// `total_memory` increases by exactly N.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_014_total_memory_increments_on_insert() {
+    panic!("STORY-020 AC-001 not yet implemented");
+}
+
+// ---- AC-002 (BC-2.04.014 postcondition 2) ----------------------------------
+
+/// AC-002: After `flush_contiguous` delivers M bytes to the handler,
+/// `total_memory` decreases by exactly M.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_014_total_memory_decrements_on_flush() {
+    panic!("STORY-020 AC-002 not yet implemented");
+}
+
+// ---- AC-003 (BC-2.04.014 postcondition 3) ----------------------------------
+
+/// AC-003: After `close_flow` removes a flow, `total_memory` decreases by
+/// the flow's `memory_used()` at removal time (all remaining buffered bytes
+/// in both directions).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_014_total_memory_decrements_on_close() {
+    panic!("STORY-020 AC-003 not yet implemented");
+}
+
+// ---- AC-004 (BC-2.04.014 postcondition 4 + invariant 2) -------------------
+
+/// AC-004: At all times, `total_memory == sum(flow.memory_used() for all flows)`.
+/// This debug invariant holds after inserts, flushes, and closes.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_014_total_memory_equals_sum_of_flow_memory() {
+    panic!("STORY-020 AC-004 not yet implemented");
+}
+
+// ---- AC-005 (BC-2.04.015 postconditions 5-6) -------------------------------
+
+/// AC-005: When `flows.len() >= config.max_flows` and a new flow packet
+/// arrives, `evict_flows` is called. After eviction, if the table is STILL
+/// at capacity, `get_or_create_flow` returns `false` and the packet is
+/// dropped (no flow created).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_015_new_flow_dropped_when_table_full_after_eviction() {
+    panic!("STORY-020 AC-005 not yet implemented");
+}
+
+// ---- AC-006 (BC-2.04.015 postconditions 1 + 3) ----------------------------
+
+/// AC-006: Non-Established flows (state != Established) are evicted before
+/// Established flows regardless of their `last_seen` timestamps.
+/// `stats.evictions` increments by the number of flows evicted.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_015_non_established_evicted_before_established() {
+    panic!("STORY-020 AC-006 not yet implemented");
+}
+
+// ---- AC-007 (BC-2.04.015 postcondition 4) ----------------------------------
+
+/// AC-007: Each evicted flow triggers
+/// `handler.on_flow_close(key, CloseReason::MemoryPressure)`.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_015_evicted_flow_receives_memory_pressure_reason() {
+    panic!("STORY-020 AC-007 not yet implemented");
+}
+
+// ---- AC-008 (BC-2.04.016 postcondition 1) ----------------------------------
+
+/// AC-008: After each packet, if `self.total_memory > self.config.memcap`,
+/// `evict_flows` is called. After eviction, `total_memory <= memcap`
+/// (when at least one flow exists to evict).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_016_memcap_eviction_triggers_after_insert() {
+    panic!("STORY-020 AC-008 not yet implemented");
+}
+
+// ---- AC-009 (BC-2.04.016 invariant 2) -------------------------------------
+
+/// AC-009: The memcap check uses strict `>` (not `>=`): at exactly `memcap`
+/// bytes in `total_memory`, no eviction occurs.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_016_no_eviction_at_exactly_memcap() {
+    panic!("STORY-020 AC-009 not yet implemented");
+}
+
+// ---- AC-010 (BC-2.04.017 postconditions 1-4) -------------------------------
+
+/// AC-010: In `evict_flows`, the sort places all non-Established flows
+/// (New, SynSent, Closing, Closed) before all Established flows. Within
+/// each group, flows are sorted by `last_seen` ascending (oldest first).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_017_eviction_sort_non_established_first_then_lru() {
+    panic!("STORY-020 AC-010 not yet implemented");
+}
+
+// ---- AC-011 (BC-2.04.017 edge case EC-001) ---------------------------------
+
+/// AC-011: A non-Established flow with a NEWER `last_seen` timestamp is
+/// evicted before an Established flow with an OLDER `last_seen` timestamp
+/// (non-Established wins regardless of recency).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_017_non_established_newer_evicted_before_established_older() {
+    panic!("STORY-020 AC-011 not yet implemented");
+}
+
+// ---- AC-012 (BC-2.04.017 invariant 3) -------------------------------------
+
+/// AC-012: The eviction sort treats ALL states other than
+/// `FlowState::Established` as "non-Established": `New`, `SynSent`,
+/// `Closing`, and `Closed` all sort before any Established flow.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_017_all_non_established_states_evict_first() {
+    panic!("STORY-020 AC-012 not yet implemented");
+}
+
+// ---- AC-013 (BC-2.04.015 invariant 1) -------------------------------------
+
+/// AC-013: Both eviction triggers (max_flows via `get_or_create_flow` and
+/// memcap via `process_packet`) call the same `evict_flows` function with
+/// the same LRU non-established-first strategy.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_015_both_eviction_paths_use_same_function() {
+    panic!("STORY-020 AC-013 not yet implemented");
+}
+
+// ---- EC-001 ----------------------------------------------------------------
+
+/// EC-001: Insert segment, flush immediately; total_memory increments then
+/// returns to 0.
+#[test]
+fn test_story_020_ec001_insert_then_flush_returns_to_zero() {
+    panic!("STORY-020 EC-001 not yet implemented");
+}
+
+// ---- EC-002 ----------------------------------------------------------------
+
+/// EC-002: Close flow with buffered data; total_memory decreases by all
+/// buffered bytes in both directions.
+#[test]
+fn test_story_020_ec002_close_flow_with_buffered_data() {
+    panic!("STORY-020 EC-002 not yet implemented");
+}
+
+// ---- EC-003 ----------------------------------------------------------------
+
+/// EC-003: Zero-length segment insert; total_memory unchanged (empty data
+/// early return).
+#[test]
+fn test_story_020_ec003_zero_length_segment_no_memory_change() {
+    panic!("STORY-020 EC-003 not yet implemented");
+}
+
+// ---- EC-004 ----------------------------------------------------------------
+
+/// EC-004: All flows are Established at eviction time; LRU Established
+/// flows evicted (oldest first).
+#[test]
+fn test_story_020_ec004_all_established_flows_evict_lru_order() {
+    panic!("STORY-020 EC-004 not yet implemented");
+}
+
+// ---- EC-005 ----------------------------------------------------------------
+
+/// EC-005: Single flow in table at max_flows=1, new SYN arrives; existing
+/// flow evicted and new flow created.
+#[test]
+fn test_story_020_ec005_single_flow_at_max_evicted_for_new_syn() {
+    panic!("STORY-020 EC-005 not yet implemented");
+}
+
+// ---- EC-006 ----------------------------------------------------------------
+
+/// EC-006: total_memory == memcap exactly; no eviction triggered
+/// (strict `>`).
+#[test]
+fn test_story_020_ec006_total_memory_equals_memcap_no_eviction() {
+    panic!("STORY-020 EC-006 not yet implemented");
+}
+
+// ---- EC-007 ----------------------------------------------------------------
+
+/// EC-007: total_memory == memcap + 1; eviction triggered.
+#[test]
+fn test_story_020_ec007_total_memory_one_over_memcap_triggers_eviction() {
+    panic!("STORY-020 EC-007 not yet implemented");
+}
+
+// ---- EC-008 ----------------------------------------------------------------
+
+/// EC-008: evict_flows with a Closing flow and an Established flow;
+/// Closing (non-Established) is evicted first.
+#[test]
+fn test_story_020_ec008_closing_flow_evicted_before_established() {
+    panic!("STORY-020 EC-008 not yet implemented");
+}
+
+// ---- EC-009 ----------------------------------------------------------------
+
+/// EC-009: All flows evicted but still over memcap; loop exits, total_memory
+/// stays over cap, and processing continues (no infinite loop or panic).
+#[test]
+fn test_story_020_ec009_all_flows_evicted_still_over_memcap_continues() {
+    panic!("STORY-020 EC-009 not yet implemented");
+}
+
+// ---- EC-010 ----------------------------------------------------------------
+
+/// EC-010: finalize closes all flows; total_memory reaches 0 after finalize.
+#[test]
+fn test_story_020_ec010_finalize_zeroes_total_memory() {
+    panic!("STORY-020 EC-010 not yet implemented");
+}
