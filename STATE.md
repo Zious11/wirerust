@@ -109,11 +109,10 @@ dependency bumping for it).
 | Wave 8 — wave-level adversarial convergence | **COMPLETE** 2026-05-26 | 9 passes; 3/3 clean streak passes 7/8/9; 12 findings remediated; 3 develop PRs + 4 factory BC commits; 4 drift items logged (W8.1–W8.4) |
 | Wave-gate — Wave 8 | **CLOSED** 2026-05-26 | develop HEAD 4b9b85f; 16 stories total Waves 1-8; STORY-016/020 unblocked |
 | Wave 9 — dispatch | **COMPLETE** 2026-05-26 | STORY-016 (overlap detection; BCs 2.04.035/036/038/043/047; worktree-story-016) + STORY-020 (memory management; BCs 2.04.014-017; worktree-story-020); parallel-eligible (disjoint files) |
-| Wave 9 — burst-1 spec+story revisions | **COMPLETE** 2026-05-26 | BC-2.04.015 v1.3 (EC-004 fix + DESIGN INTENT inv4 + EC-005); BC-2.04.036/038/047 v1.3 (anchor drift fix); STORY-016 v1.2 (EC-002 "adjacent (contiguous)"); STORY-020 v1.2 (EC-005 revised + EC-011 dual-pressure); input-hashes refreshed (STORY-016: 8cc2ec9→3f3509b; STORY-020: c859b44→6527afc) |
-| Wave 9 — per-story adversarial passes 1–4 + bursts 3–6 | **IN PROGRESS** 2026-05-26 | STORY-016: pass-1 11 findings → burst-1 remediated (W9-D1..W9-D4 deferred); pass-2 DIRTY → burst-3 (BC-2.04.043 v1.3, BC-2.04.047 v1.4, BC-2.04.038 v1.4, STORY-016 v1.3); pass-3 DIRTY → burst-5 (STORY-016 v1.4); pass-4 DIRTY → pass-5 dispatched. STORY-016 converged: 3 consecutive clean passes P4+P5+P6 (BC-5.39.001). 6 total passes (DIRTY×3+CLEAN×3). STORY-020: pass-1 5 findings → 3 actioned, W9-D5 deferred; pass-2 DIRTY → burst-4 (STORY-020 v1.3); pass-3 DIRTY → burst-5 (STORY-020 v1.4); pass-4 DIRTY 4 findings + 6 LOW obs → burst-6 (STORY-020 v1.5 + BC-2.04.015 v1.4); pass-5 dispatched in parallel with this commit. |
-| Wave 9 — STORY-016 CONVERGED | **COMPLETE** 2026-05-26 | 6 passes total (DIRTY×3 + CLEAN×3); per BC-5.39.001 convergence criterion satisfied. STORY-016 ready for demo + PR. |
-| Wave 9 — sibling-discipline pattern (W9-D8 filed) | **OBSERVATION** 2026-05-26 | Sibling-discipline pattern recurred in STORY-020 passes 2/3/4 (3-cycle recurrence). Cumulative evidence: ~10 sibling-regression findings across waves 7–9. W9-D8 filed as [process-gap] drift item. Requires research-agent validation per DF-VALIDATION-001. |
+| Wave 9 — per-story adversarial passes 1–4 + bursts 3–6 | **COMPLETE** 2026-05-26 | STORY-016: pass-1 11 findings → burst-1 remediated (W9-D1..W9-D4 deferred); pass-2 DIRTY → burst-3 (BC-2.04.043 v1.3, BC-2.04.047 v1.4, BC-2.04.038 v1.4, STORY-016 v1.3); pass-3 DIRTY → burst-5 (STORY-016 v1.4); pass-4 DIRTY → pass-5 dispatched. STORY-016 converged: 3 consecutive clean passes P4+P5+P6 (BC-5.39.001). 6 total passes (DIRTY×3+CLEAN×3). STORY-020: pass-1 5 findings → 3 actioned, W9-D5 deferred; pass-2 DIRTY → burst-4 (STORY-020 v1.3); pass-3 DIRTY → burst-5 (STORY-020 v1.4); pass-4 DIRTY 4 findings + 6 LOW obs → burst-6 (STORY-020 v1.5 + BC-2.04.015 v1.4); pass-5 dispatched in parallel. |
+| Wave 9 — STORY-016 CONVERGED + sibling-discipline W9-D8 | **COMPLETE** 2026-05-26 | STORY-016: 6 passes (DIRTY×3 + CLEAN×3); BC-5.39.001 satisfied. STORY-020: W9-D8 filed — sibling-discipline pattern (3-cycle recurrence, ~10 sibling-regressions across waves 7–9). Research-agent validation per DF-VALIDATION-001 required before GitHub issue. |
 | Wave 9 — wave-level adversarial pass-1 | **REMEDIATED** 2026-05-26 | DIRTY 5 findings: F-W9P1-001 MED (joint invariant assertions) → test-writer 0aba23c; F-W9P1-002 MED (BC-2.04.015 PC gap MemoryPressure) → BC-2.04.015 v1.5; F-W9P1-003 MED (lifecycle.rs anchor drift) → BC-2.04.014 v1.3 + STORY-020 v1.7; F-W9P1-004 MED [process-gap] (ISN_MISSING_WARNED_LOCK docstring) → test-writer 0aba23c; F-W9P1-005 LOW deferred → W9-D12. Factory commit a3e8927. Pass-2 + pass-3 dispatched. |
+| Wave 9 — wave-level adversarial pass-2 | **REMEDIATED** 2026-05-26 | DIRTY 3 MED findings — all sibling-regressions of pass-1 fixes (reinforces W9-D8 codification urgency; 2/2 wave-level passes DIRTY): F-W9P2-001 MED (docstring anchor drift in segment_tests) → commit 5384fd4 (w9-followup2); F-W9P2-002 MED (BC-2.04.016 missing PC-5 sibling of BC-2.04.015 PC-7 data-loss-on-MemoryPressure) → BC-2.04.016 v1.3; F-W9P2-003 MED (PC-7 untested + no AC trace) → STORY-020 v1.8 (AC-014 + EC-012) + test in 5384fd4. Factory commit f5330a4. Pass-3 dispatched after w9-followup2 PR merge. |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -131,7 +130,7 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-26 — Wave 9 burst-9 COMPLETE)
+## Session Resume Checkpoint (2026-05-26 — Wave 9 burst-11 COMPLETE)
 
 1. Waves 1-8 all CLOSED/CONVERGED — 16 stories delivered.
    STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015 all merged to develop.
@@ -141,20 +140,19 @@ Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/converg
 3. Wave 9 IN PROGRESS: sprint-state.yaml current_wave=9.
    STORY-016: status=CONVERGED (per BC-5.39.001), branch=worktree-story-016.
      6 passes total: DIRTY(P1)/DIRTY(P2)/DIRTY(P3)/CLEAN(P4)/CLEAN(P5)/CLEAN(P6). 3-clean streak satisfied.
-     READY for demo + PR (pr-manager to push w9-followup branch).
-   STORY-020: status=CONVERGED (per-story), branch=w9-followup, worktree=.worktrees/w9-followup.
+   STORY-020: status=CONVERGED (per-story), src branch=w9-followup2, worktree=.worktrees/w9-followup2.
      Scope: memory management; BCs 2.04.014-017; depends on STORY-019.
-     Wave-level pass-1 5 findings → 4 MED remediated + 1 LOW deferred (W9-D12).
-     Burst-9 factory commit a3e8927: BC-2.04.015 v1.5 (PC-7) + BC-2.04.014 v1.3 + STORY-020 v1.7.
-     Test-writer (0aba23c, w9-followup): F-W9P1-001 assertions + proptest + F-W9P1-004 docstring.
-     input-hash: 6527afc → da8045f (refreshed after BC-2.04.014 + BC-2.04.015 changes).
-   Sibling-discipline recurrence in STORY-020: W9-D8 filed. Wave-level pass-2 + pass-3 dispatched.
+     Wave-level pass-1 5 findings → 4 MED remediated + 1 LOW deferred (W9-D12). Factory commit a3e8927.
+     Wave-level pass-2 3 MED findings → ALL remediated (no deferrals). Factory commit f5330a4.
+       All 3 findings are sibling-regressions of pass-1 fixes (reinforces W9-D8 codification urgency).
+       BC-2.04.016 v1.3 (PC-5 sibling of BC-2.04.015 PC-7); STORY-020 v1.8 (AC-014 + EC-012); test 5384fd4.
+       input-hash: da8045f (unchanged — BC-2.04.016 already listed as input; hash current).
+   2/2 wave-level passes DIRTY. Pass-3 dispatched after w9-followup2 PR merge.
 4. STORY-017/018: still blocked (blocked_by includes STORY-016 PR not yet merged).
 5. Drift items W9-D1..W9-D8 + W9-D12 logged — see Drift Items table. All require
    research-agent validation per DF-VALIDATION-001 before any GitHub issue is filed.
-   W9-D9 (anchor drift BC-2.04.014/STORY-020): RESOLVED by F-W9P1-003 — factory commit a3e8927.
-6. NEXT: receive wave-level pass-2 + pass-3 results; remediate if DIRTY; target 3-clean streak.
-   pr-manager to push w9-followup PR (STORY-020 src fixes + wave-level remediation).
+   W9-D9: RESOLVED by F-W9P1-003 (factory commit a3e8927).
+6. NEXT: w9-followup2 PR merge → wave-level pass-3 dispatched → target 3-clean streak.
 
 ## Decisions Log
 
