@@ -782,7 +782,10 @@ fn test_BC_2_04_035_duplicate_increments_overlap_count() {
     dir.set_isn(1000);
 
     dir.insert_segment(1001, b"AAAAA", 10_485_760, 10_000, 10_485_760);
-    assert_eq!(dir.overlap_count, 0, "overlap_count must be 0 before any overlap");
+    assert_eq!(
+        dir.overlap_count, 0,
+        "overlap_count must be 0 before any overlap"
+    );
 
     let result = dir.insert_segment(1001, b"AAAAA", 10_485_760, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::Duplicate);
@@ -848,7 +851,10 @@ fn test_BC_2_04_036_partial_overlap_preserves_existing_bytes() {
 
     // Flush and verify the byte stream: AAAAA (original) + XXX (gap fill)
     let flushed = dir.flush_contiguous();
-    let all_bytes: Vec<u8> = flushed.iter().flat_map(|(_, d)| d.iter().copied()).collect();
+    let all_bytes: Vec<u8> = flushed
+        .iter()
+        .flat_map(|(_, d)| d.iter().copied())
+        .collect();
     assert_eq!(
         &all_bytes, b"AAAAAXXX",
         "BC-2.04.036 PC3: only gap bytes (XXX at [6,9)) must be added; overlap bytes from A preserved"
@@ -867,7 +873,11 @@ fn test_BC_2_04_036_partial_overlap_buffered_bytes_gap_only() {
     dir.set_isn(1000);
 
     dir.insert_segment(1001, b"AAAAA", 10_485_760, 10_000, 10_485_760);
-    assert_eq!(dir.buffered_bytes(), 5, "baseline buffered_bytes after inserting A");
+    assert_eq!(
+        dir.buffered_bytes(),
+        5,
+        "baseline buffered_bytes after inserting A"
+    );
 
     let result = dir.insert_segment(1004, b"XXXXX", 10_485_760, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::PartialOverlap);
@@ -890,7 +900,10 @@ fn test_BC_2_04_036_partial_overlap_increments_overlap_count() {
     dir.set_isn(1000);
 
     dir.insert_segment(1001, b"AAAAA", 10_485_760, 10_000, 10_485_760);
-    assert_eq!(dir.overlap_count, 0, "overlap_count must be 0 before overlap");
+    assert_eq!(
+        dir.overlap_count, 0,
+        "overlap_count must be 0 before overlap"
+    );
 
     let result = dir.insert_segment(1004, b"XXXXX", 10_485_760, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::PartialOverlap);
@@ -982,7 +995,10 @@ fn test_BC_2_04_043_adjacent_segment_does_not_increment_overlap_count() {
     dir.set_isn(1000);
 
     dir.insert_segment(1001, b"AAAAA", 10_485_760, 10_000, 10_485_760);
-    assert_eq!(dir.overlap_count, 0, "overlap_count must be 0 after clean insert");
+    assert_eq!(
+        dir.overlap_count, 0,
+        "overlap_count must be 0 after clean insert"
+    );
 
     let result = dir.insert_segment(1006, b"BBBBB", 10_485_760, 10_000, 10_485_760);
     assert_eq!(result, InsertResult::Inserted);
@@ -1019,14 +1035,22 @@ fn test_BC_2_04_047_buffered_bytes_mirrors_segment_size_sum() {
 
     // Step 4: Duplicate — buffered_bytes must not change
     dir.insert_segment(1001, b"HELLO", 10_485_760, 10_000, 10_485_760);
-    assert_eq!(dir.memory_used(), 8, "invariant after Duplicate (no change)");
+    assert_eq!(
+        dir.memory_used(),
+        8,
+        "invariant after Duplicate (no change)"
+    );
 
     // Step 5: PartialOverlap — only gap bytes counted
     // Insert b"HELLOWORLD" at offset 1: A=[1,6), new=[1,11), gap=[6,11)=5 bytes
     dir.insert_segment(1001, b"HELLOWORLD", 10_485_760, 10_000, 10_485_760);
     // After this: offset 1 has "HELLO" (5), gap [6,10) = "WORL" (4 bytes, since XYZ is at offset 10),
     // XYZ at offset 10 (3). Total = 5+4+3=12.
-    assert_eq!(dir.memory_used(), 12, "invariant after PartialOverlap gap fill");
+    assert_eq!(
+        dir.memory_used(),
+        12,
+        "invariant after PartialOverlap gap fill"
+    );
 
     // Step 6: flush contiguous — base_offset was 1
     let flushed = dir.flush_contiguous();
@@ -1053,7 +1077,8 @@ fn test_BC_2_04_047_buffered_bytes_unchanged_for_non_insert_results() {
         let result = dir.insert_segment(1001, b"AAAAA", 10_485_760, 10_000, 10_485_760);
         assert_eq!(result, InsertResult::Duplicate);
         assert_eq!(
-            dir.buffered_bytes(), baseline,
+            dir.buffered_bytes(),
+            baseline,
             "BC-2.04.047 PC4: buffered_bytes must not change for Duplicate"
         );
     }
@@ -1067,7 +1092,8 @@ fn test_BC_2_04_047_buffered_bytes_unchanged_for_non_insert_results() {
         let result = dir.insert_segment(1001, b"BBBBB", 10_485_760, 10_000, 10_485_760);
         assert_eq!(result, InsertResult::ConflictingOverlap);
         assert_eq!(
-            dir.buffered_bytes(), baseline,
+            dir.buffered_bytes(),
+            baseline,
             "BC-2.04.047 PC4: buffered_bytes must not change for ConflictingOverlap"
         );
     }
@@ -1084,7 +1110,8 @@ fn test_BC_2_04_047_buffered_bytes_unchanged_for_non_insert_results() {
         let result = dir.insert_segment(far_seq, b"evil", 10_485_760, 10_000, 1_048_576);
         assert_eq!(result, InsertResult::OutOfWindow);
         assert_eq!(
-            dir.buffered_bytes(), baseline,
+            dir.buffered_bytes(),
+            baseline,
             "BC-2.04.047 PC4: buffered_bytes must not change for OutOfWindow"
         );
     }
@@ -1097,7 +1124,8 @@ fn test_BC_2_04_047_buffered_bytes_unchanged_for_non_insert_results() {
         let result = dir.insert_segment(1001, b"hello", 10_485_760, 10_000, 10_485_760);
         assert_eq!(result, InsertResult::IsnMissing);
         assert_eq!(
-            dir.buffered_bytes(), baseline,
+            dir.buffered_bytes(),
+            baseline,
             "BC-2.04.047 PC4: buffered_bytes must not change for IsnMissing"
         );
     }
@@ -1123,7 +1151,8 @@ fn test_BC_2_04_047_buffered_bytes_decrements_on_flush() {
         assert_eq!(
             dir.buffered_bytes(),
             before - n,
-            "BC-2.04.047 PC5: buffered_bytes must decrease by exactly N={} after flush", n
+            "BC-2.04.047 PC5: buffered_bytes must decrease by exactly N={} after flush",
+            n
         );
         assert_eq!(dir.buffered_bytes(), 0);
     }
@@ -1140,19 +1169,23 @@ fn test_BC_2_04_047_buffered_bytes_decrements_on_flush() {
 
         let flushed = dir.flush_contiguous();
         let n: usize = flushed.iter().map(|(_, d)| d.len()).sum();
-        assert_eq!(n, 5, "partial flush must yield only 5 bytes (A); B blocked by gap");
+        assert_eq!(
+            n, 5,
+            "partial flush must yield only 5 bytes (A); B blocked by gap"
+        );
         assert_eq!(
             dir.buffered_bytes(),
             before - n,
-            "BC-2.04.047 PC5: buffered_bytes must decrease by exactly N={} (partial flush)", n
+            "BC-2.04.047 PC5: buffered_bytes must decrease by exactly N={} (partial flush)",
+            n
         );
         assert_eq!(dir.buffered_bytes(), 5, "5 bytes (B) must remain buffered");
     }
 }
 
 // =============================================================================
-// STORY-016: BC-2.04.047 inv-1 — buffered_bytes mirrors segment size sum
-// VP-002 proptest (AC-012 property-based variant)
+// STORY-016: BC-2.04.047 PC1 — buffered_bytes mirrors segment size sum
+// VP-010 proptest (AC-012 property-based variant)
 // Exercises ≥1000 random insert/flush sequences and asserts the invariant
 // via memory_used() after every operation.
 // Note: `use proptest::prelude::*` is declared once at the bottom of this file
@@ -1169,7 +1202,11 @@ fn overlap_op_strategy() -> impl Strategy<Value = OverlapOp> {
     prop_oneof![
         // seq_delta in [0,30) so segments frequently overlap for rich coverage
         (0u32..30u32, 1u8..20u8, 0u8..=255u8).prop_map(|(delta, len, fill)| {
-            OverlapOp::Insert { seq_delta: delta, len, fill }
+            OverlapOp::Insert {
+                seq_delta: delta,
+                len,
+                fill,
+            }
         }),
         Just(OverlapOp::Flush),
     ]
@@ -1177,7 +1214,7 @@ fn overlap_op_strategy() -> impl Strategy<Value = OverlapOp> {
 
 proptest! {
     #![proptest_config(proptest::test_runner::Config::with_cases(1000))]
-    /// VP-002 / BC-2.04.047 inv-1: For any random sequence of overlapping inserts and
+    /// VP-010 / BC-2.04.047 PC1: For any random sequence of overlapping inserts and
     /// flushes, `buffered_bytes` mirrors `sum(segment sizes)` after EACH operation.
     /// memory_used() enforces this via debug_assert internally; we also assert the
     /// return value equals buffered_bytes() explicitly.
@@ -1206,7 +1243,7 @@ proptest! {
             prop_assert_eq!(
                 mu,
                 dir.buffered_bytes(),
-                "BC-2.04.047 inv-1: memory_used() must equal buffered_bytes()"
+                "BC-2.04.047 PC1: memory_used() must equal buffered_bytes()"
             );
         }
     }
@@ -1231,12 +1268,12 @@ fn test_story_016_ec001_exact_retransmission_duplicate() {
     assert_eq!(dir.overlap_count, 1, "EC-001: overlap_count must be 1");
 }
 
-// --- EC-002 — Range covered by 2 non-contiguous segments, matching bytes → Duplicate ---
-/// ISN=1000. A=b"AAA" at [1,4). B=b"BBB" at [4,7) (adjacent, no gap between them).
+// --- EC-002 — Range covered by 2 adjacent (contiguous) segments, matching bytes → Duplicate ---
+/// ISN=1000. A=b"AAA" at [1,4). B=b"BBB" at [4,7) (adjacent, contiguous — no gap between them).
 /// Insert C=b"AAABBB" at [1,7) with matching bytes → Duplicate.
 /// This exercises the gap-computation path where sorted ranges collapse to no gaps.
 #[test]
-fn test_story_016_ec002_noncontiguous_union_coverage_duplicate() {
+fn test_story_016_ec002_adjacent_union_coverage_duplicate() {
     let mut dir = wirerust::reassembly::flow::FlowDirection::new();
     dir.set_isn(1000);
 
@@ -1366,7 +1403,10 @@ fn test_story_016_ec006_spans_two_segments_gap_filled() {
         "EC-006: segment spanning two existing segments with gap must return PartialOverlap"
     );
     // Gap at [4,7) must be filled
-    assert!(dir.has_segment_at(4), "EC-006: gap at offset 4 must be filled");
+    assert!(
+        dir.has_segment_at(4),
+        "EC-006: gap at offset 4 must be filled"
+    );
     // buffered_bytes increased by 3 (the gap bytes at [4,7))
     assert_eq!(
         dir.buffered_bytes(),
@@ -1417,7 +1457,7 @@ fn test_story_016_ec008_one_byte_before_end_is_overlap() {
 
     // B at [5,10) overlaps A at [1,6) → overlap range [5,6) = 1 byte.
     // new byte at [5] is 'X', existing is 'A' — conflict in overlap region.
-    // Gap at [6,10) = b"BBB" (3 bytes from B[1..4]) gets inserted.
+    // Gap at [6,10) = b"BBBB" (4 bytes from B[1..5]) gets inserted.
     // Since there IS a gap (had_gap=true), result is PartialOverlap (not ConflictingOverlap).
     assert_eq!(
         result,
@@ -1427,6 +1467,20 @@ fn test_story_016_ec008_one_byte_before_end_is_overlap() {
     assert_eq!(
         dir.overlap_count, 1,
         "EC-008: overlap_count must be 1 after overlap is detected"
+    );
+    assert!(
+        dir.has_segment_at(6),
+        "EC-008: gap segment at offset 6 must exist"
+    );
+    assert_eq!(
+        dir.segment_at(6),
+        Some(&b"BBBB"[..]),
+        "EC-008: gap bytes at offset 6 must be B[1..5] = b\"BBBB\""
+    );
+    assert_eq!(
+        dir.segment_at(1),
+        Some(&b"AAAAA"[..]),
+        "EC-008: first-wins preserves A's original AAAAA at offset 1"
     );
 }
 
@@ -1469,9 +1523,20 @@ fn test_story_016_ec010_empty_data_returns_inserted() {
         InsertResult::Inserted,
         "EC-010: empty data slice must return Inserted (early-return path)"
     );
-    assert_eq!(dir.segment_count(), 0, "EC-010: no segment stored for empty data");
-    assert_eq!(dir.buffered_bytes(), 0, "EC-010: buffered_bytes must remain 0 for empty data");
-    assert_eq!(dir.overlap_count, 0, "EC-010: overlap_count must not change for empty data");
+    assert_eq!(
+        dir.segment_count(),
+        0,
+        "EC-010: no segment stored for empty data"
+    );
+    assert_eq!(
+        dir.buffered_bytes(),
+        0,
+        "EC-010: buffered_bytes must remain 0 for empty data"
+    );
+    assert_eq!(
+        dir.overlap_count, 0,
+        "EC-010: overlap_count must not change for empty data"
+    );
 }
 
 // =============================================================================
