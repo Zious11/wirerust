@@ -7884,6 +7884,12 @@ fn test_BC_2_04_039_ec008_isn_near_max_btreemap_keys_monotonic() {
         "EC-008: wraparound segments must eventually be delivered via on_data"
     );
 
+    assert_eq!(
+        all_bytes, b"ABCD",
+        "EC-008: wrapped segments must deliver in byte order A,B,C,D (offset order, not arrival order); got {:?}",
+        all_bytes
+    );
+
     // Verify all delivered offsets are monotonically increasing.
     let offsets: Vec<u64> = handler.data_events.iter().map(|(_, _, _, o)| *o).collect();
     let is_monotonic = offsets.windows(2).all(|w| w[0] < w[1]);

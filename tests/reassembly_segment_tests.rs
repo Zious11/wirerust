@@ -658,12 +658,12 @@ fn test_BC_2_04_039_flush_delivers_wrapped_segments_in_order() {
     let r_later = dir.insert_segment(0, b"B", 10_485_760, 10_000, 10_485_760);
     assert_eq!(r_later, InsertResult::Inserted);
 
-    // base_offset starts at 0; segment at offset=3 is buffered (gap at 0,1,2).
+    // base_offset is 1 (set by set_isn per BC-2.04.031 PC2); segment at offset=3 is buffered (gap at 1,2).
     // No flush yet.
     let flushed_empty = dir.flush_contiguous();
     assert!(
         flushed_empty.is_empty(),
-        "BC-2.04.039 PC3: gap at offset 0 must prevent flush of offset-3 segment"
+        "BC-2.04.039 PC3: gap at offset 1 (base_offset) must prevent flush of offset-3 segment"
     );
 
     // Now insert segment at offset=1 (seq=u32::MAX-1) — this is immediately contiguous.
