@@ -193,6 +193,72 @@ justifying encoding as a mandatory checklist step rather than a best-practice re
 
 ---
 
+## Wave 9 Lessons (2026-05-26)
+
+### W9.L1 — Wave-Level Adversarial as Distinct Convergence Loop [codified — confirmed Wave 9]
+
+**Finding ID:** Wave 9 retrospective observation
+**Category:** adversarial-workflow / process-validation
+**Observed:** Wave 9 wave-level adversarial passes 1/2/3 surfaced INTEGRATION findings that per-story
+passes could not surface: cross-BC sibling-regressions where fixing STORY-016 or STORY-020 in
+isolation looked complete but the joint invariant test coverage had a gap; joint invariant assertions
+not written because each per-story adversary only reviewed its own story's test file; BC↔story↔test
+propagation gaps (PC-7 in BC-2.04.015 had no corresponding AC trace in STORY-020; BC-2.04.016
+was missing the sibling PC-5 entirely).
+**Impact:** Wave-level is not redundant — it finds a structurally distinct class of finding. Per-story
+convergence is necessary but not sufficient for wave convergence. Both loops required.
+**Status:** [codified — confirmed by Wave 9 results]
+
+---
+
+### W9.L2 — Sibling-Discipline Pattern Self-Perpetuates Under Semantic Remediations [deferred — BEFORE Wave 10]
+
+**Finding ID:** W9-D8 (Drift Items table, STATE.md; CRITICAL escalation 2026-05-26)
+**Category:** process-discipline / adversarial-workflow
+**Observed:** The sibling-discipline pattern (W7.2 / W8.4 recurrence) fired 6 consecutive times in
+Wave 9: STORY-020 per-story passes 2/3/4 (3 cycles) + wave-level passes 1/2/3 (3 cycles). Each
+semantic remediation (new PC, new AC, new EC, new test vector) created a new sibling-regression
+discovered by the next fresh-context adversary. The pattern BROKE at wave-level pass 4 because
+passes 1-3's final fixes were trivial text-only (memcap=12→4, PC-N→PC-5, placeholder→real ref) —
+trivial fixes don't create adjacent semantic siblings.
+**Pattern mechanics:** Semantic remediation adds a new structural element (PC, AC, EC) →
+fresh-context adversary notices the NEW element's sibling positions are not updated → sibling fix
+creates another new element → repeat. The loop terminates only when no new elements are introduced.
+**Structural fix:** Sibling-sweep MUST be an explicit mandatory checklist step for EVERY remediation
+burst that introduces a new PC/AC/EC/Canonical-Test-Vector/VP, not a best-practice reminder. The
+checklist must be enforced at story-writer, test-writer, and PO remediation dispatch sites.
+**Cumulative evidence:** ~10+ sibling-regression findings across waves 7/8/9; 5 consecutive adversary
+cycles before W9 wave-level pass 4; W9-D8 escalated from P1 to CRITICAL.
+**Target:** BEFORE Wave 10 dispatch — codification of mandatory sibling-sweep checklist in adversarial
+and remediation skill prompts. Research-agent validation required per DF-VALIDATION-001 before
+filing GitHub issue.
+**Status:** [deferred — CRITICAL; target: before Wave 10 dispatch]
+
+---
+
+### W9.L3 — PR Manager Stops at Approve; Merge Step Requires Orchestrator [deferred — cycle-close codification]
+
+**Finding ID:** Wave 9 retrospective observation (recurring; also observed Waves 8+9)
+**Category:** process-discipline / agent-scope
+**Observed:** The pr-manager agent consistently stops after receiving a pr-reviewer APPROVE verdict
+and reports completion without executing the merge step. This recurred across PRs #122, #123, #126,
+#127, #128, #129, #130 (spanning Waves 8 and 9). Each time, the orchestrator had to explicitly
+invoke the merge step as a separate action.
+**Impact:** Every PR close requires an extra orchestrator round-trip. At 4 PRs per wave, this is
+a predictable latency multiplier. Over a 27-wave cycle it represents ~108 unnecessary handoff
+interruptions.
+**Root cause:** The pr-manager agent prompt does not explicitly enumerate "steps 7-9 are
+non-optional; report back ONLY after merge commit SHA is confirmed." The agent treats APPROVE as a
+natural stopping point because that is the end of its review-coordination loop.
+**Codification candidate:** Update pr-manager agent prompt to include: "Steps 7 (approve), 8 (merge),
+and 9 (confirm merge commit SHA) are all non-optional and sequential. Do NOT report back to the
+orchestrator until the merge commit SHA is confirmed on develop. APPROVE alone is NOT task completion."
+**Target:** Cycle-close codification — update pr-manager agent prompt before Wave 10. Research-agent
+validation required per DF-VALIDATION-001 before filing GitHub issue.
+**Status:** [deferred — cycle-close codification; target: before Wave 10 dispatch]
+
+---
+
 ## Earlier Wave Lessons (Waves 1-6)
 
 Per-wave process-gap items for Waves 1-6 are recorded in STATE.md Cycle-Close Follow-Up Items
