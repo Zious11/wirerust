@@ -1,6 +1,32 @@
 use wirerust::reassembly::flow::FlowDirection;
 use wirerust::reassembly::segment::InsertResult;
 
+// =============================================================================
+// PROCESS-GLOBAL ATOMIC INTERACTION (Wave 9 wave-level F-W9P1-004 fix)
+//
+// This integration test binary is COMPILED SEPARATELY from
+// reassembly_engine_tests.rs. As a result, the process-global atomics in
+// src/reassembly/segment.rs (e.g., ISN_MISSING_WARNED at segment.rs:53) and
+// src/reassembly/lifecycle.rs (e.g., CLOSE_FLOW_MISSING_WARNED at
+// lifecycle.rs:142) are SEPARATE INSTANCES per test binary — tests in THIS
+// binary do not race against tests in reassembly_engine_tests.rs.
+//
+// HOWEVER, the sibling-discipline doctrine established in STORY-014
+// (reassembly_engine_tests.rs lines 10-26) requires explicit lock acquisition
+// when ANY test reads or asserts on the atomic. The tests in this file
+// (STORY-015 + STORY-016) currently trigger IsnMissing in a few places but do
+// NOT INSPECT the atomic — only the return value is asserted. So the lock is
+// not required today.
+//
+// CONTRACT FOR FUTURE TESTS IN THIS FILE: any new test that reads
+// `isn_missing_warned_for_testing()` or calls
+// `reset_isn_missing_warned_for_testing()` MUST add an
+// `ISN_MISSING_WARNED_LOCK: Mutex<()>` to this file (modeled on
+// reassembly_engine_tests.rs lines 10-26) and acquire it as the FIRST line of
+// the test body. Failure to do so re-introduces the same intra-binary race
+// that STORY-014 documented.
+// =============================================================================
+
 #[test]
 fn test_insert_single_segment() {
     let mut dir = FlowDirection::new();
