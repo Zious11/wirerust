@@ -11451,4 +11451,214 @@ mod ac004_proptest_eviction {
             }
         }
     }
+} // end mod ac004_proptest_eviction
+
+// =============== STORY-017: Conflict + Evasion Detection (Wave 10) ===============
+// ACs: AC-001..AC-015 (15 tests); ECs: EC-001..EC-009 (9 tests)
+
+// --- AC-001 (BC-2.04.037 postcondition 1) ---
+// When a new segment's byte range is fully covered by existing segments AND at
+// least one byte differs, insert_segment returns InsertResult::ConflictingOverlap.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_037_conflicting_bytes_returns_conflicting_overlap() {
+    panic!("STORY-017 AC-001 not yet implemented");
+}
+
+// --- AC-002 (BC-2.04.037 postconditions 2-3) ---
+// After ConflictingOverlap, self.segments is unchanged and self.buffered_bytes
+// is unchanged (original bytes are preserved).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_037_conflicting_overlap_original_bytes_preserved() {
+    panic!("STORY-017 AC-002 not yet implemented");
+}
+
+// --- AC-003 (BC-2.04.018 postcondition 2) ---
+// When InsertResult::ConflictingOverlap is returned, the engine emits exactly
+// one Finding with: category=Anomaly, verdict=Likely, confidence=High,
+// mitre_technique=Some("T1036"), and a summary containing the FlowKey display string.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_018_conflicting_overlap_emits_t1036_finding() {
+    panic!("STORY-017 AC-003 not yet implemented");
+}
+
+// --- AC-004 (BC-2.04.018 postcondition 3) ---
+// The original buffered bytes are NOT replaced; the conflicting new bytes are
+// discarded. The finding is informational only.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_018_conflicting_overlap_first_wins() {
+    panic!("STORY-017 AC-004 not yet implemented");
+}
+
+// --- AC-005 (BC-2.04.018 postcondition 4) ---
+// Each ConflictingOverlap event produces one finding (not latched); successive
+// conflicts each produce their own finding (subject to MAX_FINDINGS cap).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_018_multiple_conflicts_each_produce_finding() {
+    panic!("STORY-017 AC-005 not yet implemented");
+}
+
+// --- AC-006 (BC-2.04.019 postcondition 1) ---
+// When flow_dir.overlap_count > config.overlap_alert_threshold (strictly greater)
+// AND overlap_alert_fired == false, the engine emits one Finding with:
+// category=Anomaly, verdict=Likely, confidence=Medium, mitre_technique=Some("T1036").
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_019_overlap_threshold_emits_medium_t1036_finding() {
+    panic!("STORY-017 AC-006 not yet implemented");
+}
+
+// --- AC-007 (BC-2.04.019 postcondition 4) ---
+// After the overlap threshold alert fires, no further overlap-threshold findings
+// are emitted for that (flow, direction) pair.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_019_overlap_threshold_alert_fires_at_most_once() {
+    panic!("STORY-017 AC-007 not yet implemented");
+}
+
+// --- AC-008 (BC-2.04.019 edge case EC-003) ---
+// When overlap_count == threshold exactly (not strictly greater), no alert fires.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_019_overlap_count_at_threshold_does_not_alert() {
+    panic!("STORY-017 AC-008 not yet implemented");
+}
+
+// --- AC-009 (BC-2.04.020 postconditions 1-2) ---
+// When small_segment_run > config.small_segment_alert_threshold AND
+// small_segment_alert_fired == false AND neither endpoint port is in
+// small_segment_ignore_ports, the engine emits one Finding with:
+// category=Anomaly, verdict=Inconclusive, confidence=Medium, mitre_technique=None.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_020_small_segment_run_emits_finding() {
+    panic!("STORY-017 AC-009 not yet implemented");
+}
+
+// --- AC-010 (BC-2.04.020 invariant 2) ---
+// If EITHER endpoint port is in small_segment_ignore_ports, no small-segment
+// alert is emitted for that flow regardless of run length.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_020_port_exempt_flow_never_alerts() {
+    panic!("STORY-017 AC-010 not yet implemented");
+}
+
+// --- AC-011 (BC-2.04.021 postconditions 1-2) ---
+// When out_of_window_count > config.out_of_window_alert_threshold AND
+// out_of_window_alert_fired == false, the engine emits one Finding with:
+// category=Anomaly, verdict=Inconclusive, confidence=Low, mitre_technique=None,
+// and evidence containing the max_receive_window value.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_021_out_of_window_threshold_emits_finding() {
+    panic!("STORY-017 AC-011 not yet implemented");
+}
+
+// --- AC-012 (BC-2.04.021 invariant 3) ---
+// The evidence string format for the OOW alert is exactly:
+// "max_receive_window={window} bytes; possible misconfiguration, evasion, or capture corruption"
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_021_oow_evidence_string_format() {
+    panic!("STORY-017 AC-012 not yet implemented");
+}
+
+// --- AC-013 (BC-2.04.022 postcondition 1) ---
+// The sticky latch (overlap_alert_fired, small_segment_alert_fired,
+// out_of_window_alert_fired) is set to true BEFORE the MAX_FINDINGS cap check.
+// Even if the cap suppresses the finding, the latch is set.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_022_latch_fires_before_cap_check() {
+    panic!("STORY-017 AC-013 not yet implemented");
+}
+
+// --- AC-014 (BC-2.04.022 postcondition 3) ---
+// Once a latch is set for a (flow, direction) pair, subsequent threshold crossings
+// for that alert type are no-ops (no finding emitted, no dropped_findings increment
+// from re-evaluation).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_022_latch_prevents_re_evaluation() {
+    panic!("STORY-017 AC-014 not yet implemented");
+}
+
+// --- AC-015 (BC-2.04.022 invariant 3) ---
+// The maximum possible threshold findings for a single bidirectional flow is 6
+// (3 alert types x 2 directions); both directions can each fire all three alerts
+// independently.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_022_max_6_threshold_findings_per_flow() {
+    panic!("STORY-017 AC-015 not yet implemented");
+}
+
+// --- EC-001 ---
+// ConflictingOverlap when findings.len() == MAX_FINDINGS: finding silently
+// dropped; dropped_findings++.
+#[test]
+fn test_story_017_ec001_conflicting_overlap_at_max_findings_drops_and_counts() {
+    panic!("STORY-017 EC-001 not yet implemented");
+}
+
+// --- EC-002 ---
+// ConflictingOverlap immediately after another: second finding emitted (not latched).
+#[test]
+fn test_story_017_ec002_consecutive_conflicts_each_emit_finding() {
+    panic!("STORY-017 EC-002 not yet implemented");
+}
+
+// --- EC-003 ---
+// overlap_count == threshold exactly: no threshold alert (strictly greater required).
+#[test]
+fn test_story_017_ec003_overlap_count_equals_threshold_no_alert() {
+    panic!("STORY-017 EC-003 not yet implemented");
+}
+
+// --- EC-004 ---
+// overlap_count == threshold + 1: alert fires.
+#[test]
+fn test_story_017_ec004_overlap_count_one_over_threshold_alert_fires() {
+    panic!("STORY-017 EC-004 not yet implemented");
+}
+
+// --- EC-005 ---
+// Small-segment run reset by normal-sized segment: no alert after reset.
+#[test]
+fn test_story_017_ec005_small_segment_run_reset_by_normal_segment_no_alert() {
+    panic!("STORY-017 EC-005 not yet implemented");
+}
+
+// --- EC-006 ---
+// Port 23 (telnet) in ignore list; 1000 small segments: no alert.
+#[test]
+fn test_story_017_ec006_telnet_port_exempt_1000_small_segments_no_alert() {
+    panic!("STORY-017 EC-006 not yet implemented");
+}
+
+// --- EC-007 ---
+// OOW alert fires when findings cap is full: latch set; dropped_findings++.
+#[test]
+fn test_story_017_ec007_oow_alert_at_max_findings_latch_set_dropped_incremented() {
+    panic!("STORY-017 EC-007 not yet implemented");
+}
+
+// --- EC-008 ---
+// ClientToServer latch set; ServerToClient still unlocked: S2C can fire independently.
+#[test]
+fn test_story_017_ec008_c2s_latch_does_not_suppress_s2c_alert() {
+    panic!("STORY-017 EC-008 not yet implemented");
+}
+
+// --- EC-009 ---
+// Duplicate overlap result: overlap_count++ but no ConflictingOverlap finding.
+#[test]
+fn test_story_017_ec009_duplicate_overlap_increments_count_no_finding() {
+    panic!("STORY-017 EC-009 not yet implemented");
 }
