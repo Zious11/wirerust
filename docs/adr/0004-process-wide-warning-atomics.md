@@ -184,3 +184,56 @@ to apply to the GUARD SITES themselves. The `_for_testing` accessor
 functions introduced for `ISN_MISSING_WARNED` are read/reset wrappers,
 not guard sites; they are expected to appear as additional matches and
 do not violate the canonical-shape claim about the guards.
+
+### 2026-05-26 — STORY-019 / BC-2.04.029 v1.4: test-seam expansion to CLOSE_FLOW_MISSING_WARNED + new state-injection seam class
+
+STORY-019 (Wave 8) added three `#[doc(hidden)] pub fn` test seams for
+`CLOSE_FLOW_MISSING_WARNED` in `src/reassembly/lifecycle.rs`:
+
+- `close_flow_missing_warned_for_testing() -> bool` (lifecycle.rs:158-161) — reads the atomic.
+- `reset_close_flow_missing_warned_for_testing()` (lifecycle.rs:167-170) — stores false.
+- `trigger_close_flow_missing_key_for_testing(...)` (lifecycle.rs:196-217) — **replicate-body design**: directly executes the post-debug_assert body of the missing-key branch (atomic swap + one-shot eprintln). It does NOT call production `close_flow` because BC-2.04.029 PC6 defines a `debug_assert!(false, ...)` at lifecycle.rs:43 that fires in cargo's default debug-test profile BEFORE the swap at lifecycle.rs:44, making the post-swap atomic state unobservable via any `catch_unwind` wrapping of `close_flow`. The replicate-body design preserves PC6 in production code (debug_assert untouched) while allowing tests to deterministically observe BC-2.04.029 PC4/PC5 atomic-state behavior.
+
+These three seams are formalized in BC-2.04.029 v1.4 PC7 and exercised by the STORY-019 combined AC-013+AC-014 test (`test_BC_2_04_029_close_flow_missing_key_warns_once`) and AC-015 test (`test_BC_2_04_029_close_flow_missing_key_does_not_modify_state`).
+
+**Hygiene constraints** (same as the 2026-05-25 amendment):
+
+- All three carry `#[doc(hidden)]`.
+- All names end with the `_for_testing` suffix.
+- None may be called from production code paths.
+
+**New seam class: state-injection (`force_set_flow_state_for_testing`)**
+
+STORY-019 also added a fourth `#[doc(hidden)] pub fn` at `src/reassembly/lifecycle.rs:232-244`:
+
+```rust
+pub fn force_set_flow_state_for_testing(
+    reassembler: &mut TcpReassembler,
+    key: &FlowKey,
+    state: FlowState,
+) -> bool
+```
+
+This seam is **NOT a warning-guard test accessor** — it directly mutates a flow's state via a `pub(crate) fn flows_mut(&mut self)` accessor on `TcpReassembler`. It exists for STORY-019 AC-012, which needs to construct a flow in `FlowState::Closed` with `last_seen` well within the timeout window to discriminate BC-2.04.013 PC1's state-based OR-clause from the time-based clause. Without this seam, the only way to reach `FlowState::Closed` is via two-FIN sequence (which advances `last_seen`). The seam allows the test to isolate the state-based clause.
+
+The `force_set_flow_state_for_testing` seam represents a **new test-seam class** authorized under the original "opt-in per-guard" doctrine: state-injection seams enable BC-driven discrimination tests that cannot be expressed through the normal API. Same hygiene constraints apply (`#[doc(hidden)]`, `_for_testing` suffix, no production callers).
+
+**Scope of the exception (updated as of Wave 8)**
+
+The Wave-7 amendment's "Scope of the exception" lemma is now updated:
+
+- `ISN_MISSING_WARNED` — has read + reset seams (STORY-014 / BC-2.04.048 v1.3 PC4).
+- `CLOSE_FLOW_MISSING_WARNED` — has read + reset + trigger seams (STORY-019 / BC-2.04.029 v1.4 PC7).
+- `FINALIZE_SKIPPED_WARNED` (`src/reassembly/mod.rs:70`) — has NO test seams **as of Wave 8**; continues to follow the original ADR-0004 guidance (assert behavior, not warning text).
+
+The opt-in-per-guard, gated-by-BC-driven-need doctrine continues to apply. Future seams for `FINALIZE_SKIPPED_WARNED` are authorized when a BC introduces an AC requiring deterministic observation of its swap transition or its post-warning state.
+
+**Validation lemma refinement (extended)**
+
+- `grep -rn '_WARNED' src/` will match both guard sites AND the `_for_testing` accessor wrappers for both `ISN_MISSING_WARNED` and `CLOSE_FLOW_MISSING_WARNED`.
+- `grep -rn '_for_testing' src/reassembly/` now matches six function signatures (2 ISN seams from STORY-014, 3 CLOSE_FLOW seams from STORY-019, plus 1 force_set_flow_state state-injection seam = 6 total).
+- The canonical-shape claim ("static AtomicBool + swap(true, Relaxed)") still applies to the GUARD SITES themselves (lifecycle.rs:43-48 and segment.rs:51-58), not to the `_for_testing` wrappers or to the `trigger_close_flow_missing_key_for_testing` replicate-body (which mirrors the guard-site pattern internally).
+
+**Module visibility widening**
+
+STORY-019 widened `mod lifecycle;` (private) to `pub mod lifecycle;` to expose the `_for_testing` accessors to integration tests. This is necessary because integration tests are separate crates and cannot see `#[cfg(test)]` items. The visibility widening is recorded here for SemVer auditability — `flow_count()`, `flows_mut()`, and the four `_for_testing` accessors are now reachable via `wirerust::reassembly::lifecycle::*`.
