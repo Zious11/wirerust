@@ -711,6 +711,184 @@ fn test_BC_2_04_039_flush_delivers_wrapped_segments_in_order() {
     );
 }
 
+// =============== STORY-016: Overlap Detection (Wave 9) ===============
+// BC-2.04.035 / 036 / 038 / 043 / 047
+// 14 ACs + 10 ECs — Part A stubs (Red Gate).
+// Every test body panics; all must FAIL before implementation begins.
+// =====================================================================
+
+// --- AC-001 (BC-2.04.035 postcondition 1) ---
+/// Identical retransmission (same range, identical bytes) must return Duplicate.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_035_identical_retransmission_returns_duplicate() {
+    panic!("STORY-016 AC-001 not yet implemented");
+}
+
+// --- AC-002 (BC-2.04.035 postconditions 2-3) ---
+/// After Duplicate result, segments map and buffered_bytes are unchanged.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_035_duplicate_does_not_change_buffer() {
+    panic!("STORY-016 AC-002 not yet implemented");
+}
+
+// --- AC-003 (BC-2.04.035 postcondition 4) ---
+/// overlap_count increments by 1 even for a Duplicate result.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_035_duplicate_increments_overlap_count() {
+    panic!("STORY-016 AC-003 not yet implemented");
+}
+
+// --- AC-004 (BC-2.04.036 postcondition 1) ---
+/// Partial overlap (existing + gap bytes) returns PartialOverlap.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_036_partial_overlap_returns_partial_overlap() {
+    panic!("STORY-016 AC-004 not yet implemented");
+}
+
+// --- AC-005 (BC-2.04.036 postconditions 2-3) ---
+/// After PartialOverlap, only gap bytes inserted; existing bytes are preserved (first-wins).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_036_partial_overlap_preserves_existing_bytes() {
+    panic!("STORY-016 AC-005 not yet implemented");
+}
+
+// --- AC-006 (BC-2.04.036 postcondition 4) ---
+/// After PartialOverlap, buffered_bytes increases only by the gap byte count.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_036_partial_overlap_buffered_bytes_gap_only() {
+    panic!("STORY-016 AC-006 not yet implemented");
+}
+
+// --- AC-007 (BC-2.04.036 postcondition 5) ---
+/// overlap_count increments by 1 for a PartialOverlap result.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_036_partial_overlap_increments_overlap_count() {
+    panic!("STORY-016 AC-007 not yet implemented");
+}
+
+// --- AC-008 (BC-2.04.038 postcondition 1) ---
+/// New segment fully covered by union of 2+ existing segments with matching bytes → Duplicate.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_038_multi_segment_full_coverage_matching_returns_duplicate() {
+    panic!("STORY-016 AC-008 not yet implemented");
+}
+
+// --- AC-009 (BC-2.04.038 postcondition 2) ---
+/// New segment fully covered by union but at least one byte differs → ConflictingOverlap.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_038_multi_segment_full_coverage_conflicting_returns_conflicting() {
+    panic!("STORY-016 AC-009 not yet implemented");
+}
+
+// --- AC-010 (BC-2.04.043 postcondition 1) ---
+/// Segment whose start == existing segment's end returns Inserted, not PartialOverlap.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_043_adjacent_segment_returns_inserted_not_overlap() {
+    panic!("STORY-016 AC-010 not yet implemented");
+}
+
+// --- AC-011 (BC-2.04.043 postcondition 2) ---
+/// overlap_count is NOT incremented for an adjacent (touching, non-overlapping) segment.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_043_adjacent_segment_does_not_increment_overlap_count() {
+    panic!("STORY-016 AC-011 not yet implemented");
+}
+
+// --- AC-012 (BC-2.04.047 postcondition 1) ---
+/// buffered_bytes == sum(segments.values().map(|v| v.len())) at all times.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_047_buffered_bytes_mirrors_segment_size_sum() {
+    panic!("STORY-016 AC-012 not yet implemented");
+}
+
+// --- AC-013 (BC-2.04.047 postcondition 4) ---
+/// buffered_bytes is unchanged for Duplicate, ConflictingOverlap, OutOfWindow, IsnMissing.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_047_buffered_bytes_unchanged_for_non_insert_results() {
+    panic!("STORY-016 AC-013 not yet implemented");
+}
+
+// --- AC-014 (BC-2.04.047 postcondition 5) ---
+/// After flush_contiguous() flushes N bytes, buffered_bytes decreases by exactly N.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_047_buffered_bytes_decrements_on_flush() {
+    panic!("STORY-016 AC-014 not yet implemented");
+}
+
+// --- EC-001 — Exact same seq, exact same bytes → Duplicate ---
+#[test]
+fn test_story_016_ec001_exact_retransmission_duplicate() {
+    panic!("STORY-016 EC-001 not yet implemented");
+}
+
+// --- EC-002 — Range covered by 2 non-contiguous segments, matching bytes → Duplicate ---
+#[test]
+fn test_story_016_ec002_noncontiguous_union_coverage_duplicate() {
+    panic!("STORY-016 EC-002 not yet implemented");
+}
+
+// --- EC-003 — Same range, one byte differs → ConflictingOverlap ---
+#[test]
+fn test_story_016_ec003_same_range_one_byte_differs_conflicting() {
+    panic!("STORY-016 EC-003 not yet implemented");
+}
+
+// --- EC-004 — New segment extends existing at the end (append) → PartialOverlap, tail gap added ---
+#[test]
+fn test_story_016_ec004_append_extension_partial_overlap() {
+    panic!("STORY-016 EC-004 not yet implemented");
+}
+
+// --- EC-005 — New segment extends existing at the start (prepend) → PartialOverlap, head gap added ---
+#[test]
+fn test_story_016_ec005_prepend_extension_partial_overlap() {
+    panic!("STORY-016 EC-005 not yet implemented");
+}
+
+// --- EC-006 — New segment spans two existing segments with a gap between → gap bytes filled ---
+#[test]
+fn test_story_016_ec006_spans_two_segments_gap_filled() {
+    panic!("STORY-016 EC-006 not yet implemented");
+}
+
+// --- EC-007 — Segment B starts exactly where segment A ends → Inserted, overlap_count unchanged ---
+#[test]
+fn test_story_016_ec007_exact_adjacency_inserted_not_overlap() {
+    panic!("STORY-016 EC-007 not yet implemented");
+}
+
+// --- EC-008 — Segment B starts one byte before segment A ends → overlap detected ---
+#[test]
+fn test_story_016_ec008_one_byte_before_end_is_overlap() {
+    panic!("STORY-016 EC-008 not yet implemented");
+}
+
+// --- EC-009 — Three segments covering new range jointly, all bytes match → Duplicate ---
+#[test]
+fn test_story_016_ec009_three_segment_union_coverage_duplicate() {
+    panic!("STORY-016 EC-009 not yet implemented");
+}
+
+// --- EC-010 — Empty data slice → Inserted (early-return before overlap checks) ---
+#[test]
+fn test_story_016_ec010_empty_data_returns_inserted() {
+    panic!("STORY-016 EC-010 not yet implemented");
+}
+
 // =============================================================================
 // STORY-015: BC-2.04.007 inv-3 — base_offset is monotonically non-decreasing
 // VP-011 proptest
