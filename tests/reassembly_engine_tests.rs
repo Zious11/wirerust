@@ -7330,10 +7330,11 @@ fn test_BC_2_04_008_out_of_order_segment_buffered_not_delivered() {
         0,
         "BC-2.04.008 PC4: on_data must NOT be called for OOO segment with gap"
     );
-    // BC-2.04.008 PC2-3: buffered_bytes/total_memory increases.
-    assert!(
-        reassembler.total_memory() > memory_before,
-        "BC-2.04.008 PC2-3: total_memory must increase after buffering OOO segment"
+    // BC-2.04.008 PC2-3: buffered_bytes/total_memory increases by exactly 3 bytes ("def").
+    assert_eq!(
+        reassembler.total_memory(),
+        memory_before + 3,
+        "BC-2.04.008 PC1+PC3: exactly 3 bytes (the OOO segment) added to buffer accounting"
     );
 }
 
@@ -7756,12 +7757,15 @@ fn test_BC_2_04_008_ec006_three_segment_ooo_321() {
     );
 }
 
-/// EC-009 (BC-2.04.034 EC-001): Empty segments BTreeMap; flush_contiguous
-/// called; returns empty Vec; base_offset unchanged.
-/// Verifies via engine: process SYN only (no data), then verify no on_data events.
+/// Baseline coverage for EC-009 ('Empty segments BTreeMap; flush_contiguous called → returns
+/// empty Vec'). Engine-level: SYN-only flow has no payload, so insert_payload_segment +
+/// flush_contiguous_data are never invoked. The actual empty-BTreeMap flush coverage is at the
+/// segment-level: `test_BC_2_04_034_flush_contiguous_empty_when_no_segment_at_base`. This engine
+/// test verifies the no-side-effect baseline for a flow with no data, not the empty-BTreeMap
+/// flush path itself.
 #[allow(non_snake_case)]
 #[test]
-fn test_BC_2_04_034_ec009_flush_empty_btreemap_no_change() {
+fn test_BC_2_04_034_ec009_syn_only_flow_no_data_events_baseline() {
     let config = ReassemblyConfig::default();
     let mut reassembler = TcpReassembler::new(config);
     let mut handler = RecordingHandler::new();

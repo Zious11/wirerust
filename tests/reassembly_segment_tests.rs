@@ -497,16 +497,22 @@ fn test_BC_2_04_034_flush_contiguous_accounting() {
 
 /// BC-2.04.034 PC4: When no segment exists at base_offset, flush_contiguous()
 /// returns an empty Vec and leaves base_offset unchanged.
-/// Canonical vector: segments={5: "XY"}, base_offset=0 (gap) → [] returned, base_offset=0.
+/// Canonical vector: segments={5: "XY"}, base_offset=1 (set by set_isn) → gap at offset 1 →
+/// [] returned, base_offset stays at 1.
 #[allow(non_snake_case)]
 #[test]
 fn test_BC_2_04_034_flush_contiguous_empty_when_no_segment_at_base() {
     let mut dir = wirerust::reassembly::flow::FlowDirection::new();
     dir.set_isn(0);
-    // Insert segment at offset 5 — leaves gap at offset 0 (base_offset).
+    // Insert segment at offset 5 — leaves gap at offset 1 (base_offset, set by set_isn).
     dir.insert_segment(5, b"XY", 10_485_760, 10_000, 10_485_760);
 
     let pre_base = dir.base_offset;
+    assert_eq!(
+        pre_base, 1,
+        "BC-2.04.033 inv-1: set_isn(0) yields base_offset=1"
+    );
+    let pre_reassembled = dir.reassembled_bytes;
 
     let flushed = dir.flush_contiguous();
 
@@ -522,6 +528,10 @@ fn test_BC_2_04_034_flush_contiguous_empty_when_no_segment_at_base() {
         dir.buffered_bytes(),
         2,
         "BC-2.04.034 PC4: buffered segment (\"XY\") must remain in buffer"
+    );
+    assert_eq!(
+        dir.reassembled_bytes, pre_reassembled,
+        "BC-2.04.034 PC4: reassembled_bytes unchanged on no-op flush"
     );
 }
 
@@ -740,10 +750,11 @@ fn seg_op_strategy() -> impl Strategy<Value = SegOp> {
 }
 
 proptest! {
-    /// VP-011 / BC-2.04.007 inv-3: base_offset is monotonically non-decreasing
-    /// across any sequence of Insert and Flush operations.
-    /// Strategy generates up to 20 ops per case; asserts base_offset never
-    /// decreases between consecutive observations.
+    /// VP-011 / BC-2.04.007 inv-3: For any sequence of in-window inserts and flushes around a
+    /// mid-range ISN, BC-2.04.007 invariant 3 holds: `base_offset` is monotonically
+    /// non-decreasing. Wraparound monotonicity is covered separately by AC-016/AC-017
+    /// (`test_BC_2_04_039_*`); out-of-window monotonicity is covered by
+    /// `test_out_of_window_segment_rejected`.
     #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_04_007_base_offset_is_monotonic(ops in proptest::collection::vec(seg_op_strategy(), 1..=20)) {
