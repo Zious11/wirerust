@@ -2,10 +2,10 @@
 document_type: story
 story_id: "STORY-021"
 epic_id: "E-2"
-version: "1.3"
+version: "1.4"
 status: draft
 producer: story-writer
-timestamp: 2026-05-27T01:00:00Z
+timestamp: 2026-05-27T02:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.012.md
@@ -108,7 +108,7 @@ implementation_strategy: brownfield-formalization
 
 ### AC-013 (traces to BC-2.04.054 invariant 3 — representative bound scenario)
 - Under a representative finalize-bypass scenario (findings pre-filled to `MAX_FINDINGS`, `segments_segment_limit > 0`, then `finalize` called), the resulting `findings.len()` is exactly `MAX_FINDINGS + 1` (= 10,001) — a smoke test of the bound under known-stressful inputs. The universal upper-bound proof (∀ runs, `len ≤ 10,001`) belongs to VP-003 (property-based test); this AC verifies the bound at a single representative scenario only.
-- **Test:** `test_BC_2_04_054_max_findings_plus_one_is_absolute_upper_bound`
+- **Test:** `test_BC_2_04_054_finalize_bypass_smoke_at_max_findings_representative_scenario`
 
 ### AC-014 (traces to BC-2.04.024 edge case EC-004 — dropped_findings monotonicity)
 - Consecutive cap-hit events each increment `stats.dropped_findings` by exactly 1; the counter is monotonic and accumulates correctly across N successive cap-hit emissions (verified at N=3).
@@ -169,7 +169,7 @@ implementation_strategy: brownfield-formalization
 |---------------|-----------------|
 | This story spec | ~3,000 |
 | BC files (5 BCs) | ~5,500 |
-| src/reassembly/mod.rs (finalize ~557-591, impl Drop ~677-690, MAX_FINDINGS ~54, dropped_findings sites ~432,466,495) | ~2,500 |
+| src/reassembly/mod.rs (finalize ~557-591, impl Drop ~793-807, MAX_FINDINGS ~54, dropped_findings sites ~432,466,495) | ~2,500 |
 | src/reassembly/lifecycle.rs (dropped_findings sites ~101,121) | ~500 |
 | src/analyzer/http.rs (test seams: push_finding_for_testing, all_findings_len_for_testing) | ~500 |
 | src/analyzer/tls.rs (test seams: push_finding_for_testing, all_findings_len_for_testing) | ~500 |
@@ -210,6 +210,8 @@ implementation_strategy: brownfield-formalization
 27. [x] Update Task 1 wording from "13 ACs" → "initial 13 ACs (AC-001..AC-013); post-pass-1 ACs added by tasks 11-19" (F-W11P2-007)
 28. [x] Re-categorize FINALIZE_SKIPPED_WARNED_LOCK docstring buckets (F-W11P2-011)
 29. [x] Sweep STORY-021 line-citations to current source line numbers (F-W11P2-010)
+30. [x] (POST-PASS-3 ADDITIONS) Replace stale `mod.rs:677-690` with `mod.rs:793-807` in Token Budget + File Structure Requirements tables (F-W11P3-003)
+31. [x] Propagate AC-013 test rename (`...absolute_upper_bound` → `...finalize_bypass_smoke_at_max_findings_representative_scenario`) to AC-013, EC-005, and any other story-side citations (F-W11P3-004b)
 
 ## Previous Story Intelligence (MANDATORY)
 
@@ -246,7 +248,7 @@ implementation_strategy: brownfield-formalization
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `src/reassembly/mod.rs` | verify (lines 54, 66-68, 432, 466, 495, 557-591, 677-690) | MAX_FINDINGS const, plural_s, cap guard sites, finalize, impl Drop |
+| `src/reassembly/mod.rs` | verify (lines 54, 66-68, 432, 466, 495, 557-591, 793-807) | MAX_FINDINGS const, plural_s, cap guard sites, finalize, impl Drop |
 | `src/reassembly/lifecycle.rs` | verify (lines 101, 121) | dropped_findings guard sites in generate_ functions |
 | `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-013 (original); AC-007b, AC-014 through AC-017 (post-pass-1) |
 | `src/analyzer/http.rs` | verify (test seams) | `push_finding_for_testing`, `all_findings_len_for_testing` — used by AC-007b test |
@@ -260,3 +262,4 @@ implementation_strategy: brownfield-formalization
 | 1.1 | 2026-05-21 | Brownfield formalization; 13 ACs, full BC traceability, architecture compliance rules, edge case table |
 | 1.2 | 2026-05-27 | Post-adversarial-pass-1 remediation (F-W11P1-001 through F-W11P1-015): AC-007 revised to engine-cap boundary assertion; AC-007b added (HttpAnalyzer/TlsAnalyzer cap isolation, `test_BC_2_04_024_http_tls_analyzer_findings_not_capped`); AC-013 rephrased to remove universal-upper-bound overpromise; AC-014 added (dropped_findings monotonicity, N=3); AC-015 added (small_segment cap-guard site mod.rs:466); AC-016 added (EC-006 boundary MAX-1+finalize→10000); AC-017 added (segment-limit push unconditional across initial counts 0/5000/9999/10000); EC table extended to 11 rows (EC-009, EC-010, EC-011); 4 architecture compliance rules added (F-W11P1-001, F-W11P1-006, F-W11P1-009, AC-013 VP-003 delegation); token budget revised to ~18,000; 10 post-pass-1 tasks appended (tasks 10-19); STORY-021 self-learning row added to Previous Story Intelligence; 2 new architecture mapping seam rows added |
 | 1.3 | 2026-05-27 | Post-adversarial-pass-2 remediation (F-W11P2-001 through F-W11P2-014): AC-007b clarified to emphasize both HttpAnalyzer AND TlsAnalyzer are exercised; AC-016 trace fixed from non-existent BC-2.04.054 EC-006 → BC-2.04.054 EC-002 + story EC-006 (F-W11P2-004); EC-010 expanded to enumerate all 5 cap-guard sites with covering tests (F-W11P2-006); Task 1 wording updated from "13 ACs" to "initial 13 ACs (AC-001..AC-013)" (F-W11P2-007); STORY-021 Previous-Story-Intelligence self-row replaced: linearizability overclaim → honest Option B scope-limit (F-W11P2-009); process-lesson row added for DF-SIBLING-SWEEP-001 task-description update obligation (F-W11P2-014); Architecture Compliance Rules: stale AC-004 linearizability rule replaced with honest scope-limit rule (F-W11P2-002); `self.finalized = true` line-citation corrected mod.rs:560→561, loop 562+→564+ (F-W11P2-010); impl Drop line-citation corrected mod.rs:677-690→793-807 (F-W11P2-010); TlsAnalyzer test seam row added to Architecture Mapping and File Structure Requirements (F-W11P2-001); token budget updated to ~18,500; 10 post-pass-2 tasks appended (tasks 20-29) |
+| 1.4 | 2026-05-27 | Post-adversarial-pass-3 propagation fixes (F-W11P3-003, F-W11P3-004b): replaced remaining stale `mod.rs:677-690` citations with `mod.rs:793-807` in Token Budget table and File Structure Requirements table (F-W11P3-003); propagated AC-013 test rename `test_BC_2_04_054_max_findings_plus_one_is_absolute_upper_bound` → `test_BC_2_04_054_finalize_bypass_smoke_at_max_findings_representative_scenario` to AC-013 Test trace line (F-W11P3-004b); tasks 30-31 appended |
