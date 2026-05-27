@@ -2,10 +2,10 @@
 document_type: story
 story_id: "STORY-021"
 epic_id: "E-2"
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
-timestamp: 2026-05-27T00:00:00Z
+timestamp: 2026-05-27T01:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.012.md
@@ -84,8 +84,7 @@ implementation_strategy: brownfield-formalization
 - **Test:** `test_BC_2_04_024_engine_cap_at_exactly_10000`
 
 ### AC-007b (traces to BC-2.04.024 invariant 4 — analyzer cap isolation)
-- HttpAnalyzer and TlsAnalyzer findings are NOT subject to the reassembly-engine `MAX_FINDINGS` cap; analyzer-side findings collections can grow beyond 10,000 without truncation.
-- **Test:** `test_BC_2_04_024_http_tls_analyzer_findings_not_capped` (pushes 10,001 findings via HttpAnalyzer additive test seams; asserts all 10,001 are retained)
+- HttpAnalyzer **and** TlsAnalyzer findings are NOT subject to the reassembly-engine `MAX_FINDINGS` cap; analyzer-side findings collections can grow beyond 10,000. Test: `test_BC_2_04_024_http_tls_analyzer_findings_not_capped` (pushes 10,001 findings via additive `push_finding_for_testing` seams on **both** HttpAnalyzer and TlsAnalyzer; asserts each accumulates all 10,001).
 
 ### AC-008 (traces to BC-2.04.025 postcondition 1)
 - When `finalize` is called and `stats.segments_segment_limit > 0`, exactly one finding is pushed with: `category: Anomaly`, `verdict: Inconclusive`, `confidence: Medium`, `mitre_technique: None`, and `source_ip: None`, `direction: None`.
@@ -119,7 +118,7 @@ implementation_strategy: brownfield-formalization
 - The small-segment cap-guard at `src/reassembly/mod.rs:466` (small_segment_alert emission path) correctly rejects the finding and increments `stats.dropped_findings` when `findings.len() >= MAX_FINDINGS`. The out-of-window cap-guard at `mod.rs:495` is covered by sibling-story STORY-017 test `test_story_017_ec007_oow_alert_at_max_findings_latch_set_dropped_incremented`.
 - **Test:** `test_BC_2_04_024_cap_guard_small_segment_site`
 
-### AC-016 (traces to BC-2.04.054 postconditions 1-2 — EC-006 boundary case)
+### AC-016 (traces to BC-2.04.054 postconditions 1-2 + BC-2.04.054 EC-002 'bypass semantics not triggered below cap'; satisfies story EC-006 boundary)
 - When `findings.len() == MAX_FINDINGS - 1` (9,999) at finalize time and `segments_segment_limit > 0`, the segment-limit finding pushes to exactly `MAX_FINDINGS` (10,000) — still within the normal cap (the bypass path accommodates this exactly).
 - **Test:** `test_BC_2_04_054_finalize_at_max_findings_minus_one`
 
@@ -132,12 +131,13 @@ implementation_strategy: brownfield-formalization
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
 | finalize (latch, flow loop, segment-limit block) | src/reassembly/mod.rs:557-591 | effectful-shell |
-| impl Drop tripwire | src/reassembly/mod.rs:677-690 | effectful-shell (stderr write) |
+| impl Drop tripwire | src/reassembly/mod.rs:793-807 | effectful-shell (stderr write) |
 | MAX_FINDINGS constant | src/reassembly/mod.rs:54 | pure-core (constant) |
 | dropped_findings counter sites | src/reassembly/mod.rs:432,466,495; lifecycle.rs:101,121 | effectful-shell |
 | plural_s helper | src/reassembly/mod.rs:66-68 | pure-core |
 | segment-limit finding push (unconditional) | src/reassembly/mod.rs:573 | effectful-shell |
 | `all_findings_len_for_testing` / `push_finding_for_testing` | src/analyzer/http.rs | effectful-shell (test-only) |
+| `all_findings_len_for_testing` / `push_finding_for_testing` | src/analyzer/tls.rs | effectful-shell (test-only) |
 | `swap_finalize_skipped_warned_for_testing(value: bool) -> bool` | src/reassembly/mod.rs | effectful-shell (test-only) |
 
 ## Edge Cases
@@ -153,7 +153,7 @@ implementation_strategy: brownfield-formalization
 | EC-007 | Drop without finalize | One-shot eprintln; flows NOT flushed (no handler in Drop) |
 | EC-008 | Clean PCAP (no anomalies, no segment limit) | findings.is_empty() (or only flow-generated findings); no segment-limit finding |
 | EC-009 | Multiple consecutive cap-hit events | `dropped_findings` accumulates monotonically (N events → counter += N); verified at N=3 (BC-2.04.024 EC-004). Backed by AC-014 |
-| EC-010 | small_segment cap-guard at mod.rs:466 + out_of_window cap-guard at mod.rs:495 — both sites at MAX | Both correctly reject the finding and increment `dropped_findings`; mod.rs:466 covered by AC-015 test; mod.rs:495 covered by STORY-017 test `test_story_017_ec007_oow_alert_at_max_findings_latch_set_dropped_incremented` |
+| EC-010 | All 5 cap-guard sites correctly reject + increment `dropped_findings` at MAX_FINDINGS | (1) **mod.rs:432** overlap_alert path — covered by `test_BC_2_04_022_latch_fires_before_cap_check` (sibling story); (2) **mod.rs:466** small_segment_alert path — covered by AC-015 `test_BC_2_04_024_cap_guard_small_segment_site`; (3) **mod.rs:495** out_of_window_alert path — covered by `test_story_017_ec007_oow_alert_at_max_findings_latch_set_dropped_incremented` (STORY-017 sibling); (4) **lifecycle.rs:101** conflicting_overlap_finding path — covered by AC-005 `test_BC_2_04_024_findings_capped_at_max_findings` (also covered by `test_story_017_ec001_conflicting_overlap_at_max_findings_drops_and_counts`); (5) **lifecycle.rs:121** truncated_finding path — covered by `test_BC_2_04_023_truncated_finding_dropped_at_cap` (sibling story) |
 | EC-011 | HttpAnalyzer / TlsAnalyzer findings collections exceed 10,000 | NOT capped — the MAX_FINDINGS cap is engine-local to TcpReassembler; analyzer collections grow unbounded. Backed by AC-007b |
 
 ## Purity Classification
@@ -172,15 +172,16 @@ implementation_strategy: brownfield-formalization
 | src/reassembly/mod.rs (finalize ~557-591, impl Drop ~677-690, MAX_FINDINGS ~54, dropped_findings sites ~432,466,495) | ~2,500 |
 | src/reassembly/lifecycle.rs (dropped_findings sites ~101,121) | ~500 |
 | src/analyzer/http.rs (test seams: push_finding_for_testing, all_findings_len_for_testing) | ~500 |
+| src/analyzer/tls.rs (test seams: push_finding_for_testing, all_findings_len_for_testing) | ~500 |
 | Test files (13 original + 6 new post-pass-1 tests) | ~5,000 |
 | Tool outputs overhead | ~1,000 |
-| **Total** | **~18,000** |
+| **Total** | **~18,500** |
 | Agent context window | 200K for Sonnet |
-| **Budget usage** | **~9.0%** |
+| **Budget usage** | **~9.3%** |
 
 ## Tasks (MANDATORY)
 
-1. [x] Write failing tests for all 13 ACs in `tests/reassembly_engine_tests.rs`
+1. [x] Write failing tests for the initial 13 ACs (AC-001..AC-013) in `tests/reassembly_engine_tests.rs` — post-pass-1 ACs (AC-007b, AC-014..AC-017) added by tasks 11-19 below
 2. [x] Verify Red Gate: all tests fail before implementation changes
 3. [x] Verify existing implementation satisfies all ACs (brownfield)
 4. [x] Test finalize idempotency: call twice; assert on_flow_close callbacks fire exactly N times (pin close_count == 2 after first finalize before idempotency check)
@@ -199,6 +200,16 @@ implementation_strategy: brownfield-formalization
 17. [x] (POST-PASS-1) Parameterize segment-limit push test across initial findings.len() ∈ {0, 5000, 9999, 10000} via `test_BC_2_04_054_segment_limit_finding_emitted_regardless_of_initial_count` (F-W11P1-010)
 18. [x] (POST-PASS-1) AC-009 plural boundary changed N=42 → N=2 (true plural-boundary) (F-W11P1-011)
 19. [x] (POST-PASS-1) AC-003 pin first-finalize close_count == 2 before idempotency check (F-W11P1-014)
+20. [x] (POST-PASS-2) Add TlsAnalyzer push_finding_for_testing + all_findings_len_for_testing seams to close AC-007b TlsAnalyzer coverage (F-W11P2-001 + F-W11P2-008)
+21. [x] Extend test_BC_2_04_024_http_tls_analyzer_findings_not_capped to exercise both HttpAnalyzer AND TlsAnalyzer in sequence
+22. [x] Rewrite AC-004 architecture compliance rule + Previous-Story-Intelligence row to reflect honest scope limit (Option B chosen over Option A 194-site lock-spread) (F-W11P2-002 + F-W11P2-009)
+23. [x] Rewrite test_BC_2_04_054_finalize_at_max_findings_minus_one docstring to match actual test body (F-W11P2-003)
+24. [x] Fix AC-016 BC EC trace from BC-2.04.054 EC-006 (non-existent) to BC-2.04.054 EC-002 + story EC-006 (F-W11P2-004)
+25. [x] Fix test_BC_2_04_024_cap_guard_small_segment_site docstring trace from BC-2.04.024 EC-004 → BC-2.04.024 postconditions 1-2 (F-W11P2-005)
+26. [x] Extend EC-010 to enumerate all 5 cap-guard sites with covering tests (F-W11P2-006)
+27. [x] Update Task 1 wording from "13 ACs" → "initial 13 ACs (AC-001..AC-013); post-pass-1 ACs added by tasks 11-19" (F-W11P2-007)
+28. [x] Re-categorize FINALIZE_SKIPPED_WARNED_LOCK docstring buckets (F-W11P2-011)
+29. [x] Sweep STORY-021 line-citations to current source line numbers (F-W11P2-010)
 
 ## Previous Story Intelligence (MANDATORY)
 
@@ -208,19 +219,20 @@ implementation_strategy: brownfield-formalization
 | STORY-019 | close_flow is idempotent for missing keys (one-shot warning) | Each close path has a distinct CloseReason | RST, FIN, Timeout, MemoryPressure are the four close reasons |
 | STORY-018 | segments_segment_limit is incremented by the engine on SegmentLimitReached results | Segment limit is per-direction, not per-flow | finalize emits the per-flow aggregate count, not a per-direction count |
 | STORY-017 | MAX_FINDINGS cap is enforced at 5 sites (3 in check_anomaly_thresholds, 2 in lifecycle.rs) | latch-before-cap ensures findings are only at cap, not over | finalize is the ONE intentional bypass of the cap |
-| STORY-021 | swap_for_testing pattern proves test attribution under parallel libtest; AC-004 linearizable reset→drop→swap proves the own Drop hook fired | Process-global atomics + matching test mutex MUST be paired (lock at every observer + every reset) | `FINALIZE_SKIPPED_WARNED_LOCK` is the 3rd test-binary mutex (after ISN_MISSING_WARNED + CLOSE_FLOW_MISSING_WARNED) — sibling discipline pattern |
+| STORY-021 | swap_for_testing pattern + honest scope limit: AC-004 asserts Drop hook fires AT LEAST ONCE per process; unique per-Drop attribution is non-deterministic under cargo's parallel scheduler with 194 sibling un-finalized-drop sites | Process-global atomics with global-latch design (one-shot eprintln) cannot be uniquely attributed without process-isolation or stderr capture; document scope honestly | Option A (lock all 194 sites) would exceed sibling-sweep cost threshold; Option B (honest docs) chosen |
+| (process lesson) | After AC additions to a story, the sibling-sweep step (a) MUST update existing task descriptions referencing AC counts/ranges, not just append new tasks | Codification candidate for DF-SIBLING-SWEEP-001 v5 | Applied in task 27 above; stale "13 ACs" in Task 1 survived pass-1 because the sibling-sweep only checked AC numbering, not task description wording |
 
 ## Architecture Compliance Rules (MANDATORY)
 
 | Rule | Source | Enforcement |
 |------|--------|-------------|
-| `self.finalized = true` is set BEFORE the flow-closing loop | BC-2.04.012 invariant 1 | Code review: finalized set at mod.rs:560, loop at mod.rs:562+ |
+| `self.finalized = true` is set BEFORE the flow-closing loop | BC-2.04.012 invariant 1 | Code review: `self.finalized = true` at mod.rs:561, flow-closing loop at mod.rs:564+ |
 | finalize calls `close_flow(key, CloseReason::Timeout, handler)` for remaining flows | BC-2.04.012 postcondition 1 | Test: capture on_flow_close reason; assert == Timeout |
 | finalize segment-limit push has NO MAX_FINDINGS guard (unconditional) | BC-2.04.054 invariant 1 | Code review: absence of guard at mod.rs:573 vs guard presence at all other 5 sites |
 | `plural_s` helper: returns `""` for count==1, `"s"` otherwise | BC-2.04.025 invariant 3 | Test: AC-009 with count=1 and count=2 |
 | `impl Drop` is diagnostic ONLY — it cannot flush flows (no handler argument) | BC-2.04.012 invariant 3 | Code review: Drop::drop signature has no handler |
 | `MAX_FINDINGS = 10_000` is the constant; findings.len() <= 10001 after any run | BC-2.04.024 invariant 1; BC-2.04.054 invariant 3 | Test: AC-013 representative-scenario assertion; universal upper-bound proof owned by VP-003 |
-| AC-004 test must use the linearizable reset→drop→swap sequence (not bare read) to prove ITS Drop hook fired vs racing siblings | F-W11P1-001 remediation | Test: AC-004 uses `swap_finalize_skipped_warned_for_testing(false)` and asserts return == true |
+| AC-004 assertion scope honestly bounded: tests Drop hook fires at least once per process; unique per-Drop attribution non-deterministic under parallel scheduler (194 sibling un-finalized-drop sites) — see FINALIZE_SKIPPED_WARNED_LOCK docstring in tests/reassembly_engine_tests.rs | F-W11P2-002 Option B rationale | Code review: AC-004 docstring + FINALIZE_SKIPPED_WARNED_LOCK docstring document the scope limit |
 | All `FINALIZE_SKIPPED_WARNED_LOCK` acquisitions use `.expect("FINALIZE_SKIPPED_WARNED_LOCK poisoned")` (fail-fast convention matching ISN_MISSING_WARNED_LOCK / CLOSE_FLOW_MISSING_WARNED_LOCK sibling locks) | F-W11P1-006 | Code review: grep for `unwrap_or_else(|e| e.into_inner())` returns no hits in this file |
 | `set_segments_segment_limit_for_testing` violates BC-2.04.026 EC-002's "impossible" invariant at the type level; production code MUST NOT call this seam (trust-boundary convention) | F-W11P1-009 | Code comment at seam definition; convention enforced by review |
 
@@ -238,6 +250,7 @@ implementation_strategy: brownfield-formalization
 | `src/reassembly/lifecycle.rs` | verify (lines 101, 121) | dropped_findings guard sites in generate_ functions |
 | `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-013 (original); AC-007b, AC-014 through AC-017 (post-pass-1) |
 | `src/analyzer/http.rs` | verify (test seams) | `push_finding_for_testing`, `all_findings_len_for_testing` — used by AC-007b test |
+| `src/analyzer/tls.rs` | modify (additive test seams) | `push_finding_for_testing`, `all_findings_len_for_testing` — added post-pass-2 for AC-007b TlsAnalyzer coverage (F-W11P2-001) |
 
 ## Changelog
 
@@ -246,3 +259,4 @@ implementation_strategy: brownfield-formalization
 | 1.0 | 2026-05-14 | Initial story decomposition |
 | 1.1 | 2026-05-21 | Brownfield formalization; 13 ACs, full BC traceability, architecture compliance rules, edge case table |
 | 1.2 | 2026-05-27 | Post-adversarial-pass-1 remediation (F-W11P1-001 through F-W11P1-015): AC-007 revised to engine-cap boundary assertion; AC-007b added (HttpAnalyzer/TlsAnalyzer cap isolation, `test_BC_2_04_024_http_tls_analyzer_findings_not_capped`); AC-013 rephrased to remove universal-upper-bound overpromise; AC-014 added (dropped_findings monotonicity, N=3); AC-015 added (small_segment cap-guard site mod.rs:466); AC-016 added (EC-006 boundary MAX-1+finalize→10000); AC-017 added (segment-limit push unconditional across initial counts 0/5000/9999/10000); EC table extended to 11 rows (EC-009, EC-010, EC-011); 4 architecture compliance rules added (F-W11P1-001, F-W11P1-006, F-W11P1-009, AC-013 VP-003 delegation); token budget revised to ~18,000; 10 post-pass-1 tasks appended (tasks 10-19); STORY-021 self-learning row added to Previous Story Intelligence; 2 new architecture mapping seam rows added |
+| 1.3 | 2026-05-27 | Post-adversarial-pass-2 remediation (F-W11P2-001 through F-W11P2-014): AC-007b clarified to emphasize both HttpAnalyzer AND TlsAnalyzer are exercised; AC-016 trace fixed from non-existent BC-2.04.054 EC-006 → BC-2.04.054 EC-002 + story EC-006 (F-W11P2-004); EC-010 expanded to enumerate all 5 cap-guard sites with covering tests (F-W11P2-006); Task 1 wording updated from "13 ACs" to "initial 13 ACs (AC-001..AC-013)" (F-W11P2-007); STORY-021 Previous-Story-Intelligence self-row replaced: linearizability overclaim → honest Option B scope-limit (F-W11P2-009); process-lesson row added for DF-SIBLING-SWEEP-001 task-description update obligation (F-W11P2-014); Architecture Compliance Rules: stale AC-004 linearizability rule replaced with honest scope-limit rule (F-W11P2-002); `self.finalized = true` line-citation corrected mod.rs:560→561, loop 562+→564+ (F-W11P2-010); impl Drop line-citation corrected mod.rs:677-690→793-807 (F-W11P2-010); TlsAnalyzer test seam row added to Architecture Mapping and File Structure Requirements (F-W11P2-001); token budget updated to ~18,500; 10 post-pass-2 tasks appended (tasks 20-29) |
