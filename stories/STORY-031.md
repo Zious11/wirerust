@@ -2,10 +2,10 @@
 document_type: story
 story_id: "STORY-031"
 epic_id: "E-3"
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
-timestamp: 2026-05-27T09:00:00Z
+timestamp: 2026-05-27T10:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.001.md
@@ -151,6 +151,7 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 16. [x] Rename `test_dispatcher_routes_tls` → `test_tls_content_wins_over_port_8080`; add `test_tls_content_routes_tls_on_port_443` baseline (Obs-4)
 17. [x] Fix story line citations for classify (90-116 → 90-117) and on_data (120-160 → 120-169) (F-W12P1-010, F-W12P1-011)
 18. [x] (POST-PASS-2 ADDITIONS) Remove 3 stale `test_dispatcher_port_fallback_short_data` references from AC-007 trace, Architecture Compliance Rules, and File Structure Requirements (F-W12P2-001 — rename orphan from pass-1)
+19. [x] (POST-PASS-3) BC-2.05.002 re-anchor (DF-SIBLING-SWEEP-001 v2 BC pre-merge re-anchor doctrine extended) — added `test_all_http_method_prefixes_route_to_http` to VP-004 + Architecture Anchors; canonical-ordering test strengthened with parse_error_count discriminator (F-W12P3-001, F-W12P3-002)
 
 ## Previous Story Intelligence (MANDATORY)
 
@@ -162,6 +163,7 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 | STORY-021 (W11.L4) | Source-docstring propagation: when story body changes (line citations, AC traces), update any docstrings in test files that mirror those citations | Keep test docstrings in sync with story AC traces — if a test is renamed or re-anchored, update the story reference in the same commit | Silent divergence between test docstrings and story ACs is a class of finding in adversarial passes |
 | STORY-021 (W11.L5) | Implementer-as-PR-executor pattern: the implementer writes the code AND opens the PR in the same dispatch | Use this pattern for STORY-031 PR (task 90) — do not dispatch a separate PR-creation agent | Splitting implementer and PR-opener adds a handoff gap where STATE.md can diverge |
 | (process lesson) | When pass-1 renames a test, story-writer MUST grep ALL story sections (AC traces, Architecture Compliance Rules, File Structure Requirements, body prose) for the OLD test name and update each. Pass-1's sibling-sweep checked test file but not all story sections. Pattern recurrence indicates DF-SIBLING-SWEEP-001 v2 enforcement gap. | F-W12P2-001 in-pass resolution |
+| (process lesson — codification candidate) | DF-SIBLING-SWEEP-001 v2 "BC pre-merge re-anchor" should explicitly cover anchor list COMPLETENESS, not just freshness: when a story adds a NEW test that covers an existing BC, the BC must be re-anchored to cite it (even if existing anchors are still valid). Pass-2 sweep updated BCs whose tests were renamed but missed BC-2.05.002 where pass-1 added a new comprehensive test without renaming anything | F-W12P3-003 process-gap |
 
 ## Architecture Compliance Rules (MANDATORY)
 
@@ -195,3 +197,4 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 | 1.0 | 2026-05-21 | story-writer | Initial story decomposition |
 | 1.1 | 2026-05-27 | story-writer | Pass-1 adversarial remediation: (1) AC-001 trace updated from `test_dispatcher_routes_tls` (renamed) to `test_tls_content_routes_tls_on_port_443` + `test_tls_content_wins_over_port_8080`; (2) AC-003 trace updated to `test_tls_check_skipped_below_len_5` (isolated, F-W12P1-003); (3) AC-004 trace expanded with `test_all_http_method_prefixes_route_to_http` (F-W12P1-002); (4) AC-007 trace expanded with all 4 port-fallback branch tests (F-W12P1-001); (5) Architecture Mapping line citations fixed: classify 90-116→90-117, on_data 120-160→120-169 (F-W12P1-010/011); (6) File Structure Requirements line citations and test list updated; (7) Edge Case table: EC-004, EC-005, EC-008, EC-010 test citations added; (8) Architecture Compliance Rules: 3 new rules added for 10-prefix coverage, 4 port-fallback branch tests, and AC-003/AC-007 test separation; (9) Tasks 10-17 appended (all completed); (10) PSI updated with STORY-021 W11 learnings (W11.L1, W11.L2, W11.L4, W11.L5) |
 | 1.2 | 2026-05-27 | story-writer | Pass-2 adversarial remediation (F-W12P2-001): removed 3 stale references to `test_dispatcher_port_fallback_short_data` (renamed to `test_port_fallback_443_to_tls` in pass-1): (1) AC-007 Test field — old name dropped, 4 live tests retained; (2) Architecture Compliance Rules row — example updated to `test_port_fallback_{443,8443,80,8080}_to_*` family; (3) File Structure Requirements existing list — stale entry removed; Task 18 appended (completed); PSI updated with process lesson on sibling-sweep story-body coverage gap |
+| 1.3 | 2026-05-27 | story-writer | Pass-3 PO commit (factory 37ca765) — BC-2.05.002 re-anchor per DF-SIBLING-SWEEP-001 v2 extended doctrine: added `test_all_http_method_prefixes_route_to_http` to VP-004 + Architecture Anchors; canonical-ordering test strengthened with parse_error_count discriminator (F-W12P3-001, F-W12P3-002); Task 19 appended; PSI updated with F-W12P3-003 process-gap codification candidate for anchor COMPLETENESS rule |
