@@ -2384,19 +2384,13 @@ fn test_story_018_ec006_base_offset_near_u64_max_saturating_add() {
 }
 
 // --- EC-007 (segment limit: pure overlap, no gap) ---
-/// Implementation behavior: when segments.len() == max_segments, the early limit
-/// check (segment.rs:70-72) fires before overlap detection, returning SegmentLimitReached
-/// for ALL inserts including pure-overlap (no-gap) segments.
-///
-/// BC-2.04.045/EC-007 predicted "fully-covered path returns Duplicate or ConflictingOverlap"
-/// — but the implementation's early limit check contradicts this for the full-map case.
-/// This test documents ACTUAL behavior (brownfield: report, not fix).
-///
-/// PRODUCTION FINDING: the implementation always returns SegmentLimitReached when
-/// segments.len() >= max_segments, even for pure-overlap inserts that would not need
-/// to add any new entries. The BC-2.04.045 spec is more precise than the implementation.
+/// STORY-018 EC-007 / BC-2.04.045 v1.3 EC-002: when `segments.len() >= max_segments`
+/// at function entry, the early guard at `segment.rs:70-72` fires unconditionally —
+/// including for pure-overlap segments that would otherwise return Duplicate /
+/// ConflictingOverlap when the map is below capacity. This is the brownfield-confirmed
+/// semantics formalized in BC-2.04.045 v1.3.
 #[test]
-fn test_story_018_ec007_full_map_pure_overlap_not_segment_limit_reached() {
+fn test_story_018_ec007_full_map_pure_overlap_returns_segment_limit_reached() {
     let mut dir = wirerust::reassembly::flow::FlowDirection::new();
     dir.set_isn(1000);
 
@@ -2410,15 +2404,14 @@ fn test_story_018_ec007_full_map_pure_overlap_not_segment_limit_reached() {
     assert_eq!(dir.segment_count(), 2, "EC-007 precondition: map is full");
 
     // Insert a new segment fully covered by union of the two existing (matching bytes).
-    // ACTUAL behavior: SegmentLimitReached (early check at segment.rs:70-72 fires first).
-    // Expected per BC: Duplicate (pure-overlap, no gap to insert).
+    // BC-2.04.045 v1.3 EC-002: early guard at segment.rs:70-72 fires unconditionally
+    // when segments.len() >= max_segments, returning SegmentLimitReached before any
+    // overlap detection — even for pure-overlap inserts that add no new entries.
     let result = dir.insert_segment(1001, b"AAABBB", max_depth, max_segments, max_receive_window);
     assert_eq!(
         result,
         InsertResult::SegmentLimitReached,
-        "EC-007 ACTUAL: early limit check fires before overlap detection when map is full. \
-         PRODUCTION FINDING: pure-overlap inserts return SegmentLimitReached (not Duplicate/ConflictingOverlap) \
-         when segments.len() >= max_segments. Spec says Duplicate; implementation says SegmentLimitReached."
+        "EC-007: early guard fires before overlap detection when map is full (BC-2.04.045 v1.3 EC-002)"
     );
 }
 
