@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: Pass-3 sibling-sweep gap closure (DF-SIBLING-SWEEP-001 v2 BC pre-merge re-anchor): added test_all_http_method_prefixes_route_to_http to Architecture Anchors and VP-004 table (comprehensive 10-prefix coverage added in STORY-031 pass-1 but not anchored back into BC until pass-3). Also added test_http_no_space_does_not_match for Inv-2/Inv-3 case-sensitive/no-space coverage. EC test citations updated. Closes F-W12P3-002. — 2026-05-27
+  - v1.4: Pass-4 anchor-completeness sweep (DF-SIBLING-SWEEP-001 v2, doctrine application extended from pass-3 BC-2.05.002 to siblings BC-2.05.001 + BC-2.05.003). Added test_tls_takes_priority_over_http_methods_check (INV-1: HTTP check unreachable for data starting 0x16 0x03) to VP-004 table and Architecture Anchors. Closes F-W12P4-001. — 2026-05-27
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -79,6 +80,7 @@ strings, the flow is routed to `DispatchTarget::Http`. This check is performed i
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | VP-004 | HTTP method prefix routes to Http regardless of port | unit: test_dispatcher_routes_http, test_all_http_method_prefixes_route_to_http (10-prefix table-driven; covers PC1 + Inv3) |
+| VP-004 | HTTP check unreachable for data starting 0x16 0x03 (INV-1) | unit: test_tls_takes_priority_over_http_methods_check |
 
 ## Traceability
 
@@ -100,7 +102,7 @@ strings, the flow is routed to `DispatchTarget::Http`. This check is performed i
 ## Architecture Anchors
 
 - `src/dispatcher.rs:95-107` -- HTTP method prefix check in classify function
-- `tests/dispatcher_tests.rs` -- test_dispatcher_routes_http, test_all_http_method_prefixes_route_to_http, test_http_no_space_does_not_match
+- `tests/dispatcher_tests.rs` -- test_dispatcher_routes_http, test_all_http_method_prefixes_route_to_http, test_http_no_space_does_not_match, test_tls_takes_priority_over_http_methods_check
 
 ## Source Evidence
 

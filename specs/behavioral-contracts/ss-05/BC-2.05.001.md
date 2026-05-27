@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: Pass-2 BC pre-merge re-anchor (per DF-SIBLING-SWEEP-001 v2 codified W11.L1) — updated test name test_dispatcher_routes_tls → test_tls_content_wins_over_port_8080 + test_tls_content_routes_tls_on_port_443 (renamed/split in STORY-031 pass-1); updated classify line range 90-116 → 90-117 to match actual function close. Closes F-W12P2-002, F-W12P2-004. — 2026-05-27
+  - v1.4: Pass-4 anchor-completeness sweep (DF-SIBLING-SWEEP-001 v2, doctrine application extended from pass-3 BC-2.05.002 to siblings BC-2.05.001 + BC-2.05.003). Added test_tls_check_skipped_below_len_5 (PC2 boundary at len=4, EC-004), test_tls_check_requires_byte1_equals_0x03 (PC4 specificity, EC-005), test_tls_takes_priority_over_http_methods_check (INV-1 ordering) to VP-004 table and Architecture Anchors. Closes F-W12P4-001. — 2026-05-27
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -80,7 +81,10 @@ an attacker running TLS on port 80 is still identified as TLS, not HTTP.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-004 | 0x16,0x03 prefix always routes to TLS regardless of port | unit: test_dispatcher_content_detection_tls_on_port_80 |
+| VP-004 | 0x16,0x03 prefix always routes to TLS regardless of port | unit: test_dispatcher_content_detection_tls_on_port_80, test_tls_content_wins_over_port_8080, test_tls_content_routes_tls_on_port_443 |
+| VP-004 | TLS length guard: data.len() < 5 skips TLS check (PC2 boundary) | unit: test_tls_check_skipped_below_len_5 |
+| VP-004 | data[1] must equal 0x03 for TLS match (PC4 specificity, EC-005) | unit: test_tls_check_requires_byte1_equals_0x03 |
+| VP-004 | TLS check evaluated BEFORE HTTP check (INV-1 ordering) | unit: test_tls_takes_priority_over_http_methods_check |
 | VP-004 | TLS classification is cached after first match | unit |
 
 ## Traceability
@@ -104,7 +108,7 @@ an attacker running TLS on port 80 is still identified as TLS, not HTTP.
 
 - `src/dispatcher.rs:90` -- `fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget`
 - `src/dispatcher.rs:92-94` -- TLS check: `data.len() >= 5 && data[0] == 0x16 && data[1] == 0x03`
-- `tests/dispatcher_tests.rs` -- test_tls_content_wins_over_port_8080, test_tls_content_routes_tls_on_port_443, test_dispatcher_content_detection_tls_on_port_80
+- `tests/dispatcher_tests.rs` -- test_tls_content_wins_over_port_8080, test_tls_content_routes_tls_on_port_443, test_dispatcher_content_detection_tls_on_port_80, test_tls_check_skipped_below_len_5, test_tls_check_requires_byte1_equals_0x03, test_tls_takes_priority_over_http_methods_check
 
 ## Source Evidence
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: Pass-2 BC pre-merge re-anchor (per DF-SIBLING-SWEEP-001 v2 codified W11.L1) — updated stale test citation test_dispatcher_port_fallback_short_data (non-existent) → test_port_fallback_443_to_tls, test_port_fallback_8443_to_tls, test_port_fallback_80_to_http, test_port_fallback_8080_to_http (the four tests that cover port fallback in STORY-031). Discovered in sibling sweep. — 2026-05-27
+  - v1.4: Pass-4 anchor-completeness sweep (DF-SIBLING-SWEEP-001 v2, doctrine application extended from pass-3 BC-2.05.002 to siblings BC-2.05.001 + BC-2.05.003). Added test_port_fallback_uses_canonical_port_ordering (INV-1 TLS-port-first + INV-2 canonical-ordering lookup), test_http_content_on_port_443_routes_to_http (INV-3 content-first precedence over port fallback) to VP-004 table and Architecture Anchors. Closes F-W12P4-001. — 2026-05-27
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -83,6 +84,8 @@ FlowKey (INV-1).
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | VP-004 | Port fallback fires when content check fails | unit: test_port_fallback_443_to_tls, test_port_fallback_8443_to_tls, test_port_fallback_80_to_http, test_port_fallback_8080_to_http |
+| VP-004 | TLS port check evaluated before HTTP port check; canonical-ordering lookup (INV-1, INV-2) | unit: test_port_fallback_uses_canonical_port_ordering |
+| VP-004 | Content-first precedence: HTTP content on port 443 routes to HTTP not TLS fallback (INV-3) | unit: test_http_content_on_port_443_routes_to_http |
 
 ## Traceability
 
@@ -104,7 +107,7 @@ FlowKey (INV-1).
 ## Architecture Anchors
 
 - `src/dispatcher.rs:108-116` -- port fallback in classify function
-- `tests/dispatcher_tests.rs` -- test_port_fallback_443_to_tls, test_port_fallback_8443_to_tls, test_port_fallback_80_to_http, test_port_fallback_8080_to_http
+- `tests/dispatcher_tests.rs` -- test_port_fallback_443_to_tls, test_port_fallback_8443_to_tls, test_port_fallback_80_to_http, test_port_fallback_8080_to_http, test_port_fallback_uses_canonical_port_ordering, test_http_content_on_port_443_routes_to_http
 
 ## Source Evidence
 
