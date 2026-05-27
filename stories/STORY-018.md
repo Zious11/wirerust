@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-018"
 epic_id: "E-2"
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -160,7 +160,7 @@ implementation_strategy: brownfield-formalization
 | EC-004 | Segment at exact receive window boundary | Inserted (boundary is exclusive: `>` not `>=`) |
 | EC-005 | Segment 1 byte beyond receive window | OutOfWindow; out_of_window_count=1 |
 | EC-006 | base_offset near u64::MAX | saturating_add prevents overflow; OutOfWindow returned correctly |
-| EC-007 | segments.len() == max_segments, new segment is pure overlap (no gap) | Not SegmentLimitReached — the limit check only gates gap insertion; fully-covered path returns Duplicate or ConflictingOverlap |
+| EC-007 | segments.len() == max_segments, new segment is pure overlap (no gap) | SegmentLimitReached — early guard at `segment.rs:70-72` fires unconditionally at function entry, before overlap detection. See BC-2.04.045 v1.3 EC-002 for the corrected semantics; legacy Duplicate/ConflictingOverlap outcomes only occur when the map is BELOW capacity at entry. |
 | EC-008 | Truncated at MAX_FINDINGS cap | dropped_findings++; no finding pushed |
 | EC-009 | OutOfWindow result after 2 small segments | small_segment_run unchanged at 2 |
 | EC-010 | DepthExceeded result after 3 small segments | small_segment_run unchanged at 3 |
@@ -196,7 +196,7 @@ implementation_strategy: brownfield-formalization
 4. [ ] Test depth truncation: exactly-at-limit (Inserted), 1-byte-over (Truncated), post-depth (DepthExceeded)
 5. [ ] Test per-direction independence: exceed depth on C2S, verify S2C still accepts
 6. [ ] Test out-of-window boundary: exactly at `base+window` is Inserted; `base+window+1` is OutOfWindow
-7. [ ] Test segment limit mid-loop partial insertion (EC-010 scenario: max_segments=2, two gaps, first fills last slot)
+7. [ ] Test segment limit mid-loop partial insertion (BC-2.04.046 canonical test vector: max_segments=2, two gaps, first fills last slot)
 8. [ ] Test small_segment_run exclusion list: OutOfWindow/DepthExceeded/SegmentLimitReached do not update run counter
 9. [ ] Update STATE.md
 
@@ -243,3 +243,4 @@ implementation_strategy: brownfield-formalization
 |---------|------|--------|---------|
 | 1.1 | 2026-05-21 | story-writer | Initial draft |
 | 1.2 | 2026-05-26 | story-writer | Wave 10 STORY-018 pass-1 fixes: F-002 (CRITICAL) — added NOTE to AC-002 disambiguating the allowed==0 case (see BC-2.04.041 v1.x Description + EC-004 + EC-005); F-006 (MED) — EC-001 row revised from ambiguous 'exactly at max_depth' to explicit 'total_after == max_depth' boundary (matches segment.rs:93 `>` check, not `>=`). DF-SIBLING-SWEEP-001 sweep performed. |
+| 1.3 | 2026-05-26 | story-writer | Wave 10 STORY-018 pass-2 fixes (sibling-regression of pass-1 v1.3 BC fix that didn't propagate to story EC table): F-PASS2-001 (MED) — EC-007 rewritten to match BC-2.04.045 v1.3 EC-002 (SegmentLimitReached via early guard at segment.rs:70-72); O-PASS2-002 (LOW) — Task 7 parenthetical reference corrected from EC-010 to BC-2.04.046 canonical test vector. Sweep checklist expanded per DF-SIBLING-SWEEP-001 to grep story EC tables when downstream BC EC tables change. |
