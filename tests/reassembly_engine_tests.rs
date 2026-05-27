@@ -11451,4 +11451,1637 @@ mod ac004_proptest_eviction {
             }
         }
     }
+} // end mod ac004_proptest_eviction
+
+// =============== STORY-017: Conflict + Evasion Detection (Wave 10) ===============
+// ACs: AC-001..AC-015 (15 tests); ECs: EC-001..EC-009 (9 tests)
+
+// ---------------------------------------------------------------------------
+// Helpers used throughout STORY-017 tests
+// ---------------------------------------------------------------------------
+
+/// Drive a single flow to exactly one `ConflictingOverlap` event and return
+/// the reassembler.  The flow: SYN at ISN=1000, original segment "ABC" at
+/// seq=1002 (offset 2, leaving gap at offset 1 so the buffer is not flushed),
+/// then conflicting segment "XYZ" at the same seq.  Ports default to
+/// client=12345, server=80.
+fn setup_conflicting_overlap_flow(
+    client_port: u16,
+    server_port: u16,
+    config: ReassemblyConfig,
+) -> (TcpReassembler, RecordingHandler) {
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN — establishes ISN=1000, base_offset=1
+    let syn = make_tcp_packet(
+        client,
+        client_port,
+        server,
+        server_port,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Original segment at offset 2 (seq=1002), 3 bytes "ABC"
+    // Gap at offset 1 keeps it buffered.
+    let original = make_tcp_packet(
+        client,
+        client_port,
+        server,
+        server_port,
+        1002,
+        b"ABC",
+        false,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&original, 2, &mut handler);
+
+    // Conflicting segment at same offset, different data "XYZ"
+    let conflict = make_tcp_packet(
+        client,
+        client_port,
+        server,
+        server_port,
+        1002,
+        b"XYZ",
+        false,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&conflict, 3, &mut handler);
+
+    (reassembler, handler)
+}
+
+/// Fill the reassembler's findings to exactly `MAX_FINDINGS` (10,000) by
+/// spawning 10,000 distinct flows (port range 1..=10000), each producing one
+/// `ConflictingOverlap` finding.  Returns the reassembler ready for the
+/// "cap-full" assertion path.
+fn fill_findings_to_cap(config: ReassemblyConfig) -> TcpReassembler {
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // 10,000 flows, each producing exactly 1 ConflictingOverlap finding.
+    for port in 1u16..=10_000 {
+        // SYN
+        let syn = make_tcp_packet(
+            client,
+            port,
+            server,
+            8080,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        );
+        reassembler.process_packet(&syn, 1, &mut handler);
+        // Original segment
+        let orig = make_tcp_packet(
+            client, port, server, 8080, 1002, b"A", false, false, false, false,
+        );
+        reassembler.process_packet(&orig, 2, &mut handler);
+        // Conflicting segment — produces 1 finding
+        let conf = make_tcp_packet(
+            client, port, server, 8080, 1002, b"Z", false, false, false, false,
+        );
+        reassembler.process_packet(&conf, 3, &mut handler);
+    }
+    reassembler
+}
+
+// --- AC-001 (BC-2.04.037 postcondition 1) ---
+// When a new segment's byte range is fully covered by existing segments AND at
+// least one byte differs, insert_segment returns InsertResult::ConflictingOverlap.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_037_conflicting_bytes_returns_conflicting_overlap() {
+    // Exercise the segment layer directly via FlowDirection.
+    use wirerust::reassembly::flow::FlowDirection;
+
+    let mut dir = FlowDirection::new();
+    dir.isn = Some(1000);
+
+    // Insert original segment "ABC" at seq=1002 (offset=2).
+    let r1 = dir.insert_segment(1002, b"ABC", 10 * 1024 * 1024, 10_000, 1_048_576);
+    assert_eq!(
+        r1,
+        InsertResult::Inserted,
+        "first insert must succeed (InsertResult::Inserted)"
+    );
+
+    // Now insert conflicting bytes at the SAME seq with different data.
+    let r2 = dir.insert_segment(1002, b"XYZ", 10 * 1024 * 1024, 10_000, 1_048_576);
+    assert_eq!(
+        r2,
+        InsertResult::ConflictingOverlap,
+        "same-range segment with different bytes must return ConflictingOverlap"
+    );
+}
+
+// --- AC-002 (BC-2.04.037 postconditions 2-3) ---
+// After ConflictingOverlap, self.segments is unchanged and self.buffered_bytes
+// is unchanged (original bytes are preserved).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_037_conflicting_overlap_original_bytes_preserved() {
+    use wirerust::reassembly::flow::FlowDirection;
+
+    let mut dir = FlowDirection::new();
+    dir.isn = Some(1000);
+
+    // Insert "ABC" at offset 2 (seq=1002).
+    dir.insert_segment(1002, b"ABC", 10 * 1024 * 1024, 10_000, 1_048_576);
+    let buffered_before = dir.buffered_bytes();
+    let segments_len_before = dir.segment_count();
+
+    // Conflicting insert at same position.
+    let r = dir.insert_segment(1002, b"XYZ", 10 * 1024 * 1024, 10_000, 1_048_576);
+    assert_eq!(r, InsertResult::ConflictingOverlap);
+
+    // Segments map must be unchanged (first-wins policy — no new segment inserted).
+    assert_eq!(
+        dir.segment_count(),
+        segments_len_before,
+        "ConflictingOverlap must not alter the segments map"
+    );
+    // Buffered bytes must be unchanged.
+    assert_eq!(
+        dir.buffered_bytes(),
+        buffered_before,
+        "ConflictingOverlap must not change buffered_bytes"
+    );
+    // The original bytes "ABC" must still be at offset 2.
+    assert_eq!(
+        dir.segment_at(2),
+        Some(b"ABC".as_slice()),
+        "original bytes must be preserved (first-wins policy)"
+    );
+}
+
+// --- AC-003 (BC-2.04.018 postcondition 2) ---
+// When InsertResult::ConflictingOverlap is returned, the engine emits exactly
+// one Finding with: category=Anomaly, verdict=Likely, confidence=High,
+// mitre_technique=Some("T1036"), and a summary containing the FlowKey display string.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_018_conflicting_overlap_emits_t1036_finding() {
+    let (reassembler, _handler) =
+        setup_conflicting_overlap_flow(12345, 80, ReassemblyConfig::default());
+
+    let findings = reassembler.findings();
+    let f = findings
+        .iter()
+        .find(|f| f.summary.contains("Conflicting TCP segment overlap"))
+        .expect("engine must emit a ConflictingOverlap finding");
+
+    assert_eq!(
+        f.category,
+        ThreatCategory::Anomaly,
+        "category must be Anomaly"
+    );
+    assert_eq!(f.verdict, Verdict::Likely, "verdict must be Likely");
+    assert_eq!(f.confidence, Confidence::High, "confidence must be High");
+    assert_eq!(
+        f.mitre_technique.as_deref(),
+        Some("T1036"),
+        "mitre_technique must be Some(\"T1036\")"
+    );
+
+    // Summary must contain the FlowKey display string.  FlowKey displays as
+    // "lower_ip:lower_port → upper_ip:upper_port".  For client=10.0.0.1:12345 and
+    // server=10.0.0.2:80, the canonical key has lower=10.0.0.1:80 … wait — the
+    // canonicalization uses (ip,port) tuple comparison.  10.0.0.1:12345 vs
+    // 10.0.0.2:80: (10.0.0.1, 12345) < (10.0.0.2, 80) iff 10.0.0.1 < 10.0.0.2,
+    // which is true — so lower=(10.0.0.1,12345), upper=(10.0.0.2,80).
+    assert!(
+        f.summary.contains("10.0.0.1:12345"),
+        "summary must contain the FlowKey display string; got: {:?}",
+        f.summary
+    );
+}
+
+// --- AC-004 (BC-2.04.018 postcondition 3) ---
+// The original buffered bytes are NOT replaced; the conflicting new bytes are
+// discarded. The finding is informational only.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_018_conflicting_overlap_first_wins() {
+    // Use a contiguous SYN+data so flush_contiguous delivers the bytes,
+    // letting us verify what bytes actually reached the handler.
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN at ISN=999 — base_offset becomes 1.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        999,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Original segment AT base_offset (seq=1000 → offset 1): "ABC" delivered immediately.
+    let original = make_tcp_packet(
+        client, 12345, server, 80, 1000, b"ABC", false, true, false, false,
+    );
+    reassembler.process_packet(&original, 2, &mut handler);
+
+    // Verify original data flushed.
+    assert!(
+        handler.data_events.iter().any(|(_, _, d, _)| d == b"ABC"),
+        "original bytes ABC must be flushed to handler"
+    );
+
+    // Now insert a conflicting segment at the same position (already flushed,
+    // but for a non-flushed test we use the gap variant).  Use a fresh flow to
+    // verify bytes in a buffered segment survive the conflict.
+    let config2 = ReassemblyConfig::default();
+    let mut reassembler2 = TcpReassembler::new(config2);
+    let mut handler2 = RecordingHandler::new();
+
+    let syn2 = make_tcp_packet(
+        client,
+        12346,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler2.process_packet(&syn2, 1, &mut handler2);
+
+    // Out-of-order: gap at offset 1, segment at offset 2 (seq=1002).
+    let orig2 = make_tcp_packet(
+        client, 12346, server, 80, 1002, b"ABC", false, false, false, false,
+    );
+    reassembler2.process_packet(&orig2, 2, &mut handler2);
+
+    // Conflicting — engine must keep "ABC" and discard "XYZ".
+    let conflict2 = make_tcp_packet(
+        client, 12346, server, 80, 1002, b"XYZ", false, false, false, false,
+    );
+    reassembler2.process_packet(&conflict2, 3, &mut handler2);
+
+    // Fill the gap so flush_contiguous delivers the segment.
+    let gap_filler = make_tcp_packet(
+        client, 12346, server, 80, 1001, b"G", false, false, false, false,
+    );
+    reassembler2.process_packet(&gap_filler, 4, &mut handler2);
+
+    // All flushed data must be "G" + "ABC", not "G" + "XYZ".
+    let delivered: Vec<u8> = handler2.all_data();
+    assert_eq!(
+        delivered, b"GABC",
+        "first-wins: original ABC must be preserved; got {:?}",
+        delivered
+    );
+}
+
+// --- AC-005 (BC-2.04.018 postcondition 4) ---
+// Each ConflictingOverlap event produces one finding (not latched); successive
+// conflicts each produce their own finding (subject to MAX_FINDINGS cap).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_018_multiple_conflicts_each_produce_finding() {
+    // Create 3 conflicting overlaps on separate flows (each fully covered by a
+    // different original) — confirms the per-event (non-latched) firing behavior.
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let conflict_count = 3u32;
+    for i in 0..conflict_count {
+        let port = 12345 + i as u16;
+        let syn = make_tcp_packet(
+            client,
+            port,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        );
+        reassembler.process_packet(&syn, 1, &mut handler);
+        let orig = make_tcp_packet(
+            client, port, server, 80, 1002, b"ABC", false, false, false, false,
+        );
+        reassembler.process_packet(&orig, 2, &mut handler);
+        let conf = make_tcp_packet(
+            client, port, server, 80, 1002, b"XYZ", false, false, false, false,
+        );
+        reassembler.process_packet(&conf, 3, &mut handler);
+    }
+
+    let n = reassembler
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("Conflicting TCP segment overlap"))
+        .count();
+    assert_eq!(
+        n, conflict_count as usize,
+        "each ConflictingOverlap event must produce its own finding (non-latched); expected {conflict_count}, got {n}"
+    );
+}
+
+// --- AC-006 (BC-2.04.019 postcondition 1) ---
+// When flow_dir.overlap_count > config.overlap_alert_threshold (strictly greater)
+// AND overlap_alert_fired == false, the engine emits one Finding with:
+// category=Anomaly, verdict=Likely, confidence=Medium, mitre_technique=Some("T1036").
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_019_overlap_threshold_emits_medium_t1036_finding() {
+    // threshold=5; send 6 duplicate overlaps → overlap_count=6 > 5 → alert fires.
+    let config2 = ReassemblyConfig {
+        overlap_alert_threshold: 5,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler2 = TcpReassembler::new(config2);
+    let mut handler2 = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler2.process_packet(&syn, 1, &mut handler2);
+
+    // Buffered original at offset 2 (seq=1002).
+    let orig = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+    );
+    reassembler2.process_packet(&orig, 2, &mut handler2);
+
+    // 6 duplicates — overlap_count reaches 6, which is > threshold 5.
+    for i in 0..6u32 {
+        let dup = make_tcp_packet(
+            client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+        );
+        reassembler2.process_packet(&dup, 3 + i, &mut handler2);
+    }
+
+    let f = reassembler2
+        .findings()
+        .iter()
+        .find(|f| f.summary.contains("Excessive segment overlaps"))
+        .expect("overlap threshold alert must fire when count > threshold");
+
+    assert_eq!(
+        f.category,
+        ThreatCategory::Anomaly,
+        "category must be Anomaly"
+    );
+    assert_eq!(f.verdict, Verdict::Likely, "verdict must be Likely");
+    assert_eq!(
+        f.confidence,
+        Confidence::Medium,
+        "confidence must be Medium"
+    );
+    assert_eq!(
+        f.mitre_technique.as_deref(),
+        Some("T1036"),
+        "mitre_technique must be Some(\"T1036\")"
+    );
+}
+
+// --- AC-007 (BC-2.04.019 postcondition 4) ---
+// After the overlap threshold alert fires, no further overlap-threshold findings
+// are emitted for that (flow, direction) pair.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_019_overlap_threshold_alert_fires_at_most_once() {
+    // threshold=5; send 200 duplicate overlaps — alert must appear exactly once.
+    let config = ReassemblyConfig {
+        overlap_alert_threshold: 5,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let orig = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+    );
+    reassembler.process_packet(&orig, 2, &mut handler);
+
+    for i in 0..200u32 {
+        let dup = make_tcp_packet(
+            client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+        );
+        reassembler.process_packet(&dup, 3 + i, &mut handler);
+    }
+
+    let count = reassembler
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("Excessive segment overlaps"))
+        .count();
+    assert_eq!(
+        count, 1,
+        "overlap threshold alert must fire at most once per (flow, direction); found {count}"
+    );
+}
+
+// --- AC-008 (BC-2.04.019 edge case EC-003) ---
+// When overlap_count == threshold exactly (not strictly greater), no alert fires.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_019_overlap_count_at_threshold_does_not_alert() {
+    // threshold=5; send exactly 5 duplicate overlaps → overlap_count=5, NOT > 5.
+    let config = ReassemblyConfig {
+        overlap_alert_threshold: 5,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let orig = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+    );
+    reassembler.process_packet(&orig, 2, &mut handler);
+
+    for i in 0..5u32 {
+        let dup = make_tcp_packet(
+            client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+        );
+        reassembler.process_packet(&dup, 3 + i, &mut handler);
+    }
+
+    let any_alert = reassembler
+        .findings()
+        .iter()
+        .any(|f| f.summary.contains("Excessive segment overlaps"));
+    assert!(
+        !any_alert,
+        "overlap_count == threshold (strictly equal) must NOT fire the alert (requires `>`)"
+    );
+}
+
+// --- AC-009 (BC-2.04.020 postconditions 1-2) ---
+// When small_segment_run > config.small_segment_alert_threshold AND
+// small_segment_alert_fired == false AND neither endpoint port is in
+// small_segment_ignore_ports, the engine emits one Finding with:
+// category=Anomaly, verdict=Inconclusive, confidence=Medium, mitre_technique=None.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_020_small_segment_run_emits_finding() {
+    // threshold=10; send 11 one-byte segments → run=11 > 10 → alert fires.
+    // Ports 12345/80 are NOT in the default ignore list [23, 513].
+    let config = ReassemblyConfig {
+        small_segment_alert_threshold: 10,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let mut seq: u32 = 1001;
+    for ts in 2..=12u32 {
+        let small = make_tcp_packet(
+            client, 12345, server, 80, seq, b"x", false, true, false, false,
+        );
+        reassembler.process_packet(&small, ts, &mut handler);
+        seq += 1;
+    }
+
+    let f = reassembler
+        .findings()
+        .iter()
+        .find(|f| f.summary.contains("small segments"))
+        .expect("small-segment alert must fire after run exceeds threshold");
+
+    assert_eq!(
+        f.category,
+        ThreatCategory::Anomaly,
+        "category must be Anomaly"
+    );
+    assert_eq!(
+        f.verdict,
+        Verdict::Inconclusive,
+        "verdict must be Inconclusive"
+    );
+    assert_eq!(
+        f.confidence,
+        Confidence::Medium,
+        "confidence must be Medium"
+    );
+    assert_eq!(
+        f.mitre_technique, None,
+        "mitre_technique must be None for small-segment alert"
+    );
+}
+
+// --- AC-010 (BC-2.04.020 invariant 2) ---
+// If EITHER endpoint port is in small_segment_ignore_ports, no small-segment
+// alert is emitted for that flow regardless of run length.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_020_port_exempt_flow_never_alerts() {
+    // Port 23 (telnet) is in the default ignore list.
+    // Drive a flow with server_port=23 and 200 one-byte segments — no alert.
+    let config = ReassemblyConfig {
+        small_segment_alert_threshold: 5, // very low threshold to guarantee would fire elsewhere
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // server_port=23 puts 23 in the flow's {lower_port, upper_port} set.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        23,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let mut seq: u32 = 1001;
+    for ts in 2..=201u32 {
+        let small = make_tcp_packet(
+            client, 12345, server, 23, seq, b"x", false, true, false, false,
+        );
+        reassembler.process_packet(&small, ts, &mut handler);
+        seq += 1;
+    }
+
+    let any_alert = reassembler
+        .findings()
+        .iter()
+        .any(|f| f.summary.contains("small segments"));
+    assert!(
+        !any_alert,
+        "port 23 is in ignore list — no small-segment alert must fire regardless of run length"
+    );
+}
+
+// --- AC-011 (BC-2.04.021 postconditions 1-2) ---
+// When out_of_window_count > config.out_of_window_alert_threshold AND
+// out_of_window_alert_fired == false, the engine emits one Finding with:
+// category=Anomaly, verdict=Inconclusive, confidence=Low, mitre_technique=None,
+// and evidence containing the max_receive_window value.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_021_out_of_window_threshold_emits_finding() {
+    // threshold=5; window=1000; send 6 out-of-window segments → alert fires.
+    let config = ReassemblyConfig {
+        out_of_window_alert_threshold: 5,
+        max_receive_window: 1000,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Send 6 segments beyond the receive window (ISN=1000, window=1000).
+    // seq > 1000 + 1 + 1000 = 2001 is out-of-window.
+    for i in 0..6u32 {
+        let oow = make_tcp_packet(
+            client,
+            12345,
+            server,
+            80,
+            5000 + i,
+            b"x",
+            false,
+            false,
+            false,
+            false,
+        );
+        reassembler.process_packet(&oow, 2 + i, &mut handler);
+    }
+
+    let f = reassembler
+        .findings()
+        .iter()
+        .find(|f| f.summary.contains("out-of-window segments"))
+        .expect("OOW threshold alert must fire when count > threshold");
+
+    assert_eq!(
+        f.category,
+        ThreatCategory::Anomaly,
+        "category must be Anomaly"
+    );
+    assert_eq!(
+        f.verdict,
+        Verdict::Inconclusive,
+        "verdict must be Inconclusive"
+    );
+    assert_eq!(f.confidence, Confidence::Low, "confidence must be Low");
+    assert_eq!(
+        f.mitre_technique, None,
+        "mitre_technique must be None for OOW alert"
+    );
+    assert!(
+        f.evidence
+            .iter()
+            .any(|e| e.contains("max_receive_window=1000")),
+        "evidence must contain max_receive_window=1000; got {:?}",
+        f.evidence
+    );
+}
+
+// --- AC-012 (BC-2.04.021 invariant 3) ---
+// The evidence string format for the OOW alert is exactly:
+// "max_receive_window={window} bytes; possible misconfiguration, evasion, or capture corruption"
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_021_oow_evidence_string_format() {
+    let window = 2048usize;
+    let config = ReassemblyConfig {
+        out_of_window_alert_threshold: 3,
+        max_receive_window: window,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    for i in 0..4u32 {
+        let oow = make_tcp_packet(
+            client,
+            12345,
+            server,
+            80,
+            10000 + i,
+            b"x",
+            false,
+            false,
+            false,
+            false,
+        );
+        reassembler.process_packet(&oow, 2 + i, &mut handler);
+    }
+
+    let f = reassembler
+        .findings()
+        .iter()
+        .find(|f| f.summary.contains("out-of-window segments"))
+        .expect("OOW alert must fire");
+
+    let expected_evidence = format!(
+        "max_receive_window={window} bytes; possible misconfiguration, evasion, or capture corruption"
+    );
+    assert!(
+        f.evidence.contains(&expected_evidence),
+        "evidence string must exactly match the canonical format;\nexpected: {:?}\ngot: {:?}",
+        expected_evidence,
+        f.evidence
+    );
+}
+
+// --- AC-013 (BC-2.04.022 postcondition 1) ---
+// The sticky latch (overlap_alert_fired, small_segment_alert_fired,
+// out_of_window_alert_fired) is set to true BEFORE the MAX_FINDINGS cap check.
+// Even if the cap suppresses the finding, the latch is set.
+//
+// Verification strategy: fill findings to MAX_FINDINGS (10,000) using 10,000
+// flows each generating 1 ConflictingOverlap finding.  Then trigger the overlap
+// threshold alert on a fresh flow — findings.len() >= MAX_FINDINGS means the
+// finding is dropped, but dropped_findings increments by exactly 1.  On the
+// next packet (another duplicate), the latch prevents a second drop, proving
+// the latch WAS set even though the finding was suppressed.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_022_latch_fires_before_cap_check() {
+    // Use overlap_alert_threshold=0 so the very first duplicate on the target
+    // flow trips the threshold, minimising the number of extra packets needed.
+    let config = ReassemblyConfig {
+        overlap_alert_threshold: 0,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = fill_findings_to_cap(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Confirm cap is full.
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "pre-condition: findings must be at MAX_FINDINGS before testing latch"
+    );
+    let dropped_before = reassembler.stats().dropped_findings;
+
+    // Open a fresh flow on a distinct port (10001 is beyond the 1..=10_000 range
+    // used in fill_findings_to_cap).
+    let syn = make_tcp_packet(
+        client,
+        10001,
+        server,
+        8080,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Original segment at offset 2 (gap keeps it buffered).
+    let orig = make_tcp_packet(
+        client, 10001, server, 8080, 1002, b"A", false, false, false, false,
+    );
+    reassembler.process_packet(&orig, 2, &mut handler);
+
+    // One duplicate → overlap_count=1 > threshold 0 → latch should fire, finding dropped.
+    let dup1 = make_tcp_packet(
+        client, 10001, server, 8080, 1002, b"A", false, false, false, false,
+    );
+    reassembler.process_packet(&dup1, 3, &mut handler);
+
+    let dropped_after_first = reassembler.stats().dropped_findings;
+    assert_eq!(
+        dropped_after_first,
+        dropped_before + 1,
+        "threshold finding at cap must increment dropped_findings by 1"
+    );
+
+    // Second duplicate — latch prevents re-evaluation → dropped_findings must NOT increment.
+    let dup2 = make_tcp_packet(
+        client, 10001, server, 8080, 1002, b"A", false, false, false, false,
+    );
+    reassembler.process_packet(&dup2, 4, &mut handler);
+
+    let dropped_after_second = reassembler.stats().dropped_findings;
+    assert_eq!(
+        dropped_after_second, dropped_after_first,
+        "latch must prevent re-evaluation: no additional dropped_findings after latch is set"
+    );
+}
+
+// --- AC-014 (BC-2.04.022 postcondition 3) ---
+// Once a latch is set for a (flow, direction) pair, subsequent threshold crossings
+// for that alert type are no-ops (no finding emitted, no dropped_findings increment
+// from re-evaluation).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_022_latch_prevents_re_evaluation() {
+    // threshold=3; send 200 duplicate overlaps.  The latch fires once at count=4.
+    // After that, each subsequent duplicate must not emit or drop another finding.
+    let config = ReassemblyConfig {
+        overlap_alert_threshold: 3,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let orig = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+    );
+    reassembler.process_packet(&orig, 2, &mut handler);
+
+    for i in 0..200u32 {
+        let dup = make_tcp_packet(
+            client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+        );
+        reassembler.process_packet(&dup, 3 + i, &mut handler);
+    }
+
+    // Exactly one overlap-threshold finding.
+    let threshold_count = reassembler
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("Excessive segment overlaps"))
+        .count();
+    assert_eq!(
+        threshold_count, 1,
+        "latch must fire at most once; found {threshold_count} threshold findings"
+    );
+
+    // No dropped_findings from latch re-evaluation (findings well below cap).
+    assert_eq!(
+        reassembler.stats().dropped_findings,
+        0,
+        "no dropped_findings expected when findings are below cap"
+    );
+}
+
+// --- AC-015 (BC-2.04.022 invariant 3) ---
+// The maximum possible threshold findings for a single bidirectional flow is 6
+// (3 alert types x 2 directions); both directions can each fire all three alerts
+// independently.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_022_max_6_threshold_findings_per_flow() {
+    // Configure all three thresholds very low (1) so they trip quickly.
+    // Use a small window (100 bytes) to make OOW easy to trigger.
+    let config = ReassemblyConfig {
+        overlap_alert_threshold: 1,
+        small_segment_alert_threshold: 1,
+        out_of_window_alert_threshold: 1,
+        max_receive_window: 100,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Full handshake: SYN (client) + SYN-ACK (server) → Established, ISNs known.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        5000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // --- CLIENT → SERVER (C2S) direction ---
+
+    // C2S overlap alert: 2 duplicate overlapping segments → overlap_count=2 > 1.
+    let orig_c2s = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, true, false, false,
+    );
+    reassembler.process_packet(&orig_c2s, 3, &mut handler);
+    let dup_c2s = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, true, false, false,
+    );
+    reassembler.process_packet(&dup_c2s, 4, &mut handler);
+    let dup2_c2s = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, true, false, false,
+    );
+    reassembler.process_packet(&dup2_c2s, 5, &mut handler);
+
+    // C2S small-segment alert: 2 one-byte segments → run=2 > 1.
+    // Use fresh seq positions to avoid duplicate detection.
+    let sm1_c2s = make_tcp_packet(
+        client, 12345, server, 80, 2000, b"x", false, true, false, false,
+    );
+    reassembler.process_packet(&sm1_c2s, 6, &mut handler);
+    let sm2_c2s = make_tcp_packet(
+        client, 12345, server, 80, 2001, b"x", false, true, false, false,
+    );
+    reassembler.process_packet(&sm2_c2s, 7, &mut handler);
+
+    // C2S OOW alert: 2 out-of-window segments (seq beyond base+100) → count=2 > 1.
+    // ISN=1000, base_offset=1; window=100, so seq > 1000+1+100=1101 is OOW.
+    let oow1_c2s = make_tcp_packet(
+        client, 12345, server, 80, 5000, b"y", false, true, false, false,
+    );
+    reassembler.process_packet(&oow1_c2s, 8, &mut handler);
+    let oow2_c2s = make_tcp_packet(
+        client, 12345, server, 80, 5001, b"y", false, true, false, false,
+    );
+    reassembler.process_packet(&oow2_c2s, 9, &mut handler);
+
+    // --- SERVER → CLIENT (S2C) direction ---
+
+    // S2C overlap alert: original + 2 duplicates.
+    let orig_s2c = make_tcp_packet(
+        server, 80, client, 12345, 5002, b"BBBB", false, true, false, false,
+    );
+    reassembler.process_packet(&orig_s2c, 10, &mut handler);
+    let dup_s2c = make_tcp_packet(
+        server, 80, client, 12345, 5002, b"BBBB", false, true, false, false,
+    );
+    reassembler.process_packet(&dup_s2c, 11, &mut handler);
+    let dup2_s2c = make_tcp_packet(
+        server, 80, client, 12345, 5002, b"BBBB", false, true, false, false,
+    );
+    reassembler.process_packet(&dup2_s2c, 12, &mut handler);
+
+    // S2C small-segment alert: 2 one-byte segments.
+    let sm1_s2c = make_tcp_packet(
+        server, 80, client, 12345, 6000, b"x", false, true, false, false,
+    );
+    reassembler.process_packet(&sm1_s2c, 13, &mut handler);
+    let sm2_s2c = make_tcp_packet(
+        server, 80, client, 12345, 6001, b"x", false, true, false, false,
+    );
+    reassembler.process_packet(&sm2_s2c, 14, &mut handler);
+
+    // S2C OOW alert: 2 out-of-window segments.
+    // ISN=5000 for server direction, base_offset=1; seq > 5000+1+100=5101 is OOW.
+    let oow1_s2c = make_tcp_packet(
+        server, 80, client, 12345, 10000, b"y", false, true, false, false,
+    );
+    reassembler.process_packet(&oow1_s2c, 15, &mut handler);
+    let oow2_s2c = make_tcp_packet(
+        server, 80, client, 12345, 10001, b"y", false, true, false, false,
+    );
+    reassembler.process_packet(&oow2_s2c, 16, &mut handler);
+
+    // Count only the three types of threshold findings (exclude ConflictingOverlap findings).
+    let threshold_findings: Vec<_> = reassembler
+        .findings()
+        .iter()
+        .filter(|f| {
+            f.summary.contains("Excessive segment overlaps")
+                || f.summary.contains("small segments")
+                || f.summary.contains("out-of-window segments")
+        })
+        .collect();
+
+    assert_eq!(
+        threshold_findings.len(),
+        6,
+        "exactly 6 threshold findings expected (3 types × 2 directions); found {}",
+        threshold_findings.len()
+    );
+}
+
+// --- EC-001 ---
+// ConflictingOverlap when findings.len() == MAX_FINDINGS: finding silently
+// dropped; dropped_findings++.
+#[test]
+fn test_story_017_ec001_conflicting_overlap_at_max_findings_drops_and_counts() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = fill_findings_to_cap(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "pre-condition: findings must be at MAX_FINDINGS"
+    );
+    let dropped_before = reassembler.stats().dropped_findings;
+
+    // Open a new flow (port 10001 is unused).
+    let syn = make_tcp_packet(
+        client,
+        10001,
+        server,
+        8080,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let orig = make_tcp_packet(
+        client, 10001, server, 8080, 1002, b"A", false, false, false, false,
+    );
+    reassembler.process_packet(&orig, 2, &mut handler);
+
+    // Conflicting segment — findings are full, so this must be dropped.
+    let conf = make_tcp_packet(
+        client, 10001, server, 8080, 1002, b"Z", false, false, false, false,
+    );
+    reassembler.process_packet(&conf, 3, &mut handler);
+
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "findings must remain at MAX_FINDINGS (finding was dropped)"
+    );
+    assert_eq!(
+        reassembler.stats().dropped_findings,
+        dropped_before + 1,
+        "dropped_findings must increment by 1 for the suppressed ConflictingOverlap"
+    );
+}
+
+// --- EC-002 ---
+// ConflictingOverlap immediately after another: second finding emitted (not latched).
+#[test]
+fn test_story_017_ec002_consecutive_conflicts_each_emit_finding() {
+    // Two consecutive ConflictingOverlap events on DIFFERENT positions in the same flow.
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // First original at offset 2 (seq=1002).
+    let orig1 = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"A", false, false, false, false,
+    );
+    reassembler.process_packet(&orig1, 2, &mut handler);
+    // First conflict.
+    let conf1 = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"Z", false, false, false, false,
+    );
+    reassembler.process_packet(&conf1, 3, &mut handler);
+
+    // Second original at offset 4 (seq=1004).
+    let orig2 = make_tcp_packet(
+        client, 12345, server, 80, 1004, b"B", false, false, false, false,
+    );
+    reassembler.process_packet(&orig2, 4, &mut handler);
+    // Second conflict.
+    let conf2 = make_tcp_packet(
+        client, 12345, server, 80, 1004, b"Y", false, false, false, false,
+    );
+    reassembler.process_packet(&conf2, 5, &mut handler);
+
+    let n = reassembler
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("Conflicting TCP segment overlap"))
+        .count();
+    assert_eq!(
+        n, 2,
+        "each ConflictingOverlap must produce its own finding (not latched); expected 2, got {n}"
+    );
+}
+
+// --- EC-003 ---
+// overlap_count == threshold exactly: no threshold alert (strictly greater required).
+#[test]
+fn test_story_017_ec003_overlap_count_equals_threshold_no_alert() {
+    // threshold=7; send 7 exact duplicates → overlap_count=7, NOT > 7.
+    let config = ReassemblyConfig {
+        overlap_alert_threshold: 7,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let orig = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+    );
+    reassembler.process_packet(&orig, 2, &mut handler);
+
+    for i in 0..7u32 {
+        let dup = make_tcp_packet(
+            client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+        );
+        reassembler.process_packet(&dup, 3 + i, &mut handler);
+    }
+
+    assert!(
+        !reassembler
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("Excessive segment overlaps")),
+        "overlap_count == threshold must NOT fire the alert"
+    );
+}
+
+// --- EC-004 ---
+// overlap_count == threshold + 1: alert fires.
+#[test]
+fn test_story_017_ec004_overlap_count_one_over_threshold_alert_fires() {
+    // threshold=7; send 8 duplicates → overlap_count=8 > 7 → alert fires.
+    let config = ReassemblyConfig {
+        overlap_alert_threshold: 7,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let orig = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+    );
+    reassembler.process_packet(&orig, 2, &mut handler);
+
+    for i in 0..8u32 {
+        let dup = make_tcp_packet(
+            client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+        );
+        reassembler.process_packet(&dup, 3 + i, &mut handler);
+    }
+
+    assert!(
+        reassembler
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("Excessive segment overlaps")),
+        "overlap_count == threshold+1 must fire the alert"
+    );
+}
+
+// --- EC-005 ---
+// Small-segment run reset by normal-sized segment: no alert after reset.
+#[test]
+fn test_story_017_ec005_small_segment_run_reset_by_normal_segment_no_alert() {
+    // threshold=5; send 5 small segments, then 1 normal-sized (resets run to 0),
+    // then 3 more small segments → max sub-run is 5 then 3 — neither exceeds 5.
+    // So no alert fires.  (Sub-run of 5 is exactly at threshold, not above it.)
+    let config = ReassemblyConfig {
+        small_segment_alert_threshold: 5,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let mut seq: u32 = 1001;
+    let mut ts: u32 = 2;
+
+    // 5 small segments — run reaches exactly 5, NOT > 5.
+    for _ in 0..5 {
+        let small = make_tcp_packet(
+            client, 12345, server, 80, seq, b"x", false, true, false, false,
+        );
+        reassembler.process_packet(&small, ts, &mut handler);
+        seq += 1;
+        ts += 1;
+    }
+
+    // 1 normal-sized segment (29 bytes > 16 bytes cutoff) — resets run to 0.
+    let normal = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        seq,
+        b"a-normal-sized-tcp-segment-xx",
+        false,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&normal, ts, &mut handler);
+    seq += 29;
+    ts += 1;
+
+    // 3 more small segments — run is now 3, well below threshold 5.
+    for _ in 0..3 {
+        let small = make_tcp_packet(
+            client, 12345, server, 80, seq, b"x", false, true, false, false,
+        );
+        reassembler.process_packet(&small, ts, &mut handler);
+        seq += 1;
+        ts += 1;
+    }
+
+    assert!(
+        !reassembler
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("small segments")),
+        "normal-segment reset must prevent alert: max sub-run (5) is at threshold, not above"
+    );
+}
+
+// --- EC-006 ---
+// Port 23 (telnet) in ignore list; 1000 small segments: no alert.
+#[test]
+fn test_story_017_ec006_telnet_port_exempt_1000_small_segments_no_alert() {
+    // Default config has small_segment_alert_threshold=100 and port 23 in ignore list.
+    // 1000 small segments on a flow with port 23 must NOT fire any alert.
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // client_port=23 puts 23 in the flow's port set.
+    let syn = make_tcp_packet(client, 23, server, 80, 1000, &[], true, false, false, false);
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let mut seq: u32 = 1001;
+    for ts in 2..=1001u32 {
+        let small = make_tcp_packet(client, 23, server, 80, seq, b"x", false, true, false, false);
+        reassembler.process_packet(&small, ts, &mut handler);
+        seq += 1;
+    }
+
+    assert!(
+        !reassembler
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("small segments")),
+        "1000 small segments on port-23 flow must not fire any alert (port exemption)"
+    );
+}
+
+// --- EC-007 ---
+// OOW alert fires when findings cap is full: latch set; dropped_findings++.
+#[test]
+fn test_story_017_ec007_oow_alert_at_max_findings_latch_set_dropped_incremented() {
+    // Use out_of_window_alert_threshold=0 to trip immediately on the first OOW segment.
+    let config = ReassemblyConfig {
+        out_of_window_alert_threshold: 0,
+        max_receive_window: 1000,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = fill_findings_to_cap(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "pre-condition: findings must be at MAX_FINDINGS"
+    );
+    let dropped_before = reassembler.stats().dropped_findings;
+
+    // Open a fresh flow (port 10001 is unused by fill_findings_to_cap).
+    let syn = make_tcp_packet(
+        client,
+        10001,
+        server,
+        8080,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // First OOW segment → count=1 > threshold 0 → latch fires, finding dropped.
+    let oow1 = make_tcp_packet(
+        client, 10001, server, 8080, 10000, b"x", false, false, false, false,
+    );
+    reassembler.process_packet(&oow1, 2, &mut handler);
+
+    assert_eq!(
+        reassembler.stats().dropped_findings,
+        dropped_before + 1,
+        "OOW threshold at cap must increment dropped_findings by 1"
+    );
+
+    // Second OOW — latch must prevent another drop.
+    let oow2 = make_tcp_packet(
+        client, 10001, server, 8080, 10001, b"x", false, false, false, false,
+    );
+    reassembler.process_packet(&oow2, 3, &mut handler);
+
+    assert_eq!(
+        reassembler.stats().dropped_findings,
+        dropped_before + 1,
+        "latch must prevent second drop: dropped_findings must remain at +1"
+    );
+}
+
+// --- EC-008 ---
+// ClientToServer latch set; ServerToClient still unlocked: S2C can fire independently.
+#[test]
+fn test_story_017_ec008_c2s_latch_does_not_suppress_s2c_alert() {
+    // threshold=1; both directions must independently fire their overlap alerts.
+    let config = ReassemblyConfig {
+        overlap_alert_threshold: 1,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Full handshake — establishes ISNs for both directions.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    let syn_ack = make_tcp_packet(
+        server,
+        80,
+        client,
+        12345,
+        5000,
+        &[],
+        true,
+        true,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_ack, 2, &mut handler);
+
+    // C2S: original + 2 duplicates → C2S overlap_count=2 > 1 → C2S latch fires.
+    let orig_c2s = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, true, false, false,
+    );
+    reassembler.process_packet(&orig_c2s, 3, &mut handler);
+    let dup1_c2s = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, true, false, false,
+    );
+    reassembler.process_packet(&dup1_c2s, 4, &mut handler);
+    let dup2_c2s = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, true, false, false,
+    );
+    reassembler.process_packet(&dup2_c2s, 5, &mut handler);
+
+    // Verify C2S alert fired.
+    let c2s_count = reassembler
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("Excessive segment overlaps"))
+        .count();
+    assert_eq!(c2s_count, 1, "C2S overlap alert must fire");
+
+    // S2C: original + 2 duplicates — C2S latch must NOT suppress S2C.
+    let orig_s2c = make_tcp_packet(
+        server, 80, client, 12345, 5002, b"BBBB", false, true, false, false,
+    );
+    reassembler.process_packet(&orig_s2c, 6, &mut handler);
+    let dup1_s2c = make_tcp_packet(
+        server, 80, client, 12345, 5002, b"BBBB", false, true, false, false,
+    );
+    reassembler.process_packet(&dup1_s2c, 7, &mut handler);
+    let dup2_s2c = make_tcp_packet(
+        server, 80, client, 12345, 5002, b"BBBB", false, true, false, false,
+    );
+    reassembler.process_packet(&dup2_s2c, 8, &mut handler);
+
+    let total_count = reassembler
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("Excessive segment overlaps"))
+        .count();
+    assert_eq!(
+        total_count, 2,
+        "S2C overlap alert must fire independently of C2S latch; expected 2, got {total_count}"
+    );
+}
+
+// --- EC-009 ---
+// Duplicate overlap result: overlap_count++ but no ConflictingOverlap finding.
+#[test]
+fn test_story_017_ec009_duplicate_overlap_increments_count_no_finding() {
+    // A Duplicate result (same bytes at same position) increments overlap_count
+    // but must NOT emit a ConflictingOverlap finding.
+    use wirerust::reassembly::flow::FlowDirection;
+
+    let mut dir = FlowDirection::new();
+    dir.isn = Some(1000);
+
+    // Insert original "ABC" at seq=1002.
+    let r1 = dir.insert_segment(1002, b"ABC", 10 * 1024 * 1024, 10_000, 1_048_576);
+    assert_eq!(r1, InsertResult::Inserted);
+    let overlap_count_before = dir.overlap_count;
+
+    // Insert exact duplicate (same bytes) — must return Duplicate.
+    let r2 = dir.insert_segment(1002, b"ABC", 10 * 1024 * 1024, 10_000, 1_048_576);
+    assert_eq!(
+        r2,
+        InsertResult::Duplicate,
+        "exact-byte retransmit must return Duplicate, not ConflictingOverlap"
+    );
+
+    // overlap_count must have incremented (segment saw a range already in buffer).
+    assert_eq!(
+        dir.overlap_count,
+        overlap_count_before + 1,
+        "Duplicate result must increment overlap_count"
+    );
+
+    // Verify at the engine level: no ConflictingOverlap finding emitted.
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    let orig = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"ABC", false, false, false, false,
+    );
+    reassembler.process_packet(&orig, 2, &mut handler);
+
+    // Exact duplicate — no conflicting bytes.
+    let dup = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"ABC", false, false, false, false,
+    );
+    reassembler.process_packet(&dup, 3, &mut handler);
+
+    assert!(
+        !reassembler
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("Conflicting TCP segment overlap")),
+        "exact-byte duplicate must NOT emit a ConflictingOverlap finding"
+    );
 }
