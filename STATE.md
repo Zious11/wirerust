@@ -114,12 +114,12 @@ dependency bumping for it).
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Wave 9 — wave-level adversarial passes 1–3 (DIRTY) | **REMEDIATED** 2026-05-26 | P1: 5 findings (4 MED rem. + W9-D12 deferred) → PRs #129/#130 + factory commits a3e8927/f5330a4/152acbb. P2: 3 MED sibling-regressions all rem. P3: 3 MED sibling-regressions all rem as trivial text edits (no new PR needed; BC-2.04.016 v1.4 + STORY-020 v1.9). W9-D8 escalated to CRITICAL after P3. |
 | Wave 9 — wave-level adversarial passes 4/5/6 (CLEAN) | **CONVERGED** 2026-05-26 | Passes 4/5/6 all VERDICT: CLEAN — zero findings. 3-clean streak satisfied (BC-5.39.001). Wave-level CONVERGED. Total wave-level: 6 passes (DIRTY×3 + CLEAN×3), 11 findings remediated. |
 | Wave-gate — Wave 9 | **CLOSED** 2026-05-26 | develop HEAD e237747; 18 stories total Waves 1-9; 632 tests passing; STORY-017 + STORY-018 unblocked; Wave 10 READY TO DISPATCH. |
 | Wave 9 → Wave 10 — W9-D8 CODIFIED | **COMPLETE** 2026-05-26 | W9-D8 codified as DF-SIBLING-SWEEP-001 in .factory/policies.yaml. Orchestrator policy-rubric injection now extended to all remediation dispatches. Wave 10 dispatch unblocked. W9.L3 (pr-manager merge-step gap) remains OPEN — separate codification target. |
 | Wave 9 → Wave 10 — W9.L3 CODIFIED | **COMPLETE** 2026-05-26 | W9.L3 codified as DF-PR-MANAGER-COMPLETE-001 in .factory/policies.yaml. pr-manager merge-step completion now enforced policy; orchestrator must inject policy with concrete gh CLI template into every pr-manager dispatch. Both pre-Wave-10 codification targets resolved. |
 | Wave 10 IN PROGRESS | **IN PROGRESS** 2026-05-26 | Wave 10 opened 2026-05-26; STORY-017 + STORY-018 dispatched in parallel; new policies DF-SIBLING-SWEEP-001 + DF-PR-MANAGER-COMPLETE-001 will be injected at remediation + pr-manager dispatches respectively. |
+| Wave 10 — per-story adversarial pass-1 remediation (burst-1) | **COMPLETE** 2026-05-26 | STORY-017: DIRTY 5 findings → 1 false-positive dismissed + 4 actioned (BC-018/019/020 v1.2→v1.3; anchor corrections). STORY-018: DIRTY 6 findings → all 6 actioned (BC-027/041/045 v1.2→v1.3; CRITICAL F-001/F-002/F-003 fixed). 6 BCs + STORY-018 committed factory-artifacts 53c6420. First wave under DF-SIBLING-SWEEP-001: PO sibling-sweeps performed (3 patterns each + BC 023/024/037 verified) — ZERO sibling-regressions surfaced. Codification WORKING. Pass-2 dispatched. |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
