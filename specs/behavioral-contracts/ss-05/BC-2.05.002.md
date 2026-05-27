@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Pass-3 sibling-sweep gap closure (DF-SIBLING-SWEEP-001 v2 BC pre-merge re-anchor): added test_all_http_method_prefixes_route_to_http to Architecture Anchors and VP-004 table (comprehensive 10-prefix coverage added in STORY-031 pass-1 but not anchored back into BC until pass-3). Also added test_http_no_space_does_not_match for Inv-2/Inv-3 case-sensitive/no-space coverage. EC test citations updated. Closes F-W12P3-002. — 2026-05-27
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -58,11 +59,11 @@ strings, the flow is routed to `DispatchTarget::Http`. This check is performed i
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | data starts with b"GET " on port 443 | Routed to Http (content wins over port 443 TLS hint) |
+| EC-001 | data starts with b"GET " on port 443 | Routed to Http (content wins over port 443 TLS hint); covered by AC-004 / `test_all_http_method_prefixes_route_to_http` |
 | EC-002 | data starts with b"POST " | Routed to Http |
-| EC-003 | data starts with b"HTTP/" (response) | Routed to Http |
-| EC-004 | data = b"GET" (no trailing space, 3 bytes) | No HTTP match; falls through to port fallback |
-| EC-005 | data starts with b"get " (lowercase) | No match (case-sensitive); falls to port fallback |
+| EC-003 | data starts with b"HTTP/" (response) | Routed to Http; covered by `test_all_http_method_prefixes_route_to_http` (HTTP/ variant) |
+| EC-004 | data = b"GET" (no trailing space, 3 bytes) | No HTTP match; falls through to port fallback; covered by `test_http_no_space_does_not_match` (no-space sub-case) |
+| EC-005 | data starts with b"get " (lowercase) | No match (case-sensitive); falls to port fallback; covered by `test_http_no_space_does_not_match` (lowercase sub-case) |
 
 ## Canonical Test Vectors
 
@@ -77,7 +78,7 @@ strings, the flow is routed to `DispatchTarget::Http`. This check is performed i
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-004 | HTTP method prefix routes to Http regardless of port | unit: test_dispatcher_routes_http |
+| VP-004 | HTTP method prefix routes to Http regardless of port | unit: test_dispatcher_routes_http, test_all_http_method_prefixes_route_to_http (10-prefix table-driven; covers PC1 + Inv3) |
 
 ## Traceability
 
@@ -99,7 +100,7 @@ strings, the flow is routed to `DispatchTarget::Http`. This check is performed i
 ## Architecture Anchors
 
 - `src/dispatcher.rs:95-107` -- HTTP method prefix check in classify function
-- `tests/dispatcher_tests.rs` -- test_dispatcher_routes_http
+- `tests/dispatcher_tests.rs` -- test_dispatcher_routes_http, test_all_http_method_prefixes_route_to_http, test_http_no_space_does_not_match
 
 ## Source Evidence
 
