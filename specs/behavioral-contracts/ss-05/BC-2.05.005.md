@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,8 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: W13 Pass 1 remediation: add test anchor for cache-hit path (F-W13P1-002); update stale coverage prose to reflect STORY-032 closure (F-W13P1-003) — 2026-05-27
+  - v1.4: W13 Pass 2 remediation: append test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified to Architecture Anchors (F-W13P2-001, exercises Invariant 2 + EC-003) — 2026-05-27
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -32,9 +34,10 @@ DispatchTarget>`. Subsequent `on_data` calls for the same FlowKey use the cached
 re-running the classify function. Once a flow is classified, it stays classified for its
 lifetime. `DispatchTarget::None` is excluded from caching during the retry phase (before `max_classification_attempts` is reached), but IS inserted permanently into `routes` once the cap is hit. See BC-2.05.006 for the full two-phase None-caching contract.
 
-This contract's test coverage (R4 finding): the INSERT path (classify + cache) is exercised
-by tests, but the cache-HIT path (subsequent calls using cached result) is not independently
-verified. A refactor that broke cache lookup would pass CI if the INSERT path tests still pass.
+Originally identified as R4 finding pass-3: the cache-HIT path (subsequent calls using cached
+result) was not independently verified. Closed by STORY-032
+test_BC_2_05_005_classification_cached_after_first_match, which independently asserts the
+cache-hit path and would catch a regression that broke cache lookup while leaving insert intact.
 
 ## Preconditions
 
@@ -86,7 +89,7 @@ verified. A refactor that broke cache lookup would pass CI if the INSERT path te
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- once classified, the decision is sticky) |
 | Architecture Module | SS-05 (dispatcher.rs:133-154, C-21) |
 | Stories | STORY-032 |
-| Origin BC | BC-DSP-005 (pass-3 ingestion corpus, MEDIUM confidence -- cache miss path covered; cache hit path not independently tested; R4 finding) |
+| Origin BC | BC-DSP-005 (pass-3 ingestion corpus, HIGH confidence post-STORY-032 (cache-hit path independently verified by test_BC_2_05_005_classification_cached_after_first_match)) |
 
 ## Related BCs
 
@@ -97,19 +100,20 @@ verified. A refactor that broke cache lookup would pass CI if the INSERT path te
 
 - `src/dispatcher.rs:133-154` -- classification cache block in on_data
 - `src/dispatcher.rs:149-151` -- routes.insert when target is Http or Tls (not None); classification_attempts.remove
+- `tests/dispatcher_tests.rs` -- test_BC_2_05_005_classification_cached_after_first_match, test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
 | **Path** | `src/dispatcher.rs:149-151` |
-| **Confidence** | medium |
+| **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 
 ## Evidence Types Used
 
 - **guard clause**: `if target != DispatchTarget::None { routes.insert(...) }`
-- **inferred**: cache-hit path is exercised by tests but not independently asserted
+- **test-vector**: cache-hit path independently verified by tests/dispatcher_tests.rs test_BC_2_05_005_classification_cached_after_first_match
 
 ## Purity Classification
 

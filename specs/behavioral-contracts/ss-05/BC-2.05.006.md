@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,8 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: W13 Pass 1 remediation: add test anchors for Phase A/B paths (F-W13P1-002); update stale coverage prose and VP-004 confidence to reflect STORY-032 closure (F-W13P1-003); tighten dispatcher.rs:136-148 to :137-148 (F-W13P1-007) — 2026-05-27
+  - v1.4: W13 Pass 2 remediation: append test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified (F-W13P2-001, exercises Phase B postconditions + EC-005 cached-None short-circuit) and test_late_classification_within_attempt_budget_still_routes (sibling-sweep gap: Phase A late-classification path unanchored) to Architecture Anchors — 2026-05-27
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -93,7 +95,7 @@ cache permanently.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-004 | None result is not cached; reclassification retried | MEDIUM -- inferred from code; only insert path tested |
+| VP-004 | None result is not cached; reclassification retried | HIGH -- formalized by STORY-032 tests (test_BC_2_05_006_none_not_cached_before_retry_cap, test_BC_2_05_006_none_cached_permanently_after_retry_cap, test_BC_2_05_006_late_classification_after_nones) |
 
 ## Traceability
 
@@ -104,7 +106,7 @@ cache permanently.
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- None is a temporary state, not a permanent classification) |
 | Architecture Module | SS-05 (dispatcher.rs:133-154, C-21) |
 | Stories | STORY-032 |
-| Origin BC | BC-DSP-006 (pass-3 ingestion corpus, MEDIUM confidence -- inferred from code) |
+| Origin BC | BC-DSP-006 (pass-3 ingestion corpus, HIGH confidence post-STORY-032 (3 dedicated tests cover Phase A non-caching, Phase B permanent caching, and late-classification cache-clear)) |
 
 ## Related BCs
 
@@ -114,22 +116,23 @@ cache permanently.
 ## Architecture Anchors
 
 - `src/dispatcher.rs:133-154` -- classification cache + retry-budget block (on_data)
-- `src/dispatcher.rs:136-148` -- None branch: increment count; if count >= cap, cache None at :146, remove attempts at :147
+- `src/dispatcher.rs:137-148` -- None branch only (excludes line 136 classify() call): increment count; if count >= cap, cache None at :146, remove attempts at :147
 - `src/dispatcher.rs:149-151` -- non-None branch: routes.insert target; classification_attempts.remove
 - `src/dispatcher.rs:40` -- DEFAULT_MAX_CLASSIFICATION_ATTEMPTS = 8
+- `tests/dispatcher_tests.rs` -- test_BC_2_05_006_none_not_cached_before_retry_cap, test_BC_2_05_006_none_cached_permanently_after_retry_cap, test_BC_2_05_006_late_classification_after_nones, test_late_classification_within_attempt_budget_still_routes, test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/dispatcher.rs:133-154` (full cache+retry block), `:136-148` (None branch), `:146` (permanent None insert) |
+| **Path** | `src/dispatcher.rs:133-154` (full cache+retry block), `:137-148` (None branch only, excluding :136 classify() call), `:146` (permanent None insert) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
 ## Evidence Types Used
 
 - **guard clause**: `if target == DispatchTarget::None { ... } else { routes.insert(...) }`
-- **inferred**: no independent test of the cache-not-inserted path
+- **test-vector**: cache-not-inserted (Phase A) and cache-inserted-at-cap (Phase B) paths both independently verified by STORY-032 tests
 
 ## Purity Classification
 

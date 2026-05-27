@@ -492,6 +492,61 @@ dispatch template injection is working at the intended dispatch site.
 
 ---
 
+## Wave 13 Lessons (2026-05-27)
+
+### W13.L1 — Brownfield-Formalization Without Test Seams = Even Faster Convergence [deferred — phase-5]
+
+**Finding ID:** Wave 13 retrospective observation (convergence cost comparison)
+**Category:** adversarial-workflow / convergence-cost
+**Observed:** W11 (STORY-021): 11 passes, 9+4 test seams, atomics, Drop tripwire complexity.
+W12 (STORY-031): 9 passes, 0 test seams (W12.L3 codified this), no docstring-shift cascade.
+W13 (STORY-032): 5 passes, 0 test seams, 0 src/ changes, indirect-observability throughout.
+**Pattern:** Zero src/ changes → fewer line-citation drift findings → fewer remediation cycles → faster convergence. The remaining adversarial cost in W13 was driven by anchor-completeness propagation gaps (passes 1-2), which are spec-quality findings, not implementation churn.
+**Implication:** When formalizing impl with sufficient public API for indirect observability (parse_error_count, unclassified_flows, method_counts, max_classification_attempts), prefer that over adding `_for_testing` seams. The W11→W12→W13 trajectory (11→9→5) demonstrates sustained benefit with each wave that avoids src/ seams.
+**Validation required:** research-agent must validate per DF-VALIDATION-001 before filing GitHub issue.
+**Status:** [deferred — phase-5; W12.L3 extended with W13 confirmation data]
+
+---
+
+### W13.L2 — DF-SIBLING-SWEEP-001 v3 Single-Burst-All-BCs Effectiveness Validated [codified — confirmed W13]
+
+**Finding ID:** Wave 13 pass-1→pass-2 transition observation
+**Category:** adversarial-workflow / policy-validation
+**Observed:** Pass-1 produced 8 findings (4 MEDIUM, 4 LOW) largely comprising propagation gaps (BC-005/006 missing test anchors after BC-004 got them; stale 136-148 citations not propagated to story body; FSR row missed 5th test; AC-010 missing for EC-008). The v3 single-burst-all-BCs rule was applied in remediation: ALL BCs in story `bcs:` frontmatter were swept in a single burst.
+**Result:** Pass-2 produced only 3 LOW observations (zero MEDIUM) — the v3 rule prevented further cascading sibling-sweep gaps. The subsequent clean streak (P3: NITPICK, P4: CLEAN, P5: CLEAN) confirms the burst was comprehensive.
+**Without the rule:** The historical pattern (W12 passes 3/4/6 catching the same gap iteratively) would have repeated, adding 2-3 passes. The rule effectively collapsed that cascade into a single catch-up pass.
+**Status:** [codified — confirmed effective W13; second wave of validation (first was W12)]
+
+---
+
+### W13.L3 — Indirect Observability Proxies (Cargo Public API Only) Sufficient for Cache + Retry-Budget Tests [deferred — phase-5]
+
+**Finding ID:** Wave 13 retrospective observation
+**Category:** test-design / public-API-sufficiency
+**Observed:** All 5 new BC-prefixed tests in STORY-032 used only the public API for indirect observability:
+- `unclassified_flows()` — for unclassified flow count assertions
+- `max_classification_attempts()` — for retry budget enforcement
+- `parse_error_count()` — for parse error tracking
+- `method_counts()` — for classification result verification
+Zero `#[doc(hidden)] pub fn _for_testing()` seams were added. The adversary confirmed faithfulness: each proxy uniquely identifies the code-path branch the test claims to exercise.
+**Pattern:** "Observe analyzer state after dispatch" is preferable to "expose internal HashMap directly" when the public API surface provides sufficient discriminating power for the behaviors being tested.
+**Target:** phase-5 — document as a test-design guideline: enumerate public API observability surface before reaching for test seams; seams are opt-in only when no public proxy discriminates the required behavior.
+**Validation required:** research-agent must validate per DF-VALIDATION-001 before filing GitHub issue.
+**Status:** [deferred — phase-5]
+
+---
+
+### W13.L4 — DF-ADVERSARY-METHODOLOGY-001 Perfect Run for 2nd Consecutive Wave [codified — confirmed W13]
+
+**Finding ID:** Wave 13 retrospective observation
+**Category:** adversarial-workflow / policy-validation
+**Observed:** Zero methodology bugs across all 5 adversarial passes in Wave 13. No false positives from wrong-directory queries. All adversary dispatches used absolute paths per DF-ADVERSARY-METHODOLOGY-001. The verification block in the adversary's first reply provided a cheap self-check that caught no anomalies.
+**W12 confirmation:** Wave 12 (9 passes) was the first full wave under the policy — zero methodology bugs. Wave 13 (5 passes) confirms the policy holds at a different pass count and story complexity.
+**Pattern:** The absolute-path mandate has zero runtime cost when correctly applied and prevents the entire class of wrong-directory false positives observed in W11-P5. Two consecutive waves of zero methodology bugs indicate the dispatch template injection is reliably working.
+**Status:** [codified — confirmed effective W13; second consecutive wave with zero methodology bugs]
+
+---
+
 ## Earlier Wave Lessons (Waves 1-6)
 
 Per-wave process-gap items for Waves 1-6 are recorded in STATE.md Cycle-Close Follow-Up Items

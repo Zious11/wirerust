@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,8 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: W13 Pass 1 remediation: split broad dispatcher.rs:136-153 anchor into three precise line-range anchors (F-W13P1-007) — 2026-05-27
+  - v1.4: W13 Pass 2 remediation: correct :149-152 to :149-151 (exclusive-of-closing-brace convention, F-W13P2-005) — 2026-05-27
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -88,7 +90,7 @@ the flow and the classification_attempts counter entry is removed.
 | L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 |
 | Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 -- DispatchTarget::None is the defined fallthrough for flows that match no classification rule |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- None is the explicit non-match result) |
-| Architecture Module | SS-05 (dispatcher.rs:116, 136-153, C-21) |
+| Architecture Module | SS-05 (dispatcher.rs:116, 136, 137-148, 149-151, C-21) |
 | Stories | STORY-032 |
 | Origin BC | BC-DSP-004 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -101,14 +103,16 @@ the flow and the classification_attempts counter entry is removed.
 ## Architecture Anchors
 
 - `src/dispatcher.rs:116` -- `DispatchTarget::None` return in classify
-- `src/dispatcher.rs:136-153` -- None handling + attempt counter + cap-triggered caching
+- `src/dispatcher.rs:136` -- classify() call dispatch
+- `src/dispatcher.rs:137-148` -- None handling: attempt counter increment + cap-triggered caching
+- `src/dispatcher.rs:149-151` -- non-None branch: cache target + remove attempts entry
 - `tests/dispatcher_tests.rs` -- test_unclassified_flows_counter
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/dispatcher.rs:116, 136-153` |
+| **Path** | `src/dispatcher.rs:116, 136, 137-148, 149-151` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

@@ -9,7 +9,7 @@ phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
 phase_2_completed: "2026-05-21"
 phase_3_started: "2026-05-21"
-develop_head: 1435362
+develop_head: 0d9b16d
 wave_1_closed: "2026-05-22"
 wave_2_closed: "2026-05-22"
 wave_3_closed: "2026-05-22"
@@ -61,16 +61,24 @@ wave_12_pr_count: 1
 wave_12_prs: "#135"
 wave_12_per_story_convergence: "STORY-031: 9 passes; passes 7-8-9 CLEAN per BC-5.39.001"
 wave_12_wave_level_convergence: "9 passes (11→5→3→3→CLEAN→1→CLEAN→CLEAN→CLEAN); CONVERGENCE ACHIEVED"
-wave_13_status: ready_to_dispatch
-current_wave: 13
-stories_delivered: 22
+wave_13_status: closed
+wave_13_closed_date: "2026-05-27"
+wave_13_stories: STORY-032
+wave_13_pr_count: 1
+wave_13_prs: "#136"
+wave_13_per_story_delivery: complete
+wave_13_per_story_convergence: "5 passes; 3/3 clean streak on passes 3/4/5 (P3: NITPICK_ONLY, P4: CLEAN_NO_FINDINGS, P5: CLEAN_NO_FINDINGS); 18 findings remediated across passes 1-3"
+wave_13_wave_level_convergence: "single-story wave; per-story convergence == wave-level convergence per BC-5.39.001"
+wave_14_status: ready_to_dispatch
+current_wave: 14
+stories_delivered: 23
 dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3
 adversary_gate: SATISFIED
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0|W7-story:8ps-3clean|W7-wave:8ps-3clean|W8-S019-story:8ps-3clean(14rem)|W8-S015-story:8ps-3clean(14rem)|W8-wave:9ps-3clean(12rem)|W9-S016-story:6ps-3clean(24rem)|W9-S020-story:8ps-3clean(13rem)|W9-wave:6ps-3clean(11rem)|W10-S017-story:4ps-3clean(MERGED-PR#131)|W10-S018-story:9ps-3clean(MERGED-PR#132)|W10-wave:4ps-3clean(1HIGH+4MED+4LOW->1src+2BC+6def)|W10-CONVERGED-2026-05-26|W11-S021-story:11ps-3clean(15→14→5→11→12→4→3→0→0→0->MERGED-PR#134-3cd3000)|W11-CONVERGED-2026-05-27-BC-5.39.001-ACHIEVED|W12-S031-story:9ps-3clean(11→5→3→3→0→1→0→0→0->MERGED-PR#135-1435362)|W12-CONVERGED-2026-05-27-BC-5.39.001-ACHIEVED"
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0|W7-story:8ps-3clean|W7-wave:8ps-3clean|W8-S019-story:8ps-3clean(14rem)|W8-S015-story:8ps-3clean(14rem)|W8-wave:9ps-3clean(12rem)|W9-S016-story:6ps-3clean(24rem)|W9-S020-story:8ps-3clean(13rem)|W9-wave:6ps-3clean(11rem)|W10-S017-story:4ps-3clean(MERGED-PR#131)|W10-S018-story:9ps-3clean(MERGED-PR#132)|W10-wave:4ps-3clean(1HIGH+4MED+4LOW->1src+2BC+6def)|W10-CONVERGED-2026-05-26|W11-S021-story:11ps-3clean(15→14→5→11→12→4→3→0→0→0->MERGED-PR#134-3cd3000)|W11-CONVERGED-2026-05-27-BC-5.39.001-ACHIEVED|W12-S031-story:9ps-3clean(11→5→3→3→0→1→0→0→0->MERGED-PR#135-1435362)|W12-CONVERGED-2026-05-27-BC-5.39.001-ACHIEVED|W13-S032-story:5ps-3clean(P1:MEDIUM→P2:MEDIUM→P3:NITPICK→P4:CLEAN→P5:CLEAN->MERGED-PR#136-0d9b16d)|W13-CONVERGED-2026-05-27-BC-5.39.001-ACHIEVED-44pct-reduction-vs-W12"
 consistency_audit: CONSISTENT
 input_drift_check: CLEAN
 phase_2_input_hash_drift_check: CLEAN
@@ -81,14 +89,14 @@ phase_2_input_hash_drift_check_total: 153
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-12 CLOSED/CONVERGED; Wave 13 ready to dispatch.
-22 stories delivered across Waves 1-12 (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031).
-Wave 12 CLOSED 2026-05-27: STORY-031 (PR #135 → 1435362, 9 passes; passes 7-8-9 CLEAN per BC-5.39.001). 2 fewer passes than Wave 11 (9 vs 11).
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-13 CLOSED/CONVERGED; Wave 14 ready to dispatch.
+23 stories delivered across Waves 1-13 (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032).
+Wave 13 CLOSED 2026-05-27: STORY-032 (PR #136 → 0d9b16d, 5 passes; passes 3-4-5 CLEAN per BC-5.39.001). 44% fewer passes than Wave 12 (5 vs 9).
 Implementation strategy: brownfield-formalization (zero production behavior changes).
-Diff scope: tests/dispatcher_tests.rs only (+523/-15 lines, 22 tests total — 7 new + 1 strengthened + 1 renamed + 13 pre-existing).
-Anchor-completeness doctrine sub-rule codified (W12.L1): EC citations must EXACTLY exercise the specific scenario described, not just the parent BC capability.
-6 total process-gap codifications applied (DF-SIBLING-SWEEP-001 v3 + DF-ADVERSARY-METHODOLOGY-001 + DF-PR-MANAGER-COMPLETE-001).
-develop HEAD: 1435362 (PR #135 — Wave 12 STORY-031 2026-05-27).
+Diff scope: tests/dispatcher_tests.rs only (+444/-0 lines, 27 tests total — 5 new BC-prefixed tests + 22 pre-existing).
+Zero src/ changes; indirect observability throughout (parse_error_count, unclassified_flows, method_counts, max_classification_attempts).
+6 total process-gap codifications applied (DF-SIBLING-SWEEP-001 v3 + DF-ADVERSARY-METHODOLOGY-001 + DF-PR-MANAGER-COMPLETE-001). No new codifications this wave (4 lessons recorded).
+develop HEAD: 0d9b16d (PR #136 — Wave 13 STORY-032 2026-05-27).
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -106,7 +114,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-12 CLOSED/CONVERGED; 22 stories delivered; Wave 13 ready to dispatch (STORY-032 pending) | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-13 CLOSED/CONVERGED; 23 stories delivered; Wave 14 ready to dispatch (STORY-033 pending) | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -128,19 +136,18 @@ dependency bumping for it).
 | 10 | STORY-017, STORY-018 | **CLOSED/CONVERGED** 2026-05-27 | 211143e (PR #133 — wave-level fix) | STORY-017 MERGED PR #131 (4 passes 1D+3C; 24 tests + 9 ECs). STORY-018 MERGED PR #132 (9 passes 6D+3C; resource bounds). Wave-level 4 passes (1D+3C; 3 findings remediated + 6 deferred). 17 adversarial passes total (15% reduction vs Wave 9: 20). |
 | 11 | STORY-021 | **CLOSED/CONVERGED** 2026-05-27 | 3cd3000 (PR #134) | STORY-021 MERGED PR #134 (11 passes; 9-10-11 CLEAN per BC-5.39.001). Brownfield-formalization: +88/+33/+33/+1290 lines, 4 files, 203 new tests. BC pre-merge re-anchor doctrine adopted (W11.L1). Methodology bug caught (W11.L2). 4 process-gap codifications applied. |
 | 12 | STORY-031 | **CLOSED/CONVERGED** 2026-05-27 | 1435362 (PR #135) | STORY-031 MERGED PR #135 (brownfield-formalization: tests/dispatcher_tests.rs only; 22 tests; 9 passes, 7-8-9 CLEAN per BC-5.39.001). Anchor-completeness EC-scenario-match sub-rule discovered (W12.L1). 2 process-gap codifications applied to policies.yaml. |
-| 13–27 | (remaining) | NOT STARTED | — | — |
+| 13 | STORY-032 | **CLOSED/CONVERGED** 2026-05-27 | 0d9b16d (PR #136) | STORY-032 MERGED PR #136 (brownfield-formalization: tests/dispatcher_tests.rs only; +444/-0 lines, 27 tests; 5 passes, 3-4-5 CLEAN per BC-5.39.001). 44% fewer passes than W12. Zero src/ changes; indirect observability throughout. 4 lessons recorded (W13.L1-L4); 0 new codifications. |
+| 14–27 | (remaining) | NOT STARTED | — | — |
 
 ## Phase 3 — Current Phase Steps (last 5)
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Wave 10 — per-story adversarial pass-4/5 remediation (burst-3) | **COMPLETE** 2026-05-26 | STORY-017 CONVERGED+MERGED PR #131 → ced10aa (4 passes 1D+3C; 24 tests + 9 ECs; 33% pass reduction vs W9-S016). STORY-018 pass-4 DIRTY (1 MED W10-D6 pattern at deeper layer) → v1.4 remediated. STORY-018 pass-5 DIRTY (2 MED: cross-ref target validation + implementation reachability) → v1.5 remediated. DF-SIBLING-SWEEP-001 v3 applied. W10-D7 + W10-D8 filed. factory-artifacts HEAD d74e7b2. |
-| Wave 10 — wave-level pass-1 remediation (burst-4) | **COMPLETE** 2026-05-26 | STORY-018 MERGED PR #132 → 211143e (20 stories delivered). Wave-level pass-1 DIRTY: F-W10P1-001 REMEDIATED PR #133 (overlap_count saturating_add); F-W10P1-002/003 REMEDIATED BC-2.04.022/027 anchors. W10-D10..D14 DEFERRED. factory-artifacts HEAD b989cf2. |
-| Wave 11 OPEN — STORY-021 dispatched | **COMPLETE** 2026-05-27 | STORY-021 (finalize lifecycle + MAX_FINDINGS cap + segment-limit summary) implemented and converged. 11 adversarial passes; passes 9-10-11 CLEAN per BC-5.39.001. BC pre-merge re-anchor doctrine adopted (W11.L1). Methodology bug caught at pass-5 (W11.L2). |
-| Wave 11 — PR #134 merged | **COMPLETE** 2026-05-27 | STORY-021 MERGED PR #134 → 3cd3000 (implementer-as-PR-executor; all 9 steps autonomous). 21 stories delivered. W11.L3: line-citation drift across 4 cycles (677→690→793→807→796→810→794→808). W11.L4: source-docstring propagation gap. W11.L5: pr-manager stops-at-APPROVE structural gap confirmed. |
 | Wave 11 CLOSED — 4 process-gap codifications applied | **COMPLETE** 2026-05-27 | DF-SIBLING-SWEEP-001 extended to v2 (BC pre-merge re-anchor, lock-discipline propagation, story-writer post-AC-add sibling-sweep, source-docstring propagation). DF-ADVERSARY-METHODOLOGY-001 added (absolute-path requirement in adversary dispatches). Wave 12 ready to dispatch (STORY-031 pending). |
 | Wave 12 — STORY-031 dispatched + converged (9 passes) | **COMPLETE** 2026-05-27 | STORY-031 (content-first classification formalization: TLS sig, HTTP prefix, port fallback). 9 adversarial passes (7-8-9 CLEAN per BC-5.39.001). Brownfield-formalization: tests/dispatcher_tests.rs only (+523/-15, 22 tests). Anchor-completeness EC-scenario-match sub-rule discovered pass-6. |
 | Wave 12 — PR #135 merged + 2 process-gap codifications applied | **COMPLETE** 2026-05-27 | STORY-031 MERGED PR #135 → 1435362 (implementer-as-PR-executor; 5th consecutive wave validated). DF-SIBLING-SWEEP-001 extended to v3 (EC-scenario-match sub-rule + single-burst-all-BCs). 22 stories delivered. Wave 13 ready to dispatch (STORY-032). |
+| Wave 13 — STORY-032 dispatched + converged (5 passes) | **COMPLETE** 2026-05-27 | STORY-032 (cache eviction + retry budget + unclassified flow formalization). 5 adversarial passes (3-4-5 CLEAN per BC-5.39.001). P1: MEDIUM (4F+4L), P2: MEDIUM (remediation propagation catch), P3: NITPICK_ONLY (F-W13P3-OBS-002 test ordering), P4: CLEAN, P5: CLEAN. 44% fewer passes than W12. Zero src/ changes; indirect observability via public API proxies. |
+| Wave 13 — PR #136 merged; Wave 13 CLOSED | **COMPLETE** 2026-05-27 | STORY-032 MERGED PR #136 → 0d9b16d (implementer-as-PR-executor; 6th consecutive wave validated). 23 stories delivered. 4 lessons recorded (W13.L1-L4); 0 new codifications. W13-D1 drift filed (test ordering comment). Wave 14 ready to dispatch (STORY-033). |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -158,22 +165,21 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-27 — Wave 12 CLOSED)
+## Session Resume Checkpoint (2026-05-27 — Wave 13 CLOSED)
 
-1. Waves 1-12 all CLOSED/CONVERGED — 22 stories delivered.
-   STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031 all merged to develop.
-   STORY-031 PR #135 → 1435362 (9 passes; passes 7-8-9 CLEAN per BC-5.39.001; brownfield-formalization).
-2. Wave 12 CLOSED 2026-05-27. Convergence: 9 passes (11→5→3→3→CLEAN→1→CLEAN→CLEAN→CLEAN). 2 fewer passes than Wave 11.
-   Anchor-completeness EC-scenario-match sub-rule discovered at pass-6: EC citations must exercise the SPECIFIC scenario
-   described (specific port/value/condition), not just parent BC capability.
-   Sibling-sweep single-burst rule codified: apply anchor-completeness to ALL BCs in story `bcs:` frontmatter in same burst.
-3. 2 process-gap codifications committed to .factory/policies.yaml (DF-SIBLING-SWEEP-001 extended to v3):
-   - EC-scenario-match sub-rule for BC anchor citations (W12.L1, F-W12P6-001)
-   - Single-burst-all-BCs rule for anchor-completeness (W12.L2)
-4. Drift items W12-D1..D4 (W12-D3 + W12-D4 resolved by this codification burst; W12-D1 + W12-D2 deferred).
+1. Waves 1-13 all CLOSED/CONVERGED — 23 stories delivered.
+   STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032 all merged to develop.
+   STORY-032 PR #136 → 0d9b16d (5 passes; passes 3-4-5 CLEAN per BC-5.39.001; brownfield-formalization).
+2. Wave 13 CLOSED 2026-05-27. Convergence: 5 passes (P1: MEDIUM→P2: MEDIUM→P3: NITPICK→P4: CLEAN→P5: CLEAN). 44% fewer passes than Wave 12 (5 vs 9).
+   Zero src/ changes throughout. Indirect observability via public API proxies (parse_error_count, unclassified_flows,
+   method_counts, max_classification_attempts). DF-SIBLING-SWEEP-001 v3 single-burst-all-BCs rule effective: Pass-2 catch-up
+   prevented further cascade, then clean streak.
+3. 0 new process-gap codifications this wave. 4 lessons recorded in cycles/phase-3-tdd/lessons.md (W13.L1-L4).
+   Existing policies (DF-SIBLING-SWEEP-001 v3 + DF-ADVERSARY-METHODOLOGY-001 + DF-PR-MANAGER-COMPLETE-001) sufficient.
+4. Drift item W13-D1 filed (test ordering comment — deferred, LOW, requires research-agent validation per DF-VALIDATION-001).
    All open drift items require research-agent validation per DF-VALIDATION-001 before GitHub issue filing.
-5. develop HEAD: 1435362. Toolchain: fmt ✓, clippy ✓, dispatcher tests 22/22 ✓.
-6. NEXT: Wave 13 — dispatch STORY-032 (dependency STORY-031 now done).
+5. develop HEAD: 0d9b16d. Toolchain: fmt ✓, clippy ✓, dispatcher tests 27/27 ✓.
+6. NEXT: Wave 14 — dispatch STORY-033 (dependencies STORY-031 + STORY-032 both done; status: pending).
    Inject DF-SIBLING-SWEEP-001 v3 + DF-ADVERSARY-METHODOLOGY-001 at all remediation and adversary dispatches.
 
 ## Wave Retrospectives
@@ -255,6 +261,25 @@ Full retrospective detail: `.factory/cycles/phase-3-tdd/lessons.md` (W11 lessons
 
 Full retrospective detail: `.factory/cycles/phase-3-tdd/lessons.md` (W12 lessons)
 
+### Wave 13 Retrospective (closed 2026-05-27)
+
+- Stories: STORY-032 (cache eviction on flow close + retry budget enforcement + unclassified flow handling formalization)
+- PRs: #136 STORY-032 → 0d9b16d (implementer-as-PR-executor; 6th consecutive wave validated)
+- Adversarial passes: 5 total (P1: MEDIUM 8F, P2: MEDIUM 8F, P3: NITPICK 1 obs, P4: CLEAN, P5: CLEAN); passes 3-4-5 CLEAN per BC-5.39.001
+- Convergence gate: BC-5.39.001 ACHIEVED at pass 5 (3 consecutive passes at NITPICK or CLEAN); 44% fewer passes than Wave 12 (5 vs 9)
+- Implementation scope: tests/dispatcher_tests.rs only (+444/-0 lines, 5 new BC-prefixed tests; 27 total); ZERO src/ changes, ZERO production behavior changes
+- Indirect observability: all tests used public API proxies only (parse_error_count, unclassified_flows, method_counts, max_classification_attempts) — no `_for_testing` seams added
+- Pass-2 catch-up validated DF-SIBLING-SWEEP-001 v3 single-burst-all-BCs: 8 Pass-1 findings (BC-005/006 missing test anchors, stale 136-148 citations, FSR row missed 5th test, AC-010 missing for EC-008) were largely propagation gaps caught in one burst; P3 then produced ONLY 3 LOW observations (zero MEDIUM)
+- DF-ADVERSARY-METHODOLOGY-001 perfect run for 2nd consecutive wave: 0 methodology bugs across 5 passes
+- Implementer-as-PR-executor: 6th consecutive wave validated (PRs #131-#136)
+- 0 new process-gap codifications (4 lessons recorded: W13.L1-L4)
+- Active drift: W13-D1 (test ordering comment, LOW, deferred); all require DF-VALIDATION-001 research-agent validation before issue filing
+- Demo evidence: 8 VHS demos, 1.1 MB, local-only at .factory/cycles/v0.1.0-greenfield-spec/wave-13/story-032/demos/ (gitignored)
+
+**W11→W12→W13 trajectory:** 11 → 9 → 5 passes (44% reduction from W12; sustained downward trend).
+
+Full retrospective detail: `.factory/cycles/phase-3-tdd/lessons.md` (W13 lessons)
+
 ## Decisions Log
 
 | ID | Decision | Date | Rationale |
@@ -303,6 +328,7 @@ None open.
 | W11-D7 | AC-007 vs AC-007b — test name `test_BC_2_04_024_engine_cap_at_exactly_10000` covers AC-007 as sub-assertion of AC-007b's test (18 functions for 19 ACs). | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
 | W12-D1 | Wave-12 pass-8 LOW observations: stale "5-byte" prose at 5 sites + "short data" message stale — cosmetic, not blocking. Deferred to next dispatcher touch. | cosmetic | next-dispatcher-touch | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
 | W12-D2 | BC-2.05.001/003 EC tables without inline citations — sibling-asymmetry vs BC-2.05.002 EC table style (F-W12P8-003, F-W12P8-004). Pending intent verification. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
+| W13-D1 | [process-gap, LOW, deferred] tests/dispatcher_tests.rs lacks top-level ordering convention comment. After Pass-2's reorder of test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified to group it with BC-005 sibling, future contributors have no documented norm for placing new BC-prefixed tests. Source: F-W13P3-OBS-002. | process-gap | maintenance-sweep or W15+ | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
 
 ## Cycle-Close Follow-Up Items
 
