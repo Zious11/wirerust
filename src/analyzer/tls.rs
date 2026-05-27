@@ -812,6 +812,39 @@ impl StreamAnalyzer for TlsAnalyzer {
     }
 }
 
+// ---- Test-only seams (STORY-021 adversarial-pass-2 remediation / F-W11P2-001) ----
+//
+// These seams expose `TlsAnalyzer`-internal state to integration tests so they
+// can verify that `TlsAnalyzer` does NOT apply the engine-local `MAX_FINDINGS`
+// cap (BC-2.04.024 invariant 4). All follow the `#[doc(hidden)] pub fn` append
+// pattern established in `src/reassembly/mod.rs`. MUST NOT be called from
+// production code.
+impl TlsAnalyzer {
+    /// Test-only accessor for the count of accumulated findings.
+    ///
+    /// Exposes `self.all_findings.len()` so integration tests can verify
+    /// that `TlsAnalyzer` does NOT apply the `MAX_FINDINGS` cap used by
+    /// `TcpReassembler` (BC-2.04.024 invariant 4 / AC-007b — analyzer non-cap).
+    /// The analyzer pushes to `all_findings` unconditionally — there is no local cap.
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn all_findings_len_for_testing(&self) -> usize {
+        self.all_findings.len()
+    }
+
+    /// Test-only direct push of a [`Finding`] into the analyzer's findings vec.
+    ///
+    /// Bypasses the normal analyzer detection logic so tests can pre-fill
+    /// `all_findings` to arbitrary lengths (e.g. > 10,000) to verify that
+    /// `TlsAnalyzer` has NO local cap analogous to `TcpReassembler::MAX_FINDINGS`
+    /// (BC-2.04.024 invariant 4 / AC-007b — analyzer non-cap companion test).
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn push_finding_for_testing(&mut self, finding: Finding) {
+        self.all_findings.push(finding);
+    }
+}
+
 // ── JA3 / JA3S property tests (LESSON-P2.04) ─────────────────────────────────
 //
 // Inline `#[cfg(test)]` module so the property tests can reach the private

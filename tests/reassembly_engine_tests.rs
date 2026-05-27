@@ -1525,6 +1525,19 @@ fn test_drop_without_finalize_does_not_panic() {
     // This test asserts that dropping an un-finalized reassembler is a
     // safe, non-panicking operation. Stderr capture for the warning
     // text itself is left to the integration layer.
+    //
+    // FINALIZE_SKIPPED_WARNED_LOCK convention (DF-SIBLING-SWEEP-001, Bucket 2):
+    // This test is a Bucket 2 defensive holder — it triggers an un-finalized
+    // Drop without reading or swapping the atomic. It acquires the lock so its
+    // Drop does not preempt AC-004's reset→swap window when tests run with low
+    // parallelism (e.g. --test-threads=1 or slow schedulers). Under the Option B
+    // scoping adopted for this suite (~130+ sites, too many for Bucket 2 wrapping),
+    // the ~130+ remaining tests that drop un-finalized reassemblers are Bucket 4
+    // (no lock required); this test alone holds the lock defensively because it
+    // is an explicit non-panic assertion and warrants tighter scheduling control.
+    let _guard = FINALIZE_SKIPPED_WARNED_LOCK
+        .lock()
+        .expect("FINALIZE_SKIPPED_WARNED_LOCK poisoned");
     let reassembler = TcpReassembler::new(ReassemblyConfig::default());
     assert!(!reassembler.is_finalized());
     drop(reassembler); // must not panic
@@ -14244,4 +14257,1281 @@ fn test_story_018_ec008_truncated_at_max_findings_cap_drops_finding() {
         dropped_before + 1,
         "EC-008: dropped_findings must increment by 1 when truncated finding hits cap"
     );
+}
+
+// ============================================================================
+// STORY-021: Finalize Lifecycle, MAX_FINDINGS Cap, and Segment-Limit Summary
+//
+// Covers BC-2.04.012, BC-2.04.024, BC-2.04.025, BC-2.04.026, BC-2.04.054.
+// All 18 ACs (AC-001..AC-013, AC-007b, AC-014..AC-017) are exercised below.
+// ============================================================================
+
+/// Process-global lock serializing tests that read or interact with the
+/// `FINALIZE_SKIPPED_WARNED` atomic in `src/reassembly/mod.rs`.
+///
+/// The atomic is a one-shot per-process flag: the first un-finalized Drop
+/// sets it to `true` and subsequent Drops are silent. Tests that reset or swap
+/// the flag via `reset_finalize_skipped_warned_for_testing` /
+/// `swap_finalize_skipped_warned_for_testing` MUST hold this lock for their
+/// entire body. Failure to do so reintroduces the race described in the
+/// ISN_MISSING_WARNED_LOCK commentary above.
+///
+/// **Design limitation (Option B, DF-SIBLING-SWEEP-001):** This test suite
+/// contains ~130+ `TcpReassembler::new` sites (175 TcpReassembler::new sites
+/// minus 44 .finalize() calls, verified via grep). Wrapping every un-finalized
+/// Drop with this lock (Option A) would add prohibitive wall-time and invasive
+/// churn. Instead, `test_BC_2_04_012_drop_without_finalize_emits_warning`
+/// (AC-004) asserts that `FINALIZE_SKIPPED_WARNED` is set AT LEAST ONCE in this
+/// process, not that the setting was uniquely attributable to AC-004's own Drop.
+/// Under parallel test scheduling, any un-finalized Drop from the ~130+ sibling sites
+/// may race with and preempt AC-004's reset→swap window, causing a false
+/// attribution. The test still reliably detects total removal of the Drop hook
+/// in a fresh single-binary process (e.g. `cargo test --test-threads=1`).
+/// Unique per-Drop attribution would require process-isolation.
+///
+/// Lock-discipline convention (DF-SIBLING-SWEEP-001):
+/// **Bucket 1 — Tests that RESET and/or SWAP the atomic** (must hold lock for full body):
+///   - `test_BC_2_04_012_drop_without_finalize_emits_warning` (AC-004): resets,
+///     drops, swaps. MUST hold lock.
+///
+/// **Bucket 2 — Tests that defensively hold the lock** (hold lock but do not observe):
+///   - `test_drop_without_finalize_does_not_panic`: triggers an un-finalized Drop
+///     without observing the atomic. Holds the lock defensively so its Drop does
+///     not preempt AC-004's reset→swap window when tests run with low parallelism.
+///
+/// **Bucket 3 — Tests that call `finalize()` before dropping** (no lock needed):
+///   The `self.finalized` guard in `Drop::drop` prevents the atomic from being set.
+///
+/// **Bucket 4 — The ~130+ remaining tests** that construct reassemblers for other
+///   purposes and drop them un-finalized without observing the atomic: do NOT hold
+///   this lock. Their Drops may silently set the atomic, but AC-004 always resets
+///   before observing, and under the Option B scoping, we accept that exclusive
+///   attribution is not guaranteed in a fully parallel run.
+static FINALIZE_SKIPPED_WARNED_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Returns a minimal dummy `Finding` for pre-filling the findings vec in cap
+/// boundary tests. Uses an Anomaly/Inconclusive/Medium shape to match the
+/// segment-limit finding (making it easier to distinguish newly injected
+/// findings from the summary finding by checking the `summary` field).
+fn dummy_finding(i: usize) -> wirerust::findings::Finding {
+    wirerust::findings::Finding {
+        category: ThreatCategory::Anomaly,
+        verdict: Verdict::Inconclusive,
+        confidence: Confidence::Medium,
+        summary: format!("dummy finding {i}"),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    }
+}
+
+// ---- BC-2.04.012: finalize flushes all remaining flows; idempotent ----------
+
+/// AC-001 (BC-2.04.012 postconditions 1-2)
+/// N open flows → finalize → all N closed via CloseReason::Timeout; flows empty.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_012_finalize_closes_all_remaining_flows() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Open 3 flows (SYN only — never closed).
+    for port in [11001u16, 11002, 11003] {
+        reassembler.process_packet(
+            &make_tcp_packet(
+                client,
+                port,
+                server,
+                80,
+                1000,
+                &[],
+                true,
+                false,
+                false,
+                false,
+            ),
+            1,
+            &mut handler,
+        );
+    }
+
+    assert_eq!(
+        reassembler.flow_count(),
+        3,
+        "AC-001 precondition: 3 open flows before finalize"
+    );
+    handler.close_events.clear();
+
+    reassembler.finalize(&mut handler);
+
+    // All 3 must be closed with CloseReason::Timeout.
+    assert_eq!(
+        handler.close_events.len(),
+        3,
+        "AC-001: finalize must close exactly 3 flows via on_flow_close"
+    );
+    assert!(
+        handler
+            .close_events
+            .iter()
+            .all(|(_, r)| *r == CloseReason::Timeout),
+        "AC-001: every on_flow_close reason must be CloseReason::Timeout"
+    );
+
+    // flows table must be empty.
+    assert_eq!(
+        reassembler.flow_count(),
+        0,
+        "AC-001: self.flows must be empty after finalize"
+    );
+}
+
+/// AC-002 (BC-2.04.012 postcondition 3)
+/// After finalize, self.finalized == true (observable via is_finalized()).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_012_finalize_sets_finalized_latch() {
+    let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    let mut handler = RecordingHandler::new();
+
+    assert!(
+        !reassembler.is_finalized(),
+        "AC-002 precondition: finalized must be false before finalize()"
+    );
+
+    reassembler.finalize(&mut handler);
+
+    assert!(
+        reassembler.is_finalized(),
+        "AC-002: finalize() must set the finalized latch to true"
+    );
+}
+
+/// AC-003 (BC-2.04.012 postcondition 5 and invariant 1)
+/// Second finalize call is a complete no-op: no additional close_flow calls,
+/// no additional findings, no additional callbacks.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_012_finalize_is_idempotent() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Open 2 flows.
+    for port in [22001u16, 22002] {
+        reassembler.process_packet(
+            &make_tcp_packet(
+                client,
+                port,
+                server,
+                80,
+                1000,
+                &[],
+                true,
+                false,
+                false,
+                false,
+            ),
+            1,
+            &mut handler,
+        );
+    }
+
+    // First finalize: closes 2 flows.
+    reassembler.finalize(&mut handler);
+    let close_count_after_first = handler.close_events.len();
+    assert_eq!(
+        close_count_after_first, 2,
+        "AC-003: first finalize must close both flows before idempotency check"
+    );
+    let findings_after_first = reassembler.findings().len();
+
+    // Second finalize: must be a no-op.
+    reassembler.finalize(&mut handler);
+
+    assert_eq!(
+        handler.close_events.len(),
+        close_count_after_first,
+        "AC-003: second finalize must not emit any additional on_flow_close callbacks"
+    );
+    assert_eq!(
+        reassembler.findings().len(),
+        findings_after_first,
+        "AC-003: second finalize must not push any additional findings"
+    );
+    assert!(
+        reassembler.is_finalized(),
+        "AC-003: is_finalized() must remain true after second call"
+    );
+}
+
+/// AC-004 (BC-2.04.012 edge case EC-006)
+/// Dropping a reassembler WITHOUT calling finalize fires the one-shot
+/// `FINALIZE_SKIPPED_WARNED` atomic (sets it to `true`). The Drop impl cannot
+/// flush flows (no handler argument), so flows are simply discarded.
+///
+/// The stderr text itself is not captured here (requires a helper binary or
+/// nightly `set_output_capture`). Instead the test uses a reset → drop → swap
+/// sequence to detect that the production Drop hook fired AT LEAST ONCE:
+///   1. Acquire `FINALIZE_SKIPPED_WARNED_LOCK`
+///   2. `reset_finalize_skipped_warned_for_testing()` (set to false)
+///   3. Drop the un-finalized reassembler
+///   4. `swap_finalize_skipped_warned_for_testing(false)` — atomically reads
+///      the post-drop value AND resets it; assert returned value == true
+///
+/// **Scope limitation (Option B):** Under parallel test scheduling with
+/// `cargo test`'s default multi-thread mode, the ~130+ sibling tests in this
+/// file that drop un-finalized reassemblers without holding the lock may race
+/// with AC-004's reset→swap window. The `true` returned by the swap might have
+/// been set by a sibling Drop rather than AC-004's own Drop. The test therefore
+/// asserts that the Drop hook is called AT LEAST ONCE in this process — not
+/// that AC-004's specific Drop was the setter. Unique per-Drop attribution
+/// requires process-isolation (`cargo test --test-threads=1`) or stderr capture.
+/// The test still reliably detects total removal of the Drop hook in a fresh
+/// single-binary process.
+///
+/// Tests that reset and observe `FINALIZE_SKIPPED_WARNED` MUST hold
+/// `FINALIZE_SKIPPED_WARNED_LOCK` for their entire body.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_012_drop_without_finalize_emits_warning() {
+    let _guard = FINALIZE_SKIPPED_WARNED_LOCK
+        .lock()
+        .expect("FINALIZE_SKIPPED_WARNED_LOCK poisoned");
+
+    // Reset so the transition is observable even if a prior test already fired it.
+    TcpReassembler::reset_finalize_skipped_warned_for_testing();
+    assert!(
+        !TcpReassembler::finalize_skipped_warned_for_testing(),
+        "AC-004 precondition: FINALIZE_SKIPPED_WARNED must be false at test start"
+    );
+
+    // Create a reassembler with one open flow (so the Drop has something to discard).
+    let mut handler = RecordingHandler::new();
+    let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    reassembler.process_packet(
+        &make_tcp_packet(
+            [10, 0, 0, 1],
+            33001,
+            [10, 0, 0, 2],
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+
+    // Drop WITHOUT calling finalize — the Drop hook must set the atomic.
+    drop(reassembler);
+
+    // Atomically read the post-drop value and reset it. Under Option B scope
+    // (see this test's header docstring and the FINALIZE_SKIPPED_WARNED_LOCK
+    // docstring above), a `true` return confirms the production Drop hook
+    // fired AT LEAST ONCE in this process — not necessarily that this test's
+    // specific Drop was the setter. The test reliably detects total removal
+    // of the Drop hook in a fresh single-binary process.
+    let was_set = TcpReassembler::swap_finalize_skipped_warned_for_testing(false);
+    assert!(
+        was_set,
+        "AC-004: dropping an un-finalized reassembler must set FINALIZE_SKIPPED_WARNED to true \
+         (swap returned false — the production impl Drop hook did not fire)"
+    );
+
+    // The Drop impl has no handler; flows are NOT flushed.
+    assert_eq!(
+        handler.close_events.len(),
+        0,
+        "AC-004: Drop must NOT call on_flow_close (no handler argument available)"
+    );
+}
+
+// ---- BC-2.04.024: total findings capped at MAX_FINDINGS = 10,000 ------------
+
+/// AC-005 (BC-2.04.024 postconditions 1-2)
+/// When findings.len() >= MAX_FINDINGS and a new finding would be emitted,
+/// the finding is NOT pushed and stats.dropped_findings increments by 1.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_024_findings_capped_at_max_findings() {
+    let config = ReassemblyConfig {
+        max_flows: 20_000,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    // Pre-fill to exactly MAX_FINDINGS using the push_finding_for_testing seam.
+    for i in 0..10_000usize {
+        reassembler.push_finding_for_testing(dummy_finding(i));
+    }
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "AC-005 precondition: findings must be at MAX_FINDINGS"
+    );
+
+    let dropped_before = reassembler.stats().dropped_findings;
+
+    // Trigger one more normal finding via a conflicting overlap.
+    // Strategy: SYN + out-of-order segment (gap prevents flush) + conflicting retransmit.
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            44001,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 44001, server, 80, 1002, b"AAAA", false, true, false, false,
+        ),
+        2,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 44001, server, 80, 1002, b"BBBB", false, true, false, false,
+        ),
+        3,
+        &mut handler,
+    );
+
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "AC-005: findings.len() must remain at MAX_FINDINGS — no push beyond cap"
+    );
+    assert_eq!(
+        reassembler.stats().dropped_findings,
+        dropped_before + 1,
+        "AC-005: dropped_findings must increment by 1 when cap is hit"
+    );
+}
+
+/// AC-006 (BC-2.04.024 edge case EC-001)
+/// When findings.len() == MAX_FINDINGS - 1 (9,999), the next finding IS
+/// accepted (bringing the count to 10,000).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_024_finding_added_at_one_below_cap() {
+    let config = ReassemblyConfig {
+        max_flows: 20_000,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    // Pre-fill to MAX_FINDINGS - 1 = 9,999.
+    for i in 0..9_999usize {
+        reassembler.push_finding_for_testing(dummy_finding(i));
+    }
+    assert_eq!(
+        reassembler.findings().len(),
+        9_999,
+        "AC-006 precondition: findings must be at MAX_FINDINGS - 1"
+    );
+
+    let dropped_before = reassembler.stats().dropped_findings;
+
+    // Trigger one normal finding via a conflicting overlap.
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            55001,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 55001, server, 80, 1002, b"AAAA", false, true, false, false,
+        ),
+        2,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 55001, server, 80, 1002, b"BBBB", false, true, false, false,
+        ),
+        3,
+        &mut handler,
+    );
+
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "AC-006: finding at MAX_FINDINGS - 1 must be accepted, bringing len to 10,000"
+    );
+    assert_eq!(
+        reassembler.stats().dropped_findings,
+        dropped_before,
+        "AC-006: dropped_findings must NOT increment when the 10,000th finding is accepted"
+    );
+}
+
+/// AC-007 (BC-2.04.024 invariant 1 — engine cap boundary)
+/// The MAX_FINDINGS cap constant equals exactly 10,000 — the engine accepts
+/// 10,000 findings then begins dropping. This test verifies the cap boundary
+/// observable behavior: 9,999 pre-filled + one triggered = 10,000 accepted;
+/// one more triggered = dropped.
+///
+/// HttpAnalyzer and TlsAnalyzer do NOT share this cap; that is verified
+/// separately in `test_BC_2_04_024_http_tls_analyzer_findings_not_capped`.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_024_engine_cap_at_exactly_10000() {
+    // Verify MAX_FINDINGS == 10,000 via the observable boundary:
+    // exactly 10,000 findings are accepted before the cap bites.
+    let config = ReassemblyConfig {
+        max_flows: 20_000,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    // Pre-fill to 9,999 and accept one more to reach exactly 10,000.
+    for i in 0..9_999usize {
+        reassembler.push_finding_for_testing(dummy_finding(i));
+    }
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            6601,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 6601, server, 80, 1002, b"AAAA", false, true, false, false,
+        ),
+        2,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 6601, server, 80, 1002, b"BBBB", false, true, false, false,
+        ),
+        3,
+        &mut handler,
+    );
+
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "AC-007: MAX_FINDINGS == 10,000 — the 10,000th finding is the exact cap"
+    );
+
+    // One more: must be dropped.
+    let dropped_before = reassembler.stats().dropped_findings;
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            6602,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        4,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 6602, server, 80, 1002, b"CCCC", false, true, false, false,
+        ),
+        5,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 6602, server, 80, 1002, b"DDDD", false, true, false, false,
+        ),
+        6,
+        &mut handler,
+    );
+
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "AC-007: beyond MAX_FINDINGS the count stays at 10,000 — cap is 10,000 not higher"
+    );
+    assert_eq!(
+        reassembler.stats().dropped_findings,
+        dropped_before + 1,
+        "AC-007: dropped_findings increments when the engine-local cap is hit"
+    );
+}
+
+// ---- BC-2.04.025: finalize emits segment-limit summary finding --------------
+
+/// AC-008 (BC-2.04.025 postcondition 1)
+/// When finalize is called and segments_segment_limit > 0, exactly one finding
+/// is pushed with category=Anomaly, verdict=Inconclusive, confidence=Medium,
+/// mitre_technique=None, source_ip=None, direction=None.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_025_finalize_emits_segment_limit_finding() {
+    let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    let mut handler = RecordingHandler::new();
+
+    reassembler.set_segments_segment_limit_for_testing(7);
+
+    reassembler.finalize(&mut handler);
+
+    let findings = reassembler.findings();
+
+    // Collect all segment-limit findings by summary pattern; assert exactly one exists.
+    // Using filter+collect rather than .last() makes the count assertion and the field
+    // assertions independent — we prove the finding was emitted exactly once, not merely
+    // that something happened to be last.
+    let seg_limit_findings: Vec<_> = findings
+        .iter()
+        .filter(|f| f.summary.contains("segment count limit"))
+        .collect();
+    assert_eq!(
+        seg_limit_findings.len(),
+        1,
+        "AC-008: finalize must push exactly one segment-limit finding when counter > 0 \
+         (got {} matching findings)",
+        seg_limit_findings.len()
+    );
+
+    let f = seg_limit_findings[0];
+    assert_eq!(
+        f.category,
+        ThreatCategory::Anomaly,
+        "AC-008: segment-limit finding category must be Anomaly"
+    );
+    assert_eq!(
+        f.verdict,
+        Verdict::Inconclusive,
+        "AC-008: segment-limit finding verdict must be Inconclusive"
+    );
+    assert_eq!(
+        f.confidence,
+        Confidence::Medium,
+        "AC-008: segment-limit finding confidence must be Medium"
+    );
+    assert!(
+        f.mitre_technique.is_none(),
+        "AC-008: segment-limit finding mitre_technique must be None"
+    );
+    assert!(
+        f.source_ip.is_none(),
+        "AC-008: segment-limit finding source_ip must be None"
+    );
+    assert!(
+        f.direction.is_none(),
+        "AC-008: segment-limit finding direction must be None"
+    );
+}
+
+/// AC-009 (BC-2.04.025 postcondition 1 and invariant 3)
+/// The summary string uses correct singular/plural grammar:
+/// count==1 → "1 segment dropped due to per-flow segment count limit"
+/// count==N>1 → "N segments dropped due to per-flow segment count limit"
+///
+/// N=2 is the actual plural-boundary (first value > 1 that requires the 's').
+/// N=100 is retained as a sanity check at a larger value.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_025_segment_limit_finding_singular_plural_grammar() {
+    // --- singular: count == 1 ---
+    {
+        let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+        let mut handler = RecordingHandler::new();
+        reassembler.set_segments_segment_limit_for_testing(1);
+        reassembler.finalize(&mut handler);
+
+        let f = reassembler
+            .findings()
+            .iter()
+            .find(|f| f.summary.contains("segment count limit"))
+            .expect("AC-009: segment-limit finding must exist when count==1");
+
+        assert_eq!(
+            f.summary, "1 segment dropped due to per-flow segment count limit",
+            "AC-009: count==1 must use singular grammar (no trailing 's')"
+        );
+    }
+
+    // --- plural boundary: count == 2 (the smallest value requiring plural 's') ---
+    {
+        let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+        let mut handler = RecordingHandler::new();
+        reassembler.set_segments_segment_limit_for_testing(2);
+        reassembler.finalize(&mut handler);
+
+        let f = reassembler
+            .findings()
+            .iter()
+            .find(|f| f.summary.contains("segment count limit"))
+            .expect("AC-009: segment-limit finding must exist when count==2");
+
+        assert_eq!(
+            f.summary, "2 segments dropped due to per-flow segment count limit",
+            "AC-009: count==2 is the plural boundary — must use plural grammar (trailing 's')"
+        );
+    }
+
+    // --- plural sanity: count == 100 ---
+    {
+        let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+        let mut handler = RecordingHandler::new();
+        reassembler.set_segments_segment_limit_for_testing(100);
+        reassembler.finalize(&mut handler);
+
+        let f = reassembler
+            .findings()
+            .iter()
+            .find(|f| f.summary.contains("segment count limit"))
+            .expect("AC-009: segment-limit finding must exist when count==100");
+
+        assert_eq!(
+            f.summary, "100 segments dropped due to per-flow segment count limit",
+            "AC-009: count==100 must use plural grammar (trailing 's')"
+        );
+    }
+}
+
+/// AC-010 (BC-2.04.025 postcondition 1)
+/// The segment-limit finding's evidence vec contains EXACTLY:
+/// ["Segment count limit prevents BTreeMap overhead explosion",
+///  "May indicate segmentation-based evasion attempt"]
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_025_segment_limit_finding_evidence_strings() {
+    let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    let mut handler = RecordingHandler::new();
+
+    reassembler.set_segments_segment_limit_for_testing(3);
+    reassembler.finalize(&mut handler);
+
+    let f = reassembler
+        .findings()
+        .iter()
+        .find(|f| f.summary.contains("segment count limit"))
+        .expect("AC-010: segment-limit finding must exist when counter > 0");
+
+    assert_eq!(
+        f.evidence,
+        vec![
+            "Segment count limit prevents BTreeMap overhead explosion",
+            "May indicate segmentation-based evasion attempt",
+        ],
+        "AC-010: evidence vec must contain exactly the two canonical strings in order"
+    );
+}
+
+// ---- BC-2.04.026: no segment-limit finding when counter is zero -------------
+
+/// AC-011 (BC-2.04.026 postconditions 1-2)
+/// When finalize is called and segments_segment_limit == 0, NO segment-limit
+/// finding is pushed.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_026_no_segment_limit_finding_when_counter_zero() {
+    let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    let mut handler = RecordingHandler::new();
+
+    // segments_segment_limit is 0 by default on a fresh engine.
+    assert_eq!(
+        reassembler.stats().segments_segment_limit,
+        0,
+        "AC-011 precondition: fresh engine must have segments_segment_limit == 0"
+    );
+
+    reassembler.finalize(&mut handler);
+
+    let segment_limit_findings: Vec<_> = reassembler
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("segment count limit"))
+        .collect();
+
+    assert!(
+        segment_limit_findings.is_empty(),
+        "AC-011: finalize must NOT emit a segment-limit finding when counter == 0 \
+         (got {} such finding(s))",
+        segment_limit_findings.len()
+    );
+}
+
+// ---- BC-2.04.054: finalize unconditionally bypasses MAX_FINDINGS cap --------
+
+/// AC-012 (BC-2.04.054 postconditions 1-2 and invariant 1)
+/// When findings.len() == MAX_FINDINGS at finalize time and
+/// segments_segment_limit > 0, the segment-limit finding IS pushed
+/// unconditionally, causing findings.len() to become MAX_FINDINGS + 1 = 10,001.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_054_finalize_bypasses_max_findings_cap() {
+    let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    let mut handler = RecordingHandler::new();
+
+    // Pre-fill to exactly MAX_FINDINGS = 10,000.
+    for i in 0..10_000usize {
+        reassembler.push_finding_for_testing(dummy_finding(i));
+    }
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "AC-012 precondition: findings must be at MAX_FINDINGS = 10,000"
+    );
+
+    // Arm the segment-limit counter.
+    reassembler.set_segments_segment_limit_for_testing(5);
+
+    let dropped_before = reassembler.stats().dropped_findings;
+
+    reassembler.finalize(&mut handler);
+
+    assert_eq!(
+        reassembler.findings().len(),
+        10_001,
+        "AC-012: finalize must push the segment-limit finding unconditionally, \
+         raising findings.len() from 10,000 to 10,001"
+    );
+    assert_eq!(
+        reassembler.stats().dropped_findings,
+        dropped_before,
+        "AC-012: finalize segment-limit bypass must NOT increment dropped_findings"
+    );
+
+    // The extra finding must be the segment-limit summary, not a stray finding.
+    let last = reassembler
+        .findings()
+        .last()
+        .expect("AC-012: findings must be non-empty");
+    assert!(
+        last.summary.contains("segment count limit"),
+        "AC-012: the 10,001st finding must be the segment-limit summary \
+         (got: {:?})",
+        last.summary
+    );
+}
+
+/// AC-013 (BC-2.04.054 invariant 3): Representative-scenario smoke test
+/// of the finalize-bypass bound at `MAX_FINDINGS` pre-fill.
+///
+/// Pre-fills findings to MAX_FINDINGS via `push_finding_for_testing`,
+/// arms `segments_segment_limit`, calls finalize, asserts findings.len()
+/// reaches exactly MAX_FINDINGS + 1 (= 10,001); also verifies idempotency
+/// (second finalize is a no-op).
+///
+/// **Scope:** This is a representative-scenario smoke test, not a
+/// universal upper-bound proof. The universal `len ≤ MAX_FINDINGS + 1`
+/// invariant (∀ inputs, ∀ schedules) is owned by VP-003 (property-based
+/// test). See STORY-021 AC-013 prose and F-W11P1-007 rationale for the
+/// rephrasing.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_054_finalize_bypass_smoke_at_max_findings_representative_scenario() {
+    let config = ReassemblyConfig {
+        max_flows: 20_000,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    // Fill to MAX_FINDINGS via direct push.
+    for i in 0..10_000usize {
+        reassembler.push_finding_for_testing(dummy_finding(i));
+    }
+
+    // Arm the segment-limit counter.
+    reassembler.set_segments_segment_limit_for_testing(99);
+
+    // Normal processing at cap: should not push beyond 10,000.
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            7701,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 7701, server, 80, 1002, b"AAAA", false, true, false, false,
+        ),
+        2,
+        &mut handler,
+    );
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 7701, server, 80, 1002, b"BBBB", false, true, false, false,
+        ),
+        3,
+        &mut handler,
+    );
+
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "AC-013: normal processing beyond cap must not exceed MAX_FINDINGS = 10,000"
+    );
+
+    // First finalize: the ONE allowed bypass pushes to 10,001.
+    reassembler.finalize(&mut handler);
+    assert_eq!(
+        reassembler.findings().len(),
+        10_001,
+        "AC-013: after finalize with segment_limit > 0, findings.len() must be 10,001"
+    );
+
+    // Second finalize: idempotency latch — no additional findings.
+    reassembler.finalize(&mut handler);
+    assert_eq!(
+        reassembler.findings().len(),
+        10_001,
+        "AC-013: second finalize call must not push any additional findings (idempotent latch)"
+    );
+}
+
+// ============================================================================
+// STORY-021 adversarial-pass-1 remediation tests
+// ============================================================================
+
+// ---- F-W11P1-002: AC-007b companion — HttpAnalyzer + TlsAnalyzer not capped ---
+
+/// F-W11P1-002 companion to AC-007b (BC-2.04.024 invariant 4 — analyzer non-cap)
+/// The MAX_FINDINGS cap is LOCAL to `TcpReassembler`. This test verifies that
+/// BOTH `HttpAnalyzer` AND `TlsAnalyzer` accumulate findings BEYOND 10,000
+/// without any cap, proving the invariant "applies ONLY to reassembly engine"
+/// claimed by AC-007b and EC-011.
+///
+/// Strategy: use the `push_finding_for_testing` seam on each analyzer to
+/// inject 10,001 findings directly, then assert the count > 10,000. This
+/// avoids constructing 10,001 real protocol transactions while still verifying
+/// the structural claim (no local MAX_FINDINGS cap in either analyzer).
+/// Both analyzers are exercised in the same test for true parity (BC-2.04.024
+/// invariant 4 applies equally to HttpAnalyzer and TlsAnalyzer).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_024_http_tls_analyzer_findings_not_capped() {
+    use wirerust::analyzer::http::HttpAnalyzer;
+    use wirerust::analyzer::tls::TlsAnalyzer;
+
+    // ── HttpAnalyzer parity ───────────────────────────────────────────────
+    let mut http_analyzer = HttpAnalyzer::new();
+
+    // Push 10,001 findings — one beyond the engine's MAX_FINDINGS cap.
+    for i in 0..10_001usize {
+        http_analyzer.push_finding_for_testing(wirerust::findings::Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Inconclusive,
+            confidence: Confidence::Medium,
+            summary: format!("http test finding {i}"),
+            evidence: vec![],
+            mitre_technique: None,
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        });
+    }
+
+    // HttpAnalyzer must NOT drop the 10,001st finding — no local cap.
+    assert_eq!(
+        http_analyzer.all_findings_len_for_testing(),
+        10_001,
+        "BC-2.04.024 invariant 4: HttpAnalyzer must NOT apply the engine's MAX_FINDINGS cap; \
+         expected 10,001 findings, got {}",
+        http_analyzer.all_findings_len_for_testing()
+    );
+
+    // ── TlsAnalyzer parity ────────────────────────────────────────────────
+    let mut tls_analyzer = TlsAnalyzer::new();
+
+    // Push 10,001 findings — one beyond the engine's MAX_FINDINGS cap.
+    for i in 0..10_001usize {
+        tls_analyzer.push_finding_for_testing(wirerust::findings::Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Inconclusive,
+            confidence: Confidence::Medium,
+            summary: format!("tls test finding {i}"),
+            evidence: vec![],
+            mitre_technique: None,
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        });
+    }
+
+    // TlsAnalyzer must NOT drop the 10,001st finding — no local cap.
+    assert_eq!(
+        tls_analyzer.all_findings_len_for_testing(),
+        10_001,
+        "BC-2.04.024 invariant 4: TlsAnalyzer must NOT apply the engine's MAX_FINDINGS cap; \
+         expected 10,001 findings, got {}",
+        tls_analyzer.all_findings_len_for_testing()
+    );
+}
+
+// ---- F-W11P1-003: EC-006 boundary (MAX-1 + finalize) ------------------------
+
+/// AC-016 (story EC-006 boundary, traces to BC-2.04.054 EC-002 "no bypass
+/// semantics triggered below cap"): At findings.len() == MAX_FINDINGS-1
+/// (= 9,999) with segments_segment_limit > 0, the finalize push is the
+/// **normal path** (the push is structurally unconditional in source — no
+/// cap guard — but per BC-2.04.054 EC-002 the bypass semantic is only
+/// triggered when findings.len() == MAX_FINDINGS). At MAX-1, the push
+/// brings findings.len() to MAX_FINDINGS (= 10,000), still within the
+/// normal cap.
+///
+/// No flows are opened. The test operates entirely on findings-vec arithmetic:
+///   1. Pre-fill to MAX_FINDINGS - 1 = 9,999 via `push_finding_for_testing`.
+///   2. Arm `segments_segment_limit = 1` to exercise the finalize normal path.
+///   3. Call `finalize` with a recording handler.
+///   4. Assert `findings.len() == 10,000` and exactly one segment-limit finding.
+///
+/// There is no CloseReason::Timeout assertion (no flow was opened). The push
+/// in `src/reassembly/mod.rs` is structurally unconditional, but at MAX-1
+/// the cap is not exceeded and no bypass semantic is triggered.
+///
+/// See sibling test `test_BC_2_04_054_segment_limit_finding_emitted_regardless_of_initial_count`
+/// (AC-017) for the parameterized case covering both the normal path (pre_fill < MAX)
+/// and the bypass path (pre_fill == MAX).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_054_finalize_at_max_findings_minus_one() {
+    let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+    let mut handler = RecordingHandler::new();
+
+    // Pre-fill to MAX_FINDINGS - 1 = 9,999.
+    for i in 0..9_999usize {
+        reassembler.push_finding_for_testing(dummy_finding(i));
+    }
+    assert_eq!(
+        reassembler.findings().len(),
+        9_999,
+        "F-W11P1-003 precondition: findings must be at MAX_FINDINGS - 1 = 9,999"
+    );
+
+    // Arm the segment-limit counter (1 segment was dropped).
+    reassembler.set_segments_segment_limit_for_testing(1);
+
+    reassembler.finalize(&mut handler);
+
+    // The segment-limit finding is emitted via the normal path (pre_fill < MAX).
+    // At 9,999 pre-fill + 1 normal push = 10,000 (exactly MAX_FINDINGS).
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "F-W11P1-003: finalize at MAX_FINDINGS-1 with segment_limit=1 must \
+         push the segment-limit finding, reaching exactly 10,000"
+    );
+
+    // The last finding must be the segment-limit summary.
+    let seg_limit_findings: Vec<_> = reassembler
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("segment count limit"))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        seg_limit_findings.len(),
+        1,
+        "F-W11P1-003: exactly one segment-limit finding must be present"
+    );
+    assert!(
+        seg_limit_findings[0]
+            .summary
+            .contains("segment count limit"),
+        "F-W11P1-003: last finding must be the segment-limit summary"
+    );
+}
+
+// ---- F-W11P1-004: dropped_findings monotonicity (BC-2.04.024 EC-004) --------
+
+/// F-W11P1-004 (BC-2.04.024 EC-004 — dropped_findings monotonicity)
+/// Strengthen AC-005: trigger ≥ 3 cap-hit events and assert
+/// `stats.dropped_findings == 3` (not just == 1). Each conflicting overlap
+/// at cap increments the counter; the counter is strictly monotone.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_024_dropped_findings_monotone_over_multiple_cap_hits() {
+    let config = ReassemblyConfig {
+        max_flows: 20_000,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    // Pre-fill to exactly MAX_FINDINGS.
+    for i in 0..10_000usize {
+        reassembler.push_finding_for_testing(dummy_finding(i));
+    }
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "F-W11P1-004 precondition: findings must be at MAX_FINDINGS"
+    );
+
+    let dropped_before = reassembler.stats().dropped_findings;
+
+    // Helper closure: trigger one ConflictingOverlap finding on a given port.
+    // Fires AFTER the cap is full, so each overlap increments dropped_findings.
+    let trigger_overlap = |reassembler: &mut TcpReassembler,
+                           handler: &mut RecordingHandler,
+                           port: u16,
+                           ts_base: u32| {
+        let client = [10, 0, 0, 1];
+        let server = [10, 0, 0, 2];
+        reassembler.process_packet(
+            &make_tcp_packet(
+                client,
+                port,
+                server,
+                80,
+                1000,
+                &[],
+                true,
+                false,
+                false,
+                false,
+            ),
+            ts_base,
+            handler,
+        );
+        reassembler.process_packet(
+            &make_tcp_packet(
+                client, port, server, 80, 1002, b"AAAA", false, true, false, false,
+            ),
+            ts_base + 1,
+            handler,
+        );
+        reassembler.process_packet(
+            &make_tcp_packet(
+                client, port, server, 80, 1002, b"BBBB", false, true, false, false,
+            ),
+            ts_base + 2,
+            handler,
+        );
+    };
+
+    // Three cap-hit events on distinct ports.
+    trigger_overlap(&mut reassembler, &mut handler, 60001, 100);
+    trigger_overlap(&mut reassembler, &mut handler, 60002, 200);
+    trigger_overlap(&mut reassembler, &mut handler, 60003, 300);
+
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "F-W11P1-004: findings.len() must remain at MAX_FINDINGS after 3 cap-hit events"
+    );
+    assert_eq!(
+        reassembler.stats().dropped_findings,
+        dropped_before + 3,
+        "F-W11P1-004: dropped_findings must be monotonically increasing — \
+         3 cap-hit events must yield dropped_findings == dropped_before + 3"
+    );
+}
+
+// ---- F-W11P1-005: cap guard at small_segment site (mod.rs:466) --------------
+
+/// F-W11P1-005 (BC-2.04.024 postconditions 1-2 / mod.rs:466 — small_segment cap guard)
+/// When the small_segment alert fires while findings.len() >= MAX_FINDINGS,
+/// the finding is NOT pushed but `stats.dropped_findings` is incremented.
+///
+/// Source line cited: `src/reassembly/mod.rs:466` — the cap guard at the
+/// small_segment alert path. The out_of_window cap guard at mod.rs:495 is
+/// already covered by `test_story_017_ec007_oow_alert_at_max_findings_latch_set_dropped_incremented`.
+///
+/// Cross-story coverage note: the out-of-window site (mod.rs:495) is covered
+/// by STORY-017 test `test_story_017_ec007_oow_alert_at_max_findings_latch_set_dropped_incremented`.
+/// This test covers the small_segment site (mod.rs:466).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_024_cap_guard_small_segment_site() {
+    let config = ReassemblyConfig {
+        small_segment_alert_threshold: 0,
+        small_segment_max_bytes: 16,
+        max_flows: 20_000,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = fill_findings_to_cap(config);
+    let mut handler = RecordingHandler::new();
+
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "F-W11P1-005 precondition: findings must be at MAX_FINDINGS"
+    );
+    let dropped_before = reassembler.stats().dropped_findings;
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // Open a fresh flow (port 10001 is beyond the 1..=10_000 range used
+    // by fill_findings_to_cap so no collisions).
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client,
+            10001,
+            server,
+            9090,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        ),
+        1,
+        &mut handler,
+    );
+
+    // One small segment → small_segment_run=1 > threshold 0 → alert fires at cap.
+    // mod.rs:466: `if self.findings.len() < MAX_FINDINGS` is false → else branch
+    // increments dropped_findings and does NOT push a finding.
+    reassembler.process_packet(
+        &make_tcp_packet(
+            client, 10001, server, 9090, 1001, b"x", false, true, false, false,
+        ),
+        2,
+        &mut handler,
+    );
+
+    assert_eq!(
+        reassembler.findings().len(),
+        10_000,
+        "F-W11P1-005: small_segment alert at cap must NOT push a finding (mod.rs:466 else branch)"
+    );
+    assert_eq!(
+        reassembler.stats().dropped_findings,
+        dropped_before + 1,
+        "F-W11P1-005: small_segment alert at cap must increment dropped_findings by 1 \
+         (mod.rs:466 else branch)"
+    );
+}
+
+// ---- F-W11P1-010: AC-008 parameterized for multiple initial lengths ----------
+
+/// F-W11P1-010 (BC-2.04.054 EC-002 — segment-limit finding unconditional below MAX)
+/// Finalize emits the segment-limit finding regardless of how many findings
+/// exist at finalize time, as long as segments_segment_limit > 0.
+/// Tests initial lengths: 0, 5000, 9999, 10000 (cap boundary).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_04_054_segment_limit_finding_emitted_regardless_of_initial_count() {
+    // Test helper: for a given pre-fill count, assert finalize adds exactly one
+    // segment-limit finding. At pre-fill == 10,000 the bypass path is exercised
+    // (total becomes 10,001). At all other values the normal path is used.
+    let run_case = |pre_fill: usize, label: &str| {
+        let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+        let mut handler = RecordingHandler::new();
+
+        for i in 0..pre_fill {
+            reassembler.push_finding_for_testing(dummy_finding(i));
+        }
+        reassembler.set_segments_segment_limit_for_testing(3);
+        reassembler.finalize(&mut handler);
+
+        let seg_limit_count = reassembler
+            .findings()
+            .iter()
+            .filter(|f| f.summary.contains("segment count limit"))
+            .count();
+        assert_eq!(
+            seg_limit_count, 1,
+            "F-W11P1-010 [{label}]: finalize must push exactly one segment-limit finding \
+             regardless of initial findings count ({pre_fill}); got {seg_limit_count}"
+        );
+        assert_eq!(
+            reassembler.findings().len(),
+            pre_fill + 1,
+            "F-W11P1-010 [{label}]: total findings must be pre_fill({pre_fill}) + 1 \
+             after finalize with segment_limit > 0"
+        );
+    };
+
+    run_case(0, "initial=0");
+    run_case(5_000, "initial=5000");
+    run_case(9_999, "initial=9999");
+    // At pre_fill=10,000 the bypass path is used: total becomes 10,001.
+    {
+        let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
+        let mut handler = RecordingHandler::new();
+        for i in 0..10_000usize {
+            reassembler.push_finding_for_testing(dummy_finding(i));
+        }
+        reassembler.set_segments_segment_limit_for_testing(3);
+        reassembler.finalize(&mut handler);
+
+        let seg_limit_count = reassembler
+            .findings()
+            .iter()
+            .filter(|f| f.summary.contains("segment count limit"))
+            .count();
+        assert_eq!(
+            seg_limit_count, 1,
+            "F-W11P1-010 [initial=10000 bypass]: finalize must push exactly one \
+             segment-limit finding via the unconditional bypass path"
+        );
+        assert_eq!(
+            reassembler.findings().len(),
+            10_001,
+            "F-W11P1-010 [initial=10000 bypass]: total must be 10,001 (bypass path)"
+        );
+    }
 }

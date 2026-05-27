@@ -604,3 +604,36 @@ impl StreamAnalyzer for HttpAnalyzer {
         self.all_findings.clone()
     }
 }
+
+// ---- Test-only seams (STORY-021 adversarial-pass-1 remediation / F-W11P1-002) ----
+//
+// These seams expose `HttpAnalyzer`-internal state to integration tests so they
+// can verify that `HttpAnalyzer` does NOT apply the engine-local `MAX_FINDINGS`
+// cap (BC-2.04.024 invariant 4). All follow the `#[doc(hidden)] pub fn` append
+// pattern established in `src/reassembly/mod.rs`. MUST NOT be called from
+// production code.
+impl HttpAnalyzer {
+    /// Test-only accessor for the count of accumulated findings.
+    ///
+    /// Exposes `self.all_findings.len()` so integration tests can verify
+    /// that `HttpAnalyzer` does NOT apply the `MAX_FINDINGS` cap used by
+    /// `TcpReassembler` (BC-2.04.024 invariant 4 / AC-007b — analyzer non-cap).
+    /// The analyzer pushes to `all_findings` unconditionally — there is no local cap.
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn all_findings_len_for_testing(&self) -> usize {
+        self.all_findings.len()
+    }
+
+    /// Test-only direct push of a [`Finding`] into the analyzer's findings vec.
+    ///
+    /// Bypasses the normal analyzer detection logic so tests can pre-fill
+    /// `all_findings` to arbitrary lengths (e.g. > 10,000) to verify that
+    /// `HttpAnalyzer` has NO local cap analogous to `TcpReassembler::MAX_FINDINGS`
+    /// (BC-2.04.024 invariant 4 / AC-007b — analyzer non-cap companion test).
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn push_finding_for_testing(&mut self, finding: Finding) {
+        self.all_findings.push(finding);
+    }
+}
