@@ -703,3 +703,447 @@ fn test_http_content_on_port_443_routes_to_http() {
         "AC-009: HTTP GET on port 443 must be classified as Http by content, not Tls by port"
     );
 }
+
+// ---- STORY-032: classification caching + DispatchTarget::None retry budget ----
+
+/// STORY-032 AC-004 + AC-005 (BC-2.05.005 postconditions 1-4, invariant 1):
+/// After a flow is classified as Http on its first chunk, the cached target is used for
+/// all subsequent chunks — even if those chunks start with TLS bytes. The cache is
+/// immutable: a cached Http flow is never reclassified as Tls.
+///
+/// Observability strategy (indirect): after the first GET chunk, HttpAnalyzer has
+/// method_counts["GET"]==1 and TlsAnalyzer has parse_error_count==0. On the second
+/// chunk (TLS bytes for the same FlowKey), if the cache is used, the data is forwarded
+/// to HttpAnalyzer (not TlsAnalyzer) — HttpAnalyzer sees malformed bytes and increments
+/// parse_error_count; TlsAnalyzer remains silent. If cache were NOT used, classify would
+/// re-run on TLS bytes, return Tls, and TlsAnalyzer would receive the data instead.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_05_005_classification_cached_after_first_match() {
+    // AC-004: cache-HIT path is independently verified (BC-2.05.005 R4 finding).
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    // Port 9999: no port fallback, so routing is content-only.
+    let fk = flow_key(49152, 9999);
+
+    // First chunk: valid HTTP GET — classify returns Http; cached in routes[fk].
+    let http_bytes = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    dispatcher.on_data(&fk, Direction::ClientToServer, http_bytes, 0);
+    let http = dispatcher.http.as_ref().unwrap();
+    assert_eq!(
+        *http.method_counts().get("GET").unwrap_or(&0),
+        1,
+        "AC-004: first GET chunk must be routed to HttpAnalyzer and recorded"
+    );
+    assert_eq!(
+        dispatcher.tls.as_ref().unwrap().parse_error_count(),
+        0,
+        "AC-004: TlsAnalyzer must not receive first chunk (classified as Http)"
+    );
+
+    // Second chunk: same FlowKey, TLS bytes — if cache is used, HttpAnalyzer receives
+    // this data (not TlsAnalyzer). TLS bytes sent to HttpAnalyzer fail parsing →
+    // parse_error_count > 0 on HttpAnalyzer, parse_error_count == 0 on TlsAnalyzer.
+    // AC-005 (EC-005): immutable cache — Http flow stays Http even with TLS content.
+    let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0);
+
+    assert_eq!(
+        dispatcher.tls.as_ref().unwrap().parse_error_count(),
+        0,
+        "AC-005: cached Http flow must NOT route TLS bytes to TlsAnalyzer (immutable cache)"
+    );
+    assert!(
+        dispatcher.http.as_ref().unwrap().parse_error_count() > 0,
+        "AC-004/cache-hit: second chunk (TLS bytes) forwarded to HttpAnalyzer via cache — \
+         HttpAnalyzer attempted to parse them, incrementing parse_error_count"
+    );
+
+    // AC-005: the flow closes as classified (not unclassified).
+    dispatcher.on_flow_close(&fk, CloseReason::Fin);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        0,
+        "AC-005: Http-cached flow must not be counted as unclassified on close"
+    );
+}
+
+/// STORY-032 BC-2.05.005 EC-003 / EC-008 (flow-close cache eviction + re-classification):
+/// When a flow is closed, its cached DispatchTarget is removed from `routes` and its
+/// classification_attempts counter is removed. If the same FlowKey is reused after close,
+/// the dispatcher must re-classify from scratch — there must be no stale None route
+/// preventing classification of a legitimately-typed stream on the reopened flow.
+///
+/// Observability strategy (indirect):
+///   Phase A — confirm None is permanently cached (cap=3, 3 unmatched chunks → routes[K]=None).
+///             Proof: a 4th TLS chunk does NOT reach TlsAnalyzer (TlsAnalyzer counters stay 0).
+///   Phase B — call on_flow_close; this evicts both routes[K] and classification_attempts[K].
+///             Proof of eviction: send TLS bytes on K → classify runs → returns Tls → TlsAnalyzer
+///             receives data → parse_error_count or truncated_record_count increments.
+///             (If the None were NOT evicted, the cached None would short-circuit classify and
+///             TlsAnalyzer would remain silent, contradicting what we observe.)
+///   Phase C — verify Tls is now cached for the reopened flow (cache-hit proof):
+///             Send HTTP GET bytes on K → if cached as Tls, classify does NOT re-run and
+///             HttpAnalyzer receives nothing (method_counts["GET"] == 0).
+///             If the cache were broken and classify re-ran on GET bytes, it would return Http
+///             and HttpAnalyzer would record the GET — so absence of the method is the proof.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified() {
+    let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
+    let unknown_bytes: [u8; 5] = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE];
+
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()))
+        .with_max_classification_attempts(3);
+    let fk = flow_key(49152, 22);
+
+    // Phase A: exhaust retry cap → None permanently cached in routes[fk].
+    for _ in 0..3 {
+        dispatcher.on_data(&fk, Direction::ClientToServer, &unknown_bytes, 0);
+    }
+    // Sanity-check that None is cached: a TLS chunk must not reach TlsAnalyzer.
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0);
+    assert_eq!(
+        dispatcher.tls.as_ref().unwrap().parse_error_count(),
+        0,
+        "EC-008/setup: after cap=3, None is cached; TLS chunk must not reach TlsAnalyzer"
+    );
+    assert_eq!(
+        dispatcher.tls.as_ref().unwrap().truncated_record_count(),
+        0,
+        "EC-008/setup: cached None short-circuits; no TLS events expected"
+    );
+
+    // Phase B: close the flow — routes[fk] and classification_attempts[fk] are both removed.
+    dispatcher.on_flow_close(&fk, CloseReason::Fin);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        1,
+        "EC-008/close: permanently-None-cached flow must be counted as unclassified on close"
+    );
+
+    // Proof of cache eviction: same FlowKey, TLS bytes. classify must run (not short-circuit),
+    // return Tls, and route data to TlsAnalyzer — producing at least one parse or truncation
+    // event. If the stale None were still present, TlsAnalyzer would remain silent.
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0);
+    assert!(
+        dispatcher.tls.as_ref().unwrap().parse_error_count() > 0
+            || dispatcher.tls.as_ref().unwrap().truncated_record_count() > 0,
+        "EC-008/reclassify: after close, same FlowKey with TLS bytes must re-run classify; \
+         TlsAnalyzer must receive data (stale None route was evicted, not reused)"
+    );
+
+    // Phase C: verify the reopened flow is now cached as Tls (not re-running classify on
+    // every subsequent chunk). Send HTTP GET bytes — if Tls is cached, classify does NOT
+    // re-run and HttpAnalyzer receives nothing (method_counts["GET"] stays 0).
+    let http_bytes = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    dispatcher.on_data(&fk, Direction::ClientToServer, http_bytes, 0);
+    assert_eq!(
+        dispatcher
+            .http
+            .as_ref()
+            .unwrap()
+            .method_counts()
+            .get("GET")
+            .copied()
+            .unwrap_or(0),
+        0,
+        "EC-008/cache-hit: GET bytes on Tls-cached reopened flow must NOT reach HttpAnalyzer; \
+         if cache were broken, classify would re-run, return Http, and method_counts[GET] > 0"
+    );
+
+    // Close as Tls-classified (not unclassified).
+    dispatcher.on_flow_close(&fk, CloseReason::Fin);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        1,
+        "EC-008/reclose: reopened flow classified as Tls must not increment unclassified_flows \
+         (count stays at 1 from the prior close, not 2)"
+    );
+}
+
+/// STORY-032 AC-003 + AC-006 (BC-2.05.004 invariants 1-2, BC-2.05.006 Phase A postconditions):
+/// Before the retry cap is reached, DispatchTarget::None is NOT cached in `routes`.
+/// Each on_data call re-runs classify, which means a late-arriving valid protocol chunk
+/// can still classify the flow (as long as the cap hasn't been hit yet).
+///
+/// Observability strategy (indirect): with cap=8, send 7 unmatched chunks (SSH-like
+/// bytes on unknown port 22) — None must NOT be permanently cached after chunk 7.
+/// Proof: send an 8th chunk with valid TLS bytes; if None had been cached, classify
+/// would not run and TlsAnalyzer would receive nothing. If None was NOT cached (correct),
+/// classify runs on chunk 8, returns Tls, and TlsAnalyzer receives the data.
+/// Also verifies: unclassified_flows() increments each time classify returns None
+/// indirectly by confirming the flow closes as unclassified only when permanently None.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_05_006_none_not_cached_before_retry_cap() {
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()))
+        .with_max_classification_attempts(8);
+    // Port 22 (SSH): not in {80, 443, 8080, 8443} → port fallback also fails → None.
+    let fk = flow_key(49152, 22);
+
+    // AC-006: 7 unmatched chunks (7 < cap of 8) — None NOT yet cached.
+    let unknown_bytes: [u8; 5] = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE];
+    for _ in 0..7 {
+        dispatcher.on_data(&fk, Direction::ClientToServer, &unknown_bytes, 0);
+    }
+    // Confirm neither analyzer received anything (all discarded as DispatchTarget::None).
+    assert_eq!(
+        dispatcher.http.as_ref().unwrap().parse_error_count(),
+        0,
+        "AC-006: unmatched chunks must not reach HttpAnalyzer"
+    );
+    assert_eq!(
+        dispatcher.tls.as_ref().unwrap().parse_error_count(),
+        0,
+        "AC-006: unmatched chunks must not reach TlsAnalyzer"
+    );
+
+    // Key assertion: after 7 None results (7 < cap=8), None is NOT yet cached.
+    // Proof: an 8th chunk with valid TLS bytes (byte0=0x16, byte1=0x03) must be
+    // classified as Tls and routed to TlsAnalyzer. If None were cached, classify
+    // would not run and TlsAnalyzer would remain silent.
+    let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0);
+
+    assert!(
+        dispatcher.tls.as_ref().unwrap().parse_error_count() > 0
+            || dispatcher.tls.as_ref().unwrap().truncated_record_count() > 0,
+        "AC-003/AC-006: None must NOT be cached after 7 attempts (cap=8); \
+         8th chunk with TLS bytes must re-run classify, route to TlsAnalyzer, \
+         and produce a parse/truncation event"
+    );
+    // Flow closed as classified (Tls), not unclassified.
+    dispatcher.on_flow_close(&fk, CloseReason::Fin);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        0,
+        "AC-006: flow classified as Tls on 8th chunk must not count as unclassified"
+    );
+}
+
+/// STORY-032 AC-002 + AC-007 + AC-008 (BC-2.05.006 Phase B postconditions, invariants 3-4):
+/// When the retry cap is reached, DispatchTarget::None IS permanently cached.
+/// Subsequent on_data calls short-circuit via the cache — classify is NOT called again.
+///
+/// Three sub-cases:
+///   Sub-case 1 (cap=3): AC-002, AC-007, AC-008 primary scenario — 3 unmatched chunks hit
+///     the cap; a 4th TLS chunk is silently dropped via the cached None route.
+///   Sub-case 2 (cap=0): EC-004 — every flow immediately caches None on its first chunk;
+///     a subsequent TLS chunk must not reach TlsAnalyzer.
+///   Sub-case 3 (cap=8 default): EC-002 W12.L1 scenario-match — 8 consecutive None results
+///     using the default cap (no explicit override); 9th TLS chunk must be suppressed.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_05_006_none_cached_permanently_after_retry_cap() {
+    // AC-008: cap is configurable (not hardcoded). Use cap=3 for a fast test.
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()))
+        .with_max_classification_attempts(3);
+    assert_eq!(
+        dispatcher.max_classification_attempts(),
+        3,
+        "AC-008: with_max_classification_attempts(3) must be reflected by the accessor"
+    );
+    let fk = flow_key(49152, 22);
+
+    // AC-007: 3 unmatched chunks → on the 3rd, count reaches cap=3; None cached permanently.
+    let unknown_bytes: [u8; 5] = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE];
+    for _ in 0..3 {
+        dispatcher.on_data(&fk, Direction::ClientToServer, &unknown_bytes, 0);
+    }
+
+    // Chunk 4: valid TLS bytes. If None is permanently cached (correct), classify does
+    // NOT run → TlsAnalyzer receives nothing → both parse_error_count and
+    // truncated_record_count remain 0. If the cache were broken, TlsAnalyzer would fire.
+    let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0);
+
+    assert_eq!(
+        dispatcher.tls.as_ref().unwrap().parse_error_count(),
+        0,
+        "AC-002/AC-007: after cap=3 is hit, None is permanently cached; \
+         4th chunk (TLS bytes) must NOT reach TlsAnalyzer (classify not called)"
+    );
+    assert_eq!(
+        dispatcher.tls.as_ref().unwrap().truncated_record_count(),
+        0,
+        "AC-002/AC-007: 4th chunk must be silently dropped via cached None route (not parsed)"
+    );
+    assert_eq!(
+        dispatcher.http.as_ref().unwrap().parse_error_count(),
+        0,
+        "AC-002/AC-007: 4th chunk must NOT reach HttpAnalyzer either (cached None short-circuits)"
+    );
+
+    // Flow closes as unclassified (permanently-None-cached flows count as unclassified).
+    dispatcher.on_flow_close(&fk, CloseReason::Fin);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        1,
+        "AC-007: permanently-None-cached flow must be counted as unclassified on close"
+    );
+
+    // EC-004: cap=0 → first chunk immediately caches None permanently.
+    // A subsequent TLS chunk must NOT be classified (cache short-circuits on chunk 2).
+    let mut d_zero = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()))
+        .with_max_classification_attempts(0);
+    let fk2 = flow_key(49152, 22);
+    // First chunk: unknown bytes → count would be 1, but 1 >= 0 after saturating, so
+    // the implementation uses `>= max` check; with max=0, count(1) >= 0 → None cached.
+    d_zero.on_data(&fk2, Direction::ClientToServer, &unknown_bytes, 0);
+    // Second chunk: TLS bytes — must not reach TlsAnalyzer (None cached after chunk 1).
+    d_zero.on_data(&fk2, Direction::ClientToServer, &tls_bytes, 0);
+    assert_eq!(
+        d_zero.tls.as_ref().unwrap().parse_error_count(),
+        0,
+        "EC-004: cap=0 caches None on first chunk; second TLS chunk must not reach TlsAnalyzer"
+    );
+    assert_eq!(
+        d_zero.tls.as_ref().unwrap().truncated_record_count(),
+        0,
+        "EC-004: cap=0 cached-None short-circuits classify on all subsequent chunks"
+    );
+
+    // EC-002: default cap=8 sub-case (W12.L1 scenario-match)
+    //
+    // BC-2.05.006 EC-002 + STORY-032 edge-case catalog specify "8 consecutive None results
+    // (default cap=8)". The sub-cases above used cap=3 and cap=0 (fast test). This sub-case
+    // exercises the DEFAULT_MAX_CLASSIFICATION_ATTEMPTS=8 path with no explicit override —
+    // a dispatcher constructed via `StreamDispatcher::new` alone, so the default is in effect.
+    let mut d_default = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    assert_eq!(
+        d_default.max_classification_attempts(),
+        8,
+        "EC-002: default cap must equal DEFAULT_MAX_CLASSIFICATION_ATTEMPTS (8)"
+    );
+    let fk3 = flow_key(49152, 22);
+    let unknown_bytes_default: [u8; 5] = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE];
+    let tls_bytes_default: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
+
+    // Send 8 unmatched chunks — on the 8th, attempt count reaches default cap of 8;
+    // DispatchTarget::None is permanently cached in routes[fk3].
+    for _ in 0..8 {
+        d_default.on_data(&fk3, Direction::ClientToServer, &unknown_bytes_default, 0);
+    }
+
+    // Verify None is now permanently cached: a 9th chunk with valid TLS bytes must NOT
+    // reach TlsAnalyzer (classify is short-circuited by the cached None route).
+    d_default.on_data(&fk3, Direction::ClientToServer, &tls_bytes_default, 0);
+
+    assert_eq!(
+        d_default.tls.as_ref().unwrap().parse_error_count(),
+        0,
+        "EC-002/default-cap=8: after 8 None results, None is permanently cached; \
+         9th chunk (TLS bytes) must not reach TlsAnalyzer (classify not called)"
+    );
+    assert_eq!(
+        d_default.tls.as_ref().unwrap().truncated_record_count(),
+        0,
+        "EC-002/default-cap=8: cached-None short-circuits classify; no TLS records parsed"
+    );
+    assert_eq!(
+        d_default.http.as_ref().unwrap().parse_error_count(),
+        0,
+        "EC-002/default-cap=8: 9th chunk must not reach HttpAnalyzer either (cached None)"
+    );
+
+    // Flow closes as unclassified (permanently-None-cached).
+    d_default.on_flow_close(&fk3, CloseReason::Fin);
+    assert_eq!(
+        d_default.unclassified_flows(),
+        1,
+        "EC-002/default-cap=8: permanently-None-cached flow must be counted as unclassified"
+    );
+}
+
+/// STORY-032 AC-009 + EC-006 + EC-007 (BC-2.05.006 edge cases EC-001, EC-002):
+/// Late classification after N None results (N < cap) succeeds: the (N+1)th chunk
+/// with valid content is classified and cached. Subsequent chunks use the cached target.
+///
+/// Covers EC-006: 3 Nones then 1 TLS chunk (cap=8) → Tls cached on 4th call.
+/// Covers EC-007: 7 Nones then 1 TLS chunk (cap=8) → Tls cached on 8th call
+///                (cap not yet hit when TLS arrives on call 8 because count=7 < 8).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_05_006_late_classification_after_nones() {
+    // --- EC-006: 3 Nones then TLS (cap=8) ---
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()))
+        .with_max_classification_attempts(8);
+    let fk = flow_key(49152, 22);
+
+    let unknown_bytes: [u8; 5] = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE];
+    // 3 unmatched chunks — attempt count reaches 3, still below cap of 8.
+    for _ in 0..3 {
+        dispatcher.on_data(&fk, Direction::ClientToServer, &unknown_bytes, 0);
+    }
+
+    // 4th chunk: TLS bytes — classify returns Tls; routes[fk]=Tls cached; attempts removed.
+    let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0);
+
+    assert!(
+        dispatcher.tls.as_ref().unwrap().parse_error_count() > 0
+            || dispatcher.tls.as_ref().unwrap().truncated_record_count() > 0,
+        "AC-009/EC-006: TLS bytes on 4th call (3 prior Nones, cap=8) must classify as Tls \
+         and route to TlsAnalyzer"
+    );
+    assert_eq!(
+        dispatcher.http.as_ref().unwrap().parse_error_count(),
+        0,
+        "AC-009/EC-006: HttpAnalyzer must not receive the TLS bytes (routed to Tls)"
+    );
+
+    // 5th chunk: verify the CACHED Tls route is used (classify not re-run).
+    // Send valid GET bytes — if the cached Tls route is used, classify does NOT re-run and
+    // HttpAnalyzer never receives the data (method_counts["GET"] stays 0). If the cache were
+    // broken and classify re-ran, it would return Http and HttpAnalyzer would record the GET.
+    let http_bytes = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    dispatcher.on_data(&fk, Direction::ClientToServer, http_bytes, 0);
+
+    // TlsAnalyzer receives the GET bytes via the cached Tls route; the bytes don't match a
+    // TLS record type (byte0=0x47≠0x16) so the TLS parser silently skips them. The definitive
+    // proof of cache-hit is the negative: HttpAnalyzer must NOT have received the data.
+    assert_eq!(
+        dispatcher
+            .http
+            .as_ref()
+            .unwrap()
+            .method_counts()
+            .get("GET")
+            .copied()
+            .unwrap_or(0),
+        0,
+        "AC-009/cache-hit: GET bytes on Tls-cached flow must NOT reach HttpAnalyzer; \
+         if cache were broken, classify would re-run, return Http, and method_counts[GET] > 0"
+    );
+
+    dispatcher.on_flow_close(&fk, CloseReason::Fin);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        0,
+        "AC-009/EC-006: late-classified Tls flow must not count as unclassified"
+    );
+
+    // --- EC-007: 7 Nones then TLS (cap=8) — cap not yet hit when TLS arrives ---
+    let mut d2 = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()))
+        .with_max_classification_attempts(8);
+    let fk2 = flow_key(49153, 22);
+
+    for _ in 0..7 {
+        d2.on_data(&fk2, Direction::ClientToServer, &unknown_bytes, 0);
+    }
+    // 8th chunk: TLS bytes — attempt count was 7 (< cap=8); classify runs; returns Tls.
+    d2.on_data(&fk2, Direction::ClientToServer, &tls_bytes, 0);
+
+    assert!(
+        d2.tls.as_ref().unwrap().parse_error_count() > 0
+            || d2.tls.as_ref().unwrap().truncated_record_count() > 0,
+        "EC-007: TLS bytes on 8th call (7 prior Nones, cap=8) must classify as Tls; \
+         cap is not yet hit when TLS arrives (count=7 < 8 before this call's increment)"
+    );
+    d2.on_flow_close(&fk2, CloseReason::Fin);
+    assert_eq!(
+        d2.unclassified_flows(),
+        0,
+        "EC-007: flow classified as Tls on 8th chunk must not count as unclassified"
+    );
+}
