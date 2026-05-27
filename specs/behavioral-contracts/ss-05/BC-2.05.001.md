@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Pass-2 BC pre-merge re-anchor (per DF-SIBLING-SWEEP-001 v2 codified W11.L1) — updated test name test_dispatcher_routes_tls → test_tls_content_wins_over_port_8080 + test_tls_content_routes_tls_on_port_443 (renamed/split in STORY-031 pass-1); updated classify line range 90-116 → 90-117 to match actual function close. Closes F-W12P2-002, F-W12P2-004. — 2026-05-27
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -89,7 +90,7 @@ an attacker running TLS on port 80 is still identified as TLS, not HTTP.
 | L2 Capability | CAP-05 ("Content-first protocol dispatch") per capabilities.md §CAP-05 |
 | Capability Anchor Justification | CAP-05 ("Content-first protocol dispatch") per capabilities.md §CAP-05 -- TLS content signature routing is the primary dispatch rule per ADR 0001 |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence) |
-| Architecture Module | SS-05 (dispatcher.rs:90-116, C-21) |
+| Architecture Module | SS-05 (dispatcher.rs:90-117, C-21) |
 | Stories | STORY-031 |
 | Origin BC | BC-DSP-001 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -103,7 +104,7 @@ an attacker running TLS on port 80 is still identified as TLS, not HTTP.
 
 - `src/dispatcher.rs:90` -- `fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget`
 - `src/dispatcher.rs:92-94` -- TLS check: `data.len() >= 5 && data[0] == 0x16 && data[1] == 0x03`
-- `tests/dispatcher_tests.rs` -- test_dispatcher_routes_tls, test_dispatcher_content_detection_tls_on_port_80
+- `tests/dispatcher_tests.rs` -- test_tls_content_wins_over_port_8080, test_tls_content_routes_tls_on_port_443, test_dispatcher_content_detection_tls_on_port_80
 
 ## Source Evidence
 

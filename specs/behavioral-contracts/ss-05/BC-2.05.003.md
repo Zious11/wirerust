@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: Pass-2 BC pre-merge re-anchor (per DF-SIBLING-SWEEP-001 v2 codified W11.L1) — updated stale test citation test_dispatcher_port_fallback_short_data (non-existent) → test_port_fallback_443_to_tls, test_port_fallback_8443_to_tls, test_port_fallback_80_to_http, test_port_fallback_8080_to_http (the four tests that cover port fallback in STORY-031). Discovered in sibling sweep. — 2026-05-27
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -81,7 +82,7 @@ FlowKey (INV-1).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-004 | Port fallback fires when content check fails | unit: test_dispatcher_port_fallback_short_data |
+| VP-004 | Port fallback fires when content check fails | unit: test_port_fallback_443_to_tls, test_port_fallback_8443_to_tls, test_port_fallback_80_to_http, test_port_fallback_8080_to_http |
 
 ## Traceability
 
@@ -103,7 +104,7 @@ FlowKey (INV-1).
 ## Architecture Anchors
 
 - `src/dispatcher.rs:108-116` -- port fallback in classify function
-- `tests/dispatcher_tests.rs` -- test_dispatcher_port_fallback_short_data
+- `tests/dispatcher_tests.rs` -- test_port_fallback_443_to_tls, test_port_fallback_8443_to_tls, test_port_fallback_80_to_http, test_port_fallback_8080_to_http
 
 ## Source Evidence
 
@@ -116,7 +117,7 @@ FlowKey (INV-1).
 ## Evidence Types Used
 
 - **guard clause**: port contains check with `[lower_port, upper_port]` slice
-- **assertion**: test_dispatcher_port_fallback_short_data
+- **assertion**: test_port_fallback_443_to_tls, test_port_fallback_8443_to_tls, test_port_fallback_80_to_http, test_port_fallback_8080_to_http
 
 ## Purity Classification
 
