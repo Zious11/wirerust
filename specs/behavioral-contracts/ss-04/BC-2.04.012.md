@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Pass-4 sibling sweep: corrected impl Drop line citation 677-690 → 706-720 (was stale after STORY-021 added test seams shifting impl Drop) — 2026-05-27"
   - "v1.4: Pass-5 sibling sweep: corrected `finalized` latch line citation 560 → 561 (off-by-one, line 560 is the closing brace of the re-entry guard; self.finalized = true is at line 561) — 2026-05-27"
+  - "v1.5: Pass-8 doctrine shift — re-anchored impl Drop citation from develop-current (706-720) to worktree-post-STORY-021 (794-808). Pre-merge re-anchor doctrine: BCs cited in a story's `bcs:` frontmatter are re-anchored to post-merge line numbers as part of the story's convergence cycle, so the BC anchor is correct from PR-review-time onward. (Was pass-4 develop-anchor doctrine; flipped per F-W11P8-001 adversary feedback to prevent stale-anchor windows during PR review.) — 2026-05-27"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -96,7 +97,7 @@ the reassembler is dropped without finalize having been called.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- finalize is the end-of-capture lifecycle contract for the reassembly engine |
 | L2 Domain Invariants | INV-7 (Finalize-Once Latch), INV-6 (MAX_FINDINGS cap; finalize bypass) |
-| Architecture Module | SS-04 (reassembly/mod.rs:557-591, finalize; mod.rs:706-720, impl Drop) |
+| Architecture Module | SS-04 (reassembly/mod.rs:557-591, finalize; mod.rs:794-808, impl Drop) |
 | Stories | STORY-021 |
 | Origin BC | BC-RAS-012 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -109,7 +110,7 @@ the reassembler is dropped without finalize having been called.
 ## Architecture Anchors
 
 - `src/reassembly/mod.rs:557-591` -- finalize: latch, flow loop, segment-limit finding
-- `src/reassembly/mod.rs:706-720` -- impl Drop: tripwire eprintln
+- `src/reassembly/mod.rs:794-808` -- impl Drop: tripwire eprintln
 
 ## Source Evidence
 
