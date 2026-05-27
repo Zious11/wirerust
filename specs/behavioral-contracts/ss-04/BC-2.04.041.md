@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: F-002 remediation — Description corrected to document allowed==0 → DepthExceeded path; DF-SIBLING-SWEEP-001 — 2026-05-26"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -28,11 +29,13 @@ removal_reason: null
 ## Description
 
 When a new segment would cause `reassembled_bytes + buffered_bytes + segment.len()` to
-exceed `max_depth`, the segment is TRUNCATED to the remaining allowed capacity before
-insertion. The truncated portion is inserted and `InsertResult::Truncated` is returned.
-`depth_exceeded` is set to `true`. The engine match arm then emits an `Anomaly/Inconclusive/Low`
-finding (via `generate_truncated_finding`). Subsequent segments to the same direction return
-`DepthExceeded` without truncation.
+exceed `max_depth` **AND the remaining capacity `allowed = max_depth.saturating_sub(reassembled_bytes + buffered_bytes)` is > 0**,
+the segment is TRUNCATED to `allowed` bytes before insertion. The truncated portion is inserted
+and `InsertResult::Truncated` is returned. `depth_exceeded` is set to `true`. The engine match
+arm then emits an `Anomaly/Inconclusive/Low` finding (via `generate_truncated_finding`).
+Subsequent segments to the same direction return `DepthExceeded` without truncation.
+**When `allowed == 0` (the buffer is already at `max_depth`), the segment is fully rejected
+with `InsertResult::DepthExceeded` (see EC-004); no bytes are stored.**
 
 ## Preconditions
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: F-001/F-003/F-005 remediation — Description, PC2, PC3, EC-002, INV-2 corrected for early-guard vs mid-loop path distinction; new EC-003 added; DF-SIBLING-SWEEP-001 — 2026-05-26"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -29,15 +30,17 @@ removal_reason: null
 
 When `self.segments.len() >= max_segments` AND the incoming segment overlaps existing entries
 but all of its byte range is fully covered (no gaps exist), `insert_segment` returns
-`InsertResult::SegmentLimitReached`. The segment-limit check inside the gap-insertion loop
-(at segment.rs:178) fires when gaps are found but cannot be inserted because the map is at
-capacity. When there are no gaps (fully covered), the fully-covered path at segment.rs:201
-returns `SegmentLimitReached` when `segments_exhausted` is set.
+`InsertResult::SegmentLimitReached`. Two code paths reach this result: (a) the **unconditional
+early guard** at `segment.rs:70-72` fires whenever `self.segments.len() >= max_segments` at
+function entry — this gates ALL inserts at capacity, including pure-overlap (fully covered)
+segments that would otherwise return Duplicate/ConflictingOverlap; (b) the **mid-loop guard**
+at `segment.rs:178-180` fires when the map fills during gap insertion (see BC-2.04.046 for
+the partial-insertion variant).
 
 ## Preconditions
 
 1. `self.isn` is `Some(isn)`.
-2. `self.segments.len() >= max_segments` at the time the gap-insertion loop runs.
+2. `self.segments.len() < max_segments` at function entry (so the early guard at segment.rs:70-72 does not fire), AND `self.segments.len() == max_segments` at the time the mid-loop guard at segment.rs:178 fires (after at least one gap was inserted in the same call, or no gaps fit at all).
 3. The new segment has gaps relative to the existing buffer (i.e., it is NOT fully covered).
 4. All gap positions hit the segment-limit guard inside the loop.
 
@@ -46,7 +49,7 @@ returns `SegmentLimitReached` when `segments_exhausted` is set.
 1. Returns `InsertResult::SegmentLimitReached`.
 2. `self.segments` may be unchanged (if no gaps were filled before the limit was hit) or
    partially modified (see BC-2.04.046 for the partial insertion variant).
-3. `self.overlap_count` is incremented by 1 (overlap was detected before the limit check).
+3. `self.overlap_count` is incremented by 1 **only in the mid-loop path** (segment.rs:143 fires before the gap-loop limit guard at segment.rs:178). In the **early-exit path** (segment.rs:70-72 fires before overlap detection), `overlap_count` is NOT incremented; the rejection happens too early to detect the overlap.
 4. `stats.segments_segment_limit` is incremented by the engine.
 
 ## Invariants
@@ -54,15 +57,19 @@ returns `SegmentLimitReached` when `segments_exhausted` is set.
 1. This is distinct from the non-overlapping path (BC-2.04.044): the segment-limit check
    inside the gap loop (segment.rs:178) fires after overlap detection has already incremented
    `overlap_count`.
-2. `overlap_count` is incremented even when the segment is ultimately rejected by the limit,
-   because the overlap was detected before the limit check.
+2. `overlap_count` is incremented when the limit is hit **mid-loop** because overlap was already
+   detected at that point. When the limit fires at the **entry guard** (segment.rs:70-72),
+   overlap detection has not yet run, so `overlap_count` is NOT incremented. Callers cannot
+   use `overlap_count` to infer overlap from a `SegmentLimitReached` result without knowing
+   the entry-vs-mid-loop path.
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
 | EC-001 | Overlap detected, gap found, first gap insertion hits limit | SegmentLimitReached; overlap_count=1 |
-| EC-002 | Segment is fully covered by existing segments (no gaps), map is full | Depends on fully_covered path: Duplicate or ConflictingOverlap (the non-gap path bypasses the limit guard) |
+| EC-002 | Segment is fully covered by existing segments (no gaps), map is full at entry | `SegmentLimitReached` — the early guard at `segment.rs:70-72` fires before overlap detection, so the fully-covered path is not reached. (The Duplicate/ConflictingOverlap results only occur when the map is below capacity at entry.) |
+| EC-003 | Segment overlaps existing segments but map full at entry | `SegmentLimitReached` (early-exit path); `overlap_count` NOT incremented because overlap detection didn't run |
 
 ## Canonical Test Vectors
 

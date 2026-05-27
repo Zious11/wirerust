@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: 2026-05-26 | product-owner | Wave 10 STORY-017 pass-1 F-005 (wrong field range): small_segment_ignore_ports anchor config.rs:62-104 → :90-104 (line 62 is in small_segment_alert_threshold doc-comment; ignore_ports doc-comment starts at 90, declaration at 104)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -109,7 +110,7 @@ counter, not a cumulative count -- a normal-sized segment resets the run to zero
 
 - `src/reassembly/mod.rs:457-488` -- small-segment threshold check and emission
 - `src/reassembly/mod.rs:356-370` -- small_segment_run counter maintenance in insert_payload_segment
-- `src/reassembly/config.rs:62-104` -- small_segment_ignore_ports field
+- `src/reassembly/config.rs:90-104` -- small_segment_ignore_ports field (doc-comment + declaration)
 
 ## Source Evidence
 

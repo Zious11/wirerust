@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: 2026-05-26 | product-owner | Wave 10 STORY-017 pass-1 F-002 (sibling-regression of BC-2.04.022 v1.4 anchor fix): LESSON-P1.01 anchor mod.rs:420-426 → :413-419 (line range previously contained LESSON-P2.05). Sibling sweep across other SS-04 BCs performed."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -113,7 +114,7 @@ separate, per-event mechanism. This threshold alert is a cumulative count-based 
 ## Architecture Anchors
 
 - `src/reassembly/mod.rs:430-449` -- overlap threshold check and finding emission
-- `src/reassembly/mod.rs:420-426` -- LESSON-P1.01 comment explaining latch-before-cap design
+- `src/reassembly/mod.rs:413-419` -- LESSON-P1.01 comment explaining latch-before-cap design
 
 ## Source Evidence
 

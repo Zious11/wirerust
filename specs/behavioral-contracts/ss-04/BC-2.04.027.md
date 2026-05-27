@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: F-004 remediation — Description corrected to document allowed==0 and remaining_depth==0 as first-call DepthExceeded paths; EC-001 narrowed; new EC-005 added; DF-SIBLING-SWEEP-001 — 2026-05-26"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -28,18 +29,20 @@ removal_reason: null
 ## Description
 
 `ReassemblyStats.segments_depth_exceeded: u64` is incremented in the `InsertResult::DepthExceeded`
-match arm within `insert_payload_segment`. This result is returned by `insert_segment` when
-the `depth_exceeded` flag is already set on the direction (meaning a prior Truncated event
-already hit the depth boundary and all subsequent segments for this direction are fully
-rejected). This counter reflects segments that were fully discarded (no bytes stored) due to
-the per-direction depth limit having been reached. It is distinct from `Truncated` events
-(partial insertion).
+match arm within `insert_payload_segment`. This result is returned by `insert_segment` when either (a) the `depth_exceeded` flag is
+already set on the direction (set by a prior Truncated event), OR (b) the first-time inner
+check at `segment.rs:80-86` fires (`remaining_depth == 0`), OR (c) the truncation inner check
+at `segment.rs:94-98` fires with `allowed == 0`. Paths (b) and (c) ALSO set
+`depth_exceeded = true` themselves and increment `segments_depth_exceeded` on the first call
+— there need not be a prior Truncated event. This counter reflects segments that were fully
+discarded (no bytes stored) due to the per-direction depth limit having been reached. It is
+distinct from `Truncated` events (partial insertion).
 
 ## Preconditions
 
 1. `insert_segment` returns `InsertResult::DepthExceeded`.
-2. The direction's `depth_exceeded` flag is `true` (set by a prior Truncated event or by the
-   zero-remaining-depth check).
+2. The direction's `depth_exceeded` flag is `true` (set by a prior Truncated event, by the
+   zero-remaining-depth check at segment.rs:81-85, or by the allowed==0 check at segment.rs:95-98).
 
 ## Postconditions
 
@@ -60,10 +63,11 @@ the per-direction depth limit having been reached. It is distinct from `Truncate
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | First segment hits depth limit (Truncated, not DepthExceeded) | segments_inserted++; Truncated finding emitted; segments_depth_exceeded NOT incremented |
+| EC-001 | First segment hits depth limit with `allowed > 0` and `reassembled < max_depth` | Truncated; segments_inserted++; Truncated finding emitted; segments_depth_exceeded NOT incremented |
 | EC-002 | Second segment after depth hit | segments_depth_exceeded++ |
 | EC-003 | 1000 segments after depth hit | segments_depth_exceeded += 1000 |
 | EC-004 | DepthExceeded in s2c direction; c2s direction still under depth | c2s continues normally; s2c all rejected |
+| EC-005 | First segment arrives when `reassembled + buffered == max_depth` (allowed==0) | DepthExceeded on first call; segments_depth_exceeded++; depth_exceeded flag set to true by this call |
 
 ## Canonical Test Vectors
 

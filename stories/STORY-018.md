@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-018"
 epic_id: "E-2"
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -16,7 +16,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.044.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.045.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.046.md
-input-hash: "02964f6"
+input-hash: "41b6ae2"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-015, STORY-016]
@@ -67,6 +67,7 @@ implementation_strategy: brownfield-formalization
 
 ### AC-002 (traces to BC-2.04.041 postcondition 2-4)
 - After a `Truncated` result, only `allowed = max_depth.saturating_sub(reassembled_bytes + buffered_bytes)` bytes are stored (not the full payload), and `buffered_bytes` increases by exactly `allowed`.
+- **NOTE:** When `allowed == 0` (buffer exactly at `max_depth` at entry), the result is `DepthExceeded` (not `Truncated`); see BC-2.04.041 Description + EC-004 + EC-005.
 - **Test:** `test_BC_2_04_041_truncated_stores_only_allowed_bytes()`
 
 ### AC-003 (traces to BC-2.04.041 postcondition 5 and invariant 1)
@@ -153,7 +154,7 @@ implementation_strategy: brownfield-formalization
 
 | ID | Scenario | Expected Behavior |
 |----|----------|-------------------|
-| EC-001 | Segment exactly at max_depth (no truncation needed) | Inserted; no Truncated result; no finding |
+| EC-001 | Segment for which `reassembled + buffered + data.len() == max_depth` (i.e., `total_after == max_depth`, equals not exceeds) | Inserted; no Truncated result; no finding (check at `segment.rs:93` is `>`, not `>=`) |
 | EC-002 | Segment crosses depth limit by 1 byte | Truncated; 1 byte dropped; finding emitted |
 | EC-003 | Two segments after depth hit | Both return DepthExceeded; segments_depth_exceeded=2 |
 | EC-004 | Segment at exact receive window boundary | Inserted (boundary is exclusive: `>` not `>=`) |
@@ -235,3 +236,10 @@ implementation_strategy: brownfield-formalization
 | `src/reassembly/mod.rs` | verify (lines 356-389) | small_segment_run update and DepthExceeded counter |
 | `tests/reassembly_segment_tests.rs` | modify | Add AC-001 through AC-019 (segment-level tests) |
 | `tests/reassembly_engine_tests.rs` | modify | Add engine-level truncation and finding tests |
+
+## Changelog
+
+| Version | Date | Author | Summary |
+|---------|------|--------|---------|
+| 1.1 | 2026-05-21 | story-writer | Initial draft |
+| 1.2 | 2026-05-26 | story-writer | Wave 10 STORY-018 pass-1 fixes: F-002 (CRITICAL) — added NOTE to AC-002 disambiguating the allowed==0 case (see BC-2.04.041 v1.x Description + EC-004 + EC-005); F-006 (MED) — EC-001 row revised from ambiguous 'exactly at max_depth' to explicit 'total_after == max_depth' boundary (matches segment.rs:93 `>` check, not `>=`). DF-SIBLING-SWEEP-001 sweep performed. |
