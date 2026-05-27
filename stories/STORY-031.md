@@ -2,10 +2,10 @@
 document_type: story
 story_id: "STORY-031"
 epic_id: "E-3"
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
-timestamp: 2026-05-27T08:00:00Z
+timestamp: 2026-05-27T09:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.001.md
@@ -78,7 +78,7 @@ The HTTP content signature check is evaluated AFTER the TLS check (INV-2). Data 
 
 ### AC-007 (traces to BC-2.05.003 postcondition 1-2)
 When both TLS and HTTP content checks fail, `classify` falls back to port-based heuristics: ports 443 or 8443 return `DispatchTarget::Tls`; ports 80 or 8080 return `DispatchTarget::Http`.
-- **Test:** `test_dispatcher_port_fallback_short_data` + `test_port_fallback_443_to_tls` + `test_port_fallback_8443_to_tls` + `test_port_fallback_80_to_http` + `test_port_fallback_8080_to_http`
+- **Test:** `test_port_fallback_443_to_tls` + `test_port_fallback_8443_to_tls` + `test_port_fallback_80_to_http` + `test_port_fallback_8080_to_http`
 
 ### AC-008 (traces to BC-2.05.003 invariant 1-2)
 TLS port check (443/8443) is evaluated before HTTP port check (80/8080) per source order. Port lookup uses `flow_key.lower_port()` and `flow_key.upper_port()` — the canonically ordered pair — so a flow on (src=8443, dst=9000) finds 8443 in the port slice.
@@ -150,6 +150,7 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 15. [x] Strengthen `test_http_no_space_does_not_match` with positive control sub-case (F-W12P1-009)
 16. [x] Rename `test_dispatcher_routes_tls` → `test_tls_content_wins_over_port_8080`; add `test_tls_content_routes_tls_on_port_443` baseline (Obs-4)
 17. [x] Fix story line citations for classify (90-116 → 90-117) and on_data (120-160 → 120-169) (F-W12P1-010, F-W12P1-011)
+18. [x] (POST-PASS-2 ADDITIONS) Remove 3 stale `test_dispatcher_port_fallback_short_data` references from AC-007 trace, Architecture Compliance Rules, and File Structure Requirements (F-W12P2-001 — rename orphan from pass-1)
 
 ## Previous Story Intelligence (MANDATORY)
 
@@ -160,6 +161,7 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 | STORY-021 (W11.L2) | DF-ADVERSARY-METHODOLOGY-001 — adversarial review uses absolute paths for all grep/file references | Use absolute paths in all sibling-sweep grep commands and story references | Relative paths in sibling-sweeps produced false-negative grep results |
 | STORY-021 (W11.L4) | Source-docstring propagation: when story body changes (line citations, AC traces), update any docstrings in test files that mirror those citations | Keep test docstrings in sync with story AC traces — if a test is renamed or re-anchored, update the story reference in the same commit | Silent divergence between test docstrings and story ACs is a class of finding in adversarial passes |
 | STORY-021 (W11.L5) | Implementer-as-PR-executor pattern: the implementer writes the code AND opens the PR in the same dispatch | Use this pattern for STORY-031 PR (task 90) — do not dispatch a separate PR-creation agent | Splitting implementer and PR-opener adds a handoff gap where STATE.md can diverge |
+| (process lesson) | When pass-1 renames a test, story-writer MUST grep ALL story sections (AC traces, Architecture Compliance Rules, File Structure Requirements, body prose) for the OLD test name and update each. Pass-1's sibling-sweep checked test file but not all story sections. Pattern recurrence indicates DF-SIBLING-SWEEP-001 v2 enforcement gap. | F-W12P2-001 in-pass resolution |
 
 ## Architecture Compliance Rules (MANDATORY)
 
@@ -171,7 +173,7 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 | HTTP method prefixes include trailing space (e.g., `b"GET "` not `b"GET"`) | BC-2.05.002 invariant 3 | Code review: confirm prefix strings |
 | All 10 HTTP method/version prefixes must trigger Http routing — coverage at AC-004 via `test_all_http_method_prefixes_route_to_http` table-driven test | BC-2.05.002 PC1, invariant 3 | Test enumerates `[GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH, CONNECT, TRACE, HTTP/]` |
 | All 4 port-fallback branches (443→Tls, 8443→Tls, 80→Http, 8080→Http) must have explicit tests | BC-2.05.003 PC1-2, F-W12P1-001 | 4 distinct test functions named `test_port_fallback_{443,8443,80,8080}_to_*` |
-| AC-003 (TLS length gate) and AC-007 (port fallback) MUST have separate tests — single test cannot independently verify both | F-W12P1-003 | `test_tls_check_skipped_below_len_5` (AC-003) vs `test_dispatcher_port_fallback_short_data` + port-fallback-N tests (AC-007) |
+| AC-003 (TLS length gate) and AC-007 (port fallback) MUST have separate tests — single test cannot independently verify both | F-W12P1-003 | `test_tls_check_skipped_below_len_5` (AC-003) vs `test_port_fallback_{443,8443,80,8080}_to_*` tests (AC-007) |
 
 ## Library & Framework Requirements (MANDATORY)
 
@@ -184,7 +186,7 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 | File | Action | Purpose |
 |------|--------|---------|
 | src/dispatcher.rs | modify | classify function (90-117): TLS check, HTTP prefix check, port fallback |
-| tests/dispatcher_tests.rs | modify | Add/rename: `test_tls_content_routes_tls_on_port_443` (baseline TLS port 443), `test_tls_content_wins_over_port_8080` (renamed from `test_dispatcher_routes_tls`; content priority over Http port), `test_port_fallback_443_to_tls`, `test_port_fallback_8443_to_tls`, `test_port_fallback_80_to_http`, `test_port_fallback_8080_to_http`, `test_tls_check_skipped_below_len_5` (4-byte boundary), `test_tls_check_requires_byte1_equals_0x03` (EC-005), `test_all_http_method_prefixes_route_to_http` (table-driven all 10 prefixes); existing: test_dispatcher_content_detection_tls_on_port_80, test_dispatcher_routes_http, test_dispatcher_port_fallback_short_data, test_http_content_on_port_443_routes_to_http |
+| tests/dispatcher_tests.rs | modify | Add/rename: `test_tls_content_routes_tls_on_port_443` (baseline TLS port 443), `test_tls_content_wins_over_port_8080` (renamed from `test_dispatcher_routes_tls`; content priority over Http port), `test_port_fallback_443_to_tls`, `test_port_fallback_8443_to_tls`, `test_port_fallback_80_to_http`, `test_port_fallback_8080_to_http`, `test_tls_check_skipped_below_len_5` (4-byte boundary), `test_tls_check_requires_byte1_equals_0x03` (EC-005), `test_all_http_method_prefixes_route_to_http` (table-driven all 10 prefixes); existing: test_dispatcher_content_detection_tls_on_port_80, test_dispatcher_routes_http, test_http_content_on_port_443_routes_to_http |
 
 ## Changelog
 
@@ -192,3 +194,4 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 |---------|------|--------|---------|
 | 1.0 | 2026-05-21 | story-writer | Initial story decomposition |
 | 1.1 | 2026-05-27 | story-writer | Pass-1 adversarial remediation: (1) AC-001 trace updated from `test_dispatcher_routes_tls` (renamed) to `test_tls_content_routes_tls_on_port_443` + `test_tls_content_wins_over_port_8080`; (2) AC-003 trace updated to `test_tls_check_skipped_below_len_5` (isolated, F-W12P1-003); (3) AC-004 trace expanded with `test_all_http_method_prefixes_route_to_http` (F-W12P1-002); (4) AC-007 trace expanded with all 4 port-fallback branch tests (F-W12P1-001); (5) Architecture Mapping line citations fixed: classify 90-116→90-117, on_data 120-160→120-169 (F-W12P1-010/011); (6) File Structure Requirements line citations and test list updated; (7) Edge Case table: EC-004, EC-005, EC-008, EC-010 test citations added; (8) Architecture Compliance Rules: 3 new rules added for 10-prefix coverage, 4 port-fallback branch tests, and AC-003/AC-007 test separation; (9) Tasks 10-17 appended (all completed); (10) PSI updated with STORY-021 W11 learnings (W11.L1, W11.L2, W11.L4, W11.L5) |
+| 1.2 | 2026-05-27 | story-writer | Pass-2 adversarial remediation (F-W12P2-001): removed 3 stale references to `test_dispatcher_port_fallback_short_data` (renamed to `test_port_fallback_443_to_tls` in pass-1): (1) AC-007 Test field — old name dropped, 4 live tests retained; (2) Architecture Compliance Rules row — example updated to `test_port_fallback_{443,8443,80,8080}_to_*` family; (3) File Structure Requirements existing list — stale entry removed; Task 18 appended (completed); PSI updated with process lesson on sibling-sweep story-body coverage gap |
