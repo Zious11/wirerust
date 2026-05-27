@@ -2,10 +2,10 @@
 document_type: story
 story_id: "STORY-031"
 epic_id: "E-3"
-version: "1.4"
+version: "1.5"
 status: draft
 producer: story-writer
-timestamp: 2026-05-27T11:00:00Z
+timestamp: 2026-05-27T12:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.001.md
@@ -153,6 +153,7 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 18. [x] (POST-PASS-2 ADDITIONS) Remove 3 stale `test_dispatcher_port_fallback_short_data` references from AC-007 trace, Architecture Compliance Rules, and File Structure Requirements (F-W12P2-001 — rename orphan from pass-1)
 19. [x] (POST-PASS-3) BC-2.05.002 re-anchor (DF-SIBLING-SWEEP-001 v2 BC pre-merge re-anchor doctrine extended) — added `test_all_http_method_prefixes_route_to_http` to VP-004 + Architecture Anchors; canonical-ordering test strengthened with parse_error_count discriminator (F-W12P3-001, F-W12P3-002)
 20. [x] (POST-PASS-4) BC anchor-completeness extended to BC-2.05.001 + BC-2.05.003 (was BC-2.05.002 only in pass-3); TLS-bound port-fallback tests strengthened with `tls.parse_error_count() > 0` positive discriminator using `[0x16, 0x04, 0x01, 0x00, 0x01, 0xFF]` complete-record payload (5-byte non-TLS `[0x00..0x04]` didn't trigger TLS parse_errors due to truncated-record semantic); AC-005 trace updated to cite both Inv-2 and Inv-3 covering tests (F-W12P4-001, F-W12P4-002, F-W12P4-003, Obs-1)
+21. [x] (POST-PASS-6) BC-2.05.002 EC-001 anchor fix (was port-9999 test cited for port-443 scenario; now correctly cites `test_http_content_on_port_443_routes_to_http`). Sibling sweep confirmed no other EC mis-anchors across 3 BCs. Codification candidate: anchor-completeness needs EC-scenario-match sub-rule (F-W12P6-001, F-W12P6-OBS-003).
 
 ## Previous Story Intelligence (MANDATORY)
 
@@ -167,6 +168,7 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 | (process lesson — codification candidate) | DF-SIBLING-SWEEP-001 v2 "BC pre-merge re-anchor" should explicitly cover anchor list COMPLETENESS, not just freshness: when a story adds a NEW test that covers an existing BC, the BC must be re-anchored to cite it (even if existing anchors are still valid). Pass-2 sweep updated BCs whose tests were renamed but missed BC-2.05.002 where pass-1 added a new comprehensive test without renaming anything | F-W12P3-003 process-gap |
 | (process lesson — closure) | DF-SIBLING-SWEEP-001 v2 "BC pre-merge re-anchor" + anchor-completeness doctrine fully exercised in passes 2/3/4: BC-2.05.001 (pass-2), BC-2.05.002 (pass-3), BC-2.05.001/2/3 anchor expansion (pass-4). Pattern: each pass found the same gap in next sibling. Final codification: doctrine must apply to ALL BCs in story `behavioral_contracts:` frontmatter in a SINGLE sweep, not iteratively. | F-W12P4-001 closed; doctrine extended to anchor-completeness |
 | (deferred observations — Obs-3/4/5) | Obs-3 (EC-003/EC-006 lack test citations): defer — both are implicitly covered. Obs-4 (`test_zero_attempt_budget_classifies_nothing` name misleading): defer — pre-existing P2.11 test, out of STORY-031 scope. Obs-5 (PSI codification candidate uncodified): realized via task 20 above and the PSI closure row. | pass-4 deferred per low severity |
+| (process lesson — codification candidate v2) | Anchor-completeness doctrine needs sub-rule: "EC citations must EXACTLY exercise the scenario described in the EC row (specific port/value/condition named), not just the parent BC capability." Pass-6 caught BC-2.05.002 EC-001 citing port-9999 test for port-443 scenario. | F-W12P6-001 resolved; F-W12P6-OBS-003 for cycle-close codification |
 
 ## Architecture Compliance Rules (MANDATORY)
 
@@ -202,3 +204,4 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 | 1.2 | 2026-05-27 | story-writer | Pass-2 adversarial remediation (F-W12P2-001): removed 3 stale references to `test_dispatcher_port_fallback_short_data` (renamed to `test_port_fallback_443_to_tls` in pass-1): (1) AC-007 Test field — old name dropped, 4 live tests retained; (2) Architecture Compliance Rules row — example updated to `test_port_fallback_{443,8443,80,8080}_to_*` family; (3) File Structure Requirements existing list — stale entry removed; Task 18 appended (completed); PSI updated with process lesson on sibling-sweep story-body coverage gap |
 | 1.3 | 2026-05-27 | story-writer | Pass-3 PO commit (factory 37ca765) — BC-2.05.002 re-anchor per DF-SIBLING-SWEEP-001 v2 extended doctrine: added `test_all_http_method_prefixes_route_to_http` to VP-004 + Architecture Anchors; canonical-ordering test strengthened with parse_error_count discriminator (F-W12P3-001, F-W12P3-002); Task 19 appended; PSI updated with F-W12P3-003 process-gap codification candidate for anchor COMPLETENESS rule |
 | 1.4 | 2026-05-27 | story-writer | Pass-4 PO commit (factory d143939) — BC-2.05.001/002/003 all bumped to v1.4; AC-005 trace expanded to cite both Inv-2 (`test_all_http_method_prefixes_route_to_http`) and Inv-3 (`test_http_no_space_does_not_match`) covering tests (Obs-1); Task 20 appended recording pass-4 anchor-completeness sweep and TLS port-fallback discriminator strengthening; PSI closure row added codifying that anchor-completeness doctrine must apply to ALL BCs in a single sweep, not iteratively; Obs-3/4/5 deferred as low-severity |
+| 1.5 | 2026-05-27 | story-writer | Pass-6 PO commit (factory 9339318) — BC-2.05.002 v1.5 input reflected; Task 21 appended: EC-001 anchor fix (port-9999 test replaced with `test_http_content_on_port_443_routes_to_http` matching port-443 scenario); sibling sweep confirmed no other EC mis-anchors across 3 BCs; PSI codification candidate row added for EC-scenario-match sub-rule (F-W12P6-001, F-W12P6-OBS-003) |
