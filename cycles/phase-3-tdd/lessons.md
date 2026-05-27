@@ -300,6 +300,15 @@ agent-prompt-defect bug to vsdd-factory plugin maintainer.
 
 ---
 
+## Wave 10 Lessons (2026-05-27)
+
+- W10.L1: DF-SIBLING-SWEEP-001 v1→v4 iteratively refined through STORY-018 passes; v4 final checklist axes include AC-vs-revised-BC, story-EC-vs-BC-EC, test prose stale markers, test name inverted forms, cross-ref target resolution, implementation reachability, ALL ACs whose BCs modified in ANY pass. [codified iteratively]
+- W10.L2: DF-PR-MANAGER-COMPLETE-001 insufficient at dispatch level for pr-manager agent; implementer-as-PR-executor (PR #133) RELIABLE workaround. [codified W10-D7]
+- W10.L3: Brownfield-formalization surfaces CRITICAL spec/impl mismatches mid-convergence; reachability axis catches systematically. [codified in DF-SIBLING-SWEEP-001 v4]
+- W10.L4: Wave-level adversarial structurally necessary for cross-story sibling-discipline (F-W10P1-001 overlap_count + F-W10P1-004 test duplication invisible per-story). [validated]
+
+---
+
 ## Earlier Wave Lessons (Waves 1-6)
 
 Per-wave process-gap items for Waves 1-6 are recorded in STATE.md Cycle-Close Follow-Up Items

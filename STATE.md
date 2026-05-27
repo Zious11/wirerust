@@ -39,11 +39,16 @@ wave_9_pr_count: 4
 wave_9_prs: "#127, #128, #129, #130"
 wave_9_per_story_convergence: "STORY-016: 6 passes (DIRTY×3 + CLEAN×3); STORY-020: 8 passes (DIRTY×5 + CLEAN×3)"
 wave_9_wave_level_convergence: "6 passes (DIRTY×3 + CLEAN×3; passes 4/5/6 clean)"
-wave_10_status: in_progress
+wave_10_status: closed
 wave_10_started: "2026-05-26"
+wave_10_closed_date: "2026-05-26"
 wave_10_stories: STORY-017 + STORY-018
-wave_10_notes: "STORY-017 MERGED PR #131 → ced10aa (24 tests + 9 ECs; 4 passes 1D+3C). STORY-018 MERGED PR #132 → 211143e. 20 stories delivered. Wave-level pass-1 DIRTY (1 HIGH + 4 MED + 4 LOW): F-W10P1-001 REMEDIATED PR #133 → 211143e (saturating_add); F-W10P1-002 REMEDIATED BC-2.04.022 v1.5; F-W10P1-003 REMEDIATED BC-2.04.027 v1.4; F-W10P1-004 DEFERRED W10-D10; F-W10P1-005 DEFERRED W10-D11; O-W10P1-001..004 DEFERRED W10-D12..D14 + W10-D7 updated. Wave-level pass-2 pending. DF-SIBLING-SWEEP-001 v3 active. W10-D7..D14 filed."
-current_wave: 10
+wave_10_pr_count: 3
+wave_10_prs: "#131, #132, #133"
+wave_10_per_story_convergence: "STORY-017: 4 passes (1D+3C); STORY-018: 9 passes (6D+3C)"
+wave_10_wave_level_convergence: "4 passes (1 DIRTY + 3 CLEAN; passes 2/3/4 clean; 3 findings remediated + 6 deferred)"
+wave_11_status: ready_to_dispatch
+current_wave: 11
 stories_delivered: 20
 dtu_required: false
 dtu_assessment: 2026-05-20
@@ -51,7 +56,7 @@ dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3
 adversary_gate: SATISFIED
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0|W7-story:8ps-3clean|W7-wave:8ps-3clean|W8-S019-story:8ps-3clean(14rem)|W8-S015-story:8ps-3clean(14rem)|W8-wave:9ps-3clean(12rem)|W9-S016-story:6ps-3clean(24rem)|W9-S020-story:8ps-3clean(13rem)|W9-wave:6ps-3clean(11rem)|W10-S017-story:4ps-3clean(MERGED-PR#131)|W10-S018-story:CONVERGED+MERGED-PR#132|W10-wave:pass-1-DIRTY(9findings;3rem+5def+1updated)"
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0|W7-story:8ps-3clean|W7-wave:8ps-3clean|W8-S019-story:8ps-3clean(14rem)|W8-S015-story:8ps-3clean(14rem)|W8-wave:9ps-3clean(12rem)|W9-S016-story:6ps-3clean(24rem)|W9-S020-story:8ps-3clean(13rem)|W9-wave:6ps-3clean(11rem)|W10-S017-story:4ps-3clean(MERGED-PR#131)|W10-S018-story:9ps-3clean(MERGED-PR#132)|W10-wave:4ps-3clean(1HIGH+4MED+4LOW->1src+2BC+6def)|W10-CONVERGED-2026-05-26"
 consistency_audit: CONSISTENT
 input_drift_check: CLEAN
 phase_2_input_hash_drift_check: CLEAN
@@ -62,18 +67,13 @@ phase_2_input_hash_drift_check_total: 153
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-9 CLOSED/CONVERGED; Wave 10 IN PROGRESS (wave-level).
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-10 CLOSED/CONVERGED; Wave 11 ready to dispatch.
 20 stories delivered across Waves 1-10 (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018).
-Wave 9 CLOSED 2026-05-26: STORY-016 (PR #127 → d636285, overlap detection, 24 tests + 1 proptest) +
-STORY-020 (PR #128 → 8cb907e, memory mgmt, 25 tests + 1 proptest + 1 additive #[doc(hidden)] seam).
-Wave-level remediation: PR #129 → 2037f88 (F-W9P1-001 + F-W9P1-004) + PR #130 → e237747 (F-W9P2-001 + F-W9P2-003).
-Wave-level convergence: 6 passes (DIRTY×3 + CLEAN×3; passes 4/5/6 clean; 11 findings remediated).
-Wave 10 IN PROGRESS 2026-05-26: STORY-017 MERGED PR #131 → ced10aa (24 tests + 9 ECs; 4 passes 1D+3C).
-STORY-018 MERGED PR #132 → 211143e (resource bounds; BCs 2.04.023/027/040/041/042/044/045/046).
-Wave-level pass-1 DIRTY (9 findings): F-W10P1-001 REMEDIATED PR #133 → 211143e (overlap_count saturating_add);
-F-W10P1-002 REMEDIATED BC-2.04.022 v1.5; F-W10P1-003 REMEDIATED BC-2.04.027 v1.4;
-F-W10P1-004/005 + O-W10P1-001..004 DEFERRED as W10-D10..D14 + W10-D7 updated.
-develop HEAD: 211143e (PR #133 — Wave 10 wave-level pass-1 overlap_count fix 2026-05-26).
+Wave 10 CLOSED 2026-05-27: STORY-017 (PR #131 → ced10aa, 4 passes 1D+3C) +
+STORY-018 (PR #132 → f4963ba, 9 passes 6D+3C). Wave-level 4 passes (1D+3C; passes 2/3/4 clean).
+Wave-level remediation: PR #133 → 211143e (overlap_count saturating_add) + BC-2.04.022 v1.5 + BC-2.04.027 v1.4;
+5 findings deferred (W10-D10..D14 + W10-D7 updated). 17 adversarial passes total (15% reduction vs Wave 9).
+develop HEAD: 211143e (PR #133 — Wave 10 wave-level overlap_count fix 2026-05-26).
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -91,7 +91,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-9 CLOSED/CONVERGED; 20 stories delivered; Wave 10 IN PROGRESS (per-story CONVERGED; wave-level pass-1 DIRTY — burst-4 remediation complete; pass-2 pending) | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-10 CLOSED/CONVERGED; 20 stories delivered; Wave 11 ready to dispatch (STORY-021 pending) | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -110,7 +110,7 @@ dependency bumping for it).
 | 7 | STORY-014 | **CLOSED/CONVERGED** | b23c6d3 | PR #120 squash-merged 2026-05-25; 17 tests + 2 doc(hidden) seams; ADR-0004 amended PR #121; per-story 8 passes 3/3 clean streak; wave-level 8 passes 3/3 clean streak |
 | 8 | STORY-019, STORY-015 | **CLOSED/CONVERGED** | 4b9b85f | PR #122 (STORY-019) + PR #123 (STORY-015) squash-merged 2026-05-26; ADR-0004 v2 PRs #124/#125/#126; per-story 8 passes each (3/3 clean); wave-level 9 passes 3/3 clean streak; 4 drift items logged |
 | 9 | STORY-016, STORY-020 | **CLOSED/CONVERGED** 2026-05-26 | e237747 | PR #127 (STORY-016, 24 tests+1 proptest) + PR #128 (STORY-020, 25 tests+1 proptest+1 seam) + PR #129 + PR #130 (wave-followup-1/2); per-story 14 passes total (S016: 6; S020: 8); wave-level 6 passes (DIRTY×3+CLEAN×3); 11 findings remediated; W9-D8 CRITICAL; 632 tests passing |
-| 10 | STORY-017, STORY-018 | **IN PROGRESS** (wave-level) | 211143e (PR #133 — wave-level fix) | STORY-017 MERGED PR #131 (4 passes 1D+3C). STORY-018 MERGED PR #132 (5 passes; 37% reduction vs W9-S020). Wave-level pass-1 DIRTY: 3 REMEDIATED (PR #133 + BC-2.04.022 v1.5 + BC-2.04.027 v1.4); 5 DEFERRED (W10-D10..D14 + W10-D7 updated). Pass-2 pending. |
+| 10 | STORY-017, STORY-018 | **CLOSED/CONVERGED** 2026-05-27 | 211143e (PR #133 — wave-level fix) | STORY-017 MERGED PR #131 (4 passes 1D+3C; 24 tests + 9 ECs). STORY-018 MERGED PR #132 (9 passes 6D+3C; resource bounds). Wave-level 4 passes (1D+3C; 3 findings remediated + 6 deferred). 17 adversarial passes total (15% reduction vs Wave 9: 20). |
 | 11–27 | (remaining) | NOT STARTED | — | — |
 
 ## Phase 3 — Current Phase Steps (last 5)
@@ -189,6 +189,17 @@ W9-D1..D4 (LOW story template gaps), W9-D6/D7 (LOW line-citation). W9-D9: RESOLV
 W9.L3: RESOLVED — codified as DF-PR-MANAGER-COMPLETE-001 in .factory/policies.yaml (2026-05-26, pre-Wave-10).
 
 Full retrospective detail: `.factory/cycles/phase-3-tdd/lessons.md` (W9 lessons)
+
+### Wave 10 Retrospective (closed 2026-05-27)
+- Stories: STORY-017 (4 passes 1D+3C) + STORY-018 (9 passes 6D+3C)
+- PRs: #131 STORY-017 (ced10aa) + #132 STORY-018 (f4963ba) + #133 wave-followup (211143e overlap_count saturating_add HIGH)
+- Wave-level: 4 passes (1D + 3C at passes 2/3/4)
+- Total adversarial: 17 passes (vs Wave 9: 20 = 15% reduction)
+- DF-SIBLING-SWEEP-001 demonstrably effective: STORY-017 cleared in 4 passes vs equivalent Wave 9 stories needing 6-8; iteratively refined v1→v4 through STORY-018 passes
+- DF-PR-MANAGER-COMPLETE-001 partial: pr-manager stops at APPROVE on PRs #131/#132; implementer-as-PR-executor on PR #133 worked autonomously (W10-D7 workaround)
+- 3 brownfield spec/impl mismatches resolved (BC-2.04.041/045/027 v1.3)
+- 1 src/ hardening: overlap_count saturating_add (PR #133)
+- Active drift: W10-D1..D14 + Wave 9 carryover; all REQUIRE DF-VALIDATION-001 research-agent validation before issue filing
 
 ## Decisions Log
 
