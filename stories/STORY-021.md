@@ -2,10 +2,10 @@
 document_type: story
 story_id: "STORY-021"
 epic_id: "E-2"
-version: "1.4"
+version: "1.5"
 status: draft
 producer: story-writer
-timestamp: 2026-05-27T02:00:00Z
+timestamp: 2026-05-27T03:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.012.md
@@ -13,7 +13,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.025.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.026.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.054.md
-input-hash: "e684c8e"
+input-hash: "fe74858"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-017, STORY-018, STORY-019, STORY-020]
@@ -69,6 +69,7 @@ implementation_strategy: brownfield-formalization
 
 ### AC-004 (traces to BC-2.04.012 edge case EC-006)
 - When the reassembler is dropped WITHOUT calling `finalize`, a one-shot `eprintln!` warning fires (from `impl Drop` tripwire). Flows are NOT flushed (Drop has no handler argument).
+- **Scope limitation:** Under cargo parallel scheduling, this test verifies the Drop hook fires AT LEAST ONCE in this process, not unique per-Drop attribution (Option B per F-W11P2-002 rationale; see Architecture Compliance Rule for AC-004 and the FINALIZE_SKIPPED_WARNED_LOCK docstring in tests/reassembly_engine_tests.rs).
 - **Test:** `test_BC_2_04_012_drop_without_finalize_emits_warning()`
 
 ### AC-005 (traces to BC-2.04.024 postcondition 1-2)
@@ -107,7 +108,7 @@ implementation_strategy: brownfield-formalization
 - **Test:** `test_BC_2_04_054_finalize_bypasses_max_findings_cap()`
 
 ### AC-013 (traces to BC-2.04.054 invariant 3 — representative bound scenario)
-- Under a representative finalize-bypass scenario (findings pre-filled to `MAX_FINDINGS`, `segments_segment_limit > 0`, then `finalize` called), the resulting `findings.len()` is exactly `MAX_FINDINGS + 1` (= 10,001) — a smoke test of the bound under known-stressful inputs. The universal upper-bound proof (∀ runs, `len ≤ 10,001`) belongs to VP-003 (property-based test); this AC verifies the bound at a single representative scenario only.
+- Under a representative finalize-bypass scenario (findings pre-filled to `MAX_FINDINGS`, `segments_segment_limit > 0`, then `finalize` called), the resulting `findings.len()` is exactly `MAX_FINDINGS + 1` (= 10,001) — a smoke test of the bound under known-stressful inputs. The universal upper-bound proof (∀ runs, `len ≤ 10,001`) belongs to VP-003 (property-based test); this AC verifies the bound at a single representative scenario only. The test also defensively verifies post-bypass idempotency (a second `finalize` call produces no additional segment-limit finding) — this is redundant with AC-003 but exercises the bypass→idempotency state transition specifically.
 - **Test:** `test_BC_2_04_054_finalize_bypass_smoke_at_max_findings_representative_scenario`
 
 ### AC-014 (traces to BC-2.04.024 edge case EC-004 — dropped_findings monotonicity)
@@ -131,14 +132,18 @@ implementation_strategy: brownfield-formalization
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
 | finalize (latch, flow loop, segment-limit block) | src/reassembly/mod.rs:557-591 | effectful-shell |
-| impl Drop tripwire | src/reassembly/mod.rs:793-807 | effectful-shell (stderr write) |
+| impl Drop tripwire | src/reassembly/mod.rs:796-810 | effectful-shell (stderr write) |
 | MAX_FINDINGS constant | src/reassembly/mod.rs:54 | pure-core (constant) |
 | dropped_findings counter sites | src/reassembly/mod.rs:432,466,495; lifecycle.rs:101,121 | effectful-shell |
 | plural_s helper | src/reassembly/mod.rs:66-68 | pure-core |
 | segment-limit finding push (unconditional) | src/reassembly/mod.rs:573 | effectful-shell |
 | `all_findings_len_for_testing` / `push_finding_for_testing` | src/analyzer/http.rs | effectful-shell (test-only) |
 | `all_findings_len_for_testing` / `push_finding_for_testing` | src/analyzer/tls.rs | effectful-shell (test-only) |
+| `finalize_skipped_warned_for_testing() -> bool` | src/reassembly/mod.rs | effectful-shell (test-only) |
+| `reset_finalize_skipped_warned_for_testing()` | src/reassembly/mod.rs | effectful-shell (test-only) |
 | `swap_finalize_skipped_warned_for_testing(value: bool) -> bool` | src/reassembly/mod.rs | effectful-shell (test-only) |
+| `set_segments_segment_limit_for_testing(&mut self, count: u64)` | src/reassembly/mod.rs | effectful-shell (test-only, trust-boundary per F-W11P1-009) |
+| `push_finding_for_testing(&mut self, finding: Finding)` | src/reassembly/mod.rs | effectful-shell (test-only) |
 
 ## Edge Cases
 
@@ -169,7 +174,7 @@ implementation_strategy: brownfield-formalization
 |---------------|-----------------|
 | This story spec | ~3,000 |
 | BC files (5 BCs) | ~5,500 |
-| src/reassembly/mod.rs (finalize ~557-591, impl Drop ~793-807, MAX_FINDINGS ~54, dropped_findings sites ~432,466,495) | ~2,500 |
+| src/reassembly/mod.rs (finalize ~557-591, impl Drop ~796-810, MAX_FINDINGS ~54, dropped_findings sites ~432,466,495) | ~2,500 |
 | src/reassembly/lifecycle.rs (dropped_findings sites ~101,121) | ~500 |
 | src/analyzer/http.rs (test seams: push_finding_for_testing, all_findings_len_for_testing) | ~500 |
 | src/analyzer/tls.rs (test seams: push_finding_for_testing, all_findings_len_for_testing) | ~500 |
@@ -212,6 +217,11 @@ implementation_strategy: brownfield-formalization
 29. [x] Sweep STORY-021 line-citations to current source line numbers (F-W11P2-010)
 30. [x] (POST-PASS-3 ADDITIONS) Replace stale `mod.rs:677-690` with `mod.rs:793-807` in Token Budget + File Structure Requirements tables (F-W11P3-003)
 31. [x] Propagate AC-013 test rename (`...absolute_upper_bound` → `...finalize_bypass_smoke_at_max_findings_representative_scenario`) to AC-013, EC-005, and any other story-side citations (F-W11P3-004b)
+32. [x] (POST-PASS-4 ADDITIONS) Replace 3 stale `mod.rs:793-807` citations with `mod.rs:796-810` (worktree post-STORY-021 line numbers) — Architecture Mapping, Token Budget, File Structure Requirements (F-W11P4-001)
+33. [x] Add 4 missing test-seam rows to Architecture Mapping table (finalize_skipped_warned_for_testing, reset_..., set_segments_segment_limit_for_testing, push_finding_for_testing) (F-W11P4-003)
+34. [x] Append Option-B scope-limitation note to AC-004 body text (F-W11P4-007)
+35. [x] Extend AC-013 prose to mention defensive post-bypass idempotency coverage (redundant with AC-003; exercises bypass→idempotency state transition) (F-W11P4-006)
+36. [x] Refine FINALIZE_SKIPPED_WARNED_LOCK compliance rule to acknowledge ISN_MISSING_WARNED_LOCK lock-naming outlier as pre-existing codebase inconsistency (F-W11P4-008)
 
 ## Previous Story Intelligence (MANDATORY)
 
@@ -235,7 +245,7 @@ implementation_strategy: brownfield-formalization
 | `impl Drop` is diagnostic ONLY — it cannot flush flows (no handler argument) | BC-2.04.012 invariant 3 | Code review: Drop::drop signature has no handler |
 | `MAX_FINDINGS = 10_000` is the constant; findings.len() <= 10001 after any run | BC-2.04.024 invariant 1; BC-2.04.054 invariant 3 | Test: AC-013 representative-scenario assertion; universal upper-bound proof owned by VP-003 |
 | AC-004 assertion scope honestly bounded: tests Drop hook fires at least once per process; unique per-Drop attribution non-deterministic under parallel scheduler (194 sibling un-finalized-drop sites) — see FINALIZE_SKIPPED_WARNED_LOCK docstring in tests/reassembly_engine_tests.rs | F-W11P2-002 Option B rationale | Code review: AC-004 docstring + FINALIZE_SKIPPED_WARNED_LOCK docstring document the scope limit |
-| All `FINALIZE_SKIPPED_WARNED_LOCK` acquisitions use `.expect("FINALIZE_SKIPPED_WARNED_LOCK poisoned")` (fail-fast convention matching ISN_MISSING_WARNED_LOCK / CLOSE_FLOW_MISSING_WARNED_LOCK sibling locks) | F-W11P1-006 | Code review: grep for `unwrap_or_else(|e| e.into_inner())` returns no hits in this file |
+| All `FINALIZE_SKIPPED_WARNED_LOCK` acquisitions use `.expect("FINALIZE_SKIPPED_WARNED_LOCK poisoned")` (fail-fast convention matching CLOSE_FLOW_MISSING_WARNED_LOCK sibling lock; note: ISN_MISSING_WARNED_LOCK uses generic `"test lock poisoned"` message — predates the lock-named convention and is a pre-existing codebase inconsistency) | F-W11P1-006 | Code review: grep for `unwrap_or_else(|e| e.into_inner())` returns no hits in this file |
 | `set_segments_segment_limit_for_testing` violates BC-2.04.026 EC-002's "impossible" invariant at the type level; production code MUST NOT call this seam (trust-boundary convention) | F-W11P1-009 | Code comment at seam definition; convention enforced by review |
 
 ## Library & Framework Requirements (MANDATORY)
@@ -248,7 +258,7 @@ implementation_strategy: brownfield-formalization
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `src/reassembly/mod.rs` | verify (lines 54, 66-68, 432, 466, 495, 557-591, 793-807) | MAX_FINDINGS const, plural_s, cap guard sites, finalize, impl Drop |
+| `src/reassembly/mod.rs` | verify (lines 54, 66-68, 432, 466, 495, 557-591, 796-810) | MAX_FINDINGS const, plural_s, cap guard sites, finalize, impl Drop |
 | `src/reassembly/lifecycle.rs` | verify (lines 101, 121) | dropped_findings guard sites in generate_ functions |
 | `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-013 (original); AC-007b, AC-014 through AC-017 (post-pass-1) |
 | `src/analyzer/http.rs` | verify (test seams) | `push_finding_for_testing`, `all_findings_len_for_testing` — used by AC-007b test |
@@ -263,3 +273,4 @@ implementation_strategy: brownfield-formalization
 | 1.2 | 2026-05-27 | Post-adversarial-pass-1 remediation (F-W11P1-001 through F-W11P1-015): AC-007 revised to engine-cap boundary assertion; AC-007b added (HttpAnalyzer/TlsAnalyzer cap isolation, `test_BC_2_04_024_http_tls_analyzer_findings_not_capped`); AC-013 rephrased to remove universal-upper-bound overpromise; AC-014 added (dropped_findings monotonicity, N=3); AC-015 added (small_segment cap-guard site mod.rs:466); AC-016 added (EC-006 boundary MAX-1+finalize→10000); AC-017 added (segment-limit push unconditional across initial counts 0/5000/9999/10000); EC table extended to 11 rows (EC-009, EC-010, EC-011); 4 architecture compliance rules added (F-W11P1-001, F-W11P1-006, F-W11P1-009, AC-013 VP-003 delegation); token budget revised to ~18,000; 10 post-pass-1 tasks appended (tasks 10-19); STORY-021 self-learning row added to Previous Story Intelligence; 2 new architecture mapping seam rows added |
 | 1.3 | 2026-05-27 | Post-adversarial-pass-2 remediation (F-W11P2-001 through F-W11P2-014): AC-007b clarified to emphasize both HttpAnalyzer AND TlsAnalyzer are exercised; AC-016 trace fixed from non-existent BC-2.04.054 EC-006 → BC-2.04.054 EC-002 + story EC-006 (F-W11P2-004); EC-010 expanded to enumerate all 5 cap-guard sites with covering tests (F-W11P2-006); Task 1 wording updated from "13 ACs" to "initial 13 ACs (AC-001..AC-013)" (F-W11P2-007); STORY-021 Previous-Story-Intelligence self-row replaced: linearizability overclaim → honest Option B scope-limit (F-W11P2-009); process-lesson row added for DF-SIBLING-SWEEP-001 task-description update obligation (F-W11P2-014); Architecture Compliance Rules: stale AC-004 linearizability rule replaced with honest scope-limit rule (F-W11P2-002); `self.finalized = true` line-citation corrected mod.rs:560→561, loop 562+→564+ (F-W11P2-010); impl Drop line-citation corrected mod.rs:677-690→793-807 (F-W11P2-010); TlsAnalyzer test seam row added to Architecture Mapping and File Structure Requirements (F-W11P2-001); token budget updated to ~18,500; 10 post-pass-2 tasks appended (tasks 20-29) |
 | 1.4 | 2026-05-27 | Post-adversarial-pass-3 propagation fixes (F-W11P3-003, F-W11P3-004b): replaced remaining stale `mod.rs:677-690` citations with `mod.rs:793-807` in Token Budget table and File Structure Requirements table (F-W11P3-003); propagated AC-013 test rename `test_BC_2_04_054_max_findings_plus_one_is_absolute_upper_bound` → `test_BC_2_04_054_finalize_bypass_smoke_at_max_findings_representative_scenario` to AC-013 Test trace line (F-W11P3-004b); tasks 30-31 appended |
+| 1.5 | 2026-05-27 | Post-adversarial-pass-4 story-side remediation (F-W11P4-001, F-W11P4-003, F-W11P4-006, F-W11P4-007, F-W11P4-008): replaced 3 stale `mod.rs:793-807` citations with `mod.rs:796-810` (worktree post-STORY-021 line numbers) across Architecture Mapping, Token Budget, and File Structure Requirements tables (F-W11P4-001); added 4 missing mod.rs test-seam rows to Architecture Mapping (finalize_skipped_warned_for_testing, reset_finalize_skipped_warned_for_testing, set_segments_segment_limit_for_testing, push_finding_for_testing) (F-W11P4-003); appended Option-B scope-limitation note to AC-004 body (F-W11P4-007); extended AC-013 to mention defensive post-bypass idempotency coverage (F-W11P4-006); refined FINALIZE_SKIPPED_WARNED_LOCK compliance rule to acknowledge ISN_MISSING_WARNED_LOCK lock-naming outlier (F-W11P4-008); tasks 32-36 appended |
