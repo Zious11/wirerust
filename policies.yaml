@@ -124,6 +124,44 @@ policies:
           cycle. Pass-6 found 7 docstring sites still publishing the old
           content after pass-5's story-body fix.
 
+      EC-scenario-match sub-rule for BC anchor citations (W12.L1, F-W12P6-001):
+        - When an EC row in a BC's Edge Cases table includes a `covered
+          by <test>` citation, the cited test MUST exercise the SPECIFIC
+          scenario described in the EC row (e.g., specific port number,
+          specific byte value, specific length boundary), not just the
+          parent BC capability.
+        - Example: BC-2.05.002 EC-001 says "data starts with b\"GET \" on
+          port 443" — must cite a test that uses port 443, not a test that
+          uses port 9999 (even if both demonstrate HTTP routing). Pass-6
+          adversary caught this by re-reading the EC text against the
+          cited test body.
+        - This sub-rule applies during BC-edit dispatches and during
+          adversarial review. Adversaries should flag EC-citation
+          mismatches as MEDIUM mis-anchor (citation exists but doesn't
+          match scenario).
+        - Story-writer + PO MUST verify scenario-match during BC anchor
+          additions: read the EC row, read the cited test body, confirm
+          the test setup reproduces the EC scenario exactly.
+
+      Single-burst-all-BCs rule for anchor-completeness (W12.L2):
+        - When anchor-completeness doctrine applies to ONE BC in a story
+          (e.g., adding new test names to its Architecture Anchors), the
+          dispatching orchestrator MUST sweep ALL BCs in the story's
+          `bcs:` frontmatter in the SAME burst — not iteratively across
+          adversarial passes.
+        - Pattern observed in Wave 12: pass-3 anchor fix to BC-2.05.002
+          left BC-2.05.001/003 with same gap; pass-4 caught and fixed
+          siblings; pass-6 caught yet another EC mis-anchor in BC-2.05.002
+          that the pass-3 sweep had missed. Each iteration cost an
+          adversarial pass + remediation burst (~1.5 hours each).
+        - PO dispatches for BC anchor updates MUST include explicit
+          checklist item: "Sweep ALL BCs in story `bcs:` frontmatter for
+          the same class of update (renamed tests, new test additions,
+          line-citation drift, EC-scenario-match) before committing."
+        - Adversaries should flag any BC anchor update that addresses
+          only one BC when other BCs in the story `bcs:` would benefit
+          from the same update as a sibling-sweep gap [process-gap].
+
       ALL remediations:
         - Before commit: execute the grep commands listed above and
           report results in the burst report.
@@ -160,7 +198,9 @@ policies:
       to DF-SIBLING-SWEEP-001 — repeated violations escalate the policy
       enforcement level.
     added: "2026-05-26"
-    derived-from: W9-D8 (closed during codification)
+    last-extended: "2026-05-27"
+    version: v3
+    derived-from: W9-D8 (closed during codification); extended v2 2026-05-27 (W11.L1/L2/L4); extended v3 2026-05-27 (W12.L1/L2)
 
   - id: DF-PR-MANAGER-COMPLETE-001
     name: pr-manager-must-complete-merge

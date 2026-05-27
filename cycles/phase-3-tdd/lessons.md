@@ -415,6 +415,83 @@ formalizing this as the default pattern.
 
 ---
 
+## Wave 12 Lessons (2026-05-27)
+
+### W12.L1 — Anchor-Completeness EC-Scenario-Match Sub-Rule [codified — 2026-05-27]
+
+**Finding ID:** F-W12P6-001 (pass-6 adversary; BC-2.05.002 EC-001 mis-anchor)
+**Category:** spec-anchor hygiene / anchor-completeness doctrine
+**Observed:** Wave 12 pass-6 adversary found that BC-2.05.002 EC-001 cited a test using port 9999
+to cover an EC row described as "data starts with `b\"GET \"` on port 443". The test exercised the
+same parent BC capability (HTTP routing) but used a different port than the EC scenario required.
+The EC citation existed but did not match the specific scenario described.
+**Doctrine sub-rule adopted:** When an EC row in a BC's Edge Cases table includes a `covered by
+<test>` citation, the cited test MUST exercise the SPECIFIC scenario described in the EC row
+(e.g., specific port number, specific byte value, specific length boundary) — not just the parent
+BC capability. A citation that exercises the capability in a different configuration than the EC
+describes is a MEDIUM mis-anchor (citation exists but doesn't match scenario).
+**Impact:** Pass-6 catching this reset the clean streak from pass-5. Required a remediation burst.
+Subsequent passes-7/8/9 were all CLEAN, confirming the sub-rule was the final convergence blocker.
+**Codification:** Extended DF-SIBLING-SWEEP-001 to v3 (EC-scenario-match sub-rule bullet group)
+in `.factory/policies.yaml`.
+**Status:** [codified — 2026-05-27]
+
+---
+
+### W12.L2 — Anchor-Completeness Sibling-Sweep Must Be Single-Burst Across ALL BCs [codified — 2026-05-27]
+
+**Finding ID:** Process gap observed across passes 3/4/6 (anchor cascade pattern)
+**Category:** process-discipline / sibling-sweep
+**Observed:** Wave 12 anchor-completeness corrections were applied iteratively:
+- Pass-3 fixed BC-2.05.002 but left BC-2.05.001/003 with the same gap → pass-4 caught siblings
+- Pass-4 fixed siblings but missed the EC-scenario-match detail in BC-2.05.002 → pass-6 caught it
+- Each iteration cost an adversarial pass + remediation burst (~1.5 hours each)
+Root cause: the orchestrator dispatched anchor-completeness fixes one-BC-at-a-time, relying on the
+adversary to discover remaining sibling gaps. Each discovery reset the 3-clean streak counter.
+**Rule adopted:** When anchor-completeness doctrine applies to ONE BC in a story (adding new test
+names to Architecture Anchors, fixing EC citations, updating line ranges), the dispatching
+orchestrator MUST sweep ALL BCs in the story `bcs:` frontmatter in the SAME burst — not
+iteratively across adversarial passes. PO dispatch checklist MUST include: "Sweep ALL BCs in
+story `bcs:` frontmatter for the same class of update before committing."
+**Codification:** Extended DF-SIBLING-SWEEP-001 to v3 (single-burst-all-BCs rule bullet group)
+in `.factory/policies.yaml`.
+**Status:** [codified — 2026-05-27]
+
+---
+
+### W12.L3 — Brownfield-Formalization Without Test Seams Converges Faster [deferred — phase-5]
+
+**Finding ID:** Wave 12 retrospective observation (convergence cost comparison)
+**Category:** adversarial-workflow / convergence-cost
+**Observed:** Wave 12 converged in 9 adversarial passes vs Wave 11's 11 passes. Wave 12
+(STORY-031) touched only tests/dispatcher_tests.rs with no src/ modifications and no test seams.
+Wave 11 (STORY-021) introduced 3 new test seam statics and modified 4 files including src/, which
+caused the iterative line-citation drift pattern (W11.L3) that added passes.
+**Pattern:** Test-only stories with no src/ modifications avoid the seam-block insertion cascade
+that shifts downstream line numbers. No seam insertions = no anchor drift = fewer line-citation
+passes required. The remaining adversarial cost in Wave 12 was driven entirely by anchor-completeness
+EC citation quality (passes 1-6) rather than by implementation churn.
+**Target:** phase-5 — evaluate whether "test-only story" can be a planning signal for reduced
+adversarial budget allocation (e.g., 6 passes reserved vs 10 for src-touching stories).
+**Validation required:** research-agent must validate per DF-VALIDATION-001 before filing GitHub issue.
+**Status:** [deferred — phase-5]
+
+---
+
+### W12.L4 — DF-ADVERSARY-METHODOLOGY-001 Effective Across 9 Passes [codified — confirmed W12]
+
+**Finding ID:** Wave 12 retrospective observation
+**Category:** adversarial-workflow / policy-validation
+**Observed:** Zero methodology bugs across all 9 adversarial passes in Wave 12. No false positives
+from wrong-directory queries. All adversary dispatches used absolute paths per DF-ADVERSARY-METHODOLOGY-001
+(codified 2026-05-27 from W11.L2). This is the first full wave under the new policy.
+**Validation:** The W11 pass-5 false-CRITICAL finding pattern (adversary grepping main repo instead
+of worktree) did not recur in any of Wave 12's 9 passes. Policy enforcement via orchestrator
+dispatch template injection is working at the intended dispatch site.
+**Status:** [codified — confirmed effective W12; no recurrence]
+
+---
+
 ## Earlier Wave Lessons (Waves 1-6)
 
 Per-wave process-gap items for Waves 1-6 are recorded in STATE.md Cycle-Close Follow-Up Items
