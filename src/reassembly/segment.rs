@@ -140,7 +140,7 @@ impl FlowDirection {
         }
 
         if has_overlap {
-            self.overlap_count += 1;
+            self.overlap_count = self.overlap_count.saturating_add(1);
 
             let fully_covered = trimmed_ranges
                 .iter()
