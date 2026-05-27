@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-018"
 epic_id: "E-2"
-version: "1.5"
+version: "1.6"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -87,8 +87,9 @@ implementation_strategy: brownfield-formalization
 - The truncated finding sets `source_ip: Some(packet.src_ip)` but `direction: None`.
 - **Test:** `test_BC_2_04_023_truncated_finding_has_source_ip_no_direction()`
 
-### AC-007 (traces to BC-2.04.027 postcondition 1-2)
-- For each segment arriving after `depth_exceeded == true`, `stats.segments_depth_exceeded` increments by 1 and no bytes are stored.
+### AC-007 (traces to BC-2.04.027 v1.3 postcondition 1-2 + Description paths a/b/c)
+- For each segment that returns `InsertResult::DepthExceeded` — whether via the pre-existing `depth_exceeded` flag (path a), the `remaining_depth == 0` check at `segment.rs:80-86` (path b, first-call sets flag during this call), or the `allowed == 0` check at `segment.rs:94-98` (path c, first-call sets flag during this call) — `stats.segments_depth_exceeded` increments by 1 and no bytes are stored.
+- **NOTE:** Paths (b) and (c) are the first-call cases where the segment itself triggers the flag transition; see BC-2.04.027 v1.3 EC-005 for the canonical allowed==0 example.
 - **Test:** `test_BC_2_04_027_depth_exceeded_counter_increments()`
 
 ### AC-008 (traces to BC-2.04.027 postcondition 4 and invariant 2)
@@ -249,3 +250,4 @@ implementation_strategy: brownfield-formalization
 | 1.3 | 2026-05-26 | story-writer | Wave 10 STORY-018 pass-2 fixes (sibling-regression of pass-1 v1.3 BC fix that didn't propagate to story EC table): F-PASS2-001 (MED) — EC-007 rewritten to match BC-2.04.045 v1.3 EC-002 (SegmentLimitReached via early guard at segment.rs:70-72); O-PASS2-002 (LOW) — Task 7 parenthetical reference corrected from EC-010 to BC-2.04.046 canonical test vector. Sweep checklist expanded per DF-SIBLING-SWEEP-001 to grep story EC tables when downstream BC EC tables change. |
 | 1.4 | 2026-05-26 | story-writer | Wave 10 STORY-018 pass-4 fixes: F-PASS4-001 (MED, exactly the W10-D6 process-gap pattern) — AC-018 rewritten to use mid-loop entry condition (`segments.len() < max_segments` at entry) matching BC-2.04.045 v1.3 PC3 explicit bifurcation; added NOTE referencing EC-007 for the early-exit path. O-PASS4-002 (LOW) — AC-019 augmented with overlap_count increment assertion per BC-2.04.046 PC5. DF-SIBLING-SWEEP-001 v2 refinement applied: sweep included AC text against revised BC PCs/INVs (not just EC tables) — W10-D6 codification target validated by this fix. |
 | 1.5 | 2026-05-26 | story-writer | Wave 10 STORY-018 pass-5 fixes (sibling-regression of pass-4 v2-refined sweep gaps): F-PASS5-001 (MED) — dropped non-existent "EC-005" from AC-002 NOTE (BC-2.04.041 v1.3 EC table has only EC-001..EC-004); F-PASS5-002 (MED, within-story half) — AC-018 "no gap can be inserted" tail removed (structurally unreachable per early-guard analysis); AC-018 rescoped to "overlap_count claim only" with cross-ref to AC-019 for partial-insertion accounting; O-PASS5-001 (LOW) — AC-001 NOTE added mirroring AC-002 NOTE for allowed==0 boundary. DF-SIBLING-SWEEP-001 v3 refinement applied: sweep now includes (a) cross-reference target resolution verification, (b) implementation-reachability reasoning. W10-D7 codification target validated (BC-2.04.045 v1.3 PC2 "or no gaps fit at all" unreachable branch deferred to wave-gate). |
+| 1.6 | 2026-05-26 | story-writer | Wave 10 STORY-018 pass-6 fix: F-PASS6-001 (MED, recursive sweep-gap pattern — DF-SIBLING-SWEEP-001 v3 axis 'implementation-reachability reasoning' was applied to current-pass ACs but not to ACs whose BCs were modified in PRIOR passes this wave) — AC-007 antecedent rewritten to enumerate all 3 BC-2.04.027 v1.3 paths (a/b/c) for DepthExceeded; added NOTE pointing at first-call cases (paths b/c) and BC-2.04.027 v1.3 EC-005. DF-SIBLING-SWEEP-001 v4 refinement applied: sweep now broadens to ALL ACs whose anchored BCs were modified in any pass of any cycle since the AC was last reviewed. |

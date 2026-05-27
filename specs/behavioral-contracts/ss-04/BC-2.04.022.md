@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 7 wave-level adv-pass-3 F-2 MEDIUM: mega-sweep (W4.1 axis #4). Fixed flow.rs:100-105 → 93-104 (stale range: overlap_alert_fired is at line 93, outside the cited range; correct range 93-104 covers all three _alert_fired latch fields: overlap@93, small_segment@102, out_of_window@104). — 2026-05-25"
   - "v1.4: Wave 7 wave-level adv-pass-4 F-3+F-4 (process-gap): mega-sweep false-CORRECT — LESSON-P1.01 comment actually at 413-419 (cited range 420-426 contained LESSON-P2.05 instead); check_anomaly_thresholds outer closing brace at 513 (cited 420-512 off-by-one). — 2026-05-25"
+  - "v1.5: Wave 10 wave-level adv pass-1 F-W10P1-002: Source Evidence anchor mod.rs:430,465,489 → mod.rs:430,457,489 (line 465 was latch-set assignment; Evidence Types declares guard clause, so all three must be guard-checks; line 457 is the small-segment guard) — 2026-05-26"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -110,7 +111,7 @@ or incrementing dropped_findings again. This is LESSON-P1.01 (LESSON-P0.03 in ol
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:430,465,489` |
+| **Path** | `src/reassembly/mod.rs:430,457,489` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

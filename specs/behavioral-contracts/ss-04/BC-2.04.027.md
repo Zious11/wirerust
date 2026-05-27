@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: F-004 remediation — Description corrected to document allowed==0 and remaining_depth==0 as first-call DepthExceeded paths; EC-001 narrowed; new EC-005 added; DF-SIBLING-SWEEP-001 — 2026-05-26"
+  - "v1.4: Wave 10 wave-level adv pass-1 F-W10P1-003: formal anchor segment.rs:80-88 → segment.rs:80-86 (line 87 blank, line 88 starts truncation logic). Body prose already correct; only formal anchors needed update — 2026-05-26"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -90,7 +91,7 @@ distinct from `Truncated` events (partial insertion).
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- depth-exceeded tracking enables observability of segments dropped by the depth bound |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:387-389, DepthExceeded match arm; segment.rs:80-88, DepthExceeded check) |
+| Architecture Module | SS-04 (reassembly/mod.rs:387-389, DepthExceeded match arm; segment.rs:80-86, DepthExceeded check) |
 | Stories | STORY-018 |
 | Origin BC | BC-RAS-027 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -103,7 +104,7 @@ distinct from `Truncated` events (partial insertion).
 ## Architecture Anchors
 
 - `src/reassembly/mod.rs:387-389` -- DepthExceeded match arm: segments_depth_exceeded++
-- `src/reassembly/segment.rs:80-88` -- DepthExceeded return when depth_exceeded is already set
+- `src/reassembly/segment.rs:80-86` -- DepthExceeded return when depth_exceeded is already set
 
 ## Source Evidence
 
