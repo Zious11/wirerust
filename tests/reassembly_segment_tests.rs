@@ -1658,3 +1658,844 @@ proptest! {
         }
     }
 }
+
+// =============== STORY-018: Resource Bounds — Segment-Level (Wave 10) ===============
+// BCs: 2.04.041 (depth truncation), 2.04.042 (out-of-window), 2.04.044 (segment limit
+// non-overlap), 2.04.045 (segment limit overlap), 2.04.046 (partial insertion mid-loop)
+// ACs: 001, 002, 003, 010, 011, 012, 016, 017, 018, 019
+// ECs: 001, 002, 003, 004, 005, 006, 007, 009, 010
+// All test bodies panic — Red Gate (Part A stubs).
+// ======================================================================================
+
+// --- AC-001 (BC-2.04.041 postcondition 1) ---
+/// When reassembled_bytes + buffered_bytes + data.len() > max_depth and
+/// depth_exceeded == false, insert_segment returns InsertResult::Truncated.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_041_depth_truncation_returns_truncated() {
+    // Canonical vector (from story spec):
+    //   max_depth=10; insert 5 bytes (buffered=5); insert 8 more bytes →
+    //   reassembled(0) + buffered(5) + new(8) = 13 > 10 → Truncated.
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 10;
+    let max_segments: usize = 10_000;
+    let max_receive_window: usize = 10_485_760;
+
+    // First insert: 5 bytes at offset 1 (within depth, buffered=5)
+    let r1 = dir.insert_segment(1001, b"AAAAA", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        r1,
+        InsertResult::Inserted,
+        "AC-001 precondition: first 5-byte insert must succeed (total=5 <= max_depth=10)"
+    );
+    assert_eq!(
+        dir.buffered_bytes(),
+        5,
+        "AC-001 precondition: buffered_bytes must be 5 after first insert"
+    );
+    assert!(
+        !dir.depth_exceeded,
+        "AC-001 precondition: depth_exceeded must be false"
+    );
+
+    // Second insert: 8 bytes → 0 + 5 + 8 = 13 > 10 → Truncated
+    let r2 = dir.insert_segment(
+        1006,
+        b"BBBBBBBB",
+        max_depth,
+        max_segments,
+        max_receive_window,
+    );
+    assert_eq!(
+        r2,
+        InsertResult::Truncated,
+        "BC-2.04.041 PC1: reassembled(0) + buffered(5) + new(8) = 13 > max_depth(10) must return Truncated"
+    );
+}
+
+// --- AC-002 (BC-2.04.041 postconditions 2-4) ---
+/// After a Truncated result, only allowed = max_depth.saturating_sub(reassembled_bytes
+/// + buffered_bytes) bytes are stored, and buffered_bytes increases by exactly allowed.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_041_truncated_stores_only_allowed_bytes() {
+    // Canonical vector:
+    //   max_depth=10; insert 5 bytes (buffered=5); insert 8 more bytes →
+    //   allowed = 10 - (0 + 5) = 5; buffered_bytes must increase by exactly 5.
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 10;
+    let max_segments: usize = 10_000;
+    let max_receive_window: usize = 10_485_760;
+
+    // First insert: 5 bytes at offset 1
+    dir.insert_segment(1001, b"AAAAA", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        dir.buffered_bytes(),
+        5,
+        "AC-002 precondition: 5 bytes buffered"
+    );
+
+    // Second insert: 8 bytes; only allowed=5 should be stored
+    let r = dir.insert_segment(
+        1006,
+        b"BBBBBBBB",
+        max_depth,
+        max_segments,
+        max_receive_window,
+    );
+    assert_eq!(r, InsertResult::Truncated, "AC-002: must return Truncated");
+
+    // buffered_bytes should have increased by exactly 5 (= allowed = 10 - 5)
+    assert_eq!(
+        dir.buffered_bytes(),
+        10,
+        "BC-2.04.041 PC3-4: buffered_bytes must be exactly max_depth after Truncated (5 original + 5 allowed)"
+    );
+
+    // Flush and verify only 5 bytes of the truncated segment were stored
+    let flushed = dir.flush_contiguous();
+    let all_bytes: usize = flushed.iter().map(|(_, d)| d.len()).sum();
+    assert_eq!(
+        all_bytes, 10,
+        "BC-2.04.041 PC2: total flushed bytes must be exactly max_depth (5 original + 5 allowed)"
+    );
+}
+
+// --- AC-003 (BC-2.04.041 postcondition 5 and invariant 1) ---
+/// After Truncated, depth_exceeded == true and all subsequent inserts return
+/// InsertResult::DepthExceeded (not Truncated again).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_041_depth_exceeded_flag_set_after_truncated() {
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 10;
+    let max_segments: usize = 10_000;
+    let max_receive_window: usize = 10_485_760;
+
+    // Insert 5 bytes then trigger Truncated
+    dir.insert_segment(1001, b"AAAAA", max_depth, max_segments, max_receive_window);
+    let r = dir.insert_segment(
+        1006,
+        b"BBBBBBBB",
+        max_depth,
+        max_segments,
+        max_receive_window,
+    );
+    assert_eq!(
+        r,
+        InsertResult::Truncated,
+        "AC-003 precondition: Truncated must fire"
+    );
+
+    // BC-2.04.041 PC5: depth_exceeded must be true after Truncated
+    assert!(
+        dir.depth_exceeded,
+        "BC-2.04.041 PC5: depth_exceeded must be true after Truncated"
+    );
+
+    // BC-2.04.041 INV-1: all subsequent inserts must return DepthExceeded, not Truncated
+    let r2 = dir.insert_segment(1020, b"CCCC", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        r2,
+        InsertResult::DepthExceeded,
+        "BC-2.04.041 INV-1: second insert after Truncated must return DepthExceeded (not Truncated again)"
+    );
+
+    // Third insert still returns DepthExceeded (flag is permanent)
+    let r3 = dir.insert_segment(1030, b"DDDD", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        r3,
+        InsertResult::DepthExceeded,
+        "BC-2.04.041 INV-1: third insert after Truncated must also return DepthExceeded"
+    );
+}
+
+// --- AC-010 (BC-2.04.042 postcondition 1 and invariant 1) ---
+/// When a segment's computed offset exceeds base_offset.saturating_add(max_receive_window
+/// as u64), insert_segment returns InsertResult::OutOfWindow and no bytes are stored.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_042_out_of_window_returns_out_of_window() {
+    // Setup: ISN=1000, so base_offset=1, max_receive_window=100.
+    // A segment at seq=1000+1+100+1=1102 has offset=102 which exceeds base_offset(1)+window(100)=101.
+    // So offset 102 > 101 → OutOfWindow.
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 10_485_760;
+    let max_segments: usize = 10_000;
+    let max_receive_window: usize = 100;
+
+    // base_offset=1, window=100 → limit = 1 + 100 = 101.
+    // offset of a segment at seq=1102 is seq.wrapping_sub(ISN) as u64 = 1102 - 1000 = 102.
+    // 102 > 101 → OutOfWindow.
+    let result = dir.insert_segment(1102, b"evil", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        result,
+        InsertResult::OutOfWindow,
+        "BC-2.04.042 PC1: offset(102) > base_offset(1) + window(100) must return OutOfWindow"
+    );
+
+    // Verify no bytes stored
+    assert_eq!(
+        dir.buffered_bytes(),
+        0,
+        "BC-2.04.042 INV-1: buffered_bytes must remain 0 after OutOfWindow"
+    );
+    assert!(
+        dir.segments_is_empty(),
+        "BC-2.04.042 INV-1: no segment must be stored"
+    );
+}
+
+// --- AC-011 (BC-2.04.042 postcondition 4) ---
+/// out_of_window_count increments by 1 for each out-of-window segment.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_042_out_of_window_count_increments() {
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 10_485_760;
+    let max_segments: usize = 10_000;
+    let max_receive_window: usize = 100;
+
+    assert_eq!(
+        dir.out_of_window_count, 0,
+        "AC-011 precondition: count starts at 0"
+    );
+
+    // First out-of-window segment: offset=102 > limit=101
+    let r1 = dir.insert_segment(1102, b"x", max_depth, max_segments, max_receive_window);
+    assert_eq!(r1, InsertResult::OutOfWindow, "AC-011: first OOW segment");
+    assert_eq!(
+        dir.out_of_window_count, 1,
+        "BC-2.04.042 PC4: out_of_window_count must be 1 after first OOW segment"
+    );
+
+    // Second out-of-window segment: count must increment again
+    let r2 = dir.insert_segment(1200, b"y", max_depth, max_segments, max_receive_window);
+    assert_eq!(r2, InsertResult::OutOfWindow, "AC-011: second OOW segment");
+    assert_eq!(
+        dir.out_of_window_count, 2,
+        "BC-2.04.042 PC4: out_of_window_count must be 2 after second OOW segment"
+    );
+}
+
+// --- AC-012 (BC-2.04.042 edge case EC-001) ---
+/// A segment at exactly base_offset + max_receive_window (the boundary) is accepted
+/// with InsertResult::Inserted (boundary is exclusive: offset > window, not >=).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_042_segment_at_exact_window_boundary_is_inserted() {
+    // ISN=1000 → base_offset=1. max_receive_window=100 → window_limit = 1 + 100 = 101.
+    // A segment at ISN-relative offset=101 has seq = 1000 + 101 = 1101.
+    // The check is: offset > window_limit → 101 > 101 is FALSE → Inserted.
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 10_485_760;
+    let max_segments: usize = 10_000;
+    let max_receive_window: usize = 100;
+
+    // Segment at exactly the boundary (offset == base + window): must be Inserted
+    let result = dir.insert_segment(
+        1101,
+        b"boundary",
+        max_depth,
+        max_segments,
+        max_receive_window,
+    );
+    assert_eq!(
+        result,
+        InsertResult::Inserted,
+        "BC-2.04.042 EC-001: segment at offset == base_offset + window must be Inserted (exclusive boundary: `>` not `>=`)"
+    );
+
+    // One byte beyond the boundary (offset = 102 > 101): must be OutOfWindow
+    let result2 = dir.insert_segment(1102, b"x", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        result2,
+        InsertResult::OutOfWindow,
+        "BC-2.04.042 EC-001: segment one byte beyond boundary must be OutOfWindow"
+    );
+}
+
+// --- AC-016 (BC-2.04.044 postcondition 1 and invariant 1) ---
+/// When segments.len() >= max_segments and the new segment does not overlap any existing
+/// entry, insert_segment returns InsertResult::SegmentLimitReached and segments.len()
+/// is unchanged.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_044_segment_limit_non_overlapping_path() {
+    // Setup: max_segments=3; insert 3 non-overlapping segments to fill the map.
+    // Then insert a 4th non-overlapping segment → SegmentLimitReached.
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 10_485_760;
+    let max_segments: usize = 3;
+    let max_receive_window: usize = 10_485_760;
+
+    // Fill the segment map to capacity (3 non-overlapping, non-contiguous segments)
+    dir.insert_segment(1001, b"AAA", max_depth, max_segments, max_receive_window);
+    dir.insert_segment(1010, b"BBB", max_depth, max_segments, max_receive_window);
+    dir.insert_segment(1020, b"CCC", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        dir.segment_count(),
+        3,
+        "AC-016 precondition: 3 segments fill the map"
+    );
+
+    // New non-overlapping segment (at seq=1030, offset=30, no overlap with existing)
+    let result = dir.insert_segment(1030, b"DDD", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        result,
+        InsertResult::SegmentLimitReached,
+        "BC-2.04.044 PC1: non-overlapping insert at full capacity must return SegmentLimitReached"
+    );
+    assert_eq!(
+        dir.segment_count(),
+        3,
+        "BC-2.04.044 INV-1: segments.len() must be unchanged after SegmentLimitReached"
+    );
+}
+
+// --- AC-017 (BC-2.04.044 edge case EC-001) ---
+/// When segments.len() == max_segments - 1, a new non-overlapping segment is inserted
+/// successfully (not rejected).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_044_segment_one_below_limit_is_inserted() {
+    // max_segments=3; insert 2 segments (== max - 1), then insert a 3rd → Inserted.
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 10_485_760;
+    let max_segments: usize = 3;
+    let max_receive_window: usize = 10_485_760;
+
+    // Insert 2 segments (one below limit)
+    dir.insert_segment(1001, b"AAA", max_depth, max_segments, max_receive_window);
+    dir.insert_segment(1010, b"BBB", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        dir.segment_count(),
+        2,
+        "AC-017 precondition: 2 segments = max_segments - 1"
+    );
+
+    // Third segment at exactly max_segments - 1 → must be Inserted (not rejected)
+    let result = dir.insert_segment(1020, b"CCC", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        result,
+        InsertResult::Inserted,
+        "BC-2.04.044 EC-001: insert when segments.len() == max_segments - 1 must return Inserted"
+    );
+    assert_eq!(
+        dir.segment_count(),
+        3,
+        "AC-017: 3 segments in map after successful insert"
+    );
+}
+
+// --- AC-018 (BC-2.04.045 postcondition 1 and invariant 2) ---
+/// When segments.len() >= max_segments and the new segment overlaps existing entries but
+/// gaps cannot be inserted, insert_segment returns SegmentLimitReached and overlap_count
+/// is incremented (overlap was detected before the mid-loop limit check).
+///
+/// Implementation note: the early segment-limit check (before overlap detection) only fires
+/// for NON-overlapping segments (line 70-72 in segment.rs fires when segments.len() >= max_segments
+/// BEFORE the overlap loop). For overlapping inserts, the mid-loop check (inside the gap
+/// insertion loop at line 178) is the relevant gate.
+///
+/// To exercise BC-2.04.045 INV-2 (overlap detected before limit fires):
+///   max_segments=3; 2 segments in map (early check: 2 < 3, passes).
+///   New segment overlaps one existing segment AND has 2 gaps.
+///   After inserting first gap (map now has 3 = max_segments), second gap can't be inserted →
+///   mid-loop SegmentLimitReached, but overlap_count was already incremented during detection.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_045_segment_limit_overlapping_path_increments_overlap_count() {
+    // max_segments=3; 2 segments in map at offsets [1,4) and [10,13).
+    // New segment: offset [1,16) = 15 bytes (overlaps [1,4) and [10,13), gaps at [4,10) and [13,16)).
+    // Overlap detected → overlap_count++ (before gap insertion loop).
+    // Gap [4,10) inserted → map now has 3 = max_segments.
+    // Gap [13,16): 3 >= 3 → SegmentLimitReached.
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 10_485_760;
+    let max_segments: usize = 3;
+    let max_receive_window: usize = 10_485_760;
+
+    // Insert 2 segments: offset [1,4) and offset [10,13)
+    dir.insert_segment(1001, b"AAA", max_depth, max_segments, max_receive_window);
+    dir.insert_segment(1010, b"BBB", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        dir.segment_count(),
+        2,
+        "AC-018 precondition: 2 segments in map"
+    );
+    assert_eq!(dir.overlap_count, 0, "AC-018 precondition: overlap_count=0");
+
+    // New segment: seq=1001, 15 bytes covering [1,16). Overlaps both existing segments.
+    // Gaps: [4,10) = 6 bytes and [13,16) = 3 bytes.
+    let result = dir.insert_segment(
+        1001,
+        b"AAABBBBBBBBBBCC",
+        max_depth,
+        max_segments,
+        max_receive_window,
+    );
+    assert_eq!(
+        result,
+        InsertResult::SegmentLimitReached,
+        "BC-2.04.045 PC1: must return SegmentLimitReached after hitting mid-loop segment limit"
+    );
+    assert_eq!(
+        dir.overlap_count, 1,
+        "BC-2.04.045 INV-2: overlap_count must increment (overlap detected before mid-loop limit check)"
+    );
+    // Segment count: 2 original + 1 gap (first gap [4,10) was inserted before limit hit) = 3
+    assert_eq!(
+        dir.segment_count(),
+        3,
+        "AC-018: exactly 3 segments (2 original + first gap inserted before limit)"
+    );
+}
+
+// --- AC-019 (BC-2.04.046 postconditions 1-3 and invariant 1) ---
+/// When the BTreeMap fills to max_segments mid-way through a multi-gap insertion,
+/// SegmentLimitReached is returned, earlier gaps are in the map, later gaps are dropped,
+/// and buffered_bytes has increased only by the bytes of the inserted gaps.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_04_046_segment_limit_partial_insertion_mid_loop() {
+    // Setup: max_segments=3; insert 2 segments leaving a gap between them.
+    // Then insert a segment that spans both existing segments plus a tail extension.
+    // This creates TWO gaps to fill; the first gap consumes the last slot → SegmentLimitReached.
+    // Earlier gap: inserted (in map). Later gap: dropped.
+    // buffered_bytes increases only by the inserted gap bytes.
+    //
+    // Canonical layout:
+    //   Existing: offset [1,4) = b"AAA", offset [10,13) = b"BBB"  (2 of 3 slots used)
+    //   New: ISN+1 to ISN+15 = b"AAABBBBBBBBBBCC" (15 bytes, seq=1001, offset=[1,16))
+    //   Gap 1: [4,10) = 6 bytes (fills last slot → segment count = 3)
+    //   Gap 2: [13,16) = 3 bytes (cannot insert, limit hit) → dropped
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 10_485_760;
+    let max_segments: usize = 3;
+    let max_receive_window: usize = 10_485_760;
+
+    // Insert 2 segments: offset [1,4) and offset [10,13)
+    dir.insert_segment(1001, b"AAA", max_depth, max_segments, max_receive_window);
+    dir.insert_segment(1010, b"BBB", max_depth, max_segments, max_receive_window);
+    let before_buffered = dir.buffered_bytes();
+    assert_eq!(
+        before_buffered, 6,
+        "AC-019 precondition: 6 bytes buffered (3+3)"
+    );
+    assert_eq!(dir.segment_count(), 2, "AC-019 precondition: 2 segments");
+
+    // Insert spanning segment with 2 insertable gaps
+    let result = dir.insert_segment(
+        1001,
+        b"AAABBBBBBBBBBCC",
+        max_depth,
+        max_segments,
+        max_receive_window,
+    );
+
+    // BC-2.04.046 PC1: SegmentLimitReached is returned
+    assert_eq!(
+        result,
+        InsertResult::SegmentLimitReached,
+        "BC-2.04.046 PC1: must return SegmentLimitReached when limit hit mid-loop"
+    );
+
+    // BC-2.04.046 PC2: earlier gap [4,10) is in the map; later gap [13,16) is NOT
+    assert_eq!(
+        dir.segment_count(),
+        3,
+        "BC-2.04.046 PC2: exactly one gap inserted → segment_count must be 3 (2 original + 1 gap)"
+    );
+    assert!(
+        dir.has_segment_at(4),
+        "BC-2.04.046 PC2: first gap at offset 4 must be present in the map"
+    );
+    assert!(
+        !dir.has_segment_at(13),
+        "BC-2.04.046 PC2: second gap at offset 13 must NOT be in the map (dropped)"
+    );
+
+    // BC-2.04.046 PC3: buffered_bytes increased only by the 6 inserted gap bytes
+    assert_eq!(
+        dir.buffered_bytes(),
+        before_buffered + 6,
+        "BC-2.04.046 PC3: buffered_bytes must increase by exactly 6 (gap [4,10)) — NOT by 9 (both gaps)"
+    );
+}
+
+// --- EC-001 (depth: segment exactly at max_depth, no truncation needed) ---
+/// Segment exactly at max_depth (no truncation needed): Inserted; no Truncated result.
+#[test]
+fn test_story_018_ec001_segment_exactly_at_max_depth_is_inserted() {
+    // max_depth=10; insert exactly 10 bytes → reassembled(0)+buffered(0)+new(10) = 10,
+    // which is NOT > 10, so no Truncated. The check is > (strictly greater than).
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 10;
+    let max_segments: usize = 10_000;
+    let max_receive_window: usize = 10_485_760;
+
+    let result = dir.insert_segment(
+        1001,
+        b"AAAAAAAAAA",
+        max_depth,
+        max_segments,
+        max_receive_window,
+    );
+    assert_eq!(
+        result,
+        InsertResult::Inserted,
+        "EC-001: exactly max_depth bytes must return Inserted (check is >, not >=)"
+    );
+    assert!(
+        !dir.depth_exceeded,
+        "EC-001: depth_exceeded must remain false"
+    );
+    assert_eq!(dir.buffered_bytes(), 10, "EC-001: all 10 bytes stored");
+}
+
+// --- EC-002 (depth: segment crosses depth limit by 1 byte) ---
+/// Segment crosses depth limit by 1 byte: depth is exceeded; depth_exceeded=true.
+///
+/// Implementation note: when allowed=0 (buffer is already full to max_depth),
+/// the code returns DepthExceeded (not Truncated), because there is no data to
+/// truncate — allowed=0 means we'd store zero bytes, which is a pure rejection.
+/// Truncated is returned only when allowed > 0 (partial data can be stored).
+/// This test verifies the boundary: exactly-full buffer + 1 new byte → DepthExceeded.
+#[test]
+fn test_story_018_ec002_segment_crosses_depth_by_one_byte_truncated() {
+    // max_depth=10; insert 10 bytes (exactly at depth, buffer full);
+    // then insert 1 more byte → allowed=0 → DepthExceeded (not Truncated).
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 10;
+    let max_segments: usize = 10_000;
+    let max_receive_window: usize = 10_485_760;
+
+    // Fill exactly to depth limit (10 bytes)
+    let r1 = dir.insert_segment(
+        1001,
+        b"AAAAAAAAAA",
+        max_depth,
+        max_segments,
+        max_receive_window,
+    );
+    assert_eq!(
+        r1,
+        InsertResult::Inserted,
+        "EC-002 precondition: 10 bytes inserted"
+    );
+    assert_eq!(
+        dir.buffered_bytes(),
+        10,
+        "EC-002 precondition: 10 bytes buffered"
+    );
+
+    // Insert 1 more byte → allowed = max_depth - (reassembled + buffered) = 10 - (0+10) = 0.
+    // When allowed == 0, the implementation returns DepthExceeded (segment is fully rejected).
+    let r2 = dir.insert_segment(1011, b"B", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        r2,
+        InsertResult::DepthExceeded,
+        "EC-002: when buffer is full (allowed=0), 1 new byte returns DepthExceeded (pure rejection, not partial truncation)"
+    );
+
+    // buffered_bytes unchanged (no bytes stored)
+    assert_eq!(
+        dir.buffered_bytes(),
+        10,
+        "EC-002: buffered_bytes must be unchanged at 10 (no bytes stored when allowed=0)"
+    );
+    assert!(dir.depth_exceeded, "EC-002: depth_exceeded must be true");
+}
+
+// --- EC-003 (depth: two segments after depth hit) ---
+/// Two segments after depth hit: both return DepthExceeded; depth_exceeded flag is
+/// permanent after first Truncated result.
+#[test]
+fn test_story_018_ec003_two_segments_after_depth_hit_both_depth_exceeded() {
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 5;
+    let max_segments: usize = 10_000;
+    let max_receive_window: usize = 10_485_760;
+
+    // Trigger Truncated
+    dir.insert_segment(1001, b"AA", max_depth, max_segments, max_receive_window);
+    let r_trunc = dir.insert_segment(1003, b"BBBBBB", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        r_trunc,
+        InsertResult::Truncated,
+        "EC-003 precondition: Truncated fired"
+    );
+    assert!(
+        dir.depth_exceeded,
+        "EC-003 precondition: depth_exceeded=true"
+    );
+
+    // First post-Truncated segment: DepthExceeded
+    let r1 = dir.insert_segment(1020, b"CCC", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        r1,
+        InsertResult::DepthExceeded,
+        "EC-003: first segment after Truncated must return DepthExceeded"
+    );
+
+    // Second post-Truncated segment: also DepthExceeded
+    let r2 = dir.insert_segment(1030, b"DDD", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        r2,
+        InsertResult::DepthExceeded,
+        "EC-003: second segment after Truncated must return DepthExceeded (flag is permanent)"
+    );
+}
+
+// --- EC-004 (out-of-window: segment at exact receive window boundary) ---
+/// Segment at exact receive window boundary is Inserted (boundary is exclusive: > not >=).
+#[test]
+fn test_story_018_ec004_segment_at_exact_window_boundary_inserted() {
+    // Distinct from AC-012: this uses a different ISN and window size to prove
+    // generality. ISN=500 → base_offset=1; max_receive_window=50 → limit=51.
+    // seq = 500 + 51 = 551 → offset=51 = limit exactly → must be Inserted (exclusive boundary).
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(500);
+
+    let max_depth: usize = 10_485_760;
+    let max_segments: usize = 10_000;
+    let max_receive_window: usize = 50;
+
+    // offset=51 is exactly at base_offset(1)+window(50)=51 → should be Inserted
+    let result = dir.insert_segment(551, b"EDGE", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        result,
+        InsertResult::Inserted,
+        "EC-004: segment at exact window boundary (offset == base + window) must be Inserted"
+    );
+
+    // offset=52 is one beyond limit → OutOfWindow
+    let result2 = dir.insert_segment(552, b"X", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        result2,
+        InsertResult::OutOfWindow,
+        "EC-004: segment one beyond boundary (offset > base + window) must be OutOfWindow"
+    );
+}
+
+// --- EC-005 (out-of-window: segment 1 byte beyond receive window) ---
+/// Segment 1 byte beyond receive window: OutOfWindow; out_of_window_count=1.
+#[test]
+fn test_story_018_ec005_segment_one_byte_beyond_window_out_of_window() {
+    // ISN=1000 → base_offset=1; max_receive_window=100 → limit=101.
+    // offset=102 (1 beyond limit) → OutOfWindow; out_of_window_count increments to 1.
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 10_485_760;
+    let max_segments: usize = 10_000;
+    let max_receive_window: usize = 100;
+
+    // offset = 1000+102 - 1000 = 102 > limit(101) → OutOfWindow
+    let result = dir.insert_segment(1102, b"X", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        result,
+        InsertResult::OutOfWindow,
+        "EC-005: 1 byte beyond window must return OutOfWindow"
+    );
+    assert_eq!(
+        dir.out_of_window_count, 1,
+        "EC-005: out_of_window_count must be 1"
+    );
+    assert_eq!(dir.buffered_bytes(), 0, "EC-005: no bytes stored");
+}
+
+// --- EC-006 (out-of-window: base_offset near u64::MAX) ---
+/// base_offset near u64::MAX: saturating_add prevents overflow; OutOfWindow returned correctly.
+#[test]
+fn test_story_018_ec006_base_offset_near_u64_max_saturating_add() {
+    // We cannot set base_offset directly (it's derived from ISN and flush).
+    // Instead, use a concrete ISN near u32::MAX and verify the saturating_add
+    // behavior: when base_offset is large and window overflows u64, the check
+    // uses saturating_add which caps at u64::MAX. Any segment offset < u64::MAX
+    // will therefore be <= u64::MAX and accepted (not rejected) unless its
+    // actual offset is truly beyond the non-saturated window.
+    //
+    // Practical approach: set ISN near u32::MAX so the base_offset after set_isn
+    // is 1 (from ISN+1 arithmetic), then use a window small enough that we can
+    // construct an out-of-window segment. This tests that the code path compiles
+    // and returns the right result — the interesting edge here is when
+    // base_offset itself is near u64::MAX, but we can't reach that in unit
+    // testing without manually hacking the field. The compile-time correctness
+    // of saturating_add is the critical safety property; the functional
+    // test of out-of-window is already covered by EC-005 and AC-010.
+    //
+    // We directly verify: with a very large window (near usize::MAX cast to u64),
+    // saturating_add must not overflow and must accept segments at reasonable offsets.
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(0xFFFF_FF00_u32);
+
+    let max_depth: usize = 10_485_760;
+    let max_segments: usize = 10_000;
+    // usize::MAX window → saturating_add(base_offset, usize::MAX as u64) = u64::MAX (saturated)
+    // Any segment offset <= u64::MAX should be accepted
+    let max_receive_window: usize = usize::MAX;
+
+    // seq=ISN+1=0xFFFF_FF01 → offset=1. With window=usize::MAX, limit = u64::MAX (saturated).
+    // offset(1) > u64::MAX? No → Inserted.
+    let result = dir.insert_segment(
+        0xFFFF_FF01_u32,
+        b"X",
+        max_depth,
+        max_segments,
+        max_receive_window,
+    );
+    assert_eq!(
+        result,
+        InsertResult::Inserted,
+        "EC-006: saturating_add must prevent overflow — segment within any sane offset must not be rejected"
+    );
+    assert_eq!(
+        dir.out_of_window_count, 0,
+        "EC-006: out_of_window_count must remain 0 when segment is within the saturated window"
+    );
+}
+
+// --- EC-007 (segment limit: pure overlap, no gap) ---
+/// STORY-018 EC-007 / BC-2.04.045 v1.3 EC-002: when `segments.len() >= max_segments`
+/// at function entry, the early guard at `segment.rs:70-72` fires unconditionally —
+/// including for pure-overlap segments that would otherwise return Duplicate /
+/// ConflictingOverlap when the map is below capacity. This is the brownfield-confirmed
+/// semantics formalized in BC-2.04.045 v1.3.
+#[test]
+fn test_story_018_ec007_full_map_pure_overlap_returns_segment_limit_reached() {
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 10_485_760;
+    let max_segments: usize = 2;
+    let max_receive_window: usize = 10_485_760;
+
+    // Insert 2 adjacent segments filling the map: [1,4) and [4,7)
+    dir.insert_segment(1001, b"AAA", max_depth, max_segments, max_receive_window);
+    dir.insert_segment(1004, b"BBB", max_depth, max_segments, max_receive_window);
+    assert_eq!(dir.segment_count(), 2, "EC-007 precondition: map is full");
+
+    // Insert a new segment fully covered by union of the two existing (matching bytes).
+    // BC-2.04.045 v1.3 EC-002: early guard at segment.rs:70-72 fires unconditionally
+    // when segments.len() >= max_segments, returning SegmentLimitReached before any
+    // overlap detection — even for pure-overlap inserts that add no new entries.
+    let result = dir.insert_segment(1001, b"AAABBB", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        result,
+        InsertResult::SegmentLimitReached,
+        "EC-007: early guard fires before overlap detection when map is full (BC-2.04.045 v1.3 EC-002)"
+    );
+}
+
+// --- EC-009 (small_segment_run: OutOfWindow result after 2 small segments) ---
+/// OutOfWindow result after 2 small segments: small_segment_run unchanged at 2.
+/// Tests that the out_of_window path on FlowDirection does not reset the run counter.
+///
+/// Note: small_segment_run is maintained by the *engine* in insert_payload_segment
+/// (mod.rs:356-370), not by insert_segment in segment.rs. At the segment level,
+/// FlowDirection.small_segment_run starts at 0 and is never modified by insert_segment.
+/// This test verifies that an OutOfWindow result does NOT modify small_segment_run
+/// (the field stays 0 since insert_segment never touches it — modification is the
+/// engine shell's responsibility).
+#[test]
+fn test_story_018_ec009_out_of_window_does_not_change_small_segment_run() {
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 10_485_760;
+    let max_segments: usize = 10_000;
+    let max_receive_window: usize = 100; // small window
+
+    // Manually set small_segment_run to 2 to simulate state after 2 small segments
+    dir.small_segment_run = 2;
+
+    // Now send an OutOfWindow segment (offset=102 > limit=101)
+    let r = dir.insert_segment(1102, b"X", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        r,
+        InsertResult::OutOfWindow,
+        "EC-009: segment must be OutOfWindow"
+    );
+
+    // small_segment_run must be unchanged at 2 (insert_segment does not touch it)
+    assert_eq!(
+        dir.small_segment_run, 2,
+        "EC-009: OutOfWindow result must not change small_segment_run (stays at 2)"
+    );
+}
+
+// --- EC-010 (small_segment_run: DepthExceeded result after 3 small segments) ---
+/// DepthExceeded result after 3 small segments: small_segment_run unchanged at 3.
+/// Verifies the segment-level depth_exceeded path does not touch the run counter.
+///
+/// Note: like EC-009, small_segment_run is an engine-level counter (mod.rs:356-370),
+/// not a segment-level one. At the insert_segment level, the field is not read or
+/// written. This test verifies that DepthExceeded does not modify small_segment_run
+/// by testing directly on FlowDirection with a pre-set counter value.
+#[test]
+fn test_story_018_ec010_depth_exceeded_does_not_change_small_segment_run() {
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    let max_depth: usize = 5;
+    let max_segments: usize = 10_000;
+    let max_receive_window: usize = 10_485_760;
+
+    // Trigger depth_exceeded: insert 3 bytes then a 5-byte segment → Truncated → depth_exceeded=true
+    dir.insert_segment(1001, b"AAA", max_depth, max_segments, max_receive_window);
+    let r_trunc = dir.insert_segment(1004, b"BBBBB", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        r_trunc,
+        InsertResult::Truncated,
+        "EC-010 precondition: Truncated fired"
+    );
+    assert!(
+        dir.depth_exceeded,
+        "EC-010 precondition: depth_exceeded=true"
+    );
+
+    // Manually set small_segment_run to 3 to simulate state after 3 small segments
+    dir.small_segment_run = 3;
+
+    // Now send a DepthExceeded segment
+    let r = dir.insert_segment(1020, b"CCC", max_depth, max_segments, max_receive_window);
+    assert_eq!(
+        r,
+        InsertResult::DepthExceeded,
+        "EC-010: segment must return DepthExceeded"
+    );
+
+    // small_segment_run must be unchanged at 3 (insert_segment does not touch it)
+    assert_eq!(
+        dir.small_segment_run, 3,
+        "EC-010: DepthExceeded result must not change small_segment_run (stays at 3)"
+    );
+}
