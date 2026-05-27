@@ -687,6 +687,94 @@ impl TcpReassembler {
     }
 }
 
+// ---- Test-only seams (STORY-021 / ADR-0004 amendment) ----------------------
+//
+// These seams expose process-global atomics and private engine state to
+// integration tests without widening the production API. All follow the
+// `#[doc(hidden)] pub fn` append pattern established by STORY-014 / STORY-019.
+// MUST NOT be called from production code.
+
+impl TcpReassembler {
+    /// Test-only accessor for the process-global `FINALIZE_SKIPPED_WARNED` flag.
+    ///
+    /// Exposes a read of [`FINALIZE_SKIPPED_WARNED`] so integration tests can
+    /// verify the one-shot Drop tripwire behavior defined by BC-2.04.012 EC-006:
+    /// the flag transitions `false → true` exactly once per process lifetime when
+    /// an un-finalized reassembler is dropped. Sibling to
+    /// `wirerust::reassembly::lifecycle::close_flow_missing_warned_for_testing`.
+    #[doc(hidden)]
+    pub fn finalize_skipped_warned_for_testing() -> bool {
+        FINALIZE_SKIPPED_WARNED.load(Ordering::Relaxed)
+    }
+
+    /// Test-only reset of the process-global `FINALIZE_SKIPPED_WARNED` flag.
+    ///
+    /// Allows tests to deterministically observe the BC-2.04.012 EC-006
+    /// `false → true` swap transition by resetting the atomic before each
+    /// relevant test. MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn reset_finalize_skipped_warned_for_testing() {
+        FINALIZE_SKIPPED_WARNED.store(false, Ordering::Relaxed);
+    }
+
+    /// Test-only swap of the process-global `FINALIZE_SKIPPED_WARNED` flag.
+    ///
+    /// Mirrors [`AtomicBool::swap`] semantics so callers can read the current
+    /// value and reset it atomically in one operation. Used by AC-004
+    /// (`test_BC_2_04_012_drop_without_finalize_emits_warning`) for the
+    /// reset → drop → swap observation pattern.
+    ///
+    /// **Scope limitation (per STORY-021 Architecture Compliance Rules,
+    /// Option B):** This seam does NOT provide unique per-Drop attribution
+    /// under cargo's parallel test scheduler. The `reassembly_engine_tests`
+    /// binary contains ~130+ sites that drop un-finalized `TcpReassembler`
+    /// instances without holding `FINALIZE_SKIPPED_WARNED_LOCK`. A `true`
+    /// return value confirms the production `Drop` hook fired **somewhere
+    /// in this process**, not specifically at the caller's drop site. The
+    /// test reliably detects total removal of the Drop hook in a fresh
+    /// single-binary process; unique attribution requires `--test-threads=1`
+    /// or stderr capture.
+    ///
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn swap_finalize_skipped_warned_for_testing(value: bool) -> bool {
+        FINALIZE_SKIPPED_WARNED.swap(value, Ordering::Relaxed)
+    }
+
+    /// Test-only setter for `stats.segments_segment_limit`.
+    ///
+    /// Directly injects a segment-limit counter value so tests can exercise
+    /// the finalize segment-limit summary path (BC-2.04.025, BC-2.04.026,
+    /// BC-2.04.054) without constructing adversarial packet sequences to
+    /// overflow `max_segments_per_direction`. Production behavior is unchanged:
+    /// the counter is still only incremented by the packet-processing hot path.
+    ///
+    /// NOTE (F-W11P1-009 / BC-2.04.026 EC-002): This seam bypasses the engine's
+    /// normal increment path (`process_packet` → `SegmentLimitReached`). It does
+    /// NOT violate BC-2.04.026 EC-002, which forbids increments *during* finalize;
+    /// this seam sets the counter *before* finalize is called. The trust boundary
+    /// is enforced by convention (`#[doc(hidden)]` + `_for_testing` suffix);
+    /// production code MUST NOT call this.
+    #[doc(hidden)]
+    pub fn set_segments_segment_limit_for_testing(&mut self, count: u64) {
+        self.stats.segments_segment_limit = count;
+    }
+
+    /// Test-only direct push of a [`Finding`] into the engine's findings vec.
+    ///
+    /// Bypasses all cap guards so tests can pre-fill the findings vec to
+    /// arbitrary lengths (e.g. exactly `MAX_FINDINGS - 1` or `MAX_FINDINGS`)
+    /// to exercise the boundary conditions in BC-2.04.024 and BC-2.04.054
+    /// without running O(10_000) packet-processing iterations.
+    ///
+    /// This seam does NOT update `stats.dropped_findings`; it pushes
+    /// unconditionally, mirroring the finalize segment-limit bypass path.
+    #[doc(hidden)]
+    pub fn push_finding_for_testing(&mut self, finding: Finding) {
+        self.findings.push(finding);
+    }
+}
+
 /// Lifecycle tripwire: warn (once per process) if a reassembler is dropped
 /// without [`TcpReassembler::finalize`] having been called.
 ///
