@@ -2,16 +2,16 @@
 document_type: story
 story_id: "STORY-031"
 epic_id: "E-3"
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
-timestamp: 2026-05-21T00:00:00Z
+timestamp: 2026-05-27T08:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.001.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.002.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.003.md
-input-hash: "8eee238"
+input-hash: "0d02ff2"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-021]
@@ -54,7 +54,7 @@ implementation_strategy: brownfield-formalization
 
 ### AC-001 (traces to BC-2.05.001 postcondition 1)
 When the first bytes of reassembled TCP content have `data.len() >= 5 AND data[0] == 0x16 AND data[1] == 0x03`, the `classify` function returns `DispatchTarget::Tls` regardless of the flow's port numbers.
-- **Test:** `test_dispatcher_routes_tls`
+- **Test:** `test_tls_content_routes_tls_on_port_443` + `test_tls_content_wins_over_port_8080`
 
 ### AC-002 (traces to BC-2.05.001 invariant 2-3)
 Content-first dispatch (INV-2) takes precedence: a TLS ClientHello on port 80 is routed to Tls, not Http. Only bytes 0 and 1 are checked (`0x16 0x03`); byte 2 (minor version) and bytes 3-4 (record length) are NOT checked.
@@ -62,11 +62,11 @@ Content-first dispatch (INV-2) takes precedence: a TLS ClientHello on port 80 is
 
 ### AC-003 (traces to BC-2.05.001 precondition 2)
 When `data.len() < 5`, the TLS content check is skipped (falls through to HTTP check or port fallback).
-- **Test:** `test_dispatcher_port_fallback_short_data`
+- **Test:** `test_tls_check_skipped_below_len_5`
 
 ### AC-004 (traces to BC-2.05.002 postcondition 1)
 When the TLS content check fails and `data.starts_with` one of the 10 HTTP method/version prefix byte strings (`b"GET "`, `b"POST "`, `b"PUT "`, `b"DELETE "`, `b"HEAD "`, `b"OPTIONS "`, `b"PATCH "`, `b"CONNECT "`, `b"TRACE "`, `b"HTTP/"`), the `classify` function returns `DispatchTarget::Http`.
-- **Test:** `test_dispatcher_routes_http`
+- **Test:** `test_dispatcher_routes_http` (single-prefix legacy) + `test_all_http_method_prefixes_route_to_http` (comprehensive table-driven, all 10 prefixes including `HTTP/` response-first, covers BC-2.05.002 invariant 3 and EC-008)
 
 ### AC-005 (traces to BC-2.05.002 invariant 2-3)
 `b"HTTP/"` handles server-initiated or response-first flows. Method prefix strings include a trailing space — `b"GET"` (3 bytes, no space) does NOT match. The comparison is case-sensitive; `b"get "` does not match.
@@ -78,7 +78,7 @@ The HTTP content signature check is evaluated AFTER the TLS check (INV-2). Data 
 
 ### AC-007 (traces to BC-2.05.003 postcondition 1-2)
 When both TLS and HTTP content checks fail, `classify` falls back to port-based heuristics: ports 443 or 8443 return `DispatchTarget::Tls`; ports 80 or 8080 return `DispatchTarget::Http`.
-- **Test:** `test_dispatcher_port_fallback_short_data`
+- **Test:** `test_dispatcher_port_fallback_short_data` + `test_port_fallback_443_to_tls` + `test_port_fallback_8443_to_tls` + `test_port_fallback_80_to_http` + `test_port_fallback_8080_to_http`
 
 ### AC-008 (traces to BC-2.05.003 invariant 1-2)
 TLS port check (443/8443) is evaluated before HTTP port check (80/8080) per source order. Port lookup uses `flow_key.lower_port()` and `flow_key.upper_port()` — the canonically ordered pair — so a flow on (src=8443, dst=9000) finds 8443 in the port slice.
@@ -92,8 +92,8 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
-| classify (content check logic) | src/dispatcher.rs:90-116 | pure-core (pure classification logic, no state mutation) |
-| StreamDispatcher.on_data | src/dispatcher.rs:120-160 | effectful-shell (calls classify, mutates routes cache) |
+| classify (content check logic) | src/dispatcher.rs:90-117 | pure-core (pure classification logic, no state mutation) |
+| StreamDispatcher.on_data | src/dispatcher.rs:120-169 | effectful-shell (calls classify, mutates routes cache) |
 
 ## Edge Cases
 
@@ -102,13 +102,13 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 | EC-001 | TLS ClientHello on port 80 | Routed to Tls (content wins over port) |
 | EC-002 | TLS on port 443 | Routed to Tls via content signature |
 | EC-003 | data starts with 0x16 0x03 but is not valid TLS | Routed to Tls; TlsAnalyzer handles parse error |
-| EC-004 | data.len() == 4 (one byte short) | Falls through to HTTP method check |
-| EC-005 | data[0] == 0x16 but data[1] != 0x03 | Falls through to HTTP check |
+| EC-004 | data.len() == 4 (one byte short) | Falls through to HTTP method check (test: `test_tls_check_skipped_below_len_5`) |
+| EC-005 | data[0] == 0x16 but data[1] != 0x03 | Falls through to HTTP check (test: `test_tls_check_requires_byte1_equals_0x03`) |
 | EC-006 | b"GET /index HTTP/1.1" on port 8081 | Routed to Http |
 | EC-007 | b"GET" (no space, 3 bytes) on port 9999 | Not matched; falls to port fallback; returns None (port unknown) |
-| EC-008 | b"HTTP/1.1 200 OK" (response-first) on port 9999 | Routed to Http |
+| EC-008 | b"HTTP/1.1 200 OK" (response-first) on port 9999 | Routed to Http (test: `test_all_http_method_prefixes_route_to_http` — HTTP/ prefix variant) |
 | EC-009 | Unknown bytes on port 443 | Routed to Tls (port fallback) |
-| EC-010 | Unknown bytes on port 8080 | Routed to Http (port fallback) |
+| EC-010 | Unknown bytes on port 8080 | Routed to Http (port fallback) (test: `test_port_fallback_8080_to_http`) |
 | EC-011 | b"GET " on port 443 | Routed to Http (content wins over port 443 hint) |
 
 ## Purity Classification
@@ -123,7 +123,7 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 | Context Source | Estimated Tokens |
 |---------------|-----------------|
 | This story spec | ~3,000 |
-| Referenced code (dispatcher.rs:90-160) | ~3,000 |
+| Referenced code (dispatcher.rs:90-169) | ~3,000 |
 | Test files (dispatcher_tests.rs) | ~3,000 |
 | BC files (3 BCs) | ~3,000 |
 | Tool outputs overhead | ~1,500 |
@@ -133,21 +133,33 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 
 ## Tasks (MANDATORY)
 
-1. [ ] Write failing tests for AC-001 through AC-009 (test-writer)
-2. [ ] Verify Red Gate: all tests fail before implementation
-3. [ ] Implement TLS content signature check per BC-2.05.001 (`data.len() >= 5 && data[0] == 0x16 && data[1] == 0x03`; returns Tls regardless of port)
-4. [ ] Implement HTTP method prefix check per BC-2.05.002 (10 prefixes including trailing space; `data.starts_with`; case-sensitive; after TLS check)
-5. [ ] Implement port fallback per BC-2.05.003 (443/8443->Tls, 80/8080->Http; TLS ports checked before HTTP ports; only reached when both content checks fail)
-6. [ ] Confirm TLS check takes priority over HTTP check
-7. [ ] Confirm content classification takes priority over port fallback
-8. [ ] Run all tests; verify all pass
-9. [ ] Update STATE.md
+1. [x] Write failing tests for AC-001 through AC-009 (test-writer)
+2. [x] Verify Red Gate: all tests fail before implementation
+3. [x] Implement TLS content signature check per BC-2.05.001 (`data.len() >= 5 && data[0] == 0x16 && data[1] == 0x03`; returns Tls regardless of port)
+4. [x] Implement HTTP method prefix check per BC-2.05.002 (10 prefixes including trailing space; `data.starts_with`; case-sensitive; after TLS check)
+5. [x] Implement port fallback per BC-2.05.003 (443/8443->Tls, 80/8080->Http; TLS ports checked before HTTP ports; only reached when both content checks fail)
+6. [x] Confirm TLS check takes priority over HTTP check
+7. [x] Confirm content classification takes priority over port fallback
+8. [x] Run all tests; verify all pass
+9. [x] Update STATE.md
+10. [x] (POST-PASS-1) Add 4 port-fallback branch tests (443/8443/80/8080) to cover BC-2.05.003 PC1-2 (F-W12P1-001)
+11. [x] Add table-driven test for all 10 HTTP method prefixes including HTTP/ response-first (F-W12P1-002, F-W12P1-007)
+12. [x] Add isolated `test_tls_check_skipped_below_len_5` (4-byte boundary, port 9999) — split from AC-007 test (F-W12P1-003, F-W12P1-004)
+13. [x] Add `test_tls_check_requires_byte1_equals_0x03` for EC-005 (F-W12P1-006)
+14. [x] Fix canonicalization docstring at `test_port_fallback_uses_canonical_port_ordering` + add explicit lower_port/upper_port assertions (F-W12P1-005)
+15. [x] Strengthen `test_http_no_space_does_not_match` with positive control sub-case (F-W12P1-009)
+16. [x] Rename `test_dispatcher_routes_tls` → `test_tls_content_wins_over_port_8080`; add `test_tls_content_routes_tls_on_port_443` baseline (Obs-4)
+17. [x] Fix story line citations for classify (90-116 → 90-117) and on_data (120-160 → 120-169) (F-W12P1-010, F-W12P1-011)
 
 ## Previous Story Intelligence (MANDATORY)
 
 | Story | Key Decisions | Patterns Established | Gotchas Discovered |
 |-------|--------------|---------------------|-------------------|
 | N/A — first story in E-3 | N/A | N/A | N/A |
+| STORY-021 (W11.L1) | BC pre-merge re-anchor doctrine: re-anchor BCs before merging any per-story adversarial fix | Always re-verify BC frontmatter array is non-empty before transitioning story to `ready` | Stale BC arrays cause spec-first gate failures |
+| STORY-021 (W11.L2) | DF-ADVERSARY-METHODOLOGY-001 — adversarial review uses absolute paths for all grep/file references | Use absolute paths in all sibling-sweep grep commands and story references | Relative paths in sibling-sweeps produced false-negative grep results |
+| STORY-021 (W11.L4) | Source-docstring propagation: when story body changes (line citations, AC traces), update any docstrings in test files that mirror those citations | Keep test docstrings in sync with story AC traces — if a test is renamed or re-anchored, update the story reference in the same commit | Silent divergence between test docstrings and story ACs is a class of finding in adversarial passes |
+| STORY-021 (W11.L5) | Implementer-as-PR-executor pattern: the implementer writes the code AND opens the PR in the same dispatch | Use this pattern for STORY-031 PR (task 90) — do not dispatch a separate PR-creation agent | Splitting implementer and PR-opener adds a handoff gap where STATE.md can diverge |
 
 ## Architecture Compliance Rules (MANDATORY)
 
@@ -157,6 +169,9 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 | TLS check (0x16 0x03) is first; HTTP check is second; port fallback is last | BC-2.05.002 invariant 1, BC-2.05.003 invariant 3 | Code review: source order in classify function |
 | Loose TLS gate: only bytes 0 and 1 are checked; bytes 2-4 are NOT checked | BC-2.05.001 invariant 3 | Code review: confirm no additional byte checks |
 | HTTP method prefixes include trailing space (e.g., `b"GET "` not `b"GET"`) | BC-2.05.002 invariant 3 | Code review: confirm prefix strings |
+| All 10 HTTP method/version prefixes must trigger Http routing — coverage at AC-004 via `test_all_http_method_prefixes_route_to_http` table-driven test | BC-2.05.002 PC1, invariant 3 | Test enumerates `[GET, POST, PUT, DELETE, HEAD, OPTIONS, PATCH, CONNECT, TRACE, HTTP/]` |
+| All 4 port-fallback branches (443→Tls, 8443→Tls, 80→Http, 8080→Http) must have explicit tests | BC-2.05.003 PC1-2, F-W12P1-001 | 4 distinct test functions named `test_port_fallback_{443,8443,80,8080}_to_*` |
+| AC-003 (TLS length gate) and AC-007 (port fallback) MUST have separate tests — single test cannot independently verify both | F-W12P1-003 | `test_tls_check_skipped_below_len_5` (AC-003) vs `test_dispatcher_port_fallback_short_data` + port-fallback-N tests (AC-007) |
 
 ## Library & Framework Requirements (MANDATORY)
 
@@ -168,5 +183,12 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 
 | File | Action | Purpose |
 |------|--------|---------|
-| src/dispatcher.rs | modify | classify function (90-116): TLS check, HTTP prefix check, port fallback |
-| tests/dispatcher_tests.rs | modify | Add: test_dispatcher_routes_tls, test_dispatcher_content_detection_tls_on_port_80, test_dispatcher_routes_http, test_dispatcher_port_fallback_short_data, test_http_content_on_port_443_routes_to_http |
+| src/dispatcher.rs | modify | classify function (90-117): TLS check, HTTP prefix check, port fallback |
+| tests/dispatcher_tests.rs | modify | Add/rename: `test_tls_content_routes_tls_on_port_443` (baseline TLS port 443), `test_tls_content_wins_over_port_8080` (renamed from `test_dispatcher_routes_tls`; content priority over Http port), `test_port_fallback_443_to_tls`, `test_port_fallback_8443_to_tls`, `test_port_fallback_80_to_http`, `test_port_fallback_8080_to_http`, `test_tls_check_skipped_below_len_5` (4-byte boundary), `test_tls_check_requires_byte1_equals_0x03` (EC-005), `test_all_http_method_prefixes_route_to_http` (table-driven all 10 prefixes); existing: test_dispatcher_content_detection_tls_on_port_80, test_dispatcher_routes_http, test_dispatcher_port_fallback_short_data, test_http_content_on_port_443_routes_to_http |
+
+## Changelog
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
+| 1.0 | 2026-05-21 | story-writer | Initial story decomposition |
+| 1.1 | 2026-05-27 | story-writer | Pass-1 adversarial remediation: (1) AC-001 trace updated from `test_dispatcher_routes_tls` (renamed) to `test_tls_content_routes_tls_on_port_443` + `test_tls_content_wins_over_port_8080`; (2) AC-003 trace updated to `test_tls_check_skipped_below_len_5` (isolated, F-W12P1-003); (3) AC-004 trace expanded with `test_all_http_method_prefixes_route_to_http` (F-W12P1-002); (4) AC-007 trace expanded with all 4 port-fallback branch tests (F-W12P1-001); (5) Architecture Mapping line citations fixed: classify 90-116→90-117, on_data 120-160→120-169 (F-W12P1-010/011); (6) File Structure Requirements line citations and test list updated; (7) Edge Case table: EC-004, EC-005, EC-008, EC-010 test citations added; (8) Architecture Compliance Rules: 3 new rules added for 10-prefix coverage, 4 port-fallback branch tests, and AC-003/AC-007 test separation; (9) Tasks 10-17 appended (all completed); (10) PSI updated with STORY-021 W11 learnings (W11.L1, W11.L2, W11.L4, W11.L5) |
