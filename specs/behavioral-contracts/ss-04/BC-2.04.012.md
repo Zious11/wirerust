@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Pass-4 sibling sweep: corrected impl Drop line citation 677-690 → 706-720 (was stale after STORY-021 added test seams shifting impl Drop) — 2026-05-27"
+  - "v1.4: Pass-5 sibling sweep: corrected `finalized` latch line citation 560 → 561 (off-by-one, line 560 is the closing brace of the re-entry guard; self.finalized = true is at line 561) — 2026-05-27"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -135,5 +136,5 @@ the reassembler is dropped without finalize having been called.
 
 ## Refactoring Notes
 
-The `finalized` latch is set at mod.rs:560 (before the flow loop) -- this is correct and
+The `finalized` latch is set at mod.rs:561 (before the flow loop) -- this is correct and
 prevents re-entry. No refactoring needed.
