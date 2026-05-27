@@ -309,6 +309,112 @@ agent-prompt-defect bug to vsdd-factory plugin maintainer.
 
 ---
 
+## Wave 11 Lessons (2026-05-27)
+
+### W11.L1 — BC Pre-Merge Re-Anchor Doctrine [codified — 2026-05-27]
+
+**Finding ID:** F-W11P8-001 (doctrine flip during pass-8 convergence)
+**Category:** spec-anchor hygiene / process-discipline
+**Observed:** STORY-021's test-seam additions (FINALIZE_SKIPPED_WARNED and associated lock statics)
+pushed the `impl Drop` block downward across multiple adversarial passes. Line citations for
+`impl Drop` drifted through 4 incremental states: 677-690 → 793-807 → 796-810 → 794-808. Each
+remediation pass updated STORY-021 story body but left the corresponding BC-2.04.012 anchor at the
+pre-pass value, creating a post-merge window where BC anchors pointed to pre-story-merge code.
+**Doctrine adopted:** When a story's implementation shifts cited source-code line numbers, the BCs
+cited in the story's `bcs:` frontmatter MUST be re-anchored to post-merge (worktree) line numbers
+as part of the story's convergence cycle — NOT deferred to a follow-up sweep on develop. Final
+anchor: 794-808 in BC-2.04.012 v1.5 (matching worktree-post-STORY-021 source).
+**Impact:** Eliminates the post-merge stale-anchor window. BC versions are now authoritative
+immediately after merge, not after a separate sweep.
+**Codification:** Extended DF-SIBLING-SWEEP-001 (v2 "BC pre-merge re-anchor" bullet group) in
+`.factory/policies.yaml`.
+**Status:** [codified — 2026-05-27]
+
+---
+
+### W11.L2 — Adversary Methodology Bug: cd Non-Persistent Across Bash Invocations [codified — 2026-05-27]
+
+**Finding ID:** F-W11P5-010 (closed during codification)
+**Category:** adversarial-workflow / dispatch-methodology
+**Observed:** Wave 11 pass-5 adversary was dispatched with `cd <worktree> && grep ...` patterns.
+The `cd` did NOT persist across the adversary's Bash invocations in its read-only profile. The
+adversary silently queried the main repo instead of the worktree, produced 2 FALSE-CRITICAL findings
+("no STORY-021 implementation exists") that misled the convergence process. The orchestrator
+identified the error by cross-referencing expected vs actual line numbers (impl Drop at line 794
+in worktree, line 706 in main repo — distinct).
+**Impact:** Wasted a full adversarial pass. The false positives required orchestrator-side
+methodology debugging before pass-6 could be dispatched.
+**Rule adopted:** Orchestrator dispatch prompts to adversary agents MUST use absolute paths for ALL
+file operations. `cd <path> && ...` is FORBIDDEN in adversary dispatches except for cargo commands
+where cwd is required. Git operations must use `git -C <absolute-path> ...`.
+**Verification:** Adversary's first reply MUST include verification output proving worktree vs main
+repo distinction (e.g., "impl Drop at line 794 worktree, line 706 main — distinct, methodology OK").
+**Codification:** DF-ADVERSARY-METHODOLOGY-001 added to `.factory/policies.yaml`.
+**Status:** [codified — 2026-05-27]
+
+---
+
+### W11.L3 — Iterative Line-Citation Drift from Seam-Block Edits [deferred — phase-5]
+
+**Finding ID:** Drift pattern observed across passes 1-8 (4 drift cycles)
+**Category:** spec-anchor hygiene
+**Observed:** Seam-block edits (adding FINALIZE_SKIPPED_WARNED atomic and associated lock statics)
+shifted `impl Drop` and related downstream code across 4 incremental states over the adversarial
+convergence cycle. Each test-writer pass that introduced new statics above the impl Drop block
+shifted its line number. Citations in STORY-021 story body and BC-2.04.012 required re-verification
+after EVERY test-writer pass that touched cited files.
+**Pattern:** When seam additions are inserted above cited functions, all subsequent anchors shift.
+The drift is invisible until the next adversary re-reads the file. 3 passes of drift before final
+convergence at 794-808.
+**Recommendation:** After any test-writer pass that inserts code above cited functions, the
+orchestrator MUST re-verify all line anchors in STORY-021 body + BCs before declaring a pass
+clean. This is a subset of the W11.L1 BC pre-merge re-anchor procedure, applied intra-cycle.
+**Validation required:** research-agent must validate per DF-VALIDATION-001 before filing GitHub issue.
+**Status:** [deferred — phase-5]
+
+---
+
+### W11.L4 — Source-Docstring Propagation Gap After Story-Body Changes [deferred — phase-5]
+
+**Finding ID:** F-W11P6-001 (pass-6 adversary finding after pass-5 story-body fix)
+**Category:** process-discipline / sibling-sweep
+**Observed:** Pass-5 remediated STORY-021 story body (changed "194 sites" → "~130+ sites" and
+related factual claims). Pass-6 adversary found 7 docstring sites in src/ and tests/ still
+publishing the old content. The DF-SIBLING-SWEEP-001 procedure at pass-5 updated story body
+but did not explicitly mandate a cross-file string-match step for src/ and test file docstrings.
+**Impact:** One additional adversarial pass (pass-6) required to surface and remediate the
+docstring-propagation gap.
+**Rule adopted:** When a story body changes a "magic number" or factual claim, story-writer MUST
+also identify all source/test-file docstrings that publish the same claim and dispatch test-writer
+to update them in the same cycle.
+**Codification:** Extended DF-SIBLING-SWEEP-001 (v2 "source-docstring propagation" bullet group)
+in `.factory/policies.yaml`.
+**Status:** [deferred — phase-5; partial codification in DF-SIBLING-SWEEP-001 v2]
+
+---
+
+### W11.L5 — Implementer-as-PR-Executor Pattern Continues to Outperform pr-manager [codified — confirmed W11]
+
+**Finding ID:** Wave 11 retrospective observation (4th consecutive wave)
+**Category:** process-discipline / agent-scope
+**Observed:** PR #134 was executed by the implementer (STORY-021 implementer-as-PR-executor) with
+all 9 steps completed autonomously — same pattern as PR #133 (Wave 10). The pr-manager agent
+stops at APPROVE on PRs where GitHub self-review policy applies. This pattern has now been
+observed across 4 consecutive waves: W8 (PRs #122/#123), W9 (PRs #127/#128/#129/#130), W10
+(PRs #131/#132, workaround PR #133), W11 (PR #134).
+**Root cause:** The pr-manager agent prompt's stop condition treats APPROVE as task completion.
+The DF-PR-MANAGER-COMPLETE-001 policy injection improves behavior at the orchestrator dispatch
+level but does not fix the underlying agent prompt. The implementer-as-PR-executor workaround
+is structurally reliable because the implementer already has all branch/worktree context.
+**Recommendation:** Retire pr-manager dispatch in favor of implementer-as-PR-executor for story
+PRs. Reserve pr-manager only for PRs where a distinct review agent is required (wave-followup
+PRs, chore PRs). The 4-wave evidence base (W8.L4 → W9.L2 → W10.L3 → W11.L5) justifies
+formalizing this as the default pattern.
+**Validation required:** research-agent must validate per DF-VALIDATION-001 before filing GitHub issue.
+**Status:** [deferred — phase-5; 4-wave recurrence justifies process-change proposal]
+
+---
+
 ## Earlier Wave Lessons (Waves 1-6)
 
 Per-wave process-gap items for Waves 1-6 are recorded in STATE.md Cycle-Close Follow-Up Items

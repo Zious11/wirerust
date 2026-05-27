@@ -83,6 +83,47 @@ policies:
           matches the test body (no "Wait:", "Actually:", "Approach X but
           Y" exploratory chains that contradict the final implementation).
 
+      BC pre-merge re-anchor (W11.L1, F-W11P8-001):
+        - When a story's implementation shifts cited source-code line
+          numbers (e.g., test seams pushed below existing code), the BCs
+          cited in the story's `bcs:` frontmatter MUST be re-anchored to
+          post-merge line numbers as part of the story's convergence
+          cycle — NOT deferred to a follow-up sweep on develop.
+        - This eliminates the post-merge stale-anchor window where BC
+          anchors point to pre-story-merge code and reviewers/auditors
+          follow them to the wrong location.
+        - Procedure: orchestrator dispatches product-owner to update each
+          affected BC to cite worktree-post-story line numbers; BC version
+          bump records the doctrine choice; story input-hash recomputed
+          to acknowledge the BC content change; final adversarial pass
+          verifies all BC anchors match worktree source.
+
+      Lock-discipline propagation for newly-introduced process-globals (W11.L2, F-W11P1-012):
+        - When a story introduces a new process-global atomic (e.g.,
+          `FINALIZE_SKIPPED_WARNED`), the corresponding test-binary
+          `_LOCK` static MUST be added in the same diff with a docstring
+          naming all tests required to hold it (observer + defensive
+          holder categories).
+        - Test-writer MUST grep the binary for ALL tests that read/write
+          the underlying atomic (including indirect via Drop side-effect)
+          and add the lock to each if it observes the atomic; defensive
+          holders documented separately.
+
+      Story-writer post-AC-add sibling-sweep (W11.L4, F-W11P2-014):
+        - After AC additions to a story, the sibling-sweep step MUST
+          update existing task descriptions referencing AC counts/ranges
+          (e.g., "Write tests for all N ACs" — N must be updated when
+          ACs are added), not just append new tasks. Pass-2 caught a
+          stale "13 ACs" wording in Task 1 after 5 new ACs landed.
+
+      Source-docstring propagation for story-body changes (W11.L4, F-W11P6-001):
+        - When a story body changes a "magic number" or factual claim
+          (e.g., "194 sites" → "~130+ sites"), story-writer MUST also
+          identify all source/test-file docstrings that publish the same
+          claim and dispatch test-writer to update them in the same
+          cycle. Pass-6 found 7 docstring sites still publishing the old
+          content after pass-5's story-body fix.
+
       ALL remediations:
         - Before commit: execute the grep commands listed above and
           report results in the burst report.
@@ -201,3 +242,56 @@ policies:
       vsdd-factory plugin maintainer.
     added: "2026-05-26"
     derived-from: W9.L3 (closed during codification)
+
+  - id: DF-ADVERSARY-METHODOLOGY-001
+    name: adversary-dispatch-absolute-paths-mandatory
+    description: >
+      Orchestrator dispatch prompts to adversary agents MUST use
+      absolute paths for ALL file operations. The `cd <path> && ...`
+      pattern is FORBIDDEN in adversary dispatches because the cd does
+      not persist across the adversary's Bash invocations in some
+      profiles, causing the adversary to query the wrong filesystem
+      (e.g., main repo instead of worktree).
+
+      Mandatory practices:
+        - Use full absolute paths for every file Read, Grep, glob, or
+          Bash invocation: `/Users/zious/.../worktrees/story-N/src/...`
+          not just `src/...`.
+        - When git operations require a specific repo, use `git -C
+          <absolute-path> ...` not `cd <path> && git ...`.
+        - Include explicit verification commands in the dispatch (e.g.,
+          "grep -n '^impl Drop' /full/worktree/path/src/...") that
+          would return different values from the worktree vs main repo,
+          so the adversary self-detects methodology errors.
+        - If the adversary's verifications return values that suggest
+          wrong-directory queries (e.g., expected impl Drop at line 794
+          but got 706), the adversary MUST abort and report a
+          methodology error.
+
+      The cargo-specific `cd <worktree> && cargo ...` is allowed because
+      cargo's behavior depends on cwd — but only for cargo commands,
+      not for file inspection.
+
+    severity: HIGH
+    scope:
+      - orchestrator
+      - adversary
+      - dispatch-templates
+    rationale: >
+      Wave 11 pass-5 evidence: adversary cd'd to worktree but Bash
+      cwd reset between invocations, causing the adversary to grep
+      the main repo. Produced 2 FALSE-CRITICAL findings ("no STORY-021
+      implementation exists") that misled the convergence process and
+      required orchestrator-side methodology debugging. The pattern is
+      structural to read-only agent profiles where Bash state does not
+      persist across the agent's tool-use loop.
+    enforcement: >
+      Orchestrator MUST audit every adversary dispatch prompt for
+      relative paths in file-operation contexts before sending. The
+      adversary's first reply MUST include verification command output
+      proving worktree vs main repo distinction (e.g., "impl Drop at
+      line 794 worktree, line 706 main — distinct, methodology OK").
+      If the verification output is missing or shows wrong-directory
+      query, the orchestrator MUST re-dispatch with corrected prompt.
+    added: "2026-05-27"
+    derived-from: W11.L2 (F-W11P5-010 closed during codification)

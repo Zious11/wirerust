@@ -9,7 +9,7 @@ version: "1.0"
 produced_by: story-writer
 timestamp: 2026-05-21T00:00:00Z
 cycle: v0.1.0-greenfield-spec
-current_wave: 11
+current_wave: 12
 total_stories: 48
 total_waves: 27
 
@@ -250,18 +250,21 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-021:
-    status: pending
+    status: done
     wave: 11
     branch: null
     worktree: null
     blocked_by: [STORY-017, STORY-018, STORY-019, STORY-020]
+    pr: 134
+    merge_commit: 3cd3000
+    merged_date: "2026-05-27"
 
   # ---------------------------------------------------------------------------
   # Wave 12 — 1 story
   # ---------------------------------------------------------------------------
 
   STORY-031:
-    status: blocked
+    status: pending
     wave: 12
     branch: null
     worktree: null
