@@ -12021,13 +12021,11 @@ fn test_BC_2_04_020_small_segment_run_emits_finding() {
     );
     reassembler.process_packet(&syn, 1, &mut handler);
 
-    let mut seq: u32 = 1001;
-    for ts in 2..=12u32 {
+    for (seq, ts) in (1001_u32..).zip(2..=12u32) {
         let small = make_tcp_packet(
             client, 12345, server, 80, seq, b"x", false, true, false, false,
         );
         reassembler.process_packet(&small, ts, &mut handler);
-        seq += 1;
     }
 
     let f = reassembler
@@ -12089,13 +12087,11 @@ fn test_BC_2_04_020_port_exempt_flow_never_alerts() {
     );
     reassembler.process_packet(&syn, 1, &mut handler);
 
-    let mut seq: u32 = 1001;
-    for ts in 2..=201u32 {
+    for (seq, ts) in (1001_u32..).zip(2..=201u32) {
         let small = make_tcp_packet(
             client, 12345, server, 23, seq, b"x", false, true, false, false,
         );
         reassembler.process_packet(&small, ts, &mut handler);
-        seq += 1;
     }
 
     let any_alert = reassembler
@@ -12847,11 +12843,9 @@ fn test_story_017_ec006_telnet_port_exempt_1000_small_segments_no_alert() {
     let syn = make_tcp_packet(client, 23, server, 80, 1000, &[], true, false, false, false);
     reassembler.process_packet(&syn, 1, &mut handler);
 
-    let mut seq: u32 = 1001;
-    for ts in 2..=1001u32 {
+    for (seq, ts) in (1001_u32..).zip(2..=1001u32) {
         let small = make_tcp_packet(client, 23, server, 80, seq, b"x", false, true, false, false);
         reassembler.process_packet(&small, ts, &mut handler);
-        seq += 1;
     }
 
     assert!(
@@ -13941,17 +13935,15 @@ fn test_BC_2_04_040_small_segment_run_is_per_direction() {
     );
 
     // C2S: 3 small segments → C2S run=3 > threshold=2 → small-segment finding fires
-    let mut c2s_seq: u32 = 1001;
     let mut ts: u32 = 3;
-    for _ in 0..3 {
+    for (c2s_seq, ts_val) in (1001_u32..).zip(3_u32..).take(3) {
         reassembler.process_packet(
             &make_tcp_packet(
                 client, 12345, server, 80, c2s_seq, b"x", false, true, false, false,
             ),
-            ts,
+            ts_val,
             &mut handler,
         );
-        c2s_seq += 1;
         ts += 1;
     }
 
@@ -13997,16 +13989,14 @@ fn test_BC_2_04_040_small_segment_run_is_per_direction() {
     );
 
     // Now send 3 small S2C segments → S2C run should reach 3 and fire its own finding
-    let mut s2c_seq: u32 = 2002;
-    for _ in 0..3 {
+    for (s2c_seq, ts_val) in (2002_u32..).zip(ts..).take(3) {
         reassembler.process_packet(
             &make_tcp_packet(
                 server, 80, client, 12345, s2c_seq, b"z", false, true, false, false,
             ),
-            ts,
+            ts_val,
             &mut handler,
         );
-        s2c_seq += 1;
         ts += 1;
     }
 
