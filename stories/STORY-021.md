@@ -2,10 +2,10 @@
 document_type: story
 story_id: "STORY-021"
 epic_id: "E-2"
-version: "1.7"
+version: "1.8"
 status: draft
 producer: story-writer
-timestamp: 2026-05-27T05:00:00Z
+timestamp: 2026-05-27T06:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.012.md
@@ -13,7 +13,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.025.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.026.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.054.md
-input-hash: "edf8559"
+input-hash: "9e32780"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-017, STORY-018, STORY-019, STORY-020]
@@ -228,6 +228,7 @@ implementation_strategy: brownfield-formalization
 40. [x] Token budget arithmetic fix: "6 new post-pass-1 tests" → "5 new post-pass-1 ACs: AC-007b, AC-014..AC-017"; test row bumped ~5,000 → ~5,500; total bumped ~18,500 → ~19,000; budget usage ~9.3% → ~9.5% (F-W11P5-009)
 41. [x] EC-010 row 4 swap primary/secondary citation for lifecycle.rs:101: STORY-017 sibling test promoted to primary (structurally specific); AC-005 demoted to incidental (F-W11P5-012)
 42. [x] (POST-PASS-7 ADDITIONS) Replace `mod.rs:796-810` → `mod.rs:794-808` in story citations (impl Drop shifted up 2 lines after pass-6 docstring shortening) (F-W11P7-001)
+43. [x] (POST-PASS-8 ADDITIONS) BC-2.04.012 pre-merge re-anchor doctrine adopted — input-hash bumped to reflect BC-2.04.012 v1.5 (impl Drop citation now worktree-post-STORY-021 794-808); doctrine codification candidate for DF-SIBLING-SWEEP-001 v6 at Wave 11 close (F-W11P8-001, F-W11P8-002)
 
 ## Previous Story Intelligence (MANDATORY)
 
@@ -240,6 +241,7 @@ implementation_strategy: brownfield-formalization
 | STORY-021 | swap_for_testing pattern + honest scope limit: AC-004 asserts Drop hook fires AT LEAST ONCE per process; unique per-Drop attribution is non-deterministic under cargo's parallel scheduler with ~130+ sibling un-finalized-drop sites in tests/reassembly_engine_tests.rs (orchestrator-verified count of 175 TcpReassembler::new sites minus 44 .finalize() calls upper-bounds the un-finalized count; spot-audit not exhaustively performed) | Process-global atomics with global-latch design (one-shot eprintln) cannot be uniquely attributed without process-isolation or stderr capture; document scope honestly | Option A (lock all ~130+ sites) would exceed sibling-sweep cost threshold; Option B (honest docs) chosen |
 | (process lesson) | After AC additions to a story, the sibling-sweep step (a) MUST update existing task descriptions referencing AC counts/ranges, not just append new tasks | Codification candidate for DF-SIBLING-SWEEP-001 v5 | Applied in task 27 above; stale "13 ACs" in Task 1 survived pass-1 because the sibling-sweep only checked AC numbering, not task description wording |
 | (process lesson) | impl Drop line citation drifted across 4 cycles (677-690 → 793-807 → 796-810 → 794-808) because seam-block edits shift downstream line numbers; story-side citations must be re-verified against source after every test-writer pass that touches mod.rs seams | Codification candidate for DF-SIBLING-SWEEP-001 v6 (story re-anchor on every burst that modifies cited source files) | Applied in task 42 above; citation `796-810` survived passes 4-6 because sibling-sweep did not re-grep impl Drop line after pass-6 docstring shortening |
+| (process lesson — closure) | DF-SIBLING-SWEEP-001 v6 candidate REALIZED in pass-8: BC-2.04.012 re-anchored to worktree-post-STORY-021 (794-808) per pre-merge re-anchor doctrine. Orchestrator to codify in policies.yaml at Wave 11 close. | Pre-merge re-anchor doctrine: when a BC's input content changes (e.g. line-citation update), bump story input-hash immediately so drift detection fires on the next pass | F-W11P8-001 resolved |
 
 ## Architecture Compliance Rules (MANDATORY)
 
@@ -283,3 +285,4 @@ implementation_strategy: brownfield-formalization
 | 1.5 | 2026-05-27 | Post-adversarial-pass-4 story-side remediation (F-W11P4-001, F-W11P4-003, F-W11P4-006, F-W11P4-007, F-W11P4-008): replaced 3 stale `mod.rs:793-807` citations with `mod.rs:796-810` (worktree post-STORY-021 line numbers) across Architecture Mapping, Token Budget, and File Structure Requirements tables (F-W11P4-001); added 4 missing mod.rs test-seam rows to Architecture Mapping (finalize_skipped_warned_for_testing, reset_finalize_skipped_warned_for_testing, set_segments_segment_limit_for_testing, push_finding_for_testing) (F-W11P4-003); appended Option-B scope-limitation note to AC-004 body (F-W11P4-007); extended AC-013 to mention defensive post-bypass idempotency coverage (F-W11P4-006); refined FINALIZE_SKIPPED_WARNED_LOCK compliance rule to acknowledge ISN_MISSING_WARNED_LOCK lock-naming outlier (F-W11P4-008); tasks 32-36 appended |
 | 1.6 | 2026-05-27 | Post-adversarial-pass-5 story-side remediation (F-W11P5-004, F-W11P5-006, F-W11P5-007, F-W11P5-009, F-W11P5-012): replaced unverified "194 sibling un-finalized-drop sites" magic number with orchestrator-verified "~130+" in Previous-Story-Intelligence, Architecture Compliance Rule for AC-004, and task 22 description (F-W11P5-004); pinned AC-009 body to "count=2 (true plural-boundary)" matching rule and task 18 (F-W11P5-006); rewrote trust-boundary compliance rule for set_segments_segment_limit_for_testing to drop incorrect BC-2.04.026 EC-002 "violates" claim (F-W11P5-007); fixed token budget test-row arithmetic from "6 new tests" to "5 new ACs (AC-007b, AC-014..AC-017)" and updated total/percentage accordingly (F-W11P5-009); swapped primary/secondary citation order for EC-010 row 4 lifecycle.rs:101 site (F-W11P5-012); tasks 37-41 appended |
 | 1.7 | 2026-05-27 | Post-adversarial-pass-7 citation re-anchor (F-W11P7-001): replaced 3 stale `mod.rs:796-810` citations with `mod.rs:794-808` (impl Drop shifted up 2 lines after pass-6 trust-boundary seam docstring shortening) across Architecture Mapping table, Token Budget table, and File Structure Requirements table; process-lesson PSI row added (impl Drop line citation drift pattern across 4 cycles); task 42 appended |
+| 1.8 | 2026-05-27 | Post-pass-8 product-owner remediation (F-W11P8-001, F-W11P8-002): input-hash bumped from edf8559 → 9e32780 to reflect BC-2.04.012 v1.5 content change (impl Drop citation now worktree-post-STORY-021 794-808); pre-merge re-anchor doctrine adopted; PSI process-lesson closure row added; task 43 appended |
