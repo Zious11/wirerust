@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.004.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.005.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.006.md
-input-hash: "410a1e5"
+input-hash: "1816add"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-031]
