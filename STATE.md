@@ -9,7 +9,7 @@ phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
 phase_2_completed: "2026-05-21"
 phase_3_started: "2026-05-21"
-develop_head: ced10aa
+develop_head: 211143e
 wave_1_closed: "2026-05-22"
 wave_2_closed: "2026-05-22"
 wave_3_closed: "2026-05-22"
@@ -42,16 +42,16 @@ wave_9_wave_level_convergence: "6 passes (DIRTY×3 + CLEAN×3; passes 4/5/6 clea
 wave_10_status: in_progress
 wave_10_started: "2026-05-26"
 wave_10_stories: STORY-017 + STORY-018
-wave_10_notes: "Parallel-eligible (disjoint src line ranges; both touch tests/reassembly_engine_tests.rs — STORY-018 also touches reassembly_segment_tests.rs). Will require rebase on second PR if conflicts. New policies ACTIVE: DF-SIBLING-SWEEP-001 + DF-PR-MANAGER-COMPLETE-001 (validating whether codifications reduce Wave 9 recurrence patterns). DF-SIBLING-SWEEP-001 v3 now covers BC→BC, BC→story-EC, BC→test-prose, BC→test-name, cross-ref target resolution, implementation-reachability reasoning. STORY-017 CONVERGED + MERGED PR #131 at ced10aa (24 tests + 9 ECs). STORY-018 at pass-5 burst-3 remediation (v1.5). Cost vs Wave 9: STORY-017 4 passes vs S016 6 passes (33% reduction); STORY-018 5 passes so far vs S020 8 passes (37% trending reduction). W10-D7 (pr-manager prompt-level enforcement gap) + W10-D8 (BC-2.04.045 PC2 unreachable wording) filed as drift items."
+wave_10_notes: "STORY-017 MERGED PR #131 → ced10aa (24 tests + 9 ECs; 4 passes 1D+3C). STORY-018 MERGED PR #132 → 211143e. 20 stories delivered. Wave-level pass-1 DIRTY (1 HIGH + 4 MED + 4 LOW): F-W10P1-001 REMEDIATED PR #133 → 211143e (saturating_add); F-W10P1-002 REMEDIATED BC-2.04.022 v1.5; F-W10P1-003 REMEDIATED BC-2.04.027 v1.4; F-W10P1-004 DEFERRED W10-D10; F-W10P1-005 DEFERRED W10-D11; O-W10P1-001..004 DEFERRED W10-D12..D14 + W10-D7 updated. Wave-level pass-2 pending. DF-SIBLING-SWEEP-001 v3 active. W10-D7..D14 filed."
 current_wave: 10
-stories_delivered: 19
+stories_delivered: 20
 dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3
 adversary_gate: SATISFIED
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0|W7-story:8ps-3clean|W7-wave:8ps-3clean|W8-S019-story:8ps-3clean(14rem)|W8-S015-story:8ps-3clean(14rem)|W8-wave:9ps-3clean(12rem)|W9-S016-story:6ps-3clean(24rem)|W9-S020-story:8ps-3clean(13rem)|W9-wave:6ps-3clean(11rem)|W10-S017-story:4ps-3clean(MERGED-PR#131)|W10-S018-story:5ps-in-progress"
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0|W7-story:8ps-3clean|W7-wave:8ps-3clean|W8-S019-story:8ps-3clean(14rem)|W8-S015-story:8ps-3clean(14rem)|W8-wave:9ps-3clean(12rem)|W9-S016-story:6ps-3clean(24rem)|W9-S020-story:8ps-3clean(13rem)|W9-wave:6ps-3clean(11rem)|W10-S017-story:4ps-3clean(MERGED-PR#131)|W10-S018-story:CONVERGED+MERGED-PR#132|W10-wave:pass-1-DIRTY(9findings;3rem+5def+1updated)"
 consistency_audit: CONSISTENT
 input_drift_check: CLEAN
 phase_2_input_hash_drift_check: CLEAN
@@ -62,18 +62,18 @@ phase_2_input_hash_drift_check_total: 153
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-9 CLOSED/CONVERGED; Wave 10 IN PROGRESS.
-19 stories delivered across Waves 1-10 (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017).
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-9 CLOSED/CONVERGED; Wave 10 IN PROGRESS (wave-level).
+20 stories delivered across Waves 1-10 (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018).
 Wave 9 CLOSED 2026-05-26: STORY-016 (PR #127 → d636285, overlap detection, 24 tests + 1 proptest) +
 STORY-020 (PR #128 → 8cb907e, memory mgmt, 25 tests + 1 proptest + 1 additive #[doc(hidden)] seam).
 Wave-level remediation: PR #129 → 2037f88 (F-W9P1-001 + F-W9P1-004) + PR #130 → e237747 (F-W9P2-001 + F-W9P2-003).
 Wave-level convergence: 6 passes (DIRTY×3 + CLEAN×3; passes 4/5/6 clean; 11 findings remediated).
-Wave 10 IN PROGRESS 2026-05-26: STORY-017 CONVERGED + MERGED PR #131 → ced10aa (24 tests + 9 ECs;
-4 passes: 1D+3C; 33% pass reduction vs Wave 9 STORY-016). STORY-018 (resource bounds;
-BCs 2.04.023/027/040/041/042/044/045/046) at pass-5 burst-3 remediation (v1.5); 37% reduction trending.
-DF-SIBLING-SWEEP-001 v3 applied: cross-ref target resolution + implementation-reachability reasoning.
-New drift items: W10-D7 (pr-manager prompt-level enforcement gap) + W10-D8 (BC-2.04.045 PC2 unreachable).
-develop HEAD: ced10aa (PR #131 — STORY-017 squash-merged 2026-05-26).
+Wave 10 IN PROGRESS 2026-05-26: STORY-017 MERGED PR #131 → ced10aa (24 tests + 9 ECs; 4 passes 1D+3C).
+STORY-018 MERGED PR #132 → 211143e (resource bounds; BCs 2.04.023/027/040/041/042/044/045/046).
+Wave-level pass-1 DIRTY (9 findings): F-W10P1-001 REMEDIATED PR #133 → 211143e (overlap_count saturating_add);
+F-W10P1-002 REMEDIATED BC-2.04.022 v1.5; F-W10P1-003 REMEDIATED BC-2.04.027 v1.4;
+F-W10P1-004/005 + O-W10P1-001..004 DEFERRED as W10-D10..D14 + W10-D7 updated.
+develop HEAD: 211143e (PR #133 — Wave 10 wave-level pass-1 overlap_count fix 2026-05-26).
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -91,7 +91,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-9 CLOSED/CONVERGED; 18 stories delivered; Wave 10 IN PROGRESS (STORY-017 + STORY-018 dispatched 2026-05-26) | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-9 CLOSED/CONVERGED; 20 stories delivered; Wave 10 IN PROGRESS (per-story CONVERGED; wave-level pass-1 DIRTY — burst-4 remediation complete; pass-2 pending) | Wave-level convergence detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -110,7 +110,7 @@ dependency bumping for it).
 | 7 | STORY-014 | **CLOSED/CONVERGED** | b23c6d3 | PR #120 squash-merged 2026-05-25; 17 tests + 2 doc(hidden) seams; ADR-0004 amended PR #121; per-story 8 passes 3/3 clean streak; wave-level 8 passes 3/3 clean streak |
 | 8 | STORY-019, STORY-015 | **CLOSED/CONVERGED** | 4b9b85f | PR #122 (STORY-019) + PR #123 (STORY-015) squash-merged 2026-05-26; ADR-0004 v2 PRs #124/#125/#126; per-story 8 passes each (3/3 clean); wave-level 9 passes 3/3 clean streak; 4 drift items logged |
 | 9 | STORY-016, STORY-020 | **CLOSED/CONVERGED** 2026-05-26 | e237747 | PR #127 (STORY-016, 24 tests+1 proptest) + PR #128 (STORY-020, 25 tests+1 proptest+1 seam) + PR #129 + PR #130 (wave-followup-1/2); per-story 14 passes total (S016: 6; S020: 8); wave-level 6 passes (DIRTY×3+CLEAN×3); 11 findings remediated; W9-D8 CRITICAL; 632 tests passing |
-| 10 | STORY-017, STORY-018 | **IN PROGRESS** | ced10aa (STORY-017 PR #131) | STORY-017 CONVERGED+MERGED (4 passes, 1D+3C, 33% pass reduction vs W9-S016). STORY-018 at pass-5 burst-3 (v1.5); DF-SIBLING-SWEEP-001 v3 applied. W10-D7 + W10-D8 filed. |
+| 10 | STORY-017, STORY-018 | **IN PROGRESS** (wave-level) | 211143e (PR #133 — wave-level fix) | STORY-017 MERGED PR #131 (4 passes 1D+3C). STORY-018 MERGED PR #132 (5 passes; 37% reduction vs W9-S020). Wave-level pass-1 DIRTY: 3 REMEDIATED (PR #133 + BC-2.04.022 v1.5 + BC-2.04.027 v1.4); 5 DEFERRED (W10-D10..D14 + W10-D7 updated). Pass-2 pending. |
 | 11–27 | (remaining) | NOT STARTED | — | — |
 
 ## Phase 3 — Current Phase Steps (last 5)
@@ -122,6 +122,7 @@ dependency bumping for it).
 | Wave 10 — per-story adversarial pass-1 remediation (burst-1) | **COMPLETE** 2026-05-26 | STORY-017: DIRTY 5 findings → 1 false-positive dismissed + 4 actioned (BC-018/019/020 v1.2→v1.3; anchor corrections). STORY-018: DIRTY 6 findings → all 6 actioned (BC-027/041/045 v1.2→v1.3; CRITICAL F-001/F-002/F-003 fixed). 6 BCs + STORY-018 committed factory-artifacts 53c6420. First wave under DF-SIBLING-SWEEP-001: PO sibling-sweeps performed (3 patterns each + BC 023/024/037 verified) — ZERO sibling-regressions surfaced. Codification WORKING. Pass-2 dispatched. |
 | Wave 10 — per-story adversarial pass-2 remediation (burst-2) | **COMPLETE** 2026-05-26 | STORY-017 pass-2 CLEAN (clean #1 of 3). STORY-018 pass-2 DIRTY — 3 MED sibling-regressions: BC-2.04.045 v1.3 fix (burst-1) did NOT propagate to story EC table (EC-007), test prose, or test name. DF-SIBLING-SWEEP-001 v1 caught BC→BC propagation but missed BC→story-EC + BC→test-prose + BC→test-name paths. Burst-2: STORY-018 v1.3 (EC-007 rewrite + Task#7 test-name fix); test commit f1c7b1b. Policy v2 codification candidate logged as W10-D6. Pass-3 dispatched in parallel. |
 | Wave 10 — per-story adversarial pass-4/5 remediation (burst-3) | **COMPLETE** 2026-05-26 | STORY-017 CONVERGED+MERGED PR #131 → ced10aa (4 passes 1D+3C; 24 tests + 9 ECs; 33% pass reduction vs W9-S016). STORY-018 pass-4 DIRTY (1 MED W10-D6 pattern at deeper layer) → v1.4 remediated. STORY-018 pass-5 DIRTY (2 MED: cross-ref target validation + implementation reachability) → v1.5 remediated. DF-SIBLING-SWEEP-001 v3 applied: added (a) cross-reference target resolution and (b) implementation-reachability reasoning. W10-D7 (pr-manager prompt-level enforcement insufficient) + W10-D8 (BC-2.04.045 PC2 structurally unreachable — wave-gate fix candidate) filed. factory-artifacts HEAD d74e7b2. |
+| Wave 10 — wave-level pass-1 remediation (burst-4) | **COMPLETE** 2026-05-26 | STORY-018 MERGED PR #132 → 211143e (20 stories delivered). Wave-level pass-1 DIRTY (1 HIGH + 4 MED + 4 LOW): F-W10P1-001 REMEDIATED PR #133 → 211143e (overlap_count saturating_add fix); F-W10P1-002 REMEDIATED BC-2.04.022 v1.5 (anchor semantic-consistency mod.rs:430,465,489 → :430,457,489); F-W10P1-003 REMEDIATED BC-2.04.027 v1.4 (anchor off-by-2 segment.rs:80-88 → :80-86). F-W10P1-004/005 + O-W10P1-001..004 DEFERRED as W10-D10..D14. W10-D7 updated (implementer-as-PR-executor proven reliable). factory-artifacts HEAD b989cf2. |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -139,23 +140,24 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-26 — Wave 10 burst-3 complete)
+## Session Resume Checkpoint (2026-05-26 — Wave 10 burst-4 complete)
 
-1. Waves 1-9 all CLOSED/CONVERGED — 18 stories delivered.
-   STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020 all merged to develop.
-2. Wave 10 IN PROGRESS: STORY-017 CONVERGED + MERGED PR #131 → ced10aa (24 tests + 9 ECs;
-   4 passes: 1D+3C; 33% pass reduction vs Wave 9 STORY-016 6 passes).
-   STORY-018 at pass-5 burst-3: v1.5 remediated (EC-005 dangling ref + AC-018 unreachable wording
-   + AC-001 NOTE added). DF-SIBLING-SWEEP-001 v3 now covers cross-reference target resolution +
-   implementation-reachability reasoning. develop HEAD: ced10aa.
-3. STORY-018 drift items filed: W10-D7 (pr-manager must be patched at prompt level in vsdd-factory
-   plugin, not only dispatch-time injection) + W10-D8 (BC-2.04.045 PC2 structurally unreachable —
-   wave-gate fix candidate). W10-D6 (policy v2 paths) already filed burst-2.
-   All require research-agent validation per DF-VALIDATION-001 before any GitHub issue is filed.
-4. factory-artifacts HEAD: d74e7b2 (burst-3 commit). Push confirmed (9e847af → d74e7b2).
-5. NEXT: STORY-018 pass-6 adversarial dispatch. If CLEAN, continue toward 3-clean streak.
-   Task #67 (W10.9 STORY-018 per-story adversarial) IN PROGRESS.
-   Orchestrator must inject DF-SIBLING-SWEEP-001 v3 checklist + DF-PR-MANAGER-COMPLETE-001 at next dispatches.
+1. Waves 1-9 all CLOSED/CONVERGED + Wave 10 per-story CONVERGED — 20 stories delivered.
+   STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018 all merged to develop.
+   STORY-017 PR #131 → ced10aa (4 passes 1D+3C; 24 tests + 9 ECs; 33% pass reduction vs W9-S016).
+   STORY-018 PR #132 → 211143e (5 passes; 37% pass reduction vs W9-S020; resource bounds).
+2. Wave 10 wave-level adversarial pass-1 DIRTY — burst-4 remediation COMPLETE.
+   F-W10P1-001 (HIGH): REMEDIATED PR #133 → 211143e (overlap_count saturating_add).
+   F-W10P1-002 (MED): REMEDIATED BC-2.04.022 v1.5 (anchor semantic-consistency).
+   F-W10P1-003 (MED): REMEDIATED BC-2.04.027 v1.4 (anchor off-by-2 fix).
+   F-W10P1-004/005 + O-W10P1-001..004: DEFERRED as W10-D10..D14.
+   W10-D7 UPDATED: implementer-as-PR-executor proven reliable (PR #133 autonomous through merge).
+   develop HEAD: 211143e.
+3. All W10-D items (D6..D14) require research-agent validation per DF-VALIDATION-001 before any GitHub issue is filed.
+4. factory-artifacts HEAD: b989cf2 (burst-4 commit). Push confirmed (0e8d431 → b989cf2).
+5. NEXT: Wave 10 wave-level pass-2 adversarial dispatch.
+   Task #69 (W10.11 Wave-level adversarial — 3 clean passes) IN PROGRESS.
+   Orchestrator must inject DF-SIBLING-SWEEP-001 v3 checklist at wave-level adversarial dispatch.
 
 ## Wave Retrospectives
 
@@ -220,8 +222,13 @@ None open.
 | W10-D4 | STORY-017 pass-2 F-PASS2-LOW-C (LOW): BC-2.04.022 Source Evidence inner-line citations have mixed semantics (some character-level, some token-level). | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
 | W10-D5 | STORY-018 pass-1 F-003 carry-forward (LOW): AC-005 uses 3 distinct execution flows but EC-002 covers only the same-flow case; the other 2 flows lack coverage. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
 | W10-D6 | [process-gap] DF-SIBLING-SWEEP-001 v1 checklist does not explicitly enumerate BC→story-EC, BC→test-prose, and BC→test-name propagation paths. Surfaced in STORY-018 pass-2 (3 MED sibling-regressions of BC-2.04.045 v1.3 fix that passed BC→BC sweep but missed story/test paths). Policy v2 codification candidate post-Wave 10. | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W10-D7 | [process-gap] DF-PR-MANAGER-COMPLETE-001 v1 enforcement insufficient at dispatch-prompt level — pr-manager STOPPED at APPROVE step on STORY-017 PR #131 despite explicit policy injection. Root cause: policy enforcement lives only in orchestrator dispatch text, not in pr-manager agent prompt itself. Codification candidate: edit pr-manager agent prompt in vsdd-factory plugin source, not just dispatch-time injection. | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
+| W10-D7 | [process-gap] DF-PR-MANAGER-COMPLETE-001 v1 enforcement insufficient at dispatch-prompt level — pr-manager STOPPED at APPROVE step on STORY-017 PR #131 despite explicit policy injection. Root cause: policy enforcement lives only in orchestrator dispatch text, not in pr-manager agent prompt itself. Codification candidate: edit pr-manager agent prompt in vsdd-factory plugin source, not just dispatch-time injection. RESOLUTION CANDIDATE — implementer-as-PR-executor proven reliable on PR #133 (autonomous through merge); recommend retiring pr-manager dispatch in favor of implementer for PR completion. | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
 | W10-D8 | [spec-gap, defer-as-integration] BC-2.04.045 v1.3 PC2 "or no gaps fit at all" wording is structurally unreachable per early-guard analysis — the STORY-018 v1.5 pass-5 implementation-reachability finding. Should be removed at wave-gate to prevent re-propagation to STORY-021 + future SS-04 stories. Deferred as integration item. | spec-gap | wave-gate | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
+| W10-D10 | F-W10P1-004 (MED): STORY-018 AC-005 and EC-008 test coverage is duplicated — fill_findings_to_cap helper exists but test uses manual duplication pattern instead. Refactor opportunity reduces test code volume without changing coverage. Source: STORY-018 tests/reassembly_segment_tests.rs. | test-quality | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
+| W10-D11 | F-W10P1-005 (MED): No AC pins evidence strings for small-segment + overlap findings in STORY-018 — only AC-012 covers out-of-window (OOW) case. Small-segment and overlap finding evidence strings lack acceptance criteria anchors, leaving spec coverage gap for those two finding types. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
+| W10-D12 | O-W10P1-001 (LOW): BC-2.04.018 PC2 parenthetical overgeneralizes direction:None — states behavior applies to "all direction values" but direction:None is not a valid direction for per-flow findings. PC2 wording may confuse future story implementers. Wave-gate fix candidate. | spec-gap | wave-gate | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
+| W10-D13 | O-W10P1-002 (LOW): Truncated path overlap detection skips bytes beyond `allowed` without any security note — bytes past the depth limit are silently discarded; this is intentional behavior but the BC lacks a security-implication note for analysts reviewing partial-stream reassembly. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
+| W10-D14 | O-W10P1-003 (LOW): No AC in STORY-018 verifies direction:None for ConflictingOverlap finding — the BC states direction:None is valid for flow-level findings but no test AC anchors this invariant, leaving it unverifiable from the story alone. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
 
 ## Cycle-Close Follow-Up Items
 
