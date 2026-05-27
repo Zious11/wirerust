@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Pass-4 sibling sweep: corrected impl Drop line citation 677-690 → 706-720 (was stale after STORY-021 added test seams shifting impl Drop) — 2026-05-27"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -94,7 +95,7 @@ the reassembler is dropped without finalize having been called.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- finalize is the end-of-capture lifecycle contract for the reassembly engine |
 | L2 Domain Invariants | INV-7 (Finalize-Once Latch), INV-6 (MAX_FINDINGS cap; finalize bypass) |
-| Architecture Module | SS-04 (reassembly/mod.rs:557-591, finalize; mod.rs:677-690, impl Drop) |
+| Architecture Module | SS-04 (reassembly/mod.rs:557-591, finalize; mod.rs:706-720, impl Drop) |
 | Stories | STORY-021 |
 | Origin BC | BC-RAS-012 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -107,7 +108,7 @@ the reassembler is dropped without finalize having been called.
 ## Architecture Anchors
 
 - `src/reassembly/mod.rs:557-591` -- finalize: latch, flow loop, segment-limit finding
-- `src/reassembly/mod.rs:677-690` -- impl Drop: tripwire eprintln
+- `src/reassembly/mod.rs:706-720` -- impl Drop: tripwire eprintln
 
 ## Source Evidence
 

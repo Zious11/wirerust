@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Pass-4 sibling sweep: corrected if-count-guard citation 571 → 572 (off-by-one against current source; line 571 is the let count = ... binding, line 572 is the if count > 0 { guard) — 2026-05-27"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -79,7 +80,7 @@ captures where no segment limit was hit.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- suppressing spurious findings on clean captures is part of the forensic correctness contract |
 | L2 Domain Invariants | INV-7 (finalize-once latch) |
-| Architecture Module | SS-04 (reassembly/mod.rs:571, `if count > 0` guard) |
+| Architecture Module | SS-04 (reassembly/mod.rs:572, `if count > 0` guard) |
 | Stories | STORY-021 |
 | Origin BC | BC-RAS-026 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -90,13 +91,13 @@ captures where no segment limit was hit.
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:571` -- `if count > 0 { self.findings.push(...) }`
+- `src/reassembly/mod.rs:572` -- `if count > 0 { self.findings.push(...) }`
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:571` |
+| **Path** | `src/reassembly/mod.rs:572` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
