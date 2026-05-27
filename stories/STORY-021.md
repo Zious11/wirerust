@@ -2,10 +2,10 @@
 document_type: story
 story_id: "STORY-021"
 epic_id: "E-2"
-version: "1.6"
+version: "1.7"
 status: draft
 producer: story-writer
-timestamp: 2026-05-27T04:00:00Z
+timestamp: 2026-05-27T05:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.012.md
@@ -132,7 +132,7 @@ implementation_strategy: brownfield-formalization
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
 | finalize (latch, flow loop, segment-limit block) | src/reassembly/mod.rs:557-591 | effectful-shell |
-| impl Drop tripwire | src/reassembly/mod.rs:796-810 | effectful-shell (stderr write) |
+| impl Drop tripwire | src/reassembly/mod.rs:794-808 | effectful-shell (stderr write) |
 | MAX_FINDINGS constant | src/reassembly/mod.rs:54 | pure-core (constant) |
 | dropped_findings counter sites | src/reassembly/mod.rs:432,466,495; lifecycle.rs:101,121 | effectful-shell |
 | plural_s helper | src/reassembly/mod.rs:66-68 | pure-core |
@@ -174,7 +174,7 @@ implementation_strategy: brownfield-formalization
 |---------------|-----------------|
 | This story spec | ~3,000 |
 | BC files (5 BCs) | ~5,500 |
-| src/reassembly/mod.rs (finalize ~557-591, impl Drop ~796-810, MAX_FINDINGS ~54, dropped_findings sites ~432,466,495) | ~2,500 |
+| src/reassembly/mod.rs (finalize ~557-591, impl Drop ~794-808, MAX_FINDINGS ~54, dropped_findings sites ~432,466,495) | ~2,500 |
 | src/reassembly/lifecycle.rs (dropped_findings sites ~101,121) | ~500 |
 | src/analyzer/http.rs (test seams: push_finding_for_testing, all_findings_len_for_testing) | ~500 |
 | src/analyzer/tls.rs (test seams: push_finding_for_testing, all_findings_len_for_testing) | ~500 |
@@ -227,6 +227,7 @@ implementation_strategy: brownfield-formalization
 39. [x] Reword trust-boundary compliance rule for set_segments_segment_limit_for_testing — drop incorrect BC-2.04.026 EC-002 "violates" citation; replace with accurate "bypasses normal increment path / does NOT violate EC-002" wording (F-W11P5-007)
 40. [x] Token budget arithmetic fix: "6 new post-pass-1 tests" → "5 new post-pass-1 ACs: AC-007b, AC-014..AC-017"; test row bumped ~5,000 → ~5,500; total bumped ~18,500 → ~19,000; budget usage ~9.3% → ~9.5% (F-W11P5-009)
 41. [x] EC-010 row 4 swap primary/secondary citation for lifecycle.rs:101: STORY-017 sibling test promoted to primary (structurally specific); AC-005 demoted to incidental (F-W11P5-012)
+42. [x] (POST-PASS-7 ADDITIONS) Replace `mod.rs:796-810` → `mod.rs:794-808` in story citations (impl Drop shifted up 2 lines after pass-6 docstring shortening) (F-W11P7-001)
 
 ## Previous Story Intelligence (MANDATORY)
 
@@ -238,6 +239,7 @@ implementation_strategy: brownfield-formalization
 | STORY-017 | MAX_FINDINGS cap is enforced at 5 sites (3 in check_anomaly_thresholds, 2 in lifecycle.rs) | latch-before-cap ensures findings are only at cap, not over | finalize is the ONE intentional bypass of the cap |
 | STORY-021 | swap_for_testing pattern + honest scope limit: AC-004 asserts Drop hook fires AT LEAST ONCE per process; unique per-Drop attribution is non-deterministic under cargo's parallel scheduler with ~130+ sibling un-finalized-drop sites in tests/reassembly_engine_tests.rs (orchestrator-verified count of 175 TcpReassembler::new sites minus 44 .finalize() calls upper-bounds the un-finalized count; spot-audit not exhaustively performed) | Process-global atomics with global-latch design (one-shot eprintln) cannot be uniquely attributed without process-isolation or stderr capture; document scope honestly | Option A (lock all ~130+ sites) would exceed sibling-sweep cost threshold; Option B (honest docs) chosen |
 | (process lesson) | After AC additions to a story, the sibling-sweep step (a) MUST update existing task descriptions referencing AC counts/ranges, not just append new tasks | Codification candidate for DF-SIBLING-SWEEP-001 v5 | Applied in task 27 above; stale "13 ACs" in Task 1 survived pass-1 because the sibling-sweep only checked AC numbering, not task description wording |
+| (process lesson) | impl Drop line citation drifted across 4 cycles (677-690 → 793-807 → 796-810 → 794-808) because seam-block edits shift downstream line numbers; story-side citations must be re-verified against source after every test-writer pass that touches mod.rs seams | Codification candidate for DF-SIBLING-SWEEP-001 v6 (story re-anchor on every burst that modifies cited source files) | Applied in task 42 above; citation `796-810` survived passes 4-6 because sibling-sweep did not re-grep impl Drop line after pass-6 docstring shortening |
 
 ## Architecture Compliance Rules (MANDATORY)
 
@@ -263,7 +265,7 @@ implementation_strategy: brownfield-formalization
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `src/reassembly/mod.rs` | verify (lines 54, 66-68, 432, 466, 495, 557-591, 796-810) | MAX_FINDINGS const, plural_s, cap guard sites, finalize, impl Drop |
+| `src/reassembly/mod.rs` | verify (lines 54, 66-68, 432, 466, 495, 557-591, 794-808) | MAX_FINDINGS const, plural_s, cap guard sites, finalize, impl Drop |
 | `src/reassembly/lifecycle.rs` | verify (lines 101, 121) | dropped_findings guard sites in generate_ functions |
 | `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-013 (original); AC-007b, AC-014 through AC-017 (post-pass-1) |
 | `src/analyzer/http.rs` | verify (test seams) | `push_finding_for_testing`, `all_findings_len_for_testing` — used by AC-007b test |
@@ -280,3 +282,4 @@ implementation_strategy: brownfield-formalization
 | 1.4 | 2026-05-27 | Post-adversarial-pass-3 propagation fixes (F-W11P3-003, F-W11P3-004b): replaced remaining stale `mod.rs:677-690` citations with `mod.rs:793-807` in Token Budget table and File Structure Requirements table (F-W11P3-003); propagated AC-013 test rename `test_BC_2_04_054_max_findings_plus_one_is_absolute_upper_bound` → `test_BC_2_04_054_finalize_bypass_smoke_at_max_findings_representative_scenario` to AC-013 Test trace line (F-W11P3-004b); tasks 30-31 appended |
 | 1.5 | 2026-05-27 | Post-adversarial-pass-4 story-side remediation (F-W11P4-001, F-W11P4-003, F-W11P4-006, F-W11P4-007, F-W11P4-008): replaced 3 stale `mod.rs:793-807` citations with `mod.rs:796-810` (worktree post-STORY-021 line numbers) across Architecture Mapping, Token Budget, and File Structure Requirements tables (F-W11P4-001); added 4 missing mod.rs test-seam rows to Architecture Mapping (finalize_skipped_warned_for_testing, reset_finalize_skipped_warned_for_testing, set_segments_segment_limit_for_testing, push_finding_for_testing) (F-W11P4-003); appended Option-B scope-limitation note to AC-004 body (F-W11P4-007); extended AC-013 to mention defensive post-bypass idempotency coverage (F-W11P4-006); refined FINALIZE_SKIPPED_WARNED_LOCK compliance rule to acknowledge ISN_MISSING_WARNED_LOCK lock-naming outlier (F-W11P4-008); tasks 32-36 appended |
 | 1.6 | 2026-05-27 | Post-adversarial-pass-5 story-side remediation (F-W11P5-004, F-W11P5-006, F-W11P5-007, F-W11P5-009, F-W11P5-012): replaced unverified "194 sibling un-finalized-drop sites" magic number with orchestrator-verified "~130+" in Previous-Story-Intelligence, Architecture Compliance Rule for AC-004, and task 22 description (F-W11P5-004); pinned AC-009 body to "count=2 (true plural-boundary)" matching rule and task 18 (F-W11P5-006); rewrote trust-boundary compliance rule for set_segments_segment_limit_for_testing to drop incorrect BC-2.04.026 EC-002 "violates" claim (F-W11P5-007); fixed token budget test-row arithmetic from "6 new tests" to "5 new ACs (AC-007b, AC-014..AC-017)" and updated total/percentage accordingly (F-W11P5-009); swapped primary/secondary citation order for EC-010 row 4 lifecycle.rs:101 site (F-W11P5-012); tasks 37-41 appended |
+| 1.7 | 2026-05-27 | Post-adversarial-pass-7 citation re-anchor (F-W11P7-001): replaced 3 stale `mod.rs:796-810` citations with `mod.rs:794-808` (impl Drop shifted up 2 lines after pass-6 trust-boundary seam docstring shortening) across Architecture Mapping table, Token Budget table, and File Structure Requirements table; process-lesson PSI row added (impl Drop line citation drift pattern across 4 cycles); task 42 appended |
