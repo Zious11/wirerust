@@ -14,18 +14,60 @@ fn flow_key(src_port: u16, dst_port: u16) -> FlowKey {
     )
 }
 
+/// Exercises VP-004: 0x16 0x03 prefix routes to TLS regardless of port.
+///
+/// AC-001 (BC-2.05.001 postcondition 1): TLS signature [0x16, 0x03, ...] on a
+/// non-standard port (8080) routes to TLS via content detection, not port fallback.
+/// HTTP analyzer must receive zero data; TLS analyzer must receive the data.
+///
+/// This also serves as `test_tls_content_wins_over_port_8080`: content-priority over
+/// port-fallback hint for HTTP port 8080.
 #[test]
-fn test_dispatcher_routes_tls() {
-    let mut dispatcher = StreamDispatcher::new(None, Some(TlsAnalyzer::new()));
-    let fk = flow_key(49152, 443);
+fn test_tls_content_wins_over_port_8080() {
+    // Both analyzers present so we can observe which one received data.
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    // Port 8080 would fall back to Http by port — if content wins, Tls is chosen instead.
+    let fk = flow_key(49152, 8080);
 
-    // TLS ClientHello record header: content_type=0x16, version=0x0303, length=0x0005
-    let tls_data = [0x16, 0x03, 0x03, 0x00, 0x05, 0x01, 0x00, 0x00, 0x01, 0x00];
+    // Canonical test vector from BC-2.05.001: [0x16, 0x03, 0x03, 0x00, 0x50, ...]
+    let tls_data = [0x16u8, 0x03, 0x03, 0x00, 0x50, 0x01, 0x00, 0x00, 0x4c, 0x03];
     dispatcher.on_data(&fk, Direction::ClientToServer, &tls_data, 0);
 
-    // If routed correctly, TLS analyzer received data (no panic, no error)
-    // We can't directly assert routing, but we can verify HTTP didn't get it
-    assert!(dispatcher.http.is_none());
+    // Content-first wins: HTTP must not have received any data from this flow.
+    let http = dispatcher.http.as_ref().unwrap();
+    assert_eq!(
+        http.method_counts().len(),
+        0,
+        "AC-001: TLS signature on port 8080 must route to Tls, not Http"
+    );
+    assert_eq!(
+        http.parse_error_count(),
+        0,
+        "AC-001: HTTP analyzer must not have attempted to parse TLS bytes"
+    );
+}
+
+/// True happy-path baseline: TLS content on TLS port 443 — most common real-world case.
+/// AC-001 supplementary: content detection works on the canonical TLS port too.
+#[test]
+fn test_tls_content_routes_tls_on_port_443() {
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    let fk = flow_key(49152, 443);
+
+    let tls_data = [0x16u8, 0x03, 0x03, 0x00, 0x50, 0x01, 0x00, 0x00, 0x4c, 0x03];
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_data, 0);
+
+    let http = dispatcher.http.as_ref().unwrap();
+    assert_eq!(
+        http.method_counts().len(),
+        0,
+        "AC-001 baseline: TLS signature on port 443 must route to Tls, not Http"
+    );
+    assert_eq!(
+        http.parse_error_count(),
+        0,
+        "AC-001 baseline: HTTP analyzer must not attempt to parse TLS bytes on port 443"
+    );
 }
 
 #[test]
@@ -38,6 +80,65 @@ fn test_dispatcher_routes_http() {
 
     let http = dispatcher.http.as_ref().unwrap();
     assert_eq!(*http.method_counts().get("GET").unwrap(), 1);
+}
+
+/// AC-004 (BC-2.05.002 postcondition 1, invariant 3): Each of the 10 HTTP
+/// method/version prefix byte strings routes to Http when content matches.
+/// Uses port 9999 to isolate content classification from port fallback.
+/// Also covers EC-008 (b"HTTP/1.1 200 OK" response-first case) via the
+/// HTTP/ prefix.
+#[test]
+fn test_all_http_method_prefixes_route_to_http() {
+    // Complete HTTP messages so the parser can confirm receipt via method_counts
+    // or status_codes. For methods, supply Host + double-CRLF so httparse
+    // returns Complete (and method_counts is populated). The HTTP/ prefix is a
+    // response line; sent as ClientToServer it hits the request parser which
+    // errors → parse_error_count > 0 confirms routing.
+    let cases: &[(&[u8], &str)] = &[
+        (b"GET / HTTP/1.1\r\nHost: x\r\n\r\n", "GET"),
+        (b"POST / HTTP/1.1\r\nHost: x\r\n\r\n", "POST"),
+        (b"PUT / HTTP/1.1\r\nHost: x\r\n\r\n", "PUT"),
+        (b"DELETE / HTTP/1.1\r\nHost: x\r\n\r\n", "DELETE"),
+        (b"HEAD / HTTP/1.1\r\nHost: x\r\n\r\n", "HEAD"),
+        (b"OPTIONS / HTTP/1.1\r\nHost: x\r\n\r\n", "OPTIONS"),
+        (b"PATCH / HTTP/1.1\r\nHost: x\r\n\r\n", "PATCH"),
+        (
+            b"CONNECT host:443 HTTP/1.1\r\nHost: host:443\r\n\r\n",
+            "CONNECT",
+        ),
+        (b"TRACE / HTTP/1.1\r\nHost: x\r\n\r\n", "TRACE"),
+        // EC-008: response-first / server-initiated. Sent as ClientToServer
+        // so the request parser sees a malformed message → parse_error_count > 0.
+        (b"HTTP/1.1 200 OK\r\n\r\n", "HTTP/"),
+    ];
+
+    for (i, (data, label)) in cases.iter().enumerate() {
+        let mut dispatcher =
+            StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+        // Port 9999: no port fallback hint — Http must be chosen by content.
+        let fk = flow_key(49152 + i as u16, 9999);
+        dispatcher.on_data(&fk, Direction::ClientToServer, data, 0);
+
+        let http = dispatcher.http.as_ref().expect("HTTP analyzer set");
+        let tls = dispatcher.tls.as_ref().expect("TLS analyzer set");
+
+        // Either HTTP saw the data (method recorded or parse-error counted),
+        // OR (for HTTP/ response-first) the parser may register differently —
+        // but in all cases TLS must NOT have received the data.
+        assert_eq!(
+            tls.parse_error_count(),
+            0,
+            "AC-004 prefix {label:?}: TLS must not be invoked for HTTP content"
+        );
+        // Method-counts may be 0 for HTTP/ response-first (no method) but
+        // parse_error_count being > 0 or method_counts being non-empty signals
+        // the data was routed to the HTTP analyzer.
+        let routed_to_http = !http.method_counts().is_empty() || http.parse_error_count() > 0;
+        assert!(
+            routed_to_http,
+            "AC-004 prefix {label:?}: HTTP analyzer must have received the data"
+        );
+    }
 }
 
 #[test]
@@ -55,20 +156,216 @@ fn test_dispatcher_content_detection_tls_on_port_80() {
     assert_eq!(http.parse_error_count(), 0); // Confirms HTTP didn't try to parse TLS bytes
 }
 
+/// AC-007 (BC-2.05.003 postcondition 1): When both content checks fail (data has
+/// no TLS/HTTP magic bytes), port fallback fires. Port 443 → DispatchTarget::Tls.
 #[test]
-fn test_dispatcher_port_fallback_short_data() {
+fn test_port_fallback_443_to_tls() {
     let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
     let fk = flow_key(49152, 443); // Port 443
 
-    // Only 2 bytes — too short for content detection, falls back to port
-    let short_data = [0x16, 0x03];
-    dispatcher.on_data(&fk, Direction::ClientToServer, &short_data, 0);
+    // 6 bytes: TLS record type 0x16 but version 0x0401 (not 0x0300–0x0303) so content
+    // detection (which requires data[1]==0x03) does NOT fire; only port fallback applies.
+    // The 1-byte payload (0xFF) forms a syntactically complete but malformed handshake
+    // record, which causes TlsAnalyzer to increment parse_error_count — confirming routing.
+    let unknown_data = [0x16u8, 0x04, 0x01, 0x00, 0x01, 0xFF];
+    dispatcher.on_data(&fk, Direction::ClientToServer, &unknown_data, 0);
 
-    // Should have routed to TLS based on port 443
-    // HTTP should not have received it
+    // Should have routed to TLS based on port 443; HTTP must not have received it.
     let http = dispatcher.http.as_ref().unwrap();
-    assert_eq!(http.method_counts().len(), 0);
-    assert_eq!(http.parse_error_count(), 0); // Confirms HTTP didn't try to parse TLS bytes
+    assert_eq!(
+        http.method_counts().len(),
+        0,
+        "AC-007: short data on port 443 must fall back to Tls, not Http"
+    );
+    assert_eq!(
+        http.parse_error_count(),
+        0,
+        "AC-007: HTTP analyzer must not attempt to parse bytes on port-443 fallback"
+    );
+    // Positive TLS discriminator: non-TLS garbage routed to TlsAnalyzer triggers a
+    // parse/truncation event — proves TlsAnalyzer actually received the bytes.
+    let tls = dispatcher.tls.as_ref().unwrap();
+    assert!(
+        tls.parse_error_count() > 0 || tls.truncated_record_count() > 0,
+        "AC-007: port 443 fallback must route to Tls analyzer \
+         (5-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
+    );
+}
+
+/// AC-007 (BC-2.05.003 postcondition 1): Port 8443 → DispatchTarget::Tls via port fallback.
+/// 5-byte non-TLS, non-HTTP data ensures neither content check fires.
+#[test]
+fn test_port_fallback_8443_to_tls() {
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    // Port 8443 is a known TLS port; data has no TLS/HTTP signature.
+    let fk = flow_key(49152, 8443);
+
+    // 6 bytes: TLS record type 0x16 but version 0x0401 (not 0x0300–0x0303) so content
+    // detection (which requires data[1]==0x03) does NOT fire; only port fallback applies.
+    // The 1-byte payload (0xFF) forms a complete but malformed handshake record, causing
+    // TlsAnalyzer to increment parse_error_count — confirming routing to TLS analyzer.
+    let ambiguous_data = [0x16u8, 0x04, 0x01, 0x00, 0x01, 0xFF];
+    dispatcher.on_data(&fk, Direction::ClientToServer, &ambiguous_data, 0);
+
+    let http = dispatcher.http.as_ref().unwrap();
+    assert_eq!(
+        http.method_counts().len(),
+        0,
+        "AC-007: port 8443 fallback must route to Tls, not Http"
+    );
+    assert_eq!(
+        http.parse_error_count(),
+        0,
+        "AC-007: HTTP analyzer must not be called when port 8443 falls back to Tls"
+    );
+    // Positive TLS discriminator: non-TLS garbage routed to TlsAnalyzer triggers a
+    // parse/truncation event — proves TlsAnalyzer actually received the bytes.
+    let tls = dispatcher.tls.as_ref().unwrap();
+    assert!(
+        tls.parse_error_count() > 0 || tls.truncated_record_count() > 0,
+        "AC-007: port 8443 fallback must route to Tls analyzer \
+         (5-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
+    );
+}
+
+/// AC-007 (BC-2.05.003 postcondition 2): Port 80 → DispatchTarget::Http via port fallback.
+/// 5-byte non-TLS, non-HTTP data ensures neither content check fires.
+#[test]
+fn test_port_fallback_80_to_http() {
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    // Port 80 is a known HTTP port; data has no TLS/HTTP signature.
+    let fk = flow_key(49152, 80);
+
+    // 5 bytes with no TLS (byte0≠0x16) and no HTTP method prefix → only port fallback applies.
+    let ambiguous_data = [0x00u8, 0x01, 0x02, 0x03, 0x04];
+    dispatcher.on_data(&fk, Direction::ClientToServer, &ambiguous_data, 0);
+
+    // Port 80 fallback → Http. The flow IS classified (not unclassified).
+    dispatcher.on_flow_close(&fk, CloseReason::Fin);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        0,
+        "AC-007: port 80 fallback must route to Http (flow classified, not unclassified)"
+    );
+    // Discriminator: HTTP analyzer must have attempted to parse the bytes (the data is
+    // non-HTTP garbage, so httparse will increment parse_error_count). If the flow were
+    // mis-routed to Tls, HTTP would never see the bytes → parse_error_count == 0 → fails.
+    let http = dispatcher.http.as_ref().unwrap();
+    assert!(
+        http.parse_error_count() > 0,
+        "AC-007: port 80 fallback must route to Http analyzer (received the 5-byte \
+         non-HTTP data and tried to parse, incrementing parse_error_count)"
+    );
+}
+
+/// AC-007 (BC-2.05.003 postcondition 2): Port 8080 → DispatchTarget::Http via port fallback.
+/// 5-byte non-TLS, non-HTTP data ensures neither content check fires.
+/// Also covers EC-010: unknown bytes on port 8080 → Http.
+#[test]
+fn test_port_fallback_8080_to_http() {
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    // Port 8080 is a known HTTP port; data has no TLS/HTTP signature.
+    let fk = flow_key(49152, 8080);
+
+    // 5 bytes with no TLS (byte0≠0x16) and no HTTP method prefix → only port fallback applies.
+    let ambiguous_data = [0x00u8, 0x01, 0x02, 0x03, 0x04];
+    dispatcher.on_data(&fk, Direction::ClientToServer, &ambiguous_data, 0);
+
+    // Port 8080 fallback → Http. Same verification strategy as port 80 above.
+    dispatcher.on_flow_close(&fk, CloseReason::Fin);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        0,
+        "AC-007/EC-010: port 8080 fallback must route to Http (flow classified, not unclassified)"
+    );
+    // Discriminator: HTTP analyzer must have attempted to parse the bytes (the data is
+    // non-HTTP garbage, so httparse will increment parse_error_count). If the flow were
+    // mis-routed to Tls, HTTP would never see the bytes → parse_error_count == 0 → fails.
+    let http = dispatcher.http.as_ref().unwrap();
+    assert!(
+        http.parse_error_count() > 0,
+        "AC-007/EC-010: port 8080 fallback must route to Http analyzer (received the 5-byte \
+         non-HTTP data and tried to parse, incrementing parse_error_count)"
+    );
+}
+
+/// AC-003 (BC-2.05.001 precondition 1): When data.len() < 5, the TLS content
+/// check is skipped. This is isolated from port fallback by using port 9999
+/// (no port fallback hint). With no content match and no port match, the flow
+/// is unclassified.
+///
+/// Also covers EC-004: data.len() == 4 (boundary — exactly one byte short of the
+/// minimum required for TLS content inspection).
+#[test]
+fn test_tls_check_skipped_below_len_5() {
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    // Port 9999: no port fallback hint — isolates the length-gate from port fallback.
+    let fk = flow_key(49152, 9999);
+
+    // 4 bytes starting with TLS-looking byte0=0x16 — would pass TLS check IF 5 bytes present.
+    // Exactly at the EC-004 boundary: data.len() == 4.
+    let four_bytes = [0x16u8, 0x03, 0x03, 0x00];
+    dispatcher.on_data(&fk, Direction::ClientToServer, &four_bytes, 0);
+
+    // TLS content check skipped (too short), HTTP content check also fails (no method prefix),
+    // port fallback also fails (unknown port) → flow unclassified.
+    let http = dispatcher.http.as_ref().unwrap();
+    assert_eq!(
+        http.method_counts().len(),
+        0,
+        "AC-003/EC-004: 4-byte data must not route to Http"
+    );
+    assert_eq!(
+        http.parse_error_count(),
+        0,
+        "AC-003/EC-004: HTTP analyzer must not be called for 4-byte data on unknown port"
+    );
+    dispatcher.on_flow_close(&fk, CloseReason::Fin);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        1,
+        "AC-003/EC-004: 4-byte TLS-looking data on unknown port must remain unclassified"
+    );
+}
+
+/// EC-005 (edge case): TLS content check requires byte0==0x16 AND byte1==0x03.
+/// Data with byte0=0x16 but byte1≠0x03 must NOT be routed to Tls.
+#[test]
+fn test_tls_check_requires_byte1_equals_0x03() {
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    // Port 9999: no port fallback hint.
+    let fk = flow_key(49152, 9999);
+
+    // byte0=0x16, byte1=0x04 (not 0x03) — TLS check must fail.
+    let almost_tls = [0x16u8, 0x04, 0x03, 0x00, 0x05];
+    dispatcher.on_data(&fk, Direction::ClientToServer, &almost_tls, 0);
+
+    let http = dispatcher.http.as_ref().unwrap();
+    assert_eq!(
+        http.method_counts().len(),
+        0,
+        "EC-005: byte0=0x16 + byte1=0x04 must not route to Http (no HTTP prefix)"
+    );
+    // Flow is unclassified (no content match, no port match).
+    dispatcher.on_flow_close(&fk, CloseReason::Fin);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        1,
+        "EC-005: byte1=0x04 (not 0x03) must not trigger TLS routing; flow unclassified"
+    );
+
+    // Variant: byte1=0x02.
+    let mut dispatcher2 =
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    let fk2 = flow_key(49152, 9999);
+    let almost_tls2 = [0x16u8, 0x02, 0x03, 0x00, 0x05];
+    dispatcher2.on_data(&fk2, Direction::ClientToServer, &almost_tls2, 0);
+    dispatcher2.on_flow_close(&fk2, CloseReason::Fin);
+    assert_eq!(
+        dispatcher2.unclassified_flows(),
+        1,
+        "EC-005 variant: byte1=0x02 (not 0x03) must not trigger TLS routing; flow unclassified"
+    );
 }
 
 #[test]
@@ -193,5 +490,216 @@ fn test_zero_attempt_budget_classifies_nothing() {
         *http.method_counts().get("GET").unwrap(),
         1,
         "a first-chunk positive match must route even with a zero failure budget"
+    );
+}
+
+// ---- STORY-031: content-first classification tests (BC-2.05.001/002/003) ----
+
+/// AC-005 (BC-2.05.002 invariant 3): HTTP method prefixes require a trailing
+/// space. `b"GET"` (3 bytes, no space) must NOT match. The comparison is
+/// case-sensitive; `b"get "` must NOT match either.
+/// EC-007: b"GET" on port 9999 → falls to port fallback → returns None (unknown port).
+#[test]
+fn test_http_no_space_does_not_match() {
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    // Port 9999: no port fallback match, so the only way Http is chosen is content.
+    let fk = flow_key(49152, 9999);
+
+    // b"GET" without trailing space — must not match any HTTP prefix.
+    dispatcher.on_data(&fk, Direction::ClientToServer, b"GET", 0);
+    let http = dispatcher.http.as_ref().unwrap();
+    assert_eq!(
+        http.method_counts().len(),
+        0,
+        "AC-005: b\"GET\" (no trailing space) must not route to Http"
+    );
+
+    // Case-sensitive: lowercase b"get " must not match.
+    // Use a COMPLETE request (Host + double-CRLF) so that if a regression made
+    // matching case-insensitive, httparse would return Complete and increment
+    // method_counts — giving us a true discriminator rather than relying on Partial.
+    let fk2 = flow_key(49153, 9999);
+    dispatcher.on_data(
+        &fk2,
+        Direction::ClientToServer,
+        b"get /index HTTP/1.1\r\nHost: x\r\n\r\n",
+        0,
+    );
+    assert_eq!(
+        dispatcher.http.as_ref().unwrap().method_counts().len(),
+        0,
+        "AC-005: lowercase b\"get \" must not route to Http (case-sensitive check)"
+    );
+    // Close the flow and verify it was never classified to either analyzer.
+    // If mis-routed AND parsed as Partial, the flow would be in routes as Http
+    // → unclassified_flows == 0. Verifying unclassified == 1 proves the flow
+    // was never classified.
+    dispatcher.on_flow_close(&fk2, CloseReason::Fin);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        1,
+        "AC-005: lowercase b\"get \" flow must be unclassified (Http rejection means \
+         DispatchTarget::None; no route inserted; on_flow_close None branch fires)"
+    );
+
+    // Positive control: b"GET " (with trailing space, correct case) DOES match
+    // on the same port — confirms the negatives above failed due to the
+    // trailing-space/case rule, not some other test setup issue.
+    // Use a complete request (Host + double CRLF) so httparse returns Complete
+    // and method_counts is populated.
+    let fk_positive = flow_key(49154, 9999);
+    dispatcher.on_data(
+        &fk_positive,
+        Direction::ClientToServer,
+        b"GET /index HTTP/1.1\r\nHost: example.com\r\n\r\n",
+        0,
+    );
+    assert_eq!(
+        *dispatcher
+            .http
+            .as_ref()
+            .unwrap()
+            .method_counts()
+            .get("GET")
+            .unwrap(),
+        1,
+        "AC-005 positive control: properly-formatted b\"GET \" with trailing space MUST route to Http"
+    );
+}
+
+/// AC-006 (BC-2.05.002 invariant 1, BC-2.05.001 invariant 1): TLS check is
+/// evaluated BEFORE the HTTP check. Data beginning with 0x16 0x03 routes to
+/// Tls even if the remaining bytes happen to look like an HTTP method.
+/// The HTTP check is unreachable for data starting with 0x16 0x03.
+#[test]
+fn test_tls_takes_priority_over_http_methods_check() {
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    // Neutral port (9999) — port fallback plays no part.
+    let fk = flow_key(49152, 9999);
+
+    // Construct data that starts with the TLS magic bytes (0x16 0x03) followed
+    // by enough bytes to pass the len >= 5 gate. The remainder is irrelevant to
+    // the routing decision, but we pad it to 10 bytes for completeness.
+    let tls_then_garbage = [0x16u8, 0x03, 0x01, 0x00, 0x06, 0x47, 0x45, 0x54, 0x20, 0x2f];
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_then_garbage, 0);
+
+    // TLS wins — HTTP analyzer must have received nothing.
+    let http = dispatcher.http.as_ref().unwrap();
+    assert_eq!(
+        http.method_counts().len(),
+        0,
+        "AC-006: TLS signature (0x16 0x03) must take priority over HTTP prefix check"
+    );
+    assert_eq!(
+        http.parse_error_count(),
+        0,
+        "AC-006: HTTP analyzer must not have been called when TLS bytes are present"
+    );
+}
+
+/// AC-008 (BC-2.05.003 invariants 1-2): Port fallback uses lower_port() and
+/// upper_port() (canonical ordering). A flow with src=8443, dst=9000 has
+/// lower_port()=8443, which is found in the TLS port slice. TLS port check
+/// (443/8443) is evaluated before HTTP port check (80/8080).
+#[test]
+fn test_port_fallback_uses_canonical_port_ordering() {
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+
+    // src=8443, dst=9000: lower_port() == 8443. Content is ambiguous (non-TLS, non-HTTP)
+    // so port fallback fires. 8443 must be found → DispatchTarget::Tls.
+    // Payload: record_type=0x16, version=0x0401 (data[1]≠0x03 → content check fails),
+    // payload_len=1 → complete record that TlsAnalyzer can attempt to parse → parse_error.
+    let fk_8443 = flow_key(8443, 9000);
+    dispatcher.on_data(
+        &fk_8443,
+        Direction::ClientToServer,
+        b"\x16\x04\x01\x00\x01\xFF",
+        0,
+    );
+    let http = dispatcher.http.as_ref().unwrap();
+    assert_eq!(
+        http.method_counts().len(),
+        0,
+        "AC-008: port 8443 in canonical lower_port() slot must fall back to Tls, not Http"
+    );
+    assert_eq!(
+        http.parse_error_count(),
+        0,
+        "AC-008: port 8443 canonical-ordering fallback must route to Tls (HTTP analyzer must not be invoked)"
+    );
+    // Positive TLS discriminator for 8443 sub-case.
+    {
+        let tls = dispatcher.tls.as_ref().unwrap();
+        assert!(
+            tls.parse_error_count() > 0 || tls.truncated_record_count() > 0,
+            "AC-008: port 8443 canonical-ordering fallback must route to Tls analyzer \
+             (5-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
+        );
+    }
+
+    // Also verify 443 in the upper_port() slot is found: src=9000, dst=443.
+    // With IPs 10.0.0.1 < 10.0.0.2, canonicalization is by (IP, port) tuple,
+    // so lower_port()=9000 and upper_port()=443. The TLS port check still
+    // finds 443 because it scans both slots via the [lower, upper] slice.
+    let fk_443_upper = flow_key(9000, 443);
+    assert_eq!(
+        fk_443_upper.lower_port(),
+        9000,
+        "canonicalization: IP precedes port in tuple-compare"
+    );
+    assert_eq!(
+        fk_443_upper.upper_port(),
+        443,
+        "canonicalization: 443 ends up in upper slot here"
+    );
+    dispatcher.on_data(
+        &fk_443_upper,
+        Direction::ClientToServer,
+        b"\x16\x04\x01\x00\x01\xFF",
+        0,
+    );
+    assert_eq!(
+        dispatcher.http.as_ref().unwrap().method_counts().len(),
+        0,
+        "AC-008: port 443 via canonical port ordering must fall back to Tls"
+    );
+    assert_eq!(
+        dispatcher.http.as_ref().unwrap().parse_error_count(),
+        0,
+        "AC-008: port 443 canonical-ordering fallback must route to Tls (HTTP analyzer must not be invoked)"
+    );
+    // Positive TLS discriminator for 443-upper sub-case.
+    {
+        let tls = dispatcher.tls.as_ref().unwrap();
+        assert!(
+            tls.parse_error_count() > 0 || tls.truncated_record_count() > 0,
+            "AC-008: port 443 canonical-ordering fallback must route to Tls analyzer \
+             (5-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
+        );
+    }
+
+    // TLS port check evaluated before HTTP port check (INV-1). A flow on port 8443
+    // must not be reclassified as Http even if 8080 is also somehow in the key.
+    // (Standard FlowKey only exposes two ports, so this invariant is structural.)
+}
+
+/// AC-009 (BC-2.05.003 invariant 3): Port fallback is only reached when BOTH
+/// content checks fail. A valid HTTP GET on port 443 is classified as Http by
+/// content, NOT as Tls by port fallback.
+/// EC-011: b"GET " on port 443 → Http (content wins over port 443 TLS hint).
+#[test]
+fn test_http_content_on_port_443_routes_to_http() {
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    // Port 443 would fall back to Tls — but content check for HTTP must fire first.
+    let fk = flow_key(49152, 443);
+
+    let http_on_tls_port = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    dispatcher.on_data(&fk, Direction::ClientToServer, http_on_tls_port, 0);
+
+    let http = dispatcher.http.as_ref().unwrap();
+    assert_eq!(
+        *http.method_counts().get("GET").unwrap_or(&0),
+        1,
+        "AC-009: HTTP GET on port 443 must be classified as Http by content, not Tls by port"
     );
 }
