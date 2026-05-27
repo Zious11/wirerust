@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-018"
 epic_id: "E-2"
-version: "1.3"
+version: "1.5"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -63,11 +63,12 @@ implementation_strategy: brownfield-formalization
 
 ### AC-001 (traces to BC-2.04.041 postcondition 1)
 - When `reassembled_bytes + buffered_bytes + data.len() > max_depth` and `depth_exceeded == false`, `insert_segment` returns `InsertResult::Truncated`.
+- **NOTE:** When `allowed == 0`, the result is `DepthExceeded` (see AC-002 NOTE and BC-2.04.041 EC-004) — AC-001's antecedent is reachable in that case but its consequent does not hold; AC-002's NOTE captures the operative boundary.
 - **Test:** `test_BC_2_04_041_depth_truncation_returns_truncated()`
 
 ### AC-002 (traces to BC-2.04.041 postcondition 2-4)
 - After a `Truncated` result, only `allowed = max_depth.saturating_sub(reassembled_bytes + buffered_bytes)` bytes are stored (not the full payload), and `buffered_bytes` increases by exactly `allowed`.
-- **NOTE:** When `allowed == 0` (buffer exactly at `max_depth` at entry), the result is `DepthExceeded` (not `Truncated`); see BC-2.04.041 Description + EC-004 + EC-005.
+- **NOTE:** When `allowed == 0` (buffer exactly at `max_depth` at entry), the result is `DepthExceeded` (not `Truncated`); see BC-2.04.041 Description + EC-004.
 - **Test:** `test_BC_2_04_041_truncated_stores_only_allowed_bytes()`
 
 ### AC-003 (traces to BC-2.04.041 postcondition 5 and invariant 1)
@@ -130,12 +131,14 @@ implementation_strategy: brownfield-formalization
 - When `segments.len() == max_segments - 1`, a new non-overlapping segment is inserted successfully (not rejected).
 - **Test:** `test_BC_2_04_044_segment_one_below_limit_is_inserted()`
 
-### AC-018 (traces to BC-2.04.045 postcondition 1 and invariant 2)
-- When `segments.len() >= max_segments` and the new segment overlaps existing entries but gaps cannot be inserted, `insert_segment` returns `SegmentLimitReached` and `overlap_count` is incremented (overlap was detected before the limit check).
+### AC-018 (traces to BC-2.04.045 v1.3 postcondition 3 and invariant 2 — mid-loop overlap_count claim)
+- When `segments.len() < max_segments` at entry, the new segment overlaps existing entries, AND the BTreeMap fills to `max_segments` during the gap-insertion loop (such that one or more LATER gaps are dropped), `insert_segment` returns `SegmentLimitReached` and `overlap_count` is incremented by 1 (overlap detection at `segment.rs:143` fires before the mid-loop limit guard at `segment.rs:178-180`).
+- **NOTE:** This AC scopes specifically to the `overlap_count` increment claim. The byte-accounting and partial-insertion semantics of the same scenario are covered by AC-019 (BC-2.04.046). The "zero gaps inserted before SegmentLimitReached fires" state is structurally unreachable — the early-exit guard at `segment.rs:70-72` prevents entry at `len == max_segments`, so at least one gap MUST be inserted before the mid-loop guard can fire.
+- **NOTE:** For the EARLY-EXIT path (`segments.len() >= max_segments` at entry), see EC-007 — overlap detection does NOT run, so `overlap_count` is NOT incremented.
 - **Test:** `test_BC_2_04_045_segment_limit_overlapping_path_increments_overlap_count()`
 
 ### AC-019 (traces to BC-2.04.046 postcondition 1-3 and invariant 1)
-- When the BTreeMap fills to `max_segments` mid-way through a multi-gap insertion, `SegmentLimitReached` is returned, earlier gaps are in the map, later gaps are dropped, and `buffered_bytes` has increased only by the bytes of the inserted gaps.
+- When the BTreeMap fills to `max_segments` mid-way through a multi-gap insertion, `SegmentLimitReached` is returned, earlier gaps are in the map, later gaps are dropped, `buffered_bytes` has increased only by the bytes of the inserted gaps, and `overlap_count` increments by 1 (per BC-2.04.046 PC5 mid-loop overlap-detection).
 - **Test:** `test_BC_2_04_046_segment_limit_partial_insertion_mid_loop()`
 
 ## Architecture Mapping
@@ -244,3 +247,5 @@ implementation_strategy: brownfield-formalization
 | 1.1 | 2026-05-21 | story-writer | Initial draft |
 | 1.2 | 2026-05-26 | story-writer | Wave 10 STORY-018 pass-1 fixes: F-002 (CRITICAL) — added NOTE to AC-002 disambiguating the allowed==0 case (see BC-2.04.041 v1.x Description + EC-004 + EC-005); F-006 (MED) — EC-001 row revised from ambiguous 'exactly at max_depth' to explicit 'total_after == max_depth' boundary (matches segment.rs:93 `>` check, not `>=`). DF-SIBLING-SWEEP-001 sweep performed. |
 | 1.3 | 2026-05-26 | story-writer | Wave 10 STORY-018 pass-2 fixes (sibling-regression of pass-1 v1.3 BC fix that didn't propagate to story EC table): F-PASS2-001 (MED) — EC-007 rewritten to match BC-2.04.045 v1.3 EC-002 (SegmentLimitReached via early guard at segment.rs:70-72); O-PASS2-002 (LOW) — Task 7 parenthetical reference corrected from EC-010 to BC-2.04.046 canonical test vector. Sweep checklist expanded per DF-SIBLING-SWEEP-001 to grep story EC tables when downstream BC EC tables change. |
+| 1.4 | 2026-05-26 | story-writer | Wave 10 STORY-018 pass-4 fixes: F-PASS4-001 (MED, exactly the W10-D6 process-gap pattern) — AC-018 rewritten to use mid-loop entry condition (`segments.len() < max_segments` at entry) matching BC-2.04.045 v1.3 PC3 explicit bifurcation; added NOTE referencing EC-007 for the early-exit path. O-PASS4-002 (LOW) — AC-019 augmented with overlap_count increment assertion per BC-2.04.046 PC5. DF-SIBLING-SWEEP-001 v2 refinement applied: sweep included AC text against revised BC PCs/INVs (not just EC tables) — W10-D6 codification target validated by this fix. |
+| 1.5 | 2026-05-26 | story-writer | Wave 10 STORY-018 pass-5 fixes (sibling-regression of pass-4 v2-refined sweep gaps): F-PASS5-001 (MED) — dropped non-existent "EC-005" from AC-002 NOTE (BC-2.04.041 v1.3 EC table has only EC-001..EC-004); F-PASS5-002 (MED, within-story half) — AC-018 "no gap can be inserted" tail removed (structurally unreachable per early-guard analysis); AC-018 rescoped to "overlap_count claim only" with cross-ref to AC-019 for partial-insertion accounting; O-PASS5-001 (LOW) — AC-001 NOTE added mirroring AC-002 NOTE for allowed==0 boundary. DF-SIBLING-SWEEP-001 v3 refinement applied: sweep now includes (a) cross-reference target resolution verification, (b) implementation-reachability reasoning. W10-D7 codification target validated (BC-2.04.045 v1.3 PC2 "or no gaps fit at all" unreachable branch deferred to wave-gate). |
