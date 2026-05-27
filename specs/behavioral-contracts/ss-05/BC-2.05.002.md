@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: Pass-3 sibling-sweep gap closure (DF-SIBLING-SWEEP-001 v2 BC pre-merge re-anchor): added test_all_http_method_prefixes_route_to_http to Architecture Anchors and VP-004 table (comprehensive 10-prefix coverage added in STORY-031 pass-1 but not anchored back into BC until pass-3). Also added test_http_no_space_does_not_match for Inv-2/Inv-3 case-sensitive/no-space coverage. EC test citations updated. Closes F-W12P3-002. — 2026-05-27
   - v1.4: Pass-4 anchor-completeness sweep (DF-SIBLING-SWEEP-001 v2, doctrine application extended from pass-3 BC-2.05.002 to siblings BC-2.05.001 + BC-2.05.003). Added test_tls_takes_priority_over_http_methods_check (INV-1: HTTP check unreachable for data starting 0x16 0x03) to VP-004 table and Architecture Anchors. Closes F-W12P4-001. — 2026-05-27
+  - v1.5: Pass-6 EC-001 anchor fix (DF-SIBLING-SWEEP-001 v2 anchor-completeness sub-rule discovery): replaced citation `test_all_http_method_prefixes_route_to_http` (port 9999) with `test_http_content_on_port_443_routes_to_http` (port 443 — matches EC-001 scenario specifically). Added test_http_content_on_port_443_routes_to_http to Architecture Anchors for EC-001 and content-first invariant coverage. Codification candidate: EC citations must match EC scenario, not just BC capability (F-W12P6-OBS-003). — 2026-05-27
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -60,7 +61,7 @@ strings, the flow is routed to `DispatchTarget::Http`. This check is performed i
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | data starts with b"GET " on port 443 | Routed to Http (content wins over port 443 TLS hint); covered by AC-004 / `test_all_http_method_prefixes_route_to_http` |
+| EC-001 | data starts with b"GET " on port 443 | Routed to Http (content wins over port 443 TLS hint); covered by AC-009 / `test_http_content_on_port_443_routes_to_http` |
 | EC-002 | data starts with b"POST " | Routed to Http |
 | EC-003 | data starts with b"HTTP/" (response) | Routed to Http; covered by `test_all_http_method_prefixes_route_to_http` (HTTP/ variant) |
 | EC-004 | data = b"GET" (no trailing space, 3 bytes) | No HTTP match; falls through to port fallback; covered by `test_http_no_space_does_not_match` (no-space sub-case) |
@@ -102,7 +103,7 @@ strings, the flow is routed to `DispatchTarget::Http`. This check is performed i
 ## Architecture Anchors
 
 - `src/dispatcher.rs:95-107` -- HTTP method prefix check in classify function
-- `tests/dispatcher_tests.rs` -- test_dispatcher_routes_http, test_all_http_method_prefixes_route_to_http, test_http_no_space_does_not_match, test_tls_takes_priority_over_http_methods_check
+- `tests/dispatcher_tests.rs` -- test_dispatcher_routes_http, test_all_http_method_prefixes_route_to_http, test_http_no_space_does_not_match, test_tls_takes_priority_over_http_methods_check, test_http_content_on_port_443_routes_to_http
 
 ## Source Evidence
 
