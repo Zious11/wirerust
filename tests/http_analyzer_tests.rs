@@ -1346,11 +1346,10 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
         );
     }
 
-    /// BC-2.06.004 invariant (RESPONSE side) — had_success prevents body bytes from
-    /// inflating parse_errors after a successful response header parse in the same
-    /// on_data call.
-    ///
-    /// The RESPONSE-side guard is at src/analyzer/http.rs:462 (try_parse_responses).
+    /// BC-2.06.004 invariant 4 — Response-side had_success guard prevents body bytes that
+    /// follow a successfully parsed response header from inflating parse_errors. This is the
+    /// response-side analog of BC-2.06.002 invariant 2 (request-side). Guard at
+    /// src/analyzer/http.rs:462 (try_parse_responses).
     ///
     /// Loop iteration 1: parse "HTTP/1.1 200 OK\r\n...\r\n\r\n" →
     ///   Complete(n), had_success = true, header bytes drained, response buf
@@ -1382,9 +1381,8 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
         assert_eq!(
             analyzer.parse_error_count(),
             0,
-            "BC-2.06.004 invariant (response side): had_success guard must prevent \
-             parse_errors increment when body bytes cause Err after a successful \
-             response header parse"
+            "BC-2.06.004 invariant 4: response-side had_success guard must prevent body bytes \
+             (NUL-injected) from inflating parse_errors after successful header parse"
         );
     }
 
