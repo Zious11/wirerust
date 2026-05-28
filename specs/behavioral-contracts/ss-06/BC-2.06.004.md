@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.4 (2026-05-28): W15 Pass-2 remediation — invariant 3 + EC-005 marked DEFENSIVE (reachability via on_data unverified; W15.D1 pending research-agent validation per F-W15P2-004)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -55,7 +56,7 @@ The response direction supports the same buffering and pipelined-loop semantics 
    `packets_analyzed = self.transactions`, so the summary's packet count is response-based.
 2. Response parsing never emits findings for content-based anomalies (no check_response_detections
    function; detections only exist on the request path).
-3. `status_codes` can store status_code=0 if httparse returns `code: None` (unwrap_or(0)).
+3. `status_codes` can store status_code=0 if httparse returns `code: None` via the `unwrap_or(0)` fallback in parse_one_response (src/analyzer/http.rs:63) — DEFENSIVE PATH: empirically httparse rejects status lines without numeric codes via `Err(InvalidStatus)`, so this branch may be unreachable via the public on_data API (W15.D1 — pending research-agent validation per DF-VALIDATION-001).
 
 ## Edge Cases
 
@@ -65,7 +66,7 @@ The response direction supports the same buffering and pipelined-loop semantics 
 | EC-002 | HTTP 500 response | transactions=1, status_codes[500]=1 |
 | EC-003 | Two pipelined responses | transactions=2, status_codes incremented twice |
 | EC-004 | Partial response (no terminal \r\n\r\n) | Buffer retained; transactions unchanged |
-| EC-005 | Response with httparse code==None | status_codes[0] incremented; transactions incremented |
+| EC-005 | Response with httparse code==None | status_codes[0] incremented; transactions incremented (DEFENSIVE — see invariant 3 note; reachability via on_data unverified) |
 
 ## Canonical Test Vectors
 
@@ -98,6 +99,14 @@ The response direction supports the same buffering and pipelined-loop semantics 
 
 - BC-2.06.001 -- related to (request parsing is analogous; requests do NOT increment transactions)
 - BC-2.06.023 -- composes with (summarize maps packets_analyzed = transactions)
+
+## Notes
+
+- **W15.D1 (Deferred Finding):** Reachability of EC-005 / invariant 3 via the public on_data API is
+  subject to deferred finding W15.D1 (F-W15P2-004). The defensive `unwrap_or(0)` at http.rs:63
+  remains as code-defense even if empirically unreachable — httparse may return `code: None` in
+  future API versions or edge-case inputs. Pending research-agent validation per DF-VALIDATION-001
+  before filing as a GitHub issue.
 
 ## Architecture Anchors
 
