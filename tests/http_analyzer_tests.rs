@@ -803,9 +803,11 @@ fn test_partial_response_reassembly() {
 // current src/analyzer/http.rs implementation.
 //
 // The uppercase "BC" in function names is intentional (DF-AC-TEST-NAME-SYNC-001).
-// Suppress the non_snake_case lint for this block.
+// BC-prefixed test names use mixed case by convention (DF-AC-TEST-NAME-SYNC-001).
+// Each test function carries its own #[allow(non_snake_case)] to keep the lint
+// suppression narrow.  Non-test helpers inside this module must use snake_case;
+// clippy enforces that in CI because the module-wide allow has been removed.
 // ---------------------------------------------------------------------------
-#[allow(non_snake_case)]
 mod bc_2_06_formalization {
     use super::*;
 
@@ -816,6 +818,7 @@ mod bc_2_06_formalization {
     /// BC-2.06.001 postconditions 1-4 + 7 — canonical test vector (happy path).
     /// Exercises: method map, host map, UA map, URI vec all updated on one
     /// complete HTTP/1.1 request (the BC's golden vector).
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_001_complete_request_updates_all_counters() {
         let mut analyzer = HttpAnalyzer::new();
@@ -858,14 +861,26 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.001 postcondition 5 — consumed bytes drained from request_buf
     /// so that a second request on the same flow is parsed independently.
+    ///
+    /// Postcondition 5 (buf drained) is exercised INDIRECTLY by the back-to-back
+    /// parse pattern — `request_buf.len()` is not publicly observable, so drain
+    /// success is inferred via the absence of re-parsing artifacts.
+    ///
+    /// Mental-deletion verification: removing `drain()` at src/analyzer/http.rs:398
+    /// would cause `method_counts` to show an extra GET (the first request
+    /// re-parsed as part of the second call) and the POST would fail to parse
+    /// (orphan bytes in the buffer), so `method_counts["POST"]` would be 0.
+    /// Either deviation from {GET=1, POST=1} would fail the assertions below.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_001_consumed_bytes_drained_from_buf() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
-        // Two back-to-back requests: if the buffer were NOT drained after the
-        // first, the second parse would attempt to re-parse the old bytes and
-        // the method count would be wrong.
+        // Two back-to-back requests fed in a single on_data call.
+        // Postcondition 5 (buf drained) is proven INDIRECTLY: correct method counts
+        // below are only achievable when each complete request is drained from the
+        // buffer before the next parse iteration begins.
         let two_reqs =
             b"GET /a HTTP/1.1\r\nHost: h.com\r\n\r\nPOST /b HTTP/1.1\r\nHost: h.com\r\n\r\n";
         analyzer.on_data(&fk, Direction::ClientToServer, two_reqs, 0);
@@ -888,6 +903,7 @@ mod bc_2_06_formalization {
     }
 
     /// BC-2.06.001 invariant 4 — parsing a request does NOT increment transactions.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_001_request_parse_does_not_increment_transactions() {
         let mut analyzer = HttpAnalyzer::new();
@@ -905,6 +921,7 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.001 EC-001 — HTTP/1.0 (version byte == 0) parsed normally;
     /// missing-Host finding does NOT fire because the version gate exempts 1.0.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_001_http10_parsed_without_host_finding() {
         let mut analyzer = HttpAnalyzer::new();
@@ -931,6 +948,7 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.001 EC-003/004 — absent User-Agent and absent Host (HTTP/1.0)
     /// produce no map entries for those fields.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_001_absent_optional_headers_produce_no_map_entries() {
         let mut analyzer = HttpAnalyzer::new();
@@ -963,6 +981,13 @@ mod bc_2_06_formalization {
     ///
     /// BC-2.06.026 invariant 3: `.trim()` is called after `from_utf8_lossy`, which
     /// removes all ASCII whitespace (spaces, tabs) from both ends of the header value.
+    ///
+    /// LF coverage note (F-W15P2-002): AC-002 narrative mentions LF but httparse
+    /// rejects bare `\n` in header values with `Err(HeaderName)` — confirmed by
+    /// probe test (bare LF: `Err(HeaderName)`, embedded LF: `Err(HeaderName)`).
+    /// LF trimming is therefore not reachable via `on_data`; AC-002 coverage is
+    /// narrowed to space + tab, which is what these assertions exercise.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_026_header_utf8_lossy_whitespace_trimmed() {
         let mut analyzer = HttpAnalyzer::new();
@@ -1002,6 +1027,7 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.026 postcondition 2 — non-UTF-8 bytes in User-Agent replaced by
     /// U+FFFD (lossy conversion).  BC-2.06.026 EC-003 vector.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_026_non_utf8_header_value_replaced_with_replacement_char() {
         let mut analyzer = HttpAnalyzer::new();
@@ -1030,6 +1056,7 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.026 invariant 1 — find_header uses eq_ignore_ascii_case; mixed-case
     /// header names are matched.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_026_find_header_case_insensitive_match() {
         let mut analyzer = HttpAnalyzer::new();
@@ -1048,6 +1075,7 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.026 postconditions 1/4 — None returned for absent header; absent UA
     /// produces no user_agents entry.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_026_find_header_returns_none_for_absent_header() {
         let mut analyzer = HttpAnalyzer::new();
@@ -1068,6 +1096,7 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.002 postconditions 1-5 — two complete back-to-back requests in one
     /// buffer are each counted independently, and both URIs are recorded.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_002_pipelined_requests_each_counted_independently() {
         let mut analyzer = HttpAnalyzer::new();
@@ -1094,29 +1123,41 @@ mod bc_2_06_formalization {
         );
     }
 
-    /// BC-2.06.002 postcondition 3 — anomaly detection fires per request; the
-    /// POST/admin vector yields distinct method entries and an admin-panel finding
-    /// only for the /admin request.
+    /// BC-2.06.002 postcondition 3 — anomaly detection fires PER REQUEST, not
+    /// aggregated.  Two pipelined requests both matching the admin-panel pattern
+    /// must produce TWO distinct findings.  If detection were aggregated (a
+    /// hypothetical bug), only one finding would be emitted regardless of how
+    /// many requests matched.
+    ///
+    /// Admin-panel src patterns (src/analyzer/http.rs:236):
+    ///   ["/wp-admin", "/admin", "/phpmyadmin", "/manager"]
+    ///
+    /// Chosen test URIs:
+    ///   1. `/admin/dashboard`   — matches via "/admin" substring
+    ///   2. `/wp-admin/index.php` — matches via "/wp-admin" substring
+    ///
+    /// Aggregation-distinguishing guarantee: len() == 2 can ONLY pass if both
+    /// requests individually triggered the detection loop.  Under aggregated
+    /// emission (hypothetical) len() would be 1 even with two matching requests.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_002_pipelined_detections_per_request_not_aggregated() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
-        // POST /login (no finding) followed by GET /admin (admin-panel finding).
-        let pipelined = b"POST /login HTTP/1.1\r\nHost: h.com\r\n\r\nGET /admin HTTP/1.1\r\nHost: h.com\r\n\r\n";
+        // Two pipelined requests that both match the admin-panel detection pattern.
+        // "/admin/dashboard" matches "/admin"; "/wp-admin/index.php" matches "/wp-admin".
+        let pipelined = b"GET /admin/dashboard HTTP/1.1\r\nHost: h.com\r\n\r\n\
+GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
         analyzer.on_data(&fk, Direction::ClientToServer, pipelined, 0);
 
         assert_eq!(
-            *analyzer.method_counts().get("POST").unwrap_or(&0),
-            1,
-            "POST must be counted once"
-        );
-        assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
-            1,
-            "GET must be counted once"
+            2,
+            "both GET requests must be counted"
         );
-        // Admin-panel finding fires for /admin only.
+        // Per-request emission: two distinct admin-panel findings, one per request.
+        // Under aggregated emission (hypothetical bug) this would be 1, not 2.
         let admin_findings: Vec<_> = analyzer
             .findings()
             .into_iter()
@@ -1124,13 +1165,26 @@ mod bc_2_06_formalization {
             .collect();
         assert_eq!(
             admin_findings.len(),
-            1,
-            "BC-2.06.002 postcondition 3: exactly one admin-panel finding for pipelined pair"
+            2,
+            "BC-2.06.002 postcondition 3: two pipelined admin requests must produce \
+             two separate Admin panel findings (per-request emission proven); \
+             aggregated emission would yield len=1"
+        );
+        // Confirm the two findings reference distinct URIs.
+        let uris: Vec<_> = admin_findings.iter().map(|f| f.summary.as_str()).collect();
+        assert!(
+            uris.iter().any(|s| s.contains("/admin/dashboard")),
+            "first finding must reference /admin/dashboard"
+        );
+        assert!(
+            uris.iter().any(|s| s.contains("/wp-admin/index.php")),
+            "second finding must reference /wp-admin/index.php"
         );
     }
 
     /// BC-2.06.002 postcondition 5 — loop exits when partial bytes remain;
     /// partial bytes are retained in the buffer.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_002_pipelined_loop_stops_on_partial_tail() {
         let mut analyzer = HttpAnalyzer::new();
@@ -1172,6 +1226,7 @@ mod bc_2_06_formalization {
     /// of 2 garbage chunks each (4 total) would exceed the threshold and poison
     /// the direction, causing subsequent valid GETs to be skipped. With the reset,
     /// each pair of errors is cleared by the intervening GET, preventing poisoning.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_002_request_error_count_reset_after_success() {
         let mut analyzer = HttpAnalyzer::new();
@@ -1246,28 +1301,73 @@ mod bc_2_06_formalization {
         );
     }
 
-    /// BC-2.06.002 invariant 2 — had_success prevents body bytes from inflating
-    /// parse_errors after a successful header parse in the same on_data call.
+    /// BC-2.06.002 invariant 2 (REQUEST side) — had_success prevents body bytes from
+    /// inflating parse_errors after a successful request header parse in the same
+    /// on_data call.
+    ///
+    /// The REQUEST-side guard is at src/analyzer/http.rs:404 (try_parse_requests).
+    ///
+    /// Loop iteration 1: parse the complete GET request header → Complete(n),
+    ///   had_success = true, header bytes drained, request_buf now contains the
+    ///   NUL-prefixed body bytes ("\x00\x01...").
+    /// Loop iteration 2: parse "\x00\x01..." → Err(Token) because 0x00 is not a
+    ///   legal HTTP method character.  Because had_success == true, parse_errors
+    ///   must NOT be incremented.
+    ///
+    /// Mental-deletion verification: if the `if !had_success` guard at
+    /// src/analyzer/http.rs:404 were removed, parse_error_count() would return 1
+    /// and this assertion would fail — proving the guard is load-bearing.
+    #[allow(non_snake_case)]
     #[test]
-    fn test_BC_2_06_002_had_success_suppresses_body_byte_errors() {
+    fn test_BC_2_06_002_had_success_suppresses_request_body_byte_errors() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
-        // Scenario: a valid response header followed immediately by a body that
-        // begins with a NUL byte (0x00). httparse sees the body bytes in the next
-        // loop iteration and returns Err(InvalidToken) because 0x00 is not a legal
-        // HTTP token character in a status line. The had_success guard at
-        // src/analyzer/http.rs:462 must suppress the error increment.
-        //
-        // Loop iteration 1: parse "HTTP/1.1 200 OK\r\n...\r\n\r\n" →
-        //   Complete(n), had_success = true, header bytes drained, response buf
-        //   now contains "\x00body" only.
-        // Loop iteration 2: parse "\x00body" → Err(InvalidToken). Because
-        //   had_success == true, parse_errors must NOT be incremented.
-        //
-        // Verification: if the `if !had_success` guard were deleted (or changed
-        // to `if true`), parse_error_count() would return 1 and this assertion
-        // would fail — proving the guard is load-bearing.
+        // Build a complete HTTP/1.1 request header followed immediately by body
+        // bytes that begin with NUL (0x00) and STX (0x01).  The header parses
+        // successfully; the body remainder causes Err(Token) on the next loop
+        // iteration because 0x00 is not a legal token start in an HTTP method.
+        let mut req_with_body = b"GET /resource HTTP/1.1\r\nHost: example.com\r\n\r\n".to_vec();
+        req_with_body.push(0x00); // NUL — Err(Token) on next iteration
+        req_with_body.push(0x01); // additional non-HTTP byte
+        analyzer.on_data(&fk, Direction::ClientToServer, &req_with_body, 0);
+
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.002 request-side: the GET header must be counted before the body error"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.002 invariant 2 (request side): had_success guard at \
+             src/analyzer/http.rs:404 must prevent parse_errors increment \
+             when NUL body bytes cause Err after a successful request header parse"
+        );
+    }
+
+    /// BC-2.06.004 invariant (RESPONSE side) — had_success prevents body bytes from
+    /// inflating parse_errors after a successful response header parse in the same
+    /// on_data call.
+    ///
+    /// The RESPONSE-side guard is at src/analyzer/http.rs:462 (try_parse_responses).
+    ///
+    /// Loop iteration 1: parse "HTTP/1.1 200 OK\r\n...\r\n\r\n" →
+    ///   Complete(n), had_success = true, header bytes drained, response buf
+    ///   now contains "\x00body" only.
+    /// Loop iteration 2: parse "\x00body" → Err(InvalidToken). Because
+    ///   had_success == true, parse_errors must NOT be incremented.
+    ///
+    /// Mental-deletion verification: if the `if !had_success` guard at
+    /// src/analyzer/http.rs:462 were deleted (or changed to `if true`),
+    /// parse_error_count() would return 1 and this assertion would fail —
+    /// proving the response-side guard is independently load-bearing.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_004_had_success_suppresses_response_body_byte_errors() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
         let mut resp_with_body =
             b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 5\r\n\r\n".to_vec();
         resp_with_body.push(0x00); // NUL — causes Err(InvalidToken) in next iteration
@@ -1282,8 +1382,9 @@ mod bc_2_06_formalization {
         assert_eq!(
             analyzer.parse_error_count(),
             0,
-            "BC-2.06.002 invariant 2: had_success guard must prevent parse_errors increment \
-             when body bytes cause Err after a successful header parse"
+            "BC-2.06.004 invariant (response side): had_success guard must prevent \
+             parse_errors increment when body bytes cause Err after a successful \
+             response header parse"
         );
     }
 
@@ -1292,6 +1393,7 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.003 postconditions 1-4 — partial request leaves all counters
     /// unchanged; buffer is retained for subsequent completion.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_003_partial_request_leaves_counters_unchanged() {
         let mut analyzer = HttpAnalyzer::new();
@@ -1332,6 +1434,7 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.003 postcondition 2 — partial request does not trigger anomaly
     /// detection.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_003_partial_request_no_anomaly_detection() {
         let mut analyzer = HttpAnalyzer::new();
@@ -1352,6 +1455,7 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.003 invariant 1 — Partial does not increment parse_errors or
     /// advance request_error_count toward the poison threshold.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_003_partial_not_counted_as_error() {
         let mut analyzer = HttpAnalyzer::new();
@@ -1386,6 +1490,7 @@ mod bc_2_06_formalization {
     //         response_buf drained, response_error_count reset to 0.
 
     /// BC-2.06.004 postconditions 1-4 — canonical 200 OK vector.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_004_response_parse_increments_transactions_and_status_code() {
         let mut analyzer = HttpAnalyzer::new();
@@ -1413,6 +1518,7 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.004 postcondition 3 — response_buf bytes are drained; two pipelined
     /// responses in one on_data are both counted.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_004_response_buf_drained_enables_pipelined_parsing() {
         let mut analyzer = HttpAnalyzer::new();
@@ -1441,6 +1547,7 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.004 postcondition 2 — well-formed response with numeric status code 404
     /// is stored at status_codes[404].
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_004_well_formed_404_response_status_code_counted() {
         let mut analyzer = HttpAnalyzer::new();
@@ -1473,6 +1580,7 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.004 invariant 1 — request parse does NOT increment transactions;
     /// response parse DOES.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_004_transactions_counts_responses_not_requests() {
         let mut analyzer = HttpAnalyzer::new();
@@ -1501,6 +1609,7 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.004 invariant 1 + summarize() mapping — packets_analyzed equals
     /// transactions (response count), not request count.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_004_summarize_packets_analyzed_equals_transactions() {
         let mut analyzer = HttpAnalyzer::new();
@@ -1536,6 +1645,7 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.026 invariant 4 — raw URI bytes from req.path flow directly into
     /// Finding.evidence; no escaping occurs at the analyzer layer.
+    #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_026_raw_uri_bytes_preserved_in_finding_evidence() {
         let mut analyzer = HttpAnalyzer::new();
