@@ -1903,7 +1903,7 @@ fn test_BC_2_07_007_canonical_771_no_cipher_no_extension_hash() {
     let hash = analyzer.ja3_counts().keys().next().unwrap().clone();
     assert_eq!(
         hash, "bddda940f9963577c41d7c28b1a5f65f",
-        "BC-2.07.007 EC-002 anchor: no-cipher JA3 (version=771) must be MD5('771,,,,') \
+        "BC-2.07.007 EC-001 anchor: no-cipher JA3 (version=771) must be MD5('771,,,,') \
          = bddda940f9963577c41d7c28b1a5f65f confirming first field is version 771"
     );
 }
@@ -2275,7 +2275,7 @@ fn test_BC_2_07_008_ja3s_grease_extension_filtered_but_grease_cipher_preserved()
     );
 }
 
-// ── AC-008 companion (BC-2.07.008 postcondition 4 / EC-007): JA3S all-GREASE extension list -> empty ext field ─
+// ── AC-008 companion (BC-2.07.008 postcondition 4 / STORY-051 EC-007): JA3S all-GREASE extension list -> empty ext field ─
 //
 // When a ServerHello's extension list contains ONLY GREASE extension type IDs,
 // every ext ID is filtered and the JA3S extension field must be empty ("").
