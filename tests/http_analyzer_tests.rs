@@ -1715,7 +1715,7 @@ mod bc_2_06_story042_formalization {
     /// EC-001: URI = "/../etc/passwd" → path-traversal finding emitted.
     #[allow(non_snake_case)]
     #[test]
-    fn test_detect_path_traversal() {
+    fn test_BC_2_06_005_path_traversal_all_fields() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
@@ -1846,7 +1846,7 @@ mod bc_2_06_story042_formalization {
     /// and the invariant that there is no backslash variant.
     #[allow(non_snake_case)]
     #[test]
-    fn test_detect_encoded_traversal() {
+    fn test_BC_2_06_005_encoded_traversal_four_patterns() {
         // EC-002: "../" plain variant (lowercased input).
         {
             let mut a = HttpAnalyzer::new();
@@ -2115,7 +2115,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
     /// EC-005: URI = "/shell.php" → web-shell finding emitted (T1505.003).
     #[allow(non_snake_case)]
     #[test]
-    fn test_detect_webshell_path() {
+    fn test_BC_2_06_006_webshell_path_all_fields() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
@@ -2313,7 +2313,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
     /// EC-008: URI = "/wp-admin/edit.php" → admin-panel finding emitted.
     #[allow(non_snake_case)]
     #[test]
-    fn test_detect_admin_panel_paths() {
+    fn test_BC_2_06_007_admin_panel_all_fields() {
         let pattern_uris = [
             ("/wp-admin/edit.php", "/wp-admin"),
             ("/admin/dashboard", "/admin"),
@@ -2609,7 +2609,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
     /// EC-012: GET /index.html HTTP/1.1 with Host and UA → zero findings.
     #[allow(non_snake_case)]
     #[test]
-    fn test_no_findings_for_normal_request() {
+    fn test_BC_2_06_012_normal_request_zero_findings() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
@@ -2671,7 +2671,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
     /// parse_errors must also remain 0 (no parse failure).
     #[allow(non_snake_case)]
     #[test]
-    fn test_normal_request_no_parse_errors() {
+    fn test_BC_2_06_012_normal_request_no_parse_errors() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
