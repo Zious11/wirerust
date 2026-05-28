@@ -1782,6 +1782,57 @@ mod bc_2_06_story042_formalization {
             Some(Direction::ClientToServer),
             "BC-2.06.005 pc-1: direction must be ClientToServer"
         );
+
+        // BC-2.06.005 postcondition 1: summary uses truncate_uri(uri, 120) while
+        // evidence retains the full raw URI (AC-001 truncation sub-test).
+        // Use a path-traversal URI longer than 120 chars so truncation is non-trivial.
+        {
+            let mut a2 = HttpAnalyzer::new();
+            let fk2 = test_flow_key();
+            // 130-char URI: "/../" prefix (triggers detection) + 126 'a' chars.
+            let long_path = format!("/../{}", "a".repeat(126));
+            assert!(
+                long_path.len() > 120,
+                "test setup: long_path must exceed 120 chars (got {})",
+                long_path.len()
+            );
+            let req = format!("GET {long_path} HTTP/1.1\r\nHost: h\r\n\r\n");
+            a2.on_data(&fk2, Direction::ClientToServer, req.as_bytes(), 0);
+
+            let findings2 = a2.findings();
+            let t2 = findings2
+                .iter()
+                .find(|f| f.summary.contains("Path traversal in URI"))
+                .expect(
+                    "BC-2.06.005 pc-1 (truncation): path-traversal finding must be emitted for \
+                     a long URI",
+                );
+            // Summary URI portion must be exactly 120 chars (the truncation limit).
+            let summary_uri = t2
+                .summary
+                .strip_prefix("Path traversal in URI: ")
+                .expect("summary must have expected prefix");
+            assert_eq!(
+                summary_uri.len(),
+                120,
+                "BC-2.06.005 pc-1 (truncation): summary URI portion must be exactly 120 chars \
+                 when the URI exceeds 120 chars; got {} chars: {:?}",
+                summary_uri.len(),
+                summary_uri
+            );
+            assert!(
+                long_path.starts_with(summary_uri),
+                "BC-2.06.005 pc-1 (truncation): summary URI must be the first 120 chars of the \
+                 full URI"
+            );
+            // Evidence must contain the FULL URI (no truncation).
+            assert!(
+                t2.evidence[0].contains(&long_path),
+                "BC-2.06.005 pc-1 (truncation): evidence must contain the full raw URI (no \
+                 truncation); evidence: {:?}",
+                t2.evidence[0]
+            );
+        }
     }
 
     // ── BC-2.06.005 / AC-002 ─────────────────────────────────────────────────────
@@ -1893,6 +1944,10 @@ mod bc_2_06_story042_formalization {
 
         // BC-2.06.005 invariant 1: NO backslash variant — "..\" must NOT trigger
         // a path-traversal finding.
+        // Guardedness: we also assert that the request actually parsed (GET count==1
+        // and parse_error_count==0) so the negative assertion is meaningful — if
+        // httparse rejected the backslash URI outright, the detection block would
+        // never execute and the negative would be vacuously true.
         {
             let mut a = HttpAnalyzer::new();
             let fk = test_flow_key();
@@ -1901,6 +1956,19 @@ mod bc_2_06_story042_formalization {
                 Direction::ClientToServer,
                 b"GET /..\\etc\\passwd HTTP/1.1\r\nHost: h\r\n\r\n",
                 0,
+            );
+            // The request must have been parsed (not rejected) for the negative to hold.
+            assert_eq!(
+                *a.method_counts().get("GET").unwrap_or(&0),
+                1,
+                "BC-2.06.005 invariant 1 (guard): backslash URI must parse successfully \
+                 so the detection-block is reached and the negative assertion is non-vacuous"
+            );
+            assert_eq!(
+                a.parse_error_count(),
+                0,
+                "BC-2.06.005 invariant 1 (guard): parse_error_count must be 0 — \
+                 the request was well-formed enough for httparse to accept it"
             );
             let has_traversal = a
                 .findings()
@@ -1955,6 +2023,82 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
                 .iter()
                 .any(|f| f.summary.contains("/../../boot.ini")),
             "second traversal finding must reference /../../boot.ini"
+        );
+    }
+
+    // ── BC-2.06.005 / EC-011 ─────────────────────────────────────────────────────
+    // EC-011 (BC-2.06.005 EC-007): HTTP/1.0 request with path traversal →
+    //         path-traversal finding still emitted; HTTP/1.0 is NOT exempt.
+
+    /// BC-2.06.005 precondition 1 + EC-007 — path-traversal detection applies to
+    /// HTTP/1.0 requests as well as HTTP/1.1.  The BC explicitly states that both
+    /// "HTTP/1.1 or HTTP/1.0" requests are in scope.
+    ///
+    /// EC-011: GET /../etc/passwd HTTP/1.0 → T1083 finding emitted.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_005_http10_path_traversal_not_exempt() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // HTTP/1.0 request containing a "../" path-traversal URI.
+        let request = b"GET /../etc/passwd HTTP/1.0\r\nHost: target.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+        // The request must have been parsed (not silently dropped) — method count
+        // confirms that the path through check_request_detections was executed.
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "EC-011 (guard): HTTP/1.0 request must be parsed and counted; if method_counts \
+             is 0 the detection block was never reached"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "EC-011 (guard): parse_error_count must be 0 — HTTP/1.0 request must not be \
+             rejected as malformed"
+        );
+
+        // The path-traversal finding must be emitted regardless of HTTP version.
+        let findings = analyzer.findings();
+        let traversal = findings
+            .iter()
+            .find(|f| f.summary.contains("Path traversal in URI"))
+            .expect(
+                "BC-2.06.005 EC-007 / EC-011: path-traversal finding (T1083) must be emitted \
+                 for an HTTP/1.0 request; HTTP/1.0 is NOT exempt from detection",
+            );
+
+        assert_eq!(
+            traversal.mitre_technique.as_deref(),
+            Some("T1083"),
+            "EC-011: mitre_technique must be T1083 for HTTP/1.0 path-traversal"
+        );
+        assert_eq!(
+            traversal.category,
+            ThreatCategory::Reconnaissance,
+            "EC-011: category must be Reconnaissance for HTTP/1.0 path-traversal"
+        );
+        assert_eq!(
+            traversal.verdict,
+            Verdict::Likely,
+            "EC-011: verdict must be Likely for HTTP/1.0 path-traversal"
+        );
+        assert_eq!(
+            traversal.confidence,
+            Confidence::High,
+            "EC-011: confidence must be High for HTTP/1.0 path-traversal"
+        );
+        assert!(
+            traversal.evidence[0].contains("/../etc/passwd"),
+            "EC-011: evidence must contain the full raw URI, got: {}",
+            traversal.evidence[0]
+        );
+        assert_eq!(
+            traversal.direction,
+            Some(Direction::ClientToServer),
+            "EC-011: direction must be ClientToServer"
         );
     }
 
@@ -2038,6 +2182,54 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
             Some(Direction::ClientToServer),
             "BC-2.06.006 pc-1: direction must be ClientToServer"
         );
+
+        // BC-2.06.006 postcondition 1: summary uses truncate_uri(uri, 120) while
+        // evidence retains the full raw URI (AC-004 truncation sub-test).
+        // Use a web-shell URI longer than 120 chars so truncation is non-trivial.
+        {
+            let mut a2 = HttpAnalyzer::new();
+            let fk2 = test_flow_key();
+            // Long URI: "/shell.php" prefix (triggers detection) + 115 'b' chars = 125 chars total.
+            let long_shell = format!("/shell.php{}", "b".repeat(115));
+            assert!(
+                long_shell.len() > 120,
+                "test setup: long_shell must exceed 120 chars (got {})",
+                long_shell.len()
+            );
+            let req = format!("GET {long_shell} HTTP/1.1\r\nHost: h\r\n\r\n");
+            a2.on_data(&fk2, Direction::ClientToServer, req.as_bytes(), 0);
+
+            let findings2 = a2.findings();
+            let s2 = findings2
+                .iter()
+                .find(|f| f.summary.contains("web shell"))
+                .expect(
+                    "BC-2.06.006 pc-1 (truncation): web-shell finding must be emitted for a \
+                     long URI",
+                );
+            let summary_uri = s2
+                .summary
+                .strip_prefix("Possible web shell access: ")
+                .expect("summary must have expected prefix");
+            assert_eq!(
+                summary_uri.len(),
+                120,
+                "BC-2.06.006 pc-1 (truncation): summary URI portion must be exactly 120 chars \
+                 when the URI exceeds 120 chars; got {} chars",
+                summary_uri.len()
+            );
+            assert!(
+                long_shell.starts_with(summary_uri),
+                "BC-2.06.006 pc-1 (truncation): summary URI must be the first 120 chars of the \
+                 full URI"
+            );
+            assert!(
+                s2.evidence[0].contains(&long_shell),
+                "BC-2.06.006 pc-1 (truncation): evidence must contain the full raw URI (no \
+                 truncation); evidence: {:?}",
+                s2.evidence[0]
+            );
+        }
     }
 
     // ── BC-2.06.006 / AC-005 ─────────────────────────────────────────────────────
@@ -2196,6 +2388,54 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
                 admin_finding.direction,
                 Some(Direction::ClientToServer),
                 "BC-2.06.007 pc-1: direction must be ClientToServer for '{uri}'"
+            );
+        }
+
+        // BC-2.06.007 postcondition 1: summary uses truncate_uri(uri, 120) while
+        // evidence retains the full raw URI (AC-006 truncation sub-test).
+        // Use an admin-panel URI longer than 120 chars so truncation is non-trivial.
+        {
+            let mut a2 = HttpAnalyzer::new();
+            let fk2 = test_flow_key();
+            // Long URI: "/admin/" prefix (triggers detection) + 115 'c' chars = 122 chars total.
+            let long_admin = format!("/admin/{}", "c".repeat(115));
+            assert!(
+                long_admin.len() > 120,
+                "test setup: long_admin must exceed 120 chars (got {})",
+                long_admin.len()
+            );
+            let req = format!("GET {long_admin} HTTP/1.1\r\nHost: h\r\n\r\n");
+            a2.on_data(&fk2, Direction::ClientToServer, req.as_bytes(), 0);
+
+            let findings2 = a2.findings();
+            let a_f = findings2
+                .iter()
+                .find(|f| f.summary.contains("Admin panel"))
+                .expect(
+                    "BC-2.06.007 pc-1 (truncation): admin-panel finding must be emitted for a \
+                     long URI",
+                );
+            let summary_uri = a_f
+                .summary
+                .strip_prefix("Admin panel access: ")
+                .expect("summary must have expected prefix");
+            assert_eq!(
+                summary_uri.len(),
+                120,
+                "BC-2.06.007 pc-1 (truncation): summary URI portion must be exactly 120 chars \
+                 when the URI exceeds 120 chars; got {} chars",
+                summary_uri.len()
+            );
+            assert!(
+                long_admin.starts_with(summary_uri),
+                "BC-2.06.007 pc-1 (truncation): summary URI must be the first 120 chars of the \
+                 full URI"
+            );
+            assert!(
+                a_f.evidence[0].contains(&long_admin),
+                "BC-2.06.007 pc-1 (truncation): evidence must contain the full raw URI (no \
+                 truncation); evidence: {:?}",
+                a_f.evidence[0]
             );
         }
     }
