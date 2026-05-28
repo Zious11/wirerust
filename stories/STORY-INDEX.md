@@ -46,14 +46,14 @@ traces_to:
 | STORY-031 | Content-First Classification — TLS Signature, HTTP Method Prefix, Port Fallback | E-3 | 12 | 5 | draft | STORY-021 |
 | STORY-032 | Classification Caching and DispatchTarget::None Retry Budget | E-3 | 13 | 5 | draft | STORY-031 |
 | STORY-033 | Flow Lifecycle — Close, Unclassified Counter, No-Op Dispatcher | E-3 | 14 | 3 | draft | STORY-031, STORY-032 |
-| STORY-041 | HTTP/1.1 Request/Response Parsing and Core Statistics | E-4 | 15 | 8 | draft | STORY-033, STORY-071 |
-| STORY-042 | URI-Based Threat Detections — Path Traversal, Web Shell, Admin Panel | E-4 | 16 | 5 | draft | STORY-041 |
-| STORY-043 | Header and Method Anomaly Detections — Method, Host, URI Length, User-Agent | E-4 | 16 | 5 | draft | STORY-041 |
-| STORY-044 | Parse-Error Isolation and Poisoning State Machine | E-4 | 16 | 8 | draft | STORY-041 |
+| STORY-041 | HTTP/1.1 Request/Response Parsing and Core Statistics | E-4 | 15 | 8 | completed | STORY-033, STORY-071 |
+| STORY-042 | URI-Based Threat Detections — Path Traversal, Web Shell, Admin Panel | E-4 | 16 | 5 | completed | STORY-041 |
+| STORY-043 | Header and Method Anomaly Detections — Method, Host, URI Length, User-Agent | E-4 | 16 | 5 | completed | STORY-041 |
+| STORY-044 | Parse-Error Isolation and Poisoning State Machine | E-4 | 16 | 8 | completed | STORY-041 |
 | STORY-045 | Flow Lifecycle, Cross-Flow Isolation, and Buffer/Map Caps | E-4 | 17 | 5 | draft | STORY-041, STORY-044 |
 | STORY-046 | HTTP Analyzer Summary Output | E-4 | 18 | 3 | draft | STORY-041, STORY-042, STORY-043, STORY-044, STORY-045 |
-| STORY-051 | JA3 and JA3S Computation — GREASE Filtering and String Format | E-5 | 15 | 5 | draft | STORY-033, STORY-071 |
-| STORY-052 | ClientHello Parsing — Handshake Counting, Version/JA3 Tracking, and Done Short-Circuit | E-5 | 16 | 8 | draft | STORY-051 |
+| STORY-051 | JA3 and JA3S Computation — GREASE Filtering and String Format | E-5 | 15 | 5 | completed | STORY-033, STORY-071 |
+| STORY-052 | ClientHello Parsing — Handshake Counting, Version/JA3 Tracking, and Done Short-Circuit | E-5 | 16 | 8 | completed | STORY-051 |
 | STORY-053 | ServerHello Parsing — JA3S Fingerprinting and Cipher/Version Tracking | E-5 | 17 | 5 | draft | STORY-051, STORY-052 |
 | STORY-054 | Cipher and Protocol Weakness Findings — Weak Ciphers, Deprecated SSL Versions, and Baseline Zero-Finding | E-5 | 18 | 8 | draft | STORY-052, STORY-053 |
 | STORY-055 | SNI Classification Arms 1 and 2 — Clean ASCII Baseline and C0/DEL Control-Byte Detection | E-5 | 17 | 8 | draft | STORY-052 |

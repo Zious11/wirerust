@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 16 Pass-1 prose fix (F-W16-S052-P1-004) — line citation corrected: done check at tls.rs:721, early return at tls.rs:723 — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -41,7 +43,7 @@ counter is incremented.
 
 ## Postconditions
 
-1. `on_data` returns immediately after the `done` check at tls.rs:721.
+1. `on_data` returns immediately (tls.rs:723) once the `done` check (tls.rs:721) is true.
 2. No bytes are appended to `client_buf` or `server_buf`.
 3. No counters are incremented (`parse_errors`, `handshakes_seen`, etc. all unchanged).
 4. No findings are emitted.

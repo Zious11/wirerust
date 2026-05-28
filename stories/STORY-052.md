@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-052"
 epic_id: "E-5"
-version: "1.0"
-status: draft
+version: "1.2"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -61,7 +61,7 @@ When a complete TLS ClientHello is processed by `handle_client_hello`, `handshak
 
 ### AC-002 (traces to BC-2.07.001 postcondition 2)
 The ClientHello `version` field value (u16) is inserted/incremented in `version_counts` (bounded at `MAX_MAP_ENTRIES = 50,000`).
-- **Test:** `test_parse_client_hello`
+- **Test:** `test_parse_client_hello`; `test_BC_2_07_001_inv2_version_counts_bounded_at_max_map_entries`
 
 ### AC-003 (traces to BC-2.07.001 postcondition 3)
 A JA3 MD5 hex string (32 lowercase hex chars) is computed via `compute_ja3` and inserted/incremented in `ja3_counts` (bounded at `MAX_MAP_ENTRIES`).
@@ -81,7 +81,7 @@ The consumed ClientHello record bytes are drained from `client_buf` after proces
 
 ### AC-007 (traces to BC-2.07.001 invariant 2)
 All counter maps (`ja3_counts`, `version_counts`, `sni_counts`) are bounded at `MAX_MAP_ENTRIES = 50,000`. New keys are silently dropped when the map is full; no error or finding is emitted for the drop.
-- **Test:** `test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity`
+- **Test:** `test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity`; `test_BC_2_07_001_inv2_version_counts_bounded_at_max_map_entries`; `test_BC_2_07_001_inv2_ja3_counts_bounded_at_max_map_entries`
 
 ### AC-008 (traces to BC-2.07.003 postcondition 1-5)
 After both `client_hello_seen` and `server_hello_seen` are true (`TlsFlowState::done() == true`), any further `on_data` call returns immediately. No bytes are appended to buffers, no counters are incremented, no findings are emitted, and the flow state remains in the `flows` HashMap.

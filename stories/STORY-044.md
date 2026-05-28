@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-044"
 epic_id: "E-4"
-version: "1.0"
-status: draft
+version: "1.3"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -65,55 +65,55 @@ implementation_strategy: brownfield-formalization
 
 ### AC-001 (traces to BC-2.06.013 postcondition 1-5)
 When httparse returns an Err (not TooManyHeaders) and `had_success == false`, `parse_errors` is incremented by 1, `request_error_count` is incremented by 1, `request_buf` is cleared, no finding is pushed to `all_findings`, and `try_parse_requests` returns early.
-- **Test:** `test_parse_error_increments_counter`
+- **Test:** `test_BC_2_06_013_non_http_bytes_increment_parse_errors_no_finding`
 
 ### AC-002 (traces to BC-2.06.013 invariant 1)
 `had_success` suppresses error counting for body bytes that follow a complete header. Body bytes after a parsed header do NOT increment `parse_errors`. `TooManyHeaders` is the only Err variant that also emits a finding.
-- **Test:** `test_parse_error_in_response`
+- **Test:** `test_BC_2_06_013_invariant_had_success_suppresses_body_byte_errors`
 
 ### AC-003 (traces to BC-2.06.014 postcondition 1-5)
 When httparse returns `Err(httparse::Error::TooManyHeaders)` and `had_success == false`, a Finding is emitted with category=Anomaly, verdict=Inconclusive, confidence=Medium, mitre_technique=Some("T1499.002"), summary="Excessive HTTP headers exceeded parser limit (possible DoS or header-based attack)", and evidence containing "Direction: request" or "Direction: response" as a plain string (not a Direction enum).
-- **Test:** `test_too_many_headers_generates_finding`
+- **Test:** `test_BC_2_06_014_too_many_headers_request_emits_anomaly_finding`
 
 ### AC-004 (traces to BC-2.06.014 postcondition 2-4)
-The TooManyHeaders finding also increments `parse_errors` by 1 and `request_error_count` by 1, clears the buffer, and returns early — the usual error-count path is NOT bypassed.
-- **Test:** `test_too_many_headers_in_response_generates_finding`
+The TooManyHeaders finding also increments `parse_errors` by 1 and the direction's error_count by 1 (`request_error_count` for the request direction, `response_error_count` for the response direction), clears the direction's buffer, and returns early — the usual error-count path is NOT bypassed for either direction. (Generalized to direction-symmetric prose to match BC-2.06.014's symmetric postconditions; the named test exercises the response arm.)
+- **Test:** `test_BC_2_06_014_too_many_headers_response_emits_anomaly_finding`
 
 ### AC-005 (traces to BC-2.06.014 invariant 4)
 The TooManyHeaders finding evidence text is "Direction: request" or "Direction: response" — a plain hardcoded string, not derived from the Direction enum.
-- **Test:** `test_too_many_headers_generates_finding`
+- **Test:** `test_BC_2_06_014_invariant_evidence_is_plain_string_not_enum_derived`
 
 ### AC-006 (traces to BC-2.06.015 postcondition 1-4)
 When `request_error_count >= POISON_THRESHOLD (3)`, `HttpFlowState.request_poisoned` is set to `true`, `non_http_flows` is incremented by 1 (if `counted_as_non_http` is false), the direction buffer is cleared, and all subsequent `on_data` calls for that direction count bytes in `poisoned_bytes_skipped` without parsing.
-- **Test:** `test_parse_error_poisons_direction_after_threshold`
+- **Test:** `test_BC_2_06_015_three_consecutive_errors_trigger_poisoning`
 
 ### AC-007 (traces to BC-2.06.015 invariant 1-3)
 Poisoning is per-direction: `request_poisoned` and `response_poisoned` are independent booleans. The error counter is CONSECUTIVE, not cumulative — one successful parse resets the counter to 0. Poisoning is irreversible within a flow lifetime.
-- **Test:** `test_poison_is_per_direction`
+- **Test:** `test_BC_2_06_017_invariant_request_poisoned_gates_only_client_to_server` (per-direction independence); `test_BC_2_06_015_invariant_error_count_is_consecutive_not_cumulative` (consecutive reset); `test_BC_2_06_015_invariant_poisoning_is_irreversible` (irreversibility)
 
 ### AC-008 (traces to BC-2.06.016 postcondition 1-5)
 A single parse error increments `request_error_count` to 1 and `parse_errors` to 1, but does NOT trigger poisoning. A subsequent valid HTTP request is parsed normally.
-- **Test:** `test_single_error_does_not_poison`
+- **Test:** `test_BC_2_06_016_single_error_does_not_poison_direction`
 
 ### AC-009 (traces to BC-2.06.016 invariant 2)
 `request_error_count` resets to 0 on a successful parse. One successful parse after two consecutive errors returns the counter to 0, so the flow requires 3 NEW consecutive errors to be poisoned.
-- **Test:** `test_error_count_resets_on_success`
+- **Test:** `test_BC_2_06_016_invariant_single_error_then_success_resets_count`
 
 ### AC-010 (traces to BC-2.06.017 postcondition 1-3)
 When the request direction is poisoned, subsequent `on_data` calls with `Direction::ServerToClient` continue to parse responses normally. `response_error_count` is independent of `request_error_count`. `response_poisoned` remains false until its own threshold is reached independently.
-- **Test:** `test_poison_request_does_not_affect_response`
+- **Test:** `test_BC_2_06_017_poisoned_request_does_not_affect_response_parsing`
 
 ### AC-011 (traces to BC-2.06.018 postcondition 1-3)
 `non_http_flows` is incremented by 1 and `counted_as_non_http` is set to true when the first direction of a flow is poisoned. If the second direction subsequently reaches the poison threshold, `non_http_flows` is NOT incremented again because `counted_as_non_http` is already true.
-- **Test:** `test_non_http_flows_counts_per_flow_not_direction`
+- **Test:** `test_BC_2_06_018_both_directions_poisoned_counts_one_flow_not_two`
 
 ### AC-012 (traces to BC-2.06.020 postcondition 1-4)
 After a complete HTTP request header is successfully parsed (`had_success = true`), remaining body bytes in `request_buf` that fail parsing do NOT increment `parse_errors` or `request_error_count`. The buffer is cleared and the loop exits.
-- **Test:** `test_body_bytes_do_not_inflate_parse_errors`
+- **Test:** `test_BC_2_06_020_post_with_body_does_not_inflate_parse_errors`
 
 ### AC-013 (traces to BC-2.06.020 invariant 3)
-The TooManyHeaders finding check is inside the `if !had_success` block — TooManyHeaders on body bytes after a successful header is also suppressed.
-- **Test:** `test_body_bytes_do_not_inflate_parse_errors`
+The TooManyHeaders finding check is inside the `if !had_success` block — TooManyHeaders on body bytes after a successful header is also suppressed. (Test re-pointed to the dedicated TooManyHeaders-after-success suppression test; `test_BC_2_06_020_post_with_body_does_not_inflate_parse_errors` only exercises the Err(Token) body-byte path and does not send real TooManyHeaders input.)
+- **Test:** `test_BC_2_06_020_invariant_real_too_many_headers_after_success_suppressed`
 
 ## Architecture Mapping
 
@@ -202,4 +202,4 @@ The TooManyHeaders finding check is inside the `if !had_success` block — TooMa
 | File | Action | Purpose |
 |------|--------|---------|
 | src/analyzer/http.rs | modify | Err arm (403-434 request, 475-487 response): had_success guard, TooManyHeaders finding, error_count++, poison transition, non_http_flows latch |
-| tests/http_analyzer_tests.rs | modify | Add: test_parse_error_increments_counter, test_too_many_headers_generates_finding, test_parse_error_poisons_direction_after_threshold, test_single_error_does_not_poison, test_poison_request_does_not_affect_response, test_non_http_flows_counts_per_flow_not_direction, test_body_bytes_do_not_inflate_parse_errors |
+| tests/http_analyzer_tests.rs | modify | AC-001..AC-013 formalization tests in mod bc_2_06_044_formalization (lines ~3503-4540): test_BC_2_06_013_*, test_BC_2_06_014_*, test_BC_2_06_015_*, test_BC_2_06_016_*, test_BC_2_06_017_*, test_BC_2_06_018_*, test_BC_2_06_020_* |

@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-042"
 epic_id: "E-4"
-version: "1.0"
-status: draft
+version: "1.1"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.006.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.007.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.012.md
-input-hash: "3878caf"
+input-hash: "86f7fe0"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-041]
@@ -60,7 +60,7 @@ When the parsed HTTP request URI (lowercased) contains any of `../`, `..%2f`, `.
 - **Test:** `test_BC_2_06_005_path_traversal_all_fields`
 
 ### AC-002 (traces to BC-2.06.005 invariant 1)
-The path-traversal check uses exactly four patterns: `../`, `..%2f`, `..%252f`, `....//`. There is NO backslash (`..\"`) pattern. The URI is lowercased before matching.
+The path-traversal check uses exactly four patterns: `../`, `..%2f`, `..%252f`, `....//`. There is NO backslash (`..\`) traversal variant in source. The URI is lowercased before matching.
 - **Test:** `test_BC_2_06_005_encoded_traversal_four_patterns`
 
 ### AC-003 (traces to BC-2.06.005 postcondition 2)
@@ -83,8 +83,8 @@ When the parsed HTTP request URI (lowercased) contains any of `/wp-admin`, `/adm
 Admin panel URI comparison is case-insensitive (lowercased before match) and substring-based — `/site/admin/settings` triggers the finding via `/admin`. Pattern matching uses `admin_patterns.iter().any(|p| uri_lower.contains(p))`.
 - **Test:** `test_admin_panel_case_insensitive`
 
-### AC-008 (traces to BC-2.06.005 invariant 3 and BC-2.06.006 invariant 4)
-All URI-based detections are independent: a request with a URI matching both path-traversal and web-shell patterns emits both findings. Detections do not suppress each other.
+### AC-008 (traces to BC-2.06.005 invariant 3, BC-2.06.006 invariant 4, and BC-2.06.007 invariant 4)
+All URI-based detections are independent: a request with a URI matching path-traversal, web-shell, and admin-panel patterns simultaneously emits all three findings. Detections do not suppress each other.
 - **Test:** `test_multiple_detections_fire_independently`
 
 ### AC-009 (traces to BC-2.06.012 postcondition 1-3)

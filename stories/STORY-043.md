@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-043"
 epic_id: "E-4"
-version: "1.0"
-status: draft
+version: "1.1"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -182,4 +182,4 @@ When `parsed.user_agent == None` (header absent), NO finding is emitted. This as
 | File | Action | Purpose |
 |------|--------|---------|
 | src/analyzer/http.rs | modify | Add unusual-method (251-265), host anomaly (283-302), long-URI (304-317), empty-UA (344-356) detection blocks |
-| tests/http_analyzer_tests.rs | modify | Add: test_detect_unusual_method, test_detect_missing_host_header, test_detect_long_uri, test_detect_empty_user_agent, test_missing_user_agent_no_finding |
+| tests/http_analyzer_tests.rs | modify | AC-001..AC-010 tests in mod bc_2_06_043_formalization (lines 2758-3503, 14 tests): test_detect_unusual_method, test_unusual_method_case_sensitive, test_detect_missing_host_header, test_detect_empty_host_header, test_http10_no_host_finding, test_detect_long_uri, test_long_uri_boundary_exactly_2048, test_detect_empty_user_agent, test_missing_user_agent_no_finding, test_whitespace_user_agent_triggers_empty_ua_finding, test_BC_2_06_011_empty_ua_and_missing_host_both_fire_independently, test_BC_2_06_010_long_uri_and_path_traversal_both_fire_independently, test_BC_2_06_008_all_four_unusual_methods_emit_finding, test_BC_2_06_010_very_long_uri_evidence_truncated_to_200 |
