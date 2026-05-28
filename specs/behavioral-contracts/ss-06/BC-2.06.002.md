@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-05-28): W15 Pass-3 remediation — F-W15P3-005; split had_success anchor to cite both declaration (http.rs:364) and guard (http.rs:404); line anchor reconciled."
+  - "v1.4 (2026-05-28): W15 Pass-5 sibling-sweep — added Related BC cross-reference to BC-2.06.004 (response-side analog) (F-W15P5-002)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -99,6 +100,7 @@ detection separately per request. The loop exits when the buffer is exhausted (r
 - BC-2.06.001 -- composes with (per-request parsing logic is the inner step)
 - BC-2.06.003 -- composes with (partial exit condition is the complement)
 - BC-2.06.020 -- related to (body bytes after a parsed header invoke had_success guard)
+- BC-2.06.004 -- response-side analog (response-side had_success guard at http.rs:462 is the analog of this BC's invariant 2 — request-side guard at http.rs:404)
 
 ## Architecture Anchors
 

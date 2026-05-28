@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.4 (2026-05-28): W15 Pass-2 remediation — invariant 3 + EC-005 marked DEFENSIVE (reachability via on_data unverified; W15.D1 pending research-agent validation per F-W15P2-004)."
   - "v1.5 (2026-05-28): W15 Pass-4 remediation — added invariant 4 formalizing the response-side had_success guard (try_parse_responses:462) as the response-side analog of BC-2.06.002 invariant 2 (F-W15P4-001, F-W15P4-005 process-gap). Closes the BC↔implementation asymmetry that left the response-side had_success suppression unspecified."
+  - "v1.6 (2026-05-28): W15 Pass-5 sibling-sweep cascade — added Related BC cross-reference to BC-2.06.002 (F-W15P5-002); added Verification Properties row for invariant 4 coverage (F-W15P5-003)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -85,6 +86,7 @@ The response direction supports the same buffering and pipelined-loop semantics 
 |--------|----------|-------------|
 | — | Response parse increments transactions and status_codes | unit: test_parse_response |
 | — | Pipelined responses increment transactions multiple times | unit: test_parse_pipelined_responses |
+| — | Response-side had_success suppresses body-byte parse errors after successful header parse (invariant 4) | unit: test_BC_2_06_004_had_success_suppresses_response_body_byte_errors |
 
 ## Traceability
 
@@ -101,6 +103,7 @@ The response direction supports the same buffering and pipelined-loop semantics 
 
 - BC-2.06.001 -- related to (request parsing is analogous; requests do NOT increment transactions)
 - BC-2.06.023 -- composes with (summarize maps packets_analyzed = transactions)
+- BC-2.06.002 -- request-side analog (request-side had_success guard at http.rs:404 is the analog of this BC's invariant 4 — response-side guard at http.rs:462)
 
 ## Notes
 
