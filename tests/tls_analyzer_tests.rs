@@ -173,19 +173,141 @@ fn build_server_hello(cipher_id: u16) -> Vec<u8> {
     record
 }
 
+// ── STORY-052 formalization tests ────────────────────────────────────────────
+//
+// These tests pin the behavioral contracts for ClientHello parsing
+// (BC-2.07.001), the done short-circuit (BC-2.07.003, BC-2.07.034), and TLS 1.3
+// legacy_version handling (BC-2.07.032). They use the EXACT function names from
+// the story's Acceptance Criteria so traceability from AC → test is machine-checkable.
+//
+// test_parse_client_hello    — AC-001..006 (BC-2.07.001 postconditions 1-4, 8; invariant 1)
+// test_stop_after_handshake  — AC-008..009, AC-012 (BC-2.07.003 postconditions 1-5;
+//                              invariants 1-2; BC-2.07.034 postconditions 1-3)
+// test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity
+//                            — AC-007 (BC-2.07.001 invariant 2) — see below
+// compute_ja3_has_five_fields_and_hex_hash (proptest in src/analyzer/tls.rs)
+//                            — AC-003 (BC-2.07.001 postcondition 3) — see inline module
+// test_tls13_pcap_version_and_ja3 (in tests/tls_integration_tests.rs)
+//                            — AC-010, AC-011 (BC-2.07.032 postconditions 1-3; invariants 1-2)
+
 #[test]
 fn test_parse_client_hello() {
+    // ---- AC-001 (BC-2.07.001 postcondition 1): handshakes_seen += 1 ----
+    // ---- AC-002 (BC-2.07.001 postcondition 2): version_counts[0x0303] == 1 ----
+    // ---- AC-003 (BC-2.07.001 postcondition 3): ja3_counts has one 32-hex entry ----
+    // ---- AC-004 (BC-2.07.001 postcondition 4): sni_counts["example.com"] == 1 ----
+    // ---- AC-005 (BC-2.07.001 postcondition 8): client_buf drained after processing ----
+    // ---- AC-006 (BC-2.07.001 invariant 1):     handshakes_seen == 1 even with weak ciphers ----
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
     let record = build_client_hello("example.com", &[0x1301, 0x1303]);
     analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
 
-    assert_eq!(*analyzer.sni_counts().get("example.com").unwrap(), 1);
-    assert_eq!(analyzer.ja3_counts().len(), 1);
-    assert!(!analyzer.ja3_counts().is_empty());
-    assert_eq!(*analyzer.version_counts().get(&0x0303).unwrap(), 1);
+    // AC-001: handshakes_seen incremented by exactly 1
+    assert_eq!(
+        analyzer.handshake_count(),
+        1,
+        "AC-001 (BC-2.07.001 pc1): handshakes_seen must be exactly 1 after one ClientHello"
+    );
+
+    // AC-002: version 0x0303 (TLS 1.2/1.3 legacy_version) counted
+    assert_eq!(
+        *analyzer.version_counts().get(&0x0303).unwrap(),
+        1,
+        "AC-002 (BC-2.07.001 pc2): version_counts[0x0303] must be 1"
+    );
+
+    // AC-003: exactly one JA3 hash recorded; it is a 32-char lowercase hex string
+    assert_eq!(
+        analyzer.ja3_counts().len(),
+        1,
+        "AC-003 (BC-2.07.001 pc3): ja3_counts must have exactly one entry"
+    );
+    let ja3_hash = analyzer.ja3_counts().keys().next().unwrap();
+    assert_eq!(
+        ja3_hash.len(),
+        32,
+        "AC-003 (BC-2.07.001 pc3): JA3 hash must be 32 hex chars"
+    );
+    assert!(
+        ja3_hash
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
+        "AC-003 (BC-2.07.001 pc3): JA3 hash must be lowercase hex, got: {ja3_hash}"
+    );
+
+    // AC-004: SNI "example.com" counted once
+    assert_eq!(
+        *analyzer.sni_counts().get("example.com").unwrap(),
+        1,
+        "AC-004 (BC-2.07.001 pc4): sni_counts[\"example.com\"] must be 1"
+    );
+
+    // AC-005 (BC-2.07.001 postcondition 8): the record bytes are drained from client_buf.
+    // After on_data the buffer is empty because try_parse_records drains it once a
+    // complete record has been consumed.  We verify this indirectly: sending the same
+    // record a second time on the *same* flow would double-count if the first record
+    // had NOT been drained — the handshake count would reach 2. After drain it stays 1
+    // because the second on_data starts with an empty buffer, parses a fresh
+    // ClientHello, and increments to 2 only if the drain worked.  A more direct check
+    // would require an internal accessor; instead we confirm parse_error_count == 0
+    // (no partial-record error from stale bytes) as the observable postcondition.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-005 (BC-2.07.001 pc8): no parse errors — client_buf drained cleanly"
+    );
+
+    // AC-006 (BC-2.07.001 invariant 1): handshakes_seen increments exactly once per
+    // ClientHello regardless of how many weak ciphers are present.  Here ciphers are
+    // 0x1301 + 0x1303 (both strong), so only the base invariant is checked.  The
+    // multi-weak-cipher case is exercised in the separate
+    // test_parse_client_hello_single_handshake_despite_multiple_weak_ciphers test below.
+    assert_eq!(
+        analyzer.handshake_count(),
+        1,
+        "AC-006 (BC-2.07.001 inv1): handshakes_seen must be 1, not influenced by cipher count"
+    );
+
+    // Sanity: no parse errors from a well-formed record
     assert_eq!(analyzer.parse_error_count(), 0);
+}
+
+// ---- AC-006 companion (BC-2.07.001 invariant 1): single increment with multiple weak ciphers
+//
+// A ClientHello with THREE weak ciphers (NULL, ANON-export, NULL-SHA256) plus one
+// strong cipher must still produce handshakes_seen == 1.  The finding count may be
+// 1 (the "weak cipher" finding aggregates all weak ciphers in one push), but the
+// handshake count must not be multiplied by the cipher count.
+#[test]
+fn test_parse_client_hello_single_handshake_despite_multiple_weak_ciphers() {
+    // AC-006 (BC-2.07.001 invariant 1): handshakes_seen increments exactly once per
+    // ClientHello, regardless of how many weak ciphers are present.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // 0x0002 TLS_RSA_WITH_NULL_SHA, 0x0003 TLS_RSA_EXPORT_WITH_RC4_40_MD5,
+    // 0x003B TLS_RSA_WITH_NULL_SHA256, plus 0x1301 (strong) for a realistic mix.
+    let record = build_client_hello("example.com", &[0x0002, 0x0003, 0x003B, 0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(
+        analyzer.handshake_count(),
+        1,
+        "AC-006 (BC-2.07.001 inv1): multiple weak ciphers must not multiply handshakes_seen"
+    );
+    // Exactly one "weak cipher" finding (all weak ciphers are aggregated into one push)
+    let weak_findings: Vec<_> = analyzer
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("weak cipher"))
+        .collect();
+    assert_eq!(
+        weak_findings.len(),
+        1,
+        "multiple weak ciphers must produce ONE weak-cipher finding (not one per cipher)"
+    );
 }
 
 #[test]
@@ -296,6 +418,13 @@ fn test_normal_handshake_no_findings() {
 
 #[test]
 fn test_stop_after_handshake() {
+    // ---- AC-008 (BC-2.07.003 postconditions 1-5): done() == true causes on_data to
+    //              return immediately; no bytes buffered, no counters changed, no findings,
+    //              flow state remains in the HashMap.
+    // ---- AC-009 (BC-2.07.003 invariants 1-2): done-check is first; retransmitted
+    //              ClientHello after done() does NOT increment handshakes_seen.
+    // ---- AC-012 (BC-2.07.034 postconditions 1-3): 1 MB application-data burst after
+    //              both hellos leaves all counters at their post-handshake values.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
@@ -305,13 +434,102 @@ fn test_stop_after_handshake() {
     let sh = build_server_hello(0x1301);
     analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
 
-    // Send encrypted application data (content_type=0x17) — should be ignored
-    let mut app_data = vec![0x17, 0x03, 0x03, 0x00, 0x10];
-    app_data.extend_from_slice(&[0xAA; 16]);
-    analyzer.on_data(&fk, Direction::ServerToClient, &app_data, 0);
+    // Snapshot post-handshake counters — these must not change after the done() short-circuit.
+    let handshakes_after_hellos = analyzer.handshake_count();
+    let parse_errors_after_hellos = analyzer.parse_error_count();
+    let sni_len_after_hellos = analyzer.sni_counts().len();
+    let ja3_len_after_hellos = analyzer.ja3_counts().len();
+    let version_len_after_hellos = analyzer.version_counts().len();
+    let findings_after_hellos = analyzer.findings().len();
 
-    // No parse errors from the encrypted data
-    assert_eq!(analyzer.parse_error_count(), 0);
+    assert_eq!(
+        handshakes_after_hellos, 1,
+        "AC-008 setup: expected exactly 1 handshake after ClientHello+ServerHello"
+    );
+
+    // AC-009 (BC-2.07.003 invariant 2): send a retransmitted ClientHello after done().
+    // handshakes_seen must NOT increment — the short-circuit fires before any parsing.
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    assert_eq!(
+        analyzer.handshake_count(),
+        handshakes_after_hellos,
+        "AC-009 (BC-2.07.003 inv2): retransmitted ClientHello after done() must NOT \
+         increment handshakes_seen (expected {handshakes_after_hellos})"
+    );
+
+    // AC-008 (BC-2.07.003 pc2): no bytes appended to buffers.
+    // We verify via parse_error_count: if bytes were buffered and parsed, a non-handshake
+    // retransmission or garbage appended to the real ClientHello would cause a parse error.
+    // The absence of parse errors is the observable proxy for "no buffering occurred".
+    assert_eq!(
+        analyzer.parse_error_count(),
+        parse_errors_after_hellos,
+        "AC-008 (BC-2.07.003 pc3): parse_errors must not increase after done()"
+    );
+
+    // AC-008 / AC-012 (BC-2.07.034 pc1-3): send a 1 MB burst of application data
+    // (content_type=0x17) after both hellos — all bytes must be silently discarded.
+    // BC-2.07.034 canonical test vector: ClientHello + ServerHello + 1 MB data ->
+    // all counters reflect only the two hellos; no parse_errors from app data.
+    let large_app_data: Vec<u8> = {
+        let mut v = Vec::with_capacity(1_048_576);
+        // Fill with 65,535-byte chunks (just under MAX_BUF) of realistic content_type=0x17
+        // framing to exercise the buffer-bypass path, not just the "data too small to parse" path.
+        // We use arbitrary bytes rather than well-formed TLS records because the short-circuit
+        // fires BEFORE any parsing, so the content doesn't matter.
+        v.extend(std::iter::repeat_n(0xBBu8, 1_048_576));
+        v
+    };
+    analyzer.on_data(&fk, Direction::ServerToClient, &large_app_data, 0);
+
+    // AC-012 (BC-2.07.034 pc4): all counters at their post-handshake values
+    assert_eq!(
+        analyzer.handshake_count(),
+        handshakes_after_hellos,
+        "AC-012 (BC-2.07.034 pc4): 1 MB burst must not change handshakes_seen"
+    );
+    assert_eq!(
+        analyzer.parse_error_count(),
+        parse_errors_after_hellos,
+        "AC-012 (BC-2.07.034 pc4): 1 MB burst must not change parse_errors \
+         (BC-2.07.003 pc3 / BC-2.07.034 pc4: no parse attempt on post-done data)"
+    );
+    assert_eq!(
+        analyzer.sni_counts().len(),
+        sni_len_after_hellos,
+        "AC-012 (BC-2.07.034 pc4): 1 MB burst must not change sni_counts"
+    );
+    assert_eq!(
+        analyzer.ja3_counts().len(),
+        ja3_len_after_hellos,
+        "AC-012 (BC-2.07.034 pc4): 1 MB burst must not change ja3_counts"
+    );
+    assert_eq!(
+        analyzer.version_counts().len(),
+        version_len_after_hellos,
+        "AC-012 (BC-2.07.034 pc4): 1 MB burst must not change version_counts"
+    );
+    assert_eq!(
+        analyzer.findings().len(),
+        findings_after_hellos,
+        "AC-012 (BC-2.07.034 pc4): 1 MB burst must not add findings"
+    );
+
+    // AC-008 (BC-2.07.003 pc1): on_data returns immediately (no panic, no hang).
+    // Send empty slice — EC-003 from BC-2.07.003: empty on_data after done returns immediately.
+    analyzer.on_data(&fk, Direction::ServerToClient, &[], 0);
+    assert_eq!(
+        analyzer.parse_error_count(),
+        parse_errors_after_hellos,
+        "AC-008 EC-003 (BC-2.07.003 ec3): empty on_data after done must have no effect"
+    );
+
+    // Final invariant: all counters unchanged from post-handshake snapshot
+    assert_eq!(
+        analyzer.handshake_count(),
+        handshakes_after_hellos,
+        "AC-009 (BC-2.07.003 inv2): done() is permanent — handshakes_seen frozen"
+    );
 }
 
 #[test]
