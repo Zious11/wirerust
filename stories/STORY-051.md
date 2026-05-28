@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-051"
 epic_id: "E-5"
-version: "1.2"
+version: "1.3"
 status: in-progress
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -64,8 +64,8 @@ Non-GREASE values are preserved in their original order. Inserting a canonical G
 
 ### AC-003 (traces to BC-2.07.006 invariant 1)
 The GREASE `is_grease_u16` bitmask `(val & 0x0F0F) == 0x0A0A` is applied to cipher IDs, extension type IDs, and named group IDs. EC point format bytes are NOT filtered (they are single bytes, not u16 values).
-- **Test:** `is_grease_u16_matches_all_canonical_grease_values` (proptest, src/analyzer/tls.rs::ja3_property_tests — VP-013 anchor, do not rename)
-- **Also covered by:** `is_grease_u16_matches_nibble_bitmask_contract` (proptest, src/analyzer/tls.rs::ja3_property_tests — VP-013 anchor, do not rename)
+- **Test:** `is_grease_u16_matches_all_canonical_grease_values` (unit test, src/analyzer/tls.rs::ja3_property_tests:880 — VP-013 anchor, do not rename)
+- **Companion proptest:** `is_grease_u16_matches_nibble_bitmask_contract` (proptest, src/analyzer/tls.rs::ja3_property_tests — VP-013 anchor, do not rename)
 - **Companion tests:** `test_BC_2_07_006_all_16_canonical_grease_ciphers_produce_empty_cipher_field`, `test_BC_2_07_006_non_canonical_grease_pattern_0x0a1a_is_filtered`, `test_BC_2_07_006_ec_point_format_bytes_are_not_filtered` (tests/tls_analyzer_tests.rs)
 
 ### AC-004 (traces to BC-2.07.007 postcondition 1-2)
@@ -148,11 +148,11 @@ The JA3S cipher field is a SINGLE value (server selects ONE cipher, not a list).
 2. [x] Verify Red Gate: formalization-confirms-existing — all 19 BC-prefixed deterministic tests pass against already-implemented functions; no src/ changes needed (brownfield invariant confirmed)
 3. [x] Verify `is_grease_u16` at src/analyzer/tls.rs:50-52 satisfies BC-2.07.006 invariant 1 via 3 tests (brownfield — no src changes)
 4. [x] Verify `compute_ja3` at src/analyzer/tls.rs:92-151 satisfies BC-2.07.007 postconditions via 11 tests (brownfield — no src changes)
-5. [x] Verify `compute_ja3s` at src/analyzer/tls.rs:153-173 satisfies BC-2.07.008 postconditions via 5 tests (brownfield — no src changes)
+5. [x] Verify `compute_ja3s` at src/analyzer/tls.rs:153-173 satisfies BC-2.07.008 postconditions via 6 tests (brownfield — no src changes)
 6. [x] Verify existing proptest `compute_ja3_is_grease_invariant` (src/analyzer/tls.rs::ja3_property_tests) passes — do NOT rename (VP-013 anchor); passes (6 pre-existing proptests reused)
 7. [x] Verify existing proptest `compute_ja3_is_order_sensitive` (src/analyzer/tls.rs::ja3_property_tests) passes — do NOT rename (VP-013 anchor); passes
 8. [x] Verify existing proptest `compute_ja3s_is_deterministic_and_hex` (src/analyzer/tls.rs::ja3_property_tests) passes — do NOT rename (VP-013 anchor); passes
-9. [x] Run all tests; verify all pass — Green Gate confirmed; all 19 BC-prefixed + 6 proptests (7 incl. bytes_to_hex_roundtrips_length_and_alphabet) pass
+9. [x] Run all tests; verify all pass — Green Gate confirmed; all 19 BC-prefixed deterministic tests + 6 proptests + 1 inline unit test in ja3_property_tests module pass (bytes_to_hex_roundtrips_length_and_alphabet is the 6th proptest, documented in FSR for brownfield completeness)
 10. [x] Verify purity boundaries (all three functions are pure-core; no state mutation) — confirmed: no I/O, no globals, fully deterministic
 11. [ ] Update STATE.md — deferred to wave close [process-gap: no agent mechanically advances story Task checkboxes after each gate; worth codifying if pattern repeats]
 
@@ -196,3 +196,4 @@ The JA3S cipher field is a SINGLE value (server selects ONE cipher, not a list).
 | v1.0 | 2026-05-21 | story-writer | Initial story decomposition |
 | v1.1 | 2026-05-28 | story-writer | DF-AC-TEST-NAME-SYNC-001 v1 sync — AC Test lines bound to actual `fn test_BC_2_07_*` names (17 tests); proptest VP-013 anchors preserved as primary; companion tests added; Tasks 1/6/7/8 updated to reflect existing proptest reuse; FSR updated (src/analyzer/tls.rs no-change, brownfield invariant); Previous Story Intelligence row added (STORY-033); status draft→in-progress |
 | v1.2 | 2026-05-28 | story-writer | Pass-1 remediation — AC-004 companion updated to renamed test (`test_BC_2_07_007_canonical_771_no_cipher_no_extension_hash`) + added `test_BC_2_07_007_version_zero_emits_leading_zero_field` (pinned MD5 `2432bebf06532faf89aae784a9aae4ef` for "0,,,,"); AC-008 added `test_BC_2_07_008_ja3s_all_grease_extensions_produce_empty_ext_field` companion (pinned MD5 `5397c414a9ebeaff1bf18b70ca22eaa0` for "771,47,"); Architecture Mapping line ranges standardized to doc-block convention (`compute_ja3` 92-151, `compute_ja3s` 153-173); FSR notes 7th proptest `bytes_to_hex_roundtrips_length_and_alphabet` (tls.rs:988-996); Tasks 2-10 advanced to [DONE] per actual lifecycle; status retained as in-progress (pre-adversarial-convergence); 17→19 BC-prefixed test counts updated throughout; [process-gap] noted on Task 11 |
+| v1.3 | 2026-05-28 | story-writer | Pass-2 remediation — Task 9 proptest+unit count clarified; Task 5 count corrected 5→6; AC-003 Test: line corrected (unit test not proptest) for is_grease_u16_matches_all_canonical_grease_values; companion proptest cited. |
