@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-05-28): W15 Pass-3 remediation — F-W15P3-006; corrected 459→460 in Architecture Module row and Source Evidence Path to match verified Partial arm location; line anchor reconciled."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -88,7 +89,7 @@ responses via `try_parse_responses`.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- buffering partial request headers is required for correct HTTP parsing over TCP stream data |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:402, 459, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:402, 460, C-12) |
 | Stories | STORY-041 |
 | Origin BC | BC-HTTP-003 (pass-3 ingestion corpus, HIGH confidence) |
 

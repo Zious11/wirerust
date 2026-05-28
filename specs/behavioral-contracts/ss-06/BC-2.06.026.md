@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-05-28): W15 Pass-3 remediation — F-W15P3-002; narrowed invariant 3 to note LF/CR unreachability via httparse C0 rejection; line anchor reconciled."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,7 +52,10 @@ ADR 0003 / INV-4.
 
 1. `find_header` performs case-insensitive name matching (`eq_ignore_ascii_case`).
 2. `from_utf8_lossy` guarantees the result is valid UTF-8 (replacements inserted).
-3. `.trim()` removes ASCII whitespace only (U+0009 tab, U+0020 space, U+000A LF, etc.).
+3. `.trim()` removes ASCII whitespace (U+0009 tab, U+0020 space). Note: although Rust's
+   `str::trim` would also remove U+000A LF and U+000D CR, httparse rejects bare C0 control
+   bytes in HTTP header values before they reach this function — so LF/CR are not observable
+   inputs to this trimming behavior via the public `on_data` API. See STORY-041 AC-002 note.
 4. ADR 0003 / INV-4: no escape function is called at parse time; raw URI bytes from
    `req.path` flow directly into detection code and eventually into Finding.evidence.
 

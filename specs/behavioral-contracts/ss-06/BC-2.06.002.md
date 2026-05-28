@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-05-28): W15 Pass-3 remediation — F-W15P3-005; split had_success anchor to cite both declaration (http.rs:364) and guard (http.rs:404); line anchor reconciled."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,8 +53,9 @@ detection separately per request. The loop exits when the buffer is exhausted (r
 ## Invariants
 
 1. `request_error_count` is reset to 0 after each successful parse within the loop.
-2. The `had_success` flag prevents error counting for body-bytes that follow a successfully
-   parsed header (http.rs:364).
+2. The `had_success` flag (declared at http.rs:364) prevents error counting for body-bytes
+   that follow a successfully parsed header via the guard at http.rs:404
+   (`if !had_success { self.parse_errors += 1; }`).
 3. Each request's detection and counting is isolated; findings do NOT aggregate across requests
    in a single call.
 
