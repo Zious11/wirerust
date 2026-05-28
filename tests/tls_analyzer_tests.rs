@@ -1660,7 +1660,7 @@ fn test_BC_2_07_006_grease_cipher_excluded_same_hash_as_without_grease() {
 #[test]
 fn test_BC_2_07_006_all_grease_cipher_list_produces_empty_cipher_field() {
     // EC-001 from BC-2.07.006: cipher list [0x0a0a] only -> cipher field is ""
-    // JA3 string = "771,,," -> MD5 = bddda940f9963577c41d7c28b1a5f65f
+    // JA3 string = "771,,,," -> MD5 = bddda940f9963577c41d7c28b1a5f65f
     let fk = test_flow_key();
 
     let mut analyzer = TlsAnalyzer::new();
@@ -1693,7 +1693,7 @@ fn test_BC_2_07_006_grease_inserted_at_front_middle_end_same_hash() {
     // Non-GREASE ciphers [0x002f, 0x0035] in order, with 0x1a1a (canonical GREASE)
     // inserted at front / middle / end: all three must produce the same hash.
     // Expected JA3 string (no-ext builder): "771,47-53,,,"
-    // MD5("771,47-53,,,") = 577fbfd57b256f5467f2fe09d1505a26
+    // MD5("771,47-53,,,") = 577fbfd57b256f5467f2fe09d1105a26
     let fk = test_flow_key();
 
     let cases: &[&[u16]] = &[
@@ -1888,7 +1888,7 @@ fn test_BC_2_07_007_ja3_string_has_exactly_four_commas_five_fields() {
 #[allow(non_snake_case)]
 #[test]
 fn test_BC_2_07_007_canonical_771_no_cipher_no_extension_hash() {
-    // BC-2.07.007 EC-002 companion: version=771 with empty ciphers -> "771,,,,"
+    // BC-2.07.007 EC-001 companion (BC-2.07.007 postconditions 1-2 / canonical 771-baseline anchor): version=771 with empty ciphers -> "771,,,,"
     // Anchor pin for the 771-version baseline: any change to JA3 string formatting
     // or the version field encoding will break this test.
     // Canonical: MD5("771,,,,") = bddda940f9963577c41d7c28b1a5f65f
@@ -2275,7 +2275,7 @@ fn test_BC_2_07_008_ja3s_grease_extension_filtered_but_grease_cipher_preserved()
     );
 }
 
-// ── AC-011 (STORY-051 EC-007): JA3S all-GREASE extension list -> empty ext field ─
+// ── AC-008 companion (BC-2.07.008 postcondition 4 / EC-007): JA3S all-GREASE extension list -> empty ext field ─
 //
 // When a ServerHello's extension list contains ONLY GREASE extension type IDs,
 // every ext ID is filtered and the JA3S extension field must be empty ("").
@@ -2305,6 +2305,14 @@ fn test_BC_2_07_008_ja3s_all_grease_extensions_produce_empty_ext_field() {
         Direction::ServerToClient,
         &build_server_hello_all_grease_ext(0x002f),
         0,
+    );
+
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "GREASE extensions must parse cleanly through tls-parser; if tls-parser ever rejects them \
+         the empty ext_ids would coincidentally produce the same hash and silently bypass the \
+         GREASE-filter branch this test claims to pin"
     );
 
     let hash = analyzer.ja3s_counts().keys().next().unwrap().clone();
