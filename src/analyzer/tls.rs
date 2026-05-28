@@ -843,6 +843,18 @@ impl TlsAnalyzer {
     pub fn push_finding_for_testing(&mut self, finding: Finding) {
         self.all_findings.push(finding);
     }
+
+    /// Test-only accessor: number of active per-flow state entries.
+    ///
+    /// Exposes `self.flows.len()` so integration tests can verify that
+    /// `TlsAnalyzer::on_flow_close` removes the per-flow state (BC-2.05.009
+    /// analyzer-forward side effect / STORY-033 AC-007). A flow that has been
+    /// closed must no longer appear in the `flows` map.
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn active_flows_len_for_testing(&self) -> usize {
+        self.flows.len()
+    }
 }
 
 // ── JA3 / JA3S property tests (LESSON-P2.04) ─────────────────────────────────
