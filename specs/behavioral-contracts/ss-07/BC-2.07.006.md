@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-05-28): W15 Pass-1 remediation — anchor line ranges reconciled (F-W15S051-P1-004); STORY-051 BC-prefixed companion tests added to Architecture Anchors test list (covers test rename + 2 new tests from Round 1 commit 920891e)."
+  - "v1.4 (2026-05-28): W15 Pass-3 — added Line-range scope note clarifying intentional anchor-scope difference vs BC-2.07.007 (F-W15S051-P3-002)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -92,7 +93,7 @@ with that low-nibble pattern outside the 16 GREASE values.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- GREASE filtering is required for accurate JA3 fingerprinting, a core TLS analysis output |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation -- JA3 string uses numeric IDs, not display names) |
-| Architecture Module | SS-07 (analyzer/tls.rs:50-52, 100-143, C-13) -- cipher filter 100-106, ext filter 108-121, curves filter 123-143 |
+| Architecture Module | SS-07 (analyzer/tls.rs:50-52, 100-143 [GREASE-filter sub-region of compute_ja3], C-13) -- cipher filter 100-106, ext filter 108-121, curves filter 123-143. Note: 100-143 is the sub-region containing GREASE filter logic only; sibling BC-2.07.007 anchors the whole compute_ja3 function (doc-block + body, 92-151) for string-format + MD5 behavior. |
 | Stories | STORY-051 |
 | Origin BC | BC-TLS-006 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -123,6 +124,18 @@ with that low-nibble pattern outside the 16 GREASE values.
 | **Path** | `src/analyzer/tls.rs:50-52` (is_grease_u16), `src/analyzer/tls.rs:100-143` (compute_ja3: cipher filter 100-106, ext filter 108-121, curves/pf filter 123-143), `src/analyzer/tls.rs:157-169` (compute_ja3s ext filter) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
+
+## Line-Range Scope Note
+
+**Line-range scope (intentional anchor-scope difference vs BC-2.07.007):** BC-2.07.006
+anchors the GREASE-filtering sub-region of `compute_ja3` (lines 100-143: cipher filter
+100-106, extension filter 108-121, curves filter 123-143) and the corresponding
+sub-region in `compute_ja3s` (157-169). Sibling BC-2.07.007 anchors the WHOLE
+`compute_ja3` function (doc-block + body, lines 92-151) for its string-format + MD5
+behavior. Both ranges are intentional: BC-2.07.006 scopes to the GREASE filter
+primitive itself; BC-2.07.007 scopes to the assembled fingerprint computation that
+consumes those filtered fields. The two BCs describe different behavioral concerns
+within the same function — the anchor-scope difference is NOT a convention inconsistency.
 
 ## Evidence Types Used
 
