@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.4 (2026-05-28): W15 Pass-2 remediation — invariant 3 + EC-005 marked DEFENSIVE (reachability via on_data unverified; W15.D1 pending research-agent validation per F-W15P2-004)."
+  - "v1.5 (2026-05-28): W15 Pass-4 remediation — added invariant 4 formalizing the response-side had_success guard (try_parse_responses:462) as the response-side analog of BC-2.06.002 invariant 2 (F-W15P4-001, F-W15P4-005 process-gap). Closes the BC↔implementation asymmetry that left the response-side had_success suppression unspecified."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -57,6 +58,7 @@ The response direction supports the same buffering and pipelined-loop semantics 
 2. Response parsing never emits findings for content-based anomalies (no check_response_detections
    function; detections only exist on the request path).
 3. `status_codes` can store status_code=0 if httparse returns `code: None` via the `unwrap_or(0)` fallback in parse_one_response (src/analyzer/http.rs:63) — DEFENSIVE PATH: empirically httparse rejects status lines without numeric codes via `Err(InvalidStatus)`, so this branch may be unreachable via the public on_data API (W15.D1 — pending research-agent validation per DF-VALIDATION-001).
+4. The `had_success` flag (declared at http.rs:441) prevents response body-bytes that follow a successfully parsed header from inflating `parse_errors` via the guard at http.rs:462 (`if !had_success { self.parse_errors += 1; }`). This is the response-side analog of BC-2.06.002 invariant 2 (request-side guard at http.rs:404).
 
 ## Edge Cases
 
@@ -111,8 +113,11 @@ The response direction supports the same buffering and pipelined-loop semantics 
 ## Architecture Anchors
 
 - `src/analyzer/http.rs:440-497` -- try_parse_responses function
+- `src/analyzer/http.rs:441` -- response-side had_success local variable declaration
 - `src/analyzer/http.rs:450-452` -- transactions increment and status_codes update
+- `src/analyzer/http.rs:462` -- response-side `if !had_success` guard (invariant 4)
 - `tests/http_analyzer_tests.rs` -- test_parse_response, test_parse_pipelined_responses
+- `tests/http_analyzer_tests.rs::bc_2_06_formalization::test_BC_2_06_004_had_success_suppresses_response_body_byte_errors` (line 1367)
 
 ## Source Evidence
 
