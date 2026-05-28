@@ -960,14 +960,18 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.026 postconditions 1-3 — leading/trailing whitespace trimmed from
     /// Host value; non-UTF-8 bytes replaced with U+FFFD.
+    ///
+    /// BC-2.06.026 invariant 3: `.trim()` is called after `from_utf8_lossy`, which
+    /// removes all ASCII whitespace (spaces, tabs) from both ends of the header value.
     #[test]
     fn test_BC_2_06_026_header_utf8_lossy_whitespace_trimmed() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
+        let fk2 = test_flow_key_b();
 
-        // BC-2.06.026 EC-002: spaces around the host value must be stripped.
-        let req = b"GET / HTTP/1.1\r\nHost:   example.com   \r\nUser-Agent: bot\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+        // BC-2.06.026 EC-002 — space variant: spaces around the host value must be stripped.
+        let req_space = b"GET / HTTP/1.1\r\nHost:   example.com   \r\nUser-Agent: bot\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, req_space, 0);
 
         assert!(
             analyzer.host_counts().contains_key("example.com"),
@@ -975,7 +979,24 @@ mod bc_2_06_formalization {
         );
         assert!(
             !analyzer.host_counts().contains_key("  example.com  "),
-            "untrimmed key must not be present"
+            "untrimmed space-padded key must not be present"
+        );
+
+        // BC-2.06.026 invariant 3 — tab variant: tabs are ASCII whitespace; `.trim()`
+        // must remove them just as it removes spaces.
+        // httparse accepts tab characters in header field values (they are valid obs-ws
+        // per RFC 9110 §5.6.3). The stored key must be "tab.example.com" not
+        // "\ttab.example.com\t".
+        let req_tab = b"GET / HTTP/1.1\r\nHost:\ttab.example.com\t\r\nUser-Agent: bot\r\n\r\n";
+        analyzer.on_data(&fk2, Direction::ClientToServer, req_tab, 0);
+
+        assert!(
+            analyzer.host_counts().contains_key("tab.example.com"),
+            "BC-2.06.026 invariant 3: leading/trailing tabs must be trimmed from Host value"
+        );
+        assert!(
+            !analyzer.host_counts().contains_key("\ttab.example.com\t"),
+            "untrimmed tab-padded key must not be present"
         );
     }
 
@@ -1146,35 +1167,82 @@ mod bc_2_06_formalization {
 
     /// BC-2.06.002 invariant 1 — error_count is reset to 0 after a successful
     /// parse even when a prior error in the same direction incremented it.
+    ///
+    /// The reset is proven via POISON_THRESHOLD = 3: without a reset, two rounds
+    /// of 2 garbage chunks each (4 total) would exceed the threshold and poison
+    /// the direction, causing subsequent valid GETs to be skipped. With the reset,
+    /// each pair of errors is cleared by the intervening GET, preventing poisoning.
     #[test]
     fn test_BC_2_06_002_request_error_count_reset_after_success() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
-        // One garbage chunk → error_count becomes 1.
-        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        // POISON_THRESHOLD = 3. Two errors alone are not enough to poison, but
+        // without a reset they accumulate — two rounds of 2 would give count=4
+        // which exceeds the threshold of 3.
+
+        // Round 1: 2 garbage chunks → error_count = 2 (below threshold).
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE1\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE2\r\n\r\n", 0);
         assert_eq!(
             analyzer.parse_error_count(),
-            1,
-            "precondition: one parse error"
+            2,
+            "precondition: two parse errors accumulated"
         );
 
-        // One valid request → error_count must be reset to 0 (not visible via
-        // parse_error_count which is global, but we can verify the direction is
-        // NOT poisoned by confirming the valid request was parsed).
-        let valid = b"GET /ok HTTP/1.1\r\nHost: x.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
-
+        // Valid GET #1 — must reset error_count to 0.
+        let valid1 = b"GET /first HTTP/1.1\r\nHost: x.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, valid1, 0);
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
             1,
-            "BC-2.06.002 invariant 1: valid request after error must be parsed (error_count reset)"
+            "BC-2.06.002 invariant 1: first GET after 2 errors must be parsed (not poisoned)"
         );
-        // Global parse_errors counter still reflects the earlier error.
+
+        // Round 2: 2 more garbage chunks. If error_count was NOT reset to 0
+        // after valid GET #1, the running total would now be 4 (≥ 3 = POISON_THRESHOLD)
+        // and the direction would be poisoned. With the reset, it returns to 2 here.
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE3\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE4\r\n\r\n", 0);
+
+        // Valid GET #2 — must also parse successfully because the reset kept
+        // the per-flow error_count at 2, not at 4.
+        let valid2 = b"GET /second HTTP/1.1\r\nHost: x.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, valid2, 0);
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            2,
+            "BC-2.06.002 invariant 1: second GET after second error pair must be parsed; \
+             without the reset, cumulative error_count (4) would exceed POISON_THRESHOLD (3) \
+             and this GET would be skipped"
+        );
+
+        // Global parse_errors counter reflects all four garbage errors (never decrements).
         assert_eq!(
             analyzer.parse_error_count(),
-            1,
-            "global parse_errors must not decrease (it only counts; reset is per-flow)"
+            4,
+            "global parse_errors must equal the total number of error events (4)"
+        );
+
+        // Now verify the threshold still fires correctly: send 3 more garbage chunks
+        // after the last reset (error_count restarts at 0 after valid2, so 3 errors
+        // is exactly POISON_THRESHOLD) → direction must be poisoned.
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK1\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK2\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK3\r\n\r\n", 0);
+
+        // A third GET must be skipped — direction is poisoned.
+        let valid3 = b"GET /third HTTP/1.1\r\nHost: x.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, valid3, 0);
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            2,
+            "BC-2.06.002 invariant 1: after POISON_THRESHOLD errors the direction is poisoned; \
+             third GET must be skipped (poisoned_bytes_skipped increases instead)"
+        );
+        assert!(
+            analyzer.poisoned_bytes_skipped() > 0,
+            "poisoned direction must cause poisoned_bytes_skipped to be non-zero"
         );
     }
 
@@ -1185,22 +1253,37 @@ mod bc_2_06_formalization {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
-        // Response with a body: header parses successfully, body bytes remain in
-        // the buffer. The loop retries with body bytes — had_success must prevent
-        // those bytes from incrementing parse_errors.
-        let resp_with_body =
-            b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 5\r\n\r\nhello";
-        analyzer.on_data(&fk, Direction::ServerToClient, resp_with_body, 0);
+        // Scenario: a valid response header followed immediately by a body that
+        // begins with a NUL byte (0x00). httparse sees the body bytes in the next
+        // loop iteration and returns Err(InvalidToken) because 0x00 is not a legal
+        // HTTP token character in a status line. The had_success guard at
+        // src/analyzer/http.rs:462 must suppress the error increment.
+        //
+        // Loop iteration 1: parse "HTTP/1.1 200 OK\r\n...\r\n\r\n" →
+        //   Complete(n), had_success = true, header bytes drained, response buf
+        //   now contains "\x00body" only.
+        // Loop iteration 2: parse "\x00body" → Err(InvalidToken). Because
+        //   had_success == true, parse_errors must NOT be incremented.
+        //
+        // Verification: if the `if !had_success` guard were deleted (or changed
+        // to `if true`), parse_error_count() would return 1 and this assertion
+        // would fail — proving the guard is load-bearing.
+        let mut resp_with_body =
+            b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 5\r\n\r\n".to_vec();
+        resp_with_body.push(0x00); // NUL — causes Err(InvalidToken) in next iteration
+        resp_with_body.extend_from_slice(b"body");
+        analyzer.on_data(&fk, Direction::ServerToClient, &resp_with_body, 0);
 
         assert_eq!(
             analyzer.transaction_count(),
             1,
-            "response header must be counted"
+            "response header must be counted as one transaction"
         );
         assert_eq!(
             analyzer.parse_error_count(),
             0,
-            "BC-2.06.002 invariant 2: body bytes after header must NOT increment parse_errors"
+            "BC-2.06.002 invariant 2: had_success guard must prevent parse_errors increment \
+             when body bytes cause Err after a successful header parse"
         );
     }
 
@@ -1356,14 +1439,10 @@ mod bc_2_06_formalization {
         );
     }
 
-    /// BC-2.06.004 EC-005 — httparse code==None → status_codes[0] incremented.
+    /// BC-2.06.004 postcondition 2 — well-formed response with numeric status code 404
+    /// is stored at status_codes[404].
     #[test]
-    fn test_BC_2_06_004_status_code_none_mapped_to_zero() {
-        // httparse returns code=None when the status line has no numeric code.
-        // unwrap_or(0) maps this to key 0 in the status_codes map.
-        // We verify indirectly: a normal 200 response stores status_codes[200].
-        // The unwrap_or(0) path is in parse_one_response which we can observe
-        // via the status_code_counts accessor.
+    fn test_BC_2_06_004_well_formed_404_response_status_code_counted() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
@@ -1381,6 +1460,11 @@ mod bc_2_06_formalization {
             1,
             "transactions must be 1 for the 404 response"
         );
+        // NOTE: BC-2.06.004 EC-005 (code==None → status_codes[0] via unwrap_or(0)) is NOT
+        // exercised here. Empirically, httparse rejects status lines without a numeric code
+        // via `Err(InvalidStatus)` rather than `Status::Complete { code: None, .. }` — so
+        // EC-005 may be unreachable via the public `on_data` API. Deferred to research-agent
+        // investigation per DF-VALIDATION-001 (filed as W15.D1 in STATE.md drift items).
     }
 
     // ── BC-2.06.004 invariant 1 / AC-008 ─────────────────────────────────────────
@@ -1457,11 +1541,16 @@ mod bc_2_06_formalization {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
-        // Path traversal URI with a C1 CSI byte (U+009B, encoded as 0xC2 0x9B in
-        // UTF-8).  httparse accepts this because the high bytes are valid in URIs.
-        // The path-traversal rule fires and puts the raw URI into evidence.
+        // Path traversal URI with a C1 CSI sequence: the bytes [0xC2, 0x9B] are
+        // the valid UTF-8 encoding of U+009B (C1 CSI control character). httparse
+        // accepts them into req.path: &str unchanged because they are well-formed
+        // UTF-8. We verify they survive intact through find_header → uri →
+        // Finding.evidence with NO escape, HTML-encode, or character-replacement
+        // transformation. If the analyzer ever applied HTML-escape (e.g.,
+        // U+009B → &#x9B;), the evidence bytes would differ from [0xC2, 0x9B]
+        // and this test would fail.
         let mut req = b"GET /../../etc/passwd".to_vec();
-        req.extend_from_slice(&[0xC2, 0x9B]); // U+009B CSI — raw control byte
+        req.extend_from_slice(&[0xC2, 0x9B]); // valid UTF-8 for U+009B (C1 CSI)
         req.extend_from_slice(b" HTTP/1.1\r\nHost: target.com\r\n\r\n");
         analyzer.on_data(&fk, Direction::ClientToServer, &req, 0);
 
@@ -1475,9 +1564,15 @@ mod bc_2_06_formalization {
         let evidence_raw = traversal.evidence[0].as_bytes();
         assert!(
             evidence_raw.windows(2).any(|w| w == [0xC2, 0x9B]),
-            "BC-2.06.026 invariant 4: raw C1 CSI bytes must appear verbatim in Finding.evidence; \
-         got: {:?}",
+            "BC-2.06.026 invariant 4: raw C1 CSI bytes (U+009B UTF-8 encoding) must appear \
+             verbatim in Finding.evidence; got: {:?}",
             traversal.evidence[0]
+        );
+        // Anti-assertion: the HTML-escaped form must NOT appear.
+        assert_ne!(
+            traversal.evidence[0].as_bytes(),
+            b"&#x9B;",
+            "no HTML escape: analyzer must not apply HTML-encoding to URI bytes"
         );
     }
 } // mod bc_2_06_formalization
