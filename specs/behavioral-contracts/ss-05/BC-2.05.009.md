@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: W14 Pass 1 remediation: Description past-tense (pass-3 R4 finding closed by STORY-033), VP confidence MED→HIGH with concrete test, Architecture Anchors add STORY-033 BC-prefixed tests — 2026-05-28
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -36,7 +37,8 @@ removal_reason: null
 
 Both side effects are atomic from the dispatcher's perspective (single function call). The
 route-removal side-effect is indirectly verified by the `test_unclassified_flows_counter` test.
-The analyzer-forward side-effect is less directly tested (pass-3 R4 finding).
+The analyzer-forward side-effect was a pass-3 R4 finding; it has been independently formalized
+and closed by STORY-033 via `test_BC_2_05_009_flow_close_forwards_to_http_analyzer`.
 
 ## Preconditions
 
@@ -82,7 +84,7 @@ The analyzer-forward side-effect is less directly tested (pass-3 R4 finding).
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | — | Route removed on flow close (route-remove side effect) | HIGH (partial): test_unclassified_flows_counter indirectly pins route-remove via counter |
-| — | Analyzer-forward close side effect | MEDIUM: not independently tested; refactor risk |
+| — | Analyzer-forward close side effect | HIGH: independently formalized by STORY-033 test_BC_2_05_009_flow_close_forwards_to_http_analyzer (active_flows_len_for_testing assertions post-close for both Http and Tls classified flows) |
 
 ## Traceability
 
@@ -104,20 +106,20 @@ The analyzer-forward side-effect is less directly tested (pass-3 R4 finding).
 
 - `src/dispatcher.rs:171-194` -- on_flow_close implementation
 - `src/dispatcher.rs:175-176` -- classification_attempts.remove and routes.remove
-- `tests/dispatcher_tests.rs` -- test_unclassified_flows_counter (indirectly pins route-remove)
+- `tests/dispatcher_tests.rs` -- test_unclassified_flows_counter (indirectly pins route-remove), test_BC_2_05_009_flow_close_forwards_to_http_analyzer (independently verifies Http and Tls analyzer-forward side effects via active_flows_len_for_testing post-close), test_BC_2_05_009_flow_close_for_unknown_flow_key (verifies None branch increments unclassified_flows for unknown FlowKey)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
 | **Path** | `src/dispatcher.rs:171-194` |
-| **Confidence** | medium |
+| **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
 ## Evidence Types Used
 
 - **guard clause**: match on `routes.remove(flow_key)` result
-- **inferred**: analyzer-forward path exercised by tests indirectly; not independently asserted
+- **test-vector**: analyzer-forward path independently verified by STORY-033 test_BC_2_05_009_flow_close_forwards_to_http_analyzer; both Http and Tls routes confirmed via active_flows_len_for_testing assertions post-close
 
 ## Purity Classification
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: W14 Pass 1 remediation: add BC-prefixed test anchors to VP table + Architecture Anchors; add EC-005 (two-unclassified-flows monotonicity) — 2026-05-28
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -64,6 +65,7 @@ summary detail map (BC-2.12.015).
 | EC-002 | Flow never classified (no data sent) | unclassified_flows=1 on close |
 | EC-003 | Flow with None-cached route closed | unclassified_flows=1 on close |
 | EC-004 | Dispatcher has no analyzers configured; unclassified flow closed | unclassified NOT incremented |
+| EC-005 | Two unclassified flows closed sequentially | unclassified_flows counter monotonically increments to 2; covered by test_BC_2_05_007_unclassified_flows_counter sub-case 3 |
 
 ## Canonical Test Vectors
 
@@ -77,8 +79,8 @@ summary detail map (BC-2.12.015).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | unclassified_flows increments only at close for unclassified flows | unit: test_unclassified_flows_counter |
-| — | Classified flow close does not increment unclassified | unit: test_classified_flow_not_counted_as_unclassified |
+| — | unclassified_flows increments only at close for unclassified flows | unit: test_unclassified_flows_counter, test_BC_2_05_007_unclassified_flows_counter |
+| — | Classified flow close does not increment unclassified | unit: test_classified_flow_not_counted_as_unclassified, test_BC_2_05_007_classified_flow_not_counted_as_unclassified |
 
 ## Traceability
 
@@ -100,7 +102,7 @@ summary detail map (BC-2.12.015).
 
 - `src/dispatcher.rs:171-194` -- on_flow_close implementation
 - `src/dispatcher.rs:188-191` -- unclassified_flows increment guard
-- `tests/dispatcher_tests.rs` -- test_unclassified_flows_counter, test_classified_flow_not_counted_as_unclassified
+- `tests/dispatcher_tests.rs` -- test_unclassified_flows_counter, test_classified_flow_not_counted_as_unclassified, test_BC_2_05_007_unclassified_flows_counter, test_BC_2_05_007_classified_flow_not_counted_as_unclassified
 
 ## Source Evidence
 

@@ -283,6 +283,50 @@ policies:
     added: "2026-05-26"
     derived-from: W9.L3 (closed during codification)
 
+  - id: DF-AC-TEST-NAME-SYNC-001
+    name: ac-test-name-sync
+    description: >
+      Story AC bodies cite test names in "**Test:**" lines. These citations
+      MUST match `fn test_*` definitions in the cited test file (typically
+      tests/<module>_tests.rs). The mismatch pattern observed in Wave 14
+      (story body cited short-form names like `test_unclassified_flows_counter`
+      while tests used BC-prefixed names like
+      `test_BC_2_05_007_unclassified_flows_counter`) causes traceability
+      failures and adversary-pass remediation.
+
+      Mandatory practices for story-writer + test-writer:
+        - Story-writer: when authoring or editing AC "**Test:**" lines,
+          verify cited names exist via grep of the cited test file BEFORE
+          commit.
+        - Test-writer: when adding tests using BC-prefixed convention,
+          update story AC "**Test:**" lines in the same burst (sibling-sweep
+          per DF-SIBLING-SWEEP-001 v3).
+        - Adversary: flag any AC citing a test name not present in the cited
+          test file as MEDIUM (or HIGH if 3+ ACs affected).
+
+    severity: MEDIUM
+    scope:
+      - story-writer
+      - test-writer
+      - adversary
+    rationale: >
+      Wave 14 Pass 1 evidence: STORY-033 had 9 ACs all citing short-form
+      test names; actual test functions used BC-prefixed names; this triggered
+      F-W14P1-001 (HIGH classification) + F-W14P1-002 (FSR row mismatch) +
+      F-W14P1-007 (EC-scenario-match drift cascading from naming). All three
+      findings would have been prevented by the discipline above. Wave 12 also
+      surfaced a related pattern (W12.L2 single-burst-all-BCs). The compounding
+      evidence from two waves justifies early v1 codification per W14.L1
+      compound-gain precedent.
+    enforcement: >
+      Adversary-pass-1 check: grep story AC "**Test:**" lines vs `fn test_`
+      in cited test files; flag mismatches as MEDIUM. Story-writer and
+      test-writer MUST cross-verify AC citations and test function names in
+      the same commit burst before any adversarial pass is dispatched.
+    added: "2026-05-28"
+    version: v1
+    derived-from: F-W14P1-011 (W14 process-gap finding)
+
   - id: DF-ADVERSARY-METHODOLOGY-001
     name: adversary-dispatch-absolute-paths-mandatory
     description: >

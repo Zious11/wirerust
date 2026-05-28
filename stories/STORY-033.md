@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-033"
 epic_id: "E-3"
-version: "1.0"
-status: draft
+version: "1.1"
+status: in-progress
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -54,39 +54,39 @@ implementation_strategy: brownfield-formalization
 
 ### AC-001 (traces to BC-2.05.007 postcondition 1-2)
 `unclassified_flows` is incremented by 1 in `on_flow_close` when `routes.remove(flow_key)` returns either `None` (no route entry) or `Some(DispatchTarget::None)` (cached None from retry-cap logic). No analyzer's `on_flow_close` is called for unclassified flows.
-- **Test:** `test_unclassified_flows_counter`
+- **Test:** `test_BC_2_05_007_unclassified_flows_counter`
 
 ### AC-002 (traces to BC-2.05.007 invariant 1-3)
 `unclassified_flows` is monotonically increasing and never decrements. Classified flows (Http or Tls route) do NOT increment `unclassified_flows` on close. The counter increments only when at least one analyzer is configured (guard: `if self.http.is_some() || self.tls.is_some()`).
-- **Test:** `test_classified_flow_not_counted_as_unclassified`
+- **Test:** `test_BC_2_05_007_classified_flow_not_counted_as_unclassified` (classified non-increment + monotonicity); `test_BC_2_05_008_no_analyzer_dispatcher_early_returns` (guard-False branch — no-analyzer dispatcher)
 
 ### AC-003 (traces to BC-2.05.007 invariant 4)
 Flows with no data (no `on_data` called before `on_flow_close`) may contribute to `unclassified_flows` because they have no cached route — this is noted as a known metric limitation (SYN-only / handshake-only flows).
-- **Test:** `test_unclassified_flows_counter`
+- **Test:** `test_BC_2_05_007_unclassified_flows_counter`
 
 ### AC-004 (traces to BC-2.05.008 postcondition 1-5)
 When `StreamDispatcher` is created with `http = None` and `tls = None`, `on_data` returns immediately at the first check (`if self.http.is_none() && self.tls.is_none() { return; }`) without running `classify`, updating any counters, or touching `routes` or `classification_attempts`.
-- **Test:** `test_no_analyzer_dispatcher_early_returns`
+- **Test:** `test_BC_2_05_008_no_analyzer_dispatcher_early_returns`
 
 ### AC-005 (traces to BC-2.05.008 invariant 1-3)
 The early-return guard is the FIRST statement in `on_data` (before route lookup and classify). This guard does NOT affect `on_flow_close`. A dispatcher with only one analyzer (http=Some, tls=None) is NOT subject to this early return.
-- **Test:** `test_single_analyzer_not_early_returned`
+- **Test:** `test_BC_2_05_008_single_analyzer_not_early_returned`
 
 ### AC-006 (traces to BC-2.05.009 postcondition 1-2)
 `on_flow_close` always calls `self.classification_attempts.remove(flow_key)` and `let target = self.routes.remove(flow_key)` unconditionally — both side effects execute regardless of flow classification state.
-- **Test:** `test_unclassified_flows_counter`
+- **Test:** `test_BC_2_05_007_unclassified_flows_counter`
 
 ### AC-007 (traces to BC-2.05.009 postcondition 3-4)
 If `target == Some(DispatchTarget::Http)`, `http.on_flow_close(flow_key, reason)` is called (via `if let Some(ref mut http) = self.http`). If `target == Some(DispatchTarget::Tls)`, `tls.on_flow_close(flow_key, reason)` is called. No panic occurs if the respective analyzer is None.
-- **Test:** `test_flow_close_forwards_to_http_analyzer`
+- **Test:** `test_BC_2_05_009_flow_close_forwards_to_http_analyzer`
 
 ### AC-008 (traces to BC-2.05.009 invariant 3)
 Each flow contributes its close event to exactly one destination: one analyzer (Http or Tls) or the `unclassified_flows` counter. No flow contributes to both an analyzer close and the unclassified counter.
-- **Test:** `test_flow_close_forwards_to_http_analyzer`
+- **Test:** `test_BC_2_05_009_flow_close_forwards_to_http_analyzer`
 
 ### AC-009 (traces to BC-2.05.009 edge case EC-004)
 `on_flow_close` called for a FlowKey not present in `routes` (no prior `on_data`) results in `routes.remove()` returning None — which executes the unclassified branch, incrementing `unclassified_flows` if analyzers are configured. No panic.
-- **Test:** `test_flow_close_for_unknown_flow_key`
+- **Test:** `test_BC_2_05_009_flow_close_for_unknown_flow_key`
 
 ## Architecture Mapping
 
@@ -122,21 +122,22 @@ Each flow contributes its close event to exactly one destination: one analyzer (
 |---------------|-----------------|
 | This story spec | ~2,500 |
 | Referenced code (dispatcher.rs:121-123, 171-194) | ~2,000 |
-| Test files (dispatcher_tests.rs) | ~2,500 |
+| Test files (dispatcher_tests.rs) | ~30,000 |
 | BC files (3 BCs) | ~3,000 |
 | Tool outputs overhead | ~1,500 |
-| **Total** | **~11,500** |
+| **Total** | **~39,000** |
 | Agent context window | 200K for Sonnet |
-| **Budget usage** | **~6%** |
+| **Budget usage** | **~20%** |
 
 ## Tasks (MANDATORY)
 
+0. [ ] Confirm brownfield-formalization invariant: src/dispatcher.rs is byte-identical to develop (no production-behavior changes)
 1. [ ] Write failing tests for AC-001 through AC-009 (test-writer)
 2. [ ] Verify Red Gate: all tests fail before implementation
-3. [ ] Implement `on_flow_close` per BC-2.05.009: unconditional `attempts.remove` and `routes.remove`; match on returned target; forward to correct analyzer or increment unclassified_flows
-4. [ ] Implement `unclassified_flows` increment guard per BC-2.05.007 (only when analyzer configured; only for None/unclassified flows)
-5. [ ] Implement no-analyzer early-return guard per BC-2.05.008 (first statement in on_data; not in on_flow_close)
-6. [ ] Verify close forwarding to Http/Tls analyzer uses safe `if let Some` pattern (no panic when analyzer is None)
+3. [ ] Verify `on_flow_close` behavior per BC-2.05.009 at dispatcher.rs:171-194 (unconditional attempts.remove + routes.remove, match on returned target, forward to correct analyzer or increment unclassified_flows)
+4. [ ] Verify `unclassified_flows` increment guard per BC-2.05.007 at dispatcher.rs:188-191 (only when analyzer configured; only for None/unclassified flows)
+5. [ ] Verify no-analyzer early-return guard per BC-2.05.008 at dispatcher.rs:121-123 (first statement in on_data; not in on_flow_close)
+6. [ ] Verify close forwarding uses safe `if let Some` pattern (no panic when analyzer is None) — already present in develop
 7. [ ] Run all tests; verify all pass
 8. [ ] Update STATE.md
 
@@ -167,4 +168,15 @@ Each flow contributes its close event to exactly one destination: one analyzer (
 | File | Action | Purpose |
 |------|--------|---------|
 | src/dispatcher.rs | modify | on_flow_close (171-194): unconditional cleanup, match on target, analyzer forwarding, unclassified_flows increment; on_data early-return guard (121-123) |
-| tests/dispatcher_tests.rs | modify | Add: test_unclassified_flows_counter, test_classified_flow_not_counted_as_unclassified, test_no_analyzer_dispatcher_early_returns, test_flow_close_forwards_to_http_analyzer, test_flow_close_for_unknown_flow_key |
+| tests/dispatcher_tests.rs | modify | Add: test_BC_2_05_007_unclassified_flows_counter, test_BC_2_05_007_classified_flow_not_counted_as_unclassified, test_BC_2_05_008_no_analyzer_dispatcher_early_returns, test_BC_2_05_008_single_analyzer_not_early_returned, test_BC_2_05_009_flow_close_forwards_to_http_analyzer, test_BC_2_05_009_flow_close_for_unknown_flow_key |
+| src/analyzer/http.rs | modify | Add `#[doc(hidden)] pub fn active_flows_len_for_testing(&self) -> usize` at line 640-651 (AC-007 indirect-observability seam for HttpAnalyzer.on_flow_close → flows.remove proof) |
+| src/analyzer/tls.rs | modify | Add `#[doc(hidden)] pub fn active_flows_len_for_testing(&self) -> usize` at line 847-858 (AC-007 indirect-observability seam for TlsAnalyzer.on_flow_close → flows.remove proof) |
+
+**Note**: HttpAnalyzer and TlsAnalyzer expose no public accessor for self.flows.len(); AC-007 requires observation of post-close flow-state cleanup. Two minimal `#[doc(hidden)] pub fn _for_testing` seams were added per the W11 STORY-021 / DF-SIBLING-SWEEP-001 v3 doctrine — these are pre-existing test-only patterns, additive only, with zero production-behavior impact.
+
+## Changelog
+
+| Version | Date | Changes | Author |
+|---------|------|---------|--------|
+| v1.0 | 2026-05-21 | Initial story creation | story-writer |
+| v1.1 | 2026-05-28 | W14 Pass 1 remediation: AC test-name refresh to BC-prefixed (F-001); FSR row 5→6 tests (F-002); FSR rows added for analyzer seams (F-003); AC-002 dual-test cite (F-007); Tasks reworded for brownfield-formalization (F-009); token budget recalibrated (F-010) | story-writer |

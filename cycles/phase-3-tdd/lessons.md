@@ -547,6 +547,57 @@ Zero `#[doc(hidden)] pub fn _for_testing()` seams were added. The adversary conf
 
 ---
 
+## Wave 14 Lessons (2026-05-28)
+
+### W14.L1 — Compounding Gains from Doctrine Codification [codified — confirmed W14]
+
+**Finding ID:** Wave 14 retrospective observation (pass-count trend)
+**Category:** adversarial-workflow / convergence-cost
+**Observed:** W11→W12→W13→W14 pass counts: 11 → 9 → 5 → 4. 64% total reduction over 4 waves. 20% reduction W13→W14.
+Each reduction is attributable to a specific doctrine codification:
+- W11→W12: DF-ADVERSARY-METHODOLOGY-001 (absolute paths) eliminated methodology-bug passes
+- W12→W13: DF-SIBLING-SWEEP-001 v3 single-burst-all-BCs eliminated cascading anchor passes
+- W13→W14: Pass-1 remediation burst caught all classes of drift in one shot → Pass-2 straight to CLEAN (no NITPICK_ONLY intermediate), skipping a pass tier entirely
+**Pattern:** Doctrine codified in cycle N pays back in cycles N+1, N+2, ... compounding. No single doctrine change explains the full improvement; the cumulative layering of precise policies builds the effect over multiple waves. Early codification (even from a single-wave finding) is justified by the compound-return precedent.
+**Validation:** W14 is the 4th consecutive wave of improvement. The trajectory is now consistent enough to be a planning assumption: "each new doctrine applied should reduce per-story pass count by ~1 pass for the next 1-3 waves."
+**Status:** [codified — confirmed W14; pattern stable over 4 waves]
+
+---
+
+### W14.L2 — Documented Additive Seams = Acceptable Brownfield Scope [codified — W14]
+
+**Finding ID:** F-W14P1-003 (HIGH scope-creep finding, Pass 1)
+**Category:** brownfield-formalization / story-FSR discipline
+**Observed:** STORY-033 AC-007 required indirect observability of on_flow_close → flows.remove. The test-writer added 2 `#[doc(hidden)] pub fn active_flows_len_for_testing()` seams in HttpAnalyzer + TlsAnalyzer. These seams were additive-only (no production behavior change) and consistent with ADR-0004 opt-in-per-guard doctrine. However, the initial story dispatch did NOT document the seams in the story FSR (File Structure Reference). Pass-1 adversary flagged this as HIGH scope-creep (code delivered without FSR declaration).
+**Pass-1 remediation** added FSR rows + rationale note citing AC-007 + ADR-0004. Pass-2 verified clean.
+**Rule confirmed:** Brownfield-formalization CAN add additive seams to non-frozen files, but the story FSR MUST declare them. Test-writer MUST update FSR proactively when a seam-add decision is made (in the same burst as the seam, per DF-SIBLING-SWEEP-001 v3 sibling-sweep).
+**Impact:** Zero-cost to fix in Pass-1 remediation; zero recurrence in subsequent passes. FSR declaration fully resolves the scope-creep classification.
+**Status:** [codified — FSR-seam-declaration rule confirmed W14; sub-rule of existing brownfield-formalization doctrine]
+
+---
+
+### W14.L3 — Null Verification Properties Is Correct for Some Stories [codified — confirmed W14]
+
+**Finding ID:** Wave 14 Pass 1 + Pass 3 confirmations
+**Category:** story-validation / frontmatter discipline
+**Observed:** STORY-033 frontmatter: `verification_properties: []`. Pass 1 (HIGH coverage) and Pass 3 (re-confirmation) both verified: BC-2.05.007/008/009 are not in VP-004's `bcs:` list. VP-004 covers BC-2.05.004/005/006 (STORY-031/032). No VP applies to STORY-033's BCs.
+**Rule confirmed:** `verification_properties: []` is the truthful value when no VP in `.factory/specs/verification-properties/` cites the story's BCs. It is NOT a frontmatter defect. Adversaries MUST verify VP-INDEX.md + individual VP `bcs:` lists before flagging empty verification_properties as a gap.
+**Pattern:** Not every story has a VP anchor. The obligation is to check; the null value is acceptable when no VP applies.
+**Status:** [codified — confirmed W14; adversary dispatch templates should include VP-null-is-acceptable note]
+
+---
+
+### W14.L4 — Implementer-as-PR-Executor: 7th Consecutive Validation [codified — confirmed W14]
+
+**Finding ID:** Wave 14 retrospective observation (pattern continuity)
+**Category:** process-discipline / agent-scope
+**Observed:** PR #137 was executed by the implementer (STORY-033 implementer-as-PR-executor) with all 9 steps completed autonomously — 7th consecutive wave validating this pattern (PRs #131/132/133/134/135/136/137 across Waves 10-14). The pr-manager agent continues to stop at APPROVE on PRs where GitHub self-review policy applies.
+**Pattern stability:** 7 consecutive PRs = no regression. The implementer-as-PR-executor workaround is the de facto standard for story PRs in this cycle. DF-PR-MANAGER-COMPLETE-001 policy injection continues to be included in every pr-manager dispatch, but the implementer-as-executor pattern does not require it.
+**Pending action:** pr-manager agent prompt-level fix (W9.L3 follow-up) still unresolved. This is not blocking — the workaround is reliable — but the root cause structural gap persists.
+**Status:** [codified — confirmed W14; 7-wave validation of implementer-as-PR-executor pattern]
+
+---
+
 ## Earlier Wave Lessons (Waves 1-6)
 
 Per-wave process-gap items for Waves 1-6 are recorded in STATE.md Cycle-Close Follow-Up Items

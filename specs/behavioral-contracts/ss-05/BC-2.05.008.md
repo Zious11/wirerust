@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
+  - v1.3: W14 Pass 1 remediation: VP confidence uplift (inferred→concrete tests), Architecture Anchors concrete, Evidence Types overhaul — 2026-05-28
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -71,7 +72,8 @@ This is the "no-op dispatcher" path for captures where neither HTTP nor TLS anal
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | No-analyzer dispatcher returns early from on_data | unit: (inferred from dispatcher creation patterns in tests) |
+| — | No-analyzer dispatcher (both None) returns early from on_data; on_flow_close processes without incrementing unclassified | unit: STORY-033 test_BC_2_05_008_no_analyzer_dispatcher_early_returns |
+| — | Single-analyzer dispatcher (one Some, one None) is NOT subject to early return; on_data runs classify and routes normally | unit: STORY-033 test_BC_2_05_008_single_analyzer_not_early_returned |
 
 ## Traceability
 
@@ -91,7 +93,7 @@ This is the "no-op dispatcher" path for captures where neither HTTP nor TLS anal
 ## Architecture Anchors
 
 - `src/dispatcher.rs:121-123` -- early-return guard in on_data
-- `tests/dispatcher_tests.rs` -- dispatcher tests that create one-sided dispatchers exercise the non-early path
+- `tests/dispatcher_tests.rs` -- test_BC_2_05_008_no_analyzer_dispatcher_early_returns (both-None early-return path directly verified), test_BC_2_05_008_single_analyzer_not_early_returned (one-sided dispatcher non-early-return verified)
 
 ## Source Evidence
 
@@ -104,7 +106,7 @@ This is the "no-op dispatcher" path for captures where neither HTTP nor TLS anal
 ## Evidence Types Used
 
 - **guard clause**: `if self.http.is_none() && self.tls.is_none() { return; }`
-- **inferred**: tests create one-sided dispatchers; no test exercises the both-None path directly
+- **test-vector**: both-None early-return path directly verified by test_BC_2_05_008_no_analyzer_dispatcher_early_returns (unclassified_flows stays 0 after on_flow_close with both analyzers None); single-analyzer non-early-return verified by test_BC_2_05_008_single_analyzer_not_early_returned (http=Some/tls=None routes GET bytes; http=None/tls=Some routes TLS bytes)
 
 ## Purity Classification
 
