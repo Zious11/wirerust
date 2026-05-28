@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-051"
 epic_id: "E-5"
-version: "1.1"
+version: "1.2"
 status: in-progress
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.006.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.007.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.008.md
-input-hash: "6efccbd"
+input-hash: "126f2e9"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-033, STORY-071]
@@ -71,7 +71,7 @@ The GREASE `is_grease_u16` bitmask `(val & 0x0F0F) == 0x0A0A` is applied to ciph
 ### AC-004 (traces to BC-2.07.007 postcondition 1-2)
 The JA3 string has exactly 4 commas (5 fields). The first field is the decimal representation of `version` (e.g., `771` for TLS 1.2 / 0x0303).
 - **Test:** `compute_ja3_has_five_fields_and_hex_hash` (proptest, src/analyzer/tls.rs::ja3_property_tests — VP-013 anchor, do not rename)
-- **Companion tests:** `test_BC_2_07_007_ja3_string_has_exactly_four_commas_five_fields`, `test_BC_2_07_007_version_zero_companion_no_cipher_produces_known_hash` (tests/tls_analyzer_tests.rs)
+- **Companion tests:** `test_BC_2_07_007_ja3_string_has_exactly_four_commas_five_fields`, `test_BC_2_07_007_canonical_771_no_cipher_no_extension_hash`, `test_BC_2_07_007_version_zero_emits_leading_zero_field` (tests/tls_analyzer_tests.rs)
 
 ### AC-005 (traces to BC-2.07.007 postcondition 3-6)
 The cipher field is decimal IDs of non-GREASE ciphers joined by `-`; if all ciphers are GREASE or none exist, the cipher field is `""`. The extension field is decimal type IDs of non-GREASE extensions joined by `-`. The curves field is decimal group IDs of non-GREASE named groups joined by `-`. The point-format field is decimal bytes from EcPointFormats joined by `-`.
@@ -91,7 +91,7 @@ JA3 hash is order-sensitive: ciphers `[A, B]` and `[B, A]` produce different has
 ### AC-008 (traces to BC-2.07.008 postcondition 1-4)
 The JA3S string has exactly 2 commas (3 fields). Field 1 is decimal `version`. Field 2 is decimal `cipher.0` (single selected cipher). Field 3 is GREASE-filtered extension type IDs joined by `-`, or empty string if none.
 - **Test:** `compute_ja3s_is_deterministic_and_hex` (proptest, src/analyzer/tls.rs::ja3_property_tests — VP-013 anchor, do not rename)
-- **Companion tests:** `test_BC_2_07_008_ja3s_has_exactly_two_commas_three_fields`, `test_BC_2_07_008_ja3s_grease_extension_filtered_from_ext_field` (tests/tls_analyzer_tests.rs)
+- **Companion tests:** `test_BC_2_07_008_ja3s_has_exactly_two_commas_three_fields`, `test_BC_2_07_008_ja3s_grease_extension_filtered_from_ext_field`, `test_BC_2_07_008_ja3s_all_grease_extensions_produce_empty_ext_field` (tests/tls_analyzer_tests.rs)
 
 ### AC-009 (traces to BC-2.07.008 postcondition 5-6)
 The JA3S MD5 hex digest is 32 lowercase hex characters and is deterministic: same inputs always produce the same 32-char string.
@@ -108,7 +108,7 @@ The JA3S cipher field is a SINGLE value (server selects ONE cipher, not a list).
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
 | `is_grease_u16` | src/analyzer/tls.rs:50-52 | pure-core |
-| `compute_ja3` | src/analyzer/tls.rs:94-151 | pure-core |
+| `compute_ja3` | src/analyzer/tls.rs:92-151 | pure-core |
 | `compute_ja3s` | src/analyzer/tls.rs:153-173 | pure-core |
 
 ## Edge Cases
@@ -144,17 +144,17 @@ The JA3S cipher field is a SINGLE value (server selects ONE cipher, not a list).
 
 ## Tasks (MANDATORY)
 
-1. [x] Write tests for AC-001 through AC-010 (test-writer): 17 BC-prefixed deterministic tests added to tests/tls_analyzer_tests.rs + existing proptests reused as VP-013 anchors (no new proptest authoring needed)
-2. [ ] Verify Red Gate: all 17 BC-prefixed deterministic tests fail before implementation (existing proptests already in place)
-3. [ ] Implement `is_grease_u16` bitmask function per BC-2.07.006 invariant 1
-4. [ ] Implement `compute_ja3` with GREASE filtering and 5-field format per BC-2.07.007
-5. [ ] Implement `compute_ja3s` with GREASE filtering and 3-field format per BC-2.07.008
-6. [ ] Verify existing proptest `compute_ja3_is_grease_invariant` (src/analyzer/tls.rs::ja3_property_tests) passes — do NOT rename (VP-013 anchor)
-7. [ ] Verify existing proptest `compute_ja3_is_order_sensitive` (src/analyzer/tls.rs::ja3_property_tests) passes — do NOT rename (VP-013 anchor)
-8. [ ] Verify existing proptest `compute_ja3s_is_deterministic_and_hex` (src/analyzer/tls.rs::ja3_property_tests) passes — do NOT rename (VP-013 anchor)
-9. [ ] Run all tests; verify all pass
-10. [ ] Verify purity boundaries (all three functions are pure-core; no state mutation)
-11. [ ] Update STATE.md
+1. [x] Write tests for AC-001 through AC-010 (test-writer): 19 BC-prefixed deterministic tests added to tests/tls_analyzer_tests.rs (17 original + 2 Round-1 additions) + existing proptests reused as VP-013 anchors (no new proptest authoring needed)
+2. [x] Verify Red Gate: formalization-confirms-existing — all 19 BC-prefixed deterministic tests pass against already-implemented functions; no src/ changes needed (brownfield invariant confirmed)
+3. [x] Verify `is_grease_u16` at src/analyzer/tls.rs:50-52 satisfies BC-2.07.006 invariant 1 via 3 tests (brownfield — no src changes)
+4. [x] Verify `compute_ja3` at src/analyzer/tls.rs:92-151 satisfies BC-2.07.007 postconditions via 11 tests (brownfield — no src changes)
+5. [x] Verify `compute_ja3s` at src/analyzer/tls.rs:153-173 satisfies BC-2.07.008 postconditions via 5 tests (brownfield — no src changes)
+6. [x] Verify existing proptest `compute_ja3_is_grease_invariant` (src/analyzer/tls.rs::ja3_property_tests) passes — do NOT rename (VP-013 anchor); passes (6 pre-existing proptests reused)
+7. [x] Verify existing proptest `compute_ja3_is_order_sensitive` (src/analyzer/tls.rs::ja3_property_tests) passes — do NOT rename (VP-013 anchor); passes
+8. [x] Verify existing proptest `compute_ja3s_is_deterministic_and_hex` (src/analyzer/tls.rs::ja3_property_tests) passes — do NOT rename (VP-013 anchor); passes
+9. [x] Run all tests; verify all pass — Green Gate confirmed; all 19 BC-prefixed + 6 proptests (7 incl. bytes_to_hex_roundtrips_length_and_alphabet) pass
+10. [x] Verify purity boundaries (all three functions are pure-core; no state mutation) — confirmed: no I/O, no globals, fully deterministic
+11. [ ] Update STATE.md — deferred to wave close [process-gap: no agent mechanically advances story Task checkboxes after each gate; worth codifying if pattern repeats]
 
 ## Previous Story Intelligence (MANDATORY)
 
@@ -168,7 +168,7 @@ The JA3S cipher field is a SINGLE value (server selects ONE cipher, not a list).
 | Rule | Source | Enforcement |
 |------|--------|-------------|
 | JA3 string must NOT be stored or emitted; only the MD5 hash is surfaced | BC-2.07.007 invariant 4 | Code review: confirm no field stores the pre-hash string |
-| GREASE filter bitmask is `(val & 0x0F0F) == 0x0A0A` — NOT the RFC 8701 16-value allowlist | BC-2.07.006 description | Code review: confirm bitmask expression at tls.rs:50-52 |
+| GREASE filter bitmask is `(val & 0x0F0F) == 0x0A0A` — NOT the RFC 8701 16-value allowlist | BC-2.07.006 description | Code review: confirm bitmask expression at tls.rs:50-52 (doc-block 37-52) |
 | Decimal encoding of cipher/extension IDs in JA3 string, not hex or names | BC-2.07.007 invariant 3 | Unit test: confirm "47" not "0x002f" in cipher field |
 | JA3S has exactly 3 fields (no curves, no point formats) | BC-2.07.008 description | Unit test: confirm 2 commas in JA3S string |
 
@@ -184,8 +184,10 @@ The JA3S cipher field is a SINGLE value (server selects ONE cipher, not a list).
 
 | File | Action | Purpose |
 |------|--------|---------|
-| src/analyzer/tls.rs | no change | `is_grease_u16` (line 50-52), `compute_ja3` (lines 94-151), `compute_ja3s` (lines 153-173) already exist; brownfield invariant — ZERO src/ modifications |
-| tests/tls_analyzer_tests.rs | modify | 17 BC-prefixed deterministic tests + 2 test helpers (`build_client_hello_no_extensions`, `build_server_hello_with_grease_ext`); +719 lines |
+| src/analyzer/tls.rs | no change | `is_grease_u16` (lines 50-52), `compute_ja3` (lines 92-151), `compute_ja3s` (lines 153-173) already exist; brownfield invariant — ZERO src/ modifications |
+| tests/tls_analyzer_tests.rs | modify | 19 BC-prefixed deterministic tests + 4 test helpers (`build_client_hello_no_extensions`, `build_server_hello_with_grease_ext`, `build_client_hello_with_version`, `build_server_hello_all_grease_ext`); +719 lines (Round-1 additions) |
+
+**Brownfield proptest inventory note (F-W15S051-P1-005):** `bytes_to_hex_roundtrips_length_and_alphabet` (src/analyzer/tls.rs:988-996) is the 7th pre-existing proptest in `ja3_property_tests`; it exercises the `bytes_to_hex` helper used by both `compute_ja3` and `compute_ja3s` for the lowercase-hex 32-char postcondition (BC-2.07.007 postcondition 8 / BC-2.07.008 postcondition 5). Not separately cited per AC because it tests the hex-helper, not the JA3/JA3S contract directly. Listed here for brownfield completeness.
 
 ## Changelog
 
@@ -193,3 +195,4 @@ The JA3S cipher field is a SINGLE value (server selects ONE cipher, not a list).
 |---------|------|--------|-------------|
 | v1.0 | 2026-05-21 | story-writer | Initial story decomposition |
 | v1.1 | 2026-05-28 | story-writer | DF-AC-TEST-NAME-SYNC-001 v1 sync — AC Test lines bound to actual `fn test_BC_2_07_*` names (17 tests); proptest VP-013 anchors preserved as primary; companion tests added; Tasks 1/6/7/8 updated to reflect existing proptest reuse; FSR updated (src/analyzer/tls.rs no-change, brownfield invariant); Previous Story Intelligence row added (STORY-033); status draft→in-progress |
+| v1.2 | 2026-05-28 | story-writer | Pass-1 remediation — AC-004 companion updated to renamed test (`test_BC_2_07_007_canonical_771_no_cipher_no_extension_hash`) + added `test_BC_2_07_007_version_zero_emits_leading_zero_field` (pinned MD5 `2432bebf06532faf89aae784a9aae4ef` for "0,,,,"); AC-008 added `test_BC_2_07_008_ja3s_all_grease_extensions_produce_empty_ext_field` companion (pinned MD5 `5397c414a9ebeaff1bf18b70ca22eaa0` for "771,47,"); Architecture Mapping line ranges standardized to doc-block convention (`compute_ja3` 92-151, `compute_ja3s` 153-173); FSR notes 7th proptest `bytes_to_hex_roundtrips_length_and_alphabet` (tls.rs:988-996); Tasks 2-10 advanced to [DONE] per actual lifecycle; status retained as in-progress (pre-adversarial-convergence); 17→19 BC-prefixed test counts updated throughout; [process-gap] noted on Task 11 |
