@@ -57,11 +57,11 @@ implementation_strategy: brownfield-formalization
 
 ### AC-001 (traces to BC-2.06.005 postcondition 1)
 When the parsed HTTP request URI (lowercased) contains any of `../`, `..%2f`, `..%252f`, or `....//`, a Finding is emitted with category=Reconnaissance, verdict=Likely, confidence=High, mitre_technique=Some("T1083"), summary containing the truncated URI (120 chars max), evidence containing the full raw URI, and direction=Some(Direction::ClientToServer).
-- **Test:** `test_detect_path_traversal`
+- **Test:** `test_BC_2_06_005_path_traversal_all_fields`
 
 ### AC-002 (traces to BC-2.06.005 invariant 1)
 The path-traversal check uses exactly four patterns: `../`, `..%2f`, `..%252f`, `....//`. There is NO backslash (`..\"`) pattern. The URI is lowercased before matching.
-- **Test:** `test_detect_encoded_traversal`
+- **Test:** `test_BC_2_06_005_encoded_traversal_four_patterns`
 
 ### AC-003 (traces to BC-2.06.005 postcondition 2)
 The path-traversal detection fires per-request, not per-flow-once. Two pipelined requests each containing `../` emit two separate findings.
@@ -69,7 +69,7 @@ The path-traversal detection fires per-request, not per-flow-once. Two pipelined
 
 ### AC-004 (traces to BC-2.06.006 postcondition 1)
 When the parsed HTTP request URI (lowercased) contains any of the 10 web-shell patterns (`/shell.php`, `/shell.asp`, `/shell.jsp`, `/cmd.php`, `/cmd.asp`, `/cmd.jsp`, `/c99.php`, `/r57.php`, `/webshell`, `/backdoor`), a Finding is emitted with category=Execution, verdict=Likely, confidence=Medium, mitre_technique=Some("T1505.003"), summary containing the truncated URI (120 chars max), and evidence containing the full raw URI.
-- **Test:** `test_detect_webshell_path`
+- **Test:** `test_BC_2_06_006_webshell_path_all_fields`
 
 ### AC-005 (traces to BC-2.06.006 invariant 1-2)
 Web-shell URI comparison is case-insensitive (lowercased before match) and substring-based — a URI like `/uploads/c99.php?cmd=id` triggers the finding. Pattern matching uses `shell_patterns.iter().any(|p| uri_lower.contains(p))`.
@@ -77,7 +77,7 @@ Web-shell URI comparison is case-insensitive (lowercased before match) and subst
 
 ### AC-006 (traces to BC-2.06.007 postcondition 1)
 When the parsed HTTP request URI (lowercased) contains any of `/wp-admin`, `/admin`, `/phpmyadmin`, `/manager`, a Finding is emitted with category=Reconnaissance, verdict=Inconclusive, confidence=Low, mitre_technique=Some("T1046"), summary containing the truncated URI (120 chars max), and evidence containing the full raw URI.
-- **Test:** `test_detect_admin_panel_paths`
+- **Test:** `test_BC_2_06_007_admin_panel_all_fields`
 
 ### AC-007 (traces to BC-2.06.007 invariant 1-2)
 Admin panel URI comparison is case-insensitive (lowercased before match) and substring-based — `/site/admin/settings` triggers the finding via `/admin`. Pattern matching uses `admin_patterns.iter().any(|p| uri_lower.contains(p))`.
@@ -89,11 +89,11 @@ All URI-based detections are independent: a request with a URI matching both pat
 
 ### AC-009 (traces to BC-2.06.012 postcondition 1-3)
 A syntactically valid HTTP/1.1 GET request with a standard method, URI length <= 2048, no traversal/shell/admin patterns, present non-empty Host, and absent or non-empty User-Agent produces zero findings. `all_findings` gains no new entries. Method/host/UA/URI counters update normally.
-- **Test:** `test_no_findings_for_normal_request`
+- **Test:** `test_BC_2_06_012_normal_request_zero_findings`
 
 ### AC-010 (traces to BC-2.06.012 invariant 1)
 All anomaly detections are independently gated; none fires on clean input. Zero findings is the expected steady state for legitimate HTTP traffic.
-- **Test:** `test_normal_request_no_parse_errors`
+- **Test:** `test_BC_2_06_012_normal_request_no_parse_errors`
 
 ## Architecture Mapping
 
@@ -181,4 +181,4 @@ All anomaly detections are independently gated; none fires on clean input. Zero 
 | File | Action | Purpose |
 |------|--------|---------|
 | src/analyzer/http.rs | modify | Add/extend check_request_detections: path-traversal (186-202), web-shell (206-233), admin-panel (235-249) detection blocks |
-| tests/http_analyzer_tests.rs | modify | Add tests: test_detect_path_traversal, test_detect_encoded_traversal, test_detect_webshell_path, test_detect_admin_panel_paths, test_no_findings_for_normal_request |
+| tests/http_analyzer_tests.rs | modify | Add tests: test_BC_2_06_005_path_traversal_all_fields, test_BC_2_06_005_encoded_traversal_four_patterns, test_BC_2_06_006_webshell_path_all_fields, test_BC_2_06_007_admin_panel_all_fields, test_BC_2_06_012_normal_request_zero_findings, test_BC_2_06_012_normal_request_no_parse_errors |
