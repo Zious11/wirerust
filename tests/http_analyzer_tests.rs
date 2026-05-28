@@ -1684,3 +1684,800 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
         );
     }
 } // mod bc_2_06_formalization
+
+// ---------------------------------------------------------------------------
+// STORY-042 Brownfield-Formalization Tests
+// (BC-2.06.005, BC-2.06.006, BC-2.06.007, BC-2.06.012)
+//
+// Naming convention: test_BC_2_06_NNN_<descriptive_suffix>
+// Anchored to AC-001 through AC-010 and edge cases EC-001 through EC-010.
+//
+// These tests confirm existing brownfield behavior (formalization mode):
+// they will PASS if the source already conforms to the BCs, FAIL if the
+// source diverges from a BC postcondition, invariant, or edge case.
+//
+// The uppercase "BC" in function names follows DF-AC-TEST-NAME-SYNC-001.
+// Each function carries its own #[allow(non_snake_case)].
+// ---------------------------------------------------------------------------
+mod bc_2_06_story042_formalization {
+    use super::*;
+
+    // ── BC-2.06.005 / AC-001 ─────────────────────────────────────────────────────
+    // AC-001: path-traversal URI emits Reconnaissance/Likely/High, T1083,
+    //         truncated summary, raw-URI evidence, direction=ClientToServer.
+
+    /// BC-2.06.005 postcondition 1 (all fields) — canonical path-traversal vector.
+    ///
+    /// Exercises: category=Reconnaissance, verdict=Likely, confidence=High,
+    /// mitre_technique=Some("T1083"), summary prefix "Path traversal in URI: ",
+    /// evidence = ["URI: /../etc/passwd"], direction = Some(ClientToServer).
+    ///
+    /// EC-001: URI = "/../etc/passwd" → path-traversal finding emitted.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_detect_path_traversal() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Canonical BC-2.06.005 vector: URI contains "../"
+        let request = b"GET /../etc/passwd HTTP/1.1\r\nHost: target.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+        let findings = analyzer.findings();
+        let traversal = findings
+            .iter()
+            .find(|f| f.summary.contains("Path traversal in URI"))
+            .expect("BC-2.06.005 postcondition 1: path-traversal finding must be emitted");
+
+        assert_eq!(
+            traversal.category,
+            ThreatCategory::Reconnaissance,
+            "BC-2.06.005 pc-1: category must be Reconnaissance"
+        );
+        assert_eq!(
+            traversal.verdict,
+            Verdict::Likely,
+            "BC-2.06.005 pc-1: verdict must be Likely"
+        );
+        assert_eq!(
+            traversal.confidence,
+            Confidence::High,
+            "BC-2.06.005 pc-1: confidence must be High"
+        );
+        assert_eq!(
+            traversal.mitre_technique.as_deref(),
+            Some("T1083"),
+            "BC-2.06.005 pc-1: mitre_technique must be T1083"
+        );
+        // Summary must contain the URI (truncated to 120 chars max).
+        assert!(
+            traversal.summary.starts_with("Path traversal in URI: "),
+            "BC-2.06.005 pc-1: summary must start with 'Path traversal in URI: ', got: {}",
+            traversal.summary
+        );
+        assert!(
+            traversal.summary.contains("/../etc/passwd"),
+            "BC-2.06.005 pc-1: summary must contain the URI, got: {}",
+            traversal.summary
+        );
+        // Evidence must contain the full raw URI (no truncation in evidence field).
+        assert_eq!(
+            traversal.evidence.len(),
+            1,
+            "BC-2.06.005 pc-1: evidence must have exactly one entry"
+        );
+        assert!(
+            traversal.evidence[0].starts_with("URI: "),
+            "BC-2.06.005 pc-1: evidence[0] must start with 'URI: ', got: {}",
+            traversal.evidence[0]
+        );
+        assert!(
+            traversal.evidence[0].contains("/../etc/passwd"),
+            "BC-2.06.005 pc-1: evidence must contain full raw URI, got: {}",
+            traversal.evidence[0]
+        );
+        // Direction must be ClientToServer (path traversal is client-originated).
+        assert_eq!(
+            traversal.direction,
+            Some(Direction::ClientToServer),
+            "BC-2.06.005 pc-1: direction must be ClientToServer"
+        );
+    }
+
+    // ── BC-2.06.005 / AC-002 ─────────────────────────────────────────────────────
+    // AC-002: exactly four traversal patterns (../  ..%2f  ..%252f  ....//);
+    //         no backslash variant; URI is lowercased before match.
+
+    /// BC-2.06.005 invariant 1 — all four canonical patterns trigger the finding;
+    /// the backslash pattern ("..\\") does NOT; URI is lowercased before match.
+    ///
+    /// Exercises EC-002 (URL-encoded), EC-003 (double-encoded), EC-004 (....//),
+    /// and the invariant that there is no backslash variant.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_detect_encoded_traversal() {
+        // EC-002: "../" plain variant (lowercased input).
+        {
+            let mut a = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            a.on_data(
+                &fk,
+                Direction::ClientToServer,
+                b"GET /../etc/passwd HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
+            );
+            let findings = a.findings();
+            let t = findings
+                .iter()
+                .find(|f| f.summary.contains("Path traversal"))
+                .expect("EC-002 pattern '../': path-traversal finding must be emitted");
+            assert_eq!(
+                t.mitre_technique.as_deref(),
+                Some("T1083"),
+                "EC-002: mitre_technique must be T1083"
+            );
+        }
+
+        // EC-003 (BC-2.06.005 invariant 1): URL-encoded "..%2f" variant.
+        {
+            let mut a = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            a.on_data(
+                &fk,
+                Direction::ClientToServer,
+                b"GET /..%2fetc%2fpasswd HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
+            );
+            assert!(
+                a.findings()
+                    .iter()
+                    .any(|f| f.summary.contains("Path traversal")),
+                "BC-2.06.005 invariant 1: '..%2f' (URL-encoded slash) must trigger finding"
+            );
+        }
+
+        // EC-003 cont. (BC-2.06.005 invariant 1): double-encoded "..%252f" variant.
+        {
+            let mut a = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            a.on_data(
+                &fk,
+                Direction::ClientToServer,
+                b"GET /..%252fetc HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
+            );
+            assert!(
+                a.findings()
+                    .iter()
+                    .any(|f| f.summary.contains("Path traversal")),
+                "BC-2.06.005 invariant 1: '..%252f' (double-encoded) must trigger finding"
+            );
+        }
+
+        // EC-004 (BC-2.06.005 invariant 1): "....//etc/passwd" variant.
+        {
+            let mut a = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            a.on_data(
+                &fk,
+                Direction::ClientToServer,
+                b"GET /....//etc/passwd HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
+            );
+            assert!(
+                a.findings()
+                    .iter()
+                    .any(|f| f.summary.contains("Path traversal")),
+                "BC-2.06.005 invariant 1: '....//' must trigger finding"
+            );
+        }
+
+        // BC-2.06.005 invariant 1: case-insensitivity — uppercase pattern lowercased before match.
+        {
+            let mut a = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            // "..%2F" (capital F) must match because URI is lowercased before check.
+            a.on_data(
+                &fk,
+                Direction::ClientToServer,
+                b"GET /..%2Fetc HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
+            );
+            assert!(
+                a.findings()
+                    .iter()
+                    .any(|f| f.summary.contains("Path traversal")),
+                "BC-2.06.005 invariant 1: '..%2F' (uppercase F) must match via lowercase"
+            );
+        }
+
+        // BC-2.06.005 invariant 1: NO backslash variant — "..\" must NOT trigger
+        // a path-traversal finding.
+        {
+            let mut a = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            a.on_data(
+                &fk,
+                Direction::ClientToServer,
+                b"GET /..\\etc\\passwd HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
+            );
+            let has_traversal = a
+                .findings()
+                .iter()
+                .any(|f| f.summary.contains("Path traversal"));
+            assert!(
+                !has_traversal,
+                "BC-2.06.005 invariant 1: backslash variant '..\\' must NOT trigger \
+                 path-traversal finding (no backslash pattern in source)"
+            );
+        }
+    }
+
+    // ── BC-2.06.005 / AC-003 ─────────────────────────────────────────────────────
+    // AC-003: path-traversal detection fires per-request, not per-flow-once.
+
+    /// BC-2.06.005 postcondition 2 — two pipelined requests each containing "../"
+    /// each emit a separate path-traversal finding (per-request, not per-flow-once).
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_path_traversal_fires_per_request() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Two pipelined requests, both with path-traversal URIs.
+        let pipelined = b"GET /../etc/passwd HTTP/1.1\r\nHost: target.com\r\n\r\n\
+GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, pipelined, 0);
+
+        let traversal_findings: Vec<_> = analyzer
+            .findings()
+            .into_iter()
+            .filter(|f| f.summary.contains("Path traversal in URI"))
+            .collect();
+
+        assert_eq!(
+            traversal_findings.len(),
+            2,
+            "BC-2.06.005 postcondition 2: two pipelined traversal requests must emit \
+             two separate findings (per-request, not per-flow-once); \
+             per-flow-once emission would yield len=1"
+        );
+        // Verify the two findings reference distinct URIs.
+        assert!(
+            traversal_findings
+                .iter()
+                .any(|f| f.summary.contains("/../etc/passwd")),
+            "first traversal finding must reference /../etc/passwd"
+        );
+        assert!(
+            traversal_findings
+                .iter()
+                .any(|f| f.summary.contains("/../../boot.ini")),
+            "second traversal finding must reference /../../boot.ini"
+        );
+    }
+
+    // ── BC-2.06.006 / AC-004 ─────────────────────────────────────────────────────
+    // AC-004: web-shell URI emits Execution/Likely/Medium, T1505.003,
+    //         truncated summary, raw-URI evidence, direction=ClientToServer.
+
+    /// BC-2.06.006 postcondition 1 (all fields) — canonical web-shell vector.
+    ///
+    /// Exercises: category=Execution, verdict=Likely, confidence=Medium,
+    /// mitre_technique=Some("T1505.003"), summary prefix "Possible web shell access: ",
+    /// evidence = ["URI: /uploads/c99.php"], direction = Some(ClientToServer).
+    ///
+    /// EC-005: URI = "/shell.php" → web-shell finding emitted (T1505.003).
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_detect_webshell_path() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Canonical BC-2.06.006 vector: URI contains "/c99.php" (substring match).
+        let request = b"GET /uploads/c99.php HTTP/1.1\r\nHost: target.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+        let findings = analyzer.findings();
+        let shell_finding = findings
+            .iter()
+            .find(|f| f.summary.contains("web shell"))
+            .expect("BC-2.06.006 postcondition 1: web-shell finding must be emitted");
+
+        assert_eq!(
+            shell_finding.category,
+            ThreatCategory::Execution,
+            "BC-2.06.006 pc-1: category must be Execution"
+        );
+        assert_eq!(
+            shell_finding.verdict,
+            Verdict::Likely,
+            "BC-2.06.006 pc-1: verdict must be Likely"
+        );
+        assert_eq!(
+            shell_finding.confidence,
+            Confidence::Medium,
+            "BC-2.06.006 pc-1: confidence must be Medium"
+        );
+        assert_eq!(
+            shell_finding.mitre_technique.as_deref(),
+            Some("T1505.003"),
+            "BC-2.06.006 pc-1: mitre_technique must be T1505.003"
+        );
+        assert!(
+            shell_finding
+                .summary
+                .starts_with("Possible web shell access: "),
+            "BC-2.06.006 pc-1: summary must start with 'Possible web shell access: ', got: {}",
+            shell_finding.summary
+        );
+        assert!(
+            shell_finding.summary.contains("/uploads/c99.php"),
+            "BC-2.06.006 pc-1: summary must contain the URI, got: {}",
+            shell_finding.summary
+        );
+        // Evidence: full raw URI, no truncation.
+        assert_eq!(
+            shell_finding.evidence.len(),
+            1,
+            "BC-2.06.006 pc-1: evidence must have exactly one entry"
+        );
+        assert!(
+            shell_finding.evidence[0].starts_with("URI: "),
+            "BC-2.06.006 pc-1: evidence[0] must start with 'URI: ', got: {}",
+            shell_finding.evidence[0]
+        );
+        assert!(
+            shell_finding.evidence[0].contains("/uploads/c99.php"),
+            "BC-2.06.006 pc-1: evidence must contain full raw URI, got: {}",
+            shell_finding.evidence[0]
+        );
+        assert_eq!(
+            shell_finding.direction,
+            Some(Direction::ClientToServer),
+            "BC-2.06.006 pc-1: direction must be ClientToServer"
+        );
+    }
+
+    // ── BC-2.06.006 / AC-005 ─────────────────────────────────────────────────────
+    // AC-005: web-shell URI comparison is case-insensitive (lowercased) and
+    //         substring-based.
+
+    /// BC-2.06.006 invariant 1-2 — web-shell check is case-insensitive via lowercase
+    /// and substring: "/uploads/SHELL.PHP" (uppercase) triggers the finding via
+    /// the lowercased pattern "/shell.php".
+    ///
+    /// EC-006: URI = "/uploads/SHELL.PHP" → web-shell finding emitted.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_webshell_case_insensitive() {
+        // EC-006: uppercase URI must match via lowercase.
+        {
+            let mut a = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            a.on_data(
+                &fk,
+                Direction::ClientToServer,
+                b"GET /uploads/SHELL.PHP HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
+            );
+            assert!(
+                a.findings().iter().any(|f| f.summary.contains("web shell")),
+                "BC-2.06.006 invariant 1: '/uploads/SHELL.PHP' must match via lowercase"
+            );
+        }
+
+        // Substring match: "/uploads/c99.php?cmd=id" contains "/c99.php".
+        {
+            let mut a = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            a.on_data(
+                &fk,
+                Direction::ClientToServer,
+                b"GET /uploads/c99.php?cmd=id HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
+            );
+            assert!(
+                a.findings().iter().any(|f| f.summary.contains("web shell")),
+                "BC-2.06.006 invariant 2: '/uploads/c99.php?cmd=id' must match via substring"
+            );
+        }
+
+        // All 10 web-shell patterns must individually trigger the finding.
+        let shell_patterns = [
+            "/shell.php",
+            "/shell.asp",
+            "/shell.jsp",
+            "/cmd.php",
+            "/cmd.asp",
+            "/cmd.jsp",
+            "/c99.php",
+            "/r57.php",
+            "/webshell",
+            "/backdoor",
+        ];
+        for pattern in &shell_patterns {
+            let mut a = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            let request = format!("GET {pattern} HTTP/1.1\r\nHost: target.com\r\n\r\n");
+            a.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+            assert!(
+                a.findings().iter().any(|f| f.summary.contains("web shell")),
+                "BC-2.06.006: pattern '{pattern}' must trigger web-shell finding"
+            );
+        }
+    }
+
+    // ── BC-2.06.007 / AC-006 ─────────────────────────────────────────────────────
+    // AC-006: admin-panel URI emits Reconnaissance/Inconclusive/Low, T1046,
+    //         truncated summary, raw-URI evidence, direction=ClientToServer.
+
+    /// BC-2.06.007 postcondition 1 (all fields) — all four admin-panel patterns.
+    ///
+    /// Exercises each of the 4 patterns with full field assertions:
+    /// category=Reconnaissance, verdict=Inconclusive, confidence=Low, T1046.
+    ///
+    /// EC-008: URI = "/wp-admin/edit.php" → admin-panel finding emitted.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_detect_admin_panel_paths() {
+        let pattern_uris = [
+            ("/wp-admin/edit.php", "/wp-admin"),
+            ("/admin/dashboard", "/admin"),
+            ("/phpmyadmin/", "/phpmyadmin"),
+            ("/manager/html", "/manager"),
+        ];
+
+        for (uri, matched_pattern) in &pattern_uris {
+            let mut analyzer = HttpAnalyzer::new();
+            let fk = test_flow_key();
+
+            let request = format!("GET {uri} HTTP/1.1\r\nHost: target.com\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+
+            let findings = analyzer.findings();
+            let admin_finding = findings
+                .iter()
+                .find(|f| f.summary.contains("Admin panel"))
+                .unwrap_or_else(|| {
+                    panic!(
+                        "BC-2.06.007 postcondition 1: admin-panel finding must be emitted \
+                         for URI '{uri}' (pattern '{matched_pattern}')"
+                    )
+                });
+
+            assert_eq!(
+                admin_finding.category,
+                ThreatCategory::Reconnaissance,
+                "BC-2.06.007 pc-1: category must be Reconnaissance for '{uri}'"
+            );
+            assert_eq!(
+                admin_finding.verdict,
+                Verdict::Inconclusive,
+                "BC-2.06.007 pc-1: verdict must be Inconclusive for '{uri}'"
+            );
+            assert_eq!(
+                admin_finding.confidence,
+                Confidence::Low,
+                "BC-2.06.007 pc-1: confidence must be Low for '{uri}'"
+            );
+            assert_eq!(
+                admin_finding.mitre_technique.as_deref(),
+                Some("T1046"),
+                "BC-2.06.007 pc-1: mitre_technique must be T1046 for '{uri}'"
+            );
+            assert!(
+                admin_finding.summary.starts_with("Admin panel access: "),
+                "BC-2.06.007 pc-1: summary must start with 'Admin panel access: ', got: {}",
+                admin_finding.summary
+            );
+            assert!(
+                admin_finding.summary.contains(*uri),
+                "BC-2.06.007 pc-1: summary must contain the URI '{uri}', got: {}",
+                admin_finding.summary
+            );
+            assert_eq!(
+                admin_finding.evidence.len(),
+                1,
+                "BC-2.06.007 pc-1: evidence must have exactly one entry for '{uri}'"
+            );
+            assert!(
+                admin_finding.evidence[0].starts_with("URI: "),
+                "BC-2.06.007 pc-1: evidence[0] must start with 'URI: ', got: {}",
+                admin_finding.evidence[0]
+            );
+            assert!(
+                admin_finding.evidence[0].contains(*uri),
+                "BC-2.06.007 pc-1: evidence must contain full raw URI '{uri}', got: {}",
+                admin_finding.evidence[0]
+            );
+            assert_eq!(
+                admin_finding.direction,
+                Some(Direction::ClientToServer),
+                "BC-2.06.007 pc-1: direction must be ClientToServer for '{uri}'"
+            );
+        }
+    }
+
+    // ── BC-2.06.007 / AC-007 ─────────────────────────────────────────────────────
+    // AC-007: admin-panel URI comparison is case-insensitive and substring-based.
+
+    /// BC-2.06.007 invariant 1-2 — admin-panel check is case-insensitive via
+    /// lowercase and substring: "/ADMIN" (uppercase) triggers via "/admin";
+    /// "/site/admin/settings" triggers via "/admin" substring.
+    ///
+    /// EC-009: URI = "/ADMIN" (uppercase) → admin-panel finding emitted.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_admin_panel_case_insensitive() {
+        // EC-009: uppercase "/ADMIN" must match via lowercase.
+        {
+            let mut a = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            a.on_data(
+                &fk,
+                Direction::ClientToServer,
+                b"GET /ADMIN HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
+            );
+            assert!(
+                a.findings()
+                    .iter()
+                    .any(|f| f.summary.contains("Admin panel")),
+                "BC-2.06.007 invariant 1: '/ADMIN' (uppercase) must match via lowercase"
+            );
+        }
+
+        // BC-2.06.007 invariant 2: substring match — "/site/admin/settings"
+        // triggers via "/admin" substring.
+        {
+            let mut a = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            a.on_data(
+                &fk,
+                Direction::ClientToServer,
+                b"GET /site/admin/settings HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
+            );
+            assert!(
+                a.findings()
+                    .iter()
+                    .any(|f| f.summary.contains("Admin panel")),
+                "BC-2.06.007 invariant 2: '/site/admin/settings' must match via '/admin' substring"
+            );
+        }
+
+        // BC-2.06.007 invariant 1: mixed-case "/WP-Admin" must also match.
+        {
+            let mut a = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            a.on_data(
+                &fk,
+                Direction::ClientToServer,
+                b"GET /WP-Admin/post.php HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
+            );
+            assert!(
+                a.findings()
+                    .iter()
+                    .any(|f| f.summary.contains("Admin panel")),
+                "BC-2.06.007 invariant 1: '/WP-Admin/post.php' must match via lowercase"
+            );
+        }
+    }
+
+    // ── BC-2.06.005 invariant 3 + BC-2.06.006 invariant 4 / AC-008 ───────────────
+    // AC-008: all URI-based detections are independent; a URI matching multiple
+    //         patterns emits multiple findings (no suppression).
+
+    /// BC-2.06.005 invariant 3 + BC-2.06.006 invariant 4 — independent detections.
+    ///
+    /// EC-007: URI = "/cmd.php/../etc/passwd" → both web-shell (T1505.003) AND
+    ///         path-traversal (T1083) findings emitted.
+    ///
+    /// The three detection blocks (path-traversal, web-shell, admin-panel) must all
+    /// fire independently: a URI matching all three emits three separate findings.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_multiple_detections_fire_independently() {
+        // EC-007: URI matching both web-shell AND path-traversal patterns.
+        {
+            let mut a = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            // "/cmd.php/../etc/passwd" contains "/cmd.php" (web-shell) AND "../" (path-traversal).
+            a.on_data(
+                &fk,
+                Direction::ClientToServer,
+                b"GET /cmd.php/../etc/passwd HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
+            );
+
+            let findings = a.findings();
+            let has_traversal = findings
+                .iter()
+                .any(|f| f.mitre_technique.as_deref() == Some("T1083"));
+            let has_webshell = findings
+                .iter()
+                .any(|f| f.mitre_technique.as_deref() == Some("T1505.003"));
+
+            assert!(
+                has_traversal,
+                "BC-2.06.005 invariant 3: path-traversal finding (T1083) must be emitted for \
+                 '/cmd.php/../etc/passwd'"
+            );
+            assert!(
+                has_webshell,
+                "BC-2.06.006 invariant 4: web-shell finding (T1505.003) must be emitted for \
+                 '/cmd.php/../etc/passwd'"
+            );
+        }
+
+        // URI matching all three detection categories simultaneously:
+        // "/wp-admin/../shell.php" → path-traversal (T1083) + web-shell (T1505.003)
+        //                            + admin-panel (T1046)
+        {
+            let mut a = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            a.on_data(
+                &fk,
+                Direction::ClientToServer,
+                b"GET /wp-admin/../shell.php HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
+            );
+
+            let findings = a.findings();
+            let traversal_count = findings
+                .iter()
+                .filter(|f| f.mitre_technique.as_deref() == Some("T1083"))
+                .count();
+            let webshell_count = findings
+                .iter()
+                .filter(|f| f.mitre_technique.as_deref() == Some("T1505.003"))
+                .count();
+            let admin_count = findings
+                .iter()
+                .filter(|f| f.mitre_technique.as_deref() == Some("T1046"))
+                .count();
+
+            assert_eq!(
+                traversal_count, 1,
+                "BC-2.06.005 invariant 3: path-traversal (T1083) must fire for \
+                 '/wp-admin/../shell.php'"
+            );
+            assert_eq!(
+                webshell_count, 1,
+                "BC-2.06.006 invariant 4: web-shell (T1505.003) must fire for \
+                 '/wp-admin/../shell.php'"
+            );
+            assert_eq!(
+                admin_count, 1,
+                "BC-2.06.007 invariant 4: admin-panel (T1046) must fire for \
+                 '/wp-admin/../shell.php'"
+            );
+        }
+    }
+
+    // ── BC-2.06.012 / AC-009 ─────────────────────────────────────────────────────
+    // AC-009: syntactically valid HTTP/1.1 GET with standard URI, non-empty Host,
+    //         and non-empty User-Agent produces zero findings.
+
+    /// BC-2.06.012 postcondition 1-3 — well-formed HTTP/1.1 request produces zero
+    /// findings; method/host/UA counters updated normally; parse_errors unchanged.
+    ///
+    /// EC-010: URI = "/index.html" → zero findings.
+    /// EC-012: GET /index.html HTTP/1.1 with Host and UA → zero findings.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_no_findings_for_normal_request() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // BC-2.06.012 canonical test vector.
+        let request =
+            b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: curl/7.0\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+        // BC-2.06.012 postcondition 1: all_findings must gain zero new entries.
+        assert!(
+            analyzer.findings().is_empty(),
+            "BC-2.06.012 postcondition 1: normal request must produce zero findings, \
+             got: {:?}",
+            analyzer.findings()
+        );
+
+        // BC-2.06.012 postcondition 2: method/host/UA counters updated normally.
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.012 postcondition 2: methods[GET] must be 1"
+        );
+        assert_eq!(
+            *analyzer.host_counts().get("example.com").unwrap_or(&0),
+            1,
+            "BC-2.06.012 postcondition 2: hosts[example.com] must be 1"
+        );
+        assert_eq!(
+            *analyzer.user_agent_counts().get("curl/7.0").unwrap_or(&0),
+            1,
+            "BC-2.06.012 postcondition 2: user_agents[curl/7.0] must be 1"
+        );
+        assert_eq!(
+            analyzer.uri_list(),
+            &["/index.html"],
+            "BC-2.06.012 postcondition 2: uris must contain /index.html"
+        );
+
+        // BC-2.06.012 postcondition 3: parse_errors unchanged (zero).
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.012 postcondition 3: parse_errors must be 0 for well-formed request"
+        );
+    }
+
+    // ── BC-2.06.012 / AC-010 ─────────────────────────────────────────────────────
+    // AC-010: all anomaly detections are independently gated; none fires on clean
+    //         input; zero findings is the expected steady state.
+
+    /// BC-2.06.012 invariant 1 — each anomaly detection gate is independently
+    /// inactive for clean input.
+    ///
+    /// This test exhaustively verifies that none of the individual detection
+    /// branches fire on a normal /index.html request: no path-traversal (T1083),
+    /// no web-shell (T1505.003), no admin-panel (T1046), no unusual-method,
+    /// no missing/empty Host, no long-URI, no empty-UA finding.
+    ///
+    /// parse_errors must also remain 0 (no parse failure).
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_normal_request_no_parse_errors() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        let request =
+            b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+        // BC-2.06.012 postcondition 3: parse_errors must not increment.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.012 invariant 1: parse_errors must be 0 for well-formed request"
+        );
+
+        let findings = analyzer.findings();
+
+        // BC-2.06.012 invariant 1: path-traversal gate must not fire.
+        assert!(
+            !findings
+                .iter()
+                .any(|f| f.mitre_technique.as_deref() == Some("T1083")),
+            "BC-2.06.012 invariant 1: path-traversal (T1083) must not fire for '/index.html'"
+        );
+
+        // BC-2.06.012 invariant 1: web-shell gate must not fire.
+        assert!(
+            !findings
+                .iter()
+                .any(|f| f.mitre_technique.as_deref() == Some("T1505.003")),
+            "BC-2.06.012 invariant 1: web-shell (T1505.003) must not fire for '/index.html'"
+        );
+
+        // BC-2.06.012 invariant 1: admin-panel gate must not fire.
+        assert!(
+            !findings
+                .iter()
+                .any(|f| f.mitre_technique.as_deref() == Some("T1046")),
+            "BC-2.06.012 invariant 1: admin-panel (T1046) must not fire for '/index.html'"
+        );
+
+        // BC-2.06.012 invariant 1: zero findings overall — the complete steady-state check.
+        assert!(
+            findings.is_empty(),
+            "BC-2.06.012 invariant 1: all anomaly gates are independently inactive for clean \
+             input; zero findings is the expected steady state; got: {:?}",
+            findings
+        );
+    }
+} // mod bc_2_06_story042_formalization
