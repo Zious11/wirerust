@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-041"
 epic_id: "E-4"
-version: "1.5"
+version: "1.6"
 status: in-progress
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -79,7 +79,7 @@ Round-1 added explicit tab (`\t`) assertions to `test_BC_2_06_026_header_utf8_lo
 - **Test:** `test_BC_2_06_002_pipelined_requests_each_counted_independently` (in `mod bc_2_06_formalization`)
 - **Companion tests:** `test_BC_2_06_002_pipelined_detections_per_request_not_aggregated`, `test_BC_2_06_002_pipelined_loop_stops_on_partial_tail`
 
-### AC-004 (traces to BC-2.06.002 invariant 1)
+### AC-004 (traces to BC-2.06.002 invariant 1-2)
 `request_error_count` is reset to 0 after each successful parse within the pipelined loop, and the `had_success` flag prevents error counting for body bytes that follow a successfully parsed header.
 - **Test:** `test_BC_2_06_002_request_error_count_reset_after_success` (in `mod bc_2_06_formalization`)
 - **Companion tests:** `test_BC_2_06_002_had_success_suppresses_request_body_byte_errors`
@@ -94,7 +94,7 @@ When httparse returns `Status::Partial`, no method/host/UA/URI counters are upda
 - **Test:** `test_BC_2_06_003_partial_not_counted_as_error` (in `mod bc_2_06_formalization`)
 
 ### AC-007 (traces to BC-2.06.004 postcondition 1-4 + invariant 4)
-When a complete HTTP response header is parsed, `transactions` is incremented by 1, `status_codes[status_code]` is incremented (using `unwrap_or(0)` for None codes), consumed bytes are drained from `response_buf`, and `response_error_count` is reset to 0.
+When a complete HTTP response header is parsed, `transactions` is incremented by 1, `status_codes[status_code]` is incremented (using `unwrap_or(0)` for None codes), consumed bytes are drained from `response_buf`, and `response_error_count` is reset to 0. Per BC-2.06.004 invariant 4 (added v1.5), the response-side `had_success` guard at http.rs:462 prevents body bytes (NUL-injected) after a successful response header parse from inflating `parse_errors`. Mental-deletion of the guard verified by `test_BC_2_06_004_had_success_suppresses_response_body_byte_errors`.
 - **Test:** `test_BC_2_06_004_response_parse_increments_transactions_and_status_code` (in `mod bc_2_06_formalization`)
 - **Companion tests:** `test_BC_2_06_004_response_buf_drained_enables_pipelined_parsing`, `test_BC_2_06_004_well_formed_404_response_status_code_counted` (cross-codes coverage: 200 in primary test, 304 in pipelined test, 404 here — proves status_codes is keyed dynamically by httparse-returned code value, not hardcoded to 200), `test_BC_2_06_004_had_success_suppresses_response_body_byte_errors` (response-side analog [in try_parse_responses at src/analyzer/http.rs:462] of the request-side had_success guard [in try_parse_requests at src/analyzer/http.rs:404]). Mental-deletion verified: removing the `if !had_success` guard at line 462 would cause body bytes (NUL-injected) after a successful response header parse to inflate `parse_errors` and the test would fail.
 
@@ -164,7 +164,7 @@ No escape function is called at parse time — raw URI bytes from `req.path` flo
 3. [x] Verify `parse_one_request` at src/analyzer/http.rs:35-50 satisfies BC-2.06.001 postconditions 1-7 via 5 BC-2.06.001 tests in mod bc_2_06_formalization (brownfield-formalization — no src/ changes)
 4. [x] Verify `try_parse_requests` at src/analyzer/http.rs:359-438 satisfies BC-2.06.002 postconditions 1-5 + invariants 1-3 via 5 BC-2.06.002 tests (including pipelined detection isolation per invariant 3)
 5. [x] Verify partial buffering at src/analyzer/http.rs:401-402 (request Partial arm) and src/analyzer/http.rs:459-460 (response Partial arm) satisfies BC-2.06.003 postconditions 1-5 via 3 BC-2.06.003 tests
-6. [x] Verify `try_parse_responses` at src/analyzer/http.rs:440-497 satisfies BC-2.06.004 postconditions 1-4 + invariant 1 via 6 BC-2.06.004 tests
+6. [x] Verify `try_parse_responses` at src/analyzer/http.rs:440-497 satisfies BC-2.06.004 postconditions 1-4 + invariants 1, 4 via 6 BC-2.06.004 tests (invariant 4 = response-side had_success guard at http.rs:462; added in v1.5)
 7. [x] Verify `find_header` at src/analyzer/http.rs:70-75 (header lookup) and parse-time non-escape per ADR 0003 / INV-4 satisfies BC-2.06.026 postconditions 1-4 + invariants 1-4 via 5 BC-2.06.026 tests
 8. [x] Run all tests; verify all pass (Green Gate stamped at worktree commit 7cfff3f — reinforced by Pass-1 remediation at dbb60c0)
 9. [x] Verify purity boundaries (find_header pure-core; parse functions effectful-shell — confirmed by Architecture Mapping table)
@@ -184,7 +184,7 @@ No escape function is called at parse time — raw URI bytes from `req.path` flo
 | Raw URI bytes must NOT be escaped at parse time | ADR 0003 / INV-4 | Code review: confirm no escape call in parse_one_request or find_header |
 | `transactions` increments only on response parse, not request parse | BC-2.06.004 invariant 1 | Unit test: AC-008 |
 | `MAX_HEADERS = 96` is the httparse capacity | BC-2.06.001 precondition 4 | Code review: confirm httparse config |
-| `had_success` flag prevents body bytes from counting as parse errors | BC-2.06.002 invariant 2 / BC-2.06.020 | Unit test: AC-004 |
+| `had_success` flag prevents body bytes from counting as parse errors | BC-2.06.002 invariant 2 / BC-2.06.004 invariant 4 / BC-2.06.020 | Unit tests: AC-004 (request, src/analyzer/http.rs:404), AC-007 (response, src/analyzer/http.rs:462) |
 
 ## Library & Framework Requirements (MANDATORY)
 
@@ -210,3 +210,4 @@ No escape function is called at parse time — raw URI bytes from `req.path` flo
 | v1.3 | 2026-05-28 | Pass-2 remediation — EC-007 marked defensive (W15.D1); AC-005 narrative extended to postcondition 5 (buffered partial completes as single request); Task 5 line range corrected to Partial arms (401-402 request, 459-460 response); Task 7 test count + invariant range corrected (5 tests, inv 1-4); AC-007 companion role clarified (cross-codes coverage: 200/304/404); AC-002 narrative finalized — LF rejected at httparse layer (C0 control bytes rejected), space + tab coverage confirmed sufficient (F-W15P2-004/005/006/007/010). |
 | v1.4 | 2026-05-28 | Pass-3 remediation — AC-004 companion synced to renamed request-side test (F-W15P3-001); response-side had_success test added as AC-007 companion (F-W15P3-004); Tasks 1+6 counts updated 23→24 and 5→6 to match Round-3 test additions (F-W15P3-003); v1.1 changelog extended to mention F-W15P2-001 +1 net new test in Round-3. |
 | v1.5 | 2026-05-28 | Pass-4 remediation — AC-002 trace narrowed to invariant 2-3 + paraphrase corrected (F-W15P4-002); AC-007 companion grammar fixed re. guard direction + locations (F-W15P4-003); v1.X changelog provenance note corrected (F-W15P4-004); AC-007 trace extended with invariant 4 (BC-2.06.004 v1.5 landed). |
+| v1.6 | 2026-05-28 | Pass-5 remediation — sibling-sweep cascade from BC-2.06.004 v1.5 invariant 4: AC-004 trace extended to invariant 1-2 (F-W15P5-001); Task 6 + Arch Compliance Rules row updated to reflect both request-side + response-side had_success guards (F-W15P5-004/005); AC-007 narrative extended to describe invariant 4 (O-1). |
