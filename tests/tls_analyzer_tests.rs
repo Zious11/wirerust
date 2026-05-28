@@ -246,10 +246,21 @@ fn test_parse_client_hello() {
 
     // AC-005 (BC-2.07.001 postcondition 8): the record bytes are drained from client_buf
     // after try_parse_records consumes a complete record.  We observe this directly via
-    // the #[cfg(test)] accessor client_buf_len_for_testing: immediately after on_data
+    // the #[doc(hidden)] accessor client_buf_len_for_testing: immediately after on_data
     // the buffer must be 0 bytes (all consumed bytes drained).  The pre-call length is
     // the full record length (the record was appended then parsed in the same call), so
     // a nonzero post-call length would prove the drain path was not taken.
+    //
+    // Flow-presence anchor: client_buf_len_for_testing returns unwrap_or(0), meaning an
+    // absent flow and a drained buffer are both indistinguishable from a bare == 0 check.
+    // Assert the flow was created (active_flows_len == 1) first, so the subsequent == 0
+    // assertion proves drain, not flow-absence.
+    assert_eq!(
+        analyzer.active_flows_len_for_testing(),
+        1,
+        "AC-005 anchor (BC-2.07.001 pc8): flow must be present before drain check — \
+         client_buf_len_for_testing returns 0 for absent flows too"
+    );
     assert_eq!(
         analyzer.client_buf_len_for_testing(&fk),
         0,
