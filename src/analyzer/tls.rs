@@ -855,6 +855,22 @@ impl TlsAnalyzer {
     pub fn active_flows_len_for_testing(&self) -> usize {
         self.flows.len()
     }
+
+    /// Test-only accessor: byte length of `client_buf` for the given flow.
+    ///
+    /// Exposes the post-parse drain observable so tests can assert that
+    /// `try_parse_records` drains consumed record bytes from `client_buf`
+    /// (BC-2.07.001 postcondition 8 / STORY-052 AC-005). Returns 0 if the
+    /// flow is not yet in the `flows` map (never received data) or after the
+    /// buf has been fully drained.
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn client_buf_len_for_testing(&self, flow_key: &FlowKey) -> usize {
+        self.flows
+            .get(flow_key)
+            .map(|s| s.client_buf.len())
+            .unwrap_or(0)
+    }
 }
 
 // ── JA3 / JA3S property tests (LESSON-P2.04) ─────────────────────────────────
