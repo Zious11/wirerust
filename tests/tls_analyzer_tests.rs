@@ -1453,3 +1453,879 @@ fn non_utf8_sni_finding_sets_mitre_t1027() {
         "malformed-SNI finding must be mapped to T1027 (Obfuscated Files or Information)",
     );
 }
+
+// ── BC-2.07.006 / BC-2.07.007 / BC-2.07.008 STORY-051 formalization tests ────
+//
+// These tests verify the JA3 and JA3S fingerprint computation contracts through
+// the public TlsAnalyzer API (feeding wire-format TLS records). All private
+// compute_ja3 / compute_ja3s / is_grease_u16 functions are indirectly exercised.
+// Algorithm-level property tests exist in src/analyzer/tls.rs::ja3_property_tests;
+// these integration-level tests complete the BC traceability in this file.
+//
+// Naming follows DF-AC-TEST-NAME-SYNC-001 v1: test_BC_2_07_NNN_<suffix>.
+// #[allow(non_snake_case)] is applied per-test so BC-prefixed names compile
+// under RUSTFLAGS=-Dwarnings without suppressing the lint on existing tests.
+
+/// Build a minimal TLS ClientHello with no extensions at all.
+///
+/// Used by JA3 string-format tests that need a predictable JA3 string
+/// without SNI / SupportedGroups / ECPointFormats padding from the standard
+/// `build_client_hello` helper.
+fn build_client_hello_no_extensions(cipher_ids: &[u16]) -> Vec<u8> {
+    build_client_hello_with_version(0x0303, cipher_ids)
+}
+
+/// Build a minimal TLS ClientHello record with an explicit ClientHello version
+/// field and no extensions. Used for tests that need to exercise version=0 or
+/// other non-standard version values to verify that the JA3 version field is
+/// taken directly from the wire encoding.
+fn build_client_hello_with_version(version: u16, cipher_ids: &[u16]) -> Vec<u8> {
+    let mut ch_body = Vec::new();
+    ch_body.extend_from_slice(&version.to_be_bytes()); // ClientHello version field
+    ch_body.extend_from_slice(&[0u8; 32]); // random
+    ch_body.push(0x00); // session_id length: 0
+
+    let ciphers_len = u16::try_from(cipher_ids.len() * 2).expect("cipher list too long");
+    ch_body.extend_from_slice(&ciphers_len.to_be_bytes());
+    for &id in cipher_ids {
+        ch_body.extend_from_slice(&id.to_be_bytes());
+    }
+
+    ch_body.push(0x01); // compression methods length
+    ch_body.push(0x00); // null compression
+    // No extensions length field at all — ch.ext will be None.
+
+    let mut handshake = Vec::new();
+    handshake.push(0x01); // ClientHello
+    let ch_len = ch_body.len() as u32;
+    handshake.push((ch_len >> 16) as u8);
+    handshake.push((ch_len >> 8) as u8);
+    handshake.push(ch_len as u8);
+    handshake.extend_from_slice(&ch_body);
+
+    let mut record = Vec::new();
+    record.push(0x16);
+    record.extend_from_slice(&[0x03, 0x01]);
+    let hs_len = u16::try_from(handshake.len()).expect("handshake too long");
+    record.extend_from_slice(&hs_len.to_be_bytes());
+    record.extend_from_slice(&handshake);
+    record
+}
+
+/// Build a minimal ServerHello that includes a GREASE extension (type 0x0a0a)
+/// plus the standard renegotiation_info (0xff01).
+///
+/// Used for AC-010: verifying that GREASE extension IDs are filtered from the
+/// JA3S extension field while the cipher (even if it is a GREASE value) is NOT
+/// filtered.
+fn build_server_hello_with_grease_ext(cipher_id: u16) -> Vec<u8> {
+    let mut extensions = Vec::new();
+
+    // GREASE extension (type 0x0a0a) with empty data — must be filtered in JA3S.
+    extensions.extend_from_slice(&[0x0a, 0x0a]); // GREASE ext type
+    extensions.extend_from_slice(&[0x00, 0x01]); // data length = 1
+    extensions.push(0x00); // payload
+
+    // renegotiation_info (type 0xff01) — NOT GREASE, appears in ext_ids.
+    extensions.extend_from_slice(&[0xff, 0x01]);
+    extensions.extend_from_slice(&[0x00, 0x01]);
+    extensions.push(0x00);
+
+    let mut sh_body = Vec::new();
+    sh_body.extend_from_slice(&[0x03, 0x03]); // TLS 1.2
+    sh_body.extend_from_slice(&[0u8; 32]); // random
+    sh_body.push(0x00); // session_id length
+    sh_body.extend_from_slice(&cipher_id.to_be_bytes());
+    sh_body.push(0x00); // compression: null
+
+    let ext_len = u16::try_from(extensions.len()).expect("ext too long");
+    sh_body.extend_from_slice(&ext_len.to_be_bytes());
+    sh_body.extend_from_slice(&extensions);
+
+    let mut handshake = Vec::new();
+    handshake.push(0x02); // ServerHello
+    let sh_len = sh_body.len() as u32;
+    handshake.push((sh_len >> 16) as u8);
+    handshake.push((sh_len >> 8) as u8);
+    handshake.push(sh_len as u8);
+    handshake.extend_from_slice(&sh_body);
+
+    let mut record = Vec::new();
+    record.push(0x16);
+    record.extend_from_slice(&[0x03, 0x03]);
+    let hs_len = u16::try_from(handshake.len()).expect("handshake too long");
+    record.extend_from_slice(&hs_len.to_be_bytes());
+    record.extend_from_slice(&handshake);
+    record
+}
+
+/// Build a minimal ServerHello whose extension list contains ONLY GREASE extension
+/// type IDs (0x0a0a, 0x1a1a, 0x2a2a). After JA3S GREASE filtering the extension
+/// field will be empty, producing a JA3S string of the form "ver,cipher,".
+///
+/// Used for STORY-051 EC-007: verifying that a ServerHello with exclusively GREASE
+/// extensions produces an empty ext field in JA3S (analogous to JA3's all-GREASE
+/// cipher handling, but applied to the server-side extension list).
+fn build_server_hello_all_grease_ext(cipher_id: u16) -> Vec<u8> {
+    let mut extensions = Vec::new();
+
+    // Three distinct GREASE extension type IDs — all match the (id & 0x0f0f) == 0x0a0a
+    // bitmask that the JA3S implementation uses to filter GREASE values.
+    extensions.extend_from_slice(&[0x0a, 0x0a]); // GREASE 0x0a0a
+    extensions.extend_from_slice(&[0x00, 0x00]); // data length = 0
+
+    extensions.extend_from_slice(&[0x1a, 0x1a]); // GREASE 0x1a1a
+    extensions.extend_from_slice(&[0x00, 0x00]); // data length = 0
+
+    extensions.extend_from_slice(&[0x2a, 0x2a]); // GREASE 0x2a2a
+    extensions.extend_from_slice(&[0x00, 0x00]); // data length = 0
+
+    let mut sh_body = Vec::new();
+    sh_body.extend_from_slice(&[0x03, 0x03]); // TLS 1.2 (version = 771)
+    sh_body.extend_from_slice(&[0u8; 32]); // random
+    sh_body.push(0x00); // session_id length
+    sh_body.extend_from_slice(&cipher_id.to_be_bytes());
+    sh_body.push(0x00); // compression: null
+
+    let ext_len = u16::try_from(extensions.len()).expect("ext too long");
+    sh_body.extend_from_slice(&ext_len.to_be_bytes());
+    sh_body.extend_from_slice(&extensions);
+
+    let mut handshake = Vec::new();
+    handshake.push(0x02); // ServerHello
+    let sh_len = sh_body.len() as u32;
+    handshake.push((sh_len >> 16) as u8);
+    handshake.push((sh_len >> 8) as u8);
+    handshake.push(sh_len as u8);
+    handshake.extend_from_slice(&sh_body);
+
+    let mut record = Vec::new();
+    record.push(0x16);
+    record.extend_from_slice(&[0x03, 0x03]);
+    let hs_len = u16::try_from(handshake.len()).expect("handshake too long");
+    record.extend_from_slice(&hs_len.to_be_bytes());
+    record.extend_from_slice(&handshake);
+    record
+}
+
+// ── AC-001 (BC-2.07.006 postconditions 1-2): GREASE bitmask exclusion ─────────
+//
+// A ClientHello with cipher list [0x0a0a, 0x002f] produces the same JA3 hash
+// as a ClientHello with cipher list [0x002f] only. Uses no-extension builder so
+// the JA3 string is deterministic without SNI/curves/pf padding.
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_006_grease_cipher_excluded_same_hash_as_without_grease() {
+    // Canonical test vector from BC-2.07.006:
+    // Cipher list [0x0a0a, 0x002f] -> JA3 same as [0x002f] only.
+    // Expected JA3 string: "771,47,,," -> MD5 = fde4273625b2ac63bd01d9c500dac91b
+
+    let fk = test_flow_key();
+
+    // Hash for [GREASE + 0x002f]
+    let mut a1 = TlsAnalyzer::new();
+    a1.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_no_extensions(&[0x0a0a, 0x002f]),
+        0,
+    );
+    let hash_with_grease = a1.ja3_counts().keys().next().unwrap().clone();
+
+    // Hash for [0x002f only]
+    let mut a2 = TlsAnalyzer::new();
+    a2.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_no_extensions(&[0x002f]),
+        0,
+    );
+    let hash_without_grease = a2.ja3_counts().keys().next().unwrap().clone();
+
+    assert_eq!(
+        hash_with_grease, hash_without_grease,
+        "JA3 hash with GREASE cipher 0x0a0a + 0x002f must equal JA3 hash with 0x002f only \
+         (BC-2.07.006 postcondition 2)"
+    );
+    // BC canonical test vector: MD5("771,47,,,") = fde4273625b2ac63bd01d9c500dac91b
+    assert_eq!(
+        hash_with_grease, "fde4273625b2ac63bd01d9c500dac91b",
+        "BC-2.07.006 canonical vector: JA3 of cipher [0x002f] with no extensions must be \
+         MD5('771,47,,,') = fde4273625b2ac63bd01d9c500dac91b"
+    );
+}
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_006_all_grease_cipher_list_produces_empty_cipher_field() {
+    // EC-001 from BC-2.07.006: cipher list [0x0a0a] only -> cipher field is ""
+    // JA3 string = "771,,,," -> MD5 = bddda940f9963577c41d7c28b1a5f65f
+    let fk = test_flow_key();
+
+    let mut analyzer = TlsAnalyzer::new();
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_no_extensions(&[0x0a0a]),
+        0,
+    );
+    let hash = analyzer.ja3_counts().keys().next().unwrap().clone();
+
+    // BC canonical vector: MD5("771,,,,") = bddda940f9963577c41d7c28b1a5f65f
+    assert_eq!(
+        hash, "bddda940f9963577c41d7c28b1a5f65f",
+        "BC-2.07.006 EC-001: all-GREASE cipher list must produce JA3 = MD5('771,,,,') \
+         = bddda940f9963577c41d7c28b1a5f65f"
+    );
+}
+
+// ── AC-002 (BC-2.07.006 postcondition 3, invariant 3): GREASE invariance ──────
+//
+// Non-GREASE values are preserved in original order. Inserting GREASE at any
+// position does not change the hash. Proptest coverage is provided in the inline
+// ja3_property_tests::compute_ja3_is_grease_invariant in src/analyzer/tls.rs.
+// This test provides a deterministic AC-binding integration pin.
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_006_grease_inserted_at_front_middle_end_same_hash() {
+    // Non-GREASE ciphers [0x002f, 0x0035] in order, with 0x1a1a (canonical GREASE)
+    // inserted at front / middle / end: all three must produce the same hash.
+    // Expected JA3 string (no-ext builder): "771,47-53,,,"
+    // MD5("771,47-53,,,") = 577fbfd57b256f5467f2fe09d1105a26
+    let fk = test_flow_key();
+
+    let cases: &[&[u16]] = &[
+        &[0x1a1a, 0x002f, 0x0035], // GREASE at front
+        &[0x002f, 0x1a1a, 0x0035], // GREASE at middle
+        &[0x002f, 0x0035, 0x1a1a], // GREASE at end
+        &[0x002f, 0x0035],         // no GREASE (baseline)
+    ];
+
+    let hashes: Vec<String> = cases
+        .iter()
+        .map(|&cipher_ids| {
+            let mut a = TlsAnalyzer::new();
+            a.on_data(
+                &fk,
+                Direction::ClientToServer,
+                &build_client_hello_no_extensions(cipher_ids),
+                0,
+            );
+            a.ja3_counts().keys().next().unwrap().clone()
+        })
+        .collect();
+
+    let baseline = &hashes[3]; // [0x002f, 0x0035] no GREASE
+    for (i, h) in hashes.iter().enumerate().take(3) {
+        assert_eq!(
+            h, baseline,
+            "case {i}: inserting GREASE cipher 0x1a1a must not change JA3 hash \
+             (BC-2.07.006 invariant 3)"
+        );
+    }
+    assert_eq!(
+        baseline, "577fbfd57b256f5467f2fe09d1105a26",
+        "BC-2.07.007 canonical vector: JA3 of [0x002f, 0x0035] no ext must be \
+         MD5('771,47-53,,,') = 577fbfd57b256f5467f2fe09d1105a26"
+    );
+}
+
+// ── AC-003 (BC-2.07.006 invariant 1): bitmask applies to ciphers and extensions,
+//           NOT to EC point format bytes ─────────────────────────────────────────
+//
+// is_grease_u16 applies to cipher IDs, extension type IDs, and named group IDs.
+// EC point format bytes are u8 values and are NOT filtered (they are included as-is).
+// We verify this by observing JA3 hashes through the wire-format API.
+// The 16 canonical GREASE values are confirmed by the inline unit test
+// is_grease_u16_matches_all_canonical_grease_values in src/analyzer/tls.rs.
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_006_all_16_canonical_grease_ciphers_produce_empty_cipher_field() {
+    // EC-003: all 16 canonical RFC 8701 GREASE values in cipher list -> same JA3
+    // as empty cipher list. Verifies is_grease_u16 is applied to cipher IDs.
+    // BC canonical: MD5("771,,,,") = bddda940f9963577c41d7c28b1a5f65f
+    let all_grease: &[u16] = &[
+        0x0a0a, 0x1a1a, 0x2a2a, 0x3a3a, 0x4a4a, 0x5a5a, 0x6a6a, 0x7a7a, 0x8a8a, 0x9a9a, 0xaaaa,
+        0xbaba, 0xcaca, 0xdada, 0xeaea, 0xfafa,
+    ];
+    let fk = test_flow_key();
+
+    let mut a_grease = TlsAnalyzer::new();
+    a_grease.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_no_extensions(all_grease),
+        0,
+    );
+    let hash_all_grease = a_grease.ja3_counts().keys().next().unwrap().clone();
+
+    // No ciphers at all should produce the same hash as all-GREASE.
+    let mut a_empty = TlsAnalyzer::new();
+    a_empty.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_no_extensions(&[]),
+        0,
+    );
+    let hash_empty = a_empty.ja3_counts().keys().next().unwrap().clone();
+
+    assert_eq!(
+        hash_all_grease, hash_empty,
+        "all 16 canonical GREASE cipher values must produce same JA3 as empty cipher list \
+         (BC-2.07.006 EC-003)"
+    );
+    assert_eq!(
+        hash_all_grease, "bddda940f9963577c41d7c28b1a5f65f",
+        "BC-2.07.006 EC-003: JA3 with all GREASE ciphers must be MD5('771,,,,') \
+         = bddda940f9963577c41d7c28b1a5f65f"
+    );
+}
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_006_non_canonical_grease_pattern_0x0a1a_is_filtered() {
+    // EC-002: non-canonical 0x0a1a passes the bitmask (0x0a1a & 0x0F0F == 0x0a0a)
+    // and is filtered identically to canonical GREASE 0x0a0a.
+    // JA3 of [0x0a1a] only == JA3 of [] (cipher field empty).
+    let fk = test_flow_key();
+
+    let mut a_noncanon = TlsAnalyzer::new();
+    a_noncanon.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_no_extensions(&[0x0a1a]),
+        0,
+    );
+    let hash_noncanon = a_noncanon.ja3_counts().keys().next().unwrap().clone();
+
+    assert_eq!(
+        hash_noncanon, "bddda940f9963577c41d7c28b1a5f65f",
+        "non-canonical GREASE 0x0a1a must be filtered like canonical GREASE \
+         (BC-2.07.006 EC-002): expected MD5('771,,,,') = bddda940f9963577c41d7c28b1a5f65f"
+    );
+}
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_006_ec_point_format_bytes_are_not_filtered() {
+    // BC-2.07.006 invariant 1: EC point format bytes are NOT filtered.
+    // The standard build_client_hello includes an ECPointFormats extension with
+    // byte [0x00] (uncompressed). This byte is included in the JA3 point-format
+    // field verbatim — not compared against is_grease_u16.
+    //
+    // Verify: JA3 with EC point format byte 0x00 is DIFFERENT from JA3 without
+    // that extension, confirming point format bytes are preserved (not filtered).
+    let fk = test_flow_key();
+
+    // With ECPointFormats extension (pf_str = "0")
+    let mut a_with_pf = TlsAnalyzer::new();
+    a_with_pf.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello("test.com", &[0x002f]), // includes SNI + curves + pf
+        0,
+    );
+    let hash_with_pf = a_with_pf.ja3_counts().keys().next().unwrap().clone();
+
+    // Without any extensions (no pf)
+    let mut a_no_ext = TlsAnalyzer::new();
+    a_no_ext.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_no_extensions(&[0x002f]),
+        0,
+    );
+    let hash_no_ext = a_no_ext.ja3_counts().keys().next().unwrap().clone();
+
+    assert_ne!(
+        hash_with_pf, hash_no_ext,
+        "JA3 with ECPointFormats (pf_str='0') must differ from JA3 without, \
+         confirming point format bytes are included in the hash (BC-2.07.006 invariant 1)"
+    );
+
+    // The no-extension hash must equal the canonical "771,47,,," vector.
+    assert_eq!(
+        hash_no_ext, "fde4273625b2ac63bd01d9c500dac91b",
+        "no-extension JA3 for cipher 0x002f must be MD5('771,47,,,') \
+         = fde4273625b2ac63bd01d9c500dac91b"
+    );
+}
+
+// ── AC-004 (BC-2.07.007 postconditions 1-2): 5 fields, first field is version ─
+//
+// Proptest coverage is in ja3_property_tests::compute_ja3_has_five_fields_and_hex_hash.
+// This integration pin uses the public API to confirm the same property.
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_007_ja3_string_has_exactly_four_commas_five_fields() {
+    // BC-2.07.007 postcondition 1: JA3 string has exactly 4 commas (5 fields).
+    // BC-2.07.007 postcondition 2: first field is decimal version.
+    // BC canonical: version=771 (0x0303), ciphers=[0x002f], no ext -> "771,47,,,"
+    let fk = test_flow_key();
+    let mut analyzer = TlsAnalyzer::new();
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_no_extensions(&[0x002f]),
+        0,
+    );
+    let hash = analyzer.ja3_counts().keys().next().unwrap().clone();
+
+    // The canonical vector for "771,47,,," has a known hash. We verify indirectly:
+    // if the hash is MD5("771,47,,,") the 5-field format holds.
+    assert_eq!(
+        hash, "fde4273625b2ac63bd01d9c500dac91b",
+        "BC-2.07.007 postconditions 1-2: JA3 for version=771, cipher=[0x002f], no ext \
+         must be MD5('771,47,,,') confirming 5-field format and decimal version \
+         (canonical: fde4273625b2ac63bd01d9c500dac91b)"
+    );
+}
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_007_canonical_771_no_cipher_no_extension_hash() {
+    // BC-2.07.007 EC-001 companion (BC-2.07.007 postconditions 1-2 / canonical 771-baseline anchor): version=771 with empty ciphers -> "771,,,,"
+    // Anchor pin for the 771-version baseline: any change to JA3 string formatting
+    // or the version field encoding will break this test.
+    // Canonical: MD5("771,,,,") = bddda940f9963577c41d7c28b1a5f65f
+    let fk = test_flow_key();
+    let mut analyzer = TlsAnalyzer::new();
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_no_extensions(&[]),
+        0,
+    );
+    let hash = analyzer.ja3_counts().keys().next().unwrap().clone();
+    assert_eq!(
+        hash, "bddda940f9963577c41d7c28b1a5f65f",
+        "BC-2.07.007 EC-001 anchor: no-cipher JA3 (version=771) must be MD5('771,,,,') \
+         = bddda940f9963577c41d7c28b1a5f65f confirming first field is version 771"
+    );
+}
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_007_version_zero_emits_leading_zero_field() {
+    // BC-2.07.007 postcondition 2 (edge case): when the ClientHello version field is
+    // 0x0000 (decimal 0), the JA3 version field must be "0" — not filtered, not
+    // substituted, not omitted.
+    // JA3 string = "0,,,," -> MD5 = 2432bebf06532faf89aae784a9aae4ef
+    //
+    // This test is the deterministic companion to the inline proptest that covers
+    // version in any::<u16>(). It pins the exact version=0 wire encoding path.
+    let fk = test_flow_key();
+    let mut analyzer = TlsAnalyzer::new();
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_with_version(0x0000, &[]),
+        0,
+    );
+    let hash = analyzer.ja3_counts().keys().next().unwrap().clone();
+    // Verify the JA3 string starts with "0," by checking the canonical hash
+    // that can only arise from MD5("0,,,,").
+    assert_eq!(
+        hash, "2432bebf06532faf89aae784a9aae4ef",
+        "BC-2.07.007 postcondition 2 (version=0 edge): JA3 must be MD5('0,,,,') \
+         = 2432bebf06532faf89aae784a9aae4ef confirming version=0 emits leading '0' field"
+    );
+}
+
+// ── AC-005 (BC-2.07.007 postconditions 3-6): decimal field encoding ───────────
+//
+// Cipher field: decimal IDs joined by '-'; empty if all GREASE.
+// Extension / curves / pf fields: decimal IDs joined by '-'.
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_007_cipher_field_is_decimal_not_hex() {
+    // BC-2.07.007 postcondition 3 + invariant 3: ciphers encoded as decimal "47",
+    // not hex "0x002f" or name "TLS_RSA_WITH_AES_128_CBC_SHA".
+    // 0x002f decimal = 47, 0x0035 decimal = 53.
+    // "771,47-53,,," -> MD5 = 577fbfd57b256f5467f2fe09d1105a26.
+    let fk = test_flow_key();
+    let mut analyzer = TlsAnalyzer::new();
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_no_extensions(&[0x002f, 0x0035]),
+        0,
+    );
+    let hash = analyzer.ja3_counts().keys().next().unwrap().clone();
+
+    // Canonical: MD5("771,47-53,,,") = 577fbfd57b256f5467f2fe09d1105a26
+    assert_eq!(
+        hash, "577fbfd57b256f5467f2fe09d1105a26",
+        "BC-2.07.007 postcondition 3 + invariant 3: cipher field must be decimal '47-53' \
+         (not hex), canonical MD5('771,47-53,,,') = 577fbfd57b256f5467f2fe09d1105a26"
+    );
+}
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_007_empty_cipher_field_when_all_grease_or_none() {
+    // BC-2.07.007 postcondition 3: if all ciphers are GREASE or none exist,
+    // cipher field is "".
+    // Both [0x0a0a only] and [] produce JA3 string "771,,,," ->
+    // MD5 = bddda940f9963577c41d7c28b1a5f65f.
+    let fk = test_flow_key();
+
+    for (label, cipher_ids) in [("all GREASE", &[0x0a0au16][..]), ("empty", &[][..])] {
+        let mut analyzer = TlsAnalyzer::new();
+        analyzer.on_data(
+            &fk,
+            Direction::ClientToServer,
+            &build_client_hello_no_extensions(cipher_ids),
+            0,
+        );
+        let hash = analyzer.ja3_counts().keys().next().unwrap().clone();
+        assert_eq!(
+            hash, "bddda940f9963577c41d7c28b1a5f65f",
+            "BC-2.07.007 postcondition 3 ({label}): cipher field empty -> \
+             MD5('771,,,,') = bddda940f9963577c41d7c28b1a5f65f"
+        );
+    }
+}
+
+// ── AC-006 (BC-2.07.007 postconditions 7-8): MD5 32 lowercase hex chars ───────
+//
+// Proptest coverage in ja3_property_tests::compute_ja3_has_five_fields_and_hex_hash.
+// This pin test verifies the property at the integration level.
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_007_ja3_hash_is_32_lowercase_hex_chars() {
+    // BC-2.07.007 postconditions 7-8: hash is MD5 over UTF-8 bytes, 32 lowercase hex.
+    let fk = test_flow_key();
+    let mut analyzer = TlsAnalyzer::new();
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello("example.com", &[0x002f, 0x0035]),
+        0,
+    );
+    let hash = analyzer.ja3_counts().keys().next().unwrap().clone();
+
+    assert_eq!(
+        hash.len(),
+        32,
+        "JA3 hash must be exactly 32 characters (BC-2.07.007 postcondition 8)"
+    );
+    assert!(
+        hash.chars()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
+        "JA3 hash must be all lowercase hex (BC-2.07.007 postcondition 8), got: {hash}"
+    );
+}
+
+// ── AC-007 (BC-2.07.007 invariant 2): order-sensitive cipher hashing ──────────
+//
+// Proptest coverage in ja3_property_tests::compute_ja3_is_order_sensitive.
+// This deterministic integration pin confirms the property through the public API.
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_007_cipher_order_produces_different_hashes() {
+    // BC-2.07.007 invariant 2: [A, B] and [B, A] produce different hashes.
+    // [0x002f, 0x0035] -> "771,47-53,,," -> MD5 = 577fbfd57b256f5467f2fe09d1105a26
+    // [0x0035, 0x002f] -> "771,53-47,,," -> MD5 = e570871018118a1c91927ac4f3253bb8
+    let fk = test_flow_key();
+
+    let mut a_ab = TlsAnalyzer::new();
+    a_ab.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_no_extensions(&[0x002f, 0x0035]),
+        0,
+    );
+    let hash_ab = a_ab.ja3_counts().keys().next().unwrap().clone();
+
+    let mut a_ba = TlsAnalyzer::new();
+    a_ba.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello_no_extensions(&[0x0035, 0x002f]),
+        0,
+    );
+    let hash_ba = a_ba.ja3_counts().keys().next().unwrap().clone();
+
+    assert_ne!(
+        hash_ab, hash_ba,
+        "BC-2.07.007 invariant 2: cipher order [A,B] vs [B,A] must produce different JA3 hashes"
+    );
+    // Pin exact values from canonical test vectors.
+    assert_eq!(
+        hash_ab, "577fbfd57b256f5467f2fe09d1105a26",
+        "JA3 [0x002f,0x0035] canonical hash"
+    );
+    assert_eq!(
+        hash_ba, "e570871018118a1c91927ac4f3253bb8",
+        "JA3 [0x0035,0x002f] canonical hash"
+    );
+}
+
+// ── AC-008 (BC-2.07.008 postconditions 1-4): JA3S 3-field format ─────────────
+//
+// JA3S string has exactly 2 commas (3 fields). Field 1: decimal version.
+// Field 2: decimal cipher.0 (SINGLE value). Field 3: GREASE-filtered ext IDs or "".
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_008_ja3s_has_exactly_two_commas_three_fields() {
+    // BC-2.07.008 postcondition 1: exactly 2 commas.
+    // BC-2.07.008 postconditions 2-4: fields are version, cipher, filtered exts.
+    // build_server_hello(0x002f) includes renegotiation_info (0xff01 = 65281).
+    // JA3S string = "771,47,65281" -> MD5 = 573a9f3f80037fb40d481e2054def5bb
+    let fk = test_flow_key();
+    let mut analyzer = TlsAnalyzer::new();
+    // Need client hello first to open the flow
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello("example.com", &[0x002f]),
+        0,
+    );
+    analyzer.on_data(
+        &fk,
+        Direction::ServerToClient,
+        &build_server_hello(0x002f),
+        0,
+    );
+
+    assert_eq!(
+        analyzer.ja3s_counts().len(),
+        1,
+        "one JA3S hash must be recorded"
+    );
+    let hash = analyzer.ja3s_counts().keys().next().unwrap().clone();
+
+    // Canonical: "771,47,65281" -> MD5 = 573a9f3f80037fb40d481e2054def5bb
+    // This verifies 3-field format (only 2 commas: version, cipher, exts).
+    assert_eq!(
+        hash, "573a9f3f80037fb40d481e2054def5bb",
+        "BC-2.07.008 postconditions 1-4: JA3S for version=771, cipher=0x002f, \
+         renegotiation_info ext must be MD5('771,47,65281') = 573a9f3f80037fb40d481e2054def5bb \
+         (confirming 3-field format with decimal version and cipher)"
+    );
+}
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_008_ja3s_grease_extension_filtered_from_ext_field() {
+    // BC-2.07.008 postcondition 4: GREASE extension IDs are filtered from ext field.
+    // build_server_hello_with_grease_ext includes GREASE ext 0x0a0a (filtered) +
+    // renegotiation_info 0xff01 (kept). ext_ids = "65281" (same as without GREASE ext).
+    // JA3S string = "771,47,65281" -> MD5 = 573a9f3f80037fb40d481e2054def5bb
+    let fk = test_flow_key();
+    let mut analyzer = TlsAnalyzer::new();
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello("example.com", &[0x002f]),
+        0,
+    );
+    analyzer.on_data(
+        &fk,
+        Direction::ServerToClient,
+        &build_server_hello_with_grease_ext(0x002f),
+        0,
+    );
+
+    let hash = analyzer.ja3s_counts().keys().next().unwrap().clone();
+
+    // Same hash as without the GREASE extension (it's filtered).
+    assert_eq!(
+        hash, "573a9f3f80037fb40d481e2054def5bb",
+        "BC-2.07.008 postcondition 4: GREASE extension 0x0a0a must be filtered from JA3S \
+         ext field; result must be MD5('771,47,65281') = 573a9f3f80037fb40d481e2054def5bb"
+    );
+}
+
+// ── AC-009 (BC-2.07.008 postconditions 5-6): JA3S MD5 32 lowercase hex, deterministic
+//
+// Proptest coverage in ja3_property_tests::compute_ja3s_is_deterministic_and_hex.
+// This integration pin verifies the same properties through the public API.
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_008_ja3s_hash_is_32_lowercase_hex_and_deterministic() {
+    // BC-2.07.008 postconditions 5-6: MD5 hex is 32 lowercase chars; deterministic.
+    // Same inputs (same ServerHello bytes) fed twice must produce the same hash.
+    let fk1 = test_flow_key();
+    let fk2 = FlowKey::new(
+        "10.0.0.3".parse::<IpAddr>().unwrap(),
+        49154,
+        "10.0.0.4".parse::<IpAddr>().unwrap(),
+        443,
+    );
+
+    let sh_bytes = build_server_hello(0x002f);
+    let ch_bytes = build_client_hello("example.com", &[0x002f]);
+
+    let mut a1 = TlsAnalyzer::new();
+    a1.on_data(&fk1, Direction::ClientToServer, &ch_bytes, 0);
+    a1.on_data(&fk1, Direction::ServerToClient, &sh_bytes, 0);
+    let hash1 = a1.ja3s_counts().keys().next().unwrap().clone();
+
+    let mut a2 = TlsAnalyzer::new();
+    a2.on_data(&fk2, Direction::ClientToServer, &ch_bytes, 0);
+    a2.on_data(&fk2, Direction::ServerToClient, &sh_bytes, 0);
+    let hash2 = a2.ja3s_counts().keys().next().unwrap().clone();
+
+    assert_eq!(
+        hash1, hash2,
+        "BC-2.07.008 postcondition 6: same inputs must produce same JA3S hash (deterministic)"
+    );
+    assert_eq!(
+        hash1.len(),
+        32,
+        "BC-2.07.008 postcondition 5: JA3S hash must be 32 characters"
+    );
+    assert!(
+        hash1
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
+        "BC-2.07.008 postcondition 5: JA3S hash must be all lowercase hex, got: {hash1}"
+    );
+}
+
+// ── AC-010 (BC-2.07.008 invariants 1-2): JA3S cipher is single value;
+//           GREASE filtering only on extension IDs not cipher ─────────────────
+//
+// The cipher field in JA3S is a SINGLE decimal value (server selects one cipher).
+// Even if the server selects a GREASE value (e.g. 0x0a0a), it is NOT filtered
+// from the JA3S cipher field.
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_008_ja3s_cipher_field_is_single_value_not_filtered() {
+    // BC-2.07.008 invariant 1: cipher field is a SINGLE value (not a list).
+    // BC-2.07.008 invariant 2: GREASE filtering does NOT apply to the cipher.
+    //
+    // If server selects GREASE cipher 0x0a0a (decimal 2570), the JA3S cipher
+    // field must be "2570" (not filtered to "").
+    // JA3S string = "771,2570,65281" -> MD5 = c4b833c0849ff23c29e04fa13f6e87da
+    //
+    // This MUST differ from the JA3S hash when server selects non-GREASE 0x002f
+    // (which would be "771,47,65281" -> MD5 = 573a9f3f80037fb40d481e2054def5bb).
+    let fk = test_flow_key();
+    let mut analyzer = TlsAnalyzer::new();
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello("example.com", &[0x1301]),
+        0,
+    );
+    analyzer.on_data(
+        &fk,
+        Direction::ServerToClient,
+        &build_server_hello(0x0a0a), // GREASE cipher selected by server
+        0,
+    );
+
+    let hash = analyzer.ja3s_counts().keys().next().unwrap().clone();
+
+    // Must NOT be the hash for cipher=0x002f (47) — GREASE cipher is NOT filtered.
+    assert_ne!(
+        hash, "573a9f3f80037fb40d481e2054def5bb",
+        "BC-2.07.008 invariant 2: GREASE cipher 0x0a0a must NOT be filtered from JA3S cipher field"
+    );
+    // Must be the hash for cipher=0x0a0a (2570) — the actual GREASE value in decimal.
+    assert_eq!(
+        hash, "c4b833c0849ff23c29e04fa13f6e87da",
+        "BC-2.07.008 invariants 1-2: server-selected GREASE cipher 0x0a0a must appear as \
+         decimal '2570' in JA3S cipher field: MD5('771,2570,65281') = c4b833c0849ff23c29e04fa13f6e87da"
+    );
+}
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_008_ja3s_grease_extension_filtered_but_grease_cipher_preserved() {
+    // Combine AC-010 scenarios: GREASE extension is filtered, GREASE cipher is not.
+    // Server hello with GREASE ext 0x0a0a + renegotiation_info, and GREASE cipher 0x0a0a.
+    // ext_ids: 0x0a0a filtered, 0xff01 kept -> "65281"
+    // cipher: 0x0a0a NOT filtered -> "2570"
+    // JA3S string = "771,2570,65281" -> MD5 = c4b833c0849ff23c29e04fa13f6e87da
+    let fk = test_flow_key();
+    let mut analyzer = TlsAnalyzer::new();
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello("example.com", &[0x1301]),
+        0,
+    );
+    analyzer.on_data(
+        &fk,
+        Direction::ServerToClient,
+        &build_server_hello_with_grease_ext(0x0a0a), // GREASE cipher + GREASE ext
+        0,
+    );
+
+    let hash = analyzer.ja3s_counts().keys().next().unwrap().clone();
+
+    assert_eq!(
+        hash, "c4b833c0849ff23c29e04fa13f6e87da",
+        "BC-2.07.008: GREASE ext filtered, GREASE cipher kept -> \
+         MD5('771,2570,65281') = c4b833c0849ff23c29e04fa13f6e87da"
+    );
+}
+
+// ── AC-008 companion (BC-2.07.008 postcondition 4 / STORY-051 EC-007): JA3S all-GREASE extension list -> empty ext field ─
+//
+// When a ServerHello's extension list contains ONLY GREASE extension type IDs,
+// every ext ID is filtered and the JA3S extension field must be empty ("").
+// This is the server-side analogue of BC-2.07.006's all-GREASE cipher handling.
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_008_ja3s_all_grease_extensions_produce_empty_ext_field() {
+    // STORY-051 EC-007: ServerHello with exclusively GREASE extension IDs.
+    // Cipher: 0x002f (decimal 47), version: 0x0303 (decimal 771).
+    // Extensions: 0x0a0a, 0x1a1a, 0x2a2a — all GREASE, all filtered.
+    // JA3S string = "771,47," (trailing empty ext field) ->
+    // MD5("771,47,") = 5397c414a9ebeaff1bf18b70ca22eaa0
+    //
+    // This must differ from the hash when at least one non-GREASE ext is present
+    // ("771,47,65281" -> MD5 = 573a9f3f80037fb40d481e2054def5bb).
+    let fk = test_flow_key();
+    let mut analyzer = TlsAnalyzer::new();
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &build_client_hello("example.com", &[0x002f]),
+        0,
+    );
+    analyzer.on_data(
+        &fk,
+        Direction::ServerToClient,
+        &build_server_hello_all_grease_ext(0x002f),
+        0,
+    );
+
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "GREASE extensions must parse cleanly through tls-parser; if tls-parser ever rejects them \
+         the empty ext_ids would coincidentally produce the same hash and silently bypass the \
+         GREASE-filter branch this test claims to pin"
+    );
+
+    let hash = analyzer.ja3s_counts().keys().next().unwrap().clone();
+
+    // Must NOT equal the hash with a non-GREASE ext present.
+    assert_ne!(
+        hash, "573a9f3f80037fb40d481e2054def5bb",
+        "EC-007: all-GREASE ext list must NOT produce same hash as list with non-GREASE ext"
+    );
+    // Must equal MD5("771,47,") — empty ext field after full GREASE filtering.
+    assert_eq!(
+        hash, "5397c414a9ebeaff1bf18b70ca22eaa0",
+        "EC-007 (BC-2.07.008 postcondition 4 edge): all-GREASE ServerHello extensions \
+         must yield empty ext field; canonical MD5('771,47,') = 5397c414a9ebeaff1bf18b70ca22eaa0"
+    );
+}
