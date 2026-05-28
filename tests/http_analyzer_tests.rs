@@ -2679,6 +2679,17 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
             b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0\r\n\r\n";
         analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
 
+        // Positive-parse anchor: the request must have been parsed and the method
+        // counter incremented before any negative (absence) assertions are checked.
+        // Without this, a silent parse failure would cause the detection block to
+        // never execute, making all subsequent negative assertions vacuously true.
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "precondition: request must parse — methods[GET] must be 1 before testing \
+             absence of findings"
+        );
+
         // BC-2.06.012 postcondition 3: parse_errors must not increment.
         assert_eq!(
             analyzer.parse_error_count(),
