@@ -332,7 +332,12 @@ fn test_too_many_headers_generates_finding() {
     assert_eq!(findings[0].confidence, Confidence::Medium);
     assert_eq!(findings[0].mitre_technique.as_deref(), Some("T1499.002"));
     assert!(findings[0].summary.contains("Excessive HTTP headers"));
-    assert!(findings[0].evidence[0].contains("request"));
+    // AC-005 / BC-2.06.014 invariant 4: evidence must be EXACTLY "Direction: request",
+    // not derived from the Direction enum (which would print a variant name, not this string).
+    assert_eq!(
+        findings[0].evidence[0], "Direction: request",
+        "AC-005 / BC-2.06.014 invariant 4: evidence must be exactly 'Direction: request'"
+    );
 }
 
 #[test]
@@ -4428,6 +4433,78 @@ mod bc_2_06_044_formalization {
             "BC-2.06.020 invariant 3 (real TMH): TooManyHeaders finding MUST NOT be \
              emitted when had_success=true — guard at src/analyzer/http.rs:416 must gate \
              the finding push; got {} finding(s)",
+            tmh_findings.len()
+        );
+    }
+
+    /// BC-2.06.020 invariant 3 (real TooManyHeaders — RESPONSE arm) — Symmetric sibling
+    /// of `test_BC_2_06_020_invariant_real_too_many_headers_after_success_suppressed`.
+    ///
+    /// BC-2.06.020 invariant 3 applies to BOTH arms of the parse loop.  The response-side
+    /// guard is at `src/analyzer/http.rs:462` wrapping the TooManyHeaders finding push at
+    /// ~475-487.  This test exercises that arm directly:
+    ///
+    /// Construction (ServerToClient direction):
+    ///   buf = [valid HTTP/1.1 200 response with complete headers + body]
+    ///         [second response with 97+ X-Header-N lines → Err(TooManyHeaders)]
+    ///
+    /// After the first response parses, `had_success = true` and `transactions` becomes 1.
+    /// The loop continues, encounters the second (too-many-headers) response, gets
+    /// `Err(TooManyHeaders)`, but the `if !had_success` guard at :462 prevents both the
+    /// `parse_errors` increment and the finding push at :475.
+    ///
+    /// Assertions:
+    ///   - `transaction_count() == 1`  (first response counted; second not reached)
+    ///   - `parse_error_count() == 0`  (guard suppressed the error increment)
+    ///   - No "Excessive HTTP headers" finding emitted  (guard suppressed the push)
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_020_invariant_real_too_many_headers_after_success_suppressed_response() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Response 1: syntactically valid — will parse completely and set had_success=true.
+        // Content-Length: 0 so there are no stray body bytes; the entire first response
+        // fits cleanly and is drained before the loop re-iterates.
+        let mut buf = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n".to_vec();
+
+        // Response 2: 97 X-Header-N lines — exceeds MAX_HEADERS (96) and causes
+        // Err(TooManyHeaders) on the RESPONSE parse path.  Appended in the same buffer
+        // so the loop encounters it after draining response 1.
+        buf.extend_from_slice(b"HTTP/1.1 200 OK\r\n");
+        for i in 0..97 {
+            buf.extend_from_slice(format!("X-Header-{i}: value\r\n").as_bytes());
+        }
+        buf.extend_from_slice(b"\r\n");
+
+        analyzer.on_data(&fk, Direction::ServerToClient, &buf, 0);
+
+        // Response 1 must be counted as a transaction (response-side success counter).
+        assert_eq!(
+            analyzer.transaction_count(),
+            1,
+            "BC-2.06.020 invariant 3 (resp TMH): first valid response must increment transactions"
+        );
+
+        // The TooManyHeaders error on response 2 must be suppressed by had_success.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.020 invariant 3 (resp TMH): had_success guard on response arm must suppress \
+             parse_errors for TooManyHeaders after first success (guard at src/analyzer/http.rs:462)"
+        );
+
+        // No finding must be emitted — the push at ~:475 is inside `if !had_success`.
+        let all_findings = analyzer.findings();
+        let tmh_findings: Vec<_> = all_findings
+            .iter()
+            .filter(|f| f.summary.contains("Excessive HTTP headers"))
+            .collect();
+        assert!(
+            tmh_findings.is_empty(),
+            "BC-2.06.020 invariant 3 (resp TMH): TooManyHeaders finding MUST NOT be emitted when \
+             had_success=true on the response arm — guard at src/analyzer/http.rs:462 must gate \
+             the finding push at ~:475; got {} finding(s)",
             tmh_findings.len()
         );
     }
