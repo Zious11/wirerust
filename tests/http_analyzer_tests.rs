@@ -2877,6 +2877,11 @@ mod bc_2_06_043_formalization {
             let fk = test_flow_key();
             let request = format!("{method} /resource HTTP/1.1\r\nHost: example.com\r\n\r\n");
             analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+            assert_eq!(
+                *analyzer.method_counts().get(*method).unwrap_or(&0),
+                1,
+                "precondition: standard method {method} must parse (BC-2.06.008 postcondition 3 anchor)"
+            );
             assert!(
                 !analyzer
                     .findings()
@@ -3023,6 +3028,11 @@ mod bc_2_06_043_formalization {
             let fk = test_flow_key();
             let request = b"GET /resource HTTP/1.0\r\n\r\n";
             analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            assert_eq!(
+                *analyzer.method_counts().get("GET").unwrap_or(&0),
+                1,
+                "precondition: HTTP/1.0 request without Host must parse (BC-2.06.009 postcondition 3 anchor)"
+            );
             assert!(
                 !analyzer
                     .findings()
@@ -3038,6 +3048,11 @@ mod bc_2_06_043_formalization {
             let fk = test_flow_key();
             let request = b"GET /resource HTTP/1.0\r\nHost: \r\n\r\n";
             analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            assert_eq!(
+                *analyzer.method_counts().get("GET").unwrap_or(&0),
+                1,
+                "precondition: HTTP/1.0 request with empty Host must parse (BC-2.06.009 EC-006 anchor)"
+            );
             assert!(
                 !analyzer
                     .findings()
@@ -3166,6 +3181,11 @@ mod bc_2_06_043_formalization {
             );
             let request = format!("GET {uri_2048} HTTP/1.1\r\nHost: x.com\r\n\r\n");
             analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+            assert_eq!(
+                *analyzer.method_counts().get("GET").unwrap_or(&0),
+                1,
+                "precondition: 2048-byte-URI request must parse (BC-2.06.010 invariant 1 anchor)"
+            );
             assert!(
                 !analyzer
                     .findings()
@@ -3283,6 +3303,13 @@ mod bc_2_06_043_formalization {
         // No User-Agent header at all.
         let request = b"GET /page HTTP/1.1\r\nHost: example.com\r\n\r\n";
         analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+        // Positive-parse anchor: request must have been parsed before asserting absence.
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "precondition: absent-UA request must parse (BC-2.06.011 postcondition 2 anchor)"
+        );
 
         // BC-2.06.011 postcondition 2: no finding when UA is absent (None).
         assert!(
