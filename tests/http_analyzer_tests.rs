@@ -4371,6 +4371,67 @@ mod bc_2_06_044_formalization {
         );
     }
 
+    /// BC-2.06.020 invariant 3 (real TooManyHeaders path) — A second request with 97+
+    /// headers appended immediately after a first valid request in the SAME on_data call
+    /// must NOT produce a TooManyHeaders finding.
+    ///
+    /// Construction: buf = [valid GET request][second GET with 97 X-Header-N lines].
+    /// After the first request parses successfully, had_success=true and its bytes are
+    /// drained from request_buf.  The loop continues and tries to parse the second
+    /// request; httparse returns Err(TooManyHeaders) (MAX_HEADERS=96, so 97 headers
+    /// triggers the limit).  Because had_success==true the `if !had_success` guard at
+    /// src/analyzer/http.rs:404 skips both the error-counter increment AND the finding
+    /// push at :416.  This is the positive coverage the NUL-byte variant above cannot
+    /// provide: it exercises the actual TooManyHeaders branch inside the guard.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_020_invariant_real_too_many_headers_after_success_suppressed() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Request 1: syntactically valid — will parse completely and set had_success=true.
+        let mut buf = b"GET /first HTTP/1.1\r\nHost: example.com\r\n\r\n".to_vec();
+
+        // Request 2: 97 headers — exceeds MAX_HEADERS (96) and causes Err(TooManyHeaders).
+        // Appended in the same buffer so the loop encounters it after draining request 1.
+        buf.extend_from_slice(b"GET /second HTTP/1.1\r\n");
+        for i in 0..97 {
+            buf.extend_from_slice(format!("X-Header-{i}: value\r\n").as_bytes());
+        }
+        buf.extend_from_slice(b"\r\n");
+
+        analyzer.on_data(&fk, Direction::ClientToServer, &buf, 0);
+
+        // Request 1 must be counted.
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.020 invariant 3 (real TMH): first valid request must be counted"
+        );
+
+        // The TooManyHeaders error on request 2 must be suppressed by had_success.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.020 invariant 3 (real TMH): had_success guard must suppress \
+             parse_errors for TooManyHeaders after first success"
+        );
+
+        // No finding must be emitted — the guard at :416 is inside `if !had_success`.
+        let all_findings = analyzer.findings();
+        let tmh_findings: Vec<_> = all_findings
+            .iter()
+            .filter(|f| f.summary.contains("Excessive HTTP headers"))
+            .collect();
+        assert!(
+            tmh_findings.is_empty(),
+            "BC-2.06.020 invariant 3 (real TMH): TooManyHeaders finding MUST NOT be \
+             emitted when had_success=true — guard at src/analyzer/http.rs:416 must gate \
+             the finding push; got {} finding(s)",
+            tmh_findings.len()
+        );
+    }
+
     /// BC-2.06.020 EC-002 — 2 error buffers before a valid header, then body.
     /// The two pre-success errors ARE counted (parse_errors=2), but the body error
     /// after the successful header is NOT counted.
