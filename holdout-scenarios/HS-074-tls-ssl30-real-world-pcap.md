@@ -19,7 +19,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.010.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.011.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.012.md
-input-hash: "08c9d58"
+input-hash: "354f110"
 traces_to: .factory/stories/STORY-051.md
 id: "HS-074"
 category: "real-world-corpus"

@@ -16,7 +16,7 @@ inputs:
   - .factory/stories/STORY-057.md
   - .factory/stories/STORY-058.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.031.md
-input-hash: "08c9d58"
+input-hash: "354f110"
 traces_to: .factory/stories/STORY-051.md
 id: "HS-066"
 category: "integration-boundaries"
