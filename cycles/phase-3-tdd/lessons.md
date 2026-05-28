@@ -598,6 +598,60 @@ Each reduction is attributable to a specific doctrine codification:
 
 ---
 
+## Wave 15 Lessons (2026-05-28)
+
+### W15.L1 — First Multi-Story Wave Since Wave 10 — Parallelism Scales [codified — confirmed W15]
+
+**Finding ID:** Wave 15 retrospective observation
+**Category:** process-discipline / pipeline-throughput
+**Observed:** Wave 15 dispatched STORY-041 (HTTP/1.1 parsing) and STORY-051 (JA3/JA3S GREASE) in parallel — first multi-story wave since Wave 10. Both stories converged and shipped (PRs #139 + #138). Total adversarial cost: 6 passes (STORY-051) + 8 passes (STORY-041) = 14 total passes.
+**Pattern:** Multi-story parallelism scales well with the established per-story-delivery pattern. Convergence cost is approximately additive — 14 total passes ≈ 2 single-story wave equivalents. No shared-context interference between parallel stories.
+**STORY-051 was 33% faster than STORY-041** (6 vs 8 passes): smaller spec surface (JA3/JA3S GREASE is a well-bounded algorithmic change) + cleaner test layout (test helpers extracted upfront). Size and structure of the spec surface correlate with convergence cost.
+**Implication for Wave 16:** 4-story wave (STORY-042/043/044/052) is feasible with parallel dispatch. Expect 24-32 total adversarial passes (6-8 per story × 4). Schedule accordingly.
+**Status:** [codified — confirmed W15; multi-story parallelism validated]
+
+---
+
+### W15.L2 — BC-Addition Sibling-Sweep Cascade Pattern [deferred — pending W16 evidence for DF-BC-CASCADE-001]
+
+**Finding ID:** Wave 15 Pass 5 (F-W15P4-001 trigger chain)
+**Category:** process-discipline / spec-propagation
+**Observed:** BC-2.06.004 v1.5 added invariant 4 (response-side had_success guard) during Round 5 remediation (response to F-W15P4-001). Round 5 fixed the trigger BC + test but did NOT propagate to all sibling locations. Pass 5 caught 5 cascade findings (1M/4L):
+- AC-004 trace label (still cited invariant 1, should reflect invariant 1-2 per AC narrative's invariant-2 content)
+- Task 6 invariant range (not updated to include invariant 4)
+- Architecture Compliance Rules row (had_success rule should reference BC-2.06.004 invariant 4 + AC-007)
+- BC-2.06.002 ↔ BC-2.06.004 Related BCs reciprocal cross-refs (not updated)
+- BC-2.06.004 Verification Properties table row (missing invariant 4 row)
+**Pattern:** "BC-addition sibling-sweep cascade" — when a BC version bump adds a new invariant or postcondition, the remediation burst must propagate to ALL of: (1) related-BC reciprocal cross-refs, (2) VP table row, (3) Architecture Compliance Rules row, (4) Task list invariant range, (5) AC trace labels. Failure to sweep any one of these produces a cascade finding in the next pass.
+**Codification candidate:** DF-BC-CASCADE-001 — inject "BC-addition cascade checklist" into PO/story-writer prompt when a BC version bump adds a new invariant. Deferred pending W16 confirmation.
+**Status:** [deferred — DF-BC-CASCADE-001 candidate pending W16 evidence; one instance is a data point, not yet a pattern]
+
+---
+
+### W15.L3 — VHS+ffmpeg 8.1 Incompatibility Causes Empty Demo Artifacts [deferred — investigate in W16+]
+
+**Finding ID:** Wave 15 demo recording phase
+**Category:** toolchain / demo-quality
+**Observed:** STORY-041 demo recordings produced empty .gif/.webm placeholder files. VHS .tape scripts captured correctly and .log files were present, but ffmpeg 8.1 (currently installed) is incompatible with the VHS gif/webm pipeline. Demo visual fidelity was lost for STORY-041. STORY-051 demos were not affected (different tape configuration or timing).
+**Impact:** Not blocking. .tape + .log files captured correctly and provide textual evidence. Visual demos for STORY-041 are absent. factory-artifacts commit records placeholders.
+**Recommendation:** Investigate ffmpeg version pinning in VHS demo recording setup. Options: (a) pin ffmpeg to a known-compatible version (e.g., 7.x), (b) downgrade VHS to a version compatible with ffmpeg 8.1, (c) switch demo format to text-only (.log) for waves until toolchain issue resolved.
+**Target:** Wave 16+ investigation — not blocking current delivery. If persistent, add a toolchain note to CLAUDE.md.
+**Status:** [deferred — W16+ investigation; not blocking]
+
+---
+
+### W15.L4 — DF-AC-TEST-NAME-SYNC-001 v1 (W14 Codification) Caught P1 Drift for Both Stories [codified — compounding-gain doctrine validated]
+
+**Finding ID:** Wave 15 Pass 1 — both STORY-041 and STORY-051
+**Category:** process-discipline / codification-compounding-gain
+**Observed:** DF-AC-TEST-NAME-SYNC-001 v1 (codified in Wave 14 from F-W14P1-011) fired correctly in Wave 15 Pass 1 for both stories. For both STORY-041 and STORY-051, the adversary identified AC "**Test:**" citations that used short-form test names instead of BC-prefixed fn names. These were caught and remediated in the P1 burst, preventing the same class of drift from requiring its own dedicated pass.
+**Impact:** Without DF-AC-TEST-NAME-SYNC-001, these findings would have surfaced as MEDIUM at Pass 2 or later, extending the convergence trajectory. The codification prevented re-litigation of the W14 cluster and likely saved 1 pass per story (2 passes total across W15).
+**Pattern:** Compounding-gain doctrine validated — a policy codified from W14 data already produced measurable benefit in the next wave. One-wave codification latency.
+**Implication:** Early codification of second-wave patterns (W12.L2 precedent → W14 early codification of DF-AC-TEST-NAME-SYNC-001) provides compounding returns faster than deferred codification.
+**Status:** [codified — W14 codification effective in W15; compounding-gain doctrine confirmed for second consecutive wave]
+
+---
+
 ## Earlier Wave Lessons (Waves 1-6)
 
 Per-wave process-gap items for Waves 1-6 are recorded in STATE.md Cycle-Close Follow-Up Items
