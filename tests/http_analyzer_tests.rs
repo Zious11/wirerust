@@ -2732,3 +2732,729 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
         );
     }
 } // mod bc_2_06_story042_formalization
+
+// ---------------------------------------------------------------------------
+// STORY-043 Brownfield-Formalization Tests
+// BC-2.06.008 – BC-2.06.011: method, host, URI-length, user-agent anomalies
+//
+// Naming convention: test_BC_2_06_NNN_<descriptive_suffix>
+// AC-named functions (e.g. test_detect_unusual_method) match the exact
+// function names stated in STORY-043 Acceptance Criteria.
+//
+// All tests confirm existing src/analyzer/http.rs behaviour; they are
+// expected to PASS (brownfield-formalization mode).  Any test that FAILS
+// indicates a divergence between source and the behavioural contract and
+// is documented as a source bug.
+//
+// The uppercase "BC" in function names is intentional per
+// DF-AC-TEST-NAME-SYNC-001.  Each function carries its own
+// #[allow(non_snake_case)] to keep the lint suppression narrow.
+// ---------------------------------------------------------------------------
+mod bc_2_06_043_formalization {
+    use super::*;
+
+    // ── BC-2.06.008 ───────────────────────────────────────────────────────────
+
+    /// AC-001 (BC-2.06.008 postcondition 1) — CONNECT triggers
+    /// Reconnaissance/Inconclusive/Medium, mitre=None, evidence="{method} {uri}",
+    /// direction=ClientToServer.
+    ///
+    /// Covers BC-2.06.008 canonical test vector:
+    ///   CONNECT proxy.example.com:443 HTTP/1.1 → Finding(Recon/Inconclusive/Medium)
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_detect_unusual_method() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // BC-2.06.008 canonical vector: CONNECT with a valid Host so the only
+        // finding is the unusual-method one (no host-anomaly interference).
+        let request = b"CONNECT proxy.example.com:443 HTTP/1.1\r\nHost: proxy.example.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+        let findings = analyzer.findings();
+        let method_finding = findings
+            .iter()
+            .find(|f| f.summary.contains("Unusual HTTP method"))
+            .expect("BC-2.06.008 postcondition 1: CONNECT must produce an unusual-method finding");
+
+        // Postcondition 1: category/verdict/confidence.
+        assert_eq!(
+            method_finding.category,
+            ThreatCategory::Reconnaissance,
+            "BC-2.06.008 postcondition 1: category must be Reconnaissance"
+        );
+        assert_eq!(
+            method_finding.verdict,
+            Verdict::Inconclusive,
+            "BC-2.06.008 postcondition 1: verdict must be Inconclusive"
+        );
+        assert_eq!(
+            method_finding.confidence,
+            Confidence::Medium,
+            "BC-2.06.008 postcondition 1: confidence must be Medium"
+        );
+
+        // Postcondition 1: mitre_technique is None (BC-2.06.008 invariant 3).
+        assert_eq!(
+            method_finding.mitre_technique, None,
+            "BC-2.06.008 invariant 3: mitre_technique must be None for unusual-method finding"
+        );
+
+        // Postcondition 1: summary = "Unusual HTTP method: CONNECT".
+        assert_eq!(
+            method_finding.summary, "Unusual HTTP method: CONNECT",
+            "BC-2.06.008 postcondition 1: summary must be 'Unusual HTTP method: CONNECT'"
+        );
+
+        // Postcondition 1: evidence = vec!["CONNECT proxy.example.com:443"].
+        assert_eq!(
+            method_finding.evidence,
+            vec!["CONNECT proxy.example.com:443"],
+            "BC-2.06.008 postcondition 1: evidence must be '<method> <uri>'"
+        );
+
+        // Postcondition 1: direction = Some(ClientToServer).
+        assert_eq!(
+            method_finding.direction,
+            Some(Direction::ClientToServer),
+            "BC-2.06.008 postcondition 1: direction must be Some(ClientToServer)"
+        );
+    }
+
+    /// BC-2.06.008 invariants 1-2 + postcondition 3 (AC-002) — method matching
+    /// is exact and case-sensitive; lowercase "delete" and standard methods
+    /// do NOT trigger the detection.
+    ///
+    /// BC-2.06.008 EC-007: "delete" (lowercase) → no finding.
+    /// BC-2.06.008 postcondition 3: GET, POST, PUT, PATCH, HEAD → no finding.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_unusual_method_case_sensitive() {
+        // ── Lowercase "delete" must NOT match uppercase "DELETE" ──────────────
+        {
+            let mut analyzer = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            // httparse silently accepts non-standard tokens; "delete" is a valid
+            // method token but is not in the unusual_methods slice.
+            // We use HTTP/1.0 to suppress the missing-Host finding so the
+            // zero-findings assertion is unambiguous.
+            let request = b"delete /resource HTTP/1.0\r\n\r\n";
+            analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            assert!(
+                !analyzer
+                    .findings()
+                    .iter()
+                    .any(|f| f.summary.contains("Unusual HTTP method")),
+                "BC-2.06.008 invariant 2: lowercase 'delete' must NOT trigger unusual-method finding"
+            );
+        }
+
+        // ── All four unusual methods trigger on exact uppercase match ─────────
+        for method in &["DELETE", "OPTIONS", "TRACE"] {
+            let mut analyzer = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            // HTTP/1.0 to suppress missing-Host noise.
+            let request = format!("{method} /resource HTTP/1.0\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+            assert!(
+                analyzer
+                    .findings()
+                    .iter()
+                    .any(|f| f.summary == format!("Unusual HTTP method: {method}")),
+                "BC-2.06.008 invariant 1: {method} (uppercase) must trigger unusual-method finding"
+            );
+        }
+
+        // ── Standard methods must NOT trigger ────────────────────────────────
+        for method in &["GET", "POST", "PUT", "PATCH", "HEAD"] {
+            let mut analyzer = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            let request = format!("{method} /resource HTTP/1.1\r\nHost: example.com\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+            assert!(
+                !analyzer
+                    .findings()
+                    .iter()
+                    .any(|f| f.summary.contains("Unusual HTTP method")),
+                "BC-2.06.008 postcondition 3: standard method {method} must NOT trigger unusual-method finding"
+            );
+        }
+    }
+
+    // ── BC-2.06.009 ───────────────────────────────────────────────────────────
+
+    /// AC-003 (BC-2.06.009 postcondition 1) — HTTP/1.1 with no Host header
+    /// emits Anomaly/Inconclusive/Medium with summary "HTTP/1.1 request without
+    /// Host header", evidence="{method} {uri}", direction=ClientToServer.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_detect_missing_host_header() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // BC-2.06.009 canonical vector: GET / HTTP/1.1 with no Host header.
+        let request = b"GET /path HTTP/1.1\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+        let findings = analyzer.findings();
+        let host_finding = findings
+            .iter()
+            .find(|f| f.summary.contains("without Host header"))
+            .expect(
+                "BC-2.06.009 postcondition 1: HTTP/1.1 request without Host must produce finding",
+            );
+
+        // Postcondition 1: category/verdict/confidence.
+        assert_eq!(
+            host_finding.category,
+            ThreatCategory::Anomaly,
+            "BC-2.06.009 postcondition 1: category must be Anomaly"
+        );
+        assert_eq!(
+            host_finding.verdict,
+            Verdict::Inconclusive,
+            "BC-2.06.009 postcondition 1: verdict must be Inconclusive"
+        );
+        assert_eq!(
+            host_finding.confidence,
+            Confidence::Medium,
+            "BC-2.06.009 postcondition 1: confidence must be Medium"
+        );
+
+        // Postcondition 1: exact summary text (absent case).
+        assert_eq!(
+            host_finding.summary, "HTTP/1.1 request without Host header",
+            "BC-2.06.009 postcondition 1: absent-Host summary must be exact"
+        );
+
+        // Postcondition 1: mitre_technique is None (BC-2.06.009 invariant 3).
+        assert_eq!(
+            host_finding.mitre_technique, None,
+            "BC-2.06.009 invariant 3: mitre_technique must be None for host-anomaly finding"
+        );
+
+        // Postcondition 1: evidence = "{method} {uri}".
+        assert_eq!(
+            host_finding.evidence,
+            vec!["GET /path"],
+            "BC-2.06.009 postcondition 1: evidence must be '<method> <uri>'"
+        );
+
+        // Postcondition 1: direction = Some(ClientToServer).
+        assert_eq!(
+            host_finding.direction,
+            Some(Direction::ClientToServer),
+            "BC-2.06.009 postcondition 1: direction must be Some(ClientToServer)"
+        );
+    }
+
+    /// AC-004 (BC-2.06.009 postcondition 1) — HTTP/1.1 with Host present but
+    /// empty (after trim) emits a distinct summary "HTTP/1.1 request with empty
+    /// Host header"; the absent-Host variant must NOT co-fire.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_detect_empty_host_header() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // BC-2.06.009 EC-003: Host header present with empty value.
+        let request = b"GET /path HTTP/1.1\r\nHost: \r\nUser-Agent: curl/8.0\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+        let findings = analyzer.findings();
+        let host_finding = findings
+            .iter()
+            .find(|f| f.summary.contains("empty Host header"))
+            .expect(
+                "BC-2.06.009 postcondition 1: empty-Host must produce 'with empty Host header' finding",
+            );
+
+        // Postcondition 1: category/verdict/confidence.
+        assert_eq!(
+            host_finding.category,
+            ThreatCategory::Anomaly,
+            "BC-2.06.009 postcondition 1: category must be Anomaly"
+        );
+        assert_eq!(
+            host_finding.verdict,
+            Verdict::Inconclusive,
+            "BC-2.06.009 postcondition 1: verdict must be Inconclusive"
+        );
+        assert_eq!(
+            host_finding.confidence,
+            Confidence::Medium,
+            "BC-2.06.009 postcondition 1: confidence must be Medium"
+        );
+
+        // Postcondition 1: exact summary — distinct from the absent case.
+        assert_eq!(
+            host_finding.summary, "HTTP/1.1 request with empty Host header",
+            "BC-2.06.009 postcondition 1: empty-Host summary must be exact and distinct"
+        );
+
+        // Absent-Host variant must NOT also fire (two distinct cases, not one).
+        assert!(
+            !findings
+                .iter()
+                .any(|f| f.summary.contains("without Host header")),
+            "BC-2.06.009 postcondition 1: empty-Host must not also trigger absent-Host variant"
+        );
+    }
+
+    /// AC-005 (BC-2.06.009 postcondition 3 + invariant 1) — HTTP/1.0 requests
+    /// are completely exempt from the Host check.  Neither absent nor empty Host
+    /// triggers the finding for version==0.
+    ///
+    /// BC-2.06.009 EC-005/006: HTTP/1.0 with no Host → no finding.
+    /// BC-2.06.009 EC-006: HTTP/1.0 with empty Host → no finding.
+    /// Whitespace-only `Host:   ` on HTTP/1.1 → Some("") after trim → finding.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_http10_no_host_finding() {
+        // ── HTTP/1.0 with no Host header ──────────────────────────────────────
+        {
+            let mut analyzer = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            let request = b"GET /resource HTTP/1.0\r\n\r\n";
+            analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            assert!(
+                !analyzer
+                    .findings()
+                    .iter()
+                    .any(|f| f.summary.contains("Host header")),
+                "BC-2.06.009 postcondition 3: HTTP/1.0 without Host must NOT produce host-anomaly finding"
+            );
+        }
+
+        // ── HTTP/1.0 with empty Host header ───────────────────────────────────
+        {
+            let mut analyzer = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            let request = b"GET /resource HTTP/1.0\r\nHost: \r\n\r\n";
+            analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            assert!(
+                !analyzer
+                    .findings()
+                    .iter()
+                    .any(|f| f.summary.contains("Host header")),
+                "BC-2.06.009 EC-006: HTTP/1.0 with empty Host must NOT produce host-anomaly finding"
+            );
+        }
+
+        // ── HTTP/1.1 with whitespace-only Host → Some("") after trim → finding ─
+        // (BC-2.06.009 invariant 2: find_header trims; Host:   \r\n → Some(""))
+        {
+            let mut analyzer = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            let request = b"GET /path HTTP/1.1\r\nHost:   \r\n\r\n";
+            analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            assert!(
+                analyzer
+                    .findings()
+                    .iter()
+                    .any(|f| f.summary.contains("empty Host header")),
+                "BC-2.06.009 invariant 2: whitespace-only Host on HTTP/1.1 must produce empty-Host finding"
+            );
+        }
+    }
+
+    // ── BC-2.06.010 ───────────────────────────────────────────────────────────
+
+    /// AC-006 (BC-2.06.010 postcondition 1) — URI > 2048 bytes emits
+    /// Execution/Likely/Medium with exact byte count in summary and truncated
+    /// 200-char prefix in evidence.
+    ///
+    /// BC-2.06.010 canonical vector: GET /<2049 A chars> HTTP/1.1.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_detect_long_uri() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // URI of 2101 bytes total (1 leading "/" + 2100 "A"s).
+        let long_path = "/".to_string() + &"A".repeat(2100);
+        let uri_len = long_path.len(); // 2101
+        let request = format!("GET {long_path} HTTP/1.1\r\nHost: target.com\r\n\r\n");
+        analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+
+        let findings = analyzer.findings();
+        let long_uri_finding = findings
+            .iter()
+            .find(|f| f.summary.contains("Abnormally long URI"))
+            .expect(
+                "BC-2.06.010 postcondition 1: URI > 2048 must produce Abnormally-long-URI finding",
+            );
+
+        // Postcondition 1: category/verdict/confidence.
+        assert_eq!(
+            long_uri_finding.category,
+            ThreatCategory::Execution,
+            "BC-2.06.010 postcondition 1: category must be Execution"
+        );
+        assert_eq!(
+            long_uri_finding.verdict,
+            Verdict::Likely,
+            "BC-2.06.010 postcondition 1: verdict must be Likely"
+        );
+        assert_eq!(
+            long_uri_finding.confidence,
+            Confidence::Medium,
+            "BC-2.06.010 postcondition 1: confidence must be Medium"
+        );
+
+        // Postcondition 1: mitre_technique is None (BC-2.06.010 invariant 4).
+        assert_eq!(
+            long_uri_finding.mitre_technique, None,
+            "BC-2.06.010 invariant 4: mitre_technique must be None for long-URI finding"
+        );
+
+        // Postcondition 1 + invariant 3: summary contains exact byte count.
+        assert_eq!(
+            long_uri_finding.summary,
+            format!("Abnormally long URI ({uri_len} chars)"),
+            "BC-2.06.010 postcondition 1: summary must include exact byte count"
+        );
+
+        // Postcondition 1 + invariant 2: evidence truncated to 200 chars via truncate_uri.
+        assert!(
+            long_uri_finding.evidence[0].starts_with("URI prefix:"),
+            "BC-2.06.010 postcondition 1: evidence must start with 'URI prefix:'"
+        );
+        // The evidence must NOT contain the full 2101-char URI (it's truncated to 200).
+        let prefix_value = long_uri_finding.evidence[0]
+            .strip_prefix("URI prefix: ")
+            .unwrap_or(&long_uri_finding.evidence[0]);
+        assert!(
+            prefix_value.len() <= 200,
+            "BC-2.06.010 invariant 2: evidence URI prefix must be at most 200 chars, got {}",
+            prefix_value.len()
+        );
+
+        // Postcondition 1: direction = Some(ClientToServer).
+        assert_eq!(
+            long_uri_finding.direction,
+            Some(Direction::ClientToServer),
+            "BC-2.06.010 postcondition 1: direction must be Some(ClientToServer)"
+        );
+    }
+
+    /// AC-007 (BC-2.06.010 invariants 1-3) — long-URI threshold is strictly
+    /// greater-than 2048.  uri.len() == 2048 must NOT fire; uri.len() == 2049
+    /// must fire.  Summary uses the exact byte count (not the truncated length).
+    ///
+    /// BC-2.06.010 EC-001: len=2048 → no finding.
+    /// BC-2.06.010 EC-002: len=2049 → finding with "2049 chars" in summary.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_long_uri_boundary_exactly_2048() {
+        // ── URI of exactly 2048 bytes — must NOT fire ─────────────────────────
+        {
+            let mut analyzer = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            // "/" + 2047 "A"s = 2048 bytes total.
+            let uri_2048 = "/".to_string() + &"A".repeat(2047);
+            assert_eq!(
+                uri_2048.len(),
+                2048,
+                "precondition: URI must be exactly 2048 bytes"
+            );
+            let request = format!("GET {uri_2048} HTTP/1.1\r\nHost: x.com\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+            assert!(
+                !analyzer
+                    .findings()
+                    .iter()
+                    .any(|f| f.summary.contains("Abnormally long URI")),
+                "BC-2.06.010 invariant 1: URI of exactly 2048 bytes must NOT trigger long-URI finding"
+            );
+        }
+
+        // ── URI of exactly 2049 bytes — MUST fire ────────────────────────────
+        {
+            let mut analyzer = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            // "/" + 2048 "A"s = 2049 bytes total.
+            let uri_2049 = "/".to_string() + &"A".repeat(2048);
+            assert_eq!(
+                uri_2049.len(),
+                2049,
+                "precondition: URI must be exactly 2049 bytes"
+            );
+            let request = format!("GET {uri_2049} HTTP/1.1\r\nHost: x.com\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+
+            let findings = analyzer.findings();
+            let long_uri_finding = findings
+                .iter()
+                .find(|f| f.summary.contains("Abnormally long URI"))
+                .expect("BC-2.06.010 invariant 1: URI of 2049 bytes must trigger long-URI finding");
+
+            // Invariant 3: summary contains the exact byte count (2049, not truncated).
+            assert_eq!(
+                long_uri_finding.summary, "Abnormally long URI (2049 chars)",
+                "BC-2.06.010 invariant 3: summary must include exact byte count 2049"
+            );
+        }
+    }
+
+    // ── BC-2.06.011 ───────────────────────────────────────────────────────────
+
+    /// AC-008 (BC-2.06.011 postcondition 1) — User-Agent present with empty
+    /// value after trim emits Anomaly/Inconclusive/Low with summary "Empty
+    /// User-Agent header", evidence="{method} {uri}", direction=ClientToServer.
+    ///
+    /// BC-2.06.011 canonical vector: GET / HTTP/1.1 with User-Agent: (empty).
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_detect_empty_user_agent() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // BC-2.06.011 canonical vector: empty User-Agent (trailing space after colon).
+        let request = b"GET /page HTTP/1.1\r\nHost: example.com\r\nUser-Agent: \r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+        let findings = analyzer.findings();
+        let ua_finding = findings
+            .iter()
+            .find(|f| f.summary.contains("Empty User-Agent"))
+            .expect("BC-2.06.011 postcondition 1: empty UA must produce Empty-User-Agent finding");
+
+        // Postcondition 1: category/verdict/confidence.
+        assert_eq!(
+            ua_finding.category,
+            ThreatCategory::Anomaly,
+            "BC-2.06.011 postcondition 1: category must be Anomaly"
+        );
+        assert_eq!(
+            ua_finding.verdict,
+            Verdict::Inconclusive,
+            "BC-2.06.011 postcondition 1: verdict must be Inconclusive"
+        );
+        assert_eq!(
+            ua_finding.confidence,
+            Confidence::Low,
+            "BC-2.06.011 postcondition 1: confidence must be Low"
+        );
+
+        // Postcondition 1: exact summary.
+        assert_eq!(
+            ua_finding.summary, "Empty User-Agent header",
+            "BC-2.06.011 postcondition 1: summary must be 'Empty User-Agent header'"
+        );
+
+        // Postcondition 1: mitre_technique is None (BC-2.06.011 invariant 3).
+        assert_eq!(
+            ua_finding.mitre_technique, None,
+            "BC-2.06.011 invariant 3: mitre_technique must be None for empty-UA finding"
+        );
+
+        // Postcondition 1: evidence = "{method} {uri}".
+        assert_eq!(
+            ua_finding.evidence,
+            vec!["GET /page"],
+            "BC-2.06.011 postcondition 1: evidence must be '<method> <uri>'"
+        );
+
+        // Postcondition 1: direction = Some(ClientToServer).
+        assert_eq!(
+            ua_finding.direction,
+            Some(Direction::ClientToServer),
+            "BC-2.06.011 postcondition 1: direction must be Some(ClientToServer)"
+        );
+    }
+
+    /// AC-009 (BC-2.06.011 postcondition 2 + invariant 2) — absent User-Agent
+    /// (None) must NOT produce any finding.
+    ///
+    /// BC-2.06.011 EC-002: no User-Agent header present → no finding.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_missing_user_agent_no_finding() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // No User-Agent header at all.
+        let request = b"GET /page HTTP/1.1\r\nHost: example.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+        // BC-2.06.011 postcondition 2: no finding when UA is absent (None).
+        assert!(
+            !analyzer
+                .findings()
+                .iter()
+                .any(|f| f.summary.contains("User-Agent")),
+            "BC-2.06.011 postcondition 2: absent User-Agent (None) must NOT trigger empty-UA finding"
+        );
+
+        // BC-2.06.011 invariant 2: the asymmetry is intentional — absent=no finding,
+        // empty=finding.  Verify no findings at all for a clean normal request.
+        assert!(
+            analyzer.findings().is_empty(),
+            "BC-2.06.011 invariant 2: normal request without UA must produce zero findings"
+        );
+    }
+
+    /// AC-010 (BC-2.06.011 invariant 1) — whitespace-only User-Agent value
+    /// is folded to Some("") by find_header's .trim() and must trigger the
+    /// empty-UA finding.
+    ///
+    /// BC-2.06.011 EC-004: User-Agent:   (spaces only) → Some("") after trim → finding.
+    /// BC-2.06.011 invariant 1: find_header returns Some("") for User-Agent: \r\n.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_whitespace_user_agent_triggers_empty_ua_finding() {
+        // ── Space-only value ──────────────────────────────────────────────────
+        {
+            let mut analyzer = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            let request = b"GET /page HTTP/1.1\r\nHost: example.com\r\nUser-Agent:   \r\n\r\n";
+            analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            let findings = analyzer.findings();
+            assert!(
+                findings
+                    .iter()
+                    .any(|f| f.summary == "Empty User-Agent header"),
+                "BC-2.06.011 invariant 1: space-only User-Agent must trigger empty-UA finding"
+            );
+        }
+
+        // ── Header present with no value at all (bare colon + CRLF) ──────────
+        // BC-2.06.011 invariant 1: User-Agent: \r\n → trim("") → Some("") → finding.
+        {
+            let mut analyzer = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            let request = b"GET /page HTTP/1.1\r\nHost: example.com\r\nUser-Agent:\r\n\r\n";
+            analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            let findings = analyzer.findings();
+            assert!(
+                findings
+                    .iter()
+                    .any(|f| f.summary == "Empty User-Agent header"),
+                "BC-2.06.011 invariant 1: bare 'User-Agent:\\r\\n' (no space) must trigger empty-UA finding"
+            );
+        }
+    }
+
+    // ── Multi-anomaly co-occurrence tests ─────────────────────────────────────
+
+    /// BC-2.06.011 EC-005 / STORY-043 EC-013 — empty UA + missing Host on
+    /// HTTP/1.1 both fire independently on the same request.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_011_empty_ua_and_missing_host_both_fire_independently() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // HTTP/1.1, no Host, empty User-Agent — both detections should fire.
+        let request = b"GET /resource HTTP/1.1\r\nUser-Agent: \r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+
+        let findings = analyzer.findings();
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.summary.contains("without Host header")),
+            "BC-2.06.009: missing-Host finding must fire"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.summary == "Empty User-Agent header"),
+            "BC-2.06.011: empty-UA finding must fire"
+        );
+    }
+
+    /// STORY-043 EC-014 — long URI + path traversal both fire independently.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_010_long_uri_and_path_traversal_both_fire_independently() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Build a URI that is >2048 chars AND contains "../" for path-traversal.
+        let long_traversal = "/../../".to_string() + &"A".repeat(2048);
+        let request = format!("GET {long_traversal} HTTP/1.1\r\nHost: target.com\r\n\r\n");
+        analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+
+        let findings = analyzer.findings();
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.summary.contains("Abnormally long URI")),
+            "BC-2.06.010: long-URI finding must fire even when path-traversal also matches"
+        );
+        assert!(
+            findings
+                .iter()
+                .any(|f| f.summary.contains("Path traversal")),
+            "BC-2.06.001: path-traversal finding must fire even when long-URI also matches"
+        );
+    }
+
+    /// BC-2.06.008 — all four unusual methods each fire their own finding.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_008_all_four_unusual_methods_emit_finding() {
+        for method in &["CONNECT", "TRACE", "DELETE", "OPTIONS"] {
+            let mut analyzer = HttpAnalyzer::new();
+            let fk = test_flow_key();
+            // HTTP/1.0 to suppress missing-Host noise.
+            let request = format!("{method} /resource HTTP/1.0\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+
+            let findings = analyzer.findings();
+            assert!(
+                findings
+                    .iter()
+                    .any(|f| f.summary == format!("Unusual HTTP method: {method}")),
+                "BC-2.06.008: {method} must produce 'Unusual HTTP method: {method}' finding"
+            );
+            // Per-finding category/confidence spot-check.
+            let f = findings
+                .iter()
+                .find(|f| f.summary.contains("Unusual HTTP method"))
+                .unwrap();
+            assert_eq!(f.category, ThreatCategory::Reconnaissance);
+            assert_eq!(f.verdict, Verdict::Inconclusive);
+            assert_eq!(f.confidence, Confidence::Medium);
+            assert_eq!(f.mitre_technique, None);
+        }
+    }
+
+    /// BC-2.06.010 — URI of 10000 chars fires; evidence truncated to 200 chars.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_010_very_long_uri_evidence_truncated_to_200() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        let uri = "/".to_string() + &"X".repeat(9999); // 10000 chars total
+        let request = format!("GET {uri} HTTP/1.1\r\nHost: x.com\r\n\r\n");
+        analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+
+        let findings = analyzer.findings();
+        let f = findings
+            .iter()
+            .find(|f| f.summary.contains("Abnormally long URI"))
+            .expect("10000-char URI must trigger long-URI finding");
+
+        // Invariant 3: exact byte count in summary (10000, NOT 200).
+        assert!(
+            f.summary.contains("10000 chars"),
+            "BC-2.06.010 invariant 3: summary must contain exact count '10000 chars', got: {}",
+            f.summary
+        );
+
+        // Invariant 2: evidence truncated to 200 chars.
+        let prefix = f.evidence[0]
+            .strip_prefix("URI prefix: ")
+            .unwrap_or(&f.evidence[0]);
+        assert!(
+            prefix.len() <= 200,
+            "BC-2.06.010 invariant 2: evidence URI prefix must be ≤200 chars, got {}",
+            prefix.len()
+        );
+    }
+} // mod bc_2_06_043_formalization
