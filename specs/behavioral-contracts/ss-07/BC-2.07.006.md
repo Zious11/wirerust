@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-05-28): W15 Pass-1 remediation — anchor line ranges reconciled (F-W15S051-P1-004); STORY-051 BC-prefixed companion tests added to Architecture Anchors test list (covers test rename + 2 new tests from Round 1 commit 920891e)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -90,7 +92,7 @@ with that low-nibble pattern outside the 16 GREASE values.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- GREASE filtering is required for accurate JA3 fingerprinting, a core TLS analysis output |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation -- JA3 string uses numeric IDs, not display names) |
-| Architecture Module | SS-07 (analyzer/tls.rs:50-52, 100-143, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:50-52, 100-143, C-13) -- cipher filter 100-106, ext filter 108-121, curves filter 123-143 |
 | Stories | STORY-051 |
 | Origin BC | BC-TLS-006 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -102,15 +104,23 @@ with that low-nibble pattern outside the 16 GREASE values.
 ## Architecture Anchors
 
 - `src/analyzer/tls.rs:50-52` -- `is_grease_u16` function
-- `src/analyzer/tls.rs:100-112` -- cipher and extension GREASE filtering in compute_ja3
-- `src/analyzer/tls.rs:155-170` -- extension GREASE filtering in compute_ja3s
+- `src/analyzer/tls.rs:100-106` -- cipher GREASE filtering in compute_ja3
+- `src/analyzer/tls.rs:108-121` -- extension type ID GREASE filtering in compute_ja3
+- `src/analyzer/tls.rs:123-143` -- named-group GREASE filtering in compute_ja3 (curves and point-format extraction)
+- `src/analyzer/tls.rs:157-169` -- extension GREASE filtering in compute_ja3s
 - `tests/tls_analyzer_tests.rs` -- test_ja3_grease_filtering
+- `tests/tls_analyzer_tests.rs` -- test_BC_2_07_006_grease_cipher_excluded_same_hash_as_without_grease
+- `tests/tls_analyzer_tests.rs` -- test_BC_2_07_006_all_grease_cipher_list_produces_empty_cipher_field
+- `tests/tls_analyzer_tests.rs` -- test_BC_2_07_006_all_16_canonical_grease_ciphers_produce_empty_cipher_field
+- `tests/tls_analyzer_tests.rs` -- test_BC_2_07_006_non_canonical_grease_pattern_0x0a1a_is_filtered
+- `tests/tls_analyzer_tests.rs` -- test_BC_2_07_006_grease_inserted_at_front_middle_end_same_hash
+- `tests/tls_analyzer_tests.rs` -- test_BC_2_07_006_ec_point_format_bytes_are_not_filtered
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:50-52` (is_grease_u16), `src/analyzer/tls.rs:100-143` (compute_ja3) |
+| **Path** | `src/analyzer/tls.rs:50-52` (is_grease_u16), `src/analyzer/tls.rs:100-143` (compute_ja3: cipher filter 100-106, ext filter 108-121, curves/pf filter 123-143), `src/analyzer/tls.rs:157-169` (compute_ja3s ext filter) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
