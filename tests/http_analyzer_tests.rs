@@ -332,7 +332,12 @@ fn test_too_many_headers_generates_finding() {
     assert_eq!(findings[0].confidence, Confidence::Medium);
     assert_eq!(findings[0].mitre_technique.as_deref(), Some("T1499.002"));
     assert!(findings[0].summary.contains("Excessive HTTP headers"));
-    assert!(findings[0].evidence[0].contains("request"));
+    // AC-005 / BC-2.06.014 invariant 4: evidence must be EXACTLY "Direction: request",
+    // not derived from the Direction enum (which would print a variant name, not this string).
+    assert_eq!(
+        findings[0].evidence[0], "Direction: request",
+        "AC-005 / BC-2.06.014 invariant 4: evidence must be exactly 'Direction: request'"
+    );
 }
 
 #[test]
@@ -3490,3 +3495,1052 @@ mod bc_2_06_043_formalization {
         );
     }
 } // mod bc_2_06_043_formalization
+
+mod bc_2_06_044_formalization {
+    use super::*;
+
+    // ── BC-2.06.013 ───────────────────────────────────────────────────────────────
+    // Non-HTTP Bytes Increment parse_errors; No Token-Error Findings
+
+    /// BC-2.06.013 postconditions 1-5 — SSH-like bytes in request direction:
+    /// parse_errors incremented by 1, no finding emitted, early return.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_013_non_http_bytes_increment_parse_errors_no_finding() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Canonical test vector: SSH-like bytes → httparse::Error::Token
+        analyzer.on_data(
+            &fk,
+            Direction::ClientToServer,
+            b"SSH-2.0-OpenSSH\r\n\r\n",
+            0,
+        );
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            1,
+            "BC-2.06.013 postcondition 1: parse_errors must be 1 after one non-HTTP buffer"
+        );
+        assert!(
+            analyzer.findings().is_empty(),
+            "BC-2.06.013 postcondition 4: no finding must be emitted for a token error"
+        );
+        // Postcondition 3 (buf clear): no method counted — buffer was cleared.
+        assert!(
+            analyzer.method_counts().get("SSH-2.0-OpenSSH").is_none(),
+            "BC-2.06.013 postcondition 3: request_buf must be cleared after error"
+        );
+    }
+
+    /// BC-2.06.013 canonical test vector 2 — binary garbage bytes.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_013_binary_garbage_increments_parse_errors() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Binary garbage: 0xFF 0xFE = invalid UTF-8 and invalid HTTP token.
+        analyzer.on_data(
+            &fk,
+            Direction::ClientToServer,
+            b"\xff\xfe binary garbage",
+            0,
+        );
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            1,
+            "BC-2.06.013 EC-001: binary garbage must increment parse_errors to 1"
+        );
+        assert!(
+            analyzer.findings().is_empty(),
+            "BC-2.06.013 EC-001: no finding for binary garbage (token error only)"
+        );
+    }
+
+    /// BC-2.06.013 invariant 1 — had_success suppresses error counting for body bytes.
+    /// A complete HTTP request header followed immediately by body bytes in the same
+    /// on_data call must NOT increment parse_errors.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_013_invariant_had_success_suppresses_body_byte_errors() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Normal request + binary body bytes (NUL, which Err(Token) on re-parse).
+        let mut req = b"GET /resource HTTP/1.1\r\nHost: example.com\r\n\r\n".to_vec();
+        req.push(0x00); // NUL — causes parse error on next loop iteration
+        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0);
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.013 invariant 1: body bytes after successful header must NOT increment parse_errors"
+        );
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.013 invariant 1: GET must be counted despite body bytes following the header"
+        );
+    }
+
+    /// BC-2.06.013 invariant 2 — TooManyHeaders is the only Err that also emits a finding;
+    /// confirmed by verifying a token error does NOT emit a finding.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_013_invariant_token_error_does_not_emit_finding() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Any string that causes httparse::Error::Token (not TooManyHeaders).
+        analyzer.on_data(&fk, Direction::ClientToServer, b"NOT_HTTP\r\n\r\n", 0);
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            1,
+            "BC-2.06.013: token error must increment parse_errors"
+        );
+        let findings = analyzer.findings();
+        assert!(
+            findings.is_empty(),
+            "BC-2.06.013 invariant 2: token error must NOT emit a finding; got: {:?}",
+            findings
+        );
+    }
+
+    // ── BC-2.06.014 ───────────────────────────────────────────────────────────────
+    // Too Many Headers Emits Anomaly/Inconclusive/Medium Finding (T1499.002)
+
+    /// BC-2.06.014 postconditions 1-5 — request with 97 headers (exceeds MAX_HEADERS=96)
+    /// must emit exactly one finding with all required fields.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_014_too_many_headers_request_emits_anomaly_finding() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        let mut request = b"GET / HTTP/1.1\r\n".to_vec();
+        for i in 0..97 {
+            request.extend_from_slice(format!("X-Header-{i}: value\r\n").as_bytes());
+        }
+        request.extend_from_slice(b"\r\n");
+        analyzer.on_data(&fk, Direction::ClientToServer, &request, 0);
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            1,
+            "BC-2.06.014 postcondition 2: TooManyHeaders must increment parse_errors"
+        );
+        let findings = analyzer.findings();
+        assert_eq!(
+            findings.len(),
+            1,
+            "BC-2.06.014 postcondition 1: exactly one finding must be emitted"
+        );
+        let f = &findings[0];
+        assert_eq!(
+            f.category,
+            ThreatCategory::Anomaly,
+            "BC-2.06.014 postcondition 1: category must be Anomaly"
+        );
+        assert_eq!(
+            f.verdict,
+            Verdict::Inconclusive,
+            "BC-2.06.014 postcondition 1: verdict must be Inconclusive"
+        );
+        assert_eq!(
+            f.confidence,
+            Confidence::Medium,
+            "BC-2.06.014 postcondition 1: confidence must be Medium"
+        );
+        assert_eq!(
+            f.mitre_technique.as_deref(),
+            Some("T1499.002"),
+            "BC-2.06.014 postcondition 1: mitre_technique must be T1499.002"
+        );
+        assert_eq!(
+            f.summary,
+            "Excessive HTTP headers exceeded parser limit (possible DoS or header-based attack)",
+            "BC-2.06.014 postcondition 1: summary text must match exactly"
+        );
+        assert_eq!(
+            f.evidence,
+            vec!["Direction: request".to_string()],
+            "BC-2.06.014 postcondition 1 / invariant 4: evidence must be plain string 'Direction: request'"
+        );
+        assert_eq!(
+            f.direction,
+            Some(Direction::ClientToServer),
+            "BC-2.06.014 postcondition 1: direction field must be ClientToServer"
+        );
+    }
+
+    /// BC-2.06.014 postconditions 1-5 (response side) — response with 97 headers
+    /// must emit a finding with "Direction: response" evidence.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_014_too_many_headers_response_emits_anomaly_finding() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        let mut response = b"HTTP/1.1 200 OK\r\n".to_vec();
+        for i in 0..97 {
+            response.extend_from_slice(format!("X-Header-{i}: value\r\n").as_bytes());
+        }
+        response.extend_from_slice(b"\r\n");
+        analyzer.on_data(&fk, Direction::ServerToClient, &response, 0);
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            1,
+            "BC-2.06.014 postcondition 2 (response): parse_errors must be 1"
+        );
+        let findings = analyzer.findings();
+        assert_eq!(
+            findings.len(),
+            1,
+            "BC-2.06.014: exactly one finding for TooManyHeaders on response"
+        );
+        let f = &findings[0];
+        assert_eq!(
+            f.evidence,
+            vec!["Direction: response".to_string()],
+            "BC-2.06.014 invariant 4: response evidence must be plain string 'Direction: response'"
+        );
+        assert_eq!(
+            f.direction,
+            Some(Direction::ServerToClient),
+            "BC-2.06.014 postcondition 1: direction field must be ServerToClient"
+        );
+        assert_eq!(
+            f.mitre_technique.as_deref(),
+            Some("T1499.002"),
+            "BC-2.06.014: mitre_technique must be T1499.002 for response side"
+        );
+    }
+
+    /// BC-2.06.014 invariant 3 — TooManyHeaders does NOT bypass the error-count path;
+    /// repeated TooManyHeaders advances toward poisoning.  On the 3rd consecutive
+    /// TooManyHeaders the direction is poisoned AND the finding is emitted.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_014_invariant_too_many_headers_contributes_to_poison_threshold() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Build a canonical too-many-headers request (97 headers).
+        let build_tmh_request = || {
+            let mut req = b"GET / HTTP/1.1\r\n".to_vec();
+            for i in 0..97 {
+                req.extend_from_slice(format!("X-Header-{i}: value\r\n").as_bytes());
+            }
+            req.extend_from_slice(b"\r\n");
+            req
+        };
+
+        let req = build_tmh_request();
+        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0);
+        assert_eq!(analyzer.parse_error_count(), 1);
+        assert_eq!(analyzer.findings().len(), 1);
+
+        let req2 = build_tmh_request();
+        analyzer.on_data(&fk, Direction::ClientToServer, &req2, 0);
+        assert_eq!(analyzer.parse_error_count(), 2);
+        assert_eq!(analyzer.findings().len(), 2);
+
+        // Third: poisons the direction AND emits a finding.
+        let req3 = build_tmh_request();
+        analyzer.on_data(&fk, Direction::ClientToServer, &req3, 0);
+        assert_eq!(
+            analyzer.parse_error_count(),
+            3,
+            "BC-2.06.014 invariant 3: third TooManyHeaders must increment parse_errors to 3"
+        );
+        assert_eq!(
+            analyzer.findings().len(),
+            3,
+            "BC-2.06.014 EC-003: third TooManyHeaders must emit a finding too"
+        );
+
+        // Fourth: direction is now poisoned; bytes should be skipped without parsing.
+        let before = analyzer.poisoned_bytes_skipped();
+        let extra = b"GET / HTTP/1.1\r\nHost: x.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, extra, 0);
+        assert_eq!(
+            analyzer.poisoned_bytes_skipped(),
+            before + extra.len() as u64,
+            "BC-2.06.014 invariant 3: direction must be poisoned after 3 TooManyHeaders errors"
+        );
+    }
+
+    /// BC-2.06.014 invariant 4 — evidence text is a plain hardcoded string, not derived
+    /// from the Direction enum.  Specifically "Direction: request" and "Direction: response".
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_014_invariant_evidence_is_plain_string_not_enum_derived() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+        let fk2 = test_flow_key_b();
+
+        let mut req = b"GET / HTTP/1.1\r\n".to_vec();
+        for i in 0..97 {
+            req.extend_from_slice(format!("X-Header-{i}: value\r\n").as_bytes());
+        }
+        req.extend_from_slice(b"\r\n");
+        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0);
+
+        let mut resp = b"HTTP/1.1 200 OK\r\n".to_vec();
+        for i in 0..97 {
+            resp.extend_from_slice(format!("X-Header-{i}: value\r\n").as_bytes());
+        }
+        resp.extend_from_slice(b"\r\n");
+        analyzer.on_data(&fk2, Direction::ServerToClient, &resp, 0);
+
+        let findings = analyzer.findings();
+        let req_finding = findings
+            .iter()
+            .find(|f| f.direction == Some(Direction::ClientToServer))
+            .expect("must have request-direction finding");
+        let resp_finding = findings
+            .iter()
+            .find(|f| f.direction == Some(Direction::ServerToClient))
+            .expect("must have response-direction finding");
+
+        assert_eq!(
+            req_finding.evidence[0], "Direction: request",
+            "BC-2.06.014 invariant 4: request evidence must be exactly 'Direction: request'"
+        );
+        assert_eq!(
+            resp_finding.evidence[0], "Direction: response",
+            "BC-2.06.014 invariant 4: response evidence must be exactly 'Direction: response'"
+        );
+    }
+
+    // ── BC-2.06.015 ───────────────────────────────────────────────────────────────
+    // After 3 Consecutive Parse Errors a Direction is Poisoned; Subsequent Bytes Skipped
+
+    /// BC-2.06.015 postconditions 1-4 — 3 consecutive errors trigger poisoning;
+    /// subsequent bytes counted in poisoned_bytes_skipped without parsing.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_015_three_consecutive_errors_trigger_poisoning() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Canonical test vector: 3 consecutive non-HTTP chunks.
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK1\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK2\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK3\r\n\r\n", 0);
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            3,
+            "BC-2.06.015 postcondition 1 precursor: parse_errors must be 3 at poison threshold"
+        );
+
+        // Postcondition 4: subsequent bytes skipped without parsing.
+        let post_poison = b"GET /index.html HTTP/1.1\r\nHost: x.com\r\n\r\n";
+        let before = analyzer.poisoned_bytes_skipped();
+        analyzer.on_data(&fk, Direction::ClientToServer, post_poison, 0);
+
+        assert_eq!(
+            analyzer.poisoned_bytes_skipped(),
+            before + post_poison.len() as u64,
+            "BC-2.06.015 postcondition 4: subsequent bytes must be counted in poisoned_bytes_skipped"
+        );
+        assert!(
+            analyzer.method_counts().get("GET").is_none(),
+            "BC-2.06.015 postcondition 4: poisoned direction must NOT parse the request"
+        );
+    }
+
+    /// BC-2.06.015 postcondition 2 — non_http_flows incremented on first direction poisoned.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_015_non_http_flows_incremented_on_first_poison() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        for _ in 0..3 {
+            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        }
+
+        let summary = analyzer.summarize();
+        assert_eq!(
+            summary.detail["non_http_flows"],
+            serde_json::json!(1),
+            "BC-2.06.015 postcondition 2: non_http_flows must be 1 after first direction poisoned"
+        );
+    }
+
+    /// BC-2.06.015 invariant 2 — error counter is CONSECUTIVE, not cumulative.
+    /// One successful parse resets it to 0.  Canonical test vector: 2 bad + 1 good + 2 bad.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_015_invariant_error_count_is_consecutive_not_cumulative() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // 2 errors (below threshold).
+        analyzer.on_data(&fk, Direction::ClientToServer, b"BAD1\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"BAD2\r\n\r\n", 0);
+
+        // 1 success — resets consecutive count to 0.
+        let good = b"GET /ok HTTP/1.1\r\nHost: x.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, good, 0);
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.015 invariant 2: valid request must parse after 2 errors"
+        );
+
+        // 2 more errors — consecutive count is now 2, NOT 4 (reset happened).
+        analyzer.on_data(&fk, Direction::ClientToServer, b"BAD3\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"BAD4\r\n\r\n", 0);
+
+        // Another valid request must succeed — only 2 consecutive errors, not poisoned.
+        let good2 = b"GET /ok2 HTTP/1.1\r\nHost: x.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, good2, 0);
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            2,
+            "BC-2.06.015 invariant 2: reset on success prevents cumulative poisoning; \
+             consecutive count is 2 not 4 — direction must not be poisoned"
+        );
+    }
+
+    /// BC-2.06.015 invariant 3 — poisoning is irreversible within a flow lifetime.
+    /// Once poisoned, the direction never un-poisons (except via on_flow_close).
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_015_invariant_poisoning_is_irreversible() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Poison the direction.
+        for _ in 0..3 {
+            analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK\r\n\r\n", 0);
+        }
+
+        // Send 1000 bytes — all skipped.
+        let payload: Vec<u8> = vec![b'A'; 1000];
+        analyzer.on_data(&fk, Direction::ClientToServer, &payload, 0);
+
+        assert_eq!(
+            analyzer.poisoned_bytes_skipped(),
+            1000,
+            "BC-2.06.015 invariant 3 / EC-004: 1000 bytes to poisoned direction must all be skipped"
+        );
+
+        // Send a valid HTTP request — must still be skipped (irreversible).
+        let valid = b"GET /attempt HTTP/1.1\r\nHost: x.com\r\n\r\n";
+        let before = analyzer.poisoned_bytes_skipped();
+        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+        assert_eq!(
+            analyzer.poisoned_bytes_skipped(),
+            before + valid.len() as u64,
+            "BC-2.06.015 invariant 3: poisoning is irreversible — valid bytes still skipped"
+        );
+        assert!(
+            analyzer.method_counts().get("GET").is_none(),
+            "BC-2.06.015 invariant 3: GET must never be parsed once direction is poisoned"
+        );
+    }
+
+    // ── BC-2.06.016 ───────────────────────────────────────────────────────────────
+    // Single Parse Error Does NOT Poison
+
+    /// BC-2.06.016 postconditions 1-5 — single error increments counters but
+    /// does NOT trigger poisoning; subsequent valid request parses normally.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_016_single_error_does_not_poison_direction() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            1,
+            "BC-2.06.016 postcondition 3: parse_errors must be 1"
+        );
+
+        // Postcondition 2: not poisoned.
+        let valid = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.016 postcondition 5: subsequent valid request must parse after single error"
+        );
+        assert_eq!(
+            analyzer.poisoned_bytes_skipped(),
+            0,
+            "BC-2.06.016 postcondition 2: no bytes should be skipped after a single error"
+        );
+    }
+
+    /// BC-2.06.016 invariant 2 — error_count reset on success means threshold measures
+    /// CONSECUTIVE errors.  EC-001: 1 error then valid request — error_count back to 0.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_016_invariant_single_error_then_success_resets_count() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // 1 error.
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+
+        // Success — count reset.
+        let valid = b"GET /first HTTP/1.1\r\nHost: x.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.016 EC-001: valid request after single error must parse"
+        );
+
+        // Now need 3 new consecutive errors to poison (the reset is proven by
+        // the fact that 2 more errors + 1 good still parse).
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK1\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK2\r\n\r\n", 0);
+        let valid2 = b"GET /second HTTP/1.1\r\nHost: x.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, valid2, 0);
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            2,
+            "BC-2.06.016 invariant 2: 2 errors after a reset must not poison; second GET must parse"
+        );
+    }
+
+    /// BC-2.06.016 EC-003 — 2 errors, then 1 error (not consecutive reset):
+    /// NOT poisoned; count after the third call is 1 (because a success
+    /// intervened... actually no — this EC says no success intervened but
+    /// the pattern is 2 errors + 1 non-consecutive error).
+    ///
+    /// Re-reading BC-2.06.016 EC-003: "2 errors, then 1 error (not consecutive reset)"
+    /// means 2 + 1 = 3 TOTAL but NOT 3 CONSECUTIVE because there was a reset in between.
+    /// This effectively tests: 2 errors → success → 1 error → count=1, not poisoned.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_016_ec003_two_errors_success_one_error_count_one() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // 2 consecutive errors.
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK1\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK2\r\n\r\n", 0);
+
+        // Success — resets count to 0.
+        let good = b"GET /ok HTTP/1.1\r\nHost: x.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, good, 0);
+
+        // 1 more error — consecutive count is 1 now (not 3).
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK3\r\n\r\n", 0);
+
+        // Must not be poisoned — count is 1, below threshold.
+        let good2 = b"GET /ok2 HTTP/1.1\r\nHost: x.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, good2, 0);
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            2,
+            "BC-2.06.016 EC-003: after 2 errors + success + 1 error, count is 1 — must NOT be poisoned"
+        );
+    }
+
+    // ── BC-2.06.017 ───────────────────────────────────────────────────────────────
+    // Poisoning is Per-Direction; Poisoned Request Does Not Affect Response
+
+    /// BC-2.06.017 postconditions 1-3 — request poisoned; response continues normally.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_017_poisoned_request_does_not_affect_response_parsing() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Poison request direction.
+        for _ in 0..3 {
+            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        }
+
+        // Response direction: valid response must parse normally.
+        let response = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+        let before = analyzer.poisoned_bytes_skipped();
+        analyzer.on_data(&fk, Direction::ServerToClient, response, 0);
+
+        assert_eq!(
+            analyzer.transaction_count(),
+            1,
+            "BC-2.06.017 postcondition 1: response must be counted as transaction"
+        );
+        assert_eq!(
+            *analyzer.status_code_counts().get(&200).unwrap_or(&0),
+            1,
+            "BC-2.06.017 postcondition 1: status 200 must be recorded"
+        );
+        assert_eq!(
+            analyzer.poisoned_bytes_skipped(),
+            before,
+            "BC-2.06.017 postcondition 2: valid response bytes must NOT be counted as skipped"
+        );
+    }
+
+    /// BC-2.06.017 invariant 1 — request_poisoned only gates ClientToServer data.
+    /// After request poisoning, further ClientToServer bytes must be skipped but
+    /// ServerToClient bytes must NOT be skipped.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_017_invariant_request_poisoned_gates_only_client_to_server() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Poison request direction with 3 errors.
+        for _ in 0..3 {
+            analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK\r\n\r\n", 0);
+        }
+        let skipped_after_poison = analyzer.poisoned_bytes_skipped();
+        // Should be 0: nothing was sent post-poison yet.
+        assert_eq!(
+            skipped_after_poison, 0,
+            "precondition: no bytes skipped yet at poison time"
+        );
+
+        // Send data on both directions.
+        let req_bytes = b"GET / HTTP/1.1\r\nHost: x.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, req_bytes, 0);
+        // Request direction is poisoned: bytes counted as skipped.
+        assert_eq!(
+            analyzer.poisoned_bytes_skipped(),
+            req_bytes.len() as u64,
+            "BC-2.06.017 invariant 1: ClientToServer bytes must be counted as skipped"
+        );
+
+        let resp_bytes = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+        let before_resp = analyzer.poisoned_bytes_skipped();
+        analyzer.on_data(&fk, Direction::ServerToClient, resp_bytes, 0);
+        // Response direction is NOT poisoned: bytes must NOT be skipped.
+        assert_eq!(
+            analyzer.poisoned_bytes_skipped(),
+            before_resp,
+            "BC-2.06.017 invariant 1: ServerToClient bytes must NOT be counted as skipped"
+        );
+        assert_eq!(
+            analyzer.transaction_count(),
+            1,
+            "BC-2.06.017: response must produce a transaction"
+        );
+    }
+
+    /// BC-2.06.017 EC-003 — response poisoned; request receives valid HTTP — parses normally.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_017_ec003_poisoned_response_does_not_affect_request() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Poison response direction with 3 errors.
+        for _ in 0..3 {
+            analyzer.on_data(&fk, Direction::ServerToClient, b"GARBAGE\r\n\r\n", 0);
+        }
+
+        // Request direction is not poisoned; valid request must parse.
+        let valid_req = b"GET /test HTTP/1.1\r\nHost: x.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, valid_req, 0);
+
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.017 EC-003: request direction must parse normally when only response is poisoned"
+        );
+    }
+
+    // ── BC-2.06.018 ───────────────────────────────────────────────────────────────
+    // non_http_flows Counts Flow Once Even if Both Directions Poisoned
+
+    /// BC-2.06.018 postconditions 1-3 — only request direction poisoned → non_http_flows=1.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_018_only_request_poisoned_counts_one_flow() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        for _ in 0..3 {
+            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        }
+
+        let summary = analyzer.summarize();
+        assert_eq!(
+            summary.detail["non_http_flows"],
+            serde_json::json!(1),
+            "BC-2.06.018 EC-001: one request-poisoned flow must contribute non_http_flows=1"
+        );
+    }
+
+    /// BC-2.06.018 postconditions 1-3 — both directions poisoned → non_http_flows=1, NOT 2.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_018_both_directions_poisoned_counts_one_flow_not_two() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Poison request direction.
+        for _ in 0..3 {
+            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        }
+        // Poison response direction on the same flow.
+        for _ in 0..3 {
+            analyzer.on_data(&fk, Direction::ServerToClient, b"GARBAGE\r\n\r\n", 0);
+        }
+
+        let summary = analyzer.summarize();
+        assert_eq!(
+            summary.detail["non_http_flows"],
+            serde_json::json!(1),
+            "BC-2.06.018 postcondition 3 / EC-002: both directions poisoned must count as 1 flow"
+        );
+    }
+
+    /// BC-2.06.018 invariant 2 — non_http_flows counts flows, not directions.
+    /// Two separate flows each having one direction poisoned → non_http_flows=2.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_018_invariant_two_separate_flows_count_two() {
+        let mut analyzer = HttpAnalyzer::new();
+        let flow_a = test_flow_key();
+        let flow_b = test_flow_key_b();
+
+        // Poison flow A request direction.
+        for _ in 0..3 {
+            analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        }
+        // Poison flow B request direction.
+        for _ in 0..3 {
+            analyzer.on_data(&flow_b, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        }
+
+        let summary = analyzer.summarize();
+        assert_eq!(
+            summary.detail["non_http_flows"],
+            serde_json::json!(2),
+            "BC-2.06.018 EC-003 / invariant 2: two separate poisoned flows must count as non_http_flows=2"
+        );
+    }
+
+    /// BC-2.06.018 invariant 3 — counted_as_non_http latch is checked before incrementing.
+    /// The second direction's poisoning does NOT increment non_http_flows because the latch
+    /// is already true.  Proven by asserting summarize() shows 1, not 2, after both poison.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_018_invariant_counted_as_non_http_latch_prevents_double_count() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // First: poison response direction.
+        for _ in 0..3 {
+            analyzer.on_data(&fk, Direction::ServerToClient, b"GARBAGE\r\n\r\n", 0);
+        }
+        let after_resp = analyzer.summarize();
+        assert_eq!(
+            after_resp.detail["non_http_flows"],
+            serde_json::json!(1),
+            "BC-2.06.018: first poisoned direction (response) must set non_http_flows=1"
+        );
+
+        // Second: poison request direction on the same flow.
+        for _ in 0..3 {
+            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        }
+        let after_req = analyzer.summarize();
+        assert_eq!(
+            after_req.detail["non_http_flows"],
+            serde_json::json!(1),
+            "BC-2.06.018 invariant 3: counted_as_non_http latch must prevent second poison \
+             from incrementing non_http_flows again (still 1, not 2)"
+        );
+    }
+
+    // ── BC-2.06.020 ───────────────────────────────────────────────────────────────
+    // HTTP Body Bytes After Header Completion Do Not Inflate parse_errors
+
+    /// BC-2.06.020 postconditions 1-4 — POST with body: parse_errors=0,
+    /// request_error_count not advanced, buf cleared.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_020_post_with_body_does_not_inflate_parse_errors() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Canonical test vector: POST / HTTP/1.1 with JSON body.
+        // Header parses completely (had_success=true); JSON body bytes remain in buf
+        // and cause Err(Token) on next loop iteration — must be suppressed.
+        let req =
+            b"POST / HTTP/1.1\r\nHost: x.com\r\nContent-Length: 17\r\n\r\n{\"json\":\"body\"}";
+        analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.020 postcondition 1: body bytes after header must NOT inflate parse_errors"
+        );
+        assert_eq!(
+            *analyzer.method_counts().get("POST").unwrap_or(&0),
+            1,
+            "BC-2.06.020: POST header must be counted"
+        );
+        assert_eq!(
+            analyzer.poisoned_bytes_skipped(),
+            0,
+            "BC-2.06.020 postcondition 2: no body bytes should poison the direction"
+        );
+    }
+
+    /// BC-2.06.020 invariant 1 — had_success is local per try_parse_requests call.
+    /// Initialized to false; set to true when a complete request is parsed.
+    /// Two separate on_data calls each start with had_success=false.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_020_invariant_had_success_is_local_per_call() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // on_data call 1: valid request — had_success=true by end.
+        let req1 = b"GET /first HTTP/1.1\r\nHost: x.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, req1, 0);
+        assert_eq!(analyzer.parse_error_count(), 0, "first on_data: no errors");
+
+        // on_data call 2: garbage — had_success starts as false again, error counted.
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        assert_eq!(
+            analyzer.parse_error_count(),
+            1,
+            "BC-2.06.020 invariant 1: had_success is local per call; second on_data starts false"
+        );
+    }
+
+    /// BC-2.06.020 EC-001 — response with body: body bytes remain in buf after header
+    /// parse; had_success suppresses the resulting Err.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_020_response_with_body_does_not_inflate_parse_errors() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Response header + body in one chunk.
+        let resp = b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 5\r\n\r\nhello";
+        analyzer.on_data(&fk, Direction::ServerToClient, resp, 0);
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.020 EC-001: response body bytes must not inflate parse_errors"
+        );
+        assert_eq!(
+            analyzer.transaction_count(),
+            1,
+            "BC-2.06.020 EC-001: response transaction must be counted"
+        );
+    }
+
+    /// BC-2.06.020 invariant 3 — TooManyHeaders check is inside the `if !had_success` block.
+    /// A TooManyHeaders on body bytes after a successful header parse must NOT emit a finding.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_020_invariant_too_many_headers_after_success_suppressed() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Build: one valid request header followed immediately by a byte sequence that
+        // would, if reparsed, trigger TooManyHeaders.  In practice, body bytes cause
+        // Err(Token) not TooManyHeaders, but the invariant is that ALL Err paths are
+        // gated by `if !had_success`.  We test this with a response that has body bytes,
+        // which exercises the response-side had_success guard at the TooManyHeaders check.
+        //
+        // To confirm invariant 3 directly: send a valid request, then body bytes with NUL.
+        // Since there's no Content-Length tracking, the NUL bytes become Err(Token) which
+        // is suppressed by had_success.  The finding count must remain 0.
+        let mut req_with_body = b"GET /resource HTTP/1.1\r\nHost: example.com\r\n\r\n".to_vec();
+        req_with_body.extend_from_slice(b"\x00\x01\x02"); // NUL bytes
+        analyzer.on_data(&fk, Direction::ClientToServer, &req_with_body, 0);
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.020 invariant 3: Err after had_success=true must NOT increment parse_errors"
+        );
+        assert!(
+            analyzer.findings().is_empty(),
+            "BC-2.06.020 invariant 3: no finding must be emitted for body-byte Err after success"
+        );
+    }
+
+    /// BC-2.06.020 invariant 3 (real TooManyHeaders path) — A second request with 97+
+    /// headers appended immediately after a first valid request in the SAME on_data call
+    /// must NOT produce a TooManyHeaders finding.
+    ///
+    /// Construction: buf = [valid GET request][second GET with 97 X-Header-N lines].
+    /// After the first request parses successfully, had_success=true and its bytes are
+    /// drained from request_buf.  The loop continues and tries to parse the second
+    /// request; httparse returns Err(TooManyHeaders) (MAX_HEADERS=96, so 97 headers
+    /// triggers the limit).  Because had_success==true the `if !had_success` guard at
+    /// src/analyzer/http.rs:404 skips both the error-counter increment AND the finding
+    /// push at :416.  This is the positive coverage the NUL-byte variant above cannot
+    /// provide: it exercises the actual TooManyHeaders branch inside the guard.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_020_invariant_real_too_many_headers_after_success_suppressed() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Request 1: syntactically valid — will parse completely and set had_success=true.
+        let mut buf = b"GET /first HTTP/1.1\r\nHost: example.com\r\n\r\n".to_vec();
+
+        // Request 2: 97 headers — exceeds MAX_HEADERS (96) and causes Err(TooManyHeaders).
+        // Appended in the same buffer so the loop encounters it after draining request 1.
+        buf.extend_from_slice(b"GET /second HTTP/1.1\r\n");
+        for i in 0..97 {
+            buf.extend_from_slice(format!("X-Header-{i}: value\r\n").as_bytes());
+        }
+        buf.extend_from_slice(b"\r\n");
+
+        analyzer.on_data(&fk, Direction::ClientToServer, &buf, 0);
+
+        // Request 1 must be counted.
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.020 invariant 3 (real TMH): first valid request must be counted"
+        );
+
+        // The TooManyHeaders error on request 2 must be suppressed by had_success.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.020 invariant 3 (real TMH): had_success guard must suppress \
+             parse_errors for TooManyHeaders after first success"
+        );
+
+        // No finding must be emitted — the guard at :416 is inside `if !had_success`.
+        let all_findings = analyzer.findings();
+        let tmh_findings: Vec<_> = all_findings
+            .iter()
+            .filter(|f| f.summary.contains("Excessive HTTP headers"))
+            .collect();
+        assert!(
+            tmh_findings.is_empty(),
+            "BC-2.06.020 invariant 3 (real TMH): TooManyHeaders finding MUST NOT be \
+             emitted when had_success=true — guard at src/analyzer/http.rs:416 must gate \
+             the finding push; got {} finding(s)",
+            tmh_findings.len()
+        );
+    }
+
+    /// BC-2.06.020 invariant 3 (real TooManyHeaders — RESPONSE arm) — Symmetric sibling
+    /// of `test_BC_2_06_020_invariant_real_too_many_headers_after_success_suppressed`.
+    ///
+    /// BC-2.06.020 invariant 3 applies to BOTH arms of the parse loop.  The response-side
+    /// guard is at `src/analyzer/http.rs:462` wrapping the TooManyHeaders finding push at
+    /// ~475-487.  This test exercises that arm directly:
+    ///
+    /// Construction (ServerToClient direction):
+    ///   buf = [valid HTTP/1.1 200 response with complete headers + body]
+    ///         [second response with 97+ X-Header-N lines → Err(TooManyHeaders)]
+    ///
+    /// After the first response parses, `had_success = true` and `transactions` becomes 1.
+    /// The loop continues, encounters the second (too-many-headers) response, gets
+    /// `Err(TooManyHeaders)`, but the `if !had_success` guard at :462 prevents both the
+    /// `parse_errors` increment and the finding push at :475.
+    ///
+    /// Assertions:
+    ///   - `transaction_count() == 1`  (first response counted; second not reached)
+    ///   - `parse_error_count() == 0`  (guard suppressed the error increment)
+    ///   - No "Excessive HTTP headers" finding emitted  (guard suppressed the push)
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_020_invariant_real_too_many_headers_after_success_suppressed_response() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Response 1: syntactically valid — will parse completely and set had_success=true.
+        // Content-Length: 0 so there are no stray body bytes; the entire first response
+        // fits cleanly and is drained before the loop re-iterates.
+        let mut buf = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n".to_vec();
+
+        // Response 2: 97 X-Header-N lines — exceeds MAX_HEADERS (96) and causes
+        // Err(TooManyHeaders) on the RESPONSE parse path.  Appended in the same buffer
+        // so the loop encounters it after draining response 1.
+        buf.extend_from_slice(b"HTTP/1.1 200 OK\r\n");
+        for i in 0..97 {
+            buf.extend_from_slice(format!("X-Header-{i}: value\r\n").as_bytes());
+        }
+        buf.extend_from_slice(b"\r\n");
+
+        analyzer.on_data(&fk, Direction::ServerToClient, &buf, 0);
+
+        // Response 1 must be counted as a transaction (response-side success counter).
+        assert_eq!(
+            analyzer.transaction_count(),
+            1,
+            "BC-2.06.020 invariant 3 (resp TMH): first valid response must increment transactions"
+        );
+
+        // The TooManyHeaders error on response 2 must be suppressed by had_success.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.020 invariant 3 (resp TMH): had_success guard on response arm must suppress \
+             parse_errors for TooManyHeaders after first success (guard at src/analyzer/http.rs:462)"
+        );
+
+        // No finding must be emitted — the push at ~:475 is inside `if !had_success`.
+        let all_findings = analyzer.findings();
+        let tmh_findings: Vec<_> = all_findings
+            .iter()
+            .filter(|f| f.summary.contains("Excessive HTTP headers"))
+            .collect();
+        assert!(
+            tmh_findings.is_empty(),
+            "BC-2.06.020 invariant 3 (resp TMH): TooManyHeaders finding MUST NOT be emitted when \
+             had_success=true on the response arm — guard at src/analyzer/http.rs:462 must gate \
+             the finding push at ~:475; got {} finding(s)",
+            tmh_findings.len()
+        );
+    }
+
+    /// BC-2.06.020 EC-002 — 2 error buffers before a valid header, then body.
+    /// The two pre-success errors ARE counted (parse_errors=2), but the body error
+    /// after the successful header is NOT counted.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_020_pre_success_errors_counted_body_errors_not() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // 2 error buffers.
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK1\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK2\r\n\r\n", 0);
+        assert_eq!(
+            analyzer.parse_error_count(),
+            2,
+            "BC-2.06.020 EC-002: 2 errors before success must be counted"
+        );
+
+        // Valid header + body in same on_data.
+        let mut req = b"GET /valid HTTP/1.1\r\nHost: x.com\r\n\r\n".to_vec();
+        req.push(0x00); // body byte → Err on next iteration (suppressed)
+        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0);
+
+        assert_eq!(
+            analyzer.parse_error_count(),
+            2,
+            "BC-2.06.020 EC-002: body byte error after success must NOT add to parse_errors; stays at 2"
+        );
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.020 EC-002: GET must be counted from the successful header"
+        );
+    }
+} // mod bc_2_06_044_formalization
