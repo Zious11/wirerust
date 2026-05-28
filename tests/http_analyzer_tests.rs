@@ -655,9 +655,9 @@ fn test_detect_long_uri() {
     assert_eq!(long_uri_finding.category, ThreatCategory::Execution);
     assert_eq!(long_uri_finding.verdict, Verdict::Likely);
     assert_eq!(long_uri_finding.confidence, Confidence::Medium);
-    assert!(
-        long_uri_finding.summary.contains("2101 chars"),
-        "summary should include the URI length, got: {}",
+    assert_eq!(
+        long_uri_finding.summary, "Abnormally long URI (2101 chars)",
+        "summary must be exactly 'Abnormally long URI (2101 chars)', got: {}",
         long_uri_finding.summary
     );
     assert!(
@@ -3388,6 +3388,13 @@ mod bc_2_06_043_formalization {
         let request = b"GET /resource HTTP/1.1\r\nUser-Agent: \r\n\r\n";
         analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
 
+        // Positive-parse anchor: request must have been parsed before asserting findings.
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "precondition: dual-anomaly request must parse (BC-2.06.009/BC-2.06.011 parse anchor)"
+        );
+
         let findings = analyzer.findings();
         assert!(
             findings
@@ -3426,7 +3433,7 @@ mod bc_2_06_043_formalization {
             findings
                 .iter()
                 .any(|f| f.summary.contains("Path traversal")),
-            "BC-2.06.001: path-traversal finding must fire even when long-URI also matches"
+            "BC-2.06.005: path-traversal finding must fire even when long-URI also matches"
         );
     }
 
@@ -3478,10 +3485,9 @@ mod bc_2_06_043_formalization {
             .expect("10000-char URI must trigger long-URI finding");
 
         // Invariant 3: exact byte count in summary (10000, NOT 200).
-        assert!(
-            f.summary.contains("10000 chars"),
-            "BC-2.06.010 invariant 3: summary must contain exact count '10000 chars', got: {}",
-            f.summary
+        assert_eq!(
+            f.summary, "Abnormally long URI (10000 chars)",
+            "BC-2.06.010 invariant 3: summary must be exactly 'Abnormally long URI (10000 chars)'"
         );
 
         // Invariant 2: evidence truncated to 200 chars.
