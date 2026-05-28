@@ -1691,8 +1691,8 @@ fn test_BC_2_07_006_all_16_canonical_grease_ciphers_produce_empty_cipher_field()
     // as empty cipher list. Verifies is_grease_u16 is applied to cipher IDs.
     // BC canonical: MD5("771,,,,") = bddda940f9963577c41d7c28b1a5f65f
     let all_grease: &[u16] = &[
-        0x0a0a, 0x1a1a, 0x2a2a, 0x3a3a, 0x4a4a, 0x5a5a, 0x6a6a, 0x7a7a, 0x8a8a, 0x9a9a,
-        0xaaaa, 0xbaba, 0xcaca, 0xdada, 0xeaea, 0xfafa,
+        0x0a0a, 0x1a1a, 0x2a2a, 0x3a3a, 0x4a4a, 0x5a5a, 0x6a6a, 0x7a7a, 0x8a8a, 0x9a9a, 0xaaaa,
+        0xbaba, 0xcaca, 0xdada, 0xeaea, 0xfafa,
     ];
     let fk = test_flow_key();
 
@@ -1933,7 +1933,8 @@ fn test_BC_2_07_007_ja3_hash_is_32_lowercase_hex_chars() {
         "JA3 hash must be exactly 32 characters (BC-2.07.007 postcondition 8)"
     );
     assert!(
-        hash.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
+        hash.chars()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
         "JA3 hash must be all lowercase hex (BC-2.07.007 postcondition 8), got: {hash}"
     );
 }
@@ -1974,8 +1975,14 @@ fn test_BC_2_07_007_cipher_order_produces_different_hashes() {
         "BC-2.07.007 invariant 2: cipher order [A,B] vs [B,A] must produce different JA3 hashes"
     );
     // Pin exact values from canonical test vectors.
-    assert_eq!(hash_ab, "577fbfd57b256f5467f2fe09d1105a26", "JA3 [0x002f,0x0035] canonical hash");
-    assert_eq!(hash_ba, "e570871018118a1c91927ac4f3253bb8", "JA3 [0x0035,0x002f] canonical hash");
+    assert_eq!(
+        hash_ab, "577fbfd57b256f5467f2fe09d1105a26",
+        "JA3 [0x002f,0x0035] canonical hash"
+    );
+    assert_eq!(
+        hash_ba, "e570871018118a1c91927ac4f3253bb8",
+        "JA3 [0x0035,0x002f] canonical hash"
+    );
 }
 
 // ── AC-008 (BC-2.07.008 postconditions 1-4): JA3S 3-field format ─────────────
@@ -1999,9 +2006,18 @@ fn test_BC_2_07_008_ja3s_has_exactly_two_commas_three_fields() {
         &build_client_hello("example.com", &[0x002f]),
         0,
     );
-    analyzer.on_data(&fk, Direction::ServerToClient, &build_server_hello(0x002f), 0);
+    analyzer.on_data(
+        &fk,
+        Direction::ServerToClient,
+        &build_server_hello(0x002f),
+        0,
+    );
 
-    assert_eq!(analyzer.ja3s_counts().len(), 1, "one JA3S hash must be recorded");
+    assert_eq!(
+        analyzer.ja3s_counts().len(),
+        1,
+        "one JA3S hash must be recorded"
+    );
     let hash = analyzer.ja3s_counts().keys().next().unwrap().clone();
 
     // Canonical: "771,47,65281" -> MD5 = 573a9f3f80037fb40d481e2054def5bb
@@ -2087,7 +2103,9 @@ fn test_BC_2_07_008_ja3s_hash_is_32_lowercase_hex_and_deterministic() {
         "BC-2.07.008 postcondition 5: JA3S hash must be 32 characters"
     );
     assert!(
-        hash1.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
+        hash1
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
         "BC-2.07.008 postcondition 5: JA3S hash must be all lowercase hex, got: {hash1}"
     );
 }
