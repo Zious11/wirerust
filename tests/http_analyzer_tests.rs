@@ -2841,6 +2841,11 @@ mod bc_2_06_043_formalization {
             // zero-findings assertion is unambiguous.
             let request = b"delete /resource HTTP/1.0\r\n\r\n";
             analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            assert_eq!(
+                *analyzer.method_counts().get("delete").unwrap_or(&0),
+                1,
+                "precondition: lowercase 'delete' must parse as a method (BC-2.06.008 invariant 2 anchor)"
+            );
             assert!(
                 !analyzer
                     .findings()
