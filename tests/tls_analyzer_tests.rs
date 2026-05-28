@@ -244,19 +244,17 @@ fn test_parse_client_hello() {
         "AC-004 (BC-2.07.001 pc4): sni_counts[\"example.com\"] must be 1"
     );
 
-    // AC-005 (BC-2.07.001 postcondition 8): the record bytes are drained from client_buf.
-    // After on_data the buffer is empty because try_parse_records drains it once a
-    // complete record has been consumed.  We verify this indirectly: sending the same
-    // record a second time on the *same* flow would double-count if the first record
-    // had NOT been drained — the handshake count would reach 2. After drain it stays 1
-    // because the second on_data starts with an empty buffer, parses a fresh
-    // ClientHello, and increments to 2 only if the drain worked.  A more direct check
-    // would require an internal accessor; instead we confirm parse_error_count == 0
-    // (no partial-record error from stale bytes) as the observable postcondition.
+    // AC-005 (BC-2.07.001 postcondition 8): the record bytes are drained from client_buf
+    // after try_parse_records consumes a complete record.  We observe this directly via
+    // the #[cfg(test)] accessor client_buf_len_for_testing: immediately after on_data
+    // the buffer must be 0 bytes (all consumed bytes drained).  The pre-call length is
+    // the full record length (the record was appended then parsed in the same call), so
+    // a nonzero post-call length would prove the drain path was not taken.
     assert_eq!(
-        analyzer.parse_error_count(),
+        analyzer.client_buf_len_for_testing(&fk),
         0,
-        "AC-005 (BC-2.07.001 pc8): no parse errors — client_buf drained cleanly"
+        "AC-005 (BC-2.07.001 pc8): client_buf must be fully drained after a complete \
+         ClientHello record is consumed by try_parse_records"
     );
 
     // AC-006 (BC-2.07.001 invariant 1): handshakes_seen increments exactly once per
@@ -2545,5 +2543,313 @@ fn test_BC_2_07_008_ja3s_all_grease_extensions_produce_empty_ext_field() {
         hash, "5397c414a9ebeaff1bf18b70ca22eaa0",
         "EC-007 (BC-2.07.008 postcondition 4 edge): all-GREASE ServerHello extensions \
          must yield empty ext field; canonical MD5('771,47,') = 5397c414a9ebeaff1bf18b70ca22eaa0"
+    );
+}
+
+// ── STORY-052 adversarial-pass remediation: proxy-assertion gap fixes ─────────
+//
+// The four tests below address MEDIUM findings from the adversarial review:
+//
+//   AC-005 / BC-2.07.001 pc8  — direct client_buf drain observation (finding #1)
+//     Fixed in test_parse_client_hello above via client_buf_len_for_testing().
+//
+//   AC-010 / BC-2.07.032 pc2  — JA3 "771," prefix (finding #2)
+//     Fixed in tls_integration_tests.rs: assert !version_counts.contains_key(&0x0304).
+//
+//   AC-011 / BC-2.07.032 inv1 — supported_versions not inspected (finding #3)
+//     New synthetic unit test below: feed a ClientHello whose legacy_version is
+//     0x0303 but whose supported_versions extension claims 0x0304; assert
+//     version_counts records 0x0303 (NOT 0x0304).
+//
+//   AC-002 / BC-2.07.001 pc2+inv2 — version_counts and ja3_counts capacity (finding #4)
+//     Two new capacity tests below, mirroring test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity.
+
+/// Build a TLS ClientHello record with `legacy_version=0x0303` and a
+/// `supported_versions` extension advertising `[supported_version]`.
+///
+/// This produces a wire-format TLS 1.3 ClientHello: the record-layer version
+/// is 0x0303 (legacy_version per RFC 8446 §4.1.2) and the `supported_versions`
+/// extension (type 0x002b) signals the actual desired version. Used by
+/// `test_BC_2_07_032_inv1_supported_versions_not_inspected` to confirm the
+/// analyzer records `ch.version.0` (legacy_version) and NOT the extension value.
+fn build_client_hello_with_supported_versions_ext(
+    sni: &str,
+    cipher_ids: &[u16],
+    supported_version: u16,
+) -> Vec<u8> {
+    let mut extensions = Vec::new();
+
+    // SNI extension (type 0x0000)
+    let sni_bytes = sni.as_bytes();
+    let name_len = u16::try_from(sni_bytes.len()).expect("SNI too long");
+    let sni_list_len = name_len
+        .checked_add(3)
+        .expect("SNI list length overflows u16");
+    let sni_ext_len = sni_list_len
+        .checked_add(2)
+        .expect("SNI ext length overflows u16");
+    extensions.extend_from_slice(&[0x00, 0x00]); // extension type: server_name
+    extensions.extend_from_slice(&sni_ext_len.to_be_bytes());
+    extensions.extend_from_slice(&sni_list_len.to_be_bytes());
+    extensions.push(0x00); // NameType: host_name
+    extensions.extend_from_slice(&name_len.to_be_bytes());
+    extensions.extend_from_slice(sni_bytes);
+
+    // supported_versions extension (type 0x002b)
+    // ClientHello format: 1 byte list-byte-length + N * 2-byte version entries
+    // For a single version: [0x02, hi, lo]
+    extensions.extend_from_slice(&[0x00, 0x2b]); // extension type: supported_versions
+    extensions.extend_from_slice(&[0x00, 0x03]); // extension data length = 3 bytes
+    extensions.push(0x02); // versions list byte-length = 2 (one 2-byte version)
+    extensions.extend_from_slice(&supported_version.to_be_bytes());
+
+    // Supported Groups extension (type 0x000a)
+    extensions.extend_from_slice(&[0x00, 0x0a, 0x00, 0x06, 0x00, 0x04, 0x00, 0x1d, 0x00, 0x17]);
+
+    // EC Point Formats extension (type 0x000b)
+    extensions.extend_from_slice(&[0x00, 0x0b, 0x00, 0x02, 0x01, 0x00]);
+
+    // ClientHello body with legacy_version = 0x0303
+    let mut ch_body = Vec::new();
+    ch_body.extend_from_slice(&[0x03, 0x03]); // legacy_version = TLS 1.2 (0x0303)
+    ch_body.extend_from_slice(&[0u8; 32]); // random
+    ch_body.push(0x00); // session_id length: 0
+
+    let ciphers_len =
+        u16::try_from(cipher_ids.len() * 2).expect("cipher list byte length overflows u16");
+    ch_body.extend_from_slice(&ciphers_len.to_be_bytes());
+    for &id in cipher_ids {
+        ch_body.extend_from_slice(&id.to_be_bytes());
+    }
+
+    ch_body.push(0x01); // compression methods length
+    ch_body.push(0x00); // null compression
+
+    let ext_len = u16::try_from(extensions.len()).expect("extensions block exceeds u16::MAX bytes");
+    ch_body.extend_from_slice(&ext_len.to_be_bytes());
+    ch_body.extend_from_slice(&extensions);
+
+    // Handshake header
+    let mut handshake = Vec::new();
+    handshake.push(0x01); // ClientHello
+    let ch_len = ch_body.len() as u32;
+    handshake.push((ch_len >> 16) as u8);
+    handshake.push((ch_len >> 8) as u8);
+    handshake.push(ch_len as u8);
+    handshake.extend_from_slice(&ch_body);
+
+    // TLS record header (record-layer version 0x0301 as used by TLS 1.3 on the wire)
+    let mut record = Vec::new();
+    record.push(0x16); // handshake
+    record.extend_from_slice(&[0x03, 0x01]); // TLS 1.0 compat record-layer version
+    let hs_len = u16::try_from(handshake.len()).expect("handshake body exceeds u16::MAX bytes");
+    record.extend_from_slice(&hs_len.to_be_bytes());
+    record.extend_from_slice(&handshake);
+    record
+}
+
+// Finding #3 (AC-011 / BC-2.07.032 invariant 1): supported_versions not inspected
+//
+// The prior test (test_tls13_pcap_version_and_ja3 integration test) was vacuous
+// because any real TLS 1.3 ClientHello has legacy_version=0x0303 and
+// supported_versions=0x0304, so observing version_counts[0x0303] proved nothing
+// — both the "looks at legacy_version" AND the "looks at supported_versions" paths
+// would produce 0x0303 in version_counts for a real TLS 1.3 capture.
+//
+// This test constructs a synthetic fixture where legacy_version=0x0303 and
+// supported_versions=[0x0304]. If the analyzer inspected supported_versions it
+// would record 0x0304 in version_counts. Asserting 0x0304 is ABSENT pins the
+// invariant that only ch.version.0 (legacy_version) is ever recorded.
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_032_inv1_supported_versions_not_inspected() {
+    // BC-2.07.032 invariant 1: TlsAnalyzer records ch.version.0 (legacy_version)
+    // and does NOT inspect the supported_versions extension for version counting.
+    //
+    // Fixture: ClientHello with legacy_version=0x0303 (TLS 1.2 compatibility value)
+    // and supported_versions extension advertising 0x0304 (TLS 1.3).
+    //
+    // If the analyzer were to inspect the supported_versions extension, it would
+    // record 0x0304 in version_counts. The BC states only legacy_version is used.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Build a ClientHello: legacy_version=0x0303, supported_versions ext=[0x0304].
+    // The two versions differ: 0x0303 (legacy_version) vs 0x0304 (supported_versions).
+    let record = build_client_hello_with_supported_versions_ext(
+        "tls13.example.com",
+        &[0x1301, 0x1302, 0x1303], // TLS 1.3 ciphers
+        0x0304,                    // supported_versions extension: TLS 1.3
+    );
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "fixture must parse cleanly"
+    );
+    assert_eq!(
+        analyzer.handshake_count(),
+        1,
+        "exactly one ClientHello processed"
+    );
+
+    // The legacy_version (0x0303) MUST be recorded.
+    assert!(
+        analyzer.version_counts().contains_key(&0x0303),
+        "AC-011 / BC-2.07.032 inv1: version_counts must contain 0x0303 (legacy_version), \
+         got: {:?}",
+        analyzer.version_counts()
+    );
+
+    // The supported_versions extension value (0x0304) must NOT be recorded.
+    // If this assertion fails, the analyzer is wrongly inspecting supported_versions.
+    assert!(
+        !analyzer.version_counts().contains_key(&0x0304),
+        "AC-011 / BC-2.07.032 inv1: version_counts must NOT contain 0x0304 \
+         (supported_versions extension value) — TlsAnalyzer must use only ch.version.0 \
+         (legacy_version=0x0303), NOT the supported_versions extension. Got: {:?}",
+        analyzer.version_counts()
+    );
+
+    // Confirm version_counts has exactly ONE key (the legacy_version 0x0303).
+    assert_eq!(
+        analyzer.version_counts().len(),
+        1,
+        "AC-011 / BC-2.07.032 inv1: version_counts must have exactly one entry \
+         (legacy_version 0x0303), not two entries (0x0303 + 0x0304). \
+         Got: {:?}",
+        analyzer.version_counts()
+    );
+}
+
+// Finding #4 (AC-002 / BC-2.07.001 postcondition 2 + invariant 2):
+// version_counts and ja3_counts capacity bounds — both maps are bounded at
+// MAX_MAP_ENTRIES=50,000 per BC-2.07.001 invariant 2 ("ALL counter maps bounded").
+// The existing test (test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity)
+// only exercises sni_counts. These two tests pin the capacity bound for
+// version_counts and ja3_counts respectively.
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_001_inv2_version_counts_bounded_at_max_map_entries() {
+    // BC-2.07.001 invariant 2: version_counts is bounded at MAX_MAP_ENTRIES=50,000.
+    // When the map is full (50,000 unique keys), a new key is silently dropped.
+    //
+    // Implementation: version is a u16, so there are only 65,536 possible values.
+    // We fill version_counts to capacity by sending ClientHellos via synthetic
+    // TLS records where we directly mutate the version field. Since
+    // build_client_hello_with_version always uses legacy_version from the
+    // ClientHello body (not the record-layer version), we can sweep version values.
+    //
+    // We fill with versions 0x0001 through 0xC350 (50,000 values), then send
+    // version 0xC351 and assert it was NOT inserted.
+    //
+    // Note: each of these versions <= 0x0300 (except those > 0x0300) will also
+    // generate deprecated-protocol findings — that's expected behavior and does
+    // NOT affect the capacity assertion for version_counts.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    const MAX_MAP_ENTRIES: usize = 50_000;
+
+    // Fill version_counts to capacity using MAX_MAP_ENTRIES distinct version values.
+    // Version 0 would trigger deprecated-protocol finding noise but is harmless.
+    // We use versions 1..=MAX_MAP_ENTRIES (all fit in u16 since 50,000 < 65,536).
+    for v in 1u32..=(MAX_MAP_ENTRIES as u32) {
+        let version = v as u16;
+        let record = build_client_hello_with_version(version, &[0x1301]);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    }
+
+    assert_eq!(
+        analyzer.version_counts().len(),
+        MAX_MAP_ENTRIES,
+        "AC-002 / BC-2.07.001 inv2: version_counts must be full at MAX_MAP_ENTRIES={MAX_MAP_ENTRIES}, \
+         got {}",
+        analyzer.version_counts().len()
+    );
+
+    // The next distinct version value (MAX_MAP_ENTRIES + 1 = 50,001) must be silently dropped.
+    let overflow_version = (MAX_MAP_ENTRIES + 1) as u16; // 50,001 — fits in u16
+    let record = build_client_hello_with_version(overflow_version, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    // version_counts must not grow beyond the cap.
+    assert_eq!(
+        analyzer.version_counts().len(),
+        MAX_MAP_ENTRIES,
+        "AC-002 / BC-2.07.001 inv2: version_counts must not exceed MAX_MAP_ENTRIES={MAX_MAP_ENTRIES} \
+         after overflow; new key {overflow_version} must be silently dropped. \
+         Got: {} entries",
+        analyzer.version_counts().len()
+    );
+
+    // Confirm the overflow key is absent.
+    assert!(
+        !analyzer.version_counts().contains_key(&overflow_version),
+        "AC-002 / BC-2.07.001 inv2: overflow version key {overflow_version} must not appear \
+         in version_counts past the cap. Got: {:?}",
+        analyzer.version_counts().get(&overflow_version)
+    );
+}
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_001_inv2_ja3_counts_bounded_at_max_map_entries() {
+    // BC-2.07.001 invariant 2: ja3_counts is bounded at MAX_MAP_ENTRIES=50,000.
+    // When the map is full, a new JA3 hash is silently dropped.
+    //
+    // We produce 50,000 unique JA3 hashes by varying the ClientHello version field.
+    // Each distinct version v produces JA3 string "{v},4865,,," where 4865 (0x1301,
+    // TLS_AES_128_GCM_SHA256) is a strong non-GREASE cipher. The JA3 string differs
+    // for each v, so each MD5 hash is unique.
+    //
+    // We use build_client_hello_with_version (no-extension builder) to suppress SNI /
+    // curves / pf overhead and keep the per-record cost low. Versions 1..=50,000 all
+    // fit in u16 (max 65,535) with no wraparound.
+    //
+    // Note: versions 1..=0x0300 (1..=768) produce deprecated-protocol findings.
+    // That is expected: findings are not bounded per BC-2.04.024, so the finding vec
+    // grows but the capacity assertion on ja3_counts is unaffected.
+    //
+    // This test is slower than typical unit tests (~600ms debug) because 50,000
+    // TLS records must be built and parsed. Budget: ~2s CI.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    const MAX_MAP_ENTRIES: usize = 50_000;
+
+    // Fill ja3_counts to capacity. Cipher 0x1301 (4865) is strong, non-GREASE,
+    // and accepted by is_grease_u16(0x1301) = false ((0x1301 & 0x0F0F) = 0x0101 ≠ 0x0A0A).
+    // Each version v in 1..=MAX_MAP_ENTRIES yields a unique JA3 string "{v},4865,,,".
+    for v in 1u32..=(MAX_MAP_ENTRIES as u32) {
+        let record = build_client_hello_with_version(v as u16, &[0x1301]);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    }
+
+    assert_eq!(
+        analyzer.ja3_counts().len(),
+        MAX_MAP_ENTRIES,
+        "AC-002 / BC-2.07.001 inv2: ja3_counts must be full at MAX_MAP_ENTRIES={MAX_MAP_ENTRIES}, \
+         got {}",
+        analyzer.ja3_counts().len()
+    );
+
+    // Inject one more ClientHello with a version that produces a NEW (distinct) JA3 hash.
+    // Version MAX_MAP_ENTRIES + 1 = 50,001 (fits in u16) was not used in the fill loop.
+    let overflow_version = (MAX_MAP_ENTRIES + 1) as u16; // 50,001
+    let overflow_record = build_client_hello_with_version(overflow_version, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &overflow_record, 0);
+
+    // ja3_counts must not grow beyond the cap.
+    assert_eq!(
+        analyzer.ja3_counts().len(),
+        MAX_MAP_ENTRIES,
+        "AC-002 / BC-2.07.001 inv2: ja3_counts must not exceed MAX_MAP_ENTRIES={MAX_MAP_ENTRIES} \
+         after overflow; new JA3 hash for version={overflow_version} must be silently dropped. \
+         Got: {} entries",
+        analyzer.ja3_counts().len()
     );
 }

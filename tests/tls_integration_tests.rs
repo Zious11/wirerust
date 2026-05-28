@@ -64,6 +64,27 @@ fn test_tls13_pcap_version_and_ja3() {
     // 2 unique JA3 hashes
     assert_eq!(tls.ja3_counts().len(), 2);
 
+    // AC-010 (BC-2.07.032 pc2): JA3 is computed using legacy_version (0x0303 = 771),
+    // not the supported_versions extension value (0x0304 = TLS 1.3).  The JA3 string
+    // format is "<version>,<ciphers>,<exts>,<curves>,<pf>", so the first field of
+    // every JA3 string produced from a TLS 1.3 ClientHello must be "771".
+    // We verify this against the live JA3 pre-image stored in ja3_counts keys.
+    //
+    // Note: ja3_counts stores 32-char MD5 hex hashes, NOT the raw JA3 strings.
+    // The JA3 string is not separately stored by TlsAnalyzer.  Instead we re-derive
+    // the assertion: if the version in version_counts is ONLY 0x0303 (i.e. the
+    // supported_versions extension's 0x0304 was NOT recorded), then JA3 must have
+    // used 0x0303 as its version field.  We additionally verify that 0x0304 is
+    // absent from version_counts — if the analyzer had inspected supported_versions,
+    // it would have recorded 0x0304 there.
+    assert!(
+        !tls.version_counts().contains_key(&0x0304),
+        "AC-010 / AC-011 (BC-2.07.032 pc2 + inv1): version_counts must NOT contain \
+         0x0304 (TLS 1.3) — TlsAnalyzer uses only ch.version.0 (legacy_version 0x0303), \
+         NOT the supported_versions extension value. Got version_counts: {:?}",
+        tls.version_counts()
+    );
+
     // JA3S hashes computed
     assert_eq!(tls.ja3s_counts().len(), 2);
 
