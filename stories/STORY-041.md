@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-041"
 epic_id: "E-4"
-version: "1.4"
+version: "1.5"
 status: in-progress
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -67,8 +67,8 @@ When a complete HTTP/1.1 or HTTP/1.0 request is parsed via httparse, the `method
 - **Test:** `test_BC_2_06_001_complete_request_updates_all_counters` (in `mod bc_2_06_formalization`)
 - **Companion tests:** `test_BC_2_06_001_consumed_bytes_drained_from_buf`, `test_BC_2_06_001_request_parse_does_not_increment_transactions`, `test_BC_2_06_001_http10_parsed_without_host_finding`, `test_BC_2_06_001_absent_optional_headers_produce_no_map_entries`
 
-### AC-002 (traces to BC-2.06.026 invariant 1-3)
-Header field values for Host and User-Agent are extracted via `String::from_utf8_lossy(h.value).trim().to_string()` — non-UTF-8 bytes are replaced with U+FFFD (invariant 2: `from_utf8_lossy` guarantees valid UTF-8 output) and surrounding whitespace is stripped (invariant 3: `.trim()` removes ASCII whitespace including space and tab `\t`). The trimmed, lossy string is the canonical stored form (invariant 1). Bare LF (`\n`, C0 0x0A) is rejected at the httparse layer before `trim()` is reached — httparse rejects C0 control bytes in header values — so LF trimming is not an observable behavior of this contract (space + tab coverage is sufficient).
+### AC-002 (traces to BC-2.06.026 invariant 2-3)
+Header field values for Host and User-Agent are extracted via `String::from_utf8_lossy(h.value).trim().to_string()`. Per invariant 2, `from_utf8_lossy` guarantees the stored string is valid UTF-8 (non-UTF-8 bytes become U+FFFD). Per invariant 3, `.trim()` removes ASCII whitespace (space and tab; LF/CR are unreachable per httparse C0 rejection — see BC-2.06.026 invariant 3 note). Bare LF (`\n`, C0 0x0A) is rejected at the httparse layer before `trim()` is reached — httparse rejects C0 control bytes in header values — so LF trimming is not an observable behavior of this contract (space + tab coverage is sufficient).
 
 Round-1 added explicit tab (`\t`) assertions to `test_BC_2_06_026_header_utf8_lossy_whitespace_trimmed`, confirming invariant 3 coverage beyond space-only. Invariant 2 is covered indirectly by `test_BC_2_06_026_non_utf8_header_value_replaced_with_replacement_char` (U+FFFD presence in the output implies the result is valid UTF-8).
 - **Test:** `test_BC_2_06_026_header_utf8_lossy_whitespace_trimmed` (in `mod bc_2_06_formalization`)
@@ -93,10 +93,10 @@ When httparse returns `Status::Partial`, no method/host/UA/URI counters are upda
 `Status::Partial` is distinct from `Err` — it does not increment `parse_errors` and does not advance `request_error_count` toward the poison threshold.
 - **Test:** `test_BC_2_06_003_partial_not_counted_as_error` (in `mod bc_2_06_formalization`)
 
-### AC-007 (traces to BC-2.06.004 postcondition 1-4)
+### AC-007 (traces to BC-2.06.004 postcondition 1-4 + invariant 4)
 When a complete HTTP response header is parsed, `transactions` is incremented by 1, `status_codes[status_code]` is incremented (using `unwrap_or(0)` for None codes), consumed bytes are drained from `response_buf`, and `response_error_count` is reset to 0.
 - **Test:** `test_BC_2_06_004_response_parse_increments_transactions_and_status_code` (in `mod bc_2_06_formalization`)
-- **Companion tests:** `test_BC_2_06_004_response_buf_drained_enables_pipelined_parsing`, `test_BC_2_06_004_well_formed_404_response_status_code_counted` (cross-codes coverage: 200 in primary test, 304 in pipelined test, 404 here — proves status_codes is keyed dynamically by httparse-returned code value, not hardcoded to 200), `test_BC_2_06_004_had_success_suppresses_response_body_byte_errors` (response-side analog of the request-side had_success guard at try_parse_responses (line 462); mental-deletion verified: removing the `if !had_success` guard would cause body bytes after a successful header parse to inflate response parse_errors)
+- **Companion tests:** `test_BC_2_06_004_response_buf_drained_enables_pipelined_parsing`, `test_BC_2_06_004_well_formed_404_response_status_code_counted` (cross-codes coverage: 200 in primary test, 304 in pipelined test, 404 here — proves status_codes is keyed dynamically by httparse-returned code value, not hardcoded to 200), `test_BC_2_06_004_had_success_suppresses_response_body_byte_errors` (response-side analog [in try_parse_responses at src/analyzer/http.rs:462] of the request-side had_success guard [in try_parse_requests at src/analyzer/http.rs:404]). Mental-deletion verified: removing the `if !had_success` guard at line 462 would cause body bytes (NUL-injected) after a successful response header parse to inflate `parse_errors` and the test would fail.
 
 ### AC-008 (traces to BC-2.06.004 invariant 1)
 `transactions` counts parsed HTTP RESPONSES only — parsing requests does NOT increment `transactions`. The `summarize()` method maps `packets_analyzed = self.transactions`.
@@ -208,4 +208,5 @@ No escape function is called at parse time — raw URI bytes from `req.path` flo
 | v1.1 | 2026-05-28 | DF-AC-TEST-NAME-SYNC-001 v1 sync — AC Test lines bound to actual `fn test_BC_2_06_*` names (23 tests); status draft→in-progress (F-W15P2-001: +1 net new test added in Round-3 bringing total to 24) |
 | v1.2 | 2026-05-28 | Pass-1 remediation — Tasks 3-7 reframed as brownfield verification steps [x]; AC-002 traces extended to invariant 1-3 (tab/LF/CR whitespace coverage confirmed); AC-003 traces extended to include invariant 3 (no detection aggregation); AC-009 trace corrected to postcondition 1, 4 + invariant 1; HttpFlowState line range cited (82-90); AC-001 postcondition delegation notes added; AC-007 companion test renamed sync with Round-1 test commit dbb60c0 (status_code_none_mapped_to_zero → well_formed_404_response_status_code_counted). Captures W15.D1 + W15.D2 deferred findings for STATE.md. |
 | v1.3 | 2026-05-28 | Pass-2 remediation — EC-007 marked defensive (W15.D1); AC-005 narrative extended to postcondition 5 (buffered partial completes as single request); Task 5 line range corrected to Partial arms (401-402 request, 459-460 response); Task 7 test count + invariant range corrected (5 tests, inv 1-4); AC-007 companion role clarified (cross-codes coverage: 200/304/404); AC-002 narrative finalized — LF rejected at httparse layer (C0 control bytes rejected), space + tab coverage confirmed sufficient (F-W15P2-004/005/006/007/010). |
-| v1.4 | 2026-05-28 | Pass-3 remediation — AC-004 companion synced to renamed request-side test (F-W15P3-001); response-side had_success test added as AC-007 companion (F-W15P3-004); Tasks 1+6 counts updated 23→24 and 5→6 to match Round-3 test additions (F-W15P3-003); v1.3 changelog extended to mention F-W15P2-001 +1 net new test. |
+| v1.4 | 2026-05-28 | Pass-3 remediation — AC-004 companion synced to renamed request-side test (F-W15P3-001); response-side had_success test added as AC-007 companion (F-W15P3-004); Tasks 1+6 counts updated 23→24 and 5→6 to match Round-3 test additions (F-W15P3-003); v1.1 changelog extended to mention F-W15P2-001 +1 net new test in Round-3. |
+| v1.5 | 2026-05-28 | Pass-4 remediation — AC-002 trace narrowed to invariant 2-3 + paraphrase corrected (F-W15P4-002); AC-007 companion grammar fixed re. guard direction + locations (F-W15P4-003); v1.X changelog provenance note corrected (F-W15P4-004); AC-007 trace extended with invariant 4 (BC-2.06.004 v1.5 landed). |
