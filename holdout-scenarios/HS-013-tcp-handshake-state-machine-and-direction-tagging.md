@@ -13,7 +13,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.050.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.051.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.053.md
-input-hash: "bfffc90"
+input-hash: "af54ab6"
 traces_to: .factory/specs/prd.md
 id: "HS-013"
 category: "behavioral-subtleties"

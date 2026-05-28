@@ -9,7 +9,7 @@ phase: 2
 inputs:
   - .factory/stories/STORY-015.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.039.md
-input-hash: "9dc8bb4"
+input-hash: "d9831ce"
 traces_to: .factory/stories/STORY-015.md
 id: "HS-029"
 category: "edge-case-combinations"

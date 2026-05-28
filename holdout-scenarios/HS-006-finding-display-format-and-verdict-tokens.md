@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.002.md
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.003.md
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.004.md
-input-hash: "1030fa9"
+input-hash: "5cabe5c"
 traces_to: .factory/specs/prd.md
 id: "HS-006"
 category: "behavioral-subtleties"

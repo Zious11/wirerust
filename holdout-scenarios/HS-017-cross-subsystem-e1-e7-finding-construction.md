@@ -14,7 +14,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.001.md
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.006.md
   - .factory/specs/behavioral-contracts/ss-10/BC-2.10.005.md
-input-hash: "a3ed987"
+input-hash: "c213eb6"
 traces_to: .factory/specs/prd.md
 id: "HS-017"
 category: "integration-boundaries"

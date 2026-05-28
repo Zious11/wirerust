@@ -1,0 +1,73 @@
+# STORY-013 Red Gate Log
+
+**Date:** 2026-05-22
+**Branch:** feature/story-013-handshake-state-machine
+**Worktree:** .worktrees/story-013
+
+## Red Gate Results
+
+All 31 new STORY-013 tests failed before implementation verification.
+Pre-existing 83 tests passed throughout.
+
+### Flow Tests (reassembly_flow_tests.rs) — 26 new tests FAILED
+
+All bodies were `panic!("RED GATE: ... not yet verified")`:
+
+| Test | AC/EC |
+|------|-------|
+| test_BC_2_04_004_syn_sets_initiator | AC-001 |
+| test_BC_2_04_004_syn_sets_client_isn | AC-002 |
+| test_BC_2_04_004_syn_transitions_to_synsent | AC-003 |
+| test_BC_2_04_004_retransmitted_syn_is_idempotent | AC-004 |
+| test_BC_2_04_005_syn_ack_sets_initiator_to_dst | AC-005 |
+| test_BC_2_04_005_syn_ack_establishes_flow | AC-006 |
+| test_BC_2_04_005_syn_ack_without_prior_syn | AC-007 |
+| test_BC_2_04_050_state_machine_all_transitions | AC-008 |
+| test_BC_2_04_050_on_syn_no_op_when_not_new | AC-009 |
+| test_BC_2_04_050_fin_count_saturates_at_255 | AC-010 |
+| test_BC_2_04_051_rst_closes_from_any_state | AC-011 |
+| test_BC_2_04_052_data_without_syn_sets_partial | AC-012 |
+| test_BC_2_04_052_on_data_without_syn_no_op_when_established | AC-013 |
+| test_BC_2_04_053_direction_client_to_server_when_src_is_initiator | AC-014 |
+| test_BC_2_04_053_direction_server_to_client_when_src_is_not_initiator | AC-015 |
+| test_BC_2_04_053_direction_server_to_client_when_no_initiator | AC-016 |
+| test_BC_2_04_004_ec001_retransmitted_syn_state_unchanged | EC-001 |
+| test_BC_2_04_005_ec002_syn_ack_first_sets_initiator_to_dst | EC-002 |
+| test_BC_2_04_005_ec003_syn_ack_retransmission_is_idempotent | EC-003 |
+| test_BC_2_04_004_ec004_syn_with_payload_sets_isn | EC-004 |
+| test_BC_2_04_051_ec005_rst_on_new_flow | EC-005 |
+| test_BC_2_04_051_ec006_rst_on_closing_flow | EC-006 |
+| test_BC_2_04_051_ec007_rst_closes_flow_state | EC-007 |
+| test_BC_2_04_050_ec008_both_fins_same_direction_closes_flow | EC-008 |
+| test_BC_2_04_050_ec009_fin_on_new_flow | EC-009 |
+| test_BC_2_04_053_ec010_direction_none_initiator_returns_server_to_client | EC-010 |
+
+### Engine Tests (reassembly_engine_tests.rs) — 5 new tests FAILED
+
+| Test | BC |
+|------|----|
+| test_BC_2_04_004_engine_syn_sets_state_and_isn | BC-2.04.004 |
+| test_BC_2_04_005_engine_syn_ack_establishes_flow | BC-2.04.005 |
+| test_BC_2_04_051_engine_rst_increments_flows_rst_counter | BC-2.04.051 |
+| test_BC_2_04_052_engine_data_without_syn_increments_flows_partial | BC-2.04.052 |
+| test_BC_2_04_053_engine_direction_tagging_in_flush_path | BC-2.04.053 |
+
+### Pre-existing Tests (must still pass)
+- Flow tests: 16 passed
+- Engine tests: 67 passed
+
+## Green Gate Results
+
+After replacing stubs with real assertions:
+- Flow tests: 42 passed (16 pre-existing + 26 new) — 0 failed
+- Engine tests: 72 passed (67 pre-existing + 5 new) — 0 failed
+- `cargo clippy --all-targets -- -D warnings`: clean
+- `cargo fmt --check`: clean
+
+## Commit SHAs
+- RED GATE commit: 8687db8
+- GREEN commit: 098b6d0
+
+## Divergences Found
+None. All 31 tests pass against the existing src/reassembly/ implementation.
+The brownfield code satisfies all 16 ACs and 10 ECs without modification.

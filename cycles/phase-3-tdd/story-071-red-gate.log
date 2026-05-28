@@ -1,0 +1,144 @@
+
+running 19 tests
+test test_all_emitted_ids_resolve ... FAILED
+test test_all_tactics_all_variants_present ... FAILED
+test test_all_tactics_enterprise_kill_chain_order ... FAILED
+test test_all_enterprise_tactic_display_strings ... FAILED
+test test_all_tactics_ics_at_end ... FAILED
+test test_all_tactics_length_is_16 ... FAILED
+test test_all_tactics_no_duplicates ... FAILED
+test test_command_and_control_lowercase_and ... FAILED
+test test_ec_001_real_unseed_technique_returns_none ... FAILED
+test test_ec_002_unseeded_sub_technique_returns_none ... FAILED
+test test_ec_003_leading_space_returns_none ... FAILED
+test test_ec_004_unknown_id_tactic_returns_none ... FAILED
+test test_ec_005_first_tactic_is_reconnaissance ... FAILED
+test test_ics_inhibit_response_function_display ... FAILED
+test test_ics_impair_process_control_display ... FAILED
+test test_mitre_tactic_is_non_exhaustive ... FAILED
+test test_technique_name_resolves_all_15_seeded_ids ... FAILED
+test test_technique_name_returns_none_for_unknown_ids ... FAILED
+test test_technique_tactic_correct_assignments ... FAILED
+
+failures:
+
+---- test_all_emitted_ids_resolve stdout ----
+
+thread 'test_all_emitted_ids_resolve' (4651467) panicked at tests/mitre_tests.rs:170:5:
+RED GATE: AC-015 not yet verified
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- test_all_tactics_all_variants_present stdout ----
+
+thread 'test_all_tactics_all_variants_present' (4651469) panicked at tests/mitre_tests.rs:110:5:
+RED GATE: AC-009 not yet verified
+
+---- test_all_tactics_enterprise_kill_chain_order stdout ----
+
+thread 'test_all_tactics_enterprise_kill_chain_order' (4651470) panicked at tests/mitre_tests.rs:76:5:
+RED GATE: AC-006 not yet verified
+
+---- test_all_enterprise_tactic_display_strings stdout ----
+
+thread 'test_all_enterprise_tactic_display_strings' (4651468) panicked at tests/mitre_tests.rs:19:5:
+RED GATE: AC-001 not yet verified
+
+---- test_all_tactics_ics_at_end stdout ----
+
+thread 'test_all_tactics_ics_at_end' (4651471) panicked at tests/mitre_tests.rs:87:5:
+RED GATE: AC-007 not yet verified
+
+---- test_all_tactics_length_is_16 stdout ----
+
+thread 'test_all_tactics_length_is_16' (4651472) panicked at tests/mitre_tests.rs:63:5:
+RED GATE: AC-005 not yet verified
+
+---- test_all_tactics_no_duplicates stdout ----
+
+thread 'test_all_tactics_no_duplicates' (4651473) panicked at tests/mitre_tests.rs:99:5:
+RED GATE: AC-008 not yet verified
+
+---- test_command_and_control_lowercase_and stdout ----
+
+thread 'test_command_and_control_lowercase_and' (4651474) panicked at tests/mitre_tests.rs:31:5:
+RED GATE: AC-002 not yet verified
+
+---- test_ec_001_real_unseed_technique_returns_none stdout ----
+
+thread 'test_ec_001_real_unseed_technique_returns_none' (4651475) panicked at tests/mitre_tests.rs:194:5:
+RED GATE: EC-001 not yet verified
+
+---- test_ec_002_unseeded_sub_technique_returns_none stdout ----
+
+thread 'test_ec_002_unseeded_sub_technique_returns_none' (4651476) panicked at tests/mitre_tests.rs:206:5:
+RED GATE: EC-002 not yet verified
+
+---- test_ec_003_leading_space_returns_none stdout ----
+
+thread 'test_ec_003_leading_space_returns_none' (4651477) panicked at tests/mitre_tests.rs:217:5:
+RED GATE: EC-003 not yet verified
+
+---- test_ec_004_unknown_id_tactic_returns_none stdout ----
+
+thread 'test_ec_004_unknown_id_tactic_returns_none' (4651478) panicked at tests/mitre_tests.rs:228:5:
+RED GATE: EC-004 not yet verified
+
+---- test_ec_005_first_tactic_is_reconnaissance stdout ----
+
+thread 'test_ec_005_first_tactic_is_reconnaissance' (4651479) panicked at tests/mitre_tests.rs:239:5:
+RED GATE: EC-005 not yet verified
+
+---- test_ics_inhibit_response_function_display stdout ----
+
+thread 'test_ics_inhibit_response_function_display' (4651481) panicked at tests/mitre_tests.rs:42:5:
+RED GATE: AC-003 not yet verified
+
+---- test_ics_impair_process_control_display stdout ----
+
+thread 'test_ics_impair_process_control_display' (4651480) panicked at tests/mitre_tests.rs:53:5:
+RED GATE: AC-004 not yet verified
+
+---- test_mitre_tactic_is_non_exhaustive stdout ----
+
+thread 'test_mitre_tactic_is_non_exhaustive' (4651482) panicked at tests/mitre_tests.rs:183:5:
+RED GATE: AC-016 not yet verified
+
+---- test_technique_name_resolves_all_15_seeded_ids stdout ----
+
+thread 'test_technique_name_resolves_all_15_seeded_ids' (4651483) panicked at tests/mitre_tests.rs:125:5:
+RED GATE: AC-010/AC-011 not yet verified
+
+---- test_technique_name_returns_none_for_unknown_ids stdout ----
+
+thread 'test_technique_name_returns_none_for_unknown_ids' (4651484) panicked at tests/mitre_tests.rs:137:5:
+RED GATE: AC-012 not yet verified
+
+---- test_technique_tactic_correct_assignments stdout ----
+
+thread 'test_technique_tactic_correct_assignments' (4651485) panicked at tests/mitre_tests.rs:157:5:
+RED GATE: AC-013/AC-014 not yet verified
+
+
+failures:
+    test_all_emitted_ids_resolve
+    test_all_enterprise_tactic_display_strings
+    test_all_tactics_all_variants_present
+    test_all_tactics_enterprise_kill_chain_order
+    test_all_tactics_ics_at_end
+    test_all_tactics_length_is_16
+    test_all_tactics_no_duplicates
+    test_command_and_control_lowercase_and
+    test_ec_001_real_unseed_technique_returns_none
+    test_ec_002_unseeded_sub_technique_returns_none
+    test_ec_003_leading_space_returns_none
+    test_ec_004_unknown_id_tactic_returns_none
+    test_ec_005_first_tactic_is_reconnaissance
+    test_ics_impair_process_control_display
+    test_ics_inhibit_response_function_display
+    test_mitre_tactic_is_non_exhaustive
+    test_technique_name_resolves_all_15_seeded_ids
+    test_technique_name_returns_none_for_unknown_ids
+    test_technique_tactic_correct_assignments
+
+test result: FAILED. 0 passed; 19 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

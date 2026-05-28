@@ -14,7 +14,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.002.md
   - .factory/specs/behavioral-contracts/ss-02/BC-2.02.001.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.003.md
-input-hash: "a3ed987"
+input-hash: "c213eb6"
 traces_to: .factory/specs/prd.md
 id: "HS-015"
 category: "real-world-corpus"

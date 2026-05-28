@@ -14,7 +14,7 @@ inputs:
   - .factory/stories/STORY-080.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.001.md
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.002.md
-input-hash: "d2026ba"
+input-hash: "bfce575"
 traces_to: .factory/stories/STORY-076.md
 id: "HS-075"
 category: "integration-boundaries"

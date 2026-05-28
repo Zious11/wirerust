@@ -1,0 +1,37 @@
+RED GATE LOG — STORY-066 DNS Traffic Statistics
+================================================
+Date: 2026-05-22
+Branch: feature/story-066-dns-stats
+Worktree: /Users/zious/Documents/GITHUB/wirerust/.worktrees/story-066
+
+Command: cargo test --test dns_tests
+
+Result: FAILED (expected — Red Gate confirmed)
+  Total tests: 18
+  Passed:       0
+  Failed:      18
+  Ignored:      0
+
+All 18 tests panicked with "RED GATE: <AC/EC id> not yet verified".
+
+Failing tests (all expected):
+  - test_dns_can_decode_port_53_tcp_and_udp     (AC-001 / BC-2.08.001 pc1)
+  - test_dns_can_decode_false_for_icmp          (AC-002 / BC-2.08.001 pc2)
+  - test_dns_can_decode_false_for_non_dns_port  (AC-003 / BC-2.08.001 pc3)
+  - test_dns_analyzer_counts_queries            (AC-004 / BC-2.08.002 pc1)
+  - test_dns_analyzer_counts_responses          (AC-005 / BC-2.08.002 pc2)
+  - test_dns_short_payload_counted_as_response  (AC-006 / BC-2.08.002 pc3)
+  - test_dns_analyze_increments_exactly_one_counter (AC-007 / BC-2.08.002 inv1)
+  - test_dns_summarize_analyzer_name            (AC-008 / BC-2.08.003 pc1)
+  - test_dns_summarize_packets_analyzed_is_sum  (AC-009 / BC-2.08.003 pc5)
+  - test_dns_summarize_detail_keys              (AC-010+AC-011 / BC-2.08.003 pc2+pc3)
+  - test_dns_summarize_exactly_two_detail_keys  (AC-012 / BC-2.08.003 pc4)
+  - test_dns_analyze_always_returns_empty_findings (AC-013 / BC-2.08.004 pc1)
+  - test_dns_high_volume_no_findings            (AC-014 / BC-2.08.004 inv1)
+  - test_dns_ec001_udp_src53_can_decode         (EC-001)
+  - test_dns_ec002_tcp_dst53_can_decode         (EC-002)
+  - test_dns_ec003_empty_payload_counted_as_response (EC-003)
+  - test_dns_ec004_all_flags_set_counted_as_response (EC-004)
+  - test_dns_ec005_zero_packets_summarize       (EC-005)
+
+Red Gate status: VERIFIED — implementation phase may begin.

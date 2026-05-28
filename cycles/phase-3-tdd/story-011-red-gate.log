@@ -1,0 +1,84 @@
+
+running 46 tests
+test test_BC_2_04_001_max_depth_zero_panics - should panic ... FAILED
+test test_BC_2_04_001_max_flows_zero_panics - should panic ... FAILED
+test test_BC_2_04_001_max_receive_window_zero_panics - should panic ... FAILED
+test test_BC_2_04_001_max_segments_per_direction_zero_panics - should panic ... FAILED
+test test_BC_2_04_001_flow_timeout_zero_is_legal ... FAILED
+test test_BC_2_04_001_valid_config_constructs_successfully ... FAILED
+test test_conflicting_overlap_finding ... ok
+test test_default_config_threshold_values ... ok
+test test_BC_2_04_001_memcap_zero_panics - should panic ... FAILED
+test test_drop_after_finalize_is_silent_path ... ok
+test test_consecutive_small_segments_trip_anomaly ... ok
+test test_drop_without_finalize_does_not_panic ... ok
+test test_dropped_findings_key_present_in_summarize ... ok
+test test_default_overlap_threshold_silent_at_six_overlaps ... ok
+test test_depth_exceeded_counter ... ok
+test test_dropped_findings_zero_on_normal_flow ... ok
+test test_fin_close_total_memory ... ok
+test test_finalize_bytes_reassembled_consistent ... ok
+test test_finalize_flushes_remaining ... ok
+test test_finalize_generates_segment_limit_finding ... ok
+test test_finalize_is_idempotent ... ok
+test test_finalize_no_finding_when_no_segment_limit_hits ... ok
+test test_flow_timeout_expiration ... ok
+test test_full_handshake_fin_teardown ... ok
+test test_is_finalized_flips_on_finalize ... ok
+test test_low_overlap_threshold_fires_earlier ... ok
+test test_max_flows_eviction ... ok
+test test_memcap_eviction ... ok
+test test_max_segments_per_direction ... ok
+test test_mid_stream_no_syn ... ok
+test test_out_of_order_delivery ... ok
+test test_out_of_window_segment_rejected_by_engine ... ok
+test test_normal_segment_resets_small_segment_run ... ok
+test test_out_of_window_threshold_silent_at_exactly_threshold ... ok
+test test_overlap_threshold_silent_at_exactly_threshold ... ok
+test test_rst_closes_flow ... ok
+test test_small_segment_anomaly_suppressed_on_server_side_ignored_port ... ok
+test test_small_segment_anomaly_suppressed_on_client_side_ignored_port ... ok
+test test_small_segment_run_at_exactly_threshold_stays_silent ... ok
+test test_syn_ack_bidirectional_data ... ok
+test test_summarize_returns_reassembly_stats ... ok
+test test_three_packet_stream_ordered ... ok
+test test_total_memory_tracking ... ok
+test test_overlap_anomaly_finding ... ok
+test test_out_of_window_threshold_alert ... ok
+test test_out_of_window_alert_fires_only_once ... ok
+
+failures:
+
+---- test_BC_2_04_001_max_depth_zero_panics stdout ----
+note: test did not panic as expected at tests/reassembly_engine_tests.rs:1607:4
+---- test_BC_2_04_001_max_flows_zero_panics stdout ----
+note: test did not panic as expected at tests/reassembly_engine_tests.rs:1627:4
+---- test_BC_2_04_001_max_receive_window_zero_panics stdout ----
+note: test did not panic as expected at tests/reassembly_engine_tests.rs:1647:4
+---- test_BC_2_04_001_max_segments_per_direction_zero_panics stdout ----
+note: test did not panic as expected at tests/reassembly_engine_tests.rs:1637:4
+---- test_BC_2_04_001_flow_timeout_zero_is_legal stdout ----
+
+thread 'test_BC_2_04_001_flow_timeout_zero_is_legal' (5118062) panicked at tests/reassembly_engine_tests.rs:1667:5:
+RED GATE: AC-007 not yet verified
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- test_BC_2_04_001_valid_config_constructs_successfully stdout ----
+
+thread 'test_BC_2_04_001_valid_config_constructs_successfully' (5118068) panicked at tests/reassembly_engine_tests.rs:1658:5:
+RED GATE: AC-006 not yet verified
+
+---- test_BC_2_04_001_memcap_zero_panics stdout ----
+note: test did not panic as expected at tests/reassembly_engine_tests.rs:1617:4
+
+failures:
+    test_BC_2_04_001_flow_timeout_zero_is_legal
+    test_BC_2_04_001_max_depth_zero_panics
+    test_BC_2_04_001_max_flows_zero_panics
+    test_BC_2_04_001_max_receive_window_zero_panics
+    test_BC_2_04_001_max_segments_per_direction_zero_panics
+    test_BC_2_04_001_memcap_zero_panics
+    test_BC_2_04_001_valid_config_constructs_successfully
+
+test result: FAILED. 39 passed; 7 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

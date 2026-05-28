@@ -17,7 +17,7 @@ inputs:
   - .factory/stories/STORY-058.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.019.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.020.md
-input-hash: "4d572e5"
+input-hash: "08c9d58"
 traces_to: .factory/stories/STORY-051.md
 id: "HS-069"
 category: "edge-case-combinations"

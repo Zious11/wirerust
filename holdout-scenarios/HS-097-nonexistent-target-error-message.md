@@ -14,7 +14,7 @@ inputs:
   - .factory/stories/STORY-090.md
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.011.md
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.012.md
-input-hash: "529c948"
+input-hash: "db27506"
 traces_to: .factory/stories/STORY-086.md
 id: "HS-097"
 category: "integration-boundaries"

@@ -1,0 +1,51 @@
+# STORY-012 Red Gate Log
+
+**Story:** STORY-012 — Non-TCP Packet Filter, Statistics Summary, bytes_reassembled Accounting
+**Branch:** feature/story-012-nontcp-stats
+**Worktree:** /Users/zious/Documents/GITHUB/wirerust/.worktrees/story-012
+**Red-gate commit:** ecc2932
+**Date:** 2026-05-22
+
+## Red Gate Result
+
+```
+test result: FAILED. 46 passed; 21 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+```
+
+**Pre-existing tests (pass):** 46
+**New STORY-012 tests (fail):** 21
+
+## Failing Tests (all with panic!("RED GATE: ..."))
+
+```
+test_BC_2_04_002_non_tcp_increments_packets_processed         FAILED  RED GATE: AC-001
+test_BC_2_04_002_non_tcp_increments_skipped_counter           FAILED  RED GATE: AC-002
+test_BC_2_04_002_non_tcp_does_not_increment_tcp_counter       FAILED  RED GATE: AC-003
+test_BC_2_04_002_non_tcp_creates_no_flow_no_callbacks         FAILED  RED GATE: AC-004
+test_BC_2_04_002_mixed_protocol_counter_arithmetic            FAILED  RED GATE: AC-005
+test_BC_2_04_028_summarize_analyzer_name                      FAILED  RED GATE: AC-006
+test_BC_2_04_028_summarize_packets_analyzed_equals_tcp_count  FAILED  RED GATE: AC-007
+test_BC_2_04_028_summarize_exact_key_set                      FAILED  RED GATE: AC-008
+test_BC_2_04_028_flows_completed_derived_correctly            FAILED  RED GATE: AC-009
+test_BC_2_04_028_detail_is_btreemap_ordered                   FAILED  RED GATE: AC-010
+test_BC_2_04_030_bytes_reassembled_matches_handler_total      FAILED  RED GATE: AC-011
+test_BC_2_04_030_bytes_reassembled_is_monotonic               FAILED  RED GATE: AC-012
+test_BC_2_04_030_duplicates_not_counted_in_bytes_reassembled  FAILED  RED GATE: AC-013
+test_ec_001_udp_packet_skipped                                FAILED  RED GATE: EC-001
+test_ec_002_icmp_packet_skipped                               FAILED  RED GATE: EC-002
+test_ec_003_other_protocol_skipped                            FAILED  RED GATE: EC-003
+test_ec_004_all_non_tcp_flows_empty                           FAILED  RED GATE: EC-004
+test_ec_005_summarize_before_any_packets                      FAILED  RED GATE: EC-005
+test_ec_006_summarize_after_finalize_accurate                 FAILED  RED GATE: EC-006
+test_ec_007_non_tcp_excluded_from_packets_analyzed            FAILED  RED GATE: EC-007
+test_ec_008_bytes_reassembled_only_after_flush                FAILED  RED GATE: EC-008
+```
+
+## Assessment
+
+Red Gate is clean. All 21 new tests fail for the correct reason (the stub
+panic!(), not a build error or wrong assertion). No test passes vacuously.
+Pre-existing tests are unaffected.
+
+Proceeding to GREEN phase: replace stubs with real assertions against
+existing src/reassembly/ implementation.

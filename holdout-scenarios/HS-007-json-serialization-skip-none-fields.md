@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.001.md
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.005.md
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.006.md
-input-hash: "1030fa9"
+input-hash: "5cabe5c"
 traces_to: .factory/specs/prd.md
 id: "HS-007"
 category: "integration-boundaries"
