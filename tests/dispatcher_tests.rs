@@ -1147,3 +1147,370 @@ fn test_BC_2_05_006_late_classification_after_nones() {
         "EC-007: flow classified as Tls on 8th chunk must not count as unclassified"
     );
 }
+
+// ---- STORY-033: on_flow_close lifecycle, unclassified counter, no-analyzer guard ----
+
+// STORY-033 AC-001 + AC-003 + AC-006: unclassified_flows increments only at on_flow_close,
+// for flows with no cached route (no prior on_data) and for flows cached as None after retry
+// cap. Also exercises the unconditional cleanup of routes and classification_attempts (AC-006).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_05_007_unclassified_flows_counter() {
+    // Sub-case 1 (AC-003 + AC-006): flow with no on_data call before on_flow_close.
+    // routes.remove returns None → unclassified branch fires → unclassified_flows += 1.
+    // At least one analyzer is configured (both present), so the guard is satisfied.
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    let fk_no_data = flow_key(49200, 9999);
+
+    // Verify counter is 0 before any close.
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        0,
+        "AC-006/setup: unclassified_flows must start at 0"
+    );
+
+    // on_flow_close for a key never seen — routes.remove returns None → unclassified.
+    dispatcher.on_flow_close(&fk_no_data, CloseReason::Fin);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        1,
+        "AC-001/AC-003: flow with no on_data must increment unclassified_flows on close \
+         (routes.remove returns None → unclassified branch)"
+    );
+
+    // Sub-case 2 (AC-001): flow with unknown content → retry cap stamps DispatchTarget::None
+    // in routes → on_flow_close matches Some(DispatchTarget::None) → unclassified branch.
+    let fk_capped = flow_key(49201, 9999);
+    let mut dispatcher2 =
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()))
+            .with_max_classification_attempts(2);
+
+    // Two unknown-content chunks → attempt count reaches cap=2 → DispatchTarget::None cached.
+    let unknown: &[u8] = &[0xAA, 0xBB, 0xCC, 0xDD, 0xEE];
+    dispatcher2.on_data(&fk_capped, Direction::ClientToServer, unknown, 0);
+    dispatcher2.on_data(&fk_capped, Direction::ClientToServer, unknown, 0);
+
+    // Counter must NOT increment during on_data — only on close.
+    assert_eq!(
+        dispatcher2.unclassified_flows(),
+        0,
+        "AC-001: unclassified_flows must NOT increment during on_data (only at on_flow_close)"
+    );
+
+    dispatcher2.on_flow_close(&fk_capped, CloseReason::Fin);
+    assert_eq!(
+        dispatcher2.unclassified_flows(),
+        1,
+        "AC-001: flow cached as DispatchTarget::None after retry cap must increment \
+         unclassified_flows on close (Some(DispatchTarget::None) → unclassified branch)"
+    );
+
+    // Sub-case 3 (AC-006 monotonic): two unclassified flow closes → counter == 2.
+    let mut dispatcher3 =
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    let fk_a = flow_key(49202, 9999);
+    let fk_b = flow_key(49203, 9999);
+
+    dispatcher3.on_flow_close(&fk_a, CloseReason::Fin);
+    assert_eq!(
+        dispatcher3.unclassified_flows(),
+        1,
+        "AC-006: first unclassified close increments to 1"
+    );
+    dispatcher3.on_flow_close(&fk_b, CloseReason::Fin);
+    assert_eq!(
+        dispatcher3.unclassified_flows(),
+        2,
+        "AC-006: second unclassified close increments to 2 (monotonic)"
+    );
+}
+
+// STORY-033 AC-002: classified flows (Http or Tls route) do NOT increment unclassified_flows
+// on close. Counter is monotonically increasing and never decrements.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_05_007_classified_flow_not_counted_as_unclassified() {
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+
+    // Part 1: HTTP-classified flow.
+    let fk_http = flow_key(49210, 9999);
+    let http_bytes = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    dispatcher.on_data(&fk_http, Direction::ClientToServer, http_bytes, 0);
+
+    // Verify the flow was routed to Http (method_counts proves routing).
+    assert_eq!(
+        *dispatcher
+            .http
+            .as_ref()
+            .unwrap()
+            .method_counts()
+            .get("GET")
+            .unwrap_or(&0),
+        1,
+        "AC-002/setup: GET bytes must have been routed to HttpAnalyzer"
+    );
+
+    dispatcher.on_flow_close(&fk_http, CloseReason::Fin);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        0,
+        "AC-002: Http-classified flow must NOT increment unclassified_flows on close"
+    );
+
+    // Part 2: TLS-classified flow — same dispatcher, counter must stay 0.
+    let fk_tls = flow_key(49211, 9999);
+    // TLS content bytes: byte0=0x16, byte1=0x03, len >= 5.
+    let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
+    dispatcher.on_data(&fk_tls, Direction::ClientToServer, &tls_bytes, 0);
+
+    dispatcher.on_flow_close(&fk_tls, CloseReason::Fin);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        0,
+        "AC-002: Tls-classified flow must NOT increment unclassified_flows on close; \
+         counter must remain 0 after both classified closes (monotonic, never decrements)"
+    );
+
+    // Invariant: the counter never decremented (it started at 0, stayed at 0 through
+    // two classified closes — this is the strongest monotonic verification available
+    // without a dedicated decrement test).
+}
+
+// STORY-033 AC-004 + AC-005 (early-return aspect): StreamDispatcher::new(None, None) returns
+// immediately from on_data before any classify or state mutation. Indirect proof via
+// observing that routes/attempts maps remain empty (unclassified_flows stays 0 even
+// on close, because the guard also prevents incrementing when no analyzers are configured).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_05_008_no_analyzer_dispatcher_early_returns() {
+    let mut dispatcher = StreamDispatcher::new(None, None);
+    let fk = flow_key(49220, 9999);
+
+    // Call on_data multiple times with various byte patterns — must be no-ops.
+    dispatcher.on_data(&fk, Direction::ClientToServer, b"GET / HTTP/1.1\r\n", 0);
+    dispatcher.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &[0x16u8, 0x03, 0x01, 0x00, 0x01, 0xFF],
+        0,
+    );
+    dispatcher.on_data(
+        &fk,
+        Direction::ClientToServer,
+        &[0xAA, 0xBB, 0xCC, 0xDD, 0xEE],
+        0,
+    );
+
+    // Indirect proof: unclassified_flows stays 0 after on_flow_close.
+    // The guard at dispatcher.rs:188-191 requires `self.http.is_some() ||
+    // self.tls.is_some()`. With both None, the guard is not satisfied →
+    // unclassified_flows is never incremented.
+    dispatcher.on_flow_close(&fk, CloseReason::Fin);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        0,
+        "AC-004: no-analyzer dispatcher early-returns from on_data; on_flow_close also does \
+         not increment unclassified_flows (guard: no analyzer configured)"
+    );
+
+    // BC-2.05.008 invariant 2: on_flow_close still processes (no early return there).
+    // This is verified above — on_flow_close ran without panic for an unseen FlowKey.
+    // The absence of panic is itself the assertion (if on_flow_close had panicked on
+    // missing-key, the test would fail with a thread panic before this point).
+
+    // Additional case: close a different key (never in routes) — no panic, counter still 0.
+    let fk2 = flow_key(49221, 9999);
+    dispatcher.on_flow_close(&fk2, CloseReason::Rst);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        0,
+        "AC-004/EC-006: no-analyzer dispatcher must not increment unclassified_flows even \
+         for unknown FlowKey closes (guard: no analyzer configured)"
+    );
+}
+
+// STORY-033 AC-005: early-return guard fires only when BOTH analyzers are None.
+// A dispatcher with only http=Some (tls=None) is NOT subject to early return —
+// on_data runs classify and can route HTTP data.
+// A dispatcher with only tls=Some (http=None) similarly is not early-returned.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_05_008_single_analyzer_not_early_returned() {
+    // Part 1: http=Some, tls=None. HTTP GET bytes must be classified and forwarded.
+    let mut dispatcher_http_only = StreamDispatcher::new(Some(HttpAnalyzer::new()), None);
+    let fk_http = flow_key(49230, 9999);
+    let http_bytes = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
+    dispatcher_http_only.on_data(&fk_http, Direction::ClientToServer, http_bytes, 0);
+
+    assert_eq!(
+        *dispatcher_http_only
+            .http
+            .as_ref()
+            .unwrap()
+            .method_counts()
+            .get("GET")
+            .unwrap_or(&0),
+        1,
+        "AC-005: http=Some/tls=None dispatcher must NOT early-return; \
+         HTTP GET bytes must reach HttpAnalyzer (method_counts[GET] >= 1)"
+    );
+
+    // Part 2: http=None, tls=Some. TLS bytes must be classified and forwarded.
+    // After on_data with TLS bytes, TlsAnalyzer receives the data and its
+    // internal buffer has the flow registered (active_flows_len_for_testing == 1).
+    let mut dispatcher_tls_only = StreamDispatcher::new(None, Some(TlsAnalyzer::new()));
+    let fk_tls = flow_key(49231, 9999);
+    // Valid-length TLS-like bytes: record_type=0x16, version=0x0301, payload_len=1 byte.
+    let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
+    dispatcher_tls_only.on_data(&fk_tls, Direction::ClientToServer, &tls_bytes, 0);
+
+    // TlsAnalyzer must have received the data: active_flows_len_for_testing == 1 OR
+    // parse/truncation counter > 0 (depending on how tls_parser handles the 1-byte payload).
+    let tls_analyzer = dispatcher_tls_only.tls.as_ref().unwrap();
+    assert!(
+        tls_analyzer.active_flows_len_for_testing() >= 1
+            || tls_analyzer.parse_error_count() > 0
+            || tls_analyzer.truncated_record_count() > 0,
+        "AC-005: http=None/tls=Some dispatcher must NOT early-return; \
+         TLS bytes must reach TlsAnalyzer (active flow created or parse event recorded)"
+    );
+}
+
+// STORY-033 AC-007 + AC-008: on_flow_close forwards the close event to the correct analyzer
+// (Http or Tls depending on cached route). After forwarding, the analyzer's per-flow state
+// is removed. Classified flows are NOT counted as unclassified (AC-008: exactly one destination).
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_05_009_flow_close_forwards_to_http_analyzer() {
+    // Part 1: Http-classified flow close → HttpAnalyzer.on_flow_close removes per-flow state.
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    let fk_http = flow_key(49240, 9999);
+    let http_bytes = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
+
+    dispatcher.on_data(&fk_http, Direction::ClientToServer, http_bytes, 0);
+
+    // Verify HttpAnalyzer has per-flow state before close.
+    assert_eq!(
+        dispatcher
+            .http
+            .as_ref()
+            .unwrap()
+            .active_flows_len_for_testing(),
+        1,
+        "AC-007/setup: HttpAnalyzer must have per-flow state after on_data for Http-classified flow"
+    );
+
+    dispatcher.on_flow_close(&fk_http, CloseReason::Fin);
+
+    // After on_flow_close, HttpAnalyzer.on_flow_close must have been called → flows entry removed.
+    assert_eq!(
+        dispatcher
+            .http
+            .as_ref()
+            .unwrap()
+            .active_flows_len_for_testing(),
+        0,
+        "AC-007: on_flow_close for Http-classified flow must forward to HttpAnalyzer \
+         (HttpAnalyzer.flows entry removed)"
+    );
+
+    // AC-008: flow contributed to Http close, NOT to unclassified counter.
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        0,
+        "AC-008: Http-classified flow close must not increment unclassified_flows \
+         (exactly one destination: Http analyzer)"
+    );
+
+    // Part 2: Tls-classified flow close → TlsAnalyzer.on_flow_close removes per-flow state.
+    let mut dispatcher2 =
+        StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    let fk_tls = flow_key(49241, 9999);
+    let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
+
+    dispatcher2.on_data(&fk_tls, Direction::ClientToServer, &tls_bytes, 0);
+
+    // TlsAnalyzer must have per-flow state before close.
+    assert_eq!(
+        dispatcher2
+            .tls
+            .as_ref()
+            .unwrap()
+            .active_flows_len_for_testing(),
+        1,
+        "AC-007/setup: TlsAnalyzer must have per-flow state after on_data for Tls-classified flow"
+    );
+
+    dispatcher2.on_flow_close(&fk_tls, CloseReason::Fin);
+
+    // After on_flow_close, TlsAnalyzer.on_flow_close must have been called → flows entry removed.
+    assert_eq!(
+        dispatcher2
+            .tls
+            .as_ref()
+            .unwrap()
+            .active_flows_len_for_testing(),
+        0,
+        "AC-007: on_flow_close for Tls-classified flow must forward to TlsAnalyzer \
+         (TlsAnalyzer.flows entry removed)"
+    );
+
+    // AC-008: Tls-classified flow contributed to Tls close, NOT to unclassified counter.
+    assert_eq!(
+        dispatcher2.unclassified_flows(),
+        0,
+        "AC-008: Tls-classified flow close must not increment unclassified_flows \
+         (exactly one destination: Tls analyzer)"
+    );
+}
+
+// STORY-033 AC-009: on_flow_close for a FlowKey never in routes (no prior on_data) causes
+// routes.remove() to return None. The None branch executes, incrementing unclassified_flows
+// if at least one analyzer is configured. No panic occurs.
+#[test]
+#[allow(non_snake_case)]
+fn test_BC_2_05_009_flow_close_for_unknown_flow_key() {
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+
+    // Construct a FlowKey that was never seen by on_data.
+    let fk_unknown = flow_key(49250, 9999);
+
+    // on_flow_close must not panic; routes.remove returns None → unclassified branch.
+    dispatcher.on_flow_close(&fk_unknown, CloseReason::Fin);
+
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        1,
+        "AC-009/EC-004: on_flow_close for unknown FlowKey must increment unclassified_flows \
+         (routes.remove returns None → None branch executes; at least one analyzer configured)"
+    );
+
+    // Verify no analyzer received a close call (no per-flow state to remove).
+    assert_eq!(
+        dispatcher
+            .http
+            .as_ref()
+            .unwrap()
+            .active_flows_len_for_testing(),
+        0,
+        "AC-009: HttpAnalyzer must have no per-flow state for a key that was never on_data'd"
+    );
+    assert_eq!(
+        dispatcher
+            .tls
+            .as_ref()
+            .unwrap()
+            .active_flows_len_for_testing(),
+        0,
+        "AC-009: TlsAnalyzer must have no per-flow state for a key that was never on_data'd"
+    );
+
+    // Variant: RST close for a different unknown key — no panic, counter increments again.
+    let fk_unknown2 = flow_key(49251, 9999);
+    dispatcher.on_flow_close(&fk_unknown2, CloseReason::Rst);
+    assert_eq!(
+        dispatcher.unclassified_flows(),
+        2,
+        "AC-009: second unknown-key close must further increment unclassified_flows to 2"
+    );
+}
