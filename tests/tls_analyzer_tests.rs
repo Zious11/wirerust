@@ -382,11 +382,12 @@ fn test_parse_error_counter() {
          (state not cleared)"
     );
 
-    // BC-2.07.029 postcondition 6: handshakes_seen must NOT be incremented.
+    // BC-2.07.029 sanity cross-check: handshakes_seen unchanged on parse error
+    // (a genuine parse failure does not advance the handshake count).
     assert_eq!(
         analyzer.handshake_count(),
         0,
-        "AC-007 (BC-2.07.029 pc6): handshakes_seen must be 0 after a malformed handshake record"
+        "AC-007 (BC-2.07.029 sanity): handshakes_seen must be 0 after a malformed handshake record"
     );
 }
 
@@ -7678,6 +7679,13 @@ fn test_summarize_top_snis_capped_at_20() {
     let detail = &summary.detail;
     let top_snis = detail["top_snis"].as_array().unwrap();
 
+    // BC-2.07.031 postcondition 2 (defense-in-depth): packets_analyzed == handshakes_seen,
+    // exercised here at value 25 (> 1, complementing the ==1 proof in test_summarize_output).
+    assert_eq!(
+        summary.packets_analyzed, 25,
+        "BC-2.07.031: packets_analyzed == handshakes_seen, exercised at a value > 1"
+    );
+
     // BC-2.07.031 invariant 2: top_snis has at most 20 entries (take(20)).
     assert_eq!(
         top_snis.len(),
@@ -8089,6 +8097,6 @@ fn test_on_flow_close_absent_key_no_panic() {
         analyzer.active_flows_len_for_testing(),
         0,
         "AC-015 (BC-2.07.035 inv2): CloseReason::Timeout must behave identically to \
-         FinOrRst for absent key — _reason is ignored by TlsAnalyzer"
+         Fin for absent key — _reason is ignored by TlsAnalyzer"
     );
 }
