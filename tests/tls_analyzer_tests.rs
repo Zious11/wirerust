@@ -6833,8 +6833,17 @@ fn test_is_ascii_gate_routes_arm2_vs_arm3() {
 // AC-002 / BC-2.07.004 invariants 1-2:
 // parse_errors and truncated_records are ALWAYS incremented together for oversized
 // records — never independently. Buffer clearing is unconditional: all buffered bytes
-// for that direction are dropped (including any valid partial records that preceded
-// the oversized one). Test: valid ClientHello then oversized record; assert
+// for that direction are dropped when the oversized guard fires.
+//
+// REACHABILITY NOTE (BC-2.07.004 v1.3): the "preceding partial record gets cleared"
+// sub-clause is defensive/by-inspection. Via on_data the parser reads from buf[0] and
+// returns at the incompleteness check before a later oversized record can be reached in
+// the same call; therefore a valid partial record cannot precede the oversized record
+// within a single on_data invocation. What this test demonstrates is that the prior
+// ClientHello is fully drained in its own on_data call, client_buf is empty when the
+// oversized record arrives, and the unconditional clear leaves it empty (len==0).
+//
+// Test: valid ClientHello then oversized record; assert
 // handshakes_seen=1, parse_errors=1, truncated_records=1.
 #[test]
 fn test_oversized_after_valid_hello_increments_both() {
@@ -6903,7 +6912,10 @@ fn test_oversized_after_valid_hello_increments_both() {
         analyzer.client_buf_len_for_testing(&fk),
         0,
         "AC-002 (BC-2.07.004 inv2): client_buf must be cleared after oversized record \
-         (unconditional — even if valid partial records preceded it)"
+         (unconditional clear — len==0; the prior ClientHello was fully drained in its own \
+         on_data call, so the buffer was already empty on arrival; the \"preceding partial \
+         record\" sub-clause of BC-2.07.004 v1.3 is defensive/by-inspection, not API-reachable \
+         via on_data)"
     );
 }
 
