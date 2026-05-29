@@ -169,3 +169,52 @@ Wave 16 remains OPEN. BC-5.39.001 NOT YET ACHIEVED.
 |----|----------|----------|--------|-------------|
 | F-W16-S052-P2-002 | coverage-gap | LOW | DEFERRED | BC-2.07.001 EC-002 extension-block parse failure path has no discriminating test. Requires research-agent validation per DF-VALIDATION-001. Target: future TLS hardening story. |
 | F-W16-S043-P3-002 | coverage-gap | LOW | DEFERRED | BC-2.06.010 invariant 2 "truncate_uri UTF-8 char-boundary safe" claim never exercised; all long-URI test inputs are pure ASCII. Feasibility unclear — httparse may reject non-ASCII URI tokens at this layer. Requires research-agent validation per DF-VALIDATION-001. Target: future TLS/HTTP hardening story. |
+
+---
+
+## Pass-5 (2026-05-28)
+
+**develop HEAD at pass:** 16d938d (unchanged from Pass-4)
+
+| Story | Streak Before | Findings | Verdict | Streak After | Remediation |
+|-------|--------------|----------|---------|-------------|-------------|
+| STORY-052 | 2 | 0 (LOW: F-W16-S052-P5-001 — BC-2.07.034 coarse anchor 718-724 vs sibling BC-2.07.003 tightened to 721/723; nit rides per policy) | CLEAN | **3 — CONVERGED** | None (LOW nit rides per Pass-5+ policy) |
+| STORY-042 | 1 | 0 (LOW: F-W16-S042-P5-001 — BC-2.06.005 Architecture Anchors 186-191/192-202 boundary off-by-one (block closes at 203); LOW: F-W16-S042-P5-003 — BC-2.06.006/007 lack line-precise invariant anchor prose; nits ride per policy) | CLEAN | 2 | None (LOW nits ride per Pass-5+ policy) |
+| STORY-043 | 1 | 0 (LOW: F-W16-S043-P5-001 — STORY-043 File Structure table cites test module lines 2758-3503; actual 2759-3523; nit rides per policy) | CLEAN | 2 | None (LOW nit rides per Pass-5+ policy) |
+| STORY-044 | 0 | 0 | CLEAN | 1 | None |
+
+**STORY-052 BC-5.39.001 ACHIEVED** — 3 consecutive clean passes (P3, P4, P5). Per-story convergence gate SATISFIED.
+
+Pass-5 policy applied: only MEDIUM+ findings trigger remediation; LOW nits ride. All four stories CLEAN in Pass-5. No develop PR. No factory-only remediation burst. LOW findings deferred to wave-close batch.
+
+---
+
+## Consecutive-Clean Streak Status (post-Pass-5)
+
+| Story | P1 | P2 | P3 | P4 | P5 | Streak (post-P5) | Gate Status |
+|-------|----|----|----|----|-----|-----------------|-------------|
+| STORY-052 | CLEAN | DIRTY | CLEAN | CLEAN | CLEAN | **3 — CONVERGED** | **BC-5.39.001 ACHIEVED** |
+| STORY-042 | CLEAN | CLEAN | DIRTY→rem | CLEAN | CLEAN | 2 | IN PROGRESS — needs 1 more clean |
+| STORY-043 | DIRTY | CLEAN | DIRTY→rem | CLEAN | CLEAN | 2 | IN PROGRESS — needs 1 more clean |
+| STORY-044 | DIRTY | CLEAN | DIRTY→rem | DIRTY→rem | CLEAN | 1 | IN PROGRESS — needs 2 more clean |
+
+Wave 16 remains OPEN: STORY-042 and STORY-043 need 1 more clean pass; STORY-044 needs 2 more.
+STORY-052 CONVERGED per BC-5.39.001 (streak 3: P3/P4/P5).
+
+---
+
+## Wave-16 LOW-Anchor-Cleanup Batch (Deferred to Wave-Close)
+
+Four LOW nit-level findings observed in Pass-5, deferred per convergence policy. All are doc-only
+anchor/range precision items — no test or source-code impact. To be addressed in a single
+final burst at wave-close (after STORY-042/043/044 achieve their 3-clean streaks).
+
+| Finding ID | Story | Description | Category |
+|-----------|-------|-------------|----------|
+| F-W16-S042-P5-001 | STORY-042 | BC-2.06.005 Architecture Anchors 186-191/192-202 boundary off-by-one: block closes at 203 not 202. | LOW anchor precision |
+| F-W16-S042-P5-003 | STORY-042 | BC-2.06.006/007 lack line-precise invariant anchor prose that BC-2.06.005 has (pending-intent sibling precision). | LOW anchor precision |
+| F-W16-S043-P5-001 | STORY-043 | STORY-043 File Structure table cites test module lines 2758-3503; actual 2759-3523. Stale range. | LOW stale range |
+| F-W16-S052-P5-001 | STORY-052 | BC-2.07.034 still carries coarse anchor 718-724 (v1.2) while sibling BC-2.07.003 was tightened to 721/723 (v1.3) — pending-intent sibling precision. | LOW anchor precision |
+
+Per DF-VALIDATION-001: none are filed as GitHub issues without research-agent validation.
+These are doc-only anchor precision items riding per the Pass-5+ LOW-nits-ride policy.
