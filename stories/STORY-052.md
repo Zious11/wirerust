@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.003.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.032.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.034.md
-input-hash: "1316c96"
+input-hash: "3fe92cb"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-051]
@@ -199,3 +199,4 @@ When `on_data` is called for a done flow, it returns without modifying any state
 | v1.3 | 2026-05-28 | Pass-2 retroactive remediation (F-W16-S052-P2-001): AC-011 primary test changed from vacuous integration test to discriminating unit test `test_BC_2_07_032_inv1_supported_versions_not_inspected` (tests/tls_analyzer_tests.rs:2677); integration test `test_tls13_pcap_version_and_ja3` demoted to companion citation. BC-2.07.032 bumped to v1.3 and BC-2.07.001 bumped to v1.3 by PO this burst — input-hash recomputed: `5847cf5` → `09f5faa` (sha256 over sorted cited-BC files, first 7 chars). |
 | v1.4 | 2026-05-28 | Wave-16 Pass-4 sibling-sweep input-hash propagation (DF-SIBLING-SWEEP-001): BC-2.07.001 bumped v1.3→v1.4 by PO this burst — input-hash recomputed: `09f5faa` → `39b997a` (sha256 over sorted cited-BC files BC-2.07.001/003/032/034, first 7 chars). No AC citation changes required. |
 | v1.5 | 2026-05-28 | DF-SIBLING-SWEEP-001 v4 propagation — BC-2.07.034 v1.3 (done-check anchor tightened to lines 721/723); input-hash recomputed: `39b997a` → `1316c96` (sha256 over sorted cited-BC files BC-2.07.001/003/032/034, first 7 chars). No AC citation changes required; 718-724 range in Architecture Mapping/Token Budget/FSR remains valid (contains 721/723). |
+| v1.6 | 2026-05-29 | input-hash corrected via canonical bin/compute-input-hash --update (prior value `1316c96` was hand-computed sha256 over sorted inputs-file list; tool uses MD5 over inputs-order file list). New value: `3fe92cb`. Also: BC-2.07.034 v1.4 (cap-07 citation fix + invariant-1 guard/return line correction) — applied simultaneously with hash correction. |

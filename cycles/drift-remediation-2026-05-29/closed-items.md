@@ -15,13 +15,13 @@ remediation session. Items are removed from STATE.md Drift Items table.
 
 | Classification | Count |
 |----------------|-------|
-| RESOLVED-FIXED-THIS-SESSION | 22 |
+| RESOLVED-FIXED-THIS-SESSION | 23 |
 | RESOLVED-BY-CODIFICATION-THIS-SESSION | 6 |
 | RESOLVED-PRIOR (confirmed) | 8 |
 | INVALID (do not file) | 4 |
 | DUPLICATE (merged into canonical) | 5 |
 | WONT-FIX-BY-DESIGN | 11 |
-| **Total closed** | **56** |
+| **Total closed** | **57** |
 
 ---
 
@@ -97,6 +97,10 @@ Items where direct artifact edits in this session constitute the fix.
 ### F-W16-S043-P5-001 (already listed above)
 
 ### F-W16-S043-P3-002 (already listed above)
+
+### F-W15P6-D01
+- **Finding (spec-gap, LOW):** BC-2.06.020 ↔ BC-2.06.004 cross-ref asymmetry — BC-2.06.004 referenced BC-2.06.020 in Related BCs (added at v1.6/v1.7) but reciprocal link in BC-2.06.020 was absent. Both BCs anchor the same had_success suppression design on their respective request/response parse paths.
+- **Resolution:** RESOLVED-FIXED-THIS-SESSION. BC-2.06.004 v1.7 added cross-reference to BC-2.06.020 (004→020 direction). BC-2.06.020 v1.3 added reciprocal cross-reference to BC-2.06.004 (020→004 direction). Both changelogs cite "Closes F-W15P6-D01". Evidence: BC-2.06.004 changelog row "v1.7 (2026-05-28): F-W15P6-D01 reciprocal Related-BCs fix"; BC-2.06.020 changelog row "v1.3 (2026-05-28): F-W15P6-D01 reciprocal Related-BCs fix". Included in this-session PO edits committed with the drift-convergence remediation burst.
 
 ### W12-D1
 - **Finding:** Stale "5-byte" prose at 5 sites + "short data" message stale — cosmetic.

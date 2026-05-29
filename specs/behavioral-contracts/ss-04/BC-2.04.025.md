@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: W11-D1 fix — replaced bare `—` VP placeholders with explicit N/A markers. No VP in VP-INDEX covers the segment-limit summary finding specifically; VP-003 covers the MAX_FINDINGS cap property on different BCs (024, 054). — 2026-05-28"
+  - "v1.4: F-DRIFT2A-001 — fixed stale capabilities.md §CAP-04 citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -90,8 +91,8 @@ no direction, and no MITRE technique.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- segment-limit summary finding is the forensic signal for BTreeMap overflow protection |
+| L2 Capability | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- segment-limit summary finding is the forensic signal for BTreeMap overflow protection |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap; finalize bypass), INV-7 (finalize-once latch) |
 | Architecture Module | SS-04 (reassembly/mod.rs:571-590, segment-limit block in finalize) |
 | Stories | STORY-021 |

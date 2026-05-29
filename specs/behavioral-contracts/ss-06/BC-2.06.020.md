@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-05-28): F-W15P6-D01 reciprocal Related-BCs fix — added cross-reference to BC-2.06.004 (response-side had_success guard; both BCs anchor the same suppression design on their respective parse paths). Closes F-W15P6-D01 (020→004 direction)."
+  - "v1.4 (2026-05-29): F-DRIFT2A-001 — fixed stale capabilities.md §CAP-06 citation to domain/capabilities/cap-06-http-analysis.md in L2 Capability and Capability Anchor Justification rows."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -80,8 +81,8 @@ inadvertently triggering the poison threshold.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
-| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- had_success suppression is part of the HTTP parsing resilience design |
+| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
+| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- had_success suppression is part of the HTTP parsing resilience design |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true -- had_success prevents body bytes from advancing toward threshold) |
 | Architecture Module | SS-06 (analyzer/http.rs:362-408, C-12) |
 | Stories | STORY-044 |

@@ -15,7 +15,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.017.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.018.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.020.md
-input-hash: "8485371"
+input-hash: "1a3b973"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-041]
@@ -216,3 +216,4 @@ The TooManyHeaders finding check is inside the `if !had_success` block — TooMa
 | v1.5 | 2026-05-28 | Pass-3 retroactive remediation (F-W16-S044-P3-001, F-W16-S044-P3-003): Architecture Mapping Poison transition anchor corrected from `467 (resp)` to `467-468 (resp)` (line 467 = guard, line 468 = `state.response_poisoned = true;`) per BC-2.06.015 v1.3. AC-013 Test citation extended with response-arm sibling `test_BC_2_06_020_invariant_real_too_many_headers_after_success_suppressed_response` (http_analyzer_tests.rs:4488) for symmetric BC-2.06.020 invariant 3 coverage. BC-2.06.017 patch-bumped to v1.3 by PO this burst (F-W16-S044-P3-002) — input-hash recomputed: `f1b0959` → `db2d698` (sha256 over sorted cited-BC files, first 7 chars). |
 | v1.6 | 2026-05-28 | Pass-4 retroactive remediation (F-W16-S044-P4-001, F-W16-S044-P4-002): AC-006 line anchor corrected `:3868` → `:3888` (fn declaration is at line 3888; line 3868 is inside the preceding test). v1.4 changelog finding-ID corrected: BC-2.06.015 bump now attributed to F-W16-S044-P2-002 (matching BC-2.06.015.md). v1.5 changelog finding-ID corrected: BC-2.06.017 bump now attributed to F-W16-S044-P3-002 (matching BC-2.06.017.md); P3-001/P3-003 retained for story-body anchor + AC-013 edits. No cited-BC changed this burst — input-hash unchanged: `db2d698`. |
 | v1.7 | 2026-05-28 | DF-SIBLING-SWEEP-001 v4 propagation — BC-2.06.020 v1.3 (reciprocal Related-BC to BC-2.06.004 added); input-hash recomputed: `db2d698` → `8485371` (sha256 over sorted cited-BC files BC-2.06.013/014/015/016/017/018/020, first 7 chars). No AC citation changes required. |
+| v1.8 | 2026-05-29 | input-hash corrected via canonical bin/compute-input-hash --update (prior value `8485371` was hand-computed sha256 over sorted inputs-file list; tool uses MD5 over inputs-order file list). New value: `1a3b973`. |

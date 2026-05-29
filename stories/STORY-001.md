@@ -17,7 +17,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.007.md
   - .factory/specs/behavioral-contracts/ss-01/BC-2.01.008.md
   - .factory/specs/prd.md
-input-hash: "9d26ee7"
+input-hash: "2ac856f"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: []
@@ -195,6 +195,7 @@ Calling `from_file` on a path that does not exist returns `Err` with context "Fa
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
 | 1.4 | 2026-05-28 | story-writer | DF-16.A propagation: BC-2.01.001 re-anchored capability CAP-01→CAP-02 (v1.6). No body text references CAP numbers; change is BC-internal. input-hash bumped a1dc7b8→9d26ee7 to reflect BC-2.01.001 v1.6 content. DF-SIBLING-SWEEP-001: grep confirmed no CAP-01 occurrence in story body. |
+| 1.5 | 2026-05-29 | state-manager | input-hash corrected via canonical bin/compute-input-hash --update (prior value `9d26ee7` was hand-computed sha256 over sorted inputs-file list; tool uses MD5 over inputs-order file list). New value: `2ac856f`. |
 | 1.3 | 2026-05-21 | phase-3-adversarial-review | F-9.01 [Major]: AC-002 updated to require the rejected DataLink variant name in Debug form (e.g. "IEEE802_11") in addition to "Unsupported pcap link type", aligning AC text with BC-2.01.001 v1.3 postcondition 2 and EC-001. F-10.1 [Minor]: AC-004 trace annotation widened from "BC-2.01.002 postcondition 2" to "BC-2.01.002 postcondition 2 + BC-2.01.005 postcondition 1/2" to match dual-credit already present in the red-gate log. |
 | 1.2 | 2026-05-21 | phase-3-adversarial-review | F-m1: AC-009 trace corrected from BC-2.01.007 invariant 1 to BC-2.01.007 postcondition 1 with note that invariant 1 all-or-nothing is structurally guaranteed by Result<PcapSource> return type. F-m2: Architecture Mapping from_pcap_reader line range corrected from 69-79 to 45-83 (full function); Tasks 5/6 line ranges corrected to 50-61 (link-type match block) and 71-74 (timestamp extraction); Architecture Compliance Rules row clarified to cite both 51-55 (arms) and 50-61 (full match block). |
 | 1.1 | 2026-05-21 | story-writer | Initial story decomposition |

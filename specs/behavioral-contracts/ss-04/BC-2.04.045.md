@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: F-001/F-003/F-005 remediation — Description, PC2, PC3, EC-002, INV-2 corrected for early-guard vs mid-loop path distinction; new EC-003 added; DF-SIBLING-SWEEP-001 — 2026-05-26"
   - "v1.4: W10-D8 fix — PC2 tail 'or no gaps fit at all' removed. The early-guard at segment.rs:70-72 prevents entry when len>=max_segments; therefore at the mid-loop guard there must be >=1 gap already computed. The 'no gaps fit at all' case is structurally unreachable via this path. — 2026-05-28"
+  - "v1.5: F-DRIFT2A-001 + F-DRIFT2A-003 — fixed stale capabilities.md §CAP-04 citation; reconciled mid-loop guard anchor from segment.rs:175-179 → 178-180 in Architecture Module, Architecture Anchors, and Source Evidence (175-179 included loop setup lines; 178-180 is the if-block itself). — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -88,10 +89,10 @@ the partial-insertion variant).
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- overlapping segment limit handling is part of the BTreeMap overflow protection in TCP reassembly |
+| L2 Capability | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- overlapping segment limit handling is part of the BTreeMap overflow protection in TCP reassembly |
 | L2 Domain Invariants | INV-6 (bounded-resource design -- max_segments prevents unbounded BTreeMap growth) |
-| Architecture Module | SS-04 (reassembly/segment.rs:175-179, C-8) |
+| Architecture Module | SS-04 (reassembly/segment.rs:178-180, C-8) |
 | Stories | STORY-018 |
 | Origin BC | BC-RAS-045 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -103,13 +104,13 @@ the partial-insertion variant).
 
 ## Architecture Anchors
 
-- `src/reassembly/segment.rs:175-179` -- segment-limit check inside gap-insertion loop
+- `src/reassembly/segment.rs:178-180` -- segment-limit check inside gap-insertion loop (`if self.segments.len() >= max_segments { segments_exhausted = true; break; }`)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/segment.rs:175-179` |
+| **Path** | `src/reassembly/segment.rs:178-180` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

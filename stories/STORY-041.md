@@ -13,7 +13,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.003.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.004.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.026.md
-input-hash: "3d05d98"
+input-hash: "518f2d5"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-033, STORY-071]
@@ -212,3 +212,4 @@ No escape function is called at parse time — raw URI bytes from `req.path` flo
 | v1.5 | 2026-05-28 | Pass-4 remediation — AC-002 trace narrowed to invariant 2-3 + paraphrase corrected (F-W15P4-002); AC-007 companion grammar fixed re. guard direction + locations (F-W15P4-003); v1.X changelog provenance note corrected (F-W15P4-004); AC-007 trace extended with invariant 4 (BC-2.06.004 v1.5 landed). |
 | v1.6 | 2026-05-28 | Pass-5 remediation — sibling-sweep cascade from BC-2.06.004 v1.5 invariant 4: AC-004 trace extended to invariant 1-2 (F-W15P5-001); Task 6 + Arch Compliance Rules row updated to reflect both request-side + response-side had_success guards (F-W15P5-004/005); AC-007 narrative extended to describe invariant 4 (O-1). |
 | v1.8 | 2026-05-28 | DF-SIBLING-SWEEP-001 v4 propagation — BC-2.06.004 v1.7 (reciprocal Related-BC to BC-2.06.020 added); input-hash recomputed: `518f2d5` → `3d05d98` (sha256 over sorted cited-BC files BC-2.06.001/002/003/004/026, first 7 chars). No AC citation changes required. |
+| v1.9 | 2026-05-29 | input-hash corrected via canonical bin/compute-input-hash --update (prior value `3d05d98` was hand-computed sha256 over sorted inputs-file list; tool uses MD5 over inputs-order file list). New value: `518f2d5`. |

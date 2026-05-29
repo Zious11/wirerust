@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.009.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.010.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.011.md
-input-hash: "cdcc087"
+input-hash: "0a2b5ec"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-041]
@@ -191,3 +191,4 @@ When `parsed.user_agent == None` (header absent), NO finding is emitted. This as
 | v1.0 | 2026-05-21 | Initial story decomposition |
 | v1.1 | 2026-05-28 | Wave-16 Pass-1 remediation (F-W16-S043-P1-005): File Structure Requirements table added; status set to completed. input-hash at `2189b42` (sha256 over sorted cited-BC files BC-2.06.008/009/010/011 at v1.2, first 7 chars). |
 | v1.2 | 2026-05-28 | Wave-16 Pass-1 remediations (F-W16-WAVE-P1-001, F-W16-WAVE-P1-002, F-W16-S043-P5-001): AC-001/003/004/006/008/009 Test citations updated to BC-prefixed names (test_BC_2_06_008_detect_unusual_method, test_BC_2_06_009_detect_missing_host_header, test_BC_2_06_009_detect_empty_host_header, test_BC_2_06_010_detect_long_uri, test_BC_2_06_011_detect_empty_user_agent, test_BC_2_06_011_missing_user_agent_no_finding); File Structure table test list updated to match + stale line range corrected `2758-3503` → `2759-3523` (F-W16-S043-P5-001). Changelog section added (F-W16-WAVE-P1-002). All four cited BCs bumped v1.2→v1.3 by PO this burst (test-citation sweep) — input-hash recomputed: `2189b42` → `cdcc087` (sha256 over sorted cited-BC files BC-2.06.008/009/010/011 at v1.3, first 7 chars). |
+| v1.3 | 2026-05-29 | input-hash corrected via canonical bin/compute-input-hash --update (prior value `cdcc087` was hand-computed sha256 over sorted inputs-file list; tool uses MD5 over inputs-order file list). New value: `0a2b5ec`. |

@@ -17,7 +17,7 @@ rejects unsupported values. This is the L1 Ingest boundary (C-4/C-5).
 
 ## Accepted link types (5-element whitelist)
 
-The following `pcap_file::DataLink` variants are accepted at reader.rs:22-35:
+The following `pcap_file::DataLink` variants are accepted at reader.rs:50-61:
 
 | Link type | DataLink variant | Typical use |
 |---|---|---|
@@ -49,4 +49,4 @@ define a domain `LinkType` enum and map pcap-file's enum to it at the reader bou
 
 ## BC references
 
-BC-RDR-002 (link-type accept/reject), BC-DEC-001..005 (per-link decoding paths).
+BC-RDR-002 (link-type accept/reject), BC-DEC-001..005 (per-link decoding paths), BC-2.01.001 (re-anchored to CAP-02 per DF-16.A).

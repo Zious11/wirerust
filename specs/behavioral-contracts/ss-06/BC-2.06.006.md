@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-05-28): F-W16-S042-P5-003 invariant-1 line-precise anchor prose added — shell_patterns array at http.rs:206-217; iter().any() guard at http.rs:218; finding push at http.rs:219-232; if-body closing `}` at http.rs:233. Matches precision of BC-2.06.005 v1.6. Verified against src/analyzer/http.rs:206-233. Closes F-W16-S042-P5-003 (006 direction). — 2026-05-28"
+  - "v1.4 (2026-05-29): F-DRIFT2A-001 — fixed stale capabilities.md §CAP-06 citation to domain/capabilities/cap-06-http-analysis.md in L2 Capability and Capability Anchor Justification rows."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -90,8 +91,8 @@ Web Shell). The URI is included in the evidence without escaping (ADR 0003).
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
-| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- web shell detection is one of the core HTTP anomaly findings |
+| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
+| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- web shell detection is one of the core HTTP anomaly findings |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
 | Architecture Module | SS-06 (analyzer/http.rs:206-233, C-12) |
 | Stories | STORY-042 |

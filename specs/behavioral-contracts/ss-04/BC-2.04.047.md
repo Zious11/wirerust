@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: Wave 9 STORY-016 adversarial pass-1 fix: F-2 — stale architecture-anchor line range corrected from segment.rs:194-198, 223-226 to segment.rs:196 and 225 (line shift from Wave 8 STORY-019 test-seam additions) — 2026-05-26"
   - "v1.4: Wave 9 STORY-016 adv pass-2 F-6 (sibling-discipline regression of pass-1 F-2): flow.rs:171-176 → flow.rs:171-175 (line 176 is return expression, not part of debug_assert macro). Also added segment.rs line numbers to Traceability row (was bare 'reassembly/segment.rs') — 2026-05-26"
   - "v1.5: W9-D1 fix — PC4 extended to include DepthExceeded in the buffered_bytes-unchanged list. DepthExceeded returns at segment.rs:85 and :97, both before any buffer mutation; confirmed against segment.rs:79-104. — 2026-05-28"
+  - "v1.6: F-DRIFT2A-001 — fixed stale capabilities.md §CAP-04 citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -89,8 +90,8 @@ currently in the `segments` BTreeMap. After every insert, flush, or overlap oper
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- buffered_bytes accuracy is the foundation of the memory accounting invariant used by memcap eviction |
+| L2 Capability | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- buffered_bytes accuracy is the foundation of the memory accounting invariant used by memcap eviction |
 | L2 Domain Invariants | INV-6 (bounded-resource design -- buffered_bytes feeds total_memory which is compared against memcap) |
 | Architecture Module | SS-04 (reassembly/flow.rs:170-177, C-7; reassembly/segment.rs:196,225, C-8) |
 | Stories | STORY-016 |

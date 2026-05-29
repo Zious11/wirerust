@@ -13,7 +13,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.025.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.026.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.054.md
-input-hash: "220a653"
+input-hash: "68dadd4"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-017, STORY-018, STORY-019, STORY-020]
@@ -286,4 +286,5 @@ implementation_strategy: brownfield-formalization
 | 1.6 | 2026-05-27 | Post-adversarial-pass-5 story-side remediation (F-W11P5-004, F-W11P5-006, F-W11P5-007, F-W11P5-009, F-W11P5-012): replaced unverified "194 sibling un-finalized-drop sites" magic number with orchestrator-verified "~130+" in Previous-Story-Intelligence, Architecture Compliance Rule for AC-004, and task 22 description (F-W11P5-004); pinned AC-009 body to "count=2 (true plural-boundary)" matching rule and task 18 (F-W11P5-006); rewrote trust-boundary compliance rule for set_segments_segment_limit_for_testing to drop incorrect BC-2.04.026 EC-002 "violates" claim (F-W11P5-007); fixed token budget test-row arithmetic from "6 new tests" to "5 new ACs (AC-007b, AC-014..AC-017)" and updated total/percentage accordingly (F-W11P5-009); swapped primary/secondary citation order for EC-010 row 4 lifecycle.rs:101 site (F-W11P5-012); tasks 37-41 appended |
 | 1.7 | 2026-05-27 | Post-adversarial-pass-7 citation re-anchor (F-W11P7-001): replaced 3 stale `mod.rs:796-810` citations with `mod.rs:794-808` (impl Drop shifted up 2 lines after pass-6 trust-boundary seam docstring shortening) across Architecture Mapping table, Token Budget table, and File Structure Requirements table; process-lesson PSI row added (impl Drop line citation drift pattern across 4 cycles); task 42 appended |
 | 1.9 | 2026-05-28 | W11-D1 propagation: BC-2.04.012 v1.6, BC-2.04.025 v1.3, BC-2.04.026 v1.4 replaced bare `—` VP placeholders with explicit N/A markers. These BC-internal VP table changes do not affect any body AC text or architecture anchors in STORY-021 (VP field is frontmatter-only). input-hash bumped 9e32780→220a653 to reflect all three BC content updates. DF-SIBLING-SWEEP-001: grep confirmed no `—` VP placeholders mirrored into STORY-021 body from these BCs; verification_properties: [VP-003] frontmatter unchanged.
+| 2.0 | 2026-05-29 | state-manager | input-hash corrected via canonical bin/compute-input-hash --update (prior value `220a653` was hand-computed sha256 over sorted inputs-file list; tool uses MD5 over inputs-order file list). New value: `68dadd4`. |
 | 1.8 | 2026-05-27 | Post-pass-8 product-owner remediation (F-W11P8-001, F-W11P8-002): input-hash bumped from edf8559 → 9e32780 to reflect BC-2.04.012 v1.5 content change (impl Drop citation now worktree-post-STORY-021 794-808); pre-merge re-anchor doctrine adopted; PSI process-lesson closure row added; task 43 appended |

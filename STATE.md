@@ -109,14 +109,13 @@ phase_2_input_hash_drift_check_total: 153
 **Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-16 CLOSED/CONVERGED; Wave 17 NOT STARTED.
 30 stories delivered across Waves 1-16 (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052).
 Wave 16 CLOSED 2026-05-29: retroactive convergence complete. PRs #140-146. All 4 per-story CONVERGED: STORY-052(P3-P5), STORY-042(P4-P6), STORY-043(P4-P6), STORY-044(P5-P7). Wave-level: R1 2-MEDIUM REMEDIATED; R2 3-lens×3-pass CLEAN (1 false-positive MEDIUM dismissed). BC-5.39.001 ACHIEVED.
-Drift Remediation 2026-05-29 COMPLETE: 62 items validated → 22 closed-as-bookkeeping/codification, ~25 fixed/codified, ~15 deferred (incl. DF-16.B bulk sweep + 3 plugin-template escalations). PRs #147+#148 merged. 5 new policies codified.
-develop HEAD: 34e66c7 (PRs #147+#148 merged 2026-05-29). All 7 CI checks green.
+Drift Remediation 2026-05-29 COMPLETE: 62 items validated → 57 closed (23 fixed-this-session, 6 by-codification, 8 prior, 4 invalid, 5 duplicate, 11 wont-fix). 8 OPEN (7 carried + 1 new PG-HASH-001). PRs #147+#148 merged. 8 policies total (3 new + 2 extended this session).
+develop HEAD: 34e66c7 (PRs #147+#148 merged 2026-05-29). All 8 CI checks green.
 
 **Mode:** brownfield (in-repo: target == reference).
 
 **Test suite:** passing on develop (Wave 8 stories delivered). `cargo fmt --check`,
-`cargo clippy`, `cargo test --all-targets` all green. CI: 7 checks including `fuzz-build` job
-(pinned `nightly-2026-05-21` + `cargo-fuzz 0.13.1` + `timeout-minutes: 25` after PR #111 hotfix;
+`cargo clippy`, `cargo test --all-targets` all green. CI: 8 checks (semantic-pr, test, clippy, fmt, fuzz-build, audit, deny, trust-boundary; `fuzz-build` pinned `nightly-2026-05-21` + `cargo-fuzz 0.13.1` + `timeout-minutes: 25` after PR #111 hotfix; `trust-boundary` added PR #148;
 the nightly pin is a deliberate periodic-maintenance item — do NOT enable automated
 dependency bumping for it).
 
@@ -184,9 +183,9 @@ Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/converg
 
 ## Session Resume Checkpoint (2026-05-29 — Drift Remediation COMPLETE; Wave 17 Ready)
 
-1. Waves 1-16 CLOSED/CONVERGED. Drift Remediation 2026-05-29 COMPLETE. develop HEAD: 34e66c7 (PRs #147+#148 merged). All 7 CI checks green.
-2. Drift remediation: 62 items validated → ~56 closed (22 bookkeeping/codification, ~25 fixed/codified, ~4 invalid, ~5 wont-fix). 9 items remain OPEN (see Drift Items table). Archive: .factory/cycles/drift-remediation-2026-05-29/closed-items.md. Lessons: .factory/cycles/drift-remediation-2026-05-29/lessons.md.
-3. 5 new policies codified in policies.yaml (artifact commit 23f92cc): DF-AC-TEST-NAME-SYNC-001 v2, DF-SIBLING-SWEEP-001 v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-DEVELOP-FRESHNESS-001, DF-ADVERSARY-TOOLCHAIN-PAIRING-001.
+1. Waves 1-16 CLOSED/CONVERGED. Drift Remediation 2026-05-29 COMPLETE. develop HEAD: 34e66c7 (PRs #147+#148 merged). All 8 CI checks green (trust-boundary job added PR #148).
+2. Drift remediation: 62 items validated → ~57 closed (23 fixed-this-session, 6 codification, 8 prior, 4 invalid, 5 duplicate, 11 wont-fix). 7 items carried-open + 1 new (PG-HASH-001) = 8 total open (see Drift Items table). Archive: .factory/cycles/drift-remediation-2026-05-29/closed-items.md. Lessons: .factory/cycles/drift-remediation-2026-05-29/lessons.md.
+3. 8 policies total in policies.yaml (artifact commit 23f92cc): 3 new (DF-CONVERGENCE-BEFORE-MERGE-001, DF-DEVELOP-FRESHNESS-001, DF-ADVERSARY-TOOLCHAIN-PAIRING-001) + 2 extended (DF-AC-TEST-NAME-SYNC-001 v1→v2, DF-SIBLING-SWEEP-001 v3→v4) + 3 pre-existing (DF-VALIDATION-001, DF-PR-MANAGER-COMPLETE-001, DF-ADVERSARY-METHODOLOGY-001).
 4. STORY-033 status reconciled: in-progress → completed (F-DRIFT-S-001 fixed). STORY-INDEX.md updated.
 5. DF-16.B (OPEN, MEDIUM): ~209 BC files across SS-02..SS-13 still have broken `capabilities.md §CAP-NN` citations. Requires dedicated bulk find-replace sweep (not per-item). SS-01 8 files fixed.
 6. NEXT: Wave 17. Stories: STORY-045 (E-4 Flow Lifecycle + Caps; blocks: STORY-041+STORY-044), STORY-053 (E-5 ServerHello JA3S; blocks: STORY-051+STORY-052), STORY-055 (E-5 SNI Arms 1+2; blocks: STORY-052). All blockers satisfied. Prior checkpoint: cycles/phase-3-tdd/session-checkpoints.md.
@@ -274,13 +273,13 @@ Full retrospective detail: `.factory/cycles/phase-3-tdd/lessons.md` (W13 lessons
 
 | Classification | Count |
 |----------------|-------|
-| RESOLVED-FIXED-THIS-SESSION | 22 |
+| RESOLVED-FIXED-THIS-SESSION | 23 |
 | RESOLVED-BY-CODIFICATION-THIS-SESSION | 6 |
 | RESOLVED-PRIOR (confirmed) | 8 |
 | INVALID | 4 |
 | DUPLICATE (merged into canonical) | 5 |
 | WONT-FIX-BY-DESIGN | 11 |
-| **Remaining OPEN** | **9** |
+| **Remaining OPEN** | **8** (7 carried-open + 1 new PG-HASH-001) |
 
 Key outcomes: (1) DF-16.B blast radius discovered — 209 BC files with broken capabilities.md citations across SS-02..SS-13 require bulk sweep. (2) 5 new policies codified (DF-CONVERGENCE-BEFORE-MERGE-001 highest-value). (3) F-W16-S052-P2-002 reclassified WONT-FIX after feasibility probe (nom many0/complete semantics make the branch unreachable). (4) develop HEAD advanced to 34e66c7 (PRs #147+#148).
 
@@ -359,7 +358,7 @@ Closed items archived in `.factory/cycles/drift-remediation-2026-05-29/closed-it
 | W9-D12 | [spec-gap, needs-PO-intent] `packets_dropped_capacity` stats counter absent (BC-2.04.015 PC-6 observability). Awaiting PO adjudication: add counter vs document omission. | spec-gap | phase-5 PO | OPEN — AWAITING-PO |
 | W10-D10-sibling | [test-quality, LOW] tests/reassembly_engine_tests.rs:~14143 `test_story_018_ec008` re-implements the 10,000-flow fill loop inline (should use `fill_findings_to_cap`). Target: next reassembly-test touch. | test-quality | next reassembly touch | OPEN |
 | F-DRIFT-C-001 | [cosmetic, LOW] Stale doc-comment in src/analyzer/http.rs `truncate_uri` test: "5 'é' = 10 bytes" vs actual "éééé" 4-char fixture; logic correct. Target: next http-test PR (develop branch). | cosmetic | next http-test touch | OPEN |
-| F-W15P6-D01 | [spec-gap, LOW] BC-2.06.020 ↔ BC-2.06.004 cross-ref asymmetry: BC-2.06.004 references BC-2.06.020 in Related BCs but reciprocal link absent. Cross-story gap (STORY-044 owns BC-2.06.020). | spec-gap | wave-gate | OPEN |
+| PG-HASH-001 | [process-gap, HIGH] input-hash was hand-computed (sha256/sorted) this session by story-writer, diverging from `bin/compute-input-hash` (MD5/inputs-order); 12 stories left tool-stale. FIXED 2026-05-29 (scan confirms MATCH=48 STALE=0). Policy-codification candidate: DF-INPUT-HASH-CANONICAL-001 — record at next governance pass. Story-writer/PO prompts should mandate the tool. | process-gap | next governance pass | OPEN — CODIFICATION-PENDING |
 
 ## Cycle-Close Follow-Up Items (OPEN)
 

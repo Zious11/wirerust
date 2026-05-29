@@ -53,3 +53,46 @@ entire corpus, not per-item version-bump handling. DF-16.B is queued for a dedic
 bulk mechanical sweep rather than incremental fixes.
 
 **Action:** DF-16.B added to open Drift Items with explicit "bulk sweep" disposition.
+
+## DR.L5 / PG-HASH-001 — input-hash MUST Be Set via Canonical Tool, Never Hand-Computed
+
+During drift-convergence remediation 2026-05-29, 12 stories were found to have stale
+input-hashes (--scan reported STALE=12). The root cause was that story-writer hand-computed
+hashes as sha256 over sorted inputs-file names, while the canonical `bin/compute-input-hash`
+tool uses MD5 over the inputs-order file list. Every affected story had a plausible-looking
+7-char hash in the right field — the error was invisible until a scan ran.
+
+**Pattern:** Tool output and hand-computation diverge even when both appear "reasonable".
+Only the canonical tool output is authoritative; any hash not produced by the tool will
+fail `--check`/drift-scan silently until a scan is run.
+
+**Rule:** input-hash MUST always be set via `bin/compute-input-hash --update`, NEVER
+hand-computed by any agent. All 12 affected stories corrected in the drift-convergence
+remediation burst (2026-05-29). Tool verification: --scan reports MATCH=48 STALE=0 after fix.
+
+**Policy-codification candidate:** DF-INPUT-HASH-CANONICAL-001 — to be evaluated at next
+governance pass. Story-writer and PO agent prompts should mandate `bin/compute-input-hash
+--update` as the only permitted hash-setting mechanism (note: per DF-ADVERSARY-TOOLCHAIN-PAIRING-001,
+the adversary read-only profile cannot execute the tool; orchestrator must run it before
+adversary dispatch and include the result in the adversary's Supplied Evidence section).
+
+## DR.L6 — PO Citation Fixes: 16 BCs + cap-02 Anchor + 2 LOW BC Prose
+
+Drift-convergence remediation batch (2026-05-29) included uncommitted PO edits:
+
+- **16 BC citation fixes (DF-16.B partial):** SS-04 (BC-2.04.012/019/025/026/041/045/047),
+  SS-05 (BC-2.05.001/003/008), SS-06 (BC-2.06.004/005/006/007/020). Each BC updated
+  stale `capabilities.md §CAP-NN` citations to `domain/capabilities/cap-NN-<slug>.md` form.
+  Version bumps recorded in each BC's changelog.
+- **cap-02-link-type-gating.md anchor fix:** reader.rs line reference corrected from
+  `:22-35` → `:50-61` (stale anchor from Phase-1a authoring); BC references table extended
+  to include BC-2.01.001 per DF-16.A.
+- **BC-2.07.034 v1.4 (LOW prose):** Corrected invariant-1 `if done { return; }` prose:
+  guard line is tls.rs:722, return line is tls.rs:723 (previously conflated as single "723"
+  citation). Capability citation also updated (F-DRIFT2A-001 + F-DRIFT2A-003).
+- **BC-2.04.045 v1.5 (LOW prose):** Mid-loop guard anchor corrected from segment.rs:175-179
+  → 178-180 (175-179 included loop setup lines; 178-180 is the if-block itself). Capability
+  citation also updated.
+
+These edits were committed in the single drift-convergence remediation burst alongside the
+input-hash corrections and bookkeeping fixes.

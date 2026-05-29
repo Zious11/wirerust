@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: F-002 remediation — Description corrected to document allowed==0 → DepthExceeded path; DF-SIBLING-SWEEP-001 — 2026-05-26"
   - "v1.4: W10-D13 fix — added forensic/security note to Postconditions documenting silent discard of bytes beyond max_depth. Intentional behavior; analyst-facing implication documented for parity with BC-2.04.015 PC-7 data-loss note style. — 2026-05-28"
+  - "v1.5: F-DRIFT2A-001 — fixed stale capabilities.md §CAP-04 citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -100,8 +101,8 @@ with `InsertResult::DepthExceeded` (see EC-004); no bytes are stored.**
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- depth truncation is the per-direction resource bound enforcement of TCP reassembly |
+| L2 Capability | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP Stream Reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- depth truncation is the per-direction resource bound enforcement of TCP reassembly |
 | L2 Domain Invariants | INV-6 (bounded-resource design -- max_depth is the per-direction memory cap) |
 | Architecture Module | SS-04 (reassembly/segment.rs:79-104, C-8) |
 | Stories | STORY-018 |

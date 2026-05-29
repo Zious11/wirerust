@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 16 Pass-2 (F-W16-S042-P2-002) — rewrite EC-005 expected behavior: /administrator DOES fire because admin matching is substring-based (.contains); removed contradictory WAIT: inline self-correction — 2026-05-28"
   - "v1.4 (2026-05-28): F-W16-S042-P5-003 invariant-1 line-precise anchor prose added — admin_patterns array at http.rs:236; iter().any() guard at http.rs:237; finding push at http.rs:238-248; if-body closing `}` at http.rs:249. Matches precision of BC-2.06.005 v1.6. Verified against src/analyzer/http.rs:235-249. Closes F-W16-S042-P5-003 (007 direction). — 2026-05-28"
+  - "v1.5 (2026-05-29): F-DRIFT2A-001 — fixed stale capabilities.md §CAP-06 citation to domain/capabilities/cap-06-http-analysis.md in L2 Capability and Capability Anchor Justification rows."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -90,8 +91,8 @@ administrators; the finding is informational rather than definitive.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
-| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- admin panel access detection is one of the HTTP reconnaissance findings |
+| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
+| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- admin panel access detection is one of the HTTP reconnaissance findings |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
 | Architecture Module | SS-06 (analyzer/http.rs:235-249, C-12) |
 | Stories | STORY-042 |

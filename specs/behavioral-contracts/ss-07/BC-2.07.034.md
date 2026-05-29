@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-05-28): F-W16-S052-P5-001 anchor tightening — replaced coarse `718-724` with precise line citations in Invariant-1 prose, Architecture Anchors, and Source Evidence: done-check at tls.rs:721 (`let done = self.flows.get(flow_key).is_some_and(...)`), early return at tls.rs:723 (`return;`). Matches sibling BC-2.07.003 v1.3 precision. Verified against src/analyzer/tls.rs:718-724. Closes F-W16-S052-P5-001. — 2026-05-28"
+  - "v1.4 (2026-05-29): F-DRIFT2A-001 + F-DRIFT2A-003 (LOW) — fixed stale capabilities.md §CAP-07 citation to domain/capabilities/cap-07-tls-analysis.md; corrected invariant-1 `if done { return; }` prose to cite guard line 722 and return line 723 separately (the guard `if done {` is at tls.rs:722, `return;` is at tls.rs:723)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -50,7 +51,7 @@ a defensive optimization: no buffering, no parsing, no state mutation of any kin
 
 1. The `done` check is the FIRST operation in `on_data`, before the mutable borrow of
    the flow entry. The done-check is at tls.rs:721 (`let done = self.flows.get(flow_key).is_some_and(|s| s.done())`);
-   the early return is at tls.rs:723 (`if done { return; }`).
+   the guard `if done {` is at tls.rs:722; the `return;` is at tls.rs:723.
 2. If `done()` is true, NO state mutation can occur for this flow for the lifetime
    of the `on_data` call.
 3. This is a stronger statement than BC-2.07.003 which focuses on the per-record
@@ -79,8 +80,8 @@ a defensive optimization: no buffering, no parsing, no state mutation of any kin
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
-| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- on_data short-circuit is a resource-bounding mechanism of TLS analysis |
+| L2 Capability | CAP-07 ("TLS Traffic Analysis") per domain/capabilities/cap-07-tls-analysis.md |
+| Capability Anchor Justification | CAP-07 ("TLS Traffic Analysis") per domain/capabilities/cap-07-tls-analysis.md -- on_data short-circuit is a resource-bounding mechanism of TLS analysis |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:718-724; done-check at 721, early return at 723; C-13) |
 | Stories | STORY-052 |
@@ -94,6 +95,7 @@ a defensive optimization: no buffering, no parsing, no state mutation of any kin
 
 - `src/analyzer/tls.rs:718-724` -- `on_data` done-check and early return
 - `src/analyzer/tls.rs:721` -- `let done = self.flows.get(flow_key).is_some_and(|s| s.done())` (done-check)
+- `src/analyzer/tls.rs:722` -- `if done {` (guard)
 - `src/analyzer/tls.rs:723` -- `return;` (early return when done)
 
 ## Source Evidence

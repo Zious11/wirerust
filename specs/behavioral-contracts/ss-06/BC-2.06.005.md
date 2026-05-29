@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.4: Wave 16 Pass-2 (F-W16-S042-P2-001) — tighten invariant 1 anchor 187-191 → 187-190 (191 is closing brace, not a contains() call) — 2026-05-28"
   - "v1.5: Wave 16 Pass-4 (F-W16-S042-P4-001) — correct factually wrong brace-prose in invariant 1: 191 is the opening brace `{` of the if-body (not the closing brace); closing brace is at line 203 — 2026-05-28"
   - "v1.6: F-W16-S042-P5-001 finding-push anchor fix — corrected stale `192-202` to `192-203` in Architecture Anchor (finding-push block closes at line 203); corrected `186-202` to `186-203` in Architecture Module. Verified against src/analyzer/http.rs:192-203. Closes F-W16-S042-P5-001. — 2026-05-28"
+  - "v1.7 (2026-05-29): F-DRIFT2A-001 — fixed stale capabilities.md §CAP-06 citation to domain/capabilities/cap-06-http-analysis.md in L2 Capability and Capability Anchor Justification rows."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -95,8 +96,8 @@ preserved in the finding evidence without escaping (ADR 0003).
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-06 ("HTTP traffic analysis") per capabilities.md §CAP-06 |
-| Capability Anchor Justification | CAP-06 ("HTTP traffic analysis") per capabilities.md §CAP-06 -- path traversal detection is one of the core HTTP anomaly findings |
+| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
+| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- path traversal detection is one of the core HTTP anomaly findings |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
 | Architecture Module | SS-06 (analyzer/http.rs:186-203, C-12) |
 | Stories | STORY-042 |
