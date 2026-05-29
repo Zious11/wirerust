@@ -9,7 +9,7 @@ phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
 phase_2_completed: "2026-05-21"
 phase_3_started: "2026-05-21"
-develop_head: 7f64219
+develop_head: 3f87ac3
 wave_1_closed: "2026-05-22"
 wave_2_closed: "2026-05-22"
 wave_3_closed: "2026-05-22"
@@ -88,7 +88,7 @@ wave_16_prs: "#140 (STORY-042), #141 (STORY-052), #142 (STORY-043), #143 (STORY-
 wave_16_per_story_convergence: "ALL 4 CONVERGED: STORY-052(3/3 P3-P5), STORY-042(3/3 P4-P6), STORY-043(3/3 P4-P6), STORY-044(3/3 P5-P7). BC-5.39.001 per-story ACHIEVED for all wave-16 stories."
 wave_16_wave_level_convergence: "3 independent fresh-context lens-reviews (consistency/integration-static/traceability) all VERDICT: CLEAN on frozen post-remediation state (round 2). Round 1 DIRTY (2 MEDIUM remediated via PR#146+sweep). Round-2 MEDIUM F-W16-WAVE-R2-001 confirmed false-positive (VP-006 exists, registered VP-INDEX.md:54). 3/3 CLEAN."
 current_wave: 18
-wave_18_status: open
+wave_18_status: stories-delivered-convergence-pending
 wave_18_started: "2026-05-29"
 wave_18_stories: STORY-046 (E-4 HTTP, 3pts, src/analyzer/http.rs, BC-2.06.023), STORY-054 (E-5 TLS, 8pts, src/analyzer/tls.rs, 6 BCs), STORY-056 (E-5 TLS, 8pts, src/analyzer/tls.rs, 5 BCs + VP-005), STORY-058 (E-5 TLS, 8pts, src/analyzer/tls.rs, 6 BCs)
 wave_18_points: 27
@@ -96,21 +96,22 @@ wave_18_delivery_order: STORY-046 first (isolated in http.rs), then STORY-054/05
 wave_18_pg_enforcement: "[PG-W17-001] AC-test-name-sync enforcement baked into all Wave 18 dispatch prompts per human decision 2026-05-29"
 wave_18_s054_delivery: "PR #153 squash-merged → fc55587 2026-05-29; BC-5.39.001 ACHIEVED; 11ps-3clean P8/P9/P11 (P10 dismissed: DF-ADVERSARY-METHODOLOGY-001 false-pos); 96 tls_analyzer_tests + 4 tls_integration_tests green; all 8 CI green; security CLEAN; PR review APPROVED 0 findings; worktree + branch removed"
 wave_18_s056_delivery: "PR #154 squash-merged → 7f64219 2026-05-29; BC-5.39.001 ACHIEVED; 9ps-3clean P7/P8/P9; 99 tls_analyzer_tests green; all 8 CI green; security CLEAN; PR review APPROVED 1 cycle; worktree + branch removed"
-wave_18_s058_convergence: "BC-5.39.001 ACHIEVED; 13ps-3clean P11/P12/P13; frozen code 4c252f3; 114 tls_analyzer_tests + 4 tls_integration_tests green; zero src changes; 2MED(buffer-cap+AC-013-mis-citation)+1HIGH(BC-2.07.033-mis-anchor)+3MED(cross-artifact-sweep-gaps)+1MED(3rd-occurrence-stale-index-comment) remediated; 4 deferred-LOW accepted; NEXT=demos+PR"
+wave_18_s058_convergence: "BC-5.39.001 ACHIEVED; 13ps-3clean P11/P12/P13; frozen code 4c252f3; 114 tls_analyzer_tests + 4 tls_integration_tests green; zero src changes; 2MED(buffer-cap+AC-013-mis-citation)+1HIGH(BC-2.07.033-mis-anchor)+3MED(cross-artifact-sweep-gaps)+1MED(3rd-occurrence-stale-index-comment) remediated; 4 deferred-LOW accepted"
+wave_18_s058_delivery: "PR #155 squash-merged → 3f87ac3 2026-05-29; BC-5.39.001 ACHIEVED; 13ps-3clean P11/P12/P13; 114 tls_analyzer_tests + 4 tls_integration_tests green; all 8 CI green; security CLEAN; PR review APPROVED 1 cycle; worktree + local branch removed"
 wave_17_status: closed
 wave_17_closed: "2026-05-29"
 wave_17_stories: STORY-045 + STORY-053 + STORY-055
 wave_17_prs: "#150 (STORY-045 → 9980573), #149 (STORY-053 → a044144), #151 (STORY-055 → 9633b0d)"
 wave_17_per_story_convergence: "ALL 3 CONVERGED: STORY-045(3-clean P3-P5, 5 passes), STORY-053(3-clean P3-P5, 5 passes), STORY-055(3-clean P3-P5, 5 passes). BC-5.39.001 per-story ACHIEVED for all wave-17 stories."
 wave_17_wave_level_convergence: "pass-1 DIRTY (F-W17-WAVE-C-001/T-001 HIGH — STORY-055 AC citations not synced to BC-prefixed tests; sibling-sweep miss); STORY-055 v1.2 AC-citation sync applied; pass-2 all-3-lenses CLEAN. 3/3 CLEAN. CONVERGED."
-stories_delivered: 36
+stories_delivered: 37
 dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3
 adversary_gate: SATISFIED
-convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0|W7-story:8ps-3clean|W7-wave:8ps-3clean|W8-S019-story:8ps-3clean(14rem)|W8-S015-story:8ps-3clean(14rem)|W8-wave:9ps-3clean(12rem)|W9-S016-story:6ps-3clean(24rem)|W9-S020-story:8ps-3clean(13rem)|W9-wave:6ps-3clean(11rem)|W10-S017-story:4ps-3clean|W10-S018-story:9ps-3clean|W10-wave:4ps-3clean|W10-CONVERGED-2026-05-26|W11-S021-story:11ps-3clean|W11-CONVERGED-2026-05-27|W12-S031-story:9ps-3clean|W12-CONVERGED-2026-05-27|W13-S032-story:5ps-3clean|W13-CONVERGED-2026-05-27|W14-S033-story:4ps-3clean|W14-CONVERGED-2026-05-28|W15-S051-story:6ps-3clean|W15-S041-story:8ps-3clean|W15-CONVERGED-2026-05-28|W16-P1:S042-CLEAN,S052-CLEAN,S043-DIRTY(2rem),S044-DIRTY(1H+1M-PR#144)|W16-P2:S042-CLEAN(str=2),S043-CLEAN(str=1),S044-CLEAN(str=1),S052-DIRTY→rem(factory-only)|W16-P3:S052-CLEAN(str=1),S042-DIRTY→rem(PR#145),S043-DIRTY→rem(PR#145),S044-DIRTY→rem(factory)|W16-P4:S052-CLEAN(str=2),S042-CLEAN(str=1),S043-CLEAN(str=1),S044-DIRTY→rem(factory)|W16-P5:S052-CLEAN(str=3→CONVERGED),S042-CLEAN(str=2),S043-CLEAN(str=2),S044-CLEAN(str=1)|W16-P6:S042-CLEAN(str=3→CONVERGED),S043-CLEAN(str=3→CONVERGED),S044-CLEAN(str=2)|W16-P7:S044-CLEAN(str=3→CONVERGED)|W16-ALL4-PER-STORY-CONVERGED-2026-05-28|W16-WAVE-LEVEL-R1:consistency-DIRTY(2MED-REMEDIATED:PR#146+sweep)|W16-WAVE-LEVEL-R2:3-lens-3pass-CLEAN(1-false-positive-dismissed)|W16-CONVERGED-CLOSED-2026-05-29-detail:cycles/v0.1.0-greenfield-spec/wave-16/adversarial-convergence.md|W17-P1:S045-CLEAN,S053-CLEAN,S055-DIRTY(AC-sync-miss→remediated-v1.2)|W17-P2:S045-CLEAN,S053-CLEAN,S055-CLEAN|W17-S045-story:5ps-3clean(P3-P5)|W17-S053-story:5ps-3clean(P3-P5)|W17-S055-story:5ps-3clean(P3-P5)|W17-WAVE-P1:3-lens-DIRTY(F-W17-WAVE-C-001/T-001-HIGH-AC-sync-miss)|W17-WAVE-P2:3-lens-CLEAN|W17-CONVERGED-CLOSED-2026-05-29|W18-S046-story:4ps-3clean(P2-P4;2LOW-cosmetic+2-anchor-completeness-rem)|W18-S046-DELIVERED(PR#152→547aca8;2026-05-29)|W18-S054-story:11ps-3clean(P8/P9/P11;P10-methodology-false-pos-dismissed;2MED+1MED-mis-anchor+2MED+1HIGH-cross-BC-rem)|W18-S054-DELIVERED(PR#153→fc55587;2026-05-29)|W18-S056-story:9ps-3clean(P7/P8/P9;1HIGH-sibling-anchor-sweep-rem;front-loaded-exactness)|W18-S056-DELIVERED(PR#154→7f64219;2026-05-29)|W18-S058-story:13ps-3clean(P11/P12/P13;2MED+1HIGH-mis-anchor+3MED-cross-artifact+1MED-3rd-occurrence-rem;deepest-W18)"
+convergence_trajectory: "17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0|W7-story:8ps-3clean|W7-wave:8ps-3clean|W8-S019-story:8ps-3clean(14rem)|W8-S015-story:8ps-3clean(14rem)|W8-wave:9ps-3clean(12rem)|W9-S016-story:6ps-3clean(24rem)|W9-S020-story:8ps-3clean(13rem)|W9-wave:6ps-3clean(11rem)|W10-S017-story:4ps-3clean|W10-S018-story:9ps-3clean|W10-wave:4ps-3clean|W10-CONVERGED-2026-05-26|W11-S021-story:11ps-3clean|W11-CONVERGED-2026-05-27|W12-S031-story:9ps-3clean|W12-CONVERGED-2026-05-27|W13-S032-story:5ps-3clean|W13-CONVERGED-2026-05-27|W14-S033-story:4ps-3clean|W14-CONVERGED-2026-05-28|W15-S051-story:6ps-3clean|W15-S041-story:8ps-3clean|W15-CONVERGED-2026-05-28|W16-P1:S042-CLEAN,S052-CLEAN,S043-DIRTY(2rem),S044-DIRTY(1H+1M-PR#144)|W16-P2:S042-CLEAN(str=2),S043-CLEAN(str=1),S044-CLEAN(str=1),S052-DIRTY→rem(factory-only)|W16-P3:S052-CLEAN(str=1),S042-DIRTY→rem(PR#145),S043-DIRTY→rem(PR#145),S044-DIRTY→rem(factory)|W16-P4:S052-CLEAN(str=2),S042-CLEAN(str=1),S043-CLEAN(str=1),S044-DIRTY→rem(factory)|W16-P5:S052-CLEAN(str=3→CONVERGED),S042-CLEAN(str=2),S043-CLEAN(str=2),S044-CLEAN(str=1)|W16-P6:S042-CLEAN(str=3→CONVERGED),S043-CLEAN(str=3→CONVERGED),S044-CLEAN(str=2)|W16-P7:S044-CLEAN(str=3→CONVERGED)|W16-ALL4-PER-STORY-CONVERGED-2026-05-28|W16-WAVE-LEVEL-R1:consistency-DIRTY(2MED-REMEDIATED:PR#146+sweep)|W16-WAVE-LEVEL-R2:3-lens-3pass-CLEAN(1-false-positive-dismissed)|W16-CONVERGED-CLOSED-2026-05-29-detail:cycles/v0.1.0-greenfield-spec/wave-16/adversarial-convergence.md|W17-P1:S045-CLEAN,S053-CLEAN,S055-DIRTY(AC-sync-miss→remediated-v1.2)|W17-P2:S045-CLEAN,S053-CLEAN,S055-CLEAN|W17-S045-story:5ps-3clean(P3-P5)|W17-S053-story:5ps-3clean(P3-P5)|W17-S055-story:5ps-3clean(P3-P5)|W17-WAVE-P1:3-lens-DIRTY(F-W17-WAVE-C-001/T-001-HIGH-AC-sync-miss)|W17-WAVE-P2:3-lens-CLEAN|W17-CONVERGED-CLOSED-2026-05-29|W18-S046-story:4ps-3clean(P2-P4;2LOW-cosmetic+2-anchor-completeness-rem)|W18-S046-DELIVERED(PR#152→547aca8;2026-05-29)|W18-S054-story:11ps-3clean(P8/P9/P11;P10-methodology-false-pos-dismissed;2MED+1MED-mis-anchor+2MED+1HIGH-cross-BC-rem)|W18-S054-DELIVERED(PR#153→fc55587;2026-05-29)|W18-S056-story:9ps-3clean(P7/P8/P9;1HIGH-sibling-anchor-sweep-rem;front-loaded-exactness)|W18-S056-DELIVERED(PR#154→7f64219;2026-05-29)|W18-S058-story:13ps-3clean(P11/P12/P13;2MED+1HIGH-mis-anchor+3MED-cross-artifact+1MED-3rd-occurrence-rem;deepest-W18)|W18-S058-DELIVERED(PR#155→3f87ac3;2026-05-29)|W18-ALL4-PER-STORY-CONVERGED-2026-05-29;wave-level-convergence-PENDING"
 consistency_audit: CONSISTENT
 input_drift_check: CLEAN
 phase_2_input_hash_drift_check: CLEAN
@@ -121,10 +122,10 @@ phase_2_input_hash_drift_check_total: 153
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-17 CLOSED/CONVERGED; Wave 18 OPEN/IN-PROGRESS.
-36 stories delivered (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052/045/053/055/046/054/056).
-Wave 18 IN PROGRESS — STORY-046 DELIVERED PR #152 → 547aca8 (4ps-3clean). STORY-054 DELIVERED PR #153 → fc55587 (11ps-3clean). STORY-056 DELIVERED PR #154 → 7f64219 (9ps-3clean). STORY-058 per-story convergence COMPLETE 2026-05-29: BC-5.39.001 ACHIEVED (13ps-3clean P11/P12/P13; frozen code 4c252f3; 114 tls_analyzer_tests green; zero src changes). Wave 18 3/4 DELIVERED + STORY-058 per-story converged. [OBS-7 deferred; PG-W18-001/002 open; 4 deferred-LOW items accepted]. NEXT: STORY-058 demos + PR.
-develop HEAD: 7f64219 (PR #154 squash-merged 2026-05-29; cargo test --all-targets green). All 8 CI checks green.
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-17 CLOSED/CONVERGED; Wave 18 stories all DELIVERED, wave-level convergence PENDING.
+37 stories delivered (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052/045/053/055/046/054/056/058).
+Wave 18 4/4 DELIVERED — STORY-046 PR #152 → 547aca8 (4ps-3clean). STORY-054 PR #153 → fc55587 (11ps-3clean). STORY-056 PR #154 → 7f64219 (9ps-3clean). STORY-058 PR #155 → 3f87ac3 (13ps-3clean P11/P12/P13). All 4 per-story BC-5.39.001 ACHIEVED. [OBS-7 deferred; PG-W18-001/002 open; 4 deferred-LOW items accepted]. NEXT: Wave 18 wave-level adversarial convergence (3-lens fresh-context) + consistency audit + input-drift check → CLOSE Wave 18.
+develop HEAD: 3f87ac3 (PR #155 squash-merged 2026-05-29; cargo test --all-targets green). All 8 CI checks green.
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -141,7 +142,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-17 CLOSED/CONVERGED; Wave 18 OPEN (36 stories delivered; W18: S046 DELIVERED PR#152→547aca8; S054 DELIVERED PR#153→fc55587; S056 DELIVERED PR#154→7f64219; S058 per-story CONVERGED 13ps-3clean P11/P12/P13 BC-5.39.001 ACHIEVED; Wave 18 3/4 delivered+S058 converged) | Finding progression W18-S058: P1-DIRTY→P2-CLEAN→P3-DIRTY(1H+1M)→P4-DIRTY(corr)→P5-DIRTY(1M+1M)→P6-DIRTY(corr+1M)→P7-CLEAN→P8-DIRTY(1M-3rd-occ)→P9-CLEAN→P13-CLEAN(3-streak); detail: cycles/phase-3-tdd/convergence-trajectory.md; NEXT: STORY-058 demos+PR |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-17 CLOSED/CONVERGED; Wave 18 4/4 stories DELIVERED (37 stories delivered; S046 PR#152→547aca8; S054 PR#153→fc55587; S056 PR#154→7f64219; S058 PR#155→3f87ac3; all per-story BC-5.39.001 ACHIEVED); wave-level convergence PENDING | Finding progression W18-S058: P1-DIRTY→P2-CLEAN→P3-DIRTY(1H+1M)→P4-DIRTY(corr)→P5-DIRTY(1M+1M)→P6-DIRTY(corr+1M)→P7-CLEAN→P8-DIRTY(1M-3rd-occ)→P9-CLEAN→P13-CLEAN(3-streak); NEXT: Wave 18 wave-level convergence (3-lens) + consistency audit + input-drift → CLOSE |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -168,7 +169,7 @@ dependency bumping for it).
 | 15 | STORY-041, STORY-051 | **CLOSED/CONVERGED** 2026-05-28 | cb322dc (PR #139 — STORY-041) / 945034d (PR #138 — STORY-051) | First multi-story wave since W10. STORY-041: 8 passes, 3/3 clean streak, 24 BC-prefixed tests. STORY-051: 6 passes, 3/3 clean streak, 19 BC-prefixed tests + 2 test helpers. BC-addition sibling-sweep cascade pattern (W15.L2). 9th+10th implementer-as-PR-executor validations. |
 | 16 | STORY-042, STORY-043, STORY-044, STORY-052 | **CLOSED/CONVERGED** 2026-05-29 | fa17dec (PR #146) | PRs #140-146. Retroactive convergence. Per-story: S052(P3-P5), S042(P4-P6), S043(P4-P6), S044(P5-P7). Wave-level R2: 3-lens×3-pass CLEAN; 1 false-positive MEDIUM (VP-006 "orphan") dismissed. BC-5.39.001 ACHIEVED. 5 W16 lessons recorded. |
 | 17 | STORY-045, STORY-053, STORY-055 | **CLOSED/CONVERGED** 2026-05-29 | 9633b0d (PR #151 — STORY-055) | PRs #150 (STORY-045), #149 (STORY-053), #151 (STORY-055). Per-story all 3 CONVERGED (3-clean P3-P5, 5 passes each). Wave-level: P1 DIRTY (F-W17-WAVE-C-001/T-001 HIGH — AC-sync sibling-miss) → remediated (STORY-055 v1.2) → P2 3-lens CLEAN. BC-5.39.001 ACHIEVED. 4 lessons (W17.L1-L4). [PG-W17-001/002] codification pending. |
-| 18 | STORY-046 (E-4 HTTP, 3pts), STORY-054 (E-5 TLS, 8pts), STORY-056 (E-5 TLS, 8pts), STORY-058 (E-5 TLS, 8pts) | **OPEN** 2026-05-29 | 7f64219 (STORY-056 PR #154; develop HEAD) | 27pts. S046 DELIVERED PR#152→547aca8 (4ps-3clean). S054 DELIVERED PR#153→fc55587 (11ps-3clean P8/P9/P11). S056 DELIVERED PR#154→7f64219 (9ps-3clean P7/P8/P9). S058 per-story CONVERGED 2026-05-29: BC-5.39.001 ACHIEVED (13ps-3clean P11/P12/P13; frozen 4c252f3; 114 tls tests green; AC-sync/re-point v1.3 + BC-2.07.004/005/029/033/035 remediated; 4 deferred-LOW). NEXT: STORY-058 demos+PR. |
+| 18 | STORY-046 (E-4 HTTP, 3pts), STORY-054 (E-5 TLS, 8pts), STORY-056 (E-5 TLS, 8pts), STORY-058 (E-5 TLS, 8pts) | **4/4 DELIVERED; wave-level convergence PENDING** 2026-05-29 | 3f87ac3 (STORY-058 PR #155; develop HEAD) | 27pts. S046 DELIVERED PR#152→547aca8 (4ps-3clean). S054 DELIVERED PR#153→fc55587 (11ps-3clean P8/P9/P11). S056 DELIVERED PR#154→7f64219 (9ps-3clean P7/P8/P9). S058 DELIVERED PR#155→3f87ac3 (13ps-3clean P11/P12/P13; 114 tls_analyzer_tests + 4 tls_integration_tests green; all 8 CI green; security CLEAN; APPROVED 1 cycle). All 4 per-story BC-5.39.001 ACHIEVED. NEXT: wave-level adversarial convergence (3-lens fresh-context) + consistency audit + input-drift check → CLOSE Wave 18. |
 | 19–27 | (remaining) | NOT STARTED | — | — |
 
 ## Phase 3 — Current Phase Steps (last 5)
@@ -185,7 +186,8 @@ dependency bumping for it).
 | Wave 18 — STORY-056 tests written + per-story convergence | **COMPLETE** 2026-05-29 | BC-5.39.001 ACHIEVED: 9 passes; 3-clean streak P7/P8/P9 on frozen code a027a2a (2 commits: 7be7313 formalize, a027a2a postcondition+tautology-harden). P5 DIRTY (HIGH: sibling-BC anchor off-by-one). PG-W16-003 SS-07 anchor sweep applied: BC-2.07.017/019/020 → v1.3; VP-005 → v1.1 (arm-numbering legend); STORY-056 → v1.2 (AC-007/009/010 citation sync + Architecture-Mapping anchor 257-264). 99 tls_analyzer_tests green; zero src changes. Deferred LOW: OBS-7 (AC-007/BC-2.07.020 inv2 JSON-reporter clause — reporter scope; defer to wave-gate). [PG-W18-002] story-anchor fix must trigger same-burst sibling-BC sweep logged. |
 | Wave 18 — STORY-056 demos + PR merged | **COMPLETE** 2026-05-29 | PR #154 squash-merged → 7f64219. All 8 CI green. Security CLEAN. PR review APPROVED 1 cycle. Worktree + local branch removed. Wave 18 3/4 DELIVERED. |
 | Wave 18 — STORY-058 tests written + per-story convergence | **COMPLETE** 2026-05-29 | BC-5.39.001 ACHIEVED: 13 passes; 3-clean streak P11/P12/P13 on frozen code 4c252f3 (5 test commits: 6fa98c7 formalize, aa72460 pass-1 fixes, 6009a1a comment+packets_analyzed, 72601a9 oversized-clear comment, 4c252f3 AC-013 index comment). 114 tls_analyzer_tests + 4 tls_integration_tests green; zero src changes (brownfield-formalization); fmt/clippy clean. BC-2.07.004/005/029/033/035 remediated; STORY-058 v1.3 AC-sync. 4 deferred-LOW accepted (F-S058-P11-001/002, F-S058-P12-O1, F-S058-P13-O4). [PG-W18-002 extended]. |
-| Wave 18 — STORY-058 demos + PR | **NEXT** | Last Wave 18 story: record demos (8 ACs), open PR, merge to develop. |
+| Wave 18 — STORY-058 demos + PR merged | **COMPLETE** 2026-05-29 | PR #155 squash-merged → 3f87ac3. All 8 CI green. Security CLEAN. PR review APPROVED 1 cycle. Worktree + local branch removed. Wave 18 4/4 DELIVERED. |
+| Wave 18 — Wave-level adversarial convergence + close | **NEXT** | 3-lens fresh-context review (consistency/integration-static/traceability) on frozen 3f87ac3 develop state. Then consistency audit + input-drift check. Then CLOSE Wave 18. |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -203,15 +205,14 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-29 — Wave 18 STORY-058 per-story CONVERGED; next = demos+PR)
+## Session Resume Checkpoint (2026-05-29 — Wave 18 4/4 DELIVERED; next = wave-level convergence + close)
 
-1. Waves 1-17 CLOSED/CONVERGED. Wave 18 OPEN (3/4 DELIVERED + STORY-058 per-story converged). develop HEAD: 7f64219 (PR #154 squash-merged 2026-05-29). All 8 CI checks green. 36 stories delivered.
-2. Wave 18 STORY-046 DELIVERED 2026-05-29: PR #152 → 547aca8 (4ps-3clean). STORY-054 DELIVERED: PR #153 → fc55587 (11ps-3clean P8/P9/P11; P10 dismissed). STORY-056 DELIVERED: PR #154 → 7f64219 (9ps-3clean P7/P8/P9; all 8 CI green; security CLEAN; APPROVED 1 cycle; worktree + branch removed).
-3. Wave 18 STORY-058 per-story convergence COMPLETE 2026-05-29: BC-5.39.001 ACHIEVED via 13 passes; 3-clean streak P11/P12/P13 on frozen feature/STORY-058 worktree at HEAD 4c252f3. 5 test commits (6fa98c7 formalize, aa72460 pass-1 fixes [literal residue cap + within-loop-skip test], 6009a1a comment+packets_analyzed, 72601a9 oversized-clear comment, 4c252f3 AC-013 index comment). 114 tls_analyzer_tests + 4 tls_integration_tests green; zero src changes; fmt/clippy clean.
-4. Factory artifacts committed: STORY-058.md v1.3 + BC-2.07.004/005/029/033/035 v1.3-v1.4 (reachability+arithmetic+evidence fixes; AC-sync/re-point v1.3).
-5. Deferred items accepted below-MEDIUM threshold: F-S058-P11-001 (stale comment tls_analyzer_tests.rs:6819), F-S058-P11-002 (test_nonhandshake_types EC-label set), F-S058-P12-O1 (BC-2.07.005 anchor off-by-one), F-S058-P13-O4 (test_stop_after_handshake cross-story collision). [OBS-7 deferred; PG-W18-001/002 open; PG-W18-002 extended].
-6. input-hash scan: TOTAL=48 MATCH=48 STALE=0 (confirmed post-W17-close).
-7. NEXT: STORY-058 demos (8 ACs) + PR + merge to develop. Prior checkpoint archived: cycles/phase-3-tdd/session-checkpoints.md.
+1. Waves 1-17 CLOSED/CONVERGED. Wave 18 4/4 stories DELIVERED. develop HEAD: 3f87ac3 (PR #155 squash-merged 2026-05-29). All 8 CI checks green. 37 stories delivered.
+2. Wave 18 all 4 DELIVERED: STORY-046 PR #152 → 547aca8 (4ps-3clean). STORY-054 PR #153 → fc55587 (11ps-3clean P8/P9/P11; P10 dismissed). STORY-056 PR #154 → 7f64219 (9ps-3clean P7/P8/P9; APPROVED 1 cycle). STORY-058 PR #155 → 3f87ac3 (13ps-3clean P11/P12/P13; 114 tls_analyzer_tests + 4 tls_integration_tests green; all 8 CI green; security CLEAN; APPROVED 1 cycle; worktree + branch removed).
+3. All 4 Wave 18 per-story BC-5.39.001 ACHIEVED. Factory artifacts committed: STORY-058.md v1.3 + BC-2.07.004/005/029/033/035 v1.3-v1.4 (reachability+arithmetic+evidence fixes; AC-sync/re-point v1.3).
+4. Deferred items accepted below-MEDIUM threshold: F-S058-P11-001 (stale comment tls_analyzer_tests.rs:6819), F-S058-P11-002 (test_nonhandshake_types EC-label set), F-S058-P12-O1 (BC-2.07.005 anchor off-by-one), F-S058-P13-O4 (test_stop_after_handshake cross-story collision). [OBS-7 deferred; PG-W18-001/002 open; PG-W18-002 extended].
+5. input-hash scan: TOTAL=48 MATCH=48 STALE=0 (confirmed post-W17-close).
+6. NEXT: Wave 18 wave-level adversarial convergence — 3-lens fresh-context review (consistency/integration-static/traceability) on frozen develop 3f87ac3. Then consistency audit + input-drift check. Then CLOSE Wave 18. Prior checkpoint archived: cycles/phase-3-tdd/session-checkpoints.md.
 
 ## Wave Retrospectives (Compacted)
 
