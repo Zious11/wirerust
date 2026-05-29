@@ -5825,7 +5825,9 @@ mod bc_2_06_045_formalization {
 // ---------------------------------------------------------------------------
 // STORY-046 Brownfield-Formalization Tests (BC-2.06.023)
 //
-// Naming convention: test_BC_2_06_023_<descriptive_suffix>
+// Naming convention: test function names in this module are snake_case as
+// mandated by STORY-046 Acceptance Criteria (DF-AC-TEST-NAME-SYNC-001
+// requires the test fn name to match the AC `Test:` citation exactly).
 // All test function names are mandated by STORY-046 Acceptance Criteria and
 // DF-AC-TEST-NAME-SYNC-001 / PG-W17-001.  The AC citations appear as comments
 // above each function.
@@ -5834,9 +5836,6 @@ mod bc_2_06_045_formalization {
 // (brownfield-formalization mode) and MUST PASS if the implementation
 // conforms to BC-2.06.023.  Any failure is reported as a candidate
 // spec/impl mismatch for human triage.
-//
-// The #[allow(non_snake_case)] is scoped to each individual test (the BC-NNN
-// capitalization is intentional per DF-AC-TEST-NAME-SYNC-001).
 // ---------------------------------------------------------------------------
 mod bc_2_06_023_formalization {
     use super::*;
@@ -5855,7 +5854,6 @@ mod bc_2_06_023_formalization {
     ///   - "low-N.example.com" →  1 request each × 23 hosts (tail, truncated)
     ///
     /// EC-002: more than 20 distinct hosts → top_hosts truncated to exactly 20.
-    #[allow(non_snake_case)]
     #[test]
     fn test_summarize_top_hosts_sorted_and_truncated() {
         let mut analyzer = HttpAnalyzer::new();
@@ -5936,7 +5934,6 @@ mod bc_2_06_023_formalization {
     /// BC-2.06.023 postcondition 3: recent_uris = first 20 from self.uris (insertion order).
     ///
     /// EC-003: more than 20 URIs → recent_uris shows first 20 (not last 20, not sorted).
-    #[allow(non_snake_case)]
     #[test]
     fn test_summarize_recent_uris_first_20() {
         let mut analyzer = HttpAnalyzer::new();
@@ -6013,9 +6010,10 @@ mod bc_2_06_023_formalization {
     ///
     /// Per LESSON-P2.09: detail map is a BTreeMap so keys are always in
     /// alphabetical order regardless of insertion order.
-    #[allow(non_snake_case)]
     #[test]
     fn test_summarize_btreemap_key_order_is_deterministic() {
+        // Scope: invariant 1 covers the TOP-LEVEL `detail` BTreeMap key order (within-process);
+        // nested-map cross-run key order is out of scope for BC-2.06.023 invariant 1.
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
@@ -6081,7 +6079,6 @@ mod bc_2_06_023_formalization {
     ///
     /// Canonical test vector from BC-2.06.023: 5 GET requests + 3 responses
     /// → packets_analyzed = 3, not 5.
-    #[allow(non_snake_case)]
     #[test]
     fn test_summarize_packets_analyzed_equals_transactions() {
         let mut analyzer = HttpAnalyzer::new();
@@ -6134,7 +6131,6 @@ HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
     /// Exercises: interleave summarize() calls between on_data calls and confirm
     /// that subsequent parsing produces the same aggregate results as if
     /// summarize() had never been called.
-    #[allow(non_snake_case)]
     #[test]
     fn test_summarize_does_not_mutate_state() {
         let mut analyzer = HttpAnalyzer::new();
