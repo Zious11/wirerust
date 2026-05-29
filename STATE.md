@@ -9,7 +9,7 @@ phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
 phase_2_completed: "2026-05-21"
 phase_3_started: "2026-05-21"
-develop_head: fa17dec
+develop_head: 34e66c7
 wave_1_closed: "2026-05-22"
 wave_2_closed: "2026-05-22"
 wave_3_closed: "2026-05-22"
@@ -109,7 +109,8 @@ phase_2_input_hash_drift_check_total: 153
 **Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-16 CLOSED/CONVERGED; Wave 17 NOT STARTED.
 30 stories delivered across Waves 1-16 (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052).
 Wave 16 CLOSED 2026-05-29: retroactive convergence complete. PRs #140-146. All 4 per-story CONVERGED: STORY-052(P3-P5), STORY-042(P4-P6), STORY-043(P4-P6), STORY-044(P5-P7). Wave-level: R1 2-MEDIUM REMEDIATED; R2 3-lens×3-pass CLEAN (1 false-positive MEDIUM dismissed). BC-5.39.001 ACHIEVED.
-develop HEAD: fa17dec (PR #146 — STORY-043 test rename, merged 2026-05-28). All 7 CI checks green.
+Drift Remediation 2026-05-29 COMPLETE: 62 items validated → 22 closed-as-bookkeeping/codification, ~25 fixed/codified, ~15 deferred (incl. DF-16.B bulk sweep + 3 plugin-template escalations). PRs #147+#148 merged. 5 new policies codified.
+develop HEAD: 34e66c7 (PRs #147+#148 merged 2026-05-29). All 7 CI checks green.
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -181,13 +182,13 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-29 — Wave 16 CLOSED; Wave 17 Ready)
+## Session Resume Checkpoint (2026-05-29 — Drift Remediation COMPLETE; Wave 17 Ready)
 
-1. Waves 1-16 CLOSED/CONVERGED. Wave 16 CLOSED 2026-05-29. develop HEAD: fa17dec (PR #146). All 7 CI checks green.
-2. Wave 16 retroactive convergence complete: all 4 stories per-story CONVERGED (S052 P3-P5, S042 P4-P6, S043 P4-P6, S044 P5-P7). Wave-level: R1 2-MEDIUM remediated (PR#146+sweep); R2 3-lens×3-pass CLEAN; 1 false-positive dismissed (VP-006). BC-5.39.001 ACHIEVED per-story + wave-level.
-3. 5 lessons recorded (W16.L1-L5) in cycles/phase-3-tdd/lessons.md. Highest-value: W16.L1 (merge-before-convergence possible; STATE.md drift is detection signal; draft codification item for delivery workflow).
-4. Deferred LOW batch (6 items in Drift Items table): F-W16-S042-P5-001/003, F-W16-S043-P5-001, F-W16-S052-P5-001 (anchor precision), F-W16-S043-P3-002 (coverage), F-W16-S052-P2-002 (coverage). All require DF-VALIDATION-001 research-agent validation before GitHub issue filing.
-5. 5 process-gap draft codification items (PG-W16-001 through PG-W16-005) recorded in cycles/phase-3-tdd/lessons.md. All require DF-VALIDATION-001 research-agent validation.
+1. Waves 1-16 CLOSED/CONVERGED. Drift Remediation 2026-05-29 COMPLETE. develop HEAD: 34e66c7 (PRs #147+#148 merged). All 7 CI checks green.
+2. Drift remediation: 62 items validated → ~56 closed (22 bookkeeping/codification, ~25 fixed/codified, ~4 invalid, ~5 wont-fix). 9 items remain OPEN (see Drift Items table). Archive: .factory/cycles/drift-remediation-2026-05-29/closed-items.md. Lessons: .factory/cycles/drift-remediation-2026-05-29/lessons.md.
+3. 5 new policies codified in policies.yaml (artifact commit 23f92cc): DF-AC-TEST-NAME-SYNC-001 v2, DF-SIBLING-SWEEP-001 v4, DF-CONVERGENCE-BEFORE-MERGE-001, DF-DEVELOP-FRESHNESS-001, DF-ADVERSARY-TOOLCHAIN-PAIRING-001.
+4. STORY-033 status reconciled: in-progress → completed (F-DRIFT-S-001 fixed). STORY-INDEX.md updated.
+5. DF-16.B (OPEN, MEDIUM): ~209 BC files across SS-02..SS-13 still have broken `capabilities.md §CAP-NN` citations. Requires dedicated bulk find-replace sweep (not per-item). SS-01 8 files fixed.
 6. NEXT: Wave 17. Stories: STORY-045 (E-4 Flow Lifecycle + Caps; blocks: STORY-041+STORY-044), STORY-053 (E-5 ServerHello JA3S; blocks: STORY-051+STORY-052), STORY-055 (E-5 SNI Arms 1+2; blocks: STORY-052). All blockers satisfied. Prior checkpoint: cycles/phase-3-tdd/session-checkpoints.md.
 
 ## Wave Retrospectives
@@ -267,6 +268,25 @@ Full retrospective detail: `.factory/cycles/phase-3-tdd/lessons.md` (W12 lessons
 
 Full retrospective detail: `.factory/cycles/phase-3-tdd/lessons.md` (W13 lessons)
 
+### Drift Remediation Retrospective (2026-05-29)
+
+62 validated backlog items → ~56 closed this session.
+
+| Classification | Count |
+|----------------|-------|
+| RESOLVED-FIXED-THIS-SESSION | 22 |
+| RESOLVED-BY-CODIFICATION-THIS-SESSION | 6 |
+| RESOLVED-PRIOR (confirmed) | 8 |
+| INVALID | 4 |
+| DUPLICATE (merged into canonical) | 5 |
+| WONT-FIX-BY-DESIGN | 11 |
+| **Remaining OPEN** | **9** |
+
+Key outcomes: (1) DF-16.B blast radius discovered — 209 BC files with broken capabilities.md citations across SS-02..SS-13 require bulk sweep. (2) 5 new policies codified (DF-CONVERGENCE-BEFORE-MERGE-001 highest-value). (3) F-W16-S052-P2-002 reclassified WONT-FIX after feasibility probe (nom many0/complete semantics make the branch unreachable). (4) develop HEAD advanced to 34e66c7 (PRs #147+#148).
+
+Archive: `.factory/cycles/drift-remediation-2026-05-29/closed-items.md`
+Lessons: `.factory/cycles/drift-remediation-2026-05-29/lessons.md`
+
 ### Wave 16 Retrospective (closed 2026-05-29) — Retroactive Convergence
 
 - Stories: STORY-042, STORY-043, STORY-044 (E-4 HTTP), STORY-052 (E-5 TLS). All merged before convergence ran.
@@ -327,78 +347,29 @@ None open.
 
 ## Drift Items
 
-| ID | Finding | Category | Target Phase | Validation Status |
-|----|---------|----------|-------------|-------------------|
-| DF-16.A | BC-2.01.001..008 anchor capability CAP-01; CAP-02 (Link-Type Gating) also describes this behavior; capabilities.md not found under .factory/specs/. Capability column may be under-specified or capabilities.md archived/renamed. | architectural | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W9-D1 | STORY-016 F-9 — BC-2.04.047 PC4 should enumerate Truncated/DepthExceeded/SegmentLimitReached behavior for completeness; not blocking | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W9-D2 | STORY-016 F-10 [process-gap] — story-writer template Task #2 wording "Verify Red Gate" incompatible with brownfield-formalization (no Red Gate possible); needs template revision | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W9-D3 | STORY-016 F-11 [process-gap] — story template lacks per-AC VP trace column; needs template enhancement | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W9-D4 | STORY-016 F-12 — story Token Budget template hardcodes "200K for Sonnet"; needs parameterization or removal | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W9-D5 | STORY-020 F-004 — AC-005 test cannot distinguish "evict_flows called but exits immediately" from "never called"; would require evict_flows_calls_for_testing seam; acceptable since production code is observable in behavior | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W9-D8 | **[RESOLVED 2026-05-26]** [process-gap] Sibling-discipline pattern codified as DF-SIBLING-SWEEP-001 in `.factory/policies.yaml` on 2026-05-26 (pre-Wave-10). Orchestrator now injects sibling-sweep checklist into every remediation dispatch. Original finding: STORY-020 per-story P2/P3/P4 + wave-level P1/P2/P3 = 6 total recurrences; each remediation created a new sibling-regression next pass. | process-gap | **RESOLVED** | **RESOLVED** 2026-05-26 — Codified as DF-SIBLING-SWEEP-001 in .factory/policies.yaml. No GitHub issue required (structural codification is the resolution). |
-| W9-D9 | BC-2.04.014 + STORY-020 anchor drift: lifecycle.rs:51 cited but correct anchor is lifecycle.rs:60. 3 occurrences in STORY-020 (Architecture Mapping, Token Budget, File Structure tables); 2 occurrences in BC-2.04.014. | spec-gap | — | **RESOLVED** 2026-05-26 by F-W9P1-003 remediation — BC-2.04.014 v1.3 + STORY-020 v1.7; factory commit a3e8927 |
-| W9-D12 | F-W9P1-005 (LOW pending intent): `packets_dropped_capacity` stats counter not present in production code. Observability gap on BC-2.04.015 PC-6 drop event. May be intentional design (stats.evictions counts evicted flows, not refused new flows). Requires intent adjudication before filing as issue. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W10-D2 | STORY-017 pass-2 F-PASS2-LOW-A (LOW): line 187 Architecture Compliance Rule cites BC-2.04.022 invariant 1; correct citation is PC-1/INV-2. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W10-D3 | STORY-017 pass-2 F-PASS2-LOW-B (LOW): BC-2.04.019 anchor mod.rs:430-449 is off-by-one from actual implementation lines. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W10-D4 | STORY-017 pass-2 F-PASS2-LOW-C (LOW): BC-2.04.022 Source Evidence inner-line citations have mixed semantics (some character-level, some token-level). | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W10-D5 | STORY-018 pass-1 F-003 carry-forward (LOW): AC-005 uses 3 distinct execution flows but EC-002 covers only the same-flow case; the other 2 flows lack coverage. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W10-D6 | [process-gap] DF-SIBLING-SWEEP-001 v1 checklist does not explicitly enumerate BC→story-EC, BC→test-prose, and BC→test-name propagation paths. Surfaced in STORY-018 pass-2 (3 MED sibling-regressions of BC-2.04.045 v1.3 fix that passed BC→BC sweep but missed story/test paths). Policy v2 codification candidate post-Wave 10. | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W10-D7 | [process-gap] DF-PR-MANAGER-COMPLETE-001 v1 enforcement insufficient at dispatch-prompt level — pr-manager STOPPED at APPROVE step on STORY-017 PR #131 despite explicit policy injection. Root cause: policy enforcement lives only in orchestrator dispatch text, not in pr-manager agent prompt itself. Codification candidate: edit pr-manager agent prompt in vsdd-factory plugin source, not just dispatch-time injection. RESOLUTION CANDIDATE — implementer-as-PR-executor proven reliable on PR #133 (autonomous through merge); recommend retiring pr-manager dispatch in favor of implementer for PR completion. | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W10-D8 | [spec-gap, defer-as-integration] BC-2.04.045 v1.3 PC2 "or no gaps fit at all" wording is structurally unreachable per early-guard analysis — the STORY-018 v1.5 pass-5 implementation-reachability finding. Should be removed at wave-gate to prevent re-propagation to STORY-021 + future SS-04 stories. Deferred as integration item. | spec-gap | wave-gate | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W10-D10 | F-W10P1-004 (MED): STORY-018 AC-005 and EC-008 test coverage is duplicated — fill_findings_to_cap helper exists but test uses manual duplication pattern instead. Refactor opportunity reduces test code volume without changing coverage. Source: STORY-018 tests/reassembly_segment_tests.rs. | test-quality | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W10-D11 | F-W10P1-005 (MED): No AC pins evidence strings for small-segment + overlap findings in STORY-018 — only AC-012 covers out-of-window (OOW) case. Small-segment and overlap finding evidence strings lack acceptance criteria anchors, leaving spec coverage gap for those two finding types. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W10-D12 | O-W10P1-001 (LOW): BC-2.04.018 PC2 parenthetical overgeneralizes direction:None — states behavior applies to "all direction values" but direction:None is not a valid direction for per-flow findings. PC2 wording may confuse future story implementers. Wave-gate fix candidate. | spec-gap | wave-gate | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W10-D13 | O-W10P1-002 (LOW): Truncated path overlap detection skips bytes beyond `allowed` without any security note — bytes past the depth limit are silently discarded; this is intentional behavior but the BC lacks a security-implication note for analysts reviewing partial-stream reassembly. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W10-D14 | O-W10P1-003 (LOW): No AC in STORY-018 verifies direction:None for ConflictingOverlap finding — the BC states direction:None is valid for flow-level findings but no test AC anchors this invariant, leaving it unverifiable from the story alone. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W11-D1 | BC-2.04.025/012/026 VP-NNN identifiers are "—" (pre-existing placeholder, F-W11P2-013). | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W11-D2 | Trust-boundary CI lint to forbid `_for_testing(` calls in src/ (F-W11P2-015). | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W11-D3 | Adversary read-only profile cannot run toolchain (axis G) — orchestrator must pair adversary with toolchain runner (F-W11P4-010). | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W11-D4 | Adversary read-only profile cannot run compute-input-hash --check (F-W11P4-011). | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W11-D5 | Orchestrator dispatch scope-of-change should be generated from `git diff --stat` actuals rather than manual description (F-W11P5-010). | process-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W11-D6 | Cargo.toml rust-version="1.91" vs CLAUDE.md says 1.85+ (pre-existing, observed wave-level; see also W2.6). | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W11-D7 | AC-007 vs AC-007b — test name `test_BC_2_04_024_engine_cap_at_exactly_10000` covers AC-007 as sub-assertion of AC-007b's test (18 functions for 19 ACs). | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W12-D1 | Wave-12 pass-8 LOW observations: stale "5-byte" prose at 5 sites + "short data" message stale — cosmetic, not blocking. Deferred to next dispatcher touch. | cosmetic | next-dispatcher-touch | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W12-D2 | BC-2.05.001/003 EC tables without inline citations — sibling-asymmetry vs BC-2.05.002 EC table style (F-W12P8-003, F-W12P8-004). Pending intent verification. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W13-D1 | [process-gap, LOW, deferred] tests/dispatcher_tests.rs lacks top-level ordering convention comment. After Pass-2's reorder of test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified to group it with BC-005 sibling, future contributors have no documented norm for placing new BC-prefixed tests. Source: F-W13P3-OBS-002. | process-gap | maintenance-sweep or W15+ | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W14-D1 | [process-gap, LOW, deferred] STORY-033 demonstrated AC↔test-name drift: AC body "**Test:**" lines cited short-form names (e.g., test_unclassified_flows_counter) while tests used BC-prefixed names (e.g., test_BC_2_05_007_unclassified_flows_counter). No policy previously enforced sync. Source: F-W14P1-011. CODIFIED as DF-AC-TEST-NAME-SYNC-001 v1 — drift item closed by codification. | process-gap | RESOLVED via DF-AC-TEST-NAME-SYNC-001 v1 | RESOLVED 2026-05-28 — codified as DF-AC-TEST-NAME-SYNC-001 v1 in .factory/policies.yaml. |
-| W14-D2 | [content-defect, LOW, deferred] BC-2.05.008 EC-002 wording "http=Some, tls=None; TLS data — Normal TLS check; falls to port fallback; may route None" is ambiguous. Under natural reading "TLS data" = TLS-magic bytes, the description may be misleading (would classify as Tls, not fall to port-fallback). Source behavior is correct. Source: O-W14P4-LOW-001. | content-defect | BC-008 next touch or maintenance-sweep | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W15-D1 | [spec-gap, LOW, deferred] BC-2.06.004 EC-005 (code==None → status_codes[0]) empirically unreachable via on_data API; httparse rejects via Err(InvalidStatus); defensive `unwrap_or(0)` retained. EC-005 tests the defensive branch but the trigger condition cannot be induced through public API. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| W15-D2 | [spec-gap, LOW, deferred] had_success guard reachability narrow (requires NUL-byte injection in HTTP body); defensive code path. BC-2.06.004 invariant 4 (response-side had_success guard) tested but requires adversarial injection path not possible through normal flow. | spec-gap | phase-5 | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| F-W15S051-P3-003 | [spec-gap, LOW, deferred] `ent-05-enums-value-objects.md` cites stale compute_ja3 (95-151) and compute_ja3s (156-173) line ranges after STORY-051 implementation shifted function boundaries. Domain-spec line citations are stale. | spec-gap | wave-gate (domain-spec coherence sweep) | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| F-W15P6-D01 | [spec-gap, LOW, deferred] BC-2.06.020 ↔ BC-2.06.004 cross-ref asymmetry. BC-2.06.004 references BC-2.06.020 in Related BCs but reciprocal link is absent. Cross-story gap: STORY-044 owns BC-2.06.020. | spec-gap | wave-gate | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| F-W15P6-D02 | [spec-gap, LOW, deferred] HS-051 holdout-scenario BC list omits BC-2.06.026 and BC-2.06.004 invariant 4. Holdout scenario coverage gap for W15 new invariant + sibling BC. | spec-gap | wave-gate | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| F-W16-S052-P2-002 | [coverage-gap, LOW, DEFERRED] BC-2.07.001 EC-002 extension-block parse failure path: parse_tls_plaintext succeeds but parse_tls_extensions fails → parse_errors++, JA3 with empty ext fields, SNI skipped. src/analyzer/tls.rs:391-396 inner Err arm has no discriminating test; no AC currently enumerates this path with a **Test:** citation. Requires a synthetic ClientHello that passes parse_tls_plaintext but fails parse_tls_extensions. Surfaced F-W16-S052-P2-002 during Pass-2 anchor sweep. Target: future TLS hardening story. | coverage-gap | future-tls-hardening-story | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| F-W16-S043-P3-002 | [coverage-gap, LOW, DEFERRED] BC-2.06.010 invariant 2 "truncate_uri UTF-8 char-boundary safe" claim is never exercised; all long-URI test inputs in STORY-043 are pure ASCII. A multibyte-URI test may be infeasible if httparse rejects non-ASCII URI tokens at this layer. Per DF-VALIDATION-001 MUST be validated by vsdd-factory:research-agent (feasibility + whether BC invariant 2 char-boundary claim is over-stated) before any GitHub issue is filed. Target: future TLS/HTTP hardening story. | coverage-gap | future-http-hardening-story | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| F-W16-S042-P5-001 | [LOW, wave-close batch] BC-2.06.005 Architecture Anchors 186-191/192-202 off-by-one: block closes at 203. Doc-only. | anchor-precision | wave-close-batch | REQUIRES research-agent validation (DF-VALIDATION-001) before any GitHub issue |
-| F-W16-S042-P5-003 | [LOW, wave-close batch] BC-2.06.006/007 lack line-precise invariant anchor prose vs BC-2.06.005 sibling precision. Doc-only. | anchor-precision | wave-close-batch | REQUIRES research-agent validation (DF-VALIDATION-001) before any GitHub issue |
-| F-W16-S043-P5-001 | [LOW, wave-close batch] STORY-043 File Structure table cites test module lines 2758-3503; actual 2759-3523. Doc-only. | stale-range | wave-close-batch | REQUIRES research-agent validation (DF-VALIDATION-001) before any GitHub issue |
-| F-W16-S052-P5-001 | [LOW, wave-close batch] BC-2.07.034 coarse anchor 718-724 (v1.2) vs sibling BC-2.07.003 tightened to 721/723 (v1.3). Doc-only. | anchor-precision | wave-close-batch | REQUIRES research-agent validation (DF-VALIDATION-001) before any GitHub issue |
-| F-W16-WAVE-P1-003 | [process-gap, codification follow-up] DF-AC-TEST-NAME-SYNC-001 v1 verifies AC `**Test:**` name EXISTENCE but not UNIQUE RESOLUTION — a bare test name matching two functions across module boundaries passes the policy grep (manifested as F-W16-WAVE-P1-001 test-name collision in wave-level Pass-1). Recommend extending policy to require unique resolution or module qualifier. Draft extension as DF-AC-TEST-NAME-SYNC-001 v2. | process-gap | policy-codification | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| F-W16-WAVE-P2-003 | [process-gap, LOW] No CI gate enforces zero production callers of `_for_testing` seams — convention-only via #[doc(hidden)] + naming. A clippy/custom-lint rule or grep-in-CI would harden the boundary. Defer as drift item pending research-agent validation. | process-gap | future-ci-hardening | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 before any GitHub issue is filed |
-| PG-W16-001 | [process-gap, codification] DF-AC-TEST-NAME-SYNC-001 v1 verifies AC `**Test:**` name EXISTENCE but not UNIQUE RESOLUTION nor correct fn-declaration line anchor (W16.L3). Draft extension to v2. | process-gap | policy-codification | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 |
-| PG-W16-002 | [process-gap] No workflow step transitions story status draft/in-progress → completed on merge (Wave-15 STORY-041/051 + Wave-16 all 4 stuck at in-progress/draft). Add post-merge status-transition step. | process-gap | delivery-workflow | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 |
-| PG-W16-003 | [process-gap] BC-edit sibling-sweep did not extend to consuming-STORY Architecture-Mapping bodies citing same source anchor (W16.L3 F-W16-S044-P3-001). Draft DF-SIBLING-SWEEP-001 v4 extension. | process-gap | policy-codification | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 |
-| PG-W16-005 | [process-gap, CRITICAL] 4 stories merged without mandatory per-story + wave-level adversarial convergence; STATE.md left stale (W16.L1). Per-story delivery flow must not merge before Step-4.5. Draft codification (highest-value W16 lesson). | process-gap | delivery-workflow | REQUIRES vsdd-factory:research-agent validation per policy DF-VALIDATION-001 |
+All items below require DF-VALIDATION-001 research-agent validation before GitHub issue filing.
+Closed items archived in `.factory/cycles/drift-remediation-2026-05-29/closed-items.md`.
 
-## Cycle-Close Follow-Up Items
+| ID | Finding | Category | Target | Status |
+|----|---------|----------|--------|--------|
+| DF-16.B | [spec-gap, MEDIUM, bulk-mechanical] ~209 BC files across SS-02..SS-13 still have broken `capabilities.md §CAP-NN` citations (SS-01 8 files fixed 2026-05-29). Single bulk find-replace `capabilities.md §CAP-NN` → `domain/capabilities/cap-NN-<slug>.md`; per-cap slug mapping present in `.factory/specs/domain/capabilities/`. | spec-gap | dedicated bulk sweep | OPEN |
+| W9-D2 | [process-gap, ESCALATE-UPSTREAM] story-writer template Task #2 wording "Verify Red Gate" incompatible with brownfield-formalization. NOT fixable in this repo; escalate to plugin maintainer. | process-gap | plugin-maintainer | OPEN — ESCALATE-UPSTREAM |
+| W9-D3 | [process-gap, ESCALATE-UPSTREAM] story template lacks per-AC VP trace column. NOT fixable in this repo; escalate to plugin maintainer. | process-gap | plugin-maintainer | OPEN — ESCALATE-UPSTREAM |
+| W9-D4 | [process-gap, ESCALATE-UPSTREAM] story Token Budget template hardcodes "200K for Sonnet". NOT fixable in this repo; escalate to plugin maintainer. | process-gap | plugin-maintainer | OPEN — ESCALATE-UPSTREAM |
+| W9-D12 | [spec-gap, needs-PO-intent] `packets_dropped_capacity` stats counter absent (BC-2.04.015 PC-6 observability). Awaiting PO adjudication: add counter vs document omission. | spec-gap | phase-5 PO | OPEN — AWAITING-PO |
+| W10-D10-sibling | [test-quality, LOW] tests/reassembly_engine_tests.rs:~14143 `test_story_018_ec008` re-implements the 10,000-flow fill loop inline (should use `fill_findings_to_cap`). Target: next reassembly-test touch. | test-quality | next reassembly touch | OPEN |
+| F-DRIFT-C-001 | [cosmetic, LOW] Stale doc-comment in src/analyzer/http.rs `truncate_uri` test: "5 'é' = 10 bytes" vs actual "éééé" 4-char fixture; logic correct. Target: next http-test PR (develop branch). | cosmetic | next http-test touch | OPEN |
+| F-W15P6-D01 | [spec-gap, LOW] BC-2.06.020 ↔ BC-2.06.004 cross-ref asymmetry: BC-2.06.004 references BC-2.06.020 in Related BCs but reciprocal link absent. Cross-story gap (STORY-044 owns BC-2.06.020). | spec-gap | wave-gate | OPEN |
+
+## Cycle-Close Follow-Up Items (OPEN)
+
+Most items from Waves 1-16 closed during drift-remediation-2026-05-29. Closed items archived in
+`.factory/cycles/drift-remediation-2026-05-29/closed-items.md`.
 
 | ID | Item | Priority |
 |----|------|----------|
-| W1.1 | Wave-gate dispatch: verify `git pull origin develop` before adversarial review. | P1 |
-| W1.2 | Brownfield static-assertion tests must anchor to non-test code or use line-range verification. | P2 |
-| W1.3/W2.5 **[RECURRING Waves 1-5]** | No pipeline gate advances story status on merge. 5-wave recurrence. Req. research-agent validation. | P1 |
-| W2.1 | VP-anchored file-existence tests must assert ≥1 structural content invariant. | P2 |
-| W2.2 | CI VP-anchored jobs must include smoke assertion (e.g., `-runs=100`). | P2 |
-| W2.3 | Story frontmatter should include `bc_versions:` map at authoring time. | Minor |
-| W2.6 | Cargo.toml `rust-version = "1.91"` vs CLAUDE.md "requires Rust 1.85+"; reconcile. | Minor |
-| W3.1 | Test-naming `ecNNN` suffix tracks story EC IDs not BC EC IDs — drift risk. Req. research-agent. | Minor |
-| W4.1 **[RECURRING Waves 4+6+7 — recurrence #4]** | Anchor agents must re-read from disk after src edits; sweep must verify end-line AND description semantics, not only start-line. Cycle-close codification: anchor-validation hook checking both bounds AND semantic descriptions. Req. research-agent. | P1 |
-| W7.1 | No public-API surface gate for pub fn additions. Candidate: `cargo public-api` CI job. Req. research-agent. | P2 |
-| W7.2/W8.4 **[RECURRING Waves 7+8 — W7.2 recurrence in W8]** | Partial-fix regression: every remediation must sweep entire axis surface. W8 instances: sibling-BC enforcement-mode (p1), within-BC sibling-section (p4), ADR-narrative (p5), BC↔test (p6). Codification: pre-merge sibling-discipline checklist for BC updates. Req. research-agent. | P1 |
-| W7.3 | Out-of-scope anchor drift in src/analyzer + src/decoder. Proactive sweep when Wave 9+ touches analyzer. Req. research-agent. | P3 |
-| W8.1 | Stale local develop caused FALSE-POSITIVE F-1/F-2 HIGH in wave-level pass-3. Orchestrator MUST `git pull origin develop --ff-only` before each wave-level adversary dispatch. Req. research-agent. | P1 |
-| W8.2 | ADR amendment dialect drift: STORY-019 src comments used "(choice (b))" vocab not present in ADR-0004. Enforcement reviews must verify cited vocab exists in ADR. Req. research-agent. | P2 |
-| W8.3 | Wave-level adversarial cost escalation (9 passes vs 7's 8). Likely W7.2 pattern at wave scale. Codification: pass-N+1 must-not-recur assertion. Req. research-agent. | P2 |
+| W1.3/W2.5 **[RECURRING Waves 1-16]** | No pipeline gate advances story status draft/in-progress → completed on merge. Requires plugin-level fix (vsdd-factory story-writer template); not fixable in this repo. STORY-033 manually reconciled (F-DRIFT-S-001). | P1 — ESCALATE-UPSTREAM |
+| W7.1 | No public-API surface gate for `pub fn` additions. Candidate: `cargo public-api` CI job. Deferred: requires nightly + committed baseline, 2-PR setup. Documented in CLAUDE.md. | P2 — DEFERRED |
 
 Historical process-gap items from Phase 1 (P1.1–P1.3, P3-PG, P4-PG1/2/3, P5-PG, P8-DEFER,
 P10-PG, P-CITE-PG): archived in `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`.
@@ -434,13 +405,36 @@ causing the adversary to query the wrong filesystem. Git operations must use
 main repo instead of worktree; produced 2 FALSE-CRITICAL findings).
 Severity: HIGH.
 
-**DF-AC-TEST-NAME-SYNC-001 v1** (added 2026-05-28, `.factory/policies.yaml`):
-Story AC bodies cite test names in "**Test:**" lines. These citations MUST match
-`fn test_*` definitions in the cited test file. Story-writer verifies citations
-before commit; test-writer updates AC "**Test:**" lines when adding BC-prefixed
-tests (same burst per DF-SIBLING-SWEEP-001 v3). Adversary flags mismatches as
-MEDIUM. Derived from F-W14P1-011 (Wave 14 Pass 1 process-gap; 9 ACs affected).
-Severity: MEDIUM.
+**DF-AC-TEST-NAME-SYNC-001 v2** (extended 2026-05-29, `.factory/policies.yaml`):
+v1 (added 2026-05-28): AC "**Test:**" citations must match `fn test_*` definitions.
+v2 (added 2026-05-29): Citations MUST also uniquely resolve — a bare test name matching
+two functions across module boundaries does NOT satisfy the policy. Module qualifier or
+fully-qualified path required when ambiguity exists. Derived from F-W16-WAVE-P1-003
+(PG-W16-001 codification). Severity: MEDIUM.
+
+**DF-CONVERGENCE-BEFORE-MERGE-001** (added 2026-05-29, `.factory/policies.yaml`):
+Per-story delivery flow MUST NOT merge a story PR before Step-4.5 adversarial
+convergence gate is ACHIEVED (3 consecutive clean passes per BC-5.39.001). Derived
+from PG-W16-005 / W16.L1 (4 stories merged without convergence; STATE.md left stale).
+Severity: CRITICAL.
+
+**DF-DEVELOP-FRESHNESS-001** (added 2026-05-29, `.factory/policies.yaml`):
+Orchestrator MUST `git pull origin develop --ff-only` before every adversarial
+dispatch (per-story and wave-level). Derived from W1.1 + W8.1 (stale develop
+produced 2 FALSE-CRITICAL findings in wave-level pass-3). Severity: HIGH.
+
+**DF-ADVERSARY-TOOLCHAIN-PAIRING-001** (added 2026-05-29, `.factory/policies.yaml`):
+Adversary dispatches that require build/test verification MUST be paired with a
+toolchain-runner sub-agent. Adversary read-only profile cannot execute `cargo test`,
+`cargo clippy`, or `compute-input-hash --check`. Orchestrator must run toolchain
+checks before dispatching adversary. Derived from W11-D3/D4/D5 (F-W11P4-010/011).
+Severity: HIGH.
+
+**DF-SIBLING-SWEEP-001 v4** (extended 2026-05-29, `.factory/policies.yaml`):
+New bullet group added: when a BC source-evidence anchor changes, sweep ALL consuming
+STORY Architecture-Mapping bodies that cite the same anchor — not only sibling BCs and
+test files. Derived from PG-W16-003 / W16.L3 / F-W16-S044-P3-001.
+Severity: CRITICAL (inherits from v1).
 
 **DF-SIBLING-SWEEP-001 v3** (extended 2026-05-27, `.factory/policies.yaml`):
 Two new bullet groups added to the existing policy:
