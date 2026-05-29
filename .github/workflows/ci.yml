@@ -166,3 +166,45 @@ jobs:
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check bans licenses sources
+
+  # W11-D2 / F-W16-WAVE-P2-003: Test-seam trust-boundary gate.
+  #
+  # Policy: functions suffixed `_for_testing` are test-seam helpers and MUST
+  # only appear as definitions inside src/. They must NEVER be called from
+  # production code paths in src/. Test callers live in tests/ (integration
+  # tests) or inside `#[cfg(test)]` modules; those paths are NOT scanned here.
+  #
+  # How it works:
+  #   1. grep -rn "_for_testing(" src/   — find every occurrence in src/
+  #   2. grep -v "fn [a-zA-Z_]*_for_testing("  — strip definition lines
+  #      (lines of the form `fn some_name_for_testing(` are the seam definitions
+  #      themselves; `pub fn`, `async fn`, indented `fn`, etc. all contain `fn `
+  #      followed by the identifier, so they all match and are excluded)
+  #   3. If any lines survive the filter they are production call-sites —
+  #      a violation. The step captures them and fails with a clear message.
+  #
+  # Baseline: zero violations on develop as of 2026-05-28 (drift item W11-D2).
+  trust-boundary:
+    name: Trust-boundary (test-seam gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify no production callers of _for_testing seam functions
+        # Scans src/ only. tests/ and #[cfg(test)] blocks are test territory
+        # and are intentionally excluded — they are the legitimate callers.
+        # Fails CI if any production call-site is found.
+        shell: bash
+        run: |
+          set -euo pipefail
+          VIOLATIONS=$(grep -rn "_for_testing(" src/ | grep -v "fn [a-zA-Z_]*_for_testing(") || true
+          if [ -n "${VIOLATIONS}" ]; then
+            echo "FAIL: Production call-sites of _for_testing seam functions found in src/:"
+            echo "${VIOLATIONS}"
+            echo ""
+            echo "Functions suffixed _for_testing are test-seam helpers and must not"
+            echo "be called from production code. Move callers into tests/ or"
+            echo "#[cfg(test)] modules, or refactor the seam."
+            exit 1
+          fi
+          echo "PASS: No production callers of _for_testing functions found in src/"
