@@ -2539,16 +2539,21 @@ fn test_non_zero_name_type_sni_entry() {
     // BC-2.07.025 pc1 positive proof — story EC-004 / BC-2.07.025 EC-002:
     // NameType≠0 + NON-ASCII UTF-8 hostname → ARM 3 (NonAsciiUtf8).
     //
-    // Story EC-004 (STORY-057.md:135) and BC-2.07.025 EC-002 specify:
-    // "First entry has NameType=1, hostname is non-ASCII UTF-8 → Arm 3 fires."
+    // Story EC-004 (STORY-057.md:135) specifies "NameType=1" as an illustrative
+    // value; BC-2.07.025 EC-002 phrases it as "NameType=255" (0xFF). Both describe
+    // the same invariant: any non-zero NameType is discarded identically by the `_`
+    // wildcard in `let Some((_, hostname)) = list.first()`. The specific value is
+    // immaterial — the fixture uses NameType=0xFF (BC-2.07.025 EC-002's phrasing)
+    // to exercise the maximum reserved value.
+    //
     // A clean-ASCII hostname cannot distinguish "hostname reached the classifier"
     // from "entry was silently skipped." A non-ASCII UTF-8 hostname forces arm 3
     // (NonAsciiUtf8 finding) if and only if the hostname bytes reach the classifier.
     //
-    // Canonical vector: NameType=0xFF + "café.example" (U+00E9 = 0xC3 0xA9,
-    // valid UTF-8 non-ASCII). If the entry were skipped: sni_counts empty, no
-    // finding. If the hostname reaches the classifier: arm 3 fires, exactly ONE
-    // NonAsciiUtf8 finding emitted, sni_counts keyed on the UTF-8 string.
+    // Fixture: NameType=0xFF + "café.example" (U+00E9 = 0xC3 0xA9, valid UTF-8
+    // non-ASCII). If the entry were skipped: sni_counts empty, no finding.
+    // If the hostname reaches the classifier: arm 3 fires, exactly ONE NonAsciiUtf8
+    // finding emitted, sni_counts keyed on the UTF-8 string.
     let mut analyzer_ec004 = TlsAnalyzer::new();
     let record_ec004 =
         build_client_hello_with_typed_sni_list(&[(0xFF, "café.example".as_bytes())], &[0x1301]);
@@ -2698,9 +2703,10 @@ fn test_large_sni_near_record_payload_limit() {
     //   pc5: no finding emitted (hostname is clean ASCII)
     //
     // AC-011 (inv1-2): MAX_RECORD_PAYLOAD=18,432 is the binding constraint, not
-    // MAX_BUF=65,536. A 16 KB SNI produces a record payload of ~16,074 — well
-    // within the 18,432 limit. The system has no SNI-length-specific cap below
-    // MAX_RECORD_PAYLOAD. Assert truncated_records is NOT incremented.
+    // MAX_BUF=65,536. A 16,384-byte 'a' hostname produces a record payload of ~16,456 —
+    // well within the 18,432 limit (exact value verified by the fixture-sanity assertion
+    // below). The system has no SNI-length-specific cap below MAX_RECORD_PAYLOAD.
+    // Assert truncated_records is NOT incremented.
     //
     // BC-2.07.027 canonical test vector: 16,384 bytes of 'a' (EC-001).
     let mut analyzer = TlsAnalyzer::new();
