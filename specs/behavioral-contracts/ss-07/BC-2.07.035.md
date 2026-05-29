@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: re-point evidence from inferred to dedicated on_flow_close tests (F-S058-P5-001/P6-001) — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -71,7 +73,7 @@ and `all_findings` -- only the per-flow state is dropped.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | on_flow_close removes TlsFlowState | unit (inferred from code; no dedicated test) |
+| — | on_flow_close removes TlsFlowState and preserves aggregates | unit: test_on_flow_close_drops_state_preserves_aggregates; test_on_flow_close_absent_key_no_panic |
 
 ## Traceability
 
@@ -82,7 +84,7 @@ and `all_findings` -- only the per-flow state is dropped.
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:752-754, C-13) |
 | Stories | STORY-058 |
-| Origin BC | BC-TLS-035 (pass-3 ingestion corpus, MEDIUM confidence -- inferred from code) |
+| Origin BC | BC-TLS-035 (pass-3 ingestion corpus, HIGH confidence -- dedicated unit tests: test_on_flow_close_drops_state_preserves_aggregates, test_on_flow_close_absent_key_no_panic) |
 
 ## Related BCs
 
@@ -92,18 +94,21 @@ and `all_findings` -- only the per-flow state is dropped.
 ## Architecture Anchors
 
 - `src/analyzer/tls.rs:752-754` -- `on_flow_close` implementation
+- `tests/tls_analyzer_tests.rs` -- test_on_flow_close_drops_state_preserves_aggregates (pc1-4: flow removed, aggregates preserved, flows.len()-1)
+- `tests/tls_analyzer_tests.rs` -- test_on_flow_close_absent_key_no_panic (inv1-2/EC-001: absent key → no panic, _reason ignored, state unchanged)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
 | **Path** | `src/analyzer/tls.rs:752-754` |
-| **Confidence** | medium |
+| **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
 ## Evidence Types Used
 
-- **inferred**: `self.flows.remove(flow_key)` -- no dedicated test
+- **guard clause**: `self.flows.remove(flow_key)` at tls.rs:752-754
+- **dedicated unit tests**: test_on_flow_close_drops_state_preserves_aggregates (exercises pc1-4: flow removed, aggregates preserved, flows.len()-1); test_on_flow_close_absent_key_no_panic (exercises inv1-2/EC-001: absent key → no panic, _reason ignored, state unchanged)
 
 ## Purity Classification
 

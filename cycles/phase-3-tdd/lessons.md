@@ -788,6 +788,110 @@ All items require `vsdd-factory:research-agent` validation per policy DF-VALIDAT
 
 ---
 
+## Wave 18 STORY-058 Lessons (2026-05-29)
+
+### W18-S058.L1 — Cross-Artifact Citation Re-Points Must Trigger Full Occurrence Sweep [codified — PG-W18-002 extended]
+
+**Finding ID:** PG-W18-002 (extension from STORY-056); F-S058-P3-001/P4-001/P5-002/P6-002
+**Category:** process-gap / sibling-sweep
+**Observed:** STORY-058 needed passes 3/4/5/6 to chase the same AC-013 mis-mapping across 3 distinct locations: (1) story FSR row, (2) BC-2.07.033 Proof-Method/Evidence field, (3) test-file index header comment at tls_analyzer_tests.rs. Each pass caught a different occurrence. A 3rd-occurrence stale index comment surfaced at pass 8 (F-S058-P8-001 MED) after prior passes had fixed story and BC. Root cause: the remediation burst for AC-013 re-point did not sweep all occurrence types — story body, story FSR, story test-citation, BC Evidence fields of all `bcs:` BCs, and test-file index/header comments.
+**Impact:** 5 extra passes (P3/P4/P5/P6/P8 DIRTY) attributable to incomplete sweep. BC-5.39.001 delayed from P2 to P13.
+**Codification:** Extends PG-W18-002. Candidate rule: "test-citation change" checklist must enumerate: story body ACs, story FSR rows, test-file index comments, sibling BC Proof-Method/Evidence columns. DF-VALIDATION-001 applies before filing GitHub issue.
+**Status:** [codified — PG-W18-002 extended; candidate codification pending DF-VALIDATION-001]
+
+---
+
+### W18-S058.L2 — Mis-Anchor on Proof-Method Test Persists Across 2 Passes Before Root-Cause Identified [noted]
+
+**Finding ID:** F-S058-P3-001/P4-001 (HIGH — BC-2.07.033 Proof Method cited done-short-circuit test for within-loop-skip claim)
+**Category:** BC evidence quality / anchor correctness
+**Observed:** BC-2.07.033 v1.2 cited `test_stop_after_handshake` (done-short-circuit test) as Proof Method for its within-loop-skip invariant. Pass 3 flagged HIGH. Pass 4 (fresh context) independently corroborated. Root cause: the BC was written to reference the first relevant test found, but the done-short-circuit and within-loop-skip are distinct behaviors with distinct test names. The fix (v1.3) re-pointed to `test_loop_skip_on_done`, resolved at P5.
+**Pattern:** Same HIGH mis-anchor was caught by 2 independent adversary contexts — confirms adversarial consistency rule; high-severity cross-context agreement is reliable.
+**Status:** [noted — no new codification; DF-SIBLING-SWEEP-001 already covers anchor correctness]
+
+---
+
+### W18-S058.L3 — BC Arithmetic Errors Caught by Fresh-Context Adversary [noted]
+
+**Finding ID:** F-S058-P3-002 (MED — BC-2.07.029 invariant-2 arithmetic: was `parse_errors − truncated_records`, should be `parse_errors − parse_errors_that_are_also_truncated`)
+**Category:** BC correctness / arithmetic
+**Observed:** BC-2.07.029 invariant-2 stated the relationship between `parse_errors` and `truncated_records` with incorrect arithmetic. Fresh-context adversary caught this in P3. Fixed in v1.3.
+**Pattern:** Arithmetic invariants in BCs benefit from fresh-context review; local familiarity with the counter semantics masks the error.
+**Status:** [noted — no new codification]
+
+---
+
+### W18-S058.L4 — Deferred LOW Items Accepted Below-MEDIUM Threshold (BC-5.39.001 Satisfied) [noted]
+
+**Finding ID:** F-S058-P11-001, F-S058-P11-002, F-S058-P12-O1, F-S058-P13-O4
+**Category:** quality / threshold
+**Observed:** Four LOW/observation items were identified during the clean-streak passes (P11/P12/P13) and accepted as deferred. These are: stale "sync to story after this pass" comment at tls_analyzer_tests.rs:6819; test_nonhandshake_types EC-label set discrepancy (header EC-002/003/004 vs body EC-001-004); BC-2.07.005 anchor off-by-one (726-748 vs 726-747); test_stop_after_handshake cross-story AC labels + STORY-058 FSR pre-existing collision. None above LOW; all below MEDIUM threshold for blocking convergence per BC-5.39.001.
+**Status:** [deferred — items remain in STATE.md Cycle-Close Follow-Up / deferred items table]
+
+---
+
+### W18 STORY-058 Process-Gap Codification Items (Draft)
+
+| ID | Gap | Proposed Fix | Priority |
+|----|-----|-------------|----------|
+| PG-W18-002 (extended) | AC-013 re-point propagated to 3 of 5 artifact locations; missed test-file index comment + sibling BC Evidence columns in same burst. 5 extra passes (P3/P4/P5/P6/P8) resulted. | Add "test-citation change" checklist to story-writer/BC-editor dispatch: enumerate story body, story FSR, BC Evidence for all `bcs:` BCs, test-file index header comments. | HIGH |
+
+All items require `vsdd-factory:research-agent` validation per policy DF-VALIDATION-001 before any GitHub issue is filed.
+
+---
+
+## Earlier Wave Retrospectives (Archived from STATE.md 2026-05-29)
+
+Full retrospective text for Waves 9-17 and the Drift Remediation pass was archived from
+STATE.md on 2026-05-29 to keep STATE.md under 450 lines (compaction S-7.02 / content-routing
+rule: historical retrospectives go in cycle files, not STATE.md).
+
+### Wave 9 Retrospective (closed 2026-05-26)
+
+- Stories: STORY-016 (6 passes 3D+3C) + STORY-020 (8 passes 5D+3C). PRs: #127-130. Wave-level 6 passes 3D+3C.
+- Key outcome: DF-SIBLING-SWEEP-001 codified from W9-D8 (6-recurrence sibling-discipline pattern). DF-PR-MANAGER-COMPLETE-001 codified from W9.L3. Both pre-Wave-10.
+- Drift: W9-D5/D12 (LOW); W9-D8/D9 RESOLVED; W9-D1..D4 (LOW template gaps); all require DF-VALIDATION-001 before issue filing.
+
+### Wave 10 Retrospective (closed 2026-05-27)
+
+- Stories: STORY-017 (4 passes 1D+3C) + STORY-018 (9 passes 6D+3C). PRs: #131/132/133. Wave-level 4 passes 1D+3C.
+- DF-SIBLING-SWEEP-001 demonstrably effective: STORY-017 cleared in 4 passes. iteratively refined v1→v4.
+- 3 brownfield spec/impl mismatches resolved (BC-2.04.041/045/027 v1.3). 1 src/ hardening: overlap_count saturating_add (PR #133).
+- Total adversarial: 17 passes (vs Wave 9: 20 = 15% reduction).
+
+### Wave 11 Retrospective (closed 2026-05-27)
+
+- Stories: STORY-021 (finalize lifecycle + MAX_FINDINGS cap + segment-limit summary; brownfield-formalization). PRs: #134 → 3cd3000.
+- Adversarial passes: 11 total (passes 9-10-11 CLEAN per BC-5.39.001). 203 new tests. 4 files. Zero production behavior changes.
+- Doctrine flip in pass-8: BC pre-merge re-anchor adopted (W11.L1). Methodology bug (pass-5): DF-ADVERSARY-METHODOLOGY-001 added (W11.L2).
+
+### Wave 12 Retrospective (closed 2026-05-27)
+
+- Stories: STORY-031 (content-first classification). PRs: #135 → 1435362. 9 passes (7-8-9 CLEAN per BC-5.39.001).
+- EC-scenario-match sub-rule discovered (W12.L1). DF-SIBLING-SWEEP-001 extended to v3.
+
+### Wave 13 Retrospective (closed 2026-05-27)
+
+- Stories: STORY-032 (cache eviction + retry budget + unclassified flow). PRs: #136 → 0d9b16d. 5 passes (3-4-5 CLEAN).
+- 44% fewer passes than W12. Zero src/ changes; indirect observability throughout.
+
+### Wave 14 Retrospective (closed 2026-05-28)
+
+- Stories: STORY-033 (active-flows lifecycle). PRs: #137 → 30cd4a6. 4 passes (2-3-4 CLEAN).
+- 1 codification: DF-AC-TEST-NAME-SYNC-001 v1. W11→W12→W13→W14 trajectory: 11→9→5→4 passes.
+
+### Wave 15 Retrospective (closed 2026-05-28)
+
+- Stories: STORY-041 (8 passes, 24 BC tests) + STORY-051 (6 passes, 19 BC tests). PRs: #138/#139. First multi-story since W10.
+- BC-addition sibling-sweep cascade pattern (W15.L2). 9th+10th implementer-as-PR-executor validations.
+
+### Drift Remediation Retrospective (2026-05-29)
+
+66 tracked (62 original + 4 new) → 57 closed; 10 OPEN. Key: DF-16.B (209 BC files broken citations); 5 new policies codified; develop HEAD advanced to 34e66c7 (PRs #147+#148).
+Archive: `.factory/cycles/drift-remediation-2026-05-29/closed-items.md`
+
+---
+
 ## Earlier Wave Lessons (Waves 1-6)
 
 Per-wave process-gap items for Waves 1-6 are recorded in STATE.md Cycle-Close Follow-Up Items

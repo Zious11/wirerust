@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,10 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: re-point Proof Method/Evidence from test_stop_after_handshake (done-short-circuit, BC-2.07.003/034 proof) to within-loop-skip tests (F-S058-P3-001/P4-001) — 2026-05-29"
+  - "v1.4: reconcile internal done-short-circuit cross-reference (BC-2.07.003 vs 034 consistency; F-S058-P5-002) — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,8 +52,10 @@ change. This covers TLS ChangeCipherSpec (0x14), Alert (0x15), and ApplicationDa
 
 1. Non-handshake records are consumed (drained from the buffer) even though they are
    not parsed. This prevents buffer stalls.
-2. The early-return for `done()` at the start of `on_data` (BC-2.07.003) is a separate
-   mechanism; this BC covers the within-loop skip for non-handshake records.
+2. The early-return at the entry of `on_data` when `done() == true` (BC-2.07.034 — the
+   pre-buffering short-circuit; BC-2.07.003 specifies the same guard from the per-record
+   behavioral outcome perspective) is a separate mechanism; this BC covers only the
+   within-loop `continue` skip for non-handshake record types (tls.rs:678-682).
 
 ## Edge Cases
 
@@ -71,7 +76,7 @@ change. This covers TLS ChangeCipherSpec (0x14), Alert (0x15), and ApplicationDa
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Non-handshake records do not increment parse_errors | unit: test_stop_after_handshake exercises this (records after hellos are app data) |
+| — | Non-handshake records do not increment parse_errors | unit: test_within_loop_nonhandshake_skip_before_done (canonical — sends non-handshake record + ClientHello in one on_data while flow NOT done, directly hits tls.rs:678-682); test_nonhandshake_types_0x14_0x15_0x17_0x18_all_skip_silently (multi-type EC coverage); see also test_appdata_record_skipped_then_hello |
 
 ## Traceability
 
@@ -82,7 +87,7 @@ change. This covers TLS ChangeCipherSpec (0x14), Alert (0x15), and ApplicationDa
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:678-682, C-13) |
 | Stories | STORY-058 |
-| Origin BC | BC-TLS-033 (pass-3 ingestion corpus, MEDIUM confidence -- inferred from code; test_stop_after_handshake exercises it) |
+| Origin BC | BC-TLS-033 (pass-3 ingestion corpus, HIGH confidence -- dedicated within-loop-skip tests now exist: test_within_loop_nonhandshake_skip_before_done, test_nonhandshake_types_0x14_0x15_0x17_0x18_all_skip_silently) |
 
 ## Related BCs
 
@@ -104,7 +109,7 @@ change. This covers TLS ChangeCipherSpec (0x14), Alert (0x15), and ApplicationDa
 ## Evidence Types Used
 
 - **guard clause**: `if record_type != 0x16 { continue; }`
-- **inferred**: co-pinned with test_stop_after_handshake which sends app-data records
+- **dedicated unit tests**: test_within_loop_nonhandshake_skip_before_done (canonical within-loop-skip proof, tls.rs:678-682); test_nonhandshake_types_0x14_0x15_0x17_0x18_all_skip_silently (multi-type EC-001 through EC-004 coverage); test_appdata_record_skipped_then_hello (happy-path sequence)
 
 ## Purity Classification
 

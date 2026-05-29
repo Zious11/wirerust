@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: clarify invariant-2 'preceding partial' reachability (defensive/by-inspection; F-S058-P1-006) — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,8 +53,22 @@ instrumentation added in LESSON-P1.05.
 
 1. Both `parse_errors` and `truncated_records` are always incremented together for
    oversized records. They are NEVER incremented independently for this case.
-2. Buffer clearing is unconditional: all buffered bytes for the direction are dropped,
-   including any partial records that preceded the oversized one.
+2. Buffer clearing is unconditional: the `client_buf.clear()` / `server_buf.clear()` at
+   the oversized guard runs without condition — all buffered bytes for the direction are
+   dropped.
+
+   **Reachability note (F-S058-P1-006 — defensive/by-inspection):** The sub-clause
+   "including any partial records that preceded the oversized one" describes a
+   _defensive_ property that holds by code inspection but is **not reachable through
+   the public `on_data` API**. The parser (`try_parse_records`) always reads from
+   `buf[0]`; if a valid but incomplete record occupies `buf[0..N]`, the incompleteness
+   check fires first and returns before any later offset in the buffer is examined.
+   Therefore a buffered partial record at `buf[0]` cannot co-exist with a later
+   oversized record that would trigger this branch. The `clear()` is correct and
+   unconditional; only the specific "preceding partial record" scenario is unreachable
+   via the API. Tests covering the unconditional clear behavior:
+   `test_oversized_sni_exceeds_record_payload_limit` and
+   `test_oversized_after_valid_hello_increments_both`.
 3. `MAX_RECORD_PAYLOAD = 18,432` is a constant (RFC 5246 ciphertext max). TLS 1.3
    max is 16,640; the larger value is used as a safe upper bound.
 4. The two counters serve different consumer audiences: `parse_errors` is
@@ -102,10 +118,11 @@ instrumentation added in LESSON-P1.05.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:643-653` -- oversized-record guard and buffer clear
+- `src/analyzer/tls.rs:643-653` -- oversized-record guard and unconditional buffer clear
 - `src/analyzer/tls.rs:33` -- MAX_RECORD_PAYLOAD constant definition
 - `src/analyzer/tls.rs:312` -- truncated_records field declaration
-- `tests/tls_analyzer_tests.rs` -- test_oversized_sni_exceeds_record_payload_limit
+- `tests/tls_analyzer_tests.rs` -- test_oversized_sni_exceeds_record_payload_limit (covers postcondition-3 clear + counter increments)
+- `tests/tls_analyzer_tests.rs` -- test_oversized_after_valid_hello_increments_both (covers counter-independence from prior valid hello; buffer clear confirmed)
 
 ## Source Evidence
 

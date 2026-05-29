@@ -46,3 +46,15 @@ Most recent checkpoint is always in STATE.md > "Session Resume Checkpoint" secti
 7. NEXT: Wave 16 Pass-3 — dispatch fresh-context adversarial review for STORY-042, STORY-043, STORY-044, STORY-052.
    Inject DF-SIBLING-SWEEP-001 v3 + DF-ADVERSARY-METHODOLOGY-001 + DF-AC-TEST-NAME-SYNC-001 v1 at dispatch.
    STORY-042 most likely clean (streak=2). STORY-043/044 need one more clean pass. STORY-052 freshly remediated — monitor for sibling-regression per DF-SIBLING-SWEEP-001 v3.
+
+---
+
+## Archived: 2026-05-29 — Wave 18 STORY-056 DELIVERED; next = STORY-058
+
+1. Waves 1-17 CLOSED/CONVERGED. Wave 18 OPEN (3/4 DELIVERED to develop). develop HEAD: 7f64219 (PR #154 squash-merged 2026-05-29). All 8 CI checks green. 36 stories delivered.
+2. W17 CONVERGED 2026-05-29: STORY-045 (PR #150 → 9980573), STORY-053 (PR #149 → a044144), STORY-055 (PR #151 → 9633b0d). All 3 per-story 3-clean P3-P5. Wave-level P2 3-lens CLEAN. BC-5.39.001 ACHIEVED.
+3. Wave 18 STORY-046 DELIVERED 2026-05-29: PR #152 → 547aca8. BC-5.39.001 ACHIEVED (4ps-3clean P2-P4). Zero src changes. Worktree + branch removed.
+4. Wave 18 STORY-054 DELIVERED 2026-05-29: PR #153 → fc55587. BC-5.39.001 ACHIEVED (11ps-3clean P8/P9/P11; P10 dismissed — methodology false-pos). Zero src changes. All 8 CI green. Worktree + branch removed.
+5. Wave 18 STORY-056 DELIVERED 2026-05-29: PR #154 squash-merged → 7f64219. BC-5.39.001 ACHIEVED via 9 passes; 3-clean streak P7/P8/P9. 99 tls_analyzer_tests green; zero src changes. All 8 CI green. Security CLEAN. PR review APPROVED 1 cycle. Worktree + branch removed. [OBS-7 deferred; PG-W18-001/002 open].
+6. input-hash scan: TOTAL=48 MATCH=48 STALE=0 (confirmed post-W17-close).
+7. NEXT: STORY-058 delivery (E-5 TLS, 8pts — buffer management, record parsing, flow lifecycle, summarize output; last Wave 18 story).

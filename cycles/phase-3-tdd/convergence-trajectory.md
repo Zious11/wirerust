@@ -201,3 +201,34 @@ All require research-agent validation per DF-VALIDATION-001 before issue filing.
 | 8 | STORY-019, STORY-015 | CLOSED/CONVERGED | 4b9b85f | 16 |
 
 Wave 9 (STORY-016 + STORY-020): READY TO DISPATCH. develop HEAD: 4b9b85f.
+
+---
+
+## Wave 18 Per-Story Convergence (2026-05-29)
+
+### STORY-058 Per-Story Convergence — 13 passes; BC-5.39.001 ACHIEVED
+
+Frozen code: feature/STORY-058 HEAD 4c252f3. 5 test commits total.
+114 tls_analyzer_tests + 4 tls_integration_tests green; zero src changes.
+
+| Pass | Verdict | Key Findings |
+|------|---------|-------------|
+| P1 | DIRTY | 2 MED: buffer-cap literal (RESIDUE_CAP 65535) unasserted in test + AC-013 mis-citation in story FSR |
+| P2 | CLEAN | 0 findings |
+| P3 | DIRTY | 1 HIGH: BC-2.07.033 Proof Method cites done-short-circuit test for within-loop-skip claim. 1 MED: BC-2.07.029 invariant-2 arithmetic (`parse_errors − truncated_records` incorrect) |
+| P4 | DIRTY | Corroborated P3-HIGH (BC-2.07.033 mis-anchor, independent fresh context) |
+| P5 | DIRTY | 1 MED: BC-2.07.035 Evidence field stale (references generic tests not dedicated on_flow_close). 1 MED: BC-2.07.033 internal xref to BC-2.07.034 inconsistent post-v1.3 |
+| P6 | DIRTY | Corroborated BC-2.07.035 evidence + 1 MED: AC-002 story↔BC contradiction (defensive/by-inspection qualification missing from story) |
+| P7 | CLEAN | 0 findings |
+| P8 | DIRTY | 1 MED: 3rd-occurrence stale AC-013 index comment at tls_analyzer_tests.rs (story body + BC fixed; test index missed) |
+| P9 | CLEAN | 0 findings |
+| P10 | CLEAN | 0 findings |
+| P11 | CLEAN (streak=1) | 4 LOW/OBS accepted: F-S058-P11-001 (stale comment:6819), F-S058-P11-002 (EC-label set), F-S058-P12-O1 (anchor off-by-one), F-S058-P13-O4 (cross-story collision) |
+| P12 | CLEAN (streak=2) | 0 findings above LOW |
+| P13 | CLEAN (streak=3) | BC-5.39.001 ACHIEVED |
+
+**Trajectory shorthand:** `|W18-S058-story:13ps-3clean(P11/P12/P13;2MED+1HIGH-mis-anchor+3MED-cross-artifact+1MED-3rd-occurrence-rem;deepest-W18)`
+
+Factory artifacts remediated: STORY-058.md v1.1→v1.2→v1.3, BC-2.07.004 v1.3, BC-2.07.005 v1.3, BC-2.07.029 v1.3, BC-2.07.033 v1.3→v1.4, BC-2.07.035 v1.3.
+Process gap extended: PG-W18-002 (test-citation change checklist). Deferred: F-S058-P11-001/002, F-S058-P12-O1, F-S058-P13-O4 (all LOW).
+Next: STORY-058 demos + PR.

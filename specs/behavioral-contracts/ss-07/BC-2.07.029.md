@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21", "v1.3: correct invariant-2 arithmetic (parse_errors − truncated_records; F-S058-P3-002) — 2026-05-29"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,8 +51,9 @@ absorbed as a parse-error counter increment.
 
 1. `parse_errors` increments ONLY for genuine parse failures, not for oversized records
    (which use `truncated_records` in addition to `parse_errors`).
-2. The difference between `truncated_records` and `parse_errors - truncated_records`
-   is the count of genuine parse failures.
+2. The genuine-parse-failure count is `parse_errors − truncated_records`; `truncated_records`
+   counts only oversized-record DoS-protection drops (BC-2.07.004), so subtracting it
+   isolates true nom parse errors.
 3. No panic is allowed; `tls_parser` returns `Result`, not panics.
 
 ## Edge Cases
