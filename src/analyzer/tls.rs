@@ -871,6 +871,24 @@ impl TlsAnalyzer {
             .map(|s| s.client_buf.len())
             .unwrap_or(0)
     }
+
+    /// Test-only accessor: whether `server_hello_seen` is set for the given flow.
+    ///
+    /// Exposes `flow.server_hello_seen` so tests can directly verify
+    /// BC-2.07.002 postcondition 1 ("flow.server_hello_seen is set to true")
+    /// without having to rely on the done()-short-circuit proxy
+    /// (STORY-053 AC-001). Returns `false` for absent flows (flow not yet
+    /// in the `flows` map) — callers should assert the flow exists via
+    /// `active_flows_len_for_testing` before relying on `false` as proof
+    /// of a cleared flag.
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn server_hello_seen_for_testing(&self, flow_key: &FlowKey) -> bool {
+        self.flows
+            .get(flow_key)
+            .map(|s| s.server_hello_seen)
+            .unwrap_or(false)
+    }
 }
 
 // ── JA3 / JA3S property tests (LESSON-P2.04) ─────────────────────────────────
