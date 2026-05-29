@@ -511,6 +511,12 @@ fn test_weak_cipher_finding_client() {
 #[test]
 fn test_weak_cipher_finding_server() {
     // ── AC-004 / BC-2.07.010 postconditions 1-2: RC4 server cipher → exact finding fields ──
+    //
+    // F-S054-P1-004: switched from 0x0005 (TLS_RSA_WITH_RC4_128_SHA) to 0x0004
+    // (TLS_RSA_WITH_RC4_128_MD5) to align with AC-005 / BC-2.07.010 EC-001, which names
+    // TLS_RSA_WITH_RC4_128_MD5 as the canonical RC4 vector. Empirically verified: 0x0004 IS
+    // recognized by tls-parser 0.12 (from_id returns Some), contains "RC4" in name, and
+    // triggers is_weak_server_cipher. The 0x0005 variant also works but does not match AC text.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
@@ -518,9 +524,10 @@ fn test_weak_cipher_finding_server() {
     let ch = build_client_hello("test.com", &[0x1301]);
     analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
 
-    // Server selects TLS_RSA_WITH_RC4_128_SHA (0x0005) — RC4 triggers is_weak_server_cipher.
+    // Server selects TLS_RSA_WITH_RC4_128_MD5 (0x0004) — RC4 triggers is_weak_server_cipher.
     // (is_weak_cipher does NOT include RC4 — AC-005 invariant 1)
-    let sh = build_server_hello(0x0005);
+    // 0x0004 = TLS_RSA_WITH_RC4_128_MD5 per AC-005/BC-2.07.010 EC-001.
+    let sh = build_server_hello(0x0004);
     analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
 
     let findings = analyzer.findings();
@@ -556,17 +563,14 @@ fn test_weak_cipher_finding_server() {
          (server makes final selection — BC-2.07.010 invariant 3)"
     );
 
-    // BC-2.07.010 postcondition 1: summary format "ServerHello selected weak cipher suite ({name})"
-    assert!(
-        f.summary
-            .starts_with("ServerHello selected weak cipher suite ("),
-        "BC-2.07.010 postcondition 1: summary must start with 'ServerHello selected weak cipher suite ('; \
+    // BC-2.07.010 postcondition 1: exact summary "ServerHello selected weak cipher suite ({name})"
+    // F-S054-P1-003: strengthened from starts_with+contains to exact assert_eq per BC-2.07.010 PC1.
+    // The IANA name for 0x0004 is "TLS_RSA_WITH_RC4_128_MD5" per tls-parser 0.12.
+    assert_eq!(
+        f.summary, "ServerHello selected weak cipher suite (TLS_RSA_WITH_RC4_128_MD5)",
+        "BC-2.07.010 postcondition 1 (AC-004/EC-001): exact summary must be \
+         'ServerHello selected weak cipher suite (TLS_RSA_WITH_RC4_128_MD5)' for cipher 0x0004; \
          got: {:?}",
-        f.summary
-    );
-    assert!(
-        f.summary.contains("RC4"),
-        "BC-2.07.010 postcondition 1: summary must contain cipher name with RC4; got: {:?}",
         f.summary
     );
 
@@ -576,20 +580,12 @@ fn test_weak_cipher_finding_server() {
         1,
         "BC-2.07.010 invariant 4: evidence must be exactly one string"
     );
-    assert!(
-        f.evidence[0].starts_with("Selected cipher:"),
-        "BC-2.07.010 postcondition 1: evidence[0] must start with 'Selected cipher:'; got: {:?}",
-        f.evidence[0]
-    );
-    assert!(
-        f.evidence[0].contains("RC4"),
-        "BC-2.07.010 postcondition 1: evidence must contain readable cipher name; got: {:?}",
-        f.evidence[0]
-    );
-    // The hex ID in evidence should be lowercase (BC-2.07.036 hex format).
-    assert!(
-        f.evidence[0].contains("0x0005"),
-        "BC-2.07.010 postcondition 1: evidence must contain hex ID '0x0005'; got: {:?}",
+
+    // Exact evidence string for cipher 0x0004 (TLS_RSA_WITH_RC4_128_MD5).
+    assert_eq!(
+        f.evidence[0], "Selected cipher: TLS_RSA_WITH_RC4_128_MD5 (0x0004)",
+        "BC-2.07.010 postcondition 1 (AC-004/EC-001): exact evidence must be \
+         'Selected cipher: TLS_RSA_WITH_RC4_128_MD5 (0x0004)'; got: {:?}",
         f.evidence[0]
     );
 
@@ -607,12 +603,13 @@ fn test_weak_cipher_finding_server() {
     );
 
     // ── AC-005 / BC-2.07.010 invariant 1: RC4 does NOT trigger is_weak_cipher (client-side) ──
-    // A ClientHello offering ONLY 0x0005 (RC4) must NOT produce a client-side weak-cipher finding,
+    // A ClientHello offering ONLY RC4 ciphers must NOT produce a client-side weak-cipher finding,
     // because is_weak_cipher checks for NULL/ANON/EXPORT but NOT RC4.
+    // Use 0x0004 (TLS_RSA_WITH_RC4_128_MD5) consistent with AC-005 EC-001.
     let mut analyzer_rc4_client = TlsAnalyzer::new();
-    // Note: 0x0005 = TLS_RSA_WITH_RC4_128_SHA. Its name contains RC4 but not NULL/ANON/EXPORT.
+    // Note: 0x0004 = TLS_RSA_WITH_RC4_128_MD5. Its name contains RC4 but not NULL/ANON/EXPORT.
     // So is_weak_cipher returns false → no client-side finding.
-    let ch_rc4 = build_client_hello("test.com", &[0x0005, 0x1301]);
+    let ch_rc4 = build_client_hello("test.com", &[0x0004, 0x1301]);
     analyzer_rc4_client.on_data(&fk, Direction::ClientToServer, &ch_rc4, 0);
 
     let client_findings = analyzer_rc4_client.findings();
@@ -623,8 +620,9 @@ fn test_weak_cipher_finding_server() {
     assert_eq!(
         client_weak.len(),
         0,
-        "BC-2.07.010 invariant 1: RC4 cipher 0x0005 must NOT trigger client-side is_weak_cipher \
-         (RC4 not in NULL/ANON/EXPORT set); is_weak_server_cipher is strict superset"
+        "BC-2.07.010 invariant 1: RC4 cipher 0x0004 (TLS_RSA_WITH_RC4_128_MD5) must NOT trigger \
+         client-side is_weak_cipher (RC4 not in NULL/ANON/EXPORT set); \
+         is_weak_server_cipher is strict superset"
     );
 }
 
@@ -5469,5 +5467,242 @@ fn test_cipher_name_recognized_and_ffff() {
         suites_null.get("TLS_NULL_WITH_NULL_NULL").is_some(),
         "BC-2.07.036 EC-001: cipher 0x0000 must be keyed as 'TLS_NULL_WITH_NULL_NULL' \
          (recognized IANA name, no '0x' prefix); got cipher_suites: {suites_null}"
+    );
+}
+
+// ── F-S054-P1-001/002 — version_name arm coverage (client 0x0200 / 0x0100) ───
+//
+// Empirically verified (Step A probes, 2026-05-29):
+//   - ClientHello version 0x0200: tls_parser ACCEPTS the record; handle_client_hello
+//     IS reached; the version_name "SSL 2.0" arm fires; parse_errors=0; handshakes=1.
+//   - ClientHello version 0x0100: tls_parser ACCEPTS the record; handle_client_hello
+//     IS reached; the version_name "Unknown legacy SSL" arm fires; parse_errors=0;
+//     handshakes=1.
+//   - ServerHello version 0x0200: tls_parser REJECTS the record at the record layer;
+//     handle_server_hello NOT reached; parse_errors=1 (already pinned by
+//     test_BC_2_07_002_ec004_ssl2_version_parse_behavior_pinned).
+//
+// BC references: BC-2.07.011 pc1/pc2 (client deprecated-protocol summary/evidence format).
+// EC references: EC-006 (0x0200 → "SSL 2.0"), EC-007 (0x0100 → "Unknown legacy SSL").
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_011_client_deprecated_version_name_ssl2_and_legacy() {
+    // BC-2.07.011 postconditions 1-2 / EC-006 + EC-007:
+    //
+    // EC-006: ClientHello with version 0x0200 (SSL 2.0) reaches handle_client_hello
+    //   (tls_parser accepts the record). The version_name arm 0x0200 => "SSL 2.0" fires.
+    //   Summary: "ClientHello uses deprecated protocol (SSL 2.0, RFC 7568 prohibits SSLv3)"
+    //   Evidence: ["Version: 0x0200 (SSL 2.0)"]
+    //
+    // EC-007: ClientHello with version 0x0100 (below SSL 2.0 — falls to "Unknown legacy SSL"
+    //   catchall arm) reaches handle_client_hello (tls_parser accepts the record).
+    //   Summary: "ClientHello uses deprecated protocol (Unknown legacy SSL, RFC 7568 prohibits SSLv3)"
+    //   Evidence: ["Version: 0x0100 (Unknown legacy SSL)"]
+
+    // ── EC-006: 0x0200 → "SSL 2.0" ──────────────────────────────────────────
+    let mut analyzer_ssl2 = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record_ssl2 = build_client_hello_with_body_version(0x0200, &[0x1301]);
+    analyzer_ssl2.on_data(&fk, Direction::ClientToServer, &record_ssl2, 0);
+
+    // Parse-clean anchor: tls_parser accepts SSL 2.0 ClientHello at the record layer.
+    assert_eq!(
+        analyzer_ssl2.parse_error_count(),
+        0,
+        "EC-006 anchor (BC-2.07.011): tls_parser accepts ClientHello version 0x0200; \
+         parse_errors must be 0 (if this fails, tls_parser now rejects SSL 2.0 ClientHello — \
+         revisit the version_name 0x0200 arm reachability)"
+    );
+
+    // handle_client_hello reached: handshakes_seen = 1, version_counts[0x0200] = 1.
+    assert_eq!(
+        analyzer_ssl2.handshake_count(),
+        1,
+        "EC-006 (BC-2.07.011 pc1): handshakes_seen must be 1 (handler was reached)"
+    );
+    assert_eq!(
+        *analyzer_ssl2.version_counts().get(&0x0200).unwrap_or(&0),
+        1,
+        "EC-006 (BC-2.07.011 pc2): version_counts[0x0200] must be 1 (handler was reached)"
+    );
+
+    let findings_ssl2 = analyzer_ssl2.findings();
+    let deprecated_ssl2: Vec<_> = findings_ssl2
+        .iter()
+        .filter(|f| f.summary.contains("deprecated protocol"))
+        .collect();
+
+    assert_eq!(
+        deprecated_ssl2.len(),
+        1,
+        "EC-006 (BC-2.07.011): exactly one deprecated-protocol finding for ClientHello 0x0200; \
+         got: {:?}",
+        findings_ssl2
+    );
+
+    // BC-2.07.011 pc1: exact summary string for 0x0200 arm.
+    assert_eq!(
+        deprecated_ssl2[0].summary,
+        "ClientHello uses deprecated protocol (SSL 2.0, RFC 7568 prohibits SSLv3)",
+        "EC-006 (BC-2.07.011 pc1): summary must exactly match 'SSL 2.0' version_name arm \
+         for ClientHello version 0x0200"
+    );
+
+    // BC-2.07.011 pc2: exact evidence string for 0x0200 arm.
+    assert_eq!(
+        deprecated_ssl2[0].evidence,
+        vec!["Version: 0x0200 (SSL 2.0)".to_string()],
+        "EC-006 (BC-2.07.011 pc2): evidence must exactly match 'Version: 0x0200 (SSL 2.0)' \
+         for ClientHello version 0x0200"
+    );
+
+    // ── EC-007: 0x0100 → "Unknown legacy SSL" ────────────────────────────────
+    let mut analyzer_legacy = TlsAnalyzer::new();
+
+    let record_legacy = build_client_hello_with_body_version(0x0100, &[0x1301]);
+    analyzer_legacy.on_data(&fk, Direction::ClientToServer, &record_legacy, 0);
+
+    // Parse-clean anchor: tls_parser accepts version 0x0100 ClientHello at the record layer.
+    assert_eq!(
+        analyzer_legacy.parse_error_count(),
+        0,
+        "EC-007 anchor (BC-2.07.011): tls_parser accepts ClientHello version 0x0100; \
+         parse_errors must be 0 (if this fails, tls_parser now rejects this version — \
+         revisit the 'Unknown legacy SSL' arm reachability)"
+    );
+
+    // handle_client_hello reached: handshakes_seen = 1, version_counts[0x0100] = 1.
+    assert_eq!(
+        analyzer_legacy.handshake_count(),
+        1,
+        "EC-007 (BC-2.07.011 pc1): handshakes_seen must be 1 (handler was reached)"
+    );
+    assert_eq!(
+        *analyzer_legacy.version_counts().get(&0x0100).unwrap_or(&0),
+        1,
+        "EC-007 (BC-2.07.011 pc2): version_counts[0x0100] must be 1 (handler was reached)"
+    );
+
+    let findings_legacy = analyzer_legacy.findings();
+    let deprecated_legacy: Vec<_> = findings_legacy
+        .iter()
+        .filter(|f| f.summary.contains("deprecated protocol"))
+        .collect();
+
+    assert_eq!(
+        deprecated_legacy.len(),
+        1,
+        "EC-007 (BC-2.07.011): exactly one deprecated-protocol finding for ClientHello 0x0100; \
+         got: {:?}",
+        findings_legacy
+    );
+
+    // BC-2.07.011 pc1: exact summary string for "Unknown legacy SSL" catchall arm.
+    assert_eq!(
+        deprecated_legacy[0].summary,
+        "ClientHello uses deprecated protocol (Unknown legacy SSL, RFC 7568 prohibits SSLv3)",
+        "EC-007 (BC-2.07.011 pc1): summary must exactly match 'Unknown legacy SSL' arm \
+         for ClientHello version 0x0100 (below SSL 2.0, falls to catchall)"
+    );
+
+    // BC-2.07.011 pc2: exact evidence string for "Unknown legacy SSL" arm.
+    assert_eq!(
+        deprecated_legacy[0].evidence,
+        vec!["Version: 0x0100 (Unknown legacy SSL)".to_string()],
+        "EC-007 (BC-2.07.011 pc2): evidence must exactly match 'Version: 0x0100 (Unknown legacy SSL)' \
+         for ClientHello version 0x0100"
+    );
+}
+
+// ── F-S054-P1-001/002 — ServerHello 0x0200 version_name arm: UNREACHABLE (pin) ─
+//
+// Empirically verified (Step A probes, 2026-05-29):
+//   ServerHello version 0x0200: tls_parser REJECTS the record at the record layer.
+//   handle_server_hello is NEVER reached. parse_errors=1, version_counts[0x0200]=0,
+//   ja3s_counts empty, no deprecated-protocol finding from ServerToClient direction.
+//
+// The server-side version_name arms (0x0200 => "SSL 2.0", 0x0300 => "SSL 3.0",
+// _ => "Unknown legacy SSL") at tls.rs ~586-590 are therefore:
+//   0x0200: UNREACHABLE via real pcap/crafted records under tls-parser 0.12
+//   0x0300: REACHABLE (tested by test_server_ssl30_deprecated_finding)
+//   "Unknown legacy SSL": UNREACHABLE via ServerHello — tls_parser only accepts
+//     versions it recognizes for ServerHello parsing.
+//
+// This pin test consolidates and extends the EC-004 pin from
+// test_BC_2_07_002_ec004_ssl2_version_parse_behavior_pinned, providing the
+// explicit EC-006/EC-007 annotation for the server side.
+//
+// ROUTE TO STORY-WRITER / PRODUCT-OWNER: BC-2.07.012 EC-006 ("ServerHello with
+// version=0x0200 emits deprecated-protocol finding with version_name='SSL 2.0'")
+// and EC-007 ("version=0x0100 emits finding with version_name='Unknown legacy SSL'")
+// are UNREACHABLE under tls-parser 0.12. The server-side 0x0200 and catchall
+// version_name arms cannot be triggered via wire input. EC-006/EC-007 should be
+// corrected to document the parse-rejection behavior, or deferred until tls-parser
+// is upgraded to a version that accepts these ServerHello variants.
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_012_ec006_server_hello_0x0200_parse_rejection_pin() {
+    // BC-2.07.012 EC-006 (server side) — PINNED PARSE REJECTION:
+    //
+    // ServerHello with version=0x0200 is rejected by tls_parser at the record
+    // layer. handle_server_hello is never reached. The version_name "SSL 2.0"
+    // arm at tls.rs:587 is unreachable via ServerHello records under tls-parser 0.12.
+    //
+    // If this test fails (parse_errors==0), it means tls_parser was upgraded and
+    // now accepts SSL 2.0 ServerHello records. In that case, the server-side
+    // deprecated-protocol detection for 0x0200 and the "Unknown legacy SSL" catchall
+    // arm will become reachable and will fire correctly (the production code already
+    // handles them). The test should then be converted to an assertion-style test
+    // matching the client-side EC-006/EC-007 pattern.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let ch = build_client_hello("test.com", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+
+    // ServerHello with body version 0x0200 (SSL 2.0).
+    let sh = build_server_hello_with_version(0x0200, 0x1301);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+
+    // Pinned: tls_parser rejects the ServerHello, incrementing parse_errors.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        1,
+        "EC-006/EC-007 server-side pin (BC-2.07.012): tls_parser rejects ServerHello \
+         version=0x0200 at the record layer; parse_errors must be 1. \
+         If this fails, tls_parser now accepts SSL 2.0 ServerHello — the server-side \
+         version_name arms have become reachable; convert this to a positive assertion test."
+    );
+
+    // handle_server_hello not reached: version_counts[0x0200] stays 0.
+    assert_eq!(
+        *analyzer.version_counts().get(&0x0200).unwrap_or(&0),
+        0,
+        "EC-006/EC-007 server-side pin (BC-2.07.012): handle_server_hello NOT reached; \
+         version_counts must NOT contain 0x0200"
+    );
+
+    // ja3s_counts is empty (server_hello_seen was not set).
+    assert!(
+        analyzer.ja3s_counts().is_empty(),
+        "EC-006/EC-007 server-side pin (BC-2.07.012): ja3s_counts must be empty when \
+         ServerHello parse fails"
+    );
+
+    // No deprecated-protocol finding from the ServerToClient direction.
+    assert!(
+        analyzer
+            .findings()
+            .iter()
+            .filter(
+                |f| f.direction == Some(wirerust::reassembly::handler::Direction::ServerToClient)
+            )
+            .all(|f| !f.summary.contains("deprecated protocol")),
+        "EC-006/EC-007 server-side pin (BC-2.07.012): no deprecated-protocol ServerHello \
+         finding expected when tls_parser rejects the record; got: {:?}",
+        analyzer.findings()
     );
 }
