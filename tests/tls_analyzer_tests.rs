@@ -6814,7 +6814,7 @@ fn test_is_ascii_gate_routes_arm2_vs_arm3() {
 //   AC-001 → test_oversized_sni_exceeds_record_payload_limit (strengthened above)
 //   AC-007 → test_parse_error_counter (strengthened above)
 //   AC-009/010 → test_summarize_output (strengthened above)
-//   AC-013 → test_stop_after_handshake (exercised above — BC-2.07.033 inv1-2)
+//   AC-013 → test_within_loop_nonhandshake_skip_before_done + test_nonhandshake_types_0x14_0x15_0x17_0x18_all_skip_silently (BC-2.07.033 inv1-2; within-loop skip while flow NOT done)
 //
 // Generic-citation ACs (names chosen here, sync to story after this pass):
 //   AC-002 → test_oversized_after_valid_hello_increments_both
