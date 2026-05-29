@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 16 Pass-2 (F-W16-S042-P2-002) — rewrite EC-005 expected behavior: /administrator DOES fire because admin matching is substring-based (.contains); removed contradictory WAIT: inline self-correction — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -66,7 +67,7 @@ administrators; the finding is informational rather than definitive.
 | EC-002 | URI = "/phpmyadmin" | Finding emitted |
 | EC-003 | URI = "/manager/html" | Finding emitted (Tomcat manager pattern) |
 | EC-004 | URI = "/ADMIN" (uppercase) | Finding emitted (case-insensitive) |
-| EC-005 | URI = "/administrator/index.php" | No finding ("/administrator" does not contain "/admin" as exact token -- WAIT: it does contain "/admin" as substring) |
+| EC-005 | URI = "/administrator/index.php" | Finding emitted — "/administrator" contains "/admin" as a substring; matching is substring-based (http.rs:237 uses `.contains`), not token-exact |
 | EC-006 | URI = "/sadmin/config" | Finding emitted ("/sadmin" contains "/admin" as substring) |
 | EC-007 | URI = "/my-site/content" | No finding |
 

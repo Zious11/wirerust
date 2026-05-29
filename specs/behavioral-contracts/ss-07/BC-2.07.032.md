@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 16 Pass-2 (F-W16-S052-P2-001, F-W16-S052-P2-003) — add discriminating unit test as primary VP citation for invariant 1; tighten anchor ranges 383-387 → 386-387 — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -69,7 +71,8 @@ extension.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | TLS 1.3 legacy_version 0x0303 recorded in version_counts | integration: test_tls13_pcap_version_and_ja3 |
+| — | Invariant 1: TlsAnalyzer records ch.version.0 (legacy_version) only; 0x0304 (supported_versions) is ABSENT from version_counts | unit (primary): test_BC_2_07_032_inv1_supported_versions_not_inspected |
+| — | TLS 1.3 legacy_version 0x0303 recorded in version_counts (real capture; vacuous for inv1 isolation) | integration (companion): test_tls13_pcap_version_and_ja3 |
 
 ## Traceability
 
@@ -78,7 +81,7 @@ extension.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- TLS 1.3 legacy_version handling is part of TLS analysis version recording |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:383-387, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:386-387, C-13) |
 | Stories | STORY-052 |
 | Origin BC | BC-TLS-032 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -90,14 +93,15 @@ extension.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:383-387` -- `version = ch.version.0; version_counts++`
-- `tests/tls_integration_tests.rs` -- test_tls13_pcap_version_and_ja3
+- `src/analyzer/tls.rs:386-387` -- `let version = ch.version.0; Self::increment(&mut self.version_counts, version, ...)`
+- `tests/tls_analyzer_tests.rs:2677` -- test_BC_2_07_032_inv1_supported_versions_not_inspected (primary discriminating unit test)
+- `tests/tls_integration_tests.rs` -- test_tls13_pcap_version_and_ja3 (companion integration test; vacuous for invariant 1 isolation)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:383-387` |
+| **Path** | `src/analyzer/tls.rs:386-387` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

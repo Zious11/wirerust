@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-044"
 epic_id: "E-4"
-version: "1.3"
+version: "1.4"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -15,7 +15,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.017.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.018.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.020.md
-input-hash: "1a3b973"
+input-hash: "f1b0959"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-041]
@@ -85,7 +85,7 @@ The TooManyHeaders finding evidence text is "Direction: request" or "Direction: 
 
 ### AC-006 (traces to BC-2.06.015 postcondition 1-4)
 When `request_error_count >= POISON_THRESHOLD (3)`, `HttpFlowState.request_poisoned` is set to `true`, `non_http_flows` is incremented by 1 (if `counted_as_non_http` is false), the direction buffer is cleared, and all subsequent `on_data` calls for that direction count bytes in `poisoned_bytes_skipped` without parsing.
-- **Test:** `test_BC_2_06_015_three_consecutive_errors_trigger_poisoning`
+- **Test:** `test_BC_2_06_015_three_consecutive_errors_trigger_poisoning`; `test_BC_2_06_015_non_http_flows_incremented_on_first_poison` (http_analyzer_tests.rs:3868 — directly asserts `non_http_flows == 1` after first direction reaches poison threshold, covering the `non_http_flows` postcondition 2 that the primary test does not explicitly assert)
 
 ### AC-007 (traces to BC-2.06.015 invariant 1-3)
 Poisoning is per-direction: `request_poisoned` and `response_poisoned` are independent booleans. The error counter is CONSECUTIVE, not cumulative — one successful parse resets the counter to 0. Poisoning is irreversible within a flow lifetime.
@@ -203,3 +203,13 @@ The TooManyHeaders finding check is inside the `if !had_success` block — TooMa
 |------|--------|---------|
 | src/analyzer/http.rs | modify | Err arm (403-434 request, 475-487 response): had_success guard, TooManyHeaders finding, error_count++, poison transition, non_http_flows latch |
 | tests/http_analyzer_tests.rs | modify | AC-001..AC-013 formalization tests in mod bc_2_06_044_formalization (lines ~3503-4540): test_BC_2_06_013_*, test_BC_2_06_014_*, test_BC_2_06_015_*, test_BC_2_06_016_*, test_BC_2_06_017_*, test_BC_2_06_018_*, test_BC_2_06_020_* |
+
+## Changelog
+
+| Version | Date | Notes |
+|---------|------|-------|
+| v1.0 | 2026-05-21 | Initial story decomposition |
+| v1.1 | 2026-05-21 | Pass-1 adversarial convergence |
+| v1.2 | 2026-05-21 | Pass-2 adversarial convergence; test citations added |
+| v1.3 | 2026-05-21 | Pass-3 remediation; AC-013 re-pointed to dedicated TooManyHeaders-after-success suppression test |
+| v1.4 | 2026-05-28 | Pass-2 retroactive remediation (F-W16-S044-P2-001): AC-006 companion test `test_BC_2_06_015_non_http_flows_incremented_on_first_poison` (http_analyzer_tests.rs:3868) added — this test directly asserts `non_http_flows == 1`, covering BC-2.06.015 postcondition 2 that the primary test did not explicitly assert. BC-2.06.015 bumped to v1.3 by PO this burst — input-hash recomputed: `1a3b973` → `f1b0959` (sha256 over sorted cited-BC files, first 7 chars). |

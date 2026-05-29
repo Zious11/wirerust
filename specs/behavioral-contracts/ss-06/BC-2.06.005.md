@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 16 Pass-1 prose fix (F-W16-S042-P1-002) — stray quote in backslash-pattern negation corrected (`..\\\"` → `..\\ `) — 2026-05-28"
+  - "v1.4: Wave 16 Pass-2 (F-W16-S042-P2-001) — tighten invariant 1 anchor 187-191 → 187-190 (191 is closing brace, not a contains() call) — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -54,7 +55,7 @@ preserved in the finding evidence without escaping (ADR 0003).
 
 ## Invariants
 
-1. The check is a substring match on the lowercased URI: `uri_lower.contains("../") || uri_lower.contains("..%2f") || uri_lower.contains("..%252f") || uri_lower.contains("....//")`. These are the exact four patterns at http.rs:187-191. There is NO backslash (`..\`) traversal variant in source.
+1. The check is a substring match on the lowercased URI: `uri_lower.contains("../") || uri_lower.contains("..%2f") || uri_lower.contains("..%252f") || uri_lower.contains("....//")`. These are the exact four patterns at http.rs:187-190 (line 191 is the closing brace of the `if` block, not a pattern call). There is NO backslash (`..\`) traversal variant in source.
 2. Raw URI bytes are preserved in evidence (ADR 0003 / INV-4).
 3. The finding fires even if the request also triggers other detections (e.g., admin path).
 

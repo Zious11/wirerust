@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave 16 Pass-2 (F-W16-S044-P2-002) — align response poison anchor :467 → :467-468 (guard+assignment) in Architecture Anchors and Source Evidence; align with VP-006 — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -108,14 +109,14 @@ resets to false within the flow's lifetime (INV-8).
 
 - `src/analyzer/http.rs:80` -- `const POISON_THRESHOLD: u8 = 3`
 - `src/analyzer/http.rs:408-409` -- request direction poison transition: `if state.request_error_count >= POISON_THRESHOLD { state.request_poisoned = true; }`
-- `src/analyzer/http.rs:467` -- response direction poison transition (symmetric)
+- `src/analyzer/http.rs:467-468` -- response direction poison transition: `if state.response_error_count >= POISON_THRESHOLD { state.response_poisoned = true; }`
 - `tests/http_analyzer_tests.rs` -- test_parse_error_poisons_direction_after_threshold
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:408-409` (request poison), `:467` (response poison), `:80` (threshold const) |
+| **Path** | `src/analyzer/http.rs:408-409` (request poison), `:467-468` (response poison), `:80` (threshold const) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

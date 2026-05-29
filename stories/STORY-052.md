@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-052"
 epic_id: "E-5"
-version: "1.2"
+version: "1.3"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.003.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.032.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.034.md
-input-hash: "5847cf5"
+input-hash: "09f5faa"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-051]
@@ -97,7 +97,7 @@ A TLS 1.3 ClientHello with `legacy_version = 0x0303` records `version_counts[0x0
 
 ### AC-011 (traces to BC-2.07.032 invariant 1-2)
 `TlsAnalyzer` uses only `ch.version.0` (the `legacy_version` field from tls-parser) for version counting and JA3 — it does NOT inspect the `supported_versions` extension to determine the actual negotiated TLS version.
-- **Test:** `test_tls13_pcap_version_and_ja3` (integration)
+- **Test:** `test_BC_2_07_032_inv1_supported_versions_not_inspected` (unit, primary — constructs a synthetic ClientHello with `legacy_version=0x0303` and `supported_versions=[0x0304]`; asserts `version_counts` contains `0x0303` and does NOT contain `0x0304`, directly pinning the invariant); `test_tls13_pcap_version_and_ja3` (integration, companion — confirms the real-world TLS 1.3 pcap path records `0x0303`, but is vacuous for the isolation invariant because both paths produce `0x0303` for a real capture)
 
 ### AC-012 (traces to BC-2.07.034 postcondition 1-3)
 When `on_data` is called for a done flow, it returns without modifying any state, without appending bytes to any buffer, and without calling `try_parse_records`. A 1 MB burst of application data after both hellos leaves all counters at their post-handshake values.
@@ -188,3 +188,12 @@ When `on_data` is called for a done flow, it returns without modifying any state
 | src/analyzer/tls.rs | modify | `handle_client_hello` (lines 379-540), `TlsFlowState::done()` (lines 280-293), `on_data` done-check (lines 718-724) |
 | tests/tls_analyzer_tests.rs | modify | ClientHello parsing tests (AC-001..009), stop-after-handshake test (AC-008, AC-012) |
 | tests/tls_integration_tests.rs | modify | TLS 1.3 pcap integration test (AC-010, AC-011) |
+
+## Changelog
+
+| Version | Date | Notes |
+|---------|------|-------|
+| v1.0 | 2026-05-21 | Initial story decomposition |
+| v1.1 | 2026-05-21 | Pass-1 adversarial convergence |
+| v1.2 | 2026-05-21 | Pass-2 adversarial convergence; test citations added |
+| v1.3 | 2026-05-28 | Pass-2 retroactive remediation (F-W16-S052-P2-001): AC-011 primary test changed from vacuous integration test to discriminating unit test `test_BC_2_07_032_inv1_supported_versions_not_inspected` (tests/tls_analyzer_tests.rs:2677); integration test `test_tls13_pcap_version_and_ja3` demoted to companion citation. BC-2.07.032 bumped to v1.3 and BC-2.07.001 bumped to v1.3 by PO this burst — input-hash recomputed: `5847cf5` → `09f5faa` (sha256 over sorted cited-BC files, first 7 chars). |
