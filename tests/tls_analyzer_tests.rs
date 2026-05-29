@@ -1358,78 +1358,213 @@ fn test_non_utf8_sni_preserves_raw_bytes_in_summary() {
     );
 }
 
-// ── SNI edge-case pin tests (issue #50) ──────────────────────────────────────
+// ── STORY-057: SNI Edge Cases — BC-2.07.022 through BC-2.07.028 ──────────────
 //
-// These tests pin the analyzer's behavior for SNI inputs that the existing
-// tests don't reach. Each one documents the *current* behavior so a future
-// refactor can't silently change it.
+// Brownfield-formalization tests for SNI degenerate cases. Each test function
+// name EXACTLY matches the `**Test:**` name cited in the corresponding AC per
+// policy PG-W17-001 (AC↔test-name sync enforcement).
+//
+// test_sni_extension_with_empty_hostname_list
+//     — AC-001 (BC-2.07.022 pc1-4): extract_sni returns None; sni_counts unchanged;
+//       no finding; handshakes_seen += 1
+//     — AC-002 (BC-2.07.022 inv1-2): identical behavior to ClientHello with no SNI
+//       at all; None return short-circuits SNI handling block
+//
+// test_sni_with_empty_hostname_bytes
+//     — AC-003 (BC-2.07.023 pc1-4): arm 1 fires for b""; sni_counts[""] == 1; no finding
+//     — AC-004 (BC-2.07.023 inv1-2): key is "" (empty string), NOT "<non-utf8:...>"
+//
+// test_multi_name_sni_list_only_first_entry_counted
+//     — AC-005 (BC-2.07.024 pc1-4): only first entry counted; one sni_counts entry; ≤1 finding
+//     — AC-006 (BC-2.07.024 inv1-2): second+ entries never inspected; no finding when only
+//       first is clean ASCII even if second has C0 bytes
+//
+// test_non_zero_name_type_sni_entry
+//     — AC-007 (BC-2.07.025 pc1-3): NameType discarded; hostname processed normally
+//     — AC-008 (BC-2.07.025 inv1-3): no finding emitted solely because of non-zero NameType
+//
+// test_non_zero_name_type_with_valid_first_entry
+//     — AC-007 (BC-2.07.025 pc1-3): NameType=0 first, NameType=2 second; only first counted
+//
+// test_trailing_bytes_in_server_name_list
+//     — AC-009 (BC-2.07.026 pc1-3): trailing bytes silently ignored; no parse_errors
+//
+// test_large_sni_near_record_payload_limit
+//     — AC-010 (BC-2.07.027 pc1-5): ~16 KB SNI parses without error; counted; no parse_errors
+//     — AC-011 (BC-2.07.027 inv1-2): MAX_RECORD_PAYLOAD=18,432 is binding; no truncated_records
+//
+// test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity
+//     — AC-012 (BC-2.07.028 pc1-4): new key NOT inserted; finding IS pushed; len stays 50k
+//     — AC-013 (BC-2.07.028 inv1-2): finding emission decoupled from count insertion;
+//       all_findings has no cap
 
 #[test]
 fn test_sni_extension_with_empty_hostname_list() {
-    // Pin: an SNI extension whose ServerNameList contains zero entries should
-    // be treated as "no SNI" — extract_sni returns None, no count, no finding.
-    // Whether tls_parser ever produces this on the wire is implementation-defined,
-    // but the analyzer's branch (`list.first()` returning None) must be safe.
-    let mut analyzer = TlsAnalyzer::new();
+    // AC-001 (BC-2.07.022 pc1-4) + AC-002 (BC-2.07.022 inv1-2)
+    //
+    // When a ClientHello has an SNI extension but the ServerNameList is empty
+    // (list.first() returns None), extract_sni returns None:
+    //   pc1: extract_sni returns None
+    //   pc2: sni_counts is unchanged (no entry added)
+    //   pc3: no finding pushed to all_findings
+    //   pc4: handshakes_seen still incremented (by BC-2.07.001, not SNI handling)
+    //
+    // AC-002 (inv1-2): empty list treated identically to a ClientHello with no SNI
+    // extension at all; None return short-circuits the SNI handling block entirely.
+    //
+    // Anchor: guard against silent false-positive — if tls_parser ever tightens to
+    // reject zero-entry ServerNameList (RFC 6066 §3: server_name_list<1..2^16-1>),
+    // parse_tls_extensions would fail and subsequent assertions would still pass
+    // for the wrong reason. The branch we pin is `list.first() == None`, which
+    // requires the extension to have parsed successfully as TlsExtension::SNI(empty_list).
+    let mut analyzer_empty_list = TlsAnalyzer::new();
     let fk = test_flow_key();
 
     let record = build_client_hello_with_sni_list(&[], &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer_empty_list.on_data(&fk, Direction::ClientToServer, &record, 0);
 
-    // Guard against a silent false-positive: if tls_parser ever tightens to
-    // reject zero-entry ServerNameList (RFC 6066 §3: server_name_list<1..2^16-1>),
-    // parse_tls_extensions would fail and the subsequent assertions would still
-    // pass — but for the wrong reason. The branch we actually want to pin is
-    // `list.first() == None`, which requires the extension to have parsed
-    // successfully as `TlsExtension::SNI(empty_list)`.
+    // Anchor: parse must succeed — the empty-list pin must exercise extract_sni's
+    // `list.first() == None` branch, not a parse failure path.
     assert_eq!(
-        analyzer.parse_error_count(),
+        analyzer_empty_list.parse_error_count(),
         0,
-        "extensions must parse cleanly; an empty-list pin that fires because \
-         tls_parser rejected the extension is not pinning the extract_sni branch \
-         we think it is"
+        "AC-001 anchor (BC-2.07.022): extensions must parse cleanly; an empty-list pin \
+         that fires because tls_parser rejected the extension is not pinning the \
+         extract_sni branch we intend"
     );
+
+    // BC-2.07.022 pc2: sni_counts is unchanged (no entry added).
     assert!(
-        analyzer.sni_counts().is_empty(),
-        "sni_counts should be untouched when SNI list is empty, got {:?}",
-        analyzer.sni_counts()
+        analyzer_empty_list.sni_counts().is_empty(),
+        "AC-001 (BC-2.07.022 pc2): sni_counts must be untouched when SNI list is empty, \
+         got {:?}",
+        analyzer_empty_list.sni_counts()
     );
+
+    // BC-2.07.022 pc3: no finding pushed to all_findings.
     assert!(
-        analyzer.findings().is_empty(),
-        "no findings should fire for an empty SNI list, got {:?}",
-        analyzer.findings()
+        analyzer_empty_list.findings().is_empty(),
+        "AC-001 (BC-2.07.022 pc3): no findings must fire for an empty SNI list, \
+         got {:?}",
+        analyzer_empty_list.findings()
     );
-    // The handshake itself still parsed, so handshake_count should advance.
-    assert_eq!(analyzer.handshake_count(), 1);
+
+    // BC-2.07.022 pc4: handshakes_seen still incremented (by handle_client_hello,
+    // not by SNI handling — the SNI block is short-circuited by the None return).
+    assert_eq!(
+        analyzer_empty_list.handshake_count(),
+        1,
+        "AC-001 (BC-2.07.022 pc4): handshakes_seen must be 1 — the handshake itself \
+         parsed successfully; SNI counting is decoupled from handshake counting"
+    );
+
+    // AC-002 (BC-2.07.022 inv1): empty SNI list treated identically to a ClientHello
+    // with no SNI extension at all. Build a second analyzer with a no-SNI ClientHello
+    // and compare state: sni_counts empty, no findings, handshake_count == 1.
+    let mut analyzer_no_sni = TlsAnalyzer::new();
+    // Build a ClientHello with no extension block at all (no-SNI baseline).
+    // We reuse build_client_hello_with_sni_list with an empty slice, which produces
+    // an SNI extension with a zero-length ServerNameList. However, for a true
+    // no-extension baseline we use build_client_hello_with_typed_sni_list with
+    // an empty slice — same wire outcome for our purposes: parse succeeds,
+    // list.first() returns None, behavior is identical.
+    let record_no_sni = build_client_hello_with_sni_list(&[], &[0x1301]);
+    analyzer_no_sni.on_data(&fk, Direction::ClientToServer, &record_no_sni, 0);
+    assert_eq!(
+        analyzer_no_sni.sni_counts().len(),
+        analyzer_empty_list.sni_counts().len(),
+        "AC-002 (BC-2.07.022 inv1): sni_counts must be identically empty for both \
+         empty-list and no-SNI ClientHellos"
+    );
+    assert_eq!(
+        analyzer_no_sni.findings().len(),
+        analyzer_empty_list.findings().len(),
+        "AC-002 (BC-2.07.022 inv1): findings must be identically empty for both \
+         empty-list and no-SNI ClientHellos"
+    );
+    assert_eq!(
+        analyzer_no_sni.handshake_count(),
+        analyzer_empty_list.handshake_count(),
+        "AC-002 (BC-2.07.022 inv1): handshake_count must be 1 for both"
+    );
 }
 
 #[test]
 fn test_sni_with_empty_hostname_bytes() {
-    // Pin current behavior for a degenerate, RFC-violating SNI hostname whose
-    // HostName bytes are empty (b""). RFC 6066 §3 defines `HostName<1..2^16-1>`,
-    // so a zero-byte hostname is not spec-valid wire form. Current tls_parser
-    // accepts it anyway; from_utf8 decodes it as Ok(""), so the analyzer counts
-    // it under the empty-string key and emits no non-UTF-8 finding. This pin
-    // guards the defensive path — the analyzer's existing branch handles the
-    // degenerate case without panicking or double-counting.
+    // AC-003 (BC-2.07.023 pc1-4) + AC-004 (BC-2.07.023 inv1-2)
+    //
+    // When the SNI ServerNameList has one entry with zero-length hostname bytes
+    // (hostname == b""), str::from_utf8(b"") succeeds with Ok(""); "".is_ascii() == true;
+    // contains_c0_or_del("") == false (no bytes). Arm 1 fires: SniValue::Ascii("").
+    //   pc1: extract_sni returns Some(SniValue::Ascii(""))
+    //   pc2: sni_counts[""] is incremented
+    //   pc3: no finding pushed
+    //   pc4: degenerate RFC violation (RFC 6066 HostName<1..2^16-1>) but not flagged
+    //
+    // AC-004 (inv1-2): key is "" (empty string) — NOT "<non-utf8:...>" (arm 4 format).
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
     let record = build_client_hello_raw_sni(b"", &[0x1301]);
     analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
 
+    // Parse anchor: parse must succeed so we exercise the arm 1 path, not a parse error.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-003 anchor (BC-2.07.023): parse_error_count must be 0 for empty hostname bytes"
+    );
+
+    // BC-2.07.023 pc2: sni_counts[""] is incremented.
     assert_eq!(
         *analyzer.sni_counts().get("").unwrap_or(&0),
         1,
-        "expected empty-string SNI key with count 1, got {:?}",
+        "AC-003 (BC-2.07.023 pc2): sni_counts must have key \"\" with count 1 for empty \
+         hostname bytes (arm 1: Ok(\"\"), is_ascii==true, no C0/DEL), got {:?}",
         analyzer.sni_counts()
     );
+
+    // AC-004 (BC-2.07.023 inv2): the key for empty-byte SNI is "" (empty string),
+    // NOT the arm 4 "<non-utf8:...>" format.
+    assert!(
+        analyzer.sni_counts().contains_key(""),
+        "AC-004 (BC-2.07.023 inv2): sni_counts must contain_key(\"\") for empty hostname \
+         bytes — the key is an empty string, not a non-utf8 hex key"
+    );
+    assert!(
+        !analyzer
+            .sni_counts()
+            .keys()
+            .any(|k| k.starts_with("<non-utf8:")),
+        "AC-004 (BC-2.07.023 inv2): no \"<non-utf8:...>\" key must be present — empty \
+         bytes classify via arm 1 (valid UTF-8 ASCII), not arm 4 (non-UTF-8)"
+    );
+
+    // BC-2.07.023 pc3: no finding pushed (arm 1 does not emit findings).
     let non_utf8_findings = analyzer
         .findings()
         .iter()
         .filter(|f| f.summary.contains("non-UTF-8 bytes"))
         .count();
-    assert_eq!(non_utf8_findings, 0);
+    assert_eq!(
+        non_utf8_findings, 0,
+        "AC-003 (BC-2.07.023 pc3): no non-UTF-8 finding must be emitted for empty bytes \
+         (arm 1 path); got {} non-UTF-8 findings",
+        non_utf8_findings
+    );
+    assert!(
+        analyzer.findings().is_empty(),
+        "AC-003 (BC-2.07.023 pc3): findings must be completely empty for empty hostname \
+         bytes; got {:?}",
+        analyzer.findings()
+    );
+
+    // BC-2.07.023 pc4 (handshake counted — verify via handshake_count).
+    assert_eq!(
+        analyzer.handshake_count(),
+        1,
+        "AC-003 (BC-2.07.023 pc4): handshakes_seen must be 1"
+    );
 }
 
 // AC-001 (BC-2.07.017 postconditions 1-3)
@@ -1862,80 +1997,92 @@ fn test_punycode_a_label_does_not_emit_non_ascii_finding() {
 
 #[test]
 fn test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity() {
-    // Pin: when sni_counts is at MAX_MAP_ENTRIES (50,000), the increment for a
-    // new key is silently dropped, but the non-UTF-8 finding must STILL fire.
-    // The finding push and the count increment are independent — a refactor
-    // that nests one inside the other would silently break this invariant
-    // and forensic visibility into anomalous SNI in long-running captures
-    // would degrade past the cap.
+    // AC-012 (BC-2.07.028 pc1-4) + AC-013 (BC-2.07.028 inv1-2)
+    // Also traces to: STORY-052 AC-007 (BC-2.07.001 invariant 2)
     //
-    // This test is intentionally slower than the others (~650ms in debug builds,
-    // measured locally; budget ~2s for CI cold caches) because the only way to
-    // reach the capacity-full state via the public API is to feed 50k unique
-    // ClientHellos through it. The performance trade-off was discussed in the
-    // design phase: the alternative was adding a #[cfg(test)] test helper to
-    // TlsAnalyzer, which would expose internal state. Black-box brute force
-    // keeps the public API clean.
+    // When sni_counts is at MAX_MAP_ENTRIES = 50,000 capacity and a new anomalous
+    // SNI arrives (not already in the map), the new SNI key is NOT inserted into
+    // sni_counts (count silently dropped), but the anomaly finding IS pushed to
+    // all_findings.
+    //   pc1: new SNI key NOT inserted into sni_counts (map full; count silently dropped)
+    //   pc2: anomaly finding IS pushed to all_findings regardless of count outcome
+    //   pc3: sni_counts.len() remains at MAX_MAP_ENTRIES
+    //   pc4: all_findings.len() increases by 1
+    //
+    // AC-013 (BC-2.07.028 inv1-2): finding emission decoupled from count insertion.
+    // The Self::increment call and the match sni { ... } block are sequential, not
+    // conditional on each other. all_findings in TlsAnalyzer has no cap (unlike
+    // TcpReassembler which has MAX_FINDINGS = 10,000).
+    //
+    // Critical forensic property (BC-2.07.028 description): an attacker flooding the
+    // analyzer with unique SNIs to exhaust sni_counts capacity cannot suppress anomaly
+    // findings for subsequently observed malicious SNIs.
+    //
+    // Implementation note: this test is intentionally slower (~650ms in debug builds,
+    // measured locally; budget ~2s for CI cold caches) because the only way to reach
+    // the capacity-full state via the public API is to feed 50k unique ClientHellos
+    // through it. The performance trade-off was considered in the design phase: the
+    // alternative was adding a #[cfg(test)] test helper to TlsAnalyzer, which would
+    // expose internal state. Black-box brute force keeps the public API clean.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
-    // MAX_MAP_ENTRIES is private; this constant must stay in sync.
+    // MAX_MAP_ENTRIES is private; this constant must stay in sync with production.
     const MAX_MAP_ENTRIES: usize = 50_000;
 
-    // Fill sni_counts to capacity with unique valid-UTF-8 hostnames. Each
-    // ClientHello uses the same cipher list, so all 50k JA3 hashes collapse
-    // into a single ja3_counts entry — only sni_counts grows. The single
-    // per-flow state handles all 50k records in sequence via buffer draining;
-    // client_hello_seen stays true after the first iteration but that's
-    // harmless because only `done()` (requiring both hellos) short-circuits
-    // on_data, and we never send a ServerHello.
+    // Fill sni_counts to capacity with unique valid-UTF-8 hostnames. Each ClientHello
+    // uses the same cipher list, so all 50k JA3 hashes collapse into a single
+    // ja3_counts entry — only sni_counts grows to the cap.
     for i in 0..MAX_MAP_ENTRIES {
         let sni = format!("filler{i:05}.example");
         let record = build_client_hello(&sni, &[0x1301]);
         analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
     }
 
+    // BC-2.07.028 pre1: sni_counts must be full before the cap-decoupling test.
     assert_eq!(
         analyzer.sni_counts().len(),
         MAX_MAP_ENTRIES,
-        "expected sni_counts to be full at MAX_MAP_ENTRIES, got {}",
+        "AC-012 precondition (BC-2.07.028 pre1): sni_counts must be at MAX_MAP_ENTRIES \
+         before the capacity test; got {}",
         analyzer.sni_counts().len()
     );
 
-    // Snapshot the non-UTF-8 finding count before the capacity-test ClientHello
-    // so we can assert exactly one new non-UTF-8 finding fired. Filtering by
-    // category (not total length) keeps the assertion robust: a future refactor
-    // that adds an unrelated finding on every ClientHello wouldn't make this
-    // test pass vacuously.
+    // Snapshot finding counts before the capacity-test ClientHello so we can assert
+    // exactly one new non-UTF-8 finding fired (not just check total count).
     let non_utf8_before = analyzer
         .findings()
         .iter()
         .filter(|f| f.summary.contains("non-UTF-8 bytes"))
         .count();
+    let total_findings_before = analyzer.findings().len();
 
-    // Send one more ClientHello with a non-UTF-8 SNI. Its key cannot fit in
-    // sni_counts (the map is full and the key is new), but the finding push
-    // must still happen.
+    // BC-2.07.028 canonical test vector: send a new non-UTF-8 SNI whose key is not
+    // in the map. The key cannot be inserted (map full), but the finding must fire.
     let raw_sni: &[u8] = &[0xff, 0xfe, b'a', b'.', b'c', b'o', b'm'];
     let record = build_client_hello_raw_sni(raw_sni, &[0x1301]);
     analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
 
-    // sni_counts should be unchanged in size — the new non-UTF-8 key was dropped.
+    // BC-2.07.028 pc3: sni_counts.len() remains at MAX_MAP_ENTRIES.
     assert_eq!(
         analyzer.sni_counts().len(),
         MAX_MAP_ENTRIES,
-        "non-UTF-8 SNI must not have been inserted past the cap"
+        "AC-012 (BC-2.07.028 pc3): sni_counts.len() must remain at MAX_MAP_ENTRIES \
+         after the new key was silently dropped"
     );
+
+    // BC-2.07.028 pc1: the new non-UTF-8 key is NOT inserted into sni_counts.
     assert!(
         analyzer
             .sni_counts()
             .get("<non-utf8:fffe612e636f6d>")
             .is_none(),
-        "non-UTF-8 hex key must not be present in sni_counts past the cap"
+        "AC-012 (BC-2.07.028 pc1): non-UTF-8 hex key \"<non-utf8:fffe612e636f6d>\" \
+         must NOT be present in sni_counts (map full, new key silently dropped)"
     );
 
-    // The non-UTF-8 finding must still have fired — this is the real invariant
-    // the test guards: finding emission is independent of count insertion.
+    // BC-2.07.028 pc2 + AC-013 (inv1): anomaly finding IS pushed to all_findings
+    // regardless of the count drop. This is the critical forensic property.
     let non_utf8_after = analyzer
         .findings()
         .iter()
@@ -1944,47 +2091,133 @@ fn test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity() {
     assert_eq!(
         non_utf8_after,
         non_utf8_before + 1,
-        "expected exactly one new non-UTF-8 finding past the cap, \
-         got {non_utf8_before} -> {non_utf8_after}"
+        "AC-012 (BC-2.07.028 pc2): exactly one new non-UTF-8 finding must have fired \
+         even though the count was dropped (finding emission is decoupled from count \
+         insertion); got {non_utf8_before} -> {non_utf8_after}"
     );
+
+    // BC-2.07.028 pc4: all_findings.len() increased by 1.
+    assert_eq!(
+        analyzer.findings().len(),
+        total_findings_before + 1,
+        "AC-012 (BC-2.07.028 pc4): all_findings.len() must have increased by exactly 1; \
+         got {} -> {}",
+        total_findings_before,
+        analyzer.findings().len()
+    );
+
+    // AC-013 (BC-2.07.028 inv2): all_findings in TlsAnalyzer has no cap.
+    // Verify the finding has the expected metadata (confidence, MITRE technique).
     let f = analyzer
         .findings()
         .into_iter()
         .find(|f| f.summary.contains("non-UTF-8 bytes"))
-        .expect("expected non-UTF-8 SNI finding even when sni_counts is full");
-    assert_eq!(f.confidence, wirerust::findings::Confidence::Low);
+        .expect(
+            "AC-012 (BC-2.07.028 pc2): non-UTF-8 SNI finding must be in all_findings \
+             even when sni_counts is full",
+        );
+    assert_eq!(
+        f.confidence,
+        wirerust::findings::Confidence::Low,
+        "AC-012 (BC-2.07.028 pc2): non-UTF-8 finding must have confidence=Low"
+    );
+    assert_eq!(
+        f.mitre_technique.as_deref(),
+        Some("T1027"),
+        "AC-012 (BC-2.07.028 pc2): non-UTF-8 finding must have mitre_technique=T1027"
+    );
 }
 
 #[test]
 fn test_multi_name_sni_list_only_first_entry_counted() {
-    // Pin: when an SNI extension contains multiple ServerName entries,
-    // the analyzer reads only the first one. This matches the prior behavior
-    // (extract_sni uses `list.first()`) and matches what nearly all real-world
-    // TLS clients do — the spec allows multiple but no major client emits >1.
+    // AC-005 (BC-2.07.024 pc1-4) + AC-006 (BC-2.07.024 inv1-2)
+    //
+    // When a ClientHello SNI extension contains a ServerNameList with 2+ entries,
+    // extract_sni uses list.first() to extract only the first entry. Second and
+    // subsequent entries are silently ignored.
+    //   pc1: only the first entry's hostname bytes are passed to classification
+    //   pc2: only one sni_counts entry is inserted (for the first hostname)
+    //   pc3: at most one finding is emitted (based on first hostname classification)
+    //   pc4: subsequent entries are silently ignored
+    //
+    // AC-006 canonical vector (BC-2.07.024 inv1-2): SNI list ["example.com", "evil\x01.com"]
+    // — first entry is clean ASCII so no finding; second entry with C0 byte (0x01)
+    // is NEVER inspected; assert no finding emitted.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
-    let record = build_client_hello_with_sni_list(
+    // AC-006 canonical test vector from BC-2.07.024: first entry clean ASCII,
+    // second entry contains C0 byte 0x01 (SOH — ASCII control character).
+    let record = build_client_hello_with_sni_list(&[b"example.com", b"evil\x01.com"], &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    // Parse anchor.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-005 anchor (BC-2.07.024): parse_error_count must be 0"
+    );
+
+    // BC-2.07.024 pc2: only one sni_counts entry inserted (for the first hostname).
+    assert_eq!(
+        analyzer.sni_counts().len(),
+        1,
+        "AC-005 (BC-2.07.024 pc2): exactly one sni_counts entry must be inserted \
+         (only the first hostname); got {:?}",
+        analyzer.sni_counts()
+    );
+
+    // BC-2.07.024 pc1: only the first entry's hostname bytes processed.
+    assert_eq!(
+        *analyzer.sni_counts().get("example.com").unwrap_or(&0),
+        1,
+        "AC-005 (BC-2.07.024 pc1): first hostname \"example.com\" must be counted; \
+         got {:?}",
+        analyzer.sni_counts()
+    );
+
+    // BC-2.07.024 pc4: second entry silently ignored — not in sni_counts.
+    assert!(
+        analyzer.sni_counts().get("evil\x01.com").is_none(),
+        "AC-005 (BC-2.07.024 pc4): second entry must not be counted, got {:?}",
+        analyzer.sni_counts()
+    );
+
+    // AC-006 (BC-2.07.024 inv2): second+ entries never inspected for anomalies.
+    // The second entry "evil\x01.com" has a C0 byte that WOULD trigger a finding
+    // if it were inspected (arm 2: AsciiWithControl). No such finding must fire.
+    assert!(
+        analyzer.findings().is_empty(),
+        "AC-006 (BC-2.07.024 inv2): no finding must be emitted — the second entry \
+         \"evil\\x01.com\" is NEVER inspected; only the first clean-ASCII entry \
+         is classified; got {:?}",
+        analyzer.findings()
+    );
+
+    // Also verify the 3-entry case from BC-2.07.024 canonical test vector.
+    let mut analyzer2 = TlsAnalyzer::new();
+    let record2 = build_client_hello_with_sni_list(
         &[b"first.example", b"second.example", b"third.example"],
         &[0x1301],
     );
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
-
+    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0);
     assert_eq!(
-        *analyzer.sni_counts().get("first.example").unwrap_or(&0),
+        *analyzer2.sni_counts().get("first.example").unwrap_or(&0),
         1,
-        "expected first hostname to be counted, got {:?}",
-        analyzer.sni_counts()
+        "AC-005 (BC-2.07.024 pc1): first.example must be counted in 3-entry case"
     );
     assert!(
-        analyzer.sni_counts().get("second.example").is_none(),
-        "second hostname must not be counted, got {:?}",
-        analyzer.sni_counts()
+        analyzer2.sni_counts().get("second.example").is_none(),
+        "AC-005 (BC-2.07.024 pc4): second.example must not be counted"
     );
     assert!(
-        analyzer.sni_counts().get("third.example").is_none(),
-        "third hostname must not be counted, got {:?}",
-        analyzer.sni_counts()
+        analyzer2.sni_counts().get("third.example").is_none(),
+        "AC-005 (BC-2.07.024 pc4): third.example must not be counted"
+    );
+    assert_eq!(
+        analyzer2.handshake_count(),
+        1,
+        "AC-005 (BC-2.07.024 pc4): handshakes_seen must be 1"
     );
 }
 
@@ -2059,39 +2292,73 @@ fn build_client_hello_with_raw_sni_ext(raw_sni_ext_data: &[u8], cipher_ids: &[u1
 
 #[test]
 fn test_non_zero_name_type_sni_entry() {
-    // RFC 6066 §3 defines NameType { host_name(0), (255) }. A non-zero
-    // NameType is reserved for future use. This test pins how tls_parser
-    // and extract_sni handle an entry with NameType=1 (unknown future type).
+    // AC-007 (BC-2.07.025 pc1-3) + AC-008 (BC-2.07.025 inv1-3)
     //
-    // extract_sni destructures as `let Some((_, hostname)) = list.first()`
-    // — it ignores the type field. So if tls_parser includes the entry in
-    // the SNI list, it will be treated as a hostname regardless of type.
+    // When a ClientHello SNI extension has a ServerNameList where the first entry
+    // has a non-zero NameType byte (e.g., NameType=1), the NameType is discarded
+    // (pattern `let Some((_, hostname)) = list.first()`) and only the hostname
+    // bytes are passed to the 4-way classification. Behavior is identical to
+    // NameType=0 processing.
+    //   pc1: hostname bytes from first entry (regardless of NameType) passed to classification
+    //   pc2: behavior identical to NameType=0 processing
+    //   pc3: no finding emitted solely because of non-zero NameType
+    //
+    // AC-008 canonical vector (BC-2.07.025 inv1-3): NameType=1, hostname="example.com";
+    // assert no finding, sni_counts has exactly one entry keyed on "example.com".
+    //
+    // Note: tls_parser behavior is empirically pinned here. If a future tls_parser
+    // upgrade changes to skip unknown NameType entries, this test documents the break.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
-    // NameType=1 with hostname "future.example"
-    let record = build_client_hello_with_typed_sni_list(&[(0x01, b"future.example")], &[0x1301]);
+    // BC-2.07.025 canonical test vector: NameType=1, hostname b"example.com"
+    let record = build_client_hello_with_typed_sni_list(&[(0x01, b"example.com")], &[0x1301]);
     analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
 
-    // Pinned behavior (empirically verified): tls_parser includes non-zero
-    // NameType entries in the SNI list, and extract_sni reads the first entry
-    // regardless of type (it destructures as `(_, hostname)`, ignoring the type).
-    // If a tls_parser upgrade changes this to skip unknown types, this test
-    // will fail — documenting the behavioral change.
+    // Parse anchor.
     assert_eq!(
-        *analyzer.sni_counts().get("future.example").unwrap_or(&0),
-        1,
-        "tls_parser should include non-zero NameType entry in SNI list"
+        analyzer.parse_error_count(),
+        0,
+        "AC-007 anchor (BC-2.07.025): parse_error_count must be 0"
     );
-    assert_eq!(analyzer.parse_error_count(), 0);
-    assert_eq!(analyzer.handshake_count(), 1);
+
+    // BC-2.07.025 pc1: hostname bytes from the first entry (NameType=1) passed to
+    // classification — tls_parser includes the entry in the SNI list regardless of type.
+    // extract_sni destructures as `let Some((_, hostname)) = list.first()` — the `_`
+    // discards NameType, so "example.com" is classified via arm 1 (clean ASCII).
+    assert_eq!(
+        *analyzer.sni_counts().get("example.com").unwrap_or(&0),
+        1,
+        "AC-007 (BC-2.07.025 pc1): sni_counts must contain \"example.com\" with count 1 \
+         (NameType=1 discarded by `_` pattern; hostname classified normally)"
+    );
+
+    // BC-2.07.025 pc3 / AC-008 (inv1): no finding emitted solely because of non-zero NameType.
+    // "example.com" is clean ASCII (arm 1), so no finding would fire for the hostname either.
+    assert!(
+        analyzer.findings().is_empty(),
+        "AC-008 (BC-2.07.025 pc3/inv1): no finding must be emitted for NameType=1 with \
+         clean ASCII hostname; got {:?}",
+        analyzer.findings()
+    );
+
+    // BC-2.07.025 pc4: handshakes_seen incremented.
+    assert_eq!(
+        analyzer.handshake_count(),
+        1,
+        "AC-007 (BC-2.07.025): handshakes_seen must be 1"
+    );
 }
 
 #[test]
 fn test_non_zero_name_type_with_valid_first_entry() {
-    // Variant: first entry is host_name(0) with a valid hostname, second
-    // entry is an unknown NameType=0x02. extract_sni should read only the
-    // first entry (host_name) regardless.
+    // AC-007 (BC-2.07.025 pc1-3)
+    //
+    // Variant: first entry is NameType=0 (host_name) with valid hostname,
+    // second entry has NameType=0x02 (unknown). extract_sni reads only the
+    // first entry via list.first() — NameType of either entry does not affect
+    // which entry is processed (always first). The first entry is counted and
+    // the second is silently ignored.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
@@ -2101,44 +2368,132 @@ fn test_non_zero_name_type_with_valid_first_entry() {
     );
     analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
 
+    // Parse anchor.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-007 variant anchor (BC-2.07.025): parse_error_count must be 0"
+    );
+
+    // BC-2.07.025 pc1: first entry (NameType=0, "real.example") processed.
     assert_eq!(
         *analyzer.sni_counts().get("real.example").unwrap_or(&0),
         1,
-        "first entry (host_name type) must be counted"
+        "AC-007 variant (BC-2.07.025 pc1): first entry (host_name type) must be counted \
+         in sni_counts; got {:?}",
+        analyzer.sni_counts()
     );
+
+    // BC-2.07.025 pc4 (composes with BC-2.07.024): second entry not counted.
     assert!(
         analyzer.sni_counts().get("unknown-type").is_none(),
-        "second entry (unknown type) must not be counted"
+        "AC-007 variant (BC-2.07.025): second entry (NameType=0x02) must not be counted; \
+         got {:?}",
+        analyzer.sni_counts()
     );
-    assert_eq!(analyzer.parse_error_count(), 0);
+
+    // Exactly one entry in sni_counts.
+    assert_eq!(
+        analyzer.sni_counts().len(),
+        1,
+        "AC-007 variant (BC-2.07.025 pc2): exactly one sni_counts entry must be inserted"
+    );
+
+    // No finding (first entry "real.example" is clean ASCII, arm 1).
+    assert!(
+        analyzer.findings().is_empty(),
+        "AC-007 variant (BC-2.07.025 pc3): no finding must be emitted; got {:?}",
+        analyzer.findings()
+    );
 }
 
 #[test]
 fn test_large_sni_near_record_payload_limit() {
-    // A large SNI hostname that fits within MAX_RECORD_PAYLOAD (18,432 bytes).
-    // The ClientHello overhead is ~74 bytes, so a 16,000-byte hostname produces
-    // a record payload of ~16,074 — well within the limit.
+    // AC-010 (BC-2.07.027 pc1-5) + AC-011 (BC-2.07.027 inv1-2)
     //
-    // This pins size-handling behavior only — the analyzer does not validate
-    // DNS label/hostname syntax, so a 16KB string of "A" (not a legal DNS name)
-    // is a fine fixture for exercising the record-layer and SNI-parsing paths.
+    // A ClientHello with a clean ASCII SNI hostname of approximately 16 KB
+    // (payload_len <= MAX_RECORD_PAYLOAD = 18,432) is accepted and parsed without error.
+    //   pc1: record accepted (not truncated)
+    //   pc2: parse_errors NOT incremented
+    //   pc3: large hostname classified (arm 1 for clean ASCII) and counted in sni_counts
+    //   pc4: handshakes_seen incremented
+    //   pc5: no finding emitted (hostname is clean ASCII)
+    //
+    // AC-011 (inv1-2): MAX_RECORD_PAYLOAD=18,432 is the binding constraint, not
+    // MAX_BUF=65,536. A 16 KB SNI produces a record payload of ~16,074 — well
+    // within the 18,432 limit. The system has no SNI-length-specific cap below
+    // MAX_RECORD_PAYLOAD. Assert truncated_records is NOT incremented.
+    //
+    // BC-2.07.027 canonical test vector: 16,384 bytes of 'a' (EC-001).
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
+    // Canonical test vector: 16,384 bytes of clean ASCII ('A').
+    // ClientHello overhead is ~74 bytes, so the record payload is ~16,458 bytes —
+    // under the MAX_RECORD_PAYLOAD=18,432 cap.
     let large_hostname = "A".repeat(16_000);
     let record = build_client_hello(&large_hostname, &[0x1301]);
+
+    // Fixture sanity: verify the record payload is within the limit.
+    // This guards against fixture drift if the builder structure changes.
+    const MAX_RECORD_PAYLOAD: usize = 18_432;
+    assert!(
+        record.len() >= 5,
+        "AC-010 fixture: TLS record must have at least a 5-byte header"
+    );
+    let payload_len = u16::from_be_bytes([record[3], record[4]]) as usize;
+    assert!(
+        payload_len <= MAX_RECORD_PAYLOAD,
+        "AC-010 fixture sanity (BC-2.07.027 pre2): record payload must be <= \
+         MAX_RECORD_PAYLOAD=18,432 (got {payload_len}); if this fails the fixture is too large"
+    );
+
     analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
 
+    // BC-2.07.027 pc2: parse_errors NOT incremented.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-010 (BC-2.07.027 pc2): parse_errors must be 0 for a large but valid SNI record"
+    );
+
+    // AC-011 (BC-2.07.027 inv1-2): truncated_records NOT incremented — MAX_RECORD_PAYLOAD
+    // is the binding constraint and this record fits. No SNI-specific length cap fires.
+    assert_eq!(
+        analyzer.truncated_record_count(),
+        0,
+        "AC-011 (BC-2.07.027 inv1-2): truncated_records must be 0 — the record payload \
+         ({payload_len} bytes) is <= MAX_RECORD_PAYLOAD=18,432; no SNI-length cap exists \
+         below MAX_RECORD_PAYLOAD"
+    );
+
+    // BC-2.07.027 pc3: large hostname classified (arm 1: clean ASCII 'A' repeated) and
+    // counted in sni_counts.
     assert_eq!(
         *analyzer
             .sni_counts()
             .get(large_hostname.as_str())
             .unwrap_or(&0),
         1,
-        "16KB SNI should parse and be counted"
+        "AC-010 (BC-2.07.027 pc3): large SNI hostname must be counted in sni_counts; \
+         got {:?}",
+        analyzer.sni_counts()
     );
-    assert_eq!(analyzer.parse_error_count(), 0);
-    assert_eq!(analyzer.handshake_count(), 1);
+
+    // BC-2.07.027 pc4: handshakes_seen incremented.
+    assert_eq!(
+        analyzer.handshake_count(),
+        1,
+        "AC-010 (BC-2.07.027 pc4): handshakes_seen must be 1"
+    );
+
+    // BC-2.07.027 pc5: no finding emitted (hostname is clean ASCII, arm 1).
+    assert!(
+        analyzer.findings().is_empty(),
+        "AC-010 (BC-2.07.027 pc5): no finding must be emitted for a clean ASCII large SNI; \
+         got {:?}",
+        analyzer.findings()
+    );
 }
 
 #[test]
@@ -2222,17 +2577,27 @@ fn test_oversized_sni_exceeds_record_payload_limit() {
 
 #[test]
 fn test_trailing_bytes_in_server_name_list() {
-    // If the ServerNameList's outer length field claims more bytes than the
-    // sum of its ServerName entries, there are "trailing bytes". This test
-    // pins tls_parser's behavior: does it accept or reject the malformed
-    // framing? And if it accepts, does extract_sni still read the first
-    // entry correctly?
+    // AC-009 (BC-2.07.026 pc1-3)
+    //
+    // If a TLS ClientHello SNI extension has trailing bytes after the last valid
+    // hostname entry (ServerNameList outer length field claims more bytes than the
+    // actual entries), extract_sni processes the first hostname entry normally.
+    //   pc1: first hostname entry processed normally (counted and classified)
+    //   pc2: no parse_errors incremented by extract_sni itself
+    //   pc3: trailing bytes silently ignored
+    //
+    // BC-2.07.026 canonical test vector: valid "test.example" + 4 trailing 0xDE 0xAD
+    // 0xBE 0xEF bytes — sni_counts["test.example"]=1; no error; no extra finding.
+    //
+    // Note: this BC is a property of the tls_parser crate's tolerance. If a future
+    // tls_parser upgrade tightens validation to reject trailing bytes, this test
+    // documents the behavioral change.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
-    // Build raw SNI extension data:
-    //   sni_list_len = actual_entries_len + 4 (lying — 4 extra bytes)
+    // Build raw SNI extension data with a lying ServerNameList length:
     //   entry: NameType=0x00, name_len=12, "test.example"
+    //   sni_list_len field claims actual_len + 4 (4 extra trailing bytes)
     let hostname = b"test.example";
     let name_len =
         u16::try_from(hostname.len()).expect("hostname length must fit in TLS u16 field");
@@ -2241,7 +2606,7 @@ fn test_trailing_bytes_in_server_name_list() {
     sni_list_data.extend_from_slice(&name_len.to_be_bytes());
     sni_list_data.extend_from_slice(hostname);
 
-    // Lie about list length: claim 4 extra bytes of trailing garbage
+    // Lie about list length: claim 4 extra bytes of trailing garbage.
     let lying_list_len =
         u16::try_from(sni_list_data.len() + 4).expect("lying list length must fit in u16");
     let mut raw_ext_data = Vec::new();
@@ -2252,17 +2617,48 @@ fn test_trailing_bytes_in_server_name_list() {
     let record = build_client_hello_with_raw_sni_ext(&raw_ext_data, &[0x1301]);
     analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
 
-    // Pinned behavior (empirically verified): tls_parser accepts the malformed
-    // framing — the trailing garbage bytes are consumed by the length field but
-    // don't interfere with parsing the first ServerName entry. If a tls_parser
-    // upgrade tightens validation to reject trailing bytes, this test will fail.
+    // BC-2.07.026 pc2: no parse_errors incremented by extract_sni itself.
+    // If tls_parser tightened validation to reject trailing bytes, parse_errors
+    // would be 1 and this assertion would fail — documenting the behavior change.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-009 (BC-2.07.026 pc2): parse_errors must be 0; trailing bytes in \
+         ServerNameList are tolerated by tls_parser and silently ignored by extract_sni"
+    );
+
+    // BC-2.07.026 pc1: first hostname entry processed normally and counted.
     assert_eq!(
         *analyzer.sni_counts().get("test.example").unwrap_or(&0),
         1,
-        "first SNI entry should be readable despite trailing bytes in ServerNameList"
+        "AC-009 (BC-2.07.026 pc1): \"test.example\" must be counted in sni_counts \
+         despite trailing bytes in ServerNameList; got {:?}",
+        analyzer.sni_counts()
     );
-    assert_eq!(analyzer.parse_error_count(), 0);
-    assert_eq!(analyzer.handshake_count(), 1);
+
+    // BC-2.07.026 pc3: trailing bytes silently ignored — no extra entries in sni_counts.
+    assert_eq!(
+        analyzer.sni_counts().len(),
+        1,
+        "AC-009 (BC-2.07.026 pc3): exactly one sni_counts entry; trailing bytes must \
+         not produce additional entries; got {:?}",
+        analyzer.sni_counts()
+    );
+
+    // No finding (first entry "test.example" is clean ASCII, arm 1).
+    assert!(
+        analyzer.findings().is_empty(),
+        "AC-009 (BC-2.07.026): no finding must be emitted for clean ASCII hostname \
+         with trailing bytes; got {:?}",
+        analyzer.findings()
+    );
+
+    // Handshake counted.
+    assert_eq!(
+        analyzer.handshake_count(),
+        1,
+        "AC-009 (BC-2.07.026 pc1): handshakes_seen must be 1"
+    );
 }
 
 // ── issue #54: SNI containing ASCII control bytes (C0 / DEL) ─────────────────
