@@ -5316,4 +5316,369 @@ mod bc_2_06_045_formalization {
              (no deduplication guard)"
         );
     }
+
+    // ── BC-2.06.024 / F-W17-S045-P1-003: N-1 boundary (map admits up to N) ───
+    // The existing cap-drop test proves N+1 is rejected.  This test proves the
+    // Nth (50000th) unique key INSERT SUCCEEDS — i.e. the guard `len < N` admits
+    // the entry that brings the map to exactly N.
+
+    /// BC-2.06.024 postcondition 1 (N-1 boundary) — the 49999→50000th unique
+    /// method INSERT SUCCEEDS (cap admits entries up to and including N=50000).
+    ///
+    /// Positive anchor: methods.len() == MAX_MAP_ENTRIES after the loop confirms
+    /// the Nth entry was accepted.  Companion to test_BC_2_06_024_map_cardinality_cap_drops_new_keys
+    /// which proves the N+1 entry is rejected.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_024_map_cardinality_cap_nth_entry_succeeds() {
+        const MAX_MAP_ENTRIES: usize = 50_000;
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Insert MAX_MAP_ENTRIES - 1 = 49999 unique methods to reach N-1.
+        for n in 0..(MAX_MAP_ENTRIES - 1) {
+            let req = format!("M{n:05} / HTTP/1.1\r\nHost: h.com\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+
+        // N-1 boundary: map must hold exactly 49999 entries.
+        assert_eq!(
+            analyzer.method_counts().len(),
+            MAX_MAP_ENTRIES - 1,
+            "BC-2.06.024 N-1 boundary precondition: methods map must hold exactly {} entries",
+            MAX_MAP_ENTRIES - 1
+        );
+
+        // Insert the Nth unique method — guard `len < MAX_MAP_ENTRIES` is true
+        // (49999 < 50000), so this entry MUST be accepted.
+        let nth_method = format!("M{:05}", MAX_MAP_ENTRIES - 1);
+        let nth_req = format!("{nth_method} / HTTP/1.1\r\nHost: h.com\r\n\r\n");
+        analyzer.on_data(&fk, Direction::ClientToServer, nth_req.as_bytes(), 0);
+
+        // Postcondition: the Nth entry was inserted; map is now at cap.
+        assert_eq!(
+            analyzer.method_counts().len(),
+            MAX_MAP_ENTRIES,
+            "BC-2.06.024 N-1 boundary postcondition: {MAX_MAP_ENTRIES}th unique entry must be \
+             accepted; methods.len() must equal {MAX_MAP_ENTRIES}"
+        );
+        assert_eq!(
+            *analyzer.method_counts().get(&nth_method).unwrap_or(&0),
+            1,
+            "BC-2.06.024 N-1 boundary postcondition: Nth method '{nth_method}' must be present \
+             with count 1"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.024 N-1 boundary: no parse_errors from boundary insert"
+        );
+    }
+
+    // ── BC-2.06.024 / F-W17-S045-P1-004: per-map cap independence (hosts) ────
+    // Invariant 4: cap applies INDEPENDENTLY per map.  A hosts map at 50000 must
+    // NOT block new method keys, and vice versa.
+
+    /// BC-2.06.024 invariant 4 (AC-008, hosts map) —
+    /// Fill hosts to MAX_MAP_ENTRIES; then send a request with a NEW unique host
+    /// → must NOT be inserted; an existing host → count incremented; NEW unique
+    /// method sent alongside the overflow host → method IS inserted (host cap
+    /// does not block method insertion).
+    ///
+    /// Positive anchor: method_counts.len() grows after the overflow host request,
+    /// proving the methods guard evaluated independently from the hosts guard.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_024_hosts_map_cardinality_cap_independent_of_methods() {
+        const MAX_MAP_ENTRIES: usize = 50_000;
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Fill the hosts map to exactly MAX_MAP_ENTRIES unique hosts using a
+        // fixed method (GET) so the methods map stays small and does not
+        // interfere with the hosts-cap assertion.
+        for n in 0..MAX_MAP_ENTRIES {
+            let req = format!("GET / HTTP/1.1\r\nHost: h{n:05}.example.com\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+
+        // Precondition: hosts map is exactly at cap; methods map has only GET.
+        assert_eq!(
+            analyzer.host_counts().len(),
+            MAX_MAP_ENTRIES,
+            "BC-2.06.024 hosts-cap precondition: hosts map must be at {MAX_MAP_ENTRIES}"
+        );
+        assert_eq!(
+            analyzer.method_counts().len(),
+            1,
+            "BC-2.06.024 hosts-cap precondition: methods map must have only 1 entry (GET)"
+        );
+
+        // Send a request with a NEW unique host (overflow) AND a NEW unique method.
+        // The hosts guard must drop the new host; the methods guard must accept
+        // the new method — the two guards are independent (src/analyzer/http.rs:375-389).
+        let overflow_req = "NEWMETHOD / HTTP/1.1\r\nHost: overflow.new.host\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, overflow_req.as_bytes(), 0);
+
+        // Host overflow: new unique host must NOT be inserted.
+        assert_eq!(
+            analyzer.host_counts().len(),
+            MAX_MAP_ENTRIES,
+            "BC-2.06.024 invariant 4 / hosts: hosts.len() must remain at {MAX_MAP_ENTRIES} \
+             after overflow host — new unique host silently dropped"
+        );
+        assert!(
+            !analyzer.host_counts().contains_key("overflow.new.host"),
+            "BC-2.06.024 invariant 4 / hosts: 'overflow.new.host' must not be present \
+             in the capped hosts map"
+        );
+
+        // Methods independence: NEWMETHOD must be inserted despite hosts being at cap.
+        assert_eq!(
+            analyzer.method_counts().len(),
+            2,
+            "BC-2.06.024 invariant 4: hosts cap must NOT block methods insertion; \
+             methods.len() must be 2 (GET + NEWMETHOD)"
+        );
+        assert_eq!(
+            *analyzer.method_counts().get("NEWMETHOD").unwrap_or(&0),
+            1,
+            "BC-2.06.024 invariant 4: NEWMETHOD must be present with count 1"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.024 invariant 4 / hosts: no parse_errors from cap overflow"
+        );
+    }
+
+    // ── BC-2.06.024 / F-W17-S045-P1-004: per-map cap independence (user_agents) ─
+    // Mirror of the hosts test for the user_agents map.
+
+    /// BC-2.06.024 invariant 4 (AC-008, user_agents map) —
+    /// Fill user_agents to MAX_MAP_ENTRIES; then send a request with a NEW unique
+    /// UA → must NOT be inserted; a NEW unique method in the same request → IS
+    /// inserted (ua cap does not block method insertion).
+    ///
+    /// Positive anchor: method_counts.len() grows after the overflow UA request.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_024_user_agents_map_cardinality_cap_independent_of_methods() {
+        const MAX_MAP_ENTRIES: usize = 50_000;
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Fill the user_agents map to exactly MAX_MAP_ENTRIES unique UAs using
+        // a fixed method (GET) and fixed host so they don't interfere with the
+        // user_agents-cap assertion.
+        for n in 0..MAX_MAP_ENTRIES {
+            let req = format!("GET / HTTP/1.1\r\nHost: h.com\r\nUser-Agent: agent{n:05}\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+
+        // Precondition: user_agents map is exactly at cap; methods map has only GET.
+        assert_eq!(
+            analyzer.user_agent_counts().len(),
+            MAX_MAP_ENTRIES,
+            "BC-2.06.024 ua-cap precondition: user_agents map must be at {MAX_MAP_ENTRIES}"
+        );
+        assert_eq!(
+            analyzer.method_counts().len(),
+            1,
+            "BC-2.06.024 ua-cap precondition: methods map must have only 1 entry (GET)"
+        );
+
+        // Send a request with a NEW unique UA AND a NEW unique method.
+        // The user_agents guard must drop the new UA; the methods guard must accept
+        // the new method (independent guards per src/analyzer/http.rs:375-389).
+        let overflow_req =
+            "UAMETHOD / HTTP/1.1\r\nHost: h.com\r\nUser-Agent: overflow-new-agent\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, overflow_req.as_bytes(), 0);
+
+        // UA overflow: new unique UA must NOT be inserted.
+        assert_eq!(
+            analyzer.user_agent_counts().len(),
+            MAX_MAP_ENTRIES,
+            "BC-2.06.024 invariant 4 / user_agents: user_agents.len() must remain at \
+             {MAX_MAP_ENTRIES} after overflow UA — new unique UA silently dropped"
+        );
+        assert!(
+            !analyzer
+                .user_agent_counts()
+                .contains_key("overflow-new-agent"),
+            "BC-2.06.024 invariant 4 / user_agents: 'overflow-new-agent' must not be present \
+             in the capped user_agents map"
+        );
+
+        // Methods independence: UAMETHOD must be inserted despite user_agents being at cap.
+        assert_eq!(
+            analyzer.method_counts().len(),
+            2,
+            "BC-2.06.024 invariant 4: user_agents cap must NOT block methods insertion; \
+             methods.len() must be 2 (GET + UAMETHOD)"
+        );
+        assert_eq!(
+            *analyzer.method_counts().get("UAMETHOD").unwrap_or(&0),
+            1,
+            "BC-2.06.024 invariant 4: UAMETHOD must be present with count 1"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.024 invariant 4 / user_agents: no parse_errors from cap overflow"
+        );
+    }
+
+    // ── BC-2.06.022 / F-W17-S045-P1-005: RESPONSE buffer cap ────────────────
+    // Invariant 3: per-direction independent buffer caps.  The existing tests
+    // cover the REQUEST direction.  This test covers the RESPONSE direction.
+
+    /// BC-2.06.022 invariant 3 (response direction) — response_buf cap at
+    /// MAX_HEADER_BUF=65536 works independently of the request buffer.
+    ///
+    /// EC-003 (response): fill response_buf to exactly MAX_HEADER_BUF via
+    /// Direction::ServerToClient; verify response_buf.len() == 65536; then verify
+    /// an additional on_data call appends 0 bytes (cap enforced).
+    ///
+    /// Positive anchor: request_buf_len is 0 throughout (request direction
+    /// unaffected), and transaction_count == 0 (no complete response parsed —
+    /// buffer contains only a partial response line with no \r\n\r\n).
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_022_response_buffer_cap_exact_65536_no_more_bytes_accepted() {
+        const MAX_HEADER_BUF: usize = 65_536;
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Send exactly MAX_HEADER_BUF bytes of non-parseable response data
+        // (no \r\n\r\n terminator) in the ServerToClient direction.
+        // The prefix looks like a partial response status line so httparse
+        // returns Partial (not Err) — no error counter increment.
+        let prefix = b"HTTP/1.1 200 ";
+        let filler_len = MAX_HEADER_BUF - prefix.len();
+        let mut chunk = prefix.to_vec();
+        chunk.extend(std::iter::repeat_n(b'X', filler_len));
+        assert_eq!(
+            chunk.len(),
+            MAX_HEADER_BUF,
+            "test setup: response chunk must be exactly {MAX_HEADER_BUF} bytes"
+        );
+
+        analyzer.on_data(&fk, Direction::ServerToClient, &chunk, 0);
+
+        // Response buffer must be exactly at cap.
+        assert_eq!(
+            analyzer.response_buf_len_for_testing(&fk),
+            Some(MAX_HEADER_BUF),
+            "BC-2.06.022 invariant 3 (response): response_buf must be exactly \
+             {MAX_HEADER_BUF} bytes after filling to cap"
+        );
+        // No complete response parsed (partial status line, no \r\n\r\n).
+        assert_eq!(
+            analyzer.transaction_count(),
+            0,
+            "BC-2.06.022 invariant 3 (response) anchor: transaction_count must be 0 — \
+             no complete response parsed"
+        );
+        // No parse error from a partial response.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.022 invariant 3 (response): no parse_error from Status::Partial"
+        );
+
+        // Per-direction independence: request buffer is unaffected.
+        assert_eq!(
+            analyzer.request_buf_len_for_testing(&fk),
+            Some(0),
+            "BC-2.06.022 invariant 3: request_buf must be 0 — response cap must not \
+             affect the request direction"
+        );
+
+        // Buffer at cap → additional on_data appends 0 bytes.
+        let extra = b"XXXXXX";
+        analyzer.on_data(&fk, Direction::ServerToClient, extra, MAX_HEADER_BUF as u64);
+
+        assert_eq!(
+            analyzer.response_buf_len_for_testing(&fk),
+            Some(MAX_HEADER_BUF),
+            "BC-2.06.022 invariant 3 (response): response_buf must remain at {MAX_HEADER_BUF} \
+             after on_data with buffer already at cap — 0 bytes appended"
+        );
+        assert!(
+            analyzer.findings().is_empty(),
+            "BC-2.06.022 invariant 3 (response): no finding emitted when response cap reached"
+        );
+    }
+
+    /// BC-2.06.022 EC-004 (response direction, N-1 boundary) — response_buf at
+    /// 65535 bytes; on_data sends 100 bytes in ServerToClient direction: exactly
+    /// 1 byte appended, 99 dropped silently.
+    ///
+    /// Also verifies per-direction independence (invariant 3): the request buffer
+    /// is unaffected by the response-buffer cap event.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_022_response_buffer_cap_partial_fill_one_byte_appended() {
+        const MAX_HEADER_BUF: usize = 65_536;
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Fill the response buffer to exactly MAX_HEADER_BUF - 1 = 65535 bytes.
+        let prefix = b"HTTP/1.1 200 ";
+        let filler_len = (MAX_HEADER_BUF - 1) - prefix.len();
+        let mut chunk = prefix.to_vec();
+        chunk.extend(std::iter::repeat_n(b'X', filler_len));
+        assert_eq!(
+            chunk.len(),
+            MAX_HEADER_BUF - 1,
+            "test setup: response chunk must be exactly {} bytes",
+            MAX_HEADER_BUF - 1
+        );
+
+        analyzer.on_data(&fk, Direction::ServerToClient, &chunk, 0);
+
+        assert_eq!(
+            analyzer.response_buf_len_for_testing(&fk),
+            Some(MAX_HEADER_BUF - 1),
+            "BC-2.06.022 EC-004 precondition: response_buf must be {} bytes",
+            MAX_HEADER_BUF - 1
+        );
+
+        // Send 100 bytes — only 1 should be appended (remaining = 1).
+        let extra = vec![b'Y'; 100];
+        analyzer.on_data(
+            &fk,
+            Direction::ServerToClient,
+            &extra,
+            (MAX_HEADER_BUF - 1) as u64,
+        );
+
+        assert_eq!(
+            analyzer.response_buf_len_for_testing(&fk),
+            Some(MAX_HEADER_BUF),
+            "BC-2.06.022 EC-004: exactly 1 byte must be appended; response_buf must be at \
+             cap ({MAX_HEADER_BUF}); 99 bytes silently dropped"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.022 EC-004: no error counter increment for dropped response bytes"
+        );
+        assert!(
+            analyzer.findings().is_empty(),
+            "BC-2.06.022 EC-004: no finding emitted when response cap reached"
+        );
+
+        // Invariant 3: request buffer is unaffected (per-direction independence).
+        // Send a valid request to confirm ClientToServer direction is still live.
+        let req = b"GET /check HTTP/1.1\r\nHost: check.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.022 invariant 3 (response EC-004): request direction must be independent; \
+             GET must be counted after response buffer reaches cap"
+        );
+    }
 } // mod bc_2_06_045_formalization
