@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: anchor-completeness — add 5 missing test back-references (STORY-046 Wave 18, F-S046-P3-001) — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -81,8 +82,13 @@ the keys listed in the postconditions.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | summarize produces complete output with all required keys | unit: test_summarize_produces_complete_output |
-| — | summarize includes parse_errors correctly | unit: test_parse_error_in_summarize |
+| — | summarize produces complete output with all required keys | unit: test_summarize_produces_complete_output (postcondition 1) |
+| — | summarize includes parse_errors correctly | unit: test_parse_error_in_summarize (postcondition 1) |
+| — | top_hosts is sorted by count descending and truncated to ≤ 20 entries | unit: test_summarize_top_hosts_sorted_and_truncated (postcondition 2 / EC-002) |
+| — | recent_uris returns first 20 URIs in insertion order, not sorted | unit: test_summarize_recent_uris_first_20 (postcondition 3 / EC-003) |
+| — | BTreeMap key order is alphabetical and deterministic across runs | unit: test_summarize_btreemap_key_order_is_deterministic (invariant 1) |
+| — | packets_analyzed equals transactions (response count), not request count | unit: test_summarize_packets_analyzed_equals_transactions (invariant 2) |
+| — | summarize() is read-only and does not mutate any analyzer state | unit: test_summarize_does_not_mutate_state (invariant 4) |
 
 ## Traceability
 
@@ -103,7 +109,13 @@ the keys listed in the postconditions.
 ## Architecture Anchors
 
 - `src/analyzer/http.rs:550-601` -- summarize() implementation
-- `tests/http_analyzer_tests.rs` -- test_summarize_produces_complete_output, test_parse_error_in_summarize
+- `tests/http_analyzer_tests.rs::test_summarize_produces_complete_output` -- covers postcondition 1 (all required keys present)
+- `tests/http_analyzer_tests.rs::test_parse_error_in_summarize` -- covers postcondition 1 (parse_errors key)
+- `tests/http_analyzer_tests.rs::test_summarize_top_hosts_sorted_and_truncated` -- covers postcondition 2 / EC-002 (top_hosts sort + truncation)
+- `tests/http_analyzer_tests.rs::test_summarize_recent_uris_first_20` -- covers postcondition 3 / EC-003 (recent_uris insertion-order slice)
+- `tests/http_analyzer_tests.rs::test_summarize_btreemap_key_order_is_deterministic` -- covers invariant 1 (deterministic key ordering)
+- `tests/http_analyzer_tests.rs::test_summarize_packets_analyzed_equals_transactions` -- covers invariant 2 (packets_analyzed = transactions)
+- `tests/http_analyzer_tests.rs::test_summarize_does_not_mutate_state` -- covers invariant 4 (read-only, no state mutation)
 
 ## Source Evidence
 

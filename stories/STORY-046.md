@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-046"
 epic_id: "E-4"
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -152,4 +152,11 @@ When no flows have been processed (zero traffic), `summarize()` returns all maps
 | File | Action | Purpose |
 |------|--------|---------|
 | src/analyzer/http.rs | modify | summarize() implementation (550-601): BTreeMap detail map, top_hosts sort/truncate, recent_uris first 20 |
-| tests/http_analyzer_tests.rs | modify | Add: test_summarize_produces_complete_output, test_parse_error_in_summarize, test_summarize_top_hosts_sorted_and_truncated, test_summarize_recent_uris_first_20 |
+| tests/http_analyzer_tests.rs | modify | Add: test_summarize_produces_complete_output (AC-001/AC-002), test_parse_error_in_summarize (AC-008), test_summarize_top_hosts_sorted_and_truncated (AC-003), test_summarize_recent_uris_first_20 (AC-004), test_summarize_btreemap_key_order_is_deterministic (AC-005), test_summarize_packets_analyzed_equals_transactions (AC-006), test_summarize_does_not_mutate_state (AC-007) |
+
+## Changelog
+
+| Version | Date | Author | Note |
+|---------|------|--------|------|
+| 1.0 | 2026-05-21 | story-writer | Initial story |
+| 1.1 | 2026-05-29 | story-writer | FSR-table completeness — enumerate all 7 BC-2.06.023 formalization tests (F-S046-P4-001) |
