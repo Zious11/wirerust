@@ -1459,33 +1459,67 @@ fn test_sni_extension_with_empty_hostname_list() {
     );
 
     // AC-002 (BC-2.07.022 inv1): empty SNI list treated identically to a ClientHello
-    // with no SNI extension at all. Build a second analyzer with a no-SNI ClientHello
-    // and compare state: sni_counts empty, no findings, handshake_count == 1.
+    // with NO SNI extension at all. Build a structurally different baseline using
+    // build_client_hello_no_extensions — this omits the extensions length field
+    // entirely (ch.ext == None), so the two wire forms are byte-distinct. If the
+    // analyzer were ever to diverge on the two paths, this comparison catches it.
     let mut analyzer_no_sni = TlsAnalyzer::new();
-    // Build a ClientHello with no extension block at all (no-SNI baseline).
-    // We reuse build_client_hello_with_sni_list with an empty slice, which produces
-    // an SNI extension with a zero-length ServerNameList. However, for a true
-    // no-extension baseline we use build_client_hello_with_typed_sni_list with
-    // an empty slice — same wire outcome for our purposes: parse succeeds,
-    // list.first() returns None, behavior is identical.
-    let record_no_sni = build_client_hello_with_sni_list(&[], &[0x1301]);
+    let record_no_sni = build_client_hello_no_extensions(&[0x1301]);
     analyzer_no_sni.on_data(&fk, Direction::ClientToServer, &record_no_sni, 0);
     assert_eq!(
         analyzer_no_sni.sni_counts().len(),
         analyzer_empty_list.sni_counts().len(),
         "AC-002 (BC-2.07.022 inv1): sni_counts must be identically empty for both \
-         empty-list and no-SNI ClientHellos"
+         empty-list SNI and no-SNI-extension ClientHellos"
     );
     assert_eq!(
         analyzer_no_sni.findings().len(),
         analyzer_empty_list.findings().len(),
         "AC-002 (BC-2.07.022 inv1): findings must be identically empty for both \
-         empty-list and no-SNI ClientHellos"
+         empty-list SNI and no-SNI-extension ClientHellos"
     );
     assert_eq!(
         analyzer_no_sni.handshake_count(),
         analyzer_empty_list.handshake_count(),
         "AC-002 (BC-2.07.022 inv1): handshake_count must be 1 for both"
+    );
+
+    // BC-2.07.022 EC-002 / story EC-002: empty SNI list + weak cipher suite.
+    // The SNI finding path must remain silent while an independent weak-cipher
+    // finding fires. Pins finding independence — SNI and cipher analysis are
+    // logically separate branches in handle_client_hello.
+    //
+    // Cipher 0x0000 = TLS_NULL_WITH_NULL_NULL — always in the weak-cipher set.
+    let mut analyzer_ec002 = TlsAnalyzer::new();
+    let record_ec002 = build_client_hello_with_sni_list(&[], &[0x0000]);
+    analyzer_ec002.on_data(&fk, Direction::ClientToServer, &record_ec002, 0);
+
+    // No SNI finding (empty list → extract_sni returns None → SNI block skipped).
+    let sni_findings_ec002 = analyzer_ec002
+        .findings()
+        .iter()
+        .filter(|f| f.summary.to_lowercase().contains("sni"))
+        .count();
+    assert_eq!(
+        sni_findings_ec002,
+        0,
+        "EC-002 (BC-2.07.022 EC-002): no SNI finding must fire for an empty SNI list; \
+         got {:?}",
+        analyzer_ec002.findings()
+    );
+
+    // Weak-cipher finding DOES fire (independent of SNI).
+    let weak_findings_ec002 = analyzer_ec002
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("weak cipher"))
+        .count();
+    assert_eq!(
+        weak_findings_ec002,
+        1,
+        "EC-002 (BC-2.07.022 EC-002): exactly one weak-cipher finding must fire even when \
+         SNI list is empty; got {:?}",
+        analyzer_ec002.findings()
     );
 }
 
@@ -2219,6 +2253,60 @@ fn test_multi_name_sni_list_only_first_entry_counted() {
         1,
         "AC-005 (BC-2.07.024 pc4): handshakes_seen must be 1"
     );
+
+    // BC-2.07.024 canonical test vector (second direction — EC-002):
+    // First entry IS anomalous ("evil\x01.com"); second entry is clean.
+    // Guards against a "never inspects any entry" false-green: the first entry
+    // must be inspected and must produce exactly one AsciiWithControl finding.
+    // Only sni_counts["evil\x01.com"] (raw key, per ADR 0003) is present;
+    // second entry "example.com" is NOT counted.
+    let mut analyzer3 = TlsAnalyzer::new();
+    let record3 = build_client_hello_with_sni_list(&[b"evil\x01.com", b"example.com"], &[0x1301]);
+    analyzer3.on_data(&fk, Direction::ClientToServer, &record3, 0);
+
+    // Parse anchor.
+    assert_eq!(
+        analyzer3.parse_error_count(),
+        0,
+        "AC-005 EC-002 anchor (BC-2.07.024): parse_error_count must be 0"
+    );
+
+    // First entry IS inspected: exactly one AsciiWithControl finding from "evil\x01.com".
+    let ctrl_findings: Vec<_> = analyzer3
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("ASCII control characters"))
+        .collect();
+    assert_eq!(
+        ctrl_findings.len(),
+        1,
+        "AC-005 EC-002 (BC-2.07.024 pc3/EC-002): exactly one AsciiWithControl finding \
+         must fire when the FIRST entry has a C0 byte; got {:?}",
+        ctrl_findings
+    );
+
+    // sni_counts contains only the raw first-entry key (ADR 0003: raw bytes stored).
+    assert_eq!(
+        *analyzer3.sni_counts().get("evil\x01.com").unwrap_or(&0),
+        1,
+        "AC-005 EC-002 (BC-2.07.024 pc1): sni_counts must contain the raw first-entry key \
+         \"evil\\x01.com\""
+    );
+
+    // Second entry must NOT appear in sni_counts.
+    assert!(
+        analyzer3.sni_counts().get("example.com").is_none(),
+        "AC-005 EC-002 (BC-2.07.024 pc4): second entry \"example.com\" must not be counted \
+         (only first entry is processed); got {:?}",
+        analyzer3.sni_counts()
+    );
+
+    // Exactly one sni_counts entry total.
+    assert_eq!(
+        analyzer3.sni_counts().len(),
+        1,
+        "AC-005 EC-002 (BC-2.07.024 pc2): exactly one sni_counts entry must be present"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -2354,16 +2442,21 @@ fn test_non_zero_name_type_sni_entry() {
 fn test_non_zero_name_type_with_valid_first_entry() {
     // AC-007 (BC-2.07.025 pc1-3)
     //
-    // Variant: first entry is NameType=0 (host_name) with valid hostname,
-    // second entry has NameType=0x02 (unknown). extract_sni reads only the
-    // first entry via list.first() — NameType of either entry does not affect
-    // which entry is processed (always first). The first entry is counted and
-    // the second is silently ignored.
+    // Variant: the FIRST entry has a non-zero NameType (0x03, unknown future use)
+    // with a valid ASCII hostname, and the SECOND entry has a different non-zero
+    // NameType (0x02). This directly exercises BC-2.07.025 pc1: "hostname bytes
+    // from the first entry (regardless of NameType) are passed to classification."
+    // The `_` wildcard in `let Some((_, hostname)) = list.first()` discards the
+    // NameType; only the hostname bytes reach the 4-way classifier.
+    //
+    // Using NameType=0x00 for the first entry (the previous form of this test)
+    // did not exercise pc1 — it merely re-tested the standard arm 1 path. With
+    // NameType=0x03 the first entry is genuinely non-zero-typed.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
     let record = build_client_hello_with_typed_sni_list(
-        &[(0x00, b"real.example"), (0x02, b"unknown-type")],
+        &[(0x03, b"real.example"), (0x02, b"unknown-type")],
         &[0x1301],
     );
     analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
@@ -2375,12 +2468,14 @@ fn test_non_zero_name_type_with_valid_first_entry() {
         "AC-007 variant anchor (BC-2.07.025): parse_error_count must be 0"
     );
 
-    // BC-2.07.025 pc1: first entry (NameType=0, "real.example") processed.
+    // BC-2.07.025 pc1: first entry (NameType=0x03, "real.example") processed.
+    // NameType is discarded by the `_` pattern; only the hostname bytes are used.
     assert_eq!(
         *analyzer.sni_counts().get("real.example").unwrap_or(&0),
         1,
-        "AC-007 variant (BC-2.07.025 pc1): first entry (host_name type) must be counted \
-         in sni_counts; got {:?}",
+        "AC-007 variant (BC-2.07.025 pc1): first entry hostname \"real.example\" must be \
+         counted despite NameType=0x03 (NameType discarded by `_` pattern); \
+         got {:?}",
         analyzer.sni_counts()
     );
 
@@ -2399,7 +2494,8 @@ fn test_non_zero_name_type_with_valid_first_entry() {
         "AC-007 variant (BC-2.07.025 pc2): exactly one sni_counts entry must be inserted"
     );
 
-    // No finding (first entry "real.example" is clean ASCII, arm 1).
+    // BC-2.07.025 pc3: no finding emitted solely because of non-zero NameType.
+    // "real.example" is clean ASCII (arm 1), so no finding fires for the hostname.
     assert!(
         analyzer.findings().is_empty(),
         "AC-007 variant (BC-2.07.025 pc3): no finding must be emitted; got {:?}",
