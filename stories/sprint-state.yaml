@@ -437,11 +437,15 @@ stories:
     converged_date: "2026-05-29"
 
   STORY-056:
-    status: pending
+    status: done
     wave: 18
     branch: null
     worktree: null
     blocked_by: [STORY-055]
+    pr: 154
+    merge_commit: 7f64219
+    merged_date: "2026-05-29"
+    converged_date: "2026-05-29"
 
   STORY-058:
     status: pending
