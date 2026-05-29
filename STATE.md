@@ -88,6 +88,12 @@ wave_16_prs: "#140 (STORY-042), #141 (STORY-052), #142 (STORY-043), #143 (STORY-
 wave_16_per_story_convergence: "ALL 4 CONVERGED: STORY-052(3/3 P3-P5), STORY-042(3/3 P4-P6), STORY-043(3/3 P4-P6), STORY-044(3/3 P5-P7). BC-5.39.001 per-story ACHIEVED for all wave-16 stories."
 wave_16_wave_level_convergence: "3 independent fresh-context lens-reviews (consistency/integration-static/traceability) all VERDICT: CLEAN on frozen post-remediation state (round 2). Round 1 DIRTY (2 MEDIUM remediated via PR#146+sweep). Round-2 MEDIUM F-W16-WAVE-R2-001 confirmed false-positive (VP-006 exists, registered VP-INDEX.md:54). 3/3 CLEAN."
 current_wave: 18
+wave_18_status: open
+wave_18_started: "2026-05-29"
+wave_18_stories: STORY-046 (E-4 HTTP, 3pts, src/analyzer/http.rs, BC-2.06.023), STORY-054 (E-5 TLS, 8pts, src/analyzer/tls.rs, 6 BCs), STORY-056 (E-5 TLS, 8pts, src/analyzer/tls.rs, 5 BCs + VP-005), STORY-058 (E-5 TLS, 8pts, src/analyzer/tls.rs, 6 BCs)
+wave_18_points: 27
+wave_18_delivery_order: STORY-046 first (isolated in http.rs), then STORY-054/056/058 sequentially merged (all touch tls.rs — worktree isolation + sequential merge to avoid seam conflicts)
+wave_18_pg_enforcement: "[PG-W17-001] AC-test-name-sync enforcement baked into all Wave 18 dispatch prompts per human decision 2026-05-29"
 wave_17_status: closed
 wave_17_closed: "2026-05-29"
 wave_17_stories: STORY-045 + STORY-053 + STORY-055
@@ -112,7 +118,7 @@ phase_2_input_hash_drift_check_total: 153
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-17 CLOSED/CONVERGED; Wave 18 PENDING.
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-17 CLOSED/CONVERGED; Wave 18 OPEN/IN-PROGRESS.
 33 stories delivered (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052/045/053/055).
 Wave 17 CLOSED 2026-05-29: 3 stories (STORY-045 PR #150, STORY-053 PR #149, STORY-055 PR #151), 18 points, brownfield-formalization. All 3 per-story converged 3-clean P3-P5 (5 passes each). Wave-level: pass-1 DIRTY (F-W17-WAVE-C-001/T-001 HIGH — AC-citation sibling-miss; STORY-055 AC not synced to BC-prefixed tests); remediated (STORY-055 v1.2); pass-2 3-lens CLEAN. BC-5.39.001 ACHIEVED. 4 lessons (W17.L1-L4). [PG-W17-001]: AC-test-name-sync recurred all 3 W17 stories — dispatch-template enforcement pending. [PG-W17-002]: wave-gate pre-close sibling-sweep checklist codification candidate. Orphan worktree .worktrees/STORY-043-FIX (fix/STORY-043-test-name-collision) REMOVED.
 develop HEAD: 9633b0d (PR #151 squash-merged 2026-05-29; cargo test --all-targets green). All 8 CI checks green.
@@ -132,7 +138,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-17 CLOSED/CONVERGED; Wave 18 PENDING (33 stories delivered; W17 CONVERGED 2026-05-29: 3 stories all 3-clean per-story + wave-level 3-lens CLEAN) | Wave-level convergence: cycles/phase-3-tdd/convergence-trajectory.md; W17 trajectory: W17-P1:DIRTY(HIGH)→rem→W17-P2:3-lens-CLEAN |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-17 CLOSED/CONVERGED; Wave 18 OPEN (33 stories delivered; W18 dispatched 2026-05-29: 4 stories STORY-046/054/056/058, 27pts; [PG-W17-001] enforcement baked into dispatch) | Wave-level convergence: cycles/phase-3-tdd/convergence-trajectory.md; W17 trajectory: W17-P1:DIRTY(HIGH)→rem→W17-P2:3-lens-CLEAN |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -159,18 +165,18 @@ dependency bumping for it).
 | 15 | STORY-041, STORY-051 | **CLOSED/CONVERGED** 2026-05-28 | cb322dc (PR #139 — STORY-041) / 945034d (PR #138 — STORY-051) | First multi-story wave since W10. STORY-041: 8 passes, 3/3 clean streak, 24 BC-prefixed tests. STORY-051: 6 passes, 3/3 clean streak, 19 BC-prefixed tests + 2 test helpers. BC-addition sibling-sweep cascade pattern (W15.L2). 9th+10th implementer-as-PR-executor validations. |
 | 16 | STORY-042, STORY-043, STORY-044, STORY-052 | **CLOSED/CONVERGED** 2026-05-29 | fa17dec (PR #146) | PRs #140-146. Retroactive convergence. Per-story: S052(P3-P5), S042(P4-P6), S043(P4-P6), S044(P5-P7). Wave-level R2: 3-lens×3-pass CLEAN; 1 false-positive MEDIUM (VP-006 "orphan") dismissed. BC-5.39.001 ACHIEVED. 5 W16 lessons recorded. |
 | 17 | STORY-045, STORY-053, STORY-055 | **CLOSED/CONVERGED** 2026-05-29 | 9633b0d (PR #151 — STORY-055) | PRs #150 (STORY-045), #149 (STORY-053), #151 (STORY-055). Per-story all 3 CONVERGED (3-clean P3-P5, 5 passes each). Wave-level: P1 DIRTY (F-W17-WAVE-C-001/T-001 HIGH — AC-sync sibling-miss) → remediated (STORY-055 v1.2) → P2 3-lens CLEAN. BC-5.39.001 ACHIEVED. 4 lessons (W17.L1-L4). [PG-W17-001/002] codification pending. |
-| 18–27 | (remaining) | NOT STARTED | — | — |
+| 18 | STORY-046 (E-4 HTTP, 3pts), STORY-054 (E-5 TLS, 8pts), STORY-056 (E-5 TLS, 8pts), STORY-058 (E-5 TLS, 8pts) | **OPEN** 2026-05-29 | — (in progress) | 27pts. Delivery order: STORY-046 first (isolated http.rs), then STORY-054/056/058 sequential (all touch tls.rs). [PG-W17-001] AC-test-name-sync enforcement baked into all dispatch prompts. |
+| 19–27 | (remaining) | NOT STARTED | — | — |
 
 ## Phase 3 — Current Phase Steps (last 5)
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Wave 16 — Wave-level Round 2 (3×3 fresh-context lenses) | **COMPLETE** 2026-05-29 | 3 passes × 3 lenses all CLEAN. One MEDIUM false-positive (F-W16-WAVE-R2-001 VP-006 "orphan") confirmed non-finding and dismissed. BC-5.39.001 wave-level ACHIEVED. |
-| Wave 16 — CLOSED | **COMPLETE** 2026-05-29 | Wave 16 CLOSED. 5 lessons recorded (W16.L1-L5). 4 LOW drift items + 5 process-gap draft items filed. develop HEAD: fa17dec. |
 | Wave 17 — STORY-045 + STORY-053 merged to develop | **COMPLETE** 2026-05-29 | PR #150 (STORY-045) → 9980573; PR #149 (STORY-053) → a044144. cargo test --all-targets green. |
 | Wave 17 — Wave-level adversarial (3-lens) | **COMPLETE** 2026-05-29 | Pass-1 DIRTY (F-W17-WAVE-C-001/T-001 HIGH — STORY-055 AC-sync miss). STORY-055 v1.2 remediation applied. Pass-2 all-3-lenses CLEAN. CONVERGED. |
 | Wave 17 — STORY-055 PR merged + CLOSED | **COMPLETE** 2026-05-29 | PR #151 squash-merged → 9633b0d. develop HEAD 9633b0d. cargo test --all-targets green. Wave 17 CLOSED. 4 lessons (W17.L1-L4). [PG-W17-001/002] codification items logged. |
-| Wave 17 — CLOSED; Wave 18 — PENDING | **NEXT** | Wave 18 stories: STORY-046 (E-4; depends STORY-041/042/043/044/045 — ALL completed), STORY-054 (E-5; depends STORY-052/053 — ALL completed), STORY-056 (E-5; depends STORY-055 — completed), STORY-058 (E-5; depends STORY-052/053 — ALL completed). All 4 Wave 18 stories fully unblocked. Propose dispatch when ready. |
+| Wave 18 — OPEN | **IN PROGRESS** 2026-05-29 | 4 stories, 27pts: STORY-046 (E-4 HTTP, 3pts, http.rs, BC-2.06.023), STORY-054 (E-5 TLS, 8pts, tls.rs, 6 BCs), STORY-056 (E-5 TLS, 8pts, tls.rs, 5 BCs+VP-005), STORY-058 (E-5 TLS, 8pts, tls.rs, 6 BCs). Delivery order: STORY-046 first (isolated http.rs), then STORY-054/056/058 sequential (all touch tls.rs). [PG-W17-001] AC-test-name-sync enforcement baked into all dispatch prompts. |
+| Wave 18 — STORY-046 dispatch | **NEXT** | Dispatch STORY-046 (E-4 HTTP, 3pts, src/analyzer/http.rs, BC-2.06.023). Isolated from tls.rs stories — first delivery. |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -188,15 +194,14 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-29 — Wave 17 CONVERGED & CLOSED; Wave 18 PENDING)
+## Session Resume Checkpoint (2026-05-29 — Wave 18 OPEN/IN-PROGRESS)
 
-1. Waves 1-17 CLOSED/CONVERGED. Wave 18 PENDING. develop HEAD: 9633b0d (PRs #150+#149+#151 squash-merged 2026-05-29). All 8 CI checks green. 33 stories delivered.
-2. W17 CONVERGED 2026-05-29: STORY-045 (PR #150 → 9980573), STORY-053 (PR #149 → a044144), STORY-055 (PR #151 → 9633b0d). All 3 per-story 3-clean P3-P5 (5 passes each). Wave-level P1 DIRTY (HIGH AC-sync miss) → remediated → P2 3-lens CLEAN. BC-5.39.001 ACHIEVED.
-3. input-hash scan: TOTAL=48 MATCH=48 STALE=0 (confirmed post-close).
-4. Orphan worktree .worktrees/STORY-043-FIX (fix/STORY-043-test-name-collision) REMOVED by orchestrator — cleanup complete.
-5. [PG-W17-001] RECORDED: AC-test-name-sync recurred all 3 W17 stories. [PG-W17-002] NEW: wave-gate pre-close sibling-sweep checklist needed. Both logged in lessons.md. Both require DF-VALIDATION-001 validation before GitHub issue filing.
-6. Wave 18 next stories (ALL unblocked): STORY-046 (depends STORY-041/042/043/044/045 — all completed), STORY-054 (depends STORY-052/053 — all completed), STORY-056 (depends STORY-055 — completed), STORY-058 (depends STORY-052/053 — all completed). 4 stories, 27 points.
-7. NEXT: Dispatch Wave 18 when ready. Prior checkpoint: cycles/phase-3-tdd/session-checkpoints.md.
+1. Waves 1-17 CLOSED/CONVERGED. Wave 18 OPEN. develop HEAD: 9633b0d (PRs #150+#149+#151 squash-merged 2026-05-29). All 8 CI checks green. 33 stories delivered.
+2. W17 CONVERGED 2026-05-29: STORY-045 (PR #150 → 9980573), STORY-053 (PR #149 → a044144), STORY-055 (PR #151 → 9633b0d). All 3 per-story 3-clean P3-P5 (5 passes each). Wave-level P2 3-lens CLEAN. BC-5.39.001 ACHIEVED.
+3. Wave 18 OPEN 2026-05-29: 4 stories (STORY-046/054/056/058), 27pts. Delivery order: STORY-046 first (isolated http.rs), then STORY-054→056→058 sequentially (all touch tls.rs — worktree isolation + sequential merge to avoid seam conflicts).
+4. [PG-W17-001] AC-test-name-sync enforcement BAKED INTO all Wave 18 dispatch prompts per human decision 2026-05-29. [PG-W17-002] wave-gate pre-close sibling-sweep checklist codification candidate (logged in lessons.md; requires DF-VALIDATION-001 before filing GitHub issue).
+5. input-hash scan: TOTAL=48 MATCH=48 STALE=0 (confirmed post-W17-close).
+6. NEXT: Dispatch STORY-046 (E-4 HTTP, 3pts, src/analyzer/http.rs, BC-2.06.023) — first Wave 18 delivery. Prior checkpoint: cycles/phase-3-tdd/session-checkpoints.md.
 
 ## Wave Retrospectives
 
