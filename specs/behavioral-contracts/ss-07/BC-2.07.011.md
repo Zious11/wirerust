@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: add VP back-ref for client version_name reachability test (F-S054-P3-003) — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -84,6 +86,7 @@ There is no MITRE technique ID on this finding.
 |--------|----------|-------------|
 | — | SSL 3.0 ClientHello produces Anomaly/Likely/High finding | integration: test_ssl30_pcap_generates_findings |
 | — | TLS 1.0 ClientHello does not produce deprecated-protocol finding | unit: threshold boundary test |
+| — | EC-001 (0x0200 → "SSL 2.0") and EC-003 (0x0100 → "Unknown legacy SSL") version_name arms are reachable client-side; correct finding produced | unit: test_BC_2_07_011_client_deprecated_version_name_ssl2_and_legacy |
 
 ## Traceability
 

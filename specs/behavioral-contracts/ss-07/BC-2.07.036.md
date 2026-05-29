@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: update VP/evidence to back-reference dedicated STORY-054 tests (pass-7 O-3); remove stale 'no dedicated test' wording — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -72,7 +74,8 @@ hex digits.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Unknown cipher IDs render as 0xNNNN lowercase hex | unit (no dedicated test; format verified from code) |
+| — | Unknown cipher IDs render as `0x{:04x}` lowercase hex (e.g., 0xFFFF -> "0xffff") | unit: `test_cipher_name_unknown_hex_lowercase` (AC-012, STORY-054) |
+| — | Known IANA cipher IDs return their canonical name without `0x` prefix | unit: `test_cipher_name_recognized_and_ffff` (AC-013, STORY-054) |
 
 ## Traceability
 
@@ -83,7 +86,7 @@ hex digits.
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:77-83, C-13) |
 | Stories | STORY-054 |
-| Origin BC | BC-TLS-036 (pass-3 ingestion corpus, MEDIUM confidence -- no direct test) |
+| Origin BC | BC-TLS-036 (pass-3 ingestion corpus; confidence upgraded to HIGH by STORY-054 dedicated tests AC-012/AC-013) |
 
 ## Related BCs
 
@@ -99,12 +102,14 @@ hex digits.
 | Property | Value |
 |----------|-------|
 | **Path** | `src/analyzer/tls.rs:77-83` |
-| **Confidence** | medium |
+| **Confidence** | high (dedicated unit tests added by STORY-054: test_cipher_name_unknown_hex_lowercase AC-012, test_cipher_name_recognized_and_ffff AC-013) |
 | **Extraction Date** | 2026-05-20 |
 
 ## Evidence Types Used
 
-- **inferred**: `format!("0x{:04x}", id.0)` at tls.rs:82; no direct test
+- **type constraint**: `format!("0x{:04x}", id.0)` at tls.rs:82
+- **unit test**: `test_cipher_name_unknown_hex_lowercase` (AC-012, STORY-054) — verifies lowercase hex format for unrecognized IDs
+- **unit test**: `test_cipher_name_recognized_and_ffff` (AC-013, STORY-054) — verifies IANA name for recognized IDs and "0xffff" for 0xFFFF
 
 ## Purity Classification
 

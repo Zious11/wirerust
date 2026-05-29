@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: correct EC-004 to document tls-parser 0.12 SSL2 ServerHello parse-rejection (F-S054-P6-001); resolves cross-BC contradiction with BC-2.07.012 — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -30,8 +32,16 @@ When a complete TLS ServerHello record arrives on the server direction of a flow
 `TlsAnalyzer` extracts the negotiated protocol version, selected cipher suite, and
 extensions. It computes the JA3S MD5 fingerprint from `version,cipher,extensions`,
 stores it in `ja3s_counts`, and tracks the cipher name in `cipher_counts`. If the
-negotiated cipher is weak or the version is SSL 2.0/3.0, the corresponding findings
-are emitted. The flow's `server_hello_seen` flag is set to true.
+negotiated cipher is weak, an Anomaly/Likely/Medium finding is emitted. If the version
+is SSL 3.0 (0x0300) or lower and reachable under tls-parser, an Anomaly/Likely/High
+finding is emitted (see postcondition 6 and BC-2.07.012 for tls-parser 0.12 reachability
+constraints). The flow's `server_hello_seen` flag is set to true.
+
+**tls-parser 0.12 reachability constraint (F-S054-P1-002):** A ServerHello record with
+version `0x0200` (SSL 2.0) or lower is rejected at the tls-parser record layer before
+`handle_server_hello` is invoked — `parse_errors` is incremented and no finding is produced.
+Only `0x0300` (SSL 3.0) is a reachable deprecated-version trigger under tls-parser 0.12.
+See EC-004 and BC-2.07.012 EC-004.
 
 ## Preconditions
 
@@ -52,8 +62,11 @@ are emitted. The flow's `server_hello_seen` flag is set to true.
    `cipher_counts` (bounded by `MAX_MAP_ENTRIES`).
 5. If `is_weak_server_cipher(sh.cipher)` is true, one `Anomaly/Likely/Medium` finding
    is pushed to `all_findings` (see BC-2.07.010).
-6. If `version <= 0x0300`, one `Anomaly/Likely/High` finding is pushed to
-   `all_findings` (see BC-2.07.012).
+6. If `version <= 0x0300` AND the record was accepted by tls-parser (i.e., `handle_server_hello`
+   was reached), one `Anomaly/Likely/High` finding is pushed to `all_findings` (see
+   BC-2.07.012). Under tls-parser 0.12 this is only reachable for `version == 0x0300`
+   (SSL 3.0); a ServerHello with version `0x0200` or lower is rejected at the record layer
+   before this handler is invoked — no finding is produced (see EC-004).
 
 ## Invariants
 
@@ -70,7 +83,7 @@ are emitted. The flow's `server_hello_seen` flag is set to true.
 | EC-001 | ServerHello with no extensions (sh.ext = None) | JA3S computed with empty extensions field |
 | EC-002 | ServerHello with extensions that fail parse_tls_extensions | parse_errors++; JA3S computed with empty ext field |
 | EC-003 | ServerHello cipher = TLS_NULL_WITH_NULL_NULL (0x0000) | is_weak_server_cipher returns true; Anomaly/Likely/Medium finding emitted |
-| EC-004 | ServerHello version = 0x0200 (SSL 2.0) | Anomaly/Likely/High finding with "SSL 2.0" text |
+| EC-004 | ServerHello version = 0x0200 (SSL 2.0) — PARSE-REJECTION under tls-parser 0.12 | tls-parser rejects the record at the record layer before `handle_server_hello` is reached; `parse_errors` is incremented; `version_counts[0x0200]` remains 0; `ja3s_counts` is not updated; NO deprecated-protocol finding is produced. Pinned by `test_BC_2_07_002_ec004_ssl2_version_parse_behavior_pinned` (asserts parse_errors==1, version_counts[0x0200]==0, no finding). This mirrors BC-2.07.012 EC-004. If tls-parser is upgraded to accept SSL 2.0 ServerHello records, this behavior transitions to a positive Anomaly/Likely/High finding — see BC-2.07.012 EC-004 upgrade guard. |
 | EC-005 | ServerHello version = 0x0301 (TLS 1.0) | No deprecated-protocol finding; version counted only |
 | EC-006 | ServerHello when `ja3s_counts` at MAX_MAP_ENTRIES with a new hash | New hash silently dropped |
 

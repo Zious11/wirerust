@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-054"
 epic_id: "E-5"
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -87,19 +87,19 @@ When `handle_client_hello` detects `ch.version.0 <= 0x0300`, exactly ONE `Findin
 
 ### AC-007 (traces to BC-2.07.011 invariant 1-2)
 TLS 1.0 (0x0301) does NOT trigger the deprecated-protocol finding (threshold is strictly `<= 0x0300`). The summary always contains the string "RFC 7568" as a normative reference.
-- **Test:** Unit test with version 0x0301; assert no deprecated-protocol finding
+- **Test:** `test_client_tls10_no_deprecated_finding`
 
 ### AC-008 (traces to BC-2.07.011 invariant 3)
 Both the deprecated-protocol finding AND the weak-cipher finding can fire from the same ClientHello if it offers SSL 3.0 AND a weak cipher. Both findings appear independently in `all_findings`.
-- **Test:** Unit test with SSL 3.0 ClientHello containing a weak cipher; assert `all_findings.len() >= 2`
+- **Test:** `test_ssl30_client_weak_cipher_both_findings`
 
 ### AC-009 (traces to BC-2.07.012 postcondition 1-2)
 When `handle_server_hello` detects `sh.version.0 <= 0x0300`, exactly ONE `Finding` is pushed with: `category = Anomaly`, `verdict = Likely`, `confidence = High`, `summary = "ServerHello negotiated deprecated protocol ({version_name}, RFC 7568 prohibits SSLv3)"`, `evidence = ["Version: 0x{version:04x} ({version_name})"]`, `mitre_technique = None`, `direction = Some(Direction::ServerToClient)`.
-- **Test:** Unit test for `handle_server_hello` with version 0x0300
+- **Test:** `test_server_ssl30_deprecated_finding`
 
 ### AC-010 (traces to BC-2.07.012 invariant 1-2)
 TLS 1.0 (0x0301) does NOT trigger the server-side deprecated-protocol finding. When both ClientHello AND ServerHello have SSL 3.0, two separate findings are emitted: one with `ClientToServer` direction and one with `ServerToClient` direction.
-- **Test:** Unit test with SSL 3.0 ClientHello + SSL 3.0 ServerHello; assert two deprecated-protocol findings with distinct directions
+- **Test:** `test_client_and_server_ssl30_distinct_directions`
 
 ### AC-011 (traces to BC-2.07.030 postcondition 1-4)
 A TLS handshake with clean ASCII SNI, version > 0x0300, and no weak ciphers on either side produces zero findings. After both hellos: `all_findings.len() == 0`, `handshakes_seen == 1`, all count maps have exactly one entry each, `parse_errors == 0`.
@@ -107,11 +107,11 @@ A TLS handshake with clean ASCII SNI, version > 0x0300, and no weak ciphers on e
 
 ### AC-012 (traces to BC-2.07.036 postcondition 1-2)
 `cipher_name(id)` returns `format!("0x{:04x}", id.0)` for unrecognized cipher IDs (where `TlsCipherSuite::from_id(id.0)` returns `None`). The output is a 6-character lowercase string with `"0x"` prefix and 4 hex digits (e.g., `"0x1234"`, `"0xffff"`).
-- **Test:** Unit test for `cipher_name` with an unrecognized ID (e.g., 0x1234)
+- **Test:** `test_cipher_name_unknown_hex_lowercase`
 
 ### AC-013 (traces to BC-2.07.036 invariant 1-2)
 For recognized cipher IDs, `cipher_name` returns the IANA canonical name string (e.g., `"TLS_AES_256_GCM_SHA384"`) without a `"0x"` prefix. For ID 0xFFFF (unrecognized), `cipher_name` returns `"0xffff"` (lowercase).
-- **Test:** Unit test for `cipher_name` with a recognized ID and with 0xFFFF
+- **Test:** `test_cipher_name_recognized_and_ffff`
 
 ## Architecture Mapping
 
@@ -204,5 +204,12 @@ For recognized cipher IDs, `cipher_name` returns the IANA canonical name string 
 | File | Action | Purpose |
 |------|--------|---------|
 | src/analyzer/tls.rs | modify | `is_weak_cipher` (56-64), `is_weak_server_cipher` (66-75), `cipher_name` (77-83), weak-cipher scan in `handle_client_hello` (497-517), deprecated-version checks (519-539, 584-604), server weak-cipher (570-582) |
-| tests/tls_analyzer_tests.rs | modify | `test_weak_cipher_finding_client`, `test_weak_cipher_finding_server`, `test_normal_handshake_no_findings`, version boundary tests |
+| tests/tls_analyzer_tests.rs | modify | `test_weak_cipher_finding_client`, `test_weak_cipher_finding_server`, `test_normal_handshake_no_findings`, `test_client_tls10_no_deprecated_finding`, `test_ssl30_client_weak_cipher_both_findings`, `test_server_ssl30_deprecated_finding`, `test_client_and_server_ssl30_distinct_directions`, `test_cipher_name_unknown_hex_lowercase`, `test_cipher_name_recognized_and_ffff` |
 | tests/tls_integration_tests.rs | modify | `test_ssl30_pcap_generates_findings` (AC-006) |
+
+## Changelog
+
+| Version | Date | Author | Summary |
+|---------|------|--------|---------|
+| v1.0 | 2026-05-21 | story-writer | Initial story decomposition |
+| v1.1 | 2026-05-29 | story-writer | AC-citation sync — AC-007/008/009/010/012/013 now cite concrete test fn names (DF-AC-TEST-NAME-SYNC-001, proactive PG-W17-001 fix) |
