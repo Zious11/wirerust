@@ -2536,52 +2536,87 @@ fn test_non_zero_name_type_sni_entry() {
         "AC-007 (BC-2.07.025): handshakes_seen must be 1"
     );
 
-    // BC-2.07.025 pc1 positive proof — story EC-004: NameType≠0 + ANOMALOUS hostname.
-    // A clean-ASCII hostname paired with a non-zero NameType cannot distinguish
-    // "hostname reached the classifier" from "entry was silently skipped." This
-    // second vector uses NameType=0xFF (the RFC 6066 maximum reserved value) with
-    // a C0-containing hostname b"bad\x01.example" (SOH byte, arm 2: AsciiWithControl).
-    // If the entry were skipped, sni_counts would be empty and no finding would fire.
-    // If the hostname reaches the 4-way classifier (as required by pc1), arm 2 fires:
-    // exactly ONE AsciiWithControl finding is emitted AND the raw hostname key is
-    // counted in sni_counts.
+    // BC-2.07.025 pc1 positive proof — story EC-004 / BC-2.07.025 EC-002:
+    // NameType≠0 + NON-ASCII UTF-8 hostname → ARM 3 (NonAsciiUtf8).
+    //
+    // Story EC-004 (STORY-057.md:135) and BC-2.07.025 EC-002 specify:
+    // "First entry has NameType=1, hostname is non-ASCII UTF-8 → Arm 3 fires."
+    // A clean-ASCII hostname cannot distinguish "hostname reached the classifier"
+    // from "entry was silently skipped." A non-ASCII UTF-8 hostname forces arm 3
+    // (NonAsciiUtf8 finding) if and only if the hostname bytes reach the classifier.
+    //
+    // Canonical vector: NameType=0xFF + "café.example" (U+00E9 = 0xC3 0xA9,
+    // valid UTF-8 non-ASCII). If the entry were skipped: sni_counts empty, no
+    // finding. If the hostname reaches the classifier: arm 3 fires, exactly ONE
+    // NonAsciiUtf8 finding emitted, sni_counts keyed on the UTF-8 string.
     let mut analyzer_ec004 = TlsAnalyzer::new();
     let record_ec004 =
-        build_client_hello_with_typed_sni_list(&[(0xFF, b"bad\x01.example")], &[0x1301]);
+        build_client_hello_with_typed_sni_list(&[(0xFF, "café.example".as_bytes())], &[0x1301]);
     analyzer_ec004.on_data(&fk, Direction::ClientToServer, &record_ec004, 0);
 
     // Parse anchor.
     assert_eq!(
         analyzer_ec004.parse_error_count(),
         0,
-        "AC-007 EC-004 anchor (BC-2.07.025 pc1): parse_error_count must be 0"
+        "AC-007 EC-004 anchor (BC-2.07.025 pc1 / EC-002): parse_error_count must be 0"
     );
 
-    // sni_counts must contain the raw hostname — proves it reached the classifier.
+    // sni_counts keyed on the raw UTF-8 string — proves the hostname reached arm 3.
     assert_eq!(
         *analyzer_ec004
+            .sni_counts()
+            .get("café.example")
+            .unwrap_or(&0),
+        1,
+        "AC-007 EC-004 (BC-2.07.025 pc1 / EC-002): sni_counts must contain \
+         \"café.example\" despite NameType=0xFF — proves the hostname reached the \
+         4-way classifier (not silently skipped); got {:?}",
+        analyzer_ec004.sni_counts()
+    );
+
+    // Exactly one NonAsciiUtf8 finding fires — arm 3 classification ran.
+    let arm3_findings_ec004: Vec<_> = analyzer_ec004
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("non-ASCII characters"))
+        .collect();
+    assert_eq!(
+        arm3_findings_ec004.len(),
+        1,
+        "AC-007 EC-004 (BC-2.07.025 pc1 / EC-002): exactly one arm-3 NonAsciiUtf8 \
+         finding must fire for NameType=0xFF with non-ASCII UTF-8 hostname — proves \
+         arm-3 classification ran despite non-zero NameType; got {:?}",
+        arm3_findings_ec004
+    );
+
+    // Extra coverage (arm 2 path, not EC-004): NameType≠0 + C0-byte hostname.
+    // Verifies that an arm-2 AsciiWithControl hostname also reaches the classifier
+    // when paired with a non-zero NameType — complements the arm-3 proof above.
+    let mut analyzer_arm2_nonzero = TlsAnalyzer::new();
+    let record_arm2 =
+        build_client_hello_with_typed_sni_list(&[(0x01, b"bad\x01.example")], &[0x1301]);
+    analyzer_arm2_nonzero.on_data(&fk, Direction::ClientToServer, &record_arm2, 0);
+
+    assert_eq!(
+        *analyzer_arm2_nonzero
             .sni_counts()
             .get("bad\x01.example")
             .unwrap_or(&0),
         1,
-        "AC-007 EC-004 (BC-2.07.025 pc1): raw hostname \"bad\\x01.example\" must be in \
-         sni_counts despite NameType=0xFF — proves the hostname reached the 4-way \
-         classifier (not silently skipped)"
+        "arm-2/non-zero-NameType extra coverage: raw hostname \"bad\\x01.example\" must \
+         be in sni_counts despite NameType=0x01"
     );
-
-    // Exactly one AsciiWithControl finding fires — the C0 byte was classified by arm 2.
-    let ctrl_findings_ec004: Vec<_> = analyzer_ec004
+    let ctrl_findings_arm2: Vec<_> = analyzer_arm2_nonzero
         .findings()
         .into_iter()
         .filter(|f| f.summary.contains("ASCII control characters"))
         .collect();
     assert_eq!(
-        ctrl_findings_ec004.len(),
+        ctrl_findings_arm2.len(),
         1,
-        "AC-007 EC-004 (BC-2.07.025 pc1): exactly one AsciiWithControl finding must fire \
-         for NameType=0xFF with C0-containing hostname — proves arm-2 classification \
-         ran despite non-zero NameType; got {:?}",
-        ctrl_findings_ec004
+        "arm-2/non-zero-NameType extra coverage: exactly one AsciiWithControl finding \
+         must fire for NameType=0x01 with C0-containing hostname; got {:?}",
+        ctrl_findings_arm2
     );
 }
 
@@ -2671,10 +2706,10 @@ fn test_large_sni_near_record_payload_limit() {
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
-    // Canonical test vector: 16,384 bytes of clean ASCII ('A').
+    // Canonical test vector: 16,384 bytes of 'a' (BC-2.07.027 EC-001 / story EC-005).
     // ClientHello overhead is ~74 bytes, so the record payload is ~16,458 bytes —
     // under the MAX_RECORD_PAYLOAD=18,432 cap.
-    let large_hostname = "A".repeat(16_000);
+    let large_hostname = "a".repeat(16_384);
     let record = build_client_hello(&large_hostname, &[0x1301]);
 
     // Fixture sanity: verify the record payload is within the limit.
@@ -2710,7 +2745,7 @@ fn test_large_sni_near_record_payload_limit() {
          below MAX_RECORD_PAYLOAD"
     );
 
-    // BC-2.07.027 pc3: large hostname classified (arm 1: clean ASCII 'A' repeated) and
+    // BC-2.07.027 pc3: large hostname classified (arm 1: clean ASCII 'a' repeated) and
     // counted in sni_counts.
     assert_eq!(
         *analyzer
