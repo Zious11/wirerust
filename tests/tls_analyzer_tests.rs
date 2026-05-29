@@ -942,6 +942,11 @@ fn test_non_utf8_sni_emits_finding_and_counts_under_hex_key() {
         "AC-004 (BC-2.07.019 pc3): direction must be Some(ClientToServer)"
     );
 
+    // BC-2.07.019 pc3: source_ip must be None (network context not available in analyzer).
+    assert_eq!(f.source_ip, None, "BC-2.07.019 pc3: source_ip must be None");
+    // BC-2.07.019 pc3: timestamp must be None (network context not available in analyzer).
+    assert_eq!(f.timestamp, None, "BC-2.07.019 pc3: timestamp must be None");
+
     // BC-2.07.019 pc3/pc4: exact summary uses lossy from_utf8_lossy form.
     let lossy = String::from_utf8_lossy(sni_bytes).into_owned();
     let expected_summary =
@@ -949,6 +954,18 @@ fn test_non_utf8_sni_emits_finding_and_counts_under_hex_key() {
     assert_eq!(
         f.summary, expected_summary,
         "AC-004 (BC-2.07.019 pc3/pc4): summary must use lossy form with U+FFFD replacements"
+    );
+
+    // BC-2.07.020: break the tautology — for b"\xff\xfe" each invalid byte must
+    // produce exactly one U+FFFD replacement character in the summary.
+    // (from_utf8_lossy replaces each maximal invalid subsequence with one U+FFFD;
+    // b"\xff" and b"\xfe" are each a one-byte invalid subsequence => two replacements.)
+    assert_eq!(
+        f.summary.matches('\u{fffd}').count(),
+        2,
+        "BC-2.07.020: each invalid byte in b\"\\xff\\xfe\" must produce one U+FFFD in summary; \
+         got summary: {:?}",
+        f.summary
     );
 
     // BC-2.07.019 pc3: evidence = ["hex: fffe"] — exactly one entry, exact string.
@@ -1328,6 +1345,11 @@ fn test_valid_utf8_non_ascii_sni_emits_finding() {
         Some(wirerust::reassembly::handler::Direction::ClientToServer),
         "AC-001 (BC-2.07.017 pc2): direction must be Some(ClientToServer)"
     );
+
+    // BC-2.07.017 pc2: source_ip must be None (network context not available in analyzer).
+    assert_eq!(f.source_ip, None, "BC-2.07.017 pc2: source_ip must be None");
+    // BC-2.07.017 pc2: timestamp must be None (network context not available in analyzer).
+    assert_eq!(f.timestamp, None, "BC-2.07.017 pc2: timestamp must be None");
 
     // BC-2.07.017 pc2: exact summary — hostname interpolated verbatim (not Debug-escaped).
     let expected_summary = "TLS SNI contains non-ASCII characters \
