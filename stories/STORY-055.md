@@ -2,12 +2,14 @@
 document_type: story
 story_id: "STORY-055"
 epic_id: "E-5"
-version: "1.1"
-status: draft
+version: "1.3"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 changelog:
   - "v1.1: input-hash confirmed current (78aecf0) after BC-2.07.018 v1.3 propagation (café.example é-restore, F-W17-S055-P2-001) — 2026-05-29"
+  - "v1.2: AC Test citations synced to BC-prefixed discriminating test names per DF-AC-TEST-NAME-SYNC-001 v2 (F-W17-WAVE-C-001/T-001); sibling-sweep of legacy names complete — 2026-05-29"
+  - "v1.3: status → completed; PR #151 merged → develop 9633b0d; per-story converged 3-clean P3-P5 (5 passes); wave-level convergence CLEAN (3-lens 3-pass); Wave 17 CONVERGED & CLOSED 2026-05-29"
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.013.md
@@ -62,43 +64,43 @@ implementation_strategy: brownfield-formalization
 
 ### AC-001 (traces to BC-2.07.013 postcondition 1-3)
 When `extract_sni` receives SNI bytes that are valid UTF-8, pass `is_ascii()`, and contain no byte satisfying `b < 0x20 || b == 0x7f` (contains_c0_or_del), it returns `SniValue::Ascii(hostname)`. The hostname is inserted/incremented in `sni_counts` under the raw string key. No finding is pushed to `all_findings`.
-- **Test:** `test_parse_client_hello` (SNI "example.com")
+- **Test:** `test_BC_2_07_013_clean_ascii_no_finding_counted`
 
 ### AC-002 (traces to BC-2.07.013 invariant 1)
 Arm 1 is the ONLY arm that produces no finding. The `SniValue::Ascii(_)` match arm in `handle_client_hello` contains no `all_findings.push` call.
-- **Test:** `test_ascii_sni_does_not_emit_non_utf8_finding`; `test_printable_ascii_sni_emits_no_control_finding`
+- **Test:** `test_BC_2_07_013_arm1_only_arm_with_no_finding`
 
 ### AC-003 (traces to BC-2.07.014 postcondition 1-4)
 When `extract_sni` receives SNI bytes that are valid UTF-8, pass `is_ascii()`, but contain at least one byte where `b < 0x20 || b == 0x7f`, it returns `SniValue::AsciiWithControl { hostname, hex }` where `hostname` is the raw ASCII string and `hex` is the lossless lowercase hex encoding of the raw bytes. One `Finding` is pushed with: `category = Anomaly`, `verdict = Inconclusive`, `confidence = Low`, `mitre_technique = Some("T1027")`, `direction = Some(Direction::ClientToServer)`, `evidence = vec![hex representation of the control bytes]`.
-- **Test:** `test_ascii_sni_with_esc_emits_control_finding_and_counts_under_raw_key` (ESC byte 0x1B)
+- **Test:** `test_BC_2_07_014_esc_emits_anomaly_inconclusive_low_t1027_c2s` (ESC byte 0x1B)
 
 ### AC-004 (traces to BC-2.07.014 invariant 4)
 Raw bytes are preserved in the finding summary and evidence at the `TlsAnalyzer` layer. No `escape_for_terminal` is called at this layer. Display-layer escaping is deferred to the terminal reporter (ADR 0003 / INV-4).
-- **Test:** Unit test asserting `finding.summary` contains raw hostname with embedded control byte (not Debug-escaped)
+- **Test:** `test_BC_2_07_014_raw_bytes_preserved_not_debug_escaped`
 
 ### AC-005 (traces to BC-2.07.015 postcondition 1-3)
 When an `SniValue::AsciiWithControl` hostname contains multiple C0/DEL bytes, exactly ONE finding is pushed to `all_findings` (not one per control byte). The finding's `evidence` contains one entry: `"hex: {hex}"` where `hex` is the lowercase hex of ALL raw hostname bytes (not just the control bytes).
-- **Test:** `test_multiple_control_bytes_in_sni_produces_single_finding`
+- **Test:** `test_BC_2_07_015_multiple_c0_bytes_one_finding_full_hex_evidence`
 
 ### AC-006 (traces to BC-2.07.015 invariant 1)
 Finding count is O(1) per SNI hostname. The `AsciiWithControl` match arm calls `all_findings.push` exactly once regardless of control byte count.
-- **Test:** `test_multiple_control_bytes_in_sni_produces_single_finding` (assert `all_findings.len() == 1`)
+- **Test:** `test_BC_2_07_015_finding_count_o1_per_hostname_not_per_byte` (assert `all_findings.len() == 1`)
 
 ### AC-007 (traces to BC-2.07.016 postcondition 1-4)
 `contains_c0_or_del(s)` uses the predicate `s.bytes().any(|b| b < 0x20 || b == 0x7f)`. Byte 0x1F (US, Unit Separator) triggers arm 2. Byte 0x20 (space) does NOT trigger arm 2 (it lands in arm 1). Byte 0x7F (DEL) triggers arm 2.
-- **Test:** `test_ascii_control_boundary_bytes` (0x1F triggers; 0x20 does not); `test_ascii_sni_with_del` (0x7F triggers)
+- **Test:** `test_BC_2_07_016_boundary_0x1f_trips_0x20_does_not_0x7f_trips_0x7e_does_not` (0x1F and 0x7F trigger; 0x20 and 0x7E do not)
 
 ### AC-008 (traces to BC-2.07.016 invariant 1)
 The predicate is exactly `b < 0x20 || b == 0x7f` — a bitwise disjunction. Tab (0x09), LF (0x0A), CR (0x0D) are all C0 bytes (`< 0x20`) and all trigger arm 2.
-- **Test:** Unit tests for tab, LF, CR bytes; each must emit a finding
+- **Test:** `test_BC_2_07_016_tab_cr_lf_are_c0_and_trip` (tab, LF, CR each emit a finding)
 
 ### AC-009 (traces to BC-2.07.018 postcondition 1-3)
 A Punycode A-label SNI (e.g., `"xn--caf-dma.example"`) satisfies arm 1 conditions: valid UTF-8, `is_ascii() == true`, no C0/DEL bytes. `extract_sni` returns `SniValue::Ascii(hostname)`. No finding is emitted. The A-label is counted in `sni_counts` under its raw string key.
-- **Test:** `test_punycode_a_label_does_not_emit_non_ascii_finding`; `test_punycode_a_label_emits_no_control_finding`
+- **Test:** `test_BC_2_07_018_punycode_a_label_arm1_no_finding_counted`
 
 ### AC-010 (traces to BC-2.07.018 invariant 1-2)
 A-labels by definition are pure ASCII and trivially satisfy arm 1. Only raw U-labels (non-ASCII internationalized hostnames that bypassed Punycode encoding) would trigger arm 3. The A-label path is a special case of BC-2.07.013 arm 1 — there is no Punycode-specific code path.
-- **Test:** `test_punycode_a_label_does_not_emit_non_ascii_finding` (confirm no separate code path exists)
+- **Test:** `test_BC_2_07_018_a_label_uses_same_arm1_as_plain_ascii` (confirm no separate code path exists)
 
 ## Architecture Mapping
 
@@ -188,4 +190,4 @@ A-labels by definition are pure ASCII and trivially satisfy arm 1. Only raw U-la
 | File | Action | Purpose |
 |------|--------|---------|
 | src/analyzer/tls.rs | modify | `contains_c0_or_del` (231-238), `SniValue` enum (200), `extract_sni` arms 1+2 (246-265), arm handling in `handle_client_hello` (424-447) |
-| tests/tls_analyzer_tests.rs | modify | SNI arm 1/2 tests: clean ASCII, C0 control, DEL, boundary bytes, multiple C0, Punycode A-labels |
+| tests/tls_analyzer_tests.rs | modify | BC-prefixed formalization tests: `test_BC_2_07_013_clean_ascii_no_finding_counted`, `test_BC_2_07_013_arm1_only_arm_with_no_finding`, `test_BC_2_07_014_esc_emits_anomaly_inconclusive_low_t1027_c2s`, `test_BC_2_07_014_raw_bytes_preserved_not_debug_escaped`, `test_BC_2_07_015_multiple_c0_bytes_one_finding_full_hex_evidence`, `test_BC_2_07_015_finding_count_o1_per_hostname_not_per_byte`, `test_BC_2_07_016_boundary_0x1f_trips_0x20_does_not_0x7f_trips_0x7e_does_not`, `test_BC_2_07_016_tab_cr_lf_are_c0_and_trip`, `test_BC_2_07_018_punycode_a_label_arm1_no_finding_counted`, `test_BC_2_07_018_a_label_uses_same_arm1_as_plain_ascii` |

@@ -56,7 +56,7 @@ traces_to:
 | STORY-052 | ClientHello Parsing — Handshake Counting, Version/JA3 Tracking, and Done Short-Circuit | E-5 | 16 | 8 | completed | STORY-051 |
 | STORY-053 | ServerHello Parsing — JA3S Fingerprinting and Cipher/Version Tracking | E-5 | 17 | 5 | completed | STORY-051, STORY-052 |
 | STORY-054 | Cipher and Protocol Weakness Findings — Weak Ciphers, Deprecated SSL Versions, and Baseline Zero-Finding | E-5 | 18 | 8 | draft | STORY-052, STORY-053 |
-| STORY-055 | SNI Classification Arms 1 and 2 — Clean ASCII Baseline and C0/DEL Control-Byte Detection | E-5 | 17 | 8 | draft | STORY-052 |
+| STORY-055 | SNI Classification Arms 1 and 2 — Clean ASCII Baseline and C0/DEL Control-Byte Detection | E-5 | 17 | 8 | completed | STORY-052 |
 | STORY-056 | SNI Classification Arms 3 and 4 — Non-ASCII UTF-8 and Non-UTF-8 Byte Preservation | E-5 | 18 | 8 | draft | STORY-055 |
 | STORY-057 | SNI Edge Cases — Empty Lists, Empty Hostnames, Multi-Name, NameType, Trailing Bytes, Large SNI, and Count-Cap Decoupling | E-5 | 19 | 8 | draft | STORY-055, STORY-056 |
 | STORY-058 | Buffer Management, Record Parsing Infrastructure, Flow Lifecycle, and summarize Output | E-5 | 18 | 8 | draft | STORY-052, STORY-053 |

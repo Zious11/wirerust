@@ -730,6 +730,64 @@ All items require `vsdd-factory:research-agent` validation per policy DF-VALIDAT
 
 ---
 
+## Wave 17 Lessons (2026-05-29) — Brownfield Formalization; 3 Stories
+
+Stories: STORY-045 (PR #150), STORY-053 (PR #149), STORY-055 (PR #151). 3-story wave; all 3 per-story converged (3-clean P3-P5, 5 passes each). Wave-level: pass-1 DIRTY → remediation → pass-2 all-3-lenses CLEAN. CONVERGED 2026-05-29.
+
+### W17.L1 — Per-Story Convergence Cannot Catch Cross-Story AC-Citation Sibling-Misses When Legacy Names Resolve [process-gap — PG-W17-001/002]
+
+**Finding ID:** F-W17-WAVE-C-001 / F-W17-WAVE-T-001 (wave-level pass-1, HIGH)
+**Category:** process-gap / sibling-sweep / AC-test-name-sync
+**Observed:** STORY-055 per-story convergence passed 3-clean P3-P5 because the AC `**Test:**` citations named LEGACY test function names that still resolved (the old short-form names existed alongside the new BC-prefixed names). Only the wave-level cross-story consistency lens — examining ALL 3 W17 stories side-by-side — detected that STORY-055 AC citations did not name the BC-prefixed tests added by the test-writer. The per-story adversary did not flag this because the legacy names resolved without ambiguity per the per-story isolation context.
+**Impact:** Wave-level pass-1 produced a HIGH finding (F-W17-WAVE-C-001). STORY-055 v1.2 AC-citation sync was required before pass-2 could run. Wave close was delayed by one remediation burst.
+**Root cause:** DF-AC-TEST-NAME-SYNC-001 v2 requires BC-prefixed test citations but cannot enforce the negative — the absence of the NEW prefixed name is undetectable per-story when the old name also resolves. The enforcement gap only manifests cross-story during wave-level review.
+**Codification follow-up (PG-W17-002):** A wave-gate pre-close checklist item should sweep ALL same-strategy/same-subsystem wave siblings for AC-test-name-sync before wave close. Propose DF-SIBLING-SWEEP-001 v5 or a new wave-gate-checklist policy (e.g., DF-WAVE-SIBLING-AC-SYNC-001). Requires DF-VALIDATION-001 research-agent validation before filing GitHub issue.
+**Status:** [process-gap — PG-W17-001 (recurring, all 3 W17 stories) + PG-W17-002 (new, wave-gate checklist); DF-VALIDATION-001 validation required]
+
+---
+
+### W17.L2 — Brownfield Test-Writer Dispatches MUST Include AC Test-Citation Sync in Same Burst [codification reinforcement]
+
+**Finding ID:** PG-W17-001 (recurrence on all 3 Wave 17 stories)
+**Category:** process-gap / dispatch-template / AC-test-name-sync
+**Observed:** The recurring AC-test-name-sync defect (first codified W14 → DF-AC-TEST-NAME-SYNC-001 v1, extended W16 → v2) hit ALL 3 Wave 17 stories: STORY-045, STORY-053, and STORY-055. In each case, the brownfield-formalization test-writer dispatch created BC-prefixed test functions WITHOUT simultaneously updating the story AC `**Test:**` citations to reference the new BC-prefixed names. The test-writer burst was dispatched without an explicit instruction to also update the story file.
+**Root cause:** The test-writer dispatch template does not mandate a story-file AC sync step. DF-AC-TEST-NAME-SYNC-001 is a policy on the output (citations must match), not on the dispatch (test-writer MUST update story in same burst).
+**Codification required:** Test-writer dispatch prompts for brownfield-formalization stories MUST include an explicit step: "After writing BC-prefixed tests, update the story AC `**Test:**` citations in the same burst. Do not leave the story file with legacy test names." This closes the dispatch-template gap. Extends or reinforces DF-AC-TEST-NAME-SYNC-001. Requires DF-VALIDATION-001 validation before filing GitHub issue.
+**Status:** [codification reinforcement — PG-W17-001; DF-VALIDATION-001 validation required]
+
+---
+
+### W17.L3 — TLS Test-File Merge Conflict (STORY-053 + STORY-055 Touching Same File) Resolved Cleanly [validated pattern]
+
+**Finding ID:** Wave 17 merge observation
+**Category:** merge-management / conflict-resolution
+**Observed:** STORY-053 and STORY-055 both added tests to `tests/tls_analyzer_tests.rs`. Merging PR #149 (STORY-053, 83 fns) then PR #151 (STORY-055, +10 fns = 86 total) required keep-both conflict resolution. The sequencing (053 merged first, 055 rebased on result) produced zero test collisions. Final `tls_analyzer_tests.rs` contains 86 functions with no overlap in function names.
+**Pattern confirmed:** For same-file TLS test additions, sequencing merges + rebase on the first merge HEAD resolves cleanly when BC-prefixed function names are unique (as required by DF-AC-TEST-NAME-SYNC-001 v2).
+**Status:** [validated — keep-both merge resolution pattern for same-file test additions]
+
+---
+
+### W17.L4 — Harness Security Classifier Blocks Default-Branch Merges Without Human Authorization [noted — structural]
+
+**Finding ID:** Wave 17 merge observation
+**Category:** process-discipline / security-classifier / merge-authorization
+**Observed:** The harness security classifier blocked pr-manager subagents from executing squash-merges to `develop` for PRs #150, #149, and #151. Orchestrator completed the merges directly after receiving explicit human authorization for each PR. This is the same pattern as Wave 16 (W16.L4 → same root cause).
+**Pattern:** For all develop-branch story merges, the orchestrator requires explicit human authorization before executing `gh pr merge --squash`. The pr-manager → implementer-as-PR-executor path is the only reliable autonomous path, but even that is blocked for merges to `develop` without human confirmation.
+**Status:** [noted — structural behavior; no codification candidate (classifier behavior is by-design)]
+
+---
+
+### W17 Process-Gap Codification Items (Draft)
+
+| ID | Gap | Proposed Fix | Priority |
+|----|-----|-------------|----------|
+| PG-W17-001 | AC-test-name-sync recurred ALL 3 W17 stories — test-writer dispatch did not include story AC citation sync step | Extend test-writer dispatch template with mandatory AC-sync step; reinforce DF-AC-TEST-NAME-SYNC-001 | HIGH |
+| PG-W17-002 | Per-story passes cannot catch wave-sibling AC-sync misses when legacy names resolve — only wave-level caught STORY-055 | Add wave-gate pre-close checklist sweep: all same-strategy/same-subsystem siblings must be AC-sync verified before wave close. Tag: DF-SIBLING-SWEEP-001 v5 or DF-WAVE-SIBLING-AC-SYNC-001 | HIGH |
+
+All items require `vsdd-factory:research-agent` validation per policy DF-VALIDATION-001 before any GitHub issue is filed.
+
+---
+
 ## Earlier Wave Lessons (Waves 1-6)
 
 Per-wave process-gap items for Waves 1-6 are recorded in STATE.md Cycle-Close Follow-Up Items
