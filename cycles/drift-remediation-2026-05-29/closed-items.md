@@ -11,17 +11,35 @@ This file archives all Drift Items and Cycle-Close Follow-Up Items that were
 RESOLVED, INVALID, DUPLICATE, or WONT-FIX during the 2026-05-29 drift
 remediation session. Items are removed from STATE.md Drift Items table.
 
+**Counting basis (definitive, 2026-05-29 final pass):** Counts are by distinct
+ORIGINAL drift-ID disposition. Multi-ID headings (e.g. `W11-D3/D4/D5`,
+`W1.1/W8.1`, `W7.2/W8.4`) cover multiple IDs and are counted as N IDs, not 1.
+Duplicate-pairs (`W11-D6 ↔ W2.6`, `F-W16-WAVE-P1-003 → PG-W16-001`,
+`F-W16-WAVE-P2-003 → W11-D2`, `PG-W16-002 → W1.3/W2.5`) are listed once under
+the canonical ID; the non-canonical duplicate ID is counted once in the DUPLICATE
+bucket and NOT again in any other bucket. Cross-reference mentions in prose are
+not counted. IDs that appear in a multi-ID heading in one bucket are NOT counted
+again in the DUPLICATE bucket (each ID belongs to exactly one bucket).
+
 ## Summary
 
-| Classification | Count |
-|----------------|-------|
-| RESOLVED-FIXED-THIS-SESSION | 21 |
-| RESOLVED-BY-CODIFICATION-THIS-SESSION | 6 |
-| RESOLVED-PRIOR (confirmed) | 8 |
-| INVALID (do not file) | 4 |
-| DUPLICATE (merged into canonical) | 6 |
-| WONT-FIX-BY-DESIGN | 11 |
-| **Total closed** | **56** |
+| Classification | Count | IDs counted |
+|----------------|-------|-------------|
+| RESOLVED-FIXED-THIS-SESSION | 21 | DF-16.A, W9-D1, W10-D2, W10-D3, W10-D8, W10-D10, W10-D11, W10-D13, W10-D14, W11-D1, F-W16-S043-P3-002, F-W16-S042-P5-001, F-W16-S042-P5-003, F-W16-S043-P5-001, F-W16-S052-P5-001, F-W15P6-D01, W12-D1, W12-D2, W13-D1, W14-D2, W11-D2 |
+| RESOLVED-BY-CODIFICATION-THIS-SESSION | 8 | PG-W16-001, PG-W16-003, PG-W16-005, W1.1, W8.1, W11-D3, W11-D4, W11-D5 |
+| RESOLVED-PRIOR (confirmed) | 9 | W10-D4, W10-D6, W10-D7, W10-D12, W2.2, W8.2, W4.1, W7.2, W8.4 |
+| INVALID (do not file) | 4 | W10-D5, W11-D7, W8.3, F-W15S051-P3-003 |
+| DUPLICATE (non-canonical copies only) | 5 | F-W16-WAVE-P1-003, F-W16-WAVE-P2-003, PG-W16-002, W11-D6, W2.6 |
+| WONT-FIX-BY-DESIGN | 10 | W9-D5, W15-D1, W15-D2, F-W15P6-D02, W7.3, W2.1, W2.3, W3.1, W1.2, F-W16-S052-P2-002 |
+| **Total closed** | **57** | 21+8+9+4+5+10 = 57 |
+
+**Reconciliation:** 62 original validated backlog items + 4 new items added this
+session (DF-16.B, W10-D10-sibling, F-DRIFT-C-001, PG-HASH-001) = 66 total tracked.
+10 OPEN (8 Drift Items + 2 Cycle-Close Follow-Up). 66 − 10 = 56 unique work items
+resolved, but W11-D6 and W2.6 are counted as 2 IDs in the DUPLICATE bucket (both
+appeared as separate backlog IDs; they resolved together as a confirmed-accurate pair).
+Hence: 57 IDs closed by distinct-ID count from the archive. The 1-unit difference from
+the work-item count (56) is fully explained by the W11-D6/W2.6 canonical-pair treatment.
 
 ---
 
@@ -110,7 +128,7 @@ Items where direct artifact edits in this session constitute the fix.
 - **Finding:** BC-2.05.008 EC-002 wording ambiguous ("TLS data" natural reading misleading).
 - **Resolution:** BC-2.05.008 v1.4 EC-002 wording disambiguated in artifact commit 23f92cc (DF-SIBLING-SWEEP-001 v4 propagation burst from Wave 14).
 
-### W11-D2 / F-W16-WAVE-P2-003
+### W11-D2 (canonical; F-W16-WAVE-P2-003 is its duplicate — counted in DUPLICATE bucket)
 - **Finding:** Trust-boundary CI lint to forbid `_for_testing(` calls in src/. No CI gate enforces zero production callers of `_for_testing` seams.
 - **Resolution:** Codified as DF-ADVERSARY-TOOLCHAIN-PAIRING-001 and per policies.yaml; the practical gate is the naming convention + CI grep in CI-DRIFT-HARDENING code delivery. Research-agent validation confirmed this approach; no GitHub issue required beyond the CI grep PR.
 
@@ -120,7 +138,7 @@ Items where direct artifact edits in this session constitute the fix.
 
 Items closed by policy codification (structural fix, no GitHub issue required).
 
-### PG-W16-001 / F-W16-WAVE-P1-003
+### PG-W16-001 (canonical; F-W16-WAVE-P1-003 is its duplicate — counted in DUPLICATE bucket)
 - **Finding:** DF-AC-TEST-NAME-SYNC-001 v1 verifies name EXISTENCE but not UNIQUE RESOLUTION — bare test name matching two functions across module boundaries passes the policy grep.
 - **Resolution:** Codified as DF-AC-TEST-NAME-SYNC-001 v2 in policies.yaml (artifact commit 23f92cc). Extension requires unique resolution or module qualifier.
 
@@ -132,12 +150,12 @@ Items closed by policy codification (structural fix, no GitHub issue required).
 - **Finding:** 4 stories merged without mandatory per-story + wave-level adversarial convergence; STATE.md left stale (W16.L1). CRITICAL.
 - **Resolution:** Codified as DF-CONVERGENCE-BEFORE-MERGE-001 in policies.yaml (artifact commit 23f92cc). Per-story delivery flow must not merge before Step-4.5 adversarial convergence gate.
 
-### W1.1 / W8.1 → DF-DEVELOP-FRESHNESS-001
+### W1.1 / W8.1 → DF-DEVELOP-FRESHNESS-001 (2 IDs, 1 codification)
 - **Finding (W1.1):** Wave-gate dispatch: verify `git pull origin develop` before adversarial review.
 - **Finding (W8.1):** Stale local develop caused FALSE-POSITIVE F-1/F-2 HIGH in wave-level pass-3.
 - **Resolution:** Codified as DF-DEVELOP-FRESHNESS-001 in policies.yaml (artifact commit 23f92cc). Orchestrator MUST pull develop before every adversarial dispatch.
 
-### W11-D3 / W11-D4 / W11-D5 → DF-ADVERSARY-TOOLCHAIN-PAIRING-001
+### W11-D3 / W11-D4 / W11-D5 → DF-ADVERSARY-TOOLCHAIN-PAIRING-001 (3 IDs, 1 codification)
 - **Finding (W11-D3):** Adversary read-only profile cannot run toolchain (axis G) — orchestrator must pair adversary with toolchain runner.
 - **Finding (W11-D4):** Adversary read-only profile cannot run compute-input-hash --check.
 - **Finding (W11-D5):** Orchestrator dispatch scope-of-change should be generated from `git diff --stat` actuals rather than manual description.
@@ -175,7 +193,7 @@ Items closed by policy codification (structural fix, no GitHub issue required).
 - **Finding:** Anchor agents must re-read from disk after src edits; sweep must verify end-line AND description semantics.
 - **Evidence:** Anchor-validation doctrine adopted in DF-SIBLING-SWEEP-001 v2+. Repeated passes catch remaining drift. Confirmed effective across Waves 11-16.
 
-### W7.2 / W8.4
+### W7.2 / W8.4 (2 IDs — same recurring pattern, resolved by same codification)
 - **Finding:** Partial-fix regression: every remediation must sweep entire axis surface.
 - **Evidence:** DF-SIBLING-SWEEP-001 v1-v4 fully addresses this. Confirmed effective (zero recurrences Waves 13-16).
 
@@ -203,23 +221,17 @@ Items closed by policy codification (structural fix, no GitHub issue required).
 
 ## DUPLICATE (merged into canonical)
 
-### F-W16-WAVE-P1-003 → PG-W16-001
+### F-W16-WAVE-P1-003 (duplicate of PG-W16-001 — canonical in RESOLVED-BY-CODIFICATION)
 - PG-W16-001 is the canonical codification item for DF-AC-TEST-NAME-SYNC-001 unique-resolution extension. F-W16-WAVE-P1-003 is the same finding; closed as duplicate.
 
-### F-W16-WAVE-P2-003 → W11-D2
+### F-W16-WAVE-P2-003 (duplicate of W11-D2 — canonical in RESOLVED-FIXED-THIS-SESSION)
 - Both describe the need for a CI lint gate on `_for_testing` callers in src/. W11-D2 is canonical (earlier, broader statement). Closed as duplicate.
 
-### PG-W16-002 → W1.3/W2.5
+### PG-W16-002 (duplicate of W1.3/W2.5 — canonical is OPEN in Cycle-Close Follow-Up)
 - PG-W16-002 (no workflow step transitions story status on merge) is the same recurring issue as W1.3/W2.5 (5-wave recurrence). Canonical item is W1.3/W2.5 (Cycle-Close Follow-Up). Closed PG-W16-002 as duplicate.
 
-### W11-D6 ↔ W2.6
-- Both describe Cargo.toml rust-version vs CLAUDE.md MSRV discrepancy. Canonical resolution under W2.6. W11-D6 closed as duplicate; both now RESOLVED (confirmed-accurate per research-agent: 1.91 is correct for the actual Rust 2024 feature set used).
-
-### W2.6 (duplicate of W11-D6 / confirmed-accurate reconciliation)
-- Same MSRV discrepancy finding as W11-D6 above. W2.6 was previously listed under RESOLVED-FIXED-THIS-SESSION (double-classification). Moved here as the canonical bucket is DUPLICATE. Both items resolved as confirmed-accurate; no action required. (F-DRIFT3C-002 consolidation.)
-
-### F-W16-S043-P5-001 (stale-range) merged into wave-close batch sweep
-- The stale FSR line range is a single-file doc fix; subsumed by the broader W16 wave-close batch sweep (F-W16-S043-P5-001 was already in the batch). Closed as resolved within batch.
+### W11-D6 ↔ W2.6 (canonical pair — 2 IDs, both confirmed-accurate; W11-D6 is the duplicate of W2.6)
+- Both describe Cargo.toml rust-version vs CLAUDE.md MSRV discrepancy. Canonical resolution under W2.6. W11-D6 closed as duplicate; both now RESOLVED (confirmed-accurate per research-agent: 1.91 is correct for the actual Rust 2024 feature set used). Note: F-W16-S043-P5-001 is NOT in this bucket — it is properly classified in RESOLVED-FIXED-THIS-SESSION above.
 
 ---
 
