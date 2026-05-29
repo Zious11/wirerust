@@ -2769,7 +2769,7 @@ mod bc_2_06_043_formalization {
     ///   CONNECT proxy.example.com:443 HTTP/1.1 → Finding(Recon/Inconclusive/Medium)
     #[allow(non_snake_case)]
     #[test]
-    fn test_detect_unusual_method() {
+    fn test_BC_2_06_008_detect_unusual_method() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
@@ -2905,7 +2905,7 @@ mod bc_2_06_043_formalization {
     /// Host header", evidence="{method} {uri}", direction=ClientToServer.
     #[allow(non_snake_case)]
     #[test]
-    fn test_detect_missing_host_header() {
+    fn test_BC_2_06_009_detect_missing_host_header() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
@@ -2970,7 +2970,7 @@ mod bc_2_06_043_formalization {
     /// Host header"; the absent-Host variant must NOT co-fire.
     #[allow(non_snake_case)]
     #[test]
-    fn test_detect_empty_host_header() {
+    fn test_BC_2_06_009_detect_empty_host_header() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
@@ -3099,7 +3099,7 @@ mod bc_2_06_043_formalization {
     /// BC-2.06.010 canonical vector: GET /<2049 A chars> HTTP/1.1.
     #[allow(non_snake_case)]
     #[test]
-    fn test_detect_long_uri() {
+    fn test_BC_2_06_010_detect_long_uri() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
@@ -3251,7 +3251,7 @@ mod bc_2_06_043_formalization {
     /// BC-2.06.011 canonical vector: GET / HTTP/1.1 with User-Agent: (empty).
     #[allow(non_snake_case)]
     #[test]
-    fn test_detect_empty_user_agent() {
+    fn test_BC_2_06_011_detect_empty_user_agent() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
@@ -3315,7 +3315,7 @@ mod bc_2_06_043_formalization {
     /// BC-2.06.011 EC-002: no User-Agent header present → no finding.
     #[allow(non_snake_case)]
     #[test]
-    fn test_missing_user_agent_no_finding() {
+    fn test_BC_2_06_011_missing_user_agent_no_finding() {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
