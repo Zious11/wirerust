@@ -648,6 +648,18 @@ impl HttpAnalyzer {
     pub fn active_flows_len_for_testing(&self) -> usize {
         self.flows.len()
     }
+
+    /// Test-only accessor: current byte length of the request-direction buffer
+    /// for the given `flow_key`.
+    ///
+    /// Exposes `state.request_buf.len()` so integration tests can assert exact
+    /// buffer-cap boundary behaviour (BC-2.06.022 / STORY-045 AC-006/007,
+    /// EC-005 and EC-006).  Returns `None` when the flow has no live state.
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn request_buf_len_for_testing(&self, flow_key: &FlowKey) -> Option<usize> {
+        self.flows.get(flow_key).map(|s| s.request_buf.len())
+    }
 }
 
 #[cfg(test)]
