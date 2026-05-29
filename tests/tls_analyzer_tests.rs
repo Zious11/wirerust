@@ -370,59 +370,328 @@ fn test_parse_server_hello() {
     assert_eq!(analyzer.parse_error_count(), 0);
 }
 
+// STORY-054 Brownfield-Formalization Tests (BC-2.07.009/010/011/012/030/036)
+//
+// These tests strengthen the existing stub assertions to full BC-clause fidelity
+// and add coverage for all STORY-054 acceptance criteria. Each test is annotated
+// with the AC and BC clause it traces to.
+//
+// Naming follows DF-AC-TEST-NAME-SYNC-001 (PG-W17-001): story AC `Test:` citations
+// mandate exact function names for AC-001..006. ACs 007-013 use the suggested names
+// from the story and are reported back for citation-sync.
+
+// ── BC-2.07.009 ──────────────────────────────────────────────────────────────
+// AC-001 (BC-2.07.009 postconditions 1-3): one Anomaly/Likely/High finding with
+//   exact summary, evidence of cipher names, mitre_technique=None, direction=ClientToServer.
+// AC-002 (BC-2.07.009 postcondition 2): exactly ONE finding per ClientHello regardless
+//   of how many weak ciphers are present.
+// AC-003 (BC-2.07.009 invariant 1-2): GREASE and unknown cipher IDs do not trigger.
 #[test]
 fn test_weak_cipher_finding_client() {
+    // ── AC-001 / BC-2.07.009 postconditions 1-3: single NULL cipher → exact finding fields ──
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
-    // TLS_RSA_WITH_NULL_SHA (0x0002) — NULL cipher
+    // TLS_RSA_WITH_NULL_SHA (0x0002) — NULL cipher; 0x1301 is strong (TLS_AES_128_GCM_SHA256).
     let record = build_client_hello("test.com", &[0x0002, 0x1301]);
     analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
 
     let findings = analyzer.findings();
-    assert_eq!(findings.len(), 1);
+
+    // BC-2.07.009 postcondition 2: exactly one finding, regardless of cipher count.
     assert_eq!(
-        findings[0].category,
-        wirerust::findings::ThreatCategory::Anomaly
+        findings.len(),
+        1,
+        "BC-2.07.009 postcondition 2: exactly ONE finding per ClientHello with weak cipher"
     );
-    assert_eq!(findings[0].confidence, wirerust::findings::Confidence::High);
-    assert!(findings[0].summary.contains("weak cipher"));
+
+    let f = &findings[0];
+
+    // BC-2.07.009 postcondition 1: category = Anomaly
+    assert_eq!(
+        f.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "BC-2.07.009 postcondition 1: category must be Anomaly"
+    );
+
+    // BC-2.07.009 postcondition 1: verdict = Likely
+    assert_eq!(
+        f.verdict,
+        wirerust::findings::Verdict::Likely,
+        "BC-2.07.009 postcondition 1: verdict must be Likely"
+    );
+
+    // BC-2.07.009 postcondition 1: confidence = High (client side)
+    assert_eq!(
+        f.confidence,
+        wirerust::findings::Confidence::High,
+        "BC-2.07.009 postcondition 1: confidence must be High for client-side weak cipher"
+    );
+
+    // BC-2.07.009 postcondition 1: exact summary text
+    assert_eq!(
+        f.summary, "ClientHello offers weak cipher suites (NULL/anonymous/export)",
+        "BC-2.07.009 postcondition 1: summary must be exact canonical string"
+    );
+
+    // BC-2.07.009 postcondition 1: evidence contains cipher name (not hex) for the weak cipher.
+    // TLS_RSA_WITH_NULL_SHA (0x0002) has name containing "NULL".
+    assert!(
+        f.evidence.iter().any(|e| e.contains("NULL")),
+        "BC-2.07.009 postcondition 1 (INV-4): evidence must contain readable cipher name with NULL; \
+         got: {:?}",
+        f.evidence
+    );
+    // Evidence entries are names, not hex IDs.
+    assert!(
+        !f.evidence.iter().any(|e| e.starts_with("0x")),
+        "BC-2.07.009 postcondition 1 (INV-4): evidence must store cipher NAMES not hex IDs; \
+         got: {:?}",
+        f.evidence
+    );
+
+    // BC-2.07.009 postcondition 1: mitre_technique = None
+    assert_eq!(
+        f.mitre_technique, None,
+        "BC-2.07.009 postcondition 1: mitre_technique must be None for weak-cipher finding"
+    );
+
+    // BC-2.07.009 postcondition 1: direction = ClientToServer
+    assert_eq!(
+        f.direction,
+        Some(wirerust::reassembly::handler::Direction::ClientToServer),
+        "BC-2.07.009 postcondition 1: direction must be ClientToServer"
+    );
+
+    // ── AC-002 / BC-2.07.009 postcondition 2: multiple weak ciphers → still ONE finding ──
+    // Three weak ciphers: TLS_RSA_WITH_NULL_SHA (0x0002), TLS_RSA_EXPORT_WITH_RC4_40_MD5 (0x0003),
+    // TLS_RSA_WITH_NULL_SHA256 (0x003B), plus one strong cipher.
+    let mut analyzer2 = TlsAnalyzer::new();
+    let record2 = build_client_hello("test.com", &[0x0002, 0x0003, 0x003B, 0x1301]);
+    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0);
+
+    let findings2 = analyzer2.findings();
+    let weak_findings: Vec<_> = findings2
+        .iter()
+        .filter(|f| f.summary.contains("weak cipher"))
+        .collect();
+    assert_eq!(
+        weak_findings.len(),
+        1,
+        "BC-2.07.009 postcondition 2: THREE weak ciphers must still produce exactly ONE \
+         weak-cipher finding (cardinality invariant)"
+    );
+    // BC-2.07.009 postcondition 1 (INV-4): evidence has one entry per weak cipher name.
+    assert_eq!(
+        weak_findings[0].evidence.len(),
+        3,
+        "BC-2.07.009 postcondition 1 (O-06): evidence must have one entry per weak cipher \
+         name (3 weak ciphers → 3 evidence entries)"
+    );
+
+    // ── AC-003 / BC-2.07.009 invariant 1-2: GREASE cipher 0x0a0a → no finding ──
+    // GREASE values have from_id() returning None → is_weak_cipher returns false.
+    let mut analyzer3 = TlsAnalyzer::new();
+    let record3 = build_client_hello("test.com", &[0x0a0a, 0x1301]);
+    analyzer3.on_data(&fk, Direction::ClientToServer, &record3, 0);
+
+    assert!(
+        analyzer3.findings().is_empty(),
+        "BC-2.07.009 invariant 1: GREASE cipher 0x0a0a must NOT trigger weak-cipher finding \
+         (from_id returns None → is_weak_cipher returns false); got: {:?}",
+        analyzer3.findings()
+    );
 }
 
+// ── BC-2.07.010 ──────────────────────────────────────────────────────────────
+// AC-004 (BC-2.07.010 postconditions 1-2): one Anomaly/Likely/Medium finding with
+//   exact summary, evidence with name+hex, mitre_technique=None, direction=ServerToClient.
+// AC-005 (BC-2.07.010 invariant 1): is_weak_server_cipher is superset of is_weak_cipher;
+//   RC4 ciphers trigger the server-side finding (not the client-side one).
 #[test]
 fn test_weak_cipher_finding_server() {
+    // ── AC-004 / BC-2.07.010 postconditions 1-2: RC4 server cipher → exact finding fields ──
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
+    // Strong client hello — no client-side weak cipher finding.
     let ch = build_client_hello("test.com", &[0x1301]);
     analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
 
-    // Server selects TLS_RSA_WITH_RC4_128_SHA (0x0005)
+    // Server selects TLS_RSA_WITH_RC4_128_SHA (0x0005) — RC4 triggers is_weak_server_cipher.
+    // (is_weak_cipher does NOT include RC4 — AC-005 invariant 1)
     let sh = build_server_hello(0x0005);
     analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
 
     let findings = analyzer.findings();
-    assert_eq!(findings.len(), 1);
+
+    // BC-2.07.010 postcondition 2: exactly one finding per ServerHello.
     assert_eq!(
-        findings[0].confidence,
-        wirerust::findings::Confidence::Medium
+        findings.len(),
+        1,
+        "BC-2.07.010 postcondition 2: exactly ONE finding per ServerHello with weak server cipher"
     );
-    assert!(findings[0].summary.contains("weak cipher"));
+
+    let f = &findings[0];
+
+    // BC-2.07.010 postcondition 1: category = Anomaly
+    assert_eq!(
+        f.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "BC-2.07.010 postcondition 1: category must be Anomaly"
+    );
+
+    // BC-2.07.010 postcondition 1: verdict = Likely
+    assert_eq!(
+        f.verdict,
+        wirerust::findings::Verdict::Likely,
+        "BC-2.07.010 postcondition 1: verdict must be Likely"
+    );
+
+    // BC-2.07.010 postcondition 1: confidence = Medium (server selected — not High as client)
+    assert_eq!(
+        f.confidence,
+        wirerust::findings::Confidence::Medium,
+        "BC-2.07.010 postcondition 1: confidence must be Medium for server-side weak cipher \
+         (server makes final selection — BC-2.07.010 invariant 3)"
+    );
+
+    // BC-2.07.010 postcondition 1: summary format "ServerHello selected weak cipher suite ({name})"
+    assert!(
+        f.summary
+            .starts_with("ServerHello selected weak cipher suite ("),
+        "BC-2.07.010 postcondition 1: summary must start with 'ServerHello selected weak cipher suite ('; \
+         got: {:?}",
+        f.summary
+    );
+    assert!(
+        f.summary.contains("RC4"),
+        "BC-2.07.010 postcondition 1: summary must contain cipher name with RC4; got: {:?}",
+        f.summary
+    );
+
+    // BC-2.07.010 postcondition 1: evidence = ["Selected cipher: {name} (0x{id:04x})"]
+    assert_eq!(
+        f.evidence.len(),
+        1,
+        "BC-2.07.010 invariant 4: evidence must be exactly one string"
+    );
+    assert!(
+        f.evidence[0].starts_with("Selected cipher:"),
+        "BC-2.07.010 postcondition 1: evidence[0] must start with 'Selected cipher:'; got: {:?}",
+        f.evidence[0]
+    );
+    assert!(
+        f.evidence[0].contains("RC4"),
+        "BC-2.07.010 postcondition 1: evidence must contain readable cipher name; got: {:?}",
+        f.evidence[0]
+    );
+    // The hex ID in evidence should be lowercase (BC-2.07.036 hex format).
+    assert!(
+        f.evidence[0].contains("0x0005"),
+        "BC-2.07.010 postcondition 1: evidence must contain hex ID '0x0005'; got: {:?}",
+        f.evidence[0]
+    );
+
+    // BC-2.07.010 postcondition 1: mitre_technique = None
+    assert_eq!(
+        f.mitre_technique, None,
+        "BC-2.07.010 postcondition 1: mitre_technique must be None"
+    );
+
+    // BC-2.07.010 postcondition 1 / invariant 2: direction = ServerToClient
+    assert_eq!(
+        f.direction,
+        Some(wirerust::reassembly::handler::Direction::ServerToClient),
+        "BC-2.07.010 invariant 2: direction must be ServerToClient (not ClientToServer)"
+    );
+
+    // ── AC-005 / BC-2.07.010 invariant 1: RC4 does NOT trigger is_weak_cipher (client-side) ──
+    // A ClientHello offering ONLY 0x0005 (RC4) must NOT produce a client-side weak-cipher finding,
+    // because is_weak_cipher checks for NULL/ANON/EXPORT but NOT RC4.
+    let mut analyzer_rc4_client = TlsAnalyzer::new();
+    // Note: 0x0005 = TLS_RSA_WITH_RC4_128_SHA. Its name contains RC4 but not NULL/ANON/EXPORT.
+    // So is_weak_cipher returns false → no client-side finding.
+    let ch_rc4 = build_client_hello("test.com", &[0x0005, 0x1301]);
+    analyzer_rc4_client.on_data(&fk, Direction::ClientToServer, &ch_rc4, 0);
+
+    let client_findings = analyzer_rc4_client.findings();
+    let client_weak: Vec<_> = client_findings
+        .iter()
+        .filter(|f| f.summary.contains("ClientHello offers weak cipher"))
+        .collect();
+    assert_eq!(
+        client_weak.len(),
+        0,
+        "BC-2.07.010 invariant 1: RC4 cipher 0x0005 must NOT trigger client-side is_weak_cipher \
+         (RC4 not in NULL/ANON/EXPORT set); is_weak_server_cipher is strict superset"
+    );
 }
 
+// ── BC-2.07.030 ──────────────────────────────────────────────────────────────
+// AC-003 (BC-2.07.009 invariant 1-2, extends to BC-2.07.030 postconditions 1-4):
+//   modern strong TLS handshake produces zero findings; all counters increment.
+// AC-011 (BC-2.07.030 postconditions 1-4): all_findings empty after both hellos;
+//   handshakes_seen==1; all count maps have exactly one entry each; parse_errors==0.
 #[test]
 fn test_normal_handshake_no_findings() {
+    // AC-003 / AC-011 / BC-2.07.030 postconditions 1-4:
+    // Clean ASCII SNI, version > 0x0300, no weak ciphers → zero findings.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
+    // ClientHello: TLS 1.2/1.3 legacy_version 0x0303, strong ciphers only.
     let ch = build_client_hello("example.com", &[0x1301, 0x1303]);
     analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
 
+    // ServerHello: strong cipher TLS_AES_128_GCM_SHA256 (0x1301), no weak cipher.
     let sh = build_server_hello(0x1301);
     analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
 
-    assert!(analyzer.findings().is_empty());
-    assert_eq!(analyzer.parse_error_count(), 0);
+    // BC-2.07.030 postcondition 1: all_findings must be empty (zero false positives).
+    assert!(
+        analyzer.findings().is_empty(),
+        "BC-2.07.030 postcondition 1: all_findings must be empty after a clean modern \
+         TLS handshake; got: {:?}",
+        analyzer.findings()
+    );
+
+    // BC-2.07.030 postcondition 2: handshakes_seen == 1.
+    assert_eq!(
+        analyzer.handshake_count(),
+        1,
+        "BC-2.07.030 postcondition 2: handshakes_seen must be exactly 1"
+    );
+
+    // BC-2.07.030 postcondition 4: parse_errors == 0.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "BC-2.07.030 postcondition 4: parse_errors must be 0 for well-formed handshake"
+    );
+
+    // BC-2.07.030 postcondition 3: all count maps have exactly one entry each.
+    assert_eq!(
+        analyzer.sni_counts().len(),
+        1,
+        "BC-2.07.030 postcondition 3: sni_counts must have exactly one entry"
+    );
+    assert_eq!(
+        analyzer.ja3_counts().len(),
+        1,
+        "BC-2.07.030 postcondition 3: ja3_counts must have exactly one entry"
+    );
+    assert_eq!(
+        analyzer.ja3s_counts().len(),
+        1,
+        "BC-2.07.030 postcondition 3: ja3s_counts must have exactly one entry"
+    );
+    // version_counts: ClientHello inserts 0x0303; ServerHello inserts 0x0303 again → still one key.
+    assert_eq!(
+        analyzer.version_counts().len(),
+        1,
+        "BC-2.07.030 postcondition 3: version_counts must have exactly one entry (0x0303)"
+    );
 }
 
 #[test]
@@ -4620,5 +4889,585 @@ fn test_BC_2_07_016_ec003_nul_byte_is_c0_start_trips_arm2() {
         f.mitre_technique.as_deref(),
         Some("T1027"),
         "BC-2.07.016 EC-003: NUL-byte finding must be T1027"
+    );
+}
+
+// ── STORY-054 Brownfield-Formalization Tests (BC-2.07.009/010/011/012/030/036) ──
+//
+// New tests covering AC-007..AC-013. AC-001..006 are handled by the strengthened
+// tests above (test_weak_cipher_finding_client, test_weak_cipher_finding_server,
+// test_normal_handshake_no_findings) plus test_ssl30_pcap_generates_findings in
+// tls_integration_tests.rs.
+
+/// Build a minimal TLS ClientHello whose ClientHello version field is set to `version`
+/// (not the record-layer version). The SNI is "test.com" and ciphers are caller-supplied.
+/// Used for deprecated-protocol tests that need to exercise version <= 0x0300.
+///
+/// Note: The record-layer version is always 0x0301 (TLS 1.0 record framing); only the
+/// ClientHello body's 2-byte version field is overridden. This is what tls_parser reads
+/// as `ch.version`.
+fn build_client_hello_with_body_version(body_version: u16, cipher_ids: &[u16]) -> Vec<u8> {
+    let mut extensions = Vec::new();
+
+    // SNI extension (type 0x0000) — "test.com"
+    let hostname = b"test.com";
+    let name_len = u16::try_from(hostname.len()).unwrap();
+    let sni_list_len: u16 = name_len + 3; // 1 byte type + 2 bytes name len
+    let sni_ext_len: u16 = sni_list_len + 2; // 2 bytes list len
+    extensions.extend_from_slice(&[0x00, 0x00]); // extension type: server_name
+    extensions.extend_from_slice(&sni_ext_len.to_be_bytes());
+    extensions.extend_from_slice(&sni_list_len.to_be_bytes());
+    extensions.push(0x00); // NameType host_name
+    extensions.extend_from_slice(&name_len.to_be_bytes());
+    extensions.extend_from_slice(hostname);
+
+    let mut ch_body = Vec::new();
+    ch_body.extend_from_slice(&body_version.to_be_bytes()); // ClientHello version (overridden)
+    ch_body.extend_from_slice(&[0u8; 32]); // random
+    ch_body.push(0x00); // session_id length: 0
+
+    let ciphers_len = u16::try_from(cipher_ids.len() * 2).expect("cipher list too long");
+    ch_body.extend_from_slice(&ciphers_len.to_be_bytes());
+    for &id in cipher_ids {
+        ch_body.extend_from_slice(&id.to_be_bytes());
+    }
+
+    ch_body.push(0x01); // compression methods length
+    ch_body.push(0x00); // null compression
+
+    let ext_len = u16::try_from(extensions.len()).expect("extensions too long");
+    ch_body.extend_from_slice(&ext_len.to_be_bytes());
+    ch_body.extend_from_slice(&extensions);
+
+    let mut handshake = Vec::new();
+    handshake.push(0x01); // ClientHello
+    let ch_len = ch_body.len() as u32;
+    handshake.push((ch_len >> 16) as u8);
+    handshake.push((ch_len >> 8) as u8);
+    handshake.push(ch_len as u8);
+    handshake.extend_from_slice(&ch_body);
+
+    let mut record = Vec::new();
+    record.push(0x16); // handshake record type
+    record.extend_from_slice(&[0x03, 0x01]); // record-layer version (TLS 1.0 framing)
+    let hs_len = u16::try_from(handshake.len()).expect("handshake too long");
+    record.extend_from_slice(&hs_len.to_be_bytes());
+    record.extend_from_slice(&handshake);
+    record
+}
+
+/// Build a minimal TLS ServerHello with an explicit version field.
+/// Used for deprecated-protocol tests (BC-2.07.012) that need version <= 0x0300.
+fn build_server_hello_with_version(body_version: u16, cipher_id: u16) -> Vec<u8> {
+    // Extensions: just renegotiation_info (0xff01) with empty data.
+    let mut extensions = Vec::new();
+    extensions.extend_from_slice(&[0xff, 0x01]); // renegotiation_info
+    extensions.extend_from_slice(&[0x00, 0x01]); // data length
+    extensions.push(0x00); // empty renegotiation info
+
+    let mut sh_body = Vec::new();
+    sh_body.extend_from_slice(&body_version.to_be_bytes()); // ServerHello version (overridden)
+    sh_body.extend_from_slice(&[0u8; 32]); // random
+    sh_body.push(0x00); // session_id length: 0
+    sh_body.extend_from_slice(&cipher_id.to_be_bytes());
+    sh_body.push(0x00); // compression: null
+
+    let ext_len = u16::try_from(extensions.len()).unwrap();
+    sh_body.extend_from_slice(&ext_len.to_be_bytes());
+    sh_body.extend_from_slice(&extensions);
+
+    let mut handshake = Vec::new();
+    handshake.push(0x02); // ServerHello
+    let sh_len = sh_body.len() as u32;
+    handshake.push((sh_len >> 16) as u8);
+    handshake.push((sh_len >> 8) as u8);
+    handshake.push(sh_len as u8);
+    handshake.extend_from_slice(&sh_body);
+
+    let mut record = Vec::new();
+    record.push(0x16);
+    record.extend_from_slice(&[0x03, 0x01]); // record-layer version
+    let hs_len = u16::try_from(handshake.len()).unwrap();
+    record.extend_from_slice(&hs_len.to_be_bytes());
+    record.extend_from_slice(&handshake);
+    record
+}
+
+// ── BC-2.07.011 ──────────────────────────────────────────────────────────────
+// AC-007 (BC-2.07.011 invariant 1-2): TLS 1.0 (0x0301) does NOT trigger the
+//   deprecated-protocol finding; threshold is strictly <= 0x0300. Summary always
+//   contains "RFC 7568".
+//
+// Chosen test name (reported for AC citation-sync): test_client_tls10_no_deprecated_finding
+#[test]
+fn test_client_tls10_no_deprecated_finding() {
+    // AC-007 / BC-2.07.011 invariant 1: version 0x0301 (TLS 1.0) is above the threshold.
+    // The deprecated-protocol check is strictly `version <= 0x0300`; 0x0301 must NOT fire.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // ClientHello with version 0x0301 (TLS 1.0), strong cipher.
+    let record = build_client_hello_with_body_version(0x0301, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    // BC-2.07.011 invariant 1: 0x0301 must NOT produce a deprecated-protocol finding.
+    let deprecated_findings: Vec<_> = analyzer
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("deprecated protocol"))
+        .collect();
+    assert_eq!(
+        deprecated_findings.len(),
+        0,
+        "BC-2.07.011 invariant 1: TLS 1.0 (0x0301) must NOT trigger deprecated-protocol finding \
+         (threshold is strictly <= 0x0300); got: {:?}",
+        deprecated_findings
+    );
+
+    // BC-2.07.011 invariant 2: when a deprecated-protocol finding IS produced (e.g. 0x0300),
+    // its summary must contain "RFC 7568". We verify this on a 0x0300 ClientHello.
+    let mut analyzer_ssl30 = TlsAnalyzer::new();
+    let ssl30_record = build_client_hello_with_body_version(0x0300, &[0x1301]);
+    analyzer_ssl30.on_data(&fk, Direction::ClientToServer, &ssl30_record, 0);
+
+    let ssl30_findings: Vec<_> = analyzer_ssl30
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("deprecated protocol"))
+        .collect();
+    assert_eq!(
+        ssl30_findings.len(),
+        1,
+        "BC-2.07.011 invariant 2 setup: SSL 3.0 (0x0300) must produce one deprecated-protocol \
+         finding (confirms threshold boundary)"
+    );
+    assert!(
+        ssl30_findings[0].summary.contains("RFC 7568"),
+        "BC-2.07.011 invariant 2: deprecated-protocol summary must contain 'RFC 7568' as normative \
+         reference; got: {:?}",
+        ssl30_findings[0].summary
+    );
+}
+
+// ── BC-2.07.011 invariant 3 ───────────────────────────────────────────────────
+// AC-008 (BC-2.07.011 invariant 3): both deprecated-protocol AND weak-cipher findings
+//   fire independently from the same SSL 3.0 ClientHello with a weak cipher.
+//
+// Chosen test name: test_ssl30_client_weak_cipher_both_findings
+#[test]
+fn test_ssl30_client_weak_cipher_both_findings() {
+    // AC-008 / BC-2.07.011 invariant 3: two findings from one ClientHello (both conditions met).
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // SSL 3.0 ClientHello (version 0x0300) with a NULL weak cipher (0x0002).
+    let record = build_client_hello_with_body_version(0x0300, &[0x0002, 0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    let findings = analyzer.findings();
+
+    // BC-2.07.011 invariant 3: both findings must appear independently — at least 2.
+    assert!(
+        findings.len() >= 2,
+        "BC-2.07.011 invariant 3: SSL 3.0 ClientHello with weak cipher must produce \
+         at least 2 findings (deprecated-protocol AND weak-cipher); got: {}",
+        findings.len()
+    );
+
+    // One deprecated-protocol finding.
+    let deprecated_count = findings
+        .iter()
+        .filter(|f| f.summary.contains("deprecated protocol"))
+        .count();
+    assert_eq!(
+        deprecated_count, 1,
+        "BC-2.07.011 invariant 3: must have exactly one deprecated-protocol finding \
+         from SSL 3.0 ClientHello"
+    );
+
+    // One weak-cipher finding.
+    let weak_count = findings
+        .iter()
+        .filter(|f| f.summary.contains("weak cipher"))
+        .count();
+    assert_eq!(
+        weak_count, 1,
+        "BC-2.07.011 invariant 3: must have exactly one weak-cipher finding \
+         from SSL 3.0 ClientHello with NULL cipher"
+    );
+}
+
+// ── BC-2.07.012 ──────────────────────────────────────────────────────────────
+// AC-009 (BC-2.07.012 postconditions 1-2): ServerHello version 0x0300 → one
+//   Anomaly/Likely/High finding with exact summary/evidence/direction=ServerToClient.
+//
+// Chosen test name: test_server_ssl30_deprecated_finding
+#[test]
+fn test_server_ssl30_deprecated_finding() {
+    // AC-009 / BC-2.07.012 postconditions 1-2: SSL 3.0 ServerHello → exact finding fields.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // ClientHello first to open the flow (modern TLS — no client-side findings).
+    let ch = build_client_hello("test.com", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+
+    // ServerHello with version 0x0300 (SSL 3.0) and a strong cipher (no server-cipher finding).
+    // Use TLS_AES_128_GCM_SHA256 (0x1301) as the selected cipher so only the version fires.
+    let sh = build_server_hello_with_version(0x0300, 0x1301);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+
+    let findings = analyzer.findings();
+
+    // BC-2.07.012 postcondition 1: exactly one finding.
+    let deprecated_findings: Vec<_> = findings
+        .iter()
+        .filter(|f| f.summary.contains("deprecated protocol"))
+        .collect();
+    assert_eq!(
+        deprecated_findings.len(),
+        1,
+        "BC-2.07.012 postcondition 1: ServerHello version 0x0300 must produce exactly one \
+         deprecated-protocol finding; got: {:?}",
+        findings
+    );
+
+    let f = deprecated_findings[0];
+
+    // BC-2.07.012 postcondition 1: category = Anomaly
+    assert_eq!(
+        f.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "BC-2.07.012 postcondition 1: category must be Anomaly"
+    );
+
+    // BC-2.07.012 postcondition 1: verdict = Likely
+    assert_eq!(
+        f.verdict,
+        wirerust::findings::Verdict::Likely,
+        "BC-2.07.012 postcondition 1: verdict must be Likely"
+    );
+
+    // BC-2.07.012 postcondition 1: confidence = High (server deprecated version = High)
+    assert_eq!(
+        f.confidence,
+        wirerust::findings::Confidence::High,
+        "BC-2.07.012 postcondition 1: confidence must be High for server deprecated protocol"
+    );
+
+    // BC-2.07.012 postcondition 1: summary contains "negotiated" (not "uses") and "RFC 7568".
+    assert!(
+        f.summary.contains("negotiated"),
+        "BC-2.07.012 postcondition 1: server summary must use 'negotiated' (server finalizes \
+         version); got: {:?}",
+        f.summary
+    );
+    assert!(
+        f.summary.contains("SSL 3.0"),
+        "BC-2.07.012 postcondition 1: summary must name 'SSL 3.0' (version_name for 0x0300); \
+         got: {:?}",
+        f.summary
+    );
+    assert!(
+        f.summary.contains("RFC 7568"),
+        "BC-2.07.012 postcondition 1: summary must contain 'RFC 7568'; got: {:?}",
+        f.summary
+    );
+
+    // BC-2.07.012 postcondition 1: evidence = ["Version: 0x0300 (SSL 3.0)"]
+    assert_eq!(
+        f.evidence.len(),
+        1,
+        "BC-2.07.012 postcondition 1: evidence must have exactly one entry"
+    );
+    assert_eq!(
+        f.evidence[0], "Version: 0x0300 (SSL 3.0)",
+        "BC-2.07.012 postcondition 1: evidence must be exact canonical string \
+         'Version: 0x0300 (SSL 3.0)'; got: {:?}",
+        f.evidence[0]
+    );
+
+    // BC-2.07.012 postcondition 1: mitre_technique = None
+    assert_eq!(
+        f.mitre_technique, None,
+        "BC-2.07.012 postcondition 1: mitre_technique must be None"
+    );
+
+    // BC-2.07.012 postcondition 1 / invariant 2: direction = ServerToClient
+    assert_eq!(
+        f.direction,
+        Some(wirerust::reassembly::handler::Direction::ServerToClient),
+        "BC-2.07.012 invariant 2: direction must be ServerToClient"
+    );
+
+    // BC-2.07.012 invariant 1: TLS 1.0 (0x0301) server must NOT trigger.
+    let mut analyzer_tls10 = TlsAnalyzer::new();
+    let ch2 = build_client_hello("test.com", &[0x1301]);
+    analyzer_tls10.on_data(&fk, Direction::ClientToServer, &ch2, 0);
+    let sh_tls10 = build_server_hello_with_version(0x0301, 0x1301);
+    analyzer_tls10.on_data(&fk, Direction::ServerToClient, &sh_tls10, 0);
+    let tls10_deprecated: Vec<_> = analyzer_tls10
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("deprecated protocol"))
+        .collect();
+    assert_eq!(
+        tls10_deprecated.len(),
+        0,
+        "BC-2.07.012 invariant 1: TLS 1.0 (0x0301) ServerHello must NOT trigger \
+         deprecated-protocol finding (threshold strictly <= 0x0300)"
+    );
+}
+
+// ── BC-2.07.012 invariant 3 ───────────────────────────────────────────────────
+// AC-010 (BC-2.07.012 invariant 1-2): both SSL 3.0 ClientHello AND SSL 3.0 ServerHello
+//   produce two separate deprecated findings with distinct directions.
+//
+// Chosen test name: test_client_and_server_ssl30_distinct_directions
+#[test]
+fn test_client_and_server_ssl30_distinct_directions() {
+    // AC-010 / BC-2.07.012 invariant 2-3: both hellos at SSL 3.0 → two findings,
+    // one ClientToServer and one ServerToClient.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // SSL 3.0 ClientHello with strong cipher (only version fires, no weak-cipher finding).
+    let ch = build_client_hello_with_body_version(0x0300, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+
+    // SSL 3.0 ServerHello with strong cipher.
+    let sh = build_server_hello_with_version(0x0300, 0x1301);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+
+    let findings = analyzer.findings();
+
+    // Exactly two deprecated-protocol findings (one from each hello).
+    let deprecated: Vec<_> = findings
+        .iter()
+        .filter(|f| f.summary.contains("deprecated protocol"))
+        .collect();
+    assert_eq!(
+        deprecated.len(),
+        2,
+        "BC-2.07.012 invariant 3: SSL 3.0 ClientHello + SSL 3.0 ServerHello must produce \
+         exactly two deprecated-protocol findings; got: {:?}",
+        findings
+    );
+
+    // One must have direction ClientToServer (client-side BC-2.07.011).
+    let client_deprecated = deprecated
+        .iter()
+        .filter(|f| f.direction == Some(wirerust::reassembly::handler::Direction::ClientToServer))
+        .count();
+    assert_eq!(
+        client_deprecated, 1,
+        "BC-2.07.012 invariant 2: one deprecated-protocol finding must have direction \
+         ClientToServer (from ClientHello)"
+    );
+
+    // One must have direction ServerToClient (server-side BC-2.07.012).
+    let server_deprecated = deprecated
+        .iter()
+        .filter(|f| f.direction == Some(wirerust::reassembly::handler::Direction::ServerToClient))
+        .count();
+    assert_eq!(
+        server_deprecated, 1,
+        "BC-2.07.012 invariant 2: one deprecated-protocol finding must have direction \
+         ServerToClient (from ServerHello)"
+    );
+
+    // Both findings must have the same summary root but their direction distinguishes them.
+    assert!(
+        deprecated
+            .iter()
+            .any(|f| f.summary.contains("ClientHello uses deprecated")),
+        "BC-2.07.012 invariant 2: one finding must say 'ClientHello uses deprecated'; \
+         got summaries: {:?}",
+        deprecated.iter().map(|f| &f.summary).collect::<Vec<_>>()
+    );
+    assert!(
+        deprecated
+            .iter()
+            .any(|f| f.summary.contains("ServerHello negotiated deprecated")),
+        "BC-2.07.012 invariant 2: one finding must say 'ServerHello negotiated deprecated'; \
+         got summaries: {:?}",
+        deprecated.iter().map(|f| &f.summary).collect::<Vec<_>>()
+    );
+}
+
+// ── BC-2.07.036 ──────────────────────────────────────────────────────────────
+// AC-012 (BC-2.07.036 postconditions 1-2): unknown cipher ID 0x1234 → "0x1234"
+//   (6-char lowercase string with 0x prefix and 4 hex digits).
+//
+// Chosen test name: test_cipher_name_unknown_hex_lowercase
+#[test]
+fn test_cipher_name_unknown_hex_lowercase() {
+    // AC-012 / BC-2.07.036 postcondition 1: cipher_name(0x1234) → "0x1234".
+    // Exercised via cipher_counts (accessible through summarize().detail["cipher_suites"]).
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // ClientHello first.
+    let ch = build_client_hello("test.com", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+
+    // ServerHello with cipher ID 0x1234 — unrecognized by tls_parser.
+    let sh = build_server_hello(0x1234);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+
+    // Positive-parse anchor: the record itself must parse cleanly.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-012 anchor: ServerHello with unknown cipher 0x1234 must not cause a parse error"
+    );
+
+    // BC-2.07.036 postcondition 1: cipher_name(0x1234) must return "0x1234"
+    // (6-character lowercase hex string). Verified via cipher_counts map key.
+    let detail = analyzer.summarize().detail;
+    let cipher_suites = detail
+        .get("cipher_suites")
+        .expect("cipher_suites key must be present in summary detail");
+
+    assert!(
+        cipher_suites.get("0x1234").is_some(),
+        "BC-2.07.036 postcondition 1: cipher_counts must contain key '0x1234' \
+         for unrecognized cipher ID 0x1234; got cipher_suites: {cipher_suites}"
+    );
+
+    // BC-2.07.036 postcondition 1: format is "0x" prefix + 4 lowercase hex digits = 6 chars.
+    let key = "0x1234";
+    assert_eq!(
+        key.len(),
+        6,
+        "BC-2.07.036 postcondition 1: hex fallback must be 6 chars"
+    );
+    assert!(
+        key.starts_with("0x"),
+        "BC-2.07.036 postcondition 1: hex fallback must start with '0x'"
+    );
+    assert!(
+        key[2..]
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()),
+        "BC-2.07.036 postcondition 1: hex digits must be lowercase; got: {key}"
+    );
+
+    // EC-004 / BC-2.07.010 EC-004: no weak-cipher finding for unknown cipher
+    // (is_weak_server_cipher → false when from_id returns None).
+    let weak_findings: Vec<_> = analyzer
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("weak cipher"))
+        .collect();
+    assert_eq!(
+        weak_findings.len(),
+        0,
+        "BC-2.07.010 EC-004 / BC-2.07.036 postcondition 2: unknown cipher 0x1234 must not \
+         trigger weak-server-cipher finding (from_id returns None → is_weak_server_cipher false)"
+    );
+
+    // EC-009 / BC-2.07.036 invariant 1: 0xAAAA must render as "0xaaaa" (lowercase, not "0xAAAA").
+    let mut analyzer_aaaa = TlsAnalyzer::new();
+    let ch2 = build_client_hello("test.com", &[0x1301]);
+    analyzer_aaaa.on_data(&fk, Direction::ClientToServer, &ch2, 0);
+    let sh_aaaa = build_server_hello(0xAAAA);
+    analyzer_aaaa.on_data(&fk, Direction::ServerToClient, &sh_aaaa, 0);
+
+    let detail_aaaa = analyzer_aaaa.summarize().detail;
+    let suites_aaaa = detail_aaaa
+        .get("cipher_suites")
+        .expect("cipher_suites must be present");
+    assert!(
+        suites_aaaa.get("0xaaaa").is_some(),
+        "BC-2.07.036 EC-009: cipher 0xAAAA must be keyed as '0xaaaa' (lowercase); \
+         got cipher_suites: {suites_aaaa}"
+    );
+    assert!(
+        suites_aaaa.get("0xAAAA").is_none(),
+        "BC-2.07.036 EC-009: '0xAAAA' (uppercase) must NOT be a key; \
+         format is strictly lowercase"
+    );
+}
+
+// ── BC-2.07.036 invariants 1-3 ────────────────────────────────────────────────
+// AC-013 (BC-2.07.036 invariant 1-2): recognized cipher IDs return IANA name
+//   (no "0x" prefix); ID 0xFFFF returns "0xffff" (lowercase).
+//
+// Chosen test name: test_cipher_name_recognized_and_ffff
+#[test]
+fn test_cipher_name_recognized_and_ffff() {
+    // AC-013 / BC-2.07.036 invariant 2: recognized cipher → IANA name (no "0x" prefix).
+    // Use TLS_AES_128_GCM_SHA256 (0x1301) — recognized by tls_parser.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let ch = build_client_hello("test.com", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+
+    let sh = build_server_hello(0x1301);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+
+    // BC-2.07.036 invariant 2: recognized cipher appears as IANA name without "0x" prefix.
+    let detail = analyzer.summarize().detail;
+    let cipher_suites = detail
+        .get("cipher_suites")
+        .expect("cipher_suites key must be in summary detail");
+
+    assert!(
+        cipher_suites.get("TLS_AES_128_GCM_SHA256").is_some(),
+        "BC-2.07.036 invariant 2: cipher 0x1301 must be keyed as 'TLS_AES_128_GCM_SHA256' \
+         (IANA name, no '0x' prefix); got cipher_suites: {cipher_suites}"
+    );
+    assert_eq!(
+        cipher_suites
+            .get("TLS_AES_128_GCM_SHA256")
+            .and_then(|v| v.as_u64()),
+        Some(1),
+        "BC-2.07.036 invariant 2: TLS_AES_128_GCM_SHA256 must have count 1"
+    );
+
+    // AC-013 / BC-2.07.036 invariant 3: ID 0xFFFF is unrecognized → "0xffff" (lowercase).
+    let mut analyzer_ffff = TlsAnalyzer::new();
+    let ch2 = build_client_hello("test.com", &[0x1301]);
+    analyzer_ffff.on_data(&fk, Direction::ClientToServer, &ch2, 0);
+
+    let sh_ffff = build_server_hello(0xFFFF);
+    analyzer_ffff.on_data(&fk, Direction::ServerToClient, &sh_ffff, 0);
+
+    let detail_ffff = analyzer_ffff.summarize().detail;
+    let suites_ffff = detail_ffff
+        .get("cipher_suites")
+        .expect("cipher_suites key must be present");
+
+    assert!(
+        suites_ffff.get("0xffff").is_some(),
+        "BC-2.07.036 invariant 3: cipher 0xFFFF must be keyed as '0xffff' (lowercase); \
+         got cipher_suites: {suites_ffff}"
+    );
+    assert_eq!(
+        suites_ffff.get("0xffff").and_then(|v| v.as_u64()),
+        Some(1),
+        "BC-2.07.036 invariant 3: '0xffff' must have count 1"
+    );
+
+    // EC-001 / BC-2.07.036 EC-001: ID 0x0000 (TLS_NULL_WITH_NULL_NULL) IS recognized
+    // and must appear as name "TLS_NULL_WITH_NULL_NULL", not "0x0000".
+    let mut analyzer_null = TlsAnalyzer::new();
+    let ch3 = build_client_hello("test.com", &[0x1301]);
+    analyzer_null.on_data(&fk, Direction::ClientToServer, &ch3, 0);
+
+    let sh_null = build_server_hello(0x0000);
+    analyzer_null.on_data(&fk, Direction::ServerToClient, &sh_null, 0);
+
+    let detail_null = analyzer_null.summarize().detail;
+    let suites_null = detail_null
+        .get("cipher_suites")
+        .expect("cipher_suites key must be present");
+
+    assert!(
+        suites_null.get("TLS_NULL_WITH_NULL_NULL").is_some(),
+        "BC-2.07.036 EC-001: cipher 0x0000 must be keyed as 'TLS_NULL_WITH_NULL_NULL' \
+         (recognized IANA name, no '0x' prefix); got cipher_suites: {suites_null}"
     );
 }

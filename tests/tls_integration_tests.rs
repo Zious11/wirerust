@@ -92,32 +92,107 @@ fn test_tls13_pcap_version_and_ja3() {
     assert!(tls.findings().is_empty());
 }
 
+// STORY-054 Brownfield-Formalization — Integration test strengthening
+// AC-006 (BC-2.07.011 postconditions 1-2): full pipeline with real SSL 3.0 PCAP.
 #[test]
 fn test_ssl30_pcap_generates_findings() {
+    // AC-006 / BC-2.07.011 postconditions 1-2: full pipeline produces findings for
+    // SSL 3.0 deprecated protocol and weak export ciphers.
     let tls = analyze_pcap("tests/fixtures/tls.pcap");
 
-    // SSL 3.0 (version 0x0300 = 768) should be detected
-    assert!(tls.version_counts().contains_key(&0x0300));
+    // BC-2.07.011 precondition: SSL 3.0 (0x0300 = 768) is present in the capture.
+    assert!(
+        tls.version_counts().contains_key(&0x0300),
+        "AC-006 precondition (BC-2.07.011 pc2): version_counts must contain SSL 3.0 (0x0300)"
+    );
 
-    // Should generate findings for deprecated protocol AND weak ciphers
     let findings = tls.findings();
+
+    // BC-2.07.011 postcondition 1: at least one finding was generated.
     assert!(
         !findings.is_empty(),
-        "SSL 3.0 traffic should generate security findings"
+        "AC-006 (BC-2.07.011 pc1): SSL 3.0 traffic must generate security findings"
     );
 
-    // At least one finding about deprecated protocol
+    // BC-2.07.011 postcondition 1: at least one deprecated-protocol finding.
+    let deprecated_findings: Vec<_> = findings
+        .iter()
+        .filter(|f| f.summary.contains("deprecated protocol"))
+        .collect();
     assert!(
-        findings
-            .iter()
-            .any(|f| f.summary.contains("deprecated protocol")),
-        "Should flag SSL 3.0 as deprecated"
+        !deprecated_findings.is_empty(),
+        "AC-006 (BC-2.07.011 pc1): SSL 3.0 PCAP must produce at least one \
+         deprecated-protocol finding; got findings: {:?}",
+        findings.iter().map(|f| &f.summary).collect::<Vec<_>>()
     );
 
-    // At least one finding about weak ciphers (export ciphers in this capture)
+    // BC-2.07.011 postcondition 1: the deprecated-protocol finding has correct fields.
+    let dep = deprecated_findings[0];
+    assert_eq!(
+        dep.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "AC-006 (BC-2.07.011 pc1): deprecated-protocol finding must be Anomaly"
+    );
+    assert_eq!(
+        dep.verdict,
+        wirerust::findings::Verdict::Likely,
+        "AC-006 (BC-2.07.011 pc1): deprecated-protocol finding must be Likely"
+    );
+    assert_eq!(
+        dep.confidence,
+        wirerust::findings::Confidence::High,
+        "AC-006 (BC-2.07.011 pc1): deprecated-protocol finding must be High confidence"
+    );
     assert!(
-        findings.iter().any(|f| f.summary.contains("weak cipher")),
-        "Should flag export cipher suites"
+        dep.summary.contains("RFC 7568"),
+        "AC-006 (BC-2.07.011 invariant 2): summary must contain 'RFC 7568'; got: {:?}",
+        dep.summary
+    );
+    assert!(
+        dep.summary.contains("SSL 3.0"),
+        "AC-006 (BC-2.07.011 pc2): summary must name 'SSL 3.0' for version 0x0300; \
+         got: {:?}",
+        dep.summary
+    );
+    assert_eq!(
+        dep.mitre_technique, None,
+        "AC-006 (BC-2.07.011 pc1): mitre_technique must be None"
+    );
+
+    // BC-2.07.009 postcondition 1: at least one weak-cipher finding (export ciphers in capture).
+    let weak_findings: Vec<_> = findings
+        .iter()
+        .filter(|f| f.summary.contains("weak cipher"))
+        .collect();
+    assert!(
+        !weak_findings.is_empty(),
+        "AC-006 (BC-2.07.009 pc1): SSL 3.0 PCAP with export ciphers must produce at least one \
+         weak-cipher finding; got findings: {:?}",
+        findings.iter().map(|f| &f.summary).collect::<Vec<_>>()
+    );
+
+    // BC-2.07.009 postcondition 1: the weak-cipher finding has correct fields.
+    let wk = weak_findings[0];
+    assert_eq!(
+        wk.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "AC-006 (BC-2.07.009 pc1): weak-cipher finding must be Anomaly"
+    );
+    assert_eq!(
+        wk.confidence,
+        wirerust::findings::Confidence::High,
+        "AC-006 (BC-2.07.009 pc1): client weak-cipher finding must be High confidence"
+    );
+    assert_eq!(
+        wk.mitre_technique, None,
+        "AC-006 (BC-2.07.009 pc1): weak-cipher finding must have mitre_technique=None"
+    );
+    // BC-2.07.009 postcondition 1 (INV-4): evidence contains readable cipher names (not hex).
+    assert!(
+        wk.evidence.iter().any(|e| !e.starts_with("0x")),
+        "AC-006 (BC-2.07.009 pc1 / INV-4): weak-cipher evidence must contain readable \
+         cipher names (not hex IDs); got evidence: {:?}",
+        wk.evidence
     );
 }
 
