@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: F-W16-WAVE-P1-001 — update Verification Properties + Architecture Anchors to renamed STORY-043 formalization tests (test_BC_2_06_011_detect_empty_user_agent, test_BC_2_06_011_missing_user_agent_no_finding); Evidence Types legacy citations intentionally preserved — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -80,8 +81,8 @@ is routine for cron jobs and microservices. No MITRE technique ID is assigned.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Empty UA emits Anomaly/Inconclusive/Low | unit: test_detect_empty_user_agent |
-| — | Absent UA emits no finding | unit: test_missing_user_agent_no_finding |
+| — | Empty UA emits Anomaly/Inconclusive/Low | unit: test_BC_2_06_011_detect_empty_user_agent |
+| — | Absent UA emits no finding | unit: test_BC_2_06_011_missing_user_agent_no_finding |
 
 ## Traceability
 
@@ -102,7 +103,7 @@ is routine for cron jobs and microservices. No MITRE technique ID is assigned.
 
 - `src/analyzer/http.rs:344-356` -- empty UA detection block
 - `src/analyzer/http.rs:319-343` -- source comments with Kheir 2015 rationale
-- `tests/http_analyzer_tests.rs` -- test_detect_empty_user_agent, test_missing_user_agent_no_finding
+- `tests/http_analyzer_tests.rs` -- test_BC_2_06_011_detect_empty_user_agent, test_BC_2_06_011_missing_user_agent_no_finding (in mod bc_2_06_043_formalization)
 
 ## Source Evidence
 

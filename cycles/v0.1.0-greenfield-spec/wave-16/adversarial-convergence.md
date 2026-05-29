@@ -218,3 +218,75 @@ final burst at wave-close (after STORY-042/043/044 achieve their 3-clean streaks
 
 Per DF-VALIDATION-001: none are filed as GitHub issues without research-agent validation.
 These are doc-only anchor precision items riding per the Pass-5+ LOW-nits-ride policy.
+
+---
+
+## Per-Story Convergence Summary (all 4 ACHIEVED — 2026-05-28)
+
+| Story | Convergence Passes | Gate Status | develop PR |
+|-------|-------------------|-------------|-----------|
+| STORY-052 | P3, P4, P5 (3-clean streak) | **BC-5.39.001 ACHIEVED** | PR #141 (80efb79) |
+| STORY-042 | P4, P5, P6 (3-clean streak) | **BC-5.39.001 ACHIEVED** | PR #140 (ca5ea1c) |
+| STORY-043 | P4, P5, P6 (3-clean streak) | **BC-5.39.001 ACHIEVED** | PR #142 (7eef78d) |
+| STORY-044 | P5, P6, P7 (3-clean streak) | **BC-5.39.001 ACHIEVED** | PR #143 (0352aba) |
+
+All 4 per-story convergence gates SATISFIED. BC-5.39.001 per-story ACHIEVED for wave 16.
+Wave-level adversarial review phase begins (3-lens: traceability, integration, consistency).
+
+---
+
+## Wave-Level Pass-1 (2026-05-28)
+
+**develop HEAD at pass:** fa17dec (PR #146 — STORY-043 test rename merged; toolchain green: cargo test/clippy/fmt all pass; diff=test-only + seam at session start)
+
+### Lens A: Traceability Review
+
+| Scope | Verdict | Findings |
+|-------|---------|----------|
+| All wave-16 BC anchors vs source | CLEAN | 0 findings |
+| STORY-042/043/044/052 FSR tables | CLEAN | 0 findings |
+| AC↔test-name sync (DF-AC-TEST-NAME-SYNC-001 v1) | CLEAN | 0 — post-remediation baseline |
+
+**Lens A verdict: CLEAN**
+
+### Lens B: Integration Review
+
+| Scope | Verdict | Findings | Notes |
+|-------|---------|----------|-------|
+| Cross-story BC interactions (SS-06/SS-07) | CLEAN (substantive) | 0 substantive | Read-only adversary profile could not run `cargo` toolchain; orchestrator independently verified at session start: cargo test/clippy/fmt all green; diff=test-only+seam |
+| Wave-16 PR diff scope | CLEAN | 0 — test-only + additive seams | Production behavior unchanged |
+
+**Lens B verdict: DIRTY-procedural-only (read-only adversary could not run cargo). Substantively CLEAN per orchestrator toolchain verification.**
+
+### Lens C: Consistency Review
+
+| Finding ID | Severity | Description | Remediation |
+|-----------|----------|-------------|-------------|
+| F-W16-WAVE-P1-001 | MEDIUM | Test-name collision: two test functions (original in http_analyzer_tests.rs and renamed form) shared the same name pattern, causing ambiguous resolution against STORY-043 AC `**Test:**` citations. DF-AC-TEST-NAME-SYNC-001 v1 verifies name existence but not unique resolution. | PR #146 (fa17dec) — renamed colliding test. Factory sweep: BC-2.06.008/009/010/011 v1.2→v1.3 (test citations updated to BC-prefixed form); STORY-043 v1.1→v1.2 (AC citations updated, File Structure table line range fixed, Changelog added). |
+| F-W16-WAVE-P1-002 | MEDIUM | STORY-043 lacked a Changelog section recording the v1.1→v1.2 BC-citation sweep performed in an earlier burst. Changelog was entirely absent from the story document. | STORY-043 v1.2: Changelog section added with entries for v1.1 and v1.2 changes. |
+
+**Lens C verdict: DIRTY — 2 MEDIUM findings. Both REMEDIATED in this burst (2026-05-28).**
+
+### Process-Gap Observations (non-blocking)
+
+| Finding ID | Severity | Description |
+|-----------|----------|-------------|
+| F-W16-WAVE-P1-003 | LOW (codification candidate) | DF-AC-TEST-NAME-SYNC-001 v1 verifies AC `**Test:**` name EXISTENCE but not UNIQUE RESOLUTION. A bare test name matching two functions across module boundaries passes the policy grep. Manifested as F-W16-WAVE-P1-001. Recommend DF-AC-TEST-NAME-SYNC-001 v2 requiring unique resolution or module qualifier. Deferred as drift item; codification follow-up. |
+| F-W16-WAVE-P2-003 | LOW (defer) | No CI gate enforces zero production callers of `_for_testing` seams — convention-only via #[doc(hidden)] + naming. Defer pending research-agent validation (DF-VALIDATION-001). |
+
+### Remediation Vehicles
+
+- **Track B (develop):** PR #146 (fa17dec) — STORY-043 test rename; merged 2026-05-28.
+- **Track A (factory):** BC-2.06.008 v1.2→v1.3, BC-2.06.009 v1.2→v1.3, BC-2.06.010 v1.2→v1.3, BC-2.06.011 v1.2→v1.3, STORY-043 v1.1→v1.2 (AC citations → BC-prefixed; File Structure table line range fixed F-W16-S043-P5-001; Changelog added; input-hash 2189b42→cdcc087).
+
+**Wave-level streak after Pass-1 remediation: 0. Wave-level Pass-2 pending.**
+
+---
+
+## Wave-Level Consecutive-Clean Streak Status (post-Pass-1 remediation)
+
+| Pass | Traceability | Integration | Consistency | Overall | Streak |
+|------|-------------|-------------|-------------|---------|--------|
+| Pass-1 | CLEAN | DIRTY-procedural (substantively CLEAN) | DIRTY→REMEDIATED | REMEDIATED | 0 (streak reset) |
+
+Wave-level re-run (Pass-2) pending. Must achieve 3 consecutive clean wave-level passes for wave close.

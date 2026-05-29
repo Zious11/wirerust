@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-043"
 epic_id: "E-4"
-version: "1.1"
+version: "1.2"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.009.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.010.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.011.md
-input-hash: "2189b42"
+input-hash: "cdcc087"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-041]
@@ -57,7 +57,7 @@ implementation_strategy: brownfield-formalization
 
 ### AC-001 (traces to BC-2.06.008 postcondition 1)
 When `parsed.method` is exactly one of "CONNECT", "TRACE", "DELETE", or "OPTIONS", a Finding is emitted with category=Reconnaissance, verdict=Inconclusive, confidence=Medium, mitre_technique=None, summary="Unusual HTTP method: <method>", evidence=vec!["<method> <uri>"], and direction=Some(Direction::ClientToServer).
-- **Test:** `test_detect_unusual_method`
+- **Test:** `test_BC_2_06_008_detect_unusual_method`
 
 ### AC-002 (traces to BC-2.06.008 invariant 1-2)
 Method matching is an exact slice comparison (`unusual_methods.contains(&parsed.method.as_str())`) and is case-sensitive. "delete" (lowercase) does NOT match "DELETE". Standard methods GET, POST, PUT, PATCH, HEAD do not trigger this detection.
@@ -65,11 +65,11 @@ Method matching is an exact slice comparison (`unusual_methods.contains(&parsed.
 
 ### AC-003 (traces to BC-2.06.009 postcondition 1)
 For HTTP/1.1 requests (`parsed.version == 1`) where `host == None`, a Finding is emitted with category=Anomaly, verdict=Inconclusive, confidence=Medium, mitre_technique=None, and summary="HTTP/1.1 request without Host header".
-- **Test:** `test_detect_missing_host_header`
+- **Test:** `test_BC_2_06_009_detect_missing_host_header`
 
 ### AC-004 (traces to BC-2.06.009 postcondition 1)
 For HTTP/1.1 requests (`parsed.version == 1`) where `host == Some("")` (present but empty after trim), a Finding is emitted with summary="HTTP/1.1 request with empty Host header". The two cases produce distinct summary text.
-- **Test:** `test_detect_empty_host_header`
+- **Test:** `test_BC_2_06_009_detect_empty_host_header`
 
 ### AC-005 (traces to BC-2.06.009 postcondition 3)
 HTTP/1.0 requests (`parsed.version == 0`) are completely exempt from the Host check — neither absent nor empty Host triggers the finding. `Host:   ` (whitespace-only) produces `Some("")` after trim and triggers the finding for HTTP/1.1 only.
@@ -77,7 +77,7 @@ HTTP/1.0 requests (`parsed.version == 0`) are completely exempt from the Host ch
 
 ### AC-006 (traces to BC-2.06.010 postcondition 1)
 When `parsed.uri.len() > 2048`, a Finding is emitted with category=Execution, verdict=Likely, confidence=Medium, mitre_technique=None, summary="Abnormally long URI (<N> chars)" where N=uri.len(), and evidence=vec!["URI prefix: <truncate_uri(uri, 200)>"].
-- **Test:** `test_detect_long_uri`
+- **Test:** `test_BC_2_06_010_detect_long_uri`
 
 ### AC-007 (traces to BC-2.06.010 invariant 1-3)
 The long-URI threshold is strictly greater-than: `uri.len() == 2048` does NOT fire; `uri.len() == 2049` does. The summary includes the exact byte count (not the truncated length). Evidence is truncated to 200 characters via `truncate_uri`.
@@ -85,11 +85,11 @@ The long-URI threshold is strictly greater-than: `uri.len() == 2048` does NOT fi
 
 ### AC-008 (traces to BC-2.06.011 postcondition 1)
 When `parsed.user_agent == Some("")` (header present, value empty after trim), a Finding is emitted with category=Anomaly, verdict=Inconclusive, confidence=Low, mitre_technique=None, and summary="Empty User-Agent header".
-- **Test:** `test_detect_empty_user_agent`
+- **Test:** `test_BC_2_06_011_detect_empty_user_agent`
 
 ### AC-009 (traces to BC-2.06.011 postcondition 2 and invariant 2)
 When `parsed.user_agent == None` (header absent), NO finding is emitted. This asymmetry is intentional per the Kheir 2015 rationale (absent UA is common for cron jobs; empty UA is a stronger malware signal).
-- **Test:** `test_missing_user_agent_no_finding`
+- **Test:** `test_BC_2_06_011_missing_user_agent_no_finding`
 
 ### AC-010 (traces to BC-2.06.011 invariant 1)
 `find_header` returns `Some("")` for `User-Agent: \r\n` (whitespace-only value after trim), triggering the empty-UA finding. `User-Agent:   ` (spaces only) also produces `Some("")` after trim.
@@ -182,4 +182,12 @@ When `parsed.user_agent == None` (header absent), NO finding is emitted. This as
 | File | Action | Purpose |
 |------|--------|---------|
 | src/analyzer/http.rs | modify | Add unusual-method (251-265), host anomaly (283-302), long-URI (304-317), empty-UA (344-356) detection blocks |
-| tests/http_analyzer_tests.rs | modify | AC-001..AC-010 tests in mod bc_2_06_043_formalization (lines 2758-3503, 14 tests): test_detect_unusual_method, test_unusual_method_case_sensitive, test_detect_missing_host_header, test_detect_empty_host_header, test_http10_no_host_finding, test_detect_long_uri, test_long_uri_boundary_exactly_2048, test_detect_empty_user_agent, test_missing_user_agent_no_finding, test_whitespace_user_agent_triggers_empty_ua_finding, test_BC_2_06_011_empty_ua_and_missing_host_both_fire_independently, test_BC_2_06_010_long_uri_and_path_traversal_both_fire_independently, test_BC_2_06_008_all_four_unusual_methods_emit_finding, test_BC_2_06_010_very_long_uri_evidence_truncated_to_200 |
+| tests/http_analyzer_tests.rs | modify | AC-001..AC-010 tests in mod bc_2_06_043_formalization (lines 2759-3523, 14 tests): test_BC_2_06_008_detect_unusual_method, test_unusual_method_case_sensitive, test_BC_2_06_009_detect_missing_host_header, test_BC_2_06_009_detect_empty_host_header, test_http10_no_host_finding, test_BC_2_06_010_detect_long_uri, test_long_uri_boundary_exactly_2048, test_BC_2_06_011_detect_empty_user_agent, test_BC_2_06_011_missing_user_agent_no_finding, test_whitespace_user_agent_triggers_empty_ua_finding, test_BC_2_06_011_empty_ua_and_missing_host_both_fire_independently, test_BC_2_06_010_long_uri_and_path_traversal_both_fire_independently, test_BC_2_06_008_all_four_unusual_methods_emit_finding, test_BC_2_06_010_very_long_uri_evidence_truncated_to_200 |
+
+## Changelog
+
+| Version | Date | Notes |
+|---------|------|-------|
+| v1.0 | 2026-05-21 | Initial story decomposition |
+| v1.1 | 2026-05-28 | Wave-16 Pass-1 remediation (F-W16-S043-P1-005): File Structure Requirements table added; status set to completed. input-hash at `2189b42` (sha256 over sorted cited-BC files BC-2.06.008/009/010/011 at v1.2, first 7 chars). |
+| v1.2 | 2026-05-28 | Wave-16 Pass-1 remediations (F-W16-WAVE-P1-001, F-W16-WAVE-P1-002, F-W16-S043-P5-001): AC-001/003/004/006/008/009 Test citations updated to BC-prefixed names (test_BC_2_06_008_detect_unusual_method, test_BC_2_06_009_detect_missing_host_header, test_BC_2_06_009_detect_empty_host_header, test_BC_2_06_010_detect_long_uri, test_BC_2_06_011_detect_empty_user_agent, test_BC_2_06_011_missing_user_agent_no_finding); File Structure table test list updated to match + stale line range corrected `2758-3503` → `2759-3523` (F-W16-S043-P5-001). Changelog section added (F-W16-WAVE-P1-002). All four cited BCs bumped v1.2→v1.3 by PO this burst (test-citation sweep) — input-hash recomputed: `2189b42` → `cdcc087` (sha256 over sorted cited-BC files BC-2.06.008/009/010/011 at v1.3, first 7 chars). |

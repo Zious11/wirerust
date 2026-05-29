@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: F-W16-WAVE-P1-001 — update Verification Properties + Architecture Anchors to renamed STORY-043 formalization test (test_BC_2_06_010_detect_long_uri); Evidence Types legacy citation intentionally preserved — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -79,7 +80,7 @@ No MITRE technique ID is assigned.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | URI > 2048 chars emits Execution/Likely/Medium finding | unit: test_detect_long_uri |
+| — | URI > 2048 chars emits Execution/Likely/Medium finding | unit: test_BC_2_06_010_detect_long_uri |
 | — | URI of exactly 2048 does not emit long-URI finding | unit |
 
 ## Traceability
@@ -100,7 +101,7 @@ No MITRE technique ID is assigned.
 ## Architecture Anchors
 
 - `src/analyzer/http.rs:304-317` -- long URI detection block
-- `tests/http_analyzer_tests.rs` -- test_detect_long_uri
+- `tests/http_analyzer_tests.rs` -- test_BC_2_06_010_detect_long_uri (in mod bc_2_06_043_formalization)
 
 ## Source Evidence
 

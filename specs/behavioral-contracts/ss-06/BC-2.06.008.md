@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: F-W16-WAVE-P1-001 — update Verification Properties + Architecture Anchors to renamed STORY-043 formalization test (test_BC_2_06_008_detect_unusual_method); Evidence Types legacy citation intentionally preserved — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -83,7 +84,7 @@ actions, OPTIONS for fingerprinting).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Unusual method emits Reconnaissance/Inconclusive/Medium finding | unit: test_detect_unusual_method |
+| — | Unusual method emits Reconnaissance/Inconclusive/Medium finding | unit: test_BC_2_06_008_detect_unusual_method |
 | — | GET/POST/PUT/HEAD/PATCH do not emit unusual-method finding | unit |
 
 ## Traceability
@@ -104,7 +105,7 @@ actions, OPTIONS for fingerprinting).
 ## Architecture Anchors
 
 - `src/analyzer/http.rs:251-265` -- unusual methods detection block
-- `tests/http_analyzer_tests.rs` -- test_detect_unusual_method
+- `tests/http_analyzer_tests.rs` -- test_BC_2_06_008_detect_unusual_method (in mod bc_2_06_043_formalization)
 
 ## Source Evidence
 
