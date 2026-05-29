@@ -9,7 +9,7 @@ version: "1.0"
 produced_by: story-writer
 timestamp: 2026-05-21T00:00:00Z
 cycle: v0.1.0-greenfield-spec
-current_wave: 16
+current_wave: 17
 total_stories: 48
 total_waves: 27
 
@@ -330,57 +330,73 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-042:
-    status: pending
+    status: done
     wave: 16
     branch: null
     worktree: null
     blocked_by: [STORY-041]
+    pr: 140
+    merge_commit: ca5ea1c
+    merged_date: "2026-05-28"
+    converged_date: "2026-05-29"
 
   STORY-043:
-    status: pending
+    status: done
     wave: 16
     branch: null
     worktree: null
     blocked_by: [STORY-041]
+    pr: 142
+    merge_commit: 7eef78d
+    merged_date: "2026-05-28"
+    converged_date: "2026-05-29"
 
   STORY-044:
-    status: pending
+    status: done
     wave: 16
     branch: null
     worktree: null
     blocked_by: [STORY-041]
+    pr: 143
+    merge_commit: 0352aba
+    merged_date: "2026-05-28"
+    converged_date: "2026-05-29"
 
   STORY-052:
-    status: pending
+    status: done
     wave: 16
     branch: null
     worktree: null
     blocked_by: [STORY-051]
+    pr: 141
+    merge_commit: 80efb79
+    merged_date: "2026-05-28"
+    converged_date: "2026-05-29"
 
   # ---------------------------------------------------------------------------
   # Wave 17 — 3 stories
   # ---------------------------------------------------------------------------
 
   STORY-045:
-    status: blocked
+    status: pending
     wave: 17
     branch: null
     worktree: null
-    blocked_by: [STORY-041, STORY-044]
+    blocked_by: []
 
   STORY-053:
-    status: blocked
+    status: pending
     wave: 17
     branch: null
     worktree: null
-    blocked_by: [STORY-051, STORY-052]
+    blocked_by: []
 
   STORY-055:
-    status: blocked
+    status: pending
     wave: 17
     branch: null
     worktree: null
-    blocked_by: [STORY-052]
+    blocked_by: []
 
   # ---------------------------------------------------------------------------
   # Wave 18 — 4 stories

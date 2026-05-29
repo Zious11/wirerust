@@ -16,6 +16,16 @@ Most recent checkpoint is always in STATE.md > "Session Resume Checkpoint" secti
 
 ---
 
+## Archived: 2026-05-28 — Wave 16 Wave-Level Pass-1 Remediation (pre-close checkpoint)
+
+1. Waves 1-15 CLOSED/CONVERGED; Wave 16 all 4 stories per-story CONVERGED (BC-5.39.001 ACHIEVED per story). PRs: #140-146 merged. develop HEAD: fa17dec (PR #146 — STORY-043 test rename, merged 2026-05-28).
+2. Per-story convergence: S052(P3-P5 3-clean), S042(P4-P6 3-clean), S043(P4-P6 3-clean), S044(P5-P7 3-clean). BC-5.39.001 per-story ACHIEVED for all 4.
+3. Wave-level Pass-1 (3 lenses) complete: traceability CLEAN; integration DIRTY-procedural-only (substantively CLEAN — orchestrator verified cargo test/clippy/fmt green at session start); consistency 2 MEDIUM REMEDIATED (F-W16-WAVE-P1-001 test-name collision PR #146 + F-W16-WAVE-P1-002 missing changelog BC/story factory sweep). Wave-level streak=0.
+4. Process-gaps filed as drift items: F-W16-WAVE-P1-003 (DF-AC-TEST-NAME-SYNC-001 uniqueness gap) + F-W16-WAVE-P2-003 (no CI gate for _for_testing callers in production code). Both require DF-VALIDATION-001 research-agent validation before issue filing.
+5. NEXT: Wave 16 Wave-level Pass-2 (round 2) — fresh-context 3-lens review. Wave-level streak=0 entering Pass-2. Policy: MEDIUM+ only rem; LOW rides. Inject DF-SIBLING-SWEEP-001 v3 + DF-ADVERSARY-METHODOLOGY-001 + DF-AC-TEST-NAME-SYNC-001 v1.
+
+---
+
 ## Archived: 2026-05-28 — Wave 16 Pass-2 Remediation
 
 1. Waves 1-15 all CLOSED/CONVERGED; Wave 16 PRs all merged; Pass-1 and Pass-2 retroactive convergence complete.

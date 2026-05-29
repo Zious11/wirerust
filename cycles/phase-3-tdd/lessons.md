@@ -652,6 +652,84 @@ Each reduction is attributable to a specific doctrine codification:
 
 ---
 
+---
+
+## Wave 16 Lessons (2026-05-29) — Retroactive Convergence
+
+Stories: STORY-042, STORY-043, STORY-044, STORY-052. 4-story wave; retroactive convergence run after stories were merged in a prior session.
+
+### W16.L1 — Merge-Before-Convergence Is Silent; STATE.md Drift Is the Detection Signal [codification candidate — HIGHEST VALUE LESSON]
+
+**Finding ID:** Wave 16 meta-process-gap
+**Category:** process-gap / workflow-enforcement
+**Observed:** All 4 Wave 16 stories (STORY-042/043/044/052) were merged to develop in a prior session WITHOUT running mandatory per-story + wave-level adversarial convergence. STATE.md was left at `ready_to_dispatch` instead of advancing to `convergence_in_progress` or `closed`. The stale status was the detection signal in the next session.
+**Impact:** Retroactive convergence works but is more expensive than in-flight — the adversary must reconstruct context from archived state rather than operating on fresh-dispatch context. Retroactive convergence consumed a full session; in-flight would have been interleaved with delivery.
+**Root cause:** The per-story delivery flow allows merge before Step-4.5 adversarial convergence because no enforcement gate blocks the merge-step. STATE.md `stories_delivered` counter was incremented on merge, not on convergence-close.
+**Codification follow-up:** Delivery workflow MUST NOT merge before Step-4.5 (adversarial convergence per BC-5.39.001). Add post-merge prohibition or gate to delivery workflow. File as draft codification item; requires DF-VALIDATION-001 research-agent validation before any GitHub issue.
+**Status:** [deferred — draft codification item; research-agent validation required per DF-VALIDATION-001]
+
+---
+
+### W16.L2 — LOW-Nit-Rides Policy Is What Enables 3-Clean Streaks to Accumulate [codified — compounding-gain doctrine]
+
+**Finding ID:** Wave 16 convergence policy decision (Pass-4 → Pass-5)
+**Category:** convergence-policy
+**Observed:** Freezing artifacts after the last blocking (MEDIUM+) fix and letting LOW-severity nits ride without remediation is the mechanism that allows the 3-consecutive-clean streak to accumulate. Across Passes 5/6/7 multiple LOW nits were observed each pass but none triggered remediation. The streak accumulated cleanly. Had the LOW findings been remediated after each pass, each remediation burst would have reset the streak and produced another cycle of cleanup passes.
+**Impact:** The LOW-nits-ride policy (established in Wave 14 "NITPICK_ONLY" pass convention) was decisive in Wave 16, where 4 LOW observations per pass were present for 3 consecutive clean passes.
+**Pattern:** Only MEDIUM+ findings break the streak. LOW observations are recorded as drift items (wave-close batch) without resetting the convergence counter.
+**Status:** [codified — compounding-gain doctrine confirmed; LOW-nits-ride policy effective across W14/W15/W16]
+
+---
+
+### W16.L3 — Remediation Can Introduce Defects; Sibling-Sweep Must Verify Cited Line Numbers [codification candidate]
+
+**Finding ID:** F-W16-S044-P3-001 + F-W16-S052-P2-001 anchor drift
+**Category:** process-discipline / sibling-sweep
+**Observed:** The Pass-2 factory-only burst tightened BC-2.06.015's anchor to `467-468` but did NOT sweep the consuming STORY-044 Architecture Mapping body (line 124) which still cited `467`. This was caught in Pass-3 as F-W16-S044-P3-001 (MEDIUM). A second instance: a line-anchor correction in a prior burst pointed into the wrong test body — caught in Pass-4.
+**Root cause:** DF-SIBLING-SWEEP-001 v3 sweeps BC-to-BC and BC-to-test, but did not explicitly enumerate "consuming-story Architecture-Mapping bodies that cite the same source anchor."
+**Codification follow-up:** Extend DF-SIBLING-SWEEP-001 to v4, requiring that on any BC anchor change, the sweep explicitly covers: (1) all existing sweep targets, AND (2) consuming-story Architecture-Mapping table bodies citing the same source anchor. File as draft extension; requires DF-VALIDATION-001 research-agent validation.
+**Status:** [deferred — draft codification item; research-agent validation required per DF-VALIDATION-001]
+
+---
+
+### W16.L4 — Read-Only Adversary Profile Cannot Run Cargo; Orchestrator Must Supply Build Evidence [codified — dispatch protocol]
+
+**Finding ID:** Wave-level Pass-1 Lens B (integration) — DIRTY-procedural-only
+**Category:** adversarial-methodology / dispatch-protocol
+**Observed:** The wave-level integration lens adversary (read-only profile) could not run `cargo test`, `cargo clippy`, or `cargo fmt`. It produced a DIRTY verdict for the procedural inability to verify toolchain state, even though the substantive integration findings were all CLEAN. The orchestrator independently verified at session start (cargo test/clippy/fmt all green; diff=test-only+seam) and annotated the verdict as "substantively CLEAN."
+**Impact:** Without orchestrator annotation, a DIRTY-procedural-only verdict could trigger unnecessary remediation passes. The Lens B DIRTY reset the wave-level streak to 0 and required a re-run (Pass-2).
+**Dispatch protocol fix:** When dispatching a read-only wave-level adversary, the orchestrator MUST inject build evidence (cargo test output summary, clippy clean confirmation, diff characterization) into the dispatch prompt. The adversary cites injected evidence for toolchain-state claims rather than running tools itself.
+**Status:** [codified — dispatch protocol; orchestrator must inject build evidence for read-only adversary dispatches]
+
+---
+
+### W16.L5 — Fresh-Context Adversary Can Produce False-Positive MEDIUM via Incomplete Search [codified — verification protocol]
+
+**Finding ID:** F-W16-WAVE-R2-001 — VP-006 "orphan" false-positive
+**Category:** adversarial-methodology / verification-discipline
+**Observed:** A fresh-context adversary (wave-level round-2 consistency lens) flagged VP-006 as an "orphan verification property" — claimed it was not referenced in VP-INDEX.md. Investigation confirmed VP-006 exists at `.factory/specs/verification-properties/vp-006-http-poison-monotonicity.md` AND is registered at VP-INDEX.md:54 with citations to BC-2.06.015/016/017. STORY-044 is legitimately the only wave story with a VP. The finding was a CONFIRMED FALSE-POSITIVE caused by the adversary not searching the verification-properties/ directory before making the negative-existence claim.
+**Impact:** If accepted uncritically, this false-positive would have triggered a remediation burst touching VP-INDEX.md and STORY-044 with no actual defect to fix. Orchestrator verification of negative-existence claims before routing remediation is essential.
+**Protocol fix:** Before accepting any adversary negative-existence claim (e.g., "X is not registered in INDEX"), the orchestrator MUST verify via a filesystem search (`ls` or `grep`). A negative claim without a search transcript is automatically suspect.
+**Status:** [codified — verification protocol; orchestrator must verify adversary negative-existence claims before routing remediation]
+
+---
+
+### W16 Process-Gap Codification Follow-Ups (Draft Items)
+
+The following process-gaps from Wave 16 require DF-VALIDATION-001 research-agent validation before any GitHub issue is filed. Recorded here as draft codification items for tracking:
+
+| ID | Gap | Proposed Fix | Priority |
+|----|-----|-------------|----------|
+| PG-W16-001 | DF-AC-TEST-NAME-SYNC-001 v1 verifies AC `**Test:**` name EXISTENCE but not UNIQUE RESOLUTION nor correct fn-declaration line anchor (F-W16-WAVE-P1-003 + F-W16-S044-P4-001). | Extend policy to v2 requiring unique resolution + correct fn-declaration line. | HIGH |
+| PG-W16-002 | Merged stories had no workflow step transitioning story status draft/in-progress → completed on merge (F-W16-S042-P1-001; also caught Wave-15 STORY-041/051 stuck at in-progress). | Add post-merge status-transition step to delivery workflow. | HIGH |
+| PG-W16-003 | BC-edit sibling-sweep did not extend to consuming-STORY Architecture-Mapping bodies citing same source anchor (F-W16-S044-P3-001 partial-fix propagation). | Extend DF-SIBLING-SWEEP-001 to v4: add consuming-story body sweep on BC anchor changes. | HIGH |
+| PG-W16-004 | No CI gate enforcing zero production callers of `*_for_testing` seams (F-W16-WAVE-P2-003) — convention-only. | Research feasibility of CI grep-gate or dylint. Deferred drift. | MEDIUM |
+| PG-W16-005 | 4 stories merged without mandatory per-story + wave-level adversarial convergence; STATE.md left stale (ready_to_dispatch). | Per-story delivery flow must not merge before Step-4.5 adversarial convergence; add gate or enforced protocol step. | CRITICAL (highest-value lesson W16) |
+
+All items require `vsdd-factory:research-agent` validation per policy DF-VALIDATION-001 before any GitHub issue is filed.
+
+---
+
 ## Earlier Wave Lessons (Waves 1-6)
 
 Per-wave process-gap items for Waves 1-6 are recorded in STATE.md Cycle-Close Follow-Up Items
