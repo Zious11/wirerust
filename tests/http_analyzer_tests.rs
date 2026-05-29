@@ -4570,3 +4570,1115 @@ mod bc_2_06_044_formalization {
         );
     }
 } // mod bc_2_06_044_formalization
+
+// ---------------------------------------------------------------------------
+// STORY-045 Brownfield-Formalization Tests
+// BC-2.06.019, BC-2.06.021, BC-2.06.022, BC-2.06.024, BC-2.06.025
+//
+// Naming convention: test_BC_2_06_NNN_<descriptive_suffix>
+// All AC IDs and BC clause references are in the doc-comment for each test.
+//
+// These tests confirm existing src/analyzer/http.rs behaviour
+// (brownfield-formalization mode) and MUST PASS against the current code.
+// Any failure indicates a divergence between source and the stated BC.
+//
+// DF-AC-TEST-NAME-SYNC-001 v2: bare top-level names
+//   test_flow_close_cleans_up_state, test_poison_cleared_after_flow_close,
+//   test_cross_flow_isolation_parse_errors, test_cross_flow_isolation_poisoning,
+//   test_buffer_cap_no_panic_on_oversized_headers
+// already exist at module root.  The BC-prefixed names below are UNIQUE within
+// this formalization module (non_snake_case allowed per #[allow] on each fn).
+// ---------------------------------------------------------------------------
+mod bc_2_06_045_formalization {
+    use super::*;
+
+    // ── BC-2.06.019 / AC-001 + AC-003 ────────────────────────────────────────
+    // AC-001: on_flow_close removes the entire HttpFlowState for the given key;
+    //         no other aggregate state is modified.
+    // AC-003: the CloseReason parameter is ignored (produces same result for any
+    //         reason value).
+
+    /// BC-2.06.019 postconditions 1-2 + invariant 1 (AC-001/AC-003):
+    /// on_flow_close removes the per-flow entry from self.flows; aggregate
+    /// counters (transactions, parse_errors) are unchanged.
+    ///
+    /// Canonical test vector (BC-2.06.019): send a valid request (GET counted),
+    /// close the flow, verify flow entry is gone and aggregate counters are
+    /// intact.  Repeat with CloseReason::Rst to exercise AC-003 (reason ignored).
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_019_flow_close_removes_entry_and_preserves_aggregates() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Establish flow state: parse one valid request (method counted).
+        let req = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+
+        // Precondition: flow entry exists; aggregates in expected state.
+        assert_eq!(
+            analyzer.active_flows_len_for_testing(),
+            1,
+            "BC-2.06.019 precondition: flow entry must exist before close"
+        );
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "positive-parse anchor: GET must have been counted before close"
+        );
+        let parse_errors_before = analyzer.parse_error_count();
+        let transactions_before = analyzer.transaction_count();
+
+        // Close with CloseReason::Fin — postcondition 1: entry removed.
+        analyzer.on_flow_close(&fk, CloseReason::Fin);
+
+        assert_eq!(
+            analyzer.active_flows_len_for_testing(),
+            0,
+            "BC-2.06.019 postcondition 1: flow entry must be removed after on_flow_close"
+        );
+
+        // Postcondition 2 / invariant 1: aggregate counters unchanged.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            parse_errors_before,
+            "BC-2.06.019 invariant 1: parse_errors must not be modified by on_flow_close"
+        );
+        assert_eq!(
+            analyzer.transaction_count(),
+            transactions_before,
+            "BC-2.06.019 invariant 1: transactions must not be modified by on_flow_close"
+        );
+        // methods map entry survives close (it is an aggregate, not per-flow).
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.019 invariant 1: methods map must not be affected by on_flow_close"
+        );
+
+        // AC-003: repeat with CloseReason::Rst — same outcome.
+        let fk2 = test_flow_key_b();
+        let req2 = b"POST /submit HTTP/1.1\r\nHost: other.com\r\n\r\n";
+        analyzer.on_data(&fk2, Direction::ClientToServer, req2, 0);
+        assert_eq!(
+            analyzer.active_flows_len_for_testing(),
+            1,
+            "AC-003 setup: second flow entry must exist"
+        );
+
+        analyzer.on_flow_close(&fk2, CloseReason::Rst);
+
+        assert_eq!(
+            analyzer.active_flows_len_for_testing(),
+            0,
+            "BC-2.06.019 invariant 2 / AC-003: CloseReason::Rst must produce same result \
+             as CloseReason::Fin — entry removed"
+        );
+    }
+
+    /// BC-2.06.019 EC-002: on_flow_close for a FlowKey not in self.flows is
+    /// a no-op — no panic, no state change.
+    ///
+    /// Negative assertion is guarded by asserting flows.len() == 0 both before
+    /// and after, proving the call executed without silently inserting an entry.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_019_flow_close_on_unknown_key_is_noop() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // No data sent — flows map is empty.
+        assert_eq!(
+            analyzer.active_flows_len_for_testing(),
+            0,
+            "BC-2.06.019 EC-002 precondition: flows map must be empty"
+        );
+
+        // Close a key that was never opened — must not panic.
+        analyzer.on_flow_close(&fk, CloseReason::Fin);
+
+        assert_eq!(
+            analyzer.active_flows_len_for_testing(),
+            0,
+            "BC-2.06.019 EC-002: flows map must remain empty after close on unknown key"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.019 EC-002: parse_errors must be 0 (no data was sent)"
+        );
+    }
+
+    // ── BC-2.06.019 / AC-002 ─────────────────────────────────────────────────
+    // AC-002: after on_flow_close, a subsequent on_data for the same FlowKey
+    //         creates a brand-new HttpFlowState::new() — request_poisoned=false,
+    //         response_poisoned=false, error_count=0, counted_as_non_http=false,
+    //         empty buffers.
+
+    /// BC-2.06.019 postconditions 3-4 + invariant 3 (AC-002) —
+    /// Canonical test vector: poison a flow (3 consecutive garbage requests →
+    /// request_poisoned=true), close, send a valid request on the same key →
+    /// method is counted (poison cleared) and parse_errors stays at 3 (aggregate
+    /// is not affected by the re-opened state).
+    ///
+    /// Exercises BC-2.06.019 EC-001: "Flow close on poisoned flow; same key
+    /// reopened → new flow starts with poison=false".
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_019_reopen_same_key_starts_fresh_state() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Poison the request direction (3 consecutive errors).
+        for _ in 0..3 {
+            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        }
+        assert_eq!(
+            analyzer.parse_error_count(),
+            3,
+            "BC-2.06.019 postcondition 3 precondition: parse_errors must be 3 after 3 garbage chunks"
+        );
+
+        // A valid request on the (still-open) poisoned flow is skipped.
+        analyzer.on_data(
+            &fk,
+            Direction::ClientToServer,
+            b"GET / HTTP/1.1\r\nHost: x.com\r\n\r\n",
+            0,
+        );
+        assert!(
+            analyzer.method_counts().get("GET").is_none(),
+            "BC-2.06.019 postcondition 3 precondition: poisoned flow must skip valid request"
+        );
+
+        // Close the flow — drops the poisoned state.
+        analyzer.on_flow_close(&fk, CloseReason::Fin);
+
+        // Re-open same FlowKey with a valid request.
+        let valid = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+
+        // Postcondition 4: new state has request_poisoned=false → GET is parsed.
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.019 postcondition 4 / invariant 3: GET must be counted after reopen — \
+             poison flag must be false in the fresh state"
+        );
+
+        // Invariant 3: aggregate parse_errors unaffected by close/reopen.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            3,
+            "BC-2.06.019 invariant 3: aggregate parse_errors must retain the 3 prior errors; \
+             on_flow_close must NOT reset this counter"
+        );
+    }
+
+    /// BC-2.06.019 EC-003: flow close called with partial request in buffer —
+    /// buffer is discarded with the state; subsequent valid request on re-opened
+    /// key parses cleanly.
+    ///
+    /// Positive anchor: assert method_count after the re-opened valid request.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_019_partial_buf_discarded_on_close() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Send a partial request (no \r\n\r\n — stays in request_buf).
+        analyzer.on_data(
+            &fk,
+            Direction::ClientToServer,
+            b"GET /partial HTTP/1.1\r\nHost: ",
+            0,
+        );
+        // Partial: nothing parsed yet.
+        assert!(
+            analyzer.method_counts().get("GET").is_none(),
+            "EC-003 precondition: partial request must not be counted"
+        );
+
+        // Close discards the partial buffer.
+        analyzer.on_flow_close(&fk, CloseReason::Fin);
+
+        // Re-open with a complete valid request.
+        let valid = b"GET /new HTTP/1.1\r\nHost: reopen.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+
+        // If the partial buffer had leaked into the re-opened state, the
+        // concatenated bytes would be "GET /partial HTTP/1.1\r\nHost: GET /new …"
+        // which would parse differently (bad host or error).  Instead the new
+        // state starts empty, so the valid request parses cleanly.
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.019 EC-003: buffer discarded on close; re-opened flow must parse \
+             fresh valid request (GET count must be exactly 1)"
+        );
+        assert_eq!(
+            *analyzer.host_counts().get("reopen.com").unwrap_or(&0),
+            1,
+            "BC-2.06.019 EC-003: host must be 'reopen.com' — not the partial host from \
+             the discarded buffer"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.019 EC-003: parse_errors must be 0; no garbage was ever sent"
+        );
+    }
+
+    // ── BC-2.06.021 / AC-004 ─────────────────────────────────────────────────
+    // AC-004: flow A parse errors / poisoning do not affect flow B's per-flow
+    //         state; aggregate counters are global sums only.
+
+    /// BC-2.06.021 postconditions 1-3 (AC-004) — canonical test vector:
+    /// Flow A receives 3 garbage requests (parse_errors=3, poisoned);
+    /// Flow B receives a valid GET — method counted normally, parse_errors
+    /// still reflects only flow A's errors (global sum), not a fresh-B count.
+    ///
+    /// Positive anchor: assert method_count("GET")==1 after flow-B request.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_021_flow_a_parse_errors_do_not_affect_flow_b() {
+        let mut analyzer = HttpAnalyzer::new();
+        let flow_a = test_flow_key();
+        let flow_b = test_flow_key_b();
+
+        // Flow A: 3 consecutive garbage requests → parse_errors=3, request_poisoned.
+        for _ in 0..3 {
+            analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        }
+        assert_eq!(
+            analyzer.parse_error_count(),
+            3,
+            "BC-2.06.021 precondition: parse_errors must be 3 from flow A"
+        );
+
+        // Flow B: valid GET — must be parsed normally (flow B is a clean new entry).
+        let valid_b = b"GET /resource HTTP/1.1\r\nHost: b.example.com\r\n\r\n";
+        analyzer.on_data(&flow_b, Direction::ClientToServer, valid_b, 0);
+
+        // Postcondition 1: flow B's HttpFlowState is unaffected.
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.021 postcondition 1: flow B must parse GET despite flow A errors; \
+             method_counts[GET] must be 1"
+        );
+        // Postcondition 3: flow B's poison flags remain false → data not skipped.
+        assert_eq!(
+            analyzer.poisoned_bytes_skipped(),
+            0,
+            "BC-2.06.021 postcondition 3: flow B poison flags must be false; no bytes skipped"
+        );
+        // Global parse_errors is the sum of all errors (only from A).
+        assert_eq!(
+            analyzer.parse_error_count(),
+            3,
+            "BC-2.06.021 invariant 3: parse_errors is the global sum (3 from A, 0 from B)"
+        );
+    }
+
+    // ── BC-2.06.021 / AC-005 ─────────────────────────────────────────────────
+    // AC-005: flows HashMap provides per-key isolation by construction; only
+    //         on_flow_close removes entries; entries do not affect each other.
+
+    /// BC-2.06.021 postconditions 1-3 + invariant 2 (AC-005) —
+    /// Flow A fully poisoned; Flow B receives the same valid request as if
+    /// flow A had never existed.  Canonical test vector: result of B must be
+    /// identical to standalone execution.
+    ///
+    /// Exercises BC-2.06.021 EC-001: "Flow A poisoned; Flow B receives first
+    /// on_data → Flow B parses normally".
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_021_flow_a_poisoning_does_not_affect_flow_b() {
+        let mut analyzer = HttpAnalyzer::new();
+        let flow_a = test_flow_key();
+        let flow_b = test_flow_key_b();
+
+        // Poison flow A's request direction.
+        for _ in 0..3 {
+            analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        }
+
+        // Flow B — first on_data; must parse as if flow A doesn't exist.
+        let valid_b = b"GET /isolated HTTP/1.1\r\nHost: flowb.com\r\n\r\n";
+        analyzer.on_data(&flow_b, Direction::ClientToServer, valid_b, 0);
+
+        // Verify flow B result is identical to standalone execution.
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.021 EC-001: flow B GET must be counted (isolation holds)"
+        );
+        assert_eq!(
+            *analyzer.host_counts().get("flowb.com").unwrap_or(&0),
+            1,
+            "BC-2.06.021 EC-001: host 'flowb.com' must be recorded for flow B"
+        );
+        assert!(
+            analyzer.uri_list().contains(&"/isolated".to_string()),
+            "BC-2.06.021 EC-001: URI '/isolated' must appear in the uris list"
+        );
+
+        // Flow A is still poisoned — subsequent data is skipped.
+        let skipped_before = analyzer.poisoned_bytes_skipped();
+        analyzer.on_data(
+            &flow_a,
+            Direction::ClientToServer,
+            b"GET / HTTP/1.1\r\nHost: a.com\r\n\r\n",
+            0,
+        );
+        assert!(
+            analyzer.poisoned_bytes_skipped() > skipped_before,
+            "BC-2.06.021 invariant 2: flow A remains poisoned; bytes must be skipped"
+        );
+        // Flow B unaffected by the subsequent flow A skip.
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.021 invariant 2: flow B method count must remain at 1 after flow A skip"
+        );
+    }
+
+    // ── BC-2.06.022 / AC-006 + AC-007 ────────────────────────────────────────
+    // AC-006: only min(data.len(), remaining) bytes appended; buffer never
+    //         exceeds MAX_HEADER_BUF=65536; bytes past cap silently dropped.
+    // AC-007: MAX_HEADER_BUF is a constant; cap applies per-direction
+    //         independently; no finding emitted when cap reached.
+
+    /// BC-2.06.022 postconditions 1-3 + invariant 1-2 (AC-006/AC-007) —
+    /// EC-001: fill buffer to exactly MAX_HEADER_BUF via multiple on_data calls;
+    /// verify request_buf.len() == 65536; next on_data appends 0 bytes.
+    ///
+    /// Positive anchor: method_counts.get("GET") — asserted None throughout
+    /// (no complete header parsed because no \r\n\r\n terminator is in cap range),
+    /// and parse_error_count == 0 (partial header, not an error).
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_022_buffer_cap_exact_65536_no_more_bytes_accepted() {
+        const MAX_HEADER_BUF: usize = 65_536;
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Send exactly MAX_HEADER_BUF bytes of non-parseable data (no header
+        // terminator). The prefix is a valid-looking request line so httparse
+        // attempts parse but returns Partial (not Err) because there is no
+        // \r\n\r\n — thus no error counter increment.
+        let prefix = b"GET /";
+        // Fill the rest with 'A' bytes — still no \r\n\r\n.
+        let filler_len = MAX_HEADER_BUF - prefix.len();
+        let mut chunk = prefix.to_vec();
+        chunk.extend(std::iter::repeat_n(b'A', filler_len));
+        assert_eq!(
+            chunk.len(),
+            MAX_HEADER_BUF,
+            "test setup: chunk must be exactly 65536 bytes"
+        );
+
+        analyzer.on_data(&fk, Direction::ClientToServer, &chunk, 0);
+
+        // Buffer must be exactly at cap.
+        assert_eq!(
+            analyzer.request_buf_len_for_testing(&fk),
+            Some(MAX_HEADER_BUF),
+            "BC-2.06.022 postcondition 2: request_buf must be exactly {MAX_HEADER_BUF} bytes \
+             after filling to cap"
+        );
+        // No parse (partial, no terminator) and no parse error.
+        assert!(
+            analyzer.method_counts().get("GET").is_none(),
+            "BC-2.06.022 postcondition 2 (anchor): GET must not be counted — no complete header"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.022 postcondition 3: no error counter increment when buffer is at cap \
+             (Status::Partial, not Err)"
+        );
+
+        // EC-001: buffer at exactly 65536 → next on_data appends 0 bytes.
+        let extra = b"XXXXXX";
+        analyzer.on_data(&fk, Direction::ClientToServer, extra, MAX_HEADER_BUF as u64);
+
+        assert_eq!(
+            analyzer.request_buf_len_for_testing(&fk),
+            Some(MAX_HEADER_BUF),
+            "BC-2.06.022 EC-001: request_buf must remain at {MAX_HEADER_BUF} bytes after \
+             on_data with buffer already at cap — 0 bytes appended"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.022 invariant 2: no error emitted when cap reached"
+        );
+        assert!(
+            analyzer.findings().is_empty(),
+            "BC-2.06.022 invariant 4: no finding emitted when cap is reached"
+        );
+    }
+
+    /// BC-2.06.022 EC-002 (AC-006/AC-007) — buffer at 65535 bytes, on_data
+    /// sends 100 bytes: exactly 1 byte appended, 99 dropped silently.
+    ///
+    /// Also verifies per-direction independence (invariant 3): the response
+    /// buffer is unaffected by the request-buffer cap event.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_022_buffer_cap_partial_fill_one_byte_appended() {
+        const MAX_HEADER_BUF: usize = 65_536;
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Fill the request buffer to exactly MAX_HEADER_BUF - 1 = 65535 bytes.
+        let prefix = b"GET /";
+        let filler_len = (MAX_HEADER_BUF - 1) - prefix.len();
+        let mut chunk = prefix.to_vec();
+        chunk.extend(std::iter::repeat_n(b'A', filler_len));
+        assert_eq!(
+            chunk.len(),
+            MAX_HEADER_BUF - 1,
+            "test setup: chunk must be exactly 65535 bytes"
+        );
+
+        analyzer.on_data(&fk, Direction::ClientToServer, &chunk, 0);
+
+        assert_eq!(
+            analyzer.request_buf_len_for_testing(&fk),
+            Some(MAX_HEADER_BUF - 1),
+            "BC-2.06.022 EC-002 precondition: request_buf must be 65535 bytes"
+        );
+
+        // Send 100 bytes — only 1 should be appended (remaining = 1).
+        let extra = vec![b'B'; 100];
+        analyzer.on_data(
+            &fk,
+            Direction::ClientToServer,
+            &extra,
+            (MAX_HEADER_BUF - 1) as u64,
+        );
+
+        assert_eq!(
+            analyzer.request_buf_len_for_testing(&fk),
+            Some(MAX_HEADER_BUF),
+            "BC-2.06.022 EC-002: exactly 1 byte must be appended; buf must be at cap \
+             ({MAX_HEADER_BUF}); 99 bytes silently dropped"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.022 EC-002: no error counter increment for dropped bytes"
+        );
+        assert!(
+            analyzer.findings().is_empty(),
+            "BC-2.06.022 EC-002: no finding emitted when cap reached"
+        );
+
+        // Invariant 3: response buffer is unaffected (per-direction independence).
+        // Send a valid response to confirm ServerToClient direction is still live.
+        let resp = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ServerToClient, resp, 0);
+        assert_eq!(
+            analyzer.transaction_count(),
+            1,
+            "BC-2.06.022 invariant 3: response buffer is independent; response must parse \
+             after request buffer reaches cap"
+        );
+    }
+
+    // ── BC-2.06.024 / AC-008 ─────────────────────────────────────────────────
+    // AC-008: map at MAX_MAP_ENTRIES=50000 → new unique key silently NOT inserted;
+    //         existing keys continue to increment.
+
+    /// BC-2.06.024 postconditions 1-4 (AC-008) — EC-001:
+    /// Insert exactly 50000 unique methods; then send a 50001st unique method →
+    /// it must NOT be inserted (methods.len() stays at 50000).
+    ///
+    /// Positive anchor: methods.len() == 50000 before the capped insert, proving
+    /// the loop ran and the parser was exercised.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_024_map_cardinality_cap_drops_new_keys() {
+        const MAX_MAP_ENTRIES: usize = 50_000;
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Insert MAX_MAP_ENTRIES unique methods by using non-standard method names.
+        // We use the format "M{n:05}" to create "M00001".."M50000".
+        // Each is delivered as a syntactically valid HTTP/1.1 request so the
+        // parser executes the methods guard at src/analyzer/http.rs:375-378.
+        for n in 0..MAX_MAP_ENTRIES {
+            // Method tokens must be valid RFC 7230 tokens (no whitespace / special chars).
+            let req = format!("M{n:05} / HTTP/1.1\r\nHost: h.com\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+
+        // Precondition: map is exactly at cap.
+        assert_eq!(
+            analyzer.method_counts().len(),
+            MAX_MAP_ENTRIES,
+            "BC-2.06.024 precondition: methods map must hold exactly {MAX_MAP_ENTRIES} entries \
+             before the capped insert"
+        );
+
+        // EC-001: send one more unique method → must NOT be inserted.
+        let overflow_req = "OVERFLOW / HTTP/1.1\r\nHost: h.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, overflow_req.as_bytes(), 0);
+
+        assert_eq!(
+            analyzer.method_counts().len(),
+            MAX_MAP_ENTRIES,
+            "BC-2.06.024 postcondition 1: methods.len() must remain at {MAX_MAP_ENTRIES} \
+             after inserting beyond cap; new unique key silently dropped"
+        );
+        assert!(
+            !analyzer.method_counts().contains_key("OVERFLOW"),
+            "BC-2.06.024 postcondition 1: 'OVERFLOW' key must not be present in the capped map"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.024 postcondition 4: no parse_errors from cap overflow"
+        );
+        assert!(
+            analyzer.findings().is_empty(),
+            "BC-2.06.024 postcondition 4: no finding emitted when cap is reached"
+        );
+    }
+
+    // ── BC-2.06.024 / AC-009 ─────────────────────────────────────────────────
+    // AC-009: guard pattern `len < MAX_MAP_ENTRIES || contains_key` allows
+    //         existing keys to increment even when the map is at cap.
+
+    /// BC-2.06.024 invariants 2-3 (AC-009) — EC-002:
+    /// Map at MAX_MAP_ENTRIES; same method sent again → count incremented.
+    ///
+    /// Canonical test vector: 50001 unique methods fills to 50000; then repeat
+    /// the first method → first method count incremented; len stays at 50000.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_024_existing_keys_increment_at_cap() {
+        const MAX_MAP_ENTRIES: usize = 50_000;
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Use the first method as our "existing" key to repeat later.
+        let first_method = "M00000";
+
+        // Fill the map to MAX_MAP_ENTRIES unique methods.
+        for n in 0..MAX_MAP_ENTRIES {
+            let req = format!("M{n:05} / HTTP/1.1\r\nHost: h.com\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+
+        // Confirm first_method is present with count == 1.
+        assert_eq!(
+            *analyzer.method_counts().get(first_method).unwrap_or(&0),
+            1,
+            "AC-009 precondition: '{first_method}' must have count 1 before repeat"
+        );
+        assert_eq!(
+            analyzer.method_counts().len(),
+            MAX_MAP_ENTRIES,
+            "AC-009 precondition: map must be at cap before the repeat"
+        );
+
+        // EC-002 / AC-009: send first_method again — must increment, not be dropped.
+        let repeat_req = format!("{first_method} / HTTP/1.1\r\nHost: h.com\r\n\r\n");
+        analyzer.on_data(&fk, Direction::ClientToServer, repeat_req.as_bytes(), 0);
+
+        assert_eq!(
+            *analyzer.method_counts().get(first_method).unwrap_or(&0),
+            2,
+            "BC-2.06.024 invariant 3 / AC-009: existing key '{first_method}' must increment \
+             to 2 even when map is at cap (contains_key short-circuit)"
+        );
+        assert_eq!(
+            analyzer.method_counts().len(),
+            MAX_MAP_ENTRIES,
+            "BC-2.06.024 invariant 2: map len must remain at {MAX_MAP_ENTRIES} after repeat"
+        );
+    }
+
+    // ── BC-2.06.025 / AC-010 + AC-011 ────────────────────────────────────────
+    // AC-010: when uris.len() == MAX_URIS=10000, new URIs NOT appended; other
+    //         counters (methods) still updated.
+    // AC-011: MAX_URIS=10000; guard `len < MAX_URIS`; no deduplication; dropped
+    //         URIs are permanently lost.
+
+    /// BC-2.06.025 postconditions 1-3 + invariant 1-3 (AC-010/AC-011) —
+    ///
+    /// EC-009: uris at 9999 → next request appends URI (len becomes 10000).
+    /// EC-010: uris at 10000 → next request does NOT append URI (len stays 10000).
+    ///
+    /// Positive anchor: method_counts("GET") confirms parser ran for the capped
+    /// requests (AC-010 postcondition 3: other counters still updated).
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_025_uris_capped_at_max_uris() {
+        const MAX_URIS: usize = 10_000;
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Send MAX_URIS - 1 = 9999 unique GET requests to fill uris to 9999.
+        for n in 0..(MAX_URIS - 1) {
+            let req = format!("GET /path/{n} HTTP/1.1\r\nHost: h.com\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+
+        assert_eq!(
+            analyzer.uri_list().len(),
+            MAX_URIS - 1,
+            "BC-2.06.025 EC-009 precondition: uris must have {0} entries before the last allowed \
+             append",
+            MAX_URIS - 1
+        );
+
+        // EC-009: send request #10000 → URI appended (len becomes MAX_URIS).
+        let req_10000 = format!("GET /path/{} HTTP/1.1\r\nHost: h.com\r\n\r\n", MAX_URIS - 1);
+        analyzer.on_data(&fk, Direction::ClientToServer, req_10000.as_bytes(), 0);
+
+        assert_eq!(
+            analyzer.uri_list().len(),
+            MAX_URIS,
+            "BC-2.06.025 EC-009: {MAX_URIS}th request must append the URI (len must be {MAX_URIS})"
+        );
+
+        // EC-010: send one more request → URI NOT appended; len stays at MAX_URIS.
+        let req_overflow = "GET /overflow HTTP/1.1\r\nHost: h.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, req_overflow.as_bytes(), 0);
+
+        assert_eq!(
+            analyzer.uri_list().len(),
+            MAX_URIS,
+            "BC-2.06.025 EC-010: uris must remain at {MAX_URIS} after overflow request; \
+             URI NOT appended"
+        );
+        assert!(
+            !analyzer.uri_list().contains(&"/overflow".to_string()),
+            "BC-2.06.025 EC-010: '/overflow' URI must not be present in the capped list; \
+             permanently lost per invariant 3"
+        );
+
+        // AC-010 postcondition 3: method counts still updated even when URI dropped.
+        // All requests were GET, so methods["GET"] must equal MAX_URIS + 1.
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            (MAX_URIS + 1) as u64,
+            "BC-2.06.025 postcondition 3: method counter must still be updated even when \
+             URI is dropped at cap; expected GET count = {0}",
+            MAX_URIS + 1
+        );
+
+        // Invariant 2: no error counter increment for dropped URIs.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.025 invariant 2: parse_errors must be 0; dropping a URI at cap is silent"
+        );
+    }
+
+    /// BC-2.06.025 invariant 3 (AC-011) — no deduplication: same URI can appear
+    /// multiple times in the list (no contains() check before push).
+    ///
+    /// Positive anchor: method_counts("GET") and uri_list().len() prove parser ran.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_025_uris_no_deduplication() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Send the same URI five times.
+        let req = b"GET /repeated HTTP/1.1\r\nHost: h.com\r\n\r\n";
+        for _ in 0..5 {
+            analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+        }
+
+        // Positive anchor: parser ran 5 times.
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            5,
+            "BC-2.06.025 invariant 3 anchor: GET must be counted 5 times (parser ran)"
+        );
+
+        // Invariant 3: same URI appears 5 times (no deduplication).
+        let repeated_count = analyzer
+            .uri_list()
+            .iter()
+            .filter(|u| u.as_str() == "/repeated")
+            .count();
+        assert_eq!(
+            repeated_count, 5,
+            "BC-2.06.025 invariant 3: '/repeated' must appear 5 times in uris list \
+             (no deduplication guard)"
+        );
+    }
+
+    // ── BC-2.06.024 / F-W17-S045-P1-003: N-1 boundary (map admits up to N) ───
+    // The existing cap-drop test proves N+1 is rejected.  This test proves the
+    // Nth (50000th) unique key INSERT SUCCEEDS — i.e. the guard `len < N` admits
+    // the entry that brings the map to exactly N.
+
+    /// BC-2.06.024 postcondition 1 (N-1 boundary) — the 49999→50000th unique
+    /// method INSERT SUCCEEDS (cap admits entries up to and including N=50000).
+    ///
+    /// Positive anchor: methods.len() == MAX_MAP_ENTRIES after the loop confirms
+    /// the Nth entry was accepted.  Companion to test_BC_2_06_024_map_cardinality_cap_drops_new_keys
+    /// which proves the N+1 entry is rejected.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_024_map_cardinality_cap_nth_entry_succeeds() {
+        const MAX_MAP_ENTRIES: usize = 50_000;
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Insert MAX_MAP_ENTRIES - 1 = 49999 unique methods to reach N-1.
+        for n in 0..(MAX_MAP_ENTRIES - 1) {
+            let req = format!("M{n:05} / HTTP/1.1\r\nHost: h.com\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+
+        // N-1 boundary: map must hold exactly 49999 entries.
+        assert_eq!(
+            analyzer.method_counts().len(),
+            MAX_MAP_ENTRIES - 1,
+            "BC-2.06.024 N-1 boundary precondition: methods map must hold exactly {} entries",
+            MAX_MAP_ENTRIES - 1
+        );
+
+        // Insert the Nth unique method — guard `len < MAX_MAP_ENTRIES` is true
+        // (49999 < 50000), so this entry MUST be accepted.
+        let nth_method = format!("M{:05}", MAX_MAP_ENTRIES - 1);
+        let nth_req = format!("{nth_method} / HTTP/1.1\r\nHost: h.com\r\n\r\n");
+        analyzer.on_data(&fk, Direction::ClientToServer, nth_req.as_bytes(), 0);
+
+        // Postcondition: the Nth entry was inserted; map is now at cap.
+        assert_eq!(
+            analyzer.method_counts().len(),
+            MAX_MAP_ENTRIES,
+            "BC-2.06.024 N-1 boundary postcondition: {MAX_MAP_ENTRIES}th unique entry must be \
+             accepted; methods.len() must equal {MAX_MAP_ENTRIES}"
+        );
+        assert_eq!(
+            *analyzer.method_counts().get(&nth_method).unwrap_or(&0),
+            1,
+            "BC-2.06.024 N-1 boundary postcondition: Nth method '{nth_method}' must be present \
+             with count 1"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.024 N-1 boundary: no parse_errors from boundary insert"
+        );
+    }
+
+    // ── BC-2.06.024 / F-W17-S045-P1-004: per-map cap independence (hosts) ────
+    // Invariant 4: cap applies INDEPENDENTLY per map.  A hosts map at 50000 must
+    // NOT block new method keys, and vice versa.
+
+    /// BC-2.06.024 invariant 4 (AC-008, hosts map) —
+    /// Fill hosts to MAX_MAP_ENTRIES; then send a request with a NEW unique host
+    /// → must NOT be inserted; an existing host → count incremented; NEW unique
+    /// method sent alongside the overflow host → method IS inserted (host cap
+    /// does not block method insertion).
+    ///
+    /// Positive anchor: method_counts.len() grows after the overflow host request,
+    /// proving the methods guard evaluated independently from the hosts guard.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_024_hosts_map_cardinality_cap_independent_of_methods() {
+        const MAX_MAP_ENTRIES: usize = 50_000;
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Fill the hosts map to exactly MAX_MAP_ENTRIES unique hosts using a
+        // fixed method (GET) so the methods map stays small and does not
+        // interfere with the hosts-cap assertion.
+        for n in 0..MAX_MAP_ENTRIES {
+            let req = format!("GET / HTTP/1.1\r\nHost: h{n:05}.example.com\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+
+        // Precondition: hosts map is exactly at cap; methods map has only GET.
+        assert_eq!(
+            analyzer.host_counts().len(),
+            MAX_MAP_ENTRIES,
+            "BC-2.06.024 hosts-cap precondition: hosts map must be at {MAX_MAP_ENTRIES}"
+        );
+        assert_eq!(
+            analyzer.method_counts().len(),
+            1,
+            "BC-2.06.024 hosts-cap precondition: methods map must have only 1 entry (GET)"
+        );
+
+        // Send a request with a NEW unique host (overflow) AND a NEW unique method.
+        // The hosts guard must drop the new host; the methods guard must accept
+        // the new method — the two guards are independent (src/analyzer/http.rs:375-389).
+        let overflow_req = "NEWMETHOD / HTTP/1.1\r\nHost: overflow.new.host\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, overflow_req.as_bytes(), 0);
+
+        // Host overflow: new unique host must NOT be inserted.
+        assert_eq!(
+            analyzer.host_counts().len(),
+            MAX_MAP_ENTRIES,
+            "BC-2.06.024 invariant 4 / hosts: hosts.len() must remain at {MAX_MAP_ENTRIES} \
+             after overflow host — new unique host silently dropped"
+        );
+        assert!(
+            !analyzer.host_counts().contains_key("overflow.new.host"),
+            "BC-2.06.024 invariant 4 / hosts: 'overflow.new.host' must not be present \
+             in the capped hosts map"
+        );
+
+        // Methods independence: NEWMETHOD must be inserted despite hosts being at cap.
+        assert_eq!(
+            analyzer.method_counts().len(),
+            2,
+            "BC-2.06.024 invariant 4: hosts cap must NOT block methods insertion; \
+             methods.len() must be 2 (GET + NEWMETHOD)"
+        );
+        assert_eq!(
+            *analyzer.method_counts().get("NEWMETHOD").unwrap_or(&0),
+            1,
+            "BC-2.06.024 invariant 4: NEWMETHOD must be present with count 1"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.024 invariant 4 / hosts: no parse_errors from cap overflow"
+        );
+    }
+
+    // ── BC-2.06.024 / F-W17-S045-P1-004: per-map cap independence (user_agents) ─
+    // Mirror of the hosts test for the user_agents map.
+
+    /// BC-2.06.024 invariant 4 (AC-008, user_agents map) —
+    /// Fill user_agents to MAX_MAP_ENTRIES; then send a request with a NEW unique
+    /// UA → must NOT be inserted; a NEW unique method in the same request → IS
+    /// inserted (ua cap does not block method insertion).
+    ///
+    /// Positive anchor: method_counts.len() grows after the overflow UA request.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_024_user_agents_map_cardinality_cap_independent_of_methods() {
+        const MAX_MAP_ENTRIES: usize = 50_000;
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Fill the user_agents map to exactly MAX_MAP_ENTRIES unique UAs using
+        // a fixed method (GET) and fixed host so they don't interfere with the
+        // user_agents-cap assertion.
+        for n in 0..MAX_MAP_ENTRIES {
+            let req = format!("GET / HTTP/1.1\r\nHost: h.com\r\nUser-Agent: agent{n:05}\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+
+        // Precondition: user_agents map is exactly at cap; methods map has only GET.
+        assert_eq!(
+            analyzer.user_agent_counts().len(),
+            MAX_MAP_ENTRIES,
+            "BC-2.06.024 ua-cap precondition: user_agents map must be at {MAX_MAP_ENTRIES}"
+        );
+        assert_eq!(
+            analyzer.method_counts().len(),
+            1,
+            "BC-2.06.024 ua-cap precondition: methods map must have only 1 entry (GET)"
+        );
+
+        // Send a request with a NEW unique UA AND a NEW unique method.
+        // The user_agents guard must drop the new UA; the methods guard must accept
+        // the new method (independent guards per src/analyzer/http.rs:375-389).
+        let overflow_req =
+            "UAMETHOD / HTTP/1.1\r\nHost: h.com\r\nUser-Agent: overflow-new-agent\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, overflow_req.as_bytes(), 0);
+
+        // UA overflow: new unique UA must NOT be inserted.
+        assert_eq!(
+            analyzer.user_agent_counts().len(),
+            MAX_MAP_ENTRIES,
+            "BC-2.06.024 invariant 4 / user_agents: user_agents.len() must remain at \
+             {MAX_MAP_ENTRIES} after overflow UA — new unique UA silently dropped"
+        );
+        assert!(
+            !analyzer
+                .user_agent_counts()
+                .contains_key("overflow-new-agent"),
+            "BC-2.06.024 invariant 4 / user_agents: 'overflow-new-agent' must not be present \
+             in the capped user_agents map"
+        );
+
+        // Methods independence: UAMETHOD must be inserted despite user_agents being at cap.
+        assert_eq!(
+            analyzer.method_counts().len(),
+            2,
+            "BC-2.06.024 invariant 4: user_agents cap must NOT block methods insertion; \
+             methods.len() must be 2 (GET + UAMETHOD)"
+        );
+        assert_eq!(
+            *analyzer.method_counts().get("UAMETHOD").unwrap_or(&0),
+            1,
+            "BC-2.06.024 invariant 4: UAMETHOD must be present with count 1"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.024 invariant 4 / user_agents: no parse_errors from cap overflow"
+        );
+    }
+
+    // ── BC-2.06.022 / F-W17-S045-P1-005: RESPONSE buffer cap ────────────────
+    // Invariant 3: per-direction independent buffer caps.  The existing tests
+    // cover the REQUEST direction.  This test covers the RESPONSE direction.
+
+    /// BC-2.06.022 invariant 3 (response direction) — response_buf cap at
+    /// MAX_HEADER_BUF=65536 works independently of the request buffer.
+    ///
+    /// EC-003 (response): fill response_buf to exactly MAX_HEADER_BUF via
+    /// Direction::ServerToClient; verify response_buf.len() == 65536; then verify
+    /// an additional on_data call appends 0 bytes (cap enforced).
+    ///
+    /// Positive anchor: request_buf_len is 0 throughout (request direction
+    /// unaffected), and transaction_count == 0 (no complete response parsed —
+    /// buffer contains only a partial response line with no \r\n\r\n).
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_022_response_buffer_cap_exact_65536_no_more_bytes_accepted() {
+        const MAX_HEADER_BUF: usize = 65_536;
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Send exactly MAX_HEADER_BUF bytes of non-parseable response data
+        // (no \r\n\r\n terminator) in the ServerToClient direction.
+        // The prefix looks like a partial response status line so httparse
+        // returns Partial (not Err) — no error counter increment.
+        let prefix = b"HTTP/1.1 200 ";
+        let filler_len = MAX_HEADER_BUF - prefix.len();
+        let mut chunk = prefix.to_vec();
+        chunk.extend(std::iter::repeat_n(b'X', filler_len));
+        assert_eq!(
+            chunk.len(),
+            MAX_HEADER_BUF,
+            "test setup: response chunk must be exactly {MAX_HEADER_BUF} bytes"
+        );
+
+        analyzer.on_data(&fk, Direction::ServerToClient, &chunk, 0);
+
+        // Response buffer must be exactly at cap.
+        assert_eq!(
+            analyzer.response_buf_len_for_testing(&fk),
+            Some(MAX_HEADER_BUF),
+            "BC-2.06.022 invariant 3 (response): response_buf must be exactly \
+             {MAX_HEADER_BUF} bytes after filling to cap"
+        );
+        // No complete response parsed (partial status line, no \r\n\r\n).
+        assert_eq!(
+            analyzer.transaction_count(),
+            0,
+            "BC-2.06.022 invariant 3 (response) anchor: transaction_count must be 0 — \
+             no complete response parsed"
+        );
+        // No parse error from a partial response.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.022 invariant 3 (response): no parse_error from Status::Partial"
+        );
+
+        // Per-direction independence: request buffer is unaffected.
+        assert_eq!(
+            analyzer.request_buf_len_for_testing(&fk),
+            Some(0),
+            "BC-2.06.022 invariant 3: request_buf must be 0 — response cap must not \
+             affect the request direction"
+        );
+
+        // Buffer at cap → additional on_data appends 0 bytes.
+        let extra = b"XXXXXX";
+        analyzer.on_data(&fk, Direction::ServerToClient, extra, MAX_HEADER_BUF as u64);
+
+        assert_eq!(
+            analyzer.response_buf_len_for_testing(&fk),
+            Some(MAX_HEADER_BUF),
+            "BC-2.06.022 invariant 3 (response): response_buf must remain at {MAX_HEADER_BUF} \
+             after on_data with buffer already at cap — 0 bytes appended"
+        );
+        assert!(
+            analyzer.findings().is_empty(),
+            "BC-2.06.022 invariant 3 (response): no finding emitted when response cap reached"
+        );
+    }
+
+    /// BC-2.06.022 EC-004 (response direction, N-1 boundary) — response_buf at
+    /// 65535 bytes; on_data sends 100 bytes in ServerToClient direction: exactly
+    /// 1 byte appended, 99 dropped silently.
+    ///
+    /// Also verifies per-direction independence (invariant 3): the request buffer
+    /// is unaffected by the response-buffer cap event.
+    #[allow(non_snake_case)]
+    #[test]
+    fn test_BC_2_06_022_response_buffer_cap_partial_fill_one_byte_appended() {
+        const MAX_HEADER_BUF: usize = 65_536;
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Fill the response buffer to exactly MAX_HEADER_BUF - 1 = 65535 bytes.
+        let prefix = b"HTTP/1.1 200 ";
+        let filler_len = (MAX_HEADER_BUF - 1) - prefix.len();
+        let mut chunk = prefix.to_vec();
+        chunk.extend(std::iter::repeat_n(b'X', filler_len));
+        assert_eq!(
+            chunk.len(),
+            MAX_HEADER_BUF - 1,
+            "test setup: response chunk must be exactly {} bytes",
+            MAX_HEADER_BUF - 1
+        );
+
+        analyzer.on_data(&fk, Direction::ServerToClient, &chunk, 0);
+
+        assert_eq!(
+            analyzer.response_buf_len_for_testing(&fk),
+            Some(MAX_HEADER_BUF - 1),
+            "BC-2.06.022 EC-004 precondition: response_buf must be {} bytes",
+            MAX_HEADER_BUF - 1
+        );
+
+        // Send 100 bytes — only 1 should be appended (remaining = 1).
+        let extra = vec![b'Y'; 100];
+        analyzer.on_data(
+            &fk,
+            Direction::ServerToClient,
+            &extra,
+            (MAX_HEADER_BUF - 1) as u64,
+        );
+
+        assert_eq!(
+            analyzer.response_buf_len_for_testing(&fk),
+            Some(MAX_HEADER_BUF),
+            "BC-2.06.022 EC-004: exactly 1 byte must be appended; response_buf must be at \
+             cap ({MAX_HEADER_BUF}); 99 bytes silently dropped"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "BC-2.06.022 EC-004: no error counter increment for dropped response bytes"
+        );
+        assert!(
+            analyzer.findings().is_empty(),
+            "BC-2.06.022 EC-004: no finding emitted when response cap reached"
+        );
+
+        // Invariant 3: request buffer is unaffected (per-direction independence).
+        // Send a valid request to confirm ClientToServer direction is still live.
+        let req = b"GET /check HTTP/1.1\r\nHost: check.com\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+        assert_eq!(
+            *analyzer.method_counts().get("GET").unwrap_or(&0),
+            1,
+            "BC-2.06.022 invariant 3 (response EC-004): request direction must be independent; \
+             GET must be counted after response buffer reaches cap"
+        );
+    }
+} // mod bc_2_06_045_formalization
