@@ -958,3 +958,23 @@ Wave 18: STORY-046 (E-4 HTTP, 3pts) + STORY-054 (E-5 TLS, 8pts) + STORY-056 (E-5
 Per-wave process-gap items for Waves 1-6 are recorded in STATE.md Cycle-Close Follow-Up Items
 (W1.1, W1.2, W1.3, W2.1–W2.6, W3.1, W3.2, W4.1). Those items were captured as process-gap
 table rows in STATE.md before this lessons.md file was created. They are not duplicated here.
+
+---
+
+## Wave Retrospectives Compacted Summary (extracted from STATE.md 2026-05-29)
+
+This table was in STATE.md `## Wave Retrospectives (Compacted)` and moved here
+to reduce STATE.md below 200 lines (content-routing rule S-7.02 / EXTRACTION 4).
+
+| Wave | Stories | Key Outcome | Passes |
+|------|---------|-------------|--------|
+| W9 | S016+S020 | DF-SIBLING-SWEEP-001 + DF-PR-MANAGER-COMPLETE-001 codified | 14 per-story; 6 wave-level |
+| W10 | S017+S018 | DF-SIBLING-SWEEP-001 v1→v4; 15% fewer passes vs W9; overlap_count saturating_add fix | 13; 4 wave-level |
+| W11 | S021 | BC pre-merge re-anchor doctrine (W11.L1); DF-ADVERSARY-METHODOLOGY-001 added | 11 |
+| W12 | S031 | EC-scenario-match sub-rule (W12.L1); DF-SIBLING-SWEEP-001 v3 | 9 |
+| W13 | S032 | 44% fewer passes than W12; indirect observability throughout | 5 |
+| W14 | S033 | DF-AC-TEST-NAME-SYNC-001 v1; W11→W12→W13→W14: 11→9→5→4 | 4 |
+| W15 | S041+S051 | BC-addition sibling-sweep cascade (W15.L2); first multi-story since W10 | 8+6 |
+| W16 | S042/043/044/052 | Retroactive convergence; DF-CONVERGENCE-BEFORE-MERGE-001 (CRITICAL) | 7 per-story |
+| W17 | S045+S053+S055 | Wave-level AC-sync miss caught (PG-W17-001/002); 3/3 per-story 5ps-3clean | 5 each |
+| Drift | 66 tracked | 57 closed; 5 new policies; DF-16.B (209 BCs broken citations) OPEN | n/a |
