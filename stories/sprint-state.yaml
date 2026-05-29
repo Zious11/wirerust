@@ -415,11 +415,15 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-046:
-    status: pending
+    status: done
     wave: 18
     branch: null
     worktree: null
     blocked_by: [STORY-041, STORY-042, STORY-043, STORY-044, STORY-045]
+    pr: 152
+    merge_commit: 547aca8
+    merged_date: "2026-05-29"
+    converged_date: "2026-05-29"
 
   STORY-054:
     status: pending

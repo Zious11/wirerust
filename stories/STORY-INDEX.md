@@ -51,7 +51,7 @@ traces_to:
 | STORY-043 | Header and Method Anomaly Detections — Method, Host, URI Length, User-Agent | E-4 | 16 | 5 | completed | STORY-041 |
 | STORY-044 | Parse-Error Isolation and Poisoning State Machine | E-4 | 16 | 8 | completed | STORY-041 |
 | STORY-045 | Flow Lifecycle, Cross-Flow Isolation, and Buffer/Map Caps | E-4 | 17 | 5 | completed | STORY-041, STORY-044 |
-| STORY-046 | HTTP Analyzer Summary Output | E-4 | 18 | 3 | ready | STORY-041, STORY-042, STORY-043, STORY-044, STORY-045 |
+| STORY-046 | HTTP Analyzer Summary Output | E-4 | 18 | 3 | completed | STORY-041, STORY-042, STORY-043, STORY-044, STORY-045 |
 | STORY-051 | JA3 and JA3S Computation — GREASE Filtering and String Format | E-5 | 15 | 5 | completed | STORY-033, STORY-071 |
 | STORY-052 | ClientHello Parsing — Handshake Counting, Version/JA3 Tracking, and Done Short-Circuit | E-5 | 16 | 8 | completed | STORY-051 |
 | STORY-053 | ServerHello Parsing — JA3S Fingerprinting and Cipher/Version Tracking | E-5 | 17 | 5 | completed | STORY-051, STORY-052 |
