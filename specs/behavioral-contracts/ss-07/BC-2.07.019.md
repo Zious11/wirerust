@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,7 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21", "v1.3: anchor sweep — correct extract_sni arm-3/arm-4 line citations to 257-260/261-264 (PG-W16-003 sibling sweep from F-S056-P5-001/002/003) — 2026-05-29"]
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -93,7 +93,7 @@ with `Anomaly/Inconclusive/Low` and MITRE T1027.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- non-UTF-8 SNI detection is arm 4 of the SNI 4-way classification |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification), INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:260-264, 410-415, 469-488, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:261-264, 410-415, 469-488, C-13) |
 | Stories | STORY-056 |
 | Origin BC | BC-TLS-019 (pass-3 ingestion corpus, HIGH confidence) |
 

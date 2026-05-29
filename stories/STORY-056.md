@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-056"
 epic_id: "E-5"
-version: "1.0"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -84,7 +84,7 @@ For arm 4, `finding.summary` contains the `lossy` string from `String::from_utf8
 
 ### AC-007 (traces to BC-2.07.020 invariant 1-2)
 Escaping is applied ONLY by the terminal reporter at render time (ADR 0003). The hex field is always pure ASCII (0-9, a-f) and needs no escaping. The JSON reporter receives the raw lossy summary; serde_json handles Unicode encoding per RFC 8259.
-- **Test:** Unit test asserting `finding.evidence[0].starts_with("hex: ")` and hex field contains only `[0-9a-f]`
+- **Test:** `test_arm4_hex_evidence_is_pure_ascii`
 
 ### AC-008 (traces to BC-2.07.021 postcondition 1-3)
 For arm 3 (NonAsciiUtf8), `finding.summary` contains the decoded UTF-8 hostname with all non-ASCII codepoints intact (e.g., raw Cyrillic characters). `finding.evidence[0]` = `"hex: {hex}"` with lossless lowercase hex. No `{:?}` Debug escaping is applied (which would insert `\u{NNNN}` sequences).
@@ -92,18 +92,18 @@ For arm 3 (NonAsciiUtf8), `finding.summary` contains the decoded UTF-8 hostname 
 
 ### AC-009 (traces to BC-2.07.037 postcondition 1-4)
 When SNI bytes are valid UTF-8 but contain BOTH non-ASCII characters AND C0/DEL control bytes (e.g., `b"caf\x01\xc3\xa9"`), arm 3 fires (NonAsciiUtf8), NOT arm 2 (AsciiWithControl). The finding summary says "non-ASCII characters" — NOT "control bytes". The control byte information is only recoverable from the hex evidence field.
-- **Test:** Unit test with `b"caf\x01\xc3\xa9"` (valid UTF-8 with C0 + non-ASCII); assert `SniValue::NonAsciiUtf8` and summary contains "non-ASCII"
+- **Test:** `test_c0_plus_non_ascii_fires_arm3_not_arm2`
 
 ### AC-010 (traces to BC-2.07.037 invariant 1-2)
 The `is_ascii()` predicate is the decisive gate between arm 2 and arm 3. Even one non-ASCII code point causes `is_ascii()` to return false, which routes the string to arm 3 before `contains_c0_or_del` is checked. Arm evaluation is strictly top-down.
-- **Test:** Unit test confirming that for `b"caf\x01\xc3\xa9"`, `is_ascii()` returns false (arm 3 fires); for `b"evil\x01.com"`, `is_ascii()` returns true (arm 2 fires)
+- **Test:** `test_is_ascii_gate_routes_arm2_vs_arm3`
 
 ## Architecture Mapping
 
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
-| `extract_sni` (arm 3) | src/analyzer/tls.rs:256-260 | pure-core (returns SniValue::NonAsciiUtf8) |
-| `extract_sni` (arm 4) | src/analyzer/tls.rs:260-264 | pure-core (returns SniValue::NonUtf8) |
+| `extract_sni` (arm 3) | src/analyzer/tls.rs:257-260 | pure-core (returns SniValue::NonAsciiUtf8) |
+| `extract_sni` (arm 4) | src/analyzer/tls.rs:261-264 | pure-core (returns SniValue::NonUtf8) |
 | `bytes_to_hex` | src/analyzer/tls.rs:86-93 | pure-core |
 | Arm 3 match in `handle_client_hello` | src/analyzer/tls.rs:449-467 | effectful-shell (mutates sni_counts, all_findings) |
 | Arm 4 match in `handle_client_hello` | src/analyzer/tls.rs:410-415, 469-488 | effectful-shell (mutates sni_counts, all_findings) |
@@ -182,4 +182,12 @@ The `is_ascii()` predicate is the decisive gate between arm 2 and arm 3. Even on
 | File | Action | Purpose |
 |------|--------|---------|
 | src/analyzer/tls.rs | modify | `bytes_to_hex` (86-93), `extract_sni` arms 3+4 (256-264), arm 3+4 handling in `handle_client_hello` (410-415, 449-488) |
-| tests/tls_analyzer_tests.rs | modify | `test_valid_utf8_non_ascii_sni_emits_finding`, `test_cyrillic_sni_emits_non_ascii_finding`, `test_emoji_sni_emits_non_ascii_finding`, `test_non_utf8_sni_emits_finding_and_counts_under_hex_key`, `test_non_utf8_sni_preserves_raw_bytes_in_summary`, arm 2/3 disambiguation test |
+| tests/tls_analyzer_tests.rs | modify | `test_valid_utf8_non_ascii_sni_emits_finding`, `test_cyrillic_sni_emits_non_ascii_finding`, `test_emoji_sni_emits_non_ascii_finding`, `test_non_utf8_sni_emits_finding_and_counts_under_hex_key`, `non_utf8_sni_finding_sets_mitre_t1027`, `test_non_utf8_sni_preserves_raw_bytes_in_summary`, `test_arm4_hex_evidence_is_pure_ascii`, `test_c0_plus_non_ascii_fires_arm3_not_arm2`, `test_is_ascii_gate_routes_arm2_vs_arm3` |
+
+## Changelog
+
+| Version | Date | Author | Notes |
+|---------|------|--------|-------|
+| v1.0 | 2026-05-21 | story-writer | Initial decomposition |
+| v1.1 | 2026-05-29 | story-writer | AC-citation sync — AC-007/009/010 cite concrete test fn names (DF-AC-TEST-NAME-SYNC-001, proactive PG-W17-001 fix) |
+| v1.2 | 2026-05-29 | story-writer | correct extract_sni arm-3/arm-4 Architecture-Mapping line anchors to match BC + source (F-S056-P3-001) |
