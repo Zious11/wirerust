@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-053"
 epic_id: "E-5"
-version: "1.1"
-status: draft
+version: "1.2"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -30,6 +30,9 @@ implementation_strategy: brownfield-formalization
 ---
 
 <!-- changelog
+## v1.2 (2026-05-29)
+- status: draft → completed. PR #149 squash-merged → develop a044144. Per-story adversarial convergence: 3/3 clean P3-P5, 5 passes total. Wave 17 partial merge — wave-level convergence pending.
+
 ## v1.1 (2026-05-29)
 - F-W17-S053-P2-001 (MEDIUM): AC-001..007 `**Test:**` citations updated to discriminating BC-prefixed test names per DF-AC-TEST-NAME-SYNC-001 v2. Old citations pointed to under-asserting `test_parse_server_hello` or the wrong-polarity `test_weak_cipher_finding_server` (which exercises a KNOWN cipher and asserts no cipher_counts key — the opposite discriminant from AC-006).
 - F-W17-S053-P2-002 (LOW): File Structure Requirements table and Tasks section updated; stale test names `test_parse_server_hello` / `test_weak_cipher_finding_server` replaced with full BC-prefixed test list.

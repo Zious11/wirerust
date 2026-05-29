@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-045"
 epic_id: "E-4"
-version: "1.1"
-status: draft
+version: "1.2"
+status: completed
 producer: story-writer
 timestamp: 2026-05-29T00:00:00Z
 phase: 2
@@ -36,6 +36,11 @@ risk_mitigations: []
 tdd_mode: strict
 implementation_strategy: brownfield-formalization
 ---
+
+<!-- changelog
+## v1.2 (2026-05-29)
+- status: draft → completed. PR #150 squash-merged → develop a044144 (after #149). Per-story adversarial convergence: 3/3 clean P3-P5, 5 passes total. Wave 17 partial merge — wave-level convergence pending.
+-->
 
 > **Execute:** `/vsdd-factory:deliver-story STORY-045`
 
