@@ -159,6 +159,38 @@ fn test_ssl30_pcap_generates_findings() {
         "AC-006 (BC-2.07.011 pc1): mitre_technique must be None"
     );
 
+    // F-S054-P2-002 / AC-006 (BC-2.07.011 postcondition 2): the PCAP contains SSL 3.0
+    // ClientHello traffic, so at least one deprecated-protocol finding must come from the
+    // ClientToServer direction — proving the client-side postcondition of BC-2.07.011.
+    // Without this direction pin the AC-006 test only demonstrates server-side behavior.
+    use wirerust::reassembly::handler::Direction;
+    assert!(
+        deprecated_findings
+            .iter()
+            .any(|f| f.direction == Some(Direction::ClientToServer)),
+        "F-S054-P2-002 (AC-006 / BC-2.07.011 pc2): at least one deprecated-protocol finding \
+         must have direction ClientToServer — the PCAP contains SSL 3.0 ClientHellos and the \
+         AC-006 postcondition requires the client-side detection path to fire; \
+         got finding directions: {:?}",
+        deprecated_findings
+            .iter()
+            .map(|f| &f.direction)
+            .collect::<Vec<_>>()
+    );
+
+    // Exact client summary pin: the ClientToServer deprecated-protocol finding must have
+    // the canonical summary from handle_client_hello (src/analyzer/tls.rs:530-531).
+    let client_dep = deprecated_findings
+        .iter()
+        .find(|f| f.direction == Some(Direction::ClientToServer))
+        .expect("client-side deprecated-protocol finding must exist (asserted above)");
+    assert_eq!(
+        client_dep.summary,
+        "ClientHello uses deprecated protocol (SSL 3.0, RFC 7568 prohibits SSLv3)",
+        "F-S054-P2-002 (AC-006 / BC-2.07.011 pc1): client-side deprecated-protocol summary \
+         must exactly match the canonical format from handle_client_hello"
+    );
+
     // BC-2.07.009 postcondition 1: at least one weak-cipher finding (export ciphers in capture).
     let weak_findings: Vec<_> = findings
         .iter()
