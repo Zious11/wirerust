@@ -2144,8 +2144,9 @@ fn test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity() {
     // finding emission and count insertion are sequential, not conditional.
     // Verify the finding has the expected metadata (confidence, MITRE technique).
     // Note: BC-2.07.028 inv2 ("all_findings has no cap") is separately evidenced
-    // by the push_finding_for_testing / all_findings_len_for_testing seam tests
-    // for TcpReassembler; here we only prove the decoupling half of inv1.
+    // by `test_BC_2_04_024_http_tls_analyzer_findings_not_capped` in
+    // tests/reassembly_engine_tests.rs (BC-2.04.024 inv4 / AC-007b); here we
+    // only prove the decoupling half of inv1.
     let f = analyzer
         .findings()
         .into_iter()
