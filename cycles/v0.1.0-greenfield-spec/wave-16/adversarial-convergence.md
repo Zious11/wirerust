@@ -113,6 +113,56 @@ All 4 stories require additional clean passes for BC-5.39.001 gate. Wave 16 rema
 
 ---
 
+## Pass-4 (Retroactive — 2026-05-28)
+
+**develop HEAD at pass:** 16d938d (unchanged from Pass-3)
+
+| Story | Streak Before | Findings | Verdict | Streak After | Remediation |
+|-------|--------------|----------|---------|-------------|-------------|
+| STORY-052 | 1 | 0 | CLEAN | 2 | None |
+| STORY-042 | 0 | 0 | CLEAN | 1 | None |
+| STORY-043 | 0 | 0 | CLEAN | 1 | None |
+| STORY-044 | 0 | 2 (MEDIUM F-W16-S042-P4-001: BC-2.06.005 wrong brace-prose at inv-1 line 191; MEDIUM F-W16-S052-P4-002: BC-2.07.001 missing VP rows for invariant-2 capacity tests) | DIRTY | 0 | Factory-only: BC-2.06.005 v1.5, BC-2.07.001 v1.4, STORY-042 v1.3 (input-hash 7f9b0ab→60e0389), STORY-052 v1.4 (input-hash 09f5faa→39b997a), STORY-044 v1.6 (line anchor 3868→3888 + finding-ID label corrections) |
+
+**Finding details:**
+
+**F-W16-S042-P4-001** [MEDIUM] — BC-2.06.005 v1.4 invariant 1 contained factually wrong prose claiming
+"line 191 is the closing brace". Actual code: line 191 is the opening `{` of the if-body; the closing `}`
+is at line 203. The four `.contains()` calls span lines 187-190 only.
+Remediation: BC-2.06.005 v1.4→v1.5: corrected invariant 1 prose to "line 191 is the opening `{` of the
+if-body (the closing `}` is at line 203)". Side-effect: STORY-042 input-hash updated (BC-2.06.005 is in
+STORY-042's `inputs:` list).
+
+**F-W16-S052-P4-002** [MEDIUM] — BC-2.07.001 v1.3 Verification Properties table was missing VP rows for
+invariant 2 (capacity bound on `version_counts` and `ja3_counts`). The discriminating tests
+`test_BC_2_07_001_inv2_version_counts_bounded_at_max_map_entries` (tests/tls_analyzer_tests.rs:2747)
+and `test_BC_2_07_001_inv2_ja3_counts_bounded_at_max_map_entries` (tests/tls_analyzer_tests.rs:2811)
+existed in the codebase but were not cited in the VP table.
+Remediation: BC-2.07.001 v1.3→v1.4: two VP rows added citing the discriminating tests. Side-effect:
+STORY-052 input-hash updated (BC-2.07.001 is in STORY-052's `inputs:` list).
+
+Pass-4 remediation: factory-only burst; develop_head unchanged 16d938d. No develop PR.
+
+**Convergence-policy decision recorded:** Pass-5+ only MEDIUM+ findings trigger remediation. LOW nits
+(observations, cosmetic items) ride without remediation. A CLEAN verdict with only LOW nits sustains the
+per-story consecutive-clean streak per BC-5.39.001 project convention (established in W14 "NITPICK_ONLY"
+passes).
+
+---
+
+## Consecutive-Clean Streak Status (post-Pass-4 remediation)
+
+| Story | Pass-1 | Pass-2 | Pass-3 | Pass-4 | Streak (post-P4-rem) | Gate Status |
+|-------|--------|--------|--------|--------|---------------------|-------------|
+| STORY-042 | CLEAN | CLEAN | DIRTY→rem | CLEAN | 1 | IN PROGRESS — needs 2 more clean |
+| STORY-043 | DIRTY | CLEAN | DIRTY→rem | CLEAN | 1 | IN PROGRESS — needs 2 more clean |
+| STORY-044 | DIRTY | CLEAN | DIRTY→rem | DIRTY→rem | 0 | NOT YET — needs 3 clean |
+| STORY-052 | CLEAN | DIRTY | CLEAN | CLEAN | 2 | IN PROGRESS — needs 1 more clean |
+
+Wave 16 remains OPEN. BC-5.39.001 NOT YET ACHIEVED.
+
+---
+
 ## Drift Items Filed This Wave
 
 | ID | Category | Severity | Status | Description |

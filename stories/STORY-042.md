@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-042"
 epic_id: "E-4"
-version: "1.2"
+version: "1.3"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.006.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.007.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.012.md
-input-hash: "7f9b0ab"
+input-hash: "60e0389"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-041]
@@ -190,3 +190,4 @@ All anomaly detections are independently gated; none fires on clean input. Zero 
 | v1.0 | 2026-05-21 | Initial story decomposition |
 | v1.1 | 2026-05-21 | Pass-1/2 adversarial convergence; test citations added |
 | v1.2 | 2026-05-28 | Sibling-sweep input-hash recomputation (DF-SIBLING-SWEEP-001): BC-2.06.005 bumped v1.3→v1.4 and BC-2.06.007 bumped v1.2→v1.3 by PO this burst — input-hash recomputed: `86f7fe0` → `7f9b0ab` (sha256 over sorted cited-BC files, first 7 chars). No AC citation changes required. |
+| v1.3 | 2026-05-28 | Wave-16 Pass-4 sibling-sweep input-hash propagation (DF-SIBLING-SWEEP-001): BC-2.06.005 bumped v1.4→v1.5 by PO this burst — input-hash recomputed: `7f9b0ab` → `60e0389` (sha256 over sorted cited-BC files BC-2.06.005/006/007/012, first 7 chars). No AC citation changes required. |

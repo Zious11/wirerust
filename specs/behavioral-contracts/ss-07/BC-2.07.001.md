@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 16 Pass-2 sibling sweep (F-W16-S052-P2-003) — tighten architecture anchor 379-387 → 384-387 (fn signature excluded; body starts at 384) — 2026-05-28"
+  - "v1.4: Wave 16 Pass-4 (F-W16-S052-P4-002) — add VP table rows for invariant 2 (version_counts / ja3_counts bounded at MAX_MAP_ENTRIES) citing discriminating tests at tests/tls_analyzer_tests.rs:2747 and :2811 — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -98,6 +99,8 @@ processed.
 | — | handshakes_seen increments exactly once per ClientHello | unit: test_parse_client_hello |
 | — | JA3 is 32 lowercase hex chars | proptest: compute_ja3_has_five_fields_and_hex_hash |
 | — | GREASE values do not change JA3 hash | proptest: compute_ja3_is_grease_invariant |
+| — | Invariant 2: version_counts bounded at MAX_MAP_ENTRIES; new keys silently dropped when full | unit: test_BC_2_07_001_inv2_version_counts_bounded_at_max_map_entries (tests/tls_analyzer_tests.rs:2747) |
+| — | Invariant 2: ja3_counts bounded at MAX_MAP_ENTRIES; new keys silently dropped when full | unit: test_BC_2_07_001_inv2_ja3_counts_bounded_at_max_map_entries (tests/tls_analyzer_tests.rs:2811) |
 
 ## Traceability
 
