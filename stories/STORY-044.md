@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-044"
 epic_id: "E-4"
-version: "1.4"
+version: "1.5"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -15,7 +15,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.017.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.018.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.020.md
-input-hash: "f1b0959"
+input-hash: "db2d698"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-041]
@@ -113,7 +113,7 @@ After a complete HTTP request header is successfully parsed (`had_success = true
 
 ### AC-013 (traces to BC-2.06.020 invariant 3)
 The TooManyHeaders finding check is inside the `if !had_success` block — TooManyHeaders on body bytes after a successful header is also suppressed. (Test re-pointed to the dedicated TooManyHeaders-after-success suppression test; `test_BC_2_06_020_post_with_body_does_not_inflate_parse_errors` only exercises the Err(Token) body-byte path and does not send real TooManyHeaders input.)
-- **Test:** `test_BC_2_06_020_invariant_real_too_many_headers_after_success_suppressed`
+- **Test:** `test_BC_2_06_020_invariant_real_too_many_headers_after_success_suppressed`; `test_BC_2_06_020_invariant_real_too_many_headers_after_success_suppressed_response` (tests/http_analyzer_tests.rs:4488 — response-arm sibling; symmetric coverage of BC-2.06.020 invariant 3 for the server-to-client direction)
 
 ## Architecture Mapping
 
@@ -121,7 +121,7 @@ The TooManyHeaders finding check is inside the `if !had_success` block — TooMa
 |-----------|--------|---------------|
 | try_parse_requests Err arm | src/analyzer/http.rs:403-434 | effectful-shell |
 | TooManyHeaders detection | src/analyzer/http.rs:416-428 (req), 475-487 (resp) | effectful-shell |
-| Poison transition | src/analyzer/http.rs:408-409 (req), 467 (resp) | effectful-shell |
+| Poison transition | src/analyzer/http.rs:408-409 (req), 467-468 (resp) | effectful-shell |
 | counted_as_non_http latch | src/analyzer/http.rs:410-413 | effectful-shell |
 | had_success guard | src/analyzer/http.rs:362-364, 403-408 | effectful-shell |
 
@@ -213,3 +213,4 @@ The TooManyHeaders finding check is inside the `if !had_success` block — TooMa
 | v1.2 | 2026-05-21 | Pass-2 adversarial convergence; test citations added |
 | v1.3 | 2026-05-21 | Pass-3 remediation; AC-013 re-pointed to dedicated TooManyHeaders-after-success suppression test |
 | v1.4 | 2026-05-28 | Pass-2 retroactive remediation (F-W16-S044-P2-001): AC-006 companion test `test_BC_2_06_015_non_http_flows_incremented_on_first_poison` (http_analyzer_tests.rs:3868) added — this test directly asserts `non_http_flows == 1`, covering BC-2.06.015 postcondition 2 that the primary test did not explicitly assert. BC-2.06.015 bumped to v1.3 by PO this burst — input-hash recomputed: `1a3b973` → `f1b0959` (sha256 over sorted cited-BC files, first 7 chars). |
+| v1.5 | 2026-05-28 | Pass-3 retroactive remediation (F-W16-S044-P3-001, F-W16-S044-P3-003): Architecture Mapping Poison transition anchor corrected from `467 (resp)` to `467-468 (resp)` (line 467 = guard, line 468 = `state.response_poisoned = true;`) per BC-2.06.015 v1.3. AC-013 Test citation extended with response-arm sibling `test_BC_2_06_020_invariant_real_too_many_headers_after_success_suppressed_response` (http_analyzer_tests.rs:4488) for symmetric BC-2.06.020 invariant 3 coverage. BC-2.06.017 patch-bumped to v1.3 by PO this burst — input-hash recomputed: `f1b0959` → `db2d698` (sha256 over sorted cited-BC files, first 7 chars). |

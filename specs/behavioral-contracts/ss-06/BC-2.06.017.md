@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Anchor-precision fix — request guard 509-511→509-512, response guard 521-523→521-524 (F-W16-S044-P3-002) — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,8 +49,8 @@ counts, and separate poison flags.
 
 ## Invariants
 
-1. `request_poisoned` only gates `Direction::ClientToServer` data (http.rs:509-511).
-2. `response_poisoned` only gates `Direction::ServerToClient` data (http.rs:521-523).
+1. `request_poisoned` only gates `Direction::ClientToServer` data (http.rs:509-512).
+2. `response_poisoned` only gates `Direction::ServerToClient` data (http.rs:521-524).
 3. The two flags are independent boolean fields in `HttpFlowState`; neither sets the other.
 
 ## Edge Cases
@@ -91,8 +92,8 @@ counts, and separate poison flags.
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:509-511` -- request_poisoned early-return
-- `src/analyzer/http.rs:521-523` -- response_poisoned early-return
+- `src/analyzer/http.rs:509-512` -- request_poisoned early-return
+- `src/analyzer/http.rs:521-524` -- response_poisoned early-return
 - `tests/http_analyzer_tests.rs` -- test_poison_request_does_not_affect_response
 
 ## Source Evidence
