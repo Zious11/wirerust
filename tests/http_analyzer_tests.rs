@@ -1847,12 +1847,13 @@ mod bc_2_06_story042_formalization {
     /// BC-2.06.005 invariant 1 — all four canonical patterns trigger the finding;
     /// the backslash pattern ("..\\") does NOT; URI is lowercased before match.
     ///
-    /// Exercises EC-002 (URL-encoded), EC-003 (double-encoded), EC-004 (....//),
-    /// and the invariant that there is no backslash variant.
+    /// Exercises EC-001 (plain ../), EC-002 (URL-encoded ..%2f), EC-003 (double-encoded
+    /// ..%252f), EC-004 (....//), and the invariant that there is no backslash variant.
+    /// EC numbering matches STORY-042 Edge Cases table exactly.
     #[allow(non_snake_case)]
     #[test]
     fn test_BC_2_06_005_encoded_traversal_four_patterns() {
-        // EC-002: "../" plain variant (lowercased input).
+        // EC-001: "/../etc/passwd" plain "../" variant (lowercased input).
         {
             let mut a = HttpAnalyzer::new();
             let fk = test_flow_key();
@@ -1866,15 +1867,15 @@ mod bc_2_06_story042_formalization {
             let t = findings
                 .iter()
                 .find(|f| f.summary.contains("Path traversal"))
-                .expect("EC-002 pattern '../': path-traversal finding must be emitted");
+                .expect("EC-001 pattern '../': path-traversal finding must be emitted");
             assert_eq!(
                 t.mitre_technique.as_deref(),
                 Some("T1083"),
-                "EC-002: mitre_technique must be T1083"
+                "EC-001: mitre_technique must be T1083"
             );
         }
 
-        // EC-003 (BC-2.06.005 invariant 1): URL-encoded "..%2f" variant.
+        // EC-002 (BC-2.06.005 invariant 1): URL-encoded "..%2f" variant.
         {
             let mut a = HttpAnalyzer::new();
             let fk = test_flow_key();
@@ -1892,7 +1893,7 @@ mod bc_2_06_story042_formalization {
             );
         }
 
-        // EC-003 cont. (BC-2.06.005 invariant 1): double-encoded "..%252f" variant.
+        // EC-003 (BC-2.06.005 invariant 1): double-encoded "..%252f" variant.
         {
             let mut a = HttpAnalyzer::new();
             let fk = test_flow_key();
@@ -3074,6 +3075,11 @@ mod bc_2_06_043_formalization {
             let fk = test_flow_key();
             let request = b"GET /path HTTP/1.1\r\nHost:   \r\n\r\n";
             analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            assert_eq!(
+                *analyzer.method_counts().get("GET").unwrap_or(&0),
+                1,
+                "precondition: HTTP/1.1 whitespace-only-Host request must parse (BC-2.06.009 invariant 2 anchor)"
+            );
             assert!(
                 analyzer
                     .findings()
@@ -3141,7 +3147,7 @@ mod bc_2_06_043_formalization {
             "BC-2.06.010 postcondition 1: summary must include exact byte count"
         );
 
-        // Postcondition 1 + invariant 2: evidence truncated to 200 chars via truncate_uri.
+        // Postcondition 1 + invariant 2: evidence truncated to EXACTLY 200 chars via truncate_uri.
         assert!(
             long_uri_finding.evidence[0].starts_with("URI prefix:"),
             "BC-2.06.010 postcondition 1: evidence must start with 'URI prefix:'"
@@ -3150,10 +3156,18 @@ mod bc_2_06_043_formalization {
         let prefix_value = long_uri_finding.evidence[0]
             .strip_prefix("URI prefix: ")
             .unwrap_or(&long_uri_finding.evidence[0]);
-        assert!(
-            prefix_value.len() <= 200,
-            "BC-2.06.010 invariant 2: evidence URI prefix must be at most 200 chars, got {}",
+        // BC-2.06.010 invariant 2: truncation is to EXACTLY 200 chars (not merely <=200).
+        // Input: "/" + "A"*2100 = 2101 chars; expected prefix: "/" + "A"*199 = 200 chars.
+        assert_eq!(
+            prefix_value.len(),
+            200,
+            "BC-2.06.010 invariant 2: evidence URI prefix must be exactly 200 chars, got {}",
             prefix_value.len()
+        );
+        assert_eq!(
+            prefix_value,
+            "/".to_string() + &"A".repeat(199),
+            "BC-2.06.010 invariant 2: evidence URI prefix must be the first 200 chars of the input URI"
         );
 
         // Postcondition 1: direction = Some(ClientToServer).
@@ -3326,11 +3340,10 @@ mod bc_2_06_043_formalization {
         );
 
         // BC-2.06.011 invariant 2: the asymmetry is intentional — absent=no finding,
-        // empty=finding.  Verify no findings at all for a clean normal request.
-        assert!(
-            analyzer.findings().is_empty(),
-            "BC-2.06.011 invariant 2: normal request without UA must produce zero findings"
-        );
+        // empty=finding.  Pin only the UA-specific behavior; do not couple to absence of
+        // all detections (which would fail if another detection fires on the same input).
+        // The targeted User-Agent assertion above already covers this contract.
+        // If an unrelated finding fires here it is a separate BC's concern, not AC-009.
     }
 
     /// AC-010 (BC-2.06.011 invariant 1) — whitespace-only User-Agent value
@@ -3490,14 +3503,21 @@ mod bc_2_06_043_formalization {
             "BC-2.06.010 invariant 3: summary must be exactly 'Abnormally long URI (10000 chars)'"
         );
 
-        // Invariant 2: evidence truncated to 200 chars.
+        // Invariant 2: evidence truncated to EXACTLY 200 chars.
+        // Input: "/" + "X"*9999 = 10000 chars; expected prefix: "/" + "X"*199 = 200 chars.
         let prefix = f.evidence[0]
             .strip_prefix("URI prefix: ")
             .unwrap_or(&f.evidence[0]);
-        assert!(
-            prefix.len() <= 200,
-            "BC-2.06.010 invariant 2: evidence URI prefix must be ≤200 chars, got {}",
+        assert_eq!(
+            prefix.len(),
+            200,
+            "BC-2.06.010 invariant 2: evidence URI prefix must be exactly 200 chars, got {}",
             prefix.len()
+        );
+        assert_eq!(
+            prefix,
+            "/".to_string() + &"X".repeat(199),
+            "BC-2.06.010 invariant 2: evidence URI prefix must be the first 200 chars of the input URI"
         );
     }
 } // mod bc_2_06_043_formalization
