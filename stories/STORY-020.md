@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-020"
 epic_id: "E-2"
-version: "1.9"
-status: draft
+version: "2.0"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -35,6 +35,7 @@ implementation_strategy: brownfield-formalization
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| 2.0 | 2026-05-29 | state-manager | status reconciled to completed per sprint-state.yaml (merge_commit 8cb907e wave 9); F-DRIFT3B-001/PG-W16-002. |
 | 1.9 | 2026-05-26 | story-writer | Wave 9 wave-level adv pass-3 fixes (5TH CONSECUTIVE CYCLE of sibling-regression pattern — W9-D8 codification critical): F-W9P3-001 PC-N → PC-5 (resolves placeholder left by pass-2 F-W9P2-003 burst); F-W9P3-003 EC-012 memcap=12 → memcap=4 (matches actual test value; was arithmetically impossible against described 5-byte buffer). |
 | 1.8 | 2026-05-26 | story-writer | Wave 9 wave-level adv pass-2 F-W9P2-003 (sibling-regression of pass-1 F-W9P1-002): added AC-014 tracing to BC-2.04.015 v1.5 PC-7 + BC-2.04.016 sibling PC (data-loss-on-MemoryPressure-eviction); added EC-012 to Edge Cases for the canonical 5+5 byte test vector; AC-014 test target name aligned with parallel test-writer dispatch. |
 | 1.7 | 2026-05-26 | story-writer | Wave 9 wave-level adv pass-1 F-W9P1-003 (sibling-discipline regression in spec hierarchy): Architecture Mapping anchor `lifecycle.rs:51` → `lifecycle.rs:60` (line 51 is capture, line 60 is decrement; STORY-019 inserted let-else at 42-50 shifting decrement down). Resolves W9-D9 deferral by being explicit at the spec/BC level rather than just drift-item-tracked. Also swept and corrected two secondary stale anchors: Token Budget table and File Structure Requirements both cited `lifecycle.rs:51` — updated to `lifecycle.rs:60`. |

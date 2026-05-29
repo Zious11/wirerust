@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-031"
 epic_id: "E-3"
-version: "1.6"
-status: draft
+version: "1.8"
+status: completed
 producer: story-writer
 timestamp: 2026-05-27T12:00:00Z
 phase: 2
@@ -207,3 +207,4 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 | 1.5 | 2026-05-27 | story-writer | Pass-6 PO commit (factory 9339318) — BC-2.05.002 v1.5 input reflected; Task 21 appended: EC-001 anchor fix (port-9999 test replaced with `test_http_content_on_port_443_routes_to_http` matching port-443 scenario); sibling sweep confirmed no other EC mis-anchors across 3 BCs; PSI codification candidate row added for EC-scenario-match sub-rule (F-W12P6-001, F-W12P6-OBS-003) |
 | 1.6 | 2026-05-28 | story-writer | DF-SIBLING-SWEEP-001 v4 propagation — BC-2.05.001 v1.5 and BC-2.05.003 v1.5 (EC table inline test citations added); input-hash recomputed: `81248d8` → `2c4392a` (sha256 over sorted cited-BC files BC-2.05.001/002/003, first 7 chars). No AC citation changes required. |
 | 1.7 | 2026-05-29 | state-manager | input-hash corrected via canonical bin/compute-input-hash --update (prior value `2c4392a` was hand-computed sha256 over sorted inputs-file list; tool uses MD5 over inputs-order file list). New value: `4626b8a`. |
+| 1.8 | 2026-05-29 | state-manager | status reconciled to completed per sprint-state.yaml (merge_commit f0b5007 wave 3 → actually 1435362 wave 12); F-DRIFT3B-001/PG-W16-002. |

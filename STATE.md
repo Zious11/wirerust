@@ -109,7 +109,7 @@ phase_2_input_hash_drift_check_total: 153
 **Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-16 CLOSED/CONVERGED; Wave 17 NOT STARTED.
 30 stories delivered across Waves 1-16 (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052).
 Wave 16 CLOSED 2026-05-29: retroactive convergence complete. PRs #140-146. All 4 per-story CONVERGED: STORY-052(P3-P5), STORY-042(P4-P6), STORY-043(P4-P6), STORY-044(P5-P7). Wave-level: R1 2-MEDIUM REMEDIATED; R2 3-lens×3-pass CLEAN (1 false-positive MEDIUM dismissed). BC-5.39.001 ACHIEVED.
-Drift Remediation 2026-05-29 COMPLETE: 62 items validated → 57 closed (23 fixed-this-session, 6 by-codification, 8 prior, 4 invalid, 5 duplicate, 11 wont-fix). 8 OPEN (7 carried + 1 new PG-HASH-001). PRs #147+#148 merged. 8 policies total (3 new + 2 extended this session).
+Drift Remediation 2026-05-29 COMPLETE: 62 items validated → 56 closed (21 fixed-this-session, 6 by-codification, 8 prior, 4 invalid, 6 duplicate, 11 wont-fix). 8 OPEN (7 carried + 1 new PG-HASH-001). PRs #147+#148 merged. 8 policies total (3 new + 2 extended this session).
 develop HEAD: 34e66c7 (PRs #147+#148 merged 2026-05-29). All 8 CI checks green.
 
 **Mode:** brownfield (in-repo: target == reference).
@@ -184,9 +184,9 @@ Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/converg
 ## Session Resume Checkpoint (2026-05-29 — Drift Remediation COMPLETE; Wave 17 Ready)
 
 1. Waves 1-16 CLOSED/CONVERGED. Drift Remediation 2026-05-29 COMPLETE. develop HEAD: 34e66c7 (PRs #147+#148 merged). All 8 CI checks green (trust-boundary job added PR #148).
-2. Drift remediation: 62 items validated → ~57 closed (23 fixed-this-session, 6 codification, 8 prior, 4 invalid, 5 duplicate, 11 wont-fix). 7 items carried-open + 1 new (PG-HASH-001) = 8 total open (see Drift Items table). Archive: .factory/cycles/drift-remediation-2026-05-29/closed-items.md. Lessons: .factory/cycles/drift-remediation-2026-05-29/lessons.md.
+2. Drift remediation: 62 items validated → 56 closed (21 fixed-this-session, 6 codification, 8 prior, 4 invalid, 6 duplicate, 11 wont-fix). 7 items carried-open + 1 new (PG-HASH-001) = 8 total open (see Drift Items table). Archive: .factory/cycles/drift-remediation-2026-05-29/closed-items.md. Lessons: .factory/cycles/drift-remediation-2026-05-29/lessons.md.
 3. 8 policies total in policies.yaml (artifact commit 23f92cc): 3 new (DF-CONVERGENCE-BEFORE-MERGE-001, DF-DEVELOP-FRESHNESS-001, DF-ADVERSARY-TOOLCHAIN-PAIRING-001) + 2 extended (DF-AC-TEST-NAME-SYNC-001 v1→v2, DF-SIBLING-SWEEP-001 v3→v4) + 3 pre-existing (DF-VALIDATION-001, DF-PR-MANAGER-COMPLETE-001, DF-ADVERSARY-METHODOLOGY-001).
-4. STORY-033 status reconciled: in-progress → completed (F-DRIFT-S-001 fixed). STORY-INDEX.md updated.
+4. STORY-033 status reconciled in prior session (F-DRIFT-S-001). This session (F-DRIFT3B-001/PG-W16-002): 16 additional stories reconciled — STORY-INDEX.md updated for all 16 (STORY-005/011/012/013/014/015/016/017/018/019/020/021/031/032/066/071 → completed); STORY-031/032 frontmatter corrected (draft/in-progress → completed); STORY-016/017/018/020/021 frontmatter corrected (draft → completed). All 29 sprint-state done stories now have `status: completed` in both STORY-INDEX.md and frontmatter. Dependency-completion invariant verified: HOLDS. input-hash scan: TOTAL=48 MATCH=48 STALE=0.
 5. DF-16.B (OPEN, MEDIUM): ~209 BC files across SS-02..SS-13 still have broken `capabilities.md §CAP-NN` citations. Requires dedicated bulk find-replace sweep (not per-item). SS-01 8 files fixed.
 6. NEXT: Wave 17. Stories: STORY-045 (E-4 Flow Lifecycle + Caps; blocks: STORY-041+STORY-044), STORY-053 (E-5 ServerHello JA3S; blocks: STORY-051+STORY-052), STORY-055 (E-5 SNI Arms 1+2; blocks: STORY-052). All blockers satisfied. Prior checkpoint: cycles/phase-3-tdd/session-checkpoints.md.
 
@@ -269,15 +269,15 @@ Full retrospective detail: `.factory/cycles/phase-3-tdd/lessons.md` (W13 lessons
 
 ### Drift Remediation Retrospective (2026-05-29)
 
-62 validated backlog items → ~56 closed this session.
+62 validated backlog items → 56 closed this session.
 
 | Classification | Count |
 |----------------|-------|
-| RESOLVED-FIXED-THIS-SESSION | 23 |
+| RESOLVED-FIXED-THIS-SESSION | 21 |
 | RESOLVED-BY-CODIFICATION-THIS-SESSION | 6 |
 | RESOLVED-PRIOR (confirmed) | 8 |
 | INVALID | 4 |
-| DUPLICATE (merged into canonical) | 5 |
+| DUPLICATE (merged into canonical) | 6 |
 | WONT-FIX-BY-DESIGN | 11 |
 | **Remaining OPEN** | **8** (7 carried-open + 1 new PG-HASH-001) |
 
@@ -367,7 +367,7 @@ Most items from Waves 1-16 closed during drift-remediation-2026-05-29. Closed it
 
 | ID | Item | Priority |
 |----|------|----------|
-| W1.3/W2.5 **[RECURRING Waves 1-16]** | No pipeline gate advances story status draft/in-progress → completed on merge. Requires plugin-level fix (vsdd-factory story-writer template); not fixable in this repo. STORY-033 manually reconciled (F-DRIFT-S-001). | P1 — ESCALATE-UPSTREAM |
+| W1.3/W2.5 **[RECURRING Waves 1-16]** | No pipeline gate advances story status draft/in-progress → completed on merge. Requires plugin-level fix (vsdd-factory story-writer template); not fixable in this repo. This session (F-DRIFT3B-001): 16 stories manually reconciled across Waves 3-13 (STORY-033 + 016/017/018/019/020/021/031/032/005/011/012/013/014/015/066/071). Root cause unfixed (upstream plugin). | P1 — ESCALATE-UPSTREAM |
 | W7.1 | No public-API surface gate for `pub fn` additions. Candidate: `cargo public-api` CI job. Deferred: requires nightly + committed baseline, 2-PR setup. Documented in CLAUDE.md. | P2 — DEFERRED |
 
 Historical process-gap items from Phase 1 (P1.1–P1.3, P3-PG, P4-PG1/2/3, P5-PG, P8-DEFER,

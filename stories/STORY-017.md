@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-017"
 epic_id: "E-2"
-version: "1.2"
-status: draft
+version: "1.4"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -212,4 +212,5 @@ implementation_strategy: brownfield-formalization
 |---------|------|--------|---------|
 | 1.2 | 2026-05-28 | story-writer | W10-D2: Architecture Compliance Rule "Latch set BEFORE cap check" corrected from "BC-2.04.022 invariant 1" → "BC-2.04.022 PC-1/INV-2" (INV-2 is the correct invariant for the monotonic latch; PC-1 is the postcondition establishing latch-before-cap ordering; "invariant 1" was stale). W10-D11: AC-006 evidence string pinned to `["Possible evasion attempt"]`; AC-009 evidence string pinned to `["Long unbroken run of undersized TCP segments; possible segmentation-based IDS evasion"]` — anchoring test-writer assertions added this wave. W10-D14: AC-003 extended to assert `direction: None` on ConflictingOverlap finding, matching test-writer assertion `assert_eq!(f.direction, None)`. BC-2.04.019 v1.4 anchor fix (mod.rs:430-450) already cited in AC-006 via overlap block reference. input-hash bumped 9ddb8b7→7a32070. DF-SIBLING-SWEEP-001: full body sweep performed; no stale BC-2.04.022 invariant-1 or evidence-string occurrences remain.
 | 1.3 | 2026-05-29 | state-manager | input-hash corrected via canonical bin/compute-input-hash --update (prior value `7a32070` was hand-computed sha256 over sorted inputs-file list; tool uses MD5 over inputs-order file list). New value: `9ddb8b7`. |
+| 1.4 | 2026-05-29 | state-manager | status reconciled to completed per sprint-state.yaml (merge_commit ced10aa wave 10); F-DRIFT3B-001/PG-W16-002. |
 | 1.1 | 2026-05-21 | story-writer | Initial story version |

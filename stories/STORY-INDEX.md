@@ -31,20 +31,20 @@ traces_to:
 | STORY-002 | Packet Decoding — Ethernet, RAW/IPV4, and IPv6 Link-Layer Paths | E-1 | 2 | 5 | completed | STORY-001 |
 | STORY-003 | Packet Decoding — Linux SLL, No-Panic Safety, and Non-IP Frame Rejection | E-1 | 2 | 5 | completed | STORY-001 |
 | STORY-004 | Packet Decoding — ICMP, Protocol::Other, and app_protocol_hint Port Table | E-1 | 2 | 3 | completed | STORY-001 |
-| STORY-005 | Packet Decoding — packet_len Semantics and TCP Flag/Sequence Extraction | E-1 | 3 | 3 | draft | STORY-002, STORY-003, STORY-004 |
-| STORY-011 | TcpReassembler Constructor Validation and FlowKey Canonicalization | E-2 | 4 | 5 | draft | STORY-005 |
-| STORY-012 | Non-TCP Packet Filter, Statistics Summary, and bytes_reassembled Accounting | E-2 | 5 | 5 | draft | STORY-011 |
-| STORY-013 | TCP Three-Way Handshake State Machine and Direction Tagging | E-2 | 6 | 8 | draft | STORY-012 |
-| STORY-014 | Mid-Stream Join, ISN Management, and IsnMissing Guard | E-2 | 7 | 5 | draft | STORY-013 |
-| STORY-015 | In-Order Delivery, Out-of-Order Buffering, and Bidirectional Direction Tagging | E-2 | 8 | 8 | draft | STORY-013, STORY-014 |
-| STORY-016 | Overlap Detection — Duplicate Retransmissions, Partial Overlap, and buffered_bytes Accounting | E-2 | 9 | 8 | draft | STORY-015 |
-| STORY-017 | Conflict and Evasion Detection — T1036 Findings and One-Shot Anomaly Latches | E-2 | 10 | 8 | draft | STORY-015, STORY-016 |
-| STORY-018 | Resource Bounds — Depth Truncation, Out-of-Window Rejection, and Segment Limit Enforcement | E-2 | 10 | 8 | draft | STORY-015, STORY-016 |
-| STORY-019 | Flow Lifecycle — RST Close, FIN Close, Timeout Expiry, and Missing-Key Warning | E-2 | 8 | 5 | draft | STORY-013, STORY-014 |
-| STORY-020 | Memory Management — total_memory Accounting and LRU Eviction Policies | E-2 | 9 | 8 | draft | STORY-019 |
-| STORY-021 | Finalize Lifecycle, MAX_FINDINGS Cap, and Segment-Limit Summary Finding | E-2 | 11 | 5 | draft | STORY-017, STORY-018, STORY-019, STORY-020 |
-| STORY-031 | Content-First Classification — TLS Signature, HTTP Method Prefix, Port Fallback | E-3 | 12 | 5 | draft | STORY-021 |
-| STORY-032 | Classification Caching and DispatchTarget::None Retry Budget | E-3 | 13 | 5 | draft | STORY-031 |
+| STORY-005 | Packet Decoding — packet_len Semantics and TCP Flag/Sequence Extraction | E-1 | 3 | 3 | completed | STORY-002, STORY-003, STORY-004 |
+| STORY-011 | TcpReassembler Constructor Validation and FlowKey Canonicalization | E-2 | 4 | 5 | completed | STORY-005 |
+| STORY-012 | Non-TCP Packet Filter, Statistics Summary, and bytes_reassembled Accounting | E-2 | 5 | 5 | completed | STORY-011 |
+| STORY-013 | TCP Three-Way Handshake State Machine and Direction Tagging | E-2 | 6 | 8 | completed | STORY-012 |
+| STORY-014 | Mid-Stream Join, ISN Management, and IsnMissing Guard | E-2 | 7 | 5 | completed | STORY-013 |
+| STORY-015 | In-Order Delivery, Out-of-Order Buffering, and Bidirectional Direction Tagging | E-2 | 8 | 8 | completed | STORY-013, STORY-014 |
+| STORY-016 | Overlap Detection — Duplicate Retransmissions, Partial Overlap, and buffered_bytes Accounting | E-2 | 9 | 8 | completed | STORY-015 |
+| STORY-017 | Conflict and Evasion Detection — T1036 Findings and One-Shot Anomaly Latches | E-2 | 10 | 8 | completed | STORY-015, STORY-016 |
+| STORY-018 | Resource Bounds — Depth Truncation, Out-of-Window Rejection, and Segment Limit Enforcement | E-2 | 10 | 8 | completed | STORY-015, STORY-016 |
+| STORY-019 | Flow Lifecycle — RST Close, FIN Close, Timeout Expiry, and Missing-Key Warning | E-2 | 8 | 5 | completed | STORY-013, STORY-014 |
+| STORY-020 | Memory Management — total_memory Accounting and LRU Eviction Policies | E-2 | 9 | 8 | completed | STORY-019 |
+| STORY-021 | Finalize Lifecycle, MAX_FINDINGS Cap, and Segment-Limit Summary Finding | E-2 | 11 | 5 | completed | STORY-017, STORY-018, STORY-019, STORY-020 |
+| STORY-031 | Content-First Classification — TLS Signature, HTTP Method Prefix, Port Fallback | E-3 | 12 | 5 | completed | STORY-021 |
+| STORY-032 | Classification Caching and DispatchTarget::None Retry Budget | E-3 | 13 | 5 | completed | STORY-031 |
 | STORY-033 | Flow Lifecycle — Close, Unclassified Counter, No-Op Dispatcher | E-3 | 14 | 3 | completed | STORY-031, STORY-032 |
 | STORY-041 | HTTP/1.1 Request/Response Parsing and Core Statistics | E-4 | 15 | 8 | completed | STORY-033, STORY-071 |
 | STORY-042 | URI-Based Threat Detections — Path Traversal, Web Shell, Admin Panel | E-4 | 16 | 5 | completed | STORY-041 |
@@ -60,10 +60,10 @@ traces_to:
 | STORY-056 | SNI Classification Arms 3 and 4 — Non-ASCII UTF-8 and Non-UTF-8 Byte Preservation | E-5 | 18 | 8 | draft | STORY-055 |
 | STORY-057 | SNI Edge Cases — Empty Lists, Empty Hostnames, Multi-Name, NameType, Trailing Bytes, Large SNI, and Count-Cap Decoupling | E-5 | 19 | 8 | draft | STORY-055, STORY-056 |
 | STORY-058 | Buffer Management, Record Parsing Infrastructure, Flow Lifecycle, and summarize Output | E-5 | 18 | 8 | draft | STORY-052, STORY-053 |
-| STORY-066 | DNS Traffic Statistics — Port-53 Dispatch, QR-Bit Counting, and Never-Emit Contract | E-6 | 4 | 5 | draft | STORY-005 |
+| STORY-066 | DNS Traffic Statistics — Port-53 Dispatch, QR-Bit Counting, and Never-Emit Contract | E-6 | 4 | 5 | completed | STORY-005 |
 | STORY-069 | Finding Struct, Verdict/Confidence Display, and Finding Display Format | E-7 | 1 | 5 | completed | — |
 | STORY-070 | Raw-Data Contract and JSON Serialization Symmetry (skip_serializing_if) | E-7 | 2 | 5 | completed | STORY-069 |
-| STORY-071 | MITRE ATT&CK Mapping — Tactic Display, Catalog Lookup, all_tactics_in_report_order | E-7 | 3 | 8 | draft | STORY-069, STORY-070 |
+| STORY-071 | MITRE ATT&CK Mapping — Tactic Display, Catalog Lookup, all_tactics_in_report_order | E-7 | 3 | 8 | completed | STORY-069, STORY-070 |
 | STORY-076 | JsonReporter — Structure, skipped_packets, and RFC 8259 Byte Handling | E-8 | 20 | 5 | draft | STORY-046, STORY-057, STORY-058, STORY-066, STORY-071 |
 | STORY-077 | TerminalReporter — escape_for_terminal, skipped_packets, and End-to-End C1 Safety | E-8 | 21 | 8 | draft | STORY-076 |
 | STORY-078 | TerminalReporter — MITRE Grouping, Section Order, and Colorization | E-8 | 22 | 8 | draft | STORY-077 |

@@ -96,3 +96,42 @@ Drift-convergence remediation batch (2026-05-29) included uncommitted PO edits:
 
 These edits were committed in the single drift-convergence remediation burst alongside the
 input-hash corrections and bookkeeping fixes.
+
+## DR.L7 [process-gap] — STORY-INDEX Status Column Has No Automated Sync-on-Merge
+
+STORY-INDEX.md status column and individual story frontmatter `status:` fields had no
+automated mechanism to transition from draft/in-progress to completed when a story PR is
+merged. This session reconciled 11 stories (STORY-005/011/012/013/014/015/019/031/032/066/071)
+whose STORY-INDEX.md rows still showed `draft` despite sprint-state.yaml showing `status: done`
+with a `merge_commit`. STORY-031 and STORY-032 also had stale frontmatter (draft and
+in-progress respectively).
+
+**Root cause:** PG-W16-002 data manifestation — the recurring "no pipeline gate transitions
+story status on merge" gap (W1.3/W2.5) manifested as ~11 stories left unreconciled across
+Waves 3-13.
+
+**Validation-hook candidate:** assert STORY-INDEX status column == frontmatter `status:` for
+every row + dependency-completion invariant (all `depends_on` of a `completed` story must
+themselves be `completed`). Analogous to `compute-input-hash --scan` producing STALE counts.
+Should run after every wave-close burst and report discrepancies before artifacts are committed.
+
+**Scope of fix:** STORY-INDEX.md 11 rows updated to `completed`. STORY-031 frontmatter 1.6→1.8
++ changelog. STORY-032 frontmatter 1.3→1.4 + changelog. sprint-state.yaml unchanged (was
+already authoritative).
+
+## DR.L8 [process-gap] — Archive Generation Left Placeholder Headings Inflating Headcount
+
+The closed-items.md archive was generated with 4 `### F-XXX (already listed above)` placeholder
+headings that were deduplication artifacts. These inflated the RESOLVED-FIXED-THIS-SESSION
+section to 26 heading entries while the real distinct count was 22. The summary table then
+over-stated the count as 23 (not 22). Additionally W2.6/W11-D6 appeared in both
+RESOLVED-FIXED-THIS-SESSION and DUPLICATE, causing a double-classification that further
+distorted totals (claimed 57, corrected to 56).
+
+**Root cause:** Archive-generation step did not re-derive counts from distinct `### ` headings
+after deduplication; placeholder headings were not removed before counting.
+
+**Rule:** State-manager archive step MUST re-derive all per-bucket counts from the actual
+distinct `### ` headings in the section, excluding any `(already listed above)` or similar
+placeholder text, before writing the summary table. Cross-bucket double-classification must
+be detected by checking that each item ID appears in exactly one bucket.

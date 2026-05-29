@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-016"
 epic_id: "E-2"
-version: "1.4"
-status: draft
+version: "1.6"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -202,6 +202,7 @@ implementation_strategy: brownfield-formalization
 |---------|------|--------|-------|
 | 1.4 | 2026-05-28 | story-writer | W9-D1 propagation: BC-2.04.047 v1.5 extended PC4 to include DepthExceeded in the buffered_bytes-unchanged list. AC-013 updated to list `DepthExceeded` alongside Duplicate/ConflictingOverlap/OutOfWindow/IsnMissing, with note citing segment.rs:85 and :97 early-return sites. input-hash bumped 3f3509b→2ebe5d0. DF-SIBLING-SWEEP-001: no other stale PC4 occurrences in story body. |
 | 1.5 | 2026-05-29 | state-manager | input-hash corrected via canonical bin/compute-input-hash --update (prior value `2ebe5d0` was hand-computed sha256 over sorted inputs-file list; tool uses MD5 over inputs-order file list). New value: `3f3509b`. |
+| 1.6 | 2026-05-29 | state-manager | status reconciled to completed per sprint-state.yaml (merge_commit d636285 wave 9); F-DRIFT3B-001/PG-W16-002. |
 | 1.3 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-016 adv pass-2 fix: F-1 (HIGH, sibling-discipline regression of pass-1 F-1) — Tasks line 165 'non-contiguous' → 'adjacent (contiguous)' to match v1.2 EC-002 correction; full-file sweep for stragglers completed |
 | 1.2 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-016 adversarial pass-1 fix: F-1 (HIGH) — corrected EC-002 description from 'non-contiguous' to 'adjacent (contiguous)' to match the actual test setup [1,4)+[4,7); test function renamed in parallel to test_story_016_ec002_adjacent_union_coverage_duplicate; the 'non-contiguous union → Duplicate' outcome was logically impossible (non-contiguous segments create a gap → PartialOverlap, never Duplicate) |
 | 1.1 | 2026-05-21 | story-writer | Initial story version |

@@ -15,13 +15,13 @@ remediation session. Items are removed from STATE.md Drift Items table.
 
 | Classification | Count |
 |----------------|-------|
-| RESOLVED-FIXED-THIS-SESSION | 23 |
+| RESOLVED-FIXED-THIS-SESSION | 21 |
 | RESOLVED-BY-CODIFICATION-THIS-SESSION | 6 |
 | RESOLVED-PRIOR (confirmed) | 8 |
 | INVALID (do not file) | 4 |
-| DUPLICATE (merged into canonical) | 5 |
+| DUPLICATE (merged into canonical) | 6 |
 | WONT-FIX-BY-DESIGN | 11 |
-| **Total closed** | **57** |
+| **Total closed** | **56** |
 
 ---
 
@@ -90,14 +90,6 @@ Items where direct artifact edits in this session constitute the fix.
 - **Finding:** BC-2.07.034 coarse anchor 718-724 vs sibling BC-2.07.003 tightened to 721/723. Doc-only.
 - **Resolution:** BC-2.07.034 anchor tightened in artifact commit 23f92cc.
 
-### F-W16-S042-P5-001 (already listed above)
-
-### F-W16-S052-P5-001 (already listed above)
-
-### F-W16-S043-P5-001 (already listed above)
-
-### F-W16-S043-P3-002 (already listed above)
-
 ### F-W15P6-D01
 - **Finding (spec-gap, LOW):** BC-2.06.020 ↔ BC-2.06.004 cross-ref asymmetry — BC-2.06.004 referenced BC-2.06.020 in Related BCs (added at v1.6/v1.7) but reciprocal link in BC-2.06.020 was absent. Both BCs anchor the same had_success suppression design on their respective request/response parse paths.
 - **Resolution:** RESOLVED-FIXED-THIS-SESSION. BC-2.06.004 v1.7 added cross-reference to BC-2.06.020 (004→020 direction). BC-2.06.020 v1.3 added reciprocal cross-reference to BC-2.06.004 (020→004 direction). Both changelogs cite "Closes F-W15P6-D01". Evidence: BC-2.06.004 changelog row "v1.7 (2026-05-28): F-W15P6-D01 reciprocal Related-BCs fix"; BC-2.06.020 changelog row "v1.3 (2026-05-28): F-W15P6-D01 reciprocal Related-BCs fix". Included in this-session PO edits committed with the drift-convergence remediation burst.
@@ -121,10 +113,6 @@ Items where direct artifact edits in this session constitute the fix.
 ### W11-D2 / F-W16-WAVE-P2-003
 - **Finding:** Trust-boundary CI lint to forbid `_for_testing(` calls in src/. No CI gate enforces zero production callers of `_for_testing` seams.
 - **Resolution:** Codified as DF-ADVERSARY-TOOLCHAIN-PAIRING-001 and per policies.yaml; the practical gate is the naming convention + CI grep in CI-DRIFT-HARDENING code delivery. Research-agent validation confirmed this approach; no GitHub issue required beyond the CI grep PR.
-
-### W2.6 / W11-D6
-- **Finding:** Cargo.toml `rust-version = "1.91"` vs CLAUDE.md "requires Rust 1.85+".
-- **Resolution:** Research-agent validation confirmed: CLAUDE.md says "effective MSRV is whatever dtolnay/rust-toolchain@stable resolves to"; 1.91 is the accurate min for Rust 2024 edition features used (which stabilized in 1.85 but edition-resolver requires 1.85+; 1.91 is correct for the actual feature set). Closed as confirmed-accurate.
 
 ---
 
@@ -225,7 +213,10 @@ Items closed by policy codification (structural fix, no GitHub issue required).
 - PG-W16-002 (no workflow step transitions story status on merge) is the same recurring issue as W1.3/W2.5 (5-wave recurrence). Canonical item is W1.3/W2.5 (Cycle-Close Follow-Up). Closed PG-W16-002 as duplicate.
 
 ### W11-D6 ↔ W2.6
-- Both describe Cargo.toml rust-version vs CLAUDE.md MSRV discrepancy. Canonical resolution under W2.6. W11-D6 closed as duplicate; both now RESOLVED.
+- Both describe Cargo.toml rust-version vs CLAUDE.md MSRV discrepancy. Canonical resolution under W2.6. W11-D6 closed as duplicate; both now RESOLVED (confirmed-accurate per research-agent: 1.91 is correct for the actual Rust 2024 feature set used).
+
+### W2.6 (duplicate of W11-D6 / confirmed-accurate reconciliation)
+- Same MSRV discrepancy finding as W11-D6 above. W2.6 was previously listed under RESOLVED-FIXED-THIS-SESSION (double-classification). Moved here as the canonical bucket is DUPLICATE. Both items resolved as confirmed-accurate; no action required. (F-DRIFT3C-002 consolidation.)
 
 ### F-W16-S043-P5-001 (stale-range) merged into wave-close batch sweep
 - The stale FSR line range is a single-file doc fix; subsumed by the broader W16 wave-close batch sweep (F-W16-S043-P5-001 was already in the batch). Closed as resolved within batch.

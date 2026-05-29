@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-032"
 epic_id: "E-3"
-version: "1.3"
-status: in-progress
+version: "1.4"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -183,3 +183,4 @@ After a flow is permanently cached as `DispatchTarget::None` (retry cap reached)
 | v1.1 | 2026-05-27 | W13 Pass 1 remediation: test-name refresh to match BC-prefixed actual names; status → in-progress | story-writer |
 | v1.2 | 2026-05-27 | W13 Pass 2 remediation: add AC-010 for EC-008 traceability; propagate dispatcher.rs:137-148 line range to Architecture Mapping + File Structure Requirements; add 5th test to File Structure Requirements; update Task 1 AC range to 001-010; add ACR row for cache-eviction-on-close invariant | story-writer |
 | v1.3 | 2026-05-27 | W13 Pass 3 polish: refine AC-010 EC trace precision (drop imprecise EC-003 cite; add Phase B postconditions + on_flow_close cleanup (dispatcher.rs:175-176)); add cap=3 vs cap=8 reconciliation note | story-writer |
+| v1.4 | 2026-05-29 | status reconciled to completed per sprint-state.yaml (merge_commit 0d9b16d wave 13); F-DRIFT3B-001/PG-W16-002. | state-manager |

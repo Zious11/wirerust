@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-018"
 epic_id: "E-2"
-version: "1.7"
-status: draft
+version: "1.9"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -252,4 +252,5 @@ implementation_strategy: brownfield-formalization
 | 1.5 | 2026-05-26 | story-writer | Wave 10 STORY-018 pass-5 fixes (sibling-regression of pass-4 v2-refined sweep gaps): F-PASS5-001 (MED) — dropped non-existent "EC-005" from AC-002 NOTE (BC-2.04.041 v1.3 EC table has only EC-001..EC-004); F-PASS5-002 (MED, within-story half) — AC-018 "no gap can be inserted" tail removed (structurally unreachable per early-guard analysis); AC-018 rescoped to "overlap_count claim only" with cross-ref to AC-019 for partial-insertion accounting; O-PASS5-001 (LOW) — AC-001 NOTE added mirroring AC-002 NOTE for allowed==0 boundary. DF-SIBLING-SWEEP-001 v3 refinement applied: sweep now includes (a) cross-reference target resolution verification, (b) implementation-reachability reasoning. W10-D7 codification target validated (BC-2.04.045 v1.3 PC2 "or no gaps fit at all" unreachable branch deferred to wave-gate). |
 | 1.7 | 2026-05-28 | story-writer | W10-D8 propagation: BC-2.04.045 v1.4 removed "or no gaps fit at all" from PC2 (structurally unreachable — early-guard at segment.rs:70-72 prevents entry at len>=max_segments). Body sweep confirmed no live occurrence of the removed phrase (only historical changelog reference at v1.5 remains — permitted). BC-2.04.041 v1.4 added forensic data-loss note (PC7); BC-2.04.045 v1.4 PC3 overlap_count claim unchanged from STORY-018 v1.6 AC-018. No body AC text required edits. input-hash bumped 41b6ae2→b67d7fb. DF-SIBLING-SWEEP-001: grep confirmed no stale "or no gaps fit at all" in live body sections.
 | 1.8 | 2026-05-29 | state-manager | input-hash corrected via canonical bin/compute-input-hash --update (prior value `b67d7fb` was hand-computed sha256 over sorted inputs-file list; tool uses MD5 over inputs-order file list). New value: `41b6ae2`. Also: BC-2.04.045 v1.5 (cap-04 citation + mid-loop anchor correction) applied this burst. |
+| 1.9 | 2026-05-29 | state-manager | status reconciled to completed per sprint-state.yaml (merge_commit f4963ba wave 10); F-DRIFT3B-001/PG-W16-002. |
 | 1.6 | 2026-05-26 | story-writer | Wave 10 STORY-018 pass-6 fix: F-PASS6-001 (MED, recursive sweep-gap pattern — DF-SIBLING-SWEEP-001 v3 axis 'implementation-reachability reasoning' was applied to current-pass ACs but not to ACs whose BCs were modified in PRIOR passes this wave) — AC-007 antecedent rewritten to enumerate all 3 BC-2.04.027 v1.3 paths (a/b/c) for DepthExceeded; added NOTE pointing at first-call cases (paths b/c) and BC-2.04.027 v1.3 EC-005. DF-SIBLING-SWEEP-001 v4 refinement applied: sweep now broadens to ALL ACs whose anchored BCs were modified in any pass of any cycle since the AC was last reviewed. |
