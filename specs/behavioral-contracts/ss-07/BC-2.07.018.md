@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: fix é-stripped U-label defect (F-W17-S055-P2-001) — restore café.example at Description, EC-003, and Canonical Test Vector — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -27,7 +29,7 @@ removal_reason: null
 ## Description
 
 Internationalized domain names sent in TLS SNI should be in Punycode A-label form
-(e.g., `xn--caf-dma.example` for `cafe.example`). A-labels are pure ASCII by
+(e.g., `xn--caf-dma.example` for `café.example`). A-labels are pure ASCII by
 construction (RFC 5890). When the SNI hostname bytes decode as valid UTF-8 with
 `is_ascii() == true` and no C0/DEL bytes, arm 1 fires and no finding is emitted. This
 BC exists to document that properly-encoded IDN hostnames are NOT anomalies.
@@ -55,14 +57,14 @@ BC exists to document that properly-encoded IDN hostnames are NOT anomalies.
 |----|-------------|-------------------|
 | EC-001 | SNI = "xn--caf-dma.example" | Arm 1; no finding |
 | EC-002 | SNI = "xn--" (degenerate A-label prefix) | Arm 1; no finding (pure ASCII) |
-| EC-003 | SNI = "cafe.example" (raw U-label, non-ASCII) | Arm 3; finding emitted (RFC 6066 violation) |
+| EC-003 | SNI = "café.example" (raw U-label, non-ASCII) | Arm 3; finding emitted (RFC 6066 violation) |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
 | SNI = "xn--caf-dma.example" | No finding; sni_counts has one entry | happy-path |
-| SNI = "cafe.example" (U-label) | Finding(Anomaly/Inconclusive/Low, T1027) | edge-case |
+| SNI = "café.example" (U-label) | Finding(Anomaly/Inconclusive/Low, T1027) | edge-case |
 
 ## Verification Properties
 

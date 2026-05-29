@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-053"
 epic_id: "E-5"
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -29,6 +29,13 @@ tdd_mode: strict
 implementation_strategy: brownfield-formalization
 ---
 
+<!-- changelog
+## v1.1 (2026-05-29)
+- F-W17-S053-P2-001 (MEDIUM): AC-001..007 `**Test:**` citations updated to discriminating BC-prefixed test names per DF-AC-TEST-NAME-SYNC-001 v2. Old citations pointed to under-asserting `test_parse_server_hello` or the wrong-polarity `test_weak_cipher_finding_server` (which exercises a KNOWN cipher and asserts no cipher_counts key — the opposite discriminant from AC-006).
+- F-W17-S053-P2-002 (LOW): File Structure Requirements table and Tasks section updated; stale test names `test_parse_server_hello` / `test_weak_cipher_finding_server` replaced with full BC-prefixed test list.
+- No input-hash recompute (no cited BC changed).
+-->
+
 > **Execute:** `/vsdd-factory:deliver-story STORY-053`
 
 # STORY-053: ServerHello Parsing — JA3S Fingerprinting and Cipher/Version Tracking
@@ -48,31 +55,31 @@ implementation_strategy: brownfield-formalization
 
 ### AC-001 (traces to BC-2.07.002 postcondition 1)
 When a complete TLS ServerHello is processed by `handle_server_hello`, `flow.server_hello_seen` is set to `true`.
-- **Test:** `test_parse_server_hello`
+- **Test:** `test_BC_2_07_002_server_hello_seen_set_true`
 
 ### AC-002 (traces to BC-2.07.002 postcondition 2)
 The ServerHello `version` field (u16) is inserted/incremented in `version_counts`. This version count is independent of any prior ClientHello version count on the same flow.
-- **Test:** `test_parse_server_hello`
+- **Test:** `test_BC_2_07_002_server_version_inserted_in_version_counts`
 
 ### AC-003 (traces to BC-2.07.002 postcondition 3)
 A JA3S MD5 hex string (32 lowercase hex chars) is computed via `compute_ja3s` from `(version, selected_cipher, extensions)` and inserted/incremented in `ja3s_counts` (bounded at `MAX_MAP_ENTRIES`).
-- **Test:** `test_parse_server_hello`; `compute_ja3s_is_deterministic_and_hex` (proptest)
+- **Test:** `test_BC_2_07_002_ja3s_hash_computed_and_inserted`; `compute_ja3s_is_deterministic_and_hex` (proptest, secondary)
 
 ### AC-004 (traces to BC-2.07.002 postcondition 4)
 The cipher name (from `cipher_name(sh.cipher)`) is inserted/incremented in `cipher_counts` (bounded at `MAX_MAP_ENTRIES`).
-- **Test:** `test_parse_server_hello`
+- **Test:** `test_BC_2_07_002_cipher_name_inserted_in_cipher_counts`
 
 ### AC-005 (traces to BC-2.07.002 invariant 1)
 JA3S is computed solely from `(version, selected_cipher, extension_ids)` using `compute_ja3s`. GREASE extension IDs are filtered using the same `is_grease_u16` bitmask `(val & 0x0F0F) == 0x0A0A` as JA3.
-- **Test:** `compute_ja3s_is_deterministic_and_hex` (proptest)
+- **Test:** `test_BC_2_07_002_ja3s_grease_ext_filtered_cipher_not_filtered`
 
 ### AC-006 (traces to BC-2.07.002 invariant 2)
 Unknown cipher IDs (where `TlsCipherSuite::from_id` returns `None`) are rendered as `"0x{id:04x}"` lowercase hex via `cipher_name`. This hex-formatted string is used as the `cipher_counts` map key.
-- **Test:** `test_weak_cipher_finding_server` (assert cipher_counts key for unknown ID)
+- **Test:** `test_BC_2_07_002_unknown_cipher_id_renders_as_hex_in_cipher_counts`
 
 ### AC-007 (traces to BC-2.07.002 invariant 3)
 `version_counts` receives the ServerHello version independently of any prior ClientHello version count. A flow where ClientHello and ServerHello have different version fields increments both version counts.
-- **Test:** `test_parse_server_hello` (assert version_counts after both hellos)
+- **Test:** `test_BC_2_07_002_version_counts_client_and_server_versions_independent`
 
 ## Architecture Mapping
 
@@ -149,4 +156,4 @@ Unknown cipher IDs (where `TlsCipherSuite::from_id` returns `None`) are rendered
 | File | Action | Purpose |
 |------|--------|---------|
 | src/analyzer/tls.rs | modify | `handle_server_hello` (lines 542-604); `cipher_name` function (lines 77-83) |
-| tests/tls_analyzer_tests.rs | modify | `test_parse_server_hello`, `test_weak_cipher_finding_server` (AC-001..007) |
+| tests/tls_analyzer_tests.rs | modify | `test_BC_2_07_002_server_hello_seen_set_true`, `test_BC_2_07_002_server_version_inserted_in_version_counts`, `test_BC_2_07_002_ja3s_hash_computed_and_inserted`, `test_BC_2_07_002_cipher_name_inserted_in_cipher_counts`, `test_BC_2_07_002_ja3s_grease_ext_filtered_cipher_not_filtered`, `test_BC_2_07_002_unknown_cipher_id_renders_as_hex_in_cipher_counts`, `test_BC_2_07_002_version_counts_client_and_server_versions_independent` (AC-001..007) |

@@ -2,10 +2,10 @@
 document_type: story
 story_id: "STORY-045"
 epic_id: "E-4"
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
-timestamp: 2026-05-21T00:00:00Z
+timestamp: 2026-05-29T00:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.019.md
@@ -60,47 +60,47 @@ implementation_strategy: brownfield-formalization
 
 ### AC-001 (traces to BC-2.06.019 postcondition 1-4)
 `on_flow_close` calls `self.flows.remove(flow_key)`, dropping the entire `HttpFlowState` including buffers, error counts, and poison flags. No other HttpAnalyzer aggregate state (transactions, parse_errors, non_http_flows, etc.) is modified.
-- **Test:** `test_flow_close_cleans_up_state`
+- **Test:** `test_BC_2_06_019_flow_close_removes_entry_and_preserves_aggregates`
 
 ### AC-002 (traces to BC-2.06.019 postcondition 3-4)
 After `on_flow_close`, a subsequent `on_data` for the same FlowKey creates a brand-new `HttpFlowState::new()` with request_poisoned=false, response_poisoned=false, error_count=0, counted_as_non_http=false, and empty buffers.
-- **Test:** `test_poison_cleared_after_flow_close`
+- **Test:** `test_BC_2_06_019_reopen_same_key_starts_fresh_state`
 
 ### AC-003 (traces to BC-2.06.019 invariant 2)
 `on_flow_close` ignores the CloseReason parameter (it is `_reason`). A flow close with any reason produces the same result.
-- **Test:** `test_flow_close_cleans_up_state`
+- **Test:** `test_BC_2_06_019_flow_close_removes_entry_and_preserves_aggregates` (CloseReason::Rst sub-case)
 
 ### AC-004 (traces to BC-2.06.021 postcondition 1-3)
 When two distinct FlowKeys are active and flow A has parse errors or has been poisoned, flow B's `HttpFlowState` (error counts, poison flags) is completely unaffected. Aggregate counters (`parse_errors`, `non_http_flows`) are global sums but do not gate per-flow behavior.
-- **Test:** `test_cross_flow_isolation_parse_errors`
+- **Test:** `test_BC_2_06_021_flow_a_parse_errors_do_not_affect_flow_b`
 
 ### AC-005 (traces to BC-2.06.021 invariant 1-2)
 `flows: HashMap<FlowKey, HttpFlowState>` provides per-key isolation by construction. Only `on_flow_close` removes entries; entries do not affect each other.
-- **Test:** `test_cross_flow_isolation_poisoning`
+- **Test:** `test_BC_2_06_021_flow_a_poisoning_does_not_affect_flow_b`
 
 ### AC-006 (traces to BC-2.06.022 postcondition 1-4)
 For each `on_data` call, only `min(data.len(), MAX_HEADER_BUF - buf.len())` bytes are appended to the direction buffer. The direction buffer size never exceeds `MAX_HEADER_BUF = 65,536` bytes. Bytes past the cap are silently dropped without error or counter increment.
-- **Test:** `test_buffer_cap_no_panic_on_oversized_headers`
+- **Test:** `test_BC_2_06_022_buffer_cap_exact_65536_no_more_bytes_accepted`; `test_BC_2_06_022_response_buffer_cap_exact_65536_no_more_bytes_accepted`
 
 ### AC-007 (traces to BC-2.06.022 invariant 1-3)
 `MAX_HEADER_BUF = 65,536` is defined as a constant. The cap applies per-direction independently (request_buf and response_buf have separate caps). No finding is emitted when the cap is reached.
-- **Test:** `test_buffer_cap_no_panic_on_oversized_headers`
+- **Test:** `test_BC_2_06_022_buffer_cap_partial_fill_one_byte_appended`; `test_BC_2_06_022_response_buffer_cap_partial_fill_one_byte_appended`
 
 ### AC-008 (traces to BC-2.06.024 postcondition 1-4)
 When a map (`methods`, `hosts`, or `user_agents`) has reached `MAX_MAP_ENTRIES = 50,000` distinct keys, any new unique key is silently NOT inserted. Existing keys continue to increment normally past the cap.
-- **Test:** `test_map_cardinality_cap_drops_new_keys`
+- **Test:** `test_BC_2_06_024_map_cardinality_cap_drops_new_keys`; `test_BC_2_06_024_hosts_map_cardinality_cap_independent_of_methods`; `test_BC_2_06_024_user_agents_map_cardinality_cap_independent_of_methods`; `test_BC_2_06_024_map_cardinality_cap_nth_entry_succeeds`
 
 ### AC-009 (traces to BC-2.06.024 invariant 2-3)
 Guard pattern: `if self.methods.len() < MAX_MAP_ENTRIES || self.methods.contains_key(&parsed.method)`. The `contains_key` short-circuit allows EXISTING keys to increment even when the map is at cap. `status_codes` uses u16 keys and has no explicit MAX_MAP_ENTRIES guard.
-- **Test:** `test_existing_keys_increment_at_cap`
+- **Test:** `test_BC_2_06_024_existing_keys_increment_at_cap`
 
 ### AC-010 (traces to BC-2.06.025 postcondition 1-3)
 When `self.uris.len() == MAX_URIS (10,000)`, new request URIs are NOT appended to `self.uris`. Other counters (methods, hosts, etc.) are still updated for the request. No error or counter increment occurs for the dropped URI.
-- **Test:** `test_uris_capped_at_max_uris`
+- **Test:** `test_BC_2_06_025_uris_capped_at_max_uris`
 
 ### AC-011 (traces to BC-2.06.025 invariant 1-3)
 `MAX_URIS = 10,000`. Guard: `if self.uris.len() < MAX_URIS { self.uris.push(...) }`. The same URI can appear multiple times (no deduplication). URIs dropped at cap are permanently lost.
-- **Test:** `test_uris_capped_at_max_uris`
+- **Test:** `test_BC_2_06_025_uris_capped_at_max_uris`; `test_BC_2_06_025_uris_no_deduplication`
 
 ## Architecture Mapping
 
@@ -186,4 +186,11 @@ When `self.uris.len() == MAX_URIS (10,000)`, new request URIs are NOT appended t
 | File | Action | Purpose |
 |------|--------|---------|
 | src/analyzer/http.rs | modify | on_flow_close (540-542); buffer cap (513-529); map guards (375-389); uris guard (391-393) |
-| tests/http_analyzer_tests.rs | modify | Add: test_flow_close_cleans_up_state, test_poison_cleared_after_flow_close, test_cross_flow_isolation_parse_errors, test_cross_flow_isolation_poisoning, test_buffer_cap_no_panic_on_oversized_headers, test_map_cardinality_cap_drops_new_keys, test_uris_capped_at_max_uris |
+| tests/http_analyzer_tests.rs | modify | Add (mod bc_2_06_045_formalization): test_BC_2_06_019_flow_close_removes_entry_and_preserves_aggregates, test_BC_2_06_019_reopen_same_key_starts_fresh_state, test_BC_2_06_021_flow_a_parse_errors_do_not_affect_flow_b, test_BC_2_06_021_flow_a_poisoning_does_not_affect_flow_b, test_BC_2_06_022_buffer_cap_exact_65536_no_more_bytes_accepted, test_BC_2_06_022_buffer_cap_partial_fill_one_byte_appended, test_BC_2_06_022_response_buffer_cap_exact_65536_no_more_bytes_accepted, test_BC_2_06_022_response_buffer_cap_partial_fill_one_byte_appended, test_BC_2_06_024_map_cardinality_cap_drops_new_keys, test_BC_2_06_024_existing_keys_increment_at_cap, test_BC_2_06_024_map_cardinality_cap_nth_entry_succeeds, test_BC_2_06_024_hosts_map_cardinality_cap_independent_of_methods, test_BC_2_06_024_user_agents_map_cardinality_cap_independent_of_methods, test_BC_2_06_025_uris_capped_at_max_uris, test_BC_2_06_025_uris_no_deduplication |
+
+## Changelog
+
+| Version | Date | Change |
+|---------|------|--------|
+| 1.1 | 2026-05-29 | AC-citation sync (F-W17-S045-P1-001/002, DF-AC-TEST-NAME-SYNC-001 v2): replaced all bare/legacy `**Test:**` names in AC-001 through AC-011 and File Structure Requirements with BC-prefixed formalization names from mod bc_2_06_045_formalization; verified each name exists in .worktrees/story-045/tests/http_analyzer_tests.rs |
+| 1.0 | 2026-05-21 | Initial story decomposition |

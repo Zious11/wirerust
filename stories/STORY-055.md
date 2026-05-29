@@ -2,10 +2,12 @@
 document_type: story
 story_id: "STORY-055"
 epic_id: "E-5"
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
+changelog:
+  - "v1.1: input-hash confirmed current (78aecf0) after BC-2.07.018 v1.3 propagation (café.example é-restore, F-W17-S055-P2-001) — 2026-05-29"
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.013.md

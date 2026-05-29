@@ -88,6 +88,9 @@ wave_16_prs: "#140 (STORY-042), #141 (STORY-052), #142 (STORY-043), #143 (STORY-
 wave_16_per_story_convergence: "ALL 4 CONVERGED: STORY-052(3/3 P3-P5), STORY-042(3/3 P4-P6), STORY-043(3/3 P4-P6), STORY-044(3/3 P5-P7). BC-5.39.001 per-story ACHIEVED for all wave-16 stories."
 wave_16_wave_level_convergence: "3 independent fresh-context lens-reviews (consistency/integration-static/traceability) all VERDICT: CLEAN on frozen post-remediation state (round 2). Round 1 DIRTY (2 MEDIUM remediated via PR#146+sweep). Round-2 MEDIUM F-W16-WAVE-R2-001 confirmed false-positive (VP-006 exists, registered VP-INDEX.md:54). 3/3 CLEAN."
 current_wave: 17
+wave_17_status: in-progress
+wave_17_stories: STORY-045 + STORY-053 + STORY-055
+wave_17_passes_complete: pass-1 + pass-2 (per-story; pass-3 pending)
 stories_delivered: 30
 dtu_required: false
 dtu_assessment: 2026-05-20
@@ -106,8 +109,9 @@ phase_2_input_hash_drift_check_total: 153
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-16 CLOSED/CONVERGED; Wave 17 NOT STARTED.
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-16 CLOSED/CONVERGED; Wave 17 IN PROGRESS.
 30 stories delivered across Waves 1-16 (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052).
+Wave 17 IN PROGRESS: STORY-045/053/055 in per-story TDD delivery (test-formalization done in worktrees feature/STORY-045@6a0d8c0, feature/STORY-053@5e870d6, feature/STORY-055@5fcc07a; pass-1+pass-2 adversarial done; AC-citation + BC-café remediations applied this burst; pass-3 pending). [process-gap] PG-W17-001: recurring AC-test-name-sync defect hit ALL 3 W17 stories — test-writer dispatches created BC-prefixed tests without syncing story AC **Test:** citations in the same burst. DF-AC-TEST-NAME-SYNC-001 v2 exists but test-writer/story-writer dispatch template must enforce sync at authoring. Codification pending.
 Wave 16 CLOSED 2026-05-29: retroactive convergence complete. PRs #140-146. All 4 per-story CONVERGED: STORY-052(P3-P5), STORY-042(P4-P6), STORY-043(P4-P6), STORY-044(P5-P7). Wave-level: R1 2-MEDIUM REMEDIATED; R2 3-lens×3-pass CLEAN (1 false-positive MEDIUM dismissed). BC-5.39.001 ACHIEVED.
 Drift Remediation 2026-05-29 COMPLETE: 62 original items + 4 new-this-session = 66 tracked → 57 closed by distinct-ID (21 fixed, 8 codification, 9 prior, 4 invalid, 5 duplicate, 10 wont-fix). 10 OPEN = 8 Drift Items (DF-16.B, W9-D2, W9-D3, W9-D4, W9-D12, W10-D10-sibling, F-DRIFT-C-001, PG-HASH-001) + 2 Cycle-Close (W1.3/W2.5, W7.1). PRs #147+#148 merged. 8 policies total (3 new + 2 extended this session).
 develop HEAD: 34e66c7 (PRs #147+#148 merged 2026-05-29). All 8 CI checks green.
@@ -127,7 +131,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-16 CLOSED/CONVERGED; Wave 17 NOT STARTED (30 stories delivered; Wave 16 CLOSED 2026-05-29) | Wave-level convergence: cycles/phase-3-tdd/convergence-trajectory.md; W16 detail: cycles/v0.1.0-greenfield-spec/wave-16/adversarial-convergence.md |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-16 CLOSED/CONVERGED; Wave 17 IN PROGRESS (30 stories delivered; W17: STORY-045/053/055 pass-3 pending) | Wave-level convergence: cycles/phase-3-tdd/convergence-trajectory.md; W16 detail: cycles/v0.1.0-greenfield-spec/wave-16/adversarial-convergence.md |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -159,11 +163,10 @@ dependency bumping for it).
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Wave 16 — Per-story convergence all 4 ACHIEVED | **COMPLETE** 2026-05-28 | S042(P4-P6 3-clean), S043(P4-P6 3-clean), S044(P5-P7 3-clean), S052(P3-P5 3-clean). BC-5.39.001 per-story ACHIEVED for all 4. develop HEAD: fa17dec (PR #146). |
-| Wave 16 — Wave-level Pass-1 (3 lenses) + remediation | **COMPLETE** 2026-05-28 | Traceability CLEAN; integration DIRTY-procedural-only (substantively CLEAN); consistency 2 MEDIUM REMEDIATED (PR#146 + factory sweep). Streak=0 after R1. |
 | Wave 16 — Wave-level Round 2 (3×3 fresh-context lenses) | **COMPLETE** 2026-05-29 | 3 passes × 3 lenses all CLEAN. One MEDIUM false-positive (F-W16-WAVE-R2-001 VP-006 "orphan") confirmed non-finding and dismissed. BC-5.39.001 wave-level ACHIEVED. |
 | Wave 16 — CLOSED | **COMPLETE** 2026-05-29 | Wave 16 CLOSED. 5 lessons recorded (W16.L1-L5). 4 LOW drift items + 5 process-gap draft items filed. develop HEAD: fa17dec. |
-| Wave 17 — Dispatch | **PENDING** | Stories: STORY-045 (E-4, blocks: STORY-041+044), STORY-053 (E-5, blocks: STORY-051+052), STORY-055 (E-5, blocks: STORY-052). All blockers satisfied. |
+| Wave 17 — Pass-1 + Pass-2 adversarial (STORY-045/053/055) | **COMPLETE** 2026-05-29 | Worktrees: feature/STORY-045@6a0d8c0, feature/STORY-053@5e870d6, feature/STORY-055@5fcc07a. Pass-1 findings: F-W17-S045-P1-001/002, F-W17-S053-P2-001/002, F-W17-S055-P2-001. AC-citation (STORY-045/053) + BC-café é-restore (BC-2.07.018 v1.3) remediations applied. STORY-055 input-hash confirmed current (78aecf0). |
+| Wave 17 — Pass-3 adversarial | **PENDING** | Stories: STORY-045, STORY-053, STORY-055. develop HEAD: 34e66c7 (no merges yet). |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -181,14 +184,14 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-29 — Drift Remediation COMPLETE; Wave 17 Ready)
+## Session Resume Checkpoint (2026-05-29 — Wave 17 IN PROGRESS; Pass-3 Pending)
 
-1. Waves 1-16 CLOSED/CONVERGED. Drift Remediation 2026-05-29 COMPLETE. develop HEAD: 34e66c7 (PRs #147+#148 merged). All 8 CI checks green (trust-boundary job added PR #148).
-2. Drift remediation: 62 original + 4 new-this-session = 66 tracked → 57 closed by distinct-ID (21 fixed, 8 codification, 9 prior, 4 invalid, 5 duplicate, 10 wont-fix). 10 OPEN = 8 Drift Items (DF-16.B, W9-D2, W9-D3, W9-D4, W9-D12, W10-D10-sibling, F-DRIFT-C-001, PG-HASH-001) + 2 Cycle-Close (W1.3/W2.5, W7.1). Archive: .factory/cycles/drift-remediation-2026-05-29/closed-items.md. Lessons: .factory/cycles/drift-remediation-2026-05-29/lessons.md.
-3. 8 policies total in policies.yaml (artifact commit 23f92cc): 3 new (DF-CONVERGENCE-BEFORE-MERGE-001, DF-DEVELOP-FRESHNESS-001, DF-ADVERSARY-TOOLCHAIN-PAIRING-001) + 2 extended (DF-AC-TEST-NAME-SYNC-001 v1→v2, DF-SIBLING-SWEEP-001 v3→v4) + 3 pre-existing (DF-VALIDATION-001, DF-PR-MANAGER-COMPLETE-001, DF-ADVERSARY-METHODOLOGY-001).
-4. STORY-033 status reconciled in prior session (F-DRIFT-S-001). This session (F-DRIFT3B-001/PG-W16-002): 16 additional stories reconciled — STORY-INDEX.md updated for all 16 (STORY-005/011/012/013/014/015/016/017/018/019/020/021/031/032/066/071 → completed); STORY-031/032 frontmatter corrected (draft/in-progress → completed); STORY-016/017/018/020/021 frontmatter corrected (draft → completed). All 29 sprint-state done stories now have `status: completed` in both STORY-INDEX.md and frontmatter. Dependency-completion invariant verified: HOLDS. input-hash scan: TOTAL=48 MATCH=48 STALE=0.
-5. DF-16.B (OPEN, MEDIUM): ~209 BC files across SS-02..SS-13 still have broken `capabilities.md §CAP-NN` citations. Requires dedicated bulk find-replace sweep (not per-item). SS-01 8 files fixed.
-6. NEXT: Wave 17. Stories: STORY-045 (E-4 Flow Lifecycle + Caps; blocks: STORY-041+STORY-044), STORY-053 (E-5 ServerHello JA3S; blocks: STORY-051+STORY-052), STORY-055 (E-5 SNI Arms 1+2; blocks: STORY-052). All blockers satisfied. Prior checkpoint: cycles/phase-3-tdd/session-checkpoints.md.
+1. Waves 1-16 CLOSED/CONVERGED. Wave 17 IN PROGRESS. develop HEAD: 34e66c7 (no W17 merges yet). All 8 CI checks green.
+2. W17 stories: STORY-045 (E-4), STORY-053 (E-5), STORY-055 (E-5). Test-formalization done in worktrees feature/STORY-045@6a0d8c0, feature/STORY-053@5e870d6, feature/STORY-055@5fcc07a. Pass-1+pass-2 adversarial complete.
+3. Remediations this burst: STORY-045 v1.1 (11 AC Test: citations synced to BC-prefixed names, File Structure table updated; F-W17-S045-P1-001/002). STORY-053 v1.1 (7 AC citations fixed incl. AC-006 wrong-polarity; F-W17-S053-P2-001/002). BC-2.07.018 v1.3 (café.example é-restore; F-W17-S055-P2-001). STORY-055 v1.1 (input-hash confirmed current 78aecf0 after BC v1.3; changelog added).
+4. input-hash scan: TOTAL=48 MATCH=48 STALE=0.
+5. [process-gap] PG-W17-001: AC-test-name-sync defect hit ALL 3 W17 stories. Test-writer/story-writer dispatch template must enforce AC **Test:** citation sync at authoring time. DF-AC-TEST-NAME-SYNC-001 v2 exists — codification of dispatch template enforcement pending.
+6. NEXT: Pass-3 adversarial for STORY-045, STORY-053, STORY-055. Prior checkpoint: cycles/phase-3-tdd/session-checkpoints.md.
 
 ## Wave Retrospectives
 
