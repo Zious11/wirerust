@@ -860,51 +860,201 @@ fn test_summarize_output() {
     assert_eq!(detail["parse_errors"], 0);
 }
 
+// AC-004/AC-005 (BC-2.07.019 postconditions 1-4, invariant 1)
+//
+// When extract_sni receives SNI bytes that fail str::from_utf8, arm 4 fires.
+// sni_counts key is "<non-utf8:{hex}>" (hex-tagged, NOT the lossy form).
+// One Finding: category=Anomaly, verdict=Inconclusive, confidence=Low,
+// summary="TLS SNI contains non-UTF-8 bytes (RFC 6066 violation): {lossy}",
+// evidence=["hex: {hex}"], mitre_technique=Some("T1027"), direction=ClientToServer.
+//
+// EC-004: b"\xff\xfe" -> key = "<non-utf8:fffe>".
+// EC-006: b"\xff" and b"\xfe" both map to same lossy but DIFFERENT keys.
+#[allow(non_snake_case)]
 #[test]
 fn test_non_utf8_sni_emits_finding_and_counts_under_hex_key() {
-    let mut analyzer = TlsAnalyzer::new();
+    // AC-004 (BC-2.07.019 pc1): arm 4 fires -> SniValue::NonUtf8 { lossy, hex }.
+    // AC-004 (BC-2.07.019 pc3): one Finding with all required fields.
+    // AC-005 (BC-2.07.019 pc2/inv1): sni_counts key is "<non-utf8:{hex}>".
     let fk = test_flow_key();
 
-    // 0xFF / 0xFE are invalid as standalone UTF-8 start bytes — guarantees
-    // from_utf8 fails. Mix in some ASCII so the lossy form is recognizable.
-    let raw_sni: &[u8] = &[0xff, 0xfe, b'a', b'.', b'c', b'o', b'm'];
-    let record = build_client_hello_raw_sni(raw_sni, &[0x1301]);
+    // --- Part 1: EC-004 canonical vector: b"\xff\xfe" (invalid UTF-8) ---
+    let mut analyzer = TlsAnalyzer::new();
+    let sni_bytes: &[u8] = b"\xff\xfe";
+    let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
     analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
 
-    // Parse error counter must NOT be incremented — the record itself parsed,
-    // only the SNI hostname bytes failed UTF-8 decoding.
-    assert_eq!(analyzer.parse_error_count(), 0);
-
-    // sni_counts should be keyed on a tagged hex form, not on a lossy string.
-    // This guarantees distinct byte sequences don't collide.
-    let expected_key = "<non-utf8:fffe612e636f6d>";
+    // Parse error counter must NOT be incremented — record itself parsed OK.
     assert_eq!(
-        *analyzer.sni_counts().get(expected_key).unwrap(),
+        analyzer.parse_error_count(),
+        0,
+        "AC-004 anchor (BC-2.07.019): parse_error_count must be 0"
+    );
+    assert_eq!(
+        analyzer.handshake_count(),
         1,
-        "expected sni_counts to contain hex-tagged key {expected_key}"
+        "AC-004 anchor (BC-2.07.019): exactly one handshake counted"
     );
 
-    // Exactly one finding, the non-UTF-8 SNI anomaly.
-    let findings = analyzer.findings();
-    let non_utf8_findings: Vec<_> = findings
-        .iter()
+    // BC-2.07.019 pc3: exactly one non-UTF-8 finding emitted.
+    let non_utf8_findings: Vec<_> = analyzer
+        .findings()
+        .into_iter()
         .filter(|f| f.summary.contains("non-UTF-8 bytes"))
         .collect();
     assert_eq!(
         non_utf8_findings.len(),
         1,
-        "expected exactly one non-UTF-8 SNI finding, got: {findings:?}"
+        "AC-004 (BC-2.07.019 pc3): exactly one non-UTF-8 finding must be emitted; \
+         got: {non_utf8_findings:?}"
     );
-    let f = non_utf8_findings[0];
-    assert_eq!(f.category, wirerust::findings::ThreatCategory::Anomaly);
-    assert_eq!(f.verdict, wirerust::findings::Verdict::Inconclusive);
-    assert_eq!(f.confidence, wirerust::findings::Confidence::Low);
-    assert!(f.summary.contains("RFC 6066"));
-    // Hex evidence is the lossless representation of the raw bytes.
+
+    let f = &non_utf8_findings[0];
+
+    // BC-2.07.019 pc3: category = Anomaly.
+    assert_eq!(
+        f.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "AC-004 (BC-2.07.019 pc3): category must be Anomaly"
+    );
+    // BC-2.07.019 pc3: verdict = Inconclusive.
+    assert_eq!(
+        f.verdict,
+        wirerust::findings::Verdict::Inconclusive,
+        "AC-004 (BC-2.07.019 pc3): verdict must be Inconclusive"
+    );
+    // BC-2.07.019 pc3: confidence = Low.
+    assert_eq!(
+        f.confidence,
+        wirerust::findings::Confidence::Low,
+        "AC-004 (BC-2.07.019 pc3): confidence must be Low"
+    );
+    // BC-2.07.019 pc3: mitre_technique = Some("T1027").
+    assert_eq!(
+        f.mitre_technique.as_deref(),
+        Some("T1027"),
+        "AC-004 (BC-2.07.019 pc3): mitre_technique must be Some(\"T1027\")"
+    );
+    // BC-2.07.019 pc3: direction = Some(ClientToServer).
+    assert_eq!(
+        f.direction,
+        Some(wirerust::reassembly::handler::Direction::ClientToServer),
+        "AC-004 (BC-2.07.019 pc3): direction must be Some(ClientToServer)"
+    );
+
+    // BC-2.07.019 pc3: source_ip must be None (network context not available in analyzer).
+    assert_eq!(f.source_ip, None, "BC-2.07.019 pc3: source_ip must be None");
+    // BC-2.07.019 pc3: timestamp must be None (network context not available in analyzer).
+    assert_eq!(f.timestamp, None, "BC-2.07.019 pc3: timestamp must be None");
+
+    // BC-2.07.019 pc3/pc4: exact summary uses lossy from_utf8_lossy form.
+    let lossy = String::from_utf8_lossy(sni_bytes).into_owned();
+    let expected_summary =
+        format!("TLS SNI contains non-UTF-8 bytes (RFC 6066 violation): {lossy}");
+    assert_eq!(
+        f.summary, expected_summary,
+        "AC-004 (BC-2.07.019 pc3/pc4): summary must use lossy form with U+FFFD replacements"
+    );
+
+    // BC-2.07.020: break the tautology — for b"\xff\xfe" each invalid byte must
+    // produce exactly one U+FFFD replacement character in the summary.
+    // (from_utf8_lossy replaces each maximal invalid subsequence with one U+FFFD;
+    // b"\xff" and b"\xfe" are each a one-byte invalid subsequence => two replacements.)
+    assert_eq!(
+        f.summary.matches('\u{fffd}').count(),
+        2,
+        "BC-2.07.020: each invalid byte in b\"\\xff\\xfe\" must produce one U+FFFD in summary; \
+         got summary: {:?}",
+        f.summary
+    );
+
+    // BC-2.07.019 pc3: evidence = ["hex: fffe"] — exactly one entry, exact string.
+    assert_eq!(
+        f.evidence.len(),
+        1,
+        "AC-004 (BC-2.07.019 pc3): evidence must have exactly one entry"
+    );
+    assert_eq!(
+        f.evidence[0], "hex: fffe",
+        "AC-004 (BC-2.07.019 pc3): evidence[0] must be exact lowercase hex"
+    );
+
+    // AC-005 (BC-2.07.019 pc2/inv1): sni_counts key is "<non-utf8:fffe>" (hex-tagged).
+    assert_eq!(
+        *analyzer.sni_counts().get("<non-utf8:fffe>").unwrap_or(&0),
+        1,
+        "AC-005 (BC-2.07.019 pc2/inv1): sni_counts key must be \"<non-utf8:fffe>\"; \
+         got keys: {:?}",
+        analyzer.sni_counts().keys().collect::<Vec<_>>()
+    );
+
+    // --- Part 2: EC-006 collision test (BC-2.07.019 inv1) ---
+    // b"\xff" and b"\xfe" both produce the same lossy "?" — different hex keys.
+    let mut analyzer_ff = TlsAnalyzer::new();
+    let record_ff = build_client_hello_raw_sni(b"\xff", &[0x1301]);
+    analyzer_ff.on_data(&fk, Direction::ClientToServer, &record_ff, 0);
+
+    let mut analyzer_fe = TlsAnalyzer::new();
+    let record_fe = build_client_hello_raw_sni(b"\xfe", &[0x1301]);
+    analyzer_fe.on_data(&fk, Direction::ClientToServer, &record_fe, 0);
+
+    // EC-006: distinct sequences with same lossy => different sni_counts keys.
+    assert_eq!(
+        *analyzer_ff.sni_counts().get("<non-utf8:ff>").unwrap_or(&0),
+        1,
+        "AC-005/EC-006 (BC-2.07.019 inv1): b\"\\xff\" must map to \"<non-utf8:ff>\""
+    );
+    assert_eq!(
+        *analyzer_fe.sni_counts().get("<non-utf8:fe>").unwrap_or(&0),
+        1,
+        "AC-005/EC-006 (BC-2.07.019 inv1): b\"\\xfe\" must map to \"<non-utf8:fe>\""
+    );
+
+    // Confirm the lossy forms collide (proving the hex key prevents false merges).
+    let lossy_ff = String::from_utf8_lossy(b"\xff").into_owned();
+    let lossy_fe = String::from_utf8_lossy(b"\xfe").into_owned();
+    assert_eq!(
+        lossy_ff, lossy_fe,
+        "EC-006 setup: b\"\\xff\" and b\"\\xfe\" must produce identical lossy forms"
+    );
+
+    // --- Part 3: original regression vector (mixed ASCII + invalid bytes) ---
+    let mut analyzer3 = TlsAnalyzer::new();
+    let raw_sni: &[u8] = &[0xff, 0xfe, b'a', b'.', b'c', b'o', b'm'];
+    let record3 = build_client_hello_raw_sni(raw_sni, &[0x1301]);
+    analyzer3.on_data(&fk, Direction::ClientToServer, &record3, 0);
+
+    assert_eq!(
+        analyzer3.parse_error_count(),
+        0,
+        "AC-004 regression anchor: parse_error_count must be 0 for mixed-byte SNI"
+    );
+
+    let expected_key3 = "<non-utf8:fffe612e636f6d>";
+    assert_eq!(
+        *analyzer3.sni_counts().get(expected_key3).unwrap_or(&0),
+        1,
+        "AC-005 regression (BC-2.07.019 pc2): sni_counts must contain hex-tagged key \
+         {expected_key3}"
+    );
+
+    let findings3 = analyzer3.findings();
+    let non_utf8_findings3: Vec<_> = findings3
+        .iter()
+        .filter(|f| f.summary.contains("non-UTF-8 bytes"))
+        .collect();
+    assert_eq!(
+        non_utf8_findings3.len(),
+        1,
+        "AC-004 regression: exactly one non-UTF-8 finding; got: {findings3:?}"
+    );
     assert!(
-        f.evidence.iter().any(|e| e.contains("fffe612e636f6d")),
-        "expected hex evidence to contain raw byte sequence, got: {:?}",
-        f.evidence
+        non_utf8_findings3[0]
+            .evidence
+            .iter()
+            .any(|e| e.contains("fffe612e636f6d")),
+        "AC-006 regression: hex evidence must contain raw byte sequence; got: {:?}",
+        non_utf8_findings3[0].evidence
     );
 }
 
@@ -926,52 +1076,121 @@ fn test_ascii_sni_does_not_emit_non_utf8_finding() {
     assert_eq!(non_utf8_findings, 0);
 }
 
+// AC-006 (BC-2.07.020 postconditions 1-4)
+//
+// For arm 4, finding.summary contains the from_utf8_lossy form (U+FFFD replacements).
+// finding.evidence[0] = "hex: {hex}" with lossless lowercase hex.
+// Neither field has been Debug-escaped or escape_for_terminal'd (ADR 0003 / INV-4).
+//
+// Canonical BC-2.07.020 test vector: b"\xff\x00\xfe" ->
+//   summary contains lossy; evidence = "hex: ff00fe".
+#[allow(non_snake_case)]
 #[test]
 fn test_non_utf8_sni_preserves_raw_bytes_in_summary() {
-    // Per ADR 0003: the Finding struct is the data layer — it stores the
-    // raw post-from_utf8_lossy bytes from the attacker's SNI, including
-    // any ASCII control codes. Terminal-safety is the reporter's job, not
-    // the analyzer's. This test enforces that contract: raw ESC must
-    // survive to the struct; downstream rendering tests (in reporter
-    // tests) verify the terminal reporter escapes it on display.
-    let mut analyzer = TlsAnalyzer::new();
+    // AC-006 (BC-2.07.020 pc1): summary uses from_utf8_lossy (U+FFFD replacements).
+    // AC-006 (BC-2.07.020 pc2): evidence[0] = "hex: {hex}" with lossless lowercase hex.
+    // AC-006 (BC-2.07.020 pc3): no escape_for_terminal or {:?} Debug applied.
+    // AC-006 (BC-2.07.020 pc4): hex is lossless — allows forensic reconstruction.
     let fk = test_flow_key();
 
-    // 0xff makes from_utf8 fail; 0x1b [ 3 1 m is the ANSI "red" CSI sequence;
-    // "pwnd" is the visible payload an attacker would inject.
-    let raw_sni: &[u8] = &[0xff, 0x1b, b'[', b'3', b'1', b'm', b'p', b'w', b'n', b'd'];
-    let record = build_client_hello_raw_sni(raw_sni, &[0x1301]);
+    // --- Part 1: Canonical BC-2.07.020 test vector: [0xff, 0x00, 0xfe] ---
+    let mut analyzer = TlsAnalyzer::new();
+    let sni_bytes: &[u8] = b"\xff\x00\xfe";
+    let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
     analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
 
-    let findings = analyzer.findings();
-    let f = findings
-        .iter()
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-006 anchor (BC-2.07.020 pc1): parse must succeed"
+    );
+
+    let f = analyzer
+        .findings()
+        .into_iter()
         .find(|f| f.summary.contains("non-UTF-8 bytes"))
-        .expect("expected non-UTF-8 SNI finding");
+        .expect("AC-006 (BC-2.07.020 pc1): non-UTF-8 finding must be emitted");
 
-    // The summary MUST contain the raw ESC byte — the analyzer does not
-    // escape. Forensic preservation is a load-bearing property of the
-    // data layer (ADR 0003).
-    assert!(
-        f.summary.as_bytes().contains(&0x1b),
-        "summary must preserve raw ESC byte for forensics, got: {:?}",
-        f.summary
-    );
-    // And it must NOT contain the Debug-formatted escape form (which
-    // would indicate a regression to construction-site escaping).
-    assert!(
-        !f.summary.contains("\\u{1b}"),
-        "summary must not contain Debug-formatted escape (regression to construction-site), got: {}",
-        f.summary
+    // BC-2.07.020 pc1: summary = from_utf8_lossy form.
+    let lossy = String::from_utf8_lossy(sni_bytes).into_owned();
+    let expected_summary =
+        format!("TLS SNI contains non-UTF-8 bytes (RFC 6066 violation): {lossy}");
+    assert_eq!(
+        f.summary, expected_summary,
+        "AC-006 (BC-2.07.020 pc1): summary must use from_utf8_lossy form"
     );
 
-    // Hex evidence is unchanged — that's the lossless record.
+    // BC-2.07.020 pc2: evidence[0] = "hex: ff00fe" (lossless lowercase hex).
+    assert_eq!(
+        f.evidence.len(),
+        1,
+        "AC-006 (BC-2.07.020 pc2): evidence must have exactly one entry"
+    );
+    assert_eq!(
+        f.evidence[0], "hex: ff00fe",
+        "AC-006 (BC-2.07.020 pc2): evidence[0] must be lossless lowercase hex"
+    );
+
+    // BC-2.07.020 pc3: no Debug-escaped sequences in summary or evidence.
     assert!(
-        f.evidence
+        !f.summary.contains("\\u{"),
+        "AC-006 (BC-2.07.020 pc3): summary must not contain Debug-escaped \\u{{...}}; \
+         got: {:?}",
+        f.summary
+    );
+    assert!(
+        !f.evidence[0].contains("\\u{"),
+        "AC-006 (BC-2.07.020 pc3): evidence[0] must not contain Debug-escaped \\u{{...}}"
+    );
+
+    // BC-2.07.020 pc4: hex is lossless (exact literal "ff00fe").
+    let hex_str = f.evidence[0]
+        .strip_prefix("hex: ")
+        .expect("AC-006 (BC-2.07.020 pc4): evidence[0] must start with 'hex: '");
+    assert_eq!(
+        hex_str, "ff00fe",
+        "AC-006 (BC-2.07.020 pc4): hex must be lossless lowercase hex allowing reconstruction"
+    );
+
+    // --- Part 2: Terminal injection vector (ADR 0003 raw-byte preservation) ---
+    // 0xff makes from_utf8 fail; 0x1b [31m is the ANSI "red" CSI sequence;
+    // "pwnd" is the visible payload an attacker would inject.
+    let mut analyzer2 = TlsAnalyzer::new();
+    let raw_sni2: &[u8] = &[0xff, 0x1b, b'[', b'3', b'1', b'm', b'p', b'w', b'n', b'd'];
+    let record2 = build_client_hello_raw_sni(raw_sni2, &[0x1301]);
+    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0);
+
+    let f2 = analyzer2
+        .findings()
+        .into_iter()
+        .find(|f| f.summary.contains("non-UTF-8 bytes"))
+        .expect("AC-006 (BC-2.07.020 pc1): non-UTF-8 finding must be emitted for ESC injection");
+
+    // BC-2.07.020 pc3 / ADR 0003: raw ESC byte (0x1B) must survive in summary
+    // (terminal reporter escapes at render time, not here).
+    assert!(
+        f2.summary.as_bytes().contains(&0x1b),
+        "AC-006 (BC-2.07.020 pc3): summary must preserve raw ESC byte for forensics; \
+         got bytes: {:?}",
+        f2.summary.as_bytes()
+    );
+
+    // Must NOT contain the Debug-formatted escape form.
+    assert!(
+        !f2.summary.contains("\\u{1b}"),
+        "AC-006 (BC-2.07.020 pc3): summary must not contain Debug-formatted \\u{{1b}}; \
+         got: {}",
+        f2.summary
+    );
+
+    // Hex evidence is the lossless record.
+    assert!(
+        f2.evidence
             .iter()
             .any(|e| e.contains("ff1b5b33316d70776e64")),
-        "expected raw bytes in hex evidence, got: {:?}",
-        f.evidence
+        "AC-006 (BC-2.07.020 pc4): hex evidence must contain raw byte sequence; \
+         got: {:?}",
+        f2.evidence
     );
 }
 
@@ -1049,34 +1268,35 @@ fn test_sni_with_empty_hostname_bytes() {
     assert_eq!(non_utf8_findings, 0);
 }
 
+// AC-001 (BC-2.07.017 postconditions 1-3)
+//
+// When extract_sni receives SNI bytes that are valid UTF-8 but fail is_ascii(),
+// arm 3 fires: one Finding with category=Anomaly, verdict=Inconclusive,
+// confidence=Low, mitre_technique=Some("T1027"), direction=Some(ClientToServer).
+// sni_counts keyed on the raw hostname string.
+//
+// Canonical BC-2.07.017 test vector: "café.example" (valid UTF-8, non-ASCII).
+#[allow(non_snake_case)]
 #[test]
 fn test_valid_utf8_non_ascii_sni_emits_finding() {
-    // A SNI value that is valid UTF-8 but contains non-ASCII characters (e.g. a
-    // raw U-label "café.example") is an RFC 6066 §3 violation: the spec requires
-    // ASCII encoding, with internationalized names sent as A-labels (RFC 5890
-    // Punycode `xn--` form). Major TLS clients (rustls, Chrome/BoringSSL,
-    // Firefox/NSS, curl/libcurl) all auto-Punycode internationalized hostnames
-    // before sending, so a non-ASCII SNI on the wire is a strong indicator of
-    // either a buggy custom client (often raw OpenSSL without IDNA prep) or an
-    // attacker tool.
-    //
-    // This test was previously a pin-test for "no finding emitted" pending
-    // issue #51; that issue is now implemented and the assertion has been
-    // flipped to expect the finding.
+    // AC-001 (BC-2.07.017 pc1): arm 3 fires for valid-UTF-8 non-ASCII SNI.
+    // AC-001 (BC-2.07.017 pc2): one Finding with all required fields.
+    // AC-001 (BC-2.07.017 pc3): sni_counts keyed on raw hostname.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
 
+    // Canonical BC-2.07.017 EC-001 test vector: "café.example" (U+00E9 = 0xC3 0xA9).
     let record = build_client_hello("café.example", &[0x1301]);
     analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
 
-    // Hostname is still counted under its valid-UTF-8 form (no collision risk).
+    // Positive-parse anchor: record must be accepted by the parser.
     assert_eq!(
-        *analyzer.sni_counts().get("café.example").unwrap_or(&0),
-        1,
-        "expected café.example to be counted under its UTF-8 form, got {:?}",
-        analyzer.sni_counts()
+        analyzer.parse_error_count(),
+        0,
+        "AC-001 anchor (BC-2.07.017): parse_error_count must be 0"
     );
 
+    // BC-2.07.017 pc2: exactly one non-ASCII finding emitted.
     let non_ascii_findings: Vec<_> = analyzer
         .findings()
         .into_iter()
@@ -1085,102 +1305,214 @@ fn test_valid_utf8_non_ascii_sni_emits_finding() {
     assert_eq!(
         non_ascii_findings.len(),
         1,
-        "expected exactly one non-ASCII SNI finding, got: {:?}",
-        analyzer.findings()
-    );
-    let f = &non_ascii_findings[0];
-    assert_eq!(f.category, wirerust::findings::ThreatCategory::Anomaly);
-    assert_eq!(f.verdict, wirerust::findings::Verdict::Inconclusive);
-    assert_eq!(f.confidence, wirerust::findings::Confidence::Low);
-    assert!(
-        f.summary.contains("RFC 6066"),
-        "summary should reference RFC 6066, got: {}",
-        f.summary
-    );
-    assert!(
-        f.summary.contains("A-labels"),
-        "summary should mention A-labels, got: {}",
-        f.summary
-    );
-    // Hex evidence is the lossless representation of the raw bytes.
-    // "café.example" UTF-8 = 63 61 66 c3 a9 2e 65 78 61 6d 70 6c 65
-    assert!(
-        f.evidence
-            .iter()
-            .any(|e| e.contains("636166c3a92e6578616d706c65")),
-        "expected raw UTF-8 bytes in hex evidence, got: {:?}",
-        f.evidence
+        "AC-001 (BC-2.07.017 pc2): exactly one non-ASCII finding must be emitted; \
+         got: {non_ascii_findings:?}"
     );
 
-    // Critical: this must NOT trip the non-UTF-8 finding (those are different
-    // cases — café.example is valid UTF-8, just non-ASCII).
+    let f = &non_ascii_findings[0];
+
+    // BC-2.07.017 pc2: category = Anomaly.
+    assert_eq!(
+        f.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "AC-001 (BC-2.07.017 pc2): category must be Anomaly"
+    );
+
+    // BC-2.07.017 pc2: verdict = Inconclusive.
+    assert_eq!(
+        f.verdict,
+        wirerust::findings::Verdict::Inconclusive,
+        "AC-001 (BC-2.07.017 pc2): verdict must be Inconclusive"
+    );
+
+    // BC-2.07.017 pc2: confidence = Low.
+    assert_eq!(
+        f.confidence,
+        wirerust::findings::Confidence::Low,
+        "AC-001 (BC-2.07.017 pc2): confidence must be Low"
+    );
+
+    // BC-2.07.017 pc2: mitre_technique = Some("T1027").
+    assert_eq!(
+        f.mitre_technique.as_deref(),
+        Some("T1027"),
+        "AC-001 (BC-2.07.017 pc2): mitre_technique must be Some(\"T1027\")"
+    );
+
+    // BC-2.07.017 pc2: direction = Some(ClientToServer).
+    assert_eq!(
+        f.direction,
+        Some(wirerust::reassembly::handler::Direction::ClientToServer),
+        "AC-001 (BC-2.07.017 pc2): direction must be Some(ClientToServer)"
+    );
+
+    // BC-2.07.017 pc2: source_ip must be None (network context not available in analyzer).
+    assert_eq!(f.source_ip, None, "BC-2.07.017 pc2: source_ip must be None");
+    // BC-2.07.017 pc2: timestamp must be None (network context not available in analyzer).
+    assert_eq!(f.timestamp, None, "BC-2.07.017 pc2: timestamp must be None");
+
+    // BC-2.07.017 pc2: exact summary — hostname interpolated verbatim (not Debug-escaped).
+    let expected_summary = "TLS SNI contains non-ASCII characters \
+         (RFC 6066 requires A-labels per RFC 5890): café.example";
+    assert_eq!(
+        f.summary, expected_summary,
+        "AC-001 (BC-2.07.017 pc2): summary must be exact canonical string"
+    );
+
+    // BC-2.07.017 pc2 / BC-2.07.021 pc2: evidence = exactly one entry, exact lowercase hex.
+    // "café.example" UTF-8 = 63 61 66 c3 a9 2e 65 78 61 6d 70 6c 65
+    assert_eq!(
+        f.evidence.len(),
+        1,
+        "AC-001 (BC-2.07.017 pc2): evidence must have exactly one entry"
+    );
+    assert_eq!(
+        f.evidence[0], "hex: 636166c3a92e6578616d706c65",
+        "AC-001 (BC-2.07.017 pc2): evidence[0] must be exact lowercase hex"
+    );
+
+    // BC-2.07.017 pc3: sni_counts keyed on raw hostname string.
+    assert_eq!(
+        *analyzer.sni_counts().get("café.example").unwrap_or(&0),
+        1,
+        "AC-001 (BC-2.07.017 pc3): sni_counts must be keyed on raw hostname; \
+         got keys: {:?}",
+        analyzer.sni_counts().keys().collect::<Vec<_>>()
+    );
+
+    // Must NOT trip the non-UTF-8 arm (valid UTF-8, just non-ASCII).
     let non_utf8_findings = analyzer
         .findings()
         .iter()
         .filter(|f| f.summary.contains("non-UTF-8 bytes"))
         .count();
-    assert_eq!(non_utf8_findings, 0);
+    assert_eq!(
+        non_utf8_findings, 0,
+        "AC-001 (BC-2.07.017 pc2): valid-UTF-8 non-ASCII SNI must NOT emit non-UTF-8 finding"
+    );
 }
 
+// AC-001/AC-002/AC-008 (BC-2.07.017 pc1-3, inv1; BC-2.07.021 pc1-3)
+//
+// Cyrillic SNI: raw Cyrillic in summary (not \u{...} Debug-escaped). Covers:
+// - AC-001: finding emitted with all required fields
+// - AC-002: hostname in summary is raw UTF-8 (no Debug escaping)
+// - AC-008: evidence[0] = "hex: {hex}" with lossless lowercase hex
+//
+// Canonical BC-2.07.021 EC-001: "мир" -> summary contains raw Cyrillic.
+// Also uses "пример.example" (full Cyrillic U-label) for the sni_counts key test.
+#[allow(non_snake_case)]
 #[test]
 fn test_cyrillic_sni_emits_non_ascii_finding() {
-    // Regression: a U-label using Cyrillic script should trip the non-ASCII
-    // finding identically to the Latin-accented case.
-    let mut analyzer = TlsAnalyzer::new();
+    // AC-001 (BC-2.07.017 pc2): finding with category/verdict/confidence/mitre/direction.
+    // AC-002 (BC-2.07.017 inv1): hostname in summary is raw UTF-8, not Debug-escaped.
+    // AC-008 (BC-2.07.021 pc2): evidence[0] = "hex: {hex}" with lossless lowercase hex.
     let fk = test_flow_key();
 
-    let record = build_client_hello("пример.example", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    // --- Part 1: EC-001 canonical vector: b"\xd0\xbc\xd0\xb8\xd1\x80" ("мир") ---
+    let mut analyzer1 = TlsAnalyzer::new();
+    // BC-2.07.017 canonical test vector.
+    let sni_bytes: &[u8] = b"\xd0\xbc\xd0\xb8\xd1\x80";
+    let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
+    analyzer1.on_data(&fk, Direction::ClientToServer, &record, 0);
 
-    let non_ascii_count = analyzer
-        .findings()
-        .iter()
-        .filter(|f| f.summary.contains("non-ASCII characters"))
-        .count();
     assert_eq!(
-        non_ascii_count,
-        1,
-        "Cyrillic U-label must emit one non-ASCII finding, got {:?}",
-        analyzer.findings()
-    );
-    assert_eq!(
-        *analyzer.sni_counts().get("пример.example").unwrap_or(&0),
-        1
+        analyzer1.parse_error_count(),
+        0,
+        "AC-001/002/008 anchor (BC-2.07.017): parse must succeed"
     );
 
-    // Per ADR 0003: the data layer stores raw bytes (not Debug-escaped).
-    // Find the non-ASCII finding and assert it contains the raw Cyrillic
-    // hostname — this directly guards the {hostname:?} → {hostname} rollback
-    // on the NonAsciiUtf8 match arm (src/analyzer/tls.rs), which was
-    // otherwise only covered structurally by the NonUtf8 branch test.
-    let f = analyzer
+    // AC-001 (BC-2.07.017 pc2): exactly one non-ASCII finding.
+    let f1 = analyzer1
         .findings()
         .into_iter()
         .find(|f| f.summary.contains("non-ASCII characters"))
-        .expect("expected non-ASCII finding");
+        .expect("AC-001 (BC-2.07.017 pc2): non-ASCII finding must be emitted for Cyrillic SNI");
+
+    // BC-2.07.017 pc2: exact summary with raw Cyrillic.
+    let expected_summary =
+        "TLS SNI contains non-ASCII characters (RFC 6066 requires A-labels per RFC 5890): мир";
+    assert_eq!(
+        f1.summary, expected_summary,
+        "AC-001 (BC-2.07.017 pc2): summary must be exact canonical string"
+    );
+
+    // AC-002 (BC-2.07.017 inv1 / BC-2.07.021 pc1): raw Cyrillic present, NO Debug-escaped form.
     assert!(
-        f.summary.contains("пример.example"),
-        "summary must contain raw Cyrillic hostname for forensic preservation, got: {}",
-        f.summary
+        f1.summary.contains("мир"),
+        "AC-002 (BC-2.07.017 inv1): summary must contain raw Cyrillic \"мир\", \
+         not Debug-escaped \\u{{...}} form; got: {:?}",
+        f1.summary
     );
     assert!(
-        !f.summary.contains("\\u{43f}"),
-        "summary must not contain Debug-formatted Cyrillic escape (regression to construction-site), got: {}",
-        f.summary
+        !f1.summary.contains("\\u{"),
+        "AC-002 (BC-2.07.017 inv1 / BC-2.07.021 pc3): summary must not contain \
+         Debug-escaped \\u{{...}} sequences; got: {:?}",
+        f1.summary
     );
-}
 
-#[test]
-fn test_emoji_sni_emits_non_ascii_finding() {
-    // Regression: a 4-byte UTF-8 emoji codepoint also trips the finding.
-    // 🦀 = U+1F980 = 0xF0 0x9F 0xA6 0x80 (4 bytes, all ≥ 0x80).
-    let mut analyzer = TlsAnalyzer::new();
-    let fk = test_flow_key();
+    // BC-2.07.017 pc2: category = Anomaly.
+    assert_eq!(
+        f1.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "AC-001 (BC-2.07.017 pc2): category must be Anomaly"
+    );
+    // BC-2.07.017 pc2: verdict = Inconclusive.
+    assert_eq!(
+        f1.verdict,
+        wirerust::findings::Verdict::Inconclusive,
+        "AC-001 (BC-2.07.017 pc2): verdict must be Inconclusive"
+    );
+    // BC-2.07.017 pc2: confidence = Low.
+    assert_eq!(
+        f1.confidence,
+        wirerust::findings::Confidence::Low,
+        "AC-001 (BC-2.07.017 pc2): confidence must be Low"
+    );
+    // BC-2.07.017 pc2: mitre_technique = Some("T1027").
+    assert_eq!(
+        f1.mitre_technique.as_deref(),
+        Some("T1027"),
+        "AC-001 (BC-2.07.017 pc2): mitre_technique must be Some(\"T1027\")"
+    );
+    // BC-2.07.017 pc2: direction = Some(ClientToServer).
+    assert_eq!(
+        f1.direction,
+        Some(wirerust::reassembly::handler::Direction::ClientToServer),
+        "AC-001 (BC-2.07.017 pc2): direction must be Some(ClientToServer)"
+    );
 
-    let record = build_client_hello("🦀.example", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    // AC-008 (BC-2.07.021 pc2): evidence[0] = "hex: d0bcd0b8d180" (lossless lowercase hex).
+    assert_eq!(
+        f1.evidence.len(),
+        1,
+        "AC-008 (BC-2.07.021 pc2): evidence must have exactly one entry"
+    );
+    assert_eq!(
+        f1.evidence[0], "hex: d0bcd0b8d180",
+        "AC-008 (BC-2.07.021 pc2): evidence[0] must be exact lowercase hex for \"мир\""
+    );
+    assert!(
+        !f1.evidence[0].contains("\\u{"),
+        "AC-008 (BC-2.07.021 pc3): evidence must not contain Debug-escaped \\u{{...}}"
+    );
 
-    let non_ascii_count = analyzer
+    // BC-2.07.017 pc3: sni_counts keyed on raw hostname "мир".
+    let hostname = std::str::from_utf8(sni_bytes).expect("Cyrillic is valid UTF-8");
+    assert_eq!(
+        *analyzer1.sni_counts().get(hostname).unwrap_or(&0),
+        1,
+        "AC-001 (BC-2.07.017 pc3): sni_counts must be keyed on raw hostname \"мир\"; \
+         got keys: {:?}",
+        analyzer1.sni_counts().keys().collect::<Vec<_>>()
+    );
+
+    // --- Part 2: "пример.example" (longer Cyrillic U-label) — regression ---
+    let mut analyzer2 = TlsAnalyzer::new();
+    let record2 = build_client_hello("пример.example", &[0x1301]);
+    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0);
+
+    let non_ascii_count = analyzer2
         .findings()
         .iter()
         .filter(|f| f.summary.contains("non-ASCII characters"))
@@ -1188,8 +1520,150 @@ fn test_emoji_sni_emits_non_ascii_finding() {
     assert_eq!(
         non_ascii_count,
         1,
-        "emoji SNI must emit one non-ASCII finding, got {:?}",
-        analyzer.findings()
+        "AC-001 (BC-2.07.017 pc2): Cyrillic U-label \"пример.example\" must emit \
+         one non-ASCII finding; got {:?}",
+        analyzer2.findings()
+    );
+
+    // BC-2.07.017 pc3: sni_counts keyed on raw hostname.
+    assert_eq!(
+        *analyzer2.sni_counts().get("пример.example").unwrap_or(&0),
+        1,
+        "AC-001 (BC-2.07.017 pc3): sni_counts[\"пример.example\"] must be 1"
+    );
+
+    // AC-002: no Debug-escaped Cyrillic in summary.
+    let f2 = analyzer2
+        .findings()
+        .into_iter()
+        .find(|f| f.summary.contains("non-ASCII characters"))
+        .expect("AC-002: expected non-ASCII finding for \"пример.example\"");
+    assert!(
+        f2.summary.contains("пример.example"),
+        "AC-002 (BC-2.07.017 inv1): summary must contain raw Cyrillic hostname; got: {}",
+        f2.summary
+    );
+    assert!(
+        !f2.summary.contains("\\u{43f}"),
+        "AC-002 (BC-2.07.017 inv1): summary must not contain Debug-formatted Cyrillic \
+         escape; got: {}",
+        f2.summary
+    );
+}
+
+// AC-003 (BC-2.07.017 invariant 3)
+//
+// Any non-ASCII UTF-8 triggers arm 3, including emoji (multi-byte UTF-8 sequences).
+// EC-002/EC-008 from STORY-056: emoji bytes (valid UTF-8, non-ASCII) -> arm 3.
+// Canonical STORY-056 EC-008: "😈" = bytes [0xF0, 0x9F, 0x98, 0x88].
+#[allow(non_snake_case)]
+#[test]
+fn test_emoji_sni_emits_non_ascii_finding() {
+    // AC-003 (BC-2.07.017 inv3): emoji bytes (valid UTF-8, non-ASCII) -> arm 3; finding emitted.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // EC-008 from STORY-056: "😈" = [0xF0, 0x9F, 0x98, 0x88]; is_ascii() == false.
+    let sni_bytes: &[u8] = b"\xf0\x9f\x98\x88";
+    let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-003 anchor (BC-2.07.017 inv3): parse must succeed for emoji SNI"
+    );
+
+    // BC-2.07.017 inv3: arm 3 fires (one non-ASCII finding emitted).
+    let non_ascii_findings: Vec<_> = analyzer
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("non-ASCII characters"))
+        .collect();
+    assert_eq!(
+        non_ascii_findings.len(),
+        1,
+        "AC-003 (BC-2.07.017 inv3): exactly one non-ASCII finding for emoji SNI; \
+         got: {non_ascii_findings:?}"
+    );
+
+    let f = &non_ascii_findings[0];
+
+    // BC-2.07.017 pc2 (symmetric assertions with arm 3 spec).
+    assert_eq!(
+        f.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "AC-003 (BC-2.07.017 inv3): category must be Anomaly"
+    );
+    assert_eq!(
+        f.verdict,
+        wirerust::findings::Verdict::Inconclusive,
+        "AC-003 (BC-2.07.017 inv3): verdict must be Inconclusive"
+    );
+    assert_eq!(
+        f.confidence,
+        wirerust::findings::Confidence::Low,
+        "AC-003 (BC-2.07.017 inv3): confidence must be Low"
+    );
+    assert_eq!(
+        f.mitre_technique.as_deref(),
+        Some("T1027"),
+        "AC-003 (BC-2.07.017 inv3): mitre_technique must be Some(\"T1027\")"
+    );
+    assert_eq!(
+        f.direction,
+        Some(wirerust::reassembly::handler::Direction::ClientToServer),
+        "AC-003 (BC-2.07.017 inv3): direction must be Some(ClientToServer)"
+    );
+
+    // Exact summary: hostname is the decoded emoji string.
+    let hostname = std::str::from_utf8(sni_bytes).expect("emoji is valid UTF-8");
+    let expected_summary = format!(
+        "TLS SNI contains non-ASCII characters (RFC 6066 requires A-labels per RFC 5890): \
+         {hostname}"
+    );
+    assert_eq!(
+        f.summary, expected_summary,
+        "AC-003 (BC-2.07.017 inv3): summary must contain decoded emoji hostname"
+    );
+
+    // evidence[0] = "hex: f09f9888" (lowercase hex for 😈 bytes).
+    assert_eq!(
+        f.evidence.len(),
+        1,
+        "AC-003 (BC-2.07.017 inv3): evidence must have exactly one entry"
+    );
+    assert_eq!(
+        f.evidence[0], "hex: f09f9888",
+        "AC-003 (BC-2.07.017 inv3): evidence[0] must be lowercase hex for emoji bytes"
+    );
+
+    // sni_counts keyed on raw decoded hostname.
+    assert_eq!(
+        *analyzer.sni_counts().get(hostname).unwrap_or(&0),
+        1,
+        "AC-003 (BC-2.07.017 pc3): sni_counts must be keyed on raw emoji hostname; \
+         got keys: {:?}",
+        analyzer.sni_counts().keys().collect::<Vec<_>>()
+    );
+
+    // Also verify the 🦀 emoji (regression test from original).
+    // 🦀 = U+1F980 = 0xF0 0x9F 0xA6 0x80 (4 bytes, all >= 0x80).
+    let mut analyzer2 = TlsAnalyzer::new();
+    let record2 = build_client_hello("🦀.example", &[0x1301]);
+    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0);
+
+    let non_ascii_count2 = analyzer2
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("non-ASCII characters"))
+        .count();
+    assert_eq!(
+        non_ascii_count2,
+        1,
+        "AC-003 (BC-2.07.017 inv3): 🦀 emoji SNI must emit one non-ASCII finding; \
+         got {:?}",
+        analyzer2.findings()
     );
 }
 
@@ -1953,21 +2427,93 @@ fn non_ascii_utf8_sni_finding_sets_mitre_t1027() {
     );
 }
 
+// AC-004 companion (BC-2.07.019 postcondition 3)
+//
+// Non-UTF-8 SNI finding: mitre_technique = Some("T1027").
+// Explicit companion test as named in STORY-056 AC-004.
+// EC-005: b"\x80" (lone continuation byte) is invalid UTF-8 -> arm 4.
+#[allow(non_snake_case)]
 #[test]
 fn non_utf8_sni_finding_sets_mitre_t1027() {
-    let bytes = build_client_hello_raw_sni(&[b'f', b'o', b'o', 0xc3, b'.', b'c', b'o', b'm'], &[]);
-    let mut analyzer = TlsAnalyzer::new();
-    analyzer.on_data(&test_flow_key(), Direction::ClientToServer, &bytes, 0);
+    // AC-004 (BC-2.07.019 pc3): mitre_technique must be Some("T1027") for arm 4.
+    let fk = test_flow_key();
 
-    let findings = analyzer.findings();
-    let finding = findings
-        .iter()
-        .find(|f| f.summary.contains("non-UTF-8 bytes"))
-        .expect("expected a non-UTF-8 SNI finding");
+    // --- EC-005: lone continuation byte b"\x80" ---
+    let mut analyzer = TlsAnalyzer::new();
+    let sni_bytes: &[u8] = b"\x80";
+    let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
     assert_eq!(
-        finding.mitre_technique.as_deref(),
+        analyzer.parse_error_count(),
+        0,
+        "AC-004 companion anchor (BC-2.07.019 pc3): parse must succeed"
+    );
+
+    let f = analyzer
+        .findings()
+        .into_iter()
+        .find(|f| f.summary.contains("non-UTF-8 bytes"))
+        .expect(
+            "AC-004 companion (BC-2.07.019 pc3): non-UTF-8 finding must be emitted for b\"\\x80\"",
+        );
+
+    // BC-2.07.019 pc3: mitre_technique = Some("T1027").
+    assert_eq!(
+        f.mitre_technique.as_deref(),
         Some("T1027"),
-        "malformed-SNI finding must be mapped to T1027 (Obfuscated Files or Information)",
+        "AC-004 companion (BC-2.07.019 pc3): mitre_technique must be Some(\"T1027\") for \
+         arm 4 (lone continuation byte b\"\\x80\")"
+    );
+
+    // All Finding fields symmetric with arm 4 specification (BC-2.07.019 pc3).
+    assert_eq!(
+        f.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "non_utf8_sni_finding_sets_mitre_t1027 (BC-2.07.019 pc3): category must be Anomaly"
+    );
+    assert_eq!(
+        f.verdict,
+        wirerust::findings::Verdict::Inconclusive,
+        "non_utf8_sni_finding_sets_mitre_t1027 (BC-2.07.019 pc3): verdict must be Inconclusive"
+    );
+    assert_eq!(
+        f.confidence,
+        wirerust::findings::Confidence::Low,
+        "non_utf8_sni_finding_sets_mitre_t1027 (BC-2.07.019 pc3): confidence must be Low"
+    );
+    assert_eq!(
+        f.direction,
+        Some(wirerust::reassembly::handler::Direction::ClientToServer),
+        "non_utf8_sni_finding_sets_mitre_t1027 (BC-2.07.019 pc3): direction must be \
+         Some(ClientToServer)"
+    );
+
+    // sni_counts key is "<non-utf8:80>" for b"\x80".
+    assert_eq!(
+        *analyzer.sni_counts().get("<non-utf8:80>").unwrap_or(&0),
+        1,
+        "non_utf8_sni_finding_sets_mitre_t1027 (BC-2.07.019 pc2): sni_counts key must be \
+         \"<non-utf8:80>\"; got keys: {:?}",
+        analyzer.sni_counts().keys().collect::<Vec<_>>()
+    );
+
+    // --- Regression: original vector [foo, 0xc3, '.', 'c', 'o', 'm'] ---
+    // 0xc3 is a valid 2-byte UTF-8 start byte but requires continuation 0x80-0xBF;
+    // '.' (0x2e) is not a valid continuation, so from_utf8 fails -> arm 4.
+    let mut analyzer2 = TlsAnalyzer::new();
+    let bytes2 = build_client_hello_raw_sni(&[b'f', b'o', b'o', 0xc3, b'.', b'c', b'o', b'm'], &[]);
+    analyzer2.on_data(&fk, Direction::ClientToServer, &bytes2, 0);
+
+    let finding2 = analyzer2
+        .findings()
+        .into_iter()
+        .find(|f| f.summary.contains("non-UTF-8 bytes"))
+        .expect("AC-004 companion regression: expected a non-UTF-8 SNI finding");
+    assert_eq!(
+        finding2.mitre_technique.as_deref(),
+        Some("T1027"),
+        "AC-004 companion regression (BC-2.07.019 pc3): malformed-SNI finding must be T1027"
     );
 }
 
@@ -5777,5 +6323,285 @@ fn test_BC_2_07_012_ec004_ec005_server_hello_legacy_parse_rejection_pin() {
         "EC-004 server-side pin (BC-2.07.012): no deprecated-protocol ServerHello \
          finding expected when tls_parser rejects the record; got: {:?}",
         analyzer.findings()
+    );
+}
+
+// ── STORY-056 Brownfield-Formalization Tests (BC-2.07.017/019/020/021/037) ───
+//
+// SNI Classification Arms 3 and 4 — Non-ASCII UTF-8 and Non-UTF-8 Byte
+// Preservation formalization (generic-citation ACs only).
+//
+// The named tests for AC-001/002/003/004/005/006/008 are the existing tests
+// updated in-place above (DF-AC-TEST-NAME-SYNC-001). This section contains
+// the three generic-citation ACs that have freely-chosen names:
+//
+//   AC-007 (BC-2.07.020 inv1-3)    test_arm4_hex_evidence_is_pure_ascii
+//   AC-009 (BC-2.07.037 pc1-4)     test_c0_plus_non_ascii_fires_arm3_not_arm2
+//   AC-010 (BC-2.07.037 inv1-2)    test_is_ascii_gate_routes_arm2_vs_arm3
+
+// ── AC-007 (BC-2.07.020 invariants 1-3) ──────────────────────────────────────
+//
+// evidence[0] starts with "hex: " and the hex portion contains only [0-9a-f].
+// The hex field is always pure ASCII and needs no escaping (ADR 0003).
+#[allow(non_snake_case)]
+#[test]
+fn test_arm4_hex_evidence_is_pure_ascii() {
+    // AC-007 (BC-2.07.020 inv3): hex field is always pure ASCII (0-9, a-f).
+    // Exercising VP-005: arm 4 fires for any non-UTF-8 input.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // EC-004: b"\xff\xfe" is invalid UTF-8; hex = "fffe".
+    let sni_bytes: &[u8] = b"\xff\xfe";
+    let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    let f = analyzer
+        .findings()
+        .into_iter()
+        .find(|f| f.summary.contains("non-UTF-8 bytes"))
+        .expect("AC-007 (BC-2.07.020 inv3): non-UTF-8 finding must be emitted");
+
+    // BC-2.07.020 inv3: evidence[0] starts with "hex: ".
+    assert!(
+        f.evidence[0].starts_with("hex: "),
+        "AC-007 (BC-2.07.020 inv3): evidence[0] must start with \"hex: \"; \
+         got: {:?}",
+        f.evidence[0]
+    );
+
+    // BC-2.07.020 inv3: hex portion contains ONLY [0-9a-f] (pure ASCII lowercase hex).
+    let hex_part = f.evidence[0]
+        .strip_prefix("hex: ")
+        .expect("AC-007: strip_prefix already verified above");
+
+    assert!(
+        hex_part
+            .chars()
+            .all(|c| c.is_ascii_digit() || ('a'..='f').contains(&c)),
+        "AC-007 (BC-2.07.020 inv3): hex portion must contain only [0-9a-f]; \
+         got: {:?}",
+        hex_part
+    );
+
+    // BC-2.07.020 inv3: hex field is pure ASCII (every byte in 0x00..=0x7f).
+    assert!(
+        hex_part.is_ascii(),
+        "AC-007 (BC-2.07.020 inv3): hex field must be pure ASCII; got: {:?}",
+        hex_part
+    );
+
+    // No uppercase letters (must be lowercase hex per bytes_to_hex spec).
+    assert!(
+        !hex_part.chars().any(|c| c.is_ascii_uppercase()),
+        "AC-007 (BC-2.07.020 inv3): hex field must be lowercase only; got: {:?}",
+        hex_part
+    );
+}
+
+// ── AC-009 (BC-2.07.037 postconditions 1-4) ───────────────────────────────────
+//
+// When SNI bytes are valid UTF-8 but contain BOTH non-ASCII chars AND C0 bytes,
+// arm 3 fires (NonAsciiUtf8), NOT arm 2 (AsciiWithControl). Summary says
+// "non-ASCII characters", NOT "control bytes" or "control". The control byte
+// signal is only recoverable from the hex evidence field.
+//
+// Exercises VP-005: is_ascii() is the decisive gate between arm 2 and arm 3.
+// Canonical BC-2.07.037 test vector: b"caf\x01\xc3\xa9" (valid UTF-8 "café" with SOH).
+#[allow(non_snake_case)]
+#[test]
+fn test_c0_plus_non_ascii_fires_arm3_not_arm2() {
+    // AC-009 (BC-2.07.037 pc1): arm 3 fires -> SniValue::NonAsciiUtf8.
+    // AC-009 (BC-2.07.037 pc2): summary says "non-ASCII characters", NOT "control".
+    // AC-009 (BC-2.07.037 pc3): control byte only recoverable from hex evidence.
+    // AC-009 (BC-2.07.037 pc4): T1027/Anomaly/Inconclusive/Low/ClientToServer.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // EC-003 from STORY-056: b"caf\x01\xc3\xa9" is valid UTF-8 (decodes to "café" with SOH).
+    // Decoded string: 'c','a','f',SOH(U+0001),'é'(U+00E9). is_ascii() == false -> arm 3.
+    let sni_bytes: &[u8] = b"caf\x01\xc3\xa9";
+    let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-009 anchor (BC-2.07.037 pc1): parse must succeed"
+    );
+
+    // BC-2.07.037 pc1: arm 3 fires -> one "non-ASCII characters" finding.
+    let non_ascii_findings: Vec<_> = analyzer
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("non-ASCII characters"))
+        .collect();
+    assert_eq!(
+        non_ascii_findings.len(),
+        1,
+        "AC-009 (BC-2.07.037 pc1): arm 3 must fire for b\"caf\\x01\\xc3\\xa9\"; \
+         exactly one non-ASCII finding; got: {non_ascii_findings:?}"
+    );
+
+    // BC-2.07.037 pc2: arm 2 must NOT fire (no "ASCII control characters" finding).
+    let ctrl_findings: Vec<_> = analyzer
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("ASCII control characters"))
+        .collect();
+    assert!(
+        ctrl_findings.is_empty(),
+        "AC-009 (BC-2.07.037 pc2): arm 2 must NOT fire for mixed C0+non-ASCII SNI; \
+         arm 3 takes priority (is_ascii() == false); got: {ctrl_findings:?}"
+    );
+
+    let f = &non_ascii_findings[0];
+
+    // BC-2.07.037 pc2: summary says "non-ASCII characters", not "control".
+    assert!(
+        f.summary.contains("non-ASCII characters"),
+        "AC-009 (BC-2.07.037 pc2): summary must say \"non-ASCII characters\"; \
+         got: {:?}",
+        f.summary
+    );
+    assert!(
+        !f.summary.contains("control"),
+        "AC-009 (BC-2.07.037 pc2): summary must NOT contain \"control\" (EC-007: SOC \
+         operator searching \"control\" will miss this — documented behavior); \
+         got: {:?}",
+        f.summary
+    );
+
+    // BC-2.07.037 pc4: Anomaly/Inconclusive/Low/T1027/ClientToServer.
+    assert_eq!(
+        f.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "AC-009 (BC-2.07.037 pc4): category must be Anomaly"
+    );
+    assert_eq!(
+        f.verdict,
+        wirerust::findings::Verdict::Inconclusive,
+        "AC-009 (BC-2.07.037 pc4): verdict must be Inconclusive"
+    );
+    assert_eq!(
+        f.confidence,
+        wirerust::findings::Confidence::Low,
+        "AC-009 (BC-2.07.037 pc4): confidence must be Low"
+    );
+    assert_eq!(
+        f.mitre_technique.as_deref(),
+        Some("T1027"),
+        "AC-009 (BC-2.07.037 pc4): mitre_technique must be Some(\"T1027\")"
+    );
+    assert_eq!(
+        f.direction,
+        Some(wirerust::reassembly::handler::Direction::ClientToServer),
+        "AC-009 (BC-2.07.037 pc4): direction must be Some(ClientToServer)"
+    );
+
+    // BC-2.07.037 pc3: control byte 0x01 only recoverable from hex evidence.
+    // Hex for b"caf\x01\xc3\xa9" = "63616601c3a9".
+    assert_eq!(
+        f.evidence.len(),
+        1,
+        "AC-009 (BC-2.07.037 pc3): evidence must have exactly one entry"
+    );
+    assert_eq!(
+        f.evidence[0], "hex: 63616601c3a9",
+        "AC-009 (BC-2.07.037 pc3): evidence[0] must be lossless hex preserving control byte"
+    );
+
+    // sni_counts keyed on raw decoded hostname (arm 3 key = hostname string).
+    let hostname = std::str::from_utf8(sni_bytes).expect("b\"caf\\x01\\xc3\\xa9\" is valid UTF-8");
+    assert_eq!(
+        *analyzer.sni_counts().get(hostname).unwrap_or(&0),
+        1,
+        "AC-009 (BC-2.07.037 pc1): sni_counts must be keyed on raw hostname for arm 3; \
+         got keys: {:?}",
+        analyzer.sni_counts().keys().collect::<Vec<_>>()
+    );
+}
+
+// ── AC-010 (BC-2.07.037 invariants 1-2) ──────────────────────────────────────
+//
+// is_ascii() is the decisive gate between arm 2 and arm 3. Even one non-ASCII
+// code point causes is_ascii() == false, routing to arm 3 before contains_c0_or_del
+// is evaluated. Arm evaluation is strictly top-down (VP-005).
+//
+// Exercises VP-005: the is_ascii() predicate as the arm 2/3 boundary.
+#[allow(non_snake_case)]
+#[test]
+fn test_is_ascii_gate_routes_arm2_vs_arm3() {
+    // AC-010 (BC-2.07.037 inv1): b"caf\x01\xc3\xa9" -> is_ascii()==false -> arm 3.
+    // AC-010 (BC-2.07.037 inv2): b"evil\x01.com" -> is_ascii()==true -> arm 2.
+    let fk = test_flow_key();
+
+    // --- Case 1: b"caf\x01\xc3\xa9" has non-ASCII -> is_ascii()==false -> arm 3 ---
+    let mut analyzer_arm3 = TlsAnalyzer::new();
+    let sni_arm3: &[u8] = b"caf\x01\xc3\xa9";
+    let record_arm3 = build_client_hello_raw_sni(sni_arm3, &[0x1301]);
+    analyzer_arm3.on_data(&fk, Direction::ClientToServer, &record_arm3, 0);
+
+    // Verify is_ascii() == false (the gate predicate must be false for arm 3).
+    let decoded_arm3 =
+        std::str::from_utf8(sni_arm3).expect("b\"caf\\x01\\xc3\\xa9\" is valid UTF-8");
+    assert!(
+        !decoded_arm3.is_ascii(),
+        "AC-010 (BC-2.07.037 inv1): decoded \"caf\\x01\\xc3\\xa9\" must have is_ascii()==false"
+    );
+
+    // Arm 3 fires: "non-ASCII characters" finding present.
+    assert!(
+        analyzer_arm3
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("non-ASCII characters")),
+        "AC-010 (BC-2.07.037 inv1): arm 3 must fire for b\"caf\\x01\\xc3\\xa9\" \
+         (is_ascii()==false); got findings: {:?}",
+        analyzer_arm3.findings()
+    );
+
+    // Arm 2 must NOT fire.
+    assert!(
+        !analyzer_arm3
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("ASCII control characters")),
+        "AC-010 (BC-2.07.037 inv1): arm 2 must NOT fire when is_ascii()==false; \
+         arm 3 takes strict top-down priority"
+    );
+
+    // --- Case 2: b"evil\x01.com" is all-ASCII -> is_ascii()==true -> arm 2 ---
+    let mut analyzer_arm2 = TlsAnalyzer::new();
+    let sni_arm2: &[u8] = b"evil\x01.com";
+    let record_arm2 = build_client_hello_raw_sni(sni_arm2, &[0x1301]);
+    analyzer_arm2.on_data(&fk, Direction::ClientToServer, &record_arm2, 0);
+
+    // Verify is_ascii() == true for this input.
+    let decoded_arm2 = std::str::from_utf8(sni_arm2).expect("b\"evil\\x01.com\" is valid UTF-8");
+    assert!(
+        decoded_arm2.is_ascii(),
+        "AC-010 (BC-2.07.037 inv2): decoded \"evil\\x01.com\" must have is_ascii()==true"
+    );
+
+    // Arm 2 fires: "ASCII control characters" finding present.
+    assert!(
+        analyzer_arm2
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("ASCII control characters")),
+        "AC-010 (BC-2.07.037 inv2): arm 2 must fire for b\"evil\\x01.com\" \
+         (is_ascii()==true + C0 byte 0x01); got findings: {:?}",
+        analyzer_arm2.findings()
+    );
+
+    // Arm 3 must NOT fire for the all-ASCII+C0 case.
+    assert!(
+        !analyzer_arm2
+            .findings()
+            .iter()
+            .any(|f| f.summary.contains("non-ASCII characters")),
+        "AC-010 (BC-2.07.037 inv2): arm 3 must NOT fire for all-ASCII+C0 SNI; \
+         is_ascii()==true routes to arm 2 only"
     );
 }
