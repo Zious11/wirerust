@@ -10,7 +10,7 @@ inputs:
   - .factory/stories/STORY-032.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.005.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.006.md
-input-hash: "d3240d6"
+input-hash: "cf30b80"
 traces_to: .factory/stories/STORY-032.md
 id: "HS-039"
 category: "behavioral-subtleties"

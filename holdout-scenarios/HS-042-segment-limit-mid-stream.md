@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.044.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.045.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.046.md
-input-hash: "9c5b099"
+input-hash: "fdd6410"
 traces_to: .factory/stories/STORY-018.md
 id: "HS-042"
 category: "security-probes"

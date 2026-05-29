@@ -17,7 +17,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.002.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.003.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.004.md
-input-hash: "dff665d"
+input-hash: "d270d81"
 traces_to: .factory/stories/STORY-041.md
 id: "HS-051"
 category: "behavioral-subtleties"

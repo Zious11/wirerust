@@ -9,7 +9,7 @@ phase: 2
 inputs:
   - .factory/stories/STORY-031.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.003.md
-input-hash: "8e21d6b"
+input-hash: "4abe4fd"
 traces_to: .factory/stories/STORY-031.md
 id: "HS-049"
 category: "behavioral-subtleties"

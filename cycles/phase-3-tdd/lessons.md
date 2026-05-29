@@ -892,6 +892,67 @@ Archive: `.factory/cycles/drift-remediation-2026-05-29/closed-items.md`
 
 ---
 
+---
+
+## Wave 18 Lessons (2026-05-29)
+
+Wave 18: STORY-046 (E-4 HTTP, 3pts) + STORY-054 (E-5 TLS, 8pts) + STORY-056 (E-5 TLS, 8pts) + STORY-058 (E-5 TLS, 8pts). 27pts. PRs #152-155. develop HEAD at close: 3f87ac3. Wave-level: round-1 3-lens CLEAN.
+
+### PG-W18-001 — DF-ADVERSARY-METHODOLOGY-001 Recurrence (STORY-054 Pass-10 Wrong-Checkout False-Positive) [deferred — codification-candidate]
+
+**Finding ID:** PG-W18-001 (Cycle-Close Follow-Up, STATE.md)
+**Category:** process-gap / adversarial-methodology
+**Observed:** STORY-054 pass-10 adversary reviewed develop HEAD instead of feature/STORY-054 worktree, producing 3 false-CRITICAL findings. Pass-11 checkout-guard (branch assertion + grep-count assertion) succeeded and confirmed the false-positive nature of pass-10 findings. This is a recurrence of DF-ADVERSARY-METHODOLOGY-001 (first caught W11).
+**Impact:** One full adversary pass wasted. Required pass-11 re-run with explicit checkout verification.
+**Recommendation:** Bake checkout-guard (verify branch==feature/STORY-NNN AND a known story-specific grep-count) into every per-story adversary dispatch template. Also: .factory is gitignored in worktrees — dispatch MUST provide absolute main-repo paths for factory artifacts.
+**Codification candidate:** DF-ADVERSARY-METHODOLOGY-001 v2 (extend with checkout-guard requirement).
+**Validation required:** research-agent must validate per DF-VALIDATION-001 before filing GitHub issue.
+**Status:** [deferred — codification-candidate; requires DF-VALIDATION-001]
+
+---
+
+### PG-W18-002 — Test-Citation Re-Points Must Trigger Same-Burst Sweep of ALL Occurrences [deferred — codification-candidate]
+
+**Finding ID:** PG-W18-002 (Cycle-Close Follow-Up, STATE.md)
+**Category:** process-gap / sibling-sweep discipline
+**Observed (STORY-056 original):** Story-anchor fix (F-S056-P3-001) was applied to the story body but did not sweep sibling BCs in the same burst. PG-W18-002 logged.
+**Extended (STORY-058):** AC-013 mis-citation existed in 3 locations: (1) STORY-058.md FSR row, (2) BC-2.07.004 Evidence field, (3) tls_analyzer_tests.rs index comment. Each burst fixed only 1-2 locations; adversary found the 3rd each time. STORY-058 needed passes 3/4/5/6/8 to chase the same AC-013 mis-mapping across those 3 locations.
+**Root cause:** The existing DF-SIBLING-SWEEP-001 policy covers BC sibling-sweeps and STORY Architecture-Mapping sweeps, but does NOT explicitly enumerate test-file index/header comments as a sweep target.
+**Recommendation:** Add explicit checklist rule: when a test-citation (AC test name or AC-NNN reference) changes in ANY of {story FSR, BC Proof-Method, BC Evidence, test-file header comment, test-file index comment}, ALL of those locations must be swept in the SAME burst before declaring the fix complete.
+**Codification candidate:** DF-SIBLING-SWEEP-001 v5 (add test-citation sweep locations) or new DF-TEST-CITATION-SWEEP-001.
+**Validation required:** research-agent must validate per DF-VALIDATION-001 before filing GitHub issue.
+**Status:** [deferred — codification-candidate; requires DF-VALIDATION-001; detail: W18-S058.L1]
+
+---
+
+### PG-W18-003 — TLS Test Flat Namespace vs HTTP Per-Story Mod Wrappers (Latent Collision Risk) [deferred — codification-candidate]
+
+**Finding ID:** PG-W18-003 (Cycle-Close Follow-Up, STATE.md; from F-W18-WAVE-I-006)
+**Category:** process-gap / test-architecture convention
+**Observed:** tests/tls_analyzer_tests.rs uses a FLAT namespace — all TLS test functions live at the module root without per-story `mod` groupings. tests/http_analyzer_tests.rs uses per-story `mod` wrappers (the F-W16 collision fix). This divergence means that as more TLS stories are delivered, test-name collisions across stories become a latent risk (the same issue that triggered PR #146 for HTTP tests).
+**Impact (current):** No collision yet. Risk increases with each new TLS story added to the flat namespace.
+**Impact (future):** A name collision in tls_analyzer_tests.rs would require a retroactive rename PR similar to PR #146, touching ALL existing TLS story tests.
+**Recommendation:** Codify one convention (per-story `mod` wrapper) across both analyzer test files. Apply to tls_analyzer_tests.rs proactively before Wave 19+ TLS stories land.
+**Codification candidate:** Add DF-TEST-NAMESPACE-CONVENTION-001 or extend DF-AC-TEST-NAME-SYNC-001.
+**Follow-up:** Wave-level F-W18-WAVE-C-001/002/003 (cross-story style-convention divergences) fold into this codification.
+**Validation required:** research-agent must validate per DF-VALIDATION-001 before filing GitHub issue.
+**Status:** [deferred — codification-candidate; requires DF-VALIDATION-001]
+
+---
+
+### Wave 18 Retrospective Summary
+
+- 4 stories, 27pts, PRs #152-155, develop HEAD 3f87ac3.
+- Deepest story: STORY-058 (13 passes; AC-013 mis-citation cascade drove passes 3-8).
+- Fastest story: STORY-046 (4 passes; isolated HTTP scope, zero cross-story coupling).
+- Wave-level: round-1 3-lens CLEAN (no dirty round — improvement vs W16 round-1-dirty, W17 wave-level P1-dirty).
+- All zero src changes (brownfield-formalization wave-wide).
+- 3 process-gaps codified: PG-W18-001/002/003 (all require DF-VALIDATION-001 before issue filing).
+- 4 deferred-LOWs accepted: OBS-7, F-S058-P11-001/002, F-S058-P12-O1, F-S058-P13-O4.
+- Phase-4-ENTRY deferred: HS-* re-validation against W18 BC corrections (BC-2.07.002/012/029).
+
+---
+
 ## Earlier Wave Lessons (Waves 1-6)
 
 Per-wave process-gap items for Waves 1-6 are recorded in STATE.md Cycle-Close Follow-Up Items

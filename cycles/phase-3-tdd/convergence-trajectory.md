@@ -199,8 +199,10 @@ All require research-agent validation per DF-VALIDATION-001 before issue filing.
 | 6 | STORY-013 | CLOSED/CONVERGED | 3e705b5 | 13 |
 | 7 | STORY-014 | CLOSED/CONVERGED | b23c6d3 | 14 |
 | 8 | STORY-019, STORY-015 | CLOSED/CONVERGED | 4b9b85f | 16 |
+| 9–17 | (see STATE.md Phase 3 Wave Status table) | CLOSED/CONVERGED | 9633b0d (W17) | 33 |
+| 18 | STORY-046, STORY-054, STORY-056, STORY-058 | CLOSED/CONVERGED | 3f87ac3 | 37 |
 
-Wave 9 (STORY-016 + STORY-020): READY TO DISPATCH. develop HEAD: 4b9b85f.
+Wave 19: READY TO DISPATCH. develop HEAD: 3f87ac3.
 
 ---
 
@@ -232,3 +234,41 @@ Frozen code: feature/STORY-058 HEAD 4c252f3. 5 test commits total.
 Factory artifacts remediated: STORY-058.md v1.1→v1.2→v1.3, BC-2.07.004 v1.3, BC-2.07.005 v1.3, BC-2.07.029 v1.3, BC-2.07.033 v1.3→v1.4, BC-2.07.035 v1.3.
 Process gap extended: PG-W18-002 (test-citation change checklist). Deferred: F-S058-P11-001/002, F-S058-P12-O1, F-S058-P13-O4 (all LOW).
 Next: STORY-058 demos + PR.
+
+---
+
+## Wave 18 Wave-Level Convergence — CLOSED/CONVERGED 2026-05-29
+
+Stories: STORY-046 (E-4 HTTP, 3pts) + STORY-054 (E-5 TLS, 8pts) + STORY-056 (E-5 TLS, 8pts) + STORY-058 (E-5 TLS, 8pts).
+Total: 27pts. develop HEAD at close: 3f87ac3.
+
+Wave-level convergence: round-1 3-lens CLEAN (all VERDICT: CLEAN). No dirty round (vs W16 round-1-dirty). BC-5.39.001 ACHIEVED.
+
+| Pass | Lens | Verdict | Notes |
+|------|------|---------|-------|
+| W18-wave-P1 | Consistency (cross-story) | CLEAN | — |
+| W18-wave-P1 | Integration-static | CLEAN | — |
+| W18-wave-P1 | Traceability | CLEAN | — |
+
+All 3 lenses CLEAN in round 1. Gate: 3/3 CLEAN. Wave 18 CLOSED.
+
+Per-story summary:
+- STORY-046: 4ps-3clean (P2-P4)
+- STORY-054: 11ps-3clean (P8/P9/P11; P10 dismissed — DF-ADVERSARY-METHODOLOGY-001 false-pos)
+- STORY-056: 9ps-3clean (P7/P8/P9; front-loaded exactness; deferred LOW OBS-7)
+- STORY-058: 13ps-3clean (P11/P12/P13; deepest Wave-18 story; 4 deferred-LOWs accepted)
+
+input-drift: TOTAL=153 MATCH=153 STALE=0 (50 holdout-scenario hashes bumped — non-semantic story-citation drift; STORY-046/054/056/058 story files bumped for AC-citation sync + FSR enumeration + AC-002 reachability clarification; zero src/production changes wave-wide).
+
+Process-gaps logged (all require DF-VALIDATION-001 before issue filing):
+- PG-W18-001: DF-ADVERSARY-METHODOLOGY-001 recurrence (STORY-054 pass-10 wrong-checkout false-positive); checkout-guard codification candidate.
+- PG-W18-002: test-citation re-points + BC-evidence-status changes must trigger same-burst sweep of ALL occurrences. Drove STORY-058 passes 3-8.
+- PG-W18-003: TLS test file flat-namespace vs HTTP per-story mod-wrapper; latent collision risk for future TLS stories.
+
+Deferred forward:
+- OBS-7 (STORY-056 JSON-reporter integration → wave-gate/Phase-4)
+- F-S058-P11-001/P11-002/P12-O1/P13-O4 (cosmetic test-comment/anchor residues)
+- Wave-level F-W18-WAVE-C-001/002/003 (cross-story style-convention divergences — fold into PG-W18-003 codification)
+- Phase-4-ENTRY: HS-* semantic re-validation against Wave-18 BC corrections (BC-2.07.002/012/029)
+
+**Wave 18 GATE SATISFIED.** Wave 19 READY TO DISPATCH.

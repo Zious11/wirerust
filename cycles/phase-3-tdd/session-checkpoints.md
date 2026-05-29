@@ -58,3 +58,14 @@ Most recent checkpoint is always in STATE.md > "Session Resume Checkpoint" secti
 5. Wave 18 STORY-056 DELIVERED 2026-05-29: PR #154 squash-merged → 7f64219. BC-5.39.001 ACHIEVED via 9 passes; 3-clean streak P7/P8/P9. 99 tls_analyzer_tests green; zero src changes. All 8 CI green. Security CLEAN. PR review APPROVED 1 cycle. Worktree + branch removed. [OBS-7 deferred; PG-W18-001/002 open].
 6. input-hash scan: TOTAL=48 MATCH=48 STALE=0 (confirmed post-W17-close).
 7. NEXT: STORY-058 delivery (E-5 TLS, 8pts — buffer management, record parsing, flow lifecycle, summarize output; last Wave 18 story).
+
+---
+
+## Archived: 2026-05-29 — Wave 18 4/4 DELIVERED; next = wave-level convergence + close
+
+1. Waves 1-17 CLOSED/CONVERGED. Wave 18 4/4 stories DELIVERED. develop HEAD: 3f87ac3 (PR #155 squash-merged 2026-05-29). All 8 CI checks green. 37 stories delivered.
+2. Wave 18 all 4 DELIVERED: STORY-046 PR #152 → 547aca8 (4ps-3clean). STORY-054 PR #153 → fc55587 (11ps-3clean P8/P9/P11; P10 dismissed). STORY-056 PR #154 → 7f64219 (9ps-3clean P7/P8/P9; APPROVED 1 cycle). STORY-058 PR #155 → 3f87ac3 (13ps-3clean P11/P12/P13; 114 tls_analyzer_tests + 4 tls_integration_tests green; all 8 CI green; security CLEAN; APPROVED 1 cycle; worktree + branch removed).
+3. All 4 Wave 18 per-story BC-5.39.001 ACHIEVED. Factory artifacts committed: STORY-058.md v1.3 + BC-2.07.004/005/029/033/035 v1.3-v1.4 (reachability+arithmetic+evidence fixes; AC-sync/re-point v1.3).
+4. Deferred items accepted below-MEDIUM threshold: F-S058-P11-001 (stale comment tls_analyzer_tests.rs:6819), F-S058-P11-002 (test_nonhandshake_types EC-label set), F-S058-P12-O1 (BC-2.07.005 anchor off-by-one), F-S058-P13-O4 (test_stop_after_handshake cross-story collision). [OBS-7 deferred; PG-W18-001/002 open; PG-W18-002 extended].
+5. input-hash scan: TOTAL=48 MATCH=48 STALE=0 (confirmed post-W17-close).
+6. NEXT: Wave 18 wave-level adversarial convergence — 3-lens fresh-context review (consistency/integration-static/traceability) on frozen develop 3f87ac3. Then consistency audit + input-drift check. Then CLOSE Wave 18.

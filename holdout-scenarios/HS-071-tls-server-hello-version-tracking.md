@@ -17,7 +17,7 @@ inputs:
   - .factory/stories/STORY-058.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.002.md
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.003.md
-input-hash: "354f110"
+input-hash: "6e52bc5"
 traces_to: .factory/stories/STORY-051.md
 id: "HS-071"
 category: "behavioral-subtleties"
