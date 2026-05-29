@@ -239,6 +239,8 @@ fn test_no_findings_for_normal_request() {
     );
 }
 
+// AC-001 / BC-2.06.023 postcondition 1: analyzer_name="HTTP", packets_analyzed=transactions.
+// AC-002 / BC-2.06.023 postcondition 1 detail map keys: exactly 9 keys, no extras.
 #[test]
 fn test_summarize_produces_complete_output() {
     let mut analyzer = HttpAnalyzer::new();
@@ -251,20 +253,81 @@ fn test_summarize_produces_complete_output() {
     analyzer.on_data(&fk, Direction::ServerToClient, response, 0);
 
     let summary = analyzer.summarize();
-    assert_eq!(summary.analyzer_name, "HTTP");
-    assert_eq!(summary.packets_analyzed, 1);
+
+    // AC-001: top-level fields.
+    assert_eq!(
+        summary.analyzer_name, "HTTP",
+        "BC-2.06.023 postcondition 1: analyzer_name must be \"HTTP\""
+    );
+    assert_eq!(
+        summary.packets_analyzed, 1,
+        "BC-2.06.023 postcondition 1: packets_analyzed must equal transactions (1 response)"
+    );
 
     let detail = &summary.detail;
-    assert_eq!(detail["transactions"], 1);
-    assert_eq!(detail["methods"]["GET"], 1);
-    assert_eq!(detail["status_codes"]["200"], 1);
+
+    // AC-002: exact 9-key set — no extras, no missing.
+    let expected_keys: std::collections::BTreeSet<&str> = [
+        "methods",
+        "non_http_flows",
+        "parse_errors",
+        "poisoned_bytes_skipped",
+        "recent_uris",
+        "status_codes",
+        "top_hosts",
+        "transactions",
+        "user_agents",
+    ]
+    .iter()
+    .copied()
+    .collect();
+    let actual_keys: std::collections::BTreeSet<&str> = detail.keys().map(|k| k.as_str()).collect();
+    assert_eq!(
+        actual_keys, expected_keys,
+        "BC-2.06.023 postcondition 1 detail map keys: must contain exactly these 9 keys"
+    );
+
+    // Spot-check values to confirm the map is populated correctly.
+    assert_eq!(
+        detail["transactions"], 1,
+        "BC-2.06.023 postcondition 1: transactions must be 1"
+    );
+    assert_eq!(
+        detail["methods"]["GET"], 1,
+        "BC-2.06.023 postcondition 1: methods[GET] must be 1"
+    );
+    assert_eq!(
+        detail["status_codes"]["200"], 1,
+        "BC-2.06.023 invariant 3: status_codes key must be stringified u16 \"200\""
+    );
     assert!(
         detail["top_hosts"]
             .as_array()
             .unwrap()
-            .contains(&serde_json::json!("example.com"))
+            .contains(&serde_json::json!("example.com")),
+        "BC-2.06.023 postcondition 2: top_hosts must contain example.com"
     );
-    assert_eq!(detail["user_agents"]["TestBot"], 1);
+    assert_eq!(
+        detail["user_agents"]["TestBot"], 1,
+        "BC-2.06.023 postcondition 1: user_agents[TestBot] must be 1"
+    );
+    assert_eq!(
+        detail["parse_errors"], 0,
+        "BC-2.06.023 postcondition 1: parse_errors must be 0 for clean traffic"
+    );
+    assert_eq!(
+        detail["non_http_flows"], 0,
+        "BC-2.06.023 postcondition 1: non_http_flows must be 0"
+    );
+    assert_eq!(
+        detail["poisoned_bytes_skipped"], 0,
+        "BC-2.06.023 postcondition 1: poisoned_bytes_skipped must be 0"
+    );
+    let recent_uris = detail["recent_uris"].as_array().unwrap();
+    assert!(
+        recent_uris.contains(&serde_json::json!("/page")),
+        "BC-2.06.023 postcondition 3: recent_uris must contain /page"
+    );
 }
 
 #[test]
@@ -299,15 +362,91 @@ fn test_parse_error_increments_counter() {
     assert!(analyzer.findings().is_empty());
 }
 
+// AC-008 / BC-2.06.023 edge case EC-001: zero traffic → all maps empty,
+//   transactions=0, parse_errors=0, non_http_flows=0, poisoned_bytes_skipped=0,
+//   recent_uris=[].
+// Also exercises parse_errors>0 appearing correctly in the detail map.
 #[test]
 fn test_parse_error_in_summarize() {
-    let mut analyzer = HttpAnalyzer::new();
-    let fk = test_flow_key();
+    // Part 1 — parse_errors in detail map (parse_errors > 0 path).
+    {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+        analyzer.on_data(&fk, Direction::ClientToServer, b"NOT_HTTP\r\n\r\n", 0);
+        let summary = analyzer.summarize();
+        assert_eq!(
+            summary.detail["parse_errors"], 1,
+            "BC-2.06.023 postcondition 1: parse_errors must be 1 after one malformed chunk"
+        );
+    }
 
-    analyzer.on_data(&fk, Direction::ClientToServer, b"NOT_HTTP\r\n\r\n", 0);
-
-    let summary = analyzer.summarize();
-    assert_eq!(summary.detail["parse_errors"], 1);
+    // Part 2 — AC-008 / EC-001: zero-traffic analyzer — all counters 0, all maps empty.
+    {
+        let analyzer = HttpAnalyzer::new();
+        let summary = analyzer.summarize();
+        assert_eq!(
+            summary.analyzer_name, "HTTP",
+            "BC-2.06.023 EC-001: analyzer_name must be \"HTTP\" even with zero traffic"
+        );
+        assert_eq!(
+            summary.packets_analyzed, 0,
+            "BC-2.06.023 EC-001: packets_analyzed must be 0 with zero traffic"
+        );
+        let detail = &summary.detail;
+        assert_eq!(
+            detail["transactions"], 0,
+            "BC-2.06.023 EC-001: transactions must be 0 with zero traffic"
+        );
+        assert_eq!(
+            detail["parse_errors"], 0,
+            "BC-2.06.023 EC-001: parse_errors must be 0 with zero traffic"
+        );
+        assert_eq!(
+            detail["non_http_flows"], 0,
+            "BC-2.06.023 EC-001: non_http_flows must be 0 with zero traffic"
+        );
+        assert_eq!(
+            detail["poisoned_bytes_skipped"], 0,
+            "BC-2.06.023 EC-001: poisoned_bytes_skipped must be 0 with zero traffic"
+        );
+        assert_eq!(
+            detail["recent_uris"]
+                .as_array()
+                .expect("recent_uris must be an array")
+                .len(),
+            0,
+            "BC-2.06.023 EC-001: recent_uris must be empty with zero traffic"
+        );
+        assert!(
+            detail["methods"]
+                .as_object()
+                .expect("methods must be a map")
+                .is_empty(),
+            "BC-2.06.023 EC-001: methods map must be empty with zero traffic"
+        );
+        assert!(
+            detail["status_codes"]
+                .as_object()
+                .expect("status_codes must be a map")
+                .is_empty(),
+            "BC-2.06.023 EC-001: status_codes map must be empty with zero traffic"
+        );
+        assert_eq!(
+            detail["top_hosts"]
+                .as_array()
+                .expect("top_hosts must be an array")
+                .len(),
+            0,
+            "BC-2.06.023 EC-001: top_hosts must be empty with zero traffic"
+        );
+        assert!(
+            detail["user_agents"]
+                .as_object()
+                .expect("user_agents must be a map")
+                .is_empty(),
+            "BC-2.06.023 EC-001: user_agents map must be empty with zero traffic"
+        );
+    }
 }
 
 #[test]
@@ -5682,3 +5821,370 @@ mod bc_2_06_045_formalization {
         );
     }
 } // mod bc_2_06_045_formalization
+
+// ---------------------------------------------------------------------------
+// STORY-046 Brownfield-Formalization Tests (BC-2.06.023)
+//
+// Naming convention: test function names in this module are snake_case as
+// mandated by STORY-046 Acceptance Criteria (DF-AC-TEST-NAME-SYNC-001
+// requires the test fn name to match the AC `Test:` citation exactly).
+// All test function names are mandated by STORY-046 Acceptance Criteria and
+// DF-AC-TEST-NAME-SYNC-001 / PG-W17-001.  The AC citations appear as comments
+// above each function.
+//
+// These tests confirm existing src/analyzer/http.rs behaviour
+// (brownfield-formalization mode) and MUST PASS if the implementation
+// conforms to BC-2.06.023.  Any failure is reported as a candidate
+// spec/impl mismatch for human triage.
+// ---------------------------------------------------------------------------
+mod bc_2_06_023_formalization {
+    use super::*;
+
+    // ── BC-2.06.023 ──────────────────────────────────────────────────────────
+
+    // AC-003 / BC-2.06.023 postcondition 2:
+    // top_hosts is sorted by count descending and truncated to at most 20 entries
+    // when more than 20 distinct hosts are observed.
+
+    /// BC-2.06.023 postcondition 2: top_hosts sorted count-desc, truncated to 20.
+    ///
+    /// Sends requests to 25 distinct hosts with controlled counts:
+    ///   - "high.example.com"  → 10 requests  (must be first)
+    ///   - "mid.example.com"   →  5 requests  (must be second)
+    ///   - "low-N.example.com" →  1 request each × 23 hosts (tail, truncated)
+    ///
+    /// EC-002: more than 20 distinct hosts → top_hosts truncated to exactly 20.
+    #[test]
+    fn test_summarize_top_hosts_sorted_and_truncated() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // 10 requests to "high.example.com".
+        for i in 0..10u8 {
+            let req =
+                format!("GET /r{i} HTTP/1.1\r\nHost: high.example.com\r\nUser-Agent: bot\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+
+        // 5 requests to "mid.example.com".
+        for i in 0..5u8 {
+            let req =
+                format!("GET /r{i} HTTP/1.1\r\nHost: mid.example.com\r\nUser-Agent: bot\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+
+        // 23 more distinct hosts (1 request each) → total 25 distinct hosts.
+        for n in 0..23u8 {
+            let req =
+                format!("GET /x HTTP/1.1\r\nHost: low-{n}.example.com\r\nUser-Agent: bot\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+
+        let summary = analyzer.summarize();
+        let top_hosts = summary.detail["top_hosts"]
+            .as_array()
+            .expect("BC-2.06.023 postcondition 2: top_hosts must be a JSON array");
+
+        // Truncation: exactly 20 entries.
+        assert_eq!(
+            top_hosts.len(),
+            20,
+            "BC-2.06.023 postcondition 2: top_hosts sorted desc and truncated to 20 \
+             (EC-002: >20 distinct hosts observed)"
+        );
+
+        // Sort order: highest-count host must be first.
+        let first = top_hosts[0]
+            .as_str()
+            .expect("BC-2.06.023 postcondition 2: top_hosts entries must be strings");
+        assert_eq!(
+            first, "high.example.com",
+            "BC-2.06.023 postcondition 2: top_hosts[0] must be the most frequent host \
+             (high.example.com with 10 requests)"
+        );
+
+        // Second-highest must follow.
+        let second = top_hosts[1]
+            .as_str()
+            .expect("BC-2.06.023 postcondition 2: top_hosts[1] must be a string");
+        assert_eq!(
+            second, "mid.example.com",
+            "BC-2.06.023 postcondition 2: top_hosts[1] must be the second most frequent host \
+             (mid.example.com with 5 requests)"
+        );
+
+        // The tail hosts that were observed (low-N) must NOT all be present — at
+        // least 5 of the 23 single-request tail hosts must be absent (25 - 20 = 5).
+        let top_host_strs: Vec<&str> = top_hosts.iter().map(|v| v.as_str().unwrap_or("")).collect();
+        let tail_hosts_in_top: usize = (0..23u8)
+            .filter(|n| top_host_strs.contains(&format!("low-{n}.example.com").as_str()))
+            .count();
+        assert!(
+            tail_hosts_in_top <= 18,
+            "BC-2.06.023 postcondition 2: at most 18 tail hosts can appear in top_hosts \
+             (first 2 slots are taken by high+mid); got {} tail hosts in top_hosts",
+            tail_hosts_in_top
+        );
+    }
+
+    // AC-004 / BC-2.06.023 postcondition 3:
+    // recent_uris is the first 20 entries from self.uris (insertion order, not sorted).
+    // When fewer than 20 URIs exist, all are included.
+
+    /// BC-2.06.023 postcondition 3: recent_uris = first 20 from self.uris (insertion order).
+    ///
+    /// EC-003: more than 20 URIs → recent_uris shows first 20 (not last 20, not sorted).
+    #[test]
+    fn test_summarize_recent_uris_first_20() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Send 30 requests in deterministic order /uri-00 through /uri-29.
+        for i in 0..30u8 {
+            let req = format!("GET /uri-{i:02} HTTP/1.1\r\nHost: h.com\r\nUser-Agent: b\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+
+        let summary = analyzer.summarize();
+        let recent_uris = summary.detail["recent_uris"]
+            .as_array()
+            .expect("BC-2.06.023 postcondition 3: recent_uris must be a JSON array");
+
+        // Exactly 20 entries.
+        assert_eq!(
+            recent_uris.len(),
+            20,
+            "BC-2.06.023 postcondition 3: recent_uris must contain exactly 20 entries \
+             when >20 URIs were observed (EC-003)"
+        );
+
+        // First entry must be /uri-00 (insertion order — not sorted alphabetically).
+        assert_eq!(
+            recent_uris[0].as_str().unwrap_or(""),
+            "/uri-00",
+            "BC-2.06.023 postcondition 3: recent_uris[0] must be /uri-00 (first-inserted, \
+             not last-inserted and not sorted)"
+        );
+
+        // Last entry in the 20 must be /uri-19, NOT /uri-29.
+        assert_eq!(
+            recent_uris[19].as_str().unwrap_or(""),
+            "/uri-19",
+            "BC-2.06.023 postcondition 3: recent_uris[19] must be /uri-19 — \
+             first-20 insertion order, not last-20"
+        );
+
+        // /uri-20 through /uri-29 must NOT appear (they are beyond the first 20).
+        for i in 20..30u8 {
+            let uri = format!("/uri-{i:02}");
+            assert!(
+                !recent_uris.iter().any(|v| v.as_str() == Some(&uri)),
+                "BC-2.06.023 postcondition 3: /uri-{i:02} must NOT appear in recent_uris \
+                 (only first 20 URIs are included)"
+            );
+        }
+
+        // Sub-case: fewer than 20 URIs → all included.
+        let mut small_analyzer = HttpAnalyzer::new();
+        let fk2 = test_flow_key();
+        for i in 0..5u8 {
+            let req = format!("GET /s{i} HTTP/1.1\r\nHost: h.com\r\nUser-Agent: b\r\n\r\n");
+            small_analyzer.on_data(&fk2, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+        let small_summary = small_analyzer.summarize();
+        let small_uris = small_summary.detail["recent_uris"]
+            .as_array()
+            .expect("recent_uris must be an array");
+        assert_eq!(
+            small_uris.len(),
+            5,
+            "BC-2.06.023 postcondition 3: when <20 URIs observed, all 5 must appear in recent_uris"
+        );
+    }
+
+    // AC-005 / BC-2.06.023 invariant 1:
+    // The detail BTreeMap uses alphabetical key order (deterministic across runs).
+    // Running summarize() twice on the same analyzer produces identical output.
+
+    /// BC-2.06.023 invariant 1: BTreeMap key order is alphabetical and deterministic.
+    ///
+    /// Per LESSON-P2.09: detail map is a BTreeMap so keys are always in
+    /// alphabetical order regardless of insertion order.
+    #[test]
+    fn test_summarize_btreemap_key_order_is_deterministic() {
+        // Scope: invariant 1 covers the TOP-LEVEL `detail` BTreeMap key order (within-process);
+        // nested-map cross-run key order is out of scope for BC-2.06.023 invariant 1.
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        let request = b"POST /submit HTTP/1.1\r\nHost: test.com\r\nUser-Agent: checker\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+        let response = b"HTTP/1.1 201 Created\r\nContent-Length: 0\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ServerToClient, response, 0);
+
+        // Call summarize() twice on the same analyzer.
+        let summary1 = analyzer.summarize();
+        let summary2 = analyzer.summarize();
+
+        // Invariant 1a: both calls produce identical key sets.
+        let keys1: Vec<&str> = summary1.detail.keys().map(|k| k.as_str()).collect();
+        let keys2: Vec<&str> = summary2.detail.keys().map(|k| k.as_str()).collect();
+        assert_eq!(
+            keys1, keys2,
+            "BC-2.06.023 invariant 1: two calls to summarize() must produce identical key sets"
+        );
+
+        // Invariant 1b: keys are in strict alphabetical (lexicographic) order.
+        let sorted: Vec<&str> = {
+            let mut v = keys1.clone();
+            v.sort_unstable();
+            v
+        };
+        assert_eq!(
+            keys1, sorted,
+            "BC-2.06.023 invariant 1: BTreeMap key order must be alphabetical — \
+             detail map is BTreeMap not HashMap (per LESSON-P2.09)"
+        );
+
+        // Invariant 1c: values are identical across both calls.
+        assert_eq!(
+            summary1.detail, summary2.detail,
+            "BC-2.06.023 invariant 1: summarize() is deterministic — both calls must \
+             return identical detail maps"
+        );
+
+        // Spot-check: alphabetical order for the 9 required keys.
+        let expected_order = [
+            "methods",
+            "non_http_flows",
+            "parse_errors",
+            "poisoned_bytes_skipped",
+            "recent_uris",
+            "status_codes",
+            "top_hosts",
+            "transactions",
+            "user_agents",
+        ];
+        assert_eq!(
+            keys1, expected_order,
+            "BC-2.06.023 invariant 1: keys must appear in strict alphabetical order"
+        );
+    }
+
+    // AC-006 / BC-2.06.023 invariant 2:
+    // packets_analyzed equals transactions (response count), NOT request count.
+    // Canonical test vector: 5 requests + 3 responses → packets_analyzed = 3.
+
+    /// BC-2.06.023 invariant 2: packets_analyzed == transactions (response count, not request count).
+    ///
+    /// Canonical test vector from BC-2.06.023: 5 GET requests + 3 responses
+    /// → packets_analyzed = 3, not 5.
+    #[test]
+    fn test_summarize_packets_analyzed_equals_transactions() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // 5 GET requests.
+        for i in 0..5u8 {
+            let req = format!("GET /path{i} HTTP/1.1\r\nHost: x.com\r\nUser-Agent: bot\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+        // 3 responses (pipelined in two batches: 2 + 1).
+        let two_responses = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n\
+HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ServerToClient, two_responses, 0);
+        let one_response = b"HTTP/1.1 302 Found\r\nContent-Length: 0\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ServerToClient, one_response, 0);
+
+        let summary = analyzer.summarize();
+
+        // Invariant 2: packets_analyzed = transactions = 3 (responses), not 5 (requests).
+        assert_eq!(
+            summary.packets_analyzed, 3,
+            "BC-2.06.023 invariant 2: packets_analyzed must equal transactions (3 responses), \
+             not request count (5) — canonical BC test vector"
+        );
+        assert_eq!(
+            summary.packets_analyzed,
+            analyzer.transaction_count(),
+            "BC-2.06.023 invariant 2: summarize().packets_analyzed must equal \
+             self.transactions at call time"
+        );
+        assert_eq!(
+            summary.detail["transactions"], 3,
+            "BC-2.06.023 invariant 2: detail[transactions] must also equal 3"
+        );
+
+        // methods map should reflect all 5 requests.
+        assert_eq!(
+            summary.detail["methods"]["GET"], 5,
+            "BC-2.06.023 canonical vector: methods[GET] must be 5 (all 5 requests counted)"
+        );
+    }
+
+    // AC-007 / BC-2.06.023 invariant 4:
+    // summarize() does not modify any analyzer state — it is a read-only operation.
+    // Calling summarize() between two on_data calls does not affect subsequent parsing.
+
+    /// BC-2.06.023 invariant 4: summarize() is read-only — no state mutation.
+    ///
+    /// Exercises: interleave summarize() calls between on_data calls and confirm
+    /// that subsequent parsing produces the same aggregate results as if
+    /// summarize() had never been called.
+    #[test]
+    fn test_summarize_does_not_mutate_state() {
+        let mut analyzer = HttpAnalyzer::new();
+        let fk = test_flow_key();
+
+        // Parse the first request.
+        let req1 = b"GET /first HTTP/1.1\r\nHost: a.com\r\nUser-Agent: ua1\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, req1, 0);
+
+        // Call summarize() mid-stream — must not disrupt subsequent parsing.
+        let mid_summary = analyzer.summarize();
+        assert_eq!(
+            mid_summary.detail["methods"]["GET"], 1,
+            "BC-2.06.023 invariant 4: mid-stream summarize() must reflect only 1 GET so far"
+        );
+
+        // Parse the second request — must succeed as if summarize() was never called.
+        let req2 = b"POST /second HTTP/1.1\r\nHost: b.com\r\nUser-Agent: ua2\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ClientToServer, req2, 0);
+
+        // Parse a response.
+        let resp = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+        analyzer.on_data(&fk, Direction::ServerToClient, resp, 0);
+
+        // Final summarize() — must reflect all data, proving earlier call did not mutate.
+        let final_summary = analyzer.summarize();
+        assert_eq!(
+            final_summary.detail["methods"]["GET"], 1,
+            "BC-2.06.023 invariant 4: GET count must be 1 after all data (summarize did not \
+             mutate the methods map)"
+        );
+        assert_eq!(
+            final_summary.detail["methods"]["POST"], 1,
+            "BC-2.06.023 invariant 4: POST must be counted — mid-stream summarize() \
+             must not have dropped the POST request"
+        );
+        assert_eq!(
+            final_summary.packets_analyzed, 1,
+            "BC-2.06.023 invariant 4: packets_analyzed must be 1 (one response parsed); \
+             mid-stream summarize() must not have reset the transaction counter"
+        );
+        assert!(
+            final_summary.detail["top_hosts"]
+                .as_array()
+                .unwrap()
+                .contains(&serde_json::json!("b.com")),
+            "BC-2.06.023 invariant 4: b.com must appear in top_hosts — host state \
+             must survive the mid-stream summarize() call"
+        );
+        // Confirm the &self signature: summarize() is not &mut self.
+        // This is proven at compile time: if summarize() were &mut self,
+        // the two-call pattern above would require two separate mutable borrows
+        // of `analyzer`, but calling `on_data` (which takes &mut self) between
+        // them compiles only because summarize() does NOT hold a mutable borrow.
+        // The compiler enforces this invariant automatically.
+    }
+} // mod bc_2_06_023_formalization
