@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Rust 2024 edition (requires Rust 1.85+, stabilized 2025-02-20). Single-crate project. Stable toolchain (no `rust-toolchain` pin — effective MSRV is whatever `dtolnay/rust-toolchain@stable` resolves to today in CI).
+Rust 2024 edition (requires Rust 1.91+, enforced via `rust-version = "1.91"` in Cargo.toml). Single-crate project. Stable toolchain (no `rust-toolchain` pin — effective MSRV is whatever `dtolnay/rust-toolchain@stable` resolves to today in CI).
 
 ## Build & Test
 
@@ -43,6 +43,18 @@ CI sets `RUSTFLAGS=-Dwarnings`. `rustfmt.toml` pins edition 2024, `max_width = 1
     generalized beyond `feat`.
 - **Semantic PR titles enforced via CI** (`amannn/action-semantic-pull-request`). Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Scope is optional.
 - No local commit hooks (no lefthook/husky/commitlint config) — enforcement is CI-side only.
+
+## Public API Surface (W7.1 — deferred)
+
+`cargo public-api` is the intended tool for tracking public API surface changes
+(drift item W7.1). It requires a nightly toolchain (rustdoc JSON output) and a
+committed `public-api.txt` baseline to diff against. Adding a reliably-green
+gating CI job requires two steps: (1) generate and commit an initial baseline
+on nightly, (2) add a `cargo public-api diff` step that compares future runs
+against it. This two-step setup was deferred from the W11/W16 drift-hardening
+pass to avoid introducing a flaky or non-gating stub. To implement: install
+`cargo-public-api`, run `cargo +nightly public-api > public-api.txt`, commit the
+baseline, then add a CI step that fails on unexpected surface changes.
 
 ## Deferred Findings
 
