@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-031"
 epic_id: "E-3"
-version: "1.5"
+version: "1.6"
 status: draft
 producer: story-writer
 timestamp: 2026-05-27T12:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.001.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.002.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.003.md
-input-hash: "81248d8"
+input-hash: "2c4392a"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-021]
@@ -205,3 +205,4 @@ Port fallback is only reached when BOTH content checks fail (INV-2). A valid HTT
 | 1.3 | 2026-05-27 | story-writer | Pass-3 PO commit (factory 37ca765) — BC-2.05.002 re-anchor per DF-SIBLING-SWEEP-001 v2 extended doctrine: added `test_all_http_method_prefixes_route_to_http` to VP-004 + Architecture Anchors; canonical-ordering test strengthened with parse_error_count discriminator (F-W12P3-001, F-W12P3-002); Task 19 appended; PSI updated with F-W12P3-003 process-gap codification candidate for anchor COMPLETENESS rule |
 | 1.4 | 2026-05-27 | story-writer | Pass-4 PO commit (factory d143939) — BC-2.05.001/002/003 all bumped to v1.4; AC-005 trace expanded to cite both Inv-2 (`test_all_http_method_prefixes_route_to_http`) and Inv-3 (`test_http_no_space_does_not_match`) covering tests (Obs-1); Task 20 appended recording pass-4 anchor-completeness sweep and TLS port-fallback discriminator strengthening; PSI closure row added codifying that anchor-completeness doctrine must apply to ALL BCs in a single sweep, not iteratively; Obs-3/4/5 deferred as low-severity |
 | 1.5 | 2026-05-27 | story-writer | Pass-6 PO commit (factory 9339318) — BC-2.05.002 v1.5 input reflected; Task 21 appended: EC-001 anchor fix (port-9999 test replaced with `test_http_content_on_port_443_routes_to_http` matching port-443 scenario); sibling sweep confirmed no other EC mis-anchors across 3 BCs; PSI codification candidate row added for EC-scenario-match sub-rule (F-W12P6-001, F-W12P6-OBS-003) |
+| 1.6 | 2026-05-28 | story-writer | DF-SIBLING-SWEEP-001 v4 propagation — BC-2.05.001 v1.5 and BC-2.05.003 v1.5 (EC table inline test citations added); input-hash recomputed: `81248d8` → `2c4392a` (sha256 over sorted cited-BC files BC-2.05.001/002/003, first 7 chars). No AC citation changes required. |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: Phase 3 per-story adversarial review — corrected Invariant 2: smb3.pcapng IS now used as an active negative-coverage assertion by test_BC_2_01_004_rejects_pcapng delivered in STORY-001 — 2026-05-21
+  - v1.4: DF-16.A citation fix — corrected broken capabilities.md §CAP-NN citation to per-cap file path — 2026-05-28
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -78,8 +79,8 @@ behavior, not a bug.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 |
-| Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- rejection of pcapng is a boundary of the ingestion capability |
+| L2 Capability | CAP-01 ("PCAP File Ingestion") per domain/capabilities/cap-01-pcap-ingestion.md |
+| Capability Anchor Justification | CAP-01 ("PCAP File Ingestion") per domain/capabilities/cap-01-pcap-ingestion.md -- rejection of pcapng is a boundary of the ingestion capability (format scope is CAP-01's concern; link-type gating after a successful header parse is CAP-02) |
 | L2 Domain Invariants | None |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-001 |

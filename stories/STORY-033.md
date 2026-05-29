@@ -2,8 +2,8 @@
 document_type: story
 story_id: "STORY-033"
 epic_id: "E-3"
-version: "1.1"
-status: in-progress
+version: "1.3"
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.007.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.008.md
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.009.md
-input-hash: "9610207"
+input-hash: "4aa119d"
 traces_to: .factory/specs/prd.md
 points: 3
 depends_on: [STORY-031, STORY-032]
@@ -180,3 +180,5 @@ Each flow contributes its close event to exactly one destination: one analyzer (
 |---------|------|---------|--------|
 | v1.0 | 2026-05-21 | Initial story creation | story-writer |
 | v1.1 | 2026-05-28 | W14 Pass 1 remediation: AC test-name refresh to BC-prefixed (F-001); FSR row 5→6 tests (F-002); FSR rows added for analyzer seams (F-003); AC-002 dual-test cite (F-007); Tasks reworded for brownfield-formalization (F-009); token budget recalibrated (F-010) | story-writer |
+| v1.2 | 2026-05-28 | DF-SIBLING-SWEEP-001 v4 propagation — BC-2.05.008 v1.4 (EC-002 wording disambiguated); input-hash recomputed: `9610207` → `4aa119d` (sha256 over sorted cited-BC files BC-2.05.007/008/009, first 7 chars). No AC citation changes required. | story-writer |
+| v1.3 | 2026-05-29 | Drift remediation F-DRIFT-S-001: status reconciled from `in-progress` to `completed` (STORY-033 was merged in Wave 14 PR #137; frontmatter not updated at wave-close). | state-manager |

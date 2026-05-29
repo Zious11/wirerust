@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: F-002 remediation — Description corrected to document allowed==0 → DepthExceeded path; DF-SIBLING-SWEEP-001 — 2026-05-26"
+  - "v1.4: W10-D13 fix — added forensic/security note to Postconditions documenting silent discard of bytes beyond max_depth. Intentional behavior; analyst-facing implication documented for parity with BC-2.04.015 PC-7 data-loss note style. — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,6 +54,14 @@ with `InsertResult::DepthExceeded` (see EC-004); no bytes are stored.**
 4. `self.buffered_bytes` increases by `allowed` (not by the full `data.len()`).
 5. `self.depth_exceeded = true`.
 6. The engine emits one `Anomaly/Inconclusive/Low` finding with no MITRE technique.
+7. **Forensic/security note — silent data loss past depth limit:** Bytes beyond `allowed`
+   (i.e., `data[allowed..]`) are permanently discarded with no callback and no additional
+   finding. After the Truncated result, all subsequent segments to the same direction return
+   `DepthExceeded` and are also silently discarded. Forensic analysts should account for this
+   potential data loss: a stream that hit `max_depth` may have had payload bytes beyond the cap
+   that were never delivered to the analysis layer. This is intentional bounded-resource
+   behavior; the analyst-facing implication mirrors the non-contiguous discard documented in
+   BC-2.04.015 PC-7 for `CloseReason::MemoryPressure` eviction.
 
 ## Invariants
 

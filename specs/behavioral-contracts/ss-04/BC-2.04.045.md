@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: F-001/F-003/F-005 remediation — Description, PC2, PC3, EC-002, INV-2 corrected for early-guard vs mid-loop path distinction; new EC-003 added; DF-SIBLING-SWEEP-001 — 2026-05-26"
+  - "v1.4: W10-D8 fix — PC2 tail 'or no gaps fit at all' removed. The early-guard at segment.rs:70-72 prevents entry when len>=max_segments; therefore at the mid-loop guard there must be >=1 gap already computed. The 'no gaps fit at all' case is structurally unreachable via this path. — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -40,7 +41,7 @@ the partial-insertion variant).
 ## Preconditions
 
 1. `self.isn` is `Some(isn)`.
-2. `self.segments.len() < max_segments` at function entry (so the early guard at segment.rs:70-72 does not fire), AND `self.segments.len() == max_segments` at the time the mid-loop guard at segment.rs:178 fires (after at least one gap was inserted in the same call, or no gaps fit at all).
+2. `self.segments.len() < max_segments` at function entry (so the early guard at segment.rs:70-72 does not fire), AND `self.segments.len() == max_segments` at the time the mid-loop guard at segment.rs:178 fires (after at least one gap was inserted in the same call).
 3. The new segment has gaps relative to the existing buffer (i.e., it is NOT fully covered).
 4. All gap positions hit the segment-limit guard inside the loop.
 

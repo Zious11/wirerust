@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 9 STORY-016 adversarial pass-1 fix: F-2 — stale architecture-anchor line range corrected from segment.rs:194-198, 223-226 to segment.rs:196 and 225 (line shift from Wave 8 STORY-019 test-seam additions) — 2026-05-26"
   - "v1.4: Wave 9 STORY-016 adv pass-2 F-6 (sibling-discipline regression of pass-1 F-2): flow.rs:171-176 → flow.rs:171-175 (line 176 is return expression, not part of debug_assert macro). Also added segment.rs line numbers to Traceability row (was bare 'reassembly/segment.rs') — 2026-05-26"
+  - "v1.5: W9-D1 fix — PC4 extended to include DepthExceeded in the buffered_bytes-unchanged list. DepthExceeded returns at segment.rs:85 and :97, both before any buffer mutation; confirmed against segment.rs:79-104. — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -44,8 +45,10 @@ currently in the `segments` BTreeMap. After every insert, flush, or overlap oper
 2. After `insert_segment` (Inserted path): `buffered_bytes` increases by `data.len()`.
 3. After `insert_segment` (PartialOverlap path): `buffered_bytes` increases by gap bytes
    inserted only (not the full segment length).
-4. After `insert_segment` (Duplicate/ConflictingOverlap/OutOfWindow/IsnMissing): `buffered_bytes`
-   is unchanged.
+4. After `insert_segment` (Duplicate/ConflictingOverlap/OutOfWindow/IsnMissing/DepthExceeded):
+   `buffered_bytes` is unchanged. DepthExceeded returns at segment.rs:85 (remaining_depth==0
+   guard) and segment.rs:97 (allowed==0 inner check), both sites return before any buffer
+   mutation occurs.
 5. After `flush_contiguous()` flush of N bytes: `buffered_bytes` decreases by N.
 
 ## Invariants

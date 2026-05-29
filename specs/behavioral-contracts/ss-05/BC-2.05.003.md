@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: Pass-2 BC pre-merge re-anchor (per DF-SIBLING-SWEEP-001 v2 codified W11.L1) — updated stale test citation test_dispatcher_port_fallback_short_data (non-existent) → test_port_fallback_443_to_tls, test_port_fallback_8443_to_tls, test_port_fallback_80_to_http, test_port_fallback_8080_to_http (the four tests that cover port fallback in STORY-031). Discovered in sibling sweep. — 2026-05-27
   - v1.4: Pass-4 anchor-completeness sweep (DF-SIBLING-SWEEP-001 v2, doctrine application extended from pass-3 BC-2.05.002 to siblings BC-2.05.001 + BC-2.05.003). Added test_port_fallback_uses_canonical_port_ordering (INV-1 TLS-port-first + INV-2 canonical-ordering lookup), test_http_content_on_port_443_routes_to_http (INV-3 content-first precedence over port fallback) to VP-004 table and Architecture Anchors. Closes F-W12P4-001. — 2026-05-27
+  - v1.5: W12-D2 EC table inline test citations added (DF-SIBLING-SWEEP-001 v3) — added `covered by` test citations to EC-001 through EC-005 matching sibling BC-2.05.002 style. Closes W12-D2. — 2026-05-28
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -63,11 +64,11 @@ FlowKey (INV-1).
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | data.len() == 4 (too short for TLS), port=443 | TLS fallback: DispatchTarget::Tls |
-| EC-002 | data = b"random bytes", port=80 | HTTP fallback: DispatchTarget::Http |
-| EC-003 | Non-HTTP data on port 8080 | DispatchTarget::Http (port fallback) |
-| EC-004 | data = b"GET " (would match HTTP content), port=443 | DispatchTarget::Http (content wins; port fallback unreachable) |
-| EC-005 | data.len() == 4, port=8443 | DispatchTarget::Tls |
+| EC-001 | data.len() == 4 (too short for TLS), port=443 | TLS fallback: DispatchTarget::Tls; covered by `test_port_fallback_443_to_tls` |
+| EC-002 | data = b"random bytes", port=80 | HTTP fallback: DispatchTarget::Http; covered by `test_port_fallback_80_to_http` |
+| EC-003 | Non-HTTP data on port 8080 | DispatchTarget::Http (port fallback); covered by `test_port_fallback_8080_to_http` |
+| EC-004 | data = b"GET " (would match HTTP content), port=443 | DispatchTarget::Http (content wins; port fallback unreachable); covered by `test_http_content_on_port_443_routes_to_http` |
+| EC-005 | data.len() == 4, port=8443 | DispatchTarget::Tls; covered by `test_port_fallback_8443_to_tls` |
 
 ## Canonical Test Vectors
 

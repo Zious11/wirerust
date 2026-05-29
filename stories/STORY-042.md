@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-042"
 epic_id: "E-4"
-version: "1.3"
+version: "1.4"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.006.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.007.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.012.md
-input-hash: "60e0389"
+input-hash: "ea6d3cb"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-041]
@@ -100,7 +100,7 @@ All anomaly detections are independently gated; none fires on clean input. Zero 
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
 | check_request_detections | src/analyzer/http.rs:183-357 | effectful-shell (pushes to all_findings) |
-| path traversal detection | src/analyzer/http.rs:186-202 | effectful-shell |
+| path traversal detection | src/analyzer/http.rs:186-203 | effectful-shell |
 | web shell detection | src/analyzer/http.rs:206-233 | effectful-shell |
 | admin panel detection | src/analyzer/http.rs:235-249 | effectful-shell |
 
@@ -180,7 +180,7 @@ All anomaly detections are independently gated; none fires on clean input. Zero 
 
 | File | Action | Purpose |
 |------|--------|---------|
-| src/analyzer/http.rs | modify | Add/extend check_request_detections: path-traversal (186-202), web-shell (206-233), admin-panel (235-249) detection blocks |
+| src/analyzer/http.rs | modify | Add/extend check_request_detections: path-traversal (186-203), web-shell (206-233), admin-panel (235-249) detection blocks |
 | tests/http_analyzer_tests.rs | modify | Add tests: test_BC_2_06_005_path_traversal_all_fields, test_BC_2_06_005_encoded_traversal_four_patterns, test_BC_2_06_006_webshell_path_all_fields, test_BC_2_06_007_admin_panel_all_fields, test_BC_2_06_012_normal_request_zero_findings, test_BC_2_06_012_normal_request_no_parse_errors |
 
 ## Changelog
@@ -191,3 +191,4 @@ All anomaly detections are independently gated; none fires on clean input. Zero 
 | v1.1 | 2026-05-21 | Pass-1/2 adversarial convergence; test citations added |
 | v1.2 | 2026-05-28 | Sibling-sweep input-hash recomputation (DF-SIBLING-SWEEP-001): BC-2.06.005 bumped v1.3→v1.4 and BC-2.06.007 bumped v1.2→v1.3 by PO this burst — input-hash recomputed: `86f7fe0` → `7f9b0ab` (sha256 over sorted cited-BC files, first 7 chars). No AC citation changes required. |
 | v1.3 | 2026-05-28 | Wave-16 Pass-4 sibling-sweep input-hash propagation (DF-SIBLING-SWEEP-001): BC-2.06.005 bumped v1.4→v1.5 by PO this burst — input-hash recomputed: `7f9b0ab` → `60e0389` (sha256 over sorted cited-BC files BC-2.06.005/006/007/012, first 7 chars). No AC citation changes required. |
+| v1.4 | 2026-05-28 | DF-SIBLING-SWEEP-001 v4 propagation — BC-2.06.005 v1.6 (anchor 186-202→186-203 / 192-203), BC-2.06.006 v1.3 (line-precise invariant-1 anchor prose), BC-2.06.007 v1.4 (line-precise invariant-1 anchor prose); body propagations: Architecture Mapping row and File Structure Requirements row both updated `186-202` → `186-203`; input-hash recomputed: `60e0389` → `ea6d3cb` (sha256 over sorted cited-BC files BC-2.06.005/006/007/012, first 7 chars). |

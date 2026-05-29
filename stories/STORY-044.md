@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-044"
 epic_id: "E-4"
-version: "1.6"
+version: "1.7"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -15,7 +15,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.017.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.018.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.020.md
-input-hash: "db2d698"
+input-hash: "8485371"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-041]
@@ -215,3 +215,4 @@ The TooManyHeaders finding check is inside the `if !had_success` block — TooMa
 | v1.4 | 2026-05-28 | Pass-2 retroactive remediation (F-W16-S044-P2-001): AC-006 companion test `test_BC_2_06_015_non_http_flows_incremented_on_first_poison` (http_analyzer_tests.rs:3888) added — this test directly asserts `non_http_flows == 1`, covering BC-2.06.015 postcondition 2 that the primary test did not explicitly assert. BC-2.06.015 bumped to v1.3 by PO this burst (F-W16-S044-P2-002) — input-hash recomputed: `1a3b973` → `f1b0959` (sha256 over sorted cited-BC files, first 7 chars). |
 | v1.5 | 2026-05-28 | Pass-3 retroactive remediation (F-W16-S044-P3-001, F-W16-S044-P3-003): Architecture Mapping Poison transition anchor corrected from `467 (resp)` to `467-468 (resp)` (line 467 = guard, line 468 = `state.response_poisoned = true;`) per BC-2.06.015 v1.3. AC-013 Test citation extended with response-arm sibling `test_BC_2_06_020_invariant_real_too_many_headers_after_success_suppressed_response` (http_analyzer_tests.rs:4488) for symmetric BC-2.06.020 invariant 3 coverage. BC-2.06.017 patch-bumped to v1.3 by PO this burst (F-W16-S044-P3-002) — input-hash recomputed: `f1b0959` → `db2d698` (sha256 over sorted cited-BC files, first 7 chars). |
 | v1.6 | 2026-05-28 | Pass-4 retroactive remediation (F-W16-S044-P4-001, F-W16-S044-P4-002): AC-006 line anchor corrected `:3868` → `:3888` (fn declaration is at line 3888; line 3868 is inside the preceding test). v1.4 changelog finding-ID corrected: BC-2.06.015 bump now attributed to F-W16-S044-P2-002 (matching BC-2.06.015.md). v1.5 changelog finding-ID corrected: BC-2.06.017 bump now attributed to F-W16-S044-P3-002 (matching BC-2.06.017.md); P3-001/P3-003 retained for story-body anchor + AC-013 edits. No cited-BC changed this burst — input-hash unchanged: `db2d698`. |
+| v1.7 | 2026-05-28 | DF-SIBLING-SWEEP-001 v4 propagation — BC-2.06.020 v1.3 (reciprocal Related-BC to BC-2.06.004 added); input-hash recomputed: `db2d698` → `8485371` (sha256 over sorted cited-BC files BC-2.06.013/014/015/016/017/018/020, first 7 chars). No AC citation changes required. |

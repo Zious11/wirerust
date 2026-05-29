@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-016"
 epic_id: "E-2"
-version: "1.3"
+version: "1.4"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -13,7 +13,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.038.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.043.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.047.md
-input-hash: "3f3509b"
+input-hash: "2ebe5d0"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-015]
@@ -104,7 +104,7 @@ implementation_strategy: brownfield-formalization
 - **Test:** `test_BC_2_04_047_buffered_bytes_mirrors_segment_size_sum()`
 
 ### AC-013 (traces to BC-2.04.047 postcondition 4)
-- For `Duplicate`, `ConflictingOverlap`, `OutOfWindow`, and `IsnMissing` results, `buffered_bytes` is unchanged.
+- For `Duplicate`, `ConflictingOverlap`, `OutOfWindow`, `IsnMissing`, and `DepthExceeded` results, `buffered_bytes` is unchanged. (`DepthExceeded` returns at segment.rs:85 and segment.rs:97, both before any buffer mutation — added per BC-2.04.047 v1.5 PC4.)
 - **Test:** `test_BC_2_04_047_buffered_bytes_unchanged_for_non_insert_results()`
 
 ### AC-014 (traces to BC-2.04.047 postcondition 5)
@@ -200,6 +200,7 @@ implementation_strategy: brownfield-formalization
 
 | Version | Date | Author | Notes |
 |---------|------|--------|-------|
+| 1.4 | 2026-05-28 | story-writer | W9-D1 propagation: BC-2.04.047 v1.5 extended PC4 to include DepthExceeded in the buffered_bytes-unchanged list. AC-013 updated to list `DepthExceeded` alongside Duplicate/ConflictingOverlap/OutOfWindow/IsnMissing, with note citing segment.rs:85 and :97 early-return sites. input-hash bumped 3f3509b→2ebe5d0. DF-SIBLING-SWEEP-001: no other stale PC4 occurrences in story body. |
 | 1.3 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-016 adv pass-2 fix: F-1 (HIGH, sibling-discipline regression of pass-1 F-1) — Tasks line 165 'non-contiguous' → 'adjacent (contiguous)' to match v1.2 EC-002 correction; full-file sweep for stragglers completed |
 | 1.2 | 2026-05-26 | story-writer | Wave 9 Ph3 STORY-016 adversarial pass-1 fix: F-1 (HIGH) — corrected EC-002 description from 'non-contiguous' to 'adjacent (contiguous)' to match the actual test setup [1,4)+[4,7); test function renamed in parallel to test_story_016_ec002_adjacent_union_coverage_duplicate; the 'non-contiguous union → Duplicate' outcome was logically impossible (non-contiguous segments create a gap → PartialOverlap, never Duplicate) |
 | 1.1 | 2026-05-21 | story-writer | Initial story version |

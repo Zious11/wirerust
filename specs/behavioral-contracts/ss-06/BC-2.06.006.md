@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-05-28): F-W16-S042-P5-003 invariant-1 line-precise anchor prose added — shell_patterns array at http.rs:206-217; iter().any() guard at http.rs:218; finding push at http.rs:219-232; if-body closing `}` at http.rs:233. Matches precision of BC-2.06.005 v1.6. Verified against src/analyzer/http.rs:206-233. Closes F-W16-S042-P5-003 (006 direction). — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,7 +54,7 @@ Web Shell). The URI is included in the evidence without escaping (ADR 0003).
 
 ## Invariants
 
-1. URI comparison is case-insensitive (lowercased before pattern match).
+1. URI comparison is case-insensitive (lowercased before pattern match). The `shell_patterns` array is defined at http.rs:206-217; the iter().any() guard is at http.rs:218; the finding push block spans http.rs:219-232; the if-body closing `}` is at http.rs:233.
 2. Pattern match is substring: a URI like `/uploads/c99.php?cmd=id` triggers the finding.
 3. Raw URI bytes preserved in evidence (INV-4 / ADR 0003).
 4. If the URI also matches path-traversal patterns, BOTH findings are emitted independently.

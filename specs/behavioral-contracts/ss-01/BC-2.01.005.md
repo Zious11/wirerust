@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: Phase 3 per-story adversarial review — corrected Architecture Anchor line range: timestamp conversion block ends at :73, not :74 (line 74 is blank in reader.rs) — 2026-05-21
   - v1.4: Phase 3 per-story adversarial review pass 5 — corrected false claim in v1.3 changelog: line 74 is NOT blank; it is the closing `};` of the match expression. Architecture Anchor corrected to 71-74 (full match span: let-binding at :71, two arms at :72-73, closing brace at :74) — 2026-05-21
+  - v1.5: DF-16.A citation fix — corrected broken capabilities.md §CAP-NN citation to per-cap file path — 2026-05-28
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -81,8 +82,8 @@ the pcap format's own type; no cast is required beyond the match-arm value.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 |
-| Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- timestamp extraction is part of RawPacket production during ingestion |
+| L2 Capability | CAP-01 ("PCAP File Ingestion") per domain/capabilities/cap-01-pcap-ingestion.md |
+| Capability Anchor Justification | CAP-01 ("PCAP File Ingestion") per domain/capabilities/cap-01-pcap-ingestion.md -- timestamp extraction is part of RawPacket production during ingestion |
 | L2 Domain Invariants | None (O-01: timestamps are read but never threaded to Finding constructors) |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-001 |

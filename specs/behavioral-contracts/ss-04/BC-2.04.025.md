@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: W11-D1 fix — replaced bare `—` VP placeholders with explicit N/A markers. No VP in VP-INDEX covers the segment-limit summary finding specifically; VP-003 covers the MAX_FINDINGS cap property on different BCs (024, 054). — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -82,8 +83,8 @@ no direction, and no MITRE technique.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Singular/plural grammar in summary is correct | unit: limit=1 and limit=2 |
-| — | Finding pushed even at MAX_FINDINGS | unit: fill cap; trigger limit; finalize |
+| N/A (no formal VP — plural_s grammar is a unit-test-sufficient string property; no proptest/Kani harness exists for this) | Singular/plural grammar in summary is correct | unit: limit=1 and limit=2 |
+| N/A (no formal VP — MAX_FINDINGS bypass in finalize is covered by VP-003 on the cap itself, not on this finding-push path specifically) | Finding pushed even at MAX_FINDINGS | unit: fill cap; trigger limit; finalize |
 
 ## Traceability
 

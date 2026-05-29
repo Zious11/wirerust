@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 16 Pass-2 (F-W16-S042-P2-002) — rewrite EC-005 expected behavior: /administrator DOES fire because admin matching is substring-based (.contains); removed contradictory WAIT: inline self-correction — 2026-05-28"
+  - "v1.4 (2026-05-28): F-W16-S042-P5-003 invariant-1 line-precise anchor prose added — admin_patterns array at http.rs:236; iter().any() guard at http.rs:237; finding push at http.rs:238-248; if-body closing `}` at http.rs:249. Matches precision of BC-2.06.005 v1.6. Verified against src/analyzer/http.rs:235-249. Closes F-W16-S042-P5-003 (007 direction). — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -54,7 +55,7 @@ administrators; the finding is informational rather than definitive.
 
 ## Invariants
 
-1. URI comparison is case-insensitive (lowercased before match).
+1. URI comparison is case-insensitive (lowercased before match). The `admin_patterns` array is defined at http.rs:236; the iter().any() guard is at http.rs:237; the finding push block spans http.rs:238-248; the if-body closing `}` is at http.rs:249.
 2. Pattern match is substring: `/site/admin/settings` triggers the finding via `/admin`.
 3. Raw URI bytes preserved in evidence (INV-4 / ADR 0003).
 4. The finding is independent of other detections on the same request.

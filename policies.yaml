@@ -162,6 +162,29 @@ policies:
           only one BC when other BCs in the story `bcs:` would benefit
           from the same update as a sibling-sweep gap [process-gap].
 
+      BC anchor/citation change — consuming-story body sweep (v4, PG-W16-003, F-W16-S044-P3-001):
+        - When a BC anchor or citation changes (Architecture Anchor line
+          numbers shift, test name cited in a BC Architecture Anchor is
+          renamed, or a source-code anchor is re-pointed), the sweep MUST
+          extend beyond the BC file and sibling BCs to ALL CONSUMING STORY
+          bodies that cite the same source anchor.
+        - Consuming-story locations to check:
+            (a) Architecture-Mapping tables (the "Anchor" or "File:Line"
+                column) — these mirror BC anchor citations and drift when
+                source lines shift.
+            (b) Token-Budget anchors — stories may cite specific
+                file:line ranges for budget accounting; these must match
+                the updated BC anchor.
+            (c) Body prose — inline references such as "as anchored at
+                src/foo.rs:L123" drift independently from BC files.
+        - Procedure: after updating any BC anchor, grep `.factory/stories/`
+          for the old anchor string (e.g., old line number or old test name)
+          to find all story body occurrences; update all hits in the same
+          burst; verify with a second grep that no occurrences remain.
+        - This rule is additive to (not a replacement for) the existing
+          single-burst-all-BCs rule above. Both rules apply simultaneously
+          when a BC anchor changes.
+
       ALL remediations:
         - Before commit: execute the grep commands listed above and
           report results in the burst report.
@@ -198,9 +221,12 @@ policies:
       to DF-SIBLING-SWEEP-001 — repeated violations escalate the policy
       enforcement level.
     added: "2026-05-26"
-    last-extended: "2026-05-27"
-    version: v3
-    derived-from: W9-D8 (closed during codification); extended v2 2026-05-27 (W11.L1/L2/L4); extended v3 2026-05-27 (W12.L1/L2)
+    last-extended: "2026-05-28"
+    version: v4
+    derived-from: >
+      W9-D8 (closed during codification); extended v2 2026-05-27
+      (W11.L1/L2/L4); extended v3 2026-05-27 (W12.L1/L2); extended v4
+      2026-05-28 (PG-W16-003, F-W16-S044-P3-001)
 
   - id: DF-PR-MANAGER-COMPLETE-001
     name: pr-manager-must-complete-merge
@@ -300,9 +326,29 @@ policies:
           commit.
         - Test-writer: when adding tests using BC-prefixed convention,
           update story AC "**Test:**" lines in the same burst (sibling-sweep
-          per DF-SIBLING-SWEEP-001 v3).
+          per DF-SIBLING-SWEEP-001 v4).
         - Adversary: flag any AC citing a test name not present in the cited
           test file as MEDIUM (or HIGH if 3+ ACs affected).
+
+      Unique-resolution rule (v2, PG-W16-001, absorbs F-W16-WAVE-P1-003):
+        - An AC "**Test:**" citation MUST resolve to EXACTLY ONE `fn test_*`
+          across the entire test suite. If a bare name matches two or more
+          functions across module boundaries (e.g., the same short suffix
+          exists in both `http_tests.rs` and `tls_tests.rs`), the citation
+          MUST use a module-qualified form (e.g., `http_tests::test_foo`) so
+          that a reader or tooling can identify the unique function without
+          ambiguity.
+        - A citation that is ambiguous (matches multiple functions) is treated
+          the same as a citation that matches zero functions: it is a broken
+          reference and MUST be flagged as MEDIUM by the adversary.
+        - Line-anchor citations (if any): when an AC "**Test:**" line includes
+          a line-number anchor (e.g., `:L42`), that anchor MUST point to the
+          `fn test_` declaration line, NOT to a comment inside a neighbor
+          test or to prose inside the function body. Verify by reading the
+          cited file at the cited line and confirming the text starts with
+          `fn test_` or `#[test]` / `#[tokio::test]` etc.
+        - Story-writer and test-writer MUST run both checks (name-exists AND
+          name-unique) before committing or requesting an adversarial pass.
 
     severity: MEDIUM
     scope:
@@ -315,17 +361,27 @@ policies:
       F-W14P1-001 (HIGH classification) + F-W14P1-002 (FSR row mismatch) +
       F-W14P1-007 (EC-scenario-match drift cascading from naming). All three
       findings would have been prevented by the discipline above. Wave 12 also
-      surfaced a related pattern (W12.L2 single-burst-all-BCs). The compounding
-      evidence from two waves justifies early v1 codification per W14.L1
-      compound-gain precedent.
+      surfaced a related pattern (W12.L2 single-burst-all-BCs). Wave 16
+      surfaced the cross-module ambiguity variant (PG-W16-001,
+      F-W16-WAVE-P1-003): a bare test name matched two functions across
+      module boundaries, and a line-anchor pointed inside a neighbor test
+      body rather than at the fn declaration. The v2 unique-resolution rule
+      closes both gaps.
     enforcement: >
       Adversary-pass-1 check: grep story AC "**Test:**" lines vs `fn test_`
-      in cited test files; flag mismatches as MEDIUM. Story-writer and
-      test-writer MUST cross-verify AC citations and test function names in
-      the same commit burst before any adversarial pass is dispatched.
+      in cited test files; flag mismatches as MEDIUM. Also grep the ENTIRE
+      test suite (not just the cited file) for any name that appears in more
+      than one file; flag duplicates requiring module qualification as MEDIUM.
+      When a line anchor is present, Read the file at that line and confirm
+      the line is a fn declaration. Story-writer and test-writer MUST
+      cross-verify AC citations and test function names in the same commit
+      burst before any adversarial pass is dispatched.
     added: "2026-05-28"
-    version: v1
-    derived-from: F-W14P1-011 (W14 process-gap finding)
+    last-extended: "2026-05-28"
+    version: v2
+    derived-from: >
+      F-W14P1-011 (W14 process-gap finding, v1); extended v2 2026-05-28
+      (PG-W16-001, F-W16-WAVE-P1-003, F-W16-S044-P4-001)
 
   - id: DF-ADVERSARY-METHODOLOGY-001
     name: adversary-dispatch-absolute-paths-mandatory
@@ -379,3 +435,207 @@ policies:
       query, the orchestrator MUST re-dispatch with corrected prompt.
     added: "2026-05-27"
     derived-from: W11.L2 (F-W11P5-010 closed during codification)
+
+  - id: DF-CONVERGENCE-BEFORE-MERGE-001
+    name: convergence-before-merge
+    description: >
+      Per-story delivery flow MUST NOT merge a story PR before its
+      Step-4.5 per-story adversarial convergence is complete (BC-5.39.001:
+      3 clean fresh-context passes with zero open HIGH/CRITICAL findings).
+      A wave MUST NOT be marked closed or have its STATE.md status
+      advanced to a post-active state (e.g., `closed`, `completed`) before
+      wave-level adversarial convergence is also complete.
+
+      Specific prohibitions:
+        - pr-manager MUST NOT execute `gh pr merge` (or any equivalent
+          squash/merge action) for a story PR until the orchestrator has
+          confirmed that the per-story adversarial convergence cycle for
+          that story has returned a CONVERGED verdict (3 clean passes,
+          no deferred HIGH/CRITICAL items).
+        - Orchestrator MUST NOT update STATE.md wave status to any
+          "ready_to_close" or closed state while any story in the wave
+          still has an open convergence cycle or an un-merged PR with
+          unresolved adversarial findings.
+        - If STATE.md drift is detected (e.g., wave status shows
+          `ready_to_dispatch` for a new wave while PRs from the prior
+          wave were merged without convergence), the orchestrator MUST
+          halt new-wave dispatch, complete retroactive convergence for
+          all affected stories, and update STATE.md to accurately
+          reflect convergence status before proceeding.
+
+      Detection signals for violations:
+        - STATE.md wave status advanced while per-story convergence
+          cycles are incomplete.
+        - Merge commit SHAs present on develop for stories whose
+          per-story convergence report does not exist or shows
+          fewer than 3 clean passes.
+        - Wave-level convergence report absent when wave is marked closed.
+
+    severity: CRITICAL
+    scope:
+      - orchestrator
+      - pr-manager
+      - implementer
+    rationale: >
+      Wave 16 root-cause evidence (W16.L1): 4 stories (STORY-041/042/
+      043/044) were merged to develop without per-story adversarial
+      convergence; STATE.md was left stale showing the wave as
+      ready_to_dispatch for a new wave. This triggered a retroactive
+      convergence session spanning all 4 stories, surfacing process-gap
+      findings that should have been caught before merge. The retroactive
+      session cost significantly more than pre-merge convergence would
+      have. The defect is structural: the per-story delivery flow must
+      treat convergence as a hard gate before merge, not a step that can
+      be deferred to post-merge.
+    enforcement: >
+      Orchestrator MUST inject this policy into every pr-manager dispatch
+      under a "## Convergence Gate (MANDATORY per
+      DF-CONVERGENCE-BEFORE-MERGE-001)" heading. Before authorizing merge
+      the orchestrator MUST confirm: (a) per-story convergence report
+      exists for the story, (b) the report shows 3 clean passes with
+      CONVERGED verdict, (c) no HIGH/CRITICAL findings are marked
+      "deferred". If any condition fails, pr-manager MUST NOT merge.
+      Wave-close dispatches MUST include a check of STATE.md convergence
+      status for ALL stories in the wave before advancing wave status.
+    added: "2026-05-28"
+    version: v1
+    derived-from: >
+      W16.L1 (4 Wave-16 stories merged without convergence; retroactive
+      convergence session; PG-W16-005)
+
+  - id: DF-DEVELOP-FRESHNESS-001
+    name: develop-freshness-before-adversary-dispatch
+    description: >
+      The orchestrator MUST ensure its local develop branch matches
+      `origin/develop` HEAD before EVERY wave-gate AND before EVERY
+      wave-level adversarial dispatch. The adversary's first reply MUST
+      explicitly report the develop HEAD SHA it reviewed.
+
+      Mandatory procedure:
+        - Before each wave-gate check: run `git fetch origin && git log
+          origin/develop -1 --oneline` and confirm local HEAD matches.
+          If local is behind, run `git pull origin develop --ff-only`
+          before proceeding.
+        - Before each wave-level adversarial dispatch: include the
+          current `origin/develop` HEAD SHA in the dispatch prompt so
+          the adversary can self-verify it is reviewing the correct
+          branch state.
+        - Adversary first reply MUST include a line of the form:
+          "Reviewing develop at SHA <sha> (<short-description>)" — this
+          is the develop-freshness attestation. If the SHA in the
+          adversary reply does not match the orchestrator's known HEAD
+          SHA, the orchestrator MUST abort the adversarial pass, refresh
+          develop, and re-dispatch.
+        - This rule applies to both worktree-scoped adversarial passes
+          (per-story) and develop-scoped passes (wave-level). For
+          per-story passes, "develop HEAD" means the worktree's base
+          commit (the develop SHA the worktree was branched from).
+
+    severity: HIGH
+    scope:
+      - orchestrator
+      - adversary
+    rationale: >
+      W1.1 + W8.1 merged evidence: stale local develop produced 2
+      false-HIGH findings during Wave 8 wave-level pass 3 — the adversary
+      reviewed a develop state that did not include recent story merges,
+      causing it to flag already-resolved items as open. Diagnosing and
+      dismissing false-positives cost approximately 1.5 adversarial passes.
+      The pattern is structural: develop advances frequently during a wave
+      and an orchestrator running multiple parallel dispatches can easily
+      diverge from origin without explicit freshness checks.
+    enforcement: >
+      Orchestrator MUST include a git-fetch-and-compare step in the
+      wave-gate checklist and in the adversarial-dispatch template.
+      Adversary's first-reply SHA attestation acts as the machine-readable
+      freshness signal. Any adversarial pass whose first reply lacks the
+      SHA attestation MUST be flagged as methodology-incomplete and the
+      adversary re-dispatched with an explicit "include SHA attestation"
+      instruction.
+    added: "2026-05-28"
+    version: v1
+    derived-from: >
+      W1.1 + W8.1 (false-HIGH findings from stale develop; merged into
+      single policy 2026-05-28)
+
+  - id: DF-ADVERSARY-TOOLCHAIN-PAIRING-001
+    name: adversary-toolchain-pairing
+    description: >
+      The adversary agent runs a read-only profile and CANNOT execute
+      `cargo`, `compute-input-hash --check`, or any git-mutating command.
+      Any adversarial axis that requires execution evidence (build
+      verification, hash computation, test-run output, diff-stat actuals)
+      MUST have that evidence supplied by the orchestrator or a paired
+      toolchain-runner BEFORE or ALONGSIDE the adversary dispatch — not
+      after the adversary has already produced findings based on
+      static-only review.
+
+      Mandatory practices:
+
+      Build and hash evidence:
+        - For axes requiring "does the code compile?" or "does cargo test
+          pass?", the orchestrator MUST run the relevant cargo command in
+          the worktree and include the full output (exit code + stderr
+          summary) in the adversary dispatch prompt.
+        - For axes requiring input-hash validation (story frontmatter hash
+          matches actual BC content), the orchestrator MUST run
+          `compute-input-hash` or equivalent and include the result in
+          the dispatch prompt. The adversary MUST NOT assert hash
+          validity without this supplied evidence.
+
+      Scope-of-change accuracy:
+        - Dispatch prompts that describe which files changed MUST derive
+          the file list from `git diff --stat <base>..<head>` actuals,
+          not from manual prose or story frontmatter alone. Manual prose
+          is permitted as supplementary context but MUST be flagged as
+          "supplementary — see git diff --stat for ground truth".
+        - The adversary's scope-verification step MUST confirm the supplied
+          diff-stat matches its own read of the worktree vs base SHA. If
+          they diverge, the adversary MUST flag a methodology error.
+
+      Pairing protocol:
+        - When an adversarial axis cannot be evaluated without execution
+          (e.g., "verify all tests pass"), the orchestrator MUST either:
+          (a) supply pre-run evidence from a toolchain-runner in the
+              dispatch prompt, OR
+          (b) run a toolchain-runner in parallel and merge evidence before
+              the adversary finalizes findings.
+        - The adversary MUST NOT silently skip an execution-dependent axis
+          due to read-only profile; instead it MUST flag the axis as
+          "EXECUTION-REQUIRED — evidence not supplied" so the orchestrator
+          can provide it.
+
+    severity: MEDIUM
+    scope:
+      - orchestrator
+      - adversary
+    rationale: >
+      Wave 11 evidence (F-W11P4-010/011, F-W11P5-010) and Wave 16 evidence
+      (W16.L4): the adversary's read-only profile created silent gaps on
+      execution-dependent axes (cargo build status, hash correctness, diff
+      scope accuracy). In some cases the adversary made assertions about
+      build correctness or hash validity that turned out to be static
+      inference rather than verified fact, producing findings that were
+      either false-positives or under-specified. The pairing protocol
+      ensures execution evidence is always grounded before the adversary
+      draws conclusions. Generating dispatch scope from git diff --stat
+      actuals (rather than prose) prevents scope-description drift that
+      causes the adversary to review a different change set than what
+      was merged.
+    enforcement: >
+      Orchestrator dispatch templates MUST include a "Supplied Evidence"
+      section in every adversary dispatch prompt listing: (a) cargo build
+      exit code and stderr digest, (b) cargo test summary (pass/fail count),
+      (c) git diff --stat output, (d) input-hash check result if applicable.
+      Adversary MUST reference this section before making any execution-
+      dependent assertion. If a section is absent, the adversary MUST flag
+      the omission in its findings and mark the relevant axis as
+      EXECUTION-REQUIRED rather than guessing. Orchestrator MUST treat
+      EXECUTION-REQUIRED flags as blockers before finalizing the adversarial
+      pass report.
+    added: "2026-05-28"
+    version: v1
+    derived-from: >
+      F-W11P4-010/011 + F-W11P5-010 (W11 adversary read-only gaps); W16.L4
+      (dispatch scope from prose vs actuals); merged into single policy
+      2026-05-28

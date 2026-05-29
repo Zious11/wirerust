@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-05-28): F-W16-S052-P5-001 anchor tightening — replaced coarse `718-724` with precise line citations in Invariant-1 prose, Architecture Anchors, and Source Evidence: done-check at tls.rs:721 (`let done = self.flows.get(flow_key).is_some_and(...)`), early return at tls.rs:723 (`return;`). Matches sibling BC-2.07.003 v1.3 precision. Verified against src/analyzer/tls.rs:718-724. Closes F-W16-S052-P5-001. — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,7 +49,8 @@ a defensive optimization: no buffering, no parsing, no state mutation of any kin
 ## Invariants
 
 1. The `done` check is the FIRST operation in `on_data`, before the mutable borrow of
-   the flow entry.
+   the flow entry. The done-check is at tls.rs:721 (`let done = self.flows.get(flow_key).is_some_and(|s| s.done())`);
+   the early return is at tls.rs:723 (`if done { return; }`).
 2. If `done()` is true, NO state mutation can occur for this flow for the lifetime
    of the `on_data` call.
 3. This is a stronger statement than BC-2.07.003 which focuses on the per-record
@@ -79,7 +82,7 @@ a defensive optimization: no buffering, no parsing, no state mutation of any kin
 | L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- on_data short-circuit is a resource-bounding mechanism of TLS analysis |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
-| Architecture Module | SS-07 (analyzer/tls.rs:718-724, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:718-724; done-check at 721, early return at 723; C-13) |
 | Stories | STORY-052 |
 | Origin BC | BC-TLS-034 (pass-3 ingestion corpus, MEDIUM confidence -- exercised by test_stop_after_handshake) |
 
@@ -89,13 +92,15 @@ a defensive optimization: no buffering, no parsing, no state mutation of any kin
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:718-724` -- `let done = ...; if done { return; }`
+- `src/analyzer/tls.rs:718-724` -- `on_data` done-check and early return
+- `src/analyzer/tls.rs:721` -- `let done = self.flows.get(flow_key).is_some_and(|s| s.done())` (done-check)
+- `src/analyzer/tls.rs:723` -- `return;` (early return when done)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:718-724` |
+| **Path** | `src/analyzer/tls.rs:718-724` (done-check at 721; early return at 723) |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-20 |
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: Phase 3 per-story adversarial review — corrected Architecture Anchor line ranges: packet loop closes at :80 (not :79); timestamp conversion block ends at :73 (not :74) — 2026-05-21
   - v1.4: Phase 3 per-story adversarial review pass 5 — corrected Description and Source Evidence Path: from_pcap_reader spans reader.rs:45-83 (full function); 69-80 is the packet-read loop sub-anchor, not the full function extent — 2026-05-21
+  - v1.5: DF-16.A citation fix — corrected broken capabilities.md §CAP-NN citation to per-cap file path; capability anchor remains CAP-01 (this BC is the core packet-vector loading loop, which is CAP-01's primary concern per cap-01-pcap-ingestion.md) — 2026-05-28
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -94,8 +95,8 @@ in `src/reader.rs:45-83` (full function extent; the packet-read loop is the sub-
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 |
-| Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- this BC is the core reading contract that produces the packet vector for downstream processing |
+| L2 Capability | CAP-01 ("PCAP File Ingestion") per domain/capabilities/cap-01-pcap-ingestion.md |
+| Capability Anchor Justification | CAP-01 ("PCAP File Ingestion") per domain/capabilities/cap-01-pcap-ingestion.md -- this BC is the core packet-vector loading loop (from_pcap_reader) that produces Vec<RawPacket>, which is CAP-01's primary concern; link-type gating (BC-2.01.001) is the preceding gate under CAP-02 |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-001 |

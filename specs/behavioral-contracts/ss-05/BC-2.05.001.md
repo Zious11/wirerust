@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: Pass-2 BC pre-merge re-anchor (per DF-SIBLING-SWEEP-001 v2 codified W11.L1) — updated test name test_dispatcher_routes_tls → test_tls_content_wins_over_port_8080 + test_tls_content_routes_tls_on_port_443 (renamed/split in STORY-031 pass-1); updated classify line range 90-116 → 90-117 to match actual function close. Closes F-W12P2-002, F-W12P2-004. — 2026-05-27
   - v1.4: Pass-4 anchor-completeness sweep (DF-SIBLING-SWEEP-001 v2, doctrine application extended from pass-3 BC-2.05.002 to siblings BC-2.05.001 + BC-2.05.003). Added test_tls_check_skipped_below_len_5 (PC2 boundary at len=4, EC-004), test_tls_check_requires_byte1_equals_0x03 (PC4 specificity, EC-005), test_tls_takes_priority_over_http_methods_check (INV-1 ordering) to VP-004 table and Architecture Anchors. Closes F-W12P4-001. — 2026-05-27
+  - v1.5: W12-D2 EC table inline test citations added (DF-SIBLING-SWEEP-001 v3) — added `covered by` test citations to EC-001 through EC-005 matching sibling BC-2.05.002 style. Closes W12-D2. — 2026-05-28
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -62,11 +63,11 @@ an attacker running TLS on port 80 is still identified as TLS, not HTTP.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | TLS ClientHello on port 80 (non-standard) | Routed to TLS (content wins over port) |
-| EC-002 | TLS on port 443 (standard) | Routed to TLS via content signature |
-| EC-003 | Data starts with 0x16 0x03 but is not valid TLS | Routed to TLS; TlsAnalyzer handles the parse error |
-| EC-004 | data.len() == 4 (one byte short) | Falls through to HTTP method check; TLS NOT matched |
-| EC-005 | data[0] == 0x16 but data[1] != 0x03 | Falls through to HTTP method check |
+| EC-001 | TLS ClientHello on port 80 (non-standard) | Routed to TLS (content wins over port); covered by `test_dispatcher_content_detection_tls_on_port_80` |
+| EC-002 | TLS on port 443 (standard) | Routed to TLS via content signature; covered by `test_tls_content_routes_tls_on_port_443` |
+| EC-003 | Data starts with 0x16 0x03 but is not valid TLS | Routed to TLS; TlsAnalyzer handles the parse error; covered by `test_tls_content_wins_over_port_8080` (non-standard port variant) |
+| EC-004 | data.len() == 4 (one byte short) | Falls through to HTTP method check; TLS NOT matched; covered by `test_tls_check_skipped_below_len_5` |
+| EC-005 | data[0] == 0x16 but data[1] != 0x03 | Falls through to HTTP method check; covered by `test_tls_check_requires_byte1_equals_0x03` |
 
 ## Canonical Test Vectors
 

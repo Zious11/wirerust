@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: W14 Pass 1 remediation: VP confidence uplift (inferred→concrete tests), Architecture Anchors concrete, Evidence Types overhaul — 2026-05-28
+  - v1.4: W14-D2 EC-002 disambiguation — rewrote ambiguous EC-002 description to precisely state the input trigger (`http=Some, tls=None; TLS-signature bytes 0x16 0x03`) and the actual path taken (classify fires, returns DispatchTarget::Tls via content match, NOT port-fallback; tls=None so no data forwarded). Removes "may route None" ambiguity. Closes W14-D2. — 2026-05-28
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -58,7 +59,7 @@ This is the "no-op dispatcher" path for captures where neither HTTP nor TLS anal
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
 | EC-001 | http=None, tls=None; any data | on_data returns immediately |
-| EC-002 | http=Some, tls=None; TLS data | Normal TLS check; falls to port fallback; may route None |
+| EC-002 | http=Some, tls=None; data starts with `0x16 0x03` (TLS content-signature bytes) | Not early-returned (guard requires BOTH None); classify fires and returns DispatchTarget::Tls via content match — port-fallback is NOT reached; tls=None so the Tls dispatch arm is a no-op (no data forwarded); route cached as Tls |
 | EC-003 | http=None, tls=None; on_flow_close | Close still processes normally (no early return in on_flow_close) |
 
 ## Canonical Test Vectors

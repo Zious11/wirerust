@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-05-28): F-W15P6-D01 reciprocal Related-BCs fix — added cross-reference to BC-2.06.004 (response-side had_success guard; both BCs anchor the same suppression design on their respective parse paths). Closes F-W15P6-D01 (020→004 direction)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -90,6 +91,7 @@ inadvertently triggering the poison threshold.
 
 - BC-2.06.013 -- composes with (parse error counting is gated by had_success)
 - BC-2.06.015 -- related to (body bytes cannot inadvertently trigger poisoning)
+- BC-2.06.004 -- related to (BC-2.06.004 formalizes the response-side had_success guard at http.rs:441-462; this BC formalizes the request-side had_success guard at http.rs:362-408; both anchor the same suppression design on their respective parse paths)
 
 ## Architecture Anchors
 

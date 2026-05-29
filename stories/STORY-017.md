@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-017"
 epic_id: "E-2"
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -14,7 +14,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.021.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.022.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.037.md
-input-hash: "9ddb8b7"
+input-hash: "7a32070"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-015, STORY-016]
@@ -66,7 +66,7 @@ implementation_strategy: brownfield-formalization
 - **Test:** `test_BC_2_04_037_conflicting_overlap_original_bytes_preserved()`
 
 ### AC-003 (traces to BC-2.04.018 postcondition 2)
-- When `InsertResult::ConflictingOverlap` is returned, the engine emits exactly one Finding with: category=Anomaly, verdict=Likely, confidence=High, `mitre_technique=Some("T1036")`, and a summary containing the FlowKey display string.
+- When `InsertResult::ConflictingOverlap` is returned, the engine emits exactly one Finding with: category=Anomaly, verdict=Likely, confidence=High, `mitre_technique=Some("T1036")`, a summary containing the FlowKey display string, and `direction: None`.
 - **Test:** `test_BC_2_04_018_conflicting_overlap_emits_t1036_finding()`
 
 ### AC-004 (traces to BC-2.04.018 postcondition 3)
@@ -78,7 +78,7 @@ implementation_strategy: brownfield-formalization
 - **Test:** `test_BC_2_04_018_multiple_conflicts_each_produce_finding()`
 
 ### AC-006 (traces to BC-2.04.019 postcondition 1)
-- When `flow_dir.overlap_count > config.overlap_alert_threshold` (strictly greater) AND `overlap_alert_fired == false`, the engine emits one Finding with: category=Anomaly, verdict=Likely, confidence=Medium, `mitre_technique=Some("T1036")`.
+- When `flow_dir.overlap_count > config.overlap_alert_threshold` (strictly greater) AND `overlap_alert_fired == false`, the engine emits one Finding with: category=Anomaly, verdict=Likely, confidence=Medium, `mitre_technique=Some("T1036")`, and evidence containing `["Possible evasion attempt"]`.
 - **Test:** `test_BC_2_04_019_overlap_threshold_emits_medium_t1036_finding()`
 
 ### AC-007 (traces to BC-2.04.019 postcondition 4)
@@ -90,7 +90,7 @@ implementation_strategy: brownfield-formalization
 - **Test:** `test_BC_2_04_019_overlap_count_at_threshold_does_not_alert()`
 
 ### AC-009 (traces to BC-2.04.020 postcondition 1-2)
-- When `small_segment_run > config.small_segment_alert_threshold` AND `small_segment_alert_fired == false` AND neither endpoint port is in `small_segment_ignore_ports`, the engine emits one Finding with: category=Anomaly, verdict=Inconclusive, confidence=Medium, `mitre_technique=None`.
+- When `small_segment_run > config.small_segment_alert_threshold` AND `small_segment_alert_fired == false` AND neither endpoint port is in `small_segment_ignore_ports`, the engine emits one Finding with: category=Anomaly, verdict=Inconclusive, confidence=Medium, `mitre_technique=None`, and evidence containing `["Long unbroken run of undersized TCP segments; possible segmentation-based IDS evasion"]`.
 - **Test:** `test_BC_2_04_020_small_segment_run_emits_finding()`
 
 ### AC-010 (traces to BC-2.04.020 invariant 2)
@@ -184,7 +184,7 @@ implementation_strategy: brownfield-formalization
 
 | Rule | Source | Enforcement |
 |------|--------|-------------|
-| Latch set BEFORE cap check (LESSON-P1.01) | BC-2.04.022 invariant 1 | Code review: latch assignment before `if findings.len() < MAX_FINDINGS` |
+| Latch set BEFORE cap check (LESSON-P1.01) | BC-2.04.022 PC-1/INV-2 | Code review: latch assignment before `if findings.len() < MAX_FINDINGS` |
 | ConflictingOverlap finding: confidence=High (not Medium) | BC-2.04.018 postcondition 2 | Test: assert finding.confidence == High |
 | Overlap threshold finding: confidence=Medium | BC-2.04.019 postcondition 2 | Test: assert finding.confidence == Medium |
 | OOW threshold finding: confidence=Low | BC-2.04.021 postcondition 2 | Test: assert finding.confidence == Low |
@@ -205,3 +205,10 @@ implementation_strategy: brownfield-formalization
 | `src/reassembly/segment.rs` | verify (lines 142-154) | ConflictingOverlap/Duplicate classification |
 | `src/reassembly/flow.rs` | verify (lines 86-108) | Alert latch fields on FlowDirection |
 | `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-015 |
+
+## Changelog
+
+| Version | Date | Author | Summary |
+|---------|------|--------|---------|
+| 1.2 | 2026-05-28 | story-writer | W10-D2: Architecture Compliance Rule "Latch set BEFORE cap check" corrected from "BC-2.04.022 invariant 1" → "BC-2.04.022 PC-1/INV-2" (INV-2 is the correct invariant for the monotonic latch; PC-1 is the postcondition establishing latch-before-cap ordering; "invariant 1" was stale). W10-D11: AC-006 evidence string pinned to `["Possible evasion attempt"]`; AC-009 evidence string pinned to `["Long unbroken run of undersized TCP segments; possible segmentation-based IDS evasion"]` — anchoring test-writer assertions added this wave. W10-D14: AC-003 extended to assert `direction: None` on ConflictingOverlap finding, matching test-writer assertion `assert_eq!(f.direction, None)`. BC-2.04.019 v1.4 anchor fix (mod.rs:430-450) already cited in AC-006 via overlap block reference. input-hash bumped 9ddb8b7→7a32070. DF-SIBLING-SWEEP-001: full body sweep performed; no stale BC-2.04.022 invariant-1 or evidence-string occurrences remain.
+| 1.1 | 2026-05-21 | story-writer | Initial story version |

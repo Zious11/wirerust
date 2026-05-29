@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: Phase 3 per-story adversarial review pass 5 — upgraded Source Evidence Confidence from medium to high; updated Origin BC and Evidence Types to reflect direct tests delivered in STORY-001: test_BC_2_01_006_corrupt_header_error_message and test_BC_2_01_006_truncated_header_error_message — 2026-05-21
+  - v1.4: DF-16.A citation fix — corrected broken capabilities.md §CAP-NN citation to per-cap file path — 2026-05-28
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -73,8 +74,8 @@ have a different magic number).
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 |
-| Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- this BC covers the error path for corrupted or wrong-format files |
+| L2 Capability | CAP-01 ("PCAP File Ingestion") per domain/capabilities/cap-01-pcap-ingestion.md |
+| Capability Anchor Justification | CAP-01 ("PCAP File Ingestion") per domain/capabilities/cap-01-pcap-ingestion.md -- this BC covers the error path for corrupted or wrong-format files during ingestion |
 | L2 Domain Invariants | None |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-001 |

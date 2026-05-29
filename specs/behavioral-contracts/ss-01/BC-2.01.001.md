@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -10,7 +10,7 @@ origin: brownfield
 extracted_from: src/reader.rs
 traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-01
-capability: CAP-01
+capability: CAP-02
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
@@ -18,6 +18,7 @@ modified:
   - v1.3: Phase 3 per-story adversarial review — corrected extracted_from accuracy: EC-001 and Postcondition 2 now state the rejection message contains the DataLink Debug variant name (e.g. "IEEE802_11") plus the supported-types suffix, not "the numeric value" — 2026-05-21
   - v1.4: Phase 3 per-story adversarial review — corrected Architecture Anchor line ranges: DataLink match block closes at :61, not :60; Traceability Architecture Module updated to match — 2026-05-21
   - v1.5: Phase 3 per-story adversarial review — F-8.1: corrected Traceability "Architecture Module" range from reader.rs:46-61 to reader.rs:50-61 (46 is the header-parse line, not the link-type gate); F-9.06: rewrote EC-004 to remove out-of-scope decoder `from_ip` reference, keeping behavior description within reader link-type-gate scope — 2026-05-21
+  - v1.6: DF-16.A citation fix — re-anchored capability from CAP-01 to CAP-02 (link-type gating is explicitly CAP-02's domain per cap-02-link-type-gating.md; this BC describes the 5-element whitelist acceptance/rejection gate at reader.rs:50-61, not the packet-vector loading of CAP-01); corrected broken capabilities.md §CAP-NN citation to per-cap file path — 2026-05-28
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -92,8 +93,8 @@ unsupported file are processed. This contract is enforced in `src/reader.rs:50-6
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 |
-| Capability Anchor Justification | CAP-01 ("PCAP file ingestion") per capabilities.md §CAP-01 -- this BC describes the initial link-type gate that gatekeeps all file ingestion |
+| L2 Capability | CAP-02 ("Link-Type Gating") per domain/capabilities/cap-02-link-type-gating.md |
+| Capability Anchor Justification | CAP-02 ("Link-Type Gating") per domain/capabilities/cap-02-link-type-gating.md -- this BC describes the 5-element whitelist acceptance/rejection gate at reader.rs:50-61, which is exactly the behavior CAP-02 defines; CAP-01 covers packet-vector loading after the gate passes |
 | L2 Domain Invariants | None directly (link-type gating is a precondition to all invariants) |
 | Architecture Module | SS-01 (reader.rs:50-61, C-4) |
 | Stories | STORY-001 |

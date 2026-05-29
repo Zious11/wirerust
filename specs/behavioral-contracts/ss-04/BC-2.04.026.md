@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Pass-4 sibling sweep: corrected if-count-guard citation 571 → 572 (off-by-one against current source; line 571 is the let count = ... binding, line 572 is the if count > 0 { guard) — 2026-05-27"
+  - "v1.4: W11-D1 fix — replaced bare `—` VP placeholder with explicit N/A marker. No VP in VP-INDEX covers the zero-count suppression path; this is a unit-test-sufficient boundary condition on the same guard as BC-2.04.025. — 2026-05-28"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -71,7 +72,7 @@ captures where no segment limit was hit.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | No segment-limit finding when limit==0 | unit: finalize with zero limit; assert no such finding |
+| N/A (no formal VP — zero-count suppression is a unit-test-sufficient boundary condition; no proptest/Kani harness exists for this guard) | No segment-limit finding when limit==0 | unit: finalize with zero limit; assert no such finding |
 
 ## Traceability
 
