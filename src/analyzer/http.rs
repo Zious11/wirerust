@@ -649,3 +649,93 @@ impl HttpAnalyzer {
         self.flows.len()
     }
 }
+
+#[cfg(test)]
+#[allow(non_snake_case)]
+mod tests {
+    use super::truncate_uri;
+
+    /// BC-2.06.010 invariant 2: `truncate_uri` must not split a UTF-8 codepoint.
+    ///
+    /// Exercises `floor_char_boundary` on a multibyte URI where the requested
+    /// byte limit falls in the middle of a 2-byte codepoint ('é', U+00E9).
+    #[test]
+    fn test_BC_2_06_010_truncate_uri_multibyte_two_byte_codepoint() {
+        // 'é' encodes as [0xC3, 0xA9] (2 bytes).  A string of 5 'é' characters
+        // is 10 bytes.  A limit of 3 falls mid-codepoint (after byte 2 of the
+        // second 'é').  floor_char_boundary(3) must round down to 2.
+        let uri = "éééé"; // 4 × 2 = 8 bytes
+        let max_len = 3; // falls between byte 2 and 3, i.e. mid-second-codepoint
+        let result = truncate_uri(uri, max_len);
+
+        // (a) result length must not exceed max_len bytes
+        assert!(
+            result.len() <= max_len,
+            "truncate_uri must produce at most {max_len} bytes; got {} bytes",
+            result.len()
+        );
+        // (b) result must be valid UTF-8 (no panic above proves no codepoint split)
+        assert!(
+            std::str::from_utf8(result.as_bytes()).is_ok(),
+            "truncate_uri must produce valid UTF-8"
+        );
+        // (c) result must be strictly shorter than the input (input > max_len)
+        assert!(
+            result.len() < uri.len(),
+            "truncate_uri must shorten the URI when input ({} bytes) > max_len ({max_len})",
+            uri.len()
+        );
+        // (d) exact value: floor_char_boundary(3) on 'é'*4 = 2 (one 'é')
+        assert_eq!(
+            result, "é",
+            "truncate_uri must return exactly one 'é' (2 bytes)"
+        );
+    }
+
+    /// BC-2.06.010 invariant 2: `truncate_uri` must not split a UTF-8 codepoint.
+    ///
+    /// Exercises `floor_char_boundary` with a 4-byte emoji codepoint ('🎯', U+1F3AF).
+    /// A limit of 5 falls mid-codepoint (after 1 byte of the second emoji).
+    #[test]
+    fn test_BC_2_06_010_truncate_uri_multibyte_four_byte_codepoint() {
+        // '🎯' encodes as [0xF0, 0x9F, 0x8E, 0xAF] (4 bytes).
+        // Two emojis = 8 bytes.  A limit of 5 falls after byte 1 of the second
+        // emoji — floor_char_boundary(5) must round down to 4 (one full emoji).
+        let uri = "🎯🎯"; // 8 bytes
+        let max_len = 5;
+        let result = truncate_uri(uri, max_len);
+
+        assert!(
+            result.len() <= max_len,
+            "truncate_uri must produce at most {max_len} bytes; got {} bytes",
+            result.len()
+        );
+        assert!(
+            std::str::from_utf8(result.as_bytes()).is_ok(),
+            "truncate_uri must produce valid UTF-8"
+        );
+        assert!(
+            result.len() < uri.len(),
+            "truncate_uri must shorten the URI when input ({} bytes) > max_len ({max_len})",
+            uri.len()
+        );
+        // floor_char_boundary(5) on '🎯🎯' = 4 (one full emoji)
+        assert_eq!(
+            result, "🎯",
+            "truncate_uri must return exactly one '🎯' (4 bytes)"
+        );
+    }
+
+    /// BC-2.06.010 invariant 2: when the URI fits within max_len bytes,
+    /// `truncate_uri` must return the full URI unchanged.
+    #[test]
+    fn test_BC_2_06_010_truncate_uri_multibyte_no_truncation_when_fits() {
+        let uri = "éé"; // 4 bytes
+        let max_len = 10;
+        let result = truncate_uri(uri, max_len);
+        assert_eq!(
+            result, uri,
+            "truncate_uri must return full URI when it fits within max_len"
+        );
+    }
+}
