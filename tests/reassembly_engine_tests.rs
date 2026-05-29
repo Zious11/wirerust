@@ -11686,6 +11686,12 @@ fn test_BC_2_04_018_conflicting_overlap_emits_t1036_finding() {
         "summary must contain the FlowKey display string; got: {:?}",
         f.summary
     );
+    // BC-2.04.018 PC2: reassembly-engine findings set direction: None
+    // (ConflictingOverlap is a per-stream event, not directional).
+    assert_eq!(
+        f.direction, None,
+        "BC-2.04.018 PC2: ConflictingOverlap finding must have direction == None"
+    );
 }
 
 // --- AC-004 (BC-2.04.018 postcondition 3) ---
@@ -11895,6 +11901,12 @@ fn test_BC_2_04_019_overlap_threshold_emits_medium_t1036_finding() {
         Some("T1036"),
         "mitre_technique must be Some(\"T1036\")"
     );
+    // BC-2.04.019 PC1 evidence string (src/reassembly/mod.rs:441)
+    assert_eq!(
+        f.evidence,
+        vec!["Possible evasion attempt"],
+        "BC-2.04.019 PC1: evidence must be exactly [\"Possible evasion attempt\"]"
+    );
 }
 
 // --- AC-007 (BC-2.04.019 postcondition 4) ---
@@ -12065,6 +12077,15 @@ fn test_BC_2_04_020_small_segment_run_emits_finding() {
     assert_eq!(
         f.mitre_technique, None,
         "mitre_technique must be None for small-segment alert"
+    );
+    // BC-2.04.020 PC1 evidence string (src/reassembly/mod.rs:476)
+    assert_eq!(
+        f.evidence,
+        vec![
+            "Long unbroken run of undersized TCP segments; possible \
+              segmentation-based IDS evasion"
+        ],
+        "BC-2.04.020 PC1: evidence must be the canonical small-segment evasion string"
     );
 }
 
@@ -13208,58 +13229,17 @@ fn test_BC_2_04_023_truncated_finding_emitted() {
 #[allow(non_snake_case)]
 #[test]
 fn test_BC_2_04_023_truncated_finding_dropped_at_cap() {
-    // Fill findings to MAX_FINDINGS (10,000) by sending conflicting overlaps across
-    // 10,000 unique flows. Strategy: SYN + out-of-order data (leaves gap, won't flush)
-    // + conflicting retransmit at same seq → ConflictingOverlap finding per flow.
+    // Fill findings to MAX_FINDINGS (10,000) using the shared helper, then verify
+    // that a depth-truncation finding on a new flow is silently dropped
+    // (BC-2.04.023 PC2) and dropped_findings increments (BC-2.04.023 INV-2).
     let config = ReassemblyConfig {
         max_depth: 10,
-        max_flows: 20_000,
         ..ReassemblyConfig::default()
     };
-    let mut reassembler = TcpReassembler::new(config);
+    let mut reassembler = fill_findings_to_cap(config);
     let mut handler = RecordingHandler::new();
-
-    let server = [10, 0, 0, 2];
-    let client = [10, 0, 0, 1];
-
-    // Generate exactly 10,000 findings via ConflictingOverlap on unique flows.
-    // Each flow: SYN (ISN=1000) + out-of-order data at seq=1002 (offset=2, gap at 1)
-    //             + conflicting data at seq=1002 (same offset, different bytes) → 1 finding.
-    for port in 1u16..=10_000u16 {
-        // SYN → establishes ISN=1000, base_offset=1
-        reassembler.process_packet(
-            &make_tcp_packet(
-                client,
-                port,
-                server,
-                80,
-                1000,
-                &[],
-                true,
-                false,
-                false,
-                false,
-            ),
-            1,
-            &mut handler,
-        );
-        // Out-of-order data at offset=2 (gap at offset=1 prevents flush → stays in BTreeMap)
-        reassembler.process_packet(
-            &make_tcp_packet(
-                client, port, server, 80, 1002, b"AAAA", false, true, false, false,
-            ),
-            2,
-            &mut handler,
-        );
-        // Conflicting retransmission at same offset=2, different bytes → ConflictingOverlap → 1 finding
-        reassembler.process_packet(
-            &make_tcp_packet(
-                client, port, server, 80, 1002, b"BBBB", false, true, false, false,
-            ),
-            3,
-            &mut handler,
-        );
-    }
+    let client = [10u8, 0, 0, 1];
+    let server = [10u8, 0, 0, 2];
 
     // Verify we've reached MAX_FINDINGS (10,000)
     let findings_before = reassembler.findings().len();
@@ -13269,7 +13249,8 @@ fn test_BC_2_04_023_truncated_finding_dropped_at_cap() {
     );
     let dropped_before = reassembler.stats().dropped_findings;
 
-    // Now trigger depth truncation on a new flow (port 10001)
+    // Now trigger depth truncation on a new flow (port 10001, dst 80 — unused by
+    // fill_findings_to_cap which uses dst 8080 on ports 1..=10_000).
     let new_port: u16 = 10_001;
     reassembler.process_packet(
         &make_tcp_packet(

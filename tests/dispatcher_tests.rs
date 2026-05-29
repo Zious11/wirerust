@@ -1,3 +1,14 @@
+// Test ordering / grouping convention
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers (flow_key, etc.) appear first.
+//
+// Test functions are grouped by the Behavioral Contract they exercise and
+// named with the BC-prefixed pattern `test_BC_S_SS_NNN_…` where available.
+// Within each group the tests appear in precondition → postcondition →
+// invariant order, matching the structure of the BC document.  Edge-case and
+// integration tests that exercise multiple BCs follow at the end.
+// ─────────────────────────────────────────────────────────────────────────────
+
 use std::net::IpAddr;
 use wirerust::analyzer::http::HttpAnalyzer;
 use wirerust::analyzer::tls::TlsAnalyzer;
@@ -188,12 +199,12 @@ fn test_port_fallback_443_to_tls() {
     assert!(
         tls.parse_error_count() > 0 || tls.truncated_record_count() > 0,
         "AC-007: port 443 fallback must route to Tls analyzer \
-         (5-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
+         (6-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
     );
 }
 
 /// AC-007 (BC-2.05.003 postcondition 1): Port 8443 → DispatchTarget::Tls via port fallback.
-/// 5-byte non-TLS, non-HTTP data ensures neither content check fires.
+/// 6-byte non-TLS, non-HTTP data ensures neither content check fires.
 #[test]
 fn test_port_fallback_8443_to_tls() {
     let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
@@ -224,7 +235,7 @@ fn test_port_fallback_8443_to_tls() {
     assert!(
         tls.parse_error_count() > 0 || tls.truncated_record_count() > 0,
         "AC-007: port 8443 fallback must route to Tls analyzer \
-         (5-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
+         (6-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
     );
 }
 
@@ -633,7 +644,7 @@ fn test_port_fallback_uses_canonical_port_ordering() {
         assert!(
             tls.parse_error_count() > 0 || tls.truncated_record_count() > 0,
             "AC-008: port 8443 canonical-ordering fallback must route to Tls analyzer \
-             (5-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
+             (6-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
         );
     }
 
@@ -674,7 +685,7 @@ fn test_port_fallback_uses_canonical_port_ordering() {
         assert!(
             tls.parse_error_count() > 0 || tls.truncated_record_count() > 0,
             "AC-008: port 443 canonical-ordering fallback must route to Tls analyzer \
-             (5-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
+             (6-byte non-TLS garbage triggers TlsAnalyzer parse/truncation event)"
         );
     }
 
