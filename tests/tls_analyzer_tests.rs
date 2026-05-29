@@ -3780,3 +3780,845 @@ fn test_BC_2_07_002_ec007_ssl30_server_emits_finding_tls10_client_does_not() {
          MD5('768,4865,') = c2c5e539595f992edd516641da877181"
     );
 }
+
+// ── STORY-055: BC-2.07.013 / BC-2.07.014 / BC-2.07.015 / BC-2.07.016 / BC-2.07.018 ─
+//
+// SNI Classification Arms 1 and 2 — Clean ASCII Baseline and C0/DEL Control-Byte
+// Detection formalization.
+//
+// These tests formally trace each Acceptance Criterion from STORY-055 to its
+// behavioral contract clause. Naming follows DF-AC-TEST-NAME-SYNC-001 v2:
+// test_BC_2_07_NNN_<suffix>. #[allow(non_snake_case)] is applied per-test.
+//
+// AC → test mapping:
+//   AC-001 (BC-2.07.013 pc1-3)     test_BC_2_07_013_clean_ascii_no_finding_counted
+//   AC-002 (BC-2.07.013 inv1)      test_BC_2_07_013_arm1_only_arm_with_no_finding
+//   AC-003 (BC-2.07.014 pc1-4)     test_BC_2_07_014_esc_emits_anomaly_inconclusive_low_t1027_c2s
+//   AC-004 (BC-2.07.014 inv4)      test_BC_2_07_014_raw_bytes_preserved_not_debug_escaped
+//   AC-005 (BC-2.07.015 pc1-3)     test_BC_2_07_015_multiple_c0_bytes_one_finding_full_hex_evidence
+//   AC-006 (BC-2.07.015 inv1)      test_BC_2_07_015_finding_count_o1_per_hostname_not_per_byte
+//   AC-007 (BC-2.07.016 pc1-4)     test_BC_2_07_016_boundary_0x1f_trips_0x20_does_not_0x7f_trips_0x7e_does_not
+//   AC-008 (BC-2.07.016 inv1)      test_BC_2_07_016_tab_cr_lf_are_c0_and_trip
+//   AC-009 (BC-2.07.018 pc1-3)     test_BC_2_07_018_punycode_a_label_arm1_no_finding_counted
+//   AC-010 (BC-2.07.018 inv1-2)    test_BC_2_07_018_a_label_uses_same_arm1_as_plain_ascii
+
+// ── AC-001 (BC-2.07.013 postconditions 1-3) ──────────────────────────────────
+//
+// When SNI bytes are valid UTF-8, is_ascii() == true, and no byte satisfies
+// b < 0x20 || b == 0x7f, extract_sni classifies as arm 1 (Ascii).
+// No finding is pushed. Hostname is counted in sni_counts.
+//
+// Canonical test vector from BC-2.07.013: SNI "example.com" ->
+//   sni_counts["example.com"] == 1; all_findings empty.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_013_clean_ascii_no_finding_counted() {
+    // AC-001 (BC-2.07.013 pc1): extract_sni classifies "example.com" as Ascii.
+    // AC-001 (BC-2.07.013 pc2): hostname inserted in sni_counts.
+    // AC-001 (BC-2.07.013 pc3): no finding pushed.
+    //
+    // Positive-parse anchor: parse_error_count == 0 confirms the record was
+    // well-formed and the SNI classification code actually ran.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Canonical BC-2.07.013 test vector.
+    let record = build_client_hello("example.com", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    // Positive-parse anchor: confirms extract_sni ran (record was well-formed).
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-001 anchor (BC-2.07.013): parse_error_count must be 0 for well-formed record"
+    );
+
+    // BC-2.07.013 pc2: sni_counts contains the raw hostname key.
+    assert_eq!(
+        *analyzer.sni_counts().get("example.com").unwrap_or(&0),
+        1,
+        "AC-001 (BC-2.07.013 pc2): sni_counts[\"example.com\"] must be 1"
+    );
+
+    // BC-2.07.013 pc3: no finding pushed for clean ASCII arm.
+    let sni_findings: Vec<_> = analyzer
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("SNI"))
+        .collect();
+    assert!(
+        sni_findings.is_empty(),
+        "AC-001 (BC-2.07.013 pc3): clean ASCII SNI must emit no SNI finding, got: {sni_findings:?}"
+    );
+
+    // Second canonical test vector: "test.local" (BC-2.07.013).
+    let mut analyzer2 = TlsAnalyzer::new();
+    let record2 = build_client_hello("test.local", &[0x1301]);
+    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0);
+
+    assert_eq!(
+        *analyzer2.sni_counts().get("test.local").unwrap_or(&0),
+        1,
+        "AC-001 (BC-2.07.013 pc2): sni_counts[\"test.local\"] must be 1"
+    );
+    assert!(
+        analyzer2.findings().is_empty(),
+        "AC-001 (BC-2.07.013 pc3): test.local must produce no findings, got: {:?}",
+        analyzer2.findings()
+    );
+}
+
+// ── AC-002 (BC-2.07.013 invariant 1) ─────────────────────────────────────────
+//
+// Arm 1 is the ONLY arm that produces no finding. All other arms (2, 3, 4) emit
+// a finding. Tested by showing: clean ASCII -> zero SNI findings; C0-ASCII ->
+// at least one finding. This discriminates arm 1 from arm 2.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_013_arm1_only_arm_with_no_finding() {
+    // AC-002 (BC-2.07.013 inv1): arm 1 (clean ASCII) produces zero SNI findings;
+    // arm 2 (AsciiWithControl) produces exactly one. The contrast is the invariant.
+    let fk = test_flow_key();
+
+    // --- Arm 1 path: clean ASCII hostname "clean.example" ---
+    let mut a_arm1 = TlsAnalyzer::new();
+    let record_clean = build_client_hello("clean.example", &[0x1301]);
+    a_arm1.on_data(&fk, Direction::ClientToServer, &record_clean, 0);
+
+    // Positive-parse anchor.
+    assert_eq!(
+        a_arm1.parse_error_count(),
+        0,
+        "arm1 anchor: parse must succeed"
+    );
+
+    let arm1_sni_findings: Vec<_> = a_arm1
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("SNI"))
+        .collect();
+    assert_eq!(
+        arm1_sni_findings.len(),
+        0,
+        "AC-002 (BC-2.07.013 inv1): arm 1 (clean ASCII) must produce ZERO SNI findings; \
+         got: {arm1_sni_findings:?}"
+    );
+
+    // --- Arm 2 path: same hostname but with C0 byte embedded ---
+    // "clean\x01.example" — NUL+1 triggers arm 2.
+    let mut a_arm2 = TlsAnalyzer::new();
+    let record_ctrl = build_client_hello_ascii_bytes(b"clean\x01.example", &[0x1301]);
+    a_arm2.on_data(&fk, Direction::ClientToServer, &record_ctrl, 0);
+
+    assert_eq!(
+        a_arm2.parse_error_count(),
+        0,
+        "arm2 anchor: parse must succeed"
+    );
+
+    let arm2_control_findings: Vec<_> = a_arm2
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("ASCII control characters"))
+        .collect();
+    assert_eq!(
+        arm2_control_findings.len(),
+        1,
+        "AC-002 (BC-2.07.013 inv1): arm 2 (AsciiWithControl) must produce exactly ONE \
+         control finding; got: {arm2_control_findings:?}"
+    );
+}
+
+// ── AC-003 (BC-2.07.014 postconditions 1-4) ───────────────────────────────────
+//
+// SNI "foo\x1b[31m.example" (ESC 0x1B embedded) -> arm 2 fires.
+// Finding must have: category=Anomaly, verdict=Inconclusive, confidence=Low,
+// mitre_technique=Some("T1027"), direction=Some(ClientToServer).
+// sni_counts key is the raw hostname string.
+//
+// Canonical BC-2.07.014 test vector: "evil\x1b.com" -> Finding(Anomaly/Inconclusive/Low, T1027).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_014_esc_emits_anomaly_inconclusive_low_t1027_c2s() {
+    // AC-003 (BC-2.07.014 pc2): finding fields verified individually.
+    // AC-003 (BC-2.07.014 pc3): sni_counts keyed on raw hostname.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Use canonical BC test vector byte 0x1B (ESC).
+    let sni_bytes: &[u8] = b"foo\x1b[31m.example";
+    let record = build_client_hello_ascii_bytes(sni_bytes, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    // Positive-parse anchor.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-003 anchor (BC-2.07.014): parse_error_count must be 0"
+    );
+    assert_eq!(
+        analyzer.handshake_count(),
+        1,
+        "AC-003 anchor (BC-2.07.014): exactly one handshake must be counted"
+    );
+
+    // Exactly one control-byte finding (BC-2.07.014 pc1 — one finding, not zero, not two).
+    let ctrl_findings: Vec<_> = analyzer
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("ASCII control characters"))
+        .collect();
+    assert_eq!(
+        ctrl_findings.len(),
+        1,
+        "AC-003 (BC-2.07.014 pc1): exactly one control finding must be emitted for ESC SNI; \
+         got: {ctrl_findings:?}"
+    );
+
+    let f = &ctrl_findings[0];
+
+    // BC-2.07.014 pc2: category = Anomaly.
+    assert_eq!(
+        f.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "AC-003 (BC-2.07.014 pc2): category must be Anomaly"
+    );
+
+    // BC-2.07.014 pc2: verdict = Inconclusive.
+    assert_eq!(
+        f.verdict,
+        wirerust::findings::Verdict::Inconclusive,
+        "AC-003 (BC-2.07.014 pc2): verdict must be Inconclusive"
+    );
+
+    // BC-2.07.014 pc2: confidence = Low.
+    assert_eq!(
+        f.confidence,
+        wirerust::findings::Confidence::Low,
+        "AC-003 (BC-2.07.014 pc2): confidence must be Low"
+    );
+
+    // BC-2.07.014 pc2: mitre_technique = Some("T1027").
+    assert_eq!(
+        f.mitre_technique.as_deref(),
+        Some("T1027"),
+        "AC-003 (BC-2.07.014 pc2): mitre_technique must be Some(\"T1027\")"
+    );
+
+    // BC-2.07.014 pc2: direction = Some(ClientToServer).
+    assert_eq!(
+        f.direction,
+        Some(wirerust::reassembly::handler::Direction::ClientToServer),
+        "AC-003 (BC-2.07.014 pc2): direction must be Some(ClientToServer)"
+    );
+
+    // BC-2.07.014 pc2: summary references RFC 6066.
+    assert!(
+        f.summary.contains("RFC 6066"),
+        "AC-003 (BC-2.07.014 pc2): summary must cite RFC 6066, got: {:?}",
+        f.summary
+    );
+
+    // BC-2.07.014 pc2: evidence contains hex representation.
+    // "foo\x1b[31m.example" hex = 666f6f1b5b33316d2e6578616d706c65
+    assert!(
+        f.evidence
+            .iter()
+            .any(|e| e.starts_with("hex: ") && e.contains("666f6f1b5b33316d2e6578616d706c65")),
+        "AC-003 (BC-2.07.014 pc2): evidence must contain hex-prefixed lossless hex, \
+         got: {:?}",
+        f.evidence
+    );
+
+    // BC-2.07.014 pc3: sni_counts keyed on raw hostname string.
+    let raw_key = std::str::from_utf8(sni_bytes).expect("sni_bytes is valid UTF-8");
+    assert_eq!(
+        *analyzer.sni_counts().get(raw_key).unwrap_or(&0),
+        1,
+        "AC-003 (BC-2.07.014 pc3): sni_counts must use raw hostname as key, \
+         got keys: {:?}",
+        analyzer.sni_counts().keys().collect::<Vec<_>>()
+    );
+}
+
+// ── AC-004 (BC-2.07.014 invariant 4) ─────────────────────────────────────────
+//
+// Raw bytes are preserved in finding summary at the TlsAnalyzer layer.
+// No escape_for_terminal is called. The summary must contain the raw
+// hostname with embedded control byte; must NOT contain "\u{1b}" Debug form.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_014_raw_bytes_preserved_not_debug_escaped() {
+    // AC-004 (BC-2.07.014 inv4): data layer preserves raw bytes per ADR 0003.
+    // Display-layer escaping is deferred to the terminal reporter.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Embed the ESC byte (0x1B) in the hostname.
+    // The summary must contain the raw ESC byte, not its Debug-escaped form "\u{1b}".
+    let sni_bytes: &[u8] = b"inject\x1besc.example";
+    let record = build_client_hello_ascii_bytes(sni_bytes, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    // Positive-parse anchor.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-004 anchor (BC-2.07.014 inv4): parse must succeed"
+    );
+
+    let f = analyzer
+        .findings()
+        .into_iter()
+        .find(|f| f.summary.contains("ASCII control characters"))
+        .expect("AC-004 (BC-2.07.014 inv4): expected control finding for ESC-embedded SNI");
+
+    // BC-2.07.014 inv4 / ADR 0003: raw ESC byte (0x1B) must survive in the summary.
+    assert!(
+        f.summary.as_bytes().contains(&0x1b),
+        "AC-004 (BC-2.07.014 inv4): summary must contain raw ESC byte (0x1B) per ADR 0003; \
+         got bytes: {:?}",
+        f.summary.as_bytes()
+    );
+
+    // BC-2.07.014 inv4: summary must NOT contain Debug-formatted escape form.
+    // If the analyzer used {:?} formatting, control bytes would appear as "\u{1b}".
+    assert!(
+        !f.summary.contains("\\u{1b}"),
+        "AC-004 (BC-2.07.014 inv4): summary must not contain Debug-escaped form \\u{{1b}} \
+         (construction-site escaping regression); got: {}",
+        f.summary
+    );
+
+    // The raw hostname string must appear literally in the summary.
+    let raw_hostname = std::str::from_utf8(sni_bytes).expect("sni_bytes is valid UTF-8");
+    assert!(
+        f.summary.contains(raw_hostname),
+        "AC-004 (BC-2.07.014 inv4): summary must contain the raw hostname literal, \
+         got: {:?}",
+        f.summary
+    );
+}
+
+// ── AC-005 (BC-2.07.015 postconditions 1-3) ───────────────────────────────────
+//
+// When a hostname contains multiple C0/DEL bytes, exactly ONE finding is pushed
+// (not one per control byte). Evidence contains one entry: "hex: {full_hostname_hex}".
+//
+// Canonical BC-2.07.015 test vector: SNI = "a\x01\x02\x03b" (3 control bytes) ->
+//   all_findings.len() == 1; evidence[0] starts with "hex: ".
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_015_multiple_c0_bytes_one_finding_full_hex_evidence() {
+    // AC-005 (BC-2.07.015 pc1): exactly ONE finding for hostname with 3 C0 bytes.
+    // AC-005 (BC-2.07.015 pc2): evidence contains one entry "hex: {hex}" where
+    //   hex is the lowercase hex of ALL hostname bytes (not just control bytes).
+    // AC-005 (BC-2.07.015 pc3): summary contains the entire hostname string.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Canonical BC-2.07.015 test vector: "a\x01\x02\x03b" — 3 control bytes.
+    // Expected full hostname hex: 61 01 02 03 62 = "61010203 62"
+    let sni_bytes: &[u8] = b"a\x01\x02\x03b";
+    let record = build_client_hello_ascii_bytes(sni_bytes, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    // Positive-parse anchor.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-005 anchor (BC-2.07.015): parse must succeed"
+    );
+
+    // BC-2.07.015 pc1: exactly one finding total — not three.
+    let ctrl_findings: Vec<_> = analyzer
+        .findings()
+        .into_iter()
+        .filter(|f| f.summary.contains("ASCII control characters"))
+        .collect();
+    assert_eq!(
+        ctrl_findings.len(),
+        1,
+        "AC-005 (BC-2.07.015 pc1): 3 C0 bytes in one SNI must produce exactly ONE finding; \
+         got {} findings: {:?}",
+        ctrl_findings.len(),
+        ctrl_findings
+    );
+
+    let f = &ctrl_findings[0];
+
+    // BC-2.07.015 pc2: exactly one evidence entry, prefixed "hex: ".
+    assert_eq!(
+        f.evidence.len(),
+        1,
+        "AC-005 (BC-2.07.015 pc2): finding must have exactly one evidence entry; \
+         got: {:?}",
+        f.evidence
+    );
+    assert!(
+        f.evidence[0].starts_with("hex: "),
+        "AC-005 (BC-2.07.015 pc2): evidence[0] must start with \"hex: \"; \
+         got: {:?}",
+        f.evidence[0]
+    );
+
+    // BC-2.07.015 pc2: hex covers ALL hostname bytes, not just the control bytes.
+    // "a\x01\x02\x03b" = [0x61, 0x01, 0x02, 0x03, 0x62] -> "6101020362"
+    let expected_hex = "6101020362";
+    assert!(
+        f.evidence[0].contains(expected_hex),
+        "AC-005 (BC-2.07.015 pc2): hex evidence must encode ALL hostname bytes \
+         (including non-control bytes a=0x61 and b=0x62), not just control bytes; \
+         expected hex {expected_hex} in evidence[0], got: {:?}",
+        f.evidence[0]
+    );
+
+    // BC-2.07.015 pc3: summary contains the entire raw hostname string.
+    let raw_hostname = std::str::from_utf8(sni_bytes).expect("sni_bytes valid UTF-8");
+    assert!(
+        f.summary.contains(raw_hostname),
+        "AC-005 (BC-2.07.015 pc3): finding summary must contain the entire hostname, \
+         got: {:?}",
+        f.summary
+    );
+}
+
+// ── AC-006 (BC-2.07.015 invariant 1) ─────────────────────────────────────────
+//
+// Finding count is O(1) per SNI hostname. Multiple control bytes -> still
+// exactly one finding. The AsciiWithControl arm calls all_findings.push once.
+//
+// This test uses a different hostname than AC-005 to verify the invariant
+// independently (3 distinct C0 values: BEL, ESC, DEL).
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_015_finding_count_o1_per_hostname_not_per_byte() {
+    // AC-006 (BC-2.07.015 inv1): finding count is O(1) per hostname.
+    // Canonical BC-2.07.015 edge case: "\x1f\x1e\x1d" (three C0 bytes) -> 1 finding.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Three distinct C0 bytes: BEL (0x07), ESC (0x1B), DEL (0x7F).
+    let sni_bytes: &[u8] = b"a\x07b\x1bc\x7fd.example";
+    let record = build_client_hello_ascii_bytes(sni_bytes, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    // Positive-parse anchor.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-006 anchor (BC-2.07.015 inv1): parse must succeed"
+    );
+
+    // Direct assertion: the total all_findings length must be exactly 1.
+    // Using all_findings_len_for_testing to read the raw vec (not filtered).
+    // With only a control-byte SNI and no weak cipher, total findings == 1.
+    assert_eq!(
+        analyzer.all_findings_len_for_testing(),
+        1,
+        "AC-006 (BC-2.07.015 inv1): all_findings.len() must be exactly 1 for a hostname \
+         with 3 C0/DEL bytes — O(1) per hostname, not O(control_bytes_count)"
+    );
+
+    // Confirm the single finding is the control-byte finding, not something else.
+    let ctrl_count = analyzer
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("ASCII control characters"))
+        .count();
+    assert_eq!(
+        ctrl_count, 1,
+        "AC-006 (BC-2.07.015 inv1): the one finding must be the ASCII control finding"
+    );
+}
+
+// ── AC-007 (BC-2.07.016 postconditions 1-4) ───────────────────────────────────
+//
+// Precise boundary: 0x1F (last C0) trips arm 2; 0x20 (space) does NOT trip arm 2.
+// 0x7F (DEL) trips arm 2; 0x7E (tilde) does NOT trip arm 2.
+//
+// Canonical BC-2.07.016 test vectors:
+//   "test\x1fend" -> finding emitted (arm 2)
+//   "test\x20end" -> no finding (arm 1)
+//   "test\x7fend" -> finding emitted (arm 2)
+//   "test\x7eend" -> no finding (arm 1)
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_016_boundary_0x1f_trips_0x20_does_not_0x7f_trips_0x7e_does_not() {
+    // AC-007 (BC-2.07.016 pc1): 0x1F trips arm 2.
+    // AC-007 (BC-2.07.016 pc2): 0x7F trips arm 2.
+    // AC-007 (BC-2.07.016 pc3): 0x20 (space) does NOT trip arm 2 — arm 1 fires.
+    // AC-007 (BC-2.07.016 pc4): boundary test b < 0x20 is exact: 0x1F < 0x20 is true;
+    //                             0x20 < 0x20 is false.
+    let fk = test_flow_key();
+
+    // Table driven: (label, sni_bytes, expect_finding)
+    let cases: &[(&str, &[u8], bool)] = &[
+        // BC-2.07.016 canonical vectors:
+        ("0x1F last-C0 MUST trip", b"test\x1fend", true),
+        ("0x20 space MUST NOT trip (arm 1)", b"test\x20end", false),
+        ("0x7F DEL MUST trip", b"test\x7fend", true),
+        ("0x7E tilde MUST NOT trip (arm 1)", b"test\x7eend", false),
+        // EC-001 from BC-2.07.016: 0x1F only.
+        ("0x1F only (EC-001)", b"\x1f", true),
+        // EC-002 from BC-2.07.016: 0x20 only.
+        ("0x20 only (EC-002)", b"\x20", false),
+        // EC-004 from BC-2.07.016: 0x7F after 'a'.
+        ("a 0x7F b (EC-004)", b"a\x7fb", true),
+        // EC-005 from BC-2.07.016: 0x7E tilde.
+        ("a 0x7E b (EC-005)", b"a\x7eb", false),
+    ];
+
+    for (label, sni_bytes, expect_finding) in cases {
+        let mut analyzer = TlsAnalyzer::new();
+        let record = build_client_hello_ascii_bytes(sni_bytes, &[0x1301]);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+        // Positive-parse anchor for each case.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "AC-007 anchor (BC-2.07.016): parse_error_count must be 0 for case: {label}"
+        );
+
+        let ctrl_count = analyzer
+            .findings()
+            .iter()
+            .filter(|f| f.summary.contains("ASCII control characters"))
+            .count();
+
+        if *expect_finding {
+            assert_eq!(
+                ctrl_count, 1,
+                "AC-007 (BC-2.07.016 pc1/pc2/pc4): {label} must produce 1 control finding"
+            );
+            // Discriminating assertion: sni_counts uses raw hostname key (arm 2 path).
+            let raw_key = std::str::from_utf8(sni_bytes).expect("test bytes are valid ASCII");
+            assert_eq!(
+                *analyzer.sni_counts().get(raw_key).unwrap_or(&0),
+                1,
+                "AC-007 (BC-2.07.016): sni_counts must have raw key for {label}"
+            );
+        } else {
+            assert_eq!(
+                ctrl_count, 0,
+                "AC-007 (BC-2.07.016 pc3): {label} must produce 0 control findings (arm 1 fires)"
+            );
+            // Discriminating assertion: arm 1 path — sni_counts has entry, no SNI finding.
+            let raw_key = std::str::from_utf8(sni_bytes).expect("test bytes are valid ASCII");
+            assert_eq!(
+                *analyzer.sni_counts().get(raw_key).unwrap_or(&0),
+                1,
+                "AC-007 (BC-2.07.016 pc3): sni_counts must have entry even for arm-1 SNI {label}"
+            );
+            let any_sni_finding = analyzer
+                .findings()
+                .iter()
+                .any(|f| f.summary.contains("SNI"));
+            assert!(
+                !any_sni_finding,
+                "AC-007 (BC-2.07.016 pc3): arm 1 must produce no SNI finding for {label}"
+            );
+        }
+    }
+}
+
+// ── AC-008 (BC-2.07.016 invariant 1) ─────────────────────────────────────────
+//
+// The predicate is b < 0x20 || b == 0x7f. Tab (0x09), LF (0x0A), CR (0x0D) are
+// all C0 bytes (< 0x20) and all trip arm 2.
+//
+// BC-2.07.016 invariant 3: Tab, LF, CR are C0 bytes and all trip the finding.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_016_tab_cr_lf_are_c0_and_trip() {
+    // AC-008 (BC-2.07.016 inv1): predicate is exactly b < 0x20 || b == 0x7f.
+    // Tab = 0x09 < 0x20 -> true. LF = 0x0A < 0x20 -> true. CR = 0x0D < 0x20 -> true.
+    // All three must trigger arm 2 (each independently).
+    let fk = test_flow_key();
+
+    let cases: &[(&str, &[u8])] = &[
+        ("Tab (0x09 < 0x20)", b"left\tright.example"),
+        ("LF (0x0A < 0x20)", b"left\nright.example"),
+        ("CR (0x0D < 0x20)", b"left\rright.example"),
+        // NUL (0x00) is the lower bound of C0.
+        ("NUL (0x00 < 0x20, C0 lower bound)", b"a\x00b.example"),
+        // SOH (0x01) is above NUL and also C0.
+        ("SOH (0x01 < 0x20)", b"a\x01b.example"),
+    ];
+
+    for (label, sni_bytes) in cases {
+        let mut analyzer = TlsAnalyzer::new();
+        let record = build_client_hello_ascii_bytes(sni_bytes, &[0x1301]);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+        // Positive-parse anchor.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "AC-008 anchor (BC-2.07.016 inv1): parse_error_count must be 0 for {label}"
+        );
+
+        let ctrl_count = analyzer
+            .findings()
+            .iter()
+            .filter(|f| f.summary.contains("ASCII control characters"))
+            .count();
+
+        assert_eq!(
+            ctrl_count, 1,
+            "AC-008 (BC-2.07.016 inv1): {label} must trip arm 2 (b < 0x20 predicate); \
+             expected 1 control finding, got {ctrl_count}"
+        );
+
+        // Discriminating assertion: sni_counts contains the raw hostname (arm 2 key).
+        let raw_key = std::str::from_utf8(sni_bytes).expect("test bytes are valid ASCII");
+        assert_eq!(
+            *analyzer.sni_counts().get(raw_key).unwrap_or(&0),
+            1,
+            "AC-008 (BC-2.07.016 inv1): sni_counts must contain raw key for {label}"
+        );
+    }
+}
+
+// ── AC-009 (BC-2.07.018 postconditions 1-3) ───────────────────────────────────
+//
+// A Punycode A-label "xn--caf-dma.example" satisfies arm 1: valid UTF-8,
+// is_ascii() == true, no C0/DEL. extract_sni returns Ascii(hostname).
+// No finding. sni_counts keyed on the raw A-label string.
+//
+// Canonical BC-2.07.018 test vector: SNI = "xn--caf-dma.example" ->
+//   no finding; sni_counts has one entry.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_018_punycode_a_label_arm1_no_finding_counted() {
+    // AC-009 (BC-2.07.018 pc1): extract_sni returns Ascii(hostname) for A-label.
+    // AC-009 (BC-2.07.018 pc2): no finding pushed.
+    // AC-009 (BC-2.07.018 pc3): A-label counted in sni_counts under raw string key.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Canonical BC-2.07.018 test vector: RFC 5890 A-label for "café.example".
+    let record = build_client_hello("xn--caf-dma.example", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    // Positive-parse anchor.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "AC-009 anchor (BC-2.07.018): parse must succeed for A-label"
+    );
+    assert_eq!(
+        analyzer.handshake_count(),
+        1,
+        "AC-009 anchor (BC-2.07.018): handshake must be counted"
+    );
+
+    // BC-2.07.018 pc2: no finding of any kind for this A-label.
+    assert!(
+        analyzer.findings().is_empty(),
+        "AC-009 (BC-2.07.018 pc2): A-label must produce no findings; \
+         got: {:?}",
+        analyzer.findings()
+    );
+
+    // BC-2.07.018 pc3: counted under the raw A-label string key.
+    assert_eq!(
+        *analyzer
+            .sni_counts()
+            .get("xn--caf-dma.example")
+            .unwrap_or(&0),
+        1,
+        "AC-009 (BC-2.07.018 pc3): sni_counts must have entry for raw A-label key"
+    );
+
+    // Verify the A-label does NOT trigger the non-ASCII finding (separate finding type).
+    let non_ascii_count = analyzer
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("non-ASCII characters"))
+        .count();
+    assert_eq!(
+        non_ascii_count, 0,
+        "AC-009 (BC-2.07.018 pc2): A-label must not trigger non-ASCII finding"
+    );
+}
+
+// ── AC-010 (BC-2.07.018 invariants 1-2) ──────────────────────────────────────
+//
+// A-labels are pure ASCII by RFC 5890 construction and trivially satisfy arm 1.
+// There is NO Punycode-specific code path — the A-label goes through the same
+// arm 1 as any other clean-ASCII hostname. The distinction is only that BC-2.07.018
+// documents deliberate exclusion of correctly-encoded IDN from the T1027 surface.
+//
+// Test approach: verify that "xn--caf-dma.example" (A-label) and "example.com"
+// (plain ASCII) both produce identical finding behavior (zero SNI findings).
+// Specifically, no "punycode" or "idna" related finding type exists.
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_018_a_label_uses_same_arm1_as_plain_ascii() {
+    // AC-010 (BC-2.07.018 inv1): A-labels trivially satisfy arm 1 — no special path.
+    // AC-010 (BC-2.07.018 inv2): This BC is a special case of BC-2.07.013; the
+    //   A-label path is just BC-2.07.013 arm 1, not a separate code path.
+    let fk = test_flow_key();
+
+    // Both hostnames produce identical outcome: zero findings, sni_counts entry.
+    let cases: &[&str] = &[
+        "xn--caf-dma.example",  // RFC 5890 A-label for "café.example"
+        "example.com",          // plain ASCII baseline
+        "xn--",                 // degenerate A-label prefix (BC-2.07.018 EC-002)
+        "xn--nxasmq6b.example", // another valid A-label
+    ];
+
+    for hostname in cases {
+        let mut analyzer = TlsAnalyzer::new();
+        let record = build_client_hello(hostname, &[0x1301]);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+        // Positive-parse anchor.
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "AC-010 anchor (BC-2.07.018 inv1): parse must succeed for {hostname:?}"
+        );
+
+        // BC-2.07.018 inv1: A-label takes same arm 1 path as plain ASCII —
+        // zero SNI findings, regardless of whether hostname starts with "xn--".
+        let sni_findings: Vec<_> = analyzer
+            .findings()
+            .into_iter()
+            .filter(|f| f.summary.contains("SNI"))
+            .collect();
+        assert!(
+            sni_findings.is_empty(),
+            "AC-010 (BC-2.07.018 inv1): {hostname:?} must produce zero SNI findings; \
+             got: {sni_findings:?}"
+        );
+
+        // BC-2.07.018 inv2: no Punycode-specific finding type exists.
+        // Verify by checking no finding references "punycode" or "idna".
+        let punycode_findings = analyzer
+            .findings()
+            .iter()
+            .filter(|f| {
+                let s = f.summary.to_lowercase();
+                s.contains("punycode") || s.contains("idna")
+            })
+            .count();
+        assert_eq!(
+            punycode_findings, 0,
+            "AC-010 (BC-2.07.018 inv2): no Punycode-specific finding type must exist; \
+             got {punycode_findings} for {hostname:?}"
+        );
+
+        // sni_counts entry exists — confirms arm 1 ran the count insertion path.
+        assert_eq!(
+            *analyzer.sni_counts().get(*hostname).unwrap_or(&0),
+            1,
+            "AC-010 (BC-2.07.018 inv1): sni_counts must have entry for {hostname:?}"
+        );
+    }
+}
+
+// ── Edge-case coverage for EC scenarios from STORY-055 ───────────────────────
+//
+// These tests exercise the exact EC scenarios listed in the story's Edge Cases
+// table with BC-prefixed names. They verify the boundary byte arithmetic
+// using exact byte values specified in the story.
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_016_ec004_space_only_sni_is_arm1() {
+    // EC-009 from STORY-055: SNI = " " (space only, 0x20 is NOT C0).
+    // BC-2.07.016 EC-002: 0x20 only -> arm 1; no finding.
+    // BC-2.07.013 EC-003: " " (space, 0x20) -> arm 1; no finding.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello(" ", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "EC-009 anchor: parse must succeed for space-only SNI"
+    );
+    assert!(
+        analyzer.findings().is_empty(),
+        "EC-009 (BC-2.07.013 EC-003 / BC-2.07.016 EC-002): space-only SNI must produce \
+         no finding (0x20 is not C0); got: {:?}",
+        analyzer.findings()
+    );
+    assert_eq!(
+        *analyzer.sni_counts().get(" ").unwrap_or(&0),
+        1,
+        "EC-009: space-only SNI must be counted in sni_counts"
+    );
+}
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_013_ec010_same_clean_ascii_sni_twice_counts_two() {
+    // EC-010 from STORY-055: same clean ASCII SNI seen twice -> sni_counts == 2.
+    // BC-2.07.013 canonical test vector: "example.com" twice -> sni_counts["example.com"] == 2.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let record = build_client_hello("example.com", &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(
+        *analyzer.sni_counts().get("example.com").unwrap_or(&0),
+        2,
+        "EC-010 (BC-2.07.013 canonical vector): same SNI twice must increment count to 2"
+    );
+    // Still no findings — the second visit to arm 1 does not create findings.
+    let sni_findings = analyzer
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("SNI"))
+        .count();
+    assert_eq!(
+        sni_findings, 0,
+        "EC-010: repeated clean ASCII SNI must still produce zero SNI findings"
+    );
+}
+
+#[allow(non_snake_case)]
+#[test]
+fn test_BC_2_07_016_ec003_nul_byte_is_c0_start_trips_arm2() {
+    // BC-2.07.016 EC-003: SNI = "a\x00b" (NUL, start of C0 range) -> arm 2 fires.
+    // BC-2.07.014 EC-001: "evil\x00.com" -> AsciiWithControl; T1027 finding.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    let sni_bytes: &[u8] = b"a\x00b.example";
+    let record = build_client_hello_ascii_bytes(sni_bytes, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    assert_eq!(analyzer.parse_error_count(), 0);
+
+    let ctrl_count = analyzer
+        .findings()
+        .iter()
+        .filter(|f| f.summary.contains("ASCII control characters"))
+        .count();
+    assert_eq!(
+        ctrl_count, 1,
+        "BC-2.07.016 EC-003 / BC-2.07.014 EC-001: NUL byte (0x00, start of C0) must trip \
+         arm 2; expected 1 finding, got {ctrl_count}"
+    );
+
+    // Discriminating: mitre_technique is T1027 (not T1036 or None).
+    let f = analyzer
+        .findings()
+        .into_iter()
+        .find(|f| f.summary.contains("ASCII control characters"))
+        .unwrap();
+    assert_eq!(
+        f.mitre_technique.as_deref(),
+        Some("T1027"),
+        "BC-2.07.016 EC-003: NUL-byte finding must be T1027"
+    );
+}
