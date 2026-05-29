@@ -5176,23 +5176,12 @@ fn test_server_ssl30_deprecated_finding() {
         "BC-2.07.012 postcondition 1: confidence must be High for server deprecated protocol"
     );
 
-    // BC-2.07.012 postcondition 1: summary contains "negotiated" (not "uses") and "RFC 7568".
-    assert!(
-        f.summary.contains("negotiated"),
-        "BC-2.07.012 postcondition 1: server summary must use 'negotiated' (server finalizes \
-         version); got: {:?}",
-        f.summary
-    );
-    assert!(
-        f.summary.contains("SSL 3.0"),
-        "BC-2.07.012 postcondition 1: summary must name 'SSL 3.0' (version_name for 0x0300); \
-         got: {:?}",
-        f.summary
-    );
-    assert!(
-        f.summary.contains("RFC 7568"),
-        "BC-2.07.012 postcondition 1: summary must contain 'RFC 7568'; got: {:?}",
-        f.summary
+    // BC-2.07.012 postcondition 1: exact summary string (verified against
+    // src/analyzer/tls.rs:595-597 server deprecated-protocol emit site).
+    assert_eq!(
+        f.summary, "ServerHello negotiated deprecated protocol (SSL 3.0, RFC 7568 prohibits SSLv3)",
+        "F-S054-P5-001 (BC-2.07.012 pc1): server-side deprecated-protocol summary must match \
+         exact format from handle_server_hello"
     );
 
     // BC-2.07.012 postcondition 1: evidence = ["Version: 0x0300 (SSL 3.0)"]
@@ -5337,6 +5326,28 @@ fn test_client_and_server_ssl30_distinct_directions() {
         vec!["Version: 0x0300 (SSL 3.0)".to_string()],
         "F-S054-P2-001 (BC-2.07.011 pc2): client-side deprecated-protocol evidence must match \
          exact format from handle_client_hello (src/analyzer/tls.rs:533)"
+    );
+
+    // F-S054-P5-002: client-side finding field exactness parity with server block.
+    // Verified against src/analyzer/tls.rs:526-538 (handle_client_hello deprecated-protocol arm).
+    assert_eq!(
+        client_finding.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "F-S054-P5-002 (BC-2.07.011 pc1): client-side category must be Anomaly"
+    );
+    assert_eq!(
+        client_finding.verdict,
+        wirerust::findings::Verdict::Likely,
+        "F-S054-P5-002 (BC-2.07.011 pc1): client-side verdict must be Likely"
+    );
+    assert_eq!(
+        client_finding.confidence,
+        wirerust::findings::Confidence::High,
+        "F-S054-P5-002 (BC-2.07.011 pc1): client-side confidence must be High"
+    );
+    assert_eq!(
+        client_finding.mitre_technique, None,
+        "F-S054-P5-002 (BC-2.07.011 pc1): client-side mitre_technique must be None"
     );
 }
 
@@ -5691,13 +5702,10 @@ fn test_BC_2_07_011_client_deprecated_version_name_ssl2_and_legacy() {
 // test_BC_2_07_002_ec004_ssl2_version_parse_behavior_pinned, providing the
 // explicit EC-004/EC-005 annotation for the server side.
 //
-// ROUTE TO STORY-WRITER / PRODUCT-OWNER: BC-2.07.012 EC-004 ("ServerHello with
-// version=0x0200 emits deprecated-protocol finding with version_name='SSL 2.0'")
-// and EC-005 ("version below 0x0200 emits finding with version_name='Unknown legacy SSL'")
-// are UNREACHABLE under tls-parser 0.12 via ServerHello records. The server-side 0x0200
-// and catchall version_name arms cannot be triggered via wire input. EC-004/EC-005 should
-// be corrected to document the parse-rejection behavior, or deferred until tls-parser
-// is upgraded to a version that accepts these ServerHello variants.
+// Note: BC-2.07.012 EC-004/EC-005 were corrected to document parse-rejection in v1.3/v1.4
+// per F-S054-P1-002. The server-side 0x0200 ("SSL 2.0") and catchall ("Unknown legacy SSL")
+// version_name arms are unreachable under tls-parser 0.12 via ServerHello records; this was
+// captured in BC-2.07.012 and no further routing action is required.
 
 #[allow(non_snake_case)]
 #[test]
