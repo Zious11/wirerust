@@ -503,10 +503,10 @@ stories:
     converged_date: "2026-05-30"
 
   STORY-079:
-    status: pending
+    status: in_progress
     wave: 21
-    branch: null
-    worktree: null
+    branch: test/story-079-csv-reporter
+    worktree: .worktrees/STORY-079
 
   # ---------------------------------------------------------------------------
   # Wave 22 — 2 stories
