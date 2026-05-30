@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Correct CRLF→LF line-terminator claim in postcondition 1 and description (STORY-079 formalization finding — 2026-05-30)"
+  - "v1.4: proof_method disjunction 'unit / proptest'→'unit' in VP table row 2 (DF-SIBLING-SWEEP-001; CSV-injection family sweep from STORY-079 P6 finding)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -89,7 +90,7 @@ analyst scripts) can rely on positional column indices without schema discovery.
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | — | Header row is first line and contains exactly the 9 expected column names in order | unit |
-| — | Every row in output has exactly 9 comma-separated fields | unit / proptest |
+| — | Every row in output has exactly 9 comma-separated fields | unit |
 
 ## Traceability
 

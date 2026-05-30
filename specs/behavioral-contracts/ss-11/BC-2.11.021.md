@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: proof_method proptest→unit for VP-020 row to match VP-020 file + VP-INDEX (STORY-079 P6 finding; sibling-sweep of the 2026-05-30 VP-020 manual→unit correction)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -95,7 +96,7 @@ Sheets) from interpreting attacker-controlled packet payload bytes as formula di
 |--------|----------|-------------|
 | VP-020 | neutralize_csv_injection produces `'`-prefix for all 6 trigger chars and only those | unit: parametric test over trigger set |
 | VP-020 | neutralize_csv_injection returns identity for empty string | unit |
-| VP-020 | neutralize_csv_injection does not alter bytes after position 0 | proptest: for all non-trigger-prefixed inputs, output == input |
+| VP-020 | neutralize_csv_injection does not alter bytes after position 0 | unit: identity over non-trigger-prefixed sample inputs (output == input) |
 
 ## Traceability
 
@@ -158,4 +159,4 @@ STORY-079 -- CsvReporter implementation (LESSON-P2.03)
 
 #### Refactoring Notes
 
-No refactoring needed -- pure string transformation, ideal for property-based testing with proptest.
+No refactoring needed -- pure string transformation, fully verified by unit tests over the finite 6-character trigger set.
