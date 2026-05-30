@@ -91,8 +91,8 @@ actions, OPTIONS for fingerprinting).
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
-| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- unusual HTTP method detection is one of the HTTP anomaly findings |
+| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
+| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- unusual HTTP method detection is one of the HTTP anomaly findings |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
 | Architecture Module | SS-06 (analyzer/http.rs:251-265, C-12) |
 | Stories | STORY-043 |

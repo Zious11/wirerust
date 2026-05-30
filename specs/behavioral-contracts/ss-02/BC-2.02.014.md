@@ -78,8 +78,8 @@ not application payload bytes.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-03 ("Packet decoding") per capabilities.md §CAP-03 |
-| Capability Anchor Justification | CAP-03 ("Packet decoding") per capabilities.md §CAP-03 -- packet_len is a decoded output field of the packet decoding layer |
+| L2 Capability | CAP-03 ("Packet decoding") per domain/capabilities/cap-03-packet-decoding.md |
+| Capability Anchor Justification | CAP-03 ("Packet decoding") per domain/capabilities/cap-03-packet-decoding.md -- packet_len is a decoded output field of the packet decoding layer |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
 | Stories | STORY-005 |

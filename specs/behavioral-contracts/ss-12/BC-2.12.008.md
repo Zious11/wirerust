@@ -77,8 +77,8 @@ not in the clap `Commands::Analyze` struct itself.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the OR-expansion of --all into enable_dns/enable_http/enable_tls (main.rs:57-59) is the wiring layer that routes subcommand flags to analyzer construction; this is exactly the orchestration concern CAP-12 owns |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- the OR-expansion of --all into enable_dns/enable_http/enable_tls (main.rs:57-59) is the wiring layer that routes subcommand flags to analyzer construction; this is exactly the orchestration concern CAP-12 owns |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | STORY-088 |

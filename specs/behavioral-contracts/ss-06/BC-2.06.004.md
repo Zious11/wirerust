@@ -19,7 +19,7 @@ modified:
   - "v1.5 (2026-05-28): W15 Pass-4 remediation — added invariant 4 formalizing the response-side had_success guard (try_parse_responses:462) as the response-side analog of BC-2.06.002 invariant 2 (F-W15P4-001, F-W15P4-005 process-gap). Closes the BC↔implementation asymmetry that left the response-side had_success suppression unspecified."
   - "v1.6 (2026-05-28): W15 Pass-5 sibling-sweep cascade — added Related BC cross-reference to BC-2.06.002 (F-W15P5-002); added Verification Properties row for invariant 4 coverage (F-W15P5-003)."
   - "v1.7 (2026-05-28): F-W15P6-D01 reciprocal Related-BCs fix — added cross-reference to BC-2.06.020 (request-side had_success guard; both BCs anchor the same had_success suppression design on their respective parse paths). Closes F-W15P6-D01 (004→020 direction)."
-  - "v1.8 (2026-05-29): F-DRIFT2A-001 — fixed stale capabilities.md §CAP-06 citation to domain/capabilities/cap-06-http-analysis.md in L2 Capability and Capability Anchor Justification rows."
+  - "v1.8 (2026-05-29): F-DRIFT2A-001 — fixed stale domain/capabilities/cap-06-http-analysis.md citation to domain/capabilities/cap-06-http-analysis.md in L2 Capability and Capability Anchor Justification rows."
 deprecated: null
 deprecated_by: null
 replacement: null

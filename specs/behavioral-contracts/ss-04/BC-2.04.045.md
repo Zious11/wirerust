@@ -17,7 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: F-001/F-003/F-005 remediation — Description, PC2, PC3, EC-002, INV-2 corrected for early-guard vs mid-loop path distinction; new EC-003 added; DF-SIBLING-SWEEP-001 — 2026-05-26"
   - "v1.4: W10-D8 fix — PC2 tail 'or no gaps fit at all' removed. The early-guard at segment.rs:70-72 prevents entry when len>=max_segments; therefore at the mid-loop guard there must be >=1 gap already computed. The 'no gaps fit at all' case is structurally unreachable via this path. — 2026-05-28"
-  - "v1.5: F-DRIFT2A-001 + F-DRIFT2A-003 — fixed stale capabilities.md §CAP-04 citation; reconciled mid-loop guard anchor from segment.rs:175-179 → 178-180 in Architecture Module, Architecture Anchors, and Source Evidence (175-179 included loop setup lines; 178-180 is the if-block itself). — 2026-05-29"
+  - "v1.5: F-DRIFT2A-001 + F-DRIFT2A-003 — fixed stale domain/capabilities/cap-04-tcp-reassembly.md citation; reconciled mid-loop guard anchor from segment.rs:175-179 → 178-180 in Architecture Module, Architecture Anchors, and Source Evidence (175-179 included loop setup lines; 178-180 is the if-block itself). — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null

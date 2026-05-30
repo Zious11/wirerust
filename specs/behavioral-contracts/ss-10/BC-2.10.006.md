@@ -80,8 +80,8 @@ for unknown IDs.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-10 ("MITRE ATT&CK mapping") per capabilities.md §CAP-10 |
-| Capability Anchor Justification | CAP-10 ("MITRE ATT&CK mapping") per capabilities.md §CAP-10 -- the None path of technique_name is the explicit boundary of the MITRE catalog |
+| L2 Capability | CAP-10 ("MITRE ATT&CK mapping") per domain/capabilities/cap-10-mitre-mapping.md |
+| Capability Anchor Justification | CAP-10 ("MITRE ATT&CK mapping") per domain/capabilities/cap-10-mitre-mapping.md -- the None path of technique_name is the explicit boundary of the MITRE catalog |
 | L2 Domain Invariants | INV-9 (MITRE technique ID format) |
 | Architecture Module | SS-10 (mitre.rs, C-16) |
 | Stories | STORY-071 |

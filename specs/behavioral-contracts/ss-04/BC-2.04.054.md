@@ -82,8 +82,8 @@ even during adversarial flooding scenarios.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- the finalize bypass is the lifecycle closure contract for the reassembly engine |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- the finalize bypass is the lifecycle closure contract for the reassembly engine |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap -- this BC documents the sole exception), INV-7 (Finalize-once latch) |
 | Architecture Module | SS-04 (reassembly/mod.rs:557-591, C-6) |
 | Stories | STORY-021 |

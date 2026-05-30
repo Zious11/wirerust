@@ -17,7 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: F-002 remediation — Description corrected to document allowed==0 → DepthExceeded path; DF-SIBLING-SWEEP-001 — 2026-05-26"
   - "v1.4: W10-D13 fix — added forensic/security note to Postconditions documenting silent discard of bytes beyond max_depth. Intentional behavior; analyst-facing implication documented for parity with BC-2.04.015 PC-7 data-loss note style. — 2026-05-28"
-  - "v1.5: F-DRIFT2A-001 — fixed stale capabilities.md §CAP-04 citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
+  - "v1.5: F-DRIFT2A-001 — fixed stale domain/capabilities/cap-04-tcp-reassembly.md citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null

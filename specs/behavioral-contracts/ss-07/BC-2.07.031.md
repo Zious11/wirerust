@@ -87,8 +87,8 @@ deterministic alphabetical key ordering in JSON output.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
-| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- summarize is the statistics output method of TLS analysis |
+| L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
+| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- summarize is the statistics output method of TLS analysis |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation -- SNI strings in summary are raw) |
 | Architecture Module | SS-07 (analyzer/tls.rs:763-808, C-13) |
 | Stories | STORY-058 |

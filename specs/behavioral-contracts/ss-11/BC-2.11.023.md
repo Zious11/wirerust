@@ -91,8 +91,8 @@ or summary section appended.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- this BC documents the Reporter trait compliance and the findings-only scope of CsvReporter, which is the core behavioral contract of the CSV output channel |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- this BC documents the Reporter trait compliance and the findings-only scope of CsvReporter, which is the core behavioral contract of the CSV output channel |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- CsvReporter is the display layer for the CSV channel; it applies injection neutralization at render time) |
 | Architecture Module | SS-11 (reporter/csv.rs:51-106, Reporter trait impl) |
 | Stories | STORY-080 |

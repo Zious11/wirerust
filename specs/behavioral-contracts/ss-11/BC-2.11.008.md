@@ -86,8 +86,8 @@ in the terminal output. Only control bytes and backslash are escaped.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- printable Unicode preservation is a forensic requirement; mangling hostnames or SNI values would destroy forensic evidence |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- printable Unicode preservation is a forensic requirement; mangling hostnames or SNI values would destroy forensic evidence |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- escape_for_terminal must not mangle legitimate forensic data) |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
 | Stories | STORY-077 |

@@ -102,8 +102,8 @@ this packet. The flow is removed from the `flows` HashMap by `close_flow`.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- RST handling is a required part of the TCP flow lifecycle |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- RST handling is a required part of the TCP flow lifecycle |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-04 (reassembly/mod.rs:273-279, RST block; lifecycle.rs:36-62, close_flow) |
 | Stories | STORY-019 |

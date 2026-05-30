@@ -17,7 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Pass-4 sibling sweep: corrected if-count-guard citation 571 → 572 (off-by-one against current source; line 571 is the let count = ... binding, line 572 is the if count > 0 { guard) — 2026-05-27"
   - "v1.4: W11-D1 fix — replaced bare `—` VP placeholder with explicit N/A marker. No VP in VP-INDEX covers the zero-count suppression path; this is a unit-test-sufficient boundary condition on the same guard as BC-2.04.025. — 2026-05-28"
-  - "v1.5: F-DRIFT2A-001 — fixed stale capabilities.md §CAP-04 citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
+  - "v1.5: F-DRIFT2A-001 — fixed stale domain/capabilities/cap-04-tcp-reassembly.md citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null

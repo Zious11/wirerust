@@ -74,8 +74,8 @@ behavior -- BPF-style filtering is out of scope for the current release (Section
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- this BC documents an absent CLI flag; the CLI argument surface (including the non-existence of --filter) is what CAP-12 governs |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- this BC documents an absent CLI flag; the CLI argument surface (including the non-existence of --filter) is what CAP-12 governs |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-13 (cli.rs, C-3 -- flag absence documented) |
 | Stories | STORY-096 |

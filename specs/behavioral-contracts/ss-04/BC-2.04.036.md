@@ -92,8 +92,8 @@ No finding is emitted for partial overlaps.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- partial overlap gap-filling is the core of the first-wins TCP reassembly policy |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- partial overlap gap-filling is the core of the first-wins TCP reassembly policy |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- this BC is the primary implementation of that invariant for the partial overlap case) |
 | Architecture Module | SS-04 (reassembly/segment.rs:156-199, C-8) |
 | Stories | STORY-016 |

@@ -85,8 +85,8 @@ rendering uses the reporter layer.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-09 ("Forensic finding emission") per capabilities.md §CAP-09 |
-| Capability Anchor Justification | CAP-09 ("Forensic finding emission") per capabilities.md §CAP-09 -- Display is the raw-text representation of a Finding, part of the CAP-09 emission contract |
+| L2 Capability | CAP-09 ("Forensic finding emission") per domain/capabilities/cap-09-finding-emission.md |
+| Capability Anchor Justification | CAP-09 ("Forensic finding emission") per domain/capabilities/cap-09-finding-emission.md -- Display is the raw-text representation of a Finding, part of the CAP-09 emission contract |
 | L2 Domain Invariants | INV-4 (raw bytes preserved in Display output; no escaping) |
 | Architecture Module | SS-09 (findings.rs, C-14) |
 | Stories | STORY-069 |

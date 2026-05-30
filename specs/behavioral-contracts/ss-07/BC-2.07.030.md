@@ -75,8 +75,8 @@ remains empty.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
-| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- the zero-finding baseline is the most important correctness property of TLS analysis (no false positives) |
+| L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
+| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- the zero-finding baseline is the most important correctness property of TLS analysis (no false positives) |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs, C-13) |
 | Stories | STORY-054 |

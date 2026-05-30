@@ -80,8 +80,8 @@ parsed. The early return is explicit in the source; no fallthrough to the port t
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-03 ("Packet decoding") per capabilities.md §CAP-03 |
-| Capability Anchor Justification | CAP-03 ("Packet decoding") per capabilities.md §CAP-03 -- early-return for no-transport is a CAP-03 decode output contract |
+| L2 Capability | CAP-03 ("Packet decoding") per domain/capabilities/cap-03-packet-decoding.md |
+| Capability Anchor Justification | CAP-03 ("Packet decoding") per domain/capabilities/cap-03-packet-decoding.md -- early-return for no-transport is a CAP-03 decode output contract |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
 | Stories | STORY-004 |

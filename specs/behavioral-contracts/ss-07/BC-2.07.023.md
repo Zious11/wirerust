@@ -75,8 +75,8 @@ No finding is emitted.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
-| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- degenerate empty SNI is an SNI edge case in TLS analysis |
+| L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
+| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- degenerate empty SNI is an SNI edge case in TLS analysis |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification -- arm 1 applies vacuously to empty string) |
 | Architecture Module | SS-07 (analyzer/tls.rs:251-252, C-13) |
 | Stories | STORY-057 |

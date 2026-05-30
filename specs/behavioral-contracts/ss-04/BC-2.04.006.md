@@ -88,8 +88,8 @@ segment buffers; flushing one never affects the other.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- correct direction tagging is a fundamental correctness requirement for protocol analyzers that interpret stream content |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- correct direction tagging is a fundamental correctness requirement for protocol analyzers that interpret stream content |
 | L2 Domain Invariants | INV-1 (FlowKey canonical ordering; direction tagging requires known initiator) |
 | Architecture Module | SS-04 (reassembly/mod.rs:517-533, flush_contiguous_data; flow.rs:214-220, direction()) |
 | Stories | STORY-015 |

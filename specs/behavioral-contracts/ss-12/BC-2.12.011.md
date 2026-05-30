@@ -82,8 +82,8 @@ included.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- resolve_targets (main.rs:340-360) is CAP-12's target-resolution step; choosing which files to read (filtering by .pcap extension, sorting, and expanding directories) is the entry-point orchestration that precedes any ingestion or analysis |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- resolve_targets (main.rs:340-360) is CAP-12's target-resolution step; choosing which files to read (filtering by .pcap extension, sorting, and expanding directories) is the entry-point orchestration that precedes any ingestion or analysis |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | STORY-088 |

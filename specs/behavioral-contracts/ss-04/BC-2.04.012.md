@@ -19,7 +19,7 @@ modified:
   - "v1.4: Pass-5 sibling sweep: corrected `finalized` latch line citation 560 → 561 (off-by-one, line 560 is the closing brace of the re-entry guard; self.finalized = true is at line 561) — 2026-05-27"
   - "v1.5: Pass-8 doctrine shift — re-anchored impl Drop citation from develop-current (706-720) to worktree-post-STORY-021 (794-808). Pre-merge re-anchor doctrine: BCs cited in a story's `bcs:` frontmatter are re-anchored to post-merge line numbers as part of the story's convergence cycle, so the BC anchor is correct from PR-review-time onward. (Was pass-4 develop-anchor doctrine; flipped per F-W11P8-001 adversary feedback to prevent stale-anchor windows during PR review.) — 2026-05-27"
   - "v1.6: W11-D1 fix — replaced bare `—` VP placeholders with explicit N/A markers. No VP in VP-INDEX covers the finalize lifecycle contract; VP-003 covers MAX_FINDINGS cap (BC-2.04.024/054) not finalize itself. — 2026-05-28"
-  - "v1.7: F-DRIFT2A-001 — fixed stale capabilities.md §CAP-04 citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
+  - "v1.7: F-DRIFT2A-001 — fixed stale domain/capabilities/cap-04-tcp-reassembly.md citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null

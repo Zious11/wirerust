@@ -83,8 +83,8 @@ key). This ordering surfaces the highest-severity findings at the top of each ta
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- sorting findings by severity within each tactic bucket is part of the MITRE-grouped reporting output contract |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- sorting findings by severity within each tactic bucket is part of the MITRE-grouped reporting output contract |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
 | Stories | STORY-078 |

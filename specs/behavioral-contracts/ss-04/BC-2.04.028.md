@@ -102,8 +102,8 @@ JSON output across runs.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- summarize() is the observability surface for the TCP reassembly engine's operational statistics |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- summarize() is the observability surface for the TCP reassembly engine's operational statistics |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap -- dropped_findings key makes cap observable) |
 | Architecture Module | SS-04 (reassembly/mod.rs:620-658, C-6) |
 | Stories | STORY-012 |

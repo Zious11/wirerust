@@ -93,8 +93,8 @@ policy. Valid configs always produce a zero-finding, zero-flow, un-finalized ins
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- constructor validation is the entry invariant for the reassembly engine |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- constructor validation is the entry invariant for the reassembly engine |
 | L2 Domain Invariants | None directly (pre-invariant guard) |
 | Architecture Module | SS-04 (reassembly/mod.rs:107-127, C-6) |
 | Stories | STORY-011 |

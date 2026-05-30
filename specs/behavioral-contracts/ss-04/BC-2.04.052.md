@@ -84,8 +84,8 @@ flow state from `New` to `Established` and sets `self.partial = true`. The engin
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- mid-stream join handling is a core requirement for real-world TCP capture analysis |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- mid-stream join handling is a core requirement for real-world TCP capture analysis |
 | L2 Domain Invariants | INV-1 (FlowKey canonical ordering -- initiator is set here for mid-stream flows) |
 | Architecture Module | SS-04 (reassembly/flow.rs:248-253, C-7; reassembly/mod.rs:306-312, C-6) |
 | Stories | STORY-013 |

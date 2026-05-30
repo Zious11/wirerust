@@ -82,8 +82,8 @@ transport-layer detail is available.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-03 ("Packet decoding") per capabilities.md §CAP-03 |
-| Capability Anchor Justification | CAP-03 ("Packet decoding") per capabilities.md §CAP-03 -- Protocol::Other is the CAP-03 degraded-but-safe decode result for unrecognized IP protocols |
+| L2 Capability | CAP-03 ("Packet decoding") per domain/capabilities/cap-03-packet-decoding.md |
+| Capability Anchor Justification | CAP-03 ("Packet decoding") per domain/capabilities/cap-03-packet-decoding.md -- Protocol::Other is the CAP-03 degraded-but-safe decode result for unrecognized IP protocols |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
 | Stories | STORY-004 |

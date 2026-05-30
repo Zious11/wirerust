@@ -101,8 +101,8 @@ cache permanently.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 |
-| Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 -- None-not-cached design allows late content classification for mid-stream-join scenarios |
+| L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md |
+| Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md -- None-not-cached design allows late content classification for mid-stream-join scenarios |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- None is a temporary state, not a permanent classification) |
 | Architecture Module | SS-05 (dispatcher.rs:133-154, C-21) |
 | Stories | STORY-032 |

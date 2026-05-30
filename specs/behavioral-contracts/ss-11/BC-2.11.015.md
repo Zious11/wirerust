@@ -84,8 +84,8 @@ due to an unrecognized technique ID.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- the Uncategorized bucket prevents finding loss; all findings must appear in output regardless of technique catalog coverage |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- the Uncategorized bucket prevents finding loss; all findings must appear in output regardless of technique catalog coverage |
 | L2 Domain Invariants | INV-9 (MITRE Technique ID Format -- IDs not in catalog are not dropped but rendered as unknown) |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
 | Stories | STORY-078 |

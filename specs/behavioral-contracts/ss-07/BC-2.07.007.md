@@ -92,8 +92,8 @@ returns `(md5_hex, ja3_string)` as a pair.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
-| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- JA3 string format is the algorithm defining the fingerprint output |
+| L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
+| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- JA3 string format is the algorithm defining the fingerprint output |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:92-151, C-13) -- compute_ja3 doc-block + function body (doc-block convention per STORY-051 v1.2 Architecture Mapping); format!/Md5::digest at 148-149 |
 | Stories | STORY-051 |

@@ -87,8 +87,8 @@ Known limitation: ALL 22 emission sites set `timestamp: None` (domain-debt O-01)
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-09 ("Forensic finding emission") per capabilities.md §CAP-09 |
-| Capability Anchor Justification | CAP-09 ("Forensic finding emission") per capabilities.md §CAP-09 -- JSON serialization symmetry is a key contract for SIEM consumers of Finding output |
+| L2 Capability | CAP-09 ("Forensic finding emission") per domain/capabilities/cap-09-finding-emission.md |
+| Capability Anchor Justification | CAP-09 ("Forensic finding emission") per domain/capabilities/cap-09-finding-emission.md -- JSON serialization symmetry is a key contract for SIEM consumers of Finding output |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-09 (findings.rs, C-14; reporter/json.rs, C-19) |
 | Stories | STORY-070 |

@@ -75,8 +75,8 @@ multiple times. The cap prevents unbounded memory growth from high-volume HTTP t
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
-| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- uris Vec cap is a memory-bounding mechanism for HTTP analysis statistics |
+| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
+| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- uris Vec cap is a memory-bounding mechanism for HTTP analysis statistics |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
 | Architecture Module | SS-06 (analyzer/http.rs:391-393, C-12) |
 | Stories | STORY-045 |

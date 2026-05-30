@@ -77,8 +77,8 @@ bucketing or sorting. The `## Tactic` section headers are absent from the output
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- the default rendering contract is the baseline terminal output format; the expanded MITRE line format is an opt-in mode |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- the default rendering contract is the baseline terminal output format; the expanded MITRE line format is an opt-in mode |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
 | Stories | STORY-078 |

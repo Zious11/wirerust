@@ -85,8 +85,8 @@ any unhandled variant) -> `TerminalReporter`.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- resolve_format (main.rs:304-320) is CAP-12's output-channel selection step; it reads CLI flag state and returns the reporter variant to instantiate; this is entry-point orchestration (choosing which reporter to create), not the reporter's own rendering logic |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- resolve_format (main.rs:304-320) is CAP-12's output-channel selection step; it reads CLI flag state and returns the reporter variant to instantiate; this is entry-point orchestration (choosing which reporter to create), not the reporter's own rendering logic |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | STORY-089 |

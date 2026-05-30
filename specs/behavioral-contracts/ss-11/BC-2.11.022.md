@@ -96,8 +96,8 @@ applies RFC 4180 quoting if the joined string contains commas, quotes, or newlin
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- this BC defines how multi-valued evidence is encoded for the spreadsheet-oriented CSV output channel |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- this BC defines how multi-valued evidence is encoded for the spreadsheet-oriented CSV output channel |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- individual evidence strings contain raw bytes; encoding/joining is a display-layer decision) |
 | Architecture Module | SS-11 (reporter/csv.rs:81) |
 | Stories | STORY-079 |

@@ -91,8 +91,8 @@ resets to false within the flow's lifetime (INV-8).
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-06 ("HTTP traffic analysis") per capabilities.md §CAP-06 |
-| Capability Anchor Justification | CAP-06 ("HTTP traffic analysis") per capabilities.md §CAP-06 -- HTTP poisoning state machine is the resilience mechanism for non-HTTP traffic in HTTP-dispatched flows |
+| L2 Capability | CAP-06 ("HTTP traffic analysis") per domain/capabilities/cap-06-http-analysis.md |
+| Capability Anchor Justification | CAP-06 ("HTTP traffic analysis") per domain/capabilities/cap-06-http-analysis.md -- HTTP poisoning state machine is the resilience mechanism for non-HTTP traffic in HTTP-dispatched flows |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true) |
 | Architecture Module | SS-06 (analyzer/http.rs:408-409, C-12) |
 | Stories | STORY-044 |

@@ -83,8 +83,8 @@ no guard: a RST from `New`, `SynSent`, `Established`, `Closing`, or `Closed` all
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- RST handling is a critical TCP lifecycle event in the reassembly engine |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- RST handling is a critical TCP lifecycle event in the reassembly engine |
 | L2 Domain Invariants | INV-7 (Finalize-once latch -- RST is one of the paths that triggers close_flow, which is also called by finalize) |
 | Architecture Module | SS-04 (reassembly/flow.rs:264-266, C-7; reassembly/mod.rs:273-279, C-6) |
 | Stories | STORY-013 |

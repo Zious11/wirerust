@@ -86,8 +86,8 @@ and unescaping will recover the original raw bytes.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- this BC defines the JSON escaping contract that downstream tooling relies on to safely decode attacker-controlled bytes from packet payloads |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- this BC defines the JSON escaping contract that downstream tooling relies on to safely decode attacker-controlled bytes from packet payloads |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- serde_json is the display layer for JSON; no escape at Finding construction) |
 | Architecture Module | SS-11 (reporter/json.rs, C-19) |
 | Stories | STORY-076 |

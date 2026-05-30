@@ -88,8 +88,8 @@ delivered (truncated) to the handler; the `depth_exceeded` flag is set on the di
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- depth truncation signaling is part of the bounded-resource forensic contract |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- depth truncation signaling is part of the bounded-resource forensic contract |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap) |
 | Architecture Module | SS-04 (reassembly/lifecycle.rs:120-136, generate_truncated_finding; mod.rs:383-385, Truncated match arm) |
 | Stories | STORY-018 |

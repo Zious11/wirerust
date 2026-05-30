@@ -97,8 +97,8 @@ both `total_memory <= memcap` AND `flows.len() <= max_flows`.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- flow table eviction is required to bound concurrent flow count |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- flow table eviction is required to bound concurrent flow count |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-04 (reassembly/mod.rs:225-235, get_or_create_flow; lifecycle.rs:67-92, evict_flows) |
 | Stories | STORY-020 |

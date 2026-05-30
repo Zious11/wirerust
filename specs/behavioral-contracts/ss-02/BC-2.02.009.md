@@ -88,8 +88,8 @@ truncated length mismatches, not for absent IP layers.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 |
-| Capability Anchor Justification | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 -- non-IP frame rejection is part of the decode gate that limits processing to IP traffic |
+| L2 Capability | CAP-02 ("Link-type gating") per domain/capabilities/cap-02-link-type-gating.md |
+| Capability Anchor Justification | CAP-02 ("Link-type gating") per domain/capabilities/cap-02-link-type-gating.md -- non-IP frame rejection is part of the decode gate that limits processing to IP traffic |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
 | Stories | STORY-003 |

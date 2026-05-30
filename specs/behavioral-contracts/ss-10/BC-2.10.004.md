@@ -77,8 +77,8 @@ enforcement.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-10 ("MITRE ATT&CK mapping") per capabilities.md §CAP-10 |
-| Capability Anchor Justification | CAP-10 ("MITRE ATT&CK mapping") per capabilities.md §CAP-10 -- completeness of tactic enumeration is a correctness property of the MITRE mapping capability |
+| L2 Capability | CAP-10 ("MITRE ATT&CK mapping") per domain/capabilities/cap-10-mitre-mapping.md |
+| Capability Anchor Justification | CAP-10 ("MITRE ATT&CK mapping") per domain/capabilities/cap-10-mitre-mapping.md -- completeness of tactic enumeration is a correctness property of the MITRE mapping capability |
 | L2 Domain Invariants | INV-9 (MITRE technique ID format) |
 | Architecture Module | SS-10 (mitre.rs, C-16) |
 | Stories | STORY-071 |

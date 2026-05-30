@@ -88,8 +88,8 @@ is routine for cron jobs and microservices. No MITRE technique ID is assigned.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
-| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- empty User-Agent detection is one of the HTTP anomaly findings; absent-UA non-detection is an intentional design choice |
+| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
+| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- empty User-Agent detection is one of the HTTP anomaly findings; absent-UA non-detection is an intentional design choice |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
 | Architecture Module | SS-06 (analyzer/http.rs:344-356, C-12) |
 | Stories | STORY-043 |

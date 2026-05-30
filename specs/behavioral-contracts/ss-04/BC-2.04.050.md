@@ -97,8 +97,8 @@ States not in the table are unchanged (no-op).
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- the TCP flow state machine is the lifecycle management core of the reassembly engine |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- the TCP flow state machine is the lifecycle management core of the reassembly engine |
 | L2 Domain Invariants | INV-7 (Finalize-once latch -- the state machine drives flow close events that finalize calls) |
 | Architecture Module | SS-04 (reassembly/flow.rs:236-266, C-7) |
 | Stories | STORY-013 |

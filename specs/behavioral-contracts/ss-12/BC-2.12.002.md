@@ -79,8 +79,8 @@ removed. Global flags from the `Cli` struct apply to this subcommand as well.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the summary subcommand declaration (Commands::Summary variant, required targets, --hosts flag) is CLI orchestration owned by CAP-12; it is the lighter entry-point path in main.rs that runs run_summary without stream analyzers |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- the summary subcommand declaration (Commands::Summary variant, required targets, --hosts flag) is CLI orchestration owned by CAP-12; it is the lighter entry-point path in main.rs that runs run_summary without stream analyzers |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (cli.rs, C-3) |
 | Stories | STORY-086 |

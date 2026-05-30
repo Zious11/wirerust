@@ -88,8 +88,8 @@ routing, summary statistics, and the content-first dispatch fallback (BC-2.05.00
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-03 ("Packet decoding") per capabilities.md §CAP-03 |
-| Capability Anchor Justification | CAP-03 ("Packet decoding") per capabilities.md §CAP-03 -- app_protocol_hint is a decode-layer enrichment function providing the service-name label downstream consumers (dispatcher, summary) need |
+| L2 Capability | CAP-03 ("Packet decoding") per domain/capabilities/cap-03-packet-decoding.md |
+| Capability Anchor Justification | CAP-03 ("Packet decoding") per domain/capabilities/cap-03-packet-decoding.md -- app_protocol_hint is a decode-layer enrichment function providing the service-name label downstream consumers (dispatcher, summary) need |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
 | Stories | STORY-004 |

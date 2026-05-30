@@ -85,8 +85,8 @@ segment data under its ISN-relative byte offset key in the `BTreeMap`, and incre
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- single segment insertion is the base case of TCP reassembly's segment buffering |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- single segment insertion is the base case of TCP reassembly's segment buffering |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- this BC is the no-overlap baseline that all overlap variants are compared against) |
 | Architecture Module | SS-04 (reassembly/segment.rs:214-231, C-8) |
 | Stories | STORY-015 |

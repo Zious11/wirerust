@@ -81,8 +81,8 @@ each flow contributes at most 1 to `non_http_flows`.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
-| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- per-flow non_http_flows counting is part of HTTP analysis statistics |
+| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
+| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- per-flow non_http_flows counting is part of HTTP analysis statistics |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true -- counted_as_non_http latch is part of this) |
 | Architecture Module | SS-06 (analyzer/http.rs:410-413, C-12) |
 | Stories | STORY-044 |

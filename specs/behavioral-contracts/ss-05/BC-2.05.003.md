@@ -18,7 +18,7 @@ modified:
   - v1.3: Pass-2 BC pre-merge re-anchor (per DF-SIBLING-SWEEP-001 v2 codified W11.L1) — updated stale test citation test_dispatcher_port_fallback_short_data (non-existent) → test_port_fallback_443_to_tls, test_port_fallback_8443_to_tls, test_port_fallback_80_to_http, test_port_fallback_8080_to_http (the four tests that cover port fallback in STORY-031). Discovered in sibling sweep. — 2026-05-27
   - v1.4: Pass-4 anchor-completeness sweep (DF-SIBLING-SWEEP-001 v2, doctrine application extended from pass-3 BC-2.05.002 to siblings BC-2.05.001 + BC-2.05.003). Added test_port_fallback_uses_canonical_port_ordering (INV-1 TLS-port-first + INV-2 canonical-ordering lookup), test_http_content_on_port_443_routes_to_http (INV-3 content-first precedence over port fallback) to VP-004 table and Architecture Anchors. Closes F-W12P4-001. — 2026-05-27
   - v1.5: W12-D2 EC table inline test citations added (DF-SIBLING-SWEEP-001 v3) — added `covered by` test citations to EC-001 through EC-005 matching sibling BC-2.05.002 style. Closes W12-D2. — 2026-05-28
-  - v1.6: F-DRIFT2A-001 — fixed stale capabilities.md §CAP-05 citation to domain/capabilities/cap-05-content-first-dispatch.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29
+  - v1.6: F-DRIFT2A-001 — fixed stale domain/capabilities/cap-05-content-first-dispatch.md citation to domain/capabilities/cap-05-content-first-dispatch.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29
 deprecated: null
 deprecated_by: null
 replacement: null

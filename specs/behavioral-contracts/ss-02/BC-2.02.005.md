@@ -85,8 +85,8 @@ is a first-class supported protocol, not a degraded path.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 |
-| Capability Anchor Justification | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 -- IPv6 support is part of the 5-element accepted link-type whitelist |
+| L2 Capability | CAP-02 ("Link-type gating") per domain/capabilities/cap-02-link-type-gating.md |
+| Capability Anchor Justification | CAP-02 ("Link-type gating") per domain/capabilities/cap-02-link-type-gating.md -- IPv6 support is part of the 5-element accepted link-type whitelist |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
 | Stories | STORY-002 |

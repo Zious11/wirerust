@@ -82,8 +82,8 @@ failing entirely.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the decode-error handling loop (main.rs:165-173) and the summary.skipped_packets assignment (main.rs:183) are inside run_analyze / run_summary, which are CAP-12's per-target packet-processing loops; counting and suppressing decode errors is an entry-point orchestration responsibility |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- the decode-error handling loop (main.rs:165-173) and the summary.skipped_packets assignment (main.rs:183) are inside run_analyze / run_summary, which are CAP-12's per-target packet-processing loops; counting and suppressing decode errors is an entry-point orchestration responsibility |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | STORY-089 |

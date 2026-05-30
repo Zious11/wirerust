@@ -77,8 +77,8 @@ captures where no Ethernet framing is present.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 |
-| Capability Anchor Justification | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 -- RAW link-type handling is part of the 5-element link-type acceptance whitelist |
+| L2 Capability | CAP-02 ("Link-type gating") per domain/capabilities/cap-02-link-type-gating.md |
+| Capability Anchor Justification | CAP-02 ("Link-type gating") per domain/capabilities/cap-02-link-type-gating.md -- RAW link-type handling is part of the 5-element link-type acceptance whitelist |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
 | Stories | STORY-002 |

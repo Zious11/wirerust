@@ -88,8 +88,8 @@ as ready to accept data segments.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- SYN+ACK handling completes the handshake model and enables bidirectional data reassembly |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- SYN+ACK handling completes the handshake model and enables bidirectional data reassembly |
 | L2 Domain Invariants | INV-1 (FlowKey canonical ordering -- initiator identity set here) |
 | Architecture Module | SS-04 (reassembly/mod.rs:265-271, apply_handshake_flags; flow.rs:242-246) |
 | Stories | STORY-013 |

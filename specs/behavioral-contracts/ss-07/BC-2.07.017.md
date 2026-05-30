@@ -92,8 +92,8 @@ preserved in the finding (ADR 0003 / INV-4).
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
-| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- non-ASCII UTF-8 SNI detection is arm 3 of the SNI 4-way classification |
+| L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
+| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- non-ASCII UTF-8 SNI detection is arm 3 of the SNI 4-way classification |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification ordered match), INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:257-260, 449-467, C-13) |
 | Stories | STORY-056 |

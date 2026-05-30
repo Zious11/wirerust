@@ -86,8 +86,8 @@ require reassembled streams).
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the needs_reassembly computation and the --no-reassemble override warning (main.rs:87-94) are entry-point wiring decisions: they determine which pipeline components are constructed before packet processing begins, which is the core orchestration responsibility of CAP-12 |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- the needs_reassembly computation and the --no-reassemble override warning (main.rs:87-94) are entry-point wiring decisions: they determine which pipeline components are constructed before packet processing begins, which is the core orchestration responsibility of CAP-12 |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | STORY-088 |

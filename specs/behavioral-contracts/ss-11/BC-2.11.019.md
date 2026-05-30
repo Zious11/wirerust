@@ -88,8 +88,8 @@ section per `AnalysisSummary`. This order is documented in the module and verifi
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- the section order of the terminal report is a documented output structure contract that downstream grep-based pipelines depend on |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- the section order of the terminal report is a documented output structure contract that downstream grep-based pipelines depend on |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
 | Stories | STORY-078 |

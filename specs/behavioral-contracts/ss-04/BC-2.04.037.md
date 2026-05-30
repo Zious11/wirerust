@@ -88,8 +88,8 @@ in `mod.rs` then emits an `Anomaly/Likely/High` finding tagged T1036.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- ConflictingOverlap detection is the primary forensic signal of TCP evasion in the reassembly engine |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- ConflictingOverlap detection is the primary forensic signal of TCP evasion in the reassembly engine |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- ConflictingOverlap is the canonical enforcement point) |
 | Architecture Module | SS-04 (reassembly/segment.rs:142-154, C-8) |
 | Stories | STORY-017 |

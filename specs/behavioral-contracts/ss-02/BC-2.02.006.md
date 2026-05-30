@@ -85,8 +85,8 @@ same `ParsedPacket` structure as Ethernet and RAW paths.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 |
-| Capability Anchor Justification | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 -- LINUX_SLL is one of the 5 accepted link types; its decode path is the subject of this BC |
+| L2 Capability | CAP-02 ("Link-type gating") per domain/capabilities/cap-02-link-type-gating.md |
+| Capability Anchor Justification | CAP-02 ("Link-type gating") per domain/capabilities/cap-02-link-type-gating.md -- LINUX_SLL is one of the 5 accepted link types; its decode path is the subject of this BC |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
 | Stories | STORY-003 |

@@ -87,8 +87,8 @@ corresponding fields set. Global flags (from the `Cli` struct) are available in 
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- the analyze subcommand definition (argument parsing, flag defaults, required targets) is precisely the CLI orchestration concern owned by CAP-12: cli.rs declares the Commands::Analyze variant and clap parses it at the L0 entry layer |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- the analyze subcommand definition (argument parsing, flag defaults, required targets) is precisely the CLI orchestration concern owned by CAP-12: cli.rs declares the Commands::Analyze variant and clap parses it at the L0 entry layer |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (cli.rs, C-3) |
 | Stories | STORY-086 |

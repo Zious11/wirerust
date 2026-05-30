@@ -89,8 +89,8 @@ normal TCP retransmission path.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- duplicate retransmission handling is part of the first-wins overlap policy |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- duplicate retransmission handling is part of the first-wins overlap policy |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- Duplicate is the benign case where the first-wins bytes happen to match the retransmitted bytes) |
 | Architecture Module | SS-04 (reassembly/segment.rs:142-154, C-8) |
 | Stories | STORY-016 |

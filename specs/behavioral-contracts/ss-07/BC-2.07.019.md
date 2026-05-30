@@ -90,8 +90,8 @@ with `Anomaly/Inconclusive/Low` and MITRE T1027.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
-| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- non-UTF-8 SNI detection is arm 4 of the SNI 4-way classification |
+| L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
+| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- non-UTF-8 SNI detection is arm 4 of the SNI 4-way classification |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification), INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:261-264, 410-415, 469-488, C-13) |
 | Stories | STORY-056 |

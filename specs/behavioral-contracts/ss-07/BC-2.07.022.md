@@ -74,8 +74,8 @@ degenerate case of an SNI extension header present but with an empty name list.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
-| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- empty SNI list handling is an SNI edge case in TLS analysis |
+| L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
+| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- empty SNI list handling is an SNI edge case in TLS analysis |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification -- None return is outside the 4 arms) |
 | Architecture Module | SS-07 (analyzer/tls.rs:247-249, C-13) |
 | Stories | STORY-057 |

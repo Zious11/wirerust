@@ -16,7 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-05-28): F-W15P6-D01 reciprocal Related-BCs fix — added cross-reference to BC-2.06.004 (response-side had_success guard; both BCs anchor the same suppression design on their respective parse paths). Closes F-W15P6-D01 (020→004 direction)."
-  - "v1.4 (2026-05-29): F-DRIFT2A-001 — fixed stale capabilities.md §CAP-06 citation to domain/capabilities/cap-06-http-analysis.md in L2 Capability and Capability Anchor Justification rows."
+  - "v1.4 (2026-05-29): F-DRIFT2A-001 — fixed stale domain/capabilities/cap-06-http-analysis.md citation to domain/capabilities/cap-06-http-analysis.md in L2 Capability and Capability Anchor Justification rows."
 deprecated: null
 deprecated_by: null
 replacement: null

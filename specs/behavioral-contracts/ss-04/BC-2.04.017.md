@@ -83,8 +83,8 @@ termination conditions are met. The sort is computed fresh on every `evict_flows
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- eviction ordering policy is part of the memory management contract |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- eviction ordering policy is part of the memory management contract |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-04 (reassembly/lifecycle.rs:78-84, sort comparator) |
 | Stories | STORY-020 |

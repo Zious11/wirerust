@@ -100,8 +100,8 @@ contract.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and output") per capabilities.md §CAP-11 -- terminal escaping is the display-layer safety contract that completes the raw-data pipeline |
+| L2 Capability | CAP-11 ("Reporting and output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and output") per domain/capabilities/cap-11-reporting-output.md -- terminal escaping is the display-layer safety contract that completes the raw-data pipeline |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation -- TerminalReporter is the sole escape owner) |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
 | Stories | STORY-077 |

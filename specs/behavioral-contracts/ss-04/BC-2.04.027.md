@@ -88,8 +88,8 @@ distinct from `Truncated` events (partial insertion).
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- depth-exceeded tracking enables observability of segments dropped by the depth bound |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- depth-exceeded tracking enables observability of segments dropped by the depth bound |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-04 (reassembly/mod.rs:387-389, DepthExceeded match arm; segment.rs:80-86, DepthExceeded check) |
 | Stories | STORY-018 |

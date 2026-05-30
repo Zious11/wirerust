@@ -78,8 +78,8 @@ counts, and separate poison flags.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
-| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- per-direction poisoning isolation is required for correct HTTP analysis in bidirectional flows |
+| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
+| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- per-direction poisoning isolation is required for correct HTTP analysis in bidirectional flows |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true -- per direction) |
 | Architecture Module | SS-06 (analyzer/http.rs:509-523, C-12) |
 | Stories | STORY-044 |

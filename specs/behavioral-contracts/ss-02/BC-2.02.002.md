@@ -82,8 +82,8 @@ This BC covers the UDP decode path including the DNS-port case.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 |
-| Capability Anchor Justification | CAP-02 ("Link-type gating") per capabilities.md §CAP-02 -- UDP decode is part of the packet decoder that gates on link type |
+| L2 Capability | CAP-02 ("Link-type gating") per domain/capabilities/cap-02-link-type-gating.md |
+| Capability Anchor Justification | CAP-02 ("Link-type gating") per domain/capabilities/cap-02-link-type-gating.md -- UDP decode is part of the packet decoder that gates on link type |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
 | Stories | STORY-002 |

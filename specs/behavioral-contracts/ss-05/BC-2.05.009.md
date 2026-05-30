@@ -90,8 +90,8 @@ and closed by STORY-033 via `test_BC_2_05_009_flow_close_forwards_to_http_analyz
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 |
-| Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 -- on_flow_close cleans up per-flow dispatcher state and propagates close events to wrapped analyzers |
+| L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md |
+| Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md -- on_flow_close cleans up per-flow dispatcher state and propagates close events to wrapped analyzers |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- route removal ensures clean per-flow lifecycle) |
 | Architecture Module | SS-05 (dispatcher.rs:171-194, C-21) |
 | Stories | STORY-033 |

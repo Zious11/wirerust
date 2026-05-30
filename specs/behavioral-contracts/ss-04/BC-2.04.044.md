@@ -83,8 +83,8 @@ is returned. No data is inserted and no counters other than `stats.segments_segm
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- segment limit enforcement is the BTreeMap-overflow protection in the TCP reassembly buffer |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- segment limit enforcement is the BTreeMap-overflow protection in the TCP reassembly buffer |
 | L2 Domain Invariants | INV-6 (bounded-resource design -- max_segments_per_direction caps the BTreeMap size) |
 | Architecture Module | SS-04 (reassembly/segment.rs:70-72, C-8) |
 | Stories | STORY-018 |

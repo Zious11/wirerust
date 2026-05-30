@@ -84,8 +84,8 @@ the remediation cycle.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- write_output (main.rs:322-338) routes the already-rendered string to a file or stdout based on CLI flag state; this delivery-routing decision is CAP-12's output-channel responsibility, distinct from CAP-11's rendering of the string itself |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- write_output (main.rs:322-338) routes the already-rendered string to a file or stdout based on CLI flag state; this delivery-routing decision is CAP-12's output-channel responsibility, distinct from CAP-11's rendering of the string itself |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | STORY-089 |

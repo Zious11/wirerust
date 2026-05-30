@@ -85,8 +85,8 @@ or with an ID not present in the technique catalog.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- the MITRE tactic grouping rendering is a key differentiator in the terminal output mode that organizes forensic findings by attack phase |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- the MITRE tactic grouping rendering is a key differentiator in the terminal output mode that organizes forensic findings by attack phase |
 | L2 Domain Invariants | INV-9 (MITRE Technique ID Format -- technique IDs that fail catalog lookup go to Uncategorized) |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
 | Stories | STORY-078 |

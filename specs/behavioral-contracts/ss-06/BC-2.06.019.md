@@ -79,8 +79,8 @@ their zero/false values.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 |
-| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per capabilities.md §CAP-06 -- flow state cleanup on close is required for correct per-flow HTTP analysis lifecycle |
+| L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
+| Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- flow state cleanup on close is required for correct per-flow HTTP analysis lifecycle |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true -- on_flow_close is the ONLY reset path) |
 | Architecture Module | SS-06 (analyzer/http.rs:540-542, C-12) |
 | Stories | STORY-045 |

@@ -83,8 +83,8 @@ This BC defines the precise predicate boundary for the AsciiWithControl arm.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
-| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- precise predicate boundary definition is load-bearing for SNI classification accuracy |
+| L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
+| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- precise predicate boundary definition is load-bearing for SNI classification accuracy |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification ordered match) |
 | Architecture Module | SS-07 (analyzer/tls.rs:231-238, C-13) |
 | Stories | STORY-055 |

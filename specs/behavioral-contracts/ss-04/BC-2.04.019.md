@@ -17,7 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: 2026-05-26 | product-owner | Wave 10 STORY-017 pass-1 F-002 (sibling-regression of BC-2.04.022 v1.4 anchor fix): LESSON-P1.01 anchor mod.rs:420-426 → :413-419 (line range previously contained LESSON-P2.05). Sibling sweep across other SS-04 BCs performed."
   - "v1.4: W10-D3 fix — overlap if-block anchor corrected from 430-449 → 430-450 at all 3 sites (Traceability, Architecture Anchors, Source Evidence). The closing `}` of the if-block is at mod.rs:450, confirmed against source. — 2026-05-28"
-  - "v1.5: F-DRIFT2A-001 — fixed stale capabilities.md §CAP-04 citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
+  - "v1.5: F-DRIFT2A-001 — fixed stale domain/capabilities/cap-04-tcp-reassembly.md citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
 deprecated: null
 deprecated_by: null
 replacement: null

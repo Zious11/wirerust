@@ -87,8 +87,8 @@ handled by the same `fully_covered` check that handles single-segment coverage.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- multi-segment coverage handling is part of the first-wins overlap policy completeness |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- multi-segment coverage handling is part of the first-wins overlap policy completeness |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- applies identically to multi-segment coverage as to single-segment coverage) |
 | Architecture Module | SS-04 (reassembly/segment.rs:201-212, C-8) |
 | Stories | STORY-016 |

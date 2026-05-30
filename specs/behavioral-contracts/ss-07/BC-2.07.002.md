@@ -107,8 +107,8 @@ See EC-004 and BC-2.07.012 EC-004.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
-| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- ServerHello parsing and JA3S fingerprinting is a core TLS analysis capability |
+| L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
+| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- ServerHello parsing and JA3S fingerprinting is a core TLS analysis capability |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation) |
 | Architecture Module | SS-07 (analyzer/tls.rs:542-604, C-13) |
 | Stories | STORY-053 |

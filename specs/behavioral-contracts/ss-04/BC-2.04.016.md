@@ -98,8 +98,8 @@ distinct from the max_flows-triggered path in `get_or_create_flow`. Both paths c
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- memcap eviction bounds total memory use, a core resource constraint |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- memcap eviction bounds total memory use, a core resource constraint |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-04 (reassembly/mod.rs:176-179, memcap check; lifecycle.rs:67-92, evict_flows) |
 | Stories | STORY-020 |

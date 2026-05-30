@@ -98,8 +98,8 @@ FIN also transitions the state toward `Closing`.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- FIN-based flow close is required for correct TCP lifecycle management |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- FIN-based flow close is required for correct TCP lifecycle management |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-04 (reassembly/mod.rs:165-174, FIN-close detection; mod.rs:281-287, FIN flag block; flow.rs:255-262, on_fin) |
 | Stories | STORY-019 |

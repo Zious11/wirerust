@@ -79,8 +79,8 @@ transport-layer detail.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-03 ("Packet decoding") per capabilities.md §CAP-03 |
-| Capability Anchor Justification | CAP-03 ("Packet decoding") per capabilities.md §CAP-03 -- ICMP classification is part of the L2-L4 header parsing that CAP-03 describes; per architect CAP-03 is merged into SS-02 |
+| L2 Capability | CAP-03 ("Packet decoding") per domain/capabilities/cap-03-packet-decoding.md |
+| Capability Anchor Justification | CAP-03 ("Packet decoding") per domain/capabilities/cap-03-packet-decoding.md -- ICMP classification is part of the L2-L4 header parsing that CAP-03 describes; per architect CAP-03 is merged into SS-02 |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-02 (decoder.rs, C-5) |
 | Stories | STORY-004 |

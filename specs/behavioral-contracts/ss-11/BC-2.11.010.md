@@ -83,8 +83,8 @@ summary line or any supporting evidence detail -- cannot inject terminal control
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- the requirement to escape both summary AND evidence is the complete terminal injection defense for Finding display |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- the requirement to escape both summary AND evidence is the complete terminal injection defense for Finding display |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- both sub-fields of Finding are raw data that must be escaped at display) |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
 | Stories | STORY-077 |

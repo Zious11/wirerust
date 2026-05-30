@@ -107,8 +107,8 @@ through `neutralize_csv_injection` before the csv write.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- this BC defines the encoding convention for optional Finding fields in the CSV channel, directly determining what analysts see in their spreadsheet for absent data |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- this BC defines the encoding convention for optional Finding fields in the CSV channel, directly determining what analysts see in their spreadsheet for absent data |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- direction and timestamp are formatted at render time; the raw Finding carries Option<T>) |
 | Architecture Module | SS-11 (reporter/csv.rs:82-97) |
 | Stories | STORY-080 |

@@ -87,8 +87,8 @@ the flow and the classification_attempts counter entry is removed.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 |
-| Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 -- DispatchTarget::None is the defined fallthrough for flows that match no classification rule |
+| L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md |
+| Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md -- DispatchTarget::None is the defined fallthrough for flows that match no classification rule |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- None is the explicit non-match result) |
 | Architecture Module | SS-05 (dispatcher.rs:116, 136, 137-148, 149-151, C-21) |
 | Stories | STORY-032 |

@@ -98,8 +98,8 @@ despite being on the `pub` API (required because integration tests are separate 
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- the ISN_MISSING_WARNED atomic is the observability mechanism for a programming-error guard in TCP reassembly |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- the ISN_MISSING_WARNED atomic is the observability mechanism for a programming-error guard in TCP reassembly |
 | L2 Domain Invariants | INV-6 (related -- the one-shot warning pattern prevents stderr flooding, analogous to the one-shot warning for finalize-skip) |
 | Architecture Module | SS-04 (reassembly/segment.rs:16, C-8) |
 | Stories | STORY-014 |

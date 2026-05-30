@@ -102,8 +102,8 @@ cardinality.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
-| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- weak client cipher detection is one of the 7 TLS anomaly findings described in cap-07 |
+| L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
+| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- weak client cipher detection is one of the 7 TLS anomaly findings described in cap-07 |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation -- cipher names stored as raw strings) |
 | Architecture Module | SS-07 (analyzer/tls.rs:497-517, C-13) |
 | Stories | STORY-054 |

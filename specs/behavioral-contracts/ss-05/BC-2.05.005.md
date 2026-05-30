@@ -84,8 +84,8 @@ cache-hit path and would catch a regression that broke cache lookup while leavin
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-05 ("Content-first protocol dispatch") per capabilities.md §CAP-05 |
-| Capability Anchor Justification | CAP-05 ("Content-first protocol dispatch") per capabilities.md §CAP-05 -- caching is the efficiency mechanism for per-flow classification state |
+| L2 Capability | CAP-05 ("Content-first protocol dispatch") per domain/capabilities/cap-05-content-first-dispatch.md |
+| Capability Anchor Justification | CAP-05 ("Content-first protocol dispatch") per domain/capabilities/cap-05-content-first-dispatch.md -- caching is the efficiency mechanism for per-flow classification state |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- once classified, the decision is sticky) |
 | Architecture Module | SS-05 (dispatcher.rs:133-154, C-21) |
 | Stories | STORY-032 |

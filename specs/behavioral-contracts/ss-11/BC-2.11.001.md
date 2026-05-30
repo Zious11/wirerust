@@ -89,8 +89,8 @@ by `serde_json::to_string_pretty`. The `unwrap()` call is infallible by construc
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- this BC defines the machine-readable JSON output shape that is the primary API surface of the reporting capability |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- this BC defines the machine-readable JSON output shape that is the primary API surface of the reporting capability |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- JsonReporter does not escape, delegates to serde_json per ADR 0003) |
 | Architecture Module | SS-11 (reporter/json.rs, C-19) |
 | Stories | STORY-076 |

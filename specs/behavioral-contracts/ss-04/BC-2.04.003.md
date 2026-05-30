@@ -84,8 +84,8 @@ therefore map to the same flow entry. This is INV-1 and is load-bearing for the 
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- canonical FlowKey ordering is the identity contract underpinning the entire reassembly engine's flow table |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- canonical FlowKey ordering is the identity contract underpinning the entire reassembly engine's flow table |
 | L2 Domain Invariants | INV-1 (FlowKey canonical ordering) |
 | Architecture Module | SS-04 (reassembly/flow.rs, C-7) |
 | Stories | STORY-011 |

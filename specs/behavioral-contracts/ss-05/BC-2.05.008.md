@@ -17,7 +17,7 @@ modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: W14 Pass 1 remediation: VP confidence uplift (inferred→concrete tests), Architecture Anchors concrete, Evidence Types overhaul — 2026-05-28
   - v1.4: W14-D2 EC-002 disambiguation — rewrote ambiguous EC-002 description to precisely state the input trigger (`http=Some, tls=None; TLS-signature bytes 0x16 0x03`) and the actual path taken (classify fires, returns DispatchTarget::Tls via content match, NOT port-fallback; tls=None so no data forwarded). Removes "may route None" ambiguity. Closes W14-D2. — 2026-05-28
-  - v1.5: F-DRIFT2A-001 — fixed stale capabilities.md §CAP-05 citation to domain/capabilities/cap-05-content-first-dispatch.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29
+  - v1.5: F-DRIFT2A-001 — fixed stale domain/capabilities/cap-05-content-first-dispatch.md citation to domain/capabilities/cap-05-content-first-dispatch.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29
 deprecated: null
 deprecated_by: null
 replacement: null

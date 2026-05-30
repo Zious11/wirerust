@@ -83,8 +83,8 @@ prevent overflow when `base_offset + max_receive_window` would exceed `u64::MAX`
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- out-of-window segment rejection enforces the forward receive window resource bound |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- out-of-window segment rejection enforces the forward receive window resource bound |
 | L2 Domain Invariants | INV-6 (bounded-resource design -- max_receive_window prevents accepting arbitrarily far-ahead segments) |
 | Architecture Module | SS-04 (reassembly/segment.rs:63-67, C-8) |
 | Stories | STORY-018 |

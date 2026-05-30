@@ -88,8 +88,8 @@ or incrementing dropped_findings again. This is LESSON-P1.01 (LESSON-P0.03 in ol
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- the sticky latch is the resource-bounding mechanism for the three anomaly detectors |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- the sticky latch is the resource-bounding mechanism for the three anomaly detectors |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap; dropped_findings observability) |
 | Architecture Module | SS-04 (reassembly/mod.rs:420-513, check_anomaly_thresholds; flow.rs:86-108, FlowDirection fields) |
 | Stories | STORY-017 |

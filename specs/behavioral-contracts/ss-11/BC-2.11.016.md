@@ -79,8 +79,8 @@ render as `MITRE: <id> (unknown)`.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- the expanded MITRE line format with em-dash and technique name is a documented output encoding contract that downstream grep-based pipelines must account for |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- the expanded MITRE line format with em-dash and technique name is a documented output encoding contract that downstream grep-based pipelines must account for |
 | L2 Domain Invariants | INV-9 (MITRE Technique ID Format -- the expansion uses the catalog's name mapping) |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
 | Stories | STORY-078 |

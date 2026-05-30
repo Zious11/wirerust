@@ -87,8 +87,8 @@ ascending offset order.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- flush_contiguous is the mechanism by which reassembled data is delivered; it is the output contract of TCP stream reassembly |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- flush_contiguous is the mechanism by which reassembled data is delivered; it is the output contract of TCP stream reassembly |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy -- data flushed is the already-buffered first-wins bytes) |
 | Architecture Module | SS-04 (reassembly/segment.rs:234-248, C-8) |
 | Stories | STORY-015 |

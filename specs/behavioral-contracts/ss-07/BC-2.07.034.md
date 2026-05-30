@@ -16,7 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-05-28): F-W16-S052-P5-001 anchor tightening — replaced coarse `718-724` with precise line citations in Invariant-1 prose, Architecture Anchors, and Source Evidence: done-check at tls.rs:721 (`let done = self.flows.get(flow_key).is_some_and(...)`), early return at tls.rs:723 (`return;`). Matches sibling BC-2.07.003 v1.3 precision. Verified against src/analyzer/tls.rs:718-724. Closes F-W16-S052-P5-001. — 2026-05-28"
-  - "v1.4 (2026-05-29): F-DRIFT2A-001 + F-DRIFT2A-003 (LOW) — fixed stale capabilities.md §CAP-07 citation to domain/capabilities/cap-07-tls-analysis.md; corrected invariant-1 `if done { return; }` prose to cite guard line 722 and return line 723 separately (the guard `if done {` is at tls.rs:722, `return;` is at tls.rs:723)."
+  - "v1.4 (2026-05-29): F-DRIFT2A-001 + F-DRIFT2A-003 (LOW) — fixed stale domain/capabilities/cap-07-tls-analysis.md citation to domain/capabilities/cap-07-tls-analysis.md; corrected invariant-1 `if done { return; }` prose to cite guard line 722 and return line 723 separately (the guard `if done {` is at tls.rs:722, `return;` is at tls.rs:723)."
 deprecated: null
 deprecated_by: null
 replacement: null

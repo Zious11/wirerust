@@ -91,8 +91,8 @@ analyst scripts) can rely on positional column indices without schema discovery.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- this BC defines the CSV output column schema that is the fixed API surface of the CsvReporter, directly implementing the reporting output capability |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- this BC defines the CSV output column schema that is the fixed API surface of the CsvReporter, directly implementing the reporting output capability |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- CsvReporter applies neutralization at render time; the Finding retains raw bytes) |
 | Architecture Module | SS-11 (reporter/csv.rs, lines 62-73) |
 | Stories | STORY-079 |

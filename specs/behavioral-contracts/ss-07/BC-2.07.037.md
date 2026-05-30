@@ -85,8 +85,8 @@ observable behavior, not a bug (pass-2 R3 Target 2).
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 |
-| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per capabilities.md §CAP-07 -- this BC clarifies the critical disambiguation rule in the SNI 4-way classification that affects SOC operator searches |
+| L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
+| Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- this BC clarifies the critical disambiguation rule in the SNI 4-way classification that affects SOC operator searches |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification ordered match -- this BC specifies the disambiguation for the arm 2/3 boundary) |
 | Architecture Module | SS-07 (analyzer/tls.rs:200-265, C-13) |
 | Stories | STORY-056 |

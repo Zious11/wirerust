@@ -76,8 +76,8 @@ may be file paths or directory paths (directory expansion is handled in `resolve
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per capabilities.md §CAP-12 -- accepting multiple positional targets and iterating over them in run_analyze / run_summary is core to CAP-12's per-target file expansion and packet-loop orchestration |
+| L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- accepting multiple positional targets and iterating over them in run_analyze / run_summary is core to CAP-12's per-target file expansion and packet-loop orchestration |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (cli.rs, C-3) |
 | Stories | STORY-086 |

@@ -87,8 +87,8 @@ strings, the flow is routed to `DispatchTarget::Http`. This check is performed i
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 |
-| Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per capabilities.md §CAP-05 -- HTTP method prefix routing is the second content-first dispatch rule per ADR 0001 |
+| L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md |
+| Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md -- HTTP method prefix routing is the second content-first dispatch rule per ADR 0001 |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- HTTP check is second after TLS) |
 | Architecture Module | SS-05 (dispatcher.rs:95-107, C-21) |
 | Stories | STORY-031 |

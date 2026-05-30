@@ -84,8 +84,8 @@ expecting ASCII `->` will silently fail to match, because the actual separator i
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- FlowKey display format is the human-readable output contract for TCP flow identification |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- FlowKey display format is the human-readable output contract for TCP flow identification |
 | L2 Domain Invariants | INV-1 (FlowKey canonical ordering -- the Display reflects the canonical left-right ordering) |
 | Architecture Module | SS-04 (reassembly/flow.rs:66-74, C-7) |
 | Stories | STORY-011 |

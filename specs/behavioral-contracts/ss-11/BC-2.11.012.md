@@ -79,8 +79,8 @@ that the raw-data/display-layer contract (INV-4/ADR 0003) holds end-to-end.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 |
-| Capability Anchor Justification | CAP-11 ("Reporting and Output") per capabilities.md §CAP-11 -- this end-to-end BC confirms the raw-data/display-layer separation holds across the complete HTTP analyzer to terminal renderer pipeline |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- this end-to-end BC confirms the raw-data/display-layer separation holds across the complete HTTP analyzer to terminal renderer pipeline |
 | L2 Domain Invariants | INV-4 (Raw-Data/Display-Layer Separation -- end-to-end verification of the contract) |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
 | Stories | STORY-077 |

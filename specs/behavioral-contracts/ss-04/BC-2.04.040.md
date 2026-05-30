@@ -90,8 +90,8 @@ consecutive-run model (redesign per LESSON-P2.05 / #92/#93), not a cumulative co
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 |
-| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per capabilities.md §CAP-04 -- small-segment detection is part of TCP reassembly anomaly detection |
+| L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
+| Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- small-segment detection is part of TCP reassembly anomaly detection |
 | L2 Domain Invariants | INV-3 (related -- small-segment detection uses reassembly window results) |
 | Architecture Module | SS-04 (reassembly/mod.rs:356-370, C-6; reassembly/flow.rs:101, C-7) |
 | Stories | STORY-018 |
