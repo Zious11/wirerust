@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): VP-012 VP-table Proof Method cells corrected unit→proptest; VP-012 proof_method=proptest is authoritative (unbounded Unicode input space) — 2026-05-30"
+  - "v1.4: CAP-11 title casing 'Reporting and output'→'Reporting and Output' to match canonical capability title + BC-INDEX (Wave-21 wave-level consistency lens; single-outlier fix per DF-SIBLING-SWEEP-001) — 2026-05-30"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -101,8 +102,8 @@ contract.
 
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-11 ("Reporting and output") per domain/capabilities/cap-11-reporting-output.md |
-| Capability Anchor Justification | CAP-11 ("Reporting and output") per domain/capabilities/cap-11-reporting-output.md -- terminal escaping is the display-layer safety contract that completes the raw-data pipeline |
+| L2 Capability | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md |
+| Capability Anchor Justification | CAP-11 ("Reporting and Output") per domain/capabilities/cap-11-reporting-output.md -- terminal escaping is the display-layer safety contract that completes the raw-data pipeline |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation -- TerminalReporter is the sole escape owner) |
 | Architecture Module | SS-11 (reporter/terminal.rs, C-20) |
 | Stories | STORY-077 |
