@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: proof_method disjunction 'unit / proptest'→'unit' in VP table (DF-SIBLING-SWEEP-001; CSV-reporter family sweep completion — sibling of BC-2.11.020 v1.4 / BC-2.11.021 v1.3; STORY-079 P8 finding)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -83,7 +84,7 @@ or summary section appended.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Row count equals 1 + findings.len() for all input sizes | unit / proptest |
+| — | Row count equals 1 + findings.len() for all input sizes | unit |
 | — | Summary fields (total_packets, etc.) do not appear anywhere in CSV output | unit |
 | — | Row order matches findings slice order | unit |
 
