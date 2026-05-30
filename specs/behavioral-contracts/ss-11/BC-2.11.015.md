@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: VP-016 proof-method cell unit→integration to match VP-016 frontmatter + VP-INDEX (Wave-21 wave-level consistency lens; SS-11 reporter VP family harmonization — sibling of VP-017 fix in 86113c2; DF-SIBLING-SWEEP-001)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -77,8 +78,8 @@ due to an unrecognized technique ID.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-016 | None and unknown-ID bucket under Uncategorized | unit: mitre_grouping_buckets_none_and_unknown_under_uncategorized |
-| VP-016 | Known and unknown IDs in separate sections | unit: mitre_grouping_keeps_known_and_unknown_ids_in_separate_buckets |
+| VP-016 | None and unknown-ID bucket under Uncategorized | integration: mitre_grouping_buckets_none_and_unknown_under_uncategorized |
+| VP-016 | Known and unknown IDs in separate sections | integration: mitre_grouping_keeps_known_and_unknown_ids_in_separate_buckets |
 
 ## Traceability
 

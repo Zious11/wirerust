@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: VP-016 proof-method cell unit→integration to match VP-016 frontmatter + VP-INDEX (Wave-21 wave-level consistency lens; SS-11 reporter VP family harmonization — sibling of VP-017 fix in 86113c2; DF-SIBLING-SWEEP-001)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,8 +77,8 @@ key). This ordering surfaces the highest-severity findings at the top of each ta
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-016 | Sort by verdict then confidence within bucket | unit: mitre_grouping_sorts_within_tactic_by_verdict_then_confidence |
-| VP-016 | Stable emission order when verdict and confidence tie | unit: mitre_grouping_preserves_emission_order_when_verdict_and_confidence_tie |
+| VP-016 | Sort by verdict then confidence within bucket | integration: mitre_grouping_sorts_within_tactic_by_verdict_then_confidence |
+| VP-016 | Stable emission order when verdict and confidence tie | integration: mitre_grouping_preserves_emission_order_when_verdict_and_confidence_tie |
 
 ## Traceability
 

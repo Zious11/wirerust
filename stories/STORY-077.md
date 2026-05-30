@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-077"
 epic_id: "E-8"
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -158,7 +158,7 @@ End-to-end: an HTTP path-traversal `Finding` whose `summary` contains U+009B pro
 | This story spec | ~3,000 |
 | src/reporter/terminal.rs (escape_for_terminal + render sections) | ~3,500 |
 | BC files (7 BCs) | ~7,000 |
-| tests/reporter_tests.rs (escape and skipped tests) | ~1,500 |
+| tests/reporter_terminal_tests.rs (escape and skipped tests) | ~1,500 |
 | Tool outputs overhead | ~500 |
 | **Total** | **~15,500** |
 | Agent context window | 200K for Sonnet |
@@ -204,4 +204,10 @@ End-to-end: an HTTP path-traversal `Finding` whose `summary` contains U+009B pro
 | File | Action | Purpose |
 |------|--------|---------|
 | src/reporter/terminal.rs | verify/modify | escape_for_terminal (lines 44-61), render (83-178), render_finding_prefix (196-218), detail loop (164-174) |
-| tests/reporter_tests.rs | create or modify | AC-001 through AC-014 tests |
+| tests/reporter_terminal_tests.rs | create or modify | AC-001 through AC-014 tests |
+
+## Revision History
+
+| Version | Date | Change |
+|---------|------|--------|
+| v1.2 | 2026-05-30 | corrected test-file citation reporter_tests.rs → reporter_terminal_tests.rs (FSR + Token Budget rows); Wave-21 wave-level traceability finding F-W21-TRACE-001 |
