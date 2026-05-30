@@ -270,7 +270,7 @@ mod story_079 {
     ///   - The raw CSV output contains a double-quoted field (RFC 4180 proof).
     #[test]
     fn test_BC_2_11_020_comma_in_field_does_not_change_column_count() {
-        // BC-2.11.020 inv1 / EC-002: a summary containing a comma must be
+        // BC-2.11.020 inv1 / EC-004: a summary containing a comma must be
         // RFC 4180 quoted by the csv crate; the parsed column count must still be 9.
         // Canonical BC test vector: field value "a,b" → quoted in CSV output.
         let finding = make_finding("attack,payload,here");
