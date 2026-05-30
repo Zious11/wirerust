@@ -305,11 +305,44 @@ develop HEAD at close: 616897e. Per-story convergence == wave-level convergence 
 
 ---
 
-## Full trajectory string (extracted from STATE.md frontmatter 2026-05-29)
+## Wave 20 Per-Story Convergence (2026-05-29)
+
+### STORY-076 Per-Story Convergence — 5 passes; BC-5.39.001 ACHIEVED
+
+Frozen code: feature/STORY-076 HEAD d7c4a91 (test/story-076-json-reporter branch). Brownfield-formalization, ZERO src changes.
+40 reporter_json_tests green; full 915-test suite green. SS-11 reporter subsystem (E-8 epic), first story.
+
+| Pass | Verdict | Key Findings |
+|------|---------|-------------|
+| P1 | DIRTY | 1HIGH DEL-non-escape (0x7F byte should produce  not literal DEL) + 2MED (Cyrillic U+0430/C1 byte handling) + 2LOW |
+| P2 | DIRTY | 1MED over-broad \\u04 guard (self-inflicted by P1 remediation — pattern too broad) + 1LOW |
+| P3 | CLEAN (streak=1) | 0 findings; discriminating escaped-form-absence assertions scoped to fixture codepoints resolved guard precision |
+| P4 | CLEAN (streak=2) | 0 findings |
+| P5 | CLEAN (streak=3) | 0 findings; BC-5.39.001 ACHIEVED |
+
+**Trajectory shorthand:** `W20-S076-story:5ps-3clean(P3/P4/P5;1HIGH+3MED-rem-across-P1/P2;1MED-self-inflicted-by-remediation;reporter-SS-11-first;brownfield-formalization-zero-src)`
+
+Delivery: PR #157 squash-merged → a8f3d21 2026-05-29. All 8 CI green. 915 tests green. Security CLEAN.
+PG-W17-001 AC-test-name-sync enforcement verified both directions across all 5 passes; clean.
+VP-017 deferred to Phase-6 (proptest scope; not testable at unit-test level in brownfield-formalization context).
+pr-reviewer APPROVED 1 cycle; 1 non-blocking NIT (W20-NIT-001: optional U+0080 C1-boundary test) — logged as deferred-LOW.
+No [process-gap]-tagged findings this wave. All findings were content/test-quality (including 1 self-inflicted by remediation — not a process gap).
+E-8 epic opened (first SS-11 reporter story).
+
+---
+
+## Wave 20 Wave-Level Convergence — CLOSED/CONVERGED 2026-05-29
+
+Stories: STORY-076 (E-8 reporter, SS-11, 5pts). Single-story wave.
+develop HEAD at close: a8f3d21. Per-story convergence == wave-level convergence per BC-5.39.001.
+
+---
+
+## Full trajectory string (updated 2026-05-29 — Phase-1 through Wave 20)
 
 The following is the verbatim `convergence_trajectory:` scalar from STATE.md frontmatter,
-covering Phase-1 through Wave 19.
+covering Phase-1 through Wave 20.
 
 ```
-17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0|W7-story:8ps-3clean|W7-wave:8ps-3clean|W8-S019-story:8ps-3clean(14rem)|W8-S015-story:8ps-3clean(14rem)|W8-wave:9ps-3clean(12rem)|W9-S016-story:6ps-3clean(24rem)|W9-S020-story:8ps-3clean(13rem)|W9-wave:6ps-3clean(11rem)|W10-S017-story:4ps-3clean|W10-S018-story:9ps-3clean|W10-wave:4ps-3clean|W10-CONVERGED-2026-05-26|W11-S021-story:11ps-3clean|W11-CONVERGED-2026-05-27|W12-S031-story:9ps-3clean|W12-CONVERGED-2026-05-27|W13-S032-story:5ps-3clean|W13-CONVERGED-2026-05-27|W14-S033-story:4ps-3clean|W14-CONVERGED-2026-05-28|W15-S051-story:6ps-3clean|W15-S041-story:8ps-3clean|W15-CONVERGED-2026-05-28|W16-P1:S042-CLEAN,S052-CLEAN,S043-DIRTY(2rem),S044-DIRTY(1H+1M-PR#144)|W16-P2:S042-CLEAN(str=2),S043-CLEAN(str=1),S044-CLEAN(str=1),S052-DIRTY→rem(factory-only)|W16-P3:S052-CLEAN(str=1),S042-DIRTY→rem(PR#145),S043-DIRTY→rem(PR#145),S044-DIRTY→rem(factory)|W16-P4:S052-CLEAN(str=2),S042-CLEAN(str=1),S043-CLEAN(str=1),S044-DIRTY→rem(factory)|W16-P5:S052-CLEAN(str=3→CONVERGED),S042-CLEAN(str=2),S043-CLEAN(str=2),S044-CLEAN(str=1)|W16-P6:S042-CLEAN(str=3→CONVERGED),S043-CLEAN(str=3→CONVERGED),S044-CLEAN(str=2)|W16-P7:S044-CLEAN(str=3→CONVERGED)|W16-ALL4-PER-STORY-CONVERGED-2026-05-28|W16-WAVE-LEVEL-R1:consistency-DIRTY(2MED-REMEDIATED:PR#146+sweep)|W16-WAVE-LEVEL-R2:3-lens-3pass-CLEAN(1-false-positive-dismissed)|W16-CONVERGED-CLOSED-2026-05-29-detail:cycles/v0.1.0-greenfield-spec/wave-16/adversarial-convergence.md|W17-P1:S045-CLEAN,S053-CLEAN,S055-DIRTY(AC-sync-miss→remediated-v1.2)|W17-P2:S045-CLEAN,S053-CLEAN,S055-CLEAN|W17-S045-story:5ps-3clean(P3-P5)|W17-S053-story:5ps-3clean(P3-P5)|W17-S055-story:5ps-3clean(P3-P5)|W17-WAVE-P1:3-lens-DIRTY(F-W17-WAVE-C-001/T-001-HIGH-AC-sync-miss)|W17-WAVE-P2:3-lens-CLEAN|W17-CONVERGED-CLOSED-2026-05-29|W18-S046-story:4ps-3clean(P2-P4;2LOW-cosmetic+2-anchor-completeness-rem)|W18-S046-DELIVERED(PR#152→547aca8;2026-05-29)|W18-S054-story:11ps-3clean(P8/P9/P11;P10-methodology-false-pos-dismissed;2MED+1MED-mis-anchor+2MED+1HIGH-cross-BC-rem)|W18-S054-DELIVERED(PR#153→fc55587;2026-05-29)|W18-S056-story:9ps-3clean(P7/P8/P9;1HIGH-sibling-anchor-sweep-rem;front-loaded-exactness)|W18-S056-DELIVERED(PR#154→7f64219;2026-05-29)|W18-S058-story:13ps-3clean(P11/P12/P13;2MED+1HIGH-mis-anchor+3MED-cross-artifact+1MED-3rd-occurrence-rem;deepest-W18)|W18-S058-DELIVERED(PR#155→3f87ac3;2026-05-29)|W18-ALL4-PER-STORY-CONVERGED-2026-05-29|W18-WAVE-P1:3-lens-CLEAN(consistency+integration-static+traceability;round-1-no-dirty;BC-5.39.001-ACHIEVED;frozen-3f87ac3)|W18-CONVERGED-CLOSED-2026-05-29|W19-S057-story:6ps-3clean(P4/P5/P6;1HIGH-tautological+5MED-across-P1-P3-rem;1LOW-accepted-documented-intent;brownfield-formalization-zero-src)|W19-S057-DELIVERED(PR#156→616897e;2026-05-29)|W19-CONVERGED-CLOSED-2026-05-29
+17→13→7→19→8→3→13→7→4→6→1→6→5→3→4→3→5→5→2→4→3→0→3→0→4→SWEEP68→5→SWEEP48→1→0→0→3→0→0→0|W7-story:8ps-3clean|W7-wave:8ps-3clean|W8-S019-story:8ps-3clean(14rem)|W8-S015-story:8ps-3clean(14rem)|W8-wave:9ps-3clean(12rem)|W9-S016-story:6ps-3clean(24rem)|W9-S020-story:8ps-3clean(13rem)|W9-wave:6ps-3clean(11rem)|W10-S017-story:4ps-3clean|W10-S018-story:9ps-3clean|W10-wave:4ps-3clean|W10-CONVERGED-2026-05-26|W11-S021-story:11ps-3clean|W11-CONVERGED-2026-05-27|W12-S031-story:9ps-3clean|W12-CONVERGED-2026-05-27|W13-S032-story:5ps-3clean|W13-CONVERGED-2026-05-27|W14-S033-story:4ps-3clean|W14-CONVERGED-2026-05-28|W15-S051-story:6ps-3clean|W15-S041-story:8ps-3clean|W15-CONVERGED-2026-05-28|W16-P1:S042-CLEAN,S052-CLEAN,S043-DIRTY(2rem),S044-DIRTY(1H+1M-PR#144)|W16-P2:S042-CLEAN(str=2),S043-CLEAN(str=1),S044-CLEAN(str=1),S052-DIRTY→rem(factory-only)|W16-P3:S052-CLEAN(str=1),S042-DIRTY→rem(PR#145),S043-DIRTY→rem(PR#145),S044-DIRTY→rem(factory)|W16-P4:S052-CLEAN(str=2),S042-CLEAN(str=1),S043-CLEAN(str=1),S044-DIRTY→rem(factory)|W16-P5:S052-CLEAN(str=3→CONVERGED),S042-CLEAN(str=2),S043-CLEAN(str=2),S044-CLEAN(str=1)|W16-P6:S042-CLEAN(str=3→CONVERGED),S043-CLEAN(str=3→CONVERGED),S044-CLEAN(str=2)|W16-P7:S044-CLEAN(str=3→CONVERGED)|W16-ALL4-PER-STORY-CONVERGED-2026-05-28|W16-WAVE-LEVEL-R1:consistency-DIRTY(2MED-REMEDIATED:PR#146+sweep)|W16-WAVE-LEVEL-R2:3-lens-3pass-CLEAN(1-false-positive-dismissed)|W16-CONVERGED-CLOSED-2026-05-29-detail:cycles/v0.1.0-greenfield-spec/wave-16/adversarial-convergence.md|W17-P1:S045-CLEAN,S053-CLEAN,S055-DIRTY(AC-sync-miss→remediated-v1.2)|W17-P2:S045-CLEAN,S053-CLEAN,S055-CLEAN|W17-S045-story:5ps-3clean(P3-P5)|W17-S053-story:5ps-3clean(P3-P5)|W17-S055-story:5ps-3clean(P3-P5)|W17-WAVE-P1:3-lens-DIRTY(F-W17-WAVE-C-001/T-001-HIGH-AC-sync-miss)|W17-WAVE-P2:3-lens-CLEAN|W17-CONVERGED-CLOSED-2026-05-29|W18-S046-story:4ps-3clean(P2-P4;2LOW-cosmetic+2-anchor-completeness-rem)|W18-S046-DELIVERED(PR#152→547aca8;2026-05-29)|W18-S054-story:11ps-3clean(P8/P9/P11;P10-methodology-false-pos-dismissed;2MED+1MED-mis-anchor+2MED+1HIGH-cross-BC-rem)|W18-S054-DELIVERED(PR#153→fc55587;2026-05-29)|W18-S056-story:9ps-3clean(P7/P8/P9;1HIGH-sibling-anchor-sweep-rem;front-loaded-exactness)|W18-S056-DELIVERED(PR#154→7f64219;2026-05-29)|W18-S058-story:13ps-3clean(P11/P12/P13;2MED+1HIGH-mis-anchor+3MED-cross-artifact+1MED-3rd-occurrence-rem;deepest-W18)|W18-S058-DELIVERED(PR#155→3f87ac3;2026-05-29)|W18-ALL4-PER-STORY-CONVERGED-2026-05-29|W18-WAVE-P1:3-lens-CLEAN(consistency+integration-static+traceability;round-1-no-dirty;BC-5.39.001-ACHIEVED;frozen-3f87ac3)|W18-CONVERGED-CLOSED-2026-05-29|W19-S057-story:6ps-3clean(P4/P5/P6;1HIGH-tautological+5MED-across-P1-P3-rem;1LOW-accepted-documented-intent;brownfield-formalization-zero-src)|W19-S057-DELIVERED(PR#156→616897e;2026-05-29)|W19-CONVERGED-CLOSED-2026-05-29|W20-S076-story:5ps-3clean(P3/P4/P5;1HIGH+3MED-rem-across-P1/P2;1MED-self-inflicted-by-remediation;reporter-SS-11-first;brownfield-formalization-zero-src)|W20-S076-DELIVERED(PR#157→a8f3d21;2026-05-29)|W20-CONVERGED-CLOSED-2026-05-29
 ```
