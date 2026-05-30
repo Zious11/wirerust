@@ -493,10 +493,10 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-077:
-    status: pending
+    status: in_progress
     wave: 21
-    branch: null
-    worktree: null
+    branch: test/story-077-terminal-reporter
+    worktree: .worktrees/STORY-077
     blocked_by: [STORY-076]
 
   STORY-079:
