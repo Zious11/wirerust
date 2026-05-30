@@ -953,6 +953,23 @@ Wave 18: STORY-046 (E-4 HTTP, 3pts) + STORY-054 (E-5 TLS, 8pts) + STORY-056 (E-5
 
 ---
 
+## Governance Policy Codification — 2026-05-30
+
+Four process-gap candidates from Waves 18 and the drift-remediation pass were codified into
+`.factory/policies.yaml` on 2026-05-30 during a deferred-item cleanup burst.
+
+| New Policy ID | Source Item | Severity | Summary |
+|--------------|-------------|----------|---------|
+| DF-INPUT-HASH-CANONICAL-001 | PG-HASH-001 | HIGH | input-hash MUST be computed via bin/compute-input-hash (MD5/inputs-order), never hand-computed (sha256/sorted). Story-writer and product-owner dispatch prompts MUST mandate the tool. |
+| DF-ADVERSARY-CHECKOUT-GUARD-001 | PG-W18-001 | HIGH | Every per-story adversary dispatch MUST include a checkout-guard asserting branch==feature/STORY-NNN AND a known story-specific grep-count before producing any findings. Dispatch MUST provide absolute main-repo paths for .factory artifacts (.factory is gitignored in worktrees). |
+| DF-TEST-CITATION-SWEEP-001 | PG-W18-002 / W18-S058.L1 | HIGH | AC test-citation re-points MUST sweep ALL 5 artifact locations in the SAME burst: story body ACs, story FSR rows, BC Proof-Method/Evidence for all story BCs, test-file index/header comments, sibling BC Evidence columns. |
+| DF-TEST-NAMESPACE-001 | PG-W18-003 / F-W18-WAVE-I-006 | MEDIUM | Analyzer test files MUST use per-story `mod` wrappers (not flat namespace) to prevent test-fn name collisions. Applies to tests/tls_analyzer_tests.rs and tests/http_analyzer_tests.rs and future analyzer test files. |
+
+Source items (PG-HASH-001, PG-W18-001/002/003) removed from STATE.md live tables after codification.
+Archived cross-reference: cycles/phase-3-tdd/deferred-items-archive.md.
+
+---
+
 ## Earlier Wave Lessons (Waves 1-6)
 
 Per-wave process-gap items for Waves 1-6 are recorded in STATE.md Cycle-Close Follow-Up Items

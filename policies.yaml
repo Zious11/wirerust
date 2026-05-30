@@ -639,3 +639,202 @@ policies:
       F-W11P4-010/011 + F-W11P5-010 (W11 adversary read-only gaps); W16.L4
       (dispatch scope from prose vs actuals); merged into single policy
       2026-05-28
+
+  - id: DF-INPUT-HASH-CANONICAL-001
+    name: input-hash-canonical-tool-mandatory
+    description: >
+      The input-hash field in story frontmatter MUST be computed exclusively
+      via `bin/compute-input-hash` using MD5 and inputs in declaration order.
+      Hand-computing the hash via sha256, sorted inputs, or any other method
+      is FORBIDDEN and produces a divergent hash that will fail at drift-check.
+
+      Mandatory practices:
+        - Story-writer dispatch prompts MUST mandate the tool:
+          "Run bin/compute-input-hash to compute the input-hash — do NOT
+          hand-compute via sha256 or sorted inputs."
+        - Product-owner dispatch prompts for BC updates that change a
+          story's BCs MUST mandate hash recomputation via the tool.
+        - After any BC content update that affects a story's `bcs:`
+          frontmatter list, the story input-hash MUST be recomputed with
+          bin/compute-input-hash before commit.
+        - The tool invocation and result MUST be reported in the burst report.
+
+    severity: HIGH
+    scope:
+      - orchestrator
+      - story-writer
+      - product-owner
+      - dispatch-templates
+    rationale: >
+      PG-HASH-001 evidence (2026-05-29): story-writer hand-computed hashes
+      using sha256 with sorted inputs this session, diverging from the
+      canonical MD5/inputs-order algorithm used by bin/compute-input-hash.
+      12 stories were left with stale hashes before the drift was caught;
+      a bulk scan (MATCH=48 STALE=0) confirmed remediation. The root cause
+      is that story-writer and product-owner dispatch prompts did not
+      explicitly mandate the tool — agents fell back to manual computation.
+    enforcement: >
+      Orchestrator MUST inject "Run bin/compute-input-hash — do NOT
+      hand-compute" into every story-writer and product-owner dispatch
+      prompt. Drift-check at Phase-4 entry serves as the late gate.
+      The tool is at bin/compute-input-hash (MD5/inputs-order algorithm).
+    added: "2026-05-30"
+    derived-from: >
+      PG-HASH-001 (12 stories left tool-stale 2026-05-29; fixed, MATCH=48
+      STALE=0; codified 2026-05-30)
+
+  - id: DF-ADVERSARY-CHECKOUT-GUARD-001
+    name: adversary-per-story-checkout-guard
+    description: >
+      Every per-story adversary dispatch MUST include a checkout-guard
+      step that asserts the adversary is operating on the correct branch
+      and the correct codebase state before producing any findings.
+
+      Mandatory checkout-guard components:
+        1. Branch assertion: verify `git -C <worktree> branch --show-current`
+           returns `feature/STORY-NNN` (or the story's specific worktree
+           branch name). If not, the adversary MUST abort and report a
+           methodology error — do NOT produce findings from the wrong branch.
+        2. Grep-count assertion: verify a known story-specific grep-count
+           (e.g., expected number of BC-prefixed test functions for this
+           story) against the worktree. If the count diverges significantly
+           from the expected value, flag as methodology-suspect.
+        3. .factory artifact paths: .factory/ is gitignored in worktrees.
+           Dispatch MUST provide absolute main-repo paths for all factory
+           artifacts (e.g., /Users/zious/.../wirerust/.factory/stories/
+           STORY-NNN.md, NOT a worktree-relative path). The adversary
+           MUST read factory artifacts from the main-repo path.
+
+      The checkout-guard output MUST appear in the adversary's first reply
+      before any findings are listed. A findings report that lacks the
+      checkout-guard attestation MUST be treated as methodology-incomplete.
+
+    severity: HIGH
+    scope:
+      - orchestrator
+      - adversary
+      - dispatch-templates
+    rationale: >
+      PG-W18-001 evidence (STORY-054 pass-10): adversary reviewed develop
+      HEAD instead of feature/STORY-054 worktree, producing 3 false-CRITICAL
+      findings. This is a recurrence of DF-ADVERSARY-METHODOLOGY-001 (first
+      caught W11 P5). Pass-11 checkout-guard (branch assertion + grep-count
+      assertion) succeeded and confirmed the false-positive nature of pass-10
+      findings. The checkout-guard is a structural extension of
+      DF-ADVERSARY-METHODOLOGY-001's absolute-path discipline — it adds an
+      explicit pre-finding assertion step that catches wrong-checkout silently.
+    enforcement: >
+      Orchestrator MUST inject the checkout-guard template into every
+      per-story adversary dispatch prompt as the first mandatory step
+      (before any analysis). The template must include the expected branch
+      name, the expected grep-count with the grep command, and the absolute
+      main-repo path for factory artifacts. If the adversary's first reply
+      lacks the checkout-guard output or reports wrong values, orchestrator
+      MUST abort the pass and re-dispatch with corrected prompt.
+    added: "2026-05-30"
+    derived-from: >
+      PG-W18-001 (DF-ADVERSARY-METHODOLOGY-001 recurrence STORY-054 pass-10;
+      3 false-CRITICAL; codified 2026-05-30)
+
+  - id: DF-TEST-CITATION-SWEEP-001
+    name: test-citation-change-full-occurrence-sweep
+    description: >
+      When any AC test-citation (a test name or AC-NNN reference) is
+      re-pointed or corrected, ALL of the following artifact locations
+      MUST be swept and updated in the SAME burst before declaring the
+      fix complete:
+
+        1. Story body — AC `**Test:**` lines in the affected AC row(s)
+        2. Story FSR rows — File Structure Reference rows that cite the
+           test name or AC label
+        3. BC Proof-Method / Evidence fields — for ALL BCs in the story's
+           `bcs:` frontmatter list (not just the BC whose anchor changed)
+        4. Test-file index/header comments — per-story section header
+           comments in the test file that map AC labels to test function names
+        5. Sibling BC Evidence columns — any BC that cites the same test
+           function or AC label in its Proof-Method, Evidence, or
+           Architecture Anchor field
+
+      A burst that fixes only 1-2 of these locations is incomplete and
+      will be caught as a new adversarial finding in the next pass.
+      The sweep must be executed with grep commands before committing.
+
+    severity: HIGH
+    scope:
+      - orchestrator
+      - story-writer
+      - test-writer
+      - product-owner
+    rationale: >
+      PG-W18-002 evidence (STORY-056 + STORY-058): AC-013 mis-citation
+      existed across 3 distinct locations (story FSR, BC-2.07.004 Evidence,
+      tls_analyzer_tests.rs index header comment). Each burst fixed only
+      1-2 locations; adversary found the 3rd each time. STORY-058 required
+      passes 3/4/5/6/8 (5 extra passes) to chase the same AC-013 mis-mapping.
+      Root cause: DF-SIBLING-SWEEP-001 covers BC sibling-sweeps and
+      STORY Architecture-Mapping sweeps but did not explicitly enumerate
+      test-file index/header comments as a sweep target.
+    enforcement: >
+      Orchestrator MUST inject this policy's sweep checklist into every
+      story-writer and product-owner dispatch that re-points a test citation.
+      The agent MUST execute all 5 grep commands above and report results.
+      Any unfixed hit is a scope-incomplete regression; do NOT commit until
+      all hits are resolved.
+    added: "2026-05-30"
+    derived-from: >
+      PG-W18-002 / W18-S058.L1 (AC-013 mis-citation cascade 5 extra passes;
+      codified 2026-05-30); extends DF-SIBLING-SWEEP-001 for test-citation
+      occurrence coverage
+
+  - id: DF-TEST-NAMESPACE-001
+    name: analyzer-test-per-story-mod-wrappers
+    description: >
+      Analyzer test files MUST use per-story `mod` wrappers (not a flat
+      namespace) to prevent test-function name collisions across stories.
+
+      This convention applies to:
+        - tests/tls_analyzer_tests.rs
+        - tests/http_analyzer_tests.rs
+        - Any future analyzer test files added to tests/
+
+      Each story's tests MUST be grouped inside a dedicated module:
+        ```rust
+        mod story_NNN {
+            use super::*;
+            // all tests for STORY-NNN
+        }
+        ```
+
+      The per-story `mod` wrapper ensures that BC-prefixed test function
+      names (e.g., `test_BC_2_07_033_...`) remain unique across stories
+      even when two stories test related BCs with similar naming patterns.
+
+      Existing flat-namespace test files (tests/tls_analyzer_tests.rs)
+      MUST be refactored to per-story mod wrappers before the next story
+      that would risk a name collision is delivered.
+
+    severity: MEDIUM
+    scope:
+      - test-writer
+      - story-writer
+      - orchestrator
+    rationale: >
+      PG-W18-003 evidence (F-W18-WAVE-I-006): tests/tls_analyzer_tests.rs
+      uses a flat namespace while tests/http_analyzer_tests.rs uses per-story
+      `mod` wrappers (the F-W16 collision fix that required retroactive PR
+      #146). As more TLS stories deliver tests into the same flat namespace,
+      the probability of name collisions grows. A retroactive rename PR
+      similar to PR #146 — touching all existing TLS story tests — becomes
+      more expensive with each wave. Proactive codification before collision
+      is the correct posture.
+    enforcement: >
+      Test-writer dispatch templates MUST include: "Use per-story mod wrapper
+      per DF-TEST-NAMESPACE-001 — do NOT add tests at the flat module root."
+      Adversary MUST flag any new test function added to a flat namespace
+      (no enclosing mod block) as MEDIUM process-gap with pointer to this
+      policy. Orchestrator MUST schedule tls_analyzer_tests.rs mod-wrapper
+      refactor as a standalone chore PR before Wave 22.
+    added: "2026-05-30"
+    derived-from: >
+      PG-W18-003 / F-W18-WAVE-I-006 (TLS flat namespace vs HTTP per-story
+      mod wrappers; latent collision risk; codified 2026-05-30)

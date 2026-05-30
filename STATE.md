@@ -125,8 +125,8 @@ Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/converg
 2. Wave 20 CLOSED 2026-05-29: 1/1 story (5pts). STORY-076 PR#157→e5cb2b1 (5ps-3clean P3/P4/P5; BC-5.39.001 ACHIEVED). Brownfield-formalization, ZERO src changes. 1HIGH-DEL-non-escape + 3MED remediated P1-P2. 1MED self-inflicted by remediation (over-broad \\u04 guard, resolved via discriminating assertions). 40 reporter_json_tests + full 915-test suite green. VP-017 deferred Phase-6 (proptest). First SS-11 reporter story; E-8 epic opened.
 3. PG-W17-001 [AC-test-name-sync] enforcement verified both directions across all 5 adversarial passes; clean. No [process-gap]-tagged findings this wave — all findings were content/test-quality (including 1 self-inflicted by remediation). No new follow-up story required. Cycle-close NIT logged as deferred-LOW (see Cycle-Close Follow-Up Items).
 4. input-drift: Wave-20 STORY-076 test-only formalization; zero src/production changes; reporter/json subsystem — no holdout-scenario hash impact. Prior: Wave-19 story-citation/AC-sync bump may apply — verify at Phase-4 entry.
-5. Process-gaps from Waves 18 still open: PG-W18-001 (checkout-guard codification), PG-W18-002 (test-citation sweep checklist), PG-W18-003 (TLS flat-ns latent collision). All require DF-VALIDATION-001 before issue filing.
-6. Phase-4-ENTRY deferred: HS-* semantic re-validation against W18 BC corrections at Phase-4 entry (non-blocking). Deferred LOWs: OBS-7, F-S058-P11-001/002, F-S058-P12-O1, F-S058-P13-O4.
+5. [2026-05-30 cleanup] DF-16.B CLOSED (commit 9da3192; 209 BC files swept). OBS-7 CLOSED (STORY-076 BC-2.11.003). PG-W18-001/002/003 codified to policies.yaml (DF-ADVERSARY-CHECKOUT-GUARD-001, DF-TEST-CITATION-SWEEP-001, DF-TEST-NAMESPACE-001). PG-HASH-001 codified (DF-INPUT-HASH-CANONICAL-001). 6 externally-blocked items archived to deferred-items-archive.md. STATE.md Governance table: 12 policies.
+6. Phase-4-ENTRY deferred: HS-* semantic re-validation against W18 BC corrections at Phase-4 entry (non-blocking). Live deferred-LOWs: F-S058-P11-001/002, W20-NIT-001. F-S058-P12-O1 moved to Drift Items (next BC-2.07.005 touch). F-S058-P13-O4 archived (wave-gate/Phase-5).
 7. NEXT: Wave 21 — STORY-077 + STORY-079 unblocked (STORY-076 merged). Prior checkpoint archived: cycles/phase-3-tdd/session-checkpoints.md.
 
 ## Wave Retrospectives
@@ -143,6 +143,7 @@ Compacted summary table + full prose: `.factory/cycles/phase-3-tdd/lessons.md` (
 | D-004 | Nightly pin nightly-2026-05-21 is periodic-maintenance | 2026-05-22 | Bumping requires verifying fuzz build; do NOT automate |
 | D-005 | Demo recordings local-only (gitignored) | 2026-05-22 | factory-artifacts gitignores cycles/**/demos/; 49 prior files untracked |
 | D-006 | [correction 2026-05-29/30] Wave-20/STORY-076 real merge SHA is e5cb2b1 (PR #157). Two earlier recorded SHAs were wrong and have been corrected: a8f3d21 (phantom, pre-merge write) and 4d9e1c7 (transient pre-resolution id). Root cause: post-merge state written before pr-manager's authoritative merge SHA was confirmed; rectified. | 2026-05-29 | Orchestrator supplied SHA before actual merge; real merge commit confirmed e5cb2b1 on origin/develop |
+| D-007 | Deferred-item cleanup: DF-16.B closed (bulk 209-BC sweep commit 9da3192; 0 remaining broken citations); OBS-7 closed (covered by STORY-076 BC-2.11.003 / test_BC_2_11_003_c0_esc_escaped_in_json; PR #157→e5cb2b1); 4 governance candidates codified to policies.yaml (DF-INPUT-HASH-CANONICAL-001, DF-ADVERSARY-CHECKOUT-GUARD-001, DF-TEST-CITATION-SWEEP-001, DF-TEST-NAMESPACE-001); 6 externally-blocked items archived to cycles/phase-3-tdd/deferred-items-archive.md (W9-D2/D3/D4 upstream-plugin, W9-D12 awaiting-PO, W1.3/W2.5 upstream, W7.1 public-api, Phase-4-ENTRY, F-S058-P13-O4). | 2026-05-30 | STATE.md deferred-item cleanup burst; no information lost |
 
 ## Blocking Issues
 
@@ -152,36 +153,24 @@ None open.
 
 All items below require DF-VALIDATION-001 research-agent validation before GitHub issue filing.
 Closed items archived in `.factory/cycles/drift-remediation-2026-05-29/closed-items.md`.
+Externally-blocked / phase-gated items (W9-D2/D3/D4 upstream-plugin, W9-D12 awaiting-PO, W1.3/W2.5 upstream, W7.1 public-api, Phase-4-ENTRY, F-S058-P13-O4) archived to cycles/phase-3-tdd/deferred-items-archive.md — revisit at their named gate/phase.
 
 | ID | Finding | Category | Target | Status |
 |----|---------|----------|--------|--------|
-| DF-16.B | [spec-gap, MEDIUM, bulk-mechanical] ~209 BC files across SS-02..SS-13 still have broken `capabilities.md §CAP-NN` citations (SS-01 8 files fixed 2026-05-29). Single bulk find-replace `capabilities.md §CAP-NN` → `domain/capabilities/cap-NN-<slug>.md`; per-cap slug mapping present in `.factory/specs/domain/capabilities/`. | spec-gap | dedicated bulk sweep | OPEN |
-| W9-D2 | [process-gap, ESCALATE-UPSTREAM] story-writer template Task #2 wording "Verify Red Gate" incompatible with brownfield-formalization. NOT fixable in this repo; escalate to plugin maintainer. | process-gap | plugin-maintainer | OPEN — ESCALATE-UPSTREAM |
-| W9-D3 | [process-gap, ESCALATE-UPSTREAM] story template lacks per-AC VP trace column. NOT fixable in this repo; escalate to plugin maintainer. | process-gap | plugin-maintainer | OPEN — ESCALATE-UPSTREAM |
-| W9-D4 | [process-gap, ESCALATE-UPSTREAM] story Token Budget template hardcodes "200K for Sonnet". NOT fixable in this repo; escalate to plugin maintainer. | process-gap | plugin-maintainer | OPEN — ESCALATE-UPSTREAM |
-| W9-D12 | [spec-gap, needs-PO-intent] `packets_dropped_capacity` stats counter absent (BC-2.04.015 PC-6 observability). Awaiting PO adjudication: add counter vs document omission. | spec-gap | phase-5 PO | OPEN — AWAITING-PO |
 | W10-D10-sibling | [test-quality, LOW] tests/reassembly_engine_tests.rs:~14143 `test_story_018_ec008` re-implements the 10,000-flow fill loop inline (should use `fill_findings_to_cap`). Target: next reassembly-test touch. | test-quality | next reassembly touch | OPEN |
 | F-DRIFT-C-001 | [cosmetic, LOW] Stale doc-comment in src/analyzer/http.rs `truncate_uri` test: "5 'é' = 10 bytes" vs actual "éééé" 4-char fixture; logic correct. Target: next http-test PR (develop branch). | cosmetic | next http-test touch | OPEN |
-| PG-HASH-001 | [process-gap, HIGH] input-hash was hand-computed (sha256/sorted) this session by story-writer, diverging from `bin/compute-input-hash` (MD5/inputs-order); 12 stories left tool-stale. FIXED 2026-05-29 (scan confirms MATCH=48 STALE=0). Policy-codification candidate: DF-INPUT-HASH-CANONICAL-001 — record at next governance pass. Story-writer/PO prompts should mandate the tool. | process-gap | next governance pass | OPEN — CODIFICATION-PENDING |
+| F-S058-P12-O1 | [deferred-LOW] BC-2.07.005 anchor 726-748 vs actual 726-747 (off-by-one). Target: next BC-2.07.005 touch. | spec-gap | next BC-2.07.005 touch | OPEN |
 
 ## Cycle-Close Follow-Up Items (OPEN)
 
 Most items from Waves 1-16 closed during drift-remediation-2026-05-29. Closed items archived in
 `.factory/cycles/drift-remediation-2026-05-29/closed-items.md`.
+Externally-blocked / phase-gated items (PG-W18-001/002/003 codified → policies.yaml, OBS-7 closed → STORY-076, W1.3/W2.5 upstream, W7.1 public-api, Phase-4-ENTRY, F-S058-P13-O4) archived to cycles/phase-3-tdd/deferred-items-archive.md.
 
 | ID | Item | Priority |
 |----|------|----------|
-| W1.3/W2.5 **[RECURRING Waves 1-16]** | No pipeline gate advances story status draft/in-progress → completed on merge. Requires plugin-level fix (vsdd-factory story-writer template); not fixable in this repo. This session (F-DRIFT3B-001): 16 stories manually reconciled across Waves 3-13 (STORY-033 + 016/017/018/019/020/021/031/032/005/011/012/013/014/015/066/071). Root cause unfixed (upstream plugin). | P1 — ESCALATE-UPSTREAM |
-| W7.1 | No public-API surface gate for `pub fn` additions. Candidate: `cargo public-api` CI job. Deferred: requires nightly + committed baseline, 2-PR setup. Documented in CLAUDE.md. | P2 — DEFERRED |
-| PG-W18-001 | [process-gap] DF-ADVERSARY-METHODOLOGY-001 recurred in STORY-054 pass-10 — adversary reviewed develop instead of feature/STORY-054 worktree; produced 3 false-CRITICAL findings. Pass-11 checkout-guard (branch assertion + grep-count assertion) succeeded. Candidate codification: bake checkout-guard (verify branch==feature/STORY-NNN AND a known story-specific grep-count) into every per-story adversary dispatch template. Also: .factory is gitignored in worktrees — dispatch MUST provide absolute main-repo paths for factory artifacts. REQUIRES DF-VALIDATION-001 research-agent validation before GitHub issue. | P2 — CODIFICATION-CANDIDATE |
-| OBS-7 | [deferred-LOW, STORY-056 P9] AC-007 / BC-2.07.020 inv2: "JSON reporter must RFC-8259 escape lossy summary string" clause is a downstream reporter-subsystem claim, not testable within STORY-056's src/analyzer/tls.rs scope. Defer to wave-gate integration check — reporter subsystem not in scope for brownfield-formalization stories. REQUIRES DF-VALIDATION-001 before any issue filing. | P3 — DEFERRED-WAVE-GATE |
-| PG-W18-002 | [process-gap, HIGH] Story-anchor fixes (F-S056-P3-001) must trigger same-burst sibling-BC sweep. EXTENDED (STORY-058): AC-test-citation re-points must also sweep story FSR rows + sibling BC Evidence columns + test-file index/header comments in the SAME burst. STORY-058 needed passes 3/4/5/6/8 to chase same AC-013 mis-mapping across 3 locations. Candidate codification: "test-citation change" checklist. REQUIRES DF-VALIDATION-001 before GitHub issue. Detail: cycles/phase-3-tdd/lessons.md (W18-S058.L1). | P2 — CODIFICATION-CANDIDATE |
-| PG-W18-003 | [process-gap, MEDIUM] TLS test file (tests/tls_analyzer_tests.rs) uses FLAT namespace while HTTP (tests/http_analyzer_tests.rs) uses per-story `mod` wrappers (the F-W16 collision fix). Latent name-collision risk for future TLS stories — codify one convention (per-story mod wrapper) across both analyzer test files. From F-W18-WAVE-I-006. REQUIRES DF-VALIDATION-001 before GitHub issue. | P2 — CODIFICATION-CANDIDATE |
-| Phase-4-ENTRY | [deferred-review] Holdout scenarios HS-* must be semantically re-validated against Wave-18 reachability/arithmetic BC corrections (BC-2.07.002 EC-004 SSL2-ServerHello-rejection, BC-2.07.012 reachability, BC-2.07.029 arithmetic) at Phase-4 holdout-evaluation entry — confirm no scenario asserts pre-correction behavior. Non-blocking for Phase-3 wave close (zero src changes; observable behavior unchanged). | P2 — DEFERRED-PHASE-4-ENTRY |
 | F-S058-P11-001 | [deferred-LOW] Stale "sync to story after this pass" comment at tls_analyzer_tests.rs:6819. Target: next tls-test PR. | P3 — DEFERRED |
 | F-S058-P11-002 | [deferred-LOW] test_nonhandshake_types EC-label header lists EC-002/003/004 but body covers EC-001-004. Cosmetic inconsistency. Target: next tls-test PR. | P3 — DEFERRED |
-| F-S058-P12-O1 | [deferred-LOW] BC-2.07.005 anchor 726-748 vs actual 726-747 (off-by-one). Target: next BC-2.07.005 touch. | P3 — DEFERRED |
-| F-S058-P13-O4 | [deferred-LOW] test_stop_after_handshake cross-story AC labels + STORY-058 FSR inclusion — pre-existing collision documented in STORY-058 v1.2. Target: wave-gate or Phase-5. | P3 — DEFERRED |
 | W20-NIT-001 | [deferred-LOW, STORY-076 PR#157] optional future U+0080 C1-boundary test for JsonReporter byte handling. Target: next reporter-test PR. | P3 — DEFERRED |
 
 Historical process-gap items from Phase 1 (P1.1–P1.3, P3-PG, P4-PG1/2/3, P5-PG, P8-DEFER,
@@ -190,6 +179,7 @@ P10-PG, P-CITE-PG): archived in `.factory/cycles/v0.1.0-greenfield-spec/converge
 ## Governance Policy
 
 Full policy text: `.factory/policies.yaml` (canonical). Prose detail archived: `cycles/phase-3-tdd/governance-policy-detail.md`.
+4 policies codified 2026-05-30 from PG-HASH-001 + PG-W18-001/002/003 (detail: cycles/phase-3-tdd/lessons.md).
 
 | Policy | Severity |
 |--------|----------|
@@ -201,6 +191,10 @@ Full policy text: `.factory/policies.yaml` (canonical). Prose detail archived: `
 | DF-CONVERGENCE-BEFORE-MERGE-001 | CRITICAL |
 | DF-DEVELOP-FRESHNESS-001 | HIGH |
 | DF-ADVERSARY-TOOLCHAIN-PAIRING-001 | HIGH |
+| DF-INPUT-HASH-CANONICAL-001 | HIGH |
+| DF-ADVERSARY-CHECKOUT-GUARD-001 | HIGH |
+| DF-TEST-CITATION-SWEEP-001 | HIGH |
+| DF-TEST-NAMESPACE-001 | MEDIUM |
 
 ## Tech Debt (Open)
 
