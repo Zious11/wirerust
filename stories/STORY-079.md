@@ -54,7 +54,7 @@ implementation_strategy: brownfield-formalization
 ### AC-001 (traces to BC-2.11.020 postcondition 1)
 The first line of `CsvReporter::render` output is the header row:
 `category,verdict,confidence,summary,evidence,mitre_technique,source_ip,direction,timestamp`
-(with CRLF line terminator per RFC 4180).
+(with LF `\n` line terminator — the `csv` crate default; RFC 4180 CRLF is NOT configured).
 - **Test:** `test_BC_2_11_020_header_row_first_and_exact()`
 
 ### AC-002 (traces to BC-2.11.020 postcondition 2)
@@ -179,7 +179,7 @@ The joined evidence string is subsequently processed by `neutralize_csv_injectio
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| csv | (per Cargo.lock) | `WriterBuilder::new().from_writer(Vec::new())` — RFC 4180 CSV formatting, quoting, CRLF |
+| csv | (per Cargo.lock) | `WriterBuilder::new().from_writer(Vec::new())` — RFC 4180 CSV field formatting and quoting; LF line terminators (not CRLF — no `.terminator(Terminator::CRLF)` configured) |
 | serde | (per Cargo.lock) | If used for record serialization |
 
 ## File Structure Requirements (MANDATORY)

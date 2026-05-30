@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Correct CRLF→LF line-terminator claim in postcondition 1 and description (STORY-079 formalization finding — 2026-05-30)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -43,7 +44,10 @@ analyst scripts) can rely on positional column indices without schema discovery.
 
 1. The returned `String` begins with the header line:
    `category,verdict,confidence,summary,evidence,mitre_technique,source_ip,direction,timestamp`
-   followed by a line terminator (CRLF per RFC 4180 as produced by the `csv` crate).
+   followed by a LF (`\n`) line terminator. The `csv` crate's `WriterBuilder::new()` defaults
+   to LF-only termination; RFC 4180 CRLF would require an explicit `.terminator(Terminator::CRLF)`
+   call, which the implementation does not configure. RFC 4180-compliant readers accept LF line
+   endings, so interoperability with spreadsheets and SIEM pipelines is preserved.
 2. Every data row contains exactly nine comma-separated fields, in the same column order as
    the header.
 3. The column order is: (1) `category`, (2) `verdict`, (3) `confidence`, (4) `summary`,
