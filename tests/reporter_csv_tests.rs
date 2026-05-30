@@ -698,8 +698,8 @@ mod story_079 {
     ///   - Negative: separator is NOT ";" alone (no space) or "; " with extra space.
     #[test]
     fn test_BC_2_11_022_evidence_joined_with_semicolon_space() {
-        // BC-2.11.022 pc1 / inv1: canonical BC test vector: ["first","second","third"]
-        // → "first; second; third".
+        // BC-2.11.022 pc1 / inv1: test vector derived from BC-2.11.022 pc1/inv1
+        // (3-element join → 2 separators; exercises the general N-element case).
         let mut finding = make_finding("summary");
         finding.evidence = vec![
             "first".to_string(),
