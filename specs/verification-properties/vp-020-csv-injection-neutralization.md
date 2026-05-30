@@ -11,14 +11,17 @@ source_bc: BC-2.11.021
 bcs:
   - BC-2.11.021
 module: src/reporter/csv.rs
-proof_method: manual
+proof_method: unit
 feasibility: feasible
 verification_lock: false
 proof_completed_date: null
 proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - date: 2026-05-30
+    actor: product-owner
+    note: "proof_method label corrected manual→unit to match body table + VP-INDEX + BC-2.11.021 (STORY-079 P1 finding)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -134,6 +137,7 @@ The `csv` crate handles field quoting; wirerust adds the single-quote prefix gua
 | Event | Date | Actor |
 |-------|------|-------|
 | Created | 2026-05-20 | architect |
+| proof_method corrected manual→unit | 2026-05-30 | product-owner |
 | Tests committed | null | formal-verifier |
 | Tests passing | null | formal-verifier |
 | Locked (VERIFIED) | null | formal-verifier |
