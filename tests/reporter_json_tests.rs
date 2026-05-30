@@ -196,10 +196,18 @@ fn test_BC_2_11_001_output_is_pretty_printed() {
          got:\n{json_str}"
     );
 
-    // F-005 remediation: prove two-space indentation with a known top-level key.
-    // serde_json::to_string_pretty places each top-level object member on its
-    // own line indented by exactly two spaces, so "summary" must appear as the
-    // literal substring "\n  \"summary\"" in the serialized output.
+    // F-002 remediation: structural indentation proof — at least one line begins
+    // with exactly two spaces followed by a double-quote (a 2-space-indented JSON
+    // key).  This discriminates `to_string_pretty` from both compact output (no
+    // leading space) and tab-indented output, without coupling to a specific key name.
+    assert!(
+        json_str.lines().any(|l| l.starts_with("  \"")),
+        "BC-2.11.001 pc6: serde_json::to_string_pretty must produce lines beginning \
+         with '  \"' (two-space-indented quoted key); got:\n{json_str}"
+    );
+
+    // Additionally verify the known top-level key "summary" is indented as expected
+    // (two spaces), proving the structural assertion is not satisfied by nested keys only.
     assert!(
         json_str.contains("\n  \"summary\""),
         "BC-2.11.001 pc6: serde_json::to_string_pretty must indent top-level keys \
@@ -436,15 +444,47 @@ fn test_BC_2_11_004_cyrillic_preserved_readable() {
          serde_json must emit raw UTF-8 for printable non-ASCII; got:\n{json_str}"
     );
 
-    // F-002 remediation: broad prefix guard covering the entire Cyrillic Unicode
-    // block (U+0400–U+04FF).  Asserting only the specific U+043F codepoint leaves
-    // the door open for other Cyrillic code points to be silently escaped.  The
-    // prefix "\\u04" catches any \u04xx escape regardless of the exact codepoint,
-    // proving "readable raw UTF-8" rather than "this one codepoint is unescaped."
+    // F-001 remediation: per-character exact-escape-absence assertions for every
+    // non-ASCII codepoint in the fixture string "пример.рф".  Asserting the
+    // incomplete prefix "\\u04" would be over-broad and fragile (JSON \u escapes
+    // are exactly 4 hex digits; a prefix match could collide with unrelated output).
+    // Instead we assert the exact 6-character \uXXXX sequence for each codepoint.
+    // Codepoints in fixture (serde_json emits lowercase hex):
+    //   п = U+043F → п
+    //   р = U+0440 → р
+    //   и = U+0438 → и
+    //   м = U+043C → м
+    //   е = U+0435 → е
+    //   ф = U+0444 → ф
     assert!(
-        !json_str.contains("\\u04"),
-        "BC-2.11.004 pc1: no Cyrillic-range \\u04xx escape must appear in JSON output; \
-         serde_json must emit raw UTF-8 for all printable non-ASCII; got:\n{json_str}"
+        !json_str.contains("\\u043f"),
+        "BC-2.11.004 pc1: 'п' (U+043F) must not appear as \\u043f RFC-escape; \
+         serde_json must emit raw UTF-8 for printable non-ASCII; got:\n{json_str}"
+    );
+    assert!(
+        !json_str.contains("\\u0440"),
+        "BC-2.11.004 pc1: 'р' (U+0440) must not appear as \\u0440 RFC-escape; \
+         serde_json must emit raw UTF-8 for printable non-ASCII; got:\n{json_str}"
+    );
+    assert!(
+        !json_str.contains("\\u0438"),
+        "BC-2.11.004 pc1: 'и' (U+0438) must not appear as \\u0438 RFC-escape; \
+         serde_json must emit raw UTF-8 for printable non-ASCII; got:\n{json_str}"
+    );
+    assert!(
+        !json_str.contains("\\u043c"),
+        "BC-2.11.004 pc1: 'м' (U+043C) must not appear as \\u043c RFC-escape; \
+         serde_json must emit raw UTF-8 for printable non-ASCII; got:\n{json_str}"
+    );
+    assert!(
+        !json_str.contains("\\u0435"),
+        "BC-2.11.004 pc1: 'е' (U+0435) must not appear as \\u0435 RFC-escape; \
+         serde_json must emit raw UTF-8 for printable non-ASCII; got:\n{json_str}"
+    );
+    assert!(
+        !json_str.contains("\\u0444"),
+        "BC-2.11.004 pc1: 'ф' (U+0444) must not appear as \\u0444 RFC-escape; \
+         serde_json must emit raw UTF-8 for printable non-ASCII; got:\n{json_str}"
     );
 
     // Round-trip: deserializing must recover the original Cyrillic string.
