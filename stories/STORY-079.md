@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-079"
 epic_id: "E-8"
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -157,7 +157,7 @@ The joined evidence string is subsequently processed by `neutralize_csv_injectio
 5. [ ] Confirm `neutralize_csv_injection` at csv.rs:40-45 matches all 6 trigger chars
 6. [ ] Confirm `neutralize_csv_injection` applied to all 9 columns at csv.rs:89-97
 7. [ ] Confirm evidence join is `f.evidence.join("; ")` at csv.rs:81
-8. [ ] Run proptest: for all non-trigger-prefixed inputs, output == input
+8. [ ] Verify via unit tests that non-trigger-prefixed inputs pass through unchanged (`test_BC_2_11_021_no_trigger_no_change` + `test_BC_2_11_021_trigger_at_position_2_no_prefix`)
 9. [ ] Run `cargo test --all-targets` to confirm green
 
 ## Previous Story Intelligence (MANDATORY)
@@ -170,7 +170,7 @@ The joined evidence string is subsequently processed by `neutralize_csv_injectio
 
 | Rule | Source | Enforcement |
 |------|--------|-------------|
-| Column count is ALWAYS exactly 9; no row may have 8 or 10 columns | BC-2.11.020 invariant 1 | Proptest: parse every row, assert column count == 9 |
+| Column count is ALWAYS exactly 9; no row may have 8 or 10 columns | BC-2.11.020 invariant 1 | Unit test: parse every row with the csv crate, assert column count == 9 (`test_BC_2_11_020_every_row_has_nine_columns`) |
 | `neutralize_csv_injection` is called on ALL 9 column values per row — no bypass | BC-2.11.021 invariant 1 | Code review: csv.rs:89-97 calls it on each field individually |
 | Evidence join separator is exactly `"; "` (semicolon + space, two characters) | BC-2.11.022 invariant 1 | Code review: csv.rs:81 join literal |
 | `csv::WriterBuilder` default separator is a comma; no alternative separator configured | BC-2.11.020 invariant 3 | Code review: csv.rs:58 WriterBuilder initialization |
@@ -188,3 +188,9 @@ The joined evidence string is subsequently processed by `neutralize_csv_injectio
 |------|--------|---------|
 | src/reporter/csv.rs | verify/modify | neutralize_csv_injection (40-45), header (62-73), per-row render (76-100) |
 | tests/reporter_csv_tests.rs | create or modify | AC-001 through AC-013 tests |
+
+## Revision History
+
+| Version | Date | Change |
+|---------|------|--------|
+| v1.3 | 2026-05-30 | proptest→unit in Task 8 + Compliance Rules enforcement to match VP-020 proof_method:unit + realized unit test suite (STORY-079 P6 finding; sibling-sweep of 2026-05-30 VP-020 correction) |
