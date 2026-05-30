@@ -177,6 +177,11 @@ fn test_BC_2_11_001_output_is_pretty_printed() {
     //   1. The output contains at least one newline.
     //   2. At least one line begins with one or more space characters
     //      (indentation evidence).
+    //   3. A known top-level key ("summary") appears on its own indented
+    //      line, proving two-space indentation — not just any whitespace.
+    //      serde_json::to_string_pretty emits "\n  \"key\"" for top-level
+    //      object members.  This discriminates "pretty" (newline + two
+    //      spaces + key) from compact (no newline) and tab-indented output.
     let json_str = render(&[]);
 
     assert!(
@@ -189,6 +194,17 @@ fn test_BC_2_11_001_output_is_pretty_printed() {
         has_indented_line,
         "BC-2.11.001 pc6: pretty-printed JSON must have at least one indented line; \
          got:\n{json_str}"
+    );
+
+    // F-005 remediation: prove two-space indentation with a known top-level key.
+    // serde_json::to_string_pretty places each top-level object member on its
+    // own line indented by exactly two spaces, so "summary" must appear as the
+    // literal substring "\n  \"summary\"" in the serialized output.
+    assert!(
+        json_str.contains("\n  \"summary\""),
+        "BC-2.11.001 pc6: serde_json::to_string_pretty must indent top-level keys \
+         with exactly two spaces — expected the literal '\\n  \"summary\"' substring \
+         in output; got:\n{json_str}"
     );
 }
 
@@ -291,11 +307,18 @@ fn test_BC_2_11_003_del_not_escaped_in_json() {
          got output where 0x7F is absent"
     );
 
-    // Confirm it did not become a \u escape.
+    // F-001 remediation: confirm DEL did not become either lowercase or uppercase
+    // \u escape.  serde_json emits lowercase hex, but we also guard uppercase to
+    // prove the postcondition "NOT escaped" rather than "not escaped as lowercase."
     assert!(
         !json_str.contains("\\u007f"),
-        "BC-2.11.003 pc2: DEL must NOT be escaped as \\u007f; \
+        "BC-2.11.003 pc2: DEL must NOT be escaped as \\u007f (lowercase); \
          serde_json's contract is C0-only escaping"
+    );
+    assert!(
+        !json_str.contains("\\u007F"),
+        "BC-2.11.003 pc2: DEL must NOT be escaped as \\u007F (uppercase); \
+         any \\u007F/\\u007f form proves incorrect escaping of DEL"
     );
 }
 
@@ -304,6 +327,10 @@ fn test_BC_2_11_003_del_not_escaped_in_json() {
 ///
 /// BC-2.11.003 pc4: round-trip recovers original bytes.
 /// BC-2.11.003 inv3: behavior is deterministic.
+///
+/// Pass-1 remediation: added discriminating escaped-form-absence assertions on
+/// the intermediate JSON wire format so a test cannot pass by accident when the
+/// JSON parser normalises an incorrectly-unescaped value.
 #[test]
 fn test_BC_2_11_003_c0_roundtrip() {
     // BC-2.11.003 pc4: serialize a Finding that contains several C0 bytes
@@ -313,6 +340,45 @@ fn test_BC_2_11_003_c0_roundtrip() {
     let finding = make_finding(original_summary);
 
     let json_str = render(&[finding]);
+
+    // --- Discriminating wire-format assertions (pass-1 remediation) ----------
+    // Each C0 byte must appear as its \uNNNN escape on the wire; raw bytes must
+    // be absent.  These checks ensure the round-trip cannot silently pass when
+    // the serializer emits raw control bytes that a lenient parser re-normalises.
+
+    // NUL (0x00) → must be escaped, raw byte must be absent.
+    assert!(
+        !json_str.as_bytes().contains(&0x00),
+        "BC-2.11.003 pc4 wire: raw NUL (0x00) must not appear in JSON output; \
+         serde_json must have escaped it as \\u0000"
+    );
+    assert!(
+        json_str.contains("\\u0000"),
+        "BC-2.11.003 pc4 wire: NUL must appear as \\u0000 in JSON output; got:\n{json_str}"
+    );
+
+    // BEL (0x07) → must be escaped, raw byte must be absent.
+    assert!(
+        !json_str.as_bytes().contains(&0x07),
+        "BC-2.11.003 pc4 wire: raw BEL (0x07) must not appear in JSON output; \
+         serde_json must have escaped it as \\u0007"
+    );
+    assert!(
+        json_str.contains("\\u0007"),
+        "BC-2.11.003 pc4 wire: BEL must appear as \\u0007 in JSON output; got:\n{json_str}"
+    );
+
+    // ESC (0x1B) → must be escaped, raw byte must be absent.
+    assert!(
+        !json_str.as_bytes().contains(&0x1b),
+        "BC-2.11.003 pc4 wire: raw ESC (0x1B) must not appear in JSON output; \
+         serde_json must have escaped it as \\u001b"
+    );
+    assert!(
+        json_str.contains("\\u001b"),
+        "BC-2.11.003 pc4 wire: ESC must appear as \\u001b in JSON output; got:\n{json_str}"
+    );
+    // -------------------------------------------------------------------------
 
     // The JSON must be valid and parseable.
     let parsed = parse(&json_str);
@@ -370,6 +436,17 @@ fn test_BC_2_11_004_cyrillic_preserved_readable() {
          serde_json must emit raw UTF-8 for printable non-ASCII; got:\n{json_str}"
     );
 
+    // F-002 remediation: broad prefix guard covering the entire Cyrillic Unicode
+    // block (U+0400–U+04FF).  Asserting only the specific U+043F codepoint leaves
+    // the door open for other Cyrillic code points to be silently escaped.  The
+    // prefix "\\u04" catches any \u04xx escape regardless of the exact codepoint,
+    // proving "readable raw UTF-8" rather than "this one codepoint is unescaped."
+    assert!(
+        !json_str.contains("\\u04"),
+        "BC-2.11.004 pc1: no Cyrillic-range \\u04xx escape must appear in JSON output; \
+         serde_json must emit raw UTF-8 for all printable non-ASCII; got:\n{json_str}"
+    );
+
     // Round-trip: deserializing must recover the original Cyrillic string.
     let parsed = parse(&json_str);
     let recovered = parsed["findings"][0]["summary"]
@@ -409,11 +486,18 @@ fn test_BC_2_11_005_c1_passthrough_raw_utf8() {
          serde_json must not escape it"
     );
 
-    // The \uNNNN form must NOT be present.
+    // F-003 remediation: guard both lowercase and uppercase forms of the \u escape
+    // for U+009B.  serde_json emits lowercase hex, but the negative postcondition
+    // is "NOT escaped at all" — both case variants must be absent to prove it.
     assert!(
         !json_str.contains("\\u009b"),
-        "BC-2.11.005 pc1: C1 CSI must NOT appear as \\u009b in JSON output; \
+        "BC-2.11.005 pc1: C1 CSI must NOT appear as \\u009b (lowercase) in JSON output; \
          RFC 8259 only mandates escaping of C0 (U+0000-U+001F)"
+    );
+    assert!(
+        !json_str.contains("\\u009B"),
+        "BC-2.11.005 pc1: C1 CSI must NOT appear as \\u009B (uppercase) in JSON output; \
+         any \\u009b/\\u009B form proves incorrect escaping of U+009B"
     );
 }
 
@@ -453,9 +537,17 @@ fn test_BC_2_11_005_c0_escaped_c1_passthrough_in_same_string() {
         "BC-2.11.005 inv2 / BC-2.11.005 pc1: C1 CSI (U+009B) must remain as raw \
          0xC2 0x9B in JSON output alongside the escaped C0 ESC byte"
     );
+    // AC-012 remediation: guard both case variants for C1 escape absence.
+    // The postcondition is "C1 NOT escaped" — both \\u009b and \\u009B must
+    // be absent to fully discriminate raw-UTF-8 from escaped form.
     assert!(
         !json_str.contains("\\u009b"),
-        "BC-2.11.005 inv2: C1 CSI must NOT appear as \\u009b; \
+        "BC-2.11.005 inv2: C1 CSI must NOT appear as \\u009b (lowercase); \
          only C0 bytes are escaped by serde_json"
+    );
+    assert!(
+        !json_str.contains("\\u009B"),
+        "BC-2.11.005 inv2: C1 CSI must NOT appear as \\u009B (uppercase); \
+         any \\u009b/\\u009B form proves incorrect escaping of U+009B"
     );
 }
