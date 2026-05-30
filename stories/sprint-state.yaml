@@ -484,7 +484,7 @@ stories:
     worktree: null
     blocked_by: [STORY-046, STORY-057, STORY-058, STORY-066, STORY-071]
     pr: 157
-    merge_commit: a8f3d21
+    merge_commit: 4d9e1c7
     merged_date: "2026-05-29"
     converged_date: "2026-05-29"
 
