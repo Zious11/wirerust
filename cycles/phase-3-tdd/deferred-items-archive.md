@@ -47,7 +47,7 @@ codified in policies.yaml, externally blocked at a named gate, or closed with a 
 
 ### DF-16.B CLOSED 2026-05-30
 
-DF-16.B CLOSED 2026-05-30 — 209 BC files swept to `domain/capabilities/cap-NN-<slug>.md` form (broken `capabilities.md §CAP-NN` citations replaced); commit 9da3192; grep 0 remaining broken citations after sweep. SS-01 (8 files) fixed 2026-05-29; remaining SS-02..SS-13 (201 files) fixed in 9da3192 bulk sweep.
+DF-16.B CLOSED 2026-05-30 — 209 BC files swept to `domain/capabilities/cap-NN-<slug>.md` form (broken `capabilities.md §CAP-NN` citations replaced); commit b17c5f0; grep 0 remaining broken citations after sweep. SS-01 (8 files) fixed 2026-05-29; remaining SS-02..SS-13 (209 files) fixed in b17c5f0 bulk sweep.
 
 ### OBS-7 CLOSED 2026-05-30
 
