@@ -111,15 +111,10 @@ mod story_079 {
     /// output is the header row with exactly the nine expected field names in order,
     /// followed by a line terminator.
     ///
-    /// BROWNFIELD NOTE (BC discrepancy detected): BC-2.11.020 pc1 states "CRLF per
-    /// RFC 4180 as produced by the `csv` crate". However, `csv::WriterBuilder::new()`
-    /// defaults to `\n` (LF) — RFC 4180 CRLF requires `.terminator(Terminator::CRLF)`
-    /// explicitly. The implementation at csv.rs:58 uses the default (LF only). This
-    /// test formalizes the ACTUAL behavior (LF terminator) while flagging the BC claim
-    /// as inaccurate. This is a DONE_WITH_CONCERNS finding — the implementation is
-    /// consistent but the BC overstates the RFC 4180 compliance of the line terminator.
-    /// No src/ change required — the BC should be corrected, not the code, as LF-only
-    /// CSV is acceptable for all downstream consumers (spreadsheets, SIEM pipelines).
+    /// BC-2.11.020 v1.3 pc1 confirms the LF (`\n`) line terminator: `csv::WriterBuilder::new()`
+    /// uses LF by default; CRLF is intentionally not configured (RFC 4180 readers — including
+    /// the `csv` crate reader — accept LF as a valid record terminator). This test asserts
+    /// the confirmed LF behavior.
     ///
     /// Discriminating assertions:
     ///   - Positive: first logical CSV row (parsed) has exactly these 9 field values
@@ -170,14 +165,12 @@ mod story_079 {
             );
         }
 
-        // Line terminator: csv::WriterBuilder::new() uses LF (\n) by default.
-        // BC-2.11.020 pc1 claims CRLF but the implementation produces LF.
-        // This test formalizes the ACTUAL behavior.
+        // Line terminator: BC-2.11.020 v1.3 pc1 confirms LF (\n) — csv::WriterBuilder::new()
+        // default; CRLF intentionally not configured.
         let expected_header_line = "category,verdict,confidence,summary,evidence,mitre_technique,source_ip,direction,timestamp\n";
         assert!(
             csv_text.starts_with(expected_header_line),
-            "BC-2.11.020 pc1: raw output must begin with the LF-terminated header line \
-             (note: BC claims CRLF but implementation uses LF default — see brownfield note);\n\
+            "BC-2.11.020 v1.3 pc1: raw output must begin with the LF-terminated header line;\n\
              expected prefix: {expected_header_line:?}\n\
              actual prefix: {:?}",
             &csv_text[..csv_text.len().min(120)]
