@@ -493,18 +493,20 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-077:
-    status: in_progress
+    status: done
     wave: 21
-    branch: test/story-077-terminal-reporter
-    worktree: .worktrees/STORY-077
-    blocked_by: [STORY-076]
+    branch: null
+    worktree: null
+    pr: 158
+    merge_commit: 594567c
+    merged_date: "2026-05-30"
+    converged_date: "2026-05-30"
 
   STORY-079:
     status: pending
     wave: 21
     branch: null
     worktree: null
-    blocked_by: [STORY-076]
 
   # ---------------------------------------------------------------------------
   # Wave 22 — 2 stories
