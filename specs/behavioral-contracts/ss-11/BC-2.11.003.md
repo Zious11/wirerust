@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): VP-017 VP-table Proof Method cells corrected unit→integration to match VP-017 authoritative method — 2026-05-30"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -79,8 +80,8 @@ and unescaping will recover the original raw bytes.
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-017 | C0 bytes become backslash-uNNNN in JSON output | unit: test_output_sanitization_layering_contract |
-| VP-017 | Round-trip recovers original bytes | unit: test_output_sanitization_layering_contract |
+| VP-017 | C0 bytes become backslash-uNNNN in JSON output | integration: test_output_sanitization_layering_contract |
+| VP-017 | Round-trip recovers original bytes | integration: test_output_sanitization_layering_contract |
 
 ## Traceability
 

@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.0"
+version: "1.1"
 status: draft
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -12,14 +12,15 @@ bcs:
   - BC-2.11.001
   - BC-2.11.003
 module: src/reporter/json.rs
-proof_method: manual
+proof_method: integration
 feasibility: feasible
 verification_lock: false
 proof_completed_date: null
 proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v1.1: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): frontmatter proof_method corrected from manual→integration to match VP-017 body Proof-Method table and VP-INDEX (integration is authoritative; the body specifies a concrete Rust integration test, not a manual proof) — 2026-05-30"
 deprecated: null
 deprecated_by: null
 replacement: null

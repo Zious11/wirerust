@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): VP-012 VP-table Proof Method cells corrected unit→proptest; VP-012 proof_method=proptest is authoritative (unbounded Unicode input space) — 2026-05-30"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -79,8 +80,8 @@ narrow but real vector where DEC S8C1T terminals can interpret 8-bit C1 sequence
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-012 | NEL and CSI are escaped | unit: escapes_c1_nel_and_csi (terminal.rs) |
-| VP-012 | Boundary values U+0080/U+009F escape; U+00A0 preserved | unit: escapes_c1_range_boundaries (terminal.rs) |
+| VP-012 | NEL and CSI are escaped | proptest: escapes_c1_nel_and_csi (terminal.rs) |
+| VP-012 | Boundary values U+0080/U+009F escape; U+00A0 preserved | proptest: escapes_c1_range_boundaries (terminal.rs) |
 
 ## Traceability
 

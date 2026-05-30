@@ -1,10 +1,11 @@
 ---
 artifact: vp-index
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
-version: "1.0"
+version: "1.1"
 status: draft
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
+modified: "2026-05-30: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of 2026-05-30 VP-020 correction): VP-017 frontmatter corrected manual→integration (VP-INDEX already reflected integration; VP-012 proptest confirmed); consuming BC VP-table rows harmonized"
 total_vps: 20
 p0_count: 8
 p1_count: 7

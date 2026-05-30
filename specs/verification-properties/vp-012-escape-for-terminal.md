@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.0"
+version: "1.1"
 status: draft
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -23,7 +23,8 @@ proof_completed_date: null
 proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v1.1: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): VP-012 frontmatter proof_method=proptest confirmed authoritative (Unicode input space is unbounded; proptest rationale preserved); consuming BC VP-table rows corrected from unit: to proptest to achieve 3-layer agreement — 2026-05-30"
 deprecated: null
 deprecated_by: null
 replacement: null
