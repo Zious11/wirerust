@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-079"
 epic_id: "E-8"
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -142,7 +142,7 @@ The joined evidence string is subsequently processed by `neutralize_csv_injectio
 | This story spec | ~2,500 |
 | src/reporter/csv.rs (full file) | ~2,000 |
 | BC files (3 BCs) | ~4,500 |
-| tests/reporter_tests.rs (CSV tests) | ~1,000 |
+| tests/reporter_csv_tests.rs (CSV tests) | ~1,000 |
 | Tool outputs overhead | ~400 |
 | **Total** | **~10,400** |
 | Agent context window | 200K for Sonnet |
@@ -187,4 +187,4 @@ The joined evidence string is subsequently processed by `neutralize_csv_injectio
 | File | Action | Purpose |
 |------|--------|---------|
 | src/reporter/csv.rs | verify/modify | neutralize_csv_injection (40-45), header (62-73), per-row render (76-100) |
-| tests/reporter_tests.rs | create or modify | AC-001 through AC-013 tests |
+| tests/reporter_csv_tests.rs | create or modify | AC-001 through AC-013 tests |
