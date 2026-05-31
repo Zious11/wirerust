@@ -528,10 +528,10 @@ stories:
     converged_date: "2026-05-30"
 
   STORY-080:
-    status: pending
+    status: in_progress
     wave: 22
-    branch: null
-    worktree: null
+    branch: test/story-080-csv-trait-compliance
+    worktree: .worktrees/STORY-080
     blocked_by: [STORY-079]
 
   # ---------------------------------------------------------------------------
