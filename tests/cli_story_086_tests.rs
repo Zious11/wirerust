@@ -42,9 +42,8 @@ mod story_086 {
     /// result, panicking with a helpful message on error.
     #[allow(dead_code)]
     fn parse_ok(args: &[&str]) -> Cli {
-        Cli::try_parse_from(args).unwrap_or_else(|e| {
-            panic!("Expected successful parse for {args:?}, got error: {e}")
-        })
+        Cli::try_parse_from(args)
+            .unwrap_or_else(|e| panic!("Expected successful parse for {args:?}, got error: {e}"))
     }
 
     /// Call `Cli::try_parse_from` and assert the parse fails, returning the
@@ -70,7 +69,14 @@ mod story_086 {
     fn test_analyze_subcommand_basic_parse() {
         let cli = parse_ok(&["wirerust", "analyze", "cap.pcap"]);
         match cli.command {
-            Commands::Analyze { targets, dns, http, tls, mitre, all } => {
+            Commands::Analyze {
+                targets,
+                dns,
+                http,
+                tls,
+                mitre,
+                all,
+            } => {
                 assert_eq!(targets, vec![PathBuf::from("cap.pcap")]);
                 assert!(!dns, "dns should be false");
                 assert!(!http, "http should be false");
@@ -100,7 +106,14 @@ mod story_086 {
         // --dns only
         let cli = parse_ok(&["wirerust", "analyze", "--dns", "cap.pcap"]);
         match cli.command {
-            Commands::Analyze { dns, http, tls, mitre, all, .. } => {
+            Commands::Analyze {
+                dns,
+                http,
+                tls,
+                mitre,
+                all,
+                ..
+            } => {
                 assert!(dns, "dns should be true");
                 assert!(!http, "http should be false");
                 assert!(!tls, "tls should be false");
@@ -113,7 +126,13 @@ mod story_086 {
         // --http --tls
         let cli = parse_ok(&["wirerust", "analyze", "--http", "--tls", "cap.pcap"]);
         match cli.command {
-            Commands::Analyze { dns, http, tls, all, .. } => {
+            Commands::Analyze {
+                dns,
+                http,
+                tls,
+                all,
+                ..
+            } => {
                 assert!(!dns, "dns should be false");
                 assert!(http, "http should be true");
                 assert!(tls, "tls should be true");
@@ -125,7 +144,13 @@ mod story_086 {
         // --all only
         let cli = parse_ok(&["wirerust", "analyze", "--all", "cap.pcap"]);
         match cli.command {
-            Commands::Analyze { dns, http, tls, all, .. } => {
+            Commands::Analyze {
+                dns,
+                http,
+                tls,
+                all,
+                ..
+            } => {
                 assert!(all, "all should be true");
                 assert!(!dns, "dns should be false");
                 assert!(!http, "http should be false");
@@ -174,7 +199,14 @@ mod story_086 {
     fn test_mitre_flag_does_not_imply_analyzers() {
         let cli = parse_ok(&["wirerust", "analyze", "--mitre", "cap.pcap"]);
         match cli.command {
-            Commands::Analyze { dns, http, tls, mitre, all, .. } => {
+            Commands::Analyze {
+                dns,
+                http,
+                tls,
+                mitre,
+                all,
+                ..
+            } => {
                 assert!(mitre, "mitre should be true");
                 assert!(!dns, "dns should be false");
                 assert!(!http, "http should be false");
@@ -281,19 +313,31 @@ mod story_086 {
     fn test_no_color_flag_global_placement() {
         // Before subcommand (BC-2.12.003 EC-001)
         let cli = parse_ok(&["wirerust", "--no-color", "analyze", "cap.pcap"]);
-        assert!(cli.no_color, "--no-color before subcommand should set no_color=true");
+        assert!(
+            cli.no_color,
+            "--no-color before subcommand should set no_color=true"
+        );
 
         // After subcommand name, before positional (BC-2.12.003 EC-001 / global = true)
         let cli = parse_ok(&["wirerust", "analyze", "--no-color", "cap.pcap"]);
-        assert!(cli.no_color, "--no-color after subcommand name should set no_color=true");
+        assert!(
+            cli.no_color,
+            "--no-color after subcommand name should set no_color=true"
+        );
 
         // After positional (BC-2.12.003 EC-002 — global flag semantics)
         let cli = parse_ok(&["wirerust", "analyze", "cap.pcap", "--no-color"]);
-        assert!(cli.no_color, "--no-color after positional should set no_color=true");
+        assert!(
+            cli.no_color,
+            "--no-color after positional should set no_color=true"
+        );
 
         // Absent → false
         let cli = parse_ok(&["wirerust", "analyze", "cap.pcap"]);
-        assert!(!cli.no_color, "absent --no-color should leave no_color=false");
+        assert!(
+            !cli.no_color,
+            "absent --no-color should leave no_color=false"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -313,7 +357,10 @@ mod story_086 {
         let cli = parse_ok(&["wirerust", "analyze", "cap.pcap"]);
         // Type assertion: this line would fail to compile if no_color were Option<bool>
         let no_color: bool = cli.no_color;
-        assert!(!no_color, "no_color must be false when --no-color is absent");
+        assert!(
+            !no_color,
+            "no_color must be false when --no-color is absent"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -359,9 +406,17 @@ mod story_086 {
     ///   Positive: tls=false (not individually provided).
     #[test]
     fn test_EC_001_all_flag_with_individual_protocol_flags() {
-        let cli = parse_ok(&["wirerust", "analyze", "--all", "--dns", "--http", "cap.pcap"]);
+        let cli = parse_ok(&[
+            "wirerust", "analyze", "--all", "--dns", "--http", "cap.pcap",
+        ]);
         match cli.command {
-            Commands::Analyze { dns, http, tls, all, .. } => {
+            Commands::Analyze {
+                dns,
+                http,
+                tls,
+                all,
+                ..
+            } => {
                 assert!(all, "all should be true");
                 assert!(dns, "dns should be true (individually provided)");
                 assert!(http, "http should be true (individually provided)");
@@ -386,7 +441,14 @@ mod story_086 {
     fn test_EC_002_mitre_alone() {
         let cli = parse_ok(&["wirerust", "analyze", "--mitre", "cap.pcap"]);
         match cli.command {
-            Commands::Analyze { dns, http, tls, mitre, all, .. } => {
+            Commands::Analyze {
+                dns,
+                http,
+                tls,
+                mitre,
+                all,
+                ..
+            } => {
                 assert!(mitre, "mitre should be true");
                 assert!(!all, "all should be false");
                 assert!(!dns, "dns should be false");
