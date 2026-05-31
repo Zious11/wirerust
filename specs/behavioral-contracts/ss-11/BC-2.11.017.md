@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -92,7 +93,7 @@ bucketing or sorting. The `## Tactic` section headers are absent from the output
 ## Architecture Anchors
 
 - `src/reporter/terminal.rs:223-228` -- render_finding_flat (default path)
-- `tests/reporter_tests.rs` -- default_rendering_unchanged_when_mitre_flag_off
+- `tests/reporter_terminal_tests.rs` -- mod story_078 :: test_BC_2_11_017_default_mode_bare_mitre_id
 
 ---
 

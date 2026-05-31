@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: VP-016 proof-method cell unit→integration to match VP-016 frontmatter + VP-INDEX (Wave-21 wave-level consistency lens; SS-11 reporter VP family harmonization — sibling of VP-017 fix in 86113c2; DF-SIBLING-SWEEP-001)"
+  - "v1.4: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -98,7 +99,7 @@ key). This ordering surfaces the highest-severity findings at the top of each ta
 ## Architecture Anchors
 
 - `src/reporter/terminal.rs:262-280` -- sort closure and sort_by_key call
-- `tests/reporter_tests.rs` -- mitre_grouping_sorts_within_tactic_by_verdict_then_confidence, mitre_grouping_preserves_emission_order_when_verdict_and_confidence_tie
+- `tests/reporter_terminal_tests.rs` -- mod story_078 :: test_BC_2_11_014_sort_by_verdict_within_bucket, test_BC_2_11_014_stable_emission_order_on_tie
 
 ---
 

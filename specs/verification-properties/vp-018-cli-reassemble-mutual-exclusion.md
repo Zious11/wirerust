@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.0"
+version: "1.1"
 status: draft
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -12,14 +12,15 @@ bcs:
   - BC-2.12.007
   - BC-2.12.009
 module: src/cli.rs
-proof_method: manual
+proof_method: integration
 feasibility: feasible
 verification_lock: false
 proof_completed_date: null
 proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v1.1: proof_method manual→integration to match VP body (Integration test / assert_cmd), VP-INDEX (integration), verification-coverage-matrix, and verification-architecture — F-W21-VP-METHOD — 2026-05-31"
 deprecated: null
 deprecated_by: null
 replacement: null

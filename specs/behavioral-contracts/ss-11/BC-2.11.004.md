@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_json_tests.rs formalization (F-W22-BC-ANCHOR) — 2026-05-31"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -97,7 +98,7 @@ like `primer.rf` (Cyrillic) appears in the JSON output literally, not as `\u...`
 ## Architecture Anchors
 
 - `src/reporter/json.rs:23-60` -- serde_json::to_string_pretty call
-- `tests/reporter_tests.rs` -- test_json_reporter_preserves_cyrillic_as_readable_unicode
+- `tests/reporter_json_tests.rs` -- test_BC_2_11_004_cyrillic_preserved_readable
 
 ---
 

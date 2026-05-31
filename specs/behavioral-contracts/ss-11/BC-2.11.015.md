@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: VP-016 proof-method cell unit→integration to match VP-016 frontmatter + VP-INDEX (Wave-21 wave-level consistency lens; SS-11 reporter VP family harmonization — sibling of VP-017 fix in 86113c2; DF-SIBLING-SWEEP-001)"
+  - "v1.4: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -102,7 +103,7 @@ due to an unrecognized technique ID.
 
 - `src/reporter/terminal.rs:237-245` -- render_finding_grouped (fn decl to closing brace); None-arm `(unknown)` label at :242
 - `src/reporter/terminal.rs:291-296` -- Uncategorized bucket rendering (`if let Some(items) = buckets.get(&None)` at :291)
-- `tests/reporter_tests.rs` -- mitre_grouping_buckets_none_and_unknown_under_uncategorized
+- `tests/reporter_terminal_tests.rs` -- mod story_078 :: test_BC_2_11_015_none_technique_uncategorized
 
 ---
 

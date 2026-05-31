@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: VP-018 VP-table Proof Method cell unit→integration to match VP-018 frontmatter + VP-INDEX (harmonization; mirrors Wave-21 VP-017 BC-row fix) — F-W21-VP-METHOD — 2026-05-31"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -80,7 +81,7 @@ require reassembled streams).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-018 | needs_reassembly computation and no-reassemble override | unit: code-level verification (MEDIUM -- not directly tested) |
+| VP-018 | needs_reassembly computation and no-reassemble override | integration: code-level verification (MEDIUM -- not directly tested) |
 
 ## Traceability
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): VP-012 VP-table Proof Method cells corrected unit→proptest; VP-012 proof_method=proptest is authoritative (unbounded Unicode input space) — 2026-05-30"
+  - "v1.4: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_077 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -103,7 +104,7 @@ reporter must therefore re-escape the rendered JSON string to close the C1 gap.
 
 - `src/reporter/terminal.rs:164-174` -- analyzer summary detail loop with escape (`for (key, val)` at 164)
 - `src/reporter/terminal.rs:165-171` -- inline comment explaining the C1 gap in serde_json
-- `tests/reporter_tests.rs` -- test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries
+- `tests/reporter_terminal_tests.rs` -- mod story_077 :: test_BC_2_11_011_analyzer_detail_c1_escaped
 
 ---
 

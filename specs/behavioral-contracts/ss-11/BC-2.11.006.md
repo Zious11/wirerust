@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_077 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -98,7 +99,7 @@ When `skipped_packets = 0`, the line is completely absent from the output. This 
 ## Architecture Anchors
 
 - `src/reporter/terminal.rs:94-104` -- conditional skipped_packets rendering
-- `tests/reporter_tests.rs` -- test_terminal_reporter_shows_skipped_when_nonzero, test_terminal_reporter_hides_skipped_when_zero
+- `tests/reporter_terminal_tests.rs` -- mod story_077 :: test_BC_2_11_006_skipped_packets_nonzero_line_present, test_BC_2_11_006_skipped_packets_zero_no_line
 
 ---
 

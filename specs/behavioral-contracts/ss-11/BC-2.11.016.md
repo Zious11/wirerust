@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -96,7 +97,7 @@ render as `MITRE: <id> (unknown)`.
 
 - `src/reporter/terminal.rs:239-244` -- render_finding_grouped MITRE line expansion
 - `src/reporter/terminal.rs:241` -- `\u{2014}` em-dash literal
-- `tests/reporter_tests.rs` -- mitre_grouping_expands_per_finding_line_with_technique_name
+- `tests/reporter_terminal_tests.rs` -- mod story_078 :: test_BC_2_11_016_known_id_em_dash_and_name
 
 ---
 
