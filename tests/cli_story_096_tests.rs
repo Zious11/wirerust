@@ -143,58 +143,82 @@ mod story_096 {
     // -----------------------------------------------------------------------
 
     /// AC-004 (BC-2.13.002 invariant 2): No `C2BeaconAnalyzer` or equivalent
-    /// beacon analyzer struct exists in the analyzer source files.
+    /// beacon analyzer struct exists ANYWHERE in `src/`.
     ///
-    /// Strategy: use `include_str!` on each file in `src/analyzer/` and the
-    /// analyzer `mod.rs`. The LESSON-P1.04 comment in `src/cli.rs` mentions
-    /// `--beacon` as text; `src/findings.rs` contains "beaconing" in a doc
-    /// comment. We assert for the absence of a *struct declaration* named
-    /// `BeaconAnalyzer`, `C2BeaconAnalyzer`, or any variant, which would be
-    /// the form `struct BeaconAnalyzer` or `struct C2BeaconAnalyzer`.
+    /// BC-2.13.002 invariant 2 scopes the absence to ALL of `src/`, not just the
+    /// analyzer subtree. A hand-listed `include_str!` set is therefore inadequate:
+    /// a `C2BeaconAnalyzer` declared in any unscanned file (e.g. `src/summary.rs`)
+    /// or in a NEW file (e.g. `src/analyzer/beacon.rs`) would evade it. Instead we
+    /// recursively walk every `*.rs` file under `src/` at test runtime (resolved
+    /// via `CARGO_MANIFEST_DIR`) and assert the struct/impl declaration forms are
+    /// absent from every file.
+    ///
+    /// The LESSON-P1.04 comment in `src/cli.rs` mentions `--beacon` as text, and
+    /// `src/findings.rs` contains "beaconing" in a doc comment; neither matches the
+    /// struct/impl declaration forms we search for, so they are not false positives.
+    ///
+    /// A positive-coverage guard asserts the walk visited at least the known number
+    /// of `src/` files, so an empty or mis-rooted walk cannot silently false-green.
     ///
     /// Discriminating assertions:
-    ///   Positive: no `struct BeaconAnalyzer` in any analyzer source.
-    ///   Positive: no `struct C2BeaconAnalyzer` in any analyzer source.
-    ///   Negative: doc-comment occurrences of "beaconing" are NOT matched
-    ///   because we search for the struct-declaration form specifically.
+    ///   Positive: no `struct BeaconAnalyzer` / `struct C2BeaconAnalyzer` anywhere in src/.
+    ///   Positive: no `impl BeaconAnalyzer` / `impl C2BeaconAnalyzer` anywhere in src/.
+    ///   Positive (coverage guard): the walk visited >= a non-trivial number of files.
+    ///   Negative: doc-comment occurrences of "beaconing"/"--beacon" are NOT matched
+    ///   because we search for the struct/impl declaration forms specifically.
     #[test]
     fn test_beacon_analyzer_absent_from_src() {
-        // All source files that could contain an analyzer struct definition.
-        let analyzer_mod = include_str!("../src/analyzer/mod.rs");
-        let analyzer_dns = include_str!("../src/analyzer/dns.rs");
-        let analyzer_http = include_str!("../src/analyzer/http.rs");
-        let analyzer_tls = include_str!("../src/analyzer/tls.rs");
-        let dispatcher = include_str!("../src/dispatcher.rs");
-        let lib_rs = include_str!("../src/lib.rs");
-        let main_rs = include_str!("../src/main.rs");
+        use std::path::{Path, PathBuf};
 
-        let all_sources = [
-            ("src/analyzer/mod.rs", analyzer_mod),
-            ("src/analyzer/dns.rs", analyzer_dns),
-            ("src/analyzer/http.rs", analyzer_http),
-            ("src/analyzer/tls.rs", analyzer_tls),
-            ("src/dispatcher.rs", dispatcher),
-            ("src/lib.rs", lib_rs),
-            ("src/main.rs", main_rs),
-        ];
+        // Recursively collect every `*.rs` file under `dir`.
+        fn collect_rs(dir: &Path, out: &mut Vec<PathBuf>) {
+            let entries = std::fs::read_dir(dir)
+                .unwrap_or_else(|e| panic!("failed to read dir {}: {e}", dir.display()));
+            for entry in entries {
+                let path = entry.expect("dir entry").path();
+                if path.is_dir() {
+                    collect_rs(&path, out);
+                } else if path.extension().is_some_and(|ext| ext == "rs") {
+                    out.push(path);
+                }
+            }
+        }
 
-        for (path, src) in &all_sources {
+        let src_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+        let mut rs_files = Vec::new();
+        collect_rs(&src_dir, &mut rs_files);
+
+        // Positive-coverage guard: the walk MUST find the full src/ tree. As of this
+        // story src/ has 24 `.rs` files; require a conservative lower bound so an
+        // empty/mis-rooted walk (which would vacuously pass the absence checks) fails
+        // loudly instead.
+        assert!(
+            rs_files.len() >= 20,
+            "coverage guard: expected to walk the full src/ tree (>=20 .rs files), \
+             found only {} under {} — an empty/mis-rooted walk must not false-green",
+            rs_files.len(),
+            src_dir.display()
+        );
+
+        for path in &rs_files {
+            let src = std::fs::read_to_string(path)
+                .unwrap_or_else(|e| panic!("failed to read {}: {e}", path.display()));
+            let rel = path.strip_prefix(&src_dir).unwrap_or(path).display();
             assert!(
                 !src.contains("struct BeaconAnalyzer"),
-                "{path} must not declare `struct BeaconAnalyzer`"
+                "src/{rel} must not declare `struct BeaconAnalyzer`"
             );
             assert!(
                 !src.contains("struct C2BeaconAnalyzer"),
-                "{path} must not declare `struct C2BeaconAnalyzer`"
+                "src/{rel} must not declare `struct C2BeaconAnalyzer`"
             );
-            // Covers any variant like `struct Beacon` used as an analyzer entry point
             assert!(
                 !src.contains("impl BeaconAnalyzer"),
-                "{path} must not implement `BeaconAnalyzer`"
+                "src/{rel} must not implement `BeaconAnalyzer`"
             );
             assert!(
                 !src.contains("impl C2BeaconAnalyzer"),
-                "{path} must not implement `C2BeaconAnalyzer`"
+                "src/{rel} must not implement `C2BeaconAnalyzer`"
             );
         }
     }
@@ -230,88 +254,94 @@ mod story_096 {
     // -----------------------------------------------------------------------
 
     /// AC-006 (BC-2.13.003 invariant 2): No BPF library exists in `Cargo.toml`.
-    /// Specifically: no `pcap-filter`, `bpf`, `libpcap`, or `pcap` crate with a
-    /// BPF API is declared as a dependency.
+    /// Specifically: no `pcap` (BPF-capable), `pcap-filter`, `bpf`, `bpf-sys`, or
+    /// `libpcap` crate is declared as a dependency.
     ///
-    /// Strategy: `include_str!` on `Cargo.toml` and assert the absence of the
-    /// known BPF-capable crate names. The `pcap-file` crate (present) provides
-    /// only file-reading — it does NOT provide BPF expression evaluation.
+    /// Strategy: `include_str!` on `Cargo.toml` and assert that no forbidden crate
+    /// is declared as a DEPENDENCY KEY. The `pcap-file` crate (present) provides
+    /// only file-reading — it does NOT provide BPF expression evaluation — and must
+    /// NOT be flagged.
     ///
     /// The canonical reintroduction vector (BC-2.13.003 Refactoring Notes) is the
     /// `pcap` crate (crates.io: `pcap`), whose `Capture::filter()` compiles and
-    /// applies a BPF expression at the kernel level. Because the `pcap-file`
-    /// dependency key contains the substring "pcap", naive `contains("pcap")`
-    /// would false-positive. We therefore parse Cargo.toml line-by-line and match
-    /// the dependency KEY precisely:
-    ///   - inline form:  `pcap = …` or `pcap = {…}` (trimmed line starts with
-    ///     "pcap " or "pcap=")
-    ///   - table form:   `[dependencies.pcap]` or `[dependencies.pcap.` prefix
+    /// applies a BPF expression at the kernel level.
+    ///
+    /// Because a naive substring check is evadable in several directions —
+    /// `contains("pcap")` false-positives on `pcap-file`; `contains("\"bpf\"")`
+    /// misses an unquoted `bpf = "0.1"` key; and an enumerated set of inline/table
+    /// syntaxes misses the idiomatic dotted form `pcap.version = "2.2"` — we instead
+    /// parse Cargo.toml line-by-line and detect each forbidden crate by its
+    /// DEPENDENCY KEY across ALL of TOML's dependency-declaration syntaxes:
+    ///   - inline:        `name = …`, `name= …`         (space or no-space before `=`)
+    ///   - dotted:        `name.version = …`, `name.features = …`  (`name.` prefix)
+    ///   - table header:  `[dependencies.name]`, `[dependencies.name.features]`,
+    ///     and the build/dev variants `[*-dependencies.name…]`
+    ///
+    /// This structural key match (rather than enumerated literal forms) is the
+    /// mutation-resistance fix: any TOML syntax that declares a forbidden crate is
+    /// caught, while `pcap-file` (key `pcap-file`, not `pcap`) is never matched
+    /// because none of the `pcap`-anchored prefixes (`pcap `, `pcap=`, `pcap.`,
+    /// `[dependencies.pcap]`, `[dependencies.pcap.`) is a prefix of `pcap-file`.
     ///
     /// Discriminating assertions:
-    ///   Positive: no `pcap-filter` dependency (substring check is unambiguous).
-    ///   Positive: no `bpf` dependency (standalone BPF crate).
-    ///   Positive: no `libpcap` dependency (raw libpcap bindings).
-    ///   Positive: no `pcap` dependency key (BPF-capable `pcap` crate) — matched
-    ///     line-by-line to avoid false positives on `pcap-file`.
-    ///   Negative: `pcap-file` (the present read-only pcap crate) is NOT
-    ///     incorrectly flagged — line-by-line key matching distinguishes it.
-    ///   Negative (sanity guard): `pcap-file` IS present, proving the detector
-    ///     can tell the two apart.
+    ///   Positive: no `pcap` dependency key (BPF-capable `pcap` crate) in any
+    ///     inline / dotted / table-header syntax.
+    ///   Positive: no `pcap-filter`, `bpf`, `bpf-sys`, or `libpcap` dependency key.
+    ///   Negative: `pcap-file` (the present read-only crate) is NOT flagged — key
+    ///     matching distinguishes it from `pcap`.
+    ///   Negative (sanity guard): `pcap-file` IS present, proving the detector can
+    ///     tell the two crates apart.
     #[test]
     fn test_bpf_filter_absent_from_src() {
         let cargo_toml = include_str!("../Cargo.toml");
 
         // ------------------------------------------------------------------
-        // Substring-safe checks for unambiguous BPF crate names
+        // Structural dependency-KEY detector. Returns true if `crate_name` is
+        // declared as a dependency in ANY TOML syntax. Anchoring on the exact
+        // key followed by ` `, `=`, `.`, or a table-header boundary ensures
+        // sibling crates that merely share a prefix (e.g. `pcap-file` vs `pcap`)
+        // are NOT matched.
         // ------------------------------------------------------------------
-        assert!(
-            !cargo_toml.contains("pcap-filter"),
-            "Cargo.toml must not declare a `pcap-filter` dependency"
-        );
-        assert!(
-            !cargo_toml.contains("\"bpf\""),
-            "Cargo.toml must not declare a standalone `bpf` dependency"
-        );
-        assert!(
-            !cargo_toml.contains("libpcap"),
-            "Cargo.toml must not declare a `libpcap` dependency"
-        );
+        let declares_dep = |crate_name: &str| -> bool {
+            cargo_toml.lines().any(|raw_line| {
+                let line = raw_line.trim();
+                // inline:  `name =`, `name= `
+                line.starts_with(&format!("{crate_name} ="))
+                    || line.starts_with(&format!("{crate_name}="))
+                    // dotted:  `name.version = …`, `name.optional = …`, etc.
+                    || line.starts_with(&format!("{crate_name}."))
+                    // table header (and build-/dev- prefixed variants):
+                    //   [dependencies.name]   [dependencies.name.features]
+                    || line.contains(&format!("dependencies.{crate_name}]"))
+                    || line.contains(&format!("dependencies.{crate_name}."))
+            })
+        };
+
+        // Every known BPF-capable / BPF-binding crate. The fix is uniform across
+        // all forbidden keys (DF-SIBLING-SWEEP-001): the same syntactic gap that
+        // affected `pcap` is closed for every name in one pass.
+        for forbidden in ["pcap", "pcap-filter", "bpf", "bpf-sys", "libpcap"] {
+            assert!(
+                !declares_dep(forbidden),
+                "Cargo.toml must not declare the `{forbidden}` crate as a \
+                 dependency (BPF expression evaluation — BC-2.13.003 invariant 2 / \
+                 Refactoring Notes reintroduction vector)"
+            );
+        }
 
         // ------------------------------------------------------------------
-        // Precise line-by-line check for the `pcap` crate dependency key.
-        //
-        // Matches:
-        //   pcap = "2.2"                  (inline, space before `=`)
-        //   pcap= "2.2"                   (inline, no space)
-        //   pcap = { version = "2" }      (inline table)
-        //   [dependencies.pcap]           (TOML table header)
-        //   [dependencies.pcap.features]  (nested table header)
-        //
-        // Does NOT match:
-        //   pcap-file = "2"               (different crate name)
-        // ------------------------------------------------------------------
-        let has_pcap_dep = cargo_toml.lines().any(|raw_line| {
-            let line = raw_line.trim();
-            // Inline dependency key: key is exactly `pcap` before `=` or space.
-            line.starts_with("pcap =") || line.starts_with("pcap=")
-            // TOML table header for explicit dependency table.
-            || line.starts_with("[dependencies.pcap]")
-            || line.starts_with("[dependencies.pcap.")
-        });
-        assert!(
-            !has_pcap_dep,
-            "Cargo.toml must not declare the `pcap` crate as a dependency \
-             (its Capture::filter() API applies BPF expressions — BC-2.13.003 \
-             Refactoring Notes reintroduction vector)"
-        );
-
-        // ------------------------------------------------------------------
-        // Sanity guard: `pcap-file` (read-only) MUST still be present.
-        // This proves the detector correctly distinguishes `pcap` from `pcap-file`.
+        // Sanity guard: `pcap-file` (read-only) MUST still be present, and the
+        // detector must NOT have flagged it above. This proves the key matcher
+        // correctly distinguishes `pcap` from `pcap-file`.
         // ------------------------------------------------------------------
         assert!(
             cargo_toml.contains("pcap-file"),
             "Cargo.toml must retain the `pcap-file` read-only dependency (sanity guard)"
+        );
+        assert!(
+            declares_dep("pcap-file"),
+            "sanity guard: detector must recognize `pcap-file` as a declared dependency \
+             (proving it matches real dependency keys, not just any substring)"
         );
     }
 
