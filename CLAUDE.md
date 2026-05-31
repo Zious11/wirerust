@@ -56,6 +56,79 @@ pass to avoid introducing a flaky or non-gating stub. To implement: install
 `cargo-public-api`, run `cargo +nightly public-api > public-api.txt`, commit the
 baseline, then add a CI step that fails on unexpected surface changes.
 
+## Input Hash Computation
+
+Every factory story file (`.factory/stories/STORY-NNN.md`) carries an `input-hash:` YAML
+frontmatter field. This hash detects when a story's source inputs (behavioral contracts, PRD)
+have changed without the story being regenerated — i.e., spec drift.
+
+### Canonical Algorithm
+
+The **canonical implementation** is `bin/compute-input-hash` (Python 3, no third-party deps).
+This tool defines the algorithm; there is no separate spec document.
+
+1. Parse the story's YAML frontmatter and extract the `inputs:` list **in declaration order**.
+2. For each path in `inputs:` (relative to repo root), read the raw file bytes.
+3. Normalize line endings: `\r\n` → `\n`, then lone `\r` → `\n`.
+4. Concatenate all normalized byte strings in declaration order — **no separators, no paths,
+   contents only**.
+5. Compute the MD5 digest of the concatenated bytes.
+6. The `input-hash` is the **first 7 hex characters** of the hexdigest (lowercase).
+
+Design rationale:
+- MD5 via Python stdlib `hashlib` — fast, no dependencies, adequate for drift detection
+  (this is not a security hash).
+- First-7 chars matches git short-SHA convention.
+- LF normalization makes the hash OS-independent (Windows CRLF checkout does not change it).
+- Contents-only concatenation avoids false drift on file renames.
+
+### Tool Usage
+
+```bash
+# Print the 7-char hash for one story
+bin/compute-input-hash .factory/stories/STORY-001.md
+
+# Scan all stories: compare stored vs computed, print MATCH/STALE table, exit 1 if any STALE
+bin/compute-input-hash --scan
+
+# Scan and rewrite all stale hashes in place (factory-artifacts branch step)
+bin/compute-input-hash --write --scan
+
+# Rewrite one story's hash
+bin/compute-input-hash --write .factory/stories/STORY-001.md
+```
+
+### Repo Root Resolution
+
+The tool resolves the repo root by searching for the directory that contains `.factory/`.
+Override with `WIRERUST_REPO_ROOT=/path/to/repo` if auto-detection fails (rare).
+
+### CI Gate Decision (deferred — no broken stub shipped)
+
+`.factory/` (stories and BC inputs) lives on the `factory-artifacts` branch, **not** in the
+`develop` tree. A `develop` CI job cannot see those files without a `git fetch` of the
+factory-artifacts ref.
+
+Following the same principle as the W7.1 public-API note above (no flaky/non-gating stubs),
+the input-hash drift check is **not** wired into the develop CI pipeline. Instead:
+
+- **Phase-4 entry (manual gate):** Before opening a Phase-4 holdout-evaluation run, execute
+  `bin/compute-input-hash --scan` from a checkout where `.factory/` is mounted
+  (i.e., from the repo root, which has the factory-artifacts worktree at `.factory/`).
+  If any stories report STALE, re-generate them before proceeding.
+- To add a reliable CI gate in the future: add a step that fetches the `factory-artifacts`
+  ref and checks out `.factory/`, then runs `bin/compute-input-hash --scan`. Only do this
+  when it can be made reliably green and non-flaky.
+
+### Self-Test
+
+```bash
+python3 bin/test_compute_input_hash.py
+```
+
+Verifies: determinism, pinned known-fixture hash, CRLF/LF normalization equivalence,
+lone-CR normalization, declaration-order sensitivity, and clear error on missing input.
+
 ## Deferred Findings
 
 Deferred or open findings — STATE.md Drift Items, spec contradictions, and review/adversarial backlog items — MUST be validated by the research agent (`vsdd-factory:research-agent`) before being filed as GitHub issues. No issue is created from an unvalidated finding. The canonical, machine-enforced version of this rule is policy `DF-VALIDATION-001` in `.factory/policies.yaml`.
