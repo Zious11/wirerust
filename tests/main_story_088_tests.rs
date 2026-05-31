@@ -30,6 +30,7 @@
 mod story_088 {
     use assert_cmd::Command;
     use predicates::prelude::*;
+    use std::fs;
 
     // -----------------------------------------------------------------------
     // Fixture constants
@@ -73,7 +74,25 @@ mod story_088 {
     ///   Negative: run without --all produces no ANALYZER sections when no flags set.
     #[test]
     fn test_all_flag_enables_all_three_analyzers() {
-        assert!(false, "RED GATE STUB — test_all_flag_enables_all_three_analyzers");
+        // Positive: all three ANALYZER sections appear with --all
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE, "--all"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("ANALYZER: DNS"))
+            .stdout(predicate::str::contains("ANALYZER: HTTP"))
+            .stdout(predicate::str::contains("ANALYZER: TLS"));
+
+        // Negative: without --all and no analyzer flags, no ANALYZER: DNS/HTTP/TLS sections
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("ANALYZER: DNS").not())
+            .stdout(predicate::str::contains("ANALYZER: HTTP").not())
+            .stdout(predicate::str::contains("ANALYZER: TLS").not());
     }
 
     // -----------------------------------------------------------------------
@@ -84,15 +103,30 @@ mod story_088 {
 
     /// AC-002 (BC-2.12.008 invariant 3): `--all` without `--mitre` does not
     /// activate MITRE-grouped rendering. The observable proxy is the absence of
-    /// the "MITRE ATT&CK" grouping header in stdout.
+    /// the "## Uncategorized" grouping header in stdout (which only appears when
+    /// --mitre is active).
     ///
     /// Discriminating assertions:
-    ///   Positive: stdout does NOT contain "MITRE" grouping header.
+    ///   Positive: stdout does NOT contain "## Uncategorized" (no MITRE grouping).
     ///   Positive: command succeeds (exit 0).
-    ///   Negative: `--all --mitre` DOES produce the MITRE grouping header.
+    ///   Negative: `--all --mitre` DOES produce the "## Uncategorized" grouping header.
     #[test]
     fn test_all_does_not_imply_mitre() {
-        assert!(false, "RED GATE STUB — test_all_does_not_imply_mitre");
+        // Positive: --all alone does NOT produce MITRE grouping header
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE, "--all"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("## Uncategorized").not());
+
+        // Negative: --all --mitre DOES produce the MITRE grouping header
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE, "--all", "--mitre"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("## Uncategorized"));
     }
 
     // -----------------------------------------------------------------------
@@ -117,7 +151,21 @@ mod story_088 {
     ///   Negative: the two cases are observably different.
     #[test]
     fn test_needs_reassembly_formula() {
-        assert!(false, "RED GATE STUB — test_needs_reassembly_formula");
+        // Positive (reassembly on): ANALYZER: HTTP present
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE, "--http"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("ANALYZER: HTTP"));
+
+        // Positive (skip): ANALYZER: HTTP absent when --no-reassemble is set
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE, "--http", "--no-reassemble"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("ANALYZER: HTTP").not());
     }
 
     // -----------------------------------------------------------------------
@@ -138,7 +186,24 @@ mod story_088 {
     ///   Negative: --http WITHOUT --no-reassemble does NOT emit the warning.
     #[test]
     fn test_no_reassemble_with_http_emits_warning() {
-        assert!(false, "RED GATE STUB — test_no_reassemble_with_http_emits_warning");
+        let expected_warning = "Warning: --http/--tls require TCP reassembly, but \
+            --no-reassemble is set. Stream analysis will be skipped.";
+
+        // Positive: warning is emitted on stderr
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE, "--http", "--no-reassemble"])
+            .assert()
+            .success()
+            .stderr(predicate::str::contains(expected_warning));
+
+        // Negative: no warning when --http without --no-reassemble
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE, "--http"])
+            .assert()
+            .success()
+            .stderr(predicate::str::contains(expected_warning).not());
     }
 
     // -----------------------------------------------------------------------
@@ -158,7 +223,22 @@ mod story_088 {
     ///   Negative: WITHOUT --no-reassemble, both sections appear.
     #[test]
     fn test_no_reassemble_skips_http_and_tls_constructors() {
-        assert!(false, "RED GATE STUB — test_no_reassemble_skips_http_and_tls_constructors");
+        // Positive: both HTTP and TLS analyzers absent with --no-reassemble
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE, "--http", "--no-reassemble"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("ANALYZER: HTTP").not())
+            .stdout(predicate::str::contains("ANALYZER: TLS").not());
+
+        // Negative: without --no-reassemble, HTTP analyzer IS present
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE, "--http"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("ANALYZER: HTTP"));
     }
 
     // -----------------------------------------------------------------------
@@ -177,7 +257,16 @@ mod story_088 {
     ///   Negative: no warning emitted (--dns does not require reassembly).
     #[test]
     fn test_dns_analyzer_constructed_without_reassembly() {
-        assert!(false, "RED GATE STUB — test_dns_analyzer_constructed_without_reassembly");
+        let no_reassemble_warning = "Warning: --http/--tls require TCP reassembly";
+
+        // Positive: DNS analyzer still runs with --no-reassemble
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", DNS_FIXTURE, "--dns", "--no-reassemble"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("ANALYZER: DNS"))
+            .stderr(predicate::str::contains(no_reassemble_warning).not());
     }
 
     // -----------------------------------------------------------------------
@@ -200,7 +289,13 @@ mod story_088 {
     ///   by the complementary test AC-008).
     #[test]
     fn test_no_color_env_var_disables_color() {
-        assert!(false, "RED GATE STUB — test_no_color_env_var_disables_color");
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE, "--all"])
+            .env("NO_COLOR", "")
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("\x1b").not());
     }
 
     // -----------------------------------------------------------------------
@@ -222,7 +317,13 @@ mod story_088 {
     ///   Negative: the complementary case (NO_COLOR set) does NOT produce escapes.
     #[test]
     fn test_use_color_true_when_no_flags_set() {
-        assert!(false, "RED GATE STUB — test_use_color_true_when_no_flags_set");
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE, "--all"])
+            .env_remove("NO_COLOR")
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("\x1b"));
     }
 
     // -----------------------------------------------------------------------
@@ -244,11 +345,25 @@ mod story_088 {
     ///
     /// Discriminating assertions:
     ///   Positive: command exits 0 (pcapng excluded → no reader error).
-    ///   Positive: stdout contains packet counts matching the .pcap files.
+    ///   Positive: stdout contains "Packets: 32" (2 × 16 from http-ooo.pcap).
     ///   Negative: the pcapng file is NOT passed to the reader.
     #[test]
     fn test_resolve_targets_directory_pcap_only_sorted() {
-        assert!(false, "RED GATE STUB — test_resolve_targets_directory_pcap_only_sorted");
+        let dir = tempfile::tempdir().expect("tempdir");
+        let dir_path = dir.path();
+
+        fs::copy(HTTP_FIXTURE, dir_path.join("a.pcap")).unwrap();
+        fs::copy(HTTP_FIXTURE, dir_path.join("b.pcap")).unwrap();
+        // smb3.pcapng is a pcapng file; if included it would cause a reader error
+        fs::copy("tests/fixtures/smb3.pcapng", dir_path.join("c.pcapng")).unwrap();
+
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", dir_path.to_str().unwrap(), "--no-color"])
+            .assert()
+            .success()
+            // 2 × 16 = 32 packets from a.pcap + b.pcap; c.pcapng excluded
+            .stdout(predicate::str::contains("Packets: 32"));
     }
 
     // -----------------------------------------------------------------------
@@ -267,7 +382,18 @@ mod story_088 {
     ///   Negative: `test.PCAP` is NOT processed (would show Packets > 0 if it were).
     #[test]
     fn test_resolve_targets_case_sensitive_extension_exclusion() {
-        assert!(false, "RED GATE STUB — test_resolve_targets_case_sensitive_extension_exclusion");
+        let dir = tempfile::tempdir().expect("tempdir");
+        let dir_path = dir.path();
+
+        // Copy an http fixture as .PCAP (uppercase) — must NOT be picked up
+        fs::copy(HTTP_FIXTURE, dir_path.join("test.PCAP")).unwrap();
+
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", dir_path.to_str().unwrap(), "--no-color"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("Packets: 0"));
     }
 
     // -----------------------------------------------------------------------
@@ -286,7 +412,19 @@ mod story_088 {
     ///   Negative: nested.pcap is NOT processed (would show Packets > 0 if it were).
     #[test]
     fn test_resolve_targets_not_recursive() {
-        assert!(false, "RED GATE STUB — test_resolve_targets_not_recursive");
+        let dir = tempfile::tempdir().expect("tempdir");
+        let dir_path = dir.path();
+
+        let subdir = dir_path.join("subdir");
+        fs::create_dir(&subdir).unwrap();
+        fs::copy(HTTP_FIXTURE, subdir.join("nested.pcap")).unwrap();
+
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", dir_path.to_str().unwrap(), "--no-color"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("Packets: 0"));
     }
 
     // -----------------------------------------------------------------------
@@ -305,7 +443,21 @@ mod story_088 {
     ///   Negative: a valid file does NOT produce this error.
     #[test]
     fn test_resolve_targets_nonexistent_path_error() {
-        assert!(false, "RED GATE STUB — test_resolve_targets_nonexistent_path_error");
+        // Positive: non-existent path → failure + "Target not found:"
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", "/nonexistent/path.pcap"])
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("Target not found:"));
+
+        // Negative: valid file succeeds without error
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE])
+            .assert()
+            .success()
+            .stderr(predicate::str::contains("Target not found:").not());
     }
 
     // -----------------------------------------------------------------------
@@ -329,7 +481,12 @@ mod story_088 {
     ///   Negative: progress bar bytes are NOT leaked to stdout.
     #[test]
     fn test_progress_bar_does_not_appear_in_output() {
-        assert!(false, "RED GATE STUB — test_progress_bar_does_not_appear_in_output");
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE, "--all", "--no-color"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("\x1b").not());
     }
 
     // -----------------------------------------------------------------------
@@ -348,7 +505,12 @@ mod story_088 {
     ///   Negative: no ANSI bytes of any kind in stdout (confirms no rogue escapes).
     #[test]
     fn test_run_summary_has_no_progress_bar() {
-        assert!(false, "RED GATE STUB — test_run_summary_has_no_progress_bar");
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["summary", HTTP_FIXTURE, "--no-color"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("\x1b").not());
     }
 
     // -----------------------------------------------------------------------
@@ -365,7 +527,14 @@ mod story_088 {
     ///   Negative: NOT an error (empty expansion is explicitly Ok).
     #[test]
     fn test_EC_001_empty_directory_returns_ok_empty() {
-        assert!(false, "RED GATE STUB — test_EC_001_empty_directory_returns_ok_empty");
+        let dir = tempfile::tempdir().expect("tempdir");
+
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", dir.path().to_str().unwrap(), "--no-color"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("Packets: 0"));
     }
 
     // -----------------------------------------------------------------------
@@ -386,7 +555,17 @@ mod story_088 {
     ///   Positive: stdout contains "Packets: 0".
     #[test]
     fn test_EC_002_uppercase_pcap_extension_excluded() {
-        assert!(false, "RED GATE STUB — test_EC_002_uppercase_pcap_extension_excluded");
+        let dir = tempfile::tempdir().expect("tempdir");
+        let dir_path = dir.path();
+
+        fs::copy(HTTP_FIXTURE, dir_path.join("data.PCAP")).unwrap();
+
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", dir_path.to_str().unwrap(), "--no-color"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("Packets: 0"));
     }
 
     // -----------------------------------------------------------------------
@@ -405,7 +584,12 @@ mod story_088 {
     ///   Negative: the warning is NOT emitted when http/tls are absent.
     #[test]
     fn test_EC_003_no_reassemble_without_http_tls_no_warning() {
-        assert!(false, "RED GATE STUB — test_EC_003_no_reassemble_without_http_tls_no_warning");
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE, "--no-reassemble"])
+            .assert()
+            .success()
+            .stderr(predicate::str::contains("Warning: --http/--tls require TCP reassembly").not());
     }
 
     // -----------------------------------------------------------------------
@@ -425,7 +609,13 @@ mod story_088 {
     ///   Positive: command exits 0.
     #[test]
     fn test_EC_004_no_color_empty_value_disables_color() {
-        assert!(false, "RED GATE STUB — test_EC_004_no_color_empty_value_disables_color");
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", HTTP_FIXTURE, "--all"])
+            .env("NO_COLOR", "")
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("\x1b").not());
     }
 
     // -----------------------------------------------------------------------
@@ -442,11 +632,24 @@ mod story_088 {
     ///
     /// Discriminating assertions:
     ///   Positive: command exits 0.
-    ///   Positive: stdout contains total packet count = 2 × fixture packet count.
+    ///   Positive: stdout contains total packet count = 2 × fixture packet count (32).
     ///   Negative: if unsorted, order would depend on filesystem (non-deterministic).
     #[test]
     fn test_EC_005_directory_files_returned_sorted() {
-        assert!(false, "RED GATE STUB — test_EC_005_directory_files_returned_sorted");
+        let dir = tempfile::tempdir().expect("tempdir");
+        let dir_path = dir.path();
+
+        // Write b.pcap first, then a.pcap to encourage reverse on-disk order
+        fs::copy(HTTP_FIXTURE, dir_path.join("b.pcap")).unwrap();
+        fs::copy(HTTP_FIXTURE, dir_path.join("a.pcap")).unwrap();
+
+        Command::cargo_bin("wirerust")
+            .unwrap()
+            .args(["analyze", dir_path.to_str().unwrap(), "--no-color"])
+            .assert()
+            .success()
+            // 2 × 16 = 32 packets (a.pcap + b.pcap, both copies of http-ooo.pcap)
+            .stdout(predicate::str::contains("Packets: 32"));
     }
 
     // -----------------------------------------------------------------------
