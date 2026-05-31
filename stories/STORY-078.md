@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-078"
 epic_id: "E-8"
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -164,7 +164,7 @@ SERVICES section is absent entirely when `service_counts()` returns an empty map
 | This story spec | ~3,000 |
 | src/reporter/terminal.rs (grouped rendering, section order) | ~4,000 |
 | BC files (7 BCs) | ~7,000 |
-| tests/reporter_tests.rs (grouping tests) | ~2,000 |
+| tests/reporter_terminal_tests.rs (grouping tests) | ~2,000 |
 | Tool outputs overhead | ~500 |
 | **Total** | **~16,500** |
 | Agent context window | 200K for Sonnet |
@@ -213,10 +213,11 @@ SERVICES section is absent entirely when `service_counts()` returns an empty map
 |------|--------|---------|
 | src/reporter/terminal.rs | verify/modify | render_findings_grouped (253-297), render_finding_grouped (237-245), render_finding_flat (223-228), render (83-178) |
 | src/mitre.rs | verify | `all_tactics_in_report_order()`, `technique_tactic()`, `technique_name()` |
-| tests/reporter_tests.rs | create or modify | AC-001 through AC-016 tests |
+| tests/reporter_terminal_tests.rs | create or modify | AC-001 through AC-016 tests |
 
 ## Revision History
 
 | Version | Date | Author | Change |
 |---------|------|--------|--------|
 | v1.2 | 2026-05-30 | story-writer | AC-007 trace completeness pc2→pc2,3 to match test coverage (Wave-22 P3 finding F-1) |
+| v1.3 | 2026-05-30 | story-writer | corrected test-file citation reporter_tests.rs → reporter_terminal_tests.rs (FSR + Token Budget); Wave-22 wave-level traceability finding |
