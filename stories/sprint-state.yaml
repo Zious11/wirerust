@@ -599,7 +599,7 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-089:
-    status: ready
+    status: in-progress
     wave: 26
     branch: null
     worktree: null
