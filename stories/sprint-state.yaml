@@ -568,7 +568,7 @@ stories:
     merged_date: "2026-05-31"
 
   STORY-096:
-    status: ready
+    status: in-progress
     wave: 24
     branch: null
     worktree: null
