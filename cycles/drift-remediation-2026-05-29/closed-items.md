@@ -352,3 +352,8 @@ Items confirmed intentional design decisions; no fix warranted.
 ### FSR-row staleness (STORY-086/087/096) — RESOLVED (LOW)
 - **Finding:** 6 FSR/Token-Budget rows in STORY-086, STORY-087, STORY-096 cite `tests/cli_tests.rs` instead of per-story `tests/cli_story_NNN_tests.rs`.
 - **Resolution:** All 6 rows corrected to `cli_story_NNN_tests.rs` form; stories bumped to v1.2; factory commit by story-writer prior to this sweep.
+
+### F-FSR-088-089 — RESOLVED (LOW) [closed 2026-05-31]
+- **Finding:** [doc, LOW] STORY-088 and STORY-089 FSR/Token-Budget rows cite `tests/cli_tests.rs` instead of per-story `tests/main_story_NNN_tests.rs`. Two-story item: STORY-088 half tracked from Wave 25; STORY-089 half tracked as the remaining open portion.
+- **Resolution:** STORY-088 half resolved 2026-05-31 during Wave 25 close (reconciled to main_story_088_tests.rs v1.2). STORY-089 half resolved at STORY-089 delivery (Wave 26; PR #169 → 450d33e; main_story_089_tests.rs v1.2 cited correctly). Both story halves reconciled. Item fully CLOSED 2026-05-31.
+- **Closed by:** Wave 26 STORY-089 delivery + convergence.

@@ -9,9 +9,9 @@ phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
 phase_2_completed: "2026-05-21"
 phase_3_started: "2026-05-21"
-develop_head: 5202fe9
+develop_head: 450d33e
 current_cycle: v0.1.0-greenfield-spec
-current_wave: 26
+current_wave: 27
 wave_20_24_detail: "cycles/phase-3-tdd/wave-history.md"
 stories_delivered: 47
 wave_23_status: CLOSED
@@ -20,13 +20,15 @@ wave_24_status: CLOSED
 wave_24_summary: "2-story wave (STORY-087 PR#164→c2445dc + STORY-096 PR#165→9954d44); S087 4ps-3clean(P2/P3/P4;2→1→0→0;BC-2.12.004/005/007;16 tests); S096 6ps-3clean(P4/P5/P6;1MED→1MED→1MED→0→0→0;BC-2.13.001..004;14 tests;facade-mode mutation-gate caught 3 MEDIUM gaps); wave-level CONVERGED 3ps(2→1→0); E-10 COMPLETE; 1015 tests green"
 wave_25_status: CLOSED
 wave_25_summary: "single-story (STORY-088 PR#168→5202fe9); first src/main.rs formalization via assert_cmd behavioral tests (ZERO src changes); 19 tests (14 AC+5 EC, mod story_088); BC-2.12.008..013 + VP-018 runtime half; 6-pass convergence 3-clean(P4/P5/P6; 3→1→0→0→0→0); 27 mutations all caught; 4 MEDIUM findings remediated (DNS assertion, sort-order distinct fixtures, AC-013/014 TTY-limitation docs); BC-5.39.001 ACHIEVED; per-story==wave-level (BC-5.39.001)"
+wave_26_status: CLOSED
+wave_26_summary: "single-story (STORY-089 PR#169→450d33e; E-9 decode-error counting + dispatcher unclassified_flows injection + resolve_format precedence + write_output routing); 25 tests (12 AC+5 EC+run_summary parity); BC-2.12.014..017; brownfield-formalization ZERO src changes; 6-pass convergence 3-clean(P4/P5/P6); 17-mutation matrix all caught across run_analyze AND run_summary; 1 HIGH remediated (run_summary untested→6 tests), 5 MEDIUM remediated; F-FSR-088-089 CLOSED; BC-5.39.001 ACHIEVED; per-story==wave-level (BC-5.39.001)"
 dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3
 adversary_gate: SATISFIED
-convergence_trajectory: "Full Phase-1→W25 trajectory archived in cycles/phase-3-tdd/convergence-trajectory.md. Latest: ...W24-CLOSED(PRs#164/#165→9954d44;E-10-COMPLETE)|W25-S088:6ps-3clean(P4/P5/P6;3→1→0→0→0→0;BC-2.12.008..013+VP-018;19t;first-main.rs-formalization;27-mutations-caught)|W25-CONVERGED-CLOSED(single-story;per-story==wave-level;BC-5.39.001;PR#168→5202fe9)"
+convergence_trajectory: "Full Phase-1→W26 trajectory archived in cycles/phase-3-tdd/convergence-trajectory.md. Latest: ...W25-CLOSED(PR#168→5202fe9;BC-2.12.008..013+VP-018;6ps-3clean;27-mutations)|W26-S089:6ps-3clean(P4/P5/P6;17-mutation-matrix-all-caught;BC-2.12.014..017;25t;run_summary-parity;F-FSR-088-089-CLOSED)|W26-CONVERGED-CLOSED(single-story;per-story==wave-level;BC-5.39.001;PR#169→450d33e)"
 consistency_audit: CONSISTENT
 input_drift_check: CLEAN (Wave-20 STORY-076 test-only formalization; zero src/production changes; reporter/json subsystem — no holdout-scenario hash impact; Wave-19 story-citation/AC-sync bump may apply — verify at Phase-4 entry)
 phase_2_input_hash_drift_check: CLEAN
@@ -38,11 +40,11 @@ wave_history_archived: "cycles/phase-3-tdd/wave-history.md (waves 1-22 detail fi
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-25 CLOSED/CONVERGED; Wave 26 NEXT. 47 stories delivered.
-47 stories delivered (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052/045/053/055/046/054/056/058/057/076/077/079/078/080/086/087/096/088).
-Wave 24 CLOSED — STORY-087 (PR#164→c2445dc; 4ps-3clean P2/P3/P4; BC-2.12.004/005/007; 16 tests) + STORY-096 (PR#165→9954d44; 6ps-3clean P4/P5/P6; BC-2.13.001..004; 14 tests; facade-mode mutation-gate); wave-level CONVERGED (3ps; 2→1→0); E-10 COMPLETE.
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-26 CLOSED/CONVERGED; Wave 27 NEXT (FINAL). 47 stories delivered.
+47 stories delivered (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052/045/053/055/046/054/056/058/057/076/077/079/078/080/086/087/096/088/089).
 Wave 25 CLOSED — STORY-088 (PR#168→5202fe9; 6ps-3clean P4/P5/P6; BC-2.12.008..013+VP-018; 19 tests; first src/main.rs formalization via assert_cmd; 27 mutations caught; BC-5.39.001 ACHIEVED).
-develop HEAD: 5202fe9 (PR #168 merged 2026-05-31). All 8 CI checks green. E-9 in progress (4/5: STORY-086/087/088 done; STORY-089/090 remain). NEXT: Wave 26 = STORY-089.
+Wave 26 CLOSED — STORY-089 (PR#169→450d33e; 6ps-3clean P4/P5/P6; BC-2.12.014..017; 25 tests; 17-mutation matrix all caught; run_summary parity; F-FSR-088-089 CLOSED; BC-5.39.001 ACHIEVED).
+develop HEAD: 450d33e (PR #169 merged 2026-05-31). All 8 CI checks green. E-9 4/5 done (086/087/088/089); STORY-090 remains. NEXT: Wave 27 = STORY-090 (FINAL story → completes Phase 3).
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -59,7 +61,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-25 CLOSED/CONVERGED; Wave 26 NEXT (47 stories; develop HEAD 5202fe9); E-8 COMPLETE, E-9 IN PROGRESS (4/5), E-10 COMPLETE | W25 CLOSED: STORY-088 (PR#168→5202fe9); first src/main.rs formalization via assert_cmd; 6-pass convergence; NEXT Wave 26 = STORY-089 |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-26 CLOSED/CONVERGED; Wave 27 NEXT/FINAL (47 stories; develop HEAD 450d33e); E-8 COMPLETE, E-9 IN PROGRESS (4/5), E-10 COMPLETE | W26 CLOSED: STORY-089 (PR#169→450d33e); 25 tests; 17-mutation matrix; F-FSR-088-089 CLOSED; NEXT Wave 27 = STORY-090 (FINAL) |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -74,18 +76,18 @@ dependency bumping for it).
 | 23 | STORY-086 | **CLOSED/CONVERGED** 2026-05-31 | a42e14b (PR #163) | single-story; 3-clean P1/P2/P3 (3→1→0); 15 BC-prefixed CLI tests; BC-2.12.001/002/003/006; E-9 CLI epic OPENED; 4 Low non-blocking |
 | 24 | STORY-087 + STORY-096 | **CLOSED/CONVERGED** 2026-05-31 | 9954d44 (PRs #164/#165) | S087: 4ps-3clean(P2/P3/P4;2→1→0→0;BC-2.12.004/005/007;16t); S096: 6ps-3clean(P4/P5/P6;1MED→1MED→1MED→0→0→0;BC-2.13.001..004;14t;facade-mutation-gate); wave-level 3ps(2→1→0); E-10 COMPLETE |
 | 25 | STORY-088 | **CLOSED/CONVERGED** 2026-05-31 | 5202fe9 (PR #168) | single-story; first src/main.rs formalization via assert_cmd; 19 tests (14 AC+5 EC); BC-2.12.008..013+VP-018; 6ps-3clean(P4/P5/P6; 3→1→0→0→0→0); 27 mutations caught; BC-5.39.001 ACHIEVED |
-| 26 | STORY-089 | **NEXT** | — | ready (STORY-086+087+088 deps done); E-9 decode error/format/output routing |
-| 27 | STORY-090 | NOT STARTED | — | — |
+| 26 | STORY-089 | **CLOSED/CONVERGED** 2026-05-31 | 450d33e (PR #169) | single-story; 6ps-3clean(P4/P5/P6); 25 tests (12 AC+5 EC+run_summary parity); BC-2.12.014..017; 17-mutation matrix all caught; 1 HIGH+5 MEDIUM remediated; F-FSR-088-089 CLOSED; BC-5.39.001 ACHIEVED |
+| 27 | STORY-090 | **NEXT (FINAL)** | — | ready (all blockers done); E-9 Summary Data Model; completes Phase 3 |
 
 ## Phase 3 — Current Phase Steps (last 5)
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Wave 25 — STORY-088 converged | **COMPLETE** 2026-05-31 | 6 passes (3→1→0→0→0→0); 3-clean P4/P5/P6; 27 mutations caught; 4 MEDIUM findings remediated. BC-5.39.001 ACHIEVED. |
-| Wave 25 — STORY-088 PR merged | **COMPLETE** 2026-05-31 | PR #168 squash-merged → 5202fe9. 19 tests (14 AC+5 EC, mod story_088). BC-2.12.008..013 + VP-018 formalized. 8/8 CI green. |
 | Wave 25 — CLOSED | **COMPLETE** 2026-05-31 | Single-story wave; per-story convergence == wave-level (BC-5.39.001). First src/main.rs formalization via assert_cmd. 47 stories. E-9 4/5. |
-| F-FSR-088-089 narrowed | **COMPLETE** 2026-05-31 | STORY-088 half RESOLVED (reconciled to main_story_088_tests.rs v1.2). Item narrowed to STORY-089 only. |
-| Wave 26 | **NEXT** | STORY-089 (Decode Error/Format/Output Routing; E-9; 5pts; ready). |
+| Wave 26 — STORY-089 converged | **COMPLETE** 2026-05-31 | 6 passes (P1-3 live-mutation + P4-6 fresh-context); 3-clean P4/P5/P6; 17-mutation matrix all caught (run_analyze AND run_summary); 1 HIGH + 5 MEDIUM remediated. BC-5.39.001 ACHIEVED. |
+| Wave 26 — STORY-089 PR merged | **COMPLETE** 2026-05-31 | PR #169 squash-merged → 450d33e. 25 tests (12 AC+5 EC+run_summary parity); BC-2.12.014..017 formalized. 8/8 CI green. Security CLEAN. |
+| Wave 26 — CLOSED | **COMPLETE** 2026-05-31 | Single-story wave; per-story convergence == wave-level (BC-5.39.001). F-FSR-088-089 CLOSED. 47 stories. E-9 4/5 (086/087/088/089 done). |
+| Wave 27 | **NEXT (FINAL)** | STORY-090 (Summary Data Model; E-9; 5pts; ready). Completes Phase 3 on merge. |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -103,14 +105,14 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-31 — Wave 25 CLOSED; next = Wave 26 STORY-089)
+## Session Resume Checkpoint (2026-05-31 — Wave 26 CLOSED; next = Wave 27 STORY-090 FINAL)
 
-1. Waves 1-25 CLOSED/CONVERGED. Wave 26 NEXT. develop HEAD: 5202fe9 (PR #168 merged 2026-05-31). All 8 CI checks green. 47 stories delivered.
-2. Wave 25 CLOSED: STORY-088 (run_analyze Orchestration; E-9; 8pts). PR #168 squash-merged → 5202fe9. 19 assert_cmd behavioral tests (14 AC + 5 EC, mod story_088). BC-2.12.008..013 + VP-018 runtime half. First src/main.rs formalization via assert_cmd (ZERO src changes). 6-pass convergence 3-clean P4/P5/P6 (3→1→0→0→0→0). 27 live mutations all caught. 4 MEDIUM findings remediated. BC-5.39.001 ACHIEVED. Artifacts: .factory/cycles/v0.1.0-greenfield-spec/adversarial-reviews/ADV-INDEX-STORY-088.md.
-3. E-9 CLI epic: 4/5 done (STORY-086/087/088 delivered; STORY-089/090 remain). Demos: docs/demo-evidence/STORY-088/ (10/14 ACs observable; 4 internal/TTY-limited).
-4. Drift Items: F-FSR-088-089 narrowed to STORY-089 only (088 half resolved). F-W25-S088-P6-001 NEW LOW (AC-004 warning count-assertion hardening; optional).
-5. NEXT: Wave 26 = STORY-089 (Decode Error Counting, Dispatcher Stats Injection, Format Resolution, Output Routing; E-9; 5pts; ready).
-6. Prior checkpoint (Drift-remediation sweep COMPLETE; next = Wave 25 STORY-088) archived: cycles/phase-3-tdd/session-checkpoints.md.
+1. Waves 1-26 CLOSED/CONVERGED. Wave 27 NEXT (FINAL). develop HEAD: 450d33e (PR #169 merged 2026-05-31). All 8 CI checks green. 47 stories delivered.
+2. Wave 26 CLOSED: STORY-089 (Decode Error Counting, Dispatcher Stats Injection, Format Resolution, Output Routing; E-9; 5pts). PR #169 squash-merged → 450d33e. 25 assert_cmd behavioral tests (12 AC + 5 EC + run_summary parity). BC-2.12.014..017. ZERO src changes. 6-pass convergence 3-clean P4/P5/P6 (fresh-context adversary dispatched for P4-6). 17-mutation matrix all caught (run_analyze AND run_summary). 1 HIGH + 5 MEDIUM findings remediated. BC-5.39.001 ACHIEVED. F-FSR-088-089 CLOSED (both story halves reconciled). Artifacts: .factory/cycles/v0.1.0-greenfield-spec/adversarial-reviews/ADV-INDEX-STORY-089.md.
+3. E-9 CLI epic: 4/5 done (STORY-086/087/088/089 delivered; STORY-090 remains). Demos: docs/demo-evidence/STORY-089/ (12/12 ACs + run_summary parity).
+4. Drift Items: F-FSR-088-089 CLOSED. F-W25-S088-P6-001 LOW remains open (target STORY-090 or accepted). OBS-2 fixed (dead-script-ref). OBS-1 (FSR) closed via F-FSR-088-089.
+5. NEXT: Wave 27 = STORY-090 (Summary Data Model — ingest, Service Hints, unique_hosts, Serialization; E-9; 5pts; ready). FINAL story → Phase 3 completion on merge.
+6. Prior checkpoint (Wave 25 CLOSED; next = Wave 26 STORY-089) archived: cycles/phase-3-tdd/session-checkpoints.md.
 
 ## Wave Retrospectives
 
@@ -141,8 +143,7 @@ Externally-blocked / phase-gated items (W9-D2/D3/D4 upstream-plugin, W9-D12 awai
 
 | ID | Finding | Category | Target | Status |
 |----|---------|----------|--------|--------|
-| F-FSR-088-089 | [doc, LOW] STORY-089 FSR/Token-Budget rows cite `tests/cli_tests.rs` instead of per-story `tests/cli_story_NNN_tests.rs`. (STORY-088 half RESOLVED 2026-05-31 — reconciled to main_story_088_tests.rs v1.2). Target: fix at STORY-089 delivery (wave 26). | doc | STORY-089 delivery (wave 26) | OPEN |
-| F-W25-S088-P6-001 | [test-strength, LOW] AC-004 warning uses .contains() so a doubled eprintln! (BC-2.12.009 inv-2 "warning printed once") would not be caught. Invariant HOLDS in source (single pre-loop emission, adversary-verified P6); AC-004 traces to PC-5/inv-1 not inv-2 — not a traceability defect. Optional one-line count-assertion hardening; target: next src/main.rs or STORY-089 touch. Per DF-VALIDATION-001, no GitHub issue without research-agent validation. | test-strength | STORY-089 delivery (wave 26) | OPEN |
+| F-W25-S088-P6-001 | [test-strength, LOW] AC-004 warning uses .contains() so a doubled eprintln! (BC-2.12.009 inv-2 "warning printed once") would not be caught. Invariant HOLDS in source (single pre-loop emission, adversary-verified P6); AC-004 traces to PC-5/inv-1 not inv-2 — not a traceability defect. Optional one-line count-assertion hardening; target: STORY-090 touch (next main.rs-adjacent story) or accepted. Per DF-VALIDATION-001, no GitHub issue without research-agent validation. | test-strength | STORY-090 delivery (wave 27) or accept | OPEN |
 
 ## Cycle-Close Follow-Up Items (OPEN)
 

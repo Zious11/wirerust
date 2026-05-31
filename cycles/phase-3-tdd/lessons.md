@@ -1210,3 +1210,53 @@ Per-story convergence: 6 passes, 3-clean P4/P5/P6 (trajectory 3→1→0→0→0�
 **Observed:** The `indicatif` progress bar library suppresses all output when stdout/stderr is not a TTY (which is always the case in `assert_cmd` subprocess tests). As a result, progress-bar rendering, update frequency, and visual format are not verifiable through assert_cmd behavioral tests. AC-013 and AC-014 (progress-bar behavior) are bounded to asserting the absence of progress-bar content in non-TTY invocations — which is correct and honest, but cannot positively verify that the progress bar renders correctly under real TTY conditions.
 **Disposition:** This is a documented behavioral limitation, not a defect. The non-TTY absence assertion is the maximum testable AC for assert_cmd; TTY-mode testing would require a PTY harness (e.g., `expectrl`, `pty-process`) which is out of scope for brownfield formalization. The limitation is explicitly noted in the STORY-088 test file and AC prose.
 **Status:** [documented-limitation — not a defect; TTY-mode positive assertion deferred to manual verification or PTY harness; recorded in docs/demo-evidence/STORY-088/]
+
+---
+
+## Wave 26 Lessons (2026-05-31)
+
+Wave 26: STORY-089 (E-9, 5pts) — Decode Error Counting, Dispatcher Stats Injection, Format Resolution, Output Routing. Single-story wave.
+STORY-089 PR #169 → 450d33e. 25 assert_cmd behavioral tests (12 AC + 5 EC + run_summary parity, mod main_story_089_tests.rs).
+Per-story convergence: 6 passes — passes 1-3 live-mutation (skill), passes 4-6 fresh-context adversary (direct dispatch; 17-mutation matrix all caught). 1 HIGH + 5 MEDIUM findings remediated. BC-5.39.001 ACHIEVED. F-FSR-088-089 CLOSED. develop HEAD: 450d33e.
+
+---
+
+### W26.L1 — Second src/main.rs assert_cmd Formalization; Pattern Solidified [validated]
+
+**Finding ID:** Wave 26 retrospective observation
+**Category:** testing-methodology / brownfield-formalization
+**Observed:** STORY-089 was the second story to formalize `src/main.rs` behavior via assert_cmd subprocess testing (following STORY-088 in Wave 25). The pattern established in W25.L1 (zero src changes; all BCs verified through observable CLI behavior) was applied directly with no new learning curve. The test suite grew from 19 (STORY-088) to 25 tests (STORY-089: 12 AC + 5 EC + run_summary parity), covering new behavioral contracts BC-2.12.014..017 (decode-error counting, unclassified_flows injection, resolve_format precedence, write_output routing).
+**Impact:** The assert_cmd behavioral testing pattern is now proven across two sequential E-9 stories. The pattern is stable and can be applied directly for STORY-090 (the final E-9 story).
+**Status:** [validated — second-story confirmation; pattern stable]
+
+---
+
+### W26.L2 — Mutation Gate Caught run_summary as Entirely Untested Entry Point; Multi-Entry-Point BCs Require Coverage of EACH [critical-lesson]
+
+**Finding ID:** ADV-P01-HIGH-001 / ADV-P03-HIGH-001 (Wave 26 adversarial pass 1 + pass 3)
+**Category:** adversarial-workflow / testing-methodology
+**Observed:** Mutations M11 (run_summary skipped_packets +999) and D (swap run_summary reporter arms) both SURVIVED the initial 17-test suite because `run_summary` was an entirely untested entry point. BC-2.12.014..017 apply to BOTH `run_analyze` AND `run_summary` — the initial tests covered only run_analyze's paths. The adversary (passes 1 + 3) flagged this as HIGH. Resolution: 6 additional run_summary tests added (parity with run_analyze for format flags, output routing, and skipped_packets), after which M11 and D were killed.
+**Pattern:** When a BC cites multiple entry points (functions, subcommands, code paths), coverage must exist for EACH entry point independently. It is not safe to assume that testing one entry point validates the other even when they share the same underlying dispatch logic — a mutation in one entry point's dispatch arm does not affect the other.
+**Structural fix:** Story test plans should enumerate all entry points covered by each BC group and explicitly list test IDs for each entry point. Story-writer checklist item: "For each BC, verify that at least one test exercises EACH named entry point."
+**Status:** [critical-lesson — codified as story-writing discipline; key lesson for remaining stories and Phase 4]
+
+---
+
+### W26.L3 — Single-Decode-Error Fixture Technique to Pin First-Error Position (Equivalent-Mutant Avoidance) [validated]
+
+**Finding ID:** Wave 26 adversarial pass observation (ADV-P01-MED-003 → remediated)
+**Category:** testing-methodology / fixture-design
+**Observed:** The initial tests used fixtures that could produce unclassified_flows counts of zero or arbitrary values, making json!(0)-hardcode mutations non-distinguishable. The fix introduced `one-decode-error.pcap` — a single-decode-error fixture that produces exactly one error and non-zero unclassified_flows. The fixture pins the first-error warning position and produces a specific counter value that is assertion-exact, killing the hardcode mutation (AC-005 + EC-002 non-zero assertion added).
+**Pattern:** Equivalent-mutant avoidance for counter/accumulator BCs requires fixtures that produce distinguishable non-trivial counts. A zero-producing fixture cannot distinguish "correct implementation" from "hardcoded zero." The minimum fixture set should include at least one instance of each non-trivial count value being asserted (e.g., one-error fixture for error-count assertions, multi-flow fixture for flow-count assertions).
+**Status:** [validated — one-decode-error.pcap technique; applicable to all counter/accumulator BCs in subsequent stories]
+
+---
+
+### W26.L4 — Fresh-Context Adversary Dispatched Directly for True Independent Passes When Skill Context Is Forked [validated]
+
+**Finding ID:** Wave 26 convergence methodology observation
+**Category:** adversarial-workflow / fresh-context-discipline
+**Observed:** Passes 1-3 were run via the adversarial-review skill (which operates within the orchestrator's shared context and may retain prior-pass findings in working memory). For passes 4-6, the orchestrator dispatched a fresh-context adversary agent directly (independent invocation, no shared prior-pass context) to achieve true independence. All 17 mutations were re-verified independently in passes 4-6 — all caught, confirming that the pass-1-3 remediation was complete and no regressions introduced.
+**Impact:** The distinction between skill-forked context (passes 1-3) and direct fresh-context dispatch (passes 4-6) matters for the "three consecutive clean passes" convergence criterion. True fresh-context passes provide stronger convergence evidence because the adversary cannot recall prior findings and must independently rediscover (or not discover) any remaining gaps.
+**Pattern:** For high-stakes convergence (especially final stories in an epic, or stories with HIGH findings in pass 1), prefer direct fresh-context agent dispatch for the final 3 clean passes rather than relying on skill-forked context.
+**Status:** [validated — fresh-context dispatch technique confirmed; applicable to STORY-090 and Phase 4]
