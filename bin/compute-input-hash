@@ -1,0 +1,330 @@
+#!/usr/bin/env python3
+"""
+compute-input-hash — Canonical input-hash tool for wirerust factory stories.
+
+ALGORITHM (canonical definition — this tool IS the spec):
+  1. Parse the target story .md YAML frontmatter (delimited by leading/trailing
+     '---' lines) and extract the 'inputs:' list IN DECLARATION ORDER.
+  2. For each path in 'inputs:' (relative to repo root), read the raw file bytes.
+  3. Normalize line endings: CRLF (\\r\\n) → LF (\\n), then lone CR (\\r) → LF (\\n).
+  4. Concatenate all normalized byte strings in declaration order — no separators,
+     no path prefixes, CONTENTS only.
+  5. Compute the MD5 digest of the concatenated bytes.
+  6. The input-hash is the FIRST 7 hex characters of that hexdigest (lowercase).
+
+RATIONALE FOR CHOICES:
+  - MD5: fast, widely available in Python stdlib (hashlib), sufficient for
+    drift-detection (not a security hash). Collision risk in this domain is
+    negligible since files are prose/markdown under version control.
+  - First-7 chars: matches git short-SHA convention, short enough for frontmatter.
+  - LF normalization: makes the hash OS-independent (CRLF checkout on Windows
+    must not change the hash).
+  - Contents-only concatenation: paths are already encoded in the frontmatter
+    inputs list itself; hashing paths would cause spurious drift on simple moves.
+
+USAGE:
+  compute-input-hash <story-file.md>
+      Print the 7-char hash for the given story and exit 0.
+
+  compute-input-hash --scan [glob]
+      Iterate all .factory/stories/STORY-*.md (or a custom glob), compare the
+      stored 'input-hash:' frontmatter value against the freshly computed value,
+      print a per-story MATCH/STALE table, a summary line 'MATCH=N STALE=M',
+      and exit nonzero if any stories are STALE.
+
+  compute-input-hash --write <story-file.md>
+      Compute the hash and rewrite the 'input-hash:' frontmatter field in place.
+      All other frontmatter and body content is preserved verbatim.
+
+  compute-input-hash --write --scan [glob]
+      Write the computed hash into every story found by the scan.
+
+  compute-input-hash --help
+      Print this message and exit 0.
+
+REPO ROOT RESOLUTION:
+  The repo root is the directory containing the .factory/ subdirectory.
+  Resolution order:
+    1. If WIRERUST_REPO_ROOT env var is set, use it.
+    2. Walk up from this script's real path until a dir containing '.factory/' is found.
+    3. Walk up from cwd until a dir containing '.factory/' is found.
+  This handles running the script from any worktree (e.g. .worktrees/input-hash-tool/)
+  because .factory/ is a separate git worktree mounted at <repo-root>/.factory/.
+"""
+
+import hashlib
+import os
+import re
+import sys
+from pathlib import Path
+
+
+# ---------------------------------------------------------------------------
+# Repo root resolution
+# ---------------------------------------------------------------------------
+
+def find_repo_root() -> Path:
+    """Locate the repo root (directory containing .factory/) deterministically."""
+    env_root = os.environ.get("WIRERUST_REPO_ROOT")
+    if env_root:
+        p = Path(env_root).resolve()
+        if (p / ".factory").exists():
+            return p
+        raise SystemExit(
+            f"WIRERUST_REPO_ROOT={env_root} does not contain a .factory/ directory"
+        )
+
+    # Walk up from this script's real location
+    script_dir = Path(__file__).resolve().parent
+    for candidate in [script_dir, *script_dir.parents]:
+        if (candidate / ".factory").exists():
+            return candidate
+
+    # Walk up from cwd
+    for candidate in [Path.cwd(), *Path.cwd().parents]:
+        if (candidate / ".factory").exists():
+            return candidate
+
+    raise SystemExit(
+        "Cannot locate repo root: no ancestor directory contains .factory/.\n"
+        "Set WIRERUST_REPO_ROOT to the repo root explicitly."
+    )
+
+
+# ---------------------------------------------------------------------------
+# YAML frontmatter parsing (no third-party dependencies)
+# ---------------------------------------------------------------------------
+
+_FM_RE = re.compile(r"^---\n(.*?)\n---(?:\n|$)", re.DOTALL)
+_INPUTS_RE = re.compile(r"^inputs:\s*\n((?:[ \t]+-[ \t]+\S.*\n)*)", re.MULTILINE)
+_HASH_RE = re.compile(r'^(input-hash:\s*)(["\']?)([0-9a-f]{7,})\2', re.MULTILINE)
+_DOCTYPE_RE = re.compile(r"^document_type:\s*(.+)", re.MULTILINE)
+
+
+def extract_frontmatter(story_path: Path) -> str:
+    """Return the raw YAML frontmatter string (without the --- delimiters)."""
+    text = story_path.read_text(encoding="utf-8")
+    m = _FM_RE.match(text)
+    if not m:
+        raise SystemExit(f"No YAML frontmatter found in {story_path}")
+    return m.group(1)
+
+
+def parse_inputs(frontmatter: str, story_path: Path) -> list[str]:
+    """Return the ordered list of input paths from the frontmatter."""
+    m = _INPUTS_RE.search(frontmatter)
+    if not m:
+        raise SystemExit(
+            f"No 'inputs:' block found in frontmatter of {story_path}.\n"
+            "Expected at least one '  - <path>' entry."
+        )
+    raw_lines = m.group(1).rstrip("\n").split("\n")
+    paths: list[str] = []
+    for line in raw_lines:
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            paths.append(stripped[2:].strip())
+        elif stripped.startswith("-"):
+            paths.append(stripped[1:].strip())
+    if not paths:
+        raise SystemExit(f"'inputs:' block is empty in {story_path}")
+    return paths
+
+
+def get_stored_hash(frontmatter: str) -> str | None:
+    """Return the stored input-hash value, or None if not present."""
+    m = _HASH_RE.search(frontmatter)
+    return m.group(3) if m else None
+
+
+# ---------------------------------------------------------------------------
+# Core algorithm
+# ---------------------------------------------------------------------------
+
+def normalize_line_endings(data: bytes) -> bytes:
+    """CRLF → LF, then lone CR → LF (canonical normalization)."""
+    data = data.replace(b"\r\n", b"\n")
+    data = data.replace(b"\r", b"\n")
+    return data
+
+
+def compute_hash(story_path: Path, repo_root: Path) -> str:
+    """
+    Compute the 7-char input-hash for a story file.
+
+    Raises SystemExit if any input file is missing (no silent skips).
+    """
+    fm = extract_frontmatter(story_path)
+    input_paths = parse_inputs(fm, story_path)
+
+    concatenated = b""
+    for rel_path in input_paths:
+        abs_path = repo_root / rel_path
+        if not abs_path.exists():
+            raise SystemExit(
+                f"Input file missing: {abs_path}\n"
+                f"  Referenced by: {story_path}\n"
+                f"  Relative path: {rel_path}\n"
+                "Ensure the factory-artifacts worktree is mounted at "
+                f"{repo_root / '.factory'}."
+            )
+        raw = abs_path.read_bytes()
+        concatenated += normalize_line_endings(raw)
+
+    return hashlib.md5(concatenated).hexdigest()[:7]
+
+
+# ---------------------------------------------------------------------------
+# --write support
+# ---------------------------------------------------------------------------
+
+def rewrite_hash(story_path: Path, new_hash: str) -> None:
+    """Overwrite input-hash: field in the frontmatter; preserve everything else."""
+    text = story_path.read_text(encoding="utf-8")
+    m = _HASH_RE.search(text)
+    if m:
+        # Preserve existing quote style (single, double, or none)
+        prefix = m.group(1)
+        quote = m.group(2)
+        replacement = f'{prefix}{quote}{new_hash}{quote}'
+        new_text = text[: m.start()] + replacement + text[m.end():]
+    else:
+        # No existing input-hash field — insert after the first '---' block's
+        # last line before closing '---'.  Insert before closing '---'.
+        new_text = _FM_RE.sub(
+            lambda fm_m: f"---\n{fm_m.group(1)}\ninput-hash: \"{new_hash}\"\n---\n",
+            text,
+            count=1,
+        )
+    story_path.write_text(new_text, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Scan logic
+# ---------------------------------------------------------------------------
+
+def scan(
+    repo_root: Path,
+    glob_pattern: str | None,
+    write: bool,
+) -> int:
+    """
+    Scan story files, compare stored vs computed hashes.
+    Returns exit code: 0 if all MATCH, 1 if any STALE.
+    """
+    if glob_pattern:
+        story_files = sorted(Path(glob_pattern).parent.glob(Path(glob_pattern).name))
+        if not story_files:
+            # Try as a plain directory or repo-relative glob
+            story_files = sorted((repo_root / glob_pattern).parent.glob(
+                (repo_root / glob_pattern).name
+            ))
+    else:
+        stories_dir = repo_root / ".factory" / "stories"
+        story_files = sorted(stories_dir.glob("STORY-*.md"))
+
+    if not story_files:
+        print("No story files found.", file=sys.stderr)
+        return 1
+
+    matches = 0
+    stales = 0
+    errors = 0
+    col_w = max(len(str(p.name)) for p in story_files) + 2
+
+    print(f"{'STORY':<{col_w}} {'STORED':<10} {'COMPUTED':<10} STATUS")
+    print("-" * (col_w + 34))
+
+    for story_path in story_files:
+        try:
+            fm = extract_frontmatter(story_path)
+        except SystemExit as exc:
+            print(f"{story_path.name:<{col_w}} {'?':<10} {'?':<10} ERROR: {exc}")
+            errors += 1
+            continue
+
+        # Skip non-story files (e.g. STORY-INDEX.md has document_type: story-index)
+        doc_type_m = _DOCTYPE_RE.search(fm)
+        doc_type = doc_type_m.group(1).strip().strip('"\'') if doc_type_m else ""
+        if doc_type != "story":
+            # Silently skip — it's a legitimate index/meta file, not a story
+            continue
+
+        try:
+            stored = get_stored_hash(fm)
+            computed = compute_hash(story_path, repo_root)
+        except SystemExit as exc:
+            print(f"{story_path.name:<{col_w}} {'?':<10} {'?':<10} ERROR: {exc}")
+            errors += 1
+            continue
+
+        stored_display = stored if stored else "(none)"
+        if stored == computed:
+            status = "MATCH"
+            matches += 1
+        else:
+            status = "STALE"
+            stales += 1
+
+        print(f"{story_path.name:<{col_w}} {stored_display:<10} {computed:<10} {status}")
+
+        if write:
+            rewrite_hash(story_path, computed)
+
+    print()
+    print(f"MATCH={matches} STALE={stales}" + (f" ERROR={errors}" if errors else ""))
+
+    if write and stales > 0:
+        print(f"Rewrote {stales} story file(s) with updated input-hash.")
+
+    return 1 if stales > 0 else 0
+
+
+# ---------------------------------------------------------------------------
+# CLI entry point
+# ---------------------------------------------------------------------------
+
+def usage() -> None:
+    print(__doc__)
+
+
+def main() -> None:
+    args = sys.argv[1:]
+
+    if not args or "--help" in args or "-h" in args:
+        usage()
+        sys.exit(0)
+
+    repo_root = find_repo_root()
+    write_mode = "--write" in args
+    args_cleaned = [a for a in args if a != "--write"]
+
+    if "--scan" in args_cleaned:
+        scan_args = [a for a in args_cleaned if a != "--scan"]
+        glob_pattern = scan_args[0] if scan_args else None
+        sys.exit(scan(repo_root, glob_pattern, write=write_mode))
+
+    # Single-file mode
+    if len(args_cleaned) != 1:
+        print(
+            f"Usage: {Path(sys.argv[0]).name} [--write] <story-file.md>\n"
+            f"       {Path(sys.argv[0]).name} [--write] --scan [glob]\n"
+            f"       {Path(sys.argv[0]).name} --help",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+    story_path = Path(args_cleaned[0]).resolve()
+    if not story_path.exists():
+        print(f"File not found: {story_path}", file=sys.stderr)
+        sys.exit(2)
+
+    h = compute_hash(story_path, repo_root)
+    print(h)
+
+    if write_mode:
+        rewrite_hash(story_path, h)
+
+
+if __name__ == "__main__":
+    main()
