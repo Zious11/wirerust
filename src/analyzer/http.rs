@@ -686,8 +686,8 @@ mod tests {
     /// byte limit falls in the middle of a 2-byte codepoint ('é', U+00E9).
     #[test]
     fn test_BC_2_06_010_truncate_uri_multibyte_two_byte_codepoint() {
-        // 'é' encodes as [0xC3, 0xA9] (2 bytes).  A string of 5 'é' characters
-        // is 10 bytes.  A limit of 3 falls mid-codepoint (after byte 2 of the
+        // 'é' encodes as [0xC3, 0xA9] (2 bytes).  A string of 4 'é' characters
+        // is 8 bytes.  A limit of 3 falls mid-codepoint (after byte 2 of the
         // second 'é').  floor_char_boundary(3) must round down to 2.
         let uri = "éééé"; // 4 × 2 = 8 bytes
         let max_len = 3; // falls between byte 2 and 3, i.e. mid-second-codepoint

@@ -7512,7 +7512,7 @@ fn test_is_ascii_gate_routes_arm2_vs_arm3() {
 //   AC-009/010 → test_summarize_output (strengthened above)
 //   AC-013 → test_within_loop_nonhandshake_skip_before_done + test_nonhandshake_types_0x14_0x15_0x17_0x18_all_skip_silently (BC-2.07.033 inv1-2; within-loop skip while flow NOT done)
 //
-// Generic-citation ACs (names chosen here, sync to story after this pass):
+// Generic-citation ACs (names chosen here):
 //   AC-002 → test_oversized_after_valid_hello_increments_both
 //   AC-003 → test_record_payload_boundary_18432_vs_18433
 //   AC-004 → test_buffer_cap_appends_at_most_max_buf
@@ -8595,7 +8595,7 @@ fn test_within_loop_nonhandshake_skip_before_done() {
 
 #[test]
 fn test_nonhandshake_types_0x14_0x15_0x17_0x18_all_skip_silently() {
-    // F-S058-P1-003 / AC-013 extension (BC-2.07.033 EC-002/003/004 + STORY EC-006/EC-007):
+    // F-S058-P1-003 / AC-013 extension (BC-2.07.033 EC-001/002/003/004 + STORY EC-006/EC-007):
     //
     // All record types except 0x16 (Handshake) share the same != 0x16 within-loop skip
     // path. This test verifies four distinct types, each in isolation, followed by a

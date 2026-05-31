@@ -591,3 +591,41 @@ fn test_BC_2_11_005_c0_escaped_c1_passthrough_in_same_string() {
          any \\u009b/\\u009B form proves incorrect escaping of U+009B"
     );
 }
+
+/// AC-013 (BC-2.11.005 pc1): A Finding with U+0080 (lower boundary of the C1
+/// range) in summary produces JSON where U+0080 appears as the raw two-byte
+/// UTF-8 sequence 0xC2 0x80, NOT as the text .
+///
+/// Per RFC 8259 §7, only U+0000–U+001F (plus `"` and `\`) require escaping.
+/// U+0080, the first codepoint above the ASCII range, is in the C1 block and
+/// must pass through serde_json unescaped.
+#[test]
+fn test_BC_2_11_005_c1_lower_boundary_u0080_passthrough_raw_utf8() {
+    // BC-2.11.005 pc1: U+0080 (C1 PAD, bottom of the C1 range) encoded as
+    // 0xC2 0x80 in UTF-8 must pass through serde_json as-is.  The 
+    // escape sequence must NOT appear in the JSON output bytes.
+    let c1_pad = "\u{0080}"; // encodes as 0xC2 0x80 in UTF-8
+    let finding = make_finding(format!("payload: {c1_pad}boundary"));
+    let json_str = render(&[finding]);
+
+    // The raw 0xC2 0x80 byte pair must be present in the output.
+    let bytes = json_str.as_bytes();
+    let has_raw_c1 = bytes.windows(2).any(|w| w == [0xC2, 0x80]);
+    assert!(
+        has_raw_c1,
+        "BC-2.11.005 pc1: C1 U+0080 must appear as raw 0xC2 0x80 in JSON output; \
+         serde_json must not escape it"
+    );
+
+    // Guard both lowercase and uppercase forms of the \u escape for U+0080.
+    assert!(
+        !json_str.contains("\\u0080"),
+        "BC-2.11.005 pc1: C1 U+0080 must NOT appear as \\u0080 (lowercase) in JSON output; \
+         RFC 8259 only mandates escaping of C0 (U+0000-U+001F)"
+    );
+    assert!(
+        !json_str.contains("\\u0080"),
+        "BC-2.11.005 pc1: C1 U+0080 must NOT appear as \\u0080 (uppercase) in JSON output; \
+         any \\u0080 form proves incorrect escaping of U+0080"
+    );
+}
