@@ -517,11 +517,15 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-078:
-    status: in_progress
+    status: done
     wave: 22
-    branch: test/story-078-terminal-grouping
-    worktree: .worktrees/STORY-078
+    branch: null
+    worktree: null
     blocked_by: [STORY-077]
+    pr: 160
+    merge_commit: bf16c0b
+    merged_date: "2026-05-30"
+    converged_date: "2026-05-30"
 
   STORY-080:
     status: pending

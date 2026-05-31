@@ -9,9 +9,12 @@ phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
 phase_2_completed: "2026-05-21"
 phase_3_started: "2026-05-21"
-develop_head: 41ab24d
+develop_head: bf16c0b
 current_cycle: v0.1.0-greenfield-spec
 current_wave: 22
+wave_22_status: IN_PROGRESS
+wave_22_stories: "STORY-078 (terminal MITRE/section/color, 8pts) + STORY-080 (csv trait-compliance/optional-fields, 3pts)"
+wave_22_s078_delivery: "PR #160 squash-merged → bf16c0b 2026-05-30; 3ps-3clean(P1/P2/P3); BC-5.39.001 ACHIEVED; brownfield-formalization ZERO src; 16 reporter_terminal_tests; full suite 958 green; VP-016 integration in-story; AC-007 trace fixed; first half of Wave 22"
 wave_21_status: CLOSED
 wave_21_closed: "2026-05-30"
 wave_21_stories: "STORY-077 (TerminalReporter, 8pts, BC-2.11.006..012) + STORY-079 (CsvReporter, 5pts, BC-2.11.020..022)"
@@ -31,14 +34,14 @@ wave_20_per_story_convergence: "STORY-076: 5 passes; 3/3 clean streak on passes 
 wave_20_wave_level_convergence: "single-story wave; per-story convergence == wave-level convergence per BC-5.39.001"
 wave_20_delivery: "PR #157 squash-merged → e5cb2b1 2026-05-29; brownfield-formalization, ZERO src changes; 40 reporter_json_tests green; full suite 915 passed/0 failed; all 8 CI green; security CLEAN; pr-reviewer APPROVED 1 cycle (1 non-blocking NIT); worktree + branch removed; demo evidence docs/demo-evidence/STORY-076/; VP-017 deferred to Phase-6 (proptest)"
 wave_20_pg_enforcement: "[PG-W17-001] AC-test-name-sync verified both directions across all 5 adversarial passes; clean. First reporter-subsystem (SS-11) story; opened E-8 epic."
-stories_delivered: 41
+stories_delivered: 42
 dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3
 adversary_gate: SATISFIED
-convergence_trajectory: "Full Phase-1→W21 trajectory archived in cycles/phase-3-tdd/convergence-trajectory.md. Latest: ...W20-S076-DELIVERED(PR#157→e5cb2b1;2026-05-29)|W20-CONVERGED-CLOSED-2026-05-29|W21-S077-story:3ps-3clean(P1/P2/P3;zero-findings;terminal-C1-escaping)|W21-S077-DELIVERED(PR#158→594567c)|W21-S079-story:3-clean-P11/P12/P13(13ps;spec-side-drift-cascade-rem;csv-injection)|W21-S079-DELIVERED(PR#159→41ab24d)|W21-WAVE-3lens:R1-DIRTY(VP-method+FSR)→R2-2clean+1dirty(casing)→R3-CLEAN;3/3-lenses-CLEAN;SS-11-VP-family-harmonized|W21-CONVERGED-CLOSED-2026-05-30"
+convergence_trajectory: "Full Phase-1→W22-S078 trajectory archived in cycles/phase-3-tdd/convergence-trajectory.md. Latest: ...W21-S079-DELIVERED(PR#159→41ab24d)|W21-WAVE-3lens:R1-DIRTY(VP-method+FSR)→R2-2clean+1dirty(casing)→R3-CLEAN;3/3-lenses-CLEAN;SS-11-VP-family-harmonized|W21-CONVERGED-CLOSED-2026-05-30|W22-S078-story:3ps-3clean(P1/P2/P3;pre-settled-specs;terminal-MITRE-grouping)|W22-S078-DELIVERED(PR#160→bf16c0b;2026-05-30)"
 consistency_audit: CONSISTENT
 input_drift_check: CLEAN (Wave-20 STORY-076 test-only formalization; zero src/production changes; reporter/json subsystem — no holdout-scenario hash impact; Wave-19 story-citation/AC-sync bump may apply — verify at Phase-4 entry)
 phase_2_input_hash_drift_check: CLEAN
@@ -50,10 +53,10 @@ wave_history_archived: "cycles/phase-3-tdd/wave-history.md (waves 1-18 detail fi
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-21 CLOSED/CONVERGED; 41 stories delivered. NEXT: Wave 22.
-41 stories delivered (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052/045/053/055/046/054/056/058/057/076/077/079).
-Wave 21 CLOSED 2026-05-30 — STORY-077 (PR #158→594567c, 3ps-3clean P1/P2/P3) + STORY-079 (PR #159→41ab24d, 13ps 3-clean P11/P12/P13). Both BC-5.39.001 ACHIEVED. Wave-level 3/3 lenses CLEAN. SS-11 VP family harmonized (VP-012/016/017).
-develop HEAD: 41ab24d (PR #159 squash-merged 2026-05-30; cargo test --all-targets 942 passed/0 failed). All 8 CI checks green.
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-21 CLOSED/CONVERGED; Wave 22 IN PROGRESS (1/2 stories delivered). 42 stories delivered.
+42 stories delivered (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052/045/053/055/046/054/056/058/057/076/077/079/078).
+Wave 22 IN PROGRESS — STORY-078 DELIVERED (PR #160→bf16c0b, 3ps-3clean P1/P2/P3; BC-5.39.001 ACHIEVED; 16 reporter_terminal_tests; VP-016 in-story). STORY-080 PENDING.
+develop HEAD: bf16c0b (PR #160 squash-merged 2026-05-30; cargo test --all-targets 958 passed/0 failed). All 8 CI checks green. NEXT: STORY-080 (csv trait-compliance/optional-fields, 3pts).
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -70,7 +73,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-21 CLOSED/CONVERGED (41 stories; develop HEAD 41ab24d; 942 tests green); NEXT: Wave 22 | W21 wave-level 3/3 lenses CLEAN; BC-5.39.001 ACHIEVED both stories; SS-11 VP family harmonized |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-21 CLOSED/CONVERGED; Wave 22 IN PROGRESS 1/2 (42 stories; develop HEAD bf16c0b; 958 tests green); NEXT: STORY-080 | W22-S078: 3ps-3clean; BC-5.39.001 ACHIEVED; VP-016 in-story; STORY-080 pending |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -101,17 +104,18 @@ dependency bumping for it).
 | 19 | STORY-057 (E-5 TLS, 8pts) | **CLOSED/CONVERGED** 2026-05-29 | 616897e (PR #156) | 1 story. 6 passes, 3/3 clean streak P4/P5/P6; BC-5.39.001 ACHIEVED. Brownfield-formalization, ZERO src changes; 114 tls_analyzer_tests + full 903-test suite green. 1HIGH+5MED remediated across P1-P3; 1LOW accepted/documented-intent. PG-W17-001 AC-test-name-sync clean. |
 | 20 | STORY-076 (E-8 reporter, SS-11, 5pts) | **CLOSED/CONVERGED** 2026-05-29 | e5cb2b1 (PR #157) | 1 story. 5 passes, 3/3 clean streak P3/P4/P5; BC-5.39.001 ACHIEVED. Brownfield-formalization, ZERO src changes; 40 reporter_json_tests + full 915-test suite green. 1HIGH+3MED remediated P1-P2; 1MED self-inflicted by remediation. First SS-11 reporter story; E-8 epic opened. VP-017 deferred Phase-6. |
 | 21 | STORY-077 (TerminalReporter, 8pts) + STORY-079 (CsvReporter, 5pts) | **CLOSED/CONVERGED** 2026-05-30 | 41ab24d (PR #159 — STORY-079) | PRs #158/#159. STORY-077: 3ps-3clean (P1/P2/P3); STORY-079: 13ps 3-clean (P11/P12/P13; spec-side drift cascade). Wave-level: 3-lens R1-DIRTY(VP-method+FSR)→R2-2clean+1dirty(casing)→R3-CLEAN; 3/3 CLEAN. 27 tests (14 terminal+13 csv). SS-11 VP family harmonized (VP-012/016/017). BC-5.39.001 ACHIEVED. |
-| 22–27 | (remaining) | NOT STARTED | — | — |
+| 22 | STORY-078 (DELIVERED), STORY-080 (PENDING) | **IN PROGRESS** | STORY-078: bf16c0b (PR #160); STORY-080: — | STORY-078: 3ps-3clean P1/P2/P3; BC-5.39.001 ACHIEVED; 16 reporter_terminal_tests; ZERO src; VP-016 in-story; AC-007 trace fixed |
+| 23–27 | (remaining) | NOT STARTED | — | — |
 
 ## Phase 3 — Current Phase Steps (last 5)
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Wave 21 — STORY-077 tests written + per-story convergence | **COMPLETE** 2026-05-30 | BC-5.39.001 ACHIEVED: 3 passes P1/P2/P3 CLEAN (zero findings). 14 reporter_terminal_tests (BC-2.11.006..012). Brownfield-formalization ZERO src. VP-012 deferred Phase-6. |
-| Wave 21 — STORY-077 PR merged | **COMPLETE** 2026-05-30 | PR #158 squash-merged → 594567c. 929 tests green. All 8 CI green. Security CLEAN. Worktree + branch removed. |
-| Wave 21 — STORY-079 tests written + per-story convergence | **COMPLETE** 2026-05-30 | BC-5.39.001 ACHIEVED: 13 passes; 3-clean P11/P12/P13. All DIRTY passes spec-side (CRLF→LF, VP-020 manual→unit, proptest→unit family sweep, FSR citation, EC-002→EC-004). Test artifact clean from P2. 13 reporter_csv_tests (BC-2.11.020..022). VP-020 unit in-story. |
-| Wave 21 — STORY-079 PR merged + wave-level convergence | **COMPLETE** 2026-05-30 | PR #159 squash-merged → 41ab24d. 942 tests green. All 8 CI green. Wave-level 3-lens: R1-DIRTY(2HIGH VP-proof-method+1MED FSR-citation)→remediated; R2 integration-static+traceability CLEAN, consistency DIRTY(1MED CAP-11 casing)→remediated; R3 consistency CLEAN. 3/3 CLEAN. SS-11 VP family harmonized (VP-012/016/017). BC-5.39.001 ACHIEVED. Wave 21 CLOSED. |
-| Wave 22 — dispatch | **NEXT** | STORY-078 (blocked_by STORY-077) + STORY-080 (blocked_by STORY-079) unblocked. develop HEAD 41ab24d. |
+| Wave 21 — STORY-079 PR merged + wave-level convergence | **COMPLETE** 2026-05-30 | PR #159 squash-merged → 41ab24d. 942 tests green. Wave-level 3-lens 3/3 CLEAN. SS-11 VP family harmonized (VP-012/016/017). BC-5.39.001 ACHIEVED. Wave 21 CLOSED. |
+| Wave 22 — STORY-078 dispatch | **COMPLETE** 2026-05-30 | STORY-078 unblocked (STORY-077 done). Worktree .worktrees/STORY-078, branch test/story-078-terminal-grouping. develop HEAD at dispatch: 41ab24d. |
+| Wave 22 — STORY-078 tests written + per-story convergence | **COMPLETE** 2026-05-30 | BC-5.39.001 ACHIEVED: 3 passes P1/P2/P3 CLEAN. 16 reporter_terminal_tests (BC-2.11.013..019). Brownfield-formalization ZERO src. VP-016 integration exercised in-story. AC-007 trace fixed v1.2. F-W22-BC-ANCHOR logged (LOW non-blocking). |
+| Wave 22 — STORY-078 PR merged | **COMPLETE** 2026-05-30 | PR #160 squash-merged → bf16c0b. 958 tests green. All 8 CI green. Security CLEAN. pr-reviewer APPROVED (2 non-blocking). Demo evidence docs/demo-evidence/STORY-078/. Worktree + branch removed. |
+| Wave 22 — STORY-080 | **NEXT** | STORY-080 (csv trait-compliance/optional-fields, 3pts, blocked_by STORY-079) unblocked. develop HEAD bf16c0b. |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -129,13 +133,13 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-30 — Wave 21 CLOSED; next = Wave 22)
+## Session Resume Checkpoint (2026-05-30 — Wave 22 IN PROGRESS; STORY-078 delivered; next = STORY-080)
 
-1. Waves 1-21 CLOSED/CONVERGED. develop HEAD: 41ab24d (PR #159 squash-merged 2026-05-30). All 8 CI checks green. 41 stories delivered.
-2. Wave 21 CLOSED 2026-05-30: STORY-077 (PR#158→594567c; 3ps-3clean P1/P2/P3; BC-5.39.001 ACHIEVED; 14 reporter_terminal_tests; ZERO src changes) + STORY-079 (PR#159→41ab24d; 13ps 3-clean P11/P12/P13; BC-5.39.001 ACHIEVED; 13 reporter_csv_tests; ZERO src changes). Full suite 942 passed/0 failed.
-3. Wave-level convergence ACHIEVED: 3-lens fresh-context. R1 DIRTY (2HIGH VP proof-method divergence + 1MED FSR citation) → remediated. R2 integration-static + traceability CLEAN; consistency DIRTY (1MED BC-2.11.007 CAP-11 casing) → remediated. R3 consistency CLEAN. Net 3/3 lenses CLEAN. SS-11 reporter VP family harmonized: VP-012/016/017 proof_method corrected to match VP-020. Spec corrections committed to factory-artifacts.
-4. Deferred open items: F-W21-S079-HASH (stale input-hash; TOOL-MISSING), F-W21-TOOL-001 (bin/compute-input-hash absent), F-W21-VP-METHOD (VP-018/019 proof_method — sweep at next SS-12/SS-08 touch). Cycle-close note: DF-SIBLING-SWEEP-001 "sweep sibling VPs in same subsystem when correcting proof_method" codification candidate — handled-this-wave; consider adding a bullet to policies.yaml.
-5. NEXT: Wave 22 — STORY-078 (blocked_by STORY-077) + STORY-080 (blocked_by STORY-079). Both unblocked. Prior checkpoint archived: cycles/phase-3-tdd/session-checkpoints.md.
+1. Waves 1-21 CLOSED/CONVERGED; Wave 22 IN PROGRESS (1/2 stories delivered). develop HEAD: bf16c0b (PR #160 squash-merged 2026-05-30). All 8 CI checks green. 42 stories delivered.
+2. Wave 22 partial delivery: STORY-078 (PR#160→bf16c0b; 3ps-3clean P1/P2/P3; BC-5.39.001 ACHIEVED; 16 reporter_terminal_tests mod story_078; BC-2.11.013..019; E-8/SS-11; ZERO src changes; VP-016 integration exercised in-story; AC-007 trace fixed v1.2; F-W22-BC-ANCHOR LOW non-blocking logged). Full suite 958 passed/0 failed. Security CLEAN. pr-reviewer APPROVED (2 non-blocking suggestions). Demo evidence: docs/demo-evidence/STORY-078/.
+3. Wave 22 remains OPEN — STORY-080 (csv trait-compliance/optional-fields, 3pts, blocked_by STORY-079) is PENDING. Do NOT close wave or advance current_wave until STORY-080 delivered and wave-level convergence complete.
+4. Open drift items carried forward: F-W22-BC-ANCHOR (LOW; SS-11 reporter BC anchor staleness — dedicated sweep), F-W21-S079-HASH (MEDIUM; TOOL-MISSING), F-W21-TOOL-001 (HIGH; bin/compute-input-hash absent), F-W21-VP-METHOD (LOW; VP-018/019 proof_method), F-DRIFT-C-001, F-S058-P12-O1.
+5. Prior checkpoint archived: cycles/phase-3-tdd/session-checkpoints.md.
 
 ## Wave Retrospectives
 
