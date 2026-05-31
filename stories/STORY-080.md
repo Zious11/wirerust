@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-080"
 epic_id: "E-8"
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -130,7 +130,7 @@ All four optional-field-derived strings are individually passed through `neutral
 | This story spec | ~2,000 |
 | src/reporter/csv.rs (optional field section, csv.rs:82-97) | ~1,500 |
 | BC files (2 BCs) | ~3,000 |
-| tests/reporter_tests.rs | ~800 |
+| tests/reporter_csv_tests.rs | ~800 |
 | Tool outputs overhead | ~300 |
 | **Total** | **~7,600** |
 | Agent context window | 200K for Sonnet |
@@ -178,4 +178,12 @@ All four optional-field-derived strings are individually passed through `neutral
 |------|--------|---------|
 | src/reporter/csv.rs | verify/modify | Optional field encoding (csv.rs:82-85), neutralize (94-97), Reporter trait impl (51-106) |
 | src/reporter/mod.rs | verify | `Reporter` trait definition (mod.rs:26-33) |
-| tests/reporter_tests.rs | create or modify | AC-001 through AC-012 tests |
+| tests/reporter_csv_tests.rs | create or modify | AC-001 through AC-012 tests |
+
+## Revision History
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.0 | 2026-05-21 | story-writer | Initial story |
+| 1.1 | 2026-05-21 | story-writer | (prior revision) |
+| 1.2 | 2026-05-30 | story-writer | v1.2: corrected test-file citation reporter_tests.rs → reporter_csv_tests.rs (FSR + Token Budget rows); Wave-22 P1/P2 finding |
