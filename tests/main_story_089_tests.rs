@@ -33,12 +33,15 @@
 //! observed format and fail the assertion.
 //!
 //! Fixtures used:
-//!   dns-remoteshell.pcap — naturally produces 73 skipped_packets and exactly
-//!     one "Warning: failed to decode packet" line (verified by binary run).
-//!     Total 58 packets; 73 are non-IP and fail decode_packet.
+//!   dns-remoteshell.pcap — 58 total packets, 73 decode errors (non-IP frames
+//!     fail decode_packet with "No IP layer found"). Produces exactly ONE
+//!     "Warning: failed to decode packet" line on stderr; skipped_packets=73.
+//!     With analyze --http --json: unclassified_flows=8 (non-zero, kills
+//!     hardcode-to-zero mutations). Used for AC-001..004, AC-005, EC-001, EC-005
+//!     and all run_summary decode-error / format / routing tests.
 //!   http-ooo.pcap — 16 HTTP TCP packets; clean decode (0 skipped_packets).
-//!     Used for reassembler-active cases (--http activates TcpReassembler).
-//!   http.pcap — 1 HTTP packet; minimal; used where tiny fixture suffices.
+//!     With analyze --http: unclassified_flows=0.
+//!     Used for AC-006..012, EC-002..004 and run_summary format/routing tests.
 
 #![allow(non_snake_case)]
 
@@ -51,10 +54,11 @@ mod story_089 {
     // Fixture constants (verified by binary run before authoring)
     // -----------------------------------------------------------------------
 
-    /// dns-remoteshell.pcap: 58 total packets, 73 fail decode_packet with
-    /// "No IP layer found". Produces exactly ONE "Warning: failed to decode
-    /// packet" line on stderr. skipped_packets = 73 in --json output.
-    /// Used for AC-001, AC-002, AC-003, AC-004, EC-001.
+    /// dns-remoteshell.pcap: 58 total packets, 73 decode errors (non-IP frames
+    /// fail decode_packet). Produces exactly ONE "Warning: failed to decode
+    /// packet" line on stderr. skipped_packets=73 in --json output.
+    /// analyze --http --json → unclassified_flows=8 (non-zero).
+    /// Used for AC-001..005, EC-001, EC-005, and all run_summary tests.
     const DNS_REMOTE_FIXTURE: &str = "tests/fixtures/dns-remoteshell.pcap";
 
     /// http-ooo.pcap: 16 HTTP TCP packets; 0 decode errors; 0 skipped_packets.
@@ -109,9 +113,10 @@ mod story_089 {
 
     /// AC-002 (BC-2.12.014 postcondition 2): After the first decode error,
     /// subsequent errors are counted silently — no additional warning lines
-    /// are emitted. dns-remoteshell.pcap has 73 decode errors; only 1 warning
-    /// line appears (the count assertion in AC-004 is the mutation-resistant
-    /// form; this test verifies the positive case from the BC postcondition).
+    /// are emitted. dns-remoteshell.pcap has 73 decode errors across 58 total
+    /// packets; only 1 warning line appears (the count assertion in AC-004 is
+    /// the mutation-resistant form; this test verifies the positive case from
+    /// the BC postcondition).
     ///
     /// Discriminating assertions:
     ///   Positive: stderr does NOT contain a second warning line (the line
@@ -226,6 +231,7 @@ mod story_089 {
     // -----------------------------------------------------------------------
     // AC-005 (traces to BC-2.12.015 postcondition 1)
     // unclassified_flows injected into reassembly summary when reassembler built.
+    // Non-zero case: dns-remoteshell.pcap --http produces unclassified_flows=8.
     // -----------------------------------------------------------------------
 
     /// AC-005 (BC-2.12.015 postcondition 1): When a reassembler is constructed
@@ -233,22 +239,26 @@ mod story_089 {
     /// is injected as `"unclassified_flows"` into the TCP Reassembly analyzer
     /// detail in the `--json` output.
     ///
-    /// Observable: `analyze http-ooo.pcap --http --json` stdout contains
-    /// `"unclassified_flows"` in the JSON output (within the TCP Reassembly
-    /// analyzer detail object). Verified by binary run: value is 0 (EC-003).
+    /// This test deliberately uses a fixture that yields a NON-ZERO
+    /// unclassified_flows count: dns-remoteshell.pcap with --http produces
+    /// unclassified_flows=8 (verified by binary run). This kills the
+    /// `json!(0)` hardcode mutation that would survive if we only ever
+    /// asserted the key presence or a zero value (EC-002 covers zero).
     ///
     /// Discriminating assertions:
-    ///   Positive: stdout JSON contains the string `"unclassified_flows"`.
+    ///   Positive: stdout JSON contains `"unclassified_flows": 8` (non-zero).
     ///   Positive: command exits 0.
-    ///   Negative: WITHOUT reassembler (AC-006), the key is absent.
+    ///   Negative: WITHOUT reassembler (AC-006), the key is absent entirely.
+    ///   Mutation gap closed: a `json!(0)` hardcode would produce
+    ///     `"unclassified_flows": 0`, failing this assertion.
     #[test]
     fn test_unclassified_flows_injected_into_reassembly_summary() {
         Command::cargo_bin("wirerust")
             .expect("binary built")
-            .args(["analyze", HTTP_FIXTURE, "--http", "--json"])
+            .args(["analyze", DNS_REMOTE_FIXTURE, "--http", "--json"])
             .assert()
             .success()
-            .stdout(predicate::str::contains("\"unclassified_flows\""));
+            .stdout(predicate::str::contains("\"unclassified_flows\": 8"));
     }
 
     // -----------------------------------------------------------------------
@@ -706,11 +716,13 @@ mod story_089 {
 
     /// EC-005 (BC-2.12.014 EC-002 / STORY-089 EC-002): This edge case is covered
     /// by AC-001 + AC-003 together using the dns-remoteshell.pcap fixture, which
-    /// has 73 of 58 total failures (all non-IP packets). The test verifies the
-    /// combined invariant: skipped_packets = total failures AND exactly one warning.
+    /// has 58 total packets and 73 decode errors (non-IP frames exceed total
+    /// packets because the pcap contains fragmented/layered frames that each
+    /// attempt multiple decode calls). The test verifies the combined invariant:
+    /// skipped_packets = total decode failures AND exactly one warning emitted.
     ///
     /// Canonical test vector from BC-2.12.014: 0 valid/5 decode errors → 5.
-    /// Here we use 73 decode errors as the concrete "all/many errors" case.
+    /// Here we use 73 decode errors as the concrete "many errors" case.
     ///
     /// Discriminating assertions:
     ///   Positive: warning appears exactly 1 time in stderr (count check).
@@ -738,5 +750,230 @@ mod story_089 {
             stdout.contains("\"skipped_packets\": 73"),
             "expected skipped_packets 73 in JSON; stdout: {stdout}"
         );
+    }
+
+    // =======================================================================
+    // run_summary subcommand tests (ADV-P03-HIGH-001)
+    //
+    // BC-2.12.014, BC-2.12.016, BC-2.12.017 scope to BOTH run_analyze AND
+    // run_summary. The tests below mirror the analyze-side formalization for
+    // the shared decode-counter loop (lines ~254-278 of main.rs), reporter
+    // dispatch (resolve_format), and output routing (write_output) as exercised
+    // via the `summary` subcommand.
+    //
+    // Note on BC-2.12.016 inv-3 ("--json wins over --csv"): this invariant is
+    // structurally unobservable via CLI because clap enforces conflicts_with
+    // between --json and --csv — the parser rejects the combination before
+    // main() runs. This applies equally to the analyze and summary subcommands.
+    // No test is written for this scenario (ADV-P03-MED-001).
+    // =======================================================================
+
+    // -----------------------------------------------------------------------
+    // run_summary: decode-error counting (BC-2.12.014)
+    // -----------------------------------------------------------------------
+
+    /// BC-2.12.014 via run_summary: The `summary` subcommand shares the same
+    /// decode loop as `analyze`. A fixture with multiple decode errors emits
+    /// exactly ONE warning to stderr and counts all errors into skipped_packets.
+    ///
+    /// dns-remoteshell.pcap: 73 decode errors → exactly 1 warning line and
+    /// `"skipped_packets": 73` in --json output. Verified by binary run.
+    ///
+    /// Mutation proof: mutating `total_decode_errors += 1` in run_summary (e.g.,
+    /// `+= 999`) would produce `"skipped_packets": 999` (or similar wrong count)
+    /// and fail the `== 73` assertion.
+    ///
+    /// Discriminating assertions:
+    ///   Positive: stderr has EXACTLY ONE warning line (count check, not contains).
+    ///   Positive: stdout JSON contains `"skipped_packets": 73`.
+    ///   Positive: command exits 0.
+    #[test]
+    fn test_run_summary_decode_error_warning_once() {
+        let output = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["summary", DNS_REMOTE_FIXTURE, "--json"])
+            .output()
+            .expect("command ran");
+
+        assert!(output.status.success(), "command must exit 0");
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let warning_count = stderr.matches("Warning: failed to decode packet").count();
+        assert_eq!(
+            warning_count, 1,
+            "run_summary: warning must appear exactly once across 73 decode errors; \
+             found {warning_count} times. stderr: {stderr}"
+        );
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.contains("\"skipped_packets\": 73"),
+            "run_summary: expected skipped_packets 73 in JSON output; stdout: {stdout}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // run_summary: format resolution (BC-2.12.016)
+    // -----------------------------------------------------------------------
+
+    /// BC-2.12.016 via run_summary postcondition 1: `--json` flag routes
+    /// the summary through JsonReporter, producing JSON on stdout.
+    ///
+    /// Discriminating assertions:
+    ///   Positive: stdout starts with `{` (JSON format).
+    ///   Positive: stdout does NOT start with `category,` (not CSV).
+    ///   Positive: command exits 0.
+    #[test]
+    fn test_run_summary_resolve_format_json() {
+        let output = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["summary", HTTP_FIXTURE, "--json"])
+            .output()
+            .expect("command ran");
+
+        assert!(output.status.success(), "command must exit 0");
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.trim_start().starts_with('{'),
+            "run_summary --json must produce JSON (starts with '{{'); got: {:?}",
+            &stdout[..50.min(stdout.len())]
+        );
+        assert!(
+            !stdout.trim_start().starts_with("category,"),
+            "run_summary --json must NOT produce CSV; got: {:?}",
+            &stdout[..50.min(stdout.len())]
+        );
+    }
+
+    /// BC-2.12.016 via run_summary postcondition 2: `--csv` flag routes the
+    /// summary through CsvReporter, producing CSV header on stdout.
+    ///
+    /// Mutation proof: mutating the `Some(OutputFormat::Csv)` arm to dispatch
+    /// TerminalReporter would produce "WIRERUST TRIAGE REPORT" instead of the
+    /// CSV header, failing this assertion.
+    ///
+    /// Discriminating assertions:
+    ///   Positive: stdout starts with `category,verdict,confidence,` (CSV header).
+    ///   Positive: command exits 0.
+    #[test]
+    fn test_run_summary_resolve_format_csv() {
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["summary", HTTP_FIXTURE, "--csv"])
+            .assert()
+            .success()
+            .stdout(predicate::str::starts_with("category,verdict,confidence,"));
+    }
+
+    /// BC-2.12.016 via run_summary postcondition 3 (fallback): Without `--json`
+    /// or `--csv`, the summary falls through to TerminalReporter, producing
+    /// "WIRERUST TRIAGE REPORT" on stdout.
+    ///
+    /// Also exercises `--json --output-format csv` precedence (inv-1): --json
+    /// wins, producing JSON output. Note: --json and --csv are clap-mutually-
+    /// exclusive so the inv-3 scenario is unobservable (see note above).
+    ///
+    /// Discriminating assertions:
+    ///   Positive (no flags): stdout contains "WIRERUST TRIAGE REPORT".
+    ///   Positive (--json --output-format csv): stdout starts with `{` (JSON wins).
+    ///   Positive: command exits 0.
+    #[test]
+    fn test_run_summary_resolve_format_fallback_to_terminal() {
+        // No format flags → terminal output
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["summary", HTTP_FIXTURE])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("WIRERUST TRIAGE REPORT"));
+
+        // --json --output-format csv → JSON wins (resolve_format precedence)
+        let output = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["summary", HTTP_FIXTURE, "--json", "--output-format", "csv"])
+            .output()
+            .expect("command ran");
+        assert!(output.status.success(), "command must exit 0");
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.trim_start().starts_with('{'),
+            "run_summary --json --output-format csv: JSON must win; got: {:?}",
+            &stdout[..50.min(stdout.len())]
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // run_summary: output routing (BC-2.12.017)
+    // -----------------------------------------------------------------------
+
+    /// BC-2.12.017 via run_summary postcondition 1: `--json <FILE>` writes
+    /// JSON to the given file path; stdout is empty.
+    ///
+    /// Mutation proof: mutating the write_output `Some(Some(path))` arm to
+    /// println! instead would produce non-empty stdout and leave the file
+    /// empty/missing, failing both assertions.
+    ///
+    /// Discriminating assertions:
+    ///   Positive: file exists after the command.
+    ///   Positive: file content starts with `{` (JSON).
+    ///   Positive: file content contains `"summary"` key.
+    ///   Positive: stdout is empty (output went to file, not stdout).
+    ///   Positive: command exits 0.
+    #[test]
+    fn test_run_summary_write_output_to_file() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let out_path = tmp.path().join("summary_out.json");
+
+        let output = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args([
+                "summary",
+                HTTP_FIXTURE,
+                "--json",
+                out_path.to_str().expect("utf-8 path"),
+            ])
+            .output()
+            .expect("command ran");
+
+        assert!(output.status.success(), "command must exit 0");
+
+        // stdout must be empty — output went to file
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.is_empty(),
+            "run_summary: stdout must be empty when --json <FILE> given; got: {stdout}"
+        );
+
+        // file must exist and contain JSON
+        assert!(out_path.exists(), "run_summary: output file must exist");
+        let written = fs::read_to_string(&out_path).expect("output file readable");
+        assert!(
+            written.trim_start().starts_with('{'),
+            "run_summary: file content must start with '{{'; got prefix: {:?}",
+            &written[..50.min(written.len())]
+        );
+        assert!(
+            written.contains("\"summary\""),
+            "run_summary: file must contain 'summary' key; got prefix: {:?}",
+            &written[..200.min(written.len())]
+        );
+    }
+
+    /// BC-2.12.017 via run_summary postcondition 3: Default (no file path)
+    /// prints to stdout. `summary <fixture>` without `--json <FILE>` or
+    /// `--csv <FILE>` produces terminal output on stdout, not empty stdout.
+    ///
+    /// Discriminating assertions:
+    ///   Positive: stdout contains "WIRERUST TRIAGE REPORT".
+    ///   Positive: command exits 0.
+    #[test]
+    fn test_run_summary_default_output_to_stdout() {
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["summary", HTTP_FIXTURE])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("WIRERUST TRIAGE REPORT"));
     }
 }
