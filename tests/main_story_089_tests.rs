@@ -72,7 +72,8 @@ mod story_089 {
     /// "No IP layer found") followed by 1 valid IPv4/UDP packet (succeeds).
     /// Produces skipped_packets=1, total_packets=1, exactly ONE warning line.
     ///
-    /// Built by tests/build_one_decode_error_fixture.py (see ADV-P04-MED-001).
+    /// A committed 145-byte pcap: packet 1 = ARP frame (fails decode, "No IP layer found");
+    /// packet 2 = valid Eth/IPv4/UDP. Yields exactly 1 decode error / 1 warning (see ADV-P04-MED-001).
     /// Mutation-discriminating property: with `== 0` guard the ARP is the
     /// first (and only) error → 1 warning. If the guard were `== 1` (warn on
     /// 2nd error) there is no 2nd error → 0 warnings. This fixture kills that
