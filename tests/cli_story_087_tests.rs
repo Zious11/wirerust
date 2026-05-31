@@ -1,6 +1,6 @@
 //! STORY-087: Output Format Flags and Reassembly Configuration Flags — Wave 24
 //!
-//! Formalizes 17 tests for BC-2.12.004, BC-2.12.005, BC-2.12.007
+//! Formalizes 16 tests for BC-2.12.004, BC-2.12.005, BC-2.12.007
 //! (AC-001..AC-012 + EC-001..EC-003, EC-005).
 //!
 //! Behavioral contracts covered:
@@ -11,7 +11,7 @@
 //!
 //! implementation_strategy: brownfield-formalization
 //! tdd_mode: strict
-//! RED GATE stub phase: all 17 stubs confirmed FAIL before implementation.
+//! RED GATE stub phase: all 16 stubs confirmed FAIL before implementation.
 //!
 //! Placement: dedicated file per DF-TEST-NAMESPACE-001 to avoid name collisions
 //! with tests in other test files. All STORY-087 tests are wrapped in
@@ -135,7 +135,7 @@ mod story_087 {
     ///
     /// Discriminating assertions:
     ///   Positive: parse returns Err.
-    ///   Positive: error kind is ValueValidation (unrecognized enum variant).
+    ///   Positive: error kind is InvalidValue (unrecognized enum variant).
     ///   Negative: parse does NOT return Ok.
     #[test]
     fn test_output_format_invalid_value_rejected() {
