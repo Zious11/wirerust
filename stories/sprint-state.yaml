@@ -584,7 +584,7 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-088:
-    status: ready
+    status: in-progress
     wave: 25
     branch: null
     worktree: null
