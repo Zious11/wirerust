@@ -543,7 +543,7 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-086:
-    status: blocked
+    status: in-progress
     wave: 23
     branch: null
     worktree: null
