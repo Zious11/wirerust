@@ -237,15 +237,33 @@ mod story_096 {
     /// known BPF-capable crate names. The `pcap-file` crate (present) provides
     /// only file-reading — it does NOT provide BPF expression evaluation.
     ///
+    /// The canonical reintroduction vector (BC-2.13.003 Refactoring Notes) is the
+    /// `pcap` crate (crates.io: `pcap`), whose `Capture::filter()` compiles and
+    /// applies a BPF expression at the kernel level. Because the `pcap-file`
+    /// dependency key contains the substring "pcap", naive `contains("pcap")`
+    /// would false-positive. We therefore parse Cargo.toml line-by-line and match
+    /// the dependency KEY precisely:
+    ///   - inline form:  `pcap = …` or `pcap = {…}` (trimmed line starts with
+    ///     "pcap " or "pcap=")
+    ///   - table form:   `[dependencies.pcap]` or `[dependencies.pcap.` prefix
+    ///
     /// Discriminating assertions:
-    ///   Positive: no `pcap-filter` dependency.
+    ///   Positive: no `pcap-filter` dependency (substring check is unambiguous).
     ///   Positive: no `bpf` dependency (standalone BPF crate).
     ///   Positive: no `libpcap` dependency (raw libpcap bindings).
+    ///   Positive: no `pcap` dependency key (BPF-capable `pcap` crate) — matched
+    ///     line-by-line to avoid false positives on `pcap-file`.
     ///   Negative: `pcap-file` (the present read-only pcap crate) is NOT
-    ///   incorrectly flagged — we assert on the BPF-specific crate names.
+    ///     incorrectly flagged — line-by-line key matching distinguishes it.
+    ///   Negative (sanity guard): `pcap-file` IS present, proving the detector
+    ///     can tell the two apart.
     #[test]
     fn test_bpf_filter_absent_from_src() {
         let cargo_toml = include_str!("../Cargo.toml");
+
+        // ------------------------------------------------------------------
+        // Substring-safe checks for unambiguous BPF crate names
+        // ------------------------------------------------------------------
         assert!(
             !cargo_toml.contains("pcap-filter"),
             "Cargo.toml must not declare a `pcap-filter` dependency"
@@ -258,8 +276,39 @@ mod story_096 {
             !cargo_toml.contains("libpcap"),
             "Cargo.toml must not declare a `libpcap` dependency"
         );
-        // `pcap-file` is the permitted read-only pcap crate; confirm it exists
-        // and is distinct from any BPF-capable library.
+
+        // ------------------------------------------------------------------
+        // Precise line-by-line check for the `pcap` crate dependency key.
+        //
+        // Matches:
+        //   pcap = "2.2"                  (inline, space before `=`)
+        //   pcap= "2.2"                   (inline, no space)
+        //   pcap = { version = "2" }      (inline table)
+        //   [dependencies.pcap]           (TOML table header)
+        //   [dependencies.pcap.features]  (nested table header)
+        //
+        // Does NOT match:
+        //   pcap-file = "2"               (different crate name)
+        // ------------------------------------------------------------------
+        let has_pcap_dep = cargo_toml.lines().any(|raw_line| {
+            let line = raw_line.trim();
+            // Inline dependency key: key is exactly `pcap` before `=` or space.
+            line.starts_with("pcap =") || line.starts_with("pcap=")
+            // TOML table header for explicit dependency table.
+            || line.starts_with("[dependencies.pcap]")
+            || line.starts_with("[dependencies.pcap.")
+        });
+        assert!(
+            !has_pcap_dep,
+            "Cargo.toml must not declare the `pcap` crate as a dependency \
+             (its Capture::filter() API applies BPF expressions — BC-2.13.003 \
+             Refactoring Notes reintroduction vector)"
+        );
+
+        // ------------------------------------------------------------------
+        // Sanity guard: `pcap-file` (read-only) MUST still be present.
+        // This proves the detector correctly distinguishes `pcap` from `pcap-file`.
+        // ------------------------------------------------------------------
         assert!(
             cargo_toml.contains("pcap-file"),
             "Cargo.toml must retain the `pcap-file` read-only dependency (sanity guard)"
