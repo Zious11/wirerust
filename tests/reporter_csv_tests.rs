@@ -871,3 +871,656 @@ mod story_079 {
         );
     }
 }
+
+// Per DF-TEST-NAMESPACE-001: all STORY-080 tests are grouped inside a
+// dedicated `mod story_080` wrapper to prevent test-function name collisions
+// with story_079's BC-2.11.020..022 names.
+//
+// STORY-080 formalizes BC-2.11.023 (Reporter trait compliance, row count, ignored
+// parameters) and BC-2.11.024 (None optional field encoding, Direction Debug format).
+//
+// implementation_strategy: brownfield-formalization
+// tdd_mode: strict
+// RED GATE stub phase completed: all 12 stubs confirmed FAIL (see red-gate-log.md).
+// This block contains the final discriminating assertions against the existing
+// CsvReporter implementation.
+mod story_080 {
+    use super::*;
+    use std::net::IpAddr;
+
+    use chrono::{TimeZone, Utc};
+    use wirerust::analyzer::AnalysisSummary;
+    use wirerust::reassembly::handler::Direction;
+
+    // -----------------------------------------------------------------------
+    // Helpers local to story_080
+    // -----------------------------------------------------------------------
+
+    /// Build a minimal AnalysisSummary for use in analyzer_summaries arguments.
+    fn make_analysis_summary(name: &str) -> AnalysisSummary {
+        AnalysisSummary {
+            analyzer_name: name.to_string(),
+            packets_analyzed: 42,
+            detail: std::collections::BTreeMap::new(),
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.023 — Reporter trait compliance, row count, ignored parameters
+    // -----------------------------------------------------------------------
+
+    /// AC-001 (BC-2.11.023 postcondition 1, invariant 1):
+    /// Total row count in `CsvReporter::render` output is exactly `1 + findings.len()`
+    /// for multiple finding-slice sizes: 0, 1, 3.
+    ///
+    /// BC-2.11.023 pc1 / inv1: "contains exactly one header row followed by exactly
+    /// findings.len() data rows".
+    ///
+    /// Discriminating assertions:
+    ///   - Empty slice → 1 row (header only).
+    ///   - Single finding → 2 rows.
+    ///   - Three findings → 4 rows.
+    ///   - Counting via csv-crate parse (not naive split) so RFC 4180 quoting
+    ///     does not inflate the count.
+    #[test]
+    fn test_BC_2_11_023_row_count_equals_one_plus_findings_len() {
+        // BC-2.11.023 pc1 / inv1 canonical test vectors:
+        //   findings=[] → 1 row
+        //   findings=[f1] → 2 rows
+        //   findings=[f1, f2, f3] → 4 rows
+        let cases: &[usize] = &[0, 1, 3];
+        for &n in cases {
+            let findings: Vec<Finding> = (0..n).map(|i| make_finding(format!("f{i}"))).collect();
+            let csv_text = render_many(&findings);
+            let rows = parse_csv(&csv_text);
+            assert_eq!(
+                rows.len(),
+                1 + n,
+                "BC-2.11.023 pc1/inv1: n={n} findings → expected {} rows, got {};\n{}",
+                1 + n,
+                rows.len(),
+                csv_text
+            );
+        }
+    }
+
+    /// AC-005 (BC-2.11.023 invariant 1, EC-001):
+    /// An empty findings slice produces exactly the header row — a valid 1-line CSV
+    /// with zero data rows.
+    ///
+    /// BC-2.11.023 EC-001: "Output is the header row only; no data rows; valid 1-line CSV".
+    ///
+    /// Discriminating assertions:
+    ///   - parse_csv yields exactly 1 row.
+    ///   - That 1 row is the header (first field = "category").
+    ///   - No second row present.
+    ///   - Raw output is non-empty (valid CSV string, not "").
+    #[test]
+    fn test_BC_2_11_023_empty_findings_header_only() {
+        // BC-2.11.023 inv1 / EC-001 canonical test vector:
+        //   findings=[] → single header line only.
+        let csv_text = render_many(&[]);
+        let rows = parse_csv(&csv_text);
+
+        assert_eq!(
+            rows.len(),
+            1,
+            "BC-2.11.023 inv1/EC-001: empty findings → exactly 1 row (header); got {};\n{}",
+            rows.len(),
+            csv_text
+        );
+
+        // The one row must be the header, not a data row.
+        assert_eq!(
+            rows[0][0], "category",
+            "BC-2.11.023 inv1: sole row must be header; col 1 must be 'category', got '{}'",
+            rows[0][0]
+        );
+
+        // Negative: no second row.
+        assert!(
+            rows.get(1).is_none(),
+            "BC-2.11.023 inv1: no data row should exist for empty findings slice"
+        );
+
+        // Raw output is non-empty.
+        assert!(
+            !csv_text.is_empty(),
+            "BC-2.11.023 inv1: output must be a non-empty valid CSV string"
+        );
+    }
+
+    /// AC-004 (BC-2.11.023 postcondition 5, invariant 3):
+    /// Row order in the CSV output matches the iteration order of the findings slice.
+    /// First finding → data row 2 (index 1), second → data row 3, etc.
+    /// No sorting or deduplication.
+    ///
+    /// BC-2.11.023 pc5 / inv3: "Row order is identical to the iteration order of the
+    /// findings slice (no sorting, no deduplication)".
+    ///
+    /// Discriminating assertions:
+    ///   - rows[1][3] == "alpha" (first finding summary).
+    ///   - rows[2][3] == "beta"  (second finding summary).
+    ///   - rows[3][3] == "gamma" (third finding summary).
+    ///   - EC-005: duplicate finding emitted twice — no deduplication.
+    #[test]
+    fn test_BC_2_11_023_row_order_matches_findings_slice() {
+        // BC-2.11.023 pc5 / inv3: order-preservation test.
+        let findings = vec![
+            make_finding("alpha"),
+            make_finding("beta"),
+            make_finding("gamma"),
+        ];
+        let csv_text = render_many(&findings);
+        let rows = parse_csv(&csv_text);
+
+        assert_eq!(
+            rows.len(),
+            4,
+            "BC-2.11.023 pc5: expected 4 rows (header + 3); got {};\n{}",
+            rows.len(),
+            csv_text
+        );
+        assert_eq!(
+            rows[1][3], "alpha",
+            "BC-2.11.023 pc5: data row 1 summary must be 'alpha'; got '{}'",
+            rows[1][3]
+        );
+        assert_eq!(
+            rows[2][3], "beta",
+            "BC-2.11.023 pc5: data row 2 summary must be 'beta'; got '{}'",
+            rows[2][3]
+        );
+        assert_eq!(
+            rows[3][3], "gamma",
+            "BC-2.11.023 pc5: data row 3 summary must be 'gamma'; got '{}'",
+            rows[3][3]
+        );
+
+        // BC-2.11.023 EC-005: duplicate entries — no deduplication.
+        let dup_findings = vec![make_finding("same"), make_finding("same")];
+        let csv_dup = render_many(&dup_findings);
+        let rows_dup = parse_csv(&csv_dup);
+        assert_eq!(
+            rows_dup.len(),
+            3,
+            "BC-2.11.023 EC-005: duplicate findings → 3 rows (header + 2); got {};\n{}",
+            rows_dup.len(),
+            csv_dup
+        );
+        assert_eq!(
+            rows_dup[1][3], "same",
+            "BC-2.11.023 EC-005: first duplicate must appear; got '{}'",
+            rows_dup[1][3]
+        );
+        assert_eq!(
+            rows_dup[2][3], "same",
+            "BC-2.11.023 EC-005: second duplicate must also appear (no dedup); got '{}'",
+            rows_dup[2][3]
+        );
+    }
+
+    /// AC-002 (BC-2.11.023 postcondition 2, EC-003):
+    /// The `summary` parameter (Summary struct) is NOT reflected anywhere in the CSV output.
+    /// A Summary with `total_packets = 9999` produces no row, column, or value
+    /// containing 9999.
+    ///
+    /// BC-2.11.023 pc2 / EC-003 canonical test vector:
+    ///   summary.total_packets=9999, findings=[] → header line only; 9999 not in output.
+    ///
+    /// Discriminating assertions:
+    ///   - raw CSV does not contain "9999".
+    ///   - raw CSV does not contain "888888".
+    ///   - row count is 1 (header only).
+    ///   - "total_packets" does not appear as a column name.
+    #[test]
+    fn test_BC_2_11_023_summary_not_in_output() {
+        // BC-2.11.023 pc2 / EC-003.
+        let mut summary = Summary::new();
+        summary.total_packets = 9999;
+        summary.total_bytes = 888_888;
+
+        let csv_text = CsvReporter.render(&summary, &[], &[]);
+        let rows = parse_csv(&csv_text);
+
+        // Row count: header only (findings=[]).
+        assert_eq!(
+            rows.len(),
+            1,
+            "BC-2.11.023 pc2: summary ignored → 1 row (header only); got {};\n{}",
+            rows.len(),
+            csv_text
+        );
+
+        // Negative: 9999 must not appear in the CSV.
+        assert!(
+            !csv_text.contains("9999"),
+            "BC-2.11.023 pc2: total_packets=9999 must NOT appear in CSV; got:\n{csv_text}"
+        );
+
+        // Negative: 888888 must not appear either.
+        assert!(
+            !csv_text.contains("888888"),
+            "BC-2.11.023 pc2: total_bytes=888888 must NOT appear in CSV; got:\n{csv_text}"
+        );
+
+        // Negative: "total_packets" must not appear as a column name.
+        assert!(
+            !csv_text.contains("total_packets"),
+            "BC-2.11.023 pc2: 'total_packets' must not appear in CSV; got:\n{csv_text}"
+        );
+    }
+
+    /// AC-003 (BC-2.11.023 postcondition 3, EC-004):
+    /// The `analyzer_summaries` parameter is NOT reflected anywhere in the CSV output.
+    /// Non-empty analyzer_summaries produce no additional rows or columns.
+    ///
+    /// BC-2.11.023 pc3 / EC-004 canonical test vector:
+    ///   analyzer_summaries=[tls_summary], findings=[f1]
+    ///   → Header + 1 data row; tls_summary not in output.
+    ///
+    /// Discriminating assertions:
+    ///   - Row count 2 (header + 1 data) despite non-empty analyzer_summaries.
+    ///   - analyzer_name "TLS-Sentinel" does not appear in the raw CSV.
+    ///   - "packets_analyzed" does not appear as a column header.
+    ///   - Multiple analyzer_summaries still produce only 2 rows.
+    #[test]
+    fn test_BC_2_11_023_analyzer_summaries_not_in_output() {
+        // BC-2.11.023 pc3 / EC-004.
+        let finding = make_finding("finding-summary");
+        let tls_summary = make_analysis_summary("TLS-Sentinel");
+        let csv_text = CsvReporter.render(&Summary::new(), &[finding], &[tls_summary]);
+        let rows = parse_csv(&csv_text);
+
+        // Row count: header + 1 data row; analyzer_summaries do NOT add rows.
+        assert_eq!(
+            rows.len(),
+            2,
+            "BC-2.11.023 pc3: analyzer_summaries silently ignored → 2 rows; got {};\n{}",
+            rows.len(),
+            csv_text
+        );
+
+        // Negative: analyzer name must not appear in the CSV.
+        assert!(
+            !csv_text.contains("TLS-Sentinel"),
+            "BC-2.11.023 pc3: analyzer_name 'TLS-Sentinel' must NOT appear; got:\n{csv_text}"
+        );
+
+        // Negative: "packets_analyzed" must not appear.
+        assert!(
+            !csv_text.contains("packets_analyzed"),
+            "BC-2.11.023 pc3: 'packets_analyzed' must NOT appear as a column; got:\n{csv_text}"
+        );
+
+        // Multiple analyzer summaries still produce only 2 rows.
+        let finding2 = make_finding("finding-2");
+        let summ_a = make_analysis_summary("DNS");
+        let summ_b = make_analysis_summary("HTTP");
+        let csv_multi = CsvReporter.render(&Summary::new(), &[finding2], &[summ_a, summ_b]);
+        let rows_multi = parse_csv(&csv_multi);
+        assert_eq!(
+            rows_multi.len(),
+            2,
+            "BC-2.11.023 pc3: 2 analyzer_summaries → still only 2 rows; got {}",
+            rows_multi.len()
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.024 — None optional field encoding, Direction Debug format
+    // -----------------------------------------------------------------------
+
+    /// AC-009 (BC-2.11.024 postcondition 3, EC-006):
+    /// When `Finding.direction = None`, column 8 (index 7) is an empty string `""`.
+    ///
+    /// BC-2.11.024 pc3: "direction cell: if None, empty string ''".
+    ///
+    /// Discriminating assertions:
+    ///   - Parsed column 8 (index 7) == "".
+    ///   - Does not equal "null", "None", "N/A", "-", or any other sentinel.
+    #[test]
+    fn test_BC_2_11_024_none_direction_is_empty() {
+        // BC-2.11.024 pc3 / EC-006: None direction → empty string.
+        // make_finding sets direction = None.
+        let finding = make_finding("test");
+        let csv_text = render_one(finding);
+        let rows = parse_csv(&csv_text);
+        let direction_cell = &rows[1][7]; // col 8, index 7
+
+        assert_eq!(
+            direction_cell.as_str(),
+            "",
+            "BC-2.11.024 pc3: None direction must be empty string ''; got {:?}",
+            direction_cell
+        );
+
+        // Negative: must not be any sentinel value.
+        let sentinels = ["null", "None", "N/A", "-", "undefined"];
+        for sentinel in sentinels {
+            assert_ne!(
+                direction_cell.as_str(),
+                sentinel,
+                "BC-2.11.024 inv4: None direction must not produce sentinel {:?}; got {:?}",
+                sentinel,
+                direction_cell
+            );
+        }
+    }
+
+    /// AC-006 (BC-2.11.024 postcondition 1, EC-001):
+    /// When `Finding.mitre_technique = None`, column 6 (index 5) is an empty string `""`.
+    ///
+    /// BC-2.11.024 pc1: "mitre_technique cell: if None, empty string ''".
+    ///
+    /// Discriminating assertions:
+    ///   - Parsed column 6 (index 5) == "".
+    ///   - Does not equal "null", "None", "N/A", or "-".
+    #[test]
+    fn test_BC_2_11_024_none_mitre_technique_is_empty() {
+        // BC-2.11.024 pc1 / EC-001: None mitre_technique → empty string.
+        // make_finding sets mitre_technique = None.
+        let finding = make_finding("test");
+        let csv_text = render_one(finding);
+        let rows = parse_csv(&csv_text);
+        let mitre_cell = &rows[1][5]; // col 6, index 5
+
+        assert_eq!(
+            mitre_cell.as_str(),
+            "",
+            "BC-2.11.024 pc1: None mitre_technique must be empty string ''; got {:?}",
+            mitre_cell
+        );
+
+        // Negative: must not be any sentinel.
+        let sentinels = ["null", "None", "N/A", "-", "undefined"];
+        for sentinel in sentinels {
+            assert_ne!(
+                mitre_cell.as_str(),
+                sentinel,
+                "BC-2.11.024 inv4: None mitre_technique must not produce sentinel {:?}",
+                sentinel
+            );
+        }
+    }
+
+    /// AC-011 (BC-2.11.024 invariant 4, EC-012):
+    /// No sentinel values appear for any None optional field across all four optional
+    /// columns (6, 7, 8, 9) when all are None simultaneously.
+    ///
+    /// BC-2.11.024 inv4: "None-to-empty-string conversion via unwrap_or('') /
+    /// unwrap_or_default(); no sentinel values like 'null', 'N/A', or '-' are used."
+    ///
+    /// BC-2.11.024 EC-012: "All four Option fields None → all four cells empty string."
+    ///
+    /// Discriminating assertions:
+    ///   - All four optional cells (indices 5, 6, 7, 8) == "".
+    ///   - None of those cells is "null", "None", "N/A", "-", "undefined", or "nil".
+    #[test]
+    fn test_BC_2_11_024_no_sentinel_values_for_none() {
+        // BC-2.11.024 inv4 / EC-012 canonical test vector:
+        //   all four Option fields None → columns 6-9 are all empty strings.
+        let finding = Finding {
+            category: ThreatCategory::Anomaly,
+            verdict: Verdict::Likely,
+            confidence: Confidence::High,
+            summary: "all-none".to_string(),
+            evidence: vec![],
+            mitre_technique: None,
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        };
+        let csv_text = render_one(finding);
+        let rows = parse_csv(&csv_text);
+        let data_row = &rows[1];
+
+        // All four optional columns must be exactly "".
+        let optional_indices: &[(usize, &str)] = &[
+            (5, "mitre_technique"),
+            (6, "source_ip"),
+            (7, "direction"),
+            (8, "timestamp"),
+        ];
+        for &(idx, col_name) in optional_indices {
+            assert_eq!(
+                data_row[idx].as_str(),
+                "",
+                "BC-2.11.024 inv4: None {col_name} (col {}) must be empty string ''; got {:?}",
+                idx + 1,
+                data_row[idx]
+            );
+        }
+
+        // Negative: sentinel values must NOT appear in any of the four columns.
+        let sentinels = ["null", "None", "N/A", "-", "undefined", "nil"];
+        for &(idx, col_name) in optional_indices {
+            for sentinel in sentinels {
+                assert_ne!(
+                    data_row[idx].as_str(),
+                    sentinel,
+                    "BC-2.11.024 inv4: None {col_name} must not produce sentinel {:?}; \
+                     got {:?}",
+                    sentinel,
+                    data_row[idx]
+                );
+            }
+        }
+    }
+
+    /// AC-008 (BC-2.11.024 postcondition 3, invariant 2, EC-007/EC-008):
+    /// When `Finding.direction = Some(ClientToServer)`, column 8 is `"ClientToServer"`.
+    /// When `Some(ServerToClient)`, column 8 is `"ServerToClient"`.
+    /// Format is Debug (`{:?}`) — CamelCase, not lowercase.
+    ///
+    /// BC-2.11.024 pc3 / inv2: "direction via format!('{d:?}') which produces the
+    /// variant name 'ClientToServer' or 'ServerToClient'".
+    ///
+    /// Discriminating assertions (both variants):
+    ///   - ClientToServer → "ClientToServer" (not "clienttoserver").
+    ///   - ServerToClient → "ServerToClient" (not "servertoClient").
+    #[test]
+    fn test_BC_2_11_024_direction_debug_camelcase() {
+        // BC-2.11.024 pc3 / inv2 canonical test vectors: both Direction variants.
+        let cases: &[(Direction, &str)] = &[
+            (Direction::ClientToServer, "ClientToServer"),
+            (Direction::ServerToClient, "ServerToClient"),
+        ];
+        for &(dir, expected) in cases {
+            let mut finding = make_finding("test");
+            finding.direction = Some(dir);
+            let csv_text = render_one(finding);
+            let rows = parse_csv(&csv_text);
+            let direction_cell = &rows[1][7]; // col 8, index 7
+
+            assert_eq!(
+                direction_cell.as_str(),
+                expected,
+                "BC-2.11.024 pc3/inv2: direction {:?} must render as {:?}; got {:?}",
+                dir,
+                expected,
+                direction_cell
+            );
+
+            // Negative: must NOT be lowercase (Debug format mandated, not Display).
+            assert_ne!(
+                direction_cell.as_str(),
+                expected.to_lowercase().as_str(),
+                "BC-2.11.024 inv2: direction must be CamelCase Debug format, not lowercase; \
+                 got {:?}",
+                direction_cell
+            );
+        }
+    }
+
+    /// AC-007 (BC-2.11.024 postcondition 2, EC-003/EC-004/EC-005):
+    /// `source_ip` encoding:
+    ///   - `None` → col 7 == `""`.
+    ///   - `Some(192.168.1.1)` → `"192.168.1.1"`.
+    ///   - `Some(::1)` → `"::1"` (IpAddr::to_string compact form).
+    ///   - `Some(2001:db8::1)` → `"2001:db8::1"`.
+    ///
+    /// BC-2.11.024 pc2: "source_ip cell: if None, empty string ''; if Some(ip),
+    /// ip.to_string()".
+    ///
+    /// Discriminating assertions across four cases (None, IPv4, two IPv6).
+    #[test]
+    fn test_BC_2_11_024_source_ip_encoding() {
+        // BC-2.11.024 pc2 canonical test vectors.
+        let cases: &[(Option<IpAddr>, &str)] = &[
+            (None, ""),
+            (Some("192.168.1.1".parse().unwrap()), "192.168.1.1"),
+            (Some("::1".parse().unwrap()), "::1"),
+            (Some("2001:db8::1".parse().unwrap()), "2001:db8::1"),
+            (Some("10.0.0.1".parse().unwrap()), "10.0.0.1"),
+        ];
+        for &(ip, expected) in cases {
+            let mut finding = make_finding("test");
+            finding.source_ip = ip;
+            let csv_text = render_one(finding);
+            let rows = parse_csv(&csv_text);
+            let source_ip_cell = &rows[1][6]; // col 7, index 6
+
+            assert_eq!(
+                source_ip_cell.as_str(),
+                expected,
+                "BC-2.11.024 pc2: source_ip={ip:?} must render as {:?}; got {:?}",
+                expected,
+                source_ip_cell
+            );
+        }
+    }
+
+    /// AC-010 (BC-2.11.024 postcondition 4, invariant 3, EC-009/EC-010):
+    /// `timestamp` encoding:
+    ///   - `None` → col 9 == `""`.
+    ///   - `Some(datetime)` → col 9 == `to_rfc3339()` (e.g., `"2024-01-15T12:34:56+00:00"`).
+    ///
+    /// BC-2.11.024 pc4 / inv3: "timestamp cell: if None, empty string ''; if Some(t),
+    /// t.to_rfc3339() — an ISO 8601 / RFC 3339 string".
+    ///
+    /// Discriminating assertions:
+    ///   - None → col 9 == "".
+    ///   - Some(2024-01-15T12:34:56Z) → contains "2024-01-15", "12:34:56", and 'T'.
+    ///   - Non-empty when Some.
+    #[test]
+    fn test_BC_2_11_024_timestamp_rfc3339_encoding() {
+        // BC-2.11.024 pc4 / inv3 / EC-009 canonical test vector: None → "".
+        let finding_none = make_finding("test");
+        let csv_none = render_one(finding_none);
+        let rows_none = parse_csv(&csv_none);
+        let ts_none_cell = &rows_none[1][8]; // col 9, index 8
+
+        assert_eq!(
+            ts_none_cell.as_str(),
+            "",
+            "BC-2.11.024 pc4: None timestamp must be empty string ''; got {:?}",
+            ts_none_cell
+        );
+
+        // BC-2.11.024 pc4 / inv3 / EC-010 canonical test vector:
+        //   Some(2024-01-15 12:34:56 UTC) → RFC3339 string.
+        let dt = Utc.with_ymd_and_hms(2024, 1, 15, 12, 34, 56).unwrap();
+        let mut finding_some = make_finding("test");
+        finding_some.timestamp = Some(dt);
+        let csv_some = render_one(finding_some);
+        let rows_some = parse_csv(&csv_some);
+        let ts_some_cell = &rows_some[1][8]; // col 9, index 8
+
+        // Must be non-empty.
+        assert!(
+            !ts_some_cell.is_empty(),
+            "BC-2.11.024 pc4: Some(timestamp) must produce non-empty cell"
+        );
+
+        // Must contain the date portion.
+        assert!(
+            ts_some_cell.contains("2024-01-15"),
+            "BC-2.11.024 pc4: RFC3339 cell must contain '2024-01-15'; got {:?}",
+            ts_some_cell
+        );
+
+        // Must contain the time portion.
+        assert!(
+            ts_some_cell.contains("12:34:56"),
+            "BC-2.11.024 pc4: RFC3339 cell must contain '12:34:56'; got {:?}",
+            ts_some_cell
+        );
+
+        // Must contain the 'T' date-time separator (RFC 3339 / ISO 8601).
+        assert!(
+            ts_some_cell.contains('T'),
+            "BC-2.11.024 inv3: RFC3339 string must contain 'T' separator; got {:?}",
+            ts_some_cell
+        );
+
+        // Negative: must not be a sentinel.
+        let sentinels = ["null", "None", "N/A", "-"];
+        for sentinel in sentinels {
+            assert_ne!(
+                ts_some_cell.as_str(),
+                sentinel,
+                "BC-2.11.024 inv4: Some(timestamp) must not produce sentinel {:?}; got {:?}",
+                sentinel,
+                ts_some_cell
+            );
+        }
+    }
+
+    /// AC-012 (BC-2.11.024 postcondition 5, EC-011):
+    /// All four optional-field-derived strings are individually passed through
+    /// `neutralize_csv_injection` before the csv write.
+    /// `mitre_technique = Some("=HYPERLINK(...)")` → `"'=HYPERLINK(...)"` in col 6.
+    ///
+    /// BC-2.11.024 pc5: "All four derived strings are individually passed through
+    /// neutralize_csv_injection at csv.rs:94-97 before being written."
+    ///
+    /// Strategy: set `mitre_technique` to trigger-char values and verify the leading
+    /// `'` prefix appears in column 6. (source_ip, direction, and timestamp produce
+    /// non-trigger strings from their type-specific conversions, so mitre_technique
+    /// is the canonical attacker-controlled optional field for this assertion.)
+    ///
+    /// Discriminating assertions:
+    ///   - "=HYPERLINK(...)" → "'=HYPERLINK(...)".
+    ///   - "+T1059" → "'+T1059".
+    ///   - "-T9999" → "'-T9999".
+    ///   - "@tag" → "'@tag".
+    #[test]
+    fn test_BC_2_11_024_optional_fields_neutralized() {
+        // BC-2.11.024 pc5 / EC-011 canonical test vector.
+        let trigger_mitres: &[(&str, &str)] = &[
+            (
+                "=HYPERLINK(http://evil.example)",
+                "'=HYPERLINK(http://evil.example)",
+            ),
+            ("+T1059", "'+T1059"),
+            ("-T9999", "'-T9999"),
+            ("@tag", "'@tag"),
+        ];
+        for &(raw, expected) in trigger_mitres {
+            let mut finding = make_finding("test");
+            finding.mitre_technique = Some(raw.to_string());
+            let csv_text = render_one(finding);
+            let rows = parse_csv(&csv_text);
+            let mitre_cell = &rows[1][5]; // col 6, index 5
+
+            assert_eq!(
+                mitre_cell.as_str(),
+                expected,
+                "BC-2.11.024 pc5: trigger mitre_technique {:?} must be neutralized to {:?}; \
+                 got {:?}",
+                raw,
+                expected,
+                mitre_cell
+            );
+
+            // Positive: must start with the single-quote prefix.
+            assert!(
+                mitre_cell.starts_with('\''),
+                "BC-2.11.024 pc5: neutralized optional field must start with \"'\"; \
+                 got {:?}",
+                mitre_cell
+            );
+        }
+    }
+}
