@@ -1168,3 +1168,45 @@ story-FSR re-anchor sweep (similar to DF-16.B reporter-BC re-anchor sweep).
 **Action taken:** STORY-086/087/096 FSR rows corrected in factory commit 33451ed. CLI-STORY-TEMPLATE escalation logged in deferred-items-archive.md (Revisit Gates: upstream plugin maintainer). STORY-088/089 tracked as F-FSR-088-089 (LOW) in STATE.md Drift Items — will be fixed automatically at delivery when per-story test files are created.
 **Escalation:** vsdd-factory plugin maintainer should update CLI story template to seed `tests/cli_story_NNN_tests.rs` instead of `tests/cli_tests.rs`.
 **Status:** [escalated-upstream — CLI-STORY-TEMPLATE in deferred-items-archive.md; in-repo workaround applied for 086/087/096]
+
+---
+
+## Wave 25 Lessons (2026-05-31)
+
+Wave 25: STORY-088 (E-9, 8pts) — run_analyze Orchestration. Single-story wave.
+STORY-088 PR #168 → 5202fe9. 19 assert_cmd behavioral tests (14 AC + 5 EC, mod story_088).
+Per-story convergence: 6 passes, 3-clean P4/P5/P6 (trajectory 3→1→0→0→0→0). 27 mutations all caught. BC-5.39.001 ACHIEVED. develop HEAD: 5202fe9.
+
+---
+
+### W25.L1 — First src/main.rs Formalization Succeeded via assert_cmd Behavioral Tests [validated]
+
+**Finding ID:** Wave 25 retrospective observation
+**Category:** testing-methodology / brownfield-formalization
+**Observed:** STORY-088 was the first story to formalize `src/main.rs` (binary entry point). The binary module's private functions are not directly testable via unit tests. The formalization succeeded by testing exclusively through observable CLI behavior using `assert_cmd` subprocess invocation — verifying exit codes, stdout/stderr content, and argument routing without touching `src/` at all (ZERO src changes).
+**Impact:** Established the canonical pattern for CLI binary formalization: all BCs for `src/main.rs` behaviors (BC-2.12.008..013 + VP-018 runtime half) are verifiable through subprocess-level assertions. No source changes required; the binary's observable behavior is the test surface.
+**Status:** [validated — assert_cmd behavioral testing pattern confirmed effective for main.rs formalization]
+
+---
+
+### W25.L2 — Mutation Gate Caught 4 Vacuity Gaps; Behavioral Tests Need Distinct Fixtures + Real-Output Verification [validated]
+
+**Finding ID:** Wave 25 adversarial pass observations (4 MEDIUM test-strength findings, all remediated)
+**Category:** adversarial-workflow / testing-methodology
+**Observed:** The mutation gate (27 live mutations tested) caught 4 vacuity gaps that naive test structure would have missed:
+  1. AC-006 DNS activity assertion — test used `.contains()` on DNS header bytes only; a mutation dropping the DNS header would not be caught without asserting on actual DNS query activity.
+  2. Sort-order invariant (AC-007/008) — two tests used identical fixtures, making sort-order assertions trivially satisfiable regardless of actual ordering behavior; fixed by introducing distinct fixtures.
+  3. AC-013 / AC-014 progress-bar assertions — tests asserted non-TTY absence of progress bar content, which is correct behavior but was not documented as a TTY-limitation rather than a missing feature; remediated via honest documentation in test comments and story AC prose.
+  4. AC-004 warning `.contains()` weakness — single eprintln! confirmed in source; an AC-trace vs BC-invariant mismatch clarified (inv-1 vs inv-2); one-line count-assertion hardening deferred as F-W25-S088-P6-001 LOW.
+**Pattern:** Behavioral tests with non-distinct fixtures or overly-loose assertions (.contains() on partial output) are mutation-transparent. Mutation-resistance requires: (a) distinct fixtures for each ordering or counting invariant, (b) full-output or count-level assertions for uniqueness invariants, (c) real subprocess output comparison rather than partial-match when the BC specifies exact output format.
+**Status:** [validated — mutation gate caught all 4 gaps; 3 fully remediated, 1 deferred as LOW]
+
+---
+
+### W25.L3 — Progress-Bar/indicatif Not Behaviorally Testable via Non-TTY assert_cmd [documented-limitation]
+
+**Finding ID:** Wave 25 adversarial pass observation (AC-013/AC-014 TTY limitation)
+**Category:** testing-methodology / TTY-limitation
+**Observed:** The `indicatif` progress bar library suppresses all output when stdout/stderr is not a TTY (which is always the case in `assert_cmd` subprocess tests). As a result, progress-bar rendering, update frequency, and visual format are not verifiable through assert_cmd behavioral tests. AC-013 and AC-014 (progress-bar behavior) are bounded to asserting the absence of progress-bar content in non-TTY invocations — which is correct and honest, but cannot positively verify that the progress bar renders correctly under real TTY conditions.
+**Disposition:** This is a documented behavioral limitation, not a defect. The non-TTY absence assertion is the maximum testable AC for assert_cmd; TTY-mode testing would require a PTY harness (e.g., `expectrl`, `pty-process`) which is out of scope for brownfield formalization. The limitation is explicitly noted in the STORY-088 test file and AC prose.
+**Status:** [documented-limitation — not a defect; TTY-mode positive assertion deferred to manual verification or PTY harness; recorded in docs/demo-evidence/STORY-088/]
