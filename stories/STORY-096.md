@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-096
 epic_id: E-10
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -123,7 +123,7 @@ A valid invocation without any removed flag (e.g., `wirerust analyze test.pcap`)
 |---------------|-----------------|
 | This story spec | ~2,000 |
 | `src/cli.rs` (reviewed for absent fields) | ~3,500 |
-| `tests/cli_tests.rs` | ~2,000 |
+| `tests/cli_story_096_tests.rs` (new formalization tests) | ~2,000 |
 | BC files (4 BCs) | ~4,500 |
 | Tool outputs overhead | ~500 |
 | **Total** | **~12,500** |
@@ -170,4 +170,4 @@ A valid invocation without any removed flag (e.g., `wirerust analyze test.pcap`)
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/cli.rs` | verify (no modifications required) | Confirm four removed flags are absent; LESSON-P1.04 comment exists |
-| `tests/cli_tests.rs` | modify | Add AC-001..AC-010 test functions proving rejection and absence |
+| `tests/cli_story_096_tests.rs` | modify | Add AC-001..AC-010 test functions proving rejection and absence |

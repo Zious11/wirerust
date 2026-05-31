@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-086
 epic_id: E-9
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -125,7 +125,7 @@ When `--dns`, `--http`, `--tls`, `--mitre`, or `--all` are present, their corres
 |---------------|-----------------|
 | This story spec | ~2,500 |
 | `src/cli.rs` (source reference) | ~4,000 |
-| `tests/cli_tests.rs` (existing tests) | ~3,000 |
+| `tests/cli_story_086_tests.rs` (new formalization tests) | ~3,000 |
 | BC files (4 BCs) | ~5,000 |
 | Tool outputs overhead | ~1,000 |
 | **Total** | **~15,500** |
@@ -171,4 +171,4 @@ When `--dns`, `--http`, `--tls`, `--mitre`, or `--all` are present, their corres
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/cli.rs` | modify (formalize tests exist) | Clap struct definitions for `Cli`, `Commands`, `OutputFormat` |
-| `tests/cli_tests.rs` | modify | Add AC-001..AC-010 test functions and edge-case tests |
+| `tests/cli_story_086_tests.rs` | modify | Add AC-001..AC-010 test functions and edge-case tests |

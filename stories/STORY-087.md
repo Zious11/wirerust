@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-087
 epic_id: E-9
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -130,7 +130,7 @@ The conflict is symmetric: `--no-reassemble --reassemble` (reversed order) also 
 |---------------|-----------------|
 | This story spec | ~2,800 |
 | `src/cli.rs` (reassembly and output sections) | ~3,500 |
-| `tests/cli_tests.rs` | ~2,500 |
+| `tests/cli_story_087_tests.rs` (new formalization tests) | ~2,500 |
 | BC files (3 BCs) | ~4,500 |
 | Tool outputs overhead | ~1,000 |
 | **Total** | **~14,300** |
@@ -176,4 +176,4 @@ The conflict is symmetric: `--no-reassemble --reassemble` (reversed order) also 
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/cli.rs` | modify | Add `OutputFormat` enum, output format fields, all reassembly flags |
-| `tests/cli_tests.rs` | modify | Add AC-001..AC-012 test functions |
+| `tests/cli_story_087_tests.rs` | modify | Add AC-001..AC-012 test functions |
