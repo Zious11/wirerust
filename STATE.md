@@ -12,25 +12,7 @@ phase_3_started: "2026-05-21"
 develop_head: c127c1c
 current_cycle: v0.1.0-greenfield-spec
 current_wave: 23
-wave_22_status: CLOSED
-wave_22_closed: "2026-05-30"
-wave_22_stories: "STORY-078 (terminal MITRE/section/color, 8pts, BC-2.11.013..019, VP-016) + STORY-080 (csv trait-compliance/optional-fields, 3pts, BC-2.11.023..024)"
-wave_22_points: 11
-wave_22_prs: "#160 (STORY-078 → bf16c0b), #161 (STORY-080 → 1ecf114), #162 (docs: STORY-080 evidence-rollup fix → c127c1c)"
-wave_22_per_story_convergence: "STORY-078: 3ps-3clean(P1/P2/P3; pre-settled-specs; AC-007-trace-fixed). STORY-080: 3-clean P7/P8/P9 (FSR-citation + BC-2.11.024 timestamp-Z→+00:00-lock + test-hardening across P1-P6). BC-5.39.001 per-story ACHIEVED both."
-wave_22_wave_level_convergence: "3-lens fresh-context. R1: consistency CLEAN + integration-static CLEAN + traceability DIRTY (1MED F-W22-T1 demo-evidence epic-rollup AC-count/reporter-attribution + STORY-078 FSR-citation). Remediated (PR#162 docs→c127c1c + STORY-078 v1.3 FSR). R2: traceability CLEAN. Net 3/3 lenses CLEAN. BC-5.39.001 ACHIEVED."
-wave_22_delivery: "Both story PRs squash-merged → develop (bf16c0b, 1ecf114) + docs PR #162 → c127c1c 2026-05-30; brownfield-formalization ZERO src changes; 28 reporter tests (16 terminal + 12 csv); all 8 CI green; security CLEAN; both pr-reviewer APPROVED; worktrees+branches removed; demo evidence docs/demo-evidence/STORY-078|080/. COMPLETES E-8 reporter epic (JSON/Terminal/CSV; BC-2.11.001..024 all formalized)."
-wave_22_pg_enforcement: "[PG-W17-001] AC-test-name-sync clean both stories; [DF-TEST-NAMESPACE-001] mod story_078/story_080; [DF-ADVERSARY-CHECKOUT-GUARD-001] content-based guard throughout; STORY-080 Red Gate done properly (12 stubs failed). E-8 epic complete."
-wave_20_status: CLOSED
-wave_20_started: "2026-05-29"
-wave_20_closed: "2026-05-29"
-wave_20_stories: STORY-076 (E-8 reporter, SS-11, 5pts, reporter/json; BC-2.11.001..005; JsonReporter structure/skipped_packets/RFC-8259 byte handling)
-wave_20_points: 5
-wave_20_prs: "#157 (STORY-076 → e5cb2b1)"
-wave_20_per_story_convergence: "STORY-076: 5 passes; 3/3 clean streak on passes 3/4/5 (BC-5.39.001 ACHIEVED). Trajectory: P1-DIRTY(1HIGH-DEL-non-escape+2MED-Cyrillic/C1+2LOW)→P2-DIRTY(1MED-over-broad-\\u04-guard-self-inflicted+1LOW)→P3/P4/P5-CLEAN(0). All test-level; resolved via discriminating escaped-form-absence assertions scoped to fixture codepoints. Frozen d7c4a91→merged e5cb2b1."
-wave_20_wave_level_convergence: "single-story wave; per-story convergence == wave-level convergence per BC-5.39.001"
-wave_20_delivery: "PR #157 squash-merged → e5cb2b1 2026-05-29; brownfield-formalization, ZERO src changes; 40 reporter_json_tests green; full suite 915 passed/0 failed; all 8 CI green; security CLEAN; pr-reviewer APPROVED 1 cycle (1 non-blocking NIT); worktree + branch removed; demo evidence docs/demo-evidence/STORY-076/; VP-017 deferred to Phase-6 (proptest)"
-wave_20_pg_enforcement: "[PG-W17-001] AC-test-name-sync verified both directions across all 5 adversarial passes; clean. First reporter-subsystem (SS-11) story; opened E-8 epic."
+wave_20_22_detail: "cycles/phase-3-tdd/wave-history.md"
 stories_delivered: 43
 dtu_required: false
 dtu_assessment: 2026-05-20
@@ -43,7 +25,7 @@ consistency_audit: CONSISTENT
 input_drift_check: CLEAN (Wave-20 STORY-076 test-only formalization; zero src/production changes; reporter/json subsystem — no holdout-scenario hash impact; Wave-19 story-citation/AC-sync bump may apply — verify at Phase-4 entry)
 phase_2_input_hash_drift_check: CLEAN
 phase_2_input_hash_drift_check_total: 153
-wave_history_archived: "cycles/phase-3-tdd/wave-history.md (waves 1-18 detail fields; extracted 2026-05-29)"
+wave_history_archived: "cycles/phase-3-tdd/wave-history.md (waves 1-22 detail fields; waves 1-18 extracted 2026-05-29; waves 20/22 extracted 2026-05-31; wave table rows 1-21 extracted 2026-05-31)"
 ---
 
 # VSDD Pipeline State — wirerust
@@ -80,27 +62,7 @@ dependency bumping for it).
 
 | Wave | Stories | Status | develop HEAD at Close | Notes |
 |------|---------|--------|----------------------|-------|
-| 1 | STORY-001, STORY-069 | CLOSED/CONVERGED | b7424b7 | 329 tests |
-| 2 | STORY-002, STORY-003, STORY-004, STORY-070 | CLOSED/CONVERGED | 3b2481c | 376 tests; fuzz-build CI |
-| 3 | STORY-071, STORY-005 | CLOSED/CONVERGED | f0b5007 | CI hotfix #112; chore #115 |
-| 4 | STORY-011, STORY-066 | CLOSED/CONVERGED | f628c33 | 394 tests |
-| 5 | STORY-012 | **CLOSED/CONVERGED** | bbddac6 | 415 tests; 3/3 clean wave-level passes |
-| 6 | STORY-013 | **CLOSED/CONVERGED** | 3e705b5 | PR #119 squash-merged 2026-05-22; 31 BC tests; per-story 3/3 clean; wave-level 3/3 CLEAN (ZERO findings) |
-| 7 | STORY-014 | **CLOSED/CONVERGED** | b23c6d3 | PR #120 squash-merged 2026-05-25; 17 tests + 2 doc(hidden) seams; ADR-0004 amended PR #121; per-story 8 passes 3/3 clean streak; wave-level 8 passes 3/3 clean streak |
-| 8 | STORY-019, STORY-015 | **CLOSED/CONVERGED** | 4b9b85f | PR #122 (STORY-019) + PR #123 (STORY-015) squash-merged 2026-05-26; ADR-0004 v2 PRs #124/#125/#126; per-story 8 passes each (3/3 clean); wave-level 9 passes 3/3 clean streak; 4 drift items logged |
-| 9 | STORY-016, STORY-020 | **CLOSED/CONVERGED** 2026-05-26 | e237747 | PR #127 (STORY-016, 24 tests+1 proptest) + PR #128 (STORY-020, 25 tests+1 proptest+1 seam) + PR #129 + PR #130 (wave-followup-1/2); per-story 14 passes total (S016: 6; S020: 8); wave-level 6 passes (DIRTY×3+CLEAN×3); 11 findings remediated; W9-D8 CRITICAL; 632 tests passing |
-| 10 | STORY-017, STORY-018 | **CLOSED/CONVERGED** 2026-05-27 | 211143e (PR #133 — wave-level fix) | STORY-017 MERGED PR #131 (4 passes 1D+3C; 24 tests + 9 ECs). STORY-018 MERGED PR #132 (9 passes 6D+3C; resource bounds). Wave-level 4 passes (1D+3C; 3 findings remediated + 6 deferred). 17 adversarial passes total (15% reduction vs Wave 9: 20). |
-| 11 | STORY-021 | **CLOSED/CONVERGED** 2026-05-27 | 3cd3000 (PR #134) | STORY-021 MERGED PR #134 (11 passes; 9-10-11 CLEAN per BC-5.39.001). Brownfield-formalization: +88/+33/+33/+1290 lines, 4 files, 203 new tests. BC pre-merge re-anchor doctrine adopted (W11.L1). Methodology bug caught (W11.L2). 4 process-gap codifications applied. |
-| 12 | STORY-031 | **CLOSED/CONVERGED** 2026-05-27 | 1435362 (PR #135) | STORY-031 MERGED PR #135 (brownfield-formalization: tests/dispatcher_tests.rs only; 22 tests; 9 passes, 7-8-9 CLEAN per BC-5.39.001). Anchor-completeness EC-scenario-match sub-rule discovered (W12.L1). 2 process-gap codifications applied to policies.yaml. |
-| 13 | STORY-032 | **CLOSED/CONVERGED** 2026-05-27 | 0d9b16d (PR #136) | STORY-032 MERGED PR #136 (brownfield-formalization: tests/dispatcher_tests.rs only; +444/-0 lines, 27 tests; 5 passes, 3-4-5 CLEAN per BC-5.39.001). 44% fewer passes than W12. Zero src/ changes; indirect observability throughout. 4 lessons recorded (W13.L1-L4); 0 new codifications. |
-| 14 | STORY-033 | **CLOSED/CONVERGED** 2026-05-28 | 30cd4a6 (PR #137) | STORY-033 MERGED PR #137 (brownfield-formalization: tests/dispatcher_tests.rs +367/-0 lines; src/analyzer/http.rs +12, src/analyzer/tls.rs +12 additive seams; 6 new BC-prefixed tests, 33 total; 4 passes, 2-3-4 CLEAN per BC-5.39.001). 20% fewer passes than W13. 1 codification (DF-AC-TEST-NAME-SYNC-001 v1). 4 lessons recorded (W14.L1-L4). |
-| 15 | STORY-041, STORY-051 | **CLOSED/CONVERGED** 2026-05-28 | cb322dc (PR #139 — STORY-041) / 945034d (PR #138 — STORY-051) | First multi-story wave since W10. STORY-041: 8 passes, 3/3 clean streak, 24 BC-prefixed tests. STORY-051: 6 passes, 3/3 clean streak, 19 BC-prefixed tests + 2 test helpers. BC-addition sibling-sweep cascade pattern (W15.L2). 9th+10th implementer-as-PR-executor validations. |
-| 16 | STORY-042, STORY-043, STORY-044, STORY-052 | **CLOSED/CONVERGED** 2026-05-29 | fa17dec (PR #146) | PRs #140-146. Retroactive convergence. Per-story: S052(P3-P5), S042(P4-P6), S043(P4-P6), S044(P5-P7). Wave-level R2: 3-lens×3-pass CLEAN; 1 false-positive MEDIUM (VP-006 "orphan") dismissed. BC-5.39.001 ACHIEVED. 5 W16 lessons recorded. |
-| 17 | STORY-045, STORY-053, STORY-055 | **CLOSED/CONVERGED** 2026-05-29 | 9633b0d (PR #151 — STORY-055) | PRs #150 (STORY-045), #149 (STORY-053), #151 (STORY-055). Per-story all 3 CONVERGED (3-clean P3-P5, 5 passes each). Wave-level: P1 DIRTY (F-W17-WAVE-C-001/T-001 HIGH — AC-sync sibling-miss) → remediated (STORY-055 v1.2) → P2 3-lens CLEAN. BC-5.39.001 ACHIEVED. 4 lessons (W17.L1-L4). [PG-W17-001/002] codification pending. |
-| 18 | STORY-046 (E-4 HTTP, 3pts), STORY-054 (E-5 TLS, 8pts), STORY-056 (E-5 TLS, 8pts), STORY-058 (E-5 TLS, 8pts) | **CLOSED/CONVERGED** 2026-05-29 | 3f87ac3 (STORY-058 PR #155; develop HEAD) | 27pts. PRs #152-155. Wave-level: 3-lens CLEAN round-1 (consistency/integration-static/traceability) on frozen 3f87ac3; BC-5.39.001 ACHIEVED; no dirty round. PG-W18-001/002/003 logged. input-drift: CLEAN (50 HS hashes bumped non-semantic). |
-| 19 | STORY-057 (E-5 TLS, 8pts) | **CLOSED/CONVERGED** 2026-05-29 | 616897e (PR #156) | 1 story. 6 passes, 3/3 clean streak P4/P5/P6; BC-5.39.001 ACHIEVED. Brownfield-formalization, ZERO src changes; 114 tls_analyzer_tests + full 903-test suite green. 1HIGH+5MED remediated across P1-P3; 1LOW accepted/documented-intent. PG-W17-001 AC-test-name-sync clean. |
-| 20 | STORY-076 (E-8 reporter, SS-11, 5pts) | **CLOSED/CONVERGED** 2026-05-29 | e5cb2b1 (PR #157) | 1 story. 5 passes, 3/3 clean streak P3/P4/P5; BC-5.39.001 ACHIEVED. Brownfield-formalization, ZERO src changes; 40 reporter_json_tests + full 915-test suite green. 1HIGH+3MED remediated P1-P2; 1MED self-inflicted by remediation. First SS-11 reporter story; E-8 epic opened. VP-017 deferred Phase-6. |
-| 21 | STORY-077 (TerminalReporter, 8pts) + STORY-079 (CsvReporter, 5pts) | **CLOSED/CONVERGED** 2026-05-30 | 41ab24d (PR #159 — STORY-079) | PRs #158/#159. STORY-077: 3ps-3clean (P1/P2/P3); STORY-079: 13ps 3-clean (P11/P12/P13; spec-side drift cascade). Wave-level: 3-lens R1-DIRTY(VP-method+FSR)→R2-2clean+1dirty(casing)→R3-CLEAN; 3/3 CLEAN. 27 tests (14 terminal+13 csv). SS-11 VP family harmonized (VP-012/016/017). BC-5.39.001 ACHIEVED. |
+| 1–21 | 41 stories | CLOSED/CONVERGED | see wave-history | Full per-wave detail: cycles/phase-3-tdd/wave-history.md |
 | 22 | STORY-078 + STORY-080 | **CLOSED/CONVERGED** 2026-05-30 | c127c1c (PR #162 docs; PRs #160/#161/#162) | STORY-078: 3ps-3clean(P1/P2/P3); STORY-080: 3-clean P7/P8/P9; 3/3 wave-level lenses CLEAN; 28 tests (16 terminal+12 csv); E-8 epic COMPLETE (BC-2.11.001..024) |
 | 23 | STORY-086 | **NEXT** | — | unblocked (STORY-080 done); develop HEAD c127c1c |
 | 24–27 | (remaining) | NOT STARTED | — | — |
@@ -239,4 +201,4 @@ Full register: `.factory/tech-debt-register.md`
 - Wave-level convergence history: `.factory/cycles/phase-3-tdd/convergence-trajectory.md`.
 - Phase 1 adversary pass detail (33 passes): `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`.
 - Phase 2 story-adversary pass detail (10 passes): `.factory/cycles/v0.1.0-greenfield-spec/story-adversary-pass-*.md`.
-- Wave 1-18 per-wave detail fields: `.factory/cycles/phase-3-tdd/wave-history.md`.
+- Wave 1-22 per-wave detail fields: `.factory/cycles/phase-3-tdd/wave-history.md`.
