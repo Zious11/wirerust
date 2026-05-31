@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-078"
 epic_id: "E-8"
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -87,7 +87,7 @@ Among findings with the same verdict and confidence, original emission order (sl
 Findings with `mitre_technique = None` appear under `## Uncategorized`.
 - **Test:** `test_BC_2_11_015_none_technique_uncategorized()`
 
-### AC-007 (traces to BC-2.11.015 postcondition 2)
+### AC-007 (traces to BC-2.11.015 postcondition 2, 3)
 Findings with an unrecognized technique ID (not in catalog, e.g., "T9999") appear under `## Uncategorized` with the MITRE line reading `MITRE: T9999 (unknown)`.
 - **Test:** `test_BC_2_11_015_unknown_id_uncategorized_with_label()`
 
@@ -214,3 +214,9 @@ SERVICES section is absent entirely when `service_counts()` returns an empty map
 | src/reporter/terminal.rs | verify/modify | render_findings_grouped (253-297), render_finding_grouped (237-245), render_finding_flat (223-228), render (83-178) |
 | src/mitre.rs | verify | `all_tactics_in_report_order()`, `technique_tactic()`, `technique_name()` |
 | tests/reporter_tests.rs | create or modify | AC-001 through AC-016 tests |
+
+## Revision History
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| v1.2 | 2026-05-30 | story-writer | AC-007 trace completeness pc2→pc2,3 to match test coverage (Wave-22 P3 finding F-1) |
