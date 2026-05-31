@@ -85,7 +85,21 @@ mod story_089 {
     ///   Negative: WITHOUT a malformed fixture (http-ooo.pcap), no warning.
     #[test]
     fn test_first_decode_error_warning_printed() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        // Positive: dns-remoteshell produces the warning on stderr
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", DNS_REMOTE_FIXTURE, "--dns"])
+            .assert()
+            .success()
+            .stderr(predicate::str::contains("Warning: failed to decode packet"));
+
+        // Negative: http-ooo.pcap has 0 decode errors → no warning
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", HTTP_FIXTURE, "--dns"])
+            .assert()
+            .success()
+            .stderr(predicate::str::contains("Warning: failed to decode packet").not());
     }
 
     // -----------------------------------------------------------------------
@@ -106,7 +120,31 @@ mod story_089 {
     ///   Positive: command exits 0.
     #[test]
     fn test_subsequent_decode_errors_silent() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        let output = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", DNS_REMOTE_FIXTURE, "--dns", "--json"])
+            .output()
+            .expect("command ran");
+
+        assert!(output.status.success(), "command must exit 0");
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let warning_count = stderr
+            .lines()
+            .filter(|l| l.contains("Warning: failed to decode packet"))
+            .count();
+        // 73 decode errors → exactly 1 warning (subsequent are silent)
+        assert_eq!(
+            warning_count, 1,
+            "expected exactly 1 warning line; got {warning_count}. stderr: {stderr}"
+        );
+
+        // All 73 errors counted in skipped_packets
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.contains("\"skipped_packets\": 73"),
+            "expected skipped_packets 73 in JSON; stdout: {stdout}"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -129,7 +167,21 @@ mod story_089 {
     ///   Negative: http-ooo.pcap (0 decode errors) → skipped_packets == 0.
     #[test]
     fn test_skipped_packets_equals_total_decode_errors() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        // Positive: 73 decode errors → skipped_packets: 73
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", DNS_REMOTE_FIXTURE, "--dns", "--json"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("\"skipped_packets\": 73"));
+
+        // Negative: 0 decode errors → skipped_packets: 0
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", HTTP_FIXTURE, "--dns", "--json"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("\"skipped_packets\": 0"));
     }
 
     // -----------------------------------------------------------------------
@@ -155,7 +207,20 @@ mod story_089 {
     ///     73 warning lines would appear and count > 1 would fail.
     #[test]
     fn test_decode_error_warning_printed_at_most_once() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        let output = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", DNS_REMOTE_FIXTURE, "--dns"])
+            .output()
+            .expect("command ran");
+
+        assert!(output.status.success(), "command must exit 0");
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let count = stderr.matches("Warning: failed to decode packet").count();
+        assert_eq!(
+            count, 1,
+            "warning must appear exactly once; found {count} times. stderr: {stderr}"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -178,7 +243,12 @@ mod story_089 {
     ///   Negative: WITHOUT reassembler (AC-006), the key is absent.
     #[test]
     fn test_unclassified_flows_injected_into_reassembly_summary() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", HTTP_FIXTURE, "--http", "--json"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("\"unclassified_flows\""));
     }
 
     // -----------------------------------------------------------------------
@@ -200,7 +270,18 @@ mod story_089 {
     ///   Negative: WITH reassembler (AC-005), the key IS present.
     #[test]
     fn test_unclassified_flows_absent_without_reassembler() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args([
+                "analyze",
+                HTTP_FIXTURE,
+                "--dns",
+                "--no-reassemble",
+                "--json",
+            ])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("\"unclassified_flows\"").not());
     }
 
     // -----------------------------------------------------------------------
@@ -224,7 +305,40 @@ mod story_089 {
     ///   Negative: `--output-format csv` WITHOUT `--json` DOES produce CSV output.
     #[test]
     fn test_resolve_format_json_flag_wins_over_output_format() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        let output = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args([
+                "analyze",
+                HTTP_FIXTURE,
+                "--http",
+                "--json",
+                "--output-format",
+                "csv",
+            ])
+            .output()
+            .expect("command ran");
+
+        assert!(output.status.success(), "command must exit 0");
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.trim_start().starts_with('{'),
+            "--json must produce JSON (starts with {{); got: {:?}",
+            &stdout[..50.min(stdout.len())]
+        );
+        assert!(
+            !stdout.trim_start().starts_with("category,"),
+            "--json must NOT produce CSV (must not start with 'category,'); got: {:?}",
+            &stdout[..50.min(stdout.len())]
+        );
+
+        // Negative: --output-format csv WITHOUT --json DOES produce CSV
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", HTTP_FIXTURE, "--http", "--output-format", "csv"])
+            .assert()
+            .success()
+            .stdout(predicate::str::starts_with("category,"));
     }
 
     // -----------------------------------------------------------------------
@@ -243,7 +357,21 @@ mod story_089 {
     ///   Negative: WITHOUT `--csv`, the output is terminal format (no CSV header).
     #[test]
     fn test_resolve_format_csv_flag() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        // Positive: --csv produces CSV starting with the fixed header
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", HTTP_FIXTURE, "--http", "--csv"])
+            .assert()
+            .success()
+            .stdout(predicate::str::starts_with("category,verdict,confidence,"));
+
+        // Negative: without --csv, terminal format (no CSV header)
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", HTTP_FIXTURE, "--http"])
+            .assert()
+            .success()
+            .stdout(predicate::str::starts_with("category,").not());
     }
 
     // -----------------------------------------------------------------------
@@ -265,7 +393,35 @@ mod story_089 {
     ///   Positive: all three cases exit 0.
     #[test]
     fn test_resolve_format_falls_back_to_output_format() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        // No flags → terminal output
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", HTTP_FIXTURE, "--http"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("WIRERUST TRIAGE REPORT"));
+
+        // --output-format json → JSON output (starts with `{`)
+        let output = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", HTTP_FIXTURE, "--http", "--output-format", "json"])
+            .output()
+            .expect("command ran");
+        assert!(output.status.success(), "command must exit 0");
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.trim_start().starts_with('{'),
+            "--output-format json must produce JSON; got: {:?}",
+            &stdout[..50.min(stdout.len())]
+        );
+
+        // --output-format csv → CSV output (starts with `category,`)
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", HTTP_FIXTURE, "--http", "--output-format", "csv"])
+            .assert()
+            .success()
+            .stdout(predicate::str::starts_with("category,"));
     }
 
     // -----------------------------------------------------------------------
@@ -290,7 +446,43 @@ mod story_089 {
     ///   Positive: stdout is empty (output went to file, not stdout).
     #[test]
     fn test_write_output_json_with_path_writes_to_file() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let out_path = tmp.path().join("out.json");
+
+        let output = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args([
+                "analyze",
+                HTTP_FIXTURE,
+                "--http",
+                "--json",
+                out_path.to_str().expect("utf-8 path"),
+            ])
+            .output()
+            .expect("command ran");
+
+        assert!(output.status.success(), "command must exit 0");
+
+        // stdout must be empty — output went to file
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.is_empty(),
+            "stdout must be empty when --json <FILE> given; got: {stdout}"
+        );
+
+        // file must exist and contain JSON
+        assert!(out_path.exists(), "output file must exist");
+        let written = fs::read_to_string(&out_path).expect("output file readable");
+        assert!(
+            written.trim_start().starts_with('{'),
+            "file content must start with '{{'; got prefix: {:?}",
+            &written[..50.min(written.len())]
+        );
+        assert!(
+            written.contains("\"summary\""),
+            "file must contain 'summary' key; got prefix: {:?}",
+            &written[..200.min(written.len())]
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -311,7 +503,12 @@ mod story_089 {
     ///   Negative: stdout is NOT empty.
     #[test]
     fn test_write_output_default_to_stdout() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", HTTP_FIXTURE, "--http"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("WIRERUST TRIAGE REPORT"));
     }
 
     // -----------------------------------------------------------------------
@@ -336,7 +533,33 @@ mod story_089 {
     ///   Negative: a writable path does NOT produce this error.
     #[test]
     fn test_write_output_file_write_error_has_context() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        // JSON bad path → stderr contains the exact context prefix
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args([
+                "analyze",
+                HTTP_FIXTURE,
+                "--http",
+                "--json",
+                "/nonexistent/dir/out.json",
+            ])
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("Failed to write JSON output to"));
+
+        // CSV bad path → stderr contains the exact context prefix
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args([
+                "analyze",
+                HTTP_FIXTURE,
+                "--http",
+                "--csv",
+                "/nonexistent/dir/out.csv",
+            ])
+            .assert()
+            .failure()
+            .stderr(predicate::str::contains("Failed to write CSV output to"));
     }
 
     // -----------------------------------------------------------------------
@@ -355,7 +578,13 @@ mod story_089 {
     ///   Positive: command exits 0.
     #[test]
     fn test_EC_001_zero_decode_errors_no_warning_and_skipped_zero() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", HTTP_FIXTURE, "--dns", "--json"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("\"skipped_packets\": 0"))
+            .stderr(predicate::str::contains("Warning: failed to decode packet").not());
     }
 
     // -----------------------------------------------------------------------
@@ -376,7 +605,12 @@ mod story_089 {
     ///   Negative: AC-006 shows the key is ABSENT when no reassembler.
     #[test]
     fn test_EC_002_unclassified_flows_zero_still_present_in_detail() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", HTTP_FIXTURE, "--http", "--json"])
+            .assert()
+            .success()
+            .stdout(predicate::str::contains("\"unclassified_flows\": 0"));
     }
 
     // -----------------------------------------------------------------------
@@ -398,7 +632,24 @@ mod story_089 {
     ///   Negative: stdout is NOT empty (output IS on stdout, not a file).
     #[test]
     fn test_EC_003_json_flag_without_path_writes_to_stdout() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        let output = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", HTTP_FIXTURE, "--http", "--json"])
+            .output()
+            .expect("command ran");
+
+        assert!(output.status.success(), "command must exit 0");
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            !stdout.is_empty(),
+            "stdout must NOT be empty when --json given without path"
+        );
+        assert!(
+            stdout.trim_start().starts_with('{'),
+            "--json without path must produce JSON on stdout; got: {:?}",
+            &stdout[..50.min(stdout.len())]
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -420,7 +671,32 @@ mod story_089 {
     ///   Positive: command exits 0.
     #[test]
     fn test_EC_004_json_wins_over_output_format_csv() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        let output = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args([
+                "analyze",
+                HTTP_FIXTURE,
+                "--http",
+                "--json",
+                "--output-format",
+                "csv",
+            ])
+            .output()
+            .expect("command ran");
+
+        assert!(output.status.success(), "command must exit 0");
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.trim_start().starts_with('{'),
+            "--json must win over --output-format csv (JSON starts with '{{'); got: {:?}",
+            &stdout[..50.min(stdout.len())]
+        );
+        assert!(
+            !stdout.trim_start().starts_with("category,"),
+            "--json must suppress CSV output; got: {:?}",
+            &stdout[..50.min(stdout.len())]
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -442,6 +718,25 @@ mod story_089 {
     ///   Positive: command exits 0.
     #[test]
     fn test_EC_005_all_packets_fail_one_warning_skipped_count_accurate() {
-        assert!(false, "RED GATE STUB: test not yet verified against implementation");
+        let output = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", DNS_REMOTE_FIXTURE, "--dns", "--json"])
+            .output()
+            .expect("command ran");
+
+        assert!(output.status.success(), "command must exit 0");
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let warning_count = stderr.matches("Warning: failed to decode packet").count();
+        assert_eq!(
+            warning_count, 1,
+            "warning must appear exactly once; found {warning_count} times. stderr: {stderr}"
+        );
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.contains("\"skipped_packets\": 73"),
+            "expected skipped_packets 73 in JSON; stdout: {stdout}"
+        );
     }
 }
