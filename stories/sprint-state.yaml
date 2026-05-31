@@ -558,11 +558,14 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-087:
-    status: in-progress
+    status: done
     wave: 24
     branch: null
     worktree: null
     blocked_by: [STORY-086]
+    pr: 164
+    merge_commit: c2445dc
+    merged_date: "2026-05-31"
 
   STORY-096:
     status: ready
