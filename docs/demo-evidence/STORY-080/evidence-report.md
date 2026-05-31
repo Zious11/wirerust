@@ -18,8 +18,8 @@ brownfield formalization).
 
 Full test suite: **970 passed / 0 failed / 0 ignored**.
 
-This story COMPLETES the E-8 reporter epic. JSON reporter (STORY-076/077/078),
-Terminal reporter (STORY-077), and CSV reporter (STORY-079/080) are all fully formalized.
+This story COMPLETES the E-8 reporter epic. JSON reporter (STORY-076),
+Terminal reporter (STORY-077/078), and CSV reporter (STORY-079/080) are all fully formalized.
 
 ---
 
@@ -123,8 +123,8 @@ Command: `cargo test --test reporter_csv_tests story_080 -- --nocapture`
 | Sub-story | BC Range | ACs | Status |
 |-----------|----------|-----|--------|
 | STORY-076 | BC-2.11.001..006 | 13 | FORMALIZED |
-| STORY-077 | BC-2.11.007..012 | 13 | FORMALIZED |
-| STORY-078 | BC-2.11.013..019 | 13 | FORMALIZED |
+| STORY-077 | BC-2.11.007..012 | 14 | FORMALIZED |
+| STORY-078 | BC-2.11.013..019 | 16 | FORMALIZED |
 | STORY-079 | BC-2.11.020..022 | 13 | FORMALIZED |
 | STORY-080 | BC-2.11.023..024 | 12 | FORMALIZED |
 
