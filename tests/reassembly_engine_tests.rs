@@ -14126,54 +14126,18 @@ fn test_BC_2_04_040_excluded_results_do_not_update_small_segment_run() {
 /// This is the EC variant of AC-005 — exercises the same cap behavior.
 #[test]
 fn test_story_018_ec008_truncated_at_max_findings_cap_drops_finding() {
-    // Fill findings to MAX_FINDINGS (10,000) using conflicting overlaps.
+    // Fill findings to MAX_FINDINGS (10,000) using the shared helper, which
+    // uses ports 1..=10_000 on dst 8080 via ConflictingOverlap.
     let config = ReassemblyConfig {
         max_depth: 10,
         max_flows: 20_000,
         ..ReassemblyConfig::default()
     };
-    let mut reassembler = TcpReassembler::new(config);
+    let mut reassembler = fill_findings_to_cap(config);
     let mut handler = RecordingHandler::new();
 
     let server = [10, 0, 0, 2];
     let client = [10, 0, 0, 1];
-
-    // Generate exactly 10,000 findings via ConflictingOverlap on unique flows.
-    // Strategy: SYN + out-of-order data (gap prevents flush) + conflicting retransmit.
-    for port in 1u16..=10_000u16 {
-        reassembler.process_packet(
-            &make_tcp_packet(
-                client,
-                port,
-                server,
-                80,
-                1000,
-                &[],
-                true,
-                false,
-                false,
-                false,
-            ),
-            1,
-            &mut handler,
-        );
-        // Out-of-order data at offset=2 (gap at offset=1 prevents immediate flush)
-        reassembler.process_packet(
-            &make_tcp_packet(
-                client, port, server, 80, 1002, b"AAAA", false, true, false, false,
-            ),
-            2,
-            &mut handler,
-        );
-        // Conflicting retransmit → ConflictingOverlap → 1 finding
-        reassembler.process_packet(
-            &make_tcp_packet(
-                client, port, server, 80, 1002, b"BBBB", false, true, false, false,
-            ),
-            3,
-            &mut handler,
-        );
-    }
 
     assert_eq!(
         reassembler.findings().len(),
