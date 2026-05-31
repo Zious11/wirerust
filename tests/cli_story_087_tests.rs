@@ -63,7 +63,18 @@ mod story_087 {
     ///   Negative: output_format is NOT None and NOT Some(Csv).
     #[test]
     fn test_output_format_json_flag() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        let cli = parse_ok(&["wirerust", "--output-format", "json", "summary", "x.pcap"]);
+        assert_eq!(
+            cli.output_format,
+            Some(OutputFormat::Json),
+            "--output-format json must yield Some(OutputFormat::Json)"
+        );
+        assert_ne!(cli.output_format, None, "output_format must not be None");
+        assert_ne!(
+            cli.output_format,
+            Some(OutputFormat::Csv),
+            "output_format must not be Some(Csv)"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -78,7 +89,18 @@ mod story_087 {
     ///   Negative: output_format is NOT None and NOT Some(Json).
     #[test]
     fn test_output_format_csv_flag() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        let cli = parse_ok(&["wirerust", "--output-format", "csv", "summary", "x.pcap"]);
+        assert_eq!(
+            cli.output_format,
+            Some(OutputFormat::Csv),
+            "--output-format csv must yield Some(OutputFormat::Csv)"
+        );
+        assert_ne!(cli.output_format, None, "output_format must not be None");
+        assert_ne!(
+            cli.output_format,
+            Some(OutputFormat::Json),
+            "output_format must not be Some(Json)"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -93,7 +115,15 @@ mod story_087 {
     ///   Negative: output_format is NOT Some(_).
     #[test]
     fn test_output_format_absent_is_none() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        let cli = parse_ok(&["wirerust", "summary", "x.pcap"]);
+        assert_eq!(
+            cli.output_format, None,
+            "output_format must be None when --output-format is absent"
+        );
+        assert!(
+            cli.output_format.is_none(),
+            "output_format must not be Some(_)"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -109,7 +139,13 @@ mod story_087 {
     ///   Negative: parse does NOT return Ok.
     #[test]
     fn test_output_format_invalid_value_rejected() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        let err = parse_err(&["wirerust", "--output-format", "xml", "summary", "x.pcap"]);
+        assert_eq!(
+            err.kind(),
+            ErrorKind::InvalidValue,
+            "--output-format xml must produce InvalidValue error, got: {:?}",
+            err.kind()
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -124,7 +160,19 @@ mod story_087 {
     ///   Negative: reassembly_depth != 0 and != 1024 (not confused with memcap).
     #[test]
     fn test_reassembly_depth_default_is_10() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        let cli = parse_ok(&["wirerust", "summary", "x.pcap"]);
+        assert_eq!(
+            cli.reassembly_depth, 10,
+            "reassembly_depth default must be 10"
+        );
+        assert_ne!(
+            cli.reassembly_depth, 0,
+            "reassembly_depth must not default to 0"
+        );
+        assert_ne!(
+            cli.reassembly_depth, 1024,
+            "reassembly_depth must not be confused with memcap"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -139,7 +187,15 @@ mod story_087 {
     ///   Negative: reassembly_memcap != 10 (not confused with depth).
     #[test]
     fn test_reassembly_memcap_default_is_1024() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        let cli = parse_ok(&["wirerust", "summary", "x.pcap"]);
+        assert_eq!(
+            cli.reassembly_memcap, 1024,
+            "reassembly_memcap default must be 1024"
+        );
+        assert_ne!(
+            cli.reassembly_memcap, 10,
+            "reassembly_memcap must not be confused with depth"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -155,7 +211,36 @@ mod story_087 {
     ///   Negative: absent flags do NOT default to Some(0).
     #[test]
     fn test_reassembly_threshold_flags_default_none() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        // All absent → all None
+        let cli = parse_ok(&["wirerust", "summary", "x.pcap"]);
+        assert_eq!(
+            cli.overlap_threshold, None,
+            "overlap_threshold must be None when absent"
+        );
+        assert_eq!(
+            cli.small_segment_threshold, None,
+            "small_segment_threshold must be None when absent"
+        );
+        assert_eq!(
+            cli.small_segment_max_bytes, None,
+            "small_segment_max_bytes must be None when absent"
+        );
+        assert_eq!(
+            cli.small_segment_ignore_ports, None,
+            "small_segment_ignore_ports must be None when absent"
+        );
+        assert_eq!(
+            cli.out_of_window_threshold, None,
+            "out_of_window_threshold must be None when absent"
+        );
+
+        // --overlap-threshold 42 → Some(42)
+        let cli2 = parse_ok(&["wirerust", "--overlap-threshold", "42", "summary", "x.pcap"]);
+        assert_eq!(
+            cli2.overlap_threshold,
+            Some(42),
+            "--overlap-threshold 42 must yield Some(42)"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -171,7 +256,19 @@ mod story_087 {
     ///   Negative: parse does NOT return Ok with value 256.
     #[test]
     fn test_overlap_threshold_out_of_range_rejected() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        let err = parse_err(&[
+            "wirerust",
+            "--overlap-threshold",
+            "256",
+            "summary",
+            "x.pcap",
+        ]);
+        assert_eq!(
+            err.kind(),
+            ErrorKind::ValueValidation,
+            "--overlap-threshold 256 must produce ValueValidation error, got: {:?}",
+            err.kind()
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -188,7 +285,22 @@ mod story_087 {
     ///   Negative: field is NOT None and NOT Some(vec![]).
     #[test]
     fn test_small_segment_ignore_ports_comma_delimited() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        let cli = parse_ok(&[
+            "wirerust",
+            "--small-segment-ignore-ports",
+            "23,513",
+            "summary",
+            "x.pcap",
+        ]);
+        assert_eq!(
+            cli.small_segment_ignore_ports,
+            Some(vec![23u16, 513u16]),
+            "--small-segment-ignore-ports 23,513 must yield Some([23, 513])"
+        );
+        let ports = cli.small_segment_ignore_ports.as_ref().unwrap();
+        assert_eq!(ports.len(), 2, "must parse exactly 2 ports");
+        assert_eq!(ports[0], 23, "first port must be 23");
+        assert_eq!(ports[1], 513, "second port must be 513");
     }
 
     // -----------------------------------------------------------------------
@@ -205,7 +317,19 @@ mod story_087 {
     ///   Negative: parse does NOT succeed.
     #[test]
     fn test_reassemble_and_no_reassemble_conflict() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        let err = parse_err(&[
+            "wirerust",
+            "--reassemble",
+            "--no-reassemble",
+            "summary",
+            "x.pcap",
+        ]);
+        assert_eq!(
+            err.kind(),
+            ErrorKind::ArgumentConflict,
+            "--reassemble --no-reassemble must produce ArgumentConflict, got: {:?}",
+            err.kind()
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -221,7 +345,19 @@ mod story_087 {
     ///   Negative: order does NOT affect whether conflict fires.
     #[test]
     fn test_reassemble_conflict_is_symmetric() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        let err = parse_err(&[
+            "wirerust",
+            "--no-reassemble",
+            "--reassemble",
+            "summary",
+            "x.pcap",
+        ]);
+        assert_eq!(
+            err.kind(),
+            ErrorKind::ArgumentConflict,
+            "reversed --no-reassemble --reassemble must also produce ArgumentConflict, got: {:?}",
+            err.kind()
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -238,7 +374,15 @@ mod story_087 {
     ///   Negative: parse does NOT fail with a conflict error.
     #[test]
     fn test_reassemble_alone_parses_ok() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        let cli = parse_ok(&["wirerust", "--reassemble", "summary", "x.pcap"]);
+        assert!(
+            cli.reassemble,
+            "--reassemble alone must set reassemble = true"
+        );
+        assert!(
+            !cli.no_reassemble,
+            "--reassemble alone must leave no_reassemble = false"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -254,7 +398,11 @@ mod story_087 {
     ///   Negative: parse does NOT fail with a range error.
     #[test]
     fn test_EC_001_reassembly_depth_zero_accepted() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        let cli = parse_ok(&["wirerust", "--reassembly-depth", "0", "summary", "x.pcap"]);
+        assert_eq!(
+            cli.reassembly_depth, 0,
+            "--reassembly-depth 0 must be accepted and yield reassembly_depth = 0"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -270,7 +418,22 @@ mod story_087 {
     ///   Negative: field is NOT None (flag was provided).
     #[test]
     fn test_EC_002_small_segment_max_bytes_zero() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        let cli = parse_ok(&[
+            "wirerust",
+            "--small-segment-max-bytes",
+            "0",
+            "summary",
+            "x.pcap",
+        ]);
+        assert_eq!(
+            cli.small_segment_max_bytes,
+            Some(0u16),
+            "--small-segment-max-bytes 0 must yield Some(0)"
+        );
+        assert!(
+            cli.small_segment_max_bytes.is_some(),
+            "small_segment_max_bytes must be Some(_), not None"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -286,7 +449,18 @@ mod story_087 {
     ///   Negative: parse does NOT fail (255 is within the accepted range).
     #[test]
     fn test_EC_003_overlap_threshold_max_accepted() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        let cli = parse_ok(&[
+            "wirerust",
+            "--overlap-threshold",
+            "255",
+            "summary",
+            "x.pcap",
+        ]);
+        assert_eq!(
+            cli.overlap_threshold,
+            Some(255u32),
+            "--overlap-threshold 255 must be accepted and yield Some(255)"
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -306,7 +480,37 @@ mod story_087 {
     ///   Negative: no field is Some(_) when the flag was absent.
     #[test]
     fn test_EC_005_no_reassembly_flags_all_defaults() {
-        assert!(false, "RED GATE STUB — implement after red gate verified");
+        let cli = parse_ok(&["wirerust", "summary", "x.pcap"]);
+        assert!(!cli.reassemble, "reassemble must default to false");
+        assert!(!cli.no_reassemble, "no_reassemble must default to false");
+        assert_eq!(
+            cli.reassembly_depth, 10,
+            "reassembly_depth must default to 10"
+        );
+        assert_eq!(
+            cli.reassembly_memcap, 1024,
+            "reassembly_memcap must default to 1024"
+        );
+        assert!(
+            cli.overlap_threshold.is_none(),
+            "overlap_threshold must be None"
+        );
+        assert!(
+            cli.small_segment_threshold.is_none(),
+            "small_segment_threshold must be None"
+        );
+        assert!(
+            cli.small_segment_max_bytes.is_none(),
+            "small_segment_max_bytes must be None"
+        );
+        assert!(
+            cli.small_segment_ignore_ports.is_none(),
+            "small_segment_ignore_ports must be None"
+        );
+        assert!(
+            cli.out_of_window_threshold.is_none(),
+            "out_of_window_threshold must be None"
+        );
     }
 
     // -----------------------------------------------------------------------
