@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: pc4 timestamp example Z→+00:00 to match chrono to_rfc3339() DateTime<Utc> output + story AC-010; EC-010 hedge removed, output locked to +00:00 (Wave-22 P2 finding F-002) — 2026-05-30"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,7 +52,9 @@ through `neutralize_csv_injection` before the csv write.
    which produces the variant name `"ClientToServer"` or `"ServerToClient"` (Debug
    representation of the `Direction` enum) at csv.rs:84.
 4. `timestamp` cell: if `None`, empty string `""`; if `Some(t)`, `t.to_rfc3339()` --
-   an ISO 8601 / RFC 3339 string (e.g., `"2024-01-15T12:34:56Z"`) at csv.rs:85.
+   an ISO 8601 / RFC 3339 string (e.g., `"2024-01-15T12:34:56+00:00"`) at csv.rs:85.
+   `chrono::DateTime<Utc>::to_rfc3339()` always emits the `+00:00` offset form, never
+   a bare `Z` suffix.
 5. All four derived strings are individually passed through `neutralize_csv_injection`
    at csv.rs:94-97 before being written.
 6. The CSV cell is always present (may be empty); absent `Option` values are NEVER
@@ -80,7 +83,7 @@ through `neutralize_csv_injection` before the csv write.
 | EC-007 | direction = Some(ClientToServer) | Column 8 cell is `"ClientToServer"` |
 | EC-008 | direction = Some(ServerToClient) | Column 8 cell is `"ServerToClient"` |
 | EC-009 | timestamp = None | Column 9 cell is empty string `""` |
-| EC-010 | timestamp = Some(2024-01-15T12:34:56Z) | Column 9 cell is `"2024-01-15T12:34:56+00:00"` or `"2024-01-15T12:34:56Z"` (to_rfc3339 format) |
+| EC-010 | timestamp = Some(2024-01-15T12:34:56 UTC) | Column 9 cell is `"2024-01-15T12:34:56+00:00"` (chrono::DateTime<Utc>::to_rfc3339() always emits +00:00, never bare Z) |
 | EC-011 | mitre_technique = Some("=HYPERLINK(...)") | Cell is `"'=HYPERLINK(...)"` (neutralized) |
 | EC-012 | All four Option fields are None simultaneously | All four cells are empty string; row has 5 non-empty + 4 empty cells |
 
