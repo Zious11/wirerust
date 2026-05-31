@@ -68,7 +68,18 @@ mod story_086 {
     ///   Negative: command is NOT Summary.
     #[test]
     fn test_analyze_subcommand_basic_parse() {
-        assert!(false, "RED GATE STUB — test_analyze_subcommand_basic_parse");
+        let cli = parse_ok(&["wirerust", "analyze", "cap.pcap"]);
+        match cli.command {
+            Commands::Analyze { targets, dns, http, tls, mitre, all } => {
+                assert_eq!(targets, vec![PathBuf::from("cap.pcap")]);
+                assert!(!dns, "dns should be false");
+                assert!(!http, "http should be false");
+                assert!(!tls, "tls should be false");
+                assert!(!mitre, "mitre should be false");
+                assert!(!all, "all should be false");
+            }
+            Commands::Summary { .. } => panic!("Expected Analyze, got Summary"),
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -86,7 +97,42 @@ mod story_086 {
     ///   Negative: flags not present → all corresponding fields false.
     #[test]
     fn test_analyze_individual_protocol_flags() {
-        assert!(false, "RED GATE STUB — test_analyze_individual_protocol_flags");
+        // --dns only
+        let cli = parse_ok(&["wirerust", "analyze", "--dns", "cap.pcap"]);
+        match cli.command {
+            Commands::Analyze { dns, http, tls, mitre, all, .. } => {
+                assert!(dns, "dns should be true");
+                assert!(!http, "http should be false");
+                assert!(!tls, "tls should be false");
+                assert!(!mitre, "mitre should be false");
+                assert!(!all, "all should be false");
+            }
+            _ => panic!("Expected Analyze"),
+        }
+
+        // --http --tls
+        let cli = parse_ok(&["wirerust", "analyze", "--http", "--tls", "cap.pcap"]);
+        match cli.command {
+            Commands::Analyze { dns, http, tls, all, .. } => {
+                assert!(!dns, "dns should be false");
+                assert!(http, "http should be true");
+                assert!(tls, "tls should be true");
+                assert!(!all, "all should be false");
+            }
+            _ => panic!("Expected Analyze"),
+        }
+
+        // --all only
+        let cli = parse_ok(&["wirerust", "analyze", "--all", "cap.pcap"]);
+        match cli.command {
+            Commands::Analyze { dns, http, tls, all, .. } => {
+                assert!(all, "all should be true");
+                assert!(!dns, "dns should be false");
+                assert!(!http, "http should be false");
+                assert!(!tls, "tls should be false");
+            }
+            _ => panic!("Expected Analyze"),
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -103,7 +149,13 @@ mod story_086 {
     ///   Negative: parse does NOT return Ok.
     #[test]
     fn test_analyze_requires_at_least_one_target() {
-        assert!(false, "RED GATE STUB — test_analyze_requires_at_least_one_target");
+        let err = parse_err(&["wirerust", "analyze"]);
+        assert_eq!(
+            err.kind(),
+            ErrorKind::MissingRequiredArgument,
+            "Expected MissingRequiredArgument, got {:?}",
+            err.kind()
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -120,7 +172,17 @@ mod story_086 {
     ///   Negative: mitre alone does NOT imply all=true.
     #[test]
     fn test_mitre_flag_does_not_imply_analyzers() {
-        assert!(false, "RED GATE STUB — test_mitre_flag_does_not_imply_analyzers");
+        let cli = parse_ok(&["wirerust", "analyze", "--mitre", "cap.pcap"]);
+        match cli.command {
+            Commands::Analyze { dns, http, tls, mitre, all, .. } => {
+                assert!(mitre, "mitre should be true");
+                assert!(!dns, "dns should be false");
+                assert!(!http, "http should be false");
+                assert!(!tls, "tls should be false");
+                assert!(!all, "all should be false — mitre does not imply all");
+            }
+            _ => panic!("Expected Analyze"),
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -136,7 +198,14 @@ mod story_086 {
     ///   Negative: command is NOT Analyze.
     #[test]
     fn test_summary_subcommand_basic_parse() {
-        assert!(false, "RED GATE STUB — test_summary_subcommand_basic_parse");
+        let cli = parse_ok(&["wirerust", "summary", "cap.pcap"]);
+        match cli.command {
+            Commands::Summary { targets, hosts } => {
+                assert_eq!(targets, vec![PathBuf::from("cap.pcap")]);
+                assert!(!hosts, "hosts should be false");
+            }
+            Commands::Analyze { .. } => panic!("Expected Summary, got Analyze"),
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -152,7 +221,26 @@ mod story_086 {
     ///   Negative: hosts is plain bool, never Option<bool>.
     #[test]
     fn test_summary_hosts_flag() {
-        assert!(false, "RED GATE STUB — test_summary_hosts_flag");
+        // --hosts present → true
+        let cli = parse_ok(&["wirerust", "summary", "--hosts", "cap.pcap"]);
+        match cli.command {
+            Commands::Summary { hosts, .. } => {
+                // Direct bool comparison — would fail to compile if type were Option<bool>
+                assert!(hosts, "hosts should be true when --hosts is provided");
+                let _: bool = hosts; // type assertion: must be plain bool
+            }
+            _ => panic!("Expected Summary"),
+        }
+
+        // --hosts absent → false
+        let cli = parse_ok(&["wirerust", "summary", "cap.pcap"]);
+        match cli.command {
+            Commands::Summary { hosts, .. } => {
+                let _: bool = hosts; // type assertion: must be plain bool
+                assert!(!hosts, "hosts should be false when --hosts is absent");
+            }
+            _ => panic!("Expected Summary"),
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -168,7 +256,13 @@ mod story_086 {
     ///   Negative: parse does NOT succeed.
     #[test]
     fn test_summary_services_flag_removed() {
-        assert!(false, "RED GATE STUB — test_summary_services_flag_removed");
+        let err = parse_err(&["wirerust", "summary", "--services", "cap.pcap"]);
+        assert_eq!(
+            err.kind(),
+            ErrorKind::UnknownArgument,
+            "Expected UnknownArgument for --services, got {:?}",
+            err.kind()
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -185,7 +279,21 @@ mod story_086 {
     ///   Negative: absent --no-color → no_color=false.
     #[test]
     fn test_no_color_flag_global_placement() {
-        assert!(false, "RED GATE STUB — test_no_color_flag_global_placement");
+        // Before subcommand (BC-2.12.003 EC-001)
+        let cli = parse_ok(&["wirerust", "--no-color", "analyze", "cap.pcap"]);
+        assert!(cli.no_color, "--no-color before subcommand should set no_color=true");
+
+        // After subcommand name, before positional (BC-2.12.003 EC-001 / global = true)
+        let cli = parse_ok(&["wirerust", "analyze", "--no-color", "cap.pcap"]);
+        assert!(cli.no_color, "--no-color after subcommand name should set no_color=true");
+
+        // After positional (BC-2.12.003 EC-002 — global flag semantics)
+        let cli = parse_ok(&["wirerust", "analyze", "cap.pcap", "--no-color"]);
+        assert!(cli.no_color, "--no-color after positional should set no_color=true");
+
+        // Absent → false
+        let cli = parse_ok(&["wirerust", "analyze", "cap.pcap"]);
+        assert!(!cli.no_color, "absent --no-color should leave no_color=false");
     }
 
     // -----------------------------------------------------------------------
@@ -202,7 +310,10 @@ mod story_086 {
     ///   Positive: no_color==false when --no-color is absent (BC-2.12.003 EC-003).
     #[test]
     fn test_no_color_flag_default_false() {
-        assert!(false, "RED GATE STUB — test_no_color_flag_default_false");
+        let cli = parse_ok(&["wirerust", "analyze", "cap.pcap"]);
+        // Type assertion: this line would fail to compile if no_color were Option<bool>
+        let no_color: bool = cli.no_color;
+        assert!(!no_color, "no_color must be false when --no-color is absent");
     }
 
     // -----------------------------------------------------------------------
@@ -221,7 +332,16 @@ mod story_086 {
     ///   Negative: no deduplication at parse time.
     #[test]
     fn test_multiple_targets_preserve_order_and_duplicates() {
-        assert!(false, "RED GATE STUB — test_multiple_targets_preserve_order_and_duplicates");
+        let cli = parse_ok(&["wirerust", "analyze", "a.pcap", "b.pcap", "c.pcap"]);
+        match cli.command {
+            Commands::Analyze { targets, .. } => {
+                assert_eq!(targets.len(), 3, "should have exactly 3 targets");
+                assert_eq!(targets[0], PathBuf::from("a.pcap"));
+                assert_eq!(targets[1], PathBuf::from("b.pcap"));
+                assert_eq!(targets[2], PathBuf::from("c.pcap"));
+            }
+            _ => panic!("Expected Analyze"),
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -239,7 +359,16 @@ mod story_086 {
     ///   Positive: tls=false (not individually provided).
     #[test]
     fn test_EC_001_all_flag_with_individual_protocol_flags() {
-        assert!(false, "RED GATE STUB — test_EC_001_all_flag_with_individual_protocol_flags");
+        let cli = parse_ok(&["wirerust", "analyze", "--all", "--dns", "--http", "cap.pcap"]);
+        match cli.command {
+            Commands::Analyze { dns, http, tls, all, .. } => {
+                assert!(all, "all should be true");
+                assert!(dns, "dns should be true (individually provided)");
+                assert!(http, "http should be true (individually provided)");
+                assert!(!tls, "tls should be false (not individually provided)");
+            }
+            _ => panic!("Expected Analyze"),
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -255,7 +384,17 @@ mod story_086 {
     ///   Positive: all=false, dns=false, http=false, tls=false.
     #[test]
     fn test_EC_002_mitre_alone() {
-        assert!(false, "RED GATE STUB — test_EC_002_mitre_alone");
+        let cli = parse_ok(&["wirerust", "analyze", "--mitre", "cap.pcap"]);
+        match cli.command {
+            Commands::Analyze { dns, http, tls, mitre, all, .. } => {
+                assert!(mitre, "mitre should be true");
+                assert!(!all, "all should be false");
+                assert!(!dns, "dns should be false");
+                assert!(!http, "http should be false");
+                assert!(!tls, "tls should be false");
+            }
+            _ => panic!("Expected Analyze"),
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -270,7 +409,13 @@ mod story_086 {
     ///   Positive: error kind is UnknownArgument (--hosts not in analyze flags).
     #[test]
     fn test_EC_003_hosts_flag_rejected_on_analyze() {
-        assert!(false, "RED GATE STUB — test_EC_003_hosts_flag_rejected_on_analyze");
+        let err = parse_err(&["wirerust", "analyze", "--hosts", "cap.pcap"]);
+        assert_eq!(
+            err.kind(),
+            ErrorKind::UnknownArgument,
+            "Expected UnknownArgument for --hosts on analyze, got {:?}",
+            err.kind()
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -287,7 +432,13 @@ mod story_086 {
     ///   Negative: flag is NOT silently ignored.
     #[test]
     fn test_EC_004_services_flag_rejected_on_summary() {
-        assert!(false, "RED GATE STUB — test_EC_004_services_flag_rejected_on_summary");
+        let err = parse_err(&["wirerust", "summary", "--services", "cap.pcap"]);
+        assert_eq!(
+            err.kind(),
+            ErrorKind::UnknownArgument,
+            "Expected UnknownArgument for --services on summary, got {:?}",
+            err.kind()
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -306,7 +457,15 @@ mod story_086 {
     ///   Negative: targets.len()!=1 (deduplication did NOT occur).
     #[test]
     fn test_EC_005_duplicate_targets_preserved() {
-        assert!(false, "RED GATE STUB — test_EC_005_duplicate_targets_preserved");
+        let cli = parse_ok(&["wirerust", "analyze", "a.pcap", "a.pcap"]);
+        match cli.command {
+            Commands::Analyze { targets, .. } => {
+                assert_eq!(targets.len(), 2, "duplicate targets must both be stored");
+                assert_eq!(targets[0], PathBuf::from("a.pcap"));
+                assert_eq!(targets[1], PathBuf::from("a.pcap"));
+            }
+            _ => panic!("Expected Analyze"),
+        }
     }
 
     // -----------------------------------------------------------------------
