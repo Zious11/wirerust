@@ -9,7 +9,7 @@ version: "1.0"
 produced_by: story-writer
 timestamp: 2026-05-21T00:00:00Z
 cycle: v0.1.0-greenfield-spec
-current_wave: 22
+current_wave: 23
 total_stories: 48
 total_waves: 27
 
@@ -528,11 +528,15 @@ stories:
     converged_date: "2026-05-30"
 
   STORY-080:
-    status: in_progress
+    status: done
     wave: 22
-    branch: test/story-080-csv-trait-compliance
-    worktree: .worktrees/STORY-080
+    branch: null
+    worktree: null
     blocked_by: [STORY-079]
+    pr: 161
+    merge_commit: 1ecf114
+    merged_date: "2026-05-30"
+    converged_date: "2026-05-30"
 
   # ---------------------------------------------------------------------------
   # Wave 23 — 1 story
