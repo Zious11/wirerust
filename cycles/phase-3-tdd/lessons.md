@@ -1128,4 +1128,43 @@ anchor, not a behavioral contract gap.
 **Disposition:** Deferred optional batch-cleanup drift item for the story files. Do NOT open a GitHub
 issue without DF-VALIDATION-001 research-agent validation first. Candidate for a dedicated
 story-FSR re-anchor sweep (similar to DF-16.B reporter-BC re-anchor sweep).
-**Status:** [deferred — optional batch-cleanup; NOT blocking; DF-VALIDATION-001 applies if escalated]
+**Status:** [RESOLVED 2026-05-31 for STORY-086/087/096 — batch-cleanup executed in drift-remediation sweep; STORY-088/089 tracked as F-FSR-088-089 in STATE.md Drift Items]
+
+---
+
+## Deferred Remediation Retrospective (2026-05-31)
+
+**Session:** Dedicated drift-remediation sweep, 2026-05-31.
+**Items resolved:** 11 (across 2 develop PRs #166/#167 + 2 factory commits 33451ed/8d7645e).
+**Validated per:** DF-VALIDATION-001 (research-agent + Perplexity; all 11 items; reports in .factory/research/deferred-validation-2026-05-31/).
+**develop HEAD at close:** 45fe526.
+
+### Deferred-Remediation.L1 — Phantom-Tool Root Cause: Algorithm Never Written Down [codified]
+
+**Finding ID:** F-W21-TOOL-001 (HIGH; bin/compute-input-hash absent)
+**Category:** infra-gap / documentation
+**Root cause identified:** The `bin/compute-input-hash` tool was missing because the algorithm was never formally documented anywhere in the repository. This created a "phantom tool" situation — the tool was referenced in CLAUDE.md and policy DF-INPUT-HASH-CANONICAL-001, but no one could create the canonical implementation because the exact algorithm (MD5, inputs-order, not sha256/sorted) was only inferred from context. The prior hand-computed hashes used the wrong combination (sha256 + sorted inputs), producing a full baseline mismatch.
+**Resolution:** The tool was created (PR #167) and the algorithm explicitly documented in CLAUDE.md. All 48 story hashes re-baselined: MATCH=48 STALE=0. Policy DF-INPUT-HASH-CANONICAL-001 updated in factory commit 8d7645e.
+**Lesson:** Policies that mandate a tool's use MUST also document the tool's exact algorithm, not merely its filename. "Use bin/compute-input-hash" is insufficient if the tool doesn't exist; "use bin/compute-input-hash (MD5 over declared inputs in inputs-order)" is the canonical form that allows reconstruction.
+**Status:** [codified — algorithm now in CLAUDE.md; tool in repo; re-baseline complete]
+
+---
+
+### Deferred-Remediation.L2 — Re-Baseline Decision: Regenerate All 48 Rather Than Spot-Fix [validated]
+
+**Finding ID:** F-W21-S079-HASH (MEDIUM; STORY-079 hash likely stale) — subsumed by F-W21-TOOL-001 resolution
+**Category:** process-discipline / input-hash management
+**Decision recorded:** When a canonical hash tool is restored after an algorithm correction, a full re-baseline of all stories is the correct action, not a spot-fix of the single stale hash. Rationale: (1) any story whose hash was computed with the old algorithm (sha256/sorted) would also be wrong; (2) a partial re-baseline creates a mixed-algorithm baseline that is harder to reason about at Phase-4 entry; (3) the re-baseline cost (48 stories) is fixed and low compared to the cost of discovering additional stale hashes at Phase-4 holdout evaluation.
+**Outcome:** MATCH=48 STALE=0 across all 48 stories. F-W21-S079-HASH auto-resolved.
+**Status:** [validated — full re-baseline over spot-fix is correct; decision confirmed by MATCH=48 result]
+
+---
+
+### Deferred-Remediation.L3 — Recurring CLI-Template Upstream Cause (STORY-086/087/096/088/089) [escalated-upstream]
+
+**Finding ID:** W24.L4 / FSR-row staleness / CLI-STORY-TEMPLATE
+**Category:** process-gap / upstream-plugin
+**Root cause identified:** The vsdd-factory plugin's CLI story template seeds `tests/cli_tests.rs` as the default test file placeholder. Every CLI story delivered (STORY-086, 087, 096, and projected 088, 089) inherits this incorrect citation. The pattern is not a per-story oversight but an engine-side template defect. Fixing FSR rows in delivered stories is a low-cost workaround (1-line edit per story, done in 33451ed), but the root cause is upstream.
+**Action taken:** STORY-086/087/096 FSR rows corrected in factory commit 33451ed. CLI-STORY-TEMPLATE escalation logged in deferred-items-archive.md (Revisit Gates: upstream plugin maintainer). STORY-088/089 tracked as F-FSR-088-089 (LOW) in STATE.md Drift Items — will be fixed automatically at delivery when per-story test files are created.
+**Escalation:** vsdd-factory plugin maintainer should update CLI story template to seed `tests/cli_story_NNN_tests.rs` instead of `tests/cli_tests.rs`.
+**Status:** [escalated-upstream — CLI-STORY-TEMPLATE in deferred-items-archive.md; in-repo workaround applied for 086/087/096]

@@ -278,3 +278,77 @@ Items confirmed intentional design decisions; no fix warranted.
 ### F-W16-S052-P2-002
 - **Finding (RECLASSIFIED):** BC-2.07.001 EC-002 extension-block parse failure path — src/analyzer/tls.rs:391-396 inner Err arm has no discriminating test.
 - **Disposition:** WONT-FIX-BY-DESIGN (RECLASSIFIED from coverage-gap). Research-agent investigation confirmed: the inner Err arm at tls.rs:391-396 is UNREACHABLE through on_data per nom `many0`/`complete` semantics — `many0` returns Ok([]) on empty/insufficient input rather than Err; the branch is dead defensive code, not a real coverage gap. Annotated BC-2.07.001 EC-002 with a note: "EC-002 Err arm is unreachable via on_data through nom many0/complete semantics; defensive code retained but not testable through public API." Deferred annotation tracked.
+
+---
+
+# 2026-05-31 Drift-Remediation Sweep — Closed Items
+
+**Session date:** 2026-05-31
+**Validated per:** DF-VALIDATION-001 (research-agent + Perplexity; reports in .factory/research/deferred-validation-2026-05-31/)
+**Develop PRs:** #166 (→ 45fe526) + #167 (→ 45fe526, squash-merged at 376edb7/45fe526)
+**Factory commits:** 33451ed + 8d7645e
+
+## Summary
+
+| ID | Category | Severity | Resolution |
+|----|----------|----------|-----------|
+| F-W21-TOOL-001 | infra-gap | HIGH | bin/compute-input-hash created; algorithm in CLAUDE.md; PR #167 |
+| F-W21-S079-HASH | process-gap | MEDIUM | Auto-resolved by re-baseline (STORY-079 hash regenerated; MATCH=48 STALE=0) |
+| F-S058-P12-O1 | spec-gap | LOW | BC-2.07.005 anchor 726-748→726-747 (3 cells); factory commit 33451ed |
+| F-W21-VP-METHOD | spec-consistency | LOW | VP-018→integration, VP-019→unit + BC-2.12.007/009 rows harmonized; factory commit 33451ed |
+| F-W22-BC-ANCHOR | spec-anchor | LOW | 11 SS-11 reporter BCs re-anchored to per-story test files; legacy tests/reporter_tests.rs kept; factory commit 33451ed |
+| W10-D10-sibling | test-quality | LOW | Reassembly test uses fill_findings_to_cap; PR #166 → 45fe526 |
+| F-DRIFT-C-001 | cosmetic | LOW | http.rs test comment corrected; PR #166 |
+| F-S058-P11-001 | cosmetic | LOW | Stale tls test comment trimmed; PR #166 |
+| F-S058-P11-002 | cosmetic | LOW | tls EC-label corrected; PR #166 |
+| W20-NIT-001 | test-quality | LOW | U+0080 C1-boundary JsonReporter test added; PR #166 |
+| FSR-row staleness (STORY-086/087/096) | doc | LOW | 6 FSR/Token-Budget rows corrected to cli_story_NNN_tests.rs; stories bumped to v1.2; factory commit by story-writer |
+
+**Total items closed this sweep:** 11
+**New items logged:** 2 (CLI-STORY-TEMPLATE upstream escalation → deferred-items-archive.md; F-FSR-088-089 LOW → STATE.md Drift Items)
+
+## Detail
+
+### F-W21-TOOL-001 — RESOLVED (HIGH)
+- **Finding:** Canonical input-hash tool `bin/compute-input-hash` absent from repo; all input-hash freshness checks un-runnable.
+- **Resolution:** `bin/compute-input-hash` created (PR #167 → develop 376edb7/45fe526). Algorithm (MD5 over declared inputs in inputs-order) documented in CLAUDE.md. Policy DF-INPUT-HASH-CANONICAL-001 updated; factory commit 8d7645e. All 48 story hashes re-baselined: MATCH=48 STALE=0. Root cause documented: algorithm was never written down, leading to prior hand-computation using wrong hash function (sha256/sorted vs MD5/inputs-order).
+
+### F-W21-S079-HASH — RESOLVED (MEDIUM)
+- **Finding:** STORY-079 input-hash "903f0d0" likely stale after BC-2.11.020 changed v1.2→v1.3 (CRLF→LF correction).
+- **Resolution:** Auto-resolved by the bin/compute-input-hash re-baseline. STORY-079 hash regenerated correctly in the MATCH=48 STALE=0 sweep. No manual intervention required.
+
+### F-S058-P12-O1 — RESOLVED (LOW)
+- **Finding:** BC-2.07.005 anchor `726-748` vs actual `726-747` (off-by-one in 3 cells).
+- **Resolution:** Anchor corrected to `726-747` in all 3 cells; factory commit 33451ed.
+
+### F-W21-VP-METHOD — RESOLVED (LOW)
+- **Finding:** VP-018 (cli.rs/SS-12) + VP-019 (dns.rs/SS-08) proof_method frontmatter diverging from VP-INDEX/body.
+- **Resolution:** VP-018 proof_method set to `integration`; VP-019 set to `unit`. BC-2.12.007/009 VP-table rows harmonized to match. Factory commit 33451ed.
+
+### F-W22-BC-ANCHOR — RESOLVED (LOW)
+- **Finding:** SS-11 reporter BCs (BC-2.11.001..024) Architecture-Anchor sections cite stale pre-formalization test file `tests/reporter_tests.rs`.
+- **Resolution:** 11 SS-11 reporter BCs re-anchored to per-story formalization test files (reporter_{json,terminal,csv}_tests.rs, per-story mod, BC-prefixed names). Legacy `tests/reporter_tests.rs` retained (kept for historical continuity). Factory commit 33451ed.
+
+### W10-D10-sibling — RESOLVED (LOW)
+- **Finding:** `test_story_018_ec008` re-implements 10,000-flow fill loop inline instead of using `fill_findings_to_cap`.
+- **Resolution:** Reassembly test refactored to reuse `fill_findings_to_cap`; PR #166 → 45fe526.
+
+### F-DRIFT-C-001 — RESOLVED (LOW)
+- **Finding:** Stale doc-comment in src/analyzer/http.rs `truncate_uri` test: "5 'é' = 10 bytes" vs actual "éééé" 4-char fixture.
+- **Resolution:** Doc-comment corrected; PR #166.
+
+### F-S058-P11-001 — RESOLVED (LOW)
+- **Finding:** Stale "sync to story after this pass" comment at tls_analyzer_tests.rs:6819.
+- **Resolution:** Stale comment trimmed; PR #166.
+
+### F-S058-P11-002 — RESOLVED (LOW)
+- **Finding:** test_nonhandshake_types EC-label header lists EC-002/003/004 but body covers EC-001-004.
+- **Resolution:** EC-label corrected for consistency; PR #166.
+
+### W20-NIT-001 — RESOLVED/CLOSED (LOW)
+- **Finding:** Optional future U+0080 C1-boundary test for JsonReporter byte handling.
+- **Resolution:** U+0080 C1-boundary JsonReporter test added; PR #166.
+
+### FSR-row staleness (STORY-086/087/096) — RESOLVED (LOW)
+- **Finding:** 6 FSR/Token-Budget rows in STORY-086, STORY-087, STORY-096 cite `tests/cli_tests.rs` instead of per-story `tests/cli_story_NNN_tests.rs`.
+- **Resolution:** All 6 rows corrected to `cli_story_NNN_tests.rs` form; stories bumped to v1.2; factory commit by story-writer prior to this sweep.

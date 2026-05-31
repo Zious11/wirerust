@@ -9,7 +9,7 @@ phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
 phase_2_completed: "2026-05-21"
 phase_3_started: "2026-05-21"
-develop_head: 9954d44
+develop_head: 45fe526
 current_cycle: v0.1.0-greenfield-spec
 current_wave: 25
 wave_20_24_detail: "cycles/phase-3-tdd/wave-history.md"
@@ -40,7 +40,7 @@ wave_history_archived: "cycles/phase-3-tdd/wave-history.md (waves 1-22 detail fi
 46 stories delivered (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052/045/053/055/046/054/056/058/057/076/077/079/078/080/086/087/096).
 Wave 23 CLOSED — STORY-086 (PR#163→a42e14b; 3-clean passes 3→1→0; BC-2.12.001/002/003/006; E-9 CLI epic OPENED).
 Wave 24 CLOSED — STORY-087 (PR#164→c2445dc; 4ps-3clean P2/P3/P4; BC-2.12.004/005/007; 16 tests) + STORY-096 (PR#165→9954d44; 6ps-3clean P4/P5/P6; BC-2.13.001..004; 14 tests; facade-mode mutation-gate); wave-level CONVERGED (3ps; 2→1→0); E-10 COMPLETE.
-develop HEAD: 9954d44 (PR #165 squash-merged 2026-05-31). All 8 CI checks green. 1015 tests green. E-9 in progress (3/5: STORY-086/087 done; STORY-088/089/090 remain). NEXT: Wave 25 = STORY-088.
+develop HEAD: 45fe526 (drift-remediation PRs #166/#167 merged 2026-05-31). All 8 CI checks green. 1015 tests green. E-9 in progress (3/5: STORY-086/087 done; STORY-088/089/090 remain). NEXT: Wave 25 = STORY-088.
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -57,7 +57,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-24 CLOSED/CONVERGED; Wave 25 NEXT (46 stories; develop HEAD 9954d44); E-8 COMPLETE, E-9 IN PROGRESS (3/5), E-10 COMPLETE | W24 CLOSED: STORY-087 (PR#164→c2445dc) + STORY-096 (PR#165→9954d44); wave-level CONVERGED (3ps;2→1→0); E-10 COMPLETE; 1015 tests; NEXT Wave 25 = STORY-088 |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-24 CLOSED/CONVERGED; Wave 25 NEXT (46 stories; develop HEAD 45fe526); E-8 COMPLETE, E-9 IN PROGRESS (3/5), E-10 COMPLETE | W24 CLOSED: STORY-087 (PR#164→c2445dc) + STORY-096 (PR#165→9954d44); drift-remediation sweep 11 items closed (PRs #166/#167 → 45fe526); NEXT Wave 25 = STORY-088 |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -78,11 +78,11 @@ dependency bumping for it).
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Wave 24 — STORY-087 PR merged | **COMPLETE** 2026-05-31 | PR #164 squash-merged → c2445dc. 4ps-3clean (P2/P3/P4; 2→1→0→0). BC-2.12.004/005/007. 16 tests. Brownfield-formalization ZERO src. |
-| Wave 24 — STORY-096 per-story convergence | **COMPLETE** 2026-05-31 | BC-5.39.001 ACHIEVED: 6 passes, 3-clean streak P4/P5/P6 (1MED→1MED→1MED→0→0→0). Facade-mode mutation-gate caught 3 MEDIUM gaps (AC-006 inline pcap, AC-006 dotted-key pcap.version, AC-004 full-src-tree walk) — all fixed. BC-2.13.001..004. 14 tests (10 AC+4 EC). ZERO src. |
 | Wave 24 — STORY-096 PR merged | **COMPLETE** 2026-05-31 | PR #165 squash-merged → 9954d44. BC-2.13.001..004 formalized. E-10 epic COMPLETE. develop HEAD 9954d44. 1015 tests green. |
 | Wave 24 — wave-level CONVERGED | **COMPLETE** 2026-05-31 | 3 passes (2→1→0). Zero HIGH/CRITICAL. 3 lenses CLEAN (consistency/integration-static/traceability). develop HEAD 9954d44. |
 | Wave 24 — CLOSED | **COMPLETE** 2026-05-31 | Two-story wave; per-story + wave-level convergence satisfied. 46 stories. E-10 COMPLETE. NEXT: Wave 25 = STORY-088. |
+| Deferred-item remediation sweep | **COMPLETE** 2026-05-31 | 11 items resolved across PRs #166/#167 + factory commits 33451ed/8d7645e. Input-hash re-baselined (MATCH=48 STALE=0). 2 new items logged (1 upstream escalation, 1 LOW F-FSR-088-089). develop HEAD 45fe526. |
+| Wave 25 | **NEXT** | STORY-088 (run_analyze Orchestration; E-9; 8pts; ready). |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -100,14 +100,13 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-31 — Wave 24 CLOSED; next = Wave 25 STORY-088)
+## Session Resume Checkpoint (2026-05-31 — Drift-remediation sweep COMPLETE; next = Wave 25 STORY-088)
 
-1. Waves 1-24 CLOSED/CONVERGED. Wave 25 NEXT. develop HEAD: 9954d44 (PR #165 squash-merged 2026-05-31). All 8 CI checks green. 1015 tests green. 46 stories delivered.
-2. Wave 24 complete: STORY-087 (PR#164→c2445dc; 4ps-3clean P2/P3/P4; 2→1→0→0; BC-2.12.004/005/007; 16 tests; ZERO src) + STORY-096 (PR#165→9954d44; 6ps-3clean P4/P5/P6; 1MED→1MED→1MED→0→0→0; BC-2.13.001..004; 14 tests; facade-mode mutation-gate caught 3 MEDIUM gaps — all fixed; ZERO src). Wave-level: 3ps(2→1→0); 3 lenses CLEAN. E-10 COMPLETE. E-9 in progress (STORY-086/087 done; 088/089/090 remain).
-3. NEXT: Wave 25 = STORY-088 (run_analyze Orchestration; E-9; 8pts; ready — blocked_by STORY-086+087 both done). Wave 25 is single-story; per-story convergence == wave-level per BC-5.39.001.
-4. Open drift items carried forward: F-W22-BC-ANCHOR (LOW; SS-11 reporter BC anchor staleness), F-W21-S079-HASH (MEDIUM; TOOL-MISSING), F-W21-TOOL-001 (HIGH; bin/compute-input-hash absent), F-W21-VP-METHOD (LOW; VP-018/019 proof_method), F-DRIFT-C-001, F-S058-P12-O1.
-5. Wave 24 non-blocking Low deferred: FSR-row staleness (stories cite cli_tests.rs vs cli_story_NNN_tests.rs; 3 occurrences; deferred optional batch-cleanup; recorded lessons.md W24.L4). pr-manager merge-step exit-condition gap recorded lessons.md W24.L3.
-6. Prior checkpoint (Wave 24 IN PROGRESS; STORY-087 done; STORY-096 next) archived: cycles/phase-3-tdd/session-checkpoints.md.
+1. Waves 1-24 CLOSED/CONVERGED. Wave 25 NEXT. develop HEAD: 45fe526 (drift-remediation PRs #166/#167 merged 2026-05-31). All 8 CI checks green. 1015 tests green. 46 stories delivered.
+2. Drift-remediation sweep (2026-05-31) COMPLETE: 11 items resolved across 2 develop PRs (#166/#167) + 2 factory commits (33451ed/8d7645e). Input-hash re-baselined (bin/compute-input-hash created; MATCH=48 STALE=0). All items research-agent validated per DF-VALIDATION-001 (reports in .factory/research/deferred-validation-2026-05-31/). Archive: cycles/drift-remediation-2026-05-29/closed-items.md (2026-05-31 sweep section).
+3. 2 new items logged: CLI-STORY-TEMPLATE upstream escalation (deferred-items-archive.md) + F-FSR-088-089 LOW (Drift Items table — fix at STORY-088/089 delivery).
+4. NEXT: Wave 25 = STORY-088 (run_analyze Orchestration; E-9; 8pts; ready). Wave 25 is single-story; per-story convergence == wave-level per BC-5.39.001.
+5. Prior checkpoint (Wave 24 CLOSED; next = Wave 25 STORY-088) archived: cycles/phase-3-tdd/session-checkpoints.md.
 
 ## Wave Retrospectives
 
@@ -138,25 +137,12 @@ Externally-blocked / phase-gated items (W9-D2/D3/D4 upstream-plugin, W9-D12 awai
 
 | ID | Finding | Category | Target | Status |
 |----|---------|----------|--------|--------|
-| W10-D10-sibling | [test-quality, LOW] tests/reassembly_engine_tests.rs:~14143 `test_story_018_ec008` re-implements the 10,000-flow fill loop inline (should use `fill_findings_to_cap`). Target: next reassembly-test touch. | test-quality | next reassembly touch | OPEN |
-| F-DRIFT-C-001 | [cosmetic, LOW] Stale doc-comment in src/analyzer/http.rs `truncate_uri` test: "5 'é' = 10 bytes" vs actual "éééé" 4-char fixture; logic correct. Target: next http-test PR (develop branch). | cosmetic | next http-test touch | OPEN |
-| F-S058-P12-O1 | [deferred-LOW] BC-2.07.005 anchor 726-748 vs actual 726-747 (off-by-one). Target: next BC-2.07.005 touch. | spec-gap | next BC-2.07.005 touch | OPEN |
-| F-W21-S079-HASH | [process-gap, MEDIUM] STORY-079 input-hash "903f0d0" likely stale after input BC-2.11.020 changed v1.2→v1.3 (CRLF→LF correction, 2026-05-30). Cannot recompute: canonical `bin/compute-input-hash` tool is ABSENT from repo (DF-INPUT-HASH-CANONICAL-001 forbids hand-compute). Re-validate at Phase-4 input-drift gate once the tool is restored. | process-gap | Phase-4 entry / tool-restore | OPEN — TOOL-MISSING |
-| F-W21-TOOL-001 | [infra-gap, HIGH] Canonical input-hash tool `bin/compute-input-hash` (referenced by CLAUDE.md + policy DF-INPUT-HASH-CANONICAL-001) does NOT exist in the repo. All input-hash freshness checks are currently un-runnable; this is the likely root of PG-HASH-001 (prior hand-computation). Restore/author the tool (MD5 over declared inputs in inputs-order per policy) before relying on any input-hash drift gate. | infra-gap | tooling | OPEN — BLOCKS-HASH-VALIDATION |
-| F-W21-VP-METHOD | [spec-consistency, LOW] VP-018 (cli.rs/SS-12) + VP-019 (dns.rs/SS-08) have proof_method frontmatter (`manual`) diverging from VP-INDEX/body (`integration`/`unit`) + consuming BC VP-table rows — same pattern fixed for VP-012/016/017 in the SS-11 reporter family (Wave-21). Out of SS-11/Wave-21 scope; sweep when their owning subsystem/story is next touched, or in a dedicated VP-method-consistency pass. | spec-consistency | next SS-12/SS-08 touch or dedicated pass | OPEN |
-| F-W22-BC-ANCHOR | [spec-anchor, LOW, bulk-mechanical] SS-11 reporter BC Architecture-Anchor sections (BC-2.11.001..024) cite stale pre-formalization test file `tests/reporter_tests.rs` + pre-formalization test names that no longer exist post brownfield-formalization (Waves 20-22). Should re-anchor to the per-story formalization tests (reporter_{json,terminal,csv}_tests.rs, mod story_NNN, BC-prefixed names). Pre-existing; per-story test diffs correctly scoped + converged. Dedicated reporter-BC re-anchor sweep (like DF-16.B). | spec-anchor | dedicated reporter-BC re-anchor sweep | OPEN |
+| F-FSR-088-089 | [doc, LOW] STORY-088 and STORY-089 FSR/Token-Budget rows cite `tests/cli_tests.rs` instead of per-story `tests/cli_story_NNN_tests.rs` (same pattern as 086/087/096, resolved 2026-05-31). Target: fix at STORY-088/089 delivery (waves 25/26) when per-story test files are created. | doc | STORY-088/089 delivery (waves 25/26) | OPEN |
 
 ## Cycle-Close Follow-Up Items (OPEN)
 
-Most items from Waves 1-16 closed during drift-remediation-2026-05-29. Closed items archived in
-`.factory/cycles/drift-remediation-2026-05-29/closed-items.md`.
-Externally-blocked / phase-gated items (PG-W18-001/002/003 codified → policies.yaml, OBS-7 closed → STORY-076, W1.3/W2.5 upstream, W7.1 public-api, Phase-4-ENTRY, F-S058-P13-O4) archived to cycles/phase-3-tdd/deferred-items-archive.md.
-
-| ID | Item | Priority |
-|----|------|----------|
-| F-S058-P11-001 | [deferred-LOW] Stale "sync to story after this pass" comment at tls_analyzer_tests.rs:6819. Target: next tls-test PR. | P3 — DEFERRED |
-| F-S058-P11-002 | [deferred-LOW] test_nonhandshake_types EC-label header lists EC-002/003/004 but body covers EC-001-004. Cosmetic inconsistency. Target: next tls-test PR. | P3 — DEFERRED |
-| W20-NIT-001 | [deferred-LOW, STORY-076 PR#157] optional future U+0080 C1-boundary test for JsonReporter byte handling. Target: next reporter-test PR. | P3 — DEFERRED |
+Most items from Waves 1-16 closed during drift-remediation-2026-05-29. Items from the 2026-05-31 drift-remediation sweep (11 items) archived in `.factory/cycles/drift-remediation-2026-05-29/closed-items.md`.
+Externally-blocked / phase-gated items (W9-D2/D3/D4, W1.3/W2.5, W7.1, Phase-4-ENTRY, F-S058-P13-O4, CLI-STORY-TEMPLATE) archived to cycles/phase-3-tdd/deferred-items-archive.md.
 
 Historical process-gap items from Phase 1 (P1.1–P1.3, P3-PG, P4-PG1/2/3, P5-PG, P8-DEFER,
 P10-PG, P-CITE-PG): archived in `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`.

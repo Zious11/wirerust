@@ -55,6 +55,22 @@ OBS-7 CLOSED 2026-05-30 — covered by STORY-076 BC-2.11.003 ("JsonReporter Esca
 
 ---
 
+---
+
+## Archived from STATE.md 2026-05-31
+
+Items archived during the 2026-05-31 drift-remediation sweep.
+
+### Upstream Escalation — CLI-STORY-TEMPLATE [process-gap, ESCALATE-UPSTREAM]
+
+**Archived:** 2026-05-31
+**Category:** process-gap, ESCALATE-UPSTREAM
+**Finding:** The vsdd-factory plugin's CLI story template seeds a `tests/cli_tests.rs` placeholder. This caused recurring FSR-row drift across STORY-086, STORY-087, and STORY-096 (all cited `tests/cli_tests.rs` instead of per-story `tests/cli_story_NNN_tests.rs`). STORY-088 and STORY-089 are expected to hit the same pattern when delivered (Waves 25/26). The fix is in the plugin's story template — not actionable in this repo.
+**Action required:** Escalate to vsdd-factory plugin maintainer: update CLI story template to seed the per-story `tests/cli_story_NNN_tests.rs` form instead of the monolith `tests/cli_tests.rs` placeholder.
+**Impact in-repo:** Minimal — FSR citations are cosmetic anchors; behavioral contracts and tests are correct. Each affected story requires a 1-line FSR update at delivery time (low cost workaround).
+**Validated per:** DF-VALIDATION-001 (research-agent validation 2026-05-31; report: .factory/research/deferred-validation-2026-05-31/).
+**Archive reason:** Engine-side plugin cache; not fixable in this repo.
+
 ## Revisit Gates
 
 | Item | Gate | Notes |
@@ -65,3 +81,4 @@ OBS-7 CLOSED 2026-05-30 — covered by STORY-076 BC-2.11.003 ("JsonReporter Esca
 | W7.1 | v0.1.0-release cycle | 2-PR setup: nightly baseline + CI step |
 | Phase-4-ENTRY | Phase-4 entry | HS-* semantic re-validation against W18 BC corrections |
 | F-S058-P13-O4 | Wave-gate or Phase-5 | test_stop_after_handshake cross-story collision |
+| CLI-STORY-TEMPLATE | Upstream plugin maintainer | vsdd-factory CLI story template seeds wrong test filename; escalate to plugin maintainer |
