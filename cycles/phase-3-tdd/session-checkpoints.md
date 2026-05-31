@@ -69,3 +69,12 @@ Most recent checkpoint is always in STATE.md > "Session Resume Checkpoint" secti
 4. Deferred items accepted below-MEDIUM threshold: F-S058-P11-001 (stale comment tls_analyzer_tests.rs:6819), F-S058-P11-002 (test_nonhandshake_types EC-label set), F-S058-P12-O1 (BC-2.07.005 anchor off-by-one), F-S058-P13-O4 (test_stop_after_handshake cross-story collision). [OBS-7 deferred; PG-W18-001/002 open; PG-W18-002 extended].
 5. input-hash scan: TOTAL=48 MATCH=48 STALE=0 (confirmed post-W17-close).
 6. NEXT: Wave 18 wave-level adversarial convergence — 3-lens fresh-context review (consistency/integration-static/traceability) on frozen develop 3f87ac3. Then consistency audit + input-drift check. Then CLOSE Wave 18.
+
+## Archived: 2026-05-31 — Wave 24 IN PROGRESS; STORY-087 done; next = STORY-096
+
+1. Waves 1-23 CLOSED/CONVERGED. Wave 24 IN PROGRESS. develop HEAD: c2445dc (PR #164 squash-merged 2026-05-31). All 8 CI checks green. 45 stories delivered.
+2. STORY-087 delivery complete: PR#164→c2445dc; 4 passes, 3-clean streak P2/P3/P4 (trajectory 2→1→0→0); BC-5.39.001 ACHIEVED; BC-2.12.004/005/007 formalized; 16 BC-prefixed tests; brownfield-formalization ZERO src changes. F-S087-P1-001/002 (docstrings) fixed @d9f91bc; P2-001 FSR-row Low non-blocking accepted (namespace-policy precedent). Worktree + branch removed.
+3. NEXT: STORY-096 (Absent Behavior Contracts — Removed Flags Rejected by clap; 3pts; Wave 24; E-10). Wave-level convergence (STORY-087 + STORY-096 combined) pending after STORY-096 converges.
+4. Open drift items carried forward: F-W22-BC-ANCHOR (LOW), F-W21-S079-HASH (MEDIUM; TOOL-MISSING), F-W21-TOOL-001 (HIGH; bin/compute-input-hash absent), F-W21-VP-METHOD (LOW), F-DRIFT-C-001, F-S058-P12-O1.
+5. Wave 23 adversarial non-blocking Low findings (optional hardening; recorded lessons.md W23.L2): F-P1-001 through F-P2-001.
+6. Prior checkpoint (Wave 23 CLOSED) archived above.

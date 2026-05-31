@@ -1050,3 +1050,82 @@ The following stories are now unblocked: STORY-087 (Wave 24), STORY-096 (Wave 24
 STORY-088 (Wave 25, also blocked by STORY-087), STORY-089 (Wave 26), STORY-090 (Wave 27).
 **Impact:** Wave 24 can dispatch STORY-087 + STORY-096 in parallel immediately.
 **Status:** [noted — E-9 opened; Wave 24 dispatch ready]
+
+---
+
+## Wave 24 Lessons (2026-05-31)
+
+Wave 24: STORY-087 (E-9, 5pts) + STORY-096 (E-10, 3pts). Two-story wave.
+STORY-087 PR #164 → c2445dc; STORY-096 PR #165 → 9954d44.
+Per-story convergence: STORY-087 4 passes (3-clean P2/P3/P4, trajectory 2→1→0→0); STORY-096 6 passes (3-clean P4/P5/P6, trajectory 1MED→1MED→1MED→0→0→0).
+Wave-level convergence: 3 passes (trajectory 2→1→0), zero HIGH/CRITICAL, 3 lenses CLEAN. CONVERGED 2026-05-31.
+E-10 epic COMPLETE (STORY-096 was its only story). develop HEAD: 9954d44.
+
+---
+
+### W24.L1 — Facade-Mode Mutation-Resistance Gate Catches Coverage Gaps a Red Gate Would Miss [validated]
+
+**Finding ID:** Wave 24 adversarial pass observations
+**Category:** adversarial-workflow / testing-methodology
+**Observed:** STORY-096 used facade-mode (absent-behavior contracts — removed flags rejected by clap).
+The Red Gate approach (test file previously absent) was inapplicable: clap rejection behavior
+cannot be isolated in a traditional red-then-green sequence. Mutation-resistance was used as the
+quality gate instead. The mutation gate caught 3 MEDIUM coverage gaps that a Red Gate would have
+missed:
+  1. AC-006 inline pcap argument form (clap parsing variation)
+  2. AC-006 dotted-key form `pcap.version` (dotted-flag variant coverage gap)
+  3. AC-004 full-src-tree beacon walk (path traversal coverage gap)
+All 3 gaps were fixed before convergence was declared.
+**Impact:** Facade-mode mutation-resistance gate is a valid and stronger quality gate than Red Gate
+for absent-behavior stories. The gate caught real coverage gaps; all fixed inline.
+**Status:** [validated — mutation-resistance gate confirmed effective for facade-mode stories]
+
+---
+
+### W24.L2 — E-10 Absent Behavior Contracts Epic COMPLETE [noted]
+
+**Finding ID:** Wave 24 retrospective observation
+**Category:** epic-lifecycle
+**Observed:** STORY-096 delivery completes Epic E-10 (Absent Behavior Contracts — Flag Rejection).
+E-10 was a single-story epic (3pts); its sole story STORY-096 formalized clap rejection of removed
+flags --threats/--beacon/--filter/--verbose/-v via BC-2.13.001..004 (14 tests: 10 AC + 4 EC).
+Brownfield-formalization zero src changes (all changes test-only).
+**Impact:** E-10 is fully closed. E-9 (CLI, Entry Point, and Analysis Orchestration) remains in
+progress: STORY-086/087 done (2/5), STORY-088/089/090 remaining (waves 25/26/27).
+**Status:** [noted — E-10 COMPLETE; E-9 in progress (3/5 stories: 086/087 + 096 via E-10)]
+
+---
+
+### W24.L3 — [process-observation] pr-manager Stops Before Executing Merge (Recurring Pattern) [deferred — process-gap]
+
+**Finding ID:** Wave 24 process observation (recurrence: also observed STORY-086/087/096 — 3+ times)
+**Category:** process-gap / orchestrator-verification
+**Observed:** On both PR #163 (STORY-086 pattern, Wave 23) and PR #165 (STORY-096, Wave 24),
+pr-manager reported "proceed to merge" or equivalent language without actually executing the merge
+step. The orchestrator caught the gap via independent verification (develop HEAD unchanged after
+pr-manager declared done). This pattern has recurred 3+ times across STORY-086/087/096.
+**Impact:** Orchestrator must independently verify develop HEAD advances after every pr-manager
+invocation. "Proceed to merge" is not equivalent to "merge executed and confirmed."
+**Candidate fix:** pr-manager merge-step exit-condition should require confirmation that develop HEAD
+has advanced to the new merge commit before returning control. The gap is in exit-condition
+tightening, not in merge-step invocation logic.
+**Status:** [deferred — process-gap; candidate for pr-manager exit-condition tightening; no GitHub
+issue until DF-VALIDATION-001 research-agent validation]
+
+---
+
+### W24.L4 — [deferred-optional] Recurring LOW FSR-Row Staleness: Story Files Cite tests/cli_tests.rs [drift-item]
+
+**Finding ID:** Low-severity observation across STORY-086, STORY-087, STORY-096 (3+ occurrences)
+**Category:** spec-anchor / cosmetic / test-citation
+**Observed:** Per-story adversarial reviews for STORY-086, STORY-087, and STORY-096 each produced
+a LOW non-blocking finding that FSR (Formalization Summary Row) Architecture-Anchor sections in the
+story files cite `tests/cli_tests.rs` instead of the per-story formalization test files
+`tests/cli_story_NNN_tests.rs`. The old filename was the pre-formalization monolith; post-wave
+formalization uses per-story namespaced test files matching DF-TEST-NAMESPACE-001.
+**Impact:** LOW cosmetic; test logic and convergence are correct. The FSR citation is a documentation
+anchor, not a behavioral contract gap.
+**Disposition:** Deferred optional batch-cleanup drift item for the story files. Do NOT open a GitHub
+issue without DF-VALIDATION-001 research-agent validation first. Candidate for a dedicated
+story-FSR re-anchor sweep (similar to DF-16.B reporter-BC re-anchor sweep).
+**Status:** [deferred — optional batch-cleanup; NOT blocking; DF-VALIDATION-001 applies if escalated]

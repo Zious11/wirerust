@@ -74,7 +74,7 @@ traces_to:
 | STORY-088 | run_analyze Orchestration — Analyzer Enablement, Reassembly Logic, Target Expansion, Progress Bar | E-9 | 25 | 8 | draft | STORY-086, STORY-087 |
 | STORY-089 | Decode Error Counting, Dispatcher Stats Injection, Format Resolution, and Output Routing | E-9 | 26 | 5 | draft | STORY-086, STORY-087, STORY-088 |
 | STORY-090 | Summary Data Model — ingest, Service Hints, unique_hosts, Serialization | E-9 | 27 | 5 | draft | STORY-086, STORY-088, STORY-089 |
-| STORY-096 | Absent Behavior Contracts — Removed Flags Rejected by clap | E-10 | 24 | 3 | in-progress | STORY-086 |
+| STORY-096 | Absent Behavior Contracts — Removed Flags Rejected by clap | E-10 | 24 | 3 | completed | STORY-086 |
 
 ---
 
@@ -138,6 +138,7 @@ traces_to:
 | 1 | STORY-001, STORY-069 | **DELIVERED & CLOSED** | #106, #105 | b7424b7, 2840caf | 2026-05-22 |
 | 2 | STORY-002, STORY-003, STORY-004, STORY-070 | **DELIVERED & CLOSED** | #109, #110, #107, #108 | 34c592b, 3b2481c, 385e763, 8b514c00 | 2026-05-22 |
 | 23 | STORY-086 | **DELIVERED & CLOSED** | #163 | a42e14b | 2026-05-31 |
+| 24 | STORY-087, STORY-096 | **DELIVERED & CLOSED** | #164, #165 | c2445dc, 9954d44 | 2026-05-31 |
 
 ## Coverage Verification
 
