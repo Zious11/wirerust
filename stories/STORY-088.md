@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-088
 epic_id: E-9
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -87,11 +87,11 @@ When `skip_reassembly = true`, `http_analyzer` and `tls_analyzer` are not constr
 
 ### AC-007 (traces to BC-2.12.010 postcondition 1)
 When `NO_COLOR` environment variable is set (any value, including empty string), `use_color = false` regardless of `--no-color` flag.
-- **Test:** `test_no_color_env_var_disables_color()` (serial test)
+- **Test:** `test_no_color_env_var_disables_color()` (assert_cmd per-subprocess `.env()` injection — no `serial_test` required)
 
 ### AC-008 (traces to BC-2.12.010 postcondition 2)
 When `NO_COLOR` is absent and `--no-color` is also absent, `use_color = true`.
-- **Test:** `test_use_color_true_when_no_flags_set()` (serial test)
+- **Test:** `test_use_color_true_when_no_flags_set()` (assert_cmd per-subprocess `.env()` injection — no `serial_test` required)
 
 ### AC-009 (traces to BC-2.12.011 postcondition 1)
 `resolve_targets` on a directory returns a sorted `Vec<PathBuf>` of only `.pcap` files; `.pcapng`, `.txt`, and other extensions are excluded.
@@ -110,11 +110,11 @@ Directory expansion is NOT recursive; subdirectories within the target directory
 - **Test:** `test_resolve_targets_nonexistent_path_error()`
 
 ### AC-013 (traces to BC-2.12.013 postcondition 3)
-The progress bar appears on stderr (not stdout) and is finished-and-cleared after each file's packet loop (`pb.finish_and_clear()` called).
-- **Test:** `test_progress_bar_does_not_appear_in_output()` (structural check: run_analyze output string does not contain ANSI progress bar bytes)
+The progress bar appears on stderr (not stdout) and is finished-and-cleared after each file's packet loop (`pb.finish_and_clear()` called). (Note: `indicatif` suppresses all rendering when stderr is a non-TTY pipe, which is always the case under assert_cmd. The formalization test therefore verifies the observable stdout-cleanliness guarantee — that no progress artifacts bleed into stdout — rather than directly observing stderr progress rendering. BC-2.12.013 stderr/finish_and_clear behavior is LOW-confidence from a behavioral-test perspective; the guarantee is structural, enforced by code review of the `finish_and_clear()` call site, not by subprocess observation.)
+- **Test:** `test_progress_bar_does_not_appear_in_output()` (structural check: stdout does not contain ANSI progress bar bytes)
 
 ### AC-014 (traces to BC-2.12.013 invariant 4)
-`run_summary` has NO progress bar.
+`run_summary` has NO progress bar. (Note: same TTY-limitation applies as AC-013 — indicatif suppresses rendering on non-TTY stderr, so the test verifies stdout cleanliness. The absence of a progress bar in `run_summary` is additionally confirmed by code-structure review.)
 - **Test:** `test_run_summary_has_no_progress_bar()`
 
 ## Architecture Mapping
@@ -149,7 +149,7 @@ The progress bar appears on stderr (not stdout) and is finished-and-cleared afte
 |---------------|-----------------|
 | This story spec | ~3,500 |
 | `src/main.rs` (run_analyze, resolve_targets) | ~8,000 |
-| `tests/cli_tests.rs` | ~3,000 |
+| `tests/main_story_088_tests.rs` | ~3,000 |
 | BC files (6 BCs — BC-2.12.008..013) | ~8,000 |
 | Tool outputs overhead | ~1,500 |
 | **Total** | **~24,000** |
@@ -158,16 +158,16 @@ The progress bar appears on stderr (not stdout) and is finished-and-cleared afte
 
 ## Tasks (MANDATORY)
 
-1. [ ] Write failing tests for AC-001 through AC-014 (test-writer)
+1. [ ] Write failing tests for AC-001 through AC-014 in `tests/main_story_088_tests.rs` (test-writer)
 2. [ ] Verify Red Gate: all tests fail
 3. [ ] Implement `--all` OR-expansion in `run_analyze` (main.rs:57-59)
 4. [ ] Implement `needs_reassembly`/`skip_reassembly` logic with stderr warning (VP-018 runtime half)
 5. [ ] Implement `resolve_targets` function (directory expansion + non-existent bail)
-6. [ ] Implement `use_color` env-var check using `#[serial]` test infrastructure
+6. [ ] Implement `use_color` env-var check (tests use assert_cmd per-subprocess `.env()` injection — no `#[serial]` needed)
 7. [ ] Implement progress bar creation and `finish_and_clear` pattern
-8. [ ] Write edge-case tests for EC-001 through EC-005
+8. [ ] Write edge-case tests for EC-001 through EC-005 in `tests/main_story_088_tests.rs`
 9. [ ] Verify purity boundaries: `resolve_targets` and progress bar are effectful-shell only
-10. [ ] Run `cargo test --all-targets` (env-var tests need `#[serial]`)
+10. [ ] Run `cargo test --all-targets`
 
 ## Previous Story Intelligence (MANDATORY)
 
@@ -184,7 +184,7 @@ The progress bar appears on stderr (not stdout) and is finished-and-cleared afte
 | Extension check is `ext == "pcap"` (case-sensitive) | BC-2.12.011 invariant 1 | Test: `.PCAP` excluded |
 | Warning message is exact hardcoded string | BC-2.12.009 invariant 1 | `assert!(stderr_output.contains("Warning: --http/--tls require TCP reassembly..."))` |
 | `pb.finish_and_clear()` always called after inner loop | BC-2.12.013 invariant 2 | Structural review; progress bar template hardcoded |
-| `NO_COLOR` env tests must use `#[serial]` | BC-2.12.010, testing hygiene | `serial_test` crate dev-dependency |
+| `NO_COLOR` env tests use assert_cmd per-subprocess `.env()` injection | BC-2.12.010, testing hygiene | No global env mutation; `#[serial]` not required |
 
 ## Library & Framework Requirements (MANDATORY)
 
@@ -192,12 +192,13 @@ The progress bar appears on stderr (not stdout) and is finished-and-cleared afte
 |------|---------|---------|
 | `indicatif` | workspace version | Progress bar (`ProgressBar`, `ProgressStyle`) |
 | `anyhow` | workspace version | `bail!` macro for `resolve_targets` error |
-| `serial_test` | dev-dependency | Serialize env-var tests to prevent cross-test contamination |
+| `assert_cmd` | dev-dependency | Subprocess behavioral tests; `.env()` injects per-process env for `NO_COLOR` tests — `serial_test` is NOT required because each subprocess gets an isolated env |
 
 ## File Structure Requirements (MANDATORY)
 
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/main.rs` | modify | `run_analyze` (analyzer enablement, reassembly logic, progress bar), `resolve_targets` |
-| `Cargo.toml` | modify | Add `serial_test` as dev-dependency if not already present |
-| `tests/cli_tests.rs` | modify | Add AC-001..AC-014 test functions; `#[serial]` on env-var tests |
+| `tests/main_story_088_tests.rs` | create | AC-001..AC-014 test functions; assert_cmd subprocess tests for env-var and output checks |
+
+Note: `tests/cli_tests.rs` is a pre-existing test file for other stories and is referenced as read-context only; it is NOT the artifact produced by this story. `Cargo.toml` does not require `serial_test` — assert_cmd subprocess isolation makes it unnecessary.
