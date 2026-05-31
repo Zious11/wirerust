@@ -68,6 +68,17 @@ mod story_089 {
     /// AC-012, EC-002, EC-003, EC-004, EC-005.
     const HTTP_FIXTURE: &str = "tests/fixtures/http-ooo.pcap";
 
+    /// one-decode-error.pcap: 2 pcap records — 1 ARP frame (fails decode with
+    /// "No IP layer found") followed by 1 valid IPv4/UDP packet (succeeds).
+    /// Produces skipped_packets=1, total_packets=1, exactly ONE warning line.
+    ///
+    /// Built by tests/build_one_decode_error_fixture.py (see ADV-P04-MED-001).
+    /// Mutation-discriminating property: with `== 0` guard the ARP is the
+    /// first (and only) error → 1 warning. If the guard were `== 1` (warn on
+    /// 2nd error) there is no 2nd error → 0 warnings. This fixture kills that
+    /// surviving mutant.
+    const ONE_ERROR_FIXTURE: &str = "tests/fixtures/one-decode-error.pcap";
+
     // -----------------------------------------------------------------------
     // AC-001 (traces to BC-2.12.014 postcondition 1)
     // First decode error prints exactly one warning to stderr.
@@ -975,5 +986,110 @@ mod story_089 {
             .assert()
             .success()
             .stdout(predicate::str::contains("WIRERUST TRIAGE REPORT"));
+    }
+
+    // -----------------------------------------------------------------------
+    // ADV-P04-MED-001 remediation: single-decode-error fixture
+    //
+    // The existing tests (AC-002, AC-004, EC-005, test_run_summary_decode_error_warning_once)
+    // use dns-remoteshell.pcap (73 errors, all identical "No IP layer found").
+    // A mutation `if total_decode_errors == 0` → `== 1` (warn on 2nd error
+    // instead of 1st) SURVIVES those tests because 73 errors still yield exactly
+    // 1 warning (errors 2-73 are also suppressed under either guard).
+    //
+    // FIX: one-decode-error.pcap contains EXACTLY ONE decode failure (1 ARP frame
+    // that has no IP layer) plus 1 valid IPv4/UDP packet.  Under the correct
+    // `== 0` guard the ARP is error #0 → warning fires → 1 warning.
+    // Under the `== 1` mutant the ARP is error #0 (count still 0 at the guard
+    // check before the increment) — wait, let me be precise:
+    //   total_decode_errors starts at 0.
+    //   First error arrives: guard checks `== 0` (true) → warns.
+    //   `== 1` mutant: checks `== 1` (false, count is 0) → NO warn; count → 1.
+    //   No second error exists → 0 warnings total.
+    // The new tests below assert warning_count == 1, killing the mutant (0 ≠ 1).
+    // -----------------------------------------------------------------------
+
+    /// ADV-P04-MED-001 (BC-2.12.014 postcondition 1, run_analyze):
+    /// With exactly ONE decode error, the `== 0` guard fires exactly once,
+    /// emitting exactly 1 warning. The `== 1` mutant would emit 0 warnings
+    /// (no second error exists to trigger the mutated guard).
+    ///
+    /// Fixture: one-decode-error.pcap — 1 ARP packet (decode fails) + 1 valid
+    /// IPv4/UDP packet (decode succeeds). skipped_packets=1 in JSON output.
+    ///
+    /// Mutation-catch proof (verified):
+    ///   Correct `== 0`:  ARP is error #0 → guard true  → 1 warning (PASS).
+    ///   Mutant  `== 1`:  ARP is error #0 → guard false → 0 warnings (FAIL).
+    ///
+    /// Discriminating assertions:
+    ///   Positive: stderr warning count == 1.
+    ///   Positive: stdout JSON contains `"skipped_packets": 1`.
+    ///   Positive: command exits 0.
+    #[test]
+    fn test_BC_2_12_014_single_error_fixture_first_error_fires_warning_run_analyze() {
+        let output = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["analyze", ONE_ERROR_FIXTURE, "--dns", "--json"])
+            .output()
+            .expect("command ran");
+
+        assert!(output.status.success(), "command must exit 0");
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let warning_count = stderr.matches("Warning: failed to decode packet").count();
+        assert_eq!(
+            warning_count, 1,
+            "ADV-P04-MED-001 run_analyze: with exactly 1 decode error the warning \
+             must appear exactly once (== 0 guard fires on error #0); \
+             got {warning_count}. stderr: {stderr}"
+        );
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.contains("\"skipped_packets\": 1"),
+            "ADV-P04-MED-001 run_analyze: expected skipped_packets=1 in JSON; stdout: {stdout}"
+        );
+    }
+
+    /// ADV-P04-MED-001 (BC-2.12.014 postcondition 1, run_summary):
+    /// Same mutation-discriminating fixture exercised via the `summary`
+    /// subcommand. The decode loop in run_summary has its own copy of the
+    /// `if total_decode_errors == 0` guard (src/main.rs ~line 267); this
+    /// test kills the mutant there independently.
+    ///
+    /// Fixture: one-decode-error.pcap — skipped_packets=1 in JSON output.
+    ///
+    /// Mutation-catch proof (verified):
+    ///   Correct `== 0`:  1 warning (PASS).
+    ///   Mutant  `== 1`:  0 warnings (FAIL).
+    ///
+    /// Discriminating assertions:
+    ///   Positive: stderr warning count == 1.
+    ///   Positive: stdout JSON contains `"skipped_packets": 1`.
+    ///   Positive: command exits 0.
+    #[test]
+    fn test_BC_2_12_014_single_error_fixture_first_error_fires_warning_run_summary() {
+        let output = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["summary", ONE_ERROR_FIXTURE, "--json"])
+            .output()
+            .expect("command ran");
+
+        assert!(output.status.success(), "command must exit 0");
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let warning_count = stderr.matches("Warning: failed to decode packet").count();
+        assert_eq!(
+            warning_count, 1,
+            "ADV-P04-MED-001 run_summary: with exactly 1 decode error the warning \
+             must appear exactly once (== 0 guard fires on error #0); \
+             got {warning_count}. stderr: {stderr}"
+        );
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert!(
+            stdout.contains("\"skipped_packets\": 1"),
+            "ADV-P04-MED-001 run_summary: expected skipped_packets=1 in JSON; stdout: {stdout}"
+        );
     }
 }
