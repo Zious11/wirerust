@@ -995,3 +995,58 @@ to reduce STATE.md below 200 lines (content-routing rule S-7.02 / EXTRACTION 4).
 | W16 | S042/043/044/052 | Retroactive convergence; DF-CONVERGENCE-BEFORE-MERGE-001 (CRITICAL) | 7 per-story |
 | W17 | S045+S053+S055 | Wave-level AC-sync miss caught (PG-W17-001/002); 3/3 per-story 5ps-3clean | 5 each |
 | Drift | 66 tracked | 57 closed; 5 new policies; DF-16.B (209 BCs broken citations) OPEN | n/a |
+
+---
+
+## Wave 23 Lessons (2026-05-31)
+
+Wave 23: STORY-086 (E-9 CLI, 5pts). Single-story wave. PR #163 → a42e14b. develop HEAD: a42e14b.
+Per-story convergence = wave-level per BC-5.39.001 (single-story wave; no separate wave-level pass required).
+3 adversarial passes: P1→3 findings, P2→1 finding, P3→0 findings. CONVERGED 2026-05-31.
+
+### W23.L1 — Single-Story Wave: Per-Story Convergence Equals Wave-Level Convergence [validated — BC-5.39.001]
+
+**Finding ID:** Wave 23 retrospective observation
+**Category:** adversarial-workflow / convergence-policy
+**Observed:** STORY-086 is a single-story wave. BC-5.39.001 explicitly states that per-story
+adversarial convergence equals wave-level convergence for single-story waves; no separate
+wave-level pass is required. The 3-clean pass trajectory (3→1→0) satisfied BC-5.39.001 at P3.
+**Impact:** Wave closed after 3 passes instead of requiring a separate wave-level lens pass.
+Zero extra overhead for single-story waves when the rule is applied.
+**Validation confirmed:** 3 clean passes with 0 Critical/High/Medium findings — BC-5.39.001 threshold met.
+**Status:** [validated — BC-5.39.001 policy effective; no new codification needed]
+
+---
+
+### W23.L2 — 4 Low Non-Blocking Findings Consciously Scoped Out (Optional Hardening) [deferred — optional]
+
+**Finding ID:** F-P1-001, F-P1-002, F-P1-003, F-P2-001
+**Category:** optional-hardening / convergence-threshold
+**Observed:** 4 Low-severity non-blocking findings were identified during convergence but consciously
+scoped out of STORY-086 delivery per BC-5.39.001 (only MEDIUM+ blocks convergence). These are
+recorded as optional hardening items, NOT as drift items requiring research-agent validation, and
+NOT as GitHub issues.
+
+| Finding ID | Description | Disposition |
+|------------|-------------|-------------|
+| F-P1-001 | `-a` short-flag alias for `--analyze` not covered by a test | Optional hardening — short-flag behavior is an implementation convenience |
+| F-P1-002 | Quoted-path with spaces EC not formally specified as an AC/EC in STORY-086 | Optional hardening — already tested by inference; EC formalization deferred to Wave 24+ |
+| F-P1-003 | AC-008 doc citation cosmetic mismatch (doc comment phrasing vs AC text) | Cosmetic; doc comment already accurate; story AC text wording is secondary |
+| F-P2-001 | AC-002 sub-block missing explicit `mitre=false` assertion in test | Optional hardening — the sub-block already matches the expected output without the assertion |
+
+**Disposition:** All 4 accepted as non-blocking LOW. Not filed as GitHub issues (per DF-VALIDATION-001;
+no research-agent validation run). Recorded here for optional hardening in future Wave 24+ or
+a dedicated cleanup pass.
+**Status:** [deferred — optional hardening; NOT blocking; DF-VALIDATION-001 applies if any escalated to issue]
+
+---
+
+### W23.L3 — E-9 CLI Epic OPENED; STORY-087/096 Unblocked [noted]
+
+**Finding ID:** Wave 23 retrospective observation
+**Category:** epic-lifecycle
+**Observed:** STORY-086 delivery opens Epic E-9 (CLI, Entry Point, and Analysis Orchestration).
+The following stories are now unblocked: STORY-087 (Wave 24), STORY-096 (Wave 24),
+STORY-088 (Wave 25, also blocked by STORY-087), STORY-089 (Wave 26), STORY-090 (Wave 27).
+**Impact:** Wave 24 can dispatch STORY-087 + STORY-096 in parallel immediately.
+**Status:** [noted — E-9 opened; Wave 24 dispatch ready]

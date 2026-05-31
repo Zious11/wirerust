@@ -9,18 +9,20 @@ phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
 phase_2_completed: "2026-05-21"
 phase_3_started: "2026-05-21"
-develop_head: c127c1c
+develop_head: a42e14b
 current_cycle: v0.1.0-greenfield-spec
-current_wave: 23
-wave_20_22_detail: "cycles/phase-3-tdd/wave-history.md"
-stories_delivered: 43
+current_wave: 24
+wave_20_23_detail: "cycles/phase-3-tdd/wave-history.md"
+stories_delivered: 44
+wave_23_status: CLOSED
+wave_23_summary: "single-story (STORY-086 PR#163→a42e14b); per-story convergence==wave-level (BC-5.39.001; 3-clean passes 3→1→0); E-9 CLI epic OPENED"
 dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3
 adversary_gate: SATISFIED
-convergence_trajectory: "Full Phase-1→W22 trajectory archived in cycles/phase-3-tdd/convergence-trajectory.md. Latest: ...W21-CONVERGED-CLOSED-2026-05-30|W22-S078-story:3ps-3clean(P1/P2/P3;terminal-MITRE-grouping)|W22-S078-DELIVERED(PR#160→bf16c0b)|W22-S080-story:3-clean-P7/P8/P9(FSR+timestamp-lock+test-harden-cascade)|W22-S080-DELIVERED(PR#161→1ecf114)|W22-WAVE-3lens:R1-consistency+integration-CLEAN,traceability-DIRTY(F-W22-T1-demo-rollup+S078-FSR)→remediated(PR#162-docs→c127c1c)→R2-traceability-CLEAN;3/3-lenses-CLEAN|W22-CONVERGED-CLOSED-2026-05-30|E-8-REPORTER-EPIC-COMPLETE(BC-2.11.001..024)"
+convergence_trajectory: "Full Phase-1→W23 trajectory archived in cycles/phase-3-tdd/convergence-trajectory.md. Latest: ...W22-CONVERGED-CLOSED-2026-05-30|E-8-REPORTER-EPIC-COMPLETE(BC-2.11.001..024)|W23-S086-story:3ps-3clean(P1→3,P2→1,P3→0);4-Low-non-blocking;BC-2.12.001/002/003/006-formalized|W23-S086-DELIVERED(PR#163→a42e14b)|W23-CONVERGED-CLOSED-2026-05-31(single-story;per-story==wave-level;BC-5.39.001)|E-9-CLI-EPIC-OPENED"
 consistency_audit: CONSISTENT
 input_drift_check: CLEAN (Wave-20 STORY-076 test-only formalization; zero src/production changes; reporter/json subsystem — no holdout-scenario hash impact; Wave-19 story-citation/AC-sync bump may apply — verify at Phase-4 entry)
 phase_2_input_hash_drift_check: CLEAN
@@ -32,10 +34,10 @@ wave_history_archived: "cycles/phase-3-tdd/wave-history.md (waves 1-22 detail fi
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-22 CLOSED/CONVERGED; Wave 23 NEXT. 43 stories delivered.
-43 stories delivered (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052/045/053/055/046/054/056/058/057/076/077/079/078/080).
-Wave 22 CLOSED — STORY-078 (PR#160→bf16c0b) + STORY-080 (PR#161→1ecf114) + docs PR#162→c127c1c. 3/3 wave-level lenses CLEAN. E-8 reporter epic COMPLETE (BC-2.11.001..024 all formalized).
-develop HEAD: c127c1c (docs PR #162 squash-merged 2026-05-30; full suite green; 970 tests). All 8 CI checks green. NEXT: Wave 23 (STORY-086).
+**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-23 CLOSED/CONVERGED; Wave 24 NEXT. 44 stories delivered.
+44 stories delivered (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052/045/053/055/046/054/056/058/057/076/077/079/078/080/086).
+Wave 23 CLOSED — STORY-086 (PR#163→a42e14b; single-story wave; per-story convergence==wave-level per BC-5.39.001; 3-clean passes 3→1→0; BC-2.12.001/002/003/006 formalized; E-9 CLI epic OPENED).
+develop HEAD: a42e14b (PR #163 squash-merged 2026-05-31; full suite green; 33 test targets). All 8 CI checks green. NEXT: Wave 24 (STORY-087 + STORY-096).
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -52,7 +54,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-22 CLOSED/CONVERGED; Wave 23 NEXT (43 stories; develop HEAD c127c1c; 970 tests green); E-8 reporter epic COMPLETE | W22: 3/3 wave-level lenses CLEAN; BC-2.11.001..024 all formalized; NEXT: Wave 23 (STORY-086) |
+| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-23 CLOSED/CONVERGED; Wave 24 NEXT (44 stories; develop HEAD a42e14b; 33 test targets green); E-8 COMPLETE, E-9 OPENED | W23: single-story STORY-086; per-story==wave-level (BC-5.39.001); 3→1→0 clean; BC-2.12.001/002/003/006; NEXT: Wave 24 (STORY-087 + STORY-096) |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -64,18 +66,18 @@ dependency bumping for it).
 |------|---------|--------|----------------------|-------|
 | 1–21 | 41 stories | CLOSED/CONVERGED | see wave-history | Full per-wave detail: cycles/phase-3-tdd/wave-history.md |
 | 22 | STORY-078 + STORY-080 | **CLOSED/CONVERGED** 2026-05-30 | c127c1c (PR #162 docs; PRs #160/#161/#162) | STORY-078: 3ps-3clean(P1/P2/P3); STORY-080: 3-clean P7/P8/P9; 3/3 wave-level lenses CLEAN; 28 tests (16 terminal+12 csv); E-8 epic COMPLETE (BC-2.11.001..024) |
-| 23 | STORY-086 | **NEXT** | — | unblocked (STORY-080 done); develop HEAD c127c1c |
-| 24–27 | (remaining) | NOT STARTED | — | — |
+| 23 | STORY-086 | **CLOSED/CONVERGED** 2026-05-31 | a42e14b (PR #163) | single-story; 3-clean P1/P2/P3 (3→1→0); 15 BC-prefixed CLI tests; BC-2.12.001/002/003/006; E-9 CLI epic OPENED; 4 Low non-blocking |
+| 24 | STORY-087 + STORY-096 | **NEXT** | — | unblocked (STORY-086 done); develop HEAD a42e14b |
+| 25–27 | (remaining) | NOT STARTED | — | — |
 
 ## Phase 3 — Current Phase Steps (last 5)
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Wave 22 — STORY-080 per-story convergence | **COMPLETE** 2026-05-30 | BC-5.39.001 ACHIEVED: 3-clean P7/P8/P9 (FSR-citation + BC-2.11.024 timestamp Z→+00:00 lock + test-hardening; P1-P6 DIRTY spec-side drift). 12 reporter_csv_tests (BC-2.11.023..024). Brownfield-formalization ZERO src. |
-| Wave 22 — STORY-080 PR merged | **COMPLETE** 2026-05-30 | PR #161 squash-merged → 1ecf114. 970 tests green. All 8 CI green. Security CLEAN. pr-reviewer APPROVED. Demo evidence docs/demo-evidence/STORY-080/. Worktree + branch removed. |
-| Wave 22 — wave-level convergence | **COMPLETE** 2026-05-30 | 3-lens fresh-context. R1: consistency+integration-static CLEAN; traceability DIRTY (F-W22-T1 demo-evidence epic-rollup wrong AC counts + STORY-078 FSR-citation). Remediated: PR#162 docs→c127c1c + STORY-078 v1.3 FSR. R2: traceability CLEAN. 3/3 lenses CLEAN. BC-5.39.001 ACHIEVED. |
-| Wave 22 — CLOSED | **COMPLETE** 2026-05-30 | develop HEAD c127c1c (docs PR #162). 43 stories. E-8 reporter epic COMPLETE (JSON/Terminal/CSV; BC-2.11.001..024 all formalized). [process-observation] F-W22-T1: demo-recorder fabricated cross-story epic-rollup table with wrong AC counts — demo-recorder should cross-check against STORY-INDEX or omit unverified rollup numbers. |
-| Wave 23 — dispatch | **NEXT** | STORY-086 unblocked. develop HEAD c127c1c. |
+| Wave 23 — STORY-086 per-story convergence | **COMPLETE** 2026-05-31 | BC-5.39.001 ACHIEVED: 3-clean P1/P2/P3 (trajectory 3→1→0); 0 Critical/High/Medium; 4 Low non-blocking (optional hardening; recorded lessons.md). 15 BC-prefixed CLI parse tests (10 ACs + 5 ECs) in tests/cli_story_086_tests.rs. BCs formalized: BC-2.12.001/002/003/006. |
+| Wave 23 — STORY-086 PR merged | **COMPLETE** 2026-05-31 | PR #163 squash-merged → a42e14b. 33 test targets green. All 8 CI green. Security CLEAN. pr-reviewer APPROVED (1 cycle, 0 blocking, 2 Low pre-documented). Demo evidence docs/demo-evidence/STORY-086/ (8/10 ACs + 3/5 ECs VHS). E-9 CLI epic OPENED. |
+| Wave 23 — CLOSED | **COMPLETE** 2026-05-31 | Single-story wave; per-story convergence==wave-level per BC-5.39.001 (no separate wave pass required). develop HEAD a42e14b. 44 stories. E-9 CLI epic OPENED. STORY-087/096 unblocked. |
+| Wave 24 — dispatch | **NEXT** | STORY-087 + STORY-096 unblocked. develop HEAD a42e14b. |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -93,13 +95,13 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-30 — Wave 22 CLOSED; next = Wave 23)
+## Session Resume Checkpoint (2026-05-31 — Wave 23 CLOSED; next = Wave 24)
 
-1. Waves 1-22 CLOSED/CONVERGED. develop HEAD: c127c1c (docs PR #162 squash-merged 2026-05-30). All 8 CI checks green. 43 stories delivered.
-2. Wave 22 delivery complete: STORY-078 (PR#160→bf16c0b; 3ps-3clean P1/P2/P3; 16 reporter_terminal_tests; BC-2.11.013..019; VP-016 in-story) + STORY-080 (PR#161→1ecf114; 3-clean P7/P8/P9 after FSR-citation + BC-2.11.024 timestamp-Z→+00:00 lock + test-hardening cascade; 12 reporter_csv_tests; BC-2.11.023..024) + docs PR#162→c127c1c. Full suite 970 passed/0 failed. 3/3 wave-level lenses CLEAN. E-8 reporter epic COMPLETE (JSON/Terminal/CSV; BC-2.11.001..024 all formalized).
-3. NEXT: Wave 23 — STORY-086 (unblocked; develop HEAD c127c1c). No active worktrees or in-flight branches.
+1. Waves 1-23 CLOSED/CONVERGED. develop HEAD: a42e14b (PR #163 squash-merged 2026-05-31). All 8 CI checks green. 44 stories delivered.
+2. Wave 23 delivery complete: STORY-086 (PR#163→a42e14b; single-story wave; per-story==wave-level per BC-5.39.001; 3-clean P1/P2/P3 trajectory 3→1→0; 15 BC-prefixed CLI parse tests; BC-2.12.001/002/003/006; ZERO src/ changes brownfield-formalization; 8/10 ACs + 3/5 ECs VHS demo evidence). E-9 CLI epic OPENED (unblocks STORY-087/088/089/090/096).
+3. NEXT: Wave 24 — STORY-087 + STORY-096 (unblocked; develop HEAD a42e14b). No active worktrees or in-flight branches.
 4. Open drift items carried forward: F-W22-BC-ANCHOR (LOW; SS-11 reporter BC anchor staleness — dedicated sweep), F-W21-S079-HASH (MEDIUM; TOOL-MISSING), F-W21-TOOL-001 (HIGH; bin/compute-input-hash absent), F-W21-VP-METHOD (LOW; VP-018/019 proof_method), F-DRIFT-C-001, F-S058-P12-O1.
-5. Process-observation from Wave 22 wave-level: demo-recorder fabricated cross-story epic-rollup table with wrong AC counts (F-W22-T1). Demo-recorder should cross-check rollup numbers against STORY-INDEX or omit. Not yet codified to policies.yaml.
+5. Wave 23 adversarial non-blocking Low findings (optional hardening; recorded lessons.md): F-P1-001 `-a` short-flag untested; F-P1-002 quoted-path EC not formalized; F-P1-003 AC-008 doc citation cosmetic; F-P2-001 AC-002 sub-block missing mitre=false assertion.
 6. Prior checkpoint archived: cycles/phase-3-tdd/session-checkpoints.md.
 
 ## Wave Retrospectives
