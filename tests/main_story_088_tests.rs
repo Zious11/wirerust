@@ -244,28 +244,48 @@ mod story_088 {
     // -----------------------------------------------------------------------
     // AC-006 (traces to BC-2.12.009 postcondition 6)
     // dns_analyzer is constructed independently of reassembly.
-    // Observable: ANALYZER: DNS appears even with --no-reassemble.
+    // Observable: ANALYZER: DNS appears even with --no-reassemble, AND the
+    // DNS analyzer produces NON-ZERO activity (dns_queries > 0) confirming
+    // per-packet analysis ran — not merely that the section header was emitted.
     // -----------------------------------------------------------------------
 
     /// AC-006 (BC-2.12.009 postcondition 6; invariant 4): The dns_analyzer is
-    /// constructed independently of reassembly. Observable: `--dns --no-reassemble`
-    /// still produces the "ANALYZER: DNS" section in stdout.
+    /// constructed independently of reassembly and performs per-packet analysis.
+    /// Observable: `--dns --no-reassemble` on dns-remoteshell.pcap produces:
+    ///   1. The "ANALYZER: DNS" section header in stdout.
+    ///   2. "dns_queries: 6" — non-zero, confirming actual DNS packet analysis
+    ///      occurred (dns-remoteshell.pcap contains 6 DNS queries / 12 responses).
+    ///
+    /// This strengthened form catches the adversarial mutation: if DNS per-packet
+    /// analysis were gated behind `!skip_reassembly`, dns_queries would be 0 and
+    /// the `dns_queries: 6` assertion would fail.
+    ///
+    /// Fixture: tests/fixtures/dns-remoteshell.pcap — confirmed to yield
+    /// `dns_queries: 6` under `--dns --no-reassemble` (verified with binary run).
     ///
     /// Discriminating assertions:
-    ///   Positive: stdout contains "ANALYZER: DNS" even with --no-reassemble.
+    ///   Positive: stdout contains "ANALYZER: DNS" (section header present).
+    ///   Positive: stdout contains "dns_queries: 6" (non-zero — analyzer ran).
     ///   Positive: command exits 0.
-    ///   Negative: no warning emitted (--dns does not require reassembly).
+    ///   Negative: no reassembly warning emitted (--dns does not require reassembly).
     #[test]
     fn test_dns_analyzer_constructed_without_reassembly() {
         let no_reassemble_warning = "Warning: --http/--tls require TCP reassembly";
 
-        // Positive: DNS analyzer still runs with --no-reassemble
+        // Positive: DNS analyzer runs WITH --no-reassemble, producing non-zero
+        // dns_queries from the dns-remoteshell.pcap fixture (6 DNS queries confirmed).
         Command::cargo_bin("wirerust")
             .unwrap()
             .args(["analyze", DNS_FIXTURE, "--dns", "--no-reassemble"])
             .assert()
             .success()
+            // Section header present → analyzer was constructed
             .stdout(predicate::str::contains("ANALYZER: DNS"))
+            // Non-zero query count → per-packet analysis actually executed,
+            // not gated behind reassembly. If mutated to `if !skip_reassembly
+            // && enable_dns`, this would read "dns_queries: 0" and fail here.
+            .stdout(predicate::str::contains("dns_queries: 6"))
+            // No reassembly warning → --dns correctly does not require reassembly
             .stderr(predicate::str::contains(no_reassemble_warning).not());
     }
 
@@ -329,41 +349,88 @@ mod story_088 {
     // -----------------------------------------------------------------------
     // AC-009 (traces to BC-2.12.011 postcondition 1)
     // resolve_targets on a directory returns sorted Vec<PathBuf> of *.pcap only.
-    // Observable: run analyze on a tempdir with a.pcap, b.pcap, c.pcapng;
-    // command succeeds (a.pcap and b.pcap processed); c.pcapng excluded
-    // (would cause a reader error if it were included since pcapng is rejected
-    // at reader level).
+    // Observable: run analyze on a tempdir with a.pcap (http.pcap, 1 packet),
+    // z.pcap (http-ooo.pcap, 16 packets), and c.pcapng (excluded); assert:
+    //   1. command succeeds (pcapng excluded → no reader error)
+    //   2. sort order is observable via recent_uris in --json output:
+    //      sorted order (a first) → iuident URI appears before /1, /2...
+    //      unsorted/reversed (z first) → /1 appears before iuident URI
     // -----------------------------------------------------------------------
 
     /// AC-009 (BC-2.12.011 postcondition 1, 2, 3, 4): `resolve_targets` on a
-    /// directory expands to sorted `.pcap` files only. `.pcapng`, `.txt`, and
-    /// other extensions are excluded. Observable proxy: run `analyze <dir>` on
-    /// a tempdir containing `a.pcap`, `b.pcap`, and `c.pcapng`; assert command
-    /// succeeds (no reader error from .pcapng being passed) AND that the output
-    /// reflects the two .pcap files (packet counts consistent with processing
-    /// only valid pcap files).
+    /// directory expands to sorted `.pcap` files only and processes them in
+    /// sorted alphabetical order. Observable via two mechanisms:
+    ///
+    ///   1. pcapng-excluded safety: `c.pcapng` excluded → command exits 0 (no
+    ///      reader error that would occur if pcapng were passed to the reader).
+    ///
+    ///   2. Sort-order observable via `--all --json` recent_uris: the HTTP
+    ///      analyzer accumulates URIs in processing order. With sorted order
+    ///      (a.pcap first), `/v4/iuident.cab?0307011208` (from http.pcap, 1 pkt)
+    ///      appears BEFORE `/1` (from http-ooo.pcap, 16 pkts) in recent_uris.
+    ///      If `files.sort()` is removed and z.pcap is iterated first (observed
+    ///      on macOS APFS when z is created before a), `/1` would appear first
+    ///      and the iuident URI assertion order would fail.
+    ///
+    /// Fixtures:
+    ///   a.pcap ← http.pcap       (1 packet;  HTTP HEAD /v4/iuident.cab...)
+    ///   z.pcap ← http-ooo.pcap   (16 packets; HTTP PUT/GET /1.../5)
+    ///   c.pcapng ← smb3.pcapng   (pcapng; must be excluded)
     ///
     /// Discriminating assertions:
     ///   Positive: command exits 0 (pcapng excluded → no reader error).
-    ///   Positive: stdout contains "Packets: 32" (2 × 16 from http-ooo.pcap).
+    ///   Positive: stdout contains "Packets: 17" (1+16; pcapng excluded).
+    ///   Positive: stdout (JSON) contains iuident URI before /1 (sort verified).
     ///   Negative: the pcapng file is NOT passed to the reader.
     #[test]
     fn test_resolve_targets_directory_pcap_only_sorted() {
         let dir = tempfile::tempdir().expect("tempdir");
         let dir_path = dir.path();
 
-        fs::copy(HTTP_FIXTURE, dir_path.join("a.pcap")).unwrap();
-        fs::copy(HTTP_FIXTURE, dir_path.join("b.pcap")).unwrap();
+        // Create z.pcap BEFORE a.pcap so that without sort(), read_dir would
+        // return [z.pcap, a.pcap] on typical macOS APFS (creation/inode order).
+        // With files.sort(), the order is always [a.pcap, z.pcap].
+        fs::copy("tests/fixtures/http-ooo.pcap", dir_path.join("z.pcap")).unwrap();
+        fs::copy("tests/fixtures/http.pcap", dir_path.join("a.pcap")).unwrap();
         // smb3.pcapng is a pcapng file; if included it would cause a reader error
         fs::copy("tests/fixtures/smb3.pcapng", dir_path.join("c.pcapng")).unwrap();
 
-        Command::cargo_bin("wirerust")
+        let output = Command::cargo_bin("wirerust")
             .unwrap()
-            .args(["analyze", dir_path.to_str().unwrap(), "--no-color"])
+            .args([
+                "analyze",
+                dir_path.to_str().unwrap(),
+                "--no-color",
+                "--all",
+                "--json",
+            ])
             .assert()
             .success()
-            // 2 × 16 = 32 packets from a.pcap + b.pcap; c.pcapng excluded
-            .stdout(predicate::str::contains("Packets: 32"));
+            // 1 (http.pcap) + 16 (http-ooo.pcap) = 17; c.pcapng excluded
+            .stdout(predicate::str::contains("\"total_packets\": 17"))
+            .get_output()
+            .stdout
+            .clone();
+
+        let stdout = String::from_utf8_lossy(&output);
+
+        // Sort-order assertion: in sorted order (a.pcap first), the iuident URI
+        // from http.pcap appears in recent_uris BEFORE the /1 URI from http-ooo.pcap.
+        // If files.sort() is removed, z.pcap (http-ooo.pcap) is iterated first on
+        // macOS APFS (created first above), so /1 appears before the iuident URI.
+        let iuident_pos = stdout
+            .find("/v4/iuident.cab")
+            .expect("iuident URI must appear in recent_uris (http.pcap processed)");
+        let slash1_pos = stdout
+            .find("\"/1\"")
+            .expect("/1 URI must appear in recent_uris (http-ooo.pcap processed)");
+
+        assert!(
+            iuident_pos < slash1_pos,
+            "Sort order violated: /v4/iuident.cab (from a.pcap) must appear before /1 \
+            (from z.pcap) in recent_uris; got iuident_pos={iuident_pos}, slash1_pos={slash1_pos}. \
+            This fires when files.sort() is removed from resolve_targets."
+        );
     }
 
     // -----------------------------------------------------------------------
@@ -475,12 +542,29 @@ mod story_088 {
     /// `\x1b[` prefix). For this test we use `--no-color` to strip coloring and
     /// then verify no remaining escape sequences are from the progress bar.
     ///
+    /// // LIMITATION: indicatif renders the progress bar ONLY when stderr is a TTY.
+    /// // Under assert_cmd's piped (non-TTY) stderr, indicatif emits nothing to stderr
+    /// // at all — the bar is completely suppressed. As a result, this test CANNOT
+    /// // verify that the bar is wired to stderr, that finish_and_clear() is called,
+    /// // or that the bar does not render to a real terminal. These aspects of
+    /// // BC-2.12.013 (postconditions 3/4) are LOW-confidence — they are true in
+    /// // production (TTY) but invisible to a subprocess test harness.
+    /// //
+    /// // What this test DOES verify — the real user-facing contract: stdout contains
+    /// // NO progress/spinner ANSI artifacts regardless of how the bar behaves on
+    /// // stderr. This is the observable guarantee: piped/redirected output is
+    /// // always clean of escape sequences when --no-color is set.
+    ///
     /// Discriminating assertions:
     ///   Positive: stdout does NOT contain `\x1b` (with --no-color, no escapes remain).
     ///   Positive: command exits 0.
-    ///   Negative: progress bar bytes are NOT leaked to stdout.
+    ///   Positive: stdout is clean of ALL escape bytes (progress leak impossible in piped mode).
     #[test]
     fn test_progress_bar_does_not_appear_in_output() {
+        // LIMITATION: indicatif renders only to a TTY stderr; under assert_cmd's
+        // piped non-TTY stderr the bar emits nothing, so this test verifies the
+        // observable stdout-cleanliness guarantee, NOT the stderr placement /
+        // finish_and_clear() detail (BC-2.12.013 is LOW-confidence per the BC).
         Command::cargo_bin("wirerust")
             .unwrap()
             .args(["analyze", HTTP_FIXTURE, "--all", "--no-color"])
@@ -499,12 +583,30 @@ mod story_088 {
     /// Observable: `summary <fixture> --no-color` stdout contains no `\x1b`
     /// bytes (neither color nor progress-bar escapes).
     ///
+    /// // LIMITATION: indicatif renders the progress bar ONLY when stderr is a TTY.
+    /// // Under assert_cmd's piped (non-TTY) stderr, indicatif emits nothing to stderr
+    /// // at all — the bar is completely suppressed. As a result, this test CANNOT
+    /// // verify that run_summary truly lacks a progress bar on a real TTY, or that
+    /// // a future developer could not accidentally add one without this test catching
+    /// // it in a non-TTY environment.
+    /// //
+    /// // What this test DOES verify — the real user-facing contract: run_summary's
+    /// // stdout contains NO ANSI escape bytes when --no-color is set. This confirms
+    /// // the stdout-cleanliness guarantee for piped/redirected usage. The absence of
+    /// // a progress bar on stderr in production (TTY) is an architectural constraint
+    /// // (run_summary doesn't call ProgressBar) that must be verified by code review,
+    /// // not this subprocess test (BC-2.12.013 invariant 4 is LOW-confidence here).
+    ///
     /// Discriminating assertions:
     ///   Positive: stdout does NOT contain `\x1b`.
     ///   Positive: command exits 0.
-    ///   Negative: no ANSI bytes of any kind in stdout (confirms no rogue escapes).
+    ///   Positive: stdout is clean of ALL escape bytes (color and progress-bar alike).
     #[test]
     fn test_run_summary_has_no_progress_bar() {
+        // LIMITATION: indicatif renders only to a TTY stderr; under assert_cmd's
+        // piped non-TTY stderr the bar emits nothing, so this test verifies the
+        // observable stdout-cleanliness guarantee, NOT the stderr placement /
+        // finish_and_clear() detail (BC-2.12.013 is LOW-confidence per the BC).
         Command::cargo_bin("wirerust")
             .unwrap()
             .args(["summary", HTTP_FIXTURE, "--no-color"])
@@ -620,36 +722,74 @@ mod story_088 {
 
     // -----------------------------------------------------------------------
     // EC-005 (STORY-088 EC-005 / BC-2.12.011 EC-002):
-    // Two pcap files in reverse-alphabetical order → returned sorted [a, b].
+    // Two distinct-content pcap files written in reverse-alphabetical creation
+    // order → resolve_targets must return them sorted [a, b]. Observable via
+    // JSON recent_uris ordering: a.pcap (http.pcap, iuident URI) must appear
+    // before b.pcap (http-ooo.pcap, /1.../5 URIs) in the HTTP analyzer output.
     // -----------------------------------------------------------------------
 
     /// EC-005 (BC-2.12.011 EC-002 / STORY-088 EC-005): A directory with
-    /// `b.pcap` and `a.pcap` (reverse on-disk order from readdir) returns
-    /// them sorted `[a.pcap, b.pcap]`. Observable: when `a.pcap` is a minimal
-    /// valid pcap and `b.pcap` contains known traffic, the output ordering
-    /// reflects a-first processing. (Proxy: use two copies of the http fixture
-    /// and confirm total packet count is consistent with 2 × fixture packets.)
+    /// `b.pcap` (http-ooo.pcap, 16 pkts) written BEFORE `a.pcap` (http.pcap,
+    /// 1 pkt) returns them sorted `[a.pcap, b.pcap]`. Observable: the HTTP
+    /// analyzer's `recent_uris` in JSON output reflects a-first processing —
+    /// `/v4/iuident.cab?0307011208` (from a.pcap) appears before `/1` (from
+    /// b.pcap). Without `files.sort()`, on macOS APFS b.pcap is iterated first
+    /// (created first / lower inode), `/1` appears before the iuident URI, and
+    /// the position assertion fails.
+    ///
+    /// Fixtures:
+    ///   b.pcap ← http-ooo.pcap  (created first; HTTP PUT/GET /1.../5)
+    ///   a.pcap ← http.pcap      (created second; HTTP HEAD /v4/iuident.cab...)
     ///
     /// Discriminating assertions:
     ///   Positive: command exits 0.
-    ///   Positive: stdout contains total packet count = 2 × fixture packet count (32).
-    ///   Negative: if unsorted, order would depend on filesystem (non-deterministic).
+    ///   Positive: stdout (JSON) contains iuident URI BEFORE /1 (a-first order).
+    ///   Negative: if sort removed, b-first iteration puts /1 before iuident.
     #[test]
     fn test_EC_005_directory_files_returned_sorted() {
         let dir = tempfile::tempdir().expect("tempdir");
         let dir_path = dir.path();
 
-        // Write b.pcap first, then a.pcap to encourage reverse on-disk order
-        fs::copy(HTTP_FIXTURE, dir_path.join("b.pcap")).unwrap();
-        fs::copy(HTTP_FIXTURE, dir_path.join("a.pcap")).unwrap();
+        // Write b.pcap (http-ooo.pcap) FIRST so that without sort(), read_dir
+        // returns [b.pcap, a.pcap] on typical macOS APFS (creation/inode order).
+        // With files.sort(), the order is always [a.pcap, b.pcap].
+        fs::copy("tests/fixtures/http-ooo.pcap", dir_path.join("b.pcap")).unwrap();
+        fs::copy("tests/fixtures/http.pcap", dir_path.join("a.pcap")).unwrap();
 
-        Command::cargo_bin("wirerust")
+        let output = Command::cargo_bin("wirerust")
             .unwrap()
-            .args(["analyze", dir_path.to_str().unwrap(), "--no-color"])
+            .args([
+                "analyze",
+                dir_path.to_str().unwrap(),
+                "--no-color",
+                "--all",
+                "--json",
+            ])
             .assert()
             .success()
-            // 2 × 16 = 32 packets (a.pcap + b.pcap, both copies of http-ooo.pcap)
-            .stdout(predicate::str::contains("Packets: 32"));
+            .get_output()
+            .stdout
+            .clone();
+
+        let stdout = String::from_utf8_lossy(&output);
+
+        // Sort-order assertion: in sorted order (a.pcap first), the iuident URI
+        // from http.pcap appears in recent_uris BEFORE the /1 URI from http-ooo.pcap.
+        // If files.sort() is removed, b.pcap (http-ooo.pcap) is iterated first
+        // on macOS APFS, so /1 appears before the iuident URI.
+        let iuident_pos = stdout
+            .find("/v4/iuident.cab")
+            .expect("iuident URI must appear in recent_uris (http.pcap processed)");
+        let slash1_pos = stdout
+            .find("\"/1\"")
+            .expect("/1 URI must appear in recent_uris (http-ooo.pcap processed)");
+
+        assert!(
+            iuident_pos < slash1_pos,
+            "Sort order violated: /v4/iuident.cab (from a.pcap) must appear before /1 \
+            (from b.pcap) in recent_uris; got iuident_pos={iuident_pos}, slash1_pos={slash1_pos}. \
+            This fires when files.sort() is removed from resolve_targets."
+        );
     }
 
     // -----------------------------------------------------------------------
