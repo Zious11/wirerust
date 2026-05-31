@@ -1454,6 +1454,32 @@ mod story_080 {
             ts_some_cell
         );
 
+        // BC-2.11.024 EC-010 / pc4 (v1.3 lock): chrono::DateTime<Utc>::to_rfc3339()
+        // always emits the +00:00 offset form, never bare 'Z'.
+        // Exact canonical vector: fixture is 2024-01-15 12:34:56 UTC.
+        assert_eq!(
+            ts_some_cell.as_str(),
+            "2024-01-15T12:34:56+00:00",
+            "BC-2.11.024 EC-010/pc4 v1.3: DateTime<Utc>::to_rfc3339() must emit \
+             '+00:00' offset form (not bare 'Z'); expected exact canonical vector \
+             \"2024-01-15T12:34:56+00:00\", got {:?}",
+            ts_some_cell
+        );
+
+        // Discriminating guards: +00:00 suffix required, bare Z suffix forbidden.
+        assert!(
+            ts_some_cell.ends_with("+00:00"),
+            "BC-2.11.024 EC-010 v1.3: RFC3339 UTC timestamp must end with '+00:00'; \
+             got {:?}",
+            ts_some_cell
+        );
+        assert!(
+            !ts_some_cell.ends_with('Z'),
+            "BC-2.11.024 EC-010 v1.3: RFC3339 UTC timestamp must NOT use bare 'Z' suffix; \
+             got {:?}",
+            ts_some_cell
+        );
+
         // Negative: must not be a sentinel.
         let sentinels = ["null", "None", "N/A", "-"];
         for sentinel in sentinels {
