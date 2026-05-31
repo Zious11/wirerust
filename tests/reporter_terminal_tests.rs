@@ -636,3 +636,724 @@ mod story_077 {
         );
     }
 }
+
+// ---------------------------------------------------------------------------
+// STORY-078: TerminalReporter — MITRE Grouping, Section Order, Colorization
+// Per DF-TEST-NAMESPACE-001: all STORY-078 tests grouped in `mod story_078`.
+// Covers BC-2.11.013 through BC-2.11.019, AC-001..AC-016.
+// ---------------------------------------------------------------------------
+mod story_078 {
+    use super::*;
+
+    // -----------------------------------------------------------------------
+    // Helpers scoped to story_078
+    // -----------------------------------------------------------------------
+
+    /// TerminalReporter with MITRE grouping enabled and color disabled.
+    fn mitre_reporter() -> TerminalReporter {
+        TerminalReporter {
+            use_color: false,
+            show_mitre_grouping: true,
+            show_hosts_breakdown: false,
+        }
+    }
+
+    /// Construct a Finding with the given verdict, confidence, and optional MITRE technique.
+    fn make_mitre_finding(
+        summary: impl Into<String>,
+        verdict: Verdict,
+        confidence: Confidence,
+        technique: Option<&str>,
+    ) -> Finding {
+        Finding {
+            category: ThreatCategory::Anomaly,
+            verdict,
+            confidence,
+            summary: summary.into(),
+            evidence: vec![],
+            mitre_technique: technique.map(|s| s.to_string()),
+            source_ip: None,
+            timestamp: None,
+            direction: None,
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.013 — MITRE Grouping Emits Tactic Headers in Canonical Order;
+    //               Uncategorized Last
+    // -----------------------------------------------------------------------
+
+    /// AC-001 (BC-2.11.013 postcondition 2):
+    /// When `show_mitre_grouping = true`, tactic section headers appear in the
+    /// order returned by `all_tactics_in_report_order()`.  Only sections with at
+    /// least one finding are emitted.
+    ///
+    /// Discriminating assertions:
+    ///   - Positive: "## Defense Evasion" and "## Command and Control" both present
+    ///     (two distinct tactics exercised).
+    ///   - Positive: "Defense Evasion" appears BEFORE "Command and Control" in the
+    ///     output (kill-chain order: DefenseEvasion index 6 < CommandAndControl
+    ///     index 11 in all_tactics_in_report_order()).
+    ///   - Negative: a tactic not represented by any finding is absent.
+    ///
+    /// pc2: sections appear in all_tactics_in_report_order() order.
+    /// inv3: sections skipped when empty.
+    #[test]
+    fn test_BC_2_11_013_tactic_headers_in_canonical_order() {
+        // T1036 → DefenseEvasion; T1071 → CommandAndControl
+        let defense_evasion_finding =
+            make_mitre_finding("masq", Verdict::Likely, Confidence::High, Some("T1036"));
+        let c2_finding = make_mitre_finding("c2", Verdict::Likely, Confidence::High, Some("T1071"));
+        let out =
+            mitre_reporter().render(&Summary::new(), &[defense_evasion_finding, c2_finding], &[]);
+
+        // Both section headers must appear.
+        assert!(
+            out.contains("## Defense Evasion"),
+            "BC-2.11.013 pc2: '## Defense Evasion' section header must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("## Command and Control"),
+            "BC-2.11.013 pc2: '## Command and Control' section header must appear; got:\n{out}"
+        );
+
+        // Kill-chain order: DefenseEvasion (index 6) before CommandAndControl (index 11).
+        let pos_de = out
+            .find("## Defense Evasion")
+            .expect("Defense Evasion not found");
+        let pos_c2 = out
+            .find("## Command and Control")
+            .expect("Command and Control not found");
+        assert!(
+            pos_de < pos_c2,
+            "BC-2.11.013 pc2: 'Defense Evasion' (kill-chain index 6) must appear before \
+             'Command and Control' (kill-chain index 11); pos_de={pos_de}, pos_c2={pos_c2}"
+        );
+
+        // inv3: a tactic with no findings must not appear.
+        assert!(
+            !out.contains("## Reconnaissance"),
+            "BC-2.11.013 inv3: '## Reconnaissance' must be absent (no findings in that tactic); \
+             got:\n{out}"
+        );
+    }
+
+    /// AC-002 (BC-2.11.013 postcondition 4):
+    /// The `## Uncategorized` section is always the LAST section in the grouped output.
+    ///
+    /// Discriminating assertions:
+    ///   - Positive: "## Uncategorized" present.
+    ///   - Positive: "## Defense Evasion" present (named tactic).
+    ///   - Positive: "## Defense Evasion" appears BEFORE "## Uncategorized" (last).
+    ///
+    /// pc4: Uncategorized is the last bucket.
+    #[test]
+    fn test_BC_2_11_013_uncategorized_last() {
+        // T1036 → DefenseEvasion; None → Uncategorized.
+        let known = make_mitre_finding("known", Verdict::Likely, Confidence::High, Some("T1036"));
+        let uncategorized = make_mitre_finding("unknown", Verdict::Likely, Confidence::High, None);
+        let out = mitre_reporter().render(&Summary::new(), &[known, uncategorized], &[]);
+
+        // Both sections must appear.
+        assert!(
+            out.contains("## Defense Evasion"),
+            "BC-2.11.013 pc2: '## Defense Evasion' must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("## Uncategorized"),
+            "BC-2.11.013 pc4: '## Uncategorized' must appear; got:\n{out}"
+        );
+
+        // Uncategorized must appear AFTER all named tactic sections.
+        let pos_named = out
+            .find("## Defense Evasion")
+            .expect("Defense Evasion not found");
+        let pos_uncat = out
+            .find("## Uncategorized")
+            .expect("Uncategorized not found");
+        assert!(
+            pos_named < pos_uncat,
+            "BC-2.11.013 pc4: '## Uncategorized' must be the last section; \
+             pos_named={pos_named}, pos_uncat={pos_uncat}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.014 — Within Tactic Bucket: Sort by Verdict, Confidence,
+    //               Emission Order
+    // -----------------------------------------------------------------------
+
+    /// AC-003 (BC-2.11.014 postcondition 1):
+    /// Within a MITRE tactic bucket, findings with lower verdict rank (Likely=0)
+    /// appear before those with higher rank (Inconclusive=1, Unlikely=2).
+    ///
+    /// Discriminating assertions:
+    ///   - Both findings in same tactic (DefenseEvasion via T1036).
+    ///   - "LIKELY" appears BEFORE "INCONCLUSIVE" in the output.
+    ///
+    /// pc1: verdict rank ascending (Likely first).
+    #[test]
+    fn test_BC_2_11_014_sort_by_verdict_within_bucket() {
+        // Emit Inconclusive first, Likely second — sorted output must flip them.
+        let inconclusive = make_mitre_finding(
+            "inconclusive-finding",
+            Verdict::Inconclusive,
+            Confidence::High,
+            Some("T1036"),
+        );
+        let likely = make_mitre_finding(
+            "likely-finding",
+            Verdict::Likely,
+            Confidence::Low,
+            Some("T1036"),
+        );
+        let out = mitre_reporter().render(&Summary::new(), &[inconclusive, likely], &[]);
+
+        // Canonical test vector: Likely/Low at i=1 renders before Inconclusive/High at i=0.
+        let pos_likely = out
+            .find("likely-finding")
+            .expect("likely-finding not found");
+        let pos_inconclusive = out
+            .find("inconclusive-finding")
+            .expect("inconclusive-finding not found");
+        assert!(
+            pos_likely < pos_inconclusive,
+            "BC-2.11.014 pc1: Likely (rank 0) must render before Inconclusive (rank 1); \
+             pos_likely={pos_likely}, pos_inconclusive={pos_inconclusive}"
+        );
+    }
+
+    /// AC-004 (BC-2.11.014 postcondition 2):
+    /// Among findings with the same verdict, findings with lower confidence rank
+    /// (High=0) appear before those with higher rank (Medium=1, Low=2).
+    ///
+    /// Discriminating assertions:
+    ///   - Both Likely; Low-confidence emitted first; High-confidence must render first.
+    ///
+    /// pc2: confidence rank ascending (High first) within same verdict.
+    #[test]
+    fn test_BC_2_11_014_sort_by_confidence_within_same_verdict() {
+        // Emit Likely/Low first, Likely/High second — sort must flip them.
+        let low_conf = make_mitre_finding(
+            "low-confidence",
+            Verdict::Likely,
+            Confidence::Low,
+            Some("T1036"),
+        );
+        let high_conf = make_mitre_finding(
+            "high-confidence",
+            Verdict::Likely,
+            Confidence::High,
+            Some("T1036"),
+        );
+        let out = mitre_reporter().render(&Summary::new(), &[low_conf, high_conf], &[]);
+
+        // Canonical test vector: Likely/High at i=1 renders before Likely/Low at i=0.
+        let pos_high = out
+            .find("high-confidence")
+            .expect("high-confidence not found");
+        let pos_low = out
+            .find("low-confidence")
+            .expect("low-confidence not found");
+        assert!(
+            pos_high < pos_low,
+            "BC-2.11.014 pc2: Likely/High (confidence rank 0) must render before \
+             Likely/Low (confidence rank 2); pos_high={pos_high}, pos_low={pos_low}"
+        );
+    }
+
+    /// AC-005 (BC-2.11.014 postcondition 3):
+    /// Among findings with the same verdict and confidence, original emission order
+    /// (slice index) is preserved (stable sort).
+    ///
+    /// Discriminating assertions:
+    ///   - Three findings with identical verdict/confidence.
+    ///   - Rendered order must match emission order: alpha, beta, gamma.
+    ///
+    /// pc3: stable tertiary sort by original emission index.
+    /// inv3: sort_by_key (Rust std) is stable.
+    #[test]
+    fn test_BC_2_11_014_stable_emission_order_on_tie() {
+        // Canonical test vector: [Likely/High at i=0, Likely/High at i=1] → i=0 first.
+        let alpha = make_mitre_finding(
+            "alpha-first",
+            Verdict::Likely,
+            Confidence::High,
+            Some("T1036"),
+        );
+        let beta = make_mitre_finding(
+            "beta-second",
+            Verdict::Likely,
+            Confidence::High,
+            Some("T1036"),
+        );
+        let gamma = make_mitre_finding(
+            "gamma-third",
+            Verdict::Likely,
+            Confidence::High,
+            Some("T1036"),
+        );
+        let out = mitre_reporter().render(&Summary::new(), &[alpha, beta, gamma], &[]);
+
+        let pos_alpha = out.find("alpha-first").expect("alpha-first not found");
+        let pos_beta = out.find("beta-second").expect("beta-second not found");
+        let pos_gamma = out.find("gamma-third").expect("gamma-third not found");
+        assert!(
+            pos_alpha < pos_beta && pos_beta < pos_gamma,
+            "BC-2.11.014 pc3/inv3: emission order must be stable on tie; \
+             expected alpha < beta < gamma; got pos_alpha={pos_alpha}, \
+             pos_beta={pos_beta}, pos_gamma={pos_gamma}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.015 — No-Technique or Unknown-ID Findings Land in Uncategorized
+    // -----------------------------------------------------------------------
+
+    /// AC-006 (BC-2.11.015 postcondition 1):
+    /// Findings with `mitre_technique = None` appear under `## Uncategorized`.
+    ///
+    /// Discriminating assertions:
+    ///   - Positive: "## Uncategorized" present.
+    ///   - Positive: "none-technique-finding" present under Uncategorized.
+    ///   - Negative: No MITRE line for a None-technique finding (pc4).
+    ///
+    /// pc1: None technique → Uncategorized bucket.
+    /// pc4: No MITRE line for None technique.
+    #[test]
+    fn test_BC_2_11_015_none_technique_uncategorized() {
+        // EC-001: mitre_technique = None.
+        let f = make_mitre_finding(
+            "none-technique-finding",
+            Verdict::Likely,
+            Confidence::High,
+            None,
+        );
+        let out = mitre_reporter().render(&Summary::new(), &[f], &[]);
+
+        // Uncategorized must be the only tactic section.
+        assert!(
+            out.contains("## Uncategorized"),
+            "BC-2.11.015 pc1: '## Uncategorized' must appear for None-technique finding; \
+             got:\n{out}"
+        );
+
+        // The finding summary must appear in the output.
+        assert!(
+            out.contains("none-technique-finding"),
+            "BC-2.11.015 pc1: finding summary must appear under Uncategorized; got:\n{out}"
+        );
+
+        // pc4: No MITRE line for None technique (render_finding_grouped skips MITRE line
+        // when mitre_technique is None — the `if let Some(ref id)` guard at terminal.rs:239).
+        assert!(
+            !out.contains("MITRE:"),
+            "BC-2.11.015 pc4: no MITRE line must appear for None-technique finding; got:\n{out}"
+        );
+    }
+
+    /// AC-007 (BC-2.11.015 postcondition 2, 3):
+    /// Findings with an unrecognized technique ID appear under `## Uncategorized`
+    /// with the MITRE line reading `MITRE: T9999 (unknown)`.
+    ///
+    /// Discriminating assertions:
+    ///   - Positive: "## Uncategorized" present.
+    ///   - Positive: "MITRE: T9999 (unknown)" present (pc3).
+    ///   - Negative: No named tactic section for T9999.
+    ///
+    /// pc2: unknown ID → Uncategorized.
+    /// pc3: MITRE line reads "<id> (unknown)" for unrecognized IDs.
+    #[test]
+    fn test_BC_2_11_015_unknown_id_uncategorized_with_label() {
+        // EC-002: T9999 is not in the catalog.
+        let f = make_mitre_finding(
+            "unknown-id-finding",
+            Verdict::Likely,
+            Confidence::High,
+            Some("T9999"),
+        );
+        let out = mitre_reporter().render(&Summary::new(), &[f], &[]);
+
+        // Uncategorized must appear.
+        assert!(
+            out.contains("## Uncategorized"),
+            "BC-2.11.015 pc2: '## Uncategorized' must appear for unknown-ID finding; got:\n{out}"
+        );
+
+        // MITRE line must carry the (unknown) label.
+        assert!(
+            out.contains("MITRE: T9999 (unknown)"),
+            "BC-2.11.015 pc3: MITRE line must read 'MITRE: T9999 (unknown)'; got:\n{out}"
+        );
+
+        // No spurious named tactic section.
+        assert!(
+            !out.contains("## Reconnaissance"),
+            "BC-2.11.015 pc2: no named tactic section must appear for unknown ID; got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.016 — MITRE Grouping Expands Per-Finding Line with Em-Dash
+    //               and Name
+    // -----------------------------------------------------------------------
+
+    /// AC-008 (BC-2.11.016 postcondition 1):
+    /// When `show_mitre_grouping = true` and a finding has a known technique ID
+    /// (e.g., "T1036"), the MITRE line reads `MITRE: T1036 \u{2014} Masquerading`
+    /// (U+2014 em-dash, not ASCII "--").
+    ///
+    /// Discriminating assertions:
+    ///   - Positive: "MITRE: T1036 \u{2014} Masquerading" (exact em-dash + name).
+    ///   - Positive: raw em-dash bytes (0xE2 0x80 0x94) present in output bytes.
+    ///
+    /// pc1: MITRE line = "MITRE: <id> \u{2014} <name>".
+    /// inv1: em-dash literal at terminal.rs:241.
+    #[test]
+    fn test_BC_2_11_016_known_id_em_dash_and_name() {
+        // EC-001: T1036 → "Masquerading" per technique_name catalog.
+        let f = make_mitre_finding(
+            "masq-finding",
+            Verdict::Likely,
+            Confidence::High,
+            Some("T1036"),
+        );
+        let out = mitre_reporter().render(&Summary::new(), &[f], &[]);
+
+        // Exact MITRE line format with U+2014 em-dash (— is the literal em-dash char).
+        assert!(
+            out.contains("MITRE: T1036 \u{2014} Masquerading"),
+            "BC-2.11.016 pc1: MITRE line must read 'MITRE: T1036 — Masquerading' (em-dash); \
+             got:\n{out}"
+        );
+
+        // Byte-level assertion: U+2014 is encoded as 0xE2 0x80 0x94 in UTF-8.
+        let em_dash_bytes: &[u8] = &[0xe2, 0x80, 0x94];
+        assert!(
+            out.as_bytes().windows(3).any(|w| w == em_dash_bytes),
+            "BC-2.11.016 inv1: em-dash bytes [0xE2, 0x80, 0x94] must be present in output bytes"
+        );
+    }
+
+    /// AC-009 (BC-2.11.016 invariant 1):
+    /// The separator is U+2014 (EM DASH). ASCII `--` (two hyphens) is NOT used
+    /// as the separator on the MITRE line.
+    ///
+    /// Discriminating assertions:
+    ///   - Positive: U+2014 em-dash present in the MITRE line.
+    ///   - Negative: ASCII "--" does NOT appear immediately adjacent to the
+    ///     technique name (i.e., "T1036 -- Masquerading" must NOT be present).
+    ///
+    /// inv1: em-dash U+2014 is the separator, not ASCII "--".
+    #[test]
+    fn test_BC_2_11_016_separator_is_em_dash_not_ascii_hyphen() {
+        let f = make_mitre_finding(
+            "sep-check",
+            Verdict::Likely,
+            Confidence::High,
+            Some("T1036"),
+        );
+        let out = mitre_reporter().render(&Summary::new(), &[f], &[]);
+
+        // Em-dash must be present.
+        assert!(
+            out.contains('\u{2014}'),
+            "BC-2.11.016 inv1: U+2014 em-dash must be present as the separator; got:\n{out}"
+        );
+
+        // ASCII double-hyphen must NOT be used as the separator.
+        // "T1036 -- Masquerading" would indicate a regression to ASCII hyphens.
+        assert!(
+            !out.contains("T1036 -- Masquerading"),
+            "BC-2.11.016 inv1: ASCII '--' must NOT be the separator; got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.017 — Default Rendering Emits MITRE: <id> Only (No Em-Dash)
+    // -----------------------------------------------------------------------
+
+    /// AC-010 (BC-2.11.017 postcondition 1):
+    /// When `show_mitre_grouping = false` (default), a finding with
+    /// `mitre_technique = "T1036"` produces the MITRE line `MITRE: T1036`
+    /// with no em-dash, no technique name, and no `(unknown)` label.
+    ///
+    /// Discriminating assertions:
+    ///   - Positive: "MITRE: T1036" present.
+    ///   - Negative: U+2014 em-dash absent.
+    ///   - Negative: "Masquerading" (technique name) absent.
+    ///   - Negative: "(unknown)" absent.
+    ///
+    /// pc1: flat mode → "MITRE: <id>" only.
+    /// inv1/2: render_finding_flat never calls technique_name() / technique_tactic().
+    #[test]
+    fn test_BC_2_11_017_default_mode_bare_mitre_id() {
+        // Canonical test vector: mitre="T1036", show_mitre_grouping=false.
+        let f = make_mitre_finding(
+            "flat-finding",
+            Verdict::Likely,
+            Confidence::High,
+            Some("T1036"),
+        );
+        // Use plain_reporter() (show_mitre_grouping = false).
+        let out = plain_reporter().render(&Summary::new(), &[f], &[]);
+
+        // Bare MITRE ID must be present.
+        assert!(
+            out.contains("MITRE: T1036"),
+            "BC-2.11.017 pc1: 'MITRE: T1036' must appear in flat mode; got:\n{out}"
+        );
+
+        // Em-dash must be absent (no grouping expansion in flat mode).
+        assert!(
+            !out.contains('\u{2014}'),
+            "BC-2.11.017 pc1: U+2014 em-dash must NOT appear in flat mode; got:\n{out}"
+        );
+
+        // Technique name "Masquerading" must be absent.
+        assert!(
+            !out.contains("Masquerading"),
+            "BC-2.11.017 pc1: technique name must NOT appear in flat mode; got:\n{out}"
+        );
+
+        // "(unknown)" label must be absent even for unknown IDs in flat mode.
+        assert!(
+            !out.contains("(unknown)"),
+            "BC-2.11.017 pc1: '(unknown)' label must NOT appear in flat mode; got:\n{out}"
+        );
+    }
+
+    /// AC-011 (BC-2.11.017 postcondition 3):
+    /// In default mode, no `## TacticName` or `## Uncategorized` section headers
+    /// appear in the output.
+    ///
+    /// Discriminating assertions:
+    ///   - Negative: "## Defense Evasion" absent.
+    ///   - Negative: "## Uncategorized" absent.
+    ///   - Positive: finding summary present (rendered flat, not dropped).
+    ///
+    /// pc3: no tactic headers in flat mode.
+    #[test]
+    fn test_BC_2_11_017_default_mode_no_tactic_headers() {
+        let f = make_mitre_finding(
+            "flat-no-header",
+            Verdict::Likely,
+            Confidence::High,
+            Some("T1036"),
+        );
+        let out = plain_reporter().render(&Summary::new(), &[f], &[]);
+
+        // No tactic headers in flat mode.
+        assert!(
+            !out.contains("## Defense Evasion"),
+            "BC-2.11.017 pc3: '## Defense Evasion' must NOT appear in flat mode; got:\n{out}"
+        );
+        assert!(
+            !out.contains("## Uncategorized"),
+            "BC-2.11.017 pc3: '## Uncategorized' must NOT appear in flat mode; got:\n{out}"
+        );
+
+        // Finding must still be rendered.
+        assert!(
+            out.contains("flat-no-header"),
+            "BC-2.11.017: finding summary must still appear in flat mode; got:\n{out}"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.018 — TerminalReporter Colorization: use_color = false
+    // -----------------------------------------------------------------------
+
+    /// AC-012 (BC-2.11.018 postcondition 5):
+    /// When `use_color = false`, no ANSI escape codes appear in the rendered
+    /// output for any verdict/confidence combination.
+    ///
+    /// Discriminating assertions (four verdict/confidence combos tested):
+    ///   - Likely/High (would be red bold if colored).
+    ///   - Likely/Medium (would be yellow).
+    ///   - Inconclusive/High (would be cyan).
+    ///   - Unlikely/Low (would be dimmed).
+    ///   - Negative: "\x1b[" (ANSI CSI introducer) absent from all outputs.
+    ///
+    /// pc5: plain text only when use_color = false; no ANSI codes.
+    #[test]
+    fn test_BC_2_11_018_no_ansi_codes_when_color_disabled() {
+        let combos = [
+            (Verdict::Likely, Confidence::High, "likely-high"),
+            (Verdict::Likely, Confidence::Medium, "likely-medium"),
+            (Verdict::Inconclusive, Confidence::High, "inconclusive-high"),
+            (Verdict::Unlikely, Confidence::Low, "unlikely-low"),
+        ];
+
+        for (verdict, confidence, label) in combos {
+            let f = make_mitre_finding(label, verdict, confidence, Some("T1036"));
+            // Use plain_reporter (use_color = false).
+            let out = plain_reporter().render(&Summary::new(), &[f], &[]);
+
+            // ANSI CSI introducer "\x1b[" must be entirely absent.
+            assert!(
+                !out.contains("\x1b["),
+                "BC-2.11.018 pc5: ANSI escape '\\x1b[' must not appear when use_color=false; \
+                 label={label}; got:\n{out:?}"
+            );
+
+            // Finding summary must appear (sanity check that rendering happened).
+            assert!(
+                out.contains(label),
+                "BC-2.11.018: finding summary '{label}' must appear in output; got:\n{out}"
+            );
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // BC-2.11.019 — TerminalReporter Renders Sections in Correct Order
+    // -----------------------------------------------------------------------
+
+    /// AC-013 (BC-2.11.019 postcondition 1):
+    /// The `WIRERUST TRIAGE REPORT` header section is always the first section
+    /// in the output.
+    ///
+    /// Discriminating assertions:
+    ///   - Positive: "WIRERUST TRIAGE REPORT" present.
+    ///   - Positive: header appears at the very start of the output (byte offset 0
+    ///     or as the first non-empty line).
+    ///
+    /// pc1: header always first.
+    #[test]
+    fn test_BC_2_11_019_header_is_first_section() {
+        let out = plain_reporter().render(&Summary::new(), &[], &[]);
+
+        assert!(
+            out.contains("WIRERUST TRIAGE REPORT"),
+            "BC-2.11.019 pc1: 'WIRERUST TRIAGE REPORT' must appear in output; got:\n{out}"
+        );
+
+        // Header must be the first text in the output — byte offset must be 0.
+        assert!(
+            out.starts_with("WIRERUST TRIAGE REPORT"),
+            "BC-2.11.019 pc1: 'WIRERUST TRIAGE REPORT' must be the first content in output; \
+             got:\n{out}"
+        );
+
+        // PROTOCOLS (always present) must come AFTER the header.
+        let pos_header = out.find("WIRERUST TRIAGE REPORT").unwrap();
+        let pos_protocols = out.find("PROTOCOLS").expect("PROTOCOLS not found");
+        assert!(
+            pos_header < pos_protocols,
+            "BC-2.11.019 pc1: header must appear before PROTOCOLS; \
+             pos_header={pos_header}, pos_protocols={pos_protocols}"
+        );
+    }
+
+    /// AC-014 (BC-2.11.019 postcondition 4 / invariant 2):
+    /// The FINDINGS section appears only when `findings` is non-empty; it is
+    /// entirely absent when `findings.is_empty()`.
+    ///
+    /// Discriminating assertions:
+    ///   - When findings empty: "FINDINGS" absent.
+    ///   - When findings non-empty: "FINDINGS" present.
+    ///
+    /// pc4: FINDINGS section absent when findings.is_empty().
+    /// inv2: section is entirely absent (not just empty).
+    #[test]
+    fn test_BC_2_11_019_findings_section_absent_when_empty() {
+        // Empty findings → FINDINGS section absent.
+        let out_empty = plain_reporter().render(&Summary::new(), &[], &[]);
+        assert!(
+            !out_empty.contains("FINDINGS"),
+            "BC-2.11.019 pc4/inv2: 'FINDINGS' section must be absent when findings empty; \
+             got:\n{out_empty}"
+        );
+
+        // Non-empty findings → FINDINGS section present.
+        let f = make_mitre_finding("a-finding", Verdict::Likely, Confidence::High, None);
+        let out_nonempty = plain_reporter().render(&Summary::new(), &[f], &[]);
+        assert!(
+            out_nonempty.contains("FINDINGS"),
+            "BC-2.11.019 pc4: 'FINDINGS' must appear when findings non-empty; got:\n{out_nonempty}"
+        );
+    }
+
+    /// AC-016 (BC-2.11.019 invariant 3):
+    /// SERVICES section is absent entirely when `service_counts()` returns an
+    /// empty map.
+    ///
+    /// Discriminating assertions:
+    ///   - Summary with no ingested packets → empty service map → "SERVICES" absent.
+    ///   - Guard: "PROTOCOLS" still present (always-on section, BC-2.11.019 inv5).
+    ///
+    /// inv3: SERVICES absent when service_counts() is empty.
+    #[test]
+    fn test_BC_2_11_019_services_section_absent_when_empty() {
+        // Summary::new() has empty service map.
+        let out = plain_reporter().render(&Summary::new(), &[], &[]);
+
+        assert!(
+            !out.contains("SERVICES"),
+            "BC-2.11.019 inv3: 'SERVICES' section must be absent when service_counts() empty; \
+             got:\n{out}"
+        );
+
+        // PROTOCOLS is always present.
+        assert!(
+            out.contains("PROTOCOLS"),
+            "BC-2.11.019 inv5: 'PROTOCOLS' must always be present; got:\n{out}"
+        );
+    }
+
+    /// AC-015 (BC-2.11.019 postcondition 5):
+    /// ANALYZER sections appear last, one per `AnalysisSummary` element, in
+    /// slice order.
+    ///
+    /// Discriminating assertions:
+    ///   - Two analyzers "DNS" and "HTTP" in slice order.
+    ///   - Both "ANALYZER: DNS" and "ANALYZER: HTTP" present.
+    ///   - "ANALYZER: DNS" appears before "ANALYZER: HTTP" (slice order).
+    ///   - Both appear AFTER "FINDINGS" (which is after PROTOCOLS).
+    ///
+    /// pc5: analyzer sections last in slice order.
+    #[test]
+    fn test_BC_2_11_019_analyzer_sections_last_in_slice_order() {
+        let f = make_mitre_finding("some-finding", Verdict::Likely, Confidence::High, None);
+        let dns_summary = AnalysisSummary {
+            analyzer_name: "DNS".to_string(),
+            packets_analyzed: 10,
+            detail: std::collections::BTreeMap::new(),
+        };
+        let http_summary = AnalysisSummary {
+            analyzer_name: "HTTP".to_string(),
+            packets_analyzed: 20,
+            detail: std::collections::BTreeMap::new(),
+        };
+        let out = plain_reporter().render(&Summary::new(), &[f], &[dns_summary, http_summary]);
+
+        // Both analyzer sections must appear.
+        assert!(
+            out.contains("ANALYZER: DNS"),
+            "BC-2.11.019 pc5: 'ANALYZER: DNS' must appear; got:\n{out}"
+        );
+        assert!(
+            out.contains("ANALYZER: HTTP"),
+            "BC-2.11.019 pc5: 'ANALYZER: HTTP' must appear; got:\n{out}"
+        );
+
+        // Slice order: DNS (index 0) before HTTP (index 1).
+        let pos_dns = out.find("ANALYZER: DNS").expect("ANALYZER: DNS not found");
+        let pos_http = out
+            .find("ANALYZER: HTTP")
+            .expect("ANALYZER: HTTP not found");
+        assert!(
+            pos_dns < pos_http,
+            "BC-2.11.019 pc5: 'ANALYZER: DNS' (slice 0) must appear before \
+             'ANALYZER: HTTP' (slice 1); pos_dns={pos_dns}, pos_http={pos_http}"
+        );
+
+        // Analyzer sections must appear after FINDINGS.
+        let pos_findings = out.find("FINDINGS").expect("FINDINGS not found");
+        assert!(
+            pos_findings < pos_dns,
+            "BC-2.11.019 pc5: 'FINDINGS' must appear before analyzer sections; \
+             pos_findings={pos_findings}, pos_dns={pos_dns}"
+        );
+    }
+}
