@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-089
 epic_id: E-9
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -87,6 +87,9 @@ When no reassembler was constructed, `"unclassified_flows"` is NOT present in an
 `resolve_format(cli)` returns `Some(OutputFormat::Csv)` when `cli.csv.is_some()` and `cli.json.is_none()`.
 - **Test:** `test_resolve_format_csv_flag()`
 
+> **BC-2.12.016 invariant 3 — structurally unobservable via CLI (documented limitation):**
+> BC-2.12.016 invariant 3 states that `--json` wins over `--csv` when both are given. However, `src/cli.rs` declares `--json` with `conflicts_with = "csv"`, so clap rejects the combination at argument-parse time before `main()` runs — the combination is structurally impossible at runtime. No test for invariant 3 is written because the CLI enforces the exclusion before `resolve_format` is ever called. This matches adversarial finding ADV-P03-MED-001 / OBS-3 (documented limitation). The `resolve_format` unit-level path for simultaneous `json.is_some() && csv.is_some()` is therefore correctly left uncovered by the formalization tests.
+
 ### AC-009 (traces to BC-2.12.016 postcondition 3)
 `resolve_format(cli)` returns `cli.output_format` (which may be `None`) when neither `--json` nor `--csv` is present.
 - **Test:** `test_resolve_format_falls_back_to_output_format()`
@@ -136,7 +139,7 @@ File write errors are wrapped with anyhow context message `"Failed to write JSON
 |---------------|-----------------|
 | This story spec | ~3,000 |
 | `src/main.rs` (relevant sections) | ~6,000 |
-| `tests/cli_tests.rs`, `tests/reporter_tests.rs` | ~3,000 |
+| `tests/main_story_089_tests.rs` | ~3,000 |
 | BC files (4 BCs) | ~5,500 |
 | Tool outputs overhead | ~1,000 |
 | **Total** | **~18,500** |
@@ -145,7 +148,7 @@ File write errors are wrapped with anyhow context message `"Failed to write JSON
 
 ## Tasks (MANDATORY)
 
-1. [ ] Write failing tests for AC-001 through AC-012 (test-writer)
+1. [ ] Write failing tests for AC-001 through AC-012 in `tests/main_story_089_tests.rs` (test-writer)
 2. [ ] Verify Red Gate: all tests fail
 3. [ ] Implement decode-error handler with first-error warning and `total_decode_errors` counter
 4. [ ] Implement `summary.skipped_packets = total_decode_errors` after packet loop
@@ -186,5 +189,7 @@ File write errors are wrapped with anyhow context message `"Failed to write JSON
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/main.rs` | modify | Decode-error handler, `unclassified_flows` injection, `resolve_format`, `write_output` |
-| `tests/cli_tests.rs` | modify | AC-007..AC-012 tests for `resolve_format` and `write_output` |
-| `tests/reporter_tests.rs` | modify | AC-001..AC-006 tests for decode-error and dispatcher stats |
+| `tests/main_story_089_tests.rs` | create | AC-001..AC-012 assert_cmd behavioral tests for all story acceptance criteria |
+| `tests/fixtures/one-decode-error.pcap` | create | Single-decode-error fixture pcap; pins the first-error warning path tested by AC-001/AC-004 (BC-2.12.014) |
+
+Note: `tests/cli_tests.rs` and `tests/reporter_tests.rs` are pre-existing test files for other stories and are referenced as read-context only; they are NOT artifacts produced by this story. This reconciliation closes deferred item F-FSR-088-089 (the STORY-088 half was cleared previously; this clears the STORY-089 half).
