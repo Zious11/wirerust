@@ -676,12 +676,27 @@ policies:
     enforcement: >
       Orchestrator MUST inject "Run bin/compute-input-hash — do NOT
       hand-compute" into every story-writer and product-owner dispatch
-      prompt. Drift-check at Phase-4 entry serves as the late gate.
-      The tool is at bin/compute-input-hash (MD5/inputs-order algorithm).
+      prompt. Drift-check at Phase-4 entry is a manual `bin/compute-input-hash
+      --scan` step (not a develop CI job). The tool is at bin/compute-input-hash
+      (MD5/inputs-order algorithm); its algorithm is documented in CLAUDE.md
+      "Input Hash Computation" section and the tool's own --help docstring.
     added: "2026-05-30"
+    updated: "2026-05-31"
+    status: ACTIVE
+    tool-status: >
+      bin/compute-input-hash is PRESENT and canonical. Merged via PR #167;
+      develop HEAD 45fe526 (2026-05-31). The tool is the spec: MD5 of
+      LF-normalized concatenated declared-input file CONTENTS in declaration
+      order, first 7 hex chars.
+    corpus-status: >
+      Full re-baseline completed 2026-05-31. MATCH=48 STALE=0.
+      All 48 story input-hashes rewritten via bin/compute-input-hash --write
+      --scan. No story versions bumped (hash rewrite is mechanical, not
+      semantic). Resolves F-W21-TOOL-001 (HIGH) and F-W21-S079-HASH (MEDIUM).
     derived-from: >
       PG-HASH-001 (12 stories left tool-stale 2026-05-29; fixed, MATCH=48
-      STALE=0; codified 2026-05-30)
+      STALE=0; codified 2026-05-30). Full 48-story re-baseline 2026-05-31
+      after BC edits (33451ed) changed story inputs corpus-wide.
 
   - id: DF-ADVERSARY-CHECKOUT-GUARD-001
     name: adversary-per-story-checkout-guard

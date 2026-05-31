@@ -9,7 +9,7 @@ timestamp: 2026-05-21T00:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.023.md
-input-hash: "e7c9b03"
+input-hash: "fcc50c0"
 traces_to: .factory/specs/prd.md
 points: 3
 depends_on: [STORY-041, STORY-042, STORY-043, STORY-044, STORY-045]
