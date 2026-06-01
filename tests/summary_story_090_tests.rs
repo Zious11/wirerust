@@ -387,7 +387,7 @@ mod story_090 {
     // =========================================================================
 
     #[test]
-    fn test_json_reporter_includes_skipped_packets() {
+    fn test_BC_2_12_021_json_includes_skipped_packets() {
         let mut summary = Summary::new();
         let pkt = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 100);
         summary.ingest(&pkt);
@@ -530,12 +530,19 @@ mod story_090 {
     }
 
     // =========================================================================
-    // EC-003  BC-2.12.018 ec1: two packets with the same protocol produce
-    //         count 2 for that protocol key
+    // EC-003 (story scenario)  BC-2.12.018 pc4: two packets with the same
+    //         protocol produce count 2 for that protocol key.
+    //
+    //         NOTE: This is NOT a BC-2.12.018 edge-case row.  BC-2.12.018's EC
+    //         table contains EC-001 (host-dedup across packets), EC-002
+    //         (src-as-dst dedup), EC-003 (ICMP protocol counter), and EC-004
+    //         (zero-length packet).  The "same protocol accumulates" scenario is
+    //         a canonical test vector / postcondition-4 path, not an EC row.
+    //         The function is named pc4 to reflect its true anchor.
     // =========================================================================
 
     #[test]
-    fn test_BC_2_12_018_ec1_same_protocol_accumulates() {
+    fn test_BC_2_12_018_pc4_same_protocol_accumulates() {
         let mut summary = Summary::new();
 
         let pkt1 = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 54);
