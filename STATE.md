@@ -43,7 +43,7 @@ Phase 4 result: 80-scenario rotation, mean 0.949, 0 must-pass <0.6; HS-043 real 
 
 **Mode:** brownfield (in-repo: target == reference).
 
-**Test suite:** passing on develop (Wave 8 stories delivered). `cargo fmt --check`,
+**Test suite:** passing on develop (all 48 stories / 27 waves delivered; ~1086 tests green). `cargo fmt --check`,
 `cargo clippy`, `cargo test --all-targets` all green. CI: 8 checks (semantic-pr, test, clippy, fmt, fuzz-build, audit, deny, trust-boundary; `fuzz-build` pinned `nightly-2026-05-21` + `cargo-fuzz 0.13.1` + `timeout-minutes: 25` after PR #111 hotfix; `trust-boundary` added PR #148;
 the nightly pin is a deliberate periodic-maintenance item — do NOT enable automated
 dependency bumping for it).
@@ -82,16 +82,26 @@ Waves 1–27 ALL CLOSED/CONVERGED — per-wave detail: `cycles/phase-3-tdd/wave-
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-06-01 — PHASE 5 IN PROGRESS)
+## Session Resume Checkpoint (2026-06-01 — PHASE 5 QUEUED, NOT YET STARTED)
 
-1. Phase 5 — Adversarial Refinement STARTED. develop HEAD: e0451ef (PR #172 — HS-043 gating-property regression tests merged). All 8 CI checks green.
-2. Phase 4→5 gate PASSED 2026-06-01 (human-approved; conditioned on HS-043 regression tests, now merged PR #172).
-3. Phase 4 results on record: 80-scenario rotation, mean 0.949, 0 must-pass <0.6. HS-043 real defect found+fixed (PR #171); HS-006/016 non-defects confirmed.
-4. Coverage-durability LOW (HS-043 Pass-3) CLOSED — regression guards committed PR #172, mutation-proven.
-5. ADV-HS043-P01-LOW-001 (BC-2.04.013 PC0 function-name wording) remains tracked as accepted optional one-line BC note (non-blocking).
-6. Open drift item: F-W25-S088-P6-001 LOW (AC-004 warning-once inv-2 count assertion; test-strength only; accepted or target Phase-5).
-7. Next action: dispatch fresh-context adversarial review of full implementation (ideally different model family). Gate: finding decay to zero.
-8. Prior checkpoint (Phase 4 COMPLETE, gate PENDING) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
+**POSITION:** Phase 5 (Adversarial Refinement) ENTERED but the adversarial-refinement loop has NOT yet started (queued). `pipeline: PHASE_5_ADVERSARIAL_REFINEMENT`. develop HEAD e0451ef (clean, == origin/develop). factory-artifacts pushed and clean. No open PRs. `.worktrees/` empty (only main + .factory worktrees). All Phase 0–4 gates PASSED.
+
+**EXACT NEXT ACTION:** Launch Phase 5 whole-implementation adversarial refinement. Entry point: `/vsdd-factory:phase-5-adversarial-refinement` (work skill: `/vsdd-factory:adversarial-review implementation`). Drive findings to decay-to-zero (CONVERGENCE_REACHED, minimum 3 clean passes). Then optional code-reviewer secondary pass. Then Phase 6 (Formal Hardening) → Phase 7 (Convergence) → release.
+
+**MODEL-FAMILY CAVEAT (carry forward):** True non-Claude (GPT) evaluator/adversary is unavailable in this environment. Use opus-tier fresh-context + strict information asymmetry as substitute. Document this caveat at each gate.
+
+**OPEN/ACCEPTED ITEMS a fresh session must know:**
+- ADV-HS043-P01-LOW-001: accepted optional one-line BC-2.04.013 PC0 wording note (non-blocking).
+- F-W25-S088-P6-001 LOW: warning-once inv-2 count assertion; test-strength only; target next main.rs touch.
+- Input-hash tool exists at `bin/compute-input-hash` — run `bin/compute-input-hash --scan` at Phase-4-style gate; corpus MATCH=48/STALE=0.
+
+**PROCESS NOTE (W24.L3):** pr-manager has repeatedly stopped before executing merges (~5 PRs this session). ALWAYS independently verify a merge landed via `gh pr view <N>` + `git rev-parse origin/develop` before declaring a PR merged.
+
+**HOUSEKEEPING:** Stray pre-existing local branch `feature/story-003-decoder-safety` exists (predates this session, no worktree, harmless) — prune with `git branch -D feature/story-003-decoder-safety` at convenience.
+
+**PHASE CONTEXT:**
+- Phase 4 result: 80-scenario rotation, mean 0.949, 0 must-pass <0.6. HS-043 real defect found+fixed (PR #171 → c3cd4bd); HS-006/016 non-defects. Regression guards merged PR #172 → e0451ef.
+- Prior checkpoint (Phase 4 COMPLETE, gate PENDING) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
 ## Phase 3→4 Gate — PASSED 2026-06-01
 
