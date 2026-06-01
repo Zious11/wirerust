@@ -3,7 +3,7 @@ pipeline: PHASE_5_ADVERSARIAL_REFINEMENT
 phase: phase-5-adversarial-refinement
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-02T00:15:00Z
+timestamp: 2026-06-01T22:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -24,12 +24,12 @@ dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
-adversary_convergence_counter: 0/3  # Pass 10 NOT_CONVERGED (2M/1L); clean-streak RESET; FIX-P5-004 MERGED PR#175→68137b4b; Pass 11 IN PROGRESS
-adv_impl_remediated: "P04-MED(PR#173→472b45e9);P06-HIGH(PR#174→cfe0112a);P06-MED(PR#174→cfe0112a);P07-MED(288cba3);P07-LOW(288cba3);P08-HIGH(e817d3c);P10-MED-001(422e4ee);P10-MED-002+LOW-001(FIX-P5-004/PR#175→68137b4b)"
+adversary_convergence_counter: 0/3  # Pass 11 NOT_CONVERGED (1M/2L, 1L-ACCEPTED); clean-streak RESET; Pass 12 IN PROGRESS
+adv_impl_remediated: "P04-MED(PR#173→472b45e9);P06-HIGH(PR#174→cfe0112a);P06-MED(PR#174→cfe0112a);P07-MED(288cba3);P07-LOW(288cba3);P08-HIGH(e817d3c);P10-MED-001(422e4ee);P10-MED-002+LOW-001(FIX-P5-004/PR#175→68137b4b);P11-MED-001(56885b8);P11-LOW-001(56885b8);F-AUDIT-001/002(56885b8)"
 adversary_gate: NOT_YET_SATISFIED
-convergence_trajectory: "P5:P1-MED(2b33284)|P2-MED(aa6d73b)|P3-HIGH+LOW(c7a0012)|P4-MED(PR#173→472b45e9)|P5-ZERO(voided)|P6-HIGH+MED(PR#174→cfe0112a)|P7-MED+LOW(288cba3+d26eef0)|P8-HIGH-REMEDIATED(e817d3c)|P9-CLEAN(1/3,voided)|P10-MED+MED+LOW-REMEDIATED(422e4ee+PR#175→68137b4b)|P11-IN-PROGRESS. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
+convergence_trajectory: "P5:P1-MED|P2-MED|P3-HIGH+LOW|P4-MED|P5-ZERO(voided)|P6-HIGH+MED|P7-MED+LOW|P8-HIGH-REMEDIATED|P9-CLEAN(voided)|P10-MED+MED+LOW|P11-MED+LOW+LOW(1-ACCEPTED)-REMEDIATED(56885b8)|P12-IN-PROGRESS. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 consistency_audit: CONSISTENT
-input_drift_check: "CLEAN (re-baselined post ADV-IMPL-P08 anchor sweep: MATCH=48/STALE=0; 11 stories rewritten; commit 0f22508)"
+input_drift_check: "CLEAN (re-baselined post ADV-IMPL-P11 / F-AUDIT: MATCH=48/STALE=0; 10 stories rewritten; commit 531173f)"
 phase_2_input_hash_drift_check: CLEAN
 phase_2_input_hash_drift_check_total: 153
 wave_history_archived: "cycles/phase-3-tdd/wave-history.md (all waves 1-27 detail + final-steps; compacted 2026-06-01)"
@@ -40,7 +40,7 @@ wave_history_archived: "cycles/phase-3-tdd/wave-history.md (all waves 1-27 detai
 ## Status
 
 **Pipeline:** PHASE 5 — Adversarial Refinement IN PROGRESS. develop 68137b4b (FIX-P5-004 merged PR #175).
-Pass 10 NOT_CONVERGED: 0C/0H/2M/1L — all REMEDIATED+MERGED. ADV-IMPL-P10-MED-001 (BC-2.04.013 fn-name anchor) REMEDIATED commit 422e4ee. ADV-IMPL-P10-MED-002+LOW-001 (stale HS-043 test docstrings + misleading test name) REMEDIATED+MERGED FIX-P5-004 PR #175 → 68137b4b. HS-043 BC/doc-coherence finding class CLOSED. CLEAN-PASS COUNTER: 0/3 (streak restart after Pass-10 remediation). Pass 11 IN PROGRESS. Need 3 consecutive clean.
+Pass 11 NOT_CONVERGED: 0C/0H/1M/2L — all REMEDIATED (spec-only, no code change). ADV-IMPL-P11-MED-001 (VP-015 wraparound prose contradicted harness) + LOW-001 (VP-015 item-2 seq, folded into v1.1) REMEDIATED commit 56885b8. ADV-IMPL-P11-LOW-002 (hs043 file v1.4 label, cosmetic) ACCEPTED. Post-remediation comprehensive spec-coherence audit (6 dims, 698 citations, 20 VPs): found only F-AUDIT-001/002 (BC-2.04.013 title-sync to INDEX/PRD), both REMEDIATED commit 56885b8. Doc-coherence layer CLEAN with high confidence. Input-hash re-baselined 10 stories (commit 531173f, MATCH=48/STALE=0). CLEAN-PASS COUNTER: 0/3 (reset). Pass 12 IN PROGRESS. Need 3 consecutive clean.
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -59,32 +59,31 @@ dependency bumping for it).
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
 | Phase 3 — TDD Implementation | **PASSED** 2026-05-31 | 48/48 stories, 27/27 waves, all CLOSED/CONVERGED; E-1..E-10 ALL COMPLETE; develop HEAD 6158e6e (PR#170); BC-5.39.001 ACHIEVED across all waves; trajectory detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | **PASSED** 2026-06-01 | 80-scenario rotation, mean 0.949, 0 must-pass <0.6; HS-043 real defect found+fixed (PR #171); HS-006/016 non-defects; model-family caveat documented; detail: cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md; Phase 4→5 gate PASSED 2026-06-01 (PR #172 regression tests merged) |
-| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | Passes 1–10 complete; all P10 findings REMEDIATED+MERGED. FIX-P5-004 MERGED (PR #175 → 68137b4b); HS-043 BC/doc-coherence closed. CLEAN-PASS COUNTER 0/3 (reset). Pass 11 IN PROGRESS. P1→P10: MED→MED→HIGH+LOW→MED→ZERO→HIGH+MED→MED+LOW→HIGH→ZERO(voided)→MED+MED+LOW. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md |
+| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | Passes 1–11 complete; all P11 findings REMEDIATED (spec-only). P11: 0C/0H/1M/2L — VP-015 wraparound prose defect (harness mismatch) + F-AUDIT-001/002 (BC-2.04.013 title-sync). Post-P11 comprehensive consistency audit (6 dims, 698 citations): doc-coherence CLEAN. CLEAN-PASS COUNTER 0/3 (reset). Pass 12 IN PROGRESS. P1→P11: MED→MED→HIGH+LOW→MED→ZERO→HIGH+MED→MED+LOW→HIGH→ZERO(voided)→MED+MED+LOW→MED+LOW+LOW(1-ACCEPTED). Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
 | Phase 7 — Convergence | NOT STARTED | — |
 
-## Phase 3 — Wave Summary (COMPLETE)
+**Phase 3 — Wave Summary (COMPLETE):** Waves 1–27 ALL CLOSED/CONVERGED — detail: `cycles/phase-3-tdd/wave-history.md`. Spec package (Phase 1): 20 L2 shards, 1 PRD, 217 BCs, 20 VPs, 4 supplements, 9 arch files — detail: `cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`.
 
-Waves 1–27 ALL CLOSED/CONVERGED — detail: `cycles/phase-3-tdd/wave-history.md`. Spec package (Phase 1): 20 L2 shards, 1 PRD, 217 BCs, 20 VPs, 4 supplements, 9 arch files — detail: `cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`.
+## Session Resume Checkpoint (2026-06-01 — PHASE 5, Pass 11 REMEDIATED / Pass 12 IN PROGRESS)
 
-## Session Resume Checkpoint (2026-06-02 — PHASE 5, Pass 11 IN PROGRESS)
+**POSITION:** Phase 5 IN PROGRESS. develop HEAD 68137b4b (unchanged — P11 was spec-only). Pass 11 NOT_CONVERGED: 0C/0H/1M/2L — ADV-IMPL-P11-MED-001 (VP-015 wraparound prose contradicted harness), LOW-001 (folded into v1.1), LOW-002 (hs043 label, ACCEPTED cosmetic). All non-accepted findings REMEDIATED: vp-015 v1.1 + verification-architecture.md v1.1 + BC-2.04.013 title-sync INDEX+PRD (commit 56885b8). Post-P11 comprehensive spec-coherence audit (6 dims, 698 citations, 20 VPs): F-AUDIT-001/002 found and fixed (commit 56885b8). Doc-coherence CLEAN with high confidence. Input-hash re-baselined 10 stories (commit 531173f, MATCH=48/STALE=0). CLEAN-PASS COUNTER: 0/3 (reset).
 
-**POSITION:** Phase 5 IN PROGRESS. develop HEAD 68137b4b (FIX-P5-004 squash-merged PR #175). Pass 10 all findings REMEDIATED+MERGED: ADV-IMPL-P10-MED-001 (BC-2.04.013 v1.7 re-anchor, commit 422e4ee, MATCH=48/STALE=0); ADV-IMPL-P10-MED-002+LOW-001 (stale HS-043 test docstrings + misleading test name, FIX-P5-004 PR #175 → 68137b4b). HS-043 BC/doc-coherence finding class CLOSED. CLEAN-PASS COUNTER: 0/3 (reset after Pass-10 remediation).
-
-**EXACT NEXT ACTION:** Whole-impl adversarial Pass 11 now running (dispatched fresh context). Need 3 consecutive CLEAN passes (0C/0H/0M) for CONVERGENCE_SATISFIED (3/3).
+**EXACT NEXT ACTION:** Whole-impl adversarial Pass 12 IN PROGRESS (dispatched fresh context). Need 3 consecutive CLEAN (0C/0H/0M) for CONVERGENCE_SATISFIED (3/3).
 
 **MODEL-FAMILY CAVEAT (carry forward):** True non-Claude (GPT) evaluator unavailable. Use opus-tier fresh-context + strict info-asymmetry as substitute. Document at each gate.
 
 **OPEN/ACCEPTED ITEMS a fresh session must know:**
-- All P1–P10 findings REMEDIATED+MERGED. develop HEAD 68137b4b is clean.
+- All P1–P11 non-accepted findings REMEDIATED. develop HEAD 68137b4b is clean.
+- ADV-IMPL-P11-LOW-002: ACCEPTED cosmetic (hs043 file v1.4 label vs v1.5, non-blocking).
 - ADV-IMPL-P01-LOW-001: ACCEPTED/optional (findings.rs stale doc-comment, same class as O-08).
 - ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture added (see Drift Items).
 - F-W25-S088-P6-001 LOW: test-strength only; target next main.rs touch.
-- PROCESS-GAP-P5-001: OPEN — HIGH-PRIORITY. Durable-fix disposition REQUIRED at Phase-5 cycle close per S-7.02.
+- PROCESS-GAP-P5-001: OPEN — HIGH-PRIORITY. Durable-fix disposition REQUIRED at Phase-5 cycle close per S-7.02. Note: comprehensive consistency-validator audit (6 dims) run post-P11 = the proactive sweep PROCESS-GAP-P5-001 calls for.
 
 **PROCESS NOTE (W24.L3):** Verify merges via `gh pr view <N>` + `git rev-parse origin/develop` before declaring landed.
 
-Prior checkpoint (Pass 10 REMEDIATED, Pass 11 NEXT) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
+Prior checkpoint (Pass 11 IN PROGRESS) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
 ## Phase 3→4 Gate — PASSED 2026-06-01
 
@@ -130,6 +129,11 @@ Externally-blocked / phase-gated items (W9-D2/D3/D4 upstream-plugin, W9-D12 awai
 | ADV-IMPL-P10-MED-001 | [Phase-5, whole-impl Pass 10, MED] BC-2.04.013 PC0/anchors named `expire_flows` as production-wired enforcer; actual wired enforcer is `expire_idle_by_timeout` (called per-packet). `expire_flows` is public/offline API (called only by `finalize()`). Supersedes ADV-HS043-P02-LOW-001. | spec-naming / docs (BC-2.04.013) | CLOSED | REMEDIATED — BC-2.04.013 v1.7, STORY-019 v1.7 propagation, commit 422e4ee; input-hash 155cc08. MATCH=48/STALE=0. |
 | ADV-IMPL-P10-MED-002 | [Phase-5, whole-impl Pass 10, MED] Stale HS-043 test docstrings — test functions in HS-043 region retained docstrings describing old `expire_flows` API rather than `expire_idle_by_timeout` production path. | test-coherence (HS-043 test files) | CLOSED | REMEDIATED + MERGED — FIX-P5-004 PR #175 squash-merged → develop 68137b4b 2026-06-02. HS-043 BC/doc-coherence class CLOSED. |
 | ADV-IMPL-P10-LOW-001 | [Phase-5, whole-impl Pass 10, LOW] Misleading test name in HS-043 region — test name did not reflect the wired production function. | test-naming | CLOSED | REMEDIATED + MERGED — FIX-P5-004 PR #175 squash-merged → develop 68137b4b 2026-06-02. |
+| ADV-IMPL-P11-MED-001 | [Phase-5, whole-impl Pass 11, MED] VP-015 wraparound prose contradicted its own harness — described subtraction/signed-offset but harness uses wrapping addition with u32-clamped window offset. Property correctness unaffected (harness was correct); spec prose was wrong. | spec-prose vs harness (VP-015) | CLOSED | REMEDIATED — vp-015-tcp-sequence-wraparound.md v1.1 + verification-architecture.md v1.1 VP-015 row corrected; commit 56885b8 2026-06-01. |
+| ADV-IMPL-P11-LOW-001 | [Phase-5, whole-impl Pass 11, LOW] VP-015 item-2 seq-number semantics — folded into v1.1 prose correction. | spec-prose (VP-015) | CLOSED | REMEDIATED — folded into ADV-IMPL-P11-MED-001 fix, commit 56885b8. |
+| ADV-IMPL-P11-LOW-002 | [Phase-5, whole-impl Pass 11, LOW] hs043 adversary-pass file version label showed v1.4 when latest is v1.5. Cosmetic only. | cosmetic-label | CLOSED | ACCEPTED — cosmetic, LOW, non-blocking. No artifact change. |
+| F-AUDIT-001 | [Phase-5, post-P11 consistency audit] BC-INDEX.md BC-2.04.013 title (line 79) not propagated from v1.7 H1 enrichment; showed old `expire_flows` phrasing. | index-title-sync (BC-2.04.013) | CLOSED | REMEDIATED — BC-INDEX.md synced to v1.7 H1 title, commit 56885b8 2026-06-01. |
+| F-AUDIT-002 | [Phase-5, post-P11 consistency audit] prd.md RTM BC-2.04.013 title (line 189) not propagated from v1.7 H1 enrichment; same stale phrasing as F-AUDIT-001. | prd-title-sync (BC-2.04.013) | CLOSED | REMEDIATED — prd.md RTM row synced to v1.7 H1 title, commit 56885b8 2026-06-01. |
 | ADV-IMPL-P04-MED-001 | [Phase-5, whole-impl Pass 4, MED] BC-2.12.005 zero-rejection contract gap: spec required depth/memcap >=1 but lacked canonical PCs, error codes E-CFG-007/E-CFG-008, and test-citation anchors. Code did not enforce the contract. FIX MERGED — spec reconciled: BC-2.12.005 v1.3 (depth/memcap >=1 PC5/PC6, EC-006/EC-007, canonical vectors), NFR-REL-004 impl note, E-RAS-004 + E-CFG-007/008 taxonomy, STORY-087 v1.3 (EC-001 revised, EC-006/AC-013/AC-014 added). Code fix PR #173 squash-merged → develop 472b45e9 2026-06-01. Demo recorded (.factory/demo-evidence/FIX-P5-002/, exit 2/2/0). Pass 5 adversary verified correct. | spec-contract gap + missing code enforcement | CLOSED | REMEDIATED + MERGED — PR #173 squash-merged → develop 472b45e9 2026-06-01; spec reconciled BC-2.12.005 v1.3/NFR-REL-004/E-RAS-004/E-CFG-007-008/STORY-087 v1.3; Pass 5 adversary confirmed correct |
 | ADV-IMPL-P01-MED-001 | [Phase-5, whole-impl Pass 1, MED] SS-04 behavioral-contract source-line anchors stale after HS-043 merges (PR #171 + #172) shifted code in src/reassembly/mod.rs. No semantic/PC/inv changes; line-number citations only. | spec-anchor drift (DF-SIBLING-SWEEP-001) | SS-04 BC re-anchor sweep | REMEDIATED — 32 BCs re-anchored, commit 2b33284, pushed 2026-06-01 |
 | ADV-IMPL-P02-MED-001 | [Phase-5, whole-impl Pass 2, MED] Residual SS-04 anchor drift missed by v1.6 sweep: BC-2.04.052 (2 anchors: traceability row + Architecture Anchors, mod.rs:306-312 → mod.rs:335-341) and BC-2.04.032 (1 prose anchor, mod.rs:306-319 → mod.rs:335-349). No semantic/PC/inv changes; line-number citations only. Recurring root cause: HS-043 mod.rs insertion (PROCESS-GAP-P5-001). | spec-anchor drift (DF-SIBLING-SWEEP-001) | BC-2.04.052/.032 re-anchor | REMEDIATED — 2 BCs re-anchored, commit aa6d73b, pushed 2026-06-01 |
@@ -149,7 +153,7 @@ Closed items archived in `cycles/drift-remediation-2026-05-29/closed-items.md`. 
 
 | ID | Description | Status |
 |----|-------------|--------|
-| PROCESS-GAP-P5-001 | [process-gap, 2026-06-01; ESCALATED 2026-06-02; REINFORCED Pass 10] HS-043 cross-cutting reassembly merges dispatched without a complete sibling sweep — DF-SIBLING-SWEEP-001 enforcement gap. SYSTEMIC: over 10 adversarial passes anchor/coherence gaps recurred: Pass 1 (BC files, 32 BCs), Pass 2 (BC secondary anchors, 2 BCs), Pass 3 (consuming VP/invariant/supplement/entity, 28 citations / 8 files), Pass 8 (test-file dim — 83 citations / 44 files), Pass 10 (BC fn-name + test docstring coherence: expire_flows vs expire_idle_by_timeout). ROOT CAUSE: sweeps are reactive, not preventive. When a fix renames/introduces a function, sweeps must also cover BC PC/anchors + test docstrings naming the old/related function. ESCALATED to HIGH-PRIORITY. Cycle-close disposition MUST propose a durable fix. | OPEN — HIGH-PRIORITY; durable-fix disposition REQUIRED at Phase-5 cycle close per S-7.02 |
+| PROCESS-GAP-P5-001 | [process-gap, 2026-06-01; ESCALATED 2026-06-02; REINFORCED Pass 10+11] HS-043 cross-cutting reassembly merges dispatched without a complete sibling sweep — DF-SIBLING-SWEEP-001 enforcement gap. SYSTEMIC: over 11 adversarial passes anchor/coherence gaps recurred: Pass 1 (BC files, 32 BCs), Pass 2 (BC secondary anchors, 2 BCs), Pass 3 (consuming VP/invariant/supplement/entity, 28 citations / 8 files), Pass 8 (test-file dim — 83 citations / 44 files), Pass 10 (BC fn-name + test docstring coherence), Pass 11 (VP-015 prose vs harness; BC-2.04.013 title-sync gaps in INDEX/PRD). ROOT CAUSE: sweeps are reactive, not preventive. Durable-fix candidate (from post-P11 consistency audit): run spec-coherence audit (consistency-validator, 6 dims) after any BC H1/title enrichment and after any fix-burst that shifts code or renames functions. The post-P11 comprehensive audit (698 citations, 20 VPs, 6 dims) = exemplar of this proactive sweep. Cycle-close disposition MUST codify this as a policy addendum. | OPEN — HIGH-PRIORITY; durable-fix disposition REQUIRED at Phase-5 cycle close per S-7.02 |
 
 ## Governance Policy
 
@@ -192,8 +196,5 @@ Full register: `.factory/tech-debt-register.md`
 
 ## Notes
 
-- `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
-- SS-03 gap in BC numbering is intentional (subsystem not applicable).
-- Phase 0 canonical ground truth: `.factory/semport/wirerust/wirerust-pass-8-deep-synthesis.md`.
-- Wave-level convergence history: `.factory/cycles/phase-3-tdd/convergence-trajectory.md`.
-- Phase 1/2 adversary pass detail: `cycles/v0.1.0-greenfield-spec/convergence-trajectory.md` (P1) and `story-adversary-pass-*.md` (P2). Phase 4 holdout eval: `cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md`. Wave 1-27 history: `cycles/phase-3-tdd/wave-history.md`.
+- `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`. SS-03 gap in BC numbering intentional (subsystem not applicable).
+- Phase 0 ground truth: `.factory/semport/wirerust/wirerust-pass-8-deep-synthesis.md`. Wave history: `cycles/phase-3-tdd/convergence-trajectory.md`. Phase 1/2 adversary detail: `cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`. Phase 4 holdout: `cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md`.

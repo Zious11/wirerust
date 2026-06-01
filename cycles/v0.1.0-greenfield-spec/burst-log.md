@@ -345,3 +345,40 @@ ADV-HS043-P02-LOW-001 status: SUPERSEDED-BY-ADV-IMPL-P10-MED-001 — the previou
 **CLEAN-PASS COUNTER:** RESET to 0/3 (Pass 9 clean streak broken by Pass 10 findings). Next: whole-impl Pass 11 (after FIX-P5-004 PR merges). Need 3 consecutive clean.
 
 ---
+
+## Burst 4 — 2026-06-01 — Pass 11 Remediation + Comprehensive Spec-Coherence Audit
+
+**Trigger:** Whole-impl adversarial Pass 11 returned NOT_CONVERGED: 0 CRIT / 0 HIGH / 1 MED / 2 LOW.
+
+**Findings dispatched:**
+- ADV-IMPL-P11-MED-001: vp-015-tcp-sequence-wraparound.md v1.0 prose contradicted its own harness — described wrapping subtraction / signed offset; harness uses wrapping addition with u32 clamping. REMEDIATED: vp-015 v1.1 + verification-architecture.md v1.1 VP-015 row corrected.
+- ADV-IMPL-P11-LOW-001: VP-015 item-2 sequence-number semantics — addressed by v1.1 prose correction. REMEDIATED.
+- ADV-IMPL-P11-LOW-002: hs043 adversary-pass file labeled v1.4 when latest was v1.5. ACCEPTED cosmetic, LOW, non-blocking.
+
+**Post-remediation comprehensive spec-coherence audit (consistency-validator, 6 dimensions):**
+- 20 VPs vs harnesses vs BCs vs code
+- 698 source citations verified
+- Index coherence (BC-INDEX, VP-INDEX, ARCH-INDEX)
+- Determinism coverage
+- Architecture alignment
+- Error-taxonomy coverage
+Found only 2 additional title-sync findings:
+- F-AUDIT-001: BC-INDEX.md line 79 BC-2.04.013 title not propagated from v1.7 H1. REMEDIATED.
+- F-AUDIT-002: prd.md line 189 BC-2.04.013 RTM title not propagated from v1.7 H1. REMEDIATED.
+Doc-coherence layer assessed CLEAN with high confidence.
+
+**Files touched (factory-artifacts commit 56885b8):**
+- specs/verification-properties/vp-015-tcp-sequence-wraparound.md v1.0 → v1.1
+- specs/architecture/verification-architecture.md v1.0 → v1.1
+- specs/behavioral-contracts/BC-INDEX.md (BC-2.04.013 title sync)
+- specs/prd.md (BC-2.04.013 RTM title sync)
+
+**Input-hash re-baseline (commit 531173f):** 10 stories rewritten (STORY-001..005, STORY-076..080, all due to prd.md title change). Post-baseline: MATCH=48 / STALE=0.
+
+**Code:** Verified clean against develop HEAD 68137b4b (FIX-P5-004 merged PR #175). No code changes needed.
+
+**CLEAN-PASS COUNTER:** 0/3 (RESET — Pass 11 NOT_CONVERGED on VP-015 wraparound prose defect). Pass 12 IN PROGRESS. Need 3 consecutive clean (0C/0H/0M).
+
+**PROCESS-GAP-P5-001 note:** The comprehensive consistency-validator audit (F-AUDIT-001/002 found and fixed) is exactly the kind of proactive sweep that should be routine at fix-burst time. Durable-fix candidate: run a spec-coherence audit after any BC H1/title enrichment, and after any fix-burst that shifts code, not only at pass gate.
+
+---

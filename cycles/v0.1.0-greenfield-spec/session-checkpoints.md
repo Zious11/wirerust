@@ -4,6 +4,23 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 
 ---
 
+## Archived: 2026-06-02 — PHASE 5, Pass 11 IN PROGRESS (superseded by Pass 11 REMEDIATED / Pass 12 IN PROGRESS checkpoint)
+
+**POSITION:** Phase 5 IN PROGRESS. develop HEAD 68137b4b (FIX-P5-004 squash-merged PR #175). Pass 10 all findings REMEDIATED+MERGED: ADV-IMPL-P10-MED-001 (BC-2.04.013 v1.7 re-anchor, commit 422e4ee, MATCH=48/STALE=0); ADV-IMPL-P10-MED-002+LOW-001 (stale HS-043 test docstrings + misleading test name, FIX-P5-004 PR #175 → 68137b4b). HS-043 BC/doc-coherence finding class CLOSED. CLEAN-PASS COUNTER: 0/3 (reset after Pass-10 remediation).
+
+**EXACT NEXT ACTION (at archival):** Whole-impl adversarial Pass 11 now running (dispatched fresh context). Need 3 consecutive CLEAN passes (0C/0H/0M) for CONVERGENCE_SATISFIED (3/3).
+
+**MODEL-FAMILY CAVEAT (carry forward):** True non-Claude (GPT) evaluator unavailable. Use opus-tier fresh-context + strict info-asymmetry as substitute. Document at each gate.
+
+**OPEN/ACCEPTED ITEMS at archival:**
+- All P1–P10 findings REMEDIATED+MERGED. develop HEAD 68137b4b is clean.
+- ADV-IMPL-P01-LOW-001: ACCEPTED/optional (findings.rs stale doc-comment, same class as O-08).
+- ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture added.
+- F-W25-S088-P6-001 LOW: test-strength only; target next main.rs touch.
+- PROCESS-GAP-P5-001: OPEN — HIGH-PRIORITY. Durable-fix disposition REQUIRED at Phase-5 cycle close per S-7.02.
+
+---
+
 ## Archived: 2026-06-01 — PHASE 5, whole-impl Pass 2 REMEDIATED (superseded by Pass 3 REMEDIATED checkpoint)
 
 **POSITION:** Phase 5 (Adversarial Refinement) IN PROGRESS. Whole-implementation adversarial Pass 2 COMPLETE — verdict NOT_CONVERGED. 0 CRIT / 0 HIGH / 1 MED (ADV-IMPL-P02-MED-001 residual SS-04 anchor drift). MED REMEDIATED: BC-2.04.052 (2 anchors) + BC-2.04.032 (1 prose anchor) re-anchored mod.rs:306→335; committed aa6d73b, pushed origin/factory-artifacts. CLEAN-PASS COUNTER = 0 (both Pass 1 and Pass 2 had a MEDIUM). develop HEAD e0451ef (unchanged — no source code modified this burst).
