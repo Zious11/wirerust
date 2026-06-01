@@ -8,10 +8,6 @@
 //!
 //! AC↔test-name sync enforced by DF-AC-TEST-NAME-SYNC-001.
 //! Namespace isolation enforced by DF-TEST-NAMESPACE-001 (`mod story_090`).
-//!
-//! RED GATE STUB — all tests assert!(false) until implementation review confirms
-//! the brownfield code satisfies every clause; stubs will be replaced with real
-//! assertions in the implementation pass.
 
 // PG-W17-001 mandates that test fn names EXACTLY match the AC `**Test:**`
 // citations (e.g. `test_BC_2_12_018_xxx`).  These names use upper-case BC
@@ -129,7 +125,20 @@ mod story_090 {
 
     #[test]
     fn test_summary_ingest_increments_total_packets() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+        assert_eq!(summary.total_packets, 0);
+
+        let pkt1 = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 54);
+        summary.ingest(&pkt1);
+        assert_eq!(summary.total_packets, 1);
+
+        let pkt2 = make_tcp_packet([10, 0, 0, 3], [10, 0, 0, 4], 9999, 9999, 100);
+        summary.ingest(&pkt2);
+        assert_eq!(summary.total_packets, 2);
+
+        let pkt3 = make_udp_packet([10, 0, 0, 5], [10, 0, 0, 6], 12345, 53, 60);
+        summary.ingest(&pkt3);
+        assert_eq!(summary.total_packets, 3);
     }
 
     // =========================================================================
@@ -138,7 +147,20 @@ mod story_090 {
 
     #[test]
     fn test_summary_ingest_increments_total_bytes() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+        assert_eq!(summary.total_bytes, 0);
+
+        let pkt1 = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 100);
+        summary.ingest(&pkt1);
+        assert_eq!(summary.total_bytes, 100);
+
+        let pkt2 = make_tcp_packet([10, 0, 0, 3], [10, 0, 0, 4], 9999, 9999, 250);
+        summary.ingest(&pkt2);
+        assert_eq!(summary.total_bytes, 350);
+
+        let pkt3 = make_udp_packet([10, 0, 0, 5], [10, 0, 0, 6], 12345, 53, 50);
+        summary.ingest(&pkt3);
+        assert_eq!(summary.total_bytes, 400);
     }
 
     // =========================================================================
@@ -148,7 +170,28 @@ mod story_090 {
 
     #[test]
     fn test_summary_host_counting() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+
+        // Packet 1: introduces 10.0.0.1 and 10.0.0.2
+        let pkt1 = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 54);
+        summary.ingest(&pkt1);
+        assert_eq!(summary.unique_hosts().len(), 2);
+
+        // Packet 2: introduces 10.0.0.3; 10.0.0.1 is a duplicate → still 3 unique
+        let pkt2 = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 3], 12346, 443, 60);
+        summary.ingest(&pkt2);
+        assert_eq!(summary.unique_hosts().len(), 3);
+
+        // Packet 3: both src and dst are already seen → still 3 unique
+        let pkt3 = make_tcp_packet([10, 0, 0, 2], [10, 0, 0, 1], 80, 12345, 54);
+        summary.ingest(&pkt3);
+        assert_eq!(summary.unique_hosts().len(), 3);
+
+        // Verify the exact IPs present
+        let hosts = summary.unique_hosts();
+        assert!(hosts.contains(&IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1))));
+        assert!(hosts.contains(&IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2))));
+        assert!(hosts.contains(&IpAddr::V4(Ipv4Addr::new(10, 0, 0, 3))));
     }
 
     // =========================================================================
@@ -157,7 +200,22 @@ mod story_090 {
 
     #[test]
     fn test_summary_protocol_breakdown() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+
+        let pkt_tcp1 = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 54);
+        let pkt_tcp2 = make_tcp_packet([10, 0, 0, 3], [10, 0, 0, 4], 9999, 443, 60);
+        let pkt_udp = make_udp_packet([10, 0, 0, 5], [10, 0, 0, 6], 12345, 53, 40);
+        let pkt_icmp = make_icmp_packet([10, 0, 0, 7], [10, 0, 0, 8], 28);
+
+        summary.ingest(&pkt_tcp1);
+        summary.ingest(&pkt_tcp2);
+        summary.ingest(&pkt_udp);
+        summary.ingest(&pkt_icmp);
+
+        let counts = summary.protocol_counts();
+        assert_eq!(counts.get(&Protocol::Tcp), Some(&2));
+        assert_eq!(counts.get(&Protocol::Udp), Some(&1));
+        assert_eq!(counts.get(&Protocol::Icmp), Some(&1));
     }
 
     // =========================================================================
@@ -166,7 +224,22 @@ mod story_090 {
 
     #[test]
     fn test_skipped_packets_not_modified_by_ingest() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+        assert_eq!(summary.skipped_packets, 0);
+
+        // Ingest several packets
+        for i in 1u8..=5 {
+            let pkt = make_tcp_packet([10, 0, 0, i], [10, 0, 0, i + 10], 9999, 80, 54);
+            summary.ingest(&pkt);
+        }
+
+        // skipped_packets must still be 0 — ingest never sets it
+        assert_eq!(summary.skipped_packets, 0);
+        assert_eq!(summary.total_packets, 5);
+
+        // Caller can set skipped_packets manually (as main.rs does)
+        summary.skipped_packets = 3;
+        assert_eq!(summary.skipped_packets, 3);
     }
 
     // =========================================================================
@@ -176,7 +249,19 @@ mod story_090 {
 
     #[test]
     fn test_summary_service_detection_http() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+
+        // dst_port=80 triggers app_protocol_hint() → Some("HTTP")
+        let pkt = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 54);
+        summary.ingest(&pkt);
+
+        let services = summary.service_counts();
+        assert_eq!(
+            services.get("HTTP"),
+            Some(&1),
+            "services[\"HTTP\"] should be 1"
+        );
+        assert_eq!(services.len(), 1, "only one service entry expected");
     }
 
     // =========================================================================
@@ -186,7 +271,17 @@ mod story_090 {
 
     #[test]
     fn test_summary_service_detection_none_on_unknown_port() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+
+        // port 9999 is not a known service port → app_protocol_hint() returns None
+        let pkt = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 9998, 9999, 54);
+        summary.ingest(&pkt);
+
+        let services = summary.service_counts();
+        assert!(
+            services.is_empty(),
+            "services map should be empty for unknown port; got: {services:?}"
+        );
     }
 
     // =========================================================================
@@ -196,7 +291,21 @@ mod story_090 {
 
     #[test]
     fn test_summary_service_is_port_based_not_content_based() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+
+        // HTTP payload bytes on port 8080 — content looks like HTTP but port is not known
+        let mut pkt = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 8080, 200);
+        pkt.payload = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n".to_vec();
+        summary.ingest(&pkt);
+
+        // Despite HTTP content, services map must be empty (port 8080 is unknown)
+        let services = summary.service_counts();
+        assert!(
+            services.is_empty(),
+            "port-based service detection must not count HTTP content on port 8080; \
+             got: {services:?}"
+        );
+        assert_eq!(summary.total_packets, 1);
     }
 
     // =========================================================================
@@ -205,7 +314,29 @@ mod story_090 {
 
     #[test]
     fn test_unique_hosts_sorted_and_deduplicated() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+
+        // Insert in non-sorted order: .3 then .1 then .2
+        let pkt1 = make_tcp_packet([10, 0, 0, 3], [10, 0, 0, 1], 9999, 80, 54);
+        let pkt2 = make_tcp_packet([10, 0, 0, 2], [10, 0, 0, 1], 9998, 443, 60);
+        // pkt2 introduces 10.0.0.2 and re-introduces 10.0.0.1 (duplicate)
+        summary.ingest(&pkt1);
+        summary.ingest(&pkt2);
+
+        let hosts = summary.unique_hosts();
+        // Exactly 3 unique hosts
+        assert_eq!(hosts.len(), 3);
+        // Sorted ascending
+        assert_eq!(hosts[0], IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)));
+        assert_eq!(hosts[1], IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)));
+        assert_eq!(hosts[2], IpAddr::V4(Ipv4Addr::new(10, 0, 0, 3)));
+        // Verify sorted invariant holds across the whole slice
+        for window in hosts.windows(2) {
+            assert!(
+                window[0] < window[1],
+                "unique_hosts must be strictly sorted"
+            );
+        }
     }
 
     // =========================================================================
@@ -214,7 +345,11 @@ mod story_090 {
 
     #[test]
     fn test_unique_hosts_empty_when_no_packets() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let summary = Summary::new();
+        assert!(
+            summary.unique_hosts().is_empty(),
+            "unique_hosts() must return an empty Vec when no packets have been ingested"
+        );
     }
 
     // =========================================================================
@@ -224,7 +359,25 @@ mod story_090 {
 
     #[test]
     fn test_unique_hosts_is_non_mutating() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+        let pkt = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 54);
+        summary.ingest(&pkt);
+
+        // Call unique_hosts() three times; results must be identical
+        let first = summary.unique_hosts();
+        let second = summary.unique_hosts();
+        let third = summary.unique_hosts();
+        assert_eq!(
+            first, second,
+            "unique_hosts() must be idempotent (call 1 vs 2)"
+        );
+        assert_eq!(
+            second, third,
+            "unique_hosts() must be idempotent (call 2 vs 3)"
+        );
+
+        // total_packets must be unchanged — unique_hosts took &self
+        assert_eq!(summary.total_packets, 1);
     }
 
     // =========================================================================
@@ -235,7 +388,29 @@ mod story_090 {
 
     #[test]
     fn test_json_reporter_includes_skipped_packets() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+        let pkt = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 100);
+        summary.ingest(&pkt);
+        summary.skipped_packets = 7;
+
+        let json = render_and_parse(&summary);
+        let summary_block = &json["summary"];
+
+        assert_eq!(
+            summary_block["total_packets"],
+            serde_json::Value::Number(1u64.into()),
+            "total_packets must be a u64 integer in the JSON summary"
+        );
+        assert_eq!(
+            summary_block["total_bytes"],
+            serde_json::Value::Number(100u64.into()),
+            "total_bytes must be a u64 integer in the JSON summary"
+        );
+        assert_eq!(
+            summary_block["skipped_packets"],
+            serde_json::Value::Number(7u64.into()),
+            "skipped_packets must be a u64 integer in the JSON summary"
+        );
     }
 
     // =========================================================================
@@ -245,7 +420,43 @@ mod story_090 {
 
     #[test]
     fn test_summary_protocol_keys_use_debug_format() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+        let pkt_tcp = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 54);
+        let pkt_udp = make_udp_packet([10, 0, 0, 3], [10, 0, 0, 4], 12345, 53, 40);
+        let pkt_icmp = make_icmp_packet([10, 0, 0, 5], [10, 0, 0, 6], 28);
+        summary.ingest(&pkt_tcp);
+        summary.ingest(&pkt_udp);
+        summary.ingest(&pkt_icmp);
+
+        let json = render_and_parse(&summary);
+        let protocols = &json["summary"]["protocols"];
+
+        // Keys must be Debug format: "Tcp", "Udp", "Icmp"
+        assert_eq!(
+            protocols["Tcp"],
+            serde_json::Value::Number(1u64.into()),
+            "Tcp key must use Debug format (\"Tcp\", not \"TCP\" or numeric)"
+        );
+        assert_eq!(
+            protocols["Udp"],
+            serde_json::Value::Number(1u64.into()),
+            "Udp key must use Debug format (\"Udp\", not \"UDP\" or numeric)"
+        );
+        assert_eq!(
+            protocols["Icmp"],
+            serde_json::Value::Number(1u64.into()),
+            "Icmp key must use Debug format (\"Icmp\", not \"ICMP\" or numeric)"
+        );
+
+        // Negative: Display/uppercase variants must NOT appear
+        assert!(
+            protocols.get("TCP").is_none(),
+            "Protocol key must not be all-caps \"TCP\""
+        );
+        assert!(
+            protocols.get("UDP").is_none(),
+            "Protocol key must not be all-caps \"UDP\""
+        );
     }
 
     // =========================================================================
@@ -255,7 +466,20 @@ mod story_090 {
 
     #[test]
     fn test_BC_2_12_019_ec1_src_eq_dst_counted_once() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+
+        // src_ip == dst_ip: both inserts into HashSet are the same address
+        let pkt = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 1], 12345, 80, 54);
+        summary.ingest(&pkt);
+
+        let hosts = summary.unique_hosts();
+        assert_eq!(
+            hosts.len(),
+            1,
+            "when src_ip == dst_ip, unique_hosts() must contain exactly 1 entry; \
+             got: {hosts:?}"
+        );
+        assert_eq!(hosts[0], IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)));
     }
 
     // =========================================================================
@@ -265,7 +489,44 @@ mod story_090 {
 
     #[test]
     fn test_BC_2_12_019_ec2_ipv4_sorts_before_ipv6() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+
+        // IPv6 packet — ingested first to ensure sort is stable regardless of
+        // insertion order
+        let ipv6_src = Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1);
+        let ipv6_dst = Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 2);
+        let pkt_v6 = make_tcp_packet_ipv6(ipv6_src, ipv6_dst, 12345, 80, 60);
+        summary.ingest(&pkt_v6);
+
+        // IPv4 packet — ingested second
+        let pkt_v4 = make_tcp_packet([192, 168, 1, 1], [192, 168, 1, 2], 9999, 443, 54);
+        summary.ingest(&pkt_v4);
+
+        let hosts = summary.unique_hosts();
+        assert_eq!(hosts.len(), 4, "expected 4 unique hosts (2 IPv4, 2 IPv6)");
+
+        // First two must be IPv4
+        assert!(
+            matches!(hosts[0], IpAddr::V4(_)),
+            "first host must be IPv4; got: {:?}",
+            hosts[0]
+        );
+        assert!(
+            matches!(hosts[1], IpAddr::V4(_)),
+            "second host must be IPv4; got: {:?}",
+            hosts[1]
+        );
+        // Last two must be IPv6
+        assert!(
+            matches!(hosts[2], IpAddr::V6(_)),
+            "third host must be IPv6; got: {:?}",
+            hosts[2]
+        );
+        assert!(
+            matches!(hosts[3], IpAddr::V6(_)),
+            "fourth host must be IPv6; got: {:?}",
+            hosts[3]
+        );
     }
 
     // =========================================================================
@@ -275,7 +536,21 @@ mod story_090 {
 
     #[test]
     fn test_BC_2_12_020_ec1_same_protocol_accumulates() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+
+        let pkt1 = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 54);
+        let pkt2 = make_tcp_packet([10, 0, 0, 3], [10, 0, 0, 4], 9998, 443, 60);
+        summary.ingest(&pkt1);
+        summary.ingest(&pkt2);
+
+        let counts = summary.protocol_counts();
+        assert_eq!(
+            counts.get(&Protocol::Tcp),
+            Some(&2),
+            "two TCP packets must produce protocol count of 2"
+        );
+        // No other protocols
+        assert_eq!(counts.len(), 1, "only Tcp should appear in protocol_counts");
     }
 
     // =========================================================================
@@ -285,7 +560,17 @@ mod story_090 {
 
     #[test]
     fn test_BC_2_12_018_ec1_zero_length_packet_does_not_increment_bytes() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+
+        let pkt = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 0);
+        summary.ingest(&pkt);
+
+        assert_eq!(
+            summary.total_bytes, 0,
+            "packet_len=0 must leave total_bytes at 0"
+        );
+        // But total_packets still increments
+        assert_eq!(summary.total_packets, 1);
     }
 
     // =========================================================================
@@ -295,6 +580,22 @@ mod story_090 {
 
     #[test]
     fn test_BC_2_12_021_ec1_services_http_count_two_in_json() {
-        assert!(false, "RED GATE STUB — replace with real assertion");
+        let mut summary = Summary::new();
+
+        // Two HTTP packets (dst_port=80 → app_protocol_hint → Some("HTTP"))
+        let pkt1 = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 54);
+        let pkt2 = make_tcp_packet([10, 0, 0, 3], [10, 0, 0, 4], 9998, 80, 60);
+        summary.ingest(&pkt1);
+        summary.ingest(&pkt2);
+
+        let json = render_and_parse(&summary);
+        let services = &json["summary"]["services"];
+
+        assert_eq!(
+            services["HTTP"],
+            serde_json::Value::Number(2u64.into()),
+            "after two HTTP packets, JSON services[\"HTTP\"] must be 2; \
+             got services block: {services}"
+        );
     }
 }
