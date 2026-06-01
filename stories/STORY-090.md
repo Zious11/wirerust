@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-090
 epic_id: E-9
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -101,7 +101,7 @@ An empty `Summary` (zero calls to `ingest`) returns an empty `Vec` from `unique_
 
 ### AC-012 (traces to BC-2.12.021 postcondition 1)
 A `Summary` serialized via `JsonReporter`'s `serde_json::json!` block produces JSON with `"total_packets"`, `"total_bytes"`, `"skipped_packets"` as u64 integers.
-- **Test:** `test_json_reporter_includes_skipped_packets()`
+- **Test:** `test_BC_2_12_021_json_includes_skipped_packets()`
 
 ### AC-013 (traces to BC-2.12.021 postcondition 7)
 Protocol keys in the JSON `"protocols"` object use Debug format (e.g., `"Tcp"`, `"Udp"`, `"Icmp"`).
