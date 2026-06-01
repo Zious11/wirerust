@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-090
 epic_id: E-9
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -65,11 +65,11 @@ implementation_strategy: brownfield-formalization
 
 ### AC-003 (traces to BC-2.12.018 postcondition 3)
 Both `packet.src_ip` and `packet.dst_ip` are inserted into the `hosts: HashSet<IpAddr>` on each call; repeated addresses are deduplicated.
-- **Test:** `test_summary_host_counting()`
+- **Test:** `test_BC_2_12_018_host_counting_src_and_dst()`
 
 ### AC-004 (traces to BC-2.12.018 postcondition 4)
 `protocols[packet.protocol]` is incremented by 1 on each call; the entry is created if absent.
-- **Test:** `test_summary_protocol_breakdown()`
+- **Test:** `test_BC_2_12_018_protocol_breakdown()`
 
 ### AC-005 (traces to BC-2.12.018 invariant 2)
 `skipped_packets` is NOT set by `ingest`; it is set by the caller after the packet loop.
@@ -139,7 +139,7 @@ Protocol keys in the JSON `"protocols"` object use Debug format (e.g., `"Tcp"`, 
 | This story spec | ~2,800 |
 | `src/summary.rs` | ~3,000 |
 | `src/reporter/json.rs` (summary section) | ~2,000 |
-| `tests/summary_tests.rs` | ~3,000 |
+| `tests/summary_story_090_tests.rs` | ~3,000 |
 | BC files (4 BCs) | ~5,500 |
 | Tool outputs overhead | ~1,000 |
 | **Total** | **~17,300** |
@@ -192,4 +192,4 @@ Protocol keys in the JSON `"protocols"` object use Debug format (e.g., `"Tcp"`, 
 |------|--------|---------|
 | `src/summary.rs` | modify | `Summary` struct, `ingest`, `unique_hosts`, accessors, `#[derive(Serialize)]` |
 | `src/reporter/json.rs` | modify | Summary JSON block using `serde_json::json!` with accessor methods |
-| `tests/summary_tests.rs` | modify | All AC test functions and edge-case tests |
+| `tests/summary_story_090_tests.rs` | modify | All AC test functions and edge-case tests |
