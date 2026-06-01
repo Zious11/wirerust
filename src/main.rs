@@ -116,6 +116,10 @@ fn run_analyze(
         if let Some(v) = cli.out_of_window_threshold {
             config.out_of_window_alert_threshold = v;
         }
+        // HS-043 fix: wire --flow-timeout into the config (BC-2.04.013 v1.5).
+        // u64 → u32 saturating cast: values above u32::MAX (~136 years) clamp
+        // to u32::MAX, which is a safe, non-silent default for any real capture.
+        config.flow_timeout_secs = cli.flow_timeout.min(u64::from(u32::MAX)) as u32;
         Some(TcpReassembler::new(config))
     } else {
         None
