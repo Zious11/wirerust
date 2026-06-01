@@ -1,10 +1,10 @@
 //! STORY-090: Summary data model formalization tests — Wave 27 FINAL
 //!
 //! Behavioral contracts covered:
-//!   BC-2.12.018  Summary::ingest increments total_packets and total_bytes
-//!   BC-2.12.019  Summary host-set collects src_ip and dst_ip with deduplication
-//!   BC-2.12.020  Summary::protocol_counts tracks per-protocol packet counts
-//!   BC-2.12.021  Summary::service_counts tracks port-based application hints
+//!   BC-2.12.018  Summary::ingest Increments total_packets, total_bytes, hosts, protocols
+//!   BC-2.12.019  Summary::ingest Derives Service Name from app_protocol_hint
+//!   BC-2.12.020  Summary::unique_hosts Returns Sorted Deduplicated Vec<IpAddr>
+//!   BC-2.12.021  Summary Serializes with total_packets/total_bytes/skipped_packets Fields
 //!
 //! AC↔test-name sync enforced by DF-AC-TEST-NAME-SYNC-001.
 //! Namespace isolation enforced by DF-TEST-NAMESPACE-001 (`mod story_090`).
@@ -164,12 +164,12 @@ mod story_090 {
     }
 
     // =========================================================================
-    // AC-003  BC-2.12.019 pc1: ingest inserts src_ip AND dst_ip into hosts;
+    // AC-003  BC-2.12.018 pc3: ingest inserts src_ip AND dst_ip into hosts;
     //         duplicate appearances are deduplicated
     // =========================================================================
 
     #[test]
-    fn test_summary_host_counting() {
+    fn test_BC_2_12_018_host_counting_src_and_dst() {
         let mut summary = Summary::new();
 
         // Packet 1: introduces 10.0.0.1 and 10.0.0.2
@@ -195,11 +195,11 @@ mod story_090 {
     }
 
     // =========================================================================
-    // AC-004  BC-2.12.020 pc1: ingest increments protocols[packet.protocol]
+    // AC-004  BC-2.12.018 pc4: ingest increments protocols[packet.protocol]
     // =========================================================================
 
     #[test]
-    fn test_summary_protocol_breakdown() {
+    fn test_BC_2_12_018_protocol_breakdown() {
         let mut summary = Summary::new();
 
         let pkt_tcp1 = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 54);
@@ -219,7 +219,7 @@ mod story_090 {
     }
 
     // =========================================================================
-    // AC-005  BC-2.12.018 inv1: ingest never touches skipped_packets
+    // AC-005  BC-2.12.018 inv2: ingest never touches skipped_packets
     // =========================================================================
 
     #[test]
@@ -243,7 +243,7 @@ mod story_090 {
     }
 
     // =========================================================================
-    // AC-006  BC-2.12.021 pc1: when app_protocol_hint returns Some("HTTP"),
+    // AC-006  BC-2.12.019 pc1: when app_protocol_hint returns Some("HTTP"),
     //         services["HTTP"] is incremented
     // =========================================================================
 
@@ -265,7 +265,7 @@ mod story_090 {
     }
 
     // =========================================================================
-    // AC-007  BC-2.12.021 pc2: when app_protocol_hint returns None (unknown
+    // AC-007  BC-2.12.019 pc2: when app_protocol_hint returns None (unknown
     //         port), the services map remains unchanged
     // =========================================================================
 
@@ -285,7 +285,7 @@ mod story_090 {
     }
 
     // =========================================================================
-    // AC-008  BC-2.12.021 inv1: service detection is port-based (LESSON-P3.01),
+    // AC-008  BC-2.12.019 inv2: service detection is port-based (LESSON-P3.01),
     //         not content-based — HTTP on a non-80/443 port is not counted
     // =========================================================================
 
@@ -309,7 +309,7 @@ mod story_090 {
     }
 
     // =========================================================================
-    // AC-009  BC-2.12.019 pc2: unique_hosts returns a sorted, deduplicated Vec
+    // AC-009  BC-2.12.020 pc1: unique_hosts returns a sorted, deduplicated Vec
     // =========================================================================
 
     #[test]
@@ -340,7 +340,7 @@ mod story_090 {
     }
 
     // =========================================================================
-    // AC-010  BC-2.12.019 pc3: unique_hosts is empty when no packets ingested
+    // AC-010  BC-2.12.020 pc3: unique_hosts is empty when no packets ingested
     // =========================================================================
 
     #[test]
@@ -353,7 +353,7 @@ mod story_090 {
     }
 
     // =========================================================================
-    // AC-011  BC-2.12.019 inv2: unique_hosts is non-mutating — calling it
+    // AC-011  BC-2.12.020 inv4: unique_hosts is non-mutating — calling it
     //         multiple times returns identical results
     // =========================================================================
 
@@ -381,7 +381,7 @@ mod story_090 {
     }
 
     // =========================================================================
-    // AC-012  BC-2.12.018 pc3 + BC-2.11.002: JsonReporter serializes a Summary
+    // AC-012  BC-2.12.021 pc1: JsonReporter serializes a Summary
     //         with total_packets, total_bytes, and skipped_packets as u64
     //         integers in the JSON "summary" object
     // =========================================================================
@@ -414,7 +414,7 @@ mod story_090 {
     }
 
     // =========================================================================
-    // AC-013  BC-2.12.020 pc2: protocol keys in the JSON output use
+    // AC-013  BC-2.12.021 pc7: protocol keys in the JSON output use
     //         Debug-format ("Tcp", "Udp", "Icmp"), not Display or numeric
     // =========================================================================
 
@@ -460,12 +460,12 @@ mod story_090 {
     }
 
     // =========================================================================
-    // EC-001  BC-2.12.019 ec1: when src_ip == dst_ip, the host appears only
+    // EC-001  BC-2.12.020 ec2: when src_ip == dst_ip, the host appears only
     //         once in unique_hosts (HashSet deduplication)
     // =========================================================================
 
     #[test]
-    fn test_BC_2_12_019_ec1_src_eq_dst_counted_once() {
+    fn test_BC_2_12_020_ec2_src_eq_dst_counted_once() {
         let mut summary = Summary::new();
 
         // src_ip == dst_ip: both inserts into HashSet are the same address
@@ -483,12 +483,12 @@ mod story_090 {
     }
 
     // =========================================================================
-    // EC-002  BC-2.12.019 ec2: unique_hosts with a mix of IPv4 and IPv6
+    // EC-002  BC-2.12.020 ec3: unique_hosts with a mix of IPv4 and IPv6
     //         addresses sorts IPv4 before IPv6 (IpAddr Ord places V4 first)
     // =========================================================================
 
     #[test]
-    fn test_BC_2_12_019_ec2_ipv4_sorts_before_ipv6() {
+    fn test_BC_2_12_020_ec3_ipv4_sorts_before_ipv6() {
         let mut summary = Summary::new();
 
         // IPv6 packet — ingested first to ensure sort is stable regardless of
@@ -530,12 +530,12 @@ mod story_090 {
     }
 
     // =========================================================================
-    // EC-003  BC-2.12.020 ec1: two packets with the same protocol produce
+    // EC-003  BC-2.12.018 ec1: two packets with the same protocol produce
     //         count 2 for that protocol key
     // =========================================================================
 
     #[test]
-    fn test_BC_2_12_020_ec1_same_protocol_accumulates() {
+    fn test_BC_2_12_018_ec1_same_protocol_accumulates() {
         let mut summary = Summary::new();
 
         let pkt1 = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 54);
@@ -554,12 +554,12 @@ mod story_090 {
     }
 
     // =========================================================================
-    // EC-004  BC-2.12.018 ec1: a packet with packet_len = 0 leaves
+    // EC-004  BC-2.12.018 ec4: a packet with packet_len = 0 leaves
     //         total_bytes unchanged (adds 0)
     // =========================================================================
 
     #[test]
-    fn test_BC_2_12_018_ec1_zero_length_packet_does_not_increment_bytes() {
+    fn test_BC_2_12_018_ec4_zero_length_packet_does_not_increment_bytes() {
         let mut summary = Summary::new();
 
         let pkt = make_tcp_packet([10, 0, 0, 1], [10, 0, 0, 2], 12345, 80, 0);
@@ -574,12 +574,12 @@ mod story_090 {
     }
 
     // =========================================================================
-    // EC-005  BC-2.12.021 ec1: after two HTTP packets, the JSON output contains
+    // EC-005  BC-2.12.019 ec4: after two HTTP packets, the JSON output contains
     //         "services": { "HTTP": 2 }
     // =========================================================================
 
     #[test]
-    fn test_BC_2_12_021_ec1_services_http_count_two_in_json() {
+    fn test_BC_2_12_019_ec4_services_http_count_two_in_json() {
         let mut summary = Summary::new();
 
         // Two HTTP packets (dst_port=80 → app_protocol_hint → Some("HTTP"))
