@@ -3,7 +3,7 @@ pipeline: PHASE_5_ADVERSARIAL_REFINEMENT
 phase: phase-5-adversarial-refinement
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-01T23:00:00Z
+timestamp: 2026-06-02T00:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -15,7 +15,7 @@ phase_4_started: "2026-06-01"
 phase_4_completed: "2026-06-01"
 phase_4_to_5_gate: "PASSED (human-approved 2026-06-01, conditioned on HS-043 regression tests — merged PR #172)"
 phase_5_started: "2026-06-01"
-develop_head: 472b45e9
+develop_head: cfe0112a
 current_cycle: v0.1.0-greenfield-spec
 current_wave: 27 (FINAL — CLOSED)
 stories_delivered: 48
@@ -26,8 +26,10 @@ dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 0/3
 adv_impl_p04_med_001_status: REMEDIATED_MERGED_PR173_squash_develop_472b45e9_2026-06-01
+adv_impl_p06_high_001_status: REMEDIATED_MERGED_PR174_squash_develop_cfe0112a_2026-06-01
+adv_impl_p06_med_001_status: REMEDIATED_MERGED_PR174_squash_develop_cfe0112a_2026-06-01
 adversary_gate: NOT_YET_SATISFIED
-convergence_trajectory: "Full Phase-1→W27 trajectory archived in cycles/phase-3-tdd/convergence-trajectory.md. Latest: ...W26-CLOSED(PR#169→450d33e;BC-2.12.014..017;6ps-3clean;17-mutation-matrix)|W27-S090:3ps-3clean(R1/R2/R3;4→2→0;BC-2.12.018..021;18t;2-remediation-rounds-traceability;corpus-uniqueness-sweep)|W27-CONVERGED-CLOSED(single-story;per-story==wave-level;BC-5.39.001;PR#170→6158e6e)|PHASE-3-COMPLETE(48/48;27/27)|P5:Pass1-NOT_CONV-MED-REMEDIATED(2b33284)|Pass2-NOT_CONV-MED-REMEDIATED(aa6d73b)|Pass3-NOT_CONV-HIGH+LOW-REMEDIATED(c7a0012)|Pass4-NOT_CONV-MED-REMEDIATED(FIX-P5-002,PR#173→472b45e9)|Pass5-CONVERGENCE_REACHED(ZERO-findings;CLEAN-1/3-now-void)|Pass6-NOT_CONV-HIGH+MED(ADV-IMPL-P06-HIGH-001:top_snis/top_hosts-tiebreak;ADV-IMPL-P06-MED-001:terminal-section-sort;NEW-defect-class-determinism;FIX-P5-003-IN-FLIGHT);CLEAN-COUNTER-RESET-0/3"
+convergence_trajectory: "Full Phase-1→W27 trajectory archived in cycles/phase-3-tdd/convergence-trajectory.md. Latest: ...W26-CLOSED(PR#169→450d33e;BC-2.12.014..017;6ps-3clean;17-mutation-matrix)|W27-S090:3ps-3clean(R1/R2/R3;4→2→0;BC-2.12.018..021;18t;2-remediation-rounds-traceability;corpus-uniqueness-sweep)|W27-CONVERGED-CLOSED(single-story;per-story==wave-level;BC-5.39.001;PR#170→6158e6e)|PHASE-3-COMPLETE(48/48;27/27)|P5:Pass1-NOT_CONV-MED-REMEDIATED(2b33284)|Pass2-NOT_CONV-MED-REMEDIATED(aa6d73b)|Pass3-NOT_CONV-HIGH+LOW-REMEDIATED(c7a0012)|Pass4-NOT_CONV-MED-REMEDIATED(FIX-P5-002,PR#173→472b45e9)|Pass5-CONVERGENCE_REACHED(ZERO-findings;CLEAN-1/3-now-void)|Pass6-NOT_CONV-HIGH+MED(ADV-IMPL-P06-HIGH-001:top_snis/top_hosts-tiebreak;ADV-IMPL-P06-MED-001:terminal-section-sort;NEW-defect-class-determinism;FIX-P5-003-MERGED-PR174→cfe0112a;determinism-class-CLOSED;CLEAN-COUNTER-RESET-0/3)|Pass7-IN-PROGRESS"
 consistency_audit: CONSISTENT
 input_drift_check: "CLEAN (re-baselined post FIX-P5-003: MATCH=48/STALE=0; STORY-046/058/078 rewritten; commits 3fd6dce+b4f2258)"
 phase_2_input_hash_drift_check: CLEAN
@@ -39,8 +41,8 @@ wave_history_archived: "cycles/phase-3-tdd/wave-history.md (all waves 1-27 detai
 
 ## Status
 
-**Pipeline:** PHASE 5 — Adversarial Refinement IN PROGRESS. Phase 4 PASSED. develop 472b45e9.
-FIX-P5-002 MERGED (PR #173 squash → develop 472b45e9, 2026-06-01). whole-impl Pass 6 NOT_CONVERGED — 0 CRIT / 1 HIGH / 1 MED. NEW defect class: non-deterministic output ordering (distinct from anchor-drift class). FIX-P5-003 IN FLIGHT (code branch fix/deterministic-output-ordering; 3 BCs + 3 stories reconciled on factory-artifacts; PR pending human merge approval). CLEAN-PASS COUNTER RESET = 0/3. input-hash drift CLEAN (MATCH=48/STALE=0; STORY-046/058/078 re-baselined commits 3fd6dce+b4f2258).
+**Pipeline:** PHASE 5 — Adversarial Refinement IN PROGRESS. Phase 4 PASSED. develop cfe0112a.
+FIX-P5-003 MERGED (PR #174 squash → develop cfe0112a, 2026-06-01). Determinism defect class CLOSED. BC-2.06.023 v1.4 / BC-2.07.031 v1.3 / BC-2.11.019 v1.3 + STORY-046/058/078 reconciled. CLEAN-PASS COUNTER = 0/3 (streak restarts; convergence bar = 3 consecutive clean passes). Whole-impl adversarial Pass 7 IN PROGRESS. input-hash drift CLEAN (MATCH=48/STALE=0).
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -59,7 +61,7 @@ dependency bumping for it).
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
 | Phase 3 — TDD Implementation | **PASSED** 2026-05-31 | 48/48 stories, 27/27 waves, all CLOSED/CONVERGED; E-1..E-10 ALL COMPLETE; develop HEAD 6158e6e (PR#170); BC-5.39.001 ACHIEVED across all waves; trajectory detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | **PASSED** 2026-06-01 | 80-scenario rotation, mean 0.949, 0 must-pass <0.6; HS-043 real defect found+fixed (PR #171); HS-006/016 non-defects; model-family caveat documented; detail: cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md; Phase 4→5 gate PASSED 2026-06-01 (PR #172 regression tests merged) |
-| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | HS043-pass-2 COMPLETE; Pass 1 NOT_CONV MED REMEDIATED (2b33284); Pass 2 NOT_CONV MED REMEDIATED (aa6d73b); Pass 3 NOT_CONV HIGH+LOW REMEDIATED (c7a0012); Pass 4 NOT_CONV MED REMEDIATED (FIX-P5-002, PR #173 → 472b45e9); Pass 5 CONVERGENCE_REACHED ZERO findings (CLEAN-1/3-now-void). **Pass 6 NOT_CONVERGED — 0 CRIT / 1 HIGH (ADV-IMPL-P06-HIGH-001: non-deterministic JSON top_snis/top_hosts tie-ordering vs BC-2.07.031/2.06.023/DET-001) / 1 MED (ADV-IMPL-P06-MED-001: non-deterministic terminal PROTOCOLS/SERVICES vs BC-2.11.019); NEW defect class (determinism); FIX-P5-003 IN FLIGHT (branch fix/deterministic-output-ordering: tests e995994, fix d0313a1; 3 BCs + 3 stories reconciled on factory-artifacts 3fd6dce; PR pending human merge).** CLEAN-PASS COUNTER RESET = 0/3. NEXT ACTION after PR merge: whole-impl adversarial Pass 7. Finding progression: Pass1→2→3→4→5→6 = MED→MED→HIGH+LOW→MED→ZERO→HIGH+MED. |
+| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | HS043-pass-2 COMPLETE; Pass 1 NOT_CONV MED REMEDIATED (2b33284); Pass 2 NOT_CONV MED REMEDIATED (aa6d73b); Pass 3 NOT_CONV HIGH+LOW REMEDIATED (c7a0012); Pass 4 NOT_CONV MED REMEDIATED (FIX-P5-002, PR #173 → 472b45e9); Pass 5 CONVERGENCE_REACHED ZERO findings (CLEAN-1/3-now-void); Pass 6 NOT_CONV HIGH+MED REMEDIATED — **FIX-P5-003 MERGED (PR #174 → cfe0112a, 2026-06-01); determinism class CLOSED; BC-2.06.023 v1.4/BC-2.07.031 v1.3/BC-2.11.019 v1.3 + STORY-046/058/078 reconciled; clean-streak restart; Pass 7 IN PROGRESS.** CLEAN-PASS COUNTER = 0/3. Finding progression: Pass1→2→3→4→5→6 = MED→MED→HIGH+LOW→MED→ZERO→HIGH+MED. |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
 | Phase 7 — Convergence | NOT STARTED | — |
 
@@ -67,24 +69,24 @@ dependency bumping for it).
 
 Waves 1–27 ALL CLOSED/CONVERGED — detail: `cycles/phase-3-tdd/wave-history.md`. Spec package (Phase 1): 20 L2 shards, 1 PRD, 217 BCs, 20 VPs, 4 supplements, 9 arch files — detail: `cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`.
 
-## Session Resume Checkpoint (2026-06-01 — PHASE 5, whole-impl Pass 6 NOT_CONVERGED / FIX-P5-003 IN FLIGHT)
+## Session Resume Checkpoint (2026-06-02 — PHASE 5, FIX-P5-003 MERGED, Pass 7 IN PROGRESS)
 
-**POSITION:** Phase 5 (Adversarial Refinement) IN PROGRESS. develop HEAD 472b45e9. Whole-implementation adversarial Pass 6 COMPLETE — verdict NOT_CONVERGED. 0 CRIT / 1 HIGH / 1 MED. NEW defect class: non-deterministic JSON output ordering (determinism; distinct from anchor-drift class). FIX-P5-003 IN FLIGHT: code branch fix/deterministic-output-ordering (tests e995994, fix d0313a1); 3 BCs + 3 stories reconciled on factory-artifacts (commit 3fd6dce, pushed b4d5374..3fd6dce); input-hash re-baselined (commit b4f2258, MATCH=48/STALE=0). PR pending human merge approval. CLEAN-PASS COUNTER RESET = 0/3.
+**POSITION:** Phase 5 (Adversarial Refinement) IN PROGRESS. develop HEAD cfe0112a. FIX-P5-003 squash-merged via PR #174 → develop cfe0112a, 2026-06-01. Determinism defect class CLOSED. BC-2.06.023 v1.4 / BC-2.07.031 v1.3 / BC-2.11.019 v1.3 + STORY-046/058/078 reconciled. Input-hash drift CLEAN (MATCH=48/STALE=0). CLEAN-PASS COUNTER = 0/3 (streak restarts; Pass 6 had findings). Whole-implementation adversarial Pass 7 NOW RUNNING.
 
-**EXACT NEXT ACTION:** After PR merge (fix/deterministic-output-ordering → develop), run whole-implementation adversarial Pass 7 (fresh context) via `/vsdd-factory:adversarial-review implementation`. Need 3 consecutive CLEAN passes for CONVERGENCE_SATISFIED (3/3). Pass 6 had findings — counter resets.
+**EXACT NEXT ACTION:** Await Pass 7 result. Need 3 consecutive CLEAN passes for CONVERGENCE_SATISFIED (3/3). If Pass 7 CLEAN: counter = 1/3, dispatch Pass 8. If NOT_CONVERGED: remediate and restart streak.
 
 **MODEL-FAMILY CAVEAT (carry forward):** True non-Claude (GPT) evaluator/adversary unavailable in this environment. Use opus-tier fresh-context + strict info-asymmetry as substitute. Document at each gate.
 
-**WHOLE-IMPL PASS LOG:** Pass 1 NOT_CONV MED (32 BCs) REMEDIATED 2b33284. Pass 2 NOT_CONV MED (2 BCs) REMEDIATED aa6d73b. Pass 3 NOT_CONV HIGH+LOW (28 citations/8 files) REMEDIATED c7a0012. Pass 4 NOT_CONV MED (ADV-IMPL-P04-MED-001 zero-rejection) REMEDIATED FIX-P5-002 (PR #173 → develop 472b45e9). Pass 5 CONVERGENCE_REACHED (ZERO findings; clean — now void). Pass 6 NOT_CONV HIGH+MED (ADV-IMPL-P06-HIGH-001 top_snis/top_hosts; ADV-IMPL-P06-MED-001 terminal sort; NEW determinism class; FIX-P5-003 in flight). Detail: cycles/v0.1.0-greenfield-spec/burst-log.md.
+**WHOLE-IMPL PASS LOG:** Pass 1 NOT_CONV MED (32 BCs) REMEDIATED 2b33284. Pass 2 NOT_CONV MED (2 BCs) REMEDIATED aa6d73b. Pass 3 NOT_CONV HIGH+LOW (28 citations/8 files) REMEDIATED c7a0012. Pass 4 NOT_CONV MED (ADV-IMPL-P04-MED-001 zero-rejection) REMEDIATED FIX-P5-002 (PR #173 → 472b45e9). Pass 5 CONVERGENCE_REACHED (ZERO findings; clean — now void). Pass 6 NOT_CONV HIGH+MED (ADV-IMPL-P06-HIGH-001/P06-MED-001 determinism class; FIX-P5-003 MERGED PR #174 → cfe0112a). Pass 7 IN PROGRESS. Detail: cycles/v0.1.0-greenfield-spec/burst-log.md.
 
 **OPEN/ACCEPTED ITEMS a fresh session must know:**
-- ADV-IMPL-P06-HIGH-001: FIX IN PROGRESS (branch fix/deterministic-output-ordering; BC-2.07.031 v1.3 / BC-2.06.023 v1.4 / STORY-058 v1.4 / STORY-046 v1.2 reconciled; PR pending merge).
-- ADV-IMPL-P06-MED-001: FIX IN PROGRESS (same branch; BC-2.11.019 v1.3 / STORY-078 v1.4 reconciled; PR pending merge).
-- ADV-IMPL-P01-MED-001: REMEDIATED (2b33284). ADV-IMPL-P02-MED-001: REMEDIATED (aa6d73b). ADV-IMPL-P03-HIGH-001: REMEDIATED (c7a0012). ADV-IMPL-P03-LOW-001: REMEDIATED (c7a0012). ADV-IMPL-P04-MED-001: REMEDIATED + MERGED (PR #173 → develop 472b45e9).
+- ADV-IMPL-P06-HIGH-001: REMEDIATED + MERGED (PR #174 → develop cfe0112a, 2026-06-01; BC-2.07.031 v1.3 / BC-2.06.023 v1.4 / STORY-058 v1.4 / STORY-046 v1.2 reconciled).
+- ADV-IMPL-P06-MED-001: REMEDIATED + MERGED (PR #174 → develop cfe0112a, 2026-06-01; BC-2.11.019 v1.3 / STORY-078 v1.4 reconciled).
+- ADV-IMPL-P01-MED-001: REMEDIATED (2b33284). ADV-IMPL-P02-MED-001: REMEDIATED (aa6d73b). ADV-IMPL-P03-HIGH-001: REMEDIATED (c7a0012). ADV-IMPL-P03-LOW-001: REMEDIATED (c7a0012). ADV-IMPL-P04-MED-001: REMEDIATED + MERGED (PR #173 → 472b45e9).
 - ADV-IMPL-P01-LOW-001: ACCEPTED/optional — findings.rs:104-105 stale doc-comment (same class as O-08).
 - ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture added (see Drift Items).
 - F-W25-S088-P6-001 LOW: warning-once inv-2 count assertion; test-strength only; target next main.rs touch.
-- PROCESS-GAP-P5-001: OPEN — DF-SIBLING-SWEEP-001 blast radius now fully observed across 4 tiers. Disposition at Phase-5 cycle close per S-7.02.
+- PROCESS-GAP-P5-001: OPEN — DF-SIBLING-SWEEP-001 blast radius observed across 4 tiers. Disposition at Phase-5 cycle close per S-7.02.
 
 **PROCESS NOTE (W24.L3):** pr-manager has repeatedly stopped before executing merges (~5 PRs this session). ALWAYS independently verify a merge landed via `gh pr view <N>` + `git rev-parse origin/develop` before declaring a PR merged.
 
@@ -140,8 +142,8 @@ Externally-blocked / phase-gated items (W9-D2/D3/D4 upstream-plugin, W9-D12 awai
 | ADV-IMPL-P03-LOW-001 | [Phase-5, whole-impl Pass 3, LOW] BC-2.12.019 prose used "TLS/SSL" where spec language is "TLS"; corrected in the Pass-3 sweep. No semantic change. | spec-prose consistency | BC-2.12.019 prose fix | REMEDIATED — commit c7a0012, pushed 2026-06-01 |
 | ADV-IMPL-P01-LOW-001 | [Phase-5, whole-impl Pass 1, LOW] findings.rs:104-105 ThreatCategory::Persistence doc-comment stale — variant never constructed in current codebase. Same class as O-08 (dns.rs stale module doc). No behavioral impact. | docs / tech-debt (same class as O-08) | Optional doc-comment touch | ACCEPTED/optional — no action before Phase-6 |
 | ADV-IMPL-P01-LOW-002 | [Phase-5, whole-impl Pass 1, LOW] Additional anchor citation gap folded into the SS-04 sweep scope. | spec-anchor drift | SS-04 sweep | ACCEPTED — folded into ADV-IMPL-P01-MED-001 sweep; no residual |
-| ADV-IMPL-P06-HIGH-001 | [Phase-5, whole-impl Pass 6, HIGH] Non-deterministic JSON output ordering of top_snis and top_hosts tie entries — HashMap iteration order not stabilized before serialization; violates BC-2.07.031 v1.3 / BC-2.06.023 v1.4 tiebreaker postconditions and DET-001. REAL defect; genuinely new (distinct from anchor-drift class). FIX IN PROGRESS — code branch fix/deterministic-output-ordering (tests e995994, fix d0313a1); 3 BCs + 3 stories reconciled on factory-artifacts (commit 3fd6dce); PR pending human merge approval. | implementation / determinism (BC-2.07.031/2.06.023/DET-001) | PR merge + Pass 7 verification | FIX IN PROGRESS |
-| ADV-IMPL-P06-MED-001 | [Phase-5, whole-impl Pass 6, MED] Non-deterministic terminal PROTOCOLS/SERVICES section ordering — BTreeMap keys not propagated in sorted order to output; violates BC-2.11.019 v1.3 terminal section sort postcondition. REAL defect; same determinism class as ADV-IMPL-P06-HIGH-001. FIX IN PROGRESS — covered by fix/deterministic-output-ordering branch (same PR as HIGH-001); BC-2.11.019 v1.3 + STORY-078 v1.4 reconciled on factory-artifacts (commit 3fd6dce); PR pending human merge approval. | implementation / determinism (BC-2.11.019) | PR merge + Pass 7 verification | FIX IN PROGRESS |
+| ADV-IMPL-P06-HIGH-001 | [Phase-5, whole-impl Pass 6, HIGH] Non-deterministic JSON output ordering of top_snis and top_hosts tie entries — HashMap iteration order not stabilized before serialization; violates BC-2.07.031 v1.3 / BC-2.06.023 v1.4 tiebreaker postconditions and DET-001. REAL defect; genuinely new (distinct from anchor-drift class). FIX MERGED — PR #174 squash-merged → develop cfe0112a, 2026-06-01; BC-2.06.023 v1.4 / BC-2.07.031 v1.3 / STORY-046 v1.2 / STORY-058 v1.4 reconciled; determinism class CLOSED; Pass 7 verification in progress. | implementation / determinism (BC-2.07.031/2.06.023/DET-001) | Pass 7 verification | REMEDIATED + MERGED — PR #174 → develop cfe0112a, 2026-06-01 |
+| ADV-IMPL-P06-MED-001 | [Phase-5, whole-impl Pass 6, MED] Non-deterministic terminal PROTOCOLS/SERVICES section ordering — BTreeMap keys not propagated in sorted order to output; violates BC-2.11.019 v1.3 terminal section sort postcondition. REAL defect; same determinism class as ADV-IMPL-P06-HIGH-001. FIX MERGED — PR #174 squash-merged → develop cfe0112a, 2026-06-01; BC-2.11.019 v1.3 / STORY-078 v1.4 reconciled; determinism class CLOSED; Pass 7 verification in progress. | implementation / determinism (BC-2.11.019) | Pass 7 verification | REMEDIATED + MERGED — PR #174 → develop cfe0112a, 2026-06-01 |
 
 ## Cycle-Close Follow-Up Items (OPEN)
 
