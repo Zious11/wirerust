@@ -658,7 +658,24 @@ impl TlsAnalyzer {
                 return;
             }
 
-            // We have a complete record. Clone it out so we can parse without holding &self.
+            // Guard-before-allocate (CR-010): skip the heap allocation for
+            // non-handshake records. Only 0x16 (Handshake) records need to
+            // be cloned for parsing; all other content types (0x14
+            // ChangeCipherSpec, 0x15 Alert, 0x17 ApplicationData, etc.) are
+            // drained and discarded without any per-record Vec allocation.
+            if record_type != 0x16 {
+                // Drain the non-handshake record from the buffer and loop.
+                if let Some(state) = self.flows.get_mut(flow_key) {
+                    match direction {
+                        Direction::ClientToServer => state.client_buf.drain(..total_record_len),
+                        Direction::ServerToClient => state.server_buf.drain(..total_record_len),
+                    };
+                }
+                continue;
+            }
+
+            // We have a complete handshake record. Clone it out so we can
+            // parse without holding &self.
             let record_bytes: Vec<u8> = match direction {
                 Direction::ClientToServer => {
                     self.flows[flow_key].client_buf[..total_record_len].to_vec()
@@ -674,11 +691,6 @@ impl TlsAnalyzer {
                     Direction::ClientToServer => state.client_buf.drain(..total_record_len),
                     Direction::ServerToClient => state.server_buf.drain(..total_record_len),
                 };
-            }
-
-            // Only process handshake records (0x16).
-            if record_type != 0x16 {
-                continue;
             }
 
             match parse_tls_plaintext(&record_bytes) {
@@ -1028,5 +1040,97 @@ mod ja3_property_tests {
             prop_assert_eq!(hex.len(), bytes.len() * 2);
             prop_assert!(hex.chars().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()));
         }
+    }
+}
+
+// ── CR-010 guard-before-allocate regression tests ────────────────────────────
+//
+// These tests verify that `try_parse_records` short-circuits (drains the buffer
+// without allocating/parsing) for non-0x16 content types. They exercise the
+// `StreamHandler::on_data` entry point directly, using the test-only seams to
+// observe internal state.
+#[cfg(test)]
+mod guard_before_alloc_tests {
+    use super::*;
+    use crate::reassembly::flow::FlowKey;
+    use crate::reassembly::handler::{Direction, StreamHandler};
+    use std::net::{IpAddr, Ipv4Addr};
+
+    /// Build a minimal, structurally valid 5-byte-header TLS record with the
+    /// given content type and an empty payload (payload_len = 0).
+    fn make_tls_record(content_type: u8) -> Vec<u8> {
+        // TLS record header: content_type (1), version major (1), version minor (1),
+        // payload_len hi (1), payload_len lo (1), then payload bytes (0 here).
+        vec![content_type, 0x03, 0x03, 0x00, 0x00]
+    }
+
+    fn dummy_flow_key() -> FlowKey {
+        FlowKey::new(
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
+            1234,
+            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 2)),
+            443,
+        )
+    }
+
+    /// Non-0x16 content types MUST drain the buffer without any parse attempt.
+    ///
+    /// Precondition: feed a single complete TLS record with content_type ≠ 0x16.
+    /// Postconditions:
+    ///   - `client_buf_len_for_testing` returns 0 (record was drained).
+    ///   - `handshake_count` returns 0 (no parse occurred).
+    ///   - `parse_error_count` returns 0 (no parse, so no parse error).
+    #[test]
+    fn non_handshake_record_drains_without_parse() {
+        // Content types to check: 0x14 (ChangeCipherSpec), 0x15 (Alert),
+        // 0x17 (ApplicationData), and an arbitrary unknown type 0x00.
+        let non_handshake_types: &[u8] = &[0x14, 0x15, 0x17, 0x00];
+        let flow_key = dummy_flow_key();
+
+        for &ct in non_handshake_types {
+            let mut analyzer = TlsAnalyzer::new();
+            let record = make_tls_record(ct);
+            analyzer.on_data(&flow_key, Direction::ClientToServer, &record, 0);
+
+            assert_eq!(
+                analyzer.client_buf_len_for_testing(&flow_key),
+                0,
+                "content_type=0x{ct:02x}: buffer must be drained after consuming a complete record"
+            );
+            assert_eq!(
+                analyzer.handshake_count(),
+                0,
+                "content_type=0x{ct:02x}: no handshake should have been parsed"
+            );
+            assert_eq!(
+                analyzer.parse_error_count(),
+                0,
+                "content_type=0x{ct:02x}: no parse error should have been recorded"
+            );
+        }
+    }
+
+    /// A 0x16 handshake record DOES reach the parser (may emit a parse error
+    /// because the payload is empty, but the key invariant is that the parse
+    /// path is taken — i.e., `client_buf` is drained).
+    #[test]
+    fn handshake_record_reaches_parser() {
+        let flow_key = dummy_flow_key();
+        let mut analyzer = TlsAnalyzer::new();
+        let record = make_tls_record(0x16);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &record, 0);
+
+        // Buffer must be drained regardless of parse outcome.
+        assert_eq!(
+            analyzer.client_buf_len_for_testing(&flow_key),
+            0,
+            "0x16 record: buffer must be drained"
+        );
+        // With an empty payload the parser will fail — that's expected.
+        // What matters is the parse path was exercised (parse_errors >= 1).
+        assert!(
+            analyzer.parse_error_count() >= 1,
+            "0x16 with empty payload must trigger a parse error, confirming the parse path"
+        );
     }
 }
