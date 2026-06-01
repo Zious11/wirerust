@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): VP-017 VP-table Proof Method cells corrected unit→integration to match VP-017 authoritative method — 2026-05-30"
+  - "v1.4: ADV-IMPL-P07-LOW-001 correction — Architecture Anchor and Invariant line citations json.rs:59 corrected to json.rs:60 (verified: serde_json::to_string_pretty(&output).unwrap() is at line 60; line 59 is the closing `});` of the json! macro) — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,7 +54,7 @@ by `serde_json::to_string_pretty`. The `unwrap()` call is infallible by construc
 
 ## Invariants
 
-1. The `unwrap()` at `json.rs:59` is infallible; `serde_json::to_string_pretty` cannot fail
+1. The `unwrap()` at `json.rs:60` is infallible; `serde_json::to_string_pretty` cannot fail
    on a `serde_json::Value`.
 2. No manual escaping is performed; ADR 0003 delegates escaping to serde_json's RFC 8259
    path (C0+DEL escaped as `\uNNNN`; C1 passed through as raw UTF-8).
@@ -107,7 +108,7 @@ by `serde_json::to_string_pretty`. The `unwrap()` call is infallible by construc
 ## Architecture Anchors
 
 - `src/reporter/json.rs:23-60` -- JsonReporter::render implementation
-- `src/reporter/json.rs:59` -- infallible unwrap on serde_json::to_string_pretty
+- `src/reporter/json.rs:60` -- infallible unwrap on serde_json::to_string_pretty
 
 ---
 
@@ -127,7 +128,7 @@ by `serde_json::to_string_pretty`. The `unwrap()` call is infallible by construc
 - **assertion**: test_json_reporter_produces_valid_json verifies parseable output
 - **structural guarantee**: `serde_json::to_string_pretty` on a `serde_json::Value` cannot fail
   (Value implements Serialize and contains only JSON-representable types); the `unwrap()` at
-  `json.rs:59` is therefore infallible by construction, not by documentation
+  `json.rs:60` is therefore infallible by construction, not by documentation
 
 #### Purity Classification
 

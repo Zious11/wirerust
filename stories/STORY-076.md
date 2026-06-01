@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-076"
 epic_id: "E-8"
-version: "1.1"
+version: "1.2"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -130,7 +130,7 @@ A Finding with both ESC (C0, 0x1B) and U+009B (C1) in `summary` produces JSON wh
 
 | Module | Classification | Justification |
 |--------|---------------|---------------|
-| src/reporter/json.rs | pure | Returns owned String; no I/O; serde_json::Value serialization cannot fail; unwrap at json.rs:59 is infallible |
+| src/reporter/json.rs | pure | Returns owned String; no I/O; serde_json::Value serialization cannot fail; unwrap at json.rs:60 is infallible |
 
 ## Token Budget Estimate (MANDATORY)
 
@@ -151,7 +151,7 @@ A Finding with both ESC (C0, 0x1B) and U+009B (C1) in `summary` produces JSON wh
 2. [ ] Verify all tests fail at Red Gate
 3. [ ] Verify `src/reporter/json.rs` already satisfies all ACs (brownfield confirm)
 4. [ ] Confirm `serde_json::to_string_pretty` is used (not `to_string`)
-5. [ ] Confirm `unwrap()` at json.rs:59 is on a `serde_json::Value` (infallible)
+5. [ ] Confirm `unwrap()` at json.rs:60 is on a `serde_json::Value` (infallible)
 6. [ ] Confirm no `escape_for_terminal` call in json.rs (ADR 0003 / INV-4)
 7. [ ] Run `cargo test --all-targets` to confirm green
 8. [ ] Add round-trip test for C0 bytes: serialize then deserialize recovers original
@@ -184,3 +184,9 @@ A Finding with both ESC (C0, 0x1B) and U+009B (C1) in `summary` produces JSON wh
 |------|--------|---------|
 | src/reporter/json.rs | verify/modify | All 5 BCs live here |
 | tests/reporter_tests.rs | create or modify | AC-001 through AC-012 tests |
+
+## Changelog
+
+| Version | Date | Author | Change |
+|---------|------|--------|--------|
+| 1.2 | 2026-06-01 | story-writer | Corrected source anchor json.rs:59 → json.rs:60 in Purity Classification table and Tasks item 5 (ADV-IMPL-P07-LOW-001); no semantic, AC, BC, or test-name changes |
