@@ -3,7 +3,7 @@ pipeline: PHASE_5_ADVERSARIAL_REFINEMENT
 phase: phase-5-adversarial-refinement
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-02T18:00:00Z
+timestamp: 2026-06-01T22:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -24,10 +24,10 @@ dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
-adversary_convergence_counter: 0/3  # Pass 8 had HIGH (REMEDIATED); next = Pass 9
+adversary_convergence_counter: 1/3  # Pass 9 CONVERGENCE_REACHED (ZERO findings); clean-streak 1/3; next = Pass 10
 adv_impl_remediated: "P04-MED(PR#173→472b45e9);P06-HIGH(PR#174→cfe0112a);P06-MED(PR#174→cfe0112a);P07-MED(288cba3);P07-LOW(288cba3);P08-HIGH(e817d3c)"
 adversary_gate: NOT_YET_SATISFIED
-convergence_trajectory: "P5:P1-MED(2b33284)|P2-MED(aa6d73b)|P3-HIGH+LOW(c7a0012)|P4-MED(PR#173→472b45e9)|P5-ZERO(voided)|P6-HIGH+MED(PR#174→cfe0112a)|P7-MED+LOW(288cba3+d26eef0)|P8-HIGH-REMEDIATED(e817d3c). Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
+convergence_trajectory: "P5:P1-MED(2b33284)|P2-MED(aa6d73b)|P3-HIGH+LOW(c7a0012)|P4-MED(PR#173→472b45e9)|P5-ZERO(voided)|P6-HIGH+MED(PR#174→cfe0112a)|P7-MED+LOW(288cba3+d26eef0)|P8-HIGH-REMEDIATED(e817d3c)|P9-CLEAN(1/3). Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 consistency_audit: CONSISTENT
 input_drift_check: "CLEAN (re-baselined post ADV-IMPL-P08 anchor sweep: MATCH=48/STALE=0; 11 stories rewritten; commit 0f22508)"
 phase_2_input_hash_drift_check: CLEAN
@@ -40,7 +40,7 @@ wave_history_archived: "cycles/phase-3-tdd/wave-history.md (all waves 1-27 detai
 ## Status
 
 **Pipeline:** PHASE 5 — Adversarial Refinement IN PROGRESS. develop cfe0112a (unchanged).
-Pass 8 NOT_CONVERGED (0C/1H/0M): ADV-IMPL-P08-HIGH-001 stale TEST-FILE line anchors (4th anchor-drift dimension). REMEDIATED via exhaustive sweep: 83 citations / 44 files corrected vs cfe0112a; all 1305 corpus citations verified (commit e817d3c). Line-anchor class CLOSED all dimensions. CLEAN-PASS COUNTER = 0/3. Whole-impl adversarial Pass 9 NEXT. input-hash drift CLEAN (MATCH=48/STALE=0; 11 stories rewritten commit 0f22508).
+Pass 9 CONVERGENCE_REACHED (fresh-context opus): ZERO findings (0C/0H/0M/0L). Independently re-derived all 24 src modules + reporters + dispatcher + sampled BC/VP fidelity; 83-citation anchor sweep held. CLEAN-PASS COUNTER = 1/3. Whole-impl adversarial Pass 10 NEXT. Need 3 consecutive clean (human-set bar).
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -59,7 +59,7 @@ dependency bumping for it).
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
 | Phase 3 — TDD Implementation | **PASSED** 2026-05-31 | 48/48 stories, 27/27 waves, all CLOSED/CONVERGED; E-1..E-10 ALL COMPLETE; develop HEAD 6158e6e (PR#170); BC-5.39.001 ACHIEVED across all waves; trajectory detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | **PASSED** 2026-06-01 | 80-scenario rotation, mean 0.949, 0 must-pass <0.6; HS-043 real defect found+fixed (PR #171); HS-006/016 non-defects; model-family caveat documented; detail: cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md; Phase 4→5 gate PASSED 2026-06-01 (PR #172 regression tests merged) |
-| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | Passes 1–8 complete. Pass 8 NOT_CONV: 0C/1H/0M — ADV-IMPL-P08-HIGH-001 stale TEST-FILE anchors (4th anchor-drift dim). REMEDIATED: 83 citations/44 files (e817d3c); line-anchor class CLOSED ALL dims. CLEAN-PASS COUNTER = 0/3. P1→P8: MED→MED→HIGH+LOW→MED→ZERO→HIGH+MED→MED+LOW→HIGH-REMEDIATED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md |
+| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | Passes 1–9 complete. Pass 9 CONVERGENCE_REACHED: 0C/0H/0M — ZERO findings. CLEAN-PASS COUNTER = 1/3. P1→P9: MED→MED→HIGH+LOW→MED→ZERO→HIGH+MED→MED+LOW→HIGH-REMEDIATED→ZERO(CLEAN-1/3). Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
 | Phase 7 — Convergence | NOT STARTED | — |
 
@@ -67,27 +67,24 @@ dependency bumping for it).
 
 Waves 1–27 ALL CLOSED/CONVERGED — detail: `cycles/phase-3-tdd/wave-history.md`. Spec package (Phase 1): 20 L2 shards, 1 PRD, 217 BCs, 20 VPs, 4 supplements, 9 arch files — detail: `cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`.
 
-## Session Resume Checkpoint (2026-06-02 — PHASE 5, Pass 8 REMEDIATED, Pass 9 NEXT)
+## Session Resume Checkpoint (2026-06-01 — PHASE 5, Pass 9 CLEAN, Pass 10 NEXT)
 
-**POSITION:** Phase 5 IN PROGRESS. develop HEAD cfe0112a (code unchanged — Pass 8 was spec-anchor-only). Pass 8 REMEDIATED: ADV-IMPL-P08-HIGH-001 exhaustive line-anchor sweep — 83 stale citations / 44 files corrected vs cfe0112a; all 1305 corpus citations verified. Line-anchor class CLOSED in ALL dimensions (source/test/fuzz/consuming/story-body). factory-artifacts commits e817d3c (specs) + 0f22508 (input-hashes). Input-hash MATCH=48/STALE=0. CLEAN-PASS COUNTER = 0/3.
+**POSITION:** Phase 5 IN PROGRESS. develop HEAD cfe0112a (code unchanged). Pass 9 CONVERGENCE_REACHED (fresh-context opus, develop cfe0112a): ZERO findings (0C/0H/0M/0L). Independently re-derived all 24 src modules + reporters + dispatcher + sampled BC/VP fidelity; 83-citation anchor sweep held. Input-hash MATCH=48/STALE=0. CLEAN-PASS COUNTER = 1/3.
 
-**EXACT NEXT ACTION:** Dispatch whole-impl adversarial Pass 9 (fresh context). Need 3 consecutive CLEAN passes (0C/0H/0M) for CONVERGENCE_SATISFIED (3/3). Pass 9 clean → counter 1/3, dispatch Pass 10.
+**EXACT NEXT ACTION:** Dispatch whole-impl adversarial Pass 10 (fresh context, running). Need 3 consecutive CLEAN passes (0C/0H/0M) for CONVERGENCE_SATISFIED (3/3). Pass 10 clean → counter 2/3, dispatch Pass 11.
 
 **MODEL-FAMILY CAVEAT (carry forward):** True non-Claude (GPT) evaluator unavailable. Use opus-tier fresh-context + strict info-asymmetry as substitute. Document at each gate.
 
 **OPEN/ACCEPTED ITEMS a fresh session must know:**
-- ADV-IMPL-P08-HIGH-001: REMEDIATED (exhaustive anchor sweep e817d3c; line-anchor class CLOSED ALL dims).
-- ADV-IMPL-P07-MED-001 + P07-LOW-001: REMEDIATED doc-only (288cba3+d26eef0).
-- ADV-IMPL-P06-HIGH/MED: REMEDIATED + MERGED (PR #174 → cfe0112a; determinism class CLOSED).
-- ADV-IMPL-P04-MED-001: REMEDIATED + MERGED (PR #173 → 472b45e9). P01/P02/P03 all REMEDIATED.
+- All P1–P8 findings REMEDIATED. Pass 9: ZERO findings (CLEAN-1/3).
 - ADV-IMPL-P01-LOW-001: ACCEPTED/optional (findings.rs stale doc-comment, same class as O-08).
 - ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture added (see Drift Items).
 - F-W25-S088-P6-001 LOW: test-strength only; target next main.rs touch.
-- PROCESS-GAP-P5-001: OPEN — HIGH-PRIORITY. 8 passes, anchor drift recurred in 4 dimensions (83 systemic stale citations in this pass alone). ROOT CAUSE: line-number anchoring inherently drift-prone. Cycle-close disposition MUST propose durable fix: (a) anchor on symbol/fn names, or (b) mechanical CI/hook anchor-validation, or (c) documented justified deferral. Disposition at Phase-5 cycle close per S-7.02.
+- PROCESS-GAP-P5-001: OPEN — HIGH-PRIORITY. Anchor drift recurred 4 dimensions over 8 passes. Durable-fix disposition REQUIRED at Phase-5 cycle close per S-7.02.
 
 **PROCESS NOTE (W24.L3):** Verify merges via `gh pr view <N>` + `git rev-parse origin/develop` before declaring landed.
 
-Prior checkpoint (Pass 8 NEXT) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
+Prior checkpoint (Pass 8 REMEDIATED, Pass 9 NEXT) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
 ## Phase 3→4 Gate — PASSED 2026-06-01
 

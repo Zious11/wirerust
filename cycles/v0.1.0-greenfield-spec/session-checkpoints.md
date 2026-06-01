@@ -51,3 +51,13 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 **EXACT NEXT ACTION (at time of archival):** Await Pass 7 result. Need 3 consecutive CLEAN passes for CONVERGENCE_SATISFIED (3/3). If Pass 7 CLEAN: counter = 1/3, dispatch Pass 8. If NOT_CONVERGED: remediate and restart streak.
 
 **WHOLE-IMPL PASS LOG at archival:** P1 MED REMEDIATED (2b33284). P2 MED REMEDIATED (aa6d73b). P3 HIGH+LOW REMEDIATED (c7a0012). P4 MED REMEDIATED (PR#173→472b45e9). P5 ZERO (voided). P6 HIGH+MED REMEDIATED (PR#174→cfe0112a). P7 IN PROGRESS. Detail: cycles/v0.1.0-greenfield-spec/burst-log.md.
+
+---
+
+## Archived: 2026-06-02 — PHASE 5, Pass 8 REMEDIATED, Pass 9 NEXT (superseded by Pass 9 CLEAN checkpoint)
+
+**POSITION:** Phase 5 IN PROGRESS. develop HEAD cfe0112a (code unchanged — Pass 8 was spec-anchor-only). Pass 8 REMEDIATED: ADV-IMPL-P08-HIGH-001 exhaustive line-anchor sweep — 83 stale citations / 44 files corrected vs cfe0112a; all 1305 corpus citations verified. Line-anchor class CLOSED in ALL dimensions (source/test/fuzz/consuming/story-body). factory-artifacts commits e817d3c (specs) + 0f22508 (input-hashes). Input-hash MATCH=48/STALE=0. CLEAN-PASS COUNTER = 0/3.
+
+**EXACT NEXT ACTION (at time of archival):** Dispatch whole-impl adversarial Pass 9 (fresh context). Need 3 consecutive CLEAN passes (0C/0H/0M) for CONVERGENCE_SATISFIED (3/3). Pass 9 clean → counter 1/3, dispatch Pass 10.
+
+**WHOLE-IMPL PASS LOG at archival:** P1 MED→P2 MED→P3 HIGH+LOW→P4 MED→P5 ZERO(voided)→P6 HIGH+MED→P7 MED+LOW→P8 HIGH — all REMEDIATED. CLEAN-PASS COUNTER = 0/3 (Pass 8 HIGH broke streak). Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md.
