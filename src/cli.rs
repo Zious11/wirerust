@@ -105,6 +105,12 @@ pub struct Cli {
     #[arg(long, global = true)]
     pub out_of_window_threshold: Option<u32>,
 
+    /// Idle flow timeout in seconds. Flows silent for longer than this value
+    /// are expired and removed from the flow table. Default: 300.
+    /// Minimum: 1 (0 is rejected).
+    #[arg(long, global = true, default_value_t = 300, value_parser = clap::value_parser!(u64).range(1..))]
+    pub flow_timeout: u64,
+
     #[command(subcommand)]
     pub command: Commands,
 }
