@@ -658,7 +658,40 @@ impl TlsAnalyzer {
                 return;
             }
 
-            // We have a complete record. Clone it out so we can parse without holding &self.
+            // Guard-before-allocate (CR-010): skip the heap allocation for
+            // non-handshake records. Only 0x16 (Handshake) records need to
+            // be cloned for parsing; all other content types (0x14
+            // ChangeCipherSpec, 0x15 Alert, 0x17 ApplicationData, etc.) are
+            // drained and discarded without any per-record Vec allocation.
+            //
+            // NOTE: this guard must remain AFTER the `buf_len < total_record_len`
+            // check above. That check guarantees the buffer holds at least
+            // `total_record_len` bytes, making the `drain(..total_record_len)`
+            // range valid. Hoisting the guard before that check would allow
+            // a partial non-handshake record to be drained into a panic.
+            if record_type != 0x16 {
+                // Drain the non-handshake record from the buffer and loop.
+                // `Drain`'s `Drop` impl performs the removal; the trailing
+                // semicolon discards the value, consistent with the drain
+                // statement on the 0x16 path below.
+                match self.flows.get_mut(flow_key) {
+                    Some(state) => {
+                        match direction {
+                            Direction::ClientToServer => state.client_buf.drain(..total_record_len),
+                            Direction::ServerToClient => state.server_buf.drain(..total_record_len),
+                        };
+                    }
+                    // Flow absent — evicted by an earlier on_flow_close on this
+                    // same thread before we reached this point. Return rather than
+                    // continue to avoid looping on a non-advancing buffer; mirrors
+                    // the `None => return` contract at the buf_len read site above.
+                    None => return,
+                }
+                continue;
+            }
+
+            // We have a complete handshake record. Clone it out so we can
+            // parse without holding &self.
             let record_bytes: Vec<u8> = match direction {
                 Direction::ClientToServer => {
                     self.flows[flow_key].client_buf[..total_record_len].to_vec()
@@ -674,11 +707,6 @@ impl TlsAnalyzer {
                     Direction::ClientToServer => state.client_buf.drain(..total_record_len),
                     Direction::ServerToClient => state.server_buf.drain(..total_record_len),
                 };
-            }
-
-            // Only process handshake records (0x16).
-            if record_type != 0x16 {
-                continue;
             }
 
             match parse_tls_plaintext(&record_bytes) {
@@ -869,6 +897,22 @@ impl TlsAnalyzer {
         self.flows
             .get(flow_key)
             .map(|s| s.client_buf.len())
+            .unwrap_or(0)
+    }
+
+    /// Test-only accessor: byte length of `server_buf` for the given flow.
+    ///
+    /// Symmetric companion to `client_buf_len_for_testing` for the
+    /// `ServerToClient` direction. Exposes the post-parse drain observable
+    /// so tests can assert that `try_parse_records` drains consumed record
+    /// bytes from `server_buf` (CR-010 guard-before-allocate coverage).
+    /// Returns 0 if the flow is absent or after the buf has been fully drained.
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn server_buf_len_for_testing(&self, flow_key: &FlowKey) -> usize {
+        self.flows
+            .get(flow_key)
+            .map(|s| s.server_buf.len())
             .unwrap_or(0)
     }
 

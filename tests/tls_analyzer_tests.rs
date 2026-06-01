@@ -8947,3 +8947,134 @@ fn test_summarize_top_snis_ties_broken_alphabetically() {
         );
     }
 }
+
+// ── CR-010 guard-before-allocate regression tests ────────────────────────────
+//
+// These tests verify that `try_parse_records` short-circuits (drains the buffer
+// without allocating/parsing) for non-0x16 content types. They exercise the
+// `StreamHandler::on_data` entry point via integration test to stay outside
+// the trust-boundary gate (seam callers must live in tests/, not src/).
+
+/// Build a minimal, structurally valid 5-byte-header TLS record with the
+/// given content type and an empty payload (payload_len = 0).
+fn make_tls_record_cr010(content_type: u8) -> Vec<u8> {
+    // TLS record header: content_type (1), version major (1), version minor (1),
+    // payload_len hi (1), payload_len lo (1), then payload bytes (0 here).
+    vec![content_type, 0x03, 0x03, 0x00, 0x00]
+}
+
+fn cr010_flow_key() -> FlowKey {
+    FlowKey::new(
+        "127.0.0.1".parse::<IpAddr>().unwrap(),
+        1234,
+        "127.0.0.2".parse::<IpAddr>().unwrap(),
+        443,
+    )
+}
+
+/// Non-0x16 content types MUST drain the ClientToServer buffer without any
+/// parse attempt.
+///
+/// Precondition: feed a single complete TLS record with content_type != 0x16
+/// in the ClientToServer direction.
+/// Postconditions:
+///   - `client_buf_len_for_testing` returns 0 (record was drained).
+///   - `handshake_count` returns 0 (no parse occurred).
+///   - `parse_error_count` returns 0 (no parse, so no parse error).
+#[test]
+fn non_handshake_record_client_drains_without_parse() {
+    // Content types to check: 0x14 (ChangeCipherSpec), 0x15 (Alert),
+    // 0x17 (ApplicationData), and an arbitrary unknown type 0x00.
+    let non_handshake_types: &[u8] = &[0x14, 0x15, 0x17, 0x00];
+    let flow_key = cr010_flow_key();
+
+    for &ct in non_handshake_types {
+        let mut analyzer = TlsAnalyzer::new();
+        let record = make_tls_record_cr010(ct);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &record, 0);
+
+        assert_eq!(
+            analyzer.client_buf_len_for_testing(&flow_key),
+            0,
+            "content_type=0x{ct:02x} C->S: buffer must be drained after consuming a complete record"
+        );
+        assert_eq!(
+            analyzer.handshake_count(),
+            0,
+            "content_type=0x{ct:02x} C->S: no handshake should have been parsed"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "content_type=0x{ct:02x} C->S: no parse error should have been recorded"
+        );
+    }
+}
+
+/// Non-0x16 content types MUST drain the ServerToClient buffer without any
+/// parse attempt.
+///
+/// Precondition: feed a single complete TLS record with content_type != 0x16
+/// in the ServerToClient direction.
+/// Postconditions:
+///   - `server_buf_len_for_testing` returns 0 (record was drained).
+///   - `handshake_count` returns 0 (no parse occurred).
+///   - `parse_error_count` returns 0 (no parse, so no parse error).
+#[test]
+fn non_handshake_record_server_drains_without_parse() {
+    let non_handshake_types: &[u8] = &[0x14, 0x15, 0x17, 0x00];
+    let flow_key = cr010_flow_key();
+
+    for &ct in non_handshake_types {
+        let mut analyzer = TlsAnalyzer::new();
+        let record = make_tls_record_cr010(ct);
+        analyzer.on_data(&flow_key, Direction::ServerToClient, &record, 0);
+
+        assert_eq!(
+            analyzer.server_buf_len_for_testing(&flow_key),
+            0,
+            "content_type=0x{ct:02x} S->C: buffer must be drained after consuming a complete record"
+        );
+        assert_eq!(
+            analyzer.handshake_count(),
+            0,
+            "content_type=0x{ct:02x} S->C: no handshake should have been parsed"
+        );
+        assert_eq!(
+            analyzer.parse_error_count(),
+            0,
+            "content_type=0x{ct:02x} S->C: no parse error should have been recorded"
+        );
+    }
+}
+
+/// A 0x16 handshake record DOES reach the parser; the buffer is drained.
+///
+/// We use a header-only record (payload_len = 0) as the minimal probe. The
+/// empty payload causes tls_parser to return an error, which is intentional:
+/// the parse_errors counter going from 0 to >= 1 is the observable proof that
+/// the code took the parse path rather than the non-0x16 short-circuit path.
+/// A full valid ClientHello would also work but would require embedding
+/// raw TLS bytes; the empty-payload shortcut is deliberately chosen here
+/// because the distinction we need is parse-path-entered vs not-entered,
+/// not parse-succeeded vs not-succeeded.
+#[test]
+fn handshake_record_reaches_parser() {
+    let flow_key = cr010_flow_key();
+    let mut analyzer = TlsAnalyzer::new();
+    let record = make_tls_record_cr010(0x16);
+    analyzer.on_data(&flow_key, Direction::ClientToServer, &record, 0);
+
+    // Buffer must be drained regardless of parse outcome.
+    assert_eq!(
+        analyzer.client_buf_len_for_testing(&flow_key),
+        0,
+        "0x16 record: buffer must be drained"
+    );
+    // Empty payload -> nom Incomplete or parse error. parse_errors >= 1
+    // confirms the parse path was entered (non-0x16 path would leave it 0).
+    assert!(
+        analyzer.parse_error_count() >= 1,
+        "0x16 with empty payload must trigger a parse error, confirming the parse path was entered"
+    );
+}
