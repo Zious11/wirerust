@@ -196,10 +196,10 @@ fn run_analyze(
 
     capture_result?;
 
-    if let Some(ref http) = dispatcher.http {
+    if let Some(http) = dispatcher.http_analyzer() {
         all_findings.extend(http.findings());
     }
-    if let Some(ref tls) = dispatcher.tls {
+    if let Some(tls) = dispatcher.tls_analyzer() {
         all_findings.extend(tls.findings());
     }
 
@@ -215,10 +215,10 @@ fn run_analyze(
     if enable_dns {
         analyzer_summaries.push(dns_analyzer.summarize());
     }
-    if let Some(ref http) = dispatcher.http {
+    if let Some(http) = dispatcher.http_analyzer() {
         analyzer_summaries.push(http.summarize());
     }
-    if let Some(ref tls) = dispatcher.tls {
+    if let Some(tls) = dispatcher.tls_analyzer() {
         analyzer_summaries.push(tls.summarize());
     }
 
