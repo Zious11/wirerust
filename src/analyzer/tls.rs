@@ -671,20 +671,20 @@ impl TlsAnalyzer {
             // a partial non-handshake record to be drained into a panic.
             if record_type != 0x16 {
                 // Drain the non-handshake record from the buffer and loop.
-                // `Drain`'s `Drop` impl performs the removal; `let _ =` makes
-                // the discard explicit and suppresses the unused-value lint.
+                // `Drain`'s `Drop` impl performs the removal; the trailing
+                // semicolon discards the value, consistent with the drain
+                // statement on the 0x16 path below.
                 match self.flows.get_mut(flow_key) {
                     Some(state) => {
-                        let _ = match direction {
+                        match direction {
                             Direction::ClientToServer => state.client_buf.drain(..total_record_len),
                             Direction::ServerToClient => state.server_buf.drain(..total_record_len),
                         };
                     }
-                    // Flow was removed between the length check and here
-                    // (e.g. on_flow_close raced on another thread — defensive).
-                    // Returning instead of continuing prevents looping on a
-                    // non-advancing buffer; mirrors the `None => return` contract
-                    // at the buf_len read site above.
+                    // Flow absent — evicted by an earlier on_flow_close on this
+                    // same thread before we reached this point. Return rather than
+                    // continue to avoid looping on a non-advancing buffer; mirrors
+                    // the `None => return` contract at the buf_len read site above.
                     None => return,
                 }
                 continue;
