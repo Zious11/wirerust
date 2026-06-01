@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-053"
 epic_id: "E-5"
-version: "1.2"
+version: "1.3"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -30,6 +30,9 @@ implementation_strategy: brownfield-formalization
 ---
 
 <!-- changelog
+## v1.3 (2026-06-01)
+- Consistency-audit D-001: correct EC-004 expected-behavior to match BC-2.07.002 v1.3. Pre-correction text stated "Anomaly/Likely/High deprecated-protocol finding emitted (see STORY-054)". Post-correction: tls-parser rejects SSL 2.0 ServerHello at the record layer (parse_errors++), handle_server_hello NOT reached, NO finding emitted. Aligns with test_BC_2_07_002_ec004_ssl2_version_parse_behavior_pinned (tls_analyzer_tests.rs:5227). input-hash NOT recomputed (BC file changed prior to this story edit; hash intentionally preserved per governance instruction).
+
 ## v1.2 (2026-05-29)
 - status: draft → completed. PR #149 squash-merged → develop a044144. Per-story adversarial convergence: 3/3 clean P3-P5, 5 passes total. Wave 17 partial merge — wave-level convergence pending.
 
@@ -97,7 +100,7 @@ Unknown cipher IDs (where `TlsCipherSuite::from_id` returns `None`) are rendered
 | EC-001 | ServerHello with no extensions (`sh.ext = None`) | JA3S computed with empty extensions field; `"version,cipher,"` |
 | EC-002 | ServerHello with extensions that fail `parse_tls_extensions` | `parse_errors++`; JA3S computed with empty ext field |
 | EC-003 | ServerHello cipher = `TLS_NULL_WITH_NULL_NULL` (0x0000) | `is_weak_server_cipher` returns true; `Anomaly/Likely/Medium` finding emitted (see STORY-054 for details) |
-| EC-004 | ServerHello version = 0x0200 (SSL 2.0) | `Anomaly/Likely/High` deprecated-protocol finding emitted (see STORY-054) |
+| EC-004 | ServerHello version = 0x0200 (SSL 2.0) — PARSE-REJECTION under tls-parser 0.12 | tls-parser rejects the record at the record layer before `handle_server_hello` is reached; `parse_errors` is incremented; `version_counts[0x0200]` remains 0; `ja3s_counts` is not updated; NO deprecated-protocol finding is produced. Pinned by `test_BC_2_07_002_ec004_ssl2_version_parse_behavior_pinned`. (BC-2.07.002 v1.3 EC-004) |
 | EC-005 | ServerHello version = 0x0301 (TLS 1.0) | No deprecated-protocol finding; version counted only |
 | EC-006 | ServerHello when `ja3s_counts` at MAX_MAP_ENTRIES with a new hash | New hash silently dropped |
 | EC-007 | ClientHello has version 0x0301; ServerHello has version 0x0303 | `version_counts` has entry for both 0x0301 and 0x0303 |
