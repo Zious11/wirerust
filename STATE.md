@@ -1,6 +1,6 @@
 ---
-pipeline: PHASE_4_COMPLETE_GATE_PENDING
-phase: phase-4-holdout-evaluation
+pipeline: PHASE_5_ADVERSARIAL_REFINEMENT
+phase: phase-5-adversarial-refinement
 product: wirerust
 mode: brownfield
 timestamp: 2026-06-01T00:00:00Z
@@ -13,7 +13,9 @@ phase_3_completed: "2026-05-31"
 phase_3_to_4_gate: PASSED
 phase_4_started: "2026-06-01"
 phase_4_completed: "2026-06-01"
-develop_head: c3cd4bd
+phase_4_to_5_gate: "PASSED (human-approved 2026-06-01, conditioned on HS-043 regression tests — merged PR #172)"
+phase_5_started: "2026-06-01"
+develop_head: e0451ef
 current_cycle: v0.1.0-greenfield-spec
 current_wave: 27 (FINAL — CLOSED)
 stories_delivered: 48
@@ -36,10 +38,8 @@ wave_history_archived: "cycles/phase-3-tdd/wave-history.md (all waves 1-27 detai
 
 ## Status
 
-**Pipeline:** PHASE 4 COMPLETE — gate criteria MET; awaiting human approval for Phase 5 (Adversarial Refinement). develop c3cd4bd (PR #171 HS-043 fix).
-Phase 4 result: 80-scenario rotation, mean 0.949, 0 must-pass <0.6; HS-043 real defect found+fixed; HS-006/016 non-defects; model-family caveat documented.
-
-**Phase 4→5 Gate: PENDING human approval.** Do NOT advance to Phase 5 until approved.
+**Pipeline:** PHASE 5 — Adversarial Refinement IN PROGRESS. Phase 4 PASSED (gate approved; HS-043 fix + regression guards merged). develop e0451ef.
+Phase 4 result: 80-scenario rotation, mean 0.949, 0 must-pass <0.6; HS-043 real defect found+fixed (PR #171); HS-006/016 non-defects; model-family caveat documented.
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -57,8 +57,8 @@ dependency bumping for it).
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
 | Phase 3 — TDD Implementation | **PASSED** 2026-05-31 | 48/48 stories, 27/27 waves, all CLOSED/CONVERGED; E-1..E-10 ALL COMPLETE; develop HEAD 6158e6e (PR#170); BC-5.39.001 ACHIEVED across all waves; trajectory detail: cycles/phase-3-tdd/convergence-trajectory.md |
-| Phase 4 — Holdout Evaluation | **PASSED** 2026-06-01 | 80-scenario rotation, mean 0.949, 0 must-pass <0.6; HS-043 real defect found+fixed (PR #171); HS-006/016 non-defects; model-family caveat documented; detail: cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md; **Phase 4→5 gate PENDING human approval** |
-| Phase 5 — Adversarial Refinement | NOT STARTED | — |
+| Phase 4 — Holdout Evaluation | **PASSED** 2026-06-01 | 80-scenario rotation, mean 0.949, 0 must-pass <0.6; HS-043 real defect found+fixed (PR #171); HS-006/016 non-defects; model-family caveat documented; detail: cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md; Phase 4→5 gate PASSED 2026-06-01 (PR #172 regression tests merged) |
+| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | Gate: finding decay to zero — fresh-context adversarial review of full implementation; ideally different model family |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
 | Phase 7 — Convergence | NOT STARTED | — |
 
@@ -82,23 +82,24 @@ Waves 1–27 ALL CLOSED/CONVERGED — per-wave detail: `cycles/phase-3-tdd/wave-
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-06-01 — PHASE 4 COMPLETE; gate PENDING human approval)
+## Session Resume Checkpoint (2026-06-01 — PHASE 5 IN PROGRESS)
 
-1. Phase 4 COMPLETE. develop HEAD: c3cd4bd (PR #171 — HS-043 flow-timeout fix squash-merged). All 8 CI checks green.
-2. Phase 4 results: 80-scenario rotation (every 5th dropped), 4 chunks of 20. Mean satisfaction ~0.949. Zero must-pass < 0.6. Chunk-3 evaluator-coverage artifact eliminated via re-eval (12 sub-0.6 re-scored to mean 0.9917). Gate criteria MET.
-3. HS-043 (idle-flow expiry dead code) confirmed real defect, fixed PR #171. HS-006 (em-dash) and HS-016 (raw-byte overlap) confirmed non-defects; rubrics trimmed v1.1.
-4. Phase 4→5 gate PENDING human approval. Do NOT start Phase 5 until human approves.
-5. Two optional-hardening LOWs recorded (non-blocking): ADV-HS043-P01-LOW-001 (BC-2.04.013 PC0 function name note) + HS-043-Pass-3 coverage-durability (3 regression test candidates for Phase 6). No GitHub issues per DF-VALIDATION-001.
+1. Phase 5 — Adversarial Refinement STARTED. develop HEAD: e0451ef (PR #172 — HS-043 gating-property regression tests merged). All 8 CI checks green.
+2. Phase 4→5 gate PASSED 2026-06-01 (human-approved; conditioned on HS-043 regression tests, now merged PR #172).
+3. Phase 4 results on record: 80-scenario rotation, mean 0.949, 0 must-pass <0.6. HS-043 real defect found+fixed (PR #171); HS-006/016 non-defects confirmed.
+4. Coverage-durability LOW (HS-043 Pass-3) CLOSED — regression guards committed PR #172, mutation-proven.
+5. ADV-HS043-P01-LOW-001 (BC-2.04.013 PC0 function-name wording) remains tracked as accepted optional one-line BC note (non-blocking).
 6. Open drift item: F-W25-S088-P6-001 LOW (AC-004 warning-once inv-2 count assertion; test-strength only; accepted or target Phase-5).
-7. Prior checkpoint (Phase 4 IN PROGRESS) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
+7. Next action: dispatch fresh-context adversarial review of full implementation (ideally different model family). Gate: finding decay to zero.
+8. Prior checkpoint (Phase 4 COMPLETE, gate PENDING) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
 ## Phase 3→4 Gate — PASSED 2026-06-01
 
 (a) Input-drift CLEAN (MATCH=48/STALE=0). (b) Consistency audit READY (report: cycles/phase-3-tdd/phase-4-entry-consistency-audit.md; 217/217 BCs covered, 100/100 HS CLEAR, 20/20 VPs consistent). (c) Human approval GRANTED. D-001 RESOLVED (STORY-053 EC fixed f368f53). D-002 RESOLVED (this burst: 6 story statuses + wave rows 3-22 backfilled). Phase-4-ENTRY deferred item CLOSED.
 
-## Phase 4→5 Gate — PENDING human approval
+## Phase 4→5 Gate — PASSED 2026-06-01
 
-Phase 4 criteria met: mean 0.949 >= 0.85; 0 must-pass < 0.6; std-dev < 0.15; HS-043 real defect fixed (PR #171 → c3cd4bd); HS-006/016 non-defects confirmed. Model-family caveat documented (no true non-Claude GPT evaluator available — opus-tier with strict info-asymmetry). Full detail: cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md. **Awaiting human approval to proceed to Phase 5 — Adversarial Refinement.**
+Phase 4 criteria met: mean 0.949 >= 0.85; 0 must-pass < 0.6; std-dev < 0.15; HS-043 real defect fixed (PR #171 → c3cd4bd); HS-006/016 non-defects confirmed. Model-family caveat documented (no true non-Claude GPT evaluator available — opus-tier with strict info-asymmetry). Human approval GRANTED 2026-06-01, conditioned on HS-043 regression tests — merged PR #172 → e0451ef. Full detail: cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md.
 
 ## Wave Retrospectives
 
