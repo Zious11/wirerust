@@ -3,7 +3,7 @@ pipeline: PHASE_5_ADVERSARIAL_REFINEMENT
 phase: phase-5-adversarial-refinement
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-01T12:00:00Z
+timestamp: 2026-06-01T14:30:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -58,7 +58,7 @@ dependency bumping for it).
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
 | Phase 3 — TDD Implementation | **PASSED** 2026-05-31 | 48/48 stories, 27/27 waves, all CLOSED/CONVERGED; E-1..E-10 ALL COMPLETE; develop HEAD 6158e6e (PR#170); BC-5.39.001 ACHIEVED across all waves; trajectory detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | **PASSED** 2026-06-01 | 80-scenario rotation, mean 0.949, 0 must-pass <0.6; HS-043 real defect found+fixed (PR #171); HS-006/016 non-defects; model-family caveat documented; detail: cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md; Phase 4→5 gate PASSED 2026-06-01 (PR #172 regression tests merged) |
-| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | HS043-pass-2 COMPLETE (1 MED + 1 LOW, both ACCEPTED — see Drift Items); whole-implementation fresh-context adversarial review PENDING (3 clean passes to convergence) |
+| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | HS043-pass-2 COMPLETE; whole-impl Pass 1 COMPLETE — NOT_CONVERGED: 0 CRIT/0 HIGH/1 MED/2 LOW. MED (ADV-IMPL-P01-MED-001 SS-04 anchor drift) REMEDIATED via 32-BC re-anchor sweep (2b33284). LOW-001 ACCEPTED/optional; LOW-002 ACCEPTED. Passes to convergence: need 3 consecutive clean. |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
 | Phase 7 — Convergence | NOT STARTED | — |
 
@@ -82,28 +82,28 @@ Waves 1–27 ALL CLOSED/CONVERGED — per-wave detail: `cycles/phase-3-tdd/wave-
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-06-01 — PHASE 5 IN PROGRESS, HS043-pass-2 DISPOSITIONED)
+## Session Resume Checkpoint (2026-06-01 — PHASE 5, whole-impl Pass 1 REMEDIATED)
 
-**POSITION:** Phase 5 (Adversarial Refinement) IN PROGRESS. HS043 fresh-context Pass 2 (HS043-pass-2) complete; NOT clean (1 MED + 1 LOW). Both findings dispositioned/accepted (human decision 2026-06-01) — see Drift Items. No code changed on develop; throwaway fix branch + worktree discarded. develop HEAD e0451ef (unchanged). factory-artifacts updated this burst.
+**POSITION:** Phase 5 (Adversarial Refinement) IN PROGRESS. Whole-implementation adversarial Pass 1 COMPLETE — verdict NOT_CONVERGED. 0 CRIT / 0 HIGH / 1 MED / 2 LOW. MED finding ADV-IMPL-P01-MED-001 (SS-04 anchor drift) REMEDIATED: 32 BC files re-anchored, committed 2b33284, pushed to origin/factory-artifacts. Two LOW findings accepted (see Drift Items). develop HEAD e0451ef (unchanged — no source code modified this burst).
 
-**EXACT NEXT ACTION:** Launch the broad fresh-context WHOLE-IMPLEMENTATION adversarial pass (NOT another HS-043-only surface pass). Entry: `/vsdd-factory:adversarial-review implementation`. This is Pass 1 of the whole-implementation convergence loop — minimum 3 consecutive clean passes required for CONVERGENCE_REACHED. Then Phase 6 (Formal Hardening) → Phase 7 (Convergence) → release.
+**EXACT NEXT ACTION:** Run whole-implementation adversarial Pass 2 (fresh context) via `/vsdd-factory:adversarial-review implementation`. This is Pass 2 of the whole-impl convergence loop. Minimum 3 consecutive CLEAN passes required for CONVERGENCE_REACHED. After convergence: Phase 6 (Formal Hardening) → Phase 7 (Convergence) → release.
 
-**MODEL-FAMILY CAVEAT (carry forward):** True non-Claude (GPT) evaluator/adversary is unavailable in this environment. Use opus-tier fresh-context + strict information asymmetry as substitute. Document this caveat at each gate.
+**MODEL-FAMILY CAVEAT (carry forward):** True non-Claude (GPT) evaluator/adversary unavailable in this environment. Use opus-tier fresh-context + strict info-asymmetry as substitute. Document at each gate.
 
 **OPEN/ACCEPTED ITEMS a fresh session must know:**
-- ADV-HS043-P02-MED-001: ACCEPTED for offline scope — gated on live-capture support (see Drift Items). High-water-clock fix rejected (breaks multi-epoch). Re-open when live-capture is added.
-- ADV-HS043-P02-LOW-001: ACCEPTED — BC-2.04.013 PC0 naming note (non-blocking, optional docs touch).
-- ADV-HS043-P01-LOW-001: ACCEPTED — superseded by P02-LOW-001 entry above (same item, P01 record).
+- ADV-IMPL-P01-MED-001: REMEDIATED — SS-04 re-anchor sweep (32 BCs, commit 2b33284).
+- ADV-IMPL-P01-LOW-001: ACCEPTED/optional — findings.rs:104-105 ThreatCategory::Persistence doc-comment stale (never constructed; same class as O-08). No behavioral impact.
+- ADV-IMPL-P01-LOW-002: ACCEPTED — folded into SS-04 sweep; no residual action.
+- ADV-HS043-P02-MED-001: ACCEPTED for offline scope — gated on live-capture support (see Drift Items). Re-open when live-capture added.
+- ADV-HS043-P02-LOW-001: ACCEPTED — BC-2.04.013 PC0 naming note (non-blocking).
 - F-W25-S088-P6-001 LOW: warning-once inv-2 count assertion; test-strength only; target next main.rs touch.
-- Input-hash tool exists at `bin/compute-input-hash` — run `bin/compute-input-hash --scan` at Phase-4-style gate; corpus MATCH=48/STALE=0.
+- PROCESS-GAP-P5-001: HS-043 dispatch lacked SS-04 anchor re-sweep step (DF-SIBLING-SWEEP-001 enforcement gap). Requires follow-up self-improvement story or justified deferral before Phase-5 cycle close — see Cycle-Close Follow-Up Items.
 
 **PROCESS NOTE (W24.L3):** pr-manager has repeatedly stopped before executing merges (~5 PRs this session). ALWAYS independently verify a merge landed via `gh pr view <N>` + `git rev-parse origin/develop` before declaring a PR merged.
 
-**HOUSEKEEPING:** Stray pre-existing local branch `feature/story-003-decoder-safety` exists (predates this session, no worktree, harmless) — prune with `git branch -D feature/story-003-decoder-safety` at convenience.
-
 **PHASE CONTEXT:**
 - Phase 4 result: 80-scenario rotation, mean 0.949, 0 must-pass <0.6. HS-043 real defect found+fixed (PR #171 → c3cd4bd); HS-006/016 non-defects. Regression guards merged PR #172 → e0451ef.
-- Prior checkpoint (Phase 5 queued) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
+- Prior checkpoint (HS043-pass-2 dispositioned) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
 ## Phase 3→4 Gate — PASSED 2026-06-01
 
@@ -146,14 +146,17 @@ Externally-blocked / phase-gated items (W9-D2/D3/D4 upstream-plugin, W9-D12 awai
 | F-W25-S088-P6-001 | [test-strength, LOW] AC-004 warning uses .contains() so a doubled eprintln! (BC-2.12.009 inv-2 "warning printed once") would not be caught. Invariant HOLDS in source (single pre-loop emission, adversary-verified P6); AC-004 traces to PC-5/inv-1 not inv-2 — not a traceability defect. Optional one-line count-assertion hardening; target: STORY-090 touch (next main.rs-adjacent story) or accepted. Per DF-VALIDATION-001, no GitHub issue without research-agent validation. | test-strength | STORY-090 delivery (wave 27) or accept | OPEN |
 | ADV-HS043-P02-MED-001 | [Phase-5, HS043-pass-2, MED] Idle-flow expiry sweep gate `timestamp > last_expiry_sweep_secs` is monotonic; on out-of-order / multi-epoch / clock-regressing captures the watermark stalls and idle sweeps stop firing for the rest of the run (flows_expired stuck at 0). BC-2.04.013. Current scope: offline pcap — finalize() reclaims all flows at end-of-capture; no unbounded growth. High-water-clock fix rejected (breaks multi-epoch offline analysis — story-088 http-ooo tests fail). Probe premise also flawed (20 new flows at t=10 are not idle). No GitHub issue per DF-VALIDATION-001. Full rationale: cycles/v0.1.0-greenfield-spec/burst-log.md Burst 3. | implementation / memory-bound (BC-2.04.013) | Live-capture support feature | ACCEPTED — GATED ON LIVE-CAPTURE SUPPORT. Re-open when live-capture added; correct fix is epoch-boundary flush or wall-clock sweep tick, NOT high-water-clock. |
 | ADV-HS043-P02-LOW-001 | [Phase-5, HS043-pass-2, LOW] BC-2.04.013 PC0 literally names `expire_flows` but the impl wires `expire_idle_by_timeout`; the split is justified (keeps the Closed-clause off the hot path per BC-2.04.017) and documented in source. Optional one-line BC wording note; not blocking. | spec-naming / docs | Optional BC wording touch | ACCEPTED (non-blocking) |
+| ADV-IMPL-P01-MED-001 | [Phase-5, whole-impl Pass 1, MED] SS-04 behavioral-contract source-line anchors stale after HS-043 merges (PR #171 + #172) shifted code in src/reassembly/mod.rs. No semantic/PC/inv changes; line-number citations only. | spec-anchor drift (DF-SIBLING-SWEEP-001) | SS-04 BC re-anchor sweep | REMEDIATED — 32 BCs re-anchored, commit 2b33284, pushed 2026-06-01 |
+| ADV-IMPL-P01-LOW-001 | [Phase-5, whole-impl Pass 1, LOW] findings.rs:104-105 ThreatCategory::Persistence doc-comment stale — variant never constructed in current codebase. Same class as O-08 (dns.rs stale module doc). No behavioral impact. | docs / tech-debt (same class as O-08) | Optional doc-comment touch | ACCEPTED/optional — no action before Phase-6 |
+| ADV-IMPL-P01-LOW-002 | [Phase-5, whole-impl Pass 1, LOW] Additional anchor citation gap folded into the SS-04 sweep scope. | spec-anchor drift | SS-04 sweep | ACCEPTED — folded into ADV-IMPL-P01-MED-001 sweep; no residual |
 
 ## Cycle-Close Follow-Up Items (OPEN)
 
-Most items from Waves 1-16 closed during drift-remediation-2026-05-29. Items from the 2026-05-31 drift-remediation sweep (11 items) archived in `.factory/cycles/drift-remediation-2026-05-29/closed-items.md`.
-Externally-blocked / phase-gated items (W9-D2/D3/D4, W1.3/W2.5, W7.1, Phase-4-ENTRY, F-S058-P13-O4, CLI-STORY-TEMPLATE) archived to cycles/phase-3-tdd/deferred-items-archive.md.
+Closed items archived in `cycles/drift-remediation-2026-05-29/closed-items.md`. Phase-gated/externally-blocked items in `cycles/phase-3-tdd/deferred-items-archive.md`. Historical PG items: `cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`.
 
-Historical process-gap items from Phase 1 (P1.1–P1.3, P3-PG, P4-PG1/2/3, P5-PG, P8-DEFER,
-P10-PG, P-CITE-PG): archived in `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`.
+| ID | Description | Status |
+|----|-------------|--------|
+| PROCESS-GAP-P5-001 | [process-gap, 2026-06-01] HS-043 cross-cutting reassembly merges dispatched without SS-04 anchor re-sweep step — DF-SIBLING-SWEEP-001 enforcement gap on cross-cutting merges. Manifested as ADV-IMPL-P01-MED-001 in whole-impl Pass 1. Requires self-improvement story or justified deferral with PO sign-off. MUST NOT be silently closed before Phase-5 cycle close. | OPEN — requires self-improvement story or deferral before Phase-5 cycle close |
 
 ## Governance Policy
 
