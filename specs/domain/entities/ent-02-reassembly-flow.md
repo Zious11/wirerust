@@ -106,7 +106,7 @@ enum InsertResult {
 }
 ```
 
-The engine matches all 9 variants at mod.rs:232-265. `IsnMissing` is a programming-error
+The engine matches all 9 variants at mod.rs:401-434. `IsnMissing` is a programming-error
 sentinel (VO-12): triggers one-shot eprintln via `ISN_MISSING_WARNED` atomic; segment is
 silently dropped.
 

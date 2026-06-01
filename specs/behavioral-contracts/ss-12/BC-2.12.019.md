@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: ADV-IMPL-P03-LOW-001 fix: Description prose example 'TLS/SSL' → 'TLS' to match app_protocol_hint() actual return value at decoder.rs:109. PC/PO/invariants/vectors unchanged. — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -30,7 +31,7 @@ removal_reason: null
 During `Summary::ingest`, if `packet.app_protocol_hint()` returns `Some(svc)`, the services
 counter for that service name is incremented. `app_protocol_hint` infers a service name
 purely from the TCP/UDP port tuple (e.g., port 53 -> "DNS", port 80 -> "HTTP", port 443 ->
-"TLS/SSL"). Services are NOT classified by content; this is a port-based heuristic. A flow
+"TLS"). Services are NOT classified by content; this is a port-based heuristic. A flow
 on a non-standard port (e.g., HTTP on 8080) contributes nothing to the service map.
 
 ## Preconditions

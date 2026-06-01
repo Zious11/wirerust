@@ -15,7 +15,7 @@ traces_to: .factory/research/holdout-finding-triage-2026-06-01.md
 
 ## Finding Summary
 
-`expire_flows` (src/reassembly/mod.rs:536-552) exists, is correct, and is well-tested in
+`expire_flows` (src/reassembly/mod.rs:593-609) exists, is correct, and is well-tested in
 isolation. However, it is **never called by the production pipeline**. The CLI loop
 (src/main.rs:154-176) calls only `process_packet` + `finalize`. No call site for
 `expire_flows` exists anywhere under `src/`. The only callers are under `tests/`.
@@ -84,7 +84,7 @@ or per-loop production path.
 | Minimum | `1` |
 | Config field | `ReassemblyConfig::flow_timeout_secs` (src/reassembly/config.rs:121) |
 | Help text | `Idle flow timeout in seconds. Flows silent for longer than this value are expired and removed from the flow table. Default: 300.` |
-| JSON output | `flows_expired` already surfaces in the reassembly summary detail map (mod.rs:663); no additional output change needed. |
+| JSON output | `flows_expired` already surfaces in the reassembly summary detail map (mod.rs:720); no additional output change needed. |
 
 ---
 

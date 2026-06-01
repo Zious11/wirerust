@@ -1,7 +1,7 @@
 ---
 document_type: prd-supplement-error-taxonomy
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -78,8 +78,8 @@ findings or one-shot warnings. They are catalogued here for implementer complete
 |-----------|----------|----------|-----------|----------------|-------------|--------|-------|
 | E-RAS-001 | Reassembly | `cosmetic` | 0 | `src/reassembly/segment.rs:16, 54-55` | One-shot stderr: `wirerust: insert_segment called with no ISN set` | BC-2.04.032, BC-2.04.048 | Guarded by `ISN_MISSING_WARNED: AtomicBool` (segment.rs:16). `eprintln!` fires at most ONCE per process (segment.rs:54-55). |
 | E-RAS-002 | Reassembly | `cosmetic` | 0 | `src/reassembly/lifecycle.rs:31, 44-47` | One-shot stderr: `wirerust: close_flow called for non-existent key: <key> (reason: <reason>)` | BC-2.04.029 | Guarded by `CLOSE_FLOW_MISSING_WARNED: AtomicBool` (lifecycle.rs:31). `eprintln!` fires at most ONCE (lifecycle.rs:44-47). `<reason>` is the `CloseReason` Debug repr. Indicates a structural invariant violation (flow table inconsistency). |
-| E-RAS-003 | Reassembly | `degraded` | 0 | `src/reassembly/mod.rs:432, 466, 495`; `src/reassembly/lifecycle.rs:101, 121` | Silent drop + counter increment | BC-2.04.024 | When `self.findings.len() >= MAX_FINDINGS (10,000)`, further per-flow findings are silently dropped. The `finalize()` summary finding unconditionally bypasses this cap. |
-| E-RAS-004 | Reassembly | `cosmetic` | 0 | `src/reassembly/mod.rs:107-118` | `assert!` panic (programmer error only) | BC-2.04.001 | `TcpReassembler::new` panics if any config field is 0 or invalid. Only triggered by programmer misconfiguration (CLI range validators prevent zero from reaching this point in production). |
+| E-RAS-003 | Reassembly | `degraded` | 0 | `src/reassembly/mod.rs:461, 495, 524`; `src/reassembly/lifecycle.rs:101, 121` | Silent drop + counter increment | BC-2.04.024 | When `self.findings.len() >= MAX_FINDINGS (10,000)`, further per-flow findings are silently dropped. The `finalize()` summary finding unconditionally bypasses this cap. |
+| E-RAS-004 | Reassembly | `cosmetic` | 0 | `src/reassembly/mod.rs:115-125` | `assert!` panic (programmer error only) | BC-2.04.001 | `TcpReassembler::new` panics if any config field is 0 or invalid. Only triggered by programmer misconfiguration (CLI range validators prevent zero from reaching this point in production). |
 | E-RAS-005 | Reassembly | `degraded` | 0 | `src/reassembly/segment.rs` | `InsertResult::SegmentLimitReached` returned | BC-2.04.044..046 | When `max_segments_per_direction` (default 10,000) is reached, new segments return `SegmentLimitReached`. Tracked via `segments_segment_limit`. A summary finding is emitted by `finalize()`. |
 
 ### ANA: Analyzer Parse Errors
