@@ -179,3 +179,33 @@ Recurring root cause: both Pass-1 and Pass-2 findings trace to the same HS-043 m
 **CLEAN-PASS COUNTER:** 0. Next action: whole-impl adversarial Pass 3 (fresh context).
 
 ---
+
+## Burst P5-3 (2026-06-01) — Phase-5 whole-impl Pass 3 Remediation (ADV-IMPL-P03-HIGH-001, ADV-IMPL-P03-LOW-001)
+
+**Agents dispatched:** adversary (whole-impl Pass 3), product-owner (exhaustive mod.rs citation sweep), state-manager (spec re-anchor + STATE.md + burst-log)
+**Files touched (spec re-anchor, committed c7a0012):**
+- specs/verification-properties/vp-003-max-findings-cap.md (mod.rs anchors)
+- specs/domain/invariants/inv-01-core-invariants.md (mod.rs anchors)
+- specs/prd-supplements/error-taxonomy.md (mod.rs anchors)
+- specs/prd-supplements/nfr-catalog.md (mod.rs anchors)
+- specs/behavioral-contracts/ss-10/BC-2.10.008.md (T1036 anchor :442→:471)
+- specs/behavioral-contracts/ss-12/BC-2.12.019.md (prose "TLS/SSL"→"TLS")
+- specs/domain/entities/ent-02-reassembly-flow.md (mod.rs :232-265→:401-434)
+- specs/phase-4-hs043-scope-decision.md (2 anchors)
+**State files updated:** STATE.md (Phase 5 row, session checkpoint, drift items, PROCESS-GAP-P5-001); cycles/v0.1.0-greenfield-spec/burst-log.md (this entry); cycles/v0.1.0-greenfield-spec/session-checkpoints.md (Pass 2 checkpoint archived)
+**Factory-artifacts commits:** c7a0012 — "fix(specs): exhaustive mod.rs re-anchor sweep — 28 citations / 9 files (ADV-IMPL-P03-HIGH-001, DF-SIBLING-SWEEP-001)" (spec files); follow-up state commit (STATE.md + burst-log)
+
+### Summary
+
+Whole-implementation adversarial Pass 3 returned NOT_CONVERGED: 0 CRIT / 1 HIGH / 1 LOW. HIGH finding ADV-IMPL-P03-HIGH-001: consuming-artifact anchor drift — VPs, domain invariants, prd-supplements, entities, and scope-decision docs all cite src/reassembly/mod.rs at stale positions. These are the same HS-043 root cause (mod.rs line shift) that produced Pass-1 (SS-04 BC primary) and Pass-2 (SS-04 BC secondary) findings, but in a deeper, non-BC artifact tier that the SS-04-scoped sweep did not cover. LOW finding ADV-IMPL-P03-LOW-001: BC-2.12.019 prose "TLS/SSL" corrected to "TLS". All other areas (ss-08/09/11/12 fidelity, integration seams between SS-04/SS-08/SS-12, test depth for HS-043 regression guards) reviewed clean by adversary.
+
+Product-owner ran exhaustive sweep of every mod.rs citation in the entire .factory/specs/ tree against HEAD e0451ef. 28 citation corrections across 8 files identified and applied. Versions bumped and changelog rows added; audit-trail/changelog entries left untouched. No BC/VP semantics, canonical vectors, or bcs: arrays changed. No story propagation needed. PO confirmed: anchor class EXHAUSTIVELY CLOSED — every mod.rs citation in the spec corpus verified correct against HEAD e0451ef.
+
+CLEAN-PASS COUNTER = 0 (all three passes had ≥MEDIUM, all same HS-043 anchor-drift class). The anchor class is now claimed exhaustively closed; a Pass-4 residual would indicate the PO verification sweep is unreliable.
+
+PROCESS-GAP-P5-001 updated: three consecutive passes prove the drift propagated to ALL artifact tiers (BC-primary → BC-secondary → consuming-artifact). DF-SIBLING-SWEEP-001 checklist must be extended to enumerate all consuming-artifact tiers (VPs, domain invariants, entities, prd-supplements, scope-decision docs). Disposition at Phase-5 cycle close per S-7.02.
+
+**Develop HEAD:** e0451ef (unchanged — no source code modified).
+**CLEAN-PASS COUNTER:** 0. Next action: whole-impl adversarial Pass 4 (fresh context).
+
+---

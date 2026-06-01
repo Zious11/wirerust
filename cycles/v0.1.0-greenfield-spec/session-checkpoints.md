@@ -4,6 +4,23 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 
 ---
 
+## Archived: 2026-06-01 — PHASE 5, whole-impl Pass 2 REMEDIATED (superseded by Pass 3 REMEDIATED checkpoint)
+
+**POSITION:** Phase 5 (Adversarial Refinement) IN PROGRESS. Whole-implementation adversarial Pass 2 COMPLETE — verdict NOT_CONVERGED. 0 CRIT / 0 HIGH / 1 MED (ADV-IMPL-P02-MED-001 residual SS-04 anchor drift). MED REMEDIATED: BC-2.04.052 (2 anchors) + BC-2.04.032 (1 prose anchor) re-anchored mod.rs:306→335; committed aa6d73b, pushed origin/factory-artifacts. CLEAN-PASS COUNTER = 0 (both Pass 1 and Pass 2 had a MEDIUM). develop HEAD e0451ef (unchanged — no source code modified this burst).
+
+**EXACT NEXT ACTION (at time of archival):** Run whole-implementation adversarial Pass 3 (fresh context) via `/vsdd-factory:adversarial-review implementation`.
+
+**WHOLE-IMPL PASS LOG at archival:** Pass 1 NOT_CONVERGED MED (32 BCs) REMEDIATED 2b33284. Pass 2 NOT_CONVERGED MED (2 BCs) REMEDIATED aa6d73b. Both trace to PROCESS-GAP-P5-001/DF-SIBLING-SWEEP-001 (HS-043 mod.rs insertion).
+
+**OPEN/ACCEPTED ITEMS at archival:**
+- ADV-IMPL-P01-MED-001: REMEDIATED (32 BCs, 2b33284). ADV-IMPL-P02-MED-001: REMEDIATED (BC-2.04.052/.032, aa6d73b).
+- ADV-IMPL-P01-LOW-001: ACCEPTED/optional. ADV-IMPL-P01-LOW-002: ACCEPTED — folded into SS-04 sweep.
+- ADV-HS043-P02-MED-001: ACCEPTED gated on live-capture support. ADV-HS043-P02-LOW-001: ACCEPTED non-blocking.
+- F-W25-S088-P6-001 LOW: warning-once inv-2 count assertion; test-strength only.
+- PROCESS-GAP-P5-001: OPEN — both Pass-1 and Pass-2 trace to HS-043 DF-SIBLING-SWEEP-001 gap.
+
+---
+
 ## Archived: 2026-06-01 — PHASE 5 QUEUED, NOT YET STARTED (superseded by HS043-pass-2 disposition checkpoint)
 
 **POSITION:** Phase 5 (Adversarial Refinement) ENTERED but the adversarial-refinement loop had NOT yet started (queued). develop HEAD e0451ef (clean). factory-artifacts pushed and clean. No open PRs. All Phase 0–4 gates PASSED.
