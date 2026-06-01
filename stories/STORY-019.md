@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-019"
 epic_id: "E-2"
-version: "1.6"
+version: "1.7"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -39,7 +39,7 @@ implementation_strategy: brownfield-formalization
 
 ## Narrative
 - **As a** forensic analyst
-- **I want** the TCP reassembly engine to correctly close flows on RST (immediately, skipping subsequent payload), on two FINs (after payload of the triggering packet), on idle timeout (`expire_flows`), and to safely handle programming errors where `close_flow` is called for a key that has already been removed
+- **I want** the TCP reassembly engine to correctly close flows on RST (immediately, skipping subsequent payload), on two FINs (after payload of the triggering packet), on idle timeout (production per-packet mechanism: `expire_idle_by_timeout`, wired in `process_packet`; public direct-call API: `expire_flows`), and to safely handle programming errors where `close_flow` is called for a key that has already been removed
 - **So that** flows are always retired via a well-defined reason code delivered to the handler, residual buffered data is always flushed before close, and defensive one-shot warnings prevent stderr flooding from bugs
 
 ## Behavioral Contracts
@@ -48,7 +48,7 @@ implementation_strategy: brownfield-formalization
 |----|-------|---------------|
 | BC-2.04.010 | RST Closes Flow Immediately with CloseReason::Rst | RST close path |
 | BC-2.04.011 | Both FINs Close Flow with CloseReason::Fin | FIN close path |
-| BC-2.04.013 | expire_flows Closes Idle Flows Past flow_timeout_secs | Timeout-based cleanup |
+| BC-2.04.013 | expire_idle_by_timeout / expire_flows Closes Idle Flows Past flow_timeout_secs | Timeout-based cleanup |
 | BC-2.04.029 | close_flow for Missing Key Logs One-Shot Process-Wide Warning | Defensive missing-key guard |
 
 ## Acceptance Criteria
@@ -91,15 +91,15 @@ After a RST:
 - **Test:** `test_BC_2_04_011_same_direction_fin_retransmit_closes_flow()`
 
 ### AC-009 (traces to BC-2.04.013 postcondition 1-2)
-- `expire_flows(current_time, handler)` closes all flows where `current_time > last_seen AND (current_time - last_seen) > flow_timeout_secs` with `CloseReason::Timeout`. `stats.flows_expired` increments by the number of flows expired.
+- Flows where `current_time > last_seen AND (current_time - last_seen) > flow_timeout_secs` are closed with `CloseReason::Timeout` and `stats.flows_expired` increments by the number of flows expired. **Note on function roles:** the production per-packet enforcer is `expire_idle_by_timeout` (mod.rs:575-590, private, wired from `process_packet` at mod.rs:166-169); the public direct-call / offline API is `expire_flows` (mod.rs:593-609). This AC exercises the time-based expiry clause, which both functions share; the test calls `expire_flows` directly as the accessible public API for unit testing.
 - **Test:** `test_BC_2_04_013_expire_flows_closes_idle_flows()`
 
 ### AC-010 (traces to BC-2.04.013 postcondition 4)
-- Flows that are within the timeout window are NOT closed by `expire_flows`.
+- Flows that are within the timeout window are NOT closed by `expire_flows` (public API, tested directly). The production `expire_idle_by_timeout` also does not close active flows within the timeout window (BC-2.04.013 invariant 3).
 - **Test:** `test_BC_2_04_013_expire_flows_does_not_close_active_flows()`
 
 ### AC-011 (traces to BC-2.04.013 invariant 1)
-- `expire_flows` uses underflow-safe subtraction: `current_time > flow.last_seen` is checked BEFORE `current_time - flow.last_seen > timeout`, preventing u32 underflow.
+- Both `expire_idle_by_timeout` (mod.rs:575-590) and `expire_flows` (mod.rs:593-609) use underflow-safe subtraction: `current_time > flow.last_seen` is checked BEFORE `current_time - flow.last_seen > timeout`, preventing u32 underflow. The test exercises this guard via the public `expire_flows` API.
 - **Test:** `test_BC_2_04_013_expire_flows_does_not_underflow_when_time_travels_backwards()`
 
 ### AC-012 (traces to BC-2.04.013 invariant 2 and edge case EC-004)
@@ -136,7 +136,8 @@ When `close_flow` returns early for a missing key:
 | RST handling in apply_handshake_flags | src/reassembly/mod.rs:303-308 | effectful-shell |
 | FIN close detection in process_packet | src/reassembly/mod.rs:194-203 | effectful-shell |
 | FIN flag block in apply_handshake_flags | src/reassembly/mod.rs:310-316 | effectful-shell |
-| expire_flows | src/reassembly/mod.rs:593-609 | effectful-shell |
+| expire_idle_by_timeout (PRODUCTION WIRED) | src/reassembly/mod.rs:575-590 (called from process_packet at :166-169) | effectful-shell |
+| expire_flows (public / direct-call API) | src/reassembly/mod.rs:593-609 | effectful-shell |
 | close_flow (missing-key guard) | src/reassembly/lifecycle.rs:42-50 | effectful-shell (stderr write) |
 | CLOSE_FLOW_MISSING_WARNED AtomicBool | src/reassembly/lifecycle.rs:31 | effectful-shell (global state) |
 
@@ -202,7 +203,7 @@ When `close_flow` returns early for a missing key:
 |------|--------|-------------|
 | RST triggers `PostHandshake::FlowClosed`; payload processing skipped | BC-2.04.010 invariant 3 | Code review: RST block returns FlowClosed before payload branch |
 | FIN close fires AFTER payload processing (fin-close detection is post-flush) | BC-2.04.011 invariant 2 | Test: insert data in FIN packet; assert data delivered before on_flow_close |
-| expire_flows underflow guard: `current_time > last_seen` checked BEFORE subtraction | BC-2.04.013 invariant 1 | Code review: guard ordering in mod.rs:593-609 (fn decl :593, closing :609) |
+| Underflow guard: `current_time > last_seen` checked BEFORE subtraction — applies to BOTH `expire_idle_by_timeout` (mod.rs:575-590, per-packet production enforcer) and `expire_flows` (mod.rs:593-609, public direct-call API) | BC-2.04.013 invariant 1 | Code review: guard ordering in both functions; `expire_idle_by_timeout` is the production hot-path wired via `process_packet` at mod.rs:166-169 |
 | `CLOSE_FLOW_MISSING_WARNED` uses `swap(true, Ordering::Relaxed)` one-shot pattern | BC-2.04.029 invariant 1 | Code review: grep for swap in lifecycle.rs |
 | debug_assert fires in debug builds when close_flow called for missing key | BC-2.04.029 postcondition 6 | Compile with debug assertions; run tests |
 | **No additional eprintln on subsequent missing-key calls** | BC-2.04.029 PC5 | Code review of swap-guarded if-block at `src/reassembly/lifecycle.rs:42-50` (matches BC-2.04.048 PC2 / inv-3 / ADR-0004 amendment precedent) |
@@ -230,6 +231,7 @@ When `close_flow` returns early for a missing key:
 
 | Version | Date | Author | Notes |
 |---------|------|--------|-------|
+| 1.7 | 2026-06-01 | story-writer | ADV-IMPL-P10-MED-001 BC-2.04.013 v1.7 propagation: Narrative clarified — `expire_idle_by_timeout` (mod.rs:575-590, private, wired from process_packet at :166-169) is the production per-packet mechanism; `expire_flows` (mod.rs:593-609) is the public direct-call/offline API. BC table title updated to BC-2.04.013 v1.7 H1 (`expire_idle_by_timeout / expire_flows Closes Idle Flows Past flow_timeout_secs`). AC-009 note added distinguishing the two functions; AC-010 note extended to cover both; AC-011 extended to name both functions. Architecture Mapping: added `expire_idle_by_timeout (PRODUCTION WIRED)` row at mod.rs:575-590 (called from process_packet :166-169). Architecture Compliance Rule underflow-guard row updated to cover both functions and name `expire_idle_by_timeout` as per-packet enforcer. bcs: array and AC test-name citations unchanged. |
 | 1.6 | 2026-06-01 | story-writer | DF-SIBLING-SWEEP-001 story-body mod.rs re-anchor to HEAD e0451ef (Phase-5 anchor-class closure): AC-002 flush cite 162→191; Architecture Mapping RST 273-279→303-308, FIN-close 165-174→194-203, FIN-flag 281-287→310-316, expire_flows 536-552→593-609; EC-002 cite 162→191; Token Budget ranges updated; Architecture Compliance Rule expire_flows 536-552→593-609 and flush cite 162→191; File Structure verify range updated. |
 | 1.5 | 2026-05-25 | story-writer | Wave 8 STORY-019 adv-pass-4 F-2 closure (MEDIUM): AC-002 rewritten with PC2 enforcement-mode split (structural defense-in-depth; per-packet flush at mod.rs:162 drains buffer pre-close; close_flow's flush loop is a defensive no-op in normal operation). EC-002 description updated to acknowledge non-contiguous "ccc" is silently dropped (cannot flush behind gap). Added Architecture Compliance Rules row covering the defensive-no-op invariant. Mirrors BC-2.04.029 v1.4 + BC-2.04.048 v1.3 / ADR-0004 amendment enforcement-mode pattern. |
 | 1.4 | 2026-05-25 | story-writer | Wave 8 STORY-019 adv-pass-2 F-1 closure (MEDIUM): AC-015 rewritten with enforcement-mode split (structural code-review for production close_flow's no-side-effect guarantee; automated test covers trigger-seam's no-op semantics). AC-013/AC-014 combined-test entry annotated with same caveat for its close_events assertions. Added Architecture Compliance Rule row covering the let-else early-return structural enforcement. Mirrors v1.3 AC-014 / BC-2.04.048 PC2 / ADR-0004 amendment enforcement-mode pattern. |
