@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-087
 epic_id: E-9
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.004.md
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.005.md
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.007.md
-input-hash: "b1e5444"
+input-hash: "fbdfe6e"
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: [STORY-086]
@@ -100,6 +100,14 @@ The conflict is symmetric: `--no-reassemble --reassemble` (reversed order) also 
 `--reassemble` alone parses successfully; `cli.reassemble = true`.
 - **Test:** `test_reassemble_alone_parses_ok()`
 
+### AC-013 (traces to BC-2.12.005 EC-006 / postcondition 5)
+`Cli::try_parse_from(["wirerust", "--reassembly-depth", "0", "analyze", "x.pcap"])` is rejected at parse time with a clap `ValueValidation` error (exit code 2, message "0 is not in 1.."); analysis never starts.
+- **Tests:** `test_EC_001_reassembly_depth_zero_rejected` (unit); `test_analyze_reassembly_depth_zero_exits_usage_error` (integration)
+
+### AC-014 (traces to BC-2.12.005 EC-007 / postcondition 6)
+`Cli::try_parse_from(["wirerust", "--reassembly-memcap", "0", "analyze", "x.pcap"])` is rejected at parse time with a clap `ValueValidation` error (exit code 2, message "0 is not in 1.."); analysis never starts.
+- **Tests:** `test_EC_001_reassembly_memcap_zero_rejected` (unit); `test_analyze_reassembly_memcap_zero_exits_usage_error` (integration)
+
 ## Architecture Mapping
 
 | Component | Module | Pure/Effectful |
@@ -112,11 +120,12 @@ The conflict is symmetric: `--no-reassemble --reassemble` (reversed order) also 
 
 | ID | Scenario | Expected Behavior |
 |----|----------|-------------------|
-| EC-001 | `--reassembly-depth 0` | Accepted (0 is a valid u64); `reassembly_depth = 0` |
+| EC-001 | `--reassembly-depth 0` | REJECTED at parse time: clap ValueValidation (exit 2, "0 is not in 1.."); value must be >= 1; analysis never starts. |
 | EC-002 | `--small-segment-max-bytes 0` | `small_segment_max_bytes = Some(0)` (disables detection) |
 | EC-003 | `--overlap-threshold 255` (max) | `overlap_threshold = Some(255)`; accepted |
 | EC-004 | `--output-format` and `--json` together | `--json` wins via `resolve_format` precedence (BC-2.12.016; not tested here — tested in STORY-089) |
 | EC-005 | No reassembly flags at all | `reassemble = false`, `no_reassemble = false`, `depth = 10`, `memcap = 1024` |
+| EC-006 | `--reassembly-memcap 0` | REJECTED at parse time: clap ValueValidation (exit 2, "0 is not in 1.."); value must be >= 1; analysis never starts. |
 
 ## Purity Classification
 
@@ -146,7 +155,7 @@ The conflict is symmetric: `--no-reassemble --reassemble` (reversed order) also 
 5. [ ] Add all reassembly flags to `Cli` with correct defaults and range constraints
 6. [ ] Add `--small-segment-ignore-ports` as `Option<Vec<u16>>` with `value_delimiter = ','`
 7. [ ] Declare `conflicts_with = "no_reassemble"` on `--reassemble`
-8. [ ] Write edge-case tests for EC-001 through EC-005
+8. [ ] Write edge-case tests for EC-001 through EC-006
 9. [ ] Run `cargo test --all-targets` and `cargo clippy --all-targets -- -D warnings`
 
 ## Previous Story Intelligence (MANDATORY)
@@ -162,8 +171,9 @@ The conflict is symmetric: `--no-reassemble --reassemble` (reversed order) also 
 | `--reassemble` declares `conflicts_with = "no_reassemble"` (asymmetric; clap makes it bidirectional) | BC-2.12.007 invariant 1 | Test: both flags together returns Err(ArgumentConflict) |
 | `OutputFormat` is a `ValueEnum`; only `json` and `csv` are valid | BC-2.12.004 invariant 1 | Test: invalid value causes parse error |
 | All reassembly flags are `global = true` | BC-2.12.005 invariant 1 | Verify attribute in `src/cli.rs` |
-| `overlap_threshold` clamp is 0-255 | BC-2.12.005 postcondition 6 | clap `value_parser = clap::value_parser!(u32).range(0..=255)` |
-| `small_segment_threshold` clamp is 0-2048 | BC-2.12.005 postcondition 7 | clap range validator |
+| `overlap_threshold` clamp is 0-255 | BC-2.12.005 postcondition 8 | clap `value_parser = clap::value_parser!(u32).range(0..=255)` |
+| `small_segment_threshold` clamp is 0-2048 | BC-2.12.005 postcondition 9 | clap range validator |
+| `--reassembly-depth` and `--reassembly-memcap` use `parse_nonzero_usize` value_parser; supplying 0 produces exit-2 ValueValidation ("0 is not in 1..") before analysis starts | BC-2.12.005 PC5-6, EC-006/EC-007 | Tests: `test_EC_001_reassembly_depth_zero_rejected`, `test_analyze_reassembly_depth_zero_exits_usage_error`, `test_EC_001_reassembly_memcap_zero_rejected`, `test_analyze_reassembly_memcap_zero_exits_usage_error` |
 
 ## Library & Framework Requirements (MANDATORY)
 
@@ -176,4 +186,11 @@ The conflict is symmetric: `--no-reassemble --reassemble` (reversed order) also 
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/cli.rs` | modify | Add `OutputFormat` enum, output format fields, all reassembly flags |
-| `tests/cli_story_087_tests.rs` | modify | Add AC-001..AC-012 test functions |
+| `tests/cli_story_087_tests.rs` | modify | Add AC-001..AC-014 test functions |
+
+## Changelog
+
+| Version | Date | Change |
+|---------|------|--------|
+| 1.3 | 2026-06-01 | FIX-P5-002 / ADV-IMPL-P04-MED-001: revised EC-001 (depth-zero now REJECTED, not accepted); added EC-006 (memcap-zero REJECTED); added AC-013/AC-014 tracing BC-2.12.005 EC-006/EC-007 and postconditions 5/6; updated Tasks item 8 to cover EC-001..EC-006; added parse_nonzero_usize Architecture Compliance row. Propagates BC-2.12.005 v1.3. |
+| 1.2 | 2026-05-21 | Initial story decomposition. |
