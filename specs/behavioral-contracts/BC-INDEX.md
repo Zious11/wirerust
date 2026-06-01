@@ -76,7 +76,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.04.010 | RST Closes Flow Immediately with CloseReason::Rst | P0 | [WRITTEN] | BC-RAS-010 |
 | BC-2.04.011 | Both FINs Close Flow with CloseReason::Fin | P0 | [WRITTEN] | BC-RAS-011 |
 | BC-2.04.012 | finalize Flushes All Remaining Flows; Idempotent | P0 | [WRITTEN] | BC-RAS-012 |
-| BC-2.04.013 | expire_flows Closes Idle Flows Past flow_timeout_secs | P1 | [WRITTEN] | BC-RAS-013 |
+| BC-2.04.013 | expire_idle_by_timeout / expire_flows Closes Idle Flows Past flow_timeout_secs | P1 | [WRITTEN] | BC-RAS-013 |
 | BC-2.04.014 | total_memory Tracks Buffered Bytes; Decrements on Flush and Close | P1 | [WRITTEN] | BC-RAS-014 |
 | BC-2.04.015 | Flow Eviction on max_flows Hit Uses LRU Non-Established-First | P1 | [WRITTEN] | BC-RAS-015 |
 | BC-2.04.016 | Memory Pressure Eviction When total_memory Exceeds memcap | P1 | [WRITTEN] | BC-RAS-016 |

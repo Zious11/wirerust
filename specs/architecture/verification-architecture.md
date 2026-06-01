@@ -2,10 +2,14 @@
 artifact: architecture-section
 section: verification-architecture
 traces_to: ARCH-INDEX.md
-version: "1.0"
+version: "1.1"
 status: draft
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
+modified:
+  - date: 2026-06-01
+    actor: product-owner
+    reason: "Fix VP-015 table entry: correct seq value from 0xFFFF_FFFE (ISN) to isn+1=0xFFFF_FFFF (offset 1) to match VP-015 v1.1 and Kani harness"
 ---
 
 # Verification Architecture
@@ -35,7 +39,7 @@ timestamp: 2026-05-20T00:00:00Z
 | VP-012 | escape_for_terminal: no C0/DEL/C1 byte survives unescaped; all non-ASCII Unicode > U+009F passes through | ADR 0003 | reporter/terminal.rs | proptest |
 | VP-013 | JA3 GREASE filter: all values matching the GREASE pattern (0x?A?A) are removed before fingerprint computation | (spec compliance) | analyzer/tls.rs | proptest |
 | VP-014 | HttpAnalyzer cross-flow isolation: parse errors and poisoning in flow A do not affect flow B | (isolation) | analyzer/http.rs | proptest |
-| VP-015 | TCP sequence wraparound: segment at seq=0xFFFF_FFFE with data crossing 32-bit boundary reassembles correctly | (arithmetic) | reassembly/segment.rs | Kani |
+| VP-015 | TCP sequence wraparound: segment at seq=isn+1=0xFFFF_FFFF (ISN=0xFFFF_FFFE, offset 1) crossing 32-bit boundary reassembles correctly | (arithmetic) | reassembly/segment.rs | Kani |
 
 ### Test Sufficient (UI logic, non-critical defaults)
 

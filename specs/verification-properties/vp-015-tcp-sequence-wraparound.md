@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.0"
+version: "1.1"
 status: draft
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -18,7 +18,10 @@ proof_completed_date: null
 proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - date: 2026-06-01
+    actor: product-owner
+    reason: "Fix prose inconsistency: Property Statement items 1-2 corrected to match harness/code (ISN=0xFFFF_FFFE, first segment at isn+1=0xFFFF_FFFF covering offsets 1-4, adjacent segment at seq=0x0000_0003 offset 5)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -36,12 +39,15 @@ removal_reason: null
 The segment buffer correctly handles TCP sequence number wraparound across the
 32-bit boundary (0xFFFF_FFFF -> 0x0000_0000):
 
-1. A segment starting at sequence number 0xFFFF_FFFE with 4 bytes of data
-   (covering sequence numbers 0xFFFF_FFFE, 0xFFFF_FFFF, 0x0000_0000, 0x0000_0001)
-   is inserted and flushed correctly, delivering all 4 bytes in order.
+1. With ISN = 0xFFFF_FFFE (so `base_offset = 1` after `set_isn`), a 4-byte segment
+   starting at sequence number `isn+1 = 0xFFFF_FFFF` (offset 1) crosses the 32-bit
+   boundary, covering sequence numbers 0xFFFF_FFFF, 0x0000_0000, 0x0000_0001,
+   0x0000_0002 at offsets 1, 2, 3, 4 respectively. The segment is inserted and
+   flushed correctly, delivering all 4 bytes in order.
 
-2. A subsequent segment starting at sequence number 0x0000_0002 is correctly
-   identified as adjacent (not a gap) and flushed in sequence.
+2. A subsequent segment starting at sequence number 0x0000_0003 (offset 5) is
+   correctly identified as adjacent (not a gap, not an overlap) and flushed in
+   sequence.
 
 3. The buffer arithmetic correctly converts from TCP sequence space (mod 2^32)
    to monotonic byte offset space (u64) using the ISN as the reference point.

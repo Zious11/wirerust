@@ -186,7 +186,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.04.010 | RST closes flow immediately with CloseReason::Rst and zeroes total_memory | P0 | BC-RAS-010 |
 | BC-2.04.011 | Both FINs close flow with CloseReason::Fin and remove from table | P0 | BC-RAS-011 |
 | BC-2.04.012 | finalize flushes all remaining flows with Timeout and is idempotent | P0 | BC-RAS-012 |
-| BC-2.04.013 | expire_flows closes flows idle past flow_timeout_secs with Timeout | P1 | BC-RAS-013 |
+| BC-2.04.013 | expire_idle_by_timeout / expire_flows closes flows idle past flow_timeout_secs | P1 | BC-RAS-013 |
 | BC-2.04.014 | total_memory tracks buffered bytes and decrements on flush and close | P1 | BC-RAS-014 |
 | BC-2.04.015 | Flow eviction on max_flows hit uses LRU non-established-first policy | P1 | BC-RAS-015 |
 | BC-2.04.016 | Memory pressure eviction when total_memory exceeds memcap | P1 | BC-RAS-016 |
