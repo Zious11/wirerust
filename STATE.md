@@ -1,34 +1,31 @@
 ---
-pipeline: PHASE_3_TDD_IMPLEMENTATION
+pipeline: PHASE_3_COMPLETE_GATE_PENDING
 phase: phase-3-tdd-implementation
 product: wirerust
 mode: brownfield
-timestamp: 2026-05-22T00:00:00Z
+timestamp: 2026-05-31T00:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
 phase_2_completed: "2026-05-21"
 phase_3_started: "2026-05-21"
-develop_head: 450d33e
+phase_3_completed: "2026-05-31"
+develop_head: 6158e6e
 current_cycle: v0.1.0-greenfield-spec
-current_wave: 27
+current_wave: 27 (FINAL — CLOSED)
 wave_20_24_detail: "cycles/phase-3-tdd/wave-history.md"
-stories_delivered: 47
-wave_23_status: CLOSED
-wave_23_summary: "single-story (STORY-086 PR#163→a42e14b); per-story convergence==wave-level (BC-5.39.001; 3-clean passes 3→1→0); E-9 CLI epic OPENED"
-wave_24_status: CLOSED
-wave_24_summary: "2-story wave (STORY-087 PR#164→c2445dc + STORY-096 PR#165→9954d44); S087 4ps-3clean(P2/P3/P4;2→1→0→0;BC-2.12.004/005/007;16 tests); S096 6ps-3clean(P4/P5/P6;1MED→1MED→1MED→0→0→0;BC-2.13.001..004;14 tests;facade-mode mutation-gate caught 3 MEDIUM gaps); wave-level CONVERGED 3ps(2→1→0); E-10 COMPLETE; 1015 tests green"
-wave_25_status: CLOSED
-wave_25_summary: "single-story (STORY-088 PR#168→5202fe9); first src/main.rs formalization via assert_cmd behavioral tests (ZERO src changes); 19 tests (14 AC+5 EC, mod story_088); BC-2.12.008..013 + VP-018 runtime half; 6-pass convergence 3-clean(P4/P5/P6; 3→1→0→0→0→0); 27 mutations all caught; 4 MEDIUM findings remediated (DNS assertion, sort-order distinct fixtures, AC-013/014 TTY-limitation docs); BC-5.39.001 ACHIEVED; per-story==wave-level (BC-5.39.001)"
+stories_delivered: 48
 wave_26_status: CLOSED
 wave_26_summary: "single-story (STORY-089 PR#169→450d33e; E-9 decode-error counting + dispatcher unclassified_flows injection + resolve_format precedence + write_output routing); 25 tests (12 AC+5 EC+run_summary parity); BC-2.12.014..017; brownfield-formalization ZERO src changes; 6-pass convergence 3-clean(P4/P5/P6); 17-mutation matrix all caught across run_analyze AND run_summary; 1 HIGH remediated (run_summary untested→6 tests), 5 MEDIUM remediated; F-FSR-088-089 CLOSED; BC-5.39.001 ACHIEVED; per-story==wave-level (BC-5.39.001)"
+wave_27_status: CLOSED
+wave_27_summary: "FINAL story (STORY-090 PR#170→6158e6e; E-9 Summary Data Model — ingest/ServiceHints/unique_hosts/Serialization); 18 direct unit/integration tests (13 AC+5 EC); BC-2.12.018..021; library module pub mod summary; ZERO src changes; 3-pass convergence (2 remediation rounds — traceability/anchoring only, test logic strong throughout); all 18 mutations killed; cross-suite uniqueness sweep (full corpus) confirmed zero collisions; BC-5.39.001 ACHIEVED; per-story==wave-level (BC-5.39.001); E-9 COMPLETE; PHASE 3 COMPLETE"
 dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3
 adversary_gate: SATISFIED
-convergence_trajectory: "Full Phase-1→W26 trajectory archived in cycles/phase-3-tdd/convergence-trajectory.md. Latest: ...W25-CLOSED(PR#168→5202fe9;BC-2.12.008..013+VP-018;6ps-3clean;27-mutations)|W26-S089:6ps-3clean(P4/P5/P6;17-mutation-matrix-all-caught;BC-2.12.014..017;25t;run_summary-parity;F-FSR-088-089-CLOSED)|W26-CONVERGED-CLOSED(single-story;per-story==wave-level;BC-5.39.001;PR#169→450d33e)"
+convergence_trajectory: "Full Phase-1→W27 trajectory archived in cycles/phase-3-tdd/convergence-trajectory.md. Latest: ...W26-CLOSED(PR#169→450d33e;BC-2.12.014..017;6ps-3clean;17-mutation-matrix)|W27-S090:3ps-3clean(R1/R2/R3;4→2→0;BC-2.12.018..021;18t;2-remediation-rounds-traceability;corpus-uniqueness-sweep)|W27-CONVERGED-CLOSED(single-story;per-story==wave-level;BC-5.39.001;PR#170→6158e6e)|PHASE-3-COMPLETE(48/48;27/27)"
 consistency_audit: CONSISTENT
 input_drift_check: CLEAN (Wave-20 STORY-076 test-only formalization; zero src/production changes; reporter/json subsystem — no holdout-scenario hash impact; Wave-19 story-citation/AC-sync bump may apply — verify at Phase-4 entry)
 phase_2_input_hash_drift_check: CLEAN
@@ -40,11 +37,11 @@ wave_history_archived: "cycles/phase-3-tdd/wave-history.md (waves 1-22 detail fi
 
 ## Status
 
-**Pipeline:** PHASE_3_TDD_IMPLEMENTATION — Waves 1-26 CLOSED/CONVERGED; Wave 27 NEXT (FINAL). 47 stories delivered.
-47 stories delivered (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052/045/053/055/046/054/056/058/057/076/077/079/078/080/086/087/096/088/089).
-Wave 25 CLOSED — STORY-088 (PR#168→5202fe9; 6ps-3clean P4/P5/P6; BC-2.12.008..013+VP-018; 19 tests; first src/main.rs formalization via assert_cmd; 27 mutations caught; BC-5.39.001 ACHIEVED).
-Wave 26 CLOSED — STORY-089 (PR#169→450d33e; 6ps-3clean P4/P5/P6; BC-2.12.014..017; 25 tests; 17-mutation matrix all caught; run_summary parity; F-FSR-088-089 CLOSED; BC-5.39.001 ACHIEVED).
-develop HEAD: 450d33e (PR #169 merged 2026-05-31). All 8 CI checks green. E-9 4/5 done (086/087/088/089); STORY-090 remains. NEXT: Wave 27 = STORY-090 (FINAL story → completes Phase 3).
+**Pipeline:** PHASE 3 COMPLETE — All 48 stories / 27 waves CLOSED/CONVERGED. Phase 3→4 gate PENDING.
+48 stories delivered (STORY-001/069/002/003/004/070/071/005/011/066/012/013/014/019/015/016/020/017/018/021/031/032/033/041/051/042/043/044/052/045/053/055/046/054/056/058/057/076/077/079/078/080/086/087/096/088/089/090).
+Wave 27 CLOSED — STORY-090 (PR#170→6158e6e; 3ps-3clean R1/R2/R3; BC-2.12.018..021; 18 tests; library module pub mod summary; ZERO src changes; BC-5.39.001 ACHIEVED). E-9 COMPLETE. PHASE 3 COMPLETE.
+develop HEAD: 6158e6e (PR #170 merged 2026-05-31). All 8 CI checks green. All 10 epics COMPLETE.
+NEXT: Phase 3→4 gate (see gate checklist below), then Phase 4 Holdout Evaluation.
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -61,7 +58,7 @@ dependency bumping for it).
 | Phase C — Lesson Backlog Remediation | PASSED | 30/30 lessons; PRs #69–#99 |
 | Phase 1 — Spec Crystallization | **PASSED** 2026-05-21 | 20 L2 shards, 217 BCs, 20 VPs, 4 supplements; 33 adversary passes; trajectory: `17→…→0→0→0` (detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md) |
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
-| Phase 3 — TDD Implementation | **IN PROGRESS** — Waves 1-26 CLOSED/CONVERGED; Wave 27 NEXT/FINAL (47 stories; develop HEAD 450d33e); E-8 COMPLETE, E-9 IN PROGRESS (4/5), E-10 COMPLETE | W26 CLOSED: STORY-089 (PR#169→450d33e); 25 tests; 17-mutation matrix; F-FSR-088-089 CLOSED; NEXT Wave 27 = STORY-090 (FINAL) |
+| Phase 3 — TDD Implementation | **PASSED** 2026-05-31 | 48/48 stories, 27/27 waves, all CLOSED/CONVERGED; E-1..E-10 ALL COMPLETE; develop HEAD 6158e6e (PR#170); BC-5.39.001 ACHIEVED across all waves; trajectory detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | NOT STARTED | — |
 | Phase 5 — Adversarial Refinement | NOT STARTED | — |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
@@ -77,17 +74,17 @@ dependency bumping for it).
 | 24 | STORY-087 + STORY-096 | **CLOSED/CONVERGED** 2026-05-31 | 9954d44 (PRs #164/#165) | S087: 4ps-3clean(P2/P3/P4;2→1→0→0;BC-2.12.004/005/007;16t); S096: 6ps-3clean(P4/P5/P6;1MED→1MED→1MED→0→0→0;BC-2.13.001..004;14t;facade-mutation-gate); wave-level 3ps(2→1→0); E-10 COMPLETE |
 | 25 | STORY-088 | **CLOSED/CONVERGED** 2026-05-31 | 5202fe9 (PR #168) | single-story; first src/main.rs formalization via assert_cmd; 19 tests (14 AC+5 EC); BC-2.12.008..013+VP-018; 6ps-3clean(P4/P5/P6; 3→1→0→0→0→0); 27 mutations caught; BC-5.39.001 ACHIEVED |
 | 26 | STORY-089 | **CLOSED/CONVERGED** 2026-05-31 | 450d33e (PR #169) | single-story; 6ps-3clean(P4/P5/P6); 25 tests (12 AC+5 EC+run_summary parity); BC-2.12.014..017; 17-mutation matrix all caught; 1 HIGH+5 MEDIUM remediated; F-FSR-088-089 CLOSED; BC-5.39.001 ACHIEVED |
-| 27 | STORY-090 | **NEXT (FINAL)** | — | ready (all blockers done); E-9 Summary Data Model; completes Phase 3 |
+| 27 | STORY-090 | **CLOSED/CONVERGED** 2026-05-31 | 6158e6e (PR #170) | single-story FINAL; 3ps-3clean(R1/R2/R3); 18 tests (13 AC+5 EC); BC-2.12.018..021; library module; ZERO src changes; 2 remediation rounds (traceability only); corpus uniqueness sweep; BC-5.39.001 ACHIEVED; E-9 COMPLETE; PHASE 3 COMPLETE |
 
 ## Phase 3 — Current Phase Steps (last 5)
 
 | Step | Status | Notes |
 |------|--------|-------|
-| Wave 25 — CLOSED | **COMPLETE** 2026-05-31 | Single-story wave; per-story convergence == wave-level (BC-5.39.001). First src/main.rs formalization via assert_cmd. 47 stories. E-9 4/5. |
-| Wave 26 — STORY-089 converged | **COMPLETE** 2026-05-31 | 6 passes (P1-3 live-mutation + P4-6 fresh-context); 3-clean P4/P5/P6; 17-mutation matrix all caught (run_analyze AND run_summary); 1 HIGH + 5 MEDIUM remediated. BC-5.39.001 ACHIEVED. |
-| Wave 26 — STORY-089 PR merged | **COMPLETE** 2026-05-31 | PR #169 squash-merged → 450d33e. 25 tests (12 AC+5 EC+run_summary parity); BC-2.12.014..017 formalized. 8/8 CI green. Security CLEAN. |
 | Wave 26 — CLOSED | **COMPLETE** 2026-05-31 | Single-story wave; per-story convergence == wave-level (BC-5.39.001). F-FSR-088-089 CLOSED. 47 stories. E-9 4/5 (086/087/088/089 done). |
-| Wave 27 | **NEXT (FINAL)** | STORY-090 (Summary Data Model; E-9; 5pts; ready). Completes Phase 3 on merge. |
+| Wave 27 — STORY-090 converged (3 passes, 2 remediation rounds) | **COMPLETE** 2026-05-31 | R1: 4 findings (BC permuted + 2 name collisions in summary_tests.rs); R2: 2 findings (AC-012 collision reporter_tests.rs + EC-003 retarget); R3: CLEAN. Test logic strong throughout; all 18 mutations killed each round. BC-5.39.001 ACHIEVED. |
+| Wave 27 — STORY-090 PR merged | **COMPLETE** 2026-05-31 | PR #170 squash-merged → 6158e6e. 18 tests (13 AC+5 EC); BC-2.12.018..021 formalized. 8/8 CI green. Security CLEAN. pr-reviewer APPROVE cycle 1. 10/13 ACs observable in demos. |
+| Wave 27 — CLOSED | **COMPLETE** 2026-05-31 | Single-story FINAL wave; per-story convergence == wave-level (BC-5.39.001). E-9 COMPLETE (5/5 stories: 086/087/088/089/090). 48/48 stories delivered. |
+| Phase 3 — COMPLETE | **PASSED** 2026-05-31 | 48/48 stories, 27/27 waves, all CLOSED/CONVERGED. All 10 epics complete. NEXT: Phase 3→4 gate (see below). |
 
 ## Spec Package Summary (Phase 1 — PASSED)
 
@@ -105,14 +102,27 @@ dependency bumping for it).
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-05-31 — Wave 26 CLOSED; next = Wave 27 STORY-090 FINAL)
+## Session Resume Checkpoint (2026-05-31 — PHASE 3 COMPLETE; next = Phase 3→4 gate then Phase 4)
 
-1. Waves 1-26 CLOSED/CONVERGED. Wave 27 NEXT (FINAL). develop HEAD: 450d33e (PR #169 merged 2026-05-31). All 8 CI checks green. 47 stories delivered.
-2. Wave 26 CLOSED: STORY-089 (Decode Error Counting, Dispatcher Stats Injection, Format Resolution, Output Routing; E-9; 5pts). PR #169 squash-merged → 450d33e. 25 assert_cmd behavioral tests (12 AC + 5 EC + run_summary parity). BC-2.12.014..017. ZERO src changes. 6-pass convergence 3-clean P4/P5/P6 (fresh-context adversary dispatched for P4-6). 17-mutation matrix all caught (run_analyze AND run_summary). 1 HIGH + 5 MEDIUM findings remediated. BC-5.39.001 ACHIEVED. F-FSR-088-089 CLOSED (both story halves reconciled). Artifacts: .factory/cycles/v0.1.0-greenfield-spec/adversarial-reviews/ADV-INDEX-STORY-089.md.
-3. E-9 CLI epic: 4/5 done (STORY-086/087/088/089 delivered; STORY-090 remains). Demos: docs/demo-evidence/STORY-089/ (12/12 ACs + run_summary parity).
-4. Drift Items: F-FSR-088-089 CLOSED. F-W25-S088-P6-001 LOW remains open (target STORY-090 or accepted). OBS-2 fixed (dead-script-ref). OBS-1 (FSR) closed via F-FSR-088-089.
-5. NEXT: Wave 27 = STORY-090 (Summary Data Model — ingest, Service Hints, unique_hosts, Serialization; E-9; 5pts; ready). FINAL story → Phase 3 completion on merge.
-6. Prior checkpoint (Wave 25 CLOSED; next = Wave 26 STORY-089) archived: cycles/phase-3-tdd/session-checkpoints.md.
+1. ALL 48 stories / 27 waves CLOSED/CONVERGED. develop HEAD: 6158e6e (PR #170 merged 2026-05-31). All 8 CI checks green. All 10 epics COMPLETE. Phase 3 PASSED 2026-05-31.
+2. Wave 27 CLOSED: STORY-090 (Summary Data Model — ingest, Service Hints, unique_hosts, Serialization; E-9; 5pts). PR #170 squash-merged → 6158e6e. 18 direct unit/integration tests (13 AC + 5 EC). BC-2.12.018..021. ZERO src changes. 3-pass convergence (2 remediation rounds — traceability/anchoring only; test logic strong throughout). All 18 mutations killed. Cross-suite uniqueness sweep (full corpus) confirmed. BC-5.39.001 ACHIEVED. Artifacts: .factory/cycles/v0.1.0-greenfield-spec/adversarial-reviews/ADV-INDEX-STORY-090.md. Demos: docs/demo-evidence/STORY-090/ (10/13 ACs observable). Story v1.3.
+3. E-9 CLI epic: 5/5 COMPLETE (STORY-086/087/088/089/090 all delivered). E-1 through E-10 ALL COMPLETE.
+4. Drift Items: F-W25-S088-P6-001 LOW remains open — AC-004 warning-once invariant 2 not assertion-covered; target Phase 4 entry or accepted (per DF-VALIDATION-001, no GitHub issue without research-agent validation).
+5. NEXT: Phase 3→4 gate (see Phase 3→4 Gate section below). On gate pass: Phase 4 Holdout Evaluation (100 holdout scenarios).
+6. Prior checkpoint (Wave 26 CLOSED; next = Wave 27 STORY-090) archived: cycles/phase-3-tdd/session-checkpoints.md.
+
+## Phase 3→4 Gate (PENDING)
+
+Mandatory pre-Phase-4 checks before dispatching Holdout Evaluation:
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| (a) Input-drift check | PENDING | Run `bin/compute-input-hash --scan`; target corpus MATCH=48/STALE=0. F-W21-S079-HASH + F-W21-TOOL-001 require tool restore first (DF-INPUT-HASH-CANONICAL-001). |
+| (b) Fresh-context consistency audit | PENDING | Full consistency audit across Phase 3 deliverables (spec vs tests vs BCs); independent pass. |
+| (c) Human approval | PENDING | Orchestrator requests explicit human authorization to proceed to Phase 4. |
+
+Note: `dtu_required: false` — Phase 4 holdout evaluation runs against holdout scenarios directly,
+not DTU clones. No clone setup required before Phase 4.
 
 ## Wave Retrospectives
 

@@ -614,8 +614,12 @@ stories:
   # ---------------------------------------------------------------------------
 
   STORY-090:
-    status: in-progress
+    status: done
     wave: 27
     branch: null
     worktree: null
     blocked_by: [STORY-086, STORY-088, STORY-089]
+    pr: 170
+    merge_commit: 6158e6e
+    merged_date: "2026-05-31"
+    converged_date: "2026-05-31"

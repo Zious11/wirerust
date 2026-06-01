@@ -1260,3 +1260,103 @@ Per-story convergence: 6 passes — passes 1-3 live-mutation (skill), passes 4-6
 **Impact:** The distinction between skill-forked context (passes 1-3) and direct fresh-context dispatch (passes 4-6) matters for the "three consecutive clean passes" convergence criterion. True fresh-context passes provide stronger convergence evidence because the adversary cannot recall prior findings and must independently rediscover (or not discover) any remaining gaps.
 **Pattern:** For high-stakes convergence (especially final stories in an epic, or stories with HIGH findings in pass 1), prefer direct fresh-context agent dispatch for the final 3 clean passes rather than relying on skill-forked context.
 **Status:** [validated — fresh-context dispatch technique confirmed; applicable to STORY-090 and Phase 4]
+
+---
+
+## Wave 27 Lessons (2026-05-31) — FINAL Story; Phase 3 COMPLETE
+
+Story: STORY-090 (PR #170→6158e6e; E-9; 5pts; Summary Data Model — ingest, Service Hints,
+unique_hosts, Serialization; BC-2.12.018..021; library module `pub mod summary`). 18 direct
+unit/integration tests (13 AC + 5 EC). Brownfield-formalization, ZERO src changes.
+Convergence: 3 passes across 2 remediation rounds; 3-clean at pass 3. BC-5.39.001 ACHIEVED.
+Phase 3: 48/48 stories, 27/27 waves, ALL CLOSED/CONVERGED.
+
+### W27.L1 — Final Story of Phase 3; Library-Module + Direct Unit Tests Is the Right Pattern for summary.rs [validated]
+
+**Finding ID:** Wave 27 retrospective observation
+**Category:** testing-methodology / story-pattern
+**Observed:** STORY-090 is the final (48th) story of Phase 3, completing all 27 waves and
+all 10 epics (E-1 through E-10). The summary data model (`src/summary.rs`) is a library
+module exposed via `pub mod summary` — direct unit and integration tests were the correct
+testing approach (no assert_cmd subprocess overhead required). This contrasts with
+STORY-088/089 which correctly used assert_cmd for CLI entry-point behavior in `src/main.rs`.
+**Pattern confirmed:** Choose test style by the abstraction layer being exercised:
+library modules → direct unit/integration tests; CLI entry points → assert_cmd subprocess tests.
+**Status:** [validated — library-module vs CLI test-style distinction confirmed across W25/W26/W27]
+
+---
+
+### W27.L2 — Library-Module Stories (summary.rs) Converge on Direct Unit Tests; Cleaner Than assert_cmd for Non-CLI Modules [validated]
+
+**Finding ID:** Wave 27 retrospective observation (convergence cost comparison)
+**Category:** testing-methodology / module-type-routing
+**Observed:** STORY-090 (library module) converged in 3 passes with 18 direct unit tests.
+The test logic was immediately strong — all mutations killed from pass 1. This is notably
+cleaner than STORY-088 (6 passes) and STORY-089 (6 passes), which required assert_cmd
+subprocess infrastructure plus fixture management. The library-module context also avoided
+the assert_cmd build-time overhead per test invocation.
+**Pattern:** For pure library modules (`pub mod X` with no CLI binding), direct unit tests
+(`#[test]`) produce stronger mutation-resistance with less fixture overhead than subprocess
+tests. The convergence cost is lower because assertion granularity is higher.
+**Planning implication:** When decomposing future stories into waves, route library-module
+stories to direct-unit-test patterns explicitly. Avoid defaulting to assert_cmd unless the
+story BCs specifically cover CLI behavior (flag parsing, output routing, subprocess lifecycle).
+**Status:** [validated — direct-unit-test-for-library-module pattern confirmed; applicable to Phase 4 story planning]
+
+---
+
+### W27.L3 — KEY: Test LOGIC Can Be Perfect While Traceability/Anchoring Is Systematically Wrong; Two Remediation Rounds for BC-Mis-Anchoring + 3 Name Collisions Across summary_tests.rs AND reporter_tests.rs [CRITICAL LESSON]
+
+**Finding ID:** ADV-P01-S090-MED-001..003 (round 1); ADV-P02-S090-MED-001..002 (round 2)
+**Category:** traceability / anchoring / cross-suite-uniqueness
+**Observed:** STORY-090 required two remediation rounds before achieving a clean pass — but
+NOT because of test logic defects. The mutation matrix was killed in every round. The blockers
+were exclusively:
+- Round 1: BC mapping permuted (all 13 ACs anchored to wrong BC IDs); AC-003 + AC-004 names
+  collided with `tests/summary_tests.rs` (a different file in the same corpus).
+- Round 2: AC-012 name collided with `tests/reporter_tests.rs` (a THIRD file, not summary_tests.rs
+  — the round-1 sweep was too narrow). EC-003 was mis-anchored to BC-2.12.018 (ingest) when its
+  behavioral target was BC-2.12.021 (serialization).
+
+**Critical insight:** A story that is 100% behaviorally correct can still require multiple
+remediation rounds if traceability/anchoring is systematically wrong. The adversary correctly
+treats anchoring as a first-class defect because mis-anchored tests produce a false audit trail
+(the BC appears "covered" by tests that actually cover a different behavior).
+
+**Cross-suite collision scope lesson:** Round 1 caught summary_tests.rs collisions. Round 2 caught
+reporter_tests.rs collisions. The correct protocol — a corpus-wide sweep of ALL test files, not
+just the most obvious neighbor — would have caught both in round 1. The full sweep must include:
+`tests/summary_tests.rs`, `tests/reporter_tests.rs`, `tests/terminal_reporter_tests.rs`,
+`tests/csv_reporter_tests.rs`, `tests/main_story_08X_tests.rs`, etc.
+
+**Codification:** Per DF-AC-TEST-NAME-SYNC-001 v2, the cross-suite uniqueness sweep scope is
+the entire test corpus. This lesson extends that scope requirement to be explicitly corpus-wide
+(all test files, not just story-siblings). Consider a pre-PR cross-suite test-name uniqueness
+lint (see W27.L4 process-gap follow-up).
+**Status:** [CRITICAL LESSON — codified as extended cross-suite sweep requirement under
+DF-AC-TEST-NAME-SYNC-001 v2; process-gap follow-up filed as W27.PG-001]
+
+---
+
+### W27.L4 — Fresh-Context Adversary Dispatched Directly (Agent Tool) Gives Stronger Asymmetry Than Skill's Forked Passes; Consider Process-Gap for Pre-PR Cross-Suite Test-Name Uniqueness Lint [process-gap follow-up]
+
+**Finding ID:** Wave 27 convergence methodology + process-gap observation
+**Category:** adversarial-workflow / tooling-gap
+**Observed (methodology):** The final STORY-090 convergence pass was dispatched as a direct
+fresh-context agent invocation (not via the adversarial-review skill). This provides true
+adversarial independence because the agent has no retained memory of prior-pass findings
+and must independently evaluate the full test suite. This pattern was first confirmed in
+Wave 26 (W26.L4) and is now validated on the final story of Phase 3.
+**Pattern:** For the terminal convergence check on any story, direct fresh-context agent
+dispatch gives the strongest convergence evidence. Recommend making this the default for
+all stories' final 3-clean pass sequence, not just "high-stakes" cases.
+
+**Process-gap follow-up (W27.PG-001):** Both remediation rounds in STORY-090 were caused by
+cross-suite test-name collisions that could have been detected mechanically BEFORE the
+adversarial pass. A pre-PR lint step that greps all test function names across the corpus
+and reports collisions would eliminate this class of defect at zero adversarial cost.
+Proposed: add a `scripts/check-test-name-uniqueness.sh` that runs `grep -rh "^fn test_" tests/`
+and reports duplicates. This would have caught all 3 collisions in STORY-090 before PR dispatch.
+**Target:** Phase 4 entry or post-Phase-3 tooling sprint. Requires DF-VALIDATION-001
+research-agent validation before filing GitHub issue.
+**Status:** [process-gap — W27.PG-001; DF-VALIDATION-001 validation required before GitHub issue]
