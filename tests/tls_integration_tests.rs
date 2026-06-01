@@ -20,7 +20,7 @@ fn analyze_pcap(path: &str) -> TlsAnalyzer {
     reasm.finalize(&mut dispatcher);
 
     // Move the TLS analyzer out of the dispatcher
-    dispatcher.tls.unwrap()
+    dispatcher.take_tls_analyzer().unwrap()
 }
 
 #[test]

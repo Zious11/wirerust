@@ -48,8 +48,8 @@ pub struct StreamDispatcher {
     classification_attempts: HashMap<FlowKey, u32>,
     /// Hard cap on classification retries per flow. LESSON-P2.11.
     max_classification_attempts: u32,
-    pub http: Option<HttpAnalyzer>,
-    pub tls: Option<TlsAnalyzer>,
+    http: Option<HttpAnalyzer>,
+    tls: Option<TlsAnalyzer>,
     unclassified_flows: u64,
 }
 
@@ -84,6 +84,30 @@ impl StreamDispatcher {
     /// Returns the configured per-flow classification-retry cap.
     pub fn max_classification_attempts(&self) -> u32 {
         self.max_classification_attempts
+    }
+
+    /// Returns a reference to the HTTP analyzer, if one was configured.
+    pub fn http_analyzer(&self) -> Option<&HttpAnalyzer> {
+        self.http.as_ref()
+    }
+
+    /// Returns a reference to the TLS analyzer, if one was configured.
+    pub fn tls_analyzer(&self) -> Option<&TlsAnalyzer> {
+        self.tls.as_ref()
+    }
+
+    /// Moves the TLS analyzer out of the dispatcher, consuming the slot.
+    ///
+    /// Intended for callers that need ownership of the analyzer after
+    /// processing is complete (e.g., to collect results after the capture
+    /// loop finishes).
+    ///
+    /// After this call the internal slot is permanently `None`. Any subsequent
+    /// [`StreamHandler::on_data`] calls will no longer route data to the TLS
+    /// analyzer — there is no re-insertion path. Only call this once the
+    /// capture loop has finished.
+    pub fn take_tls_analyzer(&mut self) -> Option<TlsAnalyzer> {
+        self.tls.take()
     }
 }
 
