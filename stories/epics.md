@@ -320,6 +320,31 @@ non-overlapping. No BC appears in more than one epic row above.
 
 ---
 
+## Epic E-11: Tooling and Self-Improvement
+
+- **Goal:** Build and govern mechanical tooling that catches spec-drift proactively —
+  before adversarial passes surface it as findings — so the cost of each successive
+  adversarial cycle falls rather than holding flat. The first deliverable is an
+  anchor-validation CLI (`bin/validate-anchors`) that verifies every `src|tests|fuzz/
+  <path>.rs:NNN` citation in the spec corpus against the current source tree; the
+  second is a codified governance policy (ANCHOR-VALIDATION-001) requiring consistency
+  audits after any fix-burst that shifts code lines or renames functions.
+- **BCs:** _(none authored yet — status: draft; pending PO authorship)_
+- **Subsystems touched:** none (tooling-only; no production Rust subsystem)
+- **Estimated stories:** 1 (STORY-091)
+- **Dispositions:** PROCESS-GAP-P5-001 (S-7.02 cycle-close requirement)
+
+**Rationale:** Phase-5 adversarial refinement repeatedly surfaced source-line-anchor
+drift across four dimensions (BC source anchors, BC secondary anchors, consuming
+VP/invariant/supplement/entity docs, story bodies) — 83 stale citations corrected
+in one pass alone. Root cause: every sweep was reactive (triggered by an adversarial
+finding) rather than preventive. PROCESS-GAP-P5-001 requires a durable-fix
+disposition at cycle close (S-7.02). A dedicated tooling epic separates this
+self-improvement work from product epics and makes future tooling stories easy to
+group here.
+
+---
+
 ## Estimated Story Count Summary
 
 | Epic | Stories Est. |
@@ -334,4 +359,5 @@ non-overlapping. No BC appears in more than one epic row above.
 | E-8  | 5           |
 | E-9  | 5           |
 | E-10 | 1           |
-| **Total** | **48** |
+| E-11 | 1           |
+| **Total** | **49** |

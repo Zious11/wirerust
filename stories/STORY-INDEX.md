@@ -5,9 +5,9 @@ status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
-total_stories: 48
+total_stories: 49
 total_waves: 27
-total_points: 282
+total_points: 287
 traces_to:
   - .factory/stories/dependency-graph.md
   - .factory/stories/epics.md
@@ -75,6 +75,7 @@ traces_to:
 | STORY-089 | Decode Error Counting, Dispatcher Stats Injection, Format Resolution, and Output Routing | E-9 | 26 | 5 | completed | STORY-086, STORY-087, STORY-088 |
 | STORY-090 | Summary Data Model — ingest, Service Hints, unique_hosts, Serialization | E-9 | 27 | 5 | completed | STORY-086, STORY-088, STORY-089 |
 | STORY-096 | Absent Behavior Contracts — Removed Flags Rejected by clap | E-10 | 24 | 3 | completed | STORY-086 |
+| STORY-091 | Anchor-Validation Tooling — bin/validate-anchors | E-11 | ~ | 5 | draft | — |
 
 ---
 
@@ -127,7 +128,8 @@ traces_to:
 | E-8: Reporting and Output Formats | STORY-076, STORY-077, STORY-078, STORY-079, STORY-080 | 5 | 29 |
 | E-9: CLI, Entry Point, and Analysis Orchestration | STORY-086, STORY-087, STORY-088, STORY-089, STORY-090 | 5 | 28 |
 | E-10: Absent Behavior Contracts (Flag Rejection) | STORY-096 | 1 | 3 |
-| **TOTAL** | | **48** | **282** |
+| E-11: Tooling and Self-Improvement | STORY-091 | 1 | 5 |
+| **TOTAL** | | **49** | **287** |
 
 ---
 
@@ -165,9 +167,10 @@ traces_to:
 
 ## Coverage Verification
 
-- Total stories: **48** (matches dependency-graph.md `total_stories: 48`)
-- Total waves: **27** (matches dependency-graph.md `number_of_waves: 27`)
-- Total points: **282** (matches dependency-graph.md `Total story points: 282`)
-- Graph is acyclic: **Yes** (Kahn topological sort verified in dependency-graph.md)
-- All 10 epics covered: **Yes**
-- All 217 BCs assigned: **Yes** (per dependency-graph.md BC to Stories Matrix)
+- Total stories: **49** (48 product stories + 1 tooling story STORY-091)
+- Total waves: **27** (product stories; STORY-091 wave TBD — no product dependencies)
+- Total points: **287** (282 product + 5 tooling)
+- Graph is acyclic: **Yes** (Kahn topological sort verified in dependency-graph.md; STORY-091 has no depends_on, so it does not affect the existing sort)
+- All 10 product epics covered: **Yes**; E-11 (Tooling) added for STORY-091
+- All 217 BCs assigned: **Yes** (per dependency-graph.md BC to Stories Matrix; STORY-091 has no BCs yet — pending PO authorship)
+- PROCESS-GAP-P5-001 dispositioned: **Yes** — STORY-091 created as the S-7.02 cycle-close disposition
