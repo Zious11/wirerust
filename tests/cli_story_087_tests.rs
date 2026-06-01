@@ -386,22 +386,50 @@ mod story_087 {
     }
 
     // -----------------------------------------------------------------------
-    // EC-001 — --reassembly-depth 0 accepted
+    // EC-001 — --reassembly-depth 0 rejected (FIX-P5-002)
     // -----------------------------------------------------------------------
 
-    /// EC-001 (STORY-087 EC-001): `--reassembly-depth 0` is accepted (0 is a
-    /// valid value); `reassembly_depth = 0`.
-    ///
-    /// Discriminating assertions:
-    ///   Positive: parse returns Ok.
-    ///   Positive: reassembly_depth == 0.
-    ///   Negative: parse does NOT fail with a range error.
+    // STORY-087 EC-001 (revised FIX-P5-002, ADV-IMPL-P04-MED-001):
+    // --reassembly-depth 0 rejected with usage error.
+    //
+    // Before the fix, clap accepted 0 (no range validator). After the fix,
+    // `value_parser = clap::value_parser!(usize).range(1..)` rejects 0 with
+    // a ValueValidation error (clap exit code 2) instead of letting the
+    // process reach the assert!(max_depth > 0) in reassembly/mod.rs which
+    // panics with exit 101.
+    //
+    // RED: FAILS now because 0 is accepted (no range validator exists yet).
     #[test]
-    fn test_EC_001_reassembly_depth_zero_accepted() {
-        let cli = parse_ok(&["wirerust", "--reassembly-depth", "0", "summary", "x.pcap"]);
+    fn test_EC_001_reassembly_depth_zero_rejected() {
+        let err = parse_err(&["wirerust", "--reassembly-depth", "0", "summary", "x.pcap"]);
         assert_eq!(
-            cli.reassembly_depth, 0,
-            "--reassembly-depth 0 must be accepted and yield reassembly_depth = 0"
+            err.kind(),
+            ErrorKind::ValueValidation,
+            "--reassembly-depth 0 must produce ValueValidation error, got: {:?}",
+            err.kind()
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // EC-001b — --reassembly-memcap 0 rejected (FIX-P5-002)
+    // -----------------------------------------------------------------------
+
+    // STORY-087 EC-001 (memcap twin, FIX-P5-002, ADV-IMPL-P04-MED-001):
+    // --reassembly-memcap 0 rejected with usage error.
+    //
+    // Mirrors test_EC_001_reassembly_depth_zero_rejected for the sibling flag.
+    // After the fix, `value_parser = clap::value_parser!(usize).range(1..)`
+    // rejects 0 at parse time.
+    //
+    // RED: FAILS now because 0 is accepted (no range validator exists yet).
+    #[test]
+    fn test_EC_001_reassembly_memcap_zero_rejected() {
+        let err = parse_err(&["wirerust", "--reassembly-memcap", "0", "summary", "x.pcap"]);
+        assert_eq!(
+            err.kind(),
+            ErrorKind::ValueValidation,
+            "--reassembly-memcap 0 must produce ValueValidation error, got: {:?}",
+            err.kind()
         );
     }
 
@@ -511,6 +539,72 @@ mod story_087 {
             cli.out_of_window_threshold.is_none(),
             "out_of_window_threshold must be None"
         );
+    }
+
+    // -----------------------------------------------------------------------
+    // Integration tests (assert_cmd): 0 causes clap exit-2, NOT panic exit-101
+    // -----------------------------------------------------------------------
+
+    // FIX-P5-002, ADV-IMPL-P04-MED-001:
+    // `--reassembly-depth 0` on the `analyze` subcommand must be rejected at
+    // parse time (clap exit code 2, stderr contains an invalid-value message)
+    // and must NOT panic (exit 101) or succeed (exit 0).
+    //
+    // The fixture http-ooo.pcap contains TCP HTTP traffic; `--http` causes
+    // TCP reassembly to be exercised. Before the fix, depth=0 reaches
+    // `assert!(max_depth > 0)` in reassembly/mod.rs and panics with exit 101.
+    //
+    // RED: FAILS now — binary exits 101 (panic) instead of 2 (clap rejection).
+    #[test]
+    fn test_analyze_reassembly_depth_zero_exits_usage_error() {
+        use assert_cmd::Command;
+        use predicates::prelude::*;
+
+        const FIXTURE: &str = "tests/fixtures/http-ooo.pcap";
+
+        let assert = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["--reassembly-depth", "0", "analyze", FIXTURE, "--http"])
+            .assert();
+
+        // Must exit with clap's usage-error code (2), not success (0) or
+        // panic (101).
+        assert
+            .failure()
+            .code(2)
+            .stderr(
+                predicate::str::contains("invalid value")
+                    .or(predicate::str::contains("0 is not in")),
+            )
+            .stderr(predicate::str::contains("panicked").not());
+    }
+
+    // FIX-P5-002, ADV-IMPL-P04-MED-001:
+    // `--reassembly-memcap 0` mirror of the depth test above.
+    //
+    // RED: FAILS now — binary exits 101 (panic) instead of 2 (clap rejection).
+    #[test]
+    fn test_analyze_reassembly_memcap_zero_exits_usage_error() {
+        use assert_cmd::Command;
+        use predicates::prelude::*;
+
+        const FIXTURE: &str = "tests/fixtures/http-ooo.pcap";
+
+        let assert = Command::cargo_bin("wirerust")
+            .expect("binary built")
+            .args(["--reassembly-memcap", "0", "analyze", FIXTURE, "--http"])
+            .assert();
+
+        // Must exit with clap's usage-error code (2), not success (0) or
+        // panic (101).
+        assert
+            .failure()
+            .code(2)
+            .stderr(
+                predicate::str::contains("invalid value")
+                    .or(predicate::str::contains("0 is not in")),
+            )
+            .stderr(predicate::str::contains("panicked").not());
     }
 
     // -----------------------------------------------------------------------
