@@ -769,7 +769,7 @@ impl StreamAnalyzer for TlsAnalyzer {
 
         // Top SNIs (top 20 by count)
         let mut top_snis: Vec<_> = self.sni_counts.iter().collect();
-        top_snis.sort_by(|a, b| b.1.cmp(a.1));
+        top_snis.sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
         let top_snis: Vec<&str> = top_snis.iter().take(20).map(|(k, _)| k.as_str()).collect();
         detail.insert("top_snis".to_string(), serde_json::json!(top_snis));
 

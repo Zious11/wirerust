@@ -8808,3 +8808,142 @@ fn test_on_flow_close_absent_key_no_panic() {
          Fin for absent key — _reason is ignored by TlsAnalyzer"
     );
 }
+
+// ---------------------------------------------------------------------------
+// FIX-P5-003 / ADV-IMPL-P06-HIGH-001: top_snis tie-ordering determinism
+// ---------------------------------------------------------------------------
+//
+// Defect: `TlsAnalyzer::summarize()` builds `top_snis` by sorting
+// Vec<(&str, &u64)> with `sort_by(|a,b| b.1.cmp(a.1))` — count descending
+// only, no tiebreaker.  For equal counts the relative order (and the
+// selected set when >20 SNIs exist) depends on HashMap iteration order, which
+// is per-process-random.  The fix must add `.then_with(|| a.0.cmp(b.0))`.
+//
+// RED-GATE STRATEGY: Feed 25 ClientHello records (one SNI each) all at
+// count=1 (one handshake each), plus 2 higher-count anchors, inserted in
+// reverse-alphabetical order.  Assert alphabetically-first 18 tied SNIs
+// occupy slots [2..19].
+
+/// FIX-P5-003 / ADV-IMPL-P06-HIGH-001 — `top_snis` ties broken alphabetically.
+///
+/// Setup:
+///   - "aaa.anchor.example" → 10 handshakes (must be first)
+///   - "bbb.anchor.example" →  5 handshakes (must be second)
+///   - 25 "tied-ZZ.example" SNIs → 1 handshake each, submitted in
+///     reverse-alphabetical order.
+///
+/// Assertions:
+///   (a) top_snis[0] == "aaa.anchor.example"
+///   (b) top_snis[1] == "bbb.anchor.example"
+///   (c) top_snis[2..19] == alphabetically-first 18 of the 25 tied SNIs
+///   (d) alphabetically-last 7 tied SNIs are absent (cut by deterministic selection)
+#[test]
+fn test_summarize_top_snis_ties_broken_alphabetically() {
+    // Use a distinct flow key per handshake so each record is processed as a
+    // fresh ClientHello (the TLS analyzer marks a flow done after the first
+    // handshake, so reusing the same key would suppress subsequent SNIs).
+    fn fk(n: u16) -> FlowKey {
+        FlowKey::new(
+            format!("10.0.{}.{}", n / 256, n % 256)
+                .parse::<std::net::IpAddr>()
+                .unwrap(),
+            49200 + n,
+            "10.1.0.1".parse::<std::net::IpAddr>().unwrap(),
+            443,
+        )
+    }
+
+    let ciphers = &[0x1301u16, 0x1302];
+
+    // 25 tied SNIs, all count=1.  Labels: "tied-aa.example" through "tied-ay.example".
+    // Alphabetical: aa < ab < ... < ay.
+    let suffixes: Vec<String> = (0u8..25u8)
+        .map(|i| {
+            let first = b'a' + i / 26;
+            let second = b'a' + i % 26;
+            format!("{}{}", first as char, second as char)
+        })
+        .collect();
+
+    let mut analyzer = TlsAnalyzer::new();
+
+    // Insert tied SNIs in REVERSE alphabetical order (ay first, aa last) so
+    // the current no-tiebreaker sort is maximally likely to preserve a
+    // non-alphabetical order.
+    for (idx, suffix) in suffixes.iter().enumerate().rev() {
+        let sni = format!("tied-{suffix}.example");
+        let record = build_client_hello(&sni, ciphers);
+        // Each tied SNI gets its own flow key so the per-flow "done" guard
+        // doesn't suppress subsequent ClientHellos.
+        analyzer.on_data(&fk(idx as u16), Direction::ClientToServer, &record, 0);
+    }
+
+    // Anchor SNI "aaa.anchor.example" → 10 handshakes across 10 distinct flows.
+    for i in 0..10u16 {
+        let record = build_client_hello("aaa.anchor.example", ciphers);
+        analyzer.on_data(&fk(100 + i), Direction::ClientToServer, &record, 0);
+    }
+
+    // Anchor SNI "bbb.anchor.example" → 5 handshakes across 5 distinct flows.
+    for i in 0..5u16 {
+        let record = build_client_hello("bbb.anchor.example", ciphers);
+        analyzer.on_data(&fk(200 + i), Direction::ClientToServer, &record, 0);
+    }
+
+    let summary = analyzer.summarize();
+    let top_snis = summary.detail["top_snis"]
+        .as_array()
+        .expect("FIX-P5-003: top_snis must be a JSON array");
+
+    // (a) Truncated to 20 (27 distinct SNIs → 20).
+    assert_eq!(
+        top_snis.len(),
+        20,
+        "FIX-P5-003 (ADV-IMPL-P06-HIGH-001): top_snis must be truncated to 20 entries; \
+         got {}",
+        top_snis.len()
+    );
+
+    // (b) First slot: highest-count anchor.
+    assert_eq!(
+        top_snis[0].as_str().unwrap_or(""),
+        "aaa.anchor.example",
+        "FIX-P5-003: top_snis[0] must be 'aaa.anchor.example' (count=10)"
+    );
+
+    // (c) Second slot: second-highest-count anchor.
+    assert_eq!(
+        top_snis[1].as_str().unwrap_or(""),
+        "bbb.anchor.example",
+        "FIX-P5-003: top_snis[1] must be 'bbb.anchor.example' (count=5)"
+    );
+
+    // (d) Tied slots [2..19] must be the alphabetically-first 18 tied SNIs in order.
+    let expected_tied: Vec<String> = suffixes[..18]
+        .iter()
+        .map(|s| format!("tied-{s}.example"))
+        .collect();
+
+    let actual_tied: Vec<&str> = top_snis[2..]
+        .iter()
+        .map(|v| v.as_str().unwrap_or(""))
+        .collect();
+
+    assert_eq!(
+        actual_tied, expected_tied,
+        "FIX-P5-003 (ADV-IMPL-P06-HIGH-001): tied SNIs in slots [2..19] must be sorted \
+         alphabetically (tied-aa.example, tied-ab.example, ..., tied-ar.example); \
+         current code has no tiebreaker so HashMap iteration order determines the \
+         result — this assertion fails without `.then_with(|| a.0.cmp(b.0))`"
+    );
+
+    // (e) Alphabetically-last 7 tied SNIs must be absent.
+    for suffix in &suffixes[18..] {
+        let sni = format!("tied-{suffix}.example");
+        assert!(
+            !top_snis.iter().any(|v| v.as_str() == Some(sni.as_str())),
+            "FIX-P5-003: '{sni}' must NOT appear in top_snis — it falls outside the \
+             alphabetically-first 18 tied slots"
+        );
+    }
+}

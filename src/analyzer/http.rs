@@ -569,7 +569,7 @@ impl StreamAnalyzer for HttpAnalyzer {
         );
 
         let mut top_hosts: Vec<_> = self.hosts.iter().collect();
-        top_hosts.sort_by(|a, b| b.1.cmp(a.1));
+        top_hosts.sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
         let top_hosts: Vec<&str> = top_hosts.iter().take(20).map(|(k, _)| k.as_str()).collect();
         detail.insert("top_hosts".to_string(), serde_json::json!(top_hosts));
 
