@@ -38,7 +38,7 @@ codified in policies.yaml, externally blocked at a named gate, or closed with a 
 |----|------|----------|---------------|
 | W1.3/W2.5 **[RECURRING Waves 1-16]** | No pipeline gate advances story status draft/in-progress → completed on merge. Requires plugin-level fix (vsdd-factory story-writer template); not fixable in this repo. This session (F-DRIFT3B-001): 16 stories manually reconciled across Waves 3-13 (STORY-033 + 016/017/018/019/020/021/031/032/005/011/012/013/014/015/066/071). Root cause unfixed (upstream plugin). | P1 — ESCALATE-UPSTREAM | Blocked on upstream plugin; not actionable in this repo |
 | W7.1 | No public-API surface gate for `pub fn` additions. Candidate: `cargo public-api` CI job. Deferred: requires nightly + committed baseline, 2-PR setup. Documented in CLAUDE.md. | P2 — DEFERRED | Requires multi-PR setup; documented in CLAUDE.md; revisit at v0.1.0-release |
-| Phase-4-ENTRY | [deferred-review] Holdout scenarios HS-* must be semantically re-validated against Wave-18 reachability/arithmetic BC corrections (BC-2.07.002 EC-004 SSL2-ServerHello-rejection, BC-2.07.012 reachability, BC-2.07.029 arithmetic) at Phase-4 holdout-evaluation entry — confirm no scenario asserts pre-correction behavior. Non-blocking for Phase-3 wave close (zero src changes; observable behavior unchanged). | P2 — DEFERRED-PHASE-4-ENTRY | Gated on Phase-4 entry; non-blocking for Phase-3 |
+| Phase-4-ENTRY | [deferred-review] Holdout scenarios HS-* must be semantically re-validated against Wave-18 reachability/arithmetic BC corrections (BC-2.07.002 EC-004 SSL2-ServerHello-rejection, BC-2.07.012 reachability, BC-2.07.029 arithmetic) at Phase-4 holdout-evaluation entry — confirm no scenario asserts pre-correction behavior. Non-blocking for Phase-3 wave close (zero src changes; observable behavior unchanged). | P2 — **CLOSED 2026-06-01** | Consistency audit (cycles/phase-3-tdd/phase-4-entry-consistency-audit.md) confirmed all 100 HS scenarios CLEAR of pre-correction behavior; Phase-3→4 gate passed. |
 | F-S058-P13-O4 | [deferred-LOW] test_stop_after_handshake cross-story AC labels + STORY-058 FSR inclusion — pre-existing collision documented in STORY-058 v1.2. Target: wave-gate or Phase-5. | P3 — DEFERRED | Phase-gated; low severity; revisit at wave-gate or Phase-5 |
 
 ---
@@ -71,6 +71,20 @@ Items archived during the 2026-05-31 drift-remediation sweep.
 **Validated per:** DF-VALIDATION-001 (research-agent validation 2026-05-31; report: .factory/research/deferred-validation-2026-05-31/).
 **Archive reason:** Engine-side plugin cache; not fixable in this repo.
 
+---
+
+## Resolved Audit-Followup Items — Closed 2026-06-01
+
+### D-001 RESOLVED 2026-06-01
+
+D-001 (consistency-audit drift) RESOLVED — STORY-053 EC behavior corrected; fix commit f368f53 on develop. Confirmed resolved by Phase-3→4 consistency audit.
+
+### D-002 RESOLVED 2026-06-01
+
+D-002 (stale statuses + missing wave rows) RESOLVED — 6 story files (STORY-057/076/077/078/079/080) frontmatter status `draft` → `completed`; STORY-INDEX.md Index Table status corrected for same 6 stories; Wave Delivery Progress table backfilled for waves 3–22 (data sourced from wave-history.md). Resolved in this burst (Phase-3→4 gate).
+
+---
+
 ## Revisit Gates
 
 | Item | Gate | Notes |
@@ -79,6 +93,6 @@ Items archived during the 2026-05-31 drift-remediation sweep.
 | W9-D12 | Phase-5 (PO adjudication) | packets_dropped_capacity counter decision |
 | W1.3/W2.5 | Upstream plugin maintainer | Monitor vsdd-factory story-writer template for status-transition gate |
 | W7.1 | v0.1.0-release cycle | 2-PR setup: nightly baseline + CI step |
-| Phase-4-ENTRY | Phase-4 entry | HS-* semantic re-validation against W18 BC corrections |
+| Phase-4-ENTRY | **CLOSED 2026-06-01** | Confirmed CLEAR by Phase-3→4 consistency audit |
 | F-S058-P13-O4 | Wave-gate or Phase-5 | test_stop_after_handshake cross-story collision |
 | CLI-STORY-TEMPLATE | Upstream plugin maintainer | vsdd-factory CLI story template seeds wrong test filename; escalate to plugin maintainer |

@@ -58,17 +58,17 @@ traces_to:
 | STORY-054 | Cipher and Protocol Weakness Findings — Weak Ciphers, Deprecated SSL Versions, and Baseline Zero-Finding | E-5 | 18 | 8 | completed | STORY-052, STORY-053 |
 | STORY-055 | SNI Classification Arms 1 and 2 — Clean ASCII Baseline and C0/DEL Control-Byte Detection | E-5 | 17 | 8 | completed | STORY-052 |
 | STORY-056 | SNI Classification Arms 3 and 4 — Non-ASCII UTF-8 and Non-UTF-8 Byte Preservation | E-5 | 18 | 8 | completed | STORY-055 |
-| STORY-057 | SNI Edge Cases — Empty Lists, Empty Hostnames, Multi-Name, NameType, Trailing Bytes, Large SNI, and Count-Cap Decoupling | E-5 | 19 | 8 | draft | STORY-055, STORY-056 |
+| STORY-057 | SNI Edge Cases — Empty Lists, Empty Hostnames, Multi-Name, NameType, Trailing Bytes, Large SNI, and Count-Cap Decoupling | E-5 | 19 | 8 | completed | STORY-055, STORY-056 |
 | STORY-058 | Buffer Management, Record Parsing Infrastructure, Flow Lifecycle, and summarize Output | E-5 | 18 | 8 | completed | STORY-052, STORY-053 |
 | STORY-066 | DNS Traffic Statistics — Port-53 Dispatch, QR-Bit Counting, and Never-Emit Contract | E-6 | 4 | 5 | completed | STORY-005 |
 | STORY-069 | Finding Struct, Verdict/Confidence Display, and Finding Display Format | E-7 | 1 | 5 | completed | — |
 | STORY-070 | Raw-Data Contract and JSON Serialization Symmetry (skip_serializing_if) | E-7 | 2 | 5 | completed | STORY-069 |
 | STORY-071 | MITRE ATT&CK Mapping — Tactic Display, Catalog Lookup, all_tactics_in_report_order | E-7 | 3 | 8 | completed | STORY-069, STORY-070 |
-| STORY-076 | JsonReporter — Structure, skipped_packets, and RFC 8259 Byte Handling | E-8 | 20 | 5 | draft | STORY-046, STORY-057, STORY-058, STORY-066, STORY-071 |
-| STORY-077 | TerminalReporter — escape_for_terminal, skipped_packets, and End-to-End C1 Safety | E-8 | 21 | 8 | draft | STORY-076 |
-| STORY-078 | TerminalReporter — MITRE Grouping, Section Order, and Colorization | E-8 | 22 | 8 | draft | STORY-077 |
-| STORY-079 | CsvReporter — Fixed 9-Column Schema, CSV-Injection Neutralization, and Evidence Join | E-8 | 21 | 5 | draft | STORY-076 |
-| STORY-080 | CsvReporter — Reporter Trait Compliance and Optional Field Encoding | E-8 | 22 | 3 | draft | STORY-079 |
+| STORY-076 | JsonReporter — Structure, skipped_packets, and RFC 8259 Byte Handling | E-8 | 20 | 5 | completed | STORY-046, STORY-057, STORY-058, STORY-066, STORY-071 |
+| STORY-077 | TerminalReporter — escape_for_terminal, skipped_packets, and End-to-End C1 Safety | E-8 | 21 | 8 | completed | STORY-076 |
+| STORY-078 | TerminalReporter — MITRE Grouping, Section Order, and Colorization | E-8 | 22 | 8 | completed | STORY-077 |
+| STORY-079 | CsvReporter — Fixed 9-Column Schema, CSV-Injection Neutralization, and Evidence Join | E-8 | 21 | 5 | completed | STORY-076 |
+| STORY-080 | CsvReporter — Reporter Trait Compliance and Optional Field Encoding | E-8 | 22 | 3 | completed | STORY-079 |
 | STORY-086 | CLI Subcommand Parsing — analyze, summary, --no-color, Multiple Targets | E-9 | 23 | 5 | completed | STORY-080 |
 | STORY-087 | Output Format Flags and Reassembly Configuration Flags | E-9 | 24 | 5 | completed | STORY-086 |
 | STORY-088 | run_analyze Orchestration — Analyzer Enablement, Reassembly Logic, Target Expansion, Progress Bar | E-9 | 25 | 8 | completed | STORY-086, STORY-087 |
@@ -137,6 +137,26 @@ traces_to:
 |------|---------|--------|-----|---------------|------|
 | 1 | STORY-001, STORY-069 | **DELIVERED & CLOSED** | #106, #105 | b7424b7, 2840caf | 2026-05-22 |
 | 2 | STORY-002, STORY-003, STORY-004, STORY-070 | **DELIVERED & CLOSED** | #109, #110, #107, #108 | 34c592b, 3b2481c, 385e763, 8b514c00 | 2026-05-22 |
+| 3 | STORY-071, STORY-005 | **DELIVERED & CLOSED** | — | f0b5007 | 2026-05-22 |
+| 4 | STORY-011, STORY-066 | **DELIVERED & CLOSED** | — | f628c33 | 2026-05-22 |
+| 5 | STORY-012 | **DELIVERED & CLOSED** | — | bbddac6 | 2026-05-22 |
+| 6 | STORY-013 | **DELIVERED & CLOSED** | #119 | 3e705b5 | 2026-05-22 |
+| 7 | STORY-014 | **DELIVERED & CLOSED** | #120 | b23c6d3 | 2026-05-25 |
+| 8 | STORY-015, STORY-019 | **DELIVERED & CLOSED** | #122, #123 | 4b9b85f | 2026-05-26 |
+| 9 | STORY-016, STORY-020 | **DELIVERED & CLOSED** | #127, #128, #129, #130 | e237747 | 2026-05-26 |
+| 10 | STORY-017, STORY-018 | **DELIVERED & CLOSED** | #131, #132, #133 | 211143e | 2026-05-27 |
+| 11 | STORY-021 | **DELIVERED & CLOSED** | #134 | 3cd3000 | 2026-05-27 |
+| 12 | STORY-031 | **DELIVERED & CLOSED** | #135 | 1435362 | 2026-05-27 |
+| 13 | STORY-032 | **DELIVERED & CLOSED** | #136 | 0d9b16d | 2026-05-27 |
+| 14 | STORY-033 | **DELIVERED & CLOSED** | #137 | 30cd4a6 | 2026-05-28 |
+| 15 | STORY-041, STORY-051 | **DELIVERED & CLOSED** | #138, #139 | cb322dc, 945034d | 2026-05-28 |
+| 16 | STORY-042, STORY-043, STORY-044, STORY-052 | **DELIVERED & CLOSED** | #140, #141, #142, #143, #144, #145, #146 | fa17dec | 2026-05-29 |
+| 17 | STORY-045, STORY-053, STORY-055 | **DELIVERED & CLOSED** | #150, #149, #151 | 9633b0d | 2026-05-29 |
+| 18 | STORY-046, STORY-054, STORY-056, STORY-058 | **DELIVERED & CLOSED** | #152, #153, #154, #155 | 3f87ac3 | 2026-05-29 |
+| 19 | STORY-057 | **DELIVERED & CLOSED** | #156 | 616897e | 2026-05-29 |
+| 20 | STORY-076 | **DELIVERED & CLOSED** | #157 | e5cb2b1 | 2026-05-29 |
+| 21 | STORY-077, STORY-079 | **DELIVERED & CLOSED** | #158, #159 | 41ab24d | 2026-05-30 |
+| 22 | STORY-078, STORY-080 | **DELIVERED & CLOSED** | #160, #161, #162 | bf16c0b, 1ecf114, c127c1c | 2026-05-30 |
 | 23 | STORY-086 | **DELIVERED & CLOSED** | #163 | a42e14b | 2026-05-31 |
 | 24 | STORY-087, STORY-096 | **DELIVERED & CLOSED** | #164, #165 | c2445dc, 9954d44 | 2026-05-31 |
 | 25 | STORY-088 | **DELIVERED & CLOSED** | #168 | 5202fe9 | 2026-05-31 |

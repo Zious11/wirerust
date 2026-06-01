@@ -3,7 +3,7 @@ document_type: story
 story_id: "STORY-057"
 epic_id: "E-5"
 version: "1.0"
-status: draft
+status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
