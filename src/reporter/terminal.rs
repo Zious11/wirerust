@@ -123,7 +123,12 @@ impl Reporter for TerminalReporter {
 
         // Protocol breakdown
         out.push_str(&self.section("PROTOCOLS"));
-        for (proto, count) in summary.protocol_counts() {
+        let mut proto_vec: Vec<_> = summary.protocol_counts().iter().collect();
+        proto_vec.sort_by(|a, b| {
+            b.1.cmp(a.1)
+                .then_with(|| format!("{:?}", a.0).cmp(&format!("{:?}", b.0)))
+        });
+        for (proto, count) in &proto_vec {
             out.push_str(&format!("  {proto:?}: {count}\n"));
         }
         out.push('\n');
@@ -132,7 +137,9 @@ impl Reporter for TerminalReporter {
         let services = summary.service_counts();
         if !services.is_empty() {
             out.push_str(&self.section("SERVICES"));
-            for (svc, count) in services {
+            let mut svc_vec: Vec<_> = services.iter().collect();
+            svc_vec.sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
+            for (svc, count) in &svc_vec {
                 out.push_str(&format!("  {svc}: {count}\n"));
             }
             out.push('\n');
