@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.4: Wave 9 STORY-016 adv pass-2 F-6 (sibling-discipline regression of pass-1 F-2): flow.rs:171-176 → flow.rs:171-175 (line 176 is return expression, not part of debug_assert macro). Also added segment.rs line numbers to Traceability row (was bare 'reassembly/segment.rs') — 2026-05-26"
   - "v1.5: W9-D1 fix — PC4 extended to include DepthExceeded in the buffered_bytes-unchanged list. DepthExceeded returns at segment.rs:85 and :97, both before any buffer mutation; confirmed against segment.rs:79-104. — 2026-05-28"
   - "v1.6: F-DRIFT2A-001 — fixed stale domain/capabilities/cap-04-tcp-reassembly.md citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
+  - "v1.7: DF-SIBLING-SWEEP-001 HS-043 re-anchor: invariant prose mod.rs:339,527 → mod.rs:368,556 (total_memory tracking sites, shifted by idle-expiry insertion). — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -58,7 +59,7 @@ currently in the `segments` BTreeMap. After every insert, flush, or overlap oper
 2. The `debug_assert` at `flow.rs:171-175` fires in debug builds if the counter drifts.
 3. The `total_memory` at the engine level (`mod.rs`) mirrors `sum of buffered_bytes across
    all active flows`, maintained by adding `bytes_added` on insert and subtracting flush
-   bytes on flush (mod.rs:339, 527).
+   bytes on flush (mod.rs:368, 556).
 
 ## Edge Cases
 

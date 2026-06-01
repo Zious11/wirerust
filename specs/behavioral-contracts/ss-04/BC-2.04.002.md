@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 5 Ph3 per-story adversarial fix Min-1: synced Traceability anchor 186-190 → 187-190 to match the BC's own Architecture Anchors and STORY-012 v1.3 — author: product-owner — 2026-05-22"
+  - "v1.4: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:140-145 → mod.rs:142-147 (process_packet fn sig); mod.rs:187-190 → mod.rs:216-218 (extract_tcp_context packets_skipped_non_tcp block). HS-043 inserted 29 lines at process_packet entry. — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -87,7 +88,7 @@ increments only when the protocol check passes.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- this BC defines the boundary filter that restricts reassembly to TCP streams only |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:187-190, extract_tcp_context, C-6) |
+| Architecture Module | SS-04 (reassembly/mod.rs:216-218, extract_tcp_context, C-6) |
 | Stories | STORY-012 |
 | Origin BC | BC-RAS-002 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -98,14 +99,14 @@ increments only when the protocol check passes.
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:140-145` -- process_packet entry; packets_processed++, extract_tcp_context call
-- `src/reassembly/mod.rs:187-190` -- extract_tcp_context: packets_skipped_non_tcp++ for non-TCP
+- `src/reassembly/mod.rs:142-147` -- process_packet entry; packets_processed++, extract_tcp_context call
+- `src/reassembly/mod.rs:216-218` -- extract_tcp_context: packets_skipped_non_tcp++ for non-TCP
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:187-190` |
+| **Path** | `src/reassembly/mod.rs:216-218` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

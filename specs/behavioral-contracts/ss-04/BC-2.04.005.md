@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 6 Ph3 pass-1 re-run adversarial fix F-3: re-synced flow.rs anchors after fin_count() accessor insertion shifted state-machine methods +7 lines; verified mod.rs anchors — product-owner 2026-05-22"
+  - "v1.4: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:265-271 → mod.rs:295-300 (SYN+ACK block in apply_handshake_flags). — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -91,7 +92,7 @@ as ready to accept data segments.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- SYN+ACK handling completes the handshake model and enables bidirectional data reassembly |
 | L2 Domain Invariants | INV-1 (FlowKey canonical ordering -- initiator identity set here) |
-| Architecture Module | SS-04 (reassembly/mod.rs:265-271, apply_handshake_flags; flow.rs:242-246) |
+| Architecture Module | SS-04 (reassembly/mod.rs:295-300, apply_handshake_flags; flow.rs:242-246) |
 | Stories | STORY-013 |
 | Origin BC | BC-RAS-005 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -103,14 +104,14 @@ as ready to accept data segments.
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:265-271` -- SYN+ACK block in apply_handshake_flags
+- `src/reassembly/mod.rs:295-300` -- SYN+ACK block in apply_handshake_flags
 - `src/reassembly/flow.rs:242-246` -- on_syn_ack() state transition
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:265-271` |
+| **Path** | `src/reassembly/mod.rs:295-300` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

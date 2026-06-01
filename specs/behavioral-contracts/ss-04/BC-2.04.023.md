@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:383-385 → mod.rs:412-414 (Truncated match arm). — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -91,7 +92,7 @@ delivered (truncated) to the handler; the `depth_exceeded` flag is set on the di
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- depth truncation signaling is part of the bounded-resource forensic contract |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap) |
-| Architecture Module | SS-04 (reassembly/lifecycle.rs:120-136, generate_truncated_finding; mod.rs:383-385, Truncated match arm) |
+| Architecture Module | SS-04 (reassembly/lifecycle.rs:120-136, generate_truncated_finding; mod.rs:412-414, Truncated match arm) |
 | Stories | STORY-018 |
 | Origin BC | BC-RAS-023 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -103,7 +104,7 @@ delivered (truncated) to the handler; the `depth_exceeded` flag is set on the di
 ## Architecture Anchors
 
 - `src/reassembly/lifecycle.rs:120-136` -- generate_truncated_finding
-- `src/reassembly/mod.rs:383-385` -- Truncated match arm: segments_inserted++, generate_truncated_finding
+- `src/reassembly/mod.rs:412-414` -- Truncated match arm: segments_inserted++, generate_truncated_finding
 
 ## Source Evidence
 

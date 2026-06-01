@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: 2026-05-26 | product-owner | Wave 10 STORY-017 pass-1 F-004 (anchor overshoot, DF-SIBLING-SWEEP-001): generate_conflicting_overlap_finding anchor lifecycle.rs:96-120 → :96-116 (closing brace at 116; lines 117-120 are blank + start of next function doc-comment). All 3 occurrences updated."
+  - "v1.4: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:372-405 → mod.rs:401-434 (InsertResult match block); mod.rs:379-382 → mod.rs:408-411 (ConflictingOverlap arm). — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -96,7 +97,7 @@ such as segment-splicing and IDS bypass attempts.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- conflicting overlap detection is the forensic core of TCP stream reassembly anomaly detection |
 | L2 Domain Invariants | INV-3 (First-wins overlap policy), INV-6 (MAX_FINDINGS cap) |
-| Architecture Module | SS-04 (reassembly/mod.rs:372-405, C-6; reassembly/lifecycle.rs:96-116, C-15; reassembly/segment.rs, C-8) |
+| Architecture Module | SS-04 (reassembly/mod.rs:401-434, C-6; reassembly/lifecycle.rs:96-116, C-15; reassembly/segment.rs, C-8) |
 | Stories | STORY-017 |
 | Origin BC | BC-RAS-018 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -109,7 +110,7 @@ such as segment-splicing and IDS bypass attempts.
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:372-405` -- InsertResult match block; ConflictingOverlap arm at line 379-382 calls generate_conflicting_overlap_finding
+- `src/reassembly/mod.rs:401-434` -- InsertResult match block; ConflictingOverlap arm at line 408-411 calls generate_conflicting_overlap_finding
 - `src/reassembly/lifecycle.rs:96-116` -- generate_conflicting_overlap_finding: emits Finding(Anomaly/Likely/High, T1036) subject to MAX_FINDINGS cap
 - `src/reassembly/segment.rs` -- insert_segment returning ConflictingOverlap
 - `tests/reassembly_engine_tests.rs` -- test_conflicting_overlap_finding
@@ -118,7 +119,7 @@ such as segment-splicing and IDS bypass attempts.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:379-382` (ConflictingOverlap arm), `src/reassembly/lifecycle.rs:96-116` (finding emission) |
+| **Path** | `src/reassembly/mod.rs:408-411` (ConflictingOverlap arm), `src/reassembly/lifecycle.rs:96-116` (finding emission) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

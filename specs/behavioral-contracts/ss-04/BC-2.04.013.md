@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: Wave 8 wave-level adv-pass-1 F-1 HIGH closure (S-7.01 sibling-BC propagation, W7.2 recurrence #5): PC3 enforcement-mode notation — \"remaining buffered data flushed in close_flow\" is structurally a defense-in-depth invariant (per-packet flush at mod.rs:162 drains buffer pre-close); enforced via code-review of close_flow flush loop body at lifecycle.rs:52-59; on_flow_close(Timeout) invocation and stats.flows_expired increment are automated-test-verifiable via STORY-019 AC-009/010/011/012. Mirrors BC-2.04.010 v1.5 PC2 + BC-2.04.029 v1.4 + ADR-0004 amendment precedent. — 2026-05-26"
   - "v1.4: Wave 8 wave-level adv-pass-2 F-1 MEDIUM closure (S-7.01 sibling-discipline): added PC5 documenting the force_set_flow_state_for_testing test seam (lifecycle.rs:232-244) — required by STORY-019 AC-012 to discriminate the Closed-state OR-branch of expire_flows (invariant 2). Mirrors BC-2.04.029 v1.4 PC7 pattern; authorized under ADR-0004 Amendment 2 state-injection seam class. — 2026-05-26"
   - "v1.5: Phase-4 HS-043 scope decision: added PC0 (caller obligation) explicitly requiring expire_flows to be invoked from the production per-packet processing path with the packet timestamp — closes the 'tested directly but never called in production' wiring gap identified in holdout-finding-triage-2026-06-01.md. Direct test-only invocations do not satisfy the production wiring requirement. — 2026-06-01"
+  - "v1.6: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:536-552 → mod.rs:593-609 (expire_flows public fn); mod.rs:162 → mod.rs:191 (flush_contiguous_data call in process_packet, cited in PC3 enforcement note). — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -60,7 +61,7 @@ during real captures. This requirement is the basis of the capability-anchor mem
 2. `stats.flows_expired` increments by the number of flows expired.
 3. Each expired flow's remaining buffered data is flushed and `on_flow_close(Timeout)` is
    called. (Enforcement: in the current engine architecture, the per-packet flush at
-   `src/reassembly/mod.rs:162` already delivers all contiguous-prefix data BEFORE
+   `src/reassembly/mod.rs:191` already delivers all contiguous-prefix data BEFORE
    `expire_flows` invokes `close_flow`. The `flush_contiguous` loop at
    `src/reassembly/lifecycle.rs:52-59` inside `close_flow` is therefore structurally a
    defense-in-depth invariant — cannot be triggered to deliver under current engine semantics.
@@ -113,7 +114,7 @@ during real captures. This requirement is the basis of the capability-anchor mem
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- idle flow expiry is required to bound memory use in long-running captures |
 | L2 Domain Invariants | None directly |
-| Architecture Module | SS-04 (reassembly/mod.rs:536-552, expire_flows) |
+| Architecture Module | SS-04 (reassembly/mod.rs:593-609, expire_flows) |
 | Stories | STORY-019 |
 | Origin BC | BC-RAS-013 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -125,13 +126,13 @@ during real captures. This requirement is the basis of the capability-anchor mem
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:536-552` -- expire_flows: filter + close loop
+- `src/reassembly/mod.rs:593-609` -- expire_flows: filter + close loop
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:536-552` |
+| **Path** | `src/reassembly/mod.rs:593-609` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

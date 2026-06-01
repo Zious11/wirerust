@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 6 Ph3 pass-1 re-run adversarial fix F-3: re-synced flow.rs anchors after fin_count() accessor insertion shifted state-machine methods +7 lines; verified mod.rs anchors — product-owner 2026-05-22"
+  - "v1.4: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:273-279 → mod.rs:303-308 (RST block in apply_handshake_flags). — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -86,7 +87,7 @@ no guard: a RST from `New`, `SynSent`, `Established`, `Closing`, or `Closed` all
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- RST handling is a critical TCP lifecycle event in the reassembly engine |
 | L2 Domain Invariants | INV-7 (Finalize-once latch -- RST is one of the paths that triggers close_flow, which is also called by finalize) |
-| Architecture Module | SS-04 (reassembly/flow.rs:264-266, C-7; reassembly/mod.rs:273-279, C-6) |
+| Architecture Module | SS-04 (reassembly/flow.rs:264-266, C-7; reassembly/mod.rs:303-308, C-6) |
 | Stories | STORY-013 |
 | Origin BC | BC-RAS-051 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -98,7 +99,7 @@ no guard: a RST from `New`, `SynSent`, `Established`, `Closing`, or `Closed` all
 ## Architecture Anchors
 
 - `src/reassembly/flow.rs:264-266` -- on_rst() implementation
-- `src/reassembly/mod.rs:273-279` -- engine RST handling calling on_rst and close_flow
+- `src/reassembly/mod.rs:303-308` -- engine RST handling calling on_rst and close_flow
 
 ## Source Evidence
 

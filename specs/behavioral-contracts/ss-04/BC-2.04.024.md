@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: guard check sites mod.rs:432,466,495 → mod.rs:461,495,524 (check_anomaly_thresholds guards). — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -85,7 +86,7 @@ Only the reassembly engine enforces MAX_FINDINGS.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- MAX_FINDINGS cap is the primary resource-bounding mechanism for the reassembly engine |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap with cap-bypass for finalize) |
-| Architecture Module | SS-04 (reassembly/mod.rs:54,432,466,495, C-6; reassembly/lifecycle.rs:101,121, C-15) |
+| Architecture Module | SS-04 (reassembly/mod.rs:54,461,495,524, C-6; reassembly/lifecycle.rs:101,121, C-15) |
 | Stories | STORY-021 |
 | Origin BC | BC-RAS-024 (pass-3 ingestion corpus, MEDIUM confidence -- not directly tested) |
 
@@ -97,7 +98,7 @@ Only the reassembly engine enforces MAX_FINDINGS.
 ## Architecture Anchors
 
 - `src/reassembly/mod.rs:54` -- `const MAX_FINDINGS: usize = 10_000`
-- `src/reassembly/mod.rs:432,466,495` -- guard check sites in check_anomaly_thresholds
+- `src/reassembly/mod.rs:461,495,524` -- guard check sites in check_anomaly_thresholds
 - `src/reassembly/lifecycle.rs:101,121` -- guard check sites in generate_conflicting_overlap_finding and generate_truncated_finding
 - `src/reassembly/stats.rs` -- dropped_findings: u64 field
 
@@ -105,13 +106,13 @@ Only the reassembly engine enforces MAX_FINDINGS.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:54` (const), `mod.rs:432,466,495` (check_anomaly_thresholds guards), `lifecycle.rs:101,121` (generate_* guards) |
+| **Path** | `src/reassembly/mod.rs:54` (const), `mod.rs:461,495,524` (check_anomaly_thresholds guards), `lifecycle.rs:101,121` (generate_* guards) |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-19 |
 
 ## Evidence Types Used
 
-- **guard clause**: two guard forms across 5 sites -- (a) inverted early-return form `if self.findings.len() >= MAX_FINDINGS { self.stats.dropped_findings += 1; return; }` at `lifecycle.rs:101` and `lifecycle.rs:121`; (b) positive conditional form `if self.findings.len() < MAX_FINDINGS { self.findings.push(...); } else { self.stats.dropped_findings += 1; }` at `mod.rs:432`, `mod.rs:466`, and `mod.rs:495`
+- **guard clause**: two guard forms across 5 sites -- (a) inverted early-return form `if self.findings.len() >= MAX_FINDINGS { self.stats.dropped_findings += 1; return; }` at `lifecycle.rs:101` and `lifecycle.rs:121`; (b) positive conditional form `if self.findings.len() < MAX_FINDINGS { self.findings.push(...); } else { self.stats.dropped_findings += 1; }` at `mod.rs:461`, `mod.rs:495`, and `mod.rs:524`
 
 ## Purity Classification
 

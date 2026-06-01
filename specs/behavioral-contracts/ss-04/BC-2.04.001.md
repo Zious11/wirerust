@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:107-127 → mod.rs:114-135 (HS-043 idle-expiry wiring inserted 29 lines at process_packet entry, shifting new() block down). — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -96,7 +97,7 @@ policy. Valid configs always produce a zero-finding, zero-flow, un-finalized ins
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- constructor validation is the entry invariant for the reassembly engine |
 | L2 Domain Invariants | None directly (pre-invariant guard) |
-| Architecture Module | SS-04 (reassembly/mod.rs:107-127, C-6) |
+| Architecture Module | SS-04 (reassembly/mod.rs:114-135, C-6) |
 | Stories | STORY-011 |
 | Origin BC | BC-RAS-001 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -108,14 +109,14 @@ policy. Valid configs always produce a zero-finding, zero-flow, un-finalized ins
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:107-127` -- five assert! calls in TcpReassembler::new
+- `src/reassembly/mod.rs:114-135` -- five assert! calls in TcpReassembler::new
 - `src/reassembly/config.rs` -- ReassemblyConfig field definitions
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:107-127` |
+| **Path** | `src/reassembly/mod.rs:114-135` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 6 Ph3 pass-1 re-run adversarial fix F-3: re-synced flow.rs anchors after fin_count() accessor insertion shifted state-machine methods +7 lines; verified mod.rs anchors — product-owner 2026-05-22"
+  - "v1.4: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:257-263 → mod.rs:287-292 (SYN block in apply_handshake_flags; HS-043 inserted 29 lines at process_packet entry). — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -88,7 +89,7 @@ standard TCP three-way handshake and establishes the canonical direction tagging
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- handshake tracking is foundational to correct directional reassembly |
 | L2 Domain Invariants | INV-1 (FlowKey canonical ordering -- direction tagging depends on initiator identity) |
-| Architecture Module | SS-04 (reassembly/mod.rs:257-263, apply_handshake_flags; flow.rs:208-212) |
+| Architecture Module | SS-04 (reassembly/mod.rs:287-292, apply_handshake_flags; flow.rs:208-212) |
 | Stories | STORY-013 |
 | Origin BC | BC-RAS-004 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -101,7 +102,7 @@ standard TCP three-way handshake and establishes the canonical direction tagging
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:257-263` -- apply_handshake_flags SYN block
+- `src/reassembly/mod.rs:287-292` -- apply_handshake_flags SYN block
 - `src/reassembly/flow.rs:208-212` -- set_initiator (idempotent)
 - `src/reassembly/flow.rs:136-140` -- set_isn (idempotent; base_offset = 1)
 - `src/reassembly/flow.rs:236-240` -- on_syn() state transition
@@ -110,7 +111,7 @@ standard TCP three-way handshake and establishes the canonical direction tagging
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:257-263` |
+| **Path** | `src/reassembly/mod.rs:287-292` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

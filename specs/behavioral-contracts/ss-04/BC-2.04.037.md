@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:379-381 → mod.rs:408-410 (ConflictingOverlap engine match arm). — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -56,7 +57,7 @@ in `mod.rs` then emits an `Anomaly/Likely/High` finding tagged T1036.
    buffered bytes are authoritative.
 2. `ConflictingOverlap` is distinct from `Duplicate` (same range, same bytes) and
    `PartialOverlap` (partial coverage with some new bytes).
-3. The T1036 finding is emitted by the engine match arm (lifecycle.rs via mod.rs:379-381),
+3. The T1036 finding is emitted by the engine match arm (lifecycle.rs via mod.rs:408-410),
    not inside `insert_segment` itself. `insert_segment` only classifies the result.
 
 ## Edge Cases
@@ -104,7 +105,7 @@ in `mod.rs` then emits an `Anomaly/Likely/High` finding tagged T1036.
 ## Architecture Anchors
 
 - `src/reassembly/segment.rs:142-154` -- fully_covered + has_conflict gate for ConflictingOverlap/Duplicate return
-- `src/reassembly/mod.rs:379-381` -- engine match arm calling generate_conflicting_overlap_finding
+- `src/reassembly/mod.rs:408-410` -- engine match arm calling generate_conflicting_overlap_finding
 
 ## Source Evidence
 

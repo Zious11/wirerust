@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:517-533 → mod.rs:546-562 (flush_contiguous_data fn definition). — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -89,7 +90,7 @@ segment. Each contiguous chunk is delivered to the handler as a separate `on_dat
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- contiguous delivery is the defining contract of stream reassembly |
 | L2 Domain Invariants | None directly (base_offset monotonicity is a derived invariant) |
-| Architecture Module | SS-04 (reassembly/segment.rs:236-248, flush_contiguous; mod.rs:517-533) |
+| Architecture Module | SS-04 (reassembly/segment.rs:236-248, flush_contiguous; mod.rs:546-562) |
 | Stories | STORY-015 |
 | Origin BC | BC-RAS-007 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -102,7 +103,7 @@ segment. Each contiguous chunk is delivered to the handler as a separate `on_dat
 ## Architecture Anchors
 
 - `src/reassembly/segment.rs:236-248` -- FlowDirection::flush_contiguous implementation
-- `src/reassembly/mod.rs:517-533` -- flush_contiguous_data: calls flush, dispatches on_data
+- `src/reassembly/mod.rs:546-562` -- flush_contiguous_data: calls flush, dispatches on_data
 
 ## Source Evidence
 

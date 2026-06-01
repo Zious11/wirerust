@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:620-658 → mod.rs:706-744 (summarize fn); LESSON-P2.09 doc comment at mod.rs:618 → mod.rs:703. — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -105,7 +106,7 @@ JSON output across runs.
 | L2 Capability | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md |
 | Capability Anchor Justification | CAP-04 ("TCP stream reassembly") per domain/capabilities/cap-04-tcp-reassembly.md -- summarize() is the observability surface for the TCP reassembly engine's operational statistics |
 | L2 Domain Invariants | INV-6 (MAX_FINDINGS cap -- dropped_findings key makes cap observable) |
-| Architecture Module | SS-04 (reassembly/mod.rs:620-658, C-6) |
+| Architecture Module | SS-04 (reassembly/mod.rs:706-744, C-6) |
 | Stories | STORY-012 |
 | Origin BC | BC-RAS-028 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -117,14 +118,14 @@ JSON output across runs.
 
 ## Architecture Anchors
 
-- `src/reassembly/mod.rs:620-658` -- summarize() implementation
+- `src/reassembly/mod.rs:706-744` -- summarize() implementation
 - `src/reassembly/stats.rs` -- ReassemblyStats fields (source of all counters)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reassembly/mod.rs:620-658` |
+| **Path** | `src/reassembly/mod.rs:706-744` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
@@ -132,7 +133,7 @@ JSON output across runs.
 
 - **assertion**: test_summarize_returns_reassembly_stats (reassembly_engine_tests) verifies presence of stat fields
 - **type constraint**: BTreeMap<String, serde_json::Value> return type enforces key-value contract
-- **documentation**: LESSON-P2.09 doc comment at mod.rs:618 explains BTreeMap ordering rationale
+- **documentation**: LESSON-P2.09 doc comment at mod.rs:703 explains BTreeMap ordering rationale
 
 ## Purity Classification
 
