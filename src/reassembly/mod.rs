@@ -101,6 +101,13 @@ pub struct TcpReassembler {
     findings: Vec<Finding>,
     total_memory: usize,
     finalized: bool,
+    /// Last timestamp at which an expiry sweep was performed.
+    ///
+    /// `expire_flows` is called from `process_packet` only when `timestamp`
+    /// has advanced past this value, limiting the O(n) sweep to at most once
+    /// per unique second of stream time while ensuring no idle flow escapes
+    /// expiry for longer than one sweep period (BC-2.04.013 v1.5 PC0).
+    last_expiry_sweep_secs: u32,
 }
 
 impl TcpReassembler {
@@ -123,6 +130,7 @@ impl TcpReassembler {
             findings: Vec::new(),
             total_memory: 0,
             finalized: false,
+            last_expiry_sweep_secs: 0,
         }
     }
 
@@ -138,6 +146,27 @@ impl TcpReassembler {
         handler: &mut dyn StreamHandler,
     ) {
         self.stats.packets_processed += 1;
+
+        // BC-2.04.013 v1.5 PC0 — idle-flow expiry wiring.
+        //
+        // Sweep whenever stream time advances past the last sweep timestamp.
+        // This limits the O(n) scan to at most once per unique second of
+        // capture time (effectively once per second of real traffic), while
+        // guaranteeing that a flow idle for exactly (timeout + 1) seconds is
+        // caught by the next packet that arrives at any later timestamp.
+        //
+        // Uses expire_idle_by_timeout (time-based only) rather than the public
+        // expire_flows (which also removes FlowState::Closed flows). process_packet
+        // already handles Closed-state removal inline after FIN processing, so the
+        // hot-path sweep must not also trigger the Closed-state branch of expire_flows
+        // — doing so would prematurely remove flows that are Closed only because of
+        // test seams or FIN-partial paths, breaking the eviction-order invariant
+        // (BC-2.04.017). expire_flows remains correct as a direct-call API for
+        // scenarios that need both cleanup modes (e.g. offline tools, tests).
+        if timestamp > self.last_expiry_sweep_secs {
+            self.last_expiry_sweep_secs = timestamp;
+            self.expire_idle_by_timeout(timestamp, handler);
+        }
 
         // Skip non-TCP packets; extract TCP fields; build the flow key.
         let Some((key, tcp)) = self.extract_tcp_context(packet) else {
@@ -529,6 +558,34 @@ impl TcpReassembler {
         for (offset, data) in &flushed {
             self.stats.bytes_reassembled += data.len() as u64;
             handler.on_data(key, dir, data, *offset);
+        }
+    }
+
+    /// Expire flows that have been idle longer than the configured timeout,
+    /// using only the time-based condition (strict greater-than).
+    ///
+    /// This is the hot-path variant called from [`Self::process_packet`]. It
+    /// deliberately omits the `FlowState::Closed` OR-clause that the public
+    /// [`Self::expire_flows`] includes, because `process_packet` already handles
+    /// `Closed`-state removal inline after FIN processing. Applying the Closed
+    /// clause here would prematurely remove flows that are Closed only via test
+    /// seams or FIN-partial paths, violating the eviction-order invariant
+    /// (BC-2.04.017). The public `expire_flows` retains both clauses for
+    /// direct-call use cases (offline tools, manual lifecycle management).
+    fn expire_idle_by_timeout(&mut self, current_time: u32, handler: &mut dyn StreamHandler) {
+        let timeout = self.config.flow_timeout_secs;
+        let expired_keys: Vec<FlowKey> = self
+            .flows
+            .iter()
+            .filter(|(_, flow)| {
+                current_time > flow.last_seen && (current_time - flow.last_seen) > timeout
+            })
+            .map(|(key, _)| key.clone())
+            .collect();
+
+        for key in expired_keys {
+            self.stats.flows_expired += 1;
+            self.close_flow(&key, CloseReason::Timeout, handler);
         }
     }
 
