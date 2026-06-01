@@ -144,3 +144,38 @@ Wave 3 status: STORY-071 done; STORY-005 in demo/PR stage. Wave-level adversaria
 **Develop HEAD:** 991e821 (was 5d4c2c6). 7 stories merged total (STORY-001/069/002/003/004/070/071).
 
 ---
+
+## Burst P5-1 (2026-06-01) — Phase-5 whole-impl Pass 1 Remediation (ADV-IMPL-P01-MED-001)
+
+**Agents dispatched:** adversary (whole-impl Pass 1), state-manager (BC re-anchor sweep + STATE.md + burst-log)
+**Files touched:** 32 BC files in .factory/specs/behavioral-contracts/ss-04/ (source-line anchors updated); STATE.md (Phase 5 row, session checkpoint, drift items); cycles/v0.1.0-greenfield-spec/burst-log.md (this entry)
+**Factory-artifacts commit:** 2b33284 — "fix(specs): re-anchor SS-04 BCs after HS-043 shifts (ADV-IMPL-P01-MED-001, DF-SIBLING-SWEEP-001)"
+
+### Summary
+
+Whole-implementation adversarial Pass 1 returned NOT_CONVERGED: 0 CRIT / 0 HIGH / 1 MED / 2 LOW. MED finding ADV-IMPL-P01-MED-001: 32 SS-04 BCs had stale source-line anchors for src/reassembly/mod.rs after HS-043 merges (PR #171 + #172) shifted code. No semantic/PC/invariant changes. Re-anchor sweep performed; all 32 BCs updated and committed (2b33284). Both LOW findings accepted (LOW-001: findings.rs stale doc-comment, same class as O-08; LOW-002: folded into sweep). CLEAN-PASS COUNTER = 0.
+
+Root cause: HS-043 was dispatched without a mandatory SS-04 sibling re-sweep step (DF-SIBLING-SWEEP-001). Process gap raised as PROCESS-GAP-P5-001; requires self-improvement story or justified deferral before Phase-5 cycle close.
+
+**Develop HEAD:** e0451ef (unchanged — no source code modified).
+
+---
+
+## Burst P5-2 (2026-06-01) — Phase-5 whole-impl Pass 2 Remediation (ADV-IMPL-P02-MED-001)
+
+**Agents dispatched:** adversary (whole-impl Pass 2), state-manager (BC re-anchor + STATE.md + burst-log)
+**Files touched:** specs/behavioral-contracts/ss-04/BC-2.04.052.md (v1.3→v1.4: 2 anchors — traceability row + Architecture Anchors section, mod.rs:306-312 → mod.rs:335-341); specs/behavioral-contracts/ss-04/BC-2.04.032.md (v1.2→v1.3: 1 prose anchor in Invariants, mod.rs:306-319 → mod.rs:335-349); STATE.md (Phase 5 row, session checkpoint, drift items, PROCESS-GAP-P5-001); cycles/v0.1.0-greenfield-spec/burst-log.md (this entry)
+**Factory-artifacts commit:** aa6d73b — "fix(specs): re-anchor residual SS-04 anchors BC-2.04.052/.032 (ADV-IMPL-P02-MED-001, DF-SIBLING-SWEEP-001)"
+
+### Summary
+
+Whole-implementation adversarial Pass 2 returned NOT_CONVERGED: 0 CRIT / 0 HIGH / 1 MED. MED finding ADV-IMPL-P02-MED-001: residual SS-04 anchor drift missed by the v1.6 sweep — 51/52 SS-04 anchors were verified correct; the one remaining gap was BC-2.04.052 (2 stale anchor strings: traceability row + Architecture Anchors) and BC-2.04.032 (1 stale prose anchor in Invariants). All security surfaces (TLS, DNS, HTTP, MITRE, anomaly detection) reviewed and found robust. No semantic/PC/inv changes. Two BC files re-anchored and committed (aa6d73b). CLEAN-PASS COUNTER = 0.
+
+Defensive sweep confirmed: no other live spec sections contain mod.rs:306 references. Remaining mod.rs:306 strings in the two BC files are intentional changelog entries (immutable audit trail).
+
+Recurring root cause: both Pass-1 and Pass-2 findings trace to the same HS-043 mod.rs line insertion — PROCESS-GAP-P5-001 (DF-SIBLING-SWEEP-001 enforcement gap on cross-cutting reassembly merges) remains OPEN and reinforced by this recurrence.
+
+**Develop HEAD:** e0451ef (unchanged — no source code modified).
+**CLEAN-PASS COUNTER:** 0. Next action: whole-impl adversarial Pass 3 (fresh context).
+
+---
