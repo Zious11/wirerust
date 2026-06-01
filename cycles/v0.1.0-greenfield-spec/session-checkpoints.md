@@ -33,6 +33,24 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 
 ---
 
+## Archived: 2026-06-02 — PHASE 5 CLOSED / PHASE 6 NEXT (superseded by Phase 6 fresh-session resume checkpoint)
+
+**POSITION:** Phase 5 PASSED and CLOSED. develop HEAD 68137b4b (clean — no code changes in closure burst). PROCESS-GAP-P5-001 dispositioned via STORY-091 (draft, E-11). Secondary review complete — CR-004 refuted (empirical), remaining CRs in tech-debt-register.md. DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 policy added to policies.yaml.
+
+**EXACT NEXT ACTION (at archival):** Phase 6 Formal Hardening — entry: `/vsdd-factory:phase-6-formal-hardening`. Focus areas: (1) Kani proofs for VPs with `proof_completed_date: null`, (2) cargo-fuzz fuzzing campaigns, (3) mutation testing, (4) security scan. Develop HEAD 68137b4b clean; factory-artifacts pushed; no open PRs; .worktrees empty.
+
+**MODEL-FAMILY CAVEAT (carry forward):** True non-Claude (GPT) evaluator unavailable. Use opus-tier fresh-context + strict info-asymmetry as substitute. Document at each gate.
+
+**OPEN/ACCEPTED ITEMS at archival:**
+- ADV-IMPL-P11-LOW-002 / O-P13-01: ACCEPTED cosmetic (v1.5 BC-2.04.013 labels — not required for convergence).
+- ADV-IMPL-P12-LOW-001 / ADV-IMPL-P01-LOW-001: ACCEPTED cosmetic (findings.rs Persistence doc-comment; absorbed into CR-003 tech-debt).
+- ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture added.
+- F-W25-S088-P6-001 LOW: test-strength only; target next main.rs touch.
+- STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling.
+- Tech-debt: CR-001/010/011 (P2), CR-002/003/005/006/007/009/012 (P3) — see tech-debt-register.md.
+
+---
+
 ## Archived: 2026-06-02 — PHASE 5, Pass 11 IN PROGRESS (superseded by Pass 11 REMEDIATED / Pass 12 IN PROGRESS checkpoint)
 
 **POSITION:** Phase 5 IN PROGRESS. develop HEAD 68137b4b (FIX-P5-004 squash-merged PR #175). Pass 10 all findings REMEDIATED+MERGED: ADV-IMPL-P10-MED-001 (BC-2.04.013 v1.7 re-anchor, commit 422e4ee, MATCH=48/STALE=0); ADV-IMPL-P10-MED-002+LOW-001 (stale HS-043 test docstrings + misleading test name, FIX-P5-004 PR #175 → 68137b4b). HS-043 BC/doc-coherence finding class CLOSED. CLEAN-PASS COUNTER: 0/3 (reset after Pass-10 remediation).

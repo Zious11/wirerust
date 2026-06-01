@@ -3,7 +3,7 @@ pipeline: PHASE_5_COMPLETE_PHASE_6_PAUSED
 phase: phase-6-formal-hardening
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-01T00:00:00Z
+timestamp: 2026-06-02T00:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -54,23 +54,35 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 | Phase 6 — Formal Hardening | NOT STARTED | PAUSED — resume next session. Entry: /vsdd-factory:phase-6-formal-hardening |
 | Phase 7 — Convergence | NOT STARTED | — |
 
-## Session Resume Checkpoint (2026-06-01 — PHASE 5 CLOSED / PHASE 6 NEXT)
+## Session Resume Checkpoint (2026-06-02 — PHASE 5 CLOSED / PHASE 6 NOT STARTED)
 
-**POSITION:** Phase 5 PASSED and CLOSED. develop HEAD 68137b4b (clean — no code changes in closure burst). PROCESS-GAP-P5-001 dispositioned via STORY-091 (draft, E-11). Secondary review complete — CR-004 refuted (empirical), remaining CRs in tech-debt-register.md. DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 policy added to policies.yaml.
+**POSITION:** Phase 5 PASSED/CLOSED. Phase 6 (Formal Hardening) NOT STARTED. Phase 7 NOT STARTED.
 
-**EXACT NEXT ACTION:** Phase 6 Formal Hardening — entry: `/vsdd-factory:phase-6-formal-hardening`. Focus areas: (1) Kani proofs for VPs with `proof_completed_date: null`, (2) cargo-fuzz fuzzing campaigns, (3) mutation testing, (4) security scan (cargo-audit / cargo-deny already in CI). Develop HEAD 68137b4b clean; factory-artifacts pushed; no open PRs; .worktrees empty.
+**VERIFIED-CLEAN FACTS (confirmed at checkpoint authorship):**
+- develop HEAD `68137b4b` == origin/develop (working tree clean; ~1086 tests green)
+- factory-artifacts HEAD `4c74497` == origin/factory-artifacts (working tree clean)
+- No open PRs
+- `.worktrees/` empty; only main + `.factory` worktrees exist
+- input-hash: MATCH=48/STALE=0 (STORY-091 inputs:[] ERROR expected — empty inputs by design)
 
-**MODEL-FAMILY CAVEAT (carry forward):** True non-Claude (GPT) evaluator unavailable. Use opus-tier fresh-context + strict info-asymmetry as substitute. Document at each gate.
+**RESUME PROTOCOL (startup sequence for orchestrator):**
+1. `vsdd-factory:factory-worktree-health` — BLOCKING; do not read `.factory` until PASS
+2. `agents_list` — confirm available agents
+3. Read `STATE.md` — absorb current position
+4. Proceed to Phase 6 entry
 
-**OPEN/ACCEPTED ITEMS a fresh session must know:**
-- ADV-IMPL-P11-LOW-002 / O-P13-01: ACCEPTED cosmetic (v1.5 BC-2.04.013 labels — not required for convergence).
-- ADV-IMPL-P12-LOW-001 / ADV-IMPL-P01-LOW-001: ACCEPTED cosmetic (findings.rs Persistence doc-comment; absorbed into CR-003 tech-debt).
-- ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture added.
-- F-W25-S088-P6-001 LOW: test-strength only; target next main.rs touch.
-- STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling. Delivery deferred to next cycle or as an inter-phase task.
-- Tech-debt: CR-001/010/011 (P2), CR-002/003/005/006/007/009/012 (P3) — see tech-debt-register.md.
+**EXACT NEXT ACTION:** Phase 6 Formal Hardening — entry: `/vsdd-factory:phase-6-formal-hardening`. Scope: (1) Kani proofs for all VPs with `proof_completed_date: null`, (2) cargo-fuzz campaigns, (3) mutation testing, (4) security/audit scan (cargo-audit/cargo-deny already in CI); scoped to module-criticality tiers.
 
-**PROCESS NOTE (W24.L3):** Verify merges via `gh pr view <N>` + `git rev-parse origin/develop` before declaring landed.
+**CARRY-FORWARD CAVEATS:**
+- MODEL-FAMILY: No true non-Claude adversary/evaluator available. Use opus-tier fresh-context + strict info-asymmetry. Document at each gate.
+- ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture support added.
+
+**OPEN BACKLOG (do NOT lose):**
+- STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle or inter-phase
+- Policy: DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 in policies.yaml
+- Phase-5 secondary-review tech-debt: CR-001/010/011 (P2); CR-002/003/005/006/007/009/012 (P3) — see tech-debt-register.md; CR-004 REFUTED (false positive, do not re-investigate)
+- Pre-existing open GitHub issues #100–#104 (require DF-VALIDATION-001 before action)
+- Open drift items: O-07, O-08, F-W25-S088-P6-001
 
 Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
