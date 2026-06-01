@@ -3,7 +3,7 @@ pipeline: PHASE_5_ADVERSARIAL_REFINEMENT
 phase: phase-5-adversarial-refinement
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-01T18:30:00Z
+timestamp: 2026-06-01T21:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -15,7 +15,7 @@ phase_4_started: "2026-06-01"
 phase_4_completed: "2026-06-01"
 phase_4_to_5_gate: "PASSED (human-approved 2026-06-01, conditioned on HS-043 regression tests — merged PR #172)"
 phase_5_started: "2026-06-01"
-develop_head: e0451ef
+develop_head: 472b45e9
 current_cycle: v0.1.0-greenfield-spec
 current_wave: 27 (FINAL — CLOSED)
 stories_delivered: 48
@@ -24,12 +24,12 @@ dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
-adversary_convergence_counter: 0/3
-adv_impl_p04_med_001_status: FIX_IN_PROGRESS_spec_reconciled_code_fix_07e64b2_PR_pending
+adversary_convergence_counter: 1/3
+adv_impl_p04_med_001_status: REMEDIATED_MERGED_PR173_squash_develop_472b45e9_2026-06-01
 adversary_gate: NOT_YET_SATISFIED
-convergence_trajectory: "Full Phase-1→W27 trajectory archived in cycles/phase-3-tdd/convergence-trajectory.md. Latest: ...W26-CLOSED(PR#169→450d33e;BC-2.12.014..017;6ps-3clean;17-mutation-matrix)|W27-S090:3ps-3clean(R1/R2/R3;4→2→0;BC-2.12.018..021;18t;2-remediation-rounds-traceability;corpus-uniqueness-sweep)|W27-CONVERGED-CLOSED(single-story;per-story==wave-level;BC-5.39.001;PR#170→6158e6e)|PHASE-3-COMPLETE(48/48;27/27)"
+convergence_trajectory: "Full Phase-1→W27 trajectory archived in cycles/phase-3-tdd/convergence-trajectory.md. Latest: ...W26-CLOSED(PR#169→450d33e;BC-2.12.014..017;6ps-3clean;17-mutation-matrix)|W27-S090:3ps-3clean(R1/R2/R3;4→2→0;BC-2.12.018..021;18t;2-remediation-rounds-traceability;corpus-uniqueness-sweep)|W27-CONVERGED-CLOSED(single-story;per-story==wave-level;BC-5.39.001;PR#170→6158e6e)|PHASE-3-COMPLETE(48/48;27/27)|P5:Pass1-NOT_CONV-MED-REMEDIATED(2b33284)|Pass2-NOT_CONV-MED-REMEDIATED(aa6d73b)|Pass3-NOT_CONV-HIGH+LOW-REMEDIATED(c7a0012)|Pass4-NOT_CONV-MED-REMEDIATED(FIX-P5-002,PR#173→472b45e9)|Pass5-CONVERGENCE_REACHED(ZERO-findings;CLEAN-1/3)"
 consistency_audit: CONSISTENT
-input_drift_check: CLEAN (Phase-4-entry gate confirmed: bin/compute-input-hash --scan = MATCH=48/STALE=0; zero stale hashes across full corpus)
+input_drift_check: "CLEAN (re-baselined post Phase-5 anchor-class closure: MATCH=48/STALE=0; 13 stories rewritten by bin/compute-input-hash --write --scan; commits 6d46f54+9a1a05d)"
 phase_2_input_hash_drift_check: CLEAN
 phase_2_input_hash_drift_check_total: 153
 wave_history_archived: "cycles/phase-3-tdd/wave-history.md (all waves 1-27 detail + final-steps; compacted 2026-06-01)"
@@ -39,8 +39,8 @@ wave_history_archived: "cycles/phase-3-tdd/wave-history.md (all waves 1-27 detai
 
 ## Status
 
-**Pipeline:** PHASE 5 — Adversarial Refinement IN PROGRESS. Phase 4 PASSED (gate approved; HS-043 fix + regression guards merged). develop e0451ef.
-Phase 4 result: 80-scenario rotation, mean 0.949, 0 must-pass <0.6; HS-043 real defect found+fixed (PR #171); HS-006/016 non-defects; model-family caveat documented.
+**Pipeline:** PHASE 5 — Adversarial Refinement IN PROGRESS. Phase 4 PASSED. develop 472b45e9.
+FIX-P5-002 MERGED (PR #173 squash → develop 472b45e9, 2026-06-01). whole-impl Pass 5 CONVERGENCE_REACHED — ZERO findings. CLEAN-PASS COUNTER = 1/3. Anchor-drift class CLOSED at all tiers (BC files, BC secondary anchors, consuming VP/inv/supplement/entity docs, story bodies STORY-017..021). input-hash drift CLEAN (MATCH=48/STALE=0).
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -59,7 +59,7 @@ dependency bumping for it).
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
 | Phase 3 — TDD Implementation | **PASSED** 2026-05-31 | 48/48 stories, 27/27 waves, all CLOSED/CONVERGED; E-1..E-10 ALL COMPLETE; develop HEAD 6158e6e (PR#170); BC-5.39.001 ACHIEVED across all waves; trajectory detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | **PASSED** 2026-06-01 | 80-scenario rotation, mean 0.949, 0 must-pass <0.6; HS-043 real defect found+fixed (PR #171); HS-006/016 non-defects; model-family caveat documented; detail: cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md; Phase 4→5 gate PASSED 2026-06-01 (PR #172 regression tests merged) |
-| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | HS043-pass-2 COMPLETE; Pass 1 NOT_CONVERGED MED REMEDIATED (2b33284); Pass 2 NOT_CONVERGED MED REMEDIATED (aa6d73b); Pass 3 NOT_CONVERGED HIGH+LOW REMEDIATED (c7a0012); whole-impl Pass 4 COMPLETE — NOT_CONVERGED: ADV-IMPL-P04-MED-001 (BC-2.12.005 zero-rejection contract gap) FIX IN PROGRESS — spec reconciled (BC-2.12.005 v1.3, NFR-REL-004, E-RAS-004/E-CFG-007-008, STORY-087 v1.3); code fix on branch fix/reassembly-zero-validator (tests 81d43ec, fix 07e64b2); demo recorded; PR pending human merge approval (behavior-changing). CLEAN-PASS COUNTER=0 (Pass 4 found MED; remediation in flight). NEXT after PR merge: whole-impl adversarial Pass 5. |
+| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | HS043-pass-2 COMPLETE; Pass 1 NOT_CONVERGED MED REMEDIATED (2b33284); Pass 2 NOT_CONVERGED MED REMEDIATED (aa6d73b); Pass 3 NOT_CONVERGED HIGH+LOW REMEDIATED (c7a0012); Pass 4 NOT_CONVERGED MED REMEDIATED — FIX-P5-002 spec reconciled + code fix PR #173 squash-merged → develop 472b45e9 2026-06-01 (BC-2.12.005 v1.3/NFR-REL-004/E-RAS-004/E-CFG-007-008/STORY-087 v1.3). **Pass 5 CONVERGENCE_REACHED — ZERO findings; sampled mod.rs anchors accurate; comprehensive non-defect verification (security/spec-fidelity/test-quality/integration). CLEAN-PASS COUNTER = 1/3.** NEXT: whole-impl adversarial Pass 6. Finding progression: Pass1→Pass2→Pass3→Pass4→Pass5 = MED→MED→HIGH+LOW→MED→ZERO. |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
 | Phase 7 — Convergence | NOT STARTED | — |
 
@@ -67,31 +67,30 @@ dependency bumping for it).
 
 Waves 1–27 ALL CLOSED/CONVERGED — detail: `cycles/phase-3-tdd/wave-history.md`. Spec package (Phase 1): 20 L2 shards, 1 PRD, 217 BCs, 20 VPs, 4 supplements, 9 arch files — detail: `cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`.
 
-## Session Resume Checkpoint (2026-06-01 — PHASE 5, whole-impl Pass 4 FIX IN PROGRESS)
+## Session Resume Checkpoint (2026-06-01 — PHASE 5, whole-impl Pass 5 CONVERGENCE_REACHED)
 
-**POSITION:** Phase 5 (Adversarial Refinement) IN PROGRESS. Whole-implementation adversarial Pass 4 COMPLETE — verdict NOT_CONVERGED. ADV-IMPL-P04-MED-001 (BC-2.12.005 zero-rejection contract: depth/memcap >=1 not enforced in code). Spec reconciled (BC-2.12.005 v1.3, NFR-REL-004, E-RAS-004/E-CFG-007-008, STORY-087 v1.3 — FIX-P5-002 burst committed factory-artifacts). Code fix on branch fix/reassembly-zero-validator (tests 81d43ec, fix 07e64b2). Demo recorded (.factory/demo-evidence/FIX-P5-002/). PR pending human merge approval (behavior-changing). CLEAN-PASS COUNTER = 0 (Pass 4 found MED; remediation in flight). develop HEAD e0451ef (unchanged — code fix not yet merged).
+**POSITION:** Phase 5 (Adversarial Refinement) IN PROGRESS. FIX-P5-002 MERGED — PR #173 squash-merged → develop 472b45e9, 2026-06-01. Spec reconciled: BC-2.12.005 v1.3/NFR-REL-004/E-RAS-004/E-CFG-007-008/STORY-087 v1.3. Whole-implementation adversarial Pass 5 COMPLETE — verdict CONVERGENCE_REACHED, ZERO findings. Comprehensive non-defect verification (security/spec-fidelity/test-quality/integration). Anchor-drift class CLOSED at ALL tiers (BC files, BC secondary anchors, consuming VP/inv/supplement/entity docs, story bodies STORY-017..021). input-hash drift CLEAN (MATCH=48/STALE=0; re-baselined commits 6d46f54+9a1a05d). CLEAN-PASS COUNTER = 1/3.
 
-**EXACT NEXT ACTION:** After human approves and merges fix/reassembly-zero-validator PR to develop — run whole-implementation adversarial Pass 5 (fresh context) via `/vsdd-factory:adversarial-review implementation`. Minimum 3 consecutive CLEAN passes required for CONVERGENCE_REACHED.
+**EXACT NEXT ACTION:** Run whole-implementation adversarial Pass 6 (fresh context) via `/vsdd-factory:adversarial-review implementation`. Need 2 more consecutive CLEAN passes for CONVERGENCE_SATISFIED (3/3).
 
 **MODEL-FAMILY CAVEAT (carry forward):** True non-Claude (GPT) evaluator/adversary unavailable in this environment. Use opus-tier fresh-context + strict info-asymmetry as substitute. Document at each gate.
 
-**WHOLE-IMPL PASS LOG:** Pass 1 NOT_CONVERGED MED (32 BCs) REMEDIATED 2b33284. Pass 2 NOT_CONVERGED MED (2 BCs) REMEDIATED aa6d73b. Pass 3 NOT_CONVERGED HIGH+LOW (28 citations/8 files) REMEDIATED c7a0012. Pass 4 NOT_CONVERGED MED (ADV-IMPL-P04-MED-001 zero-rejection) FIX IN PROGRESS (spec reconciled FIX-P5-002; code PR pending). Detail: cycles/v0.1.0-greenfield-spec/burst-log.md Bursts P5-1..P5-4.
+**WHOLE-IMPL PASS LOG:** Pass 1 NOT_CONVERGED MED (32 BCs) REMEDIATED 2b33284. Pass 2 NOT_CONVERGED MED (2 BCs) REMEDIATED aa6d73b. Pass 3 NOT_CONVERGED HIGH+LOW (28 citations/8 files) REMEDIATED c7a0012. Pass 4 NOT_CONVERGED MED (ADV-IMPL-P04-MED-001 zero-rejection) REMEDIATED FIX-P5-002 (spec reconciled factory-artifacts; code PR #173 → develop 472b45e9). Pass 5 CONVERGENCE_REACHED (ZERO findings; clean). Detail: cycles/v0.1.0-greenfield-spec/burst-log.md Bursts P5-1..P5-5.
 
 **OPEN/ACCEPTED ITEMS a fresh session must know:**
-- ADV-IMPL-P01-MED-001: REMEDIATED (2b33284). ADV-IMPL-P02-MED-001: REMEDIATED (aa6d73b). ADV-IMPL-P03-HIGH-001: REMEDIATED (c7a0012). ADV-IMPL-P03-LOW-001: REMEDIATED (c7a0012).
-- ADV-IMPL-P04-MED-001: FIX IN PROGRESS — spec reconciled (BC-2.12.005 v1.3/NFR-REL-004/E-RAS-004/E-CFG-007-008/STORY-087 v1.3); code fix branch fix/reassembly-zero-validator (tests 81d43ec, fix 07e64b2); demo recorded; PR pending human merge approval.
+- ADV-IMPL-P01-MED-001: REMEDIATED (2b33284). ADV-IMPL-P02-MED-001: REMEDIATED (aa6d73b). ADV-IMPL-P03-HIGH-001: REMEDIATED (c7a0012). ADV-IMPL-P03-LOW-001: REMEDIATED (c7a0012). ADV-IMPL-P04-MED-001: REMEDIATED + MERGED (PR #173 → develop 472b45e9 2026-06-01).
 - ADV-IMPL-P01-LOW-001: ACCEPTED/optional — findings.rs:104-105 stale doc-comment (same class as O-08).
 - ADV-IMPL-P01-LOW-002: ACCEPTED — folded into SS-04 sweep.
 - ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture added (see Drift Items).
 - ADV-HS043-P02-LOW-001: ACCEPTED — BC-2.04.013 PC0 naming note (non-blocking).
 - F-W25-S088-P6-001 LOW: warning-once inv-2 count assertion; test-strength only; target next main.rs touch.
-- PROCESS-GAP-P5-001: OPEN — DF-SIBLING-SWEEP-001 must enumerate ALL consuming-artifact tiers. Disposition at Phase-5 cycle close per S-7.02.
+- PROCESS-GAP-P5-001: OPEN — DF-SIBLING-SWEEP-001 blast radius now fully observed: BC files → BC secondary anchors → consuming VP/invariant/supplement/entity artifacts → story bodies. Checklist must enumerate ALL tiers. Disposition (follow-up story vs justified deferral) at Phase-5 cycle close per S-7.02.
 
 **PROCESS NOTE (W24.L3):** pr-manager has repeatedly stopped before executing merges (~5 PRs this session). ALWAYS independently verify a merge landed via `gh pr view <N>` + `git rev-parse origin/develop` before declaring a PR merged.
 
 **PHASE CONTEXT:**
 - Phase 4 result: 80-scenario rotation, mean 0.949, 0 must-pass <0.6. HS-043 real defect found+fixed (PR #171 → c3cd4bd); HS-006/016 non-defects. Regression guards merged PR #172 → e0451ef.
-- Prior checkpoint (Pass 3 remediated) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
+- Prior checkpoint (Pass 4 FIX IN PROGRESS) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
 ## Phase 3→4 Gate — PASSED 2026-06-01
 
@@ -134,7 +133,7 @@ Externally-blocked / phase-gated items (W9-D2/D3/D4 upstream-plugin, W9-D12 awai
 | F-W25-S088-P6-001 | [test-strength, LOW] AC-004 warning uses .contains() so a doubled eprintln! (BC-2.12.009 inv-2 "warning printed once") would not be caught. Invariant HOLDS in source (single pre-loop emission, adversary-verified P6); AC-004 traces to PC-5/inv-1 not inv-2 — not a traceability defect. Optional one-line count-assertion hardening; target: STORY-090 touch (next main.rs-adjacent story) or accepted. Per DF-VALIDATION-001, no GitHub issue without research-agent validation. | test-strength | STORY-090 delivery (wave 27) or accept | OPEN |
 | ADV-HS043-P02-MED-001 | [Phase-5, HS043-pass-2, MED] Idle-flow expiry sweep gate `timestamp > last_expiry_sweep_secs` is monotonic; on out-of-order / multi-epoch / clock-regressing captures the watermark stalls and idle sweeps stop firing for the rest of the run (flows_expired stuck at 0). BC-2.04.013. Current scope: offline pcap — finalize() reclaims all flows at end-of-capture; no unbounded growth. High-water-clock fix rejected (breaks multi-epoch offline analysis — story-088 http-ooo tests fail). Probe premise also flawed (20 new flows at t=10 are not idle). No GitHub issue per DF-VALIDATION-001. Full rationale: cycles/v0.1.0-greenfield-spec/burst-log.md Burst 3. | implementation / memory-bound (BC-2.04.013) | Live-capture support feature | ACCEPTED — GATED ON LIVE-CAPTURE SUPPORT. Re-open when live-capture added; correct fix is epoch-boundary flush or wall-clock sweep tick, NOT high-water-clock. |
 | ADV-HS043-P02-LOW-001 | [Phase-5, HS043-pass-2, LOW] BC-2.04.013 PC0 literally names `expire_flows` but the impl wires `expire_idle_by_timeout`; the split is justified (keeps the Closed-clause off the hot path per BC-2.04.017) and documented in source. Optional one-line BC wording note; not blocking. | spec-naming / docs | Optional BC wording touch | ACCEPTED (non-blocking) |
-| ADV-IMPL-P04-MED-001 | [Phase-5, whole-impl Pass 4, MED] BC-2.12.005 zero-rejection contract gap: spec required depth/memcap >=1 but lacked canonical PCs, error codes E-CFG-007/E-CFG-008, and test-citation anchors. Code did not enforce the contract. FIX IN PROGRESS — spec reconciled: BC-2.12.005 v1.3 (depth/memcap >=1 PC5/PC6, EC-006/EC-007, canonical vectors), NFR-REL-004 impl note, E-RAS-004 + E-CFG-007/008 taxonomy, STORY-087 v1.3 (EC-001 revised, EC-006/AC-013/AC-014 added). Code fix on branch fix/reassembly-zero-validator (tests 81d43ec, fix 07e64b2). Demo recorded (.factory/demo-evidence/FIX-P5-002/, exit 2/2/0). PR pending human merge approval (behavior-changing — NOT yet merged to develop). | spec-contract gap + missing code enforcement | fix/reassembly-zero-validator PR merge to develop | FIX IN PROGRESS — spec reconciled (FIX-P5-002 burst); PR pending human merge approval |
+| ADV-IMPL-P04-MED-001 | [Phase-5, whole-impl Pass 4, MED] BC-2.12.005 zero-rejection contract gap: spec required depth/memcap >=1 but lacked canonical PCs, error codes E-CFG-007/E-CFG-008, and test-citation anchors. Code did not enforce the contract. FIX MERGED — spec reconciled: BC-2.12.005 v1.3 (depth/memcap >=1 PC5/PC6, EC-006/EC-007, canonical vectors), NFR-REL-004 impl note, E-RAS-004 + E-CFG-007/008 taxonomy, STORY-087 v1.3 (EC-001 revised, EC-006/AC-013/AC-014 added). Code fix PR #173 squash-merged → develop 472b45e9 2026-06-01. Demo recorded (.factory/demo-evidence/FIX-P5-002/, exit 2/2/0). Pass 5 adversary verified correct. | spec-contract gap + missing code enforcement | CLOSED | REMEDIATED + MERGED — PR #173 squash-merged → develop 472b45e9 2026-06-01; spec reconciled BC-2.12.005 v1.3/NFR-REL-004/E-RAS-004/E-CFG-007-008/STORY-087 v1.3; Pass 5 adversary confirmed correct |
 | ADV-IMPL-P01-MED-001 | [Phase-5, whole-impl Pass 1, MED] SS-04 behavioral-contract source-line anchors stale after HS-043 merges (PR #171 + #172) shifted code in src/reassembly/mod.rs. No semantic/PC/inv changes; line-number citations only. | spec-anchor drift (DF-SIBLING-SWEEP-001) | SS-04 BC re-anchor sweep | REMEDIATED — 32 BCs re-anchored, commit 2b33284, pushed 2026-06-01 |
 | ADV-IMPL-P02-MED-001 | [Phase-5, whole-impl Pass 2, MED] Residual SS-04 anchor drift missed by v1.6 sweep: BC-2.04.052 (2 anchors: traceability row + Architecture Anchors, mod.rs:306-312 → mod.rs:335-341) and BC-2.04.032 (1 prose anchor, mod.rs:306-319 → mod.rs:335-349). No semantic/PC/inv changes; line-number citations only. Recurring root cause: HS-043 mod.rs insertion (PROCESS-GAP-P5-001). | spec-anchor drift (DF-SIBLING-SWEEP-001) | BC-2.04.052/.032 re-anchor | REMEDIATED — 2 BCs re-anchored, commit aa6d73b, pushed 2026-06-01 |
 | ADV-IMPL-P03-HIGH-001 | [Phase-5, whole-impl Pass 3, HIGH] Consuming-artifact anchor drift: vp-003-max-findings-cap.md, domain/invariants/inv-01-core-invariants.md, prd-supplements/error-taxonomy.md, prd-supplements/nfr-catalog.md all cite src/reassembly/mod.rs at stale line numbers from pre-HS-043 positions. Same HS-043 root cause as Pass 1/2; deeper artifact tier (VPs, domain invariants, supplements, entities) missed by prior SS-04-only sweeps. 28 total citation corrections across 8 files. No semantic/PC/inv changes. | spec-anchor drift (DF-SIBLING-SWEEP-001) | Exhaustive 28-citation/8-file re-anchor sweep | REMEDIATED — commit c7a0012, pushed 2026-06-01; PO verified every mod.rs citation in full spec tree vs HEAD e0451ef (anchor class EXHAUSTIVELY CLOSED) |
@@ -148,7 +147,7 @@ Closed items archived in `cycles/drift-remediation-2026-05-29/closed-items.md`. 
 
 | ID | Description | Status |
 |----|-------------|--------|
-| PROCESS-GAP-P5-001 | [process-gap, 2026-06-01] HS-043 cross-cutting reassembly merges dispatched without a complete sibling sweep — DF-SIBLING-SWEEP-001 enforcement gap. THREE consecutive passes hit the same anchor-drift class at progressively deeper tiers: Pass 1 (BC files, 32 BCs), Pass 2 (BC secondary anchors, 2 BCs), Pass 3 (consuming VP/invariant/supplement/entity artifacts, 28 citations / 8 files). Anchor class EXHAUSTIVELY CLOSED 2026-06-01 (PO-verified every mod.rs citation in full spec tree vs HEAD e0451ef). DF-SIBLING-SWEEP-001 checklist must be extended to enumerate ALL consuming-artifact tiers (VPs, domain invariants, entities, prd-supplements, scope-decision docs) as mandatory sweep targets whenever a merge shifts cited source lines. MUST NOT be silently closed before Phase-5 cycle close. Disposition (follow-up story vs justified deferral) per S-7.02 at cycle close. | OPEN — DF-SIBLING-SWEEP-001 tier-extension required; disposition at Phase-5 cycle close per S-7.02 |
+| PROCESS-GAP-P5-001 | [process-gap, 2026-06-01] HS-043 cross-cutting reassembly merges dispatched without a complete sibling sweep — DF-SIBLING-SWEEP-001 enforcement gap. FULL BLAST RADIUS NOW OBSERVED across FOUR tiers: Pass 1 (BC files, 32 BCs), Pass 2 (BC secondary anchors, 2 BCs), Pass 3 (consuming VP/invariant/supplement/entity artifacts, 28 citations / 8 files), Pass 5 story-tier (story bodies STORY-017..021 mod.rs citations). Anchor class EXHAUSTIVELY CLOSED at all tiers 2026-06-01 (input-hash re-baselined MATCH=48/STALE=0). DF-SIBLING-SWEEP-001 checklist MUST enumerate ALL tiers: BC files, BC secondary anchors, consuming VPs, domain invariants, entities, prd-supplements, scope-decision docs, AND story bodies. MUST NOT be silently closed before Phase-5 cycle close. Disposition (follow-up story vs justified deferral) per S-7.02 at cycle close. | OPEN — DF-SIBLING-SWEEP-001 tier-extension required (all 4 tiers documented); disposition at Phase-5 cycle close per S-7.02 |
 
 ## Governance Policy
 
