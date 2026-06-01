@@ -3,7 +3,7 @@ pipeline: PHASE_5_ADVERSARIAL_REFINEMENT
 phase: phase-5-adversarial-refinement
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-01T23:15:00Z
+timestamp: 2026-06-01T23:55:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -24,10 +24,10 @@ dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
-adversary_convergence_counter: 2/3  # Pass 13 CONVERGENCE_REACHED (ZERO new; only accepted v1.5-label cosmetic obs); clean-streak 2/3; Pass 14 NEXT
+adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED (ZERO new); clean-streak 3/3; ADVERSARY GATE SATISFIED
 adv_impl_remediated: "P04-MED(PR#173→472b45e9);P06-HIGH(PR#174→cfe0112a);P06-MED(PR#174→cfe0112a);P07-MED(288cba3);P07-LOW(288cba3);P08-HIGH(e817d3c);P10-MED-001(422e4ee);P10-MED-002+LOW-001(FIX-P5-004/PR#175→68137b4b);P11-MED-001(56885b8);P11-LOW-001(56885b8);F-AUDIT-001/002(56885b8)"
-adversary_gate: NOT_YET_SATISFIED
-convergence_trajectory: "P5:P1-MED|P2-MED|P3-HIGH+LOW|P4-MED|P5-ZERO(voided)|P6-HIGH+MED|P7-MED+LOW|P8-HIGH-REMEDIATED|P9-CLEAN(voided)|P10-MED+MED+LOW|P11-MED+LOW+LOW(1-ACCEPTED)-REMEDIATED(56885b8)|P12-CLEAN(1/3)|P13-CLEAN(2/3). Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
+adversary_gate: SATISFIED
+convergence_trajectory: "P5:P1-MED|P2-MED|P3-HIGH+LOW|P4-MED|P5-ZERO(voided)|P6-HIGH+MED|P7-MED+LOW|P8-HIGH-REMEDIATED|P9-CLEAN(voided)|P10-MED+MED+LOW|P11-MED+LOW+LOW(1-ACCEPTED)-REMEDIATED(56885b8)|P12-CLEAN(1/3)|P13-CLEAN(2/3)|P14-CLEAN(3/3)-ADVERSARY-GATE-SATISFIED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 consistency_audit: CONSISTENT
 input_drift_check: "CLEAN (re-baselined post ADV-IMPL-P11 / F-AUDIT: MATCH=48/STALE=0; 10 stories rewritten; commit 531173f)"
 phase_2_input_hash_drift_check: CLEAN
@@ -39,7 +39,7 @@ wave_history_archived: "cycles/phase-3-tdd/wave-history.md (all waves 1-27 detai
 
 ## Status
 
-**Pipeline:** PHASE 5 — Adversarial Refinement IN PROGRESS. develop 68137b4b. Pass 13 CONVERGENCE_REACHED (fresh-context, opus): ZERO new CRIT/HIGH/MED. Only O-P13-01 = accepted cosmetic v1.5-label (ADV-IMPL-P11-LOW-002), now also in src (mod.rs:109,150; main.rs:119) + tests — PC0 semantics unchanged v1.5→v1.7; non-blocking. CLEAN-PASS COUNTER: 2/3. Pass 14 NEXT. 1 more clean → CONVERGENCE_SATISFIED. **Mode:** brownfield (in-repo: target == reference).
+**Pipeline:** PHASE 5 — Adversarial Refinement CONVERGED. develop 68137b4b. Pass 14 CONVERGENCE_REACHED (fresh-context, opus): ZERO new findings — THIRD consecutive clean whole-impl pass (Pass 12 + 13 + 14). CLEAN-PASS COUNTER: 3/3. ADVERSARY GATE: SATISFIED. Phase 5 adversarial-refinement loop CONVERGED. Pending: (a) PROCESS-GAP-P5-001 cycle-close disposition per S-7.02, (b) optional secondary code-reviewer pass. **Mode:** brownfield (in-repo: target == reference).
 
 **Test suite:** passing on develop (all 48 stories / 27 waves delivered; ~1086 tests green). `cargo fmt --check`,
 `cargo clippy`, `cargo test --all-targets` all green. CI: 8 checks (semantic-pr, test, clippy, fmt, fuzz-build, audit, deny, trust-boundary; `fuzz-build` pinned `nightly-2026-05-21` + `cargo-fuzz 0.13.1` + `timeout-minutes: 25` after PR #111 hotfix; `trust-boundary` added PR #148;
@@ -56,23 +56,23 @@ dependency bumping for it).
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
 | Phase 3 — TDD Implementation | **PASSED** 2026-05-31 | 48/48 stories, 27/27 waves, all CLOSED/CONVERGED; E-1..E-10 ALL COMPLETE; develop HEAD 6158e6e (PR#170); BC-5.39.001 ACHIEVED across all waves; trajectory detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | **PASSED** 2026-06-01 | 80-scenario rotation, mean 0.949, 0 must-pass <0.6; HS-043 real defect found+fixed (PR #171); HS-006/016 non-defects; model-family caveat documented; detail: cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md; Phase 4→5 gate PASSED 2026-06-01 (PR #172 regression tests merged) |
-| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | Passes 1–13 complete; all non-accepted findings REMEDIATED. P13 CONVERGENCE_REACHED: 0C/0H/0M (only accepted cosmetic obs O-P13-01 = v1.5-label in src+tests, non-blocking). CLEAN-PASS COUNTER 2/3. Pass 14 NEXT (1 more clean → gate SATISFIED). P11 audit (6 dims, 698 citations) flushed doc-coherence debt. P1→P13: MED→MED→HIGH+LOW→MED→ZERO→HIGH+MED→MED+LOW→HIGH→ZERO(voided)→MED+MED+LOW→MED+LOW+LOW(1-ACCEPTED)→CLEAN(1/3)→CLEAN(2/3). Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md |
+| Phase 5 — Adversarial Refinement | **CONVERGED** 2026-06-01 | Pass 14 CONVERGENCE_REACHED — ZERO new findings; THIRD consecutive clean whole-impl fresh-context opus pass (Pass 12+13+14). ADVERSARY GATE SATISFIED. Journey: 14 whole-impl passes + HS-043 passes; findings decayed to zero across anchor-drift (4 dims, exhaustive corpus sweep), output-determinism, CLI zero-panic, VP-017/VP-015 prose, HS-043 BC/doc coherence, BC title-sync; 4 fix-PRs merged (#173 #174 #175 + earlier HS-043 #171/#172); comprehensive consistency audit confirmed doc-coherence layer clean. PENDING: PROCESS-GAP-P5-001 disposition + optional secondary review. P1→P14: MED→MED→HIGH+LOW→MED→ZERO→HIGH+MED→MED+LOW→HIGH→ZERO(voided)→MED+MED+LOW→MED+LOW+LOW(1-ACCEPTED)→CLEAN(1/3)→CLEAN(2/3)→CLEAN(3/3)-GATE-SATISFIED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
 | Phase 7 — Convergence | NOT STARTED | — |
 
 **Phase 3 — Wave Summary (COMPLETE):** Waves 1–27 ALL CLOSED/CONVERGED — detail: `cycles/phase-3-tdd/wave-history.md`. Spec package (Phase 1): 20 L2 shards, 1 PRD, 217 BCs, 20 VPs, 4 supplements, 9 arch files — detail: `cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`.
 
-## Session Resume Checkpoint (2026-06-01 — PHASE 5, Pass 13 CONVERGENCE_REACHED / Pass 14 NEXT)
+## Session Resume Checkpoint (2026-06-01 — PHASE 5 CONVERGED / ADVERSARY GATE SATISFIED)
 
-**POSITION:** Phase 5 IN PROGRESS. develop HEAD 68137b4b (unchanged — P13 was adversary-only, no code/spec changes). Pass 13 CONVERGENCE_REACHED: 0C/0H/0M — ZERO new findings. Only observation O-P13-01: accepted cosmetic v1.5-version-label (ADV-IMPL-P11-LOW-002) now also noted in src (mod.rs:109,150; main.rs:119) + tests/hs043_flow_expiry_tests.rs — PC0 semantics unchanged v1.5→v1.7; non-blocking. CLEAN-PASS COUNTER: 2/3. Second consecutive clean pass.
+**POSITION:** Phase 5 adversarial-refinement loop CONVERGED. develop HEAD 68137b4b (unchanged — P14 was adversary-only, no code/spec changes). Pass 14 CONVERGENCE_REACHED: 0C/0H/0M — ZERO new findings. CLEAN-PASS COUNTER: 3/3. Adversary gate SATISFIED (Pass 12 + 13 + 14 all clean).
 
-**EXACT NEXT ACTION:** Whole-impl adversarial Pass 14 (running) — if clean → 3/3 → adversary gate SATISFIED → Phase 5 COMPLETE → proceed to optional secondary review then Phase 6 (Formal Hardening). Need 1 more consecutive CLEAN (0C/0H/0M).
+**EXACT NEXT ACTION:** (1) Disposition PROCESS-GAP-P5-001 (anchor-drift durable fix: anchor-validation tooling follow-up story vs justified deferral) — REQUIRED per S-7.02 before Phase-5 is fully CLOSED. (2) Optional secondary code-reviewer pass (workflow step 2) — decision required. (3) Then Phase 6 (Formal Hardening).
 
 **MODEL-FAMILY CAVEAT (carry forward):** True non-Claude (GPT) evaluator unavailable. Use opus-tier fresh-context + strict info-asymmetry as substitute. Document at each gate.
 
 **OPEN/ACCEPTED ITEMS a fresh session must know:**
-- All P1–P13 non-accepted findings REMEDIATED. develop HEAD 68137b4b is clean.
-- ADV-IMPL-P11-LOW-002 / O-P13-01: ACCEPTED cosmetic (v1.5 BC-2.04.013 labels in src mod.rs:109,150; main.rs:119; tests/hs043_flow_expiry_tests.rs — PC0 semantics unchanged v1.5→v1.7; optional 1-line-each label bump to v1.7 bundleable with findings.rs doc cleanup in a single cosmetic PR if desired; NOT required for convergence).
+- All P1–P14 non-accepted findings REMEDIATED. develop HEAD 68137b4b is clean.
+- ADV-IMPL-P11-LOW-002 / O-P13-01: ACCEPTED cosmetic (v1.5 BC-2.04.013 labels in src + tests — NOT required for convergence).
 - ADV-IMPL-P12-LOW-001: ACCEPTED cosmetic (findings.rs Persistence doc-comment; subset of O-08 class).
 - ADV-IMPL-P01-LOW-001: ACCEPTED/optional (findings.rs stale doc-comment, same class as O-08).
 - ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture added (see Drift Items).
@@ -81,7 +81,7 @@ dependency bumping for it).
 
 **PROCESS NOTE (W24.L3):** Verify merges via `gh pr view <N>` + `git rev-parse origin/develop` before declaring landed.
 
-Prior checkpoint (Pass 12 CONVERGENCE_REACHED / Pass 13 IN PROGRESS) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
+Prior checkpoint (Pass 13 CONVERGENCE_REACHED / Pass 14 NEXT) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
 ## Phase 3→4 Gate — PASSED 2026-06-01
 

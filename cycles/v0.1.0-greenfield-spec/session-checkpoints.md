@@ -4,6 +4,20 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 
 ---
 
+## Archived: 2026-06-01 — PHASE 5, Pass 13 CONVERGENCE_REACHED / Pass 14 NEXT (superseded by Pass 14 CONVERGENCE_REACHED / ADVERSARY GATE SATISFIED checkpoint)
+
+**POSITION:** Phase 5 IN PROGRESS. develop HEAD 68137b4b (unchanged — P13 was adversary-only, no code/spec changes). Pass 13 CONVERGENCE_REACHED: 0C/0H/0M — ZERO new findings. Only observation O-P13-01: accepted cosmetic v1.5 BC-2.04.013 label (ADV-IMPL-P11-LOW-002) now also noted in src (mod.rs:109,150; main.rs:119) + tests/hs043_flow_expiry_tests.rs — PC0 semantics unchanged v1.5→v1.7; non-blocking. CLEAN-PASS COUNTER: 2/3.
+
+**EXACT NEXT ACTION (at archival):** Whole-impl adversarial Pass 14 NEXT — if clean → 3/3 → adversary gate SATISFIED → Phase 5 COMPLETE → proceed to optional secondary review then Phase 6 (Formal Hardening). Need 1 more consecutive CLEAN (0C/0H/0M).
+
+**OPEN/ACCEPTED ITEMS at archival:**
+- All P1–P13 non-accepted findings REMEDIATED. develop HEAD 68137b4b clean.
+- ADV-IMPL-P11-LOW-002 / O-P13-01: ACCEPTED cosmetic (v1.5 BC-2.04.013 labels in src+tests; NOT required for convergence).
+- ADV-IMPL-P12-LOW-001: ACCEPTED cosmetic. ADV-IMPL-P01-LOW-001: ACCEPTED/optional.
+- ADV-HS043-P02-MED-001: ACCEPTED offline scope. PROCESS-GAP-P5-001: OPEN — HIGH-PRIORITY.
+
+---
+
 ## Archived: 2026-06-01 — PHASE 5, Pass 12 CONVERGENCE_REACHED / Pass 13 IN PROGRESS (superseded by Pass 13 CONVERGENCE_REACHED / Pass 14 NEXT checkpoint)
 
 **POSITION:** Phase 5 IN PROGRESS. develop HEAD 68137b4b (unchanged — P12 was adversary-only, no code/spec changes). Pass 12 CONVERGENCE_REACHED: 0C/0H/0M/1L — ADV-IMPL-P12-LOW-001 (findings.rs:103-105 Persistence doc-comment describes Execution-class behavior; subset of accepted O-08/ADV-IMPL-P01-LOW-001 class; ACCEPTED cosmetic). LOWs do not block convergence. CLEAN-PASS COUNTER: 1/3. P11 comprehensive consistency audit (6 dims, 698 citations) flushed doc-coherence debt.
