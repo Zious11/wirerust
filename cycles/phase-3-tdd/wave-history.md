@@ -288,3 +288,24 @@ Waves 22 and 23 remain in STATE.md with full detail.
 | 19 | STORY-057 (E-5 TLS, 8pts) | CLOSED/CONVERGED 2026-05-29 | 616897e (PR #156) | 1 story. 6 passes, 3/3 clean streak P4/P5/P6; BC-5.39.001 ACHIEVED. Brownfield-formalization, ZERO src changes; 114 tls_analyzer_tests + full 903-test suite green. 1HIGH+5MED remediated across P1-P3; 1LOW accepted/documented-intent. PG-W17-001 AC-test-name-sync clean. |
 | 20 | STORY-076 (E-8 reporter, SS-11, 5pts) | CLOSED/CONVERGED 2026-05-29 | e5cb2b1 (PR #157) | 1 story. 5 passes, 3/3 clean streak P3/P4/P5; BC-5.39.001 ACHIEVED. Brownfield-formalization, ZERO src changes; 40 reporter_json_tests + full 915-test suite green. 1HIGH+3MED remediated P1-P2; 1MED self-inflicted by remediation. First SS-11 reporter story; E-8 epic opened. VP-017 deferred Phase-6. |
 | 21 | STORY-077 (TerminalReporter, 8pts) + STORY-079 (CsvReporter, 5pts) | CLOSED/CONVERGED 2026-05-30 | 41ab24d (PR #159 — STORY-079) | PRs #158/#159. STORY-077: 3ps-3clean (P1/P2/P3); STORY-079: 13ps 3-clean (P11/P12/P13; spec-side drift cascade). Wave-level: 3-lens R1-DIRTY(VP-method+FSR)→R2-2clean+1dirty(casing)→R3-CLEAN; 3/3 CLEAN. 27 tests (14 terminal+13 csv). SS-11 VP family harmonized (VP-012/016/017). BC-5.39.001 ACHIEVED. |
+| 22 | STORY-078 + STORY-080 | CLOSED/CONVERGED 2026-05-30 | c127c1c (PR #162 docs; PRs #160/#161/#162) | STORY-078: 3ps-3clean(P1/P2/P3); STORY-080: 3-clean P7/P8/P9; 3/3 wave-level lenses CLEAN; 28 tests (16 terminal+12 csv); E-8 epic COMPLETE (BC-2.11.001..024) |
+| 23 | STORY-086 | CLOSED/CONVERGED 2026-05-31 | a42e14b (PR #163) | single-story; 3-clean P1/P2/P3 (3→1→0); 15 BC-prefixed CLI tests; BC-2.12.001/002/003/006; E-9 CLI epic OPENED; 4 Low non-blocking |
+| 24 | STORY-087 + STORY-096 | CLOSED/CONVERGED 2026-05-31 | 9954d44 (PRs #164/#165) | S087: 4ps-3clean(P2/P3/P4;2→1→0→0;BC-2.12.004/005/007;16t); S096: 6ps-3clean(P4/P5/P6;1MED→1MED→1MED→0→0→0;BC-2.13.001..004;14t;facade-mutation-gate); wave-level 3ps(2→1→0); E-10 COMPLETE |
+| 25 | STORY-088 | CLOSED/CONVERGED 2026-05-31 | 5202fe9 (PR #168) | single-story; first src/main.rs formalization via assert_cmd; 19 tests (14 AC+5 EC); BC-2.12.008..013+VP-018; 6ps-3clean(P4/P5/P6; 3→1→0→0→0→0); 27 mutations caught; BC-5.39.001 ACHIEVED |
+| 26 | STORY-089 | CLOSED/CONVERGED 2026-05-31 | 450d33e (PR #169) | single-story; 6ps-3clean(P4/P5/P6); 25 tests (12 AC+5 EC+run_summary parity); BC-2.12.014..017; 17-mutation matrix all caught; 1 HIGH+5 MEDIUM remediated; F-FSR-088-089 CLOSED; BC-5.39.001 ACHIEVED |
+| 27 | STORY-090 | CLOSED/CONVERGED 2026-05-31 | 6158e6e (PR #170) | single-story FINAL; 3ps-3clean(R1/R2/R3); 18 tests (13 AC+5 EC); BC-2.12.018..021; library module; ZERO src changes; 2 remediation rounds (traceability only); corpus uniqueness sweep; BC-5.39.001 ACHIEVED; E-9 COMPLETE; PHASE 3 COMPLETE |
+
+---
+
+## Phase 3 Final Steps — Archived from STATE.md 2026-06-01
+
+Extracted per content-routing rule S-7.02 during STATE.md compaction (post-Phase-4 gate).
+All steps are COMPLETE; Phase 3 and Phase 4 both PASSED.
+
+| Step | Status | Notes |
+|------|--------|-------|
+| Wave 27 — STORY-090 converged | COMPLETE 2026-05-31 | 3ps-3clean(R1/R2/R3); 18 tests; BC-2.12.018..021; corpus uniqueness sweep; BC-5.39.001 ACHIEVED. |
+| Wave 27 — CLOSED | COMPLETE 2026-05-31 | Single-story FINAL; E-9 COMPLETE (5/5). 48/48 stories delivered. |
+| Phase 3 — COMPLETE | PASSED 2026-05-31 | 48/48 stories, 27/27 waves. All 10 epics complete. |
+| Phase 4 — HS-043 defect fixed | COMPLETE 2026-06-01 | PR #171 squash-merged → c3cd4bd. expire_idle_by_timeout wired into process_packet. Re-validation: HS-043 1.00, 4 regression checks 1.00. |
+| Phase 4 — COMPLETE | PASSED 2026-06-01 | 80-scenario rotation, mean 0.949, 0 must-pass <0.6. Gate criteria MET. Awaiting human approval for Phase 5. |
