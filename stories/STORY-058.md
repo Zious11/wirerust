@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-058"
 epic_id: "E-5"
-version: "1.3"
+version: "1.4"
 status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -94,11 +94,11 @@ When `parse_tls_plaintext` is called on a well-sized record (payload_len <= MAX_
 - **Test:** `test_malformed_handshake_increments_parse_errors_only`
 
 ### AC-009 (traces to BC-2.07.031 postcondition 1-9)
-`TlsAnalyzer::summarize` returns an `AnalysisSummary` with `analyzer_name = "TLS"`, `packets_analyzed = handshakes_seen`, and a `detail` BTreeMap containing all required keys: `"cipher_suites"`, `"ja3_hashes"`, `"ja3s_hashes"`, `"parse_errors"`, `"tls_versions"`, `"top_snis"`, `"truncated_records"`. `top_snis` is a JSON array of up to 20 SNI strings sorted by count descending. Other keys are JSON objects/numbers.
+`TlsAnalyzer::summarize` returns an `AnalysisSummary` with `analyzer_name = "TLS"`, `packets_analyzed = handshakes_seen`, and a `detail` BTreeMap containing all required keys: `"cipher_suites"`, `"ja3_hashes"`, `"ja3s_hashes"`, `"parse_errors"`, `"tls_versions"`, `"top_snis"`, `"truncated_records"`. `top_snis` is a JSON array of up to 20 SNI strings sorted by count descending; ties broken by SNI name ascending (lexicographic); deterministic across runs regardless of HashMap/insertion order. Other keys are JSON objects/numbers.
 - **Test:** `test_summarize_output`; integration test `test_summarize_has_all_required_fields`
 
 ### AC-010 (traces to BC-2.07.031 invariant 1-4)
-`detail` is a `BTreeMap` (NOT a HashMap), ensuring alphabetically ordered keys in JSON output (LESSON-P2.09 compliance). `top_snis` contains at most 20 entries (sorted by count descending, then `.take(20)`). `version_counts` u16 keys are converted to decimal String via `k.to_string()` for the JSON map.
+`detail` is a `BTreeMap` (NOT a HashMap), ensuring alphabetically ordered keys in JSON output (LESSON-P2.09 compliance). `top_snis` contains at most 20 entries; sorted by count descending with ties broken by SNI name ascending, then `.take(20)`; the resulting array is fully deterministic given the same (sni, count) pairs regardless of `sni_counts` HashMap internal ordering or insertion sequence. `version_counts` u16 keys are converted to decimal String via `k.to_string()` for the JSON map.
 - **Test:** `test_summarize_output`; `test_summarize_top_snis_capped_at_20` (assert `detail` key ordering and `top_snis.len() <= 20`)
 
 ### AC-011 (traces to BC-2.07.031 postcondition 8-9)
@@ -120,6 +120,10 @@ When `on_flow_close` is called with a `flow_key` present in `self.flows`, `self.
 ### AC-015 (traces to BC-2.07.035 invariant 1-2)
 Per-flow state cleanup is the ONLY operation in `on_flow_close`; no analysis is performed at close time. The `_reason` parameter (CloseReason) is ignored by `TlsAnalyzer`. If `on_flow_close` is called with a key NOT in `flows`, `HashMap::remove` returns `None` — no panic.
 - **Test:** `test_on_flow_close_absent_key_no_panic`
+
+### AC-016 (traces to BC-2.07.031 postcondition 3 / invariant 2 / EC-004)
+When multiple SNIs share the same count, the tied group is ordered by SNI name ascending (lexicographic); the full `top_snis` array is deterministic across all runs regardless of `sni_counts` HashMap internal ordering or insertion sequence. Sort key: `b.count.cmp(a.count).then_with(|| a.sni.cmp(b.sni))`.
+- **Test:** `test_summarize_top_snis_ties_broken_alphabetically`
 
 ## Architecture Mapping
 
@@ -147,6 +151,7 @@ Per-flow state cleanup is the ONLY operation in `on_flow_close`; no analysis is 
 | EC-009 | More than 20 distinct SNIs seen | `top_snis` has exactly 20 entries |
 | EC-010 | `on_flow_close` for key not in `flows` | No-op; no panic |
 | EC-011 | Reopening same FlowKey after close | New `TlsFlowState` created fresh on next `on_data` |
+| EC-012 | Multiple SNIs with equal counts, inserted in reverse alphabetical order | top_snis tied group appears in ascending alphabetical order; result identical regardless of insertion order (BC-2.07.031 EC-004) |
 
 ## Purity Classification
 
@@ -170,7 +175,7 @@ Per-flow state cleanup is the ONLY operation in `on_flow_close`; no analysis is 
 
 ## Tasks (MANDATORY)
 
-1. [ ] Write failing tests for AC-001 through AC-015 (test-writer)
+1. [ ] Write failing tests for AC-001 through AC-016 (test-writer)
 2. [ ] Verify Red Gate: all AC tests fail before implementation
 3. [ ] Implement oversized-record guard in `try_parse_records`: if `payload_len > MAX_RECORD_PAYLOAD`, increment `parse_errors += 1` and `truncated_records += 1`, clear buffer, return
 4. [ ] Implement per-direction buffer cap in `on_data`: `remaining = MAX_BUF.saturating_sub(state.buf.len()); to_copy = data.len().min(remaining); state.buf.extend_from_slice(&data[..to_copy])`
@@ -201,7 +206,7 @@ Per-flow state cleanup is the ONLY operation in `on_flow_close`; no analysis is 
 | Both `parse_errors` AND `truncated_records` are ALWAYS incremented together for oversized records | BC-2.07.004 invariant 1 | Unit test: AC-002 asserts both counters change together |
 | Buffer cap uses `saturating_sub` — must not panic on underflow | BC-2.07.005 invariant 2 | Code review: confirm `MAX_BUF.saturating_sub(...)` not subtraction operator |
 | `summarize` uses BTreeMap for `detail` (NOT HashMap) — deterministic JSON key ordering | BC-2.07.031 invariant 1 (LESSON-P2.09) | Code review: confirm `BTreeMap::new()` at summarize |
-| `top_snis` sorted by count descending, `.take(20)` | BC-2.07.031 invariant 2 | Unit test: AC-010 with >20 SNIs |
+| `top_snis` sorted by count descending; ties broken by SNI name ascending; `.take(20)`; deterministic across runs | BC-2.07.031 invariant 2 / postcondition 3 | Unit tests: AC-010 (>20 SNIs cap), AC-016 (tiebreaker determinism) |
 | `version_counts` keys in summarize output are decimal strings (e.g., "771"), NOT hex strings | BC-2.07.031 invariant 3 | Unit test: AC-010 assert key is "771" not "0x0303" |
 | `truncated_records` is a separate field from `parse_errors`; both appear in summarize detail | BC-2.07.031 postcondition 8-9 | Unit test: AC-011 |
 | `on_flow_close` performs ONLY `self.flows.remove(flow_key)` — no analysis at close time | BC-2.07.035 invariant 1 | Code review: confirm no analysis calls in `on_flow_close` body |
@@ -219,12 +224,13 @@ Per-flow state cleanup is the ONLY operation in `on_flow_close`; no analysis is 
 | File | Action | Purpose |
 |------|--------|---------|
 | src/analyzer/tls.rs | modify | Oversized-record guard (643-653), buffer cap (726-748), nom error handling (700-712), non-handshake skip (678-682), `summarize` (763-808), `on_flow_close` (752-754) |
-| tests/tls_analyzer_tests.rs | modify | `test_oversized_sni_exceeds_record_payload_limit`, `test_oversized_after_valid_hello_increments_both`, `test_record_payload_boundary_18432_vs_18433`, `test_buffer_cap_appends_at_most_max_buf`, `test_buffer_cap_appends_at_most_max_buf_literal_residue`, `test_buffer_full_append_noop`, `test_buffer_full_append_noop_literal`, `test_buffer_overflow_silent_no_counters`, `test_parse_error_counter`, `test_malformed_handshake_increments_parse_errors_only`, `test_summarize_output`, `test_summarize_has_all_required_fields`, `test_summarize_top_snis_capped_at_20`, `test_fresh_summarize_truncated_records_zero`, `test_appdata_record_skipped_then_hello`, `test_stop_after_handshake`, `test_within_loop_nonhandshake_skip_before_done`, `test_nonhandshake_types_0x14_0x15_0x17_0x18_all_skip_silently`, `test_on_flow_close_drops_state_preserves_aggregates`, `test_on_flow_close_absent_key_no_panic` |
+| tests/tls_analyzer_tests.rs | modify | `test_oversized_sni_exceeds_record_payload_limit`, `test_oversized_after_valid_hello_increments_both`, `test_record_payload_boundary_18432_vs_18433`, `test_buffer_cap_appends_at_most_max_buf`, `test_buffer_cap_appends_at_most_max_buf_literal_residue`, `test_buffer_full_append_noop`, `test_buffer_full_append_noop_literal`, `test_buffer_overflow_silent_no_counters`, `test_parse_error_counter`, `test_malformed_handshake_increments_parse_errors_only`, `test_summarize_output`, `test_summarize_has_all_required_fields`, `test_summarize_top_snis_capped_at_20`, `test_summarize_top_snis_ties_broken_alphabetically`, `test_fresh_summarize_truncated_records_zero`, `test_appdata_record_skipped_then_hello`, `test_stop_after_handshake`, `test_within_loop_nonhandshake_skip_before_done`, `test_nonhandshake_types_0x14_0x15_0x17_0x18_all_skip_silently`, `test_on_flow_close_drops_state_preserves_aggregates`, `test_on_flow_close_absent_key_no_panic` |
 
 ## Changelog
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| v1.4 | 2026-06-01 | story-writer | FIX-P5-003 — add AC-016 (top_snis tiebreaker: SNI name ASC, deterministic); expand AC-009 and AC-010 descriptions with SNI-name-ascending tiebreaker and determinism guarantee; add EC-012; update Architecture Compliance Rules and FSR for top_snis determinism (BC-2.07.031 v1.3 postcondition 3 / invariant 2 / EC-004) |
 | v1.3 | 2026-05-29 | story-writer | Qualify AC-002 "preceding partial record" sub-clause as defensive/by-inspection per BC-2.07.004 v1.3 (F-S058-P6-002): that scenario is not reachable via the public `on_data` API (parser reads from `buf[0]` and returns at the incompleteness check before a later oversized record could be encountered). Normative assertion retained: buffer clearing is unconditional. |
 | v1.2 | 2026-05-29 | story-writer | Re-point AC-013 to within-loop-skip test (F-S058-P1-002): `test_stop_after_handshake` removed (proves done()-short-circuit, not within-loop skip); canonical citation is now `test_within_loop_nonhandshake_skip_before_done` + `test_nonhandshake_types_0x14_0x15_0x17_0x18_all_skip_silently`. Add literal-cap residue test citations to AC-004 (`test_buffer_cap_appends_at_most_max_buf_literal_residue`) and AC-005 (`test_buffer_full_append_noop_literal`). FSR enumerates all 20 test fn names. Normative AC scenarios, BC list, and tls.rs line anchors unchanged. |
 | v1.1 | 2026-05-29 | story-writer | AC-citation sync — AC-002/003/004/005/006/008/010/011/012/014/015 cite concrete test fn names (DF-AC-TEST-NAME-SYNC-001, proactive PG-W17-001 fix). FSR row for tests/tls_analyzer_tests.rs updated to enumerate all 16 concrete test names. Normative AC text, BC list, narrative, edge cases, and scenarios unchanged. |

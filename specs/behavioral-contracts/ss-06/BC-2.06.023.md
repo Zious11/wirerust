@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: anchor-completeness — add 5 missing test back-references (STORY-046 Wave 18, F-S046-P3-001) — 2026-05-29"
+  - "v1.4: FIX-P5-003 / ADV-IMPL-P06-HIGH-001 — tighten top_hosts tiebreaker: count desc then host name ASC; determinism claim now covers sort key, not just BTreeMap; add EC-004; add VP/anchor for test_summarize_top_hosts_ties_broken_alphabetically — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -50,10 +51,14 @@ the keys listed in the postconditions.
      - `"poisoned_bytes_skipped"`: u64 count
      - `"recent_uris"`: first 20 URIs from self.uris
      - `"status_codes"`: map of status_code_str -> count
-     - `"top_hosts"`: top 20 hosts sorted by frequency (desc)
+     - `"top_hosts"`: top 20 hosts sorted by count descending, ties broken by host name ascending
      - `"transactions"`: u64 = self.transactions
      - `"user_agents"`: map of UA string -> count
-2. `top_hosts` is sorted by count descending and truncated to 20 entries.
+2. `top_hosts` is sorted by count descending; ties are broken by host name ascending
+   (lexicographic); the result is deterministic across all runs regardless of
+   HashMap/insertion order. The sort key is:
+   `b.count.cmp(a.count).then_with(|| a.host.cmp(b.host))`.
+   The sorted list is then truncated to at most 20 entries.
 3. `recent_uris` is the first 20 entries from `self.uris` (not sorted -- insertion order).
 
 ## Invariants
@@ -62,6 +67,10 @@ the keys listed in the postconditions.
 2. `packets_analyzed` equals `transactions`, NOT the count of parsed requests.
 3. `status_codes` keys are stringified u16 values (e.g., "200", "404").
 4. `summarize()` does not modify any state (read-only).
+5. The `top_hosts` array in JSON output is fully deterministic: given the same set of
+   (host, count) pairs, every invocation produces the same ordered array, regardless of
+   HashMap internal ordering or insertion sequence. This is achieved by sorting with a
+   composite key (count desc, name asc) before `.take(20)`.
 
 ## Edge Cases
 
@@ -70,6 +79,7 @@ the keys listed in the postconditions.
 | EC-001 | No flows processed | All maps empty; transactions=0 |
 | EC-002 | > 20 hosts seen | top_hosts truncated to 20 (most frequent) |
 | EC-003 | > 20 URIs seen | recent_uris shows first 20 (not last 20) |
+| EC-004 | Multiple hosts with equal counts | top_hosts entries within the tied group appear in ascending alphabetical order by host name; order is deterministic regardless of HashMap/insertion ordering |
 
 ## Canonical Test Vectors
 
@@ -77,6 +87,7 @@ the keys listed in the postconditions.
 |-------|----------------|----------|
 | After parsing 5 GET requests and 3 responses | transactions=3, methods={"GET":5}, recent_uris has 5 entries | happy-path |
 | Zero traffic | transactions=0; all maps empty | edge-case |
+| 25 hosts all with count=5, inserted in reverse alphabetical order | top_hosts[0..20] appear in strictly ascending alphabetical order within the tied group; result identical regardless of insertion order | tiebreaker / EC-004 |
 
 ## Verification Properties
 
@@ -85,6 +96,7 @@ the keys listed in the postconditions.
 | — | summarize produces complete output with all required keys | unit: test_summarize_produces_complete_output (postcondition 1) |
 | — | summarize includes parse_errors correctly | unit: test_parse_error_in_summarize (postcondition 1) |
 | — | top_hosts is sorted by count descending and truncated to ≤ 20 entries | unit: test_summarize_top_hosts_sorted_and_truncated (postcondition 2 / EC-002) |
+| — | top_hosts ties broken by host name ascending; result is deterministic regardless of insertion order | unit: test_summarize_top_hosts_ties_broken_alphabetically (postcondition 2 / invariant 5 / EC-004) |
 | — | recent_uris returns first 20 URIs in insertion order, not sorted | unit: test_summarize_recent_uris_first_20 (postcondition 3 / EC-003) |
 | — | BTreeMap key order is alphabetical and deterministic across runs | unit: test_summarize_btreemap_key_order_is_deterministic (invariant 1) |
 | — | packets_analyzed equals transactions (response count), not request count | unit: test_summarize_packets_analyzed_equals_transactions (invariant 2) |
@@ -109,9 +121,11 @@ the keys listed in the postconditions.
 ## Architecture Anchors
 
 - `src/analyzer/http.rs:550-601` -- summarize() implementation
+- `src/analyzer/http.rs:571-573` -- top_hosts sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)))` then `.take(20)` (FIX-P5-003)
 - `tests/http_analyzer_tests.rs::test_summarize_produces_complete_output` -- covers postcondition 1 (all required keys present)
 - `tests/http_analyzer_tests.rs::test_parse_error_in_summarize` -- covers postcondition 1 (parse_errors key)
 - `tests/http_analyzer_tests.rs::test_summarize_top_hosts_sorted_and_truncated` -- covers postcondition 2 / EC-002 (top_hosts sort + truncation)
+- `tests/http_analyzer_tests.rs::test_summarize_top_hosts_ties_broken_alphabetically` -- covers postcondition 2 / invariant 5 / EC-004 (tiebreaker: host name ASC; determinism under reverse-insertion) (FIX-P5-003)
 - `tests/http_analyzer_tests.rs::test_summarize_recent_uris_first_20` -- covers postcondition 3 / EC-003 (recent_uris insertion-order slice)
 - `tests/http_analyzer_tests.rs::test_summarize_btreemap_key_order_is_deterministic` -- covers invariant 1 (deterministic key ordering)
 - `tests/http_analyzer_tests.rs::test_summarize_packets_analyzed_equals_transactions` -- covers invariant 2 (packets_analyzed = transactions)
@@ -128,6 +142,7 @@ the keys listed in the postconditions.
 ## Evidence Types Used
 
 - **assertion**: test_summarize_produces_complete_output
+- **assertion**: test_summarize_top_hosts_ties_broken_alphabetically (FIX-P5-003)
 
 ## Purity Classification
 
@@ -135,6 +150,6 @@ the keys listed in the postconditions.
 |----------|-----------|
 | **I/O operations** | none |
 | **Global state access** | reads only (no mutation) |
-| **Deterministic** | yes (BTreeMap ensures key order) |
+| **Deterministic** | yes — BTreeMap ensures key order; composite sort key (count desc, host name asc) ensures top_hosts array order is fully deterministic even when multiple hosts share the same count (FIX-P5-003) |
 | **Thread safety** | requires &self (shared ref) |
 | **Overall classification** | pure (read-only view computation) |

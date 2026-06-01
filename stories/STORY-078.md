@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-078"
 epic_id: "E-8"
-version: "1.3"
+version: "1.4"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -127,6 +127,18 @@ ANALYZER sections appear last, one per `AnalysisSummary` element, in slice order
 SERVICES section is absent entirely when `service_counts()` returns an empty map.
 - **Test:** `test_BC_2_11_019_services_section_absent_when_empty()`
 
+### AC-017 (traces to BC-2.11.019 postcondition 7)
+The body lines of the PROTOCOLS section are rendered in count-descending order; ties among protocols are broken by the protocol's `Debug` representation string ascending (lexicographic). The output is deterministic across all runs regardless of the underlying HashMap iteration order of `protocol_counts()`. Sort key: `b.count.cmp(a.count).then_with(|| format!("{:?}", a.proto).cmp(&format!("{:?}", b.proto)))`.
+- **Test:** `test_terminal_protocols_sorted_count_then_name`
+
+### AC-018 (traces to BC-2.11.019 postcondition 8)
+The body lines of the SERVICES section are rendered in count-descending order; ties among service names are broken by service name string ascending (lexicographic). The output is deterministic across all runs regardless of the underlying HashMap iteration order of `service_counts()`. Sort key: `b.count.cmp(a.count).then_with(|| a.name.cmp(b.name))`.
+- **Test:** `test_terminal_services_sorted_count_then_name`
+
+### AC-019 (traces to BC-2.11.019 invariant 6)
+The within-section body order for PROTOCOLS and SERVICES is determined by an explicit sort (not HashMap iteration order); the output is therefore fully reproducible given the same input regardless of Rust runtime HashMap randomization.
+- **Test:** `test_terminal_protocols_sorted_count_then_name`; `test_terminal_services_sorted_count_then_name`
+
 ## Architecture Mapping
 
 | Component | Module | Pure/Effectful |
@@ -150,6 +162,8 @@ SERVICES section is absent entirely when `service_counts()` returns an empty map
 | EC-007 | show_mitre_grouping = false | Bare "MITRE: T1036", no em-dash |
 | EC-008 | No findings, no services | Header + PROTOCOLS only |
 | EC-009 | show_hosts_breakdown = true | HOSTS section between header and PROTOCOLS |
+| EC-010 | Multiple protocols with equal counts, inserted in non-sorted order | Within the tied group, protocols appear in ascending order of Debug string (e.g., "Icmp" < "Other(10)" < "Tcp"); result deterministic regardless of HashMap internal order (BC-2.11.019 postcondition 7 / EC-006) |
+| EC-011 | Multiple services with equal counts, inserted in non-sorted order | Within the tied group, services appear in ascending alphabetical order by service name string; result deterministic regardless of HashMap internal order (BC-2.11.019 postcondition 8 / EC-007) |
 
 ## Purity Classification
 
@@ -172,7 +186,7 @@ SERVICES section is absent entirely when `service_counts()` returns an empty map
 
 ## Tasks (MANDATORY)
 
-1. [ ] Write failing tests for AC-001 through AC-016 (test-writer)
+1. [ ] Write failing tests for AC-001 through AC-019 (test-writer)
 2. [ ] Verify all tests fail at Red Gate
 3. [ ] Verify `src/reporter/terminal.rs` already satisfies all ACs (brownfield confirm)
 4. [ ] Confirm `all_tactics_in_report_order()` is iterated at terminal.rs:283 in grouped rendering
@@ -199,6 +213,8 @@ SERVICES section is absent entirely when `service_counts()` returns an empty map
 | `Uncategorized` bucket key is `Option<MitreTactic>::None` | BC-2.11.015 invariant 1 | Code review of bucket map type at terminal.rs:258 |
 | Em-dash separator is U+2014, not ASCII `--` | BC-2.11.016 invariant 1 | Code review of terminal.rs:241; test for em-dash presence |
 | `render_finding_flat` NEVER calls `technique_name()` or `technique_tactic()` | BC-2.11.017 invariant 2 | Code review of render_finding_flat at terminal.rs:223-228 |
+| PROTOCOLS body sorted by count desc, ties by `format!("{:?}", proto)` string asc; NOT HashMap iteration order | BC-2.11.019 postcondition 7 / invariant 6 | Unit test: AC-017 (test_terminal_protocols_sorted_count_then_name) |
+| SERVICES body sorted by count desc, ties by service name string asc; NOT HashMap iteration order | BC-2.11.019 postcondition 8 / invariant 6 | Unit test: AC-018 (test_terminal_services_sorted_count_then_name) |
 
 ## Library & Framework Requirements (MANDATORY)
 
@@ -213,7 +229,7 @@ SERVICES section is absent entirely when `service_counts()` returns an empty map
 |------|--------|---------|
 | src/reporter/terminal.rs | verify/modify | render_findings_grouped (253-297), render_finding_grouped (237-245), render_finding_flat (223-228), render (83-178) |
 | src/mitre.rs | verify | `all_tactics_in_report_order()`, `technique_tactic()`, `technique_name()` |
-| tests/reporter_terminal_tests.rs | create or modify | AC-001 through AC-016 tests |
+| tests/reporter_terminal_tests.rs | create or modify | AC-001 through AC-019 tests; includes test_terminal_protocols_sorted_count_then_name (AC-017/AC-019), test_terminal_services_sorted_count_then_name (AC-018/AC-019) |
 
 ## Revision History
 
@@ -221,3 +237,4 @@ SERVICES section is absent entirely when `service_counts()` returns an empty map
 |---------|------|--------|--------|
 | v1.2 | 2026-05-30 | story-writer | AC-007 trace completeness pc2→pc2,3 to match test coverage (Wave-22 P3 finding F-1) |
 | v1.3 | 2026-05-30 | story-writer | corrected test-file citation reporter_tests.rs → reporter_terminal_tests.rs (FSR + Token Budget); Wave-22 wave-level traceability finding |
+| v1.4 | 2026-06-01 | story-writer | FIX-P5-003 — add AC-017 (PROTOCOLS sorted count-desc then Debug-string asc), AC-018 (SERVICES sorted count-desc then name asc), AC-019 (invariant 6: explicit sort, not HashMap order); add EC-010/EC-011 tiebreaker edge cases; extend Architecture Compliance Rules; update FSR (BC-2.11.019 v1.3 postconditions 7-8, invariant 6, EC-006/EC-007) |

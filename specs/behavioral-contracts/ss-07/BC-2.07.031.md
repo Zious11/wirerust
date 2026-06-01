@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: FIX-P5-003 / ADV-IMPL-P06-HIGH-001 — tighten top_snis tiebreaker: count desc then SNI name ASC; determinism claim now covers sort key; add EC-004; add VP/anchor for test_summarize_top_snis_ties_broken_alphabetically — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -42,7 +44,9 @@ deterministic alphabetical key ordering in JSON output.
 1. `AnalysisSummary.analyzer_name == "TLS"`.
 2. `AnalysisSummary.packets_analyzed == self.handshakes_seen`.
 3. `detail["top_snis"]` is a JSON array of up to 20 SNI strings sorted by count
-   descending.
+   descending; ties are broken by SNI name ascending (lexicographic). The array is
+   fully deterministic across runs regardless of HashMap/insertion order. Sort key:
+   `b.count.cmp(a.count).then_with(|| a.sni.cmp(b.sni))`, then `.take(20)`.
 4. `detail["ja3_hashes"]` is a JSON object mapping JA3 hash -> count.
 5. `detail["ja3s_hashes"]` is a JSON object mapping JA3S hash -> count.
 6. `detail["tls_versions"]` is a JSON object mapping version string -> count
@@ -55,8 +59,11 @@ deterministic alphabetical key ordering in JSON output.
 
 1. `detail` is a BTreeMap, so JSON output keys are alphabetically ordered
    (per LESSON-P2.09).
-2. `top_snis` contains at most 20 entries; it uses sort-by-count-descending then
-   `.take(20)`.
+2. `top_snis` contains at most 20 entries; it uses sort-by-count-descending
+   with tie-breaking by SNI name ascending, then `.take(20)`. The resulting
+   array is fully deterministic: given the same (sni, count) pairs, every
+   invocation produces the same ordered array regardless of sni_counts HashMap
+   internal ordering or insertion sequence.
 3. `version_counts` values are u16 keys; they are converted to String via
    `k.to_string()` (decimal) for the JSON map.
 4. The `truncated_records` key was added in P1.05 for CNV-PAT-002 compliance.
@@ -68,6 +75,7 @@ deterministic alphabetical key ordering in JSON output.
 | EC-001 | Analyzer with no data (fresh instance) | packets_analyzed=0; all maps empty; parse_errors=0 |
 | EC-002 | More than 20 distinct SNIs seen | top_snis has exactly 20 entries |
 | EC-003 | Version counts have multiple entries | tls_versions map has multiple entries |
+| EC-004 | Multiple SNIs with equal counts | SNIs within the tied group appear in ascending alphabetical order; result is deterministic regardless of sni_counts HashMap/insertion ordering |
 
 ## Canonical Test Vectors
 
@@ -75,6 +83,7 @@ deterministic alphabetical key ordering in JSON output.
 |-------|----------------|----------|
 | Analyzer after one clean handshake | packets_analyzed=1; top_snis has 1 entry; parse_errors=0; truncated_records=0 | happy-path |
 | Fresh analyzer, no data | packets_analyzed=0; all maps/arrays empty | edge-case |
+| 25 SNIs all with count=1, inserted in reverse alphabetical order | top_snis[0..20] appear in strictly ascending alphabetical order within the tied group; result identical regardless of insertion order | tiebreaker / EC-004 |
 
 ## Verification Properties
 
@@ -82,6 +91,7 @@ deterministic alphabetical key ordering in JSON output.
 |--------|----------|-------------|
 | — | summarize contains all required detail keys | unit: test_summarize_output; integration: test_summarize_has_all_required_fields |
 | — | truncated_records is present in detail | unit: assert detail["truncated_records"] exists |
+| — | top_snis ties broken by SNI name ascending; result is deterministic regardless of insertion order | unit: test_summarize_top_snis_ties_broken_alphabetically (postcondition 3 / invariant 2 / EC-004) (FIX-P5-003) |
 
 ## Traceability
 
@@ -103,7 +113,9 @@ deterministic alphabetical key ordering in JSON output.
 ## Architecture Anchors
 
 - `src/analyzer/tls.rs:763-808` -- `summarize` implementation
-- `tests/tls_analyzer_tests.rs` -- test_summarize_output
+- `src/analyzer/tls.rs:771-773` -- top_snis sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)))` then `.take(20)` (FIX-P5-003)
+- `tests/tls_analyzer_tests.rs::test_summarize_output` -- covers postcondition 1-9 (all required detail keys)
+- `tests/tls_analyzer_tests.rs::test_summarize_top_snis_ties_broken_alphabetically` -- covers postcondition 3 / invariant 2 / EC-004 (tiebreaker: SNI name ASC; determinism under reverse-insertion) (FIX-P5-003)
 
 ## Source Evidence
 
@@ -116,6 +128,7 @@ deterministic alphabetical key ordering in JSON output.
 ## Evidence Types Used
 
 - **assertion**: test_summarize_output; integration test_summarize_has_all_required_fields
+- **assertion**: test_summarize_top_snis_ties_broken_alphabetically (FIX-P5-003)
 
 ## Purity Classification
 
@@ -123,6 +136,6 @@ deterministic alphabetical key ordering in JSON output.
 |----------|-----------|
 | **I/O operations** | none |
 | **Global state access** | reads all count maps and counters |
-| **Deterministic** | yes (BTreeMap ensures ordering) |
+| **Deterministic** | yes — BTreeMap ensures key order; composite sort key (count desc, SNI name asc) ensures top_snis array order is fully deterministic even when multiple SNIs share the same count (FIX-P5-003) |
 | **Thread safety** | not thread-safe (&self, but mutable borrows of TlsAnalyzer blocked) |
 | **Overall classification** | pure (read-only) |
