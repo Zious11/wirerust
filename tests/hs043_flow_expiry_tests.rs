@@ -1,20 +1,25 @@
-//! HS-043 flow-expiry wiring tests (BC-2.04.013 v1.5 PC0 — caller obligation).
+//! HS-043 flow-expiry wiring tests (BC-2.04.013 v1.7 PC0 — idle-expiry wiring).
 //!
-//! ## Defect being tested
+//! ## What these tests verify
 //!
-//! `expire_flows` exists in `TcpReassembler` but is NEVER called from the
-//! production per-packet loop (`process_packet` in `main.rs`). As a result:
-//!   - `stats.flows_expired` is always 0 after a CLI run.
-//!   - Idle-flow memory is never reclaimed in production.
-//!   - The `--flow-timeout` CLI flag does not exist.
+//! `process_packet` in `mod.rs` calls `expire_idle_by_timeout` (the
+//! production-wired per-packet sweep) after each packet.  As a result:
+//!   - `stats.flows_expired` increments whenever idle flows are swept.
+//!   - Idle-flow memory is reclaimed in production on the per-packet path.
+//!   - The `--flow-timeout` CLI flag exists (cli.rs) and is wired through.
 //!
-//! ## What these tests prove (and why they fail before the fix)
+//! Note: `expire_flows` is a separate public/direct-call API on
+//! `TcpReassembler` (offline/test use).  It is NOT the per-packet path;
+//! `expire_idle_by_timeout` (mod.rs:575-590) is the function called from
+//! the production loop (mod.rs:166-169).
 //!
-//! Every test in this module asserts the desired post-fix behaviour.  Before
-//! the fix lands:
-//!   - Integration tests fail because `flows_expired` stays 0 (expire_flows
-//!     is never wired into process_packet).
-//!   - CLI tests fail because `--flow-timeout` is an unknown clap argument.
+//! ## What these tests prove
+//!
+//! Every test in this module asserts the post-fix (production-wired) behaviour:
+//!   - Integration tests confirm `flows_expired` increments when idle flows
+//!     are swept by `expire_idle_by_timeout` on the per-packet path.
+//!   - CLI tests confirm `--flow-timeout` is a valid clap argument and that
+//!     the JSON output reflects the expired-flow count.
 //!
 //! ## Fixture: tests/fixtures/flow-expiry.pcap
 //!
@@ -29,10 +34,10 @@
 //!                          10.0.0.3:22222 -> 10.0.0.2:80, seq=2000
 //!
 //! Rationale: when `--flow-timeout 5` is used, Flow A (last_seen=0) is idle
-//! for 6 seconds when Flow B arrives at t=6.  The post-fix wiring calls
-//! `expire_flows(6, handler)` from inside `process_packet`, which expires
-//! Flow A (6 - 0 = 6 > 5 → expired).  Flow B itself is freshly created at
-//! t=6, so it is NOT expired in the same call.
+//! for 6 seconds when Flow B arrives at t=6.  `process_packet` calls
+//! `expire_idle_by_timeout(6, handler)` internally, which expires Flow A
+//! (6 - 0 = 6 > 5 → expired).  Flow B itself is freshly created at t=6,
+//! so it is NOT expired in the same call.
 
 mod hs043 {
     use std::net::{IpAddr, Ipv4Addr};
@@ -106,24 +111,27 @@ mod hs043 {
     // -------------------------------------------------------------------------
     // Test 1 — Integration through process_packet (load-bearing)
     //
-    // BC-2.04.013 v1.5 PC0: the *caller* of process_packet MUST call
-    // expire_flows on the same TcpReassembler after each packet, passing the
-    // packet's timestamp as current_time.  This is the "wiring" obligation.
+    // BC-2.04.013 v1.7 PC0: `process_packet` calls `expire_idle_by_timeout`
+    // (the production-wired idle sweep) after each packet, passing the
+    // packet's timestamp as current_time.  This verifies the wiring obligation.
+    //
+    // `expire_flows` is the separate public/direct-call API; it is NOT the
+    // function called from the per-packet path.  The assertion below verifies
+    // the observable outcome: `flows_expired` increments when idle flows are
+    // swept by `expire_idle_by_timeout` on the per-packet path.
     //
     // Setup:
     //   - flow_timeout_secs = 5
     //   - Flow A SYN at t=0  (last_seen=0)
-    //   - Flow B SYN at t=6  (process_packet must internally trigger expiry of
-    //                          Flow A because 6 - 0 = 6 > 5)
+    //   - Flow B SYN at t=6  (process_packet internally calls
+    //                          expire_idle_by_timeout(6, handler), which
+    //                          expires Flow A because 6 - 0 = 6 > 5)
     //
     // Expected: after process_packet for Flow B at t=6, flows_expired >= 1.
-    //
-    // Why it fails NOW: process_packet never calls expire_flows, so
-    // flows_expired stays 0.
     // -------------------------------------------------------------------------
     #[test]
     #[allow(non_snake_case)]
-    fn test_BC_2_04_013_v15_PC0_expire_flows_called_from_process_packet() {
+    fn test_BC_2_04_013_PC0_idle_expiry_wired_in_process_packet() {
         let config = ReassemblyConfig {
             flow_timeout_secs: 5,
             ..ReassemblyConfig::default()
@@ -154,8 +162,8 @@ mod hs043 {
         );
 
         // Flow B SYN at timestamp t=6.
-        // After the fix, process_packet must call expire_flows(6, handler)
-        // internally, which expires Flow A (last_seen=0, 6-0=6 > 5).
+        // process_packet calls expire_idle_by_timeout(6, handler) internally,
+        // which expires Flow A (last_seen=0, 6-0=6 > 5).
         let syn_b = make_tcp_packet(
             [10, 0, 0, 3],
             22222,
@@ -170,8 +178,9 @@ mod hs043 {
         );
         reassembler.process_packet(&syn_b, 6, &mut handler);
 
-        // BC-2.04.013 v1.5 PC0: flows_expired must be >= 1.
-        // Fails NOW because expire_flows is never called from process_packet.
+        // BC-2.04.013 v1.7 PC0: flows_expired must be >= 1.
+        // expire_idle_by_timeout is called from process_packet; flows_expired
+        // increments when idle flows are swept on the per-packet path.
         assert!(
             reassembler.stats().flows_expired >= 1,
             "BC-2.04.013 v1.5 PC0: flows_expired must be >= 1 after Flow A (last_seen=0) \
@@ -183,7 +192,7 @@ mod hs043 {
     // -------------------------------------------------------------------------
     // Test 2 — Boundary: NOT expired at exactly flow_timeout_secs
     //
-    // expire_flows uses strict-greater semantics:
+    // expire_idle_by_timeout uses strict-greater semantics:
     //   (current_time - last_seen) > timeout  ← strictly greater, not >=
     //
     // A flow idle for EXACTLY flow_timeout_secs must NOT be expired.
@@ -195,12 +204,11 @@ mod hs043 {
     //
     // delta = 5 - 0 = 5; 5 > 5 is false → NOT expired.
     //
-    // Why it fails NOW: process_packet never calls expire_flows, so the
-    // assertion `flows_expired == 0` would trivially pass — but we also assert
-    // that after the fix, the NOT-expired invariant holds at exact boundary.
-    // We test the post-fix NOT-expiry by also confirming flow_count() == 2
-    // (both flows alive), which currently holds vacuously and must continue to
-    // hold after the fix.  This test is written to catch a > vs >= regression.
+    // The assertion `flows_expired == 0` verifies the strict-greater boundary:
+    // with `expire_idle_by_timeout` wired into process_packet, a flow idle for
+    // EXACTLY flow_timeout_secs must NOT be expired.  The companion assertion
+    // flow_count() == 2 confirms both flows remain alive.  Together they guard
+    // against a > vs >= regression in the expiry predicate.
     // -------------------------------------------------------------------------
     #[test]
     #[allow(non_snake_case)]
@@ -244,9 +252,9 @@ mod hs043 {
         reassembler.process_packet(&syn_b, 5, &mut handler);
 
         // Both flows must still be alive (neither expired).
-        // After the fix this is the load-bearing boundary assertion.
-        // Before the fix this trivially passes; it is harmless here and serves
-        // as a regression guard for the boundary semantics.
+        // This is the load-bearing boundary assertion: with expire_idle_by_timeout
+        // wired into process_packet, the strict-greater predicate must hold —
+        // a flow idle for EXACTLY timeout secs must NOT be swept.
         assert_eq!(
             reassembler.stats().flows_expired,
             0,
@@ -274,11 +282,9 @@ mod hs043 {
     // delta = 6 - 0 = 6; 6 > 5 is true → EXPIRED.
     //
     // This is the companion to test 2 — one second past the exact boundary
-    // must flip the expiry.  This test is the primary "wiring is wrong" detector
-    // when run AFTER the fix.
-    //
-    // Why it fails NOW: same as test 1 — flows_expired stays 0 because
-    // process_packet never calls expire_flows.
+    // must flip the expiry.  This test is the primary regression guard for
+    // the per-packet wiring: if expire_idle_by_timeout were ever removed from
+    // process_packet, flows_expired would stay 0 and this test would fail.
     // -------------------------------------------------------------------------
     #[test]
     #[allow(non_snake_case)]
@@ -321,8 +327,9 @@ mod hs043 {
         );
         reassembler.process_packet(&syn_b, 6, &mut handler);
 
-        // Flow A must have been expired via process_packet's internal call.
-        // Fails NOW: flows_expired == 0 because expire_flows is not wired.
+        // Flow A must have been expired via process_packet's internal call to
+        // expire_idle_by_timeout.  flows_expired increments on the per-packet
+        // path; if that wiring is removed, flows_expired stays 0 and this fails.
         assert!(
             reassembler.stats().flows_expired >= 1,
             "BC-2.04.013 v1.5 boundary (timeout+1): flow idle for 6s with timeout=5 MUST be \
@@ -334,13 +341,12 @@ mod hs043 {
     // -------------------------------------------------------------------------
     // Test 4 — CLI black-box: --flow-timeout 5 produces flows_expired >= 1
     //
-    // The CLI must accept `--flow-timeout 5`.  When run against the
+    // The CLI accepts `--flow-timeout 5` (cli.rs).  When run against the
     // tests/fixtures/flow-expiry.pcap fixture (two TCP SYNs at t=0 and t=6),
     // the JSON output must show flows_expired >= 1 in the TCP Reassembly
-    // analyzer summary.
-    //
-    // Why it fails NOW:
-    //   `--flow-timeout` is an unknown argument; clap rejects it and exits 2.
+    // analyzer summary.  The wiring from --flow-timeout through
+    // ReassemblyConfig.flow_timeout_secs to expire_idle_by_timeout is
+    // exercised end-to-end by this CLI black-box test.
     //
     // Fixture: tests/fixtures/flow-expiry.pcap
     //   Built with raw libpcap bytes (Python 3 stdlib):
@@ -665,12 +671,10 @@ mod hs043 {
     // The acceptance spec requires minimum 1 and rejection of 0.
     // clap must validate the range [1, u32::MAX] (or similar) for this flag.
     //
-    // Why it fails NOW: --flow-timeout does not exist at all; clap rejects it
-    // as an unknown argument (exit code 2) rather than a range-validation error.
-    // After the fix, 0 must specifically be rejected as out-of-range (also
-    // non-zero exit).  Either failure mode (unknown-arg OR out-of-range) is a
-    // non-zero exit, so `assert().failure()` correctly captures both the
-    // pre-fix (unknown arg) and the post-fix (0 rejected) states.
+    // `--flow-timeout` exists (cli.rs) and clap validates the range [1, u32::MAX].
+    // Passing 0 must be rejected as an out-of-range value (non-zero exit).
+    // `assert().failure()` verifies the non-zero exit; the specific error message
+    // (clap range-validation) is not asserted here to avoid brittleness.
     // -------------------------------------------------------------------------
     #[test]
     #[allow(non_snake_case)]
