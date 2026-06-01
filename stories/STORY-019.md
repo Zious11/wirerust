@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-019"
 epic_id: "E-2"
-version: "1.5"
+version: "1.6"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -62,7 +62,7 @@ implementation_strategy: brownfield-formalization
 After a RST:
 - The flow is removed from `self.flows` (PC4) — automated-test-verified via flow_count assertion.
 - `handler.on_flow_close(key, CloseReason::Rst)` is called exactly once (PC3) — automated-test-verified via close_events assertion.
-- Any remaining contiguous data in both directions IS flushed to the handler via `on_data` calls (PC2) — **structurally a defense-in-depth invariant** per BC-2.04.010 v1.5 PC2 enforcement-mode notation. The engine's per-packet flush at `src/reassembly/mod.rs:162` already drains contiguous-prefix data before any close path runs, so `close_flow`'s `flush_contiguous` loop at `src/reassembly/lifecycle.rs:52-59` is structurally a defensive no-op in normal operation. The test verifies the close path runs without error; PC2's flush invariant is enforced via code-review of the loop body's presence (mirrors BC-2.04.029 v1.4 PC1/PC2/PC3 + BC-2.04.048 v1.3 PC2 + ADR-0004 amendment enforcement-mode precedent).
+- Any remaining contiguous data in both directions IS flushed to the handler via `on_data` calls (PC2) — **structurally a defense-in-depth invariant** per BC-2.04.010 v1.5 PC2 enforcement-mode notation. The engine's per-packet flush at `src/reassembly/mod.rs:191` already drains contiguous-prefix data before any close path runs, so `close_flow`'s `flush_contiguous` loop at `src/reassembly/lifecycle.rs:52-59` is structurally a defensive no-op in normal operation. The test verifies the close path runs without error; PC2's flush invariant is enforced via code-review of the loop body's presence (mirrors BC-2.04.029 v1.4 PC1/PC2/PC3 + BC-2.04.048 v1.3 PC2 + ADR-0004 amendment enforcement-mode precedent).
 
 - **Test:** `test_BC_2_04_010_rst_flushes_then_closes`
 
@@ -133,10 +133,10 @@ When `close_flow` returns early for a missing key:
 
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
-| RST handling in apply_handshake_flags | src/reassembly/mod.rs:273-279 | effectful-shell |
-| FIN close detection in process_packet | src/reassembly/mod.rs:165-174 | effectful-shell |
-| FIN flag block in apply_handshake_flags | src/reassembly/mod.rs:281-287 | effectful-shell |
-| expire_flows | src/reassembly/mod.rs:536-552 | effectful-shell |
+| RST handling in apply_handshake_flags | src/reassembly/mod.rs:303-308 | effectful-shell |
+| FIN close detection in process_packet | src/reassembly/mod.rs:194-203 | effectful-shell |
+| FIN flag block in apply_handshake_flags | src/reassembly/mod.rs:310-316 | effectful-shell |
+| expire_flows | src/reassembly/mod.rs:593-609 | effectful-shell |
 | close_flow (missing-key guard) | src/reassembly/lifecycle.rs:42-50 | effectful-shell (stderr write) |
 | CLOSE_FLOW_MISSING_WARNED AtomicBool | src/reassembly/lifecycle.rs:31 | effectful-shell (global state) |
 
@@ -145,7 +145,7 @@ When `close_flow` returns early for a missing key:
 | ID | Scenario | Expected Behavior |
 |----|----------|-------------------|
 | EC-001 | RST on New flow (no handshake, no data) | flows_rst++; on_flow_close(Rst); flow removed; no data flushed |
-| EC-002 | RST on flow with buffered data (non-contiguous) | Buffered non-contiguous data is silently dropped at close (flush_contiguous can't deliver behind a gap); flow closes cleanly; total_memory released. Per-packet flush at mod.rs:162 has already drained any contiguous prefix before RST arrives. |
+| EC-002 | RST on flow with buffered data (non-contiguous) | Buffered non-contiguous data is silently dropped at close (flush_contiguous can't deliver behind a gap); flow closes cleanly; total_memory released. Per-packet flush at mod.rs:191 has already drained any contiguous prefix before RST arrives. |
 | EC-003 | RST packet carries payload | Payload is NOT inserted; RST wins |
 | EC-004 | FIN on New flow | state->Closing; fin_count=1; flow open; second FIN closes |
 | EC-005 | FIN+data packet | Data inserted and flushed; then FIN-close detected |
@@ -168,7 +168,7 @@ When `close_flow` returns early for a missing key:
 |---------------|-----------------|
 | This story spec | ~2,800 |
 | BC files (4 BCs) | ~5,000 |
-| src/reassembly/mod.rs (RST block ~273-279, FIN close ~165-174, expire_flows ~536-552) | ~1,500 |
+| src/reassembly/mod.rs (RST block ~303-308, FIN close ~194-203, expire_flows ~593-609) | ~1,500 |
 | src/reassembly/lifecycle.rs (close_flow missing-key ~31-50) | ~600 |
 | src/reassembly/flow.rs (on_fin ~255-262, on_rst ~264-266) | ~400 |
 | Test files | ~4,000 |
@@ -202,13 +202,13 @@ When `close_flow` returns early for a missing key:
 |------|--------|-------------|
 | RST triggers `PostHandshake::FlowClosed`; payload processing skipped | BC-2.04.010 invariant 3 | Code review: RST block returns FlowClosed before payload branch |
 | FIN close fires AFTER payload processing (fin-close detection is post-flush) | BC-2.04.011 invariant 2 | Test: insert data in FIN packet; assert data delivered before on_flow_close |
-| expire_flows underflow guard: `current_time > last_seen` checked BEFORE subtraction | BC-2.04.013 invariant 1 | Code review: guard ordering in mod.rs:536-552 (fn decl :536, closing :552) |
+| expire_flows underflow guard: `current_time > last_seen` checked BEFORE subtraction | BC-2.04.013 invariant 1 | Code review: guard ordering in mod.rs:593-609 (fn decl :593, closing :609) |
 | `CLOSE_FLOW_MISSING_WARNED` uses `swap(true, Ordering::Relaxed)` one-shot pattern | BC-2.04.029 invariant 1 | Code review: grep for swap in lifecycle.rs |
 | debug_assert fires in debug builds when close_flow called for missing key | BC-2.04.029 postcondition 6 | Compile with debug assertions; run tests |
 | **No additional eprintln on subsequent missing-key calls** | BC-2.04.029 PC5 | Code review of swap-guarded if-block at `src/reassembly/lifecycle.rs:42-50` (matches BC-2.04.048 PC2 / inv-3 / ADR-0004 amendment precedent) |
 | **`#[doc(hidden)]` on test-only accessors** | BC-2.04.029 + brownfield-formalization API hygiene | Code review: `close_flow_missing_warned_for_testing()`, `reset_close_flow_missing_warned_for_testing()`, `trigger_close_flow_missing_key_for_testing()`, and `force_set_flow_state_for_testing()` (added in W8.3 + F-1 pre-empt) all carry `#[doc(hidden)]` |
 | **Missing-key path is side-effect-free (no on_flow_close, no memory change, no flows change)** | BC-2.04.029 PC1/PC2/PC3 | Code review of the `let Some(mut flow) = self.flows.remove(key) else { ... return; }` early-return at `src/reassembly/lifecycle.rs:42-50` — the missing-key branch contains only debug_assert + swap + eprintln + return, with no access to mutable state. Automated tests exercise the trigger seam, NOT production close_flow (cannot, due to PC6 debug_assert in debug builds). |
-| **In-close_flow flush is defensive (per-packet flush already drains buffer pre-close)** | BC-2.04.010 PC2 v1.5 | Code review of `flush_contiguous` loop body at `src/reassembly/lifecycle.rs:52-59` — the loop is structurally a defense-in-depth invariant; under current engine architecture (per-packet flush at mod.rs:162) it cannot be triggered to deliver data. |
+| **In-close_flow flush is defensive (per-packet flush already drains buffer pre-close)** | BC-2.04.010 PC2 v1.5 | Code review of `flush_contiguous` loop body at `src/reassembly/lifecycle.rs:52-59` — the loop is structurally a defense-in-depth invariant; under current engine architecture (per-packet flush at mod.rs:191) it cannot be triggered to deliver data. |
 
 ## Library & Framework Requirements (MANDATORY)
 
@@ -221,7 +221,7 @@ When `close_flow` returns early for a missing key:
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/reassembly/lifecycle.rs` | verify + append | Verified close_flow missing-key guard at :42-50. Appended #[doc(hidden)] pub fn test seams at end-of-file: close_flow_missing_warned_for_testing(), reset_close_flow_missing_warned_for_testing(), trigger_close_flow_missing_key_for_testing(), force_set_flow_state_for_testing() — opt-in-per-guard per ADR-0004 amendment |
-| `src/reassembly/mod.rs` | verify + visibility widen | Widened `mod lifecycle` → `pub mod lifecycle` to expose test-seam accessors; verified RST/FIN/expire_flows blocks at lines 165-174, 273-279, 281-287, 536-552 |
+| `src/reassembly/mod.rs` | verify + visibility widen | Widened `mod lifecycle` → `pub mod lifecycle` to expose test-seam accessors; verified RST/FIN/expire_flows blocks at lines 194-203, 303-308, 310-316, 593-609 |
 | `src/reassembly/flow.rs` | verify (lines 255-262, 264-266) | on_fin and on_rst implementations |
 | `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-015 (engine-level lifecycle tests) |
 | `tests/reassembly_flow_tests.rs` | modify | Add flow-level state transition tests for on_fin/on_rst |
@@ -230,6 +230,7 @@ When `close_flow` returns early for a missing key:
 
 | Version | Date | Author | Notes |
 |---------|------|--------|-------|
+| 1.6 | 2026-06-01 | story-writer | DF-SIBLING-SWEEP-001 story-body mod.rs re-anchor to HEAD e0451ef (Phase-5 anchor-class closure): AC-002 flush cite 162→191; Architecture Mapping RST 273-279→303-308, FIN-close 165-174→194-203, FIN-flag 281-287→310-316, expire_flows 536-552→593-609; EC-002 cite 162→191; Token Budget ranges updated; Architecture Compliance Rule expire_flows 536-552→593-609 and flush cite 162→191; File Structure verify range updated. |
 | 1.5 | 2026-05-25 | story-writer | Wave 8 STORY-019 adv-pass-4 F-2 closure (MEDIUM): AC-002 rewritten with PC2 enforcement-mode split (structural defense-in-depth; per-packet flush at mod.rs:162 drains buffer pre-close; close_flow's flush loop is a defensive no-op in normal operation). EC-002 description updated to acknowledge non-contiguous "ccc" is silently dropped (cannot flush behind gap). Added Architecture Compliance Rules row covering the defensive-no-op invariant. Mirrors BC-2.04.029 v1.4 + BC-2.04.048 v1.3 / ADR-0004 amendment enforcement-mode pattern. |
 | 1.4 | 2026-05-25 | story-writer | Wave 8 STORY-019 adv-pass-2 F-1 closure (MEDIUM): AC-015 rewritten with enforcement-mode split (structural code-review for production close_flow's no-side-effect guarantee; automated test covers trigger-seam's no-op semantics). AC-013/AC-014 combined-test entry annotated with same caveat for its close_events assertions. Added Architecture Compliance Rule row covering the let-else early-return structural enforcement. Mirrors v1.3 AC-014 / BC-2.04.048 PC2 / ADR-0004 amendment enforcement-mode pattern. |
 | 1.3 | 2026-05-25 | story-writer | Wave 8 STORY-019 adv-pass-1 F-4 closure: explicit enforcement-mode notation on AC-014 ("no additional eprintln" sub-property moved from automated-test to code-review enforcement per BC-2.04.029 PC5; mirrors BC-2.04.048 PC2 / inv-3 / Wave-7 ADR-0004 amendment precedent). Added Architecture Compliance Rules rows for swap-guard code review + #[doc(hidden)] test-accessor hygiene (covers 4 test seams including the F-1 pre-empt force_set_flow_state_for_testing). Updated File Structure Requirements to acknowledge the appended lifecycle.rs test seams and the mod.rs visibility widening. |

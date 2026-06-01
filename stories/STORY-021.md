@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-021"
 epic_id: "E-2"
-version: "2.1"
+version: "2.2"
 status: completed
 producer: story-writer
 timestamp: 2026-05-27T06:00:00Z
@@ -116,7 +116,7 @@ implementation_strategy: brownfield-formalization
 - **Test:** `test_BC_2_04_024_dropped_findings_monotone_over_multiple_cap_hits`
 
 ### AC-015 (traces to BC-2.04.024 postconditions 1-2 — small_segment cap-guard site)
-- The small-segment cap-guard at `src/reassembly/mod.rs:466` (small_segment_alert emission path) correctly rejects the finding and increments `stats.dropped_findings` when `findings.len() >= MAX_FINDINGS`. The out-of-window cap-guard at `mod.rs:495` is covered by sibling-story STORY-017 test `test_story_017_ec007_oow_alert_at_max_findings_latch_set_dropped_incremented`.
+- The small-segment cap-guard at `src/reassembly/mod.rs:495` (small_segment_alert emission path) correctly rejects the finding and increments `stats.dropped_findings` when `findings.len() >= MAX_FINDINGS`. The out-of-window cap-guard at `mod.rs:524` is covered by sibling-story STORY-017 test `test_story_017_ec007_oow_alert_at_max_findings_latch_set_dropped_incremented`.
 - **Test:** `test_BC_2_04_024_cap_guard_small_segment_site`
 
 ### AC-016 (traces to BC-2.04.054 postconditions 1-2 + BC-2.04.054 EC-002 'bypass semantics not triggered below cap'; satisfies story EC-006 boundary)
@@ -131,12 +131,12 @@ implementation_strategy: brownfield-formalization
 
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
-| finalize (latch, flow loop, segment-limit block) | src/reassembly/mod.rs:557-591 | effectful-shell |
-| impl Drop tripwire | src/reassembly/mod.rs:794-808 | effectful-shell (stderr write) |
+| finalize (latch, flow loop, segment-limit block) | src/reassembly/mod.rs:614-648 | effectful-shell |
+| impl Drop tripwire | src/reassembly/mod.rs:851-865 | effectful-shell (stderr write) |
 | MAX_FINDINGS constant | src/reassembly/mod.rs:54 | pure-core (constant) |
-| dropped_findings counter sites | src/reassembly/mod.rs:432,466,495; lifecycle.rs:101,121 | effectful-shell |
+| dropped_findings counter sites | src/reassembly/mod.rs:461,495,524; lifecycle.rs:101,121 | effectful-shell |
 | plural_s helper | src/reassembly/mod.rs:66-68 | pure-core |
-| segment-limit finding push (unconditional) | src/reassembly/mod.rs:573 | effectful-shell |
+| segment-limit finding push (unconditional) | src/reassembly/mod.rs:630 | effectful-shell |
 | `all_findings_len_for_testing` / `push_finding_for_testing` | src/analyzer/http.rs | effectful-shell (test-only) |
 | `all_findings_len_for_testing` / `push_finding_for_testing` | src/analyzer/tls.rs | effectful-shell (test-only) |
 | `finalize_skipped_warned_for_testing() -> bool` | src/reassembly/mod.rs | effectful-shell (test-only) |
@@ -158,7 +158,7 @@ implementation_strategy: brownfield-formalization
 | EC-007 | Drop without finalize | One-shot eprintln; flows NOT flushed (no handler in Drop) |
 | EC-008 | Clean PCAP (no anomalies, no segment limit) | findings.is_empty() (or only flow-generated findings); no segment-limit finding |
 | EC-009 | Multiple consecutive cap-hit events | `dropped_findings` accumulates monotonically (N events → counter += N); verified at N=3 (BC-2.04.024 EC-004). Backed by AC-014 |
-| EC-010 | All 5 cap-guard sites correctly reject + increment `dropped_findings` at MAX_FINDINGS | (1) **mod.rs:432** overlap_alert path — covered by `test_BC_2_04_022_latch_fires_before_cap_check` (sibling story); (2) **mod.rs:466** small_segment_alert path — covered by AC-015 `test_BC_2_04_024_cap_guard_small_segment_site`; (3) **mod.rs:495** out_of_window_alert path — covered by `test_story_017_ec007_oow_alert_at_max_findings_latch_set_dropped_incremented` (STORY-017 sibling); (4) **lifecycle.rs:101** conflicting_overlap_finding path — primarily covered by `test_story_017_ec001_conflicting_overlap_at_max_findings_drops_and_counts` (STORY-017 sibling, structurally specific to this site); also incidentally exercised by AC-005 `test_BC_2_04_024_findings_capped_at_max_findings`; (5) **lifecycle.rs:121** truncated_finding path — covered by `test_BC_2_04_023_truncated_finding_dropped_at_cap` (sibling story) |
+| EC-010 | All 5 cap-guard sites correctly reject + increment `dropped_findings` at MAX_FINDINGS | (1) **mod.rs:461** overlap_alert path — covered by `test_BC_2_04_022_latch_fires_before_cap_check` (sibling story); (2) **mod.rs:495** small_segment_alert path — covered by AC-015 `test_BC_2_04_024_cap_guard_small_segment_site`; (3) **mod.rs:524** out_of_window_alert path — covered by `test_story_017_ec007_oow_alert_at_max_findings_latch_set_dropped_incremented` (STORY-017 sibling); (4) **lifecycle.rs:101** conflicting_overlap_finding path — primarily covered by `test_story_017_ec001_conflicting_overlap_at_max_findings_drops_and_counts` (STORY-017 sibling, structurally specific to this site); also incidentally exercised by AC-005 `test_BC_2_04_024_findings_capped_at_max_findings`; (5) **lifecycle.rs:121** truncated_finding path — covered by `test_BC_2_04_023_truncated_finding_dropped_at_cap` (sibling story) |
 | EC-011 | HttpAnalyzer / TlsAnalyzer findings collections exceed 10,000 | NOT capped — the MAX_FINDINGS cap is engine-local to TcpReassembler; analyzer collections grow unbounded. Backed by AC-007b |
 
 ## Purity Classification
@@ -174,7 +174,7 @@ implementation_strategy: brownfield-formalization
 |---------------|-----------------|
 | This story spec | ~3,000 |
 | BC files (5 BCs) | ~5,500 |
-| src/reassembly/mod.rs (finalize ~557-591, impl Drop ~794-808, MAX_FINDINGS ~54, dropped_findings sites ~432,466,495) | ~2,500 |
+| src/reassembly/mod.rs (finalize ~614-648, impl Drop ~851-865, MAX_FINDINGS ~54, dropped_findings sites ~461,495,524) | ~2,500 |
 | src/reassembly/lifecycle.rs (dropped_findings sites ~101,121) | ~500 |
 | src/analyzer/http.rs (test seams: push_finding_for_testing, all_findings_len_for_testing) | ~500 |
 | src/analyzer/tls.rs (test seams: push_finding_for_testing, all_findings_len_for_testing) | ~500 |
@@ -247,9 +247,9 @@ implementation_strategy: brownfield-formalization
 
 | Rule | Source | Enforcement |
 |------|--------|-------------|
-| `self.finalized = true` is set BEFORE the flow-closing loop | BC-2.04.012 invariant 1 | Code review: `self.finalized = true` at mod.rs:561, flow-closing loop at mod.rs:564+ |
+| `self.finalized = true` is set BEFORE the flow-closing loop | BC-2.04.012 invariant 1 | Code review: `self.finalized = true` at mod.rs:618, flow-closing loop at mod.rs:621+ |
 | finalize calls `close_flow(key, CloseReason::Timeout, handler)` for remaining flows | BC-2.04.012 postcondition 1 | Test: capture on_flow_close reason; assert == Timeout |
-| finalize segment-limit push has NO MAX_FINDINGS guard (unconditional) | BC-2.04.054 invariant 1 | Code review: absence of guard at mod.rs:573 vs guard presence at all other 5 sites |
+| finalize segment-limit push has NO MAX_FINDINGS guard (unconditional) | BC-2.04.054 invariant 1 | Code review: absence of guard at mod.rs:630 vs guard presence at all other 5 sites |
 | `plural_s` helper: returns `""` for count==1, `"s"` otherwise | BC-2.04.025 invariant 3 | Test: AC-009 with count=1 and count=2 |
 | `impl Drop` is diagnostic ONLY — it cannot flush flows (no handler argument) | BC-2.04.012 invariant 3 | Code review: Drop::drop signature has no handler |
 | `MAX_FINDINGS = 10_000` is the constant; findings.len() <= 10001 after any run | BC-2.04.024 invariant 1; BC-2.04.054 invariant 3 | Test: AC-013 representative-scenario assertion; universal upper-bound proof owned by VP-003 |
@@ -267,7 +267,7 @@ implementation_strategy: brownfield-formalization
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `src/reassembly/mod.rs` | verify (lines 54, 66-68, 432, 466, 495, 557-591, 794-808) | MAX_FINDINGS const, plural_s, cap guard sites, finalize, impl Drop |
+| `src/reassembly/mod.rs` | verify (lines 54, 66-68, 461, 495, 524, 614-648, 851-865) | MAX_FINDINGS const, plural_s, cap guard sites, finalize, impl Drop |
 | `src/reassembly/lifecycle.rs` | verify (lines 101, 121) | dropped_findings guard sites in generate_ functions |
 | `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-013 (original); AC-007b, AC-014 through AC-017 (post-pass-1) |
 | `src/analyzer/http.rs` | verify (test seams) | `push_finding_for_testing`, `all_findings_len_for_testing` — used by AC-007b test |
@@ -287,5 +287,6 @@ implementation_strategy: brownfield-formalization
 | 1.7 | 2026-05-27 | Post-adversarial-pass-7 citation re-anchor (F-W11P7-001): replaced 3 stale `mod.rs:796-810` citations with `mod.rs:794-808` (impl Drop shifted up 2 lines after pass-6 trust-boundary seam docstring shortening) across Architecture Mapping table, Token Budget table, and File Structure Requirements table; process-lesson PSI row added (impl Drop line citation drift pattern across 4 cycles); task 42 appended |
 | 1.9 | 2026-05-28 | W11-D1 propagation: BC-2.04.012 v1.6, BC-2.04.025 v1.3, BC-2.04.026 v1.4 replaced bare `—` VP placeholders with explicit N/A markers. These BC-internal VP table changes do not affect any body AC text or architecture anchors in STORY-021 (VP field is frontmatter-only). input-hash bumped 9e32780→220a653 to reflect all three BC content updates. DF-SIBLING-SWEEP-001: grep confirmed no `—` VP placeholders mirrored into STORY-021 body from these BCs; verification_properties: [VP-003] frontmatter unchanged.
 | 2.0 | 2026-05-29 | state-manager | input-hash corrected via canonical bin/compute-input-hash --update (prior value `220a653` was hand-computed sha256 over sorted inputs-file list; tool uses MD5 over inputs-order file list). New value: `68dadd4`. |
+| 2.2 | 2026-06-01 | story-writer | DF-SIBLING-SWEEP-001 story-body mod.rs re-anchor to HEAD e0451ef (Phase-5 anchor-class closure): AC-015 small_segment cap-guard 466→495, OOW cap-guard 495→524; Architecture Mapping finalize 557-591→614-648, impl Drop 794-808→851-865, dropped_findings sites 432/466/495→461/495/524, segment-limit push 573→630; EC-010 cap-guard sites 432/466/495→461/495/524; Architecture Compliance Rules self.finalized 561→618, flow-loop 564+→621+, segment-limit push 573→630; Token Budget ranges updated; File Structure verify ranges updated. |
 | 2.1 | 2026-05-29 | state-manager | status reconciled to completed per sprint-state.yaml (merge_commit 3cd3000 wave 11); F-DRIFT3B-001/PG-W16-002. |
 | 1.8 | 2026-05-27 | Post-pass-8 product-owner remediation (F-W11P8-001, F-W11P8-002): input-hash bumped from edf8559 → 9e32780 to reflect BC-2.04.012 v1.5 content change (impl Drop citation now worktree-post-STORY-021 794-808); pre-merge re-anchor doctrine adopted; PSI process-lesson closure row added; task 43 appended |

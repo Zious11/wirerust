@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-020"
 epic_id: "E-2"
-version: "2.0"
+version: "2.1"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -35,6 +35,7 @@ implementation_strategy: brownfield-formalization
 
 | Version | Date | Author | Summary |
 |---------|------|--------|---------|
+| 2.1 | 2026-06-01 | story-writer | DF-SIBLING-SWEEP-001 story-body mod.rs re-anchor to HEAD e0451ef (Phase-5 anchor-class closure): AC-013 PATH 1 cite 227-232→256-261, PATH 2 cite 176-179→205-208; Architecture Mapping total_memory-insert 337-340→367-368, total_memory-flush 525-527→554-556, max_flows check 225-235→248-271, memcap check 176-179→205-208; Token Budget ranges updated; Task 8 code-review range 227-232→256-261; File Structure verify ranges updated. |
 | 2.0 | 2026-05-29 | state-manager | status reconciled to completed per sprint-state.yaml (merge_commit 8cb907e wave 9); F-DRIFT3B-001/PG-W16-002. |
 | 1.9 | 2026-05-26 | story-writer | Wave 9 wave-level adv pass-3 fixes (5TH CONSECUTIVE CYCLE of sibling-regression pattern — W9-D8 codification critical): F-W9P3-001 PC-N → PC-5 (resolves placeholder left by pass-2 F-W9P2-003 burst); F-W9P3-003 EC-012 memcap=12 → memcap=4 (matches actual test value; was arithmetically impossible against described 5-byte buffer). |
 | 1.8 | 2026-05-26 | story-writer | Wave 9 wave-level adv pass-2 F-W9P2-003 (sibling-regression of pass-1 F-W9P1-002): added AC-014 tracing to BC-2.04.015 v1.5 PC-7 + BC-2.04.016 sibling PC (data-loss-on-MemoryPressure-eviction); added EC-012 to Edge Cases for the canonical 5+5 byte test vector; AC-014 test target name aligned with parallel test-writer dispatch. |
@@ -119,8 +120,8 @@ NOTE: The 'evict_flows runs and frees ≥1 slot but table still at capacity' sce
 
 ### AC-013 (traces to BC-2.04.015 invariant 1)
 - Both eviction triggers reach the same `evict_flows` function:
-  - max_flows trigger via `get_or_create_flow` (src/reassembly/mod.rs:227-232) is verified by code review — the unconditional `self.evict_flows(handler)` call at this line is the witness; the call is structurally observable in source but not behaviorally observable when evict_flows exits as a no-op (PATH 1 / no-op case).
-  - memcap trigger via `process_packet` (src/reassembly/mod.rs:176-179) is verified by test — when total > memcap, evict_flows is called and (under valid configs) evicts at least one flow, witnessed via CloseReason::MemoryPressure on close_events (PATH 2 / observable case).
+  - max_flows trigger via `get_or_create_flow` (src/reassembly/mod.rs:256-261) is verified by code review — the unconditional `self.evict_flows(handler)` call at this line is the witness; the call is structurally observable in source but not behaviorally observable when evict_flows exits as a no-op (PATH 1 / no-op case).
+  - memcap trigger via `process_packet` (src/reassembly/mod.rs:205-208) is verified by test — when total > memcap, evict_flows is called and (under valid configs) evicts at least one flow, witnessed via CloseReason::MemoryPressure on close_events (PATH 2 / observable case).
   The test (`test_BC_2_04_015_both_eviction_paths_use_same_function`) verifies PATH 2 behaviorally; PATH 1 is verified by code review against the cited source line.
 - **Test:** `test_BC_2_04_015_both_eviction_paths_use_same_function()`
 
@@ -141,12 +142,12 @@ codepath.
 
 | Component | Module | Pure/Effectful |
 |-----------|--------|---------------|
-| total_memory increment on insert | src/reassembly/mod.rs:337-340 | effectful-shell (mutates self.total_memory) |
-| total_memory decrement on flush | src/reassembly/mod.rs:525-527 | effectful-shell |
+| total_memory increment on insert | src/reassembly/mod.rs:367-368 | effectful-shell (mutates self.total_memory) |
+| total_memory decrement on flush | src/reassembly/mod.rs:554-556 | effectful-shell |
 | total_memory decrement on close | src/reassembly/lifecycle.rs:60 | effectful-shell |
 | evict_flows (sort + close loop) | src/reassembly/lifecycle.rs:67-92 | effectful-shell (sort alloc + close callbacks) |
-| get_or_create_flow max_flows check | src/reassembly/mod.rs:225-235 | effectful-shell |
-| memcap check in process_packet | src/reassembly/mod.rs:176-179 | effectful-shell |
+| get_or_create_flow max_flows check | src/reassembly/mod.rs:248-271 | effectful-shell |
+| memcap check in process_packet | src/reassembly/mod.rs:205-208 | effectful-shell |
 
 ## Edge Cases
 
@@ -178,7 +179,7 @@ codepath.
 |---------------|-----------------|
 | This story spec | ~3,000 |
 | BC files (4 BCs) | ~5,000 |
-| src/reassembly/mod.rs (total_memory sites ~337-340, ~525-527, memcap check ~176-179, get_or_create_flow ~225-235) | ~2,000 |
+| src/reassembly/mod.rs (total_memory sites ~367-368, ~554-556, memcap check ~205-208, get_or_create_flow ~248-271) | ~2,000 |
 | src/reassembly/lifecycle.rs (evict_flows ~67-92, total_memory decrement ~60) | ~1,500 |
 | Test files | ~4,500 |
 | Tool outputs overhead | ~1,000 |
@@ -195,7 +196,7 @@ codepath.
 5. [ ] Build eviction order test: mix New, SynSent, Closing, Closed, Established flows with varying last_seen; assert first eviction picks non-Established with lowest last_seen
 6. [ ] Test memcap boundary: `total_memory == memcap` (no eviction) vs `memcap + 1` (eviction triggers)
 7. [ ] Test `get_or_create_flow` returns false when `evict_flows` is a no-op (max_flows-only pressure, total_memory ≤ memcap) per BC-2.04.015 v1.3 Invariant 4 (EC-005 no-op rejection scenario; AC-005 also exercises this — see AC-005 note re: 'structural rejection' being unreachable)
-8. [ ] Verify PATH 1 entry point structurally (code review at mod.rs:227-232) and PATH 2 behaviorally (CloseReason::MemoryPressure emission)
+8. [ ] Verify PATH 1 entry point structurally (code review at mod.rs:256-261) and PATH 2 behaviorally (CloseReason::MemoryPressure emission)
 9. [ ] Update STATE.md
 
 ## Previous Story Intelligence (MANDATORY)
@@ -228,6 +229,6 @@ codepath.
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `src/reassembly/mod.rs` | verify (lines 176-179, 225-235, 337-340, 525-527) | memcap check, max_flows check, total_memory increment/decrement sites |
+| `src/reassembly/mod.rs` | verify (lines 205-208, 248-271, 367-368, 554-556) | memcap check, max_flows check, total_memory increment/decrement sites |
 | `src/reassembly/lifecycle.rs` | verify (lines 60, 67-92) | total_memory close decrement, evict_flows sort + loop |
 | `tests/reassembly_engine_tests.rs` | modify | Add AC-001 through AC-014 |

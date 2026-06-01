@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-018"
 epic_id: "E-2"
-version: "1.9"
+version: "2.0"
 status: completed
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
@@ -151,8 +151,8 @@ implementation_strategy: brownfield-formalization
 | insert_segment segment-limit check (non-overlap) | src/reassembly/segment.rs:70-72 | pure-core |
 | insert_segment segment-limit check (overlap loop) | src/reassembly/segment.rs:175-199 | pure-core |
 | generate_truncated_finding | src/reassembly/lifecycle.rs:120-136 | effectful-shell (mutates findings/stats) |
-| small_segment_run update in insert_payload_segment | src/reassembly/mod.rs:356-370 | effectful-shell (mutates flow_dir) |
-| DepthExceeded match arm | src/reassembly/mod.rs:387-389 | effectful-shell (mutates stats) |
+| small_segment_run update in insert_payload_segment | src/reassembly/mod.rs:385-399 | effectful-shell (mutates flow_dir) |
+| DepthExceeded match arm | src/reassembly/mod.rs:416-418 | effectful-shell (mutates stats) |
 
 ## Edge Cases
 
@@ -185,7 +185,7 @@ implementation_strategy: brownfield-formalization
 | BC files (8 BCs) | ~8,000 |
 | src/reassembly/segment.rs (depth/window/limit sections ~lines 63-104, 175-199) | ~2,500 |
 | src/reassembly/lifecycle.rs (generate_truncated_finding ~lines 120-136) | ~500 |
-| src/reassembly/mod.rs (DepthExceeded arm, small_segment_run ~lines 356-389) | ~1,000 |
+| src/reassembly/mod.rs (DepthExceeded arm, small_segment_run ~lines 385-418) | ~1,000 |
 | Test files | ~5,000 |
 | Tool outputs overhead | ~1,000 |
 | **Total** | **~21,500** |
@@ -220,7 +220,7 @@ implementation_strategy: brownfield-formalization
 | Segment-limit check runs BEFORE depth check | BC-2.04.044 invariant 1 | Code review: segment.rs:70 before 79 |
 | `depth_exceeded` is permanent once set for a direction (never reset) | BC-2.04.041 invariant 1 | Test: verify third segment after Truncated also returns DepthExceeded |
 | Truncated finding uses `source_ip` but NOT `direction` | BC-2.04.023 invariant 3 | Test: assert direction field is None in finding |
-| `small_segment_run` uses `saturating_add(1)` (not wrapping add) | BC-2.04.040 invariant 3 | Code review: grep saturating_add in mod.rs:356-370 |
+| `small_segment_run` uses `saturating_add(1)` (not wrapping add) | BC-2.04.040 invariant 3 | Code review: grep saturating_add in mod.rs:385-399 |
 | Truncated finding evidence: exactly `["Max depth N bytes reached"]` | BC-2.04.023 postcondition 1 | Test: assert evidence vec == expected string with max_depth substituted |
 | OutOfWindow boundary is exclusive: `offset > window`, not `>=` | BC-2.04.042 precondition 3 | Test: AC-012 boundary test |
 
@@ -237,7 +237,7 @@ implementation_strategy: brownfield-formalization
 |------|--------|---------|
 | `src/reassembly/segment.rs` | verify (lines 63-104, 175-199) | Out-of-window, depth, and segment-limit checks |
 | `src/reassembly/lifecycle.rs` | verify (lines 120-136) | generate_truncated_finding |
-| `src/reassembly/mod.rs` | verify (lines 356-389) | small_segment_run update and DepthExceeded counter |
+| `src/reassembly/mod.rs` | verify (lines 385-418) | small_segment_run update and DepthExceeded counter |
 | `tests/reassembly_segment_tests.rs` | modify | Add AC-001 through AC-019 (segment-level tests) |
 | `tests/reassembly_engine_tests.rs` | modify | Add engine-level truncation and finding tests |
 
@@ -252,5 +252,6 @@ implementation_strategy: brownfield-formalization
 | 1.5 | 2026-05-26 | story-writer | Wave 10 STORY-018 pass-5 fixes (sibling-regression of pass-4 v2-refined sweep gaps): F-PASS5-001 (MED) — dropped non-existent "EC-005" from AC-002 NOTE (BC-2.04.041 v1.3 EC table has only EC-001..EC-004); F-PASS5-002 (MED, within-story half) — AC-018 "no gap can be inserted" tail removed (structurally unreachable per early-guard analysis); AC-018 rescoped to "overlap_count claim only" with cross-ref to AC-019 for partial-insertion accounting; O-PASS5-001 (LOW) — AC-001 NOTE added mirroring AC-002 NOTE for allowed==0 boundary. DF-SIBLING-SWEEP-001 v3 refinement applied: sweep now includes (a) cross-reference target resolution verification, (b) implementation-reachability reasoning. W10-D7 codification target validated (BC-2.04.045 v1.3 PC2 "or no gaps fit at all" unreachable branch deferred to wave-gate). |
 | 1.7 | 2026-05-28 | story-writer | W10-D8 propagation: BC-2.04.045 v1.4 removed "or no gaps fit at all" from PC2 (structurally unreachable — early-guard at segment.rs:70-72 prevents entry at len>=max_segments). Body sweep confirmed no live occurrence of the removed phrase (only historical changelog reference at v1.5 remains — permitted). BC-2.04.041 v1.4 added forensic data-loss note (PC7); BC-2.04.045 v1.4 PC3 overlap_count claim unchanged from STORY-018 v1.6 AC-018. No body AC text required edits. input-hash bumped 41b6ae2→b67d7fb. DF-SIBLING-SWEEP-001: grep confirmed no stale "or no gaps fit at all" in live body sections.
 | 1.8 | 2026-05-29 | state-manager | input-hash corrected via canonical bin/compute-input-hash --update (prior value `b67d7fb` was hand-computed sha256 over sorted inputs-file list; tool uses MD5 over inputs-order file list). New value: `41b6ae2`. Also: BC-2.04.045 v1.5 (cap-04 citation + mid-loop anchor correction) applied this burst. |
+| 2.0 | 2026-06-01 | story-writer | DF-SIBLING-SWEEP-001 story-body mod.rs re-anchor to HEAD e0451ef (Phase-5 anchor-class closure): Architecture Mapping small_segment_run 356-370→385-399; DepthExceeded arm 387-389→416-418; Token Budget range 356-389→385-418; Architecture Compliance Rule grep range 356-370→385-399; File Structure verify range 356-389→385-418. |
 | 1.9 | 2026-05-29 | state-manager | status reconciled to completed per sprint-state.yaml (merge_commit f4963ba wave 10); F-DRIFT3B-001/PG-W16-002. |
 | 1.6 | 2026-05-26 | story-writer | Wave 10 STORY-018 pass-6 fix: F-PASS6-001 (MED, recursive sweep-gap pattern — DF-SIBLING-SWEEP-001 v3 axis 'implementation-reachability reasoning' was applied to current-pass ACs but not to ACs whose BCs were modified in PRIOR passes this wave) — AC-007 antecedent rewritten to enumerate all 3 BC-2.04.027 v1.3 paths (a/b/c) for DepthExceeded; added NOTE pointing at first-call cases (paths b/c) and BC-2.04.027 v1.3 EC-005. DF-SIBLING-SWEEP-001 v4 refinement applied: sweep now broadens to ALL ACs whose anchored BCs were modified in any pass of any cycle since the AC was last reviewed. |
