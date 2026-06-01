@@ -36,7 +36,10 @@
 // Suppress the lint for this file rather than diverge from the naming scheme.
 #![allow(non_snake_case)]
 
+use std::net::{IpAddr, Ipv4Addr};
+
 use wirerust::analyzer::AnalysisSummary;
+use wirerust::decoder::{ParsedPacket, Protocol, TransportInfo};
 use wirerust::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use wirerust::reporter::Reporter;
 use wirerust::reporter::terminal::TerminalReporter;
@@ -1354,6 +1357,390 @@ mod story_078 {
             pos_findings < pos_dns,
             "BC-2.11.019 pc5: 'FINDINGS' must appear before analyzer sections; \
              pos_findings={pos_findings}, pos_dns={pos_dns}"
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// FIX-P5-003 / ADV-IMPL-P06-MED-001: terminal PROTOCOLS + SERVICES ordering
+// ---------------------------------------------------------------------------
+//
+// Defect: `TerminalReporter::render` iterates `summary.protocol_counts()` and
+// `summary.service_counts()` directly.  Both return `&HashMap<K,u64>`, whose
+// iteration order is per-process-random.  The rendered PROTOCOLS and SERVICES
+// section lines therefore appear in an unpredictable order across runs.
+//
+// Fix: sort each map's entries by count descending, then by name ascending
+// before rendering.
+//
+// RED-GATE STRATEGY: Build a Summary with multiple protocols (TCP and UDP at
+// the same count, plus an ICMP at a distinct count) and multiple services at
+// controlled counts.  Assert the exact line order in the rendered output.  The
+// current HashMap-iteration code is not sorted, so the assertion fails when
+// iteration order differs from the expected sorted order — which happens
+// reliably given enough distinct entries and the deliberate mixed insertion
+// pattern below.
+
+mod fix_p5_003_terminal_ordering {
+    use super::*;
+
+    // -----------------------------------------------------------------------
+    // Helper: build a ParsedPacket with controlled protocol/port.
+    // -----------------------------------------------------------------------
+
+    fn make_tcp_packet(dst_port: u16) -> ParsedPacket {
+        ParsedPacket {
+            src_ip: IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)),
+            dst_ip: IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)),
+            protocol: Protocol::Tcp,
+            transport: TransportInfo::Tcp {
+                src_port: 54321,
+                dst_port,
+                seq_number: 1,
+                syn: false,
+                ack: false,
+                fin: false,
+                rst: false,
+            },
+            payload: vec![],
+            packet_len: 54,
+        }
+    }
+
+    fn make_udp_packet(dst_port: u16) -> ParsedPacket {
+        ParsedPacket {
+            src_ip: IpAddr::V4(Ipv4Addr::new(10, 0, 0, 3)),
+            dst_ip: IpAddr::V4(Ipv4Addr::new(10, 0, 0, 4)),
+            protocol: Protocol::Udp,
+            transport: TransportInfo::Udp {
+                src_port: 54322,
+                dst_port,
+            },
+            payload: vec![],
+            packet_len: 42,
+        }
+    }
+
+    fn make_icmp_packet() -> ParsedPacket {
+        ParsedPacket {
+            src_ip: IpAddr::V4(Ipv4Addr::new(10, 0, 0, 5)),
+            dst_ip: IpAddr::V4(Ipv4Addr::new(10, 0, 0, 6)),
+            protocol: Protocol::Icmp,
+            transport: TransportInfo::None,
+            payload: vec![],
+            packet_len: 28,
+        }
+    }
+
+    /// Build a packet with `Protocol::Other(proto_num)` (no transport, no service hint).
+    fn make_other_packet(proto_num: u8) -> ParsedPacket {
+        ParsedPacket {
+            src_ip: IpAddr::V4(Ipv4Addr::new(10, 0, 0, 7)),
+            dst_ip: IpAddr::V4(Ipv4Addr::new(10, 0, 0, 8)),
+            protocol: Protocol::Other(proto_num),
+            transport: TransportInfo::None,
+            payload: vec![],
+            packet_len: 20,
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Extract the body of a named section from the rendered output.
+    //
+    // Returns the lines (without leading "  " indent) between the section
+    // header and the next blank line (section separator).
+    // -----------------------------------------------------------------------
+    fn section_lines<'a>(out: &'a str, section_name: &str) -> Vec<&'a str> {
+        // `TerminalReporter::section()` in plain (no-color) mode emits:
+        //   "{title}\n{40 × '─'}\n"
+        // So after the title line comes a "─" rule line, then content lines
+        // (each indented with "  "), then a blank line as the section separator.
+        // State machine: Header → Rule → Content → done on blank line.
+        #[derive(PartialEq)]
+        enum State {
+            Searching,
+            SkipRule,
+            Collecting,
+        }
+        let mut result = Vec::new();
+        let mut state = State::Searching;
+        for line in out.lines() {
+            match state {
+                State::Searching => {
+                    if line.contains(section_name) {
+                        state = State::SkipRule;
+                    }
+                }
+                State::SkipRule => {
+                    // Skip the "────..." rule line that immediately follows the title.
+                    state = State::Collecting;
+                }
+                State::Collecting => {
+                    if line.is_empty() {
+                        break;
+                    }
+                    // Strip leading "  " indent that TerminalReporter adds to each entry.
+                    result.push(line.trim_start_matches("  "));
+                }
+            }
+        }
+        result
+    }
+
+    // -----------------------------------------------------------------------
+    // test_terminal_protocols_sorted_count_then_name
+    // -----------------------------------------------------------------------
+    //
+    // RED-GATE STRATEGY (reliable): Use 9 distinct protocol entries so that
+    // the probability of accidentally correct order from HashMap iteration is
+    // 1/9! = 1/362880 ≈ 0.00028%.  The entries are:
+    //
+    //   Protocol::Tcp           → count 20  (highest, unambiguous first slot)
+    //   Protocol::Udp           → count 10  (second)
+    //   Protocol::Other(10)     → count  5  (tied group at 5)
+    //   Protocol::Other(20)     → count  5  (tied group at 5)
+    //   Protocol::Other(30)     → count  5  (tied group at 5)
+    //   Protocol::Other(40)     → count  5  (tied group at 5)
+    //   Protocol::Other(50)     → count  5  (tied group at 5)
+    //   Protocol::Icmp          → count  2  (second-to-last)
+    //   Protocol::Other(255)    → count  1  (lowest, last)
+    //
+    // In the fixed sorted output the tied block at count=5 must appear in
+    // Debug-string alphabetical order:
+    //   "Other(10)" < "Other(20)" < "Other(30)" < "Other(40)" < "Other(50)"
+    // (alphabetical on the debug representation).
+    //
+    // NOTE: Protocol is printed via {:?} in the current implementation, which
+    // produces "Tcp", "Udp", "Icmp", "Other(N)" for the variants.
+
+    /// FIX-P5-003 / ADV-IMPL-P06-MED-001 — PROTOCOLS section sorted count-desc then name-asc.
+    ///
+    /// Uses 9 distinct protocol entries.  The probability that HashMap iteration
+    /// accidentally produces the correct sorted order is 1/9! ≈ 0.00028%, making
+    /// this test a deterministic Red Gate in all practical senses.
+    #[test]
+    fn test_terminal_protocols_sorted_count_then_name() {
+        let mut summary = Summary::new();
+
+        // Highest count: Tcp → 20.
+        for _ in 0..20 {
+            summary.ingest(&make_tcp_packet(9999));
+        }
+        // Second: Udp → 10.
+        for _ in 0..10 {
+            summary.ingest(&make_udp_packet(9999));
+        }
+        // Tied block at count=5: Other(10), Other(20), Other(30), Other(40), Other(50).
+        // Inserted in REVERSE debug-alphabetical order (50, 40, 30, 20, 10) to ensure
+        // any non-sorted iteration order disagrees with the expected alphabetical result.
+        for proto in [50u8, 40, 30, 20, 10] {
+            for _ in 0..5 {
+                summary.ingest(&make_other_packet(proto));
+            }
+        }
+        // Second-to-last: Icmp → 2.
+        for _ in 0..2 {
+            summary.ingest(&make_icmp_packet());
+        }
+        // Last: Other(255) → 1.
+        summary.ingest(&make_other_packet(255));
+
+        let out = plain_reporter().render(&summary, &[], &[]);
+
+        // Confirm PROTOCOLS section is present.
+        assert!(
+            out.contains("PROTOCOLS"),
+            "FIX-P5-003: PROTOCOLS section must be present in rendered output; got:\n{out}"
+        );
+
+        let lines = section_lines(&out, "PROTOCOLS");
+
+        // 9 distinct protocols → 9 lines.
+        assert_eq!(
+            lines.len(),
+            9,
+            "FIX-P5-003: PROTOCOLS section must have 9 lines; got: {lines:?}"
+        );
+
+        // Line 0: Tcp: 20 (highest count, unambiguous).
+        assert!(
+            lines[0].contains("Tcp") && lines[0].contains(": 20"),
+            "FIX-P5-003: PROTOCOLS line[0] must be 'Tcp: 20' (count=20); \
+             got: {:?}",
+            lines[0]
+        );
+
+        // Line 1: Udp: 10 (second, unambiguous).
+        assert!(
+            lines[1].contains("Udp") && lines[1].contains(": 10"),
+            "FIX-P5-003: PROTOCOLS line[1] must be 'Udp: 10' (count=10); \
+             got: {:?}",
+            lines[1]
+        );
+
+        // Lines 2-6: the tied block at count=5, in debug-alphabetical order.
+        // Expected: Other(10), Other(20), Other(30), Other(40), Other(50).
+        // The debug representation is "Other(N)" so alphabetical is N=10 < 20 < 30 < 40 < 50.
+        let expected_tied = [
+            "Other(10)",
+            "Other(20)",
+            "Other(30)",
+            "Other(40)",
+            "Other(50)",
+        ];
+        for (slot, expected_name) in expected_tied.iter().enumerate() {
+            let line = lines[2 + slot];
+            assert!(
+                line.contains(expected_name) && line.contains(": 5"),
+                "FIX-P5-003 (ADV-IMPL-P06-MED-001): PROTOCOLS line[{}] must be '{}: 5' \
+                 (tied block at count=5, debug-alphabetical order); current HashMap \
+                 iteration produces non-deterministic order — this fails without \
+                 sort-by-count-then-name; got: {:?}",
+                2 + slot,
+                expected_name,
+                line
+            );
+        }
+
+        // Line 7: Icmp: 2.
+        assert!(
+            lines[7].contains("Icmp") && lines[7].contains(": 2"),
+            "FIX-P5-003: PROTOCOLS line[7] must be 'Icmp: 2'; got: {:?}",
+            lines[7]
+        );
+
+        // Line 8: Other(255): 1 (lowest count, last).
+        assert!(
+            lines[8].contains("Other(255)") && lines[8].contains(": 1"),
+            "FIX-P5-003: PROTOCOLS line[8] must be 'Other(255): 1' (lowest count); \
+             got: {:?}",
+            lines[8]
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // test_terminal_services_sorted_count_then_name
+    // -----------------------------------------------------------------------
+    //
+    // RED-GATE STRATEGY (reliable): Use all 7 available port-based service
+    // hints so that the probability of accidentally correct order from HashMap
+    // iteration is 1/7! = 1/5040 ≈ 0.020%.
+    //
+    // Port-based service hints from `ParsedPacket::app_protocol_hint`:
+    //   port 443 → "TLS"    count = 30  (highest, unambiguous first)
+    //   port 445 → "SMB"    count = 10  (second, unambiguous)
+    //   port  53 → "DNS"    count =  5  (tied group at 5 — alpha: DNS < HTTP < Modbus < SSH < SMB loses to SMB at count=10)
+    //   port  80 → "HTTP"   count =  5  (tied group)
+    //   port 502 → "Modbus" count =  5  (tied group)
+    //   port  22 → "SSH"    count =  5  (tied group — alphabetically: DNS < HTTP < Modbus < SSH)
+    //   port 20000 → "DNP3" count =  1  (lowest, last)
+    //
+    // After the fix the SERVICES section must be (count-desc then name-asc):
+    //   TLS: 30
+    //   SMB: 10
+    //   DNS: 5    (D < H < M < S alphabetically)
+    //   HTTP: 5
+    //   Modbus: 5
+    //   SSH: 5
+    //   DNP3: 1
+    //
+    // Insertion order is deliberately reverse-alphabetical within tied group
+    // (SSH → Modbus → HTTP → DNS) to maximize divergence from the expected order.
+
+    /// FIX-P5-003 / ADV-IMPL-P06-MED-001 — SERVICES section sorted count-desc then name-asc.
+    ///
+    /// Uses all 7 available port-based service hints.  The probability that
+    /// HashMap iteration accidentally produces the correct sorted order is
+    /// 1/7! = 1/5040 ≈ 0.02%, making this a reliable Red Gate.
+    #[test]
+    fn test_terminal_services_sorted_count_then_name() {
+        let mut summary = Summary::new();
+
+        // Highest count: TLS → 30 (port 443).
+        for _ in 0..30 {
+            summary.ingest(&make_tcp_packet(443));
+        }
+        // Second: SMB → 10 (port 445).
+        for _ in 0..10 {
+            summary.ingest(&make_tcp_packet(445));
+        }
+        // Tied block at count=5.  Inserted in REVERSE alphabetical order (SSH, Modbus, HTTP, DNS)
+        // so that any non-sorted iteration order disagrees with the expected alphabetical result.
+        // SSH → 5 (port 22).
+        for _ in 0..5 {
+            summary.ingest(&make_tcp_packet(22));
+        }
+        // Modbus → 5 (port 502).
+        for _ in 0..5 {
+            summary.ingest(&make_tcp_packet(502));
+        }
+        // HTTP → 5 (port 80).
+        for _ in 0..5 {
+            summary.ingest(&make_tcp_packet(80));
+        }
+        // DNS → 5 (port 53).
+        for _ in 0..5 {
+            summary.ingest(&make_tcp_packet(53));
+        }
+        // Lowest: DNP3 → 1 (port 20000).
+        summary.ingest(&make_tcp_packet(20000));
+
+        let out = plain_reporter().render(&summary, &[], &[]);
+
+        // Confirm SERVICES section is present.
+        assert!(
+            out.contains("SERVICES"),
+            "FIX-P5-003: SERVICES section must be present in rendered output; got:\n{out}"
+        );
+
+        let lines = section_lines(&out, "SERVICES");
+
+        // 7 distinct services → 7 lines.
+        assert_eq!(
+            lines.len(),
+            7,
+            "FIX-P5-003: SERVICES section must have 7 lines (TLS, SMB, DNS, HTTP, Modbus, SSH, DNP3); \
+             got: {lines:?}"
+        );
+
+        // Line 0: TLS: 30 (highest count, unambiguous).
+        assert!(
+            lines[0].contains("TLS") && lines[0].contains(": 30"),
+            "FIX-P5-003: SERVICES line[0] must be 'TLS: 30'; got: {:?}",
+            lines[0]
+        );
+
+        // Line 1: SMB: 10 (second, unambiguous).
+        assert!(
+            lines[1].contains("SMB") && lines[1].contains(": 10"),
+            "FIX-P5-003: SERVICES line[1] must be 'SMB: 10'; got: {:?}",
+            lines[1]
+        );
+
+        // Lines 2-5: tied block at count=5, in name-ascending order: DNS, HTTP, Modbus, SSH.
+        // ("D" < "H" < "M" < "S" alphabetically.)
+        let expected_tied_svc = [("DNS", 5), ("HTTP", 5), ("Modbus", 5), ("SSH", 5)];
+        for (slot, (expected_name, expected_count)) in expected_tied_svc.iter().enumerate() {
+            let line = lines[2 + slot];
+            assert!(
+                line.contains(expected_name) && line.contains(&format!(": {expected_count}")),
+                "FIX-P5-003 (ADV-IMPL-P06-MED-001): SERVICES line[{}] must be '{}: {}' \
+                 (tied block at count=5, alphabetical name order); current HashMap \
+                 iteration produces non-deterministic order — this fails without \
+                 sort-by-count-then-name; got: {:?}",
+                2 + slot,
+                expected_name,
+                expected_count,
+                line
+            );
+        }
+
+        // Line 6: DNP3: 1 (lowest count, last).
+        assert!(
+            lines[6].contains("DNP3") && lines[6].contains(": 1"),
+            "FIX-P5-003: SERVICES line[6] must be 'DNP3: 1' (lowest count, last); \
+             got: {:?}",
+            lines[6]
         );
     }
 }

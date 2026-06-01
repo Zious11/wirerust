@@ -6188,3 +6188,142 @@ HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
         // The compiler enforces this invariant automatically.
     }
 } // mod bc_2_06_023_formalization
+
+// ---------------------------------------------------------------------------
+// FIX-P5-003 / ADV-IMPL-P06-HIGH-001: top_hosts tie-ordering determinism
+// ---------------------------------------------------------------------------
+//
+// Defect: `summarize()` builds `top_hosts` by sorting Vec<(&str, &u64)> with
+// `sort_by(|a,b| b.1.cmp(a.1))` — count descending only, no tiebreaker.
+// For equal counts, the relative order depends on HashMap iteration order,
+// which is per-process-random (via random seed in std's HashMap).  The fix
+// must add `.then_with(|| a.0.cmp(b.0))` to break ties alphabetically
+// (name ascending), making both the ordering and the selected set of 20
+// entries deterministic.
+//
+// RED-GATE STRATEGY: Insert 25 hosts all at the same count (5), using a
+// deliberately reverse-alphabetical insertion sequence ("z-host-00.example.com"
+// down to "a-host-24.example.com" and more).  The alphabetically-first 18 of
+// those 25 tied hosts must fill slots [2..19] (slots [0] and [1] are taken by
+// two higher-count hosts).  The current code may or may not get the right set
+// because HashMap order is random — in practice it will disagree with the
+// expected alphabetical set reliably across runs.  The test asserts both
+// ordering within the 20 and set membership, so at least one assertion fails
+// without the tiebreaker.
+
+/// FIX-P5-003 / ADV-IMPL-P06-HIGH-001 — `top_hosts` ties broken alphabetically.
+///
+/// Setup:
+///   - "aaa-top.example.com" → 100 requests  (must be first, unambiguous)
+///   - "bbb-top.example.com" →  50 requests  (must be second, unambiguous)
+///   - 25 "tied-ZZ.example.com" hosts → 5 requests each, inserted in
+///     reverse-alphabetical order so the current HashMap-order sort is
+///     maximally likely to produce a non-alphabetical result.
+///
+/// Assertions:
+///   (a) top_hosts[0] == "aaa-top.example.com"  (highest count, unambiguous)
+///   (b) top_hosts[1] == "bbb-top.example.com"  (second-highest count)
+///   (c) top_hosts[2..19] are the 18 alphabetically-first "tied-*" hosts in
+///       lexicographic order — proving the selected SET is deterministic.
+///   (d) "tied-zz.example.com" (lexicographically last) is NOT in top_hosts
+///       — it must be cut by the deterministic alphabetical tiebreaker.
+#[test]
+fn test_summarize_top_hosts_ties_broken_alphabetically() {
+    let mut analyzer = HttpAnalyzer::new();
+    let fk = test_flow_key();
+
+    // Two distinct-count anchor hosts (unambiguous ordering).
+    for i in 0..100u16 {
+        let req =
+            format!("GET /r{i} HTTP/1.1\r\nHost: aaa-top.example.com\r\nUser-Agent: bot\r\n\r\n");
+        analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+    }
+    for i in 0..50u16 {
+        let req =
+            format!("GET /r{i} HTTP/1.1\r\nHost: bbb-top.example.com\r\nUser-Agent: bot\r\n\r\n");
+        analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+    }
+
+    // 25 tied hosts, all count=5.  Inserted in REVERSE alphabetical order (zz → aa) so
+    // that the current no-tiebreaker sort is maximally likely to preserve the
+    // HashMap/reverse-insertion ordering rather than the alphabetical one.
+    // Label them with two-letter suffixes so lexicographic order is unambiguous:
+    //   "tied-aa", "tied-ab", ..., "tied-ay"  (25 total, aa < ab < ... < ay < az)
+    // We insert from "tied-ay" down to "tied-aa".
+    let suffixes: Vec<String> = (0u8..25u8)
+        .map(|i| {
+            let first = b'a' + i / 26;
+            let second = b'a' + i % 26;
+            format!("{}{}", first as char, second as char)
+        })
+        .collect();
+
+    // Insert in reverse order so insertion sequence is ay, ax, ..., aa.
+    for suffix in suffixes.iter().rev() {
+        let host = format!("tied-{suffix}.example.com");
+        for i in 0..5u8 {
+            let req = format!("GET /p{i} HTTP/1.1\r\nHost: {host}\r\nUser-Agent: bot\r\n\r\n");
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        }
+    }
+
+    let summary = analyzer.summarize();
+    let top_hosts = summary.detail["top_hosts"]
+        .as_array()
+        .expect("FIX-P5-003: top_hosts must be a JSON array");
+
+    // (a) Exactly 20 entries (25 + 2 = 27 distinct hosts → truncated to 20).
+    assert_eq!(
+        top_hosts.len(),
+        20,
+        "FIX-P5-003 (ADV-IMPL-P06-HIGH-001): top_hosts must be truncated to 20 entries; \
+         got {}",
+        top_hosts.len()
+    );
+
+    // (b) Unambiguous first slot: highest-count host.
+    assert_eq!(
+        top_hosts[0].as_str().unwrap_or(""),
+        "aaa-top.example.com",
+        "FIX-P5-003: top_hosts[0] must be 'aaa-top.example.com' (count=100)"
+    );
+
+    // (c) Unambiguous second slot: second-highest-count host.
+    assert_eq!(
+        top_hosts[1].as_str().unwrap_or(""),
+        "bbb-top.example.com",
+        "FIX-P5-003: top_hosts[1] must be 'bbb-top.example.com' (count=50)"
+    );
+
+    // (d) Among the 18 tied slots [2..19], assert they are in alphabetical
+    //     order: "tied-aa" through "tied-ar" (the first 18 alphabetically out
+    //     of 25 tied hosts "tied-aa".."tied-ay").
+    let expected_tied_prefix_order: Vec<String> = suffixes[..18]
+        .iter()
+        .map(|s| format!("tied-{s}.example.com"))
+        .collect();
+
+    let actual_tied: Vec<&str> = top_hosts[2..]
+        .iter()
+        .map(|v| v.as_str().unwrap_or(""))
+        .collect();
+
+    assert_eq!(
+        actual_tied, expected_tied_prefix_order,
+        "FIX-P5-003 (ADV-IMPL-P06-HIGH-001): tied hosts in slots [2..19] must be sorted \
+         alphabetically (tied-aa, tied-ab, ..., tied-ar); current code has no tiebreaker \
+         so HashMap iteration order determines the result — this assertion fails without \
+         `.then_with(|| a.0.cmp(b.0))`"
+    );
+
+    // (e) The alphabetically-last 7 tied hosts ("tied-as" through "tied-ay") must
+    //     NOT appear — they are cut by the deterministic alphabetical selection.
+    for suffix in &suffixes[18..] {
+        let host = format!("tied-{suffix}.example.com");
+        assert!(
+            !top_hosts.iter().any(|v| v.as_str() == Some(host.as_str())),
+            "FIX-P5-003: '{host}' must NOT appear in top_hosts — it falls outside the \
+             alphabetically-first 18 tied slots"
+        );
+    }
+}
