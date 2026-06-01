@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
+  - "v1.4: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchor: render_finding_flat 223-228 → 230-235 (fn at 230, closing at 235); verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,7 +48,7 @@ bucketing or sorting. The `## Tactic` section headers are absent from the output
 
 ## Invariants
 
-1. Default mode uses `render_finding_flat` (terminal.rs:223-228) which always renders
+1. Default mode uses `render_finding_flat` (terminal.rs:230-235) which always renders
    `MITRE: <id>` only.
 2. `render_finding_flat` never calls `technique_name()` or `technique_tactic()`.
 3. This mode is the "no --mitre flag" case; grouping requires the `--mitre` CLI flag.
@@ -92,7 +93,7 @@ bucketing or sorting. The `## Tactic` section headers are absent from the output
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:223-228` -- render_finding_flat (default path)
+- `src/reporter/terminal.rs:230-235` -- render_finding_flat (default path)
 - `tests/reporter_terminal_tests.rs` -- mod story_078 :: test_BC_2_11_017_default_mode_bare_mitre_id
 
 ---
@@ -103,7 +104,7 @@ bucketing or sorting. The `## Tactic` section headers are absent from the output
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:223-228` |
+| **Path** | `src/reporter/terminal.rs:230-235` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

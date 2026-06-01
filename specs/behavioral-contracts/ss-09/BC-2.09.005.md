@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: Correct Invariant 1 — escape_for_terminal has 3 call sites in terminal.rs (not 1); true invariant is module-containment, not call-count — 2026-05-22"
   - "v1.4: Replace raw ESC control byte (0x1B) with literal \\u001b in EC-001, test vectors, and VP rows (STORY-070 m-1) — 2026-05-22"
   - "v1.5: Correct Architecture Anchor for ADR 0003 doc comment — was findings.rs:155-156, corrected to 150-158 (full block) / :157 (cited line); verified against STORY-070 worktree (STORY-070 pass-5 M-2) — 2026-05-22"
+  - "v1.6: DF-SIBLING-SWEEP-001 — fix stale terminal.rs call-site anchors: :172 → :179 (escape_for_terminal in summary detail loop), :197 → :204 (escape_for_terminal for f.summary in render_finding_prefix), :216 → :223 (escape_for_terminal for evidence entries); verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -114,9 +115,9 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 - `src/findings.rs:124-125` -- `pub summary: String`, `pub evidence: Vec<String>` fields
 - `src/findings.rs:150-158` -- doc comment block on Display impl (full block); literal "See ADR 0003" text at line 157
 - `src/reporter/terminal.rs:44` -- `fn escape_for_terminal(s: &str) -> String` -- function definition
-- `src/reporter/terminal.rs:172` -- call site 1: analyzer summary detail values (ADR 0003 C1 gap comment)
-- `src/reporter/terminal.rs:197` -- call site 2: `render_finding_prefix` escapes `f.summary`
-- `src/reporter/terminal.rs:216` -- call site 3: `render_finding_prefix` escapes each `f.evidence` element
+- `src/reporter/terminal.rs:179` -- call site 1: analyzer summary detail values (ADR 0003 C1 gap comment)
+- `src/reporter/terminal.rs:204` -- call site 2: `render_finding_prefix` escapes `f.summary`
+- `src/reporter/terminal.rs:223` -- call site 3: `render_finding_prefix` escapes each `f.evidence` element
 - `tests/reporter_tests.rs` -- test_output_sanitization_layering_contract
 
 ## Source Evidence

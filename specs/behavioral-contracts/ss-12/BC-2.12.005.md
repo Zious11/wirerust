@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: FIX-P5-002 / ADV-IMPL-P04-MED-001 — --reassembly-depth and --reassembly-memcap now require >= 1; 0 rejected at parse time via parse_nonzero_usize value_parser (exit 2, ValueValidation). Corrects implicit 0-accepted assumption. Test citations corrected to match committed names (DF-AC-TEST-NAME-SYNC-001). 2026-06-01"
+  - "v1.4: DF-SIBLING-SWEEP-001 — fix stale cli.rs line anchor: reassembly flags range 61-106 → 71-122 (additional flags --overlap-threshold, --small-segment-*, --out-of-window-threshold, --flow-timeout added between old line 67 and Commands; new range is 71 to 122); verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -123,7 +124,7 @@ This prevents 0 from reaching `TcpReassembler::new`'s defensive `assert!(max_dep
 
 ## Architecture Anchors
 
-- `src/cli.rs:61-106` -- reassembly flags on Cli struct; `parse_nonzero_usize` value_parser enforces depth >= 1 and memcap >= 1
+- `src/cli.rs:71-122` -- reassembly flags on Cli struct; `parse_nonzero_usize` value_parser enforces depth >= 1 and memcap >= 1
 - `src/main.rs:87-122` -- reassembly configuration applied in run_analyze
 - `src/reassembly/mod.rs:115-125` -- TcpReassembler::new defensive asserts (backstop; parse_nonzero_usize prevents 0 from reaching here in production)
 - `tests/cli_story_087_tests.rs` -- test_reassembly_flags, test_no_reassemble_flag, test_EC_001_reassembly_depth_zero_rejected, test_EC_001_reassembly_memcap_zero_rejected, test_analyze_reassembly_depth_zero_exits_usage_error, test_analyze_reassembly_memcap_zero_exits_usage_error
@@ -136,7 +137,7 @@ This prevents 0 from reaching `TcpReassembler::new`'s defensive `assert!(max_dep
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/cli.rs:61-106` |
+| **Path** | `src/cli.rs:71-122` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

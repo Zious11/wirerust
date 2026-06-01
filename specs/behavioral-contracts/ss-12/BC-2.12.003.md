@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 — fix stale cli.rs line anchor: no_color field 44-45 → 54-55 (Cli struct grew with new fields above no_color); verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -90,7 +91,7 @@ so either `--no-color` or the `NO_COLOR` environment variable independently disa
 
 ## Architecture Anchors
 
-- `src/cli.rs:44-45` -- no_color field on Cli struct
+- `src/cli.rs:54-55` -- no_color field on Cli struct
 - `src/main.rs:43` -- use_color computation
 - `tests/cli_tests.rs` -- test_no_color_flag
 
@@ -102,7 +103,7 @@ so either `--no-color` or the `NO_COLOR` environment variable independently disa
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/cli.rs:44-45` |
+| **Path** | `src/cli.rs:54-55` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

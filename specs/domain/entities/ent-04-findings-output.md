@@ -18,7 +18,7 @@ enum Verdict { Likely, Unlikely, Inconclusive }
 
 `#[non_exhaustive]` (P2.10 / #76). Derives `Debug, Clone, Copy, PartialEq, Eq, Serialize`.
 `Display` renders uppercase (`LIKELY`, etc.).
-`verdict_rank` order (for sorting): `Likely < Inconclusive < Unlikely` (terminal.rs:262-268).
+`verdict_rank` order (for sorting): `Likely < Inconclusive < Unlikely` (terminal.rs:269-275).
 
 ## E-24: Confidence (src/findings.rs:57-66)
 
@@ -27,7 +27,7 @@ enum Confidence { High, Medium, Low }
 ```
 
 `#[non_exhaustive]` (P2.10 / #76). Derives same as Verdict.
-`confidence_rank` order: `High < Medium < Low` (terminal.rs:269-275).
+`confidence_rank` order: `High < Medium < Low` (terminal.rs:276-282).
 
 ## E-25: ThreatCategory (src/findings.rs:88-111)
 

@@ -58,8 +58,8 @@ traces_to: .factory/specs/prd.md
 | E-INP-003 | Input | `broken` | 1 | `src/reader.rs:70` | `Failed to read packet: <underlying>` | BC-2.01.007 | Per-packet `next_raw_packet()` failure; corrupt or truncated payload |
 | E-INP-004 | Input | `broken` | 1 | `src/reader.rs:86-87` | `Failed to open <path>: <os-error>` | BC-2.12.012 | `std::fs::File::open` failure; file not found, permission denied |
 | E-INP-005 | Input | `broken` | 1 | `src/main.rs:147`, `src/main.rs:260` | `Failed to read <path>: <underlying>` | BC-2.12.012 | Wraps E-INP-001..003; `with_context` adds file path. Surfaced via `PcapSource::from_file` in the capture loop |
-| E-INP-006 | Input | `broken` | 1 | `src/main.rs:359` | `Target not found: <target>` | BC-2.12.012 | `anyhow::bail!` when target path is neither file nor directory |
-| E-INP-007 | Input | `degraded` | 0 | `src/main.rs:165-173` | `Warning: failed to decode packet (<error>). Further errors counted silently.` | BC-2.12.014 | Printed to stderr ONCE per run; subsequent decode errors are counted into `Summary.skipped_packets` silently. Only the first decode error per run produces a message. |
+| E-INP-006 | Input | `broken` | 1 | `src/main.rs:363` | `Target not found: <target>` | BC-2.12.012 | `anyhow::bail!` when target path is neither file nor directory |
+| E-INP-007 | Input | `degraded` | 0 | `src/main.rs:170-177` | `Warning: failed to decode packet (<error>). Further errors counted silently.` | BC-2.12.014 | Printed to stderr ONCE per run; subsequent decode errors are counted into `Summary.skipped_packets` silently. Only the first decode error per run produces a message. |
 
 ### DEC: Decoder Errors
 
@@ -99,14 +99,14 @@ findings or one-shot warnings. They are catalogued here for implementer complete
 
 | Error Code | Category | Severity | Exit Code | Source Location | Message Format | BC Ref | Notes |
 |-----------|----------|----------|-----------|----------------|----------------|--------|-------|
-| E-OUT-001 | Output | `broken` | 1 | `src/main.rs:329-330` | `Failed to write JSON output to <path>: <os-error>` | BC-2.12.017 | `std::fs::write` failure when `--json <FILE>` specifies a path (permission denied, disk full, bad path). |
-| E-OUT-002 | Output | `broken` | 1 | `src/main.rs:331-332` | `Failed to write CSV output to <path>: <os-error>` | BC-2.12.017 | Same as E-OUT-001 for `--csv <FILE>`. |
+| E-OUT-001 | Output | `broken` | 1 | `src/main.rs:333-334` | `Failed to write JSON output to <path>: <os-error>` | BC-2.12.017 | `std::fs::write` failure when `--json <FILE>` specifies a path (permission denied, disk full, bad path). |
+| E-OUT-002 | Output | `broken` | 1 | `src/main.rs:335-336` | `Failed to write CSV output to <path>: <os-error>` | BC-2.12.017 | Same as E-OUT-001 for `--csv <FILE>`. |
 
 ### CFG: Configuration Errors
 
 | Error Code | Category | Severity | Exit Code | Source Location | Message Format | BC Ref | Notes |
 |-----------|----------|----------|-----------|----------------|----------------|--------|-------|
-| E-CFG-001 | Config | `broken` | 2 | clap (src/cli.rs:62) | `error: the argument '--reassemble' cannot be used with '--no-reassemble'` | BC-2.12.007 | clap enforces `conflicts_with`; prints to stderr with usage hint; exits with code 2 (clap's standard argument error code, NOT exit code 1). |
+| E-CFG-001 | Config | `broken` | 2 | clap (src/cli.rs:72) | `error: the argument '--reassemble' cannot be used with '--no-reassemble'` | BC-2.12.007 | clap enforces `conflicts_with`; prints to stderr with usage hint; exits with code 2 (clap's standard argument error code, NOT exit code 1). |
 | E-CFG-002 | Config | `broken` | 2 | clap (src/cli.rs:53) | `error: the argument '--json...' cannot be used with '--csv...'` | BC-2.12.017 | clap `conflicts_with = "csv"` on `--json`. Same exit code 2. |
 | E-CFG-003 | Config | `broken` | 2 | clap | `error: invalid value '<VAL>' for '--overlap-threshold <OVERLAP_THRESHOLD>': <VAL> is not in 0..=255` | BC-2.12.005 | clap range validator `value_parser(clap::value_parser!(u32).range(0..=255))`. |
 | E-CFG-004 | Config | `broken` | 2 | clap | `error: invalid value '<VAL>' for '--small-segment-threshold <SMALL_SEGMENT_THRESHOLD>': <VAL> is not in 0..=2048` | BC-2.12.005 | clap range validator `value_parser(clap::value_parser!(u32).range(0..=2048))`. |

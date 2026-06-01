@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Phase 3 per-story adversarial review — corrected extracted_from accuracy: Postcondition 1 and Invariant 1 now use {cat} (plain Display) not {cat:?}, with an explicit note that ThreatCategory::Display delegates to Debug so rendered output is the variant name — 2026-05-21"
+  - "v1.4: DF-SIBLING-SWEEP-001 — fix stale source-file line anchor: findings.rs:157-168 → 159-170 (impl fmt::Display for Finding starts at 159, closes at 170); verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -100,13 +101,13 @@ rendering uses the reporter layer.
 
 ## Architecture Anchors
 
-- `src/findings.rs:157-168` -- impl fmt::Display for Finding
+- `src/findings.rs:159-170` -- impl fmt::Display for Finding
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/findings.rs:157-168` |
+| **Path** | `src/findings.rs:159-170` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

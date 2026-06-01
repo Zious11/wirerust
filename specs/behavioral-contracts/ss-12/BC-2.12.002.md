@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 — fix stale cli.rs line anchor: Commands::Summary 141-155 → 157-170; verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -93,7 +94,7 @@ removed. Global flags from the `Cli` struct apply to this subcommand as well.
 
 ## Architecture Anchors
 
-- `src/cli.rs:141-155` -- Commands::Summary variant definition
+- `src/cli.rs:157-170` -- Commands::Summary variant definition
 - `tests/cli_tests.rs` -- test_summary_subcommand
 
 ---
@@ -104,7 +105,7 @@ removed. Global flags from the `Cli` struct apply to this subcommand as well.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/cli.rs:141-155` |
+| **Path** | `src/cli.rs:157-170` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

@@ -37,7 +37,7 @@ whitelist to strip the link-layer header and hand the IP payload to etherparse. 
 - No IP layer: `anyhow!("No IP layer found")`.
 - etherparse parse error: wrapped `anyhow!("Parse error: {e}")`.
 
-Failed per-packet decodes increment `summary.skipped_packets` (main.rs:139/216) and do not
+Failed per-packet decodes increment `summary.skipped_packets` (main.rs:176/276) and do not
 halt the run.
 
 ## pcap_file::DataLink leakage (Smell #7)

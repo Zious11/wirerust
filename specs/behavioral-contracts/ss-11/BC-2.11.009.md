@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): VP-012 VP-table Proof Method cells corrected unit→proptest; VP-012 proof_method=proptest is authoritative (unbounded Unicode input space) — 2026-05-30"
+  - "v1.4: DF-SIBLING-SWEEP-001 — fix stale terminal.rs test fn line anchors: fn escapes_c1_nel_and_csi at :368 → :375; fn escapes_c1_range_boundaries at :381 → :388; bounding range 367-389 kept (both fns remain within it); verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -103,7 +104,7 @@ narrow but real vector where DEC S8C1T terminals can interpret 8-bit C1 sequence
 ## Architecture Anchors
 
 - `src/reporter/terminal.rs:52` -- C1 predicate in escape_for_terminal
-- `src/reporter/terminal.rs:367-389` -- escapes_c1_nel_and_csi (fn at :368) and escapes_c1_range_boundaries (fn at :381) inline tests
+- `src/reporter/terminal.rs:367-396` -- escapes_c1_nel_and_csi (fn at :375) and escapes_c1_range_boundaries (fn at :388) inline tests
 
 ---
 

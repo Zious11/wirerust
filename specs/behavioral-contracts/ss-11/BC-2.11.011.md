@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): VP-012 VP-table Proof Method cells corrected unit→proptest; VP-012 proof_method=proptest is authoritative (unbounded Unicode input space) — 2026-05-30"
   - "v1.4: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_077 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
+  - "v1.5: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchors: detail loop range 164-174 → 165-181 (for asummary at 165, escape call at 179, push at 180; covers actual loop body), C1 comment range 165-171 → 172-178 (inline C1 gap comment block); verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -50,7 +51,7 @@ reporter must therefore re-escape the rendered JSON string to close the C1 gap.
 
 ## Invariants
 
-1. The escape call is at terminal.rs:172: `escape_for_terminal(&val.to_string())`.
+1. The escape call is at terminal.rs:179: `escape_for_terminal(&val.to_string())`.
 2. The escaping applies even when `serde_json` has already partially escaped C0 bytes
    (double-escaping of C0 is acceptable because C0 appears as `\uNNNN` after serde_json,
    which is printable ASCII and harmless). The primary purpose is to catch C1 bytes that
@@ -102,8 +103,8 @@ reporter must therefore re-escape the rendered JSON string to close the C1 gap.
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:164-174` -- analyzer summary detail loop with escape (`for (key, val)` at 164)
-- `src/reporter/terminal.rs:165-171` -- inline comment explaining the C1 gap in serde_json
+- `src/reporter/terminal.rs:165-181` -- analyzer summary detail loop with escape (`for asummary in` at 165, `for (key, val)` at 171, escape call at 179, push at 180)
+- `src/reporter/terminal.rs:172-178` -- inline comment explaining the C1 gap in serde_json
 - `tests/reporter_terminal_tests.rs` -- mod story_077 :: test_BC_2_11_011_analyzer_detail_c1_escaped
 
 ---
@@ -114,14 +115,14 @@ reporter must therefore re-escape the rendered JSON string to close the C1 gap.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:164-174` |
+| **Path** | `src/reporter/terminal.rs:165-181` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
 #### Evidence Types Used
 
 - **assertion**: test_terminal_reporter_escapes_control_bytes_in_analyzer_summaries, test_http_analyzer_summary_c1_csi_escaped_by_terminal_reporter
-- **documentation**: inline comment at lines 165-171 explaining the C1 gap rationale
+- **documentation**: inline comment at lines 172-178 explaining the C1 gap rationale
 
 #### Purity Classification
 

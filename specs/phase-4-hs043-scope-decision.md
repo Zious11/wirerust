@@ -17,7 +17,7 @@ traces_to: .factory/research/holdout-finding-triage-2026-06-01.md
 
 `expire_flows` (src/reassembly/mod.rs:593-609) exists, is correct, and is well-tested in
 isolation. However, it is **never called by the production pipeline**. The CLI loop
-(src/main.rs:154-176) calls only `process_packet` + `finalize`. No call site for
+(src/main.rs:158-180) calls only `process_packet` + `finalize`. No call site for
 `expire_flows` exists anywhere under `src/`. The only callers are under `tests/`.
 
 Consequence: `flows_expired` is structurally always 0 for every CLI invocation. The
@@ -64,7 +64,7 @@ or per-loop production path.
    idle gap exercises the full code path end-to-end.
 
 2. **Consistency.** The CLI already exposes `--reassembly-depth`, `--reassembly-memcap`,
-   `--overlap-threshold`, `--small-segment-threshold`, and related knobs (src/cli.rs:42-110).
+   `--overlap-threshold`, `--small-segment-threshold`, and related knobs (src/cli.rs:52-126).
    A timeout knob is architecturally coherent with that pattern.
 
 3. **Operator utility.** Long-running captures of high-bandwidth traffic benefit from a

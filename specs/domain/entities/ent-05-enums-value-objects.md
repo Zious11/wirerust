@@ -81,7 +81,7 @@ MD5 hex of `version,cipher,extensions` server-side. Enforcement: `src/analyzer/t
 ### VO-9: Finding.summary/evidence carries raw bytes
 
 No escape applied at construction. ADR 0003. Enforcement: module header doc-comment at
-`src/findings.rs:10-14` and `Finding::Display` doc at `src/findings.rs:148-156`.
+`src/findings.rs:10-14` and `Finding::Display` doc at `src/findings.rs:150-158`.
 Not mechanically enforced; convention violation would not be caught by the compiler.
 
 ### VO-10: Direction is a closed binary enum

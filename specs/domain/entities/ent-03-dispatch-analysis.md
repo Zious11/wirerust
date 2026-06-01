@@ -88,7 +88,7 @@ pub trait ProtocolAnalyzer {
 Packet-level analyzer trait (ADR 0002). Only `DnsAnalyzer` implements it. Intended for
 future ARP, ICMP, and other packet-level protocols.
 
-## E-30: DnsAnalyzer (src/analyzer/dns.rs:15)
+## E-30: DnsAnalyzer (src/analyzer/dns.rs:23)
 
 ```
 struct DnsAnalyzer { query_count: u64, response_count: u64 }

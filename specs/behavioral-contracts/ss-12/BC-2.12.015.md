@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 — fix stale main.rs line anchor: unclassified_flows insertion 204-208 → 209-212 (detail.insert call is at 209-212); inline capability anchor justification ref updated; verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,7 +77,7 @@ as HTTP or TLS, in the same summary block as reassembly statistics.
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- the injection of dispatcher.unclassified_flows() into the reassembly summary detail map (main.rs:204-208) is wiring performed in run_analyze after finalization; this is an entry-point assembly step that bridges the dispatcher stat into the summary object, not a reporter rendering concern |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- the injection of dispatcher.unclassified_flows() into the reassembly summary detail map (main.rs:209-212) is wiring performed in run_analyze after finalization; this is an entry-point assembly step that bridges the dispatcher stat into the summary object, not a reporter rendering concern |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | STORY-089 |
@@ -88,7 +89,7 @@ as HTTP or TLS, in the same summary block as reassembly statistics.
 
 ## Architecture Anchors
 
-- `src/main.rs:204-208` -- unclassified_flows insertion into reassembly summary detail
+- `src/main.rs:209-212` -- unclassified_flows insertion into reassembly summary detail
 
 ---
 
@@ -98,7 +99,7 @@ as HTTP or TLS, in the same summary block as reassembly statistics.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/main.rs:204-208` |
+| **Path** | `src/main.rs:209-212` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-20 |
 

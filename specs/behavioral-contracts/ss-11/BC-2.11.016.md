@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
+  - "v1.4: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchors: MITRE expansion range 239-244 → 246-251 (fn render_finding_grouped body: match at 246-250, close at 252), em-dash literal :241 → :248; guard clause at :240 → :247; verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,7 +49,7 @@ render as `MITRE: <id> (unknown)`.
 
 ## Invariants
 
-1. The em-dash character U+2014 is hardcoded at terminal.rs:241 as `\u{2014}`.
+1. The em-dash character U+2014 is hardcoded at terminal.rs:248 as `\u{2014}`.
 2. `technique_name(id)` is the authoritative source for the name string.
 3. The MITRE line is rendered by `render_finding_grouped`, called only in grouping mode.
 4. In default (flat) mode, `render_finding_flat` renders `MITRE: <id>` only (no expansion).
@@ -95,8 +96,8 @@ render as `MITRE: <id> (unknown)`.
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:239-244` -- render_finding_grouped MITRE line expansion
-- `src/reporter/terminal.rs:241` -- `\u{2014}` em-dash literal
+- `src/reporter/terminal.rs:246-251` -- render_finding_grouped MITRE line expansion (match at 246; known branch at 248; unknown branch at 249; closing at 251)
+- `src/reporter/terminal.rs:248` -- `\u{2014}` em-dash literal
 - `tests/reporter_terminal_tests.rs` -- mod story_078 :: test_BC_2_11_016_known_id_em_dash_and_name
 
 ---
@@ -107,14 +108,14 @@ render as `MITRE: <id> (unknown)`.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:239-244` |
+| **Path** | `src/reporter/terminal.rs:246-251` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
 #### Evidence Types Used
 
 - **assertion**: mitre_grouping_expands_per_finding_line_with_technique_name
-- **guard clause**: `match technique_name(id)` branch at line 240
+- **guard clause**: `match technique_name(id)` branch at line 247
 
 #### Purity Classification
 

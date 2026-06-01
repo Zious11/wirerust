@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): VP-012 VP-table Proof Method cells corrected unit→proptest; VP-012 proof_method=proptest is authoritative (unbounded Unicode input space) — 2026-05-30"
   - "v1.4: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_077 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
+  - "v1.5: DF-SIBLING-SWEEP-001 — fix stale terminal.rs range anchor: 196-218 → 203-226 (render_finding_prefix fn starts at 203, closes at 226); verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -97,7 +98,7 @@ that the raw-data/display-layer contract (INV-4/ADR 0003) holds end-to-end.
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:196-218` -- render_finding_prefix (the escape call site)
+- `src/reporter/terminal.rs:203-226` -- render_finding_prefix (the escape call site)
 - `tests/reporter_terminal_tests.rs` -- mod story_077 :: test_BC_2_11_012_http_finding_c1_end_to_end
 
 ---

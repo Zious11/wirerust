@@ -64,7 +64,7 @@ technique to this tactic. Tracked as part of O-04.
 
 When `--mitre` is set in `Commands::Analyze`, `TerminalReporter` renders findings grouped by
 tactic. Unknown technique IDs (not in the catalog) display as `<id> (unknown)`
-(terminal.rs:240-242). `JsonReporter` does not group by tactic; it emits the raw
+(terminal.rs:248-249). `JsonReporter` does not group by tactic; it emits the raw
 `mitre_technique: Option<String>` field per Finding (omitted from JSON when None).
 
 ## Unknown-ID handling (VO-6)

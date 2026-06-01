@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.0"
+version: "1.1"
 status: draft
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -20,7 +20,8 @@ proof_completed_date: null
 proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v1.1: DF-SIBLING-SWEEP-001 — fix stale http.rs line anchors in proof harness comment: request_poisoned block :509-511 → :509-512, response_poisoned block :521-522 → :521-524; verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -74,7 +75,7 @@ sequences of byte chunks and verifies the monotonicity invariant across all orde
 //     a PRIVATE struct. There is no flow_state() public method on HttpAnalyzer.
 //   - The only public observable for poisoning is poisoned_bytes_skipped() -> u64,
 //     which increments for every byte fed to a direction after it is poisoned
-//     (src/analyzer/http.rs:509-511, 521-522).
+//     (src/analyzer/http.rs:509-512, 521-524).
 //   - Public methods: new(), transaction_count(), parse_error_count(),
 //     poisoned_bytes_skipped(), method_counts(), host_counts(), uri_list(),
 //     status_code_counts(), user_agent_counts().

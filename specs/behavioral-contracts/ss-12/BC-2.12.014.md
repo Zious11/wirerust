@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 — fix stale main.rs line anchors: decode error handler 166-173 → 170-177 (Err(e) arm at 170, eprintln at 172-174, counter at 176); skipped_packets assignment :183 → :187; run_summary decode errors 266-276 → 270-278; inline description refs updated; verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,7 +49,7 @@ failing entirely.
 
 ## Invariants
 
-1. `total_decode_errors == 0` check gates the first-error warning print (main.rs:167-170).
+1. `total_decode_errors == 0` check gates the first-error warning print (main.rs:171-175).
 2. The warning is printed at most ONCE per `run_analyze`/`run_summary` invocation,
    regardless of how many decode errors occur.
 3. `skipped_packets` is a `u64` counter; overflow in normal usage is not expected.
@@ -83,7 +84,7 @@ failing entirely.
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- the decode-error handling loop (main.rs:165-173) and the summary.skipped_packets assignment (main.rs:183) are inside run_analyze / run_summary, which are CAP-12's per-target packet-processing loops; counting and suppressing decode errors is an entry-point orchestration responsibility |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- the decode-error handling loop (main.rs:170-177) and the summary.skipped_packets assignment (main.rs:187) are inside run_analyze / run_summary, which are CAP-12's per-target packet-processing loops; counting and suppressing decode errors is an entry-point orchestration responsibility |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | STORY-089 |
@@ -96,9 +97,9 @@ failing entirely.
 
 ## Architecture Anchors
 
-- `src/main.rs:166-173` -- decode error handler with eprintln and counter increment
-- `src/main.rs:183` -- summary.skipped_packets = total_decode_errors assignment
-- `src/main.rs:266-276` -- same pattern in run_summary
+- `src/main.rs:170-177` -- decode error handler with eprintln and counter increment
+- `src/main.rs:187` -- summary.skipped_packets = total_decode_errors assignment
+- `src/main.rs:270-278` -- same pattern in run_summary
 
 ---
 
@@ -108,7 +109,7 @@ failing entirely.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/main.rs:166-173, 183` |
+| **Path** | `src/main.rs:170-177, 187` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

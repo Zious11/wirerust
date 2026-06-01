@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: VP-018 VP-table Proof Method cell unit→integration to match VP-018 frontmatter + VP-INDEX (harmonization; mirrors Wave-21 VP-017 BC-row fix) — F-W21-VP-METHOD — 2026-05-31"
+  - "v1.4: DF-SIBLING-SWEEP-001 — fix stale cli.rs line anchors: #[arg conflicts_with] at :62 → :72, pub reassemble at :63 → :73, pub no_reassemble at :67 → :77, overall range :62-67 → :72-77; also update inline description ref and capability anchor justification; verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -28,7 +29,7 @@ removal_reason: null
 
 ## Description
 
-The `--reassemble` flag at `cli.rs:62` declares `conflicts_with = "no_reassemble"`. Clap
+The `--reassemble` flag at `cli.rs:72` declares `conflicts_with = "no_reassemble"`. Clap
 interprets this as a bidirectional conflict: passing both `--reassemble` AND `--no-reassemble`
 in any order causes `Cli::try_parse_from` to return an error of kind
 `clap::error::ErrorKind::ArgumentConflict`. No runtime code is reached.
@@ -87,7 +88,7 @@ If both flags were somehow passed simultaneously, the downstream code at main.rs
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- the clap conflicts_with constraint between --reassemble and --no-reassemble is declared on the Cli struct (cli.rs:62) and enforced at parse time before any pipeline wiring; this is a CLI entry-point invariant, not a PCAP ingestion or reassembly behavior |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- the clap conflicts_with constraint between --reassemble and --no-reassemble is declared on the Cli struct (cli.rs:72) and enforced at parse time before any pipeline wiring; this is a CLI entry-point invariant, not a PCAP ingestion or reassembly behavior |
 | L2 Domain Invariants | None |
 | Architecture Module | SS-12 (cli.rs, C-3) |
 | Stories | STORY-087 |
@@ -100,15 +101,15 @@ If both flags were somehow passed simultaneously, the downstream code at main.rs
 
 ## Architecture Anchors
 
-- `src/cli.rs:62` -- `#[arg(long, global = true, conflicts_with = "no_reassemble")]` on --reassemble
-- `src/cli.rs:63` -- `pub reassemble: bool`
-- `src/cli.rs:67` -- `pub no_reassemble: bool`
+- `src/cli.rs:72` -- `#[arg(long, global = true, conflicts_with = "no_reassemble")]` on --reassemble
+- `src/cli.rs:73` -- `pub reassemble: bool`
+- `src/cli.rs:77` -- `pub no_reassemble: bool`
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/cli.rs:62-67` |
+| **Path** | `src/cli.rs:72-77` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-19 |
 

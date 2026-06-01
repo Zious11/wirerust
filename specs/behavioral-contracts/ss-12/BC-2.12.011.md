@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 — fix stale main.rs line anchor: resolve_targets range 340-360 → 344-364 (fn at 344, bail at 363, closing at 364); also fix inline ref in capability anchor justification and description; verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -50,7 +51,7 @@ included.
 ## Invariants
 
 1. Extension check is `ext == "pcap"` -- case-sensitive on all platforms.
-2. `files.sort()` is called before returning (main.rs:358).
+2. `files.sort()` is called before returning (main.rs:360).
 3. Subdirectory expansion is NOT recursive; only the immediate directory content is scanned.
 
 ## Edge Cases
@@ -83,7 +84,7 @@ included.
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- resolve_targets (main.rs:340-360) is CAP-12's target-resolution step; choosing which files to read (filtering by .pcap extension, sorting, and expanding directories) is the entry-point orchestration that precedes any ingestion or analysis |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- resolve_targets (main.rs:344-364) is CAP-12's target-resolution step; choosing which files to read (filtering by .pcap extension, sorting, and expanding directories) is the entry-point orchestration that precedes any ingestion or analysis |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | STORY-088 |
@@ -96,7 +97,7 @@ included.
 
 ## Architecture Anchors
 
-- `src/main.rs:340-360` -- resolve_targets function implementation
+- `src/main.rs:344-364` -- resolve_targets function implementation
 
 ---
 
@@ -106,7 +107,7 @@ included.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/main.rs:340-360` |
+| **Path** | `src/main.rs:344-364` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-20 |
 

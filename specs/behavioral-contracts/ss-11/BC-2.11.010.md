@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): VP-012 VP-table Proof Method cells corrected unit→proptest; VP-012 proof_method=proptest is authoritative (unbounded Unicode input space) — 2026-05-30"
+  - "v1.4: DF-SIBLING-SWEEP-001 — fix stale terminal.rs range anchor: 196-218 → 203-226 (render_finding_prefix fn starts at 203, closes at 226); inline line refs updated: summary escape :197 → :204, evidence escape :215-216 → :222-223; verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -99,7 +100,7 @@ summary line or any supporting evidence detail -- cannot inject terminal control
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:196-218` -- render_finding_prefix (escape applied to summary line 197 and evidence lines 215-216)
+- `src/reporter/terminal.rs:203-226` -- render_finding_prefix (escape applied to summary line 204 and evidence lines 222-223)
 
 ---
 
@@ -109,14 +110,14 @@ summary line or any supporting evidence detail -- cannot inject terminal control
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:196-218` |
+| **Path** | `src/reporter/terminal.rs:203-226` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
 #### Evidence Types Used
 
 - **assertion**: test_terminal_reporter_escapes_esc_bytes_in_summary (asserts both summary AND evidence are escaped)
-- **type constraint**: escape_for_terminal called on both f.summary (line 197) and ev (line 216)
+- **type constraint**: escape_for_terminal called on both f.summary (line 204) and ev (line 223)
 
 #### Purity Classification
 

@@ -24,7 +24,7 @@ begins. No streaming/lazy-read mode exists.
 - File path (`PathBuf`) or directory (`Vec<PathBuf>` after glob expansion).
 - CLI `analyze` subcommand: `targets: Vec<PathBuf>` (E-2 Commands::Analyze).
 
-## Target resolution (main.rs:340-360)
+## Target resolution (main.rs:344-364)
 
 - **Single file:** any extension accepted (no extension filter).
 - **Directory:** expands `*.pcap` only. `*.pcapng` was removed from the glob by

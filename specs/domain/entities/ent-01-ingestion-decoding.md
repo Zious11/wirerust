@@ -11,7 +11,7 @@ reconciled: 2026-05-20
 Covers E-1 through E-8. These entities span the CLI, reader, and decoder components
 (C-1..C-5). Source: pass-2-domain-model.md entity table (41 entities confirmed).
 
-## E-1: Cli (src/cli.rs:42-110)
+## E-1: Cli (src/cli.rs:52-126)
 
 Clap-derive `Parser` struct. Root CLI entry point.
 
@@ -40,7 +40,7 @@ in cli.rs documents the "no unwired flags" convention established by P1.04.
 The `--verbose`, `--threats`, `--beacon`, `--filter`, and `--services` flags that previously
 existed as unwired declarations were removed by P1.04 (#74).
 
-## E-2: Commands (src/cli.rs:112-155)
+## E-2: Commands (src/cli.rs:129-170)
 
 Clap-derive `Subcommand` enum with two variants:
 
@@ -65,7 +65,7 @@ Clap-derive `Subcommand` enum with two variants:
 All flags in both subcommands are now wired. The 8 previously-unwired flags
 (threats, beacon, filter, services, verbose, and 3 others) were removed by P1.04 (#74).
 
-## E-3: OutputFormat (src/cli.rs:16-20)
+## E-3: OutputFormat (src/cli.rs:27-30)
 
 ```
 enum OutputFormat { Json, Csv }

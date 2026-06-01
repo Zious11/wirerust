@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: VP-016 proof-method cell unit→integration to match VP-016 frontmatter + VP-INDEX (Wave-21 wave-level consistency lens; SS-11 reporter VP family harmonization — sibling of VP-017 fix in 86113c2; DF-SIBLING-SWEEP-001)"
   - "v1.4: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
+  - "v1.5: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchors: render_findings_grouped range 253-297 → 260-304 (fn starts at 260, closes at 304), tactic loop :283 → :290; verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,7 +54,7 @@ or with an ID not present in the technique catalog.
 ## Invariants
 
 1. `all_tactics_in_report_order()` is the authoritative iteration order; the terminal
-   reporter iterates it directly (terminal.rs:283).
+   reporter iterates it directly (terminal.rs:290).
 2. Tactic buckets use `HashMap<Option<MitreTactic>, Vec<...>>`; None maps to Uncategorized.
 3. A tactic section is SKIPPED if no findings belong to it. This prevents empty section
    headers in the output.
@@ -103,8 +104,8 @@ or with an ID not present in the technique catalog.
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:253-297` -- render_findings_grouped implementation
-- `src/reporter/terminal.rs:283` -- `for tactic in all_tactics_in_report_order()`
+- `src/reporter/terminal.rs:260-304` -- render_findings_grouped implementation
+- `src/reporter/terminal.rs:290` -- `for tactic in all_tactics_in_report_order()`
 - `tests/reporter_terminal_tests.rs` -- mod story_078 :: test_BC_2_11_013_tactic_headers_in_canonical_order
 
 ---
@@ -115,7 +116,7 @@ or with an ID not present in the technique catalog.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:253-297` |
+| **Path** | `src/reporter/terminal.rs:260-304` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

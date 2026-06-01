@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: FIX-P5-003 / ADV-IMPL-P06-MED-001 — add postconditions 7-8 for deterministic PROTOCOLS/SERVICES body ordering (count desc, name asc); replace qualitative Deterministic claim with mechanistic one; add EC-006/EC-007; add VP/anchor for test_terminal_protocols_sorted_count_then_name and test_terminal_services_sorted_count_then_name — 2026-06-01"
+  - "v1.4: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchors: SERVICES conditional :133 → :138, svc_vec sort :140-141 → :141, FINDINGS conditional :142 → :149, ANALYZER loop :158 → :165; full body range :83-178 → :83-186; path row updated to :83-186; verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -122,14 +123,14 @@ section per `AnalysisSummary`. This order is documented in the module and verifi
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:83-178` -- TerminalReporter::render full body
+- `src/reporter/terminal.rs:83-186` -- TerminalReporter::render full body
 - `src/reporter/terminal.rs:113` -- HOSTS conditional block
 - `src/reporter/terminal.rs:125` -- PROTOCOLS section
-- `src/reporter/terminal.rs:126-130` -- proto_vec sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| format!("{:?}", a.0).cmp(&format!("{:?}", b.0))))` (FIX-P5-003)
-- `src/reporter/terminal.rs:133` -- SERVICES conditional block (`if !services.is_empty()`)
-- `src/reporter/terminal.rs:140-141` -- svc_vec sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)))` (FIX-P5-003)
-- `src/reporter/terminal.rs:142` -- FINDINGS conditional block (`if !findings.is_empty()`)
-- `src/reporter/terminal.rs:158` -- ANALYZER: sections loop
+- `src/reporter/terminal.rs:127-130` -- proto_vec sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| format!("{:?}", a.0).cmp(&format!("{:?}", b.0))))` (FIX-P5-003)
+- `src/reporter/terminal.rs:138` -- SERVICES conditional block (`if !services.is_empty()`)
+- `src/reporter/terminal.rs:141` -- svc_vec sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)))` (FIX-P5-003)
+- `src/reporter/terminal.rs:149` -- FINDINGS conditional block (`if !findings.is_empty()`)
+- `src/reporter/terminal.rs:165` -- ANALYZER: sections loop
 - `tests/reporter_terminal_tests.rs::test_terminal_protocols_sorted_count_then_name` -- covers postcondition 7 / invariant 6 / EC-006 (FIX-P5-003)
 - `tests/reporter_terminal_tests.rs::test_terminal_services_sorted_count_then_name` -- covers postcondition 8 / invariant 6 / EC-007 (FIX-P5-003)
 
@@ -141,7 +142,7 @@ section per `AnalysisSummary`. This order is documented in the module and verifi
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:83-178` |
+| **Path** | `src/reporter/terminal.rs:83-186` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-20 |
 

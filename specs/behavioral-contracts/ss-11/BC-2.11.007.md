@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): VP-012 VP-table Proof Method cells corrected unit→proptest; VP-012 proof_method=proptest is authoritative (unbounded Unicode input space) — 2026-05-30"
   - "v1.4: CAP-11 title casing 'Reporting and output'→'Reporting and Output' to match canonical capability title + BC-INDEX (Wave-21 wave-level consistency lens; single-outlier fix per DF-SIBLING-SWEEP-001) — 2026-05-30"
   - "v1.5: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_077 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
+  - "v1.6: DF-SIBLING-SWEEP-001 — fix stale terminal.rs call-site line anchors: :197 → :204 (render_finding_prefix summary escape), :216 → :223 (render_finding_prefix evidence escape), :172 → :179 (analyzer-summary detail escape); verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -121,9 +122,9 @@ contract.
 ## Architecture Anchors
 
 - `src/reporter/terminal.rs:44` -- `fn escape_for_terminal(s: &str) -> String` implementation
-- `src/reporter/terminal.rs:197` -- call site in `render_finding_prefix`: `escape_for_terminal(&f.summary)`
-- `src/reporter/terminal.rs:216` -- call site for evidence: `escape_for_terminal(ev)` per finding evidence entry
-- `src/reporter/terminal.rs:172` -- call site in analyzer-summary detail: `escape_for_terminal(&val.to_string())`
+- `src/reporter/terminal.rs:204` -- call site in `render_finding_prefix`: `escape_for_terminal(&f.summary)`
+- `src/reporter/terminal.rs:223` -- call site for evidence: `escape_for_terminal(ev)` per finding evidence entry
+- `src/reporter/terminal.rs:179` -- call site in analyzer-summary detail: `escape_for_terminal(&val.to_string())`
 - `tests/reporter_terminal_tests.rs` -- mod story_077 :: test_BC_2_11_007_esc_byte_escaped
 
 ## Source Evidence

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 — fix stale main.rs inline refs: skipped_packets assignments :183,:278 → :187,:282; verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -50,7 +51,7 @@ per-protocol counter in `protocols: HashMap<Protocol, u64>`.
 1. `ingest` is the ONLY method that mutates `total_packets`, `total_bytes`, `hosts`,
    and `protocols` on a `Summary`.
 2. `skipped_packets` is NOT set by `ingest`; it is set by the caller in main.rs after
-   the packet loop (main.rs:183, 278).
+   the packet loop (main.rs:187, 282).
 3. Both endpoints (src and dst) are inserted into the host set on every call.
    A packet between A and B inserts both A and B.
 

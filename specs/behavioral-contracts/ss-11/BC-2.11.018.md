@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchors: Verdict/Confidence colorization match 203-213 → 209-220 (if self.use_color at 209, closing at 220); section() bold+underline 183-186 → 190-195 (fn section at 190, bold+underline at 192); Path row updated to match primary anchor; verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -98,9 +99,9 @@ packets warning use their own color rules.
 
 ## Architecture Anchors
 
-- `src/reporter/terminal.rs:203-213` -- Verdict/Confidence colorization match in render_finding_prefix
+- `src/reporter/terminal.rs:209-220` -- Verdict/Confidence colorization match in render_finding_prefix
 - `src/reporter/terminal.rs:99-103` -- skipped_packets yellow colorization
-- `src/reporter/terminal.rs:183-186` -- section() bold+underline colorization
+- `src/reporter/terminal.rs:190-195` -- section() bold+underline colorization (fn at 190, bold+underline at 192)
 
 ---
 
@@ -110,13 +111,13 @@ packets warning use their own color rules.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/reporter/terminal.rs:203-213` |
+| **Path** | `src/reporter/terminal.rs:209-220` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-20 |
 
 #### Evidence Types Used
 
-- **documentation**: source code at lines 203-213 clearly shows the color mapping
+- **documentation**: source code at lines 209-220 clearly shows the color mapping
 - **inferred**: tests run with use_color=false; no test asserts ANSI color byte sequences
 
 #### Purity Classification

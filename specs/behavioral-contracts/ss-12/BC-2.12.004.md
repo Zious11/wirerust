@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 — fix stale cli.rs line anchor: output_format field 47-49 → 57-59; verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -94,8 +95,8 @@ The `--output-format` global flag accepts a `ValueEnum` variant: `json` or `csv`
 
 ## Architecture Anchors
 
-- `src/cli.rs:47-49` -- output_format field on Cli
-- `src/main.rs:312-320` -- resolve_format function
+- `src/cli.rs:57-59` -- output_format field on Cli
+- `src/main.rs:316-324` -- resolve_format function
 - `tests/cli_tests.rs` -- test_summary_subcommand
 
 ---
@@ -106,7 +107,7 @@ The `--output-format` global flag accepts a `ValueEnum` variant: `json` or `csv`
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/cli.rs:47-49` |
+| **Path** | `src/cli.rs:57-59` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

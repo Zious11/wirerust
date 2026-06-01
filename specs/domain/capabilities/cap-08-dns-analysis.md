@@ -27,14 +27,14 @@ struct DnsAnalyzer {
 ```
 
 - `can_decode(packet)`: true when `TransportInfo` is `Udp` or `Tcp` AND `is_dns_port(src, dst)`
-  returns true (i.e., src_port == 53 OR dst_port == 53). Source: dns.rs:52-60.
+  returns true (i.e., src_port == 53 OR dst_port == 53). Source: dns.rs:60-68 (can_decode), dns.rs:42-44 (is_dns_port helper).
 - `is_query(payload)`: inspects `payload[2] & 0x80` (byte 2, bit 7 of the DNS header flags
   word -- the QR bit). Returns `false` (counted as a RESPONSE) when `payload.len() < 12`,
-  before the flag byte is accessed. Source: dns.rs:38-44.
+  before the flag byte is accessed. Source: dns.rs:46-52.
 - `analyze(packet)`: calls `is_query(payload)`. If true, `query_count += 1`; else
-  `response_count += 1`. Returns `vec![]` unconditionally. Source: dns.rs:62-70.
+  `response_count += 1`. Returns `vec![]` unconditionally. Source: dns.rs:70-78.
 - `summarize()`: returns `AnalysisSummary` with `dns_queries` and `dns_responses` keys in
-  the detail map. Source: dns.rs:72-88.
+  the detail map. Source: dns.rs:80-96.
 
 ## Short-packet edge case
 

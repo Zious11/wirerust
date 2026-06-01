@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 — fix stale main.rs line anchor: :183 → :187 (summary.skipped_packets = total_decode_errors; line 187 in HEAD cfe0112a); verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -50,7 +51,7 @@ just when non-zero) allows downstream scripts to distinguish "no errors" from "f
    This differs from TerminalReporter which only shows the skipped-packets line
    when N > 0 (BC-2.11.006).
 2. The value is set by `summary.skipped_packets = total_decode_errors` in main.rs
-   after the packet loop completes (main.rs:183).
+   after the packet loop completes (main.rs:187).
 
 ## Edge Cases
 
@@ -95,7 +96,7 @@ just when non-zero) allows downstream scripts to distinguish "no errors" from "f
 ## Architecture Anchors
 
 - `src/reporter/json.rs:47-56` -- serde_json::json! macro block including skipped_packets
-- `src/main.rs:183` -- summary.skipped_packets = total_decode_errors assignment
+- `src/main.rs:187` -- summary.skipped_packets = total_decode_errors assignment
 
 ---
 

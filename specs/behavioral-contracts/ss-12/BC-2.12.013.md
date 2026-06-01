@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: DF-SIBLING-SWEEP-001 — fix stale main.rs line anchors: template hardcoded at :150-152 → :154-156, capability anchor ref :149-177 → :153-181, architecture anchor :149-177 → :153-181; verified against HEAD cfe0112a — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,7 +48,7 @@ processed, leaving no artifacts on stderr.
 
 ## Invariants
 
-1. The progress bar template string is hardcoded at main.rs:150-152.
+1. The progress bar template string is hardcoded at main.rs:154-156.
 2. `pb.finish_and_clear()` is always called after the inner loop, even if errors occur.
 3. The ProgressBar constructor `ProgressStyle::with_template(...)` is fallible; the `?`
    propagates inside the IIFE closure.
@@ -78,7 +79,7 @@ processed, leaving no artifacts on stderr.
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md |
-| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- the indicatif ProgressBar is constructed and driven in run_analyze (main.rs:149-177) as part of the per-target packet loop; this is the entry-layer packet-loop orchestration owned by CAP-12, not a reporter rendering concern |
+| Capability Anchor Justification | CAP-12 ("CLI Orchestration / Entry Point") per domain/capabilities/cap-12-cli-orchestration.md -- the indicatif ProgressBar is constructed and driven in run_analyze (main.rs:153-181) as part of the per-target packet loop; this is the entry-layer packet-loop orchestration owned by CAP-12, not a reporter rendering concern |
 | L2 Domain Invariants | None directly |
 | Architecture Module | SS-12 (main.rs, C-1) |
 | Stories | STORY-088 |
@@ -90,7 +91,7 @@ processed, leaving no artifacts on stderr.
 
 ## Architecture Anchors
 
-- `src/main.rs:149-177` -- ProgressBar construction and use in packet loop
+- `src/main.rs:153-181` -- ProgressBar construction and use in packet loop
 
 ---
 
@@ -100,7 +101,7 @@ processed, leaving no artifacts on stderr.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/main.rs:149-177` |
+| **Path** | `src/main.rs:153-181` |
 | **Confidence** | low |
 | **Extraction Date** | 2026-05-20 |
 
