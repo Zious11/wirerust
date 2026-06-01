@@ -61,3 +61,18 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 **EXACT NEXT ACTION (at time of archival):** Dispatch whole-impl adversarial Pass 9 (fresh context). Need 3 consecutive CLEAN passes (0C/0H/0M) for CONVERGENCE_SATISFIED (3/3). Pass 9 clean → counter 1/3, dispatch Pass 10.
 
 **WHOLE-IMPL PASS LOG at archival:** P1 MED→P2 MED→P3 HIGH+LOW→P4 MED→P5 ZERO(voided)→P6 HIGH+MED→P7 MED+LOW→P8 HIGH — all REMEDIATED. CLEAN-PASS COUNTER = 0/3 (Pass 8 HIGH broke streak). Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md.
+
+---
+
+## Archived: 2026-06-01 — PHASE 5, Pass 9 CLEAN (1/3), Pass 10 NEXT (superseded by Pass 10 REMEDIATED checkpoint)
+
+**POSITION:** Phase 5 IN PROGRESS. develop HEAD cfe0112a (code unchanged). Pass 9 CONVERGENCE_REACHED (fresh-context opus): ZERO findings (0C/0H/0M/0L). Independently re-derived all 24 src modules + reporters + dispatcher + sampled BC/VP fidelity; 83-citation anchor sweep held. Input-hash MATCH=48/STALE=0. CLEAN-PASS COUNTER = 1/3. Note: streak subsequently broken by Pass 10.
+
+**EXACT NEXT ACTION (at time of archival):** Dispatch whole-impl adversarial Pass 10 (fresh context). Need 3 consecutive CLEAN passes (0C/0H/0M) for CONVERGENCE_SATISFIED (3/3). Pass 10 clean → counter 2/3, dispatch Pass 11.
+
+**OPEN/ACCEPTED ITEMS at archival:**
+- All P1–P8 findings REMEDIATED. Pass 9: ZERO findings (CLEAN-1/3).
+- ADV-IMPL-P01-LOW-001: ACCEPTED/optional (findings.rs stale doc-comment).
+- ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture added.
+- ADV-HS043-P02-LOW-001: ACCEPTED non-blocking (subsequently SUPERSEDED by ADV-IMPL-P10-MED-001).
+- PROCESS-GAP-P5-001: OPEN — HIGH-PRIORITY (anchor drift; 4 dims over 8 passes).

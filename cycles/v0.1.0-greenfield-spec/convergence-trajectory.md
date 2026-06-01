@@ -1726,9 +1726,10 @@ SATISFIED (passes 31/32/33 all returned 0C/0H/0M). 33 adversarial passes total.
 | P5-Pass 6 | 2026-06-01 | 2 | 0 | 1 | 1 | 0 | HIGH | 0/3 | NOT_CONVERGED — ADV-IMPL-P06-HIGH-001 (top_snis/top_hosts tiebreak non-determinism) + P06-MED-001 (terminal section sort); REAL code defects; REMEDIATED FIX-P5-003 → PR #174 → cfe0112a |
 | P5-Pass 7 | 2026-06-01 | 2 | 0 | 0 | 1 | 1 | LOW | 0/3 | NOT_CONVERGED — ADV-IMPL-P07-MED-001 (VP-017 wrong mechanism: BTreeMap not indexmap) + P07-LOW-001 (BC-2.11.001/STORY-076 json.rs:59→:60); DOC-ONLY, REMEDIATED commits 288cba3+d26eef0 |
 | P5-Pass 8 | 2026-06-02 | 1 | 0 | 1 | 0 | 0 | HIGH | 0/3 | NOT_CONVERGED — ADV-IMPL-P08-HIGH-001 stale TEST-FILE line anchors (4th anchor-drift dim); exhaustive sweep 83 citations/44 files vs cfe0112a; all 1305 corpus citations verified; REMEDIATED commit e817d3c; input-hash re-baselined 11 stories commit 0f22508; line-anchor class CLOSED ALL dims |
-| P5-Pass 9 | 2026-06-01 | 0 | 0 | 0 | 0 | 0 | NONE | **1/3** | **CONVERGENCE_REACHED** — ZERO findings; fresh-context opus; independently re-derived all 24 src modules + reporters + dispatcher + sampled BC/VP fidelity; 83-citation anchor sweep held; CLEAN-STREAK = 1/3 |
+| P5-Pass 9 | 2026-06-01 | 0 | 0 | 0 | 0 | 0 | NONE | **1/3** (voided) | **CONVERGENCE_REACHED** — ZERO findings; fresh-context opus; independently re-derived all 24 src modules + reporters + dispatcher + sampled BC/VP fidelity; 83-citation anchor sweep held; CLEAN-STREAK = 1/3; streak voided by Pass 10 |
+| P5-Pass 10 | 2026-06-01 | 3 | 0 | 0 | 2 | 1 | MED | 0/3 | NOT_CONVERGED — ADV-IMPL-P10-MED-001 (BC-2.04.013 expire_flows→expire_idle_by_timeout re-anchor; supersedes ADV-HS043-P02-LOW-001) + MED-002 (stale HS-043 test docstrings) + LOW-001 (misleading test name); REMEDIATED: BC-2.04.013 v1.7 commit 422e4ee + STORY-019 propagation; input-hash 155cc08; test-only FIX-P5-004 (ac8d425, PR pending) |
 
-**Phase-5 finding progression:** Pass1→2→3→4→5→6→7→8→9 = MED→MED→HIGH+LOW→MED→ZERO→HIGH+MED→MED+LOW→HIGH-REMEDIATED→ZERO(CLEAN-1/3)
-**CLEAN-PASS COUNTER:** 1/3 (Pass 9 CONVERGENCE_REACHED — zero findings; need 2 more consecutive clean). Next: Pass 10.
+**Phase-5 finding progression:** Pass1→2→3→4→5→6→7→8→9→10 = MED→MED→HIGH+LOW→MED→ZERO→HIGH+MED→MED+LOW→HIGH-REMEDIATED→ZERO(CLEAN-1/3,voided)→MED+MED+LOW
+**CLEAN-PASS COUNTER:** 0/3 (RESET — Pass 9 clean streak broken by Pass 10 0C/0H/2M/1L findings). Next: Pass 11 (after FIX-P5-004 PR merges). Need 3 consecutive clean.
 
 ---

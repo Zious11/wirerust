@@ -289,3 +289,59 @@ CLEAN-PASS COUNTER = 0/3 (Pass 7 had MED; streak remains at 0). Under-probed mod
 **CLEAN-PASS COUNTER:** 0/3. Next action: whole-impl adversarial Pass 8 (fresh context). Need 3 consecutive clean.
 
 ---
+
+## Burst P5-8 (2026-06-02) — Phase-5 whole-impl Pass 8 Remediation (ADV-IMPL-P08-HIGH-001)
+
+**Agents dispatched:** adversary (whole-impl Pass 8), product-owner (exhaustive test-file citation sweep), state-manager (spec re-anchor + input-hash rebaseline + STATE.md + burst-log)
+**Files touched (doc-only, factory-artifacts commits e817d3c + 0f22508):**
+- 44 spec files: BC-2.07 (7 files), BC-2.09 (5 files), BC-2.11 (5 files), BC-2.12 (10 files), vp-006 (1 file), cap/ent/nfr/error-taxonomy/phase-4-scope (16 files) — 83 stale test-file .rs:NNN citations corrected vs HEAD cfe0112a
+- 11 stories: STORY-001/003/004/005/012/015/016/017/046/051/054 — input-hashes re-baselined (commit 0f22508); MATCH=48/STALE=0
+
+### Summary
+
+Whole-implementation adversarial Pass 8 returned NOT_CONVERGED: 0 CRIT / 1 HIGH / 0 MED / 0 LOW. ADV-IMPL-P08-HIGH-001: stale test-file line anchors — a 4th anchor-drift dimension discovered. Prior sweeps closed source-file/fuzz-file/consuming-artifact/story-body dimensions; the test-file dimension (.rs:NNN citations in test files) was not covered by any prior sweep. Product-owner ran exhaustive corpus sweep: all 1305 spec citations checked against HEAD cfe0112a; 83 stale citations across 44 files identified and corrected. Line-anchor class now CLOSED in ALL known dimensions. No semantics changed. Input-hash re-baselined: 11 stories rewritten, commit 0f22508; MATCH=48/STALE=0.
+
+**Develop HEAD:** cfe0112a (unchanged — no source code modified).
+**CLEAN-PASS COUNTER:** 0/3. Next action: whole-impl adversarial Pass 9 (fresh context).
+
+---
+
+## Burst P5-9 (2026-06-01) — Phase-5 whole-impl Pass 9 — CONVERGENCE_REACHED (ZERO findings)
+
+**Agents dispatched:** adversary (whole-impl Pass 9, fresh context, opus-tier), state-manager (STATE.md + burst-log)
+**Files touched:** STATE.md (clean-counter 0→1/3, session checkpoint, convergence_trajectory frontmatter); cycles/v0.1.0-greenfield-spec/burst-log.md (this entry); cycles/v0.1.0-greenfield-spec/convergence-trajectory.md (P5-Pass 9 row added)
+
+### Summary
+
+Whole-implementation adversarial Pass 9 returned CONVERGENCE_REACHED: 0 CRIT / 0 HIGH / 0 MED / 0 LOW. Fresh-context opus independently re-derived all 24 src modules + reporters + dispatcher + sampled BC/VP fidelity; 83-citation anchor sweep held. Zero findings of any severity. CLEAN-PASS COUNTER advanced to 1/3 (first clean pass of required 3-consecutive streak). Note: streak subsequently broken by Pass 10 findings.
+
+**Develop HEAD:** cfe0112a (unchanged).
+**CLEAN-PASS COUNTER at time of pass:** 1/3 (now reset — Pass 10 found 0C/0H/2M/1L).
+
+---
+
+## Burst P5-10 (2026-06-01) — Phase-5 whole-impl Pass 10 NOT_CONVERGED + Remediation (ADV-IMPL-P10-MED-001, MED-002, LOW-001)
+
+**Agents dispatched:** adversary (whole-impl Pass 10, fresh context), state-manager (spec re-anchor + input-hash rebaseline + STATE.md + burst-log)
+**Files touched (doc-only, factory-artifacts commits 422e4ee + 155cc08):**
+- specs/behavioral-contracts/ss-04/BC-2.04.013.md (v1.6→v1.7: PC0/anchors re-anchored to expire_idle_by_timeout as production-wired enforcer; expire_flows reframed as public/offline API; supersedes accepted ADV-HS043-P02-LOW-001)
+- stories/STORY-019.md (v1.6→v1.7: body/narrative/BC-title/Architecture-Mapping propagation; bcs: array untouched)
+- stories/STORY-019.md (input-hash rebaselined 55d7035→f616d4d, commit 155cc08)
+**Test-only fix:** FIX-P5-004 (ADV-IMPL-P10-MED-002 stale docstrings + ADV-IMPL-P10-LOW-001 misleading test name; commit ac8d425 on develop branch, PR pending merge)
+
+### Summary
+
+Whole-implementation adversarial Pass 10 returned NOT_CONVERGED: 0 CRIT / 0 HIGH / 2 MED / 1 LOW.
+
+- ADV-IMPL-P10-MED-001: BC-2.04.013 PC0 and anchors named `expire_flows` as the production-wired enforcer, but the wired enforcer (called on every packet) is `expire_idle_by_timeout`. `expire_flows` is the public/offline API (called only by `finalize()`). This upgraded and supersedes ADV-HS043-P02-LOW-001 which had been accepted as non-blocking; fresh-context review correctly identified it as a spec-naming defect. BC-2.04.013 v1.7 re-anchors PC0 and all citation anchors to `expire_idle_by_timeout`. STORY-019 body/narrative/BC-title/Architecture-Mapping propagated (doc-only). Spec fix committed 422e4ee; input-hash re-baselined 155cc08. MATCH=48/STALE=0.
+- ADV-IMPL-P10-MED-002: HS-043 test docstrings stale — test functions retained docstrings describing the old `expire_flows` API rather than the new `expire_idle_by_timeout` production path. Addressed by test-only FIX-P5-004 (commit ac8d425, PR pending).
+- ADV-IMPL-P10-LOW-001: Misleading test name in HS-043 region. Addressed by FIX-P5-004.
+
+PROCESS-GAP-P5-001 reinforced: propagation gaps from the HS-043 fix-burst recurred (BC function-name + test docstring coherence). Durable fix must also cover: when a fix renames/introduces a function, sweep BC PC/anchors + test docstrings naming the old/related function.
+
+ADV-HS043-P02-LOW-001 status: SUPERSEDED-BY-ADV-IMPL-P10-MED-001 — the previously-accepted disposition was incorrect; the defect is now properly fixed in BC v1.7.
+
+**Develop HEAD:** cfe0112a (unchanged — spec/doc fix only; FIX-P5-004 test fix pending PR merge).
+**CLEAN-PASS COUNTER:** RESET to 0/3 (Pass 9 clean streak broken by Pass 10 findings). Next: whole-impl Pass 11 (after FIX-P5-004 PR merges). Need 3 consecutive clean.
+
+---
