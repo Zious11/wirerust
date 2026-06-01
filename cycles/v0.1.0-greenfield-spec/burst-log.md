@@ -209,3 +209,83 @@ PROCESS-GAP-P5-001 updated: three consecutive passes prove the drift propagated 
 **CLEAN-PASS COUNTER:** 0. Next action: whole-impl adversarial Pass 4 (fresh context).
 
 ---
+
+## Burst P5-4 (2026-06-01) — Phase-5 whole-impl Pass 4 Remediation (ADV-IMPL-P04-MED-001)
+
+**Agents dispatched:** adversary (whole-impl Pass 4), architect/product-owner (BC/VP/story spec fix), devops-engineer (code fix + PR), state-manager (STATE.md + burst-log)
+**Files touched (spec + code, FIX-P5-002):**
+- specs/behavioral-contracts/ss-12/BC-2.12.005.md (v1.2→v1.3: depth/memcap >=1 PC5/PC6, EC-006/EC-007, canonical vectors)
+- specs/prd-supplements/nfr-catalog.md (NFR-REL-004 impl note added)
+- specs/prd-supplements/error-taxonomy.md (E-RAS-004 + E-CFG-007/008 taxonomy)
+- stories/STORY-087.md (v1.2→v1.3: EC-001 revised, EC-006/AC-013/AC-014 added)
+- src/main.rs (depth/memcap >=1 enforcement + E-CFG-007/008 exit codes)
+- tests/integration_tests.rs (AC-013/AC-014 zero-rejection tests)
+**Factory-artifacts commit:** (spec reconciliation burst, factory-artifacts)
+**Code PR:** FIX-P5-002 → PR #173, squash-merged → develop 472b45e9, 2026-06-01
+
+### Summary
+
+Whole-implementation adversarial Pass 4 returned NOT_CONVERGED: 0 CRIT / 0 HIGH / 1 MED. ADV-IMPL-P04-MED-001: BC-2.12.005 zero-rejection contract gap — spec required depth/memcap >=1 but lacked canonical PCs, error codes E-CFG-007/E-CFG-008, and test-citation anchors; code did not enforce the contract (--depth 0 / --memcap 0 were silently accepted). Spec reconciled and code fix merged. Demo recorded (.factory/demo-evidence/FIX-P5-002/; exit 2/2/0). Pass 5 adversary verified correct.
+
+**Develop HEAD:** 472b45e9 (code changed — zero-rejection enforcement merged).
+**CLEAN-PASS COUNTER:** 0. Next action: whole-impl adversarial Pass 5 (fresh context).
+
+---
+
+## Burst P5-5 (2026-06-01) — Phase-5 whole-impl Pass 5 — CONVERGENCE_REACHED (ZERO findings)
+
+**Agents dispatched:** adversary (whole-impl Pass 5), state-manager (STATE.md + burst-log)
+**Files touched:** STATE.md (clean-counter update, session checkpoint); cycles/v0.1.0-greenfield-spec/burst-log.md (this entry)
+
+### Summary
+
+Whole-implementation adversarial Pass 5 returned CONVERGENCE_REACHED: 0 CRIT / 0 HIGH / 0 MED / 0 LOW. Zero findings — complete, rigorous review of all 12 subsystems, all behavioral contracts, all VPs, all integration seams. CLEAN-PASS COUNTER advanced to 1/3 (first clean pass of the required 3-consecutive-clean streak). Note: streak was subsequently voided by Pass 6 findings.
+
+**Develop HEAD:** 472b45e9 (unchanged from Pass 4 merge).
+**CLEAN-PASS COUNTER at time of pass:** 1/3 (now void — Pass 6 reset to 0/3).
+
+---
+
+## Burst P5-6 (2026-06-01) — Phase-5 whole-impl Pass 6 Remediation (ADV-IMPL-P06-HIGH-001, ADV-IMPL-P06-MED-001)
+
+**Agents dispatched:** adversary (whole-impl Pass 6), architect/product-owner (spec fix), devops-engineer (code fix + PR), state-manager (STATE.md + burst-log)
+**Files touched (spec + code, FIX-P5-003):**
+- specs/behavioral-contracts/ss-06/BC-2.06.023.md (v1.3→v1.4: top_snis tiebreaker postcondition + alphabetical-sort implementation note)
+- specs/behavioral-contracts/ss-07/BC-2.07.031.md (v1.2→v1.3: top_hosts tiebreaker postcondition + alphabetical-sort implementation note)
+- specs/behavioral-contracts/ss-11/BC-2.11.019.md (v1.2→v1.3: terminal PROTOCOLS/SERVICES section sort postcondition)
+- stories/STORY-046.md (v1.1→v1.2: reconciled)
+- stories/STORY-058.md (v1.3→v1.4: reconciled)
+- stories/STORY-078.md (v1.3→v1.4: reconciled)
+- src/analyzer/tls.rs + src/analyzer/http.rs (HashMap iteration stabilized; alphabetical tiebreak sort for top_snis/top_hosts)
+- src/reporter/text.rs (BTreeMap keys propagated in sorted order to terminal section output)
+**Code PR:** FIX-P5-003 → PR #174, squash-merged → develop cfe0112a, 2026-06-01
+
+### Summary
+
+Whole-implementation adversarial Pass 6 returned NOT_CONVERGED: 0 CRIT / 1 HIGH / 1 MED. ADV-IMPL-P06-HIGH-001: non-deterministic JSON output ordering of top_snis and top_hosts tie entries (HashMap iteration order not stabilized before serialization; violates BC-2.07.031/BC-2.06.023 tiebreaker postconditions and DET-001). ADV-IMPL-P06-MED-001: non-deterministic terminal PROTOCOLS/SERVICES section ordering (BTreeMap keys not propagated in sorted order; violates BC-2.11.019 terminal section sort postcondition). Real code defects; genuinely new class (distinct from prior anchor-drift class). Input-hash re-baselined post-merge: STORY-046/058/078 rewritten; 3fd6dce+b4f2258 commits. CLEAN-PASS COUNTER reset to 0/3 (streak from Pass 5 voided).
+
+**Develop HEAD:** cfe0112a (code changed — determinism fixes merged).
+**CLEAN-PASS COUNTER:** 0. Next action: whole-impl adversarial Pass 7 (fresh context).
+
+---
+
+## Burst P5-7 (2026-06-01) — Phase-5 whole-impl Pass 7 Remediation (ADV-IMPL-P07-MED-001, ADV-IMPL-P07-LOW-001)
+
+**Agents dispatched:** adversary (whole-impl Pass 7), state-manager (spec doc fix + STATE.md + burst-log)
+**Files touched (doc-only, factory-artifacts commit 288cba3):**
+- specs/verification-properties/vp-017-json-key-determinism.md (v1.1→v1.2: mechanism prose rewritten — BTreeMap/alphabetical, NOT indexmap/insertion-order; phantom test replaced with real shipped tests; Feasibility + Source Location updated)
+- specs/behavioral-contracts/ss-11/BC-2.11.001.md (v1.3→v1.4: json.rs:59→:60 in 3 anchor spots — Invariants, Architecture Anchors, Proof Method)
+- stories/STORY-076.md (v1.1→v1.2: json.rs:59→:60 in 2 spots — Purity table + Tasks item 5)
+- stories/STORY-076.md (input-hash rebaselined 531986f→971c1d1, commit d26eef0)
+**Factory-artifacts commits:** 288cba3 (doc fix), d26eef0 (input-hash rebaseline)
+
+### Summary
+
+Whole-implementation adversarial Pass 7 returned NOT_CONVERGED: 0 CRIT / 0 HIGH / 1 MED / 1 LOW. ADV-IMPL-P07-MED-001: VP-017 documented the wrong JSON key ordering mechanism — claimed serde_json Map is indexmap-backed (insertion order), actual is BTreeMap (alphabetical). Determinism property itself HOLDS; only the spec's mechanism explanation was wrong. ADV-IMPL-P07-LOW-001: BC-2.11.001 and STORY-076 cited json.rs:59 for the infallible unwrap(); actual line is json.rs:60 (line 59 is the closing `});` of the json! macro). Both doc-only fixes; no source code change; no code re-verification needed. Input-hash re-baselined post-fix: MATCH=48/STALE=0.
+
+CLEAN-PASS COUNTER = 0/3 (Pass 7 had MED; streak remains at 0). Under-probed modules (reader, reassembly internals, summary, findings, dispatcher, DNS, MITRE) all reviewed and found sound by Pass 7 adversary. Both doc fixes confirmed correct.
+
+**Develop HEAD:** cfe0112a (unchanged — no source code modified).
+**CLEAN-PASS COUNTER:** 0/3. Next action: whole-impl adversarial Pass 8 (fresh context). Need 3 consecutive clean.
+
+---

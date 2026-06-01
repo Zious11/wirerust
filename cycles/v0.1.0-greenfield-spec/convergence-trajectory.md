@@ -1713,3 +1713,20 @@ SATISFIED (passes 31/32/33 all returned 0C/0H/0M). 33 adversarial passes total.
 4. Human approval gate — pending
 
 ---
+
+## Phase-5 Adversarial Refinement — Whole-Implementation Passes
+
+| Pass | Date | Total | CRIT | HIGH | MED | LOW | Novelty | Counter | Verdict |
+|------|------|-------|------|------|-----|-----|---------|---------|---------|
+| P5-Pass 1 | 2026-06-01 | 3 | 0 | 0 | 1 | 2 | LOW | 0/3 | NOT_CONVERGED — ADV-IMPL-P01-MED-001 (32 SS-04 BC anchor drift); REMEDIATED commit 2b33284 |
+| P5-Pass 2 | 2026-06-01 | 1 | 0 | 0 | 1 | 0 | LOW | 0/3 | NOT_CONVERGED — ADV-IMPL-P02-MED-001 (residual SS-04 anchor drift, 2 BCs); REMEDIATED commit aa6d73b |
+| P5-Pass 3 | 2026-06-01 | 2 | 0 | 1 | 0 | 1 | LOW | 0/3 | NOT_CONVERGED — ADV-IMPL-P03-HIGH-001 (28 citations/8 files, consuming-artifact tier) + LOW-001 (TLS/SSL prose); REMEDIATED commit c7a0012 |
+| P5-Pass 4 | 2026-06-01 | 1 | 0 | 0 | 1 | 0 | MED | 0/3 | NOT_CONVERGED — ADV-IMPL-P04-MED-001 (BC-2.12.005 zero-rejection gap; code+spec); REMEDIATED FIX-P5-002 → PR #173 → 472b45e9 |
+| P5-Pass 5 | 2026-06-01 | 0 | 0 | 0 | 0 | 0 | NONE | 1/3 (voided) | CONVERGENCE_REACHED — zero findings; streak voided by Pass 6 |
+| P5-Pass 6 | 2026-06-01 | 2 | 0 | 1 | 1 | 0 | HIGH | 0/3 | NOT_CONVERGED — ADV-IMPL-P06-HIGH-001 (top_snis/top_hosts tiebreak non-determinism) + P06-MED-001 (terminal section sort); REAL code defects; REMEDIATED FIX-P5-003 → PR #174 → cfe0112a |
+| P5-Pass 7 | 2026-06-01 | 2 | 0 | 0 | 1 | 1 | LOW | 0/3 | NOT_CONVERGED — ADV-IMPL-P07-MED-001 (VP-017 wrong mechanism: BTreeMap not indexmap) + P07-LOW-001 (BC-2.11.001/STORY-076 json.rs:59→:60); DOC-ONLY, REMEDIATED commits 288cba3+d26eef0 |
+
+**Phase-5 finding progression:** Pass1→2→3→4→5→6→7 = MED→MED→HIGH+LOW→MED→ZERO→HIGH+MED→MED+LOW
+**CLEAN-PASS COUNTER:** 0/3 (Pass 7 had MED; need 3 consecutive clean for convergence). Next: Pass 8.
+
+---

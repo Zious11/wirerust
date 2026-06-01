@@ -41,3 +41,13 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 4. D-001 RESOLVED (STORY-053 EC fixed f368f53). D-002 RESOLVED (this burst: STORY-057/076/077/078/079/080 statuses completed + STORY-INDEX wave rows 3-22 backfilled).
 5. Open drift item: F-W25-S088-P6-001 LOW (AC-004 warning-once inv-2 count assertion; test-strength only; accepted or target Phase-5; per DF-VALIDATION-001 no issue without research-agent validation).
 6. Prior checkpoint (Phase 3 COMPLETE; next = Phase 3→4 gate) archived: cycles/phase-3-tdd/session-checkpoints.md.
+
+---
+
+## Archived: 2026-06-02 — PHASE 5, Pass 7 IN PROGRESS (superseded by Pass 7 REMEDIATED checkpoint)
+
+**POSITION:** Phase 5 (Adversarial Refinement) IN PROGRESS. develop HEAD cfe0112a. FIX-P5-003 squash-merged via PR #174 → develop cfe0112a, 2026-06-01. Determinism defect class CLOSED. BC-2.06.023 v1.4 / BC-2.07.031 v1.3 / BC-2.11.019 v1.3 + STORY-046/058/078 reconciled. Input-hash drift CLEAN (MATCH=48/STALE=0). CLEAN-PASS COUNTER = 0/3 (streak restarts; Pass 6 had findings). Whole-implementation adversarial Pass 7 NOW RUNNING.
+
+**EXACT NEXT ACTION (at time of archival):** Await Pass 7 result. Need 3 consecutive CLEAN passes for CONVERGENCE_SATISFIED (3/3). If Pass 7 CLEAN: counter = 1/3, dispatch Pass 8. If NOT_CONVERGED: remediate and restart streak.
+
+**WHOLE-IMPL PASS LOG at archival:** P1 MED REMEDIATED (2b33284). P2 MED REMEDIATED (aa6d73b). P3 HIGH+LOW REMEDIATED (c7a0012). P4 MED REMEDIATED (PR#173→472b45e9). P5 ZERO (voided). P6 HIGH+MED REMEDIATED (PR#174→cfe0112a). P7 IN PROGRESS. Detail: cycles/v0.1.0-greenfield-spec/burst-log.md.
