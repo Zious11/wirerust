@@ -3,7 +3,7 @@ pipeline: PHASE_5_ADVERSARIAL_REFINEMENT
 phase: phase-5-adversarial-refinement
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-02T12:00:00Z
+timestamp: 2026-06-02T18:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -24,12 +24,12 @@ dtu_required: false
 dtu_assessment: 2026-05-20
 dtu_clones_built: n/a
 dtu_services: []
-adversary_convergence_counter: 0/3  # Pass 7 had MED; next = Pass 8
-adv_impl_remediated: "P04-MED(PR#173→472b45e9);P06-HIGH(PR#174→cfe0112a);P06-MED(PR#174→cfe0112a);P07-MED(288cba3);P07-LOW(288cba3)"
+adversary_convergence_counter: 0/3  # Pass 8 had HIGH (REMEDIATED); next = Pass 9
+adv_impl_remediated: "P04-MED(PR#173→472b45e9);P06-HIGH(PR#174→cfe0112a);P06-MED(PR#174→cfe0112a);P07-MED(288cba3);P07-LOW(288cba3);P08-HIGH(e817d3c)"
 adversary_gate: NOT_YET_SATISFIED
-convergence_trajectory: "P5:P1-MED(2b33284)|P2-MED(aa6d73b)|P3-HIGH+LOW(c7a0012)|P4-MED(PR#173→472b45e9)|P5-ZERO(voided)|P6-HIGH+MED(PR#174→cfe0112a)|P7-MED+LOW-DOC-REMEDIATED(288cba3+d26eef0). Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
+convergence_trajectory: "P5:P1-MED(2b33284)|P2-MED(aa6d73b)|P3-HIGH+LOW(c7a0012)|P4-MED(PR#173→472b45e9)|P5-ZERO(voided)|P6-HIGH+MED(PR#174→cfe0112a)|P7-MED+LOW(288cba3+d26eef0)|P8-HIGH-REMEDIATED(e817d3c). Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 consistency_audit: CONSISTENT
-input_drift_check: "CLEAN (re-baselined post ADV-IMPL-P07 doc fix: MATCH=48/STALE=0; STORY-076 rewritten 531986f→971c1d1; commit d26eef0)"
+input_drift_check: "CLEAN (re-baselined post ADV-IMPL-P08 anchor sweep: MATCH=48/STALE=0; 11 stories rewritten; commit 0f22508)"
 phase_2_input_hash_drift_check: CLEAN
 phase_2_input_hash_drift_check_total: 153
 wave_history_archived: "cycles/phase-3-tdd/wave-history.md (all waves 1-27 detail + final-steps; compacted 2026-06-01)"
@@ -40,7 +40,7 @@ wave_history_archived: "cycles/phase-3-tdd/wave-history.md (all waves 1-27 detai
 ## Status
 
 **Pipeline:** PHASE 5 — Adversarial Refinement IN PROGRESS. develop cfe0112a (unchanged).
-Pass 7 REMEDIATED (doc-only): VP-017 v1.2 (BTreeMap mechanism), BC-2.11.001 v1.4 + STORY-076 v1.2 (json.rs:59→:60), commits 288cba3+d26eef0. CLEAN-PASS COUNTER = 0/3. Whole-impl adversarial Pass 8 NEXT. input-hash drift CLEAN (MATCH=48/STALE=0).
+Pass 8 NOT_CONVERGED (0C/1H/0M): ADV-IMPL-P08-HIGH-001 stale TEST-FILE line anchors (4th anchor-drift dimension). REMEDIATED via exhaustive sweep: 83 citations / 44 files corrected vs cfe0112a; all 1305 corpus citations verified (commit e817d3c). Line-anchor class CLOSED all dimensions. CLEAN-PASS COUNTER = 0/3. Whole-impl adversarial Pass 9 NEXT. input-hash drift CLEAN (MATCH=48/STALE=0; 11 stories rewritten commit 0f22508).
 
 **Mode:** brownfield (in-repo: target == reference).
 
@@ -59,7 +59,7 @@ dependency bumping for it).
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
 | Phase 3 — TDD Implementation | **PASSED** 2026-05-31 | 48/48 stories, 27/27 waves, all CLOSED/CONVERGED; E-1..E-10 ALL COMPLETE; develop HEAD 6158e6e (PR#170); BC-5.39.001 ACHIEVED across all waves; trajectory detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | **PASSED** 2026-06-01 | 80-scenario rotation, mean 0.949, 0 must-pass <0.6; HS-043 real defect found+fixed (PR #171); HS-006/016 non-defects; model-family caveat documented; detail: cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md; Phase 4→5 gate PASSED 2026-06-01 (PR #172 regression tests merged) |
-| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | Passes 1–7 complete. Pass 7 NOT_CONV: MED (VP-017 wrong mechanism doc) + LOW (BC-2.11.001/STORY-076 anchor off-by-one) — DOC-ONLY, REMEDIATED (288cba3+d26eef0). CLEAN-PASS COUNTER = 0/3. Finding progression P1→P7: MED→MED→HIGH+LOW→MED→ZERO→HIGH+MED→MED+LOW. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md + burst-log.md |
+| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | Passes 1–8 complete. Pass 8 NOT_CONV: 0C/1H/0M — ADV-IMPL-P08-HIGH-001 stale TEST-FILE anchors (4th anchor-drift dim). REMEDIATED: 83 citations/44 files (e817d3c); line-anchor class CLOSED ALL dims. CLEAN-PASS COUNTER = 0/3. P1→P8: MED→MED→HIGH+LOW→MED→ZERO→HIGH+MED→MED+LOW→HIGH-REMEDIATED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
 | Phase 7 — Convergence | NOT STARTED | — |
 
@@ -67,27 +67,27 @@ dependency bumping for it).
 
 Waves 1–27 ALL CLOSED/CONVERGED — detail: `cycles/phase-3-tdd/wave-history.md`. Spec package (Phase 1): 20 L2 shards, 1 PRD, 217 BCs, 20 VPs, 4 supplements, 9 arch files — detail: `cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`.
 
-## Session Resume Checkpoint (2026-06-02 — PHASE 5, Pass 7 REMEDIATED, Pass 8 NEXT)
+## Session Resume Checkpoint (2026-06-02 — PHASE 5, Pass 8 REMEDIATED, Pass 9 NEXT)
 
-**POSITION:** Phase 5 IN PROGRESS. develop HEAD cfe0112a (code unchanged — Pass 7 was doc-only). Pass 7 REMEDIATED: VP-017 v1.2 (BTreeMap mechanism corrected), BC-2.11.001 v1.4 + STORY-076 v1.2 (json.rs:59→:60), factory-artifacts commits 288cba3+d26eef0. Input-hash MATCH=48/STALE=0. CLEAN-PASS COUNTER = 0/3.
+**POSITION:** Phase 5 IN PROGRESS. develop HEAD cfe0112a (code unchanged — Pass 8 was spec-anchor-only). Pass 8 REMEDIATED: ADV-IMPL-P08-HIGH-001 exhaustive line-anchor sweep — 83 stale citations / 44 files corrected vs cfe0112a; all 1305 corpus citations verified. Line-anchor class CLOSED in ALL dimensions (source/test/fuzz/consuming/story-body). factory-artifacts commits e817d3c (specs) + 0f22508 (input-hashes). Input-hash MATCH=48/STALE=0. CLEAN-PASS COUNTER = 0/3.
 
-**EXACT NEXT ACTION:** Dispatch whole-impl adversarial Pass 8 (fresh context). Need 3 consecutive CLEAN passes (0C/0H/0M) for CONVERGENCE_SATISFIED (3/3). Pass 8 clean → counter 1/3, dispatch Pass 9.
+**EXACT NEXT ACTION:** Dispatch whole-impl adversarial Pass 9 (fresh context). Need 3 consecutive CLEAN passes (0C/0H/0M) for CONVERGENCE_SATISFIED (3/3). Pass 9 clean → counter 1/3, dispatch Pass 10.
 
 **MODEL-FAMILY CAVEAT (carry forward):** True non-Claude (GPT) evaluator unavailable. Use opus-tier fresh-context + strict info-asymmetry as substitute. Document at each gate.
 
 **OPEN/ACCEPTED ITEMS a fresh session must know:**
-- ADV-IMPL-P07-MED-001: REMEDIATED doc-only (VP-017 v1.2, commit 288cba3).
-- ADV-IMPL-P07-LOW-001: REMEDIATED doc-only (BC-2.11.001 v1.4 / STORY-076 v1.2, commit 288cba3).
-- ADV-IMPL-P06-HIGH-001 + P06-MED-001: REMEDIATED + MERGED (PR #174 → cfe0112a; determinism class CLOSED).
+- ADV-IMPL-P08-HIGH-001: REMEDIATED (exhaustive anchor sweep e817d3c; line-anchor class CLOSED ALL dims).
+- ADV-IMPL-P07-MED-001 + P07-LOW-001: REMEDIATED doc-only (288cba3+d26eef0).
+- ADV-IMPL-P06-HIGH/MED: REMEDIATED + MERGED (PR #174 → cfe0112a; determinism class CLOSED).
 - ADV-IMPL-P04-MED-001: REMEDIATED + MERGED (PR #173 → 472b45e9). P01/P02/P03 all REMEDIATED.
 - ADV-IMPL-P01-LOW-001: ACCEPTED/optional (findings.rs stale doc-comment, same class as O-08).
 - ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture added (see Drift Items).
 - F-W25-S088-P6-001 LOW: test-strength only; target next main.rs touch.
-- PROCESS-GAP-P5-001: OPEN — DF-SIBLING-SWEEP-001 4-tier blast radius. Disposition at Phase-5 cycle close.
+- PROCESS-GAP-P5-001: OPEN — HIGH-PRIORITY. 8 passes, anchor drift recurred in 4 dimensions (83 systemic stale citations in this pass alone). ROOT CAUSE: line-number anchoring inherently drift-prone. Cycle-close disposition MUST propose durable fix: (a) anchor on symbol/fn names, or (b) mechanical CI/hook anchor-validation, or (c) documented justified deferral. Disposition at Phase-5 cycle close per S-7.02.
 
 **PROCESS NOTE (W24.L3):** Verify merges via `gh pr view <N>` + `git rev-parse origin/develop` before declaring landed.
 
-Prior checkpoint (Pass 7 IN PROGRESS) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
+Prior checkpoint (Pass 8 NEXT) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
 ## Phase 3→4 Gate — PASSED 2026-06-01
 
@@ -139,6 +139,7 @@ Externally-blocked / phase-gated items (W9-D2/D3/D4 upstream-plugin, W9-D12 awai
 | ADV-IMPL-P01-LOW-002 | [Phase-5, whole-impl Pass 1, LOW] Additional anchor citation gap folded into the SS-04 sweep scope. | spec-anchor drift | SS-04 sweep | ACCEPTED — folded into ADV-IMPL-P01-MED-001 sweep; no residual |
 | ADV-IMPL-P07-MED-001 | [Phase-5, whole-impl Pass 7, MED] VP-017 documented wrong JSON key ordering mechanism — claimed indexmap/insertion-order; actual is BTreeMap/alphabetical (preserve_order OFF; no indexmap dep). Determinism property HOLDS; spec's mechanism explanation was wrong. Doc-only fix. | spec-mechanism doc error (VP-017) | CLOSED | REMEDIATED doc-only — VP-017 v1.2, commit 288cba3, 2026-06-01 |
 | ADV-IMPL-P07-LOW-001 | [Phase-5, whole-impl Pass 7, LOW] BC-2.11.001 and STORY-076 cited json.rs:59 for infallible unwrap(); actual line is json.rs:60 (line 59 is `});` closing the json! macro). Doc-only fix. | spec-anchor off-by-one (BC-2.11.001, STORY-076) | CLOSED | REMEDIATED doc-only — BC-2.11.001 v1.4 / STORY-076 v1.2, commit 288cba3 + d26eef0 (input-hash), 2026-06-01 |
+| ADV-IMPL-P08-HIGH-001 | [Phase-5, whole-impl Pass 8, HIGH] Stale TEST-FILE line anchors — 4th anchor-drift dimension discovered. Prior sweeps closed source/fuzz/consuming/story-body dims; test-file dim missed. Exhaustive sweep of ALL 1305 corpus citations vs HEAD cfe0112a found 83 stale `.rs:NNN` citations across 44 spec files (BC-2.07, BC-2.09, BC-2.11, BC-2.12, vp-006, cap/ent/nfr/error-taxonomy/phase-4 scope-decision). Line-number citations only — no semantics changed. | spec-anchor drift (DF-SIBLING-SWEEP-001; test-file dim) | CLOSED | REMEDIATED — exhaustive 83-citation/44-file sweep, commit e817d3c (2026-06-02); input-hash re-baselined 11 stories, commit 0f22508. Line-anchor class CLOSED ALL dimensions. |
 | ADV-IMPL-P06-HIGH-001 | [Phase-5, whole-impl Pass 6, HIGH] Non-deterministic JSON output ordering of top_snis/top_hosts tie entries — HashMap iteration not stabilized. REAL defect. FIX MERGED PR #174 → cfe0112a; determinism class CLOSED; Pass 7 verified correct. | implementation / determinism | CLOSED | REMEDIATED + MERGED — PR #174 → develop cfe0112a, 2026-06-01; Pass 7 clean |
 | ADV-IMPL-P06-MED-001 | [Phase-5, whole-impl Pass 6, MED] Non-deterministic terminal PROTOCOLS/SERVICES ordering — BTreeMap keys not propagated sorted. REAL defect. FIX MERGED PR #174 → cfe0112a; Pass 7 verified correct. | implementation / determinism | CLOSED | REMEDIATED + MERGED — PR #174 → develop cfe0112a, 2026-06-01; Pass 7 clean |
 
@@ -148,7 +149,7 @@ Closed items archived in `cycles/drift-remediation-2026-05-29/closed-items.md`. 
 
 | ID | Description | Status |
 |----|-------------|--------|
-| PROCESS-GAP-P5-001 | [process-gap, 2026-06-01] HS-043 cross-cutting reassembly merges dispatched without a complete sibling sweep — DF-SIBLING-SWEEP-001 enforcement gap. FULL BLAST RADIUS NOW OBSERVED across FOUR tiers: Pass 1 (BC files, 32 BCs), Pass 2 (BC secondary anchors, 2 BCs), Pass 3 (consuming VP/invariant/supplement/entity artifacts, 28 citations / 8 files), Pass 5 story-tier (story bodies STORY-017..021 mod.rs citations). Anchor class EXHAUSTIVELY CLOSED at all tiers 2026-06-01 (input-hash re-baselined MATCH=48/STALE=0). DF-SIBLING-SWEEP-001 checklist MUST enumerate ALL tiers: BC files, BC secondary anchors, consuming VPs, domain invariants, entities, prd-supplements, scope-decision docs, AND story bodies. MUST NOT be silently closed before Phase-5 cycle close. Disposition (follow-up story vs justified deferral) per S-7.02 at cycle close. | OPEN — DF-SIBLING-SWEEP-001 tier-extension required (all 4 tiers documented); disposition at Phase-5 cycle close per S-7.02 |
+| PROCESS-GAP-P5-001 | [process-gap, 2026-06-01; ESCALATED 2026-06-02] HS-043 cross-cutting reassembly merges dispatched without a complete sibling sweep — DF-SIBLING-SWEEP-001 enforcement gap. SYSTEMIC: over 8 adversarial passes anchor drift recurred in FOUR dimensions: Pass 1 (BC files, 32 BCs), Pass 2 (BC secondary anchors, 2 BCs), Pass 3 (consuming VP/invariant/supplement/entity, 28 citations / 8 files), Pass 8 (test-file dim — 83 citations / 44 files; 4th dim not covered by any prior sweep). ROOT CAUSE: line-number anchoring is inherently drift-prone on any code change — sweeps are reactive, not preventive. ESCALATED to HIGH-PRIORITY. Cycle-close disposition MUST propose a durable fix: (a) anchor BCs/VPs on stable symbol/fn names instead of line numbers, OR (b) mechanical CI/hook anchor-validation check (e.g., grep-verify all `.rs:NNN` citations against current HEAD on every commit), OR (c) documented justified deferral with rationale. Line-anchor class is now CLOSED in all known dims (e817d3c); no new anchor edits allowed without re-sweeping ALL dims per DF-SIBLING-SWEEP-001 v5 checklist. | OPEN — HIGH-PRIORITY; durable-fix disposition REQUIRED at Phase-5 cycle close per S-7.02 |
 
 ## Governance Policy
 
@@ -158,7 +159,7 @@ Full policy text: `.factory/policies.yaml` (canonical). Prose detail archived: `
 | Policy | Severity |
 |--------|----------|
 | DF-VALIDATION-001 | required-before-issue |
-| DF-SIBLING-SWEEP-001 (v1→v4) | CRITICAL |
+| DF-SIBLING-SWEEP-001 (v1→v5) | CRITICAL |
 | DF-PR-MANAGER-COMPLETE-001 | HIGH |
 | DF-ADVERSARY-METHODOLOGY-001 | HIGH |
 | DF-AC-TEST-NAME-SYNC-001 (v2) | MEDIUM |
