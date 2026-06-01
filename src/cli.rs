@@ -13,6 +13,16 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
 
+/// Value parser for usize arguments that must be >= 1 (0 is rejected).
+/// Used for `--reassembly-depth` and `--reassembly-memcap`.
+fn parse_nonzero_usize(s: &str) -> Result<usize, String> {
+    let v: usize = s.parse().map_err(|e| format!("invalid value '{s}': {e}"))?;
+    if v == 0 {
+        return Err("0 is not in 1..".to_string());
+    }
+    Ok(v)
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 pub enum OutputFormat {
     Json,
@@ -67,11 +77,11 @@ pub struct Cli {
     pub no_reassemble: bool,
 
     /// Per-direction stream reassembly limit in MB (default: 10)
-    #[arg(long, global = true, default_value_t = 10)]
+    #[arg(long, global = true, default_value_t = 10, value_parser = parse_nonzero_usize)]
     pub reassembly_depth: usize,
 
     /// Global reassembly memory cap in MB (default: 1024)
-    #[arg(long, global = true, default_value_t = 1024)]
+    #[arg(long, global = true, default_value_t = 1024, value_parser = parse_nonzero_usize)]
     pub reassembly_memcap: usize,
 
     /// Override the overlapping-segment anomaly threshold (default: 50).
