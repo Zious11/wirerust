@@ -382,3 +382,39 @@ Doc-coherence layer assessed CLEAN with high confidence.
 **PROCESS-GAP-P5-001 note:** The comprehensive consistency-validator audit (F-AUDIT-001/002 found and fixed) is exactly the kind of proactive sweep that should be routine at fix-burst time. Durable-fix candidate: run a spec-coherence audit after any BC H1/title enrichment, and after any fix-burst that shifts code, not only at pass gate.
 
 ---
+
+## Burst 5 — 2026-06-01 — Phase-5 CLOSURE: STORY-091 Disposition + Secondary Review Recording + Phase-5 PASSED
+
+**Trigger:** Phase-5 adversarial gate SATISFIED (Pass 12/13/14 — three consecutive clean whole-impl fresh-context opus passes; ZERO new findings). Secondary code-review (code-reviewer, sonnet, distinct lens) COMPLETE. S-7.02 cycle-close disposition required: PROCESS-GAP-P5-001.
+
+**Agents dispatched:** state-manager (Phase-5 closure burst — story registration, tech-debt recording, policy codification, STATE.md update)
+
+**Disposition of PROCESS-GAP-P5-001:**
+STORY-091 created (draft, P1, 5 pts, E-11 Tooling) as the S-7.02 cycle-close disposition. STORY-091 specifies `bin/validate-anchors` — a Python 3 stdlib-only CLI (mirroring `bin/compute-input-hash` conventions) that checks every `src|tests|fuzz/*.rs:NNN` citation in `.factory/specs/**` against the current source tree, reporting MATCH/STALE/MISSING per citation. Epic E-11 (Tooling) created. STORY-INDEX.md updated: total_stories=49, total_points=287.
+
+**Secondary review findings recorded (tech-debt-register.md):**
+- CR-004: REFUTED/false-positive. Orchestrator empirically confirmed serde_json has no indexmap dep; `serde_json::Map` = BTreeMap (preserve_order OFF) = alphabetically sorted; byte-identical JSON produced across 2 processes on 3 TLS fixtures. DOES NOT BLOCK. Recorded with full refutation note to prevent re-investigation.
+- CR-001, CR-010, CR-011 (MEDIUM): recorded as OPEN, P2 tech-debt.
+- CR-002, CR-003, CR-005, CR-006, CR-007, CR-009, CR-012 (LOW): recorded as OPEN, P3 tech-debt.
+- Per DF-VALIDATION-001: all recorded as tech-debt only — NOT GitHub issues.
+
+**Policy codified:**
+- DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 (HIGH): consistency-validator full-corpus audit (6 dims) MUST run after any fix-burst shifting code lines and after any BC H1/title enrichment. References PROCESS-GAP-P5-001 + STORY-091. Closes AC-011 of STORY-091.
+
+**Files touched (factory-artifacts, two commits):**
+- Commit 6ce9868: stories/STORY-091.md (new, d41d8cd hash), stories/epics.md (E-11 added), stories/STORY-INDEX.md (STORY-091 registered), code-delivery/FIX-P5-002/003/004 (Phase-5 fix PR artifacts committed)
+- Commit 2 (this burst): tech-debt-register.md (new), policies.yaml (DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 added), STATE.md (Phase-5 PASSED, Phase-6 NOT STARTED/paused), cycles/v0.1.0-greenfield-spec/burst-log.md (this entry)
+
+**Input-hash scan:** MATCH=48 STALE=0. STORY-091 has inputs: [] — canonical empty-bytes MD5 hash d41d8cd set manually (tool reports ERROR on empty list; 48 product stories fully MATCH).
+
+**Phase-5 gate summary:**
+- Adversary gate: SATISFIED (Pass 12+13+14 — 3/3 consecutive clean; 14 total fresh-context opus passes; findings decayed to zero)
+- Secondary review: COMPLETE (CR-004 refuted; remaining CR-001/010/011/002/003/005/006/007/009/012 backlogged as tech-debt)
+- PROCESS-GAP-P5-001: CLOSED — STORY-091 disposition committed
+- Cycle-close checklist (S-7.02): SATISFIED
+- Phase-5 verdict: **PASSED / CLOSED**
+
+**Develop HEAD:** 68137b4b (unchanged — closure burst is doc/state only; no code changes).
+**Phase 6:** NOT STARTED. Paused pending human session start. Entry: /vsdd-factory:phase-6-formal-hardening.
+
+---

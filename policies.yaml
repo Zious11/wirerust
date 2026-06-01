@@ -853,3 +853,78 @@ policies:
     derived-from: >
       PG-W18-003 / F-W18-WAVE-I-006 (TLS flat namespace vs HTTP per-story
       mod wrappers; latent collision risk; codified 2026-05-30)
+
+  - id: DF-CONSISTENCY-AUDIT-POST-FIXBURST-001
+    name: consistency-audit-after-fix-burst-or-bc-enrichment
+    description: >
+      A spec-coherence consistency audit (consistency-validator full-corpus
+      sweep, minimum 6 dimensions) MUST be run:
+
+        (a) After any fix-burst that shifts source-code line numbers (e.g.,
+            code insertions, deletions, function renames, or test additions
+            that move existing code). Anchor citations across the entire spec
+            corpus must be verified against the post-burst source tree.
+
+        (b) After any BC H1/title enrichment pass (e.g., renaming a BC's
+            top-level heading to match a new function name or updated contract
+            semantics). Title changes propagate to BC-INDEX, VP-INDEX, PRD RTM
+            rows, and story bodies — all of which must be swept in the same burst.
+
+      The 6 minimum dimensions for the consistency audit are:
+
+        1. Source-line anchor citations (src/tests/fuzz paths:NNN) vs current tree
+        2. BC H1/title propagation (BC-INDEX, VP-INDEX, ARCH-INDEX, prd.md RTM)
+        3. VP prose vs verification harness (semantics, not just naming)
+        4. Story body Architecture-Mapping anchors vs BC anchor citations
+        5. Input-hash drift check (bin/compute-input-hash --scan) after any BC content change
+        6. Index row counts match actual file counts (BC-INDEX total, VP-INDEX total)
+
+      This audit is a GATE requirement at Phase-6 entry and at every fix-burst
+      during Phase-5 adversarial refinement. It is the durable preventive
+      equivalent of the reactive sweeps that were triggered by adversarial
+      findings across Passes 1–11.
+
+      MUST: The audit MUST be run and its output recorded in the burst-log
+      before declaring any Phase-5 or Phase-6 remediation burst CLOSED.
+
+      SHOULD: The audit SHOULD be run in Phase-3 wave-gate checks when the
+      burst touched more than one subsystem's source files.
+
+    severity: HIGH
+    scope:
+      - orchestrator
+      - state-manager
+      - product-owner
+      - story-writer
+      - adversary
+    rationale: >
+      PROCESS-GAP-P5-001 root-cause evidence: across 11 adversarial passes,
+      anchor and coherence gaps recurred after every fix-burst — 32 BCs
+      (Pass 1), 2 BCs secondary anchors (Pass 2), 28 citations/8 files
+      consuming VP/invariant/supplement/entity (Pass 3), 83 citations/44 files
+      test-file dimension (Pass 8), BC function-name + test docstring coherence
+      (Pass 10), VP-015 prose vs harness + BC-2.04.013 title-sync gaps in
+      INDEX/PRD (Pass 11). Every sweep was reactive (triggered by adversarial
+      finding) rather than preventive. The comprehensive post-P11 consistency
+      audit (698 citations, 20 VPs, 6 dims) found only 2 residual findings
+      (F-AUDIT-001/002) — demonstrating that a proactive full-corpus sweep
+      catches the long tail cheaply. STORY-091 (E-11) builds mechanical tooling
+      (bin/validate-anchors) to automate dimension 1 of this audit.
+    enforcement: >
+      Orchestrator dispatch templates for fix-bursts and BC-enrichment tasks
+      MUST include a "## Post-Burst Consistency Audit (MANDATORY per
+      DF-CONSISTENCY-AUDIT-POST-FIXBURST-001)" checklist item. The state-manager
+      MUST refuse to mark a Phase-5 or Phase-6 remediation burst CLOSED in
+      STATE.md until the burst-log records the consistency-audit results.
+      At Phase-6 entry, the orchestrator MUST run or confirm a full 6-dimension
+      audit on the then-current develop HEAD before dispatching any formal
+      hardening agents.
+    references:
+      - PROCESS-GAP-P5-001
+      - STORY-091
+    added: "2026-06-01"
+    version: v1
+    derived-from: >
+      PROCESS-GAP-P5-001 (11 Phase-5 adversarial passes surfacing recurring
+      anchor/coherence drift; comprehensive post-P11 audit exemplar; S-7.02
+      cycle-close disposition codified 2026-06-01); STORY-091 AC-011.
