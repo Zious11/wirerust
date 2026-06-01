@@ -663,13 +663,29 @@ impl TlsAnalyzer {
             // be cloned for parsing; all other content types (0x14
             // ChangeCipherSpec, 0x15 Alert, 0x17 ApplicationData, etc.) are
             // drained and discarded without any per-record Vec allocation.
+            //
+            // NOTE: this guard must remain AFTER the `buf_len < total_record_len`
+            // check above. That check guarantees the buffer holds at least
+            // `total_record_len` bytes, making the `drain(..total_record_len)`
+            // range valid. Hoisting the guard before that check would allow
+            // a partial non-handshake record to be drained into a panic.
             if record_type != 0x16 {
                 // Drain the non-handshake record from the buffer and loop.
-                if let Some(state) = self.flows.get_mut(flow_key) {
-                    match direction {
-                        Direction::ClientToServer => state.client_buf.drain(..total_record_len),
-                        Direction::ServerToClient => state.server_buf.drain(..total_record_len),
-                    };
+                // `Drain`'s `Drop` impl performs the removal; `let _ =` makes
+                // the discard explicit and suppresses the unused-value lint.
+                match self.flows.get_mut(flow_key) {
+                    Some(state) => {
+                        let _ = match direction {
+                            Direction::ClientToServer => state.client_buf.drain(..total_record_len),
+                            Direction::ServerToClient => state.server_buf.drain(..total_record_len),
+                        };
+                    }
+                    // Flow was removed between the length check and here
+                    // (e.g. on_flow_close raced on another thread — defensive).
+                    // Returning instead of continuing prevents looping on a
+                    // non-advancing buffer; mirrors the `None => return` contract
+                    // at the buf_len read site above.
+                    None => return,
                 }
                 continue;
             }
@@ -884,6 +900,22 @@ impl TlsAnalyzer {
             .unwrap_or(0)
     }
 
+    /// Test-only accessor: byte length of `server_buf` for the given flow.
+    ///
+    /// Symmetric companion to `client_buf_len_for_testing` for the
+    /// `ServerToClient` direction. Exposes the post-parse drain observable
+    /// so tests can assert that `try_parse_records` drains consumed record
+    /// bytes from `server_buf` (CR-010 guard-before-allocate coverage).
+    /// Returns 0 if the flow is absent or after the buf has been fully drained.
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn server_buf_len_for_testing(&self, flow_key: &FlowKey) -> usize {
+        self.flows
+            .get(flow_key)
+            .map(|s| s.server_buf.len())
+            .unwrap_or(0)
+    }
+
     /// Test-only accessor: whether `server_hello_seen` is set for the given flow.
     ///
     /// Exposes `flow.server_hello_seen` so tests can directly verify
@@ -1073,15 +1105,17 @@ mod guard_before_alloc_tests {
         )
     }
 
-    /// Non-0x16 content types MUST drain the buffer without any parse attempt.
+    /// Non-0x16 content types MUST drain the ClientToServer buffer without any
+    /// parse attempt.
     ///
-    /// Precondition: feed a single complete TLS record with content_type ≠ 0x16.
+    /// Precondition: feed a single complete TLS record with content_type ≠ 0x16
+    /// in the ClientToServer direction.
     /// Postconditions:
     ///   - `client_buf_len_for_testing` returns 0 (record was drained).
     ///   - `handshake_count` returns 0 (no parse occurred).
     ///   - `parse_error_count` returns 0 (no parse, so no parse error).
     #[test]
-    fn non_handshake_record_drains_without_parse() {
+    fn non_handshake_record_client_drains_without_parse() {
         // Content types to check: 0x14 (ChangeCipherSpec), 0x15 (Alert),
         // 0x17 (ApplicationData), and an arbitrary unknown type 0x00.
         let non_handshake_types: &[u8] = &[0x14, 0x15, 0x17, 0x00];
@@ -1095,24 +1129,68 @@ mod guard_before_alloc_tests {
             assert_eq!(
                 analyzer.client_buf_len_for_testing(&flow_key),
                 0,
-                "content_type=0x{ct:02x}: buffer must be drained after consuming a complete record"
+                "content_type=0x{ct:02x} C→S: buffer must be drained after consuming a complete record"
             );
             assert_eq!(
                 analyzer.handshake_count(),
                 0,
-                "content_type=0x{ct:02x}: no handshake should have been parsed"
+                "content_type=0x{ct:02x} C→S: no handshake should have been parsed"
             );
             assert_eq!(
                 analyzer.parse_error_count(),
                 0,
-                "content_type=0x{ct:02x}: no parse error should have been recorded"
+                "content_type=0x{ct:02x} C→S: no parse error should have been recorded"
             );
         }
     }
 
-    /// A 0x16 handshake record DOES reach the parser (may emit a parse error
-    /// because the payload is empty, but the key invariant is that the parse
-    /// path is taken — i.e., `client_buf` is drained).
+    /// Non-0x16 content types MUST drain the ServerToClient buffer without any
+    /// parse attempt.
+    ///
+    /// Precondition: feed a single complete TLS record with content_type ≠ 0x16
+    /// in the ServerToClient direction.
+    /// Postconditions:
+    ///   - `server_buf_len_for_testing` returns 0 (record was drained).
+    ///   - `handshake_count` returns 0 (no parse occurred).
+    ///   - `parse_error_count` returns 0 (no parse, so no parse error).
+    #[test]
+    fn non_handshake_record_server_drains_without_parse() {
+        let non_handshake_types: &[u8] = &[0x14, 0x15, 0x17, 0x00];
+        let flow_key = dummy_flow_key();
+
+        for &ct in non_handshake_types {
+            let mut analyzer = TlsAnalyzer::new();
+            let record = make_tls_record(ct);
+            analyzer.on_data(&flow_key, Direction::ServerToClient, &record, 0);
+
+            assert_eq!(
+                analyzer.server_buf_len_for_testing(&flow_key),
+                0,
+                "content_type=0x{ct:02x} S→C: buffer must be drained after consuming a complete record"
+            );
+            assert_eq!(
+                analyzer.handshake_count(),
+                0,
+                "content_type=0x{ct:02x} S→C: no handshake should have been parsed"
+            );
+            assert_eq!(
+                analyzer.parse_error_count(),
+                0,
+                "content_type=0x{ct:02x} S→C: no parse error should have been recorded"
+            );
+        }
+    }
+
+    /// A 0x16 handshake record DOES reach the parser; the buffer is drained.
+    ///
+    /// We use a header-only record (payload_len = 0) as the minimal probe. The
+    /// empty payload causes tls_parser to return an error, which is intentional:
+    /// the parse_errors counter going from 0 → ≥ 1 is the observable proof that
+    /// the code took the parse path rather than the non-0x16 short-circuit path.
+    /// A full valid ClientHello would also work but would require embedding
+    /// raw TLS bytes; the empty-payload shortcut is deliberately chosen here
+    /// because the distinction we need is parse-path-entered vs not-entered,
+    /// not parse-succeeded vs not-succeeded.
     #[test]
     fn handshake_record_reaches_parser() {
         let flow_key = dummy_flow_key();
@@ -1126,11 +1204,11 @@ mod guard_before_alloc_tests {
             0,
             "0x16 record: buffer must be drained"
         );
-        // With an empty payload the parser will fail — that's expected.
-        // What matters is the parse path was exercised (parse_errors >= 1).
+        // Empty payload → nom Incomplete or parse error. parse_errors ≥ 1
+        // confirms the parse path was entered (non-0x16 path would leave it 0).
         assert!(
             analyzer.parse_error_count() >= 1,
-            "0x16 with empty payload must trigger a parse error, confirming the parse path"
+            "0x16 with empty payload must trigger a parse error, confirming the parse path was entered"
         );
     }
 }
