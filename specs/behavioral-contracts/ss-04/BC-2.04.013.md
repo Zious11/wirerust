@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 8 wave-level adv-pass-1 F-1 HIGH closure (S-7.01 sibling-BC propagation, W7.2 recurrence #5): PC3 enforcement-mode notation — \"remaining buffered data flushed in close_flow\" is structurally a defense-in-depth invariant (per-packet flush at mod.rs:162 drains buffer pre-close); enforced via code-review of close_flow flush loop body at lifecycle.rs:52-59; on_flow_close(Timeout) invocation and stats.flows_expired increment are automated-test-verifiable via STORY-019 AC-009/010/011/012. Mirrors BC-2.04.010 v1.5 PC2 + BC-2.04.029 v1.4 + ADR-0004 amendment precedent. — 2026-05-26"
   - "v1.4: Wave 8 wave-level adv-pass-2 F-1 MEDIUM closure (S-7.01 sibling-discipline): added PC5 documenting the force_set_flow_state_for_testing test seam (lifecycle.rs:232-244) — required by STORY-019 AC-012 to discriminate the Closed-state OR-branch of expire_flows (invariant 2). Mirrors BC-2.04.029 v1.4 PC7 pattern; authorized under ADR-0004 Amendment 2 state-injection seam class. — 2026-05-26"
+  - "v1.5: Phase-4 HS-043 scope decision: added PC0 (caller obligation) explicitly requiring expire_flows to be invoked from the production per-packet processing path with the packet timestamp — closes the 'tested directly but never called in production' wiring gap identified in holdout-finding-triage-2026-06-01.md. Direct test-only invocations do not satisfy the production wiring requirement. — 2026-06-01"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -38,7 +39,17 @@ of the packet being processed).
 
 ## Preconditions
 
-1. `expire_flows(current_time, handler)` is called with a current timestamp.
+**PC0 (Caller Obligation — Production Wiring Requirement):** `expire_flows` MUST be called
+from the production per-packet processing path — either inside `process_packet` or in the
+per-packet loop in `src/main.rs` — with the arriving packet's `timestamp_secs` as
+`current_time`. Calling `expire_flows` only from test code does NOT satisfy this contract.
+The production binary must invoke `expire_flows` so that idle flows are actually expired
+during real captures. This requirement is the basis of the capability-anchor memory bound
+("idle flow expiry is required to bound memory use in long-running captures"). See
+`.factory/specs/phase-4-hs043-scope-decision.md` for the governing ruling.
+
+1. `expire_flows(current_time, handler)` is called with a current timestamp from the
+   production per-packet path (PC0 above).
 2. At least one flow exists with `last_seen + flow_timeout_secs < current_time`, OR a flow
    exists with `state == FlowState::Closed`.
 

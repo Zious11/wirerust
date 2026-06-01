@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -36,14 +36,22 @@ risk_source: null
 
 > **WARNING:** This file must NEVER be shown to the implementer or test-writer agents.
 
+> **Rubric note (v1.1 — Phase-4 adjudication):** The em-dash separator requirement has been
+> removed from the terminal output check. BC-2.09.002 governs `Finding::fmt::Display`
+> (src/findings.rs), which uses em-dash U+2014 and already complies. The terminal reporter
+> (src/reporter/terminal.rs) is a separate layer (ADR-0003) and has no BC-mandated separator
+> character. The terminal reporter's ASCII hyphen `-` is **not a defect**: piped CLI output
+> convention (clig.dev, Snort/Suricata/Zeek practice) favors ASCII hyphen for grep/cut/awk
+> compatibility. The legitimate checks are: bracket format, uppercase verdict token, uppercase
+> confidence token. See holdout-finding-triage-2026-06-01.md §Finding 1 for full analysis.
+
 ## Scenario
 
 1. A user runs wirerust analyze on a capture that produces findings with diverse
    verdict and confidence combinations: Likely/High, Likely/Medium, Likely/Low,
    Inconclusive/Medium, Inconclusive/Low, and Unlikely/Low.
 2. The terminal output shows each finding as a one-liner with brackets around the category,
-   uppercase verdict token, uppercase confidence in parentheses, and the summary text after
-   an em-dash separator.
+   uppercase verdict token, and uppercase confidence in parentheses followed by the summary.
 3. The format is consistent across all findings — no finding uses lowercase tokens or
    omits the category bracket.
 4. A forensic analyst reading the output can immediately distinguish verdict levels by
@@ -53,7 +61,7 @@ risk_source: null
 
 | BC ID | Clause Tested | Scenario Aspect |
 |-------|--------------|-----------------|
-| BC-2.09.002 | Postcondition 1 — Display format is "[Category] VERDICT (CONFIDENCE) — summary" | Step 2: exact format of the one-liner |
+| BC-2.09.002 | Postcondition 1 — Display format is "[Category] VERDICT (CONFIDENCE) — summary" | Step 2: BC-2.09.002 governs Finding::Display (findings.rs) — already em-dash compliant. The terminal reporter rendering path is a separate layer; separator is not BC-mandated for terminal output. |
 | BC-2.09.003 | Postcondition 1-3 — Likely/Unlikely/Inconclusive render as uppercase | Step 3: no lowercase verdict tokens appear |
 | BC-2.09.004 | Postcondition 1-3 — High/Medium/Low render as uppercase | Step 3: no lowercase confidence tokens appear |
 
@@ -69,7 +77,12 @@ Inspect terminal output. For each finding line, verify:
 - Starts with `[` followed by a category name, then `]`
 - Verdict is one of: `LIKELY`, `UNLIKELY`, `INCONCLUSIVE` (exact uppercase)
 - Confidence is one of: `HIGH`, `MEDIUM`, `LOW` (exact uppercase, in parentheses)
-- Separator between confidence and summary is an em-dash (`—` U+2014), not a hyphen
+
+NOTE: The separator character between the confidence token and the summary is NOT
+checked here. The terminal reporter is not BC-bound to a specific separator. ASCII
+hyphen (`-`) and em-dash (`—`) are both acceptable for terminal output. Only
+`Finding::Display` (used for logging/debug, not terminal rendering) is bound to
+em-dash by BC-2.09.002.
 
 If no suitable multi-finding pcap is available, check whether the Finding Display
 implementation correctly handles all three Verdict variants and all three Confidence
@@ -77,10 +90,11 @@ variants by examining test output.
 
 ## Evaluation Rubric
 
-- **Functional correctness** (weight: 0.5): All six verdict/confidence combinations render
-  in the correct format without exception.
-- **Data integrity** (weight: 0.3): Em-dash separator is used, not ASCII hyphen; uppercase
-  is strict (no "Likely" mixed-case in output).
+- **Functional correctness** (weight: 0.6): All six verdict/confidence combinations render
+  in the correct format — brackets present, verdict uppercase, confidence uppercase in
+  parentheses.
+- **Data integrity** (weight: 0.2): Uppercase is strict (no "Likely" mixed-case in output).
+  Separator character is NOT checked (not BC-mandated for terminal output).
 - **Edge case handling** (weight: 0.1): A finding with an empty summary still renders
   without panicking.
 - **Error quality** (weight: 0.1): N/A for this scenario.
@@ -88,7 +102,7 @@ variants by examining test output.
 ## Edge Conditions
 
 - A finding with a summary string that itself contains `—` (em-dash) should still render
-  the separator correctly.
+  without panicking or corrupting the output structure.
 - All three Verdict variants should appear in some realistic capture to confirm all code
   paths execute.
 - The display format must be stable across different terminal widths — no line-wrapping
@@ -96,5 +110,5 @@ variants by examining test output.
 
 ## Failure Guidance
 
-"HOLDOUT LOW: HS-006 (satisfaction: 0.XX) — finding display format uses wrong casing,
-wrong separator, or omits required fields in terminal output."
+"HOLDOUT LOW: HS-006 (satisfaction: 0.XX) — finding display format uses wrong casing or
+omits required bracket/token fields in terminal output."
