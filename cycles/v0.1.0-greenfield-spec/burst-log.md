@@ -81,6 +81,51 @@ rewrote BC-2.05.006 two-phase-commit contract; added tech-debt O-07 (rayon unuse
 
 ---
 
+## Burst 3 (2026-06-01) — Phase-5 HS043 Fresh-Context Pass 2 Disposition
+
+**Agents dispatched:** adversary (HS043-pass-2 fresh-context), implementer (throwaway fix branch — discarded), state-manager (STATE.md update + D-009 decisions log)
+**Files touched:** `.factory/STATE.md` (drift items added: ADV-HS043-P02-MED-001, ADV-HS043-P02-LOW-001; D-009 added; session checkpoint updated; Phase-5 progress row updated); `.factory/cycles/v0.1.0-greenfield-spec/burst-log.md` (this entry)
+**Versions bumped:** none — no spec or source artifacts modified; develop HEAD unchanged (e0451ef)
+
+### Summary
+
+HS043 fresh-context adversarial Pass 2 (HS043-pass-2) completed — result: NOT CLEAN (1 MED, 1 LOW). Both findings dispositioned/accepted by human decision 2026-06-01. No code merged to develop; throwaway fix branch and worktree discarded.
+
+**ADV-HS043-P02-MED-001 (ACCEPTED — GATED ON LIVE-CAPTURE SUPPORT)**
+
+Finding: The idle-flow expiry sweep gate `timestamp > last_expiry_sweep_secs` is a strictly-monotonic watermark. On out-of-order, multi-epoch, or clock-regressing pcap captures, the watermark stalls and idle sweeps stop firing for the rest of the run (`flows_expired` stuck at 0).
+
+Disposition rationale:
+1. **Current scope is offline pcap analysis.** Input is finite; `finalize()` reclaims all remaining flows at end-of-capture. No unbounded memory growth is possible. The sweep is a latency optimization, not the only memory backstop.
+2. **The probe's premise is flawed.** 20 flows created at t=10 are brand-new (not idle); a correctly-tuned idle timeout (default 300 s) would not trigger on them. The adversary's scenario conflates "new flows at low timestamp" with "idle flows that need expiry."
+3. **The proposed high-water-clock fix was empirically disqualified.** Measuring idle against the clock high-watermark would wrongly expire flows in legitimate multi-epoch analysis: e.g., processing a.pcap (epoch=2003) then b.pcap (epoch=0) — the high-water clock from the first file sits far above b.pcap timestamps, causing the idle check `(high_water - pkt_time) > timeout` to be TRUE for ALL b.pcap flows immediately, expiring them before the HTTP analyzer can process them. The story-088 http-ooo test suite (`test_BC_2_12_010_*` family) confirmed this failure empirically on the throwaway branch.
+4. **No unbounded growth, no correctness defect in current scope** — the finding is a speculative risk for a not-yet-existent live-capture mode.
+
+Trigger for re-activation as a real defect: **WHEN live-capture support is added.** Live capture never calls `finalize()` (runs indefinitely); a clock regression (e.g., NTP step backward) stalls the monotonic gate and grows memory unbounded. The correct fix is NOT the high-water-clock approach — it must be a file/epoch-boundary flush OR a wall-clock-based sweep tick decoupled from packet timestamps. This must be re-opened and addressed before or within the live-capture feature. No GitHub issue filed per DF-VALIDATION-001 (requires research-agent validation; feature does not yet exist).
+
+**ADV-HS043-P02-LOW-001 (ACCEPTED — non-blocking)**
+
+Finding: BC-2.04.013 PC0 literally names `expire_flows` but the implementation wires `expire_idle_by_timeout`; the split is justified (keeps the Closed-clause off the hot path per BC-2.04.017) and documented in source. Optional one-line BC wording note.
+
+Disposition: Accepted as non-blocking documentation reconciliation. Optional update to BC-2.04.013 PC0 wording to name `expire_idle_by_timeout` at a convenient future spec touch.
+
+**Phase-5 convergence status after this burst:**
+- HS043-pass-2: COMPLETE, NOT CLEAN (1 MED + 1 LOW, both ACCEPTED)
+- Whole-implementation fresh-context adversarial review: NOT YET STARTED
+- Convergence loop: minimum 3 consecutive clean passes required; clock starts at 0
+- NEXT ACTION: broad fresh-context whole-implementation adversarial pass (not another HS-043-only pass)
+
+### Details
+
+| Agent | Task | Output |
+|-------|------|--------|
+| adversary | HS043-pass-2 fresh-context adversarial review of idle-flow expiry surface | 1 MED (ADV-HS043-P02-MED-001) + 1 LOW (ADV-HS043-P02-LOW-001) |
+| implementer | Throwaway high-water-clock fix branch | Discarded — broke story-088 http-ooo tests; not merged |
+| state-manager | STATE.md: drift items, D-009 decision, checkpoint, Phase-5 row | `.factory/STATE.md` updated |
+| state-manager | Burst-log entry for HS043-pass-2 disposition | `.factory/cycles/v0.1.0-greenfield-spec/burst-log.md` (this entry) |
+
+---
+
 ## Burst 4 (2026-05-22) — Wave 3 STORY-071 Merge + STORY-005 Per-Story Convergence
 
 **Agents dispatched:** test-writer (STORY-071), adversary (STORY-071 passes 1/2/3; STORY-005 passes 1–8), state-manager (sprint-state + STATE.md + burst-log)

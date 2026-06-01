@@ -3,7 +3,7 @@ pipeline: PHASE_5_ADVERSARIAL_REFINEMENT
 phase: phase-5-adversarial-refinement
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-01T00:00:00Z
+timestamp: 2026-06-01T12:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -58,7 +58,7 @@ dependency bumping for it).
 | Phase 2 — Story Decomposition | **PASSED** 2026-05-21 | 48 stories / 10 epics / 27 waves / 100 holdout scenarios / 282 points; story-adversary 3/3 (10 passes) SATISFIED; input-hash drift CLEAN (153/153) |
 | Phase 3 — TDD Implementation | **PASSED** 2026-05-31 | 48/48 stories, 27/27 waves, all CLOSED/CONVERGED; E-1..E-10 ALL COMPLETE; develop HEAD 6158e6e (PR#170); BC-5.39.001 ACHIEVED across all waves; trajectory detail: cycles/phase-3-tdd/convergence-trajectory.md |
 | Phase 4 — Holdout Evaluation | **PASSED** 2026-06-01 | 80-scenario rotation, mean 0.949, 0 must-pass <0.6; HS-043 real defect found+fixed (PR #171); HS-006/016 non-defects; model-family caveat documented; detail: cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md; Phase 4→5 gate PASSED 2026-06-01 (PR #172 regression tests merged) |
-| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | Gate: finding decay to zero — fresh-context adversarial review of full implementation; ideally different model family |
+| Phase 5 — Adversarial Refinement | **IN PROGRESS** STARTED 2026-06-01 | HS043-pass-2 COMPLETE (1 MED + 1 LOW, both ACCEPTED — see Drift Items); whole-implementation fresh-context adversarial review PENDING (3 clean passes to convergence) |
 | Phase 6 — Formal Hardening | NOT STARTED | — |
 | Phase 7 — Convergence | NOT STARTED | — |
 
@@ -82,16 +82,18 @@ Waves 1–27 ALL CLOSED/CONVERGED — per-wave detail: `cycles/phase-3-tdd/wave-
 
 Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`
 
-## Session Resume Checkpoint (2026-06-01 — PHASE 5 QUEUED, NOT YET STARTED)
+## Session Resume Checkpoint (2026-06-01 — PHASE 5 IN PROGRESS, HS043-pass-2 DISPOSITIONED)
 
-**POSITION:** Phase 5 (Adversarial Refinement) ENTERED but the adversarial-refinement loop has NOT yet started (queued). `pipeline: PHASE_5_ADVERSARIAL_REFINEMENT`. develop HEAD e0451ef (clean, == origin/develop). factory-artifacts pushed and clean. No open PRs. `.worktrees/` empty (only main + .factory worktrees). All Phase 0–4 gates PASSED.
+**POSITION:** Phase 5 (Adversarial Refinement) IN PROGRESS. HS043 fresh-context Pass 2 (HS043-pass-2) complete; NOT clean (1 MED + 1 LOW). Both findings dispositioned/accepted (human decision 2026-06-01) — see Drift Items. No code changed on develop; throwaway fix branch + worktree discarded. develop HEAD e0451ef (unchanged). factory-artifacts updated this burst.
 
-**EXACT NEXT ACTION:** Launch Phase 5 whole-implementation adversarial refinement. Entry point: `/vsdd-factory:phase-5-adversarial-refinement` (work skill: `/vsdd-factory:adversarial-review implementation`). Drive findings to decay-to-zero (CONVERGENCE_REACHED, minimum 3 clean passes). Then optional code-reviewer secondary pass. Then Phase 6 (Formal Hardening) → Phase 7 (Convergence) → release.
+**EXACT NEXT ACTION:** Launch the broad fresh-context WHOLE-IMPLEMENTATION adversarial pass (NOT another HS-043-only surface pass). Entry: `/vsdd-factory:adversarial-review implementation`. This is Pass 1 of the whole-implementation convergence loop — minimum 3 consecutive clean passes required for CONVERGENCE_REACHED. Then Phase 6 (Formal Hardening) → Phase 7 (Convergence) → release.
 
 **MODEL-FAMILY CAVEAT (carry forward):** True non-Claude (GPT) evaluator/adversary is unavailable in this environment. Use opus-tier fresh-context + strict information asymmetry as substitute. Document this caveat at each gate.
 
 **OPEN/ACCEPTED ITEMS a fresh session must know:**
-- ADV-HS043-P01-LOW-001: accepted optional one-line BC-2.04.013 PC0 wording note (non-blocking).
+- ADV-HS043-P02-MED-001: ACCEPTED for offline scope — gated on live-capture support (see Drift Items). High-water-clock fix rejected (breaks multi-epoch). Re-open when live-capture is added.
+- ADV-HS043-P02-LOW-001: ACCEPTED — BC-2.04.013 PC0 naming note (non-blocking, optional docs touch).
+- ADV-HS043-P01-LOW-001: ACCEPTED — superseded by P02-LOW-001 entry above (same item, P01 record).
 - F-W25-S088-P6-001 LOW: warning-once inv-2 count assertion; test-strength only; target next main.rs touch.
 - Input-hash tool exists at `bin/compute-input-hash` — run `bin/compute-input-hash --scan` at Phase-4-style gate; corpus MATCH=48/STALE=0.
 
@@ -101,7 +103,7 @@ Full Phase 1 convergence detail: `.factory/cycles/v0.1.0-greenfield-spec/converg
 
 **PHASE CONTEXT:**
 - Phase 4 result: 80-scenario rotation, mean 0.949, 0 must-pass <0.6. HS-043 real defect found+fixed (PR #171 → c3cd4bd); HS-006/016 non-defects. Regression guards merged PR #172 → e0451ef.
-- Prior checkpoint (Phase 4 COMPLETE, gate PENDING) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
+- Prior checkpoint (Phase 5 queued) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
 ## Phase 3→4 Gate — PASSED 2026-06-01
 
@@ -127,6 +129,7 @@ Compacted summary table + full prose: `.factory/cycles/phase-3-tdd/lessons.md` (
 | D-006 | [correction 2026-05-29/30] Wave-20/STORY-076 real merge SHA is e5cb2b1 (PR #157). Two earlier recorded SHAs were wrong and have been corrected: a8f3d21 (phantom, pre-merge write) and 4d9e1c7 (transient pre-resolution id). Root cause: post-merge state written before pr-manager's authoritative merge SHA was confirmed; rectified. | 2026-05-29 | Orchestrator supplied SHA before actual merge; real merge commit confirmed e5cb2b1 on origin/develop |
 | D-007 | Deferred-item cleanup: DF-16.B closed (bulk 209-BC sweep commit b17c5f0; 0 remaining broken citations); OBS-7 closed (covered by STORY-076 BC-2.11.003 / test_BC_2_11_003_c0_esc_escaped_in_json; PR #157→e5cb2b1); 4 governance candidates codified to policies.yaml (DF-INPUT-HASH-CANONICAL-001, DF-ADVERSARY-CHECKOUT-GUARD-001, DF-TEST-CITATION-SWEEP-001, DF-TEST-NAMESPACE-001); 6 externally-blocked items archived to cycles/phase-3-tdd/deferred-items-archive.md (W9-D2/D3/D4 upstream-plugin, W9-D12 awaiting-PO, W1.3/W2.5 upstream, W7.1 public-api, Phase-4-ENTRY, F-S058-P13-O4). | 2026-05-30 | STATE.md deferred-item cleanup burst; no information lost |
 | D-008 | [2026-05-30] STORY-079 input BC-2.11.020 corrected v1.2→v1.3 (CRLF→LF). STORY-079 input-hash NOT recomputed because canonical bin/compute-input-hash is missing from repo (DF-INPUT-HASH-CANONICAL-001 forbids hand-compute). Logged F-W21-S079-HASH + F-W21-TOOL-001; input-hash re-validated at Phase-4 gate after tool restore. Decision: do not block STORY-079 per-story convergence on a stale-hash finding that cannot be mechanically resolved and is gated for Phase-4 anyway (zero src/behavioral impact; test↔spec sync intact; AC test-name citations unchanged). | 2026-05-30 | STORY-079 Pass-1 adversarial review F-002; unblocking per-story convergence on non-mechanical, phase-gated gap |
+| D-009 | [2026-06-01] ADV-HS043-P02-MED-001 accepted for current offline pcap scope — finalize() reclaims all flows; no unbounded growth risk. High-water-clock fix rejected: empirically breaks legitimate multi-epoch offline analysis (story-088 http-ooo tests fail). Throwaway fix branch + worktree discarded; develop unchanged (HEAD e0451ef). Gated on live-capture support; re-open then. ADV-HS043-P02-LOW-001 accepted non-blocking (BC naming note). Human-approved 2026-06-01. | 2026-06-01 | Phase-5 HS043-pass-2 disposition; human decision 2026-06-01 |
 
 ## Blocking Issues
 
@@ -141,6 +144,8 @@ Externally-blocked / phase-gated items (W9-D2/D3/D4 upstream-plugin, W9-D12 awai
 | ID | Finding | Category | Target | Status |
 |----|---------|----------|--------|--------|
 | F-W25-S088-P6-001 | [test-strength, LOW] AC-004 warning uses .contains() so a doubled eprintln! (BC-2.12.009 inv-2 "warning printed once") would not be caught. Invariant HOLDS in source (single pre-loop emission, adversary-verified P6); AC-004 traces to PC-5/inv-1 not inv-2 — not a traceability defect. Optional one-line count-assertion hardening; target: STORY-090 touch (next main.rs-adjacent story) or accepted. Per DF-VALIDATION-001, no GitHub issue without research-agent validation. | test-strength | STORY-090 delivery (wave 27) or accept | OPEN |
+| ADV-HS043-P02-MED-001 | [Phase-5, HS043-pass-2, MED] Idle-flow expiry sweep gate `timestamp > last_expiry_sweep_secs` is monotonic; on out-of-order / multi-epoch / clock-regressing captures the watermark stalls and idle sweeps stop firing for the rest of the run (flows_expired stuck at 0). BC-2.04.013. Current scope: offline pcap — finalize() reclaims all flows at end-of-capture; no unbounded growth. High-water-clock fix rejected (breaks multi-epoch offline analysis — story-088 http-ooo tests fail). Probe premise also flawed (20 new flows at t=10 are not idle). No GitHub issue per DF-VALIDATION-001. Full rationale: cycles/v0.1.0-greenfield-spec/burst-log.md Burst 3. | implementation / memory-bound (BC-2.04.013) | Live-capture support feature | ACCEPTED — GATED ON LIVE-CAPTURE SUPPORT. Re-open when live-capture added; correct fix is epoch-boundary flush or wall-clock sweep tick, NOT high-water-clock. |
+| ADV-HS043-P02-LOW-001 | [Phase-5, HS043-pass-2, LOW] BC-2.04.013 PC0 literally names `expire_flows` but the impl wires `expire_idle_by_timeout`; the split is justified (keeps the Closed-clause off the hot path per BC-2.04.017) and documented in source. Optional one-line BC wording note; not blocking. | spec-naming / docs | Optional BC wording touch | ACCEPTED (non-blocking) |
 
 ## Cycle-Close Follow-Up Items (OPEN)
 
