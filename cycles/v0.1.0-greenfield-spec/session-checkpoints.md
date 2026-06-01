@@ -4,6 +4,21 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 
 ---
 
+## Archived: 2026-06-01 — PHASE 5, Pass 12 CONVERGENCE_REACHED / Pass 13 IN PROGRESS (superseded by Pass 13 CONVERGENCE_REACHED / Pass 14 NEXT checkpoint)
+
+**POSITION:** Phase 5 IN PROGRESS. develop HEAD 68137b4b (unchanged — P12 was adversary-only, no code/spec changes). Pass 12 CONVERGENCE_REACHED: 0C/0H/0M/1L — ADV-IMPL-P12-LOW-001 (findings.rs:103-105 Persistence doc-comment describes Execution-class behavior; subset of accepted O-08/ADV-IMPL-P01-LOW-001 class; ACCEPTED cosmetic). LOWs do not block convergence. CLEAN-PASS COUNTER: 1/3. P11 comprehensive consistency audit (6 dims, 698 citations) flushed doc-coherence debt.
+
+**EXACT NEXT ACTION (at archival):** Whole-impl adversarial Pass 13 IN PROGRESS (dispatched fresh context). Need 2 more consecutive CLEAN (0C/0H/0M) for CONVERGENCE_SATISFIED (3/3).
+
+**OPEN/ACCEPTED ITEMS at archival:**
+- All P1–P12 non-accepted findings REMEDIATED. develop HEAD 68137b4b clean.
+- ADV-IMPL-P12-LOW-001: ACCEPTED cosmetic (findings.rs Persistence doc-comment; subset of O-08 class).
+- ADV-IMPL-P11-LOW-002: ACCEPTED cosmetic (hs043 file v1.4 label vs v1.5, non-blocking).
+- ADV-IMPL-P01-LOW-001: ACCEPTED/optional. ADV-HS043-P02-MED-001: ACCEPTED offline scope.
+- PROCESS-GAP-P5-001: OPEN — HIGH-PRIORITY. Disposition REQUIRED at Phase-5 cycle close.
+
+---
+
 ## Archived: 2026-06-02 — PHASE 5, Pass 11 IN PROGRESS (superseded by Pass 11 REMEDIATED / Pass 12 IN PROGRESS checkpoint)
 
 **POSITION:** Phase 5 IN PROGRESS. develop HEAD 68137b4b (FIX-P5-004 squash-merged PR #175). Pass 10 all findings REMEDIATED+MERGED: ADV-IMPL-P10-MED-001 (BC-2.04.013 v1.7 re-anchor, commit 422e4ee, MATCH=48/STALE=0); ADV-IMPL-P10-MED-002+LOW-001 (stale HS-043 test docstrings + misleading test name, FIX-P5-004 PR #175 → 68137b4b). HS-043 BC/doc-coherence finding class CLOSED. CLEAN-PASS COUNTER: 0/3 (reset after Pass-10 remediation).
