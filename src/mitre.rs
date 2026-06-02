@@ -321,25 +321,40 @@ mod vp007_format_tests {
         assert!(!is_valid_technique_id_format("T1071,001")); // wrong separator
     }
 
-    /// CR-005: mechanically link the seeded-ID list to `technique_info` so the
-    /// VP-007 completeness proofs cannot silently go stale. This test fails if:
-    ///  - the seeded-ID list count drifts from the documented catalogue size,
-    ///  - any seeded ID stops resolving (an entry was removed/renamed),
-    ///  - a seeded ID is duplicated,
-    ///  - a seeded ID is malformed, or
-    ///  - the validly-formatted canary "T9999" starts resolving (an entry was
-    ///    added to `technique_info` — the maintainer must then add it to
-    ///    `SEEDED_TECHNIQUE_IDS` and bump `SEEDED_TECHNIQUE_ID_COUNT`).
+    /// CR-005 / CR-006: mechanically link `SEEDED_TECHNIQUE_IDS` to
+    /// `technique_info` so the VP-007 completeness proofs cannot silently go
+    /// stale — in EITHER direction. Rather than trust a hand-maintained count,
+    /// this test DERIVES the true catalogue size by sweeping the entire finite
+    /// technique-ID space and counting how many IDs `technique_info` resolves,
+    /// then asserts that derived count equals `SEEDED_TECHNIQUE_IDS.len()`.
+    ///
+    /// The ID grammar (see `is_valid_technique_id_format`) is closed and finite:
+    /// parent IDs `T[0-9]{4}` (10_000 of them) and sub-technique IDs
+    /// `T[0-9]{4}.[0-9]{3}` (10_000 × 1_000).
+    ///
+    /// `technique_info`'s match is literal-equality on string keys, so any
+    /// resolving key MUST be one of these well-formed shapes; sweeping both
+    /// shapes therefore enumerates every key the catalogue could possibly hold.
+    ///
+    /// This closes the residual hole in the old count==const check: adding a new
+    /// arm to `technique_info` (e.g. `T1999`) WITHOUT mirroring it in
+    /// `SEEDED_TECHNIQUE_IDS` now makes the derived resolved-count exceed
+    /// `SEEDED_TECHNIQUE_IDS.len()`, failing this test. Removing/renaming an arm
+    /// makes it fall short. The test thus enforces FORWARD completeness, not just
+    /// that the 15 known IDs still resolve.
+    ///
+    /// Retains the shrinkage / duplicate / malformed / resolve checks on the
+    /// seeded list, plus the documented-count cross-check and the `T9999` canary.
     #[test]
     fn vp007_catalog_drift_guard() {
-        // Count link: list length must equal the documented catalogue size.
+        // --- Seeded-list self-consistency (unchanged) -------------------------
+        // Documented count cross-check (a second, independent tripwire).
         assert_eq!(
             SEEDED_TECHNIQUE_IDS.len(),
             SEEDED_TECHNIQUE_ID_COUNT,
             "SEEDED_TECHNIQUE_IDS length drifted from SEEDED_TECHNIQUE_ID_COUNT; \
              update both in lockstep with technique_info"
         );
-
         // Every seeded ID is well-formed, resolves, and is unique.
         let mut seen = std::collections::HashSet::new();
         for id in SEEDED_TECHNIQUE_IDS {
@@ -353,14 +368,62 @@ mod vp007_format_tests {
             );
             assert!(seen.insert(*id), "seeded ID {id} is duplicated");
         }
-
-        // Canary: a well-formed but unregistered ID must NOT resolve. If this
-        // fires, technique_info gained an entry not mirrored in the seeded list.
+        // Canary: a well-formed but unregistered ID must NOT resolve.
         assert!(is_valid_technique_id_format("T9999"));
         assert!(
             technique_info("T9999").is_none(),
-            "canary T9999 resolved — technique_info gained an entry; add it to \
-             SEEDED_TECHNIQUE_IDS and bump SEEDED_TECHNIQUE_ID_COUNT"
+            "canary T9999 resolved unexpectedly"
+        );
+
+        // --- CR-006: derive the catalogue size from the source of truth ------
+        // Sweep the entire finite ID space and count resolutions. A reusable
+        // String buffer avoids per-iteration allocation across the ~10.01M probes.
+        let seeded: std::collections::HashSet<&str> =
+            SEEDED_TECHNIQUE_IDS.iter().copied().collect();
+        let mut resolved = 0usize;
+        let mut buf = String::with_capacity(9);
+
+        // Parent shape: T[0-9]{4} (10_000 IDs).
+        for n in 0..10_000u32 {
+            buf.clear();
+            use std::fmt::Write as _;
+            write!(buf, "T{n:04}").unwrap();
+            if technique_info(&buf).is_some() {
+                resolved += 1;
+                assert!(
+                    seeded.contains(buf.as_str()),
+                    "technique_info resolves {buf} but it is missing from \
+                     SEEDED_TECHNIQUE_IDS — mirror it (and bump \
+                     SEEDED_TECHNIQUE_ID_COUNT)"
+                );
+            }
+        }
+        // Sub-technique shape: T[0-9]{4}.[0-9]{3} (10_000 × 1_000 IDs).
+        for n in 0..10_000u32 {
+            for s in 0..1_000u32 {
+                buf.clear();
+                use std::fmt::Write as _;
+                write!(buf, "T{n:04}.{s:03}").unwrap();
+                if technique_info(&buf).is_some() {
+                    resolved += 1;
+                    assert!(
+                        seeded.contains(buf.as_str()),
+                        "technique_info resolves {buf} but it is missing from \
+                         SEEDED_TECHNIQUE_IDS — mirror it (and bump \
+                         SEEDED_TECHNIQUE_ID_COUNT)"
+                    );
+                }
+            }
+        }
+
+        // The derived catalogue size MUST equal the seeded-list size. This is
+        // the forward-completeness guarantee: no unmirrored addition can hide.
+        assert_eq!(
+            resolved,
+            SEEDED_TECHNIQUE_IDS.len(),
+            "technique_info resolves {resolved} IDs but SEEDED_TECHNIQUE_IDS has \
+             {} — the catalogue and the seeded list have drifted",
+            SEEDED_TECHNIQUE_IDS.len()
         );
     }
 }
