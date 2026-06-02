@@ -1211,6 +1211,20 @@ mod kani_proofs_vp005 {
         assert!(classify_hostname_vp005(&hostname) == 2);
     }
 
+    /// (C1b) Arm code 2 over a 4-byte non-ASCII codepoint (CR-001): closes the
+    /// formal gap where no Kani harness exercised a 4-byte UTF-8 sequence. A
+    /// valid 4-byte codepoint is non-ASCII, so it must classify as NonAsciiUtf8
+    /// (code 2).
+    ///
+    /// BOUND/SOUNDNESS: 0xF0 0x9F 0x98 0x80 = U+1F600 (GRINNING FACE), a valid
+    /// 4-byte UTF-8 codepoint and the maximum encoded length. Fully concrete =>
+    /// `from_utf8` constant-folds; proof is instant.
+    #[kani::proof]
+    fn verify_4byte_utf8_yields_code2() {
+        let hostname: [u8; 4] = [0xF0, 0x9F, 0x98, 0x80]; // U+1F600, valid 4-byte UTF-8
+        assert!(classify_hostname_vp005(&hostname) == 2);
+    }
+
     /// (C2) BC-2.07.037 / INV-5 arm-3-priority boundary, against the REAL
     /// production function: a valid non-ASCII codepoint FOLLOWED BY a C0/DEL
     /// control byte still classifies as NonAsciiUtf8 (code 2), NOT
@@ -1267,8 +1281,16 @@ mod proptest_proofs_vp005 {
     use proptest::prelude::*;
 
     proptest! {
-        /// Supplemental unbounded check (arbitrary-length byte vecs) of the same
-        /// INV-5 invariants the Kani proof covers under a 4-byte bound.
+        /// Supplemental unbounded check of the same INV-5 invariants the Kani
+        /// proofs cover. Kani coverage is: a symbolic SINGLE byte (totality +
+        /// the full ASCII/C0/DEL boundary, via the explicit model anchored to
+        /// production over all 256 bytes) plus CONCRETE 2-, 3-, and 4-byte
+        /// codepoint cases (NonAsciiUtf8 arm and the BC-2.07.037 non-ASCII+
+        /// control priority case). No Kani harness takes a symbolic multi-byte
+        /// input (symbolic `from_utf8` is intractable under CBMC — see the
+        /// TOOLING NOTE above). This proptest fills that gap: it exercises
+        /// arbitrary-LENGTH `Vec<u8>` — including 3- and 4-byte codepoints and
+        /// mixed sequences — over the real `from_utf8`-based classifier.
         #[test]
         fn prop_sni_arm3_priority_and_arm1_ascii_only(hostname: Vec<u8>) {
             let arm = classify_hostname_vp005(&hostname);

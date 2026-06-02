@@ -255,26 +255,25 @@ mod kani_proofs {
         assert!(matches!(classify(&data, &key), DispatchTarget::Tls));
     }
 
-    /// VP-004 full precedence ladder, exhaustive over a symbolic 5-byte prefix
+    /// VP-004 full precedence ladder, exhaustive over a symbolic 8-byte prefix
     /// and fully symbolic 16-bit ports. Re-derives the spec's expected target
     /// independently of `classify`'s internal branch wiring and asserts
     /// equality, so this proves the *entire* decision function (rules 1–4),
     /// not just the TLS-beats-port corollary.
     ///
     /// BOUND/SOUNDNESS:
-    ///  - `data` is a symbolic `[u8; 5]`. Every method token in `classify`
-    ///    (`GET `, `POST `, `PUT `, ... `HTTP/`) is matched by `starts_with`,
-    ///    and every token's discriminating prefix is <= 5 bytes EXCEPT the
-    ///    longer tokens (`DELETE `, `OPTIONS `, `CONNECT `, `TRACE `). To keep
-    ///    the model sound we replicate the EXACT same `starts_with` set against
-    ///    the same 5-byte slice in the reference oracle, so both production and
-    ///    oracle see identical truncation behavior — equality therefore holds
-    ///    for the bounded slice with no divergence. (A 5-byte slice can still
-    ///    fully exercise the rule-1 TLS branch and the rule-3/4 port-fallback
-    ///    branches, which is where the precedence subtlety lives.)
+    ///  - `data` is a symbolic `[u8; 8]` (CR-004). 8 bytes is the length of the
+    ///    longest discriminating method token — `"OPTIONS "` and `"CONNECT "`
+    ///    are exactly 8 bytes — so EVERY method token in `classify`
+    ///    (`GET `, `POST `, `PUT `, `DELETE `, `HEAD `, `OPTIONS `, `PATCH `,
+    ///    `CONNECT `, `TRACE `, `HTTP/`) is now fully matchable by the symbolic
+    ///    input, closing the gap left by the earlier 5-byte bound (which could
+    ///    not realize DELETE/OPTIONS/PATCH/CONNECT/TRACE). The reference oracle
+    ///    replicates the EXACT same `starts_with` set so production and oracle
+    ///    agree on every input with no divergence.
     ///  - Ports are fully symbolic `u16` (all 65536 values each), so the
     ///    443/8443/80/8080 fallback arms and the `None` arm are all covered.
-    fn classify_oracle(data: &[u8; 5], lower: u16, upper: u16) -> DispatchTarget {
+    fn classify_oracle(data: &[u8; 8], lower: u16, upper: u16) -> DispatchTarget {
         // Rule 1: TLS content signature.
         if data.len() >= 5 && data[0] == 0x16 && data[1] == 0x03 {
             return DispatchTarget::Tls;
@@ -320,7 +319,10 @@ mod kani_proofs {
         let b2: u8 = kani::any();
         let b3: u8 = kani::any();
         let b4: u8 = kani::any();
-        let data: [u8; 5] = [b0, b1, b2, b3, b4];
+        let b5: u8 = kani::any();
+        let b6: u8 = kani::any();
+        let b7: u8 = kani::any();
+        let data: [u8; 8] = [b0, b1, b2, b3, b4, b5, b6, b7];
 
         let got = classify(&data, &key);
         let want = classify_oracle(&data, key.lower_port(), key.upper_port());
@@ -372,44 +374,54 @@ mod kani_proofs {
         target
     }
 
-    /// VP-004 two-phase `None`-caching (LESSON-P2.11). With `cap == 2`:
-    ///   Phase A (call 1): attempts -> Some(1) (< cap) => route stays `None` (uncached).
-    ///   Phase B (call 2): attempts -> 2 (== cap) => route = Some(None) permanently
-    ///                     and attempts cleared.
-    ///   Phase C (call 3): cached `None` short-circuits — no re-classify, no counter.
+    /// VP-004 two-phase `None`-caching (LESSON-P2.11), proven for the ENTIRE
+    /// production-relevant cap range via a SYMBOLIC `cap` (CR-002). For each call
+    /// `i` (1-based) on the rule-4 `None` path:
+    ///   Phase A (i < cap): attempts -> Some(i), route stays uncached (`None`).
+    ///   Phase B (i == cap): route = Some(None) permanently, attempts cleared.
+    ///   Phase C (i > cap): cached `None` short-circuits — route frozen at
+    ///                      Some(None), attempts stays cleared (no re-classify).
     ///
     /// BOUND/SOUNDNESS:
-    ///  - `cap = 2` is the minimal value exhibiting both phases. The counter op is
-    ///    `saturating_add(1)` vs `>= cap`; behavior is identical for every cap >= 1,
-    ///    so cap=2 is representative (each pre-cap call is the same idempotent step).
+    ///  - `cap` is SYMBOLIC over `1..=DEFAULT_MAX_CLASSIFICATION_ATTEMPTS` (the
+    ///    full configurable range; default is 8). `cap == 0` is excluded because
+    ///    `with_max_classification_attempts(0)` is documented as a degenerate
+    ///    "disable classification" mode that caches `None` on the first call —
+    ///    a separate behavior, not the multi-phase retry property under test.
+    ///  - The loop runs a FIXED `DEFAULT_MAX_CLASSIFICATION_ATTEMPTS + 1` (= 9)
+    ///    iterations regardless of `cap`, so it always observes at least one
+    ///    post-cap (phase C) call for every cap in range. `#[kani::unwind(11)]`
+    ///    fully unrolls it. Within the loop each phase is checked against the
+    ///    symbolic `cap`, so the proof covers cap = 1, 2, ..., 8 simultaneously.
     ///  - The model `step_none_path` is a line-for-line port of `on_data`'s rule-4
     ///    branch (see doc above); the only abstraction is HashMap-by-key -> Option,
-    ///    which is exact for a single key. No symbolic input is needed because the
-    ///    transition is deterministic once `classify == None` is fixed — and the
-    ///    companion proofs above already prove WHEN `classify` returns `None`.
+    ///    exact for a single key. The companion proofs prove WHEN `classify`
+    ///    returns `None`; this proves what the cache/counter then do.
     #[kani::proof]
+    #[kani::unwind(11)]
     fn verify_none_two_phase_caching() {
-        let cap: u32 = 2;
+        let cap: u32 = kani::any();
+        kani::assume(cap >= 1 && cap <= DEFAULT_MAX_CLASSIFICATION_ATTEMPTS);
+
         let mut route: Option<DispatchTarget> = None;
         let mut attempts: Option<u32> = None;
 
-        // Phase A: first call — under cap, route must NOT be cached.
-        let t1 = step_none_path(&mut route, &mut attempts, cap);
-        assert!(matches!(t1, DispatchTarget::None));
-        assert!(route.is_none()); // not yet cached
-        assert!(matches!(attempts, Some(1)));
+        // Drive one extra call beyond the maximum possible cap so every cap in
+        // range exercises phases A, B, and C.
+        for i in 1..=(DEFAULT_MAX_CLASSIFICATION_ATTEMPTS + 1) {
+            let t = step_none_path(&mut route, &mut attempts, cap);
+            assert!(matches!(t, DispatchTarget::None)); // always None on rule-4 path
 
-        // Phase B: second call reaches cap — `None` cached permanently, counter cleared.
-        let t2 = step_none_path(&mut route, &mut attempts, cap);
-        assert!(matches!(t2, DispatchTarget::None));
-        assert!(matches!(route, Some(DispatchTarget::None)));
-        assert!(attempts.is_none());
-
-        // Phase C: subsequent call short-circuits on cached `None`; state frozen
-        // (never re-classified, never evicted except by on_flow_close).
-        let t3 = step_none_path(&mut route, &mut attempts, cap);
-        assert!(matches!(t3, DispatchTarget::None));
-        assert!(matches!(route, Some(DispatchTarget::None)));
-        assert!(attempts.is_none());
+            if i < cap {
+                // Phase A: under cap — not cached, counter == i.
+                assert!(route.is_none());
+                assert!(attempts == Some(i));
+            } else {
+                // Phase B (i == cap) and Phase C (i > cap): cached permanently,
+                // counter cleared and never re-created.
+                assert!(matches!(route, Some(DispatchTarget::None)));
+                assert!(attempts.is_none());
+            }
+        }
     }
 }
