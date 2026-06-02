@@ -15737,15 +15737,13 @@ fn run_sized_segment_flow(
     // Start at offset 2 (seq 1002) and place each segment contiguously after
     // the previous so there are no overlaps (each is `Inserted`, reaching the
     // window and so feeding the small-segment classifier).
-    let mut seq: u32 = 1002;
-    let mut ts: u32 = 2;
-    for _ in 0..count {
+    for i in 0..count {
+        let seq = 1002_u32 + i * payload_len as u32;
+        let ts = 2_u32 + i;
         let pkt = make_tcp_packet(
             client, 12345, server, 80, seq, &payload, false, true, false, false,
         );
         reassembler.process_packet(&pkt, ts, &mut handler);
-        seq += payload_len as u32;
-        ts += 1;
     }
     reassembler
 }
