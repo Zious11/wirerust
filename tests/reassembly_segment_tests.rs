@@ -2499,3 +2499,193 @@ fn test_story_018_ec010_depth_exceeded_does_not_change_small_segment_run() {
         "EC-010: DepthExceeded result must not change small_segment_run (stays at 3)"
     );
 }
+
+// =============================================================================
+// VP-002 Phase-6 gap closure — BYTE-SURVIVAL tests (G1/G2/G3).
+//
+// Rationale: the existing multi-segment-coverage tests
+// (test_BC_2_04_038_*, test_story_016_ec009_*) assert only the RESULT ENUM
+// (Duplicate / ConflictingOverlap). They do NOT re-read the buffer to prove the
+// first-arrived bytes actually SURVIVED. The release-build collision guard at
+// segment.rs (the `debug_assert!(old.is_none(), ...)`) is compiled out, so a
+// winner-selection bug that re-inserted over a buffered offset would be silent
+// in release and invisible to enum-only tests. These tests re-read every
+// buffered offset via `segment_at` (and, for G3, the delivered stream) to prove
+// the attacker's conflicting bytes never reach the buffer/stream.
+// G3 lives in tests/reassembly_engine_tests.rs (needs the engine).
+// =============================================================================
+
+// --- G1 — multi-segment UNION CONFLICT: original bytes survive, attacker dropped
+/// ISN=1000. A=b"AB" at [1,3), B=b"CD" at [3,5). Their UNION covers [1,5) with
+/// no single segment fully covering it. New attacker segment N=b"ABXY" at [1,5):
+/// the [1,3) half matches A ("AB"), the [3,5) half ("XY") CONFLICTS with B
+/// ("CD"). Expected ConflictingOverlap (fully covered by union, one byte
+/// differs). Byte-survival assertion: A and B are byte-for-byte unchanged and
+/// the attacker's "XY" never lands in the buffer.
+#[test]
+fn test_vp002_g1_multi_segment_union_conflict_bytes_survive() {
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    dir.insert_segment(1001, b"AB", 10_485_760, 10_000, 10_485_760); // [1,3)
+    dir.insert_segment(1003, b"CD", 10_485_760, 10_000, 10_485_760); // [3,5)
+    let buffered_before = dir.buffered_bytes();
+    let count_before = dir.segment_count();
+
+    // Attacker: same [1,5) span, second half conflicts with B.
+    let result = dir.insert_segment(1001, b"ABXY", 10_485_760, 10_000, 10_485_760);
+
+    assert_eq!(
+        result,
+        InsertResult::ConflictingOverlap,
+        "G1: union of A+B fully covers [1,5) and 'XY' differs from 'CD' → ConflictingOverlap"
+    );
+
+    // Byte survival: re-read both original segments — unchanged.
+    assert_eq!(
+        dir.segment_at(1),
+        Some(&b"AB"[..]),
+        "G1: first-wins — original A bytes 'AB' at offset 1 must survive unchanged"
+    );
+    assert_eq!(
+        dir.segment_at(3),
+        Some(&b"CD"[..]),
+        "G1: first-wins — original B bytes 'CD' at offset 3 must survive (attacker 'XY' dropped)"
+    );
+    // No new/overwriting segment was inserted; accounting is unchanged.
+    assert_eq!(
+        dir.segment_count(),
+        count_before,
+        "G1: ConflictingOverlap (no gap) must not add a segment"
+    );
+    assert_eq!(
+        dir.buffered_bytes(),
+        buffered_before,
+        "G1: ConflictingOverlap must not change buffered_bytes"
+    );
+    // The attacker bytes 'X'(0x58)/'Y'(0x59) must appear nowhere in the buffer.
+    for off in [1u64, 3u64] {
+        let bytes = dir.segment_at(off).expect("segment present");
+        assert!(
+            !bytes.contains(&b'X') && !bytes.contains(&b'Y'),
+            "G1: attacker conflicting bytes 'X'/'Y' must not appear at offset {off}"
+        );
+    }
+}
+
+// --- G2 — THREE-segment CONFLICTING union: original bytes survive
+/// ISN=1000. A=b"AA" at [1,3), B=b"BB" at [3,5), C=b"CC" at [5,7). Union covers
+/// [1,7). New attacker N=b"AAZZCC" at [1,7): the middle "ZZ" CONFLICTS with B's
+/// "BB"; the rest matches. (The existing EC-009 only covers the all-matching
+/// Duplicate variant of the 3-segment union — this is the conflicting variant.)
+/// Expected ConflictingOverlap. Byte-survival: A, B, C all unchanged; "ZZ"
+/// dropped.
+#[test]
+fn test_vp002_g2_three_segment_union_conflict_bytes_survive() {
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    dir.insert_segment(1001, b"AA", 10_485_760, 10_000, 10_485_760); // [1,3)
+    dir.insert_segment(1003, b"BB", 10_485_760, 10_000, 10_485_760); // [3,5)
+    dir.insert_segment(1005, b"CC", 10_485_760, 10_000, 10_485_760); // [5,7)
+    let buffered_before = dir.buffered_bytes();
+    let count_before = dir.segment_count();
+
+    // Attacker spanning all three; middle 'ZZ' conflicts with 'BB'.
+    let result = dir.insert_segment(1001, b"AAZZCC", 10_485_760, 10_000, 10_485_760);
+
+    assert_eq!(
+        result,
+        InsertResult::ConflictingOverlap,
+        "G2: 3-segment union fully covers [1,7) and 'ZZ' differs from 'BB' → ConflictingOverlap"
+    );
+
+    // Byte survival across all three original segments.
+    assert_eq!(
+        dir.segment_at(1),
+        Some(&b"AA"[..]),
+        "G2: original A 'AA' at offset 1 survives"
+    );
+    assert_eq!(
+        dir.segment_at(3),
+        Some(&b"BB"[..]),
+        "G2: original B 'BB' at offset 3 survives (attacker 'ZZ' dropped)"
+    );
+    assert_eq!(
+        dir.segment_at(5),
+        Some(&b"CC"[..]),
+        "G2: original C 'CC' at offset 5 survives"
+    );
+    assert_eq!(
+        dir.segment_count(),
+        count_before,
+        "G2: ConflictingOverlap (no gap) must not add a segment"
+    );
+    assert_eq!(
+        dir.buffered_bytes(),
+        buffered_before,
+        "G2: ConflictingOverlap must not change buffered_bytes"
+    );
+    // 'Z' (0x5A) — the attacker byte — must appear in no buffered segment.
+    for off in [1u64, 3u64, 5u64] {
+        let bytes = dir.segment_at(off).expect("segment present");
+        assert!(
+            !bytes.contains(&b'Z'),
+            "G2: attacker conflicting byte 'Z' must not appear at offset {off}"
+        );
+    }
+}
+
+// --- G2b — multi-segment union conflict WITH a real gap: gap bytes inserted,
+/// existing bytes survive, conflicting overlap bytes dropped.
+/// This exercises the `select_gaps` first-wins sweep across multiple existing
+/// segments where a genuine gap exists (PartialOverlap path), proving the
+/// inserted gap bytes are EXACTLY the uncovered portion and the existing bytes
+/// are never overwritten.
+/// ISN=1000. A=b"AA" at [1,3), C=b"CC" at [5,7) (gap [3,5) is unbuffered).
+/// New N=b"XXYYZZ" at [1,7): [1,3)='XX' conflicts with A 'AA'; [3,5)='YY' is the
+/// gap (must be inserted, first-wins, since nothing buffered there); [5,7)='ZZ'
+/// conflicts with C 'CC'. Expected PartialOverlap (a gap was filled).
+#[test]
+fn test_vp002_g2b_multi_segment_gap_fill_preserves_existing() {
+    let mut dir = wirerust::reassembly::flow::FlowDirection::new();
+    dir.set_isn(1000);
+
+    dir.insert_segment(1001, b"AA", 10_485_760, 10_000, 10_485_760); // [1,3)
+    dir.insert_segment(1005, b"CC", 10_485_760, 10_000, 10_485_760); // [5,7), gap [3,5)
+
+    let result = dir.insert_segment(1001, b"XXYYZZ", 10_485_760, 10_000, 10_485_760);
+
+    assert_eq!(
+        result,
+        InsertResult::PartialOverlap,
+        "G2b: gap [3,5) is filled while [1,3)/[5,7) overlap conflict → PartialOverlap"
+    );
+
+    // Existing bytes survive (first-wins): attacker 'XX'/'ZZ' dropped.
+    assert_eq!(
+        dir.segment_at(1),
+        Some(&b"AA"[..]),
+        "G2b: original A 'AA' survives; attacker 'XX' dropped"
+    );
+    assert_eq!(
+        dir.segment_at(5),
+        Some(&b"CC"[..]),
+        "G2b: original C 'CC' survives; attacker 'ZZ' dropped"
+    );
+    // The genuine gap [3,5) gets the new bytes 'YY' (no first-arrived byte there).
+    assert_eq!(
+        dir.segment_at(3),
+        Some(&b"YY"[..]),
+        "G2b: gap [3,5) is filled with the new segment's bytes 'YY'"
+    );
+    // Attacker overlap bytes must not have leaked into the surviving segments.
+    assert!(
+        !dir.segment_at(1).unwrap().contains(&b'X'),
+        "G2b: attacker 'X' must not overwrite A"
+    );
+    assert!(
+        !dir.segment_at(5).unwrap().contains(&b'Z'),
+        "G2b: attacker 'Z' must not overwrite C"
+    );
+}
