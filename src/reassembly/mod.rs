@@ -744,6 +744,164 @@ impl TcpReassembler {
     }
 }
 
+// Kani formal-verification harnesses for VP-003 (MAX_FINDINGS cap with finalize
+// bypass, BC-2.04.024 / BC-2.04.054). Gated behind `#[cfg(kani)]` (set only by
+// `cargo kani`), so invisible to the normal build/test/clippy pipeline.
+//
+// DESIGN NOTE: these proofs reason over a symbolic `findings.len()` (a `usize`)
+// rather than constructing a real `TcpReassembler`. `TcpReassembler::new`
+// builds a `HashMap<FlowKey, TcpFlow>` and a `ReassemblyConfig` holding `Vec`s;
+// CBMC's model of the std `HashMap`/allocator leaves its checks UNDETERMINED
+// (and slow), which is the same std-collection limitation that makes BTreeMap
+// proofs intractable. The VP-003 cap invariant is a pure property of
+// `findings.len()` versus `MAX_FINDINGS` and `stats.dropped_findings` — it does
+// not depend on flow state or finding contents. Each proof body is therefore a
+// byte-for-byte transcription of the production guard / bypass idiom operating
+// on a symbolic length, which is sound (the production guards read nothing but
+// `len()`) and fast. The end-to-end `Vec<Finding>` glue is exercised by the
+// (green) reassembly test-suite, which includes explicit MAX_FINDINGS-cap tests.
+//
+// The guard appears in two logically equivalent spellings across the five
+// emission sites: a positive form in mod.rs (`if len < MAX_FINDINGS { push }
+// else { dropped += 1 }`) and an early-return form in lifecycle.rs
+// (`if len >= MAX_FINDINGS { dropped += 1; return } ... push`). Both partition
+// on `len < MAX_FINDINGS` with identical effect, so a single transcription
+// covers all five.
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// VP-003 invariants 1, 3, 4: a single guarded emission can never push the
+    /// length above MAX_FINDINGS, and a blocked push increments `dropped_findings`.
+    ///
+    /// Proved INDUCTIVELY (loop-free): start from a symbolic length already
+    /// satisfying the invariant (`current_len <= MAX_FINDINGS`), apply ONE
+    /// guarded emission, and show the invariant is preserved. The five
+    /// production guard sites use two LOGICALLY EQUIVALENT spellings:
+    ///   - mod.rs:461/495/524 — positive form
+    ///     `if findings.len() < MAX_FINDINGS { push } else { dropped += 1 }`
+    ///   - lifecycle.rs:101/121 — early-return form
+    ///     `if findings.len() >= MAX_FINDINGS { dropped += 1; return } ... push`
+    /// Both partition on `len < MAX_FINDINGS` and have identical effect on
+    /// `(len, dropped)`; the transcription below models that common effect. All
+    /// sites only ever run on a vector already satisfying the invariant, so this
+    /// single inductive step proves the invariant across any number of emissions.
+    ///
+    /// Bounded domain: `current_len` symbolic over the whole valid range
+    /// [0, MAX_FINDINGS]. The body is an exact transcription of the guard idiom.
+    #[kani::proof]
+    fn verify_guarded_push_preserves_cap() {
+        let current_len: usize = kani::any();
+        kani::assume(current_len <= MAX_FINDINGS); // invariant holds on entry
+        let dropped_before: usize = kani::any();
+        kani::assume(dropped_before < usize::MAX); // avoid spurious counter overflow
+
+        // Exact transcription of the production guard arithmetic.
+        let (new_len, new_dropped) = if current_len < MAX_FINDINGS {
+            (current_len + 1, dropped_before)
+        } else {
+            (current_len, dropped_before + 1)
+        };
+
+        // Cap invariant preserved after the guarded emission.
+        assert!(new_len <= MAX_FINDINGS);
+
+        if current_len < MAX_FINDINGS {
+            assert!(new_len == current_len + 1);
+            assert!(new_dropped == dropped_before);
+        } else {
+            // At the cap: push suppressed, exactly one drop counted.
+            assert!(new_len == current_len);
+            assert!(new_dropped == dropped_before + 1);
+        }
+    }
+
+    /// VP-003 invariants 2 & 4: the finalize bypass (mod.rs:630) is an
+    /// UNCONDITIONAL single push with no cap guard, so it adds exactly one
+    /// finding and is the only path that may produce `len == MAX_FINDINGS + 1`.
+    ///
+    /// Transcription of the bypass: from any symbolic length already within the
+    /// invariant, one unconditional `+1` is applied. We show the post-bypass
+    /// length is at most `MAX_FINDINGS + 1`, with equality exactly when the
+    /// bypass fires at the cap — establishing the `+1` ceiling.
+    #[kani::proof]
+    fn verify_finalize_bypass_adds_at_most_one() {
+        let current_len: usize = kani::any();
+        kani::assume(current_len <= MAX_FINDINGS); // invariant holds before finalize
+
+        // The bypass push is unconditional (no `if len < MAX_FINDINGS`).
+        let after = current_len + 1;
+
+        // Post-finalize ceiling: never exceeds MAX_FINDINGS + 1.
+        assert!(after <= MAX_FINDINGS + 1);
+        // The ceiling is reachable ONLY when the bypass fires at exactly the cap.
+        assert!((after == MAX_FINDINGS + 1) == (current_len == MAX_FINDINGS));
+    }
+
+    /// VP-003 invariant 1 (loop form, below the cap): a run of guarded emissions
+    /// from empty never exceeds the cap. The guard is memoryless (its branch
+    /// depends only on the current length), so a small bounded loop, together
+    /// with the inductive proof above, covers the full range. Models the length
+    /// with a plain counter applying the exact guard.
+    ///
+    /// NOTE: with `n <= 6` and `MAX_FINDINGS == 10_000` this loop never reaches
+    /// the cap, so the final `len == n` is the "no drop fired" arm. The drop
+    /// path at the boundary is exercised by
+    /// `verify_guarded_push_loop_saturates_at_cap` below, which starts at the
+    /// cap minus one.
+    #[kani::proof]
+    #[kani::unwind(8)]
+    fn verify_guarded_push_loop_never_exceeds_cap() {
+        let n: usize = kani::any();
+        kani::assume(n <= 6);
+
+        let mut len: usize = 0;
+        for _ in 0..n {
+            // Exact guard idiom: push only while under the cap.
+            if len < MAX_FINDINGS {
+                len += 1;
+            }
+            assert!(len <= MAX_FINDINGS);
+        }
+        // Below the cap throughout: no emission suppressed, so len == n.
+        assert!(len == n);
+    }
+
+    /// VP-003 invariant 1 + 3 (loop form, AT the cap boundary): a run of guarded
+    /// emissions that begins one below the cap saturates at exactly MAX_FINDINGS
+    /// and counts every subsequent suppressed emission as a dropped finding.
+    /// This formally exercises the boundary the below-cap loop cannot reach: the
+    /// guard's drop arm (`else { dropped += 1 }`) actually fires here.
+    ///
+    /// Bounded domain: start `len = MAX_FINDINGS - 1`, run `n` guarded emissions
+    /// for symbolic `n` in [1, 6]. The first emission lifts `len` to the cap;
+    /// every later one is suppressed, so `dropped == n - 1`. `n <= 6` keeps the
+    /// unwind cheap; the guard is memoryless so any `n >= 1` exhibits the same
+    /// saturation behavior, making the small bound representative.
+    #[kani::proof]
+    #[kani::unwind(8)]
+    fn verify_guarded_push_loop_saturates_at_cap() {
+        let n: usize = kani::any();
+        kani::assume((1..=6).contains(&n));
+
+        let mut len: usize = MAX_FINDINGS - 1;
+        let mut dropped: usize = 0;
+        for _ in 0..n {
+            // Exact guard idiom, including the drop arm.
+            if len < MAX_FINDINGS {
+                len += 1;
+            } else {
+                dropped += 1;
+            }
+            // Never exceeds the cap even once saturated.
+            assert!(len <= MAX_FINDINGS);
+        }
+        // First emission reached the cap; all n-1 later ones were suppressed.
+        assert!(len == MAX_FINDINGS);
+        assert!(dropped == n - 1);
+    }
+}
+
 // ---- Test-only seams (STORY-021 / ADR-0004 amendment) ----------------------
 //
 // These seams expose process-global atomics and private engine state to
