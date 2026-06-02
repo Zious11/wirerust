@@ -269,3 +269,175 @@ impl TcpFlow {
         self.client_to_server.memory_used() + self.server_to_client.memory_used()
     }
 }
+
+// Kani formal-verification harnesses. Gated behind `#[cfg(kani)]` so they are
+// invisible to the normal `cargo build`/`cargo test`/`cargo clippy` pipeline
+// (the `kani` cfg is only set by `cargo kani`). These prove VP-001 (FlowKey
+// canonical ordering) and VP-009 (FlowState machine validity).
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+    use std::net::Ipv4Addr;
+
+    // ---- VP-001: FlowKey Canonical Ordering (BC-2.04.003, INV-1) -------------
+
+    /// Bounded domain: all 32-bit IPv4 addresses and 16-bit ports are symbolic.
+    /// This is the *full* IPv4+port endpoint space (no `assume` narrowing), so
+    /// the proof covers every valid (ip,port) pair pair. Kani models the two
+    /// `u32` + two `u16` symbolic words exactly; the harness is loop-free and
+    /// allocation-free, so this is sound and complete over IPv4.
+    #[kani::proof]
+    fn verify_flowkey_canonical_ordering_ipv4() {
+        let raw_a: u32 = kani::any();
+        let port_a: u16 = kani::any();
+        let raw_b: u32 = kani::any();
+        let port_b: u16 = kani::any();
+
+        let ip_a = IpAddr::V4(Ipv4Addr::from(raw_a));
+        let ip_b = IpAddr::V4(Ipv4Addr::from(raw_b));
+
+        let key_ab = FlowKey::new(ip_a, port_a, ip_b, port_b);
+        let key_ba = FlowKey::new(ip_b, port_b, ip_a, port_a);
+
+        // Commutativity: argument order must not change the canonical key.
+        assert!(key_ab == key_ba);
+
+        // Ordering invariant: the stored "lower" tuple is <= the "upper" tuple
+        // under tuple-pair comparison.
+        assert!(
+            (key_ab.lower_ip(), key_ab.lower_port()) <= (key_ab.upper_ip(), key_ab.upper_port())
+        );
+    }
+
+    /// Proves canonicalization is TUPLE-PAIR, not independent per-field sorting.
+    /// Same IP, descending ports: the (ip, 80) tuple must win as the lower slot
+    /// even though it is passed second.
+    #[kani::proof]
+    fn verify_flowkey_tuple_pair_not_independent_field() {
+        let ip: IpAddr = IpAddr::V4(Ipv4Addr::new(1, 0, 0, 0));
+        let key = FlowKey::new(ip, 9000, ip, 80);
+        assert!(key.lower_port() == 80);
+        assert!(key.upper_port() == 9000);
+    }
+
+    // ---- VP-009: FlowState Machine Validity (BC-2.04.050/051/052) ------------
+
+    /// Build a `TcpFlow` pre-seeded to one of the 5 reachable states by driving
+    /// the real transition methods. `discriminant % 5` selects the state.
+    fn make_flow_in_state(discriminant: u8) -> TcpFlow {
+        let key = FlowKey::new(
+            IpAddr::V4(Ipv4Addr::new(1, 0, 0, 1)),
+            1000,
+            IpAddr::V4(Ipv4Addr::new(1, 0, 0, 2)),
+            80,
+        );
+        let mut flow = TcpFlow::new(key, 0);
+        match discriminant % 5 {
+            0 => {}             // New
+            1 => flow.on_syn(), // SynSent
+            2 => {
+                flow.on_syn();
+                flow.on_syn_ack();
+            } // Established
+            3 => {
+                flow.on_syn();
+                flow.on_syn_ack();
+                flow.on_fin();
+            } // Closing
+            _ => flow.on_rst(), // Closed
+        }
+        flow
+    }
+
+    /// Apply one of the 5 driving events. Test-only; not in production code.
+    fn apply_event(flow: &mut TcpFlow, event: u8) {
+        match event % 5 {
+            0 => flow.on_syn(),
+            1 => flow.on_syn_ack(),
+            2 => flow.on_rst(),
+            3 => flow.on_fin(),
+            _ => flow.on_data_without_syn(),
+        }
+    }
+
+    /// VP-009 invariant 3: RST drives ANY prior state to `Closed`.
+    /// Bounded domain: symbolic `discriminant` (5 reachable start states). Sound
+    /// because `make_flow_in_state` exhausts every reachable state.
+    #[kani::proof]
+    fn verify_rst_closes_from_any_state() {
+        let discriminant: u8 = kani::any();
+        let mut flow = make_flow_in_state(discriminant);
+        flow.on_rst();
+        assert!(matches!(flow.state, FlowState::Closed));
+    }
+
+    /// VP-009 invariant 5: `Closed` is terminal. From a Closed flow, RST/SYN/FIN
+    /// must all leave the state Closed. Note: `on_fin` saturates fin_count and,
+    /// at >=2 FINs, forces Closed regardless — so a Closed flow stays Closed.
+    #[kani::proof]
+    fn verify_closed_is_terminal() {
+        let mut f1 = make_flow_in_state(4);
+        f1.on_rst();
+        assert!(matches!(f1.state, FlowState::Closed));
+
+        let mut f2 = make_flow_in_state(4);
+        f2.on_syn();
+        assert!(matches!(f2.state, FlowState::Closed));
+
+        let mut f3 = make_flow_in_state(4);
+        f3.on_fin();
+        assert!(matches!(f3.state, FlowState::Closed));
+
+        let mut f4 = make_flow_in_state(4);
+        f4.on_syn_ack();
+        assert!(matches!(f4.state, FlowState::Closed));
+
+        let mut f5 = make_flow_in_state(4);
+        f5.on_data_without_syn();
+        assert!(matches!(f5.state, FlowState::Closed));
+    }
+
+    /// VP-009 invariant 4: `on_data_without_syn` moves New -> Established and
+    /// sets `partial = true`. Concrete (no symbolic inputs needed).
+    #[kani::proof]
+    fn verify_data_without_syn_sets_partial() {
+        let key = FlowKey::new(
+            IpAddr::V4(Ipv4Addr::new(1, 0, 0, 1)),
+            1000,
+            IpAddr::V4(Ipv4Addr::new(1, 0, 0, 2)),
+            80,
+        );
+        let mut flow = TcpFlow::new(key, 0);
+        assert!(matches!(flow.state, FlowState::New));
+        flow.on_data_without_syn();
+        assert!(matches!(flow.state, FlowState::Established));
+        assert!(flow.partial);
+    }
+
+    /// VP-009 invariant 2: no state outside the 5 valid variants is reachable.
+    /// Bounded domain: symbolic start state x 2 symbolic events. Two events
+    /// suffice to expose any single-step transition out of every reachable
+    /// state (the first event can land in any reachable state, the second
+    /// exercises every outgoing edge from it). The `FlowState` enum has exactly
+    /// 5 variants, so `matches!` against all 5 is total — the assertion would
+    /// only fail if memory corruption produced an invalid discriminant.
+    #[kani::proof]
+    fn verify_no_invalid_state_reachable() {
+        let disc: u8 = kani::any();
+        let event1: u8 = kani::any();
+        let event2: u8 = kani::any();
+
+        let mut flow = make_flow_in_state(disc);
+        apply_event(&mut flow, event1);
+        apply_event(&mut flow, event2);
+
+        assert!(matches!(
+            flow.state,
+            FlowState::New
+                | FlowState::SynSent
+                | FlowState::Established
+                | FlowState::Closing
+                | FlowState::Closed
+        ));
+    }
+}

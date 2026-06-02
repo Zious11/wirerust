@@ -6,6 +6,13 @@ rust-version = "1.91"
 description = "Fast PCAP forensics and network triage CLI tool"
 license = "MIT"
 
+# Register the `kani` cfg so the normal toolchain does not emit
+# `unexpected_cfgs` warnings (which CI promotes to errors via -Dwarnings) for
+# the `#[cfg(kani)]`-gated formal-verification proof harnesses. The `kani` cfg
+# is set only by `cargo kani`; under a normal build these blocks compile out.
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
+
 [dependencies]
 httparse = "1"
 tls-parser = "0.12"
