@@ -764,3 +764,234 @@ mod tests {
         );
     }
 }
+
+// VP-006: HTTP Poison Monotonicity (BC-2.06.015/016/017, INV-8).
+//
+// Property: within a single flow's lifetime the per-direction poison flags are
+// monotonically false->true and per-direction isolated. The flags themselves
+// are private; the public observable is `poisoned_bytes_skipped()`, which
+// increments for every byte fed to a direction AFTER it is poisoned and never
+// decreases (http.rs:509-512, 521-524). These harnesses assert monotonicity and
+// per-direction isolation via that public observable.
+#[cfg(test)]
+mod vp_006_proptest_proofs {
+    use super::*;
+    use proptest::prelude::*;
+    use std::net::{IpAddr, Ipv4Addr};
+
+    #[derive(Clone, Debug)]
+    enum ParseEvent {
+        ValidRequest,    // request bytes that parse as a complete HTTP request
+        InvalidBytes,    // request bytes that cause a parse error
+        ValidResponse,   // response bytes that parse as a complete HTTP response
+        InvalidResponse, // response bytes that cause a parse error (CR-002)
+    }
+
+    impl ParseEvent {
+        fn data(&self) -> &'static [u8] {
+            match self {
+                ParseEvent::ValidRequest => b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n",
+                ParseEvent::InvalidBytes => b"\xFF\xFE garbage",
+                ParseEvent::ValidResponse => b"HTTP/1.1 200 OK\r\n\r\n",
+                ParseEvent::InvalidResponse => b"\xFF\xFE garbage response",
+            }
+        }
+
+        fn direction(&self) -> Direction {
+            match self {
+                ParseEvent::ValidRequest | ParseEvent::InvalidBytes => Direction::ClientToServer,
+                ParseEvent::ValidResponse | ParseEvent::InvalidResponse => {
+                    Direction::ServerToClient
+                }
+            }
+        }
+
+        fn is_invalid(&self) -> bool {
+            matches!(self, ParseEvent::InvalidBytes | ParseEvent::InvalidResponse)
+        }
+    }
+
+    fn test_flow_key() -> FlowKey {
+        let c = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+        let s = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+        FlowKey::new(c, 54321, s, 80)
+    }
+
+    // Per-direction expected-skip oracle. Mirrors the implementation contract:
+    // a direction poisons at the END of the event that pushes its consecutive
+    // error count to >= POISON_THRESHOLD (3); a successful parse resets that
+    // count to 0; once poisoned, EVERY subsequent event to that direction
+    // (valid or invalid) is skipped — because the poison check in on_data runs
+    // before the buffer/parse step (http.rs:509-512, 521-524). The event that
+    // crosses the threshold is itself NOT skipped (its bytes were buffered
+    // before the flag flipped).
+    #[derive(Default)]
+    struct DirOracle {
+        consecutive_errors: u32,
+        poisoned: bool,
+    }
+    impl DirOracle {
+        /// Returns the number of bytes this event contributes to
+        /// `poisoned_bytes_skipped`, and updates internal state.
+        fn step(&mut self, invalid: bool, len: u64) -> u64 {
+            if self.poisoned {
+                // Already poisoned on entry -> these bytes are skipped wholesale.
+                return len;
+            }
+            if invalid {
+                self.consecutive_errors += 1;
+                if self.consecutive_errors >= POISON_THRESHOLD as u32 {
+                    self.poisoned = true; // poisons now, but THIS event is not skipped
+                }
+            } else {
+                self.consecutive_errors = 0; // successful parse resets the run
+            }
+            0
+        }
+    }
+
+    proptest! {
+        // CR-007: pin failure persistence explicitly. This harness lives in
+        // src/, where `SourceParallel` (the proptest default) walks up to the
+        // src/ boundary (lib.rs) and writes the seed to the crate-root parallel
+        // tree `proptest-regressions/analyzer/http.txt`. NOTE: `WithSource` is
+        // the WRONG variant here — for a src/ file it would only swap the
+        // extension, yielding the sibling `src/analyzer/http.proptest-regressions`
+        // instead of the crate-root regressions directory. (Integration tests
+        // under tests/ need `Direct(..)`; see VP-014's config.)
+        #![proptest_config(ProptestConfig {
+            cases: 1000,
+            failure_persistence: Some(Box::new(
+                proptest::test_runner::FileFailurePersistence::SourceParallel(
+                    "proptest-regressions",
+                ),
+            )),
+            ..ProptestConfig::default()
+        })]
+
+        // VP-006 monotonicity WITH falsification power (CR-001 + CR-002).
+        //
+        // Two layered assertions:
+        //  (1) `poisoned_bytes_skipped()` is monotonically non-decreasing after
+        //      every event (the original invariant).
+        //  (2) An independent oracle predicts the EXACT cumulative skipped-byte
+        //      total expected from the poisoning contract, for BOTH directions
+        //      symmetrically. We assert the observed counter equals the oracle
+        //      at every step. This has real teeth: if poisoning were disabled
+        //      (counter stuck at 0) any case whose oracle predicts a positive
+        //      total — i.e. any direction that crosses 3 consecutive invalids
+        //      and then receives at least one more event — would FAIL.
+        #[test]
+        fn prop_poison_bytes_skipped_monotonic(
+            events in prop::collection::vec(
+                prop_oneof![
+                    Just(ParseEvent::ValidRequest),
+                    Just(ParseEvent::InvalidBytes),
+                    Just(ParseEvent::ValidResponse),
+                    Just(ParseEvent::InvalidResponse),
+                ],
+                1..50
+            )
+        ) {
+            let mut analyzer = HttpAnalyzer::new();
+            let key = test_flow_key();
+            let mut prev_skipped: u64 = 0;
+
+            let mut req_oracle = DirOracle::default();
+            let mut resp_oracle = DirOracle::default();
+            let mut expected_skipped: u64 = 0;
+            // Did the oracle ever predict a strict increase? Used to prove the
+            // test is not vacuous on poison-triggering sequences.
+            let mut oracle_predicted_skip = false;
+
+            for event in &events {
+                let data = event.data();
+                let len = data.len() as u64;
+                let dir = event.direction();
+
+                // Advance the oracle BEFORE the call so its prediction lines up
+                // with the cumulative counter observed AFTER the call.
+                let contributed = match dir {
+                    Direction::ClientToServer => req_oracle.step(event.is_invalid(), len),
+                    Direction::ServerToClient => resp_oracle.step(event.is_invalid(), len),
+                };
+                expected_skipped += contributed;
+                if contributed > 0 {
+                    oracle_predicted_skip = true;
+                }
+
+                analyzer.on_data(&key, dir, data, 0);
+                let now_skipped = analyzer.poisoned_bytes_skipped();
+
+                // (1) monotonic non-decreasing.
+                prop_assert!(
+                    now_skipped >= prev_skipped,
+                    "poisoned_bytes_skipped decreased: was {} now {} (events: {:?})",
+                    prev_skipped,
+                    now_skipped,
+                    events
+                );
+                // (2) exact agreement with the independent poisoning oracle.
+                prop_assert_eq!(
+                    now_skipped,
+                    expected_skipped,
+                    "skipped-byte counter diverged from poisoning oracle at this step \
+                     (events: {:?})",
+                    events
+                );
+                prev_skipped = now_skipped;
+            }
+
+            // Teeth witness: whenever the oracle predicted any skip, the real
+            // counter must have strictly advanced past zero. A no-op poisoning
+            // implementation (counter stuck at 0) fails here on every sequence
+            // that crosses the threshold in either direction.
+            if oracle_predicted_skip {
+                prop_assert!(
+                    analyzer.poisoned_bytes_skipped() > 0,
+                    "oracle predicted skipped bytes but counter never advanced \
+                     (poisoning appears disabled) (events: {:?})",
+                    events
+                );
+            }
+        }
+
+        // VP-006 per-direction isolation: poisoning the request direction
+        // (>= POISON_THRESHOLD consecutive request errors) must NOT cause a
+        // subsequent valid response's bytes to be counted as skipped. The
+        // response direction is independent and was never poisoned.
+        #[test]
+        fn prop_poison_per_direction_isolated(req_errors in 3usize..=10) {
+            let mut analyzer = HttpAnalyzer::new();
+            let key = test_flow_key();
+
+            // Drive the request direction past POISON_THRESHOLD (3).
+            for _ in 0..req_errors {
+                analyzer.on_data(&key, Direction::ClientToServer, b"\xFF\xFE garbage", 0);
+            }
+            let skipped_after_req_poison = analyzer.poisoned_bytes_skipped();
+
+            // The request side must actually be poisoned for this to be a
+            // meaningful test: with >= 3 consecutive errors, later request bytes
+            // would be skipped. Confirm by feeding more request garbage.
+            analyzer.on_data(&key, Direction::ClientToServer, b"\xFF\xFE more", 0);
+            prop_assert!(
+                analyzer.poisoned_bytes_skipped() > skipped_after_req_poison,
+                "request direction was not poisoned after {} consecutive errors",
+                req_errors
+            );
+            let skipped_after_more_req = analyzer.poisoned_bytes_skipped();
+
+            // Now feed a valid response. The response direction is independent
+            // and unpoisoned, so its bytes must NOT be added to the skipped
+            // counter.
+            let resp = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+            analyzer.on_data(&key, Direction::ServerToClient, resp, 0);
+            prop_assert_eq!(
+                analyzer.poisoned_bytes_skipped(),
+                skipped_after_more_req,
+                "response-direction bytes were skipped due to request-side poison"
+            );
+        }
+    }
+}
