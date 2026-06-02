@@ -163,6 +163,11 @@ impl FlowDirection {
 
         // Only segments starting before new_end can overlap [new_start, new_end).
         for (&existing_offset, existing_data) in self.segments.range(..new_end) {
+            // `existing_end` is recomputed here for the `trimmed_ranges` entry
+            // below (the gap-fill sweep needs the end offset). `segment_overlap`
+            // also derives it internally for its own overlap test; this is a
+            // cheap `+` and keeping the value local avoids returning it from the
+            // pure helper (whose signature stays minimal for the Kani proofs).
             let existing_end = existing_offset + existing_data.len() as u64;
 
             // Per-segment overlap/conflict classification (pure; Kani-verified
@@ -335,6 +340,27 @@ pub fn reset_isn_missing_warned_for_testing() {
 // plus tests/reassembly_*; all green) exercises the BTreeMap glue around them,
 // so coverage of the end-to-end path is retained by tests while the hard
 // invariants are discharged by formal proof here.
+//
+// ── VP-002 FORMAL-COVERAGE BOUNDARY (read before citing these proofs) ────────
+// FORMALLY PROVEN here, over symbolic inputs:
+//   * `ranges_overlap`  — the half-open range-intersection / adjacency predicate
+//     (BC-2.04.043: touching at an exact boundary is NOT an overlap).
+//   * `segment_overlap` — the per-existing-segment first-wins CONFLICT predicate
+//     (overlap AND overlapping bytes differ => `ConflictingOverlap`; equal =>
+//     `Duplicate`). Proven for all byte pairs at the relevant offsets.
+// NOT Kani-verified (intractable: lives inside the BTreeMap-driven loop), covered
+// by the integration test-suite instead:
+//   * the `self.segments.range(..new_end)` BTreeMap range-scan that selects which
+//     existing segments to compare against;
+//   * the `fully_covered` aggregate check across all overlapping segments
+//     (Duplicate / ConflictingOverlap vs PartialOverlap decision);
+//   * the gap-filling cursor sweep (`sorted_ranges` + `cursor`) that picks the
+//     first-wins "winner" bytes across MULTIPLE overlapping segments and inserts
+//     only the gap portions.
+// In other words: the per-pair overlap/conflict DECISION is proven; the
+// BTreeMap orchestration that applies that decision across many segments is
+// test-covered, not proof-covered. This boundary is the basis for the Phase-6
+// "proven OR justified" gate entry for VP-002.
 #[cfg(kani)]
 mod kani_proofs {
     use super::*;
@@ -345,7 +371,9 @@ mod kani_proofs {
     // returns `(overlaps, conflicts)` — the per-existing-segment classification
     // that `insert_segment` uses to decide Duplicate / ConflictingOverlap /
     // PartialOverlap and to apply the first-wins policy. Proving it over
-    // symbolic offsets and bytes covers the policy for ALL inputs in the bound.
+    // symbolic offsets and bytes covers that per-pair DECISION for ALL inputs in
+    // the bound (see the formal-coverage boundary note above for what is and is
+    // not proven).
 
     /// Invariant 4 (adjacency is NOT overlap) + the general overlap predicate:
     /// for all small symbolic segment spans, `ranges_overlap` reports overlap
@@ -456,13 +484,17 @@ mod kani_proofs {
     }
 
     /// Invariant 1-2 (wraparound delivers in order + adjacency across the wrap):
-    /// builds on `seq_offset` and `segment_overlap` to show that, with
+    /// builds on `seq_offset` and `ranges_overlap` to show that, with
     /// ISN=0xFFFF_FFFE, a 4-byte segment at seq=0xFFFF_FFFF occupies offsets
     /// 1..5 contiguously and the next segment at seq=0x0000_0003 (offset 5) is
     /// adjacent (no overlap) — i.e. the wrap does not corrupt ordering.
     ///
-    /// Concrete values: the wraparound mapping is deterministic, so one witness
-    /// at the boundary fully discharges the ordering/adjacency claim. Uses the
+    /// SCOPE: the general `seq_offset` wraparound arithmetic is discharged
+    /// SYMBOLICALLY by `verify_seq_offset_at_wraparound` above (all ISN values
+    /// near the 32-bit ceiling, deltas in [0,300]). THIS harness is a CONCRETE
+    /// boundary WITNESS (ISN=0xFFFF_FFFE) that composes those per-offset results
+    /// into the end-to-end "contiguous span + adjacent next segment" claim at the
+    /// exact wrap point; it is not itself a general (all-ISN) proof. Uses the
     /// pure helpers (no BTreeMap) so it stays fast.
     #[kani::proof]
     fn verify_wraparound_offsets_contiguous_and_adjacent() {
