@@ -17,7 +17,7 @@ phase_4_to_5_gate: "PASSED (human-approved 2026-06-01, conditioned on HS-043 reg
 phase_5_started: "2026-06-01"
 phase_5_completed: "2026-06-01"
 adversary_gate: SATISFIED
-develop_head: 68137b4b
+develop_head: eab2eb1
 current_cycle: v0.1.0-greenfield-spec
 current_wave: 27 (FINAL — CLOSED)
 stories_delivered: 48
@@ -36,9 +36,9 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 
 ## Status
 
-**Pipeline:** PHASE 5 PASSED / CLOSED — Phase 6 NOT STARTED (paused, resume next session). develop 68137b4b. Adversary gate SATISFIED (Pass 12+13+14 — 3/3 consecutive clean whole-impl passes; 14 total fresh-context opus passes; ZERO findings). Secondary review COMPLETE (CR-004 refuted; remaining CRs backlogged). PROCESS-GAP-P5-001 CLOSED (STORY-091 disposition). S-7.02 cycle-close checklist SATISFIED. **Mode:** brownfield (in-repo: target == reference).
+**Pipeline:** PHASE 5 PASSED / CLOSED — Phase 6 NOT STARTED (paused, resume next session). develop eab2eb1 (post P2 cleanup burst: CR-010/CR-001/CR-011 closed via PRs #176/#177/#178). Adversary gate SATISFIED (Pass 12+13+14 — 3/3 consecutive clean whole-impl passes; 14 total fresh-context opus passes; ZERO findings). Secondary review COMPLETE (CR-004 refuted; remaining CRs backlogged). PROCESS-GAP-P5-001 CLOSED (STORY-091 disposition). S-7.02 cycle-close checklist SATISFIED. **Mode:** brownfield (in-repo: target == reference).
 
-**Test suite:** ~1086 tests green on develop 68137b4b. `cargo fmt --check`, `cargo clippy`, `cargo test --all-targets` all green. CI: 8 checks passing.
+**Test suite:** ~1086+ tests green on develop eab2eb1 (added regression tests in tls_analyzer_tests.rs + multi_analyzer_e2e_tests.rs). `cargo fmt --check`, `cargo clippy`, `cargo test --all-targets` all green. CI: 8 checks passing.
 
 ## Phase Progress
 
@@ -54,13 +54,13 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 | Phase 6 — Formal Hardening | NOT STARTED | PAUSED — resume next session. Entry: /vsdd-factory:phase-6-formal-hardening |
 | Phase 7 — Convergence | NOT STARTED | — |
 
-## Session Resume Checkpoint (2026-06-02 — PHASE 5 CLOSED / PHASE 6 NOT STARTED)
+## Session Resume Checkpoint (2026-06-01 — PHASE 5 CLOSED / P2 CLEANUP DONE / PHASE 6 NOT STARTED)
 
-**POSITION:** Phase 5 PASSED/CLOSED. Phase 6 (Formal Hardening) NOT STARTED. Phase 7 NOT STARTED.
+**POSITION:** Phase 5 PASSED/CLOSED. Inter-phase P2 tech-debt cleanup COMPLETE (CR-010/CR-001/CR-011 closed). Phase 6 (Formal Hardening) NOT STARTED. Phase 7 NOT STARTED.
 
 **VERIFIED-CLEAN FACTS (confirmed at checkpoint authorship):**
-- develop HEAD `68137b4b` == origin/develop (working tree clean; ~1086 tests green)
-- factory-artifacts HEAD `4c74497` == origin/factory-artifacts (working tree clean)
+- develop HEAD `eab2eb1` == origin/develop (working tree clean; ~1086+ tests green; PRs #176/#177/#178 squash-merged)
+- factory-artifacts HEAD updated this burst — run `git -C .factory log -1 --format='%h %s'` for current SHA
 - No open PRs
 - `.worktrees/` empty; only main + `.factory` worktrees exist
 - input-hash: MATCH=48/STALE=0 (STORY-091 inputs:[] ERROR expected — empty inputs by design)
@@ -80,7 +80,7 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 **OPEN BACKLOG (do NOT lose):**
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle or inter-phase
 - Policy: DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 in policies.yaml
-- Phase-5 secondary-review tech-debt: CR-001/010/011 (P2); CR-002/003/005/006/007/009/012 (P3) — see tech-debt-register.md; CR-004 REFUTED (false positive, do not re-investigate)
+- Phase-5 secondary-review tech-debt (P3 remaining): CR-002/003/005/006/007/009/012 — see tech-debt-register.md; CR-004 REFUTED (false positive, do not re-investigate)
 - Pre-existing open GitHub issues #100–#104 (require DF-VALIDATION-001 before action)
 - Open drift items: O-07, O-08, F-W25-S088-P6-001
 
@@ -104,6 +104,7 @@ Phase 5 closed 2026-06-01: (a) adversary gate SATISFIED (3/3 clean whole-impl pa
 | D-008 | STORY-079 input BC corrected v1.2→v1.3; hash not recomputed (tool missing at time). Logged F-W21-S079-HASH; re-validated at Phase-4 gate after tool restore. | 2026-05-30 | STORY-079 Pass-1 adversarial review F-002 |
 | D-009 | ADV-HS043-P02-MED-001 accepted offline scope; high-water-clock fix rejected (breaks multi-epoch offline analysis). Human-approved 2026-06-01. | 2026-06-01 | Phase-5 HS043-pass-2 disposition |
 | D-010 | CR-004 (secondary review "blocking" inner-HashMap JSON non-determinism) REFUTED — false positive. serde_json has no indexmap dep; Map=BTreeMap (preserve_order OFF) = sorted keys. Byte-identical JSON verified empirically on 3 TLS fixtures across 2 processes. | 2026-06-01 | Phase-5 secondary review CR-004 disposition |
+| D-011 | Inter-phase P2 tech-debt cleanup: CR-010/CR-001/CR-011 closed via fix-pr-delivery (PRs #176/#177/#178); develop 68137b4b→eab2eb1. Phase 6 entry unchanged (NOT STARTED). | 2026-06-01 | Three P2 items delivered between Phase 5 close and Phase 6 start |
 
 ## Blocking Issues
 
@@ -116,9 +117,6 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 
 | ID | Summary | Status |
 |----|---------|--------|
-| CR-001 | dispatcher pub analyzer fields → encapsulate before W7.1 public-API hardening | OPEN P2 — tech-debt |
-| CR-010 | tls/mod.rs try_parse_records allocates before 0x16 guard — perf on long sessions | OPEN P2 — tech-debt |
-| CR-011 | No multi-analyzer end-to-end test (HTTP+TLS+DNS+reassembly+reporter) | OPEN P2 — tech-debt |
 | CR-004 | Inner-HashMap JSON non-determinism claim | REFUTED — false positive; see tech-debt-register.md |
 | ADV-HS043-P02-MED-001 | Idle-flow expiry monotonic watermark stalls on multi-epoch captures | ACCEPTED — gated on live-capture support |
 | O-07 | rayon declared in Cargo.toml but unused | OPEN P2 |
@@ -159,9 +157,6 @@ Full register: `.factory/tech-debt-register.md`
 |----|-------------|----------|
 | O-07 | `rayon` unused in Cargo.toml | P2 |
 | O-08 | `dns.rs` module doc-comment stale | P3 |
-| CR-001 | dispatcher pub fields → encapsulate | P2 |
-| CR-010 | tls try_parse_records alloc-before-guard | P2 |
-| CR-011 | no multi-analyzer end-to-end test | P2 |
 | CR-002/003/005/006/007/009/012 | LOW: clone/doc/unwrap/HTTP/HashMap | P3 |
 
 ## Notes
