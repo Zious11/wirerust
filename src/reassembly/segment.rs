@@ -138,6 +138,15 @@ struct SelectGaps {
 /// Pure: no `self`, no I/O, no allocation beyond the returned `gaps` vec.
 /// Offset-only (no slice indexing).
 fn select_gaps(new_start: u64, new_end: u64, existing: &[(u64, u64)]) -> SelectGaps {
+    // Load-bearing precondition (see doc comment): the cursor sweep is
+    // order-dependent and produces wrong results on an unsorted slice. The
+    // production caller satisfies this via key-ordered BTreeMap iteration; this
+    // guard catches a future caller that forgets. Compiled out in release.
+    debug_assert!(
+        existing.windows(2).all(|w| w[0].0 <= w[1].0),
+        "select_gaps: existing must be sorted ascending by start"
+    );
+
     let mut fully_covered = false;
 
     // First-wins gap sweep: walk a cursor across [new_start, new_end) over the
@@ -147,7 +156,11 @@ fn select_gaps(new_start: u64, new_end: u64, existing: &[(u64, u64)]) -> SelectG
     let mut gaps: Vec<(u64, u64)> = Vec::new();
     let mut cursor = new_start;
     for &(es, ee) in existing {
-        // Only overlapping ranges constrain the new segment.
+        // Always-true from the production caller (overlapping_ranges is
+        // pre-filtered by segment_overlap), but LOAD-BEARING for the Kani
+        // harnesses, which drive symbolic NON-overlapping ranges through this
+        // path to prove the winner-selection is correct over arbitrary input.
+        // Do not remove as "dead code" — that silently breaks the proof.
         if !ranges_overlap(new_start, new_end, es, ee) {
             continue;
         }
@@ -691,6 +704,14 @@ mod kani_proofs {
     /// Bounded domain: 3 symbolic existing ranges, offsets in [0,12], lengths in
     /// [1,4]; symbolic new segment, start in [0,12], length in [1,4]; per-point
     /// sweep over the span (<= MAXLEN = 4 bytes).
+    ///
+    /// `#[kani::unwind(5)]` is sufficient: the outer `while p < new_end` runs at
+    /// most MAXLEN = 4 iterations (`new_len in [1,4]`), and the inner `.any()` /
+    /// `for` loops run COUNT = 3 iterations over `existing`; a global bound of 5
+    /// covers the larger (4) plus the loop-back check. CBMC's unwinding
+    /// assertions (on by default) would FAIL the proof if 5 were ever too small,
+    /// so sufficiency is verified, not assumed — the harness reports SUCCESSFUL
+    /// with no unwinding warning.
     #[kani::proof]
     #[kani::unwind(5)]
     fn verify_gap_byte_never_overwrites_existing() {

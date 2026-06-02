@@ -993,12 +993,22 @@ fn test_vp002_g3_end_to_end_conflicting_bytes_absent_from_stream() {
     );
 
     // And the conflict was still surfaced as a finding (detection + correctness).
+    // Match on the structured fields (category/verdict/confidence + MITRE
+    // technique) rather than the human-readable summary string, which is brittle
+    // to wording changes. The conflicting-overlap finding is uniquely identified
+    // by Anomaly + Likely + High + T1036 (the "Excessive segment overlaps"
+    // anomaly is Medium confidence), per src/reassembly/lifecycle.rs and
+    // BC-2.04.018.
     let findings = reassembler.findings();
     assert!(
-        findings
-            .iter()
-            .any(|f| f.summary.contains("Conflicting TCP segment overlap")),
-        "G3: a conflicting-overlap finding must still be emitted alongside byte preservation"
+        findings.iter().any(|f| {
+            f.category == ThreatCategory::Anomaly
+                && f.verdict == Verdict::Likely
+                && f.confidence == Confidence::High
+                && f.mitre_technique.as_deref() == Some("T1036")
+        }),
+        "G3: a conflicting-overlap finding (Anomaly/Likely/High, MITRE T1036) must still be \
+         emitted alongside byte preservation — detection and forensic correctness together"
     );
 }
 
