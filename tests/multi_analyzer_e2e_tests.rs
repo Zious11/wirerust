@@ -219,6 +219,7 @@ fn test_cr011_multi_analyzer_http_tls_dns_reassembly_reporter_e2e() {
     // Pipeline setup — mirrors run_analyze() in src/main.rs
     // -----------------------------------------------------------------------
     let mut summary = Summary::new();
+    let mut all_findings = Vec::new();
     let mut dns_analyzer = DnsAnalyzer::new();
     let config = ReassemblyConfig::default();
     let mut reassembler = TcpReassembler::new(config);
@@ -343,6 +344,7 @@ fn test_cr011_multi_analyzer_http_tls_dns_reassembly_reporter_e2e() {
     const TLS_DST_PORT: u16 = 443;
 
     let tls_hello = build_tls_client_hello(SNI);
+    let tls_hello_len = tls_hello.len() as u32;
 
     // SYN for TLS flow
     let tls_syn = make_tcp_packet(
@@ -382,7 +384,7 @@ fn test_cr011_multi_analyzer_http_tls_dns_reassembly_reporter_e2e() {
         SERVER_IP,
         TLS_SRC_PORT,
         TLS_DST_PORT,
-        /*seq=*/ 5200,
+        /*seq=*/ 5000 + tls_hello_len,
         /*syn=*/ false,
         /*ack=*/ true,
         /*fin=*/ true,
@@ -414,6 +416,12 @@ fn test_cr011_multi_analyzer_http_tls_dns_reassembly_reporter_e2e() {
         dns_findings.is_empty(),
         "CR-011 setup: DnsAnalyzer must produce no findings (BC-2.08.004)"
     );
+    // Extend all_findings with DNS findings immediately, mirroring run_analyze() in
+    // src/main.rs which calls `all_findings.extend(findings)` after the can_decode gate.
+    // This is a no-op today (guaranteed empty by the assert above), but keeps the test
+    // pipeline isomorphic with production so a future DNS finding would not be silently
+    // dropped from the reporter's input.
+    all_findings.extend(dns_findings);
 
     // -----------------------------------------------------------------------
     // Finalize reassembler — flushes any buffered partial streams
@@ -435,7 +443,7 @@ fn test_cr011_multi_analyzer_http_tls_dns_reassembly_reporter_e2e() {
     // -----------------------------------------------------------------------
     // Collect findings + analyzer summaries — mirrors run_analyze() in main.rs
     // -----------------------------------------------------------------------
-    let mut all_findings = Vec::new();
+    // DNS findings were already extended above (at the packet-processing site).
     all_findings.extend(reassembler.findings().to_vec());
 
     // HTTP findings via immutable-borrow accessor (CR-001)
