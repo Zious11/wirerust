@@ -15614,23 +15614,41 @@ fn syn_established_flow(
 
 // ---- GG-3 (mod.rs:206) — memcap eviction boundary `total_memory > memcap` ---
 //
-// The eviction gate is `self.total_memory > self.config.memcap` (strictly
-// greater). The surviving mutant replaced `>` with `>=`, which would evict when
-// memory is EXACTLY at the cap. This test pins both sides of the boundary:
-// memory == memcap must NOT evict; memory == memcap + 1 must evict.
+// The eviction gate at mod.rs:206 is `self.total_memory > self.config.memcap`
+// (strictly greater). The surviving mutant replaced `>` with `>=`.
+//
+// IMPORTANT — this `>`→`>=` mutant is EQUIVALENT (observationally inert), NOT a
+// killable test gap: `evict_flows` (lifecycle.rs) re-checks the bound with its
+// own loop guard `total_memory <= memcap` and breaks immediately, so even if the
+// mutant makes the outer gate fire at memory == memcap, the eviction loop evicts
+// nothing (evictions stay 0, no flow closes). Both `>` and `>=` therefore produce
+// identical observable output at the boundary. The cargo-mutants confirming run
+// reports mod.rs:206 `>`→`>=` as MISSED for exactly this reason — it cannot be
+// killed by any test without a production change to remove the redundant guard.
+//
+// These two tests do NOT (and cannot) kill the equivalent mutant. They PIN the
+// documented at-cap non-eviction contract as a regression guard, and prove the
+// eviction machinery still fires one byte past the cap.
 
 #[test]
 fn test_memcap_boundary_exactly_at_cap_does_not_evict() {
+    // Pins the contract: total_memory EXACTLY at memcap must not evict. (This
+    // does not kill the equivalent mod.rs:206 mutant — see the section note.)
+    //
     // memcap == 5; a single buffered out-of-order 5-byte segment lands
-    // total_memory at EXACTLY 5. `5 > 5` is false, so NO eviction.
-    // The `>=` mutant computes `5 >= 5` == true and would wrongly evict.
+    // total_memory at EXACTLY 5, so the gate `5 > 5` is false and nothing evicts.
     let config = ReassemblyConfig {
         memcap: 5,
         ..ReassemblyConfig::default()
     };
     let (mut reassembler, mut handler, client, server) = syn_established_flow(config);
 
-    // Out-of-order data (gap at offset 1) stays buffered: total_memory = 5.
+    // SYN set ISN=1000 and base_offset=1 (set_isn in flow.rs does NOT advance
+    // base_offset past 1 — it is the first data offset). Data at seq=1002 lands
+    // at ISN-relative offset 2, span [2,7); offset [1,2) (between base_offset=1
+    // and the segment start) is never filled, so the segment cannot flush and
+    // stays buffered. That keeps total_memory at exactly 5 (the assertion below
+    // is non-vacuous precisely because base_offset stays at 1 after the SYN).
     let data = make_tcp_packet(
         client, 12345, server, 80, 1002, b"aaaaa", false, false, false, false,
     );
@@ -15644,7 +15662,7 @@ fn test_memcap_boundary_exactly_at_cap_does_not_evict() {
     assert_eq!(
         reassembler.stats().evictions,
         0,
-        "GG-3: total_memory == memcap must NOT trigger eviction (gate is `>`, not `>=`)"
+        "GG-3: total_memory == memcap must NOT trigger eviction (contract: gate is `>`)"
     );
     assert!(
         !handler
@@ -15657,10 +15675,13 @@ fn test_memcap_boundary_exactly_at_cap_does_not_evict() {
 
 #[test]
 fn test_memcap_boundary_one_over_cap_evicts() {
+    // Non-vacuousness companion: proves the eviction machinery actually fires
+    // just past the boundary, so the at-cap test above is not silent because
+    // eviction is simply broken. This is NOT itself a mutant-kill (the mod.rs:206
+    // mutant is equivalent — see the section note); it backstops the contract.
+    //
     // memcap == 5; a buffered 6-byte segment puts total_memory at 6 == cap + 1.
-    // `6 > 5` is true under BOTH `>` and `>=`, so eviction fires. This is the
-    // correct-code companion proving the eviction machinery still works just
-    // past the boundary (so the at-cap test above is not vacuous).
+    // `6 > 5` is true under BOTH `>` and `>=`, so eviction fires.
     let config = ReassemblyConfig {
         memcap: 5,
         ..ReassemblyConfig::default()
@@ -15672,9 +15693,13 @@ fn test_memcap_boundary_one_over_cap_evicts() {
     );
     reassembler.process_packet(&data, 2, &mut handler);
 
-    assert!(
-        reassembler.stats().evictions >= 1,
-        "GG-3: total_memory == memcap + 1 must trigger eviction"
+    // Exactly one flow is buffered, so exactly one eviction fires. Asserting the
+    // precise count (not `>= 1`) also guards the `evictions += 1` counter in
+    // evict_flows against an operator mutation.
+    assert_eq!(
+        reassembler.stats().evictions,
+        1,
+        "GG-3: total_memory == memcap + 1 must trigger exactly one eviction"
     );
 }
 
@@ -15794,6 +15819,14 @@ fn test_stats_partial_overlap_counters_exact() {
     //   segments_overlaps += 1; segments_inserted += 1.
     // Buffer b"AA" at offset 2 ([2,4)), then send b"ABCD" at offset 3 ([3,7)):
     // overlaps [3,4) with existing, leaves gap [4,7) to insert → PartialOverlap.
+    //
+    // The overlap region is a single byte at offset 3. It is `A` in BOTH
+    // segments — existing b"AA"[3-2]=='A' and new b"ABCD"[3-3]=='A' — i.e. the
+    // overlap AGREES, so this is a NON-conflicting (clean) partial overlap. That
+    // is why the result is PartialOverlap (bumping both segments_overlaps and
+    // segments_inserted), and NOT ConflictingOverlap (which would skip the
+    // segments_inserted bump). A differing overlap byte here would change the
+    // classification and the expected counter values below.
     let (mut reassembler, mut handler, client, server) =
         syn_established_flow(ReassemblyConfig::default());
 
@@ -15853,6 +15886,16 @@ fn test_stats_conflicting_overlap_counter_exact() {
         reassembler.stats().segments_inserted,
         1,
         "GG (409): a conflicting overlap inserts NO new bytes — segments_inserted unchanged"
+    );
+    // CR-008: the conflicting overlap also EMITS exactly one finding. A single
+    // conflict on a fresh flow trips no other alert (overlap-count and
+    // small-segment thresholds are far higher under the default config), so the
+    // finding count is exactly 1 — covering the generate_conflicting_overlap_finding
+    // emission path alongside the counter assertions above.
+    assert_eq!(
+        reassembler.findings().len(),
+        1,
+        "GG (409): a conflicting overlap must emit exactly one finding"
     );
 }
 
