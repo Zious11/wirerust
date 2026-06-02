@@ -128,6 +128,21 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 
 ---
 
+## Archived: 2026-06-02 — PHASE 5 CLOSED / PHASE 6 NOT STARTED (superseded by Phase 6 CLOSED / Phase 7 NOT STARTED checkpoint)
+
+**POSITION:** Phase 5 PASSED/CLOSED. Inter-phase P2 tech-debt cleanup COMPLETE (CR-010/CR-001/CR-011 closed via PRs #176/#177/#178). Phase 6 (Formal Hardening) NOT STARTED. Phase 7 NOT STARTED.
+
+**VERIFIED-CLEAN FACTS (at archival):**
+- develop HEAD `eab2eb1` == origin/develop (working tree clean; ~1086+ tests green)
+- No open PRs; `.worktrees/` empty
+- input-hash: MATCH=48/STALE=0 (STORY-091 inputs:[] ERROR expected — empty inputs by design)
+
+**EXACT NEXT ACTION (at archival):** Phase 6 Formal Hardening — entry: `/vsdd-factory:phase-6-formal-hardening`.
+
+**OPEN BACKLOG at archival:** STORY-091 draft; CR-002/003/005/006/007/009/012 P3 tech-debt; open GitHub issues #100–#104; drift items O-07, O-08, F-W25-S088-P6-001.
+
+---
+
 ## Archived: 2026-06-01 — PHASE 5, Pass 9 CLEAN (1/3), Pass 10 NEXT (superseded by Pass 10 REMEDIATED checkpoint)
 
 **POSITION:** Phase 5 IN PROGRESS. develop HEAD cfe0112a (code unchanged). Pass 9 CONVERGENCE_REACHED (fresh-context opus): ZERO findings (0C/0H/0M/0L). Independently re-derived all 24 src modules + reporters + dispatcher + sampled BC/VP fidelity; 83-citation anchor sweep held. Input-hash MATCH=48/STALE=0. CLEAN-PASS COUNTER = 1/3. Note: streak subsequently broken by Pass 10.
