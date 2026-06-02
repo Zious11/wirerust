@@ -166,3 +166,264 @@ pub fn technique_name(id: &str) -> Option<&'static str> {
 pub fn technique_tactic(id: &str) -> Option<MitreTactic> {
     technique_info(id).map(|(_, tactic)| tactic)
 }
+
+// ── VP-007: MITRE Technique ID Format and Catalog Completeness ────────────────
+//
+// Sub-property A (ID format): every seeded ID matches `T[0-9]{4}` or
+// `T[0-9]{4}.[0-9]{3}`.
+// Sub-property B (completeness): every seeded ID and every analyzer-emitted ID
+// resolves in `technique_info` (both name and tactic Some).
+// Corollary (BC-2.10.006): unknown IDs return None without panicking.
+//
+// The catalogue is a closed-world static match; the seeded set is finite (15)
+// so the harness enumerates it exhaustively — fully sound, no abstraction.
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    /// All 15 seeded IDs (mirrors `technique_info`, this file). If `technique_info`
+    /// gains/loses an entry, the completeness proof here will diverge from the
+    /// table and must be updated in lockstep with the VP.
+    const SEEDED_IDS: &[&str] = super::SEEDED_TECHNIQUE_IDS;
+
+    /// IDs actually emitted by analyzers today (`grep -rn 'mitre_technique: Some' src/`).
+    /// Sub-property B's emitter half: each must resolve in the catalogue.
+    const EMITTED_IDS: &[&str] = &[
+        "T1027",     // TLS: SNI anomaly
+        "T1036",     // Reassembly: conflicting overlap
+        "T1046",     // HTTP: admin panel
+        "T1083",     // HTTP: path traversal
+        "T1499.002", // HTTP: header flood
+        "T1505.003", // HTTP: web shell
+    ];
+
+    /// Sub-property A: format invariant `T[0-9]{4}` or `T[0-9]{4}.[0-9]{3}`.
+    ///
+    /// BOUND/SOUNDNESS: the seeded set is a finite closed enumeration (15 IDs);
+    /// the harness checks every one against the regex-equivalent byte predicate.
+    /// No symbolic input is needed — the property is universal over a fixed set,
+    /// so enumeration is exhaustive and sound.
+    #[kani::proof]
+    fn verify_all_seeded_ids_match_format() {
+        for id in SEEDED_IDS {
+            assert!(is_valid_technique_id_format(id));
+        }
+    }
+
+    /// Sub-property B (catalogue half): every seeded ID resolves to Some name
+    /// and Some tactic (BC-2.10.005 / BC-2.10.007).
+    #[kani::proof]
+    fn verify_all_seeded_ids_resolve() {
+        for id in SEEDED_IDS {
+            assert!(technique_name(id).is_some());
+            assert!(technique_tactic(id).is_some());
+        }
+    }
+
+    /// Sub-property B (emitter half, BC-2.10.008): every analyzer-emitted ID
+    /// resolves in the catalogue.
+    #[kani::proof]
+    fn verify_all_emitted_ids_resolve() {
+        for id in EMITTED_IDS {
+            assert!(technique_name(id).is_some());
+            assert!(technique_tactic(id).is_some());
+        }
+    }
+
+    /// Corollary (BC-2.10.006): an ID not in the catalogue returns None for both
+    /// projections and never panics.
+    ///
+    /// BOUND/SOUNDNESS: `technique_info` is a closed match whose only catch-all
+    /// arm is `_ => None`; any string outside the 15 seeded literals takes it.
+    /// A single representative unknown ID ("T9999") exercises that arm. "T9999"
+    /// is deliberately a VALIDLY-FORMATTED (`T[0-9]{4}`) but UNREGISTERED ID, so
+    /// this proves the "unknown" branch — not merely a malformed-string reject.
+    /// Because the match is literal-equality on a closed set, no symbolic search
+    /// over all strings is required to prove totality of the unknown branch.
+    #[kani::proof]
+    fn verify_unknown_id_returns_none_no_panic() {
+        // Sanity: the canary is well-formed yet must not be in the catalogue.
+        assert!(is_valid_technique_id_format("T9999"));
+        assert!(technique_name("T9999").is_none());
+        assert!(technique_tactic("T9999").is_none());
+    }
+}
+
+/// Single source of truth for the seeded technique-ID set, consumed by both the
+/// Kani proofs (`kani_proofs::SEEDED_IDS`) and the drift-guard test below. This
+/// list MUST mirror every Some-returning arm of [`technique_info`]. The
+/// `vp007_catalog_drift_guard` test mechanically fails if `technique_info` gains
+/// or loses a Some-returning entry without this list (and
+/// [`SEEDED_TECHNIQUE_ID_COUNT`]) being updated in lockstep — preventing the
+/// completeness proofs from silently going stale (CR-005).
+#[cfg(any(kani, test))]
+const SEEDED_TECHNIQUE_IDS: &[&str] = &[
+    // Enterprise
+    "T1027",
+    "T1036",
+    "T1040",
+    "T1046",
+    "T1071",
+    "T1071.001",
+    "T1071.004",
+    "T1083",
+    "T1499.002",
+    "T1505.003",
+    "T1573",
+    // ICS
+    "T0846",
+    "T0855",
+    "T0856",
+    "T0885",
+];
+
+/// Expected number of Some-returning arms in [`technique_info`]. Declared
+/// separately from `SEEDED_TECHNIQUE_IDS.len()` so the drift guard catches BOTH
+/// directions of accidental edit: bumping this without adding an ID (or vice
+/// versa) fails the test. Must equal the count of `=> (...)` arms in
+/// `technique_info` (currently 15).
+#[cfg(any(kani, test))]
+const SEEDED_TECHNIQUE_ID_COUNT: usize = 15;
+
+/// Validates MITRE technique-ID format: `T[0-9]{4}` (parent) or
+/// `T[0-9]{4}.[0-9]{3}` (sub-technique). Used by the VP-007 format proof; gated
+/// to `kani`/`test` so it adds nothing to the normal build.
+#[cfg(any(kani, test))]
+fn is_valid_technique_id_format(id: &str) -> bool {
+    let b = id.as_bytes();
+    // Parent: T + 4 digits == 5 bytes.
+    let parent_ok = b.len() == 5 && b[0] == b'T' && b[1..5].iter().all(|c| c.is_ascii_digit());
+    // Sub-technique: T + 4 digits + '.' + 3 digits == 9 bytes.
+    let sub_ok = b.len() == 9
+        && b[0] == b'T'
+        && b[1..5].iter().all(|c| c.is_ascii_digit())
+        && b[5] == b'.'
+        && b[6..9].iter().all(|c| c.is_ascii_digit());
+    parent_ok || sub_ok
+}
+
+#[cfg(test)]
+mod vp007_format_tests {
+    use super::*;
+
+    #[test]
+    fn format_predicate_accepts_canonical_and_rejects_malformed() {
+        assert!(is_valid_technique_id_format("T1027"));
+        assert!(is_valid_technique_id_format("T1071.001"));
+        assert!(is_valid_technique_id_format("T0846"));
+        // Malformed cases must be rejected.
+        assert!(!is_valid_technique_id_format("TXXXX"));
+        assert!(!is_valid_technique_id_format("T102")); // too short
+        assert!(!is_valid_technique_id_format("T10277")); // too long, no dot
+        assert!(!is_valid_technique_id_format("T1071.01")); // 2-digit suffix
+        assert!(!is_valid_technique_id_format("T1071.0001")); // 4-digit suffix
+        assert!(!is_valid_technique_id_format("X1027")); // wrong prefix
+        assert!(!is_valid_technique_id_format("T1071,001")); // wrong separator
+    }
+
+    /// CR-005 / CR-006: mechanically link `SEEDED_TECHNIQUE_IDS` to
+    /// `technique_info` so the VP-007 completeness proofs cannot silently go
+    /// stale — in EITHER direction. Rather than trust a hand-maintained count,
+    /// this test DERIVES the true catalogue size by sweeping the entire finite
+    /// technique-ID space and counting how many IDs `technique_info` resolves,
+    /// then asserts that derived count equals `SEEDED_TECHNIQUE_IDS.len()`.
+    ///
+    /// The ID grammar (see `is_valid_technique_id_format`) is closed and finite:
+    /// parent IDs `T[0-9]{4}` (10_000 of them) and sub-technique IDs
+    /// `T[0-9]{4}.[0-9]{3}` (10_000 × 1_000).
+    ///
+    /// `technique_info`'s match is literal-equality on string keys, so any
+    /// resolving key MUST be one of these well-formed shapes; sweeping both
+    /// shapes therefore enumerates every key the catalogue could possibly hold.
+    ///
+    /// This closes the residual hole in the old count==const check: adding a new
+    /// arm to `technique_info` (e.g. `T1999`) WITHOUT mirroring it in
+    /// `SEEDED_TECHNIQUE_IDS` now makes the derived resolved-count exceed
+    /// `SEEDED_TECHNIQUE_IDS.len()`, failing this test. Removing/renaming an arm
+    /// makes it fall short. The test thus enforces FORWARD completeness, not just
+    /// that the 15 known IDs still resolve.
+    ///
+    /// Retains the shrinkage / duplicate / malformed / resolve checks on the
+    /// seeded list, plus the documented-count cross-check and the `T9999` canary.
+    #[test]
+    fn vp007_catalog_drift_guard() {
+        // --- Seeded-list self-consistency (unchanged) -------------------------
+        // Documented count cross-check (a second, independent tripwire).
+        assert_eq!(
+            SEEDED_TECHNIQUE_IDS.len(),
+            SEEDED_TECHNIQUE_ID_COUNT,
+            "SEEDED_TECHNIQUE_IDS length drifted from SEEDED_TECHNIQUE_ID_COUNT; \
+             update both in lockstep with technique_info"
+        );
+        // Every seeded ID is well-formed, resolves, and is unique.
+        let mut seen = std::collections::HashSet::new();
+        for id in SEEDED_TECHNIQUE_IDS {
+            assert!(
+                is_valid_technique_id_format(id),
+                "seeded ID {id} is malformed"
+            );
+            assert!(
+                technique_info(id).is_some(),
+                "seeded ID {id} no longer resolves in technique_info"
+            );
+            assert!(seen.insert(*id), "seeded ID {id} is duplicated");
+        }
+        // Canary: a well-formed but unregistered ID must NOT resolve.
+        assert!(is_valid_technique_id_format("T9999"));
+        assert!(
+            technique_info("T9999").is_none(),
+            "canary T9999 resolved unexpectedly"
+        );
+
+        // --- CR-006: derive the catalogue size from the source of truth ------
+        // Sweep the entire finite ID space and count resolutions. A reusable
+        // String buffer avoids per-iteration allocation across the ~10.01M probes.
+        let seeded: std::collections::HashSet<&str> =
+            SEEDED_TECHNIQUE_IDS.iter().copied().collect();
+        let mut resolved = 0usize;
+        let mut buf = String::with_capacity(9);
+
+        // Parent shape: T[0-9]{4} (10_000 IDs).
+        for n in 0..10_000u32 {
+            buf.clear();
+            use std::fmt::Write as _;
+            write!(buf, "T{n:04}").unwrap();
+            if technique_info(&buf).is_some() {
+                resolved += 1;
+                assert!(
+                    seeded.contains(buf.as_str()),
+                    "technique_info resolves {buf} but it is missing from \
+                     SEEDED_TECHNIQUE_IDS — mirror it (and bump \
+                     SEEDED_TECHNIQUE_ID_COUNT)"
+                );
+            }
+        }
+        // Sub-technique shape: T[0-9]{4}.[0-9]{3} (10_000 × 1_000 IDs).
+        for n in 0..10_000u32 {
+            for s in 0..1_000u32 {
+                buf.clear();
+                use std::fmt::Write as _;
+                write!(buf, "T{n:04}.{s:03}").unwrap();
+                if technique_info(&buf).is_some() {
+                    resolved += 1;
+                    assert!(
+                        seeded.contains(buf.as_str()),
+                        "technique_info resolves {buf} but it is missing from \
+                         SEEDED_TECHNIQUE_IDS — mirror it (and bump \
+                         SEEDED_TECHNIQUE_ID_COUNT)"
+                    );
+                }
+            }
+        }
+
+        // The derived catalogue size MUST equal the seeded-list size. This is
+        // the forward-completeness guarantee: no unmirrored addition can hide.
+        assert_eq!(
+            resolved,
+            SEEDED_TECHNIQUE_IDS.len(),
+            "technique_info resolves {resolved} IDs but SEEDED_TECHNIQUE_IDS has \
+             {} — the catalogue and the seeded list have drifted",
+            SEEDED_TECHNIQUE_IDS.len()
+        );
+    }
+}

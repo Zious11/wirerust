@@ -217,3 +217,211 @@ impl StreamHandler for StreamDispatcher {
         }
     }
 }
+
+// ── VP-004: Content-First Dispatch Precedence (Kani proofs) ────────────────────
+//
+// Formal verification of the `classify` precedence rules and the two-phase
+// `DispatchTarget::None` caching behavior (LESSON-P2.11). These harnesses are
+// strictly `#[cfg(kani)]`-gated: they are invisible to the normal build,
+// `cargo test`, and clippy. They are exercised only under `cargo kani`, which
+// auto-provides the `kani` crate.
+//
+// Source of truth: `classify` (this file, ~line 114) and `on_data` (~line 144).
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+    use std::net::{IpAddr, Ipv4Addr};
+
+    /// VP-004 rule 1: a TLS record-header signature (`0x16 0x03 ...` with
+    /// `len >= 5`) routes to TLS *regardless of port number*. We pin the
+    /// flow key's ports to the HTTP fallback ports (80, 8080) to demonstrate
+    /// that content wins over the port-fallback rule that would otherwise
+    /// select HTTP.
+    ///
+    /// BOUND/SOUNDNESS: `data` is a symbolic 5-byte array. The signature check
+    /// in `classify` reads only `data.len() >= 5 && data[0] && data[1]`; the
+    /// remaining 3 bytes (`data[2..5]`) are irrelevant to the rule-1 branch, so
+    /// a 5-byte array fully covers the precondition with no loss of generality.
+    /// Ports 80/9000 (canonicalized: lower=80) are the strongest adversarial
+    /// case for "content beats port".
+    #[kani::proof]
+    fn verify_tls_signature_beats_port() {
+        let ip = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+        let key = FlowKey::new(ip, 80, ip, 9000); // lower_port == 80 (HTTP fallback)
+        let b2: u8 = kani::any();
+        let b3: u8 = kani::any();
+        let b4: u8 = kani::any();
+        let data: [u8; 5] = [0x16, 0x03, b2, b3, b4];
+        assert!(matches!(classify(&data, &key), DispatchTarget::Tls));
+    }
+
+    /// VP-004 full precedence ladder, exhaustive over a symbolic 8-byte prefix
+    /// and fully symbolic 16-bit ports. Re-derives the spec's expected target
+    /// independently of `classify`'s internal branch wiring and asserts
+    /// equality, so this proves the *entire* decision function (rules 1–4),
+    /// not just the TLS-beats-port corollary.
+    ///
+    /// BOUND/SOUNDNESS:
+    ///  - `data` is a symbolic `[u8; 8]` (CR-004). 8 bytes is the length of the
+    ///    longest discriminating method token — `"OPTIONS "` and `"CONNECT "`
+    ///    are exactly 8 bytes — so EVERY method token in `classify`
+    ///    (`GET `, `POST `, `PUT `, `DELETE `, `HEAD `, `OPTIONS `, `PATCH `,
+    ///    `CONNECT `, `TRACE `, `HTTP/`) is now fully matchable by the symbolic
+    ///    input, closing the gap left by the earlier 5-byte bound (which could
+    ///    not realize DELETE/OPTIONS/PATCH/CONNECT/TRACE). The reference oracle
+    ///    replicates the EXACT same `starts_with` set so production and oracle
+    ///    agree on every input with no divergence.
+    ///  - Ports are fully symbolic `u16` (all 65536 values each), so the
+    ///    443/8443/80/8080 fallback arms and the `None` arm are all covered.
+    fn classify_oracle(data: &[u8; 8], lower: u16, upper: u16) -> DispatchTarget {
+        // Rule 1: TLS content signature.
+        if data.len() >= 5 && data[0] == 0x16 && data[1] == 0x03 {
+            return DispatchTarget::Tls;
+        }
+        // Rule 2: HTTP method token (identical set/order to production).
+        if data.starts_with(b"GET ")
+            || data.starts_with(b"POST ")
+            || data.starts_with(b"PUT ")
+            || data.starts_with(b"DELETE ")
+            || data.starts_with(b"HEAD ")
+            || data.starts_with(b"OPTIONS ")
+            || data.starts_with(b"PATCH ")
+            || data.starts_with(b"CONNECT ")
+            || data.starts_with(b"TRACE ")
+            || data.starts_with(b"HTTP/")
+        {
+            return DispatchTarget::Http;
+        }
+        // Rule 3: port fallback (TLS ports take precedence over HTTP ports,
+        // matching production's branch ordering).
+        let ports = [lower, upper];
+        if ports.contains(&443) || ports.contains(&8443) {
+            return DispatchTarget::Tls;
+        }
+        if ports.contains(&80) || ports.contains(&8080) {
+            return DispatchTarget::Http;
+        }
+        // Rule 4: nothing matched.
+        DispatchTarget::None
+    }
+
+    #[kani::proof]
+    fn verify_content_first_precedence_exhaustive() {
+        let port_a: u16 = kani::any();
+        let port_b: u16 = kani::any();
+        // IPs are irrelevant to `classify` (it reads only ports). Fix them so
+        // canonicalization is driven purely by the symbolic ports.
+        let ip = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
+        let key = FlowKey::new(ip, port_a, ip, port_b);
+
+        let b0: u8 = kani::any();
+        let b1: u8 = kani::any();
+        let b2: u8 = kani::any();
+        let b3: u8 = kani::any();
+        let b4: u8 = kani::any();
+        let b5: u8 = kani::any();
+        let b6: u8 = kani::any();
+        let b7: u8 = kani::any();
+        let data: [u8; 8] = [b0, b1, b2, b3, b4, b5, b6, b7];
+
+        let got = classify(&data, &key);
+        let want = classify_oracle(&data, key.lower_port(), key.upper_port());
+        assert!(got == want);
+
+        // Spell out the headline corollary explicitly for readability:
+        // a TLS signature always wins, never mind the port.
+        if data[0] == 0x16 && data[1] == 0x03 {
+            assert!(matches!(got, DispatchTarget::Tls));
+        }
+    }
+
+    /// Single-flow-key model of `on_data`'s cache/counter state machine
+    /// (this file, the `else` branch of the `routes.get` check). It mirrors the
+    /// production transitions on lines ~160–177 EXACTLY for the rule-4 `None`
+    /// path, but on a single `(route, attempts)` pair instead of the two
+    /// `HashMap<FlowKey, _>`s.
+    ///
+    /// WHY MODELLED, NOT DRIVEN THROUGH `on_data`: the real dispatcher keys its
+    /// state on `HashMap<FlowKey, _>`. `std::collections::HashMap`'s default
+    /// `RandomState` seeds itself via the OS RNG (`CCRandomGenerateBytes` on
+    /// macOS), a foreign C function Kani cannot symbolically execute — driving
+    /// `on_data` therefore aborts with a Kani-unsupported-FFI error, NOT a
+    /// property failure. (Confirmed empirically before switching to this model.)
+    /// Per-key, the HashMap is just "presence + value"; an `Option` captures the
+    /// identical semantics — `entry().or_insert(0); *c = c.saturating_add(1)`
+    /// becomes `*attempts.get_or_insert(0) = ...`, `routes.insert` becomes
+    /// `route = Some(..)`, `remove` becomes `= None`, `contains_key` becomes
+    /// `.is_some()`. This is the same faithful-restatement tactic VP-005 uses
+    /// for tls-parser. The transition source below is a line-for-line port.
+    fn step_none_path(
+        route: &mut Option<DispatchTarget>,
+        attempts: &mut Option<u32>,
+        max: u32,
+    ) -> DispatchTarget {
+        // Precondition of this model: `classify` returned `None` (rule-4 path).
+        // Cached route short-circuits (mirrors `if let Some(&cached) = routes.get`).
+        if let Some(cached) = *route {
+            return cached;
+        }
+        let target = DispatchTarget::None; // classify(...) == None on this path
+        // target == None branch of on_data:
+        let count = attempts.get_or_insert(0);
+        *count = count.saturating_add(1);
+        if *count >= max {
+            *route = Some(DispatchTarget::None); // routes.insert(key, None)
+            *attempts = None; // classification_attempts.remove(key)
+        }
+        target
+    }
+
+    /// VP-004 two-phase `None`-caching (LESSON-P2.11), proven for the ENTIRE
+    /// production-relevant cap range via a SYMBOLIC `cap` (CR-002). For each call
+    /// `i` (1-based) on the rule-4 `None` path:
+    ///   Phase A (i < cap): attempts -> Some(i), route stays uncached (`None`).
+    ///   Phase B (i == cap): route = Some(None) permanently, attempts cleared.
+    ///   Phase C (i > cap): cached `None` short-circuits — route frozen at
+    ///                      Some(None), attempts stays cleared (no re-classify).
+    ///
+    /// BOUND/SOUNDNESS:
+    ///  - `cap` is SYMBOLIC over `1..=DEFAULT_MAX_CLASSIFICATION_ATTEMPTS` (the
+    ///    full configurable range; default is 8). `cap == 0` is excluded because
+    ///    `with_max_classification_attempts(0)` is documented as a degenerate
+    ///    "disable classification" mode that caches `None` on the first call —
+    ///    a separate behavior, not the multi-phase retry property under test.
+    ///  - The loop runs a FIXED `DEFAULT_MAX_CLASSIFICATION_ATTEMPTS + 1` (= 9)
+    ///    iterations regardless of `cap`, so it always observes at least one
+    ///    post-cap (phase C) call for every cap in range. `#[kani::unwind(11)]`
+    ///    fully unrolls it. Within the loop each phase is checked against the
+    ///    symbolic `cap`, so the proof covers cap = 1, 2, ..., 8 simultaneously.
+    ///  - The model `step_none_path` is a line-for-line port of `on_data`'s rule-4
+    ///    branch (see doc above); the only abstraction is HashMap-by-key -> Option,
+    ///    exact for a single key. The companion proofs prove WHEN `classify`
+    ///    returns `None`; this proves what the cache/counter then do.
+    #[kani::proof]
+    #[kani::unwind(11)]
+    fn verify_none_two_phase_caching() {
+        let cap: u32 = kani::any();
+        kani::assume(cap >= 1 && cap <= DEFAULT_MAX_CLASSIFICATION_ATTEMPTS);
+
+        let mut route: Option<DispatchTarget> = None;
+        let mut attempts: Option<u32> = None;
+
+        // Drive one extra call beyond the maximum possible cap so every cap in
+        // range exercises phases A, B, and C.
+        for i in 1..=(DEFAULT_MAX_CLASSIFICATION_ATTEMPTS + 1) {
+            let t = step_none_path(&mut route, &mut attempts, cap);
+            assert!(matches!(t, DispatchTarget::None)); // always None on rule-4 path
+
+            if i < cap {
+                // Phase A: under cap — not cached, counter == i.
+                assert!(route.is_none());
+                assert!(attempts == Some(i));
+            } else {
+                // Phase B (i == cap) and Phase C (i > cap): cached permanently,
+                // counter cleared and never re-created.
+                assert!(matches!(route, Some(DispatchTarget::None)));
+                assert!(attempts.is_none());
+            }
+        }
+    }
+}

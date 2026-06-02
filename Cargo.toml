@@ -30,6 +30,16 @@ rayon = "1"
 [profile.release]
 overflow-checks = true
 
+# `kani` is the cfg flag Kani sets when compiling proof harnesses under
+# `cargo kani`. The normal `rustc`/`cargo` build never sets it, so without
+# this registration the `unexpected_cfgs` lint (an error under
+# `RUSTFLAGS=-Dwarnings`) fires on every `#[cfg(kani)]` proof harness. The
+# harnesses live inline in `src/` (see dispatcher.rs / analyzer/tls.rs /
+# mitre.rs) and are compiled only by Kani; this entry just tells the normal
+# build that `kani` is a known, intentionally-inactive cfg.
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
+
 [dev-dependencies]
 assert_cmd = "2"
 predicates = "3"
