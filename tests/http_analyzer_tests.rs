@@ -6369,16 +6369,28 @@ mod vp_014_cross_flow_isolation {
     }
 
     proptest! {
-        #![proptest_config(ProptestConfig { cases: 1000, ..ProptestConfig::default() })]
+        // CR-004: integration tests live under `tests/`, where proptest's default
+        // `SourceParallel` persistence cannot locate the crate root and silently
+        // drops failure seeds. Pin `WithSource("proptest-regressions")` so a future
+        // counterexample is written next to the crate (matching the in-crate VP-006
+        // / VP-012 regression dirs) and replayed on subsequent runs.
+        #![proptest_config(ProptestConfig {
+            cases: 1000,
+            failure_persistence: Some(Box::new(
+                proptest::test_runner::FileFailurePersistence::WithSource("proptest-regressions"),
+            )),
+            ..ProptestConfig::default()
+        })]
 
         // VP-014 properties 1-4: arbitrary A-directed data (errors, garbage,
         // partial requests) and arbitrary A close events must never destroy or
         // corrupt flow B's observable output. B is seeded with exactly one valid
-        // request before the interleaving and sends NO further data, so B's
-        // single transaction (1 valid request emits 0 transactions — transactions
-        // count responses — but B's request is counted in method_counts) and the
-        // global request method tally for B must remain intact regardless of what
-        // happens on A. We assert B's GET is never lost.
+        // request before the interleaving; B may ALSO receive arbitrary additional
+        // data during the interleaving (the `DataB` events). Random B data can only
+        // ADD more parsed GETs (if it happens to parse) and can never remove the
+        // seed one — hence the assertion is a `>= 1` lower bound on B's GET tally,
+        // not an exact equality. The point is that nothing flow A does (errors,
+        // poisoning, close) may corrupt or erase B's observable output.
         #[test]
         fn prop_flow_b_unaffected_by_flow_a_errors(
             events in prop::collection::vec(

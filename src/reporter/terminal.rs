@@ -365,8 +365,17 @@ mod tests {
                         escaped
                     );
                     let n = *next.unwrap();
+                    // This is the EXACT continuation set `char::escape_default`
+                    // emits for the inputs this function escapes (C0, DEL, C1,
+                    // backslash): `\n` `\t` `\r` for those three control chars,
+                    // `\\` for backslash, and `\u{..}` (introducer `u`) for every
+                    // other control/C1 codepoint. NUL escapes to `\u{0}` (not
+                    // `\0`), and quotes are never escaped, so `0`/`'`/`"` can
+                    // never appear here. Keeping the set exact (not a superset)
+                    // means a future change that emitted a different escape form
+                    // would fail this assertion instead of being silently accepted.
                     prop_assert!(
-                        matches!(n, 'n' | 't' | 'r' | '0' | '\'' | '"' | '\\' | 'u'),
+                        matches!(n, 'n' | 't' | 'r' | '\\' | 'u'),
                         "backslash not part of a valid escape sequence (followed by {:?}) in {:?}",
                         n,
                         escaped
@@ -403,12 +412,49 @@ mod tests {
             prop_assert_eq!(escaped, unicode_only, "safe non-ASCII Unicode was escaped");
         }
 
-        // VP-012 property 4: output is always valid UTF-8. (`String` guarantees
-        // this by construction; this is the explicit runtime witness.)
+        // VP-012 property 4: escaping is length-conserving and expands exactly
+        // (CR-006 — the old `from_utf8(...).is_ok()` check was tautological since
+        // `String` is valid UTF-8 by type).
+        //
+        // Falsifiable contract: the escaped output length, measured in `char`s,
+        // equals the sum over the input chars of each char's INDIVIDUAL escaped
+        // length, computed by an independent oracle. Because every char's escape
+        // form is >= 1 char, this also proves `escaped.chars().count() >=
+        // s.chars().count()` (escaping never shrinks). This FAILS if the function
+        // ever silently drops a char (total too small), passes a dangerous char
+        // through unescaped (escaped char too short vs oracle), or mis-expands a
+        // safe char (escaped char too long vs oracle).
         #[test]
-        fn prop_output_is_valid_utf8(s: String) {
+        fn prop_escape_is_length_conserving(s: String) {
+            // Oracle: per-char escaped length, mirroring escape_for_terminal's
+            // branch — escape_default for C0/DEL/C1/backslash, else the char as-is.
+            fn expected_escaped_len(c: char) -> usize {
+                if c.is_ascii_control() || ('\u{80}'..='\u{9f}').contains(&c) || c == '\\' {
+                    c.escape_default().count()
+                } else {
+                    1
+                }
+            }
+            let expected_total: usize = s.chars().map(expected_escaped_len).sum();
             let escaped = escape_for_terminal(&s);
-            prop_assert!(std::str::from_utf8(escaped.as_bytes()).is_ok());
+            let actual_total = escaped.chars().count();
+
+            prop_assert_eq!(
+                actual_total,
+                expected_total,
+                "escaped length {} != oracle-predicted {} for input {:?} -> {:?}",
+                actual_total,
+                expected_total,
+                s,
+                escaped
+            );
+            // Direct never-shrinks corollary (strict superset of byte content).
+            prop_assert!(
+                actual_total >= s.chars().count(),
+                "escaping shrank the output: {} chars in, {} chars out",
+                s.chars().count(),
+                actual_total
+            );
         }
     }
 

@@ -781,9 +781,34 @@ mod vp_006_proptest_proofs {
 
     #[derive(Clone, Debug)]
     enum ParseEvent {
-        ValidRequest,  // bytes that parse as a complete HTTP request
-        InvalidBytes,  // bytes that cause a parse error
-        ValidResponse, // bytes that parse as a complete HTTP response
+        ValidRequest,    // request bytes that parse as a complete HTTP request
+        InvalidBytes,    // request bytes that cause a parse error
+        ValidResponse,   // response bytes that parse as a complete HTTP response
+        InvalidResponse, // response bytes that cause a parse error (CR-002)
+    }
+
+    impl ParseEvent {
+        fn data(&self) -> &'static [u8] {
+            match self {
+                ParseEvent::ValidRequest => b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n",
+                ParseEvent::InvalidBytes => b"\xFF\xFE garbage",
+                ParseEvent::ValidResponse => b"HTTP/1.1 200 OK\r\n\r\n",
+                ParseEvent::InvalidResponse => b"\xFF\xFE garbage response",
+            }
+        }
+
+        fn direction(&self) -> Direction {
+            match self {
+                ParseEvent::ValidRequest | ParseEvent::InvalidBytes => Direction::ClientToServer,
+                ParseEvent::ValidResponse | ParseEvent::InvalidResponse => {
+                    Direction::ServerToClient
+                }
+            }
+        }
+
+        fn is_invalid(&self) -> bool {
+            matches!(self, ParseEvent::InvalidBytes | ParseEvent::InvalidResponse)
+        }
     }
 
     fn test_flow_key() -> FlowKey {
@@ -792,12 +817,54 @@ mod vp_006_proptest_proofs {
         FlowKey::new(c, 54321, s, 80)
     }
 
+    // Per-direction expected-skip oracle. Mirrors the implementation contract:
+    // a direction poisons at the END of the event that pushes its consecutive
+    // error count to >= POISON_THRESHOLD (3); a successful parse resets that
+    // count to 0; once poisoned, EVERY subsequent event to that direction
+    // (valid or invalid) is skipped — because the poison check in on_data runs
+    // before the buffer/parse step (http.rs:509-512, 521-524). The event that
+    // crosses the threshold is itself NOT skipped (its bytes were buffered
+    // before the flag flipped).
+    #[derive(Default)]
+    struct DirOracle {
+        consecutive_errors: u32,
+        poisoned: bool,
+    }
+    impl DirOracle {
+        /// Returns the number of bytes this event contributes to
+        /// `poisoned_bytes_skipped`, and updates internal state.
+        fn step(&mut self, invalid: bool, len: u64) -> u64 {
+            if self.poisoned {
+                // Already poisoned on entry -> these bytes are skipped wholesale.
+                return len;
+            }
+            if invalid {
+                self.consecutive_errors += 1;
+                if self.consecutive_errors >= POISON_THRESHOLD as u32 {
+                    self.poisoned = true; // poisons now, but THIS event is not skipped
+                }
+            } else {
+                self.consecutive_errors = 0; // successful parse resets the run
+            }
+            0
+        }
+    }
+
     proptest! {
         #![proptest_config(ProptestConfig { cases: 1000, ..ProptestConfig::default() })]
 
-        // VP-006 monotonicity: across any ordering of valid/invalid request and
-        // valid response chunks, `poisoned_bytes_skipped()` is monotonically
-        // non-decreasing. Once a direction poisons, the counter only grows.
+        // VP-006 monotonicity WITH falsification power (CR-001 + CR-002).
+        //
+        // Two layered assertions:
+        //  (1) `poisoned_bytes_skipped()` is monotonically non-decreasing after
+        //      every event (the original invariant).
+        //  (2) An independent oracle predicts the EXACT cumulative skipped-byte
+        //      total expected from the poisoning contract, for BOTH directions
+        //      symmetrically. We assert the observed counter equals the oracle
+        //      at every step. This has real teeth: if poisoning were disabled
+        //      (counter stuck at 0) any case whose oracle predicts a positive
+        //      total — i.e. any direction that crosses 3 consecutive invalids
+        //      and then receives at least one more event — would FAIL.
         #[test]
         fn prop_poison_bytes_skipped_monotonic(
             events in prop::collection::vec(
@@ -805,6 +872,7 @@ mod vp_006_proptest_proofs {
                     Just(ParseEvent::ValidRequest),
                     Just(ParseEvent::InvalidBytes),
                     Just(ParseEvent::ValidResponse),
+                    Just(ParseEvent::InvalidResponse),
                 ],
                 1..50
             )
@@ -813,21 +881,33 @@ mod vp_006_proptest_proofs {
             let key = test_flow_key();
             let mut prev_skipped: u64 = 0;
 
-            for event in &events {
-                let data: &[u8] = match event {
-                    ParseEvent::ValidRequest => {
-                        b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n"
-                    }
-                    ParseEvent::InvalidBytes => b"\xFF\xFE garbage",
-                    ParseEvent::ValidResponse => b"HTTP/1.1 200 OK\r\n\r\n",
-                };
-                let dir = match event {
-                    ParseEvent::ValidResponse => Direction::ServerToClient,
-                    _ => Direction::ClientToServer,
-                };
-                analyzer.on_data(&key, dir, data, 0);
+            let mut req_oracle = DirOracle::default();
+            let mut resp_oracle = DirOracle::default();
+            let mut expected_skipped: u64 = 0;
+            // Did the oracle ever predict a strict increase? Used to prove the
+            // test is not vacuous on poison-triggering sequences.
+            let mut oracle_predicted_skip = false;
 
+            for event in &events {
+                let data = event.data();
+                let len = data.len() as u64;
+                let dir = event.direction();
+
+                // Advance the oracle BEFORE the call so its prediction lines up
+                // with the cumulative counter observed AFTER the call.
+                let contributed = match dir {
+                    Direction::ClientToServer => req_oracle.step(event.is_invalid(), len),
+                    Direction::ServerToClient => resp_oracle.step(event.is_invalid(), len),
+                };
+                expected_skipped += contributed;
+                if contributed > 0 {
+                    oracle_predicted_skip = true;
+                }
+
+                analyzer.on_data(&key, dir, data, 0);
                 let now_skipped = analyzer.poisoned_bytes_skipped();
+
+                // (1) monotonic non-decreasing.
                 prop_assert!(
                     now_skipped >= prev_skipped,
                     "poisoned_bytes_skipped decreased: was {} now {} (events: {:?})",
@@ -835,7 +915,28 @@ mod vp_006_proptest_proofs {
                     now_skipped,
                     events
                 );
+                // (2) exact agreement with the independent poisoning oracle.
+                prop_assert_eq!(
+                    now_skipped,
+                    expected_skipped,
+                    "skipped-byte counter diverged from poisoning oracle at this step \
+                     (events: {:?})",
+                    events
+                );
                 prev_skipped = now_skipped;
+            }
+
+            // Teeth witness: whenever the oracle predicted any skip, the real
+            // counter must have strictly advanced past zero. A no-op poisoning
+            // implementation (counter stuck at 0) fails here on every sequence
+            // that crosses the threshold in either direction.
+            if oracle_predicted_skip {
+                prop_assert!(
+                    analyzer.poisoned_bytes_skipped() > 0,
+                    "oracle predicted skipped bytes but counter never advanced \
+                     (poisoning appears disabled) (events: {:?})",
+                    events
+                );
             }
         }
 
