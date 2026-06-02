@@ -863,3 +863,73 @@ mod kani_proofs {
         ));
     }
 }
+
+// In-crate unit tests for the module-private overlap predicate. These run
+// under the ordinary `cargo test` build (unlike the `#[cfg(kani)]` proofs
+// above, which are dead code outside `cargo kani`). They pin the half-open
+// adjacency boundary of `ranges_overlap` so the `>`→`>=` and `<`→`<=`
+// comparison-operator mutations on line 43 are CAUGHT by `cargo mutants`.
+#[cfg(test)]
+mod adjacency_tests {
+    use super::ranges_overlap;
+
+    // GG-1 (CRITICAL anti-evasion, BC-2.04.043): touching at an exact boundary
+    // is NOT an overlap. `ranges_overlap(new_start, new_end, existing_offset,
+    // existing_end)` is `new_start < existing_end && new_end > existing_offset`.
+    //
+    // The `>` in `new_end > existing_offset` is the load-bearing comparison:
+    // when the NEW segment ends exactly where the EXISTING begins
+    // (`new_end == existing_offset`), the ranges merely touch and must NOT
+    // overlap. The surviving mutant replaced `>` with `>=`, which would
+    // wrongly report this exact-adjacency case as an overlap — a TCP-overlap
+    // mis-classification. This test pins both touching sides as non-overlap
+    // and the 1-byte-into case as overlap, so `>` vs `>=` diverges here.
+
+    #[test]
+    fn exact_adjacency_new_ends_where_existing_begins_is_not_overlap() {
+        // existing = [10, 20).  new = [5, 10): new_end (10) == existing_offset (10).
+        // new_end > existing_offset is `10 > 10` == false  => NOT an overlap.
+        // The `>=` mutant computes `10 >= 10` == true and (wrongly) reports overlap.
+        assert!(
+            !ranges_overlap(5, 10, 10, 20),
+            "new_end == existing_offset (touching at the existing's left edge) \
+             must NOT be an overlap (BC-2.04.043); kills the `>`→`>=` mutant"
+        );
+    }
+
+    #[test]
+    fn one_byte_into_existing_is_overlap() {
+        // existing = [10, 20).  new = [5, 11): new_end (11) > existing_offset (10).
+        // Exactly one byte (offset 10) is shared => IS an overlap, under BOTH
+        // `>` and `>=`. This is the correct-code companion to the adjacency
+        // case: it proves the predicate still reports the genuine 1-byte
+        // overlap, so the adjacency test above is not vacuously true.
+        assert!(
+            ranges_overlap(5, 11, 10, 20),
+            "a 1-byte overlap (new_end one past existing_offset) IS an overlap"
+        );
+    }
+
+    #[test]
+    fn exact_adjacency_new_begins_where_existing_ends_is_not_overlap() {
+        // existing = [10, 20).  new = [20, 25): new_start (20) == existing_end (20).
+        // new_start < existing_end is `20 < 20` == false => NOT an overlap.
+        // (Mirrors the other boundary; guards the `<` comparison on the same line.)
+        assert!(
+            !ranges_overlap(20, 25, 10, 20),
+            "new_start == existing_end (touching at the existing's right edge) \
+             must NOT be an overlap (BC-2.04.043); kills the `<`→`<=` mutant"
+        );
+    }
+
+    #[test]
+    fn one_byte_overlap_at_existing_right_edge_is_overlap() {
+        // existing = [10, 20).  new = [19, 25): new_start (19) < existing_end (20),
+        // sharing offset 19 => IS an overlap. Companion to the right-edge
+        // adjacency case above.
+        assert!(
+            ranges_overlap(19, 25, 10, 20),
+            "a 1-byte overlap at the existing's right edge IS an overlap"
+        );
+    }
+}
