@@ -6327,3 +6327,187 @@ fn test_summarize_top_hosts_ties_broken_alphabetically() {
         );
     }
 }
+
+// VP-014: HttpAnalyzer Cross-Flow Isolation (BC-2.06.021, BC-2.06.019).
+//
+// HttpAnalyzer keeps fully independent per-flow state in a private
+// HashMap<FlowKey, HttpFlowState>. These harnesses verify isolation through the
+// public black-box observables only (transaction_count, parse_error_count) over
+// arbitrary interleavings of two distinct flows. 1000 cases per property to
+// match the VP-010 sibling convention.
+#[cfg(test)]
+mod vp_014_cross_flow_isolation {
+    use proptest::prelude::*;
+    use std::net::{IpAddr, Ipv4Addr};
+    use wirerust::analyzer::http::HttpAnalyzer;
+    use wirerust::reassembly::flow::FlowKey;
+    use wirerust::reassembly::handler::{CloseReason, Direction, StreamHandler};
+
+    fn key_a() -> FlowKey {
+        FlowKey::new(
+            IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)),
+            50000,
+            IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)),
+            80,
+        )
+    }
+
+    fn key_b() -> FlowKey {
+        FlowKey::new(
+            IpAddr::V4(Ipv4Addr::new(10, 0, 0, 3)),
+            50001,
+            IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2)),
+            80,
+        )
+    }
+
+    #[derive(Clone, Debug)]
+    enum TwoFlowEvent {
+        DataA(Vec<u8>), // arbitrary data on flow A
+        DataB(Vec<u8>), // arbitrary data on flow B
+        CloseA,
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig { cases: 1000, ..ProptestConfig::default() })]
+
+        // VP-014 properties 1-4: arbitrary A-directed data (errors, garbage,
+        // partial requests) and arbitrary A close events must never destroy or
+        // corrupt flow B's observable output. B is seeded with exactly one valid
+        // request before the interleaving and sends NO further data, so B's
+        // single transaction (1 valid request emits 0 transactions — transactions
+        // count responses — but B's request is counted in method_counts) and the
+        // global request method tally for B must remain intact regardless of what
+        // happens on A. We assert B's GET is never lost.
+        #[test]
+        fn prop_flow_b_unaffected_by_flow_a_errors(
+            events in prop::collection::vec(
+                prop_oneof![
+                    prop::collection::vec(any::<u8>(), 1..64).prop_map(TwoFlowEvent::DataA),
+                    prop::collection::vec(any::<u8>(), 1..64).prop_map(TwoFlowEvent::DataB),
+                    Just(TwoFlowEvent::CloseA),
+                ],
+                1..40
+            )
+        ) {
+            let mut analyzer = HttpAnalyzer::new();
+            let ka = key_a();
+            let kb = key_b();
+
+            // Seed exactly one valid HTTP request on B. This registers one GET in
+            // the method tally — an observable that belongs to B and must survive
+            // any amount of A activity.
+            <HttpAnalyzer as StreamHandler>::on_data(
+                &mut analyzer,
+                &kb,
+                Direction::ClientToServer,
+                b"GET /healthy HTTP/1.1\r\nHost: b.example.com\r\n\r\n",
+                0,
+            );
+            let b_get_count_before =
+                analyzer.method_counts().get("GET").copied().unwrap_or(0);
+            prop_assert_eq!(
+                b_get_count_before, 1,
+                "seed request on B must register exactly one GET"
+            );
+
+            for event in events {
+                match event {
+                    TwoFlowEvent::DataA(data) => {
+                        <HttpAnalyzer as StreamHandler>::on_data(
+                            &mut analyzer,
+                            &ka,
+                            Direction::ClientToServer,
+                            &data,
+                            0,
+                        );
+                    }
+                    TwoFlowEvent::DataB(data) => {
+                        <HttpAnalyzer as StreamHandler>::on_data(
+                            &mut analyzer,
+                            &kb,
+                            Direction::ClientToServer,
+                            &data,
+                            0,
+                        );
+                    }
+                    TwoFlowEvent::CloseA => {
+                        <HttpAnalyzer as StreamHandler>::on_flow_close(
+                            &mut analyzer,
+                            &ka,
+                            CloseReason::Fin,
+                        );
+                    }
+                }
+            }
+
+            // B's already-parsed GET is permanent: nothing A does (errors,
+            // poisoning, close) may decrement the global GET tally below B's
+            // contribution. Random B data may only ADD more GETs (if it parses),
+            // never remove the seed one.
+            let b_get_count_after =
+                analyzer.method_counts().get("GET").copied().unwrap_or(0);
+            prop_assert!(
+                b_get_count_after >= 1,
+                "B's seed GET was lost — cross-flow contamination from A (after={})",
+                b_get_count_after
+            );
+        }
+
+        // VP-014 property 5 (BC-2.06.019): on_flow_close removes per-flow state;
+        // reopening the same key starts fresh. After arbitrary initial data, a
+        // close, and then a fresh VALID request on the same key, the valid
+        // request must parse without raising a parse error — i.e. it must not
+        // inherit poisoning or a polluted buffer from the prior flow instance.
+        #[test]
+        fn prop_close_and_reopen_starts_fresh(
+            initial_data in prop::collection::vec(any::<u8>(), 1..100),
+        ) {
+            let mut analyzer = HttpAnalyzer::new();
+            let key = key_a();
+
+            // Accumulate arbitrary (likely error-inducing) state on the flow.
+            <HttpAnalyzer as StreamHandler>::on_data(
+                &mut analyzer,
+                &key,
+                Direction::ClientToServer,
+                &initial_data,
+                0,
+            );
+
+            // Close removes per-flow state (http.rs:540 self.flows.remove(key)).
+            <HttpAnalyzer as StreamHandler>::on_flow_close(
+                &mut analyzer,
+                &key,
+                CloseReason::Fin,
+            );
+
+            // Baseline AFTER close: any errors from initial_data are already
+            // counted; the reopened valid request must not add to this.
+            let errors_before = analyzer.parse_error_count();
+            let get_before = analyzer.method_counts().get("GET").copied().unwrap_or(0);
+
+            // Reopen the same key with a fresh valid request. Because state was
+            // removed, this is a brand-new flow: it must parse cleanly even if the
+            // prior instance had been poisoned.
+            <HttpAnalyzer as StreamHandler>::on_data(
+                &mut analyzer,
+                &key,
+                Direction::ClientToServer,
+                b"GET / HTTP/1.1\r\nHost: a.example.com\r\n\r\n",
+                0,
+            );
+
+            prop_assert_eq!(
+                analyzer.parse_error_count(),
+                errors_before,
+                "valid request after close+reopen caused a parse error — stale poisoning leaked"
+            );
+            prop_assert_eq!(
+                analyzer.method_counts().get("GET").copied().unwrap_or(0),
+                get_before + 1,
+                "reopened flow did not parse the fresh valid GET request"
+            );
+        }
+    }
+}

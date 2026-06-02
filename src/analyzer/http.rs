@@ -764,3 +764,117 @@ mod tests {
         );
     }
 }
+
+// VP-006: HTTP Poison Monotonicity (BC-2.06.015/016/017, INV-8).
+//
+// Property: within a single flow's lifetime the per-direction poison flags are
+// monotonically false->true and per-direction isolated. The flags themselves
+// are private; the public observable is `poisoned_bytes_skipped()`, which
+// increments for every byte fed to a direction AFTER it is poisoned and never
+// decreases (http.rs:509-512, 521-524). These harnesses assert monotonicity and
+// per-direction isolation via that public observable.
+#[cfg(test)]
+mod vp_006_proptest_proofs {
+    use super::*;
+    use proptest::prelude::*;
+    use std::net::{IpAddr, Ipv4Addr};
+
+    #[derive(Clone, Debug)]
+    enum ParseEvent {
+        ValidRequest,  // bytes that parse as a complete HTTP request
+        InvalidBytes,  // bytes that cause a parse error
+        ValidResponse, // bytes that parse as a complete HTTP response
+    }
+
+    fn test_flow_key() -> FlowKey {
+        let c = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+        let s = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+        FlowKey::new(c, 54321, s, 80)
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig { cases: 1000, ..ProptestConfig::default() })]
+
+        // VP-006 monotonicity: across any ordering of valid/invalid request and
+        // valid response chunks, `poisoned_bytes_skipped()` is monotonically
+        // non-decreasing. Once a direction poisons, the counter only grows.
+        #[test]
+        fn prop_poison_bytes_skipped_monotonic(
+            events in prop::collection::vec(
+                prop_oneof![
+                    Just(ParseEvent::ValidRequest),
+                    Just(ParseEvent::InvalidBytes),
+                    Just(ParseEvent::ValidResponse),
+                ],
+                1..50
+            )
+        ) {
+            let mut analyzer = HttpAnalyzer::new();
+            let key = test_flow_key();
+            let mut prev_skipped: u64 = 0;
+
+            for event in &events {
+                let data: &[u8] = match event {
+                    ParseEvent::ValidRequest => {
+                        b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n"
+                    }
+                    ParseEvent::InvalidBytes => b"\xFF\xFE garbage",
+                    ParseEvent::ValidResponse => b"HTTP/1.1 200 OK\r\n\r\n",
+                };
+                let dir = match event {
+                    ParseEvent::ValidResponse => Direction::ServerToClient,
+                    _ => Direction::ClientToServer,
+                };
+                analyzer.on_data(&key, dir, data, 0);
+
+                let now_skipped = analyzer.poisoned_bytes_skipped();
+                prop_assert!(
+                    now_skipped >= prev_skipped,
+                    "poisoned_bytes_skipped decreased: was {} now {} (events: {:?})",
+                    prev_skipped,
+                    now_skipped,
+                    events
+                );
+                prev_skipped = now_skipped;
+            }
+        }
+
+        // VP-006 per-direction isolation: poisoning the request direction
+        // (>= POISON_THRESHOLD consecutive request errors) must NOT cause a
+        // subsequent valid response's bytes to be counted as skipped. The
+        // response direction is independent and was never poisoned.
+        #[test]
+        fn prop_poison_per_direction_isolated(req_errors in 3usize..=10) {
+            let mut analyzer = HttpAnalyzer::new();
+            let key = test_flow_key();
+
+            // Drive the request direction past POISON_THRESHOLD (3).
+            for _ in 0..req_errors {
+                analyzer.on_data(&key, Direction::ClientToServer, b"\xFF\xFE garbage", 0);
+            }
+            let skipped_after_req_poison = analyzer.poisoned_bytes_skipped();
+
+            // The request side must actually be poisoned for this to be a
+            // meaningful test: with >= 3 consecutive errors, later request bytes
+            // would be skipped. Confirm by feeding more request garbage.
+            analyzer.on_data(&key, Direction::ClientToServer, b"\xFF\xFE more", 0);
+            prop_assert!(
+                analyzer.poisoned_bytes_skipped() > skipped_after_req_poison,
+                "request direction was not poisoned after {} consecutive errors",
+                req_errors
+            );
+            let skipped_after_more_req = analyzer.poisoned_bytes_skipped();
+
+            // Now feed a valid response. The response direction is independent
+            // and unpoisoned, so its bytes must NOT be added to the skipped
+            // counter.
+            let resp = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
+            analyzer.on_data(&key, Direction::ServerToClient, resp, 0);
+            prop_assert_eq!(
+                analyzer.poisoned_bytes_skipped(),
+                skipped_after_more_req,
+                "response-direction bytes were skipped due to request-side poison"
+            );
+        }
+    }
+}

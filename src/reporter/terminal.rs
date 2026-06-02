@@ -307,6 +307,110 @@ impl TerminalReporter {
 #[cfg(test)]
 mod tests {
     use super::escape_for_terminal;
+    use proptest::prelude::*;
+
+    // VP-012: escape_for_terminal Correctness (BC-2.11.007..012).
+    // proptest harnesses over the full Unicode String space. 1000 cases per
+    // property to match the VP-010 sibling convention.
+    proptest! {
+        #![proptest_config(ProptestConfig { cases: 1000, ..ProptestConfig::default() })]
+
+        // VP-012 property 1 + 5: no dangerous bytes survive.
+        //
+        // The security goal (ADR 0003) is that no raw C0/DEL/C1 *control*
+        // character ever reaches the terminal, and that backslash is neutralized.
+        // `escape_for_terminal` uses `char::escape_default`, so an escaped
+        // backslash is rendered as the two-char sequence `\\` and a control char
+        // as `\u{..}`/`\n`/`\t`/etc. Therefore backslash bytes DO legitimately
+        // appear in the output as escape-sequence syntax — a per-char
+        // `c != '\\'` check is not the property and is unsatisfiable by design.
+        //
+        // The faithful, non-tautological property is:
+        //   (a) no C0/DEL control char survives,
+        //   (b) no C1 codepoint (U+0080-U+009F) survives, and
+        //   (c) every backslash in the output is a well-formed escape
+        //       *introducer* — it is followed by a valid escape continuation
+        //       char (one of `n t r 0 ' " \\ u`). This proves there is no raw or
+        //       dangling backslash that could leak a control byte; the only
+        //       backslashes present are inert escape syntax.
+        #[test]
+        fn prop_no_dangerous_bytes_survive(s: String) {
+            let escaped = escape_for_terminal(&s);
+            let chars: Vec<char> = escaped.chars().collect();
+            let mut i = 0;
+            while i < chars.len() {
+                let c = chars[i];
+                prop_assert!(
+                    !c.is_ascii_control(),
+                    "C0/DEL control char U+{:04X} survived in {:?}",
+                    c as u32,
+                    escaped
+                );
+                prop_assert!(
+                    !(('\u{80}'..='\u{9f}').contains(&c)),
+                    "C1 control char U+{:04X} survived in {:?}",
+                    c as u32,
+                    escaped
+                );
+                if c == '\\' {
+                    // A backslash must introduce a valid escape sequence: it
+                    // cannot be dangling at the end and must be followed by a
+                    // recognized escape continuation char. The pair is consumed
+                    // together so the second char of an escaped backslash (`\\`)
+                    // is not itself mistaken for a dangling backslash.
+                    let next = chars.get(i + 1);
+                    prop_assert!(
+                        next.is_some(),
+                        "dangling raw backslash at end of output {:?}",
+                        escaped
+                    );
+                    let n = *next.unwrap();
+                    prop_assert!(
+                        matches!(n, 'n' | 't' | 'r' | '0' | '\'' | '"' | '\\' | 'u'),
+                        "backslash not part of a valid escape sequence (followed by {:?}) in {:?}",
+                        n,
+                        escaped
+                    );
+                    // Consume the introducer + its continuation char as a unit.
+                    i += 2;
+                    continue;
+                }
+                i += 1;
+            }
+        }
+
+        // VP-012 property 2: printable ASCII (U+0020-U+007E except backslash)
+        // passes through byte-for-byte unchanged.
+        #[test]
+        fn prop_printable_ascii_unchanged(s: String) {
+            let ascii_only: String = s
+                .chars()
+                .filter(|c| c.is_ascii() && !c.is_ascii_control() && *c != '\\')
+                .collect();
+            let escaped = escape_for_terminal(&ascii_only);
+            prop_assert_eq!(escaped, ascii_only, "printable ASCII was modified");
+        }
+
+        // VP-012 property 3: valid non-ASCII Unicode strictly above the C1
+        // range (> U+009F) passes through unchanged (Cyrillic, CJK, emoji...).
+        #[test]
+        fn prop_non_ascii_unicode_above_c1_unchanged(s: String) {
+            let unicode_only: String = s
+                .chars()
+                .filter(|c| !c.is_ascii() && *c > '\u{9f}')
+                .collect();
+            let escaped = escape_for_terminal(&unicode_only);
+            prop_assert_eq!(escaped, unicode_only, "safe non-ASCII Unicode was escaped");
+        }
+
+        // VP-012 property 4: output is always valid UTF-8. (`String` guarantees
+        // this by construction; this is the explicit runtime witness.)
+        #[test]
+        fn prop_output_is_valid_utf8(s: String) {
+            let escaped = escape_for_terminal(&s);
+            prop_assert!(std::str::from_utf8(escaped.as_bytes()).is_ok());
+        }
+    }
 
     #[test]
     fn escapes_esc_byte() {
