@@ -2,10 +2,14 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.0"
-status: draft
+version: "1.1"
+status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
+modified:
+  - date: 2026-06-02
+    actor: spec-steward
+    reason: "Phase-6 gate close: status draft→verified (propagated from VP-INDEX, all 20 VPs locked). Counts unchanged at 20."
 ---
 
 # Verification Coverage Matrix
@@ -14,26 +18,26 @@ timestamp: 2026-05-20T00:00:00Z
 
 | VP-ID | Property (short) | Module | Tool | Phase | Status |
 |-------|-----------------|--------|------|-------|--------|
-| VP-001 | FlowKey canonical ordering | reassembly/flow.rs | Kani | P0 | draft |
-| VP-002 | First-wins overlap policy | reassembly/segment.rs | Kani | P0 | draft |
-| VP-003 | MAX_FINDINGS cap + finalize bypass | reassembly/mod.rs | Kani | P0 | draft |
-| VP-004 | Content-first dispatch precedence | dispatcher.rs | Kani | P0 | draft |
-| VP-005 | SNI 4-way ordered match (INV-5 boundary) | analyzer/tls.rs | Kani | P0 | draft |
-| VP-006 | HTTP poison monotonicity | analyzer/http.rs | proptest | P1 | draft |
-| VP-007 | MITRE technique ID format completeness | mitre.rs | Kani | P0 | draft |
-| VP-008 | decode_packet no-panic | decoder.rs | cargo-fuzz | P0 | draft |
-| VP-009 | FlowState machine validity | reassembly/flow.rs | Kani | P0 | draft |
-| VP-010 | buffered_bytes invariant | reassembly/segment.rs | proptest | P1 | draft |
-| VP-011 | flush_contiguous monotonicity | reassembly/segment.rs | proptest | P1 | draft |
-| VP-012 | escape_for_terminal correctness | reporter/terminal.rs | proptest | P1 | draft |
-| VP-013 | JA3 GREASE filter | analyzer/tls.rs | proptest | P1 | draft |
-| VP-014 | HttpAnalyzer cross-flow isolation | analyzer/http.rs | proptest | P1 | draft |
-| VP-015 | TCP sequence wraparound | reassembly/segment.rs | Kani | P1 | draft |
-| VP-016 | MITRE tactic grouping order | reporter/terminal.rs | integration | test-sufficient | draft |
-| VP-017 | JsonReporter key determinism | reporter/json.rs | integration | test-sufficient | draft |
-| VP-018 | CLI mutual exclusion (reassemble flags) | cli.rs | integration | test-sufficient | draft |
-| VP-019 | DNS statistics-only (no findings) | analyzer/dns.rs | unit | test-sufficient | draft |
-| VP-020 | CSV injection neutralization | reporter/csv.rs | unit | test-sufficient | draft |
+| VP-001 | FlowKey canonical ordering | reassembly/flow.rs | Kani | P0 | verified |
+| VP-002 | First-wins overlap policy | reassembly/segment.rs | Kani | P0 | verified |
+| VP-003 | MAX_FINDINGS cap + finalize bypass | reassembly/mod.rs | Kani | P0 | verified |
+| VP-004 | Content-first dispatch precedence | dispatcher.rs | Kani | P0 | verified |
+| VP-005 | SNI 4-way ordered match (INV-5 boundary) | analyzer/tls.rs | Kani | P0 | verified |
+| VP-006 | HTTP poison monotonicity | analyzer/http.rs | proptest | P1 | verified |
+| VP-007 | MITRE technique ID format completeness | mitre.rs | Kani | P0 | verified |
+| VP-008 | decode_packet no-panic | decoder.rs | cargo-fuzz | P0 | verified |
+| VP-009 | FlowState machine validity | reassembly/flow.rs | Kani | P0 | verified |
+| VP-010 | buffered_bytes invariant | reassembly/segment.rs | proptest | P1 | verified |
+| VP-011 | flush_contiguous monotonicity | reassembly/segment.rs | proptest | P1 | verified |
+| VP-012 | escape_for_terminal correctness | reporter/terminal.rs | proptest | P1 | verified |
+| VP-013 | JA3 GREASE filter | analyzer/tls.rs | proptest | P1 | verified |
+| VP-014 | HttpAnalyzer cross-flow isolation | analyzer/http.rs | proptest | P1 | verified |
+| VP-015 | TCP sequence wraparound | reassembly/segment.rs | Kani | P1 | verified |
+| VP-016 | MITRE tactic grouping order | reporter/terminal.rs | integration | test-sufficient | verified |
+| VP-017 | JsonReporter key determinism | reporter/json.rs | integration | test-sufficient | verified |
+| VP-018 | CLI mutual exclusion (reassemble flags) | cli.rs | integration | test-sufficient | verified |
+| VP-019 | DNS statistics-only (no findings) | analyzer/dns.rs | unit | test-sufficient | verified |
+| VP-020 | CSV injection neutralization | reporter/csv.rs | unit | test-sufficient | verified |
 
 
 ## Per-Module Coverage Totals
@@ -62,8 +66,8 @@ timestamp: 2026-05-20T00:00:00Z
   wraparound) and 2 proptest proofs (VP-010 buffered_bytes invariant, VP-011
   flush_contiguous monotonicity). Row total = 4 VPs.
 
-- All VP statuses are `draft`. They move to `harness-written` when the Kani/proptest
-  harness skeleton exists, to `passing` when the harness runs green.
+- All 20 VP statuses are `verified` as of Phase-6 gate close (2026-06-02 @ develop 0855f25).
+  verification_lock=true is set on all VP documents; they are now immutable.
 
 - `module-criticality.md` defines kill-rate targets that constrain the minimum proof
   depth for each module. CRITICAL modules (reassembly/segment.rs, reassembly/flow.rs,

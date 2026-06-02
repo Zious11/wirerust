@@ -2,14 +2,17 @@
 artifact: architecture-section
 section: verification-architecture
 traces_to: ARCH-INDEX.md
-version: "1.1"
-status: draft
+version: "1.2"
+status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
 modified:
   - date: 2026-06-01
     actor: product-owner
     reason: "Fix VP-015 table entry: correct seq value from 0xFFFF_FFFE (ISN) to isn+1=0xFFFF_FFFF (offset 1) to match VP-015 v1.1 and Kani harness"
+  - date: 2026-06-02
+    actor: spec-steward
+    reason: "Phase-6 gate close: status draft→verified (propagated from VP-INDEX, all 20 VPs locked). Counts unchanged at 20."
 ---
 
 # Verification Architecture

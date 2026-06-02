@@ -1,17 +1,19 @@
 ---
 artifact: module-criticality
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
-version: "1.0"
+version: "1.1"
 status: draft
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
-frozen: false
+frozen: true
 freeze_condition: Phase 5 gate pass
+frozen_at: "2026-06-02"
+frozen_reason: "Phase 5 long passed (gate closed prior to Phase 6). Frozen by spec-steward at Phase-6 gate close per module-criticality lifecycle rule (MUTABLE through Phase 5)."
 ---
 
 # Module Criticality Classification
 
-> Lifecycle: MUTABLE through Phase 5. Frozen after Phase 5 gate passes.
+> Lifecycle: MUTABLE through Phase 5. FROZEN as of 2026-06-02 (Phase-6 gate close).
 > When a feature cycle adds or removes modules, update this file and
 > record the change in the cycle manifest.
 

@@ -1,8 +1,8 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.1"
-status: draft
+version: "2.0"
+status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
 phase: 1c
@@ -16,13 +16,15 @@ bcs:
 module: src/analyzer/dns.rs
 proof_method: unit
 feasibility: feasible
-verification_lock: false
-proof_completed_date: null
-proof_file_hash: null
+verification_lock: true
+proof_completed_date: "2026-06-02"
+proof_file_hash: "62184048dd9bca629f4c0dd790d8abe1fd56ea41bee9d5dabae7d320eb4536c7"
+verified_at_commit: "0855f25"
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v1.1: proof_method manual→unit to match VP body (Unit test / Rust test), VP-INDEX (unit), verification-coverage-matrix, and verification-architecture — F-W21-VP-METHOD — 2026-05-31"
+  - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set (tests/dns_tests.rs)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -123,6 +125,6 @@ Confirmed by ADR 0002 design note: "DNS analyzer's `analyze()` returns `Vec::new
 | Event | Date | Actor |
 |-------|------|-------|
 | Created | 2026-05-20 | architect |
-| Tests committed | null | formal-verifier |
-| Tests passing | null | formal-verifier |
-| Locked (VERIFIED) | null | formal-verifier |
+| Tests committed | 2026-06-02 | formal-verifier |
+| Tests passing | 2026-06-02 | formal-verifier |
+| Locked (VERIFIED) | 2026-06-02 | spec-steward (Phase-6 gate) |

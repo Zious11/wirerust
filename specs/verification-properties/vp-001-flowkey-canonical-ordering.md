@@ -1,8 +1,8 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.0"
-status: draft
+version: "2.0"
+status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
 phase: 1c
@@ -14,12 +14,14 @@ bcs:
 module: src/reassembly/flow.rs
 proof_method: kani
 feasibility: feasible
-verification_lock: false
-proof_completed_date: null
-proof_file_hash: null
+verification_lock: true
+proof_completed_date: "2026-06-02"
+proof_file_hash: "02d1ad68d775bfdae345abf94399af59ffede19f26f5ea20f685b5d9f0caea35"
+verified_at_commit: "0855f25"
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -125,6 +127,6 @@ Existing tests: `tests/reassembly_flow_tests.rs` -- `test_flow_key_canonicalizat
 | Event | Date | Actor |
 |-------|------|-------|
 | Created | 2026-05-20 | architect |
-| Proof harness committed | null | formal-verifier |
-| Proof first passed | null | formal-verifier |
-| Locked (VERIFIED) | null | formal-verifier |
+| Proof harness committed | 2026-06-02 | formal-verifier |
+| Proof first passed | 2026-06-02 | formal-verifier |
+| Locked (VERIFIED) | 2026-06-02 | spec-steward (Phase-6 gate) |

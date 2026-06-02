@@ -1,8 +1,8 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.0"
-status: draft
+version: "2.0"
+status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
 phase: 1c
@@ -16,12 +16,14 @@ bcs:
 module: src/mitre.rs
 proof_method: kani
 feasibility: feasible
-verification_lock: false
-proof_completed_date: null
-proof_file_hash: null
+verification_lock: true
+proof_completed_date: "2026-06-02"
+proof_file_hash: "c1f1063d076a3effe4d5b650deffaf12cf5420804d78d62e9c35675b9f3fc0c1"
+verified_at_commit: "0855f25"
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -171,6 +173,6 @@ B (emitter-catalog completeness) only tests the IDs that analyzers actually emit
 | Event | Date | Actor |
 |-------|------|-------|
 | Created | 2026-05-20 | architect |
-| Proof harness committed | null | formal-verifier |
-| Proof first passed | null | formal-verifier |
-| Locked (VERIFIED) | null | formal-verifier |
+| Proof harness committed | 2026-06-02 | formal-verifier |
+| Proof first passed | 2026-06-02 | formal-verifier |
+| Locked (VERIFIED) | 2026-06-02 | spec-steward (Phase-6 gate) |

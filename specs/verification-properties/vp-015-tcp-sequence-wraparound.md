@@ -1,8 +1,8 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.1"
-status: draft
+version: "2.0"
+status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
 phase: 1c
@@ -13,15 +13,17 @@ bcs:
 module: src/reassembly/segment.rs
 proof_method: kani
 feasibility: feasible
-verification_lock: false
-proof_completed_date: null
-proof_file_hash: null
+verification_lock: true
+proof_completed_date: "2026-06-02"
+proof_file_hash: "2b887139a9fc44d1a7623d4a91975f415c0e3335a2fe2d02062fa8b61a8f7c0c"
+verified_at_commit: "0855f25"
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - date: 2026-06-01
     actor: product-owner
     reason: "Fix prose inconsistency: Property Statement items 1-2 corrected to match harness/code (ISN=0xFFFF_FFFE, first segment at isn+1=0xFFFF_FFFF covering offsets 1-4, adjacent segment at seq=0x0000_0003 offset 5)"
+  - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set (src/reassembly/segment.rs)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -180,6 +182,6 @@ Existing test: BC-2.04.039 is [PLANNED]; the Kani proof provides the verificatio
 | Event | Date | Actor |
 |-------|------|-------|
 | Created | 2026-05-20 | architect |
-| Proof harness committed | null | formal-verifier |
-| Proof first passed | null | formal-verifier |
-| Locked (VERIFIED) | null | formal-verifier |
+| Proof harness committed | 2026-06-02 | formal-verifier |
+| Proof first passed | 2026-06-02 | formal-verifier |
+| Locked (VERIFIED) | 2026-06-02 | spec-steward (Phase-6 gate) |

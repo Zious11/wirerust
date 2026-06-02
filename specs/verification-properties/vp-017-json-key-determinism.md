@@ -1,8 +1,8 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.2"
-status: draft
+version: "2.0"
+status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
 phase: 1c
@@ -14,14 +14,16 @@ bcs:
 module: src/reporter/json.rs
 proof_method: integration
 feasibility: feasible
-verification_lock: false
-proof_completed_date: null
-proof_file_hash: null
+verification_lock: true
+proof_completed_date: "2026-06-02"
+proof_file_hash: "523e63626df9728e13b8f23346d6877aaf929865fe3e580ade0542e87183a66d"
+verified_at_commit: "0855f25"
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v1.1: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): frontmatter proof_method corrected from manual→integration to match VP-017 body Proof-Method table and VP-INDEX (integration is authoritative; the body specifies a concrete Rust integration test, not a manual proof) — 2026-05-30"
   - "v1.2: ADV-IMPL-P07-MED-001 correction — mechanism prose rewritten: serde_json Map is BTreeMap (preserve_order OFF, no indexmap dep in Cargo.toml/Cargo.lock), so top-level key order is ALPHABETICAL (analyzers, findings, summary), NOT insertion order; phantom test_json_top_level_key_order replaced with real shipped tests from tests/reporter_json_tests.rs; Feasibility Assessment and Source Location updated to match reality — 2026-06-01"
+  - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set (tests/reporter_json_tests.rs)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -130,6 +132,6 @@ sub-maps (json.rs:36-45).
 | Event | Date | Actor |
 |-------|------|-------|
 | Created | 2026-05-20 | architect |
-| Tests committed | null | formal-verifier |
-| Tests passing | null | formal-verifier |
-| Locked (VERIFIED) | null | formal-verifier |
+| Tests committed | 2026-06-02 | formal-verifier |
+| Tests passing | 2026-06-02 | formal-verifier |
+| Locked (VERIFIED) | 2026-06-02 | spec-steward (Phase-6 gate) |

@@ -1,8 +1,8 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.1"
-status: draft
+version: "2.0"
+status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
 phase: 1c
@@ -14,13 +14,15 @@ bcs:
 module: src/reassembly/mod.rs
 proof_method: kani
 feasibility: feasible
-verification_lock: false
-proof_completed_date: null
-proof_file_hash: null
+verification_lock: true
+proof_completed_date: "2026-06-02"
+proof_file_hash: "31e2875603ecb556dc3ec8765cb383a9b5cc632d036462f5b9850af883013c5a"
+verified_at_commit: "0855f25"
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v1.1: DF-SIBLING-SWEEP-001 ADV-IMPL-P03-HIGH-001 re-anchor: guard sites mod.rs:432,466,495 → mod.rs:461,495,524; finalize bypass mod.rs:573 → mod.rs:630. HS-043 merge shifted check_anomaly_thresholds by 29 lines and finalize() by 57 lines. — 2026-06-01"
+  - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -135,6 +137,6 @@ Finalize unconditional push (bypasses cap): `mod.rs:630`
 |-------|------|-------|
 | Created | 2026-05-20 | architect |
 | v1.1: Re-anchor guard sites + finalize bypass (DF-SIBLING-SWEEP-001 ADV-IMPL-P03-HIGH-001) | 2026-06-01 | product-owner |
-| Proof harness committed | null | formal-verifier |
-| Proof first passed | null | formal-verifier |
-| Locked (VERIFIED) | null | formal-verifier |
+| Proof harness committed | 2026-06-02 | formal-verifier |
+| Proof first passed | 2026-06-02 | formal-verifier |
+| Locked (VERIFIED) | 2026-06-02 | spec-steward (Phase-6 gate) |

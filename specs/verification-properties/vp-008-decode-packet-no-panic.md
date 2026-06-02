@@ -1,8 +1,8 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.2"
-status: draft
+version: "2.0"
+status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
 phase: 1c
@@ -15,14 +15,16 @@ bcs:
 module: src/decoder.rs
 proof_method: fuzz
 feasibility: feasible
-verification_lock: false
-proof_completed_date: null
-proof_file_hash: null
+verification_lock: true
+proof_completed_date: "2026-06-02"
+proof_file_hash: "8661708e543e014d60ea43b08bab2ebfd42e9acc85e167e8d838fc0c22062773"
+verified_at_commit: "0855f25"
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v1.1: Correct fuzz target filename from decode_packet.rs to fuzz_decode_packet.rs to match delivered harness and STORY-003 AC-011; annotate pcap_source harness as unowned obligation — 2026-05-22"
   - "v1.2: Note that delivered harness is wider than skeleton (also fuzzes unsupported variants IEEE802_11, NULL, LOOP); update skeleton import to pcap_file::DataLink (STORY-003 pass-3 Nit-1) — 2026-05-22"
+  - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set (fuzz/fuzz_targets/fuzz_decode_packet.rs)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -159,6 +161,7 @@ Seed the fuzz corpus with:
 | Event | Date | Actor |
 |-------|------|-------|
 | Created | 2026-05-20 | architect |
-| Fuzz target committed | null | formal-verifier |
-| Initial fuzzing run (8h) completed | null | formal-verifier |
-| Corpus frozen | null | formal-verifier |
+| Fuzz target committed | 2026-06-02 | formal-verifier |
+| Initial fuzzing run (8h) completed | 2026-06-02 | formal-verifier |
+| Corpus frozen | 2026-06-02 | formal-verifier |
+| Locked (VERIFIED) | 2026-06-02 | spec-steward (Phase-6 gate) |

@@ -1,8 +1,8 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.2"
-status: draft
+version: "2.0"
+status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
 phase: 1c
@@ -17,14 +17,16 @@ bcs:
 module: src/reassembly/flow.rs
 proof_method: kani
 feasibility: feasible
-verification_lock: false
-proof_completed_date: null
-proof_file_hash: null
+verification_lock: true
+proof_completed_date: "2026-06-02"
+proof_file_hash: "02d1ad68d775bfdae345abf94399af59ffede19f26f5ea20f685b5d9f0caea35"
+verified_at_commit: "0855f25"
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v1.1: Wave 7 wave-level adv-pass-1 F-1: corrected on_data_without_syn anchor references from flow.rs:241 to flow.rs:248 (Wave 6 fin_count addition shifted lines +7; W4.1 recurrence). — 2026-05-25"
   - "v1.2: Wave 7 wave-level adv-pass-2 F-1 CRITICAL: completed the partial v1.1 fix by updating the Source Location section's on_syn/on_syn_ack/on_fin/on_rst anchors from pre-Wave-6 line numbers (229/235/248/257) to post-Wave-6 line numbers (236/242/255/264). The on_fin entry was previously colliding with on_data_without_syn at line 248 (same line claim) — corrected. Sibling-anchor sweep across all SS-04 BCs/VPs verified independently. — 2026-05-25"
+  - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -226,6 +228,6 @@ Note: FIN/RST state changes are implemented directly on `TcpFlow` in `flow.rs`;
 | Event | Date | Actor |
 |-------|------|-------|
 | Created | 2026-05-20 | architect |
-| Proof harness committed | null | formal-verifier |
-| Proof first passed | null | formal-verifier |
-| Locked (VERIFIED) | null | formal-verifier |
+| Proof harness committed | 2026-06-02 | formal-verifier |
+| Proof first passed | 2026-06-02 | formal-verifier |
+| Locked (VERIFIED) | 2026-06-02 | spec-steward (Phase-6 gate) |

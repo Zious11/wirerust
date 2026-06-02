@@ -1,8 +1,8 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.1"
-status: draft
+version: "2.0"
+status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
 phase: 1c
@@ -17,13 +17,15 @@ bcs:
 module: src/reporter/terminal.rs
 proof_method: integration
 feasibility: feasible
-verification_lock: false
-proof_completed_date: null
-proof_file_hash: null
+verification_lock: true
+proof_completed_date: "2026-06-02"
+proof_file_hash: "14019033a379d7fe8646b05e5e170d84a537fc5f9c84e6a667073054456a9fc0"
+verified_at_commit: "0855f25"
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v1.1: proof_method manual→integration to match body table + VP-INDEX (Wave-21 wave-level consistency lens; SS-11 reporter VP family harmonization completion — sibling of VP-017 fix in 86113c2; DF-SIBLING-SWEEP-001)"
+  - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set (tests/reporter_terminal_tests.rs)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -183,6 +185,6 @@ fn test_within_bucket_sort_verdict_first() {
 | Event | Date | Actor |
 |-------|------|-------|
 | Created | 2026-05-20 | architect |
-| Tests committed | null | formal-verifier |
-| Tests passing | null | formal-verifier |
-| Locked (VERIFIED) | null | formal-verifier |
+| Tests committed | 2026-06-02 | formal-verifier |
+| Tests passing | 2026-06-02 | formal-verifier |
+| Locked (VERIFIED) | 2026-06-02 | spec-steward (Phase-6 gate) |

@@ -1,8 +1,8 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.0"
-status: draft
+version: "2.0"
+status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
 phase: 1c
@@ -18,12 +18,19 @@ bcs:
 module: src/reassembly/segment.rs
 proof_method: kani
 feasibility: feasible
-verification_lock: false
-proof_completed_date: null
-proof_file_hash: null
+verification_lock: true
+proof_completed_date: "2026-06-02"
+proof_file_hash: "2b887139a9fc44d1a7623d4a91975f415c0e3335a2fe2d02062fa8b61a8f7c0c"
+verified_at_commit: "0855f25"
+formal_coverage_boundary: >
+  The overlap/conflict PREDICATES and the select_gaps gap-disjointness/partition
+  invariant are Kani-PROVEN (kernels `point_kept_by_existing`/`sweep_gaps_into`
+  proven byte-identical to select_gaps). The BTreeMap orchestration layer is
+  test-covered. Basis: proven OR justified per Phase-6 VP-002 gap closure (STORY-VP002-GAP).
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: []
+modified:
+  - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set. Formal coverage boundary documented: overlap predicates + select_gaps Kani-PROVEN; BTreeMap orchestration test-covered."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -190,6 +197,6 @@ intersect the new segment's `[offset, offset+len)` range.
 | Event | Date | Actor |
 |-------|------|-------|
 | Created | 2026-05-20 | architect |
-| Proof harness committed | null | formal-verifier |
-| Proof first passed | null | formal-verifier |
-| Locked (VERIFIED) | null | formal-verifier |
+| Proof harness committed | 2026-06-02 | formal-verifier |
+| Proof first passed | 2026-06-02 | formal-verifier |
+| Locked (VERIFIED) | 2026-06-02 | spec-steward (Phase-6 gate) |
