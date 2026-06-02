@@ -15575,3 +15575,516 @@ fn test_BC_2_04_054_segment_limit_finding_emitted_regardless_of_initial_count() 
         );
     }
 }
+
+// ============================================================================
+// Phase-6 mutation-survivor kills (mod.rs boundary + stats-counter mutants).
+//
+// These tests pin the EXACT behavior the surviving comparison-operator and
+// stats-counter mutations would break. Each asserts a value that diverges
+// between correct code and the mutant, so `cargo mutants` reports the mutant
+// CAUGHT. Survivor IDs reference
+// `.factory/.../mutation-results/mutation-summary-reassembly.md`.
+// ============================================================================
+
+/// Drive a SYN to establish the ISN, returning the configured reassembler,
+/// handler, and the client/server addresses for a single TCP flow. Centralizes
+/// the boilerplate the boundary/stats tests below all share.
+fn syn_established_flow(
+    config: ReassemblyConfig,
+) -> (TcpReassembler, RecordingHandler, [u8; 4], [u8; 4]) {
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+    (reassembler, handler, client, server)
+}
+
+// ---- GG-3 (mod.rs:206) — memcap eviction boundary `total_memory > memcap` ---
+//
+// The eviction gate at mod.rs:206 is `self.total_memory > self.config.memcap`
+// (strictly greater). The surviving mutant replaced `>` with `>=`.
+//
+// IMPORTANT — this `>`→`>=` mutant is EQUIVALENT (observationally inert), NOT a
+// killable test gap: `evict_flows` (lifecycle.rs) re-checks the bound with its
+// own loop guard `total_memory <= memcap` and breaks immediately, so even if the
+// mutant makes the outer gate fire at memory == memcap, the eviction loop evicts
+// nothing (evictions stay 0, no flow closes). Both `>` and `>=` therefore produce
+// identical observable output at the boundary. The cargo-mutants confirming run
+// reports mod.rs:206 `>`→`>=` as MISSED for exactly this reason — it cannot be
+// killed by any test without a production change to remove the redundant guard.
+//
+// These two tests do NOT (and cannot) kill the equivalent mutant. They PIN the
+// documented at-cap non-eviction contract as a regression guard, and prove the
+// eviction machinery still fires one byte past the cap.
+
+#[test]
+fn test_memcap_boundary_exactly_at_cap_does_not_evict() {
+    // Pins the contract: total_memory EXACTLY at memcap must not evict. (This
+    // does not kill the equivalent mod.rs:206 mutant — see the section note.)
+    //
+    // memcap == 5; a single buffered out-of-order 5-byte segment lands
+    // total_memory at EXACTLY 5, so the gate `5 > 5` is false and nothing evicts.
+    let config = ReassemblyConfig {
+        memcap: 5,
+        ..ReassemblyConfig::default()
+    };
+    let (mut reassembler, mut handler, client, server) = syn_established_flow(config);
+
+    // SYN set ISN=1000 and base_offset=1 (set_isn in flow.rs does NOT advance
+    // base_offset past 1 — it is the first data offset). Data at seq=1002 lands
+    // at ISN-relative offset 2, span [2,7); offset [1,2) (between base_offset=1
+    // and the segment start) is never filled, so the segment cannot flush and
+    // stays buffered. That keeps total_memory at exactly 5 (the assertion below
+    // is non-vacuous precisely because base_offset stays at 1 after the SYN).
+    let data = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"aaaaa", false, false, false, false,
+    );
+    reassembler.process_packet(&data, 2, &mut handler);
+
+    assert_eq!(
+        reassembler.total_memory(),
+        5,
+        "GG-3 setup: 5 buffered bytes must put total_memory exactly at the memcap"
+    );
+    assert_eq!(
+        reassembler.stats().evictions,
+        0,
+        "GG-3: total_memory == memcap must NOT trigger eviction (contract: gate is `>`)"
+    );
+    assert!(
+        !handler
+            .close_events
+            .iter()
+            .any(|(_, r)| *r == CloseReason::MemoryPressure),
+        "GG-3: no MemoryPressure close when memory is exactly at the cap"
+    );
+}
+
+#[test]
+fn test_memcap_boundary_one_over_cap_evicts() {
+    // Non-vacuousness companion: proves the eviction machinery actually fires
+    // just past the boundary, so the at-cap test above is not silent because
+    // eviction is simply broken. This is NOT itself a mutant-kill (the mod.rs:206
+    // mutant is equivalent — see the section note); it backstops the contract.
+    //
+    // memcap == 5; a buffered 6-byte segment puts total_memory at 6 == cap + 1.
+    // `6 > 5` is true under BOTH `>` and `>=`, so eviction fires.
+    let config = ReassemblyConfig {
+        memcap: 5,
+        ..ReassemblyConfig::default()
+    };
+    let (mut reassembler, mut handler, client, server) = syn_established_flow(config);
+
+    let data = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"aaaaaa", false, false, false, false,
+    );
+    reassembler.process_packet(&data, 2, &mut handler);
+
+    // Exactly one flow is buffered, so exactly one eviction fires. Asserting the
+    // precise count (not `>= 1`) also guards the `evictions += 1` counter in
+    // evict_flows against an operator mutation.
+    assert_eq!(
+        reassembler.stats().evictions,
+        1,
+        "GG-3: total_memory == memcap + 1 must trigger exactly one eviction"
+    );
+}
+
+// ---- GG-4 (mod.rs:394) — small-segment size threshold `len < max_bytes` -----
+//
+// "Small" is classified by `payload.len() < small_segment_max_bytes`
+// (strictly less). The surviving mutant replaced `<` with `<=`, which would
+// count a payload of EXACTLY the threshold size as "small". A run of
+// exactly-threshold-sized segments must therefore NOT build the small-segment
+// run (correct: `<`), so no anomaly fires. With the `<=` mutant the run builds
+// and the anomaly fires. A run of (threshold - 1)-sized segments DOES build the
+// run under both, confirming the detection machinery works (non-vacuous).
+
+/// Drive `count` data segments of exactly `payload_len` bytes (distinct,
+/// out-of-order behind a permanent gap so they stay buffered) through a flow
+/// with `small_segment_max_bytes == max_bytes` and the given small-segment
+/// alert `threshold`. Returns the reassembler so the caller can inspect findings.
+fn run_sized_segment_flow(
+    max_bytes: u16,
+    threshold: u32,
+    payload_len: usize,
+    count: u32,
+) -> TcpReassembler {
+    let config = ReassemblyConfig {
+        small_segment_max_bytes: max_bytes,
+        small_segment_alert_threshold: threshold,
+        ..ReassemblyConfig::default()
+    };
+    let (mut reassembler, mut handler, client, server) = syn_established_flow(config);
+
+    // Leave offset 1 unfilled (the SYN set base_offset=1) so every data
+    // segment stays buffered and reaches the reassembly window (it is counted
+    // by the small-segment classifier regardless of whether it flushes).
+    let payload = vec![b'x'; payload_len];
+    // Start at offset 2 (seq 1002) and place each segment contiguously after
+    // the previous so there are no overlaps (each is `Inserted`, reaching the
+    // window and so feeding the small-segment classifier).
+    for i in 0..count {
+        let seq = 1002_u32 + i * payload_len as u32;
+        let ts = 2_u32 + i;
+        let pkt = make_tcp_packet(
+            client, 12345, server, 80, seq, &payload, false, true, false, false,
+        );
+        reassembler.process_packet(&pkt, ts, &mut handler);
+    }
+    reassembler
+}
+
+#[test]
+fn test_small_segment_size_at_exact_threshold_is_not_small() {
+    // small_segment_max_bytes = 4, alert threshold = 3. Send 8 segments of
+    // EXACTLY 4 bytes. Correct `<`: `4 < 4` == false, so none are "small",
+    // the run never advances past 0, and NO anomaly fires.
+    // The `<=` mutant makes `4 <= 4` == true, every segment counts as small,
+    // the run climbs to 8 (> 3), and the anomaly fires — which this test forbids.
+    let reasm = run_sized_segment_flow(4, 3, 4, 8);
+    assert!(
+        !fired_small_segment(&reasm),
+        "GG-4: segments of size == small_segment_max_bytes must NOT count as small \
+         (classifier is `<`, not `<=`), so no small-segment anomaly may fire"
+    );
+}
+
+#[test]
+fn test_small_segment_size_one_below_threshold_is_small() {
+    // small_segment_max_bytes = 4, alert threshold = 3. Send 8 segments of
+    // EXACTLY 3 bytes. `3 < 4` == true under BOTH `<` and `<=`, so each is
+    // "small", the run climbs to 8 (> 3), and the anomaly MUST fire. This is
+    // the correct-code companion proving the run-building machinery works, so
+    // the at-threshold test above is not vacuously silent.
+    let reasm = run_sized_segment_flow(4, 3, 3, 8);
+    assert!(
+        fired_small_segment(&reasm),
+        "GG-4: a long run of (threshold - 1)-sized segments must fire the small-segment anomaly"
+    );
+}
+
+// ---- GG-6..GG-11 (mod.rs:403/405/406/409/413) — stats-counter accuracy ------
+//
+// The InsertResult match arms bump `self.stats.segments_* += 1`. The surviving
+// mutants replaced `+=` with `*=` (a no-op when adding 1) or `-=` (decrement /
+// underflow). Asserting the EXACT counter value after a known number of
+// operations diverges from both: a no-op leaves the counter below the expected
+// total, and a decrement drives it below (underflow-panics from 0). Each test
+// drives exactly one representative operation of the relevant InsertResult.
+
+#[test]
+fn test_stats_duplicate_counter_exact() {
+    // GG (mod.rs:403): InsertResult::Duplicate => segments_duplicates += 1.
+    // Buffer b"AAAA" out of order, then re-send the IDENTICAL bytes at the same
+    // offset → Duplicate (fully covered, no conflict). Exactly one Duplicate.
+    let (mut reassembler, mut handler, client, server) =
+        syn_established_flow(ReassemblyConfig::default());
+
+    let original = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+    );
+    reassembler.process_packet(&original, 2, &mut handler);
+    let dup = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+    );
+    reassembler.process_packet(&dup, 3, &mut handler);
+
+    assert_eq!(
+        reassembler.stats().segments_duplicates,
+        1,
+        "GG (403): exactly one identical retransmission must count as one duplicate \
+         (kills `+=`→`*=`/`-=` on segments_duplicates)"
+    );
+}
+
+#[test]
+fn test_stats_partial_overlap_counters_exact() {
+    // GG (mod.rs:405/406): InsertResult::PartialOverlap =>
+    //   segments_overlaps += 1; segments_inserted += 1.
+    // Buffer b"AA" at offset 2 ([2,4)), then send b"ABCD" at offset 3 ([3,7)):
+    // overlaps [3,4) with existing, leaves gap [4,7) to insert → PartialOverlap.
+    //
+    // The overlap region is a single byte at offset 3. It is `A` in BOTH
+    // segments — existing b"AA"[3-2]=='A' and new b"ABCD"[3-3]=='A' — i.e. the
+    // overlap AGREES, so this is a NON-conflicting (clean) partial overlap. That
+    // is why the result is PartialOverlap (bumping both segments_overlaps and
+    // segments_inserted), and NOT ConflictingOverlap (which would skip the
+    // segments_inserted bump). A differing overlap byte here would change the
+    // classification and the expected counter values below.
+    let (mut reassembler, mut handler, client, server) =
+        syn_established_flow(ReassemblyConfig::default());
+
+    let first = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AA", false, false, false, false,
+    );
+    reassembler.process_packet(&first, 2, &mut handler);
+    // segments_inserted is now 1 (the clean insert above).
+    assert_eq!(reassembler.stats().segments_inserted, 1);
+    assert_eq!(reassembler.stats().segments_overlaps, 0);
+
+    let overlap = make_tcp_packet(
+        client, 12345, server, 80, 1003, b"ABCD", false, false, false, false,
+    );
+    reassembler.process_packet(&overlap, 3, &mut handler);
+
+    assert_eq!(
+        reassembler.stats().segments_overlaps,
+        1,
+        "GG (405): one partial overlap must add exactly one to segments_overlaps"
+    );
+    assert_eq!(
+        reassembler.stats().segments_inserted,
+        2,
+        "GG (406): the partial-overlap insert must add exactly one to segments_inserted \
+         (1 from the clean insert + 1 here)"
+    );
+}
+
+#[test]
+fn test_stats_conflicting_overlap_counter_exact() {
+    // GG (mod.rs:409): InsertResult::ConflictingOverlap => segments_overlaps += 1
+    // (no segments_inserted bump — the conflicting bytes lose under first-wins).
+    // Buffer b"AAAA" at offset 2, then send b"BBBB" at the SAME offset (fully
+    // covered, bytes differ) → ConflictingOverlap. Exactly one overlap counted.
+    let (mut reassembler, mut handler, client, server) =
+        syn_established_flow(ReassemblyConfig::default());
+
+    let original = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+    );
+    reassembler.process_packet(&original, 2, &mut handler);
+    assert_eq!(reassembler.stats().segments_inserted, 1);
+
+    let conflict = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"BBBB", false, false, false, false,
+    );
+    reassembler.process_packet(&conflict, 3, &mut handler);
+
+    assert_eq!(
+        reassembler.stats().segments_overlaps,
+        1,
+        "GG (409): one conflicting overlap must add exactly one to segments_overlaps \
+         (kills `+=`→`*=`/`-=`)"
+    );
+    assert_eq!(
+        reassembler.stats().segments_inserted,
+        1,
+        "GG (409): a conflicting overlap inserts NO new bytes — segments_inserted unchanged"
+    );
+    // CR-008: the conflicting overlap also EMITS exactly one finding. A single
+    // conflict on a fresh flow trips no other alert (overlap-count and
+    // small-segment thresholds are far higher under the default config), so the
+    // finding count is exactly 1 — covering the generate_conflicting_overlap_finding
+    // emission path alongside the counter assertions above.
+    assert_eq!(
+        reassembler.findings().len(),
+        1,
+        "GG (409): a conflicting overlap must emit exactly one finding"
+    );
+}
+
+#[test]
+fn test_stats_truncated_counter_exact() {
+    // GG (mod.rs:413): InsertResult::Truncated => segments_inserted += 1.
+    // With max_depth = 3 and an out-of-order segment longer than the remaining
+    // depth, insert_segment truncates to the allowed length and returns
+    // Truncated — which bumps segments_inserted by exactly one.
+    let config = ReassemblyConfig {
+        max_depth: 3,
+        ..ReassemblyConfig::default()
+    };
+    let (mut reassembler, mut handler, client, server) = syn_established_flow(config);
+
+    // Out-of-order (offset 2, gap at offset 1) 5-byte payload; only 3 bytes fit
+    // the depth, so it is truncated-and-inserted.
+    let data = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"aaaaa", false, false, false, false,
+    );
+    reassembler.process_packet(&data, 2, &mut handler);
+
+    assert_eq!(
+        reassembler.stats().segments_inserted,
+        1,
+        "GG (413): a truncated-and-inserted segment must add exactly one to \
+         segments_inserted (kills `+=`→`*=`/`-=`)"
+    );
+}
+
+// ---- GG-5 + GG-12/GG-13 (mod.rs:422/423/424) — segment-limit partial path ---
+//
+// Inside the overlap gap-insertion loop, hitting `self.segments.len() >=
+// max_segments` mid-loop returns SegmentLimitReached. The arm then runs the
+// partial-insertion block ONLY when `bytes_added > 0` (GG-5, line 422), bumping
+// segments_overlaps (423) and segments_inserted (424) by one each. We construct
+// an overlap that yields TWO gaps and set max_segments so the first gap inserts
+// (bytes_added > 0) but the second hits the cap.
+
+#[test]
+fn test_stats_segment_limit_partial_insertion_counters_exact() {
+    // base_offset = 1 after SYN. Buffer two segments, BOTH behind the permanent
+    // gap at offset 1 so neither flushes (segment count stays at 2):
+    //   - segment at offset 3 ([3,4)) — clean insert (segments_inserted = 1)
+    //   - segment at offset 9 ([9,10)) — clean insert (segments_inserted = 2)
+    // Buffer now holds 2 segments; max_segments = 3.
+    // Then send b"BBBBBBBBBB" at offset 2 ([2,12)): it overlaps BOTH buffered
+    // segments, so select_gaps yields gaps [2,3), [4,9), [10,12). The loop
+    // inserts the first gap [2,3) (segments.len() 2 -> 3, bytes_added > 0), then
+    // on the next gap finds segments.len() == 3 >= max_segments and breaks →
+    // SegmentLimitReached WITH partial insertion. The arm runs the
+    // `bytes_added > 0` block: segments_overlaps += 1, segments_inserted += 1.
+    let config = ReassemblyConfig {
+        max_segments_per_direction: 3,
+        ..ReassemblyConfig::default()
+    };
+    let (mut reassembler, mut handler, client, server) = syn_established_flow(config);
+
+    // offset 3 ([3,4)): seq = 1003 — behind the gap at offset 1, stays buffered.
+    let s1 = make_tcp_packet(
+        client, 12345, server, 80, 1003, b"C", false, false, false, false,
+    );
+    reassembler.process_packet(&s1, 2, &mut handler);
+    // offset 9 ([9,10)): seq = 1009 — also buffered.
+    let s2 = make_tcp_packet(
+        client, 12345, server, 80, 1009, b"I", false, false, false, false,
+    );
+    reassembler.process_packet(&s2, 3, &mut handler);
+
+    // Precondition: both clean inserts are buffered, neither flushed.
+    assert_eq!(
+        reassembler.stats().segments_inserted,
+        2,
+        "GG-5 setup: both out-of-order segments must be buffered (2 clean inserts)"
+    );
+    let inserted_before = reassembler.stats().segments_inserted;
+    let overlaps_before = reassembler.stats().segments_overlaps;
+    let seg_limit_before = reassembler.stats().segments_segment_limit;
+
+    // Overlapping segment spanning [2,12): seq = 1002, 10 bytes.
+    let overlap = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1002,
+        b"BBBBBBBBBB",
+        false,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&overlap, 4, &mut handler);
+
+    // SegmentLimitReached must have been recorded exactly once for this packet.
+    assert_eq!(
+        reassembler.stats().segments_segment_limit,
+        seg_limit_before + 1,
+        "GG: the overlap hitting the segment cap mid-gap-loop must record one \
+         SegmentLimitReached"
+    );
+    // GG-5 (422) + GG-12 (423) + GG-13 (424): because the first gap WAS inserted
+    // (bytes_added > 0), the partial-insertion block bumps both counters by one.
+    assert_eq!(
+        reassembler.stats().segments_overlaps,
+        overlaps_before + 1,
+        "GG-5/GG-12 (422/423): partial insertion on the segment-limit path must add \
+         exactly one to segments_overlaps (kills `bytes_added > 0`→`< 0` and `+=`→`*=`/`-=`)"
+    );
+    assert_eq!(
+        reassembler.stats().segments_inserted,
+        inserted_before + 1,
+        "GG-13 (424): partial insertion on the segment-limit path must add exactly one \
+         to segments_inserted (kills `+=`→`*=`/`-=`)"
+    );
+}
+
+// ---- GG-2 (mod.rs:166) — idle-sweep gate `timestamp > last_expiry_sweep_secs`
+//
+// The idle-flow expiry sweep fires when `timestamp > self.last_expiry_sweep_secs`
+// (strictly greater), running the O(n) scan at most once per unique second. The
+// surviving mutant replaced `>` with `>=`. The output (which flows expire) is
+// identical because the sweep is idempotent within a second, so this is listed
+// as borderline-equivalent. We still pin the OBSERVABLE contract that matters
+// for anti-evasion: a flow idle for exactly `flow_timeout_secs + 1` is expired,
+// and one idle for exactly `flow_timeout_secs` is NOT — the expiry boundary
+// itself. (We do not attempt to count sweep invocations, which is not observable
+// through the public API and is the only thing `>` vs `>=` changes.)
+
+#[test]
+fn test_idle_flow_expiry_boundary_exact() {
+    // flow_timeout_secs = 10. A flow last seen at t=2; a later packet on a
+    // DIFFERENT flow at t=12 (idle gap == 10) must NOT expire the first flow;
+    // a packet at t=13 (idle gap == 11 == timeout + 1) MUST expire it.
+    let config = ReassemblyConfig {
+        flow_timeout_secs: 10,
+        ..ReassemblyConfig::default()
+    };
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let a_client = [10, 0, 0, 1];
+    let b_client = [10, 0, 0, 3];
+    let server = [10, 0, 0, 2];
+
+    // Flow A established at t=2.
+    let syn_a = make_tcp_packet(
+        a_client,
+        11111,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_a, 2, &mut handler);
+    assert_eq!(reassembler.flow_count(), 1);
+
+    // Flow B at t=12: triggers a sweep at timestamp 12 (> last sweep 2). Flow A's
+    // idle gap is exactly 10 == timeout → NOT yet expired (expiry is gap > timeout).
+    let syn_b = make_tcp_packet(
+        b_client,
+        22222,
+        server,
+        80,
+        2000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn_b, 12, &mut handler);
+    assert_eq!(
+        reassembler.flow_count(),
+        2,
+        "GG-2 boundary: flow idle for exactly flow_timeout_secs must NOT be expired"
+    );
+
+    // Another packet on flow B at t=13: sweep at 13 (> 12). Flow A's idle gap is
+    // now 11 == timeout + 1 → expired. Flow B remains.
+    let data_b = make_tcp_packet(
+        b_client, 22222, server, 80, 2001, b"z", false, true, false, false,
+    );
+    reassembler.process_packet(&data_b, 13, &mut handler);
+    assert_eq!(
+        reassembler.flow_count(),
+        1,
+        "GG-2 boundary: flow idle for flow_timeout_secs + 1 must be expired by the sweep"
+    );
+}
