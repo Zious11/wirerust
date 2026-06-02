@@ -6370,14 +6370,19 @@ mod vp_014_cross_flow_isolation {
 
     proptest! {
         // CR-004: integration tests live under `tests/`, where proptest's default
-        // `SourceParallel` persistence cannot locate the crate root and silently
-        // drops failure seeds. Pin `WithSource("proptest-regressions")` so a future
-        // counterexample is written next to the crate (matching the in-crate VP-006
-        // / VP-012 regression dirs) and replayed on subsequent runs.
+        // `SourceParallel` cannot find a lib.rs/main.rs ancestor and falls back to
+        // a sibling file. `WithSource` is no better here — for tests/foo.rs it just
+        // swaps the extension, yielding tests/foo.proptest-regressions rather than
+        // the crate-root regressions directory we want. `Direct(path)` uses the
+        // path verbatim relative to CWD, which is the crate root during `cargo
+        // test`, so the seed lands in proptest-regressions/ alongside the VP-006
+        // (src) and VP-012 (reporter) seed trees.
         #![proptest_config(ProptestConfig {
             cases: 1000,
             failure_persistence: Some(Box::new(
-                proptest::test_runner::FileFailurePersistence::WithSource("proptest-regressions"),
+                proptest::test_runner::FileFailurePersistence::Direct(
+                    "proptest-regressions/http_analyzer_tests.txt",
+                ),
             )),
             ..ProptestConfig::default()
         })]
@@ -6473,18 +6478,70 @@ mod vp_014_cross_flow_isolation {
         // inherit poisoning or a polluted buffer from the prior flow instance.
         #[test]
         fn prop_close_and_reopen_starts_fresh(
+            // Number of EXTRA invalid chunks (beyond the 3 needed to poison) and
+            // some arbitrary leading garbage, so the poisoned path is reached over
+            // a range of inputs rather than a single fixed sequence.
+            extra_errors in 0usize..=5,
             initial_data in prop::collection::vec(any::<u8>(), 1..100),
         ) {
             let mut analyzer = HttpAnalyzer::new();
             let key = key_a();
 
-            // Accumulate arbitrary (likely error-inducing) state on the flow.
+            // CR-008: genuinely POISON the request direction before closing.
+            // A single on_data call clears its buffer on error, so it yields at
+            // most ONE parse error — never crossing POISON_THRESHOLD (3). We must
+            // feed >= 3 SEPARATE invalid chunks. Each `\xFF\xFE...` chunk starts
+            // with a non-token byte, so httparse errors immediately (not Partial).
+            let garbage: &[u8] = b"\xFF\xFE not http";
+            for _ in 0..(3 + extra_errors) {
+                <HttpAnalyzer as StreamHandler>::on_data(
+                    &mut analyzer,
+                    &key,
+                    Direction::ClientToServer,
+                    garbage,
+                    0,
+                );
+            }
+            // Also push some arbitrary additional bytes (now skipped since the
+            // direction is poisoned) — does not affect the poisoned state.
             <HttpAnalyzer as StreamHandler>::on_data(
                 &mut analyzer,
                 &key,
                 Direction::ClientToServer,
                 &initial_data,
                 0,
+            );
+
+            // ASSERT the flow really IS poisoned before we close it, otherwise
+            // the reopen-fresh check below would be vacuous. Two independent
+            // witnesses of the poisoned state:
+            //  (a) at least 3 parse errors were recorded (threshold crossed), and
+            //  (b) a fresh VALID request sent NOW is skipped, not parsed — proven
+            //      by poisoned_bytes_skipped growing and the GET tally NOT moving.
+            prop_assert!(
+                analyzer.parse_error_count() >= 3,
+                "pre-close flow was not poisoned: only {} parse errors (< POISON_THRESHOLD)",
+                analyzer.parse_error_count()
+            );
+            let skipped_before_probe = analyzer.poisoned_bytes_skipped();
+            let get_before_probe = analyzer.method_counts().get("GET").copied().unwrap_or(0);
+            let valid_req = b"GET / HTTP/1.1\r\nHost: a.example.com\r\n\r\n";
+            <HttpAnalyzer as StreamHandler>::on_data(
+                &mut analyzer,
+                &key,
+                Direction::ClientToServer,
+                valid_req,
+                0,
+            );
+            prop_assert_eq!(
+                analyzer.poisoned_bytes_skipped(),
+                skipped_before_probe + valid_req.len() as u64,
+                "pre-close flow not poisoned: a valid request was parsed instead of skipped"
+            );
+            prop_assert_eq!(
+                analyzer.method_counts().get("GET").copied().unwrap_or(0),
+                get_before_probe,
+                "pre-close flow not poisoned: GET tally moved (request was not skipped)"
             );
 
             // Close removes per-flow state (http.rs:540 self.flows.remove(key)).
@@ -6494,27 +6551,39 @@ mod vp_014_cross_flow_isolation {
                 CloseReason::Fin,
             );
 
-            // Baseline AFTER close: any errors from initial_data are already
-            // counted; the reopened valid request must not add to this.
+            // Baselines AFTER close: prior errors/skips are already counted; the
+            // reopened valid request must not add a parse error and MUST parse.
             let errors_before = analyzer.parse_error_count();
+            let skipped_before = analyzer.poisoned_bytes_skipped();
             let get_before = analyzer.method_counts().get("GET").copied().unwrap_or(0);
 
-            // Reopen the same key with a fresh valid request. Because state was
-            // removed, this is a brand-new flow: it must parse cleanly even if the
-            // prior instance had been poisoned.
+            // Reopen the SAME key with a fresh valid request. Because close removed
+            // the per-flow state, this is a brand-new HttpFlowState (BC-2.06.019):
+            // it MUST parse cleanly and MUST NOT inherit the prior poisoning.
             <HttpAnalyzer as StreamHandler>::on_data(
                 &mut analyzer,
                 &key,
                 Direction::ClientToServer,
-                b"GET / HTTP/1.1\r\nHost: a.example.com\r\n\r\n",
+                valid_req,
                 0,
             );
 
+            // (1) No new parse error from the valid request.
             prop_assert_eq!(
                 analyzer.parse_error_count(),
                 errors_before,
-                "valid request after close+reopen caused a parse error — stale poisoning leaked"
+                "valid request after close+reopen caused a parse error — stale state leaked"
             );
+            // (2) The reopened request was PARSED, not skipped — proves the
+            //     poisoned flag did NOT carry over (this is the regression guard
+            //     that would FAIL if close failed to remove the poisoned state).
+            prop_assert_eq!(
+                analyzer.poisoned_bytes_skipped(),
+                skipped_before,
+                "reopened flow inherited poisoning: valid request was skipped, not parsed"
+            );
+            // (3) The GET tally incremented by exactly one — the fresh flow
+            //     genuinely parsed the request.
             prop_assert_eq!(
                 analyzer.method_counts().get("GET").copied().unwrap_or(0),
                 get_before + 1,

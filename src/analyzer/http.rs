@@ -851,7 +851,23 @@ mod vp_006_proptest_proofs {
     }
 
     proptest! {
-        #![proptest_config(ProptestConfig { cases: 1000, ..ProptestConfig::default() })]
+        // CR-007: pin failure persistence explicitly. This harness lives in
+        // src/, where `SourceParallel` (the proptest default) walks up to the
+        // src/ boundary (lib.rs) and writes the seed to the crate-root parallel
+        // tree `proptest-regressions/analyzer/http.txt`. NOTE: `WithSource` is
+        // the WRONG variant here — for a src/ file it would only swap the
+        // extension, yielding the sibling `src/analyzer/http.proptest-regressions`
+        // instead of the crate-root regressions directory. (Integration tests
+        // under tests/ need `Direct(..)`; see VP-014's config.)
+        #![proptest_config(ProptestConfig {
+            cases: 1000,
+            failure_persistence: Some(Box::new(
+                proptest::test_runner::FileFailurePersistence::SourceParallel(
+                    "proptest-regressions",
+                ),
+            )),
+            ..ProptestConfig::default()
+        })]
 
         // VP-006 monotonicity WITH falsification power (CR-001 + CR-002).
         //
