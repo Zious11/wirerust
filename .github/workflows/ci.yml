@@ -143,16 +143,13 @@ jobs:
       - name: Run cargo audit
         # --ignore flags suppress informational (non-vulnerability) advisories
         # that are blocked by transitive dependency constraints:
-        #   RUSTSEC-2025-0119: number_prefix unmaintained (via indicatif 0.17.x
-        #     — no newer release fixes this; indicatif is a dev/progress dep)
         #   RUSTSEC-2026-0097: rand 0.8.5 unsound (via phf_generator -> tls-parser
         #     — rand upgrade is tls-parser upstream's responsibility; not a direct
         #     dep and the unsound path requires a custom logger + reseed race)
-        # Both are informational findings, not CVE-severity vulnerabilities.
-        # Revisit when indicatif or tls-parser releases a fix.
+        # RUSTSEC-2025-0119 (number_prefix unmaintained) was resolved by bumping
+        # indicatif 0.17→0.18, which replaced number_prefix with unit-prefix.
         run: |
           cargo audit \
-            --ignore RUSTSEC-2025-0119 \
             --ignore RUSTSEC-2026-0097
 
   deny:
