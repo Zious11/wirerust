@@ -917,6 +917,101 @@ fn test_conflicting_overlap_finding() {
     assert_eq!(conflict_finding.confidence, Confidence::High);
 }
 
+// --- VP-002 G3 — END-TO-END first-wins byte survival through the engine ------
+/// A finding being EMITTED is necessary but NOT sufficient for the anti-evasion
+/// guarantee: the forensic-correctness contract (VP-002) requires that the
+/// ATTACKER's conflicting bytes are ABSENT from the reassembled stream actually
+/// delivered to the handler — the original (first-arrived) bytes must win all
+/// the way out to `on_data`. The unit-level G1/G2 tests prove buffer survival;
+/// this proves the delivered STREAM is clean end-to-end.
+///
+/// Scenario (TCP overlap evasion):
+/// - SYN: ISN=1000, base_offset=1.
+/// - seq=1002 (offset 2) b"AAAA" — buffered out of order (gap at offset 1).
+/// - seq=1002 (offset 2) b"BBBB" — CONFLICTING overlap; first-wins keeps "AAAA".
+/// - seq=1001 (offset 1) b"X" — fills the gap, contiguous flush of [1,6).
+///
+/// The delivered stream must be b"XAAAA": the attacker's 'B' bytes must never
+/// appear in any on_data callback.
+#[test]
+fn test_vp002_g3_end_to_end_conflicting_bytes_absent_from_stream() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 0, 0, 1];
+    let server = [10, 0, 0, 2];
+
+    // SYN — establishes ISN=1000, base_offset=1.
+    let syn = make_tcp_packet(
+        client,
+        12345,
+        server,
+        80,
+        1000,
+        &[],
+        true,
+        false,
+        false,
+        false,
+    );
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // 1. Original out-of-order segment (offset 2): buffered, not yet flushed.
+    let original = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"AAAA", false, false, false, false,
+    );
+    reassembler.process_packet(&original, 2, &mut handler);
+    assert!(
+        handler.data_events.is_empty(),
+        "G3 setup: offset-2 segment must stay buffered behind the gap at offset 1"
+    );
+
+    // 2. Attacker conflicting overlap at the SAME offset, different bytes.
+    let attacker = make_tcp_packet(
+        client, 12345, server, 80, 1002, b"BBBB", false, false, false, false,
+    );
+    reassembler.process_packet(&attacker, 3, &mut handler);
+
+    // 3. Fill the gap at offset 1 → triggers contiguous flush of [1,6).
+    let gap_fill = make_tcp_packet(
+        client, 12345, server, 80, 1001, b"X", false, false, false, false,
+    );
+    reassembler.process_packet(&gap_fill, 4, &mut handler);
+
+    // The delivered stream must contain the FIRST-arrived bytes only.
+    let delivered = handler.all_data();
+    assert_eq!(
+        delivered, b"XAAAA",
+        "G3: delivered stream must be the first-wins bytes 'XAAAA', not the attacker's 'BBBB'"
+    );
+    // Anti-evasion: the attacker's conflicting byte 'B' (0x42) must be ABSENT
+    // from the entire delivered stream, not merely flagged by a finding.
+    assert!(
+        !delivered.contains(&b'B'),
+        "G3: attacker conflicting byte 'B' must be ABSENT from the delivered stream"
+    );
+
+    // And the conflict was still surfaced as a finding (detection + correctness).
+    // Match on the structured fields (category/verdict/confidence + MITRE
+    // technique) rather than the human-readable summary string, which is brittle
+    // to wording changes. The conflicting-overlap finding is uniquely identified
+    // by Anomaly + Likely + High + T1036 (the "Excessive segment overlaps"
+    // anomaly is Medium confidence), per src/reassembly/lifecycle.rs and
+    // BC-2.04.018.
+    let findings = reassembler.findings();
+    assert!(
+        findings.iter().any(|f| {
+            f.category == ThreatCategory::Anomaly
+                && f.verdict == Verdict::Likely
+                && f.confidence == Confidence::High
+                && f.mitre_technique.as_deref() == Some("T1036")
+        }),
+        "G3: a conflicting-overlap finding (Anomaly/Likely/High, MITRE T1036) must still be \
+         emitted alongside byte preservation — detection and forensic correctness together"
+    );
+}
+
 #[test]
 fn test_max_segments_per_direction() {
     let config = ReassemblyConfig {
