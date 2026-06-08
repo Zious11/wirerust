@@ -27,7 +27,7 @@ static ISN_MISSING_WARNED_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(())
 
 /// Test handler that records all callbacks.
 struct RecordingHandler {
-    data_events: Vec<(FlowKey, Direction, Vec<u8>, u64)>,
+    data_events: Vec<(FlowKey, Direction, Vec<u8>, u64, u32)>,
     close_events: Vec<(FlowKey, CloseReason)>,
 }
 
@@ -42,15 +42,22 @@ impl RecordingHandler {
     fn all_data(&self) -> Vec<u8> {
         self.data_events
             .iter()
-            .flat_map(|(_, _, data, _)| data.iter().copied())
+            .flat_map(|(_, _, data, _, _)| data.iter().copied())
             .collect()
     }
 }
 
 impl StreamHandler for RecordingHandler {
-    fn on_data(&mut self, flow_key: &FlowKey, direction: Direction, data: &[u8], offset: u64) {
+    fn on_data(
+        &mut self,
+        flow_key: &FlowKey,
+        direction: Direction,
+        data: &[u8],
+        offset: u64,
+        timestamp: u32,
+    ) {
         self.data_events
-            .push((flow_key.clone(), direction, data.to_vec(), offset));
+            .push((flow_key.clone(), direction, data.to_vec(), offset, timestamp));
     }
 
     fn on_flow_close(&mut self, flow_key: &FlowKey, reason: CloseReason) {
@@ -16087,4 +16094,95 @@ fn test_idle_flow_expiry_boundary_exact() {
         1,
         "GG-2 boundary: flow idle for flow_timeout_secs + 1 must be expired by the sweep"
     );
+}
+
+// ── STORY-097 / BC-2.04.055 — on_data timestamp threading tests ──────────────
+
+/// AC-002: `flush_contiguous_data` passes the current-packet `timestamp_secs`
+/// to `on_data`.  Drive a synthetic flow with a known `ts_sec` and assert the
+/// `RecordingHandler` captures that exact value in the fifth tuple element.
+///
+/// BC-2.04.055 postcondition 1 (hot-path case).
+#[test]
+fn test_flush_contiguous_data_passes_current_packet_timestamp() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 1, 0, 1];
+    let server = [10, 1, 0, 2];
+    let ts_expected: u32 = 5_000;
+
+    // SYN to establish the flow.
+    let syn = make_tcp_packet(client, 30001, server, 80, 100, &[], true, false, false, false);
+    reassembler.process_packet(&syn, ts_expected - 1, &mut handler);
+
+    // Data packet at the expected timestamp; this triggers flush_contiguous_data.
+    let data_pkt =
+        make_tcp_packet(client, 30001, server, 80, 101, b"hello", false, true, false, false);
+    reassembler.process_packet(&data_pkt, ts_expected, &mut handler);
+
+    // The flush must have produced exactly one data event.
+    assert_eq!(
+        handler.data_events.len(),
+        1,
+        "AC-002: exactly one on_data call expected after in-order data packet"
+    );
+    // The fifth element of the tuple must carry the packet timestamp.
+    assert_eq!(
+        handler.data_events[0].4,
+        ts_expected,
+        "AC-002 (BC-2.04.055 post-1 hot-path): on_data must receive the current-packet timestamp"
+    );
+}
+
+/// AC-003: `close_flow` passes `flow.last_seen` to `on_data`.  Set up a flow
+/// with a known `last_seen`, trigger a FIN close with remaining buffered data,
+/// and assert the handler receives `flow.last_seen` as the timestamp.
+///
+/// BC-2.04.055 postcondition 1 (close-flush case).
+#[test]
+fn test_close_flow_passes_flow_last_seen_timestamp() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    let client = [10, 2, 0, 1];
+    let server = [10, 2, 0, 2];
+    let last_seen_ts: u32 = 3_000;
+
+    // SYN at t=1.
+    let syn = make_tcp_packet(client, 40001, server, 80, 200, &[], true, false, false, false);
+    reassembler.process_packet(&syn, 1, &mut handler);
+
+    // Data arrives and is buffered (out-of-order: seq=202 before 201, so no flush yet).
+    // seq=202 payload=b"world" — arrives first, held in buffer.
+    let ooo = make_tcp_packet(client, 40001, server, 80, 202, b"world", false, true, false, false);
+    reassembler.process_packet(&ooo, last_seen_ts, &mut handler);
+
+    // No flush yet (gap at seq=201 not filled).
+    assert!(
+        handler.data_events.is_empty(),
+        "AC-003 setup: out-of-order data must not flush before gap is filled"
+    );
+
+    // FIN at `last_seen_ts` carrying the gap-filler seq=201 payload.
+    // FIN triggers close_flow → flush_contiguous → on_data with flow.last_seen.
+    let fin_with_data =
+        make_tcp_packet(client, 40001, server, 80, 201, b"hi", false, true, true, false);
+    reassembler.process_packet(&fin_with_data, last_seen_ts, &mut handler);
+
+    // At least one on_data call must have happened during the close flush.
+    assert!(
+        !handler.data_events.is_empty(),
+        "AC-003: close_flow must flush buffered data via on_data"
+    );
+    // Every on_data call during close_flow must carry flow.last_seen as timestamp.
+    for (i, event) in handler.data_events.iter().enumerate() {
+        assert_eq!(
+            event.4,
+            last_seen_ts,
+            "AC-003 (BC-2.04.055 post-1 close-flush): on_data[{i}] must carry flow.last_seen={last_seen_ts}"
+        );
+    }
 }
