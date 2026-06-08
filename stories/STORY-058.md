@@ -2,10 +2,10 @@
 document_type: story
 story_id: "STORY-058"
 epic_id: "E-5"
-version: "1.4"
+version: "1.5"
 status: draft
 producer: story-writer
-timestamp: 2026-05-21T00:00:00Z
+timestamp: 2026-06-08T00:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-07/BC-2.07.004.md
@@ -36,6 +36,15 @@ estimated_days: 2
 assumption_validations: []
 risk_mitigations: []
 tdd_mode: strict
+nfr:
+  - NFR-REL-003
+  - NFR-REL-010
+  - NFR-RES-014
+  - NFR-RES-015
+  - NFR-RES-016
+  - NFR-OBS-002
+  - NFR-SEC-008
+  - NFR-RES-020
 implementation_strategy: brownfield-formalization
 ---
 

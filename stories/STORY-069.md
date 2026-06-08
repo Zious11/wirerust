@@ -2,10 +2,10 @@
 document_type: story
 story_id: STORY-069
 epic_id: E-7
-version: "1.3"
+version: "1.4"
 status: completed
 producer: story-writer
-timestamp: 2026-05-21T00:00:00Z
+timestamp: 2026-06-08T00:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.001.md
@@ -30,6 +30,8 @@ target_module: findings
 subsystems: [SS-09]
 estimated_days: 2
 tdd_mode: strict
+nfr:
+  - NFR-SEC-001
 implementation_strategy: brownfield-formalization
 ---
 

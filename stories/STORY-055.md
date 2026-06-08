@@ -2,10 +2,10 @@
 document_type: story
 story_id: "STORY-055"
 epic_id: "E-5"
-version: "1.3"
+version: "1.4"
 status: completed
 producer: story-writer
-timestamp: 2026-05-21T00:00:00Z
+timestamp: 2026-06-08T00:00:00Z
 changelog:
   - "v1.1: input-hash confirmed current (78aecf0) after BC-2.07.018 v1.3 propagation (café.example é-restore, F-W17-S055-P2-001) — 2026-05-29"
   - "v1.2: AC Test citations synced to BC-prefixed discriminating test names per DF-AC-TEST-NAME-SYNC-001 v2 (F-W17-WAVE-C-001/T-001); sibling-sweep of legacy names complete — 2026-05-29"
@@ -38,6 +38,8 @@ estimated_days: 2
 assumption_validations: []
 risk_mitigations: []
 tdd_mode: strict
+nfr:
+  - NFR-SEC-005
 implementation_strategy: brownfield-formalization
 ---
 

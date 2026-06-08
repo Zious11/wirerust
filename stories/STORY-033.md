@@ -2,10 +2,10 @@
 document_type: story
 story_id: "STORY-033"
 epic_id: "E-3"
-version: "1.3"
+version: "1.4"
 status: completed
 producer: story-writer
-timestamp: 2026-05-21T00:00:00Z
+timestamp: 2026-06-08T00:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-05/BC-2.05.007.md
@@ -30,6 +30,8 @@ estimated_days: 1
 assumption_validations: []
 risk_mitigations: []
 tdd_mode: strict
+nfr:
+  - NFR-OBS-005
 implementation_strategy: brownfield-formalization
 ---
 

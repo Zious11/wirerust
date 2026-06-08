@@ -2,10 +2,10 @@
 document_type: story
 story_id: STORY-091
 epic_id: E-11
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
-timestamp: 2026-06-01T00:00:00Z
+timestamp: 2026-06-08T00:00:00Z
 phase: 5
 inputs: []
 input-hash: "d41d8cd"
@@ -25,6 +25,10 @@ target_module: bin/validate-anchors
 subsystems: []
 estimated_days: 2
 tdd_mode: strict
+nfr:
+  - NFR-SEC-006
+  - NFR-SEC-007
+  - NFR-MNT-005
 implementation_strategy: greenfield-tooling
 dispositions:
   - PROCESS-GAP-P5-001

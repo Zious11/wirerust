@@ -2,10 +2,10 @@
 document_type: story
 story_id: STORY-071
 epic_id: E-7
-version: "1.4"
+version: "1.5"
 status: completed
 producer: story-writer
-timestamp: 2026-05-21T00:00:00Z
+timestamp: 2026-06-08T00:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-10/BC-2.10.001.md
@@ -40,6 +40,10 @@ target_module: mitre
 subsystems: [SS-10]
 estimated_days: 3
 tdd_mode: strict
+nfr:
+  - NFR-OBS-004
+  - NFR-MNT-004
+  - NFR-MNT-009
 implementation_strategy: brownfield-formalization
 ---
 

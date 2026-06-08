@@ -2,10 +2,10 @@
 document_type: story
 story_id: STORY-089
 epic_id: E-9
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
-timestamp: 2026-05-21T00:00:00Z
+timestamp: 2026-06-08T00:00:00Z
 phase: 2
 inputs:
   - .factory/specs/behavioral-contracts/ss-12/BC-2.12.014.md
@@ -30,6 +30,11 @@ target_module: main
 subsystems: [SS-12]
 estimated_days: 2
 tdd_mode: strict
+nfr:
+  - NFR-REL-009
+  - NFR-PORT-004
+  - NFR-COMPAT-002
+  - NFR-OBS-006
 implementation_strategy: brownfield-formalization
 ---
 
