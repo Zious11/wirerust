@@ -275,6 +275,11 @@ struct TlsFlowState {
     server_buf: Vec<u8>,
     client_hello_seen: bool,
     server_hello_seen: bool,
+    /// Most-recent on_data capture timestamp for this flow; used at Finding
+    /// emission sites to attach capture-relative pcap provenance.
+    /// Updated on every `on_data` call; keyed per-flow (VP-014 cross-flow
+    /// isolation invariant).
+    last_ts: u32,
 }
 
 impl TlsFlowState {
@@ -284,6 +289,7 @@ impl TlsFlowState {
             server_buf: Vec::new(),
             client_hello_seen: false,
             server_hello_seen: false,
+            last_ts: 0,
         }
     }
 
@@ -768,7 +774,14 @@ impl TlsAnalyzer {
 // ── StreamHandler ─────────────────────────────────────────────────────────────
 
 impl StreamHandler for TlsAnalyzer {
-    fn on_data(&mut self, flow_key: &FlowKey, direction: Direction, data: &[u8], _offset: u64) {
+    fn on_data(
+        &mut self,
+        flow_key: &FlowKey,
+        direction: Direction,
+        data: &[u8],
+        _offset: u64,
+        timestamp: u32,
+    ) {
         // Check whether this flow is already done before we get a mutable ref.
         let done = self.flows.get(flow_key).is_some_and(|s| s.done());
         if done {
@@ -780,6 +793,9 @@ impl StreamHandler for TlsAnalyzer {
                 .flows
                 .entry(flow_key.clone())
                 .or_insert_with(TlsFlowState::new);
+            // BC-2.04.055 postcondition 3: update per-flow last-seen timestamp on
+            // every on_data call.  Keyed by FlowKey (VP-014 cross-flow isolation).
+            state.last_ts = timestamp;
             match direction {
                 Direction::ClientToServer => {
                     let remaining = MAX_BUF.saturating_sub(state.client_buf.len());
@@ -956,6 +972,20 @@ impl TlsAnalyzer {
             .get(flow_key)
             .map(|s| s.server_hello_seen)
             .unwrap_or(false)
+    }
+
+    /// Test-only accessor: the most-recently-stored capture timestamp for the
+    /// given flow.
+    ///
+    /// Exposes `flow_state.last_ts` so tests can assert that the dispatcher
+    /// threads the correct `timestamp` argument through to the TLS analyzer
+    /// (STORY-097 AC-004 / BC-2.04.055 dispatcher-forwarding invariant). Returns
+    /// `None` when the flow has no live state (never received data or already
+    /// closed).
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn last_ts_for_testing(&self, flow_key: &FlowKey) -> Option<u32> {
+        self.flows.get(flow_key).map(|s| s.last_ts)
     }
 }
 

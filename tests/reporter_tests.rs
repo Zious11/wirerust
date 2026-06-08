@@ -818,6 +818,7 @@ fn test_http_finding_c1_csi_escaped_by_terminal_reporter() {
         Direction::ClientToServer,
         &build_path_traversal_with_c1_csi(),
         0,
+        0,
     );
 
     let findings = analyzer.findings();
@@ -872,6 +873,7 @@ fn test_http_finding_c1_csi_in_json_reporter() {
         Direction::ClientToServer,
         &build_path_traversal_with_c1_csi(),
         0,
+        0,
     );
 
     let findings = analyzer.findings();
@@ -910,6 +912,7 @@ fn test_http_analyzer_summary_c1_csi_escaped_by_terminal_reporter() {
         &fk,
         Direction::ClientToServer,
         &build_request_with_c1_in_host(),
+        0,
         0,
     );
 
@@ -1837,7 +1840,7 @@ fn test_finding_summary_preserves_raw_c1_bytes() {
 
     let mut analyzer = HttpAnalyzer::new();
     let fk = http_test_flow_key();
-    analyzer.on_data(&fk, Direction::ClientToServer, &request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &request, 0, 0);
 
     let findings = analyzer.findings();
     assert!(
