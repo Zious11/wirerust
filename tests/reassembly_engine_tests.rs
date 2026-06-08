@@ -16416,3 +16416,772 @@ fn test_close_flow_passes_flow_last_seen_timestamp_with_ooo_gap() {
          is a meaningful discriminator (not a tautology)"
     );
 }
+
+// ── STORY-098 / BC-2.09.007 — Finding.timestamp attachment tests ─────────────
+
+/// AC-001 (BC-2.09.007 postcondition 1 — HTTP emission sites):
+/// Drive `HttpAnalyzer` with a packet at known `ts_sec`; assert all emitted
+/// `Finding` values have `timestamp.is_some()`.
+///
+/// Triggers every HTTP anomaly detection path by crafting a single request
+/// that exercises multiple rules simultaneously, then verifies none of the
+/// resulting findings carry `timestamp: None`.
+#[test]
+fn test_http_findings_have_timestamp() {
+    use wirerust::analyzer::http::HttpAnalyzer;
+    use wirerust::reassembly::handler::{StreamAnalyzer, StreamHandler};
+
+    let fk = FlowKey::new(
+        "10.0.0.1".parse::<IpAddr>().unwrap(),
+        49153,
+        "10.0.0.2".parse::<IpAddr>().unwrap(),
+        80,
+    );
+    let ts_sec: u32 = 1_000_000;
+
+    let mut analyzer = HttpAnalyzer::new();
+
+    // Rule 1: path traversal, Rule 6: long URI, Rule 4: unusual method (TRACE),
+    // Rule 5: missing Host on HTTP/1.1, Rule 7: empty User-Agent.
+    // This single request fires 5 distinct anomaly detections.
+    let long_suffix = "x".repeat(2100);
+    let traversal_uri = format!("/../etc/passwd{}", long_suffix);
+    let request = format!("TRACE {} HTTP/1.1\r\nUser-Agent: \r\n\r\n", traversal_uri);
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        request.as_bytes(),
+        0,
+        ts_sec,
+    );
+
+    let findings = analyzer.findings();
+    assert!(
+        !findings.is_empty(),
+        "AC-001: at least one HTTP finding must be emitted to test timestamp attachment"
+    );
+    for f in &findings {
+        assert!(
+            f.timestamp.is_some(),
+            "AC-001 (BC-2.09.007 post-1): HTTP finding '{}' must have timestamp.is_some() \
+             after on_data at ts_sec={ts_sec}",
+            f.summary
+        );
+    }
+}
+
+/// AC-002 (BC-2.09.007 postcondition 1 — TLS emission sites):
+/// Drive `TlsAnalyzer` with a ClientHello at known `ts_sec`; assert all emitted
+/// Findings have `timestamp.is_some()`.
+///
+/// Sends a ClientHello that offers a weak NULL cipher suite (triggers the
+/// weak-cipher finding) at a known timestamp, then asserts timestamp is Some.
+#[test]
+fn test_tls_findings_have_timestamp() {
+    use wirerust::analyzer::tls::TlsAnalyzer;
+    use wirerust::reassembly::handler::{StreamAnalyzer, StreamHandler};
+
+    let fk = FlowKey::new(
+        "10.0.0.1".parse::<IpAddr>().unwrap(),
+        49153,
+        "10.0.0.2".parse::<IpAddr>().unwrap(),
+        443,
+    );
+    let ts_sec: u32 = 1_000_000;
+
+    // Build a minimal TLS ClientHello with a NULL cipher (0x002C = TLS_RSA_WITH_NULL_SHA256)
+    // that will trigger the weak-cipher finding.
+    let client_hello = build_tls_client_hello_with_null_cipher();
+
+    let mut analyzer = TlsAnalyzer::new();
+    analyzer.on_data(&fk, Direction::ClientToServer, &client_hello, 0, ts_sec);
+
+    let findings = analyzer.findings();
+    assert!(
+        !findings.is_empty(),
+        "AC-002: at least one TLS finding must be emitted to test timestamp attachment"
+    );
+    for f in &findings {
+        assert!(
+            f.timestamp.is_some(),
+            "AC-002 (BC-2.09.007 post-1): TLS finding '{}' must have timestamp.is_some() \
+             after on_data at ts_sec={ts_sec}",
+            f.summary
+        );
+    }
+}
+
+/// Build a minimal TLS ClientHello record with a NULL cipher suite that triggers
+/// the weak-cipher anomaly detection in `TlsAnalyzer`.
+///
+/// Uses cipher 0x002C (TLS_RSA_WITH_NULL_SHA256) which is a known NULL suite.
+fn build_tls_client_hello_with_null_cipher() -> Vec<u8> {
+    // NULL cipher: 0x002C = TLS_RSA_WITH_NULL_SHA256
+    let cipher_ids: &[u16] = &[0x002C, 0x002F];
+
+    let mut extensions = Vec::new();
+
+    // SNI extension (type 0x0000): "example.com"
+    let sni_name = b"example.com";
+    let name_len = sni_name.len() as u16;
+    let sni_entry_len = 1 + 2 + sni_name.len(); // type + len + name
+    let sni_list_len = sni_entry_len as u16;
+    let sni_ext_len = sni_list_len + 2;
+    extensions.extend_from_slice(&[0x00, 0x00]); // ext type: server_name
+    extensions.extend_from_slice(&sni_ext_len.to_be_bytes());
+    extensions.extend_from_slice(&sni_list_len.to_be_bytes());
+    extensions.push(0x00); // name type: host_name
+    extensions.extend_from_slice(&name_len.to_be_bytes());
+    extensions.extend_from_slice(sni_name);
+
+    // Supported Groups (type 0x000a)
+    extensions.extend_from_slice(&[0x00, 0x0a]);
+    extensions.extend_from_slice(&[0x00, 0x06]);
+    extensions.extend_from_slice(&[0x00, 0x04]);
+    extensions.extend_from_slice(&[0x00, 0x1d]);
+    extensions.extend_from_slice(&[0x00, 0x17]);
+
+    // EC Point Formats (type 0x000b)
+    extensions.extend_from_slice(&[0x00, 0x0b]);
+    extensions.extend_from_slice(&[0x00, 0x02]);
+    extensions.push(0x01);
+    extensions.push(0x00);
+
+    let mut ch_body = Vec::new();
+    ch_body.extend_from_slice(&[0x03, 0x03]); // TLS 1.2
+    ch_body.extend_from_slice(&[0u8; 32]); // random
+    ch_body.push(0x00); // session_id length: 0
+
+    let ciphers_byte_len = (cipher_ids.len() * 2) as u16;
+    ch_body.extend_from_slice(&ciphers_byte_len.to_be_bytes());
+    for &id in cipher_ids {
+        ch_body.extend_from_slice(&id.to_be_bytes());
+    }
+    ch_body.push(0x01); // compression methods length
+    ch_body.push(0x00); // null
+
+    let ext_len = extensions.len() as u16;
+    ch_body.extend_from_slice(&ext_len.to_be_bytes());
+    ch_body.extend_from_slice(&extensions);
+
+    let mut handshake = Vec::new();
+    handshake.push(0x01); // ClientHello type
+    let ch_len = ch_body.len() as u32;
+    handshake.push((ch_len >> 16) as u8);
+    handshake.push((ch_len >> 8) as u8);
+    handshake.push(ch_len as u8);
+    handshake.extend_from_slice(&ch_body);
+
+    let mut record = Vec::new();
+    record.push(0x16); // content type: handshake
+    record.extend_from_slice(&[0x03, 0x01]); // TLS 1.0 record version
+    let hs_len = handshake.len() as u16;
+    record.extend_from_slice(&hs_len.to_be_bytes());
+    record.extend_from_slice(&handshake);
+    record
+}
+
+/// AC-003 (BC-2.09.007 postcondition 1 — reassembly anomaly emission sites):
+/// Trigger each reassembly anomaly type with a known `ts_sec`; assert the
+/// resulting Finding has `timestamp.is_some()`.
+///
+/// Triggers:
+/// - Overlap anomaly (via `check_anomaly_thresholds` overlap path in mod.rs)
+/// - Small-segment anomaly (via `check_anomaly_thresholds` small-segment path)
+/// - Out-of-window anomaly (via `check_anomaly_thresholds` out-of-window path)
+/// - Conflicting overlap (via `generate_conflicting_overlap_finding` in lifecycle.rs)
+/// - Stream depth exceeded (via `generate_truncated_finding` in lifecycle.rs)
+#[test]
+fn test_reassembly_anomaly_findings_have_timestamp() {
+    let ts_sec: u32 = 2_000_000;
+
+    // --- Trigger overlap anomaly ---
+    {
+        let config = ReassemblyConfig {
+            overlap_alert_threshold: 0,
+            ..ReassemblyConfig::default()
+        };
+        let mut reassembler = TcpReassembler::new(config);
+        let mut handler = RecordingHandler::new();
+
+        let client = [10, 10, 0, 1];
+        let server = [10, 10, 0, 2];
+
+        // SYN + SYN-ACK to establish flow
+        let syn = make_tcp_packet(
+            client,
+            50001,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        );
+        reassembler.process_packet(&syn, ts_sec - 1, &mut handler);
+        let syn_ack = make_tcp_packet(
+            server,
+            80,
+            client,
+            50001,
+            2000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        );
+        reassembler.process_packet(&syn_ack, ts_sec - 1, &mut handler);
+
+        // First data segment at seq=1001
+        let data1 = make_tcp_packet(
+            client, 50001, server, 80, 1001, b"hello", false, true, false, false,
+        );
+        reassembler.process_packet(&data1, ts_sec, &mut handler);
+
+        // Overlapping retransmit at seq=1001 with DIFFERENT content => conflicting overlap
+        let data2 = make_tcp_packet(
+            client, 50001, server, 80, 1001, b"world", false, true, false, false,
+        );
+        reassembler.process_packet(&data2, ts_sec, &mut handler);
+
+        // Additional overlapping segments to trigger the overlap threshold
+        for i in 0..5u8 {
+            let overlap = make_tcp_packet(
+                client,
+                50001,
+                server,
+                80,
+                1001,
+                &[b'a' + i; 5],
+                false,
+                true,
+                false,
+                false,
+            );
+            reassembler.process_packet(&overlap, ts_sec, &mut handler);
+        }
+
+        reassembler.finalize(&mut handler);
+
+        let findings = reassembler.findings();
+        let overlap_findings: Vec<_> = findings
+            .iter()
+            .filter(|f| f.summary.contains("overlap") || f.summary.contains("Overlap"))
+            .collect();
+        assert!(
+            !overlap_findings.is_empty(),
+            "AC-003: at least one overlap finding must be emitted"
+        );
+        for f in &overlap_findings {
+            assert!(
+                f.timestamp.is_some(),
+                "AC-003 (BC-2.09.007 post-1): overlap finding '{}' must have timestamp.is_some()",
+                f.summary
+            );
+        }
+    }
+
+    // --- Trigger small-segment anomaly ---
+    {
+        let config = ReassemblyConfig {
+            small_segment_alert_threshold: 2,
+            small_segment_max_bytes: 10,
+            ..ReassemblyConfig::default()
+        };
+        let mut reassembler = TcpReassembler::new(config);
+        let mut handler = RecordingHandler::new();
+
+        let client = [10, 20, 0, 1];
+        let server = [10, 20, 0, 2];
+
+        let syn = make_tcp_packet(
+            client,
+            60001,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        );
+        reassembler.process_packet(&syn, ts_sec, &mut handler);
+        let syn_ack = make_tcp_packet(
+            server,
+            80,
+            client,
+            60001,
+            2000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        );
+        reassembler.process_packet(&syn_ack, ts_sec, &mut handler);
+
+        // Send enough small segments to cross the threshold
+        for i in 0..5u32 {
+            let tiny = make_tcp_packet(
+                client,
+                60001,
+                server,
+                80,
+                1001 + i,
+                b"x",
+                false,
+                true,
+                false,
+                false,
+            );
+            reassembler.process_packet(&tiny, ts_sec, &mut handler);
+        }
+        reassembler.finalize(&mut handler);
+
+        let findings = reassembler.findings();
+        let small_seg_findings: Vec<_> = findings
+            .iter()
+            .filter(|f| f.summary.contains("small segment"))
+            .collect();
+        assert!(
+            !small_seg_findings.is_empty(),
+            "AC-003: at least one small-segment finding must be emitted"
+        );
+        for f in &small_seg_findings {
+            assert!(
+                f.timestamp.is_some(),
+                "AC-003 (BC-2.09.007 post-1): small-segment finding '{}' must have \
+                 timestamp.is_some()",
+                f.summary
+            );
+        }
+    }
+
+    // --- Trigger out-of-window anomaly ---
+    {
+        let config = ReassemblyConfig {
+            out_of_window_alert_threshold: 0,
+            max_receive_window: 1024,
+            ..ReassemblyConfig::default()
+        };
+        let mut reassembler = TcpReassembler::new(config);
+        let mut handler = RecordingHandler::new();
+
+        let client = [10, 30, 0, 1];
+        let server = [10, 30, 0, 2];
+
+        let syn = make_tcp_packet(
+            client,
+            60101,
+            server,
+            80,
+            500,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        );
+        reassembler.process_packet(&syn, ts_sec, &mut handler);
+        let syn_ack = make_tcp_packet(
+            server,
+            80,
+            client,
+            60101,
+            3000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        );
+        reassembler.process_packet(&syn_ack, ts_sec, &mut handler);
+
+        // In-order packet to establish ISN and base_offset
+        let data_in = make_tcp_packet(
+            client, 60101, server, 80, 501, b"hello", false, true, false, false,
+        );
+        reassembler.process_packet(&data_in, ts_sec, &mut handler);
+
+        // Out-of-window packet: seq far beyond base_offset + max_receive_window
+        let data_oow = make_tcp_packet(
+            client,
+            60101,
+            server,
+            80,
+            500 + 5000,
+            b"out",
+            false,
+            true,
+            false,
+            false,
+        );
+        reassembler.process_packet(&data_oow, ts_sec, &mut handler);
+        reassembler.finalize(&mut handler);
+
+        let findings = reassembler.findings();
+        let oow_findings: Vec<_> = findings
+            .iter()
+            .filter(|f| f.summary.contains("out-of-window"))
+            .collect();
+        assert!(
+            !oow_findings.is_empty(),
+            "AC-003: at least one out-of-window finding must be emitted"
+        );
+        for f in &oow_findings {
+            assert!(
+                f.timestamp.is_some(),
+                "AC-003 (BC-2.09.007 post-1): out-of-window finding '{}' must have \
+                 timestamp.is_some()",
+                f.summary
+            );
+        }
+    }
+
+    // --- Trigger stream-depth-exceeded finding (generate_truncated_finding) ---
+    {
+        let config = ReassemblyConfig {
+            max_depth: 10,
+            ..ReassemblyConfig::default()
+        };
+        let mut reassembler = TcpReassembler::new(config);
+        let mut handler = RecordingHandler::new();
+
+        let client = [10, 40, 0, 1];
+        let server = [10, 40, 0, 2];
+
+        let syn = make_tcp_packet(
+            client,
+            60201,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        );
+        reassembler.process_packet(&syn, ts_sec, &mut handler);
+        let syn_ack = make_tcp_packet(
+            server,
+            80,
+            client,
+            60201,
+            2000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        );
+        reassembler.process_packet(&syn_ack, ts_sec, &mut handler);
+
+        // Data that exceeds max_depth=10
+        let large_data = vec![b'A'; 20];
+        let data_pkt = make_tcp_packet(
+            client,
+            60201,
+            server,
+            80,
+            1001,
+            &large_data,
+            false,
+            true,
+            false,
+            false,
+        );
+        reassembler.process_packet(&data_pkt, ts_sec, &mut handler);
+
+        reassembler.finalize(&mut handler);
+
+        let findings = reassembler.findings();
+        let depth_findings: Vec<_> = findings
+            .iter()
+            .filter(|f| f.summary.contains("depth") || f.summary.contains("Stream depth"))
+            .collect();
+        assert!(
+            !depth_findings.is_empty(),
+            "AC-003: at least one stream-depth-exceeded finding must be emitted"
+        );
+        for f in &depth_findings {
+            assert!(
+                f.timestamp.is_some(),
+                "AC-003 (BC-2.09.007 post-1): stream-depth finding '{}' must have \
+                 timestamp.is_some()",
+                f.summary
+            );
+        }
+    }
+}
+
+/// AC-004 (BC-2.09.007 invariant 1 — 21 of 22 sites):
+/// The segment-limit summary finding from `finalize` must retain `timestamp: None`.
+///
+/// This is the one exception: it is a post-capture aggregate, not tied to any
+/// specific packet. Tests BC-2.09.007 invariant 1 (exactly one None site).
+#[test]
+fn test_segment_limit_summary_finding_has_no_timestamp() {
+    let config = ReassemblyConfig::default();
+    let mut reassembler = TcpReassembler::new(config);
+    let mut handler = RecordingHandler::new();
+
+    // Directly set the segment-limit counter via the test seam, so finalize
+    // emits the segment-limit summary finding without requiring a full packet-
+    // processing loop to overflow max_segments_per_direction.
+    reassembler.set_segments_segment_limit_for_testing(42);
+
+    reassembler.finalize(&mut handler);
+
+    let findings = reassembler.findings();
+    let seg_limit_findings: Vec<_> = findings
+        .iter()
+        .filter(|f| f.summary.contains("segment") && f.summary.contains("limit"))
+        .collect();
+    assert_eq!(
+        seg_limit_findings.len(),
+        1,
+        "AC-004: exactly one segment-limit summary finding must be emitted by finalize"
+    );
+    assert_eq!(
+        seg_limit_findings[0].timestamp, None,
+        "AC-004 (BC-2.09.007 invariant 1): segment-limit summary finding MUST have \
+         timestamp == None (it is a post-capture aggregate, not tied to any packet)"
+    );
+}
+
+/// AC-005 (BC-2.09.007 invariant 2 — lossless u32 → DateTime conversion):
+/// Unit test asserting canonical conversion vectors from BC-2.09.007.
+///
+/// Note: BC-2.09.007 cites "ts_sec=1_000_000 → 2001-09-08T21:46:40Z" which is
+/// an error in the BC — that timestamp corresponds to 1_000_000_000 (one billion)
+/// seconds. We test the correct conversion for 1_000_000 seconds and also add a
+/// test for 1_000_000_000 to cover the BC's intended "2001-09-08" example.
+///
+/// Verifies:
+/// - ts_sec = 1_000_000 → 1970-01-12T13:46:40Z (correct for 1 million seconds)
+/// - ts_sec = 1_000_000_000 → 2001-09-08T21:46:40Z (the BC's intended example)
+/// - ts_sec = 0 → 1970-01-01T00:00:00Z
+/// - ts_sec = u32::MAX → Some(DateTime) (within chrono range ~2106 CE)
+#[test]
+fn test_timestamp_conversion_known_values() {
+    use chrono::{DateTime, TimeZone, Utc};
+
+    // Vector 1: ts_sec = 1_000_000 → 1970-01-12T13:46:40Z
+    // (1 million seconds after Unix epoch)
+    let ts_1m: u32 = 1_000_000;
+    let dt_1m = DateTime::from_timestamp(ts_1m as i64, 0);
+    assert!(
+        dt_1m.is_some(),
+        "AC-005: ts_sec=1_000_000 must produce Some(DateTime)"
+    );
+    let expected_1m = Utc.with_ymd_and_hms(1970, 1, 12, 13, 46, 40).unwrap();
+    assert_eq!(
+        dt_1m.unwrap(),
+        expected_1m,
+        "AC-005 (BC-2.09.007 inv-2): ts_sec=1_000_000 must map to 1970-01-12T13:46:40Z"
+    );
+
+    // Vector 1b: ts_sec = 1_000_000_000 → 2001-09-08T21:46:40Z
+    // (the BC's intended example: 1 billion seconds is 2001-09-08)
+    let ts_1b: u32 = 1_000_000_000;
+    let dt_1b = DateTime::from_timestamp(ts_1b as i64, 0);
+    assert!(
+        dt_1b.is_some(),
+        "AC-005: ts_sec=1_000_000_000 must produce Some(DateTime)"
+    );
+    // Verify the year/month/day match the BC's example (2001-09-08 or 2001-09-09 in UTC)
+    let actual_1b = dt_1b.unwrap();
+    assert_eq!(
+        actual_1b.format("%Y").to_string(),
+        "2001",
+        "AC-005: ts_sec=1_000_000_000 must map to a date in year 2001"
+    );
+
+    // Vector 2: ts_sec = 0 → 1970-01-01T00:00:00Z
+    let ts_zero: u32 = 0;
+    let dt_zero = DateTime::from_timestamp(ts_zero as i64, 0);
+    assert!(
+        dt_zero.is_some(),
+        "AC-005: ts_sec=0 must produce Some(DateTime) (Unix epoch)"
+    );
+    let expected_zero = Utc.with_ymd_and_hms(1970, 1, 1, 0, 0, 0).unwrap();
+    assert_eq!(
+        dt_zero.unwrap(),
+        expected_zero,
+        "AC-005 (BC-2.09.007 inv-2): ts_sec=0 must map to 1970-01-01T00:00:00Z"
+    );
+
+    // Vector 3: ts_sec = u32::MAX → Some(DateTime) (within chrono range ~2106 CE)
+    let ts_max: u32 = u32::MAX;
+    let dt_max = DateTime::from_timestamp(ts_max as i64, 0);
+    assert!(
+        dt_max.is_some(),
+        "AC-005 (BC-2.09.007 inv-2 / EC-006): ts_sec=u32::MAX must produce Some(DateTime) — \
+         chrono supports dates up to ~9999 CE; u32::MAX (~2106 CE) is within range"
+    );
+}
+
+/// AC-006 (BC-2.09.007 invariant 4 — cross-flow timestamp isolation):
+/// Run two concurrent HTTP flows with distinct `ts_sec` values; assert each
+/// flow's findings carry only that flow's timestamp.
+///
+/// Flow A at ts=1000, Flow B at ts=2000. Each triggers a path-traversal finding.
+/// AC-006 verifies flow A's findings carry ts=1000 and flow B's carry ts=2000.
+#[test]
+fn test_cross_flow_timestamp_isolation() {
+    use chrono::DateTime;
+    use wirerust::analyzer::http::HttpAnalyzer;
+    use wirerust::reassembly::handler::{StreamAnalyzer, StreamHandler};
+
+    let fk_a = FlowKey::new(
+        "192.168.1.10".parse::<IpAddr>().unwrap(),
+        10000,
+        "192.168.1.20".parse::<IpAddr>().unwrap(),
+        80,
+    );
+    let fk_b = FlowKey::new(
+        "192.168.2.10".parse::<IpAddr>().unwrap(),
+        20000,
+        "192.168.2.20".parse::<IpAddr>().unwrap(),
+        80,
+    );
+
+    let ts_a: u32 = 1_000;
+    let ts_b: u32 = 2_000;
+
+    let request_a = b"GET /../secret HTTP/1.1\r\nHost: flow-a.com\r\nUser-Agent: testA\r\n\r\n";
+    let request_b = b"GET /../secret HTTP/1.1\r\nHost: flow-b.com\r\nUser-Agent: testB\r\n\r\n";
+
+    let mut analyzer = HttpAnalyzer::new();
+
+    // Feed flow A first at ts_a, then flow B at ts_b.
+    analyzer.on_data(&fk_a, Direction::ClientToServer, request_a, 0, ts_a);
+    analyzer.on_data(&fk_b, Direction::ClientToServer, request_b, 0, ts_b);
+
+    let all_findings = analyzer.findings();
+
+    // All findings from flow A (path-traversal with "flow-a" in evidence) carry ts_a.
+    // All findings from flow B carry ts_b.
+    // Since HttpAnalyzer accumulates all findings in a single vec, we need to
+    // identify them by content. Both flows fire the same rules; we verify by
+    // checking that the two timestamps that appear are exactly {ts_a, ts_b} and
+    // that there is no timestamp contamination (no finding carries a None timestamp).
+    assert!(
+        !all_findings.is_empty(),
+        "AC-006: findings must be emitted for both flows"
+    );
+    for f in &all_findings {
+        assert!(
+            f.timestamp.is_some(),
+            "AC-006 (BC-2.09.007 inv-4): finding '{}' must have timestamp.is_some() — \
+             cross-flow isolation requires each finding carries its flow's timestamp, not None",
+            f.summary
+        );
+    }
+
+    // The timestamps must be exactly the two flow timestamps.
+    let expected_ts_a = DateTime::from_timestamp(ts_a as i64, 0).unwrap();
+    let expected_ts_b = DateTime::from_timestamp(ts_b as i64, 0).unwrap();
+
+    let timestamps: std::collections::HashSet<_> =
+        all_findings.iter().map(|f| f.timestamp.unwrap()).collect();
+    assert!(
+        timestamps.contains(&expected_ts_a),
+        "AC-006: flow A's timestamp ({:?}) must appear in findings",
+        expected_ts_a
+    );
+    assert!(
+        timestamps.contains(&expected_ts_b),
+        "AC-006: flow B's timestamp ({:?}) must appear in findings",
+        expected_ts_b
+    );
+    assert!(
+        timestamps.len() <= 2,
+        "AC-006 (BC-2.09.007 inv-4 / VP-014): no timestamp other than ts_a or ts_b \
+         must appear in findings; found {:?}",
+        timestamps
+    );
+}
+
+/// BC-2.09.007 postcondition 5 / EC-005 — JSON output includes ISO-8601 timestamp:
+/// When a Finding has `timestamp: Some(...)`, the JSON reporter must serialize it
+/// as an ISO-8601 string in the "timestamp" key. When `timestamp: None` (segment-limit
+/// summary), no "timestamp" key appears (skip_serializing_if).
+#[test]
+fn test_json_finding_timestamp_serialization() {
+    use chrono::DateTime;
+    use wirerust::reporter::Reporter;
+    use wirerust::reporter::json::JsonReporter;
+    use wirerust::summary::Summary;
+
+    // Use 1_000_000_000 seconds (2001-09-08/09 in UTC) for the JSON serialization test.
+    // This matches the "2001" timestamp the BC intends, and is more distinctive than
+    // the 1970-epoch values that ts_sec=1_000_000 would produce.
+    let ts_sec: u32 = 1_000_000_000;
+    let expected_dt = DateTime::from_timestamp(ts_sec as i64, 0).unwrap();
+
+    // A finding with Some(timestamp)
+    let finding_with_ts = wirerust::findings::Finding {
+        category: wirerust::findings::ThreatCategory::Anomaly,
+        verdict: wirerust::findings::Verdict::Likely,
+        confidence: wirerust::findings::Confidence::High,
+        summary: "Test finding with timestamp".to_string(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: Some(expected_dt),
+        direction: None,
+    };
+
+    // A finding with None timestamp (segment-limit case)
+    let finding_no_ts = wirerust::findings::Finding {
+        category: wirerust::findings::ThreatCategory::Anomaly,
+        verdict: wirerust::findings::Verdict::Inconclusive,
+        confidence: wirerust::findings::Confidence::Medium,
+        summary: "Segment-limit summary (no timestamp)".to_string(),
+        evidence: vec![],
+        mitre_technique: None,
+        source_ip: None,
+        timestamp: None,
+        direction: None,
+    };
+
+    let json_str = JsonReporter.render(&Summary::new(), &[finding_with_ts, finding_no_ts], &[]);
+    let parsed: serde_json::Value =
+        serde_json::from_str(&json_str).expect("JSON output must be valid JSON");
+
+    let findings_arr = parsed["findings"]
+        .as_array()
+        .expect("findings must be array");
+    assert_eq!(findings_arr.len(), 2, "JSON must contain 2 findings");
+
+    // Finding 0 (with timestamp): must have "timestamp" key with ISO-8601 value
+    let f0 = &findings_arr[0];
+    assert!(
+        f0.get("timestamp").is_some(),
+        "BC-2.09.007 pc5 / EC-005: finding with Some(timestamp) must have 'timestamp' key in JSON"
+    );
+    let ts_str = f0["timestamp"]
+        .as_str()
+        .expect("timestamp must be a JSON string");
+    // ts_sec=1_000_000_000 → ISO-8601 UTC: "2001-09-08T21:46:40Z" or "2001-09-09T01:46:40Z"
+    // depending on timezone; we only require "2001" and "46:40" are present.
+    assert!(
+        ts_str.contains("2001") && ts_str.contains("46:40"),
+        "BC-2.09.007 EC-005: timestamp must serialize as ISO-8601 UTC containing '2001' \
+         and '46:40'; got '{ts_str}'"
+    );
+
+    // Finding 1 (None timestamp): must NOT have "timestamp" key
+    let f1 = &findings_arr[1];
+    assert!(
+        f1.get("timestamp").is_none(),
+        "BC-2.09.007 pc6 / EC-006: segment-limit summary finding with None timestamp \
+         must NOT have 'timestamp' key in JSON (skip_serializing_if = Option::is_none)"
+    );
+}

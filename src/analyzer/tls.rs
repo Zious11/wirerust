@@ -15,6 +15,7 @@
 
 use std::collections::HashMap;
 
+use chrono::DateTime;
 use md5::{Digest, Md5};
 use tls_parser::{
     Err as NomErr, TlsCipherSuite, TlsCipherSuiteID, TlsExtension, TlsExtensionType, TlsMessage,
@@ -382,10 +383,14 @@ impl TlsAnalyzer {
     }
 
     /// Process a single complete ClientHello.
+    ///
+    /// `last_ts` is the per-flow capture timestamp (BC-2.09.007): attached as
+    /// `Some(DateTime<Utc>)` to every Finding emitted from this handshake.
     fn handle_client_hello(
         &mut self,
         ch: &tls_parser::TlsClientHelloContents<'_>,
         _flow_key: &FlowKey,
+        last_ts: u32,
     ) {
         self.handshakes_seen += 1;
 
@@ -448,7 +453,8 @@ impl TlsAnalyzer {
                         evidence: vec![format!("hex: {hex}")],
                         mitre_technique: Some("T1027".to_string()),
                         source_ip: None,
-                        timestamp: None,
+                        // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                        timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                         direction: Some(Direction::ClientToServer),
                     });
                 }
@@ -480,7 +486,8 @@ impl TlsAnalyzer {
                         evidence: vec![format!("hex: {hex}")],
                         mitre_technique: Some("T1027".to_string()),
                         source_ip: None,
-                        timestamp: None,
+                        // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                        timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                         direction: Some(Direction::ClientToServer),
                     });
                 }
@@ -500,7 +507,8 @@ impl TlsAnalyzer {
                         evidence: vec![format!("hex: {hex}")],
                         mitre_technique: Some("T1027".to_string()),
                         source_ip: None,
-                        timestamp: None,
+                        // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                        timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                         direction: Some(Direction::ClientToServer),
                     });
                 }
@@ -541,7 +549,8 @@ impl TlsAnalyzer {
                 evidence: weak,
                 mitre_technique: None,
                 source_ip: None,
-                timestamp: None,
+                // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ClientToServer),
             });
         }
@@ -563,17 +572,22 @@ impl TlsAnalyzer {
                 evidence: vec![format!("Version: 0x{version:04x} ({version_name})")],
                 mitre_technique: None,
                 source_ip: None,
-                timestamp: None,
+                // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
             direction: Some(Direction::ClientToServer),
             });
         }
     }
 
     /// Process a single complete ServerHello.
+    ///
+    /// `last_ts` is the per-flow capture timestamp (BC-2.09.007): attached as
+    /// `Some(DateTime<Utc>)` to every Finding emitted from this handshake.
     fn handle_server_hello(
         &mut self,
         sh: &tls_parser::TlsServerHelloContents<'_>,
         _flow_key: &FlowKey,
+        last_ts: u32,
     ) {
         let version = sh.version.0;
         Self::increment(&mut self.version_counts, version, MAX_MAP_ENTRIES);
@@ -606,7 +620,8 @@ impl TlsAnalyzer {
                 evidence: vec![format!("Selected cipher: {} (0x{:04x})", name, sh.cipher.0)],
                 mitre_technique: None,
                 source_ip: None,
-                timestamp: None,
+                // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ServerToClient),
             });
         }
@@ -628,7 +643,8 @@ impl TlsAnalyzer {
                 evidence: vec![format!("Version: 0x{version:04x} ({version_name})")],
                 mitre_technique: None,
                 source_ip: None,
-                timestamp: None,
+                // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
             direction: Some(Direction::ServerToClient),
             });
         }
@@ -739,6 +755,11 @@ impl TlsAnalyzer {
                 };
             }
 
+            // BC-2.09.007: retrieve per-flow last_ts before parsing the record.
+            // Both handle_client_hello and handle_server_hello need it to attach
+            // the capture-relative timestamp to any emitted Findings.
+            let last_ts = self.flows.get(flow_key).map(|s| s.last_ts).unwrap_or(0);
+
             match parse_tls_plaintext(&record_bytes) {
                 Ok((_rem, plaintext)) => {
                     for msg in &plaintext.msg {
@@ -747,13 +768,13 @@ impl TlsAnalyzer {
                                 if let Some(state) = self.flows.get_mut(flow_key) {
                                     state.client_hello_seen = true;
                                 }
-                                self.handle_client_hello(ch, flow_key);
+                                self.handle_client_hello(ch, flow_key, last_ts);
                             }
                             TlsMessage::Handshake(TlsMessageHandshake::ServerHello(sh)) => {
                                 if let Some(state) = self.flows.get_mut(flow_key) {
                                     state.server_hello_seen = true;
                                 }
-                                self.handle_server_hello(sh, flow_key);
+                                self.handle_server_hello(sh, flow_key, last_ts);
                             }
                             _ => {}
                         }

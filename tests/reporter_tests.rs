@@ -1256,8 +1256,13 @@ fn read_src_file(manifest_dir: &str, rel_path: &str) -> String {
 /// Uses in-process `std::fs::read_to_string` — no dependency on grep being on
 /// PATH, and a missing file fails the test rather than silently passing.
 ///
-/// Positive-coverage assertion: counts `timestamp: None` across the four
-/// emission-site files and asserts the count == 22 (the BC-stated total).
+/// Post-STORY-098 (BC-2.09.007): 21 of 22 sites now set `timestamp: Some(DateTime<Utc>)`;
+/// exactly 1 site retains `timestamp: None` (the segment-limit summary in `finalize`,
+/// which is a post-capture aggregate not tied to any specific packet — see BC-2.09.007
+/// invariant 1, postcondition 4).
+///
+/// This test verifies the post-STORY-098 invariant: exactly 1 None and 21 Some-form
+/// occurrences across all emission-site files.
 #[test]
 fn test_timestamp_always_none_in_all_emission_sites() {
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
@@ -1271,29 +1276,29 @@ fn test_timestamp_always_none_in_all_emission_sites() {
     ];
 
     let mut total_none_count: usize = 0;
+    let mut total_some_count: usize = 0;
 
     for rel_path in &emission_files {
         let src = read_src_file(manifest_dir, rel_path);
-
-        // Negative: zero `timestamp: Some` anywhere in this file.
-        let some_count = src.matches("timestamp: Some").count();
-        assert!(
-            some_count == 0,
-            "BC-2.09.001 invariant 1 violated in '{rel_path}': \
-             found {some_count} occurrence(s) of `timestamp: Some(...)`. \
-             All emission sites must set `timestamp: None` (domain-debt O-01)."
-        );
-
-        // Accumulate positive count.
         total_none_count += src.matches("timestamp: None").count();
+        // Count `DateTime::from_timestamp` as the canonical Some-form pattern
+        // used at all 21 populated emission sites (BC-2.09.007 post-1).
+        total_some_count += src.matches("DateTime::from_timestamp").count();
     }
 
-    // Positive: exactly 22 emission sites set timestamp: None.
+    // Post-STORY-098 (BC-2.09.007 invariant 1): exactly 1 None site
+    // (the segment-limit summary in finalize) and 21 Some sites.
     assert_eq!(
-        total_none_count, 22,
-        "BC-2.09.001 invariant 1: expected exactly 22 `timestamp: None` occurrences \
-         across emission-site files, found {total_none_count}. \
-         A new emission site was added (or removed) without updating this test."
+        total_none_count, 1,
+        "BC-2.09.007 invariant 1: expected exactly 1 `timestamp: None` occurrence \
+         across emission-site files (segment-limit summary in finalize only), \
+         found {total_none_count}."
+    );
+    assert_eq!(
+        total_some_count, 21,
+        "BC-2.09.007 invariant 1: expected exactly 21 `DateTime::from_timestamp` \
+         occurrences across emission-site files (21 of 22 sites set Some timestamp), \
+         found {total_some_count}."
     );
 }
 
