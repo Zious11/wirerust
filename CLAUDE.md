@@ -41,8 +41,33 @@ CI sets `RUSTFLAGS=-Dwarnings`. `rustfmt.toml` pins edition 2024, `max_width = 1
     `docs/adr-cleanup`), where `<type>` is one of the allowed
     semantic-PR types listed below. Equivalent to `feature/<name>` but
     generalized beyond `feat`.
-- **Semantic PR titles enforced via CI** (`amannn/action-semantic-pull-request`). Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Scope is optional.
+  - `release/<version>` for gitflow release branches (e.g. `release/0.2.0`)
+  - `hotfix/<slug>` for urgent production fixes branched from `main`
+- **Semantic PR titles enforced via CI** (`amannn/action-semantic-pull-request`). Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Scope is optional. Release PRs into `main` use an allowed type, e.g. `chore: release v0.2.0`.
 - No local commit hooks (no lefthook/husky/commitlint config) — enforcement is CI-side only.
+
+### Releasing to `main`
+
+`main` is the release/stable branch. It is updated **only** through gitflow-proper merges — never by direct commits, direct merge pushes, or admin bypass.
+
+**Normal release flow:**
+
+1. Cut a `release/<version>` branch from `develop` (e.g. `release/0.2.0`).
+2. Apply any release-only fixups (version bump, changelog) on that branch.
+3. Open a Pull Request targeting `main`; merge after CI is green.
+
+**Hotfix flow** (urgent production fix):
+
+1. Cut a `hotfix/<slug>` branch from `main`.
+2. Apply the fix; open a Pull Request targeting `main`; merge after CI is green.
+
+**Tagging:**
+
+- Release tags (`v<version>`, e.g. `v0.1.0`) are created on `main` **only after** the release or hotfix PR has merged — never before, and never on a direct push.
+
+**Keeping branches in sync:**
+
+- After a release or hotfix PR merges into `main`, ensure `develop` contains those commits. Merge `main` back into `develop` if needed so the two branches do not diverge.
 
 ## Public API Surface (W7.1 — deferred)
 
