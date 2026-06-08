@@ -41,7 +41,7 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo test --all-targets
@@ -50,7 +50,7 @@ jobs:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -61,7 +61,7 @@ jobs:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
@@ -93,7 +93,7 @@ jobs:
       # this job only; the stable-toolchain jobs are unaffected.
       RUSTFLAGS: ""
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@nightly
         with:
           # Pin to a specific, known-good dated nightly. See job comment above.
@@ -135,7 +135,7 @@ jobs:
     continue-on-error: true
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Install cargo-audit
@@ -159,7 +159,7 @@ jobs:
     # in `deny.toml`. Failures are blocking — these are
     # repo-policy violations, not external advisory noise.
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check bans licenses sources
@@ -186,7 +186,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
       - name: Verify no production callers of _for_testing seam functions
         # Scans src/ only. tests/ and #[cfg(test)] blocks are test territory
         # and are intentionally excluded — they are the legitimate callers.
