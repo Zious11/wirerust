@@ -1725,6 +1725,102 @@ fn test_valid_utf8_non_ascii_sni_emits_finding() {
     );
 }
 
+// BC-TLS-037 (#104): Mixed control + non-ASCII SNI — summary must mention control bytes.
+//
+// A TLS SNI that is valid UTF-8 but contains BOTH a non-ASCII byte (routes the
+// NonAsciiUtf8 arm) AND an ASCII control byte (b < 0x20 or b == 0x7f) must have
+// the control-byte presence reflected in the finding summary. A SOC analyst
+// grepping summaries for "control" must be able to find this case.
+//
+// Fixture: "café\x1b" — valid UTF-8, contains é (U+00E9, 0xC3 0xA9) making it
+// non-ASCII, and ESC (0x1b) — a C0 control byte.
+// hex: 636166c3a91b
+//
+// Classification invariant preserved: the NonAsciiUtf8 arm still fires
+// (`is_ascii()` is false once é is present). Only the summary text is enriched.
+#[allow(non_snake_case)]
+#[test]
+fn test_mixed_control_and_non_ascii_sni_summary_mentions_control_bytes() {
+    // BC-TLS-037 pc1: NonAsciiUtf8 arm fires (not AsciiWithControl).
+    // BC-TLS-037 pc2: the finding summary must contain "control" to surface the
+    //   control-byte covert-channel / log-poisoning risk alongside the non-ASCII flag.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // "café\x1b": é = 0xC3 0xA9 (non-ASCII), ESC = 0x1b (C0 control byte).
+    let sni_bytes: &[u8] = b"\x63\x61\x66\xc3\xa9\x1b"; // café\x1b
+    let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    // Positive-parse anchor.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "BC-TLS-037 anchor: parse_error_count must be 0 for valid-UTF-8 SNI"
+    );
+
+    // BC-TLS-037 pc1: exactly one NonAsciiUtf8-arm finding (contains "non-ASCII").
+    let findings = analyzer.findings();
+    let non_ascii_findings: Vec<_> = findings
+        .iter()
+        .filter(|f| f.summary.contains("non-ASCII"))
+        .collect();
+    assert_eq!(
+        non_ascii_findings.len(),
+        1,
+        "BC-TLS-037 pc1: exactly one non-ASCII finding must be emitted; got: {non_ascii_findings:?}"
+    );
+
+    let f = &non_ascii_findings[0];
+
+    // BC-TLS-037 pc2: summary must mention "control" so a SOC analyst
+    //   grepping for control-byte alerts doesn't miss mixed strings.
+    assert!(
+        f.summary.contains("control"),
+        "BC-TLS-037 pc2: summary must mention \"control\" for mixed control+non-ASCII SNI; \
+         got summary: {:?}",
+        f.summary
+    );
+
+    // Classification invariant: still Anomaly/Inconclusive/Low/T1027/ClientToServer.
+    assert_eq!(
+        f.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "BC-TLS-037: category must be Anomaly"
+    );
+    assert_eq!(
+        f.verdict,
+        wirerust::findings::Verdict::Inconclusive,
+        "BC-TLS-037: verdict must be Inconclusive"
+    );
+    assert_eq!(
+        f.confidence,
+        wirerust::findings::Confidence::Low,
+        "BC-TLS-037: confidence must be Low"
+    );
+    assert_eq!(
+        f.mitre_technique.as_deref(),
+        Some("T1027"),
+        "BC-TLS-037: mitre_technique must be Some(\"T1027\")"
+    );
+    assert_eq!(
+        f.direction,
+        Some(wirerust::reassembly::handler::Direction::ClientToServer),
+        "BC-TLS-037: direction must be Some(ClientToServer)"
+    );
+
+    // Evidence: lossless hex of the raw bytes.
+    assert_eq!(
+        f.evidence.len(),
+        1,
+        "BC-TLS-037: evidence must have exactly one entry"
+    );
+    assert_eq!(
+        f.evidence[0], "hex: 636166c3a91b",
+        "BC-TLS-037: evidence[0] must be exact lowercase hex of café\\x1b"
+    );
+}
+
 // AC-001/AC-002/AC-008 (BC-2.07.017 pc1-3, inv1; BC-2.07.021 pc1-3)
 //
 // Cyrillic SNI: raw Cyrillic in summary (not \u{...} Debug-escaped). Covers:
