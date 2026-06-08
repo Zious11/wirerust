@@ -17,7 +17,7 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Build matrix — native runners, no cross-compilation.
+  # Build matrix — native runners; x86_64-apple-darwin cross-compiles on macos-latest (arm64).
   # Runs on both tag push and workflow_dispatch so the matrix can be validated
   # before the real tag is cut.
   # ---------------------------------------------------------------------------
@@ -36,7 +36,7 @@ jobs:
           - os: macos-latest
             target: aarch64-apple-darwin
             archive_ext: tar.gz
-          - os: macos-13
+          - os: macos-latest
             target: x86_64-apple-darwin
             archive_ext: tar.gz
           - os: windows-latest
