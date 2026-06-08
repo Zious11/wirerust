@@ -141,7 +141,14 @@ fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget {
 }
 
 impl StreamHandler for StreamDispatcher {
-    fn on_data(&mut self, flow_key: &FlowKey, direction: Direction, data: &[u8], offset: u64) {
+    fn on_data(
+        &mut self,
+        flow_key: &FlowKey,
+        direction: Direction,
+        data: &[u8],
+        offset: u64,
+        timestamp: u32,
+    ) {
         if self.http.is_none() && self.tls.is_none() {
             return;
         }
@@ -180,12 +187,12 @@ impl StreamHandler for StreamDispatcher {
         match target {
             DispatchTarget::Http => {
                 if let Some(ref mut http) = self.http {
-                    http.on_data(flow_key, direction, data, offset);
+                    http.on_data(flow_key, direction, data, offset, timestamp);
                 }
             }
             DispatchTarget::Tls => {
                 if let Some(ref mut tls) = self.tls {
-                    tls.on_data(flow_key, direction, data, offset);
+                    tls.on_data(flow_key, direction, data, offset, timestamp);
                 }
             }
             DispatchTarget::None => {}

@@ -48,13 +48,17 @@ impl TcpReassembler {
             }
             return;
         };
+        // BC-2.04.055 close-flush case: use flow.last_seen as the timestamp
+        // passed to on_data — the most-recent packet timestamp for this flow,
+        // available from the TcpFlow value before it is dropped.
+        let close_timestamp = flow.last_seen;
         let flow_mem = flow.memory_used();
         for dir in [Direction::ClientToServer, Direction::ServerToClient] {
             let flow_dir = flow.get_direction_mut(dir);
             let flushed = flow_dir.flush_contiguous();
             for (offset, data) in &flushed {
                 self.stats.bytes_reassembled += data.len() as u64;
-                handler.on_data(key, dir, data, *offset);
+                handler.on_data(key, dir, data, *offset, close_timestamp);
             }
         }
         self.total_memory -= flow_mem;

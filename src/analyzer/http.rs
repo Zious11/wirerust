@@ -87,6 +87,11 @@ struct HttpFlowState {
     request_error_count: u8,
     response_error_count: u8,
     counted_as_non_http: bool,
+    /// Most-recently-seen packet timestamp for this flow (capture-relative pcap
+    /// `ts_sec`).  Updated on every `on_data` call.  Used by STORY-098 to
+    /// populate `Finding.timestamp` at all HTTP emission sites.
+    /// Keyed per-flow (VP-014 cross-flow isolation invariant).
+    last_ts: u32,
 }
 
 impl HttpFlowState {
@@ -99,6 +104,7 @@ impl HttpFlowState {
             request_error_count: 0,
             response_error_count: 0,
             counted_as_non_http: false,
+            last_ts: 0,
         }
     }
 }
@@ -498,12 +504,22 @@ impl HttpAnalyzer {
 }
 
 impl StreamHandler for HttpAnalyzer {
-    fn on_data(&mut self, flow_key: &FlowKey, direction: Direction, data: &[u8], _offset: u64) {
+    fn on_data(
+        &mut self,
+        flow_key: &FlowKey,
+        direction: Direction,
+        data: &[u8],
+        _offset: u64,
+        timestamp: u32,
+    ) {
         {
             let state = self
                 .flows
                 .entry(flow_key.clone())
                 .or_insert_with(HttpFlowState::new);
+            // BC-2.04.055 postcondition 3: update per-flow last-seen timestamp on
+            // every on_data call.  Keyed by FlowKey (VP-014 cross-flow isolation).
+            state.last_ts = timestamp;
             match direction {
                 Direction::ClientToServer => {
                     if state.request_poisoned {
@@ -920,7 +936,7 @@ mod vp_006_proptest_proofs {
                     oracle_predicted_skip = true;
                 }
 
-                analyzer.on_data(&key, dir, data, 0);
+                analyzer.on_data(&key, dir, data, 0, 0);
                 let now_skipped = analyzer.poisoned_bytes_skipped();
 
                 // (1) monotonic non-decreasing.
@@ -967,14 +983,14 @@ mod vp_006_proptest_proofs {
 
             // Drive the request direction past POISON_THRESHOLD (3).
             for _ in 0..req_errors {
-                analyzer.on_data(&key, Direction::ClientToServer, b"\xFF\xFE garbage", 0);
+                analyzer.on_data(&key, Direction::ClientToServer, b"\xFF\xFE garbage", 0, 0);
             }
             let skipped_after_req_poison = analyzer.poisoned_bytes_skipped();
 
             // The request side must actually be poisoned for this to be a
             // meaningful test: with >= 3 consecutive errors, later request bytes
             // would be skipped. Confirm by feeding more request garbage.
-            analyzer.on_data(&key, Direction::ClientToServer, b"\xFF\xFE more", 0);
+            analyzer.on_data(&key, Direction::ClientToServer, b"\xFF\xFE more", 0, 0);
             prop_assert!(
                 analyzer.poisoned_bytes_skipped() > skipped_after_req_poison,
                 "request direction was not poisoned after {} consecutive errors",
@@ -986,7 +1002,7 @@ mod vp_006_proptest_proofs {
             // and unpoisoned, so its bytes must NOT be added to the skipped
             // counter.
             let resp = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
-            analyzer.on_data(&key, Direction::ServerToClient, resp, 0);
+            analyzer.on_data(&key, Direction::ServerToClient, resp, 0, 0);
             prop_assert_eq!(
                 analyzer.poisoned_bytes_skipped(),
                 skipped_after_more_req,

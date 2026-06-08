@@ -188,7 +188,7 @@ impl TcpReassembler {
         if !packet.payload.is_empty() {
             let dir = self.insert_payload_segment(packet, &key, &tcp);
             self.check_anomaly_thresholds(packet, &key, dir);
-            self.flush_contiguous_data(&key, dir, handler);
+            self.flush_contiguous_data(&key, dir, handler, timestamp);
         }
 
         // Remove a flow that FIN-closed during this packet, after its
@@ -543,11 +543,16 @@ impl TcpReassembler {
 
     /// Flush the now-contiguous prefix of the direction's buffer to the
     /// handler and update memory accounting.
+    ///
+    /// `timestamp` is the current packet's `timestamp_secs` (BC-2.04.055 hot-path
+    /// case): the pcap capture-relative Unix epoch seconds of the packet that
+    /// triggered this flush.
     fn flush_contiguous_data(
         &mut self,
         key: &FlowKey,
         dir: Direction,
         handler: &mut dyn StreamHandler,
+        timestamp: u32,
     ) {
         let flow = self.flows.get_mut(key).unwrap();
         let flow_dir = flow.get_direction_mut(dir);
@@ -557,7 +562,7 @@ impl TcpReassembler {
 
         for (offset, data) in &flushed {
             self.stats.bytes_reassembled += data.len() as u64;
-            handler.on_data(key, dir, data, *offset);
+            handler.on_data(key, dir, data, *offset, timestamp);
         }
     }
 

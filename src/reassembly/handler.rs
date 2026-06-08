@@ -46,7 +46,14 @@ pub enum CloseReason {
 }
 
 pub trait StreamHandler {
-    fn on_data(&mut self, flow_key: &FlowKey, direction: Direction, data: &[u8], offset: u64);
+    fn on_data(
+        &mut self,
+        flow_key: &FlowKey,
+        direction: Direction,
+        data: &[u8],
+        offset: u64,
+        timestamp: u32,
+    );
 
     fn on_flow_close(&mut self, flow_key: &FlowKey, reason: CloseReason);
 }

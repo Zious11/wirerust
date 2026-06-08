@@ -35,7 +35,7 @@ fn test_parse_get_request() {
 
     let request =
         b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
     assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
     assert_eq!(*analyzer.host_counts().get("example.com").unwrap(), 1);
@@ -49,7 +49,7 @@ fn test_parse_pipelined_requests() {
     let fk = test_flow_key();
 
     let pipelined = b"GET /first HTTP/1.1\r\nHost: a.com\r\n\r\nPOST /second HTTP/1.1\r\nHost: b.com\r\nContent-Length: 0\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, pipelined, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, pipelined, 0, 0);
 
     assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
     assert_eq!(*analyzer.method_counts().get("POST").unwrap(), 1);
@@ -66,6 +66,7 @@ fn test_parse_partial_request() {
         Direction::ClientToServer,
         b"GET /page HTTP/1.1\r\nHos",
         0,
+        0,
     );
     assert_eq!(analyzer.method_counts().get("GET"), None);
 
@@ -74,6 +75,7 @@ fn test_parse_partial_request() {
         Direction::ClientToServer,
         b"t: example.com\r\n\r\n",
         23,
+        0,
     );
     assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
 }
@@ -85,11 +87,11 @@ fn test_parse_response() {
 
     // Send request first
     let request = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
     // Then response
     let response = b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 5\r\n\r\nhello";
-    analyzer.on_data(&fk, Direction::ServerToClient, response, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, response, 0, 0);
 
     assert_eq!(*analyzer.status_code_counts().get(&200).unwrap(), 1);
     assert_eq!(analyzer.transaction_count(), 1);
@@ -101,10 +103,10 @@ fn test_parse_pipelined_responses() {
     let fk = test_flow_key();
 
     let requests = b"GET /a HTTP/1.1\r\nHost: x.com\r\n\r\nGET /b HTTP/1.1\r\nHost: x.com\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, requests, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, requests, 0, 0);
 
     let responses = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\nHTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ServerToClient, responses, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, responses, 0, 0);
 
     assert_eq!(*analyzer.status_code_counts().get(&200).unwrap(), 1);
     assert_eq!(*analyzer.status_code_counts().get(&404).unwrap(), 1);
@@ -116,7 +118,7 @@ fn test_detect_path_traversal() {
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
     let request = b"GET /../../etc/passwd HTTP/1.1\r\nHost: target.com\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
     let findings = analyzer.findings();
     assert_eq!(findings.len(), 1);
     assert_eq!(findings[0].category, ThreatCategory::Reconnaissance);
@@ -129,7 +131,7 @@ fn test_detect_encoded_traversal() {
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
     let request = b"GET /..%2f..%2fetc/passwd HTTP/1.1\r\nHost: target.com\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
     assert!(
         !analyzer.findings().is_empty(),
         "Should detect encoded path traversal"
@@ -141,7 +143,7 @@ fn test_detect_webshell_path() {
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
     let request = b"GET /uploads/c99.php HTTP/1.1\r\nHost: target.com\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
     let findings = analyzer.findings();
     assert_eq!(findings.len(), 1);
     assert_eq!(findings[0].category, ThreatCategory::Execution);
@@ -152,7 +154,7 @@ fn test_detect_unusual_method() {
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
     let request = b"CONNECT proxy.example.com:443 HTTP/1.1\r\nHost: proxy.example.com\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
     let findings = analyzer.findings();
     assert_eq!(findings.len(), 1);
     assert_eq!(findings[0].category, ThreatCategory::Reconnaissance);
@@ -165,7 +167,7 @@ fn test_detect_missing_host_header() {
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
     let request = b"GET /path HTTP/1.1\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
     let findings = analyzer.findings();
     let host_finding = findings
         .iter()
@@ -188,7 +190,7 @@ fn test_detect_empty_host_header() {
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
     let request = b"GET /path HTTP/1.1\r\nHost: \r\nUser-Agent: curl/8.0\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
     let findings = analyzer.findings();
     let host_finding = findings
         .iter()
@@ -216,7 +218,7 @@ fn test_detect_whitespace_only_host_header() {
     let mut analyzer = HttpAnalyzer::new();
     let fk = test_flow_key();
     let request = b"GET /path HTTP/1.1\r\nHost:    \r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
     assert!(
         analyzer
             .findings()
@@ -232,7 +234,7 @@ fn test_no_findings_for_normal_request() {
     let fk = test_flow_key();
     let request =
         b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
     assert!(
         analyzer.findings().is_empty(),
         "Normal request should produce no findings"
@@ -247,10 +249,10 @@ fn test_summarize_produces_complete_output() {
     let fk = test_flow_key();
 
     let request = b"GET /page HTTP/1.1\r\nHost: example.com\r\nUser-Agent: TestBot\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
     let response = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ServerToClient, response, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, response, 0, 0);
 
     let summary = analyzer.summarize();
 
@@ -336,13 +338,14 @@ fn test_flow_close_cleans_up_state() {
     let fk = test_flow_key();
 
     let request = b"GET / HTTP/1.1\r\nHost: x.com\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
     analyzer.on_flow_close(&fk, CloseReason::Fin);
 
     analyzer.on_data(
         &fk,
         Direction::ClientToServer,
         b"GET /new HTTP/1.1\r\nHost: y.com\r\n\r\n",
+        0,
         0,
     );
     assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 2);
@@ -355,7 +358,7 @@ fn test_parse_error_increments_counter() {
     let fk = test_flow_key();
 
     // "NOT_HTTP\r\n\r\n" triggers httparse::Error::Token
-    analyzer.on_data(&fk, Direction::ClientToServer, b"NOT_HTTP\r\n\r\n", 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, b"NOT_HTTP\r\n\r\n", 0, 0);
 
     assert_eq!(analyzer.parse_error_count(), 1);
     // Token error should NOT generate a finding (only TooManyHeaders does)
@@ -372,7 +375,7 @@ fn test_parse_error_in_summarize() {
     {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
-        analyzer.on_data(&fk, Direction::ClientToServer, b"NOT_HTTP\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"NOT_HTTP\r\n\r\n", 0, 0);
         let summary = analyzer.summarize();
         assert_eq!(
             summary.detail["parse_errors"], 1,
@@ -461,7 +464,7 @@ fn test_too_many_headers_generates_finding() {
     }
     request.extend_from_slice(b"\r\n");
 
-    analyzer.on_data(&fk, Direction::ClientToServer, &request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &request, 0, 0);
 
     assert_eq!(analyzer.parse_error_count(), 1);
     let findings = analyzer.findings();
@@ -486,10 +489,10 @@ fn test_parse_error_in_response() {
 
     // Send valid request first
     let request = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
     // Send malformed response
-    analyzer.on_data(&fk, Direction::ServerToClient, b"NOT_HTTP\r\n\r\n", 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, b"NOT_HTTP\r\n\r\n", 0, 0);
 
     assert_eq!(analyzer.parse_error_count(), 1);
     // Token error on response should NOT generate a finding
@@ -502,15 +505,15 @@ fn test_parse_error_poisons_direction_after_threshold() {
     let fk = test_flow_key();
 
     // Send 3 consecutive errors to reach POISON_THRESHOLD
-    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE1\r\n\r\n", 0);
-    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE2\r\n\r\n", 0);
-    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE3\r\n\r\n", 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE1\r\n\r\n", 0, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE2\r\n\r\n", 0, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE3\r\n\r\n", 0, 0);
     assert_eq!(analyzer.parse_error_count(), 3);
 
     // Fourth: valid request — skipped because direction is now poisoned
     let valid = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
     let skipped_before = analyzer.poisoned_bytes_skipped();
-    analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, valid, 0, 0);
 
     assert_eq!(analyzer.parse_error_count(), 3); // no new errors (poisoned, not retried)
     assert!(analyzer.method_counts().get("GET").is_none()); // never parsed
@@ -526,12 +529,12 @@ fn test_single_error_does_not_poison() {
     let fk = test_flow_key();
 
     // One error is below threshold — should NOT poison
-    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
     assert_eq!(analyzer.parse_error_count(), 1);
 
     // Valid request should still parse (direction not poisoned yet)
     let valid = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, valid, 0, 0);
 
     assert_eq!(analyzer.parse_error_count(), 1);
     assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
@@ -543,14 +546,14 @@ fn test_poison_request_does_not_affect_response() {
     let fk = test_flow_key();
 
     // Poison request direction (3 errors)
-    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE1\r\n\r\n", 0);
-    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE2\r\n\r\n", 0);
-    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE3\r\n\r\n", 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE1\r\n\r\n", 0, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE2\r\n\r\n", 0, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE3\r\n\r\n", 0, 0);
     assert_eq!(analyzer.parse_error_count(), 3);
 
     // Response direction should still work
     let response = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ServerToClient, response, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, response, 0, 0);
     assert_eq!(analyzer.transaction_count(), 1);
     assert_eq!(*analyzer.status_code_counts().get(&200).unwrap(), 1);
 }
@@ -562,11 +565,11 @@ fn test_non_http_flows_counts_per_flow_not_direction() {
 
     // Poison request direction (3 errors)
     for _ in 0..3 {
-        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
     }
     // Poison response direction (3 errors)
     for _ in 0..3 {
-        analyzer.on_data(&fk, Direction::ServerToClient, b"GARBAGE\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, b"GARBAGE\r\n\r\n", 0, 0);
     }
 
     // Both directions poisoned, but non_http_flows should count 1 flow, not 2
@@ -583,7 +586,7 @@ fn test_poison_cleared_after_flow_close() {
 
     // Poison request direction (3 errors)
     for _ in 0..3 {
-        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
     }
 
     // Close the flow
@@ -591,7 +594,7 @@ fn test_poison_cleared_after_flow_close() {
 
     // Reopen same 4-tuple — should NOT be poisoned
     let valid = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, valid, 0, 0);
     assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
 }
 
@@ -602,7 +605,7 @@ fn test_normal_request_no_parse_errors() {
 
     let request =
         b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
     assert_eq!(analyzer.parse_error_count(), 0);
     assert!(analyzer.findings().is_empty());
@@ -620,7 +623,7 @@ fn test_too_many_headers_in_response_generates_finding() {
     }
     response.extend_from_slice(b"\r\n");
 
-    analyzer.on_data(&fk, Direction::ServerToClient, &response, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &response, 0, 0);
 
     assert_eq!(analyzer.parse_error_count(), 1);
     let findings = analyzer.findings();
@@ -635,11 +638,11 @@ fn test_multiple_parse_errors_accumulate() {
     let fk = test_flow_key();
 
     // First error: malformed request
-    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
     assert_eq!(analyzer.parse_error_count(), 1);
 
     // Second error: malformed response
-    analyzer.on_data(&fk, Direction::ServerToClient, b"ALSO_BAD\r\n\r\n", 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, b"ALSO_BAD\r\n\r\n", 0, 0);
     assert_eq!(analyzer.parse_error_count(), 2);
 }
 
@@ -650,13 +653,13 @@ fn test_body_bytes_do_not_inflate_parse_errors() {
 
     // Request with no body
     let request = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
     // Response WITH body "hello" (Content-Length: 5)
     // Body bytes remain in buffer after header parse and would previously
     // be re-parsed as HTTP, triggering a false parse error.
     let response = b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 5\r\n\r\nhello";
-    analyzer.on_data(&fk, Direction::ServerToClient, response, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, response, 0, 0);
 
     assert_eq!(analyzer.parse_error_count(), 0);
     assert!(analyzer.findings().is_empty());
@@ -669,12 +672,12 @@ fn test_cross_flow_isolation_parse_errors() {
     let flow_b = test_flow_key_b();
 
     // Send malformed data on flow A
-    analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+    analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
     assert_eq!(analyzer.parse_error_count(), 1);
 
     // Send valid request on flow B — should parse successfully
     let valid = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    analyzer.on_data(&flow_b, Direction::ClientToServer, valid, 0);
+    analyzer.on_data(&flow_b, Direction::ClientToServer, valid, 0, 0);
 
     assert_eq!(analyzer.parse_error_count(), 1); // only from flow A
     assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
@@ -688,19 +691,19 @@ fn test_cross_flow_isolation_poisoning() {
 
     // Poison flow A (3 consecutive errors)
     for _ in 0..3 {
-        analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
     }
     assert_eq!(analyzer.parse_error_count(), 3);
 
     // Flow B should be completely unaffected
     let valid = b"GET /page HTTP/1.1\r\nHost: other.com\r\n\r\n";
-    analyzer.on_data(&flow_b, Direction::ClientToServer, valid, 0);
+    analyzer.on_data(&flow_b, Direction::ClientToServer, valid, 0, 0);
 
     assert_eq!(*analyzer.method_counts().get("GET").unwrap(), 1);
 
     // Verify flow A is poisoned (data skipped, bytes counted)
     let skipped_before = analyzer.poisoned_bytes_skipped();
-    analyzer.on_data(&flow_a, Direction::ClientToServer, b"more data", 0);
+    analyzer.on_data(&flow_a, Direction::ClientToServer, b"more data", 0, 0);
     assert_eq!(
         analyzer.poisoned_bytes_skipped(),
         skipped_before + b"more data".len() as u64
@@ -730,7 +733,7 @@ fn test_buffer_cap_no_panic_on_oversized_headers() {
     oversized.extend_from_slice(&vec![b'A'; 70_000]);
     // No \r\n\r\n yet.
 
-    analyzer.on_data(&fk, Direction::ClientToServer, &oversized, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &oversized, 0, 0);
 
     // The oversized partial request should not parse.
     assert!(
@@ -753,6 +756,7 @@ fn test_buffer_cap_no_panic_on_oversized_headers() {
         Direction::ClientToServer,
         completion,
         oversized.len() as u64,
+        0,
     );
 
     assert!(
@@ -767,7 +771,7 @@ fn test_buffer_cap_no_panic_on_oversized_headers() {
     // Subsequent valid data on a NEW flow should still work (analyzer not corrupted).
     let fk2 = test_flow_key_b();
     let valid = b"GET /ok HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    analyzer.on_data(&fk2, Direction::ClientToServer, valid, 0);
+    analyzer.on_data(&fk2, Direction::ClientToServer, valid, 0, 0);
     assert_eq!(
         *analyzer.method_counts().get("GET").unwrap(),
         1,
@@ -784,7 +788,7 @@ fn test_detect_long_uri() {
 
     let long_path = "/".to_string() + &"A".repeat(2100);
     let request = format!("GET {long_path} HTTP/1.1\r\nHost: target.com\r\n\r\n");
-    analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0, 0);
 
     let findings = analyzer.findings();
     let long_uri_finding = findings
@@ -816,7 +820,7 @@ fn test_detect_empty_user_agent() {
     let fk = test_flow_key();
 
     let request = b"GET /page HTTP/1.1\r\nHost: example.com\r\nUser-Agent: \r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
     let findings = analyzer.findings();
     let ua_finding = findings
@@ -843,7 +847,7 @@ fn test_missing_user_agent_no_finding() {
     let fk = test_flow_key();
 
     let request = b"GET /page HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
     assert!(
         !analyzer
@@ -869,7 +873,7 @@ fn test_detect_admin_panel_paths() {
         let fk = test_flow_key();
 
         let request = format!("GET {pattern} HTTP/1.1\r\nHost: target.com\r\n\r\n");
-        analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0, 0);
 
         let findings = analyzer.findings();
         let admin_finding = findings
@@ -909,13 +913,13 @@ fn test_partial_response_reassembly() {
 
     // Send a request first so the response direction is active.
     let request = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
     // Split response across two chunks mid-header.
     let part1 = b"HTTP/1.1 200 OK\r\nContent-Len";
     let part2 = b"gth: 0\r\n\r\n";
 
-    analyzer.on_data(&fk, Direction::ServerToClient, part1, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, part1, 0, 0);
     // After part1: should be Partial — no transaction yet.
     assert_eq!(
         analyzer.transaction_count(),
@@ -923,7 +927,7 @@ fn test_partial_response_reassembly() {
         "partial response should not complete a transaction"
     );
 
-    analyzer.on_data(&fk, Direction::ServerToClient, part2, part1.len() as u64);
+    analyzer.on_data(&fk, Direction::ServerToClient, part2, part1.len() as u64, 0);
     // After part2: response fully assembled → transaction counted.
     assert_eq!(
         analyzer.transaction_count(),
@@ -970,7 +974,7 @@ mod bc_2_06_formalization {
 
         // Canonical test vector from BC-2.06.001.
         let req = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: curl/7.0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req, 0, 0);
 
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap(),
@@ -1027,7 +1031,7 @@ mod bc_2_06_formalization {
         // buffer before the next parse iteration begins.
         let two_reqs =
             b"GET /a HTTP/1.1\r\nHost: h.com\r\n\r\nPOST /b HTTP/1.1\r\nHost: h.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, two_reqs, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, two_reqs, 0, 0);
 
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
@@ -1054,7 +1058,7 @@ mod bc_2_06_formalization {
         let fk = test_flow_key();
 
         let req = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: curl/7.0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req, 0, 0);
 
         assert_eq!(
             analyzer.transaction_count(),
@@ -1073,7 +1077,7 @@ mod bc_2_06_formalization {
 
         // HTTP/1.0 — no Host header (legal for 1.0).
         let req = b"GET /resource HTTP/1.0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req, 0, 0);
 
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
@@ -1100,7 +1104,7 @@ mod bc_2_06_formalization {
 
         // No Host, no UA — HTTP/1.0 so no missing-Host finding either.
         let req = b"POST /submit HTTP/1.0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req, 0, 0);
 
         assert_eq!(
             *analyzer.method_counts().get("POST").unwrap_or(&0),
@@ -1140,7 +1144,7 @@ mod bc_2_06_formalization {
 
         // BC-2.06.026 EC-002 — space variant: spaces around the host value must be stripped.
         let req_space = b"GET / HTTP/1.1\r\nHost:   example.com   \r\nUser-Agent: bot\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, req_space, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req_space, 0, 0);
 
         assert!(
             analyzer.host_counts().contains_key("example.com"),
@@ -1157,7 +1161,7 @@ mod bc_2_06_formalization {
         // per RFC 9110 §5.6.3). The stored key must be "tab.example.com" not
         // "\ttab.example.com\t".
         let req_tab = b"GET / HTTP/1.1\r\nHost:\ttab.example.com\t\r\nUser-Agent: bot\r\n\r\n";
-        analyzer.on_data(&fk2, Direction::ClientToServer, req_tab, 0);
+        analyzer.on_data(&fk2, Direction::ClientToServer, req_tab, 0, 0);
 
         assert!(
             analyzer.host_counts().contains_key("tab.example.com"),
@@ -1181,7 +1185,7 @@ mod bc_2_06_formalization {
         let mut req = b"GET / HTTP/1.1\r\nHost: h.com\r\nUser-Agent: curl/7.0".to_vec();
         req.push(0x80); // invalid UTF-8 byte → U+FFFD after lossy conversion
         req.extend_from_slice(b"\r\n\r\n");
-        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0, 0);
 
         // The stored key must contain the replacement character, not the raw byte.
         let ua_key = analyzer
@@ -1209,7 +1213,7 @@ mod bc_2_06_formalization {
         // httparse preserves the exact case the client sent.
         // "HOST" in all caps must still be mapped to hosts.
         let req = b"GET /resource HTTP/1.1\r\nHOST: caps.example.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req, 0, 0);
 
         assert!(
             analyzer.host_counts().contains_key("caps.example.com"),
@@ -1227,7 +1231,7 @@ mod bc_2_06_formalization {
 
         // No User-Agent header at all.
         let req = b"GET / HTTP/1.1\r\nHost: x.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req, 0, 0);
 
         assert!(
             analyzer.user_agent_counts().is_empty(),
@@ -1248,7 +1252,7 @@ mod bc_2_06_formalization {
 
         // BC-2.06.002 canonical test vector.
         let pipelined = b"GET /a HTTP/1.1\r\nHost: h\r\n\r\nGET /b HTTP/1.1\r\nHost: h\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, pipelined, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, pipelined, 0, 0);
 
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
@@ -1293,7 +1297,7 @@ mod bc_2_06_formalization {
         // "/admin/dashboard" matches "/admin"; "/wp-admin/index.php" matches "/wp-admin".
         let pipelined = b"GET /admin/dashboard HTTP/1.1\r\nHost: h.com\r\n\r\n\
 GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, pipelined, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, pipelined, 0, 0);
 
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
@@ -1336,7 +1340,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
 
         // First request complete, second is partial (no trailing \r\n\r\n).
         let mixed = b"GET /first HTTP/1.1\r\nHost: h.com\r\n\r\nGET /partial HTTP/1.1\r\nHos";
-        analyzer.on_data(&fk, Direction::ClientToServer, mixed, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, mixed, 0, 0);
 
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
@@ -1351,6 +1355,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
             Direction::ClientToServer,
             completion,
             mixed.len() as u64,
+            0,
         );
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
@@ -1381,8 +1386,8 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
         // which exceeds the threshold of 3.
 
         // Round 1: 2 garbage chunks → error_count = 2 (below threshold).
-        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE1\r\n\r\n", 0);
-        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE2\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE1\r\n\r\n", 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE2\r\n\r\n", 0, 0);
         assert_eq!(
             analyzer.parse_error_count(),
             2,
@@ -1391,7 +1396,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
 
         // Valid GET #1 — must reset error_count to 0.
         let valid1 = b"GET /first HTTP/1.1\r\nHost: x.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, valid1, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, valid1, 0, 0);
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
             1,
@@ -1401,13 +1406,13 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
         // Round 2: 2 more garbage chunks. If error_count was NOT reset to 0
         // after valid GET #1, the running total would now be 4 (≥ 3 = POISON_THRESHOLD)
         // and the direction would be poisoned. With the reset, it returns to 2 here.
-        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE3\r\n\r\n", 0);
-        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE4\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE3\r\n\r\n", 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE4\r\n\r\n", 0, 0);
 
         // Valid GET #2 — must also parse successfully because the reset kept
         // the per-flow error_count at 2, not at 4.
         let valid2 = b"GET /second HTTP/1.1\r\nHost: x.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, valid2, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, valid2, 0, 0);
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
             2,
@@ -1426,13 +1431,13 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
         // Now verify the threshold still fires correctly: send 3 more garbage chunks
         // after the last reset (error_count restarts at 0 after valid2, so 3 errors
         // is exactly POISON_THRESHOLD) → direction must be poisoned.
-        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK1\r\n\r\n", 0);
-        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK2\r\n\r\n", 0);
-        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK3\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK1\r\n\r\n", 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK2\r\n\r\n", 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK3\r\n\r\n", 0, 0);
 
         // A third GET must be skipped — direction is poisoned.
         let valid3 = b"GET /third HTTP/1.1\r\nHost: x.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, valid3, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, valid3, 0, 0);
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
             2,
@@ -1474,7 +1479,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
         let mut req_with_body = b"GET /resource HTTP/1.1\r\nHost: example.com\r\n\r\n".to_vec();
         req_with_body.push(0x00); // NUL — Err(Token) on next iteration
         req_with_body.push(0x01); // additional non-HTTP byte
-        analyzer.on_data(&fk, Direction::ClientToServer, &req_with_body, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &req_with_body, 0, 0);
 
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
@@ -1515,7 +1520,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
             b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 5\r\n\r\n".to_vec();
         resp_with_body.push(0x00); // NUL — causes Err(InvalidToken) in next iteration
         resp_with_body.extend_from_slice(b"body");
-        analyzer.on_data(&fk, Direction::ServerToClient, &resp_with_body, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, &resp_with_body, 0, 0);
 
         assert_eq!(
             analyzer.transaction_count(),
@@ -1543,7 +1548,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
 
         // BC-2.06.003 canonical test vector (first half only).
         let partial = b"GET /test HTTP/1.1\r\nHost: ";
-        analyzer.on_data(&fk, Direction::ClientToServer, partial, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, partial, 0, 0);
 
         assert!(
             analyzer.method_counts().get("GET").is_none(),
@@ -1566,6 +1571,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
             Direction::ClientToServer,
             completion,
             partial.len() as u64,
+            0,
         );
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
@@ -1584,7 +1590,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
 
         // Partial path-traversal request — the traversal rule must NOT fire yet.
         let partial = b"GET /../../etc/passwd HTTP/1.1\r\nHos";
-        analyzer.on_data(&fk, Direction::ClientToServer, partial, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, partial, 0, 0);
 
         assert!(
             analyzer.findings().is_empty(),
@@ -1611,7 +1617,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
             b"Host: e",
             b"x.com\r\n",
         ] {
-            analyzer.on_data(&fk, Direction::ClientToServer, chunk, 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, chunk, 0, 0);
             assert_eq!(
                 analyzer.parse_error_count(),
                 0,
@@ -1619,7 +1625,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
             );
         }
         // Complete the request.
-        analyzer.on_data(&fk, Direction::ClientToServer, b"\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"\r\n", 0, 0);
         assert_eq!(
             analyzer.parse_error_count(),
             0,
@@ -1639,7 +1645,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
         let fk = test_flow_key();
 
         let resp = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ServerToClient, resp, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, resp, 0, 0);
 
         assert_eq!(
             analyzer.transaction_count(),
@@ -1668,7 +1674,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
 
         // BC-2.06.004 canonical pipelined vector.
         let pipelined = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\nHTTP/1.1 304 Not Modified\r\nContent-Length: 0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ServerToClient, pipelined, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, pipelined, 0, 0);
 
         assert_eq!(
             analyzer.transaction_count(),
@@ -1697,7 +1703,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
 
         // Well-formed 404 response.
         let resp = b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ServerToClient, resp, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, resp, 0, 0);
 
         assert_eq!(
             *analyzer.status_code_counts().get(&404).unwrap_or(&0),
@@ -1731,7 +1737,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
         // Five requests, zero responses.
         for i in 0..5u8 {
             let req = format!("GET /path{i} HTTP/1.1\r\nHost: x.com\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
         }
         assert_eq!(
             analyzer.transaction_count(),
@@ -1741,7 +1747,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
 
         // One response.
         let resp = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ServerToClient, resp, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, resp, 0, 0);
         assert_eq!(
             analyzer.transaction_count(),
             1,
@@ -1760,10 +1766,10 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
         // Three requests, two responses.
         for i in 0..3u8 {
             let req = format!("GET /r{i} HTTP/1.1\r\nHost: x.com\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
         }
         let responses = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\nHTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ServerToClient, responses, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, responses, 0, 0);
 
         let summary = analyzer.summarize();
         assert_eq!(
@@ -1804,7 +1810,7 @@ GET /wp-admin/index.php HTTP/1.1\r\nHost: h.com\r\n\r\n";
         let mut req = b"GET /../../etc/passwd".to_vec();
         req.extend_from_slice(&[0xC2, 0x9B]); // valid UTF-8 for U+009B (C1 CSI)
         req.extend_from_slice(b" HTTP/1.1\r\nHost: target.com\r\n\r\n");
-        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0, 0);
 
         let findings = analyzer.findings();
         let traversal = findings
@@ -1865,7 +1871,7 @@ mod bc_2_06_story042_formalization {
 
         // Canonical BC-2.06.005 vector: URI contains "../"
         let request = b"GET /../etc/passwd HTTP/1.1\r\nHost: target.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
         let findings = analyzer.findings();
         let traversal = findings
@@ -1941,7 +1947,7 @@ mod bc_2_06_story042_formalization {
                 long_path.len()
             );
             let req = format!("GET {long_path} HTTP/1.1\r\nHost: h\r\n\r\n");
-            a2.on_data(&fk2, Direction::ClientToServer, req.as_bytes(), 0);
+            a2.on_data(&fk2, Direction::ClientToServer, req.as_bytes(), 0, 0);
 
             let findings2 = a2.findings();
             let t2 = findings2
@@ -2001,6 +2007,7 @@ mod bc_2_06_story042_formalization {
                 Direction::ClientToServer,
                 b"GET /../etc/passwd HTTP/1.1\r\nHost: h\r\n\r\n",
                 0,
+                0,
             );
             let findings = a.findings();
             let t = findings
@@ -2023,6 +2030,7 @@ mod bc_2_06_story042_formalization {
                 Direction::ClientToServer,
                 b"GET /..%2fetc%2fpasswd HTTP/1.1\r\nHost: h\r\n\r\n",
                 0,
+                0,
             );
             assert!(
                 a.findings()
@@ -2040,6 +2048,7 @@ mod bc_2_06_story042_formalization {
                 &fk,
                 Direction::ClientToServer,
                 b"GET /..%252fetc HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
                 0,
             );
             assert!(
@@ -2059,6 +2068,7 @@ mod bc_2_06_story042_formalization {
                 Direction::ClientToServer,
                 b"GET /....//etc/passwd HTTP/1.1\r\nHost: h\r\n\r\n",
                 0,
+                0,
             );
             assert!(
                 a.findings()
@@ -2077,6 +2087,7 @@ mod bc_2_06_story042_formalization {
                 &fk,
                 Direction::ClientToServer,
                 b"GET /..%2Fetc HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
                 0,
             );
             assert!(
@@ -2100,6 +2111,7 @@ mod bc_2_06_story042_formalization {
                 &fk,
                 Direction::ClientToServer,
                 b"GET /..\\etc\\passwd HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
                 0,
             );
             // The request must have been parsed (not rejected) for the negative to hold.
@@ -2141,7 +2153,7 @@ mod bc_2_06_story042_formalization {
         // Two pipelined requests, both with path-traversal URIs.
         let pipelined = b"GET /../etc/passwd HTTP/1.1\r\nHost: target.com\r\n\r\n\
 GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, pipelined, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, pipelined, 0, 0);
 
         let traversal_findings: Vec<_> = analyzer
             .findings()
@@ -2188,7 +2200,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
 
         // HTTP/1.0 request containing a "../" path-traversal URI.
         let request = b"GET /../etc/passwd HTTP/1.0\r\nHost: target.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
         // The request must have been parsed (not silently dropped) — method count
         // confirms that the path through check_request_detections was executed.
@@ -2266,7 +2278,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
 
         // Canonical BC-2.06.006 vector: URI contains "/c99.php" (substring match).
         let request = b"GET /uploads/c99.php HTTP/1.1\r\nHost: target.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
         let findings = analyzer.findings();
         let shell_finding = findings
@@ -2342,7 +2354,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
                 long_shell.len()
             );
             let req = format!("GET {long_shell} HTTP/1.1\r\nHost: h\r\n\r\n");
-            a2.on_data(&fk2, Direction::ClientToServer, req.as_bytes(), 0);
+            a2.on_data(&fk2, Direction::ClientToServer, req.as_bytes(), 0, 0);
 
             let findings2 = a2.findings();
             let s2 = findings2
@@ -2398,6 +2410,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
                 Direction::ClientToServer,
                 b"GET /uploads/SHELL.PHP HTTP/1.1\r\nHost: h\r\n\r\n",
                 0,
+                0,
             );
             assert!(
                 a.findings().iter().any(|f| f.summary.contains("web shell")),
@@ -2413,6 +2426,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
                 &fk,
                 Direction::ClientToServer,
                 b"GET /uploads/c99.php?cmd=id HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
                 0,
             );
             assert!(
@@ -2438,7 +2452,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
             let mut a = HttpAnalyzer::new();
             let fk = test_flow_key();
             let request = format!("GET {pattern} HTTP/1.1\r\nHost: target.com\r\n\r\n");
-            a.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+            a.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0, 0);
             assert!(
                 a.findings().iter().any(|f| f.summary.contains("web shell")),
                 "BC-2.06.006: pattern '{pattern}' must trigger web-shell finding"
@@ -2471,7 +2485,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
             let fk = test_flow_key();
 
             let request = format!("GET {uri} HTTP/1.1\r\nHost: target.com\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0, 0);
 
             let findings = analyzer.findings();
             let admin_finding = findings
@@ -2550,7 +2564,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
                 long_admin.len()
             );
             let req = format!("GET {long_admin} HTTP/1.1\r\nHost: h\r\n\r\n");
-            a2.on_data(&fk2, Direction::ClientToServer, req.as_bytes(), 0);
+            a2.on_data(&fk2, Direction::ClientToServer, req.as_bytes(), 0, 0);
 
             let findings2 = a2.findings();
             let a_f = findings2
@@ -2605,6 +2619,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
                 Direction::ClientToServer,
                 b"GET /ADMIN HTTP/1.1\r\nHost: h\r\n\r\n",
                 0,
+                0,
             );
             assert!(
                 a.findings()
@@ -2624,6 +2639,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
                 Direction::ClientToServer,
                 b"GET /site/admin/settings HTTP/1.1\r\nHost: h\r\n\r\n",
                 0,
+                0,
             );
             assert!(
                 a.findings()
@@ -2641,6 +2657,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
                 &fk,
                 Direction::ClientToServer,
                 b"GET /WP-Admin/post.php HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
                 0,
             );
             assert!(
@@ -2676,6 +2693,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
                 Direction::ClientToServer,
                 b"GET /cmd.php/../etc/passwd HTTP/1.1\r\nHost: h\r\n\r\n",
                 0,
+                0,
             );
 
             let findings = a.findings();
@@ -2708,6 +2726,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
                 &fk,
                 Direction::ClientToServer,
                 b"GET /wp-admin/../shell.php HTTP/1.1\r\nHost: h\r\n\r\n",
+                0,
                 0,
             );
 
@@ -2761,7 +2780,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
         // BC-2.06.012 canonical test vector.
         let request =
             b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: curl/7.0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
         // BC-2.06.012 postcondition 1: all_findings must gain zero new entries.
         assert!(
@@ -2822,7 +2841,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
 
         let request =
             b"GET /index.html HTTP/1.1\r\nHost: example.com\r\nUser-Agent: Mozilla/5.0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
         // Positive-parse anchor: the request must have been parsed and the method
         // counter incremented before any negative (absence) assertions are checked.
@@ -2915,7 +2934,7 @@ mod bc_2_06_043_formalization {
         // BC-2.06.008 canonical vector: CONNECT with a valid Host so the only
         // finding is the unusual-method one (no host-anomaly interference).
         let request = b"CONNECT proxy.example.com:443 HTTP/1.1\r\nHost: proxy.example.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
         let findings = analyzer.findings();
         let method_finding = findings
@@ -2985,7 +3004,7 @@ mod bc_2_06_043_formalization {
             // We use HTTP/1.0 to suppress the missing-Host finding so the
             // zero-findings assertion is unambiguous.
             let request = b"delete /resource HTTP/1.0\r\n\r\n";
-            analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
             assert_eq!(
                 *analyzer.method_counts().get("delete").unwrap_or(&0),
                 1,
@@ -3006,7 +3025,7 @@ mod bc_2_06_043_formalization {
             let fk = test_flow_key();
             // HTTP/1.0 to suppress missing-Host noise.
             let request = format!("{method} /resource HTTP/1.0\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0, 0);
             assert!(
                 analyzer
                     .findings()
@@ -3021,7 +3040,7 @@ mod bc_2_06_043_formalization {
             let mut analyzer = HttpAnalyzer::new();
             let fk = test_flow_key();
             let request = format!("{method} /resource HTTP/1.1\r\nHost: example.com\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0, 0);
             assert_eq!(
                 *analyzer.method_counts().get(*method).unwrap_or(&0),
                 1,
@@ -3050,7 +3069,7 @@ mod bc_2_06_043_formalization {
 
         // BC-2.06.009 canonical vector: GET / HTTP/1.1 with no Host header.
         let request = b"GET /path HTTP/1.1\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
         let findings = analyzer.findings();
         let host_finding = findings
@@ -3115,7 +3134,7 @@ mod bc_2_06_043_formalization {
 
         // BC-2.06.009 EC-003: Host header present with empty value.
         let request = b"GET /path HTTP/1.1\r\nHost: \r\nUser-Agent: curl/8.0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
         let findings = analyzer.findings();
         let host_finding = findings
@@ -3172,7 +3191,7 @@ mod bc_2_06_043_formalization {
             let mut analyzer = HttpAnalyzer::new();
             let fk = test_flow_key();
             let request = b"GET /resource HTTP/1.0\r\n\r\n";
-            analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
             assert_eq!(
                 *analyzer.method_counts().get("GET").unwrap_or(&0),
                 1,
@@ -3192,7 +3211,7 @@ mod bc_2_06_043_formalization {
             let mut analyzer = HttpAnalyzer::new();
             let fk = test_flow_key();
             let request = b"GET /resource HTTP/1.0\r\nHost: \r\n\r\n";
-            analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
             assert_eq!(
                 *analyzer.method_counts().get("GET").unwrap_or(&0),
                 1,
@@ -3213,7 +3232,7 @@ mod bc_2_06_043_formalization {
             let mut analyzer = HttpAnalyzer::new();
             let fk = test_flow_key();
             let request = b"GET /path HTTP/1.1\r\nHost:   \r\n\r\n";
-            analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
             assert_eq!(
                 *analyzer.method_counts().get("GET").unwrap_or(&0),
                 1,
@@ -3246,7 +3265,7 @@ mod bc_2_06_043_formalization {
         let long_path = "/".to_string() + &"A".repeat(2100);
         let uri_len = long_path.len(); // 2101
         let request = format!("GET {long_path} HTTP/1.1\r\nHost: target.com\r\n\r\n");
-        analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0, 0);
 
         let findings = analyzer.findings();
         let long_uri_finding = findings
@@ -3338,7 +3357,7 @@ mod bc_2_06_043_formalization {
                 "precondition: URI must be exactly 2048 bytes"
             );
             let request = format!("GET {uri_2048} HTTP/1.1\r\nHost: x.com\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0, 0);
             assert_eq!(
                 *analyzer.method_counts().get("GET").unwrap_or(&0),
                 1,
@@ -3365,7 +3384,7 @@ mod bc_2_06_043_formalization {
                 "precondition: URI must be exactly 2049 bytes"
             );
             let request = format!("GET {uri_2049} HTTP/1.1\r\nHost: x.com\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0, 0);
 
             let findings = analyzer.findings();
             let long_uri_finding = findings
@@ -3396,7 +3415,7 @@ mod bc_2_06_043_formalization {
 
         // BC-2.06.011 canonical vector: empty User-Agent (trailing space after colon).
         let request = b"GET /page HTTP/1.1\r\nHost: example.com\r\nUser-Agent: \r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
         let findings = analyzer.findings();
         let ua_finding = findings
@@ -3460,7 +3479,7 @@ mod bc_2_06_043_formalization {
 
         // No User-Agent header at all.
         let request = b"GET /page HTTP/1.1\r\nHost: example.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
         // Positive-parse anchor: request must have been parsed before asserting absence.
         assert_eq!(
@@ -3499,7 +3518,7 @@ mod bc_2_06_043_formalization {
             let mut analyzer = HttpAnalyzer::new();
             let fk = test_flow_key();
             let request = b"GET /page HTTP/1.1\r\nHost: example.com\r\nUser-Agent:   \r\n\r\n";
-            analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
             let findings = analyzer.findings();
             assert!(
                 findings
@@ -3515,7 +3534,7 @@ mod bc_2_06_043_formalization {
             let mut analyzer = HttpAnalyzer::new();
             let fk = test_flow_key();
             let request = b"GET /page HTTP/1.1\r\nHost: example.com\r\nUser-Agent:\r\n\r\n";
-            analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
             let findings = analyzer.findings();
             assert!(
                 findings
@@ -3538,7 +3557,7 @@ mod bc_2_06_043_formalization {
 
         // HTTP/1.1, no Host, empty User-Agent — both detections should fire.
         let request = b"GET /resource HTTP/1.1\r\nUser-Agent: \r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
 
         // Positive-parse anchor: request must have been parsed before asserting findings.
         assert_eq!(
@@ -3572,7 +3591,7 @@ mod bc_2_06_043_formalization {
         // Build a URI that is >2048 chars AND contains "../" for path-traversal.
         let long_traversal = "/../../".to_string() + &"A".repeat(2048);
         let request = format!("GET {long_traversal} HTTP/1.1\r\nHost: target.com\r\n\r\n");
-        analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0, 0);
 
         let findings = analyzer.findings();
         assert!(
@@ -3598,7 +3617,7 @@ mod bc_2_06_043_formalization {
             let fk = test_flow_key();
             // HTTP/1.0 to suppress missing-Host noise.
             let request = format!("{method} /resource HTTP/1.0\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0, 0);
 
             let findings = analyzer.findings();
             assert!(
@@ -3628,7 +3647,7 @@ mod bc_2_06_043_formalization {
 
         let uri = "/".to_string() + &"X".repeat(9999); // 10000 chars total
         let request = format!("GET {uri} HTTP/1.1\r\nHost: x.com\r\n\r\n");
-        analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0, 0);
 
         let findings = analyzer.findings();
         let f = findings
@@ -3681,6 +3700,7 @@ mod bc_2_06_044_formalization {
             Direction::ClientToServer,
             b"SSH-2.0-OpenSSH\r\n\r\n",
             0,
+            0,
         );
 
         assert_eq!(
@@ -3712,6 +3732,7 @@ mod bc_2_06_044_formalization {
             Direction::ClientToServer,
             b"\xff\xfe binary garbage",
             0,
+            0,
         );
 
         assert_eq!(
@@ -3737,7 +3758,7 @@ mod bc_2_06_044_formalization {
         // Normal request + binary body bytes (NUL, which Err(Token) on re-parse).
         let mut req = b"GET /resource HTTP/1.1\r\nHost: example.com\r\n\r\n".to_vec();
         req.push(0x00); // NUL — causes parse error on next loop iteration
-        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0, 0);
 
         assert_eq!(
             analyzer.parse_error_count(),
@@ -3760,7 +3781,7 @@ mod bc_2_06_044_formalization {
         let fk = test_flow_key();
 
         // Any string that causes httparse::Error::Token (not TooManyHeaders).
-        analyzer.on_data(&fk, Direction::ClientToServer, b"NOT_HTTP\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"NOT_HTTP\r\n\r\n", 0, 0);
 
         assert_eq!(
             analyzer.parse_error_count(),
@@ -3791,7 +3812,7 @@ mod bc_2_06_044_formalization {
             request.extend_from_slice(format!("X-Header-{i}: value\r\n").as_bytes());
         }
         request.extend_from_slice(b"\r\n");
-        analyzer.on_data(&fk, Direction::ClientToServer, &request, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &request, 0, 0);
 
         assert_eq!(
             analyzer.parse_error_count(),
@@ -3855,7 +3876,7 @@ mod bc_2_06_044_formalization {
             response.extend_from_slice(format!("X-Header-{i}: value\r\n").as_bytes());
         }
         response.extend_from_slice(b"\r\n");
-        analyzer.on_data(&fk, Direction::ServerToClient, &response, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, &response, 0, 0);
 
         assert_eq!(
             analyzer.parse_error_count(),
@@ -3906,18 +3927,18 @@ mod bc_2_06_044_formalization {
         };
 
         let req = build_tmh_request();
-        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0, 0);
         assert_eq!(analyzer.parse_error_count(), 1);
         assert_eq!(analyzer.findings().len(), 1);
 
         let req2 = build_tmh_request();
-        analyzer.on_data(&fk, Direction::ClientToServer, &req2, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &req2, 0, 0);
         assert_eq!(analyzer.parse_error_count(), 2);
         assert_eq!(analyzer.findings().len(), 2);
 
         // Third: poisons the direction AND emits a finding.
         let req3 = build_tmh_request();
-        analyzer.on_data(&fk, Direction::ClientToServer, &req3, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &req3, 0, 0);
         assert_eq!(
             analyzer.parse_error_count(),
             3,
@@ -3932,7 +3953,7 @@ mod bc_2_06_044_formalization {
         // Fourth: direction is now poisoned; bytes should be skipped without parsing.
         let before = analyzer.poisoned_bytes_skipped();
         let extra = b"GET / HTTP/1.1\r\nHost: x.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, extra, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, extra, 0, 0);
         assert_eq!(
             analyzer.poisoned_bytes_skipped(),
             before + extra.len() as u64,
@@ -3954,14 +3975,14 @@ mod bc_2_06_044_formalization {
             req.extend_from_slice(format!("X-Header-{i}: value\r\n").as_bytes());
         }
         req.extend_from_slice(b"\r\n");
-        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0, 0);
 
         let mut resp = b"HTTP/1.1 200 OK\r\n".to_vec();
         for i in 0..97 {
             resp.extend_from_slice(format!("X-Header-{i}: value\r\n").as_bytes());
         }
         resp.extend_from_slice(b"\r\n");
-        analyzer.on_data(&fk2, Direction::ServerToClient, &resp, 0);
+        analyzer.on_data(&fk2, Direction::ServerToClient, &resp, 0, 0);
 
         let findings = analyzer.findings();
         let req_finding = findings
@@ -3995,9 +4016,9 @@ mod bc_2_06_044_formalization {
         let fk = test_flow_key();
 
         // Canonical test vector: 3 consecutive non-HTTP chunks.
-        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK1\r\n\r\n", 0);
-        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK2\r\n\r\n", 0);
-        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK3\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK1\r\n\r\n", 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK2\r\n\r\n", 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK3\r\n\r\n", 0, 0);
 
         assert_eq!(
             analyzer.parse_error_count(),
@@ -4008,7 +4029,7 @@ mod bc_2_06_044_formalization {
         // Postcondition 4: subsequent bytes skipped without parsing.
         let post_poison = b"GET /index.html HTTP/1.1\r\nHost: x.com\r\n\r\n";
         let before = analyzer.poisoned_bytes_skipped();
-        analyzer.on_data(&fk, Direction::ClientToServer, post_poison, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, post_poison, 0, 0);
 
         assert_eq!(
             analyzer.poisoned_bytes_skipped(),
@@ -4029,7 +4050,7 @@ mod bc_2_06_044_formalization {
         let fk = test_flow_key();
 
         for _ in 0..3 {
-            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
         }
 
         let summary = analyzer.summarize();
@@ -4049,12 +4070,12 @@ mod bc_2_06_044_formalization {
         let fk = test_flow_key();
 
         // 2 errors (below threshold).
-        analyzer.on_data(&fk, Direction::ClientToServer, b"BAD1\r\n\r\n", 0);
-        analyzer.on_data(&fk, Direction::ClientToServer, b"BAD2\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"BAD1\r\n\r\n", 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"BAD2\r\n\r\n", 0, 0);
 
         // 1 success — resets consecutive count to 0.
         let good = b"GET /ok HTTP/1.1\r\nHost: x.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, good, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, good, 0, 0);
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
             1,
@@ -4062,12 +4083,12 @@ mod bc_2_06_044_formalization {
         );
 
         // 2 more errors — consecutive count is now 2, NOT 4 (reset happened).
-        analyzer.on_data(&fk, Direction::ClientToServer, b"BAD3\r\n\r\n", 0);
-        analyzer.on_data(&fk, Direction::ClientToServer, b"BAD4\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"BAD3\r\n\r\n", 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"BAD4\r\n\r\n", 0, 0);
 
         // Another valid request must succeed — only 2 consecutive errors, not poisoned.
         let good2 = b"GET /ok2 HTTP/1.1\r\nHost: x.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, good2, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, good2, 0, 0);
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
             2,
@@ -4086,12 +4107,12 @@ mod bc_2_06_044_formalization {
 
         // Poison the direction.
         for _ in 0..3 {
-            analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK\r\n\r\n", 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK\r\n\r\n", 0, 0);
         }
 
         // Send 1000 bytes — all skipped.
         let payload: Vec<u8> = vec![b'A'; 1000];
-        analyzer.on_data(&fk, Direction::ClientToServer, &payload, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &payload, 0, 0);
 
         assert_eq!(
             analyzer.poisoned_bytes_skipped(),
@@ -4102,7 +4123,7 @@ mod bc_2_06_044_formalization {
         // Send a valid HTTP request — must still be skipped (irreversible).
         let valid = b"GET /attempt HTTP/1.1\r\nHost: x.com\r\n\r\n";
         let before = analyzer.poisoned_bytes_skipped();
-        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0, 0);
         assert_eq!(
             analyzer.poisoned_bytes_skipped(),
             before + valid.len() as u64,
@@ -4125,7 +4146,7 @@ mod bc_2_06_044_formalization {
         let mut analyzer = HttpAnalyzer::new();
         let fk = test_flow_key();
 
-        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
 
         assert_eq!(
             analyzer.parse_error_count(),
@@ -4135,7 +4156,7 @@ mod bc_2_06_044_formalization {
 
         // Postcondition 2: not poisoned.
         let valid = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0, 0);
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
             1,
@@ -4157,11 +4178,11 @@ mod bc_2_06_044_formalization {
         let fk = test_flow_key();
 
         // 1 error.
-        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
 
         // Success — count reset.
         let valid = b"GET /first HTTP/1.1\r\nHost: x.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0, 0);
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
             1,
@@ -4170,10 +4191,10 @@ mod bc_2_06_044_formalization {
 
         // Now need 3 new consecutive errors to poison (the reset is proven by
         // the fact that 2 more errors + 1 good still parse).
-        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK1\r\n\r\n", 0);
-        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK2\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK1\r\n\r\n", 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK2\r\n\r\n", 0, 0);
         let valid2 = b"GET /second HTTP/1.1\r\nHost: x.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, valid2, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, valid2, 0, 0);
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
             2,
@@ -4196,19 +4217,19 @@ mod bc_2_06_044_formalization {
         let fk = test_flow_key();
 
         // 2 consecutive errors.
-        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK1\r\n\r\n", 0);
-        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK2\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK1\r\n\r\n", 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK2\r\n\r\n", 0, 0);
 
         // Success — resets count to 0.
         let good = b"GET /ok HTTP/1.1\r\nHost: x.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, good, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, good, 0, 0);
 
         // 1 more error — consecutive count is 1 now (not 3).
-        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK3\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK3\r\n\r\n", 0, 0);
 
         // Must not be poisoned — count is 1, below threshold.
         let good2 = b"GET /ok2 HTTP/1.1\r\nHost: x.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, good2, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, good2, 0, 0);
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
             2,
@@ -4228,13 +4249,13 @@ mod bc_2_06_044_formalization {
 
         // Poison request direction.
         for _ in 0..3 {
-            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
         }
 
         // Response direction: valid response must parse normally.
         let response = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
         let before = analyzer.poisoned_bytes_skipped();
-        analyzer.on_data(&fk, Direction::ServerToClient, response, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, response, 0, 0);
 
         assert_eq!(
             analyzer.transaction_count(),
@@ -4264,7 +4285,7 @@ mod bc_2_06_044_formalization {
 
         // Poison request direction with 3 errors.
         for _ in 0..3 {
-            analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK\r\n\r\n", 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK\r\n\r\n", 0, 0);
         }
         let skipped_after_poison = analyzer.poisoned_bytes_skipped();
         // Should be 0: nothing was sent post-poison yet.
@@ -4275,7 +4296,7 @@ mod bc_2_06_044_formalization {
 
         // Send data on both directions.
         let req_bytes = b"GET / HTTP/1.1\r\nHost: x.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, req_bytes, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req_bytes, 0, 0);
         // Request direction is poisoned: bytes counted as skipped.
         assert_eq!(
             analyzer.poisoned_bytes_skipped(),
@@ -4285,7 +4306,7 @@ mod bc_2_06_044_formalization {
 
         let resp_bytes = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
         let before_resp = analyzer.poisoned_bytes_skipped();
-        analyzer.on_data(&fk, Direction::ServerToClient, resp_bytes, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, resp_bytes, 0, 0);
         // Response direction is NOT poisoned: bytes must NOT be skipped.
         assert_eq!(
             analyzer.poisoned_bytes_skipped(),
@@ -4308,12 +4329,12 @@ mod bc_2_06_044_formalization {
 
         // Poison response direction with 3 errors.
         for _ in 0..3 {
-            analyzer.on_data(&fk, Direction::ServerToClient, b"GARBAGE\r\n\r\n", 0);
+            analyzer.on_data(&fk, Direction::ServerToClient, b"GARBAGE\r\n\r\n", 0, 0);
         }
 
         // Request direction is not poisoned; valid request must parse.
         let valid_req = b"GET /test HTTP/1.1\r\nHost: x.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, valid_req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, valid_req, 0, 0);
 
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
@@ -4333,7 +4354,7 @@ mod bc_2_06_044_formalization {
         let fk = test_flow_key();
 
         for _ in 0..3 {
-            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
         }
 
         let summary = analyzer.summarize();
@@ -4353,11 +4374,11 @@ mod bc_2_06_044_formalization {
 
         // Poison request direction.
         for _ in 0..3 {
-            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
         }
         // Poison response direction on the same flow.
         for _ in 0..3 {
-            analyzer.on_data(&fk, Direction::ServerToClient, b"GARBAGE\r\n\r\n", 0);
+            analyzer.on_data(&fk, Direction::ServerToClient, b"GARBAGE\r\n\r\n", 0, 0);
         }
 
         let summary = analyzer.summarize();
@@ -4379,11 +4400,11 @@ mod bc_2_06_044_formalization {
 
         // Poison flow A request direction.
         for _ in 0..3 {
-            analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+            analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
         }
         // Poison flow B request direction.
         for _ in 0..3 {
-            analyzer.on_data(&flow_b, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+            analyzer.on_data(&flow_b, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
         }
 
         let summary = analyzer.summarize();
@@ -4405,7 +4426,7 @@ mod bc_2_06_044_formalization {
 
         // First: poison response direction.
         for _ in 0..3 {
-            analyzer.on_data(&fk, Direction::ServerToClient, b"GARBAGE\r\n\r\n", 0);
+            analyzer.on_data(&fk, Direction::ServerToClient, b"GARBAGE\r\n\r\n", 0, 0);
         }
         let after_resp = analyzer.summarize();
         assert_eq!(
@@ -4416,7 +4437,7 @@ mod bc_2_06_044_formalization {
 
         // Second: poison request direction on the same flow.
         for _ in 0..3 {
-            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
         }
         let after_req = analyzer.summarize();
         assert_eq!(
@@ -4443,7 +4464,7 @@ mod bc_2_06_044_formalization {
         // and cause Err(Token) on next loop iteration — must be suppressed.
         let req =
             b"POST / HTTP/1.1\r\nHost: x.com\r\nContent-Length: 17\r\n\r\n{\"json\":\"body\"}";
-        analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req, 0, 0);
 
         assert_eq!(
             analyzer.parse_error_count(),
@@ -4473,11 +4494,11 @@ mod bc_2_06_044_formalization {
 
         // on_data call 1: valid request — had_success=true by end.
         let req1 = b"GET /first HTTP/1.1\r\nHost: x.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, req1, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req1, 0, 0);
         assert_eq!(analyzer.parse_error_count(), 0, "first on_data: no errors");
 
         // on_data call 2: garbage — had_success starts as false again, error counted.
-        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
         assert_eq!(
             analyzer.parse_error_count(),
             1,
@@ -4495,7 +4516,7 @@ mod bc_2_06_044_formalization {
 
         // Response header + body in one chunk.
         let resp = b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 5\r\n\r\nhello";
-        analyzer.on_data(&fk, Direction::ServerToClient, resp, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, resp, 0, 0);
 
         assert_eq!(
             analyzer.parse_error_count(),
@@ -4528,7 +4549,7 @@ mod bc_2_06_044_formalization {
         // is suppressed by had_success.  The finding count must remain 0.
         let mut req_with_body = b"GET /resource HTTP/1.1\r\nHost: example.com\r\n\r\n".to_vec();
         req_with_body.extend_from_slice(b"\x00\x01\x02"); // NUL bytes
-        analyzer.on_data(&fk, Direction::ClientToServer, &req_with_body, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &req_with_body, 0, 0);
 
         assert_eq!(
             analyzer.parse_error_count(),
@@ -4570,7 +4591,7 @@ mod bc_2_06_044_formalization {
         }
         buf.extend_from_slice(b"\r\n");
 
-        analyzer.on_data(&fk, Direction::ClientToServer, &buf, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &buf, 0, 0);
 
         // Request 1 must be counted.
         assert_eq!(
@@ -4642,7 +4663,7 @@ mod bc_2_06_044_formalization {
         }
         buf.extend_from_slice(b"\r\n");
 
-        analyzer.on_data(&fk, Direction::ServerToClient, &buf, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, &buf, 0, 0);
 
         // Response 1 must be counted as a transaction (response-side success counter).
         assert_eq!(
@@ -4684,8 +4705,8 @@ mod bc_2_06_044_formalization {
         let fk = test_flow_key();
 
         // 2 error buffers.
-        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK1\r\n\r\n", 0);
-        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK2\r\n\r\n", 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK1\r\n\r\n", 0, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, b"JUNK2\r\n\r\n", 0, 0);
         assert_eq!(
             analyzer.parse_error_count(),
             2,
@@ -4695,7 +4716,7 @@ mod bc_2_06_044_formalization {
         // Valid header + body in same on_data.
         let mut req = b"GET /valid HTTP/1.1\r\nHost: x.com\r\n\r\n".to_vec();
         req.push(0x00); // body byte → Err on next iteration (suppressed)
-        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &req, 0, 0);
 
         assert_eq!(
             analyzer.parse_error_count(),
@@ -4752,7 +4773,7 @@ mod bc_2_06_045_formalization {
 
         // Establish flow state: parse one valid request (method counted).
         let req = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req, 0, 0);
 
         // Precondition: flow entry exists; aggregates in expected state.
         assert_eq!(
@@ -4798,7 +4819,7 @@ mod bc_2_06_045_formalization {
         // AC-003: repeat with CloseReason::Rst — same outcome.
         let fk2 = test_flow_key_b();
         let req2 = b"POST /submit HTTP/1.1\r\nHost: other.com\r\n\r\n";
-        analyzer.on_data(&fk2, Direction::ClientToServer, req2, 0);
+        analyzer.on_data(&fk2, Direction::ClientToServer, req2, 0, 0);
         assert_eq!(
             analyzer.active_flows_len_for_testing(),
             1,
@@ -4870,7 +4891,7 @@ mod bc_2_06_045_formalization {
 
         // Poison the request direction (3 consecutive errors).
         for _ in 0..3 {
-            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
         }
         assert_eq!(
             analyzer.parse_error_count(),
@@ -4884,6 +4905,7 @@ mod bc_2_06_045_formalization {
             Direction::ClientToServer,
             b"GET / HTTP/1.1\r\nHost: x.com\r\n\r\n",
             0,
+            0,
         );
         assert!(
             analyzer.method_counts().get("GET").is_none(),
@@ -4895,7 +4917,7 @@ mod bc_2_06_045_formalization {
 
         // Re-open same FlowKey with a valid request.
         let valid = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0, 0);
 
         // Postcondition 4: new state has request_poisoned=false → GET is parsed.
         assert_eq!(
@@ -4931,6 +4953,7 @@ mod bc_2_06_045_formalization {
             Direction::ClientToServer,
             b"GET /partial HTTP/1.1\r\nHost: ",
             0,
+            0,
         );
         // Partial: nothing parsed yet.
         assert!(
@@ -4943,7 +4966,7 @@ mod bc_2_06_045_formalization {
 
         // Re-open with a complete valid request.
         let valid = b"GET /new HTTP/1.1\r\nHost: reopen.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, valid, 0, 0);
 
         // If the partial buffer had leaked into the re-opened state, the
         // concatenated bytes would be "GET /partial HTTP/1.1\r\nHost: GET /new …"
@@ -4987,7 +5010,7 @@ mod bc_2_06_045_formalization {
 
         // Flow A: 3 consecutive garbage requests → parse_errors=3, request_poisoned.
         for _ in 0..3 {
-            analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+            analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
         }
         assert_eq!(
             analyzer.parse_error_count(),
@@ -4997,7 +5020,7 @@ mod bc_2_06_045_formalization {
 
         // Flow B: valid GET — must be parsed normally (flow B is a clean new entry).
         let valid_b = b"GET /resource HTTP/1.1\r\nHost: b.example.com\r\n\r\n";
-        analyzer.on_data(&flow_b, Direction::ClientToServer, valid_b, 0);
+        analyzer.on_data(&flow_b, Direction::ClientToServer, valid_b, 0, 0);
 
         // Postcondition 1: flow B's HttpFlowState is unaffected.
         assert_eq!(
@@ -5040,12 +5063,12 @@ mod bc_2_06_045_formalization {
 
         // Poison flow A's request direction.
         for _ in 0..3 {
-            analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0);
+            analyzer.on_data(&flow_a, Direction::ClientToServer, b"GARBAGE\r\n\r\n", 0, 0);
         }
 
         // Flow B — first on_data; must parse as if flow A doesn't exist.
         let valid_b = b"GET /isolated HTTP/1.1\r\nHost: flowb.com\r\n\r\n";
-        analyzer.on_data(&flow_b, Direction::ClientToServer, valid_b, 0);
+        analyzer.on_data(&flow_b, Direction::ClientToServer, valid_b, 0, 0);
 
         // Verify flow B result is identical to standalone execution.
         assert_eq!(
@@ -5069,6 +5092,7 @@ mod bc_2_06_045_formalization {
             &flow_a,
             Direction::ClientToServer,
             b"GET / HTTP/1.1\r\nHost: a.com\r\n\r\n",
+            0,
             0,
         );
         assert!(
@@ -5118,7 +5142,7 @@ mod bc_2_06_045_formalization {
             "test setup: chunk must be exactly 65536 bytes"
         );
 
-        analyzer.on_data(&fk, Direction::ClientToServer, &chunk, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &chunk, 0, 0);
 
         // Buffer must be exactly at cap.
         assert_eq!(
@@ -5141,7 +5165,13 @@ mod bc_2_06_045_formalization {
 
         // EC-001: buffer at exactly 65536 → next on_data appends 0 bytes.
         let extra = b"XXXXXX";
-        analyzer.on_data(&fk, Direction::ClientToServer, extra, MAX_HEADER_BUF as u64);
+        analyzer.on_data(
+            &fk,
+            Direction::ClientToServer,
+            extra,
+            MAX_HEADER_BUF as u64,
+            0,
+        );
 
         assert_eq!(
             analyzer.request_buf_len_for_testing(&fk),
@@ -5183,7 +5213,7 @@ mod bc_2_06_045_formalization {
             "test setup: chunk must be exactly 65535 bytes"
         );
 
-        analyzer.on_data(&fk, Direction::ClientToServer, &chunk, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &chunk, 0, 0);
 
         assert_eq!(
             analyzer.request_buf_len_for_testing(&fk),
@@ -5198,6 +5228,7 @@ mod bc_2_06_045_formalization {
             Direction::ClientToServer,
             &extra,
             (MAX_HEADER_BUF - 1) as u64,
+            0,
         );
 
         assert_eq!(
@@ -5219,7 +5250,7 @@ mod bc_2_06_045_formalization {
         // Invariant 3: response buffer is unaffected (per-direction independence).
         // Send a valid response to confirm ServerToClient direction is still live.
         let resp = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ServerToClient, resp, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, resp, 0, 0);
         assert_eq!(
             analyzer.transaction_count(),
             1,
@@ -5252,7 +5283,7 @@ mod bc_2_06_045_formalization {
         for n in 0..MAX_MAP_ENTRIES {
             // Method tokens must be valid RFC 7230 tokens (no whitespace / special chars).
             let req = format!("M{n:05} / HTTP/1.1\r\nHost: h.com\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
         }
 
         // Precondition: map is exactly at cap.
@@ -5265,7 +5296,13 @@ mod bc_2_06_045_formalization {
 
         // EC-001: send one more unique method → must NOT be inserted.
         let overflow_req = "OVERFLOW / HTTP/1.1\r\nHost: h.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, overflow_req.as_bytes(), 0);
+        analyzer.on_data(
+            &fk,
+            Direction::ClientToServer,
+            overflow_req.as_bytes(),
+            0,
+            0,
+        );
 
         assert_eq!(
             analyzer.method_counts().len(),
@@ -5310,7 +5347,7 @@ mod bc_2_06_045_formalization {
         // Fill the map to MAX_MAP_ENTRIES unique methods.
         for n in 0..MAX_MAP_ENTRIES {
             let req = format!("M{n:05} / HTTP/1.1\r\nHost: h.com\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
         }
 
         // Confirm first_method is present with count == 1.
@@ -5327,7 +5364,7 @@ mod bc_2_06_045_formalization {
 
         // EC-002 / AC-009: send first_method again — must increment, not be dropped.
         let repeat_req = format!("{first_method} / HTTP/1.1\r\nHost: h.com\r\n\r\n");
-        analyzer.on_data(&fk, Direction::ClientToServer, repeat_req.as_bytes(), 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, repeat_req.as_bytes(), 0, 0);
 
         assert_eq!(
             *analyzer.method_counts().get(first_method).unwrap_or(&0),
@@ -5365,7 +5402,7 @@ mod bc_2_06_045_formalization {
         // Send MAX_URIS - 1 = 9999 unique GET requests to fill uris to 9999.
         for n in 0..(MAX_URIS - 1) {
             let req = format!("GET /path/{n} HTTP/1.1\r\nHost: h.com\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
         }
 
         assert_eq!(
@@ -5378,7 +5415,7 @@ mod bc_2_06_045_formalization {
 
         // EC-009: send request #10000 → URI appended (len becomes MAX_URIS).
         let req_10000 = format!("GET /path/{} HTTP/1.1\r\nHost: h.com\r\n\r\n", MAX_URIS - 1);
-        analyzer.on_data(&fk, Direction::ClientToServer, req_10000.as_bytes(), 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req_10000.as_bytes(), 0, 0);
 
         assert_eq!(
             analyzer.uri_list().len(),
@@ -5388,7 +5425,13 @@ mod bc_2_06_045_formalization {
 
         // EC-010: send one more request → URI NOT appended; len stays at MAX_URIS.
         let req_overflow = "GET /overflow HTTP/1.1\r\nHost: h.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, req_overflow.as_bytes(), 0);
+        analyzer.on_data(
+            &fk,
+            Direction::ClientToServer,
+            req_overflow.as_bytes(),
+            0,
+            0,
+        );
 
         assert_eq!(
             analyzer.uri_list().len(),
@@ -5433,7 +5476,7 @@ mod bc_2_06_045_formalization {
         // Send the same URI five times.
         let req = b"GET /repeated HTTP/1.1\r\nHost: h.com\r\n\r\n";
         for _ in 0..5 {
-            analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, req, 0, 0);
         }
 
         // Positive anchor: parser ran 5 times.
@@ -5477,7 +5520,7 @@ mod bc_2_06_045_formalization {
         // Insert MAX_MAP_ENTRIES - 1 = 49999 unique methods to reach N-1.
         for n in 0..(MAX_MAP_ENTRIES - 1) {
             let req = format!("M{n:05} / HTTP/1.1\r\nHost: h.com\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
         }
 
         // N-1 boundary: map must hold exactly 49999 entries.
@@ -5492,7 +5535,7 @@ mod bc_2_06_045_formalization {
         // (49999 < 50000), so this entry MUST be accepted.
         let nth_method = format!("M{:05}", MAX_MAP_ENTRIES - 1);
         let nth_req = format!("{nth_method} / HTTP/1.1\r\nHost: h.com\r\n\r\n");
-        analyzer.on_data(&fk, Direction::ClientToServer, nth_req.as_bytes(), 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, nth_req.as_bytes(), 0, 0);
 
         // Postcondition: the Nth entry was inserted; map is now at cap.
         assert_eq!(
@@ -5538,7 +5581,7 @@ mod bc_2_06_045_formalization {
         // interfere with the hosts-cap assertion.
         for n in 0..MAX_MAP_ENTRIES {
             let req = format!("GET / HTTP/1.1\r\nHost: h{n:05}.example.com\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
         }
 
         // Precondition: hosts map is exactly at cap; methods map has only GET.
@@ -5557,7 +5600,13 @@ mod bc_2_06_045_formalization {
         // The hosts guard must drop the new host; the methods guard must accept
         // the new method — the two guards are independent (src/analyzer/http.rs:375-389).
         let overflow_req = "NEWMETHOD / HTTP/1.1\r\nHost: overflow.new.host\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, overflow_req.as_bytes(), 0);
+        analyzer.on_data(
+            &fk,
+            Direction::ClientToServer,
+            overflow_req.as_bytes(),
+            0,
+            0,
+        );
 
         // Host overflow: new unique host must NOT be inserted.
         assert_eq!(
@@ -5612,7 +5661,7 @@ mod bc_2_06_045_formalization {
         // user_agents-cap assertion.
         for n in 0..MAX_MAP_ENTRIES {
             let req = format!("GET / HTTP/1.1\r\nHost: h.com\r\nUser-Agent: agent{n:05}\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
         }
 
         // Precondition: user_agents map is exactly at cap; methods map has only GET.
@@ -5632,7 +5681,13 @@ mod bc_2_06_045_formalization {
         // the new method (independent guards per src/analyzer/http.rs:375-389).
         let overflow_req =
             "UAMETHOD / HTTP/1.1\r\nHost: h.com\r\nUser-Agent: overflow-new-agent\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, overflow_req.as_bytes(), 0);
+        analyzer.on_data(
+            &fk,
+            Direction::ClientToServer,
+            overflow_req.as_bytes(),
+            0,
+            0,
+        );
 
         // UA overflow: new unique UA must NOT be inserted.
         assert_eq!(
@@ -5703,7 +5758,7 @@ mod bc_2_06_045_formalization {
             "test setup: response chunk must be exactly {MAX_HEADER_BUF} bytes"
         );
 
-        analyzer.on_data(&fk, Direction::ServerToClient, &chunk, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, &chunk, 0, 0);
 
         // Response buffer must be exactly at cap.
         assert_eq!(
@@ -5736,7 +5791,13 @@ mod bc_2_06_045_formalization {
 
         // Buffer at cap → additional on_data appends 0 bytes.
         let extra = b"XXXXXX";
-        analyzer.on_data(&fk, Direction::ServerToClient, extra, MAX_HEADER_BUF as u64);
+        analyzer.on_data(
+            &fk,
+            Direction::ServerToClient,
+            extra,
+            MAX_HEADER_BUF as u64,
+            0,
+        );
 
         assert_eq!(
             analyzer.response_buf_len_for_testing(&fk),
@@ -5775,7 +5836,7 @@ mod bc_2_06_045_formalization {
             MAX_HEADER_BUF - 1
         );
 
-        analyzer.on_data(&fk, Direction::ServerToClient, &chunk, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, &chunk, 0, 0);
 
         assert_eq!(
             analyzer.response_buf_len_for_testing(&fk),
@@ -5791,6 +5852,7 @@ mod bc_2_06_045_formalization {
             Direction::ServerToClient,
             &extra,
             (MAX_HEADER_BUF - 1) as u64,
+            0,
         );
 
         assert_eq!(
@@ -5812,7 +5874,7 @@ mod bc_2_06_045_formalization {
         // Invariant 3: request buffer is unaffected (per-direction independence).
         // Send a valid request to confirm ClientToServer direction is still live.
         let req = b"GET /check HTTP/1.1\r\nHost: check.com\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, req, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req, 0, 0);
         assert_eq!(
             *analyzer.method_counts().get("GET").unwrap_or(&0),
             1,
@@ -5863,21 +5925,21 @@ mod bc_2_06_023_formalization {
         for i in 0..10u8 {
             let req =
                 format!("GET /r{i} HTTP/1.1\r\nHost: high.example.com\r\nUser-Agent: bot\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
         }
 
         // 5 requests to "mid.example.com".
         for i in 0..5u8 {
             let req =
                 format!("GET /r{i} HTTP/1.1\r\nHost: mid.example.com\r\nUser-Agent: bot\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
         }
 
         // 23 more distinct hosts (1 request each) → total 25 distinct hosts.
         for n in 0..23u8 {
             let req =
                 format!("GET /x HTTP/1.1\r\nHost: low-{n}.example.com\r\nUser-Agent: bot\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
         }
 
         let summary = analyzer.summarize();
@@ -5942,7 +6004,7 @@ mod bc_2_06_023_formalization {
         // Send 30 requests in deterministic order /uri-00 through /uri-29.
         for i in 0..30u8 {
             let req = format!("GET /uri-{i:02} HTTP/1.1\r\nHost: h.com\r\nUser-Agent: b\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
         }
 
         let summary = analyzer.summarize();
@@ -5989,7 +6051,7 @@ mod bc_2_06_023_formalization {
         let fk2 = test_flow_key();
         for i in 0..5u8 {
             let req = format!("GET /s{i} HTTP/1.1\r\nHost: h.com\r\nUser-Agent: b\r\n\r\n");
-            small_analyzer.on_data(&fk2, Direction::ClientToServer, req.as_bytes(), 0);
+            small_analyzer.on_data(&fk2, Direction::ClientToServer, req.as_bytes(), 0, 0);
         }
         let small_summary = small_analyzer.summarize();
         let small_uris = small_summary.detail["recent_uris"]
@@ -6018,9 +6080,9 @@ mod bc_2_06_023_formalization {
         let fk = test_flow_key();
 
         let request = b"POST /submit HTTP/1.1\r\nHost: test.com\r\nUser-Agent: checker\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, request, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, request, 0, 0);
         let response = b"HTTP/1.1 201 Created\r\nContent-Length: 0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ServerToClient, response, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, response, 0, 0);
 
         // Call summarize() twice on the same analyzer.
         let summary1 = analyzer.summarize();
@@ -6087,14 +6149,14 @@ mod bc_2_06_023_formalization {
         // 5 GET requests.
         for i in 0..5u8 {
             let req = format!("GET /path{i} HTTP/1.1\r\nHost: x.com\r\nUser-Agent: bot\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
         }
         // 3 responses (pipelined in two batches: 2 + 1).
         let two_responses = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n\
 HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ServerToClient, two_responses, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, two_responses, 0, 0);
         let one_response = b"HTTP/1.1 302 Found\r\nContent-Length: 0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ServerToClient, one_response, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, one_response, 0, 0);
 
         let summary = analyzer.summarize();
 
@@ -6138,7 +6200,7 @@ HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
 
         // Parse the first request.
         let req1 = b"GET /first HTTP/1.1\r\nHost: a.com\r\nUser-Agent: ua1\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, req1, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req1, 0, 0);
 
         // Call summarize() mid-stream — must not disrupt subsequent parsing.
         let mid_summary = analyzer.summarize();
@@ -6149,11 +6211,11 @@ HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
 
         // Parse the second request — must succeed as if summarize() was never called.
         let req2 = b"POST /second HTTP/1.1\r\nHost: b.com\r\nUser-Agent: ua2\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ClientToServer, req2, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req2, 0, 0);
 
         // Parse a response.
         let resp = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
-        analyzer.on_data(&fk, Direction::ServerToClient, resp, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, resp, 0, 0);
 
         // Final summarize() — must reflect all data, proving earlier call did not mutate.
         let final_summary = analyzer.summarize();
@@ -6236,12 +6298,12 @@ fn test_summarize_top_hosts_ties_broken_alphabetically() {
     for i in 0..100u16 {
         let req =
             format!("GET /r{i} HTTP/1.1\r\nHost: aaa-top.example.com\r\nUser-Agent: bot\r\n\r\n");
-        analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
     }
     for i in 0..50u16 {
         let req =
             format!("GET /r{i} HTTP/1.1\r\nHost: bbb-top.example.com\r\nUser-Agent: bot\r\n\r\n");
-        analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
     }
 
     // 25 tied hosts, all count=5.  Inserted in REVERSE alphabetical order (zz → aa) so
@@ -6263,7 +6325,7 @@ fn test_summarize_top_hosts_ties_broken_alphabetically() {
         let host = format!("tied-{suffix}.example.com");
         for i in 0..5u8 {
             let req = format!("GET /p{i} HTTP/1.1\r\nHost: {host}\r\nUser-Agent: bot\r\n\r\n");
-            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0);
+            analyzer.on_data(&fk, Direction::ClientToServer, req.as_bytes(), 0, 0);
         }
     }
 
@@ -6420,6 +6482,7 @@ mod vp_014_cross_flow_isolation {
                 Direction::ClientToServer,
                 b"GET /healthy HTTP/1.1\r\nHost: b.example.com\r\n\r\n",
                 0,
+                0,
             );
             let b_get_count_before =
                 analyzer.method_counts().get("GET").copied().unwrap_or(0);
@@ -6437,6 +6500,7 @@ mod vp_014_cross_flow_isolation {
                             Direction::ClientToServer,
                             &data,
                             0,
+                            0,
                         );
                     }
                     TwoFlowEvent::DataB(data) => {
@@ -6445,6 +6509,7 @@ mod vp_014_cross_flow_isolation {
                             &kb,
                             Direction::ClientToServer,
                             &data,
+                            0,
                             0,
                         );
                     }
@@ -6500,6 +6565,7 @@ mod vp_014_cross_flow_isolation {
                     Direction::ClientToServer,
                     garbage,
                     0,
+                    0,
                 );
             }
             // Also push some arbitrary additional bytes (now skipped since the
@@ -6509,6 +6575,7 @@ mod vp_014_cross_flow_isolation {
                 &key,
                 Direction::ClientToServer,
                 &initial_data,
+                0,
                 0,
             );
 
@@ -6531,6 +6598,7 @@ mod vp_014_cross_flow_isolation {
                 &key,
                 Direction::ClientToServer,
                 valid_req,
+                0,
                 0,
             );
             prop_assert_eq!(
@@ -6565,6 +6633,7 @@ mod vp_014_cross_flow_isolation {
                 &key,
                 Direction::ClientToServer,
                 valid_req,
+                0,
                 0,
             );
 
