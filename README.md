@@ -14,7 +14,7 @@ Inspired by [pcapper](https://github.com/SackOfHacks/pcapper) — reimagined for
 - **Multi-link-type support** — Ethernet, Raw IP, IPv4, IPv6, and Linux Cooked (SLL) pcap formats
 - **Threat detection** — finding system with verdict/confidence scoring and MITRE ATT&CK mapping
 - **Multiple outputs** — colored terminal, JSON export
-- **Fast** — Rust + etherparse zero-copy parsing, built for multi-GB captures
+- **Fast** — Rust + etherparse zero-copy L2–L4 parsing with single-pass decoding; the full capture is loaded into memory, so available RAM determines the practical file-size limit
 
 ## Install
 
