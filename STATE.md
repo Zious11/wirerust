@@ -21,7 +21,7 @@ phase_6_completed: "2026-06-02"
 phase_6_to_7_gate: "PASSED (human-approved 2026-06-02)"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-08 — Approve → release-prep)"
 adversary_gate: SATISFIED
-develop_head: 74bce12
+develop_head: 2fe3440
 main_head: 2e8d256
 released_version: v0.1.0
 released_at: "2026-06-08"
@@ -65,19 +65,19 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 | Phase 7 — Convergence | **PASSED + RELEASED** (human-approved 2026-06-08) | 6 PASS / 1 CONCERN (Perf — non-blocking); 1126 tests; consistency CONSISTENT (8/8); 20 VPs locked |
 | Release — v0.1.0 | **RELEASED** 2026-06-08 | GitHub Release; 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); run 27155277051 all jobs success |
 
-## Session Resume Checkpoint (2026-06-08 — v0.1.0 RELEASED — PIPELINE COMPLETE)
+## Session Resume Checkpoint (2026-06-08 — v0.1.0 RELEASED — DI-001 CLOSED)
 
-**POSITION:** v0.1.0 RELEASED — pipeline complete. Annotated tag `v0.1.0` on main `2e8d256` (gitflow-proper). GitHub Release live with 4 cross-platform binaries. Run 27155277051 all jobs success. VSDD pipeline CLOSED.
+**POSITION:** v0.1.0 RELEASED — pipeline complete. DI-001 (Node20→Node24 release.yml migration) CLOSED via PR #192 (develop HEAD 2fe3440). All post-release drift items resolved or tracked.
 
 **VERIFIED-CLEAN FACTS:**
 - main HEAD `2e8d256` — v0.1.0 release commit; annotated tag `v0.1.0`
-- develop HEAD `74bce12` — CHANGELOG, README fix, release.yml, CLAUDE.md gitflow rule (PRs #186/#187/#188)
+- develop HEAD `2fe3440` — DI-001 fix: SHA-pinned Node24 actions + dependabot.yml (PR #192)
 - 1126 tests green / 0 failed; clippy clean; fmt clean; 20 VPs locked (614e0e0)
 - GitHub Release: https://github.com/Zious11/wirerust/releases/tag/v0.1.0
 - All 7 phases PASSED; adversary gate 3/3 SATISFIED; holdout mean 0.949; consistency CONSISTENT
+- DI-001 CLOSED: upload-artifact@v7.0.1 + download-artifact@v8.0.1 + gh-release@v3.0.0 SHA-pinned; dependabot.yml added; validated run 27159378751 green
 
 **OPEN POST-RELEASE ITEMS (do NOT lose):**
-- DI-001: bump `actions/upload-artifact@v4` to v5 (Node 24) in release.yml — GitHub forcing Node 24 ~2026-06-16. OPEN P2 minor.
 - Optional gitflow hygiene: back-merge main→develop so develop history includes release merge commits (content already identical; cosmetic).
 - Post-pipeline: session-reviewer pass (capture lessons) per the Post-Pipeline phase.
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
@@ -85,10 +85,11 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 - Drift items: O-07, O-08, F-W25-S088-P6-001
 - RUSTSEC-2026-0097: accepted-transitive; revisit when tls-parser bumps phf to 0.12+
 - Phase-5 tech-debt (P3): CR-002/003/005/006/007/009/012 — see tech-debt-register.md
+- FE-001 v2: pcapng support parked for next cycle
 
 **RESUME PROTOCOL (if re-entering post-release):**
 1. `vsdd-factory:factory-worktree-health` — BLOCKING
-2. Read `STATE.md` — confirm RELEASED status
+2. Read `STATE.md` — confirm RELEASED + DI-001 CLOSED status
 3. Proceed to Post-Pipeline phase (session-reviewer, lessons) or next cycle
 
 Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
@@ -117,6 +118,7 @@ Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 | D-018 | Human approved Phase-7 convergence gate (6 PASS / 1 non-blocking CONCERN — Performance). Proceed to release-prep then vsdd-factory:release for v0.1.0 tag. | 2026-06-08 | Phase-7 human gate approval |
 | D-019 | Corrected main-branch staging to gitflow-proper. main force-reset; branch protection added (PR required, 8 status checks, force-push blocked); v0.1.0 staged via release/v0.1.0 → PR #189 → main merge 8928398. Rule codified in CLAUDE.md (PR #188). | 2026-06-08 | Gitflow main-branch correction |
 | D-020 | Published wirerust v0.1.0. Annotated tag v0.1.0 on main 2e8d256 (gitflow-proper). release.yml built + attached 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); GitHub Release live; run 27155277051 all jobs success. CHANGELOG [0.1.0] notes. Human-authorized publish. | 2026-06-08 | v0.1.0 release |
+| D-021 | DI-001 closed — release.yml Node20 actions migrated to Node24, SHA-pinned exact soak-clear versions (upload-artifact@043fb46d1a93 v7.0.1, download-artifact@3e5f45b2cfb9 v8.0.1, gh-release@b4309332981a v3.0.0); dependabot.yml added (cargo 7d/30d-major + github-actions 7d cooldowns, jira-cli soak convention). Fix on develop only by design (gitflow — CI change reaches main at v0.1.1; release.yml runs at tag-time; dependabot reads from default branch develop). PR #192 → develop (2fe3440). Validated: workflow_dispatch run 27159378751, 4 build jobs green, upload-artifact@v7 attached all 4 artifacts. | 2026-06-08 | DI-001 Node20→Node24 migration |
 
 ## Blocking Issues
 
@@ -135,7 +137,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | O-08 | dns.rs module doc-comment stale | OPEN P3 |
 | F-W25-S088-P6-001 | AC-004 warning .contains() — weaker than count-assertion | OPEN — target next main.rs touch or accept |
 | RUSTSEC-2026-0097 | rand 0.8.5 unsound (transitive via tls-parser→phf 0.11); upstream-only fix path | ACCEPTED-TRANSITIVE — revisit when tls-parser bumps phf→0.12+ |
-| DI-001 | release.yml uses actions/upload-artifact@v4 (Node 20); GitHub forcing Node 24 ~2026-06-16 — bump to upload-artifact@v5 | OPEN P2 — minor follow-up |
+| DI-001 | release.yml Node20 actions migrated to SHA-pinned Node24 (upload-artifact@v7.0.1, download-artifact@v8.0.1, gh-release@v3.0.0); dependabot.yml added. PR #192 → develop (2fe3440). | RESOLVED — closed 2026-06-08 |
 | FE-001 | pcapng input format not supported (.pcap-only); parked v2 idea (2026-06-08 demo) — see tech-debt-register.md Future Enhancements | deferred / v2 / not-filed |
 
 ## Cycle-Close Follow-Up Items
