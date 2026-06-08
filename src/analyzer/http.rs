@@ -87,10 +87,10 @@ struct HttpFlowState {
     request_error_count: u8,
     response_error_count: u8,
     counted_as_non_http: bool,
-    /// Most-recently-seen packet timestamp for this flow (capture-relative pcap
-    /// `ts_sec`).  Updated on every `on_data` call.  Used by STORY-098 to
-    /// populate `Finding.timestamp` at all HTTP emission sites.
-    /// Keyed per-flow (VP-014 cross-flow isolation invariant).
+    /// Most-recent on_data capture timestamp for this flow; used at Finding
+    /// emission sites to attach capture-relative pcap provenance.
+    /// Updated on every `on_data` call; keyed per-flow (VP-014 cross-flow
+    /// isolation invariant).
     last_ts: u32,
 }
 
@@ -688,6 +688,20 @@ impl HttpAnalyzer {
     #[doc(hidden)]
     pub fn response_buf_len_for_testing(&self, flow_key: &FlowKey) -> Option<usize> {
         self.flows.get(flow_key).map(|s| s.response_buf.len())
+    }
+
+    /// Test-only accessor: the most-recently-stored capture timestamp for the
+    /// given flow.
+    ///
+    /// Exposes `flow_state.last_ts` so tests can assert that the dispatcher
+    /// threads the correct `timestamp` argument through to the HTTP analyzer
+    /// (STORY-097 AC-004 / BC-2.04.055 dispatcher-forwarding invariant). Returns
+    /// `None` when the flow has no live state (never received data or already
+    /// closed).
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn last_ts_for_testing(&self, flow_key: &FlowKey) -> Option<u32> {
+        self.flows.get(flow_key).map(|s| s.last_ts)
     }
 }
 

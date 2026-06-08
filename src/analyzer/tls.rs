@@ -275,10 +275,10 @@ struct TlsFlowState {
     server_buf: Vec<u8>,
     client_hello_seen: bool,
     server_hello_seen: bool,
-    /// Most-recently-seen packet timestamp for this flow (capture-relative pcap
-    /// `ts_sec`).  Updated on every `on_data` call.  Used by STORY-098 to
-    /// populate `Finding.timestamp` at all TLS emission sites.
-    /// Keyed per-flow (VP-014 cross-flow isolation invariant).
+    /// Most-recent on_data capture timestamp for this flow; used at Finding
+    /// emission sites to attach capture-relative pcap provenance.
+    /// Updated on every `on_data` call; keyed per-flow (VP-014 cross-flow
+    /// isolation invariant).
     last_ts: u32,
 }
 
@@ -972,6 +972,20 @@ impl TlsAnalyzer {
             .get(flow_key)
             .map(|s| s.server_hello_seen)
             .unwrap_or(false)
+    }
+
+    /// Test-only accessor: the most-recently-stored capture timestamp for the
+    /// given flow.
+    ///
+    /// Exposes `flow_state.last_ts` so tests can assert that the dispatcher
+    /// threads the correct `timestamp` argument through to the TLS analyzer
+    /// (STORY-097 AC-004 / BC-2.04.055 dispatcher-forwarding invariant). Returns
+    /// `None` when the flow has no live state (never received data or already
+    /// closed).
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn last_ts_for_testing(&self, flow_key: &FlowKey) -> Option<u32> {
+        self.flows.get(flow_key).map(|s| s.last_ts)
     }
 }
 

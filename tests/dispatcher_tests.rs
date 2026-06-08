@@ -1527,3 +1527,89 @@ fn test_BC_2_05_009_flow_close_for_unknown_flow_key() {
         "AC-009: second unknown-key close must further increment unclassified_flows to 2"
     );
 }
+
+// ---- STORY-097: timestamp threading from dispatcher to downstream analyzers ----
+
+/// STORY-097 AC-004 (BC-2.04.055 dispatcher-forwarding invariant):
+/// `StreamDispatcher::on_data` must thread the `timestamp` argument through to
+/// BOTH the TLS and HTTP downstream analyzers unchanged.
+///
+/// Two sub-cases are exercised in the same test (one flow routed to TLS, one to
+/// HTTP) so that both analyzer paths are covered and the shared `last_ts` store
+/// in each analyzer's per-flow state is verified independently.
+///
+/// Observability: `TlsAnalyzer::last_ts_for_testing` / `HttpAnalyzer::last_ts_for_testing`
+/// expose the most-recently stored capture timestamp for a given flow, mirroring
+/// the `#[doc(hidden)]` testing-accessor pattern used by `active_flows_len_for_testing`,
+/// `client_buf_len_for_testing`, etc.
+#[test]
+fn test_stream_dispatcher_forwards_timestamp_to_analyzers() {
+    const TS: u32 = 7777;
+
+    // ── Sub-case 1: TLS path ────────────────────────────────────────────────────
+    // TLS content bytes: byte0=0x16, byte1=0x03 — routes to TlsAnalyzer.
+    // Port 9999 (neutral) ensures classification is purely content-driven.
+    {
+        let mut dispatcher =
+            StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+        let fk_tls = flow_key(49300, 9999);
+
+        // 10-byte TLS-looking chunk with timestamp TS.
+        let tls_data = [0x16u8, 0x03, 0x03, 0x00, 0x05, 0x01, 0x00, 0x00, 0x01, 0x00];
+        dispatcher.on_data(&fk_tls, Direction::ClientToServer, &tls_data, 0, TS);
+
+        // TlsAnalyzer must have received the data (flow created in its state map).
+        let tls = dispatcher.tls_analyzer().expect("TLS analyzer present");
+        assert!(
+            tls.active_flows_len_for_testing() >= 1,
+            "AC-004/TLS: TlsAnalyzer must have received the data chunk (flow state created)"
+        );
+        // The stored last_ts for the flow must equal the timestamp passed to on_data.
+        assert_eq!(
+            tls.last_ts_for_testing(&fk_tls),
+            Some(TS),
+            "AC-004/TLS: TlsAnalyzer.last_ts for flow must equal the timestamp forwarded \
+             by StreamDispatcher (expected {TS}, dispatcher must not alter or drop it)"
+        );
+        // HTTP analyzer must NOT have received any data from this TLS-classified flow.
+        let http = dispatcher.http_analyzer().expect("HTTP analyzer present");
+        assert_eq!(
+            http.last_ts_for_testing(&fk_tls),
+            None,
+            "AC-004/TLS: HttpAnalyzer must not have per-flow state for a TLS-routed flow"
+        );
+    }
+
+    // ── Sub-case 2: HTTP path ───────────────────────────────────────────────────
+    // HTTP GET bytes — routes to HttpAnalyzer.
+    // Port 9998 (neutral) ensures classification is purely content-driven.
+    {
+        let mut dispatcher =
+            StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+        let fk_http = flow_key(49301, 9998);
+
+        let http_data = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
+        dispatcher.on_data(&fk_http, Direction::ClientToServer, http_data, 0, TS);
+
+        // HttpAnalyzer must have received the data (method_counts updated).
+        let http = dispatcher.http_analyzer().expect("HTTP analyzer present");
+        assert!(
+            http.method_counts().get("GET").copied().unwrap_or(0) >= 1,
+            "AC-004/HTTP: HttpAnalyzer must have received the GET chunk (method_counts[GET] >= 1)"
+        );
+        // The stored last_ts for the flow must equal the timestamp passed to on_data.
+        assert_eq!(
+            http.last_ts_for_testing(&fk_http),
+            Some(TS),
+            "AC-004/HTTP: HttpAnalyzer.last_ts for flow must equal the timestamp forwarded \
+             by StreamDispatcher (expected {TS}, dispatcher must not alter or drop it)"
+        );
+        // TLS analyzer must NOT have received any data from this HTTP-classified flow.
+        let tls = dispatcher.tls_analyzer().expect("TLS analyzer present");
+        assert_eq!(
+            tls.last_ts_for_testing(&fk_http),
+            None,
+            "AC-004/HTTP: TlsAnalyzer must not have per-flow state for an HTTP-routed flow"
+        );
+    }
+}
