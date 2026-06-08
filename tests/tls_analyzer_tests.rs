@@ -7388,12 +7388,12 @@ fn test_arm4_hex_evidence_is_pure_ascii() {
     );
 }
 
-// ── AC-009 (BC-2.07.037 postconditions 1-4) ───────────────────────────────────
+// ── AC-009 (BC-2.07.037 postconditions 1-4, updated by #104 / BC-TLS-037) ────
 //
 // When SNI bytes are valid UTF-8 but contain BOTH non-ASCII chars AND C0 bytes,
 // arm 3 fires (NonAsciiUtf8), NOT arm 2 (AsciiWithControl). Summary says
-// "non-ASCII characters", NOT "control bytes" or "control". The control byte
-// signal is only recoverable from the hex evidence field.
+// "non-ASCII characters" AND (since #104 fix) additionally mentions "control"
+// when control bytes are present. The hex evidence field is still lossless.
 //
 // Exercises VP-005: is_ascii() is the decisive gate between arm 2 and arm 3.
 // Canonical BC-2.07.037 test vector: b"caf\x01\xc3\xa9" (valid UTF-8 "café" with SOH).
@@ -7401,8 +7401,9 @@ fn test_arm4_hex_evidence_is_pure_ascii() {
 #[test]
 fn test_c0_plus_non_ascii_fires_arm3_not_arm2() {
     // AC-009 (BC-2.07.037 pc1): arm 3 fires -> SniValue::NonAsciiUtf8.
-    // AC-009 (BC-2.07.037 pc2): summary says "non-ASCII characters", NOT "control".
-    // AC-009 (BC-2.07.037 pc3): control byte only recoverable from hex evidence.
+    // AC-009 (BC-2.07.037 pc2): summary says "non-ASCII characters" and "control"
+    //   (control-byte enrichment added by #104 / BC-TLS-037).
+    // AC-009 (BC-2.07.037 pc3): control byte is lossless in hex evidence.
     // AC-009 (BC-2.07.037 pc4): T1027/Anomaly/Inconclusive/Low/ClientToServer.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
@@ -7446,7 +7447,8 @@ fn test_c0_plus_non_ascii_fires_arm3_not_arm2() {
 
     let f = &non_ascii_findings[0];
 
-    // BC-2.07.037 pc2: summary says "non-ASCII characters", not "control".
+    // BC-2.07.037 pc2 (updated by #104 / BC-TLS-037): summary says "non-ASCII
+    // characters" AND "control" (control-byte enrichment for mixed values).
     assert!(
         f.summary.contains("non-ASCII characters"),
         "AC-009 (BC-2.07.037 pc2): summary must say \"non-ASCII characters\"; \
@@ -7454,9 +7456,9 @@ fn test_c0_plus_non_ascii_fires_arm3_not_arm2() {
         f.summary
     );
     assert!(
-        !f.summary.contains("control"),
-        "AC-009 (BC-2.07.037 pc2): summary must NOT contain \"control\" (EC-007: SOC \
-         operator searching \"control\" will miss this — documented behavior); \
+        f.summary.contains("control"),
+        "AC-009 (BC-2.07.037 pc2, #104): summary must mention \"control\" for mixed \
+         C0+non-ASCII SNI so SOC analysts grepping for control bytes find this case; \
          got: {:?}",
         f.summary
     );
@@ -7488,7 +7490,7 @@ fn test_c0_plus_non_ascii_fires_arm3_not_arm2() {
         "AC-009 (BC-2.07.037 pc4): direction must be Some(ClientToServer)"
     );
 
-    // BC-2.07.037 pc3: control byte 0x01 only recoverable from hex evidence.
+    // BC-2.07.037 pc3: hex evidence is lossless (preserves the control byte).
     // Hex for b"caf\x01\xc3\xa9" = "63616601c3a9".
     assert_eq!(
         f.evidence.len(),
