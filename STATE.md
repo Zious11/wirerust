@@ -1,9 +1,9 @@
 ---
-pipeline: PHASE_6_COMPLETE
+pipeline: PHASE_7_CONVERGED_AWAITING_HUMAN_GATE
 phase: phase-7-convergence
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-02T00:00:00Z
+timestamp: 2026-06-08T00:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -39,9 +39,9 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 
 ## Status
 
-**Pipeline:** PHASE 6 PASSED / CLOSED — Phase 7 NOT STARTED. develop 0855f25. All 20 VPs LOCKED (status:verified, verification_lock:true, proof_completed_date 2026-06-02; factory commit 614e0e0). Phase-6 S-7.02 cycle-close complete: 3 process-gap findings recorded in lessons.md + follow-up dispositions committed.
+**Pipeline:** PHASE 7 CONVERGENCE ASSESSMENT COMPLETE — verdict CONVERGED — AWAITING HUMAN GATE. develop 0855f25. 6 PASS / 1 CONCERN (Performance — non-blocking; v0.1.0 defines no hard numeric throughput SLA, so no perf budget gate to pass/fail; bench harness + P0 NFR evidence present). Must-fix-before-gate: NONE. LOW-1 fixed: nfr-story-map.md v1.1→v1.2, coverage metrics corrected to authoritative counts (P0 40/40, P1 36/36, P2 4/4, total 80; with-owner 67, no-owner 13). LOW-2 (STORY-INDEX 48-vs-49 prose) accepted/documented. Performance CONCERN accepted: NFR-PERF-002/004 are P1 open-debt, no v0.1.0 SLA, no gate blocker. Release-prep deferrals (post-gate, pre-tag): R-1 author CHANGELOG.md; R-2 create .factory/release-config.yaml; R-3 fix README "multi-GB captures" overstatement (NFR-VIO-001). Full convergence report: cycles/v0.1.0-greenfield-spec/phase-7-convergence-report.md.
 
-**Test suite:** ~1086+ tests green. `cargo fmt --check`, `cargo clippy`, `cargo test --all-targets` green. CI: 8 checks passing.
+**Test suite:** 1126 tests green / 0 failed. `cargo fmt --check`, `cargo clippy`, `cargo test --all-targets` green. CI: 8 checks passing.
 
 ## Phase Progress
 
@@ -55,40 +55,36 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 | Phase 4 — Holdout Evaluation | **PASSED** 2026-06-01 | mean 0.949, 0 must-pass <0.6; HS-043 real defect fixed (PR #171/#172); detail: cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md |
 | Phase 5 — Adversarial Refinement | **PASSED** 2026-06-01 | Adversary gate 3/3 + secondary review COMPLETE; PROCESS-GAP-P5-001 CLOSED; 4 fix-PRs; S-7.02 satisfied. Trajectory: `P1-MED→…→P12-CLEAN→P13-CLEAN→P14-CLEAN-GATE` |
 | Phase 6 — Formal Hardening | **PASSED** 2026-06-02 | 8 Kani VPs proven (incl. VP-002 JUSTIFIED→PROVEN, PRs #180/#181/#183); 6 proptest VPs (PR #179); fuzz VP-008 21.7M execs 0 crashes (PR #182); mutation targets met all modules + 16 survivors killed (PR #184); security clean — RUSTSEC-2025-0119 FIXED (#185), RUSTSEC-2026-0097 accepted-transitive; 20 VPs LOCKED (614e0e0) |
-| Phase 7 — Convergence | NOT STARTED | NEXT — entry: /vsdd-factory:phase-7-convergence |
+| Phase 7 — Convergence | **CONVERGED** — awaiting human approval gate (2026-06-08) | 6 PASS / 1 CONCERN (Perf — non-blocking, no v0.1.0 SLA); 1126 tests; consistency CONSISTENT (8/8); 20 VPs locked; detail: cycles/v0.1.0-greenfield-spec/phase-7-convergence-report.md |
 
-## Session Resume Checkpoint (2026-06-08 — PHASE 7 PRE-GATE REMEDIATION COMPLETE)
+## Session Resume Checkpoint (2026-06-08 — PHASE 7 CONVERGED — AWAITING HUMAN GATE)
 
-**POSITION:** Phase 6 PASSED/CLOSED. All Phase-7 pre-gate consistency findings REMEDIATED (H-1, M-1, M-2, M-3, H-2, L-2, L-3). PG-1 CLOSED. Phase-7 gate NOT YET PASSED — next step is final fresh-context consistency re-audit, then Phase-7 convergence check + human gate.
+**POSITION:** Phase 7 Convergence assessment COMPLETE. Verdict: CONVERGED (6 PASS / 1 CONCERN). Must-fix-before-gate: NONE. Awaiting human approval to proceed to release-prep then v0.1.0 tag.
 
 **VERIFIED-CLEAN FACTS (confirmed at checkpoint authorship):**
 - develop HEAD `0855f25` == origin/develop (working tree clean)
-- factory-artifacts HEAD updated this burst — run `git -C .factory log -1 --format='%h %s'` for current SHA
-- 20 VPs locked: status:verified, verification_lock:true, proof_completed_date:2026-06-02 (factory commit 614e0e0)
-- No open PRs
-- input-hash: MATCH=48/STALE=0 (STORY-091 inputs:[] ERROR expected — empty inputs by design)
-- ARCH-INDEX input-hash updated 0c476e4→ae3222a (domain-spec.md was modified by M-2 fix)
-- NFR catalog: v1.3 — 71/79 VALID, 8 errors corrected, NFR-RES-024 added
-- nfr-story-map.md: v1.1 — authored, maps all P0 NFRs to stories
-- Criterion-38: CLOSED — 43 stories have nfr: frontmatter (+95 refs), 0 P0 NFRs uncovered
-- 7 arch files: status:verified, version:1.1 (ARCH-INDEX, module-decomposition, system-overview, api-surface, dependency-graph, purity-boundary-map, tooling-selection)
-- domain-spec.md: gained canonical DF-020a frontmatter fields (M-2)
-- STORY-INDEX: Wave 7 merge SHA corrected b23c6d3→bc5d23e (H-2)
-- holdout-scenarios/evaluations/: 6 eval files git-mv'd from cycles/v0.1.0-greenfield-spec/holdout-eval/; EVAL-INDEX.md added (M-3)
-- CARRY-FORWARD: canonical NFR registry count pending fresh-context re-audit (catalog footer = 80; NFR-VIO namespace may account for delta vs earlier counts)
+- factory-artifacts HEAD — run `git -C .factory log -1 --format='%h %s'` for current SHA
+- 1126 tests green / 0 failed; clippy clean; fmt clean
+- Consistency re-audit 2026-06-08: CONSISTENT (8/8 remediation items PASS)
+- 20 VPs locked (status:verified, verification_lock:true, proof_completed_date:2026-06-02; factory commit 614e0e0)
+- input-hash: MATCH=48/STALE=0
+- nfr-story-map.md: v1.2 (LOW-1 fixed — P0 40/40, P1 36/36, P2 4/4, total 80; with-owner 67, no-owner 13)
+- Performance CONCERN: non-blocking; no numeric SLA for v0.1.0; criterion harness + P0 NFR evidence present
+- LOW-2 (STORY-INDEX 48-vs-49 prose): accepted/documented pre-existing item
+- Convergence report: cycles/v0.1.0-greenfield-spec/phase-7-convergence-report.md
 
 **RESUME PROTOCOL (startup sequence for orchestrator):**
 1. `vsdd-factory:factory-worktree-health` — BLOCKING; do not read `.factory` until PASS
 2. `agents_list` — confirm available agents
 3. Read `STATE.md` — absorb current position
-4. Trigger Phase-7 final fresh-context consistency re-audit, then convergence check + human gate
+4. Present Phase-7 convergence report to human for gate approval, then proceed to release-prep
 
-**EXACT NEXT ACTION:** Run Phase-7 final consistency re-audit (fresh context, no prior findings exposure) — then proceed to Phase-7 convergence check and human gate.
+**EXACT NEXT ACTION:** Human approval gate — then release-prep: R-1 author CHANGELOG.md; R-2 create .factory/release-config.yaml; R-3 fix README "multi-GB captures" overstatement (NFR-VIO-001); then cut v0.1.0 tag via vsdd-factory:release.
 
 **CARRY-FORWARD CAVEATS:**
 - MODEL-FAMILY: No true non-Claude adversary/evaluator available. Use opus-tier fresh-context + strict info-asymmetry. Document at each gate.
 - ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture support added.
-- Canonical NFR registry count: confirm by fresh-context re-audit before Phase-7 gate sign-off (catalog footer = 80; NFR-VIO namespace may account for delta vs earlier counts).
+- Performance CONCERN accepted: NFR-PERF-002/004 are P1 open-debt, no v0.1.0 SLA defined; next cycle.
 
 **OPEN BACKLOG (do NOT lose):**
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle or inter-phase

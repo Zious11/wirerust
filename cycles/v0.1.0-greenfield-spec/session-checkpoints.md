@@ -4,6 +4,16 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 
 ---
 
+## Archived: 2026-06-08 — PHASE 7 PRE-GATE REMEDIATION COMPLETE (superseded by Phase 7 CONVERGED — awaiting human gate)
+
+**POSITION:** Phase 6 PASSED/CLOSED. All Phase-7 pre-gate consistency findings REMEDIATED (H-1, M-1, M-2, M-3, H-2, L-2, L-3). PG-1 CLOSED. Phase-7 gate NOT YET PASSED — next step is final fresh-context consistency re-audit, then Phase-7 convergence check + human gate.
+
+**VERIFIED-CLEAN FACTS:** develop HEAD `0855f25`; 20 VPs locked (614e0e0); MATCH=48/STALE=0; NFR catalog v1.3; nfr-story-map.md v1.1; Criterion-38 CLOSED; 7 arch files status:verified.
+
+**EXACT NEXT ACTION:** Run Phase-7 final consistency re-audit (fresh context, no prior findings exposure) — then proceed to Phase-7 convergence check and human gate.
+
+---
+
 ## Archived: 2026-06-01 — PHASE 5, Pass 13 CONVERGENCE_REACHED / Pass 14 NEXT (superseded by Pass 14 CONVERGENCE_REACHED / ADVERSARY GATE SATISFIED checkpoint)
 
 **POSITION:** Phase 5 IN PROGRESS. develop HEAD 68137b4b (unchanged — P13 was adversary-only, no code/spec changes). Pass 13 CONVERGENCE_REACHED: 0C/0H/0M — ZERO new findings. Only observation O-P13-01: accepted cosmetic v1.5 BC-2.04.013 label (ADV-IMPL-P11-LOW-002) now also noted in src (mod.rs:109,150; main.rs:119) + tests/hs043_flow_expiry_tests.rs — PC0 semantics unchanged v1.5→v1.7; non-blocking. CLEAN-PASS COUNTER: 2/3.

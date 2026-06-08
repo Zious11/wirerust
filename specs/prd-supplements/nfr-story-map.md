@@ -1,10 +1,10 @@
 ---
 document_type: prd-supplement-nfr-story-map
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
-timestamp: 2026-06-08T12:00:00Z
+timestamp: 2026-06-08T00:00:00Z
 phase: 2
 traces_to:
   - .factory/specs/prd-supplements/nfr-catalog.md
@@ -142,18 +142,18 @@ traces_to:
 | Metric | Value |
 |--------|-------|
 | Total NFRs mapped | 80 (all 79 v1.2 NFRs + NFR-RES-024 added in v1.3) |
-| P0 NFRs covered | 38 of 38 (100%) |
-| P1 NFRs covered | 33 of 33 (100%) |
-| P2 NFRs covered | 5 of 5 (remaining) |
-| NFRs with story owner | 62 |
-| NFRs explicitly "no story owner — accepted" | 18 |
+| P0 NFRs covered | 40 of 40 (100%) |
+| P1 NFRs covered | 36 of 36 (100%) |
+| P2 NFRs covered | 4 of 4 (100%) |
+| NFRs with story owner | 67 |
+| NFRs explicitly "no story owner — accepted" | 13 |
 | Stories receiving NFR back-references | 43 (45 rows in per-story table; STORY-086 and STORY-090 carry no NFR IDs) |
 
 ---
 
 ## "No Story Owner — Accepted" Rationale Summary
 
-The 18 NFRs without a story owner fall into three categories:
+The 13 NFRs without a story owner fall into three categories:
 
 1. **CI pipeline properties** (NFR-MNT-001/002/003/007, NFR-PORT-001): Enforced by `.github/workflows/ci.yml`; no story in this cycle creates or modifies CI jobs. These are delivered-by-convention, not by stories.
 
