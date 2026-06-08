@@ -5,13 +5,13 @@ version: "2.0"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
-modified: "2026-06-02: Phase-6 gate close — all 20 VPs locked (status draft→verified, verification_lock→true). VP-INDEX status→verified. module-criticality frozen. develop@0855f25."
-total_vps: 20
+modified: "2026-06-08: Feature Mode F2 — VP-021 (timestamp-provenance-threading) added; draft/unverified. total_vps 20→21, proptest_count 6→7, integration+proptest method counted under proptest for VP-021."
+total_vps: 21
 p0_count: 8
 p1_count: 7
 test_sufficient_count: 5
 kani_count: 8
-proptest_count: 6
+proptest_count: 7
 fuzz_count: 1
 integration_unit_count: 5
 ---
@@ -31,17 +31,20 @@ integration_unit_count: 5
 
 | Total VPs | P0 | P1 | Test-Sufficient |
 |-----------|----|----|-----------------|
-| 20 | 8 | 7 | 5 |
+| 21 | 8 | 7 | 5 |
+
+Note: VP-021 is draft/unverified (added F2; implementation pending F4); it does not change P0/P1/test-sufficient counts since those tiers apply only to verified VPs. Total count is 21.
 
 | Tool | Count | VP IDs |
 |------|-------|--------|
 | Kani | 8 | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015 |
-| proptest | 6 | VP-006, VP-010, VP-011, VP-012, VP-013, VP-014 |
+| proptest | 7 | VP-006, VP-010, VP-011, VP-012, VP-013, VP-014, VP-021 |
 | cargo-fuzz | 1 | VP-008 |
 | integration/unit | 5 | VP-016, VP-017, VP-018, VP-019, VP-020 |
 
 > VP-005 (SNI 4-way ordered classification) uses Kani as its primary and sole
-> counted tool. Each VP is counted exactly once. Totals: 8+6+1+5 = 20.
+> counted tool. VP-021 uses integration + proptest; counted under proptest. Each VP
+> is counted exactly once. Totals: 8+7+1+5 = 21.
 
 ## Complete VP Catalog
 
@@ -67,6 +70,7 @@ integration_unit_count: 5
 | VP-018 | CLI Reassemble / No-Reassemble Mutual Exclusion | cli.rs | integration | test-sufficient | verified | BC-2.12.007, BC-2.12.009 |
 | VP-019 | DNS Analyzer Is Statistics-Only (Never Emits Findings) | analyzer/dns.rs | unit | test-sufficient | verified | BC-2.08.001, BC-2.08.002, BC-2.08.003, BC-2.08.004 |
 | VP-020 | CSV Injection Neutralization | reporter/csv.rs | unit | test-sufficient | verified | BC-2.11.021 |
+| VP-021 | Timestamp Provenance Threading | reassembly/mod.rs | integration+proptest | F4 | draft | BC-2.09.007, BC-2.04.055 |
 
 ## P0 Properties (required before Phase 5 gate)
 
@@ -104,10 +108,10 @@ No formal proof harness (Kani/proptest) is required.
 
 ## Consistency Invariants (machine-enforced by validate-vp-consistency.sh)
 
-- VP-INDEX total (20) must equal verification-architecture.md row count (20)
-- VP-INDEX total (20) must equal verification-coverage-matrix.md VP row count (20)
-- verification-coverage-matrix.md Totals row: Kani(8) + proptest(6) + fuzz(1) + integration/unit(5) = 20
-- P0 count (8) + P1 count (7) + test-sufficient (5) = 20
+- VP-INDEX total (21) must equal verification-architecture.md row count (21)
+- VP-INDEX total (21) must equal verification-coverage-matrix.md VP row count (21)
+- verification-coverage-matrix.md Totals row: Kani(8) + proptest(7) + fuzz(1) + integration/unit(5) = 21
+- P0 count (8) + P1 count (7) + test-sufficient (5) = 20 verified; + 1 draft (VP-021) = 21 total
 
 ## File Naming Convention
 

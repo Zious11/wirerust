@@ -13,6 +13,9 @@ modified:
   - date: 2026-06-02
     actor: spec-steward
     reason: "Phase-6 gate close: status draft→verified (propagated from VP-INDEX, all 20 VPs locked). Counts unchanged at 20."
+  - date: 2026-06-08
+    actor: state-manager
+    reason: "Feature Mode F2 (issue #100): VP-021 added (timestamp-provenance-threading; draft; integration+proptest). Total 20→21."
 ---
 
 # Verification Architecture
@@ -43,6 +46,7 @@ modified:
 | VP-013 | JA3 GREASE filter: all values matching the GREASE pattern (0x?A?A) are removed before fingerprint computation | (spec compliance) | analyzer/tls.rs | proptest |
 | VP-014 | HttpAnalyzer cross-flow isolation: parse errors and poisoning in flow A do not affect flow B | (isolation) | analyzer/http.rs | proptest |
 | VP-015 | TCP sequence wraparound: segment at seq=isn+1=0xFFFF_FFFF (ISN=0xFFFF_FFFE, offset 1) crossing 32-bit boundary reassembles correctly | (arithmetic) | reassembly/segment.rs | Kani |
+| VP-021 | Timestamp provenance threading: Finding.timestamp equals Some(ts) derived from the on_data timestamp arg for all flow-data-path emission sites; segment-limit summary retains None; cross-flow isolation holds | (correctness) | reassembly/mod.rs | integration+proptest |
 
 ### Test Sufficient (UI logic, non-critical defaults)
 

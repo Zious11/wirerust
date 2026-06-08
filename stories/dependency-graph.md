@@ -1,15 +1,16 @@
 ---
 document_type: dependency-graph
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 phase: 2
 timestamp: 2026-05-21T00:00:00Z
-total_stories: 48
-total_edges: 77
-intra_epic_edges: 63
+modified: "2026-06-08: Feature Mode F3 (issue #100) — added STORY-097/098/099 acyclic chain (E-12). total_stories 48→51 (product; STORY-091 tooling separate). total_edges 77→79. number_of_waves 27→30."
+total_stories: 51
+total_edges: 79
+intra_epic_edges: 65
 cross_epic_edges: 14
-number_of_waves: 27
+number_of_waves: 30
 acyclic: true
 traces_to:
   - .factory/stories/epics.md
@@ -32,13 +33,13 @@ traces_to:
 
 | Metric | Value |
 |--------|-------|
-| Total stories | 48 |
-| Total dependency edges | 77 |
-| Intra-epic edges | 63 |
+| Total stories | 51 (product; +STORY-091 tooling = 52) |
+| Total dependency edges | 79 |
+| Intra-epic edges | 65 |
 | Cross-epic edges | 14 |
-| Number of parallel waves | 27 |
-| Graph is acyclic | Yes (Kahn topological sort verified) |
-| Total story points | 282 |
+| Number of parallel waves | 30 |
+| Graph is acyclic | Yes (Kahn topological sort verified; STORY-097→098→099 extend acyclic order) |
+| Total story points | 300 (product; +5 tooling = 305) |
 
 ---
 
@@ -169,6 +170,13 @@ Dependencies in this graph respect the layer rules from
 | STORY-086 | STORY-090 | STORY-090 integration requires base CLI wiring from STORY-086 |
 | STORY-088 | STORY-090 | STORY-090 integration exercises output-format dispatch from STORY-088 |
 | STORY-089 | STORY-090 | STORY-090 end-to-end integration requires multi-target + pipeline from STORY-089 |
+
+#### Epic E-12: Pcap Timestamp Provenance (issue #100)
+
+| From | To | Justification |
+|------|----|---------------|
+| STORY-097 | STORY-098 | STORY-098 (emission-site wiring) requires the `on_data timestamp: u32` parameter established in STORY-097; trait-break compile dependency |
+| STORY-098 | STORY-099 | STORY-099 (E2E VP-021 verification) requires the implementation from STORY-097 (trait) + STORY-098 (emission sites) to be complete before the integration tests can be written and run |
 
 ---
 
@@ -487,8 +495,10 @@ iteratively. Result:
 | BC-2.12.014..017 | STORY-089 | E-9 | SS-12 |
 | BC-2.12.018..021 | STORY-090 | E-9 | SS-12 |
 | BC-2.13.001..004 | STORY-096 | E-10 | SS-13 |
+| BC-2.04.055 | STORY-097, STORY-098, STORY-099 | E-12 | SS-04 |
+| BC-2.09.007 | STORY-098, STORY-099 | E-12 | SS-09 |
 
-**Coverage: 217 / 217 BCs assigned across 48 stories.**
+**Coverage: 219 / 219 BCs assigned (217 greenfield across 48 stories; BC-2.04.055 + BC-2.09.007 across STORY-097/098/099).**
 
 ---
 
@@ -557,7 +567,7 @@ E-8 (SS-11)
 
 ## Gap Register
 
-No story-decomposition gaps identified. All 217 BCs are covered across 48 stories.
+No story-decomposition gaps identified. All 219 BCs are covered (217 greenfield across 48 stories; BC-2.04.055 + BC-2.09.007 across STORY-097/098/099).
 All L2 domain capabilities (CAP-NNN) are covered by at least one story.
 All cross-epic architectural dependencies are captured in this graph.
 

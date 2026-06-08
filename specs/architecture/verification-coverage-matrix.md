@@ -10,6 +10,9 @@ modified:
   - date: 2026-06-02
     actor: spec-steward
     reason: "Phase-6 gate close: status draft→verified (propagated from VP-INDEX, all 20 VPs locked). Counts unchanged at 20."
+  - date: 2026-06-08
+    actor: state-manager
+    reason: "Feature Mode F2 (issue #100): VP-021 added (draft/unverified; integration+proptest; source BCs BC-2.09.007 + BC-2.04.055). Total 20→21. proptest 6→7."
 ---
 
 # Verification Coverage Matrix
@@ -38,6 +41,7 @@ modified:
 | VP-018 | CLI mutual exclusion (reassemble flags) | cli.rs | integration | test-sufficient | verified |
 | VP-019 | DNS statistics-only (no findings) | analyzer/dns.rs | unit | test-sufficient | verified |
 | VP-020 | CSV injection neutralization | reporter/csv.rs | unit | test-sufficient | verified |
+| VP-021 | Timestamp provenance threading | reassembly/mod.rs | integration+proptest | F4 | draft |
 
 
 ## Per-Module Coverage Totals
@@ -46,7 +50,7 @@ modified:
 |--------|------|----------|------|-----------------|-----------|
 | reassembly/flow.rs | 2 (VP-001, VP-009) | 0 | 0 | 0 | 2 |
 | reassembly/segment.rs | 2 (VP-002, VP-015) | 2 (VP-010, VP-011) | 0 | 0 | 4 |
-| reassembly/mod.rs | 1 (VP-003) | 0 | 0 | 0 | 1 |
+| reassembly/mod.rs | 1 (VP-003) | 1 (VP-021) | 0 | 0 | 2 |
 | dispatcher.rs | 1 (VP-004) | 0 | 0 | 0 | 1 |
 | analyzer/tls.rs | 1 (VP-005) | 1 (VP-013) | 0 | 0 | 2 |
 | analyzer/http.rs | 0 | 2 (VP-006, VP-014) | 0 | 0 | 2 |
@@ -57,7 +61,7 @@ modified:
 | cli.rs | 0 | 0 | 0 | 1 (VP-018) | 1 |
 | analyzer/dns.rs | 0 | 0 | 0 | 1 (VP-019) | 1 |
 | reporter/csv.rs | 0 | 0 | 0 | 1 (VP-020) | 1 |
-| **Totals** | **8** | **6** | **1** | **5** | **20** |
+| **Totals** | **8** | **7** | **1** | **5** | **21** |
 
 
 ## Coverage Notes
@@ -66,8 +70,9 @@ modified:
   wraparound) and 2 proptest proofs (VP-010 buffered_bytes invariant, VP-011
   flush_contiguous monotonicity). Row total = 4 VPs.
 
-- All 20 VP statuses are `verified` as of Phase-6 gate close (2026-06-02 @ develop 0855f25).
-  verification_lock=true is set on all VP documents; they are now immutable.
+- VP-001 through VP-020 statuses are `verified` as of Phase-6 gate close (2026-06-02 @ develop 0855f25).
+  verification_lock=true is set on all those VP documents.
+- VP-021 is `draft/unverified` — added in Feature Mode F2 (issue #100); implementation pending F4 stories (STORY-097→098→099). Lock target: F6 formal hardening gate.
 
 - `module-criticality.md` defines kill-rate targets that constrain the minimum proof
   depth for each module. CRITICAL modules (reassembly/segment.rs, reassembly/flow.rs,

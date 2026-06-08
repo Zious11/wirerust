@@ -5,9 +5,9 @@ status: draft
 producer: story-writer
 timestamp: 2026-05-21T00:00:00Z
 phase: 2
-total_stories: 49
-total_waves: 27
-total_points: 287
+total_stories: 52
+total_waves: 30
+total_points: 305
 traces_to:
   - .factory/stories/dependency-graph.md
   - .factory/stories/epics.md
@@ -16,9 +16,9 @@ traces_to:
 
 # wirerust Story Index
 
-> **Authoritative story registry for the v0.1.0-greenfield-spec cycle.**
-> All 48 stories formalize behavioral contracts for the existing shipped wirerust
-> codebase. Status `draft` = not yet dispatched. Wave assignments are from the
+> **Authoritative story registry for the v0.1.0-greenfield-spec cycle (49 stories) + Feature Mode F3 additions (3 stories, STORY-097/098/099 for issue #100).**
+> All 48 greenfield stories formalize behavioral contracts for the existing shipped wirerust
+> codebase. STORY-097/098/099 are new feature stories for issue #100 (pcap timestamps). Status `draft` = not yet dispatched. Wave assignments are from the
 > authoritative dependency-graph.md (longest-path / Kahn topological sort).
 
 ---
@@ -76,6 +76,9 @@ traces_to:
 | STORY-090 | Summary Data Model — ingest, Service Hints, unique_hosts, Serialization | E-9 | 27 | 5 | completed | STORY-086, STORY-088, STORY-089 |
 | STORY-096 | Absent Behavior Contracts — Removed Flags Rejected by clap | E-10 | 24 | 3 | completed | STORY-086 |
 | STORY-091 | Anchor-Validation Tooling — bin/validate-anchors | E-11 | ~ | 5 | draft | — |
+| STORY-097 | Thread Capture-Relative Timestamp Through StreamHandler::on_data | E-12 | 28 | 5 | draft | — |
+| STORY-098 | Attach Pcap Timestamp to Emitted Findings | E-12 | 29 | 8 | draft | STORY-097 |
+| STORY-099 | Verify Timestamp Provenance End-to-End (VP-021) | E-12 | 30 | 5 | draft | STORY-098 |
 
 ---
 
@@ -110,7 +113,10 @@ traces_to:
 | 25 | STORY-088 | 1 | 8 |
 | 26 | STORY-089 | 1 | 5 |
 | 27 | STORY-090 | 1 | 5 |
-| **TOTAL** | | **48** | **282** |
+| 28 | STORY-097 | 1 | 5 |
+| 29 | STORY-098 | 1 | 8 |
+| 30 | STORY-099 | 1 | 5 |
+| **TOTAL** | | **51** | **300** |
 
 ---
 
@@ -129,7 +135,8 @@ traces_to:
 | E-9: CLI, Entry Point, and Analysis Orchestration | STORY-086, STORY-087, STORY-088, STORY-089, STORY-090 | 5 | 28 |
 | E-10: Absent Behavior Contracts (Flag Rejection) | STORY-096 | 1 | 3 |
 | E-11: Tooling and Self-Improvement | STORY-091 | 1 | 5 |
-| **TOTAL** | | **49** | **287** |
+| E-12: Pcap Timestamp Provenance (issue #100) | STORY-097, STORY-098, STORY-099 | 3 | 18 |
+| **TOTAL** | | **52** | **305** |
 
 ---
 
@@ -167,10 +174,11 @@ traces_to:
 
 ## Coverage Verification
 
-- Total stories: **49** (48 product stories + 1 tooling story STORY-091)
-- Total waves: **27** (product stories; STORY-091 wave TBD — no product dependencies)
-- Total points: **287** (282 product + 5 tooling)
-- Graph is acyclic: **Yes** (Kahn topological sort verified in dependency-graph.md; STORY-091 has no depends_on, so it does not affect the existing sort)
-- All 10 product epics covered: **Yes**; E-11 (Tooling) added for STORY-091
-- All 217 BCs assigned: **Yes** (per dependency-graph.md BC to Stories Matrix; STORY-091 has no BCs yet — pending PO authorship)
+- Total stories: **52** (48 greenfield product stories + 1 tooling story STORY-091 + 3 feature-mode stories STORY-097/098/099)
+- Total waves: **30** (STORY-097 wave 28, STORY-098 wave 29, STORY-099 wave 30; STORY-091 wave TBD)
+- Total points: **305** (282 greenfield product + 5 tooling + 18 feature-mode)
+- Graph is acyclic: **Yes** (Kahn topological sort verified; STORY-097→098→099 form an acyclic chain with no back-edges to the existing 49-story graph)
+- All 10 product epics + E-11 (Tooling) + E-12 (Pcap Timestamps) covered: **Yes**
+- All 219 BCs assigned: **Partial** — 217 greenfield BCs assigned; BC-2.04.055 → STORY-097/098/099; BC-2.09.007 → STORY-098/099; 219 BCs traced.
 - PROCESS-GAP-P5-001 dispositioned: **Yes** — STORY-091 created as the S-7.02 cycle-close disposition
+- Coverage note: STORY-097/098/099 trace to BC-2.04.055 and BC-2.09.007 (both F2 additions); these 3 stories cover VP-021 (draft; verified at F4 Story C completion).

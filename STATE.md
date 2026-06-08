@@ -48,7 +48,7 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 
 **Pipeline: COMPLETE AND RELEASED.** The full 7-phase VSDD pipeline (brownfield cycle v0.1.0-greenfield-spec) is COMPLETE and RELEASED. wirerust v0.1.0 published 2026-06-08. Annotated tag `v0.1.0` on main commit `2e8d256` (gitflow-proper). GitHub Release live with 4 cross-platform binaries (linux x86_64, macos arm64, macos x86_64, windows msvc); run 27155277051 all jobs success.
 
-**Summary:** 48 stories delivered, 217 BCs, 20 VPs locked, 1126 tests green, holdout mean 0.949, adversary convergence 6 PASS / 1 non-blocking CONCERN (Performance — no v0.1.0 SLA).
+**Summary:** 48 stories delivered (v0.1.0), 219 BCs (217 greenfield + 2 F2), 21 VPs (20 locked + VP-021 draft), 1126 tests green, holdout mean 0.949, adversary convergence 6 PASS / 1 non-blocking CONCERN (Performance — no v0.1.0 SLA). F2+F3 complete for issue #100; 3 new stories (STORY-097/098/099) pending F4 delivery.
 
 ## Phase Progress
 
@@ -65,35 +65,31 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 | Phase 7 — Convergence | **PASSED + RELEASED** (human-approved 2026-06-08) | 6 PASS / 1 CONCERN (Perf — non-blocking); 1126 tests; consistency CONSISTENT (8/8); 20 VPs locked |
 | Release — v0.1.0 | **RELEASED** 2026-06-08 | GitHub Release; 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); run 27155277051 all jobs success |
 
-## Session Resume Checkpoint (2026-06-08 — v0.1.0 RELEASED — Supply-Chain Hardening COMPLETE)
+## Session Resume Checkpoint (2026-06-08 — issue #100 F2+F3 COMPLETE)
 
-**POSITION:** v0.1.0 RELEASED — pipeline complete. Cohort A dispositioned (D-022). Supply-chain SHA-pin hardening complete (D-023): 7/8 actions SHA-pinned; 'Action pin gate' CI job enforcing pins; #193 closed in favor of SHA-pinning. develop HEAD `77fd45f`.
+**POSITION:** issue #100 F2+F3 done; F4 (TDD impl STORY-097→098→099) next. Created BC-2.09.007 (ss-09), BC-2.04.055 (ss-04), VP-021; updated BC-2.09.001/006 (v1.3) + BC-2.01.005 (v1.6); STORY-097/098/099 (waves 28-30, chain). All indexes updated (219 BCs / 21 VPs / 52 stories). develop HEAD `77fd45f`.
 
 **VERIFIED-CLEAN FACTS:**
 - main HEAD `2e8d256` — v0.1.0 release commit; annotated tag `v0.1.0`
-- develop HEAD `77fd45f` — PR #196: SHA-pin 4 remaining actions + action-pin gate (77fd45f)
-- 1126+ tests green; clippy clean; fmt clean; 20 VPs locked (614e0e0)
-- GitHub Release: https://github.com/Zious11/wirerust/releases/tag/v0.1.0
-- Actions SHA-pinned (7/8): checkout, rust-toolchain exempt, rust-cache, cargo-deny, semantic-pr, upload-artifact, download-artifact, gh-release
-- Cohort A: #104 CLOSED (PR #194), #102 CLOSED (PR #195), #100 PENDING-FEATURE, #101 OPEN-DEBT, #103 DEFERRED
+- develop HEAD `77fd45f` — PR #196 (supply-chain SHA-pin gate)
+- 1126+ tests green; clippy clean; fmt clean; 20 VPs locked (614e0e0) + VP-021 draft
+- Feature #100 F2+F3: BC-2.09.007/BC-2.04.055/VP-021 + STORY-097/098/099; 219 BCs / 21 VPs / 52 stories
+- Factory-artifacts: all indexes updated and committed (D-024)
 
 **OPEN POST-RELEASE ITEMS (do NOT lose):**
-- Optional gitflow hygiene: back-merge main→develop (cosmetic; content identical).
-- Post-pipeline: session-reviewer pass (capture lessons) per the Post-Pipeline phase.
-- STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
-- #100 (thread pcap timestamps): FEATURE-MODE — scope as feature with own BC
+- #100 (thread pcap timestamps): F4 TDD NEXT — dispatch STORY-097→STORY-098→STORY-099
 - #101 (FP/TP rate characterization): OPEN-DEBT — corpus-dependent; blocks #103
 - #103 (size-symmetry evasion discriminator): DEFERRED — needs labelled corpus
+- STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
 - ACTION-PIN-001: dtolnay/rust-toolchain @stable/@nightly intentionally exempt from pin gate
 - Drift items: O-07, O-08, F-W25-S088-P6-001
 - RUSTSEC-2026-0097: accepted-transitive; revisit when tls-parser bumps phf→0.12+
 - Phase-5 tech-debt (P3): CR-002/003/005/006/007/009/012 — see tech-debt-register.md
-- FE-001 v2: pcapng support parked for next cycle
 
-**RESUME PROTOCOL (if re-entering post-release):**
+**RESUME PROTOCOL (if re-entering for F4):**
 1. `vsdd-factory:factory-worktree-health` — BLOCKING
-2. Read `STATE.md` — confirm RELEASED + supply-chain hardening status
-3. Proceed to Post-Pipeline phase (session-reviewer, lessons) or next cycle
+2. Read `STATE.md` — confirm F2+F3 complete, F4 next
+3. Dispatch `vsdd-factory:phase-f4-delta-implementation` STORY-097 (wave 28)
 
 Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
@@ -124,6 +120,7 @@ Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 | D-021 | DI-001 closed — release.yml Node20 actions migrated to Node24, SHA-pinned exact soak-clear versions (upload-artifact@043fb46d1a93 v7.0.1, download-artifact@3e5f45b2cfb9 v8.0.1, gh-release@b4309332981a v3.0.0); dependabot.yml added (cargo 7d/30d-major + github-actions 7d cooldowns, jira-cli soak convention). Fix on develop only by design (gitflow — CI change reaches main at v0.1.1; release.yml runs at tag-time; dependabot reads from default branch develop). PR #192 → develop (2fe3440). Validated: workflow_dispatch run 27159378751, 4 build jobs green, upload-artifact@v7 attached all 4 artifacts. | 2026-06-08 | DI-001 Node20→Node24 migration |
 | D-022 | Post-release issue work — Cohort A (#100–#104) re-validated against current develop under DF-VALIDATION-001 (all 5 STILL-VALID, line refs refreshed). Fixed 2 quick-fix bugs via TDD fix-PRs: #104 (SNI control-byte summary for mixed control+non-ASCII values, BC-TLS-037, PR #194 cf21168) and #102 (cap weak-cipher evidence vec at 64 + elision; reclassified low-severity hardening NOT CWE-405/DoS, PR #195 153f225). Both closed. Remaining: #100 FEATURE-MODE; #101 OPEN-DEBT; #103 DEFERRED. Dependabot now live (D-021); PR #193 pending disposition. | 2026-06-08 | Cohort A post-release issue triage and quick fixes |
 | D-023 | Supply-chain hardening via HYBRID cross-model adversarial review of dependabot PR #193 (actions/checkout 6→6.0.2). Reviewers: Claude `adversary` agent + Gemini CLI (gemini 0.44.1, genuine non-Claude model-family diversity — factory's first true cross-family adversary). Both converged on verdict (b): close #193, SHA-pin instead. The hybrid ALSO caught Gemini hallucinations (fabricated 'pcap-fixture-as-version-string' red flag; wrong guessed SHA 11bd719) — discarded after verification; real SHA resolved from GitHub API. Findings: prior SHA-pin pass (D-021) was only 3/8 complete. Action: closed #193; SHA-pinned 4 more actions (checkout de0fac2e #v6.0.2, Swatinem/rust-cache c1937114 #v2.9.1, EmbarkStudios/cargo-deny-action bb137d7a #v2.0.20, amannn/action-semantic-pull-request 48f25628 #v6.1.1) across ci.yml+release.yml → 7/8 pinned; added 'Action pin gate' CI job enforcing SHA pins (fails on tags); documented policy in CLAUDE.md; gate added to main's required status checks (9 total). PR #196 → develop 77fd45f. | 2026-06-08 | Supply-chain SHA-pin hardening + enforcement gate |
+| D-024 | Issue #100 Feature Mode F2+F3 complete — created BC-2.09.007 (Finding.timestamp provenance; ss-09), BC-2.04.055 (on_data timestamp parameter; ss-04), VP-021 (timestamp-provenance-threading; draft/unverified; integration+proptest); updated BC-2.09.001/006 (v1.3) + BC-2.01.005 (v1.6, O-01 resolved at spec level); created STORY-097/098/099 (waves 28-30, acyclic chain 097→098→099, epic E-12). All indexes updated: 219 BCs / 21 VPs / 52 stories. F4 TDD implementation next (STORY-097→STORY-098→STORY-099). | 2026-06-08 | Issue #100 Feature Mode F2+F3 spec + story decomposition delta |
 
 ## Blocking Issues
 

@@ -14,16 +14,17 @@ traces_to: .factory/specs/prd.md
 > **Navigation:** This file is the master index of all BC-S.SS.NNN contracts. Each entry
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
-> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 217 entries.
+> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 219 entries.
 > 218 draft ingestion BCs were produced; 6 were retired during the remediation cycle (BC-ABS-004
 > through BC-ABS-009) leaving 212 active L3 BCs from ingestion. BC-2.11.020 through BC-2.11.024
 > were added in adversarial-review pass-4 (finding H-1: CsvReporter coverage gap), bringing
-> the total to 217 active L3 BCs.
+> the total to 217 active L3 BCs. BC-2.04.055 and BC-2.09.007 were added in Feature Mode F2
+> (issue #100 pcap-timestamps delta) bringing the total to 219 active L3 BCs.
 >
 > **Status as of Phase 1a (current):**
-> - Fully written: 217 BCs (all body files verified on disk)
+> - Fully written: 219 BCs (all body files verified on disk)
 > - Remaining: 0 BCs
-> - PRD index (prd.md): COMPLETE -- all 217 L3 BC IDs are registered
+> - PRD index (prd.md): COMPLETE -- all 219 L3 BC IDs are registered
 
 ## ss-01: PCAP File Ingestion (CAP-01)
 
@@ -60,7 +61,7 @@ traces_to: .factory/specs/prd.md
 
 ## ss-04: TCP Stream Reassembly (CAP-04)
 
-> 54 BCs total; 54 fully written; 0 planned.
+> 55 BCs total; 55 fully written; 0 planned.
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
@@ -118,6 +119,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.04.052 | on_data_without_syn: New->Established; partial=true | P0 | [WRITTEN] | BC-RAS-052 |
 | BC-2.04.053 | TcpFlow::direction Returns ClientToServer When src Matches Initiator | P0 | [WRITTEN] | BC-RAS-053 |
 | BC-2.04.054 | finalize Unconditionally Bypasses MAX_FINDINGS Cap for Segment-Limit Finding | P0 | [WRITTEN] | BC-RAS-054 |
+| BC-2.04.055 | StreamHandler::on_data Carries Capture-Relative Timestamp Parameter | P1 | [WRITTEN] | feature-100-F2 |
 
 ## ss-05: Content-First Protocol Dispatch (CAP-05)
 
@@ -225,6 +227,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.09.004 | Confidence Display: Uppercase Tokens | P1 | [WRITTEN] | BC-FND-004 |
 | BC-2.09.005 | Finding.summary and Evidence Store RAW Post-from_utf8_lossy Bytes per ADR 0003 | P0 | [WRITTEN] | BC-FND-005 |
 | BC-2.09.006 | Finding JSON Serialization: All None Option Fields Omitted via skip_serializing_if | P0 | [WRITTEN] | BC-FND-006 |
+| BC-2.09.007 | Finding.timestamp Carries Capture-Relative Pcap Timestamp from on_data Call Site | P1 | [WRITTEN] | feature-100-F2 |
 
 ## ss-10: MITRE ATT&CK Mapping (CAP-10)
 
@@ -329,7 +332,7 @@ traces_to: .factory/specs/prd.md
 | BC-SUM-001..004 | 4 | BC-2.12.018..021 |
 | BC-ABS-001..010 | 10 | BC-2.13.001..004 (6 ABS retired by remediation cycle) |
 
-**Total ingestion BCs mapped: 218 / 218. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217 active BCs. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) but the active BC count is 217.**
+**Total BCs: 219. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) but the active BC count before F2 was 217; F2 adds 2 new rows not in the ingestion batch.**
 
 Note: BC-ABS-004 (--hosts unwired), BC-ABS-005 (--services unwired), BC-ABS-006 (--json
 file unwired), BC-ABS-007 (CSV unwired), BC-ABS-009 (no e2e CLI tests) are RETIRED --

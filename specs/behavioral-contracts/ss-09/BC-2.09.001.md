@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Feature-100 (pcap timestamps) — O-01 resolved: 21 of 22 emission sites now set timestamp: Some(...); segment-limit summary retains None. Invariant 1 updated; Refactoring Notes updated. — 2026-06-08"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -30,9 +31,11 @@ removal_reason: null
 The `Finding` struct is constructed directly via struct-literal syntax at each of the 22
 emission sites. Required fields (`category`, `verdict`, `confidence`, `summary`, `evidence`)
 must always be provided. Optional fields (`mitre_technique`, `source_ip`, `timestamp`,
-`direction`) are always `Option<T>`. All 22 current emission sites set `timestamp: None`
-(domain-debt O-01; the field exists in the struct but is never populated). There is no
-builder or constructor helper -- every site provides the full literal.
+`direction`) are always `Option<T>`. After feature-100 (pcap timestamps), 21 of 22 emission
+sites set `timestamp: Some(DateTime<Utc>)` derived from the pcap `ts_sec` value at the flush
+call site; the segment-limit summary finding in `finalize` retains `timestamp: None` (it is a
+post-capture aggregate, not tied to any specific packet). There is no builder or constructor
+helper -- every site provides the full literal.
 
 ## Preconditions
 
@@ -51,7 +54,7 @@ builder or constructor helper -- every site provides the full literal.
    - `mitre_technique`: `Option<String>` (None or a technique ID string)
    - `source_ip`: `Option<IpAddr>` (Some(ip) at 5 reassembly sites in mod.rs and lifecycle.rs;
      None at all HTTP/TLS and segment-limit-summary sites)
-   - `timestamp`: `Option<DateTime<Utc>>` (None in all current 22 emission sites -- O-01)
+   - `timestamp`: `Option<DateTime<Utc>>` (Some(DateTime<Utc>) at 21 of 22 emission sites after feature-100; None only at the segment-limit summary site in finalize)
    - `direction`: `Option<Direction>` (Some for HTTP/TLS findings; Some for reassembly mod.rs
      overlap/small-segment/out-of-window findings; None for reassembly lifecycle and
      segment-limit-summary findings)
@@ -60,7 +63,10 @@ builder or constructor helper -- every site provides the full literal.
 
 ## Invariants
 
-1. All 22 current emission sites set `timestamp: None` (O-01; forensic gap).
+1. After feature-100: 21 of 22 emission sites set `timestamp: Some(DateTime<Utc>)` derived
+   from the pcap capture-relative `ts_sec` value. The segment-limit summary finding in
+   `finalize` (the 22nd site) retains `timestamp: None` — this is correct behavior, not a
+   gap. See BC-2.09.007 for the full provenance and conversion invariants.
 2. Reassembly anomaly findings in `reassembly/mod.rs` (overlap, small-segment, out-of-window)
    set `source_ip: Some(packet.src_ip)`. Reassembly lifecycle findings in
    `reassembly/lifecycle.rs` (conflicting-overlap, stream-depth-exceeded) also set
@@ -87,15 +93,15 @@ builder or constructor helper -- every site provides the full literal.
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| HttpAnalyzer path-traversal detection | Finding { category: Anomaly, verdict: Likely, confidence: High, direction: Some(ClientToServer), timestamp: None } | happy-path |
-| Reassembly conflicting overlap | Finding { category: Anomaly, direction: None, timestamp: None } | happy-path |
+| HttpAnalyzer path-traversal detection | Finding { category: Anomaly, verdict: Likely, confidence: High, direction: Some(ClientToServer), timestamp: Some(DateTime<Utc>) } | happy-path |
+| Reassembly conflicting overlap | Finding { category: Anomaly, direction: None, timestamp: Some(DateTime<Utc>) } | happy-path |
 | TLS SNI control-byte detection | Finding { category: Anomaly, mitre_technique: Some("T1027") } | happy-path |
 
 ## Verification Properties
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | All 22 emission sites produce Finding with timestamp=None | grep: no site sets timestamp: Some(...) |
+| VP-021 | 21 of 22 emission sites produce Finding with timestamp=Some(...); segment-limit summary has None | integration test + proptest |
 | — | HTTP and TLS findings carry direction=Some | unit: assert direction is Some after HTTP/TLS analysis |
 
 ## Traceability
@@ -112,7 +118,8 @@ builder or constructor helper -- every site provides the full literal.
 ## Related BCs
 
 - BC-2.09.005 -- composes with (raw-bytes contract for summary/evidence)
-- BC-2.09.006 -- composes with (JSON serialization of None fields)
+- BC-2.09.006 -- composes with (JSON serialization of Option fields; timestamp now appears when Some)
+- BC-2.09.007 -- composes with (timestamp provenance and value invariants; extends this BC's timestamp postcondition)
 - BC-2.09.002 -- composes with (Display rendering of this struct)
 
 ## Architecture Anchors
@@ -144,7 +151,8 @@ builder or constructor helper -- every site provides the full literal.
 
 ## Refactoring Notes
 
-O-01 (timestamp always None) is the key open item. Wiring would require threading
-`RawPacket.timestamp_secs` through `StreamHandler::on_data` to every emission site. Until
-O-01 is resolved, the `chrono` crate dependency is present but the timestamp field carries
-no forensic value.
+O-01 (timestamp always None) is resolved by feature-100 (issue #100). `RawPacket.timestamp_secs`
+is now threaded through `StreamHandler::on_data` (BC-2.04.055) to 21 of 22 emission sites.
+The `chrono` crate dependency now carries active forensic value. The one remaining `None` site
+(segment-limit summary in `finalize`) is correct behavior, not a gap — it is documented as
+an invariant in BC-2.09.007.

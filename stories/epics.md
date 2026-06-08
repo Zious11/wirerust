@@ -5,7 +5,7 @@ status: draft
 producer: story-writer
 phase: 2
 timestamp: 2026-05-21T00:00:00Z
-total_bcs: 217
+total_bcs: 219
 traces_to:
   - .factory/specs/prd.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
@@ -15,7 +15,8 @@ traces_to:
 # wirerust Epic Decomposition
 
 > **Brownfield context:** wirerust is a single-crate offline pcap forensic triage CLI.
-> The 217 behavioral contracts describe the *current* shipped implementation.
+> The 217 behavioral contracts describe the *current* shipped implementation; 2 additional
+> Feature Mode F2 BCs (BC-2.04.055, BC-2.09.007) bring the total to 219.
 > Epics are cohesive groupings of user value aligned to PRD capabilities and subsystem
 > boundaries. No epic is a pure 1:1 subsystem copy where capabilities naturally compose
 > into a larger user-visible deliverable.
@@ -273,7 +274,8 @@ the same test vehicle (CLI invocation with obsolete flag).
 | E-8: Reporting and Output Formats | SS-11 | BC-2.11.001..024 | 24 |
 | E-9: CLI, Entry Point, and Analysis Orchestration | SS-12 | BC-2.12.001..021 | 21 |
 | E-10: Absent Behavior Contracts (Flag Rejection) | SS-13 | BC-2.13.001..004 | 4 |
-| **TOTAL** | | | **217** |
+| E-12: Pcap Timestamp Provenance (issue #100) | SS-04, SS-09 | BC-2.04.055, BC-2.09.007 | 2 |
+| **TOTAL** | | | **219** |
 
 ### Arithmetic Verification
 
@@ -288,9 +290,14 @@ E-7:  6 (SS-09) + 9 (SS-10)  = 15
 E-8:  24 (SS-11)              = 24
 E-9:  21 (SS-12)              = 21
 E-10: 4 (SS-13)               =  4
+E-12: 2 (BC-2.04.055, BC-2.09.007) = 2
                       --------
-                      217 / 217  ✓
+                      219 / 219  ✓
 ```
+
+Note: E-11 (Tooling) has 0 BCs authored yet (STORY-091 pending). E-12 BCs are feature-mode
+additions (BC-2.04.055 extends SS-04; BC-2.09.007 extends SS-09) and do not conflict with
+the greenfield 217-BC assignment.
 
 ### No BC Double-Assigned
 
@@ -316,7 +323,7 @@ non-overlapping. No BC appears in more than one epic row above.
 | SS-12 | CLI / Entry | E-9 |
 | SS-13 | Absent Behaviors | E-10 |
 
-**Coverage confirmed: 217 / 217 BCs assigned, 0 unassigned, 0 double-assigned.**
+**Coverage confirmed: 219 / 219 BCs assigned, 0 unassigned, 0 double-assigned.**
 
 ---
 
@@ -345,6 +352,20 @@ group here.
 
 ---
 
+## Epic E-12: Pcap Timestamp Provenance (issue #100)
+
+- **Goal:** A forensic analyst reviewing wirerust JSON/CSV output sees a `timestamp` field on every Finding, populated from the pcap capture-relative `ts_sec` value, enabling correlation of detections with the original packet capture timeline.
+- **BCs:**
+  BC-2.04.055 (StreamHandler::on_data timestamp parameter),
+  BC-2.09.007 (Finding.timestamp provenance)
+- **Subsystems touched:** SS-04 (reassembly), SS-06 (HTTP analyzer), SS-07 (TLS analyzer), SS-09 (findings)
+- **Estimated stories:** 3 (STORY-097, STORY-098, STORY-099)
+- **Feature issue:** #100
+
+**Rationale:** The timestamp feature (O-01 domain-debt) spans 3 implementation layers: the trait-boundary (SS-04 on_data parameter), the emission sites (SS-06/07 per-flow storage + finding construction), and E2E verification (VP-021). These 3 layers decompose naturally into 3 stories with strict sequential dependency (trait break → emission → verification).
+
+---
+
 ## Estimated Story Count Summary
 
 | Epic | Stories Est. |
@@ -360,4 +381,5 @@ group here.
 | E-9  | 5           |
 | E-10 | 1           |
 | E-11 | 1           |
-| **Total** | **49** |
+| E-12 | 3           |
+| **Total** | **52** |

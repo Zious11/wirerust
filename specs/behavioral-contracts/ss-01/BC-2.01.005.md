@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - v1.3: Phase 3 per-story adversarial review — corrected Architecture Anchor line range: timestamp conversion block ends at :73, not :74 (line 74 is blank in reader.rs) — 2026-05-21
   - v1.4: Phase 3 per-story adversarial review pass 5 — corrected false claim in v1.3 changelog: line 74 is NOT blank; it is the closing `};` of the match expression. Architecture Anchor corrected to 71-74 (full match span: let-binding at :71, two arms at :72-73, closing brace at :74) — 2026-05-21
   - v1.5: DF-16.A citation fix — corrected broken capabilities.md §CAP-NN citation to per-cap file path — 2026-05-28
+  - v1.6: Feature-100 (pcap timestamps) — O-01 resolved; timestamp_secs is now threaded downstream to Finding.timestamp via BC-2.04.055 + BC-2.09.007. L2 Domain Invariants note updated. Related BCs updated. — 2026-06-08
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -84,7 +85,7 @@ the pcap format's own type; no cast is required beyond the match-arm value.
 |-------|-------|
 | L2 Capability | CAP-01 ("PCAP File Ingestion") per domain/capabilities/cap-01-pcap-ingestion.md |
 | Capability Anchor Justification | CAP-01 ("PCAP File Ingestion") per domain/capabilities/cap-01-pcap-ingestion.md -- timestamp extraction is part of RawPacket production during ingestion |
-| L2 Domain Invariants | None (O-01: timestamps are read but never threaded to Finding constructors) |
+| L2 Domain Invariants | None directly. Note: O-01 (timestamps never threaded to Finding constructors) is resolved by feature-100 — see BC-2.04.055 and BC-2.09.007. |
 | Architecture Module | SS-01 (reader.rs, C-4) |
 | Stories | STORY-001 |
 | Origin BC | BC-RDR-005 (pass-3 ingestion corpus, HIGH confidence) |
@@ -92,7 +93,9 @@ the pcap format's own type; no cast is required beyond the match-arm value.
 ## Related BCs
 
 - BC-2.01.002 -- composes with (timestamp split is part of the per-packet read loop)
-- BC-2.09.001 -- related to (Finding.timestamp is always None regardless; O-01)
+- BC-2.09.001 -- related to (Finding.timestamp; O-01 resolved by feature-100)
+- BC-2.04.055 -- related to (timestamp_secs from RawPacket is threaded through on_data as the source value)
+- BC-2.09.007 -- related to (Finding.timestamp provenance; the u32 produced here becomes DateTime<Utc> there)
 
 ## Architecture Anchors
 
