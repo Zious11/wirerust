@@ -136,6 +136,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | F-W25-S088-P6-001 | AC-004 warning .contains() — weaker than count-assertion | OPEN — target next main.rs touch or accept |
 | RUSTSEC-2026-0097 | rand 0.8.5 unsound (transitive via tls-parser→phf 0.11); upstream-only fix path | ACCEPTED-TRANSITIVE — revisit when tls-parser bumps phf→0.12+ |
 | DI-001 | release.yml uses actions/upload-artifact@v4 (Node 20); GitHub forcing Node 24 ~2026-06-16 — bump to upload-artifact@v5 | OPEN P2 — minor follow-up |
+| FE-001 | pcapng input format not supported (.pcap-only); parked v2 idea (2026-06-08 demo) — see tech-debt-register.md Future Enhancements | deferred / v2 / not-filed |
 
 ## Cycle-Close Follow-Up Items
 

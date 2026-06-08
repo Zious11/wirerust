@@ -28,6 +28,20 @@ timestamp: 2026-06-01T00:00:00Z
 | CR-009 | [Phase-5 secondary review, LOW] HTTP analyzer traversal-encoding variants (chunked + compressed edge cases) are not exercised by current tests. Adding a few synthetic fixtures would raise confidence in the HTTP traversal path. | P3 | Phase-5 secondary code-review | OPEN |
 | CR-012 | [Phase-5 secondary review, LOW] HashMap accessor consistency — some call sites use `entry().or_insert()` pattern while others use `get()` + `insert()` separately. Standardizing on one idiom would improve readability. | P3 | Phase-5 secondary code-review | OPEN |
 
+## Future Enhancements / Deferred v2 Ideas
+
+> Items here are **parked observations** — not actioned, not filed as GitHub issues, and not
+> in scope for any current cycle. Per DF-VALIDATION-001, filing as a GitHub issue requires
+> research-agent validation first. Human decision to defer is noted per item.
+
+| ID | Title | Observation | Scope / Direction | Status |
+|----|-------|-------------|-------------------|--------|
+| FE-001 | pcapng input format support | wirerust reads ONLY classic libpcap (.pcap) and rejects .pcapng files with "Failed to parse pcap header / wrong magic number" (pcapng magic `0a0d0d0a`). Hit during 2026-06-08 post-v0.1.0 local demo: both Wireshark and modern/macOS tcpdump default to pcapng, so a user supplying their own capture will commonly hit this. Also note: nanosecond-precision classic pcap (magic `a1b23c4d`) was not verified as supported. | Deferred to v2 per human decision (2026-06-08). Not in scope for v0.1.x. Minimum interim improvement (if ever desired, also deferred): clearer error message suggesting "convert to classic .pcap (e.g. `editcap -F libpcap in.pcapng out.pcap`)" instead of the raw magic-number error. Do NOT implement now. | deferred / v2 / not-filed |
+
+**OBS (secondary, parked):** TLS SNI, JA3 fingerprints, and cipher suite are extracted internally
+but only surfaced via threat findings, not as a benign connection inventory. Candidate for a v2
+docs clarification or an optional inventory output mode. Parked, not actioned.
+
 ## Closed / Refuted Items
 
 | ID | Description | Resolution |
