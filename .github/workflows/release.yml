@@ -1,0 +1,192 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+# Prevent two release runs from racing on the same tag.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -Dwarnings
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build matrix — native runners, no cross-compilation.
+  # Runs on both tag push and workflow_dispatch so the matrix can be validated
+  # before the real tag is cut.
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive_ext: tar.gz
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            archive_ext: tar.gz
+          - os: macos-13
+            target: x86_64-apple-darwin
+            archive_ext: tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive_ext: zip
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+
+      # ------------------------------------------------------------------
+      # Derive the version string.
+      #   - Tag run:             strip the leading 'v' from the tag name.
+      #   - workflow_dispatch:   read from Cargo.toml (no tag exists yet).
+      # ------------------------------------------------------------------
+      - name: Derive version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION=$(grep -m1 '^version' Cargo.toml | sed 's/.*= *"\(.*\)"/\1/')
+          fi
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "Derived version: ${VERSION}"
+
+      # ------------------------------------------------------------------
+      # Build the release binary.
+      # The release profile in this repo has overflow-checks = true.
+      # ------------------------------------------------------------------
+      - name: Build release binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --release --target ${{ matrix.target }}
+
+      # ------------------------------------------------------------------
+      # Package: produce a single archive per target.
+      #   Unix  →  wirerust-v{version}-{target}.tar.gz
+      #   Windows → wirerust-v{version}-{target}.zip
+      # ------------------------------------------------------------------
+      - name: Package binary (Unix)
+        if: matrix.archive_ext == 'tar.gz'
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          ARCHIVE="wirerust-v${VERSION}-${{ matrix.target }}.tar.gz"
+          cp "target/${{ matrix.target }}/release/wirerust" wirerust
+          tar -czf "${ARCHIVE}" wirerust
+          echo "ARCHIVE=${ARCHIVE}" >> "${GITHUB_ENV}"
+
+      - name: Package binary (Windows)
+        if: matrix.archive_ext == 'zip'
+        shell: pwsh
+        run: |
+          $VERSION = "${{ steps.version.outputs.version }}"
+          $ARCHIVE = "wirerust-v${VERSION}-${{ matrix.target }}.zip"
+          Copy-Item "target\${{ matrix.target }}\release\wirerust.exe" wirerust.exe
+          Compress-Archive -Path wirerust.exe -DestinationPath $ARCHIVE
+          "ARCHIVE=$ARCHIVE" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      # ------------------------------------------------------------------
+      # Upload the archive as a workflow artifact.
+      # On tag runs: the release job downloads these and attaches them.
+      # On workflow_dispatch: the archives are available in the Actions UI
+      #   for manual inspection without creating a GitHub Release.
+      # ------------------------------------------------------------------
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wirerust-${{ matrix.target }}
+          path: ${{ env.ARCHIVE }}
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Release job — only on a v* tag push.
+  # Downloads all four archives, extracts release notes from CHANGELOG.md,
+  # and creates the GitHub Release with binaries attached.
+  # ---------------------------------------------------------------------------
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      # ------------------------------------------------------------------
+      # Extract the section for this version from CHANGELOG.md.
+      # Expected format:  ## [0.1.0] - YYYY-MM-DD
+      # The extracted block is everything from that heading line up to
+      # (but not including) the next ## heading.
+      # ------------------------------------------------------------------
+      - name: Extract release notes from CHANGELOG.md
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          NOTES=$(awk "/^## \[${VERSION}\]/{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md)
+          if [ -z "${NOTES}" ]; then
+            echo "WARNING: No CHANGELOG section found for version ${VERSION}. Using fallback."
+            NOTES="Release ${GITHUB_REF_NAME}."
+          fi
+          # Write to a file so the action receives multi-line content cleanly.
+          echo "${NOTES}" > release-notes.md
+          echo "Release notes written ($(wc -l < release-notes.md) lines)."
+
+      # ------------------------------------------------------------------
+      # Flatten artifacts directory: each target's archive is in its own
+      # sub-directory (artifacts/wirerust-<target>/<archive>). Move them
+      # all to a single staging directory for softprops/action-gh-release.
+      # ------------------------------------------------------------------
+      - name: Stage archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          find artifacts/ -type f \( -name '*.tar.gz' -o -name '*.zip' \) \
+            -exec mv {} release-assets/ \;
+          echo "Staged files:"
+          ls -lh release-assets/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: release-notes.md
+          files: release-assets/*
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
