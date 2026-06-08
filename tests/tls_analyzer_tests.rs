@@ -9176,3 +9176,158 @@ fn handshake_record_reaches_parser() {
         "0x16 with empty payload must trigger a parse error, confirming the parse path was entered"
     );
 }
+
+// ── Issue #102: weak-cipher evidence cap ─────────────────────────────────────
+//
+// A ClientHello with more than 64 weak ciphers must NOT produce an unbounded
+// evidence vec.  The finding's `evidence` must be capped at 65 entries:
+// 64 cipher names followed by a single "(+N more)" elision marker.
+//
+// This is a LOW-SEVERITY HARDENING test (not a security/DoS test): the
+// allocation is bounded by upstream input limits (MAX_RECORD_PAYLOAD=18_432),
+// so it is NOT CWE-405 / asymmetric amplification.  The cap simply avoids
+// a needlessly large transient String allocation when a crafted ClientHello
+// offers a maximal weak-cipher list.
+//
+// All 65 cipher IDs below are confirmed weak by `is_weak_cipher` (they
+// contain "NULL", "ANON", or "EXPORT" in their tls-parser name string).
+// Source: tls-parser-0.12.2/scripts/tls-ciphersuites.txt.
+#[test]
+fn test_weak_cipher_evidence_capped_at_64_with_elision() {
+    // 65 distinct weak cipher IDs — one more than the cap.
+    // All names contain "NULL", "ANON", or "EXPORT" per is_weak_cipher.
+    let weak_ids: &[u16] = &[
+        0x0000, // TLS_NULL_WITH_NULL_NULL
+        0x0001, // TLS_RSA_WITH_NULL_MD5
+        0x0002, // TLS_RSA_WITH_NULL_SHA
+        0x0003, // TLS_RSA_EXPORT_WITH_RC4_40_MD5
+        0x0006, // TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5
+        0x0008, // TLS_RSA_EXPORT_WITH_DES40_CBC_SHA
+        0x000b, // TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA
+        0x000e, // TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA
+        0x0011, // TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA
+        0x0014, // TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA
+        0x0017, // TLS_DH_anon_EXPORT_WITH_RC4_40_MD5
+        0x0018, // TLS_DH_anon_WITH_RC4_128_MD5
+        0x0019, // TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA
+        0x001a, // TLS_DH_anon_WITH_DES_CBC_SHA
+        0x001b, // TLS_DH_anon_WITH_3DES_EDE_CBC_SHA
+        0x0026, // TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA
+        0x0027, // TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA
+        0x0028, // TLS_KRB5_EXPORT_WITH_RC4_40_SHA
+        0x0029, // TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5
+        0x002a, // TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5
+        0x002b, // TLS_KRB5_EXPORT_WITH_RC4_40_MD5
+        0x002c, // TLS_PSK_WITH_NULL_SHA
+        0x002d, // TLS_DHE_PSK_WITH_NULL_SHA
+        0x002e, // TLS_RSA_PSK_WITH_NULL_SHA
+        0x0034, // TLS_DH_anon_WITH_AES_128_CBC_SHA
+        0x003a, // TLS_DH_anon_WITH_AES_256_CBC_SHA
+        0x003b, // TLS_RSA_WITH_NULL_SHA256
+        0x0046, // TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA
+        0x0060, // TLS_RSA_EXPORT1024_WITH_RC4_56_MD5
+        0x0061, // TLS_RSA_EXPORT1024_WITH_RC2_CBC_56_MD5
+        0x0062, // TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA
+        0x0063, // TLS_DHE_DSS_EXPORT1024_WITH_DES_CBC_SHA
+        0x0064, // TLS_RSA_EXPORT1024_WITH_RC4_56_SHA
+        0x0065, // TLS_DHE_DSS_EXPORT1024_WITH_RC4_56_SHA
+        0x006c, // TLS_DH_anon_WITH_AES_128_CBC_SHA256
+        0x006d, // TLS_DH_anon_WITH_AES_256_CBC_SHA256
+        0x0089, // TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA
+        0x009b, // TLS_DH_anon_WITH_SEED_CBC_SHA
+        0x00a6, // TLS_DH_anon_WITH_AES_128_GCM_SHA256
+        0x00a7, // TLS_DH_anon_WITH_AES_256_GCM_SHA384
+        0x00b0, // TLS_PSK_WITH_NULL_SHA256
+        0x00b1, // TLS_PSK_WITH_NULL_SHA384
+        0x00b4, // TLS_DHE_PSK_WITH_NULL_SHA256
+        0x00b5, // TLS_DHE_PSK_WITH_NULL_SHA384
+        0x00b8, // TLS_RSA_PSK_WITH_NULL_SHA256
+        0x00b9, // TLS_RSA_PSK_WITH_NULL_SHA384
+        0x00bf, // TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA256
+        0x00c5, // TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA256
+        0xc001, // TLS_ECDH_ECDSA_WITH_NULL_SHA
+        0xc006, // TLS_ECDHE_ECDSA_WITH_NULL_SHA
+        0xc00b, // TLS_ECDH_RSA_WITH_NULL_SHA
+        0xc010, // TLS_ECDHE_RSA_WITH_NULL_SHA
+        0xc015, // TLS_ECDH_anon_WITH_NULL_SHA
+        0xc016, // TLS_ECDH_anon_WITH_RC4_128_SHA
+        0xc017, // TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA
+        0xc018, // TLS_ECDH_anon_WITH_AES_128_CBC_SHA
+        0xc019, // TLS_ECDH_anon_WITH_AES_256_CBC_SHA
+        0xc039, // TLS_ECDHE_PSK_WITH_NULL_SHA
+        0xc03a, // TLS_ECDHE_PSK_WITH_NULL_SHA256
+        0xc03b, // TLS_ECDHE_PSK_WITH_NULL_SHA384
+        0xc046, // TLS_DH_anon_WITH_ARIA_128_CBC_SHA256
+        0xc047, // TLS_DH_anon_WITH_ARIA_256_CBC_SHA384
+        0xc05a, // TLS_DH_anon_WITH_ARIA_128_GCM_SHA256
+        0xc05b, // TLS_DH_anon_WITH_ARIA_256_GCM_SHA384
+        0xc084, // TLS_DH_anon_WITH_CAMELLIA_128_GCM_SHA256
+        // 65 entries total (0xc085 omitted; 65 is one more than the cap of 64)
+    ];
+    assert_eq!(weak_ids.len(), 65, "test setup: exactly 65 weak IDs required");
+
+    let mut cipher_ids = weak_ids.to_vec();
+    cipher_ids.push(0x1301); // TLS_AES_128_GCM_SHA256 (strong, not weak)
+
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+    let record = build_client_hello("test.com", &cipher_ids);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    let findings = analyzer.findings();
+    let weak_findings: Vec<_> = findings
+        .iter()
+        .filter(|f| f.summary.contains("weak cipher"))
+        .collect();
+
+    assert_eq!(
+        weak_findings.len(),
+        1,
+        "issue #102 hardening: exactly one weak-cipher finding must be produced"
+    );
+
+    let evidence = &weak_findings[0].evidence;
+
+    // BOUND CHECK: evidence must be capped at <=65 entries (64 cipher names + 1 elision).
+    // Without the cap the evidence vec would have 65 entries (no elision marker);
+    // this assertion FAILS on the current uncapped implementation because it
+    // has exactly 65 entries but no elision marker — the elision marker check
+    // below is what distinguishes the correct capped form.
+    assert!(
+        evidence.len() <= 65,
+        "issue #102 hardening: evidence must be capped at <=65 entries; got {}",
+        evidence.len()
+    );
+
+    // ELISION CHECK: when total weak ciphers > 64, the last evidence entry must
+    // be a "(+N more)" elision marker.  On the uncapped implementation this
+    // assertion FAILS because evidence[64] is a cipher name, not an elision marker.
+    let last = evidence
+        .last()
+        .expect("issue #102 hardening: evidence must not be empty");
+    assert!(
+        last.starts_with("(+") && last.ends_with(" more)"),
+        "issue #102 hardening: last evidence entry must be an elision marker of the form \
+         \"(+N more)\" when total weak ciphers > 64; got: {:?}",
+        last
+    );
+
+    // COUNT CHECK: exactly 64 cipher-name entries plus 1 elision marker.
+    assert_eq!(
+        evidence.len(),
+        65,
+        "issue #102 hardening: capped evidence must have exactly 65 entries \
+         (64 cipher names + 1 elision marker); got {}",
+        evidence.len()
+    );
+
+    // ELISION CONTENT CHECK: the elision marker must report the correct overflow count.
+    // 65 weak ciphers total, cap = 64, so overflow = 1 → "(+1 more)".
+    assert_eq!(
+        last,
+        "(+1 more)",
+        "issue #102 hardening: elision marker must be \"(+1 more)\" for 65 weak ciphers \
+         with cap=64; got: {:?}",
+        last
+    );
+}
