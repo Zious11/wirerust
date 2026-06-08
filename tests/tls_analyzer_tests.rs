@@ -9262,9 +9262,13 @@ fn test_weak_cipher_evidence_capped_at_64_with_elision() {
         0xc05a, // TLS_DH_anon_WITH_ARIA_128_GCM_SHA256
         0xc05b, // TLS_DH_anon_WITH_ARIA_256_GCM_SHA384
         0xc084, // TLS_DH_anon_WITH_CAMELLIA_128_GCM_SHA256
-        // 65 entries total (0xc085 omitted; 65 is one more than the cap of 64)
+                // 65 entries total (0xc085 omitted; 65 is one more than the cap of 64)
     ];
-    assert_eq!(weak_ids.len(), 65, "test setup: exactly 65 weak IDs required");
+    assert_eq!(
+        weak_ids.len(),
+        65,
+        "test setup: exactly 65 weak IDs required"
+    );
 
     let mut cipher_ids = weak_ids.to_vec();
     cipher_ids.push(0x1301); // TLS_AES_128_GCM_SHA256 (strong, not weak)
@@ -9324,8 +9328,7 @@ fn test_weak_cipher_evidence_capped_at_64_with_elision() {
     // ELISION CONTENT CHECK: the elision marker must report the correct overflow count.
     // 65 weak ciphers total, cap = 64, so overflow = 1 → "(+1 more)".
     assert_eq!(
-        last,
-        "(+1 more)",
+        last, "(+1 more)",
         "issue #102 hardening: elision marker must be \"(+1 more)\" for 65 weak ciphers \
          with cap=64; got: {:?}",
         last

@@ -506,12 +506,24 @@ impl TlsAnalyzer {
         Self::increment(&mut self.ja3_counts, ja3_hash, MAX_MAP_ENTRIES);
 
         // Weak cipher detection
-        let weak: Vec<String> = ch
+        //
+        // Cap the evidence vec at WEAK_CIPHER_EVIDENCE_CAP entries to bound the
+        // transient String allocation.  Input is already bounded by
+        // MAX_RECORD_PAYLOAD (18,432 bytes → ≤9,216 cipher IDs), so this is
+        // LOW-SEVERITY HARDENING — not a security/DoS fix (CWE-405 requires
+        // asymmetric amplification; this allocation is linear and bounded).
+        const WEAK_CIPHER_EVIDENCE_CAP: usize = 64;
+        let total_weak = ch.ciphers.iter().filter(|&&id| is_weak_cipher(id)).count();
+        let mut weak: Vec<String> = ch
             .ciphers
             .iter()
             .filter(|&&id| is_weak_cipher(id))
+            .take(WEAK_CIPHER_EVIDENCE_CAP)
             .map(|&id| cipher_name(id))
             .collect();
+        if total_weak > WEAK_CIPHER_EVIDENCE_CAP {
+            weak.push(format!("(+{} more)", total_weak - WEAK_CIPHER_EVIDENCE_CAP));
+        }
 
         if !weak.is_empty() {
             self.all_findings.push(Finding {
