@@ -11,6 +11,7 @@ fn make_parsed(src: [u8; 4], dst: [u8; 4], src_port: u16, dst_port: u16) -> Pars
         transport: TransportInfo::Tcp {
             src_port,
             dst_port,
+            seq_number: 1000,
             syn: false,
             ack: false,
             fin: false,

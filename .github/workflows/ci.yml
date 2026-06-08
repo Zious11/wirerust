@@ -1,0 +1,207 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    branches: [develop, main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -Dwarnings
+
+jobs:
+  semantic-pr:
+    name: Semantic PR
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --all-targets
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --all-targets -- -D warnings
+
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all --check
+
+  # M-2 (adversary finding): gate the cargo-fuzz harness compilation so a
+  # broken harness is not silently ignored by the existing stable-toolchain
+  # jobs. AC-011 requires `cargo +nightly fuzz build fuzz_decode_packet` to
+  # succeed. This is a build-only check — the fuzzer is never executed in CI.
+  fuzz-build:
+    name: Fuzz build
+    runs-on: ubuntu-latest
+    # Nightly toolchain and cargo-fuzz are pinned together to a known-good
+    # combination. The toolchain is pinned to nightly-2026-05-21
+    # (rustc 1.97.0-nightly, confirmed green on develop 2026-05-22).
+    # cargo-fuzz 0.13.1 requires rustix; older rustix (0.36.5) used a
+    # rustc_layout_scalar_valid_range_start attribute that was removed from
+    # nightly in early 2026, causing build failures (PR #110, runs
+    # 26296832804 and 26296980821). The version below resolves a new-enough
+    # rustix automatically via --no-locked, which is safe once the toolchain
+    # is fixed. To bump: pick a newer known-good nightly date, verify the
+    # fuzz build passes, then update the date here. Do NOT enable renovatebot
+    # or Dependabot auto-update for this pin — bumping is a deliberate,
+    # periodic maintenance action, not automatic.
+    timeout-minutes: 25
+    env:
+      # The fuzz sub-crate builds under nightly with libfuzzer-sys flags that
+      # are incompatible with -Dwarnings. Override the workflow-level env for
+      # this job only; the stable-toolchain jobs are unaffected.
+      RUSTFLAGS: ""
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          # Pin to a specific, known-good dated nightly. See job comment above.
+          toolchain: nightly-2026-05-21
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # Use a separate cache key so the nightly fuzz build does not
+          # pollute the stable-toolchain cache shared by test/clippy/fmt.
+          key: fuzz-nightly-2026-05-21
+      - name: Install cargo-fuzz
+        # Pin to 0.13.1 (the version validated against nightly-2026-05-21).
+        # Do NOT use --locked: cargo-fuzz 0.13.1's Cargo.lock pins
+        # rustix 0.36.5 which uses rustc_layout_scalar_valid_range_start, an
+        # attribute removed from nightly. Without --locked, cargo resolves a
+        # newer compatible rustix that compiles cleanly on this toolchain.
+        run: cargo install cargo-fuzz --version 0.13.1
+      - name: Build fuzz harness (compile check only)
+        run: cargo +nightly-2026-05-21 fuzz build fuzz_decode_packet
+      - name: Verify fuzz target is listed (positive coverage assertion)
+        run: cargo +nightly-2026-05-21 fuzz list | grep -qx fuzz_decode_packet
+
+  # LESSON-P2.06: supply-chain scanning split into two complementary
+  # jobs so a noisy advisory in one source does not block merges on
+  # an unrelated regression.
+  audit:
+    name: Audit
+    runs-on: ubuntu-latest
+    # Advisory database may surface new findings between code changes,
+    # so this job is informational on PRs (continue-on-error: true)
+    # and run on a schedule against develop to catch zero-days.
+    #
+    # Implementation note: rustsec/audit-check@v2.0.0 was replaced with
+    # a direct `cargo audit` shell invocation. The action required
+    # `checks: write` permission to post GitHub Checks API annotations,
+    # which the default GITHUB_TOKEN does not provide, causing:
+    #   "Resource not accessible by integration" (exit 1)
+    # on every push run even when no vulnerabilities were found.
+    # Using plain cargo audit avoids the API call entirely.
+    continue-on-error: true
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+      - name: Run cargo audit
+        # --ignore flags suppress informational (non-vulnerability) advisories
+        # that are blocked by transitive dependency constraints:
+        #   RUSTSEC-2026-0097: rand 0.8.5 unsound (via phf_generator -> tls-parser
+        #     — rand upgrade is tls-parser upstream's responsibility; not a direct
+        #     dep and the unsound path requires a custom logger + reseed race)
+        # RUSTSEC-2025-0119 (number_prefix unmaintained) was resolved by bumping
+        # indicatif 0.17→0.18, which replaced number_prefix with unit-prefix.
+        run: |
+          cargo audit \
+            --ignore RUSTSEC-2026-0097
+
+  deny:
+    name: Deny
+    runs-on: ubuntu-latest
+    # cargo-deny enforces the license / banned-deps / sources policy
+    # in `deny.toml`. Failures are blocking — these are
+    # repo-policy violations, not external advisory noise.
+    steps:
+      - uses: actions/checkout@v6
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check bans licenses sources
+
+  # W11-D2 / F-W16-WAVE-P2-003: Test-seam trust-boundary gate.
+  #
+  # Policy: functions suffixed `_for_testing` are test-seam helpers and MUST
+  # only appear as definitions inside src/. They must NEVER be called from
+  # production code paths in src/. Test callers live in tests/ (integration
+  # tests) or inside `#[cfg(test)]` modules; those paths are NOT scanned here.
+  #
+  # How it works:
+  #   1. grep -rn "_for_testing(" src/   — find every occurrence in src/
+  #   2. grep -v "fn [a-zA-Z_]*_for_testing("  — strip definition lines
+  #      (lines of the form `fn some_name_for_testing(` are the seam definitions
+  #      themselves; `pub fn`, `async fn`, indented `fn`, etc. all contain `fn `
+  #      followed by the identifier, so they all match and are excluded)
+  #   3. If any lines survive the filter they are production call-sites —
+  #      a violation. The step captures them and fails with a clear message.
+  #
+  # Baseline: zero violations on develop as of 2026-05-28 (drift item W11-D2).
+  trust-boundary:
+    name: Trust-boundary (test-seam gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify no production callers of _for_testing seam functions
+        # Scans src/ only. tests/ and #[cfg(test)] blocks are test territory
+        # and are intentionally excluded — they are the legitimate callers.
+        # Fails CI if any production call-site is found.
+        shell: bash
+        run: |
+          set -euo pipefail
+          VIOLATIONS=$(grep -rn "_for_testing(" src/ | grep -v "fn [a-zA-Z_]*_for_testing(") || true
+          if [ -n "${VIOLATIONS}" ]; then
+            echo "FAIL: Production call-sites of _for_testing seam functions found in src/:"
+            echo "${VIOLATIONS}"
+            echo ""
+            echo "Functions suffixed _for_testing are test-seam helpers and must not"
+            echo "be called from production code. Move callers into tests/ or"
+            echo "#[cfg(test)] modules, or refactor the seam."
+            exit 1
+          fi
+          echo "PASS: No production callers of _for_testing functions found in src/"

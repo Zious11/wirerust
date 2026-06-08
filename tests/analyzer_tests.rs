@@ -1,7 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr};
 
-use wirerust::analyzer::dns::DnsAnalyzer;
 use wirerust::analyzer::ProtocolAnalyzer;
+use wirerust::analyzer::dns::DnsAnalyzer;
 use wirerust::decoder::{ParsedPacket, Protocol, TransportInfo};
 
 fn make_dns_packet(payload: &[u8]) -> ParsedPacket {
@@ -26,6 +26,7 @@ fn make_non_dns_packet() -> ParsedPacket {
         transport: TransportInfo::Tcp {
             src_port: 12345,
             dst_port: 80,
+            seq_number: 1000,
             syn: true,
             ack: false,
             fin: false,

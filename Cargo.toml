@@ -2,11 +2,27 @@
 name = "wirerust"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.91"
 description = "Fast PCAP forensics and network triage CLI tool"
 license = "MIT"
 
+# Register the `kani` cfg so the normal toolchain does not emit
+# `unexpected_cfgs` warnings (which CI promotes to errors via -Dwarnings) for
+# the `#[cfg(kani)]`-gated formal-verification proof harnesses. The `kani` cfg
+# is set only by `cargo kani`; under a normal build these blocks compile out.
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
+
 [dependencies]
+httparse = "1"
+tls-parser = "0.12"
+md-5 = "0.11"
 clap = { version = "4", features = ["derive"] }
+# Pinned to the 0.16.x minor: the decoder's strict→lax truncation
+# fallback keys on the `SliceError::Len` variant, which is part of the
+# 0.16 API contract. A 0.17 bump must re-verify the error taxonomy
+# (see src/decoder.rs). `"0.16"` already excludes 0.17 via Cargo's
+# caret semantics for 0.x versions.
 etherparse = "0.16"
 pcap-file = "2"
 serde = { version = "1", features = ["derive"] }
@@ -14,11 +30,23 @@ serde_json = "1"
 csv = "1"
 anyhow = "1"
 owo-colors = "4"
-indicatif = "0.17"
+indicatif = "0.18"
 chrono = { version = "0.4", features = ["serde"] }
 rayon = "1"
+
+[profile.release]
+overflow-checks = true
 
 [dev-dependencies]
 assert_cmd = "2"
 predicates = "3"
 tempfile = "3"
+proptest = "1"
+criterion = "0.8"
+
+# LESSON-P2.07: criterion micro-benchmarks for the hot pcap-processing
+# paths. `harness = false` hands the test binary to criterion's own
+# runner instead of libtest. Run with `cargo bench`.
+[[bench]]
+name = "pipeline"
+harness = false
