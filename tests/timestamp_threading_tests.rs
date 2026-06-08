@@ -300,9 +300,14 @@ fn test_finding_timestamp_hot_path_tls() {
         .expect("tls analyzer must be present");
     let findings = tls.findings();
 
-    // If TLS emits any findings, they must all carry the correct timestamp.
-    // (TLS may or may not emit findings depending on what the ClientHello triggers;
-    // what we verify is that IF any timestamped findings exist, they carry TS.)
+    // TLS_NULL_WITH_NULL_NULL (0x0000) IS a weak cipher in the database; the analyzer
+    // MUST emit at least one timestamped finding for AC-001 to be meaningful.
+    assert!(
+        findings.iter().any(|f| f.timestamp.is_some()),
+        "TLS NULL-cipher ClientHello must emit at least one timestamped finding (AC-001 TLS)"
+    );
+
+    // All timestamped findings must carry the correct timestamp.
     for f in findings.iter().filter(|f| f.timestamp.is_some()) {
         assert_eq!(
             f.timestamp,
@@ -1006,6 +1011,10 @@ proptest! {
             CLIENT_A, SERVER, 51000, 80, 1000 + payload_len_a, false, true, true, false, vec![],
         );
         reassembler.process_packet(&fin_a, ts_a, &mut http_a);
+        // Finalize flow A so the flow is cleanly closed (no Drop-warning path).
+        // HTTP findings are emitted on the hot-path flush, so finalize does not
+        // change the finding set — but it prevents a leaked-flow Drop warning.
+        reassembler.finalize(&mut http_a);
 
         // Collect findings from flow A before starting flow B
         let findings_a = http_a.findings();
