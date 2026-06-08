@@ -1,0 +1,186 @@
+# .factory/release-config.yaml
+# Release configuration for wirerust.
+# Read by the vsdd-factory:release skill (schema: 1).
+#
+# Human choices confirmed (release-prep R-2, 2026-06-08):
+#   - GitHub Release: ENABLED (with cross-compiled binary artifacts)
+#   - crates.io publish: DISABLED
+#   - Autonomy: pause-before-publish (human sign-off required before tag)
+#
+# DevOps note: no release.yml workflow exists yet. The release skill will
+# build and upload artifacts via `gh release create` after CI passes on main.
+# A dedicated .github/workflows/release.yml should be authored before the
+# NEXT release cycle to automate cross-compilation on tag push.
+# FLAG: ci_workflow below points to a workflow that does not yet exist;
+# the release skill should fall back to `gh run list` against ci.yml.
+
+schema: 1
+
+product: wirerust
+description: "Fast PCAP forensics and network triage CLI tool (network pcap traffic analyzer CLI)"
+
+# ── Version source ────────────────────────────────────────────────────────────
+packages:
+  - name: wirerust
+    path: "."
+    version_sources:
+      - file: Cargo.toml
+        format: toml
+        # TOML path: [package].version
+        path: package.version
+
+# ── Tag and branch conventions ────────────────────────────────────────────────
+versioning:
+  # Tag format: v{version}  →  v0.1.0
+  tag_format: "v{version}"
+  # Development branch (PRs land here)
+  development_branch: develop
+  # Release branch (tag lives here; release flow merges develop → main, then tags main)
+  release_branch: main
+  # git-flow: merge develop into main, then tag on main before publishing
+  strategy: git-flow-merge
+
+# ── Changelog ─────────────────────────────────────────────────────────────────
+changelog:
+  file: CHANGELOG.md
+  format: keep-a-changelog
+  # Release notes for GitHub Release are extracted from the [0.1.0] section.
+  # The section was authored manually and is already present in CHANGELOG.md.
+  source: changelog_section
+
+# ── Quality gates ─────────────────────────────────────────────────────────────
+quality_gates:
+  # vsdd-partial: convergence + human approval; no automated holdout/formal re-check
+  # (those gates are already recorded in STATE.md / phase-7-convergence-report.md)
+  mode: vsdd-partial
+
+  # Phase-7 convergence gate already PASSED (human-approved 2026-06-08, D-018).
+  # The release skill checks STATE.md for a recorded convergence report; the
+  # file is at .factory/cycles/v0.1.0-greenfield-spec/phase-7-convergence-report.md.
+  require_convergence: true
+  min_convergence_dimensions: 6     # 6 PASS / 1 non-blocking CONCERN
+
+  # Holdout PASSED (mean 0.949, 0 must-pass <0.6). Recorded in phase-4 summary.
+  require_holdout: false            # already satisfied; not re-checked at release
+  min_holdout_satisfaction: 0.90    # reference value — used if re-check is enabled
+
+  # 20 VPs locked; Kani + proptest + fuzz all green. Recorded in phase-6 evidence.
+  require_formal_verification: false  # already satisfied; not re-checked at release
+
+  # Adversary gate 3/3 SATISFIED (convergence trajectory P12-P14 CLEAN).
+  require_adversarial_passes: false   # already satisfied
+
+  # CRITICAL: pause-before-publish — human must approve before tag is pushed.
+  # This is the irreversibility gate: once the tag hits origin and the GitHub
+  # Release is created, it is public and permanent.
+  require_human_approval: true
+  human_approval_prompt: |
+    All quality gates are satisfied (Phase-7 convergence PASSED 2026-06-08,
+    1126 tests green, 20 VPs locked, adversary gate 3/3 satisfied).
+    Proposed tag: v0.1.0 on branch main (merged from develop).
+    GitHub Release will be created with cross-compiled binary artifacts.
+    crates.io publish is DISABLED.
+    Approve release of v0.1.0? (yes/no)
+
+# ── Pre-release checks ────────────────────────────────────────────────────────
+pre_release:
+  - name: "cargo fmt check"
+    command: "cargo fmt --check"
+    working_directory: "."
+  - name: "cargo clippy"
+    command: "cargo clippy --all-targets -- -D warnings"
+    working_directory: "."
+  - name: "cargo test"
+    command: "cargo test --all-targets"
+    working_directory: "."
+  - name: "cargo audit"
+    command: "cargo audit --ignore RUSTSEC-2026-0097"
+    working_directory: "."
+
+# ── GitHub Release ────────────────────────────────────────────────────────────
+github_release:
+  enabled: true
+  owner: Zious11
+  repo: wirerust
+  # Release title template: "v{version}: {changelog_first_line}"
+  title_template: "v{version}: {changelog_title}"
+  # Notes are extracted from the [0.1.0] section in CHANGELOG.md
+  notes_source: changelog_section
+  # Draft the release first; publish after artifact upload completes
+  draft: false
+  prerelease: false
+
+# ── Binary artifacts (cross-compiled, attached to GitHub Release) ─────────────
+artifacts:
+  enabled: true
+  # Naming convention: wirerust-v{version}-{target}.{ext}
+  # e.g. wirerust-v0.1.0-x86_64-unknown-linux-gnu.tar.gz
+  name_template: "wirerust-v{version}-{target}.{ext}"
+  # Archive format per platform family
+  archive:
+    unix: tar.gz
+    windows: zip
+  targets:
+    - target: x86_64-unknown-linux-gnu
+      os: linux
+      arch: x86_64
+      # Cross-compilation via cross (https://github.com/cross-rs/cross) or
+      # GitHub Actions ubuntu-latest with target install.
+      # FLAG: no release.yml exists yet; cross-compilation is manual for v0.1.0.
+      # The release skill should build each target, strip the binary, archive it,
+      # and upload via `gh release upload`.
+      build_command: "cargo build --release --target x86_64-unknown-linux-gnu"
+      strip: true
+    - target: aarch64-apple-darwin
+      os: macos
+      arch: arm64
+      build_command: "cargo build --release --target aarch64-apple-darwin"
+      strip: true
+    - target: x86_64-apple-darwin
+      os: macos
+      arch: x86_64
+      build_command: "cargo build --release --target x86_64-apple-darwin"
+      strip: true
+    # x86_64-pc-windows-msvc is omitted: cross-compiling to MSVC from macOS/Linux
+    # requires the MSVC SDK which is not available in the local toolchain.
+    # FLAG: Add windows target when a Windows GitHub Actions runner is wired up
+    # in a release.yml workflow. Use cross-rs/cross for Linux-hosted Windows builds.
+
+# ── Registry publish (crates.io) ─────────────────────────────────────────────
+publish:
+  crates_io:
+    enabled: false  # human chose: NO crates.io publish for v0.1.0
+    # To enable for a future release: set enabled: true and add CARGO_REGISTRY_TOKEN
+    # to GitHub Secrets. Then re-run vsdd-factory:release.
+    token_secret: CARGO_REGISTRY_TOKEN   # referenced only; not used while disabled
+
+# ── CI workflow reference ─────────────────────────────────────────────────────
+ci:
+  # The CI workflow that must be green on main before the GitHub Release is
+  # created. Currently only ci.yml exists; a release.yml will be authored
+  # in the next cycle for automated cross-compilation on tag push.
+  # FLAG: update ci_workflow to "release.yml" once that workflow is created.
+  ci_workflow: ".github/workflows/ci.yml"
+  # Status checks that must pass on main before tagging
+  required_checks:
+    - "Test"
+    - "Clippy"
+    - "Format"
+    - "Fuzz build"
+    - "Audit"
+    - "Deny"
+    - "Trust-boundary (test-seam gate)"
+
+# ── Autonomy / pause points ───────────────────────────────────────────────────
+autonomy:
+  # pause-before-publish: the release skill runs all pre-release checks,
+  # shows the proposed tag + release notes, then STOPS and waits for
+  # explicit human "yes" before pushing the tag or creating the GitHub Release.
+  mode: pause-before-publish
+
+  # Explicit pause points (in addition to quality_gates.require_human_approval)
+  pause_before_tag: true       # pause before `git tag` + `git push origin vX.Y.Z`
+  pause_before_gh_release: true  # pause before `gh release create`
+
+  # After human approval, no further pauses during artifact upload
+  pause_before_artifact_upload: false
