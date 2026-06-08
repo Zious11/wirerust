@@ -46,6 +46,14 @@ CI sets `RUSTFLAGS=-Dwarnings`. `rustfmt.toml` pins edition 2024, `max_width = 1
 - **Semantic PR titles enforced via CI** (`amannn/action-semantic-pull-request`). Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. Scope is optional. Release PRs into `main` use an allowed type, e.g. `chore: release v0.2.0`.
 - No local commit hooks (no lefthook/husky/commitlint config) — enforcement is CI-side only.
 
+## CI / Supply Chain
+
+All remote GitHub Actions `uses:` references are **SHA-pinned** to a 40-character commit SHA with a `# vX.Y.Z` version comment for human readability and Dependabot tracking (e.g. `actions/checkout@de0fac2e... # v6.0.2`). Mutable tags (`@v6`, `@v2.9.1`) are disallowed — they can be silently moved to point to malicious code.
+
+The **"Action pin gate"** CI job (`action-pin-gate` in `.github/workflows/ci.yml`) enforces this policy on every CI run by scanning all `*.yml` workflow files and failing if any action ref is not a 40-char hex SHA.
+
+**Documented exemption:** `dtolnay/rust-toolchain@stable` and `dtolnay/rust-toolchain@nightly` are explicitly allowlisted. The rust-toolchain action is a channel-selection installer; its purpose is to track the rolling stable/nightly Rust channel, and pinning it to a SHA would defeat that purpose. These two refs are tracked for separate resolution.
+
 ### Releasing to `main`
 
 `main` is the release/stable branch. It is updated **only** through gitflow-proper merges — never by direct commits, direct merge pushes, or admin bypass.

@@ -19,7 +19,7 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-      - uses: amannn/action-semantic-pull-request@v6
+      - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -41,27 +41,27 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - run: cargo test --all-targets
 
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - run: cargo clippy --all-targets -- -D warnings
 
   fmt:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
@@ -93,12 +93,12 @@ jobs:
       # this job only; the stable-toolchain jobs are unaffected.
       RUSTFLAGS: ""
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: dtolnay/rust-toolchain@nightly
         with:
           # Pin to a specific, known-good dated nightly. See job comment above.
           toolchain: nightly-2026-05-21
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
           # Use a separate cache key so the nightly fuzz build does not
           # pollute the stable-toolchain cache shared by test/clippy/fmt.
@@ -135,9 +135,9 @@ jobs:
     continue-on-error: true
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - name: Install cargo-audit
         run: cargo install cargo-audit --locked
       - name: Run cargo audit
@@ -159,8 +159,8 @@ jobs:
     # in `deny.toml`. Failures are blocking — these are
     # repo-policy violations, not external advisory noise.
     steps:
-      - uses: actions/checkout@v6
-      - uses: EmbarkStudios/cargo-deny-action@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: EmbarkStudios/cargo-deny-action@bb137d7af7e4fb67e5f82a49c4fce4fad40782fe # v2.0.20
         with:
           command: check bans licenses sources
 
@@ -186,7 +186,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Verify no production callers of _for_testing seam functions
         # Scans src/ only. tests/ and #[cfg(test)] blocks are test territory
         # and are intentionally excluded — they are the legitimate callers.
@@ -205,3 +205,77 @@ jobs:
             exit 1
           fi
           echo "PASS: No production callers of _for_testing functions found in src/"
+
+  # Supply-chain hardening: enforce that every remote GitHub Action `uses:` reference
+  # is pinned to a 40-character commit SHA rather than a mutable tag or branch.
+  # Mutable refs (e.g. @v6, @v2.9.1, @stable) can be silently moved by the upstream
+  # maintainer, allowing a compromised tag to execute arbitrary code in CI.
+  #
+  # Documented exemption: dtolnay/rust-toolchain@stable and @nightly are intentionally
+  # exempt. The rust-toolchain action is a channel-selection installer whose entire
+  # purpose is to track the rolling stable/nightly channel; pinning it to a SHA would
+  # defeat that purpose. These two refs are tracked for separate resolution and are
+  # explicitly allowlisted in the gate script below.
+  action-pin-gate:
+    name: Action pin gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Verify all remote actions are SHA-pinned
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Allowlisted branch-ref actions (documented exemptions only).
+          # dtolnay/rust-toolchain@stable and @nightly: channel-selection installer;
+          # pinning to SHA would defeat its purpose of tracking rolling toolchain channels.
+          ALLOWLIST="dtolnay/rust-toolchain@stable dtolnay/rust-toolchain@nightly"
+
+          FAILURES=0
+          SHA_RE='^[0-9a-f]{40}$'
+
+          while IFS= read -r line; do
+            # Extract FILE:LINENO:CONTENT from grep output
+            file_line="${line%%:*}"
+            rest="${line#*:}"
+            lineno="${rest%%:*}"
+            content="${rest#*:}"
+
+            # Pull the uses: value — strip everything up to and including 'uses:', trim trailing whitespace/comment.
+            # Uses greedy '.*uses:' to handle '- uses:' and 'uses:' forms equally.
+            ref_full=$(echo "${content}" | sed 's/.*uses:[[:space:]]*//' | sed 's/[[:space:]].*//')
+
+            # Skip local composite actions (uses: ./...)
+            case "${ref_full}" in
+              ./*) continue ;;
+            esac
+
+            # Skip if it matches the allowlist
+            skip=0
+            for allowed in ${ALLOWLIST}; do
+              if [ "${ref_full}" = "${allowed}" ]; then
+                skip=1
+                break
+              fi
+            done
+            [ "${skip}" -eq 1 ] && continue
+
+            # Extract the ref token (after the @)
+            ref_token="${ref_full##*@}"
+
+            # PASS only if it is a 40-char lowercase hex SHA
+            if ! echo "${ref_token}" | grep -qE "${SHA_RE}"; then
+              echo "FAIL [${file_line}:${lineno}]: '${ref_full}' uses a mutable ref '${ref_token}' — must be a 40-char commit SHA"
+              FAILURES=$((FAILURES + 1))
+            fi
+          done < <(grep -rn "uses:[[:space:]]*[A-Za-z0-9._-]*/[A-Za-z0-9._-]*@" .github/workflows/*.yml)
+
+          if [ "${FAILURES}" -gt 0 ]; then
+            echo ""
+            echo "Found ${FAILURES} action(s) with mutable refs."
+            echo "Pin each action to a full 40-character commit SHA with a # vX.Y.Z comment for readability."
+            echo "To exempt an action, add it to the ALLOWLIST in this script with a justification comment."
+            exit 1
+          fi
+          echo "PASS: All remote actions in .github/workflows/ are SHA-pinned (${FAILURES} violations)."
