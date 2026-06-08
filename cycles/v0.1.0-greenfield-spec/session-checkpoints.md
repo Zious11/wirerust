@@ -4,6 +4,41 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 
 ---
 
+## Archived: 2026-06-08 — GITFLOW CORRECTION + v0.1.0 STAGING — AWAITING HUMAN SIGN-OFF (superseded by v0.1.0 RELEASED — pipeline complete)
+
+**POSITION:** Gitflow main-branch correction complete (D-019). v0.1.0 staged via release/v0.1.0 → PR #189 → main merge commit 8928398. Branch protection ACTIVE on main. Awaiting human sign-off before pushing v0.1.0 tag (pause-before-publish).
+
+**VERIFIED-CLEAN FACTS (confirmed at checkpoint authorship):**
+- develop HEAD `74bce12` (CHANGELOG, README fix, release.yml, CLAUDE.md gitflow rule — PRs #186/#187/#188)
+- main HEAD `8928398` (gitflow release merge of release/v0.1.0; content-identical to develop; protected)
+- Branch protection ACTIVE on main: PR required, 8 status checks, force-push blocked, merge-commit-only, owner-bypass for emergencies
+- 1126 tests green / 0 failed; clippy clean; fmt clean
+- Phase-7 gate verdict: PASSED — human-approved 2026-06-08 (D-018)
+- 20 VPs locked (status:verified, verification_lock:true, proof_completed_date:2026-06-02; factory commit 614e0e0)
+- input-hash: MATCH=48/STALE=0
+- v0.1.0 build-matrix validation run (workflow_dispatch) executed: Linux ✓, macOS-arm64 ✓, Windows-MSVC ✓, macOS-x86_64 in progress at checkpoint time — non-publishing, no tag/release created
+- Performance CONCERN: accepted non-blocking; NFR-PERF-002/004 P1 open-debt; no v0.1.0 SLA
+- Convergence report: cycles/v0.1.0-greenfield-spec/phase-7-convergence-report.md
+
+**RESUME PROTOCOL (at archival):** Await human sign-off, then push v0.1.0 tag on main per gitflow.
+
+**EXACT NEXT ACTION (at archival):** PAUSE for human sign-off. Once macOS-x86_64 validation green and human approves: push tag `v0.1.0` on main (protected — owner-bypass or standard PR if needed).
+
+**CARRY-FORWARD CAVEATS:**
+- MODEL-FAMILY: No true non-Claude adversary/evaluator available.
+- ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture support added.
+- Performance CONCERN accepted: NFR-PERF-002/004 are P1 open-debt.
+- FOLLOW-UP: release.yml uses actions/upload-artifact@v4 (Node 20, deprecated ~2026-06-16).
+
+**OPEN BACKLOG (at archival):**
+- STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling
+- Phase-5 tech-debt: CR-002/003/005/006/007/009/012 — see tech-debt-register.md
+- Open GitHub issues #100–#104 (require DF-VALIDATION-001)
+- Drift items: O-07, O-08, F-W25-S088-P6-001
+- RUSTSEC-2026-0097: accepted-transitive
+
+---
+
 ## Archived: 2026-06-08 — PHASE 7 CONVERGED — AWAITING HUMAN GATE (superseded by Phase 7 GATE PASSED — release-prep in progress)
 
 **POSITION:** Phase 7 Convergence assessment COMPLETE. Verdict: CONVERGED (6 PASS / 1 CONCERN). Must-fix-before-gate: NONE. Awaiting human approval to proceed to release-prep then v0.1.0 tag.
