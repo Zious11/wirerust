@@ -21,7 +21,7 @@ phase_6_completed: "2026-06-02"
 phase_6_to_7_gate: "PASSED (human-approved 2026-06-02)"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-08 — Approve → release-prep)"
 adversary_gate: SATISFIED
-develop_head: 2fe3440
+develop_head: 153f225
 main_head: 2e8d256
 released_version: v0.1.0
 released_at: "2026-06-08"
@@ -65,23 +65,26 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 | Phase 7 — Convergence | **PASSED + RELEASED** (human-approved 2026-06-08) | 6 PASS / 1 CONCERN (Perf — non-blocking); 1126 tests; consistency CONSISTENT (8/8); 20 VPs locked |
 | Release — v0.1.0 | **RELEASED** 2026-06-08 | GitHub Release; 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); run 27155277051 all jobs success |
 
-## Session Resume Checkpoint (2026-06-08 — v0.1.0 RELEASED — DI-001 CLOSED)
+## Session Resume Checkpoint (2026-06-08 — v0.1.0 RELEASED — Cohort A DISPOSITIONED)
 
-**POSITION:** v0.1.0 RELEASED — pipeline complete. DI-001 (Node20→Node24 release.yml migration) CLOSED via PR #192 (develop HEAD 2fe3440). All post-release drift items resolved or tracked.
+**POSITION:** v0.1.0 RELEASED — pipeline complete. Cohort A issues (#100–#104) re-validated under DF-VALIDATION-001 and dispositioned (D-022). Two fix-PRs closed (#194, #195). develop HEAD `153f225`.
 
 **VERIFIED-CLEAN FACTS:**
 - main HEAD `2e8d256` — v0.1.0 release commit; annotated tag `v0.1.0`
-- develop HEAD `2fe3440` — DI-001 fix: SHA-pinned Node24 actions + dependabot.yml (PR #192)
-- 1126 tests green / 0 failed; clippy clean; fmt clean; 20 VPs locked (614e0e0)
+- develop HEAD `153f225` — PR #195: cap weak-cipher evidence vec + reclassify #102
+- 1126+ tests green; clippy clean; fmt clean; 20 VPs locked (614e0e0)
 - GitHub Release: https://github.com/Zious11/wirerust/releases/tag/v0.1.0
 - All 7 phases PASSED; adversary gate 3/3 SATISFIED; holdout mean 0.949; consistency CONSISTENT
-- DI-001 CLOSED: upload-artifact@v7.0.1 + download-artifact@v8.0.1 + gh-release@v3.0.0 SHA-pinned; dependabot.yml added; validated run 27159378751 green
+- Cohort A: #104 CLOSED (PR #194 cf21168), #102 CLOSED (PR #195 153f225), #100 PENDING-FEATURE, #101 OPEN-DEBT, #103 DEFERRED
 
 **OPEN POST-RELEASE ITEMS (do NOT lose):**
-- Optional gitflow hygiene: back-merge main→develop so develop history includes release merge commits (content already identical; cosmetic).
+- Optional gitflow hygiene: back-merge main→develop (cosmetic; content identical).
 - Post-pipeline: session-reviewer pass (capture lessons) per the Post-Pipeline phase.
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
-- Open GitHub issues #100–#104 (require DF-VALIDATION-001 before action)
+- #100 (thread pcap timestamps → Finding.timestamp): FEATURE-MODE — breaks StreamHandler::on_data + ~22 emission sites; scope as small feature with its own BC before starting
+- #101 (characterize anomaly-threshold FP/TP rates): OPEN-DEBT — corpus-dependent; blocks #103; sequence together when corpus work begins
+- #103 (bidirectional size-symmetry evasion discriminator): DEFERRED — wirerust-original heuristic; requires validation pass + labelled corpus (shares prereq with #101)
+- Dependabot PR #193 (bump actions/checkout 6→6.0.2, soak-clear): PENDING DISPOSITION
 - Drift items: O-07, O-08, F-W25-S088-P6-001
 - RUSTSEC-2026-0097: accepted-transitive; revisit when tls-parser bumps phf to 0.12+
 - Phase-5 tech-debt (P3): CR-002/003/005/006/007/009/012 — see tech-debt-register.md
@@ -89,7 +92,7 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 
 **RESUME PROTOCOL (if re-entering post-release):**
 1. `vsdd-factory:factory-worktree-health` — BLOCKING
-2. Read `STATE.md` — confirm RELEASED + DI-001 CLOSED status
+2. Read `STATE.md` — confirm RELEASED + Cohort A dispositioned status
 3. Proceed to Post-Pipeline phase (session-reviewer, lessons) or next cycle
 
 Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
@@ -119,6 +122,7 @@ Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 | D-019 | Corrected main-branch staging to gitflow-proper. main force-reset; branch protection added (PR required, 8 status checks, force-push blocked); v0.1.0 staged via release/v0.1.0 → PR #189 → main merge 8928398. Rule codified in CLAUDE.md (PR #188). | 2026-06-08 | Gitflow main-branch correction |
 | D-020 | Published wirerust v0.1.0. Annotated tag v0.1.0 on main 2e8d256 (gitflow-proper). release.yml built + attached 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); GitHub Release live; run 27155277051 all jobs success. CHANGELOG [0.1.0] notes. Human-authorized publish. | 2026-06-08 | v0.1.0 release |
 | D-021 | DI-001 closed — release.yml Node20 actions migrated to Node24, SHA-pinned exact soak-clear versions (upload-artifact@043fb46d1a93 v7.0.1, download-artifact@3e5f45b2cfb9 v8.0.1, gh-release@b4309332981a v3.0.0); dependabot.yml added (cargo 7d/30d-major + github-actions 7d cooldowns, jira-cli soak convention). Fix on develop only by design (gitflow — CI change reaches main at v0.1.1; release.yml runs at tag-time; dependabot reads from default branch develop). PR #192 → develop (2fe3440). Validated: workflow_dispatch run 27159378751, 4 build jobs green, upload-artifact@v7 attached all 4 artifacts. | 2026-06-08 | DI-001 Node20→Node24 migration |
+| D-022 | Post-release issue work — Cohort A (#100–#104) re-validated against current develop under DF-VALIDATION-001 (all 5 STILL-VALID, line refs refreshed). Fixed 2 quick-fix bugs via TDD fix-PRs: #104 (SNI control-byte summary for mixed control+non-ASCII values, BC-TLS-037, PR #194 cf21168) and #102 (cap weak-cipher evidence vec at 64 + elision; reclassified low-severity hardening NOT CWE-405/DoS, PR #195 153f225). Both closed. Remaining: #100 FEATURE-MODE (breaks StreamHandler::on_data + ~22 emission sites; scope as feature with own BC); #101 OPEN-DEBT (corpus-dependent FP/TP measurement; blocks #103); #103 DEFERRED (size-symmetry evasion discriminator; wirerust-original; needs labelled corpus — sequence with #101). Dependabot now live (D-021); PR #193 (bump actions/checkout 6→6.0.2) pending disposition. | 2026-06-08 | Cohort A post-release issue triage and quick fixes |
 
 ## Blocking Issues
 
@@ -173,4 +177,4 @@ Full policy text: `.factory/policies.yaml`. Detail: `cycles/phase-3-tdd/governan
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`. SS-03 gap in BC numbering intentional.
 - Phase 0 ground truth: `.factory/semport/wirerust/wirerust-pass-8-deep-synthesis.md`. Wave history: `cycles/phase-3-tdd/convergence-trajectory.md`. Phase 1/2 adversary detail: `cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`. Phase 4 holdout: `cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md`. Phase 6 hardening evidence: `cycles/v0.1.0-greenfield-spec/hardening/`.
-- Open GitHub issues (#100–#104): deferred from Phase 0; require DF-VALIDATION-001 validation before action.
+- GitHub issues Cohort A dispositioned (D-022): #104 CLOSED (PR #194), #102 CLOSED (PR #195), #100 FEATURE-MODE pending, #101 OPEN-DEBT (corpus prerequisite for #103), #103 DEFERRED. Dependabot PR #193 pending disposition.
