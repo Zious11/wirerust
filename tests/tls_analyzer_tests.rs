@@ -1725,6 +1725,102 @@ fn test_valid_utf8_non_ascii_sni_emits_finding() {
     );
 }
 
+// BC-TLS-037 (#104): Mixed control + non-ASCII SNI — summary must mention control bytes.
+//
+// A TLS SNI that is valid UTF-8 but contains BOTH a non-ASCII byte (routes the
+// NonAsciiUtf8 arm) AND an ASCII control byte (b < 0x20 or b == 0x7f) must have
+// the control-byte presence reflected in the finding summary. A SOC analyst
+// grepping summaries for "control" must be able to find this case.
+//
+// Fixture: "café\x1b" — valid UTF-8, contains é (U+00E9, 0xC3 0xA9) making it
+// non-ASCII, and ESC (0x1b) — a C0 control byte.
+// hex: 636166c3a91b
+//
+// Classification invariant preserved: the NonAsciiUtf8 arm still fires
+// (`is_ascii()` is false once é is present). Only the summary text is enriched.
+#[allow(non_snake_case)]
+#[test]
+fn test_mixed_control_and_non_ascii_sni_summary_mentions_control_bytes() {
+    // BC-TLS-037 pc1: NonAsciiUtf8 arm fires (not AsciiWithControl).
+    // BC-TLS-037 pc2: the finding summary must contain "control" to surface the
+    //   control-byte covert-channel / log-poisoning risk alongside the non-ASCII flag.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // "café\x1b": é = 0xC3 0xA9 (non-ASCII), ESC = 0x1b (C0 control byte).
+    let sni_bytes: &[u8] = b"\x63\x61\x66\xc3\xa9\x1b"; // café\x1b
+    let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+
+    // Positive-parse anchor.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "BC-TLS-037 anchor: parse_error_count must be 0 for valid-UTF-8 SNI"
+    );
+
+    // BC-TLS-037 pc1: exactly one NonAsciiUtf8-arm finding (contains "non-ASCII").
+    let findings = analyzer.findings();
+    let non_ascii_findings: Vec<_> = findings
+        .iter()
+        .filter(|f| f.summary.contains("non-ASCII"))
+        .collect();
+    assert_eq!(
+        non_ascii_findings.len(),
+        1,
+        "BC-TLS-037 pc1: exactly one non-ASCII finding must be emitted; got: {non_ascii_findings:?}"
+    );
+
+    let f = &non_ascii_findings[0];
+
+    // BC-TLS-037 pc2: summary must mention "control" so a SOC analyst
+    //   grepping for control-byte alerts doesn't miss mixed strings.
+    assert!(
+        f.summary.contains("control"),
+        "BC-TLS-037 pc2: summary must mention \"control\" for mixed control+non-ASCII SNI; \
+         got summary: {:?}",
+        f.summary
+    );
+
+    // Classification invariant: still Anomaly/Inconclusive/Low/T1027/ClientToServer.
+    assert_eq!(
+        f.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "BC-TLS-037: category must be Anomaly"
+    );
+    assert_eq!(
+        f.verdict,
+        wirerust::findings::Verdict::Inconclusive,
+        "BC-TLS-037: verdict must be Inconclusive"
+    );
+    assert_eq!(
+        f.confidence,
+        wirerust::findings::Confidence::Low,
+        "BC-TLS-037: confidence must be Low"
+    );
+    assert_eq!(
+        f.mitre_technique.as_deref(),
+        Some("T1027"),
+        "BC-TLS-037: mitre_technique must be Some(\"T1027\")"
+    );
+    assert_eq!(
+        f.direction,
+        Some(wirerust::reassembly::handler::Direction::ClientToServer),
+        "BC-TLS-037: direction must be Some(ClientToServer)"
+    );
+
+    // Evidence: lossless hex of the raw bytes.
+    assert_eq!(
+        f.evidence.len(),
+        1,
+        "BC-TLS-037: evidence must have exactly one entry"
+    );
+    assert_eq!(
+        f.evidence[0], "hex: 636166c3a91b",
+        "BC-TLS-037: evidence[0] must be exact lowercase hex of café\\x1b"
+    );
+}
+
 // AC-001/AC-002/AC-008 (BC-2.07.017 pc1-3, inv1; BC-2.07.021 pc1-3)
 //
 // Cyrillic SNI: raw Cyrillic in summary (not \u{...} Debug-escaped). Covers:
@@ -7292,12 +7388,12 @@ fn test_arm4_hex_evidence_is_pure_ascii() {
     );
 }
 
-// ── AC-009 (BC-2.07.037 postconditions 1-4) ───────────────────────────────────
+// ── AC-009 (BC-2.07.037 postconditions 1-4, updated by #104 / BC-TLS-037) ────
 //
 // When SNI bytes are valid UTF-8 but contain BOTH non-ASCII chars AND C0 bytes,
 // arm 3 fires (NonAsciiUtf8), NOT arm 2 (AsciiWithControl). Summary says
-// "non-ASCII characters", NOT "control bytes" or "control". The control byte
-// signal is only recoverable from the hex evidence field.
+// "non-ASCII characters" AND (since #104 fix) additionally mentions "control"
+// when control bytes are present. The hex evidence field is still lossless.
 //
 // Exercises VP-005: is_ascii() is the decisive gate between arm 2 and arm 3.
 // Canonical BC-2.07.037 test vector: b"caf\x01\xc3\xa9" (valid UTF-8 "café" with SOH).
@@ -7305,8 +7401,9 @@ fn test_arm4_hex_evidence_is_pure_ascii() {
 #[test]
 fn test_c0_plus_non_ascii_fires_arm3_not_arm2() {
     // AC-009 (BC-2.07.037 pc1): arm 3 fires -> SniValue::NonAsciiUtf8.
-    // AC-009 (BC-2.07.037 pc2): summary says "non-ASCII characters", NOT "control".
-    // AC-009 (BC-2.07.037 pc3): control byte only recoverable from hex evidence.
+    // AC-009 (BC-2.07.037 pc2): summary says "non-ASCII characters" and "control"
+    //   (control-byte enrichment added by #104 / BC-TLS-037).
+    // AC-009 (BC-2.07.037 pc3): control byte is lossless in hex evidence.
     // AC-009 (BC-2.07.037 pc4): T1027/Anomaly/Inconclusive/Low/ClientToServer.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
@@ -7350,7 +7447,8 @@ fn test_c0_plus_non_ascii_fires_arm3_not_arm2() {
 
     let f = &non_ascii_findings[0];
 
-    // BC-2.07.037 pc2: summary says "non-ASCII characters", not "control".
+    // BC-2.07.037 pc2 (updated by #104 / BC-TLS-037): summary says "non-ASCII
+    // characters" AND "control" (control-byte enrichment for mixed values).
     assert!(
         f.summary.contains("non-ASCII characters"),
         "AC-009 (BC-2.07.037 pc2): summary must say \"non-ASCII characters\"; \
@@ -7358,9 +7456,9 @@ fn test_c0_plus_non_ascii_fires_arm3_not_arm2() {
         f.summary
     );
     assert!(
-        !f.summary.contains("control"),
-        "AC-009 (BC-2.07.037 pc2): summary must NOT contain \"control\" (EC-007: SOC \
-         operator searching \"control\" will miss this — documented behavior); \
+        f.summary.contains("control"),
+        "AC-009 (BC-2.07.037 pc2, #104): summary must mention \"control\" for mixed \
+         C0+non-ASCII SNI so SOC analysts grepping for control bytes find this case; \
          got: {:?}",
         f.summary
     );
@@ -7392,7 +7490,7 @@ fn test_c0_plus_non_ascii_fires_arm3_not_arm2() {
         "AC-009 (BC-2.07.037 pc4): direction must be Some(ClientToServer)"
     );
 
-    // BC-2.07.037 pc3: control byte 0x01 only recoverable from hex evidence.
+    // BC-2.07.037 pc3: hex evidence is lossless (preserves the control byte).
     // Hex for b"caf\x01\xc3\xa9" = "63616601c3a9".
     assert_eq!(
         f.evidence.len(),

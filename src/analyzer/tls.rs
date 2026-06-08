@@ -447,6 +447,18 @@ impl TlsAnalyzer {
                     });
                 }
                 SniValue::NonAsciiUtf8 { hostname, hex } => {
+                    // Scan for embedded C0/DEL control bytes. Valid UTF-8 continuation
+                    // bytes are 0x80–0xBF, so scanning `hostname.bytes()` for
+                    // `b < 0x20 || b == 0x7f` is safe — no false positives from
+                    // multi-byte codepoints. When present, the summary is enriched so
+                    // a SOC analyst grepping for "control" finds this case too
+                    // (BC-TLS-037 / issue #104).
+                    let has_control = hostname.bytes().any(|b| b < 0x20 || b == 0x7f);
+                    let control_clause = if has_control {
+                        " and ASCII control bytes"
+                    } else {
+                        ""
+                    };
                     self.all_findings.push(Finding {
                         category: ThreatCategory::Anomaly,
                         verdict: Verdict::Inconclusive,
@@ -456,8 +468,8 @@ impl TlsAnalyzer {
                         // codes, etc.) is applied by the terminal reporter at
                         // render time, not here.
                         summary: format!(
-                            "TLS SNI contains non-ASCII characters (RFC 6066 requires \
-                             A-labels per RFC 5890): {hostname}"
+                            "TLS SNI contains non-ASCII characters{control_clause} \
+                             (RFC 6066 requires A-labels per RFC 5890): {hostname}"
                         ),
                         evidence: vec![format!("hex: {hex}")],
                         mitre_technique: Some("T1027".to_string()),
