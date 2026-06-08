@@ -57,9 +57,9 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 | Phase 6 — Formal Hardening | **PASSED** 2026-06-02 | 8 Kani VPs proven (incl. VP-002 JUSTIFIED→PROVEN, PRs #180/#181/#183); 6 proptest VPs (PR #179); fuzz VP-008 21.7M execs 0 crashes (PR #182); mutation targets met all modules + 16 survivors killed (PR #184); security clean — RUSTSEC-2025-0119 FIXED (#185), RUSTSEC-2026-0097 accepted-transitive; 20 VPs LOCKED (614e0e0) |
 | Phase 7 — Convergence | NOT STARTED | NEXT — entry: /vsdd-factory:phase-7-convergence |
 
-## Session Resume Checkpoint (2026-06-08 — PHASE 6 CLOSED / PHASE 7 PRE-GATE REMEDIATION IN PROGRESS)
+## Session Resume Checkpoint (2026-06-08 — PHASE 7 PRE-GATE REMEDIATION COMPLETE)
 
-**POSITION:** Phase 6 PASSED/CLOSED. Phase 7 (Convergence) entry remediation burst complete. NFR catalog validated + corrected (v1.3), Criterion-38 CLOSED. Phase-7 gate NOT YET PASSED — 3 consistency findings remain open (H-1, M-1, M-3).
+**POSITION:** Phase 6 PASSED/CLOSED. All Phase-7 pre-gate consistency findings REMEDIATED (H-1, M-1, M-2, M-3, H-2, L-2, L-3). PG-1 CLOSED. Phase-7 gate NOT YET PASSED — next step is final fresh-context consistency re-audit, then Phase-7 convergence check + human gate.
 
 **VERIFIED-CLEAN FACTS (confirmed at checkpoint authorship):**
 - develop HEAD `0855f25` == origin/develop (working tree clean)
@@ -67,23 +67,27 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 - 20 VPs locked: status:verified, verification_lock:true, proof_completed_date:2026-06-02 (factory commit 614e0e0)
 - No open PRs
 - input-hash: MATCH=48/STALE=0 (STORY-091 inputs:[] ERROR expected — empty inputs by design)
+- ARCH-INDEX input-hash updated 0c476e4→ae3222a (domain-spec.md was modified by M-2 fix)
 - NFR catalog: v1.3 — 71/79 VALID, 8 errors corrected, NFR-RES-024 added
 - nfr-story-map.md: v1.1 — authored, maps all P0 NFRs to stories
 - Criterion-38: CLOSED — 43 stories have nfr: frontmatter (+95 refs), 0 P0 NFRs uncovered
-- CARRY-FORWARD: canonical NFR registry count pending fresh-context re-audit (catalog has multiple ID-bearing tables incl. NFR-VIO namespace; registry footer = 80)
+- 7 arch files: status:verified, version:1.1 (ARCH-INDEX, module-decomposition, system-overview, api-surface, dependency-graph, purity-boundary-map, tooling-selection)
+- domain-spec.md: gained canonical DF-020a frontmatter fields (M-2)
+- STORY-INDEX: Wave 7 merge SHA corrected b23c6d3→bc5d23e (H-2)
+- holdout-scenarios/evaluations/: 6 eval files git-mv'd from cycles/v0.1.0-greenfield-spec/holdout-eval/; EVAL-INDEX.md added (M-3)
+- CARRY-FORWARD: canonical NFR registry count pending fresh-context re-audit (catalog footer = 80; NFR-VIO namespace may account for delta vs earlier counts)
 
 **RESUME PROTOCOL (startup sequence for orchestrator):**
 1. `vsdd-factory:factory-worktree-health` — BLOCKING; do not read `.factory` until PASS
 2. `agents_list` — confirm available agents
 3. Read `STATE.md` — absorb current position
-4. Remediate remaining Phase-7 consistency findings (H-1, M-1, M-3), then proceed to final consistency re-audit before gate
+4. Trigger Phase-7 final fresh-context consistency re-audit, then convergence check + human gate
 
-**EXACT NEXT ACTION:** Remediate H-1 (tooling-selection.md mutation scope), M-1 (7 arch files status:draft), M-3 (evals dir) — then trigger Phase-7 final consistency re-audit and gate.
+**EXACT NEXT ACTION:** Run Phase-7 final consistency re-audit (fresh context, no prior findings exposure) — then proceed to Phase-7 convergence check and human gate.
 
 **CARRY-FORWARD CAVEATS:**
 - MODEL-FAMILY: No true non-Claude adversary/evaluator available. Use opus-tier fresh-context + strict info-asymmetry. Document at each gate.
 - ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture support added.
-- PG-1 spec-fix follow-up (tooling-selection.md mutation scope): status draft — see lessons.md + Cycle-Close Follow-Up Items below. Overlaps H-1.
 - Canonical NFR registry count: confirm by fresh-context re-audit before Phase-7 gate sign-off (catalog footer = 80; NFR-VIO namespace may account for delta vs earlier counts).
 
 **OPEN BACKLOG (do NOT lose):**
@@ -141,7 +145,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | ID | Description | Status |
 |----|-------------|--------|
 | PROCESS-GAP-P5-001 | Systemic anchor/coherence drift across 11 adversarial passes | CLOSED — STORY-091 disposition committed 2026-06-01 |
-| PG-1 | tooling-selection.md mutation scope omits CRITICAL reassembly modules (SS-04) | OPEN (draft) — spec-fix follow-up for architect; detail in lessons.md |
+| PG-1 | tooling-selection.md mutation scope omits CRITICAL reassembly modules (SS-04) | CLOSED — H-1 fix: tooling-selection.md body now records SS-04 reassembly mutation scope + Phase-6 outcomes (PR #184); 2026-06-08 |
 | PG-2 | CRITICAL VP "justified" via debug-only guard — caught at human gate | CLOSED — lesson recorded; hardening-gate checklist recommendation in lessons.md |
 | PG-3 | Stale local develop — agents must branch off origin/develop | CLOSED — lesson recorded; process recommendation in lessons.md; DF-DEVELOP-FRESHNESS-001 already governs |
 

@@ -1,5 +1,14 @@
 ---
 artifact: L2-domain-spec
+document_type: domain-spec
+level: L2
+version: "1.0"
+producer: business-analyst
+# traces_to: No L1 product-brief exists for this brownfield project.
+# Source authority is the brownfield ingestion corpus at .factory/semport/wirerust/
+# (21 artifacts; canonical = wirerust-pass-8-deep-synthesis.md), reconciled against
+# develop HEAD 0082a0c. L1 vision is implicit in the ingestion ground truth.
+traces_to: .factory/semport/wirerust/wirerust-pass-8-deep-synthesis.md
 project: wirerust
 status: complete
 generated: 2026-05-20

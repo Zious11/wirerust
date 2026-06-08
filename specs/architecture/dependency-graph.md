@@ -2,10 +2,14 @@
 artifact: architecture-section
 section: dependency-graph
 traces_to: ARCH-INDEX.md
-version: "1.0"
-status: draft
+version: "1.1"
+status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
+modified:
+  - date: 2026-06-08
+    actor: spec-steward
+    reason: "Phase-6 gate close: status draft→verified."
 ---
 
 # Dependency Graph

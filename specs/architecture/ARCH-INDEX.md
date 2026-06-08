@@ -1,10 +1,14 @@
 ---
 artifact: architecture-index
 level: L4
-version: "1.0"
-status: draft
+version: "1.1"
+status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
+modified:
+  - date: 2026-06-08
+    actor: spec-steward
+    reason: "Phase-6 gate close: status draft→verified (all arch section files promoted); input-hash computed; SS-13/CAP-12 note added for clarity."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -18,7 +22,7 @@ inputs:
   - docs/adr/0002-modular-protocol-analyzers.md
   - docs/adr/0003-reporting-pipeline-layering.md
   - docs/adr/0004-process-wide-warning-atomics.md
-input-hash: "[md5-TBD]"
+input-hash: "ae3222a"
 ---
 
 # wirerust Architecture Index
@@ -67,7 +71,7 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 | SS-10 | MITRE Mapping | CAP-10 | mitre.rs | 9 |
 | SS-11 | Reporting | CAP-11 | reporter/{mod,json,terminal,csv}.rs | 24 |
 | SS-12 | CLI / Entry | CAP-12 | main.rs, cli.rs, lib.rs, summary.rs | 21 |
-| SS-13 | Absent Behaviors | CAP-12 | cli.rs (flag parse only) | 4 |
+| SS-13 | Absent Behaviors | CAP-12 | cli.rs (flag parse only) | 4 | <!-- intentional: SS-13 is a sub-classification of CAP-12 (absent/intentionally-excluded behaviors), not a separate capability; see prd.md §2.13 -->
 
 > SS-03 is intentionally absent. See "CAP-03 / ss-02 Ruling" below.
 

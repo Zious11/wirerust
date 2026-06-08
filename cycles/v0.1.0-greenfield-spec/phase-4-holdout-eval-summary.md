@@ -26,10 +26,10 @@
 
 | Chunk | Scenarios | Initial Mean | Notes |
 |-------|-----------|-------------|-------|
-| Chunk 1 (HS-001..HS-024 range) | 20 | 0.9475 | Per-scenario detail: holdout-eval/chunk1-eval.md |
-| Chunk 2 (HS-025..HS-049 range) | 20 | 0.945 | HS-043 genuine defect (0.50); remaining 19 mean ~0.976. Per-scenario detail: holdout-eval/chunk2-eval.md |
-| Chunk 3 (HS-050..HS-074 range) | 20 | 0.612 (initial) → **0.9917** (re-eval) | Evaluator-coverage artifact — 12 sub-0.6 scenarios re-scored (see below). Per-scenario detail: holdout-eval/chunk3-eval.md / chunk3-reeval.md |
-| Chunk 4 (HS-075..HS-100 range) | 20 | 0.948 | Per-scenario detail: holdout-eval/chunk4-eval.md |
+| Chunk 1 (HS-001..HS-024 range) | 20 | 0.9475 | Per-scenario detail: ../../holdout-scenarios/evaluations/chunk1-eval.md |
+| Chunk 2 (HS-025..HS-049 range) | 20 | 0.945 | HS-043 genuine defect (0.50); remaining 19 mean ~0.976. Per-scenario detail: ../../holdout-scenarios/evaluations/chunk2-eval.md |
+| Chunk 3 (HS-050..HS-074 range) | 20 | 0.612 (initial) → **0.9917** (re-eval) | Evaluator-coverage artifact — 12 sub-0.6 scenarios re-scored (see below). Per-scenario detail: ../../holdout-scenarios/evaluations/chunk3-eval.md / chunk3-reeval.md |
+| Chunk 4 (HS-075..HS-100 range) | 20 | 0.948 | Per-scenario detail: ../../holdout-scenarios/evaluations/chunk4-eval.md |
 
 ---
 
@@ -41,7 +41,7 @@
 
 **Re-evaluation result: mean 0.9917** across the 12 re-scored scenarios. Prior 0.4-range scores were evaluator-coverage artifacts — the implementation matched essentially exactly. No genuine defects found in Chunk 3.
 
-Per-scenario detail: holdout-eval/chunk3-eval.md (initial) and holdout-eval/chunk3-reeval.md (re-eval).
+Per-scenario detail: ../../holdout-scenarios/evaluations/chunk3-eval.md (initial) and ../../holdout-scenarios/evaluations/chunk3-reeval.md (re-eval).
 
 ---
 
@@ -73,7 +73,7 @@ Research triage report: `.factory/research/holdout-finding-triage-2026-06-01.md`
 - **Root cause:** `expire_flows` (renamed `expire_idle_by_timeout` in delivery) was dead code in production. The function existed and was unit-tested, but was never called from `process_packet`. The 1,078 unit/integration tests all missed this because they called `expire_flows` directly, bypassing the wiring. Only information-asymmetric holdout evaluation exposed it.
 - **Fix:** PR #171 wired `expire_idle_by_timeout` into `process_packet` (called after each packet) and added `--flow-timeout` CLI flag (default 300s, range 1+). BC-2.04.013 updated to v1.5 PC0.
 - **develop HEAD post-fix:** c3cd4bd
-- **Re-validation:** HS-043 re-scored 1.00 (was 0.50). 4 reassembly regression checks (HS-021, HS-026, HS-028, HS-044) all hold at 1.00. Re-validation detail: holdout-eval/hs043-revalidation.md.
+- **Re-validation:** HS-043 re-scored 1.00 (was 0.50). 4 reassembly regression checks (HS-021, HS-026, HS-028, HS-044) all hold at 1.00. Re-validation detail: ../../holdout-scenarios/evaluations/hs043-revalidation.md.
 - **Methodology note:** This finding validates the holdout evaluation methodology — the information asymmetry that's the point of Phase 4 caught a ship-blocking idle-flow-memory-bound defect that 1,078 unit tests missed entirely.
 
 ---
@@ -108,7 +108,7 @@ The HS-043 adversarial pass 3 identified three behavioral properties that are ve
 2. **gated-sweep-no-escape** — no flow expires before the per-packet sweep is triggered
 3. **regressing-timestamp-underflow** — `last_seen` timestamp handling does not underflow on aggressive expiry
 
-These are currently exercised by the revalidation fixture (holdout-eval/hs043-revalidation.md) but not by named, committed unit tests. Candidate Phase-6 hardening tests. Per DF-VALIDATION-001, no GitHub issue without research-agent validation.
+These are currently exercised by the revalidation fixture (../../holdout-scenarios/evaluations/hs043-revalidation.md) but not by named, committed unit tests. Candidate Phase-6 hardening tests. Per DF-VALIDATION-001, no GitHub issue without research-agent validation.
 
 ---
 

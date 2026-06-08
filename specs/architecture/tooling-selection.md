@@ -2,10 +2,17 @@
 artifact: architecture-section
 section: tooling-selection
 traces_to: ARCH-INDEX.md
-version: "1.0"
-status: draft
+version: "1.1"
+status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
+modified:
+  - date: 2026-06-08
+    actor: architect
+    reason: "Body: added SS-04 cargo-mutants Phase 6 outcomes (D-015, PR #184) and kill-rate results."
+  - date: 2026-06-08
+    actor: spec-steward
+    reason: "Phase-6 gate close: status draft→verified."
 ---
 
 # Tooling Selection
@@ -80,8 +87,20 @@ but assertion strength may be low.
 
 **Setup:** `cargo install cargo-mutants`. Run with `cargo mutants`.
 
-**Scope for wirerust:** SS-06 (HttpAnalyzer), SS-07 (TlsAnalyzer), SS-08 (DnsAnalyzer),
-SS-10 (mitre.rs), SS-09 (findings.rs). Target kill rates per module-criticality.md.
+**Scope for wirerust:**
+
+- SS-04 (Reassembly — `flow.rs`, `segment.rs`, `mod.rs`): added to scope in Phase 6
+  (D-015, PR #184). Outcome: `flow.rs` 100% kill rate, `segment.rs` effective kill 99.52%
+  (`ranges_overlap` adjacency 9/9 caught, 2 proven-equivalent mutants), `mod.rs` 98.54%
+  (3 proven-equivalent mutants remain). 16 genuine survivors killed; CRITICAL anti-evasion
+  modules are now mutation-verified.
+- SS-06 (HttpAnalyzer)
+- SS-07 (TlsAnalyzer)
+- SS-08 (DnsAnalyzer)
+- SS-09 (findings.rs)
+- SS-10 (mitre.rs)
+
+Target kill rates per module-criticality.md.
 
 ## Tools Considered and Rejected
 
