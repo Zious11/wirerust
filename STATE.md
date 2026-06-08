@@ -3,7 +3,7 @@ pipeline: PHASE_7_PASSED_RELEASE_PREP
 phase: release-prep
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-08T12:00:00Z
+timestamp: 2026-06-08T18:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -21,7 +21,9 @@ phase_6_completed: "2026-06-02"
 phase_6_to_7_gate: "PASSED (human-approved 2026-06-02)"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-08 — Approve → release-prep)"
 adversary_gate: SATISFIED
-develop_head: 0855f25
+develop_head: 74bce12
+main_head: 8928398
+main_protection: ACTIVE
 current_cycle: v0.1.0-greenfield-spec
 current_wave: 27 (FINAL — CLOSED)
 stories_delivered: 48
@@ -58,18 +60,20 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 | Phase 6 — Formal Hardening | **PASSED** 2026-06-02 | 8 Kani VPs proven (incl. VP-002 JUSTIFIED→PROVEN, PRs #180/#181/#183); 6 proptest VPs (PR #179); fuzz VP-008 21.7M execs 0 crashes (PR #182); mutation targets met all modules + 16 survivors killed (PR #184); security clean — RUSTSEC-2025-0119 FIXED (#185), RUSTSEC-2026-0097 accepted-transitive; 20 VPs LOCKED (614e0e0) |
 | Phase 7 — Convergence | **PASSED** (human-approved 2026-06-08); release-prep in progress | 6 PASS / 1 CONCERN (Perf — non-blocking, no v0.1.0 SLA); 1126 tests; consistency CONSISTENT (8/8); 20 VPs locked; detail: cycles/v0.1.0-greenfield-spec/phase-7-convergence-report.md |
 
-## Session Resume Checkpoint (2026-06-08 — PHASE 7 GATE PASSED — RELEASE-PREP IN PROGRESS)
+## Session Resume Checkpoint (2026-06-08 — GITFLOW CORRECTION + v0.1.0 STAGING — AWAITING HUMAN SIGN-OFF)
 
-**POSITION:** Phase 7 convergence gate PASSED (human-approved 2026-06-08 — 6 PASS / 1 CONCERN). Release-prep in progress. Next: R-1 CHANGELOG.md, R-2 .factory/release-config.yaml, R-3 README fix, then vsdd-factory:release to cut v0.1.0.
+**POSITION:** Gitflow main-branch correction complete (D-019). v0.1.0 staged via release/v0.1.0 → PR #189 → main merge commit 8928398. Branch protection ACTIVE on main. Awaiting human sign-off before pushing v0.1.0 tag (pause-before-publish).
 
 **VERIFIED-CLEAN FACTS (confirmed at checkpoint authorship):**
-- develop HEAD `0855f25` == origin/develop (working tree clean)
+- develop HEAD `74bce12` (CHANGELOG, README fix, release.yml, CLAUDE.md gitflow rule — PRs #186/#187/#188)
+- main HEAD `8928398` (gitflow release merge of release/v0.1.0; content-identical to develop; protected)
+- Branch protection ACTIVE on main: PR required, 8 status checks, force-push blocked, merge-commit-only, owner-bypass for emergencies
 - factory-artifacts HEAD — run `git -C .factory log -1 --format='%h %s'` for current SHA
 - 1126 tests green / 0 failed; clippy clean; fmt clean
 - Phase-7 gate verdict: PASSED — human-approved 2026-06-08 (D-018)
 - 20 VPs locked (status:verified, verification_lock:true, proof_completed_date:2026-06-02; factory commit 614e0e0)
 - input-hash: MATCH=48/STALE=0
-- nfr-story-map.md: v1.2 (P0 40/40, P1 36/36, P2 4/4, total 80; with-owner 67, no-owner 13)
+- v0.1.0 build-matrix validation run (workflow_dispatch) executed: Linux ✓, macOS-arm64 ✓, Windows-MSVC ✓, macOS-x86_64 in progress at checkpoint time — non-publishing, no tag/release created
 - Performance CONCERN: accepted non-blocking; NFR-PERF-002/004 P1 open-debt; no v0.1.0 SLA
 - Convergence report: cycles/v0.1.0-greenfield-spec/phase-7-convergence-report.md
 
@@ -77,14 +81,15 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 1. `vsdd-factory:factory-worktree-health` — BLOCKING; do not read `.factory` until PASS
 2. `agents_list` — confirm available agents
 3. Read `STATE.md` — absorb current position
-4. Execute release-prep tasks R-1/R-2/R-3, then run `vsdd-factory:release`
+4. Await human sign-off, then push v0.1.0 tag on main per gitflow (tag on main after release PR merge)
 
-**EXACT NEXT ACTION:** Release-prep: R-1 author CHANGELOG.md; R-2 create .factory/release-config.yaml; R-3 fix README "multi-GB captures" overstatement (NFR-VIO-001); then cut v0.1.0 tag via vsdd-factory:release.
+**EXACT NEXT ACTION:** PAUSE for human sign-off. Once macOS-x86_64 validation green and human approves: push tag `v0.1.0` on main (now protected — use owner-bypass or standard PR if needed). Tag MUST be created on main, not develop, per gitflow (D-019).
 
 **CARRY-FORWARD CAVEATS:**
 - MODEL-FAMILY: No true non-Claude adversary/evaluator available. Use opus-tier fresh-context + strict info-asymmetry. Document at each gate.
 - ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture support added.
 - Performance CONCERN accepted: NFR-PERF-002/004 are P1 open-debt, no v0.1.0 SLA defined; next cycle.
+- FOLLOW-UP: release.yml uses actions/upload-artifact@v4 (Node 20, deprecated ~2026-06-16 by GitHub); bump to v5 (Node 24) — see Drift Items DI-001.
 
 **OPEN BACKLOG (do NOT lose):**
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle or inter-phase
@@ -118,6 +123,7 @@ Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 | D-016 | All 20 VPs locked (verification_lock:true, proof_completed_date:2026-06-02); module-criticality frozen:true; tag phase-6-verified-2026-06-02. Factory commit 614e0e0. | 2026-06-02 | Phase-6 formal hardening gate closure |
 | D-017 | NFR catalog validated under DF-VALIDATION-001 (71/79 VALID, recommendation KEEP). Catalog corrected v1.2→v1.3: 4 INVALID rows fixed (NFR-RES-022 status, NFR-MNT-005 false invariant, NFR-REL-003 brittle-count→property, NFR-RES-010 false IDS citation), 4 stale counts refreshed (OBS-001/OBS-002/SEC-002/PERF-004), stale line-anchors fixed, NFR-RES-024 added (DnsAnalyzer bounds). nfr-story-map.md v1.1 authored. Criterion-38 traceability gap CLOSED: nfr: frontmatter refs added to 43 stories (+95 refs), 0 P0 NFRs uncovered. CARRY-FORWARD: canonical NFR registry count to be confirmed by fresh-context re-audit (catalog has multiple ID-bearing tables incl. NFR-VIO namespace; registry footer = 80). Phase-7 gate NOT YET PASSED — remaining open findings: H-1 (tooling-selection mutation scope), M-1 (7 arch files status:draft), M-3 (evals dir). | 2026-06-08 | Phase-7 pre-gate NFR remediation burst |
 | D-018 | Human approved Phase-7 convergence gate (6 PASS / 1 non-blocking CONCERN — Performance). Proceed to release-prep (R-1 CHANGELOG.md, R-2 .factory/release-config.yaml, R-3 README multi-GB fix) then vsdd-factory:release for v0.1.0 tag. | 2026-06-08 | Phase-7 human gate approval |
+| D-019 | Corrected main-branch staging to gitflow-proper. Two earlier direct merge pushes to main (5d06551, a0dd820) were removed (main force-reset to original 824ea67); branch protection added to main (PR required, 8 status checks, force-push blocked, merge-commit-only, owner-bypass for emergencies); v0.1.0 release staged via release/v0.1.0 → PR #189 → main merge commit 8928398. Rule codified in CLAUDE.md (PR #188, develop 74bce12). Standing rule: main updated ONLY via release/* or hotfix/* PRs, never direct pushes; tags created on main only after the release PR merges. | 2026-06-08 | Gitflow main-branch correction |
 
 ## Blocking Issues
 
@@ -136,6 +142,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | O-08 | dns.rs module doc-comment stale | OPEN P3 |
 | F-W25-S088-P6-001 | AC-004 warning .contains() — weaker than count-assertion | OPEN — target next main.rs touch or accept |
 | RUSTSEC-2026-0097 | rand 0.8.5 unsound (transitive via tls-parser→phf 0.11); upstream-only fix path | ACCEPTED-TRANSITIVE — revisit when tls-parser bumps phf→0.12+ |
+| DI-001 | release.yml uses actions/upload-artifact@v4 (Node 20); GitHub forcing Node 24 ~2026-06-16 — bump to upload-artifact@v5 | OPEN P2 — minor follow-up before or after v0.1.0 tag |
 
 ## Cycle-Close Follow-Up Items
 
