@@ -4,6 +4,16 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 
 ---
 
+## Archived: 2026-06-08 — PHASE 7 CONVERGED — AWAITING HUMAN GATE (superseded by Phase 7 GATE PASSED — release-prep in progress)
+
+**POSITION:** Phase 7 Convergence assessment COMPLETE. Verdict: CONVERGED (6 PASS / 1 CONCERN). Must-fix-before-gate: NONE. Awaiting human approval to proceed to release-prep then v0.1.0 tag.
+
+**VERIFIED-CLEAN FACTS:** develop HEAD `0855f25`; 20 VPs locked (614e0e0); 1126 tests green; MATCH=48/STALE=0; nfr-story-map.md v1.2; consistency CONSISTENT (8/8); Performance CONCERN non-blocking.
+
+**EXACT NEXT ACTION (at time of archival):** Human approval gate — then release-prep: R-1 CHANGELOG.md; R-2 .factory/release-config.yaml; R-3 README multi-GB fix; then vsdd-factory:release.
+
+---
+
 ## Archived: 2026-06-08 — PHASE 7 PRE-GATE REMEDIATION COMPLETE (superseded by Phase 7 CONVERGED — awaiting human gate)
 
 **POSITION:** Phase 6 PASSED/CLOSED. All Phase-7 pre-gate consistency findings REMEDIATED (H-1, M-1, M-2, M-3, H-2, L-2, L-3). PG-1 CLOSED. Phase-7 gate NOT YET PASSED — next step is final fresh-context consistency re-audit, then Phase-7 convergence check + human gate.
