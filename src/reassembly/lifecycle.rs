@@ -19,6 +19,8 @@
 
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use chrono::DateTime;
+
 use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use crate::reassembly::flow::{FlowKey, FlowState};
 use crate::reassembly::handler::{CloseReason, Direction, StreamHandler};
@@ -97,10 +99,14 @@ impl TcpReassembler {
 
     /// Emit the "conflicting TCP segment overlap" Anomaly finding (or
     /// count it as dropped if the `MAX_FINDINGS` cap is already hit).
+    ///
+    /// `timestamp` is the current packet's `timestamp_secs` (BC-2.09.007):
+    /// attached as `Some(DateTime<Utc>)` for capture-relative pcap provenance.
     pub(super) fn generate_conflicting_overlap_finding(
         &mut self,
         key: &FlowKey,
         src_ip: std::net::IpAddr,
+        timestamp: u32,
     ) {
         if self.findings.len() >= MAX_FINDINGS {
             self.stats.dropped_findings += 1;
@@ -114,14 +120,24 @@ impl TcpReassembler {
             evidence: vec!["Retransmitted segment contains different data".to_string()],
             mitre_technique: Some("T1036".to_string()),
             source_ip: Some(src_ip),
-            timestamp: None,
+            // BC-2.09.007 post-1: capture-relative pcap timestamp from the
+            // current packet that triggered the conflicting overlap.
+            timestamp: DateTime::from_timestamp(timestamp as i64, 0),
             direction: None,
         });
     }
 
     /// Emit the "stream depth exceeded" Anomaly finding (or count it as
     /// dropped if the `MAX_FINDINGS` cap is already hit).
-    pub(super) fn generate_truncated_finding(&mut self, key: &FlowKey, src_ip: std::net::IpAddr) {
+    ///
+    /// `timestamp` is the current packet's `timestamp_secs` (BC-2.09.007):
+    /// attached as `Some(DateTime<Utc>)` for capture-relative pcap provenance.
+    pub(super) fn generate_truncated_finding(
+        &mut self,
+        key: &FlowKey,
+        src_ip: std::net::IpAddr,
+        timestamp: u32,
+    ) {
         if self.findings.len() >= MAX_FINDINGS {
             self.stats.dropped_findings += 1;
             return;
@@ -134,7 +150,9 @@ impl TcpReassembler {
             evidence: vec![format!("Max depth {} bytes reached", self.config.max_depth)],
             mitre_technique: None,
             source_ip: Some(src_ip),
-            timestamp: None,
+            // BC-2.09.007 post-1: capture-relative pcap timestamp from the
+            // current packet that triggered the depth-exceeded event.
+            timestamp: DateTime::from_timestamp(timestamp as i64, 0),
             direction: None,
         });
     }

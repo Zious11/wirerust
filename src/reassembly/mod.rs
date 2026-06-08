@@ -44,6 +44,8 @@ pub use stats::ReassemblyStats;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use chrono::DateTime;
+
 use crate::analyzer::AnalysisSummary;
 use crate::decoder::{ParsedPacket, Protocol, TransportInfo};
 use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
@@ -186,8 +188,8 @@ impl TcpReassembler {
 
         // Payload: insert the segment, check anomaly thresholds, flush.
         if !packet.payload.is_empty() {
-            let dir = self.insert_payload_segment(packet, &key, &tcp);
-            self.check_anomaly_thresholds(packet, &key, dir);
+            let dir = self.insert_payload_segment(packet, &key, &tcp, timestamp);
+            self.check_anomaly_thresholds(packet, &key, dir, timestamp);
             self.flush_contiguous_data(&key, dir, handler, timestamp);
         }
 
@@ -322,11 +324,17 @@ impl TcpReassembler {
     /// inferring mid-stream-join state when no SYN was seen, and update
     /// the segment-class counters. Returns the flow [`Direction`] the
     /// payload belongs to, for the threshold-check and flush steps.
+    ///
+    /// `timestamp` is the current packet's `timestamp_secs` (BC-2.09.007):
+    /// threaded through to `generate_conflicting_overlap_finding` and
+    /// `generate_truncated_finding` so their emitted Findings carry the
+    /// capture-relative pcap timestamp.
     fn insert_payload_segment(
         &mut self,
         packet: &ParsedPacket,
         key: &FlowKey,
         tcp: &TcpFields,
+        timestamp: u32,
     ) -> Direction {
         let payload = &packet.payload;
         let flow = self.flows.get_mut(key).unwrap();
@@ -407,11 +415,11 @@ impl TcpReassembler {
             }
             InsertResult::ConflictingOverlap => {
                 self.stats.segments_overlaps += 1;
-                self.generate_conflicting_overlap_finding(key, packet.src_ip);
+                self.generate_conflicting_overlap_finding(key, packet.src_ip, timestamp);
             }
             InsertResult::Truncated => {
                 self.stats.segments_inserted += 1;
-                self.generate_truncated_finding(key, packet.src_ip);
+                self.generate_truncated_finding(key, packet.src_ip, timestamp);
             }
             InsertResult::DepthExceeded => {
                 self.stats.segments_depth_exceeded += 1;
@@ -446,7 +454,17 @@ impl TcpReassembler {
     /// (which would also miscount as multiple `dropped_findings` rather
     /// than one) and lets the `dropped_findings` counter accurately
     /// reflect distinct anomalies lost to the cap.
-    fn check_anomaly_thresholds(&mut self, packet: &ParsedPacket, key: &FlowKey, dir: Direction) {
+    ///
+    /// `timestamp` is the current packet's `timestamp_secs` (BC-2.09.007):
+    /// attached to each emitted Finding as `Some(DateTime<Utc>)` for
+    /// capture-relative pcap provenance.
+    fn check_anomaly_thresholds(
+        &mut self,
+        packet: &ParsedPacket,
+        key: &FlowKey,
+        dir: Direction,
+        timestamp: u32,
+    ) {
         // Snapshot the configured thresholds before borrowing the flow
         // (LESSON-P2.05 — these are now `ReassemblyConfig` fields).
         let overlap_threshold = self.config.overlap_alert_threshold;
@@ -470,7 +488,9 @@ impl TcpReassembler {
                     evidence: vec!["Possible evasion attempt".into()],
                     mitre_technique: Some("T1036".into()),
                     source_ip: Some(packet.src_ip),
-                    timestamp: None,
+                    // BC-2.09.007 post-1: capture-relative pcap timestamp from
+                    // the current packet that crossed the threshold.
+                    timestamp: DateTime::from_timestamp(timestamp as i64, 0),
                     direction: Some(dir),
                 });
             } else {
@@ -508,7 +528,9 @@ impl TcpReassembler {
                     ],
                     mitre_technique: None,
                     source_ip: Some(packet.src_ip),
-                    timestamp: None,
+                    // BC-2.09.007 post-1: capture-relative pcap timestamp from
+                    // the current packet that crossed the threshold.
+                    timestamp: DateTime::from_timestamp(timestamp as i64, 0),
                     direction: Some(dir),
                 });
             } else {
@@ -532,7 +554,9 @@ impl TcpReassembler {
                     )],
                     mitre_technique: None,
                     source_ip: Some(packet.src_ip),
-                    timestamp: None,
+                    // BC-2.09.007 post-1: capture-relative pcap timestamp from
+                    // the current packet that crossed the threshold.
+                    timestamp: DateTime::from_timestamp(timestamp as i64, 0),
                     direction: Some(dir),
                 });
             } else {

@@ -16446,11 +16446,14 @@ fn test_http_findings_have_timestamp() {
     // This single request fires 5 distinct anomaly detections.
     let long_suffix = "x".repeat(2100);
     let traversal_uri = format!("/../etc/passwd{}", long_suffix);
-    let request = format!(
-        "TRACE {} HTTP/1.1\r\nUser-Agent: \r\n\r\n",
-        traversal_uri
+    let request = format!("TRACE {} HTTP/1.1\r\nUser-Agent: \r\n\r\n", traversal_uri);
+    analyzer.on_data(
+        &fk,
+        Direction::ClientToServer,
+        request.as_bytes(),
+        0,
+        ts_sec,
     );
-    analyzer.on_data(&fk, Direction::ClientToServer, request.as_bytes(), 0, ts_sec);
 
     let findings = analyzer.findings();
     assert!(
@@ -16605,26 +16608,58 @@ fn test_reassembly_anomaly_findings_have_timestamp() {
         let server = [10, 10, 0, 2];
 
         // SYN + SYN-ACK to establish flow
-        let syn = make_tcp_packet(client, 50001, server, 80, 1000, &[], true, false, false, false);
+        let syn = make_tcp_packet(
+            client,
+            50001,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        );
         reassembler.process_packet(&syn, ts_sec - 1, &mut handler);
-        let syn_ack =
-            make_tcp_packet(server, 80, client, 50001, 2000, &[], true, true, false, false);
+        let syn_ack = make_tcp_packet(
+            server,
+            80,
+            client,
+            50001,
+            2000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        );
         reassembler.process_packet(&syn_ack, ts_sec - 1, &mut handler);
 
         // First data segment at seq=1001
-        let data1 = make_tcp_packet(client, 50001, server, 80, 1001, b"hello", false, true, false, false);
+        let data1 = make_tcp_packet(
+            client, 50001, server, 80, 1001, b"hello", false, true, false, false,
+        );
         reassembler.process_packet(&data1, ts_sec, &mut handler);
 
         // Overlapping retransmit at seq=1001 with DIFFERENT content => conflicting overlap
-        let data2 = make_tcp_packet(client, 50001, server, 80, 1001, b"world", false, true, false, false);
+        let data2 = make_tcp_packet(
+            client, 50001, server, 80, 1001, b"world", false, true, false, false,
+        );
         reassembler.process_packet(&data2, ts_sec, &mut handler);
 
         // Additional overlapping segments to trigger the overlap threshold
         for i in 0..5u8 {
             let overlap = make_tcp_packet(
-                client, 50001, server, 80, 1001,
+                client,
+                50001,
+                server,
+                80,
+                1001,
                 &[b'a' + i; 5],
-                false, true, false, false,
+                false,
+                true,
+                false,
+                false,
             );
             reassembler.process_packet(&overlap, ts_sec, &mut handler);
         }
@@ -16662,18 +16697,46 @@ fn test_reassembly_anomaly_findings_have_timestamp() {
         let client = [10, 20, 0, 1];
         let server = [10, 20, 0, 2];
 
-        let syn = make_tcp_packet(client, 60001, server, 80, 1000, &[], true, false, false, false);
+        let syn = make_tcp_packet(
+            client,
+            60001,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        );
         reassembler.process_packet(&syn, ts_sec, &mut handler);
-        let syn_ack =
-            make_tcp_packet(server, 80, client, 60001, 2000, &[], true, true, false, false);
+        let syn_ack = make_tcp_packet(
+            server,
+            80,
+            client,
+            60001,
+            2000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        );
         reassembler.process_packet(&syn_ack, ts_sec, &mut handler);
 
         // Send enough small segments to cross the threshold
         for i in 0..5u32 {
             let tiny = make_tcp_packet(
-                client, 60001, server, 80, 1001 + i,
+                client,
+                60001,
+                server,
+                80,
+                1001 + i,
                 b"x",
-                false, true, false, false,
+                false,
+                true,
+                false,
+                false,
             );
             reassembler.process_packet(&tiny, ts_sec, &mut handler);
         }
@@ -16711,21 +16774,51 @@ fn test_reassembly_anomaly_findings_have_timestamp() {
         let client = [10, 30, 0, 1];
         let server = [10, 30, 0, 2];
 
-        let syn = make_tcp_packet(client, 60101, server, 80, 500, &[], true, false, false, false);
+        let syn = make_tcp_packet(
+            client,
+            60101,
+            server,
+            80,
+            500,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        );
         reassembler.process_packet(&syn, ts_sec, &mut handler);
-        let syn_ack =
-            make_tcp_packet(server, 80, client, 60101, 3000, &[], true, true, false, false);
+        let syn_ack = make_tcp_packet(
+            server,
+            80,
+            client,
+            60101,
+            3000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        );
         reassembler.process_packet(&syn_ack, ts_sec, &mut handler);
 
         // In-order packet to establish ISN and base_offset
-        let data_in = make_tcp_packet(client, 60101, server, 80, 501, b"hello", false, true, false, false);
+        let data_in = make_tcp_packet(
+            client, 60101, server, 80, 501, b"hello", false, true, false, false,
+        );
         reassembler.process_packet(&data_in, ts_sec, &mut handler);
 
         // Out-of-window packet: seq far beyond base_offset + max_receive_window
         let data_oow = make_tcp_packet(
-            client, 60101, server, 80, 500 + 5000,
+            client,
+            60101,
+            server,
+            80,
+            500 + 5000,
             b"out",
-            false, true, false, false,
+            false,
+            true,
+            false,
+            false,
         );
         reassembler.process_packet(&data_oow, ts_sec, &mut handler);
         reassembler.finalize(&mut handler);
@@ -16761,15 +16854,47 @@ fn test_reassembly_anomaly_findings_have_timestamp() {
         let client = [10, 40, 0, 1];
         let server = [10, 40, 0, 2];
 
-        let syn = make_tcp_packet(client, 60201, server, 80, 1000, &[], true, false, false, false);
+        let syn = make_tcp_packet(
+            client,
+            60201,
+            server,
+            80,
+            1000,
+            &[],
+            true,
+            false,
+            false,
+            false,
+        );
         reassembler.process_packet(&syn, ts_sec, &mut handler);
-        let syn_ack =
-            make_tcp_packet(server, 80, client, 60201, 2000, &[], true, true, false, false);
+        let syn_ack = make_tcp_packet(
+            server,
+            80,
+            client,
+            60201,
+            2000,
+            &[],
+            true,
+            true,
+            false,
+            false,
+        );
         reassembler.process_packet(&syn_ack, ts_sec, &mut handler);
 
         // Data that exceeds max_depth=10
         let large_data = vec![b'A'; 20];
-        let data_pkt = make_tcp_packet(client, 60201, server, 80, 1001, &large_data, false, true, false, false);
+        let data_pkt = make_tcp_packet(
+            client,
+            60201,
+            server,
+            80,
+            1001,
+            &large_data,
+            false,
+            true,
+            false,
+            false,
+        );
         reassembler.process_packet(&data_pkt, ts_sec, &mut handler);
 
         reassembler.finalize(&mut handler);
@@ -16823,8 +16948,7 @@ fn test_segment_limit_summary_finding_has_no_timestamp() {
         "AC-004: exactly one segment-limit summary finding must be emitted by finalize"
     );
     assert_eq!(
-        seg_limit_findings[0].timestamp,
-        None,
+        seg_limit_findings[0].timestamp, None,
         "AC-004 (BC-2.09.007 invariant 1): segment-limit summary finding MUST have \
          timestamp == None (it is a post-capture aggregate, not tied to any packet)"
     );
@@ -16851,7 +16975,10 @@ fn test_timestamp_conversion_known_values() {
     // (1 million seconds after Unix epoch)
     let ts_1m: u32 = 1_000_000;
     let dt_1m = DateTime::from_timestamp(ts_1m as i64, 0);
-    assert!(dt_1m.is_some(), "AC-005: ts_sec=1_000_000 must produce Some(DateTime)");
+    assert!(
+        dt_1m.is_some(),
+        "AC-005: ts_sec=1_000_000 must produce Some(DateTime)"
+    );
     let expected_1m = Utc.with_ymd_and_hms(1970, 1, 12, 13, 46, 40).unwrap();
     assert_eq!(
         dt_1m.unwrap(),
@@ -16863,19 +16990,25 @@ fn test_timestamp_conversion_known_values() {
     // (the BC's intended example: 1 billion seconds is 2001-09-08)
     let ts_1b: u32 = 1_000_000_000;
     let dt_1b = DateTime::from_timestamp(ts_1b as i64, 0);
-    assert!(dt_1b.is_some(), "AC-005: ts_sec=1_000_000_000 must produce Some(DateTime)");
-    let expected_1b = Utc.with_ymd_and_hms(2001, 9, 9, 1, 46, 40).unwrap();
+    assert!(
+        dt_1b.is_some(),
+        "AC-005: ts_sec=1_000_000_000 must produce Some(DateTime)"
+    );
     // Verify the year/month/day match the BC's example (2001-09-08 or 2001-09-09 in UTC)
     let actual_1b = dt_1b.unwrap();
     assert_eq!(
-        actual_1b.format("%Y").to_string(), "2001",
+        actual_1b.format("%Y").to_string(),
+        "2001",
         "AC-005: ts_sec=1_000_000_000 must map to a date in year 2001"
     );
 
     // Vector 2: ts_sec = 0 → 1970-01-01T00:00:00Z
     let ts_zero: u32 = 0;
     let dt_zero = DateTime::from_timestamp(ts_zero as i64, 0);
-    assert!(dt_zero.is_some(), "AC-005: ts_sec=0 must produce Some(DateTime) (Unix epoch)");
+    assert!(
+        dt_zero.is_some(),
+        "AC-005: ts_sec=0 must produce Some(DateTime) (Unix epoch)"
+    );
     let expected_zero = Utc.with_ymd_and_hms(1970, 1, 1, 0, 0, 0).unwrap();
     assert_eq!(
         dt_zero.unwrap(),
@@ -16955,22 +17088,23 @@ fn test_cross_flow_timestamp_isolation() {
     let expected_ts_a = DateTime::from_timestamp(ts_a as i64, 0).unwrap();
     let expected_ts_b = DateTime::from_timestamp(ts_b as i64, 0).unwrap();
 
-    let timestamps: std::collections::HashSet<_> = all_findings
-        .iter()
-        .map(|f| f.timestamp.unwrap())
-        .collect();
+    let timestamps: std::collections::HashSet<_> =
+        all_findings.iter().map(|f| f.timestamp.unwrap()).collect();
     assert!(
         timestamps.contains(&expected_ts_a),
-        "AC-006: flow A's timestamp ({:?}) must appear in findings", expected_ts_a
+        "AC-006: flow A's timestamp ({:?}) must appear in findings",
+        expected_ts_a
     );
     assert!(
         timestamps.contains(&expected_ts_b),
-        "AC-006: flow B's timestamp ({:?}) must appear in findings", expected_ts_b
+        "AC-006: flow B's timestamp ({:?}) must appear in findings",
+        expected_ts_b
     );
     assert!(
         timestamps.len() <= 2,
         "AC-006 (BC-2.09.007 inv-4 / VP-014): no timestamp other than ts_a or ts_b \
-         must appear in findings; found {:?}", timestamps
+         must appear in findings; found {:?}",
+        timestamps
     );
 }
 
@@ -16980,7 +17114,7 @@ fn test_cross_flow_timestamp_isolation() {
 /// summary), no "timestamp" key appears (skip_serializing_if).
 #[test]
 fn test_json_finding_timestamp_serialization() {
-    use chrono::{DateTime, Utc};
+    use chrono::DateTime;
     use wirerust::reporter::Reporter;
     use wirerust::reporter::json::JsonReporter;
     use wirerust::summary::Summary;
@@ -17017,15 +17151,13 @@ fn test_json_finding_timestamp_serialization() {
         direction: None,
     };
 
-    let json_str = JsonReporter.render(
-        &Summary::new(),
-        &[finding_with_ts, finding_no_ts],
-        &[],
-    );
-    let parsed: serde_json::Value = serde_json::from_str(&json_str)
-        .expect("JSON output must be valid JSON");
+    let json_str = JsonReporter.render(&Summary::new(), &[finding_with_ts, finding_no_ts], &[]);
+    let parsed: serde_json::Value =
+        serde_json::from_str(&json_str).expect("JSON output must be valid JSON");
 
-    let findings_arr = parsed["findings"].as_array().expect("findings must be array");
+    let findings_arr = parsed["findings"]
+        .as_array()
+        .expect("findings must be array");
     assert_eq!(findings_arr.len(), 2, "JSON must contain 2 findings");
 
     // Finding 0 (with timestamp): must have "timestamp" key with ISO-8601 value
@@ -17034,7 +17166,9 @@ fn test_json_finding_timestamp_serialization() {
         f0.get("timestamp").is_some(),
         "BC-2.09.007 pc5 / EC-005: finding with Some(timestamp) must have 'timestamp' key in JSON"
     );
-    let ts_str = f0["timestamp"].as_str().expect("timestamp must be a JSON string");
+    let ts_str = f0["timestamp"]
+        .as_str()
+        .expect("timestamp must be a JSON string");
     // ts_sec=1_000_000_000 → ISO-8601 UTC: "2001-09-08T21:46:40Z" or "2001-09-09T01:46:40Z"
     // depending on timezone; we only require "2001" and "46:40" are present.
     assert!(

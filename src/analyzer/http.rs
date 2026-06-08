@@ -13,6 +13,8 @@
 
 use std::collections::HashMap;
 
+use chrono::DateTime;
+
 use crate::analyzer::AnalysisSummary;
 use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use crate::reassembly::flow::FlowKey;
@@ -186,7 +188,12 @@ impl HttpAnalyzer {
         self.poisoned_bytes_skipped
     }
 
-    fn check_request_detections(&mut self, parsed: &ParsedRequest, _flow_key: &FlowKey) {
+    fn check_request_detections(
+        &mut self,
+        parsed: &ParsedRequest,
+        _flow_key: &FlowKey,
+        last_ts: u32,
+    ) {
         let uri_lower = parsed.uri.to_lowercase();
 
         // 1. Path traversal (including URL-encoded variants)
@@ -203,7 +210,9 @@ impl HttpAnalyzer {
                 evidence: vec![format!("URI: {}", parsed.uri)],
                 mitre_technique: Some("T1083".to_string()),
                 source_ip: None,
-                timestamp: None,
+                // BC-2.09.007 post-1: capture-relative pcap timestamp from the
+                // on_data call that delivered this request data.
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ClientToServer),
             });
         }
@@ -233,7 +242,7 @@ impl HttpAnalyzer {
                 evidence: vec![format!("URI: {}", parsed.uri)],
                 mitre_technique: Some("T1505.003".to_string()),
                 source_ip: None,
-                timestamp: None,
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ClientToServer),
             });
         }
@@ -249,7 +258,7 @@ impl HttpAnalyzer {
                 evidence: vec![format!("URI: {}", parsed.uri)],
                 mitre_technique: Some("T1046".to_string()),
                 source_ip: None,
-                timestamp: None,
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ClientToServer),
             });
         }
@@ -265,7 +274,7 @@ impl HttpAnalyzer {
                 evidence: vec![format!("{} {}", parsed.method, parsed.uri)],
                 mitre_technique: None,
                 source_ip: None,
-                timestamp: None,
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ClientToServer),
             });
         }
@@ -301,7 +310,7 @@ impl HttpAnalyzer {
                     evidence: vec![format!("{} {}", parsed.method, parsed.uri)],
                     mitre_technique: None,
                     source_ip: None,
-                    timestamp: None,
+                    timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                     direction: Some(Direction::ClientToServer),
                 });
             }
@@ -317,7 +326,7 @@ impl HttpAnalyzer {
                 evidence: vec![format!("URI prefix: {}", truncate_uri(&parsed.uri, 200))],
                 mitre_technique: None,
                 source_ip: None,
-                timestamp: None,
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ClientToServer),
             });
         }
@@ -356,7 +365,7 @@ impl HttpAnalyzer {
                 evidence: vec![format!("{} {}", parsed.method, parsed.uri)],
                 mitre_technique: None,
                 source_ip: None,
-                timestamp: None,
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ClientToServer),
             });
         }
@@ -398,7 +407,11 @@ impl HttpAnalyzer {
                         self.uris.push(parsed.uri.clone());
                     }
 
-                    self.check_request_detections(&parsed, flow_key);
+                    // BC-2.09.007: retrieve per-flow last_ts before calling
+                    // check_request_detections so detection findings carry the
+                    // capture-relative timestamp.
+                    let last_ts = self.flows.get(flow_key).map(|s| s.last_ts).unwrap_or(0);
+                    self.check_request_detections(&parsed, flow_key, last_ts);
 
                     if let Some(state) = self.flows.get_mut(flow_key) {
                         state.request_buf.drain(..parsed.bytes_consumed);
@@ -420,6 +433,7 @@ impl HttpAnalyzer {
                             }
                         }
                         if e == httparse::Error::TooManyHeaders {
+                            let last_ts = self.flows.get(flow_key).map(|s| s.last_ts).unwrap_or(0);
                             self.all_findings.push(Finding {
                                 category: ThreatCategory::Anomaly,
                                 verdict: Verdict::Inconclusive,
@@ -428,7 +442,8 @@ impl HttpAnalyzer {
                                 evidence: vec!["Direction: request".to_string()],
                                 mitre_technique: Some("T1499.002".to_string()),
                                 source_ip: None,
-                                timestamp: None,
+                                // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                             direction: Some(Direction::ClientToServer),
                             });
                         }
@@ -479,6 +494,7 @@ impl HttpAnalyzer {
                             }
                         }
                         if e == httparse::Error::TooManyHeaders {
+                            let last_ts = self.flows.get(flow_key).map(|s| s.last_ts).unwrap_or(0);
                             self.all_findings.push(Finding {
                                 category: ThreatCategory::Anomaly,
                                 verdict: Verdict::Inconclusive,
@@ -487,7 +503,8 @@ impl HttpAnalyzer {
                                 evidence: vec!["Direction: response".to_string()],
                                 mitre_technique: Some("T1499.002".to_string()),
                                 source_ip: None,
-                                timestamp: None,
+                                // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                             direction: Some(Direction::ServerToClient),
                             });
                         }
