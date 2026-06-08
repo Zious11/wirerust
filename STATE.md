@@ -21,7 +21,7 @@ phase_6_completed: "2026-06-02"
 phase_6_to_7_gate: "PASSED (human-approved 2026-06-02)"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-08 — Approve → release-prep)"
 adversary_gate: SATISFIED
-develop_head: 153f225
+develop_head: 77fd45f
 main_head: 2e8d256
 released_version: v0.1.0
 released_at: "2026-06-08"
@@ -65,34 +65,34 @@ input_drift_check: "CLEAN — MATCH=48/STALE=0 (post Phase-5 closure; STORY-091 
 | Phase 7 — Convergence | **PASSED + RELEASED** (human-approved 2026-06-08) | 6 PASS / 1 CONCERN (Perf — non-blocking); 1126 tests; consistency CONSISTENT (8/8); 20 VPs locked |
 | Release — v0.1.0 | **RELEASED** 2026-06-08 | GitHub Release; 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); run 27155277051 all jobs success |
 
-## Session Resume Checkpoint (2026-06-08 — v0.1.0 RELEASED — Cohort A DISPOSITIONED)
+## Session Resume Checkpoint (2026-06-08 — v0.1.0 RELEASED — Supply-Chain Hardening COMPLETE)
 
-**POSITION:** v0.1.0 RELEASED — pipeline complete. Cohort A issues (#100–#104) re-validated under DF-VALIDATION-001 and dispositioned (D-022). Two fix-PRs closed (#194, #195). develop HEAD `153f225`.
+**POSITION:** v0.1.0 RELEASED — pipeline complete. Cohort A dispositioned (D-022). Supply-chain SHA-pin hardening complete (D-023): 7/8 actions SHA-pinned; 'Action pin gate' CI job enforcing pins; #193 closed in favor of SHA-pinning. develop HEAD `77fd45f`.
 
 **VERIFIED-CLEAN FACTS:**
 - main HEAD `2e8d256` — v0.1.0 release commit; annotated tag `v0.1.0`
-- develop HEAD `153f225` — PR #195: cap weak-cipher evidence vec + reclassify #102
+- develop HEAD `77fd45f` — PR #196: SHA-pin 4 remaining actions + action-pin gate (77fd45f)
 - 1126+ tests green; clippy clean; fmt clean; 20 VPs locked (614e0e0)
 - GitHub Release: https://github.com/Zious11/wirerust/releases/tag/v0.1.0
-- All 7 phases PASSED; adversary gate 3/3 SATISFIED; holdout mean 0.949; consistency CONSISTENT
-- Cohort A: #104 CLOSED (PR #194 cf21168), #102 CLOSED (PR #195 153f225), #100 PENDING-FEATURE, #101 OPEN-DEBT, #103 DEFERRED
+- Actions SHA-pinned (7/8): checkout, rust-toolchain exempt, rust-cache, cargo-deny, semantic-pr, upload-artifact, download-artifact, gh-release
+- Cohort A: #104 CLOSED (PR #194), #102 CLOSED (PR #195), #100 PENDING-FEATURE, #101 OPEN-DEBT, #103 DEFERRED
 
 **OPEN POST-RELEASE ITEMS (do NOT lose):**
 - Optional gitflow hygiene: back-merge main→develop (cosmetic; content identical).
 - Post-pipeline: session-reviewer pass (capture lessons) per the Post-Pipeline phase.
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
-- #100 (thread pcap timestamps → Finding.timestamp): FEATURE-MODE — breaks StreamHandler::on_data + ~22 emission sites; scope as small feature with its own BC before starting
-- #101 (characterize anomaly-threshold FP/TP rates): OPEN-DEBT — corpus-dependent; blocks #103; sequence together when corpus work begins
-- #103 (bidirectional size-symmetry evasion discriminator): DEFERRED — wirerust-original heuristic; requires validation pass + labelled corpus (shares prereq with #101)
-- Dependabot PR #193 (bump actions/checkout 6→6.0.2, soak-clear): PENDING DISPOSITION
+- #100 (thread pcap timestamps): FEATURE-MODE — scope as feature with own BC
+- #101 (FP/TP rate characterization): OPEN-DEBT — corpus-dependent; blocks #103
+- #103 (size-symmetry evasion discriminator): DEFERRED — needs labelled corpus
+- ACTION-PIN-001: dtolnay/rust-toolchain @stable/@nightly intentionally exempt from pin gate
 - Drift items: O-07, O-08, F-W25-S088-P6-001
-- RUSTSEC-2026-0097: accepted-transitive; revisit when tls-parser bumps phf to 0.12+
+- RUSTSEC-2026-0097: accepted-transitive; revisit when tls-parser bumps phf→0.12+
 - Phase-5 tech-debt (P3): CR-002/003/005/006/007/009/012 — see tech-debt-register.md
 - FE-001 v2: pcapng support parked for next cycle
 
 **RESUME PROTOCOL (if re-entering post-release):**
 1. `vsdd-factory:factory-worktree-health` — BLOCKING
-2. Read `STATE.md` — confirm RELEASED + Cohort A dispositioned status
+2. Read `STATE.md` — confirm RELEASED + supply-chain hardening status
 3. Proceed to Post-Pipeline phase (session-reviewer, lessons) or next cycle
 
 Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
@@ -122,7 +122,8 @@ Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 | D-019 | Corrected main-branch staging to gitflow-proper. main force-reset; branch protection added (PR required, 8 status checks, force-push blocked); v0.1.0 staged via release/v0.1.0 → PR #189 → main merge 8928398. Rule codified in CLAUDE.md (PR #188). | 2026-06-08 | Gitflow main-branch correction |
 | D-020 | Published wirerust v0.1.0. Annotated tag v0.1.0 on main 2e8d256 (gitflow-proper). release.yml built + attached 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); GitHub Release live; run 27155277051 all jobs success. CHANGELOG [0.1.0] notes. Human-authorized publish. | 2026-06-08 | v0.1.0 release |
 | D-021 | DI-001 closed — release.yml Node20 actions migrated to Node24, SHA-pinned exact soak-clear versions (upload-artifact@043fb46d1a93 v7.0.1, download-artifact@3e5f45b2cfb9 v8.0.1, gh-release@b4309332981a v3.0.0); dependabot.yml added (cargo 7d/30d-major + github-actions 7d cooldowns, jira-cli soak convention). Fix on develop only by design (gitflow — CI change reaches main at v0.1.1; release.yml runs at tag-time; dependabot reads from default branch develop). PR #192 → develop (2fe3440). Validated: workflow_dispatch run 27159378751, 4 build jobs green, upload-artifact@v7 attached all 4 artifacts. | 2026-06-08 | DI-001 Node20→Node24 migration |
-| D-022 | Post-release issue work — Cohort A (#100–#104) re-validated against current develop under DF-VALIDATION-001 (all 5 STILL-VALID, line refs refreshed). Fixed 2 quick-fix bugs via TDD fix-PRs: #104 (SNI control-byte summary for mixed control+non-ASCII values, BC-TLS-037, PR #194 cf21168) and #102 (cap weak-cipher evidence vec at 64 + elision; reclassified low-severity hardening NOT CWE-405/DoS, PR #195 153f225). Both closed. Remaining: #100 FEATURE-MODE (breaks StreamHandler::on_data + ~22 emission sites; scope as feature with own BC); #101 OPEN-DEBT (corpus-dependent FP/TP measurement; blocks #103); #103 DEFERRED (size-symmetry evasion discriminator; wirerust-original; needs labelled corpus — sequence with #101). Dependabot now live (D-021); PR #193 (bump actions/checkout 6→6.0.2) pending disposition. | 2026-06-08 | Cohort A post-release issue triage and quick fixes |
+| D-022 | Post-release issue work — Cohort A (#100–#104) re-validated against current develop under DF-VALIDATION-001 (all 5 STILL-VALID, line refs refreshed). Fixed 2 quick-fix bugs via TDD fix-PRs: #104 (SNI control-byte summary for mixed control+non-ASCII values, BC-TLS-037, PR #194 cf21168) and #102 (cap weak-cipher evidence vec at 64 + elision; reclassified low-severity hardening NOT CWE-405/DoS, PR #195 153f225). Both closed. Remaining: #100 FEATURE-MODE; #101 OPEN-DEBT; #103 DEFERRED. Dependabot now live (D-021); PR #193 pending disposition. | 2026-06-08 | Cohort A post-release issue triage and quick fixes |
+| D-023 | Supply-chain hardening via HYBRID cross-model adversarial review of dependabot PR #193 (actions/checkout 6→6.0.2). Reviewers: Claude `adversary` agent + Gemini CLI (gemini 0.44.1, genuine non-Claude model-family diversity — factory's first true cross-family adversary). Both converged on verdict (b): close #193, SHA-pin instead. The hybrid ALSO caught Gemini hallucinations (fabricated 'pcap-fixture-as-version-string' red flag; wrong guessed SHA 11bd719) — discarded after verification; real SHA resolved from GitHub API. Findings: prior SHA-pin pass (D-021) was only 3/8 complete. Action: closed #193; SHA-pinned 4 more actions (checkout de0fac2e #v6.0.2, Swatinem/rust-cache c1937114 #v2.9.1, EmbarkStudios/cargo-deny-action bb137d7a #v2.0.20, amannn/action-semantic-pull-request 48f25628 #v6.1.1) across ci.yml+release.yml → 7/8 pinned; added 'Action pin gate' CI job enforcing SHA pins (fails on tags); documented policy in CLAUDE.md; gate added to main's required status checks (9 total). PR #196 → develop 77fd45f. | 2026-06-08 | Supply-chain SHA-pin hardening + enforcement gate |
 
 ## Blocking Issues
 
@@ -143,6 +144,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | RUSTSEC-2026-0097 | rand 0.8.5 unsound (transitive via tls-parser→phf 0.11); upstream-only fix path | ACCEPTED-TRANSITIVE — revisit when tls-parser bumps phf→0.12+ |
 | DI-001 | release.yml Node20 actions migrated to SHA-pinned Node24 (upload-artifact@v7.0.1, download-artifact@v8.0.1, gh-release@v3.0.0); dependabot.yml added. PR #192 → develop (2fe3440). | RESOLVED — closed 2026-06-08 |
 | FE-001 | pcapng input format not supported (.pcap-only); parked v2 idea (2026-06-08 demo) — see tech-debt-register.md Future Enhancements | deferred / v2 / not-filed |
+| ACTION-PIN-001 | dtolnay/rust-toolchain @stable and @nightly remain branch-ref (not SHA-pinned) — intentionally exempt in the Action pin gate (toolchain installer, channel-selected). Tracked for separate resolution (decide: SHA-pin + toolchain: input, or accept exemption). | OPEN P3 — low priority |
 
 ## Cycle-Close Follow-Up Items
 
@@ -152,6 +154,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | PG-1 | tooling-selection.md mutation scope omits CRITICAL reassembly modules (SS-04) | CLOSED — H-1 fix: tooling-selection.md body now records SS-04 reassembly mutation scope + Phase-6 outcomes (PR #184); 2026-06-08 |
 | PG-2 | CRITICAL VP "justified" via debug-only guard — caught at human gate | CLOSED — lesson recorded; hardening-gate checklist recommendation in lessons.md |
 | PG-3 | Stale local develop — agents must branch off origin/develop | CLOSED — lesson recorded; DF-DEVELOP-FRESHNESS-001 governs |
+| PG-4 | Dependabot does not auto-convert action tags to SHAs — SHA-pin policy was unenforceable by cooldown alone; prior pass (D-021) left 5/8 unpinned [codified] | CODIFIED/CLOSED — 'Action pin gate' CI check + CLAUDE.md policy enforced by PR #196; 2026-06-08 |
 
 ## Governance Policy
 
@@ -177,4 +180,4 @@ Full policy text: `.factory/policies.yaml`. Detail: `cycles/phase-3-tdd/governan
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`. SS-03 gap in BC numbering intentional.
 - Phase 0 ground truth: `.factory/semport/wirerust/wirerust-pass-8-deep-synthesis.md`. Wave history: `cycles/phase-3-tdd/convergence-trajectory.md`. Phase 1/2 adversary detail: `cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`. Phase 4 holdout: `cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md`. Phase 6 hardening evidence: `cycles/v0.1.0-greenfield-spec/hardening/`.
-- GitHub issues Cohort A dispositioned (D-022): #104 CLOSED (PR #194), #102 CLOSED (PR #195), #100 FEATURE-MODE pending, #101 OPEN-DEBT (corpus prerequisite for #103), #103 DEFERRED. Dependabot PR #193 pending disposition.
+- GitHub issues Cohort A dispositioned (D-022): #104 CLOSED (PR #194), #102 CLOSED (PR #195), #100 FEATURE-MODE pending, #101 OPEN-DEBT, #103 DEFERRED. Dependabot PR #193 CLOSED (SHA-pin preferred, D-023). Supply-chain: 7/8 actions SHA-pinned; pin gate enforced (PR #196).
