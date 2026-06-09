@@ -7,6 +7,26 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-09
+
+### Changed (BREAKING)
+
+- **Finding MITRE attribution: scalar → array (ECS-aligned).** `Finding.mitre_technique: Option<String>` has been renamed to `mitre_techniques: Vec<String>`. In JSON output the field is now `"mitre_techniques"` (an array); it is omitted entirely when empty. Downstream JSON consumers must update to read an array instead of a scalar. In CSV output the column is renamed `mitre_techniques`; multiple values are semicolon-joined (e.g. `T0855;T0836`); a single value is written without a separator; an empty value is an empty string. The terminal reporter now renders `MITRE: T0855, T0836` for multi-technique findings and groups by the first technique's tactic. This aligns the schema with Elastic ECS `threat.technique.id` (PR #209, STORY-100/101).
+
+- **JSON report envelope: new fields.** Every JSON report now includes two top-level envelope fields: `"mitre_domain": "ics-attack"` and `"mitre_attack_version": "ics-attack-19.1"`. The domain is constant (wirerust targets the ATT&CK for ICS matrix). The version is pinned to ATT&CK for ICS v19.1 (released 2026-04-28), which covers all 21 seeded technique IDs including the 6 staged ICS entries (STORY-101, PR #209).
+
+### Migration
+
+Downstream consumers of wirerust JSON or CSV output must update for this release:
+
+- **JSON**: The finding attribute changed from `"mitre_technique": "T1027"` (string, may be absent) to `"mitre_techniques": ["T1027"]` (array, omitted when empty). Update any field reads to `obj["mitre_techniques"][0]` for single-technique findings or iterate the array for multi-technique ones.
+- **CSV**: Column 6 changed from `mitre_technique` to `mitre_techniques`. Multi-value cells are semicolon-joined; split on `";"` to get individual technique IDs.
+- **JSON envelope**: Two new top-level keys (`mitre_domain`, `mitre_attack_version`) are now always present. If your parser requires a strict fixed key set, add these two keys to your allowlist.
+
+### Added
+
+- **MITRE ICS catalog expanded.** The technique catalog grew from 15 to 21 seeded entries. Six new ICS technique IDs are staged for the upcoming Modbus analyzer (STORY-104): T0836 (Modify Parameter), T0814 (Deny Control), T0806 (Brute Force I/O), T0835 (Manipulate I/O Image), T0831 (Manipulation of Control), T0888 (Remote System Information Discovery). T0855 (Unauthorized Command Message) is now emitted by the TLS analyzer. Total emitted count: 13 (6 Enterprise + 7 ICS), up from 6 emitted in v0.2.0 (PR #209, STORY-100/101).
+
 ## [0.2.0] - 2026-06-09
 
 ### Added
@@ -150,6 +170,7 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Zious11/wirerust/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Zious11/wirerust/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Zious11/wirerust/releases/tag/v0.1.0

@@ -1,7 +1,7 @@
 //! JSON reporter — machine-readable rendering for downstream tooling.
 //!
 //! Emits a `{ "summary": {...}, "findings": [...], "analyzers": [...],
-//! "mitre_domain": "ics-attack", "mitre_attack_version": "ics-attack-v15" }`
+//! "mitre_domain": "ics-attack", "mitre_attack_version": "ics-attack-19.1" }`
 //! object (BC-2.11.001). Per STORY-100 / BC-2.09.006, `mitre_techniques`
 //! is a JSON array (empty vec → key absent via `Vec::is_empty` skip).
 //!
@@ -20,10 +20,11 @@ use crate::summary::Summary;
 /// ATT&CK for ICS domain identifier — constant, not dynamic.
 const MITRE_DOMAIN: &str = "ics-attack";
 
-// FLAG(F4): verify this version covers T0888, T0855, T0836, T0835, T0831, T0814, T0806
-// at https://attack.mitre.org/resources/attack-data-and-tools/ before v0.3.0 release tag.
-// Update this constant if the authoritative ATT&CK for ICS version differs.
-const MITRE_ATTACK_VERSION: &str = "ics-attack-v15";
+// F4: RESOLVED — pinned to ATT&CK for ICS v19.1 (released 2026-04-28).
+// Canonical STIX bundle: ics-attack-19.1.json. All emitted ICS technique IDs
+// (T0888, T0855, T0836, T0835, T0831, T0814, T0806) confirmed valid and active
+// in v19.1. See .factory/research/attack-ics-version-pin.md for full validation.
+const MITRE_ATTACK_VERSION: &str = "ics-attack-19.1";
 
 pub struct JsonReporter;
 

@@ -19,13 +19,12 @@
 //!   - BC-2.10.005/007/008 → `test_BC_2_10_005_*` / `test_BC_2_10_007_*` / `test_BC_2_10_008_*`
 //!   - BC-2.11.001/013/015/017/020/024 → `test_BC_2_11_001_*` / etc.
 //!
-//! # F4-PIN obligation (STORY-101 AC-FLAG-001)
+//! # F4-PIN: RESOLVED (v0.3.0 release)
 //!
-//! The constant `MITRE_ATTACK_VERSION = "ics-attack-v15"` is a placeholder.
-//! F4 implementers MUST verify the authoritative ATT&CK for ICS version at
-//! https://attack.mitre.org/resources/attack-data-and-tools/ before the v0.3.0
-//! release tag to confirm it covers T0888, T0855, T0836, T0835, T0831, T0814, T0806.
-//! Update the constant in src/reporter/json.rs before tagging.
+//! The constant `MITRE_ATTACK_VERSION = "ics-attack-19.1"` is pinned to
+//! ATT&CK for ICS v19.1 (released 2026-04-28). All emitted ICS technique IDs
+//! (T0888, T0855, T0836, T0835, T0831, T0814, T0806) are confirmed valid and
+//! active in v19.1. See .factory/research/attack-ics-version-pin.md.
 
 // Rust flags non-snake-case names that embed BC identifiers; suppress per project
 // convention (see reporter_json_tests.rs precedent).
@@ -573,9 +572,8 @@ fn test_BC_2_10_008_vp007_new_ics_ids_resolve_positive_coverage() {
 /// Top-level JSON object has exactly 5 keys including `mitre_domain` and
 /// `mitre_attack_version`. `mitre_domain` == `"ics-attack"`.
 ///
-/// # F4-PIN: `mitre_attack_version = "ics-attack-v15"` is a placeholder.
-/// Verify the authoritative ATT&CK for ICS version at
-/// attack.mitre.org/resources/attack-data-and-tools/ before the v0.3.0 tag.
+/// # F4: RESOLVED — `mitre_attack_version = "ics-attack-19.1"` (ATT&CK for ICS v19.1,
+/// released 2026-04-28). All emitted ICS technique IDs verified valid in v19.1.
 #[test]
 fn test_BC_2_11_001_json_report_envelope_has_mitre_domain_and_version() {
     let json = render_json(&[]);
@@ -604,13 +602,12 @@ fn test_BC_2_11_001_json_report_envelope_has_mitre_domain_and_version() {
         "BC-2.11.001 pc7: mitre_domain must equal 'ics-attack'"
     );
 
-    // mitre_attack_version = "ics-attack-v15" (F4-PIN placeholder).
-    // F4-PIN: verify the authoritative ATT&CK for ICS version before v0.3.0 tag.
+    // mitre_attack_version = "ics-attack-19.1" (pinned — F4 resolved, v0.3.0 release).
     assert_eq!(
         json["mitre_attack_version"],
-        serde_json::Value::String("ics-attack-v15".to_string()),
-        "BC-2.11.001 pc8: mitre_attack_version must equal 'ics-attack-v15' \
-         (F4-PIN placeholder — verify before v0.3.0 release)"
+        serde_json::Value::String("ics-attack-19.1".to_string()),
+        "BC-2.11.001 pc8: mitre_attack_version must equal 'ics-attack-19.1' \
+         (ATT&CK for ICS v19.1, released 2026-04-28, F4 resolved)"
     );
 }
 
