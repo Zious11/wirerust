@@ -1,0 +1,37 @@
+# Affected files — Issue #100: Thread pcap timestamps to Finding.timestamp
+# Format: <CHANGE_TYPE> <file_path>
+# MODIFIED = existing file changes; NEW = new file created; DEPENDENT = unchanged but depends on modified
+
+MODIFIED src/reassembly/handler.rs
+MODIFIED src/reassembly/mod.rs
+MODIFIED src/reassembly/lifecycle.rs
+MODIFIED src/dispatcher.rs
+MODIFIED src/analyzer/http.rs
+MODIFIED src/analyzer/tls.rs
+MODIFIED tests/reassembly_engine_tests.rs
+MODIFIED tests/hs043_flow_expiry_tests.rs
+MODIFIED .factory/specs/behavioral-contracts/ss-09/BC-2.09.001.md
+MODIFIED .factory/specs/behavioral-contracts/ss-09/BC-2.09.006.md
+MODIFIED .factory/specs/behavioral-contracts/ss-01/BC-2.01.005.md
+MODIFIED .factory/specs/verification-properties/VP-INDEX.md
+NEW .factory/specs/behavioral-contracts/ss-09/BC-2.09.007.md
+NEW .factory/specs/behavioral-contracts/ss-04/BC-2.04.055.md
+NEW .factory/specs/verification-properties/vp-021-timestamp-provenance-threading.md
+
+# REGRESSION BASELINE (not changed)
+UNCHANGED src/findings.rs
+UNCHANGED src/reader.rs
+UNCHANGED src/main.rs
+UNCHANGED src/reassembly/flow.rs
+UNCHANGED src/reassembly/config.rs
+UNCHANGED src/reassembly/stats.rs
+UNCHANGED src/reassembly/segment.rs
+UNCHANGED src/decoder.rs
+UNCHANGED src/reporter/json.rs
+UNCHANGED src/reporter/csv.rs
+UNCHANGED src/reporter/terminal.rs
+UNCHANGED src/analyzer/dns.rs
+UNCHANGED src/lib.rs
+UNCHANGED src/cli.rs
+UNCHANGED src/mitre.rs
+UNCHANGED src/summary.rs

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-08T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-09
 capability: CAP-09
 lifecycle_status: active
 introduced: v0.2.0-feature-100
-modified: []
+modified:
+  - "v1.1: F5 ADV-F5-HIGH-001 — corrected canonical ts_sec=1_000_000 vector from 2001-09-08 to arithmetically-correct 1970-01-12T13:46:40Z (1_000_000_000 ≠ 1_000_000). — 2026-06-08"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -102,7 +103,7 @@ post-capture aggregate not tied to any specific packet; that finding correctly r
 | EC-002 | Segment-limit summary finding (finalize aggregate) | `timestamp: None` — correct, not a gap. JSON omits the `"timestamp"` key per existing serde attribute |
 | EC-003 | ts_sec = 0 (capture timestamp is Unix epoch) | `Finding.timestamp = Some(DateTime::from_timestamp(0, 0)) = Some(1970-01-01T00:00:00Z)` — valid and correctly serialized |
 | EC-004 | ts_sec = u32::MAX = 4_294_967_295 | `Finding.timestamp = Some(DateTime::from_timestamp(4_294_967_295, 0))` — within chrono range (~2106 CE); conversion is lossless |
-| EC-005 | JSON output for a finding with Some(ts) | `"timestamp": "2001-09-08T21:46:40Z"` for ts_sec=1_000_000 — ISO-8601 UTC format via chrono's serde integration |
+| EC-005 | JSON output for a finding with Some(ts) | `"timestamp": "1970-01-12T13:46:40Z"` for ts_sec=1_000_000 — ISO-8601 UTC format via chrono's serde integration |
 | EC-006 | JSON output for the segment-limit summary finding | No `"timestamp"` key in JSON (skip_serializing_if = "Option::is_none") |
 | EC-007 | Two concurrent flows with different timestamps | Each flow's Finding carries only that flow's most-recently-seen timestamp; no cross-contamination (VP-014 cross-flow isolation invariant applies) |
 
@@ -110,8 +111,8 @@ post-capture aggregate not tied to any specific packet; that finding correctly r
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| pcap packet at ts_sec=1_000_000 → HTTP path traversal detected → flush_contiguous_data called | `Finding.timestamp = Some(2001-09-08T21:46:40Z)` | happy-path |
-| pcap packet at ts_sec=1_000_000 → flow FIN → close_flow called with flow.last_seen=1_000_000 | `Finding.timestamp = Some(2001-09-08T21:46:40Z)` | happy-path |
+| pcap packet at ts_sec=1_000_000 → HTTP path traversal detected → flush_contiguous_data called | `Finding.timestamp = Some(1970-01-12T13:46:40Z)` | happy-path |
+| pcap packet at ts_sec=1_000_000 → flow FIN → close_flow called with flow.last_seen=1_000_000 | `Finding.timestamp = Some(1970-01-12T13:46:40Z)` | happy-path |
 | finalize called after segment-limit exceeded | Segment-limit summary finding has `timestamp = None`; no `"timestamp"` key in JSON | edge-case |
 | ts_sec=0 (epoch) packet emits finding | `Finding.timestamp = Some(1970-01-01T00:00:00Z)` | edge-case |
 | Two flows A (ts=1000) and B (ts=2000) emit findings in same run | Finding from flow A has ts=1000; finding from flow B has ts=2000; no cross-contamination | edge-case |

@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-098
 epic_id: E-12
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.007.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.055.md
   - .factory/feature-delta/issue-100-pcap-timestamps/delta-analysis.md
-input-hash: ee95abc
+input-hash: cab86bd
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-097]
@@ -56,7 +56,7 @@ All 7 `TlsAnalyzer` finding-emission sites in `src/analyzer/tls.rs` set `timesta
 - **Test:** `test_tls_findings_have_timestamp()` — drive `TlsAnalyzer` with known `ts_sec`; assert all emitted Findings have `timestamp.is_some()`.
 
 ### AC-003 (traces to BC-2.09.007 postcondition 1 — reassembly anomaly emission sites)
-The 4 anomaly finding-emission sites in `src/reassembly/mod.rs` (overlap, small-segment, out-of-window, and any additional anomaly sites reachable from `process_packet`) and the 2 sites in `src/reassembly/lifecycle.rs` (conflicting-overlap, stream-depth-exceeded) set `timestamp: Some(...)` using the timestamp value in scope at the call site. (These sites are called from paths where the current-packet `timestamp: u32` is accessible — see F1 §4.5.)
+The 3 anomaly finding-emission sites in `src/reassembly/mod.rs` (overlap at :493, small-segment at :533, out-of-window at :559) and the 2 sites in `src/reassembly/lifecycle.rs` (conflicting-overlap, stream-depth-exceeded) set `timestamp: Some(...)` using the timestamp value in scope at the call site. (These sites are called from paths where the current-packet `timestamp: u32` is accessible — see F1 §4.5.)
 - **Test:** `test_reassembly_anomaly_findings_have_timestamp()` — trigger each reassembly anomaly type with a known `ts_sec`; assert the resulting Finding has `timestamp.is_some()`.
 
 ### AC-004 (traces to BC-2.09.007 invariant 1 — 21 of 22 sites)
@@ -64,7 +64,7 @@ Exactly 21 of 22 production emission sites set `timestamp: Some(...)`. The one e
 - **Test:** `test_segment_limit_summary_finding_has_no_timestamp()` — drive reassembler past `MAX_SEGMENTS_PER_DIRECTION`; assert the segment-limit summary `Finding` has `timestamp == None`.
 
 ### AC-005 (traces to BC-2.09.007 invariant 2 — lossless u32 conversion)
-The `u32 → DateTime<Utc>` conversion uses `DateTime::from_timestamp(ts_sec as i64, 0)`. For `ts_sec = 1_000_000`, the result is `Some(2001-09-08T21:46:40Z)`. For `ts_sec = 0`, the result is `Some(1970-01-01T00:00:00Z)`. For `ts_sec = u32::MAX`, the conversion is lossless (within chrono's supported range ~2106 CE).
+The `u32 → DateTime<Utc>` conversion uses `DateTime::from_timestamp(ts_sec as i64, 0)`. For `ts_sec = 1_000_000`, the result is `Some(1970-01-12T13:46:40Z)`. For `ts_sec = 0`, the result is `Some(1970-01-01T00:00:00Z)`. For `ts_sec = u32::MAX`, the conversion is lossless (within chrono's supported range ~2106 CE).
 - **Test:** `test_timestamp_conversion_known_values()` — unit test asserting the three canonical conversion vectors from BC-2.09.007 test vectors table.
 
 ### AC-006 (traces to BC-2.09.007 invariant 4 — cross-flow isolation)
@@ -77,7 +77,7 @@ Per-flow timestamp state in `HttpAnalyzer` and `TlsAnalyzer` is keyed by `FlowKe
 |-----------|--------|---------------|
 | `HttpAnalyzer` per-flow `last_ts` storage + 9 emission updates | `src/analyzer/http.rs` | Effectful (per-flow HashMap mutation) |
 | `TlsAnalyzer` per-flow `last_ts` storage + 7 emission updates | `src/analyzer/tls.rs` | Effectful (per-flow HashMap mutation) |
-| Reassembly anomaly emission sites (4 in mod.rs + 2 in lifecycle.rs) | `src/reassembly/mod.rs`, `src/reassembly/lifecycle.rs` | Effectful |
+| Reassembly anomaly emission sites (3 in mod.rs + 2 in lifecycle.rs) | `src/reassembly/mod.rs`, `src/reassembly/lifecycle.rs` | Effectful |
 | `DateTime::from_timestamp` conversion | `chrono` (pure function) | Pure |
 | `Finding` struct (unchanged) | `src/findings.rs` | Pure (data struct; no changes needed) |
 
@@ -133,7 +133,7 @@ Per-flow timestamp state in `HttpAnalyzer` and `TlsAnalyzer` is keyed by `FlowKe
 6. [ ] Update `TlsAnalyzer` flow state struct to add `last_ts: u32` field.
 7. [ ] In `TlsAnalyzer::on_data`, update `self.flows.get_mut(flow_key).map(|s| s.last_ts = timestamp)`.
 8. [ ] Update all 7 TLS finding-emission sites in `src/analyzer/tls.rs` to set `timestamp: Some(DateTime::from_timestamp(...))`.
-9. [ ] Update the 4 anomaly emission sites in `src/reassembly/mod.rs` and the 2 sites in `src/reassembly/lifecycle.rs` to use `timestamp: Some(DateTime::from_timestamp(current_ts as i64, 0).unwrap_or_default())` where `current_ts` is the `u32` in scope at each call site.
+9. [ ] Update the 3 anomaly emission sites in `src/reassembly/mod.rs` (mod.rs:493 overlap, :533 small-segment, :559 out-of-window) and the 2 sites in `src/reassembly/lifecycle.rs` to use `timestamp: Some(DateTime::from_timestamp(current_ts as i64, 0).unwrap_or_default())` where `current_ts` is the `u32` in scope at each call site.
 10. [ ] Confirm the segment-limit summary finding site in `src/reassembly/mod.rs` (called from `finalize`) retains `timestamp: None` — DO NOT change it.
 11. [ ] **Green Gate:** `cargo test --all-targets` passes. All six new tests are green. No regressions.
 12. [ ] Perform code audit: `grep -rn 'timestamp: None' src/` — confirm exactly one result in the segment-limit summary site.
@@ -175,7 +175,11 @@ Per-flow timestamp state in `HttpAnalyzer` and `TlsAnalyzer` is keyed by `FlowKe
 |------|--------|---------|
 | `src/analyzer/http.rs` | **modify** | Add `last_ts: u32` to `HttpFlowState` (or equivalent); update `on_data` to store timestamp; update all 9 emission sites |
 | `src/analyzer/tls.rs` | **modify** | Add `last_ts: u32` to `TlsFlowState` (or equivalent); update `on_data` to store timestamp; update all 7 emission sites |
-| `src/reassembly/mod.rs` | **modify** | Update 4 anomaly emission sites to set `timestamp: Some(...)` |
+| `src/reassembly/mod.rs` | **modify** | Update 3 anomaly emission sites (overlap :493, small-segment :533, out-of-window :559) to set `timestamp: Some(...)` |
 | `src/reassembly/lifecycle.rs` | **modify** | Update 2 emission sites to set `timestamp: Some(...)` |
 | `tests/reassembly_engine_tests.rs` | **modify** | Add AC-001, AC-002, AC-003, AC-004, AC-005, AC-006 test functions |
 | `src/findings.rs` | **no change** | `Finding.timestamp: Option<DateTime<Utc>>` already correct; serde attribute already in place |
+
+## Revision Notes
+
+- **v1.1 (F5 fixes: HIGH-001 date vector, MED-001 site count):** Corrected `ts_sec=1_000_000` conversion vector from `2001-09-08T21:46:40Z` to `1970-01-12T13:46:40Z` (AC-005, §Background). Corrected `Some`-emitting anomaly site count from 4 to 3 in AC-003, Task 9, Architecture Mapping, and File Structure Requirements — actual sites are mod.rs:493 (overlap), :533 (small-segment), :559 (out-of-window); the previously-listed fourth site does not emit a finding from a `Some`-path. BC-2.09.007 "21 of 22" invariant references are unchanged and remain correct.
