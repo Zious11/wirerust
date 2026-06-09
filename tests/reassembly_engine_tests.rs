@@ -17000,14 +17000,14 @@ fn test_timestamp_conversion_known_values() {
     );
 
     // Vector 1b: ts_sec = 1_000_000_000 → 2001-09-08T21:46:40Z
-    // (the BC's intended example: 1 billion seconds is 2001-09-08)
+    // (chosen distinctive non-1970 vector; not drawn from BC-2.09.007 EC-005)
     let ts_1b: u32 = 1_000_000_000;
     let dt_1b = DateTime::from_timestamp(ts_1b as i64, 0);
     assert!(
         dt_1b.is_some(),
         "AC-005: ts_sec=1_000_000_000 must produce Some(DateTime)"
     );
-    // Verify the year/month/day match the BC's example (2001-09-08 or 2001-09-09 in UTC)
+    // Verify the year/month/day (2001-09-08 or 2001-09-09 in UTC depending on offset)
     let actual_1b = dt_1b.unwrap();
     assert_eq!(
         actual_1b.format("%Y").to_string(),
