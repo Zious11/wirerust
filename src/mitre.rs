@@ -23,7 +23,7 @@
 //!
 //! - The catalogue is the single place an ID's name and tactic are defined.
 //!   Seeding an ID here first means the analyzer PR that starts emitting it
-//!   only has to set `mitre_techniques: vec!["TXXXX"]` — it does not also
+//!   only has to set `mitre_techniques: vec!["TXXXX".to_string()]` — it does not also
 //!   have to touch this module, keeping that change small and focused.
 //! - The ICS techniques (`T0xxx`) in particular are seeded for the planned
 //!   Modbus / DNP3 analyzers (see the README roadmap) but are not emitted
