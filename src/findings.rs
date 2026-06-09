@@ -123,16 +123,14 @@ pub struct Finding {
     pub confidence: Confidence,
     pub summary: String,
     pub evidence: Vec<String>,
-    // LESSON-P1.02 / NFR OBS-010: all four `Option<_>` fields are
-    // emitted symmetrically — absent values are omitted from the JSON
-    // object rather than serialized as `null`. Previously only
-    // `timestamp` carried this attribute; the P1.02 symmetry fix
-    // added it to `mitre_technique`, `source_ip`, and `direction` as
-    // well, so all four fields (`mitre_technique`, `source_ip`,
-    // `timestamp`, `direction`) now behave consistently and JSON
-    // consumers see a uniform shape with no `null`-valued keys.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mitre_technique: Option<String>,
+    // STORY-100 (BC-2.09.001 / ADR-006 Decision 13): `mitre_techniques` is a
+    // `Vec<String>` so co-attributed ICS findings (e.g., `["T0855","T0836"]`)
+    // are expressible in the type system. Empty vec serializes as absent key
+    // (Vec::is_empty skip); singleton vec produces a JSON array `["TXXXX"]`.
+    // The old scalar option field is removed (STORY-100 AC-008); all emission
+    // sites use `mitre_techniques: vec!["TXXXX"]` (singleton) or `vec![]`.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub mitre_techniques: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_ip: Option<IpAddr>,
     #[serde(skip_serializing_if = "Option::is_none")]

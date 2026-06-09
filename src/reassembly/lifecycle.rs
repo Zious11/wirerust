@@ -118,7 +118,7 @@ impl TcpReassembler {
             confidence: Confidence::High,
             summary: format!("Conflicting TCP segment overlap on flow {key}"),
             evidence: vec!["Retransmitted segment contains different data".to_string()],
-            mitre_technique: Some("T1036".to_string()),
+            mitre_techniques: vec!["T1036".to_string()],
             source_ip: Some(src_ip),
             // BC-2.09.007 post-1: capture-relative pcap timestamp from the
             // current packet that triggered the conflicting overlap.
@@ -148,7 +148,7 @@ impl TcpReassembler {
             confidence: Confidence::Low,
             summary: format!("Stream depth exceeded on flow {key}"),
             evidence: vec![format!("Max depth {} bytes reached", self.config.max_depth)],
-            mitre_technique: None,
+            mitre_techniques: vec![],
             source_ip: Some(src_ip),
             // BC-2.09.007 post-1: capture-relative pcap timestamp from the
             // current packet that triggered the depth-exceeded event.

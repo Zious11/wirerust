@@ -61,7 +61,7 @@ fn make_finding(summary: impl Into<String>) -> Finding {
         confidence: Confidence::High,
         summary: summary.into(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -146,7 +146,7 @@ mod story_079 {
             "confidence",
             "summary",
             "evidence",
-            "mitre_technique",
+            "mitre_techniques",
             "source_ip",
             "direction",
             "timestamp",
@@ -167,7 +167,7 @@ mod story_079 {
 
         // Line terminator: BC-2.11.020 v1.3 pc1 confirms LF (\n) — csv::WriterBuilder::new()
         // default; CRLF intentionally not configured.
-        let expected_header_line = "category,verdict,confidence,summary,evidence,mitre_technique,source_ip,direction,timestamp\n";
+        let expected_header_line = "category,verdict,confidence,summary,evidence,mitre_techniques,source_ip,direction,timestamp\n";
         assert!(
             csv_text.starts_with(expected_header_line),
             "BC-2.11.020 v1.3 pc1: raw output must begin with the LF-terminated header line;\n\
@@ -177,7 +177,7 @@ mod story_079 {
         );
 
         // Confirm the header line contains the full column name sequence.
-        let header_fields = "category,verdict,confidence,summary,evidence,mitre_technique,source_ip,direction,timestamp";
+        let header_fields = "category,verdict,confidence,summary,evidence,mitre_techniques,source_ip,direction,timestamp";
         assert!(
             csv_text.starts_with(header_fields),
             "BC-2.11.020 pc1: output must start with the exact column name sequence; \
@@ -592,7 +592,7 @@ mod story_079 {
             confidence: Confidence::High,      // col 3: "HIGH" — non-trigger
             summary: "=trigger_summary".to_string(), // col 4: trigger '='
             evidence: vec!["=trigger_evidence".to_string()], // col 5: joined → "=trigger_evidence"
-            mitre_technique: Some("=T1234".to_string()), // col 6: trigger '='
+            mitre_techniques: vec!["=T1234".to_string()], // col 6: trigger '='
             source_ip: None,                   // col 7: "" — non-trigger
             direction: None,                   // col 8: "" — non-trigger
             timestamp: None,                   // col 9: "" — non-trigger
@@ -1266,7 +1266,7 @@ mod story_080 {
             confidence: Confidence::High,
             summary: "all-none".to_string(),
             evidence: vec![],
-            mitre_technique: None,
+            mitre_techniques: vec![],
             source_ip: None,
             timestamp: None,
             direction: None,
@@ -1277,7 +1277,7 @@ mod story_080 {
 
         // All four optional columns must be exactly "".
         let optional_indices: &[(usize, &str)] = &[
-            (5, "mitre_technique"),
+            (5, "mitre_techniques"),
             (6, "source_ip"),
             (7, "direction"),
             (8, "timestamp"),
@@ -1525,7 +1525,7 @@ mod story_080 {
         ];
         for &(raw, expected) in trigger_mitres {
             let mut finding = make_finding("test");
-            finding.mitre_technique = Some(raw.to_string());
+            finding.mitre_techniques = vec![raw.to_string()];
             let csv_text = render_one(finding);
             let rows = parse_csv(&csv_text);
             let mitre_cell = &rows[1][5]; // col 6, index 5

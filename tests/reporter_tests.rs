@@ -18,7 +18,7 @@ fn test_json_reporter_produces_valid_json() {
         confidence: Confidence::High,
         summary: "Test finding".into(),
         evidence: vec!["evidence line".into()],
-        mitre_technique: Some("T1046".into()),
+        mitre_techniques: vec!["T1046".into()],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -52,7 +52,7 @@ fn test_json_finding_omits_absent_optional_fields_symmetrically() {
         confidence: Confidence::Low,
         summary: "P1.02 symmetry test".into(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -62,8 +62,8 @@ fn test_json_finding_omits_absent_optional_fields_symmetrically() {
     let finding = &parsed["findings"][0];
     let obj = finding.as_object().expect("finding must be a JSON object");
     assert!(
-        !obj.contains_key("mitre_technique"),
-        "absent mitre_technique must be omitted, got: {finding}"
+        !obj.contains_key("mitre_techniques"),
+        "absent mitre_techniques must be omitted (Vec::is_empty), got: {finding}"
     );
     assert!(
         !obj.contains_key("source_ip"),
@@ -88,7 +88,7 @@ fn test_json_finding_emits_present_optional_fields() {
         confidence: Confidence::High,
         summary: "P1.02 presence test".into(),
         evidence: vec![],
-        mitre_technique: Some("T1036".into()),
+        mitre_techniques: vec!["T1036".into()],
         source_ip: Some(IpAddr::V4(std::net::Ipv4Addr::new(10, 0, 0, 1))),
         timestamp: None, // intentionally None — verifies mixed presence
         direction: None,
@@ -97,9 +97,10 @@ fn test_json_finding_emits_present_optional_fields() {
     let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
     let finding = &parsed["findings"][0];
     let obj = finding.as_object().expect("finding must be a JSON object");
+    // STORY-100 BC-2.09.006: mitre_techniques is now a JSON array.
     assert_eq!(
-        obj.get("mitre_technique"),
-        Some(&serde_json::json!("T1036"))
+        obj.get("mitre_techniques"),
+        Some(&serde_json::json!(["T1036"]))
     );
     assert_eq!(obj.get("source_ip"), Some(&serde_json::json!("10.0.0.1")));
     assert!(
@@ -122,7 +123,7 @@ fn test_csv_reporter_emits_header_and_one_row_per_finding() {
             confidence: Confidence::High,
             summary: "first finding".into(),
             evidence: vec!["ev-a".into(), "ev-b".into()],
-            mitre_technique: Some("T1046".into()),
+            mitre_techniques: vec!["T1046".into()],
             source_ip: None,
             timestamp: None,
             direction: None,
@@ -133,7 +134,7 @@ fn test_csv_reporter_emits_header_and_one_row_per_finding() {
             confidence: Confidence::Low,
             summary: "second finding".into(),
             evidence: vec![],
-            mitre_technique: None,
+            mitre_techniques: vec![],
             source_ip: None,
             timestamp: None,
             direction: None,
@@ -141,9 +142,10 @@ fn test_csv_reporter_emits_header_and_one_row_per_finding() {
     ];
     let out = reporter.render(&Summary::new(), &findings, &[]);
     let lines: Vec<&str> = out.lines().collect();
+    // STORY-101 BC-2.11.020: column 6 header is mitre_techniques (not mitre_technique).
     assert_eq!(
         lines[0],
-        "category,verdict,confidence,summary,evidence,mitre_technique,source_ip,direction,timestamp"
+        "category,verdict,confidence,summary,evidence,mitre_techniques,source_ip,direction,timestamp"
     );
     // Header + 2 data rows.
     assert_eq!(lines.len(), 3, "expected header + 2 rows, got: {out}");
@@ -181,7 +183,7 @@ fn test_csv_reporter_neutralizes_formula_injection() {
         // Classic CSV-injection payload.
         summary: "=cmd|'/c calc'!A1".into(),
         evidence: vec!["@SUM(1+1)".into()],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -255,7 +257,7 @@ fn test_json_finding_emits_direction_when_set() {
             confidence: Confidence::Medium,
             summary: "client-side finding".into(),
             evidence: vec![],
-            mitre_technique: None,
+            mitre_techniques: vec![],
             source_ip: None,
             timestamp: None,
             direction: Some(Direction::ClientToServer),
@@ -266,7 +268,7 @@ fn test_json_finding_emits_direction_when_set() {
             confidence: Confidence::Medium,
             summary: "server-side finding".into(),
             evidence: vec![],
-            mitre_technique: None,
+            mitre_techniques: vec![],
             source_ip: None,
             timestamp: None,
             direction: Some(Direction::ServerToClient),
@@ -297,7 +299,7 @@ fn test_json_finding_omits_direction_when_none() {
         confidence: Confidence::Medium,
         summary: "directionless finding".into(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -564,7 +566,7 @@ fn test_terminal_reporter_escapes_esc_bytes_in_summary() {
         confidence: Confidence::Low,
         summary: "attacker payload: пример\x1b[31mRED\x1b[0m".into(),
         evidence: vec!["raw evidence: \x1b[32mGREEN".into()],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -613,7 +615,7 @@ fn test_output_sanitization_layering_contract() {
         confidence: Confidence::Low,
         summary: "attacker payload: \x1b[31mRED\x1b[0m".into(),
         evidence: vec!["ev: \x1b[32mGREEN".into()],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -681,7 +683,7 @@ fn test_json_reporter_preserves_cyrillic_as_readable_unicode() {
         confidence: Confidence::Low,
         summary: "TLS SNI non-ASCII: пример.рф".into(),
         evidence: vec!["hex: d0bfd180d0b8d0bcd0b5d1802ed180d184".into()],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -964,7 +966,7 @@ fn base_finding_with_mitre(
         confidence,
         summary: summary.to_string(),
         evidence: vec![],
-        mitre_technique: technique.map(|s| s.to_string()),
+        mitre_techniques: technique.map(|s| vec![s.to_string()]).unwrap_or_default(),
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -1212,7 +1214,7 @@ fn test_finding_construction_with_all_fields() {
         confidence: Confidence::High,
         summary: "test summary".to_string(),
         evidence: vec!["ev1".to_string(), "ev2".to_string()],
-        mitre_technique: Some("T1027".to_string()),
+        mitre_techniques: vec!["T1027".to_string()],
         source_ip: Some(ip),
         timestamp: None,
         direction: Some(Direction::ClientToServer),
@@ -1223,7 +1225,8 @@ fn test_finding_construction_with_all_fields() {
     assert!(matches!(f.confidence, Confidence::High));
     assert_eq!(f.summary, "test summary");
     assert_eq!(f.evidence.len(), 2);
-    assert_eq!(f.mitre_technique.as_deref(), Some("T1027"));
+    // STORY-100 BC-2.09.001: mitre_techniques is Vec<String> — full-vec equality.
+    assert_eq!(f.mitre_techniques, vec!["T1027".to_string()]);
     assert_eq!(f.source_ip, Some(ip));
     assert!(
         f.timestamp.is_none(),
@@ -1512,7 +1515,7 @@ fn test_finding_display_format() {
         confidence: Confidence::High,
         summary: "test".to_string(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -1540,7 +1543,7 @@ fn test_finding_display_preserves_raw_summary() {
         confidence: Confidence::High,
         summary: raw_summary.clone(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -1665,7 +1668,7 @@ fn test_bc_2_09_001_ec001_empty_evidence_is_valid() {
         confidence: Confidence::High,
         summary: "no evidence".to_string(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -1696,7 +1699,7 @@ fn test_bc_2_09_002_ec002_empty_summary_display() {
         confidence: Confidence::High,
         summary: String::new(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -1721,7 +1724,7 @@ fn test_bc_2_09_002_ec003_esc_byte_in_summary_preserved_in_display() {
         confidence: Confidence::High,
         summary: "before\x1bafter".to_string(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -1752,7 +1755,7 @@ fn test_bc_2_09_001_ec004_direction_some_server_to_client() {
         confidence: Confidence::High,
         summary: "directional".to_string(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: Some(Direction::ServerToClient),
@@ -1784,7 +1787,7 @@ fn test_bc_2_09_002_ec005_reconnaissance_category_display() {
         confidence: Confidence::Low,
         summary: "scan".to_string(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -1905,7 +1908,7 @@ fn test_finding_evidence_preserves_raw_c0_bytes() {
         confidence: Confidence::High,
         summary: "payload with injected evidence".to_string(),
         evidence: vec![evidence_entry.clone()],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -2072,7 +2075,7 @@ fn test_non_utf8_bytes_in_summary_replaced_with_fffd() {
         confidence: Confidence::High,
         summary: summary.clone(),
         evidence: vec![String::from_utf8_lossy(&[0xfe, 0xfe]).into_owned()],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -2105,10 +2108,10 @@ fn test_non_utf8_bytes_in_summary_replaced_with_fffd() {
 
 // --- AC-005 / BC-2.09.006 postcondition 2 ---
 
-/// AC-005 (BC-2.09.006 postcondition 2): When `mitre_technique = None`, the
-/// JSON object has NO `"mitre_technique"` key (not `"mitre_technique": null`).
+/// AC-005 (BC-2.09.006 postcondition 2 / STORY-100): When `mitre_techniques = vec![]`,
+/// the JSON object has NO `"mitre_techniques"` key (Vec::is_empty skip).
 ///
-/// Canonical test vector: Finding { mitre_technique: None, ... }.
+/// Canonical test vector: Finding { mitre_techniques: vec![], ... }.
 #[test]
 fn test_none_mitre_technique_absent_from_json() {
     let finding = Finding {
@@ -2117,7 +2120,7 @@ fn test_none_mitre_technique_absent_from_json() {
         confidence: Confidence::Low,
         summary: "test".to_string(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -2129,11 +2132,17 @@ fn test_none_mitre_technique_absent_from_json() {
         .as_object()
         .expect("finding must be a JSON object");
 
+    // STORY-100 BC-2.09.006: empty mitre_techniques → key absent from JSON.
+    assert!(
+        !obj.contains_key("mitre_techniques"),
+        "BC-2.09.006 postcondition 2: empty mitre_techniques must produce NO key in JSON \
+         (Vec::is_empty skip); got: {}",
+        parsed["findings"][0]
+    );
+    // Also ensure the OLD scalar key is completely absent.
     assert!(
         !obj.contains_key("mitre_technique"),
-        "BC-2.09.006 postcondition 2: mitre_technique=None must produce NO key in JSON \
-         (not null); got: {}",
-        parsed["findings"][0]
+        "BC-2.09.006 invariant 4: old scalar key 'mitre_technique' must not appear"
     );
 }
 
@@ -2149,7 +2158,7 @@ fn test_none_source_ip_absent_from_json() {
         confidence: Confidence::Low,
         summary: "test".to_string(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -2180,7 +2189,7 @@ fn test_none_direction_absent_from_json() {
         confidence: Confidence::Low,
         summary: "test".to_string(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -2224,7 +2233,7 @@ fn test_timestamp_absent_from_all_finding_json() {
             confidence: Confidence::High,
             summary: "http-finding".to_string(),
             evidence: vec![],
-            mitre_technique: Some("T1190".to_string()),
+            mitre_techniques: vec!["T1190".to_string()],
             source_ip: None,
             timestamp: None,
             direction: Some(Direction::ClientToServer),
@@ -2236,7 +2245,7 @@ fn test_timestamp_absent_from_all_finding_json() {
             confidence: Confidence::High,
             summary: "tls-finding".to_string(),
             evidence: vec![],
-            mitre_technique: Some("T1573".to_string()),
+            mitre_techniques: vec!["T1573".to_string()],
             source_ip: None,
             timestamp: None,
             direction: Some(Direction::ClientToServer),
@@ -2250,7 +2259,7 @@ fn test_timestamp_absent_from_all_finding_json() {
             confidence: Confidence::Medium,
             summary: "TCP segment overlap anomaly".to_string(),
             evidence: vec!["overlap at seq 1000".to_string()],
-            mitre_technique: None,
+            mitre_techniques: vec![],
             source_ip: Some("10.0.0.1".parse().unwrap()),
             timestamp: None,
             direction: Some(Direction::ClientToServer),
@@ -2263,7 +2272,7 @@ fn test_timestamp_absent_from_all_finding_json() {
             confidence: Confidence::Low,
             summary: "reassembly-lifecycle-finding".to_string(),
             evidence: vec![],
-            mitre_technique: None,
+            mitre_techniques: vec![],
             source_ip: None,
             timestamp: None,
             direction: None,
@@ -2289,10 +2298,10 @@ fn test_timestamp_absent_from_all_finding_json() {
 
 // --- AC-009 / BC-2.09.006 postcondition 1 ---
 
-/// AC-009 (BC-2.09.006 postcondition 1): When `mitre_technique = Some("T1036")`,
-/// the JSON object contains `"mitre_technique": "T1036"`.
+/// AC-009 (BC-2.09.006 postcondition 1 / STORY-100): When `mitre_techniques = vec!["T1036"]`,
+/// the JSON object contains `"mitre_techniques": ["T1036"]` (array, not scalar).
 ///
-/// Canonical test vector: Finding { mitre_technique: Some("T1036"), ... }.
+/// STORY-100 intended break: JSON format changes from scalar string to array.
 #[test]
 fn test_some_mitre_technique_present_in_json() {
     let finding = Finding {
@@ -2301,7 +2310,7 @@ fn test_some_mitre_technique_present_in_json() {
         confidence: Confidence::High,
         summary: "masquerading".to_string(),
         evidence: vec![],
-        mitre_technique: Some("T1036".to_string()),
+        mitre_techniques: vec!["T1036".to_string()],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -2310,11 +2319,12 @@ fn test_some_mitre_technique_present_in_json() {
     let json_out = JsonReporter.render(&Summary::new(), &[finding], &[]);
     let parsed: serde_json::Value = serde_json::from_str(&json_out).expect("valid JSON");
 
+    // STORY-100 BC-2.09.006: singleton vec → JSON array ["T1036"], not scalar "T1036".
     assert_eq!(
-        parsed["findings"][0]["mitre_technique"],
-        serde_json::json!("T1036"),
-        "BC-2.09.006 postcondition 1: mitre_technique=Some(\"T1036\") must produce \
-         '\"mitre_technique\": \"T1036\"' in JSON"
+        parsed["findings"][0]["mitre_techniques"],
+        serde_json::json!(["T1036"]),
+        "BC-2.09.006 postcondition 1: mitre_techniques=vec![\"T1036\"] must produce \
+         JSON array '[\"T1036\"]'"
     );
 }
 
@@ -2332,7 +2342,7 @@ fn test_some_direction_present_in_json() {
         confidence: Confidence::Medium,
         summary: "directional-finding".to_string(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: Some(Direction::ClientToServer),
@@ -2367,7 +2377,7 @@ fn test_reassembly_lifecycle_finding_no_direction_in_json() {
         confidence: Confidence::Medium,
         summary: "Stream depth limit exceeded".to_string(),
         evidence: vec!["stream-depth: 65536".to_string()],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: Some("10.0.0.1".parse().unwrap()),
         timestamp: None,
         direction: None, // lifecycle findings always set direction: None
@@ -2417,7 +2427,7 @@ fn test_story_070_ec001_full_pipeline_esc_in_uri() {
         confidence: Confidence::High,
         summary: summary.clone(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -2471,7 +2481,7 @@ fn test_story_070_ec002_source_ip_some_in_json() {
         confidence: Confidence::High,
         summary: "probe".to_string(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: Some(ip),
         timestamp: None,
         direction: None,
@@ -2487,10 +2497,9 @@ fn test_story_070_ec002_source_ip_some_in_json() {
     );
 }
 
-/// EC-003 (STORY-070): The three serializable Option fields (`mitre_technique`,
-/// `source_ip`, `direction`) are all `Some` — all three keys are present in
-/// JSON with the correct values. `timestamp` is always `None` per domain-debt
-/// O-01 and is therefore excluded from this scenario.
+/// EC-003 (STORY-070 / STORY-100): The fields `mitre_techniques` (non-empty vec),
+/// `source_ip`, and `direction` are all set — all three keys are present in JSON.
+/// STORY-100 intended break: `mitre_techniques` is now a JSON array `["T1190"]`, not scalar.
 #[test]
 fn test_story_070_ec003_three_some_option_fields_present_in_json() {
     use std::net::{IpAddr, Ipv4Addr};
@@ -2502,7 +2511,7 @@ fn test_story_070_ec003_three_some_option_fields_present_in_json() {
         confidence: Confidence::High,
         summary: "three-some-optional-fields".to_string(),
         evidence: vec![],
-        mitre_technique: Some("T1190".to_string()),
+        mitre_techniques: vec!["T1190".to_string()],
         source_ip: Some(ip),
         // timestamp is always None (O-01) — setting it here would violate the
         // domain invariant. Only the three realistically-Some fields are tested.
@@ -2516,9 +2525,10 @@ fn test_story_070_ec003_three_some_option_fields_present_in_json() {
         .as_object()
         .expect("finding must be a JSON object");
 
+    // STORY-100: mitre_techniques is now a JSON array.
     assert!(
-        obj.contains_key("mitre_technique"),
-        "EC-003: mitre_technique=Some(...) must produce a JSON key; got: {}",
+        obj.contains_key("mitre_techniques"),
+        "EC-003: non-empty mitre_techniques must produce 'mitre_techniques' JSON key; got: {}",
         parsed["findings"][0]
     );
     assert!(
@@ -2537,10 +2547,11 @@ fn test_story_070_ec003_three_some_option_fields_present_in_json() {
         "EC-003: timestamp=None must produce NO JSON key; got: {}",
         parsed["findings"][0]
     );
+    // STORY-100: value is now JSON array, not scalar string.
     assert_eq!(
-        obj["mitre_technique"],
-        serde_json::json!("T1190"),
-        "EC-003: mitre_technique value must match"
+        obj["mitre_techniques"],
+        serde_json::json!(["T1190"]),
+        "EC-003: mitre_techniques value must be JSON array ['T1190']"
     );
     assert_eq!(
         obj["direction"],
@@ -2559,7 +2570,7 @@ fn test_story_070_ec004_all_four_option_fields_none_all_absent_from_json() {
         confidence: Confidence::Low,
         summary: "no-optional-fields".to_string(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -2571,10 +2582,17 @@ fn test_story_070_ec004_all_four_option_fields_none_all_absent_from_json() {
         .as_object()
         .expect("finding must be a JSON object");
 
-    for key in &["mitre_technique", "source_ip", "timestamp", "direction"] {
+    // STORY-100: check mitre_techniques (new name) and also old scalar key absent.
+    for key in &[
+        "mitre_techniques",
+        "mitre_technique",
+        "source_ip",
+        "timestamp",
+        "direction",
+    ] {
         assert!(
             !obj.contains_key(*key),
-            "EC-004: all four Option fields are None — '{}' must be absent from JSON \
+            "EC-004: all optional fields empty/None — '{}' must be absent from JSON \
              (no key, not null); got: {}",
             key,
             parsed["findings"][0]
@@ -2595,7 +2613,7 @@ fn test_story_070_ec005_null_byte_in_evidence_preserved_and_encoded_in_json() {
         confidence: Confidence::Low,
         summary: "null-byte-test".to_string(),
         evidence: vec![raw_evidence.clone()],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,

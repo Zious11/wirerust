@@ -33,7 +33,7 @@ fn make_finding(summary: impl Into<String>) -> Finding {
         confidence: Confidence::High,
         summary: summary.into(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -57,7 +57,9 @@ fn parse(json_str: &str) -> serde_json::Value {
 // ---------------------------------------------------------------------------
 
 /// AC-001 (BC-2.11.001 pc2): The parsed top-level object contains exactly the
-/// keys "summary", "findings", and "analyzers" — no other top-level keys exist.
+/// keys "summary", "findings", "analyzers", "mitre_domain", and
+/// "mitre_attack_version" — no other top-level keys exist.
+/// STORY-101 / BC-2.11.001: two ATT&CK envelope fields added in v0.3.0.
 #[test]
 fn test_BC_2_11_001_top_level_keys() {
     let json_str = render(&[]);
@@ -71,8 +73,15 @@ fn test_BC_2_11_001_top_level_keys() {
     keys.sort_unstable();
     assert_eq!(
         keys,
-        vec!["analyzers", "findings", "summary"],
-        "BC-2.11.001 pc2: top-level keys must be exactly {{summary, findings, analyzers}}, got: {keys:?}"
+        vec![
+            "analyzers",
+            "findings",
+            "mitre_attack_version",
+            "mitre_domain",
+            "summary"
+        ],
+        "BC-2.11.001 pc2: top-level keys must be exactly \
+         {{summary, findings, analyzers, mitre_domain, mitre_attack_version}}, got: {keys:?}"
     );
 
     // Positive: each expected key is present.
@@ -87,6 +96,15 @@ fn test_BC_2_11_001_top_level_keys() {
     assert!(
         obj.contains_key("analyzers"),
         "\"analyzers\" key must be present"
+    );
+    // STORY-101: ATT&CK envelope fields.
+    assert!(
+        obj.contains_key("mitre_domain"),
+        "\"mitre_domain\" key must be present (STORY-101)"
+    );
+    assert!(
+        obj.contains_key("mitre_attack_version"),
+        "\"mitre_attack_version\" key must be present (STORY-101)"
     );
 }
 

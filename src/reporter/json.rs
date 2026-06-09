@@ -1,11 +1,9 @@
 //! JSON reporter — machine-readable rendering for downstream tooling.
 //!
-//! Emits a `{ "summary": {...}, "findings": [...], "analyzers": [...] }`
-//! object. Per LESSON-P1.02 / NFR OBS-010, all four `Option<_>` fields on
-//! [`Finding`] (`mitre_technique`, `source_ip`, `timestamp`, `direction`)
-//! use `#[serde(skip_serializing_if = "Option::is_none")]`, so the JSON
-//! shape is symmetric: absent values are omitted, present values are
-//! emitted under their key.
+//! Emits a `{ "summary": {...}, "findings": [...], "analyzers": [...],
+//! "mitre_domain": "ics-attack", "mitre_attack_version": "ics-attack-v15" }`
+//! object (BC-2.11.001). Per STORY-100 / BC-2.09.006, `mitre_techniques`
+//! is a JSON array (empty vec → key absent via `Vec::is_empty` skip).
 //!
 //! No escaping is performed here — per ADR 0003, raw bytes flow through
 //! the `Finding` summary/evidence fields and are escaped only at the
@@ -18,6 +16,14 @@ use crate::analyzer::AnalysisSummary;
 use crate::findings::Finding;
 use crate::reporter::Reporter;
 use crate::summary::Summary;
+
+/// ATT&CK for ICS domain identifier — constant, not dynamic.
+const MITRE_DOMAIN: &str = "ics-attack";
+
+// FLAG(F4): verify this version covers T0888, T0855, T0836, T0835, T0831, T0814, T0806
+// at https://attack.mitre.org/resources/attack-data-and-tools/ before v0.3.0 release tag.
+// Update this constant if the authoritative ATT&CK for ICS version differs.
+const MITRE_ATTACK_VERSION: &str = "ics-attack-v15";
 
 pub struct JsonReporter;
 
@@ -56,6 +62,8 @@ impl Reporter for JsonReporter {
             },
             "findings": findings,
             "analyzers": analyzer_summaries,
+            "mitre_domain": MITRE_DOMAIN,
+            "mitre_attack_version": MITRE_ATTACK_VERSION,
         });
         serde_json::to_string_pretty(&output).unwrap()
     }
