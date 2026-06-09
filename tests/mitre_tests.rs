@@ -217,16 +217,18 @@ fn test_all_tactics_all_variants_present() {
 
 // ---------------------------------------------------------------------------
 // AC-010 + AC-011 | BC-2.10.005 postcondition 1
-// All 15 seeded technique IDs resolve to Some(name). Includes T1027 check
-// (AC-010) and exhaustive check of all 15 (AC-011) in the same function.
+// All 21 seeded technique IDs resolve to Some(name). Includes T1027 check
+// (AC-010) and exhaustive check of all 21 (AC-011) in the same function.
 // ---------------------------------------------------------------------------
 #[test]
-fn test_technique_name_resolves_all_15_seeded_ids() {
+fn test_technique_name_resolves_all_21_seeded_ids() {
     // BC-2.10.005 postcondition 1: technique_name returns Some for each of the
-    // 15 seeded IDs. Catalog count is exactly 15 (pass-8 correction).
-    // Seeded IDs: T1027, T1036, T1040, T1046, T1071, T1071.001, T1071.004,
-    //             T1083, T1499.002, T1505.003, T1573,
-    //             T0846, T0855, T0856, T0885.
+    // 21 seeded IDs. Catalog count is exactly 21 (post-F2 / STORY-100).
+    // Seeded IDs (11 Enterprise + 10 ICS):
+    //   T1027, T1036, T1040, T1046, T1071, T1071.001, T1071.004,
+    //   T1083, T1499.002, T1505.003, T1573,
+    //   T0846, T0855, T0856, T0885,
+    //   T0836, T0814, T0806, T0835, T0831, T0888.
 
     // AC-010: spot-check on canonical test vector from BC-2.10.005.
     assert_eq!(
@@ -234,8 +236,10 @@ fn test_technique_name_resolves_all_15_seeded_ids() {
         Some("Obfuscated Files or Information")
     );
 
-    // AC-011: exhaustive check of all 15 entries.
+    // AC-011: exhaustive check of all 21 entries. Names are derived from
+    // technique_info (src/mitre.rs) — asserted here to catch catalogue drift.
     let seeded: &[(&str, &str)] = &[
+        // Enterprise (11)
         ("T1027", "Obfuscated Files or Information"),
         ("T1036", "Masquerading"),
         ("T1040", "Network Sniffing"),
@@ -247,23 +251,38 @@ fn test_technique_name_resolves_all_15_seeded_ids() {
         ("T1499.002", "Service Exhaustion Flood"),
         ("T1505.003", "Web Shell"),
         ("T1573", "Encrypted Channel"),
+        // ICS pre-F2 (4)
         ("T0846", "Remote System Discovery"),
         ("T0855", "Unauthorized Command Message"),
         ("T0856", "Spoof Reporting Message"),
         ("T0885", "Commonly Used Port"),
+        // ICS new F2 — STORY-100 additions (6)
+        ("T0836", "Modify Parameter"),
+        ("T0814", "Denial of Service"),
+        ("T0806", "Brute Force I/O"),
+        ("T0835", "Manipulate I/O Image"),
+        ("T0831", "Manipulation of Control"),
+        ("T0888", "Remote System Information Discovery"),
     ];
 
     assert_eq!(
         seeded.len(),
-        15,
-        "catalog count must be exactly 15 (pass-8 correction)"
+        21,
+        "catalog count must be exactly 21 (post-F2 / STORY-100)"
     );
 
     for (id, expected_name) in seeded {
+        // Derive the live value from technique_info to avoid hardcoded
+        // false-greens — if the catalogue name changes, this test fails.
+        let live_name = technique_name(id);
+        assert!(
+            live_name.is_some(),
+            "technique_name({id:?}) returned None — ID missing from catalogue"
+        );
         assert_eq!(
-            technique_name(id),
+            live_name,
             Some(*expected_name),
-            "technique_name({id:?}) returned unexpected value"
+            "technique_name({id:?}) returned unexpected value (catalogue drift?)"
         );
     }
 }
@@ -302,7 +321,9 @@ fn test_technique_tactic_correct_assignments() {
     );
 
     // AC-014: exhaustive table per BC-2.10.007 postcondition 2.
+    // Includes all 21 seeded IDs (11 Enterprise + 10 ICS, post-F2 / STORY-100).
     let assignments: &[(&str, MitreTactic)] = &[
+        // Enterprise (11)
         ("T1027", MitreTactic::DefenseEvasion),
         ("T1036", MitreTactic::DefenseEvasion),
         ("T1040", MitreTactic::CredentialAccess),
@@ -314,10 +335,18 @@ fn test_technique_tactic_correct_assignments() {
         ("T1499.002", MitreTactic::Impact),
         ("T1505.003", MitreTactic::Persistence),
         ("T1573", MitreTactic::CommandAndControl),
+        // ICS pre-F2 (4)
         ("T0846", MitreTactic::Discovery),
         ("T0855", MitreTactic::IcsImpairProcessControl),
         ("T0856", MitreTactic::IcsImpairProcessControl),
         ("T0885", MitreTactic::CommandAndControl),
+        // ICS new F2 — STORY-100 additions (6)
+        ("T0836", MitreTactic::IcsImpairProcessControl),
+        ("T0806", MitreTactic::IcsImpairProcessControl),
+        ("T0835", MitreTactic::IcsImpairProcessControl),
+        ("T0831", MitreTactic::IcsImpairProcessControl),
+        ("T0814", MitreTactic::IcsInhibitResponseFunction),
+        ("T0888", MitreTactic::Discovery),
     ];
 
     for (id, expected_tactic) in assignments {
@@ -331,33 +360,43 @@ fn test_technique_tactic_correct_assignments() {
 
 // ---------------------------------------------------------------------------
 // AC-015 | BC-2.10.008 postcondition 1
-// All 6 currently-emitted technique IDs resolve from both technique_name
-// and technique_tactic.
+// All 13 currently-emitted technique IDs resolve from both technique_name
+// and technique_tactic (6 Enterprise + 7 ICS, post-F2 / STORY-100).
 // ---------------------------------------------------------------------------
 #[test]
 fn test_all_emitted_ids_resolve() {
-    // BC-2.10.008 postcondition 1: emitted set {T1027, T1036, T1046, T1083,
-    // T1499.002, T1505.003} is a strict subset of the catalogued 15 IDs.
-    // No emitted ID may return None from either lookup function.
-    // Sources (ground truth: `grep -rn 'mitre_technique: Some' src/`):
+    // BC-2.10.008 postcondition 1: emitted set is a strict subset of the
+    // catalogued 21 IDs. No emitted ID may return None from either lookup.
+    // Sources (ground truth: `grep -rn 'mitre_techniques: vec!' src/`):
     //   src/analyzer/tls.rs          — T1027 (×3 sites)
     //   src/analyzer/http.rs         — T1083, T1505.003, T1046, T1499.002 (×2 sites)
     //   src/reassembly/mod.rs        — T1036
     //   src/reassembly/lifecycle.rs  — T1036
-    // Total: 10 emission sites across 4 files, producing 6 unique technique IDs.
+    //   ICS analyzers (Modbus/DNP3)  — T0855, T0836, T0814, T0806, T0835, T0831, T0888
+    // Total: 6 Enterprise + 7 ICS = 13 unique emitted technique IDs.
+    // Note: T0846 is seeded but NOT emitted; T0888 IS emitted (Modbus recon).
     let emitted_ids = [
+        // Enterprise (6)
         "T1027",     // src/analyzer/tls.rs
         "T1036",     // src/reassembly/mod.rs AND src/reassembly/lifecycle.rs
         "T1046",     // src/analyzer/http.rs
         "T1083",     // src/analyzer/http.rs
         "T1499.002", // src/analyzer/http.rs
         "T1505.003", // src/analyzer/http.rs
+        // ICS (7) — T0855 pre-existing + 6 new F2 IDs (STORY-100)
+        "T0855", // ICS Impair Process Control
+        "T0836", // Modify Parameter
+        "T0814", // Denial of Service
+        "T0806", // Brute Force I/O
+        "T0835", // Manipulate I/O Image
+        "T0831", // Manipulation of Control
+        "T0888", // Remote System Information Discovery
     ];
 
     assert_eq!(
         emitted_ids.len(),
-        6,
-        "there are exactly 6 currently-emitted IDs per BC-2.10.008"
+        13,
+        "there are exactly 13 currently-emitted IDs per BC-2.10.008 (post-F2 / STORY-100)"
     );
 
     for id in &emitted_ids {

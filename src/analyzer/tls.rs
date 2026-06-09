@@ -451,7 +451,7 @@ impl TlsAnalyzer {
                              digits, and hyphens): {hostname}"
                         ),
                         evidence: vec![format!("hex: {hex}")],
-                        mitre_technique: Some("T1027".to_string()),
+                        mitre_techniques: vec!["T1027".to_string()],
                         source_ip: None,
                         // BC-2.09.007 post-1: capture-relative pcap timestamp.
                         timestamp: DateTime::from_timestamp(last_ts as i64, 0),
@@ -484,7 +484,7 @@ impl TlsAnalyzer {
                              (RFC 6066 requires A-labels per RFC 5890): {hostname}"
                         ),
                         evidence: vec![format!("hex: {hex}")],
-                        mitre_technique: Some("T1027".to_string()),
+                        mitre_techniques: vec!["T1027".to_string()],
                         source_ip: None,
                         // BC-2.09.007 post-1: capture-relative pcap timestamp.
                         timestamp: DateTime::from_timestamp(last_ts as i64, 0),
@@ -505,7 +505,7 @@ impl TlsAnalyzer {
                             "TLS SNI contains non-UTF-8 bytes (RFC 6066 violation): {lossy}"
                         ),
                         evidence: vec![format!("hex: {hex}")],
-                        mitre_technique: Some("T1027".to_string()),
+                        mitre_techniques: vec!["T1027".to_string()],
                         source_ip: None,
                         // BC-2.09.007 post-1: capture-relative pcap timestamp.
                         timestamp: DateTime::from_timestamp(last_ts as i64, 0),
@@ -547,7 +547,7 @@ impl TlsAnalyzer {
                 summary: "ClientHello offers weak cipher suites (NULL/anonymous/export)"
                     .to_string(),
                 evidence: weak,
-                mitre_technique: None,
+                mitre_techniques: vec![],
                 source_ip: None,
                 // BC-2.09.007 post-1: capture-relative pcap timestamp.
                 timestamp: DateTime::from_timestamp(last_ts as i64, 0),
@@ -570,7 +570,7 @@ impl TlsAnalyzer {
                     "ClientHello uses deprecated protocol ({version_name}, RFC 7568 prohibits SSLv3)"
                 ),
                 evidence: vec![format!("Version: 0x{version:04x} ({version_name})")],
-                mitre_technique: None,
+                mitre_techniques: vec![],
                 source_ip: None,
                 // BC-2.09.007 post-1: capture-relative pcap timestamp.
                 timestamp: DateTime::from_timestamp(last_ts as i64, 0),
@@ -618,7 +618,7 @@ impl TlsAnalyzer {
                 confidence: Confidence::Medium,
                 summary: format!("ServerHello selected weak cipher suite ({name})"),
                 evidence: vec![format!("Selected cipher: {} (0x{:04x})", name, sh.cipher.0)],
-                mitre_technique: None,
+                mitre_techniques: vec![],
                 source_ip: None,
                 // BC-2.09.007 post-1: capture-relative pcap timestamp.
                 timestamp: DateTime::from_timestamp(last_ts as i64, 0),
@@ -641,7 +641,7 @@ impl TlsAnalyzer {
                     "ServerHello negotiated deprecated protocol ({version_name}, RFC 7568 prohibits SSLv3)"
                 ),
                 evidence: vec![format!("Version: 0x{version:04x} ({version_name})")],
-                mitre_technique: None,
+                mitre_techniques: vec![],
                 source_ip: None,
                 // BC-2.09.007 post-1: capture-relative pcap timestamp.
                 timestamp: DateTime::from_timestamp(last_ts as i64, 0),

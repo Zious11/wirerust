@@ -486,7 +486,7 @@ impl TcpReassembler {
                         flow_dir.overlap_count, key
                     ),
                     evidence: vec!["Possible evasion attempt".into()],
-                    mitre_technique: Some("T1036".into()),
+                    mitre_techniques: vec!["T1036".into()],
                     source_ip: Some(packet.src_ip),
                     // BC-2.09.007 post-1: capture-relative pcap timestamp from
                     // the current packet that crossed the threshold.
@@ -526,7 +526,7 @@ impl TcpReassembler {
                          segmentation-based IDS evasion"
                             .into(),
                     ],
-                    mitre_technique: None,
+                    mitre_techniques: vec![],
                     source_ip: Some(packet.src_ip),
                     // BC-2.09.007 post-1: capture-relative pcap timestamp from
                     // the current packet that crossed the threshold.
@@ -552,7 +552,7 @@ impl TcpReassembler {
                     evidence: vec![format!(
                         "max_receive_window={window} bytes; possible misconfiguration, evasion, or capture corruption"
                     )],
-                    mitre_technique: None,
+                    mitre_techniques: vec![],
                     source_ip: Some(packet.src_ip),
                     // BC-2.09.007 post-1: capture-relative pcap timestamp from
                     // the current packet that crossed the threshold.
@@ -668,7 +668,7 @@ impl TcpReassembler {
                     "Segment count limit prevents BTreeMap overhead explosion".into(),
                     "May indicate segmentation-based evasion attempt".into(),
                 ],
-                mitre_technique: None,
+                mitre_techniques: vec![],
                 source_ip: None,
                 timestamp: None,
                 direction: None,

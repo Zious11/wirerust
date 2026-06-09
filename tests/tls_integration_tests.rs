@@ -155,7 +155,8 @@ fn test_ssl30_pcap_generates_findings() {
         dep.summary
     );
     assert_eq!(
-        dep.mitre_technique, None,
+        dep.mitre_techniques,
+        Vec::<String>::new(),
         "AC-006 (BC-2.07.011 pc1): mitre_technique must be None"
     );
 
@@ -216,7 +217,8 @@ fn test_ssl30_pcap_generates_findings() {
         "AC-006 (BC-2.07.009 pc1): client weak-cipher finding must be High confidence"
     );
     assert_eq!(
-        wk.mitre_technique, None,
+        wk.mitre_techniques,
+        Vec::<String>::new(),
         "AC-006 (BC-2.07.009 pc1): weak-cipher finding must have mitre_technique=None"
     );
     // BC-2.07.009 postcondition 1 (INV-4): evidence contains readable cipher names (not hex).
