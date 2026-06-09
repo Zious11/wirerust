@@ -16420,14 +16420,16 @@ fn test_close_flow_passes_flow_last_seen_timestamp_with_ooo_gap() {
 // ── STORY-098 / BC-2.09.007 — Finding.timestamp attachment tests ─────────────
 
 /// AC-001 (BC-2.09.007 postcondition 1 — HTTP emission sites):
-/// Drive `HttpAnalyzer` with a packet at known `ts_sec`; assert all emitted
-/// `Finding` values have `timestamp.is_some()`.
+/// Drive `HttpAnalyzer` with a packet at known `ts_sec`; assert every emitted
+/// `Finding` carries `timestamp == DateTime::from_timestamp(ts_sec, 0)` (exact value,
+/// not merely `is_some()`).
 ///
 /// Triggers every HTTP anomaly detection path by crafting a single request
-/// that exercises multiple rules simultaneously, then verifies none of the
-/// resulting findings carry `timestamp: None`.
+/// that exercises multiple rules simultaneously, then asserts each finding's
+/// timestamp equals the exact `DateTime` derived from the input `ts_sec`.
 #[test]
 fn test_http_findings_have_timestamp() {
+    use chrono::DateTime;
     use wirerust::analyzer::http::HttpAnalyzer;
     use wirerust::reassembly::handler::{StreamAnalyzer, StreamHandler};
 
@@ -16460,24 +16462,28 @@ fn test_http_findings_have_timestamp() {
         !findings.is_empty(),
         "AC-001: at least one HTTP finding must be emitted to test timestamp attachment"
     );
+    let expected_ts = DateTime::from_timestamp(ts_sec as i64, 0);
     for f in &findings {
-        assert!(
-            f.timestamp.is_some(),
-            "AC-001 (BC-2.09.007 post-1): HTTP finding '{}' must have timestamp.is_some() \
-             after on_data at ts_sec={ts_sec}",
+        assert_eq!(
+            f.timestamp, expected_ts,
+            "AC-001 (BC-2.09.007 post-1): HTTP finding '{}' must have timestamp == \
+             DateTime::from_timestamp({ts_sec}, 0) = {expected_ts:?}",
             f.summary
         );
     }
 }
 
 /// AC-002 (BC-2.09.007 postcondition 1 — TLS emission sites):
-/// Drive `TlsAnalyzer` with a ClientHello at known `ts_sec`; assert all emitted
-/// Findings have `timestamp.is_some()`.
+/// Drive `TlsAnalyzer` with a ClientHello at known `ts_sec`; assert every emitted
+/// `Finding` carries `timestamp == DateTime::from_timestamp(ts_sec, 0)` (exact value,
+/// not merely `is_some()`).
 ///
 /// Sends a ClientHello that offers a weak NULL cipher suite (triggers the
-/// weak-cipher finding) at a known timestamp, then asserts timestamp is Some.
+/// weak-cipher finding) at a known timestamp, then asserts the finding's timestamp
+/// equals the exact `DateTime` derived from the input `ts_sec`.
 #[test]
 fn test_tls_findings_have_timestamp() {
+    use chrono::DateTime;
     use wirerust::analyzer::tls::TlsAnalyzer;
     use wirerust::reassembly::handler::{StreamAnalyzer, StreamHandler};
 
@@ -16501,11 +16507,12 @@ fn test_tls_findings_have_timestamp() {
         !findings.is_empty(),
         "AC-002: at least one TLS finding must be emitted to test timestamp attachment"
     );
+    let expected_ts = DateTime::from_timestamp(ts_sec as i64, 0);
     for f in &findings {
-        assert!(
-            f.timestamp.is_some(),
-            "AC-002 (BC-2.09.007 post-1): TLS finding '{}' must have timestamp.is_some() \
-             after on_data at ts_sec={ts_sec}",
+        assert_eq!(
+            f.timestamp, expected_ts,
+            "AC-002 (BC-2.09.007 post-1): TLS finding '{}' must have timestamp == \
+             DateTime::from_timestamp({ts_sec}, 0) = {expected_ts:?}",
             f.summary
         );
     }
@@ -16593,6 +16600,7 @@ fn build_tls_client_hello_with_null_cipher() -> Vec<u8> {
 /// - Stream depth exceeded (via `generate_truncated_finding` in lifecycle.rs)
 #[test]
 fn test_reassembly_anomaly_findings_have_timestamp() {
+    use chrono::DateTime;
     let ts_sec: u32 = 2_000_000;
 
     // --- Trigger overlap anomaly ---
@@ -16675,10 +16683,12 @@ fn test_reassembly_anomaly_findings_have_timestamp() {
             !overlap_findings.is_empty(),
             "AC-003: at least one overlap finding must be emitted"
         );
+        let expected_ts = DateTime::from_timestamp(ts_sec as i64, 0);
         for f in &overlap_findings {
-            assert!(
-                f.timestamp.is_some(),
-                "AC-003 (BC-2.09.007 post-1): overlap finding '{}' must have timestamp.is_some()",
+            assert_eq!(
+                f.timestamp, expected_ts,
+                "AC-003 (BC-2.09.007 post-1): overlap finding '{}' must have timestamp == \
+                 DateTime::from_timestamp({ts_sec}, 0) = {expected_ts:?}",
                 f.summary
             );
         }
@@ -16751,11 +16761,12 @@ fn test_reassembly_anomaly_findings_have_timestamp() {
             !small_seg_findings.is_empty(),
             "AC-003: at least one small-segment finding must be emitted"
         );
+        let expected_ts = DateTime::from_timestamp(ts_sec as i64, 0);
         for f in &small_seg_findings {
-            assert!(
-                f.timestamp.is_some(),
-                "AC-003 (BC-2.09.007 post-1): small-segment finding '{}' must have \
-                 timestamp.is_some()",
+            assert_eq!(
+                f.timestamp, expected_ts,
+                "AC-003 (BC-2.09.007 post-1): small-segment finding '{}' must have timestamp == \
+                 DateTime::from_timestamp({ts_sec}, 0) = {expected_ts:?}",
                 f.summary
             );
         }
@@ -16832,11 +16843,12 @@ fn test_reassembly_anomaly_findings_have_timestamp() {
             !oow_findings.is_empty(),
             "AC-003: at least one out-of-window finding must be emitted"
         );
+        let expected_ts = DateTime::from_timestamp(ts_sec as i64, 0);
         for f in &oow_findings {
-            assert!(
-                f.timestamp.is_some(),
-                "AC-003 (BC-2.09.007 post-1): out-of-window finding '{}' must have \
-                 timestamp.is_some()",
+            assert_eq!(
+                f.timestamp, expected_ts,
+                "AC-003 (BC-2.09.007 post-1): out-of-window finding '{}' must have timestamp == \
+                 DateTime::from_timestamp({ts_sec}, 0) = {expected_ts:?}",
                 f.summary
             );
         }
@@ -16908,11 +16920,12 @@ fn test_reassembly_anomaly_findings_have_timestamp() {
             !depth_findings.is_empty(),
             "AC-003: at least one stream-depth-exceeded finding must be emitted"
         );
+        let expected_ts = DateTime::from_timestamp(ts_sec as i64, 0);
         for f in &depth_findings {
-            assert!(
-                f.timestamp.is_some(),
-                "AC-003 (BC-2.09.007 post-1): stream-depth finding '{}' must have \
-                 timestamp.is_some()",
+            assert_eq!(
+                f.timestamp, expected_ts,
+                "AC-003 (BC-2.09.007 post-1): stream-depth finding '{}' must have timestamp == \
+                 DateTime::from_timestamp({ts_sec}, 0) = {expected_ts:?}",
                 f.summary
             );
         }

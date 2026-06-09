@@ -1111,10 +1111,15 @@ fn test_non_utf8_sni_emits_finding_and_counts_under_hex_key() {
     // BC-2.09.007 post-1 (STORY-098): timestamp is now Some(DateTime<Utc>) derived from the
     // per-flow last_ts; this test calls on_data with timestamp=0, so the result is
     // Some(1970-01-01T00:00:00Z) — not None. The "None" assertion is superseded by STORY-098.
-    assert!(
-        f.timestamp.is_some(),
-        "BC-2.09.007 (STORY-098): TLS SNI finding must have timestamp.is_some() after on_data"
-    );
+    {
+        use chrono::DateTime;
+        let expected_ts = DateTime::from_timestamp(0_i64, 0);
+        assert_eq!(
+            f.timestamp, expected_ts,
+            "BC-2.09.007 (STORY-098): TLS SNI finding must have timestamp == \
+             DateTime::from_timestamp(0, 0) = {expected_ts:?} (on_data called with ts_sec=0)"
+        );
+    }
 
     // BC-2.07.019 pc3/pc4: exact summary uses lossy from_utf8_lossy form.
     let lossy = String::from_utf8_lossy(sni_bytes).into_owned();
@@ -1689,10 +1694,15 @@ fn test_valid_utf8_non_ascii_sni_emits_finding() {
     // BC-2.09.007 post-1 (STORY-098): timestamp is now Some(DateTime<Utc>) derived from the
     // per-flow last_ts; this test calls on_data with timestamp=0, so the result is
     // Some(1970-01-01T00:00:00Z) — not None. The "None" assertion is superseded by STORY-098.
-    assert!(
-        f.timestamp.is_some(),
-        "BC-2.09.007 (STORY-098): TLS SNI finding must have timestamp.is_some() after on_data"
-    );
+    {
+        use chrono::DateTime;
+        let expected_ts = DateTime::from_timestamp(0_i64, 0);
+        assert_eq!(
+            f.timestamp, expected_ts,
+            "BC-2.09.007 (STORY-098): TLS SNI finding must have timestamp == \
+             DateTime::from_timestamp(0, 0) = {expected_ts:?} (on_data called with ts_sec=0)"
+        );
+    }
 
     // BC-2.07.017 pc2: exact summary — hostname interpolated verbatim (not Debug-escaped).
     let expected_summary = "TLS SNI contains non-ASCII characters \
