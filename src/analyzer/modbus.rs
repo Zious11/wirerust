@@ -1,14 +1,19 @@
-//! Modbus TCP pure-core parser and function-code classifier (SS-14, CAP-14).
+//! Modbus TCP pure-core parser, function-code classifier, and per-flow correlation state
+//! (SS-14, CAP-14).
 //!
 //! This module provides the pure, formally-verified core functions for Modbus TCP
-//! analysis per BC-2.14.001 through BC-2.14.008 and VP-022 (Kani).
+//! analysis per BC-2.14.001 through BC-2.14.012 and VP-022 (Kani).
 //!
 //! ## Architecture
 //! - `parse_mbap_header` — pure parse, no validity gate (BC-2.14.001/002)
 //! - `is_valid_modbus_adu` — 3-point validity gate (BC-2.14.003/004)
 //! - `classify_fc` — total FC classification over all 256 u8 values (BC-2.14.005–008)
-//! - `ModbusFlowState` — per-flow state stub (desync bail-out flag, BC-2.14.003)
+//! - `ModbusFlowState` — full per-flow state (BC-2.14.009–012, STORY-103)
+//! - `ModbusAnalyzer` — analyzer-level aggregates and `duplicate_inflight_txn` counter
+//! - `MAX_PENDING_TRANSACTIONS` — hard bound of 256 (BC-2.14.012)
 //! - VP-022 Kani harnesses (sub-properties A, B, C) — gated by `#[cfg(kani)]`
+
+use std::collections::HashMap;
 
 /// Parsed Modbus Application Protocol (MBAP) header.
 ///
@@ -48,14 +53,181 @@ pub enum FunctionCodeClass {
     Unknown,
 }
 
-/// Per-flow Modbus analyzer state (stub — full field list in STORY-103).
+/// Hard upper bound on pending-table size per flow (BC-2.14.012).
 ///
-/// `is_non_modbus`: when `true`, the flow has been identified as carrying
-/// non-Modbus binary data (Protocol ID != 0x0000). All subsequent `on_data`
-/// calls bail immediately without parsing (BC-2.14.003 invariant 2 / Decision 6).
+/// When `pending.len() >= MAX_PENDING_TRANSACTIONS`, new request insertions are
+/// silently dropped (no panic, no eviction of existing entries).
+pub const MAX_PENDING_TRANSACTIONS: usize = 256;
+
+/// Per-flow Modbus analyzer state — authoritative field list (STORY-103, f2-fix-directives §11.4).
+///
+/// All window-duration arithmetic MUST use `wrapping_sub` on the u32 timestamps
+/// (f2-fix-directives §11.5b) — even though no window timers fire in STORY-103, the
+/// fields are initialized here so STORY-104 detection logic can write to them.
+///
+/// `duplicate_inflight_txn` is intentionally on `ModbusAnalyzer` (NOT here) per
+/// BC-2.14.009 invariant 6 — it is an analyzer-level diagnostic counter.
 #[derive(Default)]
 pub struct ModbusFlowState {
+    // --- Transaction correlation (BC-2.14.009–012) ---
+    /// Bounded pending-request table: (transaction_id, unit_id) -> (function_code, timestamp).
+    /// Hard cap: MAX_PENDING_TRANSACTIONS = 256. Drop-not-evict when full.
+    pub pending: HashMap<(u16, u8), (u8, u32)>,
+
+    // --- Per-flow aggregate counters ---
+    pub write_count: u64,
+    pub exception_count: u64,
+    pub pdu_count: u64,
+    pub last_ts: u32,
+
+    // --- T0806/T0855 burst window (1-second, configurable burst threshold) ---
+    pub window_write_count: u32,
+    pub window_start_ts: u32,
+    pub window_burst_emitted: bool,
+
+    // --- T0806/T0855 sustained window (>=2-second rolling, configurable sustained threshold) ---
+    pub sustained_window_start_ts: u32,
+    pub sustained_window_write_count: u32,
+    pub sustained_burst_emitted: bool,
+
+    // --- T0831 coordinated-write window (5-second fixed, not CLI-configurable) ---
+    pub t0831_window_start_ts: u32,
+    pub t0831_window_write_count: u32,
+    pub t0831_burst_emitted: bool,
+
+    // --- BC-2.14.019 exception-burst windows (per exception code) ---
+    pub exception_window_counts: HashMap<u8, u32>,
+    pub exception_window_start_ts: HashMap<u8, u32>,
+    pub exception_burst_emitted: HashMap<u8, bool>,
+
+    // --- Desync safety (Decision 6) ---
+    /// When `true`, this flow carries non-Modbus binary data (Protocol ID != 0x0000).
+    /// All subsequent `on_data` calls bail immediately without parsing.
     pub is_non_modbus: bool,
+}
+
+impl ModbusFlowState {
+    /// Insert a request ADU into the pending table (BC-2.14.009).
+    ///
+    /// Precondition: caller has verified `classify_fc(fc) != Exception`.
+    /// Returns `Some(old_value)` if an existing entry was overwritten (key reuse).
+    ///
+    /// Enforcement:
+    /// - If the key already exists in pending: overwrite and return `Some(old_value)`.
+    ///   (Caller increments `duplicate_inflight_txn` when `Some(_)` is returned.)
+    /// - If the key is NEW and `pending.len() >= MAX_PENDING_TRANSACTIONS`: silently drop,
+    ///   return `None` (BC-2.14.012: drop-not-evict; no panic).
+    /// - Otherwise: insert and return `None`.
+    pub fn insert_request(
+        &mut self,
+        txn_id: u16,
+        unit_id: u8,
+        fc: u8,
+        ts: u32,
+    ) -> Option<(u8, u32)> {
+        let key = (txn_id, unit_id);
+        if self.pending.contains_key(&key) {
+            // Key already exists — overwrite path; return old value so caller can
+            // increment `duplicate_inflight_txn` (BC-2.14.009 invariant 6).
+            self.pending.insert(key, (fc, ts))
+        } else if self.pending.len() >= MAX_PENDING_TRANSACTIONS {
+            // Table at cap — silently drop; do not evict; no panic (BC-2.14.012).
+            None
+        } else {
+            self.pending.insert(key, (fc, ts))
+        }
+    }
+
+    /// Match a normal (non-exception) response against the pending table (BC-2.14.010).
+    ///
+    /// Looks up `(txn_id, unit_id)` in pending:
+    /// - If found: removes the entry and returns `Some((stored_fc, stored_ts))`.
+    ///   The pair is considered closed regardless of whether the response FC echoes the
+    ///   request FC (BC-2.14.010 Case B: FC mismatch still closes the pair).
+    /// - If not found (orphan): returns `None`, state unchanged.
+    pub fn match_response(&mut self, txn_id: u16, unit_id: u8, _fc: u8) -> Option<(u8, u32)> {
+        // BC-2.14.010: remove and return on any key match (pair is closed regardless of
+        // FC echo match or mismatch — see postcondition 3 "closed regardless of anomaly").
+        self.pending.remove(&(txn_id, unit_id))
+    }
+
+    /// Attribute an exception response to the original request FC (BC-2.14.011).
+    ///
+    /// `exception_fc` is the raw exception FC byte (>= 0x80).
+    /// Derives `original_fc = exception_fc & 0x7F`.
+    ///
+    /// Strict FC consistency gate (anti-spoof invariant):
+    /// - If found AND `original_fc == stored_fc`: removes entry, returns `Some(original_fc)`.
+    /// - If found AND `original_fc != stored_fc` (FC mismatch / spoof guard): does NOT
+    ///   remove entry, returns `None` (BC-2.14.011 EC-010).
+    /// - If not found (orphan exception): returns `None`.
+    ///
+    /// Caller MUST increment `exception_count` regardless of return value (BC-2.14.011 post.6).
+    pub fn attribute_exception(
+        &mut self,
+        txn_id: u16,
+        unit_id: u8,
+        exception_fc: u8,
+    ) -> Option<u8> {
+        let original_fc = exception_fc & 0x7F;
+        let key = (txn_id, unit_id);
+        match self.pending.get(&key) {
+            Some(&(stored_fc, _)) if stored_fc == original_fc => {
+                // FC consistency gate passes — close the pair.
+                self.pending.remove(&key);
+                Some(original_fc)
+            }
+            Some(_) => {
+                // FC mismatch (spoof guard): do NOT remove the pending entry.
+                None
+            }
+            None => {
+                // Orphan exception: no matching pending entry.
+                None
+            }
+        }
+    }
+}
+
+/// Analyzer-level aggregates for Modbus TCP (STORY-103, f2-fix-directives §11.3).
+///
+/// Flow states are stored externally (e.g., in a `HashMap<FlowKey, ModbusFlowState>`
+/// on the dispatcher — wiring deferred to STORY-105).
+///
+/// `duplicate_inflight_txn` is an INTERNAL diagnostic counter (BC-2.14.009 invariant 6).
+/// It is NOT surfaced in `summarize()` (BC-2.14.021's six-key contract is unchanged).
+pub struct ModbusAnalyzer {
+    /// --modbus-write-burst-threshold (default 20): max write-FCs in any 1-second window.
+    pub write_burst_threshold: u32,
+    /// --modbus-write-sustained-threshold (default 10): max avg write-FCs/sec over >=2s window.
+    pub write_sustained_threshold: u32,
+    /// Counts how many pending-table entries were overwritten by a duplicate (txn_id, unit_id)
+    /// before the original response arrived. INTERNAL — not in summarize().
+    pub duplicate_inflight_txn: u64,
+    /// Total PDU count across all flows.
+    pub total_pdu_count: u64,
+    /// Total write count across all flows.
+    pub total_write_count: u64,
+    /// Per-FC occurrence counts across all flows.
+    pub fn_code_counts: HashMap<u8, u64>,
+}
+
+impl ModbusAnalyzer {
+    /// Construct a new `ModbusAnalyzer` with the given dual-window thresholds.
+    ///
+    /// Thresholds are stored as-is; CLI validation that they are non-zero is deferred
+    /// to STORY-105 (dispatcher wiring). Flow states are stored externally per
+    /// f2-fix-directives §11.3; wiring to a flow map is deferred to STORY-105.
+    pub fn new(write_burst_threshold: u32, write_sustained_threshold: u32) -> Self {
+        Self {
+            write_burst_threshold,
+            write_sustained_threshold,
+            duplicate_inflight_txn: 0,      // wired in STORY-104/105
+            total_pdu_count: 0,             // wired in STORY-104/105
+            total_write_count: 0,           // wired in STORY-104/105
+            fn_code_counts: HashMap::new(), // wired in STORY-104/105
+        }
+    }
 }
 
 /// Parse the 7-byte MBAP header from a reassembled TCP byte slice.
