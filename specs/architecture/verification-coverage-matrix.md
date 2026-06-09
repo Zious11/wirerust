@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.2"
+version: "1.3"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,9 @@ modified:
   - date: 2026-06-09
     actor: spec-steward
     reason: "F6 lock propagation (FINDING-001): VP-021 Phase F4→test-sufficient, Status draft→verified; coverage note updated to reflect lock @256a490. Internal counts verified consistent."
+  - date: 2026-06-09
+    actor: spec-steward
+    reason: "F7 consistency fix — VP-021 reclassified to proptest column to match VP-INDEX counting convention (proptest 7 / integration-unit 5); prior v1.2 placement contradicted VP-INDEX invariant (verification-coverage-matrix.md Totals must equal Kani 8 / proptest 7 / fuzz 1 / integration-unit 5 = 21)."
 ---
 
 # Verification Coverage Matrix
@@ -53,7 +56,7 @@ modified:
 |--------|------|----------|------|-----------------|-----------|
 | reassembly/flow.rs | 2 (VP-001, VP-009) | 0 | 0 | 0 | 2 |
 | reassembly/segment.rs | 2 (VP-002, VP-015) | 2 (VP-010, VP-011) | 0 | 0 | 4 |
-| reassembly/mod.rs | 1 (VP-003) | 0 | 0 | 1 (VP-021) | 2 |
+| reassembly/mod.rs | 1 (VP-003) | 1 (VP-021) | 0 | 0 | 2 |
 | dispatcher.rs | 1 (VP-004) | 0 | 0 | 0 | 1 |
 | analyzer/tls.rs | 1 (VP-005) | 1 (VP-013) | 0 | 0 | 2 |
 | analyzer/http.rs | 0 | 2 (VP-006, VP-014) | 0 | 0 | 2 |
@@ -64,7 +67,7 @@ modified:
 | cli.rs | 0 | 0 | 0 | 1 (VP-018) | 1 |
 | analyzer/dns.rs | 0 | 0 | 0 | 1 (VP-019) | 1 |
 | reporter/csv.rs | 0 | 0 | 0 | 1 (VP-020) | 1 |
-| **Totals** | **8** | **6** | **1** | **6** | **21** |
+| **Totals** | **8** | **7** | **1** | **5** | **21** |
 
 
 ## Coverage Notes

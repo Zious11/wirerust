@@ -65,16 +65,16 @@ input_drift_check: "CLEAN — MATCH=51/STALE=0 (post F7-100 consistency sweep D-
 | Phase 7 — Convergence | **PASSED + RELEASED** (human-approved 2026-06-08) | 6 PASS / 1 CONCERN (Perf — non-blocking); 1126 tests; consistency CONSISTENT (8/8); 20 VPs locked |
 | Release — v0.1.0 | **RELEASED** 2026-06-08 | GitHub Release; 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); run 27155277051 all jobs success |
 
-## Session Resume Checkpoint (2026-06-09 — F7 consistency CONSISTENT; human authorization gate NEXT)
+## Session Resume Checkpoint (2026-06-09 — F7 consistency CONFIRMED CONSISTENT via 2 audits; human authorization gate NEXT)
 
-**POSITION:** F4 DELIVERED (STORY-097/098/099 merged). F5 CONVERGED (D-026, 3-round hybrid). F6 PASS (D-027) — mutation 100% effective kill, VP-021 LOCKED (21/21 VPs verified, 0 draft). F7 fresh-context consistency audit: 8 discrepancies found, all fixed (D-028) — VP-021 lock propagated to coverage-matrix v1.2 + architecture v1.3 + BC VP-anchors + STORY status; input-hash recompute MATCH=51/STALE=0. develop HEAD `256a490`. NEXT = F7 human authorization gate.
+**POSITION:** F4 DELIVERED (STORY-097/098/099 merged). F5 CONVERGED (D-026, 3-round hybrid). F6 PASS (D-027) — mutation 100% effective kill, VP-021 LOCKED (21/21 VPs verified, 0 draft). F7 consistency audit 1: 8 discrepancies found + fixed (D-028). F7 consistency audit 2 (confirmation re-audit): all 8 D-028 findings RESOLVED; caught + fixed 1 new HIGH (coverage-matrix v1.2→v1.3, VP-021 tool-column reclassified to match VP-INDEX Kani 8/proptest 7/fuzz 1/int-unit 5=21, D-029). F7 consistency CONFIRMED CONSISTENT. input-hash MATCH=51/STALE=0. develop HEAD `256a490`. NEXT = F7 human authorization gate (final).
 
 **VERIFIED-CLEAN FACTS:**
 - main HEAD `2e8d256` — v0.1.0 release commit; annotated tag `v0.1.0`
 - develop HEAD `256a490` — post PR #201 stale-comment sweep (F-R2-001/002)
 - 1147 tests green; clippy clean; fmt clean; 21 VPs locked (VP-021 locked @256a490)
-- Feature #100 F2+F3+F4+F5+F6+F7(consistency): BC-2.09.007 v1.1.1 / BC-2.09.006 v1.4 / BC-2.04.055 v1.0.1 / VP-021 LOCKED (proof_file_hash=207d3f68) + STORY-097/098/099 completed; 219 BCs / 21 VPs / 52 stories
-- Factory-artifacts: F6 summary + gate artifacts committed (D-027); VP-021 locked; F7 consistency sweep committed (D-028); verification-coverage-matrix v1.2 + verification-architecture v1.3 verified
+- Feature #100 F2+F3+F4+F5+F6+F7(consistency x2): BC-2.09.007 v1.1.1 / BC-2.09.006 v1.4 / BC-2.04.055 v1.0.1 / VP-021 LOCKED (proof_file_hash=207d3f68) + STORY-097/098/099 completed; 219 BCs / 21 VPs / 52 stories
+- Factory-artifacts: F6 gate committed (D-027); F7 consistency sweep 1 committed (D-028); F7 confirmation re-audit committed (D-029) — verification-coverage-matrix v1.3 (Totals 8/7/1/5=21 internally consistent and VP-INDEX-aligned)
 - input-hash drift CLEAN: MATCH=51/STALE=0 (STORY-097 cb2c82d, STORY-098 8b39dcb, STORY-099 5185063)
 - holdout D5 PASS mean 0.99
 
@@ -92,7 +92,7 @@ input_drift_check: "CLEAN — MATCH=51/STALE=0 (post F7-100 consistency sweep D-
 
 **RESUME PROTOCOL (for F7 human authorization gate):**
 1. `vsdd-factory:factory-worktree-health` — BLOCKING
-2. Read `STATE.md` — confirm D-028 committed, F7 consistency CONSISTENT, MATCH=51/STALE=0
+2. Read `STATE.md` — confirm D-029 committed, F7 consistency CONFIRMED CONSISTENT (2 audits), MATCH=51/STALE=0
 3. Present F7 convergence summary to human for authorization gate
 
 Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
@@ -129,6 +129,7 @@ Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 | D-026 | Feature #100 Phase F5 scoped adversarial review CONVERGED after 3 rounds (Claude primary + Gemini cross-model hybrid). Round 1: 1 HIGH (BC-2.09.007 date vector) + 2 MED spec-corpus. Gemini secondary added 0 valid source defects (2 refuted: 1 diff-blindness hallucination, 1 last_ts==0 concern refuted at source) and confirmed test-rigor findings. Spec-corpus fixes (D-025) + 2 test fix-PRs (#200 LOW-002 exact-value binding; #201 F-R2-001/002 stale-comment sweep, AI review caught 2 extra stale lines). Round 3 clean: 0 findings, input-hash MATCH=51/STALE=0. develop HEAD 256a490. | 2026-06-08 | Issue #100 F5 convergence — 3-round hybrid adversarial |
 | D-027 | Feature #100 Phase F6 targeted hardening PASS. Mutation --in-diff 100% effective kill (30/30 killable; 2 equivalent survivors at lifecycle.rs:62 documented, independently re-confirming F5 close-flush unreachability). Fuzz 0 crashes; Kani justified-skip (inline-chrono totality via closed-form+proptest+boundary, no debug-guard anti-pattern); cargo audit/deny PASS (RUSTSEC-2026-0097 known-accepted); 1147 tests green. VP-021 LOCKED (verified, lock=true, @256a490) — all 21 VPs now verified, 0 draft. develop HEAD 256a490. | 2026-06-09 | Issue #100 F6 targeted hardening gate PASS + VP-021 locked |
 | D-028 | Feature #100 F7 gate fresh-context consistency audit found 8 discrepancies (3 HIGH: VP-021 lock not propagated to coverage-matrix/architecture [F-001], VP-021 proof_file_hash null [F-002], STORY-099 input-hash STALE from VP-021 v2.0 lock [F-003]; 3 MED: delta-analysis §4.5 site-count, BC VP-anchor draft prose, STORY-099 pr-description stale ts; 2 LOW: story status draft→completed, STORY-098 BC-2.04.055 co-trace). All fixed: proof_file_hash=207d3f68; verification-coverage-matrix v1.2 + verification-architecture v1.3 + BC-2.09.007 v1.1.1 + BC-2.04.055 v1.0.1 propagated verified; STORY-097/098/099 status completed; input-hashes recomputed CLEAN (MATCH=51/STALE=0; STORY-097 cb2c82d, STORY-098 8b39dcb, STORY-099 5185063). Lesson: VP-lock bursts must propagate to coverage-matrix, architecture, referencing-BC VP-anchors, AND recompute consuming-story input-hashes (VP files are story inputs). This is the 2nd propagation-shadow process-gap this cycle — candidate DF policy (VP-lock propagation checklist). | 2026-06-09 | Issue #100 F7 consistency sweep — VP-021 lock propagation (8 findings all fixed) + input-hash recompute |
+| D-029 | Feature #100 F7 consistency confirmation re-audit: all 8 D-028 findings RESOLVED; caught + fixed 1 new HIGH introduced by the D-028 fix burst — verification-coverage-matrix v1.2→v1.3: VP-021 row reclassified to proptest column to match VP-INDEX invariant (Kani 8 / proptest 7 / fuzz 1 / integration-unit 5 = 21); prior v1.2 had proptest=6/integration=6 contradicting VP-INDEX. Column sums and per-module totals internally consistent post-fix. F7 consistency now CONFIRMED CONSISTENT. Lesson reinforces VP-lock propagation checklist (D-028): the coverage-matrix tool-column counting convention must match VP-INDEX — add explicit tool-column verification step. | 2026-06-09 | Issue #100 F7 confirmation re-audit — coverage-matrix VP-021 tally aligned to VP-INDEX; F7 CONSISTENT |
 
 ## Blocking Issues
 
