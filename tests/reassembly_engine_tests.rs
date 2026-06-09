@@ -16970,14 +16970,14 @@ fn test_segment_limit_summary_finding_has_no_timestamp() {
 /// AC-005 (BC-2.09.007 invariant 2 — lossless u32 → DateTime conversion):
 /// Unit test asserting canonical conversion vectors from BC-2.09.007.
 ///
-/// Note: BC-2.09.007 cites "ts_sec=1_000_000 → 2001-09-08T21:46:40Z" which is
-/// an error in the BC — that timestamp corresponds to 1_000_000_000 (one billion)
-/// seconds. We test the correct conversion for 1_000_000 seconds and also add a
-/// test for 1_000_000_000 to cover the BC's intended "2001-09-08" example.
+/// Note: BC-2.09.007 now correctly specifies ts_sec=1_000_000 → 1970-01-12T13:46:40Z.
+/// This test also uses ts_sec=1_000_000_000 → 2001-09-08T21:46:40Z as a chosen
+/// distinctive non-1970 vector to broaden timestamp-range coverage; that vector
+/// is not drawn from EC-005 but is an independent test input.
 ///
 /// Verifies:
 /// - ts_sec = 1_000_000 → 1970-01-12T13:46:40Z (correct for 1 million seconds)
-/// - ts_sec = 1_000_000_000 → 2001-09-08T21:46:40Z (the BC's intended example)
+/// - ts_sec = 1_000_000_000 → 2001-09-08T21:46:40Z (chosen distinctive non-1970 vector)
 /// - ts_sec = 0 → 1970-01-01T00:00:00Z
 /// - ts_sec = u32::MAX → Some(DateTime) (within chrono range ~2106 CE)
 #[test]
@@ -17000,14 +17000,14 @@ fn test_timestamp_conversion_known_values() {
     );
 
     // Vector 1b: ts_sec = 1_000_000_000 → 2001-09-08T21:46:40Z
-    // (the BC's intended example: 1 billion seconds is 2001-09-08)
+    // (chosen distinctive non-1970 vector; not drawn from BC-2.09.007 EC-005)
     let ts_1b: u32 = 1_000_000_000;
     let dt_1b = DateTime::from_timestamp(ts_1b as i64, 0);
     assert!(
         dt_1b.is_some(),
         "AC-005: ts_sec=1_000_000_000 must produce Some(DateTime)"
     );
-    // Verify the year/month/day match the BC's example (2001-09-08 or 2001-09-09 in UTC)
+    // Verify the year/month/day (2001-09-08 or 2001-09-09 in UTC depending on offset)
     let actual_1b = dt_1b.unwrap();
     assert_eq!(
         actual_1b.format("%Y").to_string(),
@@ -17133,8 +17133,8 @@ fn test_json_finding_timestamp_serialization() {
     use wirerust::summary::Summary;
 
     // Use 1_000_000_000 seconds (2001-09-08/09 in UTC) for the JSON serialization test.
-    // This matches the "2001" timestamp the BC intends, and is more distinctive than
-    // the 1970-epoch values that ts_sec=1_000_000 would produce.
+    // This is a chosen distinctive non-1970 vector that exercises a wider timestamp range
+    // than ts_sec=1_000_000 (which yields a 1970-epoch value per BC-2.09.007 EC-005).
     let ts_sec: u32 = 1_000_000_000;
     let expected_dt = DateTime::from_timestamp(ts_sec as i64, 0).unwrap();
 
@@ -17184,9 +17184,11 @@ fn test_json_finding_timestamp_serialization() {
         .expect("timestamp must be a JSON string");
     // ts_sec=1_000_000_000 → ISO-8601 UTC: "2001-09-08T21:46:40Z" or "2001-09-09T01:46:40Z"
     // depending on timezone; we only require "2001" and "46:40" are present.
+    // (This vector is a chosen distinctive value; EC-005 specifies the ts_sec=1_000_000
+    // → 1970-01-12T13:46:40Z case, not this 2001 timestamp.)
     assert!(
         ts_str.contains("2001") && ts_str.contains("46:40"),
-        "BC-2.09.007 EC-005: timestamp must serialize as ISO-8601 UTC containing '2001' \
+        "BC-2.09.007 pc5: timestamp must serialize as ISO-8601 UTC containing '2001' \
          and '46:40'; got '{ts_str}'"
     );
 

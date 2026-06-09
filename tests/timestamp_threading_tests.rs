@@ -115,8 +115,8 @@ impl StreamHandler for RecordingHandler {
 // Constructs a TCP flow with an HTTP path-traversal request at ts_sec=1_000_000.
 // Drives through TcpReassembler → StreamDispatcher → HttpAnalyzer and asserts
 // that at least one emitted Finding has timestamp = Some(1970-01-12T13:46:40Z).
-// (ts_sec=1_000_000 is 1970-01-12T13:46:40Z in UTC, not 2001 — the BC has a
-// mislabeled date; the correct value is used here per the story NOTE.)
+// (ts_sec=1_000_000 → 1970-01-12T13:46:40Z is the BC's now-correct specified value;
+// this test asserts that value directly.)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -778,8 +778,8 @@ fn test_segment_limit_summary_timestamp_is_none_and_absent_from_json() {
 // (BC-2.09.007 post-5; EC-005)
 //
 // ts_sec=1_000_000 → "1970-01-12T13:46:40Z" (correct ISO-8601 UTC value)
-// NOTE: BC-2.09.007 EC-005 mislabels the date as "2001-09-08T21:46:40Z";
-// the correct UTC value for ts_sec=1_000_000 is 1970-01-12T13:46:40Z.
+// BC-2.09.007 EC-005 specifies ts_sec=1_000_000 → 1970-01-12T13:46:40Z,
+// which is the value this test asserts (the BC date is now correct).
 // ---------------------------------------------------------------------------
 
 #[test]
