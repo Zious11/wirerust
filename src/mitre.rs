@@ -225,7 +225,7 @@ mod kani_proofs {
 
     /// Sub-property A: format invariant `T[0-9]{4}` or `T[0-9]{4}.[0-9]{3}`.
     ///
-    /// BOUND/SOUNDNESS: the seeded set is a finite closed enumeration (15 IDs);
+    /// BOUND/SOUNDNESS: the seeded set is a finite closed enumeration (21 IDs);
     /// the harness checks every one against the regex-equivalent byte predicate.
     /// No symbolic input is needed — the property is universal over a fixed set,
     /// so enumeration is exhaustive and sound.
