@@ -7,9 +7,10 @@
 | Feature | #100 (pcap timestamp → Finding.timestamp) |
 | Stories | STORY-097, STORY-098, STORY-099 |
 | Scope | `afe93a1^..48cbc05` |
-| Review rounds | 1 combined-delta pass per model |
+| Review rounds | 3 (Claude primary R1+R2+R3; Gemini 0.44.1 secondary R1 cross-model) |
 | Models | Claude adversary (vsdd-factory:adversary, fresh context) + Gemini 0.44.1 secondary (cross-model, D-023) |
 | Information asymmetry | Preserved — Gemini reviewed 2 slices without seeing Claude findings |
+| develop HEAD at convergence | 256a490 |
 
 ---
 
@@ -29,17 +30,26 @@
 | Round | Score | Basis |
 |-------|-------|-------|
 | Round 1 | 1.0 | First combined-delta pass; prior per-PR reviews evaluated stories in isolation, creating the cross-story integration gap that produced ADV-F5-HIGH-001 |
+| Round 1 secondary (Gemini) | 0.0 new source defects | 2 refuted (1 diff-blindness hallucination on HIGH claim; 1 last_ts==0 concern refuted at source); confirmed test-rigor findings |
+| Round 2 | 0.5 | Prior 3 (HIGH-001, MED-001, MED-002) RESOLVED; 2 new MED stale-doc-comment defects found (F-R2-001/002 — propagation shadow of HIGH-001 in test-file doc comments) |
+| Round 3 | 0.0 | All findings resolved; input-hash confirmed MATCH=51/STALE=0; 0 findings; 0 novelty; CONVERGED |
 
 ---
 
 ## Cross-Model Results
 
-| Model | Valid source defects (unique) | Valid test findings | Verdict |
-|-------|------------------------------|---------------------|---------|
-| Claude adversary | 1 HIGH, 2 MED, 3 LOW | — | NOT-CONVERGED |
-| Gemini 0.44.1 | 0 (2 refuted, 1 minor non-blocking) | Confirmed all test-rigor findings independently | NOT-CONVERGED |
+| Round | Model | Valid source defects (unique) | Valid test findings | Verdict |
+|-------|-------|------------------------------|---------------------|---------|
+| R1 | Claude adversary | 1 HIGH, 2 MED, 3 LOW | — | NOT-CONVERGED |
+| R1 secondary | Gemini 0.44.1 | 0 (2 refuted: 1 diff-blindness hallucination, 1 last_ts==0 concern refuted at source) | Confirmed all test-rigor findings independently | NOT-CONVERGED |
+| R2 | Claude adversary (fresh) | 0 prior + 2 new MED (F-R2-001/002 stale doc-comment propagation shadow) | — | NOT-CONVERGED |
+| R3 | Claude adversary (fresh, final) | 0 findings; 0 novelty | input-hash MATCH=51/STALE=0 confirmed | CONVERGED |
 
-Both models reached NOT-CONVERGED independently. Gemini added no valid unique source defects but provided strong cross-model confirmation of the test-rigor findings (ADV-F5-LOW-001, ADV-F5-LOW-002, ADV-F5-LOW-003). Classic Gemini diff-blindness (D-023 pattern) was detected and refuted on one HIGH claim.
+Round 1 (combined-delta): Both models reached NOT-CONVERGED independently. Gemini added no valid unique source defects but provided strong cross-model confirmation of the test-rigor findings (ADV-F5-LOW-001, ADV-F5-LOW-002, ADV-F5-LOW-003). Classic Gemini diff-blindness (D-023 pattern) detected and refuted on one HIGH claim.
+
+Round 2 (fresh, post D-025 spec-corpus fix): Prior 3 findings (HIGH-001, MED-001, MED-002) all RESOLVED. Adversary found 2 new MED defects (F-R2-001/002): 8 doc-comment lines across 2 test files still republished the now-false BC date-vector claim — propagation shadow of HIGH-001 not caught by the initial DF-SIBLING-SWEEP-001 burst (which swept spec files and live test assertions but not test-file doc comments and inline comments citing canonical vectors). PR #201 (stale-comment sweep) raised and merged to address.
+
+Round 3 (fresh, final): All findings resolved including F-R2-001/002. Input-hash MATCH=51/STALE=0 confirmed. Zero findings. Zero novelty. CONVERGED.
 
 ---
 
@@ -70,17 +80,27 @@ All blocking items are in the SPEC/STORY corpus, not the implementation:
 
 ---
 
+## Fix-PRs Delivered
+
+| PR | Finding(s) | Description | develop HEAD at merge |
+|----|-----------|-------------|----------------------|
+| #200 | ADV-F5-LOW-002 | Test exact-value hardening (5 `is_some()` → `assert_eq!` with exact expected values in STORY-098 emission-site tests) | — |
+| #201 | F-R2-001, F-R2-002 | Stale doc-comment sweep — 8 doc-comment lines across 2 test files republishing false BC date-vector claim; AI review during PR #201 caught 2 extra stale lines not in the original R2 findings | 256a490 |
+
+---
+
 ## Recommended Next Steps
 
-1. Route ADV-F5-HIGH-001 + ADV-F5-MED-001 + ADV-F5-MED-002 spec fixes to product-owner / story-writer on the `factory-artifacts` branch as a single one-burst commit (DF-SIBLING-SWEEP-001 compliance).
-2. After BC-2.09.007 content changes: run `bin/compute-input-hash --write .factory/stories/STORY-098.md .factory/stories/STORY-099.md` to recompute and persist updated input-hashes.
-3. Re-run one clean adversarial pass (both models) to confirm convergence. Expected outcome: CONVERGED (no HIGH/MED remain; LOWs are carry-forward accepted).
-4. Optionally strengthen ADV-F5-LOW-002/003 test value-binding via a fix-PR on `develop`.
+~~1. Route ADV-F5-HIGH-001 + ADV-F5-MED-001 + ADV-F5-MED-002 spec fixes~~ DONE (D-025)
+~~2. Recompute input-hashes~~ DONE (MATCH=51/STALE=0)
+~~3. Re-run clean adversarial pass~~ DONE (R2 + R3, CONVERGED)
+
+**Next phase:** F6 targeted hardening (`vsdd-factory:phase-f6-targeted-hardening`) then F7 delta convergence.
 
 ---
 
 ## Final Verdict
 
-**NOT-CONVERGED**
+**CONVERGED**
 
-Requires a spec-corpus fix burst (1 HIGH + 2 MED) and a clean re-pass. Implementation is sound and would converge on its own.
+3-round hybrid adversarial review complete (Claude primary R1+R2+R3; Gemini 0.44.1 cross-model R1 secondary). All HIGH and MED findings resolved. Fix-PRs #200 and #201 merged. Input-hash MATCH=51/STALE=0. Round 3 clean: 0 findings, 0 novelty. develop HEAD at convergence: `256a490`.
