@@ -117,34 +117,48 @@ fn test_BC_2_14_009_pending_key_is_txn_id_plus_unit_id() {
     assert!(flow.pending.contains_key(&(0x0001u16, 0x02u8)));
 }
 
-/// AC-002 / BC-2.14.009 postcondition 2 + invariant 6:
+/// AC-002 / BC-2.14.009 postcondition 2:
 /// Inserting a second request with the same (txn_id, unit_id) before a response
-/// overwrites the existing entry and `duplicate_inflight_txn` on the analyzer is
-/// incremented by 1.
+/// overwrites the existing entry. `insert_request` returns `None` on a new key and
+/// returns `Some((old_fc, old_ts))` when it overwrites an existing key. This
+/// return-value signal is the testable STORY-103 unit behavior; it is consumed by
+/// the counter-increment wiring that lands in STORY-104.
 ///
-/// test_BC_2_14_009_duplicate_txn_id_increments_counter
+/// STORY-104 OBLIGATION:
+/// BC-2.14.009 inv-6 — ModbusAnalyzer.duplicate_inflight_txn MUST be incremented
+/// in on_data (STORY-104) when insert_request returns Some (overwrite). STORY-103
+/// ships only the insert_request return-value signal; the counter-increment wiring
+/// + its test land in STORY-104.
+///
+/// test_BC_2_14_009_insert_request_returns_some_on_overwrite
 #[test]
-fn test_BC_2_14_009_duplicate_txn_id_increments_counter() {
+fn test_BC_2_14_009_insert_request_returns_some_on_overwrite() {
     let mut flow = ModbusFlowState::default();
-    let mut analyzer = ModbusAnalyzer::new(20, 10);
 
-    // First request inserts cleanly (no duplicate).
+    // First request inserts a NEW key — must return None (no prior entry).
     let old1 = flow.insert_request(0x0001, 0x01, 0x03, 100);
-    if old1.is_some() {
-        analyzer.duplicate_inflight_txn += 1;
-    }
+    assert!(
+        old1.is_none(),
+        "insert_request must return None when inserting a new (txn_id, unit_id) key"
+    );
 
     // Second request with the SAME key before a response — overwrite path.
+    // Must return Some((old_fc, old_ts)) reflecting the evicted entry.
     let old2 = flow.insert_request(0x0001, 0x01, 0x03, 200);
-    if old2.is_some() {
-        analyzer.duplicate_inflight_txn += 1;
-    }
-
-    // BC-2.14.009 postcondition 2: exactly one overwrite, counter == 1.
-    assert_eq!(
-        analyzer.duplicate_inflight_txn, 1,
-        "duplicate_inflight_txn must be 1 after one key-reuse overwrite"
+    assert!(
+        old2.is_some(),
+        "insert_request must return Some when overwriting an existing (txn_id, unit_id) key"
     );
+    let (evicted_fc, evicted_ts) = old2.unwrap();
+    assert_eq!(
+        evicted_fc, 0x03,
+        "evicted FC must equal the original request FC"
+    );
+    assert_eq!(
+        evicted_ts, 100,
+        "evicted timestamp must equal the original request timestamp"
+    );
+
     // Pending table still has only one entry (the overwritten one).
     assert_eq!(
         flow.pending.len(),
@@ -496,36 +510,35 @@ fn test_BC_2_14_011_exception_fc_0x80_original_fc_0x00_unknown_class() {
 /// Table remains at exactly 256.
 ///
 /// Uses canonical test vector from BC-2.14.012: "Drop at cap".
+/// Exercises the REAL insert_request method so the production cap guard is bound — the
+/// test would detect removal of the guard, unlike a raw `flow.pending.insert` approach.
 ///
 /// test_BC_2_14_012_pending_table_bounded_at_256
 #[test]
 fn test_BC_2_14_012_pending_table_bounded_at_256() {
     let mut flow = ModbusFlowState::default();
 
-    // Fill the table to exactly MAX_PENDING_TRANSACTIONS = 256.
+    // Fill the table to exactly MAX_PENDING_TRANSACTIONS = 256 via insert_request,
+    // so the production cap guard is the mechanism being exercised.
     // Use distinct (txn_id, unit_id) pairs: txn_id varies 0..256, unit_id=0x01.
     for i in 0u16..256 {
-        if flow.pending.len() < MAX_PENDING_TRANSACTIONS {
-            flow.pending.insert((i, 0x01), (0x03, 1000 + u32::from(i)));
-        }
+        flow.insert_request(i, 0x01, 0x03, 1000 + u32::from(i));
     }
     assert_eq!(
         flow.pending.len(),
         256,
-        "pending must have exactly 256 entries after filling the table"
+        "pending must have exactly 256 entries after 256 distinct insert_request calls"
     );
 
-    // Attempt 257th insert with a NEW distinct key (txn_id=256, unit_id=0x01).
-    // This key does not collide with any of the 256 existing entries.
-    let len_before = flow.pending.len();
-    if flow.pending.len() < MAX_PENDING_TRANSACTIONS {
-        flow.pending.insert((256, 0x01), (0x03, 9999));
-    }
-    // The guard above prevents insertion — table must stay at 256.
+    // Attempt 257th insert via insert_request with a NEW distinct key (txn_id=256, unit_id=0x01).
+    // This key does not collide with any of the 256 existing entries; the production guard
+    // must drop it silently.
+    flow.insert_request(256, 0x01, 0x03, 9999);
+
     assert_eq!(
         flow.pending.len(),
-        len_before,
-        "257th insert with a unique key must be silently dropped; table stays at 256"
+        256,
+        "257th insert_request with a unique key must be silently dropped; table stays at 256"
     );
     assert!(
         !flow.pending.contains_key(&(256u16, 0x01u8)),
