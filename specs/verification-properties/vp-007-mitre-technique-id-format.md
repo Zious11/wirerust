@@ -24,6 +24,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set."
+  - "2026-06-09 (F2 issue #7, directives v2 + ADR-006): appended non-normative 'F4 Harness-Update Obligations' body section recording the catalog growth (SEEDED 15→21, EMITTED 6→13, recon T0846→T0888) and the Finding field-rename grep change (mitre_technique:Some → mitre_techniques:vec!). Lock fields (verification_lock, proof_completed_date, proof_file_hash, verified_at_commit), property statement, and source BCs are UNCHANGED — this is an F4 obligation pointer, authoritative copy in verification-delta.md §4."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -168,6 +169,34 @@ The 15 currently-seeded IDs include T1040, T1071, T1071.001, T1071.004, T1573,
 T0846, T0855, T0856, T0885 which are staged-but-never-emitted (O-04). Sub-property
 B (emitter-catalog completeness) only tests the IDs that analyzers actually emit.
 
+## F4 Harness-Update Obligations (F2 issue #7 — directives v2 + ADR-006)
+
+> **Non-normative appendix. This section records F4 harness/source obligations that keep the
+> locked VP-007 proof green after the Modbus F2 revision. It does NOT edit the property statement,
+> the lock fields (`verification_lock`, `proof_completed_date`, `proof_file_hash`,
+> `verified_at_commit`), the source BCs, or any frontmatter count. Same pattern as the VP-004
+> extension obligation recorded for Feature #100. The authoritative version of these obligations
+> lives in `.factory/phase-f2-spec-evolution/verification-delta.md §4`; this appendix is a pointer
+> co-located with the VP for traceability.**
+
+The MITRE catalog grows in the Modbus F2 commit (directives v2 Decision 12). The VP-007 harness /
+catalog-drift guard MUST be updated in the SAME F4 commit so the locked proof stays
+`VERIFICATION:- SUCCESSFUL`:
+
+| Quantity (mitre.rs) | Pre-F2 expected | Post-F2 expected (directives v2) |
+|---------------------|-----------------|----------------------------------|
+| `SEEDED_TECHNIQUE_ID_COUNT` / `SEEDED_TECHNIQUE_IDS.len()` | 15 | **21** (11 Enterprise + 10 ICS; +6 new ICS arms: T0836, T0814, T0806, T0835, T0831, T0888) |
+| `EMITTED_IDS.len()` | 6 (Enterprise only) | **13** (6 Enterprise + 7 ICS: T0855, T0836, T0814, T0806, T0835, T0831, **T0888**) |
+| Recon-path emitted ID | n/a (no ICS emitted) | **T0888** "Remote System Information Discovery" (corrects the v1 T0846 misattribution; **T0846 stays SEEDED but is NOT Modbus-emitted**) |
+| Emitted-ID grep pattern | `mitre_technique: Some` | `mitre_techniques: vec!` (ADR-006 Decision 13: `Finding` field rename `Option<String>` → `Vec<String>`) |
+
+**POL-11 positive-coverage obligation (carried forward):** the guard MUST assert the runtime-computed
+counts `EMITTED_IDS.len() == 13` and `SEEDED_TECHNIQUE_ID_COUNT == 21`, and MUST deliberately resolve
+≥1 newly-added ICS ID **including T0888** through `technique_name` + `technique_tactic` (assert
+`Some(..)` on both), so the proof cannot pass false-green over an empty/no-op loop. Re-run
+`cargo kani` over the VP-007 harnesses after the atomic catalog update; both
+`VERIFICATION:- SUCCESSFUL` and the positive-coverage assertions MUST hold.
+
 ## Lifecycle
 
 | Event | Date | Actor |
@@ -176,3 +205,4 @@ B (emitter-catalog completeness) only tests the IDs that analyzers actually emit
 | Proof harness committed | 2026-06-02 | formal-verifier |
 | Proof first passed | 2026-06-02 | formal-verifier |
 | Locked (VERIFIED) | 2026-06-02 | spec-steward (Phase-6 gate) |
+| F4 harness-update obligation recorded (issue #7: SEEDED 15→21, EMITTED 6→13, recon T0888, field-rename grep) — lock fields unchanged | 2026-06-09 | formal-verifier |

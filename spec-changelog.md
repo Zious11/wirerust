@@ -14,6 +14,67 @@ changes, invariant rewrites).
 
 ---
 
+## [1.2] — 2026-06-09
+
+### BREAKING: F2 Modbus Revision — Decisions 11-13 (ADR-006) — targets v0.3.0
+
+**Summary:** Adopts three architect-approved decisions from `f2-fix-directives.md` v2.
+Decision 13 is a breaking change to the `Finding` output schema targeting v0.3.0.
+Revises 10 existing BCs (SS-09/SS-10/SS-11) + 8 SS-14 BCs already applied to BC body files.
+
+**Adopted decisions:**
+
+| Decision | Summary |
+|----------|---------|
+| D11 (supersedes D5) | Dual-window write-burst detection: `--modbus-write-burst-threshold` (default 20, 1s) + `--modbus-write-sustained-threshold` (default 10, >=2s). Old `--modbus-write-threshold` removed. |
+| D12 (supersedes D8) | T0846 → T0888 correctness fix for recon FCs 0x11 and 0x2B/0x0E. T0888 = Remote System Information Discovery (TA0102 Discovery). T0846 remains seeded but is not emitted by Modbus. FC 0x07 excluded as standalone recon indicator. |
+| D13 (supersedes D7) | Multi-tag Finding attribution: `Finding.mitre_technique: Option<String>` → `Finding.mitre_techniques: Vec<String>`. One finding per write PDU with ALL applicable technique tags. Volume control via burst aggregation, not tag-suppression. |
+
+**BREAKING output schema changes (v0.3.0):**
+- JSON: `"mitre_technique": "T0836"` → `"mitre_techniques": ["T0836"]` (key rename + type change)
+- JSON: field absent when empty (same as prior `None` — `skip_serializing_if = "Vec::is_empty"`)
+- JSON: multi-tag: `"mitre_techniques": ["T0855", "T0836"]`
+- CSV: column-6 header renamed `mitre_technique` → `mitre_techniques`; multiple values semicolon-joined
+- Rust: `Finding.mitre_technique: Option<String>` → `Finding.mitre_techniques: Vec<String>` (all emission sites + test helpers updated)
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| PRD | Version bump 1.1 → 1.2; Section 2 breaking-schema note added; Section 1.5, 2.10, 2.14 (D-H groups), 6.5, 8 updated | `.factory/specs/prd.md` |
+| BC-INDEX | Version bump 1.1 → 1.2; SS-09/SS-10/SS-11 rows updated; SS-14 section header + BC-013/014/015/016/017/020/024 rows updated | `.factory/specs/behavioral-contracts/BC-INDEX.md` |
+| prd-delta.md | Updated: new_prd_version 1.1→1.2; §5.2 added (10-BC revision table + 8 SS-14 BC revision table + affected-stories list) | `.factory/phase-f2-spec-evolution/prd-delta.md` |
+| BC-2.09.001 | v1.4: `mitre_technique` field → `mitre_techniques` Vec | `.factory/specs/behavioral-contracts/ss-09/` |
+| BC-2.09.006 | v1.5: `skip_serializing_if = "Vec::is_empty"`; multi-tag JSON output | `.factory/specs/behavioral-contracts/ss-09/` |
+| BC-2.10.005 | v1.4: count 15 → 21 | `.factory/specs/behavioral-contracts/ss-10/` |
+| BC-2.10.007 | v1.3: T0888 → Discovery row | `.factory/specs/behavioral-contracts/ss-10/` |
+| BC-2.10.008 | v1.5: grep pattern + T0888 replaces T0846 in emitted list; 13 emitted | `.factory/specs/behavioral-contracts/ss-10/` |
+| BC-2.11.013 | v1.6: multi-techniques tactic grouping by `[0]` | `.factory/specs/behavioral-contracts/ss-11/` |
+| BC-2.11.015 | v1.6: empty `mitre_techniques` vec → Uncategorized | `.factory/specs/behavioral-contracts/ss-11/` |
+| BC-2.11.017 | v1.5: multi-ID rendering `"MITRE: T0855, T0836"` | `.factory/specs/behavioral-contracts/ss-11/` |
+| BC-2.11.020 | v1.5: column-6 header rename | `.factory/specs/behavioral-contracts/ss-11/` |
+| BC-2.11.024 | v1.4: `mitre_techniques vec![]`; semicolon-join | `.factory/specs/behavioral-contracts/ss-11/` |
+| BC-2.14.013..017,020,022,024 | v2.0: co-emission model; T0888; dual-window (bodies already revised) | `.factory/specs/behavioral-contracts/ss-14/` |
+| ADR-006 | Registered in ARCH-INDEX ADR table | `.factory/specs/architecture/ARCH-INDEX.md` (already present) |
+
+**MITRE catalog size change:**
+
+| Metric | v1.1 | v1.2 |
+|--------|------|------|
+| `SEEDED_TECHNIQUE_ID_COUNT` | 20 | **21** (T0888 added) |
+| `EMITTED_IDS` count | 12 | **13** (T0888 replaces T0846 in ICS emitted set) |
+| ICS SEEDED | 9 | **10** (T0888 added; T0846 already seeded) |
+| ICS EMITTED | 6 | **7** {T0855, T0836, T0814, T0806, T0835, T0831, T0888} |
+| T0846 status | emitted | **seeded-not-emitted** |
+
+**Affected stories (story-writer must propagate BC table + AC changes):**
+STORY-069, STORY-070, STORY-071, STORY-078, STORY-079, STORY-080.
+
+**ADR reference:** ADR-006 — Multi-Technique Finding Attribution
+(`.factory/specs/architecture/decisions/ADR-006-multi-technique-finding-attribution.md`)
+
+---
+
 ## [1.1] — 2026-06-09
 
 ### MINOR: SS-14 Modbus/ICS Analyzer — Feature #7

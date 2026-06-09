@@ -145,7 +145,7 @@ Action: parse_mbap_header returns Some(h); protocol_id != 0x0000;
 
 ## Architecture Anchors
 
-- `src/analyzer/modbus.rs` — `is_valid_modbus_adu(h: &MbapHeader) -> bool`: `h.protocol_id == 0x0000 && h.length >= 2 && h.length <= 253`
+- `src/analyzer/modbus.rs` — `is_valid_modbus_adu(h: &MbapHeader) -> bool`: `h.protocol_id == 0x0000 && h.length >= 2 && h.length <= 254`
 - `src/analyzer/modbus.rs` — `ModbusFlowState.is_non_modbus: bool` — set to true on protocol_id failure; bail-out guard on entry to `on_data`
 - `.factory/phase-f2-spec-evolution/architecture-delta.md §2.4` — Desync / DoS safety policy: "Protocol-ID failure: set `flow.is_non_modbus = true` and return immediately from `on_data`"
 - `.factory/phase-f2-spec-evolution/architecture-delta.md §2.3` — `ModbusFlowState` complete field list (is_non_modbus field per Decision 6)

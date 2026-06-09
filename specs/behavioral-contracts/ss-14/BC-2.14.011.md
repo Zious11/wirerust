@@ -34,13 +34,23 @@ input-hash: TBD
 When `on_data` processes a validated Modbus ADU in the server-to-client direction where
 `classify_fc(h.function_code) == Exception` (i.e. `h.function_code >= 0x80`), the original
 request FC is recovered as `original_fc = h.function_code & 0x7F` and the `(h.transaction_id,
-h.unit_id)` key is looked up in `ModbusFlowState.pending`. If a matching pending entry exists,
-the exception is attributed to the original request — the pending entry is removed and the
-exception is correlated with the original FC and timestamp. When the original FC is Write-class,
-the exception is forensically significant as evidence of an attempted (but rejected/failed)
-write command — a T0855 attribution signal (finding emission handled in BC-2.14.013+, the
-parallel burst). `ModbusFlowState.exception_count` is incremented for every exception response
-regardless of attribution success.
+h.unit_id)` key is looked up in `ModbusFlowState.pending`. If a matching pending entry exists
+AND `original_fc == pending_entry.0` (the stored request FC), the exception is fully attributed
+to the original request — the pending entry is removed and the exception is correlated with
+the original FC and timestamp. If `original_fc != pending_entry.0`, the attribution is invalid
+(the exception FC does not match the pending FC — possible spoofing or protocol anomaly); the
+pending entry is NOT removed and no attribution is performed, preventing a spoofed exception
+from clearing or forging an in-flight Write-class pending slot.
+
+**Emission model:** the T0855 finding for a Write-class request is emitted at REQUEST time
+(ClientToServer direction, BC-2.14.013). This BC (exception response, ServerToClient) does
+NOT emit a new finding — it only increments `exception_count` and resolves the correlation
+in the pending table. This prevents double-counting: the T0855 signal has already been emitted
+on the outbound Write PDU; the exception response is additional corroborating evidence that the
+write was attempted but rejected by the server.
+
+`ModbusFlowState.exception_count` is incremented for every exception response regardless of
+attribution success.
 
 ## Preconditions
 
@@ -54,27 +64,43 @@ regardless of attribution success.
 
 1. `original_fc = h.function_code & 0x7F` is computed.
 2. The `(h.transaction_id, h.unit_id)` key is looked up in `ModbusFlowState.pending`.
-3. **Case A — Attributed exception** (matching pending entry found):
+3. **Case A — Fully-attributed exception** (matching pending entry found AND `original_fc == pending_entry.0`):
    - `pending_entry = pending.remove(&(h.transaction_id, h.unit_id))` removes the entry.
    - `pending_fc = pending_entry.0` (the original request FC from the pending table).
-   - **Consistency check**: if `original_fc == pending_fc`, the attribution is confirmed —
-     the server is responding to the expected request FC. If `original_fc != pending_fc`, the
-     attribution is anomalous (the server's exception FC does not match the pending request FC);
-     still treated as an exception for this flow, but the anomaly may be flagged (v1: silently
-     accepted; the pending entry is still removed).
+   - **Strict FC consistency gate**: `original_fc` (derived from `h.function_code & 0x7F`)
+     MUST equal `pending_fc`. Only when they match is the attribution valid and the pending
+     entry removed. This prevents an attacker from sending a spoofed exception response for
+     a different FC (e.g., sending `0x86` exception when the pending slot holds FC `0x03`)
+     to clear a Write-class pending slot or forge an attribution.
    - `ModbusFlowState.exception_count` is incremented by 1.
    - `ModbusAnalyzer.total_exception_count` is incremented by 1.
-   - If `classify_fc(original_fc) == Write`: the exception is forensic evidence of an
-     attempted write command that the server rejected. A finding may be emitted (handled in
-     BC-2.14.013+, T0855 attribution).
+   - **No new finding is emitted here.** The T0855 write finding was already emitted at request
+     time (BC-2.14.013, ClientToServer direction). Emitting again on the exception path would
+     double-count the same write event. The `exception_count` increment and the pending-entry
+     removal are the only state changes on this path.
+
+3b. **Case A-Invalid — FC mismatch** (`original_fc != pending_entry.0`):
+   - The pending entry is NOT removed (the original request slot is preserved intact).
+   - `ModbusFlowState.exception_count` is incremented by 1 (the exception response itself
+     is real regardless of FC mismatch).
+   - `ModbusAnalyzer.total_exception_count` is incremented by 1.
+   - No attribution finding is emitted. The mismatch is a protocol anomaly; v1 silently notes
+     it via `exception_count` without a separate finding.
+
+   If `classify_fc(original_fc) == Write` (only relevant to Case A, not 3b):
+   the T0855 finding was already emitted at request time; the exception response corroborates
+   that the write was rejected by the server (increments `exception_count`).
 4. **Case B — Unattributed exception** (no matching pending entry):
    - `ModbusFlowState.exception_count` is incremented by 1.
    - `ModbusAnalyzer.total_exception_count` is incremented by 1.
    - No pending entry is removed.
    - No attribution finding is emitted (orphan exception — same rationale as BC-2.14.010
      Case C: can occur in half-captures).
-5. The exception code byte at `data[8]` is recorded for use in finding emission (BC-2.14.013+).
+5. The exception code byte at `data[8]` is recorded for diagnostic/correlation purposes.
+   No finding is emitted in this BC for any exception path.
    Valid exception codes: `{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x0A, 0x0B}`.
+   Exception-burst recon detection (BC-2.14.019) is a separate orthogonal path that fires
+   based on exception volume, not on individual attribution.
 6. `ModbusFlowState.pdu_count` and `ModbusAnalyzer.total_pdu_count` are incremented by 1.
 7. `ModbusFlowState.last_ts` is updated to `timestamp`.
 
@@ -110,14 +136,15 @@ regardless of attribution success.
 | EC-005 | Exception code = 0x01 (Illegal Function) attributed to Write FC | Write FC attempted; server doesn't support it — could indicate probing of device capabilities |
 | EC-006 | Exception code = 0x04 (Device Failure) attributed to Write FC | Write may have caused device stress; high forensic significance |
 | EC-007 | Exception code = 0x0B (Gateway Target Failed) attributed to any FC | Device behind gateway is silent — potential DoS impact |
-| EC-008 | original_fc in pending table != exception's recovered original_fc | FC mismatch anomaly; v1: pending entry still removed; exception_count++; anomaly silently noted |
+| EC-008 | exception's `original_fc` (fc & 0x7F) does NOT match `pending_entry.0` (pending FC) | FC mismatch: pending entry NOT removed (preserved); exception_count++; no attribution; no finding — prevents spoofed exception from clearing a Write-class pending slot |
 | EC-009 | Exception FC = 0x80 (original_fc = 0x00, undefined FC) | exception_count++; original FC 0x00 is Unknown class; no write attribution |
+| EC-010 | Attacker sends exception `0x86` (for FC 0x06 Write Single Reg) but pending slot holds `FC=0x03` (Read HR) | original_fc=0x06 ≠ pending_fc=0x03 → FC mismatch (Case A-Invalid); pending slot NOT removed; no false T0855 attribution; exception_count++ only |
 
 ## Canonical Test Vectors
 
 | Scenario | Prior pending state | Exception ADU (hex) | Expected result | Category |
 |----------|---------------------|---------------------|-----------------|----------|
-| Write exception attributed | `(0x0002, 0x01) -> (0x06, ts0)` in pending | `00 02 00 00 00 03 01 86 01` (FC=0x86, code=0x01) | `original_fc=0x06` (Write); entry removed; `exception_count=1`; T0855 attribution (BC-2.14.013+) | happy-path |
+| Write exception attributed | `(0x0002, 0x01) -> (0x06, ts0)` in pending | `00 02 00 00 00 03 01 86 01` (FC=0x86, code=0x01) | `original_fc=0x06` (Write); FC check: 0x06==0x06 ✓; entry removed; `exception_count=1`; NO new finding (T0855 was emitted at request time by BC-2.14.013) | happy-path |
 | Read exception attributed | `(0x0001, 0x01) -> (0x03, ts0)` in pending | `00 01 00 00 00 03 01 83 02` (FC=0x83, code=0x02) | `original_fc=0x03` (Read); entry removed; `exception_count=1`; no write attribution | happy-path |
 | Orphan exception | pending empty | `00 05 00 00 00 03 01 90 04` (FC=0x90, code=0x04) | `exception_count=1`; no removal; no attribution | edge-case |
 | Force Listen Only exception (unusual) | any pending state | `00 06 00 00 00 03 01 88 01` (FC=0x88 = exception for 0x08 Diagnostics) | `original_fc=0x08`; Diagnostic class; exception_count++; no write attribution | edge-case |
@@ -128,8 +155,10 @@ Bytes:  00 02  |  00 00  |  00 03  |  01  |  86  |  01
 Field:  TxnID  |  ProtoID|  Length |  UID |  FC  | ExCode
 Value:  0x0002 |  0x0000 |    3    |   1  | 0x86 | 0x01 (Illegal Function)
 Decode: fc=0x86 >= 0x80 → Exception; original_fc = 0x86 & 0x7F = 0x06 (Write Single Reg)
-Lookup: pending[(0x0002, 0x01)] = (0x06, ts0) → confirmed write attribution
-Action: remove entry; exception_count++; T0855 finding candidate (BC-2.14.013+)
+Lookup: pending[(0x0002, 0x01)] = (0x06, ts0) → original_fc(0x06) == pending_fc(0x06) ✓
+Action: remove entry; exception_count++
+        NO new finding — T0855 was already emitted at request time (BC-2.14.013,
+        ClientToServer direction). This path: corroboration only, no double-count.
 ```
 
 ## Verification Properties

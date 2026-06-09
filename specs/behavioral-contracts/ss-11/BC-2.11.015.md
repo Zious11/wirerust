@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: VP-016 proof-method cell unit→integration to match VP-016 frontmatter + VP-INDEX (Wave-21 wave-level consistency lens; SS-11 reporter VP family harmonization — sibling of VP-017 fix in 86113c2; DF-SIBLING-SWEEP-001)"
   - "v1.4: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
   - "v1.5: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchors: render_finding_grouped 237-245 → 244-252 (fn at 244, None-arm at 249), Uncategorized bucket 291-296 → 298-303 (if let Some at 298); outer Path range 237-296 → 244-303; verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.6: ADR-006 / Decision 13 §13.7 (F2 v0.3.0) — 'None' path replaced by 'empty vec' path; Precondition 2 updated; Postconditions 1/4 updated; Invariants 1/2 updated; EC-001 updated; no MITRE line rendered when vec is empty. — 2026-06-09"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -28,53 +29,68 @@ removal_reason: null
 
 # BC-2.11.015: No-Technique or Unknown-ID Findings Land in Uncategorized
 
+<!--
+  PREVIOUS VERSION SUMMARY (v1.5 -> v1.6):
+  "mitre_technique = None" replaced by "mitre_techniques is empty (vec![])" throughout
+  Postcondition 1: None -> empty vec
+  Postcondition 4: "mitre_technique = None, no MITRE line" -> "empty vec, no MITRE line"
+  Invariant 1: is_none() -> is_empty() path
+  Invariant 2: as_deref().and_then() -> first().and_then() or is_empty() check
+  EC-001: mitre_technique=None -> mitre_techniques=vec![]
+  Canonical vectors updated to use vec notation
+-->
+
 ## Description
 
-In MITRE-grouped rendering, findings with `mitre_technique = None` AND findings with a
-`mitre_technique` that is not present in the technique catalog (i.e., `technique_tactic(id)`
+In MITRE-grouped rendering, findings with an empty `mitre_techniques` vec AND findings where
+`mitre_techniques[0]` is not present in the technique catalog (i.e., `technique_tactic(id)`
 returns None) both land in the `Uncategorized` bucket. Unknown-ID findings render with an
 `(unknown)` label in the MITRE line. This ensures no finding is silently dropped from output
-due to an unrecognized technique ID.
+due to an empty technique attribution or an unrecognized technique ID.
 
 ## Preconditions
 
 1. `TerminalReporter.show_mitre_grouping = true`.
-2. At least one finding has `mitre_technique = None` or has an ID not in the catalog.
+2. At least one finding has `mitre_techniques = vec![]` (empty) or has a first element not
+   in the catalog.
 
 ## Postconditions
 
-1. Findings with `mitre_technique = None` appear under `## Uncategorized`.
-2. Findings with an unrecognized technique ID appear under `## Uncategorized`.
-3. For findings with an unrecognized ID, the MITRE line reads `MITRE: <id> (unknown)`.
-4. For findings with `mitre_technique = None`, no MITRE line is rendered.
+1. Findings with empty `mitre_techniques` vec appear under `## Uncategorized`.
+2. Findings where `technique_tactic(mitre_techniques[0])` returns None appear under `## Uncategorized`.
+3. For findings with an unrecognized first ID, the MITRE line reads `MITRE: <id> (unknown)`.
+4. For findings with empty `mitre_techniques`, no MITRE line is rendered.
 5. The `Uncategorized` bucket is rendered AFTER all named tactic buckets.
 
 ## Invariants
 
 1. Bucket key `None` (the `Option<MitreTactic>` None variant) collects both:
-   - `f.mitre_technique.is_none()` cases (technique_tactic was never called)
-   - Cases where `technique_tactic(id)` returns None (ID not in catalog)
-2. Both produce the same None bucket key because both go through
-   `f.mitre_technique.as_deref().and_then(technique_tactic)` at terminal.rs:265.
+   - `f.mitre_techniques.is_empty()` cases (no technique attributed)
+   - Cases where `technique_tactic(f.mitre_techniques[0])` returns None (first ID not in catalog)
+2. Both produce the same None bucket key because both paths result in no resolvable tactic.
+   The implementation uses: if empty → None key; else `technique_tactic(first_id)` which may
+   return None for unknown IDs.
 3. Known and unknown IDs are kept in separate buckets only when they map to different
-   tactics -- but unknown IDs always produce None from technique_tactic.
+   tactics -- but unknown IDs always produce None from technique_tactic. Multi-tag findings
+   are bucketed by `mitre_techniques[0]` only; if [0] is known, the finding goes to its tactic
+   section even if secondary tags are unknown.
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | Finding with mitre_technique=None | Under ## Uncategorized; no MITRE line |
-| EC-002 | Finding with id="T9999" (not in catalog) | Under ## Uncategorized; "MITRE: T9999 (unknown)" |
-| EC-003 | Mix of None and unknown-ID findings | Both under same ## Uncategorized |
-| EC-004 | Known ID in same output | Known ID in its tactic section; unknowns in Uncategorized |
+| EC-001 | Finding with mitre_techniques=vec![] (empty) | Under ## Uncategorized; no MITRE line rendered |
+| EC-002 | Finding with mitre_techniques=["T9999"] (not in catalog) | Under ## Uncategorized; "MITRE: T9999 (unknown)" |
+| EC-003 | Mix of empty-vec and unknown-ID findings | Both under same ## Uncategorized |
+| EC-004 | Known ID in same output | Known ID in its tactic section; empties/unknowns in Uncategorized |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| findings=[{mitre=None}, {mitre="T9999"}] | "## Uncategorized" with both findings | happy-path |
-| findings=[{mitre="T1036" (known)}, {mitre=None}] | "## Defense Evasion" + "## Uncategorized" | happy-path |
-| all findings with None technique | Only "## Uncategorized" section | edge-case |
+| findings=[{mitre_techniques=[]}, {mitre_techniques=["T9999"]}] | "## Uncategorized" with both findings | happy-path |
+| findings=[{mitre_techniques=["T1036"]}, {mitre_techniques=[]}] | "## Defense Evasion" + "## Uncategorized" | happy-path |
+| all findings with empty mitre_techniques vec | Only "## Uncategorized" section | edge-case |
 
 ## Verification Properties
 

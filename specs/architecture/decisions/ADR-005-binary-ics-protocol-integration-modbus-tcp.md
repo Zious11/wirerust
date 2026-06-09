@@ -13,6 +13,15 @@ superseded_by: null
 
 # ADR-005: Binary ICS Protocol Integration (Modbus TCP)
 
+> **Superseded in part by ADR-006 (multi-technique Finding attribution) and
+> f2-fix-directives.md v2 (Decisions 11, 12, 13).**
+> Decision 3 (write-threshold model) is corrected to the dual-window model.
+> Decision 4 (MITRE catalog) is corrected: T0846 → T0888 as recon emitter; SEEDED 15→21.
+> `mitre_technique: Option<String>` (referenced in Decision 4 and Consequences) is
+> superseded by `mitre_techniques: Vec<String>` per ADR-006.
+> The corrected authoritative state is documented below. See ADR-006 for the full
+> rationale for the multi-tag Finding type change.
+
 > **One-per-file:** Each architectural decision lives in its own file.
 > Filename convention: `ADR-NNN-<short-name>.md` (e.g., `ADR-001-rust-dispatcher.md`)
 > ADR IDs are sequential 3-digit (`ADR-001`, `ADR-002`, ...). Once issued, never renumber.
@@ -67,7 +76,8 @@ only in the ICS matrix. `mitre.rs` already carries `MitreTactic::IcsImpairProces
 seeds T0855/T0856/T0846/T0885 in `SEEDED_TECHNIQUE_IDS`, establishing a precedent for ICS
 techniques. However, the codebase has no formal representation of which matrix a technique ID
 belongs to, and the Kani proof in `kani_proofs::EMITTED_IDS` does not yet include any ICS
-technique as emitted. This ADR extends the catalog with T0836, T0814, T0806, T0835, and T0831,
+technique as emitted. This ADR extends the catalog with T0836, T0814, T0806, T0835, T0831,
+and T0888 (Decision 12 correction: T0888 replaces T0846 as the Modbus recon emitter),
 and makes the matrix distinction explicit in the type system.
 
 ## Decision
@@ -93,7 +103,8 @@ We will integrate Modbus TCP analysis via four coordinated decisions:
    PDU maximum per spec V1.1b3), making this approach safe and bounded without a streaming
    parser framework.
 
-3. **Full transaction-correlation state model.** Each flow's `ModbusFlowState` carries a
+3. **Full transaction-correlation state model with dual-window write detection (corrected per
+   f2-fix-directives.md v2 Decision 11).** Each flow's `ModbusFlowState` carries a
    `pending: HashMap<(u16, u8), (u8, u32)>` table keyed on `(transaction_id, unit_id)`
    mapping to `(request_fc: u8, timestamp: u32)`. On receiving a request (destination port
    502), the entry is inserted. On receiving a response (source port 502), the entry is
@@ -103,15 +114,41 @@ We will integrate Modbus TCP analysis via four coordinated decisions:
    bounded to `MAX_PENDING_TRANSACTIONS = 256` entries per flow to prevent unbounded growth
    on pipelined or lossy captures.
 
-4. **ICS-matrix MITRE representation via a `Matrix` discriminator field.** The MITRE type
-   design adds a `Matrix` enum `{ Enterprise, Ics }` embedded in `MitreTechnique` (or
-   inferable from the technique-ID namespace: IDs matching `T0[0-9]{3}` are ICS; IDs matching
-   `T[1-9][0-9]{3}` or `T[1-9][0-9]{3}\.[0-9]{3}` are Enterprise). The `technique_info`
-   match arm for each ICS technique is extended to return a `(name, tactic, Matrix::Ics)` tuple,
-   making the matrix affiliation explicit. The `EMITTED_IDS` array in the VP-007 Kani
-   `kani_proofs` module gains the seven Modbus-emitted ICS IDs: T0855, T0836, T0814, T0806,
-   T0835, T0831, T0846. `SEEDED_TECHNIQUE_IDS` gains T0836, T0814, T0806, T0835, T0831
-   (T0855 and T0846 are already seeded). `SEEDED_TECHNIQUE_ID_COUNT` advances from 15 to 20.
+   **Write-burst detection uses a DUAL-window model** (corrects the prior single-window
+   description): `--modbus-write-burst-threshold` (default 20) and
+   `--modbus-write-sustained-threshold` (default 10) implement two independent detectors:
+   - *Burst detector:* fires T0806 + T0855 when a 1-second window sees >N write FCs. One
+     finding per window overflow (`window_burst_emitted` guard). `WRITE_BURST_WINDOW_SECS = 1`.
+   - *Sustained detector:* fires T0806 + T0855 when a ≥2-second rolling window has average
+     rate > M/s. One finding per window overflow (`sustained_burst_emitted` guard).
+     `WRITE_SUSTAINED_WINDOW_SECS = 2`. Detection math:
+     `sustained_window_write_count > write_sustained_threshold * elapsed_secs`.
+   `ModbusFlowState` carries three sustained-window fields: `sustained_window_start_ts`,
+   `sustained_window_write_count`, `sustained_burst_emitted` (alongside existing burst fields).
+   The prior single `write_threshold` field on `ModbusAnalyzer` is replaced by
+   `write_burst_threshold` and `write_sustained_threshold`.
+
+4. **ICS-matrix MITRE representation via a `Matrix` discriminator field (corrected per
+   f2-fix-directives.md v2 Decision 12).** The MITRE type design adds a `Matrix` enum
+   `{ Enterprise, Ics }` inferable from the technique-ID namespace: IDs matching `T0[0-9]{3}`
+   are ICS; IDs matching `T[1-9][0-9]{3}` or `T[1-9][0-9]{3}\.[0-9]{3}` are Enterprise.
+   The `technique_info` match arm for each ICS technique returns the ICS tactic.
+   The `EMITTED_IDS` array in the VP-007 Kani `kani_proofs` module gains seven Modbus-emitted
+   ICS IDs: T0855, T0836, T0814, T0806, T0835, T0831, **T0888**. (T0846 is NOT emitted —
+   see below.) `SEEDED_TECHNIQUE_IDS` gains T0836, T0814, T0806, T0835, T0831, and T0888
+   (T0855 and T0846 are already seeded). `SEEDED_TECHNIQUE_ID_COUNT` advances from **15 to 21**
+   (not 20 — T0888 is newly seeded; 11 Enterprise + 10 ICS total).
+
+   **T0846 → T0888 correctness fix (Decision 12):** Recon FCs 0x11 (Report Server ID) and
+   0x2B/MEI 0x0E (Read Device ID) now emit **T0888 Remote System Information Discovery**
+   (TA0102 Discovery), not T0846. T0846 Remote System Discovery was a common misattribution:
+   T0846 applies to network-scan behavior (enumerating systems exist); T0888 applies to
+   querying device make/model/firmware/version. T0846 remains SEEDED (kept in catalog for
+   future use) but is NOT in `EMITTED_IDS`.
+
+   **Multi-tag Finding type (ADR-006):** `mitre_technique: Option<String>` is superseded by
+   `mitre_techniques: Vec<String>` per ADR-006. The `EMITTED_IDS` grep pattern changes from
+   `mitre_technique: Some` to `mitre_techniques: vec!`.
 
 ## Rationale
 
@@ -161,8 +198,8 @@ What this decision causes downstream. Use sub-headings:
 ### Positive
 
 - Modbus TCP flows on port 502 are correctly routed and analyzed, enabling ICS/OT threat
-  detection for all seven MITRE ATT&CK for ICS techniques in scope (T0855, T0836, T0814,
-  T0806, T0835, T0831, T0846).
+  detection for all seven MITRE ATT&CK for ICS techniques emitted in scope:
+  T0855, T0836, T0814, T0806, T0835, T0831, **T0888** (corrected from T0846 per Decision 12).
 - The three-point validity gate prevents Modbus findings from being emitted on non-Modbus
   binary traffic that happens to use port 502, keeping false-positive rates low.
 - Full transaction correlation enables pattern-based detections (write-burst attribution,
@@ -173,8 +210,9 @@ What this decision causes downstream. Use sub-headings:
 - VP-004 formal correctness is preserved: the extended `classify_oracle` continues to mirror
   the production `classify` function, keeping the Kani precedence proof sound over the
   four-variant `DispatchTarget` enum.
-- VP-007 formal correctness is preserved: the expanded `SEEDED_TECHNIQUE_IDS` and
-  `EMITTED_IDS` arrays keep the drift-guard test sound over the enlarged catalog.
+- VP-007 formal correctness is preserved: the expanded `SEEDED_TECHNIQUE_IDS` (21 total:
+  15→21, adding T0836/T0814/T0806/T0835/T0831/T0888) and `EMITTED_IDS` arrays keep the
+  drift-guard test sound over the enlarged catalog.
 
 ### Negative / Trade-offs
 
@@ -189,13 +227,14 @@ What this decision causes downstream. Use sub-headings:
   self.tls.is_none()`) must be extended to also check `self.modbus.is_none()`, or rewritten
   as per-arm `if let Some(ref mut x)` guards. Missing this produces a latent path where
   Modbus data is dropped silently.
-- `SEEDED_TECHNIQUE_ID_COUNT` (now 20) and `SEEDED_TECHNIQUE_IDS` must be updated atomically
-  with each new `technique_info` arm; the `vp007_catalog_drift_guard` test enforces this but
+- `SEEDED_TECHNIQUE_ID_COUNT` (now **21**; corrected from the prior "20" in v1.0 — see
+  Decision 4 correction above) and `SEEDED_TECHNIQUE_IDS` must be updated atomically with
+  each new `technique_info` arm; the `vp007_catalog_drift_guard` test enforces this but
   requires discipline on every future ICS technique addition.
-- `--modbus-write-threshold` implements a SINGLE 1-second window (not a dual-window
-  "sustained/burst" model). The threshold represents max write FCs per 1-second window.
-  Recommended tuning: 10 (conservative, default) or 20 (strict). No second "2-second
-  sustained" window is implemented in v1.
+- `--modbus-write-burst-threshold` and `--modbus-write-sustained-threshold` implement a
+  dual-window model (1-second burst / ≥2-second sustained, per Decision 11). Each window
+  fires at most once per its respective window expiry. The prior single `--modbus-write-threshold`
+  flag is removed; this is a CLI-breaking change in v0.3.0.
 
 ### Status as of 2026-06-09
 

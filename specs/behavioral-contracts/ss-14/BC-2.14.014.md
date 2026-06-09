@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "2.0"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -13,7 +13,10 @@ subsystem: SS-14
 capability: CAP-14
 lifecycle_status: active
 introduced: v0.3.0-feature-007
-modified: []
+modified:
+  - version: "2.0"
+    date: 2026-06-09
+    change: "UPDATED (v2.0 — Decision 13, f2-fix-directives.md §13.5): T0836 is now a co-tag on the single per-PDU write finding, not a separate Finding object. The T0836 finding is mitre_techniques: [\"T0855\",\"T0836\"] on one finding. Removed all T0836-priority-over-T0835 suppression language; T0836 and T0835 are FC-subset-exclusive by definition (holding-register vs coil). Removed the separate T0855 + T0836 = 2 findings model. Targets v0.3.0."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -22,23 +25,36 @@ removed: null
 removal_reason: null
 inputs:
   - .factory/phase-f2-spec-evolution/architecture-delta.md
+  - .factory/phase-f2-spec-evolution/f2-fix-directives.md
   - .factory/research/modbus-tcp-research.md
   - .factory/specs/architecture/decisions/ADR-005-binary-ics-protocol-integration-modbus-tcp.md
+  - .factory/specs/architecture/decisions/ADR-006-multi-technique-finding-attribution.md
 input-hash: TBD
 ---
 
-# BC-2.14.014: Write FC 0x06/0x10/0x16 in Request Direction Emits T0836 Modify Parameter Finding
+# BC-2.14.014: Write FC 0x06/0x10/0x16 in Request Direction Emits Finding Tagged ["T0855","T0836"]
+
+<!-- Previous version (v1.0): "Write FC 0x06/0x10/0x16 in Request Direction Emits T0836 Modify Parameter Finding"
+     v1.0 model: separate T0836 Finding object pushed after T0855 Finding (two separate findings per PDU).
+       Contained "T0836 takes priority over T0835 for same PDU" suppression language.
+     v2.0 model (Decision 13): ONE finding per PDU, mitre_techniques: ["T0855","T0836"].
+       No suppression language; T0836 and T0835 are FC-subset-exclusive, not priority-competing.
+       Targets v0.3.0.
+-->
 
 ## Description
 
 Write operations targeting Modbus holding registers via FC 0x06 (Write Single Register),
 0x10 (Write Multiple Registers), or 0x16 (Mask Write Register) are classified as setpoint
-or parameter modification and emit a T0836 ("Modify Parameter") finding. These three FCs
-write directly to holding registers, which store setpoints, alarm thresholds, process limits,
-and configuration values in typical SCADA deployments. This BC co-fires alongside BC-2.14.013
-(T0855) for the same PDU — the T0836 finding is a refinement that names the specific parameter
-manipulation technique. The discriminator between T0836 and T0835 (BC-2.14.015) is register
-type: holding registers = parameters/setpoints → T0836; coil output image = I/O state → T0835.
+or parameter modification. Per Decision 13 (ADR-006), the single per-PDU write Finding for
+these FCs carries `mitre_techniques: vec!["T0855", "T0836"]` — both "Unauthorized Command
+Message" and "Modify Parameter" technique tags on one finding. These three FCs write directly
+to holding registers, which store setpoints, alarm thresholds, process limits, and
+configuration values in typical SCADA deployments. There is no separate T0836 Finding object;
+the T0836 attribution is carried inline in the per-PDU finding defined by BC-2.14.013.
+The discriminator between T0836 and T0835 (BC-2.14.015) is register type by FC subset:
+holding registers {0x06, 0x10, 0x16} → T0836 tag; coil outputs {0x05, 0x0F} → T0835 tag.
+These sets are definitionally non-overlapping. Targets v0.3.0.
 
 ## Preconditions
 
@@ -49,69 +65,67 @@ type: holding registers = parameters/setpoints → T0836; coil output image = I/
 
 ## Postconditions
 
-1. A `Finding` is pushed with:
+1. ONE `Finding` is pushed (the same per-PDU finding specified in BC-2.14.013 postcondition 1)
+   with `mitre_techniques: vec!["T0855", "T0836"]`:
    - `category: ThreatCategory::Execution`
-   - `verdict: Verdict::Malicious`
+   - `verdict: Verdict::Likely`
    - `confidence: Confidence::Medium`
-   - `summary`: `"Modbus parameter/setpoint write: FC 0x{fc:02X} to unit {unit_id}"` where
-     `{fc}` is the function code byte and `{unit_id}` is the MBAP Unit ID byte.
+   - `summary`: `"Modbus write command observed: FC 0x{fc:02X} from unit {unit_id}"`
    - `evidence`: one entry — `"FC=0x{fc:02X} TxnID={txn_id:#06X} UnitID={unit_id} ADU bytes {start}..{end}"`.
-   - `mitre_technique: Some("T0836".to_string())`
+   - `mitre_techniques: vec!["T0855", "T0836"]`
    - `source_ip: Some(flow_key.client_ip())`
    - `timestamp: Some(...)` — pcap-relative capture timestamp per BC-2.09.007.
    - `direction: Some(Direction::ClientToServer)`
-2. A T0855 Finding is ALSO emitted for the same PDU (per BC-2.14.013 postcondition 1).
-   Both findings are in `all_findings`; T0855 is pushed first.
-3. T0835 is NOT emitted for this PDU when T0836 applies. The T0836 vs T0835 priority rule
-   (Decision 7, architecture-delta.md §2.6): T0836 takes priority for FCs {0x06, 0x10, 0x16}.
-   When T0836 fires, T0835 is SKIPPED for that PDU. T0835 is reserved for coil-only writes
-   (FC 0x05, 0x0F) where T0836 does not apply. This means a single holding-register write PDU
-   emits AT MOST TWO findings: T0855 + T0836 (not three: T0855 + T0836 + T0835).
-4. `flow.write_count` and `self.total_write_count` incremented (via BC-2.14.013 step 2/3
-   — write-count is incremented once per write-class PDU, not once per emitted finding).
-5. `self.fn_code_counts.entry(function_code)` incremented by 1.
+2. When the T0831 coordinated-write condition is also met (2nd+ holding-register write within
+   the 5-second window), the same finding carries `mitre_techniques: vec!["T0855","T0836","T0831"]`
+   (T0831 is added to the tag vec inline — not a separate finding object — per BC-2.14.016).
+3. `flow.write_count` and `self.total_write_count` incremented once per PDU.
+4. `self.fn_code_counts.entry(function_code)` incremented by 1.
+5. **No separate T0836 finding object is created.** The T0836 attribution is carried in
+   `mitre_techniques` of the single per-PDU finding. `all_findings` receives exactly one new
+   entry per non-burst, non-T0831 register write.
 
 ## Invariants
 
-1. **Technique discriminator rule (T0836 vs T0835 — PRIORITY SELECTION):**
-   Per Decision 7 (architecture-delta.md §2.6), a single write PDU emits AT MOST ONE
-   write-technique finding from the T0836/T0835 tier:
-   - **T0836 (this BC) takes priority**: FC targets holding registers (0x06 / 0x10 / 0x16).
-     When T0836 fires, T0835 is NOT emitted for the same PDU.
-   - **T0835 (BC-2.14.015) fires only when T0836 does NOT apply**: FC targets coil outputs
-     exclusively (0x05, 0x0F). For FC 0x06 and 0x10, earlier versions incorrectly co-fired
-     both T0836 and T0835; v1 policy is T0836 takes priority and T0835 is suppressed.
-   - **T0855 always fires independently**: T0855 is NOT subject to the T0836/T0835 priority
-     selection. It fires for every write-class PDU regardless.
-   - T0831 (BC-2.14.016): coordinated sequence detector — separate path, separate emission rule.
-     Single write → T0836 + T0855; coordinated sequence → T0836 + T0855 + T0831 (per window).
-   - FC 0x16 (Mask Write Register) emits only T0836 and T0855. T0835 NOT emitted for 0x16.
-2. The `mitre_technique` field MUST carry `"T0836"` (ICS namespace, `T0xxx` format).
-3. FC 0x15 (Write File Record) and 0x17 (Read/Write Multiple Registers) are in the Write
-   class but are NOT in the T0836 subset. They emit T0855 only. Write File Record has no
-   standard setpoint semantics. FC 0x17 in v1 emits T0855 only — neither T0836 nor T0835 fires
-   for 0x17 (T0835 is suppressed for 0x17 under the v1 simplification; see BC-2.14.015 Invariant 1).
+1. **Tag set for holding-register writes (authoritative per Decision 13 §13.5):**
+   FC {0x06, 0x10, 0x16} → `mitre_techniques = ["T0855", "T0836"]` in the single per-PDU finding.
+   T0831 is appended to this vec when the coordinated-write window fires (see BC-2.14.016).
+2. **FC-subset exclusivity (not priority-based):** T0836 and T0835 are never co-tagged on
+   the same PDU finding because:
+   - T0836 applies only to FCs {0x06, 0x10, 0x16} (holding-register writes).
+   - T0835 applies only to FCs {0x05, 0x0F} (coil writes).
+   - These sets are disjoint; no FC is in both. The concept of "T0836 priority suppresses
+     T0835" from v1.0 is SUPERSEDED and must not be used in implementation comments or tests.
+     The correct framing is: T0836 and T0835 are mutually exclusive by FC subset definition.
+3. **`mitre_techniques` field** (plural, `Vec<String>`) — not the v1.0 `mitre_technique: Option<String>` field.
+4. FC 0x15 (Write File Record) and 0x17 (Read/Write Multiple Registers) are in the Write
+   class but are NOT in the T0836 subset {0x06, 0x10, 0x16}. They carry `mitre_techniques: ["T0855"]` only.
+5. **Burst finding is independent:** if the burst threshold is also tripped on this PDU,
+   a separate burst Finding with `mitre_techniques: ["T0806","T0855"]` is emitted (from
+   BC-2.14.017). That is a 2nd Finding, not a modification of the per-PDU finding.
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | FC 0x06 with value field = 0xFFFF | T0836 emitted normally; value is forensic evidence but does not gate the finding. |
-| EC-002 | FC 0x10 writing 125 registers in one PDU (max bulk write) | Single T0836 finding; evidence string includes the full ADU byte range. |
-| EC-003 | FC 0x16 (Mask Write Register) — AND-mask=0xFFF0, OR-mask=0x000F | T0836 emitted (parameter modification via bit-mask); T0855 emitted; T0835 NOT emitted (T0836 priority). |
-| EC-004 | FC 0x10 when `all_findings.len() == MAX_FINDINGS - 1` | T0855 pushed (len becomes MAX_FINDINGS); T0836 NOT pushed (guard fails). Counters still incremented. T0835 is also skipped (T0836 priority means it would not fire anyway). |
-| EC-005 | FC 0x06 when `all_findings.len() == MAX_FINDINGS - 2` | T0855 and T0836 both pushed (two findings, two slots available). T0835 is NOT emitted per priority rule regardless of slots. |
+| EC-001 | FC 0x06 with value field = 0xFFFF | Single finding `mitre_techniques: ["T0855","T0836"]`; value is forensic evidence captured in evidence string, not a gate. |
+| EC-002 | FC 0x10 writing 125 registers (max bulk write) | Single finding with `mitre_techniques: ["T0855","T0836"]`; evidence string includes the full ADU byte range. |
+| EC-003 | FC 0x16 (Mask Write Register) — AND=0xFFF0, OR=0x000F | Single finding `mitre_techniques: ["T0855","T0836"]` (parameter modification via bit-mask; 0x16 is in the holding-register subset). |
+| EC-004 | FC 0x10 when `all_findings.len() == MAX_FINDINGS - 1` | Finding with `["T0855","T0836"]` would be the (MAX_FINDINGS)th finding — pushed (len was MAX_FINDINGS-1). If T0831 also fires, its tag would be appended to the same finding's vec. No second finding attempted for T0836 separately. |
+| EC-005 | FC 0x06 when `all_findings.len() == MAX_FINDINGS` | No finding pushed (poison-skip); `write_count` and `fn_code_counts[0x06]` incremented normally. `dropped_findings += 1`. |
 | EC-006 | Response direction carrying FC 0x10 echo | NOT a T0836 request event; response-path logic handles echo matching per BC-2.14.010. |
+| EC-007 | FC 0x0F (Write Multiple Coils) | NOT in T0836 subset; single finding with `mitre_techniques: ["T0855","T0835"]` (coil-write tag set, per BC-2.14.015). No T0836 tag. |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| ADU hex: `00 01 00 00 00 06 01 06 00 10 01 F4` (FC=0x06, addr=0x0010, value=0x01F4, UnitID=1) — ClientToServer | T0855 Finding + T0836 Finding emitted (T0836 priority: T0835 NOT emitted); `write_count=1`, `fn_code_counts[0x06]=1` | happy-path (T0836 priority over T0835) |
-| ADU hex: `00 02 00 00 00 09 02 10 00 00 00 02 04 00 64 00 C8` (FC=0x10, UnitID=2, addr=0, qty=2, values=[100,200]) — ClientToServer | T0855 + T0836 emitted; T0835 NOT emitted (T0836 priority); `write_count=1`, `fn_code_counts[0x10]=1` | happy-path (multi-register, no T0835) |
-| ADU hex: `00 03 00 00 00 08 01 16 00 10 FF F0 00 0F` (FC=0x16 Mask Write, UnitID=1, addr=0x0010, AND=0xFFF0, OR=0x000F) — ClientToServer | T0855 + T0836 emitted; T0835 NOT emitted; `write_count=1`, `fn_code_counts[0x16]=1` | happy-path (mask-write, T0836 only) |
-| ADU hex: `00 04 00 00 00 06 01 0F 00 00 00 08 01 FF` (FC=0x0F Write Multiple Coils) — ClientToServer | T0855 + T0835 emitted; T0836 NOT emitted (coil write, not in T0836 subset) | negative (not T0836 FC; T0835 applies) |
-| ADU hex: `00 05 00 00 00 06 01 03 00 00 00 05` (FC=0x03 Read Holding Registers) — ClientToServer | No T0836 (Read class); no T0855 | negative (read FC) |
+| ADU hex: `00 01 00 00 00 06 01 06 00 10 01 F4` (FC=0x06, UnitID=1) — ClientToServer; 1st write on flow | ONE Finding: `{mitre_techniques=["T0855","T0836"]}` pushed; `write_count=1`, `fn_code_counts[0x06]=1` | happy-path (register write, union tag) |
+| ADU hex: `00 02 00 00 00 09 02 10 00 00 00 02 04 00 64 00 C8` (FC=0x10, UnitID=2) — ClientToServer | ONE Finding: `mitre_techniques=["T0855","T0836"]`; `write_count=1`, `fn_code_counts[0x10]=1` | happy-path (multi-register) |
+| ADU hex: `00 03 00 00 00 08 01 16 00 10 FF F0 00 0F` (FC=0x16 Mask Write, UnitID=1) — ClientToServer | ONE Finding: `mitre_techniques=["T0855","T0836"]`; `write_count=1`, `fn_code_counts[0x16]=1` | happy-path (mask-write) |
+| ADU hex: `00 04 00 00 00 06 01 0F 00 00 00 08 01 FF` (FC=0x0F Write Multiple Coils) — ClientToServer | ONE Finding: `mitre_techniques=["T0855","T0835"]`; no T0836 (coil write, not in holding-register subset) | negative (coil write — T0836 not applicable) |
+| ADU hex: FC=0x06; 2nd holding-register write within 5s T0831 window — ClientToServer | ONE Finding: `mitre_techniques=["T0855","T0836","T0831"]`; T0831 co-tagged inline | happy-path (T0831 co-tag) |
+| ADU hex: `00 05 00 00 00 06 01 03 00 00 00 05` (FC=0x03 Read Holding Registers) — ClientToServer | No T0836 (Read class); no T0855; no finding | negative (read FC) |
 
 ## Verification Properties
 
@@ -129,20 +143,21 @@ type: holding registers = parameters/setpoints → T0836; coil output image = I/
 | Architecture Module | SS-14 (analyzer/modbus.rs, C-22) |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-007-modbus-analyzer |
-| MITRE Technique | T0836 — Modify Parameter (ATT&CK for ICS; IcsImpairProcessControl tactic) |
+| MITRE Techniques | T0836 — Modify Parameter (ATT&CK for ICS; IcsImpairProcessControl tactic); T0855 — Unauthorized Command Message (always co-tagged) |
 
 ## Related BCs
 
 - BC-2.14.006 — depends on (Write-class FC classification)
-- BC-2.14.013 — composes with (T0855 co-emitted for same PDU)
-- BC-2.14.015 — composes with (T0835 emits only for coil-only 0x05/0x0F; suppressed for register FCs 0x06/0x10/0x16 per T0836 priority)
-- BC-2.14.016 — composes with (T0831 emitted if coordinated write sequence detected)
+- BC-2.14.013 — composes with (this BC specifies the T0836 tag in the per-PDU finding defined there)
+- BC-2.14.015 — composes with (T0835 tag applies for coil writes; FC subsets are non-overlapping, not priority-competing)
+- BC-2.14.016 — composes with (T0831 tag may be appended to this finding's mitre_techniques vec)
 - BC-2.14.022 — depends on (MAX_FINDINGS cap guard)
 
 ## Architecture Anchors
 
-- `src/analyzer/modbus.rs` — holding-register write detection branch in `on_data`
+- `src/analyzer/modbus.rs` — holding-register write detection branch in `on_data`; sets `mitre_techniques: vec!["T0855","T0836"]`
 - `src/mitre.rs` — `technique_info("T0836")` arm (new per ADR-005 §4.2)
+- `.factory/specs/architecture/decisions/ADR-006-multi-technique-finding-attribution.md`
 
 ## Story Anchor
 
@@ -150,13 +165,13 @@ TBD (F3 story decomposition)
 
 ## VP Anchors
 
-- VP-022 — Kani proof: Write-class completeness; sub-property B
+- VP-022 — Kani proof: Write-class completeness; sub-property B/C
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | architecture-delta.md §2.6 (T0836 detection trigger: 0x06/0x10/0x16 holding register writes); modbus-tcp-research.md §5 (T0836 severity rationale: setpoints/alarm thresholds); ADR-005 §4.2 |
+| **Path** | f2-fix-directives.md §13.5 (per-PDU emission rules: FC 0x06/0x10/0x16 → ["T0855","T0836"]); ADR-006 (multi-tag design); architecture-delta.md §2.6 (T0836 detection trigger: 0x06/0x10/0x16 holding register writes) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-06-09 |
 

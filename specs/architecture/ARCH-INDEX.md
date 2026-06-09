@@ -149,6 +149,7 @@ or any network-related call. This is the basis for the "offline" forensic-tool g
 | ADR 0003 | 2026-04-09 | Reporting pipeline layering (raw data / display-layer separation) | SS-06, SS-07, SS-09, SS-11 |
 | ADR 0004 | 2026-05-19 | Process-wide warning atomics for one-shot bug tripwires | SS-04 |
 | ADR 0005 | 2026-06-09 | Binary ICS protocol integration (Modbus TCP): port-only classification exception, PDU-oriented manual parsing, full transaction-correlation state, ICS-matrix MITRE representation | SS-05, SS-10, SS-14 |
+| ADR 0006 | 2026-06-09 | Multi-technique Finding attribution: `mitre_technique: Option<String>` → `mitre_techniques: Vec<String>`; one-finding-N-tags aligned with Sigma/Elastic standard; volume control via aggregation not tag-suppression; v0.3.0 breaking schema change | SS-09, SS-10, SS-11, SS-14 |
 
 ADRs 0001–0004 are canonical and reside in `docs/adr/`. ADR 0005 onwards reside in
 `.factory/specs/architecture/decisions/`. Architecture section files reference them by ID

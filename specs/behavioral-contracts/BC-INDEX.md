@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -223,12 +223,12 @@ traces_to: .factory/specs/prd.md
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
-| BC-2.09.001 | Finding Constructed with Required Fields and Optional Fields | P0 | [WRITTEN] | BC-FND-001 |
+| BC-2.09.001 | Finding Constructed with Required Fields and Optional Fields | P0 | [WRITTEN] | BC-FND-001 | <!-- v1.4: mitre_technique->mitre_techniques Vec<String>; ADR-006 F2 revision -->
 | BC-2.09.002 | Finding Display Renders [Category] VERDICT (CONFIDENCE) — summary | P1 | [WRITTEN] | BC-FND-002 |
 | BC-2.09.003 | Verdict Display: Uppercase Tokens | P1 | [WRITTEN] | BC-FND-003 |
 | BC-2.09.004 | Confidence Display: Uppercase Tokens | P1 | [WRITTEN] | BC-FND-004 |
 | BC-2.09.005 | Finding.summary and Evidence Store RAW Post-from_utf8_lossy Bytes per ADR 0003 | P0 | [WRITTEN] | BC-FND-005 |
-| BC-2.09.006 | Finding JSON Serialization: All None Option Fields Omitted via skip_serializing_if | P0 | [WRITTEN] | BC-FND-006 |
+| BC-2.09.006 | Finding JSON Serialization: Empty Vec Fields Omitted; mitre_techniques Serialized as Array | P0 | [WRITTEN] | BC-FND-006 | <!-- v1.5: mitre_techniques Vec; skip_serializing_if Vec::is_empty; ADR-006 F2 revision -->
 | BC-2.09.007 | Finding.timestamp Carries Capture-Relative Pcap Timestamp from on_data Call Site | P1 | [WRITTEN] | feature-100-F2 |
 
 ## ss-10: MITRE ATT&CK Mapping (CAP-10)
@@ -239,10 +239,10 @@ traces_to: .factory/specs/prd.md
 | BC-2.10.002 | ICS Tactics Render Unprefixed | P1 | [WRITTEN] | BC-MIT-002 |
 | BC-2.10.003 | all_tactics_in_report_order Returns Kill-Chain Order First Then ICS | P0 | [WRITTEN] | BC-MIT-003 |
 | BC-2.10.004 | all_tactics_in_report_order Contains Every Variant Exactly Once | P0 | [WRITTEN] | BC-MIT-004 |
-| BC-2.10.005 | technique_name Returns Some for Every Seeded ID (15 Total) | P0 | [WRITTEN] | BC-MIT-005 |
+| BC-2.10.005 | technique_name Returns Some for Every Seeded ID (21 Total) | P0 | [WRITTEN] | BC-MIT-005 | <!-- v1.4: count 15->21; T0888+5 new ICS added; ADR-006 / Decision-12 F2 revision -->
 | BC-2.10.006 | technique_name Returns None for Unknown IDs | P0 | [WRITTEN] | BC-MIT-006 |
 | BC-2.10.007 | technique_tactic Returns Correct Tactic for Every Seeded ID | P0 | [WRITTEN] | BC-MIT-007 |
-| BC-2.10.008 | All Emitted Technique IDs Resolve in Lookup | P0 | [WRITTEN] | BC-MIT-008 |
+| BC-2.10.008 | All Emitted Technique IDs Resolve in Lookup | P0 | [WRITTEN] | BC-MIT-008 | <!-- v1.3: grep pattern mitre_technique:Some->mitre_techniques:vec!; T0888 replaces T0846 in emitted list; 13 total emitted; ADR-006 / Decision-12 F2 revision -->
 | BC-2.10.009 | MitreTactic is #[non_exhaustive] | P2 | [WRITTEN] | BC-MIT-009 |
 
 ## ss-11: Reporting and Output (CAP-11)
@@ -269,14 +269,14 @@ traces_to: .factory/specs/prd.md
 | BC-2.11.014 | Within Tactic Bucket: Sort by Verdict, Confidence, Emission Order | P1 | [WRITTEN] | BC-RPT-014 |
 | BC-2.11.015 | No-Technique or Unknown-ID Findings Land in Uncategorized | P0 | [WRITTEN] | BC-RPT-015 |
 | BC-2.11.016 | MITRE Grouping Expands Per-Finding Line with Em-Dash and Name | P1 | [WRITTEN] | BC-RPT-016 |
-| BC-2.11.017 | Default Rendering Emits MITRE: <id> Only (No Em-Dash) | P1 | [WRITTEN] | BC-RPT-017 |
+| BC-2.11.017 | Default Rendering Emits MITRE: <id(s)> Only (No Em-Dash) | P1 | [WRITTEN] | BC-RPT-017 | <!-- v1.5: multi-ID rendering "MITRE: T0855, T0836"; ADR-006 F2 revision -->
 | BC-2.11.018 | TerminalReporter Colorization: Likely/High=Red Bold, etc. | P2 | [WRITTEN] | BC-RPT-018 |
 | BC-2.11.019 | TerminalReporter Renders Sections in Correct Order | P1 | [WRITTEN] | BC-RPT-019 |
-| BC-2.11.020 | CsvReporter Emits Exactly Nine Columns in Fixed Header Order | P0 | [WRITTEN] | pass-4 H-1 |
+| BC-2.11.020 | CsvReporter Emits Exactly Nine Columns in Fixed Header Order | P0 | [WRITTEN] | pass-4 H-1 | <!-- v1.5: column-6 header renamed mitre_technique->mitre_techniques; ADR-006 F2 revision -->
 | BC-2.11.021 | CsvReporter Neutralizes CSV-Injection Trigger Characters with a Leading Single Quote | P0 | [WRITTEN] | pass-4 H-1 |
 | BC-2.11.022 | CsvReporter Joins Evidence Vec Elements with "; " into a Single Cell | P1 | [WRITTEN] | pass-4 H-1 |
 | BC-2.11.023 | CsvReporter Implements Reporter Trait and Emits One Row per Finding; Summary and AnalysisSummary Are Ignored | P0 | [WRITTEN] | pass-4 H-1 |
-| BC-2.11.024 | CsvReporter Encodes None Optional Fields as Empty Strings and Direction as Debug Variant Name | P1 | [WRITTEN] | pass-4 H-1 |
+| BC-2.11.024 | CsvReporter Encodes Optional Fields as Empty Strings and mitre_techniques as Semicolon-Joined String | P1 | [WRITTEN] | pass-4 H-1 | <!-- v1.4: mitre_technique None->mitre_techniques vec![]; semicolon-join for multi-tag; ADR-006 F2 revision -->
 
 ## ss-12: CLI and Entry Point (Cross-Cutting)
 
@@ -319,12 +319,13 @@ traces_to: .factory/specs/prd.md
 > BCs 001-004: MBAP Parse and Validity Gate (Group A).
 > BCs 005-008: Function-Code Classification (Group B). BC-005 covers ALL 256 FC values (totality).
 > BCs 009-012: Transaction Correlation (Group C).
-> BCs 013-015: Finding Emission — Write-Class Events (Group D). Co-emission priority rule: T0836>T0835; T0855 always fires.
-> BCs 016-017: Finding Emission — Coordinated Write (T0831 5s window) and Write-Burst Detection (T0806/T0855 1s window) (Group E).
+> BCs 013-015: Finding Emission — Write-Class Events (Group D). **v2 co-emission model (ADR-006):** one multi-tag finding per write PDU; T0855 co-included in vec, not separate. No tag-suppression.
+> BCs 016-017: Finding Emission — Coordinated Write (T0831 5s window, Group E) and **dual-window** Write-Burst Detection (T0806/T0855; burst 1s + sustained >=2s per Decision-11, Group E).
 > BCs 018-019: Finding Emission — Diagnostic/DoS (T0814) (BC-018) and Exception Burst Anomaly (BC-019) (Group F).
-> BCs 020-022: Anomaly/Recon (T0846 for 0x11/0x2B/0x0E), Summary Stats (6 keys incl dropped_findings), and Bounded-Resource (Groups G + resource cap).
-> BCs 023-025: Dispatcher and CLI Integration (Group H).
-> Feature: issue-007-modbus-analyzer; ADR-005; introduced v0.3.0-feature-007.
+> BCs 020-022: Anomaly/Recon (**T0888** for 0x11/0x2B/0x0E — Decision-12; T0846 NOT emitted by Modbus), Summary Stats (6 keys incl dropped_findings), and Bounded-Resource (Groups G + resource cap).
+> BCs 023-025: Dispatcher and CLI Integration (Group H). **BC-024 v2:** two flags (--modbus-write-burst-threshold + --modbus-write-sustained-threshold); old --modbus-write-threshold removed.
+> Feature: issue-007-modbus-analyzer; ADR-005; ADR-006; introduced v0.3.0-feature-007.
+> **v2 revision (2026-06-09):** BCs 013-017, 020, 024 revised per f2-fix-directives.md v2 Decisions 11-13.
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
@@ -340,18 +341,18 @@ traces_to: .factory/specs/prd.md
 | BC-2.14.010 | Response PDU Matched Against Pending Table and Entry Removed on FC Echo Match | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.011 | Exception Response PDU Attributed to Originating Request FC via Pending Table Lookup | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.012 | Pending Table Bounded to MAX_PENDING_TRANSACTIONS=256; New Requests Dropped (Not Evicting) When Full | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.013 | Write-Class FC in Request Direction Emits T0855 (Unauthorized Command Message) Finding | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.014 | Write FC 0x06/0x10/0x16 in Request Direction Emits T0836 (Modify Parameter) Finding | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.015 | Write FC to Coil Output Only (0x05/0x0F) Emits T0835 (Manipulate I/O Image) Finding — Coil-Only Writes; T0836 Takes Priority for Holding-Register FCs | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.016 | Coordinated Write Sequence to Holding Registers Within 5-Second Window Emits T0831 Manipulation of Control Finding | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.017 | Write-Rate Burst Exceeding --modbus-write-threshold Emits T0806 Brute Force I/O and T0855 Findings | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.013 | Write-Class FC in Request Direction Emits Multi-Tag Finding Carrying T0855 and Applicable Technique Tags | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: co-emission model; T0855 co-included in multi-tag vec; ADR-006 Decision-13 -->
+| BC-2.14.014 | Write FC 0x06/0x10/0x16 in Request Direction Emits Finding Tagged ["T0855","T0836"] | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: single multi-tag finding replaces two separate findings; ADR-006 Decision-13 -->
+| BC-2.14.015 | Write FC to Coil Output Only ({0x05, 0x0F}) Emits Finding Tagged ["T0855","T0835"] | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: single multi-tag finding; no suppression; ADR-006 Decision-13 -->
+| BC-2.14.016 | Coordinated Write Sequence to Holding Registers Within 5-Second Window Tags the Per-PDU Finding with T0831 | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: T0831 is co-tagged inline on the per-PDU write finding (mitre_techniques: ["T0855","T0836","T0831"]); no separate T0831 Finding object; ADR-006 Decision-13 §13.5 -->
+| BC-2.14.017 | Write-Rate Exceeding Either Burst or Sustained Threshold Emits T0806 + T0855 Finding | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: dual-window (1s burst / >=2s sustained); each fires at most once per window; ADR-006 Decision-11 -->
 | BC-2.14.018 | Diagnostics FC 0x08 Sub-Function 0x0004 or 0x0001 Emits T0814 Denial of Service Finding | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.019 | Exception Response Anomaly — Burst of Exception Codes Emits Anomaly Finding for Recon/Scanning | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.020 | Unusual or Unknown Function Code Observed Emits Anomaly Finding (Recon FCs 0x11/0x2B/0x0E Emit T0846 Remote System Discovery) | P1 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.020 | Reconnaissance Function Codes (0x11, 0x2B/0x0E) Emit T0888 Remote System Information Discovery Finding | P1 | [WRITTEN] | feature-007-F2 | <!-- v2.0: T0846->T0888 correctness fix; 0x07 excluded; Decision-12 -->
 | BC-2.14.021 | summarize() Returns AnalysisSummary with Specified Per-Analyzer Summary Keys | P1 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.022 | MAX_FINDINGS Cap and Poison-Skip Behavior for ModbusAnalyzer | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.023 | --modbus CLI Flag Enables ModbusAnalyzer; --all Includes Modbus; Default-Off; Requires Stream Reassembly | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.024 | --modbus-write-threshold Configures Per-Flow Write-Burst Rate Threshold Consumed by Burst Detector | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.024 | --modbus-write-burst-threshold and --modbus-write-sustained-threshold Configure Dual-Window Burst Detection | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: old --modbus-write-threshold removed; replaced by two flags; Decision-11 -->
 | BC-2.14.025 | StreamDispatcher Classifies Port-502 Flows to DispatchTarget::Modbus as Rule 5 (After Content and TLS/HTTP Port Rules); Routes on_data and on_flow_close to ModbusAnalyzer | P0 | [WRITTEN] | feature-007-F2 |
 
 ---

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -13,7 +13,10 @@ subsystem: SS-14
 capability: CAP-14
 lifecycle_status: active
 introduced: v0.3.0-feature-007
-modified: []
+modified:
+  - version: "1.1"
+    date: 2026-06-09
+    change: "ADR-006 migration: mitre_technique: None → mitre_techniques: vec![] (empty vec = no technique) in postconditions, invariants, and canonical vectors. No behavioral change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -68,7 +71,7 @@ Exception for FC >= 0x80).
 
 1. A `Finding` is pushed with:
    - `category: ThreatCategory::Anomaly`
-   - `verdict: Verdict::Suspicious`
+   - `verdict: Verdict::Inconclusive`
    - `confidence: Confidence::Medium`
    - `summary` (exception code 0x01): `"Modbus recon: {n} Illegal Function exceptions in window (unit {unit_id}) — possible FC scanning"`
    - `summary` (exception code 0x02): `"Modbus recon: {n} Illegal Data Address exceptions in window (unit {unit_id}) — possible register map enumeration"`
@@ -77,8 +80,9 @@ Exception for FC >= 0x80).
      (response PDU is correlated to request via BC-2.14.011).
    - `evidence`: one entry — `"exception_fc=0x{fc:02X} exception_code=0x{ec:02X} window_count={n} original_fc=0x{orig_fc:02X}"` where
      `orig_fc` is the original request FC recovered via `fc & 0x7F` from the exception FC byte.
-   - `mitre_technique: None` (exception burst scanning has no single clean ICS ATT&CK ID
-     per research §7 open-items note; Anomaly category is sufficient for forensic flagging).
+   - `mitre_techniques: vec![]` (empty vec — exception burst scanning has no single clean ICS
+     ATT&CK ID per research §7 open-items note; Anomaly category is sufficient for forensic
+     flagging; per ADR-006 an empty Vec<String> replaces the old None sentinel).
    - `source_ip: Some(flow_key.server_ip())` — source of exception responses.
    - `timestamp: Some(...)` — pcap-relative capture timestamp.
    - `direction: Some(Direction::ServerToClient)`
@@ -90,12 +94,13 @@ Exception for FC >= 0x80).
 
 1. A `Finding` is pushed with:
    - `category: ThreatCategory::Anomaly`
-   - `verdict: Verdict::Suspicious`
+   - `verdict: Verdict::Inconclusive`
    - `confidence: Confidence::Medium`
    - `summary`: `"Modbus anti-forensic: Clear Counters (0x08/0x000A) sent to unit {unit_id}"`
    - `evidence`: one entry — `"FC=0x08 SubFunc=0x000A TxnID={txn_id:#06X} UnitID={unit_id}"`.
-   - `mitre_technique: None` (per research §7 open-items: "no clean single ATT&CK-for-ICS
-     technique ID" for Clear Counters; treat as Evasion/anti-forensic indicator).
+   - `mitre_techniques: vec![]` (empty vec — per research §7 open-items: "no clean single
+     ATT&CK-for-ICS technique ID" for Clear Counters; treat as Evasion/anti-forensic
+     indicator; per ADR-006 an empty Vec<String> replaces the old None sentinel).
    - `source_ip: Some(flow_key.client_ip())`
    - `timestamp: Some(...)` — pcap-relative timestamp.
    - `direction: Some(Direction::ClientToServer)`
@@ -142,9 +147,9 @@ Exception for FC >= 0x80).
    whether the rate threshold fires. The aggregate exception count is reported in `summarize()`
    per BC-2.14.021.
 
-5. **The exception burst finding is `Verdict::Suspicious` (not `Malicious`)** because an
+5. **The exception burst finding is `Verdict::Inconclusive` (not `Likely`)** because an
    exception burst alone is circumstantial: it could be caused by a misconfigured HMI or a
-   compatibility probe rather than an active attack. Operators review suspicious findings.
+   compatibility probe rather than an active attack. Operators review inconclusive findings.
 
 ## Edge Cases
 
@@ -164,9 +169,9 @@ Exception for FC >= 0x80).
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| 6 PDUs with FC=0x83 (exception for FC 0x03), exception_code=0x01, all within 8 seconds, UnitID=1, ServerToClient direction | After 6th PDU: count=6 > 5; Anomaly Finding{category=Anomaly, verdict=Suspicious, confidence=Medium, summary="Modbus recon: 6 Illegal Function exceptions in window (unit 1) — possible FC scanning", mitre_technique=None}. The 5th PDU: count=5, no finding. | happy-path (FC scanning; 6th triggers) |
-| 6 PDUs with FC=0x83, exception_code=0x02, within 5 seconds | After 6th PDU: count=6 > 5; Anomaly Finding with register-map enumeration summary | happy-path (address recon; 6th triggers) |
-| ADU: `00 01 00 00 00 06 01 08 00 0A 00 00` (FC=0x08, SubFunc=0x000A Clear Counters, UnitID=1) — ClientToServer | Anomaly Finding{summary="Modbus anti-forensic: Clear Counters (0x08/0x000A) sent to unit 1", mitre_technique=None} | happy-path (Clear Counters) |
+| 6 PDUs with FC=0x83 (exception for FC 0x03), exception_code=0x01, all within 8 seconds, UnitID=1, ServerToClient direction | After 6th PDU: count=6 > 5; Anomaly Finding{category=Anomaly, verdict=Inconclusive, confidence=Medium, summary="Modbus recon: 6 Illegal Function exceptions in window (unit 1) — possible FC scanning", mitre_techniques=vec![]}. The 5th PDU: count=5, no finding. | happy-path (FC scanning; 6th triggers) |
+| 6 PDUs with FC=0x83, exception_code=0x02, within 5 seconds | After 6th PDU: count=6 > 5; Anomaly Finding with register-map enumeration summary; mitre_techniques=vec![] | happy-path (address recon; 6th triggers) |
+| ADU: `00 01 00 00 00 06 01 08 00 0A 00 00` (FC=0x08, SubFunc=0x000A Clear Counters, UnitID=1) — ClientToServer | Anomaly Finding{summary="Modbus anti-forensic: Clear Counters (0x08/0x000A) sent to unit 1", mitre_techniques=vec![]} | happy-path (Clear Counters) |
 | 5 exception_code=0x01 responses then 1 more after 11 seconds (window expired) | 6th exception starts new window (count=1); no finding (threshold not met in new window) | edge-case (window expiry) |
 | 4 exception_code=0x01 + 4 exception_code=0x02 (8 total exceptions, 4 each) | No finding (each code tracked independently; neither exceeds threshold=5) | edge-case (mixed codes) |
 

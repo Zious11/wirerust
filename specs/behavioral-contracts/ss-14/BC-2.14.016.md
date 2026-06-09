@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "2.0"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -13,7 +13,10 @@ subsystem: SS-14
 capability: CAP-14
 lifecycle_status: active
 introduced: v0.3.0-feature-007
-modified: []
+modified:
+  - version: "2.0"
+    date: 2026-06-09
+    change: "UPDATED (v2.0 — Decision 13, f2-fix-directives.md §13.5): T0831 detection is now co-tagged in the per-PDU write finding (mitre_techniques vec includes \"T0831\" alongside T0855+T0836) rather than emitted as a separate Finding object. Discriminator table updated: T0836/T0835/T0831 are union-tagging rules, not priority-suppression rules. Removed all 'T0836 priority suppresses T0835' language. Burst finding for T0806+T0855 is unchanged (separate Finding). Targets v0.3.0."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -22,92 +25,99 @@ removed: null
 removal_reason: null
 inputs:
   - .factory/phase-f2-spec-evolution/architecture-delta.md
+  - .factory/phase-f2-spec-evolution/f2-fix-directives.md
   - .factory/research/modbus-tcp-research.md
   - .factory/specs/architecture/decisions/ADR-005-binary-ics-protocol-integration-modbus-tcp.md
+  - .factory/specs/architecture/decisions/ADR-006-multi-technique-finding-attribution.md
 input-hash: TBD
 ---
 
-# BC-2.14.016: Coordinated Write Sequence to Holding Registers Within 5-Second Window Emits T0831 Manipulation of Control Finding
+# BC-2.14.016: Coordinated Write Sequence to Holding Registers Within 5-Second Window Tags the Per-PDU Finding with T0831
+
+<!-- Previous version (v1.0): "Coordinated Write Sequence to Holding Registers Within 5-Second Window Emits T0831 Manipulation of Control Finding"
+     v1.0 model: T0831 was emitted as a SEPARATE Finding object with mitre_technique=Some("T0831").
+       Per-PDU findings (T0855 + T0836) were ALSO emitted, yielding up to 3 separate findings for
+       a T0831-triggering write.
+     v2.0 model (Decision 13, §13.5): T0831 is co-tagged inline on the per-PDU write Finding.
+       The 2nd+ holding-register write within the 5s window produces ONE finding with
+       mitre_techniques: ["T0855","T0836","T0831"]. No separate T0831 Finding object.
+       The discriminator table below replaces the v1.0 "priority selection" table with a
+       union-tagging rule table. Targets v0.3.0.
+-->
 
 ## Description
 
-When two or more write FCs targeting holding registers (FC 0x06, 0x10, or 0x16) are observed
-within the same flow within a 5-second pcap-timestamp window, a T0831 ("Manipulation of
-Control") finding is emitted. T0831 represents a coordinated attack that drives the process
-outside safe operating bounds — e.g., raising a setpoint while simultaneously lowering an
-alarm threshold, or writing to both a process variable register and its safety interlock
-register within a short window. The five-second window is fixed in v1 (not CLI-configurable).
-The T0831 finding is emitted once per window overflow (not once per write), using a per-flow
-`t0831_window_start_ts: u32` and `t0831_window_write_count: u32` in `ModbusFlowState`. This
-BC fires in addition to the per-write T0855 and T0836 findings (BCs 013/014), not instead.
+When two or more write FCs targeting holding registers (FC 0x06, 0x10, 0x16, or 0x17) are
+observed within the same flow within a 5-second pcap-timestamp window, T0831 ("Manipulation of
+Control") is co-tagged on the per-PDU write finding. FC 0x17 (Read/Write Multiple Registers)
+is included because it atomically writes holding registers and must not be excluded from the
+coordinated-write detector — omitting it allows evasion via the atomic R/W function code.
+Per Decision 13 (ADR-006), there is no separate T0831 Finding object: the 2nd (and subsequent)
+holding-register write within the active window emits ONE finding with
+`mitre_techniques: vec!["T0855", "T0836", "T0831"]`. The first write in the window starts the
+window accumulation and emits a finding with `["T0855", "T0836"]` only (T0831 has not yet
+fired). On the 2nd write that tips the sequence detector, the T0831 tag is appended to the
+per-PDU finding's `mitre_techniques` vec. Subsequent writes in the same window (after
+`t0831_burst_emitted = true`) emit `["T0855", "T0836"]` again (no T0831 tag — emit-once per
+window overflow). Volume control is via the `t0831_burst_emitted` flag, not via finding
+suppression. The five-second window is fixed in v1 (not CLI-configurable).
 
-## Discriminator Rule (T0836 vs T0835 vs T0831)
+## Technique Union-Tagging Rule Table (replaces v1.0 discriminator/priority table)
 
-This invariant is authoritative for all three write-technique BCs:
+This table is the authoritative co-tagging model for all write-technique BCs (Decision 13):
 
-| Technique | FC subset | Firing condition | Granularity |
-|-----------|-----------|-----------------|-------------|
-| T0836 (BC-2.14.014) | 0x06, 0x10, 0x16 | Per-write (every qualifying FC) | One finding per PDU |
-| T0835 (BC-2.14.015) | {0x05, 0x0F} (coil-only) | Per-write (every qualifying FC) | One finding per PDU |
-| T0831 (this BC) | 0x06, 0x10, 0x16 | Sequence detector: ≥2 writes to holding registers within a 5-second window in the same flow | One finding per window overflow (not per PDU) |
+| FC subset | Per-PDU finding mitre_techniques | Notes |
+|-----------|----------------------------------|-------|
+| FC {0x06, 0x10, 0x16, 0x17} — 1st write in flow, or after T0831 window reset | `["T0855", "T0836"]` | T0831 not yet fired in this window |
+| FC {0x06, 0x10, 0x16, 0x17} — 2nd write within 5s window (T0831 fires) | `["T0855", "T0836", "T0831"]` | T0831 co-tagged once per window overflow |
+| FC {0x06, 0x10, 0x16, 0x17} — 3rd+ write in same window (after T0831 fired) | `["T0855", "T0836"]` | T0831 emit-once exhausted; burst_emitted=true |
+| FC {0x05, 0x0F} — coil write (never contributes to T0831 window) | `["T0855", "T0835"]` | T0831 inapplicable to coil-write FCs |
+| Burst threshold tripped (any write FC) | Separate Finding: `["T0806", "T0855"]` | Burst finding is independent; emitted alongside per-PDU finding |
 
-**Why T0831 is distinct from T0836:** T0836 detects a single parameter write (precision:
-one altered setpoint). T0831 detects a coordinated multi-write sequence that together
-moves the process out of its safety envelope. The sequence aspect — multiple holding-register
-writes within a short window — is the distinguishing signal. T0831 always co-occurs with
-one or more T0836 findings (since each write in the sequence also fires T0836), but T0836
-can occur without T0831 (single writes).
-
-**v1 scope note (architecture-delta.md §12):** The v1 implementation uses the simpler
-heuristic: "any two or more Write FCs to holding registers within a 5-second window". It
-does NOT require that different register addresses be targeted, nor that the combination
-include both setpoint and alarm registers. This heuristic has a higher false-positive rate
-than a full semantic cross-register correlator, which is deferred to a future feature cycle.
+**No priority, no suppression.** T0836 and T0835 are FC-subset exclusive (not competing).
+T0831 is co-tagged when the window condition fires (not a separate priority tier).
+"T0836 priority suppresses T0835" language from v1.0 is SUPERSEDED and must not appear
+in implementation comments, tests, or downstream documents.
 
 ## Preconditions
 
 1. The MBAP ADU has passed the three-point validity gate.
 2. The TCP direction is `Direction::ClientToServer`.
-3. `function_code` is one of: `0x06`, `0x10`, `0x16`.
-4. The window-update logic runs FIRST on every holding-register write (regardless of emission):
-   see Invariant 2 for the canonical evaluation order. The T0831 finding is emitted only when
-   the post-update `t0831_window_write_count >= 2` AND `t0831_burst_emitted == false`.
+3. `function_code` is one of: `0x06`, `0x10`, `0x16`, `0x17`.
+   FC 0x17 (Read/Write Multiple Registers) is included because it atomically writes holding
+   registers and must not be excluded from the T0831 coordinated-write window.
+4. The window-update logic (see Invariant 2) runs FIRST on every holding-register write,
+   unconditionally. The T0831 co-tag is applied to the per-PDU finding only when the
+   post-update `t0831_window_write_count >= 2` AND `t0831_burst_emitted == false`.
 5. `self.all_findings.len() < MAX_FINDINGS`.
-6. `flow.t0831_burst_emitted == false` (emission is once per window overflow, not once per
-   subsequent write in the same window — prevents flooding from long burst sequences).
+6. `flow.t0831_burst_emitted == false` (T0831 tag is added at most once per window overflow).
 
 ## Postconditions
 
-1. A `Finding` is pushed with:
-   - `category: ThreatCategory::Execution`
-   - `verdict: Verdict::Malicious`
-   - `confidence: Confidence::Medium`
-   - `summary`: `"Modbus coordinated control manipulation: {n} holding-register writes in {elapsed_ms}ms window (unit {unit_id})"`
-     where `{n}` is `flow.t0831_window_write_count + 1` (the total writes including this one)
-     and `{elapsed_ms}` is `(now_ts - flow.t0831_window_start_ts) / 1000`.
-   - `evidence`: one entry — `"FC=0x{fc:02X} TxnID={txn_id:#06X} UnitID={unit_id}; window_count={n} window_start_ts={start_ts}"`.
-   - `mitre_technique: Some("T0831".to_string())`
-   - `source_ip: Some(flow_key.client_ip())`
-   - `timestamp: Some(...)` — pcap-relative capture timestamp per BC-2.09.007.
-   - `direction: Some(Direction::ClientToServer)`
-2. `flow.t0831_burst_emitted = true` (suppresses further T0831 findings in this window).
-3. `flow.t0831_window_write_count` is incremented by 1 (the current write is counted).
-4. T0855 and T0836 findings are ALSO emitted for this PDU (per BCs 013 and 014 — T0831 does
-   not replace per-write findings; it supplements them). The priority rule applies to T0836 vs
-   T0835 (T0836 takes priority for this FC subset), NOT to T0855 which always fires
-   independently. T0835 is NOT emitted for FCs 0x06/0x10/0x16 (T0836 priority).
-5. `flow.write_count` and `self.total_write_count` incremented once.
+1. The per-PDU `Finding` (as specified in BC-2.14.013 / BC-2.14.014 for holding-register
+   writes) has T0831 appended to its `mitre_techniques` vec when the T0831 window condition
+   is met:
+   - `mitre_techniques: vec!["T0855", "T0836", "T0831"]`
+   - All other fields unchanged from BC-2.14.013 postcondition 1.
+2. `flow.t0831_burst_emitted = true` (prevents T0831 co-tagging on subsequent writes in the
+   same window).
+3. `flow.t0831_window_write_count` is incremented (the current write is counted).
+4. `flow.write_count` and `self.total_write_count` incremented once.
+5. **No separate T0831 Finding object is created.** The T0831 attribution is co-tagged
+   inline on the per-PDU finding. `all_findings` receives exactly one new entry for the
+   T0831-triggering write (not two or three as in v1.0).
 
 ## Invariants
 
 1. **Window state fields** (on `ModbusFlowState` — per architecture-delta.md §2.3):
    - `t0831_window_start_ts: u32` — timestamp of first holding-register write in current window.
    - `t0831_window_write_count: u32` — count of holding-register writes in current window.
-   - `t0831_burst_emitted: bool` — true once T0831 has fired in the current window.
-2. **Canonical evaluation ORDER** (authoritative — window-update FIRST, then emission check):
+   - `t0831_burst_emitted: bool` — true once T0831 has co-tagged in the current window.
+2. **Canonical evaluation ORDER** (window-update FIRST, then emission check):
    On every holding-register write FC (0x06, 0x10, 0x16) in ClientToServer direction:
    ```
    // STEP 1: Window-update runs FIRST on every qualifying write, unconditionally.
+   // Qualifying FCs: {0x06, 0x10, 0x16, 0x17}
    if now_ts - t0831_window_start_ts > T0831_WINDOW_SECS * 1_000_000:
        // Window expired: reset (this write starts a new window)
        t0831_window_start_ts = now_ts
@@ -117,48 +127,58 @@ than a full semantic cross-register correlator, which is deferred to a future fe
        // Still in window: increment
        t0831_window_write_count += 1
 
-   // STEP 2: Emission check runs AFTER the update, using the post-update count.
+   // STEP 2: Determine mitre_techniques for the per-PDU finding.
    if t0831_window_write_count >= 2 AND NOT t0831_burst_emitted:
-       emit T0831 finding
+       mitre_techniques = vec!["T0855", "T0836", "T0831"]
        t0831_burst_emitted = true
+   else:
+       mitre_techniques = vec!["T0855", "T0836"]
+
+   // STEP 3: Push ONE finding with the determined mitre_techniques.
+   push Finding { mitre_techniques, ... }
    ```
-   **Critical ordering rule**: the window-update (Step 1) ALWAYS runs before the emission
-   check (Step 2). This ensures the count-establishing write (first write, count 0→1) is
-   tracked even though it does NOT trigger emission. A Precondition that gates Step 1 on
-   "count >= 1" would make the detector permanently dead (the first write would never be
-   counted). The previous Precondition 4 wording is superseded by this authoritative order.
-3. **T0831 fires at most once per 5-second window per flow.** Subsequent holding-register
-   writes within the same window do not generate additional T0831 findings.
-4. The `T0831_WINDOW_SECS = 5` constant is fixed in v1 (not CLI-configurable).
-5. A single write FC from a fresh flow (no prior holds-register writes) never fires T0831.
+   **Critical ordering rule**: the window-update (Step 1) ALWAYS runs before the tag
+   determination (Step 2). This ensures the count-establishing write (first write, count 0→1)
+   is tracked even though it does NOT trigger T0831 co-tagging.
+3. **T0831 co-tags at most once per 5-second window per flow.** Subsequent holding-register
+   writes within the same window do not re-include the T0831 tag.
+4. **`T0831_WINDOW_SECS = 5`** constant is fixed in v1 (not CLI-configurable).
+5. A single write FC from a fresh flow (no prior holding-register writes) never triggers T0831.
    The minimum condition is two writes within the window.
-6. T0831 applies to the same FC subset as T0836 (0x06, 0x10, 0x16) — writes to holding
-   registers. Coil writes (T0835 subset 0x05, 0x0F) do NOT contribute to the T0831 window
-   counter or trigger T0831 in v1.
+6. T0831 applies to the same FC subset as T0836 ({0x06, 0x10, 0x16, 0x17}). FC 0x17 (Read/Write
+   Multiple Registers) is classified as holding-register Write and contributes to the T0831
+   window. Coil writes (T0835 subset {0x05, 0x0F}) do NOT contribute to the T0831 window
+   counter or trigger T0831. Excluding FC 0x17 would allow evasion of coordinated-write
+   detection via the atomic read/write function code.
+7. **No double-counting concern with per-PDU T0855/T0836:** since T0831 is co-tagged on
+   the same per-PDU finding (not a separate finding), there is no "T0831 on top of T0855+T0836
+   for same PDU as separate objects" scenario. One PDU → one finding, always.
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | First holding-register write in a flow | `t0831_window_write_count = 1`, `t0831_window_start_ts = now_ts`. T0831 NOT emitted (count < 2). T0855 + T0836 emitted. |
-| EC-002 | Second holding-register write within 5 seconds of the first | T0831 emitted (count becomes 2). `t0831_burst_emitted = true`. T0855 + T0836 also emitted for this PDU. |
-| EC-003 | Third write within the same window | T0831 NOT emitted (`t0831_burst_emitted == true`). T0855 + T0836 emitted. `t0831_window_write_count = 3`. |
-| EC-004 | Write at exactly `t0831_window_start_ts + 5_000_000` microseconds (boundary) | Window NOT expired (condition is `>`, not `>=`). If count >= 1, this is within the window. Counted toward T0831. |
-| EC-005 | Write at `t0831_window_start_ts + 5_000_001` microseconds (one us past boundary) | Window expired. Reset. This write starts a new window (`count=1`). T0831 NOT emitted yet. |
-| EC-006 | Coil write (FC 0x05) between two holding-register writes | Coil writes do NOT increment `t0831_window_write_count`. Only FCs {0x06, 0x10, 0x16} count toward T0831. |
-| EC-007 | `all_findings.len() == MAX_FINDINGS - 1` when T0831 would fire | T0855 fills the last slot (emitted first). T0836 and T0831 are both skipped. `t0831_burst_emitted` still set to true to prevent repeated failed attempts. |
-| EC-008 | Two flows with overlapping timestamps; second flow gets two writes within 5 seconds | T0831 fires for the second flow; first flow is unaffected (per-flow state isolation). |
-| EC-009 | First holding-register write on a fresh flow (t0831_window_write_count is 0) | Window-update runs: count becomes 1, window_start_ts = now_ts, burst_emitted = false. Emission check: count = 1 < 2 → T0831 NOT emitted. T0855 + T0836 are emitted for this PDU (per BCs 013/014). This is the count-establishing write. |
-| EC-010 | now_ts < t0831_window_start_ts (timestamp wrap-around or out-of-order packet) | `now_ts - t0831_window_start_ts` wraps to a large u32 value (≫ 5_000_000). The window-expiry check fires (treating as "window expired"), resetting the window with count = 1. This is the evasion-resistant policy: a wrapped huge value resets the window rather than suppressing detection — it does NOT allow an attacker to prevent T0831 by injecting out-of-order packets (at worst, the attacker forces a window reset, meaning T0831 requires one more write to fire again, not that detection is permanently suppressed). |
+| EC-001 | First holding-register write in a flow | `t0831_window_write_count = 1`, `t0831_window_start_ts = now_ts`. ONE finding: `mitre_techniques=["T0855","T0836"]` (T0831 not yet fired). |
+| EC-002 | Second holding-register write within 5 seconds of the first | ONE finding: `mitre_techniques=["T0855","T0836","T0831"]`. `t0831_burst_emitted = true`. |
+| EC-003 | Third write within the same window | ONE finding: `mitre_techniques=["T0855","T0836"]` (T0831 emit-once exhausted; `t0831_burst_emitted == true`). `t0831_window_write_count = 3`. |
+| EC-004 | Write at exactly `t0831_window_start_ts + 5_000_000` microseconds (boundary) | Window NOT expired (condition is `>`, not `>=`). Counted toward T0831. |
+| EC-005 | Write at `t0831_window_start_ts + 5_000_001` microseconds (one us past boundary) | Window expired. Reset. This write starts a new window (`count=1`). `mitre_techniques=["T0855","T0836"]` (no T0831 yet). |
+| EC-006 | Coil write (FC 0x05) between two holding-register writes | Coil writes do NOT increment `t0831_window_write_count`. Only FCs {0x06, 0x10, 0x16, 0x17} count toward T0831. |
+| EC-011 | FC 0x17 (Read/Write Multiple Registers) as the 2nd write within 5 seconds | `t0831_window_write_count=2` ≥ 2 → T0831 co-tags: ONE finding `["T0855","T0836","T0831"]`; `t0831_burst_emitted=true`. Evasion attempt via atomic R/W FC is detected. |
+| EC-012 | FC 0x06 first write, then FC 0x17 second write within 5 seconds | Same as EC-011: 0x17 counted in the T0831 window; T0831 co-tags on the 0x17 write. |
+| EC-007 | `all_findings.len() == MAX_FINDINGS - 1` when T0831 would co-tag | The one finding with `["T0855","T0836","T0831"]` fills the last slot. `t0831_burst_emitted` still set to true. |
+| EC-008 | Two flows with overlapping timestamps; second flow gets two writes within 5 seconds | T0831 co-tags for the second flow's 2nd write; first flow is unaffected (per-flow state isolation). |
+| EC-009 | First holding-register write on a fresh flow (t0831_window_write_count is 0) | Window-update runs: count becomes 1, window_start_ts = now_ts, burst_emitted = false. Tag determination: count = 1 < 2 → NO T0831 co-tag. ONE finding with `["T0855","T0836"]`. |
+| EC-010 | now_ts < t0831_window_start_ts (timestamp wrap-around or out-of-order packet) | `now_ts - t0831_window_start_ts` wraps to a large u32 value (≫ 5_000_000). Window-expiry check fires (resets window). This write starts a new window (count=1). No T0831 co-tag on this write. Evasion-resistant: attacker forcing a window reset at most delays T0831 by one write. |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| Flow A: write 1 at ts=1000 (FC=0x06, UnitID=1) → write 2 at ts=2000 (FC=0x10, UnitID=1) | Write1: T0855+T0836 (T0835 suppressed — T0836 priority for 0x06); Write2: T0855+T0836+T0831 (T0831 fires on 2nd write, count=2, elapsed=1ms; T0835 suppressed for 0x10) | happy-path |
-| Flow A: write 1 at ts=1000 → write 2 at ts=6_001_000 (6 seconds later) | Write1: no T0831; Write2: new window started (ts=6001000, count=1); no T0831 (count only 1 in new window) | edge-case (expired window) |
-| Flow A: three writes at ts=1000, 2000, 3000 (all FC=0x06) | Write1: no T0831 (count=1); Write2: T0831 fired (count=2, burst_emitted=true); Write3: no T0831 (burst_emitted=true) | edge-case (once-per-window) |
-| Flow A: FC=0x05 (coil) at ts=1000; FC=0x06 at ts=2000 | Coil write at ts=1000 does NOT start T0831 window. Holding-register write at ts=2000: count=1, no T0831 | edge-case (coil excluded) |
+| Flow A: write 1 at ts=1000 (FC=0x06, UnitID=1) → write 2 at ts=2000 (FC=0x10, UnitID=1) | Write1: ONE Finding `mitre_techniques=["T0855","T0836"]`; Write2: ONE Finding `mitre_techniques=["T0855","T0836","T0831"]` (T0831 co-tagged, count=2, elapsed=1ms) | happy-path (T0831 co-tags on 2nd write) |
+| Flow A: write 1 at ts=1000 → write 2 at ts=6_001_000 (6 seconds later) | Write1: `["T0855","T0836"]`; Write2: new window started (reset), ONE Finding `["T0855","T0836"]` (count=1 in new window; no T0831) | edge-case (expired window) |
+| Flow A: three writes at ts=1000, 2000, 3000 (all FC=0x06) | Write1: `["T0855","T0836"]`; Write2: `["T0855","T0836","T0831"]` (burst_emitted=true); Write3: `["T0855","T0836"]` (T0831 exhausted for this window) | edge-case (once-per-window, emit-once) |
+| Flow A: FC=0x05 (coil) at ts=1000; FC=0x06 at ts=2000 | Coil write: ONE Finding `["T0855","T0835"]` (T0831 window NOT started by coil); Holding-register write at ts=2000: ONE Finding `["T0855","T0836"]` (count=1, no T0831 yet) | edge-case (coil excluded from T0831 window) |
 
 ## Verification Properties
 
@@ -180,16 +200,17 @@ than a full semantic cross-register correlator, which is deferred to a future fe
 
 ## Related BCs
 
-- BC-2.14.013 — composes with (T0855 co-emitted for each write PDU in the sequence)
-- BC-2.14.014 — composes with (T0836 co-emitted for each write PDU in the sequence)
-- BC-2.14.017 — related to (T0806 uses a separate 1-second window; T0831 uses 5-second window; both run independently in the same flow)
+- BC-2.14.013 — composes with (T0831 is co-tagged in the per-PDU finding defined there; no separate Finding object)
+- BC-2.14.014 — composes with (T0836 is always co-tagged alongside T0831 for holding-register writes)
+- BC-2.14.017 — related to (T0806 burst uses a separate 1-second window; T0831 uses 5-second window; both run independently in the same flow)
 - BC-2.14.022 — depends on (MAX_FINDINGS cap guard)
 
 ## Architecture Anchors
 
 - `src/analyzer/modbus.rs` — `ModbusFlowState` with `t0831_window_start_ts`, `t0831_window_write_count`, `t0831_burst_emitted`
-- `src/analyzer/modbus.rs` — T0831 coordination detector in `on_data` holding-register branch
+- `src/analyzer/modbus.rs` — T0831 coordination tag logic in `on_data` holding-register branch: appends "T0831" to mitre_techniques vec
 - `src/mitre.rs` — `technique_info("T0831")` arm (new per ADR-005 §4.2)
+- `.factory/specs/architecture/decisions/ADR-006-multi-technique-finding-attribution.md`
 
 ## Story Anchor
 
@@ -203,7 +224,7 @@ TBD (F3 story decomposition)
 
 | Property | Value |
 |----------|-------|
-| **Path** | architecture-delta.md §12 (T0831 scoping note: v1 uses simpler heuristic of two writes within 5-second window); architecture-delta.md §2.6 (T0831 detection: coordinated write sequence); modbus-tcp-research.md §5 (T0831 severity rationale) |
+| **Path** | f2-fix-directives.md §13.5 (T0831 burst finding `["T0831"]` — revised: T0831 is co-tagged on per-PDU finding, one finding per PDU not per technique); ADR-006 §union-tagging; architecture-delta.md §12 (T0831 scoping note: v1 heuristic two writes within 5s window) |
 | **Confidence** | medium (v1 heuristic is intentionally loose per §12 simplification note) |
 | **Extraction Date** | 2026-06-09 |
 

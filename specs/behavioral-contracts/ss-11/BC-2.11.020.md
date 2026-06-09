@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Correct CRLF→LF line-terminator claim in postcondition 1 and description (STORY-079 formalization finding — 2026-05-30)"
   - "v1.4: proof_method disjunction 'unit / proptest'→'unit' in VP table row 2 (DF-SIBLING-SWEEP-001; CSV-injection family sweep from STORY-079 P6 finding)"
+  - "v1.5: ADR-006 / Decision 13 §13.3 (F2 v0.3.0 BREAKING) — column 6 renamed from mitre_technique to mitre_techniques in title, description, header string, postcondition 3, and column-order table. Column count remains 9. Multi-value semicolon-join behavior documented here; encoding details in BC-2.11.024. — 2026-06-09"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -27,13 +28,29 @@ removal_reason: null
 
 # BC-2.11.020: CsvReporter Emits Exactly Nine Columns in Fixed Header Order
 
+<!--
+  PREVIOUS VERSION SUMMARY (v1.4 -> v1.5):
+  Column 6 name: mitre_technique -> mitre_techniques (BREAKING schema change — v0.3.0)
+  Header string updated: ...evidence,mitre_technique,... -> ...evidence,mitre_techniques,...
+  Postcondition 1 header string updated
+  Postcondition 3 column-order list item 6 updated
+  Description updated to note multi-value semicolon-join format for column 6
+  Column count: unchanged at 9
+-->
+
 ## Description
 
 `CsvReporter::render` writes a fixed RFC 4180 header row as its first output line with
 exactly nine fields in a defined, stable order: `category`, `verdict`, `confidence`,
-`summary`, `evidence`, `mitre_technique`, `source_ip`, `direction`, `timestamp`. This
+`summary`, `evidence`, `mitre_techniques`, `source_ip`, `direction`, `timestamp`. This
 column contract is intentionally locked so downstream parsers (spreadsheets, SIEM pipelines,
 analyst scripts) can rely on positional column indices without schema discovery.
+
+Column 6 changed from `mitre_technique` (scalar string) to `mitre_techniques` in v0.3.0 as
+part of ADR-006 Decision 13. The column carries a semicolon-joined string for multi-technique
+findings (e.g., `"T0855;T0836"`), an empty string for no-technique findings, and a plain ID
+string for single-technique findings (e.g., `"T1036"`). The column count remains 9. See
+BC-2.11.024 for the per-cell encoding details.
 
 ## Preconditions
 
@@ -44,7 +61,7 @@ analyst scripts) can rely on positional column indices without schema discovery.
 ## Postconditions
 
 1. The returned `String` begins with the header line:
-   `category,verdict,confidence,summary,evidence,mitre_technique,source_ip,direction,timestamp`
+   `category,verdict,confidence,summary,evidence,mitre_techniques,source_ip,direction,timestamp`
    followed by a LF (`\n`) line terminator. The `csv` crate's `WriterBuilder::new()` defaults
    to LF-only termination; RFC 4180 CRLF would require an explicit `.terminator(Terminator::CRLF)`
    call, which the implementation does not configure. RFC 4180-compliant readers accept LF line
@@ -52,7 +69,7 @@ analyst scripts) can rely on positional column indices without schema discovery.
 2. Every data row contains exactly nine comma-separated fields, in the same column order as
    the header.
 3. The column order is: (1) `category`, (2) `verdict`, (3) `confidence`, (4) `summary`,
-   (5) `evidence`, (6) `mitre_technique`, (7) `source_ip`, (8) `direction`, (9) `timestamp`.
+   (5) `evidence`, (6) `mitre_techniques`, (7) `source_ip`, (8) `direction`, (9) `timestamp`.
 4. The output is valid RFC 4180 CSV: fields containing commas, double-quotes, or newlines
    are quoted by the `csv` crate automatically.
 5. The entire output is valid UTF-8 (guaranteed by construction from UTF-8 String inputs).
@@ -65,12 +82,15 @@ analyst scripts) can rely on positional column indices without schema discovery.
    change, not in-place reordering.
 3. The `csv::WriterBuilder` default separator is a comma (U+002C); no alternative separator
    is configured.
+4. Column 6 is named `mitre_techniques` (plural) as of v0.3.0. Any downstream parser that
+   used column 6 by header name `mitre_technique` (singular) must update to `mitre_techniques`.
+   Column 6's position (index 5, zero-based) is unchanged.
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | findings slice is empty | Output is header row only (one line); still valid CSV |
+| EC-001 | findings slice is empty | Output is header row only (one line); still valid CSV; header contains `mitre_techniques` |
 | EC-002 | findings slice has 1 element | Header + exactly 1 data row = 2 lines |
 | EC-003 | findings slice has 10,000 elements | Header + 10,000 data rows; column count constant |
 | EC-004 | A field value contains a comma | csv crate wraps that field in double quotes; column count unchanged |
@@ -80,7 +100,7 @@ analyst scripts) can rely on positional column indices without schema discovery.
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| Empty findings slice | CSV string starts with `category,verdict,...,timestamp` header only | happy-path |
+| Empty findings slice | CSV string starts with `category,verdict,confidence,summary,evidence,mitre_techniques,source_ip,direction,timestamp` | happy-path |
 | One Finding (Anomaly/Likely/High, summary="test") | Row 2 columns 1-3 are `Anomaly,LIKELY,HIGH` | happy-path |
 | Field value `"a,b"` (contains comma) | Field is quoted: `"a,b"` in the CSV output | edge-case |
 | Field value contains `"` character | Field is double-quote escaped per RFC 4180 | edge-case |

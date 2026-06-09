@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: ADR-006 / Decision 12 (F2 v0.3.0) — Added 6 new ICS seeded IDs with correct tactic assignments: T0836 (IcsImpairProcessControl), T0814 (IcsInhibitResponseFunction), T0806 (IcsImpairProcessControl), T0835 (IcsImpairProcessControl), T0831 (IcsImpairProcessControl), T0888 (Discovery). Seeded count 15->21. EC-004 added for T0888. — 2026-06-09"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -25,12 +26,22 @@ removal_reason: null
 
 # BC-2.10.007: technique_tactic Returns Correct Tactic for Every Seeded ID
 
+<!--
+  PREVIOUS VERSION SUMMARY (v1.2 -> v1.3):
+  Seeded count: 15 -> 21
+  Added tactic assignments for: T0836, T0814, T0806, T0835, T0831, T0888
+  EC-004 added: T0888 -> Some(Discovery)
+  Canonical vectors: added T0888 and T0836 rows
+  Invariant 3 updated to note T0888 maps to Discovery (same as T0846 pattern)
+-->
+
 ## Description
 
-`technique_tactic(id)` returns `Some(MitreTactic)` for each of the 15 seeded technique IDs,
-and the returned tactic is the correct parent tactic from MITRE ATT&CK. Like `technique_name`,
-it is a thin projection over `technique_info`. The tactic assignments match the ATT&CK matrix
-assignments (e.g., T1027 => DefenseEvasion, T1036 => DefenseEvasion, T1046 => Discovery).
+`technique_tactic(id)` returns `Some(MitreTactic)` for each of the 21 seeded technique IDs
+(post-F2), and the returned tactic is the correct parent tactic from MITRE ATT&CK (Enterprise
+or ICS). Like `technique_name`, it is a thin projection over `technique_info`. The tactic
+assignments match the ATT&CK matrix assignments (e.g., T1027 => DefenseEvasion, T0888 =>
+Discovery, T0806 => IcsImpairProcessControl).
 
 ## Preconditions
 
@@ -38,7 +49,7 @@ assignments (e.g., T1027 => DefenseEvasion, T1036 => DefenseEvasion, T1046 => Di
 
 ## Postconditions
 
-1. Returns `Some(MitreTactic)` for all 15 seeded IDs.
+1. Returns `Some(MitreTactic)` for all 21 seeded IDs.
 2. The tactic assignments are:
    - T1027 => MitreTactic::DefenseEvasion
    - T1036 => MitreTactic::DefenseEvasion
@@ -55,6 +66,12 @@ assignments (e.g., T1027 => DefenseEvasion, T1036 => DefenseEvasion, T1046 => Di
    - T0855 => MitreTactic::IcsImpairProcessControl
    - T0856 => MitreTactic::IcsImpairProcessControl
    - T0885 => MitreTactic::CommandAndControl
+   - T0836 => MitreTactic::IcsImpairProcessControl  [NEW F2]
+   - T0814 => MitreTactic::IcsInhibitResponseFunction  [NEW F2]
+   - T0806 => MitreTactic::IcsImpairProcessControl  [NEW F2]
+   - T0835 => MitreTactic::IcsImpairProcessControl  [NEW F2]
+   - T0831 => MitreTactic::IcsImpairProcessControl  [NEW F2]
+   - T0888 => MitreTactic::Discovery  [NEW F2 — replaces T0846 as Modbus recon emitter per Decision 12]
 3. Returns `None` for any ID not in the seeded set.
 
 ## Invariants
@@ -62,15 +79,19 @@ assignments (e.g., T1027 => DefenseEvasion, T1036 => DefenseEvasion, T1046 => Di
 1. Tactic assignments are derived from the same `technique_info` match table as `technique_name`.
 2. It is impossible for `technique_name` and `technique_tactic` to disagree for the same ID.
 3. The ICS techniques (T0xxx) may map to ICS-specific tactics OR to Enterprise tactics that
-   share a name (e.g., T0846 maps to Discovery, same name as Enterprise TA0007).
+   share a name (e.g., T0846 and T0888 both map to Discovery, same name as Enterprise TA0007;
+   T0814 maps to IcsInhibitResponseFunction which has no Enterprise equivalent).
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
 | EC-001 | T1027 | Some(DefenseEvasion) |
-| EC-002 | T0846 | Some(Discovery) -- ICS technique maps to Discovery tactic |
+| EC-002 | T0846 | Some(Discovery) -- ICS technique maps to Discovery tactic; seeded but not Modbus-emitted |
 | EC-003 | T9999 | None |
+| EC-004 | T0888 | Some(Discovery) -- Remote System Information Discovery; Modbus recon emitter (replaces T0846 in emission) |
+| EC-005 | T0806 | Some(IcsImpairProcessControl) -- Brute Force I/O; emitted by write-burst detector |
+| EC-006 | T0814 | Some(IcsInhibitResponseFunction) -- Denial of Service; emitted by Force Listen Only FC |
 
 ## Canonical Test Vectors
 
@@ -79,13 +100,16 @@ assignments (e.g., T1027 => DefenseEvasion, T1036 => DefenseEvasion, T1046 => Di
 | technique_tactic("T1027") | Some(DefenseEvasion) | happy-path |
 | technique_tactic("T1499.002") | Some(Impact) | happy-path |
 | technique_tactic("T0885") | Some(CommandAndControl) | happy-path |
+| technique_tactic("T0888") | Some(Discovery) | happy-path (new F2) |
+| technique_tactic("T0836") | Some(IcsImpairProcessControl) | happy-path (new F2) |
+| technique_tactic("T0814") | Some(IcsInhibitResponseFunction) | happy-path (new F2) |
 | technique_tactic("T9999") | None | edge-case |
 
 ## Verification Properties
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-007 | All 15 seeded IDs return correct tactic | unit: exhaustive tactic-assignment assertions |
+| VP-007 | All 21 seeded IDs return correct tactic | unit: exhaustive tactic-assignment assertions |
 
 ## Traceability
 

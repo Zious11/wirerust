@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 3 Ph3 pass-1 adversarial fix: m-1 correct technique_info line-anchor range to :122-156 (closing brace verified) in Architecture Anchors and Source Evidence — 2026-05-22 (product-owner)"
+  - "v1.4: ADR-006 / Decision 12+13 (F2 v0.3.0) — SEEDED count updated 15 -> 21 (added 6 ICS: T0836,T0814,T0806,T0835,T0831,T0888; T0846 kept seeded, not Modbus-emitted; T0888 replaces T0846 in Modbus recon emission). Postconditions, Invariants, canonical vectors updated. — 2026-06-09"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -24,14 +25,25 @@ removed: null
 removal_reason: null
 ---
 
-# BC-2.10.005: technique_name Returns Some for Every Seeded ID (15 Total)
+# BC-2.10.005: technique_name Returns Some for Every Seeded ID (21 Total)
+
+<!--
+  PREVIOUS VERSION SUMMARY (v1.3 -> v1.4):
+  Title: "15 Total" -> "21 Total"
+  Seeded count: 15 -> 21 (11 Enterprise + 10 ICS)
+  Added seeded ICS IDs: T0836, T0814, T0806, T0835, T0831, T0888
+  Invariant 1: emitted count 6 -> 13 (6 Enterprise + 7 ICS)
+  Invariant 2: catalogued-but-not-emitted updated (T0846 remains non-emitted; staged IDS updated)
+  Invariant 3: count claim updated 15 -> 21
+-->
 
 ## Description
 
-`technique_name(id: &str)` returns `Some(&'static str)` for all 15 technique IDs present in
-the `technique_info` static match table. IDs not in the table return `None`. The 15-entry
-catalog includes 6 IDs currently emitted by analyzers and 9 staged IDs for future analyzers
-(domain-debt O-04).
+`technique_name(id: &str)` returns `Some(&'static str)` for all 21 technique IDs present in
+the `technique_info` static match table. IDs not in the table return `None`. The 21-entry
+catalog (post-F2) includes 13 IDs emitted by analyzers and 8 staged IDs for future analyzers.
+The catalog grows from 15 (pre-F2, 11 Enterprise + 4 ICS) to 21 (11 Enterprise + 10 ICS) as
+part of Feature #7 (Modbus analyzer, ADR-005 + ADR-006).
 
 ## Preconditions
 
@@ -39,19 +51,23 @@ catalog includes 6 IDs currently emitted by analyzers and 9 staged IDs for futur
 
 ## Postconditions
 
-1. For each of the 15 seeded IDs, returns `Some(technique_name_string)`.
+1. For each of the 21 seeded IDs, returns `Some(technique_name_string)`.
 2. For any other string, returns `None`.
-3. The 15 seeded IDs are: T1027, T1036, T1040, T1046, T1071, T1071.001, T1071.004,
-   T1083, T1499.002, T1505.003, T1573, T0846, T0855, T0856, T0885.
+3. The 21 seeded IDs are:
+   - Enterprise (11): T1027, T1036, T1040, T1046, T1071, T1071.001, T1071.004,
+     T1083, T1499.002, T1505.003, T1573
+   - ICS (10): T0846, T0855, T0856, T0885, T0836, T0814, T0806, T0835, T0831, T0888
 
 ## Invariants
 
-1. IDs currently emitted (6): T1027, T1036, T1046, T1083, T1499.002, T1505.003.
-2. IDs catalogued but never emitted (9): T1040, T1071, T1071.001, T1071.004, T1573,
-   T0846, T0855, T0856, T0885. These are staged for future analyzers (O-04).
-3. The catalog count is 15 as verified by pass-2 R2 and pass-8. Any count claiming 16 is
-   an error (pass-8 correction of a pass-6 claim).
-4. The match is exact string equality; no prefix/prefix matching.
+1. IDs currently emitted (13): 6 Enterprise (T1027, T1036, T1046, T1083, T1499.002,
+   T1505.003) + 7 ICS (T0855, T0836, T0814, T0806, T0835, T0831, T0888).
+2. IDs catalogued but not emitted (8): T1040, T1071, T1071.001, T1071.004, T1573, T0846,
+   T0856, T0885. T0846 was previously the Modbus recon technique but was corrected to T0888
+   per Decision 12; T0846 remains seeded for future use (e.g., address-sweep detection).
+3. The catalog count is 21 after Feature #7 (F2). Pre-F2 count was 15. Any claim of 15
+   post-F2 is an error; any claim of 20 is an error (21 = 11 Enterprise + 10 ICS).
+4. The match is exact string equality; no prefix/suffix matching.
 
 ## Edge Cases
 
@@ -63,6 +79,8 @@ catalog includes 6 IDs currently emitted by analyzers and 9 staged IDs for futur
 | EC-004 | "garbage" | None |
 | EC-005 | "t1027" (lowercase) | None (case-sensitive) |
 | EC-006 | "T1071.001" (sub-technique) | Some("Web Protocols") |
+| EC-007 | "T0888" (new ICS seeded — Remote System Information Discovery) | Some("Remote System Information Discovery") |
+| EC-008 | "T0836" (new ICS seeded — Modify Parameter) | Some("Modify Parameter") |
 
 ## Canonical Test Vectors
 
@@ -72,6 +90,9 @@ catalog includes 6 IDs currently emitted by analyzers and 9 staged IDs for futur
 | "T1036" | Some("Masquerading") | happy-path |
 | "T1071.001" | Some("Web Protocols") | happy-path |
 | "T0885" | Some("Commonly Used Port") | happy-path |
+| "T0888" | Some("Remote System Information Discovery") | happy-path (new F2) |
+| "T0836" | Some("Modify Parameter") | happy-path (new F2) |
+| "T0806" | Some("Brute Force I/O") | happy-path (new F2) |
 | "T9999" | None | edge-case |
 | "" | None | edge-case |
 
@@ -79,7 +100,7 @@ catalog includes 6 IDs currently emitted by analyzers and 9 staged IDs for futur
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-007 | All 15 seeded IDs return Some | unit: technique_name_resolves_every_seeded_id |
+| VP-007 | All 21 seeded IDs return Some | unit: technique_name_resolves_every_seeded_id |
 | VP-007 | Non-seeded IDs return None | unit: technique_name_returns_none_for_unknown_ids |
 
 ## Traceability

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Feature-100 (pcap timestamps) — O-01 resolved: 21 of 22 emission sites now set timestamp: Some(...); segment-limit summary retains None. Invariant 1 updated; Refactoring Notes updated. — 2026-06-08"
+  - "v1.4: ADR-006 / Decision 13 (v0.3.0 BREAKING) — mitre_technique: Option<String> renamed to mitre_techniques: Vec<String>; empty vec replaces None; singleton vec replaces Some; added EC-006 (multi-tag co-emission). Emission-site count updated from 22 to 22+ (Modbus sites added in F2). — 2026-06-09"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -26,16 +27,31 @@ removal_reason: null
 
 # BC-2.09.001: Finding Constructed with Required Fields and Optional Fields
 
+<!--
+  PREVIOUS VERSION SUMMARY (v1.3 -> v1.4):
+  Field renamed: mitre_technique: Option<String> -> mitre_techniques: Vec<String>
+  EC-003: mitre_technique = Some("T1036") -> mitre_techniques = vec!["T1036"]
+  EC-004: mitre_technique = None -> mitre_techniques = vec![]
+  EC-006 added: mitre_techniques = vec!["T0855","T0836"] (multi-tag co-emission)
+  Canonical vector updated: Some("T1027") -> vec!["T1027"]
+  Description updated to reflect Vec<String> and Modbus co-emission model.
+-->
+
 ## Description
 
-The `Finding` struct is constructed directly via struct-literal syntax at each of the 22
-emission sites. Required fields (`category`, `verdict`, `confidence`, `summary`, `evidence`)
-must always be provided. Optional fields (`mitre_technique`, `source_ip`, `timestamp`,
-`direction`) are always `Option<T>`. After feature-100 (pcap timestamps), 21 of 22 emission
-sites set `timestamp: Some(DateTime<Utc>)` derived from the pcap `ts_sec` value at the flush
-call site; the segment-limit summary finding in `finalize` retains `timestamp: None` (it is a
-post-capture aggregate, not tied to any specific packet). There is no builder or constructor
-helper -- every site provides the full literal.
+The `Finding` struct is constructed directly via struct-literal syntax at each emission site.
+Required fields (`category`, `verdict`, `confidence`, `summary`, `evidence`) must always be
+provided. The optional fields are: `mitre_techniques: Vec<String>` (empty vec = no technique;
+singleton vec = single technique; multi-element vec = co-attributed techniques per ADR-006),
+`source_ip: Option<IpAddr>`, `timestamp: Option<DateTime<Utc>>`, `direction: Option<Direction>`.
+
+After feature-100 (pcap timestamps), 21 of the original 22 emission sites set
+`timestamp: Some(DateTime<Utc>)` derived from the pcap `ts_sec` value at the flush call site;
+the segment-limit summary finding in `finalize` retains `timestamp: None` (it is a
+post-capture aggregate, not tied to any specific packet). Feature #7 (Modbus analyzer) adds
+further emission sites that directly use `mitre_techniques: vec![...]` (multi-element for
+co-attributed ICS techniques). There is no builder or constructor helper -- every site provides
+the full literal.
 
 ## Preconditions
 
@@ -51,10 +67,13 @@ helper -- every site provides the full literal.
    - `confidence`: one of `Confidence::High | Medium | Low`
    - `summary`: raw `String` (per ADR 0003; no escape applied at construction)
    - `evidence`: `Vec<String>` (raw; 0 or more entries)
-   - `mitre_technique`: `Option<String>` (None or a technique ID string)
+   - `mitre_techniques`: `Vec<String>` — `vec![]` (no technique), `vec!["TXXXX"]` (single technique,
+     migration of all pre-F2 `Some("TXXXX")` sites), or `vec!["T0855","T0836"]` (co-attributed;
+     Modbus write-class PDUs per ADR-006 Decision 13)
    - `source_ip`: `Option<IpAddr>` (Some(ip) at 5 reassembly sites in mod.rs and lifecycle.rs;
      None at all HTTP/TLS and segment-limit-summary sites)
-   - `timestamp`: `Option<DateTime<Utc>>` (Some(DateTime<Utc>) at 21 of 22 emission sites after feature-100; None only at the segment-limit summary site in finalize)
+   - `timestamp`: `Option<DateTime<Utc>>` (Some(DateTime<Utc>) at 21 of 22 original emission
+     sites after feature-100; None only at the segment-limit summary site in finalize)
    - `direction`: `Option<Direction>` (Some for HTTP/TLS findings; Some for reassembly mod.rs
      overlap/small-segment/out-of-window findings; None for reassembly lifecycle and
      segment-limit-summary findings)
@@ -63,7 +82,7 @@ helper -- every site provides the full literal.
 
 ## Invariants
 
-1. After feature-100: 21 of 22 emission sites set `timestamp: Some(DateTime<Utc>)` derived
+1. After feature-100: 21 of 22 original emission sites set `timestamp: Some(DateTime<Utc>)` derived
    from the pcap capture-relative `ts_sec` value. The segment-limit summary finding in
    `finalize` (the 22nd site) retains `timestamp: None` — this is correct behavior, not a
    gap. See BC-2.09.007 for the full provenance and conversion invariants.
@@ -72,12 +91,15 @@ helper -- every site provides the full literal.
    `reassembly/lifecycle.rs` (conflicting-overlap, stream-depth-exceeded) also set
    `source_ip: Some(src_ip)`. HTTP and TLS analyzer findings set `source_ip: None`.
    The segment-limit summary finding in `reassembly/mod.rs` sets `source_ip: None`.
-   (Domain-debt O-01 mischaracterized source_ip as always None; 5 of 22 sites set Some.)
+   (Domain-debt O-01 mischaracterized source_ip as always None; 5 of 22 original sites set Some.)
 3. HTTP and TLS analyzer findings set `direction: Some(...)`.
 4. Reassembly anomaly findings in `reassembly/mod.rs` (overlap, small-segment,
    out-of-window) set `direction: Some(dir)`. Reassembly lifecycle findings and the
    segment-limit summary finding set `direction: None`.
 5. `summary` and `evidence` carry raw bytes (ADR 0003 / INV-4).
+6. `mitre_techniques` is NEVER `None` — it is always a `Vec<String>`, possibly empty. An
+   empty vec is the canonical replacement for the former `Option::None`. No emission site
+   may use `Option<String>` for technique attribution after v0.3.0 (ADR-006).
 
 ## Edge Cases
 
@@ -85,9 +107,10 @@ helper -- every site provides the full literal.
 |----|-------------|-------------------|
 | EC-001 | evidence vec is empty | Valid Finding; reporters omit evidence section |
 | EC-002 | summary is empty string | Valid Finding; unusual but not rejected |
-| EC-003 | mitre_technique = Some("T1036") | Value flows through to JSON output and MITRE grouping |
-| EC-004 | mitre_technique = None | No "mitre_technique" key in JSON (skip_serializing_if) |
+| EC-003 | mitre_techniques = vec!["T1036"] | Singleton vec; flows through to JSON ("mitre_techniques":["T1036"]) and MITRE grouping (groups under T1036 tactic) |
+| EC-004 | mitre_techniques = vec![] (empty) | No "mitre_techniques" key in JSON (skip_serializing_if = Vec::is_empty); finding lands in Uncategorized bucket |
 | EC-005 | Finding with direction = Some(ServerToClient) | direction field set; JSON emits "ServerToClient" |
+| EC-006 | mitre_techniques = vec!["T0855","T0836"] | Multi-tag co-emission (Modbus register write per ADR-006 §13.5); JSON: "mitre_techniques":["T0855","T0836"]; groups under first technique's tactic (IcsImpairProcessControl) |
 
 ## Canonical Test Vectors
 
@@ -95,7 +118,7 @@ helper -- every site provides the full literal.
 |-------|----------------|----------|
 | HttpAnalyzer path-traversal detection | Finding { category: Anomaly, verdict: Likely, confidence: High, direction: Some(ClientToServer), timestamp: Some(DateTime<Utc>) } | happy-path |
 | Reassembly conflicting overlap | Finding { category: Anomaly, direction: None, timestamp: Some(DateTime<Utc>) } | happy-path |
-| TLS SNI control-byte detection | Finding { category: Anomaly, mitre_technique: Some("T1027") } | happy-path |
+| TLS SNI control-byte detection | Finding { category: Anomaly, mitre_techniques: vec!["T1027"] } | happy-path |
 
 ## Verification Properties
 

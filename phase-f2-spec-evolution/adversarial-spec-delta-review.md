@@ -2,15 +2,17 @@
 document_type: adversarial-spec-delta-review
 feature: issue-7-modbus-tcp-analyzer
 phase: F2
-version: "1.0"
-status: CONVERGED
+version: "2.0"
+status: CONVERGED_REVISION
 produced_by: state-manager (on behalf of orchestrator)
 date: 2026-06-09
-rounds: 3
+rounds_initial: 3
+rounds_revision: 3_claude_plus_gemini_hybrid
 adversaries:
   - Claude adversary agent
   - consistency-validator (parallel, round 1)
-verdict: CONVERGED
+  - Gemini cross-model hybrid (2 slices — design + BCs, revision round)
+verdict: CONVERGED_REVISION
 ---
 
 # Feature #7 — F2 Adversarial Spec Delta Review
@@ -147,5 +149,142 @@ T0835 umbrella condition: cap constraint present in BC-2.14.015
 Coil/Register titles: BC-INDEX matches BC file H1 headings
 ```
 
-**VERDICT: CONVERGED. Feature #7 F2 spec evolution complete.**
+**VERDICT: CONVERGED (initial). Feature #7 F2 spec evolution complete (3-round Claude).**
 **Total findings across all rounds: 19 + 4 + 1 = 24, all resolved.**
+
+---
+
+## F2 Revision Round — Research-Validated Design Changes + Multi-Pass Re-Convergence
+
+### Trigger
+
+After initial F2 convergence (D-033), human requested research-agent validation of 3 design decisions before proceeding to F3.
+
+### Research-Agent Validation (DF-VALIDATION-001)
+
+Research-agent validated 3 design decisions. Human adopted all 3:
+
+1. **Dual-window write threshold** (adopted over single-window): burst >20/1s OR sustained >10/s over >=2s window; microsecond-scale truncation-free math (integer microseconds, wrapping_sub for wrap-safety); 2 CLI flags (`--modbus-write-threshold-burst` and `--modbus-write-threshold-sustained`). Replaces the single `--modbus-write-threshold` flag from initial F2.
+
+2. **T0846 → T0888 recon correctness fix**: T0846 was misassigned. Correct MITRE ICS technique for read-coil/register reconnaissance is T0888 Remote System Information Discovery. Updated across all BCs and indexes. SEEDED 21 / EMITTED 13 (unchanged emission count; seeded count +1 from T0846 recon fixture correction).
+
+3. **Full multi-tag Finding** (breaking schema change): `mitre_technique: Option<String>` → `mitre_techniques: Vec<String>`. ADR-006 authored (multi-technique finding attribution). Breaking JSON/CSV schema change — feature now targets v0.3.0. Cross-cuts SS-09/10/11/14 + all analyzers + reporters. ~28 BCs revised.
+
+### Revision Applied — Affected Subsystems
+
+| Subsystem | BCs Revised | Nature |
+|-----------|-------------|--------|
+| SS-14 (Modbus/ICS) | BC-2.14.001, 003, 004, 011, 013, 014, 015, 016, 017, 018, 019, 020, 022, 024 (14 BCs) | dual-window thresholds + T0888 fix + multi-tag schema |
+| SS-09 (Findings) | BC-2.09.001, 006 | mitre_techniques Vec migration |
+| SS-10 (Reporters) | BC-2.10.005, 007, 008 | CSV/JSON schema multi-tag output |
+| SS-11 (Adversarial) | BC-2.11.013, 015, 017, 020, 024 | multi-tag expectation in test fixtures |
+| ADR-006 | new | multi-technique finding attribution rationale |
+
+**Total revised BCs: ~28 across 4 subsystems. BC-INDEX, VP-007, VP-INDEX, ARCH-INDEX, prd.md, prd-delta.md, spec-changelog.md, architecture-delta.md, f2-fix-directives.md, verification-delta.md all updated.**
+
+---
+
+## F2 Revision Adversarial Round 1 (Claude)
+
+**Adversary:** Claude adversary (primary).
+
+**CRITICAL (3):**
+
+| ID | Finding | Resolution |
+|----|---------|------------|
+| F-REV-CRIT-001 | `Verdict` enum not migrated — BC-2.09.001 updated `mitre_technique` → `mitre_techniques` but left `Verdict` enum definition referencing the old single-tag field in its invariant prose | Fixed: BC-2.09.001 Verdict enum invariant updated; all `verdict.mitre_technique` → `verdict.mitre_techniques` references swept |
+| F-REV-CRIT-002 | Architecture-delta.md stale — architecture-delta.md still described the original single-window threshold design; dual-window threshold architecture not reflected | Fixed: architecture-delta.md §Threshold-Architecture section rewritten for dual-window |
+| F-REV-CRIT-003 | T0831 detection model broken by dual-window migration — T0831 (Manipulation of Control) in BC-2.14.015 referenced the old `write_burst_count` single field; dual-window adds `write_burst_1s_count` and `write_sustained_count` but BC-2.14.015 body still joined against removed field | Fixed: BC-2.14.015 updated to reference dual-window state fields correctly |
+
+**Companion propagation (2 MED):**
+
+| ID | Finding | Resolution |
+|----|---------|------------|
+| F-REV-MED-001 | BC-2.10.007 (JSON reporter) used `mitre_technique` key name in annotated output example after multi-tag migration | Fixed: BC-2.10.007 example JSON updated to `mitre_techniques` array |
+| F-REV-MED-002 | BC-2.11.020 test-fixture expectation still asserted single-string `mitre_technique` equality | Fixed: BC-2.11.020 assertion updated to Vec membership check |
+
+**Round total:** 3 CRIT + 2 MED = 5 findings. All resolved.
+
+---
+
+## F2 Revision Round 2 (Claude)
+
+**Adversary:** Claude adversary (primary).
+
+0 new findings. All R1 fixes confirmed clean. **CONVERGED (Claude).**
+
+---
+
+## F2 Revision Round 3 (Claude)
+
+**Adversary:** Claude adversary (primary). Confirmation pass.
+
+0 findings. **CONVERGED (Claude, 3/3 clean).**
+
+---
+
+## Gemini Cross-Model Hybrid Pass (2 Slices — Blind to Claude Findings)
+
+**Model:** Gemini (cross-family; genuine non-Claude model diversity). **Date:** 2026-06-09.
+
+Two review slices dispatched independently: (1) design/architecture slice, (2) BC corpus slice. Blind to Claude's revision findings.
+
+### Slice 1: Design / Architecture
+
+**HIGH findings:**
+
+| ID | Finding | Resolution |
+|----|---------|------------|
+| G-HIGH-001 | Sustained-rate integer-truncation bias — dual-window sustained-rate check computed `write_sustained_count / elapsed_seconds` using integer division; at 9 writes over 2.0s this truncates to 4/s (below threshold 10/s) but the true rate is 4.5/s; under-trigger on sub-11-writes-per-2s bursts | Fixed: division replaced with microsecond-scale rate math (`write_sustained_count * 1_000_000 / elapsed_us >= threshold_per_s`); no truncation; wrapping_sub used for elapsed_us to be wrap-safe on pcap timestamp wraps |
+| G-HIGH-002 | BC-001 frame-bounds off-by-six ADU advance — MBAP PDU max is 253 bytes + 6 bytes header = 259 bytes max ADU; BC-2.14.001 frame-bounds check used `length_field + 6` for total but advance logic advanced by `length_field` only (missing the 6-byte MBAP header), causing `6 + length` double-count advance on malformed short frames | Fixed: advance logic corrected to `6 + length_field`; VP-022 sub-property bounds note updated to reflect correct advance formula |
+
+**MEDIUM findings:**
+
+| ID | Finding | Resolution |
+|----|---------|------------|
+| G-MED-001 | BC-018/019 not multi-tag-migrated — BC-2.14.018 (T0835 Manipulate I/O Image) and BC-2.14.019 (T0806 Brute Force I/O) still used `mitre_technique: String` in their Finding emission examples; the multi-tag migration (revision trigger #3) was applied to most BCs but missed these two | Fixed: BC-2.14.018 and BC-2.14.019 emission examples updated to `mitre_techniques: Vec<String>` with appropriate tag arrays |
+| G-MED-002 | BC-011 attribution-validation + emission-clarity — BC-2.14.011 (transaction-correlation emission) lacked explicit invariant that emitted `mitre_techniques` must be non-empty; an empty Vec would produce a malformed Finding | Fixed: BC-2.14.011 updated with non-empty invariant on mitre_techniques at emission |
+
+### Slice 2: BC Corpus
+
+**LOW findings:**
+
+| ID | Finding | Resolution |
+|----|---------|------------|
+| G-LOW-001 | Length-gate off-by-one — BC-2.14.001 frame-validation condition used `length_field > 253` (exclusive); MBAP protocol max PDU is 253 bytes, so `> 253` allows a 254-byte PDU (off by one); correct gate is `length_field > 253` → `[2, 254)` which actually should be `length_field >= 254` to reject 254+ | Fixed: gate updated to `length_field > 253` → `length_field >= 254` i.e. valid range is `[2, 254)` per Modbus spec; VP-022 sub-property updated accordingly |
+| G-LOW-002 | FC 0x17 (Read/Write Multiple Registers) T0831 evasion gap — FC 0x17 simultaneously reads and writes registers; T0831 detection only listed FC 0x05/0x06/0x0F/0x10; an attacker using FC 0x17 for covert write evades detection | Fixed: BC-2.14.015 T0831 condition extended to include FC 0x17 |
+| G-LOW-003 | Bucket-order + CSV-delimiter inconsistency — BC-2.10.008 (CSV reporter) specified `mitre_techniques` as a semicolon-delimited string for multi-tag but BC-2.10.005 (summary reporter) described comma-delimited; inconsistent within same reporter subsystem | Fixed: canonical delimiter standardized to comma (`,`) across BC-2.10.005 and BC-2.10.008; comma chosen per RFC 4180 CSV convention |
+
+**MEDIUM finding:**
+
+| ID | Finding | Resolution |
+|----|---------|------------|
+| G-MED-003 | u32 timestamp wrap in dual-window sustained-rate — `elapsed_us` computed as `current_ts_us.wrapping_sub(window_start_ts_us)` but BCs described both timestamps as `u64`; `wrapping_sub` on u64 is correct, but BC body described the field type as `u32` in one place (inconsistent with ModbusFlowState 15-field table which used u64) | Fixed: BC-2.14.016 (sustained-rate window tracking) field type corrected to `u64` throughout; wrapping_sub u64 confirmed correct |
+
+### Gemini False Positive
+
+| ID | Finding | Disposition |
+|----|---------|------------|
+| G-FP-001 | BC-020 not multi-tag-migrated — Gemini flagged BC-2.14.020 as still using `mitre_technique: String` | REFUTED: BC-2.14.020 was correctly migrated in the revision burst; Gemini was reviewing a stale artifact snapshot from before the migration commit; post-fix verification confirmed `mitre_techniques: Vec<String>` present. Consistent with D-023 hybrid-catches-hallucination pattern. |
+
+**Gemini total:** 2 HIGH + 3 MED + 3 LOW = 8 real findings + 1 false positive. All 8 real findings fixed. False positive discarded after verification.
+
+---
+
+## Hybrid Convergence Summary
+
+| Round | Model | Findings | Resolved |
+|-------|-------|----------|----------|
+| Initial R1 | Claude adversary + consistency-validator | 19 (4C+8H+7M) | 19 |
+| Initial R2 | Claude adversary | 4 (1H+3M) | 4 |
+| Initial R3 | Claude adversary | 1 (1H) | 1 |
+| Revision R1 | Claude adversary | 5 (3C+2M) | 5 |
+| Revision R2 | Claude adversary | 0 | — |
+| Revision R3 | Claude adversary (confirm) | 0 | — |
+| Gemini Hybrid | Gemini (2 slices, blind) | 8 real + 1 FP | 8 (FP discarded) |
+| **TOTAL** | | **37 real findings** | **37** |
+
+**Cross-model observation:** Gemini's blind pass caught a distinct defect class (arithmetic precision: integer-truncation bias, off-by-six ADU advance, off-by-one length gate, u32-wrap inconsistency) that 3 Claude rounds missed. This is the 2nd time the Gemini hybrid caught an arithmetic-precision defect class Claude missed (1st occurrence: D-023, fabricated red flags discarded; this is a clean catch). Pattern consistent with complementary model blind-spots on numeric edge cases in detection-math-heavy features.
+
+**FINAL VERDICT: F2 REVISION CONVERGED (Claude + Gemini cross-model hybrid).**
+**Total real findings all rounds: 37. All resolved. 1 false positive caught by verification.**

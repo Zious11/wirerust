@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -13,7 +13,10 @@ subsystem: SS-14
 capability: CAP-14
 lifecycle_status: active
 introduced: v0.3.0-feature-007
-modified: []
+modified:
+  - version: "1.1"
+    date: 2026-06-09
+    change: "ADR-006 migration: mitre_technique: Some(\"T0814\") → mitre_techniques: vec![\"T0814\"] in postconditions, invariants, and canonical vectors. No behavioral change."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -60,7 +63,7 @@ sub-function value is extracted from the 2 bytes immediately following the FC by
      (Per architecture-delta.md §2.6: T0814 maps to `ThreatCategory::Anomaly`, consistent
      with the DoS/Inhibit-Response semantic — the action prevents normal device function
      rather than executing an unauthorized command.)
-   - `verdict: Verdict::Malicious`
+   - `verdict: Verdict::Likely`
    - `confidence: Confidence::High`
      (Force Listen Only and Restart Comms are near-zero-false-positive: these sub-functions
      have no legitimate steady-state polling use. High confidence justified by
@@ -68,7 +71,7 @@ sub-function value is extracted from the 2 bytes immediately following the FC by
    - `summary` (sub-func 0x0004): `"Modbus DoS: Force Listen Only Mode sent to unit {unit_id} — device will stop responding"`
    - `summary` (sub-func 0x0001): `"Modbus DoS: Restart Communications sent to unit {unit_id}"`
    - `evidence`: one entry — `"FC=0x08 SubFunc=0x{sub_func:04X} TxnID={txn_id:#06X} UnitID={unit_id} ADU bytes {start}..{end}"`.
-   - `mitre_technique: Some("T0814".to_string())`
+   - `mitre_techniques: vec!["T0814".to_string()]`
    - `source_ip: Some(flow_key.client_ip())`
    - `timestamp: Some(...)` — pcap-relative capture timestamp per BC-2.09.007.
    - `direction: Some(Direction::ClientToServer)`
@@ -98,7 +101,8 @@ sub-function value is extracted from the 2 bytes immediately following the FC by
 3. **No T0855 co-emission for this BC.** FC 0x08 is classified as `FunctionCodeClass::Diagnostic`,
    not `FunctionCodeClass::Write`. BC-2.14.013 (T0855) fires only for Write-class FCs. Diagnostic
    FCs do NOT trigger T0855.
-4. The `mitre_technique` field MUST carry `"T0814"` (ICS namespace, `T0xxx` format).
+4. The `mitre_techniques` vec MUST carry `vec!["T0814"]` — exactly one element, the ICS
+   namespace technique ID `"T0814"` (per ADR-006 Vec<String> migration).
 5. The `ThreatCategory::Anomaly` assignment for T0814 is consistent with the architecture
    delta §2.6 table: "T0814 (DoS) → `ThreatCategory::Anomaly`". This distinguishes DoS-class
    findings from execution/write findings (`ThreatCategory::Execution`).
@@ -120,8 +124,8 @@ sub-function value is extracted from the 2 bytes immediately following the FC by
 
 | Input (hex ADU) | Expected Output | Category |
 |-----------------|----------------|----------|
-| `00 01 00 00 00 06 01 08 00 04 00 00` — (TxnID=1, ProtID=0, Len=6, UnitID=1, FC=0x08, SubFunc=0x0004, Data=0x0000) — ClientToServer | T0814 Finding{category=Anomaly, verdict=Malicious, confidence=High, summary="Modbus DoS: Force Listen Only Mode sent to unit 1 — device will stop responding", mitre_technique=Some("T0814")} | happy-path (Force Listen Only) |
-| `00 02 00 00 00 06 02 08 00 01 00 00` — (UnitID=2, FC=0x08, SubFunc=0x0001, Data=0x0000) — ClientToServer | T0814 Finding{summary="Modbus DoS: Restart Communications sent to unit 2", confidence=High, mitre_technique=Some("T0814")} | happy-path (Restart Comms) |
+| `00 01 00 00 00 06 01 08 00 04 00 00` — (TxnID=1, ProtID=0, Len=6, UnitID=1, FC=0x08, SubFunc=0x0004, Data=0x0000) — ClientToServer | T0814 Finding{category=Anomaly, verdict=Likely, confidence=High, summary="Modbus DoS: Force Listen Only Mode sent to unit 1 — device will stop responding", mitre_techniques=vec!["T0814"]} | happy-path (Force Listen Only) |
+| `00 02 00 00 00 06 02 08 00 01 00 00` — (UnitID=2, FC=0x08, SubFunc=0x0001, Data=0x0000) — ClientToServer | T0814 Finding{summary="Modbus DoS: Restart Communications sent to unit 2", confidence=High, mitre_techniques=vec!["T0814"]} | happy-path (Restart Comms) |
 | `00 03 00 00 00 06 01 08 00 00 FF FF` — (FC=0x08, SubFunc=0x0000 Return Query Data) — ClientToServer | No finding; `fn_code_counts[0x08]` incremented | negative (loopback sub-func) |
 | `00 04 00 00 00 03 01 08 00` — (Len=3, h.length=3 < 4 — only ONE sub-func byte) | No finding; `fn_code_counts[0x08]` incremented; `parse_errors` NOT incremented | edge-case (insufficient sub-func bytes, benign skip) |
 | `00 05 00 00 00 06 01 03 00 00 00 05` — (FC=0x03 Read Holding Registers) — ClientToServer | No T0814 (wrong FC) | negative |

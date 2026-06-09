@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: pc4 timestamp example Z→+00:00 to match chrono to_rfc3339() DateTime<Utc> output + story AC-010; EC-010 hedge removed, output locked to +00:00 (Wave-22 P2 finding F-002) — 2026-05-30"
+  - "v1.4: ADR-006 / Decision 13 §13.3 (F2 v0.3.0 BREAKING) — column 6 field renamed mitre_technique->mitre_techniques; type changed Option<String>->Vec<String>; encoding rule: empty vec->'', singleton vec->plain ID string, multi-element vec->semicolon-joined string; added EC-013/EC-014 for multi-value cases. — 2026-06-09"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -24,58 +25,86 @@ removed: null
 removal_reason: null
 ---
 
-# BC-2.11.024: CsvReporter Encodes None Optional Fields as Empty Strings and Direction as Debug Variant Name
+# BC-2.11.024: CsvReporter Encodes Optional Fields as Empty Strings and mitre_techniques as Semicolon-Joined String
+
+<!--
+  PREVIOUS VERSION SUMMARY (v1.3 -> v1.4):
+  Field renamed: mitre_technique -> mitre_techniques (column 6)
+  Type changed: Option<String> -> Vec<String>
+  Postcondition 1 rewritten: None/Some semantics -> empty/singleton/multi vec semantics
+  Encoding: empty vec -> ""; singleton vec -> plain ID; multi-element vec -> "T0855;T0836"
+  Precondition 2: mitre_technique -> mitre_techniques
+  EC-001: None -> vec![] empty; EC-002: Some("T1059") -> vec!["T1059"]
+  EC-011 (injection): mitre_technique=Some("=...") -> mitre_techniques=vec!["=..."]
+  EC-013 added: multi-value vec -> semicolon-joined cell
+  EC-014 added: injection risk in multi-value vec (neutralize_csv_injection applied to joined string)
+  Architecture Anchors: csv.rs:82 expression updated
+-->
 
 ## Description
 
-Four `Finding` fields are `Option<T>`: `mitre_technique` (column 6), `source_ip` (column 7),
-`direction` (column 8), and `timestamp` (column 9). When any of
-these is `None`, `CsvReporter` substitutes an empty string `""` for the cell value. When
-`Some`, each uses a type-specific string conversion: `mitre_technique` as `as_deref()`,
-`source_ip` via `IpAddr::to_string()`, `direction` via `format!("{d:?}")` (Debug formatting),
-and `timestamp` via `DateTime::to_rfc3339()`. All four values are subsequently processed
-through `neutralize_csv_injection` before the csv write.
+Column 6 of the CSV output (`mitre_techniques`) encodes the `Finding.mitre_techniques` field
+as follows: empty vec produces an empty string cell `""`; a singleton vec produces the single
+ID as a plain string (e.g., `"T1036"`); a multi-element vec produces the IDs joined with
+semicolons and no spaces (e.g., `"T0855;T0836"`). Semicolons are neutral characters that do
+not trigger CSV injection. The other three optional-field columns (7-9) are unchanged: `None`
+produces `""` and `Some(v)` uses a type-specific string conversion.
+
+All derived strings (including the joined techniques string) are processed through
+`neutralize_csv_injection` before the csv write. The column count remains 9.
 
 ## Preconditions
 
 1. A `Finding` row is being rendered by `CsvReporter`.
-2. Any or all of `mitre_technique`, `source_ip`, `direction`, `timestamp` may be `None`
-   or `Some(_)`.
+2. Any or all of `mitre_techniques` (Vec<String>), `source_ip`, `direction`, `timestamp`
+   may be empty/None or non-empty/Some(_).
 
 ## Postconditions
 
-1. `mitre_technique` cell: if `None`, empty string `""`; if `Some(s)`, the string `s`
-   (via `as_deref().unwrap_or("")` at csv.rs:82).
-2. `source_ip` cell: if `None`, empty string `""`; if `Some(ip)`, `ip.to_string()`
+1. `mitre_techniques` cell (column 6):
+   - `vec![]` (empty) → empty string `""`
+   - `vec!["T1036"]` (singleton) → `"T1036"` (same as pre-F2 `Some("T1036")` output)
+   - `vec!["T0855", "T0836"]` (multi) → `"T0855;T0836"` (semicolon-joined, no spaces)
+   The joined string is passed through `neutralize_csv_injection` at csv.rs:82.
+2. `source_ip` cell (column 7): if `None`, empty string `""`; if `Some(ip)`, `ip.to_string()`
    (decimal-dotted for IPv4, colon-hex for IPv6) at csv.rs:83.
-3. `direction` cell: if `None`, empty string `""`; if `Some(d)`, `format!("{d:?}")`
+3. `direction` cell (column 8): if `None`, empty string `""`; if `Some(d)`, `format!("{d:?}")`
    which produces the variant name `"ClientToServer"` or `"ServerToClient"` (Debug
    representation of the `Direction` enum) at csv.rs:84.
-4. `timestamp` cell: if `None`, empty string `""`; if `Some(t)`, `t.to_rfc3339()` --
+4. `timestamp` cell (column 9): if `None`, empty string `""`; if `Some(t)`, `t.to_rfc3339()` --
    an ISO 8601 / RFC 3339 string (e.g., `"2024-01-15T12:34:56+00:00"`) at csv.rs:85.
    `chrono::DateTime<Utc>::to_rfc3339()` always emits the `+00:00` offset form, never
    a bare `Z` suffix.
-5. All four derived strings are individually passed through `neutralize_csv_injection`
-   at csv.rs:94-97 before being written.
-6. The CSV cell is always present (may be empty); absent `Option` values are NEVER
-   represented by omitting the column.
+5. All four derived strings (joined-techniques, source_ip_str, direction_str, timestamp_str)
+   are individually passed through `neutralize_csv_injection` at csv.rs:94-97 before write.
+6. The CSV cell is always present (may be empty); absent/empty values are NEVER represented
+   by omitting the column.
 
 ## Invariants
 
-1. The column count is always 9 regardless of which Option fields are None.
+1. The column count is always 9 regardless of which fields are empty or None.
 2. The encoding for `direction` is Debug (`{:?}`), not Display; the output is CamelCase
    variant names (`"ClientToServer"`, `"ServerToClient"`), not lowercase or other formats.
 3. The timestamp encoding is `to_rfc3339()`; the output is always a valid RFC 3339 string
    when not empty (UTC timezone designation included).
-4. None-to-empty-string conversion is performed via `unwrap_or("")` and
-   `unwrap_or_default()`; no sentinel values like `"null"`, `"N/A"`, or `"-"` are used.
+4. Empty-to-empty-string conversion uses `join(";")` on an empty vec producing `""`, and
+   `unwrap_or("")` / `unwrap_or_default()` for the three Option fields; no sentinel values
+   like `"null"`, `"N/A"`, or `"-"` are used.
+5. The semicolon join separator (`;`) for `mitre_techniques` is chosen because semicolons
+   are neutral CSV characters and do not require quoting. The `neutralize_csv_injection`
+   guard is applied to the entire joined string, not to individual IDs.
+6. **Field delimiter is COMMA (`,`).** The CSV writer uses comma as the column separator
+   (standard RFC 4180 CSV). The semicolon-joined `mitre_techniques` cell therefore stays in
+   a single column regardless of how many techniques are joined — e.g., `"T0855;T0836"` is
+   one cell, not two, because semicolons are not the field delimiter. Consumers must NOT
+   split on semicolons to get columns; semicolons split technique IDs within the cell only.
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | mitre_technique = None | Column 6 cell is empty string `""` |
-| EC-002 | mitre_technique = Some("T1059") | Column 6 cell is `"T1059"` |
+| EC-001 | mitre_techniques = vec![] (empty) | Column 6 cell is empty string `""` (same as prior None) |
+| EC-002 | mitre_techniques = vec!["T1059"] (singleton) | Column 6 cell is `"T1059"` (identical to prior Some("T1059") output) |
 | EC-003 | source_ip = None | Column 7 cell is empty string `""` |
 | EC-004 | source_ip = Some(192.168.1.1) | Column 7 cell is `"192.168.1.1"` |
 | EC-005 | source_ip = Some(::1) | Column 7 cell is `"::1"` (IPv6 compact form via IpAddr::to_string) |
@@ -84,19 +113,22 @@ through `neutralize_csv_injection` before the csv write.
 | EC-008 | direction = Some(ServerToClient) | Column 8 cell is `"ServerToClient"` |
 | EC-009 | timestamp = None | Column 9 cell is empty string `""` |
 | EC-010 | timestamp = Some(2024-01-15T12:34:56 UTC) | Column 9 cell is `"2024-01-15T12:34:56+00:00"` (chrono::DateTime<Utc>::to_rfc3339() always emits +00:00, never bare Z) |
-| EC-011 | mitre_technique = Some("=HYPERLINK(...)") | Cell is `"'=HYPERLINK(...)"` (neutralized) |
-| EC-012 | All four Option fields are None simultaneously | All four cells are empty string; row has 5 non-empty + 4 empty cells |
+| EC-011 | mitre_techniques = vec!["=HYPERLINK(...)"] (injection attempt) | Cell is `"'=HYPERLINK(...)"` (neutralize_csv_injection applied to joined string) |
+| EC-012 | All fields empty/None simultaneously | All four cells are empty string; row has 5 non-empty + 4 empty cells |
+| EC-013 | mitre_techniques = vec!["T0855","T0836"] (Modbus register write, multi-tag) | Column 6 cell is `"T0855;T0836"` (semicolon-joined, no spaces) |
+| EC-014 | mitre_techniques = vec!["T0806","T0855"] (burst finding, multi-tag) | Column 6 cell is `"T0806;T0855"` |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| All Option fields None | Columns 6-9 cells are all empty strings | happy-path (no optionals) |
+| All fields empty/None | Columns 6-9 cells are all empty strings | happy-path (no optionals) |
 | direction=Some(ClientToServer) | Column 8 is `"ClientToServer"` | happy-path |
 | direction=Some(ServerToClient) | Column 8 is `"ServerToClient"` | happy-path |
 | source_ip=Some(10.0.0.1) | Column 7 is `"10.0.0.1"` | happy-path |
 | source_ip=Some(2001:db8::1) | Column 7 is `"2001:db8::1"` | edge-case (IPv6) |
-| mitre_technique=Some("=cmd") | Column 6 is `"'=cmd"` (neutralized) | edge-case (injection) |
+| mitre_techniques=vec!["=cmd"] | Column 6 is `"'=cmd"` (neutralized) | edge-case (injection) |
+| mitre_techniques=vec!["T0855","T0836"] | Column 6 is `"T0855;T0836"` | happy-path (multi-tag) |
 
 ## Verification Properties
 
@@ -125,11 +157,11 @@ through `neutralize_csv_injection` before the csv write.
 
 ## Architecture Anchors
 
-- `src/reporter/csv.rs:82` -- `f.mitre_technique.as_deref().unwrap_or("")`
+- `src/reporter/csv.rs:82` -- `f.mitre_techniques.join(";")` (replaces `f.mitre_technique.as_deref().unwrap_or("")`; empty vec produces `""` via join)
 - `src/reporter/csv.rs:83` -- `f.source_ip.map(|ip| ip.to_string()).unwrap_or_default()`
 - `src/reporter/csv.rs:84` -- `f.direction.map(|d| format!("{d:?}")).unwrap_or_default()`
 - `src/reporter/csv.rs:85` -- `f.timestamp.map(|t| t.to_rfc3339()).unwrap_or_default()`
-- `src/reporter/csv.rs:94-97` -- `neutralize_csv_injection` applied to all four optional-derived strings
+- `src/reporter/csv.rs:94-97` -- `neutralize_csv_injection` applied to all four optional-derived strings including the joined techniques string
 
 ## Story Anchor
 
@@ -169,4 +201,9 @@ STORY-080 -- CsvReporter implementation (LESSON-P2.03)
 
 #### Refactoring Notes
 
-No refactoring needed -- each conversion is a single expression. Note: if `Direction` gains a `Display` impl in the future, this BC must be updated to reflect whether Display or Debug is used, as the output strings would differ.
+The `mitre_technique.as_deref().unwrap_or("")` expression at csv.rs:82 is replaced by
+`mitre_techniques.join(";")` in v0.3.0. An empty Vec<String> joined on ";" produces `""`,
+which is the correct empty-cell encoding. No other structural change is required for the
+four optional-field columns. Note: if `Direction` gains a `Display` impl in the future,
+this BC must be updated to reflect whether Display or Debug is used, as the output strings
+would differ.

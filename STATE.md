@@ -1,5 +1,5 @@
 ---
-pipeline: FEATURE_7_F2_CONVERGED
+pipeline: FEATURE_7_F2_REVISION_CONVERGED
 phase: feature-f2
 active_feature: issue-7-modbus-tcp-analyzer
 product: wirerust
@@ -44,16 +44,16 @@ dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 convergence_trajectory: "P1-MED|P2-MED|P3-HIGH+LOW|P4-MED|P5-ZERO|P6-HIGH+MED|P7-MED+LOW|P8-HIGH|P9-ZERO|P10-MED+MED+LOW|P11-MED+LOW|P12-CLEAN(1/3)|P13-CLEAN(2/3)|P14-CLEAN(3/3)-GATE-SATISFIED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 consistency_audit: CONSISTENT
-input_drift_check: "CLEAN — MATCH=51/STALE=0 (post F7-100 consistency sweep D-028; STORY-091 no-inputs ERROR pre-existing; 3 hashes recomputed: STORY-097 cb2c82d, STORY-098 8b39dcb, STORY-099 5185063)"
+input_drift_check: "CLEAN — MATCH=51/STALE=0 (post F2-7 revision D-034; STORY-091 no-inputs ERROR pre-existing; 13 hashes recomputed: STORY-001/002/003/004/005/069/070/071/076/077/078/079/080)"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline: FEATURE_7_F2_CONVERGED.** Feature #7 (Modbus TCP analyzer) F2 spec evolution CONVERGED (2026-06-09, D-033). 25 SS-14 BCs (BC-2.14.001-025), PRD v1.1 (BC total 244), VP-022 (Kani P1, 3 sub-properties, bcs 001-008), ADR-005 (binary-ICS integration), 7 ICS MITRE techniques (T0855/T0836/T0814/T0806/T0835/T0831/T0846). Adversarial convergence: 3 rounds (4 CRIT+8 HIGH round1 → CONVERGED). NEXT = F2 human approval gate, then F3 incremental stories.
+**Pipeline: FEATURE_7_F2_REVISION_CONVERGED.** Feature #7 (Modbus TCP analyzer) F2 spec REVISION CONVERGED (2026-06-09, D-034). Research-agent validated 3 design decisions adopted by human: (1) dual-window write threshold (burst >20/1s + sustained >10/s over >=2s, microsecond math, wrapping_sub), (2) T0846→T0888 recon fix (SEEDED 21/EMITTED 13), (3) full multi-tag Finding (`mitre_techniques: Vec<String>`, ADR-006, v0.3.0 target, breaking schema). ~28 BCs revised across SS-09/10/11/14. Claude+Gemini hybrid convergence: 3 Claude revision rounds + Gemini cross-model blind pass (2 slices) caught HIGH truncation-bias + off-by-six ADU advance + BC-018/019 migration gap + length-gate off-by-one + 0x17 evasion + u32-wrap. All fixed. 37 total real findings resolved (24 initial + 13 revision). NEXT = F2 human approval gate, then F3.
 
-**Summary:** 52 stories delivered (48 greenfield + 4 F-cycle), 244 BCs (219 pre-Modbus + 25 SS-14), 22 VPs (21 locked, 1 draft VP-022), 1147 tests green, holdout mean 0.99, adversary convergence 6 PASS / 1 non-blocking CONCERN (Performance — non-blocking). develop HEAD 4cfc4c4 (main back-merged, branches in sync).
+**Summary:** 52 stories delivered (48 greenfield + 4 F-cycle), 244 BCs (219 pre-Modbus + 25 SS-14), 22 VPs (21 locked, 1 draft VP-022), 1147 tests green, holdout mean 0.99, adversary convergence 6 PASS / 1 non-blocking CONCERN (Performance — non-blocking). develop HEAD 4cfc4c4 (main back-merged, branches in sync). Feature #7 F2 revision: ~28 BCs revised (dual-window + T0888 + multi-tag), v0.3.0 target, ADR-006.
 
 ## Phase Progress
 
@@ -72,30 +72,32 @@ input_drift_check: "CLEAN — MATCH=51/STALE=0 (post F7-100 consistency sweep D-
 | Feature #100 F4→F7 Cycle | **COMPLETE + RELEASED** 2026-06-09 | STORY-097/098/099 delivered; VP-021 LOCKED; D-030 human gate; shipped in v0.2.0 |
 | Release — v0.2.0 | **RELEASED** 2026-06-09 | gitflow-proper: release/0.2.0 → PR #208 → 18be1ba; 4 binaries; run 27216925948; GitHub Release published 2026-06-09T15:28:38Z; D-031 |
 
-## Session Resume Checkpoint (2026-06-09 — Feature #7 F2 CONVERGED; entering F2 human gate)
+## Session Resume Checkpoint (2026-06-09 — Feature #7 F2 REVISION CONVERGED; entering F2 human gate)
 
-**POSITION:** Feature #7 (Modbus TCP analyzer) F2 spec evolution CONVERGED (D-033). 3-round adversarial convergence complete. NEXT = F2 human approval gate, then F3 incremental stories (decompose SS-14 BCs into implementable stories, wire ModbusAnalyzer into stream pipeline).
+**POSITION:** Feature #7 (Modbus TCP analyzer) F2 spec REVISION CONVERGED (D-034). Claude+Gemini hybrid convergence complete (3 Claude revision rounds + Gemini cross-model blind pass). NEXT = F2 human approval gate, then F3 incremental stories (decompose revised ~28 BCs into implementable stories, wire ModbusAnalyzer into stream pipeline).
 
-**VERIFIED-CLEAN FACTS (at F2 convergence):**
+**VERIFIED-CLEAN FACTS (at F2 revision convergence):**
 - main HEAD `18be1ba` — v0.2.0 release commit; annotated tag `v0.2.0`
 - develop HEAD `4cfc4c4` — main back-merged; branches in sync, no divergence
 - 1147 tests green; clippy clean; fmt clean; 21 VPs locked (VP-021 locked @256a490)
 - 244 BCs (219 pre-Modbus + 25 SS-14 BC-2.14.001-025) / 22 VPs (21 locked + VP-022 draft) / 52 stories
-- Active feature: issue-7-modbus-tcp-analyzer; integration: StreamHandler+StreamAnalyzer, StreamDispatcher
+- Input-hash drift: MATCH=51/STALE=0/ERROR=1 (STORY-091 pre-existing no-inputs; 13 stories recomputed post-revision)
+- Active feature: issue-7-modbus-tcp-analyzer; v0.3.0 target (breaking schema change ADR-006)
 
-**F2 DELIVERABLES COMPLETE:**
-- 25 SS-14 BCs (BC-2.14.001-025): ModbusFlowState 15 fields, 7 ICS MITRE techniques, co-emission cap, desync-safe parse
-- PRD v1.1: §Modbus/ICS section added; BC total 244
-- VP-022: Kani P1, 3 sub-properties, bcs 001-008 (frame-bounds + length-field cross-check)
-- ADR-005: binary-ICS protocol integration + port-502-only classification exception
-- MITRE discriminator: ICS T0xxx vs Enterprise Txxxx; SEEDED 20/EMITTED 13; VP-007 atomic update + positive-coverage obligation
-- Single `--modbus-write-threshold` flag (1s window, default 10); co-emission cap (most-specific write-technique/PDU, T0855 once/burst)
-- Research: .factory/research/modbus-tcp-research.md (Modbus.org V1.1b3 + MITRE ATT&CK ICS)
+**F2 REVISION DELIVERABLES COMPLETE:**
+- Dual-window write threshold: burst >20/1s + sustained >10/s over >=2s; 2 CLI flags; microsecond math (wrapping_sub wrap-safe, no truncation)
+- T0846→T0888 recon fix: T0888 Remote System Information Discovery; SEEDED 21/EMITTED 13
+- Multi-tag Finding: `mitre_techniques: Vec<String>` (was `Option<String>`); ADR-006; breaking JSON/CSV schema → v0.3.0
+- ~28 BCs revised across SS-09/10/11/14 + BC-INDEX + prd.md + ADR-006 + VP-007 + ARCH-INDEX + verification artifacts
+- research/modbus-f2-design-decisions.md: 3 validated decisions on record
+- Gemini fixes: microsecond truncation-free math, wrapping_sub, 6+length ADU advance, `[2,254)` length gate, FC 0x17 T0831 coverage, canonical comma CSV delimiter, u64 timestamps
 
 **CARRY-FORWARD ITEMS (do NOT lose):**
 - #101 (FP/TP rate characterization): OPEN-DEBT — corpus-dependent; blocks #103
 - #103 (size-symmetry evasion discriminator): DEFERRED — needs labelled corpus
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
+- STORY-069/070/071/078/079/080: F3 propagation obligations (affected by multi-tag + dual-window schema)
+- VP-022 + VP-007(21/13)/016/020/021: F4 verification obligations
 - ACTION-PIN-001: dtolnay/rust-toolchain @stable/@nightly intentionally exempt from pin gate
 - Drift items: O-07, O-08, F-W25-S088-P6-001
 - RUSTSEC-2026-0097: accepted-transitive; revisit when tls-parser bumps phf→0.12+
@@ -140,6 +142,7 @@ Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 | D-031 | Published wirerust v0.2.0 (gitflow-proper). Feature #100 (pcap timestamp threading -> Finding.timestamp) shipped as MINOR. release/0.2.0 -> PR #208 -> main merge 18be1ba; annotated tag v0.2.0 on 18be1ba; release.yml run 27216925948 built+attached 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); GitHub Release live (published 2026-06-09T15:28:38Z, not draft). CHANGELOG [0.2.0] covers #100 feature (PRs #197/#198/#199 + hardening #200/#201) + fixes #102/#104 (PRs #194/#195) + CI/supply-chain (#192/#196). main back-merged into develop (4cfc4c4) — branches in sync, no divergence. | 2026-06-09 | v0.2.0 release — Feature #100 cycle fully closed |
 | D-032 | Feature #7 (Modbus TCP analyzer) F1 delta analysis APPROVED by human (2026-06-09). Intent=feature, type=backend, non-trivial -> full F1-F7. Integration: ModbusAnalyzer implements StreamHandler+StreamAnalyzer (like HTTP/TLS), wired into StreamDispatcher (NOT the ProtocolAnalyzer/DNS UDP path). New: src/analyzer/modbus.rs, subsystem SS-14 'Modbus/ICS', VP-022 (Kani P1). Modified (5): dispatcher.rs (HIGH risk — DispatchTarget::Modbus + classify port 502 + VP-004 Kani oracle), mitre.rs (CRITICAL — VP-007 drift guard; T0836 absent + T0855 not in EMITTED_IDS must be fixed atomically), analyzer/mod.rs, main.rs, cli.rs. ADR required: binary-ICS integration + port-only classification as documented exception to ADR-0001 content-first. HUMAN SCOPE DECISIONS: (1) MITRE coverage = FULL cheap set of 6 ICS techniques: T0855 Unauthorized Command Message, T0836 Modify Parameter, T0814 DoS (Diagnostics 0x08 force-listen-only/restart), T0806 Brute Force I/O, T0835 Manipulate I/O Image, T0831 Manipulation of Control; (2) request/response = FULL transaction correlation (per-connection Transaction-ID+Unit-ID+FC table, not stateless-per-PDU); (3) write-burst threshold = CLI-configurable now (--modbus-write-threshold flag, default >10/s sustained >=2s or >20 in 1s window). MITRE type needs a matrix discriminator (ICS T0xxx vs enterprise Txxxx). Research: .factory/research/modbus-tcp-research.md (Modbus.org V1.1b3 + MITRE ATT&CK for ICS sourced). | 2026-06-09 | Feature #7 F1 human gate approval — full F1-F7 scope authorized |
 | D-033 | Feature #7 Modbus F2 spec evolution CONVERGED (2026-06-09). 25 SS-14 BCs (BC-2.14.001-025), PRD v1.1 (BC total 244), VP-022 (Kani P1, 3 sub-properties, bcs 001-008), ADR-005 (binary-ICS integration), MITRE MitreMatrix{Enterprise,Ics} discriminator + 7 ICS techniques emitted (T0855/T0836/T0814/T0806/T0835/T0831/T0846; SEEDED 20/EMITTED 13; VP-007 atomic update + positive-coverage obligation). Adversarial convergence: 3 rounds (4 CRIT+8 HIGH round1 → CONVERGED), Claude adversary + consistency-validator. Key scope: single configurable --modbus-write-threshold (1s window, default 10); co-emission cap (most-specific write-technique/PDU, T0855 once/burst); full transaction correlation; desync-safe parse (is_non_modbus bail). VP-INDEX 22 (Kani 9). develop HEAD 4cfc4c4. | 2026-06-09 | Feature #7 F2 spec evolution convergence |
+| D-034 | Feature #7 Modbus F2 spec REVISION CONVERGED (2026-06-09). Research-validated design adoptions: (1) dual-window write threshold (burst >20/1s + sustained >10/s/>=2s; microsecond math; wrapping_sub; 2 CLI flags), (2) T0846→T0888 recon fix (SEEDED 21/EMITTED 13), (3) multi-tag `mitre_techniques: Vec<String>` (ADR-006; breaking schema → v0.3.0; cross-cuts SS-09/10/11/14). ~28 BCs revised. Convergence: 3 Claude revision rounds + Gemini cross-model hybrid (2 slices, blind) caught HIGH truncation-bias + off-by-six ADU + BC-018/019 gap + length-gate off-by-one + FC-0x17 T0831 evasion; all fixed. Total 37 real findings resolved. Input-hash MATCH=51/STALE=0 (13 recomputed). develop HEAD 4cfc4c4. NEXT: F2 human gate. | 2026-06-09 | Feature #7 F2 revision — dual-window + T0888 + multi-tag; Claude+Gemini hybrid (D-034) |
 
 ## Blocking Issues
 
@@ -172,6 +175,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | PG-3 | Stale local develop — agents must branch off origin/develop | CLOSED — lesson recorded; DF-DEVELOP-FRESHNESS-001 governs |
 | PG-4 | Dependabot does not auto-convert action tags to SHAs — SHA-pin policy was unenforceable by cooldown alone; prior pass (D-021) left 5/8 unpinned [codified] | CODIFIED/CLOSED — 'Action pin gate' CI check + CLAUDE.md policy enforced by PR #196; 2026-06-08 |
 | PG-5 | [process-gap DRAFT] DF-SIBLING-SWEEP intra-SS propagation-shadow — 3rd recurrence this cycle (test-comment #100 F5, VP-lock #100 F7, T0835/co-emission-cap Feature #7 F2). Candidate: codify DF-SIBLING-SWEEP-001 v5 (grep-sweep gate after any FC-set/title/enum change across intra-SS sibling BCs + referencing VP files + BC-INDEX). Codify during Feature #7 cycle-close. | OPEN — codification pending cycle-close |
+| PG-6 | [process-gap] Gemini cross-model hybrid caught arithmetic-precision defect class (integer-truncation bias, off-by-six ADU advance, off-by-one length gate, u32-wrap inconsistency) that 3 Claude adversarial rounds missed in Feature #7 F2 revision. Pattern: Claude blind-spot on numeric/detection-math edge cases in binary-protocol analyzers confirmed for 2nd time (1st: D-023 supply-chain). Candidate codification: for detection-math-heavy features (binary protocol analyzers, threshold arithmetic, numeric invariants), include a dedicated numeric/arithmetic-focused cross-model review slice as a standard spec-convergence step. Codify as PROCESS-ARITHMETIC-REVIEW-001 during Feature #7 cycle-close. | OPEN — codification pending cycle-close |
 
 ## Governance Policy
 

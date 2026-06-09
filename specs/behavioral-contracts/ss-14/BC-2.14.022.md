@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "2.0"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -13,7 +13,10 @@ subsystem: SS-14
 capability: CAP-14
 lifecycle_status: active
 introduced: v0.3.0-feature-007
-modified: []
+modified:
+  - version: "2.0"
+    date: 2026-06-09
+    change: "UPDATED (v2.0 — Decision 13, f2-fix-directives.md §13.5): Reconcile per-PDU finding counts with union-tag model. A single non-burst register write now emits ONE finding (mitre_techniques: [\"T0855\",\"T0836\"]) instead of two separate findings. Burst event emits ONE finding ([\"T0806\",\"T0855\"]) instead of two. Removed T0836-priority-suppresses-T0835 language. EC/vector counts updated. Targets v0.3.0."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -22,8 +25,10 @@ removed: null
 removal_reason: null
 inputs:
   - .factory/phase-f2-spec-evolution/architecture-delta.md
+  - .factory/phase-f2-spec-evolution/f2-fix-directives.md
   - .factory/research/modbus-tcp-research.md
   - .factory/specs/architecture/decisions/ADR-005-binary-ics-protocol-integration-modbus-tcp.md
+  - .factory/specs/architecture/decisions/ADR-006-multi-technique-finding-attribution.md
 input-hash: TBD
 ---
 
@@ -88,13 +93,13 @@ guarantee, not a silent data loss — operators can observe it via the summary o
    cap was hit.
 4. **`dropped_findings` counter is also capped implicitly**: as a `u64`, it overflows at
    2^64 which is beyond any practical capture size. No explicit secondary cap is needed.
-5. **Per-PDU multi-finding emission and the cap**: when a single PDU would produce N findings
-   (e.g., T0855 + T0836 + T0831 for a second holding-register write within the 5s window, or
-   T0855 + T0806 + burst-T0855 for a burst-threshold-crossing write), the cap is checked
-   independently at each push site. If the cap hits after the 1st finding of 3 are pushed, the
-   2nd and 3rd findings are dropped and `dropped_findings` is incremented by 2. Note: for a
-   single non-burst holding-register write (0x06/0x10/0x16), at most 2 findings are emitted
-   (T0855 + T0836); T0835 is suppressed for those FCs per the T0836 priority rule.
+5. **Per-PDU finding count under the union-tag model (v2.0 — Decision 13):**
+   Per-PDU write findings are now multi-tag and count as ONE finding per write PDU. The cap is
+   checked at the single push site for the per-PDU finding, and separately for any burst finding.
+   Example: 2nd holding-register write within the T0831 5s window produces ONE finding
+   (`mitre_techniques: ["T0855","T0836","T0831"]`), not three. A burst-threshold-crossing write
+   produces ONE per-PDU finding + ONE burst finding (`["T0806","T0855"]`), not four. The cap
+   is checked independently for each push: per-PDU push and burst push are separate guards.
 6. **`findings()` accessor returns `all_findings.clone()`** (consistent with `HttpAnalyzer`
    and `TlsAnalyzer` accessors). The returned slice is bounded by `MAX_FINDINGS`.
 7. **The cap is NOT configurable** via CLI flags. `MAX_FINDINGS = 10_000` is a fixed
@@ -105,9 +110,9 @@ guarantee, not a silent data loss — operators can observe it via the summary o
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | `all_findings.len() == 9_999`; a second holding-register write within the 5s window arrives (FC=0x06, emitting T0855 + T0836 + T0831) | T0855 fills slot 10_000 (len → 10_000). T0836 dropped (`dropped_findings=1`). T0831 dropped (`dropped_findings=2`). T0835 is NOT part of this scenario (suppressed for 0x06 per T0836 priority). |
-| EC-002 | `all_findings.len() == 10_000`; another write FC arrives | All 3 findings dropped; `dropped_findings += 3`. Counters incremented. |
-| EC-003 | `all_findings.len() == 10_000`; a T0806 burst fires | T0806 + burst T0855 both dropped; `dropped_findings += 2`. Burst state (`window_burst_emitted`) set anyway. |
+| EC-001 | `all_findings.len() == 9_999`; a 2nd holding-register write within the T0831 5s window (FC=0x06): emits ONE finding `["T0855","T0836","T0831"]` | ONE finding fills slot 10_000 (len → 10_000). `dropped_findings=0` (only one push attempted). Counters incremented. |
+| EC-002 | `all_findings.len() == 10_000`; another register write FC arrives (would emit ONE per-PDU finding `["T0855","T0836"]`) | 1 finding dropped; `dropped_findings += 1`. Counters incremented. (v2: 1 per PDU, not 2.) |
+| EC-003 | `all_findings.len() == 10_000`; a T0806 burst fires (per-PDU + burst, both ONE finding each) | Both findings dropped; `dropped_findings += 2`. `window_burst_emitted` still set to true anyway. |
 | EC-004 | 0 PDUs processed | `all_findings.len() == 0`; `dropped_findings == 0`. Summary key present: `"dropped_findings": 0`. |
 | EC-005 | `MAX_FINDINGS` cap hit exactly at 10_000 findings | `all_findings.len() == 10_000`; no panic; no overflow. Next push attempt → drop. |
 | EC-006 | Capture produces exactly 9_999 findings | `dropped_findings == 0` in summary. No truncation message. |
@@ -116,9 +121,9 @@ guarantee, not a silent data loss — operators can observe it via the summary o
 
 | Setup | Expected Behavior | Category |
 |-------|------------------|----------|
-| Pre-fill `all_findings` to 9_999 entries; send FC=0x06 as the 2nd holding-register write within the 5s window (would generate T0855 + T0836 + T0831) | T0855 at index 9_999 (cap reached); T0836 dropped; T0831 dropped; `dropped_findings=2`; `write_count=1`; `fn_code_counts[0x06]=1` (T0835 NOT generated — suppressed by T0836 priority for 0x06) | edge-case (cap hit mid-PDU) |
-| Pre-fill `all_findings` to 10_000; send 10 additional write PDUs (non-burst, holding-register) | No findings added; `dropped_findings += 2` per PDU (each 0x06/0x10 emits T0855 + T0836 — 2 findings per write); all counters incremented normally | edge-case (fully poisoned) |
-| Empty analyzer; process 5_000 write PDUs each generating T0855 only | `all_findings.len() == 5_000`; `dropped_findings == 0`; no cap hit | happy-path (below cap) |
+| Pre-fill `all_findings` to 9_999 entries; send FC=0x06 as the 2nd holding-register write within the T0831 5s window (v2: ONE finding `["T0855","T0836","T0831"]`) | ONE finding fills slot 10_000 (len → 10_000). `dropped_findings=0` (one push; union-tag model — not three separate findings). `write_count=1`; `fn_code_counts[0x06]=1` | edge-case (cap hit at PDU, union-tag model) |
+| Pre-fill `all_findings` to 10_000; send 10 additional write PDUs (non-burst, holding-register) | No findings added; `dropped_findings += 1` per PDU (each 0x06/0x10 emits ONE finding `["T0855","T0836"]` in v2 — 1 finding per write PDU, not 2); all counters incremented normally | edge-case (fully poisoned; v2: 1 per PDU) |
+| Empty analyzer; process 5_000 write PDUs each generating ONE per-PDU finding | `all_findings.len() == 5_000`; `dropped_findings == 0`; no cap hit | happy-path (below cap) |
 | summarize() called after `dropped_findings=42` | `detail["dropped_findings"] == 42` | happy-path (summary key) |
 
 ## Verification Properties

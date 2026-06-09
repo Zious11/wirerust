@@ -58,7 +58,9 @@ Length range) is a separate concern covered by BC-2.14.002 through BC-2.14.004.
 6. `MbapHeader.function_code  = data[7]` — single byte, offset 7.
 7. The function is pure: it reads only `data`; it never panics; it does not mutate any state.
 8. Trailing bytes at `data[8..]` are not consumed by `parse_mbap_header` — the caller's ADU
-   boundary loop uses `MbapHeader.length` to advance the offset pointer.
+   boundary loop advances the offset pointer by `6 + MbapHeader.length` (the 6-byte MBAP
+   prefix — TxnID(2) + ProtoID(2) + Length(2) — is NOT counted in `MbapHeader.length`, which
+   covers only Unit ID + PDU bytes; so the full ADU byte count is `6 + length`).
 
 ## Invariants
 

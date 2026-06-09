@@ -8,13 +8,21 @@ producer: formal-verifier
 created: 2026-06-09
 base_commit: 4cfc4c4
 branch: develop
+modified:
+  - date: 2026-06-09
+    actor: formal-verifier
+    note: "Reconcile against directives v2.0 + ADR-006 (Modbus F2 revision). §4: recon emitted ID T0846→T0888, SEEDED_TECHNIQUE_ID_COUNT 20→21 (T0888 new seeded; T0846 stays seeded, drops from emission), EMITTED stays 13; add Finding field-rename grep obligation (mitre_technique:Some → mitre_techniques:vec!). §7 NEW: VP-016/VP-020/VP-021 Finding field-rename harness obligations (VP-020 gains multi-tag semicolon-join CSV-cell case). §8 NEW: new-VP decision — NO VP-023 (multi-tag covered by VP-007/017/016/020); VP-INDEX stays at 22. No locked-VP lock fields edited; no index arithmetic change."
 traces_to:
   - .factory/phase-f2-spec-evolution/architecture-delta.md
+  - .factory/phase-f2-spec-evolution/f2-fix-directives.md
+  - .factory/specs/architecture/decisions/ADR-006-multi-technique-finding-attribution.md
   - .factory/specs/verification-properties/VP-INDEX.md
   - .factory/specs/architecture/verification-architecture.md
   - .factory/specs/architecture/verification-coverage-matrix.md
 inputs:
   - .factory/phase-f2-spec-evolution/architecture-delta.md
+  - .factory/phase-f2-spec-evolution/f2-fix-directives.md
+  - .factory/specs/architecture/decisions/ADR-006-multi-technique-finding-attribution.md
   - .factory/specs/behavioral-contracts/ss-14/BC-2.14.001.md
   - .factory/specs/behavioral-contracts/ss-14/BC-2.14.005.md
   - .factory/specs/behavioral-contracts/ss-14/BC-2.14.006.md
@@ -24,12 +32,26 @@ inputs:
 
 This document is the formal-verifier's Phase-F2 verification delta. It records the one new
 verification property (VP-022), confirms no existing VP (VP-001..021) requires modification by
-this feature, and flags two verification *dependencies* (VP-004 harness extension, VP-007
-catalog-drift-guard) that must be honored in F4 to keep already-locked proofs green.
+this feature, and flags the verification *dependencies* (VP-004 harness extension, VP-007
+catalog-drift-guard, and the VP-016/020/021 multi-tag harness updates from ADR-006 Decision 13)
+that must be honored in F4 to keep already-locked proofs green.
 
 The architect has already PRE-REGISTERED VP-022 in the three index files (counts bumped:
 Kani 8→9, total 21→22, P1 7→8). This delta does not re-touch those indexes; it authors the
 VP-022 spec file and documents the regression surface.
+
+> **Reconciliation note (F2 v2 — directives v2.0 + ADR-006, 2026-06-09):** Sections §4 and §7
+> below are reconciled against `f2-fix-directives.md` v2 (Decisions 11/12/13) and
+> `ADR-006-multi-technique-finding-attribution.md`. Two changes supersede the prior v1
+> directive content in this delta: **(1)** Decision 12 swaps the recon-path emitted technique
+> from **T0846 → T0888** (T0888 "Remote System Information Discovery"; T0846 stays seeded but is
+> no longer Modbus-emitted), which moves `SEEDED_TECHNIQUE_ID_COUNT` from **20 → 21** (T0888 is a
+> NEW seeded entry; the earlier "20" assumed T0846-only recon and no new seeded ICS ID for recon).
+> EMITTED count is unchanged at **13**. **(2)** Decision 13 (ADR-006) renames `Finding.mitre_technique:
+> Option<String>` → `mitre_techniques: Vec<String>`, which forces F4 harness updates to VP-007's
+> grep pattern and to the VP-016/020/021 proof harnesses (see §7). None of these edit any locked
+> VP document's lock fields; they are F4 harness/source obligations recorded here, same pattern as
+> the VP-004 extension.
 
 ---
 
@@ -90,8 +112,11 @@ NOT new VPs and NOT VP-document edits; they are required F4 code changes.
 | VP | Module | Impact | Action |
 |----|--------|--------|--------|
 | VP-004 | dispatcher.rs | **Extend (harness update required)** — new port-502 branch | F4 code change to `classify_oracle`; see §3 |
-| VP-007 | mitre.rs | **Dependency (must stay green)** — ICS technique additions | F4 atomic catalog update; see §4 |
-| VP-001..003, 005, 006, 008..021 | various | **None** | No change |
+| VP-007 | mitre.rs | **Dependency (must stay green)** — ICS technique additions + recon T0888 + `Finding` field-rename grep | F4 atomic catalog update + grep-pattern change; see §4 |
+| VP-016 | reporter/terminal.rs | **Dependency (harness update required)** — ADR-006 Decision 13 renames `Finding.mitre_technique` → `mitre_techniques` | F4 harness construction update; see §7 |
+| VP-020 | reporter/csv.rs | **Dependency (harness update required)** — same field rename; multi-tag semicolon-join CSV cell | F4 harness update + new multi-tag cell case; see §7 |
+| VP-021 | reassembly/mod.rs | **Dependency (test-helper update required)** — same field rename in `Finding` construction helpers | F4 test-helper update; property unaffected; see §7 |
+| VP-001..003, 005, 006, 008..015, 017..019, 022 | various | **None** | No change (VP-022 authored new with `mitre_techniques: vec![...]`) |
 
 ---
 
@@ -132,38 +157,56 @@ TLS/HTTP port apply. This strengthens coverage but is not required for VP-004 re
 VP-007 (`mitre.rs` kani_proofs — the catalog-drift guard / `vp007_catalog_drift_guard`) proves
 every emitted MITRE technique ID resolves in `technique_info` and matches the
 `T[0-9]{4}(\.[0-9]{3})?` format. The Modbus feature performs the architect's **atomic update set**
-to `mitre.rs` (architecture-delta §4.2–§4.3): five new ICS `technique_info` arms (T0836, T0814,
-T0806, T0835, T0831) plus the seeded-ID array and emitted-ID set updates. The recon path
-(BC-2.14.020: FC 0x11 Report Server ID, FC 0x2B/0x0E Read Device ID) emits **T0846**
-(per F2 directives §8); T0846 is already SEEDED, so it adds no seeded entry but DOES add a 7th
-ICS entry to `EMITTED_IDS`.
+to `mitre.rs` (architecture-delta §4.2–§4.3 + F2 directives v2 Decision 12): **six** new ICS
+`technique_info` arms (T0836, T0814, T0806, T0835, T0831, **T0888**) plus the seeded-ID array and
+emitted-ID set updates. The recon path (BC-2.14.020: FC 0x11 Report Server ID, FC 0x2B/0x0E Read
+Device ID) emits **T0888 "Remote System Information Discovery"** (per F2 directives v2 Decision 12
+— corrects the v1 T0846 misattribution). **T0846 "Remote System Discovery" stays SEEDED but is NO
+LONGER Modbus-EMITTED** (kept in the catalog for completeness / future address-sweep detection).
+T0888 is a NEW seeded entry AND is in `EMITTED_IDS`; it is the 7th ICS emitted entry in place of
+T0846.
 
 **This is a verification DEPENDENCY, not a new VP.** No VP-007 document edit is implied (VP-007 is
 locked / `verification_lock: true`; these are F4 *harness/source* obligations). The obligation is
 that the following constants/arrays are updated in the SAME F4 commit so the guard does not detect
-drift (per architecture-delta §4.3 + F2 directives §8):
+drift (per architecture-delta §4.3 + F2 directives v2 Decision 12):
 
-| Constant / array (mitre.rs) | Before | After |
-|-----------------------------|--------|-------|
-| `technique_info` ICS arms | T0846/T0855/T0856/T0885 | + T0836, T0814, T0806, T0835, T0831 |
-| `SEEDED_TECHNIQUE_IDS` | 15 entries | 20 entries (add the 5 above) |
-| `SEEDED_TECHNIQUE_ID_COUNT` | 15 | 20 |
-| `EMITTED_IDS` (kani_proofs) | 6 Enterprise IDs | + T0855, T0836, T0814, T0806, T0835, T0831, **T0846** (13 total: 6 Enterprise + 7 ICS) |
+| Constant / array (mitre.rs) | Before (pre-F2) | After (post-F2, directives v2) |
+|-----------------------------|-----------------|--------------------------------|
+| `technique_info` ICS arms | T0846/T0855/T0856/T0885 (4) | + T0836, T0814, T0806, T0835, T0831, **T0888** (10 ICS total; T0846 kept, not emitted) |
+| `SEEDED_TECHNIQUE_IDS` | 15 entries | **21** entries (add the 6 new ICS above) |
+| `SEEDED_TECHNIQUE_ID_COUNT` | 15 | **21** |
+| `EMITTED_IDS` (kani_proofs) | 6 Enterprise IDs | + T0855, T0836, T0814, T0806, T0835, T0831, **T0888** (13 total: 6 Enterprise + 7 ICS; **T0846 NOT emitted**) |
 
-**EMITTED_IDS — 7 ICS entries (the 7th is T0846 for the recon path):**
+> **Note on the SEEDED count change (20 → 21).** An earlier (v1) draft of this delta recorded
+> SEEDED = 20, assuming the recon path reused the already-seeded T0846 and added only 5 new seeded
+> ICS arms (T0836/T0814/T0806/T0835/T0831). Directives v2 Decision 12 instead introduces T0888 as a
+> **distinct new seeded ID** for the recon path (T0846 stays seeded but is dropped from emission).
+> That is 6 new seeded ICS arms, not 5, so 15 + 6 = **21**. EMITTED stays 13 (the recon emitted slot
+> moves from T0846 to T0888).
+
+**EMITTED_IDS — 7 ICS entries (the 7th is T0888 for the recon path; T0846 removed from emission):**
 
 | # | ID | Source | Class |
 |---|----|--------|-------|
 | 1 | T0855 | write-class FC / unauthorized command + burst companion | ICS |
 | 2 | T0836 | 0x06/0x10/0x16 parameter writes | ICS |
 | 3 | T0814 | 0x08 Force Listen Only / Restart Comms | ICS |
-| 4 | T0806 | write burst rate exceeded | ICS |
+| 4 | T0806 | write burst or sustained rate exceeded | ICS |
 | 5 | T0835 | I/O image manipulation writes (coil-only) | ICS |
 | 6 | T0831 | coordinated write sequence (5s window) | ICS |
-| 7 | **T0846** | **recon FCs (0x11 Report Server ID, 0x2B/0x0E Read Device ID)** | **ICS** |
+| 7 | **T0888** | **recon FCs (0x11 Report Server ID, 0x2B/0x0E Read Device ID) — Remote System Information Discovery** | **ICS** |
 
 Combined with the 6 Enterprise emitted IDs (T1027, T1036, T1046, T1083, T1499.002, T1505.003),
-the runtime-computed `EMITTED_IDS` length is **13** and `SEEDED_TECHNIQUE_ID_COUNT` is **20**.
+the runtime-computed `EMITTED_IDS` length is **13** and `SEEDED_TECHNIQUE_ID_COUNT` is **21**.
+
+**Grep-pattern obligation (ADR-006 Decision 13 / directives v2 §13.8).** The `Finding` field is
+renamed `mitre_technique: Option<String>` → `mitre_techniques: Vec<String>`. Any VP-007 harness or
+catalog-completeness scan that greps analyzer source for emitted IDs MUST change its emission-site
+pattern from `mitre_technique: Some` to `mitre_techniques: vec!`. This is an F4 source/harness
+change (the locked VP-007 document is not edited). The emitter-half soundness obligation
+(sub-property B: every ID in `mitre_techniques` resolves in `technique_info`) is unchanged in intent
+— only the field/pattern it scans changes.
 
 **Note (pre-existing gap closed in the same commit):** T0855 is currently seeded but NOT in
 `EMITTED_IDS` (architecture-delta §4.3). The Modbus commit adds "T0855" to `EMITTED_IDS`, which
@@ -174,22 +217,25 @@ keeps VP-007 sub-property B (emitter half) sound — every emitted ID is also a 
 F4 harness therefore MUST:
 
 1. Assert a **runtime-computed** count of IDs actually validated — exactly **13 emitted**
-   (`EMITTED_IDS.len() == 13`) **+ 20 seeded** (`SEEDED_TECHNIQUE_ID_COUNT == 20`,
-   `SEEDED_TECHNIQUE_IDS.len() == 20`) — computed from the arrays at run time, not hardcoded as a
+   (`EMITTED_IDS.len() == 13`) **+ 21 seeded** (`SEEDED_TECHNIQUE_ID_COUNT == 21`,
+   `SEEDED_TECHNIQUE_IDS.len() == 21`) — computed from the arrays at run time, not hardcoded as a
    literal pass. A counter incremented inside the resolve loop MUST equal that count, so a loop
    that iterates zero times (e.g., an accidentally-emptied `EMITTED_IDS`) FAILS the assertion
    rather than vacuously succeeding.
-2. **Deliberately exercise at least one of the newly-added ICS IDs** (e.g., resolve `T0846` AND
-   one of T0836/T0814/T0806/T0835/T0831) through the full `technique_name` + `technique_tactic`
-   resolve path and assert `Some(..)` on both — proving the new arms are reachable, not just
-   present as dead constants. This makes an exit-0 / `VERIFICATION:- SUCCESSFUL` impossible to
-   reach without genuinely validating the new ICS catalog surface.
+2. **Deliberately exercise at least one of the newly-added ICS IDs, including the new recon ID
+   T0888** (e.g., resolve `T0888` AND one of T0836/T0814/T0806/T0835/T0831) through the full
+   `technique_name` + `technique_tactic` resolve path and assert `Some(..)` on both — proving the
+   new arms are reachable, not just present as dead constants. T0888 MUST be among the IDs probed
+   because it is both the newest seeded arm and the recon emission target. This makes an exit-0 /
+   `VERIFICATION:- SUCCESSFUL` impossible to reach without genuinely validating the new ICS catalog
+   surface (incl. the T0846→T0888 recon correction).
 
 **Gating obligation:** after the atomic update, `cargo kani` over the `mitre.rs` VP-007 harnesses
 MUST report `VERIFICATION:- SUCCESSFUL` AND the positive-coverage assertions above MUST hold. If
 any emitted ID lacks a `technique_info` arm or a seeded entry, OR if the runtime-computed
-emitted/seeded counts are not 13/20, OR if the new-ICS-ID resolve probe returns `None`, the guard
-fails. VP-007 is a locked P0 Kani VP; staying green (now with positive-coverage) is an F4/F6 gate.
+emitted/seeded counts are not 13/21, OR if the new-ICS-ID resolve probe (incl. T0888) returns
+`None`, the guard fails. VP-007 is a locked P0 Kani VP; staying green (now with positive-coverage)
+is an F4/F6 gate.
 
 ---
 
@@ -230,9 +276,95 @@ are now mutually consistent under the architect's canonical BC map (005=totality
    `vp-verified-VP-022-<date>` tag).
 2. **REQUIRED:** extend `classify_oracle` in dispatcher.rs with the Rule-5 port-502 arm in the
    same commit that adds Rule 5 to production `classify`; re-run VP-004 → `SUCCESSFUL`.
-3. **REQUIRED:** perform the mitre.rs atomic update set (5 arms + 2 arrays + `EMITTED_IDS`
-   incl. T0855 and **T0846** → 13 emitted / 20 seeded); add the §4 POL-11 positive-coverage
-   assertions (runtime-computed 13-emitted + 20-seeded count, plus deliberate resolve of ≥1
-   newly-added ICS ID incl. T0846); re-run VP-007 → `SUCCESSFUL` with positive-coverage holding.
-4. Confirm all other locked VPs (VP-001..003, 005, 006, 008..021) remain `SUCCESSFUL` / green in
-   the full regression run (no expected change; new module is isolated).
+3. **REQUIRED:** perform the mitre.rs atomic update set (6 ICS arms incl. **T0888** + 2 arrays +
+   `EMITTED_IDS` incl. T0855 and **T0888** with **T0846 removed from emission** → 13 emitted /
+   21 seeded); change the emitted-ID grep pattern from `mitre_technique: Some` to
+   `mitre_techniques: vec!`; add the §4 POL-11 positive-coverage assertions (runtime-computed
+   13-emitted + 21-seeded count, plus deliberate resolve of ≥1 newly-added ICS ID **including
+   T0888**); re-run VP-007 → `SUCCESSFUL` with positive-coverage holding.
+4. **REQUIRED (ADR-006 Decision 13):** update the VP-016, VP-020, and VP-021 proof harnesses /
+   test helpers to construct `Finding { mitre_techniques: vec![...] }` instead of
+   `Finding { mitre_technique: ... }`; for VP-020 add a multi-tag CSV-cell case
+   (`vec!["T0855","T0836"]` → `"T0855;T0836"`) and assert it remains injection-safe; re-run each →
+   green. See §7.
+5. Confirm all other locked VPs (VP-001..003, 005, 006, 008..015, 017..019, 022) remain
+   `SUCCESSFUL` / green in the full regression run (no expected change; new module is isolated).
+
+---
+
+## 7. VP-016 / VP-020 / VP-021 — `Finding` field-rename harness obligations (ADR-006 Decision 13)
+
+ADR-006 Decision 13 renames the `Finding` field `mitre_technique: Option<String>` →
+`mitre_techniques: Vec<String>` (`#[serde(skip_serializing_if = "Vec::is_empty")]`). Three locked,
+test-sufficient VP harnesses construct `Finding` values directly and therefore will **fail to
+compile** until their construction sites are migrated. For each, the underlying **property is
+unchanged** — only the harness construction syntax (and, for VP-020, one added test case) changes.
+These are F4 harness obligations; **no locked VP-document lock field is edited**. The
+`proof_file_hash` of each affected VP will be recomputed and the lifecycle row appended in the F4
+commit that touches the harness, exactly as the lock protocol prescribes (lock fields themselves —
+`verification_lock`, `proof_completed_date` — are NOT changed here; the F4 harness change is a
+re-verification of the same locked property against the renamed type).
+
+| VP | Harness file (evidence) | Required F4 change | Property impact |
+|----|-------------------------|--------------------|-----------------|
+| VP-016 | `tests/reporter_terminal_tests.rs` | Replace every `mitre_technique: None` / `mitre_technique: technique.map(...)` / `Some("T1036")` construction with `mitre_techniques: vec![]` / `mitre_techniques: vec!["T1036"]`. Tactic-grouping uses `mitre_techniques[0]` as the bucket key; the single-technique tests are unchanged in expected output. | **None** — grouping order, Uncategorized-last, and within-bucket sort are all preserved. Empty `vec![]` lands in Uncategorized exactly as the prior `None` did. |
+| VP-020 | `tests/reporter_csv_tests.rs` | Replace `Finding { mitre_technique: ... }` constructions with `mitre_techniques: vec![...]`. **ADD a multi-tag CSV-cell case**: a finding with `mitre_techniques: vec!["T0855","T0836"]` serializes column 6 as `"T0855;T0836"` (semicolon-join, no space) and MUST still pass the injection-neutralization assertion (semicolons are neutral, non-formula-trigger characters — no leading `=`/`+`/`-`/`@`/TAB/CR is introduced by the join). Also keep the empty-vec → `""` case (was `None` → `""`). | **None** — `neutralize_csv_injection` is unchanged; the property "no CSV cell starts with a formula-trigger char without a single-quote prefix" still holds for joined multi-value cells. The new case strengthens coverage to the multi-tag column-6 surface. |
+| VP-021 | `tests/timestamp_threading_tests.rs` | Update any `Finding { mitre_technique: ... }` constructed in test helpers to `mitre_techniques: vec![...]`. The timestamp-provenance property never reads the technique field. | **None / confirmed unaffected** — VP-021 asserts on `Finding.timestamp` only; the technique field is orthogonal. The change is a mechanical compile-fix of helper construction, not a behavioral change. If the F4 helpers happen not to set the technique field at all (relying on `..make_finding()` defaults that move to `vec![]`), VP-021 may need **no** edit beyond the shared helper. |
+
+**VP-020 multi-tag injection-safety reasoning (explicit, per task):** the semicolon-joined cell
+`"T0855;T0836"` begins with `'T'`, which is not in the formula-trigger set
+{`=`,`+`,`-`,`@`,`\t`,`\r`}. The `join(";")` operation cannot introduce a leading trigger character
+because (a) MITRE IDs always begin with `'T'`, and (b) the separator `;` is interior, never leading.
+Therefore the existing single-quote-prefix guard remains sufficient and the BC-2.11.021 property is
+preserved for multi-value cells. The added test case pins this so a future change to the join format
+(e.g., a leading-separator bug) would be caught.
+
+**Re-verification gate:** after the F4 harness migration, `cargo test` over
+`reporter_terminal_tests`, `reporter_csv_tests`, and `timestamp_threading_tests` MUST be green, and
+each affected VP's `proof_file_hash` recomputed in the F4 lifecycle row. No property statement, BC
+anchor, or VP-INDEX row for VP-016/020/021 changes.
+
+---
+
+## 8. New-VP assessment: does multi-tag attribution warrant VP-023? — NO (extend-existing)
+
+**Decision: NO new VP. The next free VP id (VP-023) is NOT allocated.** VP-INDEX stays at **22**
+(VP-022 remains the only F2-new VP). The candidate multi-tag properties are already covered by
+existing VPs once the §7 harness extensions land; the gaps are closed by *anchors/extensions*, not
+a new property. Per the "prefer extending existing over new VP unless there is a real gap" rule:
+
+| Candidate multi-tag property | Covered by | Verdict |
+|------------------------------|------------|---------|
+| **No technique tag lost across emission → serialization** (every ID placed in `mitre_techniques` survives into JSON/CSV) | **VP-007** sub-property B (emitter-catalog completeness) proves every emitted ID resolves; **VP-017** (JsonReporter key-order determinism / round-trip) and **VP-020** (CSV cell content, now multi-tag) prove the field's values are emitted faithfully. Serde `#[derive(Serialize)]` over `Vec<String>` emits the vec verbatim — no element-dropping path exists. | **Covered** — VP-017 (JSON) + VP-020 (CSV, §7 multi-tag case) + VP-007 (resolvability). No round-trip element-loss path to prove separately. |
+| **Vec ordering determinism** (the order of tags within `mitre_techniques` is stable across runs) | The order is fixed by the emission site (a literal `vec!["T0855","T0836"]` constructed in source); `serde` preserves `Vec` order; there is no sort or `HashSet` in the path. **VP-017**'s determinism property (deterministic JSON output for fixed input) already covers stable field-value ordering. | **Covered** — determinism is structural (literal vec, order-preserving serialize); VP-017 anchors the JSON-output-determinism axis. No nondeterministic source (no HashSet/HashMap iteration) feeds tag order. |
+| **CSV multi-value cell stays injection-safe** | **VP-020** (extended in §7 with the `"T0855;T0836"` case). | **Covered** — VP-020 extension. |
+| **Empty vec == prior None semantics** (no key in JSON / empty CSV cell / Uncategorized bucket) | **VP-016** (Uncategorized), **VP-017** (skip-when-empty JSON), **VP-020** (empty CSV cell). | **Covered** — VP-016/017/020. |
+
+**Anchors added instead of a new VP:** VP-020's anchor set is conceptually widened to include the
+multi-tag CSV-cell case (recorded in §7; no BC-anchor or VP-INDEX `Verified BCs` change because
+BC-2.11.021 already governs the whole CSV-injection surface, and BC-2.11.024 — semicolon-join — is
+a product-owner-owned BC revision, not a VP anchor). No VP-document `bcs:` frontmatter changes.
+
+**Conclusion:** the multi-tag change is fully covered by VP-007 (resolvability/no-loss-of-validity),
+VP-017 (JSON determinism + skip-empty), VP-016 (terminal grouping / Uncategorized), and VP-020
+(CSV injection + multi-value cell). **VP-INDEX remains at total 22.** No Kani/total arithmetic change.
+
+---
+
+## 9. Index consistency re-confirmation after §4–§8 edits
+
+These edits touch ONLY this `verification-delta.md` (and do not edit any locked VP document, BC, or
+index file). The three index files are therefore unchanged and remain mutually consistent at the
+values the architect pre-registered for VP-022:
+
+- **VP-INDEX.md:** total **22**, Kani **9**, P0 8, P1 **8**, test-sufficient 6, draft 1 (VP-022),
+  verified 21. Tool totals `9 + 7 + 1 + 5 = 22`. Phase totals `8 + 8 + 6 = 22`.
+- **verification-architecture.md:** 22 VP rows; VP-022 in Should-Prove + P1 list; Kani list of 9.
+- **verification-coverage-matrix.md:** 22 VP rows; Totals row Kani 9 / proptest 7 / fuzz 1 /
+  integration-unit 5 = 22.
+
+No new VP (no VP-023) ⇒ **no Kani-count or total-count change** from this reconciliation. The only
+substantive numeric change in this delta is internal to the VP-007 *catalog* dependency:
+`SEEDED_TECHNIQUE_ID_COUNT` 20 → **21** and the recon emitted ID T0846 → **T0888** (EMITTED stays
+**13**). These are F4 source/harness obligations, not VP-index counts, so no index arithmetic is
+affected.

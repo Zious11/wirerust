@@ -24,12 +24,23 @@ F3 story decomposition begins. It does NOT author behavioral contracts (BC-2.14.
 VP-022 — those are product-owner and formal-verifier responsibilities respectively.
 It defines the structures those artifacts depend on.
 
-Approved scope (human decision):
-- 7 MITRE ATT&CK for ICS techniques: T0855, T0836, T0814, T0806, T0835, T0831, T0846
+Approved scope (human decision, updated per f2-fix-directives.md v2):
+- 7 MITRE ATT&CK for ICS techniques emitted: T0855, T0836, T0814, T0806, T0835, T0831, T0888
+  (T0846 is SEEDED but NOT emitted — replaced by T0888 for recon FCs per Decision 12)
 - FULL transaction correlation: per-connection (Transaction-ID, Unit-ID, FC) table
-- CLI-configurable `--modbus-write-threshold` (default 10 writes per 1-second window per flow)
+- CLI-configurable dual-window write detection: `--modbus-write-burst-threshold` (default 20,
+  1-second burst) + `--modbus-write-sustained-threshold` (default 10, ≥2-second sustained)
+  — replaces the single `--modbus-write-threshold` from v1.0 (Decision 11)
 
-ADR produced: **ADR-005** (`.factory/specs/architecture/decisions/ADR-005-binary-ics-protocol-integration-modbus-tcp.md`)
+**F1 impact-boundary note (v2 update):** F1 (Feature-100, timestamp) documented `Finding`
+as DEPENDENT/unchanged. Decision 13 (ADR-006) changes that classification: `Finding` is now
+MODIFIED in Feature #7 (`mitre_technique: Option<String>` → `mitre_techniques: Vec<String>`).
+This is a cross-cutting breaking schema change targeting v0.3.0.
+
+ADRs produced:
+- **ADR-005** (`.factory/specs/architecture/decisions/ADR-005-binary-ics-protocol-integration-modbus-tcp.md`)
+- **ADR-006** (`.factory/specs/architecture/decisions/ADR-006-multi-technique-finding-attribution.md`)
+  — multi-tag Finding type; supersedes Decision 7 from v1.0
 
 ---
 
@@ -55,9 +66,15 @@ pub struct ModbusAnalyzer {
     /// Per-flow state, keyed by FlowKey.
     flows: HashMap<FlowKey, ModbusFlowState>,
 
-    /// Global write-burst rate threshold (writes per second, sustained window).
-    /// Exposed via CLI --modbus-write-threshold. Default = 10.
-    write_threshold: u32,
+    /// 1-second burst-window threshold: max write-FCs in any single 1-second window per flow.
+    /// Fires T0806 + burst-T0855 when exceeded. Exposed via CLI --modbus-write-burst-threshold.
+    /// Default = 20. (Replaces write_threshold from v1.0 — Decision 11.)
+    write_burst_threshold: u32,
+
+    /// ≥2-second sustained-window threshold: max average write-FCs per second over the
+    /// sustained window per flow. Fires T0806 + T0855 (sustained variant) when exceeded.
+    /// Exposed via CLI --modbus-write-sustained-threshold. Default = 10. (Decision 11.)
+    write_sustained_threshold: u32,
 
     /// Aggregate function-code distribution across all flows: FC byte → count.
     fn_code_counts: HashMap<u8, u64>,
@@ -95,7 +112,7 @@ pub struct ModbusAnalyzer {
 }
 
 impl ModbusAnalyzer {
-    pub fn new(write_threshold: u32) -> Self { ... }
+    pub fn new(write_burst_threshold: u32, write_sustained_threshold: u32) -> Self { ... }
     pub fn parse_error_count(&self) -> u64 { self.parse_errors }
 }
 ```
@@ -125,20 +142,30 @@ struct ModbusFlowState {
     /// Timestamp of the last PDU processed (pcap-relative u32 microseconds).
     last_ts: u32,
 
-    // --- T0806/T0855 write-burst rate window (configurable threshold, 1-second fixed) ---
+    // --- T0806/T0855 burst window (1-second fixed, configurable burst threshold) ---
     /// Write-class FC count within the current 1-second rate-detection window.
     window_write_count: u32,
     /// Start timestamp of the current 1-second write-rate window (pcap-relative u32).
     window_start_ts: u32,
-    /// True once T0806/T0855 burst has fired in the current window; reset on window expiry.
+    /// True once T0806/T0855 burst has fired in the current 1-second window; reset on expiry.
     window_burst_emitted: bool,
+
+    // --- T0806/T0855 sustained window (≥2-second rolling, configurable sustained threshold) ---
+    /// Start timestamp of the current sustained-rate accumulation window (pcap-relative u32 us).
+    sustained_window_start_ts: u32,
+    /// Write-class FC count accumulated since sustained_window_start_ts.
+    sustained_window_write_count: u32,
+    /// True once the sustained-rate T0806+T0855 pair has fired for this window; reset when
+    /// the window is advanced (i.e., when a new PDU arrives more than WRITE_SUSTAINED_WINDOW_SECS
+    /// after sustained_window_start_ts AND the rate check is re-evaluated). (Decision 11.)
+    sustained_burst_emitted: bool,
 
     // --- T0831 coordinated-write window (5-second fixed, not CLI-configurable) ---
     /// Start timestamp of the current T0831 5-second window (pcap-relative u32).
     t0831_window_start_ts: u32,
     /// Holding-register write count in the current T0831 5-second window.
     t0831_window_write_count: u32,
-    /// True once T0831 has fired in the current window; reset on window expiry.
+    /// True once T0831 has co-tagged in the current window; reset on window expiry.
     t0831_burst_emitted: bool,
 
     // --- BC-2.14.019 exception-burst windows (per exception code byte) ---
@@ -159,13 +186,46 @@ struct ModbusFlowState {
 heavy pipelining or a pathological capture), new request entries are NOT inserted (preventing
 unbounded growth). Existing entries continue to be matched and removed on response.
 
-**Write-rate window model**: the window-based rate detector uses a 1-second sliding window
-(fixed: `WRITE_RATE_WINDOW_SECS = 1`). On each write-class FC:
-1. If `now_ts - window_start_ts > WRITE_RATE_WINDOW_SECS * 1_000_000` (microseconds), reset
-   `window_write_count = 1`, `window_start_ts = now_ts`, and `window_burst_emitted = false`.
+**Dual-window write-rate model (Decision 11):** Two independent detectors run per write-class FC.
+
+**Timestamp Wrap Policy (applies to ALL window-duration comparisons):** The pcap-relative
+timestamp is a `u32` in microseconds; it wraps at ~71.5 minutes (`u32::MAX ≈ 4295 s`).
+ALL window-duration arithmetic MUST use `wrapping_sub` to be correct in debug builds
+(where `overflow-checks = true` would panic on plain subtraction) and release builds alike.
+The wrap policy for the case where `now_ts < window_start_ts` (i.e., the wrapped/bogus scenario):
+`wrapping_sub` yields a large value (close to `u32::MAX`), which is far larger than any window
+duration constant (max window = T0831 5 s = 5_000_000 µs). This unconditionally triggers a
+window reset — the window slides to `now_ts`. This is the correct evasion-resistant behavior:
+an attacker who reorders timestamps to force `now_ts < window_start_ts` causes a window reset,
+NOT suppression of detection. A reset clears the accumulator and `*_emitted` flag; it does not
+suppress any in-progress detection. Evasion by timestamp reordering is not possible: the attacker
+can only reset the burst window to start fresh, not block a window that has already fired.
+
+*Burst detector (1-second window):*
+1. If `now_ts.wrapping_sub(window_start_ts) > WRITE_BURST_WINDOW_SECS * 1_000_000` (µs), reset
+   `window_write_count = 1`, `window_start_ts = now_ts`, `window_burst_emitted = false`.
 2. Otherwise increment `window_write_count`.
-3. If `window_write_count > write_threshold` AND `!window_burst_emitted`, emit T0806 + T0855
-   burst findings and set `window_burst_emitted = true`.
+3. If `window_write_count > write_burst_threshold` AND `!window_burst_emitted`, emit
+   `["T0806", "T0855"]` burst finding (one per window overflow) and set
+   `window_burst_emitted = true`.
+
+*Sustained detector (≥2-second rolling window):*
+1. Accumulate `sustained_window_write_count`; initialize `sustained_window_start_ts` on first
+   write (when `== 0`).
+2. On each write, compute `elapsed_us = now_ts.wrapping_sub(sustained_window_start_ts)` (u32
+   wrapping subtraction; see Timestamp Wrap Policy below).
+3. Trigger (truncation-free microsecond-scale integer math — no division):
+   `elapsed_us >= WRITE_SUSTAINED_WINDOW_SECS * 1_000_000` AND
+   `(sustained_window_write_count as u64) * 1_000_000 > (write_sustained_threshold as u64) * (elapsed_us as u64)` AND
+   `!sustained_burst_emitted` → emit `["T0806", "T0855"]` sustained finding, set
+   `sustained_burst_emitted = true`.
+   This is equivalent to `rate > threshold/s` but avoids integer truncation: e.g., 25 writes
+   in 2.9 s (elapsed_us=2_900_000) yields `25*1_000_000=25_000_000 > 10*2_900_000=29_000_000`
+   → FALSE (rate 8.6/s < 10/s, correctly does NOT fire), whereas the old `elapsed_secs=2`
+   formula produced `25 > 10*2=20` → TRUE (false positive).
+4. When `elapsed_us >= WRITE_SUSTAINED_WINDOW_SECS * 1_000_000`, reset the sustained window
+   after evaluation (slide forward: `sustained_window_start_ts = now_ts`,
+   `sustained_window_write_count = 1`, `sustained_burst_emitted = false`).
 
 The `u32` timestamp is the pcap-relative capture timestamp in microseconds, matching the
 existing `timestamp: u32` parameter in `StreamHandler::on_data`.
@@ -307,19 +367,28 @@ This is VP-022 sub-property C and is directly Kani-provable.
 
 ### 2.6 Finding Emission Points — MITRE Technique Mapping
 
-Each detection maps to one or more approved MITRE ATT&CK for ICS techniques:
+Each detection maps to one or more approved MITRE ATT&CK for ICS techniques. Per ADR-006
+(Decision 13), all write-class PDU findings use **MULTI-TAG co-emission**: one finding per
+PDU carrying the UNION of all applicable `mitre_techniques` as a `Vec<String>`. There is no
+priority/suppression rule — T0836 and T0835 are FC-subset exclusive (not competing), and
+T0831 is co-tagged inline on the per-PDU finding when the 5-second window fires.
 
-| Detection trigger | Modbus signal | MITRE ID | Technique name | Tactic |
-|-------------------|---------------|----------|----------------|--------|
-| Write FC from request direction (any Write-class FC) | FC in {0x05, 0x06, 0x0F, 0x10, 0x15, 0x16, 0x17} | **T0855** | Unauthorized Command Message | IcsImpairProcessControl |
-| Write FC to holding registers only | FC in {0x06, 0x10, 0x16}; T0836 takes priority over T0835 for these FCs | **T0836** | Modify Parameter | IcsImpairProcessControl |
-| Write FC to coils/I/O (NOT in T0836 subset) | FC in {0x05, 0x0F} — coil writes only (T0836 not applicable) | **T0835** | Manipulate I/O Image | IcsImpairProcessControl |
-| Coordinated write sequence to holding registers within 5-second window | ≥2 FCs in {0x06, 0x10, 0x16} within 5s in same flow | **T0831** | Manipulation of Control | IcsImpairProcessControl |
-| Write burst exceeds rate threshold in 1-second window | >N write FCs in 1s to same flow; N = `write_threshold` | **T0806** | Brute Force I/O | IcsImpairProcessControl |
-| Burst T0855 companion (once per burst event, not per PDU) | Same burst event as T0806; `window_burst_emitted` guard | **T0855** | Unauthorized Command Message (burst-level) | IcsImpairProcessControl |
-| Diagnostics FC 0x08 sub-func 0x0004 (Force Listen Only) | Single-packet near-zero-FP signal | **T0814** | Denial of Service | IcsInhibitResponseFunction |
-| Diagnostics FC 0x08 sub-func 0x0001 (Restart Communications) | Single-packet near-zero-FP signal | **T0814** | Denial of Service | IcsInhibitResponseFunction |
-| Recon FCs: 0x11 Report Server ID or 0x2B/0x0E Read Device ID | Reconnaissance in steady-state SCADA environment | **T0846** | Remote System Discovery | IcsDiscovery |
+Volume control is via **burst aggregation** (one T0806+T0855 finding per window overflow),
+not by tag-dropping.
+
+**Per-PDU emission table (v2 — Decision 13):**
+
+| PDU type | `mitre_techniques` on per-PDU finding | Notes |
+|----------|---------------------------------------|-------|
+| Holding-register write (FC 0x06, 0x10, 0x16) — T0831 not yet fired | `["T0855", "T0836"]` | First write in window, or after T0831 window reset |
+| Holding-register write (FC 0x06, 0x10, 0x16) — T0831 window fires (2nd+ write in 5s) | `["T0855", "T0836", "T0831"]` | T0831 co-tagged once per window overflow; `t0831_burst_emitted` guards |
+| Coil/output write (FC 0x05, 0x0F) | `["T0855", "T0835"]` | T0831 inapplicable to coil writes |
+| Write FC not in above subsets (FC 0x15, 0x16, 0x17 where not register-write) | `["T0855"]` | Unauthorized command only |
+| Write burst exceeds burst threshold (1-second window) | Separate finding: `["T0806", "T0855"]` | Once per burst-window overflow; `window_burst_emitted` guard |
+| Write burst exceeds sustained threshold (≥2-second window) | Separate finding: `["T0806", "T0855"]` | Once per sustained-window overflow; `sustained_burst_emitted` guard; evidence note distinguishes "Sustained write rate exceeded: N writes over E seconds" |
+| Diagnostics FC 0x08 sub-func 0x0004 (Force Listen Only) | `["T0814"]` | Single-packet near-zero-FP signal |
+| Diagnostics FC 0x08 sub-func 0x0001 (Restart Communications) | `["T0814"]` | Single-packet near-zero-FP signal |
+| Recon FCs: 0x11 (Report Server ID) or 0x2B/0x0E (Read Device ID) | `["T0888"]` | T0888 Remote System Information Discovery (TA0102); replaces T0846 per Decision 12 |
 
 **Diagnostic sub-function parsing**: when `fc == 0x08` and the PDU has at least 2 more data
 bytes, read `sub_func = u16::from_be_bytes([data[8], data[9]])`. Sub-functions 0x0004 and
@@ -329,39 +398,23 @@ bytes, read `sub_func = u16::from_be_bytes([data[8], data[9]])`. Sub-functions 0
 **`ThreatCategory` usage**: no new `ThreatCategory` variant is required for v1.
 - T0855, T0836, T0806, T0835, T0831 → `ThreatCategory::Execution`
 - T0814 (DoS) → `ThreatCategory::Anomaly`
-- T0846 (recon) → `ThreatCategory::Anomaly`
+- T0888 (recon) → `ThreatCategory::Anomaly`
 - Exception burst → `ThreatCategory::Anomaly`
 - Unknown FC / Clear Counters → `ThreatCategory::Anomaly`
 
 The `#[non_exhaustive]` attribute on `ThreatCategory` ensures future ICS-specific variants
 can be added without breaking existing match arms.
 
-**Per-PDU Multi-Technique Co-Emission Policy (Decision 7 — v1 detection policy):**
-
-A write-class PDU emits findings using a priority/selection rule to bound amplification:
-
-1. **T0836 vs T0835 priority:** T0836 (holding-register writes: FC 0x06/0x10/0x16) takes
-   priority. When T0836 fires, T0835 does NOT fire for the same PDU. T0835 fires ONLY
-   for coil-only writes (FC 0x05, 0x0F) where T0836 does not apply.
-
-2. **T0855 (per-write):** always emitted once per write-class PDU, independent of T0836/T0835.
-
-3. **T0806 + burst T0855:** emitted at most ONCE per 1-second window overflow (burst event),
-   not per write PDU within the burst. Guards: `window_burst_emitted` flag.
-
-4. **T0831:** emitted at most ONCE per 5-second window overflow per flow. Guard:
-   `t0831_burst_emitted` flag.
-
-**Maximum findings for a single write PDU (worst case — triggers both burst events):**
+**Maximum findings for a single write PDU (worst case — all events co-occur):**
 
 | Scenario | Findings emitted | Count |
 |----------|------------------|-------|
-| Holding-register write (FC=0x06) that tips T0806 threshold AND completes T0831 window | T0836 + T0855 (per-write) + T0806 + T0855 (burst companion) + T0831 | 5 |
-| Holding-register write (FC=0x06), mid-burst (both burst flags already set) | T0836 + T0855 | 2 |
-| Coil write (FC=0x05) that tips T0806 threshold | T0835 + T0855 (per-write) + T0806 + T0855 (burst companion) | 4 |
+| Register write (FC=0x06) tipping T0806 burst threshold AND T0831 fires | Per-PDU: `["T0855","T0836","T0831"]`; Burst: `["T0806","T0855"]` | 2 findings (vs 5 in v1.0) |
+| Register write (FC=0x06), mid-burst (burst flag already set) | Per-PDU: `["T0855","T0836"]` | 1 finding (vs 2 in v1.0) |
+| Coil write (FC=0x05) tipping T0806 burst threshold | Per-PDU: `["T0855","T0835"]`; Burst: `["T0806","T0855"]` | 2 findings (vs 4 in v1.0) |
 
-This policy prevents a write flood from producing N × 3 or N × 4 findings per PDU and
-exhausting MAX_FINDINGS. It is a deliberate v1 detection policy scoping decision.
+This is strictly fewer findings per PDU than v1.0, while preserving full technique attribution.
+The `MAX_FINDINGS` cap risk is further reduced compared to the v1.0 priority/suppression model.
 
 ### 2.7 on_data and on_flow_close Implementation Contract
 
@@ -711,39 +764,45 @@ public version added).
 the `technique_info` return tuple `(name, tactic, matrix)`. This would require updating all
 callers of `technique_info`. The namespace-rule approach adds zero call-site churn.
 
-### 4.2 New technique_info Arms — T0836, T0814, T0806, T0835, T0831
+### 4.2 New technique_info Arms — T0836, T0814, T0806, T0835, T0831, T0888
 
 The following arms must be added to `technique_info` in `src/mitre.rs`. They follow the
-existing ICS arm style (line 143–152):
+existing ICS arm style (line 143–152). Per Decision 12, T0888 is the new recon-FC emitter;
+T0846 is retained as a seeded (non-emitted) arm.
 
 ```rust
 // ICS — existing arms (no change):
-"T0846" => ("Remote System Discovery",   MitreTactic::Discovery),
-"T0855" => ("Unauthorized Command Message", MitreTactic::IcsImpairProcessControl),
-"T0856" => ("Spoof Reporting Message",   MitreTactic::IcsImpairProcessControl),
-"T0885" => ("Commonly Used Port",        MitreTactic::CommandAndControl),
+"T0846" => ("Remote System Discovery",             MitreTactic::Discovery),     // KEPT seeded; NOT emitted by Modbus (Decision 12)
+"T0855" => ("Unauthorized Command Message",        MitreTactic::IcsImpairProcessControl),
+"T0856" => ("Spoof Reporting Message",             MitreTactic::IcsImpairProcessControl),
+"T0885" => ("Commonly Used Port",                  MitreTactic::CommandAndControl),
 
-// ICS — new arms for Modbus feature (ADR-005); 5 new seeded + T0846 now emitted:
-"T0836" => ("Modify Parameter",          MitreTactic::IcsImpairProcessControl),
-"T0814" => ("Denial of Service",         MitreTactic::IcsInhibitResponseFunction),
-"T0806" => ("Brute Force I/O",           MitreTactic::IcsImpairProcessControl),
-"T0835" => ("Manipulate I/O Image",      MitreTactic::IcsImpairProcessControl),
-"T0831" => ("Manipulation of Control",   MitreTactic::IcsImpairProcessControl),
-// T0846 arm above covers recon findings from BC-2.14.020 (already seeded, now emitted).
+// ICS — new arms for Modbus feature (ADR-005 + ADR-006 Decision 12); 6 new seeded:
+"T0836" => ("Modify Parameter",                    MitreTactic::IcsImpairProcessControl), // NEW seeded + emitted
+"T0814" => ("Denial of Service",                   MitreTactic::IcsInhibitResponseFunction), // NEW seeded + emitted
+"T0806" => ("Brute Force I/O",                     MitreTactic::IcsImpairProcessControl), // NEW seeded + emitted
+"T0835" => ("Manipulate I/O Image",                MitreTactic::IcsImpairProcessControl), // NEW seeded + emitted
+"T0831" => ("Manipulation of Control",             MitreTactic::IcsImpairProcessControl), // NEW seeded + emitted
+"T0888" => ("Remote System Information Discovery", MitreTactic::Discovery),     // NEW seeded + emitted (Decision 12; replaces T0846 as Modbus recon emitter)
 ```
 
 ### 4.3 VP-007 Atomic Update Set
 
-Every change to `technique_info` requires the following five constants/arrays to be updated
+Every change to `technique_info` requires the following constants/arrays to be updated
 in the SAME commit (enforced by `vp007_catalog_drift_guard`):
 
-| Constant / Array | Current value | New value after Modbus feature |
+| Constant / Array | Pre-F2 value | New value after Modbus feature |
 |-----------------|--------------|-------------------------------|
-| `SEEDED_TECHNIQUE_IDS` | 15 entries (T1027..T0885) | 20 entries — add T0836, T0814, T0806, T0835, T0831 (T0846 already seeded) |
-| `SEEDED_TECHNIQUE_ID_COUNT` | `15` | `20` |
+| `SEEDED_TECHNIQUE_IDS` | 15 entries (T1027..T0885) | **21 entries** — add T0836, T0814, T0806, T0835, T0831 (5 new) + T0888 (1 new recon emitter) |
+| `SEEDED_TECHNIQUE_ID_COUNT` | `15` | **`21`** (11 Enterprise + 10 ICS: prior 4 + 6 new including T0888) |
 | `EMITTED_IDS` in `kani_proofs` | 6 Enterprise IDs | 6 Enterprise IDs + 7 ICS IDs = **13 total** |
 
-**`EMITTED_IDS` after update** (all IDs that appear in `mitre_technique: Some(...)` calls
+Count path: pre-F2 SEEDED = 15 (11 Enterprise + 4 ICS). F2 adds 6 ICS techniques:
+T0836, T0814, T0806, T0835, T0831, T0888 → post-F2 SEEDED = **15 + 6 = 21**.
+(T0846 was already seeded and remains seeded; T0888 is newly seeded and emitted;
+T0846 is NOT emitted by Modbus — it was misassigned in v1.0 and corrected by Decision 12.)
+
+**`EMITTED_IDS` after update** (all IDs that appear in `mitre_techniques: vec![...]` calls
 across `src/`, after Modbus is implemented):
 
 ```rust
@@ -755,39 +814,43 @@ const EMITTED_IDS: &[&str] = &[
     "T1083",      // HTTP: path traversal
     "T1499.002",  // HTTP: header flood
     "T1505.003",  // HTTP: web shell
-    // ICS — 7 new (Modbus analyzer, ADR-005):
+    // ICS — 7 new (Modbus analyzer, ADR-005 + ADR-006 Decision 12):
     "T0855",      // Modbus: write-class FC / unauthorized command + burst companion
     "T0836",      // Modbus: 0x06/0x10/0x16 parameter writes (holding registers)
     "T0814",      // Modbus: 0x08 Force Listen Only / Restart Comms
-    "T0806",      // Modbus: write burst rate exceeded (1-second window)
+    "T0806",      // Modbus: write burst or sustained rate exceeded
     "T0835",      // Modbus: I/O image manipulation writes (coil-only)
-    "T0831",      // Modbus: coordinated write sequence (5-second window)
-    "T0846",      // Modbus: recon FCs (0x11 Report Server ID, 0x2B/0x0E Read Device ID)
+    "T0831",      // Modbus: coordinated write sequence (5-second window; co-tagged inline)
+    "T0888",      // Modbus: recon FCs (0x11 Report Server ID, 0x2B/0x0E Read Device ID) — Decision 12
 ];
 // Total: 6 Enterprise + 7 ICS = 13
+// NOTE: T0846 is SEEDED but NOT in EMITTED_IDS (not emitted by Modbus — see Decision 12)
 ```
 
-**Note on T0855 and T0846 pre-existing gaps**: T0855 and T0846 are both seeded in
-`SEEDED_TECHNIQUE_IDS` but are NOT currently in `EMITTED_IDS` (confirmed at `mitre.rs`
-lines 191–198). Both gaps are fixed in the same Modbus feature commit: T0855 is added because
-the Modbus analyzer emits it; T0846 is added because the Modbus analyzer emits it for recon
-FCs (0x11 / 0x2B/0x0E) per BC-2.14.020 (post-decision-8 fix). This keeps VP-007
-sub-property B (emitter half) sound.
+**Note on T0855 and T0888 pre-existing gaps**: T0855 was seeded but NOT in `EMITTED_IDS`
+(confirmed at `mitre.rs` lines 191–198). T0888 was NOT previously seeded. Both gaps are
+fixed in the same Modbus feature commit: T0855 is added because the Modbus analyzer emits
+it on every write-class PDU; T0888 is added (newly seeded and emitted) for recon FCs
+(0x11 / 0x2B/0x0E). T0846 remains seeded but is NOT added to EMITTED_IDS — it was the
+prior recon emitter (Decision 8, v1.0) and is now superseded by T0888 (Decision 12).
 
 **Updated `SEEDED_TECHNIQUE_IDS`**:
 ```rust
+#[cfg(any(kani, test))]
 const SEEDED_TECHNIQUE_IDS: &[&str] = &[
     // Enterprise (11, unchanged)
     "T1027", "T1036", "T1040", "T1046", "T1071",
     "T1071.001", "T1071.004", "T1083", "T1499.002", "T1505.003", "T1573",
-    // ICS (9 total — was 4, add 5 new)
-    "T0846", "T0855", "T0856", "T0885",        // existing
-    "T0836", "T0814", "T0806", "T0835", "T0831", // new
+    // ICS (10 total — was 4, add 6 new)
+    "T0846",                                   // existing seeded, NOT emitted by Modbus
+    "T0855", "T0856", "T0885",                 // existing seeded
+    "T0836", "T0814", "T0806", "T0835", "T0831", // new seeded (5)
+    "T0888",                                   // new seeded (1, Decision 12; replaces T0846 as emitter)
 ];
-// Total: 11 + 9 = 20
+// Total: 11 + 10 = 21
 ```
 
-**`SEEDED_TECHNIQUE_ID_COUNT`**: change from `15` to `20`.
+**`SEEDED_TECHNIQUE_ID_COUNT`**: change from `15` to **`21`**.
 
 ### 4.4 all_tactics_in_report_order Impact
 
@@ -802,19 +865,27 @@ will automatically include them as Modbus findings are emitted.
 
 ### 5.1 New CLI Flags
 
-**`src/cli.rs`** — additions to `Commands::Analyze` variant:
+**`src/cli.rs`** — additions to `Commands::Analyze` variant (Decision 11 — dual-window):
 
 ```rust
 /// Enable Modbus TCP protocol analyzer (TCP port 502).
 #[arg(long)]
 modbus: bool,
 
-/// Per-flow write-burst rate threshold (write FCs per second).
-/// Fires T0806/T0855 finding when sustained write rate exceeds this value.
-/// Default: 10. CLI-configurable per approved F2 scope.
+/// Per-flow write-burst threshold: max write FCs in any single 1-second window per flow.
+/// Fires T0806+T0855 burst finding when exceeded. Must be >= 1. Default: 20.
+#[arg(long, default_value_t = 20)]
+modbus_write_burst_threshold: u32,
+
+/// Per-flow write-sustained threshold: max average write FCs per second over a >=2-second
+/// window per flow. Fires T0806+T0855 sustained finding when exceeded. Must be >= 1.
+/// Default: 10.
 #[arg(long, default_value_t = 10)]
-modbus_write_threshold: u32,
+modbus_write_sustained_threshold: u32,
 ```
+
+Note: `--modbus-write-threshold` from v1.0 is **REMOVED** (Decision 11). Both new flags
+have independent validation: reject 0 with an appropriate error message.
 
 The `--all` flag expansion in `run_analyze` must include `modbus`:
 ```rust
@@ -825,8 +896,9 @@ let enable_modbus = *modbus || *all;
 
 ```rust
 // Step 1: Construct ModbusAnalyzer (mirrors HttpAnalyzer / TlsAnalyzer construction).
+// Decision 11: two thresholds replace the single write_threshold from v1.0.
 let modbus_analyzer = if enable_modbus && !skip_reassembly {
-    Some(ModbusAnalyzer::new(modbus_write_threshold))
+    Some(ModbusAnalyzer::new(modbus_write_burst_threshold, modbus_write_sustained_threshold))
 } else {
     None
 };
@@ -1024,20 +1096,21 @@ prior §11 draft. Product-owner must update BC-INDEX to match these titles.
 
 ### Group D — Finding Emission: Write-Class Events (3 BCs)
 
-**Priority/selection rule applies (Decision 7): T0836 > T0835 for same PDU; T0855 always fires.**
+**Multi-tag co-emission model (Decision 13 / ADR-006): one finding per write-class PDU
+carrying the UNION of applicable mitre_techniques. No priority/suppression.**
 
 | BC-ID | H1 Title (Authoritative) | Notes |
 |-------|--------------------------|-------|
-| BC-2.14.013 | Write-Class FC in Request Direction Emits T0855 (Unauthorized Command Message) Finding | Always fires for any write-class FC |
-| BC-2.14.014 | Write FC 0x06/0x10/0x16 in Request Direction Emits T0836 (Modify Parameter) Finding | T0836 takes priority; T0835 NOT emitted for same PDU |
-| BC-2.14.015 | Write FC to Coil Output Only ({0x05, 0x0F}) Emits T0835 (Manipulate I/O Image) Finding | T0835 fires only for coil-only FCs {0x05, 0x0F}; suppressed for register FCs {0x06, 0x10, 0x16} where T0836 takes priority |
+| BC-2.14.013 | Write-Class FC in Request Direction Emits Per-PDU Finding with T0855 Co-Tagged | T0855 is always included in the mitre_techniques vec of every write-class PDU finding; not a standalone separate Finding |
+| BC-2.14.014 | Write FC 0x06/0x10/0x16 in Request Direction Emits Per-PDU Finding with ["T0855","T0836"] | Single finding per register-write PDU co-tagging both techniques; coil FCs unaffected (FC-subset exclusive, not suppression) |
+| BC-2.14.015 | Write FC to Coil Output Only ({0x05, 0x0F}) Emits Per-PDU Finding with ["T0855","T0835"] | Single finding per coil-write PDU; coil writes never emit T0836 (different FC subset, not priority suppression) |
 
 ### Group E — Finding Emission: Coordinated Write and Burst Detection (2 BCs)
 
 | BC-ID | H1 Title (Authoritative) | Notes |
 |-------|--------------------------|-------|
-| BC-2.14.016 | Coordinated Write Sequence to Holding Registers Within 5-Second Window Emits T0831 Manipulation of Control Finding | FC subset {0x06, 0x10, 0x16}; `T0831_WINDOW_SECS = 5`; once per window |
-| BC-2.14.017 | Write-Rate Burst Exceeding --modbus-write-threshold Emits T0806 Brute Force I/O and T0855 Findings | 1-second window; `window_burst_emitted` guard; T0806 + burst-T0855 companion |
+| BC-2.14.016 | Coordinated Write Sequence to Holding Registers Within 5-Second Window Tags the Per-PDU Finding with T0831 | FC subset {0x06, 0x10, 0x16}; `T0831_WINDOW_SECS = 5`; T0831 co-tagged inline on per-PDU finding as `["T0855","T0836","T0831"]`; once per window overflow (Decision 13 inline co-tag model) |
+| BC-2.14.017 | Write-Rate Exceeding Either Burst or Sustained Threshold Emits T0806 Brute Force I/O and T0855 Findings | Dual-window (1s burst + ≥2s sustained); `window_burst_emitted` and `sustained_burst_emitted` guards; each fires `["T0806","T0855"]` at most once per respective window (Decision 11) |
 
 ### Group F — Finding Emission: Diagnostic/DoS and Anomaly (3 BCs)
 
@@ -1045,7 +1118,7 @@ prior §11 draft. Product-owner must update BC-INDEX to match these titles.
 |-------|--------------------------|-------|
 | BC-2.14.018 | Diagnostics FC 0x08 Sub-Function 0x0004 or 0x0001 Emits T0814 Denial of Service Finding | Both sub-funcs in ONE BC; per-PDU, near-zero-FP |
 | BC-2.14.019 | Exception Response Anomaly — Burst of Exception Codes Emits Anomaly Finding for Recon/Scanning | 10s window per exception code; `exception_window_*` fields |
-| BC-2.14.020 | Unusual or Unknown Function Code Observed Emits Anomaly Finding | Unknown-FC path: no MITRE; Recon-FC path (0x11/0x2B/0x0E): T0846 (Decision 8) |
+| BC-2.14.020 | Recon or Unknown Function Code Observed Emits Finding | Unknown-FC path: no MITRE; Recon-FC path (0x11/0x2B/0x0E): `["T0888"]` Remote System Information Discovery (Decision 12; T0846 removed) |
 
 ### Group G — Summary and Statistics (2 BCs)
 
@@ -1059,7 +1132,7 @@ prior §11 draft. Product-owner must update BC-INDEX to match these titles.
 | BC-ID | H1 Title (Authoritative) | Notes |
 |-------|--------------------------|-------|
 | BC-2.14.023 | --modbus CLI Flag Enables ModbusAnalyzer; --all Includes Modbus; Default-Off; Requires Stream Reassembly | |
-| BC-2.14.024 | --modbus-write-threshold Configures Per-Flow Write-Burst Rate Threshold Consumed by Burst Detector | Single 1s-window threshold; default 10 (Decision 5) |
+| BC-2.14.024 | --modbus-write-burst-threshold and --modbus-write-sustained-threshold Configure Dual-Window Write Detection | --modbus-write-burst-threshold default 20 (1s burst); --modbus-write-sustained-threshold default 10 (≥2s sustained); both must be ≥1; replaces single --modbus-write-threshold (Decision 11) |
 | BC-2.14.025 | StreamDispatcher Classifies Port-502 Flows to DispatchTarget::Modbus as Rule 5 (After Content and TLS/HTTP Port Rules) | VP-004 extension |
 
 **Final SS-14 BC count: 25** (BC-2.14.001 through BC-2.14.025, all fully written).
@@ -1084,14 +1157,22 @@ registers or setpoint+alarm correlation), accepted as the v1 implementation per 
 - `T0831_WINDOW_SECS: u32 = 5` — fixed; not CLI-configurable in v1.
 - FC subset: `{0x06, 0x10, 0x16}` — same as T0836 (holding registers), NOT coil writes.
 
+**Window-duration arithmetic:** Use `now_ts.wrapping_sub(t0831_window_start_ts)` for the
+5-second window duration check, consistent with the Timestamp Wrap Policy defined in §2.3.
+The same `wrapping_sub` mandate applies to the per-exception-code 10-second windows
+(`now_ts.wrapping_sub(exception_window_start_ts[code])`).
+
 **State fields** (on `ModbusFlowState` — see §2.3 for complete list):
 - `t0831_window_start_ts: u32` — start of current 5s window.
 - `t0831_window_write_count: u32` — holding-register write count in window.
 - `t0831_burst_emitted: bool` — emission guard; reset on window expiry.
 
-**Emission policy:** T0831 fires ONCE per window overflow (not once per write). Subsequent
-holding-register writes within the same window do not generate additional T0831 findings.
-T0831 co-occurs with T0836 (and optionally T0855) per the per-PDU emission policy (§2.6).
+**Emission policy (Decision 13 — inline co-tag model):** T0831 is co-tagged ONCE per window
+overflow on the triggering per-PDU finding. The 2nd holding-register write in the 5-second
+window produces ONE finding with `mitre_techniques: vec!["T0855", "T0836", "T0831"]`.
+Subsequent writes in the same window (after `t0831_burst_emitted = true`) emit the normal
+`["T0855", "T0836"]` per-PDU finding without the T0831 tag. There is NO separate standalone
+T0831 Finding object — T0831 attribution is carried inline on the per-PDU finding.
 
 BC-2.14.016 is fully written. No deferral to v1.1 is required.
 
@@ -1105,15 +1186,17 @@ For implementers cross-referencing F3 stories to this delta:
 |------|------|----------|-------|
 | `MAX_PENDING_TRANSACTIONS` | `const usize` | `src/analyzer/modbus.rs` | 256 |
 | `MAX_FINDINGS` | `const usize` | `src/analyzer/modbus.rs` (local import or re-use from reassembly) | 10_000 |
-| `WRITE_RATE_WINDOW_SECS` | `const u32` | `src/analyzer/modbus.rs` | 1 |
-| `DEFAULT_MODBUS_WRITE_THRESHOLD` | `const u32` | `src/analyzer/modbus.rs` or `src/cli.rs` | 10 |
+| `WRITE_BURST_WINDOW_SECS` | `const u32` | `src/analyzer/modbus.rs` | 1 (replaces WRITE_RATE_WINDOW_SECS from v1.0 — Decision 11) |
+| `DEFAULT_WRITE_BURST_THRESHOLD` | `const u32` | `src/analyzer/modbus.rs` or `src/cli.rs` | 20 (replaces DEFAULT_MODBUS_WRITE_THRESHOLD=10 from v1.0 — Decision 11) |
+| `WRITE_SUSTAINED_WINDOW_SECS` | `const u32` | `src/analyzer/modbus.rs` | 2 (minimum sustained window duration; NEW — Decision 11) |
+| `DEFAULT_WRITE_SUSTAINED_THRESHOLD` | `const u32` | `src/analyzer/modbus.rs` or `src/cli.rs` | 10 (NEW — Decision 11) |
 | `MbapHeader` | `struct` | `src/analyzer/modbus.rs` | fields: transaction_id, protocol_id, length, unit_id, function_code |
 | `FunctionCodeClass` | `enum` | `src/analyzer/modbus.rs` | Read, Write, Diagnostic, Exception, Unknown |
-| `ModbusAnalyzer` | `struct` (pub) | `src/analyzer/modbus.rs` | flows, write_threshold, fn_code_counts, total_write_count, total_exception_count, total_pdu_count, all_findings, parse_errors, dropped_findings, total_flows_analyzed, **duplicate_inflight_txn** (internal diagnostic — NOT a summarize() key; see BC-2.14.009 Invariant 6) |
-| `ModbusFlowState` | `struct` (private) | `src/analyzer/modbus.rs` | pending, write_count, exception_count, pdu_count, last_ts, window_write_count, window_start_ts, window_burst_emitted, t0831_window_start_ts, t0831_window_write_count, t0831_burst_emitted, exception_window_counts, exception_window_start_ts, exception_burst_emitted, is_non_modbus |
+| `ModbusAnalyzer` | `struct` (pub) | `src/analyzer/modbus.rs` | flows, write_burst_threshold, write_sustained_threshold, fn_code_counts, total_write_count, total_exception_count, total_pdu_count, all_findings, parse_errors, dropped_findings, total_flows_analyzed, **duplicate_inflight_txn** (internal diagnostic — NOT a summarize() key; see BC-2.14.009 Invariant 6) |
+| `ModbusFlowState` | `struct` (private) | `src/analyzer/modbus.rs` | pending, write_count, exception_count, pdu_count, last_ts, window_write_count, window_start_ts, window_burst_emitted, **sustained_window_start_ts, sustained_window_write_count, sustained_burst_emitted** (Decision 11 — NEW), t0831_window_start_ts, t0831_window_write_count, t0831_burst_emitted, exception_window_counts, exception_window_start_ts, exception_burst_emitted, is_non_modbus |
 | `MitreMatrix` | `enum` | `src/mitre.rs` | Enterprise, Ics |
 | `technique_matrix` | `pub fn` | `src/mitre.rs` | id -> Option<MitreMatrix> |
-| `SEEDED_TECHNIQUE_ID_COUNT` | `const usize` | `src/mitre.rs` | 15 → 20 (11 Enterprise + 9 ICS) |
-| `SEEDED_TECHNIQUE_IDS` | `const &[&str]` | `src/mitre.rs` | 15 → 20 entries |
-| `EMITTED_IDS` | `const &[&str]` (kani_proofs) | `src/mitre.rs` | 6 → 13 entries |
+| `SEEDED_TECHNIQUE_ID_COUNT` | `const usize` | `src/mitre.rs` | 15 → **21** (11 Enterprise + 10 ICS; Decision 12 adds T0888) |
+| `SEEDED_TECHNIQUE_IDS` | `const &[&str]` | `src/mitre.rs` | 15 → **21** entries |
+| `EMITTED_IDS` | `const &[&str]` (kani_proofs) | `src/mitre.rs` | 6 → **13** entries (T0888 replaces T0846 as Modbus recon emitter; grep pattern: `mitre_techniques: vec!`) |
 | `DispatchTarget::Modbus` | enum variant | `src/dispatcher.rs` | new fourth variant |
