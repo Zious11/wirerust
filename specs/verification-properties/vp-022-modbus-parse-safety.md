@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.0"
+version: "1.1"
 status: draft
 producer: formal-verifier
 timestamp: 2026-06-09T00:00:00Z
@@ -29,6 +29,7 @@ introduced: v0.3.0-feature-007
 modified:
   - "v1.0: Authored in Phase-F2 spec evolution for issue #7 (Modbus TCP analyzer). Pre-registered by architect in VP-INDEX/verification-architecture/verification-coverage-matrix (Kani, P1, total→22, kani→9). Three Kani sub-properties (A parse safety, B classify_fc totality, C exception biconditional). status=draft; harnesses authored in F4 TDD."
   - "v1.0 (F2 fix, consistency BLOCKING-1 / adversary F-MED-006): re-anchored sub-properties to the architect's canonical BC map (005=classify_fc totality, 006=exception detection, 007=Write-class, 008=Diagnostic-class). Sub-property B anchor corrected to BC-2.14.005/007/008; added explicit Sub-property→BC anchor table. Body unchanged in proof content; verification_lock stays false (draft)."
+  - "v1.1 (F4/STORY-102 adversarial finding reconciliation): length upper bound corrected from 253 to 254 throughout (Sub-property A gate description, Source Contract BC-2.14.004 label, Kani harness assertion, and summary table) to match BC-2.14.004 authoritative value and the implemented is_valid_modbus_adu gate. Earlier V1 stale value of 253 was a pre-F2-fix residual. No structural change to proof logic."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -61,7 +62,7 @@ For any byte slice `data: &[u8]` of bounded length:
 3. The function NEVER panics for any input (no out-of-bounds indexing). The `data.len() < 8`
    early return guarantees every index `data[0..8]` is in bounds on the `Some` path.
 4. The three-point validity gate `is_valid_modbus_adu(&h)` returns `true` if and only if
-   `h.protocol_id == 0x0000 && h.length >= 2 && h.length <= 253`. It never panics; it reads
+   `h.protocol_id == 0x0000 && h.length >= 2 && h.length <= 254`. It never panics; it reads
    only struct fields. (BC-2.14.003 = Protocol ID arm; BC-2.14.004 = Length arm.)
 
 **Sub-property B — `classify_fc` totality + read/write/diagnostic membership**
@@ -113,7 +114,7 @@ set and the VP-INDEX VP-022 `Verified BCs` row (reconciled in the same F2 fix bu
 - **Postcondition:** `parse_mbap_header` never panics; `None` iff `len < 8`; `Some(well-formed)` otherwise
 - **Related BC:** BC-2.14.002 — MBAP header rejected for ADU shorter than 8 bytes (truncation safety)
 - **Related BC:** BC-2.14.003 — MBAP ADU rejected when Protocol ID is not 0x0000 (gate arm 1)
-- **Related BC:** BC-2.14.004 — MBAP ADU rejected when Length is outside [2, 253] (gate arm 2)
+- **Related BC:** BC-2.14.004 — MBAP ADU rejected when Length is outside [2, 254] (gate arm 2)
 - **Related BC:** BC-2.14.005 — `classify_fc` is total over all 256 FC values (sub-property B)
 - **Related BC:** BC-2.14.006 — Exception response detection: `Exception` iff `fc >= 0x80` (sub-property C)
 - **Related BC:** BC-2.14.007 — Write-class FC classification (Write-set membership, sub-property B)
@@ -197,7 +198,7 @@ mod kani_proofs {
         };
         let ok = is_valid_modbus_adu(&h);
         // Gate is true IFF all three points hold (BC-2.14.003 + BC-2.14.004).
-        assert!(ok == (h.protocol_id == 0x0000 && h.length >= 2 && h.length <= 253));
+        assert!(ok == (h.protocol_id == 0x0000 && h.length >= 2 && h.length <= 254));
     }
 
     // ---- Sub-property B: classify_fc totality (BC-2.14.005/007/008) ----
@@ -256,7 +257,7 @@ mod kani_proofs {
 | Sub-property | Harness | Symbolic input | Bound / unwind | Assertions |
 |--------------|---------|----------------|----------------|------------|
 | A (parse) | `verify_parse_mbap_header_safety` | `[u8; 12]` + symbolic `len <= 12`, sliced `&buf[..len]` | `kani::assume(len <= 12)`; no loop ⇒ no `#[kani::unwind]` | no panic; `None` iff `len<8`; BE field decode on `Some` |
-| A (gate) | `verify_is_valid_modbus_adu_gate` | symbolic `MbapHeader` fields | none (straight-line) | gate true iff `proto==0 && 2<=len<=253` |
+| A (gate) | `verify_is_valid_modbus_adu_gate` | symbolic `MbapHeader` fields | none (straight-line) | gate true iff `proto==0 && 2<=len<=254` |
 | B (totality) | `verify_classify_fc_total` | `fc: u8 = kani::any()` (256 values) | none (straight-line `match`) | no panic; Read/Write/Diagnostic set membership; returns a defined variant |
 | C (exception) | `verify_classify_fc_exception_iff_high_bit` | `fc: u8 = kani::any()` (256 values) | none (straight-line) | `Exception` iff `fc>=0x80`; `original_fc == fc & 0x7F` |
 

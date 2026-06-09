@@ -56,7 +56,7 @@ parsing the request PDU (not deferred to `on_flow_close`). Targets v0.3.0.
 ## Preconditions
 
 1. The MBAP ADU has passed the three-point validity gate:
-   `protocol_id == 0x0000 AND 2 <= length <= 253 AND total ADU bytes available`.
+   `protocol_id == 0x0000 AND 2 <= length <= 254 AND total ADU bytes available`.
 2. The TCP direction parameter passed to `on_data` is `Direction::ClientToServer`.
 3. `classify_fc(function_code)` returns `FunctionCodeClass::Write` — i.e., `function_code`
    is one of: 0x05, 0x06, 0x0F, 0x10, 0x15, 0x16, 0x17.

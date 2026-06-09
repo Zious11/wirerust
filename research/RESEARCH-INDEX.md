@@ -7,3 +7,4 @@
 | 2026-06-09 | general | F2 decomposition & sequencing (breaking Finding type change Vec<String> + Modbus analyzer; refactor-first wave plan, atomic vs parallel-change, TDD) | f2-decomposition-sequencing.md | complete |
 | 2026-06-09 | general | Release sequencing: bundle vs. split the MITRE multi-tag schema break and the Modbus feature (semver, blast radius, OSS precedent) | f2-bundle-vs-split.md | complete |
 | 2026-06-09 | general | F2 multi-tag output schema (multiple MITRE ATT&CK techniques per finding — JSON array vs nested, CSV semicolon-join, empty/absent, ordering) | f2-multitag-schema.md | complete |
+| 2026-06-09 | general | F4-PIN: MITRE ATT&CK for ICS version pin for `mitre_attack_version` (v19.1 confirm; T0888/T0855/T0836/T0835/T0831/T0814/T0806/T0846 validity) | attack-ics-version-pin.md | complete |

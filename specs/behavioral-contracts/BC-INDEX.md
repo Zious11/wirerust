@@ -334,7 +334,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.14.001 | MBAP Header Accepted for Well-Formed 8-Byte-Minimum ADU | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.002 | MBAP Header Rejected for ADU Shorter Than 8 Bytes | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.003 | MBAP Header Rejected When Protocol ID is Not 0x0000 | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.004 | MBAP Header Rejected When Length is Outside [2, 253] | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.004 | MBAP Header Rejected When Length is Outside [2, 254] | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.005 | classify_fc Is Total Over All 256 FC Values (Covers Read, Write, Diagnostic, Exception, and Unknown Classes) | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.006 | Exception Response Detection — FC High Bit Set Identifies Exception and Recovers Original FC | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.007 | Write-Class FC Classification — State-Changing Function Codes Identified as Elevated-Risk | P0 | [WRITTEN] | feature-007-F2 |

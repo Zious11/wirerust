@@ -44,7 +44,7 @@ dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 convergence_trajectory: "P1-MED|P2-MED|P3-HIGH+LOW|P4-MED|P5-ZERO|P6-HIGH+MED|P7-MED+LOW|P8-HIGH|P9-ZERO|P10-MED+MED+LOW|P11-MED+LOW|P12-CLEAN(1/3)|P13-CLEAN(2/3)|P14-CLEAN(3/3)-GATE-SATISFIED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 consistency_audit: CONSISTENT
-input_drift_check: "CLEAN — MATCH=57/STALE=0 (post F3-7 D-036; STORY-091 no-inputs ERROR pre-existing; 6 hashes written: STORY-100/101/102/103/104/105 — new stories)"
+input_drift_check: "CLEAN — MATCH=57/STALE=0 (post STORY-102 convergence D-039; STORY-091 no-inputs ERROR pre-existing; propagation sweep: BC-INDEX/BC-2.14.013/BC-2.14.001 corrected 253->254)"
 ---
 
 # VSDD Pipeline State — wirerust
@@ -75,17 +75,18 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post F3-7 D-036; STORY-091 no-in
 | Feature #7 F4 Wave 1 — E-13 Multi-Tag Migration | **DELIVERED** 2026-06-09 | STORY-100+101 PR #209 -> develop c846b3b; 1189 tests; 9/9 CI; AI review APPROVE; OPEN: mitre_attack_version F4-PIN; D-037 |
 | Release — v0.3.0 | **RELEASED** 2026-06-09 | gitflow-proper: release/0.3.0 → PR #210 → 9ef5af1; 4 binaries; run 27240476896; GitHub Release published; BREAKING: mitre_techniques array (ECS-aligned); F4-PIN resolved ics-attack-19.1; D-038 |
 
-## Session Resume Checkpoint (2026-06-09 — v0.3.0 RELEASED; NEXT = F4 Waves 32-34 Modbus)
+## Session Resume Checkpoint (2026-06-09 — STORY-102 converged + delivering; NEXT = STORY-103)
 
-**POSITION:** wirerust v0.3.0 RELEASED (D-038). Feature #7 Wave 1 (E-13 multi-tag Finding schema migration) shipped. BREAKING: mitre_technique scalar -> mitre_techniques array (ECS-aligned); CSV column rename + semicolon-join; report-envelope mitre_domain=ics-attack + mitre_attack_version=ics-attack-19.1. F4-PIN resolved; ATT&CK v19.1 all 7 ICS IDs valid. main back-merged into develop (9ef5af1, fast-forward, no divergence). NEXT = F4 Waves 32-34 Modbus analyzer (STORY-102 -> STORY-103 -> STORY-104 -> STORY-105) -> v0.4.0.
+**POSITION:** wirerust v0.3.0 RELEASED (D-038). Feature #7 Wave 2 / E-14 Modbus (Wave 32) in progress. STORY-102 (MBAP parse + FC classify + VP-022 Kani) per-story adversarial convergence COMPLETE (D-039): Claude + Gemini cross-model hybrid. Spec off-by-one fixed: VP-022 v1.1 + STORY-102 v1.1 length-gate 253->254 (BC-2.14.004 authoritative); propagation sweep closed 3 additional gaps (BC-INDEX + BC-2.14.013 + BC-2.14.001). STORY-102 implementation green (1224 tests) delivering via PR (pr-manager, parallel). NEXT = STORY-103 (Modbus flow state + transaction correlation), then STORY-104, STORY-105 -> v0.4.0.
 
-**VERIFIED-CLEAN FACTS (at v0.3.0 release):**
+**VERIFIED-CLEAN FACTS (at STORY-102 convergence):**
 - main HEAD `9ef5af1` — v0.3.0 release commit; annotated tag `v0.3.0`
-- develop HEAD `9ef5af1` — fast-forward back-merged from main; no divergence
-- 1189 tests green; clippy clean; fmt clean; 9/9 CI green
+- develop HEAD: STORY-102 PR in flight (pr-manager delivering in parallel; develop will advance on merge)
+- 1224 tests green (was 1189; +35 from STORY-102); clippy+fmt clean
 - 244 BCs / 22 VPs (21 locked + VP-022 draft) / 58 stories / 353 pts
-- Input-hash drift: MATCH=57/STALE=0/ERROR=1 (STORY-091 pre-existing no-inputs; all delivery stories MATCH)
-- Active feature: issue-7-modbus-tcp-analyzer; Wave 31 RELEASED as v0.3.0; Waves 32-34 Modbus PENDING
+- VP-022 v1.1 length-gate corrected 253->254; STORY-102 v1.1 matching; BC-INDEX/BC-2.14.013/BC-2.14.001 propagation gaps closed
+- Input-hash drift: MATCH=57/STALE=0/ERROR=1 (STORY-091 pre-existing no-inputs; STORY-102 hash 6dc856b MATCH post-fix)
+- Active feature: issue-7-modbus-tcp-analyzer; Wave 32 in progress (STORY-102 delivering); Waves 33-34 PENDING
 - GitHub Release: https://github.com/Zious11/wirerust/releases/tag/v0.3.0; 4 binaries; run 27240476896
 
 **CARRY-FORWARD ITEMS (do NOT lose):**
@@ -94,7 +95,7 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post F3-7 D-036; STORY-091 no-in
 - #101 (FP/TP rate characterization): OPEN-DEBT — corpus-dependent; blocks #103
 - #103 (size-symmetry evasion discriminator): DEFERRED — needs labelled corpus
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
-- VP-022 + VP-007(21/13)/016/020/021: F4 verification obligations (Waves 32-34)
+- VP-022 Kani run deferred to F6; VP-007(21/13)/016/020/021: F4 verification obligations (Waves 33-34)
 - ACTION-PIN-001: dtolnay/rust-toolchain @stable/@nightly intentionally exempt from pin gate
 - Drift items: O-07, O-08, F-W25-S088-P6-001
 - RUSTSEC-2026-0097: accepted-transitive; revisit when tls-parser bumps phf→0.12+
@@ -102,7 +103,7 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post F3-7 D-036; STORY-091 no-in
 - PG-5/PG-6: process-gap codification pending cycle-close
 - PROCESS-ARITHMETIC-REVIEW-001: codification pending cycle-close
 
-Prior checkpoint (F4 Wave 1 DELIVERED) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
+Prior checkpoint (v0.3.0 RELEASED) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
 ## Decisions Log
 
@@ -146,6 +147,7 @@ Prior checkpoint (F4 Wave 1 DELIVERED) archived: cycles/v0.1.0-greenfield-spec/s
 | D-036 | Feature #7 F3 story decomposition COMPLETE (2026-06-09). 6 new stories, acyclic graph (STORY-100 -> {101 || 102} -> 103 -> 104 -> 105). E-13 Multi-Tag Finding Schema Migration (v0.3.0, Wave 31): STORY-100 (core type+catalog+analyzers migration, 13pts) + STORY-101 (reporters+ECS envelope add-ons, 8pts). E-14 Modbus Analyzer (v0.4.0, Waves 32-34): STORY-102 (MBAP parse+FC classify+VP-022 Kani, 8pts), STORY-103 (flow state+txn correlation, 8pts), STORY-104 (7 detectors+dual-window+co-emission+summary, 13pts), STORY-105 (dispatcher+CLI+VP-004 oracle, 8pts). Migration-first enforced (STORY-102 depends_on STORY-100). 6 existing stories (069/070/071/078/079/080) noted: tests migrated to multi-tag by STORY-100. STORY-INDEX 52->58 stories / 305->353 pts. Wave schedule + 22 wave-holdout scenarios written. F4-pin flag: mitre_attack_version. Input-hash CLEAN: MATCH=57/STALE=0/ERROR=1 (6 hashes written: STORY-100 270dd80, STORY-101 dccf659, STORY-102 6dc856b, STORY-103 4a0438e, STORY-104 4f1ebad, STORY-105 8955282). NEXT: F3 human gate, then F4 TDD Wave 1 (v0.3.0). | 2026-06-09 | Feature #7 F3 story decomposition — 6 stories, 2 epics, wave schedule, 22 holdout scenarios |
 | D-037 | Feature #7 F4 Wave 1 (E-13 multi-tag Finding migration) DELIVERED. STORY-100+STORY-101 delivered atomically (Rust compiler forces lockstep on the core-type change) via PR #209 -> develop c846b3b. Finding.mitre_technique:Option<String> -> mitre_techniques:Vec<String> (JSON scalar->array + key rename; CSV column rename + semicolon-join; report-envelope mitre_domain/mitre_attack_version); MITRE catalog 15->21 seeded / 6->13 emitted (+T0888 +5 ICS arms + T0855 gap-fix). 1189 tests green (was 1147; +42), clippy+fmt clean, 9/9 CI, AI review APPROVE. Per-story adversarial convergence: Claude (fixed C-1 mitre_tests-migration + I-1 weakened-assertions) + Gemini cross-model (HIGH 'broken build' REFUTED as hallucination — code compiles green; doc nits fixed). Deferred: O-1 (EMITTED_IDS names 7 ICS not-yet-emitted until Modbus STORY-104 -> phase-5); terminal per-ID multi-unknown name resolution -> STORY-104 (BC-2.11.017). OPEN release-blocker: mitre_attack_version F4-PIN (placeholder ics-attack-v15) must be set to authoritative ATT&CK-ICS version before v0.3.0 tag. develop HEAD c846b3b. | 2026-06-09 | Feature #7 F4 Wave 1 multi-tag migration DELIVERED (PR #209, develop c846b3b) |
 | D-038 | Published wirerust v0.3.0 (gitflow-proper) — Feature #7 Wave 1 / E-13 multi-tag Finding schema migration (BREAKING). release/0.3.0 -> PR #210 -> main merge 9ef5af1; annotated tag v0.3.0; release.yml run 27240476896 built+attached 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); GitHub Release live. CHANGELOG [0.3.0] BREAKING: mitre_technique scalar -> mitre_techniques array (ECS-aligned); CSV column rename + semicolon-join; report-envelope mitre_domain=ics-attack + mitre_attack_version=ics-attack-19.1 (F4-PIN resolved: ATT&CK v19.1, all 7 ICS IDs valid, per .factory/research/attack-ics-version-pin.md); MITRE catalog 15->21 seeded / 6->13 emitted (6 ICS staged for Modbus + T0855 gap-fix). 1189 tests green; 9/9 CI. main back-merged into develop (9ef5af1, fast-forward, no divergence). | 2026-06-09 | v0.3.0 release — Feature #7 Wave 1 multi-tag MITRE schema (BREAKING) |
+| D-039 | Feature #7 STORY-102 (Modbus MBAP parse + FC classify) per-story adversarial convergence — Claude (implementation airtight: parse safety no-panic/no-OOB, classify_fc total + correct sets, exception biconditional) + Gemini cross-model (caught Kani harness under-binding Claude missed: verify_classify_fc_total had tautological final assert + did not prove undefined-FC->Unknown; strengthened to full 256-value expected-mapping proof; removed tautological assert in exception harness). Spec off-by-one reconciled: VP-022 v1.1 + STORY-102 v1.1 length-gate 253->254 to match authoritative BC-2.14.004 (max Length = UnitID 1 + PDU 253 = 254; was pre-F2-fix stale value). Propagation sweep: BC-INDEX.md BC-2.14.004 title + BC-2.14.013.md precondition + BC-2.14.001.md EC-008 also corrected 253->254 (3 propagation gaps closed). Implementation green: 1224 tests, clippy+fmt clean; VP-022 Kani run deferred to F6. STORY-102 delivering via PR (pr-manager, parallel). Gemini hybrid again caught formal-harness rigor class (tautological asserts) that Claude pass missed. | 2026-06-09 | Feature #7 STORY-102 per-story adversarial convergence + spec off-by-one fix |
 
 ## Blocking Issues
 

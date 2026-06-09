@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-102
 epic_id: E-14
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-06-09T00:00:00Z
@@ -44,6 +44,8 @@ tdd_mode: strict
 feature_id: issue-007-modbus-analyzer
 github_issue: 7
 # BC status: all 8 BCs authored at v1.0/v2.0 as of 2026-06-09
+modified:
+  - "v1.1 (F4/STORY-102 adversarial finding reconciliation): Length gate upper bound corrected from 253 to 254 in AC-005, AC-004 body, EC-007/EC-008, Task 5, Architecture Compliance table, and BC title row for BC-2.14.004. BC-2.14.004 is authoritative: valid range [2, 254]; Length = 254 is true (valid max); Length = 255 is false (over max). Earlier v1.0 stale value 253 was a pre-F2-fix residual."
 input-hash: "6dc856b"
 ---
 
@@ -62,7 +64,7 @@ input-hash: "6dc856b"
 | BC-2.14.001 | MBAP Header Accepted for Well-Formed 8-Byte-Minimum ADU |
 | BC-2.14.002 | MBAP Header Rejected for ADU Shorter Than 8 Bytes |
 | BC-2.14.003 | MBAP Header Rejected When Protocol ID is Not 0x0000 |
-| BC-2.14.004 | MBAP Header Rejected When Length is Outside [2, 253] |
+| BC-2.14.004 | MBAP Header Rejected When Length is Outside [2, 254] |
 | BC-2.14.005 | classify_fc Is Total Over All 256 FC Values |
 | BC-2.14.006 | Exception Response Detection — FC High Bit Set Identifies Exception and Recovers Original FC |
 | BC-2.14.007 | Write-Class FC Classification — State-Changing Function Codes Identified as Elevated-Risk |
@@ -83,11 +85,11 @@ The caller's ADU-boundary loop advances the offset by `6 + header.length` after 
 - **Test:** `test_adu_offset_advance_is_6_plus_length()` — parse a 260-byte slice where the first ADU has `length=6` (total 12 bytes); assert the next ADU starts at offset 12.
 
 ### AC-004 (traces to BC-2.14.003 — protocol ID gate)
-`is_valid_modbus_adu(header: &MbapHeader) -> bool` returns `false` when `header.protocol_id != 0x0000`. The function is a pure 3-point validity gate: protocol ID check, length lower bound (`length >= 2`), length upper bound (`length <= 253`).
+`is_valid_modbus_adu(header: &MbapHeader) -> bool` returns `false` when `header.protocol_id != 0x0000`. The function is a pure 3-point validity gate: protocol ID check, length lower bound (`length >= 2`), length upper bound (`length <= 254`).
 - **Test:** `test_is_valid_modbus_adu_rejects_non_zero_protocol_id()` — `MbapHeader { protocol_id: 0x0001, length: 6, ... }` → `false`. `MbapHeader { protocol_id: 0x0000, length: 6, ... }` → `true`.
 
-### AC-005 (traces to BC-2.14.004 — length gate: range [2, 253])
-`is_valid_modbus_adu` returns `false` when `header.length < 2` or `header.length > 253`. Length = 0 → `false`. Length = 1 → `false`. Length = 2 → `true`. Length = 253 → `true`. Length = 254 → `false`.
+### AC-005 (traces to BC-2.14.004 — length gate: range [2, 254])
+`is_valid_modbus_adu` returns `false` when `header.length < 2` or `header.length > 254`. Length = 0 → `false`. Length = 1 → `false`. Length = 2 → `true`. Length = 254 → `true` (valid max). Length = 255 → `false` (over max).
 - **Test:** `test_is_valid_modbus_adu_length_boundary_values()` — assert the boundary cases above.
 
 ### AC-006 (traces to BC-2.14.005 — classify_fc is total over all 256 values)
@@ -148,8 +150,8 @@ A Kani harness `verify_classify_fc_no_panic` verifies: for all 256 symbolic `u8`
 | EC-004 | FC = 0x7F (no high bit, undefined) | `classify_fc(0x7F)` returns `Unknown` |
 | EC-005 | FC = 0xFF (all bits set) | `classify_fc(0xFF)` returns `Exception` (high bit set; original FC = 0x7F) |
 | EC-006 | Protocol ID = 0xFFFF (non-Modbus) | `parse_mbap_header` parses it as `Some(MbapHeader { protocol_id: 0xFFFF, ... })`; `is_valid_modbus_adu` returns `false` → `is_non_modbus = true` on the flow |
-| EC-007 | Length = 253 (upper bound) | `is_valid_modbus_adu` returns `true` (253 <= 253); ADU boundary: `6 + 253 = 259` bytes |
-| EC-008 | Length = 254 (above upper bound) | `is_valid_modbus_adu` returns `false` |
+| EC-007 | Length = 254 (upper bound) | `is_valid_modbus_adu` returns `true` (254 <= 254); ADU boundary: `6 + 254 = 260` bytes |
+| EC-008 | Length = 255 (first above upper bound) | `is_valid_modbus_adu` returns `false` |
 | EC-009 | FC = 0x01 (Read Coils — Read class) | `classify_fc(0x01)` returns `Read` |
 | EC-010 | FC = 0x2B sub-function 0x0E (MEI Read Device ID) | Diagnostic class; sub-function dispatch in STORY-104 |
 
@@ -174,7 +176,7 @@ A Kani harness `verify_classify_fc_no_panic` verifies: for all 256 symbolic `u8`
 2. [ ] **Red Gate:** Confirm `cargo build` fails because `src/analyzer/modbus.rs` is missing.
 3. [ ] Create `src/analyzer/modbus.rs`. Define: `MbapHeader` struct (5 fields, all `u16`/`u8`/`u8`/`u8`), `FunctionCodeClass` enum (`Read`, `Write`, `Diagnostic`, `Exception`, `Unknown`).
 4. [ ] Implement `parse_mbap_header(data: &[u8]) -> Option<MbapHeader>`: check `data.len() >= 8`; decode 5 fields big-endian; return `Some` or `None`.
-5. [ ] Implement `is_valid_modbus_adu(header: &MbapHeader) -> bool`: 3-point gate — `protocol_id == 0x0000 && length >= 2 && length <= 253`.
+5. [ ] Implement `is_valid_modbus_adu(header: &MbapHeader) -> bool`: 3-point gate — `protocol_id == 0x0000 && length >= 2 && length <= 254`.
 6. [ ] Implement `classify_fc(fc: u8) -> FunctionCodeClass`: match arm for `>=0x80` → `Exception`; match sets for Write (`{0x05,0x06,0x0F,0x10,0x15,0x16,0x17}`), Diagnostic (`{0x08,0x2B}`), Read (`{0x01,0x02,0x03,0x04,0x07,0x0B,0x0C,0x11,0x14}`); default → `Unknown`. The function MUST be total (no unreachable panic).
 7. [ ] Add `ModbusFlowState` stub (empty struct with `is_non_modbus: bool` field) to anchor the desync-bail contract (AC-013). Full field list in STORY-103.
 8. [ ] Add VP-022 Kani harnesses: `verify_parse_mbap_no_panic` (sub-property A) and `verify_classify_fc_no_panic` (sub-property B), both gated by `#[cfg(kani)]`.
@@ -202,7 +204,7 @@ N/A — first story in E-14 (Modbus analyzer epic). No previous Modbus stories e
 | `parse_mbap_header` does NOT check `protocol_id` or `length` — those belong to `is_valid_modbus_adu` | BC-2.14.001 invariant 4 | AC-012 test; code review |
 | Exception FCs (>= 0x80) are classified BEFORE write/read/diagnostic in `classify_fc` | BC-2.14.006 — high bit takes priority | Code review: match arm order |
 | `src/analyzer/modbus.rs` must NOT import `src/reporter/` | Architecture layer rule (L3 analyzer must not depend on L4 reporters) | Compiler module system |
-| `MbapHeader.length` range [2, 253] is enforced in `is_valid_modbus_adu`, NOT in `parse_mbap_header` | BC-2.14.004; BC-2.14.001 invariant 4 | AC-005 + AC-012 tests |
+| `MbapHeader.length` range [2, 254] is enforced in `is_valid_modbus_adu`, NOT in `parse_mbap_header` | BC-2.14.004; BC-2.14.001 invariant 4 | AC-005 + AC-012 tests |
 
 ## Library & Framework Requirements (MANDATORY)
 

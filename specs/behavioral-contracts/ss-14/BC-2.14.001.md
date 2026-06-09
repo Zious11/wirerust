@@ -87,7 +87,7 @@ Length range) is a separate concern covered by BC-2.14.002 through BC-2.14.004.
 | EC-005 | Protocol ID = 0x0000 (valid Modbus) | `protocol_id = 0` — caller will pass `is_valid_modbus_adu`; this function does not gate |
 | EC-006 | Protocol ID = 0x0001 (non-Modbus) | `protocol_id = 1` — returned as `Some`; caller's `is_valid_modbus_adu` rejects it |
 | EC-007 | Length = 2 (minimum) | `length = 2` — decoded; validity gate is caller responsibility |
-| EC-008 | Length = 253 (maximum) | `length = 253` — decoded; validity gate is caller responsibility |
+| EC-008 | Length = 254 (maximum) | `length = 254` — decoded; validity gate is caller responsibility |
 | EC-009 | Unit ID = 0xFF (broadcast address) | `unit_id = 255` — valid; broadcast address per Modbus spec |
 | EC-010 | Function Code = 0x00 (undefined) | `function_code = 0` — returned; `classify_fc` (BC-2.14.005) will classify as Unknown |
 | EC-011 | All bytes = 0x00 | Returns `Some(MbapHeader { 0, 0, 0, 0, 0 })` — valid parse; validity gate rejects `length=0` separately |
