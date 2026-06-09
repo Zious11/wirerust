@@ -44,16 +44,16 @@ dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 convergence_trajectory: "P1-MED|P2-MED|P3-HIGH+LOW|P4-MED|P5-ZERO|P6-HIGH+MED|P7-MED+LOW|P8-HIGH|P9-ZERO|P10-MED+MED+LOW|P11-MED+LOW|P12-CLEAN(1/3)|P13-CLEAN(2/3)|P14-CLEAN(3/3)-GATE-SATISFIED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 consistency_audit: CONSISTENT
-input_drift_check: "CLEAN — MATCH=57/STALE=0 (post STORY-102 convergence D-039; STORY-091 no-inputs ERROR pre-existing; propagation sweep: BC-INDEX/BC-2.14.013/BC-2.14.001 corrected 253->254)"
+input_drift_check: "CLEAN — MATCH=57/STALE=0 (post STORY-102/104 hash write D-040; STORY-091 no-inputs ERROR pre-existing; STORY-102 d5c8642; STORY-104 56a3714)"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline: V0.3.0_RELEASED (D-038).** Feature #7 Wave 1 (E-13 multi-tag Finding schema migration) RELEASED as v0.3.0. release/0.3.0 -> PR #210 -> main merge 9ef5af1; annotated tag v0.3.0; release.yml run 27240476896 built+attached 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); GitHub Release live. CHANGELOG [0.3.0] BREAKING: mitre_technique scalar -> mitre_techniques array (ECS-aligned); CSV column rename + semicolon-join; report-envelope mitre_domain=ics-attack + mitre_attack_version=ics-attack-19.1. F4-PIN resolved: ATT&CK v19.1, all 7 ICS IDs valid (research: .factory/research/attack-ics-version-pin.md). MITRE catalog 15->21 seeded / 6->13 emitted. 1189 tests green; 9/9 CI. main back-merged into develop (9ef5af1, fast-forward). NEXT: F4 Waves 32-34 Modbus analyzer (STORY-102->103->104->105) -> v0.4.0. Deferred: O-1 EMITTED-naming -> phase-5; terminal multi-ID per-ID name resolution -> STORY-104.
+**Pipeline: V0.3.0_RELEASED (D-038). Feature #7 Wave 2 in progress (D-040).** Wave 1 (E-13 multi-tag) RELEASED as v0.3.0. STORY-102 (Modbus MBAP parse + FC classify + VP-022 Kani) MERGED via PR #211 (develop 26d58bb); 1224 tests. STORY-103 (Modbus flow state + transaction correlation) converged + delivering: ModbusFlowState 18-field struct, pending table keyed (txn_id,unit_id) bounded 256 drop-not-evict, FC-echo response match, exception attribution, duplicate-in-flight return signal; per-story adversarial CONVERGED (Claude + Gemini); 1247 tests green. NEXT: STORY-104 (7 MITRE detectors, dual-window burst+sustained, multi-tag co-emission union, summary). STORY-104 OBLIGATIONS: duplicate_inflight_txn wiring; terminal per-ID multi-unknown name resolution (BC-2.11.017; v0.3.0 deferral); dual-window microsecond math + wrapping_sub. Then STORY-105 -> v0.4.0.
 
-**Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 244 BCs, 22 VPs (21 locked, 1 draft VP-022), 1189 tests green, holdout mean 0.99, adversary convergence 6 PASS / 1 non-blocking CONCERN. develop HEAD 9ef5af1 (v0.3.0 back-merged). Feature #7: v0.3.0 multi-tag RELEASED (Wave 31) -> v0.4.0 Modbus (Waves 32-34).
+**Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 244 BCs, 22 VPs (21 locked, 1 draft VP-022), 1247 tests green (1224 post-STORY-102; +23 STORY-103), holdout mean 0.99, adversary convergence 6 PASS / 1 non-blocking CONCERN. develop HEAD 26d58bb (STORY-102 merged via PR #211). Feature #7: v0.3.0 multi-tag RELEASED (Wave 31); Wave 32 DELIVERED (STORY-102); Wave 33 in delivery (STORY-103); Waves 33-34 PENDING (STORY-104/105).
 
 ## Phase Progress
 
@@ -74,24 +74,27 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post STORY-102 convergence D-039
 | Feature #7 F3 — Incremental Stories | **COMPLETE** 2026-06-09 | 6 new stories STORY-100..105, 58 total / 353 pts; wave schedule + 22 holdout scenarios; D-036 |
 | Feature #7 F4 Wave 1 — E-13 Multi-Tag Migration | **DELIVERED** 2026-06-09 | STORY-100+101 PR #209 -> develop c846b3b; 1189 tests; 9/9 CI; AI review APPROVE; OPEN: mitre_attack_version F4-PIN; D-037 |
 | Release — v0.3.0 | **RELEASED** 2026-06-09 | gitflow-proper: release/0.3.0 → PR #210 → 9ef5af1; 4 binaries; run 27240476896; GitHub Release published; BREAKING: mitre_techniques array (ECS-aligned); F4-PIN resolved ics-attack-19.1; D-038 |
+| Feature #7 F4 Wave 2 — E-14 Modbus Core | **IN DELIVERY** 2026-06-09 | STORY-102 MERGED PR #211 develop 26d58bb (1224 tests); STORY-103 converged+delivering (1247 tests, per-story adversary CONVERGED Claude+Gemini); D-040 |
 
-## Session Resume Checkpoint (2026-06-09 — STORY-102 converged + delivering; NEXT = STORY-103)
+## Session Resume Checkpoint (2026-06-09 — STORY-102 MERGED + STORY-103 converged+delivering; NEXT = STORY-104)
 
-**POSITION:** wirerust v0.3.0 RELEASED (D-038). Feature #7 Wave 2 / E-14 Modbus (Wave 32) in progress. STORY-102 (MBAP parse + FC classify + VP-022 Kani) per-story adversarial convergence COMPLETE (D-039): Claude + Gemini cross-model hybrid. Spec off-by-one fixed: VP-022 v1.1 + STORY-102 v1.1 length-gate 253->254 (BC-2.14.004 authoritative); propagation sweep closed 3 additional gaps (BC-INDEX + BC-2.14.013 + BC-2.14.001). STORY-102 implementation green (1224 tests) delivering via PR (pr-manager, parallel). NEXT = STORY-103 (Modbus flow state + transaction correlation), then STORY-104, STORY-105 -> v0.4.0.
+**POSITION:** wirerust v0.3.0 RELEASED (D-038). Feature #7 Wave 2 / E-14 Modbus. STORY-102 MERGED via PR #211 (develop 26d58bb; 1224 tests). STORY-103 (Modbus flow state + transaction correlation) per-story adversarial CONVERGED (D-040): Claude + Gemini cross-model hybrid; 1247 tests green; delivering via pr-manager. NEXT = STORY-104 (7 MITRE detectors, dual-window, co-emission, summary), then STORY-105 (dispatcher+CLI+VP-004 oracle) -> v0.4.0.
 
-**VERIFIED-CLEAN FACTS (at STORY-102 convergence):**
+**VERIFIED-CLEAN FACTS (at STORY-103 convergence):**
 - main HEAD `9ef5af1` — v0.3.0 release commit; annotated tag `v0.3.0`
-- develop HEAD: STORY-102 PR in flight (pr-manager delivering in parallel; develop will advance on merge)
-- 1224 tests green (was 1189; +35 from STORY-102); clippy+fmt clean
+- develop HEAD `26d58bb` — STORY-102 merged via PR #211
+- 1247 tests green (1224 post-STORY-102 +23 STORY-103); clippy+fmt clean
 - 244 BCs / 22 VPs (21 locked + VP-022 draft) / 58 stories / 353 pts
-- VP-022 v1.1 length-gate corrected 253->254; STORY-102 v1.1 matching; BC-INDEX/BC-2.14.013/BC-2.14.001 propagation gaps closed
-- Input-hash drift: MATCH=57/STALE=0/ERROR=1 (STORY-091 pre-existing no-inputs; STORY-102 hash 6dc856b MATCH post-fix)
-- Active feature: issue-7-modbus-tcp-analyzer; Wave 32 in progress (STORY-102 delivering); Waves 33-34 PENDING
+- Input-hash drift: MATCH=57/STALE=0/ERROR=1 (STORY-091 pre-existing no-inputs; STORY-102 d5c8642; STORY-104 56a3714 written D-040)
+- STORY-102 status: completed; STORY-103 status: draft (pending merge); STORY-104/105 status: draft
+- Active feature: issue-7-modbus-tcp-analyzer; Wave 32 DELIVERED (STORY-102); Wave 33 in delivery (STORY-103); Wave 33-34 PENDING (STORY-104/105)
 - GitHub Release: https://github.com/Zious11/wirerust/releases/tag/v0.3.0; 4 binaries; run 27240476896
 
 **CARRY-FORWARD ITEMS (do NOT lose):**
+- STORY-104 OBLIGATION: on_data must increment duplicate_inflight_txn on insert_request overwrite + test it (D-040; Claude caught duplicate_inflight_txn false-green — counter wiring is on_data scope)
+- Terminal multi-ID per-ID name resolution -> STORY-104 (BC-2.11.017; v0.3.0 deferral)
+- Dual-window microsecond math + wrapping_sub -> STORY-104 (precision arithmetic)
 - O-1 (EMITTED_IDS names 7 ICS not-yet-emitted until Modbus STORY-104): deferred to phase-5
-- Terminal multi-ID per-ID name resolution -> STORY-104 (BC-2.11.017)
 - #101 (FP/TP rate characterization): OPEN-DEBT — corpus-dependent; blocks #103
 - #103 (size-symmetry evasion discriminator): DEFERRED — needs labelled corpus
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
@@ -103,7 +106,7 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post STORY-102 convergence D-039
 - PG-5/PG-6: process-gap codification pending cycle-close
 - PROCESS-ARITHMETIC-REVIEW-001: codification pending cycle-close
 
-Prior checkpoint (v0.3.0 RELEASED) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
+Prior checkpoint (STORY-102 converged+delivering) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
 ## Decisions Log
 
@@ -148,6 +151,7 @@ Prior checkpoint (v0.3.0 RELEASED) archived: cycles/v0.1.0-greenfield-spec/sessi
 | D-037 | Feature #7 F4 Wave 1 (E-13 multi-tag Finding migration) DELIVERED. STORY-100+STORY-101 delivered atomically (Rust compiler forces lockstep on the core-type change) via PR #209 -> develop c846b3b. Finding.mitre_technique:Option<String> -> mitre_techniques:Vec<String> (JSON scalar->array + key rename; CSV column rename + semicolon-join; report-envelope mitre_domain/mitre_attack_version); MITRE catalog 15->21 seeded / 6->13 emitted (+T0888 +5 ICS arms + T0855 gap-fix). 1189 tests green (was 1147; +42), clippy+fmt clean, 9/9 CI, AI review APPROVE. Per-story adversarial convergence: Claude (fixed C-1 mitre_tests-migration + I-1 weakened-assertions) + Gemini cross-model (HIGH 'broken build' REFUTED as hallucination — code compiles green; doc nits fixed). Deferred: O-1 (EMITTED_IDS names 7 ICS not-yet-emitted until Modbus STORY-104 -> phase-5); terminal per-ID multi-unknown name resolution -> STORY-104 (BC-2.11.017). OPEN release-blocker: mitre_attack_version F4-PIN (placeholder ics-attack-v15) must be set to authoritative ATT&CK-ICS version before v0.3.0 tag. develop HEAD c846b3b. | 2026-06-09 | Feature #7 F4 Wave 1 multi-tag migration DELIVERED (PR #209, develop c846b3b) |
 | D-038 | Published wirerust v0.3.0 (gitflow-proper) — Feature #7 Wave 1 / E-13 multi-tag Finding schema migration (BREAKING). release/0.3.0 -> PR #210 -> main merge 9ef5af1; annotated tag v0.3.0; release.yml run 27240476896 built+attached 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); GitHub Release live. CHANGELOG [0.3.0] BREAKING: mitre_technique scalar -> mitre_techniques array (ECS-aligned); CSV column rename + semicolon-join; report-envelope mitre_domain=ics-attack + mitre_attack_version=ics-attack-19.1 (F4-PIN resolved: ATT&CK v19.1, all 7 ICS IDs valid, per .factory/research/attack-ics-version-pin.md); MITRE catalog 15->21 seeded / 6->13 emitted (6 ICS staged for Modbus + T0855 gap-fix). 1189 tests green; 9/9 CI. main back-merged into develop (9ef5af1, fast-forward, no divergence). | 2026-06-09 | v0.3.0 release — Feature #7 Wave 1 multi-tag MITRE schema (BREAKING) |
 | D-039 | Feature #7 STORY-102 (Modbus MBAP parse + FC classify) per-story adversarial convergence — Claude (implementation airtight: parse safety no-panic/no-OOB, classify_fc total + correct sets, exception biconditional) + Gemini cross-model (caught Kani harness under-binding Claude missed: verify_classify_fc_total had tautological final assert + did not prove undefined-FC->Unknown; strengthened to full 256-value expected-mapping proof; removed tautological assert in exception harness). Spec off-by-one reconciled: VP-022 v1.1 + STORY-102 v1.1 length-gate 253->254 to match authoritative BC-2.14.004 (max Length = UnitID 1 + PDU 253 = 254; was pre-F2-fix stale value). Propagation sweep: BC-INDEX.md BC-2.14.004 title + BC-2.14.013.md precondition + BC-2.14.001.md EC-008 also corrected 253->254 (3 propagation gaps closed). Implementation green: 1224 tests, clippy+fmt clean; VP-022 Kani run deferred to F6. STORY-102 delivering via PR (pr-manager, parallel). Gemini hybrid again caught formal-harness rigor class (tautological asserts) that Claude pass missed. | 2026-06-09 | Feature #7 STORY-102 per-story adversarial convergence + spec off-by-one fix |
+| D-040 | Feature #7 Wave 2 progress — STORY-102 (Modbus MBAP parse + FC classify) MERGED via PR #211 (develop 26d58bb); 1224 tests. STORY-103 (Modbus flow state + transaction correlation) converged + delivering: ModbusFlowState 18-field struct, pending table keyed (txn_id,unit_id) bounded 256 drop-not-evict (DoS-resistant), FC-echo response match, exception attribution with original_fc==stored_fc spoof gate, duplicate-in-flight return signal. Per-story convergence: Claude (security perimeters airtight; caught duplicate_inflight_txn false-green — counter wiring is STORY-104 on_data scope, test made honest as return-value signal + STORY-104 obligation filed) + Gemini cross-model (independently CONVERGED). 1247 tests green. STORY-104 OBLIGATION: on_data must increment duplicate_inflight_txn on insert_request overwrite + test it. SS-14 BC input-hashes recomputed (STORY-102 TBD->d5c8642; STORY-104 TBD->56a3714); MATCH=57/STALE=0/ERROR=1. | 2026-06-09 | Feature #7 Wave 2 — STORY-102 merged + STORY-103 converged + SS-14 BC hashes (D-040) |
 
 ## Blocking Issues
 

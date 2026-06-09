@@ -210,3 +210,28 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 - ADV-HS043-P02-MED-001: ACCEPTED offline scope — re-open when live-capture added.
 - ADV-HS043-P02-LOW-001: ACCEPTED non-blocking (subsequently SUPERSEDED by ADV-IMPL-P10-MED-001).
 - PROCESS-GAP-P5-001: OPEN — HIGH-PRIORITY (anchor drift; 4 dims over 8 passes).
+
+---
+
+## Archived: 2026-06-09 — STORY-102 converged + delivering; NEXT = STORY-103 (superseded by STORY-102 MERGED + STORY-103 converged+delivering)
+
+**POSITION:** wirerust v0.3.0 RELEASED (D-038). Feature #7 Wave 2 / E-14 Modbus (Wave 32) in progress. STORY-102 (MBAP parse + FC classify + VP-022 Kani) per-story adversarial convergence COMPLETE (D-039): Claude + Gemini cross-model hybrid. Spec off-by-one fixed: VP-022 v1.1 + STORY-102 v1.1 length-gate 253->254 (BC-2.14.004 authoritative); propagation sweep closed 3 additional gaps (BC-INDEX + BC-2.14.013 + BC-2.14.001). STORY-102 implementation green (1224 tests) delivering via PR (pr-manager, parallel). NEXT = STORY-103 (Modbus flow state + transaction correlation), then STORY-104, STORY-105 -> v0.4.0.
+
+**VERIFIED-CLEAN FACTS (at STORY-102 convergence):**
+- main HEAD `9ef5af1` — v0.3.0 release commit; annotated tag `v0.3.0`
+- develop HEAD: STORY-102 PR in flight (pr-manager delivering in parallel; develop will advance on merge)
+- 1224 tests green (was 1189; +35 from STORY-102); clippy+fmt clean
+- 244 BCs / 22 VPs (21 locked + VP-022 draft) / 58 stories / 353 pts
+- VP-022 v1.1 length-gate corrected 253->254; STORY-102 v1.1 matching; BC-INDEX/BC-2.14.013/BC-2.14.001 propagation gaps closed
+- Input-hash drift: MATCH=57/STALE=0/ERROR=1 (STORY-091 pre-existing no-inputs; STORY-102 hash 6dc856b MATCH post-fix)
+- Active feature: issue-7-modbus-tcp-analyzer; Wave 32 in progress (STORY-102 delivering); Waves 33-34 PENDING
+- GitHub Release: https://github.com/Zious11/wirerust/releases/tag/v0.3.0; 4 binaries; run 27240476896
+
+**CARRY-FORWARD ITEMS (at archival):**
+- O-1 (EMITTED_IDS names 7 ICS not-yet-emitted until Modbus STORY-104): deferred to phase-5
+- Terminal multi-ID per-ID name resolution -> STORY-104 (BC-2.11.017)
+- #101 (FP/TP rate characterization): OPEN-DEBT — corpus-dependent; blocks #103
+- #103 (size-symmetry evasion discriminator): DEFERRED — needs labelled corpus
+- STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
+- VP-022 Kani run deferred to F6; VP-007(21/13)/016/020/021: F4 verification obligations (Waves 33-34)
+- ACTION-PIN-001: dtolnay/rust-toolchain @stable/@nightly intentionally exempt from pin gate
