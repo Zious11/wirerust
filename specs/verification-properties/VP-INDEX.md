@@ -5,11 +5,11 @@ version: "2.0"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
-modified: "2026-06-08: Feature Mode F2 — VP-021 (timestamp-provenance-threading) added; draft/unverified. total_vps 20→21, proptest_count 6→7, integration+proptest method counted under proptest for VP-021."
+modified: "2026-06-09: Phase-F6 — VP-021 (timestamp-provenance-threading) locked/verified @ develop 256a490. status draft→verified, verification_lock→true. test_sufficient_count 5→6. All 21 VPs now verified; draft count 1→0."
 total_vps: 21
 p0_count: 8
 p1_count: 7
-test_sufficient_count: 5
+test_sufficient_count: 6
 kani_count: 8
 proptest_count: 7
 fuzz_count: 1
@@ -31,9 +31,7 @@ integration_unit_count: 5
 
 | Total VPs | P0 | P1 | Test-Sufficient |
 |-----------|----|----|-----------------|
-| 21 | 8 | 7 | 5 |
-
-Note: VP-021 is draft/unverified (added F2; implementation pending F4); it does not change P0/P1/test-sufficient counts since those tiers apply only to verified VPs. Total count is 21.
+| 21 | 8 | 7 | 6 |
 
 | Tool | Count | VP IDs |
 |------|-------|--------|
@@ -70,7 +68,7 @@ Note: VP-021 is draft/unverified (added F2; implementation pending F4); it does 
 | VP-018 | CLI Reassemble / No-Reassemble Mutual Exclusion | cli.rs | integration | test-sufficient | verified | BC-2.12.007, BC-2.12.009 |
 | VP-019 | DNS Analyzer Is Statistics-Only (Never Emits Findings) | analyzer/dns.rs | unit | test-sufficient | verified | BC-2.08.001, BC-2.08.002, BC-2.08.003, BC-2.08.004 |
 | VP-020 | CSV Injection Neutralization | reporter/csv.rs | unit | test-sufficient | verified | BC-2.11.021 |
-| VP-021 | Timestamp Provenance Threading | reassembly/mod.rs | integration+proptest | F4 | draft | BC-2.09.007, BC-2.04.055 |
+| VP-021 | Timestamp Provenance Threading | reassembly/mod.rs | integration+proptest | test-sufficient | verified | BC-2.09.007, BC-2.04.055 |
 
 ## P0 Properties (required before Phase 5 gate)
 
@@ -93,10 +91,10 @@ Note: VP-021 is draft/unverified (added F2; implementation pending F4); it does 
 - VP-014: HttpAnalyzer cross-flow isolation
 - VP-015: TCP sequence wraparound
 
-## Test-Sufficient Properties (VP-016..VP-020)
+## Test-Sufficient Properties (VP-016..VP-021)
 
-These five properties are verified by standard Rust integration or unit tests.
-No formal proof harness (Kani/proptest) is required.
+These six properties are verified by standard Rust integration or unit tests.
+No standalone formal proof harness (Kani) is required; VP-021 additionally uses proptest.
 
 | VP-ID | Verification method |
 |-------|-------------------|
@@ -105,13 +103,14 @@ No formal proof harness (Kani/proptest) is required.
 | VP-018 | CLI test (assert_cmd): mutual exclusion exit code |
 | VP-019 | Unit test: empty Vec<Finding> assertion for all DNS packets |
 | VP-020 | Unit test: injection character prefix check in CSV output |
+| VP-021 | Integration test (end-to-end hot-path + close-flush + segment-limit-None) + proptest (all-u32 timestamp range + cross-flow isolation) — tests/timestamp_threading_tests.rs |
 
 ## Consistency Invariants (machine-enforced by validate-vp-consistency.sh)
 
 - VP-INDEX total (21) must equal verification-architecture.md row count (21)
 - VP-INDEX total (21) must equal verification-coverage-matrix.md VP row count (21)
 - verification-coverage-matrix.md Totals row: Kani(8) + proptest(7) + fuzz(1) + integration/unit(5) = 21
-- P0 count (8) + P1 count (7) + test-sufficient (5) = 20 verified; + 1 draft (VP-021) = 21 total
+- P0 count (8) + P1 count (7) + test-sufficient (6) = 21 verified; 0 draft = 21 total
 
 ## File Naming Convention
 

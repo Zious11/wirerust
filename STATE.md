@@ -48,7 +48,7 @@ input_drift_check: "CLEAN — MATCH=51/STALE=0 (post F5-100 spec-corpus fix burs
 
 **Pipeline: COMPLETE AND RELEASED.** The full 7-phase VSDD pipeline (brownfield cycle v0.1.0-greenfield-spec) is COMPLETE and RELEASED. wirerust v0.1.0 published 2026-06-08. Annotated tag `v0.1.0` on main commit `2e8d256` (gitflow-proper). GitHub Release live with 4 cross-platform binaries (linux x86_64, macos arm64, macos x86_64, windows msvc); run 27155277051 all jobs success.
 
-**Summary:** 48 stories delivered (v0.1.0), 219 BCs (217 greenfield + 2 F2), 21 VPs (20 locked + VP-021 draft), 1126 tests green, holdout mean 0.949, adversary convergence 6 PASS / 1 non-blocking CONCERN (Performance — no v0.1.0 SLA). F2+F3 complete for issue #100; 3 new stories (STORY-097/098/099) pending F4 delivery.
+**Summary:** 48 stories delivered (v0.1.0), 219 BCs (217 greenfield + 2 F2), 21 VPs (21 locked, 0 draft), 1147 tests green, holdout mean 0.949, adversary convergence 6 PASS / 1 non-blocking CONCERN (Performance — no v0.1.0 SLA). F2+F3+F4+F5+F6 complete for issue #100 (STORY-097/098/099 delivered; VP-021 LOCKED). F7 delta convergence NEXT.
 
 ## Phase Progress
 
@@ -65,22 +65,20 @@ input_drift_check: "CLEAN — MATCH=51/STALE=0 (post F5-100 spec-corpus fix burs
 | Phase 7 — Convergence | **PASSED + RELEASED** (human-approved 2026-06-08) | 6 PASS / 1 CONCERN (Perf — non-blocking); 1126 tests; consistency CONSISTENT (8/8); 20 VPs locked |
 | Release — v0.1.0 | **RELEASED** 2026-06-08 | GitHub Release; 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); run 27155277051 all jobs success |
 
-## Session Resume Checkpoint (2026-06-08 — F5 CONVERGED; F6 targeted hardening NEXT)
+## Session Resume Checkpoint (2026-06-09 — F6 PASS; F7 delta convergence NEXT)
 
-**POSITION:** F4 DELIVERED (STORY-097/098/099 merged, issue #100 F4 CLOSED). F5 CONVERGED — 3-round hybrid adversarial (Claude primary R1+R2+R3 + Gemini cross-model R1 secondary, D-026). Fix-PRs #200 (LOW-002 test exact-value binding) and #201 (F-R2-001/002 stale-comment sweep) merged. develop HEAD `256a490`. NEXT = F6 targeted hardening (`vsdd-factory:phase-f6-targeted-hardening`) then F7 delta convergence.
+**POSITION:** F4 DELIVERED (STORY-097/098/099 merged). F5 CONVERGED (D-026, 3-round hybrid). F6 PASS (D-027) — mutation 100% effective kill, VP-021 LOCKED (21/21 VPs verified, 0 draft). develop HEAD `256a490`. NEXT = F7 delta convergence (`vsdd-factory:phase-f7-delta-convergence`) — 5-dimensional convergence check + final human gate.
 
 **VERIFIED-CLEAN FACTS:**
 - main HEAD `2e8d256` — v0.1.0 release commit; annotated tag `v0.1.0`
 - develop HEAD `256a490` — post PR #201 stale-comment sweep (F-R2-001/002)
-- 1126+ tests green; clippy clean; fmt clean; 20 VPs locked (614e0e0) + VP-021 draft
-- Feature #100 F2+F3+F4: BC-2.09.007 v1.1 / BC-2.09.006 v1.4 / BC-2.04.055 / VP-021 + STORY-097/098/099; 219 BCs / 21 VPs / 52 stories
-- Factory-artifacts: F5 spec-corpus fixes (D-025) + convergence record (D-026) committed; input-drift CLEAN MATCH=51/STALE=0
-- F5 ALL findings resolved: ADV-F5-HIGH-001, MED-001, MED-002, F-R2-001, F-R2-002; LOWs accepted/closed via fix-PRs
-- PR #200 (ADV-F5-LOW-002 test exact-value hardening): MERGED
-- PR #201 (F-R2-001/002 stale doc-comment sweep): MERGED — develop HEAD 256a490
+- 1147 tests green; clippy clean; fmt clean; 21 VPs locked (VP-021 locked @256a490)
+- Feature #100 F2+F3+F4+F5+F6: BC-2.09.007 v1.1 / BC-2.09.006 v1.4 / BC-2.04.055 / VP-021 LOCKED + STORY-097/098/099; 219 BCs / 21 VPs / 52 stories
+- Factory-artifacts: F6 summary + gate artifacts committed (D-027); VP-021 locked; all prior F5 records intact
+- F6 hardening: mutation --in-diff 100% effective; fuzz 0 crashes; Kani justified-skip (no anti-pattern); cargo audit/deny PASS; 0 CRITICAL/HIGH security findings
 
 **OPEN POST-RELEASE ITEMS (do NOT lose):**
-- #100 (thread pcap timestamps): F5 CONVERGED — F6 targeted hardening NEXT
+- #100 (thread pcap timestamps): F6 PASS — F7 delta convergence NEXT
 - #101 (FP/TP rate characterization): OPEN-DEBT — corpus-dependent; blocks #103
 - #103 (size-symmetry evasion discriminator): DEFERRED — needs labelled corpus
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
@@ -90,10 +88,10 @@ input_drift_check: "CLEAN — MATCH=51/STALE=0 (post F5-100 spec-corpus fix burs
 - Phase-5 tech-debt (P3): CR-002/003/005/006/007/009/012 — see tech-debt-register.md
 - [process-gap DRAFT] DF-SIBLING-SWEEP-001 propagation shadow: HIGH-001's sweep corrected spec files + live test assertions but missed 8 doc-comment lines in 2 test files republishing the false BC date vector claim. R2 re-pass + PR #201 AI review caught them. Candidate codification: extend DF-SIBLING-SWEEP-001 source-docstring-propagation to explicitly include test-file doc comments AND inline comments citing canonical vectors; consider ts_sec<->ISO arithmetic lint from ADV-F5-OBS-001. Do not lose — candidate for lessons.md.
 
-**RESUME PROTOCOL (for F6 targeted hardening):**
+**RESUME PROTOCOL (for F7 delta convergence):**
 1. `vsdd-factory:factory-worktree-health` — BLOCKING
-2. Read `STATE.md` — confirm D-026 committed, F5 CONVERGED
-3. Dispatch `vsdd-factory:phase-f6-targeted-hardening`
+2. Read `STATE.md` — confirm D-027 committed, F6 PASS, VP-021 LOCKED
+3. Dispatch `vsdd-factory:phase-f7-delta-convergence`
 
 Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
@@ -127,6 +125,7 @@ Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 | D-024 | Issue #100 Feature Mode F2+F3 complete — created BC-2.09.007 (Finding.timestamp provenance; ss-09), BC-2.04.055 (on_data timestamp parameter; ss-04), VP-021 (timestamp-provenance-threading; draft/unverified; integration+proptest); updated BC-2.09.001/006 (v1.3) + BC-2.01.005 (v1.6, O-01 resolved at spec level); created STORY-097/098/099 (waves 28-30, acyclic chain 097→098→099, epic E-12). All indexes updated: 219 BCs / 21 VPs / 52 stories. F4 TDD implementation next (STORY-097→STORY-098→STORY-099). | 2026-06-08 | Issue #100 Feature Mode F2+F3 spec + story decomposition delta |
 | D-025 | Issue #100 F5 hybrid adversarial review (Claude adversary + Gemini cross-model) returned NOT-CONVERGED: 1 HIGH + 2 MED findings, all spec-corpus. Spec-corpus fix burst: ADV-F5-HIGH-001 — BC-2.09.007 v1.0→v1.1 date-vector correction (ts_sec=1_000_000 maps to 1970-01-12T13:46:40Z, not 2001-09-08; 6-file sweep confirmed); ADV-F5-MED-001 — STORY-098 v1.0→v1.1 emission-site count corrected 4→3; ADV-F5-MED-002 — STORY-099 v1.0→v1.1 AC-002 rewrite. BC-2.09.006 v1.3→v1.4 (delta-analysis date-vector fix). Input-hash recompute: 6 stories rewritten (STORY-001/069/070/097/098/099); post-recompute drift CLEAN MATCH=51/STALE=0. ADV-F5-LOW-002 test-hardening PR #200 in flight on develop (not a spec-corpus item). F5 NOT-CONVERGED — clean re-pass pending. | 2026-06-08 | Issue #100 F5 spec-corpus fix burst + input-hash recompute |
 | D-026 | Feature #100 Phase F5 scoped adversarial review CONVERGED after 3 rounds (Claude primary + Gemini cross-model hybrid). Round 1: 1 HIGH (BC-2.09.007 date vector) + 2 MED spec-corpus. Gemini secondary added 0 valid source defects (2 refuted: 1 diff-blindness hallucination, 1 last_ts==0 concern refuted at source) and confirmed test-rigor findings. Spec-corpus fixes (D-025) + 2 test fix-PRs (#200 LOW-002 exact-value binding; #201 F-R2-001/002 stale-comment sweep, AI review caught 2 extra stale lines). Round 3 clean: 0 findings, input-hash MATCH=51/STALE=0. develop HEAD 256a490. | 2026-06-08 | Issue #100 F5 convergence — 3-round hybrid adversarial |
+| D-027 | Feature #100 Phase F6 targeted hardening PASS. Mutation --in-diff 100% effective kill (30/30 killable; 2 equivalent survivors at lifecycle.rs:62 documented, independently re-confirming F5 close-flush unreachability). Fuzz 0 crashes; Kani justified-skip (inline-chrono totality via closed-form+proptest+boundary, no debug-guard anti-pattern); cargo audit/deny PASS (RUSTSEC-2026-0097 known-accepted); 1147 tests green. VP-021 LOCKED (verified, lock=true, @256a490) — all 21 VPs now verified, 0 draft. develop HEAD 256a490. | 2026-06-09 | Issue #100 F6 targeted hardening gate PASS + VP-021 locked |
 
 ## Blocking Issues
 
