@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -253,7 +253,8 @@ traces_to: .factory/specs/prd.md
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
-| BC-2.11.001 | JsonReporter Renders JSON Object with summary/findings/analyzers Keys | P0 | [WRITTEN] | BC-RPT-001 |
+| BC-2.11.001 | JsonReporter Renders JSON Object with summary/findings/analyzers/mitre_domain/mitre_attack_version Keys | P0 | [WRITTEN] | BC-RPT-001 | <!-- v1.5: ADD-ON 1 — envelope fields mitre_domain + mitre_attack_version added; mitre_attack_version placeholder "ics-attack-v15" flagged for F4 to pin -->
+
 | BC-2.11.002 | JsonReporter Includes skipped_packets in Summary | P1 | [WRITTEN] | BC-RPT-002 |
 | BC-2.11.003 | JsonReporter Escapes C0 Control Bytes per RFC 8259 via serde | P0 | [WRITTEN] | BC-RPT-003 |
 | BC-2.11.004 | JsonReporter Preserves Non-ASCII Unicode in Readable Form | P1 | [WRITTEN] | BC-RPT-004 |
@@ -276,7 +277,8 @@ traces_to: .factory/specs/prd.md
 | BC-2.11.021 | CsvReporter Neutralizes CSV-Injection Trigger Characters with a Leading Single Quote | P0 | [WRITTEN] | pass-4 H-1 |
 | BC-2.11.022 | CsvReporter Joins Evidence Vec Elements with "; " into a Single Cell | P1 | [WRITTEN] | pass-4 H-1 |
 | BC-2.11.023 | CsvReporter Implements Reporter Trait and Emits One Row per Finding; Summary and AnalysisSummary Are Ignored | P0 | [WRITTEN] | pass-4 H-1 |
-| BC-2.11.024 | CsvReporter Encodes Optional Fields as Empty Strings and mitre_techniques as Semicolon-Joined String | P1 | [WRITTEN] | pass-4 H-1 | <!-- v1.4: mitre_technique None->mitre_techniques vec![]; semicolon-join for multi-tag; ADR-006 F2 revision -->
+| BC-2.11.024 | CsvReporter Encodes Optional Fields as Empty Strings and mitre_techniques as Semicolon-Joined String | P1 | [WRITTEN] | pass-4 H-1 | <!-- v1.5: ADD-ON 2 — EC-015 added (consumer split guard for empty-cell); EC-001 strengthened (empty string not null/[]/N/A); Inv 4 explicit empty-string wording -->
+
 
 ## ss-12: CLI and Entry Point (Cross-Cutting)
 

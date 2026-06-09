@@ -8,12 +8,14 @@ producer: product-owner
 created: 2026-06-09
 revised: 2026-06-09
 base_prd_version: "1.0"
-new_prd_version: "1.2"
+new_prd_version: "1.3"
 traces_to:
   - .factory/specs/prd.md
   - .factory/phase-f2-spec-evolution/architecture-delta.md
   - .factory/phase-f2-spec-evolution/f2-fix-directives.md
   - .factory/specs/architecture/decisions/ADR-006-multi-technique-finding-attribution.md
+  - .factory/research/f2-multitag-schema.md
+  - .factory/research/f2-bundle-vs-split.md
 ---
 
 # F2 PRD Delta — Issue #7: Modbus TCP Protocol Analyzer
@@ -22,11 +24,12 @@ traces_to:
 
 This document records all PRD changes introduced by Feature #7 (Modbus/ICS analyzer). It
 is the companion to `architecture-delta.md` on the specification side. The state-manager
-merges this delta into `prd.md` (done in F2 burst — `prd.md` is now v1.2).
+merges this delta into `prd.md` (done in F2 burst — `prd.md` is now v1.3).
 
 PRD version bumps:
 - **1.0 → 1.1** (MINOR: new feature capability added — SS-14 Modbus, 25 BCs, ADR-005)
 - **1.1 → 1.2** (BREAKING: `Finding.mitre_techniques` Vec schema change per ADR-006 Decisions 11-13; targets v0.3.0)
+- **1.2 → 1.3** (ADDITIVE: two schema add-ons on report envelope + CSV empty-cell clarification; release split tagging v0.3.0/v0.4.0)
 
 ---
 
@@ -253,7 +256,111 @@ Story-writer must propagate these to story body BC tables and ACs under
 
 ---
 
-## 6. Unchanged PRD Content
+## 5.3 v1.2 → v1.3 Changes (F2 Schema Add-Ons + Release Split — f2-multitag-schema.md + f2-bundle-vs-split.md)
+
+**Product release grouping: v0.3.0 = schema-only break; v0.4.0 = Modbus additive**
+
+### ADD-ON 1: JSON Report Envelope — mitre_domain + mitre_attack_version (BC-2.11.001 v1.5)
+
+Basis: `f2-multitag-schema.md §1.4` (research-backed ECS/OCSF recommendation).
+
+ICS technique IDs (`T0xxx`) unambiguously identify the ICS-ATT&CK matrix by prefix, so a
+per-technique `matrix` field is redundant. Instead, two fields are added ONCE at the JSON
+report envelope level (not per-finding):
+
+| Field | Value | Notes |
+|-------|-------|-------|
+| `mitre_domain` | `"ics-attack"` | Constant; identifies the MITRE ATT&CK matrix |
+| `mitre_attack_version` | `"ics-attack-v15"` (placeholder) | **FLAG for F4 to pin** against deployed catalog |
+
+Both fields appear in every JSON report unconditionally (regardless of whether any ICS
+findings were emitted). CSV carries no envelope fields; these are JSON-only.
+
+**FLAG — mitre_attack_version:** The value `"ics-attack-v15"` is a placeholder. F4
+implementers MUST verify the authoritative ATT&CK for ICS version at
+`attack.mitre.org/resources/attack-data-and-tools/` that covers T0888 (Remote System
+Information Discovery), T0855, T0836, T0835, T0831, T0814, T0806, and update the constant
+in `src/reporter/json.rs` before the v0.3.0 release tag.
+
+Artifacts changed:
+- BC-2.11.001: v1.4 → v1.5 (H1 title updated; Postconditions 7-8 added; Invariants 4-6
+  added; EC-006, EC-007 added; Canonical Test Vectors updated; Architecture Anchors updated)
+- prd.md: BREAKING box updated to include envelope fields; Section 2 delta note v1.3 added;
+  Section 2.14 release-target note added
+
+### ADD-ON 2: CSV Empty-Cell Clarification — EC-015 Consumer Split Guard (BC-2.11.024 v1.5)
+
+Basis: `f2-multitag-schema.md §3` (research-backed empty-cell guidance).
+
+When `mitre_techniques` is empty (`vec![]`), the CSV cell is an **empty string `""`** — NOT
+the literal text `"null"`, `"[]"`, or `"N/A"`. This was already correct in the Rust
+implementation and BC-2.11.024 (EC-001 existed). The add-on adds explicit consumer-contract
+documentation:
+
+- EC-001 updated: expanded to call out that `""` is the correct encoding and warn that
+  `str.split(';')` on an empty string produces `['']` (single empty element) not `[]`.
+- **EC-015 added:** Defines the required consumer guard: "if cell is empty return `[]`" in
+  Python/Rust/Splunk `makemv`. Wirerust is not responsible for consumer split behavior; this
+  EC documents the contract consumers MUST implement.
+- Invariant 4 updated: explicit `""` wording, no sentinel values.
+
+Artifacts changed:
+- BC-2.11.024: v1.4 → v1.5 (EC-001 updated; EC-015 added; Invariant 4 updated)
+- prd.md: BREAKING box CSV bullet updated to reference empty-cell and EC-015
+
+---
+
+## 6. Release Sequencing (v0.3.0 / v0.4.0 Split — f2-bundle-vs-split.md Decision B2)
+
+Research basis: `.factory/research/f2-bundle-vs-split.md` (decision: B2, Trivy/Zeek model).
+Human decision: confirmed split.
+
+### v0.3.0 — "Multi-technique findings" (schema migration; **breaking**)
+
+Scope: migrate all existing analyzers to multi-tag output + envelope fields. No new
+protocol analyzer.
+
+| Subsystem | BCs | Description |
+|-----------|-----|-------------|
+| SS-09 (findings.rs) | BC-2.09.001, BC-2.09.006 | Finding struct field rename + Vec<String> |
+| SS-10 (mitre.rs) | BC-2.10.005, BC-2.10.007, BC-2.10.008 | T0888 catalog + emission set |
+| SS-11 (reporters) | BC-2.11.001, BC-2.11.013, BC-2.11.015, BC-2.11.017, BC-2.11.020, BC-2.11.024 | JSON envelope + reporter changes |
+| — | ADD-ON 1 (BC-2.11.001 v1.5) | mitre_domain + mitre_attack_version envelope |
+| — | ADD-ON 2 (BC-2.11.024 v1.5) | CSV empty-cell clarification EC-015 |
+
+Affected stories (existing): STORY-069, STORY-070, STORY-071, STORY-078, STORY-079, STORY-080.
+
+Breaking changes in v0.3.0:
+- JSON: `mitre_technique` (scalar) → `mitre_techniques` (array); new envelope fields
+- CSV: column-6 renamed + semicolon-join encoding
+- Rust: `Finding.mitre_technique: Option<String>` → `Finding.mitre_techniques: Vec<String>`
+
+Compat softening (Zeek/Trivy dual-emit pattern):
+- `--compat-mitre-scalar` flag (default on in v0.3.x): emits old scalar `mitre_technique`
+  alongside new array `mitre_techniques`. Removed in a subsequent minor.
+
+### v0.4.0 — "Modbus TCP analyzer" (purely additive; **no schema break**)
+
+Scope: add Modbus TCP protocol analyzer on top of stable v0.3.0 multi-tag contract.
+
+| Subsystem | BCs | Description |
+|-----------|-----|-------------|
+| SS-14 (analyzer/modbus.rs) | BC-2.14.001 through BC-2.14.025 | Full Modbus analyzer |
+
+T0888/dual-window/co-emission detection are v0.4.0 (Modbus emits these). The
+`mitre_techniques: Vec<String>` type itself ships in v0.3.0; Modbus uses it natively at v0.4.0.
+
+Rationale for split (from f2-bundle-vs-split.md):
+1. **Semver honesty:** v0.3.0 = one signal (breaking schema change); v0.4.0 = clean additive minor
+2. **Blast radius:** consumers migrate once at v0.3.0; Modbus adoption at v0.4.0 is zero-migration
+3. **Bisection:** schema refactor (wide/shallow) and new stateful analyzer (narrow/deep) are
+   independently revertable — worst pairing if bundled
+4. **OSS precedent:** Trivy two-phase JSON schema flag, Zeek deprecation policy (both verified)
+5. **Severable:** multi-tag change benefits all 4 existing analyzers; it is independent of Modbus
+
+---
+
+## 7. Unchanged PRD Content
 
 The following sections are NOT modified by this delta (preserved verbatim):
 - Section 1.1 Problem Statement

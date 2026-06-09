@@ -14,6 +14,60 @@ changes, invariant rewrites).
 
 ---
 
+## [1.3] — 2026-06-09
+
+### ADDITIVE: F2 Schema Add-Ons + v0.3.0/v0.4.0 Release Split Tagging
+
+**Summary:** Two research-backed schema add-ons from `f2-multitag-schema.md` applied to
+existing BCs, plus release sequencing recorded across prd.md and prd-delta.md per human
+decision (f2-bundle-vs-split.md B2 — Trivy/Zeek pattern).
+
+**ADD-ON 1 — JSON report envelope fields (BC-2.11.001 v1.5):**
+
+Two top-level JSON report envelope fields added (ONCE per report, NOT per-finding):
+- `mitre_domain: "ics-attack"` — identifies the ATT&CK matrix; constant.
+- `mitre_attack_version: "ics-attack-v15"` — placeholder; **FLAG for F4 to pin** against
+  deployed catalog before v0.3.0 release tag.
+
+Basis: ECS/OCSF recommendation to declare domain+version at envelope level rather than
+redundantly per-technique (`T0xxx` prefix already unambiguously identifies ICS matrix).
+CSV reporters carry no envelope fields (JSON-only).
+
+**ADD-ON 2 — CSV empty-string clarification (BC-2.11.024 v1.5):**
+
+Existing EC-001 strengthened + EC-015 added:
+- When `mitre_techniques = vec![]`, the CSV cell is `""` (empty string) — NOT `"null"`,
+  `"[]"`, `"N/A"`, or any sentinel.
+- EC-015: Documents required consumer guard: `str.split(';')` on `""` produces `['']` in
+  most languages; consumers MUST check `if cell.is_empty()` before splitting and return
+  an empty collection, not `['']`.
+
+**Release split tagging (v0.3.0/v0.4.0):**
+
+Feature #7 is split into two releases:
+- **v0.3.0** (schema migration; breaking): SS-09 + SS-10 + SS-11 BCs + ADD-ONs.
+  Existing analyzers migrated; no new protocol analyzer.
+  Compat: `--compat-mitre-scalar` flag for deprecation window.
+- **v0.4.0** (Modbus; additive): all SS-14 BCs (BC-2.14.001..025).
+  Built on stable v0.3.0 schema; no `**Breaking:**` in v0.4.0 changelog.
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| BC-2.11.001 | v1.4 → v1.5: envelope fields; H1 title updated; PC 7-8; Inv 4-6; EC-006, EC-007 | `.factory/specs/behavioral-contracts/ss-11/` |
+| BC-2.11.024 | v1.4 → v1.5: EC-001 strengthened; EC-015 added (consumer split guard); Inv 4 updated | `.factory/specs/behavioral-contracts/ss-11/` |
+| prd.md | v1.2 → v1.3 note added; BREAKING box updated (envelope fields + CSV EC-015 ref); RELEASE SEQUENCING box added after BREAKING box; Section 2.14 release-target note added | `.factory/specs/prd.md` |
+| prd-delta.md | new_prd_version 1.2 → 1.3; §5.3 ADD-ON details; §6 Release Sequencing; old §6 → §7 | `.factory/phase-f2-spec-evolution/prd-delta.md` |
+
+**FLAG — mitre_attack_version not pinned:**
+The value `"ics-attack-v15"` is a placeholder. F4 must verify the authoritative MITRE
+ATT&CK for ICS version at attack.mitre.org/resources/attack-data-and-tools/ that covers
+T0888, T0855, T0836, T0835, T0831, T0814, T0806, and update the constant in
+`src/reporter/json.rs` before the v0.3.0 tag.
+
+---
+
 ## [1.2] — 2026-06-09
 
 ### BREAKING: F2 Modbus Revision — Decisions 11-13 (ADR-006) — targets v0.3.0

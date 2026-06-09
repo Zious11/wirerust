@@ -58,6 +58,14 @@ supplements:
 > BC-2.10.008 v1.5, BC-2.11.013 v1.6, BC-2.11.015 v1.6, BC-2.11.017 v1.5, BC-2.11.020 v1.5,
 > BC-2.11.024 v1.4. SS-14 revised BCs: BC-2.14.013/014/015/016/017/020/022/024 (all v2.0).
 > ADR-006 registered. See `spec-changelog.md` §[1.2] for full entry.
+>
+> **Version 1.3 delta (2026-06-09 — F2 schema add-ons + release split):** Two research-backed
+> schema add-ons (f2-multitag-schema.md) and release sequencing decision (f2-bundle-vs-split.md).
+> ADD-ON 1: BC-2.11.001 v1.5 — JSON report envelope adds `mitre_domain: "ics-attack"` +
+> `mitre_attack_version: "ics-attack-v15"` (F4 must pin). ADD-ON 2: BC-2.11.024 v1.5 — empty
+> CSV cell clarification: EMPTY STRING not null; EC-015 added for consumer split guard.
+> Release split: v0.3.0 = schema-only break (SS-09/10/11 + add-ons); v0.4.0 = Modbus additive
+> (SS-14). See RELEASE SEQUENCING box in Section 2 and `spec-changelog.md` §[1.3].
 
 > **Supplement Model:** Sections 3-5 reference extracted supplement files under
 > `prd-supplements/`. These supplements are produced in a SEPARATE burst (Phase 1b).
@@ -147,12 +155,45 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > `Finding.mitre_techniques: Vec<String>`. This affects ALL analyzers and ALL reporters:
 > - **JSON:** key `"mitre_technique"` (scalar string) → `"mitre_techniques"` (array);
 >   field absent when empty (same policy as prior `None` via `skip_serializing_if`).
+> - **JSON envelope:** two new top-level fields added: `mitre_domain: "ics-attack"` and
+>   `mitre_attack_version: "ics-attack-v15"` (placeholder; F4 must pin). See BC-2.11.001 v1.5.
 > - **CSV:** column-6 header renamed `mitre_technique` → `mitre_techniques`; multiple
->   values semicolon-joined (`"T0855;T0836"`); single value unchanged; empty unchanged.
+>   values semicolon-joined (`"T0855;T0836"`); single value unchanged; empty cell is `""`
+>   (not `"null"`, not `"[]"`); consumers splitting on `;` must guard the empty-cell case
+>   (see BC-2.11.024 v1.5 EC-015). CSV carries no envelope fields.
 > - **Rust type:** `Option<String>` → `Vec<String>`; all emission sites updated.
 >   All downstream JSON consumers, CSV pipelines, and Rust code using `Finding` must update.
-> See ADR-006, BC-2.09.001, BC-2.09.006, BC-2.11.020, BC-2.11.024.
+> See ADR-006, BC-2.09.001, BC-2.09.006, BC-2.11.001, BC-2.11.020, BC-2.11.024.
 > Affected stories: STORY-069, STORY-070, STORY-071, STORY-078, STORY-079, STORY-080.
+
+> **RELEASE SEQUENCING — Feature #7 split: v0.3.0 (schema) + v0.4.0 (Modbus) (f2-bundle-vs-split.md B2):**
+> Feature #7 is split into two releases per research recommendation (B2 — Trivy/Zeek pattern):
+>
+> **v0.3.0 — "Multi-technique findings" (schema migration only; breaking):**
+> All existing analyzers (HTTP/TLS/DNS/lifecycle) migrated to `mitre_techniques: Vec<String>`.
+> JSON envelope fields added. No new protocol analyzer. This is a **semver-honest breaking
+> release**: one signal, one break, focused migration note.
+> BCs in scope for v0.3.0:
+> - SS-09 (findings.rs): BC-2.09.001, BC-2.09.006
+> - SS-10 (mitre.rs): BC-2.10.005, BC-2.10.007, BC-2.10.008
+> - SS-11 (reporters): BC-2.11.013, BC-2.11.015, BC-2.11.017, BC-2.11.020, BC-2.11.024
+>   (+ BC-2.11.001 for envelope ADD-ON 1)
+> - Existing stories: STORY-069, STORY-070, STORY-071, STORY-078, STORY-079, STORY-080
+>
+> **v0.4.0 — "Modbus TCP analyzer" (purely additive; no schema break):**
+> Adds the Modbus TCP protocol analyzer on top of the stabilized multi-tag contract.
+> Multi-tag type ships in v0.3.0; Modbus emits multi-tag findings natively but the *type
+> itself* is already stable. No `**Breaking:**` entry in v0.4.0 changelog.
+> BCs in scope for v0.4.0: all SS-14 BCs (BC-2.14.001 through BC-2.14.025).
+> T0888/dual-window/co-emission detection are v0.4.0 (Modbus analyzer emits these;
+> the multi-tag Vec<String> type that enables them ships in v0.3.0).
+>
+> Rationale: f2-bundle-vs-split.md establishes that multi-tag is independent of Modbus
+> (shared `Finding` struct in `findings.rs`), bundling couples a cross-cutting refactor
+> with a new stateful analyzer (worst pairing for bisection/rollback), and the Trivy
+> two-phase flag model is the closest OSS precedent. Compat softening: `--compat-mitre-scalar`
+> flag (default on in v0.3.x) emits the old scalar `mitre_technique` key alongside the new
+> array for a deprecation window, following the Zeek dual-field approach.
 
 ### 2.1 PCAP File Ingestion (CAP-01)
 
@@ -480,6 +521,12 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > Full contracts: `behavioral-contracts/ss-13/BC-2.13.001.md` through `BC-2.13.004.md`
 
 ### 2.14 Modbus/ICS Analysis (CAP-14) [Feature #7 — ADR-005, ADR-006]
+
+> **Release target: v0.4.0 (additive — no schema break).**
+> All SS-14 BCs (BC-2.14.001..025) ship in v0.4.0. The `mitre_techniques: Vec<String>` type
+> they depend on ships in **v0.3.0** (schema migration of existing analyzers). Modbus is built
+> on top of the stable v0.3.0 contract and is purely additive at v0.4.0. See RELEASE SEQUENCING
+> box in Section 2 for the full v0.3.0/v0.4.0 split rationale (f2-bundle-vs-split.md).
 
 > **Feature Mode F2 addition (v1.1) + v2 revision (v1.2).** 25 BCs covering the Modbus TCP
 > protocol analyzer (SS-14, C-22 ModbusAnalyzer). Analyzer detects 7 MITRE ATT&CK for ICS

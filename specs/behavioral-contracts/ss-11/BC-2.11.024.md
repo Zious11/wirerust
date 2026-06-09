@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: pc4 timestamp example Z→+00:00 to match chrono to_rfc3339() DateTime<Utc> output + story AC-010; EC-010 hedge removed, output locked to +00:00 (Wave-22 P2 finding F-002) — 2026-05-30"
   - "v1.4: ADR-006 / Decision 13 §13.3 (F2 v0.3.0 BREAKING) — column 6 field renamed mitre_technique->mitre_techniques; type changed Option<String>->Vec<String>; encoding rule: empty vec->'', singleton vec->plain ID string, multi-element vec->semicolon-joined string; added EC-013/EC-014 for multi-value cases. — 2026-06-09"
+  - "v1.5: ADD-ON 2 (research-backed, f2-multitag-schema.md §3) — clarify empty-cell is EMPTY STRING not null/[]/none; EC-001 updated; EC-015 added for consumer split guard (str.split(';') on empty produces [''] not [] — consumers must guard). — 2026-06-09"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -89,7 +90,10 @@ All derived strings (including the joined techniques string) are processed throu
    when not empty (UTC timezone designation included).
 4. Empty-to-empty-string conversion uses `join(";")` on an empty vec producing `""`, and
    `unwrap_or("")` / `unwrap_or_default()` for the three Option fields; no sentinel values
-   like `"null"`, `"N/A"`, or `"-"` are used.
+   like `"null"`, `"N/A"`, or `"-"` are used. The empty cell is ALWAYS an empty string
+   (`""`); it is NEVER the literal text `"null"` or `"[]"`. Consumers MUST guard against
+   the split-on-empty-cell false-positive (see EC-015); wirerust does not insert any
+   separator value into an empty cell to work around the consumer language's split behavior.
 5. The semicolon join separator (`;`) for `mitre_techniques` is chosen because semicolons
    are neutral CSV characters and do not require quoting. The `neutralize_csv_injection`
    guard is applied to the entire joined string, not to individual IDs.
@@ -103,7 +107,7 @@ All derived strings (including the joined techniques string) are processed throu
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | mitre_techniques = vec![] (empty) | Column 6 cell is empty string `""` (same as prior None) |
+| EC-001 | mitre_techniques = vec![] (empty) | Column 6 cell is EMPTY STRING `""` — NOT the literal text `"null"`, `"[]"`, `"N/A"`, or `"-"`. Consumers calling `str.split(';')` on an empty string receive `['']` (a single empty element) — they MUST guard with `if cell.is_empty() { vec![] }` or equivalent to avoid a spurious single-empty-element result. See EC-015 for the consumer contract. |
 | EC-002 | mitre_techniques = vec!["T1059"] (singleton) | Column 6 cell is `"T1059"` (identical to prior Some("T1059") output) |
 | EC-003 | source_ip = None | Column 7 cell is empty string `""` |
 | EC-004 | source_ip = Some(192.168.1.1) | Column 7 cell is `"192.168.1.1"` |
@@ -117,6 +121,7 @@ All derived strings (including the joined techniques string) are processed throu
 | EC-012 | All fields empty/None simultaneously | All four cells are empty string; row has 5 non-empty + 4 empty cells |
 | EC-013 | mitre_techniques = vec!["T0855","T0836"] (Modbus register write, multi-tag) | Column 6 cell is `"T0855;T0836"` (semicolon-joined, no spaces) |
 | EC-014 | mitre_techniques = vec!["T0806","T0855"] (burst finding, multi-tag) | Column 6 cell is `"T0806;T0855"` |
+| EC-015 | Consumer splits column 6 on `;` when cell is empty string `""` | `"".split(';')` returns `[""]` in most languages (Python: `['']`, Rust `str::split`: `[""]`, Splunk `makemv delim=";"` on empty cell: empty multivalue). Consumers MUST check `if cell.is_empty()` before splitting and return an empty collection — NOT a single-element collection containing an empty string. This guard prevents spurious `[""]` results in analytics. Wirerust is not responsible for consumer split behavior; this EC documents the required consumer contract. |
 
 ## Canonical Test Vectors
 
