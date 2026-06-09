@@ -1,6 +1,6 @@
 ---
-pipeline: FEATURE_100_CONVERGED
-phase: post-release-feature-complete
+pipeline: V0.2.0_RELEASED
+phase: complete
 product: wirerust
 mode: brownfield
 timestamp: 2026-06-09T00:00:00Z
@@ -21,13 +21,17 @@ phase_6_completed: "2026-06-02"
 phase_6_to_7_gate: "PASSED (human-approved 2026-06-02)"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-08 — Approve → release-prep)"
 adversary_gate: SATISFIED
-develop_head: 256a490
-main_head: 2e8d256
-released_version: v0.1.0
-released_at: "2026-06-08"
-release_tag: v0.1.0
-release_url: https://github.com/Zious11/wirerust/releases/tag/v0.1.0
-release_commit: 2e8d256
+develop_head: 4cfc4c4
+main_head: 18be1ba
+released_version: v0.2.0
+released_at: "2026-06-09"
+release_tag: v0.2.0
+release_url: https://github.com/Zious11/wirerust/releases/tag/v0.2.0
+release_commit: 18be1ba
+prior_released_version: v0.1.0
+prior_released_at: "2026-06-08"
+prior_release_tag: v0.1.0
+prior_release_commit: 2e8d256
 current_cycle: v0.1.0-greenfield-spec
 current_wave: 27 (FINAL — CLOSED)
 stories_delivered: 48
@@ -46,9 +50,9 @@ input_drift_check: "CLEAN — MATCH=51/STALE=0 (post F7-100 consistency sweep D-
 
 ## Status
 
-**Pipeline: COMPLETE AND RELEASED. Feature #100 CONVERGED + CLOSED (human-authorized 2026-06-09).** The full 7-phase VSDD pipeline (brownfield cycle v0.1.0-greenfield-spec) is COMPLETE and RELEASED. wirerust v0.1.0 published 2026-06-08. Feature #100 completed full F4→F7 feature-mode cycle (STORY-097/098/099 delivered, VP-021 LOCKED, F7 human authorization gate APPROVED 2026-06-09). NEXT = release (semver disposition v0.1.1 or v0.2.0 pending confirmation; then vsdd-factory:release).
+**Pipeline: V0.2.0_RELEASED. Feature #100 cycle COMPLETE AND RELEASED as v0.2.0 (2026-06-09).** The full 7-phase VSDD pipeline (brownfield cycle v0.1.0-greenfield-spec) is COMPLETE. wirerust v0.2.0 published 2026-06-09 (gitflow-proper: release/0.2.0 → PR #208 → main merge 18be1ba; annotated tag v0.2.0; 4 binaries attached via release.yml run 27216925948; GitHub Release live). Feature #100 (pcap timestamp threading → Finding.timestamp) shipped as MINOR. F4→F7 feature-mode cycle fully closed (D-031). No open feature work.
 
-**Summary:** 52 stories delivered (48 greenfield + 4 F-cycle), 219 BCs (217 greenfield + 2 F2), 21 VPs (21 locked, 0 draft), 1147 tests green, holdout mean 0.99, adversary convergence 6 PASS / 1 non-blocking CONCERN (Performance — no v0.1.0 SLA). Feature #100 F4→F7 full feature-mode cycle COMPLETE. develop HEAD 256a490.
+**Summary:** 52 stories delivered (48 greenfield + 4 F-cycle), 219 BCs (217 greenfield + 2 F2), 21 VPs (21 locked, 0 draft), 1147 tests green, holdout mean 0.99, adversary convergence 6 PASS / 1 non-blocking CONCERN (Performance — non-blocking). develop HEAD 4cfc4c4 (main back-merged, branches in sync).
 
 ## Phase Progress
 
@@ -64,22 +68,22 @@ input_drift_check: "CLEAN — MATCH=51/STALE=0 (post F7-100 consistency sweep D-
 | Phase 6 — Formal Hardening | **PASSED** 2026-06-02 | 8 Kani VPs proven; 6 proptest VPs; fuzz VP-008 21.7M execs 0 crashes; mutation targets met; RUSTSEC-2025-0119 FIXED; 20 VPs LOCKED (614e0e0) |
 | Phase 7 — Convergence | **PASSED + RELEASED** (human-approved 2026-06-08) | 6 PASS / 1 CONCERN (Perf — non-blocking); 1126 tests; consistency CONSISTENT (8/8); 20 VPs locked |
 | Release — v0.1.0 | **RELEASED** 2026-06-08 | GitHub Release; 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); run 27155277051 all jobs success |
+| Feature #100 F4→F7 Cycle | **COMPLETE + RELEASED** 2026-06-09 | STORY-097/098/099 delivered; VP-021 LOCKED; D-030 human gate; shipped in v0.2.0 |
+| Release — v0.2.0 | **RELEASED** 2026-06-09 | gitflow-proper: release/0.2.0 → PR #208 → 18be1ba; 4 binaries; run 27216925948; GitHub Release published 2026-06-09T15:28:38Z; D-031 |
 
-## Session Resume Checkpoint (2026-06-09 — Feature #100 CONVERGED + CLOSED; human-authorized F7 gate APPROVED)
+## Session Resume Checkpoint (2026-06-09 — v0.2.0 RELEASED; Feature #100 cycle FULLY CLOSED)
 
-**POSITION:** Feature #100 F4→F7 full feature-mode cycle COMPLETE. F7 human authorization gate APPROVED (D-030, 2026-06-09): all 5 dimensions PASS (spec novelty 0.0, mutation 100% effective, 0 impl defects, VP-021 locked, holdout 0.99), 1147 regression tests green, consistency CONFIRMED CONSISTENT (2 audits D-028/D-029). Feature #100 CONVERGED and CLOSED. Human elected to release now — semver disposition (v0.1.1 or v0.2.0) pending confirmation. develop HEAD `256a490`.
+**POSITION:** wirerust v0.2.0 RELEASED (2026-06-09). Feature #100 (pcap timestamp threading → Finding.timestamp) shipped as MINOR semver. release/0.2.0 → PR #208 → main merge 18be1ba; annotated tag v0.2.0; 4 binaries attached via release.yml run 27216925948; GitHub Release published 2026-06-09T15:28:38Z (not draft). main back-merged into develop (4cfc4c4) — branches in sync. F4→F7 feature-mode cycle FULLY CLOSED (D-030 + D-031).
 
 **VERIFIED-CLEAN FACTS:**
-- main HEAD `2e8d256` — v0.1.0 release commit; annotated tag `v0.1.0`
-- develop HEAD `256a490` — post PR #201 stale-comment sweep (F-R2-001/002)
+- main HEAD `18be1ba` — v0.2.0 release commit; annotated tag `v0.2.0`
+- develop HEAD `4cfc4c4` — main back-merged; branches in sync, no divergence
 - 1147 tests green; clippy clean; fmt clean; 21 VPs locked (VP-021 locked @256a490)
 - Feature #100 F2+F3+F4+F5+F6+F7: BC-2.09.007 v1.1.1 / BC-2.09.006 v1.4 / BC-2.04.055 v1.0.1 / VP-021 LOCKED (proof_file_hash=207d3f68) + STORY-097/098/099 completed; 219 BCs / 21 VPs / 52 stories
-- Factory-artifacts: F6 gate (D-027) + F7 consistency sweep 1 (D-028) + F7 re-audit (D-029) + F7 human gate (D-030) committed
-- input-hash drift CLEAN: MATCH=51/STALE=0 (STORY-097 cb2c82d, STORY-098 8b39dcb, STORY-099 5185063)
-- holdout D5 PASS mean 0.99
+- CHANGELOG [0.2.0]: Feature #100 (PRs #197/#198/#199 + hardening #200/#201) + fixes #102/#104 (PRs #194/#195) + CI/supply-chain (#192/#196)
+- Prior release: v0.1.0 @ 2e8d256 (2026-06-08)
 
 **OPEN POST-RELEASE ITEMS (do NOT lose):**
-- #100 (thread pcap timestamps): CONVERGED + CLOSED (D-030) — NEXT = release (v0.1.1 or v0.2.0 semver TBD)
 - #101 (FP/TP rate characterization): OPEN-DEBT — corpus-dependent; blocks #103
 - #103 (size-symmetry evasion discriminator): DEFERRED — needs labelled corpus
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
@@ -87,12 +91,11 @@ input_drift_check: "CLEAN — MATCH=51/STALE=0 (post F7-100 consistency sweep D-
 - Drift items: O-07, O-08, F-W25-S088-P6-001
 - RUSTSEC-2026-0097: accepted-transitive; revisit when tls-parser bumps phf→0.12+
 - Phase-5 tech-debt (P3): CR-002/003/005/006/007/009/012 — see tech-debt-register.md
-- [process-gap DRAFT] DF-SIBLING-SWEEP-001 propagation shadow: HIGH-001's sweep corrected spec files + live test assertions but missed 8 doc-comment lines in 2 test files republishing the false BC date vector claim. R2 re-pass + PR #201 AI review caught them. Candidate codification: extend DF-SIBLING-SWEEP-001 source-docstring-propagation to explicitly include test-file doc comments AND inline comments citing canonical vectors; consider ts_sec<->ISO arithmetic lint from ADV-F5-OBS-001. Do not lose — candidate for lessons.md.
-- [process-gap DRAFT] VP-lock propagation checklist (D-028): when a VP is locked, required sweep — VP file frontmatter, VP-INDEX, verification-coverage-matrix, verification-architecture, all BCs citing the VP (VP-anchor prose), AND recompute input-hash of every story listing the VP as an input. This is the 2nd propagation-shadow process-gap this cycle (1st: DF-SIBLING-SWEEP-001). Candidate DF policy.
+- [process-gap DRAFT] DF-SIBLING-SWEEP-001 propagation shadow: extend to test-file doc comments AND inline comments citing canonical vectors; consider ts_sec<->ISO arithmetic lint from ADV-F5-OBS-001. Candidate for lessons.md / DF policy.
+- [process-gap DRAFT] VP-lock propagation checklist (D-028): sweep must include VP-INDEX, verification-coverage-matrix, verification-architecture, referencing-BC VP-anchor prose, AND input-hash recompute for consuming stories. Coverage-matrix tool-column convention must match VP-INDEX (D-029 lesson). Candidate DF policy.
 
-**RESUME PROTOCOL (for release):**
-1. Confirm semver disposition: v0.1.1 (patch — new capability without breaking changes) or v0.2.0 (minor)
-2. `vsdd-factory:release` — tag + publish next version
+**RESUME PROTOCOL (next cycle):**
+- No open feature work. Next cycle: start with product backlog triage or new feature issue.
 
 Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
@@ -130,6 +133,7 @@ Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 | D-028 | Feature #100 F7 gate fresh-context consistency audit found 8 discrepancies (3 HIGH: VP-021 lock not propagated to coverage-matrix/architecture [F-001], VP-021 proof_file_hash null [F-002], STORY-099 input-hash STALE from VP-021 v2.0 lock [F-003]; 3 MED: delta-analysis §4.5 site-count, BC VP-anchor draft prose, STORY-099 pr-description stale ts; 2 LOW: story status draft→completed, STORY-098 BC-2.04.055 co-trace). All fixed: proof_file_hash=207d3f68; verification-coverage-matrix v1.2 + verification-architecture v1.3 + BC-2.09.007 v1.1.1 + BC-2.04.055 v1.0.1 propagated verified; STORY-097/098/099 status completed; input-hashes recomputed CLEAN (MATCH=51/STALE=0; STORY-097 cb2c82d, STORY-098 8b39dcb, STORY-099 5185063). Lesson: VP-lock bursts must propagate to coverage-matrix, architecture, referencing-BC VP-anchors, AND recompute consuming-story input-hashes (VP files are story inputs). This is the 2nd propagation-shadow process-gap this cycle — candidate DF policy (VP-lock propagation checklist). | 2026-06-09 | Issue #100 F7 consistency sweep — VP-021 lock propagation (8 findings all fixed) + input-hash recompute |
 | D-029 | Feature #100 F7 consistency confirmation re-audit: all 8 D-028 findings RESOLVED; caught + fixed 1 new HIGH introduced by the D-028 fix burst — verification-coverage-matrix v1.2→v1.3: VP-021 row reclassified to proptest column to match VP-INDEX invariant (Kani 8 / proptest 7 / fuzz 1 / integration-unit 5 = 21); prior v1.2 had proptest=6/integration=6 contradicting VP-INDEX. Column sums and per-module totals internally consistent post-fix. F7 consistency now CONFIRMED CONSISTENT. Lesson reinforces VP-lock propagation checklist (D-028): the coverage-matrix tool-column counting convention must match VP-INDEX — add explicit tool-column verification step. | 2026-06-09 | Issue #100 F7 confirmation re-audit — coverage-matrix VP-021 tally aligned to VP-INDEX; F7 CONSISTENT |
 | D-030 | Human authorized Feature #100 F7 delta convergence gate (2026-06-09): all 5 dimensions PASS (spec novelty 0.0, mutation 100% effective, 0 impl defects, VP-021 locked, holdout 0.99), regression 1147 green, consistency CONSISTENT via 2 audits. Feature #100 CONVERGED and CLOSED. Human elected to release now (v0.1.1 or v0.2.0 — semver disposition pending confirmation). F4->F7 full feature-mode cycle complete. | 2026-06-09 | Feature #100 F7 human authorization gate APPROVED — feature-mode cycle COMPLETE |
+| D-031 | Published wirerust v0.2.0 (gitflow-proper). Feature #100 (pcap timestamp threading -> Finding.timestamp) shipped as MINOR. release/0.2.0 -> PR #208 -> main merge 18be1ba; annotated tag v0.2.0 on 18be1ba; release.yml run 27216925948 built+attached 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); GitHub Release live (published 2026-06-09T15:28:38Z, not draft). CHANGELOG [0.2.0] covers #100 feature (PRs #197/#198/#199 + hardening #200/#201) + fixes #102/#104 (PRs #194/#195) + CI/supply-chain (#192/#196). main back-merged into develop (4cfc4c4) — branches in sync, no divergence. | 2026-06-09 | v0.2.0 release — Feature #100 cycle fully closed |
 
 ## Blocking Issues
 
@@ -186,4 +190,4 @@ Full policy text: `.factory/policies.yaml`. Detail: `cycles/phase-3-tdd/governan
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`. SS-03 gap in BC numbering intentional.
 - Phase 0 ground truth: `.factory/semport/wirerust/wirerust-pass-8-deep-synthesis.md`. Wave history: `cycles/phase-3-tdd/convergence-trajectory.md`. Phase 1/2 adversary detail: `cycles/v0.1.0-greenfield-spec/convergence-trajectory.md`. Phase 4 holdout: `cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md`. Phase 6 hardening evidence: `cycles/v0.1.0-greenfield-spec/hardening/`.
-- GitHub issues Cohort A dispositioned (D-022): #104 CLOSED (PR #194), #102 CLOSED (PR #195), #100 FEATURE-MODE pending, #101 OPEN-DEBT, #103 DEFERRED. Dependabot PR #193 CLOSED (SHA-pin preferred, D-023). Supply-chain: 7/8 actions SHA-pinned; pin gate enforced (PR #196).
+- GitHub issues Cohort A dispositioned (D-022/D-031): #104 CLOSED (PR #194), #102 CLOSED (PR #195), #100 FEATURE-MODE CLOSED + RELEASED v0.2.0 (D-031), #101 OPEN-DEBT, #103 DEFERRED. Dependabot PR #193 CLOSED (SHA-pin preferred, D-023). Supply-chain: 7/8 actions SHA-pinned; pin gate enforced (PR #196).
