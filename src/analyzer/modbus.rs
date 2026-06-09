@@ -184,43 +184,52 @@ mod kani_proofs {
     }
 
     // ---- Sub-property B: classify_fc totality (BC-2.14.005/007/008) ----
-    // Symbolic fc: u8 (all 256 values). Proves no panic + set membership.
+    // Symbolic fc: u8 (all 256 values). Proves no panic + totality + correct set
+    // membership + Unknown-for-undefined FCs. The full biconditional expected-mapping
+    // approach means a bug that returns e.g. Read for fc=0x09 (undefined) would be
+    // caught — the previous one-sided `if` guards + tautological variant-exhaustion
+    // check could not detect such a mapping error.
     #[kani::proof]
     fn verify_classify_fc_total() {
         let fc: u8 = kani::any();
         let class = classify_fc(fc);
 
-        if matches!(
+        // Compute the expected classification for every possible u8 value.
+        // Match order mirrors classify_fc: Exception pre-guard first, then Write,
+        // Diagnostic, Read, Unknown. FC sets taken verbatim from the implementation.
+        let expected = if fc >= 0x80 {
+            FunctionCodeClass::Exception
+        } else if matches!(fc, 0x05 | 0x06 | 0x0F | 0x10 | 0x15 | 0x16 | 0x17) {
+            FunctionCodeClass::Write
+        } else if matches!(fc, 0x08 | 0x2B) {
+            FunctionCodeClass::Diagnostic
+        } else if matches!(
             fc,
             0x01 | 0x02 | 0x03 | 0x04 | 0x07 | 0x0B | 0x0C | 0x11 | 0x14 | 0x18
         ) {
-            assert!(class == FunctionCodeClass::Read);
-        }
-        if matches!(fc, 0x05 | 0x06 | 0x0F | 0x10 | 0x15 | 0x16 | 0x17) {
-            assert!(class == FunctionCodeClass::Write);
-        }
-        if matches!(fc, 0x08 | 0x2B) {
-            assert!(class == FunctionCodeClass::Diagnostic);
-        }
-        assert!(matches!(
-            class,
             FunctionCodeClass::Read
-                | FunctionCodeClass::Write
-                | FunctionCodeClass::Diagnostic
-                | FunctionCodeClass::Exception
-                | FunctionCodeClass::Unknown
-        ));
+        } else {
+            FunctionCodeClass::Unknown
+        };
+
+        assert!(class == expected);
     }
 
-    // ---- Sub-property C: exception biconditional + lossless recovery (BC-2.14.006) ----
+    // ---- Sub-property C: exception biconditional + mask invariant (BC-2.14.006) ----
+    // Proves the biconditional: classify_fc returns Exception IFF fc has the high bit set.
+    // Also proves the mask invariant: (fc & 0x7F) < 0x80 — i.e., the consumer-side
+    // high-bit-stripping operation that recovers the original FC always clears the bit.
+    // Note: FunctionCodeClass::Exception carries no payload; original-FC recovery is a
+    // consumer-side computation (fc & 0x7F), not a function output — so there is nothing
+    // further to assert about a returned value here.
     #[kani::proof]
     fn verify_classify_fc_exception_iff_high_bit() {
         let fc: u8 = kani::any();
         assert!((classify_fc(fc) == FunctionCodeClass::Exception) == (fc >= 0x80));
         if fc >= 0x80 {
             let original_fc = fc & 0x7F;
+            // Meaningful: proves the mask always clears the high bit.
             assert!(original_fc < 0x80);
-            assert!(original_fc == fc & 0x7F);
         }
     }
 }

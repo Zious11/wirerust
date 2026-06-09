@@ -1,6 +1,6 @@
 //! Per-protocol analyzers and the shared [`ProtocolAnalyzer`] trait.
 //!
-//! Each protocol-specific submodule (`dns`, `http`, `tls`) inspects either
+//! Each protocol-specific submodule (`dns`, `http`, `modbus`, `tls`) inspects either
 //! raw [`crate::decoder::ParsedPacket`]s ([`ProtocolAnalyzer`]) or reassembled
 //! TCP stream data ([`crate::reassembly::handler::StreamAnalyzer`]) and emits
 //! [`crate::findings::Finding`]s plus an [`AnalysisSummary`].
