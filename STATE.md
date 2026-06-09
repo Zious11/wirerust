@@ -1,5 +1,5 @@
 ---
-pipeline: FEATURE_7_F4_W1_DELIVERED
+pipeline: V0.3.0_RELEASED
 phase: feature-f3
 active_feature: issue-7-modbus-tcp-analyzer
 product: wirerust
@@ -22,17 +22,17 @@ phase_6_completed: "2026-06-02"
 phase_6_to_7_gate: "PASSED (human-approved 2026-06-02)"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-08 — Approve → release-prep)"
 adversary_gate: SATISFIED
-develop_head: c846b3b
-main_head: 18be1ba
-released_version: v0.2.0
+develop_head: 9ef5af1
+main_head: 9ef5af1
+released_version: v0.3.0
 released_at: "2026-06-09"
-release_tag: v0.2.0
-release_url: https://github.com/Zious11/wirerust/releases/tag/v0.2.0
-release_commit: 18be1ba
-prior_released_version: v0.1.0
-prior_released_at: "2026-06-08"
-prior_release_tag: v0.1.0
-prior_release_commit: 2e8d256
+release_tag: v0.3.0
+release_url: https://github.com/Zious11/wirerust/releases/tag/v0.3.0
+release_commit: 9ef5af1
+prior_released_version: v0.2.0
+prior_released_at: "2026-06-09"
+prior_release_tag: v0.2.0
+prior_release_commit: 18be1ba
 current_cycle: v0.1.0-greenfield-spec
 current_wave: 27 (FINAL — CLOSED)
 stories_delivered: 50
@@ -51,9 +51,9 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post F3-7 D-036; STORY-091 no-in
 
 ## Status
 
-**Pipeline: FEATURE_7_F4_W1_DELIVERED (D-037).** Feature #7 F4 Wave 1 (E-13 multi-tag Finding schema migration, v0.3.0) DELIVERED. STORY-100 + STORY-101 merged atomically via PR #209 -> develop c846b3b. Finding.mitre_technique:Option<String> -> mitre_techniques:Vec<String> (JSON scalar->array + key rename; CSV column rename + semicolon-join; report-envelope mitre_domain/mitre_attack_version added). MITRE catalog 15->21 seeded / 6->13 emitted (+T0888 +5 ICS arms + T0855 gap-fix). 1189 tests green (was 1147; +42), clippy+fmt clean, 9/9 CI, AI review APPROVE. OPEN release-blocker: mitre_attack_version F4-PIN placeholder 'ics-attack-v15' must be set to authoritative ATT&CK-ICS version before v0.3.0 tag. NEXT: resolve mitre_attack_version F4-PIN -> v0.3.0 release (gitflow) -> Waves 32-34 Modbus (v0.4.0).
+**Pipeline: V0.3.0_RELEASED (D-038).** Feature #7 Wave 1 (E-13 multi-tag Finding schema migration) RELEASED as v0.3.0. release/0.3.0 -> PR #210 -> main merge 9ef5af1; annotated tag v0.3.0; release.yml run 27240476896 built+attached 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); GitHub Release live. CHANGELOG [0.3.0] BREAKING: mitre_technique scalar -> mitre_techniques array (ECS-aligned); CSV column rename + semicolon-join; report-envelope mitre_domain=ics-attack + mitre_attack_version=ics-attack-19.1. F4-PIN resolved: ATT&CK v19.1, all 7 ICS IDs valid (research: .factory/research/attack-ics-version-pin.md). MITRE catalog 15->21 seeded / 6->13 emitted. 1189 tests green; 9/9 CI. main back-merged into develop (9ef5af1, fast-forward). NEXT: F4 Waves 32-34 Modbus analyzer (STORY-102->103->104->105) -> v0.4.0. Deferred: O-1 EMITTED-naming -> phase-5; terminal multi-ID per-ID name resolution -> STORY-104.
 
-**Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 244 BCs, 22 VPs (21 locked, 1 draft VP-022), 1189 tests green, holdout mean 0.99, adversary convergence 6 PASS / 1 non-blocking CONCERN. develop HEAD c846b3b (Wave 31 / STORY-100+101 merged). Feature #7: v0.3.0 multi-tag DELIVERED (Wave 31) -> v0.4.0 Modbus (Waves 32-34). OPEN release-blocker: mitre_attack_version F4-PIN.
+**Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 244 BCs, 22 VPs (21 locked, 1 draft VP-022), 1189 tests green, holdout mean 0.99, adversary convergence 6 PASS / 1 non-blocking CONCERN. develop HEAD 9ef5af1 (v0.3.0 back-merged). Feature #7: v0.3.0 multi-tag RELEASED (Wave 31) -> v0.4.0 Modbus (Waves 32-34).
 
 ## Phase Progress
 
@@ -73,29 +73,24 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post F3-7 D-036; STORY-091 no-in
 | Release — v0.2.0 | **RELEASED** 2026-06-09 | gitflow-proper: release/0.2.0 → PR #208 → 18be1ba; 4 binaries; run 27216925948; GitHub Release published 2026-06-09T15:28:38Z; D-031 |
 | Feature #7 F3 — Incremental Stories | **COMPLETE** 2026-06-09 | 6 new stories STORY-100..105, 58 total / 353 pts; wave schedule + 22 holdout scenarios; D-036 |
 | Feature #7 F4 Wave 1 — E-13 Multi-Tag Migration | **DELIVERED** 2026-06-09 | STORY-100+101 PR #209 -> develop c846b3b; 1189 tests; 9/9 CI; AI review APPROVE; OPEN: mitre_attack_version F4-PIN; D-037 |
+| Release — v0.3.0 | **RELEASED** 2026-06-09 | gitflow-proper: release/0.3.0 → PR #210 → 9ef5af1; 4 binaries; run 27240476896; GitHub Release published; BREAKING: mitre_techniques array (ECS-aligned); F4-PIN resolved ics-attack-19.1; D-038 |
 
-## Session Resume Checkpoint (2026-06-09 — Feature #7 F4 Wave 1 DELIVERED; NEXT = F4-PIN then v0.3.0 release)
+## Session Resume Checkpoint (2026-06-09 — v0.3.0 RELEASED; NEXT = F4 Waves 32-34 Modbus)
 
-**POSITION:** Feature #7 F4 Wave 1 (E-13 multi-tag Finding schema migration, v0.3.0) DELIVERED (D-037). STORY-100 + STORY-101 merged atomically via PR #209 -> develop c846b3b. NEXT = (1) resolve mitre_attack_version F4-PIN (replace placeholder 'ics-attack-v15' with authoritative ATT&CK-ICS version) -> (2) v0.3.0 gitflow release -> (3) Waves 32-34 Modbus analyzer (v0.4.0).
+**POSITION:** wirerust v0.3.0 RELEASED (D-038). Feature #7 Wave 1 (E-13 multi-tag Finding schema migration) shipped. BREAKING: mitre_technique scalar -> mitre_techniques array (ECS-aligned); CSV column rename + semicolon-join; report-envelope mitre_domain=ics-attack + mitre_attack_version=ics-attack-19.1. F4-PIN resolved; ATT&CK v19.1 all 7 ICS IDs valid. main back-merged into develop (9ef5af1, fast-forward, no divergence). NEXT = F4 Waves 32-34 Modbus analyzer (STORY-102 -> STORY-103 -> STORY-104 -> STORY-105) -> v0.4.0.
 
-**VERIFIED-CLEAN FACTS (at F4 Wave 1 delivery):**
-- main HEAD `18be1ba` — v0.2.0 release commit; annotated tag `v0.2.0`
-- develop HEAD `c846b3b` — Wave 31 / PR #209 merged; STORY-100+101 delivered
-- 1189 tests green (+42 vs 1147 pre-migration); clippy clean; fmt clean; 9/9 CI green
+**VERIFIED-CLEAN FACTS (at v0.3.0 release):**
+- main HEAD `9ef5af1` — v0.3.0 release commit; annotated tag `v0.3.0`
+- develop HEAD `9ef5af1` — fast-forward back-merged from main; no divergence
+- 1189 tests green; clippy clean; fmt clean; 9/9 CI green
 - 244 BCs / 22 VPs (21 locked + VP-022 draft) / 58 stories / 353 pts
 - Input-hash drift: MATCH=57/STALE=0/ERROR=1 (STORY-091 pre-existing no-inputs; all delivery stories MATCH)
-- Active feature: issue-7-modbus-tcp-analyzer; Wave 31 DELIVERED; Waves 32-34 Modbus PENDING
-
-**F4 WAVE 1 DELIVERY FACTS (D-037):**
-- STORY-100 + STORY-101: completed atomically (Rust compiler forces lockstep on core-type change); PR #209
-- Schema change: Finding.mitre_technique:Option<String> -> mitre_techniques:Vec<String>
-- JSON: scalar -> array + key rename; CSV: column rename + semicolon-join; report-envelope: mitre_domain/mitre_attack_version added
-- MITRE catalog: 15->21 seeded / 6->13 emitted (+T0888 +5 ICS arms + T0855 gap-fix)
-- Per-story adversarial convergence: Claude (fixed C-1 mitre_tests-migration + I-1 weakened-assertions) + Gemini cross-model (HIGH 'broken build' REFUTED as hallucination — code compiles green; doc nits fixed)
-- Deferred: O-1 (EMITTED_IDS names 7 ICS not-yet-emitted until Modbus STORY-104); terminal per-ID multi-unknown name resolution -> STORY-104 (BC-2.11.017)
-- OPEN release-blocker: mitre_attack_version F4-PIN placeholder 'ics-attack-v15' MUST be pinned to authoritative ATT&CK-ICS version before v0.3.0 tag (covers T0806/T0814/T0831/T0835/T0836/T0855/T0888)
+- Active feature: issue-7-modbus-tcp-analyzer; Wave 31 RELEASED as v0.3.0; Waves 32-34 Modbus PENDING
+- GitHub Release: https://github.com/Zious11/wirerust/releases/tag/v0.3.0; 4 binaries; run 27240476896
 
 **CARRY-FORWARD ITEMS (do NOT lose):**
+- O-1 (EMITTED_IDS names 7 ICS not-yet-emitted until Modbus STORY-104): deferred to phase-5
+- Terminal multi-ID per-ID name resolution -> STORY-104 (BC-2.11.017)
 - #101 (FP/TP rate characterization): OPEN-DEBT — corpus-dependent; blocks #103
 - #103 (size-symmetry evasion discriminator): DEFERRED — needs labelled corpus
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
@@ -104,8 +99,10 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post F3-7 D-036; STORY-091 no-in
 - Drift items: O-07, O-08, F-W25-S088-P6-001
 - RUSTSEC-2026-0097: accepted-transitive; revisit when tls-parser bumps phf→0.12+
 - Phase-5 tech-debt (P3): CR-002/003/005/006/007/009/012 — see tech-debt-register.md
+- PG-5/PG-6: process-gap codification pending cycle-close
+- PROCESS-ARITHMETIC-REVIEW-001: codification pending cycle-close
 
-Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
+Prior checkpoint (F4 Wave 1 DELIVERED) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
 ## Decisions Log
 
@@ -148,6 +145,7 @@ Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 | D-035 | Feature #7 F2 gate APPROVED with research-driven RELEASE SPLIT (2026-06-09). Three research-agent reports (bundle-vs-split, multi-tag-schema, decomposition-sequencing) → human decisions: (1) SPLIT the breaking change — v0.3.0 = multi-tag Finding schema migration ISOLATED (SS-09/10/11 + all existing analyzers/reporters/catalog + 6 existing stories STORY-069/070/071/078/079/080), v0.4.0 = Modbus analyzer ADDITIVE on the stable type (SS-14). Rationale: multi-tag motivated-by but not required-by Modbus; isolating the break = honest semver + single clean migration note (Trivy/Zeek precedent). (2) Schema design VALIDATED sound as-is (mitre_techniques flat array == Elastic ECS threat.technique.id; semicolon-CSV de-facto standard; absent-when-empty + canonical order correct). (3) Decomposition = ATOMIC rename (not parallel-change; Rust forces lockstep, no 0.x external consumers), migration FIRST as its own wave merged green, THEN Modbus; 6 shipped stories' tests updated inside the migration commit. ADD-ONS applied: report-envelope mitre_domain='ics-attack' + mitre_attack_version (placeholder 'ics-attack-v15', F4 must pin to authoritative ATT&CK-ICS version covering T0806/T0814/T0831/T0835/T0836/T0855/T0888); CSV empty-string (not null). F2 spec CONVERGED (Claude 3 rounds + Gemini cross-model) + research-validated. Input-hash recomputed: MATCH=51/STALE=0/ERROR=1 (10 stories: STORY-001/002/003/004/005/076/077/078/079/080 — BC-2.11.001/024 changed). NEXT: F3 decomposition — Wave 1 (multi-tag migration → v0.3.0), Wave 2 (Modbus → v0.4.0). | 2026-06-09 | Feature #7 F2 gate APPROVED — release split v0.3.0 schema / v0.4.0 Modbus + ECS schema add-ons |
 | D-036 | Feature #7 F3 story decomposition COMPLETE (2026-06-09). 6 new stories, acyclic graph (STORY-100 -> {101 || 102} -> 103 -> 104 -> 105). E-13 Multi-Tag Finding Schema Migration (v0.3.0, Wave 31): STORY-100 (core type+catalog+analyzers migration, 13pts) + STORY-101 (reporters+ECS envelope add-ons, 8pts). E-14 Modbus Analyzer (v0.4.0, Waves 32-34): STORY-102 (MBAP parse+FC classify+VP-022 Kani, 8pts), STORY-103 (flow state+txn correlation, 8pts), STORY-104 (7 detectors+dual-window+co-emission+summary, 13pts), STORY-105 (dispatcher+CLI+VP-004 oracle, 8pts). Migration-first enforced (STORY-102 depends_on STORY-100). 6 existing stories (069/070/071/078/079/080) noted: tests migrated to multi-tag by STORY-100. STORY-INDEX 52->58 stories / 305->353 pts. Wave schedule + 22 wave-holdout scenarios written. F4-pin flag: mitre_attack_version. Input-hash CLEAN: MATCH=57/STALE=0/ERROR=1 (6 hashes written: STORY-100 270dd80, STORY-101 dccf659, STORY-102 6dc856b, STORY-103 4a0438e, STORY-104 4f1ebad, STORY-105 8955282). NEXT: F3 human gate, then F4 TDD Wave 1 (v0.3.0). | 2026-06-09 | Feature #7 F3 story decomposition — 6 stories, 2 epics, wave schedule, 22 holdout scenarios |
 | D-037 | Feature #7 F4 Wave 1 (E-13 multi-tag Finding migration) DELIVERED. STORY-100+STORY-101 delivered atomically (Rust compiler forces lockstep on the core-type change) via PR #209 -> develop c846b3b. Finding.mitre_technique:Option<String> -> mitre_techniques:Vec<String> (JSON scalar->array + key rename; CSV column rename + semicolon-join; report-envelope mitre_domain/mitre_attack_version); MITRE catalog 15->21 seeded / 6->13 emitted (+T0888 +5 ICS arms + T0855 gap-fix). 1189 tests green (was 1147; +42), clippy+fmt clean, 9/9 CI, AI review APPROVE. Per-story adversarial convergence: Claude (fixed C-1 mitre_tests-migration + I-1 weakened-assertions) + Gemini cross-model (HIGH 'broken build' REFUTED as hallucination — code compiles green; doc nits fixed). Deferred: O-1 (EMITTED_IDS names 7 ICS not-yet-emitted until Modbus STORY-104 -> phase-5); terminal per-ID multi-unknown name resolution -> STORY-104 (BC-2.11.017). OPEN release-blocker: mitre_attack_version F4-PIN (placeholder ics-attack-v15) must be set to authoritative ATT&CK-ICS version before v0.3.0 tag. develop HEAD c846b3b. | 2026-06-09 | Feature #7 F4 Wave 1 multi-tag migration DELIVERED (PR #209, develop c846b3b) |
+| D-038 | Published wirerust v0.3.0 (gitflow-proper) — Feature #7 Wave 1 / E-13 multi-tag Finding schema migration (BREAKING). release/0.3.0 -> PR #210 -> main merge 9ef5af1; annotated tag v0.3.0; release.yml run 27240476896 built+attached 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); GitHub Release live. CHANGELOG [0.3.0] BREAKING: mitre_technique scalar -> mitre_techniques array (ECS-aligned); CSV column rename + semicolon-join; report-envelope mitre_domain=ics-attack + mitre_attack_version=ics-attack-19.1 (F4-PIN resolved: ATT&CK v19.1, all 7 ICS IDs valid, per .factory/research/attack-ics-version-pin.md); MITRE catalog 15->21 seeded / 6->13 emitted (6 ICS staged for Modbus + T0855 gap-fix). 1189 tests green; 9/9 CI. main back-merged into develop (9ef5af1, fast-forward, no divergence). | 2026-06-09 | v0.3.0 release — Feature #7 Wave 1 multi-tag MITRE schema (BREAKING) |
 
 ## Blocking Issues
 
