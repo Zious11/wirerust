@@ -1225,11 +1225,8 @@ fn test_finding_construction_with_all_fields() {
     assert!(matches!(f.confidence, Confidence::High));
     assert_eq!(f.summary, "test summary");
     assert_eq!(f.evidence.len(), 2);
-    // STORY-100 BC-2.09.001: mitre_techniques is Vec<String>.
-    assert_eq!(
-        f.mitre_techniques.first().map(|s| s.as_str()),
-        Some("T1027")
-    );
+    // STORY-100 BC-2.09.001: mitre_techniques is Vec<String> — full-vec equality.
+    assert_eq!(f.mitre_techniques, vec!["T1027".to_string()]);
     assert_eq!(f.source_ip, Some(ip));
     assert!(
         f.timestamp.is_none(),

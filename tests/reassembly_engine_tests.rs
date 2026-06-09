@@ -880,10 +880,7 @@ fn test_overlap_anomaly_finding() {
     assert_eq!(overlap_finding.category, ThreatCategory::Anomaly);
     assert_eq!(overlap_finding.confidence, Confidence::Medium);
     assert_eq!(overlap_finding.verdict, Verdict::Likely);
-    assert_eq!(
-        overlap_finding.mitre_techniques.first().map(|s| s.as_str()),
-        Some("T1036")
-    );
+    assert_eq!(overlap_finding.mitre_techniques, vec!["T1036".to_string()]);
 }
 
 #[test]
@@ -1020,7 +1017,7 @@ fn test_vp002_g3_end_to_end_conflicting_bytes_absent_from_stream() {
             f.category == ThreatCategory::Anomaly
                 && f.verdict == Verdict::Likely
                 && f.confidence == Confidence::High
-                && f.mitre_techniques.first().map(|s| s.as_str()) == Some("T1036")
+                && f.mitre_techniques == vec!["T1036".to_string()]
         }),
         "G3: a conflicting-overlap finding (Anomaly/Likely/High, MITRE T1036) must still be \
          emitted alongside byte preservation — detection and forensic correctness together"
@@ -11788,9 +11785,9 @@ fn test_BC_2_04_018_conflicting_overlap_emits_t1036_finding() {
     assert_eq!(f.verdict, Verdict::Likely, "verdict must be Likely");
     assert_eq!(f.confidence, Confidence::High, "confidence must be High");
     assert_eq!(
-        f.mitre_techniques.first().map(|s| s.as_str()),
-        Some("T1036"),
-        "mitre_technique must be Some(\"T1036\")"
+        f.mitre_techniques,
+        vec!["T1036".to_string()],
+        "mitre_techniques must be exactly [\"T1036\"]"
     );
 
     // Summary must contain the FlowKey display string.  FlowKey displays as
@@ -12018,9 +12015,9 @@ fn test_BC_2_04_019_overlap_threshold_emits_medium_t1036_finding() {
         "confidence must be Medium"
     );
     assert_eq!(
-        f.mitre_techniques.first().map(|s| s.as_str()),
-        Some("T1036"),
-        "mitre_technique must be Some(\"T1036\")"
+        f.mitre_techniques,
+        vec!["T1036".to_string()],
+        "mitre_techniques must be exactly [\"T1036\"]"
     );
     // BC-2.04.019 PC1 evidence string (src/reassembly/mod.rs:441)
     assert_eq!(

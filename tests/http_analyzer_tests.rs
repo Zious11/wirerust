@@ -472,10 +472,7 @@ fn test_too_many_headers_generates_finding() {
     assert_eq!(findings[0].category, ThreatCategory::Anomaly);
     assert_eq!(findings[0].verdict, Verdict::Inconclusive);
     assert_eq!(findings[0].confidence, Confidence::Medium);
-    assert_eq!(
-        findings[0].mitre_techniques.first().map(|s| s.as_str()),
-        Some("T1499.002")
-    );
+    assert_eq!(findings[0].mitre_techniques, vec!["T1499.002".to_string()]);
     assert!(findings[0].summary.contains("Excessive HTTP headers"));
     // AC-005 / BC-2.06.014 invariant 4: evidence must be EXACTLY "Direction: request",
     // not derived from the Direction enum (which would print a variant name, not this string).
@@ -899,9 +896,9 @@ fn test_detect_admin_panel_paths() {
             "admin panel finding for {pattern} should be Low confidence"
         );
         assert_eq!(
-            admin_finding.mitre_techniques.first().map(|s| s.as_str()),
-            Some("T1046"),
-            "admin panel finding for {pattern} should map to T1046"
+            admin_finding.mitre_techniques,
+            vec!["T1046".to_string()],
+            "admin panel finding for {pattern} must have mitre_techniques=[\"T1046\"]"
         );
     }
 }
@@ -1898,9 +1895,9 @@ mod bc_2_06_story042_formalization {
             "BC-2.06.005 pc-1: confidence must be High"
         );
         assert_eq!(
-            traversal.mitre_techniques.first().map(|s| s.as_str()),
-            Some("T1083"),
-            "BC-2.06.005 pc-1: mitre_technique must be T1083"
+            traversal.mitre_techniques,
+            vec!["T1083".to_string()],
+            "BC-2.06.005 pc-1: mitre_techniques must be exactly [\"T1083\"]"
         );
         // Summary must contain the URI (truncated to 120 chars max).
         assert!(
@@ -2018,9 +2015,9 @@ mod bc_2_06_story042_formalization {
                 .find(|f| f.summary.contains("Path traversal"))
                 .expect("EC-001 pattern '../': path-traversal finding must be emitted");
             assert_eq!(
-                t.mitre_techniques.first().map(|s| s.as_str()),
-                Some("T1083"),
-                "EC-001: mitre_technique must be T1083"
+                t.mitre_techniques,
+                vec!["T1083".to_string()],
+                "EC-001: mitre_techniques must be exactly [\"T1083\"]"
             );
         }
 
@@ -2231,9 +2228,9 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
             );
 
         assert_eq!(
-            traversal.mitre_techniques.first().map(|s| s.as_str()),
-            Some("T1083"),
-            "EC-011: mitre_technique must be T1083 for HTTP/1.0 path-traversal"
+            traversal.mitre_techniques,
+            vec!["T1083".to_string()],
+            "EC-011: mitre_techniques must be exactly [\"T1083\"] for HTTP/1.0 path-traversal"
         );
         assert_eq!(
             traversal.category,
@@ -2305,9 +2302,9 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
             "BC-2.06.006 pc-1: confidence must be Medium"
         );
         assert_eq!(
-            shell_finding.mitre_techniques.first().map(|s| s.as_str()),
-            Some("T1505.003"),
-            "BC-2.06.006 pc-1: mitre_technique must be T1505.003"
+            shell_finding.mitre_techniques,
+            vec!["T1505.003".to_string()],
+            "BC-2.06.006 pc-1: mitre_techniques must be exactly [\"T1505.003\"]"
         );
         assert!(
             shell_finding
@@ -2517,9 +2514,9 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
                 "BC-2.06.007 pc-1: confidence must be Low for '{uri}'"
             );
             assert_eq!(
-                admin_finding.mitre_techniques.first().map(|s| s.as_str()),
-                Some("T1046"),
-                "BC-2.06.007 pc-1: mitre_technique must be T1046 for '{uri}'"
+                admin_finding.mitre_techniques,
+                vec!["T1046".to_string()],
+                "BC-2.06.007 pc-1: mitre_techniques must be exactly [\"T1046\"] for '{uri}'"
             );
             assert!(
                 admin_finding.summary.starts_with("Admin panel access: "),
@@ -2702,10 +2699,10 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
             let findings = a.findings();
             let has_traversal = findings
                 .iter()
-                .any(|f| f.mitre_techniques.first().map(|s| s.as_str()) == Some("T1083"));
+                .any(|f| f.mitre_techniques == vec!["T1083".to_string()]);
             let has_webshell = findings
                 .iter()
-                .any(|f| f.mitre_techniques.first().map(|s| s.as_str()) == Some("T1505.003"));
+                .any(|f| f.mitre_techniques == vec!["T1505.003".to_string()]);
 
             assert!(
                 has_traversal,
@@ -2736,15 +2733,15 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
             let findings = a.findings();
             let traversal_count = findings
                 .iter()
-                .filter(|f| f.mitre_techniques.first().map(|s| s.as_str()) == Some("T1083"))
+                .filter(|f| f.mitre_techniques == vec!["T1083".to_string()])
                 .count();
             let webshell_count = findings
                 .iter()
-                .filter(|f| f.mitre_techniques.first().map(|s| s.as_str()) == Some("T1505.003"))
+                .filter(|f| f.mitre_techniques == vec!["T1505.003".to_string()])
                 .count();
             let admin_count = findings
                 .iter()
-                .filter(|f| f.mitre_techniques.first().map(|s| s.as_str()) == Some("T1046"))
+                .filter(|f| f.mitre_techniques == vec!["T1046".to_string()])
                 .count();
 
             assert_eq!(
@@ -2870,7 +2867,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
         assert!(
             !findings
                 .iter()
-                .any(|f| f.mitre_techniques.first().map(|s| s.as_str()) == Some("T1083")),
+                .any(|f| f.mitre_techniques == vec!["T1083".to_string()]),
             "BC-2.06.012 invariant 1: path-traversal (T1083) must not fire for '/index.html'"
         );
 
@@ -2878,7 +2875,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
         assert!(
             !findings
                 .iter()
-                .any(|f| f.mitre_techniques.first().map(|s| s.as_str()) == Some("T1505.003")),
+                .any(|f| f.mitre_techniques == vec!["T1505.003".to_string()]),
             "BC-2.06.012 invariant 1: web-shell (T1505.003) must not fire for '/index.html'"
         );
 
@@ -2886,7 +2883,7 @@ GET /../../boot.ini HTTP/1.1\r\nHost: target.com\r\n\r\n";
         assert!(
             !findings
                 .iter()
-                .any(|f| f.mitre_techniques.first().map(|s| s.as_str()) == Some("T1046")),
+                .any(|f| f.mitre_techniques == vec!["T1046".to_string()]),
             "BC-2.06.012 invariant 1: admin-panel (T1046) must not fire for '/index.html'"
         );
 
@@ -3849,9 +3846,9 @@ mod bc_2_06_044_formalization {
             "BC-2.06.014 postcondition 1: confidence must be Medium"
         );
         assert_eq!(
-            f.mitre_techniques.first().map(|s| s.as_str()),
-            Some("T1499.002"),
-            "BC-2.06.014 postcondition 1: mitre_technique must be T1499.002"
+            f.mitre_techniques,
+            vec!["T1499.002".to_string()],
+            "BC-2.06.014 postcondition 1: mitre_techniques must be exactly [\"T1499.002\"]"
         );
         assert_eq!(
             f.summary,
@@ -3908,9 +3905,9 @@ mod bc_2_06_044_formalization {
             "BC-2.06.014 postcondition 1: direction field must be ServerToClient"
         );
         assert_eq!(
-            f.mitre_techniques.first().map(|s| s.as_str()),
-            Some("T1499.002"),
-            "BC-2.06.014: mitre_technique must be T1499.002 for response side"
+            f.mitre_techniques,
+            vec!["T1499.002".to_string()],
+            "BC-2.06.014: mitre_techniques must be exactly [\"T1499.002\"] for response side"
         );
     }
 
