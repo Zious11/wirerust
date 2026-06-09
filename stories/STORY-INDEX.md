@@ -83,8 +83,8 @@ traces_to:
 | STORY-097 | Thread Capture-Relative Timestamp Through StreamHandler::on_data | E-12 | 28 | 5 | completed | — |
 | STORY-098 | Attach Pcap Timestamp to Emitted Findings | E-12 | 29 | 8 | completed | STORY-097 |
 | STORY-099 | Verify Timestamp Provenance End-to-End (VP-021) | E-12 | 30 | 5 | completed | STORY-098 |
-| STORY-100 | Multi-Tag Finding Schema Migration (Atomic Type Rename + Catalog Seed) | E-13 | 31 | 13 | draft | — |
-| STORY-101 | Multi-Tag Reporter Serialization + JSON Envelope Add-Ons | E-13 | 31 | 8 | draft | STORY-100 |
+| STORY-100 | Multi-Tag Finding Schema Migration (Atomic Type Rename + Catalog Seed) | E-13 | 31 | 13 | completed | — |
+| STORY-101 | Multi-Tag Reporter Serialization + JSON Envelope Add-Ons | E-13 | 31 | 8 | completed | STORY-100 |
 | STORY-102 | Modbus MBAP Parse + FC Classification (Pure Core) | E-14 | 32 | 8 | draft | STORY-100 |
 | STORY-103 | Modbus Flow State + Transaction Correlation | E-14 | 33 | 8 | draft | STORY-102 |
 | STORY-104 | Modbus Detection Emissions + Summary | E-14 | 33 | 13 | draft | STORY-103 |
@@ -187,6 +187,7 @@ traces_to:
 | 25 | STORY-088 | **DELIVERED & CLOSED** | #168 | 5202fe9 | 2026-05-31 |
 | 26 | STORY-089 | **DELIVERED & CLOSED** | #169 | 450d33e | 2026-05-31 |
 | 27 | STORY-090 | **DELIVERED & CLOSED** | #170 | 6158e6e | 2026-05-31 |
+| 31 | STORY-100, STORY-101 | **DELIVERED & CLOSED** | #209 | c846b3b | 2026-06-09 |
 
 ## Coverage Verification
 
