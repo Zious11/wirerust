@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-071
 epic_id: E-7
-version: "1.5"
+version: "1.6"
 status: completed
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
@@ -230,3 +230,4 @@ All 6 currently-emitted technique IDs (T1027, T1036, T1046, T1083, T1499.002, T1
 | 1.2 | 2026-05-22 | story-writer | Wave 3 Ph3 implementer-confirm anchor-drift correction: `MitreTactic` enum anchor corrected from `:46-90` to `:46-66` (enum declaration only; Display impl is `:68-90`); `technique_info` closing-brace anchor corrected from `:122-155` to `:122-156` |
 | 1.4 | 2026-05-22 | story-writer | Wave 3 wave-level adversarial fix F-2: status advanced draft → completed — STORY-071 delivered via PR #113, merge 991e821 |
 | 1.3 | 2026-05-22 | story-writer | Wave 3 Ph3 pass-1 adversarial fixes: m-2 AC-008 trace postcondition 1→2; m-3 AC-009 trace postconditions 1,3 + joint-coverage note; m-5 technique_name line anchor :160-162; n-1 AC-002 test reference to standalone function; n-2 Task 2 count 16→19 |
+| 1.6 | 2026-06-09 | story-writer | UPDATED (Feature #7 migration note): STORY-071 covers MITRE catalog lookup and `all_tactics_in_report_order`. STORY-100 (v0.3.0) seeds 6 new ICS technique arms (T0836, T0814, T0806, T0835, T0831, T0888) into `technique_info` and updates `SEEDED_TECHNIQUE_ID_COUNT` from 15 to 21. Test assertions in the STORY-071 scope that check seeded-ID count or enumerate seeded IDs are updated by STORY-100 to reflect 21 IDs. The `mitre_technique: Option<String>` → `mitre_techniques: Vec<String>` field rename does not change the MITRE lookup API (technique_name/technique_tactic remain unchanged); only the VP-007 drift-guard grep pattern changes from `mitre_technique: Some` to `mitre_techniques: vec!`. Story status remains `completed`; no re-implementation required. |

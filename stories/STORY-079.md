@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-079"
 epic_id: "E-8"
-version: "1.4"
+version: "1.5"
 status: completed
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
@@ -196,3 +196,4 @@ The joined evidence string is subsequently processed by `neutralize_csv_injectio
 | Version | Date | Change |
 |---------|------|--------|
 | v1.3 | 2026-05-30 | proptest→unit in Task 8 + Compliance Rules enforcement to match VP-020 proof_method:unit + realized unit test suite (STORY-079 P6 finding; sibling-sweep of 2026-05-30 VP-020 correction) |
+| v1.5 | 2026-06-09 | story-writer | UPDATED (Feature #7 migration note): STORY-079 covers `CsvReporter` fixed 9-column schema. STORY-101 (v0.3.0) renames column 6 header from `mitre_technique` to `mitre_techniques` and changes the value encoding from `Option::as_deref().unwrap_or("")` to `Vec::join(";")`. CSV output is behavior-preserving for singleton vecs (single technique renders identically). Multi-technique vecs render as `"T0855;T0836"` (semicolon-joined). The VP-020 csv-injection-neutralization harness is updated by STORY-100 to use `Finding { mitre_techniques: vec![...] }`. Story status remains `completed`; no re-implementation required. |

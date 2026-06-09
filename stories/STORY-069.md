@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-069
 epic_id: E-7
-version: "1.4"
+version: "1.5"
 status: completed
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
@@ -189,3 +189,4 @@ All five reassembly anomaly emission sites set `source_ip: Some(src_ip)`: the th
 | 1.3 | 2026-05-21 | phase-3-adversarial-review | Minor-1: AC-003 prose expanded to cover all 5 source_ip: Some sites per BC-2.09.001 invariant 2 — added the two reassembly/lifecycle.rs sites (conflicting-overlap, stream-depth-exceeded) that were missing from the story prose; delivered test already covered all 5 sites |
 | 1.2 | 2026-05-21 | phase-3-adversarial-review | Phase 3 per-story adversarial review — corrected Display template wording to match BC-2.09.002 v1.3 and `src/findings.rs`: Task 6 and Architecture Compliance Rules row 3 updated from `{cat:?}` to `{cat}` (plain Display); row 4 reworded to reflect that `#[non_exhaustive]` on `Verdict`/`Confidence` is permitted per LESSON-P2.10, not forbidden |
 | 1.1 | 2026-05-21 | story-writer | Initial story decomposition |
+| 1.5 | 2026-06-09 | story-writer | UPDATED (Feature #7 migration note): The `Finding.mitre_technique: Option<String>` field defined in this story is renamed to `mitre_techniques: Vec<String>` by STORY-100 (v0.3.0 multi-tag schema migration). All test assertions in the STORY-069 scope that construct `Finding { mitre_technique: Some("TXXXX") }` or `Finding { mitre_technique: None }` are updated to `vec!["TXXXX"]` / `vec![]` by STORY-100. This migration is behavior-preserving for CSV (semicolon-join of singleton is identical to the old scalar string) and terminal output. JSON output changes from scalar `"TXXXX"` to array `["TXXXX"]` — this is the one intentional v0.3.0 breaking change for JSON consumers. Story status remains `completed`; no re-implementation required. |

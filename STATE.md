@@ -1,6 +1,6 @@
 ---
-pipeline: FEATURE_7_F2_APPROVED
-phase: feature-f2
+pipeline: FEATURE_7_F3_COMPLETE
+phase: feature-f3
 active_feature: issue-7-modbus-tcp-analyzer
 product: wirerust
 mode: brownfield
@@ -44,16 +44,16 @@ dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 convergence_trajectory: "P1-MED|P2-MED|P3-HIGH+LOW|P4-MED|P5-ZERO|P6-HIGH+MED|P7-MED+LOW|P8-HIGH|P9-ZERO|P10-MED+MED+LOW|P11-MED+LOW|P12-CLEAN(1/3)|P13-CLEAN(2/3)|P14-CLEAN(3/3)-GATE-SATISFIED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 consistency_audit: CONSISTENT
-input_drift_check: "CLEAN — MATCH=51/STALE=0 (post F2-7 gate D-035; STORY-091 no-inputs ERROR pre-existing; 10 hashes recomputed: STORY-001/002/003/004/005/076/077/078/079/080 — BC-2.11.001/024 changed)"
+input_drift_check: "CLEAN — MATCH=57/STALE=0 (post F3-7 D-036; STORY-091 no-inputs ERROR pre-existing; 6 hashes written: STORY-100/101/102/103/104/105 — new stories)"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline: FEATURE_7_F2_APPROVED (release split — v0.3.0 schema / v0.4.0 Modbus).** Feature #7 F2 gate APPROVED by human (2026-06-09, D-035). Three research-agent reports (bundle-vs-split, multi-tag-schema, decomposition-sequencing) informed human decisions: (1) RELEASE SPLIT — v0.3.0 = multi-tag Finding schema migration ISOLATED (SS-09/10/11 + all existing analyzers/reporters/catalog + 6 existing stories STORY-069/070/071/078/079/080); v0.4.0 = Modbus analyzer ADDITIVE on stable type (SS-14). Rationale: multi-tag motivated-by but not required-by Modbus; isolating the break = honest semver + single clean migration note (Trivy/Zeek precedent). (2) Schema VALIDATED sound as-is (mitre_techniques flat array == Elastic ECS threat.technique.id; semicolon-CSV de-facto standard; absent-when-empty + canonical order correct). (3) Decomposition = ATOMIC rename (not parallel-change; Rust forces lockstep, no 0.x external consumers); migration FIRST as own wave merged green, THEN Modbus; 6 shipped stories' tests updated inside migration commit. ADD-ONS: report-envelope mitre_domain='ics-attack' + mitre_attack_version (placeholder 'ics-attack-v15', F4 MUST pin to authoritative ATT&CK-ICS version covering T0806/T0814/T0831/T0835/T0836/T0855/T0888); CSV empty-string (not null). NEXT = F3 incremental stories (Wave 1 schema-migration → v0.3.0, Wave 2 Modbus → v0.4.0). OPEN FLAG: mitre_attack_version must be pinned at F4 before v0.3.0 tag.
+**Pipeline: FEATURE_7_F3_COMPLETE (D-036).** Feature #7 F3 story decomposition COMPLETE (2026-06-09). 6 new stories (STORY-100..105), acyclic graph (STORY-100 -> {101 || 102} -> 103 -> 104 -> 105). E-13 Multi-Tag Finding Schema Migration (v0.3.0, Wave 31): STORY-100 (core type+catalog+analyzers migration, 13pts) + STORY-101 (reporters+ECS envelope add-ons, 8pts). E-14 Modbus Analyzer (v0.4.0, Waves 32-34): STORY-102 (MBAP parse+FC classify+VP-022 Kani, 8pts), STORY-103 (flow state+txn correlation, 8pts), STORY-104 (7 detectors+dual-window+co-emission+summary, 13pts), STORY-105 (dispatcher+CLI+VP-004 oracle, 8pts). Migration-first enforced (STORY-102 depends_on STORY-100). 6 existing stories (069/070/071/078/079/080) noted: tests migrated to multi-tag by STORY-100. STORY-INDEX 52->58 stories / 305->353 pts. Wave schedule + 22 wave-holdout scenarios written. F4-pin flag: mitre_attack_version. NEXT: F3 human gate, then F4 TDD Wave 1 (v0.3.0).
 
-**Summary:** 52 stories delivered (48 greenfield + 4 F-cycle), 244 BCs (219 pre-Modbus + 25 SS-14), 22 VPs (21 locked, 1 draft VP-022), 1147 tests green, holdout mean 0.99, adversary convergence 6 PASS / 1 non-blocking CONCERN (Performance — non-blocking). develop HEAD 4cfc4c4 (main back-merged, branches in sync). Feature #7 F2 revision: ~28 BCs revised (dual-window + T0888 + multi-tag), v0.3.0 target, ADR-006.
+**Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 244 BCs, 22 VPs (21 locked, 1 draft VP-022), 1147 tests green, holdout mean 0.99, adversary convergence 6 PASS / 1 non-blocking CONCERN. develop HEAD 4cfc4c4 (main back-merged, branches in sync). Feature #7: v0.3.0 multi-tag migration (Wave 31) + v0.4.0 Modbus (Waves 32-34). F4-pin flag: mitre_attack_version.
 
 ## Phase Progress
 
@@ -71,33 +71,37 @@ input_drift_check: "CLEAN — MATCH=51/STALE=0 (post F2-7 gate D-035; STORY-091 
 | Release — v0.1.0 | **RELEASED** 2026-06-08 | GitHub Release; 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); run 27155277051 all jobs success |
 | Feature #100 F4→F7 Cycle | **COMPLETE + RELEASED** 2026-06-09 | STORY-097/098/099 delivered; VP-021 LOCKED; D-030 human gate; shipped in v0.2.0 |
 | Release — v0.2.0 | **RELEASED** 2026-06-09 | gitflow-proper: release/0.2.0 → PR #208 → 18be1ba; 4 binaries; run 27216925948; GitHub Release published 2026-06-09T15:28:38Z; D-031 |
+| Feature #7 F3 — Incremental Stories | **COMPLETE** 2026-06-09 | 6 new stories STORY-100..105, 58 total / 353 pts; wave schedule + 22 holdout scenarios; D-036; NEXT = F3 human gate |
 
-## Session Resume Checkpoint (2026-06-09 — Feature #7 F2 APPROVED with release split; NEXT = F3)
+## Session Resume Checkpoint (2026-06-09 — Feature #7 F3 COMPLETE; NEXT = F3 human gate then F4)
 
-**POSITION:** Feature #7 F2 gate APPROVED (D-035). Release split decided: v0.3.0 = multi-tag schema migration ISOLATED; v0.4.0 = Modbus analyzer. NEXT = F3 incremental story decomposition (Wave 1: schema-migration stories for v0.3.0; Wave 2: Modbus stories for v0.4.0).
+**POSITION:** Feature #7 F3 incremental story decomposition COMPLETE (D-036). 6 new stories STORY-100..105; STORY-INDEX 58 stories / 353 pts. NEXT = F3 human gate review, then F4 TDD implementation (Wave 31 multi-tag migration → v0.3.0, then Waves 32-34 Modbus → v0.4.0).
 
-**VERIFIED-CLEAN FACTS (at F2 gate close):**
+**VERIFIED-CLEAN FACTS (at F3 decomposition close):**
 - main HEAD `18be1ba` — v0.2.0 release commit; annotated tag `v0.2.0`
 - develop HEAD `4cfc4c4` — main back-merged; branches in sync, no divergence
 - 1147 tests green; clippy clean; fmt clean; 21 VPs locked (VP-021 locked @256a490)
-- 244 BCs (219 pre-Modbus + 25 SS-14 BC-2.14.001-025) / 22 VPs (21 locked + VP-022 draft) / 52 stories
-- Input-hash drift: MATCH=51/STALE=0/ERROR=1 (STORY-091 pre-existing no-inputs; 10 stories recomputed D-035: STORY-001/002/003/004/005/076/077/078/079/080)
-- Active feature: issue-7-modbus-tcp-analyzer; v0.3.0 target (schema migration) + v0.4.0 (Modbus)
+- 244 BCs (219 pre-Modbus + 25 SS-14) / 22 VPs (21 locked + VP-022 draft) / 58 stories / 353 pts
+- Input-hash drift: MATCH=57/STALE=0/ERROR=1 (STORY-091 pre-existing no-inputs; 6 hashes written D-036: STORY-100/101/102/103/104/105)
+- Active feature: issue-7-modbus-tcp-analyzer; v0.3.0 (multi-tag migration Wave 31) + v0.4.0 (Modbus Waves 32-34)
 - OPEN FLAG: mitre_attack_version placeholder 'ics-attack-v15' — MUST be pinned to authoritative ATT&CK-ICS version at F4 before v0.3.0 tag (covers T0806/T0814/T0831/T0835/T0836/T0855/T0888)
 
-**F2 DELIVERABLES COMPLETE (D-034 + D-035):**
-- Dual-window write threshold: burst >20/1s + sustained >10/s over >=2s; 2 CLI flags; microsecond math (wrapping_sub wrap-safe, no truncation)
-- T0846→T0888 recon fix: T0888 Remote System Information Discovery; SEEDED 21/EMITTED 13
-- Multi-tag Finding: `mitre_techniques: Vec<String>` (was `Option<String>`); ADR-006; breaking JSON/CSV schema → v0.3.0
-- ~28 BCs revised across SS-09/10/11/14 + BC-INDEX + prd.md + ADR-006 + VP-007 + ARCH-INDEX + verification artifacts
-- 3 research reports: f2-bundle-vs-split / f2-multitag-schema / f2-decomposition-sequencing
-- ADD-ONS: report-envelope mitre_domain='ics-attack' + mitre_attack_version; CSV empty-string (not null)
+**F3 DELIVERABLES COMPLETE (D-036):**
+- STORY-100: E-13 core multi-tag migration (type+catalog+all-analyzers), 13pts, Wave 31, depends: none
+- STORY-101: E-13 reporters+ECS envelope add-ons (mitre_domain + mitre_attack_version), 8pts, Wave 31, depends: STORY-100
+- STORY-102: E-14 MBAP parse+FC classify+VP-022 Kani harnesses, 8pts, Wave 32, depends: STORY-100
+- STORY-103: E-14 flow state + transaction correlation (per-connection TID+UID+FC table), 8pts, Wave 33, depends: STORY-102
+- STORY-104: E-14 7 detectors + dual-window + co-emission cap + summary, 13pts, Wave 33, depends: STORY-103
+- STORY-105: E-14 dispatcher+CLI+VP-004 Kani oracle, 8pts, Wave 34, depends: STORY-104
+- Wave schedule: .factory/feature/wave-schedule.md (Waves 31-34)
+- Wave holdout scenarios: .factory/feature/wave-holdout-scenarios/ (22 scenarios: wave-31 + wave-32-34)
+- Dependency graph: .factory/phase-f3-stories/dependency-graph-extended.md (acyclic; STORY-100 -> {101 || 102} -> 103 -> 104 -> 105)
+- 6 existing stories revised (STORY-069/070/071/078/079/080): noted multi-tag test migration scope
 
 **CARRY-FORWARD ITEMS (do NOT lose):**
 - #101 (FP/TP rate characterization): OPEN-DEBT — corpus-dependent; blocks #103
 - #103 (size-symmetry evasion discriminator): DEFERRED — needs labelled corpus
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
-- STORY-069/070/071/078/079/080: Wave 1 F3 stories (affected by multi-tag schema — update tests inside migration commit)
 - VP-022 + VP-007(21/13)/016/020/021: F4 verification obligations
 - ACTION-PIN-001: dtolnay/rust-toolchain @stable/@nightly intentionally exempt from pin gate
 - Drift items: O-07, O-08, F-W25-S088-P6-001
@@ -145,6 +149,7 @@ Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 | D-033 | Feature #7 Modbus F2 spec evolution CONVERGED (2026-06-09). 25 SS-14 BCs (BC-2.14.001-025), PRD v1.1 (BC total 244), VP-022 (Kani P1, 3 sub-properties, bcs 001-008), ADR-005 (binary-ICS integration), MITRE MitreMatrix{Enterprise,Ics} discriminator + 7 ICS techniques emitted (T0855/T0836/T0814/T0806/T0835/T0831/T0846; SEEDED 20/EMITTED 13; VP-007 atomic update + positive-coverage obligation). Adversarial convergence: 3 rounds (4 CRIT+8 HIGH round1 → CONVERGED), Claude adversary + consistency-validator. Key scope: single configurable --modbus-write-threshold (1s window, default 10); co-emission cap (most-specific write-technique/PDU, T0855 once/burst); full transaction correlation; desync-safe parse (is_non_modbus bail). VP-INDEX 22 (Kani 9). develop HEAD 4cfc4c4. | 2026-06-09 | Feature #7 F2 spec evolution convergence |
 | D-034 | Feature #7 Modbus F2 spec REVISION CONVERGED (2026-06-09). Research-validated design adoptions: (1) dual-window write threshold (burst >20/1s + sustained >10/s/>=2s; microsecond math; wrapping_sub; 2 CLI flags), (2) T0846→T0888 recon fix (SEEDED 21/EMITTED 13), (3) multi-tag `mitre_techniques: Vec<String>` (ADR-006; breaking schema → v0.3.0; cross-cuts SS-09/10/11/14). ~28 BCs revised. Convergence: 3 Claude revision rounds + Gemini cross-model hybrid (2 slices, blind) caught HIGH truncation-bias + off-by-six ADU + BC-018/019 gap + length-gate off-by-one + FC-0x17 T0831 evasion; all fixed. Total 37 real findings resolved. Input-hash MATCH=51/STALE=0 (13 recomputed). develop HEAD 4cfc4c4. NEXT: F2 human gate. | 2026-06-09 | Feature #7 F2 revision — dual-window + T0888 + multi-tag; Claude+Gemini hybrid (D-034) |
 | D-035 | Feature #7 F2 gate APPROVED with research-driven RELEASE SPLIT (2026-06-09). Three research-agent reports (bundle-vs-split, multi-tag-schema, decomposition-sequencing) → human decisions: (1) SPLIT the breaking change — v0.3.0 = multi-tag Finding schema migration ISOLATED (SS-09/10/11 + all existing analyzers/reporters/catalog + 6 existing stories STORY-069/070/071/078/079/080), v0.4.0 = Modbus analyzer ADDITIVE on the stable type (SS-14). Rationale: multi-tag motivated-by but not required-by Modbus; isolating the break = honest semver + single clean migration note (Trivy/Zeek precedent). (2) Schema design VALIDATED sound as-is (mitre_techniques flat array == Elastic ECS threat.technique.id; semicolon-CSV de-facto standard; absent-when-empty + canonical order correct). (3) Decomposition = ATOMIC rename (not parallel-change; Rust forces lockstep, no 0.x external consumers), migration FIRST as its own wave merged green, THEN Modbus; 6 shipped stories' tests updated inside the migration commit. ADD-ONS applied: report-envelope mitre_domain='ics-attack' + mitre_attack_version (placeholder 'ics-attack-v15', F4 must pin to authoritative ATT&CK-ICS version covering T0806/T0814/T0831/T0835/T0836/T0855/T0888); CSV empty-string (not null). F2 spec CONVERGED (Claude 3 rounds + Gemini cross-model) + research-validated. Input-hash recomputed: MATCH=51/STALE=0/ERROR=1 (10 stories: STORY-001/002/003/004/005/076/077/078/079/080 — BC-2.11.001/024 changed). NEXT: F3 decomposition — Wave 1 (multi-tag migration → v0.3.0), Wave 2 (Modbus → v0.4.0). | 2026-06-09 | Feature #7 F2 gate APPROVED — release split v0.3.0 schema / v0.4.0 Modbus + ECS schema add-ons |
+| D-036 | Feature #7 F3 story decomposition COMPLETE (2026-06-09). 6 new stories, acyclic graph (STORY-100 -> {101 || 102} -> 103 -> 104 -> 105). E-13 Multi-Tag Finding Schema Migration (v0.3.0, Wave 31): STORY-100 (core type+catalog+analyzers migration, 13pts) + STORY-101 (reporters+ECS envelope add-ons, 8pts). E-14 Modbus Analyzer (v0.4.0, Waves 32-34): STORY-102 (MBAP parse+FC classify+VP-022 Kani, 8pts), STORY-103 (flow state+txn correlation, 8pts), STORY-104 (7 detectors+dual-window+co-emission+summary, 13pts), STORY-105 (dispatcher+CLI+VP-004 oracle, 8pts). Migration-first enforced (STORY-102 depends_on STORY-100). 6 existing stories (069/070/071/078/079/080) noted: tests migrated to multi-tag by STORY-100. STORY-INDEX 52->58 stories / 305->353 pts. Wave schedule + 22 wave-holdout scenarios written. F4-pin flag: mitre_attack_version. Input-hash CLEAN: MATCH=57/STALE=0/ERROR=1 (6 hashes written: STORY-100 270dd80, STORY-101 dccf659, STORY-102 6dc856b, STORY-103 4a0438e, STORY-104 4f1ebad, STORY-105 8955282). NEXT: F3 human gate, then F4 TDD Wave 1 (v0.3.0). | 2026-06-09 | Feature #7 F3 story decomposition — 6 stories, 2 epics, wave schedule, 22 holdout scenarios |
 
 ## Blocking Issues
 

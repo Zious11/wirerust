@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-070
 epic_id: E-7
-version: "1.6"
+version: "1.7"
 status: completed
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
@@ -189,3 +189,4 @@ Reassembly-engine findings with `direction: None` (lifecycle, segment-limit-summ
 | 1.3 | 2026-05-22 | story-writer | Wave 2 Ph3 pass-2 adversarial fixes: M-1 Task 6 reworded to module-containment invariant per BC-2.09.005 (no longer implies single call site); m-1 raw ESC byte (0x1B) in AC-003, EC-001, and Task 5 replaced with literal \u{1b} (now readable); m-3 AC-002 test name updated to test_escape_for_terminal_contained_to_terminal_module |
 | 1.2 | 2026-05-22 | story-writer | Wave 2 Ph3 adversarial fixes: AC-002 grep command kept, contradiction resolved by removing false "wc -l == 1" exclusivity from both AC and Architecture Compliance Rule; both now state the verifiable property (no escape_for_terminal outside terminal.rs); EC-003 relabeled to "three serializable Option fields" (timestamp always None per O-01 domain debt); bound test name updated to test_story_070_ec003_three_some_option_fields_present_in_json |
 | 1.1 | 2026-05-21 | story-writer | Initial story decomposition |
+| 1.7 | 2026-06-09 | story-writer | UPDATED (Feature #7 migration note): JSON serialization tests in the STORY-070 scope assert the `mitre_technique` field. STORY-100 (v0.3.0) renames this field to `mitre_techniques: Vec<String>`. The `skip_serializing_if` attribute changes from `Option::is_none` to `Vec::is_empty`. JSON assertions updated from scalar `"TXXXX"` to array `["TXXXX"]`. CSV and terminal output are behavior-preserving for singleton vecs. The old `"mitre_technique"` key is absent from all JSON output after STORY-100 lands. Story status remains `completed`; no re-implementation required. |

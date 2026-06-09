@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-078"
 epic_id: "E-8"
-version: "1.5"
+version: "1.6"
 status: completed
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
@@ -240,3 +240,4 @@ The within-section body order for PROTOCOLS and SERVICES is determined by an exp
 | v1.2 | 2026-05-30 | story-writer | AC-007 trace completeness pc2→pc2,3 to match test coverage (Wave-22 P3 finding F-1) |
 | v1.3 | 2026-05-30 | story-writer | corrected test-file citation reporter_tests.rs → reporter_terminal_tests.rs (FSR + Token Budget); Wave-22 wave-level traceability finding |
 | v1.4 | 2026-06-01 | story-writer | FIX-P5-003 — add AC-017 (PROTOCOLS sorted count-desc then Debug-string asc), AC-018 (SERVICES sorted count-desc then name asc), AC-019 (invariant 6: explicit sort, not HashMap order); add EC-010/EC-011 tiebreaker edge cases; extend Architecture Compliance Rules; update FSR (BC-2.11.019 v1.3 postconditions 7-8, invariant 6, EC-006/EC-007) |
+| v1.6 | 2026-06-09 | story-writer | UPDATED (Feature #7 migration note): STORY-078 covers terminal reporter MITRE tactic grouping. STORY-101 (v0.3.0) updates the tactic-grouping logic to use `f.mitre_techniques[0]` (first element of the Vec) instead of the old `Option`-based access. The VP-016 proof harness updated in STORY-100 constructs `Finding { mitre_techniques: vec![...] }`. Terminal render changes: multi-technique findings emit `"MITRE: T0855, T0836"` (comma-space joined). Tactic grouping behavior for single-technique findings is byte-identical to the old behavior. Story status remains `completed`; no re-implementation required. |

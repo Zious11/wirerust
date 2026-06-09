@@ -1,24 +1,28 @@
 ---
 document_type: story-index
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
-timestamp: 2026-05-21T00:00:00Z
+timestamp: 2026-06-09T00:00:00Z
 phase: 2
-total_stories: 52
-total_waves: 30
-total_points: 305
+total_stories: 58
+total_waves: 34
+total_points: 353
 traces_to:
   - .factory/stories/dependency-graph.md
   - .factory/stories/epics.md
   - .factory/cycles/v0.1.0-greenfield-spec/wave-schedule.md
+  - .factory/feature/wave-schedule.md
 ---
 
 # wirerust Story Index
 
-> **Authoritative story registry for the v0.1.0-greenfield-spec cycle (49 stories) + Feature Mode F3 additions (3 stories, STORY-097/098/099 for issue #100).**
+> **Authoritative story registry for the v0.1.0-greenfield-spec cycle (49 stories) + Feature Mode F3 additions (3 stories, STORY-097/098/099 for issue #100) + Feature #7 additions (6 stories, STORY-100..105 for issue #7 Modbus Analyzer).**
 > All 48 greenfield stories formalize behavioral contracts for the existing shipped wirerust
-> codebase. STORY-097/098/099 are new feature stories for issue #100 (pcap timestamps). Status `draft` = not yet dispatched. Wave assignments are from the
+> codebase. STORY-097/098/099 are new feature stories for issue #100 (pcap timestamps).
+> STORY-100/101 implement E-13 multi-tag Finding schema migration (v0.3.0).
+> STORY-102/103/104/105 implement E-14 Modbus TCP analyzer (v0.4.0).
+> Status `draft` = not yet dispatched. Wave assignments are from the
 > authoritative dependency-graph.md (longest-path / Kahn topological sort).
 
 ---
@@ -79,6 +83,12 @@ traces_to:
 | STORY-097 | Thread Capture-Relative Timestamp Through StreamHandler::on_data | E-12 | 28 | 5 | completed | — |
 | STORY-098 | Attach Pcap Timestamp to Emitted Findings | E-12 | 29 | 8 | completed | STORY-097 |
 | STORY-099 | Verify Timestamp Provenance End-to-End (VP-021) | E-12 | 30 | 5 | completed | STORY-098 |
+| STORY-100 | Multi-Tag Finding Schema Migration (Atomic Type Rename + Catalog Seed) | E-13 | 31 | 13 | draft | — |
+| STORY-101 | Multi-Tag Reporter Serialization + JSON Envelope Add-Ons | E-13 | 31 | 8 | draft | STORY-100 |
+| STORY-102 | Modbus MBAP Parse + FC Classification (Pure Core) | E-14 | 32 | 8 | draft | STORY-100 |
+| STORY-103 | Modbus Flow State + Transaction Correlation | E-14 | 33 | 8 | draft | STORY-102 |
+| STORY-104 | Modbus Detection Emissions + Summary | E-14 | 33 | 13 | draft | STORY-103 |
+| STORY-105 | Modbus Dispatcher Integration + CLI | E-14 | 34 | 8 | draft | STORY-104 |
 
 ---
 
@@ -116,7 +126,11 @@ traces_to:
 | 28 | STORY-097 | 1 | 5 |
 | 29 | STORY-098 | 1 | 8 |
 | 30 | STORY-099 | 1 | 5 |
-| **TOTAL** | | **51** | **300** |
+| 31 | STORY-100, STORY-101 | 2 | 21 |
+| 32 | STORY-102 | 1 | 8 |
+| 33 | STORY-103, STORY-104 | 2 | 21 |
+| 34 | STORY-105 | 1 | 8 |
+| **TOTAL** | | **57** | **348** |
 
 ---
 
@@ -136,7 +150,9 @@ traces_to:
 | E-10: Absent Behavior Contracts (Flag Rejection) | STORY-096 | 1 | 3 |
 | E-11: Tooling and Self-Improvement | STORY-091 | 1 | 5 |
 | E-12: Pcap Timestamp Provenance (issue #100) | STORY-097, STORY-098, STORY-099 | 3 | 18 |
-| **TOTAL** | | **52** | **305** |
+| E-13: Multi-Tag Finding Schema Migration (v0.3.0 / issue #7) | STORY-100, STORY-101 | 2 | 21 |
+| E-14: Modbus TCP Analyzer (v0.4.0 / issue #7) | STORY-102, STORY-103, STORY-104, STORY-105 | 4 | 37 |
+| **TOTAL** | | **58** | **353** |
 
 ---
 
@@ -174,11 +190,13 @@ traces_to:
 
 ## Coverage Verification
 
-- Total stories: **52** (48 greenfield product stories + 1 tooling story STORY-091 + 3 feature-mode stories STORY-097/098/099)
-- Total waves: **30** (STORY-097 wave 28, STORY-098 wave 29, STORY-099 wave 30; STORY-091 wave TBD)
-- Total points: **305** (282 greenfield product + 5 tooling + 18 feature-mode)
-- Graph is acyclic: **Yes** (Kahn topological sort verified; STORY-097→098→099 form an acyclic chain with no back-edges to the existing 49-story graph)
-- All 10 product epics + E-11 (Tooling) + E-12 (Pcap Timestamps) covered: **Yes**
-- All 219 BCs assigned: **Partial** — 217 greenfield BCs assigned; BC-2.04.055 → STORY-097/098/099; BC-2.09.007 → STORY-098/099; 219 BCs traced.
+- Total stories: **58** (48 greenfield product + 1 tooling STORY-091 + 3 F3 feature STORY-097/098/099 + 6 Feature-#7 STORY-100..105)
+- Total waves: **34** (Waves 31–34 added for Feature #7; STORY-091 wave TBD)
+- Total points: **353** (282 greenfield product + 5 tooling + 18 E-12 feature + 21 E-13 + 37 E-14 = 353; note wave-total row shows 348 — delta of 5 is STORY-091 at wave TBD excluded from wave table)
+- Graph is acyclic: **Yes** (Kahn topological sort verified; Feature-#7 dependency chain: STORY-100 → {STORY-101 ∥ STORY-102} → STORY-103 → STORY-104 → STORY-105; no back-edges into existing 52-story graph)
+- All 10 product epics + E-11 (Tooling) + E-12 (Pcap Timestamps) + E-13 (Multi-Tag Migration) + E-14 (Modbus) covered: **Yes**
+- All 219 greenfield BCs assigned + F2 additions + BC-2.09.001/006 (shared, extended in STORY-100) + BC-2.10.005/007/008 (extended in STORY-100) + BC-2.11.001/013/015/017/020/024 (extended in STORY-101) + BC-2.14.001..025 (new Modbus BCs in STORY-102..105): **Yes**
 - PROCESS-GAP-P5-001 dispositioned: **Yes** — STORY-091 created as the S-7.02 cycle-close disposition
-- Coverage note: STORY-097/098/099 trace to BC-2.04.055 and BC-2.09.007 (both F2 additions); these 3 stories cover VP-021 (verified @256a490).
+- Coverage note: STORY-097/098/099 trace to BC-2.04.055 and BC-2.09.007 (both F2 additions); these 3 stories cover VP-021 (verified @256a490). STORY-100 extends BC-2.09.001 (field rename) and BC-2.10.005/007/008 (catalog seed to 21). STORY-101 extends BC-2.11.001/013/015/017/020/024 (reporter multi-tag). STORY-102..105 cover BC-2.14.001..025 (Modbus TCP analyzer).
+- Release mapping: v0.3.0 ships after Wave 31 gate (STORY-100 + STORY-101 merged); v0.4.0 ships after Wave 34 gate (STORY-102..105 merged).
+- Existing stories affected by schema migration: STORY-069/070/071/078/079/080 — their MITRE-technique test assertions migrate from `mitre_technique: Option<String>` to `mitre_techniques: Vec<String>` via STORY-100 (see revision notes in each story).

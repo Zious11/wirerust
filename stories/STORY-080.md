@@ -2,7 +2,7 @@
 document_type: story
 story_id: "STORY-080"
 epic_id: "E-8"
-version: "1.3"
+version: "1.4"
 status: completed
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
@@ -189,3 +189,4 @@ All four optional-field-derived strings are individually passed through `neutral
 | 1.0 | 2026-05-21 | story-writer | Initial story |
 | 1.1 | 2026-05-21 | story-writer | (prior revision) |
 | 1.2 | 2026-05-30 | story-writer | v1.2: corrected test-file citation reporter_tests.rs → reporter_csv_tests.rs (FSR + Token Budget rows); Wave-22 P1/P2 finding |
+| 1.4 | 2026-06-09 | story-writer | UPDATED (Feature #7 migration note): STORY-080 covers `CsvReporter` trait compliance and optional-field encoding, including `mitre_technique` `None` → empty string. After STORY-101 (v0.3.0), the field is `mitre_techniques: Vec<String>` and empty-vec encodes as empty string (identical external behavior). The `skip_serializing_if` contract for the field moves from `Option::is_none` to `Vec::is_empty`; CSV behavior is unchanged. Story status remains `completed`; no re-implementation required. |
