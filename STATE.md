@@ -1,6 +1,7 @@
 ---
-pipeline: V0.2.0_RELEASED
-phase: complete
+pipeline: FEATURE_7_F1_APPROVED
+phase: feature-f1
+active_feature: issue-7-modbus-tcp-analyzer
 product: wirerust
 mode: brownfield
 timestamp: 2026-06-09T00:00:00Z
@@ -71,19 +72,27 @@ input_drift_check: "CLEAN — MATCH=51/STALE=0 (post F7-100 consistency sweep D-
 | Feature #100 F4→F7 Cycle | **COMPLETE + RELEASED** 2026-06-09 | STORY-097/098/099 delivered; VP-021 LOCKED; D-030 human gate; shipped in v0.2.0 |
 | Release — v0.2.0 | **RELEASED** 2026-06-09 | gitflow-proper: release/0.2.0 → PR #208 → 18be1ba; 4 binaries; run 27216925948; GitHub Release published 2026-06-09T15:28:38Z; D-031 |
 
-## Session Resume Checkpoint (2026-06-09 — v0.2.0 RELEASED; Feature #100 cycle FULLY CLOSED)
+## Session Resume Checkpoint (2026-06-09 — Feature #7 F1 APPROVED; entering F2)
 
-**POSITION:** wirerust v0.2.0 RELEASED (2026-06-09). Feature #100 (pcap timestamp threading → Finding.timestamp) shipped as MINOR semver. release/0.2.0 → PR #208 → main merge 18be1ba; annotated tag v0.2.0; 4 binaries attached via release.yml run 27216925948; GitHub Release published 2026-06-09T15:28:38Z (not draft). main back-merged into develop (4cfc4c4) — branches in sync. F4→F7 feature-mode cycle FULLY CLOSED (D-030 + D-031).
+**POSITION:** Feature #7 (Modbus TCP analyzer) F1 delta analysis APPROVED by human (D-032). Full F1-F7 scope authorized. NEXT = F2 spec evolution: create SS-14 subsystem spec, new BCs for ModbusAnalyzer, VP-022 (Kani P1), ADR for binary-ICS integration + port-502-only classification exception to ADR-0001, mitre.rs ICS catalog design (T0xxx discriminator), PRD delta (add §Modbus/ICS section). develop HEAD 4cfc4c4. Released baseline: v0.2.0 @ 18be1ba.
 
-**VERIFIED-CLEAN FACTS:**
+**VERIFIED-CLEAN FACTS (baseline at F1 approval):**
 - main HEAD `18be1ba` — v0.2.0 release commit; annotated tag `v0.2.0`
 - develop HEAD `4cfc4c4` — main back-merged; branches in sync, no divergence
 - 1147 tests green; clippy clean; fmt clean; 21 VPs locked (VP-021 locked @256a490)
-- Feature #100 F2+F3+F4+F5+F6+F7: BC-2.09.007 v1.1.1 / BC-2.09.006 v1.4 / BC-2.04.055 v1.0.1 / VP-021 LOCKED (proof_file_hash=207d3f68) + STORY-097/098/099 completed; 219 BCs / 21 VPs / 52 stories
-- CHANGELOG [0.2.0]: Feature #100 (PRs #197/#198/#199 + hardening #200/#201) + fixes #102/#104 (PRs #194/#195) + CI/supply-chain (#192/#196)
-- Prior release: v0.1.0 @ 2e8d256 (2026-06-08)
+- 219 BCs / 21 VPs / 52 stories (pre-Feature #7; counts will grow in F2/F3)
+- Active feature: issue-7-modbus-tcp-analyzer; integration path: StreamHandler+StreamAnalyzer (like HTTP/TLS), StreamDispatcher, NOT ProtocolAnalyzer/DNS path
 
-**OPEN POST-RELEASE ITEMS (do NOT lose):**
+**F2 SPEC EVOLUTION SCOPE (from D-032):**
+- New: SS-14 'Modbus/ICS', src/analyzer/modbus.rs, VP-022 (Kani P1 — frame-bounds + length-field cross-check)
+- MITRE 6 ICS techniques: T0855, T0836, T0814, T0806, T0835, T0831; matrix discriminator ICS T0xxx vs enterprise Txxxx
+- Transaction correlation: per-connection Transaction-ID+Unit-ID+FC table (not stateless-per-PDU)
+- CLI flag: --modbus-write-threshold (default >10/s sustained >=2s or >20 in 1s window)
+- Modified files (HIGH/CRITICAL risk): dispatcher.rs, mitre.rs, analyzer/mod.rs, main.rs, cli.rs
+- ADR required: binary-ICS integration + port-only classification exception
+- Research baseline: .factory/research/modbus-tcp-research.md
+
+**CARRY-FORWARD POST-RELEASE ITEMS (do NOT lose):**
 - #101 (FP/TP rate characterization): OPEN-DEBT — corpus-dependent; blocks #103
 - #103 (size-symmetry evasion discriminator): DEFERRED — needs labelled corpus
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
@@ -91,11 +100,6 @@ input_drift_check: "CLEAN — MATCH=51/STALE=0 (post F7-100 consistency sweep D-
 - Drift items: O-07, O-08, F-W25-S088-P6-001
 - RUSTSEC-2026-0097: accepted-transitive; revisit when tls-parser bumps phf→0.12+
 - Phase-5 tech-debt (P3): CR-002/003/005/006/007/009/012 — see tech-debt-register.md
-- [process-gap DRAFT] DF-SIBLING-SWEEP-001 propagation shadow: extend to test-file doc comments AND inline comments citing canonical vectors; consider ts_sec<->ISO arithmetic lint from ADV-F5-OBS-001. Candidate for lessons.md / DF policy.
-- [process-gap DRAFT] VP-lock propagation checklist (D-028): sweep must include VP-INDEX, verification-coverage-matrix, verification-architecture, referencing-BC VP-anchor prose, AND input-hash recompute for consuming stories. Coverage-matrix tool-column convention must match VP-INDEX (D-029 lesson). Candidate DF policy.
-
-**RESUME PROTOCOL (next cycle):**
-- No open feature work. Next cycle: start with product backlog triage or new feature issue.
 
 Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
@@ -134,6 +138,7 @@ Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 | D-029 | Feature #100 F7 consistency confirmation re-audit: all 8 D-028 findings RESOLVED; caught + fixed 1 new HIGH introduced by the D-028 fix burst — verification-coverage-matrix v1.2→v1.3: VP-021 row reclassified to proptest column to match VP-INDEX invariant (Kani 8 / proptest 7 / fuzz 1 / integration-unit 5 = 21); prior v1.2 had proptest=6/integration=6 contradicting VP-INDEX. Column sums and per-module totals internally consistent post-fix. F7 consistency now CONFIRMED CONSISTENT. Lesson reinforces VP-lock propagation checklist (D-028): the coverage-matrix tool-column counting convention must match VP-INDEX — add explicit tool-column verification step. | 2026-06-09 | Issue #100 F7 confirmation re-audit — coverage-matrix VP-021 tally aligned to VP-INDEX; F7 CONSISTENT |
 | D-030 | Human authorized Feature #100 F7 delta convergence gate (2026-06-09): all 5 dimensions PASS (spec novelty 0.0, mutation 100% effective, 0 impl defects, VP-021 locked, holdout 0.99), regression 1147 green, consistency CONSISTENT via 2 audits. Feature #100 CONVERGED and CLOSED. Human elected to release now (v0.1.1 or v0.2.0 — semver disposition pending confirmation). F4->F7 full feature-mode cycle complete. | 2026-06-09 | Feature #100 F7 human authorization gate APPROVED — feature-mode cycle COMPLETE |
 | D-031 | Published wirerust v0.2.0 (gitflow-proper). Feature #100 (pcap timestamp threading -> Finding.timestamp) shipped as MINOR. release/0.2.0 -> PR #208 -> main merge 18be1ba; annotated tag v0.2.0 on 18be1ba; release.yml run 27216925948 built+attached 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); GitHub Release live (published 2026-06-09T15:28:38Z, not draft). CHANGELOG [0.2.0] covers #100 feature (PRs #197/#198/#199 + hardening #200/#201) + fixes #102/#104 (PRs #194/#195) + CI/supply-chain (#192/#196). main back-merged into develop (4cfc4c4) — branches in sync, no divergence. | 2026-06-09 | v0.2.0 release — Feature #100 cycle fully closed |
+| D-032 | Feature #7 (Modbus TCP analyzer) F1 delta analysis APPROVED by human (2026-06-09). Intent=feature, type=backend, non-trivial -> full F1-F7. Integration: ModbusAnalyzer implements StreamHandler+StreamAnalyzer (like HTTP/TLS), wired into StreamDispatcher (NOT the ProtocolAnalyzer/DNS UDP path). New: src/analyzer/modbus.rs, subsystem SS-14 'Modbus/ICS', VP-022 (Kani P1). Modified (5): dispatcher.rs (HIGH risk — DispatchTarget::Modbus + classify port 502 + VP-004 Kani oracle), mitre.rs (CRITICAL — VP-007 drift guard; T0836 absent + T0855 not in EMITTED_IDS must be fixed atomically), analyzer/mod.rs, main.rs, cli.rs. ADR required: binary-ICS integration + port-only classification as documented exception to ADR-0001 content-first. HUMAN SCOPE DECISIONS: (1) MITRE coverage = FULL cheap set of 6 ICS techniques: T0855 Unauthorized Command Message, T0836 Modify Parameter, T0814 DoS (Diagnostics 0x08 force-listen-only/restart), T0806 Brute Force I/O, T0835 Manipulate I/O Image, T0831 Manipulation of Control; (2) request/response = FULL transaction correlation (per-connection Transaction-ID+Unit-ID+FC table, not stateless-per-PDU); (3) write-burst threshold = CLI-configurable now (--modbus-write-threshold flag, default >10/s sustained >=2s or >20 in 1s window). MITRE type needs a matrix discriminator (ICS T0xxx vs enterprise Txxxx). Research: .factory/research/modbus-tcp-research.md (Modbus.org V1.1b3 + MITRE ATT&CK for ICS sourced). | 2026-06-09 | Feature #7 F1 human gate approval — full F1-F7 scope authorized |
 
 ## Blocking Issues
 
