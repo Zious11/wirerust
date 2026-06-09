@@ -112,11 +112,12 @@ impl ModbusFlowState {
     /// Precondition: caller has verified `classify_fc(fc) != Exception`.
     /// Returns `Some(old_value)` if an existing entry was overwritten (key reuse).
     ///
-    /// The caller is responsible for:
-    /// - Checking `pending.len() < MAX_PENDING_TRANSACTIONS` BEFORE calling (BC-2.14.012).
-    /// - Incrementing `duplicate_inflight_txn` on the analyzer when `Some(_)` is returned.
-    ///
-    /// (todo!() body — implementation in STORY-103 green-gate step)
+    /// Enforcement:
+    /// - If the key already exists in pending: overwrite and return `Some(old_value)`.
+    ///   (Caller increments `duplicate_inflight_txn` when `Some(_)` is returned.)
+    /// - If the key is NEW and `pending.len() >= MAX_PENDING_TRANSACTIONS`: silently drop,
+    ///   return `None` (BC-2.14.012: drop-not-evict; no panic).
+    /// - Otherwise: insert and return `None`.
     pub fn insert_request(
         &mut self,
         txn_id: u16,
@@ -124,24 +125,30 @@ impl ModbusFlowState {
         fc: u8,
         ts: u32,
     ) -> Option<(u8, u32)> {
-        todo!(
-            "BC-2.14.009: insert (txn_id={txn_id}, unit_id={unit_id}) -> (fc={fc}, ts={ts}) \
-             into pending; return old value if key existed"
-        )
+        let key = (txn_id, unit_id);
+        if self.pending.contains_key(&key) {
+            // Key already exists — overwrite path; return old value so caller can
+            // increment `duplicate_inflight_txn` (BC-2.14.009 invariant 6).
+            self.pending.insert(key, (fc, ts))
+        } else if self.pending.len() >= MAX_PENDING_TRANSACTIONS {
+            // Table at cap — silently drop; do not evict; no panic (BC-2.14.012).
+            None
+        } else {
+            self.pending.insert(key, (fc, ts))
+        }
     }
 
     /// Match a normal (non-exception) response against the pending table (BC-2.14.010).
     ///
-    /// If `pending[(txn_id, unit_id)]` exists AND stored FC == `fc` (echo match),
-    /// removes the entry and returns `Some((stored_fc, stored_ts))`.
-    /// Orphan responses (no matching pending entry) return `None`.
-    ///
-    /// (todo!() body — implementation in STORY-103 green-gate step)
-    pub fn match_response(&mut self, txn_id: u16, unit_id: u8, fc: u8) -> Option<(u8, u32)> {
-        todo!(
-            "BC-2.14.010: look up (txn_id={txn_id}, unit_id={unit_id}) in pending; \
-             remove and return Some((fc,ts)) on FC echo match fc={fc}; None on orphan"
-        )
+    /// Looks up `(txn_id, unit_id)` in pending:
+    /// - If found: removes the entry and returns `Some((stored_fc, stored_ts))`.
+    ///   The pair is considered closed regardless of whether the response FC echoes the
+    ///   request FC (BC-2.14.010 Case B: FC mismatch still closes the pair).
+    /// - If not found (orphan): returns `None`, state unchanged.
+    pub fn match_response(&mut self, txn_id: u16, unit_id: u8, _fc: u8) -> Option<(u8, u32)> {
+        // BC-2.14.010: remove and return on any key match (pair is closed regardless of
+        // FC echo match or mismatch — see postcondition 3 "closed regardless of anomaly").
+        self.pending.remove(&(txn_id, unit_id))
     }
 
     /// Attribute an exception response to the original request FC (BC-2.14.011).
@@ -149,25 +156,36 @@ impl ModbusFlowState {
     /// `exception_fc` is the raw exception FC byte (>= 0x80).
     /// Derives `original_fc = exception_fc & 0x7F`.
     ///
-    /// Strict FC consistency gate: looks up `(txn_id, unit_id)` in pending.
-    /// - If found AND `original_fc == pending_entry.fc`: removes entry, returns `Some(original_fc)`.
-    /// - If found AND `original_fc != pending_entry.fc` (spoof guard): does NOT remove entry, returns `None`.
+    /// Strict FC consistency gate (anti-spoof invariant):
+    /// - If found AND `original_fc == stored_fc`: removes entry, returns `Some(original_fc)`.
+    /// - If found AND `original_fc != stored_fc` (FC mismatch / spoof guard): does NOT
+    ///   remove entry, returns `None` (BC-2.14.011 EC-010).
     /// - If not found (orphan exception): returns `None`.
     ///
     /// Caller MUST increment `exception_count` regardless of return value (BC-2.14.011 post.6).
-    ///
-    /// (todo!() body — implementation in STORY-103 green-gate step)
     pub fn attribute_exception(
         &mut self,
         txn_id: u16,
         unit_id: u8,
         exception_fc: u8,
     ) -> Option<u8> {
-        todo!(
-            "BC-2.14.011: exception_fc={exception_fc:#04x}; original_fc={:#04x}; \
-             look up (txn_id={txn_id}, unit_id={unit_id}); strict FC gate; return original_fc on match",
-            exception_fc & 0x7F
-        )
+        let original_fc = exception_fc & 0x7F;
+        let key = (txn_id, unit_id);
+        match self.pending.get(&key) {
+            Some(&(stored_fc, _)) if stored_fc == original_fc => {
+                // FC consistency gate passes — close the pair.
+                self.pending.remove(&key);
+                Some(original_fc)
+            }
+            Some(_) => {
+                // FC mismatch (spoof guard): do NOT remove the pending entry.
+                None
+            }
+            None => {
+                // Orphan exception: no matching pending entry.
+                None
+            }
+        }
     }
 }
 
@@ -197,13 +215,18 @@ pub struct ModbusAnalyzer {
 impl ModbusAnalyzer {
     /// Construct a new `ModbusAnalyzer` with the given dual-window thresholds.
     ///
-    /// (todo!() body — implementation in STORY-103 green-gate step)
+    /// Thresholds are stored as-is; CLI validation that they are non-zero is deferred
+    /// to STORY-105 (dispatcher wiring). Flow states are stored externally per
+    /// f2-fix-directives §11.3; wiring to a flow map is deferred to STORY-105.
     pub fn new(write_burst_threshold: u32, write_sustained_threshold: u32) -> Self {
-        todo!(
-            "BC-2.14.009/f2-fix-directives §11.3: construct ModbusAnalyzer with \
-             write_burst_threshold={write_burst_threshold}, \
-             write_sustained_threshold={write_sustained_threshold}"
-        )
+        Self {
+            write_burst_threshold,
+            write_sustained_threshold,
+            duplicate_inflight_txn: 0,      // wired in STORY-104/105
+            total_pdu_count: 0,             // wired in STORY-104/105
+            total_write_count: 0,           // wired in STORY-104/105
+            fn_code_counts: HashMap::new(), // wired in STORY-104/105
+        }
     }
 }
 
