@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
-timestamp: 2026-05-20T00:00:00Z
+timestamp: 2026-06-09T00:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -14,17 +14,19 @@ traces_to: .factory/specs/prd.md
 > **Navigation:** This file is the master index of all BC-S.SS.NNN contracts. Each entry
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
-> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 219 entries.
+> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 244 entries.
 > 218 draft ingestion BCs were produced; 6 were retired during the remediation cycle (BC-ABS-004
 > through BC-ABS-009) leaving 212 active L3 BCs from ingestion. BC-2.11.020 through BC-2.11.024
 > were added in adversarial-review pass-4 (finding H-1: CsvReporter coverage gap), bringing
 > the total to 217 active L3 BCs. BC-2.04.055 and BC-2.09.007 were added in Feature Mode F2
-> (issue #100 pcap-timestamps delta) bringing the total to 219 active L3 BCs.
+> (issue #100 pcap-timestamps delta) bringing the total to 219 active L3 BCs. BC-2.14.001
+> through BC-2.14.025 were added in Feature Mode F2 (issue #7 Modbus/ICS analyzer) bringing
+> the total to 244 active L3 BCs.
 >
 > **Status as of Phase 1a (current):**
-> - Fully written: 219 BCs (all body files verified on disk)
+> - Fully written: 244 BCs (all body files verified on disk)
 > - Remaining: 0 BCs
-> - PRD index (prd.md): COMPLETE -- all 219 L3 BC IDs are registered
+> - PRD index (prd.md): UPDATED (v1.1) -- all 244 L3 BC IDs are registered
 
 ## ss-01: PCAP File Ingestion (CAP-01)
 
@@ -311,6 +313,47 @@ traces_to: .factory/specs/prd.md
 | BC-2.13.003 | --filter <BPF> Flag Does Not Exist; No BPF Filter Applied | P0 | [WRITTEN] | BC-ABS-003 |
 | BC-2.13.004 | --verbose Flag Does Not Exist; No Verbose Logging Mode | P2 | [WRITTEN] | BC-ABS-010 |
 
+## ss-14: Modbus/ICS Analysis (CAP-14)
+
+> 25 BCs total; 25 fully written; 0 planned.
+> BCs 001-004: MBAP Parse and Validity Gate (Group A).
+> BCs 005-008: Function-Code Classification (Group B). BC-005 covers ALL 256 FC values (totality).
+> BCs 009-012: Transaction Correlation (Group C).
+> BCs 013-015: Finding Emission — Write-Class Events (Group D). Co-emission priority rule: T0836>T0835; T0855 always fires.
+> BCs 016-017: Finding Emission — Coordinated Write (T0831 5s window) and Write-Burst Detection (T0806/T0855 1s window) (Group E).
+> BCs 018-019: Finding Emission — Diagnostic/DoS (T0814) (BC-018) and Exception Burst Anomaly (BC-019) (Group F).
+> BCs 020-022: Anomaly/Recon (T0846 for 0x11/0x2B/0x0E), Summary Stats (6 keys incl dropped_findings), and Bounded-Resource (Groups G + resource cap).
+> BCs 023-025: Dispatcher and CLI Integration (Group H).
+> Feature: issue-007-modbus-analyzer; ADR-005; introduced v0.3.0-feature-007.
+
+| BC ID | Title | Priority | Status | Origin |
+|-------|-------|----------|--------|--------|
+| BC-2.14.001 | MBAP Header Accepted for Well-Formed 8-Byte-Minimum ADU | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.002 | MBAP Header Rejected for ADU Shorter Than 8 Bytes | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.003 | MBAP Header Rejected When Protocol ID is Not 0x0000 | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.004 | MBAP Header Rejected When Length is Outside [2, 253] | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.005 | classify_fc Is Total Over All 256 FC Values (Covers Read, Write, Diagnostic, Exception, and Unknown Classes) | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.006 | Exception Response Detection — FC High Bit Set Identifies Exception and Recovers Original FC | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.007 | Write-Class FC Classification — State-Changing Function Codes Identified as Elevated-Risk | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.008 | Diagnostic-Class FC Classification and Sub-Function Dispatch (0x08 and 0x2B) | P1 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.009 | Request PDU Inserted into Per-Flow Pending Table Keyed on (Transaction ID, Unit ID) | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.010 | Response PDU Matched Against Pending Table and Entry Removed on FC Echo Match | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.011 | Exception Response PDU Attributed to Originating Request FC via Pending Table Lookup | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.012 | Pending Table Bounded to MAX_PENDING_TRANSACTIONS=256; New Requests Dropped (Not Evicting) When Full | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.013 | Write-Class FC in Request Direction Emits T0855 (Unauthorized Command Message) Finding | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.014 | Write FC 0x06/0x10/0x16 in Request Direction Emits T0836 (Modify Parameter) Finding | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.015 | Write FC to Coil Output Only (0x05/0x0F) Emits T0835 (Manipulate I/O Image) Finding — Coil-Only Writes; T0836 Takes Priority for Holding-Register FCs | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.016 | Coordinated Write Sequence to Holding Registers Within 5-Second Window Emits T0831 Manipulation of Control Finding | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.017 | Write-Rate Burst Exceeding --modbus-write-threshold Emits T0806 Brute Force I/O and T0855 Findings | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.018 | Diagnostics FC 0x08 Sub-Function 0x0004 or 0x0001 Emits T0814 Denial of Service Finding | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.019 | Exception Response Anomaly — Burst of Exception Codes Emits Anomaly Finding for Recon/Scanning | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.020 | Unusual or Unknown Function Code Observed Emits Anomaly Finding (Recon FCs 0x11/0x2B/0x0E Emit T0846 Remote System Discovery) | P1 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.021 | summarize() Returns AnalysisSummary with Specified Per-Analyzer Summary Keys | P1 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.022 | MAX_FINDINGS Cap and Poison-Skip Behavior for ModbusAnalyzer | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.023 | --modbus CLI Flag Enables ModbusAnalyzer; --all Includes Modbus; Default-Off; Requires Stream Reassembly | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.024 | --modbus-write-threshold Configures Per-Flow Write-Burst Rate Threshold Consumed by Burst Detector | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.025 | StreamDispatcher Classifies Port-502 Flows to DispatchTarget::Modbus as Rule 5 (After Content and TLS/HTTP Port Rules); Routes on_data and on_flow_close to ModbusAnalyzer | P0 | [WRITTEN] | feature-007-F2 |
+
 ---
 
 ## Ingestion-to-L3 Mapping Coverage
@@ -331,8 +374,9 @@ traces_to: .factory/specs/prd.md
 | BC-CLI-001..017 | 17 | BC-2.12.001..017 |
 | BC-SUM-001..004 | 4 | BC-2.12.018..021 |
 | BC-ABS-001..010 | 10 | BC-2.13.001..004 (6 ABS retired by remediation cycle) |
+| feature-007-F2 Modbus/ICS (greenfield) | 25 | BC-2.14.001..025 |
 
-**Total BCs: 219. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) but the active BC count before F2 was 217; F2 adds 2 new rows not in the ingestion batch.**
+**Total BCs: 244. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch.**
 
 Note: BC-ABS-004 (--hosts unwired), BC-ABS-005 (--services unwired), BC-ABS-006 (--json
 file unwired), BC-ABS-007 (CSV unwired), BC-ABS-009 (no e2e CLI tests) are RETIRED --

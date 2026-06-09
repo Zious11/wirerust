@@ -5,12 +5,12 @@ version: "2.0"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
-modified: "2026-06-09: Phase-F6 — VP-021 (timestamp-provenance-threading) locked/verified @ develop 256a490. status draft→verified, verification_lock→true. test_sufficient_count 5→6. All 21 VPs now verified; draft count 1→0."
-total_vps: 21
+modified: "2026-06-09: Phase-F6 — VP-021 (timestamp-provenance-threading) locked/verified @ develop 256a490. status draft→verified, verification_lock→true. test_sufficient_count 5→6. All 21 VPs now verified; draft count 1→0. | 2026-06-09: F2 delta issue #7 — VP-022 added (Modbus MBAP parse safety; draft; Kani; P1; analyzer/modbus.rs). total 21→22, p1 7→8, kani 8→9, draft 0→1. | 2026-06-09: F2 fix (consistency BLOCKING-1 / F-MED-006) — VP-022 catalog-row Verified BCs reconciled 6→8 (added BC-2.14.005, BC-2.14.008) to match VP-022 frontmatter and the architect's canonical BC map; no VP-count change."
+total_vps: 22
 p0_count: 8
-p1_count: 7
+p1_count: 8
 test_sufficient_count: 6
-kani_count: 8
+kani_count: 9
 proptest_count: 7
 fuzz_count: 1
 integration_unit_count: 5
@@ -31,18 +31,18 @@ integration_unit_count: 5
 
 | Total VPs | P0 | P1 | Test-Sufficient |
 |-----------|----|----|-----------------|
-| 21 | 8 | 7 | 6 |
+| 22 | 8 | 8 | 6 |
 
 | Tool | Count | VP IDs |
 |------|-------|--------|
-| Kani | 8 | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015 |
+| Kani | 9 | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022 |
 | proptest | 7 | VP-006, VP-010, VP-011, VP-012, VP-013, VP-014, VP-021 |
 | cargo-fuzz | 1 | VP-008 |
 | integration/unit | 5 | VP-016, VP-017, VP-018, VP-019, VP-020 |
 
 > VP-005 (SNI 4-way ordered classification) uses Kani as its primary and sole
-> counted tool. VP-021 uses integration + proptest; counted under proptest. Each VP
-> is counted exactly once. Totals: 8+7+1+5 = 21.
+> counted tool. VP-021 uses integration + proptest; counted under proptest. VP-022
+> uses Kani only. Each VP is counted exactly once. Totals: 9+7+1+5 = 22.
 
 ## Complete VP Catalog
 
@@ -69,6 +69,7 @@ integration_unit_count: 5
 | VP-019 | DNS Analyzer Is Statistics-Only (Never Emits Findings) | analyzer/dns.rs | unit | test-sufficient | verified | BC-2.08.001, BC-2.08.002, BC-2.08.003, BC-2.08.004 |
 | VP-020 | CSV Injection Neutralization | reporter/csv.rs | unit | test-sufficient | verified | BC-2.11.021 |
 | VP-021 | Timestamp Provenance Threading | reassembly/mod.rs | integration+proptest | test-sufficient | verified | BC-2.09.007, BC-2.04.055 |
+| VP-022 | Modbus MBAP Parse Safety and Function-Code Boundary Classification | analyzer/modbus.rs | Kani | P1 | draft | BC-2.14.001, BC-2.14.002, BC-2.14.003, BC-2.14.004, BC-2.14.005, BC-2.14.006, BC-2.14.007, BC-2.14.008 |
 
 ## P0 Properties (required before Phase 5 gate)
 
@@ -90,6 +91,7 @@ integration_unit_count: 5
 - VP-013: JA3 GREASE filter
 - VP-014: HttpAnalyzer cross-flow isolation
 - VP-015: TCP sequence wraparound
+- VP-022: Modbus MBAP parse safety and function-code boundary classification [NEW — SS-14]
 
 ## Test-Sufficient Properties (VP-016..VP-021)
 
@@ -107,10 +109,10 @@ No standalone formal proof harness (Kani) is required; VP-021 additionally uses 
 
 ## Consistency Invariants (machine-enforced by validate-vp-consistency.sh)
 
-- VP-INDEX total (21) must equal verification-architecture.md row count (21)
-- VP-INDEX total (21) must equal verification-coverage-matrix.md VP row count (21)
-- verification-coverage-matrix.md Totals row: Kani(8) + proptest(7) + fuzz(1) + integration/unit(5) = 21
-- P0 count (8) + P1 count (7) + test-sufficient (6) = 21 verified; 0 draft = 21 total
+- VP-INDEX total (22) must equal verification-architecture.md row count (22)
+- VP-INDEX total (22) must equal verification-coverage-matrix.md VP row count (22)
+- verification-coverage-matrix.md Totals row: Kani(9) + proptest(7) + fuzz(1) + integration/unit(5) = 22
+- P0 count (8) + P1 count (8) + test-sufficient (6) = 22; draft count 1 (VP-022); verified 21
 
 ## File Naming Convention
 

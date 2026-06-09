@@ -55,8 +55,9 @@ All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by 
 | C-12 | src/analyzer/http.rs | SS-06 | `HttpAnalyzer`: `StreamAnalyzer`; HTTP/1.x request+response parse; 8 finding types; poison logic | Pure core |
 | C-13 | src/analyzer/tls.rs | SS-07 | `TlsAnalyzer`: `StreamAnalyzer`; ClientHello/ServerHello; JA3/JA3S; SNI 4-way; weak cipher; deprecated protocol | Pure core |
 | C-14 | src/findings.rs | SS-09 | `Finding`, `Verdict`, `Confidence`, `ThreatCategory`; `#[derive(Serialize)]`; `Display` impls | Pure (data model) |
-| C-16 | src/mitre.rs | SS-10 | `MitreTactic` enum; `technique_info` static match; `technique_name`, `technique_tactic`, `all_tactics_in_report_order` | Pure core |
+| C-16 | src/mitre.rs | SS-10 | `MitreTactic` enum; `MitreMatrix` enum (Enterprise/Ics); `technique_info` static match; `technique_name`, `technique_tactic`, `technique_matrix`, `all_tactics_in_report_order` — extended with T0836/T0814/T0806/T0835/T0831 for SS-14 | Pure core |
 | C-17 | src/summary.rs | SS-12 | `Summary`: per-packet accumulator; `ingest`, `unique_hosts`, serialization | Pure core |
+| C-22 | src/analyzer/modbus.rs | SS-14 | `ModbusAnalyzer`: `StreamHandler` + `StreamAnalyzer`; per-flow `HashMap<FlowKey, ModbusFlowState>`; MBAP parse + 3-point validity gate; function-code classification; transaction correlation table; write-burst rate detection; findings for T0855/T0836/T0814/T0806/T0835/T0831 | Pure core |
 
 ### L4 Output Layer
 

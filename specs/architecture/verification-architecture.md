@@ -19,6 +19,9 @@ modified:
   - date: 2026-06-09
     actor: spec-steward
     reason: "F6 lock propagation (FINDING-001): VP-021 moved from Should Prove table to Test Sufficient table (verified @256a490); Test Sufficient count five→six."
+  - date: 2026-06-09
+    actor: architect
+    reason: "F2 delta (issue #7 Modbus TCP): VP-022 added to Should Prove table (P1, Kani, analyzer/modbus.rs). P1 count 7→8. Total 21→22."
 ---
 
 # Verification Architecture
@@ -49,6 +52,7 @@ modified:
 | VP-013 | JA3 GREASE filter: all values matching the GREASE pattern (0x?A?A) are removed before fingerprint computation | (spec compliance) | analyzer/tls.rs | proptest |
 | VP-014 | HttpAnalyzer cross-flow isolation: parse errors and poisoning in flow A do not affect flow B | (isolation) | analyzer/http.rs | proptest |
 | VP-015 | TCP sequence wraparound: segment at seq=isn+1=0xFFFF_FFFF (ISN=0xFFFF_FFFE, offset 1) crossing 32-bit boundary reassembles correctly | (arithmetic) | reassembly/segment.rs | Kani |
+| VP-022 | Modbus MBAP parse safety and function-code boundary classification: (A) parse_mbap_header never panics and returns None for <8-byte inputs; (B) classify_fc is total over all 256 FC values; (C) exception detection iff fc >= 0x80 | (no-panic + boundary) | analyzer/modbus.rs | Kani |
 
 ### Test Sufficient (UI logic, non-critical defaults)
 
@@ -82,6 +86,7 @@ modified:
 - VP-013: JA3 GREASE filter
 - VP-014: HttpAnalyzer cross-flow isolation
 - VP-015: TCP sequence wraparound
+- VP-022: Modbus MBAP parse safety and function-code boundary classification [NEW — SS-14]
 
 
 ## Tooling Selection
@@ -90,7 +95,7 @@ See `tooling-selection.md` for full rationale. Summary:
 
 | Tool | Target Properties | Scope |
 |------|-----------------|-------|
-| Kani (model checker) | State machine reachability, arithmetic overflow, pointer safety | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015 |
+| Kani (model checker) | State machine reachability, arithmetic overflow, pointer safety | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022 |
 | proptest | Property-based: generate random inputs, check invariants | VP-006, VP-010..014 |
 | cargo-fuzz (libFuzzer) | No-panic for parser entry points | VP-008 |
 | cargo-mutants | Mutation coverage for domain logic | SS-06, SS-07, SS-08, SS-10 |

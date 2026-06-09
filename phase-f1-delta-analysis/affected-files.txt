@@ -1,0 +1,64 @@
+# Affected Files — Issue #7 Modbus TCP Analyzer
+# Format: STATUS ABSOLUTE_PATH
+# STATUS: NEW | MODIFIED | DEPENDENT
+# Generated: 2026-06-09
+# Base commit: 4cfc4c4 (develop HEAD)
+
+# ── NEW FILES ──────────────────────────────────────────────────────────────────
+
+NEW /Users/zious/Documents/GITHUB/wirerust/src/analyzer/modbus.rs
+
+# ── MODIFIED SOURCE FILES ──────────────────────────────────────────────────────
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/src/analyzer/mod.rs
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/src/dispatcher.rs
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/src/main.rs
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/src/cli.rs
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/src/mitre.rs
+
+# ── MODIFIED FACTORY SPEC FILES ───────────────────────────────────────────────
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/.factory/specs/behavioral-contracts/BC-INDEX.md
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/.factory/specs/architecture/ARCH-INDEX.md
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/.factory/specs/verification-properties/VP-INDEX.md
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/.factory/specs/architecture/verification-architecture.md
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/.factory/specs/architecture/verification-coverage-matrix.md
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/.factory/specs/module-criticality.md
+
+# ── NEW FACTORY SPEC FILES ────────────────────────────────────────────────────
+
+NEW /Users/zious/Documents/GITHUB/wirerust/.factory/specs/behavioral-contracts/ss-14/
+NEW /Users/zious/Documents/GITHUB/wirerust/.factory/specs/verification-properties/vp-022-modbus-mbap-parse-safety.md
+
+# ── DEPENDENT (REGRESSION ZONE — must stay green) ─────────────────────────────
+
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reassembly/handler.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reassembly/mod.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reassembly/flow.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reassembly/segment.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reassembly/config.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reassembly/stats.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reassembly/lifecycle.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/analyzer/http.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/analyzer/tls.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/analyzer/dns.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/findings.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/decoder.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reporter/mod.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reporter/terminal.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reporter/json.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reporter/csv.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/summary.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reader.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/lib.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/tests/dispatcher_tests.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/tests/http_analyzer_tests.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/tests/http_integration_tests.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/tests/tls_analyzer_tests.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/tests/tls_integration_tests.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/tests/mitre_tests.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/tests/reporter_tests.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/tests/reporter_terminal_tests.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/tests/multi_analyzer_e2e_tests.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/tests/cli_tests.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/tests/cli_integration_tests.rs

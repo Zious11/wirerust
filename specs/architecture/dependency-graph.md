@@ -35,6 +35,7 @@ main.rs / lib.rs
   |     |-- reassembly/handler.rs  (imports StreamHandler trait)
   |     |-- analyzer/http.rs       (holds Option<HttpAnalyzer>)
   |     |-- analyzer/tls.rs        (holds Option<TlsAnalyzer>)
+  |     |-- analyzer/modbus.rs     (holds Option<ModbusAnalyzer>) [NEW — C-22, ADR-005]
   |-- analyzer/dns.rs
   |-- findings.rs
   |-- mitre.rs

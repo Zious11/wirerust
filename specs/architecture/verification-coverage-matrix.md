@@ -19,6 +19,9 @@ modified:
   - date: 2026-06-09
     actor: spec-steward
     reason: "F7 consistency fix — VP-021 reclassified to proptest column to match VP-INDEX counting convention (proptest 7 / integration-unit 5); prior v1.2 placement contradicted VP-INDEX invariant (verification-coverage-matrix.md Totals must equal Kani 8 / proptest 7 / fuzz 1 / integration-unit 5 = 21)."
+  - date: 2026-06-09
+    actor: architect
+    reason: "F2 delta (issue #7 Modbus TCP): VP-022 added (draft; Kani; P1; analyzer/modbus.rs). New module row added. Kani 8→9, Total 21→22."
 ---
 
 # Verification Coverage Matrix
@@ -48,6 +51,7 @@ modified:
 | VP-019 | DNS statistics-only (no findings) | analyzer/dns.rs | unit | test-sufficient | verified |
 | VP-020 | CSV injection neutralization | reporter/csv.rs | unit | test-sufficient | verified |
 | VP-021 | Timestamp provenance threading | reassembly/mod.rs | integration+proptest | test-sufficient | verified |
+| VP-022 | Modbus MBAP parse safety + FC boundary classification | analyzer/modbus.rs | Kani | P1 | draft |
 
 
 ## Per-Module Coverage Totals
@@ -67,7 +71,8 @@ modified:
 | cli.rs | 0 | 0 | 0 | 1 (VP-018) | 1 |
 | analyzer/dns.rs | 0 | 0 | 0 | 1 (VP-019) | 1 |
 | reporter/csv.rs | 0 | 0 | 0 | 1 (VP-020) | 1 |
-| **Totals** | **8** | **7** | **1** | **5** | **21** |
+| analyzer/modbus.rs | 1 (VP-022) | 0 | 0 | 0 | 1 |
+| **Totals** | **9** | **7** | **1** | **5** | **22** |
 
 
 ## Coverage Notes

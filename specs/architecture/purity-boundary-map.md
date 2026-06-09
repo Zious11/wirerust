@@ -48,6 +48,7 @@ The pure portions are extracted for verification; the effectful portions are int
 | src/analyzer/dns.rs | **Pure core** | Packet-level; returns `Vec::new()` from `analyze()`; increments per-instance counters only. Formally verifiable. |
 | src/analyzer/http.rs | **Pure core** | Stream-level; all state per-instance; no global side effects; `httparse` is deterministic. Formally verifiable. |
 | src/analyzer/tls.rs | **Pure core** | Stream-level; all state per-instance; `md5` is deterministic; `extract_sni` is a pure function (INV-5). Formally verifiable. |
+| src/analyzer/modbus.rs | **Pure core** | Stream-level; all state per-instance `HashMap<FlowKey, ModbusFlowState>`; pure core functions (`parse_mbap_header`, `classify_fc`, `is_valid_modbus_adu`) are Kani-verifiable (VP-022); no global side effects. Formally verifiable for core parse/classify path. [NEW — C-22, SS-14] |
 | src/findings.rs | Pure core | Data struct + Display impls; no I/O |
 | src/mitre.rs | **Pure core** | Static match table; pure lookup functions (INV-9). Formally verifiable. |
 | src/summary.rs | Pure core | Per-instance accumulator; no I/O |
@@ -79,6 +80,7 @@ L2 Stream          | flow.rs (C-7)           |      |                    |
 L3 Domain          | analyzer/dns.rs  (C-11) |      |                    |
                    | analyzer/http.rs (C-12) |      |                    |
                    | analyzer/tls.rs  (C-13) |      |                    |
+                   | analyzer/modbus.rs(C-22)|      |                    |
                    | findings.rs      (C-14) |      |                    |
                    | mitre.rs         (C-16) |      |                    |
                    | summary.rs       (C-17) |      |                    |
@@ -107,6 +109,7 @@ proptest. Key formally-verifiable properties:
 - `dispatcher.rs`: Content-first precedence (INV-2); DispatchTarget::None NOT cached before retry cap (pre-cap: attempts incremented, routes untouched); permanently cached as DispatchTarget::None once cap reached (dispatcher.rs:146-148)
 - `analyzer/tls.rs`: SNI 4-way ordered match (INV-5); JA3 GREASE filter correctness
 - `analyzer/http.rs`: HTTP poison monotonicity (INV-8); cross-flow state isolation
-- `mitre.rs`: technique_id format invariant (INV-9); all_tactics_in_report_order completeness
+- `analyzer/modbus.rs`: MBAP parse safety (VP-022 sub-A); function-code classification totality (VP-022 sub-B); exception detection correctness (VP-022 sub-C) [NEW — SS-14]
+- `mitre.rs`: technique_id format invariant (INV-9); all_tactics_in_report_order completeness; ICS-matrix technique resolution (T0836/T0814/T0806/T0835/T0831)
 
 See `verification-architecture.md` for the full proof strategy per invariant.

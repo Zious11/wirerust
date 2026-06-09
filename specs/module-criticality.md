@@ -45,6 +45,7 @@ frozen_reason: "Phase 5 long passed (gate closed prior to Phase 6). Frozen by sp
 | HTTP analyzer | analyzer/http.rs | Path-traversal, web-shell, and missing-host detection. Bugs produce false negatives on real attacks. |
 | Packet decoder | decoder.rs | Link-type gate is a security boundary (prevents processing of unexpected frame types). Decode bugs corrupt ParsedPacket fields flowing into all downstream analysis. |
 | MITRE catalog | mitre.rs | Incorrect technique ID routing produces findings that land in the wrong tactic bucket or in Uncategorized. Directly affects kill-chain analysis output. |
+| Modbus TCP analyzer | analyzer/modbus.rs (C-22, SS-14) | ICS/OT threat detection. Bugs in MBAP parsing or function-code classification produce incorrect findings or miss attack signals. Pure core functions (parse_mbap_header, classify_fc) verified by VP-022. Finding-emission logic (write-burst, T0814 Diagnostics) is high-criticality. Target kill rate >= 90%. [NEW — feature cycle issue #7, F2 delta] |
 
 ## MEDIUM Modules (>= 80% kill rate)
 
