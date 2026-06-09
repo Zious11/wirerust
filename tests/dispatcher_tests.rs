@@ -42,7 +42,7 @@ fn test_tls_content_wins_over_port_8080() {
 
     // Canonical test vector from BC-2.05.001: [0x16, 0x03, 0x03, 0x00, 0x50, ...]
     let tls_data = [0x16u8, 0x03, 0x03, 0x00, 0x50, 0x01, 0x00, 0x00, 0x4c, 0x03];
-    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_data, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_data, 0, 0);
 
     // Content-first wins: HTTP must not have received any data from this flow.
     let http = dispatcher.http_analyzer().unwrap();
@@ -66,7 +66,7 @@ fn test_tls_content_routes_tls_on_port_443() {
     let fk = flow_key(49152, 443);
 
     let tls_data = [0x16u8, 0x03, 0x03, 0x00, 0x50, 0x01, 0x00, 0x00, 0x4c, 0x03];
-    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_data, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_data, 0, 0);
 
     let http = dispatcher.http_analyzer().unwrap();
     assert_eq!(
@@ -87,7 +87,7 @@ fn test_dispatcher_routes_http() {
     let fk = flow_key(49152, 80);
 
     let http_data = b"GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    dispatcher.on_data(&fk, Direction::ClientToServer, http_data, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, http_data, 0, 0);
 
     let http = dispatcher.http_analyzer().unwrap();
     assert_eq!(*http.method_counts().get("GET").unwrap(), 1);
@@ -128,7 +128,7 @@ fn test_all_http_method_prefixes_route_to_http() {
             StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
         // Port 9999: no port fallback hint — Http must be chosen by content.
         let fk = flow_key(49152 + i as u16, 9999);
-        dispatcher.on_data(&fk, Direction::ClientToServer, data, 0);
+        dispatcher.on_data(&fk, Direction::ClientToServer, data, 0, 0);
 
         let http = dispatcher.http_analyzer().expect("HTTP analyzer set");
         let tls = dispatcher.tls_analyzer().expect("TLS analyzer set");
@@ -159,7 +159,7 @@ fn test_dispatcher_content_detection_tls_on_port_80() {
 
     // TLS record header on port 80 — content detection should override port
     let tls_data = [0x16, 0x03, 0x03, 0x00, 0x05, 0x01, 0x00, 0x00, 0x01, 0x00];
-    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_data, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_data, 0, 0);
 
     // HTTP analyzer should NOT have received this data
     let http = dispatcher.http_analyzer().unwrap();
@@ -179,7 +179,7 @@ fn test_port_fallback_443_to_tls() {
     // The 1-byte payload (0xFF) forms a syntactically complete but malformed handshake
     // record, which causes TlsAnalyzer to increment parse_error_count — confirming routing.
     let unknown_data = [0x16u8, 0x04, 0x01, 0x00, 0x01, 0xFF];
-    dispatcher.on_data(&fk, Direction::ClientToServer, &unknown_data, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &unknown_data, 0, 0);
 
     // Should have routed to TLS based on port 443; HTTP must not have received it.
     let http = dispatcher.http_analyzer().unwrap();
@@ -216,7 +216,7 @@ fn test_port_fallback_8443_to_tls() {
     // The 1-byte payload (0xFF) forms a complete but malformed handshake record, causing
     // TlsAnalyzer to increment parse_error_count — confirming routing to TLS analyzer.
     let ambiguous_data = [0x16u8, 0x04, 0x01, 0x00, 0x01, 0xFF];
-    dispatcher.on_data(&fk, Direction::ClientToServer, &ambiguous_data, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &ambiguous_data, 0, 0);
 
     let http = dispatcher.http_analyzer().unwrap();
     assert_eq!(
@@ -249,7 +249,7 @@ fn test_port_fallback_80_to_http() {
 
     // 5 bytes with no TLS (byte0≠0x16) and no HTTP method prefix → only port fallback applies.
     let ambiguous_data = [0x00u8, 0x01, 0x02, 0x03, 0x04];
-    dispatcher.on_data(&fk, Direction::ClientToServer, &ambiguous_data, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &ambiguous_data, 0, 0);
 
     // Port 80 fallback → Http. The flow IS classified (not unclassified).
     dispatcher.on_flow_close(&fk, CloseReason::Fin);
@@ -280,7 +280,7 @@ fn test_port_fallback_8080_to_http() {
 
     // 5 bytes with no TLS (byte0≠0x16) and no HTTP method prefix → only port fallback applies.
     let ambiguous_data = [0x00u8, 0x01, 0x02, 0x03, 0x04];
-    dispatcher.on_data(&fk, Direction::ClientToServer, &ambiguous_data, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &ambiguous_data, 0, 0);
 
     // Port 8080 fallback → Http. Same verification strategy as port 80 above.
     dispatcher.on_flow_close(&fk, CloseReason::Fin);
@@ -316,7 +316,7 @@ fn test_tls_check_skipped_below_len_5() {
     // 4 bytes starting with TLS-looking byte0=0x16 — would pass TLS check IF 5 bytes present.
     // Exactly at the EC-004 boundary: data.len() == 4.
     let four_bytes = [0x16u8, 0x03, 0x03, 0x00];
-    dispatcher.on_data(&fk, Direction::ClientToServer, &four_bytes, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &four_bytes, 0, 0);
 
     // TLS content check skipped (too short), HTTP content check also fails (no method prefix),
     // port fallback also fails (unknown port) → flow unclassified.
@@ -349,7 +349,7 @@ fn test_tls_check_requires_byte1_equals_0x03() {
 
     // byte0=0x16, byte1=0x04 (not 0x03) — TLS check must fail.
     let almost_tls = [0x16u8, 0x04, 0x03, 0x00, 0x05];
-    dispatcher.on_data(&fk, Direction::ClientToServer, &almost_tls, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &almost_tls, 0, 0);
 
     let http = dispatcher.http_analyzer().unwrap();
     assert_eq!(
@@ -370,7 +370,7 @@ fn test_tls_check_requires_byte1_equals_0x03() {
         StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
     let fk2 = flow_key(49152, 9999);
     let almost_tls2 = [0x16u8, 0x02, 0x03, 0x00, 0x05];
-    dispatcher2.on_data(&fk2, Direction::ClientToServer, &almost_tls2, 0);
+    dispatcher2.on_data(&fk2, Direction::ClientToServer, &almost_tls2, 0, 0);
     dispatcher2.on_flow_close(&fk2, CloseReason::Fin);
     assert_eq!(
         dispatcher2.unclassified_flows(),
@@ -385,7 +385,7 @@ fn test_unclassified_flows_counter() {
     let fk = flow_key(49152, 9999); // Non-standard port
 
     // Send data that doesn't match HTTP or TLS content signatures
-    dispatcher.on_data(&fk, Direction::ClientToServer, b"UNKNOWN_PROTOCOL", 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, b"UNKNOWN_PROTOCOL", 0, 0);
     assert_eq!(dispatcher.unclassified_flows(), 0); // Not counted until close
 
     // Close the flow — never classified
@@ -399,7 +399,7 @@ fn test_classified_flow_not_counted_as_unclassified() {
     let fk = flow_key(49152, 80);
 
     let http_data = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    dispatcher.on_data(&fk, Direction::ClientToServer, http_data, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, http_data, 0, 0);
     dispatcher.on_flow_close(&fk, CloseReason::Fin);
 
     assert_eq!(dispatcher.unclassified_flows(), 0);
@@ -437,7 +437,7 @@ fn test_unclassifiable_flow_still_counted_after_attempt_cap() {
 
     // Feed several non-HTTP, non-TLS chunks — well past the cap of 3.
     for _ in 0..10 {
-        dispatcher.on_data(&fk, Direction::ClientToServer, b"UNKNOWN_PROTOCOL", 0);
+        dispatcher.on_data(&fk, Direction::ClientToServer, b"UNKNOWN_PROTOCOL", 0, 0);
     }
     assert_eq!(dispatcher.unclassified_flows(), 0); // not counted until close
 
@@ -459,13 +459,14 @@ fn test_late_classification_within_attempt_budget_still_routes() {
     let fk = flow_key(49152, 9999);
 
     // Two unclassifiable chunks (within the budget of 8)...
-    dispatcher.on_data(&fk, Direction::ClientToServer, b"\x00\x01", 0);
-    dispatcher.on_data(&fk, Direction::ClientToServer, b"\x02\x03", 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, b"\x00\x01", 0, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, b"\x02\x03", 0, 0);
     // ...then a clear HTTP request.
     dispatcher.on_data(
         &fk,
         Direction::ClientToServer,
         b"GET / HTTP/1.1\r\nHost: x\r\n\r\n",
+        0,
         0,
     );
 
@@ -495,7 +496,7 @@ fn test_zero_attempt_budget_classifies_nothing() {
     let fk = flow_key(49152, 80);
 
     let http_data = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    dispatcher.on_data(&fk, Direction::ClientToServer, http_data, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, http_data, 0, 0);
     let http = dispatcher.http_analyzer().unwrap();
     assert_eq!(
         *http.method_counts().get("GET").unwrap(),
@@ -517,7 +518,7 @@ fn test_http_no_space_does_not_match() {
     let fk = flow_key(49152, 9999);
 
     // b"GET" without trailing space — must not match any HTTP prefix.
-    dispatcher.on_data(&fk, Direction::ClientToServer, b"GET", 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, b"GET", 0, 0);
     let http = dispatcher.http_analyzer().unwrap();
     assert_eq!(
         http.method_counts().len(),
@@ -534,6 +535,7 @@ fn test_http_no_space_does_not_match() {
         &fk2,
         Direction::ClientToServer,
         b"get /index HTTP/1.1\r\nHost: x\r\n\r\n",
+        0,
         0,
     );
     assert_eq!(
@@ -564,6 +566,7 @@ fn test_http_no_space_does_not_match() {
         Direction::ClientToServer,
         b"GET /index HTTP/1.1\r\nHost: example.com\r\n\r\n",
         0,
+        0,
     );
     assert_eq!(
         *dispatcher
@@ -591,7 +594,7 @@ fn test_tls_takes_priority_over_http_methods_check() {
     // by enough bytes to pass the len >= 5 gate. The remainder is irrelevant to
     // the routing decision, but we pad it to 10 bytes for completeness.
     let tls_then_garbage = [0x16u8, 0x03, 0x01, 0x00, 0x06, 0x47, 0x45, 0x54, 0x20, 0x2f];
-    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_then_garbage, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_then_garbage, 0, 0);
 
     // TLS wins — HTTP analyzer must have received nothing.
     let http = dispatcher.http_analyzer().unwrap();
@@ -624,6 +627,7 @@ fn test_port_fallback_uses_canonical_port_ordering() {
         &fk_8443,
         Direction::ClientToServer,
         b"\x16\x04\x01\x00\x01\xFF",
+        0,
         0,
     );
     let http = dispatcher.http_analyzer().unwrap();
@@ -667,6 +671,7 @@ fn test_port_fallback_uses_canonical_port_ordering() {
         Direction::ClientToServer,
         b"\x16\x04\x01\x00\x01\xFF",
         0,
+        0,
     );
     assert_eq!(
         dispatcher.http_analyzer().unwrap().method_counts().len(),
@@ -704,7 +709,7 @@ fn test_http_content_on_port_443_routes_to_http() {
     let fk = flow_key(49152, 443);
 
     let http_on_tls_port = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    dispatcher.on_data(&fk, Direction::ClientToServer, http_on_tls_port, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, http_on_tls_port, 0, 0);
 
     let http = dispatcher.http_analyzer().unwrap();
     assert_eq!(
@@ -737,7 +742,7 @@ fn test_BC_2_05_005_classification_cached_after_first_match() {
 
     // First chunk: valid HTTP GET — classify returns Http; cached in routes[fk].
     let http_bytes = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    dispatcher.on_data(&fk, Direction::ClientToServer, http_bytes, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, http_bytes, 0, 0);
     let http = dispatcher.http_analyzer().unwrap();
     assert_eq!(
         *http.method_counts().get("GET").unwrap_or(&0),
@@ -755,7 +760,7 @@ fn test_BC_2_05_005_classification_cached_after_first_match() {
     // parse_error_count > 0 on HttpAnalyzer, parse_error_count == 0 on TlsAnalyzer.
     // AC-005 (EC-005): immutable cache — Http flow stays Http even with TLS content.
     let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
-    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0, 0);
 
     assert_eq!(
         dispatcher.tls_analyzer().unwrap().parse_error_count(),
@@ -808,10 +813,10 @@ fn test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified() {
 
     // Phase A: exhaust retry cap → None permanently cached in routes[fk].
     for _ in 0..3 {
-        dispatcher.on_data(&fk, Direction::ClientToServer, &unknown_bytes, 0);
+        dispatcher.on_data(&fk, Direction::ClientToServer, &unknown_bytes, 0, 0);
     }
     // Sanity-check that None is cached: a TLS chunk must not reach TlsAnalyzer.
-    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0, 0);
     assert_eq!(
         dispatcher.tls_analyzer().unwrap().parse_error_count(),
         0,
@@ -834,7 +839,7 @@ fn test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified() {
     // Proof of cache eviction: same FlowKey, TLS bytes. classify must run (not short-circuit),
     // return Tls, and route data to TlsAnalyzer — producing at least one parse or truncation
     // event. If the stale None were still present, TlsAnalyzer would remain silent.
-    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0, 0);
     assert!(
         dispatcher.tls_analyzer().unwrap().parse_error_count() > 0
             || dispatcher.tls_analyzer().unwrap().truncated_record_count() > 0,
@@ -846,7 +851,7 @@ fn test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified() {
     // every subsequent chunk). Send HTTP GET bytes — if Tls is cached, classify does NOT
     // re-run and HttpAnalyzer receives nothing (method_counts["GET"] stays 0).
     let http_bytes = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    dispatcher.on_data(&fk, Direction::ClientToServer, http_bytes, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, http_bytes, 0, 0);
     assert_eq!(
         dispatcher
             .http_analyzer()
@@ -893,7 +898,7 @@ fn test_BC_2_05_006_none_not_cached_before_retry_cap() {
     // AC-006: 7 unmatched chunks (7 < cap of 8) — None NOT yet cached.
     let unknown_bytes: [u8; 5] = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE];
     for _ in 0..7 {
-        dispatcher.on_data(&fk, Direction::ClientToServer, &unknown_bytes, 0);
+        dispatcher.on_data(&fk, Direction::ClientToServer, &unknown_bytes, 0, 0);
     }
     // Confirm neither analyzer received anything (all discarded as DispatchTarget::None).
     assert_eq!(
@@ -912,7 +917,7 @@ fn test_BC_2_05_006_none_not_cached_before_retry_cap() {
     // classified as Tls and routed to TlsAnalyzer. If None were cached, classify
     // would not run and TlsAnalyzer would remain silent.
     let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
-    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0, 0);
 
     assert!(
         dispatcher.tls_analyzer().unwrap().parse_error_count() > 0
@@ -957,14 +962,14 @@ fn test_BC_2_05_006_none_cached_permanently_after_retry_cap() {
     // AC-007: 3 unmatched chunks → on the 3rd, count reaches cap=3; None cached permanently.
     let unknown_bytes: [u8; 5] = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE];
     for _ in 0..3 {
-        dispatcher.on_data(&fk, Direction::ClientToServer, &unknown_bytes, 0);
+        dispatcher.on_data(&fk, Direction::ClientToServer, &unknown_bytes, 0, 0);
     }
 
     // Chunk 4: valid TLS bytes. If None is permanently cached (correct), classify does
     // NOT run → TlsAnalyzer receives nothing → both parse_error_count and
     // truncated_record_count remain 0. If the cache were broken, TlsAnalyzer would fire.
     let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
-    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0, 0);
 
     assert_eq!(
         dispatcher.tls_analyzer().unwrap().parse_error_count(),
@@ -998,9 +1003,9 @@ fn test_BC_2_05_006_none_cached_permanently_after_retry_cap() {
     let fk2 = flow_key(49152, 22);
     // First chunk: unknown bytes → count would be 1, but 1 >= 0 after saturating, so
     // the implementation uses `>= max` check; with max=0, count(1) >= 0 → None cached.
-    d_zero.on_data(&fk2, Direction::ClientToServer, &unknown_bytes, 0);
+    d_zero.on_data(&fk2, Direction::ClientToServer, &unknown_bytes, 0, 0);
     // Second chunk: TLS bytes — must not reach TlsAnalyzer (None cached after chunk 1).
-    d_zero.on_data(&fk2, Direction::ClientToServer, &tls_bytes, 0);
+    d_zero.on_data(&fk2, Direction::ClientToServer, &tls_bytes, 0, 0);
     assert_eq!(
         d_zero.tls_analyzer().unwrap().parse_error_count(),
         0,
@@ -1031,12 +1036,18 @@ fn test_BC_2_05_006_none_cached_permanently_after_retry_cap() {
     // Send 8 unmatched chunks — on the 8th, attempt count reaches default cap of 8;
     // DispatchTarget::None is permanently cached in routes[fk3].
     for _ in 0..8 {
-        d_default.on_data(&fk3, Direction::ClientToServer, &unknown_bytes_default, 0);
+        d_default.on_data(
+            &fk3,
+            Direction::ClientToServer,
+            &unknown_bytes_default,
+            0,
+            0,
+        );
     }
 
     // Verify None is now permanently cached: a 9th chunk with valid TLS bytes must NOT
     // reach TlsAnalyzer (classify is short-circuited by the cached None route).
-    d_default.on_data(&fk3, Direction::ClientToServer, &tls_bytes_default, 0);
+    d_default.on_data(&fk3, Direction::ClientToServer, &tls_bytes_default, 0, 0);
 
     assert_eq!(
         d_default.tls_analyzer().unwrap().parse_error_count(),
@@ -1082,12 +1093,12 @@ fn test_BC_2_05_006_late_classification_after_nones() {
     let unknown_bytes: [u8; 5] = [0xAA, 0xBB, 0xCC, 0xDD, 0xEE];
     // 3 unmatched chunks — attempt count reaches 3, still below cap of 8.
     for _ in 0..3 {
-        dispatcher.on_data(&fk, Direction::ClientToServer, &unknown_bytes, 0);
+        dispatcher.on_data(&fk, Direction::ClientToServer, &unknown_bytes, 0, 0);
     }
 
     // 4th chunk: TLS bytes — classify returns Tls; routes[fk]=Tls cached; attempts removed.
     let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
-    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, &tls_bytes, 0, 0);
 
     assert!(
         dispatcher.tls_analyzer().unwrap().parse_error_count() > 0
@@ -1106,7 +1117,7 @@ fn test_BC_2_05_006_late_classification_after_nones() {
     // HttpAnalyzer never receives the data (method_counts["GET"] stays 0). If the cache were
     // broken and classify re-ran, it would return Http and HttpAnalyzer would record the GET.
     let http_bytes = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    dispatcher.on_data(&fk, Direction::ClientToServer, http_bytes, 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, http_bytes, 0, 0);
 
     // TlsAnalyzer receives the GET bytes via the cached Tls route; the bytes don't match a
     // TLS record type (byte0=0x47≠0x16) so the TLS parser silently skips them. The definitive
@@ -1137,10 +1148,10 @@ fn test_BC_2_05_006_late_classification_after_nones() {
     let fk2 = flow_key(49153, 22);
 
     for _ in 0..7 {
-        d2.on_data(&fk2, Direction::ClientToServer, &unknown_bytes, 0);
+        d2.on_data(&fk2, Direction::ClientToServer, &unknown_bytes, 0, 0);
     }
     // 8th chunk: TLS bytes — attempt count was 7 (< cap=8); classify runs; returns Tls.
-    d2.on_data(&fk2, Direction::ClientToServer, &tls_bytes, 0);
+    d2.on_data(&fk2, Direction::ClientToServer, &tls_bytes, 0, 0);
 
     assert!(
         d2.tls_analyzer().unwrap().parse_error_count() > 0
@@ -1195,8 +1206,8 @@ fn test_BC_2_05_007_unclassified_flows_counter() {
 
     // Two unknown-content chunks → attempt count reaches cap=2 → DispatchTarget::None cached.
     let unknown: &[u8] = &[0xAA, 0xBB, 0xCC, 0xDD, 0xEE];
-    dispatcher2.on_data(&fk_capped, Direction::ClientToServer, unknown, 0);
-    dispatcher2.on_data(&fk_capped, Direction::ClientToServer, unknown, 0);
+    dispatcher2.on_data(&fk_capped, Direction::ClientToServer, unknown, 0, 0);
+    dispatcher2.on_data(&fk_capped, Direction::ClientToServer, unknown, 0, 0);
 
     // Counter must NOT increment during on_data — only on close.
     assert_eq!(
@@ -1243,7 +1254,7 @@ fn test_BC_2_05_007_classified_flow_not_counted_as_unclassified() {
     // Part 1: HTTP-classified flow.
     let fk_http = flow_key(49210, 9999);
     let http_bytes = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    dispatcher.on_data(&fk_http, Direction::ClientToServer, http_bytes, 0);
+    dispatcher.on_data(&fk_http, Direction::ClientToServer, http_bytes, 0, 0);
 
     // Verify the flow was routed to Http (method_counts proves routing).
     assert_eq!(
@@ -1268,7 +1279,7 @@ fn test_BC_2_05_007_classified_flow_not_counted_as_unclassified() {
     let fk_tls = flow_key(49211, 9999);
     // TLS content bytes: byte0=0x16, byte1=0x03, len >= 5.
     let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
-    dispatcher.on_data(&fk_tls, Direction::ClientToServer, &tls_bytes, 0);
+    dispatcher.on_data(&fk_tls, Direction::ClientToServer, &tls_bytes, 0, 0);
 
     dispatcher.on_flow_close(&fk_tls, CloseReason::Fin);
     assert_eq!(
@@ -1294,17 +1305,19 @@ fn test_BC_2_05_008_no_analyzer_dispatcher_early_returns() {
     let fk = flow_key(49220, 9999);
 
     // Call on_data multiple times with various byte patterns — must be no-ops.
-    dispatcher.on_data(&fk, Direction::ClientToServer, b"GET / HTTP/1.1\r\n", 0);
+    dispatcher.on_data(&fk, Direction::ClientToServer, b"GET / HTTP/1.1\r\n", 0, 0);
     dispatcher.on_data(
         &fk,
         Direction::ClientToServer,
         &[0x16u8, 0x03, 0x01, 0x00, 0x01, 0xFF],
+        0,
         0,
     );
     dispatcher.on_data(
         &fk,
         Direction::ClientToServer,
         &[0xAA, 0xBB, 0xCC, 0xDD, 0xEE],
+        0,
         0,
     );
 
@@ -1347,7 +1360,7 @@ fn test_BC_2_05_008_single_analyzer_not_early_returned() {
     let mut dispatcher_http_only = StreamDispatcher::new(Some(HttpAnalyzer::new()), None);
     let fk_http = flow_key(49230, 9999);
     let http_bytes = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
-    dispatcher_http_only.on_data(&fk_http, Direction::ClientToServer, http_bytes, 0);
+    dispatcher_http_only.on_data(&fk_http, Direction::ClientToServer, http_bytes, 0, 0);
 
     assert_eq!(
         *dispatcher_http_only
@@ -1368,7 +1381,7 @@ fn test_BC_2_05_008_single_analyzer_not_early_returned() {
     let fk_tls = flow_key(49231, 9999);
     // Valid-length TLS-like bytes: record_type=0x16, version=0x0301, payload_len=1 byte.
     let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
-    dispatcher_tls_only.on_data(&fk_tls, Direction::ClientToServer, &tls_bytes, 0);
+    dispatcher_tls_only.on_data(&fk_tls, Direction::ClientToServer, &tls_bytes, 0, 0);
 
     // TlsAnalyzer must have received the data: active_flows_len_for_testing == 1 OR
     // parse/truncation counter > 0 (depending on how tls_parser handles the 1-byte payload).
@@ -1393,7 +1406,7 @@ fn test_BC_2_05_009_flow_close_forwards_to_http_analyzer() {
     let fk_http = flow_key(49240, 9999);
     let http_bytes = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
 
-    dispatcher.on_data(&fk_http, Direction::ClientToServer, http_bytes, 0);
+    dispatcher.on_data(&fk_http, Direction::ClientToServer, http_bytes, 0, 0);
 
     // Verify HttpAnalyzer has per-flow state before close.
     assert_eq!(
@@ -1432,7 +1445,7 @@ fn test_BC_2_05_009_flow_close_forwards_to_http_analyzer() {
     let fk_tls = flow_key(49241, 9999);
     let tls_bytes: [u8; 6] = [0x16, 0x03, 0x01, 0x00, 0x01, 0xFF];
 
-    dispatcher2.on_data(&fk_tls, Direction::ClientToServer, &tls_bytes, 0);
+    dispatcher2.on_data(&fk_tls, Direction::ClientToServer, &tls_bytes, 0, 0);
 
     // TlsAnalyzer must have per-flow state before close.
     assert_eq!(
@@ -1513,4 +1526,90 @@ fn test_BC_2_05_009_flow_close_for_unknown_flow_key() {
         2,
         "AC-009: second unknown-key close must further increment unclassified_flows to 2"
     );
+}
+
+// ---- STORY-097: timestamp threading from dispatcher to downstream analyzers ----
+
+/// STORY-097 AC-004 (BC-2.04.055 dispatcher-forwarding invariant):
+/// `StreamDispatcher::on_data` must thread the `timestamp` argument through to
+/// BOTH the TLS and HTTP downstream analyzers unchanged.
+///
+/// Two sub-cases are exercised in the same test (one flow routed to TLS, one to
+/// HTTP) so that both analyzer paths are covered and the shared `last_ts` store
+/// in each analyzer's per-flow state is verified independently.
+///
+/// Observability: `TlsAnalyzer::last_ts_for_testing` / `HttpAnalyzer::last_ts_for_testing`
+/// expose the most-recently stored capture timestamp for a given flow, mirroring
+/// the `#[doc(hidden)]` testing-accessor pattern used by `active_flows_len_for_testing`,
+/// `client_buf_len_for_testing`, etc.
+#[test]
+fn test_stream_dispatcher_forwards_timestamp_to_analyzers() {
+    const TS: u32 = 7777;
+
+    // ── Sub-case 1: TLS path ────────────────────────────────────────────────────
+    // TLS content bytes: byte0=0x16, byte1=0x03 — routes to TlsAnalyzer.
+    // Port 9999 (neutral) ensures classification is purely content-driven.
+    {
+        let mut dispatcher =
+            StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+        let fk_tls = flow_key(49300, 9999);
+
+        // 10-byte TLS-looking chunk with timestamp TS.
+        let tls_data = [0x16u8, 0x03, 0x03, 0x00, 0x05, 0x01, 0x00, 0x00, 0x01, 0x00];
+        dispatcher.on_data(&fk_tls, Direction::ClientToServer, &tls_data, 0, TS);
+
+        // TlsAnalyzer must have received the data (flow created in its state map).
+        let tls = dispatcher.tls_analyzer().expect("TLS analyzer present");
+        assert!(
+            tls.active_flows_len_for_testing() >= 1,
+            "AC-004/TLS: TlsAnalyzer must have received the data chunk (flow state created)"
+        );
+        // The stored last_ts for the flow must equal the timestamp passed to on_data.
+        assert_eq!(
+            tls.last_ts_for_testing(&fk_tls),
+            Some(TS),
+            "AC-004/TLS: TlsAnalyzer.last_ts for flow must equal the timestamp forwarded \
+             by StreamDispatcher (expected {TS}, dispatcher must not alter or drop it)"
+        );
+        // HTTP analyzer must NOT have received any data from this TLS-classified flow.
+        let http = dispatcher.http_analyzer().expect("HTTP analyzer present");
+        assert_eq!(
+            http.last_ts_for_testing(&fk_tls),
+            None,
+            "AC-004/TLS: HttpAnalyzer must not have per-flow state for a TLS-routed flow"
+        );
+    }
+
+    // ── Sub-case 2: HTTP path ───────────────────────────────────────────────────
+    // HTTP GET bytes — routes to HttpAnalyzer.
+    // Port 9998 (neutral) ensures classification is purely content-driven.
+    {
+        let mut dispatcher =
+            StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+        let fk_http = flow_key(49301, 9998);
+
+        let http_data = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
+        dispatcher.on_data(&fk_http, Direction::ClientToServer, http_data, 0, TS);
+
+        // HttpAnalyzer must have received the data (method_counts updated).
+        let http = dispatcher.http_analyzer().expect("HTTP analyzer present");
+        assert!(
+            http.method_counts().get("GET").copied().unwrap_or(0) >= 1,
+            "AC-004/HTTP: HttpAnalyzer must have received the GET chunk (method_counts[GET] >= 1)"
+        );
+        // The stored last_ts for the flow must equal the timestamp passed to on_data.
+        assert_eq!(
+            http.last_ts_for_testing(&fk_http),
+            Some(TS),
+            "AC-004/HTTP: HttpAnalyzer.last_ts for flow must equal the timestamp forwarded \
+             by StreamDispatcher (expected {TS}, dispatcher must not alter or drop it)"
+        );
+        // TLS analyzer must NOT have received any data from this HTTP-classified flow.
+        let tls = dispatcher.tls_analyzer().expect("TLS analyzer present");
+        assert_eq!(
+            tls.last_ts_for_testing(&fk_http),
+            None,
+            "AC-004/HTTP: TlsAnalyzer must not have per-flow state for an HTTP-routed flow"
+        );
+    }
 }

@@ -202,7 +202,7 @@ fn test_parse_client_hello() {
     let fk = test_flow_key();
 
     let record = build_client_hello("example.com", &[0x1301, 0x1303]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // AC-001: handshakes_seen incremented by exactly 1
     assert_eq!(
@@ -299,7 +299,7 @@ fn test_parse_client_hello_single_handshake_despite_multiple_weak_ciphers() {
     // 0x0002 TLS_RSA_WITH_NULL_SHA, 0x0003 TLS_RSA_EXPORT_WITH_RC4_40_MD5,
     // 0x003B TLS_RSA_WITH_NULL_SHA256, plus 0x1301 (strong) for a realistic mix.
     let record = build_client_hello("example.com", &[0x0002, 0x0003, 0x003B, 0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(
         analyzer.handshake_count(),
@@ -325,7 +325,7 @@ fn test_ja3_grease_filtering() {
     let fk = test_flow_key();
 
     let record = build_client_hello("test.com", &[0x0a0a, 0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(analyzer.ja3_counts().len(), 1);
     let ja3_hash = analyzer.ja3_counts().keys().next().unwrap();
@@ -346,7 +346,7 @@ fn test_parse_error_counter() {
     // 5-byte TLS record header: type=0x16 (Handshake), version=0x0303, len=0x0005.
     // Payload: 5 bytes of 0xFF — not a valid Handshake structure.
     let bad_record = [0x16, 0x03, 0x03, 0x00, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
-    analyzer.on_data(&fk, Direction::ClientToServer, &bad_record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &bad_record, 0, 0);
 
     // BC-2.07.029 postcondition 1: parse_errors incremented by exactly 1.
     assert_eq!(
@@ -397,7 +397,7 @@ fn test_normal_request_no_parse_errors() {
     let fk = test_flow_key();
 
     let record = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(analyzer.parse_error_count(), 0);
     assert!(analyzer.findings().is_empty());
@@ -409,10 +409,10 @@ fn test_parse_server_hello() {
     let fk = test_flow_key();
 
     let ch = build_client_hello("example.com", &[0x1301, 0x1303]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     let sh = build_server_hello(0x1301);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     assert_eq!(analyzer.ja3s_counts().len(), 1);
     assert_eq!(analyzer.parse_error_count(), 0);
@@ -442,7 +442,7 @@ fn test_weak_cipher_finding_client() {
 
     // TLS_RSA_WITH_NULL_SHA (0x0002) — NULL cipher; 0x1301 is strong (TLS_AES_128_GCM_SHA256).
     let record = build_client_hello("test.com", &[0x0002, 0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     let findings = analyzer.findings();
 
@@ -525,7 +525,7 @@ fn test_weak_cipher_finding_client() {
     // TLS_RSA_WITH_NULL_SHA256 (0x003B), plus one strong cipher.
     let mut analyzer2 = TlsAnalyzer::new();
     let record2 = build_client_hello("test.com", &[0x0002, 0x0003, 0x003B, 0x1301]);
-    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0);
+    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0, 0);
 
     let findings2 = analyzer2.findings();
     let weak_findings: Vec<_> = findings2
@@ -550,7 +550,7 @@ fn test_weak_cipher_finding_client() {
     // GREASE values have from_id() returning None → is_weak_cipher returns false.
     let mut analyzer3 = TlsAnalyzer::new();
     let record3 = build_client_hello("test.com", &[0x0a0a, 0x1301]);
-    analyzer3.on_data(&fk, Direction::ClientToServer, &record3, 0);
+    analyzer3.on_data(&fk, Direction::ClientToServer, &record3, 0, 0);
 
     assert!(
         analyzer3.findings().is_empty(),
@@ -579,13 +579,13 @@ fn test_weak_cipher_finding_server() {
 
     // Strong client hello — no client-side weak cipher finding.
     let ch = build_client_hello("test.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // Server selects TLS_RSA_WITH_RC4_128_MD5 (0x0004) — RC4 triggers is_weak_server_cipher.
     // (is_weak_cipher does NOT include RC4 — AC-005 invariant 1)
     // 0x0004 = TLS_RSA_WITH_RC4_128_MD5 per AC-005/BC-2.07.010 EC-001.
     let sh = build_server_hello(0x0004);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     let findings = analyzer.findings();
 
@@ -667,7 +667,7 @@ fn test_weak_cipher_finding_server() {
     // Note: 0x0004 = TLS_RSA_WITH_RC4_128_MD5. Its name contains RC4 but not NULL/ANON/EXPORT.
     // So is_weak_cipher returns false → no client-side finding.
     let ch_rc4 = build_client_hello("test.com", &[0x0004, 0x1301]);
-    analyzer_rc4_client.on_data(&fk, Direction::ClientToServer, &ch_rc4, 0);
+    analyzer_rc4_client.on_data(&fk, Direction::ClientToServer, &ch_rc4, 0, 0);
 
     let client_findings = analyzer_rc4_client.findings();
     let client_weak: Vec<_> = client_findings
@@ -697,11 +697,11 @@ fn test_normal_handshake_no_findings() {
 
     // ClientHello: TLS 1.2/1.3 legacy_version 0x0303, strong ciphers only.
     let ch = build_client_hello("example.com", &[0x1301, 0x1303]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // ServerHello: strong cipher TLS_AES_128_GCM_SHA256 (0x1301), no weak cipher.
     let sh = build_server_hello(0x1301);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     // BC-2.07.030 postcondition 1: all_findings must be empty (zero false positives).
     assert!(
@@ -776,10 +776,10 @@ fn test_stop_after_handshake() {
     let fk = test_flow_key();
 
     let ch = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     let sh = build_server_hello(0x1301);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     // Snapshot post-handshake counters — these must not change after the done() short-circuit.
     let handshakes_after_hellos = analyzer.handshake_count();
@@ -796,7 +796,7 @@ fn test_stop_after_handshake() {
 
     // AC-009 (BC-2.07.003 invariant 2): send a retransmitted ClientHello after done().
     // handshakes_seen must NOT increment — the short-circuit fires before any parsing.
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
     assert_eq!(
         analyzer.handshake_count(),
         handshakes_after_hellos,
@@ -827,7 +827,7 @@ fn test_stop_after_handshake() {
         v.extend(std::iter::repeat_n(0xBBu8, 1_048_576));
         v
     };
-    analyzer.on_data(&fk, Direction::ServerToClient, &large_app_data, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &large_app_data, 0, 0);
 
     // AC-012 (BC-2.07.034 pc4): all counters at their post-handshake values
     assert_eq!(
@@ -864,7 +864,7 @@ fn test_stop_after_handshake() {
 
     // AC-008 (BC-2.07.003 pc1): on_data returns immediately (no panic, no hang).
     // Send empty slice — EC-003 from BC-2.07.003: empty on_data after done returns immediately.
-    analyzer.on_data(&fk, Direction::ServerToClient, &[], 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &[], 0, 0);
     assert_eq!(
         analyzer.parse_error_count(),
         parse_errors_after_hellos,
@@ -894,10 +894,10 @@ fn test_summarize_output() {
     let fk = test_flow_key();
 
     let ch = build_client_hello("example.com", &[0x1301, 0x1303]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     let sh = build_server_hello(0x1301);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     let summary = analyzer.summarize();
 
@@ -1046,7 +1046,7 @@ fn test_non_utf8_sni_emits_finding_and_counts_under_hex_key() {
     let mut analyzer = TlsAnalyzer::new();
     let sni_bytes: &[u8] = b"\xff\xfe";
     let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // Parse error counter must NOT be incremented — record itself parsed OK.
     assert_eq!(
@@ -1108,8 +1108,18 @@ fn test_non_utf8_sni_emits_finding_and_counts_under_hex_key() {
 
     // BC-2.07.019 pc3: source_ip must be None (network context not available in analyzer).
     assert_eq!(f.source_ip, None, "BC-2.07.019 pc3: source_ip must be None");
-    // BC-2.07.019 pc3: timestamp must be None (network context not available in analyzer).
-    assert_eq!(f.timestamp, None, "BC-2.07.019 pc3: timestamp must be None");
+    // BC-2.09.007 post-1 (STORY-098): timestamp is now Some(DateTime<Utc>) derived from the
+    // per-flow last_ts; this test calls on_data with timestamp=0, so the result is
+    // Some(1970-01-01T00:00:00Z) — not None. The "None" assertion is superseded by STORY-098.
+    {
+        use chrono::DateTime;
+        let expected_ts = DateTime::from_timestamp(0_i64, 0);
+        assert_eq!(
+            f.timestamp, expected_ts,
+            "BC-2.09.007 (STORY-098): TLS SNI finding must have timestamp == \
+             DateTime::from_timestamp(0, 0) = {expected_ts:?} (on_data called with ts_sec=0)"
+        );
+    }
 
     // BC-2.07.019 pc3/pc4: exact summary uses lossy from_utf8_lossy form.
     let lossy = String::from_utf8_lossy(sni_bytes).into_owned();
@@ -1156,11 +1166,11 @@ fn test_non_utf8_sni_emits_finding_and_counts_under_hex_key() {
     // b"\xff" and b"\xfe" both produce the same lossy "?" — different hex keys.
     let mut analyzer_ff = TlsAnalyzer::new();
     let record_ff = build_client_hello_raw_sni(b"\xff", &[0x1301]);
-    analyzer_ff.on_data(&fk, Direction::ClientToServer, &record_ff, 0);
+    analyzer_ff.on_data(&fk, Direction::ClientToServer, &record_ff, 0, 0);
 
     let mut analyzer_fe = TlsAnalyzer::new();
     let record_fe = build_client_hello_raw_sni(b"\xfe", &[0x1301]);
-    analyzer_fe.on_data(&fk, Direction::ClientToServer, &record_fe, 0);
+    analyzer_fe.on_data(&fk, Direction::ClientToServer, &record_fe, 0, 0);
 
     // EC-006: distinct sequences with same lossy => different sni_counts keys.
     assert_eq!(
@@ -1186,7 +1196,7 @@ fn test_non_utf8_sni_emits_finding_and_counts_under_hex_key() {
     let mut analyzer3 = TlsAnalyzer::new();
     let raw_sni: &[u8] = &[0xff, 0xfe, b'a', b'.', b'c', b'o', b'm'];
     let record3 = build_client_hello_raw_sni(raw_sni, &[0x1301]);
-    analyzer3.on_data(&fk, Direction::ClientToServer, &record3, 0);
+    analyzer3.on_data(&fk, Direction::ClientToServer, &record3, 0, 0);
 
     assert_eq!(
         analyzer3.parse_error_count(),
@@ -1229,7 +1239,7 @@ fn test_ascii_sni_does_not_emit_non_utf8_finding() {
     let fk = test_flow_key();
 
     let record = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(*analyzer.sni_counts().get("example.com").unwrap(), 1);
     let non_utf8_findings = analyzer
@@ -1261,7 +1271,7 @@ fn test_non_utf8_sni_preserves_raw_bytes_in_summary() {
     let mut analyzer = TlsAnalyzer::new();
     let sni_bytes: &[u8] = b"\xff\x00\xfe";
     let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(
         analyzer.parse_error_count(),
@@ -1322,7 +1332,7 @@ fn test_non_utf8_sni_preserves_raw_bytes_in_summary() {
     let mut analyzer2 = TlsAnalyzer::new();
     let raw_sni2: &[u8] = &[0xff, 0x1b, b'[', b'3', b'1', b'm', b'p', b'w', b'n', b'd'];
     let record2 = build_client_hello_raw_sni(raw_sni2, &[0x1301]);
-    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0);
+    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0, 0);
 
     let f2 = analyzer2
         .findings()
@@ -1421,7 +1431,7 @@ fn test_sni_extension_with_empty_hostname_list() {
     let fk = test_flow_key();
 
     let record = build_client_hello_with_sni_list(&[], &[0x1301]);
-    analyzer_empty_list.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer_empty_list.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // Anchor: parse must succeed — the empty-list pin must exercise extract_sni's
     // `list.first() == None` branch, not a parse failure path.
@@ -1465,7 +1475,7 @@ fn test_sni_extension_with_empty_hostname_list() {
     // analyzer were ever to diverge on the two paths, this comparison catches it.
     let mut analyzer_no_sni = TlsAnalyzer::new();
     let record_no_sni = build_client_hello_no_extensions(&[0x1301]);
-    analyzer_no_sni.on_data(&fk, Direction::ClientToServer, &record_no_sni, 0);
+    analyzer_no_sni.on_data(&fk, Direction::ClientToServer, &record_no_sni, 0, 0);
     assert_eq!(
         analyzer_no_sni.sni_counts().len(),
         analyzer_empty_list.sni_counts().len(),
@@ -1492,7 +1502,7 @@ fn test_sni_extension_with_empty_hostname_list() {
     // Cipher 0x0000 = TLS_NULL_WITH_NULL_NULL — always in the weak-cipher set.
     let mut analyzer_ec002 = TlsAnalyzer::new();
     let record_ec002 = build_client_hello_with_sni_list(&[], &[0x0000]);
-    analyzer_ec002.on_data(&fk, Direction::ClientToServer, &record_ec002, 0);
+    analyzer_ec002.on_data(&fk, Direction::ClientToServer, &record_ec002, 0, 0);
 
     // No SNI finding (empty list → extract_sni returns None → SNI block skipped).
     let sni_findings_ec002 = analyzer_ec002
@@ -1540,7 +1550,7 @@ fn test_sni_with_empty_hostname_bytes() {
     let fk = test_flow_key();
 
     let record = build_client_hello_raw_sni(b"", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // Parse anchor: parse must succeed so we exercise the arm 1 path, not a parse error.
     assert_eq!(
@@ -1620,7 +1630,7 @@ fn test_valid_utf8_non_ascii_sni_emits_finding() {
 
     // Canonical BC-2.07.017 EC-001 test vector: "café.example" (U+00E9 = 0xC3 0xA9).
     let record = build_client_hello("café.example", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // Positive-parse anchor: record must be accepted by the parser.
     assert_eq!(
@@ -1681,8 +1691,18 @@ fn test_valid_utf8_non_ascii_sni_emits_finding() {
 
     // BC-2.07.017 pc2: source_ip must be None (network context not available in analyzer).
     assert_eq!(f.source_ip, None, "BC-2.07.017 pc2: source_ip must be None");
-    // BC-2.07.017 pc2: timestamp must be None (network context not available in analyzer).
-    assert_eq!(f.timestamp, None, "BC-2.07.017 pc2: timestamp must be None");
+    // BC-2.09.007 post-1 (STORY-098): timestamp is now Some(DateTime<Utc>) derived from the
+    // per-flow last_ts; this test calls on_data with timestamp=0, so the result is
+    // Some(1970-01-01T00:00:00Z) — not None. The "None" assertion is superseded by STORY-098.
+    {
+        use chrono::DateTime;
+        let expected_ts = DateTime::from_timestamp(0_i64, 0);
+        assert_eq!(
+            f.timestamp, expected_ts,
+            "BC-2.09.007 (STORY-098): TLS SNI finding must have timestamp == \
+             DateTime::from_timestamp(0, 0) = {expected_ts:?} (on_data called with ts_sec=0)"
+        );
+    }
 
     // BC-2.07.017 pc2: exact summary — hostname interpolated verbatim (not Debug-escaped).
     let expected_summary = "TLS SNI contains non-ASCII characters \
@@ -1725,6 +1745,102 @@ fn test_valid_utf8_non_ascii_sni_emits_finding() {
     );
 }
 
+// BC-TLS-037 (#104): Mixed control + non-ASCII SNI — summary must mention control bytes.
+//
+// A TLS SNI that is valid UTF-8 but contains BOTH a non-ASCII byte (routes the
+// NonAsciiUtf8 arm) AND an ASCII control byte (b < 0x20 or b == 0x7f) must have
+// the control-byte presence reflected in the finding summary. A SOC analyst
+// grepping summaries for "control" must be able to find this case.
+//
+// Fixture: "café\x1b" — valid UTF-8, contains é (U+00E9, 0xC3 0xA9) making it
+// non-ASCII, and ESC (0x1b) — a C0 control byte.
+// hex: 636166c3a91b
+//
+// Classification invariant preserved: the NonAsciiUtf8 arm still fires
+// (`is_ascii()` is false once é is present). Only the summary text is enriched.
+#[allow(non_snake_case)]
+#[test]
+fn test_mixed_control_and_non_ascii_sni_summary_mentions_control_bytes() {
+    // BC-TLS-037 pc1: NonAsciiUtf8 arm fires (not AsciiWithControl).
+    // BC-TLS-037 pc2: the finding summary must contain "control" to surface the
+    //   control-byte covert-channel / log-poisoning risk alongside the non-ASCII flag.
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+
+    // "café\x1b": é = 0xC3 0xA9 (non-ASCII), ESC = 0x1b (C0 control byte).
+    let sni_bytes: &[u8] = b"\x63\x61\x66\xc3\xa9\x1b"; // café\x1b
+    let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
+
+    // Positive-parse anchor.
+    assert_eq!(
+        analyzer.parse_error_count(),
+        0,
+        "BC-TLS-037 anchor: parse_error_count must be 0 for valid-UTF-8 SNI"
+    );
+
+    // BC-TLS-037 pc1: exactly one NonAsciiUtf8-arm finding (contains "non-ASCII").
+    let findings = analyzer.findings();
+    let non_ascii_findings: Vec<_> = findings
+        .iter()
+        .filter(|f| f.summary.contains("non-ASCII"))
+        .collect();
+    assert_eq!(
+        non_ascii_findings.len(),
+        1,
+        "BC-TLS-037 pc1: exactly one non-ASCII finding must be emitted; got: {non_ascii_findings:?}"
+    );
+
+    let f = &non_ascii_findings[0];
+
+    // BC-TLS-037 pc2: summary must mention "control" so a SOC analyst
+    //   grepping for control-byte alerts doesn't miss mixed strings.
+    assert!(
+        f.summary.contains("control"),
+        "BC-TLS-037 pc2: summary must mention \"control\" for mixed control+non-ASCII SNI; \
+         got summary: {:?}",
+        f.summary
+    );
+
+    // Classification invariant: still Anomaly/Inconclusive/Low/T1027/ClientToServer.
+    assert_eq!(
+        f.category,
+        wirerust::findings::ThreatCategory::Anomaly,
+        "BC-TLS-037: category must be Anomaly"
+    );
+    assert_eq!(
+        f.verdict,
+        wirerust::findings::Verdict::Inconclusive,
+        "BC-TLS-037: verdict must be Inconclusive"
+    );
+    assert_eq!(
+        f.confidence,
+        wirerust::findings::Confidence::Low,
+        "BC-TLS-037: confidence must be Low"
+    );
+    assert_eq!(
+        f.mitre_technique.as_deref(),
+        Some("T1027"),
+        "BC-TLS-037: mitre_technique must be Some(\"T1027\")"
+    );
+    assert_eq!(
+        f.direction,
+        Some(wirerust::reassembly::handler::Direction::ClientToServer),
+        "BC-TLS-037: direction must be Some(ClientToServer)"
+    );
+
+    // Evidence: lossless hex of the raw bytes.
+    assert_eq!(
+        f.evidence.len(),
+        1,
+        "BC-TLS-037: evidence must have exactly one entry"
+    );
+    assert_eq!(
+        f.evidence[0], "hex: 636166c3a91b",
+        "BC-TLS-037: evidence[0] must be exact lowercase hex of café\\x1b"
+    );
+}
+
 // AC-001/AC-002/AC-008 (BC-2.07.017 pc1-3, inv1; BC-2.07.021 pc1-3)
 //
 // Cyrillic SNI: raw Cyrillic in summary (not \u{...} Debug-escaped). Covers:
@@ -1747,7 +1863,7 @@ fn test_cyrillic_sni_emits_non_ascii_finding() {
     // BC-2.07.017 canonical test vector.
     let sni_bytes: &[u8] = b"\xd0\xbc\xd0\xb8\xd1\x80";
     let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
-    analyzer1.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer1.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(
         analyzer1.parse_error_count(),
@@ -1843,7 +1959,7 @@ fn test_cyrillic_sni_emits_non_ascii_finding() {
     // --- Part 2: "пример.example" (longer Cyrillic U-label) — regression ---
     let mut analyzer2 = TlsAnalyzer::new();
     let record2 = build_client_hello("пример.example", &[0x1301]);
-    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0);
+    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0, 0);
 
     let non_ascii_count = analyzer2
         .findings()
@@ -1899,7 +2015,7 @@ fn test_emoji_sni_emits_non_ascii_finding() {
     // EC-008 from STORY-056: "😈" = [0xF0, 0x9F, 0x98, 0x88]; is_ascii() == false.
     let sni_bytes: &[u8] = b"\xf0\x9f\x98\x88";
     let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(
         analyzer.parse_error_count(),
@@ -1984,7 +2100,7 @@ fn test_emoji_sni_emits_non_ascii_finding() {
     // 🦀 = U+1F980 = 0xF0 0x9F 0xA6 0x80 (4 bytes, all >= 0x80).
     let mut analyzer2 = TlsAnalyzer::new();
     let record2 = build_client_hello("🦀.example", &[0x1301]);
-    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0);
+    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0, 0);
 
     let non_ascii_count2 = analyzer2
         .findings()
@@ -2009,7 +2125,7 @@ fn test_punycode_a_label_does_not_emit_non_ascii_finding() {
     let fk = test_flow_key();
 
     let record = build_client_hello("xn--caf-dma.example", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     let non_ascii_count = analyzer
         .findings()
@@ -2070,7 +2186,7 @@ fn test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity() {
     for i in 0..MAX_MAP_ENTRIES {
         let sni = format!("filler{i:05}.example");
         let record = build_client_hello(&sni, &[0x1301]);
-        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
     }
 
     // BC-2.07.028 pre1: sni_counts must be full before the cap-decoupling test.
@@ -2095,7 +2211,7 @@ fn test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity() {
     // in the map. The key cannot be inserted (map full), but the finding must fire.
     let raw_sni: &[u8] = &[0xff, 0xfe, b'a', b'.', b'c', b'o', b'm'];
     let record = build_client_hello_raw_sni(raw_sni, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // BC-2.07.028 pc3: sni_counts.len() remains at MAX_MAP_ENTRIES.
     assert_eq!(
@@ -2173,7 +2289,7 @@ fn test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity() {
     let total_findings_arm1_before = analyzer.findings().len();
     let new_clean_sni = "at-capacity-clean.example";
     let record_arm1 = build_client_hello(new_clean_sni, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record_arm1, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record_arm1, 0, 0);
 
     assert_eq!(
         analyzer.sni_counts().len(),
@@ -2206,7 +2322,7 @@ fn test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity() {
          count 1 before the re-send"
     );
     let record_existing = build_client_hello(existing_sni, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record_existing, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record_existing, 0, 0);
 
     assert_eq!(
         analyzer.sni_counts().len(),
@@ -2244,7 +2360,7 @@ fn test_multi_name_sni_list_only_first_entry_counted() {
     // AC-006 canonical test vector from BC-2.07.024: first entry clean ASCII,
     // second entry contains C0 byte 0x01 (SOH — ASCII control character).
     let record = build_client_hello_with_sni_list(&[b"example.com", b"evil\x01.com"], &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // Parse anchor.
     assert_eq!(
@@ -2295,7 +2411,7 @@ fn test_multi_name_sni_list_only_first_entry_counted() {
         &[b"first.example", b"second.example", b"third.example"],
         &[0x1301],
     );
-    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0);
+    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0, 0);
     assert_eq!(
         *analyzer2.sni_counts().get("first.example").unwrap_or(&0),
         1,
@@ -2323,7 +2439,7 @@ fn test_multi_name_sni_list_only_first_entry_counted() {
     // second entry "example.com" is NOT counted.
     let mut analyzer3 = TlsAnalyzer::new();
     let record3 = build_client_hello_with_sni_list(&[b"evil\x01.com", b"example.com"], &[0x1301]);
-    analyzer3.on_data(&fk, Direction::ClientToServer, &record3, 0);
+    analyzer3.on_data(&fk, Direction::ClientToServer, &record3, 0, 0);
 
     // Parse anchor.
     assert_eq!(
@@ -2376,7 +2492,7 @@ fn test_multi_name_sni_list_only_first_entry_counted() {
     // sni_counts[""] == 1, sni_counts.len() == 1, no finding.
     let mut analyzer4 = TlsAnalyzer::new();
     let record4 = build_client_hello_with_sni_list(&[b"", b"second.example"], &[0x1301]);
-    analyzer4.on_data(&fk, Direction::ClientToServer, &record4, 0);
+    analyzer4.on_data(&fk, Direction::ClientToServer, &record4, 0, 0);
 
     assert_eq!(
         analyzer4.parse_error_count(),
@@ -2501,7 +2617,7 @@ fn test_non_zero_name_type_sni_entry() {
 
     // BC-2.07.025 canonical test vector: NameType=1, hostname b"example.com"
     let record = build_client_hello_with_typed_sni_list(&[(0x01, b"example.com")], &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // Parse anchor.
     assert_eq!(
@@ -2558,7 +2674,7 @@ fn test_non_zero_name_type_sni_entry() {
     let mut analyzer_ec004 = TlsAnalyzer::new();
     let record_ec004 =
         build_client_hello_with_typed_sni_list(&[(0xFF, "café.example".as_bytes())], &[0x1301]);
-    analyzer_ec004.on_data(&fk, Direction::ClientToServer, &record_ec004, 0);
+    analyzer_ec004.on_data(&fk, Direction::ClientToServer, &record_ec004, 0, 0);
 
     // Parse anchor.
     assert_eq!(
@@ -2601,7 +2717,7 @@ fn test_non_zero_name_type_sni_entry() {
     let mut analyzer_arm2_nonzero = TlsAnalyzer::new();
     let record_arm2 =
         build_client_hello_with_typed_sni_list(&[(0x01, b"bad\x01.example")], &[0x1301]);
-    analyzer_arm2_nonzero.on_data(&fk, Direction::ClientToServer, &record_arm2, 0);
+    analyzer_arm2_nonzero.on_data(&fk, Direction::ClientToServer, &record_arm2, 0, 0);
 
     assert_eq!(
         *analyzer_arm2_nonzero
@@ -2647,7 +2763,7 @@ fn test_non_zero_name_type_with_valid_first_entry() {
         &[(0x03, b"real.example"), (0x02, b"unknown-type")],
         &[0x1301],
     );
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // Parse anchor.
     assert_eq!(
@@ -2733,7 +2849,7 @@ fn test_large_sni_near_record_payload_limit() {
          MAX_RECORD_PAYLOAD=18,432 (got {payload_len}); if this fails the fixture is too large"
     );
 
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // BC-2.07.027 pc2: parse_errors NOT incremented.
     assert_eq!(
@@ -2813,7 +2929,7 @@ fn test_oversized_sni_exceeds_record_payload_limit() {
          (got {payload_len}); if this assertion fails the fixture is too small"
     );
 
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // BC-2.07.004 postcondition 1: parse_errors incremented by 1.
     assert_eq!(
@@ -2915,7 +3031,7 @@ fn test_trailing_bytes_in_server_name_list() {
     raw_ext_data.extend_from_slice(&[0x00, 0x00, 0x00, 0x00]); // 4 trailing zero bytes
 
     let record = build_client_hello_with_raw_sni_ext(&raw_ext_data, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // BC-2.07.026 pc2: no parse_errors incremented.
     // If tls_parser ever rejects unconsumed trailing bytes in the extension data
@@ -3004,7 +3120,7 @@ fn test_ascii_sni_with_esc_emits_control_finding_and_counts_under_raw_key() {
     // "foo\x1b[31m.example" — ESC + CSI 31m (red) sequence.
     let sni: &[u8] = b"foo\x1b[31m.example";
     let record = build_client_hello_ascii_bytes(sni, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(analyzer.parse_error_count(), 0);
     assert_eq!(analyzer.handshake_count(), 1);
@@ -3071,7 +3187,7 @@ fn test_ascii_sni_with_bel_emits_control_finding() {
     let fk = test_flow_key();
 
     let record = build_client_hello_ascii_bytes(b"ring\x07bell.example", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(count_control_findings(&analyzer), 1);
     assert_eq!(
@@ -3092,7 +3208,7 @@ fn test_ascii_sni_with_del_emits_control_finding() {
     let fk = test_flow_key();
 
     let record = build_client_hello_ascii_bytes(b"host\x7fname.example", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(count_control_findings(&analyzer), 1);
 }
@@ -3106,7 +3222,7 @@ fn test_ascii_sni_with_tab_emits_control_finding() {
     let fk = test_flow_key();
 
     let record = build_client_hello_ascii_bytes(b"left\tright.example", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(count_control_findings(&analyzer), 1);
 }
@@ -3125,6 +3241,7 @@ fn test_ascii_sni_with_cr_and_lf_emits_control_finding() {
         Direction::ClientToServer,
         &build_client_hello_ascii_bytes(b"a\rb.example", &[0x1301]),
         0,
+        0,
     );
     assert_eq!(count_control_findings(&a1), 1, "CR must trip finding");
 
@@ -3135,6 +3252,7 @@ fn test_ascii_sni_with_cr_and_lf_emits_control_finding() {
         Direction::ClientToServer,
         &build_client_hello_ascii_bytes(b"a\nb.example", &[0x1301]),
         0,
+        0,
     );
     assert_eq!(count_control_findings(&a2), 1, "LF must trip finding");
 
@@ -3144,6 +3262,7 @@ fn test_ascii_sni_with_cr_and_lf_emits_control_finding() {
         &fk,
         Direction::ClientToServer,
         &build_client_hello_ascii_bytes(b"a\r\nb.example", &[0x1301]),
+        0,
         0,
     );
     assert_eq!(count_control_findings(&a3), 1, "CRLF must trip finding");
@@ -3157,7 +3276,7 @@ fn test_printable_ascii_sni_emits_no_control_finding() {
     let fk = test_flow_key();
 
     let record = build_client_hello("www.example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(count_control_findings(&analyzer), 0);
     assert_eq!(
@@ -3181,7 +3300,7 @@ fn test_punycode_a_label_emits_no_control_finding() {
     let fk = test_flow_key();
 
     let record = build_client_hello("xn--caf-dma.example", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(count_control_findings(&analyzer), 0);
 }
@@ -3196,7 +3315,7 @@ fn test_non_ascii_sni_does_not_emit_control_finding() {
     let fk = test_flow_key();
 
     let record = build_client_hello("пример.example", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(
         count_control_findings(&analyzer),
@@ -3242,6 +3361,7 @@ fn test_ascii_control_boundary_bytes() {
             Direction::ClientToServer,
             &build_client_hello_ascii_bytes(&sni, &[0x1301]),
             0,
+            0,
         );
         let expected = if expect_trip { 1 } else { 0 };
         assert_eq!(
@@ -3261,7 +3381,7 @@ fn test_multiple_control_bytes_in_sni_produces_single_finding() {
     let fk = test_flow_key();
 
     let record = build_client_hello_ascii_bytes(b"a\x07b\x1bc\x7fd.example", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(
         count_control_findings(&analyzer),
@@ -3288,7 +3408,7 @@ fn ascii_control_sni_finding_sets_mitre_t1027() {
     let esc_hostname = b"foo\x1bbar.example.com";
     let bytes = build_client_hello_ascii_bytes(esc_hostname, &[]);
     let mut analyzer = TlsAnalyzer::new();
-    analyzer.on_data(&test_flow_key(), Direction::ClientToServer, &bytes, 0);
+    analyzer.on_data(&test_flow_key(), Direction::ClientToServer, &bytes, 0, 0);
 
     let findings = analyzer.findings();
     let control_finding = findings
@@ -3306,7 +3426,7 @@ fn ascii_control_sni_finding_sets_mitre_t1027() {
 fn non_ascii_utf8_sni_finding_sets_mitre_t1027() {
     let bytes = build_client_hello("пример.рф", &[]);
     let mut analyzer = TlsAnalyzer::new();
-    analyzer.on_data(&test_flow_key(), Direction::ClientToServer, &bytes, 0);
+    analyzer.on_data(&test_flow_key(), Direction::ClientToServer, &bytes, 0, 0);
 
     let findings = analyzer.findings();
     let finding = findings
@@ -3335,7 +3455,7 @@ fn non_utf8_sni_finding_sets_mitre_t1027() {
     let mut analyzer = TlsAnalyzer::new();
     let sni_bytes: &[u8] = b"\x80";
     let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(
         analyzer.parse_error_count(),
@@ -3396,7 +3516,7 @@ fn non_utf8_sni_finding_sets_mitre_t1027() {
     // '.' (0x2e) is not a valid continuation, so from_utf8 fails -> arm 4.
     let mut analyzer2 = TlsAnalyzer::new();
     let bytes2 = build_client_hello_raw_sni(&[b'f', b'o', b'o', 0xc3, b'.', b'c', b'o', b'm'], &[]);
-    analyzer2.on_data(&fk, Direction::ClientToServer, &bytes2, 0);
+    analyzer2.on_data(&fk, Direction::ClientToServer, &bytes2, 0, 0);
 
     let finding2 = analyzer2
         .findings()
@@ -3586,6 +3706,7 @@ fn test_BC_2_07_006_grease_cipher_excluded_same_hash_as_without_grease() {
         Direction::ClientToServer,
         &build_client_hello_no_extensions(&[0x0a0a, 0x002f]),
         0,
+        0,
     );
     let hash_with_grease = a1.ja3_counts().keys().next().unwrap().clone();
 
@@ -3595,6 +3716,7 @@ fn test_BC_2_07_006_grease_cipher_excluded_same_hash_as_without_grease() {
         &fk,
         Direction::ClientToServer,
         &build_client_hello_no_extensions(&[0x002f]),
+        0,
         0,
     );
     let hash_without_grease = a2.ja3_counts().keys().next().unwrap().clone();
@@ -3624,6 +3746,7 @@ fn test_BC_2_07_006_all_grease_cipher_list_produces_empty_cipher_field() {
         &fk,
         Direction::ClientToServer,
         &build_client_hello_no_extensions(&[0x0a0a]),
+        0,
         0,
     );
     let hash = analyzer.ja3_counts().keys().next().unwrap().clone();
@@ -3667,6 +3790,7 @@ fn test_BC_2_07_006_grease_inserted_at_front_middle_end_same_hash() {
                 &fk,
                 Direction::ClientToServer,
                 &build_client_hello_no_extensions(cipher_ids),
+                0,
                 0,
             );
             a.ja3_counts().keys().next().unwrap().clone()
@@ -3715,6 +3839,7 @@ fn test_BC_2_07_006_all_16_canonical_grease_ciphers_produce_empty_cipher_field()
         Direction::ClientToServer,
         &build_client_hello_no_extensions(all_grease),
         0,
+        0,
     );
     let hash_all_grease = a_grease.ja3_counts().keys().next().unwrap().clone();
 
@@ -3724,6 +3849,7 @@ fn test_BC_2_07_006_all_16_canonical_grease_ciphers_produce_empty_cipher_field()
         &fk,
         Direction::ClientToServer,
         &build_client_hello_no_extensions(&[]),
+        0,
         0,
     );
     let hash_empty = a_empty.ja3_counts().keys().next().unwrap().clone();
@@ -3754,6 +3880,7 @@ fn test_BC_2_07_006_non_canonical_grease_pattern_0x0a1a_is_filtered() {
         Direction::ClientToServer,
         &build_client_hello_no_extensions(&[0x0a1a]),
         0,
+        0,
     );
     let hash_noncanon = a_noncanon.ja3_counts().keys().next().unwrap().clone();
 
@@ -3783,6 +3910,7 @@ fn test_BC_2_07_006_ec_point_format_bytes_are_not_filtered() {
         Direction::ClientToServer,
         &build_client_hello("test.com", &[0x002f]), // includes SNI + curves + pf
         0,
+        0,
     );
     let hash_with_pf = a_with_pf.ja3_counts().keys().next().unwrap().clone();
 
@@ -3792,6 +3920,7 @@ fn test_BC_2_07_006_ec_point_format_bytes_are_not_filtered() {
         &fk,
         Direction::ClientToServer,
         &build_client_hello_no_extensions(&[0x002f]),
+        0,
         0,
     );
     let hash_no_ext = a_no_ext.ja3_counts().keys().next().unwrap().clone();
@@ -3828,6 +3957,7 @@ fn test_BC_2_07_007_ja3_string_has_exactly_four_commas_five_fields() {
         Direction::ClientToServer,
         &build_client_hello_no_extensions(&[0x002f]),
         0,
+        0,
     );
     let hash = analyzer.ja3_counts().keys().next().unwrap().clone();
 
@@ -3855,6 +3985,7 @@ fn test_BC_2_07_007_canonical_771_no_cipher_no_extension_hash() {
         Direction::ClientToServer,
         &build_client_hello_no_extensions(&[]),
         0,
+        0,
     );
     let hash = analyzer.ja3_counts().keys().next().unwrap().clone();
     assert_eq!(
@@ -3880,6 +4011,7 @@ fn test_BC_2_07_007_version_zero_emits_leading_zero_field() {
         &fk,
         Direction::ClientToServer,
         &build_client_hello_with_version(0x0000, &[]),
+        0,
         0,
     );
     let hash = analyzer.ja3_counts().keys().next().unwrap().clone();
@@ -3911,6 +4043,7 @@ fn test_BC_2_07_007_cipher_field_is_decimal_not_hex() {
         Direction::ClientToServer,
         &build_client_hello_no_extensions(&[0x002f, 0x0035]),
         0,
+        0,
     );
     let hash = analyzer.ja3_counts().keys().next().unwrap().clone();
 
@@ -3938,6 +4071,7 @@ fn test_BC_2_07_007_empty_cipher_field_when_all_grease_or_none() {
             Direction::ClientToServer,
             &build_client_hello_no_extensions(cipher_ids),
             0,
+            0,
         );
         let hash = analyzer.ja3_counts().keys().next().unwrap().clone();
         assert_eq!(
@@ -3963,6 +4097,7 @@ fn test_BC_2_07_007_ja3_hash_is_32_lowercase_hex_chars() {
         &fk,
         Direction::ClientToServer,
         &build_client_hello("example.com", &[0x002f, 0x0035]),
+        0,
         0,
     );
     let hash = analyzer.ja3_counts().keys().next().unwrap().clone();
@@ -3998,6 +4133,7 @@ fn test_BC_2_07_007_cipher_order_produces_different_hashes() {
         Direction::ClientToServer,
         &build_client_hello_no_extensions(&[0x002f, 0x0035]),
         0,
+        0,
     );
     let hash_ab = a_ab.ja3_counts().keys().next().unwrap().clone();
 
@@ -4006,6 +4142,7 @@ fn test_BC_2_07_007_cipher_order_produces_different_hashes() {
         &fk,
         Direction::ClientToServer,
         &build_client_hello_no_extensions(&[0x0035, 0x002f]),
+        0,
         0,
     );
     let hash_ba = a_ba.ja3_counts().keys().next().unwrap().clone();
@@ -4045,11 +4182,13 @@ fn test_BC_2_07_008_ja3s_has_exactly_two_commas_three_fields() {
         Direction::ClientToServer,
         &build_client_hello("example.com", &[0x002f]),
         0,
+        0,
     );
     analyzer.on_data(
         &fk,
         Direction::ServerToClient,
         &build_server_hello(0x002f),
+        0,
         0,
     );
 
@@ -4084,11 +4223,13 @@ fn test_BC_2_07_008_ja3s_grease_extension_filtered_from_ext_field() {
         Direction::ClientToServer,
         &build_client_hello("example.com", &[0x002f]),
         0,
+        0,
     );
     analyzer.on_data(
         &fk,
         Direction::ServerToClient,
         &build_server_hello_with_grease_ext(0x002f),
+        0,
         0,
     );
 
@@ -4124,13 +4265,13 @@ fn test_BC_2_07_008_ja3s_hash_is_32_lowercase_hex_and_deterministic() {
     let ch_bytes = build_client_hello("example.com", &[0x002f]);
 
     let mut a1 = TlsAnalyzer::new();
-    a1.on_data(&fk1, Direction::ClientToServer, &ch_bytes, 0);
-    a1.on_data(&fk1, Direction::ServerToClient, &sh_bytes, 0);
+    a1.on_data(&fk1, Direction::ClientToServer, &ch_bytes, 0, 0);
+    a1.on_data(&fk1, Direction::ServerToClient, &sh_bytes, 0, 0);
     let hash1 = a1.ja3s_counts().keys().next().unwrap().clone();
 
     let mut a2 = TlsAnalyzer::new();
-    a2.on_data(&fk2, Direction::ClientToServer, &ch_bytes, 0);
-    a2.on_data(&fk2, Direction::ServerToClient, &sh_bytes, 0);
+    a2.on_data(&fk2, Direction::ClientToServer, &ch_bytes, 0, 0);
+    a2.on_data(&fk2, Direction::ServerToClient, &sh_bytes, 0, 0);
     let hash2 = a2.ja3s_counts().keys().next().unwrap().clone();
 
     assert_eq!(
@@ -4176,11 +4317,13 @@ fn test_BC_2_07_008_ja3s_cipher_field_is_single_value_not_filtered() {
         Direction::ClientToServer,
         &build_client_hello("example.com", &[0x1301]),
         0,
+        0,
     );
     analyzer.on_data(
         &fk,
         Direction::ServerToClient,
         &build_server_hello(0x0a0a), // GREASE cipher selected by server
+        0,
         0,
     );
 
@@ -4214,11 +4357,13 @@ fn test_BC_2_07_008_ja3s_grease_extension_filtered_but_grease_cipher_preserved()
         Direction::ClientToServer,
         &build_client_hello("example.com", &[0x1301]),
         0,
+        0,
     );
     analyzer.on_data(
         &fk,
         Direction::ServerToClient,
         &build_server_hello_with_grease_ext(0x0a0a), // GREASE cipher + GREASE ext
+        0,
         0,
     );
 
@@ -4255,11 +4400,13 @@ fn test_BC_2_07_008_ja3s_all_grease_extensions_produce_empty_ext_field() {
         Direction::ClientToServer,
         &build_client_hello("example.com", &[0x002f]),
         0,
+        0,
     );
     analyzer.on_data(
         &fk,
         Direction::ServerToClient,
         &build_server_hello_all_grease_ext(0x002f),
+        0,
         0,
     );
 
@@ -4422,7 +4569,7 @@ fn test_BC_2_07_032_inv1_supported_versions_not_inspected() {
         &[0x1301, 0x1302, 0x1303], // TLS 1.3 ciphers
         0x0304,                    // supported_versions extension: TLS 1.3
     );
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(
         analyzer.parse_error_count(),
@@ -4500,7 +4647,7 @@ fn test_BC_2_07_001_inv2_version_counts_bounded_at_max_map_entries() {
     for v in 1u32..=(MAX_MAP_ENTRIES as u32) {
         let version = v as u16;
         let record = build_client_hello_with_version(version, &[0x1301]);
-        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
     }
 
     assert_eq!(
@@ -4514,7 +4661,7 @@ fn test_BC_2_07_001_inv2_version_counts_bounded_at_max_map_entries() {
     // The next distinct version value (MAX_MAP_ENTRIES + 1 = 50,001) must be silently dropped.
     let overflow_version = (MAX_MAP_ENTRIES + 1) as u16; // 50,001 — fits in u16
     let record = build_client_hello_with_version(overflow_version, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // version_counts must not grow beyond the cap.
     assert_eq!(
@@ -4566,7 +4713,7 @@ fn test_BC_2_07_001_inv2_ja3_counts_bounded_at_max_map_entries() {
     // Each version v in 1..=MAX_MAP_ENTRIES yields a unique JA3 string "{v},4865,,,".
     for v in 1u32..=(MAX_MAP_ENTRIES as u32) {
         let record = build_client_hello_with_version(v as u16, &[0x1301]);
-        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
     }
 
     assert_eq!(
@@ -4581,7 +4728,7 @@ fn test_BC_2_07_001_inv2_ja3_counts_bounded_at_max_map_entries() {
     // Version MAX_MAP_ENTRIES + 1 = 50,001 (fits in u16) was not used in the fill loop.
     let overflow_version = (MAX_MAP_ENTRIES + 1) as u16; // 50,001
     let overflow_record = build_client_hello_with_version(overflow_version, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &overflow_record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &overflow_record, 0, 0);
 
     // ja3_counts must not grow beyond the cap.
     assert_eq!(
@@ -4703,7 +4850,7 @@ fn test_BC_2_07_002_server_hello_seen_set_true() {
     let fk = test_flow_key();
 
     let ch = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // server_hello_seen must be false before the ServerHello arrives.
     assert!(
@@ -4712,7 +4859,7 @@ fn test_BC_2_07_002_server_hello_seen_set_true() {
     );
 
     let sh = build_server_hello(0x1301);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     // Postcondition: server_hello_seen is now true.
     assert_eq!(
@@ -4747,7 +4894,7 @@ fn test_BC_2_07_002_server_version_inserted_in_version_counts() {
 
     // ClientHello uses version 0x0303 (TLS 1.2 / legacy_version).
     let ch = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // version_counts[0x0303] == 1 after ClientHello only.
     assert_eq!(
@@ -4758,7 +4905,7 @@ fn test_BC_2_07_002_server_version_inserted_in_version_counts() {
 
     // build_server_hello uses version 0x0303.
     let sh = build_server_hello(0x1301);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     // After ServerHello: version_counts[0x0303] must be 2 (incremented again).
     assert_eq!(
@@ -4791,13 +4938,13 @@ fn test_BC_2_07_002_ja3s_hash_computed_and_inserted() {
     let fk = test_flow_key();
 
     let ch = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // build_server_hello(0x1301) produces:
     //   version = 0x0303 (771), cipher = 0x1301 (4865),
     //   ext = [renegotiation_info 0xff01 (65281)]
     let sh = build_server_hello(0x1301);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     assert_eq!(
         analyzer.ja3s_counts().len(),
@@ -4848,10 +4995,10 @@ fn test_BC_2_07_002_cipher_name_inserted_in_cipher_counts() {
     let fk = test_flow_key();
 
     let ch = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     let sh = build_server_hello(0x1301);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     assert_eq!(
         analyzer.findings().len(),
@@ -4902,11 +5049,11 @@ fn test_BC_2_07_002_ja3s_grease_ext_filtered_cipher_not_filtered() {
     let fk = test_flow_key();
 
     let ch = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // ServerHello with GREASE extension 0x0a0a + renegotiation_info 0xff01.
     let sh = build_server_hello_with_grease_ext(0x1301);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     let hash = analyzer.ja3s_counts().keys().next().unwrap().clone();
 
@@ -4948,11 +5095,11 @@ fn test_BC_2_07_002_unknown_cipher_id_renders_as_hex_in_cipher_counts() {
     let fk = test_flow_key();
 
     let ch = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // Server selects cipher 0xFFFF (unknown / unassigned ID).
     let sh = build_server_hello(0xFFFF);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     // Positive-parse anchor: record must parse cleanly.
     assert_eq!(
@@ -5025,7 +5172,7 @@ fn test_BC_2_07_002_version_counts_client_and_server_versions_independent() {
 
     // ClientHello with version 0x0301 (TLS 1.0 legacy_version)
     let ch = build_client_hello_with_version(0x0301, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // After ClientHello: version_counts must have exactly 0x0301 = 769.
     assert_eq!(
@@ -5041,7 +5188,7 @@ fn test_BC_2_07_002_version_counts_client_and_server_versions_independent() {
 
     // ServerHello with version 0x0303 (TLS 1.2) — different from ClientHello version.
     let sh = build_server_hello_with_version_and_cipher(0x0303, 0x1301, true);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     // After ServerHello: version_counts must have BOTH 0x0301 and 0x0303.
     assert_eq!(
@@ -5094,11 +5241,11 @@ fn test_BC_2_07_002_ec001_no_extensions_ja3s_uses_empty_ext_field() {
     let fk = test_flow_key();
 
     let ch = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // ServerHello with no extensions (sh.ext = None).
     let sh = build_server_hello_no_extensions(0x1301);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     assert_eq!(
         analyzer.parse_error_count(),
@@ -5148,11 +5295,11 @@ fn test_BC_2_07_002_ec003_null_cipher_emits_weak_cipher_finding() {
     let fk = test_flow_key();
 
     let ch = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // Server selects TLS_NULL_WITH_NULL_NULL (0x0000).
     let sh = build_server_hello(0x0000);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     // Positive-parse anchor.
     assert_eq!(
@@ -5248,11 +5395,11 @@ fn test_BC_2_07_002_ec004_ssl2_version_parse_behavior_pinned() {
     let fk = test_flow_key();
 
     let ch = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // ServerHello with version 0x0200 (SSL 2.0), no extensions.
     let sh = build_server_hello_with_version_and_cipher(0x0200, 0x1301, false);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     // Pinned behavior: tls_parser cannot parse SSL 2.0 ServerHello -> parse_errors = 1.
     assert_eq!(
@@ -5307,11 +5454,11 @@ fn test_BC_2_07_002_ec005_tls10_version_counted_no_deprecated_finding() {
     let fk = test_flow_key();
 
     let ch = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // ServerHello with version 0x0301 (TLS 1.0), cipher 0x1301.
     let sh = build_server_hello_with_version_and_cipher(0x0301, 0x1301, true);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     // Positive-parse anchor.
     assert_eq!(
@@ -5392,11 +5539,11 @@ fn test_BC_2_07_002_ec006_ja3s_counts_at_capacity_new_hash_dropped() {
 
     for i in 1u32..=(MAX_MAP_ENTRIES as u32) {
         let fk = FlowKey::new(client_ip, (10000 + i) as u16, server_ip, 443);
-        analyzer.on_data(&fk, Direction::ClientToServer, &ch_bytes, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &ch_bytes, 0, 0);
         // Cipher IDs 1..=50000. Not all are known to TlsCipherSuite, but
         // that only affects cipher_counts key format, not JA3S computation.
         let sh_bytes = build_server_hello(i as u16);
-        analyzer.on_data(&fk, Direction::ServerToClient, &sh_bytes, 0);
+        analyzer.on_data(&fk, Direction::ServerToClient, &sh_bytes, 0, 0);
     }
 
     assert_eq!(
@@ -5413,9 +5560,9 @@ fn test_BC_2_07_002_ec006_ja3s_counts_at_capacity_new_hash_dropped() {
         server_ip,
         443,
     );
-    analyzer.on_data(&overflow_fk, Direction::ClientToServer, &ch_bytes, 0);
+    analyzer.on_data(&overflow_fk, Direction::ClientToServer, &ch_bytes, 0, 0);
     let overflow_sh = build_server_hello(overflow_cipher);
-    analyzer.on_data(&overflow_fk, Direction::ServerToClient, &overflow_sh, 0);
+    analyzer.on_data(&overflow_fk, Direction::ServerToClient, &overflow_sh, 0, 0);
 
     // ja3s_counts must not grow beyond the cap.
     assert_eq!(
@@ -5447,7 +5594,7 @@ fn test_BC_2_07_002_ec007_ssl30_server_emits_finding_tls10_client_does_not() {
 
     // ClientHello version=0x0301 (TLS 1.0 — above the 0x0300 boundary, no ClientHello finding).
     let ch = build_client_hello_with_version(0x0301, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // No deprecated-protocol finding from ClientHello direction.
     assert!(
@@ -5463,7 +5610,7 @@ fn test_BC_2_07_002_ec007_ssl30_server_emits_finding_tls10_client_does_not() {
     // Use no-extension builder to avoid EC-002 extension parse failure on legacy version.
     // The deprecated-protocol detection path fires before the extension block anyway.
     let sh = build_server_hello_with_version_and_cipher(0x0300, 0x1301, false);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     // Positive-parse anchor: no-extension SSL 3.0 ServerHello must parse cleanly.
     assert_eq!(
@@ -5553,7 +5700,7 @@ fn test_BC_2_07_013_clean_ascii_no_finding_counted() {
 
     // Canonical BC-2.07.013 test vector.
     let record = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // Positive-parse anchor: confirms extract_sni ran (record was well-formed).
     assert_eq!(
@@ -5583,7 +5730,7 @@ fn test_BC_2_07_013_clean_ascii_no_finding_counted() {
     // Second canonical test vector: "test.local" (BC-2.07.013).
     let mut analyzer2 = TlsAnalyzer::new();
     let record2 = build_client_hello("test.local", &[0x1301]);
-    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0);
+    analyzer2.on_data(&fk, Direction::ClientToServer, &record2, 0, 0);
 
     assert_eq!(
         *analyzer2.sni_counts().get("test.local").unwrap_or(&0),
@@ -5612,7 +5759,7 @@ fn test_BC_2_07_013_arm1_only_arm_with_no_finding() {
     // --- Arm 1 path: clean ASCII hostname "clean.example" ---
     let mut a_arm1 = TlsAnalyzer::new();
     let record_clean = build_client_hello("clean.example", &[0x1301]);
-    a_arm1.on_data(&fk, Direction::ClientToServer, &record_clean, 0);
+    a_arm1.on_data(&fk, Direction::ClientToServer, &record_clean, 0, 0);
 
     // Positive-parse anchor.
     assert_eq!(
@@ -5637,7 +5784,7 @@ fn test_BC_2_07_013_arm1_only_arm_with_no_finding() {
     // "clean\x01.example" — NUL+1 triggers arm 2.
     let mut a_arm2 = TlsAnalyzer::new();
     let record_ctrl = build_client_hello_ascii_bytes(b"clean\x01.example", &[0x1301]);
-    a_arm2.on_data(&fk, Direction::ClientToServer, &record_ctrl, 0);
+    a_arm2.on_data(&fk, Direction::ClientToServer, &record_ctrl, 0, 0);
 
     assert_eq!(
         a_arm2.parse_error_count(),
@@ -5677,7 +5824,7 @@ fn test_BC_2_07_014_esc_emits_anomaly_inconclusive_low_t1027_c2s() {
     // Use canonical BC test vector byte 0x1B (ESC).
     let sni_bytes: &[u8] = b"foo\x1b[31m.example";
     let record = build_client_hello_ascii_bytes(sni_bytes, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // Positive-parse anchor.
     assert_eq!(
@@ -5787,7 +5934,7 @@ fn test_BC_2_07_014_raw_bytes_preserved_not_debug_escaped() {
     // The summary must contain the raw ESC byte, not its Debug-escaped form "\u{1b}".
     let sni_bytes: &[u8] = b"inject\x1besc.example";
     let record = build_client_hello_ascii_bytes(sni_bytes, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // Positive-parse anchor.
     assert_eq!(
@@ -5850,7 +5997,7 @@ fn test_BC_2_07_015_multiple_c0_bytes_one_finding_full_hex_evidence() {
     // Expected full hostname hex: 61 01 02 03 62 = "61010203 62"
     let sni_bytes: &[u8] = b"a\x01\x02\x03b";
     let record = build_client_hello_ascii_bytes(sni_bytes, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // Positive-parse anchor.
     assert_eq!(
@@ -5930,7 +6077,7 @@ fn test_BC_2_07_015_finding_count_o1_per_hostname_not_per_byte() {
     // Three distinct C0 bytes: BEL (0x07), ESC (0x1B), DEL (0x7F).
     let sni_bytes: &[u8] = b"a\x07b\x1bc\x7fd.example";
     let record = build_client_hello_ascii_bytes(sni_bytes, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // Positive-parse anchor.
     assert_eq!(
@@ -6001,7 +6148,7 @@ fn test_BC_2_07_016_boundary_0x1f_trips_0x20_does_not_0x7f_trips_0x7e_does_not()
     for (label, sni_bytes, expect_finding) in cases {
         let mut analyzer = TlsAnalyzer::new();
         let record = build_client_hello_ascii_bytes(sni_bytes, &[0x1301]);
-        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
         // Positive-parse anchor for each case.
         assert_eq!(
@@ -6079,7 +6226,7 @@ fn test_BC_2_07_016_tab_cr_lf_are_c0_and_trip() {
     for (label, sni_bytes) in cases {
         let mut analyzer = TlsAnalyzer::new();
         let record = build_client_hello_ascii_bytes(sni_bytes, &[0x1301]);
-        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
         // Positive-parse anchor.
         assert_eq!(
@@ -6129,7 +6276,7 @@ fn test_BC_2_07_018_punycode_a_label_arm1_no_finding_counted() {
 
     // Canonical BC-2.07.018 test vector: RFC 5890 A-label for "café.example".
     let record = build_client_hello("xn--caf-dma.example", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // Positive-parse anchor.
     assert_eq!(
@@ -6202,7 +6349,7 @@ fn test_BC_2_07_018_a_label_uses_same_arm1_as_plain_ascii() {
     for hostname in cases {
         let mut analyzer = TlsAnalyzer::new();
         let record = build_client_hello(hostname, &[0x1301]);
-        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
         // Positive-parse anchor.
         assert_eq!(
@@ -6265,7 +6412,7 @@ fn test_BC_2_07_016_ec004_space_only_sni_is_arm1() {
     let fk = test_flow_key();
 
     let record = build_client_hello(" ", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(
         analyzer.parse_error_count(),
@@ -6294,8 +6441,8 @@ fn test_BC_2_07_013_ec010_same_clean_ascii_sni_twice_counts_two() {
     let fk = test_flow_key();
 
     let record = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(
         *analyzer.sni_counts().get("example.com").unwrap_or(&0),
@@ -6324,7 +6471,7 @@ fn test_BC_2_07_016_ec003_nul_byte_is_c0_start_trips_arm2() {
 
     let sni_bytes: &[u8] = b"a\x00b.example";
     let record = build_client_hello_ascii_bytes(sni_bytes, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(analyzer.parse_error_count(), 0);
 
@@ -6468,7 +6615,7 @@ fn test_client_tls10_no_deprecated_finding() {
 
     // ClientHello with version 0x0301 (TLS 1.0), strong cipher.
     let record = build_client_hello_with_body_version(0x0301, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     // BC-2.07.011 invariant 1: 0x0301 must NOT produce a deprecated-protocol finding.
     let deprecated_findings: Vec<_> = analyzer
@@ -6488,7 +6635,7 @@ fn test_client_tls10_no_deprecated_finding() {
     // its summary must contain "RFC 7568". We verify this on a 0x0300 ClientHello.
     let mut analyzer_ssl30 = TlsAnalyzer::new();
     let ssl30_record = build_client_hello_with_body_version(0x0300, &[0x1301]);
-    analyzer_ssl30.on_data(&fk, Direction::ClientToServer, &ssl30_record, 0);
+    analyzer_ssl30.on_data(&fk, Direction::ClientToServer, &ssl30_record, 0, 0);
 
     let ssl30_findings: Vec<_> = analyzer_ssl30
         .findings()
@@ -6522,7 +6669,7 @@ fn test_ssl30_client_weak_cipher_both_findings() {
 
     // SSL 3.0 ClientHello (version 0x0300) with a NULL weak cipher (0x0002).
     let record = build_client_hello_with_body_version(0x0300, &[0x0002, 0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     let findings = analyzer.findings();
 
@@ -6570,12 +6717,12 @@ fn test_server_ssl30_deprecated_finding() {
 
     // ClientHello first to open the flow (modern TLS — no client-side findings).
     let ch = build_client_hello("test.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // ServerHello with version 0x0300 (SSL 3.0) and a strong cipher (no server-cipher finding).
     // Use TLS_AES_128_GCM_SHA256 (0x1301) as the selected cipher so only the version fires.
     let sh = build_server_hello_with_version(0x0300, 0x1301);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     let findings = analyzer.findings();
 
@@ -6652,9 +6799,9 @@ fn test_server_ssl30_deprecated_finding() {
     // BC-2.07.012 invariant 1: TLS 1.0 (0x0301) server must NOT trigger.
     let mut analyzer_tls10 = TlsAnalyzer::new();
     let ch2 = build_client_hello("test.com", &[0x1301]);
-    analyzer_tls10.on_data(&fk, Direction::ClientToServer, &ch2, 0);
+    analyzer_tls10.on_data(&fk, Direction::ClientToServer, &ch2, 0, 0);
     let sh_tls10 = build_server_hello_with_version(0x0301, 0x1301);
-    analyzer_tls10.on_data(&fk, Direction::ServerToClient, &sh_tls10, 0);
+    analyzer_tls10.on_data(&fk, Direction::ServerToClient, &sh_tls10, 0, 0);
     let tls10_deprecated: Vec<_> = analyzer_tls10
         .findings()
         .into_iter()
@@ -6682,11 +6829,11 @@ fn test_client_and_server_ssl30_distinct_directions() {
 
     // SSL 3.0 ClientHello with strong cipher (only version fires, no weak-cipher finding).
     let ch = build_client_hello_with_body_version(0x0300, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // SSL 3.0 ServerHello with strong cipher.
     let sh = build_server_hello_with_version(0x0300, 0x1301);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     let findings = analyzer.findings();
 
@@ -6804,11 +6951,11 @@ fn test_cipher_name_unknown_hex_lowercase() {
 
     // ClientHello first.
     let ch = build_client_hello("test.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // ServerHello with cipher ID 0x1234 — unrecognized by tls_parser.
     let sh = build_server_hello(0x1234);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     // Positive-parse anchor: the record itself must parse cleanly.
     assert_eq!(
@@ -6865,9 +7012,9 @@ fn test_cipher_name_unknown_hex_lowercase() {
     // EC-009 / BC-2.07.036 invariant 1: 0xAAAA must render as "0xaaaa" (lowercase, not "0xAAAA").
     let mut analyzer_aaaa = TlsAnalyzer::new();
     let ch2 = build_client_hello("test.com", &[0x1301]);
-    analyzer_aaaa.on_data(&fk, Direction::ClientToServer, &ch2, 0);
+    analyzer_aaaa.on_data(&fk, Direction::ClientToServer, &ch2, 0, 0);
     let sh_aaaa = build_server_hello(0xAAAA);
-    analyzer_aaaa.on_data(&fk, Direction::ServerToClient, &sh_aaaa, 0);
+    analyzer_aaaa.on_data(&fk, Direction::ServerToClient, &sh_aaaa, 0, 0);
 
     let detail_aaaa = analyzer_aaaa.summarize().detail;
     let suites_aaaa = detail_aaaa
@@ -6898,10 +7045,10 @@ fn test_cipher_name_recognized_and_ffff() {
     let fk = test_flow_key();
 
     let ch = build_client_hello("test.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     let sh = build_server_hello(0x1301);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     // BC-2.07.036 invariant 2: recognized cipher appears as IANA name without "0x" prefix.
     let detail = analyzer.summarize().detail;
@@ -6925,10 +7072,10 @@ fn test_cipher_name_recognized_and_ffff() {
     // AC-013 / BC-2.07.036 invariant 3: ID 0xFFFF is unrecognized → "0xffff" (lowercase).
     let mut analyzer_ffff = TlsAnalyzer::new();
     let ch2 = build_client_hello("test.com", &[0x1301]);
-    analyzer_ffff.on_data(&fk, Direction::ClientToServer, &ch2, 0);
+    analyzer_ffff.on_data(&fk, Direction::ClientToServer, &ch2, 0, 0);
 
     let sh_ffff = build_server_hello(0xFFFF);
-    analyzer_ffff.on_data(&fk, Direction::ServerToClient, &sh_ffff, 0);
+    analyzer_ffff.on_data(&fk, Direction::ServerToClient, &sh_ffff, 0, 0);
 
     let detail_ffff = analyzer_ffff.summarize().detail;
     let suites_ffff = detail_ffff
@@ -6950,10 +7097,10 @@ fn test_cipher_name_recognized_and_ffff() {
     // and must appear as name "TLS_NULL_WITH_NULL_NULL", not "0x0000".
     let mut analyzer_null = TlsAnalyzer::new();
     let ch3 = build_client_hello("test.com", &[0x1301]);
-    analyzer_null.on_data(&fk, Direction::ClientToServer, &ch3, 0);
+    analyzer_null.on_data(&fk, Direction::ClientToServer, &ch3, 0, 0);
 
     let sh_null = build_server_hello(0x0000);
-    analyzer_null.on_data(&fk, Direction::ServerToClient, &sh_null, 0);
+    analyzer_null.on_data(&fk, Direction::ServerToClient, &sh_null, 0, 0);
 
     let detail_null = analyzer_null.summarize().detail;
     let suites_null = detail_null
@@ -7012,7 +7159,7 @@ fn test_BC_2_07_011_client_deprecated_version_name_ssl2_and_legacy() {
     let fk = test_flow_key();
 
     let record_ssl2 = build_client_hello_with_body_version(0x0200, &[0x1301]);
-    analyzer_ssl2.on_data(&fk, Direction::ClientToServer, &record_ssl2, 0);
+    analyzer_ssl2.on_data(&fk, Direction::ClientToServer, &record_ssl2, 0, 0);
 
     // Parse-clean anchor: tls_parser accepts SSL 2.0 ClientHello at the record layer.
     assert_eq!(
@@ -7069,7 +7216,7 @@ fn test_BC_2_07_011_client_deprecated_version_name_ssl2_and_legacy() {
     let mut analyzer_legacy = TlsAnalyzer::new();
 
     let record_legacy = build_client_hello_with_body_version(0x0100, &[0x1301]);
-    analyzer_legacy.on_data(&fk, Direction::ClientToServer, &record_legacy, 0);
+    analyzer_legacy.on_data(&fk, Direction::ClientToServer, &record_legacy, 0, 0);
 
     // Parse-clean anchor: tls_parser accepts version 0x0100 ClientHello at the record layer.
     assert_eq!(
@@ -7172,11 +7319,11 @@ fn test_BC_2_07_012_ec004_ec005_server_hello_legacy_parse_rejection_pin() {
     let fk = test_flow_key();
 
     let ch = build_client_hello("test.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // ServerHello with body version 0x0200 (SSL 2.0).
     let sh = build_server_hello_with_version(0x0200, 0x1301);
-    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0);
+    analyzer.on_data(&fk, Direction::ServerToClient, &sh, 0, 0);
 
     // Pinned: tls_parser rejects the ServerHello, incrementing parse_errors.
     assert_eq!(
@@ -7247,7 +7394,7 @@ fn test_arm4_hex_evidence_is_pure_ascii() {
     // EC-004: b"\xff\xfe" is invalid UTF-8; hex = "fffe".
     let sni_bytes: &[u8] = b"\xff\xfe";
     let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     let f = analyzer
         .findings()
@@ -7292,12 +7439,12 @@ fn test_arm4_hex_evidence_is_pure_ascii() {
     );
 }
 
-// ── AC-009 (BC-2.07.037 postconditions 1-4) ───────────────────────────────────
+// ── AC-009 (BC-2.07.037 postconditions 1-4, updated by #104 / BC-TLS-037) ────
 //
 // When SNI bytes are valid UTF-8 but contain BOTH non-ASCII chars AND C0 bytes,
 // arm 3 fires (NonAsciiUtf8), NOT arm 2 (AsciiWithControl). Summary says
-// "non-ASCII characters", NOT "control bytes" or "control". The control byte
-// signal is only recoverable from the hex evidence field.
+// "non-ASCII characters" AND (since #104 fix) additionally mentions "control"
+// when control bytes are present. The hex evidence field is still lossless.
 //
 // Exercises VP-005: is_ascii() is the decisive gate between arm 2 and arm 3.
 // Canonical BC-2.07.037 test vector: b"caf\x01\xc3\xa9" (valid UTF-8 "café" with SOH).
@@ -7305,8 +7452,9 @@ fn test_arm4_hex_evidence_is_pure_ascii() {
 #[test]
 fn test_c0_plus_non_ascii_fires_arm3_not_arm2() {
     // AC-009 (BC-2.07.037 pc1): arm 3 fires -> SniValue::NonAsciiUtf8.
-    // AC-009 (BC-2.07.037 pc2): summary says "non-ASCII characters", NOT "control".
-    // AC-009 (BC-2.07.037 pc3): control byte only recoverable from hex evidence.
+    // AC-009 (BC-2.07.037 pc2): summary says "non-ASCII characters" and "control"
+    //   (control-byte enrichment added by #104 / BC-TLS-037).
+    // AC-009 (BC-2.07.037 pc3): control byte is lossless in hex evidence.
     // AC-009 (BC-2.07.037 pc4): T1027/Anomaly/Inconclusive/Low/ClientToServer.
     let mut analyzer = TlsAnalyzer::new();
     let fk = test_flow_key();
@@ -7315,7 +7463,7 @@ fn test_c0_plus_non_ascii_fires_arm3_not_arm2() {
     // Decoded string: 'c','a','f',SOH(U+0001),'é'(U+00E9). is_ascii() == false -> arm 3.
     let sni_bytes: &[u8] = b"caf\x01\xc3\xa9";
     let record = build_client_hello_raw_sni(sni_bytes, &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
     assert_eq!(
         analyzer.parse_error_count(),
@@ -7350,7 +7498,8 @@ fn test_c0_plus_non_ascii_fires_arm3_not_arm2() {
 
     let f = &non_ascii_findings[0];
 
-    // BC-2.07.037 pc2: summary says "non-ASCII characters", not "control".
+    // BC-2.07.037 pc2 (updated by #104 / BC-TLS-037): summary says "non-ASCII
+    // characters" AND "control" (control-byte enrichment for mixed values).
     assert!(
         f.summary.contains("non-ASCII characters"),
         "AC-009 (BC-2.07.037 pc2): summary must say \"non-ASCII characters\"; \
@@ -7358,9 +7507,9 @@ fn test_c0_plus_non_ascii_fires_arm3_not_arm2() {
         f.summary
     );
     assert!(
-        !f.summary.contains("control"),
-        "AC-009 (BC-2.07.037 pc2): summary must NOT contain \"control\" (EC-007: SOC \
-         operator searching \"control\" will miss this — documented behavior); \
+        f.summary.contains("control"),
+        "AC-009 (BC-2.07.037 pc2, #104): summary must mention \"control\" for mixed \
+         C0+non-ASCII SNI so SOC analysts grepping for control bytes find this case; \
          got: {:?}",
         f.summary
     );
@@ -7392,7 +7541,7 @@ fn test_c0_plus_non_ascii_fires_arm3_not_arm2() {
         "AC-009 (BC-2.07.037 pc4): direction must be Some(ClientToServer)"
     );
 
-    // BC-2.07.037 pc3: control byte 0x01 only recoverable from hex evidence.
+    // BC-2.07.037 pc3: hex evidence is lossless (preserves the control byte).
     // Hex for b"caf\x01\xc3\xa9" = "63616601c3a9".
     assert_eq!(
         f.evidence.len(),
@@ -7433,7 +7582,7 @@ fn test_is_ascii_gate_routes_arm2_vs_arm3() {
     let mut analyzer_arm3 = TlsAnalyzer::new();
     let sni_arm3: &[u8] = b"caf\x01\xc3\xa9";
     let record_arm3 = build_client_hello_raw_sni(sni_arm3, &[0x1301]);
-    analyzer_arm3.on_data(&fk, Direction::ClientToServer, &record_arm3, 0);
+    analyzer_arm3.on_data(&fk, Direction::ClientToServer, &record_arm3, 0, 0);
 
     // Verify is_ascii() == false (the gate predicate must be false for arm 3).
     let decoded_arm3 =
@@ -7468,7 +7617,7 @@ fn test_is_ascii_gate_routes_arm2_vs_arm3() {
     let mut analyzer_arm2 = TlsAnalyzer::new();
     let sni_arm2: &[u8] = b"evil\x01.com";
     let record_arm2 = build_client_hello_raw_sni(sni_arm2, &[0x1301]);
-    analyzer_arm2.on_data(&fk, Direction::ClientToServer, &record_arm2, 0);
+    analyzer_arm2.on_data(&fk, Direction::ClientToServer, &record_arm2, 0, 0);
 
     // Verify is_ascii() == true for this input.
     let decoded_arm2 = std::str::from_utf8(sni_arm2).expect("b\"evil\\x01.com\" is valid UTF-8");
@@ -7552,7 +7701,7 @@ fn test_oversized_after_valid_hello_increments_both() {
 
     // Step 1: send a valid ClientHello — handshakes_seen must become 1.
     let ch = build_client_hello("example.com", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     assert_eq!(
         analyzer.handshake_count(),
@@ -7579,7 +7728,7 @@ fn test_oversized_after_valid_hello_increments_both() {
     oversized_record.extend_from_slice(&[0x48, 0x01]); // payload_len = 18433 (0x4801)
     // No actual payload bytes needed — the guard fires on the header alone.
 
-    analyzer.on_data(&fk, Direction::ClientToServer, &oversized_record, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &oversized_record, 0, 0);
 
     // BC-2.07.004 invariant 1: both counters incremented together.
     assert_eq!(
@@ -7660,7 +7809,7 @@ fn test_record_payload_boundary_18432_vs_18433() {
         record.extend_from_slice(&len_bytes);
         record.extend(std::iter::repeat_n(0u8, BOUNDARY)); // zero payload
 
-        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
         // EC-001: truncated_records must be 0 (boundary is accepted, not dropped).
         assert_eq!(
@@ -7688,7 +7837,7 @@ fn test_record_payload_boundary_18432_vs_18433() {
         record.extend_from_slice(&[0x03, 0x03]);
         record.extend_from_slice(&[0x48, 0x01]); // 18433 = 0x4801
 
-        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
 
         // EC-002: both parse_errors and truncated_records must be 1.
         assert_eq!(
@@ -7722,7 +7871,7 @@ fn test_buffer_cap_appends_at_most_max_buf() {
 
     // 65,537 bytes of arbitrary data (zeros work; the buffer cap fires before parse).
     let data = vec![0u8; MAX_BUF + 1];
-    analyzer.on_data(&fk, Direction::ClientToServer, &data, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &data, 0, 0);
 
     // BC-2.07.005 pc1: at most MAX_BUF bytes appended.
     // After appending, try_parse_records runs and drains any complete records.
@@ -7757,7 +7906,7 @@ fn test_buffer_cap_appends_at_most_max_buf() {
     // only observe the post-call state (not the peak), we rely on the remaining
     // sentinel: if we call on_data again with 1 more byte and parse_errors stays 0,
     // the cap was respected silently throughout.
-    analyzer.on_data(&fk, Direction::ClientToServer, &[0u8; 1], 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &[0u8; 1], 0, 0);
     assert_eq!(
         analyzer.parse_error_count(),
         0,
@@ -7796,7 +7945,7 @@ fn test_buffer_full_append_noop() {
 
     // Send MAX_BUF bytes in one call.
     let full_data = vec![0u8; MAX_BUF];
-    analyzer.on_data(&fk, Direction::ClientToServer, &full_data, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &full_data, 0, 0);
 
     // Confirm counters are still 0 (buffer cap is silent, BC-2.07.005 pc4).
     assert_eq!(
@@ -7815,7 +7964,7 @@ fn test_buffer_full_append_noop() {
     // is likely 0, so 1 byte IS appended — this is fine. The invariant is that the
     // cap calculation uses saturating_sub and min, which are non-panicking.
     // Verify no panic occurs (test reaches this point) and counters stay at 0.
-    analyzer.on_data(&fk, Direction::ClientToServer, &[0u8; 1], 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &[0u8; 1], 0, 0);
     assert_eq!(
         analyzer.parse_error_count(),
         0,
@@ -7838,7 +7987,7 @@ fn test_buffer_full_append_noop() {
     // maximum practically allocatable buffer and asserting no panic.
     // Use a 128 KB buffer (2x MAX_BUF) as the stress vector.
     let stress_data = vec![0u8; MAX_BUF * 2];
-    analyzer.on_data(&fk, Direction::ClientToServer, &stress_data, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &stress_data, 0, 0);
     assert_eq!(
         analyzer.parse_error_count(),
         0,
@@ -7966,7 +8115,7 @@ fn test_buffer_cap_appends_at_most_max_buf_literal_residue() {
         "fixture must be exactly MAX_BUF+1 bytes to test the cap"
     );
 
-    analyzer.on_data(&fk, Direction::ClientToServer, &fixture, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &fixture, 0, 0);
 
     // Confirm the flow exists (not just "flow absent → 0").
     assert_eq!(
@@ -8080,7 +8229,7 @@ fn test_buffer_full_append_noop_literal() {
     // payload_len = 4 (via bytes [0x16, 0x03, 0x03, 0x00, 0x04]). After on_data(5 bytes):
     // buf_len=5, total_record_len=9, 5 < 9 → incomplete, stays at 5.
     let prime_5: &[u8] = &[0x16, 0x03, 0x03, 0x00, 0x04];
-    analyzer.on_data(&fk, Direction::ClientToServer, prime_5, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, prime_5, 0, 0);
 
     // Confirm flow exists and buf_len is 5 (not 0 = absent flow).
     assert_eq!(
@@ -8097,7 +8246,7 @@ fn test_buffer_full_append_noop_literal() {
 
     // Step 2: Append 1 body byte. buf_len becomes 6. 6 < 9 → still incomplete, stays at 6.
     // remaining = MAX_BUF - 5 = 65531, to_copy = min(1, 65531) = 1.
-    analyzer.on_data(&fk, Direction::ClientToServer, &[0xFF], 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &[0xFF], 0, 0);
     assert_eq!(
         analyzer.client_buf_len_for_testing(&fk),
         6,
@@ -8121,7 +8270,7 @@ fn test_buffer_full_append_noop_literal() {
     //
     // Assert: parse_errors unchanged (noop drop is silent, BC-2.07.005 inv3).
     let fill = vec![0u8; MAX_BUF];
-    analyzer.on_data(&fk, Direction::ClientToServer, &fill, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &fill, 0, 0);
 
     // The record completes and drains (9 bytes consumed), then ~65527 zero bytes
     // drain as 5-byte non-handshake records. Residue: 65527 mod 5 = 2 bytes.
@@ -8137,7 +8286,7 @@ fn test_buffer_full_append_noop_literal() {
     let parse_errors_before = analyzer.parse_error_count();
     let truncated_before = analyzer.truncated_record_count();
     let oversize_data = vec![0u8; MAX_BUF + 1];
-    analyzer.on_data(&fk, Direction::ClientToServer, &oversize_data, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &oversize_data, 0, 0);
 
     assert_eq!(
         analyzer.parse_error_count(),
@@ -8182,7 +8331,7 @@ fn test_buffer_overflow_silent_no_counters() {
     const MAX_BUF: usize = 65_536;
 
     // Fill to cap.
-    analyzer.on_data(&fk, Direction::ClientToServer, &vec![0u8; MAX_BUF], 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &vec![0u8; MAX_BUF], 0, 0);
 
     let parse_errors_before = analyzer.parse_error_count();
     let truncated_before = analyzer.truncated_record_count();
@@ -8190,7 +8339,7 @@ fn test_buffer_overflow_silent_no_counters() {
     // Append 1000 more bytes — these are dropped by the cap (if buffer is full)
     // or appended (if the drain emptied it). Either way, no counter must increment
     // due to the buffer cap mechanism alone.
-    analyzer.on_data(&fk, Direction::ClientToServer, &vec![0u8; 1000], 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &vec![0u8; 1000], 0, 0);
 
     // BC-2.07.005 inv3: counters unchanged by buffer overflow.
     // We compare delta to allow for any nom parse errors that may have
@@ -8231,7 +8380,7 @@ fn test_malformed_handshake_increments_parse_errors_only() {
 
     // Step 1: valid ClientHello → handshakes_seen=1, parse_errors=0, truncated_records=0.
     let ch = build_client_hello("test.example", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     assert_eq!(
         analyzer.handshake_count(),
@@ -8254,7 +8403,7 @@ fn test_malformed_handshake_increments_parse_errors_only() {
     // payload_len=5 is well within MAX_RECORD_PAYLOAD (18432), so the oversized
     // guard is NOT taken. This exercises the nom error path (BC-2.07.029 pc1-5).
     let malformed = [0x16, 0x03, 0x03, 0x00, 0x05, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];
-    analyzer.on_data(&fk, Direction::ClientToServer, &malformed, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &malformed, 0, 0);
 
     // BC-2.07.029 inv1: parse_errors == 1 (genuine parse failure).
     assert_eq!(
@@ -8374,7 +8523,7 @@ fn test_summarize_top_snis_capped_at_20() {
         );
         let sni = format!("sni{i:02}.example.com");
         let ch = build_client_hello(&sni, &[0x1301]);
-        analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
     }
 
     assert_eq!(
@@ -8435,7 +8584,7 @@ fn test_appdata_record_skipped_then_hello() {
     let mut combined = appdata;
     combined.extend_from_slice(&ch);
 
-    analyzer.on_data(&fk, Direction::ClientToServer, &combined, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &combined, 0, 0);
 
     // BC-2.07.033 postcondition 2: no parse_errors increment for non-handshake records.
     assert_eq!(
@@ -8535,7 +8684,7 @@ fn test_within_loop_nonhandshake_skip_before_done() {
         "F-S058-P1-002 precondition: flow must not exist yet (not done)"
     );
 
-    analyzer.on_data(&fk, Direction::ClientToServer, &combined, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &combined, 0, 0);
 
     // BC-2.07.033 postcondition 2: no parse_errors from the non-handshake record.
     assert_eq!(
@@ -8626,7 +8775,7 @@ fn test_nonhandshake_types_0x14_0x15_0x17_0x18_all_skip_silently() {
         let mut combined = nhs;
         combined.extend_from_slice(&ch);
 
-        analyzer.on_data(&fk, Direction::ClientToServer, &combined, 0);
+        analyzer.on_data(&fk, Direction::ClientToServer, &combined, 0, 0);
 
         // BC-2.07.033 postcondition 2: no parse_errors for any non-handshake type.
         assert_eq!(
@@ -8680,7 +8829,7 @@ fn test_on_flow_close_drops_state_preserves_aggregates() {
 
     // Process a valid ClientHello — this creates flow state and updates sni_counts.
     let ch = build_client_hello("flowclose.example", &[0x1301]);
-    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0);
+    analyzer.on_data(&fk, Direction::ClientToServer, &ch, 0, 0);
 
     // Confirm flow is present and aggregate state is populated.
     assert_eq!(
@@ -8875,19 +9024,19 @@ fn test_summarize_top_snis_ties_broken_alphabetically() {
         let record = build_client_hello(&sni, ciphers);
         // Each tied SNI gets its own flow key so the per-flow "done" guard
         // doesn't suppress subsequent ClientHellos.
-        analyzer.on_data(&fk(idx as u16), Direction::ClientToServer, &record, 0);
+        analyzer.on_data(&fk(idx as u16), Direction::ClientToServer, &record, 0, 0);
     }
 
     // Anchor SNI "aaa.anchor.example" → 10 handshakes across 10 distinct flows.
     for i in 0..10u16 {
         let record = build_client_hello("aaa.anchor.example", ciphers);
-        analyzer.on_data(&fk(100 + i), Direction::ClientToServer, &record, 0);
+        analyzer.on_data(&fk(100 + i), Direction::ClientToServer, &record, 0, 0);
     }
 
     // Anchor SNI "bbb.anchor.example" → 5 handshakes across 5 distinct flows.
     for i in 0..5u16 {
         let record = build_client_hello("bbb.anchor.example", ciphers);
-        analyzer.on_data(&fk(200 + i), Direction::ClientToServer, &record, 0);
+        analyzer.on_data(&fk(200 + i), Direction::ClientToServer, &record, 0, 0);
     }
 
     let summary = analyzer.summarize();
@@ -8991,7 +9140,7 @@ fn non_handshake_record_client_drains_without_parse() {
     for &ct in non_handshake_types {
         let mut analyzer = TlsAnalyzer::new();
         let record = make_tls_record_cr010(ct);
-        analyzer.on_data(&flow_key, Direction::ClientToServer, &record, 0);
+        analyzer.on_data(&flow_key, Direction::ClientToServer, &record, 0, 0);
 
         assert_eq!(
             analyzer.client_buf_len_for_testing(&flow_key),
@@ -9028,7 +9177,7 @@ fn non_handshake_record_server_drains_without_parse() {
     for &ct in non_handshake_types {
         let mut analyzer = TlsAnalyzer::new();
         let record = make_tls_record_cr010(ct);
-        analyzer.on_data(&flow_key, Direction::ServerToClient, &record, 0);
+        analyzer.on_data(&flow_key, Direction::ServerToClient, &record, 0, 0);
 
         assert_eq!(
             analyzer.server_buf_len_for_testing(&flow_key),
@@ -9063,7 +9212,7 @@ fn handshake_record_reaches_parser() {
     let flow_key = cr010_flow_key();
     let mut analyzer = TlsAnalyzer::new();
     let record = make_tls_record_cr010(0x16);
-    analyzer.on_data(&flow_key, Direction::ClientToServer, &record, 0);
+    analyzer.on_data(&flow_key, Direction::ClientToServer, &record, 0, 0);
 
     // Buffer must be drained regardless of parse outcome.
     assert_eq!(
@@ -9076,5 +9225,163 @@ fn handshake_record_reaches_parser() {
     assert!(
         analyzer.parse_error_count() >= 1,
         "0x16 with empty payload must trigger a parse error, confirming the parse path was entered"
+    );
+}
+
+// ── Issue #102: weak-cipher evidence cap ─────────────────────────────────────
+//
+// A ClientHello with more than 64 weak ciphers must NOT produce an unbounded
+// evidence vec.  The finding's `evidence` must be capped at 65 entries:
+// 64 cipher names followed by a single "(+N more)" elision marker.
+//
+// This is a LOW-SEVERITY HARDENING test (not a security/DoS test): the
+// allocation is bounded by upstream input limits (MAX_RECORD_PAYLOAD=18_432),
+// so it is NOT CWE-405 / asymmetric amplification.  The cap simply avoids
+// a needlessly large transient String allocation when a crafted ClientHello
+// offers a maximal weak-cipher list.
+//
+// All 65 cipher IDs below are confirmed weak by `is_weak_cipher` (they
+// contain "NULL", "ANON", or "EXPORT" in their tls-parser name string).
+// Source: tls-parser-0.12.2/scripts/tls-ciphersuites.txt.
+#[test]
+fn test_weak_cipher_evidence_capped_at_64_with_elision() {
+    // 65 distinct weak cipher IDs — one more than the cap.
+    // All names contain "NULL", "ANON", or "EXPORT" per is_weak_cipher.
+    let weak_ids: &[u16] = &[
+        0x0000, // TLS_NULL_WITH_NULL_NULL
+        0x0001, // TLS_RSA_WITH_NULL_MD5
+        0x0002, // TLS_RSA_WITH_NULL_SHA
+        0x0003, // TLS_RSA_EXPORT_WITH_RC4_40_MD5
+        0x0006, // TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5
+        0x0008, // TLS_RSA_EXPORT_WITH_DES40_CBC_SHA
+        0x000b, // TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA
+        0x000e, // TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA
+        0x0011, // TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA
+        0x0014, // TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA
+        0x0017, // TLS_DH_anon_EXPORT_WITH_RC4_40_MD5
+        0x0018, // TLS_DH_anon_WITH_RC4_128_MD5
+        0x0019, // TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA
+        0x001a, // TLS_DH_anon_WITH_DES_CBC_SHA
+        0x001b, // TLS_DH_anon_WITH_3DES_EDE_CBC_SHA
+        0x0026, // TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA
+        0x0027, // TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA
+        0x0028, // TLS_KRB5_EXPORT_WITH_RC4_40_SHA
+        0x0029, // TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5
+        0x002a, // TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5
+        0x002b, // TLS_KRB5_EXPORT_WITH_RC4_40_MD5
+        0x002c, // TLS_PSK_WITH_NULL_SHA
+        0x002d, // TLS_DHE_PSK_WITH_NULL_SHA
+        0x002e, // TLS_RSA_PSK_WITH_NULL_SHA
+        0x0034, // TLS_DH_anon_WITH_AES_128_CBC_SHA
+        0x003a, // TLS_DH_anon_WITH_AES_256_CBC_SHA
+        0x003b, // TLS_RSA_WITH_NULL_SHA256
+        0x0046, // TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA
+        0x0060, // TLS_RSA_EXPORT1024_WITH_RC4_56_MD5
+        0x0061, // TLS_RSA_EXPORT1024_WITH_RC2_CBC_56_MD5
+        0x0062, // TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA
+        0x0063, // TLS_DHE_DSS_EXPORT1024_WITH_DES_CBC_SHA
+        0x0064, // TLS_RSA_EXPORT1024_WITH_RC4_56_SHA
+        0x0065, // TLS_DHE_DSS_EXPORT1024_WITH_RC4_56_SHA
+        0x006c, // TLS_DH_anon_WITH_AES_128_CBC_SHA256
+        0x006d, // TLS_DH_anon_WITH_AES_256_CBC_SHA256
+        0x0089, // TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA
+        0x009b, // TLS_DH_anon_WITH_SEED_CBC_SHA
+        0x00a6, // TLS_DH_anon_WITH_AES_128_GCM_SHA256
+        0x00a7, // TLS_DH_anon_WITH_AES_256_GCM_SHA384
+        0x00b0, // TLS_PSK_WITH_NULL_SHA256
+        0x00b1, // TLS_PSK_WITH_NULL_SHA384
+        0x00b4, // TLS_DHE_PSK_WITH_NULL_SHA256
+        0x00b5, // TLS_DHE_PSK_WITH_NULL_SHA384
+        0x00b8, // TLS_RSA_PSK_WITH_NULL_SHA256
+        0x00b9, // TLS_RSA_PSK_WITH_NULL_SHA384
+        0x00bf, // TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA256
+        0x00c5, // TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA256
+        0xc001, // TLS_ECDH_ECDSA_WITH_NULL_SHA
+        0xc006, // TLS_ECDHE_ECDSA_WITH_NULL_SHA
+        0xc00b, // TLS_ECDH_RSA_WITH_NULL_SHA
+        0xc010, // TLS_ECDHE_RSA_WITH_NULL_SHA
+        0xc015, // TLS_ECDH_anon_WITH_NULL_SHA
+        0xc016, // TLS_ECDH_anon_WITH_RC4_128_SHA
+        0xc017, // TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA
+        0xc018, // TLS_ECDH_anon_WITH_AES_128_CBC_SHA
+        0xc019, // TLS_ECDH_anon_WITH_AES_256_CBC_SHA
+        0xc039, // TLS_ECDHE_PSK_WITH_NULL_SHA
+        0xc03a, // TLS_ECDHE_PSK_WITH_NULL_SHA256
+        0xc03b, // TLS_ECDHE_PSK_WITH_NULL_SHA384
+        0xc046, // TLS_DH_anon_WITH_ARIA_128_CBC_SHA256
+        0xc047, // TLS_DH_anon_WITH_ARIA_256_CBC_SHA384
+        0xc05a, // TLS_DH_anon_WITH_ARIA_128_GCM_SHA256
+        0xc05b, // TLS_DH_anon_WITH_ARIA_256_GCM_SHA384
+        0xc084, // TLS_DH_anon_WITH_CAMELLIA_128_GCM_SHA256
+                // 65 entries total (0xc085 omitted; 65 is one more than the cap of 64)
+    ];
+    assert_eq!(
+        weak_ids.len(),
+        65,
+        "test setup: exactly 65 weak IDs required"
+    );
+
+    let mut cipher_ids = weak_ids.to_vec();
+    cipher_ids.push(0x1301); // TLS_AES_128_GCM_SHA256 (strong, not weak)
+
+    let mut analyzer = TlsAnalyzer::new();
+    let fk = test_flow_key();
+    let record = build_client_hello("test.com", &cipher_ids);
+    analyzer.on_data(&fk, Direction::ClientToServer, &record, 0, 0);
+
+    let findings = analyzer.findings();
+    let weak_findings: Vec<_> = findings
+        .iter()
+        .filter(|f| f.summary.contains("weak cipher"))
+        .collect();
+
+    assert_eq!(
+        weak_findings.len(),
+        1,
+        "issue #102 hardening: exactly one weak-cipher finding must be produced"
+    );
+
+    let evidence = &weak_findings[0].evidence;
+
+    // BOUND CHECK: evidence must be capped at <=65 entries (64 cipher names + 1 elision).
+    // Without the cap the evidence vec would have 65 entries (no elision marker);
+    // this assertion FAILS on the current uncapped implementation because it
+    // has exactly 65 entries but no elision marker — the elision marker check
+    // below is what distinguishes the correct capped form.
+    assert!(
+        evidence.len() <= 65,
+        "issue #102 hardening: evidence must be capped at <=65 entries; got {}",
+        evidence.len()
+    );
+
+    // ELISION CHECK: when total weak ciphers > 64, the last evidence entry must
+    // be a "(+N more)" elision marker.  On the uncapped implementation this
+    // assertion FAILS because evidence[64] is a cipher name, not an elision marker.
+    let last = evidence
+        .last()
+        .expect("issue #102 hardening: evidence must not be empty");
+    assert!(
+        last.starts_with("(+") && last.ends_with(" more)"),
+        "issue #102 hardening: last evidence entry must be an elision marker of the form \
+         \"(+N more)\" when total weak ciphers > 64; got: {:?}",
+        last
+    );
+
+    // COUNT CHECK: exactly 64 cipher-name entries plus 1 elision marker.
+    assert_eq!(
+        evidence.len(),
+        65,
+        "issue #102 hardening: capped evidence must have exactly 65 entries \
+         (64 cipher names + 1 elision marker); got {}",
+        evidence.len()
+    );
+
+    // ELISION CONTENT CHECK: the elision marker must report the correct overflow count.
+    // 65 weak ciphers total, cap = 64, so overflow = 1 → "(+1 more)".
+    assert_eq!(
+        last, "(+1 more)",
+        "issue #102 hardening: elision marker must be \"(+1 more)\" for 65 weak ciphers \
+         with cap=64; got: {:?}",
+        last
     );
 }

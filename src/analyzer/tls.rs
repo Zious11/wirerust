@@ -15,6 +15,7 @@
 
 use std::collections::HashMap;
 
+use chrono::DateTime;
 use md5::{Digest, Md5};
 use tls_parser::{
     Err as NomErr, TlsCipherSuite, TlsCipherSuiteID, TlsExtension, TlsExtensionType, TlsMessage,
@@ -275,6 +276,11 @@ struct TlsFlowState {
     server_buf: Vec<u8>,
     client_hello_seen: bool,
     server_hello_seen: bool,
+    /// Most-recent on_data capture timestamp for this flow; used at Finding
+    /// emission sites to attach capture-relative pcap provenance.
+    /// Updated on every `on_data` call; keyed per-flow (VP-014 cross-flow
+    /// isolation invariant).
+    last_ts: u32,
 }
 
 impl TlsFlowState {
@@ -284,6 +290,7 @@ impl TlsFlowState {
             server_buf: Vec::new(),
             client_hello_seen: false,
             server_hello_seen: false,
+            last_ts: 0,
         }
     }
 
@@ -376,10 +383,14 @@ impl TlsAnalyzer {
     }
 
     /// Process a single complete ClientHello.
+    ///
+    /// `last_ts` is the per-flow capture timestamp (BC-2.09.007): attached as
+    /// `Some(DateTime<Utc>)` to every Finding emitted from this handshake.
     fn handle_client_hello(
         &mut self,
         ch: &tls_parser::TlsClientHelloContents<'_>,
         _flow_key: &FlowKey,
+        last_ts: u32,
     ) {
         self.handshakes_seen += 1;
 
@@ -442,11 +453,24 @@ impl TlsAnalyzer {
                         evidence: vec![format!("hex: {hex}")],
                         mitre_technique: Some("T1027".to_string()),
                         source_ip: None,
-                        timestamp: None,
+                        // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                        timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                         direction: Some(Direction::ClientToServer),
                     });
                 }
                 SniValue::NonAsciiUtf8 { hostname, hex } => {
+                    // Scan for embedded C0/DEL control bytes. Valid UTF-8 continuation
+                    // bytes are 0x80–0xBF, so scanning `hostname.bytes()` for
+                    // `b < 0x20 || b == 0x7f` is safe — no false positives from
+                    // multi-byte codepoints. When present, the summary is enriched so
+                    // a SOC analyst grepping for "control" finds this case too
+                    // (BC-TLS-037 / issue #104).
+                    let has_control = hostname.bytes().any(|b| b < 0x20 || b == 0x7f);
+                    let control_clause = if has_control {
+                        " and ASCII control bytes"
+                    } else {
+                        ""
+                    };
                     self.all_findings.push(Finding {
                         category: ThreatCategory::Anomaly,
                         verdict: Verdict::Inconclusive,
@@ -456,13 +480,14 @@ impl TlsAnalyzer {
                         // codes, etc.) is applied by the terminal reporter at
                         // render time, not here.
                         summary: format!(
-                            "TLS SNI contains non-ASCII characters (RFC 6066 requires \
-                             A-labels per RFC 5890): {hostname}"
+                            "TLS SNI contains non-ASCII characters{control_clause} \
+                             (RFC 6066 requires A-labels per RFC 5890): {hostname}"
                         ),
                         evidence: vec![format!("hex: {hex}")],
                         mitre_technique: Some("T1027".to_string()),
                         source_ip: None,
-                        timestamp: None,
+                        // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                        timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                         direction: Some(Direction::ClientToServer),
                     });
                 }
@@ -482,7 +507,8 @@ impl TlsAnalyzer {
                         evidence: vec![format!("hex: {hex}")],
                         mitre_technique: Some("T1027".to_string()),
                         source_ip: None,
-                        timestamp: None,
+                        // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                        timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                         direction: Some(Direction::ClientToServer),
                     });
                 }
@@ -494,12 +520,24 @@ impl TlsAnalyzer {
         Self::increment(&mut self.ja3_counts, ja3_hash, MAX_MAP_ENTRIES);
 
         // Weak cipher detection
-        let weak: Vec<String> = ch
+        //
+        // Cap the evidence vec at WEAK_CIPHER_EVIDENCE_CAP entries to bound the
+        // transient String allocation.  Input is already bounded by
+        // MAX_RECORD_PAYLOAD (18,432 bytes → ≤9,216 cipher IDs), so this is
+        // LOW-SEVERITY HARDENING — not a security/DoS fix (CWE-405 requires
+        // asymmetric amplification; this allocation is linear and bounded).
+        const WEAK_CIPHER_EVIDENCE_CAP: usize = 64;
+        let total_weak = ch.ciphers.iter().filter(|&&id| is_weak_cipher(id)).count();
+        let mut weak: Vec<String> = ch
             .ciphers
             .iter()
             .filter(|&&id| is_weak_cipher(id))
+            .take(WEAK_CIPHER_EVIDENCE_CAP)
             .map(|&id| cipher_name(id))
             .collect();
+        if total_weak > WEAK_CIPHER_EVIDENCE_CAP {
+            weak.push(format!("(+{} more)", total_weak - WEAK_CIPHER_EVIDENCE_CAP));
+        }
 
         if !weak.is_empty() {
             self.all_findings.push(Finding {
@@ -511,7 +549,8 @@ impl TlsAnalyzer {
                 evidence: weak,
                 mitre_technique: None,
                 source_ip: None,
-                timestamp: None,
+                // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ClientToServer),
             });
         }
@@ -533,17 +572,22 @@ impl TlsAnalyzer {
                 evidence: vec![format!("Version: 0x{version:04x} ({version_name})")],
                 mitre_technique: None,
                 source_ip: None,
-                timestamp: None,
+                // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
             direction: Some(Direction::ClientToServer),
             });
         }
     }
 
     /// Process a single complete ServerHello.
+    ///
+    /// `last_ts` is the per-flow capture timestamp (BC-2.09.007): attached as
+    /// `Some(DateTime<Utc>)` to every Finding emitted from this handshake.
     fn handle_server_hello(
         &mut self,
         sh: &tls_parser::TlsServerHelloContents<'_>,
         _flow_key: &FlowKey,
+        last_ts: u32,
     ) {
         let version = sh.version.0;
         Self::increment(&mut self.version_counts, version, MAX_MAP_ENTRIES);
@@ -576,7 +620,8 @@ impl TlsAnalyzer {
                 evidence: vec![format!("Selected cipher: {} (0x{:04x})", name, sh.cipher.0)],
                 mitre_technique: None,
                 source_ip: None,
-                timestamp: None,
+                // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ServerToClient),
             });
         }
@@ -598,7 +643,8 @@ impl TlsAnalyzer {
                 evidence: vec![format!("Version: 0x{version:04x} ({version_name})")],
                 mitre_technique: None,
                 source_ip: None,
-                timestamp: None,
+                // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
             direction: Some(Direction::ServerToClient),
             });
         }
@@ -709,6 +755,11 @@ impl TlsAnalyzer {
                 };
             }
 
+            // BC-2.09.007: retrieve per-flow last_ts before parsing the record.
+            // Both handle_client_hello and handle_server_hello need it to attach
+            // the capture-relative timestamp to any emitted Findings.
+            let last_ts = self.flows.get(flow_key).map(|s| s.last_ts).unwrap_or(0);
+
             match parse_tls_plaintext(&record_bytes) {
                 Ok((_rem, plaintext)) => {
                     for msg in &plaintext.msg {
@@ -717,13 +768,13 @@ impl TlsAnalyzer {
                                 if let Some(state) = self.flows.get_mut(flow_key) {
                                     state.client_hello_seen = true;
                                 }
-                                self.handle_client_hello(ch, flow_key);
+                                self.handle_client_hello(ch, flow_key, last_ts);
                             }
                             TlsMessage::Handshake(TlsMessageHandshake::ServerHello(sh)) => {
                                 if let Some(state) = self.flows.get_mut(flow_key) {
                                     state.server_hello_seen = true;
                                 }
-                                self.handle_server_hello(sh, flow_key);
+                                self.handle_server_hello(sh, flow_key, last_ts);
                             }
                             _ => {}
                         }
@@ -744,7 +795,14 @@ impl TlsAnalyzer {
 // ── StreamHandler ─────────────────────────────────────────────────────────────
 
 impl StreamHandler for TlsAnalyzer {
-    fn on_data(&mut self, flow_key: &FlowKey, direction: Direction, data: &[u8], _offset: u64) {
+    fn on_data(
+        &mut self,
+        flow_key: &FlowKey,
+        direction: Direction,
+        data: &[u8],
+        _offset: u64,
+        timestamp: u32,
+    ) {
         // Check whether this flow is already done before we get a mutable ref.
         let done = self.flows.get(flow_key).is_some_and(|s| s.done());
         if done {
@@ -756,6 +814,9 @@ impl StreamHandler for TlsAnalyzer {
                 .flows
                 .entry(flow_key.clone())
                 .or_insert_with(TlsFlowState::new);
+            // BC-2.04.055 postcondition 3: update per-flow last-seen timestamp on
+            // every on_data call.  Keyed by FlowKey (VP-014 cross-flow isolation).
+            state.last_ts = timestamp;
             match direction {
                 Direction::ClientToServer => {
                     let remaining = MAX_BUF.saturating_sub(state.client_buf.len());
@@ -932,6 +993,20 @@ impl TlsAnalyzer {
             .get(flow_key)
             .map(|s| s.server_hello_seen)
             .unwrap_or(false)
+    }
+
+    /// Test-only accessor: the most-recently-stored capture timestamp for the
+    /// given flow.
+    ///
+    /// Exposes `flow_state.last_ts` so tests can assert that the dispatcher
+    /// threads the correct `timestamp` argument through to the TLS analyzer
+    /// (STORY-097 AC-004 / BC-2.04.055 dispatcher-forwarding invariant). Returns
+    /// `None` when the flow has no live state (never received data or already
+    /// closed).
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn last_ts_for_testing(&self, flow_key: &FlowKey) -> Option<u32> {
+        self.flows.get(flow_key).map(|s| s.last_ts)
     }
 }
 

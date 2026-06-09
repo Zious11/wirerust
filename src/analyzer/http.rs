@@ -13,6 +13,8 @@
 
 use std::collections::HashMap;
 
+use chrono::DateTime;
+
 use crate::analyzer::AnalysisSummary;
 use crate::findings::{Confidence, Finding, ThreatCategory, Verdict};
 use crate::reassembly::flow::FlowKey;
@@ -87,6 +89,11 @@ struct HttpFlowState {
     request_error_count: u8,
     response_error_count: u8,
     counted_as_non_http: bool,
+    /// Most-recent on_data capture timestamp for this flow; used at Finding
+    /// emission sites to attach capture-relative pcap provenance.
+    /// Updated on every `on_data` call; keyed per-flow (VP-014 cross-flow
+    /// isolation invariant).
+    last_ts: u32,
 }
 
 impl HttpFlowState {
@@ -99,6 +106,7 @@ impl HttpFlowState {
             request_error_count: 0,
             response_error_count: 0,
             counted_as_non_http: false,
+            last_ts: 0,
         }
     }
 }
@@ -180,7 +188,12 @@ impl HttpAnalyzer {
         self.poisoned_bytes_skipped
     }
 
-    fn check_request_detections(&mut self, parsed: &ParsedRequest, _flow_key: &FlowKey) {
+    fn check_request_detections(
+        &mut self,
+        parsed: &ParsedRequest,
+        _flow_key: &FlowKey,
+        last_ts: u32,
+    ) {
         let uri_lower = parsed.uri.to_lowercase();
 
         // 1. Path traversal (including URL-encoded variants)
@@ -197,7 +210,9 @@ impl HttpAnalyzer {
                 evidence: vec![format!("URI: {}", parsed.uri)],
                 mitre_technique: Some("T1083".to_string()),
                 source_ip: None,
-                timestamp: None,
+                // BC-2.09.007 post-1: capture-relative pcap timestamp from the
+                // on_data call that delivered this request data.
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ClientToServer),
             });
         }
@@ -227,7 +242,7 @@ impl HttpAnalyzer {
                 evidence: vec![format!("URI: {}", parsed.uri)],
                 mitre_technique: Some("T1505.003".to_string()),
                 source_ip: None,
-                timestamp: None,
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ClientToServer),
             });
         }
@@ -243,7 +258,7 @@ impl HttpAnalyzer {
                 evidence: vec![format!("URI: {}", parsed.uri)],
                 mitre_technique: Some("T1046".to_string()),
                 source_ip: None,
-                timestamp: None,
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ClientToServer),
             });
         }
@@ -259,7 +274,7 @@ impl HttpAnalyzer {
                 evidence: vec![format!("{} {}", parsed.method, parsed.uri)],
                 mitre_technique: None,
                 source_ip: None,
-                timestamp: None,
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ClientToServer),
             });
         }
@@ -295,7 +310,7 @@ impl HttpAnalyzer {
                     evidence: vec![format!("{} {}", parsed.method, parsed.uri)],
                     mitre_technique: None,
                     source_ip: None,
-                    timestamp: None,
+                    timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                     direction: Some(Direction::ClientToServer),
                 });
             }
@@ -311,7 +326,7 @@ impl HttpAnalyzer {
                 evidence: vec![format!("URI prefix: {}", truncate_uri(&parsed.uri, 200))],
                 mitre_technique: None,
                 source_ip: None,
-                timestamp: None,
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ClientToServer),
             });
         }
@@ -350,7 +365,7 @@ impl HttpAnalyzer {
                 evidence: vec![format!("{} {}", parsed.method, parsed.uri)],
                 mitre_technique: None,
                 source_ip: None,
-                timestamp: None,
+                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                 direction: Some(Direction::ClientToServer),
             });
         }
@@ -392,7 +407,11 @@ impl HttpAnalyzer {
                         self.uris.push(parsed.uri.clone());
                     }
 
-                    self.check_request_detections(&parsed, flow_key);
+                    // BC-2.09.007: retrieve per-flow last_ts before calling
+                    // check_request_detections so detection findings carry the
+                    // capture-relative timestamp.
+                    let last_ts = self.flows.get(flow_key).map(|s| s.last_ts).unwrap_or(0);
+                    self.check_request_detections(&parsed, flow_key, last_ts);
 
                     if let Some(state) = self.flows.get_mut(flow_key) {
                         state.request_buf.drain(..parsed.bytes_consumed);
@@ -414,6 +433,7 @@ impl HttpAnalyzer {
                             }
                         }
                         if e == httparse::Error::TooManyHeaders {
+                            let last_ts = self.flows.get(flow_key).map(|s| s.last_ts).unwrap_or(0);
                             self.all_findings.push(Finding {
                                 category: ThreatCategory::Anomaly,
                                 verdict: Verdict::Inconclusive,
@@ -422,7 +442,8 @@ impl HttpAnalyzer {
                                 evidence: vec!["Direction: request".to_string()],
                                 mitre_technique: Some("T1499.002".to_string()),
                                 source_ip: None,
-                                timestamp: None,
+                                // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                             direction: Some(Direction::ClientToServer),
                             });
                         }
@@ -473,6 +494,7 @@ impl HttpAnalyzer {
                             }
                         }
                         if e == httparse::Error::TooManyHeaders {
+                            let last_ts = self.flows.get(flow_key).map(|s| s.last_ts).unwrap_or(0);
                             self.all_findings.push(Finding {
                                 category: ThreatCategory::Anomaly,
                                 verdict: Verdict::Inconclusive,
@@ -481,7 +503,8 @@ impl HttpAnalyzer {
                                 evidence: vec!["Direction: response".to_string()],
                                 mitre_technique: Some("T1499.002".to_string()),
                                 source_ip: None,
-                                timestamp: None,
+                                // BC-2.09.007 post-1: capture-relative pcap timestamp.
+                                timestamp: DateTime::from_timestamp(last_ts as i64, 0),
                             direction: Some(Direction::ServerToClient),
                             });
                         }
@@ -498,12 +521,22 @@ impl HttpAnalyzer {
 }
 
 impl StreamHandler for HttpAnalyzer {
-    fn on_data(&mut self, flow_key: &FlowKey, direction: Direction, data: &[u8], _offset: u64) {
+    fn on_data(
+        &mut self,
+        flow_key: &FlowKey,
+        direction: Direction,
+        data: &[u8],
+        _offset: u64,
+        timestamp: u32,
+    ) {
         {
             let state = self
                 .flows
                 .entry(flow_key.clone())
                 .or_insert_with(HttpFlowState::new);
+            // BC-2.04.055 postcondition 3: update per-flow last-seen timestamp on
+            // every on_data call.  Keyed by FlowKey (VP-014 cross-flow isolation).
+            state.last_ts = timestamp;
             match direction {
                 Direction::ClientToServer => {
                     if state.request_poisoned {
@@ -672,6 +705,20 @@ impl HttpAnalyzer {
     #[doc(hidden)]
     pub fn response_buf_len_for_testing(&self, flow_key: &FlowKey) -> Option<usize> {
         self.flows.get(flow_key).map(|s| s.response_buf.len())
+    }
+
+    /// Test-only accessor: the most-recently-stored capture timestamp for the
+    /// given flow.
+    ///
+    /// Exposes `flow_state.last_ts` so tests can assert that the dispatcher
+    /// threads the correct `timestamp` argument through to the HTTP analyzer
+    /// (STORY-097 AC-004 / BC-2.04.055 dispatcher-forwarding invariant). Returns
+    /// `None` when the flow has no live state (never received data or already
+    /// closed).
+    /// MUST NOT be called from production code.
+    #[doc(hidden)]
+    pub fn last_ts_for_testing(&self, flow_key: &FlowKey) -> Option<u32> {
+        self.flows.get(flow_key).map(|s| s.last_ts)
     }
 }
 
@@ -920,7 +967,7 @@ mod vp_006_proptest_proofs {
                     oracle_predicted_skip = true;
                 }
 
-                analyzer.on_data(&key, dir, data, 0);
+                analyzer.on_data(&key, dir, data, 0, 0);
                 let now_skipped = analyzer.poisoned_bytes_skipped();
 
                 // (1) monotonic non-decreasing.
@@ -967,14 +1014,14 @@ mod vp_006_proptest_proofs {
 
             // Drive the request direction past POISON_THRESHOLD (3).
             for _ in 0..req_errors {
-                analyzer.on_data(&key, Direction::ClientToServer, b"\xFF\xFE garbage", 0);
+                analyzer.on_data(&key, Direction::ClientToServer, b"\xFF\xFE garbage", 0, 0);
             }
             let skipped_after_req_poison = analyzer.poisoned_bytes_skipped();
 
             // The request side must actually be poisoned for this to be a
             // meaningful test: with >= 3 consecutive errors, later request bytes
             // would be skipped. Confirm by feeding more request garbage.
-            analyzer.on_data(&key, Direction::ClientToServer, b"\xFF\xFE more", 0);
+            analyzer.on_data(&key, Direction::ClientToServer, b"\xFF\xFE more", 0, 0);
             prop_assert!(
                 analyzer.poisoned_bytes_skipped() > skipped_after_req_poison,
                 "request direction was not poisoned after {} consecutive errors",
@@ -986,7 +1033,7 @@ mod vp_006_proptest_proofs {
             // and unpoisoned, so its bytes must NOT be added to the skipped
             // counter.
             let resp = b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n";
-            analyzer.on_data(&key, Direction::ServerToClient, resp, 0);
+            analyzer.on_data(&key, Direction::ServerToClient, resp, 0, 0);
             prop_assert_eq!(
                 analyzer.poisoned_bytes_skipped(),
                 skipped_after_more_req,

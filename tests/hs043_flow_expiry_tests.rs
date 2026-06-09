@@ -66,7 +66,15 @@ mod hs043 {
     }
 
     impl StreamHandler for NullHandler {
-        fn on_data(&mut self, _key: &FlowKey, _dir: Direction, _data: &[u8], _offset: u64) {}
+        fn on_data(
+            &mut self,
+            _key: &FlowKey,
+            _dir: Direction,
+            _data: &[u8],
+            _offset: u64,
+            _timestamp: u32,
+        ) {
+        }
 
         fn on_flow_close(&mut self, key: &FlowKey, reason: CloseReason) {
             self.close_events.push((key.clone(), reason));
