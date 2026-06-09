@@ -8,14 +8,14 @@ fn test_finding_creation() {
         confidence: Confidence::High,
         summary: "Port scan detected from 10.0.0.1".into(),
         evidence: vec!["50 SYN packets to sequential ports in 2s".into()],
-        mitre_technique: Some("T1046".into()),
+        mitre_techniques: vec!["T1046".into()],
         source_ip: Some("10.0.0.1".parse().unwrap()),
         timestamp: None,
         direction: None,
     };
     assert_eq!(finding.verdict, Verdict::Likely);
     assert_eq!(finding.confidence, Confidence::High);
-    assert!(finding.mitre_technique.is_some());
+    assert!(!finding.mitre_techniques.is_empty());
 }
 
 #[test]
@@ -26,7 +26,7 @@ fn test_finding_display() {
         confidence: Confidence::Medium,
         summary: "Periodic beaconing pattern".into(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,

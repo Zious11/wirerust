@@ -99,7 +99,7 @@ fn csv_flag_with_path_writes_csv_findings_table() {
     assert_eq!(
         lines.next(),
         Some(
-            "category,verdict,confidence,summary,evidence,mitre_technique,source_ip,direction,timestamp"
+            "category,verdict,confidence,summary,evidence,mitre_techniques,source_ip,direction,timestamp"
         ),
         "CSV must start with the fixed header row"
     );

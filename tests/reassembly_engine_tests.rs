@@ -880,7 +880,10 @@ fn test_overlap_anomaly_finding() {
     assert_eq!(overlap_finding.category, ThreatCategory::Anomaly);
     assert_eq!(overlap_finding.confidence, Confidence::Medium);
     assert_eq!(overlap_finding.verdict, Verdict::Likely);
-    assert_eq!(overlap_finding.mitre_technique.as_deref(), Some("T1036"));
+    assert_eq!(
+        overlap_finding.mitre_techniques.first().map(|s| s.as_str()),
+        Some("T1036")
+    );
 }
 
 #[test]
@@ -1017,7 +1020,7 @@ fn test_vp002_g3_end_to_end_conflicting_bytes_absent_from_stream() {
             f.category == ThreatCategory::Anomaly
                 && f.verdict == Verdict::Likely
                 && f.confidence == Confidence::High
-                && f.mitre_technique.as_deref() == Some("T1036")
+                && f.mitre_techniques.first().map(|s| s.as_str()) == Some("T1036")
         }),
         "G3: a conflicting-overlap finding (Anomaly/Likely/High, MITRE T1036) must still be \
          emitted alongside byte preservation — detection and forensic correctness together"
@@ -11785,7 +11788,7 @@ fn test_BC_2_04_018_conflicting_overlap_emits_t1036_finding() {
     assert_eq!(f.verdict, Verdict::Likely, "verdict must be Likely");
     assert_eq!(f.confidence, Confidence::High, "confidence must be High");
     assert_eq!(
-        f.mitre_technique.as_deref(),
+        f.mitre_techniques.first().map(|s| s.as_str()),
         Some("T1036"),
         "mitre_technique must be Some(\"T1036\")"
     );
@@ -12015,7 +12018,7 @@ fn test_BC_2_04_019_overlap_threshold_emits_medium_t1036_finding() {
         "confidence must be Medium"
     );
     assert_eq!(
-        f.mitre_technique.as_deref(),
+        f.mitre_techniques.first().map(|s| s.as_str()),
         Some("T1036"),
         "mitre_technique must be Some(\"T1036\")"
     );
@@ -12193,7 +12196,8 @@ fn test_BC_2_04_020_small_segment_run_emits_finding() {
         "confidence must be Medium"
     );
     assert_eq!(
-        f.mitre_technique, None,
+        f.mitre_techniques,
+        Vec::<String>::new(),
         "mitre_technique must be None for small-segment alert"
     );
     // BC-2.04.020 PC1 evidence string (src/reassembly/mod.rs:476)
@@ -12325,7 +12329,8 @@ fn test_BC_2_04_021_out_of_window_threshold_emits_finding() {
     );
     assert_eq!(f.confidence, Confidence::Low, "confidence must be Low");
     assert_eq!(
-        f.mitre_technique, None,
+        f.mitre_techniques,
+        Vec::<String>::new(),
         "mitre_technique must be None for OOW alert"
     );
     assert!(
@@ -13331,7 +13336,7 @@ fn test_BC_2_04_023_truncated_finding_emitted() {
         "BC-2.04.023 PC1: finding confidence must be Low"
     );
     assert!(
-        f.mitre_technique.is_none(),
+        f.mitre_techniques.is_empty(),
         "BC-2.04.023 PC1: mitre_technique must be None"
     );
     assert_eq!(
@@ -14383,7 +14388,7 @@ fn dummy_finding(i: usize) -> wirerust::findings::Finding {
         confidence: Confidence::Medium,
         summary: format!("dummy finding {i}"),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,
@@ -14926,7 +14931,7 @@ fn test_BC_2_04_025_finalize_emits_segment_limit_finding() {
         "AC-008: segment-limit finding confidence must be Medium"
     );
     assert!(
-        f.mitre_technique.is_none(),
+        f.mitre_techniques.is_empty(),
         "AC-008: segment-limit finding mitre_technique must be None"
     );
     assert!(
@@ -15247,7 +15252,7 @@ fn test_BC_2_04_024_http_tls_analyzer_findings_not_capped() {
             confidence: Confidence::Medium,
             summary: format!("http test finding {i}"),
             evidence: vec![],
-            mitre_technique: None,
+            mitre_techniques: vec![],
             source_ip: None,
             timestamp: None,
             direction: None,
@@ -15274,7 +15279,7 @@ fn test_BC_2_04_024_http_tls_analyzer_findings_not_capped() {
             confidence: Confidence::Medium,
             summary: format!("tls test finding {i}"),
             evidence: vec![],
-            mitre_technique: None,
+            mitre_techniques: vec![],
             source_ip: None,
             timestamp: None,
             direction: None,
@@ -17145,7 +17150,7 @@ fn test_json_finding_timestamp_serialization() {
         confidence: wirerust::findings::Confidence::High,
         summary: "Test finding with timestamp".to_string(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: Some(expected_dt),
         direction: None,
@@ -17158,7 +17163,7 @@ fn test_json_finding_timestamp_serialization() {
         confidence: wirerust::findings::Confidence::Medium,
         summary: "Segment-limit summary (no timestamp)".to_string(),
         evidence: vec![],
-        mitre_technique: None,
+        mitre_techniques: vec![],
         source_ip: None,
         timestamp: None,
         direction: None,

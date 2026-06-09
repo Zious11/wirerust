@@ -226,16 +226,18 @@ impl TerminalReporter {
     }
 
     /// Renders a single finding in the default flat view. MITRE line, if
-    /// present, shows just the technique ID.
+    /// non-empty, shows comma-space joined technique IDs.
+    /// BC-2.11.017: multi-ID renders as `MITRE: T0855, T0836`; empty vec → no line.
     fn render_finding_flat(&self, out: &mut String, f: &Finding) {
         self.render_finding_prefix(out, f);
-        if let Some(ref t) = f.mitre_technique {
-            out.push_str(&format!("    MITRE: {t}\n"));
+        if !f.mitre_techniques.is_empty() {
+            let ids = f.mitre_techniques.join(", ");
+            out.push_str(&format!("    MITRE: {ids}\n"));
         }
     }
 
     /// Renders a single finding in the `--mitre` grouped view. MITRE line,
-    /// if present, expands to `ID — Name` for known IDs and `ID (unknown)`
+    /// if non-empty, expands to `ID — Name` for the first ID and `ID (unknown)`
     /// for IDs absent from [`crate::mitre::technique_name`]. Unknown IDs
     /// still render so they surface in audit trails; the regression test
     /// `known_emitted_technique_ids_resolve_in_lookup` in
@@ -243,10 +245,18 @@ impl TerminalReporter {
     /// currently emit (see issue #67 for the trade-off rationale).
     fn render_finding_grouped(&self, out: &mut String, f: &Finding) {
         self.render_finding_prefix(out, f);
-        if let Some(ref id) = f.mitre_technique {
-            match technique_name(id) {
-                Some(name) => out.push_str(&format!("    MITRE: {id} \u{2014} {name}\n")),
-                None => out.push_str(&format!("    MITRE: {id} (unknown)\n")),
+        if !f.mitre_techniques.is_empty() {
+            // For the grouped view, show all IDs joined with comma-space.
+            // Expand the first known ID with its name; unknown IDs get "(unknown)".
+            let ids = f.mitre_techniques.join(", ");
+            // Use the first technique ID for expanded name lookup in grouped view.
+            match f
+                .mitre_techniques
+                .first()
+                .and_then(|id| technique_name(id.as_str()))
+            {
+                Some(name) => out.push_str(&format!("    MITRE: {ids} \u{2014} {name}\n")),
+                None => out.push_str(&format!("    MITRE: {ids} (unknown)\n")),
             }
         }
     }
@@ -257,12 +267,19 @@ impl TerminalReporter {
     /// last that holds findings with no technique or an unknown ID.
     /// Within each bucket, findings sort by verdict-desc, then
     /// confidence-desc, then original emission order (stable).
+    /// BC-2.11.013: tactic bucketing uses `mitre_techniques[0]` (first element).
     fn render_findings_grouped(&self, out: &mut String, findings: &[Finding]) {
         // Bucket by tactic. Attach original index for stable tertiary sort.
         let mut buckets: std::collections::HashMap<Option<MitreTactic>, Vec<(usize, &Finding)>> =
             std::collections::HashMap::new();
         for (i, f) in findings.iter().enumerate() {
-            let tactic = f.mitre_technique.as_deref().and_then(technique_tactic);
+            // BC-2.11.013: tactic grouping uses mitre_techniques[0] (first element).
+            // Empty vec → None → Uncategorized. Unknown ID → None → Uncategorized.
+            let tactic = f
+                .mitre_techniques
+                .first()
+                .map(|id| id.as_str())
+                .and_then(technique_tactic);
             buckets.entry(tactic).or_default().push((i, f));
         }
 

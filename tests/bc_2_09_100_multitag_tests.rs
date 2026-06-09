@@ -81,6 +81,7 @@ fn csv_headers(csv: &str) -> Vec<&str> {
 }
 
 /// Parse the first data row (second line) of CSV into columns.
+#[allow(dead_code)]
 fn csv_first_data_row(csv: &str) -> Vec<String> {
     let mut lines = csv.lines();
     lines.next(); // skip header
@@ -273,14 +274,35 @@ fn test_BC_2_10_005_technique_name_resolves_all_21_seeded_ids() {
     // BC-2.10.005 postcondition 3: 11 Enterprise + 10 ICS = 21 total.
     let all_21_seeded: &[&str] = &[
         // Enterprise (11)
-        "T1027", "T1036", "T1040", "T1046", "T1071", "T1071.001", "T1071.004",
-        "T1083", "T1499.002", "T1505.003", "T1573",
+        "T1027",
+        "T1036",
+        "T1040",
+        "T1046",
+        "T1071",
+        "T1071.001",
+        "T1071.004",
+        "T1083",
+        "T1499.002",
+        "T1505.003",
+        "T1573",
         // ICS — pre-F2 (4)
-        "T0846", "T0855", "T0856", "T0885",
+        "T0846",
+        "T0855",
+        "T0856",
+        "T0885",
         // ICS — NEW F2 (6): RED GATE — these return None today
-        "T0836", "T0814", "T0806", "T0835", "T0831", "T0888",
+        "T0836",
+        "T0814",
+        "T0806",
+        "T0835",
+        "T0831",
+        "T0888",
     ];
-    assert_eq!(all_21_seeded.len(), 21, "must be exactly 21 seeded IDs post-F2");
+    assert_eq!(
+        all_21_seeded.len(),
+        21,
+        "must be exactly 21 seeded IDs post-F2"
+    );
 
     for id in all_21_seeded {
         assert!(
@@ -322,9 +344,9 @@ fn test_BC_2_10_005_seeded_technique_id_count_is_21() {
     let src = std::fs::read_to_string("src/mitre.rs")
         .expect("src/mitre.rs must be readable from the worktree root");
     // Locate the const declaration line.
-    let found = src.lines().any(|line| {
-        line.contains("SEEDED_TECHNIQUE_ID_COUNT") && line.contains("21")
-    });
+    let found = src
+        .lines()
+        .any(|line| line.contains("SEEDED_TECHNIQUE_ID_COUNT") && line.contains("21"));
     assert!(
         found,
         "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT must equal 21 in src/mitre.rs; \
@@ -435,9 +457,20 @@ fn test_BC_2_10_008_all_emitted_ids_resolve_in_lookup() {
     //   src/analyzer/modbus.rs (F2)  — T0855, T0836, T0814, T0806, T0835, T0831, T0888
     let emitted_ids: &[&str] = &[
         // Enterprise (6) — unchanged
-        "T1027", "T1036", "T1046", "T1083", "T1499.002", "T1505.003",
+        "T1027",
+        "T1036",
+        "T1046",
+        "T1083",
+        "T1499.002",
+        "T1505.003",
         // ICS (7) — 6 new F2 + T0855 which was already emitted pre-F2 via single-tag
-        "T0855", "T0836", "T0814", "T0806", "T0835", "T0831", "T0888",
+        "T0855",
+        "T0836",
+        "T0814",
+        "T0806",
+        "T0835",
+        "T0831",
+        "T0888",
     ];
     assert_eq!(
         emitted_ids.len(),
@@ -495,8 +528,7 @@ fn test_BC_2_10_008_t0846_seeded_but_not_in_emitted_set() {
 /// `mitre_techniques: vec!` (not the old `mitre_technique: Some`).
 #[test]
 fn test_BC_2_10_008_vp007_grep_comment_updated_to_new_field_name() {
-    let src = std::fs::read_to_string("src/mitre.rs")
-        .expect("src/mitre.rs must be readable");
+    let src = std::fs::read_to_string("src/mitre.rs").expect("src/mitre.rs must be readable");
     // The old grep pattern must be gone (as a reference in a comment that
     // recommends running it).
     assert!(
@@ -554,7 +586,13 @@ fn test_BC_2_11_001_json_report_envelope_has_mitre_domain_and_version() {
     keys.sort_unstable();
     assert_eq!(
         keys,
-        vec!["analyzers", "findings", "mitre_attack_version", "mitre_domain", "summary"],
+        vec![
+            "analyzers",
+            "findings",
+            "mitre_attack_version",
+            "mitre_domain",
+            "summary"
+        ],
         "BC-2.11.001 pc2: top-level keys must be exactly \
          {{summary, findings, analyzers, mitre_domain, mitre_attack_version}}"
     );
@@ -883,16 +921,14 @@ fn test_BC_2_11_020_csv_column_count_stays_9_with_multitag() {
     // Header must have 9 comma-separated fields.
     let header_count = lines[0].split(',').count();
     assert_eq!(
-        header_count,
-        9,
+        header_count, 9,
         "BC-2.11.020: header must have exactly 9 columns; got {header_count}"
     );
     // Data row: the csv crate quotes the column-6 value if needed so splits
     // must yield 9 fields. T0855;T0836 has no commas → simple split is safe.
     let data_count = lines[1].split(',').count();
     assert_eq!(
-        data_count,
-        9,
+        data_count, 9,
         "BC-2.11.020: data row must have exactly 9 columns with multi-technique \
          finding; got {data_count}"
     );

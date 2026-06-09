@@ -509,7 +509,8 @@ fn test_weak_cipher_finding_client() {
 
     // BC-2.07.009 postcondition 1: mitre_technique = None
     assert_eq!(
-        f.mitre_technique, None,
+        f.mitre_techniques,
+        Vec::<String>::new(),
         "BC-2.07.009 postcondition 1: mitre_technique must be None for weak-cipher finding"
     );
 
@@ -648,7 +649,8 @@ fn test_weak_cipher_finding_server() {
 
     // BC-2.07.010 postcondition 1: mitre_technique = None
     assert_eq!(
-        f.mitre_technique, None,
+        f.mitre_techniques,
+        Vec::<String>::new(),
         "BC-2.07.010 postcondition 1: mitre_technique must be None"
     );
 
@@ -1095,7 +1097,7 @@ fn test_non_utf8_sni_emits_finding_and_counts_under_hex_key() {
     );
     // BC-2.07.019 pc3: mitre_technique = Some("T1027").
     assert_eq!(
-        f.mitre_technique.as_deref(),
+        f.mitre_techniques.first().map(|s| s.as_str()),
         Some("T1027"),
         "AC-004 (BC-2.07.019 pc3): mitre_technique must be Some(\"T1027\")"
     );
@@ -1677,7 +1679,7 @@ fn test_valid_utf8_non_ascii_sni_emits_finding() {
 
     // BC-2.07.017 pc2: mitre_technique = Some("T1027").
     assert_eq!(
-        f.mitre_technique.as_deref(),
+        f.mitre_techniques.first().map(|s| s.as_str()),
         Some("T1027"),
         "AC-001 (BC-2.07.017 pc2): mitre_technique must be Some(\"T1027\")"
     );
@@ -1819,7 +1821,7 @@ fn test_mixed_control_and_non_ascii_sni_summary_mentions_control_bytes() {
         "BC-TLS-037: confidence must be Low"
     );
     assert_eq!(
-        f.mitre_technique.as_deref(),
+        f.mitre_techniques.first().map(|s| s.as_str()),
         Some("T1027"),
         "BC-TLS-037: mitre_technique must be Some(\"T1027\")"
     );
@@ -1920,7 +1922,7 @@ fn test_cyrillic_sni_emits_non_ascii_finding() {
     );
     // BC-2.07.017 pc2: mitre_technique = Some("T1027").
     assert_eq!(
-        f1.mitre_technique.as_deref(),
+        f1.mitre_techniques.first().map(|s| s.as_str()),
         Some("T1027"),
         "AC-001 (BC-2.07.017 pc2): mitre_technique must be Some(\"T1027\")"
     );
@@ -2055,7 +2057,7 @@ fn test_emoji_sni_emits_non_ascii_finding() {
         "AC-003 (BC-2.07.017 inv3): confidence must be Low"
     );
     assert_eq!(
-        f.mitre_technique.as_deref(),
+        f.mitre_techniques.first().map(|s| s.as_str()),
         Some("T1027"),
         "AC-003 (BC-2.07.017 inv3): mitre_technique must be Some(\"T1027\")"
     );
@@ -2277,7 +2279,7 @@ fn test_non_utf8_sni_finding_fires_when_sni_counts_at_capacity() {
         "AC-012 (BC-2.07.028 pc2): non-UTF-8 finding must have confidence=Low"
     );
     assert_eq!(
-        f.mitre_technique.as_deref(),
+        f.mitre_techniques.first().map(|s| s.as_str()),
         Some("T1027"),
         "AC-012 (BC-2.07.028 pc2): non-UTF-8 finding must have mitre_technique=T1027"
     );
@@ -3416,7 +3418,7 @@ fn ascii_control_sni_finding_sets_mitre_t1027() {
         .find(|f| f.summary.contains("ASCII control characters"))
         .expect("expected an ASCII-control SNI finding");
     assert_eq!(
-        control_finding.mitre_technique.as_deref(),
+        control_finding.mitre_techniques.first().map(|s| s.as_str()),
         Some("T1027"),
         "malformed-SNI finding must be mapped to T1027 (Obfuscated Files or Information)",
     );
@@ -3434,7 +3436,7 @@ fn non_ascii_utf8_sni_finding_sets_mitre_t1027() {
         .find(|f| f.summary.contains("non-ASCII characters"))
         .expect("expected a non-ASCII SNI finding");
     assert_eq!(
-        finding.mitre_technique.as_deref(),
+        finding.mitre_techniques.first().map(|s| s.as_str()),
         Some("T1027"),
         "malformed-SNI finding must be mapped to T1027 (Obfuscated Files or Information)",
     );
@@ -3473,7 +3475,7 @@ fn non_utf8_sni_finding_sets_mitre_t1027() {
 
     // BC-2.07.019 pc3: mitre_technique = Some("T1027").
     assert_eq!(
-        f.mitre_technique.as_deref(),
+        f.mitre_techniques.first().map(|s| s.as_str()),
         Some("T1027"),
         "AC-004 companion (BC-2.07.019 pc3): mitre_technique must be Some(\"T1027\") for \
          arm 4 (lone continuation byte b\"\\x80\")"
@@ -3524,7 +3526,7 @@ fn non_utf8_sni_finding_sets_mitre_t1027() {
         .find(|f| f.summary.contains("non-UTF-8 bytes"))
         .expect("AC-004 companion regression: expected a non-UTF-8 SNI finding");
     assert_eq!(
-        finding2.mitre_technique.as_deref(),
+        finding2.mitre_techniques.first().map(|s| s.as_str()),
         Some("T1027"),
         "AC-004 companion regression (BC-2.07.019 pc3): malformed-SNI finding must be T1027"
     );
@@ -5876,7 +5878,7 @@ fn test_BC_2_07_014_esc_emits_anomaly_inconclusive_low_t1027_c2s() {
 
     // BC-2.07.014 pc2: mitre_technique = Some("T1027").
     assert_eq!(
-        f.mitre_technique.as_deref(),
+        f.mitre_techniques.first().map(|s| s.as_str()),
         Some("T1027"),
         "AC-003 (BC-2.07.014 pc2): mitre_technique must be Some(\"T1027\")"
     );
@@ -6493,7 +6495,7 @@ fn test_BC_2_07_016_ec003_nul_byte_is_c0_start_trips_arm2() {
         .find(|f| f.summary.contains("ASCII control characters"))
         .unwrap();
     assert_eq!(
-        f.mitre_technique.as_deref(),
+        f.mitre_techniques.first().map(|s| s.as_str()),
         Some("T1027"),
         "BC-2.07.016 EC-003: NUL-byte finding must be T1027"
     );
@@ -6785,7 +6787,8 @@ fn test_server_ssl30_deprecated_finding() {
 
     // BC-2.07.012 postcondition 1: mitre_technique = None
     assert_eq!(
-        f.mitre_technique, None,
+        f.mitre_techniques,
+        Vec::<String>::new(),
         "BC-2.07.012 postcondition 1: mitre_technique must be None"
     );
 
@@ -6932,7 +6935,8 @@ fn test_client_and_server_ssl30_distinct_directions() {
         "F-S054-P5-002 (BC-2.07.011 pc1): client-side confidence must be High"
     );
     assert_eq!(
-        client_finding.mitre_technique, None,
+        client_finding.mitre_techniques,
+        Vec::<String>::new(),
         "F-S054-P5-002 (BC-2.07.011 pc1): client-side mitre_technique must be None"
     );
 }
@@ -7531,7 +7535,7 @@ fn test_c0_plus_non_ascii_fires_arm3_not_arm2() {
         "AC-009 (BC-2.07.037 pc4): confidence must be Low"
     );
     assert_eq!(
-        f.mitre_technique.as_deref(),
+        f.mitre_techniques.first().map(|s| s.as_str()),
         Some("T1027"),
         "AC-009 (BC-2.07.037 pc4): mitre_technique must be Some(\"T1027\")"
     );

@@ -66,7 +66,7 @@ impl Reporter for CsvReporter {
                 "confidence",
                 "summary",
                 "evidence",
-                "mitre_technique",
+                "mitre_techniques",
                 "source_ip",
                 "direction",
                 "timestamp",
@@ -79,7 +79,12 @@ impl Reporter for CsvReporter {
             // cell automatically if it contains the separator, commas,
             // quotes, or newlines (RFC 4180).
             let evidence = f.evidence.join("; ");
-            let mitre = f.mitre_technique.as_deref().unwrap_or("");
+            // ADR-006 Decision 13 §13.3: semicolon-join for multi-technique vecs.
+            // Empty vec → "" (empty string, NOT "null"/"[]"/"N/A").
+            // EC-015 consumer guard: `"".split(';')` in downstream tooling produces
+            // `[""]` (one empty element), not `[]`. Consumers MUST guard:
+            //   `if cell.is_empty() { return vec![] }` before splitting on ';'.
+            let mitre = f.mitre_techniques.join(";");
             let source_ip = f.source_ip.map(|ip| ip.to_string()).unwrap_or_default();
             let direction = f.direction.map(|d| format!("{d:?}")).unwrap_or_default();
             let timestamp = f.timestamp.map(|t| t.to_rfc3339()).unwrap_or_default();
@@ -91,7 +96,7 @@ impl Reporter for CsvReporter {
                     neutralize_csv_injection(&f.confidence.to_string()),
                     neutralize_csv_injection(&f.summary),
                     neutralize_csv_injection(&evidence),
-                    neutralize_csv_injection(mitre),
+                    neutralize_csv_injection(&mitre),
                     neutralize_csv_injection(&source_ip),
                     neutralize_csv_injection(&direction),
                     neutralize_csv_injection(&timestamp),
