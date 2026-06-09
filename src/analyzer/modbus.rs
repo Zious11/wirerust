@@ -53,16 +53,9 @@ pub enum FunctionCodeClass {
 /// `is_non_modbus`: when `true`, the flow has been identified as carrying
 /// non-Modbus binary data (Protocol ID != 0x0000). All subsequent `on_data`
 /// calls bail immediately without parsing (BC-2.14.003 invariant 2 / Decision 6).
+#[derive(Default)]
 pub struct ModbusFlowState {
     pub is_non_modbus: bool,
-}
-
-impl Default for ModbusFlowState {
-    fn default() -> Self {
-        ModbusFlowState {
-            is_non_modbus: false,
-        }
-    }
 }
 
 /// Parse the 7-byte MBAP header from a reassembled TCP byte slice.
@@ -73,8 +66,19 @@ impl Default for ModbusFlowState {
 ///
 /// BC-2.14.001 (accept path) + BC-2.14.002 (truncation safety / reject path).
 /// VP-022 sub-property A Kani target.
-pub fn parse_mbap_header(_data: &[u8]) -> Option<MbapHeader> {
-    todo!("BC-2.14.001/002: implement length guard + BE field decode")
+pub fn parse_mbap_header(data: &[u8]) -> Option<MbapHeader> {
+    // BC-2.14.002: need at least 7-byte MBAP header + 1-byte function code = 8 bytes.
+    // The len >= 8 guard makes data[0..7] safe (no out-of-bounds access below).
+    if data.len() < 8 {
+        return None;
+    }
+    Some(MbapHeader {
+        transaction_id: u16::from_be_bytes([data[0], data[1]]),
+        protocol_id: u16::from_be_bytes([data[2], data[3]]),
+        length: u16::from_be_bytes([data[4], data[5]]),
+        unit_id: data[6],
+        function_code: data[7],
+    })
 }
 
 /// 3-point Modbus ADU validity gate.
@@ -86,8 +90,8 @@ pub fn parse_mbap_header(_data: &[u8]) -> Option<MbapHeader> {
 ///
 /// BC-2.14.003 + BC-2.14.004. Called by `on_data` (STORY-103) after a successful parse.
 /// VP-022 sub-property A gate biconditional target.
-pub fn is_valid_modbus_adu(_h: &MbapHeader) -> bool {
-    todo!("BC-2.14.003/004: implement 3-point gate")
+pub fn is_valid_modbus_adu(h: &MbapHeader) -> bool {
+    h.protocol_id == 0x0000 && h.length >= 2 && h.length <= 254
 }
 
 /// Classify a Modbus function code into one of five risk/type classes.
@@ -103,8 +107,28 @@ pub fn is_valid_modbus_adu(_h: &MbapHeader) -> bool {
 /// 5. `_`           → `Unknown`    (wildcard, totality guarantee)
 ///
 /// VP-022 sub-properties B (totality + set membership) and C (exception biconditional).
-pub fn classify_fc(_fc: u8) -> FunctionCodeClass {
-    todo!("BC-2.14.005/006/007/008: implement total FC classification match")
+pub fn classify_fc(fc: u8) -> FunctionCodeClass {
+    // BC-2.14.006: exception pre-guard — must fire BEFORE any other match arm.
+    // Any fc with the high bit set is an exception response; recover original via fc & 0x7F.
+    if fc >= 0x80 {
+        return FunctionCodeClass::Exception;
+    }
+
+    match fc {
+        // BC-2.14.007: Write-class FCs — state-changing operations (exactly 7 members).
+        0x05 | 0x06 | 0x0F | 0x10 | 0x15 | 0x16 | 0x17 => FunctionCodeClass::Write,
+
+        // BC-2.14.008: Diagnostic-class FCs — management/tunneling (exactly 2 members).
+        0x08 | 0x2B => FunctionCodeClass::Diagnostic,
+
+        // BC-2.14.005 post.2: Read-class FCs (exactly 10 members).
+        0x01 | 0x02 | 0x03 | 0x04 | 0x07 | 0x0B | 0x0C | 0x11 | 0x14 | 0x18 => {
+            FunctionCodeClass::Read
+        }
+
+        // BC-2.14.005 invariant 1: wildcard arm — totality guarantee, no panic.
+        _ => FunctionCodeClass::Unknown,
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -166,7 +190,10 @@ mod kani_proofs {
         let fc: u8 = kani::any();
         let class = classify_fc(fc);
 
-        if matches!(fc, 0x01 | 0x02 | 0x03 | 0x04 | 0x07 | 0x0B | 0x0C | 0x11 | 0x14 | 0x18) {
+        if matches!(
+            fc,
+            0x01 | 0x02 | 0x03 | 0x04 | 0x07 | 0x0B | 0x0C | 0x11 | 0x14 | 0x18
+        ) {
             assert!(class == FunctionCodeClass::Read);
         }
         if matches!(fc, 0x05 | 0x06 | 0x0F | 0x10 | 0x15 | 0x16 | 0x17) {

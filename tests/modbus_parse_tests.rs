@@ -14,7 +14,7 @@
 #![allow(non_snake_case)]
 
 use wirerust::analyzer::modbus::{
-    classify_fc, is_valid_modbus_adu, FunctionCodeClass, MbapHeader, ModbusFlowState,
+    FunctionCodeClass, MbapHeader, ModbusFlowState, classify_fc, is_valid_modbus_adu,
     parse_mbap_header,
 };
 
@@ -30,7 +30,9 @@ use wirerust::analyzer::modbus::{
 #[test]
 fn test_BC_2_14_001_returns_some_for_minimum_8_bytes() {
     // Canonical BC-2.14.001 test vector: Read Holding Registers request.
-    let data: &[u8] = &[0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03, 0x00, 0x00, 0x00, 0x0A];
+    let data: &[u8] = &[
+        0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03, 0x00, 0x00, 0x00, 0x0A,
+    ];
     let result = parse_mbap_header(data);
     assert!(result.is_some(), "len=12 must return Some");
     let h = result.unwrap();
@@ -47,7 +49,9 @@ fn test_BC_2_14_001_returns_some_for_minimum_8_bytes() {
 /// Traces to: BC-2.14.001 canonical test vectors (second row).
 #[test]
 fn test_BC_2_14_001_canonical_vector_write_single_register() {
-    let data: &[u8] = &[0x00, 0x2A, 0x00, 0x00, 0x00, 0x06, 0xFF, 0x06, 0x00, 0x14, 0x01, 0xF4];
+    let data: &[u8] = &[
+        0x00, 0x2A, 0x00, 0x00, 0x00, 0x06, 0xFF, 0x06, 0x00, 0x14, 0x01, 0xF4,
+    ];
     let result = parse_mbap_header(data);
     assert!(result.is_some(), "write single register vector must parse");
     let h = result.unwrap();
@@ -187,7 +191,10 @@ fn test_BC_2_14_002_returns_none_for_short_slices_boundary_sweep() {
         );
     }
     // Length 8 and 12 must return Some.
-    assert!(parse_mbap_header(&data[..8]).is_some(), "len=8 must be Some");
+    assert!(
+        parse_mbap_header(&data[..8]).is_some(),
+        "len=8 must be Some"
+    );
     assert!(
         parse_mbap_header(&data[..12]).is_some(),
         "len=12 must be Some"
@@ -214,7 +221,10 @@ fn test_BC_2_14_001_invariant_parse_does_not_gate_on_protocol_or_length() {
         "parse_mbap_header must return Some even with invalid proto/length — no internal gate"
     );
     let h = result.unwrap();
-    assert_eq!(h.protocol_id, 0x0001, "raw protocol_id decoded without rejection");
+    assert_eq!(
+        h.protocol_id, 0x0001,
+        "raw protocol_id decoded without rejection"
+    );
     assert_eq!(h.length, 0x0001, "raw length decoded without rejection");
     // Now is_valid_modbus_adu must reject it.
     assert!(
@@ -274,7 +284,10 @@ fn test_BC_2_14_003_rejects_max_protocol_id() {
         unit_id: 0x01,
         function_code: 0x03,
     };
-    assert!(!is_valid_modbus_adu(&h), "protocol_id=0xFFFF must be rejected");
+    assert!(
+        !is_valid_modbus_adu(&h),
+        "protocol_id=0xFFFF must be rejected"
+    );
 }
 
 /// test_BC_2_14_003_dos_safe_crafted_huge_length_with_bad_protocol
@@ -463,16 +476,35 @@ fn test_BC_2_14_006_exception_when_high_bit_set() {
 ///
 /// `original_fc = fc & 0x7F` losslessly recovers the request FC.
 /// Traces to: BC-2.14.006 postcondition 2; invariant 2; STORY-102 AC-007.
+// 0xFF & 0x7F == 0x7F: the mask has "no effect" on 0xFF in one direction but is the
+// correct operation to document — the assert verifies the general pattern holds for 0xFF.
+#[allow(clippy::identity_op)]
 #[test]
 fn test_BC_2_14_006_original_fc_recovered_via_mask() {
     // 0x83 is exception for 0x03 (Read Holding Registers)
-    assert_eq!(0x83u8 & 0x7F, 0x03, "original FC recovery: 0x83 & 0x7F == 0x03");
+    assert_eq!(
+        0x83u8 & 0x7F,
+        0x03,
+        "original FC recovery: 0x83 & 0x7F == 0x03"
+    );
     // 0x85 is exception for 0x05 (Write Single Coil)
-    assert_eq!(0x85u8 & 0x7F, 0x05, "original FC recovery: 0x85 & 0x7F == 0x05");
+    assert_eq!(
+        0x85u8 & 0x7F,
+        0x05,
+        "original FC recovery: 0x85 & 0x7F == 0x05"
+    );
     // 0x90 is exception for 0x10 (Write Multiple Registers)
-    assert_eq!(0x90u8 & 0x7F, 0x10, "original FC recovery: 0x90 & 0x7F == 0x10");
+    assert_eq!(
+        0x90u8 & 0x7F,
+        0x10,
+        "original FC recovery: 0x90 & 0x7F == 0x10"
+    );
     // 0xFF — original FC = 0x7F (Unknown class)
-    assert_eq!(0xFFu8 & 0x7F, 0x7F, "original FC recovery: 0xFF & 0x7F == 0x7F");
+    assert_eq!(
+        0xFFu8 & 0x7F,
+        0x7F,
+        "original FC recovery: 0xFF & 0x7F == 0x7F"
+    );
 }
 
 /// test_BC_2_14_006_exception_biconditional_all_256_values
@@ -486,8 +518,7 @@ fn test_BC_2_14_006_exception_biconditional_all_256_values() {
         let is_exception = classify_fc(fc) == FunctionCodeClass::Exception;
         let high_bit_set = fc >= 0x80;
         assert_eq!(
-            is_exception,
-            high_bit_set,
+            is_exception, high_bit_set,
             "Exception biconditional failed for fc={fc:#04x}: \
              classify_fc returned Exception={is_exception} but high_bit_set={high_bit_set}"
         );
@@ -559,8 +590,16 @@ fn test_BC_2_14_007_write_0x17_classified_as_write() {
 /// Traces to: BC-2.14.007 canonical test vectors.
 #[test]
 fn test_BC_2_14_007_write_0x15_and_0x16_classified_as_write() {
-    assert_eq!(classify_fc(0x15), FunctionCodeClass::Write, "0x15 Write File Record must be Write");
-    assert_eq!(classify_fc(0x16), FunctionCodeClass::Write, "0x16 Mask Write Register must be Write");
+    assert_eq!(
+        classify_fc(0x15),
+        FunctionCodeClass::Write,
+        "0x15 Write File Record must be Write"
+    );
+    assert_eq!(
+        classify_fc(0x16),
+        FunctionCodeClass::Write,
+        "0x16 Mask Write Register must be Write"
+    );
 }
 
 /// test_BC_2_14_007_no_write_exception_fc_is_write
@@ -701,7 +740,11 @@ fn test_BC_2_14_005_edge_case_fc_0xff_is_exception() {
 /// Traces to: STORY-102 EC-009.
 #[test]
 fn test_BC_2_14_005_edge_case_fc_0x01_is_read() {
-    assert_eq!(classify_fc(0x01), FunctionCodeClass::Read, "0x01 must be Read");
+    assert_eq!(
+        classify_fc(0x01),
+        FunctionCodeClass::Read,
+        "0x01 must be Read"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -731,13 +774,20 @@ fn test_BC_2_14_003_is_non_modbus_flag_defaults_to_false() {
 /// (caller bails at entry when is_non_modbus is true).
 /// This exercises the contract without a full ModbusAnalyzer (that comes in STORY-103).
 /// Traces to: BC-2.14.003 postconditions 2–4; STORY-102 AC-013.
+// `state.is_non_modbus = true` is intentional field assignment post-default: the test
+// deliberately simulates the caller's desync-set path rather than using a struct literal,
+// because this is exactly how STORY-103 on_data will set the flag.
+#[allow(clippy::field_reassign_with_default)]
 #[test]
 fn test_BC_2_14_003_is_non_modbus_bail_simulated() {
     // Step 1: invalid PDU (protocol_id = 0x0001).
     let invalid_data: &[u8] = &[0x00, 0x01, 0x00, 0x01, 0x00, 0x06, 0x01, 0x03];
     let h = parse_mbap_header(invalid_data).expect("8-byte slice must parse");
     assert_eq!(h.protocol_id, 0x0001);
-    assert!(!is_valid_modbus_adu(&h), "protocol_id=1 must fail validity gate");
+    assert!(
+        !is_valid_modbus_adu(&h),
+        "protocol_id=1 must fail validity gate"
+    );
 
     // Step 2: caller sets is_non_modbus = true.
     let mut state = ModbusFlowState::default();
@@ -751,7 +801,9 @@ fn test_BC_2_14_003_is_non_modbus_bail_simulated() {
     );
 
     // Confirm a valid PDU that WOULD parse and pass the gate
-    let valid_data: &[u8] = &[0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03, 0x00, 0x00, 0x00, 0x0A];
+    let valid_data: &[u8] = &[
+        0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03, 0x00, 0x00, 0x00, 0x0A,
+    ];
     let valid_h = parse_mbap_header(valid_data).expect("valid ADU must parse");
     assert!(
         is_valid_modbus_adu(&valid_h),
