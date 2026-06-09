@@ -7,6 +7,40 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-09
+
+### Added
+
+- **Finding timestamp provenance** — every `Finding` now carries a
+  `capture_ts` field populated with the pcap capture-relative timestamp of
+  the packet that triggered the finding. The timestamp is threaded from the
+  pcap reader through `StreamHandler::on_data` all the way to each Finding
+  emission site in the TLS and HTTP analyzers. It is surfaced as an RFC 3339
+  string in JSON output and as a new `timestamp` column in CSV output
+  (#100; PRs #197, #198, #199; BC-2.04.055, BC-2.09.007, VP-021).
+  Segment-limit summary findings intentionally carry no timestamp (correct
+  by design).
+
+### Fixed
+
+- SNI control-byte summary now correctly surfaces control bytes in the
+  human-readable finding for mixed control + non-ASCII values (#104, PR #194).
+- Weak-cipher evidence vector is capped at 64 entries with an elision marker
+  to prevent unbounded growth on adversarial captures (#102, PR #195).
+
+### CI / Build / Supply-chain
+
+- Migrated release workflow actions from Node 20 to Node 24 with fresh
+  SHA-pinned refs (`upload-artifact` v7.0.1, `download-artifact` v8.0.1,
+  `softprops/action-gh-release` v3.0.0); added Dependabot tracking for
+  workflow actions (PR #192).
+- SHA-pinned all remaining CI actions (`actions/checkout`, `rust-cache`,
+  `cargo-deny`, `amannn/action-semantic-pull-request`) and added the
+  **action-pin-gate** enforcement job that fails CI if any action ref is
+  not a 40-char hex SHA (PR #196).
+- Test and spec hardening for timestamp provenance: exact-value assertions
+  replacing approximate checks, stale doc-comment corrections (PRs #200, #201).
+
 ## [0.1.0] - 2026-06-08
 
 ### Added
@@ -116,5 +150,6 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Zious11/wirerust/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Zious11/wirerust/releases/tag/v0.1.0
