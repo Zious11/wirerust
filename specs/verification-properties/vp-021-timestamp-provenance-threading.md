@@ -16,12 +16,12 @@ proof_method: integration + proptest
 feasibility: feasible
 verification_lock: true
 proof_completed_date: "2026-06-09"
-proof_file_hash: null
+proof_file_hash: "207d3f685f711c54c093b218bb38ae43b30c56b44a74d2b190828bb44c7cc53f"
 verified_at_commit: "256a490"
 lifecycle_status: active
 introduced: v0.2.0-feature-100
 modified:
-  - "v2.0: Phase-F6 verification locked 2026-06-09 @ develop 256a490. status→verified, verification_lock→true. Proof evidence: tests/timestamp_threading_tests.rs — VP-021 end-to-end integration test (hot-path + close-flush + segment-limit-None), all-u32 proptest (prop_finding_timestamp_matches_on_data_timestamp), boundary proptest (prop_cross_flow_timestamp_isolation). F6 mutation result: 100% effective kill on the timestamp delta. 1147 tests green. Kani appropriately excluded (inline chrono conversion; totality by closed-form u32-range reasoning + all-u32 proptest + boundary tests)."
+  - "v2.0: Phase-F6 verification locked 2026-06-09 @ develop 256a490. status→verified, verification_lock→true. Proof evidence: tests/timestamp_threading_tests.rs — VP-021 end-to-end integration test (hot-path + close-flush + segment-limit-None), all-u32 proptest (prop_finding_timestamp_matches_on_data_timestamp), boundary proptest (prop_cross_flow_timestamp_isolation). F6 mutation result: 100% effective kill on the timestamp delta. 1147 tests green. Kani appropriately excluded (inline chrono conversion; totality by closed-form u32-range reasoning + all-u32 proptest + boundary tests). proof_file_hash set (SHA-256 of tests/timestamp_threading_tests.rs @256a490)."
 deprecated: null
 deprecated_by: null
 replacement: null

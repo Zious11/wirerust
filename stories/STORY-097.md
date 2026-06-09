@@ -3,14 +3,14 @@ document_type: story
 story_id: STORY-097
 epic_id: E-12
 version: "1.0"
-status: draft
+status: completed
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
 phase: 3
 inputs:
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.055.md
   - .factory/feature-delta/issue-100-pcap-timestamps/delta-analysis.md
-input-hash: b8795f9
+input-hash: cb2c82d
 traces_to: .factory/specs/prd.md
 points: 5
 depends_on: []

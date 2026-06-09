@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-architecture
 traces_to: ARCH-INDEX.md
-version: "1.2"
+version: "1.3"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,9 @@ modified:
   - date: 2026-06-08
     actor: state-manager
     reason: "Feature Mode F2 (issue #100): VP-021 added (timestamp-provenance-threading; draft; integration+proptest). Total 20→21."
+  - date: 2026-06-09
+    actor: spec-steward
+    reason: "F6 lock propagation (FINDING-001): VP-021 moved from Should Prove table to Test Sufficient table (verified @256a490); Test Sufficient count five→six."
 ---
 
 # Verification Architecture
@@ -46,7 +49,6 @@ modified:
 | VP-013 | JA3 GREASE filter: all values matching the GREASE pattern (0x?A?A) are removed before fingerprint computation | (spec compliance) | analyzer/tls.rs | proptest |
 | VP-014 | HttpAnalyzer cross-flow isolation: parse errors and poisoning in flow A do not affect flow B | (isolation) | analyzer/http.rs | proptest |
 | VP-015 | TCP sequence wraparound: segment at seq=isn+1=0xFFFF_FFFF (ISN=0xFFFF_FFFE, offset 1) crossing 32-bit boundary reassembles correctly | (arithmetic) | reassembly/segment.rs | Kani |
-| VP-021 | Timestamp provenance threading: Finding.timestamp equals Some(ts) derived from the on_data timestamp arg for all flow-data-path emission sites; segment-limit summary retains None; cross-flow isolation holds | (correctness) | reassembly/mod.rs | integration+proptest |
 
 ### Test Sufficient (UI logic, non-critical defaults)
 
@@ -57,6 +59,7 @@ modified:
 | VP-018 | CLI flag parsing: --reassemble/--no-reassemble mutual exclusion (BC-2.12.007, BC-2.12.009) | integration test |
 | VP-019 | DNS statistics-only invariant: DnsAnalyzer.analyze() always returns empty Vec | unit test |
 | VP-020 | CsvReporter CSV-injection neutralization: cell values starting with =,+,-,@,TAB,CR are prefixed with a single-quote (') | unit test |
+| VP-021 | Timestamp provenance threading: Finding.timestamp equals Some(ts) derived from the on_data timestamp arg for all flow-data-path emission sites; segment-limit summary retains None; cross-flow isolation holds | integration test + proptest |
 
 
 ## P0 Verification Properties (required before Phase 5 gate)

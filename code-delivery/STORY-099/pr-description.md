@@ -5,7 +5,7 @@ End-to-end and property-based test verification that `Finding.timestamp` is corr
 This PR adds `tests/timestamp_threading_tests.rs` with 8 tests (6 unit/integration + 2 proptest) that prove VP-021 (Timestamp Provenance Threading) end-to-end:
 
 - **E2E hot-path:** SYN+HTTP GET packets at `ts_sec=1_000_000` drive through `TcpReassembler` → `StreamDispatcher::on_data` → `HttpAnalyzer`; asserts at least one emitted `Finding` carries `timestamp == Some(1970-01-12T13:46:40Z)`.
-- **E2E close-flush:** FIN packet at `ts_sec=2_000_000` triggers flow close; asserts the flush finding carries the FIN-time timestamp.
+- **E2E close-flush:** FIN packet at `TS_FIN=1_500_100` (data packets at `TS_DATA=1_500_000`) triggers flow close; confirms `flow.last_seen` (set to `TS_FIN`) is passed as the close-flush timestamp; hot-path findings carry `timestamp == Some(DateTime::from_timestamp(1_500_000, 0).unwrap())`.
 - **Segment-limit None:** Drives past `MAX_SEGMENTS_PER_DIRECTION`; asserts `timestamp == None` AND that the JSON serialization omits the `"timestamp"` key entirely (`skip_serializing_if`).
 - **JSON serialization:** Direct `Finding` → `serde_json::to_string` assertion; confirms ISO-8601 UTC format.
 - **u32 boundary vectors:** `ts_sec=0` → `1970-01-01T00:00:00Z`; `ts_sec=u32::MAX` → `Some(...)` (no panic, no None).
@@ -14,7 +14,7 @@ This PR adds `tests/timestamp_threading_tests.rs` with 8 tests (6 unit/integrati
 
 All 7 ACs from STORY-099 are covered. This is the final story in the issue #100 feature chain (STORY-097 trait threading → STORY-098 emission-site attachment → STORY-099 end-to-end verification).
 
-**Known spec note:** BC-2.09.007 test-vector for `ts_sec=1_000_000` lists an incorrect date (`2001-09-08T21:46:40Z`) in the spec. The correct value is `1970-01-12T13:46:40Z`. This discrepancy is tracked for cleanup in the feature-convergence spec pass (carried forward from STORY-098).
+**Spec note:** BC-2.09.007 v1.1 carries the correct `ts_sec=1_000_000` conversion vector (`1970-01-12T13:46:40Z`). The stale `2001-09-08T21:46:40Z` value that appeared in earlier drafts was corrected in BC-2.09.007 v1.1 before this feature merged.
 
 Closes #100
 

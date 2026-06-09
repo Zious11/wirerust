@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.0.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-08T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-04
 capability: CAP-04
 lifecycle_status: active
 introduced: v0.2.0-feature-100
-modified: []
+modified:
+  - "v1.0.1: PATCH — VP Anchor annotation updated: VP-021 status corrected from draft/unverified to verified @256a490 (F6 lock propagation, FINDING-005). No functional postcondition change. — 2026-06-09"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -157,7 +158,7 @@ STORY-097 (trait + flush-path wiring — Story A from F3 decomposition); STORY-0
 
 ## VP Anchors
 
-- VP-021 — timestamp-provenance-threading (draft/unverified; integration test + proptest)
+- VP-021 — timestamp-provenance-threading (integration test + proptest; verified @256a490)
 - VP-014 — HttpAnalyzer Cross-Flow Isolation (verified; extended scope for per-flow timestamp map)
 
 ## Source Evidence

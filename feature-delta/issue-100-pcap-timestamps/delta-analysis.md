@@ -151,7 +151,7 @@ updated in `on_data`. Exact struct fields TBD in F2 spec.
 
 | Location | Count | Change |
 |----------|-------|--------|
-| `src/reassembly/mod.rs` (overlap, small-segment, out-of-window anomalies, segment-limit summary) | 4 sites | `timestamp: None` → `timestamp: Some(...)` |
+| `src/reassembly/mod.rs` (3 Some-emitting anomaly sites: overlap :493, small-segment :533, out-of-window :559) | 3 sites | `timestamp: None` → `timestamp: Some(...)`; segment-limit summary site (~:673) retains `None` |
 | `src/reassembly/lifecycle.rs` (conflicting-overlap, stream-depth-exceeded) | 2 sites | `timestamp: None` → `timestamp: Some(...)` |
 | `src/analyzer/tls.rs` | 7 sites | `timestamp: None` → `timestamp: Some(stored_last_ts)` |
 | `src/analyzer/http.rs` | 9 sites | `timestamp: None` → `timestamp: Some(stored_last_ts)` |
@@ -498,3 +498,4 @@ Open questions for human resolution:
 |-----|------|--------|
 | r1 | 2026-06-08 | Initial draft |
 | r2 | 2026-06-08 | F5 ADV-F5-HIGH-001 — corrected canonical ts_sec=1_000_000 vector in §6.3 Story C AC2 from `2001-09-08T21:46:40Z` (the 1-billion-second epoch value) to arithmetically-correct `1970-01-12T13:46:40Z` (the 1-million-second epoch value) |
+| r3 | 2026-06-09 | F7 consistency fix (FINDING-004) — §4.5 table: corrected mod.rs row from "4 sites \| None→Some(...)" to "3 Some-emitting anomaly sites (overlap :493, small-segment :533, out-of-window :559); segment-limit summary site (~:673) retains None". Aligns with §6.3 explanatory text and STORY-098 v1.1. |

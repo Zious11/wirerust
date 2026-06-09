@@ -76,9 +76,9 @@ traces_to:
 | STORY-090 | Summary Data Model — ingest, Service Hints, unique_hosts, Serialization | E-9 | 27 | 5 | completed | STORY-086, STORY-088, STORY-089 |
 | STORY-096 | Absent Behavior Contracts — Removed Flags Rejected by clap | E-10 | 24 | 3 | completed | STORY-086 |
 | STORY-091 | Anchor-Validation Tooling — bin/validate-anchors | E-11 | ~ | 5 | draft | — |
-| STORY-097 | Thread Capture-Relative Timestamp Through StreamHandler::on_data | E-12 | 28 | 5 | draft | — |
-| STORY-098 | Attach Pcap Timestamp to Emitted Findings | E-12 | 29 | 8 | draft | STORY-097 |
-| STORY-099 | Verify Timestamp Provenance End-to-End (VP-021) | E-12 | 30 | 5 | draft | STORY-098 |
+| STORY-097 | Thread Capture-Relative Timestamp Through StreamHandler::on_data | E-12 | 28 | 5 | completed | — |
+| STORY-098 | Attach Pcap Timestamp to Emitted Findings | E-12 | 29 | 8 | completed | STORY-097 |
+| STORY-099 | Verify Timestamp Provenance End-to-End (VP-021) | E-12 | 30 | 5 | completed | STORY-098 |
 
 ---
 
@@ -181,4 +181,4 @@ traces_to:
 - All 10 product epics + E-11 (Tooling) + E-12 (Pcap Timestamps) covered: **Yes**
 - All 219 BCs assigned: **Partial** — 217 greenfield BCs assigned; BC-2.04.055 → STORY-097/098/099; BC-2.09.007 → STORY-098/099; 219 BCs traced.
 - PROCESS-GAP-P5-001 dispositioned: **Yes** — STORY-091 created as the S-7.02 cycle-close disposition
-- Coverage note: STORY-097/098/099 trace to BC-2.04.055 and BC-2.09.007 (both F2 additions); these 3 stories cover VP-021 (draft; verified at F4 Story C completion).
+- Coverage note: STORY-097/098/099 trace to BC-2.04.055 and BC-2.09.007 (both F2 additions); these 3 stories cover VP-021 (verified @256a490).

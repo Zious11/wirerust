@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-08T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.2.0-feature-100
 modified:
   - "v1.1: F5 ADV-F5-HIGH-001 — corrected canonical ts_sec=1_000_000 vector from 2001-09-08 to arithmetically-correct 1970-01-12T13:46:40Z (1_000_000_000 ≠ 1_000_000). — 2026-06-08"
+  - "v1.1.1: PATCH — VP Anchor annotation updated: VP-021 status corrected from draft/unverified to verified @256a490 (F6 lock propagation, FINDING-005). No functional postcondition change. — 2026-06-09"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -156,7 +157,7 @@ STORY-098 (analyzer state + emission-site wiring — Story B from F3 decompositi
 
 ## VP Anchors
 
-- VP-021 — timestamp-provenance-threading (integration test + proptest; draft/unverified)
+- VP-021 — timestamp-provenance-threading (integration test + proptest; verified @256a490)
 
 ## Source Evidence
 

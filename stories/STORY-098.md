@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-098
 epic_id: E-12
 version: "1.1"
-status: draft
+status: completed
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
 phase: 3
@@ -11,13 +11,14 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-09/BC-2.09.007.md
   - .factory/specs/behavioral-contracts/ss-04/BC-2.04.055.md
   - .factory/feature-delta/issue-100-pcap-timestamps/delta-analysis.md
-input-hash: cab86bd
+input-hash: 8b39dcb
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-097]
 blocks: [STORY-099]
 behavioral_contracts:
   - BC-2.09.007
+  - BC-2.04.055
 verification_properties:
   - VP-021
 priority: P1
@@ -44,6 +45,7 @@ github_issue: 100
 | BC | Title |
 |----|-------|
 | BC-2.09.007 | Finding.timestamp Carries Capture-Relative Pcap Timestamp from on_data Call Site |
+| BC-2.04.055 | StreamHandler::on_data Carries Capture-Relative Timestamp Parameter |
 
 ## Acceptance Criteria
 
@@ -67,7 +69,7 @@ Exactly 21 of 22 production emission sites set `timestamp: Some(...)`. The one e
 The `u32 → DateTime<Utc>` conversion uses `DateTime::from_timestamp(ts_sec as i64, 0)`. For `ts_sec = 1_000_000`, the result is `Some(1970-01-12T13:46:40Z)`. For `ts_sec = 0`, the result is `Some(1970-01-01T00:00:00Z)`. For `ts_sec = u32::MAX`, the conversion is lossless (within chrono's supported range ~2106 CE).
 - **Test:** `test_timestamp_conversion_known_values()` — unit test asserting the three canonical conversion vectors from BC-2.09.007 test vectors table.
 
-### AC-006 (traces to BC-2.09.007 invariant 4 — cross-flow isolation)
+### AC-006 (traces to BC-2.09.007 invariant 4 and BC-2.04.055 invariant 3)
 Per-flow timestamp state in `HttpAnalyzer` and `TlsAnalyzer` is keyed by `FlowKey`, consistent with all other per-flow state maps. A finding emitted for flow A carries only flow A's last-seen timestamp; flow B's timestamp does not contaminate flow A's findings.
 - **Test:** `test_cross_flow_timestamp_isolation()` — run two concurrent HTTP flows with distinct `ts_sec` values; assert each flow's findings carry only that flow's timestamp.
 
