@@ -1,8 +1,8 @@
-//! Modbus TCP pure-core parser, function-code classifier, and per-flow correlation state
-//! (SS-14, CAP-14).
+//! Modbus TCP pure-core parser, function-code classifier, per-flow correlation state,
+//! and detection-emission engine (SS-14, CAP-14).
 //!
 //! This module provides the pure, formally-verified core functions for Modbus TCP
-//! analysis per BC-2.14.001 through BC-2.14.012 and VP-022 (Kani).
+//! analysis per BC-2.14.001 through BC-2.14.022 and VP-022 (Kani).
 //!
 //! ## Architecture
 //! - `parse_mbap_header` — pure parse, no validity gate (BC-2.14.001/002)
@@ -10,10 +10,18 @@
 //! - `classify_fc` — total FC classification over all 256 u8 values (BC-2.14.005–008)
 //! - `ModbusFlowState` — full per-flow state (BC-2.14.009–012, STORY-103)
 //! - `ModbusAnalyzer` — analyzer-level aggregates and `duplicate_inflight_txn` counter
+//! - `ModbusAnalyzer::process_pdu` — detection engine stub (STORY-104, BC-2.14.013–022)
+//! - `ModbusAnalyzer::summarize` — six-key summary stub (STORY-104, BC-2.14.021)
 //! - `MAX_PENDING_TRANSACTIONS` — hard bound of 256 (BC-2.14.012)
+//! - `MAX_FINDINGS` — cap at 10,000 findings (BC-2.14.022)
 //! - VP-022 Kani harnesses (sub-properties A, B, C) — gated by `#[cfg(kani)]`
 
 use std::collections::HashMap;
+
+use crate::analyzer::AnalysisSummary;
+use crate::findings::Finding;
+use crate::reassembly::flow::FlowKey;
+use crate::reassembly::handler::Direction;
 
 /// Parsed Modbus Application Protocol (MBAP) header.
 ///
@@ -58,6 +66,38 @@ pub enum FunctionCodeClass {
 /// When `pending.len() >= MAX_PENDING_TRANSACTIONS`, new request insertions are
 /// silently dropped (no panic, no eviction of existing entries).
 pub const MAX_PENDING_TRANSACTIONS: usize = 256;
+
+/// Maximum number of findings held by `ModbusAnalyzer` (BC-2.14.022).
+///
+/// When `all_findings.len() >= MAX_FINDINGS`, all subsequent finding-push sites
+/// perform a poison-skip: the finding is discarded and `dropped_findings` incremented.
+pub const MAX_FINDINGS: usize = 10_000;
+
+// ---------------------------------------------------------------------------
+// Detection window constants (STORY-104, BC-2.14.016/017/019)
+// ---------------------------------------------------------------------------
+
+/// T0831 coordinated-write window width in seconds (BC-2.14.016).
+pub const T0831_WINDOW_SECS: u32 = 5;
+
+/// Burst detector window width in seconds (BC-2.14.017 Invariant 1).
+pub const WRITE_BURST_WINDOW_SECS: u32 = 1;
+
+/// Sustained detector minimum window duration in seconds (BC-2.14.017 Invariant 2).
+pub const WRITE_SUSTAINED_WINDOW_SECS: u32 = 2;
+
+/// Default burst threshold (write-FCs per 1-second window) (BC-2.14.017).
+pub const DEFAULT_WRITE_BURST_THRESHOLD: u32 = 20;
+
+/// Default sustained threshold (avg write-FCs/sec over >=2s) (BC-2.14.017).
+pub const DEFAULT_WRITE_SUSTAINED_THRESHOLD: u32 = 10;
+
+/// Exception burst threshold: finding fires when same-code count STRICTLY EXCEEDS
+/// this value in the 10-second window (BC-2.14.019). Fires on the 6th exception.
+pub const EXCEPTION_RATE_THRESHOLD: u32 = 5;
+
+/// Exception-burst window width in seconds (BC-2.14.019).
+pub const EXCEPTION_WINDOW_SECS: u32 = 10;
 
 /// Per-flow Modbus analyzer state — authoritative field list (STORY-103, f2-fix-directives §11.4).
 ///
@@ -189,10 +229,10 @@ impl ModbusFlowState {
     }
 }
 
-/// Analyzer-level aggregates for Modbus TCP (STORY-103, f2-fix-directives §11.3).
+/// Analyzer-level aggregates for Modbus TCP (STORY-103/104, f2-fix-directives §11.3).
 ///
-/// Flow states are stored externally (e.g., in a `HashMap<FlowKey, ModbusFlowState>`
-/// on the dispatcher — wiring deferred to STORY-105).
+/// Flow states are passed in directly to `process_pdu` (STORY-104); dispatcher wiring
+/// (the `HashMap<FlowKey, ModbusFlowState>`) is deferred to STORY-105.
 ///
 /// `duplicate_inflight_txn` is an INTERNAL diagnostic counter (BC-2.14.009 invariant 6).
 /// It is NOT surfaced in `summarize()` (BC-2.14.021's six-key contract is unchanged).
@@ -204,29 +244,87 @@ pub struct ModbusAnalyzer {
     /// Counts how many pending-table entries were overwritten by a duplicate (txn_id, unit_id)
     /// before the original response arrived. INTERNAL — not in summarize().
     pub duplicate_inflight_txn: u64,
-    /// Total PDU count across all flows.
+    /// Total PDU count across all flows (valid ADUs past the 3-point gate).
     pub total_pdu_count: u64,
-    /// Total write count across all flows.
+    /// Total write-class FC PDUs across all flows (BC-2.14.021).
     pub total_write_count: u64,
+    /// Total exception-response PDUs across all flows (BC-2.14.021).
+    pub total_exception_count: u64,
+    /// Total ADUs that failed the 3-point validity gate (BC-2.14.021).
+    pub parse_errors: u64,
     /// Per-FC occurrence counts across all flows.
     pub fn_code_counts: HashMap<u8, u64>,
+    /// Accumulated findings — capped at MAX_FINDINGS (BC-2.14.022).
+    pub all_findings: Vec<Finding>,
+    /// Count of findings silently dropped after MAX_FINDINGS cap was reached (BC-2.14.022).
+    pub dropped_findings: u64,
+    /// Monotonic counter: incremented once per flow on first PDU insertion (BC-2.14.021).
+    /// NOT derived from a flow map length (flows removed on close would give wrong count).
+    pub total_flows_analyzed: u64,
 }
 
 impl ModbusAnalyzer {
     /// Construct a new `ModbusAnalyzer` with the given dual-window thresholds.
-    ///
-    /// Thresholds are stored as-is; CLI validation that they are non-zero is deferred
-    /// to STORY-105 (dispatcher wiring). Flow states are stored externally per
-    /// f2-fix-directives §11.3; wiring to a flow map is deferred to STORY-105.
     pub fn new(write_burst_threshold: u32, write_sustained_threshold: u32) -> Self {
         Self {
             write_burst_threshold,
             write_sustained_threshold,
-            duplicate_inflight_txn: 0,      // wired in STORY-104/105
-            total_pdu_count: 0,             // wired in STORY-104/105
-            total_write_count: 0,           // wired in STORY-104/105
-            fn_code_counts: HashMap::new(), // wired in STORY-104/105
+            duplicate_inflight_txn: 0,
+            total_pdu_count: 0,
+            total_write_count: 0,
+            total_exception_count: 0,
+            parse_errors: 0,
+            fn_code_counts: HashMap::new(),
+            all_findings: Vec::new(),
+            dropped_findings: 0,
+            total_flows_analyzed: 0,
         }
+    }
+
+    /// Detection engine: process one Modbus ADU (STORY-104, BC-2.14.013–022).
+    ///
+    /// Takes ownership of a mutable borrow of the per-flow `ModbusFlowState` and the
+    /// raw ADU bytes (already validated by the caller via `is_valid_modbus_adu`).
+    ///
+    /// Responsibilities:
+    /// - Insert request into `flow.pending` (BC-2.14.009); match/attribute responses
+    ///   (BC-2.14.010/011); increment `duplicate_inflight_txn` on key overwrite.
+    /// - Update aggregate counters: `total_pdu_count`, `total_write_count`, etc.
+    /// - Update `fn_code_counts`.
+    /// - Run all seven detectors (BC-2.14.013–020): write-class / T0831 / burst /
+    ///   sustained / diagnostics / exception-burst / recon / unknown.
+    /// - Guard every finding push with `MAX_FINDINGS` poison-skip (BC-2.14.022).
+    /// - Return a `Vec<Finding>` containing all findings emitted for this PDU.
+    ///
+    /// The `timestamp` argument is the pcap-relative capture timestamp (u32 microseconds).
+    /// All window elapsed computations use `now_ts.wrapping_sub(window_start_ts)` per
+    /// f2-fix-directives §11.5b.
+    ///
+    /// NOT YET IMPLEMENTED — stub for Red Gate (STORY-104 TDD step 1).
+    pub fn process_pdu(
+        &mut self,
+        flow_key: &FlowKey,
+        flow: &mut ModbusFlowState,
+        direction: Direction,
+        header: &MbapHeader,
+        fc: u8,
+        data: &[u8],
+        timestamp: u32,
+    ) -> Vec<Finding> {
+        // Suppress unused-parameter warnings in the stub — all params used in impl.
+        let _ = (flow_key, flow, direction, header, fc, data, timestamp);
+        todo!("STORY-104: implement process_pdu detection engine (BC-2.14.013–022)")
+    }
+
+    /// Produce the six-key `AnalysisSummary` (STORY-104, BC-2.14.021).
+    ///
+    /// Keys (authoritative set):
+    ///   `pdu_count`, `write_count`, `exception_count`, `parse_errors`,
+    ///   `function_code_distribution`, `dropped_findings`.
+    ///
+    /// NOT YET IMPLEMENTED — stub for Red Gate (STORY-104 TDD step 1).
+    pub fn summarize(&self) -> AnalysisSummary {
+        todo!("STORY-104: implement summarize() returning six-key AnalysisSummary (BC-2.14.021)")
     }
 }
 
