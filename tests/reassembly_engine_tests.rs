@@ -16420,12 +16420,13 @@ fn test_close_flow_passes_flow_last_seen_timestamp_with_ooo_gap() {
 // ── STORY-098 / BC-2.09.007 — Finding.timestamp attachment tests ─────────────
 
 /// AC-001 (BC-2.09.007 postcondition 1 — HTTP emission sites):
-/// Drive `HttpAnalyzer` with a packet at known `ts_sec`; assert all emitted
-/// `Finding` values have `timestamp.is_some()`.
+/// Drive `HttpAnalyzer` with a packet at known `ts_sec`; assert every emitted
+/// `Finding` carries `timestamp == DateTime::from_timestamp(ts_sec, 0)` (exact value,
+/// not merely `is_some()`).
 ///
 /// Triggers every HTTP anomaly detection path by crafting a single request
-/// that exercises multiple rules simultaneously, then verifies none of the
-/// resulting findings carry `timestamp: None`.
+/// that exercises multiple rules simultaneously, then asserts each finding's
+/// timestamp equals the exact `DateTime` derived from the input `ts_sec`.
 #[test]
 fn test_http_findings_have_timestamp() {
     use chrono::DateTime;
@@ -16473,11 +16474,13 @@ fn test_http_findings_have_timestamp() {
 }
 
 /// AC-002 (BC-2.09.007 postcondition 1 — TLS emission sites):
-/// Drive `TlsAnalyzer` with a ClientHello at known `ts_sec`; assert all emitted
-/// Findings have `timestamp.is_some()`.
+/// Drive `TlsAnalyzer` with a ClientHello at known `ts_sec`; assert every emitted
+/// `Finding` carries `timestamp == DateTime::from_timestamp(ts_sec, 0)` (exact value,
+/// not merely `is_some()`).
 ///
 /// Sends a ClientHello that offers a weak NULL cipher suite (triggers the
-/// weak-cipher finding) at a known timestamp, then asserts timestamp is Some.
+/// weak-cipher finding) at a known timestamp, then asserts the finding's timestamp
+/// equals the exact `DateTime` derived from the input `ts_sec`.
 #[test]
 fn test_tls_findings_have_timestamp() {
     use chrono::DateTime;
