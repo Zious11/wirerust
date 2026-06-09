@@ -13,6 +13,7 @@
 
 pub mod dns;
 pub mod http;
+pub mod modbus;
 pub mod tls;
 
 use std::collections::BTreeMap;
