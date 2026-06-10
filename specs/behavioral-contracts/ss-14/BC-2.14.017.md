@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.1"
+version: "2.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -20,6 +20,9 @@ modified:
   - version: "2.1"
     date: 2026-06-09
     change: "Adversarial review fix (Gemini cross-model review): replace integer-division sustained math with truncation-free microsecond-scale formula: (count as u64)*1_000_000 > (threshold as u64)*(elapsed_us as u64) AND elapsed_us >= 2_000_000 AND NOT sustained_burst_emitted. Use wrapping_sub for both burst and sustained window elapsed computation to handle u32 pcap-timestamp rollover. EC-004/EC-004b updated; EC-010 updated with wrapping_sub semantics; canonical vectors updated to use elapsed_us arithmetic."
+  - version: "2.2"
+    date: 2026-06-09
+    change: "F5 spec defect fix: timestamp units corrected microseconds→seconds to match the pipeline's timestamp_secs delivery (BC-2.09.007; StreamHandler::on_data passes seconds, not microseconds). The f2 microsecond-scale assumption (*1_000_000, elapsed_us, 2_000_000) was wrong. Both burst and sustained window math now uses elapsed_secs = now_ts.wrapping_sub(window_start_ts) where now_ts is in SECONDS. Burst expiry: elapsed_secs > WRITE_BURST_WINDOW_SECS (1). Sustained minimum: elapsed_secs >= WRITE_SUSTAINED_WINDOW_SECS (2); rate check: count > threshold * elapsed_secs (seconds form, no *1_000_000). wrapping_sub retained (u32 second timestamps wrap at ~136 years — never in practice, policy kept for correctness). source_ip fields changed from flow_key.client_ip() (non-existent accessor) to Direction-resolved endpoint: ClientToServer direction → client/initiator endpoint. Canonical test vectors updated to second-scale timestamps. Note: sub-second rate precision is a future enhancement."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -88,9 +91,9 @@ Targets v0.3.0.
 ### Sustained detector preconditions
 
 1–3 as above.
-4. `elapsed_us = now_ts.wrapping_sub(sustained_window_start_ts) >= 2_000_000` AND
-   `(sustained_window_write_count as u64) * 1_000_000 > (write_sustained_threshold as u64) * (elapsed_us as u64)`
-   (truncation-free microsecond-scale check; see Invariant 2 for full rationale).
+4. `elapsed_secs = now_ts.wrapping_sub(sustained_window_start_ts) >= WRITE_SUSTAINED_WINDOW_SECS` (2)
+   AND `sustained_window_write_count > write_sustained_threshold * elapsed_secs`
+   where `now_ts` is in SECONDS per BC-2.09.007 (see Invariant 2 for full rationale).
 5. `flow.sustained_burst_emitted == false`.
 6. `self.all_findings.len() < MAX_FINDINGS`.
 
@@ -108,7 +111,13 @@ Targets v0.3.0.
      and `{threshold}` is `self.write_burst_threshold`.
    - `evidence`: one entry — `"Burst threshold exceeded: {count} write FCs in 1s window; window_write_count={count} window_start_ts={start_ts} threshold={threshold} FC=0x{fc:02X} UnitID={unit_id}"`.
    - `mitre_techniques: vec!["T0806", "T0855"]`
-   - `source_ip: Some(flow_key.client_ip())`
+   - `source_ip: Some(<client/initiator endpoint>)` — resolved from the TCP `direction` arg
+     passed to `on_data`: `Direction::ClientToServer` means the write-class PDU originates from
+     the client (initiator) side. `FlowKey` has no `client_ip()` accessor; resolve via
+     `flow_key.lower_ip()` / `flow_key.upper_ip()` combined with the `direction` field.
+     For write-rate findings the direction is always `ClientToServer`, so `source_ip` is
+     the client/initiator endpoint. Concrete resolution: consult `Direction` to determine
+     which of `lower_ip` / `upper_ip` is the initiator for this flow.
    - `timestamp: Some(...)` — pcap-relative capture timestamp per BC-2.09.007.
    - `direction: Some(Direction::ClientToServer)`
 2. `flow.window_burst_emitted = true`.
@@ -125,7 +134,9 @@ Targets v0.3.0.
      and `{threshold}` is `self.write_sustained_threshold`.
    - `evidence`: one entry — `"Sustained write rate exceeded: {count} writes over {elapsed_s} seconds (>{threshold}/s average); sustained_window_start_ts={start_ts} FC=0x{fc:02X} UnitID={unit_id}"`.
    - `mitre_techniques: vec!["T0806", "T0855"]`
-   - `source_ip: Some(flow_key.client_ip())`
+   - `source_ip: Some(<client/initiator endpoint>)` — resolved from the TCP `direction` arg
+     as described in the burst finding postcondition above (same Direction::ClientToServer logic;
+     write-rate detectors always fire on ClientToServer PDUs).
    - `timestamp: Some(...)` — pcap-relative capture timestamp per BC-2.09.007.
    - `direction: Some(Direction::ClientToServer)`
 2. `flow.sustained_burst_emitted = true`.
@@ -140,8 +151,12 @@ Targets v0.3.0.
 ```
 On every write-class FC in ClientToServer direction:
 
-if now_ts.wrapping_sub(window_start_ts) > WRITE_BURST_WINDOW_SECS * 1_000_000:
-    // Window expired: reset (wrapping_sub handles u32 timestamp rollover safely)
+// now_ts is in SECONDS (timestamp_secs per BC-2.09.007; the pipeline delivers seconds).
+// wrapping_sub used for u32 seconds; wrap at ~136 years — effectively never, policy kept.
+elapsed_secs = now_ts.wrapping_sub(window_start_ts)
+
+if elapsed_secs > WRITE_BURST_WINDOW_SECS:
+    // Window expired: reset
     window_write_count = 1
     window_start_ts = now_ts
     window_burst_emitted = false
@@ -153,7 +168,7 @@ if window_write_count > write_burst_threshold AND NOT window_burst_emitted:
     window_burst_emitted = true
 ```
 
-`WRITE_BURST_WINDOW_SECS = 1` (constant). `DEFAULT_WRITE_BURST_THRESHOLD = 20`.
+`WRITE_BURST_WINDOW_SECS = 1` (constant, seconds). `DEFAULT_WRITE_BURST_THRESHOLD = 20`.
 
 ### 2. Sustained window model (≥2-second rolling window)
 
@@ -162,22 +177,20 @@ if window_write_count > write_burst_threshold AND NOT window_burst_emitted:
 ```
 On every write-class FC in ClientToServer direction (AFTER burst update):
 
+// now_ts is in SECONDS (timestamp_secs per BC-2.09.007; the pipeline delivers seconds).
+// wrapping_sub used for u32 seconds; wrap at ~136 years — effectively never, policy kept.
+
 if sustained_window_start_ts == 0:
     // Initial state: start the window
     sustained_window_start_ts = now_ts
     sustained_window_write_count = 1
 else:
     sustained_window_write_count += 1
-    elapsed_us = now_ts.wrapping_sub(sustained_window_start_ts)  // wrapping_sub: u32 rollover-safe
-    elapsed_secs = elapsed_us / 1_000_000  // integer microsecond-to-second, no float truncation
+    elapsed_secs = now_ts.wrapping_sub(sustained_window_start_ts)
 
     if elapsed_secs >= WRITE_SUSTAINED_WINDOW_SECS:
-        // Detection trigger — truncation-free microsecond-scale form:
-        // Multiply both sides by 1_000_000 (us/s) to avoid float division entirely:
-        // count > threshold * elapsed_secs  <=> count * 1_000_000 > threshold * elapsed_us
-        // Use u64 widening to prevent overflow on large count * 1_000_000 products:
-        trigger := (sustained_window_write_count as u64) * 1_000_000
-                       > (write_sustained_threshold as u64) * (elapsed_us as u64)
+        // Detection trigger — seconds-scale integer math:
+        trigger := sustained_window_write_count > write_sustained_threshold * elapsed_secs
                    AND NOT sustained_burst_emitted
 
         if trigger:
@@ -190,23 +203,26 @@ else:
         sustained_burst_emitted = false
 ```
 
-`WRITE_SUSTAINED_WINDOW_SECS = 2` (minimum window duration). `DEFAULT_WRITE_SUSTAINED_THRESHOLD = 10`.
+`WRITE_SUSTAINED_WINDOW_SECS = 2` (minimum window duration, seconds). `DEFAULT_WRITE_SUSTAINED_THRESHOLD = 10`.
 
-**Detection math (truncation-free, microsecond-scale, integer-only):**
+**Detection math (seconds-scale, integer-only):**
 ```
-trigger := now_ts.wrapping_sub(sustained_window_start_ts) >= 2_000_000
-         AND (sustained_window_write_count as u64) * 1_000_000
-               > (write_sustained_threshold as u64)
-                   * (now_ts.wrapping_sub(sustained_window_start_ts) as u64)
+elapsed_secs := now_ts.wrapping_sub(sustained_window_start_ts)   // u32 wrapping sub (seconds)
+
+trigger := elapsed_secs >= WRITE_SUSTAINED_WINDOW_SECS
+         AND sustained_window_write_count > write_sustained_threshold * elapsed_secs
          AND NOT sustained_burst_emitted
 ```
-Rationale: the original `elapsed_secs = elapsed_us / 1_000_000` integer division truncates
-(e.g., 1_999_999 μs → elapsed_secs=1, incorrectly treated as < 2 s). The microsecond-scale
-form avoids the truncation entirely: compare microsecond counts directly after u64 widening.
-`wrapping_sub` handles u32 pcap timestamp rollover (rolls over at ~71 minutes of capture time).
-At defaults: fires when count > 10/s average: `count * 1_000_000 > 10 * elapsed_us`.
-At exactly 2 s (2_000_000 μs): fires if count > 20 writes.
-At 30 s (30_000_000 μs): fires if count > 300 writes.
+Note: The v2.1 microsecond-scale formula (`count * 1_000_000 > threshold * elapsed_us`) is
+SUPERSEDED by this seconds form (F5 correction). The pipeline's `on_data` delivers
+`timestamp_secs` (seconds, per BC-2.09.007); the microsecond assumption was wrong.
+`wrapping_sub` handles u32 second-timestamp rollover (rolls over at ~136 years of capture time;
+effectively never in practice, but the policy is retained for correctness).
+At defaults: fires when count > 10 writes/s average over the elapsed window.
+At exactly 2s: fires if count > 10*2 = 20 writes (i.e., ≥ 21 writes in 2 seconds).
+At 30s: fires if count > 10*30 = 300 writes.
+Note: sub-second rate precision is a future enhancement that would require threading
+`timestamp_usecs` through `on_data` — not in v1 scope.
 
 ### 3. Burst vs sustained finding distinction
 
@@ -224,12 +240,14 @@ flow A does not affect flow B.
 ### 5. Constants (v2, all four)
 
 ```rust
-const WRITE_BURST_WINDOW_SECS: u32 = 1;           // fixed 1-second burst window
+const WRITE_BURST_WINDOW_SECS: u32 = 1;           // fixed 1-second burst window (seconds)
 const DEFAULT_WRITE_BURST_THRESHOLD: u32 = 20;     // --modbus-write-burst-threshold default
-const WRITE_SUSTAINED_WINDOW_SECS: u32 = 2;        // minimum sustained window duration
+const WRITE_SUSTAINED_WINDOW_SECS: u32 = 2;        // minimum sustained window duration (seconds)
 const DEFAULT_WRITE_SUSTAINED_THRESHOLD: u32 = 10; // --modbus-write-sustained-threshold default
 ```
 
+These constants are in SECONDS (the pipeline delivers `timestamp_secs` per BC-2.09.007;
+the v2.1 microsecond interpretation was wrong and is corrected in v2.2).
 The prior `WRITE_RATE_WINDOW_SECS = 1` and `DEFAULT_MODBUS_WRITE_THRESHOLD = 10` are REMOVED.
 
 ### 6. Finding count per PDU (v2 vs v1 comparison)
@@ -262,27 +280,29 @@ and `write_sustained_threshold >= 1` holds at the analyzer struct level.
 | EC-001 | `write_burst_threshold=20`; exactly 21 write FCs in < 1 second | 21st write tips the burst threshold: ONE burst Finding `["T0806","T0855"]` emitted alongside per-PDU finding. Writes 1–20: only per-PDU findings. |
 | EC-002 | 22nd write FC in same 1-second window | Burst NOT re-emitted (`window_burst_emitted = true`). Per-PDU finding still emitted. |
 | EC-003 | Burst window expires; 21st write in new window | Window resets. No burst finding yet (count = 1). |
-| EC-004 | `write_sustained_threshold=10`; 8 writes/s for 30 seconds (low-and-slow) | 8/s avg = 8 < 10: does NOT fire at default threshold=10 (8*1_000_000 ≤ 10*elapsed_us at any window). To fire at 8 writes/s, use `--modbus-write-sustained-threshold 7` (8*1_000_000 > 7*2_000_000 = 14_000_000 vs 16_000_000 at 2s → fires). Test vector below uses threshold=7. |
-| EC-004b | `write_sustained_threshold=10`; elapsed_us = 1_999_999 μs (just under 2s), count = 21 | OLD integer-division math: elapsed_secs = 1_999_999/1_000_000 = 1 (truncated!) → check fails; NO detection. NEW microsecond math: 1_999_999 μs < 2_000_000 → NOT yet at window minimum; correctly skips. Both forms agree here (no false trigger) — the benefit of the new form is at 2_000_001 μs: old form gives elapsed_secs=2 (count=21 > 10*2=20 ✓ fires), new form: 21*1_000_000=21_000_000 > 10*2_000_001=20_000_010 ✓ fires. No difference at the boundary; the truncation defect manifests at sub-second decimals inside the ≥2s window. |
-| EC-005 | `write_sustained_threshold=10`; 11 writes/s for 3 seconds | At t=2s: count=22 > 10*2=20 → FIRES. Sustained finding emitted. Window resets. |
-| EC-006 | `write_sustained_threshold=10`; 10 writes/s for 5 seconds (exactly at threshold) | At t=2s: count=20. 20 > 10*2=20? No (strict `>`). Does NOT fire. At t=3s (if window extends): depends on non-overlapping reset. Under non-overlapping policy, window resets at t=2s; at t=2s+ε, count=1 for new window. Does NOT fire. |
+| EC-004 | `write_sustained_threshold=10`; 8 writes in 2s (elapsed_secs=2) | 8 > 10*2=20? No. Does NOT fire at default threshold=10. To fire with 8 writes/s avg, use `--modbus-write-sustained-threshold 3` (8 > 3*2=6 → fires). |
+| EC-004b | `write_sustained_threshold=10`; elapsed_secs = 1 (1 second elapsed), count = 21 | elapsed_secs=1 < WRITE_SUSTAINED_WINDOW_SECS=2 → NOT yet at window minimum; check skipped. No detection. (With seconds-scale timestamps, sub-second precision is not available; the window minimum check uses whole seconds.) |
+| EC-005 | `write_sustained_threshold=10`; 22 writes in 2s (elapsed_secs=2; 11 writes/s avg) | elapsed_secs=2 >= 2; check: 22 > 10*2=20 → FIRES. Sustained finding emitted. Window resets. |
+| EC-006 | `write_sustained_threshold=10`; 20 writes in 2s (exactly at threshold; elapsed_secs=2) | elapsed_secs=2 >= 2; check: 20 > 10*2=20? No (strict `>`). Does NOT fire. |
 | EC-007 | Both burst and sustained fire on the same PDU | Per-PDU finding + burst Finding + sustained Finding (3 findings total). Each fires at most once per their respective window overlap. |
 | EC-008 | `all_findings.len() == MAX_FINDINGS - 1` when burst fires | Per-PDU finding fills last slot (pushed first). Burst finding NOT pushed. `window_burst_emitted` still set to true. |
 | EC-009 | Read FC (0x03) in high volume | Read FCs do NOT increment `window_write_count` or `sustained_window_write_count`. No T0806. Rate gates are write-class-only. |
-| EC-010 | now_ts < window_start_ts (u32 timestamp rollover at ~71-min capture) | `now_ts.wrapping_sub(window_start_ts)` gives the correct elapsed microseconds even across the rollover boundary (e.g., now_ts=100, start=4_294_967_200 → wrapping_sub = 996 μs). Both the burst and sustained detectors use `wrapping_sub` so rollover events are handled correctly and do not cause spurious window resets. |
+| EC-010 | now_ts < window_start_ts (u32 second-timestamp out-of-order or wrap) | `now_ts.wrapping_sub(window_start_ts)` gives a large u32 value (≫ any window threshold). Both burst and sustained detectors treat this as window-expired: reset. Rollover at ~136 years — effectively never in practice. Correct and evasion-resistant. |
 
 ## Canonical Test Vectors
 
+All timestamps are in SECONDS (timestamp_secs per BC-2.09.007; the pipeline delivers seconds, not microseconds).
+
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| `write_burst_threshold=20`; 20 write PDUs (FC=0x06) at ts=0..19 μs — same flow | No burst finding after 20 writes; `window_write_count=20`. Per-PDU findings with `["T0855","T0836"]` each. | edge-case (at burst threshold, not over) |
-| Same + 21st write at ts=20 μs | ONE burst Finding `{mitre_techniques=["T0806","T0855"], evidence contains "Burst threshold exceeded"}` emitted; `window_burst_emitted=true` | happy-path (burst threshold crossed) |
-| `write_burst_threshold=20`; 25 writes within 1s | Burst fires on 21st write; writes 22–25: no additional burst finding (`burst_emitted=true`). 25 per-PDU findings + 1 burst finding. | happy-path (burst caps at once) |
-| `write_sustained_threshold=7`; 8 writes/s for 30s (low-and-slow) — 1 write every 125ms, 16 writes at elapsed_us=2_000_000 | At window boundary: elapsed_us=2_000_000 ≥ 2_000_000; check: 16*1_000_000=16_000_000 > 7*2_000_000=14_000_000 → FIRES. ONE sustained Finding `{mitre_techniques=["T0806","T0855"], evidence="Sustained write rate exceeded: 16 writes over 2 seconds (>7/s average)"}` | happy-path (low-and-slow sustained detection) |
-| `write_sustained_threshold=10`; 11 writes/s for 3s (22 writes at elapsed_us=2_000_000) | Check: 22*1_000_000=22_000_000 > 10*2_000_000=20_000_000 → FIRES sustained finding. | happy-path (sustained at default threshold) |
-| `write_sustained_threshold=10`; 10 writes/s flat (exactly at threshold, 20 writes at elapsed_us=2_000_000) | Check: 20*1_000_000=20_000_000 > 10*2_000_000=20_000_000? No (strict >). NOT fired. | edge-case (exactly at threshold; strict > required) |
-| Window expires between write 20 and write 21 (ts gap > 1_000_000 μs) for burst detector | Burst window resets. Write 21 starts new window (count=1). No burst finding. | edge-case (burst window expiry) |
-| `write_burst_threshold=3`; ADU-A(FC=0x06 ts=0), ADU-B(FC=0x10 ts=100), ADU-C(FC=0x05 ts=200), ADU-D(FC=0x10 ts=300) | ADU-D: count=4 > 3 → burst fires: ONE Finding `["T0806","T0855"]` | happy-path (mixed write FCs, burst) |
+| `write_burst_threshold=20`; 20 write PDUs (FC=0x06) at ts=1000s..1000s (same second) — same flow | No burst finding after 20 writes; `window_write_count=20`. Per-PDU findings with `["T0855","T0836"]` each. | edge-case (at burst threshold, not over) |
+| Same + 21st write at ts=1000s (still within 1-second burst window) | ONE burst Finding `{mitre_techniques=["T0806","T0855"], evidence contains "Burst threshold exceeded"}` emitted; `window_burst_emitted=true` | happy-path (burst threshold crossed) |
+| `write_burst_threshold=20`; 25 writes within elapsed_secs=0 (same second) | Burst fires on 21st write; writes 22–25: no additional burst finding (`burst_emitted=true`). 25 per-PDU findings + 1 burst finding. | happy-path (burst caps at once) |
+| `write_sustained_threshold=7`; 16 writes accumulated; elapsed_secs=2 (window boundary hit) | elapsed_secs=2 >= 2; check: 16 > 7*2=14 → FIRES. ONE sustained Finding `{mitre_techniques=["T0806","T0855"], evidence="Sustained write rate exceeded: 16 writes over 2 seconds (>7/s average)"}` | happy-path (low-and-slow sustained detection) |
+| `write_sustained_threshold=10`; 22 writes accumulated at elapsed_secs=2 | Check: 22 > 10*2=20 → FIRES sustained finding. | happy-path (sustained at default threshold) |
+| `write_sustained_threshold=10`; 20 writes at elapsed_secs=2 (exactly at threshold) | Check: 20 > 10*2=20? No (strict >). NOT fired. | edge-case (exactly at threshold; strict > required) |
+| Window expires between write 20 and write 21 (ts gap > WRITE_BURST_WINDOW_SECS=1 second) for burst detector | Burst window resets. Write 21 starts new window (count=1). No burst finding. | edge-case (burst window expiry) |
+| `write_burst_threshold=3`; ADU-A(FC=0x06 ts=1000s), ADU-B(FC=0x10 ts=1000s), ADU-C(FC=0x05 ts=1000s), ADU-D(FC=0x10 ts=1000s) | ADU-D: count=4 > 3 → burst fires: ONE Finding `["T0806","T0855"]` | happy-path (mixed write FCs, burst) |
 
 ## Verification Properties
 

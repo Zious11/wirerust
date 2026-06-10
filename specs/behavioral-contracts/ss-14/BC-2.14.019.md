@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -17,6 +17,9 @@ modified:
   - version: "1.1"
     date: 2026-06-09
     change: "ADR-006 migration: mitre_technique: None → mitre_techniques: vec![] (empty vec = no technique) in postconditions, invariants, and canonical vectors. No behavioral change."
+  - version: "1.2"
+    date: 2026-06-09
+    change: "F5 spec defect fix: (1) timestamp units corrected microseconds→seconds to match the pipeline's timestamp_secs delivery (BC-2.09.007); window math now uses elapsed_secs = now_ts.wrapping_sub(start_ts) with expiry check elapsed_secs > 10 (not > 10_000_000). (2) source_ip postcondition Path A changed from flow_key.server_ip() (non-existent accessor) to Direction-resolved server/responder endpoint: exception responses are always ServerToClient; resolve server endpoint from flow_key lower_ip/upper_ip + direction. wrapping_sub retained for u32 second timestamps."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -83,7 +86,12 @@ Exception for FC >= 0x80).
    - `mitre_techniques: vec![]` (empty vec — exception burst scanning has no single clean ICS
      ATT&CK ID per research §7 open-items note; Anomaly category is sufficient for forensic
      flagging; per ADR-006 an empty Vec<String> replaces the old None sentinel).
-   - `source_ip: Some(flow_key.server_ip())` — source of exception responses.
+   - `source_ip: Some(<server/responder endpoint>)` — the source of exception responses.
+     Exception responses are always `Direction::ServerToClient`; `FlowKey` has no
+     `server_ip()` accessor. Resolve the server endpoint from the `direction` arg and
+     `flow_key.lower_ip()` / `flow_key.upper_ip()`: for `ServerToClient` direction, the
+     server/responder endpoint is identifiable from the `Direction` value combined with
+     the flow key's lower/upper address pair.
    - `timestamp: Some(...)` — pcap-relative capture timestamp.
    - `direction: Some(Direction::ServerToClient)`
 2. `flow.exception_window_count` reset and `flow.exception_burst_emitted` set to true for
@@ -101,7 +109,9 @@ Exception for FC >= 0x80).
    - `mitre_techniques: vec![]` (empty vec — per research §7 open-items: "no clean single
      ATT&CK-for-ICS technique ID" for Clear Counters; treat as Evasion/anti-forensic
      indicator; per ADR-006 an empty Vec<String> replaces the old None sentinel).
-   - `source_ip: Some(flow_key.client_ip())`
+   - `source_ip: Some(<client/initiator endpoint>)` — resolved from `Direction::ClientToServer`
+     and `flow_key.lower_ip()` / `flow_key.upper_ip()`. `FlowKey` has no `client_ip()`
+     accessor; the client/initiator endpoint is determined from the `direction` arg.
    - `timestamp: Some(...)` — pcap-relative timestamp.
    - `direction: Some(Direction::ClientToServer)`
 
@@ -115,7 +125,10 @@ Exception for FC >= 0x80).
    
    On each exception response:
    ```
-   if now_ts - exception_window_start_ts[ec] > 10_000_000:  // 10-second window
+   // now_ts is in SECONDS (timestamp_secs per BC-2.09.007; the pipeline delivers seconds).
+   // wrapping_sub used for u32 second timestamps; wrap at ~136 years — policy kept.
+   elapsed_secs = now_ts.wrapping_sub(exception_window_start_ts[ec])
+   if elapsed_secs > EXCEPTION_WINDOW_SECS:  // 10-second window
        exception_window_counts[ec] = 1
        exception_window_start_ts[ec] = now_ts
        exception_burst_emitted[ec] = false
@@ -130,7 +143,7 @@ Exception for FC >= 0x80).
    Semantics: `> 5` means the finding triggers when the count transitions from 5 to 6 (i.e.,
    the **6th exception** of the same code within the window). Exactly 5 exceptions: no finding.
    6 or more: finding emitted on the count that crosses the threshold (once per window).
-   `EXCEPTION_WINDOW_SECS = 10` (fixed constant).
+   `EXCEPTION_WINDOW_SECS = 10` (fixed constant, SECONDS — matches pipeline timestamp units).
 
 2. **Exception-code attribution**: the original request FC is recovered via `exception_fc & 0x7F`.
    If the (transaction_id, unit_id) pair is in `flow.pending`, the stored request FC is used
@@ -163,7 +176,7 @@ Exception for FC >= 0x80).
 | EC-006 | FC 0x08 sub-func 0x000A (Clear Counters) | Anomaly finding (anti-forensic indicator). No T0814 — that requires sub-func 0x0001/0x0004. |
 | EC-007 | FC >= 0x80 but ADU is only 8 bytes (missing exception code byte) | No finding; malformed exception response; `parse_errors++`. |
 | EC-008 | All 6 exception-burst finding slots taken (`all_findings.len() == MAX_FINDINGS`) | No finding pushed; `exception_count` still incremented. |
-| EC-009 | now_ts < exception_window_start_ts[ec] (timestamp wrap or out-of-order packet for this exception code) | `now_ts - exception_window_start_ts[ec]` wraps to a large u32 value (> 10_000_000). Window-expiry fires: resets count=1, window_start_ts=now_ts, burst_emitted=false. Evasion-resistant: attacker cannot permanently suppress detection by injecting low-timestamp exception responses — at worst they force a window reset, requiring 6 more exceptions to retrigger. |
+| EC-009 | now_ts < exception_window_start_ts[ec] (second-timestamp out-of-order or wrap) | `now_ts.wrapping_sub(exception_window_start_ts[ec])` yields a very large u32 value (≫ 10 seconds). Window-expiry fires: resets count=1, window_start_ts=now_ts, burst_emitted=false. Evasion-resistant: attacker cannot permanently suppress detection by injecting low-timestamp exception responses — at worst they force a window reset, requiring 6 more exceptions to retrigger. |
 
 ## Canonical Test Vectors
 

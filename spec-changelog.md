@@ -14,6 +14,90 @@ changes, invariant rewrites).
 
 ---
 
+## [1.5] — 2026-06-09
+
+### MINOR: F5 Combined-Delta Spec Defect Fixes — SS-14 Modbus v0.4.0
+
+**Summary:** Four spec defects discovered during the F5 combined-delta review of Feature #7
+(Modbus TCP analyzer). These defects existed in the SS-14 BC corpus and are corrected here
+without changing any implementation behavior (the implementation is being authored in parallel
+to align with this correction). All changes are MINOR (no BC semantics removed; existing
+downstream story acceptance criteria remain valid with updated formulas).
+
+**Defect 1 — Timestamp units: microseconds→seconds (BC-2.14.016, BC-2.14.017, BC-2.14.019)**
+
+The f2-fix-directives §11.5 introduced a microsecond-scale assumption for window math
+(`*1_000_000`, `elapsed_us`, `>= 2_000_000`). This was wrong. The pipeline's
+`StreamHandler::on_data` delivers `timestamp_secs` (seconds, per BC-2.09.007); TLS/HTTP/
+reassembler all confirm this via `DateTime::from_timestamp(ts, 0)`. All four Modbus window
+computations have been corrected to seconds-scale math:
+
+| Window | Old check (wrong) | New check (correct) |
+|--------|------------------|---------------------|
+| T0831 5s coordinated-write | `elapsed > T0831_WINDOW_SECS * 1_000_000` | `elapsed_secs > T0831_WINDOW_SECS` |
+| Burst 1s write-rate | `elapsed > WRITE_BURST_WINDOW_SECS * 1_000_000` | `elapsed_secs > WRITE_BURST_WINDOW_SECS` |
+| Sustained ≥2s write-rate | `elapsed_us >= 2_000_000 AND count*1_000_000 > threshold*elapsed_us` | `elapsed_secs >= WRITE_SUSTAINED_WINDOW_SECS AND count > threshold * elapsed_secs` |
+| Exception 10s recon | `elapsed > 10_000_000` | `elapsed_secs > EXCEPTION_WINDOW_SECS` |
+
+`wrapping_sub` is retained on all windows (u32 second timestamps wrap at ~136 years —
+effectively never in practice, but the policy is kept for correctness).
+Sub-second rate precision is a future enhancement requiring `timestamp_usecs` threading.
+
+**Defect 2 — Non-existent FlowKey accessor: flow_key.client_ip() / flow_key.server_ip()
+(BC-2.14.013, BC-2.14.017, BC-2.14.019)**
+
+The `source_ip` postconditions in three BCs cited `flow_key.client_ip()` and
+`flow_key.server_ip()`. These methods DO NOT EXIST on `FlowKey` (which has only
+`lower_ip`, `upper_ip`, `lower_port`, `upper_port` plus a `Direction`). Corrected:
+`source_ip` is now resolved from the `direction` arg passed to `on_data` combined with
+`flow_key.lower_ip()`/`upper_ip()`. The mapping is:
+- `Direction::ClientToServer` → initiator/client endpoint (write-class findings, BC-2.14.013; burst/sustained findings, BC-2.14.017; Clear Counters path, BC-2.14.019)
+- `Direction::ServerToClient` → responder/server endpoint (exception-response findings, BC-2.14.019 Path A)
+
+**Defect 3 — AnalysisSummary top-level field hallucination (BC-2.14.021)**
+
+BC-2.14.021 postcondition 3 (v1.0) cited `findings_count`, `flows_analyzed`, and `protocol`
+as top-level fields of `AnalysisSummary`. These fields DO NOT EXIST in the shared struct
+(`src/analyzer/mod.rs`): the struct has exactly three fields — `analyzer_name: String`,
+`packets_analyzed: u64`, `detail: BTreeMap<String, Value>`. Postcondition 3 has been
+completely rewritten to match the real struct.
+
+The SIX authoritative detail keys (post.1) are UNCHANGED and remain the authoritative
+contract for the Modbus summary `detail` map:
+
+| Key | Type | Semantics |
+|-----|------|-----------|
+| `"pdu_count"` | `Value::Number(u64)` | Total valid ADUs past the three-point gate |
+| `"write_count"` | `Value::Number(u64)` | Total write-class FC PDUs |
+| `"exception_count"` | `Value::Number(u64)` | Total exception-response PDUs (FC >= 0x80) |
+| `"parse_errors"` | `Value::Number(u64)` | Total ADUs failing the validity gate |
+| `"function_code_distribution"` | `Value::Object(map)` | FC → count map (hex-string keys, zero-count FCs omitted) |
+| `"dropped_findings"` | `Value::Number(u64)` | Findings dropped due to MAX_FINDINGS cap (ALWAYS present, even 0) |
+
+**Defect 4 — f2-fix-directives §11.5 / §11.5b microsecond-scale math superseded**
+
+Added F5-correction banners to §11.5 and §11.5b in f2-fix-directives.md. The microsecond
+math (`elapsed_us`, `*1_000_000`) is superseded by the seconds form. The corrected canonical
+specification is BC-2.14.017 v2.2.
+
+**Artifacts changed:**
+
+| Artifact | Version | Change |
+|----------|---------|--------|
+| BC-2.14.013 | v2.1 → v2.2 | source_ip: flow_key.client_ip() → Direction-resolved client endpoint |
+| BC-2.14.016 | v2.0 → v2.1 | Window math: microseconds → seconds; edge cases EC-004/005/010 updated; test vectors updated to second-scale timestamps |
+| BC-2.14.017 | v2.1 → v2.2 | Window math: microseconds → seconds (both burst and sustained); source_ip: flow_key.client_ip() → Direction-resolved; edge cases EC-004/004b/005/006/010 updated; test vectors updated; constants clarified as seconds |
+| BC-2.14.019 | v1.1 → v1.2 | Window math: microseconds → seconds; source_ip Path A: flow_key.server_ip() → Direction-resolved server endpoint; source_ip Path B: flow_key.client_ip() → Direction-resolved; EC-009 updated |
+| BC-2.14.021 | v1.0 → v1.1 | post.3 completely rewritten: remove non-existent flows_analyzed/findings_count/protocol fields; align to real AnalysisSummary struct (analyzer_name, packets_analyzed, detail only); six detail keys in post.1 unchanged and remain authoritative |
+| f2-fix-directives.md | §11.5, §11.5b | F5-correction banners added; microsecond math identified as superseded; corrected form is seconds-scale per BC-2.14.017 v2.2 |
+
+**Impact:** MINOR. No BC semantics removed; existing downstream story acceptance criteria
+remain valid after updating formulas from microsecond to second scale. The implementation
+(authored in parallel) is being aligned to seconds-scale math simultaneously with this
+spec correction.
+
+---
+
 ## [1.4] — 2026-06-09
 
 ### MINOR: BC-DISCREPANCY-001 — FC 0x17 Register-Write Set Reconciliation

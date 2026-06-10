@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.1"
+version: "2.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -20,6 +20,9 @@ modified:
   - version: "2.1"
     date: 2026-06-09
     change: "BC-DISCREPANCY-001 reconciliation: FC 0x17 (Read/Write Multiple Registers) writes holding registers and is therefore a Modify-Parameter operation. EC-001 corrected: 0x17 now emits [T0855, T0836] (not [T0855] only). Invariant 2 tag-union rule split: {0x15} -> [T0855] only; {0x17} -> [T0855, T0836]. Consistent with BC-2.14.016 register-write set {0x06,0x10,0x16,0x17} and BC-2.14.014 (now updated to include 0x17). Orchestrator ruling: FC 0x17 is a holding-register write."
+  - version: "2.2"
+    date: 2026-06-09
+    change: "F5 spec defect fix: source_ip postcondition changed from flow_key.client_ip() (non-existent accessor — FlowKey only has lower_ip/upper_ip/lower_port/upper_port) to Direction-resolved client/initiator endpoint. Write-class PDUs are always ClientToServer; resolve initiator endpoint from flow_key.lower_ip()/upper_ip() combined with the direction arg passed to on_data."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -84,7 +87,11 @@ parsing the request PDU (not deferred to `on_flow_close`). Targets v0.3.0.
        inline to the `mitre_techniques` vec of this per-PDU finding, not emitted as a separate
        finding). Example: a 2nd holding-register write within the T0831 5s window yields
        `vec!["T0855", "T0836", "T0831"]`.
-   - `source_ip: Some(flow_key.client_ip())` — the IP of the client-side endpoint.
+   - `source_ip: Some(<client/initiator endpoint>)` — the IP of the client-side endpoint.
+     `FlowKey` has no `client_ip()` accessor; resolve using the `direction` arg and
+     `flow_key.lower_ip()` / `flow_key.upper_ip()`. For `Direction::ClientToServer`, the
+     client/initiator endpoint is determinable from the `Direction` value combined with
+     the flow key's lower/upper address pair.
    - `timestamp: Some(...)` — the pcap-relative capture timestamp from `on_data`'s
      `timestamp: u32` argument, converted to `DateTime<Utc>` per BC-2.09.007.
    - `direction: Some(Direction::ClientToServer)`

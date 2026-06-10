@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.0"
+version: "2.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -17,6 +17,9 @@ modified:
   - version: "2.0"
     date: 2026-06-09
     change: "UPDATED (v2.0 — Decision 13, f2-fix-directives.md §13.5): T0831 detection is now co-tagged in the per-PDU write finding (mitre_techniques vec includes \"T0831\" alongside T0855+T0836) rather than emitted as a separate Finding object. Discriminator table updated: T0836/T0835/T0831 are union-tagging rules, not priority-suppression rules. Removed all 'T0836 priority suppresses T0835' language. Burst finding for T0806+T0855 is unchanged (separate Finding). Targets v0.3.0."
+  - version: "2.1"
+    date: 2026-06-09
+    change: "F5 spec defect fix: timestamp units corrected microseconds→seconds to match the pipeline's timestamp_secs delivery (BC-2.09.007; StreamHandler::on_data passes seconds, not microseconds). The f2 microsecond-scale assumption (T0831_WINDOW_SECS*1_000_000) was wrong. Window math now uses elapsed_secs = now_ts.wrapping_sub(window_start_ts); expiry check is elapsed_secs > T0831_WINDOW_SECS (5). Canonical test vectors updated to second-scale timestamp values. Note: sub-second rate precision is a future enhancement requiring timestamp_usecs threading through on_data."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -114,11 +117,15 @@ in implementation comments, tests, or downstream documents.
    - `t0831_window_write_count: u32` — count of holding-register writes in current window.
    - `t0831_burst_emitted: bool` — true once T0831 has co-tagged in the current window.
 2. **Canonical evaluation ORDER** (window-update FIRST, then emission check):
-   On every holding-register write FC (0x06, 0x10, 0x16) in ClientToServer direction:
+   On every holding-register write FC (0x06, 0x10, 0x16, 0x17) in ClientToServer direction:
    ```
    // STEP 1: Window-update runs FIRST on every qualifying write, unconditionally.
    // Qualifying FCs: {0x06, 0x10, 0x16, 0x17}
-   if now_ts - t0831_window_start_ts > T0831_WINDOW_SECS * 1_000_000:
+   // NOTE: now_ts is timestamp_secs (seconds, per BC-2.09.007 / pipeline delivery).
+   //   wrapping_sub is used for u32 second timestamps; at ~136 years of capture time
+   //   these will never overflow in practice, but the policy is kept for correctness.
+   elapsed_secs = now_ts.wrapping_sub(t0831_window_start_ts)
+   if elapsed_secs > T0831_WINDOW_SECS:
        // Window expired: reset (this write starts a new window)
        t0831_window_start_ts = now_ts
        t0831_window_write_count = 1
@@ -143,6 +150,11 @@ in implementation comments, tests, or downstream documents.
 3. **T0831 co-tags at most once per 5-second window per flow.** Subsequent holding-register
    writes within the same window do not re-include the T0831 tag.
 4. **`T0831_WINDOW_SECS = 5`** constant is fixed in v1 (not CLI-configurable).
+   Window expiry check: `elapsed_secs > T0831_WINDOW_SECS` where
+   `elapsed_secs = now_ts.wrapping_sub(t0831_window_start_ts)` and `now_ts` is in SECONDS
+   (the pipeline delivers `timestamp_secs` per BC-2.09.007 — NOT microseconds).
+   Sub-second rate precision is a future enhancement; it would require threading
+   `timestamp_usecs` through `on_data`, which is not in v1 scope.
 5. A single write FC from a fresh flow (no prior holding-register writes) never triggers T0831.
    The minimum condition is two writes within the window.
 6. T0831 applies to the same FC subset as T0836 ({0x06, 0x10, 0x16, 0x17}). FC 0x17 (Read/Write
@@ -161,24 +173,26 @@ in implementation comments, tests, or downstream documents.
 | EC-001 | First holding-register write in a flow | `t0831_window_write_count = 1`, `t0831_window_start_ts = now_ts`. ONE finding: `mitre_techniques=["T0855","T0836"]` (T0831 not yet fired). |
 | EC-002 | Second holding-register write within 5 seconds of the first | ONE finding: `mitre_techniques=["T0855","T0836","T0831"]`. `t0831_burst_emitted = true`. |
 | EC-003 | Third write within the same window | ONE finding: `mitre_techniques=["T0855","T0836"]` (T0831 emit-once exhausted; `t0831_burst_emitted == true`). `t0831_window_write_count = 3`. |
-| EC-004 | Write at exactly `t0831_window_start_ts + 5_000_000` microseconds (boundary) | Window NOT expired (condition is `>`, not `>=`). Counted toward T0831. |
-| EC-005 | Write at `t0831_window_start_ts + 5_000_001` microseconds (one us past boundary) | Window expired. Reset. This write starts a new window (`count=1`). `mitre_techniques=["T0855","T0836"]` (no T0831 yet). |
+| EC-004 | Write at exactly `t0831_window_start_ts + 5` seconds (boundary, elapsed_secs = 5) | Window NOT expired (condition is `>`, not `>=`). Counted toward T0831. |
+| EC-005 | Write at `t0831_window_start_ts + 6` seconds (elapsed_secs = 6 > 5) | Window expired. Reset. This write starts a new window (`count=1`). `mitre_techniques=["T0855","T0836"]` (no T0831 yet). |
 | EC-006 | Coil write (FC 0x05) between two holding-register writes | Coil writes do NOT increment `t0831_window_write_count`. Only FCs {0x06, 0x10, 0x16, 0x17} count toward T0831. |
 | EC-011 | FC 0x17 (Read/Write Multiple Registers) as the 2nd write within 5 seconds | `t0831_window_write_count=2` ≥ 2 → T0831 co-tags: ONE finding `["T0855","T0836","T0831"]`; `t0831_burst_emitted=true`. Evasion attempt via atomic R/W FC is detected. |
 | EC-012 | FC 0x06 first write, then FC 0x17 second write within 5 seconds | Same as EC-011: 0x17 counted in the T0831 window; T0831 co-tags on the 0x17 write. |
 | EC-007 | `all_findings.len() == MAX_FINDINGS - 1` when T0831 would co-tag | The one finding with `["T0855","T0836","T0831"]` fills the last slot. `t0831_burst_emitted` still set to true. |
 | EC-008 | Two flows with overlapping timestamps; second flow gets two writes within 5 seconds | T0831 co-tags for the second flow's 2nd write; first flow is unaffected (per-flow state isolation). |
 | EC-009 | First holding-register write on a fresh flow (t0831_window_write_count is 0) | Window-update runs: count becomes 1, window_start_ts = now_ts, burst_emitted = false. Tag determination: count = 1 < 2 → NO T0831 co-tag. ONE finding with `["T0855","T0836"]`. |
-| EC-010 | now_ts < t0831_window_start_ts (timestamp wrap-around or out-of-order packet) | `now_ts - t0831_window_start_ts` wraps to a large u32 value (≫ 5_000_000). Window-expiry check fires (resets window). This write starts a new window (count=1). No T0831 co-tag on this write. Evasion-resistant: attacker forcing a window reset at most delays T0831 by one write. |
+| EC-010 | now_ts < t0831_window_start_ts (timestamp wrap-around or out-of-order packet; timestamps in seconds) | `now_ts.wrapping_sub(t0831_window_start_ts)` yields a very large u32 value (≫ 5 seconds). Window-expiry check fires (resets window). This write starts a new window (count=1). No T0831 co-tag on this write. Evasion-resistant: attacker forcing a window reset at most delays T0831 by one write. |
 
 ## Canonical Test Vectors
 
+All timestamps are in SECONDS (timestamp_secs per BC-2.09.007; the pipeline delivers seconds, not microseconds).
+
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| Flow A: write 1 at ts=1000 (FC=0x06, UnitID=1) → write 2 at ts=2000 (FC=0x10, UnitID=1) | Write1: ONE Finding `mitre_techniques=["T0855","T0836"]`; Write2: ONE Finding `mitre_techniques=["T0855","T0836","T0831"]` (T0831 co-tagged, count=2, elapsed=1ms) | happy-path (T0831 co-tags on 2nd write) |
-| Flow A: write 1 at ts=1000 → write 2 at ts=6_001_000 (6 seconds later) | Write1: `["T0855","T0836"]`; Write2: new window started (reset), ONE Finding `["T0855","T0836"]` (count=1 in new window; no T0831) | edge-case (expired window) |
-| Flow A: three writes at ts=1000, 2000, 3000 (all FC=0x06) | Write1: `["T0855","T0836"]`; Write2: `["T0855","T0836","T0831"]` (burst_emitted=true); Write3: `["T0855","T0836"]` (T0831 exhausted for this window) | edge-case (once-per-window, emit-once) |
-| Flow A: FC=0x05 (coil) at ts=1000; FC=0x06 at ts=2000 | Coil write: ONE Finding `["T0855","T0835"]` (T0831 window NOT started by coil); Holding-register write at ts=2000: ONE Finding `["T0855","T0836"]` (count=1, no T0831 yet) | edge-case (coil excluded from T0831 window) |
+| Flow A: write 1 at ts=1000s (FC=0x06, UnitID=1) → write 2 at ts=1002s (FC=0x10, UnitID=1); elapsed=2s ≤ 5 | Write1: ONE Finding `mitre_techniques=["T0855","T0836"]`; Write2: ONE Finding `mitre_techniques=["T0855","T0836","T0831"]` (T0831 co-tagged, count=2, elapsed_secs=2) | happy-path (T0831 co-tags on 2nd write) |
+| Flow A: write 1 at ts=1000s → write 2 at ts=1007s (7 seconds later; elapsed=7s > 5) | Write1: `["T0855","T0836"]`; Write2: window expired (reset), ONE Finding `["T0855","T0836"]` (count=1 in new window; no T0831) | edge-case (expired window) |
+| Flow A: three writes at ts=1000s, 1001s, 1002s (all FC=0x06) | Write1: `["T0855","T0836"]`; Write2: `["T0855","T0836","T0831"]` (burst_emitted=true); Write3: `["T0855","T0836"]` (T0831 exhausted for this window) | edge-case (once-per-window, emit-once) |
+| Flow A: FC=0x05 (coil) at ts=1000s; FC=0x06 at ts=1002s | Coil write: ONE Finding `["T0855","T0835"]` (T0831 window NOT started by coil); Holding-register write at ts=1002s: ONE Finding `["T0855","T0836"]` (count=1, no T0831 yet) | edge-case (coil excluded from T0831 window) |
 
 ## Verification Properties
 

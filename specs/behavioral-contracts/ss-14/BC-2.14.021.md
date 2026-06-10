@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -13,7 +13,10 @@ subsystem: SS-14
 capability: CAP-14
 lifecycle_status: active
 introduced: v0.3.0-feature-007
-modified: []
+modified:
+  - version: "1.1"
+    date: 2026-06-09
+    change: "F5 spec defect fix: Postcondition 3 completely rewritten to align with the real AnalysisSummary struct (src/analyzer/mod.rs). The struct has only three fields: analyzer_name: String, packets_analyzed: u64, detail: BTreeMap<String, Value>. The v1.0 post.3 text cited flows_analyzed, findings_count, and protocol as top-level struct fields — these DO NOT EXIST in the shared struct. Fixed: (a) analyzer_name = \"modbus\"; (b) packets_analyzed = total_pdu_count (PDUs past the validity gate); (c) NO flows_analyzed/findings_count/protocol top-level fields — these are NOT part of the struct. The six detail keys in post.1 remain authoritative and unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -66,14 +69,22 @@ called by `main.rs` after `dispatcher.take_modbus_analyzer()` returns the finali
 2. The `function_code_distribution` object contains ONLY FC bytes for which `count > 0`.
    An FC that was never observed is absent from the map (no zero-count entries).
 
-3. The `AnalysisSummary` struct fields (beyond `detail`) are set as follows:
-   - `analyzer_name: "modbus"` — lowercase, consistent with `"http"` and `"tls"` names.
-   - `findings_count: self.all_findings.len() as u64`
-   - `flows_analyzed: self.total_flows_analyzed` — the monotonic counter incremented once
-     per flow on first PDU insertion (NOT derived from `self.flows.len()`; `on_flow_close`
-     removes entries from `self.flows` so `flows.len()` → 0 after all flows close; per
-     architecture-delta.md §2.7 Decision 4, `total_flows_analyzed` is the correct source).
-   - `protocol: "Modbus/TCP"` — human-readable protocol name for display.
+3. The `AnalysisSummary` struct fields (complete and authoritative — matches
+   `src/analyzer/mod.rs` which is the canonical struct definition):
+   - `analyzer_name: "modbus"` — lowercase string, consistent with `"http"` and `"tls"` names.
+   - `packets_analyzed: self.total_pdu_count as u64` — total PDUs past the three-point
+     validity gate (same counter as the `pdu_count` detail key; kept as the struct-level
+     "packets this analyzer processed" field per the AnalysisSummary contract).
+   - `detail: <BTreeMap as specified in postcondition 1>` — the six authoritative keys.
+
+   **Fields that DO NOT EXIST in the shared AnalysisSummary struct:**
+   The v1.0 text cited `findings_count`, `flows_analyzed`, and `protocol` as top-level
+   struct fields. These fields are NOT present in `AnalysisSummary`
+   (`src/analyzer/mod.rs` — the struct has exactly three fields: `analyzer_name`,
+   `packets_analyzed`, `detail`). These values are NOT surfaced as top-level summary
+   fields for any analyzer (HTTP/TLS/Modbus). If `findings_count` or `flows_analyzed`
+   need to be reported, they must be added as entries in the `detail` map under new keys
+   (which would require a new BC revision). This is a v1 constraint.
 
 4. `summarize()` does NOT consume `self` (takes `&self`); the analyzer is still usable
    afterward (though in practice `take_modbus_analyzer()` moves it out of the dispatcher
@@ -109,7 +120,8 @@ called by `main.rs` after `dispatcher.take_modbus_analyzer()` returns the finali
 
 5. **Summary is independent of MAX_FINDINGS cap**: `pdu_count`, `write_count`, and
    `exception_count` are incremented for every valid PDU regardless of whether the findings
-   cap prevented a finding from being pushed. The cap only limits `findings_count`.
+   cap prevented a finding from being pushed. The cap only limits `self.all_findings.len()`;
+   findings dropped due to the cap are counted in the `dropped_findings` detail key.
 
 6. **JSON output format** for `function_code_distribution`:
    ```json
@@ -140,7 +152,7 @@ called by `main.rs` after `dispatcher.take_modbus_analyzer()` returns the finali
 | EC-002 | Capture with 1000 read polls (FC=0x03 only) | `pdu_count=1000`, `write_count=0`, `exception_count=0`, `function_code_distribution={"0x03": 1000}` |
 | EC-003 | Capture with mixed FCs: 500 reads (0x03), 10 writes (0x06), 3 exceptions (0x86) | `pdu_count=513`, `write_count=10`, `exception_count=3`, `function_code_distribution={"0x03": 500, "0x06": 10, "0x86": 3}` |
 | EC-004 | All 256 FC byte values observed at least once | `function_code_distribution` has 256 entries. No zero-count suppression needed since all are > 0. |
-| EC-005 | `MAX_FINDINGS` cap was hit mid-capture | `findings_count = 10_000`; counters (`pdu_count`, etc.) reflect actual totals, not capped values. `pdu_count` may be > 10_000. |
+| EC-005 | `MAX_FINDINGS` cap was hit mid-capture | `all_findings.len() = 10_000` (cap hit); counters (`pdu_count`, etc.) reflect actual totals, not capped values. `pdu_count` may be > 10_000. `dropped_findings > 0`. |
 
 ## Canonical Test Vectors
 

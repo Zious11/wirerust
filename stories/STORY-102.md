@@ -46,7 +46,7 @@ github_issue: 7
 # BC status: all 8 BCs authored at v1.0/v2.0 as of 2026-06-09
 modified:
   - "v1.1 (F4/STORY-102 adversarial finding reconciliation): Length gate upper bound corrected from 253 to 254 in AC-005, AC-004 body, EC-007/EC-008, Task 5, Architecture Compliance table, and BC title row for BC-2.14.004. BC-2.14.004 is authoritative: valid range [2, 254]; Length = 254 is true (valid max); Length = 255 is false (over max). Earlier v1.0 stale value 253 was a pre-F2-fix residual."
-input-hash: "d5c8642"
+input-hash: "3e3fc62"
 ---
 
 # STORY-102: Modbus MBAP Parse + FC Classification (Pure Core)

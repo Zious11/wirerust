@@ -258,3 +258,9 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 - O-1 (EMITTED_IDS names 7 ICS): deferred to phase-5 (Modbus STORY-104 delivering -> resolve at phase-5)
 - VP-022 Kani run deferred to F6; VP-004 Kani oracle extension in STORY-105; VP-007(21/13)/016/020/021: F4 obligations (Wave 34)
 - ACTION-PIN-001: dtolnay/rust-toolchain @stable/@nightly intentionally exempt from pin gate
+
+---
+
+## Archived: 2026-06-09 — Feature #7 Wave 2 COMPLETE — Modbus LIVE; NEXT = v0.4.0 release path (superseded by F5 CONVERGED checkpoint)
+
+**POSITION:** wirerust v0.3.0 RELEASED (D-038). Feature #7 Wave 2 (E-14 Modbus TCP Analyzer) COMPLETE (D-042). All 4 stories MERGED: STORY-102 PR #211 (26d58bb, 1224 tests), STORY-103 PR #212 (d894464, 1247 tests), STORY-104 PR #213 (dba..., 1296 tests), STORY-105 PR #214 (dba5f26). 1324 tests green total; clippy+fmt clean; all CI green. Modbus analyzer LIVE end-to-end on develop. NEXT = v0.4.0 release path: F5 combined-delta adversarial review + F6 formal hardening (VP-022/VP-004 Kani run, fuzz, mutation) + F7 convergence gate, OR streamlined release — pending human decision.

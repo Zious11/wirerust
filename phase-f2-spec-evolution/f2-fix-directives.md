@@ -157,6 +157,17 @@ struct ModbusFlowState {
 
 ### 11.5 Sustained-Window Detection Math (precise, truncation-free)
 
+> **F5 CORRECTION (2026-06-09):** The microsecond-scale math below (`elapsed_us`,
+> `*1_000_000`, `>= 2_000_000`) was based on a WRONG assumption that the pipeline delivers
+> timestamps in microseconds. The pipeline's `StreamHandler::on_data` delivers
+> `timestamp_secs` (seconds per BC-2.09.007); TLS/HTTP/reassembler all confirm this via
+> `DateTime::from_timestamp(ts, 0)`. The correct implementation uses SECONDS:
+> `elapsed_secs = now_ts.wrapping_sub(window_start_ts)` with the window check
+> `elapsed_secs >= WRITE_SUSTAINED_WINDOW_SECS (2)` and rate check
+> `count > threshold * elapsed_secs`. This correction supersedes §11.5 steps 3-4
+> and §11.5a. The BC-2.14.017 v2.2 specification is the authoritative corrected form.
+> Sub-second rate precision is a future enhancement requiring `timestamp_usecs` threading.
+
 On each write-class FC (request direction), after the burst window update:
 
 1. **Window initialization:** If `sustained_window_start_ts == 0` (initial state), set
@@ -225,15 +236,20 @@ For defaults at exactly 2 s (`elapsed_us = 2_000_000`):
 - Fires if `count * 1_000_000 > 10 * 2_000_000 = 20_000_000`, i.e., count ≥ 21 writes.
 - Equivalent to: strict average > 10/s over the elapsed window.
 
-### 11.5b Timestamp Wrap Policy (u32 pcap-relative microseconds)
+### 11.5b Timestamp Wrap Policy (u32 pcap-relative seconds)
 
-The pcap-relative capture timestamp is a `u32` in microseconds; it wraps at `u32::MAX ≈ 4294 s`
-(~71.5 minutes). Plain subtraction (`now_ts - start`) panics in Rust debug builds
-(overflow-checks = true) and produces a large garbage value in release. ALL window-duration
-computations MUST use `wrapping_sub`:
+> **F5 CORRECTION (2026-06-09):** The original text below described microseconds and
+> ~71.5 minutes rollover. The pipeline delivers SECONDS (`timestamp_secs`); the correct
+> rollover is at `u32::MAX` seconds ≈ 136 years — effectively never in practice.
+> `wrapping_sub` is still used for all four windows as a defensive correctness policy.
+
+The pcap-relative capture timestamp is a `u32` in SECONDS (per BC-2.09.007); it wraps at
+`u32::MAX ≈ 4,294,967,295 s` (~136 years). Plain subtraction (`now_ts - start`) panics in
+Rust debug builds (overflow-checks = true). ALL window-duration computations MUST use
+`wrapping_sub`:
 
 ```rust
-let elapsed_us = now_ts.wrapping_sub(window_start_ts);
+let elapsed_secs = now_ts.wrapping_sub(window_start_ts);
 ```
 
 This applies to ALL four windows:
@@ -242,13 +258,10 @@ This applies to ALL four windows:
 - T0831 5s: `now_ts.wrapping_sub(t0831_window_start_ts)`
 - Exception 10s: `now_ts.wrapping_sub(exception_window_start_ts[code])`
 
-**Wrap evasion analysis:** When `now_ts < window_start_ts` (wrapped or attacker-reordered),
-`wrapping_sub` yields a value near `u32::MAX` (~4.3 billion µs). This is always larger than
-any window threshold (max: 10 s × 1_000_000 = 10_000_000 µs). The result is a window reset
-(`window_start_ts = now_ts`, count reset to 1, emitted flag cleared). This is evasion-resistant:
-the attacker can reset the detection window by injecting an out-of-order packet, but cannot
-suppress a window that has already fired (the `*_emitted` flag is already true before the reset
-is evaluated in the next PDU), and cannot prevent the next window from accumulating and firing.
+**Wrap evasion analysis:** When `now_ts < window_start_ts` (out-of-order),
+`wrapping_sub` yields a very large u32 value (≫ any window threshold of 1–10 seconds).
+The result is a window reset. This is evasion-resistant: the attacker can reset the
+detection window but cannot suppress a window that has already fired.
 
 ### 11.6 Finding Distinction: Burst vs Sustained
 

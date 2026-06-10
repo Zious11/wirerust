@@ -36,7 +36,7 @@ tdd_mode: strict
 feature_id: issue-007-modbus-analyzer
 github_issue: 7
 # BC status: all 4 BCs authored at v1.0 as of 2026-06-09
-input-hash: "4a0438e"
+input-hash: "50effc8"
 ---
 
 # STORY-103: Modbus Flow State + Transaction Correlation
