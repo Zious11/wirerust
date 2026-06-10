@@ -14,6 +14,49 @@ changes, invariant rewrites).
 
 ---
 
+## [1.6] — 2026-06-09
+
+### MINOR: Holdout Blemish-1 Fix — BC-2.14.019 Exception-Burst Recon 0x01/0x02 → T0888
+
+**Summary:** Holdout evaluation blemish-1 for Feature #7 v0.4.0 (Modbus TCP analyzer).
+The exception-burst anomaly detection for exception codes 0x01 (Illegal Function = FC scanning)
+and 0x02 (Illegal Data Address = register-map enumeration) was previously untagged
+(`mitre_techniques: vec![]`), citing "no clean single ICS indicator" per research §7.
+
+Orchestrator decision: both anomaly patterns ARE a form of Remote System Information Discovery
+(T0888, TA0102 Discovery) and now map to T0888, consistent with the established
+recon→T0888 mapping for FCs 0x11 and 0x2B/0x0E (BC-2.14.020, Decision 12):
+- Exception 0x01 (Illegal Function): FC scanning discovers which function codes the device
+  supports — exactly the query-device-capabilities behavior that T0888 covers.
+- Exception 0x02 (Illegal Data Address): register-map enumeration discovers the device's
+  address layout — exactly the query-device-address-space behavior that T0888 covers.
+
+Other exception codes (0x03, 0x04, 0x05, 0x06, etc.) and the Clear Counters 0x000A
+anti-forensic path retain `mitre_techniques: vec![]` (no clean ICS ATT&CK mapping).
+
+T0888 is already in the SS-14 emitted set (BC-2.14.020, BC-2.10.008 emitted-ID list,
+SEEDED_TECHNIQUE_ID_COUNT and EMITTED_IDS unchanged — this is not a catalog expansion).
+
+**Note for the record — holdout blemish-2 disposition:** Port-502 service label in
+summary (src/decoder.rs:112) was assessed as CORRECT-BY-DESIGN (standard IANA port-service
+hint, parallel to 443→HTTPS). Not a defect; no spec or code change.
+
+**Artifacts changed:**
+
+| Artifact | Version | Change |
+|----------|---------|--------|
+| BC-2.14.019 | v1.2 → v1.3 | Postcondition Path A: mitre_techniques for exception code 0x01 → vec!["T0888"]; exception code 0x02 → vec!["T0888"]; other codes retain vec![]. Research note updated. Canonical test vectors for 0x01/0x02 cases updated to show ["T0888"]. Traceability MITRE field updated. Path B (Clear Counters) unchanged. |
+
+**Impact:** MINOR. No BC semantics removed. Downstream stories targeting BC-2.14.019 Path A
+with exception codes 0x01 or 0x02 must update acceptance criteria to expect
+`mitre_techniques=["T0888"]` instead of `mitre_techniques=[]`. Clear Counters and other
+exception code paths are unaffected.
+
+**Emitted technique set:** Unchanged (T0888 was already emitted by BC-2.14.020). No change
+to `SEEDED_TECHNIQUE_ID_COUNT`, `EMITTED_IDS`, or BC-2.10.008.
+
+---
+
 ## [1.5] — 2026-06-09
 
 ### MINOR: F5 Combined-Delta Spec Defect Fixes — SS-14 Modbus v0.4.0

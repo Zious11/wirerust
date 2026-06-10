@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -20,6 +20,9 @@ modified:
   - version: "1.2"
     date: 2026-06-09
     change: "F5 spec defect fix: (1) timestamp units corrected microseconds→seconds to match the pipeline's timestamp_secs delivery (BC-2.09.007); window math now uses elapsed_secs = now_ts.wrapping_sub(start_ts) with expiry check elapsed_secs > 10 (not > 10_000_000). (2) source_ip postcondition Path A changed from flow_key.server_ip() (non-existent accessor) to Direction-resolved server/responder endpoint: exception responses are always ServerToClient; resolve server endpoint from flow_key lower_ip/upper_ip + direction. wrapping_sub retained for u32 second timestamps."
+  - version: "1.3"
+    date: 2026-06-09
+    change: "Holdout blemish-1 fix (Feature #7 v0.4.0): exception-burst recon for exception codes 0x01 (Illegal Function = FC scanning) and 0x02 (Illegal Data Address = register-map enumeration) now maps to T0888 Remote System Information Discovery, consistent with the established recon→T0888 mapping for FCs 0x11/0x2B (BC-2.14.020 Decision 12). Other exception codes and the Clear Counters 0x000A anti-forensic path retain mitre_techniques: vec![]. Postcondition Path A mitre_techniques updated for 0x01/0x02; research-note updated; canonical test vectors updated; Traceability MITRE field updated."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -83,9 +86,16 @@ Exception for FC >= 0x80).
      (response PDU is correlated to request via BC-2.14.011).
    - `evidence`: one entry — `"exception_fc=0x{fc:02X} exception_code=0x{ec:02X} window_count={n} original_fc=0x{orig_fc:02X}"` where
      `orig_fc` is the original request FC recovered via `fc & 0x7F` from the exception FC byte.
-   - `mitre_techniques: vec![]` (empty vec — exception burst scanning has no single clean ICS
-     ATT&CK ID per research §7 open-items note; Anomaly category is sufficient for forensic
-     flagging; per ADR-006 an empty Vec<String> replaces the old None sentinel).
+   - `mitre_techniques`:
+     - exception code 0x01: `vec!["T0888"]` — FC scanning discovers which function codes the
+       device supports; this is Remote System Information Discovery (T0888, TA0102 Discovery),
+       consistent with the recon FC 0x11/0x2B mapping (BC-2.14.020, Decision 12).
+     - exception code 0x02: `vec!["T0888"]` — register-map enumeration discovers the device's
+       address layout; this is Remote System Information Discovery (T0888, TA0102 Discovery),
+       consistent with the recon FC 0x11/0x2B mapping (BC-2.14.020, Decision 12).
+     - other exception codes (0x03, 0x04, 0x05, 0x06, etc.): `vec![]` (empty vec — no single
+       clean ICS ATT&CK ID; Anomaly category is sufficient for forensic flagging; per ADR-006
+       an empty Vec<String> replaces the old None sentinel).
    - `source_ip: Some(<server/responder endpoint>)` — the source of exception responses.
      Exception responses are always `Direction::ServerToClient`; `FlowKey` has no
      `server_ip()` accessor. Resolve the server endpoint from the `direction` arg and
@@ -106,9 +116,9 @@ Exception for FC >= 0x80).
    - `confidence: Confidence::Medium`
    - `summary`: `"Modbus anti-forensic: Clear Counters (0x08/0x000A) sent to unit {unit_id}"`
    - `evidence`: one entry — `"FC=0x08 SubFunc=0x000A TxnID={txn_id:#06X} UnitID={unit_id}"`.
-   - `mitre_techniques: vec![]` (empty vec — per research §7 open-items: "no clean single
-     ATT&CK-for-ICS technique ID" for Clear Counters; treat as Evasion/anti-forensic
-     indicator; per ADR-006 an empty Vec<String> replaces the old None sentinel).
+   - `mitre_techniques: vec![]` (empty vec — Clear Counters 0x000A is an anti-forensic
+     indicator with no single clean ICS ATT&CK technique ID; treat as Evasion indicator;
+     per ADR-006 an empty Vec<String> replaces the old None sentinel).
    - `source_ip: Some(<client/initiator endpoint>)` — resolved from `Direction::ClientToServer`
      and `flow_key.lower_ip()` / `flow_key.upper_ip()`. `FlowKey` has no `client_ip()`
      accessor; the client/initiator endpoint is determined from the `direction` arg.
@@ -182,8 +192,8 @@ Exception for FC >= 0x80).
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| 6 PDUs with FC=0x83 (exception for FC 0x03), exception_code=0x01, all within 8 seconds, UnitID=1, ServerToClient direction | After 6th PDU: count=6 > 5; Anomaly Finding{category=Anomaly, verdict=Inconclusive, confidence=Medium, summary="Modbus recon: 6 Illegal Function exceptions in window (unit 1) — possible FC scanning", mitre_techniques=vec![]}. The 5th PDU: count=5, no finding. | happy-path (FC scanning; 6th triggers) |
-| 6 PDUs with FC=0x83, exception_code=0x02, within 5 seconds | After 6th PDU: count=6 > 5; Anomaly Finding with register-map enumeration summary; mitre_techniques=vec![] | happy-path (address recon; 6th triggers) |
+| 6 PDUs with FC=0x83 (exception for FC 0x03), exception_code=0x01, all within 8 seconds, UnitID=1, ServerToClient direction | After 6th PDU: count=6 > 5; Anomaly Finding{category=Anomaly, verdict=Inconclusive, confidence=Medium, summary="Modbus recon: 6 Illegal Function exceptions in window (unit 1) — possible FC scanning", mitre_techniques=vec!["T0888"]}. The 5th PDU: count=5, no finding. | happy-path (FC scanning; 6th triggers) |
+| 6 PDUs with FC=0x83, exception_code=0x02, within 5 seconds | After 6th PDU: count=6 > 5; Anomaly Finding with register-map enumeration summary; mitre_techniques=vec!["T0888"] | happy-path (address recon; 6th triggers) |
 | ADU: `00 01 00 00 00 06 01 08 00 0A 00 00` (FC=0x08, SubFunc=0x000A Clear Counters, UnitID=1) — ClientToServer | Anomaly Finding{summary="Modbus anti-forensic: Clear Counters (0x08/0x000A) sent to unit 1", mitre_techniques=vec![]} | happy-path (Clear Counters) |
 | 5 exception_code=0x01 responses then 1 more after 11 seconds (window expired) | 6th exception starts new window (count=1); no finding (threshold not met in new window) | edge-case (window expiry) |
 | 4 exception_code=0x01 + 4 exception_code=0x02 (8 total exceptions, 4 each) | No finding (each code tracked independently; neither exceeds threshold=5) | edge-case (mixed codes) |
@@ -204,7 +214,7 @@ Exception for FC >= 0x80).
 | Architecture Module | SS-14 (analyzer/modbus.rs, C-22; ModbusFlowState exception_window_counts) |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-007-modbus-analyzer |
-| MITRE Technique | None (exception burst scanning/recon; Clear Counters anti-forensic: no single ICS ATT&CK ID per research §7) |
+| MITRE Technique | T0888 (exception codes 0x01 FC-scanning and 0x02 address-map enumeration); vec![] for other exception codes and Clear Counters 0x000A. FC-scanning (0x01) and address-map enumeration (0x02) map to T0888 Remote System Information Discovery, consistent with the recon FC mapping (BC-2.14.020 Decision 12); other exception codes remain untagged Anomalies. |
 
 ## Related BCs
 
