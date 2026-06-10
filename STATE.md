@@ -4,7 +4,7 @@ phase: feature-f7
 active_feature: null
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-10T05:12:40Z
+timestamp: 2026-06-10T18:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -71,7 +71,7 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post D-045 blemish-1 fix; STORY-
 | Feature #7 F5/F6/F7 — Hardening + Convergence | **F7 CONVERGED** 2026-06-09 | F5 CRITICAL timestamp-units (PR #215); F6 Kani 5/5 + fuzz 3.7M/0 + mutation 100% + audit clean (PR #216); F7 e2e + mod-wrappers (PR #217, 70abc27). Consistency 5-shadow sweep FIXED. 1338 tests. Holdout 0.967. D-044 |
 | Release — v0.4.0 | **RELEASED** 2026-06-10 | gitflow-proper: release/0.4.0 → PR #219 → main merge 90aa91e; annotated tag v0.4.0; 4 binaries; run 27254720396; GitHub Release published 2026-06-10T05:12:40Z; Feature #7 COMPLETE + issue #7 CLOSED; main back-merged to develop (8e38041). D-046 |
 
-## Session Resume Checkpoint (2026-06-10 — SESSION-CLEAR — v0.4.0 RELEASED — Pipeline IDLE)
+## Session Resume Checkpoint (2026-06-10 — SESSION-CLEAR — v0.4.0 RELEASED — Pipeline IDLE — PCAP-CORPUS-001 TABLED)
 
 **POSITION:** wirerust v0.4.0 RELEASED (D-046). Feature #7 (Modbus TCP analyzer, issue #7) COMPLETE AND CLOSED. Pipeline IDLE — no in-flight feature work. develop HEAD `8e38041` == main HEAD `90aa91e` (branches in sync post back-merge). Next feature is TBD; pick a roadmap item.
 
@@ -112,6 +112,7 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post D-045 blemish-1 fix; STORY-
 - CC-001..CC-004: process-gap codification deferred (DF-SIBLING-SWEEP extension, VP-lock checklist, PROCESS-ARITHMETIC-REVIEW-001, F5 dispatcher-boundary test gap)
 - Sub-second rate precision: deferred (needs timestamp_usecs threaded through on_data)
 - Terminal per-ID multi-unknown name resolution (BC-2.11.017): deferred
+- PCAP-CORPUS-001 (TABLED 2026-06-10): E2E pcap test-corpus storage backend decision. Design complete: `test-pcaps` orphan-branch as control plane (MANIFEST.yaml per-pcap metadata + fetch.sh + run-corpus.sh; tiered smoke/full; sha256-keyed caching). 4SICS ICS-lab captures (4SICS-GeekLounge-151020/151021/151022, 25/134/200 MB) validated v0.4.0 Modbus analyzer (1.55M pps, deterministic, parse_errors 230/2.25M, DoS cap engaged). Backend options: GitHub Releases REJECTED (2 GiB/file cap, 1000-asset limit), Git LFS REJECTED (cost/quota), Google Drive public REJECTED (daily quota lockout in CI), Drive service-account VIABLE (reuse 5 TB, Drive API bypasses interstitial, needs free GCP project + SA JSON secret), Cloudflare R2 RECOMMENDED for 100s GB ($0.015/GB-mo, zero egress), Backblaze B2 cheapest ($0.006/GB-mo + free via Cloudflare CDN). PENDING: human to pick R2/B2 vs Drive-SA. Also: issue #220 filed (cosmetic Modbus write-burst "0s window" display bug, src/analyzer/modbus.rs L608/L615). Untracked in develop working tree: tests/fixtures/mk_modbus_large_pcap.py + tests/fixtures/modbus-large.pcap — disposition TBD alongside corpus decision.
 
 **INPUT-HASH DRIFT (verified 2026-06-10):** MATCH=57 STALE=0 ERROR=1 (STORY-091 pre-existing no-inputs; known).
 
@@ -159,6 +160,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | RUSTSEC-2026-0097 | rand 0.8.5 unsound (transitive via tls-parser→phf 0.11); upstream-only fix path | ACCEPTED-TRANSITIVE — revisit when tls-parser bumps phf→0.12+ |
 | FE-001 | pcapng input format not supported (.pcap-only) — v2 idea; see tech-debt-register.md | deferred / v2 / not-filed |
 | ACTION-PIN-001 | dtolnay/rust-toolchain @stable and @nightly remain branch-ref — intentionally exempt in the Action pin gate (toolchain installer, channel-selected). | OPEN P3 — low priority |
+| PCAP-CORPUS-001 | E2E pcap test-corpus storage backend (R2/B2 vs Drive-SA) — design ready, orphan-branch `test-pcaps` control plane (MANIFEST.yaml + fetch.sh + tiered runner); 100s of GB expected. 4SICS ICS-lab captures validated v0.4.0 (1.55M pps, 0 crashes). Backend decision pending human choice. | TABLED — human decision pending (2026-06-10) |
 
 ## Cycle-Close Follow-Up Items
 
