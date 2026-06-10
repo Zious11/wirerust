@@ -4,6 +4,11 @@ traces_to: domain-spec.md
 title: Known Limitations and Domain Debt
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
+version: "1.1"
+modified:
+  - date: 2026-06-10
+    actor: architect
+    reason: "O-04 staged IDs: remove T0855 (now T1692.001, emitted) and T0856 (now T1692.002, still staged); update staged list and catalog count to reflect F2 Modbus expansion (issue #222)."
 ---
 
 # Known Limitations / Domain Debt
@@ -95,13 +100,18 @@ advisory rather than load-bearing. Research flagged as sound but not yet impleme
 **References:** LESSON-P2.05; config.rs doc comments; STATE.md drift items 1 and 2.
 
 
-### O-04: 9 MITRE Techniques Catalogued but Never Emitted (documentation debt)
+### O-04: 8 MITRE Techniques Catalogued but Never Emitted (documentation debt)
 
-**What exists:** `technique_info` in mitre.rs contains 15 IDs; 9 are never referenced by
-any current analyzer. The mitre.rs doc comment now says "staged for future analyzers"
-(P3.04, #89). No analyzer wiring was added.
+**What exists:** `technique_info` in mitre.rs contains 21 IDs (15 brownfield + 6 Modbus ICS
+techniques added in Feature #7); 8 are never referenced by any current analyzer. The mitre.rs
+doc comment now says "staged for future analyzers" (P3.04, #89). No analyzer wiring was added
+for these 8 IDs.
 
-**Staged IDs:** T1040, T1071, T1071.001, T1071.004, T1573, T0846, T0855, T0856, T0885.
+**Staged IDs:** T1040, T1071, T1071.001, T1071.004, T1573, T0846, T1692.002, T0885.
+
+Note: T1692.001 (formerly T0855, revoked in ATT&CK-ICS v19) IS actively emitted by the Modbus
+analyzer (Feature #7) and is NOT in this staged list. T1692.002 (formerly T0856) remains
+catalogued-only and stays in this list.
 
 **References:** LESSON-P3.04; mitre.rs doc comment; CAP-10.
 

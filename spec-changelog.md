@@ -46,9 +46,43 @@ scope for this burst; those are handled by implementer/story-writer in subsequen
 - SS-09 (Finding model): BC-2.09.001 v1.5, BC-2.09.006 v1.6
 
 **Other artifacts updated:**
-- BC-INDEX.md: titles and group notes for BC-2.14.013/.014/.015/.016/.017 and BC-2.11.017
+
+*Spec/architecture:*
+- BC-INDEX.md: T0855 → T1692.001 in title/group notes for affected BCs
 - prd.md: version bumped to 1.4; all live body T0855 references updated to T1692.001;
   version 1.4 delta note added
+- VP-007: technique-ID regex updated to accept `T\d{4}\.\d{3}` sub-technique format
+- verification-architecture.md: VP-007 entry updated for sub-technique format
+- verification-coverage-matrix.md: T0855 → T1692.001 in coverage rows
+- module-decomposition.md: C-22 (Modbus analyzer) technique-ID references updated
+- cap-10-mitre-mapping.md: T0855 → T1692.001, T0856 → T1692.002 rows updated
+- domain-debt.md: O-04 note updated to reflect T0855 status as T1692.001 (revoked parent)
+- ADR-005: historical T0855 reference annotated as revoked → T1692.001
+- ADR-006: historical T0855 reference annotated as revoked → T1692.001
+
+*Stories:*
+- STORY-071: BC table and acceptance criteria updated for T0855 → T1692.001
+- STORY-078: BC table and acceptance criteria updated for T0855 → T1692.001
+- STORY-079: BC table and acceptance criteria updated for T0855 → T1692.001
+- STORY-100: BC table and acceptance criteria updated for T0855 → T1692.001
+- STORY-101: BC table and acceptance criteria updated for T0855 → T1692.001
+- STORY-104: BC table and acceptance criteria updated for T0855 → T1692.001
+
+*Wave/holdout:*
+- wave-31-holdout.md: expected MITRE output updated to T1692.001
+- wave-32-34-holdout.md: expected MITRE output updated to T1692.001
+
+*Code (branch fix/mitre-ics-v19-remap — separate burst):*
+- src/mitre.rs: T0855 → T1692.001, T0856 → T1692.002 catalog entries
+- src/analyzer/modbus.rs: technique-ID string literals updated
+- src/cli.rs: help-text / validation references updated
+- src/reporter/json.rs: technique-ID output updated
+- src/reporter/terminal.rs: technique-ID display updated
+- src/findings.rs: technique-ID constants/defaults updated
+- CHANGELOG.md: v19 remap entry added
+- tests/: golden output fixtures and assertion strings updated
+
+*Meta:*
 - spec-changelog.md: this entry
 
 **Historical references intentionally preserved (not updated):**

@@ -3,6 +3,10 @@ document_type: adr
 adr_id: ADR-005
 status: proposed
 date: 2026-06-09
+modified:
+  - date: 2026-06-10
+    actor: architect
+    reason: "MITRE ATT&CK-ICS v19 remap: T0855→T1692.001 in all live spec body references (issue #222)."
 subsystems_affected:
   - SS-05
   - SS-10
@@ -73,7 +77,7 @@ technique IDs (T1xxx namespace). Modbus findings map to MITRE ATT&CK for ICS, wh
 distinct matrix with its own technique namespace (`T0xxx`, e.g., T0836 "Modify Parameter").
 The two matrices use different tactic taxonomies; for example, "Impair Process Control" exists
 only in the ICS matrix. `mitre.rs` already carries `MitreTactic::IcsImpairProcessControl` and
-seeds T0855/T0856/T0846/T0885 in `SEEDED_TECHNIQUE_IDS`, establishing a precedent for ICS
+seeds T1692.001/T1692.002/T0846/T0885 in `SEEDED_TECHNIQUE_IDS`, establishing a precedent for ICS
 techniques. However, the codebase has no formal representation of which matrix a technique ID
 belongs to, and the Kani proof in `kani_proofs::EMITTED_IDS` does not yet include any ICS
 technique as emitted. This ADR extends the catalog with T0836, T0814, T0806, T0835, T0831,
@@ -117,9 +121,9 @@ We will integrate Modbus TCP analysis via four coordinated decisions:
    **Write-burst detection uses a DUAL-window model** (corrects the prior single-window
    description): `--modbus-write-burst-threshold` (default 20) and
    `--modbus-write-sustained-threshold` (default 10) implement two independent detectors:
-   - *Burst detector:* fires T0806 + T0855 when a 1-second window sees >N write FCs. One
+   - *Burst detector:* fires T0806 + T1692.001 when a 1-second window sees >N write FCs. One
      finding per window overflow (`window_burst_emitted` guard). `WRITE_BURST_WINDOW_SECS = 1`.
-   - *Sustained detector:* fires T0806 + T0855 when a ≥2-second rolling window has average
+   - *Sustained detector:* fires T0806 + T1692.001 when a ≥2-second rolling window has average
      rate > M/s. One finding per window overflow (`sustained_burst_emitted` guard).
      `WRITE_SUSTAINED_WINDOW_SECS = 2`. Detection math:
      `sustained_window_write_count > write_sustained_threshold * elapsed_secs`.
@@ -134,9 +138,9 @@ We will integrate Modbus TCP analysis via four coordinated decisions:
    are ICS; IDs matching `T[1-9][0-9]{3}` or `T[1-9][0-9]{3}\.[0-9]{3}` are Enterprise.
    The `technique_info` match arm for each ICS technique returns the ICS tactic.
    The `EMITTED_IDS` array in the VP-007 Kani `kani_proofs` module gains seven Modbus-emitted
-   ICS IDs: T0855, T0836, T0814, T0806, T0835, T0831, **T0888**. (T0846 is NOT emitted —
+   ICS IDs: T1692.001, T0836, T0814, T0806, T0835, T0831, **T0888**. (T0846 is NOT emitted —
    see below.) `SEEDED_TECHNIQUE_IDS` gains T0836, T0814, T0806, T0835, T0831, and T0888
-   (T0855 and T0846 are already seeded). `SEEDED_TECHNIQUE_ID_COUNT` advances from **15 to 21**
+   (T1692.001 and T0846 are already seeded). `SEEDED_TECHNIQUE_ID_COUNT` advances from **15 to 21**
    (not 20 — T0888 is newly seeded; 11 Enterprise + 10 ICS total).
 
    **T0846 → T0888 correctness fix (Decision 12):** Recon FCs 0x11 (Report Server ID) and
@@ -199,7 +203,7 @@ What this decision causes downstream. Use sub-headings:
 
 - Modbus TCP flows on port 502 are correctly routed and analyzed, enabling ICS/OT threat
   detection for all seven MITRE ATT&CK for ICS techniques emitted in scope:
-  T0855, T0836, T0814, T0806, T0835, T0831, **T0888** (corrected from T0846 per Decision 12).
+  T1692.001, T0836, T0814, T0806, T0835, T0831, **T0888** (corrected from T0846 per Decision 12).
 - The three-point validity gate prevents Modbus findings from being emitted on non-Modbus
   binary traffic that happens to use port 502, keeping false-positive rates low.
 - Full transaction correlation enables pattern-based detections (write-burst attribution,
@@ -279,7 +283,7 @@ stories for `dispatcher.rs` and `mitre.rs` respectively.
 - **Modbus wire format:** Modbus.org MODBUS Application Protocol Specification V1.1b3 (§4.2,
   §6), Modbus.org MODBUS Messaging on TCP/IP Implementation Guide V1.0b §3.1.3. Reproduced
   in `.factory/research/modbus-tcp-research.md` §1–§4.
-- **MITRE ATT&CK for ICS techniques:** MITRE ATT&CK for ICS matrix (T0855, T0836, T0814,
+- **MITRE ATT&CK for ICS techniques:** MITRE ATT&CK for ICS matrix (T1692.001, T0836, T0814,
   T0806, T0835, T0831). Verified in `.factory/research/modbus-tcp-research.md` §5–§6.
 - **Port-only classification precedent:** ADR-0001 (`docs/adr/0001-content-first-stream-dispatch.md`)
   §Rationale — extensibility note; `src/dispatcher.rs` `classify()` function (~line 114) and
@@ -287,6 +291,6 @@ stories for `dispatcher.rs` and `mitre.rs` respectively.
   §6 "ADR-REQUIRED: ICS/OT Binary Protocol Integration Pattern".
 - **Transaction-correlation mandate:** F2 scope approval (user-confirmed): "FULL transaction
   correlation (per-connection Transaction-ID+Unit-ID+FC table)".
-- **ICS matrix representation gap:** `src/mitre.rs` lines 191–198 (`EMITTED_IDS` — T0855
+- **ICS matrix representation gap:** `src/mitre.rs` lines 191–198 (`EMITTED_IDS` — T1692.001
   missing from emitted set), confirmed in `.factory/phase-f1-delta-analysis/delta-analysis.md`
   §8.

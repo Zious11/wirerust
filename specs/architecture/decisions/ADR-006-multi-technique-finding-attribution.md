@@ -3,6 +3,10 @@ document_type: adr
 adr_id: ADR-006
 status: proposed
 date: 2026-06-09
+modified:
+  - date: 2026-06-10
+    actor: architect
+    reason: "MITRE ATT&CK-ICS v19 remap: T0855→T1692.001 (Unauthorized Message: Command Message) in all live spec body references (issue #222)."
 subsystems_affected:
   - SS-09
   - SS-10
@@ -28,17 +32,17 @@ technique (e.g., T1083 path traversal, T1027 SNI obfuscation).
 Feature #7 (Modbus TCP analyzer) introduces detections where a single observable event maps
 to multiple co-applicable MITRE ATT&CK for ICS techniques simultaneously:
 
-- A Modbus register write (FC 0x06) is simultaneously T0855 (Unauthorized Command Message —
+- A Modbus register write (FC 0x06) is simultaneously T1692.001 (Unauthorized Message: Command Message —
   any unsanctioned write) AND T0836 (Modify Parameter — specifically a holding-register write
   modifying a process setpoint or configuration value).
-- A Modbus coil write (FC 0x05) is simultaneously T0855 AND T0835 (Manipulate I/O Image —
+- A Modbus coil write (FC 0x05) is simultaneously T1692.001 AND T0835 (Manipulate I/O Image —
   specifically a digital output coil).
 - A write burst exceeding the configured threshold is simultaneously T0806 (Brute Force I/O)
-  AND T0855 (Unauthorized Command Message at the burst level).
+  AND T1692.001 (Unauthorized Message: Command Message at the burst level).
 
 The original F2 spec (v1.0 Decision 7) handled this by a "cap to most-specific" rule: for
-register writes, emit T0836 and suppress T0835; always emit T0855 as a second separate
-finding. This approach controlled finding volume by discarding technique co-attribution — a
+register writes, emit T0836 and suppress T0835; always emit T1692.001 (formerly T0855 prior to
+ATT&CK-ICS v19) as a second separate finding. This approach controlled finding volume by discarding technique co-attribution — a
 mechanistic tradeoff that produced 2–5 findings per PDU while losing analyst-relevant signal.
 
 A research review of detection-engineering standards confirms the industry-standard model is
@@ -67,12 +71,12 @@ The decision encompasses four coordinated sub-decisions:
 annotated `#[serde(skip_serializing_if = "Vec::is_empty")]`. The JSON key changes from
 `"mitre_technique"` (string) to `"mitre_techniques"` (array). An empty vec produces no key
 in the JSON output (same behavior as the prior `None` case). A single-element vec produces
-`"mitre_techniques": ["T1027"]`. A multi-element vec produces `"mitre_techniques": ["T0855", "T0836"]`.
+`"mitre_techniques": ["T1027"]`. A multi-element vec produces `"mitre_techniques": ["T1692.001", "T0836"]`.
 
 ### Sub-decision 2: CSV column rename and join format
 
 CSV column 6 is renamed from `mitre_technique` to `mitre_techniques`. Multiple techniques
-are serialized as a semicolon-joined string with no spaces: `"T0855;T0836"`. An empty vec
+are serialized as a semicolon-joined string with no spaces: `"T1692.001;T0836"`. An empty vec
 produces an empty string (unchanged from the prior `None` case). Column count remains 9.
 
 **CSV writer delimiter requirement:** The CSV writer MUST be explicitly configured with a
@@ -80,15 +84,15 @@ produces an empty string (unchanged from the prior `None` case). Column count re
 implementation must not rely on any global or locale setting that might produce a different
 delimiter. The semicolon join character is an intra-cell separator within column 6; it MUST
 NOT conflict with the row-level field delimiter. Using a comma field delimiter ensures that
-a cell value of `"T0855;T0836"` is emitted as a single quoted or unquoted column without
+a cell value of `"T1692.001;T0836"` is emitted as a single quoted or unquoted column without
 the semicolons being misinterpreted as field boundaries.
 
 ### Sub-decision 3: One-finding-per-event with co-attribution (volume control via aggregation)
 
 For Modbus write-class events:
 - One finding per write-class PDU carrying ALL applicable technique tags (e.g.,
-  `["T0855", "T0836"]` for register writes, `["T0855", "T0835"]` for coil writes).
-- One aggregated burst finding per burst event (`["T0806", "T0855"]`) — fired at most once
+  `["T1692.001", "T0836"]` for register writes, `["T1692.001", "T0835"]` for coil writes).
+- One aggregated burst finding per burst event (`["T0806", "T1692.001"]`) — fired at most once
   per 1-second burst-window overflow and at most once per >=2-second sustained-window overflow.
   This is the volume-control mechanism (Elastic/Suricata/Splunk "one representative alert per
   time period" pattern) that replaces the prior tag-suppression approach.
@@ -100,7 +104,7 @@ site MUST construct `mitre_techniques` in the following fixed precedence order, 
 of runtime evaluation order:
 
 1. **T0806** — Brute Force I/O (burst/rate-level technique; only present on burst findings)
-2. **T0855** — Unauthorized Command Message (always present on write-class and burst findings)
+2. **T1692.001** — Unauthorized Message: Command Message (always present on write-class and burst findings)
 3. **T0836** — Modify Parameter (register writes: FC {0x06, 0x10, 0x16})
 4. **T0835** — Manipulate I/O Image (coil writes: FC {0x05, 0x0F})
 5. **T0831** — Manipulation of Control (inline co-tag on the triggering holding-register write)
@@ -111,11 +115,11 @@ of runtime evaluation order:
 
 | Event | `mitre_techniques` |
 |-------|--------------------|
-| Register write (normal) | `["T0855", "T0836"]` |
-| Register write (T0831 co-tag fires) | `["T0855", "T0836", "T0831"]` |
-| Coil write | `["T0855", "T0835"]` |
-| Other write FC (0x15, 0x17) | `["T0855"]` |
-| Burst or sustained rate exceeded | `["T0806", "T0855"]` |
+| Register write (normal) | `["T1692.001", "T0836"]` |
+| Register write (T0831 co-tag fires) | `["T1692.001", "T0836", "T0831"]` |
+| Coil write | `["T1692.001", "T0835"]` |
+| Other write FC (0x15, 0x17) | `["T1692.001"]` |
+| Burst or sustained rate exceeded | `["T0806", "T1692.001"]` |
 | Diagnostic sub-func 0x0001 or 0x0004 | `["T0814"]` |
 | Recon FC (0x11, 0x2B/0x0E) | `["T0888"]` |
 
@@ -150,23 +154,23 @@ The industry consensus surveyed in `.factory/research/modbus-f2-design-decisions
 (Decision 3) is unambiguous: one observable → one alert → N technique tags is the
 Sigma/Elastic-aligned standard. Separate single-technique findings from the same event
 produce correlated alerts that an analyst must manually deduplicate to understand the
-scope of the event. Multi-tag single findings preserve provenance (both T0855 and T0836
+scope of the event. Multi-tag single findings preserve provenance (both T1692.001 and T0836
 are visible on the same event) without requiring deduplication logic downstream.
 
 Additionally, separate findings amplify finding count proportional to the number of
 co-applicable techniques. In a Modbus write flood (e.g., 500 writes in 5 seconds), the v1.0
-model would produce 1000+ findings (2 per write), of which the T0855 entries are redundant
+model would produce 1000+ findings (2 per write), of which the T1692.001 entries are redundant
 with the T0836 entries. The multi-tag model produces 500 findings (one per write), reducing
 MAX_FINDINGS pressure while preserving full attribution.
 
 ### Why not cap to most-specific technique?
 
-Capping to the most specific technique (T0836 > T0835 > T0855) discards the information
-that T0855 applies. An analyst investigating an ICS incident genuinely needs to see both
-"this is an unauthorized command" (T0855, process-control tactic) AND "this specifically
-modifies a parameter" (T0836). Suppressing T0855 removes the broader context; suppressing
-T0836 removes the specificity. Neither form of suppression is information-preserving. The
-multi-tag model retains both.
+Capping to the most specific technique (T0836 > T0835 > T1692.001) discards the information
+that T1692.001 applies. An analyst investigating an ICS incident genuinely needs to see both
+"this is an unauthorized command message" (T1692.001, ICS Impair Process Control tactic) AND
+"this specifically modifies a parameter" (T0836). Suppressing T1692.001 removes the broader
+context; suppressing T0836 removes the specificity. Neither form of suppression is
+information-preserving. The multi-tag model retains both.
 
 ### Why is this a breaking change (v0.3.0)?
 
@@ -225,12 +229,13 @@ limitation of the Finding type.
   product-owner MUST specify the multi-techniques tactic-grouping rule as "`mitre_techniques[0]`
   is the bucket key; empty vec → Uncategorized."
 - The `technique_info` display for multi-tag findings requires a renderer decision: show all
-  IDs (`"MITRE: T0855, T0836"`), show first only, or show all with names. Decision: show all
+  IDs (`"MITRE: T1692.001, T0836"`), show first only, or show all with names. Decision: show all
   IDs separated by `, ` in the default inline display; the MITRE grouping expanded view
   (BC-2.11.016) shows name+em-dash for each. This is a cosmetic change to terminal output.
 - The CSV writer MUST be explicitly configured with a comma field delimiter (see Sub-decision 2);
   relying on a locale-default or implicit delimiter risks semicolons in multi-tag cells being
-  misread as field separators in non-RFC-4180-compliant consumers.
+  misread as field separators in non-RFC-4180-compliant consumers. (Example cell value:
+  `"T1692.001;T0836"` — the semicolon is an intra-cell separator, not a field delimiter.)
 
 ### Impact Boundary vs F1
 

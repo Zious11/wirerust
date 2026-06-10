@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-071
 epic_id: E-7
-version: "1.6"
+version: "1.8"
 status: completed
 producer: story-writer
 timestamp: 2026-06-08T00:00:00Z
@@ -55,7 +55,7 @@ implementation_strategy: brownfield-formalization
 
 ## Narrative
 - **As a** SOC operator using `--mitre` grouped output
-- **I want** all 16 MITRE ATT&CK tactic variants (14 Enterprise + 2 ICS) to render with canonical display names, appear once each in kill-chain order via `all_tactics_in_report_order`, and have all 15 seeded technique IDs resolve correctly while unknown IDs return None
+- **I want** all 16 MITRE ATT&CK tactic variants (14 Enterprise + 2 ICS) to render with canonical display names, appear once each in kill-chain order via `all_tactics_in_report_order`, and have all 21 seeded technique IDs resolve correctly while unknown IDs return None
 - **So that** the terminal reporter can group findings under correct tactic headers and SIEM consumers can verify technique-to-tactic mapping integrity
 
 ## Behavioral Contracts
@@ -66,7 +66,7 @@ implementation_strategy: brownfield-formalization
 | BC-2.10.002 | ICS Tactics Render Unprefixed |
 | BC-2.10.003 | all_tactics_in_report_order Returns Kill-Chain Order First Then ICS |
 | BC-2.10.004 | all_tactics_in_report_order Contains Every Variant Exactly Once |
-| BC-2.10.005 | technique_name Returns Some for Every Seeded ID (15 Total) |
+| BC-2.10.005 | technique_name Returns Some for Every Seeded ID (21 Total) |
 | BC-2.10.006 | technique_name Returns None for Unknown IDs |
 | BC-2.10.007 | technique_tactic Returns Correct Tactic for Every Seeded ID |
 | BC-2.10.008 | All Emitted Technique IDs Resolve in Lookup |
@@ -113,11 +113,13 @@ No variant is omitted — all 16 variants appear in the slice (checked by compar
 
 ### AC-010 (traces to BC-2.10.005 postcondition 1)
 `technique_name("T1027")` returns `Some("Obfuscated Files or Information")`.
-- **Test:** `test_technique_name_resolves_all_15_seeded_ids()`
+- **Test:** `test_technique_name_resolves_all_21_seeded_ids()`
 
 ### AC-011 (traces to BC-2.10.005 postcondition 1)
-All 15 seeded technique IDs resolve to `Some(name)`: T1027, T1036, T1040, T1046, T1071, T1071.001, T1071.004, T1083, T1499.002, T1505.003, T1573, T0846, T1692.001, T1692.002, T0885.
-- **Test:** `test_technique_name_resolves_all_15_seeded_ids()` (exhaustive)
+All **21** seeded technique IDs resolve to `Some(name)`:
+- Enterprise (11): T1027, T1036, T1040, T1046, T1071, T1071.001, T1071.004, T1083, T1499.002, T1505.003, T1573
+- ICS (10): T0846, T1692.001, T1692.002, T0885, T0836, T0814, T0806, T0835, T0831, T0888
+- **Test:** `test_technique_name_resolves_all_21_seeded_ids()` (exhaustive)
 
 ### AC-012 (traces to BC-2.10.006 postcondition 1)
 `technique_name("T9999")`, `technique_name("")`, and `technique_name("t1027")` (lowercase) all return `None`.
@@ -128,11 +130,15 @@ All 15 seeded technique IDs resolve to `Some(name)`: T1027, T1036, T1040, T1046,
 - **Test:** `test_technique_tactic_correct_assignments()`
 
 ### AC-014 (traces to BC-2.10.007 postcondition 2)
-All 15 seeded technique-to-tactic assignments are correct (e.g., `T1046` => `Discovery`, `T1499.002` => `Impact`, `T0885` => `CommandAndControl`).
+All 21 seeded technique-to-tactic assignments are correct:
+- Enterprise (11): `T1027` => `DefenseEvasion`, `T1036` => `DefenseEvasion`, `T1040` => `CredentialAccess`, `T1046` => `Discovery`, `T1071` => `CommandAndControl`, `T1071.001` => `CommandAndControl`, `T1071.004` => `CommandAndControl`, `T1083` => `Discovery`, `T1499.002` => `Impact`, `T1505.003` => `Persistence`, `T1573` => `CommandAndControl`
+- ICS (10): `T0846` => `Discovery`, `T1692.001` => `IcsImpairProcessControl`, `T1692.002` => `IcsImpairProcessControl`, `T0885` => `CommandAndControl`, `T0836` => `IcsImpairProcessControl`, `T0814` => `IcsInhibitResponseFunction`, `T0806` => `IcsImpairProcessControl`, `T0835` => `IcsImpairProcessControl`, `T0831` => `IcsImpairProcessControl`, `T0888` => `Discovery`
 - **Test:** `test_technique_tactic_correct_assignments()` (exhaustive)
 
 ### AC-015 (traces to BC-2.10.008 postcondition 1)
-All 6 currently-emitted technique IDs (T1027, T1036, T1046, T1083, T1499.002, T1505.003) resolve to `Some(...)` from both `technique_name` and `technique_tactic`.
+All **13** currently-emitted technique IDs resolve to `Some(...)` from both `technique_name` and `technique_tactic`:
+- Enterprise (6): T1027, T1036, T1046, T1083, T1499.002, T1505.003
+- ICS (7): T1692.001, T0836, T0814, T0806, T0835, T0831, T0888
 - **Test:** `test_all_emitted_ids_resolve()`
 
 ### AC-016 (traces to BC-2.10.009 postcondition 1)
@@ -185,9 +191,9 @@ All 6 currently-emitted technique IDs (T1027, T1036, T1046, T1083, T1499.002, T1
 3. [ ] Define `MitreTactic` enum with all 16 variants + `#[non_exhaustive]`
 4. [ ] Implement `fmt::Display for MitreTactic` with all 14 Enterprise + 2 ICS canonical strings
 5. [ ] Implement `all_tactics_in_report_order()` returning `&'static [MitreTactic]` of length 16 in kill-chain order
-6. [ ] Implement `technique_info(id: &str)` static match table with all 15 seeded entries returning `(name, tactic)` pairs
+6. [ ] Implement `technique_info(id: &str)` static match table with all 21 seeded entries returning `(name, tactic)` pairs
 7. [ ] Implement `technique_name(id)` and `technique_tactic(id)` as thin projections over `technique_info`
-8. [ ] Verify the technique catalog count is exactly 15 (not 16 — pass-8 correction)
+8. [ ] Verify the technique catalog count is exactly 21 (post-F2 + v19 remap; 11 Enterprise + 10 ICS)
 9. [ ] Write edge-case tests for EC-001 through EC-005
 10. [ ] Run `cargo test --all-targets` and `cargo clippy -- -D warnings`
 
@@ -195,14 +201,14 @@ All 6 currently-emitted technique IDs (T1027, T1036, T1046, T1083, T1499.002, T1
 
 | Story | Key Decisions | Patterns Established | Gotchas Discovered |
 |-------|--------------|---------------------|-------------------|
-| STORY-069 | `Finding.mitre_technique: Option<String>` — String technique ID | Technique IDs are plain strings (e.g., `"T1027"`), not typed | Catalog count is 15, NOT 16 (pass-8 correction of pass-6 claim) |
+| STORY-069 | `Finding.mitre_technique: Option<String>` — String technique ID | Technique IDs are plain strings (e.g., `"T1027"`), not typed | Catalog count is 21 post-F2 (11 Enterprise + 10 ICS); was 15 pre-F2, was corrected from 16 at pass-8) |
 | STORY-070 | Finding JSON serialization established | None fields absent from JSON | — |
 
 ## Architecture Compliance Rules (MANDATORY)
 
 | Rule | Source | Enforcement |
 |------|--------|-------------|
-| Technique catalog count is exactly 15 (not 16) | BC-2.10.005 invariant 3 | Count seeded entries in match table; test `technique_name` resolves exactly 15 |
+| Technique catalog count is exactly 21 (11 Enterprise + 10 ICS; post-F2 + v19 remap) | BC-2.10.005 invariant 3 | Count seeded entries in match table; test `technique_name` resolves exactly 21 |
 | `all_tactics_in_report_order` length is always 16 | BC-2.10.003 invariant 2 | Test: `assert_eq!(all_tactics_in_report_order().len(), 16)` |
 | `#[non_exhaustive]` on `MitreTactic` enum | BC-2.10.009 postcondition 1 | Grep: `grep '#\[non_exhaustive\]' src/mitre.rs` |
 | `"Command and Control"` uses lowercase "and" | BC-2.10.001 invariant 3 | Test: exact string equality `"Command and Control"` |
@@ -231,3 +237,5 @@ All 6 currently-emitted technique IDs (T1027, T1036, T1046, T1083, T1499.002, T1
 | 1.4 | 2026-05-22 | story-writer | Wave 3 wave-level adversarial fix F-2: status advanced draft → completed — STORY-071 delivered via PR #113, merge 991e821 |
 | 1.3 | 2026-05-22 | story-writer | Wave 3 Ph3 pass-1 adversarial fixes: m-2 AC-008 trace postcondition 1→2; m-3 AC-009 trace postconditions 1,3 + joint-coverage note; m-5 technique_name line anchor :160-162; n-1 AC-002 test reference to standalone function; n-2 Task 2 count 16→19 |
 | 1.6 | 2026-06-09 | story-writer | UPDATED (Feature #7 migration note): STORY-071 covers MITRE catalog lookup and `all_tactics_in_report_order`. STORY-100 (v0.3.0) seeds 6 new ICS technique arms (T0836, T0814, T0806, T0835, T0831, T0888) into `technique_info` and updates `SEEDED_TECHNIQUE_ID_COUNT` from 15 to 21. Test assertions in the STORY-071 scope that check seeded-ID count or enumerate seeded IDs are updated by STORY-100 to reflect 21 IDs. The `mitre_technique: Option<String>` → `mitre_techniques: Vec<String>` field rename does not change the MITRE lookup API (technique_name/technique_tactic remain unchanged); only the VP-007 drift-guard grep pattern changes from `mitre_technique: Some` to `mitre_techniques: vec!`. Story status remains `completed`; no re-implementation required. |
+| 1.7 | 2026-06-10 | story-writer | issue #222: AC-011 count corrected 15→21 (post-F2 + v19 remap). Full 21-ID enumeration updated: 11 Enterprise (T1027, T1036, T1040, T1046, T1071, T1071.001, T1071.004, T1083, T1499.002, T1505.003, T1573) + 10 ICS (T0846, T1692.001, T1692.002, T0885, T0836, T0814, T0806, T0835, T0831, T0888). Ensures T1692.001/T1692.002 appear (not revoked T0855/T0856). Test references updated from `test_technique_name_resolves_all_15_seeded_ids` to `test_technique_name_resolves_all_21_seeded_ids`. Narrative, BC table title, AC-014, Tasks 6+8, Previous Story Intelligence, and Architecture Compliance Rule updated to reflect count 21. |
+| 1.8 | 2026-06-10 | story-writer | issue #222: corrected AC-014 tactic labels + AC-015 emitted count to match src/mitre.rs authoritative. AC-014: fixed four wrong tactic assignments (T1692.001/T1692.002 CommandAndControl→IcsImpairProcessControl; T0836 IcsInhibitResponseFunction→IcsImpairProcessControl; T0888 IcsImpairProcessControl→Discovery). AC-014 now lists all 21 IDs with exact MitreTactic:: variants cross-checked against technique_info lines 123-168. AC-015: emitted count corrected 6→13 (6 Enterprise + 7 ICS); ICS emitted IDs (T1692.001, T0836, T0814, T0806, T0835, T0831, T0888) added per EMITTED_IDS array lines 208-224 / BC-2.10.008. |
