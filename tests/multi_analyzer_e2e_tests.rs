@@ -223,7 +223,7 @@ fn test_cr011_multi_analyzer_http_tls_dns_reassembly_reporter_e2e() {
     let mut dns_analyzer = DnsAnalyzer::new();
     let config = ReassemblyConfig::default();
     let mut reassembler = TcpReassembler::new(config);
-    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()), None);
 
     // Compact monotonic clock: all packets within a single 300-second window so
     // the 5-minute idle-timeout (ReassemblyConfig::default().flow_timeout_secs = 300)

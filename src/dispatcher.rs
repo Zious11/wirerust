@@ -2,20 +2,31 @@
 //!
 //! Sits between [`crate::reassembly::TcpReassembler`] (which produces
 //! contiguous TCP-stream byte ranges) and the per-protocol analyzers
-//! ([`HttpAnalyzer`], [`TlsAnalyzer`]). On the first chunk of each flow,
-//! peeks at the leading bytes to decide whether the stream is TLS
-//! (`0x16 0x03` record-type-and-version prefix) or HTTP (one of the
-//! known method tokens) and routes all subsequent data on that flow to
-//! the matching analyzer. Streams whose content doesn't match either
-//! prefix are tracked under "unclassified" for the JSON summary.
+//! ([`HttpAnalyzer`], [`TlsAnalyzer`], [`ModbusAnalyzer`]). On the first
+//! chunk of each flow, peeks at the leading bytes to decide whether the
+//! stream is TLS (`0x16 0x03` record-type-and-version prefix), HTTP (one of
+//! the known method tokens), or Modbus (port-502 fallback per ADR-005) and
+//! routes all subsequent data on that flow to the matching analyzer. Streams
+//! whose content doesn't match any prefix and whose ports don't match any
+//! known port are tracked under "unclassified" for the JSON summary.
 //!
 //! Routing is irrevocable per flow — once classified, a flow stays with
 //! its analyzer for the rest of its lifetime to avoid mid-stream
 //! protocol confusion attacks.
+//!
+//! ## Classification Rule Order (BC-2.14.025, INV-2 content-first)
+//!
+//! 1. TLS content signature (`0x16 0x03 ...`, len >= 5) → `DispatchTarget::Tls`
+//! 2. HTTP method token (`GET `, `POST `, etc.) → `DispatchTarget::Http`
+//! 3. Port 443/8443 → `DispatchTarget::Tls`
+//! 4. Port 80/8080 → `DispatchTarget::Http`
+//! 5. Port 502 → `DispatchTarget::Modbus`  ← Rule 5 (STORY-105, ADR-005)
+//! 6. No match → `DispatchTarget::None`
 
 use std::collections::HashMap;
 
 use crate::analyzer::http::HttpAnalyzer;
+use crate::analyzer::modbus::ModbusAnalyzer;
 use crate::analyzer::tls::TlsAnalyzer;
 use crate::reassembly::flow::FlowKey;
 use crate::reassembly::handler::{CloseReason, Direction, StreamHandler};
@@ -24,6 +35,8 @@ use crate::reassembly::handler::{CloseReason, Direction, StreamHandler};
 enum DispatchTarget {
     Http,
     Tls,
+    /// Port-502 Modbus TCP flows (Rule 5, BC-2.14.025). Added in STORY-105.
+    Modbus,
     None,
 }
 
@@ -50,17 +63,29 @@ pub struct StreamDispatcher {
     max_classification_attempts: u32,
     http: Option<HttpAnalyzer>,
     tls: Option<TlsAnalyzer>,
+    /// Modbus TCP analyzer (STORY-105, BC-2.14.025). Receives data for all
+    /// port-502 flows that do not match content rules 1–2 or port rules 3–4.
+    modbus: Option<ModbusAnalyzer>,
     unclassified_flows: u64,
 }
 
 impl StreamDispatcher {
-    pub fn new(http: Option<HttpAnalyzer>, tls: Option<TlsAnalyzer>) -> Self {
+    /// Construct a dispatcher with optional HTTP, TLS, and Modbus analyzers.
+    ///
+    /// Pass `modbus: Some(analyzer)` to enable port-502 flow routing (STORY-105).
+    /// Pass `modbus: None` to leave Modbus disabled (default-off per BC-2.14.023).
+    pub fn new(
+        http: Option<HttpAnalyzer>,
+        tls: Option<TlsAnalyzer>,
+        modbus: Option<ModbusAnalyzer>,
+    ) -> Self {
         StreamDispatcher {
             routes: HashMap::new(),
             classification_attempts: HashMap::new(),
             max_classification_attempts: DEFAULT_MAX_CLASSIFICATION_ATTEMPTS,
             http,
             tls,
+            modbus,
             unclassified_flows: 0,
         }
     }
@@ -96,6 +121,13 @@ impl StreamDispatcher {
         self.tls.as_ref()
     }
 
+    /// Returns a reference to the Modbus analyzer, if one was configured.
+    ///
+    /// BC-2.14.025 §P4: mirrors `tls_analyzer()` shape.
+    pub fn modbus_analyzer(&self) -> Option<&ModbusAnalyzer> {
+        self.modbus.as_ref()
+    }
+
     /// Moves the TLS analyzer out of the dispatcher, consuming the slot.
     ///
     /// Intended for callers that need ownership of the analyzer after
@@ -109,13 +141,23 @@ impl StreamDispatcher {
     pub fn take_tls_analyzer(&mut self) -> Option<TlsAnalyzer> {
         self.tls.take()
     }
+
+    /// Moves the Modbus analyzer out of the dispatcher, consuming the slot.
+    ///
+    /// BC-2.14.025 §P4: mirrors `take_tls_analyzer()` — uses `Option::take()`,
+    /// leaving `self.modbus = None` permanently. After this call, all Modbus
+    /// dispatch arms are no-ops. Call ONCE, post-`reassembler.finalize()`.
+    pub fn take_modbus_analyzer(&mut self) -> Option<ModbusAnalyzer> {
+        self.modbus.take()
+    }
 }
 
 fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget {
-    // Content-first detection
+    // Rule 1 (content: TLS): TLS record header signature.
     if data.len() >= 5 && data[0] == 0x16 && data[1] == 0x03 {
         return DispatchTarget::Tls;
     }
+    // Rule 2 (content: HTTP): HTTP method token prefix.
     if data.starts_with(b"GET ")
         || data.starts_with(b"POST ")
         || data.starts_with(b"PUT ")
@@ -129,14 +171,23 @@ fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget {
     {
         return DispatchTarget::Http;
     }
-    // Port fallback for short data
+    // Port fallback rules (checked after content rules — BC-2.14.025 INV-2).
     let ports = [flow_key.lower_port(), flow_key.upper_port()];
+    // Rule 3: TLS port fallback (443/8443).
     if ports.contains(&443) || ports.contains(&8443) {
         return DispatchTarget::Tls;
     }
+    // Rule 4: HTTP port fallback (80/8080).
     if ports.contains(&80) || ports.contains(&8080) {
         return DispatchTarget::Http;
     }
+    // Rule 5: Modbus port (502 — IANA-assigned, ADR-005). Fires AFTER all
+    // content rules and TLS/HTTP port fallbacks. TLS ClientHello or HTTP GET
+    // on port 502 will have already matched Rules 1 or 2 above (BC-2.14.025).
+    if ports.contains(&502) {
+        return DispatchTarget::Modbus;
+    }
+    // Rule 6: no match.
     DispatchTarget::None
 }
 
@@ -149,7 +200,8 @@ impl StreamHandler for StreamDispatcher {
         offset: u64,
         timestamp: u32,
     ) {
-        if self.http.is_none() && self.tls.is_none() {
+        // BC-2.14.025 §P2 early-exit guard: extended to include modbus.
+        if self.http.is_none() && self.tls.is_none() && self.modbus.is_none() {
             return;
         }
 
@@ -195,6 +247,20 @@ impl StreamHandler for StreamDispatcher {
                     tls.on_data(flow_key, direction, data, offset, timestamp);
                 }
             }
+            DispatchTarget::Modbus => {
+                // BC-2.14.025 §P2: route to ModbusAnalyzer; no-op if disabled.
+                // TODO(STORY-105): implement on_data on ModbusAnalyzer, then
+                // replace this todo!() stub with the real dispatch call.
+                if let Some(ref mut modbus) = self.modbus {
+                    todo!(
+                        "STORY-105 RED: modbus.on_data({flow_key:?}, {direction:?}, \
+                         data.len={}, offset={offset}, ts={timestamp}) not yet implemented",
+                        data.len()
+                    );
+                    #[allow(unreachable_code)]
+                    let _ = modbus;
+                }
+            }
             DispatchTarget::None => {}
         }
     }
@@ -216,8 +282,21 @@ impl StreamHandler for StreamDispatcher {
                     tls.on_flow_close(flow_key, reason);
                 }
             }
+            Some(DispatchTarget::Modbus) => {
+                // BC-2.14.025 §P3: route on_flow_close to ModbusAnalyzer.
+                // TODO(STORY-105): implement on_flow_close on ModbusAnalyzer.
+                if let Some(ref mut modbus) = self.modbus {
+                    todo!(
+                        "STORY-105 RED: modbus.on_flow_close({flow_key:?}, {reason:?}) \
+                         not yet implemented"
+                    );
+                    #[allow(unreachable_code)]
+                    let _ = modbus;
+                }
+            }
             Some(DispatchTarget::None) | None => {
-                if self.http.is_some() || self.tls.is_some() {
+                // BC-2.14.025 §P3: unclassified_flows guard extended with modbus.
+                if self.http.is_some() || self.tls.is_some() || self.modbus.is_some() {
                     self.unclassified_flows += 1;
                 }
             }
@@ -233,7 +312,7 @@ impl StreamHandler for StreamDispatcher {
 // `cargo test`, and clippy. They are exercised only under `cargo kani`, which
 // auto-provides the `kani` crate.
 //
-// Source of truth: `classify` (this file, ~line 114) and `on_data` (~line 144).
+// Source of truth: `classify` (this file, ~line 155) and `on_data` (~line 185).
 #[cfg(kani)]
 mod kani_proofs {
     use super::*;
@@ -265,7 +344,7 @@ mod kani_proofs {
     /// VP-004 full precedence ladder, exhaustive over a symbolic 8-byte prefix
     /// and fully symbolic 16-bit ports. Re-derives the spec's expected target
     /// independently of `classify`'s internal branch wiring and asserts
-    /// equality, so this proves the *entire* decision function (rules 1–4),
+    /// equality, so this proves the *entire* decision function (rules 1–5),
     /// not just the TLS-beats-port corollary.
     ///
     /// BOUND/SOUNDNESS:
@@ -279,7 +358,10 @@ mod kani_proofs {
     ///    replicates the EXACT same `starts_with` set so production and oracle
     ///    agree on every input with no divergence.
     ///  - Ports are fully symbolic `u16` (all 65536 values each), so the
-    ///    443/8443/80/8080 fallback arms and the `None` arm are all covered.
+    ///    443/8443/80/8080 fallback arms, the port-502 Modbus arm, and the `None`
+    ///    arm are all covered.
+    ///  - Rule 5 (port 502 → Modbus) is added to the oracle, mirroring production
+    ///    exactly per BC-2.14.025 §P5 (critical: oracle MUST mirror production).
     fn classify_oracle(data: &[u8; 8], lower: u16, upper: u16) -> DispatchTarget {
         // Rule 1: TLS content signature.
         if data.len() >= 5 && data[0] == 0x16 && data[1] == 0x03 {
@@ -308,7 +390,12 @@ mod kani_proofs {
         if ports.contains(&80) || ports.contains(&8080) {
             return DispatchTarget::Http;
         }
-        // Rule 4: nothing matched.
+        // Rule 5: Modbus port fallback (ADR-005 — MUST mirror production exactly).
+        // Placed AFTER Rules 3–4 and BEFORE Rule 6 (BC-2.14.025 §P5).
+        if ports.contains(&502) {
+            return DispatchTarget::Modbus;
+        }
+        // Rule 6: nothing matched.
         DispatchTarget::None
     }
 
@@ -344,7 +431,7 @@ mod kani_proofs {
 
     /// Single-flow-key model of `on_data`'s cache/counter state machine
     /// (this file, the `else` branch of the `routes.get` check). It mirrors the
-    /// production transitions on lines ~160–177 EXACTLY for the rule-4 `None`
+    /// production transitions on lines ~185–202 EXACTLY for the rule-6 `None`
     /// path, but on a single `(route, attempts)` pair instead of the two
     /// `HashMap<FlowKey, _>`s.
     ///
@@ -365,7 +452,7 @@ mod kani_proofs {
         attempts: &mut Option<u32>,
         max: u32,
     ) -> DispatchTarget {
-        // Precondition of this model: `classify` returned `None` (rule-4 path).
+        // Precondition of this model: `classify` returned `None` (rule-6 path).
         // Cached route short-circuits (mirrors `if let Some(&cached) = routes.get`).
         if let Some(cached) = *route {
             return cached;
@@ -383,7 +470,7 @@ mod kani_proofs {
 
     /// VP-004 two-phase `None`-caching (LESSON-P2.11), proven for the ENTIRE
     /// production-relevant cap range via a SYMBOLIC `cap` (CR-002). For each call
-    /// `i` (1-based) on the rule-4 `None` path:
+    /// `i` (1-based) on the rule-6 `None` path:
     ///   Phase A (i < cap): attempts -> Some(i), route stays uncached (`None`).
     ///   Phase B (i == cap): route = Some(None) permanently, attempts cleared.
     ///   Phase C (i > cap): cached `None` short-circuits — route frozen at
@@ -400,7 +487,7 @@ mod kani_proofs {
     ///    post-cap (phase C) call for every cap in range. `#[kani::unwind(11)]`
     ///    fully unrolls it. Within the loop each phase is checked against the
     ///    symbolic `cap`, so the proof covers cap = 1, 2, ..., 8 simultaneously.
-    ///  - The model `step_none_path` is a line-for-line port of `on_data`'s rule-4
+    ///  - The model `step_none_path` is a line-for-line port of `on_data`'s rule-6
     ///    branch (see doc above); the only abstraction is HashMap-by-key -> Option,
     ///    exact for a single key. The companion proofs prove WHEN `classify`
     ///    returns `None`; this proves what the cache/counter then do.
@@ -417,7 +504,7 @@ mod kani_proofs {
         // range exercises phases A, B, and C.
         for i in 1..=(DEFAULT_MAX_CLASSIFICATION_ATTEMPTS + 1) {
             let t = step_none_path(&mut route, &mut attempts, cap);
-            assert!(matches!(t, DispatchTarget::None)); // always None on rule-4 path
+            assert!(matches!(t, DispatchTarget::None)); // always None on rule-6 path
 
             if i < cap {
                 // Phase A: under cap — not cached, counter == i.
