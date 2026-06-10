@@ -96,8 +96,11 @@ fn bench_reassembly(c: &mut Criterion) {
         group.bench_function(fixture, |b| {
             b.iter(|| {
                 let mut reassembler = TcpReassembler::new(ReassemblyConfig::default());
-                let mut dispatcher =
-                    StreamDispatcher::new(Some(HttpAnalyzer::new()), Some(TlsAnalyzer::new()));
+                let mut dispatcher = StreamDispatcher::new(
+                    Some(HttpAnalyzer::new()),
+                    Some(TlsAnalyzer::new()),
+                    None,
+                );
                 for (p, ts) in &parsed {
                     reassembler.process_packet(p, *ts, &mut dispatcher);
                 }

@@ -76,6 +76,7 @@ mod story_086 {
                 tls,
                 mitre,
                 all,
+                ..
             } => {
                 assert_eq!(targets, vec![PathBuf::from("cap.pcap")]);
                 assert!(!dns, "dns should be false");

@@ -127,7 +127,7 @@ fn test_finding_timestamp_hot_path() {
 
     let config = ReassemblyConfig::default();
     let mut reassembler = TcpReassembler::new(config);
-    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None);
+    let mut dispatcher = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None);
 
     let payload = http_traversal_request();
     let payload_len = payload.len() as u32;
@@ -235,7 +235,7 @@ fn test_finding_timestamp_hot_path_tls() {
 
     let config = ReassemblyConfig::default();
     let mut reassembler = TcpReassembler::new(config);
-    let mut dispatcher = StreamDispatcher::new(None, Some(TlsAnalyzer::new()));
+    let mut dispatcher = StreamDispatcher::new(None, Some(TlsAnalyzer::new()), None);
 
     // Build a minimal TLS ClientHello with a NULL cipher suite that triggers
     // a weak-cipher finding in TlsAnalyzer.
@@ -589,7 +589,7 @@ fn test_finding_timestamp_close_flush() {
     // We verify: all findings produced have timestamp = Some(TS_DATA) (hot-path ts, not None).
     let config3 = ReassemblyConfig::default();
     let mut reassembler3 = TcpReassembler::new(config3);
-    let mut dispatcher3 = StreamDispatcher::new(Some(HttpAnalyzer::new()), None);
+    let mut dispatcher3 = StreamDispatcher::new(Some(HttpAnalyzer::new()), None, None);
 
     let payload3 = http_traversal_request();
     let payload_len3 = payload3.len() as u32;
