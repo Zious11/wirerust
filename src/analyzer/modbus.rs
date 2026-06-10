@@ -21,7 +21,7 @@ use std::collections::HashMap;
 use crate::analyzer::AnalysisSummary;
 use crate::findings::Finding;
 use crate::reassembly::flow::FlowKey;
-use crate::reassembly::handler::Direction;
+use crate::reassembly::handler::{CloseReason, Direction, StreamAnalyzer, StreamHandler};
 
 /// Parsed Modbus Application Protocol (MBAP) header.
 ///
@@ -229,10 +229,10 @@ impl ModbusFlowState {
     }
 }
 
-/// Analyzer-level aggregates for Modbus TCP (STORY-103/104, f2-fix-directives §11.3).
+/// Analyzer-level aggregates for Modbus TCP (STORY-103/104/105, f2-fix-directives §11.3).
 ///
-/// Flow states are passed in directly to `process_pdu` (STORY-104); dispatcher wiring
-/// (the `HashMap<FlowKey, ModbusFlowState>`) is deferred to STORY-105.
+/// STORY-105: `flows` field added — per-flow `ModbusFlowState` keyed by `FlowKey`.
+/// The dispatcher routes all port-502 TCP data here via `StreamHandler::on_data`.
 ///
 /// `duplicate_inflight_txn` is an INTERNAL diagnostic counter (BC-2.14.009 invariant 6).
 /// It is NOT surfaced in `summarize()` (BC-2.14.021's six-key contract is unchanged).
@@ -261,6 +261,9 @@ pub struct ModbusAnalyzer {
     /// Monotonic counter: incremented once per flow on first PDU insertion (BC-2.14.021).
     /// NOT derived from a flow map length (flows removed on close would give wrong count).
     pub total_flows_analyzed: u64,
+    /// Per-flow reassembly state (STORY-105). Keyed by `FlowKey`.
+    /// Flows are inserted on first `on_data` and removed on `on_flow_close`.
+    flows: HashMap<FlowKey, ModbusFlowState>,
 }
 
 impl ModbusAnalyzer {
@@ -278,6 +281,7 @@ impl ModbusAnalyzer {
             all_findings: Vec::new(),
             dropped_findings: 0,
             total_flows_analyzed: 0,
+            flows: HashMap::new(),
         }
     }
 
@@ -894,6 +898,127 @@ impl ModbusAnalyzer {
             packets_analyzed: self.total_pdu_count,
             detail,
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// StreamHandler + StreamAnalyzer impls (STORY-105, BC-2.14.025)
+// ---------------------------------------------------------------------------
+
+impl StreamHandler for ModbusAnalyzer {
+    /// Receive a reassembled TCP data chunk for a port-502 flow.
+    ///
+    /// Parses MBAP headers out of `data`, applying the 3-point validity gate
+    /// per BC-2.14.003/004 (`is_valid_modbus_adu`). For each valid ADU, calls
+    /// `process_pdu`. Multiple ADUs per call are handled by advancing through
+    /// the buffer in a loop.
+    ///
+    /// Borrow-checker note: `process_pdu` takes `&mut self` AND `&mut ModbusFlowState`.
+    /// To satisfy the borrow checker, the flow state is removed from `self.flows`,
+    /// mutated via `process_pdu`, then re-inserted. This is safe because
+    /// `process_pdu` never touches `self.flows` — it only reads/writes the
+    /// per-flow `ModbusFlowState` that is passed directly.
+    ///
+    /// No-panic guarantee: all attacker-controlled byte lengths are guarded by
+    /// `parse_mbap_header` (returns `None` on short data) and the ADU-length
+    /// bounds check before slicing. No `unwrap()` on attacker bytes.
+    fn on_data(
+        &mut self,
+        flow_key: &FlowKey,
+        direction: Direction,
+        data: &[u8],
+        _offset: u64,
+        timestamp: u32,
+    ) {
+        // Retrieve or create per-flow state.
+        // We need to take the flow out of self.flows to call process_pdu
+        // (which takes &mut self + &mut flow_state) without violating the borrow rules.
+        let mut flow = self.flows.remove(flow_key).unwrap_or_default();
+
+        // Desync bail: if a previous packet on this flow had protocol_id != 0,
+        // skip all further processing (BC-2.14.003 / Decision 6 desync policy).
+        if flow.is_non_modbus {
+            self.flows.insert(flow_key.clone(), flow);
+            return;
+        }
+
+        // Walk the buffer: parse and dispatch each ADU in the chunk.
+        // Modbus TCP ADU layout: 6-byte MBAP prefix + PDU (length-1 bytes of FC+data).
+        // Full ADU byte count = 6 (MBAP prefix without FC) + header.length (includes UnitID).
+        // But parse_mbap_header reads bytes 0..7 (6-byte prefix + FC = 7 bytes minimum + 1 FC = 8).
+        // ADU total size = 6 + header.length; minimum valid = 6 + 2 = 8 bytes.
+        let mut pos = 0usize;
+        while pos < data.len() {
+            let remaining = &data[pos..];
+
+            // Parse the MBAP header (needs at least 8 bytes: 6 prefix + 1 UnitID + 1 FC).
+            let header = match parse_mbap_header(remaining) {
+                Some(h) => h,
+                None => break, // Truncated: not enough bytes for a full header — stop.
+            };
+
+            // 3-point validity gate (BC-2.14.003/004).
+            if !is_valid_modbus_adu(&header) {
+                // Invalid protocol_id or out-of-range length.
+                // Per the desync policy (BC-2.14.003): if protocol_id != 0, mark the flow
+                // as non-Modbus so future chunks bail immediately.
+                if header.protocol_id != 0x0000 {
+                    flow.is_non_modbus = true;
+                }
+                self.parse_errors += 1;
+                break; // Cannot safely advance: length field is invalid.
+            }
+
+            // Compute full ADU byte count: 6-byte MBAP prefix + header.length bytes.
+            // header.length covers UnitID (1 byte) + PDU (FC + data). Minimum = 2.
+            let adu_len = 6usize + header.length as usize;
+
+            // Clamp adu_bytes to what is actually available.
+            // In streaming TCP, a reassembler chunk may be smaller than the full ADU
+            // (the rest will arrive in the next on_data call). process_pdu guards all
+            // field accesses with bounds checks so partial data is safe.
+            // Advance by min(adu_len, remaining.len()) to avoid infinite loops.
+            let available_len = remaining.len().min(adu_len);
+            let adu_bytes = &remaining[..available_len];
+            let fc = header.function_code;
+
+            // Dispatch to the detection engine.
+            // process_pdu takes &mut self (for counters/findings) and &mut flow (for per-flow
+            // state). We pass the flow as a local mut, then re-insert after the loop.
+            self.process_pdu(
+                flow_key, &mut flow, direction, &header, fc, adu_bytes, timestamp,
+            );
+
+            // Advance past this ADU (by actual available bytes if partial).
+            pos += available_len;
+        }
+
+        // Re-insert the (possibly mutated) flow state.
+        self.flows.insert(flow_key.clone(), flow);
+    }
+
+    /// Finalize a Modbus flow on close (BC-2.14.012 / on_flow_close).
+    ///
+    /// Removes the per-flow state from `self.flows`. Any pending-table entries
+    /// are silently discarded (the flow is gone; no partial-pair findings emitted
+    /// on close — this matches HTTP/TLS behavior and BC-2.14.012 semantics).
+    fn on_flow_close(&mut self, flow_key: &FlowKey, _reason: CloseReason) {
+        self.flows.remove(flow_key);
+    }
+}
+
+impl StreamAnalyzer for ModbusAnalyzer {
+    fn name(&self) -> &'static str {
+        "modbus"
+    }
+
+    fn summarize(&self) -> crate::analyzer::AnalysisSummary {
+        // Delegate to the inherent method (same logic).
+        ModbusAnalyzer::summarize(self)
+    }
+
+    fn findings(&self) -> Vec<Finding> {
+        self.all_findings.clone()
     }
 }
 

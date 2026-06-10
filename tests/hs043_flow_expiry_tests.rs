@@ -400,7 +400,7 @@ mod hs043 {
             .expect("analyzers must be an array");
         let reasm_summary = analyzers
             .iter()
-            .find(|a| a["analyzer_name"] == "TCP Reassembly")
+            .find(|a| a["analyzer"] == "TCP Reassembly")
             .expect("TCP Reassembly analyzer summary must be present in JSON output");
 
         let flows_expired = reasm_summary["detail"]["flows_expired"]

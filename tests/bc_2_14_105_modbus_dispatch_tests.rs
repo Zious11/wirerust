@@ -24,6 +24,9 @@
 //! validation code IS in main.rs. So the CLI-level stub IS wired.
 //! The DISPATCHER-level tests (on_data routing) are the Red Gate.
 
+// BC-prefixed test names use non-snake-case identifiers (project-wide convention).
+#![allow(non_snake_case)]
+
 use std::net::IpAddr;
 
 use assert_cmd::Command;
@@ -61,20 +64,23 @@ const FIXTURE: &str = "tests/fixtures/http-ooo.pcap";
 /// MBAP bytes: [0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03] (valid
 /// Modbus read-holding-registers request per BC-2.14.001).
 ///
-/// RED GATE: This test panics because on_data() for Modbus flows hits
-/// `todo!()` in the dispatcher stub. classify() itself is correct (stub
-/// compiles), but on_data() for Modbus hasn't routed yet.
+/// GREEN: on_data() routes port-502 flows to ModbusAnalyzer (STORY-105 implemented).
+/// Verifies that a valid MBAP packet delivered on port-502 increments total_pdu_count.
 #[test]
-#[should_panic(expected = "STORY-105 RED")]
 fn test_BC_2_14_025_port_502_classified_to_modbus_as_rule_5() {
     let modbus = ModbusAnalyzer::new(20, 10);
     let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
     let key = flow_key(12345, 502);
     // Valid MBAP header: TxnID=0x0001, ProtoID=0x0000, Len=0x0006, UnitID=0x01, FC=0x03
     let mbap_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03];
-    // This triggers classify() which returns Modbus (correct), then on_data()
-    // for the Modbus arm, which hits todo!() — that's the RED gate.
+    // on_data() routes to ModbusAnalyzer, which parses the ADU.
     dispatcher.on_data(&key, Direction::ClientToServer, &mbap_data, 0, 1_000_000);
+    // Verify the PDU was processed.
+    let modbus = dispatcher.take_modbus_analyzer().unwrap();
+    assert!(
+        modbus.total_pdu_count > 0,
+        "Port-502 data must be routed to ModbusAnalyzer (Rule 5, BC-2.14.025)"
+    );
 }
 
 /// AC-006 (BC-2.14.025 EC-001 — TLS content on port 502 → Rule 1 wins)
@@ -91,8 +97,11 @@ fn test_BC_2_14_025_port_502_classified_to_modbus_as_rule_5() {
 #[test]
 fn test_BC_2_14_025_port_502_tls_content_classified_to_tls_not_modbus() {
     use wirerust::analyzer::tls::TlsAnalyzer;
-    let mut dispatcher =
-        StreamDispatcher::new(None, Some(TlsAnalyzer::new()), Some(ModbusAnalyzer::new(20, 10)));
+    let mut dispatcher = StreamDispatcher::new(
+        None,
+        Some(TlsAnalyzer::new()),
+        Some(ModbusAnalyzer::new(20, 10)),
+    );
     let key = flow_key(12345, 502);
     // TLS ClientHello signature: 0x16 0x03 0x03 ...
     let tls_data = [0x16u8, 0x03, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00];
@@ -117,8 +126,11 @@ fn test_BC_2_14_025_port_502_tls_content_classified_to_tls_not_modbus() {
 #[test]
 fn test_BC_2_14_025_port_502_http_content_classified_to_http_not_modbus() {
     use wirerust::analyzer::http::HttpAnalyzer;
-    let mut dispatcher =
-        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, Some(ModbusAnalyzer::new(20, 10)));
+    let mut dispatcher = StreamDispatcher::new(
+        Some(HttpAnalyzer::new()),
+        None,
+        Some(ModbusAnalyzer::new(20, 10)),
+    );
     let key = flow_key(12345, 502);
     let http_data = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
     // Rule 2 fires (HTTP content) before Rule 5 (port 502).
@@ -141,8 +153,11 @@ fn test_BC_2_14_025_port_502_http_content_classified_to_http_not_modbus() {
 #[test]
 fn test_BC_2_14_025_port_443_mbap_bytes_classified_to_tls_not_modbus() {
     use wirerust::analyzer::tls::TlsAnalyzer;
-    let mut dispatcher =
-        StreamDispatcher::new(None, Some(TlsAnalyzer::new()), Some(ModbusAnalyzer::new(20, 10)));
+    let mut dispatcher = StreamDispatcher::new(
+        None,
+        Some(TlsAnalyzer::new()),
+        Some(ModbusAnalyzer::new(20, 10)),
+    );
     let key = flow_key(12345, 443);
     let mbap_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03];
     // Rule 3 (port 443 → TLS) fires before Rule 5 (port 502 → Modbus).
@@ -177,10 +192,7 @@ fn test_BC_2_14_025_modbus_disabled_port_502_flow_is_noop() {
 ///
 /// After delivering data on a port-502 flow, the ModbusAnalyzer should have
 /// total_pdu_count > 0 (indicating process_pdu was called).
-///
-/// RED GATE: This test panics because the on_data Modbus arm hits `todo!()`.
 #[test]
-#[should_panic(expected = "STORY-105 RED")]
 fn test_BC_2_14_025_on_data_routes_port_502_flow_to_modbus_analyzer() {
     let modbus = ModbusAnalyzer::new(20, 10);
     let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
@@ -197,10 +209,8 @@ fn test_BC_2_14_025_on_data_routes_port_502_flow_to_modbus_analyzer() {
         0x00, 0x00, // coil address
         0xFF, 0x00, // coil value (ON)
     ];
-    // RED: todo!() fires here
     dispatcher.on_data(&key, Direction::ClientToServer, &write_pdu, 0, 1_000_000);
 
-    // UNREACHABLE until implementation — what we WANT to assert when green:
     let modbus = dispatcher.take_modbus_analyzer().unwrap();
     assert!(
         modbus.total_pdu_count > 0,
@@ -211,23 +221,21 @@ fn test_BC_2_14_025_on_data_routes_port_502_flow_to_modbus_analyzer() {
 /// AC-011 (BC-2.14.025 §P3 — on_flow_close routes Modbus flow to analyzer)
 ///
 /// After delivering data + closing a port-502 flow, on_flow_close must
-/// route to the Modbus analyzer.
-///
-/// RED GATE: This test panics because on_data (first) hits `todo!()`.
+/// route to the Modbus analyzer (flow state removed from flows map on close).
 #[test]
-#[should_panic(expected = "STORY-105 RED")]
 fn test_BC_2_14_025_on_flow_close_routes_modbus_flow_to_analyzer() {
     let modbus = ModbusAnalyzer::new(20, 10);
     let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
     let key = flow_key(49152, 502);
     let mbap_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03];
-    // RED: panics on on_data before we get to on_flow_close
     dispatcher.on_data(&key, Direction::ClientToServer, &mbap_data, 0, 1_000_000);
     dispatcher.on_flow_close(&key, CloseReason::Fin);
-    // UNREACHABLE until implementation — what we WANT to assert when green:
+    // Analyzer is still accessible after flow close; PDU was counted before close.
     let modbus = dispatcher.take_modbus_analyzer().unwrap();
-    // After flow close, last_ts should be updated in the flow state.
-    let _ = modbus; // implementation will add assertions here
+    assert!(
+        modbus.total_pdu_count > 0,
+        "on_flow_close must not prevent prior PDU counting (BC-2.14.025 §P3)"
+    );
 }
 
 /// AC-009 (VP-004 oracle — unclassified_flows guard extended for Modbus)
@@ -242,18 +250,14 @@ fn test_BC_2_14_025_on_flow_close_routes_modbus_flow_to_analyzer() {
 /// It should PASS because unclassified flows don't trigger the Modbus arm.
 #[test]
 fn test_BC_2_14_025_unclassified_flows_counted_in_modbus_only_run() {
-    let modbus = ModbusAnalyzer::new(20, 10);
-    let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
     // A flow on an unknown port (9999) — no content match, no port match.
     // It will be classified as None after retry cap.
     let key = flow_key(12345, 9999);
     let random_data = [0xDEu8, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x00, 0x00];
 
     // Force it past the retry cap so it gets cached as None.
-    let dispatcher_with_low_cap =
-        StreamDispatcher::new(None, None, Some(ModbusAnalyzer::new(20, 10)))
-            .with_max_classification_attempts(1);
-    let mut dispatcher = dispatcher_with_low_cap;
+    let mut dispatcher = StreamDispatcher::new(None, None, Some(ModbusAnalyzer::new(20, 10)))
+        .with_max_classification_attempts(1);
 
     dispatcher.on_data(&key, Direction::ClientToServer, &random_data, 0, 1_000_000);
     // Close the flow — it had DispatchTarget::None cached.
@@ -319,7 +323,13 @@ fn test_BC_2_14_023_modbus_disabled_by_default() {
 
     Command::cargo_bin("wirerust")
         .expect("binary built")
-        .args(["analyze", "--http", "--json", out.to_str().unwrap(), FIXTURE])
+        .args([
+            "analyze",
+            "--http",
+            "--json",
+            out.to_str().unwrap(),
+            FIXTURE,
+        ])
         .assert()
         .success();
 
@@ -363,7 +373,13 @@ fn test_BC_2_14_023_modbus_flag_enables_analyzer_empty_pcap() {
 
     Command::cargo_bin("wirerust")
         .expect("binary built")
-        .args(["analyze", "--modbus", "--json", out.to_str().unwrap(), FIXTURE])
+        .args([
+            "analyze",
+            "--modbus",
+            "--json",
+            out.to_str().unwrap(),
+            FIXTURE,
+        ])
         .assert()
         .success();
 
@@ -656,23 +672,30 @@ fn test_BC_2_14_023_modbus_alone_triggers_reassembly() {
 /// The Kani harness uses symbolic inputs over all 65536 port values; this
 /// test uses concrete representative cases.
 ///
-/// RED GATE: The port-502 dispatch arm hits `todo!()` for non-TLS/HTTP data,
-/// so this test panics via the should_panic attribute.
+/// GREEN (STORY-105 implemented): non-TLS/non-HTTP data on port 502 is routed to
+/// ModbusAnalyzer (Rule 5). The oracle and production classify() agree.
+/// Non-MBAP binary data on port 502 is silently discarded (invalid ADU gate fires,
+/// parse_errors incremented). This verifies Rule 5 routing without panic.
 #[test]
-#[should_panic(expected = "STORY-105 RED")]
 fn test_BC_2_14_025_vp004_oracle_rule_5_port_502_non_tls_non_http() {
     // Oracle prediction for port-502, non-TLS, non-HTTP content:
     // Rules 1-4 don't fire; Rule 5 (port 502) fires → DispatchTarget::Modbus.
     // Production classify() must agree with the oracle (VP-004 property).
-    // The todo!() stub proves the production classify() already returns Modbus
-    // (otherwise we'd get a different panic or no panic).
     let modbus = ModbusAnalyzer::new(20, 10);
     let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
     let key = flow_key(54321, 502);
     // Random non-TLS, non-HTTP binary data on port 502.
+    // This data begins with 0xAB which is a high-bit-set byte — parse_mbap_header
+    // will succeed (len >= 8) but is_valid_modbus_adu will fail (protocol_id != 0).
     let binary_data = [0xABu8, 0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x89];
-    // todo!() fires here — proving classify() returned Modbus (not None).
+    // Rule 5 fires: data is routed to ModbusAnalyzer (no panic — STORY-105 implemented).
     dispatcher.on_data(&key, Direction::ClientToServer, &binary_data, 0, 2_000_000);
+    // The ADU is invalid (non-Modbus protocol_id) → parse_errors incremented.
+    let modbus = dispatcher.take_modbus_analyzer().unwrap();
+    assert_eq!(
+        modbus.parse_errors, 1,
+        "Non-Modbus binary data on port 502 must increment parse_errors (VP-004 Rule 5 routing verified)"
+    );
 }
 
 /// AC-009 (VP-004 oracle — port-8080 does NOT match Modbus Rule 5)
@@ -684,8 +707,11 @@ fn test_BC_2_14_025_vp004_oracle_rule_5_port_502_non_tls_non_http() {
 #[test]
 fn test_BC_2_14_025_vp004_oracle_port_8080_routes_to_http_not_modbus() {
     use wirerust::analyzer::http::HttpAnalyzer;
-    let mut dispatcher =
-        StreamDispatcher::new(Some(HttpAnalyzer::new()), None, Some(ModbusAnalyzer::new(20, 10)));
+    let mut dispatcher = StreamDispatcher::new(
+        Some(HttpAnalyzer::new()),
+        None,
+        Some(ModbusAnalyzer::new(20, 10)),
+    );
     let key = flow_key(12345, 8080);
     // Non-HTTP content bytes — port fallback fires (Rule 4: port 8080 → HTTP).
     let binary_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03];
@@ -707,9 +733,8 @@ fn test_BC_2_14_025_vp004_oracle_port_8080_routes_to_http_not_modbus() {
 #[test]
 fn test_BC_2_14_025_vp004_oracle_unknown_port_routes_to_none_not_modbus() {
     // Modbus-only dispatcher, but port 9999 — classify returns None.
-    let mut dispatcher =
-        StreamDispatcher::new(None, None, Some(ModbusAnalyzer::new(20, 10)))
-            .with_max_classification_attempts(1);
+    let mut dispatcher = StreamDispatcher::new(None, None, Some(ModbusAnalyzer::new(20, 10)))
+        .with_max_classification_attempts(1);
     let key = flow_key(12345, 9999);
     let mbap_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03];
     // classify() returns None (no content match, not 443/8443/80/8080/502).

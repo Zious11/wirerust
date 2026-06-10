@@ -249,16 +249,8 @@ impl StreamHandler for StreamDispatcher {
             }
             DispatchTarget::Modbus => {
                 // BC-2.14.025 §P2: route to ModbusAnalyzer; no-op if disabled.
-                // TODO(STORY-105): implement on_data on ModbusAnalyzer, then
-                // replace this todo!() stub with the real dispatch call.
                 if let Some(ref mut modbus) = self.modbus {
-                    todo!(
-                        "STORY-105 RED: modbus.on_data({flow_key:?}, {direction:?}, \
-                         data.len={}, offset={offset}, ts={timestamp}) not yet implemented",
-                        data.len()
-                    );
-                    #[allow(unreachable_code)]
-                    let _ = modbus;
+                    modbus.on_data(flow_key, direction, data, offset, timestamp);
                 }
             }
             DispatchTarget::None => {}
@@ -284,14 +276,8 @@ impl StreamHandler for StreamDispatcher {
             }
             Some(DispatchTarget::Modbus) => {
                 // BC-2.14.025 §P3: route on_flow_close to ModbusAnalyzer.
-                // TODO(STORY-105): implement on_flow_close on ModbusAnalyzer.
                 if let Some(ref mut modbus) = self.modbus {
-                    todo!(
-                        "STORY-105 RED: modbus.on_flow_close({flow_key:?}, {reason:?}) \
-                         not yet implemented"
-                    );
-                    #[allow(unreachable_code)]
-                    let _ = modbus;
+                    modbus.on_flow_close(flow_key, reason);
                 }
             }
             Some(DispatchTarget::None) | None => {

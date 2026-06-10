@@ -38,7 +38,10 @@ use crate::findings::Finding;
 #[derive(Debug, Serialize)]
 pub struct AnalysisSummary {
     /// Human-readable analyzer name (e.g. "DNS", "HTTP", "TLS",
-    /// "TCP Reassembly").
+    /// "TCP Reassembly"). Serialized as `"analyzer"` in JSON output
+    /// (BC-2.14.025 §P5 naming convention; existing Rust code uses
+    /// `analyzer_name` as the field identifier).
+    #[serde(rename = "analyzer")]
     pub analyzer_name: String,
     /// Number of packets this analyzer actually processed (the
     /// reassembly engine subtracts non-TCP traffic, etc.).
