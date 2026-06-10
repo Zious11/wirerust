@@ -342,7 +342,7 @@ fn test_BC_2_14_023_modbus_disabled_by_default() {
 
     let has_modbus = analyzers
         .iter()
-        .any(|a| a.get("analyzer").and_then(|n| n.as_str()) == Some("modbus"));
+        .any(|a| a.get("analyzer_name").and_then(|n| n.as_str()) == Some("modbus"));
 
     assert!(
         !has_modbus,
@@ -392,7 +392,7 @@ fn test_BC_2_14_023_modbus_flag_enables_analyzer_empty_pcap() {
 
     let has_modbus = analyzers
         .iter()
-        .any(|a| a.get("analyzer").and_then(|n| n.as_str()) == Some("modbus"));
+        .any(|a| a.get("analyzer_name").and_then(|n| n.as_str()) == Some("modbus"));
 
     assert!(
         has_modbus,
@@ -400,7 +400,7 @@ fn test_BC_2_14_023_modbus_flag_enables_analyzer_empty_pcap() {
          Analyzers found: {:?}",
         analyzers
             .iter()
-            .filter_map(|a| a.get("analyzer").and_then(|n| n.as_str()))
+            .filter_map(|a| a.get("analyzer_name").and_then(|n| n.as_str()))
             .collect::<Vec<_>>()
     );
 }
@@ -431,7 +431,7 @@ fn test_BC_2_14_023_all_flag_enables_modbus() {
 
     let has_modbus = analyzers
         .iter()
-        .any(|a| a.get("analyzer").and_then(|n| n.as_str()) == Some("modbus"));
+        .any(|a| a.get("analyzer_name").and_then(|n| n.as_str()) == Some("modbus"));
 
     assert!(
         has_modbus,
@@ -439,7 +439,7 @@ fn test_BC_2_14_023_all_flag_enables_modbus() {
          Analyzers found: {:?}",
         analyzers
             .iter()
-            .filter_map(|a| a.get("analyzer").and_then(|n| n.as_str()))
+            .filter_map(|a| a.get("analyzer_name").and_then(|n| n.as_str()))
             .collect::<Vec<_>>()
     );
 }
@@ -485,7 +485,7 @@ fn test_BC_2_14_023_modbus_with_no_reassemble_prints_warning() {
         if let Some(analyzers) = parsed.get("analyzers").and_then(|a| a.as_array()) {
             let has_modbus = analyzers
                 .iter()
-                .any(|a| a.get("analyzer").and_then(|n| n.as_str()) == Some("modbus"));
+                .any(|a| a.get("analyzer_name").and_then(|n| n.as_str()) == Some("modbus"));
             assert!(
                 !has_modbus,
                 "Modbus section must NOT appear when --no-reassemble is set (BC-2.14.023 EC-001)"
@@ -645,7 +645,7 @@ fn test_BC_2_14_023_modbus_alone_triggers_reassembly() {
 
     let modbus_summary = analyzers
         .iter()
-        .find(|a| a.get("analyzer").and_then(|n| n.as_str()) == Some("modbus"));
+        .find(|a| a.get("analyzer_name").and_then(|n| n.as_str()) == Some("modbus"));
 
     assert!(
         modbus_summary.is_some(),
@@ -653,7 +653,7 @@ fn test_BC_2_14_023_modbus_alone_triggers_reassembly() {
          (BC-2.14.023 P4, AC-010). Got analyzers: {:?}",
         analyzers
             .iter()
-            .filter_map(|a| a.get("analyzer").and_then(|n| n.as_str()))
+            .filter_map(|a| a.get("analyzer_name").and_then(|n| n.as_str()))
             .collect::<Vec<_>>()
     );
 }

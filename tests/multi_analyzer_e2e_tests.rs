@@ -500,7 +500,7 @@ fn test_cr011_multi_analyzer_http_tls_dns_reassembly_reporter_e2e() {
     let find_summary = |name: &str| -> &serde_json::Value {
         analyzer_arr
             .iter()
-            .find(|a| a["analyzer"].as_str() == Some(name))
+            .find(|a| a["analyzer_name"].as_str() == Some(name))
             .unwrap_or_else(|| panic!("CR-011: missing analyzer summary for '{name}'"))
     };
 
@@ -552,7 +552,7 @@ fn test_cr011_multi_analyzer_http_tls_dns_reassembly_reporter_e2e() {
     // --- Cross-cutting: all four analyzer names appear in the output ---
     let analyzer_names: Vec<&str> = analyzer_arr
         .iter()
-        .filter_map(|a| a["analyzer"].as_str())
+        .filter_map(|a| a["analyzer_name"].as_str())
         .collect();
     assert!(
         analyzer_names.contains(&"DNS"),
