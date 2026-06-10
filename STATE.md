@@ -146,6 +146,42 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | ACTION-PIN-001 | dtolnay/rust-toolchain @stable and @nightly remain branch-ref — intentionally exempt in the Action pin gate (toolchain installer, channel-selected). | OPEN P3 — low priority |
 | PCAP-CORPUS-001 | E2E pcap test-corpus storage backend (R2/B2 vs Drive-SA) — design ready, orphan-branch `test-pcaps` control plane (MANIFEST.yaml + fetch.sh + tiered runner); 100s of GB expected. 4SICS ICS-lab captures validated v0.4.0 (1.55M pps, 0 crashes). PRECURSOR LANDED (PR #221 fb2c875): lightweight index/fetch layer committed (E2E-PCAPS.md + bin/fetch-e2e-pcaps + mk_modbus_large_pcap.py); large pcaps gitignored under tests/fixtures/local-samples/. Only the shared-corpus STORAGE BACKEND choice (Cloudflare R2 / Backblaze B2 / Google Drive service account) remains tabled. | TABLED — human decision pending (2026-06-10) |
 
+## Deferred Next-Work Backlog (recorded 2026-06-10, while Feature #8 DNP3 in flight)
+
+Items not chosen when Feature #8 (DNP3) was selected. Preserved here so they survive the
+next session-checkpoint rotation.
+
+**1. Dependabot PR sweep (6 open PRs)** — disposition before next release.
+
+| PR | Package | Action |
+|----|---------|--------|
+| #202 | actions/checkout | MUST close + SHA-pin manually per ACTION-PIN-001 (do NOT merge tag ref) |
+| #203 | serde_json | standard cargo bump — review + merge |
+| #204 | assert_cmd | standard cargo bump — review + merge |
+| #205 | etherparse 0.16→0.20 | 4-minor jump — review API changes before merging |
+| #206 | rayon | standard cargo bump — review + merge |
+| #207 | clap | standard cargo bump — review + merge |
+
+Status: DEFERRED — pick up as a maintenance-mode sweep before the next release.
+
+**2. PCAP-CORPUS-001 storage backend decision** — cross-ref: TABLED in Drift Items above.
+Backend options: Cloudflare R2 (RECOMMENDED), Backblaze B2 (cheapest), Google Drive service-account (VIABLE).
+Status: TABLED — human decision pending.
+
+**3. Roadmap feature options (post-DNP3)** — candidate next features after Feature #8 ships.
+
+| Issue | Description | Note |
+|-------|-------------|------|
+| #3 | C2 beaconing detection | — |
+| #4 | CSV + SQLite reporters | — |
+| #6 | rayon parallel processing | relates to drift O-07 rayon-unused |
+| #64/#62/#63 | reporter improvements | — |
+| #101 | FP/TP characterization | OPEN-DEBT; blocked on labelled corpus |
+| #103 | size-symmetry evasion discriminator | DEFERRED; blocked on labelled corpus |
+| FE-001 | pcapng support | deferred v2 |
+
+Status: DEFERRED — roadmap backlog; pick after Feature #8.
+
 ## Cycle-Close Follow-Up Items
 
 CLOSED items (PROCESS-GAP-P5-001, PG-1–PG-4, CC-005, CC-006) archived to `cycles/v0.1.0-greenfield-spec/decisions-archive.md`.
