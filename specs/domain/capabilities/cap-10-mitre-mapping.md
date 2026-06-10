@@ -5,6 +5,11 @@ cap_id: CAP-10
 title: MITRE ATT&CK Mapping
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
+version: "1.1"
+modified:
+  - date: 2026-06-10
+    actor: architect
+    reason: "Remap revoked ATT&CK-ICS v19 IDs: T0855→T1692.001 (Unauthorized Message: Command Message), T0856→T1692.002 (Unauthorized Message: Reporting Message) (issue #222)."
 ---
 
 # CAP-10: MITRE ATT&CK Mapping
@@ -36,12 +41,12 @@ corrects pass-6's "16" claim):
 | T1505.003 | Web Shell | Persistence |
 | T1573 | Encrypted Channel | CommandAndControl (*catalogued, never emitted*) |
 | T0846 | Remote System Discovery | Discovery |
-| T0855 | Unauthorized Command Message | IcsImpairProcessControl (*catalogued, never emitted*) |
-| T0856 | Spoof Reporting Message | IcsImpairProcessControl (*catalogued, never emitted*) |
+| T1692.001 | Unauthorized Message: Command Message | IcsImpairProcessControl (*catalogued, never emitted*) |
+| T1692.002 | Unauthorized Message: Reporting Message | IcsImpairProcessControl (*catalogued, never emitted*) |
 | T0885 | Commonly Used Port | CommandAndControl (*catalogued, never emitted*) |
 
 **Emitted (6):** T1027, T1036, T1046, T1083, T1499.002, T1505.003.
-**Catalogued but never emitted (9):** T1040, T1071, T1071.001, T1071.004, T1573, T0846, T0855, T0856, T0885.
+**Catalogued but never emitted (9):** T1040, T1071, T1071.001, T1071.004, T1573, T0846, T1692.001, T1692.002, T0885.
 
 These 9 staged IDs are documented in mitre.rs source comments (P3.04 / #89; open item O-04).
 They are pre-positioned for future analyzers (DNS tunneling, ICS protocol analysis, etc.)
@@ -57,8 +62,9 @@ so adding new tactics in a future ATT&CK version is non-breaking for downstream 
 is declared (mitre.rs:64), appears in `Display` (mitre.rs:85) and in `all_tactics_in_report_order`
 (mitre.rs:111), but no `technique_info` arm maps any technique ID to it. It is therefore
 unreachable via any current emission path. This is analogous to the staged ICS techniques
-(T0855, T0856): a forward declaration awaiting a Modbus/DNP3 analyzer that will assign a
-technique to this tactic. Tracked as part of O-04.
+(T1692.001, T1692.002 — formerly T0855/T0856, revoked in ATT&CK-ICS v19.0 and remapped under
+ICS parent T1692 "Unauthorized Message"; see issue #222): a forward declaration awaiting a
+Modbus/DNP3 analyzer that will assign a technique to this tactic. Tracked as part of O-04.
 
 ## CLI --mitre flag
 

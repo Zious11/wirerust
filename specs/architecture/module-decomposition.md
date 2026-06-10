@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: module-decomposition
 traces_to: ARCH-INDEX.md
-version: "1.1"
+version: "1.3"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -10,6 +10,12 @@ modified:
   - date: 2026-06-08
     actor: spec-steward
     reason: "Phase-6 gate close: status draft→verified."
+  - date: 2026-06-10
+    actor: architect
+    reason: "Remap revoked ATT&CK-ICS v19 IDs in C-22 description: T0855→T1692.001, T0856→T1692.002 (issue #222)."
+  - date: 2026-06-10
+    actor: architect
+    reason: "C-22 over-inclusion correction: removed T1692.002 (catalogue-only, never emitted) from Modbus analyzer findings list (issue #222)."
 ---
 
 # Module Decomposition
@@ -57,7 +63,7 @@ All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by 
 | C-14 | src/findings.rs | SS-09 | `Finding`, `Verdict`, `Confidence`, `ThreatCategory`; `#[derive(Serialize)]`; `Display` impls | Pure (data model) |
 | C-16 | src/mitre.rs | SS-10 | `MitreTactic` enum; `MitreMatrix` enum (Enterprise/Ics); `technique_info` static match; `technique_name`, `technique_tactic`, `technique_matrix`, `all_tactics_in_report_order` — extended with T0836/T0814/T0806/T0835/T0831 for SS-14 | Pure core |
 | C-17 | src/summary.rs | SS-12 | `Summary`: per-packet accumulator; `ingest`, `unique_hosts`, serialization | Pure core |
-| C-22 | src/analyzer/modbus.rs | SS-14 | `ModbusAnalyzer`: `StreamHandler` + `StreamAnalyzer`; per-flow `HashMap<FlowKey, ModbusFlowState>`; MBAP parse + 3-point validity gate; function-code classification; transaction correlation table; write-burst rate detection; findings for T0855/T0836/T0814/T0806/T0835/T0831 | Pure core |
+| C-22 | src/analyzer/modbus.rs | SS-14 | `ModbusAnalyzer`: `StreamHandler` + `StreamAnalyzer`; per-flow `HashMap<FlowKey, ModbusFlowState>`; MBAP parse + 3-point validity gate; function-code classification; transaction correlation table; write-burst rate detection; findings for T1692.001/T0836/T0814/T0806/T0835/T0831 | Pure core |
 
 ### L4 Output Layer
 
