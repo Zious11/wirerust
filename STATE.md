@@ -5,7 +5,7 @@ active_feature: "#8-dnp3"
 feature_8_status: "F1-APPROVED-PAUSED (resumes after MITRE-v19 remap release)"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-10T00:00:00Z
+timestamp: 2026-06-10T12:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -16,7 +16,7 @@ phase_5_completed: "2026-06-01"
 phase_6_completed: "2026-06-02"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
-develop_head: fb2c875
+develop_head: 33de854
 main_head: 90aa91e
 released_version: v0.4.0
 released_at: "2026-06-10"
@@ -45,7 +45,7 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0/ERROR=1 (STORY-091 no-inputs pre-
 
 ## Status
 
-**MITRE v19 remap fix CONVERGED (issue #222, D-049).** 3-pass adversarial: Pass 1 NOT-CONVERGED (incomplete sibling sweep — ADR-005/006 + cap-10 + domain-debt missed; PG-5 lineage recurrence); Pass 2 adversary CONVERGED but consistency caught AC-014 tactic errors + AC-015 count; Pass 3 CONSISTENT. Spec commit c4765e6 pushed to factory-artifacts. Code on fix/mitre-ics-v19-remap (2fbab82): 1339 tests green, clippy/fmt clean, Kani VP-007 4/4 SUCCESSFUL. **Code PR to develop pending.** **Feature #8 (DNP3) is PAUSED at F1-APPROVED** — resumes after fix ships.
+**MITRE v19 remap fix MERGED to develop (PR #223, develop HEAD 33de854); issue #222 CLOSED. Release to main PENDING (human-gated, version TBD v0.4.1/v0.5.0).** 3-pass adversarial CONVERGED. Final pr-review finding (7 stale `t0855` test-fn identifiers in modbus_detection_tests.rs) resolved before merge — renamed to `t1692_001` (commit 14a52c6), completing the symbol-level sweep. Behavioral change shipped to develop: Modbus findings now emit T1692.001 (JSON/CSV/terminal) instead of revoked T0855; envelope conforms to pinned ics-attack-19.1. **Feature #8 (DNP3) is PAUSED at F1-APPROVED** — resumes after fix ships.
 
 **Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 244 BCs, 22 VPs (all 22 verified/locked, 0 draft), 1338 tests green, holdout 0.967. develop HEAD fb2c875; main HEAD 90aa91e (v0.4.0). Feature #7: COMPLETE across 2 releases (v0.3.0 multi-tag schema + v0.4.0 Modbus analyzer). develop is ahead of main by 3 non-release chore commits (eb010a1 .gitignore, 92773a4 E2E-pcap tooling, fb2c875 merge — PR #221 local-only E2E pcap tooling). No release content outstanding; branches are NOT divergent in a problematic way (main has no commits develop lacks).
 
@@ -72,16 +72,16 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0/ERROR=1 (STORY-091 no-inputs pre-
 | Feature #7 F5/F6/F7 — Hardening + Convergence | **F7 CONVERGED** 2026-06-09 | F5 CRITICAL timestamp-units (PR #215); F6 Kani 5/5 + fuzz 3.7M/0 + mutation 100% + audit clean (PR #216); F7 e2e + mod-wrappers (PR #217, 70abc27). Consistency 5-shadow sweep FIXED. 1338 tests. Holdout 0.967. D-044 |
 | Release — v0.4.0 | **RELEASED** 2026-06-10 | gitflow-proper: release/0.4.0 → PR #219 → main merge 90aa91e; annotated tag v0.4.0; 4 binaries; run 27254720396; GitHub Release published 2026-06-10T05:12:40Z; Feature #7 COMPLETE + issue #7 CLOSED; main back-merged to develop (8e38041). D-046 |
 
-## Session Resume Checkpoint (2026-06-10 — MITRE v19 remap CONVERGED — code PR pending to develop)
+## Session Resume Checkpoint (2026-06-10 — MITRE v19 remap MERGED to develop — release pending)
 
-**POSITION:** MITRE v19 remap fix (issue #222, D-049) CONVERGED — 3-pass adversarial complete; spec commit c4765e6 on factory-artifacts; code on fix/mitre-ics-v19-remap (HEAD 2fbab82); 1339 tests green. NEXT: open code PR → develop, then release. wirerust v0.4.0 released; develop HEAD `fb2c875`; main HEAD `90aa91e`. Feature #8 (DNP3) PAUSED at F1-APPROVED (D-047/D-048) — resumes after fix ships.
+**POSITION:** MITRE v19 remap fix (issue #222) MERGED to develop via PR #223 (merge commit 33de854); issue #222 CLOSED. develop HEAD `33de854`; main HEAD `90aa91e` (v0.4.0). NEXT: human-gated gitflow release to main (version disposition v0.4.1 patch vs v0.5.0 minor — output format changed). Feature #8 (DNP3) PAUSED at F1-APPROVED (D-047/D-048) — resumes after fix ships.
 
 **RELEASE HISTORY:** v0.1.0 (2026-06-08) greenfield; v0.2.0 (2026-06-09) timestamp threading; v0.3.0 (2026-06-09) multi-tag MITRE schema; v0.4.0 (2026-06-10) Modbus TCP analyzer.
 
 **RESUME PROTOCOL FOR NEXT SESSION:**
 1. Run `vsdd-factory:factory-worktree-health` — verify .factory/ worktree on factory-artifacts BEFORE any factory reads/writes
 2. Read STATE.md (this file) — orient to current state
-3. Open code PR fix/mitre-ics-v19-remap → develop (vsdd-factory:pr-create), then release.
+3. Execute gitflow release: cut release/v0.4.1 (or v0.5.0) from develop, PR → main, tag, back-merge to develop.
 
 **CARRY-FORWARD / OPEN ITEMS:**
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred; CC-001..CC-004 codification deferred
@@ -103,6 +103,7 @@ D-001..D-046 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md`.
 | D-047 | Feature #8 (DNP3 analyzer, issue #8) F1 delta analysis APPROVED by human (2026-06-10). Intent=feature, type=backend, non-trivial → full F1-F7. Integration: Dnp3Analyzer implements StreamHandler+StreamAnalyzer, wired into StreamDispatcher as DispatchTarget::Dnp3 (port-20000 Rule 6) — mirrors Modbus (D-032), NOT the UDP/ProtocolAnalyzer path; UDP DNP3 deferred to v2. New: src/analyzer/dnp3.rs, subsystem SS-15 'DNP3/ICS', VP-023 (Kani candidate, parse/classify pure core), ADR-007 (binary-ICS TCP integration). Modified (5): dispatcher.rs (HIGH — DispatchTarget::Dnp3 + port-20000 classification + VP-004 oracle), mitre.rs (HIGH/CRITICAL — VP-007 drift guard; T0803 AND T0828 are NEW to catalog, must seed+emit atomically), analyzer/mod.rs, main.rs, cli.rs. DTU_REQUIRED=false (no external service, confirmed). HUMAN SCOPE DECISIONS: (1) integration = TCP-only first (StreamDispatcher); (2) CRC-16/DNP = structure-only, strip-not-validate in v1; (3) MITRE = EXPANDED set T0803(new)+T0828(new)+T0855+T0814+T0836 — human chose to add T0828 Loss of Control beyond the architect's minimal recommendation; both T0803 and T0828 need ATT&CK-ICS v19.1 confirmation (research dispatched); (4) app-layer parse = FIR=1 first-fragment only; (5) CLI = add --dnp3-direct-operate-threshold (mirrors --modbus-write-burst-threshold). Delta-analysis doc: .factory/phase-f1-delta-analysis/dnp3-delta-analysis.md. | 2026-06-10 | Feature #8 F1 gate APPROVED — full F1-F7, TCP-only, expanded MITRE (T0803+T0828 new) |
 | D-048 | Two independent research passes (DF-VALIDATION-001 satisfied) confirmed a release-safety defect: the MITRE catalog emits/seeds technique IDs REVOKED in ATT&CK-for-ICS v19.0 while the envelope advertises ics-attack-19.1. Full 21-ID blast-radius audit (.factory/research/mitre-ics-v19-catalog-audit.md): exactly 2 IDs affected — T0855 Unauthorized Command Message → T1692.001 (EMITTED by Modbus in v0.4.0; catalogued v0.3.0+v0.4.0) and T0856 Spoof Reporting Message → T1692.002 (catalogue-only, both releases); both fold into new ICS parent T1692 'Unauthorized Message' (v19 introduced ICS sub-techniques). Other 19 IDs ACTIVE-unchanged. VP-007 structurally cannot catch this (closed-world consistency proof, no external-currency oracle). HUMAN DECISIONS (2026-06-10): (1) FIX-FIRST — run a scoped maintenance fix cycle now (remap T0855→T1692.001, T0856→T1692.002 across mitre.rs + modbus.rs emission sites + tests + affected BCs SS-09/10/11/14 + VP-007 sub-technique-format acceptance + correct stale attack-ics-version-pin.md), ship as its own release (v0.4.1/v0.5.0 TBD), THEN resume DNP3 on the corrected base — mirrors D-035 'isolate the correctness change' precedent. (2) DNP3 (Feature #8) MITRE set corrected to v19.1-accurate IDs: T1692.001 (unauthorized command), T1691.001 (block command, ex-T0803), T0827 Loss of Control (correlated finding, not per-packet; replaces the T0828 misread), T0814, T0836. Issue #222 filed. Feature #8 PAUSED at F1-APPROVED. | 2026-06-10 | MITRE v19 revocation defect — fix-first; DNP3 paused; corrected IDs locked |
 | D-049 | MITRE v19 remap fix (issue #222) CONVERGED. Spec delta + code/test remap (T0855→T1692.001 emitted, T0856→T1692.002 catalogue-only) across ~30 spec files + 6 code files + 8 test files. Adversarial convergence: Pass 1 NOT-CONVERGED (incomplete sibling sweep — ADR-005/006 authoritative emission tables, cap-10 counts, domain-debt staged list, stale test fn name; PG-5 propagation-shadow recurrence); Pass 2 adversary CONVERGED but consistency caught story-writer's wrong AC-014 tactic labels (T1692.001/.002→CommandAndControl, T0836→IcsInhibitResponseFunction, T0888→IcsImpairProcessControl) + AC-015 count 6→13; Pass 3 (final) CONSISTENT. Code: 1339 tests green, clippy/fmt clean, Kani VP-007 4/4 SUCCESSFUL, sub-technique format T[0-9]{4}(\.[0-9]{3})? accepted. develop-branch code on fix/mitre-ics-v19-remap (HEAD post-2fbab82). NEXT: code PR → develop, then release. | 2026-06-10 | MITRE v19 remap CONVERGED — 3-pass adversarial (caught 2 propagation shadows + tactic errors) |
+| D-050 | MITRE v19 remap fix (issue #222) MERGED to develop via PR #223 (merge commit 33de854; repo allows merge-commits only, not squash). 9/9 CI green on final commit 14a52c6 (test/clippy/fmt/audit/deny/fuzz-build/semantic-PR/action-pin-gate/trust-boundary), security review PASS, AI review APPROVE (0 blocking). Final pr-review finding (7 stale `t0855` test-fn identifiers in modbus_detection_tests.rs) resolved before merge — renamed to `t1692_001` (commit 14a52c6), completing the symbol-level sweep. Behavioral change shipped to develop: Modbus findings now emit T1692.001 (JSON/CSV/terminal) instead of revoked T0855; envelope conforms to pinned ics-attack-19.1. Issue #222 CLOSED. Spec delta on factory-artifacts (01451fe/d1dabf9/c4765e6). NEXT: human-gated gitflow release to main (version disposition v0.4.1 patch vs v0.5.0 minor — changes emitted output). | 2026-06-10 | MITRE v19 remap MERGED to develop (PR #223, 33de854); release pending |
 
 ## Blocking Issues
 
@@ -123,7 +124,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | FE-001 | pcapng input format not supported (.pcap-only) — v2 idea; see tech-debt-register.md | deferred / v2 / not-filed |
 | ACTION-PIN-001 | dtolnay/rust-toolchain @stable and @nightly remain branch-ref — intentionally exempt in the Action pin gate (toolchain installer, channel-selected). | OPEN P3 — low priority |
 | PCAP-CORPUS-001 | E2E pcap test-corpus storage backend (R2/B2/Drive-SA) — design ready; precursor PR #221 (fb2c875) landed (E2E-PCAPS.md + bin/fetch-e2e-pcaps + mk_modbus_large_pcap.py); large pcaps gitignored. Detail in session-checkpoints.md. | TABLED — human storage-backend decision pending |
-| MITRE-V19-REMAP-001 | MITRE ATT&CK-ICS v19 revocation defect (issue #222, D-048/D-049): T0855→T1692.001 and T0856→T1692.002 remapped across mitre.rs + modbus.rs emission sites + tests + BCs SS-09/10/11/14 + VP-007 sub-technique-format acceptance. Spec commit c4765e6 (factory-artifacts). Code on fix/mitre-ics-v19-remap. 3-pass adversarial CONVERGED. | CONVERGED — code PR pending to develop |
+| MITRE-V19-REMAP-001 | MITRE ATT&CK-ICS v19 revocation defect (issue #222, D-048/D-049/D-050): T0855→T1692.001 and T0856→T1692.002 remapped across mitre.rs + modbus.rs emission sites + tests + BCs SS-09/10/11/14 + VP-007 sub-technique-format acceptance. Spec commit c4765e6 (factory-artifacts). PR #223 MERGED to develop (33de854); issue #222 CLOSED. | MERGED-TO-DEVELOP — release pending |
 | DRIFT-F2-COUNT-001 | Stale "15 seeded IDs" count (true=21) in OUT-OF-SCOPE files: BC-2.10.006.md, prd-supplements/nfr-catalog.md, holdout-scenarios/HS-008 + HS-009. Pre-existing from F2/STORY-100 expansion. Requires DF-VALIDATION-001 before filing. | DEFERRED — separate cleanup, validate before filing |
 | DRIFT-SUPERPOWERS-001 | docs/superpowers/specs/2026-04-13-mitre-attack-mapping-design.md + plans/2026-04-13-mitre-attack-mapping.md carry stale pre-F2 catalog (T0855/T0856, singular mitre_technique field). Multiply-stale design drafts. Requires DF-VALIDATION-001 before filing. | DEFERRED — reconcile-or-archive decision pending |
 
