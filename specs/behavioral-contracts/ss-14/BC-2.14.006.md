@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -13,7 +13,10 @@ subsystem: SS-14
 capability: CAP-14
 lifecycle_status: active
 introduced: v0.3.0-feature-007
-modified: []
+modified:
+  - version: "1.1"
+    date: 2026-06-10
+    change: "v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Postconditions, Edge Cases, Capability Anchor Justification, L2 Domain Invariants, and Architecture Anchors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -69,7 +72,7 @@ server-to-client direction are used by BC-2.14.011 for transaction attribution.
    BC-2.14.011.
 5. Exception FCs with `original_fc` NOT in the Write set (e.g. `0x83` = exception for Read
    Holding Registers) are correlated via the transaction table (BC-2.14.010 and BC-2.14.011)
-   but do not trigger T0855 attribution on their own.
+   but do not trigger T1692.001 attribution on their own.
 
 ## Invariants
 
@@ -132,8 +135,8 @@ Parse:  —      |  PASS   |  PASS   |  —   | fc>=0x80 → Exception; orig=0x0
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-14 ("Modbus/ICS Analysis") per ARCH-INDEX.md §SS-14 |
-| Capability Anchor Justification | CAP-14 ("Modbus/ICS Analysis") per ARCH-INDEX.md §SS-14 — this BC defines exception response detection, which is the mechanism for attributing failed attack attempts (T0855 attribution evidence) in the ICS analysis capability |
-| L2 Domain Invariants | INV-9 (MITRE technique ID format — exception attribution feeds T0855 findings) |
+| Capability Anchor Justification | CAP-14 ("Modbus/ICS Analysis") per ARCH-INDEX.md §SS-14 — this BC defines exception response detection, which is the mechanism for attributing failed attack attempts (T1692.001 attribution evidence) in the ICS analysis capability |
+| L2 Domain Invariants | INV-9 (MITRE technique ID format — exception attribution feeds T1692.001 findings) |
 | Architecture Module | SS-14 (analyzer/modbus.rs C-22 `classify_fc` + `on_data` exception handling); ADR-005 §2.5 |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-007-modbus-analyzer |

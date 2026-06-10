@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: Wave-21 wave-level consistency lens — SS-11 reporter VP proof-method family harmonization (DF-SIBLING-SWEEP-001; sibling of the 2026-05-30 VP-020 correction): VP-017 VP-table Proof Method cells corrected unit→integration to match VP-017 authoritative method — 2026-05-30"
   - "v1.4: ADV-IMPL-P07-LOW-001 correction — Architecture Anchor and Invariant line citations json.rs:59 corrected to json.rs:60 (verified: serde_json::to_string_pretty(&output).unwrap() is at line 60; line 59 is the closing `});` of the json! macro) — 2026-06-01"
   - "v1.5: ADD-ON 1 (research-backed, f2-multitag-schema.md §1.4) — add mitre_domain and mitre_attack_version to JSON report envelope; both fields are top-level envelope fields (not per-finding); CSV reporters carry no envelope fields. mitre_attack_version value flagged for F4 to pin. — 2026-06-09"
+  - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. F4 FLAG updated: T0855 replaced by T1692.001 in the list of ICS technique IDs to pin the catalog version against. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -69,7 +70,7 @@ fields; these are JSON-only.
 
 > **FLAG for F4 (pin mitre_attack_version):** The exact ATT&CK for ICS version string must
 > be pinned against the catalog version that defines T0888 (Remote System Information
-> Discovery), T0855, T0836, T0835, T0831, T0814, T0806 as used by wirerust's Modbus
+> Discovery), T1692.001, T0836, T0835, T0831, T0814, T0806 as used by wirerust's Modbus
 > analyzer. The current placeholder is `"ics-attack-v15"`. F4 implementers must verify the
 > actual version at attack.mitre.org/resources/attack-data-and-tools/ and update the
 > constant in `src/reporter/json.rs` before the v0.3.0 release tag.

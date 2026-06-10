@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: pc4 timestamp example Z→+00:00 to match chrono to_rfc3339() DateTime<Utc> output + story AC-010; EC-010 hedge removed, output locked to +00:00 (Wave-22 P2 finding F-002) — 2026-05-30"
   - "v1.4: ADR-006 / Decision 13 §13.3 (F2 v0.3.0 BREAKING) — column 6 field renamed mitre_technique->mitre_techniques; type changed Option<String>->Vec<String>; encoding rule: empty vec->'', singleton vec->plain ID string, multi-element vec->semicolon-joined string; added EC-013/EC-014 for multi-value cases. — 2026-06-09"
   - "v1.5: ADD-ON 2 (research-backed, f2-multitag-schema.md §3) — clarify empty-cell is EMPTY STRING not null/[]/none; EC-001 updated; EC-015 added for consumer split guard (str.split(';') on empty produces [''] not [] — consumers must guard). — 2026-06-09"
+  - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Postconditions, Invariants, EC-013, EC-014, Canonical Test Vectors, and Architecture Anchors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -33,7 +34,7 @@ removal_reason: null
   Field renamed: mitre_technique -> mitre_techniques (column 6)
   Type changed: Option<String> -> Vec<String>
   Postcondition 1 rewritten: None/Some semantics -> empty/singleton/multi vec semantics
-  Encoding: empty vec -> ""; singleton vec -> plain ID; multi-element vec -> "T0855;T0836"
+  Encoding: empty vec -> ""; singleton vec -> plain ID; multi-element vec -> "T1692.001;T0836"
   Precondition 2: mitre_technique -> mitre_techniques
   EC-001: None -> vec![] empty; EC-002: Some("T1059") -> vec!["T1059"]
   EC-011 (injection): mitre_technique=Some("=...") -> mitre_techniques=vec!["=..."]
@@ -47,7 +48,7 @@ removal_reason: null
 Column 6 of the CSV output (`mitre_techniques`) encodes the `Finding.mitre_techniques` field
 as follows: empty vec produces an empty string cell `""`; a singleton vec produces the single
 ID as a plain string (e.g., `"T1036"`); a multi-element vec produces the IDs joined with
-semicolons and no spaces (e.g., `"T0855;T0836"`). Semicolons are neutral characters that do
+semicolons and no spaces (e.g., `"T1692.001;T0836"`). Semicolons are neutral characters that do
 not trigger CSV injection. The other three optional-field columns (7-9) are unchanged: `None`
 produces `""` and `Some(v)` uses a type-specific string conversion.
 
@@ -65,7 +66,7 @@ All derived strings (including the joined techniques string) are processed throu
 1. `mitre_techniques` cell (column 6):
    - `vec![]` (empty) → empty string `""`
    - `vec!["T1036"]` (singleton) → `"T1036"` (same as pre-F2 `Some("T1036")` output)
-   - `vec!["T0855", "T0836"]` (multi) → `"T0855;T0836"` (semicolon-joined, no spaces)
+   - `vec!["T1692.001", "T0836"]` (multi) → `"T1692.001;T0836"` (semicolon-joined, no spaces)
    The joined string is passed through `neutralize_csv_injection` at csv.rs:82.
 2. `source_ip` cell (column 7): if `None`, empty string `""`; if `Some(ip)`, `ip.to_string()`
    (decimal-dotted for IPv4, colon-hex for IPv6) at csv.rs:83.
@@ -99,7 +100,7 @@ All derived strings (including the joined techniques string) are processed throu
    guard is applied to the entire joined string, not to individual IDs.
 6. **Field delimiter is COMMA (`,`).** The CSV writer uses comma as the column separator
    (standard RFC 4180 CSV). The semicolon-joined `mitre_techniques` cell therefore stays in
-   a single column regardless of how many techniques are joined — e.g., `"T0855;T0836"` is
+   a single column regardless of how many techniques are joined — e.g., `"T1692.001;T0836"` is
    one cell, not two, because semicolons are not the field delimiter. Consumers must NOT
    split on semicolons to get columns; semicolons split technique IDs within the cell only.
 
@@ -119,8 +120,8 @@ All derived strings (including the joined techniques string) are processed throu
 | EC-010 | timestamp = Some(2024-01-15T12:34:56 UTC) | Column 9 cell is `"2024-01-15T12:34:56+00:00"` (chrono::DateTime<Utc>::to_rfc3339() always emits +00:00, never bare Z) |
 | EC-011 | mitre_techniques = vec!["=HYPERLINK(...)"] (injection attempt) | Cell is `"'=HYPERLINK(...)"` (neutralize_csv_injection applied to joined string) |
 | EC-012 | All fields empty/None simultaneously | All four cells are empty string; row has 5 non-empty + 4 empty cells |
-| EC-013 | mitre_techniques = vec!["T0855","T0836"] (Modbus register write, multi-tag) | Column 6 cell is `"T0855;T0836"` (semicolon-joined, no spaces) |
-| EC-014 | mitre_techniques = vec!["T0806","T0855"] (burst finding, multi-tag) | Column 6 cell is `"T0806;T0855"` |
+| EC-013 | mitre_techniques = vec!["T1692.001","T0836"] (Modbus register write, multi-tag; T1692.001 = v19 ICS sub-technique, successor to revoked T0855) | Column 6 cell is `"T1692.001;T0836"` (semicolon-joined, no spaces) |
+| EC-014 | mitre_techniques = vec!["T0806","T1692.001"] (burst finding, multi-tag; T1692.001 = v19 ICS sub-technique, successor to revoked T0855) | Column 6 cell is `"T0806;T1692.001"` |
 | EC-015 | Consumer splits column 6 on `;` when cell is empty string `""` | `"".split(';')` returns `[""]` in most languages (Python: `['']`, Rust `str::split`: `[""]`, Splunk `makemv delim=";"` on empty cell: empty multivalue). Consumers MUST check `if cell.is_empty()` before splitting and return an empty collection — NOT a single-element collection containing an empty string. This guard prevents spurious `[""]` results in analytics. Wirerust is not responsible for consumer split behavior; this EC documents the required consumer contract. |
 
 ## Canonical Test Vectors
@@ -133,7 +134,7 @@ All derived strings (including the joined techniques string) are processed throu
 | source_ip=Some(10.0.0.1) | Column 7 is `"10.0.0.1"` | happy-path |
 | source_ip=Some(2001:db8::1) | Column 7 is `"2001:db8::1"` | edge-case (IPv6) |
 | mitre_techniques=vec!["=cmd"] | Column 6 is `"'=cmd"` (neutralized) | edge-case (injection) |
-| mitre_techniques=vec!["T0855","T0836"] | Column 6 is `"T0855;T0836"` | happy-path (multi-tag) |
+| mitre_techniques=vec!["T1692.001","T0836"] | Column 6 is `"T1692.001;T0836"` | happy-path (multi-tag) |
 
 ## Verification Properties
 

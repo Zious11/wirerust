@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: Correct CRLF→LF line-terminator claim in postcondition 1 and description (STORY-079 formalization finding — 2026-05-30)"
   - "v1.4: proof_method disjunction 'unit / proptest'→'unit' in VP table row 2 (DF-SIBLING-SWEEP-001; CSV-injection family sweep from STORY-079 P6 finding)"
   - "v1.5: ADR-006 / Decision 13 §13.3 (F2 v0.3.0 BREAKING) — column 6 renamed from mitre_technique to mitre_techniques in title, description, header string, postcondition 3, and column-order table. Column count remains 9. Multi-value semicolon-join behavior documented here; encoding details in BC-2.11.024. — 2026-06-09"
+  - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. T0855 example in Description column 6 multi-value explanation updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,7 +49,7 @@ analyst scripts) can rely on positional column indices without schema discovery.
 
 Column 6 changed from `mitre_technique` (scalar string) to `mitre_techniques` in v0.3.0 as
 part of ADR-006 Decision 13. The column carries a semicolon-joined string for multi-technique
-findings (e.g., `"T0855;T0836"`), an empty string for no-technique findings, and a plain ID
+findings (e.g., `"T1692.001;T0836"`), an empty string for no-technique findings, and a plain ID
 string for single-technique findings (e.g., `"T1036"`). The column count remains 9. See
 BC-2.11.024 for the per-cell encoding details.
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.3"
+version: "2.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -26,6 +26,9 @@ modified:
   - version: "2.3"
     date: 2026-06-09
     change: "F7 consistency finding F5: burst postcondition 1 summary string corrected to match code emission. Previous spec said '{count} writes in {elapsed_ms}ms window' with {elapsed_ms} = (now_ts - window_start_ts)/1000 — the /1000 formula is dead-letter (now_ts is already in seconds, not microseconds; /1000 would produce sub-second fractions). The code correctly emits '{elapsed_secs}s window'. Fixed: renamed elapsed_ms→elapsed_secs, removed /1000 formula, changed 'ms' unit to 's'. The burst finding summary is now '{count} writes in {elapsed_secs}s window (unit {unit_id}, threshold {threshold}/s)'."
+  - version: "2.4"
+    date: 2026-06-10
+    change: "v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in H1 title, Description, Postconditions, Invariants, Edge Cases, Canonical Test Vectors, MITRE Techniques traceability, and Architecture Anchors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -41,7 +44,7 @@ inputs:
 input-hash: TBD
 ---
 
-# BC-2.14.017: Write-Rate Exceeding Either Burst or Sustained Threshold Emits T0806 + T0855 Finding
+# BC-2.14.017: Write-Rate Exceeding Either Burst or Sustained Threshold Emits T0806 + T1692.001 Finding
 
 <!-- Previous version (v1.0): "Write-Rate Burst Exceeding --modbus-write-threshold Emits T0806 Brute Force I/O and T0855 Findings"
      v1.0 model: single 1-second window, --modbus-write-threshold (default 10), write_threshold: u32.
@@ -57,7 +60,7 @@ input-hash: TBD
 ## Description
 
 `ModbusAnalyzer` implements two independent write-rate detectors per flow, each emitting a
-single Finding with `mitre_techniques: vec!["T0806", "T0855"]` when triggered:
+single Finding with `mitre_techniques: vec!["T0806", "T1692.001"]` when triggered:
 
 1. **Burst detector** (1-second window): fires when more than `write_burst_threshold` write-class
    FCs are observed within any single 1-second window on the flow. Default threshold: 20 writes/s.
@@ -74,7 +77,7 @@ Each detector fires at most once per its respective window. The burst detector u
 reset on window expiry.
 
 Per Decision 13 (ADR-006), each burst event emits ONE Finding with `mitre_techniques:
-vec!["T0806", "T0855"]` (co-tagged, not two separate findings as in v1.0). The burst
+vec!["T0806", "T1692.001"]` (co-tagged, not two separate findings as in v1.0). The burst
 finding is emitted alongside (not instead of) the per-PDU write finding from BC-2.14.013.
 
 Targets v0.3.0.
@@ -113,7 +116,7 @@ Targets v0.3.0.
      `now_ts.wrapping_sub(flow.window_start_ts)` (seconds, per BC-2.09.007 — no /1000),
      `{unit_id}` is the MBAP Unit ID, and `{threshold}` is `self.write_burst_threshold`.
    - `evidence`: one entry — `"Burst threshold exceeded: {count} write FCs in 1s window; window_write_count={count} window_start_ts={start_ts} threshold={threshold} FC=0x{fc:02X} UnitID={unit_id}"`.
-   - `mitre_techniques: vec!["T0806", "T0855"]`
+   - `mitre_techniques: vec!["T0806", "T1692.001"]`
    - `source_ip: Some(<client/initiator endpoint>)` — resolved from the TCP `direction` arg
      passed to `on_data`: `Direction::ClientToServer` means the write-class PDU originates from
      the client (initiator) side. `FlowKey` has no `client_ip()` accessor; resolve via
@@ -136,7 +139,7 @@ Targets v0.3.0.
      where `{count}` is `flow.sustained_window_write_count`, `{elapsed_s}` is `elapsed_secs`,
      and `{threshold}` is `self.write_sustained_threshold`.
    - `evidence`: one entry — `"Sustained write rate exceeded: {count} writes over {elapsed_s} seconds (>{threshold}/s average); sustained_window_start_ts={start_ts} FC=0x{fc:02X} UnitID={unit_id}"`.
-   - `mitre_techniques: vec!["T0806", "T0855"]`
+   - `mitre_techniques: vec!["T0806", "T1692.001"]`
    - `source_ip: Some(<client/initiator endpoint>)` — resolved from the TCP `direction` arg
      as described in the burst finding postcondition above (same Direction::ClientToServer logic;
      write-rate detectors always fire on ClientToServer PDUs).
@@ -167,7 +170,7 @@ else:
     window_write_count += 1
 
 if window_write_count > write_burst_threshold AND NOT window_burst_emitted:
-    emit ONE burst Finding { mitre_techniques: vec!["T0806","T0855"], evidence="Burst threshold exceeded..." }
+    emit ONE burst Finding { mitre_techniques: vec!["T0806","T1692.001"], evidence="Burst threshold exceeded..." }
     window_burst_emitted = true
 ```
 
@@ -197,7 +200,7 @@ else:
                    AND NOT sustained_burst_emitted
 
         if trigger:
-            emit ONE sustained Finding { mitre_techniques: vec!["T0806","T0855"], evidence="Sustained write rate exceeded..." }
+            emit ONE sustained Finding { mitre_techniques: vec!["T0806","T1692.001"], evidence="Sustained write rate exceeded..." }
             sustained_burst_emitted = true
 
         // Window reset (non-overlapping; always reset after >=2s elapses):
@@ -233,7 +236,7 @@ The evidence string distinguishes the two emission paths:
 - Burst: `"Burst threshold exceeded: N write FCs in 1s window"`
 - Sustained: `"Sustained write rate exceeded: N writes over E seconds (>T/s average)"`
 
-Both carry `mitre_techniques: vec!["T0806","T0855"]` per Decision 13.
+Both carry `mitre_techniques: vec!["T0806","T1692.001"]` per Decision 13.
 
 ### 4. Per-flow isolation
 
@@ -257,9 +260,9 @@ The prior `WRITE_RATE_WINDOW_SECS = 1` and `DEFAULT_MODBUS_WRITE_THRESHOLD = 10`
 
 | Scenario | v2.0 findings | v1.0 findings |
 |----------|---------------|---------------|
-| Register write (mid-burst, no T0831, no threshold tip) | 1 (per-PDU: `["T0855","T0836"]`) | 2 (T0855 + T0836 separate) |
-| Register write tipping burst threshold | 2 (per-PDU: `["T0855","T0836"]` + burst: `["T0806","T0855"]`) | 4 (T0855+T0836+T0806+burst-T0855) |
-| Register write tipping sustained threshold | 2 (per-PDU + sustained: `["T0806","T0855"]`) | N/A (v1.0 had no sustained detector) |
+| Register write (mid-burst, no T0831, no threshold tip) | 1 (per-PDU: `["T1692.001","T0836"]`) | 2 (T1692.001 + T0836 separate) |
+| Register write tipping burst threshold | 2 (per-PDU: `["T1692.001","T0836"]` + burst: `["T0806","T1692.001"]`) | 4 (T1692.001+T0836+T0806+burst-T1692.001) |
+| Register write tipping sustained threshold | 2 (per-PDU + sustained: `["T0806","T1692.001"]`) | N/A (v1.0 had no sustained detector) |
 | Register write tipping both burst AND sustained | 3 (per-PDU + burst + sustained) | N/A |
 
 V2 is strictly fewer findings per PDU than v1 while preserving all technique attribution.
@@ -267,8 +270,8 @@ V2 is strictly fewer findings per PDU than v1 while preserving all technique att
 ### 7. `mitre_techniques` field per Decision 13 (ADR-006)
 
 Both the burst and sustained findings use `mitre_techniques: Vec<String>` (not
-`mitre_technique: Option<String>`). The field is `vec!["T0806", "T0855"]` for both.
-JSON output: `"mitre_techniques": ["T0806","T0855"]`. CSV column 6: `"T0806;T0855"`.
+`mitre_technique: Option<String>`). The field is `vec!["T0806", "T1692.001"]` for both.
+JSON output: `"mitre_techniques": ["T0806","T1692.001"]`. CSV column 6: `"T0806;T1692.001"`.
 
 ### 8. Zero threshold rejection (see BC-2.14.024)
 
@@ -280,7 +283,7 @@ and `write_sustained_threshold >= 1` holds at the analyzer struct level.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | `write_burst_threshold=20`; exactly 21 write FCs in < 1 second | 21st write tips the burst threshold: ONE burst Finding `["T0806","T0855"]` emitted alongside per-PDU finding. Writes 1–20: only per-PDU findings. |
+| EC-001 | `write_burst_threshold=20`; exactly 21 write FCs in < 1 second | 21st write tips the burst threshold: ONE burst Finding `["T0806","T1692.001"]` emitted alongside per-PDU finding. Writes 1–20: only per-PDU findings. |
 | EC-002 | 22nd write FC in same 1-second window | Burst NOT re-emitted (`window_burst_emitted = true`). Per-PDU finding still emitted. |
 | EC-003 | Burst window expires; 21st write in new window | Window resets. No burst finding yet (count = 1). |
 | EC-004 | `write_sustained_threshold=10`; 8 writes in 2s (elapsed_secs=2) | 8 > 10*2=20? No. Does NOT fire at default threshold=10. To fire with 8 writes/s avg, use `--modbus-write-sustained-threshold 3` (8 > 3*2=6 → fires). |
@@ -298,14 +301,14 @@ All timestamps are in SECONDS (timestamp_secs per BC-2.09.007; the pipeline deli
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| `write_burst_threshold=20`; 20 write PDUs (FC=0x06) at ts=1000s..1000s (same second) — same flow | No burst finding after 20 writes; `window_write_count=20`. Per-PDU findings with `["T0855","T0836"]` each. | edge-case (at burst threshold, not over) |
-| Same + 21st write at ts=1000s (still within 1-second burst window) | ONE burst Finding `{mitre_techniques=["T0806","T0855"], evidence contains "Burst threshold exceeded"}` emitted; `window_burst_emitted=true` | happy-path (burst threshold crossed) |
+| `write_burst_threshold=20`; 20 write PDUs (FC=0x06) at ts=1000s..1000s (same second) — same flow | No burst finding after 20 writes; `window_write_count=20`. Per-PDU findings with `["T1692.001","T0836"]` each. | edge-case (at burst threshold, not over) |
+| Same + 21st write at ts=1000s (still within 1-second burst window) | ONE burst Finding `{mitre_techniques=["T0806","T1692.001"], evidence contains "Burst threshold exceeded"}` emitted; `window_burst_emitted=true` | happy-path (burst threshold crossed) |
 | `write_burst_threshold=20`; 25 writes within elapsed_secs=0 (same second) | Burst fires on 21st write; writes 22–25: no additional burst finding (`burst_emitted=true`). 25 per-PDU findings + 1 burst finding. | happy-path (burst caps at once) |
-| `write_sustained_threshold=7`; 16 writes accumulated; elapsed_secs=2 (window boundary hit) | elapsed_secs=2 >= 2; check: 16 > 7*2=14 → FIRES. ONE sustained Finding `{mitre_techniques=["T0806","T0855"], evidence="Sustained write rate exceeded: 16 writes over 2 seconds (>7/s average)"}` | happy-path (low-and-slow sustained detection) |
+| `write_sustained_threshold=7`; 16 writes accumulated; elapsed_secs=2 (window boundary hit) | elapsed_secs=2 >= 2; check: 16 > 7*2=14 → FIRES. ONE sustained Finding `{mitre_techniques=["T0806","T1692.001"], evidence="Sustained write rate exceeded: 16 writes over 2 seconds (>7/s average)"}` | happy-path (low-and-slow sustained detection) |
 | `write_sustained_threshold=10`; 22 writes accumulated at elapsed_secs=2 | Check: 22 > 10*2=20 → FIRES sustained finding. | happy-path (sustained at default threshold) |
 | `write_sustained_threshold=10`; 20 writes at elapsed_secs=2 (exactly at threshold) | Check: 20 > 10*2=20? No (strict >). NOT fired. | edge-case (exactly at threshold; strict > required) |
 | Window expires between write 20 and write 21 (ts gap > WRITE_BURST_WINDOW_SECS=1 second) for burst detector | Burst window resets. Write 21 starts new window (count=1). No burst finding. | edge-case (burst window expiry) |
-| `write_burst_threshold=3`; ADU-A(FC=0x06 ts=1000s), ADU-B(FC=0x10 ts=1000s), ADU-C(FC=0x05 ts=1000s), ADU-D(FC=0x10 ts=1000s) | ADU-D: count=4 > 3 → burst fires: ONE Finding `["T0806","T0855"]` | happy-path (mixed write FCs, burst) |
+| `write_burst_threshold=3`; ADU-A(FC=0x06 ts=1000s), ADU-B(FC=0x10 ts=1000s), ADU-C(FC=0x05 ts=1000s), ADU-D(FC=0x10 ts=1000s) | ADU-D: count=4 > 3 → burst fires: ONE Finding `["T0806","T1692.001"]` | happy-path (mixed write FCs, burst) |
 
 ## Verification Properties
 
@@ -323,11 +326,11 @@ All timestamps are in SECONDS (timestamp_secs per BC-2.09.007; the pipeline deli
 | Architecture Module | SS-14 (analyzer/modbus.rs, C-22; ModbusFlowState burst+sustained window fields; ModbusAnalyzer write_burst_threshold + write_sustained_threshold) |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-007-modbus-analyzer |
-| MITRE Techniques | T0806 — Brute Force I/O (ATT&CK for ICS; IcsImpairProcessControl); T0855 — Unauthorized Command Message (co-tagged on burst/sustained events) |
+| MITRE Techniques | T0806 — Brute Force I/O (ATT&CK for ICS; IcsImpairProcessControl); T1692.001 — Unauthorized Command Message (co-tagged on burst/sustained events) |
 
 ## Related BCs
 
-- BC-2.14.013 — composes with (per-PDU T0855+T0836/T0835 finding also emitted for the same PDU; independent from burst)
+- BC-2.14.013 — composes with (per-PDU T1692.001+T0836/T0835 finding also emitted for the same PDU; independent from burst)
 - BC-2.14.016 — related to (T0831 5-second window runs independently; separate state fields)
 - BC-2.14.022 — depends on (MAX_FINDINGS cap guard)
 - BC-2.14.024 — depends on (dual CLI flags configure write_burst_threshold and write_sustained_threshold)

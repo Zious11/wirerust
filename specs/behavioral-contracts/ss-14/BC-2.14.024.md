@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.0"
+version: "2.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -17,6 +17,9 @@ modified:
   - version: "2.0"
     date: 2026-06-09
     change: "UPDATED (v2.0 — Decision 11, f2-fix-directives.md §11): REMOVED --modbus-write-threshold (single-window flag). ADDED two new flags: --modbus-write-burst-threshold (default 20, 1-second burst window) and --modbus-write-sustained-threshold (default 10, >=2-second sustained/average window). Both flags reject 0 with separate error messages. Both flow through ModbusAnalyzer::new(burst, sustained) to separate write_burst_threshold and write_sustained_threshold fields. Targets v0.3.0."
+  - version: "2.1"
+    date: 2026-06-10
+    change: "v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description and Canonical Test Vectors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,11 +51,11 @@ The `analyze` subcommand exposes two independent write-burst detection threshold
 Modbus analyzer, replacing the single `--modbus-write-threshold` flag from v1.0:
 
 1. `--modbus-write-burst-threshold <N>` — configures the per-flow burst detector. Fires T0806 +
-   T0855 (co-tagged `["T0806","T0855"]` on one finding) when more than N write-class function
+   T1692.001 (co-tagged `["T0806","T1692.001"]` on one finding) when more than N write-class function
    codes are observed within any single 1-second window. Default: 20. Minimum: 1.
 
 2. `--modbus-write-sustained-threshold <M>` — configures the per-flow sustained-rate detector.
-   Fires T0806 + T0855 when the average write-FC rate exceeds M writes/second over a contiguous
+   Fires T0806 + T1692.001 when the average write-FC rate exceeds M writes/second over a contiguous
    window of ≥2 seconds. Detection math: `sustained_window_write_count > M * elapsed_secs` at
    `elapsed_secs >= 2`. Default: 10. Minimum: 1.
 
@@ -184,7 +187,7 @@ respectively. Targets v0.3.0.
 
 | Setup | Expected Behavior | Category |
 |-------|------------------|----------|
-| `wirerust analyze test.pcap --modbus --modbus-write-burst-threshold 5` and 6 write-class PDUs in 1s | Burst Finding `["T0806","T0855"]` emitted (BC-2.14.017); sustained not yet evaluated | happy-path: burst threshold configured, fires |
+| `wirerust analyze test.pcap --modbus --modbus-write-burst-threshold 5` and 6 write-class PDUs in 1s | Burst Finding `["T0806","T1692.001"]` emitted (BC-2.14.017); sustained not yet evaluated | happy-path: burst threshold configured, fires |
 | `wirerust analyze test.pcap --modbus --modbus-write-burst-threshold 5` and 5 write-class PDUs in 1s | No burst finding; per-PDU findings from BCs 2.14.013-015 | happy-path: burst threshold not exceeded |
 | `wirerust analyze test.pcap --modbus --modbus-write-burst-threshold 0` | Exit 1: `"--modbus-write-burst-threshold must be >= 1 (got 0)"` | edge-case: burst zero rejected |
 | `wirerust analyze test.pcap --modbus --modbus-write-sustained-threshold 0` | Exit 1: `"--modbus-write-sustained-threshold must be >= 1 (got 0)"` | edge-case: sustained zero rejected |
@@ -208,7 +211,7 @@ respectively. Targets v0.3.0.
 | Architecture Module | SS-14 (analyzer/modbus.rs C-22: `write_burst_threshold: u32` and `write_sustained_threshold: u32` fields); SS-12 (cli.rs: dual flags) |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-007-modbus-analyzer |
-| MITRE Techniques | T0806 (Brute Force I/O), T0855 (Unauthorized Command Message) — thresholds control when these findings fire |
+| MITRE Techniques | T0806 (Brute Force I/O), T1692.001 (Unauthorized Command Message) — thresholds control when these findings fire |
 
 ## Related BCs
 

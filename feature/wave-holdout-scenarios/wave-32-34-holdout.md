@@ -110,7 +110,7 @@ github_issue: 7
 
 ---
 
-## HS-W33-003: Write-Class Detections — Holding Register (T0855 + T0836)
+## HS-W33-003: Write-Class Detections — Holding Register (T1692.001 + T0836)
 
 **Scope:** STORY-104 (BC-2.14.013 + BC-2.14.014)
 **Priority:** P0
@@ -120,17 +120,17 @@ github_issue: 7
 
 **Assertions:**
 1. Exactly ONE Finding is emitted.
-2. `finding.mitre_techniques == vec!["T0855", "T0836"]` (canonical order per ADR-006 sub-decision 3).
+2. `finding.mitre_techniques == vec!["T1692.001", "T0836"]` (canonical order per ADR-006 sub-decision 3).
 3. `finding.category == ThreatCategory::Execution`.
 4. `finding.verdict == Verdict::Likely`.
 5. `finding.confidence == Confidence::Medium`.
 
 **Repeat for FC=0x10 (Write Multiple Registers) and FC=0x16 (Mask Write Register):**
-Same assertions — each emits `["T0855", "T0836"]`.
+Same assertions — each emits `["T1692.001", "T0836"]`.
 
 ---
 
-## HS-W33-004: Write-Class Detections — Coil (T0855 + T0835)
+## HS-W33-004: Write-Class Detections — Coil (T1692.001 + T0835)
 
 **Scope:** STORY-104 (BC-2.14.015)
 **Priority:** P0
@@ -139,11 +139,11 @@ Same assertions — each emits `["T0855", "T0836"]`.
 **Setup:** Deliver a ClientToServer ADU with FC=0x05 (Write Single Coil).
 
 **Assertions:**
-1. ONE Finding with `mitre_techniques == vec!["T0855", "T0835"]`.
+1. ONE Finding with `mitre_techniques == vec!["T1692.001", "T0835"]`.
 
 **Repeat for FC=0x0F (Write Multiple Coils):** Same.
 
-**Negative case (FC=0x15/0x17):** ONE Finding with `mitre_techniques == vec!["T0855"]` only
+**Negative case (FC=0x15/0x17):** ONE Finding with `mitre_techniques == vec!["T1692.001"]` only
 (not in register or coil subset).
 
 ---
@@ -158,18 +158,18 @@ Same assertions — each emits `["T0855", "T0836"]`.
 Timestamps: t=100_000 µs, t=200_000 µs (1s later), t=300_000 µs (2s later).
 
 **Assertions:**
-1. First write (t=100_000): finding[0].mitre_techniques = `["T0855", "T0836"]` (T0831 NOT yet co-tagged; count=1).
-2. Second write (t=200_000): finding[1].mitre_techniques = `["T0855", "T0836", "T0831"]` (T0831 inline, emit-once; count=2; `t0831_burst_emitted = true`).
-3. Third write (t=300_000): finding[2].mitre_techniques = `["T0855", "T0836"]` (T0831 exhausted for this window; no re-emit).
+1. First write (t=100_000): finding[0].mitre_techniques = `["T1692.001", "T0836"]` (T0831 NOT yet co-tagged; count=1).
+2. Second write (t=200_000): finding[1].mitre_techniques = `["T1692.001", "T0836", "T0831"]` (T0831 inline, emit-once; count=2; `t0831_burst_emitted = true`).
+3. Third write (t=300_000): finding[2].mitre_techniques = `["T1692.001", "T0836"]` (T0831 exhausted for this window; no re-emit).
 4. T0831 is NOT a separate Finding object — it is co-tagged inline in the per-PDU write finding.
 
 **Window reset case:** Deliver a 4th write at t=5_200_000 µs (> 5s after first write).
-5. finding[3].mitre_techniques = `["T0855", "T0836"]` (new window started; T0831 counter reset; emit-once guard cleared).
-6. A 5th write within the new window (t=5_300_000): finding[4].mitre_techniques = `["T0855", "T0836", "T0831"]` (T0831 fires again in the new window).
+5. finding[3].mitre_techniques = `["T1692.001", "T0836"]` (new window started; T0831 counter reset; emit-once guard cleared).
+6. A 5th write within the new window (t=5_300_000): finding[4].mitre_techniques = `["T1692.001", "T0836", "T0831"]` (T0831 fires again in the new window).
 
 ---
 
-## HS-W33-006: Dual-Window Burst Detector (T0806 + T0855)
+## HS-W33-006: Dual-Window Burst Detector (T0806 + T1692.001)
 
 **Scope:** STORY-104 (BC-2.14.017 — 1-second burst window)
 **Priority:** P0
@@ -179,8 +179,8 @@ Timestamps: t=100_000 µs, t=200_000 µs (1s later), t=300_000 µs (2s later).
 within 1 second (e.g., timestamps from 0 to 900_000 µs).
 
 **Assertions:**
-1. 21 per-PDU write findings emitted (one per write; each `["T0855", "T0836"]` or similar).
-2. Exactly ONE burst finding emitted with `mitre_techniques == vec!["T0806", "T0855"]`.
+1. 21 per-PDU write findings emitted (one per write; each `["T1692.001", "T0836"]` or similar).
+2. Exactly ONE burst finding emitted with `mitre_techniques == vec!["T0806", "T1692.001"]`.
 3. The burst finding is a SEPARATE Finding object, NOT merged into a per-PDU finding.
 4. Total findings: 22 (21 per-PDU + 1 burst).
 5. `window_burst_emitted == true` after the threshold-tipping write.
@@ -209,7 +209,7 @@ Assertion: NO sustained burst finding emitted.
 **Test case B — correct fire (2.0s window):**
 Deliver 25 writes over 2.0 seconds (elapsed_us = 2_000_000).
 Formula: `25 * 1_000_000 = 25_000_000 > 10 * 2_000_000 = 20_000_000` → TRUE.
-Assertion: ONE sustained burst finding emitted with `["T0806", "T0855"]`.
+Assertion: ONE sustained burst finding emitted with `["T0806", "T1692.001"]`.
 
 **Timestamp wrap test:**
 Deliver a write at `ts = 0xFFFFFF00` followed by one at `ts = 0x00000100`.
@@ -309,10 +309,10 @@ Assertion: No panic (overflow-checks=true in debug); window elapsed = 512 µs (<
 **Wave:** 34
 
 **Setup:** Craft a synthetic Modbus TCP pcap containing:
-- 1 holding-register write (FC=0x06): triggers T0855+T0836 per-PDU finding
-- 1 coil write (FC=0x05): triggers T0855+T0835 per-PDU finding
+- 1 holding-register write (FC=0x06): triggers T1692.001+T0836 per-PDU finding
+- 1 coil write (FC=0x05): triggers T1692.001+T0835 per-PDU finding
 - 2 holding-register writes within 5s: triggers T0831 co-tag on 2nd write
-- 21 holding-register writes within 1s: triggers T0806+T0855 burst finding
+- 21 holding-register writes within 1s: triggers T0806+T1692.001 burst finding
 - FC=0x08 with sub-function 0x0004: triggers T0814 finding
 - FC=0x11 (recon): triggers T0888 finding
 
@@ -321,7 +321,7 @@ Run: `wirerust analyze <modbus.pcap> --modbus --format json`
 **Assertions:**
 1. `cargo run` exits 0.
 2. JSON output includes a non-empty `"findings"` array.
-3. At least one finding with `mitre_techniques` containing `"T0855"`.
+3. At least one finding with `mitre_techniques` containing `"T1692.001"`.
 4. At least one finding with `mitre_techniques` containing `"T0806"` (burst detector).
 5. At least one finding with `mitre_techniques` containing `"T0814"`.
 6. At least one finding with `mitre_techniques` containing `"T0888"`.

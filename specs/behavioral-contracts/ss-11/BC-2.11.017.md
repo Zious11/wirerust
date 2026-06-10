@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
   - "v1.4: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchor: render_finding_flat 223-228 → 230-235 (fn at 230, closing at 235); verified against HEAD cfe0112a — 2026-06-01"
   - "v1.5: ADR-006 / Decision 13 §13.7 (F2 v0.3.0) — multi-tag rendering: single ID emits 'MITRE: T1036'; multi-tag emits 'MITRE: T0855, T0836' (comma-space separated); empty vec emits no MITRE line. Precondition 2 and EC-003 updated; EC-005/EC-006 added. — 2026-06-09"
+  - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Postconditions, EC-005, EC-006, and Canonical Test Vectors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -45,7 +46,7 @@ When `TerminalReporter.show_mitre_grouping = false` (the default), each finding'
 reads `    MITRE: <id(s)>\n` -- all technique IDs from `mitre_techniques` joined with `", "`
 (comma-space), with no em-dash separator, no technique names, and no `(unknown)` labels.
 For singleton vecs the output is identical to the pre-F2 single-technique format (`MITRE: T1036`).
-For multi-element vecs the output is `MITRE: T0855, T0836`. Findings with empty
+For multi-element vecs the output is `MITRE: T1692.001, T0836`. Findings with empty
 `mitre_techniques` produce no MITRE line. Findings are rendered in their original emission
 order with no tactic bucketing or sorting.
 
@@ -58,7 +59,7 @@ order with no tactic bucketing or sorting.
 
 1. The MITRE line reads: `    MITRE: <id1>, <id2>, ...\n` where IDs are joined with `", "`
    in the order they appear in `mitre_techniques`. For singleton vecs: `    MITRE: T1036\n`.
-   For two-element vecs: `    MITRE: T0855, T0836\n`.
+   For two-element vecs: `    MITRE: T1692.001, T0836\n`.
 2. No em-dash, no technique names, no `(unknown)` labels.
 3. No `## TacticName` or `## Uncategorized` headers in the FINDINGS section.
 4. Findings render in their original slice order.
@@ -80,15 +81,15 @@ order with no tactic bucketing or sorting.
 | EC-002 | Finding with mitre_techniques=["T9999"] (unknown ID) | "MITRE: T9999\n" (no "(unknown)" label) |
 | EC-003 | Finding with mitre_techniques=vec![] (empty) | No MITRE line rendered for this finding |
 | EC-004 | show_mitre_grouping=false, multiple findings | Rendered in emission order |
-| EC-005 | Finding with mitre_techniques=["T0855","T0836"] (multi-tag, Modbus register write) | "MITRE: T0855, T0836\n" (both IDs, comma-space separated) |
-| EC-006 | Finding with mitre_techniques=["T0806","T0855"] (burst finding) | "MITRE: T0806, T0855\n" |
+| EC-005 | Finding with mitre_techniques=["T1692.001","T0836"] (multi-tag, Modbus register write; T1692.001 = v19 ICS sub-technique, successor to revoked T0855) | "MITRE: T1692.001, T0836\n" (both IDs, comma-space separated) |
+| EC-006 | Finding with mitre_techniques=["T0806","T1692.001"] (burst finding) | "MITRE: T0806, T1692.001\n" |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
 | Finding with mitre_techniques=["T1036"], show_mitre_grouping=false | Output contains "MITRE: T1036" without em-dash | happy-path (singleton — backward-compat) |
-| Finding with mitre_techniques=["T0855","T0836"], show_mitre_grouping=false | Output contains "MITRE: T0855, T0836" | happy-path (multi-tag) |
+| Finding with mitre_techniques=["T1692.001","T0836"], show_mitre_grouping=false | Output contains "MITRE: T1692.001, T0836" | happy-path (multi-tag) |
 | Finding with mitre_techniques=[], show_mitre_grouping=false | No "MITRE:" line in output for that finding | edge-case (empty) |
 | Findings rendered flat | No "## Defense Evasion" header present | happy-path |
 

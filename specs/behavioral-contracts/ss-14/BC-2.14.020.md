@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.0"
+version: "2.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -17,6 +17,9 @@ modified:
   - version: "2.0"
     date: 2026-06-09
     change: "UPDATED (v2.0 — Decision 12, f2-fix-directives.md §12): T0846 → T0888 correctness fix. Recon FCs 0x11 (Report Server ID) and 0x2B/MEI 0x0E (Read Device ID) now emit T0888 (Remote System Information Discovery, TA0102 Discovery tactic), NOT T0846. T0846 (Remote System Discovery) was a documented misattribution: T0846 applies to network scanning for device existence, while T0888 applies to querying device make/model/firmware/version — which is exactly what these FCs return. FC 0x07 (Read Exception Status) REMOVED as standalone recon indicator (insufficient signal for a standalone Finding). Title updated. Traceability MITRE field updated. T0888 is a new seeded+emitted technique (per Decision 12 §12.2, SEEDED count 15→21, EMITTED 6→13). Targets v0.3.0."
+  - version: "2.1"
+    date: 2026-06-10
+    change: "v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. T0855 references in Invariant 9 updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -153,8 +156,8 @@ Exception FCs (>= 0x80) are handled by BC-2.14.007 / BC-2.14.019.
 8. **No deduplication**: unknown FC and recon FC anomalies are emitted on every occurrence.
    Repeated probes are all forensically significant. Only the exception-burst (BC-2.14.019)
    uses rate-gated deduplication; this BC does not.
-9. **Interaction with per-PDU T0855**: FC 0x11 and FC 0x2B are Read-class and Diagnostic-class
-   respectively — neither triggers the Write-class T0855 detection path. No T0855 co-emission
+9. **Interaction with per-PDU T1692.001**: FC 0x11 and FC 0x2B are Read-class and Diagnostic-class
+   respectively — neither triggers the Write-class T1692.001 detection path. No T1692.001 co-emission
    for this BC.
 
 ## Edge Cases

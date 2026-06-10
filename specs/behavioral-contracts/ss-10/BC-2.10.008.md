@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: Wave 3 Ph3 pass-1 adversarial fix: M-1 add missing T1036 emission site src/reassembly/lifecycle.rs:111; correct total to 10 sites across 4 files; n-3 broaden extracted_from note — 2026-05-22 (product-owner)"
   - "v1.4: DF-SIBLING-SWEEP-001 ADV-IMPL-P03-HIGH-001 re-anchor: mod.rs:442 → mod.rs:471 (T1036 mitre_technique assignment site in check_anomaly_thresholds, shifted by HS-043 merge). — 2026-06-01"
   - "v1.5: ADR-006 / Decision 12+13 (F2 v0.3.0 BREAKING) — emitted-ID set grows from 6->13 (6 Enterprise + 7 ICS); grep pattern updated from 'mitre_technique: Some' to 'mitre_techniques: vec!'; T0888 replaces T0846 as Modbus recon emitter (Decision 12); 7 ICS IDs added to emitted set. ECs and canonical vectors updated. — 2026-06-09"
+  - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Postcondition 1 ICS emitted list, EC-007, and Architecture Anchors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -54,8 +55,8 @@ Emission sites after F2 (verified via `grep -rn 'mitre_techniques: vec!' src/`):
 - `src/analyzer/http.rs` — `vec!["T1083"]`, `vec!["T1505.003"]`, `vec!["T1046"]`, `vec!["T1499.002"]` x2
 - `src/reassembly/mod.rs` — `vec!["T1036"]`
 - `src/reassembly/lifecycle.rs` — `vec!["T1036"]`
-- `src/analyzer/modbus.rs` (F2 new) — `vec!["T0855","T0836"]`, `vec!["T0855","T0835"]`,
-  `vec!["T0855"]`, `vec!["T0806","T0855"]`, `vec!["T0814"]`, `vec!["T0855","T0836","T0831"]`, `vec!["T0888"]`
+- `src/analyzer/modbus.rs` (F2 new) — `vec!["T1692.001","T0836"]`, `vec!["T1692.001","T0835"]`,
+  `vec!["T1692.001"]`, `vec!["T0806","T1692.001"]`, `vec!["T0814"]`, `vec!["T1692.001","T0836","T0831"]`, `vec!["T0888"]`
 
 The emitted-ID set is 13 distinct IDs. Multi-element vecs at Modbus sites contribute multiple
 IDs per emission; all IDs in all vecs must resolve.
@@ -68,7 +69,7 @@ IDs per emission; all IDs in all vecs must resolve.
 
 1. All 13 currently-emitted distinct IDs return `Some(...)`:
    - Enterprise (6): T1027, T1036, T1046, T1083, T1499.002, T1505.003
-   - ICS (7): T0855, T0836, T0814, T0806, T0835, T0831, T0888
+   - ICS (7): T1692.001, T0836, T0814, T0806, T0835, T0831, T0888
 2. None of the 13 emitted IDs returns None.
 
 ## Invariants
@@ -93,7 +94,7 @@ IDs per emission; all IDs in all vecs must resolve.
 | EC-004 | T1083 (HTTP path traversal) | Some("File and Directory Discovery") |
 | EC-005 | T1499.002 (HTTP too-many-headers) | Some("Service Exhaustion Flood") |
 | EC-006 | T1505.003 (HTTP web shell) | Some("Web Shell") |
-| EC-007 | T0855 (Modbus: unauthorized command, present in all write-class PDU findings) | Some("Unauthorized Command Message") |
+| EC-007 | T1692.001 (Modbus: unauthorized command, present in all write-class PDU findings; ICS sub-technique, v19 successor to revoked T0855) | Some("Unauthorized Message: Command Message") |
 | EC-008 | T0836 (Modbus: register write — Modify Parameter) | Some("Modify Parameter") |
 | EC-009 | T0814 (Modbus: Force Listen Only / Restart Comms) | Some("Denial of Service") |
 | EC-010 | T0806 (Modbus: write burst or sustained rate) | Some("Brute Force I/O") |
@@ -143,7 +144,7 @@ IDs per emission; all IDs in all vecs must resolve.
   - `src/analyzer/http.rs:198` (T1083), `src/analyzer/http.rs:228` (T1505.003), `src/analyzer/http.rs:244` (T1046), `src/analyzer/http.rs:423` (T1499.002), `src/analyzer/http.rs:482` (T1499.002)
   - `src/reassembly/mod.rs:471` (T1036)
   - `src/reassembly/lifecycle.rs:111` (T1036)
-  - `src/analyzer/modbus.rs` — multiple sites (T0855, T0836, T0814, T0806, T0835, T0831, T0888; exact lines TBD at F3 implementation)
+  - `src/analyzer/modbus.rs` — multiple sites (T1692.001, T0836, T0814, T0806, T0835, T0831, T0888; exact lines TBD at F3 implementation)
 
 ## Source Evidence
 

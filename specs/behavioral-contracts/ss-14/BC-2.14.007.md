@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -13,7 +13,10 @@ subsystem: SS-14
 capability: CAP-14
 lifecycle_status: active
 introduced: v0.3.0-feature-007
-modified: []
+modified:
+  - version: "1.1"
+    date: 2026-06-10
+    change: "v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Postconditions, and Capability Anchor Justification updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -37,7 +40,7 @@ perform state-changing writes to the physical process: `0x05` (Write Single Coil
 `0x15` (Write File Record), `0x16` (Mask Write Register), and `0x17` (Read/Write Multiple
 Registers). Write-class classification is the primary forensic risk signal for ICS/OT analysis:
 these FCs directly actuate physical process outputs (coils), alter setpoints (holding registers),
-or modify persistent storage (files). They are the target FCs for T0855, T0836, T0835, T0806,
+or modify persistent storage (files). They are the target FCs for T1692.001, T0836, T0835, T0806,
 and T0831 detection (handled in BC-2.14.013+).
 
 ## Preconditions
@@ -135,7 +138,7 @@ Class:  —      |         |         |      | WRITE|
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-14 ("Modbus/ICS Analysis") per ARCH-INDEX.md §SS-14 |
-| Capability Anchor Justification | CAP-14 ("Modbus/ICS Analysis") per ARCH-INDEX.md §SS-14 — this BC enumerates the exact Write-class FC set and their risk characteristics, which is the foundational classification that enables T0855, T0836, T0835, T0806, and T0831 detection in the ICS analysis capability |
+| Capability Anchor Justification | CAP-14 ("Modbus/ICS Analysis") per ARCH-INDEX.md §SS-14 — this BC enumerates the exact Write-class FC set and their risk characteristics, which is the foundational classification that enables T1692.001, T0836, T0835, T0806, and T0831 detection in the ICS analysis capability |
 | L2 Domain Invariants | INV-9 (MITRE technique ID format — Write-class FCs drive ICS-matrix technique findings) |
 | Architecture Module | SS-14 (analyzer/modbus.rs C-22 `classify_fc` Write arm; `on_data` write counter logic); ADR-005 §2.5 and §2.6 |
 | Stories | TBD (F3 decomposition) |

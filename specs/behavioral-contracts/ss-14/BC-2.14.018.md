@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -17,6 +17,9 @@ modified:
   - version: "1.1"
     date: 2026-06-09
     change: "ADR-006 migration: mitre_technique: Some(\"T0814\") → mitre_techniques: vec![\"T0814\"] in postconditions, invariants, and canonical vectors. No behavioral change."
+  - version: "1.2"
+    date: 2026-06-10
+    change: "v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. T0855 reference in Invariant 3 updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -98,9 +101,9 @@ sub-function value is extracted from the 2 bytes immediately following the FC by
    - `0x0000` (Return Query Data / loopback): benign; no finding.
    - `0x000A` (Clear Counters): emits Anomaly finding per BC-2.14.019 (anti-forensic).
    - All other sub-functions: no finding in v1.
-3. **No T0855 co-emission for this BC.** FC 0x08 is classified as `FunctionCodeClass::Diagnostic`,
-   not `FunctionCodeClass::Write`. BC-2.14.013 (T0855) fires only for Write-class FCs. Diagnostic
-   FCs do NOT trigger T0855.
+3. **No T1692.001 co-emission for this BC.** FC 0x08 is classified as `FunctionCodeClass::Diagnostic`,
+   not `FunctionCodeClass::Write`. BC-2.14.013 (T1692.001) fires only for Write-class FCs. Diagnostic
+   FCs do NOT trigger T1692.001.
 4. The `mitre_techniques` vec MUST carry `vec!["T0814"]` — exactly one element, the ICS
    namespace technique ID `"T0814"` (per ADR-006 Vec<String> migration).
 5. The `ThreatCategory::Anomaly` assignment for T0814 is consistent with the architecture

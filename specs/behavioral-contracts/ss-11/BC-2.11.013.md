@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.4: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
   - "v1.5: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchors: render_findings_grouped range 253-297 → 260-304 (fn starts at 260, closes at 304), tactic loop :283 → :290; verified against HEAD cfe0112a — 2026-06-01"
   - "v1.6: ADR-006 / Decision 13 §13.7 (F2 v0.3.0) — tactic-grouping uses mitre_techniques[0] as primary bucket key for multi-tag findings; empty vec -> Uncategorized (replaces None path); Precondition 3 updated; Invariant 2 updated; EC-006 added (multi-tag primary-tactic rule). — 2026-06-09"
+  - "v1.7: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Invariant 2, EC-006, and Canonical Test Vectors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -46,7 +47,7 @@ per-tactic buckets. Tactic headers are emitted in the order returned by
 An `Uncategorized` bucket is always appended last, collecting findings with an empty
 `mitre_techniques` vec or with all IDs unknown to the technique catalog.
 
-For multi-tag findings (e.g., `mitre_techniques: ["T0855","T0836"]`), the grouping tactic is
+For multi-tag findings (e.g., `mitre_techniques: ["T1692.001","T0836"]`), the grouping tactic is
 determined by `mitre_techniques[0]` (the first element). This is the primary attribution
 approximation per ADR-006 §13.7; full multi-tactic display is a future enhancement.
 
@@ -77,7 +78,7 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
    bucket. Secondary techniques are visible in the finding's inline display but do not
    create additional bucket memberships.
    **Bucketing is deterministic because `mitre_techniques[0]` is the canonical-construction-order
-   primary technique.** Findings are constructed with a fixed `vec!["T0855","T0836"]` order
+   primary technique.** Findings are constructed with a fixed `vec!["T1692.001","T0836"]` order
    (per ADR-006 §13 canonical ordering); reporters rely on this construction order, not
    on runtime sorting. The reporter does NOT sort `mitre_techniques` before bucketing.
 3. A tactic section is SKIPPED if no findings belong to it. This prevents empty section
@@ -92,7 +93,7 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 | EC-003 | All findings have empty mitre_techniques vec | Only ## Uncategorized |
 | EC-004 | Mix: known + unknown + empty mitre_techniques | Named sections + ## Uncategorized last |
 | EC-005 | Empty findings slice | No FINDINGS section rendered at all (not grouping-mode specific) |
-| EC-006 | Finding with mitre_techniques=["T0855","T0836"] (multi-tag) | Groups under MitreTactic::IcsImpairProcessControl (T0855's tactic); T0836 visible in inline rendering but does not create a second bucket |
+| EC-006 | Finding with mitre_techniques=["T1692.001","T0836"] (multi-tag) | Groups under MitreTactic::IcsImpairProcessControl (T1692.001's tactic); T0836 visible in inline rendering but does not create a second bucket |
 
 ## Canonical Test Vectors
 
@@ -101,7 +102,7 @@ approximation per ADR-006 §13.7; full multi-tactic display is a future enhancem
 | Findings with mitre_techniques=["T1036"] (DefenseEvasion) and empty-vec finding | "## Defense Evasion" section then "## Uncategorized" | happy-path |
 | Finding with mitre_techniques=["T9999"] and empty-vec finding | "## Uncategorized" only | happy-path |
 | Findings spanning 3 tactics (by first element) | 3 named sections in kill-chain order | happy-path |
-| Finding with mitre_techniques=["T0855","T0836"] | Groups under ICS Impair Process Control section (T0855 tactic) | happy-path (multi-tag) |
+| Finding with mitre_techniques=["T1692.001","T0836"] | Groups under ICS Impair Process Control section (T1692.001 tactic) | happy-path (multi-tag) |
 
 ## Verification Properties
 

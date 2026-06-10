@@ -41,7 +41,7 @@ tdd_mode: strict
 feature_id: issue-007-modbus-analyzer
 github_issue: 7
 # BC status: all BCs authored at v1.5/v1.6 as of 2026-06-09
-input-hash: "104ef9c"
+input-hash: "2c5e1cf"
 ---
 
 # STORY-101: Multi-Tag Reporter Serialization + JSON Envelope Add-Ons
@@ -50,7 +50,7 @@ input-hash: "104ef9c"
 
 - **As a** SIEM integrator or SOC analyst consuming wirerust output
 - **I want** the JSON report to include `mitre_domain` and `mitre_attack_version` envelope fields, the CSV reporter to correctly semicolon-join multi-technique values (with empty-string for empty vec), and the terminal reporter to render multi-ID technique strings and bucket findings by `mitre_techniques[0]` tactic
-- **So that** downstream tooling can identify the ATT&CK matrix used, import multi-technique CSV cells correctly, and terminal reports correctly group Modbus co-attributed findings (e.g., `["T0855","T0836"]`) under the right kill-chain tactic
+- **So that** downstream tooling can identify the ATT&CK matrix used, import multi-technique CSV cells correctly, and terminal reports correctly group Modbus co-attributed findings (e.g., `["T1692.001","T0836"]`) under the right kill-chain tactic
 
 ## Behavioral Contracts
 
@@ -70,16 +70,16 @@ input-hash: "104ef9c"
 - **Test:** `test_json_report_envelope_has_mitre_domain_and_version()` — parse the JSON output, assert both keys exist at the top level with the expected values.
 
 ### AC-FLAG-001 (traces to BC-2.11.001 — version pin flag)
-`mitre_attack_version` is defined as a constant in `src/reporter/json.rs`: `const MITRE_ATTACK_VERSION: &str = "ics-attack-v15";`. A `// FLAG(F4): verify this version covers T0888, T0855, T0836, T0835, T0831, T0814, T0806 at attack.mitre.org/resources/attack-data-and-tools/ before v0.3.0 release tag` comment accompanies the constant. F4 implementers MUST update the constant before the v0.3.0 release tag.
+`mitre_attack_version` is defined as a constant in `src/reporter/json.rs`: `const MITRE_ATTACK_VERSION: &str = "ics-attack-v15";`. A `// FLAG(F4): verify this version covers T0888, T1692.001, T0836, T0835, T0831, T0814, T0806 at attack.mitre.org/resources/attack-data-and-tools/ before v0.3.0 release tag` comment accompanies the constant. F4 implementers MUST update the constant before the v0.3.0 release tag.
 - **Test:** `test_mitre_attack_version_constant_has_f4_pin_flag_comment()` — not a runtime test; code review / grep-based assertion that the comment exists.
 
 ### AC-002 (traces to BC-2.11.017 — multi-ID terminal rendering)
-When a `Finding` has `mitre_techniques: vec!["T0855", "T0836"]`, the terminal reporter emits `"MITRE: T0855, T0836"` (comma-space separated IDs) on the MITRE output line. A single-technique finding with `vec!["T1027"]` emits `"MITRE: T1027"` (unchanged from prior behavior). An empty vec produces no MITRE line.
-- **Test:** `test_terminal_renders_multi_id_mitre_string()` — drive the terminal reporter with a two-technique Finding; assert the rendered line contains `"MITRE: T0855, T0836"`.
+When a `Finding` has `mitre_techniques: vec!["T1692.001", "T0836"]`, the terminal reporter emits `"MITRE: T1692.001, T0836"` (comma-space separated IDs) on the MITRE output line. A single-technique finding with `vec!["T1027"]` emits `"MITRE: T1027"` (unchanged from prior behavior). An empty vec produces no MITRE line.
+- **Test:** `test_terminal_renders_multi_id_mitre_string()` — drive the terminal reporter with a two-technique Finding; assert the rendered line contains `"MITRE: T1692.001, T0836"`.
 
 ### AC-003 (traces to BC-2.11.013 — tactic grouping by mitre_techniques[0])
-The terminal reporter groups findings by the tactic of `mitre_techniques[0]` (first element). For a finding with `mitre_techniques: vec!["T0855", "T0836"]`, the finding appears under the `IcsImpairProcessControl` tactic bucket (T0855's tactic). The tactic is determined by `technique_tactic(mitre_techniques[0])`. This is deterministic because emission sites follow the canonical order T0806 > T0855 > T0836 > T0835 > T0831 > T0814 > T0888 per ADR-006 sub-decision 3.
-- **Test:** `test_terminal_tactic_grouping_uses_first_technique()` — two findings: one with `["T0855","T0836"]` (first = T0855 → `IcsImpairProcessControl`), one with `["T0806","T0855"]` (first = T0806 → `IcsImpairProcessControl`); assert they both land in the same tactic bucket.
+The terminal reporter groups findings by the tactic of `mitre_techniques[0]` (first element). For a finding with `mitre_techniques: vec!["T1692.001", "T0836"]`, the finding appears under the `IcsImpairProcessControl` tactic bucket (T1692.001's tactic). The tactic is determined by `technique_tactic(mitre_techniques[0])`. This is deterministic because emission sites follow the canonical order T0806 > T1692.001 > T0836 > T0835 > T0831 > T0814 > T0888 per ADR-006 sub-decision 3.
+- **Test:** `test_terminal_tactic_grouping_uses_first_technique()` — two findings: one with `["T1692.001","T0836"]` (first = T1692.001 → `IcsImpairProcessControl`), one with `["T0806","T1692.001"]` (first = T0806 → `IcsImpairProcessControl`); assert they both land in the same tactic bucket.
 
 ### AC-004 (traces to BC-2.11.015 — empty vec → Uncategorized)
 A `Finding` with `mitre_techniques: vec![]` lands in the `Uncategorized` terminal bucket. A `Finding` with a non-empty vec where all technique IDs are unknown (not in the MITRE catalog) also lands in `Uncategorized`. The terminal reporter's `Uncategorized` heading appears only when at least one such finding exists.
@@ -92,8 +92,8 @@ A `Finding` with `mitre_techniques: vec![]` lands in the `Uncategorized` termina
 ### AC-006 (traces to BC-2.11.024 postcondition — semicolon join and empty string)
 - `mitre_techniques: vec![]` → CSV column 6 is `""` (empty string, NOT `"null"`, `"[]"`, or `"N/A"`).
 - `mitre_techniques: vec!["T0836"]` → `"T0836"` (identical to prior scalar behavior).
-- `mitre_techniques: vec!["T0855", "T0836"]` → `"T0855;T0836"` (semicolons, no space).
-- `mitre_techniques: vec!["T0855", "T0836", "T0831"]` → `"T0855;T0836;T0831"`.
+- `mitre_techniques: vec!["T1692.001", "T0836"]` → `"T1692.001;T0836"` (semicolons, no space).
+- `mitre_techniques: vec!["T1692.001", "T0836", "T0831"]` → `"T1692.001;T0836;T0831"`.
 - **Test:** `test_csv_multi_technique_semicolon_join()` and `test_csv_empty_technique_is_empty_string()` — assert each encoding.
 
 ### AC-007 (traces to BC-2.11.024 invariant — EC-015 consumer guard documented)
@@ -132,7 +132,7 @@ The VP-020 proof harness (csv-injection-neutralization) passes `cargo test` afte
 | ID | Scenario | Expected Behavior |
 |----|----------|-------------------|
 | EC-001 | JSON report with zero findings | `"findings": []`; `"mitre_domain": "ics-attack"`; `"mitre_attack_version": "ics-attack-v15"` still present in envelope |
-| EC-002 | CSV with `mitre_techniques: vec!["T0855;injected"]` — semicolon in a technique ID | The `neutralize_csv_injection` guard applies to column values; MITRE IDs do not contain semicolons by spec, but guard still runs |
+| EC-002 | CSV with `mitre_techniques: vec!["T1692.001;injected"]` — semicolon in a technique ID | The `neutralize_csv_injection` guard applies to column values; MITRE IDs do not contain semicolons by spec, but guard still runs |
 | EC-003 | Terminal report where two findings have the same first-technique tactic | Both findings appear in the same tactic bucket; ordering within bucket is by finding-emission order |
 | EC-004 | Finding with `mitre_techniques: vec!["T9999"]` (unknown ID) | `technique_tactic("T9999")` returns `None` → Uncategorized bucket; terminal renders `"MITRE: T9999"` |
 | EC-005 | CSV consumer splits empty column 6 on `;` | Produces `[""]` (one empty element) per EC-015; wirerust is not responsible; the consumer must guard `if cell.is_empty() { return vec![] }` |
@@ -163,7 +163,7 @@ The VP-020 proof harness (csv-injection-neutralization) passes `cargo test` afte
 5. [ ] **Red Gate:** Confirm `cargo test` fails on new assertions before production changes.
 6. [ ] Add `mitre_domain` and `mitre_attack_version` to `JsonReporter::render` in `src/reporter/json.rs`. Add the `MITRE_ATTACK_VERSION: &str = "ics-attack-v15"` constant with the F4 pin-flag comment.
 7. [ ] Update `TerminalReporter` in `src/reporter/terminal.rs` — tactic grouping: `f.mitre_techniques.first().and_then(|id| technique_tactic(id))` replaces the old `Option`-based access. Multi-ID render: `format!("MITRE: {}", f.mitre_techniques.join(", "))`. Empty-vec handling: skip the MITRE line entirely (same behavior as old `None`).
-8. [ ] Update `CsvReporter` in `src/reporter/csv.rs` — column 6 header rename to `mitre_techniques`; value: `f.mitre_techniques.join(";")` (produces `""` for empty vec, `"T0836"` for singleton, `"T0855;T0836"` for two). Add EC-015 consumer-split-guard comment.
+8. [ ] Update `CsvReporter` in `src/reporter/csv.rs` — column 6 header rename to `mitre_techniques`; value: `f.mitre_techniques.join(";")` (produces `""` for empty vec, `"T0836"` for singleton, `"T1692.001;T0836"` for two). Add EC-015 consumer-split-guard comment.
 9. [ ] Verify `CsvReporter` explicitly uses comma as field delimiter (not semicolon; that is only the intra-cell separator for column 6). Add comment if not already explicit.
 10. [ ] Update VP-016 and VP-020 harnesses if any further `Finding` construction changes are needed beyond what STORY-100 covered.
 11. [ ] **Green Gate:** `cargo build --all-targets` exits 0. `cargo test --all-targets` green. AC-001 through AC-010 pass.

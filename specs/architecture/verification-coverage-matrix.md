@@ -25,6 +25,9 @@ modified:
   - date: 2026-06-09
     actor: spec-steward
     reason: "F7 consistency fix F1 — VP-022 locked/verified at F6 (Kani 4/4 SUCCESSFUL @ develop 68a3306); propagate lock: Status draft→verified. All 22 VPs now verified; draft count 0."
+  - date: 2026-06-10
+    actor: architect
+    reason: "Issue #222 (MITRE ATT&CK-ICS v19.1 remap): no row-level changes — VP-007 row module/tool/phase/status unchanged. VP counts unchanged at 22 (Kani 9, proptest 7, fuzz 1, integration-unit 5). Coverage note updated to reference T1692.001/T1692.002 replacing revoked T0855/T0856."
 ---
 
 # Verification Coverage Matrix
@@ -95,3 +98,9 @@ modified:
 - `module-criticality.md` defines kill-rate targets that constrain the minimum proof
   depth for each module. CRITICAL modules (reassembly/segment.rs, reassembly/flow.rs,
   analyzer/tls.rs) require Kani proofs, not just proptest.
+- VP-007 (mitre.rs / Kani): catalog now contains ICS sub-technique IDs `T1692.001` and
+  `T1692.002` (replacing revoked `T0855` and `T0856` per MITRE ATT&CK-ICS v19.1, issue #222).
+  Both IDs satisfy the `T[0-9]{4}(\.[0-9]{3})?` format invariant and must be present in
+  `SEEDED_TECHNIQUE_IDS` when the harness is updated. VP-007 proof status remains `verified`;
+  the harness will be updated atomically with the `src/mitre.rs` source change in the same
+  commit (implementer responsibility, issue #222 code fix).

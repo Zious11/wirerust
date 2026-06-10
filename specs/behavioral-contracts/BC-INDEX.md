@@ -270,7 +270,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.11.014 | Within Tactic Bucket: Sort by Verdict, Confidence, Emission Order | P1 | [WRITTEN] | BC-RPT-014 |
 | BC-2.11.015 | No-Technique or Unknown-ID Findings Land in Uncategorized | P0 | [WRITTEN] | BC-RPT-015 |
 | BC-2.11.016 | MITRE Grouping Expands Per-Finding Line with Em-Dash and Name | P1 | [WRITTEN] | BC-RPT-016 |
-| BC-2.11.017 | Default Rendering Emits MITRE: <id(s)> Only (No Em-Dash) | P1 | [WRITTEN] | BC-RPT-017 | <!-- v1.5: multi-ID rendering "MITRE: T0855, T0836"; ADR-006 F2 revision -->
+| BC-2.11.017 | Default Rendering Emits MITRE: <id(s)> Only (No Em-Dash) | P1 | [WRITTEN] | BC-RPT-017 | <!-- v1.5: multi-ID rendering "MITRE: T0855, T0836"; ADR-006 F2 revision; v1.6: example updated to T1692.001 (v19 remap) -->
 | BC-2.11.018 | TerminalReporter Colorization: Likely/High=Red Bold, etc. | P2 | [WRITTEN] | BC-RPT-018 |
 | BC-2.11.019 | TerminalReporter Renders Sections in Correct Order | P1 | [WRITTEN] | BC-RPT-019 |
 | BC-2.11.020 | CsvReporter Emits Exactly Nine Columns in Fixed Header Order | P0 | [WRITTEN] | pass-4 H-1 | <!-- v1.5: column-6 header renamed mitre_technique->mitre_techniques; ADR-006 F2 revision -->
@@ -321,8 +321,8 @@ traces_to: .factory/specs/prd.md
 > BCs 001-004: MBAP Parse and Validity Gate (Group A).
 > BCs 005-008: Function-Code Classification (Group B). BC-005 covers ALL 256 FC values (totality).
 > BCs 009-012: Transaction Correlation (Group C).
-> BCs 013-015: Finding Emission — Write-Class Events (Group D). **v2 co-emission model (ADR-006):** one multi-tag finding per write PDU; T0855 co-included in vec, not separate. No tag-suppression.
-> BCs 016-017: Finding Emission — Coordinated Write (T0831 5s window, Group E) and **dual-window** Write-Burst Detection (T0806/T0855; burst 1s + sustained >=2s per Decision-11, Group E).
+> BCs 013-015: Finding Emission — Write-Class Events (Group D). **v2 co-emission model (ADR-006):** one multi-tag finding per write PDU; T1692.001 co-included in vec, not separate. No tag-suppression.
+> BCs 016-017: Finding Emission — Coordinated Write (T0831 5s window, Group E) and **dual-window** Write-Burst Detection (T0806/T1692.001; burst 1s + sustained >=2s per Decision-11, Group E).
 > BCs 018-019: Finding Emission — Diagnostic/DoS (T0814) (BC-018) and Exception Burst Anomaly (BC-019) (Group F).
 > BCs 020-022: Anomaly/Recon (**T0888** for 0x11/0x2B/0x0E — Decision-12; T0846 NOT emitted by Modbus), Summary Stats (6 keys incl dropped_findings), and Bounded-Resource (Groups G + resource cap).
 > BCs 023-025: Dispatcher and CLI Integration (Group H). **BC-024 v2:** two flags (--modbus-write-burst-threshold + --modbus-write-sustained-threshold); old --modbus-write-threshold removed.
@@ -343,11 +343,11 @@ traces_to: .factory/specs/prd.md
 | BC-2.14.010 | Response PDU Matched Against Pending Table and Entry Removed on FC Echo Match | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.011 | Exception Response PDU Attributed to Originating Request FC via Pending Table Lookup | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.012 | Pending Table Bounded to MAX_PENDING_TRANSACTIONS=256; New Requests Dropped (Not Evicting) When Full | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.013 | Write-Class FC in Request Direction Emits Multi-Tag Finding Carrying T0855 and Applicable Technique Tags | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: co-emission model; T0855 co-included in multi-tag vec; ADR-006 Decision-13 -->
-| BC-2.14.014 | Write FC 0x06/0x10/0x16/0x17 in Request Direction Emits Finding Tagged ["T0855","T0836"] | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: single multi-tag finding replaces two separate findings; ADR-006 Decision-13; v2.1: 0x17 added per BC-DISCREPANCY-001 -->
-| BC-2.14.015 | Write FC to Coil Output Only ({0x05, 0x0F}) Emits Finding Tagged ["T0855","T0835"] | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: single multi-tag finding; no suppression; ADR-006 Decision-13 -->
-| BC-2.14.016 | Coordinated Write Sequence to Holding Registers Within 5-Second Window Tags the Per-PDU Finding with T0831 | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: T0831 is co-tagged inline on the per-PDU write finding (mitre_techniques: ["T0855","T0836","T0831"]); no separate T0831 Finding object; ADR-006 Decision-13 §13.5 -->
-| BC-2.14.017 | Write-Rate Exceeding Either Burst or Sustained Threshold Emits T0806 + T0855 Finding | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: dual-window (1s burst / >=2s sustained); each fires at most once per window; ADR-006 Decision-11 -->
+| BC-2.14.013 | Write-Class FC in Request Direction Emits Multi-Tag Finding Carrying T1692.001 and Applicable Technique Tags | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: co-emission model; T0855 co-included in multi-tag vec; ADR-006 Decision-13; v2.3: T0855→T1692.001 (v19 remap, issue #222) -->
+| BC-2.14.014 | Write FC 0x06/0x10/0x16/0x17 in Request Direction Emits Finding Tagged ["T1692.001","T0836"] | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: single multi-tag finding replaces two separate findings; ADR-006 Decision-13; v2.1: 0x17 added per BC-DISCREPANCY-001; v2.3: T0855→T1692.001 (v19 remap, issue #222) -->
+| BC-2.14.015 | Write FC to Coil Output Only ({0x05, 0x0F}) Emits Finding Tagged ["T1692.001","T0835"] | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: single multi-tag finding; no suppression; ADR-006 Decision-13; v2.3: T0855→T1692.001 (v19 remap, issue #222) -->
+| BC-2.14.016 | Coordinated Write Sequence to Holding Registers Within 5-Second Window Tags the Per-PDU Finding with T0831 | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: T0831 is co-tagged inline on the per-PDU write finding (mitre_techniques: ["T0855","T0836","T0831"]); no separate T0831 Finding object; ADR-006 Decision-13 §13.5; v2.2: T0855→T1692.001 (v19 remap, issue #222) -->
+| BC-2.14.017 | Write-Rate Exceeding Either Burst or Sustained Threshold Emits T0806 + T1692.001 Finding | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: dual-window (1s burst / >=2s sustained); each fires at most once per window; ADR-006 Decision-11; v2.4: T0855→T1692.001 (v19 remap, issue #222) -->
 | BC-2.14.018 | Diagnostics FC 0x08 Sub-Function 0x0004 or 0x0001 Emits T0814 Denial of Service Finding | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.019 | Exception Response Anomaly — Burst of Exception Codes Emits Anomaly Finding for Recon/Scanning | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.020 | Reconnaissance Function Codes (0x11, 0x2B/0x0E) Emit T0888 Remote System Information Discovery Finding | P1 | [WRITTEN] | feature-007-F2 | <!-- v2.0: T0846->T0888 correctness fix; 0x07 excluded; Decision-12 -->

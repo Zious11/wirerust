@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -23,6 +23,9 @@ modified:
   - version: "1.3"
     date: 2026-06-09
     change: "Holdout blemish-1 fix (Feature #7 v0.4.0): exception-burst recon for exception codes 0x01 (Illegal Function = FC scanning) and 0x02 (Illegal Data Address = register-map enumeration) now maps to T0888 Remote System Information Discovery, consistent with the established recon→T0888 mapping for FCs 0x11/0x2B (BC-2.14.020 Decision 12). Other exception codes and the Clear Counters 0x000A anti-forensic path retain mitre_techniques: vec![]. Postcondition Path A mitre_techniques updated for 0x01/0x02; research-note updated; canonical test vectors updated; Traceability MITRE field updated."
+  - version: "1.4"
+    date: 2026-06-10
+    change: "v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. T0855 reference in Source Evidence path updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -242,7 +245,7 @@ TBD (F3 story decomposition)
 
 | Property | Value |
 |----------|-------|
-| **Path** | architecture-delta.md §2.6 (exception responses → T0855 attributed; anomaly context); modbus-tcp-research.md §3 (exception code table: 0x01 Illegal Function = FC scanning, 0x02 Illegal Data Address = address-map recon); modbus-tcp-research.md §7 (open-item: Clear Counters has no clean ATT&CK ID) |
+| **Path** | architecture-delta.md §2.6 (exception responses → T1692.001 attributed; anomaly context); modbus-tcp-research.md §3 (exception code table: 0x01 Illegal Function = FC scanning, 0x02 Illegal Data Address = address-map recon); modbus-tcp-research.md §7 (open-item: Clear Counters has no clean ATT&CK ID) |
 | **Confidence** | medium (exception rate threshold is [JUDGMENT]) |
 | **Extraction Date** | 2026-06-09 |
 

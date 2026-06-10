@@ -16,8 +16,20 @@ mitre_attack_version = "ics-attack-19.1"
 
 This matches the canonical MITRE STIX per-domain bundle filename
 (`ics-attack-19.1.json`) for the latest released ATT&CK version (v19.1, released
-2026-04-28). All 7 emitted ICS technique IDs **and** the cross-domain T0846 are
-**valid and active** in v19.1 — none deprecated, revoked, or renamed.
+2026-04-28).
+
+> **Correction (2026-06-10, issue #222):** The original claim that "All 7 emitted ICS
+> technique IDs are valid and active in v19.1" was incorrect. `T0855` (Unauthorized
+> Command Message), which was emitted by the v0.4.0 Modbus analyzer, was **revoked
+> under v19.0** and replaced by `T1692.001`. The correct ICS IDs to use are:
+> `T1692.001` (was T0855), `T0836`, `T0835`, `T0831`, `T0814`, `T0806`, `T0888`.
+> Additionally, seeded-but-not-emitted `T0856` was revoked and replaced by `T1692.002`.
+> The `ics-attack-19.1` version string recommendation below remains **valid and
+> unchanged** — only the technique-ID correctness claim requires this correction.
+
+After the issue #222 fix, the corrected emitted ICS technique IDs (`T1692.001`,
+T0836, T0835, T0831, T0814, T0806, T0888) **and** the cross-domain T0846 are
+**valid and active** in v19.1.
 
 If a stricter/looser format is preferred, see "Format options" below. The
 recommendation is the per-domain string because wirerust emits ICS-domain
@@ -48,24 +60,38 @@ IDs (verified in §2).
 
 ## 2. Technique-ID validity in v19.1
 
-All confirmed against attack.mitre.org technique pages and the v17.1/current ICS
-technique listings. None deprecated or revoked.
+> **Correction notice (2026-06-10, issue #222):** This table was originally produced on
+> 2026-06-09 and incorrectly listed `T0855` as "Active" in v19.1. A subsequent full-catalog
+> audit (`.factory/research/mitre-ics-v19-catalog-audit.md`, 2026-06-10) confirmed via the
+> verbatim MITRE v19 ICS Revocations list that **T0855 was revoked under v19.0** (2026-04-28)
+> and replaced by `T1692.001` (Unauthorized Message: Command Message). Similarly, **T0856**
+> (Spoof Reporting Message, seeded in the catalog but not emitted) was revoked and replaced by
+> `T1692.002`. The corrected table below reflects the authoritative v19.1 status. The
+> version-string recommendation (`ics-attack-19.1`) in §4 remains VALID — only the per-ID
+> status entries for T0855 and T0856 were wrong.
 
-| ID | wirerust-listed name | Confirmed v19.1 name | Status | Source |
-|----|----------------------|----------------------|--------|--------|
-| T0888 | Remote System Information Discovery | Remote System Information Discovery | **Active** (tech v1.1, last-mod 2026-05-12) | [4] |
-| T0855 | Unauthorized Command Message | Unauthorized Command Message | **Active** | [5][6] |
-| T0836 | Modify Parameter | Modify Parameter | **Active** | [3] |
-| T0835 | Manipulate I/O Image | Manipulate I/O Image | **Active** | [3] |
-| T0831 | Manipulation of Control | Manipulation of Control | **Active** (cited on G0034 Sandworm mapping) | [3][7] |
-| T0814 | Denial of Service | Denial of Service | **Active** (Inhibit Response Function) | [8] |
-| T0806 | Brute Force I/O | Brute Force I/O | **Active** | [3] |
-| T0846 | Remote System Discovery (cross-domain) | Remote System Discovery | **Active** (expanded with sub-techniques in v19) | [3] |
+Confirmed against attack.mitre.org technique pages and the verbatim v19 ICS
+Revocations list from attack.mitre.org/resources/updates/. Source [5][6] entries
+for T0855 were based on pre-v19 pages; the live v19.1 status is revoked (see audit doc).
 
-All 8 names wirerust uses are **exact matches** to canonical MITRE names. No
-corrections needed. T0888 was directly verified as last-modified 2026-05-12 with
-technique-version 1.1, which independently proves it is live in the current
-release (not a stale cache).
+| ID | wirerust-listed name | Confirmed v19.1 name | Status | Correct v19.1 ID | Source |
+|----|----------------------|----------------------|--------|-----------------|--------|
+| T0888 | Remote System Information Discovery | Remote System Information Discovery | **Active** (tech v1.1, last-mod 2026-05-12) | T0888 | [4] |
+| ~~T0855~~ | ~~Unauthorized Command Message~~ | Unauthorized Message: Command Message | **REVOKED → sub-technique** under v19.0 | **T1692.001** | v19 ICS Revocations; attack.mitre.org/techniques/T1692/001/ |
+| ~~T0856~~ | ~~Spoof Reporting Message~~ | Unauthorized Message: Reporting Message | **REVOKED → sub-technique** under v19.0 (catalogue-only; never emitted) | **T1692.002** | v19 ICS Revocations; attack.mitre.org/techniques/T1692/002/ |
+| T0836 | Modify Parameter | Modify Parameter | **Active** | T0836 | [3] |
+| T0835 | Manipulate I/O Image | Manipulate I/O Image | **Active** | T0835 | [3] |
+| T0831 | Manipulation of Control | Manipulation of Control | **Active** (cited on G0034 Sandworm mapping) | T0831 | [3][7] |
+| T0814 | Denial of Service | Denial of Service | **Active** (Inhibit Response Function) | T0814 | [8] |
+| T0806 | Brute Force I/O | Brute Force I/O | **Active** | T0806 | [3] |
+| T0846 | Remote System Discovery (cross-domain) | Remote System Discovery | **Active** (expanded with sub-techniques in v19) | T0846 | [3] |
+
+**Corrected counts:** of the 8 ICS IDs listed above, **6 are Active-Unchanged** and **2 are
+Revoked-and-remapped** (T0855→T1692.001, T0856→T1692.002). The project must use the successor
+IDs in both the source catalog (`src/mitre.rs`) and all spec artifacts.
+
+T0888 was directly verified as last-modified 2026-05-12 with technique-version 1.1,
+which independently proves it is live in the current release (not a stale cache).
 
 Caveat on T0846: it remains a single valid technique ID, but in v19 it gained
 sub-techniques (port scan / broadcast / multicast discovery). If wirerust ever
@@ -111,8 +137,9 @@ bundle is `ics-attack-19.1.json` (no `v`), so the exact pin is `ics-attack-19.1`
 ```
 
 - **Pin string:** `ics-attack-19.1`
-- **All 7 emitted ICS IDs (T0888, T0855, T0836, T0835, T0831, T0814, T0806) are
-  valid and active in v19.1.** T0846 (cross-domain) is also valid and active.
+- **Corrected 7 emitted ICS IDs (T0888, **T1692.001** [replaces revoked T0855], T0836, T0835,
+  T0831, T0814, T0806) are valid and active in v19.1** (issue #222). T0846 (cross-domain)
+  is also valid and active. T0855 as originally listed here was revoked under v19.0.
 - **No technique names need changing** — every name wirerust uses matches MITRE
   canonical exactly.
 - **Assumption flag:** v19.1 is confirmed via two independent authoritative

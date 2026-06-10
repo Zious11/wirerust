@@ -17,7 +17,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-10/BC-2.10.007.md
   - .factory/specs/behavioral-contracts/ss-10/BC-2.10.008.md
   - .factory/specs/behavioral-contracts/ss-10/BC-2.10.009.md
-input-hash: "d661ac5"
+input-hash: "7c8f520"
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-069, STORY-070]
@@ -116,7 +116,7 @@ No variant is omitted — all 16 variants appear in the slice (checked by compar
 - **Test:** `test_technique_name_resolves_all_15_seeded_ids()`
 
 ### AC-011 (traces to BC-2.10.005 postcondition 1)
-All 15 seeded technique IDs resolve to `Some(name)`: T1027, T1036, T1040, T1046, T1071, T1071.001, T1071.004, T1083, T1499.002, T1505.003, T1573, T0846, T0855, T0856, T0885.
+All 15 seeded technique IDs resolve to `Some(name)`: T1027, T1036, T1040, T1046, T1071, T1071.001, T1071.004, T1083, T1499.002, T1505.003, T1573, T0846, T1692.001, T1692.002, T0885.
 - **Test:** `test_technique_name_resolves_all_15_seeded_ids()` (exhaustive)
 
 ### AC-012 (traces to BC-2.10.006 postcondition 1)

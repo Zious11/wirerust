@@ -14,6 +14,56 @@ changes, invariant rewrites).
 
 ---
 
+## [v19-remap-2026-06-10] — 2026-06-10
+
+### MINOR: MITRE ATT&CK for ICS v19 Remap — T0855 → T1692.001, T0856 → T1692.002
+
+**Summary:** 1:1 technique-ID remap driven by DF-VALIDATION-001-validated defect (issue #222).
+MITRE ATT&CK for ICS v19.0 (released 2026-04-28) introduced sub-techniques to the ICS matrix
+for the first time and simultaneously revoked T0855 and T0856:
+
+- **T0855 "Unauthorized Command Message" (REVOKED)** → **T1692.001 "Unauthorized Message:
+  Command Message"** (ICS sub-technique under parent T1692 "Unauthorized Message")
+- **T0856 "Spoof Reporting Message" (REVOKED)** → **T1692.002 "Unauthorized Message:
+  Reporting Message"** (ICS sub-technique under T1692)
+
+Tactic assignment unchanged for both: `IcsImpairProcessControl`.
+
+**Scope:** Spec artifacts only. Source code (src/), test files, and story bodies are out of
+scope for this burst; those are handled by implementer/story-writer in subsequent bursts.
+
+**Authoritative research docs:**
+- `.factory/research/mitre-ics-v19-catalog-audit.md` (audit of all affected IDs)
+- `.factory/research/dnp3-mitre-verification.md` (cross-verification for DNP3 techniques)
+
+**BCs updated (all T0855 → T1692.001 in live spec body):**
+- SS-14 (Modbus): BC-2.14.006 v1.1, BC-2.14.007 v1.1, BC-2.14.008 v1.1, BC-2.14.011 v1.1,
+  BC-2.14.013 v2.3, BC-2.14.014 v2.3, BC-2.14.015 v2.3, BC-2.14.016 v2.2, BC-2.14.017 v2.4,
+  BC-2.14.018 v1.2, BC-2.14.019 v1.4, BC-2.14.020 v2.1, BC-2.14.022 v2.1, BC-2.14.024 v2.1
+- SS-11 (Reporting): BC-2.11.001 v1.6, BC-2.11.013 v1.7, BC-2.11.017 v1.6, BC-2.11.020 v1.6,
+  BC-2.11.024 v1.6
+- SS-10 (MITRE catalog): BC-2.10.008 v1.6
+- SS-09 (Finding model): BC-2.09.001 v1.5, BC-2.09.006 v1.6
+
+**Other artifacts updated:**
+- BC-INDEX.md: titles and group notes for BC-2.14.013/.014/.015/.016/.017 and BC-2.11.017
+- prd.md: version bumped to 1.4; all live body T0855 references updated to T1692.001;
+  version 1.4 delta note added
+- spec-changelog.md: this entry
+
+**Historical references intentionally preserved (not updated):**
+- All `modified:` YAML entries predating this change that mention T0855 in their `change:` text
+- HTML `<!-- Previous version... -->` comments in BC files (they describe historical spec state)
+- v1.5 modified entry in BC-2.11.017 mentioning "MITRE: T0855, T0836" format
+- Prior changelog entries (lines below this entry)
+
+**Note on ICS sub-technique format:** T1692.001 and T1692.002 use the `Txxxx.NNN`
+sub-technique format introduced in ATT&CK v19 for the ICS matrix. Any BC or validator
+that documents the allowed MITRE ID format/regex must accept this format (coordinate with
+architect's VP-007 update).
+
+---
+
 ## [1.6] — 2026-06-09
 
 ### MINOR: Holdout Blemish-1 Fix — BC-2.14.019 Exception-Burst Recon 0x01/0x02 → T0888

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 3 Ph3 pass-1 adversarial fix: m-1 correct technique_info line-anchor range to :122-156 (closing brace verified) in Architecture Anchors and Source Evidence — 2026-05-22 (product-owner)"
   - "v1.4: ADR-006 / Decision 12+13 (F2 v0.3.0) — SEEDED count updated 15 -> 21 (added 6 ICS: T0836,T0814,T0806,T0835,T0831,T0888; T0846 kept seeded, not Modbus-emitted; T0888 replaces T0846 in Modbus recon emission). Postconditions, Invariants, canonical vectors updated. — 2026-06-09"
+  - "v1.5: v19 remap: T0855 → T1692.001, T0856 → T1692.002 per MITRE ATT&CK for ICS v19.0 revocation. ICS seeded ID list and Postcondition 1 updated. Seeded count remains 21. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -56,15 +57,16 @@ part of Feature #7 (Modbus analyzer, ADR-005 + ADR-006).
 3. The 21 seeded IDs are:
    - Enterprise (11): T1027, T1036, T1040, T1046, T1071, T1071.001, T1071.004,
      T1083, T1499.002, T1505.003, T1573
-   - ICS (10): T0846, T0855, T0856, T0885, T0836, T0814, T0806, T0835, T0831, T0888
+   - ICS (10): T0846, T1692.001, T1692.002, T0885, T0836, T0814, T0806, T0835, T0831, T0888
 
 ## Invariants
 
 1. IDs currently emitted (13): 6 Enterprise (T1027, T1036, T1046, T1083, T1499.002,
-   T1505.003) + 7 ICS (T0855, T0836, T0814, T0806, T0835, T0831, T0888).
+   T1505.003) + 7 ICS (T1692.001, T0836, T0814, T0806, T0835, T0831, T0888).
 2. IDs catalogued but not emitted (8): T1040, T1071, T1071.001, T1071.004, T1573, T0846,
-   T0856, T0885. T0846 was previously the Modbus recon technique but was corrected to T0888
+   T1692.002, T0885. T0846 was previously the Modbus recon technique but was corrected to T0888
    per Decision 12; T0846 remains seeded for future use (e.g., address-sweep detection).
+   T1692.002 replaces revoked T0856 ("Spoof Reporting Message") per ATT&CK-ICS v19 remap.
 3. The catalog count is 21 after Feature #7 (F2). Pre-F2 count was 15. Any claim of 15
    post-F2 is an error; any claim of 20 is an error (21 = 11 Enterprise + 10 ICS).
 4. The match is exact string equality; no prefix/suffix matching.

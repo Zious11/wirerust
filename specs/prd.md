@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.2"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -45,7 +45,7 @@ supplements:
 > linking to individual BC files. Full contract details are NOT inlined here.
 >
 > **Version 1.1 delta:** Added Section 2.14 (SS-14 Modbus/ICS Analysis, 25 BCs, Feature #7,
-> ADR-005). Updated Section 1.5 Out of Scope (T0855 and 5 other ICS techniques now emitted).
+> ADR-005). Updated Section 1.5 Out of Scope (T0855/T1692.001 and 5 other ICS techniques now emitted).
 > Updated Section 6 KD-005 and KD-003 with Modbus-specific BC references. Added SS-14 rows to
 > Section 7 RTM. Total BC count: 244 (was 219).
 >
@@ -66,6 +66,17 @@ supplements:
 > CSV cell clarification: EMPTY STRING not null; EC-015 added for consumer split guard.
 > Release split: v0.3.0 = schema-only break (SS-09/10/11 + add-ons); v0.4.0 = Modbus additive
 > (SS-14). See RELEASE SEQUENCING box in Section 2 and `spec-changelog.md` §[1.3].
+>
+> **Version 1.4 delta (2026-06-10 — MITRE ATT&CK for ICS v19 remap, issue #222):** 1:1 technique-ID
+> remap driven by DF-VALIDATION-001-validated defect. T0855 "Unauthorized Command Message"
+> (revoked v19) → T1692.001 "Unauthorized Message: Command Message" (ICS sub-technique, v19).
+> T0856 "Spoof Reporting Message" (revoked v19) → T1692.002 "Unauthorized Message: Reporting
+> Message" (ICS sub-technique, v19). Tactic unchanged: IcsImpairProcessControl for both.
+> All T0855/T0856 references in live spec body updated. Audited via
+> `mitre-ics-v19-catalog-audit.md` and `dnp3-mitre-verification.md`. Updated BCs: SS-14
+> BC-2.14.006/007/008/011/013/014/015/016/017/018/019/020/022/024; SS-11
+> BC-2.11.001/013/017/020/024; SS-10 BC-2.10.008; SS-09 BC-2.09.001/006.
+> See `spec-changelog.md` §[v19-remap-2026-06-10].
 
 > **Supplement Model:** Sections 3-5 reference extracted supplement files under
 > `prd-supplements/`. These supplements are produced in a SEPARATE burst (Phase 1b).
@@ -141,7 +152,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 - Streaming / lazy-read pcap processing (entire file loaded into RAM before processing)
 - Per-packet timestamp in findings (Finding.timestamp is always None; O-01)
 - Empirically-calibrated anomaly thresholds (defaults are research-documented but not validated against labelled traffic; O-03)
-- MITRE techniques T1040, T1071, T1071.001, T1071.004, T1573, T0856, T0885 (catalogued but never emitted; O-04; note: T0855, T0836, T0814, T0806, T0835, T0831, T0888 are now emitted by the Modbus/ICS analyzer — see Section 2.14; T0846 is seeded in the catalog but NOT emitted — see ADR-006 Decision 12)
+- MITRE techniques T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885 (catalogued but never emitted; O-04; note: T1692.001, T0836, T0814, T0806, T0835, T0831, T0888 are now emitted by the Modbus/ICS analyzer — see Section 2.14; T0846 is seeded in the catalog but NOT emitted — see ADR-006 Decision 12; T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap)
 
 
 ## 2. Behavioral Contracts Index
@@ -158,7 +169,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > - **JSON envelope:** two new top-level fields added: `mitre_domain: "ics-attack"` and
 >   `mitre_attack_version: "ics-attack-v15"` (placeholder; F4 must pin). See BC-2.11.001 v1.5.
 > - **CSV:** column-6 header renamed `mitre_technique` → `mitre_techniques`; multiple
->   values semicolon-joined (`"T0855;T0836"`); single value unchanged; empty cell is `""`
+>   values semicolon-joined (`"T1692.001;T0836"`); single value unchanged; empty cell is `""`
 >   (not `"null"`, not `"[]"`); consumers splitting on `;` must guard the empty-cell case
 >   (see BC-2.11.024 v1.5 EC-015). CSV carries no envelope fields.
 > - **Rust type:** `Option<String>` → `Vec<String>`; all emission sites updated.
@@ -438,8 +449,9 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 >
 > Domain debt O-04 (revised v1.2): 21 techniques seeded (11 Enterprise + 10 ICS); 13 emitted
 > (6 Enterprise + 7 ICS). Catalogued-but-never-emitted: T1040, T1071, T1071.001, T1071.004,
-> T1573, T0856, T0885 (Enterprise), T0846 (ICS — seeded but not emitted per Decision 12).
-> T0855, T0836, T0814, T0806, T0835, T0831, T0888 are emitted by the Modbus analyzer.
+> T1573, T1692.002, T0885 (Enterprise), T0846 (ICS — seeded but not emitted per Decision 12;
+> T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap).
+> T1692.001, T0836, T0814, T0806, T0835, T0831, T0888 are emitted by the Modbus analyzer.
 > BC-2.10.005 documents all 21 seeded IDs; BC-2.10.008 documents 13 emitted IDs.
 
 ### 2.11 Reporting and Output (CAP-11)
@@ -462,7 +474,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.11.014 | Within tactic bucket findings sort by verdict then confidence then emission order | P1 | BC-RPT-014 |
 | BC-2.11.015 | No-technique or unknown-ID findings land in Uncategorized; unknown IDs get (unknown) label | P0 | BC-RPT-015 |
 | BC-2.11.016 | MITRE grouping expands per-finding line with em-dash and technique name for known IDs | P1 | BC-RPT-016 |
-| BC-2.11.017 | Default (flag-off) rendering emits MITRE: <id(s)> only with no em-dash; multi-ID rendered "MITRE: T0855, T0836" | P1 | BC-RPT-017 |
+| BC-2.11.017 | Default (flag-off) rendering emits MITRE: <id(s)> only with no em-dash; multi-ID rendered "MITRE: T1692.001, T0836" | P1 | BC-RPT-017 |
 | BC-2.11.018 | TerminalReporter colorization: Likely/High=red bold, Likely/other=yellow, Inconclusive=cyan, Unlikely=dimmed | P2 | BC-RPT-018 |
 | BC-2.11.019 | TerminalReporter renders sections in order: header, PROTOCOLS, SERVICES, FINDINGS, ANALYZER summaries | P1 | BC-RPT-019 |
 | BC-2.11.020 | CsvReporter Emits Exactly Nine Columns in Fixed Header Order | P0 | BC-RPT (brownfield extraction, adversarial-review pass-4 finding H-1) |
@@ -530,7 +542,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 
 > **Feature Mode F2 addition (v1.1) + v2 revision (v1.2).** 25 BCs covering the Modbus TCP
 > protocol analyzer (SS-14, C-22 ModbusAnalyzer). Analyzer detects 7 MITRE ATT&CK for ICS
-> techniques: T0855, T0836, T0814, T0806, T0835, T0831, T0888 (Remote System Information
+> techniques: T1692.001, T0836, T0814, T0806, T0835, T0831, T0888 (Remote System Information
 > Discovery — recon FCs 0x11/0x2B/0x0E; **T0888 replaces prior T0846 per Decision 12**).
 > Matrix discriminator: ICS technique IDs use T0xxx namespace (second char '0'),
 > Enterprise use T1xxx-T9xxx. See ADR-005 for binary ICS protocol integration rationale;
@@ -538,8 +550,8 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 >
 > **v2 co-emission model (Decision 13, ADR-006):** One finding per write-class PDU carrying
 > ALL applicable technique tags (`mitre_techniques: Vec<String>`). No tag-suppression.
-> Write FCs 0x06/0x10/0x16 → `["T0855","T0836"]`; coil FCs 0x05/0x0F → `["T0855","T0835"]`;
-> burst/sustained rate findings → `["T0806","T0855"]`; T0831 co-tagged inline on per-PDU write finding → `["T0855","T0836","T0831"]` (no separate T0831 Finding object).
+> Write FCs 0x06/0x10/0x16 → `["T1692.001","T0836"]`; coil FCs 0x05/0x0F → `["T1692.001","T0835"]`;
+> burst/sustained rate findings → `["T0806","T1692.001"]`; T0831 co-tagged inline on per-PDU write finding → `["T1692.001","T0836","T0831"]` (no separate T0831 Finding object).
 >
 > **v2 dual-window burst detection (Decision 11):** Two independent CLI-configurable windows:
 > `--modbus-write-burst-threshold` (default 20, 1-second burst) and
@@ -588,21 +600,21 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 
 > **v2 co-emission model (ADR-006, Decision 13):** One finding per write-class PDU carrying
 > ALL applicable technique tags. No tag-suppression. Holding-register FCs (0x06/0x10/0x16) →
-> `["T0855","T0836"]`; coil FCs (0x05/0x0F) → `["T0855","T0835"]`; other write FCs →
-> `["T0855"]`. Volume control via burst aggregation (BC-2.14.017), not tag-suppression.
+> `["T1692.001","T0836"]`; coil FCs (0x05/0x0F) → `["T1692.001","T0835"]`; other write FCs →
+> `["T1692.001"]`. Volume control via burst aggregation (BC-2.14.017), not tag-suppression.
 
 | BC ID | Title | Priority | Origin |
 |-------|-------|----------|--------|
-| BC-2.14.013 | Write-class FC in request direction emits multi-tag finding carrying T0855 and applicable technique tags; one finding per write PDU | P0 | feature-007-F2 |
-| BC-2.14.014 | Write FC 0x06/0x10/0x16 in request direction emits finding tagged ["T0855","T0836"]; single multi-tag finding per PDU | P0 | feature-007-F2 |
-| BC-2.14.015 | Write FC to coil output only (0x05/0x0F) emits finding tagged ["T0855","T0835"]; single multi-tag finding per PDU | P0 | feature-007-F2 |
+| BC-2.14.013 | Write-class FC in request direction emits multi-tag finding carrying T1692.001 and applicable technique tags; one finding per write PDU | P0 | feature-007-F2 |
+| BC-2.14.014 | Write FC 0x06/0x10/0x16 in request direction emits finding tagged ["T1692.001","T0836"]; single multi-tag finding per PDU | P0 | feature-007-F2 |
+| BC-2.14.015 | Write FC to coil output only (0x05/0x0F) emits finding tagged ["T1692.001","T0835"]; single multi-tag finding per PDU | P0 | feature-007-F2 |
 
-#### 2.14.E Finding Emission: Coordinated Write (T0831) and Dual-Window Write-Burst Detection (T0806/T0855)
+#### 2.14.E Finding Emission: Coordinated Write (T0831) and Dual-Window Write-Burst Detection (T0806/T1692.001)
 
 | BC ID | Title | Priority | Origin |
 |-------|-------|----------|--------|
-| BC-2.14.016 | Coordinated write sequence to holding registers within 5-second window co-tags the per-PDU finding with T0831 inline (`["T0855","T0836","T0831"]`); no separate T0831 Finding object | P0 | feature-007-F2 |
-| BC-2.14.017 | Write-rate exceeding either burst threshold (>N in 1s) or sustained threshold (>M avg over >=2s) emits `["T0806","T0855"]` finding; each window fires at most once per overflow | P0 | feature-007-F2 |
+| BC-2.14.016 | Coordinated write sequence to holding registers within 5-second window co-tags the per-PDU finding with T0831 inline (`["T1692.001","T0836","T0831"]`); no separate T0831 Finding object | P0 | feature-007-F2 |
+| BC-2.14.017 | Write-rate exceeding either burst threshold (>N in 1s) or sustained threshold (>M avg over >=2s) emits `["T0806","T1692.001"]` finding; each window fires at most once per overflow | P0 | feature-007-F2 |
 
 #### 2.14.F Finding Emission: Diagnostic/DoS (T0814) and Exception Burst Anomaly
 
@@ -722,15 +734,15 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC ID | Contribution |
 |-------|-------------|
 | BC-2.10.003 | all_tactics_in_report_order returns kill-chain order for deterministic grouping |
-| BC-2.10.005 | technique_name lookup for all 21 seeded IDs (11 Enterprise + 10 ICS: T0846 seeded-not-emitted; T0855/T0856/T0885 existing; T0836/T0814/T0806/T0835/T0831/T0888 new) |
+| BC-2.10.005 | technique_name lookup for all 21 seeded IDs (11 Enterprise + 10 ICS: T0846 seeded-not-emitted; T0855→T1692.001/T0856→T1692.002/T0885 existing; T0836/T0814/T0806/T0835/T0831/T0888 new) |
 | BC-2.11.013 | TerminalReporter MITRE grouping with tactic headers in canonical order; groups by `mitre_techniques[0]`; multi-tag findings display all IDs |
 | BC-2.11.015 | Uncategorized bucket for empty `mitre_techniques` vec or all-unknown IDs |
 | BC-2.11.016 | Per-finding MITRE expansion with em-dash and name |
-| BC-2.14.013 | T0855 co-included in multi-tag finding vec for every write-class FC (ADR-006); not standalone |
-| BC-2.14.014 | Holding-register writes (0x06/0x10/0x16) emit `["T0855","T0836"]` single multi-tag finding |
-| BC-2.14.015 | Coil-only writes (0x05/0x0F) emit `["T0855","T0835"]` single multi-tag finding |
-| BC-2.14.016 | T0831 co-tagged inline on per-PDU write finding as `["T0855","T0836","T0831"]`; no separate T0831 Finding object (per-PDU write finding already carries T0855+T0836) |
-| BC-2.14.017 | Burst/sustained rate detection emits `["T0806","T0855"]` — dual-window model (1s burst + >=2s sustained) |
+| BC-2.14.013 | T1692.001 co-included in multi-tag finding vec for every write-class FC (ADR-006); not standalone |
+| BC-2.14.014 | Holding-register writes (0x06/0x10/0x16) emit `["T1692.001","T0836"]` single multi-tag finding |
+| BC-2.14.015 | Coil-only writes (0x05/0x0F) emit `["T1692.001","T0835"]` single multi-tag finding |
+| BC-2.14.016 | T0831 co-tagged inline on per-PDU write finding as `["T1692.001","T0836","T0831"]`; no separate T0831 Finding object (per-PDU write finding already carries T1692.001+T0836) |
+| BC-2.14.017 | Burst/sustained rate detection emits `["T0806","T1692.001"]` — dual-window model (1s burst + >=2s sustained) |
 | BC-2.14.018 | T0814 (Denial of Service) emitted for Force-Listen-Only (0x0004) and Restart-Comms (0x0001) Diagnostics sub-functions |
 | BC-2.14.020 | T0888 (Remote System Information Discovery) emitted for recon FCs 0x11 and 0x2B/0x0E (correctness fix; T0846 not emitted) |
 
@@ -1019,7 +1031,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | O-01 | Finding.timestamp always None; RawPacket timestamps never threaded to Finding constructors | BC-2.09.001, BC-2.09.006 |
 | O-02 | Absent User-Agent (None) intentionally not detected; only Some("") fires | BC-2.06.011 |
 | O-03 | Anomaly thresholds not empirically calibrated against labelled traffic | BC-2.04.019, BC-2.04.020, BC-2.04.021 |
-| O-04 | 7 MITRE techniques catalogued but never emitted (T1040, T1071, T1071.001, T1071.004, T1573, T0856, T0885); T0855/T0836/T0814/T0806/T0835/T0831/T0888 now emitted by Modbus analyzer (Feature #7); T0846 seeded-not-emitted (Decision 12) | BC-2.10.005 |
+| O-04 | 7 MITRE techniques catalogued but never emitted (T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885; T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap); T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 now emitted by Modbus analyzer (Feature #7); T0846 seeded-not-emitted (Decision 12) | BC-2.10.005 |
 | O-05 | reassembly/mod.rs still 691 LOC after partial split (#85) | BC-2.04.* (reassembly module group) |
 | O-06 | Weak-cipher Finding evidence Vec has unbounded cardinality (up to ~9216 cipher names) | BC-2.07.009 |
 | O-07 | rayon declared in Cargo.toml but never imported; unused transitive dependency | (none -- build/dep debt only) |

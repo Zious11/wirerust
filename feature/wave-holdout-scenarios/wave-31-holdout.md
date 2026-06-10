@@ -81,23 +81,23 @@ where the pcap triggers a weak-cipher or deprecated-version TLS finding.
 **Scope:** STORY-100 + STORY-101 (all reporters)
 **Priority:** P0
 
-**Setup:** Directly construct a Finding with `mitre_techniques: vec!["T0855", "T0836"]`
+**Setup:** Directly construct a Finding with `mitre_techniques: vec!["T1692.001", "T0836"]`
 in a unit/integration test (or inject via the Modbus analyzer after Wave 32).
 Run through all three reporters.
 
 **Assertions (JSON):**
-1. `"mitre_techniques": ["T0855", "T0836"]` — array, two elements, correct order.
+1. `"mitre_techniques": ["T1692.001", "T0836"]` — array, two elements, correct order.
 2. No `"mitre_technique"` key.
 3. Envelope keys present.
 
 **Assertions (CSV):**
-1. Column 6 value: `"T0855;T0836"` (semicolons, no spaces).
+1. Column 6 value: `"T1692.001;T0836"` (semicolons, no spaces).
 2. Column count remains exactly 9.
 3. Column 6 header: `mitre_techniques` (not `mitre_technique`).
 
 **Assertions (terminal):**
-1. MITRE line: `MITRE: T0855, T0836` (comma-space separated).
-2. Finding bucketed under tactic of T0855 (first element = IcsImpairProcessControl).
+1. MITRE line: `MITRE: T1692.001, T0836` (comma-space separated).
+2. Finding bucketed under tactic of T1692.001 (first element = IcsImpairProcessControl).
 
 ---
 

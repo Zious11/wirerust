@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: ADR-006 / Decision 12 (F2 v0.3.0) — Added 6 new ICS seeded IDs with correct tactic assignments: T0836 (IcsImpairProcessControl), T0814 (IcsInhibitResponseFunction), T0806 (IcsImpairProcessControl), T0835 (IcsImpairProcessControl), T0831 (IcsImpairProcessControl), T0888 (Discovery). Seeded count 15->21. EC-004 added for T0888. — 2026-06-09"
+  - "v1.4: v19 remap: T0855 → T1692.001, T0856 → T1692.002 per MITRE ATT&CK for ICS v19.0 revocation. Tactic table rows updated to use new ICS sub-technique IDs. Tactic assignment (IcsImpairProcessControl) unchanged. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -63,8 +64,8 @@ Discovery, T0806 => IcsImpairProcessControl).
    - T1505.003 => MitreTactic::Persistence
    - T1573 => MitreTactic::CommandAndControl
    - T0846 => MitreTactic::Discovery
-   - T0855 => MitreTactic::IcsImpairProcessControl
-   - T0856 => MitreTactic::IcsImpairProcessControl
+   - T1692.001 => MitreTactic::IcsImpairProcessControl  [v19 remap; was T0855]
+   - T1692.002 => MitreTactic::IcsImpairProcessControl  [v19 remap; was T0856]
    - T0885 => MitreTactic::CommandAndControl
    - T0836 => MitreTactic::IcsImpairProcessControl  [NEW F2]
    - T0814 => MitreTactic::IcsInhibitResponseFunction  [NEW F2]

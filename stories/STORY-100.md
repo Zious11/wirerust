@@ -42,7 +42,7 @@ tdd_mode: strict
 feature_id: issue-007-modbus-analyzer
 github_issue: 7
 # BC status: all BCs authored and confirmed at v1.4/v1.5 as of 2026-06-09
-input-hash: "a5e46eb"
+input-hash: "20bf3de"
 ---
 
 # STORY-100: Multi-Tag Finding Schema Migration (Atomic Type Rename + Catalog Seed)
@@ -51,7 +51,7 @@ input-hash: "a5e46eb"
 
 - **As a** SIEM integrator consuming wirerust JSON output
 - **I want** the `Finding` type to carry `mitre_techniques: Vec<String>` instead of `mitre_technique: Option<String>`, with the MITRE catalog seeded for all 21 post-F2 technique IDs
-- **So that** co-attributed ICS findings (e.g., `["T0855","T0836"]`) are expressible in the type system, all existing single-technique findings continue to work (singleton vec), and the JSON schema change ships as one atomic, behavior-preserving wave before the Modbus analyzer is built on top of it
+- **So that** co-attributed ICS findings (e.g., `["T1692.001","T0836"]`) are expressible in the type system, all existing single-technique findings continue to work (singleton vec), and the JSON schema change ships as one atomic, behavior-preserving wave before the Modbus analyzer is built on top of it
 
 ## Behavioral Contracts
 
@@ -90,7 +90,7 @@ No JSON output produced by `JsonReporter` contains a `"mitre_technique"` key (ol
 - **Test:** `test_technique_tactic_correct_for_all_21_ids()` — exhaustive assertion over all seeded IDs including the 6 new ICS entries.
 
 ### AC-007 (traces to BC-2.10.008 — emitted IDs resolve; grep pattern update)
-`EMITTED_IDS` in the Kani proof module is updated to 13 entries (6 Enterprise + 7 ICS): the 7 ICS emitted IDs are T0855, T0836, T0814, T0806, T0835, T0831, T0888. T0846 is NOT in `EMITTED_IDS` (seeded but not emitted). The VP-007 drift-guard comment in `mitre.rs` is updated: grep pattern changes from `mitre_technique: Some` to `mitre_techniques: vec!`.
+`EMITTED_IDS` in the Kani proof module is updated to 13 entries (6 Enterprise + 7 ICS): the 7 ICS emitted IDs are T1692.001, T0836, T0814, T0806, T0835, T0831, T0888. T0846 is NOT in `EMITTED_IDS` (seeded but not emitted). The VP-007 drift-guard comment in `mitre.rs` is updated: grep pattern changes from `mitre_technique: Some` to `mitre_techniques: vec!`.
 - **Test:** `test_all_emitted_ids_resolve_in_lookup()` (VP-007 Kani / unit) — assert all 13 EMITTED_IDS return `Some` from `technique_name` and `technique_tactic`.
 
 ### AC-008 (traces to BC-2.09.001 invariant 6 — no Option<String> remains)
@@ -207,7 +207,7 @@ The VP-021 timestamp-provenance test helpers in `tests/` that construct `Finding
 | T0846 REMAINS seeded (in `technique_info` and `SEEDED_TECHNIQUE_IDS`) but is NOT in `EMITTED_IDS` | BC-2.10.005 invariant 2; f2-fix-directives.md Decision 12 | Code review: T0846 arm present; T0846 absent from `EMITTED_IDS` |
 | T0888 IS in both `technique_info`, `SEEDED_TECHNIQUE_IDS`, AND `EMITTED_IDS` | f2-fix-directives.md Decision 12 §12.3 | AC-007 unit test |
 | `src/findings.rs` must NOT import any analyzer module | Architecture layer rule (ARCH-INDEX) | Compiler module system; `cargo build` fails on circular import |
-| Canonical `vec![]` order at emission sites for co-emission: T0806 > T0855 > T0836 > T0835 > T0831 > T0814 > T0888 | ADR-006 Decision 13 §13.7 sub-decision 3 | Code review at STORY-104 emission sites (this story only migrates existing single-technique sites; canonical order enforced in STORY-104) |
+| Canonical `vec![]` order at emission sites for co-emission: T0806 > T1692.001 > T0836 > T0835 > T0831 > T0814 > T0888 | ADR-006 Decision 13 §13.7 sub-decision 3 | Code review at STORY-104 emission sites (this story only migrates existing single-technique sites; canonical order enforced in STORY-104) |
 
 ## Library & Framework Requirements (MANDATORY)
 

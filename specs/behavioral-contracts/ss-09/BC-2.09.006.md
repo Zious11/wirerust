@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: Feature-100 (pcap timestamps) — O-01 resolved: timestamp now appears in JSON for 21 of 22 emission sites (Some(DateTime<Utc>)); EC-005 updated from always-None to positive/negative cases; Invariant 2 updated. — 2026-06-08"
   - "v1.4: F5 ADV-F5-HIGH-001 — corrected canonical ts_sec=1_000_000 vector from 2001-09-08 to arithmetically-correct 1970-01-12T13:46:40Z (1_000_000_000 ≠ 1_000_000). — 2026-06-08"
   - "v1.5: ADR-006 / Decision 13 (v0.3.0 BREAKING) — mitre_technique field replaced by mitre_techniques: Vec<String> with skip_serializing_if = Vec::is_empty; JSON key rename + value changes from scalar string to array; EC-001/EC-002 updated; EC-006 added (multi-tag). — 2026-06-09"
+  - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in EC-006 and Canonical Test Vectors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -95,7 +96,7 @@ finding retains `timestamp: None` and produces no `"timestamp"` key.
 | EC-004 | Reassembly-engine finding (direction=None) | JSON has no "direction" key |
 | EC-005a | Flow-data-path finding (timestamp = Some after feature-100) | JSON has `"timestamp": "<ISO-8601 UTC string>"` (e.g., `"1970-01-12T13:46:40Z"` for ts_sec=1_000_000) |
 | EC-005b | Segment-limit summary finding (timestamp = None; finalize aggregate) | JSON has no "timestamp" key (skip_serializing_if = "Option::is_none") |
-| EC-006 | Finding with mitre_techniques=vec!["T0855","T0836"] (Modbus register write, co-attributed) | JSON has `"mitre_techniques": ["T0855","T0836"]` (array with two elements) |
+| EC-006 | Finding with mitre_techniques=vec!["T1692.001","T0836"] (Modbus register write, co-attributed; T1692.001 is ICS sub-technique, v19 successor to revoked T0855) | JSON has `"mitre_techniques": ["T1692.001","T0836"]` (array with two elements) |
 
 ## Canonical Test Vectors
 
@@ -105,7 +106,7 @@ finding retains `timestamp: None` and produces no `"timestamp"` key.
 | Finding { mitre_techniques: vec!["T1036"], direction: Some(ClientToServer) } | JSON: `"mitre_techniques": ["T1036"]`, `"direction": "ClientToServer"` | happy-path |
 | Full pipeline HTTP finding (ts_sec=1_000_000) | JSON has `"timestamp": "1970-01-12T13:46:40Z"` | happy-path |
 | Full pipeline segment-limit summary finding | No "timestamp" key in JSON for that finding | edge-case |
-| Modbus register write Finding { mitre_techniques: vec!["T0855","T0836"] } | JSON: `"mitre_techniques": ["T0855","T0836"]` | happy-path (co-attributed) |
+| Modbus register write Finding { mitre_techniques: vec!["T1692.001","T0836"] } | JSON: `"mitre_techniques": ["T1692.001","T0836"]` | happy-path (co-attributed) |
 
 ## Verification Properties
 

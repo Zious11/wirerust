@@ -35,7 +35,7 @@ tdd_mode: strict
 feature_id: issue-007-modbus-analyzer
 github_issue: 7
 # BC status: BC-2.14.023/024/025 authored at v1.0/v2.0 as of 2026-06-09
-input-hash: "ed16d56"
+input-hash: "a9ac815"
 ---
 
 # STORY-105: Modbus Dispatcher Integration + CLI

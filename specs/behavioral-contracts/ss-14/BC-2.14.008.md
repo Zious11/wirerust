@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -13,7 +13,10 @@ subsystem: SS-14
 capability: CAP-14
 lifecycle_status: active
 introduced: v0.3.0-feature-007
-modified: []
+modified:
+  - version: "1.1"
+    date: 2026-06-10
+    change: "v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. T0855/T0836 reference in Invariant 2 updated to T1692.001/T0836. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -84,7 +87,7 @@ segment and specifies the sub-function-level dispatch that feeds BC-2.14.018 and
    applies to all fc >= 0x80).
 2. **Why Diagnostic, not Write**: FC 0x08 sub-functions can be state-changing or DoS-capable,
    but the detection logic is sub-function-based (T0814), not class-based Write detection
-   (T0855/T0836). Separating Diagnostic from Write allows the analyzer to route 0x08 to
+   (T1692.001/T0836). Separating Diagnostic from Write allows the analyzer to route 0x08 to
    sub-function parsing rather than the write-rate counter. The write-rate counter (`window_write_count`)
    is NOT incremented for `fc = 0x08` ADUs.
    **Note on deliberate write-set narrowness**: the 7-FC write class {0x05, 0x06, 0x0F, 0x10,

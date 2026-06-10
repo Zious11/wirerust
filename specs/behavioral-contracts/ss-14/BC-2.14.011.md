@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -13,7 +13,10 @@ subsystem: SS-14
 capability: CAP-14
 lifecycle_status: active
 introduced: v0.3.0-feature-007
-modified: []
+modified:
+  - version: "1.1"
+    date: 2026-06-10
+    change: "v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Postconditions, Invariants, Edge Cases, Canonical Test Vectors, and Capability Anchor Justification updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -42,10 +45,10 @@ the original FC and timestamp. If `original_fc != pending_entry.0`, the attribut
 pending entry is NOT removed and no attribution is performed, preventing a spoofed exception
 from clearing or forging an in-flight Write-class pending slot.
 
-**Emission model:** the T0855 finding for a Write-class request is emitted at REQUEST time
+**Emission model:** the T1692.001 finding for a Write-class request is emitted at REQUEST time
 (ClientToServer direction, BC-2.14.013). This BC (exception response, ServerToClient) does
 NOT emit a new finding — it only increments `exception_count` and resolves the correlation
-in the pending table. This prevents double-counting: the T0855 signal has already been emitted
+in the pending table. This prevents double-counting: the T1692.001 signal has already been emitted
 on the outbound Write PDU; the exception response is additional corroborating evidence that the
 write was attempted but rejected by the server.
 
@@ -74,7 +77,7 @@ attribution success.
      to clear a Write-class pending slot or forge an attribution.
    - `ModbusFlowState.exception_count` is incremented by 1.
    - `ModbusAnalyzer.total_exception_count` is incremented by 1.
-   - **No new finding is emitted here.** The T0855 write finding was already emitted at request
+   - **No new finding is emitted here.** The T1692.001 write finding was already emitted at request
      time (BC-2.14.013, ClientToServer direction). Emitting again on the exception path would
      double-count the same write event. The `exception_count` increment and the pending-entry
      removal are the only state changes on this path.
@@ -88,7 +91,7 @@ attribution success.
      it via `exception_count` without a separate finding.
 
    If `classify_fc(original_fc) == Write` (only relevant to Case A, not 3b):
-   the T0855 finding was already emitted at request time; the exception response corroborates
+   the T1692.001 finding was already emitted at request time; the exception response corroborates
    that the write was rejected by the server (increments `exception_count`).
 4. **Case B — Unattributed exception** (no matching pending entry):
    - `ModbusFlowState.exception_count` is incremented by 1.
@@ -129,22 +132,22 @@ attribution success.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | Exception FC = 0x83 (exception for Read HR 0x03) | `original_fc = 0x03`; Read class; exception_count++; no T0855 attribution (read exception) |
-| EC-002 | Exception FC = 0x85 (exception for Write Single Coil 0x05) | `original_fc = 0x05`; Write class; exception_count++; T0855 attribution candidate |
-| EC-003 | Exception FC = 0x90 (exception for Write Multiple Registers 0x10) | `original_fc = 0x10`; Write class; exception_count++; T0855 attribution candidate |
+| EC-001 | Exception FC = 0x83 (exception for Read HR 0x03) | `original_fc = 0x03`; Read class; exception_count++; no T1692.001 attribution (read exception) |
+| EC-002 | Exception FC = 0x85 (exception for Write Single Coil 0x05) | `original_fc = 0x05`; Write class; exception_count++; T1692.001 attribution candidate |
+| EC-003 | Exception FC = 0x90 (exception for Write Multiple Registers 0x10) | `original_fc = 0x10`; Write class; exception_count++; T1692.001 attribution candidate |
 | EC-004 | Exception with no matching pending entry (orphan) | exception_count++; no removal; no finding |
 | EC-005 | Exception code = 0x01 (Illegal Function) attributed to Write FC | Write FC attempted; server doesn't support it — could indicate probing of device capabilities |
 | EC-006 | Exception code = 0x04 (Device Failure) attributed to Write FC | Write may have caused device stress; high forensic significance |
 | EC-007 | Exception code = 0x0B (Gateway Target Failed) attributed to any FC | Device behind gateway is silent — potential DoS impact |
 | EC-008 | exception's `original_fc` (fc & 0x7F) does NOT match `pending_entry.0` (pending FC) | FC mismatch: pending entry NOT removed (preserved); exception_count++; no attribution; no finding — prevents spoofed exception from clearing a Write-class pending slot |
 | EC-009 | Exception FC = 0x80 (original_fc = 0x00, undefined FC) | exception_count++; original FC 0x00 is Unknown class; no write attribution |
-| EC-010 | Attacker sends exception `0x86` (for FC 0x06 Write Single Reg) but pending slot holds `FC=0x03` (Read HR) | original_fc=0x06 ≠ pending_fc=0x03 → FC mismatch (Case A-Invalid); pending slot NOT removed; no false T0855 attribution; exception_count++ only |
+| EC-010 | Attacker sends exception `0x86` (for FC 0x06 Write Single Reg) but pending slot holds `FC=0x03` (Read HR) | original_fc=0x06 ≠ pending_fc=0x03 → FC mismatch (Case A-Invalid); pending slot NOT removed; no false T1692.001 attribution; exception_count++ only |
 
 ## Canonical Test Vectors
 
 | Scenario | Prior pending state | Exception ADU (hex) | Expected result | Category |
 |----------|---------------------|---------------------|-----------------|----------|
-| Write exception attributed | `(0x0002, 0x01) -> (0x06, ts0)` in pending | `00 02 00 00 00 03 01 86 01` (FC=0x86, code=0x01) | `original_fc=0x06` (Write); FC check: 0x06==0x06 ✓; entry removed; `exception_count=1`; NO new finding (T0855 was emitted at request time by BC-2.14.013) | happy-path |
+| Write exception attributed | `(0x0002, 0x01) -> (0x06, ts0)` in pending | `00 02 00 00 00 03 01 86 01` (FC=0x86, code=0x01) | `original_fc=0x06` (Write); FC check: 0x06==0x06 ✓; entry removed; `exception_count=1`; NO new finding (T1692.001 was emitted at request time by BC-2.14.013) | happy-path |
 | Read exception attributed | `(0x0001, 0x01) -> (0x03, ts0)` in pending | `00 01 00 00 00 03 01 83 02` (FC=0x83, code=0x02) | `original_fc=0x03` (Read); entry removed; `exception_count=1`; no write attribution | happy-path |
 | Orphan exception | pending empty | `00 05 00 00 00 03 01 90 04` (FC=0x90, code=0x04) | `exception_count=1`; no removal; no attribution | edge-case |
 | Force Listen Only exception (unusual) | any pending state | `00 06 00 00 00 03 01 88 01` (FC=0x88 = exception for 0x08 Diagnostics) | `original_fc=0x08`; Diagnostic class; exception_count++; no write attribution | edge-case |
@@ -157,7 +160,7 @@ Value:  0x0002 |  0x0000 |    3    |   1  | 0x86 | 0x01 (Illegal Function)
 Decode: fc=0x86 >= 0x80 → Exception; original_fc = 0x86 & 0x7F = 0x06 (Write Single Reg)
 Lookup: pending[(0x0002, 0x01)] = (0x06, ts0) → original_fc(0x06) == pending_fc(0x06) ✓
 Action: remove entry; exception_count++
-        NO new finding — T0855 was already emitted at request time (BC-2.14.013,
+        NO new finding — T1692.001 was already emitted at request time (BC-2.14.013,
         ClientToServer direction). This path: corroboration only, no double-count.
 ```
 
@@ -172,7 +175,7 @@ Action: remove entry; exception_count++
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-14 ("Modbus/ICS Analysis") per ARCH-INDEX.md §SS-14 |
-| Capability Anchor Justification | CAP-14 ("Modbus/ICS Analysis") per ARCH-INDEX.md §SS-14 — this BC defines exception attribution, which correlates failed write commands with their originating requests, enabling T0855 "failed execution evidence" detection in the ICS analysis capability |
+| Capability Anchor Justification | CAP-14 ("Modbus/ICS Analysis") per ARCH-INDEX.md §SS-14 — this BC defines exception attribution, which correlates failed write commands with their originating requests, enabling T1692.001 "failed execution evidence" detection in the ICS analysis capability |
 | L2 Domain Invariants | INV-4 (raw-data/display-layer separation — exception code byte stored raw) |
 | Architecture Module | SS-14 (analyzer/modbus.rs C-22 `on_data` exception-response branch); ADR-005 §2.7 |
 | Stories | TBD (F3 decomposition) |
@@ -191,7 +194,7 @@ Action: remove entry; exception_count++
 - `src/analyzer/modbus.rs` — `original_fc = h.function_code & 0x7F` recovery
 - `src/analyzer/modbus.rs` — `flow.pending.remove(&(h.transaction_id, h.unit_id))` on attributed exception
 - `src/analyzer/modbus.rs` — `flow.exception_count += 1` and `self.total_exception_count += 1`
-- `.factory/phase-f2-spec-evolution/architecture-delta.md §2.7` — on_data step 6: "emit attribution findings (e.g. exception on write FC → T0855 evidence)"
+- `.factory/phase-f2-spec-evolution/architecture-delta.md §2.7` — on_data step 6: "emit attribution findings (e.g. exception on write FC → T1692.001 evidence)"
 
 ## Story Anchor
 

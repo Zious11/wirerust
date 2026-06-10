@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Feature-100 (pcap timestamps) — O-01 resolved: 21 of 22 emission sites now set timestamp: Some(...); segment-limit summary retains None. Invariant 1 updated; Refactoring Notes updated. — 2026-06-08"
   - "v1.4: ADR-006 / Decision 13 (v0.3.0 BREAKING) — mitre_technique: Option<String> renamed to mitre_techniques: Vec<String>; empty vec replaces None; singleton vec replaces Some; added EC-006 (multi-tag co-emission). Emission-site count updated from 22 to 22+ (Modbus sites added in F2). — 2026-06-09"
+  - "v1.5: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, EC-006, and Canonical Test Vectors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -68,8 +69,8 @@ the full literal.
    - `summary`: raw `String` (per ADR 0003; no escape applied at construction)
    - `evidence`: `Vec<String>` (raw; 0 or more entries)
    - `mitre_techniques`: `Vec<String>` — `vec![]` (no technique), `vec!["TXXXX"]` (single technique,
-     migration of all pre-F2 `Some("TXXXX")` sites), or `vec!["T0855","T0836"]` (co-attributed;
-     Modbus write-class PDUs per ADR-006 Decision 13)
+     migration of all pre-F2 `Some("TXXXX")` sites), or `vec!["T1692.001","T0836"]` (co-attributed;
+     Modbus write-class PDUs per ADR-006 Decision 13; T1692.001 is the v19 ICS sub-technique, successor to revoked T0855)
    - `source_ip`: `Option<IpAddr>` (Some(ip) at 5 reassembly sites in mod.rs and lifecycle.rs;
      None at all HTTP/TLS and segment-limit-summary sites)
    - `timestamp`: `Option<DateTime<Utc>>` (Some(DateTime<Utc>) at 21 of 22 original emission
@@ -110,7 +111,7 @@ the full literal.
 | EC-003 | mitre_techniques = vec!["T1036"] | Singleton vec; flows through to JSON ("mitre_techniques":["T1036"]) and MITRE grouping (groups under T1036 tactic) |
 | EC-004 | mitre_techniques = vec![] (empty) | No "mitre_techniques" key in JSON (skip_serializing_if = Vec::is_empty); finding lands in Uncategorized bucket |
 | EC-005 | Finding with direction = Some(ServerToClient) | direction field set; JSON emits "ServerToClient" |
-| EC-006 | mitre_techniques = vec!["T0855","T0836"] | Multi-tag co-emission (Modbus register write per ADR-006 §13.5); JSON: "mitre_techniques":["T0855","T0836"]; groups under first technique's tactic (IcsImpairProcessControl) |
+| EC-006 | mitre_techniques = vec!["T1692.001","T0836"] | Multi-tag co-emission (Modbus register write per ADR-006 §13.5; T1692.001 is ICS sub-technique, v19 successor to revoked T0855); JSON: "mitre_techniques":["T1692.001","T0836"]; groups under first technique's tactic (IcsImpairProcessControl) |
 
 ## Canonical Test Vectors
 
