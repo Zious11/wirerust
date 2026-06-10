@@ -86,7 +86,7 @@ traces_to:
 | STORY-100 | Multi-Tag Finding Schema Migration (Atomic Type Rename + Catalog Seed) | E-13 | 31 | 13 | completed | — |
 | STORY-101 | Multi-Tag Reporter Serialization + JSON Envelope Add-Ons | E-13 | 31 | 8 | completed | STORY-100 |
 | STORY-102 | Modbus MBAP Parse + FC Classification (Pure Core) | E-14 | 32 | 8 | completed | STORY-100 |
-| STORY-103 | Modbus Flow State + Transaction Correlation | E-14 | 33 | 8 | draft | STORY-102 |
+| STORY-103 | Modbus Flow State + Transaction Correlation | E-14 | 33 | 8 | completed | STORY-102 |
 | STORY-104 | Modbus Detection Emissions + Summary | E-14 | 33 | 13 | draft | STORY-103 |
 | STORY-105 | Modbus Dispatcher Integration + CLI | E-14 | 34 | 8 | draft | STORY-104 |
 
@@ -188,6 +188,8 @@ traces_to:
 | 26 | STORY-089 | **DELIVERED & CLOSED** | #169 | 450d33e | 2026-05-31 |
 | 27 | STORY-090 | **DELIVERED & CLOSED** | #170 | 6158e6e | 2026-05-31 |
 | 31 | STORY-100, STORY-101 | **DELIVERED & CLOSED** | #209 | c846b3b | 2026-06-09 |
+| 32 | STORY-102 | **DELIVERED & CLOSED** | #211 | 26d58bb | 2026-06-09 |
+| 33 | STORY-103 | **DELIVERED & CLOSED** | #212 | d894464 | 2026-06-09 |
 
 ## Coverage Verification
 

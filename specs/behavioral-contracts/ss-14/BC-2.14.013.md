@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.0"
+version: "2.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -17,6 +17,9 @@ modified:
   - version: "2.0"
     date: 2026-06-09
     change: "UPDATED (v2.0 — Decision 13, f2-fix-directives.md §13.5): Multi-tag co-emission model. T0855 is no longer a standalone per-write finding. It is co-included in the mitre_techniques vec of every write-class PDU finding alongside T0836 or T0835 (union tagging). One finding per PDU replaces two-plus separate findings. Previous version (v1.0) emitted T0855 as a separate Finding object first, followed by T0836/T0835; this version fuses them. Targets v0.3.0 (mitre_techniques: Vec<String> breaking change)."
+  - version: "2.1"
+    date: 2026-06-09
+    change: "BC-DISCREPANCY-001 reconciliation: FC 0x17 (Read/Write Multiple Registers) writes holding registers and is therefore a Modify-Parameter operation. EC-001 corrected: 0x17 now emits [T0855, T0836] (not [T0855] only). Invariant 2 tag-union rule split: {0x15} -> [T0855] only; {0x17} -> [T0855, T0836]. Consistent with BC-2.14.016 register-write set {0x06,0x10,0x16,0x17} and BC-2.14.014 (now updated to include 0x17). Orchestrator ruling: FC 0x17 is a holding-register write."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -72,9 +75,10 @@ parsing the request PDU (not deferred to `on_flow_close`). Targets v0.3.0.
      `{fc}` is the raw function code byte and `{unit_id}` is the MBAP Unit ID byte.
    - `evidence`: one entry — `"FC=0x{fc:02X} TxnID={txn_id:#06X} UnitID={unit_id} ADU bytes {start}..{end}"`.
    - `mitre_techniques`: a `Vec<String>` containing ALL applicable technique tags for this PDU:
-     - FC in {0x06, 0x10, 0x16}: `vec!["T0855", "T0836"]` — unauthorized command + modify parameter
+     - FC in {0x06, 0x10, 0x16, 0x17}: `vec!["T0855", "T0836"]` — unauthorized command + modify parameter
+       (0x17 Read/Write Multiple Registers writes holding registers; reconciled per BC-DISCREPANCY-001)
      - FC in {0x05, 0x0F}: `vec!["T0855", "T0835"]` — unauthorized command + I/O image manipulation
-     - FC in {0x15, 0x17}: `vec!["T0855"]` — unauthorized command only (no register/coil subtype)
+     - FC in {0x15}: `vec!["T0855"]` — unauthorized command only (file record write; no register/coil subtype)
      - T0831 (coordinated write) contributes to the SAME finding's tag set if the T0831 window
        condition is met on this PDU (see BC-2.14.016 §Postconditions — the T0831 tag is added
        inline to the `mitre_techniques` vec of this per-PDU finding, not emitted as a separate
@@ -100,9 +104,11 @@ parsing the request PDU (not deferred to `on_flow_close`). Targets v0.3.0.
    There is no separate T0855 finding object; T0855 is always present in `mitre_techniques`
    of the per-PDU write finding.
 2. **Tag union rules** (authoritative, per Decision 13 §13.5):
-   - Holding-register writes (FC 0x06, 0x10, 0x16): `mitre_techniques = ["T0855", "T0836"]`
+   - Holding-register writes (FC 0x06, 0x10, 0x16, 0x17): `mitre_techniques = ["T0855", "T0836"]`
+     (FC 0x17 Read/Write Multiple Registers writes holding registers -> Modify Parameter (T0836);
+     reconciled with BC-2.14.016 register-write set per BC-DISCREPANCY-001 ruling)
    - Coil writes (FC 0x05, 0x0F): `mitre_techniques = ["T0855", "T0835"]`
-   - File/multi writes (FC 0x15, 0x17): `mitre_techniques = ["T0855"]`
+   - File record write (FC 0x15): `mitre_techniques = ["T0855"]` (targets file records, not registers/coils)
    - When T0831 window condition is also met (2nd+ holding-register write within 5s):
      `mitre_techniques = ["T0855", "T0836", "T0831"]`
    - T0836 and T0835 are NEVER both in the same finding's tag list. They are definitionally
@@ -125,7 +131,7 @@ parsing the request PDU (not deferred to `on_flow_close`). Targets v0.3.0.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | FC 0x17 (Read/Write Multiple Registers) in request direction | Write class: single finding with `mitre_techniques: ["T0855"]` only. 0x17 is not in the holding-register or coil-write subset. |
+| EC-001 | FC 0x17 (Read/Write Multiple Registers) in request direction | Write class: single finding with `mitre_techniques: ["T0855", "T0836"]`. 0x17 writes holding registers -> Modify Parameter (T0836); reconciled with BC-2.14.016 register-write set per BC-DISCREPANCY-001 ruling. |
 | EC-002 | FC 0x15 (Write File Record) in request direction | Write class: single finding with `mitre_techniques: ["T0855"]` only. Not a register or coil write. |
 | EC-003 | FC 0x16 (Mask Write Register) in request direction | Single finding with `mitre_techniques: ["T0855", "T0836"]`. 0x16 is in the holding-register subset (BC-2.14.014). |
 | EC-004 | `all_findings.len() == MAX_FINDINGS` when write FC arrives | No finding pushed (poison-skip). `write_count` and `fn_code_counts` still incremented. |
@@ -145,6 +151,7 @@ parsing the request PDU (not deferred to `on_flow_close`). Targets v0.3.0.
 | ADU hex: `00 04 00 00 00 06 01 03 00 00 00 05` (FC=0x03 Read Holding Registers) — ClientToServer | No finding (Read class, not Write); `fn_code_counts[0x03]=1` incremented | negative (read, no emit) |
 | `all_findings.len() == 10_000`; FC=0x06 write arrives | No finding pushed; `write_count` and `fn_code_counts[0x06]` incremented normally | edge-case (cap) |
 | ADU hex: FC=0x15 Write File Record — ClientToServer | Single Finding: `mitre_techniques=["T0855"]` only (no register/coil subtype) | happy-path (file record write) |
+| ADU hex: `00 03 00 00 00 09 01 17 00 00 00 01 00 00 00 01 02 00 42` (FC=0x17 RW-Multiple, UnitID=1) — ClientToServer | Single Finding: `mitre_techniques=["T0855","T0836"]` (0x17 writes holding registers; BC-DISCREPANCY-001 reconciliation) | happy-path (RW-multiple, register-write union tag) |
 
 ## Verification Properties
 

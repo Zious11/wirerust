@@ -14,6 +14,51 @@ changes, invariant rewrites).
 
 ---
 
+## [1.4] — 2026-06-09
+
+### MINOR: BC-DISCREPANCY-001 — FC 0x17 Register-Write Set Reconciliation
+
+**Summary:** Reconciled a discrepancy in the FC 0x17 (Read/Write Multiple Registers)
+technique-tag mapping across BC-2.14.013, BC-2.14.014, and BC-2.14.015. Per orchestrator
+ruling: FC 0x17 writes holding registers in its write phase and is therefore a
+Modify-Parameter (T0836) operation. It participates in the T0831 register-write window
+set {0x06, 0x10, 0x16, 0x17} and emits the union [T0855, T0836] per PDU. BC-2.14.016
+already correctly included 0x17 in this set; the discrepancy was in the other three BCs.
+
+**Root cause:** BC-2.14.013 EC-001 and Invariant 2 grouped FC 0x15 (Write File Record)
+and FC 0x17 together as "File/multi writes → [T0855] only". This was stale/wrong for 0x17:
+Write File Record targets file records (correctly T0855-only), but Read/Write Multiple
+Registers writes holding registers (should carry T0836). BC-2.14.014 and BC-2.14.015
+propagated the same error in their FC set definitions.
+
+**Artifacts changed:**
+
+| Artifact | Version | Change |
+|----------|---------|--------|
+| BC-2.14.013 | v2.0 → v2.1 | EC-001 corrected: 0x17 → ["T0855","T0836"]; Postcondition 1 tag-union bullet updated; Invariant 2 split: {0x06,0x10,0x16,0x17} → T0836; {0x15} → T0855 only; test vector for 0x17 added |
+| BC-2.14.014 | v2.0 → v2.1 | Title updated to include 0x17; Description FC set updated to {0x06,0x10,0x16,0x17}; Precondition 3 updated; Invariant 1 updated; Invariant 2 T0836 set updated; Invariant 4 corrected (0x17 is IN T0836 set, not T0855-only); test vector for 0x17 added |
+| BC-2.14.015 | v2.0 → v2.1 | Precondition 3 corrected: 0x17 now referenced as holding-register write; Invariant 2 (0x17 entry) updated to T0855+T0836; Invariant 4 disjoint-set updated to include 0x17 in T0836 set; EC-004 and 0x17 test vector corrected |
+| BC-2.14.016 | v2.0 (unchanged) | Already correct: FC set {0x06,0x10,0x16,0x17} used throughout; no changes needed |
+
+**Consistency result after reconciliation:**
+
+| Technique | FC set | Authoritative source |
+|-----------|--------|---------------------|
+| T0855 (Unauthorized Command Message) | {0x05, 0x06, 0x0F, 0x10, 0x15, 0x16, 0x17} — all Write class | BC-2.14.013 |
+| T0836 (Modify Parameter) | {0x06, 0x10, 0x16, 0x17} — holding-register writes | BC-2.14.014 v2.1 |
+| T0835 (Manipulate I/O Image) | {0x05, 0x0F} — coil writes only | BC-2.14.015 |
+| T0831 window set | {0x06, 0x10, 0x16, 0x17} — holding-register writes (same as T0836) | BC-2.14.016 |
+| T0855-only Write FCs | {0x15} — Write File Record (file records, not registers/coils) | BC-2.14.013 |
+
+T0836 set == T0831 window set == {0x06, 0x10, 0x16, 0x17}. No overlaps between T0836 and
+T0835 sets. These three sets are now consistent across all four BCs.
+
+**Impact:** MINOR (backward-compatible addition — extends 0x17's tag set from [T0855] to
+[T0855, T0836]; no existing BC semantics removed). Downstream stories that test FC 0x17
+behavior must be updated to expect ["T0855","T0836"] instead of ["T0855"] only.
+
+---
+
 ## [1.3] — 2026-06-09
 
 ### ADDITIVE: F2 Schema Add-Ons + v0.3.0/v0.4.0 Release Split Tagging

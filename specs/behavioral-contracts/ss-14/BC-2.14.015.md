@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.0"
+version: "2.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -17,6 +17,9 @@ modified:
   - version: "2.0"
     date: 2026-06-09
     change: "UPDATED (v2.0 — Decision 13, f2-fix-directives.md §13.5): T0835 is now a co-tag on the single per-PDU write finding for coil writes, not a separate Finding object. The coil-write finding carries mitre_techniques: [\"T0855\",\"T0835\"]. Removed all \"T0835 suppressed / T0836 priority\" language. T0835 applies for coil FCs {0x05,0x0F} because they are coil writes (FC-subset definition), not because T0836 does not suppress them. Precondition 3 simplified to FC membership only. Targets v0.3.0."
+  - version: "2.1"
+    date: 2026-06-09
+    change: "BC-DISCREPANCY-001 reconciliation: corrected stale references that described FC 0x17 as carrying T0855 only. FC 0x17 is now in the T0836 holding-register set (per BC-2.14.013/014 v2.1 and BC-2.14.016). Precondition 3, Invariant 2 (0x17 entry), EC-004, and the 0x17 canonical test vector updated to reflect that 0x17 -> [T0855, T0836]. The T0835 coil-only set {0x05, 0x0F} is unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -61,10 +64,10 @@ Targets v0.3.0.
 1. The MBAP ADU has passed the three-point validity gate.
 2. The TCP direction is `Direction::ClientToServer`.
 3. `function_code` is one of: `0x05`, `0x0F`. These are the coil-output write FCs for
-   which T0835 ("Manipulate I/O Image") applies. Holding-register write FCs {0x06, 0x10, 0x16}
-   are handled by BC-2.14.014 (carry T0836 tag instead). FC 0x17 and FC 0x15 carry T0855
-   only (per BC-2.14.013). Precondition 3 is purely an FC-subset membership check, not a
-   priority or suppression rule.
+   which T0835 ("Manipulate I/O Image") applies. Holding-register write FCs {0x06, 0x10, 0x16,
+   0x17} are handled by BC-2.14.014 (carry T0836 tag; 0x17 included per BC-DISCREPANCY-001).
+   FC 0x15 carries T0855 only (file record write, not register/coil). Precondition 3 is
+   purely an FC-subset membership check, not a priority or suppression rule.
 4. `self.all_findings.len() < MAX_FINDINGS`.
 
 ## Postconditions
@@ -96,14 +99,15 @@ Targets v0.3.0.
    - FC 0x05 Write Single Coil: directly flips one output bit in the coil I/O image.
    - FC 0x0F Write Multiple Coils: bulk flip of output coil image.
 2. **FCs NOT in T0835 subset and why:**
-   - {0x06, 0x10, 0x16}: holding-register writes — carry T0836 tag (BC-2.14.014).
+   - {0x06, 0x10, 0x16, 0x17}: holding-register writes — carry T0836 tag (BC-2.14.014 v2.1).
    - 0x15 Write File Record: targets file records, not the real-time I/O image.
-   - 0x17 Read/Write Multiple Registers: carries T0855 only per BC-2.14.013 (neither register
-     nor coil subtype tag applies under the v1 simplification).
+   - 0x17 Read/Write Multiple Registers: carries T0855 + T0836 (holding-register write;
+     included in the T0836 subset {0x06,0x10,0x16,0x17} per BC-DISCREPANCY-001 ruling;
+     see BC-2.14.013/014 v2.1). NOT in the T0835 coil set.
    - 0x08 Diagnostics: state management, not I/O image (T0814, see BC-2.14.018).
 3. **`mitre_techniques` field** (plural, `Vec<String>`) per ADR-006 — not `mitre_technique: Option<String>`.
 4. **T0835 and T0836 are never co-tagged on the same PDU finding.** This follows from the
-   disjoint FC subsets: {0x05, 0x0F} and {0x06, 0x10, 0x16} have no common element. No
+   disjoint FC subsets: {0x05, 0x0F} and {0x06, 0x10, 0x16, 0x17} have no common element. No
    implementation guard is needed; the FC-subset check enforces it automatically.
 5. **Burst finding is independent:** if the burst threshold is also tripped on this PDU,
    a separate burst Finding with `mitre_techniques: ["T0806","T0855"]` is emitted (from
@@ -116,7 +120,7 @@ Targets v0.3.0.
 | EC-001 | FC 0x05 writing coil 0x0000 (coil 0, value=ON, 0xFF00) | ONE finding: `mitre_techniques: ["T0855","T0835"]`. No T0836 (0x05 is not a holding-register write FC). |
 | EC-002 | FC 0x05 writing coil 0x0000 with value 0x0000 (= OFF) | ONE finding: `mitre_techniques: ["T0855","T0835"]`. Turning off an actuator is equally significant forensically. |
 | EC-003 | FC 0x0F bulk-writing 2000 coils (max spec-compliant bulk coil write) | ONE finding `mitre_techniques: ["T0855","T0835"]`; the quantity field is captured in evidence bytes. |
-| EC-004 | FC 0x17 (Read/Write Multiple Registers) | ONE finding `mitre_techniques: ["T0855"]` only (not in coil-write subset; carries T0855 only per BC-2.14.013). |
+| EC-004 | FC 0x17 (Read/Write Multiple Registers) | ONE finding `mitre_techniques: ["T0855", "T0836"]` (holding-register write; in T0836 set {0x06,0x10,0x16,0x17} per BC-DISCREPANCY-001; NOT in coil-write T0835 set). |
 | EC-005 | FC 0x16 in request direction | ONE finding `mitre_techniques: ["T0855","T0836"]` — mask-write is a holding-register operation, handled by BC-2.14.014. T0835 not applicable (not a coil write). |
 | EC-006 | FC 0x15 (Write File Record) | ONE finding `mitre_techniques: ["T0855"]` only. T0835 not applicable. |
 | EC-007 | `all_findings` at MAX_FINDINGS - 1 when FC 0x05 (coil write) arrives | The ONE finding with `["T0855","T0835"]` fills the last slot. `dropped_findings` stays 0. Counters incremented. If cap is already at MAX_FINDINGS, finding is dropped and `dropped_findings += 1`. |
@@ -127,7 +131,7 @@ Targets v0.3.0.
 |-------|----------------|----------|
 | ADU: `00 01 00 00 00 06 01 05 00 00 FF 00` (FC=0x05 Write Single Coil, coil=0, value=ON, UnitID=1) — ClientToServer | ONE finding: `mitre_techniques=["T0855","T0835"]`; `write_count=1`, `fn_code_counts[0x05]=1` | happy-path (coil write, union tag) |
 | ADU: `00 02 00 00 00 08 01 0F 00 00 00 04 01 0F` (FC=0x0F Write Multiple Coils, UnitID=1, qty=4, byte=0x0F) — ClientToServer | ONE finding: `mitre_techniques=["T0855","T0835"]`; `write_count=1`, `fn_code_counts[0x0F]=1` | happy-path (bulk coil) |
-| ADU: `00 03 00 00 00 09 01 17 00 00 00 01 00 00 00 01 02 00 42` (FC=0x17 RW-Multiple, UnitID=1) — ClientToServer | ONE finding: `mitre_techniques=["T0855"]` only (FC 0x17 carries T0855 only; not a coil-write FC) | edge-case (RW-multiple, T0855 only) |
+| ADU: `00 03 00 00 00 09 01 17 00 00 00 01 00 00 00 01 02 00 42` (FC=0x17 RW-Multiple, UnitID=1) — ClientToServer | ONE finding: `mitre_techniques=["T0855","T0836"]` (FC 0x17 is a holding-register write; NOT a coil-write FC; BC-DISCREPANCY-001 reconciliation) | edge-case (RW-multiple, T0836 tagged, T0835 does NOT apply) |
 | ADU: `00 04 00 00 00 06 01 06 00 10 01 F4` (FC=0x06 Write Single Register) — ClientToServer | ONE finding: `mitre_techniques=["T0855","T0836"]`; T0835 NOT applicable (holding-register write, not coil write) | negative (register write — T0835 does NOT apply to 0x06) |
 | ADU: `00 05 00 00 00 08 01 16 00 10 FF F0 00 0F` (FC=0x16 Mask Write) — ClientToServer | ONE finding: `mitre_techniques=["T0855","T0836"]`; T0835 NOT applicable (mask-write is holding-register) | negative (mask-write — T0835 excluded) |
 
