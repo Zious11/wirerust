@@ -235,3 +235,26 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
 - VP-022 Kani run deferred to F6; VP-007(21/13)/016/020/021: F4 verification obligations (Waves 33-34)
 - ACTION-PIN-001: dtolnay/rust-toolchain @stable/@nightly intentionally exempt from pin gate
+
+---
+
+## Archived: 2026-06-09 — STORY-103 MERGED + STORY-104 converged+delivering; NEXT = STORY-105 (superseded by Wave 2 COMPLETE D-042)
+
+**POSITION:** wirerust v0.3.0 RELEASED (D-038). Feature #7 Wave 2 / E-14 Modbus. STORY-102 MERGED PR #211 (develop 26d58bb; 1224 tests). STORY-103 MERGED PR #212 (develop d894464; 1247 tests). STORY-104 (7 MITRE detectors, dual-window, co-emission, MAX_FINDINGS cap, summary) per-story adversarial CONVERGED (D-041): Claude + Gemini cross-model; 1296 tests green; delivering via pr-manager. BC-DISCREPANCY-001 resolved: BC-2.14.013/014/015 v2.1. NEXT = STORY-105 (Modbus dispatcher integration).
+
+**VERIFIED-CLEAN FACTS (at STORY-104 convergence):**
+- main HEAD `9ef5af1` — v0.3.0 release commit; annotated tag `v0.3.0`
+- develop HEAD `d894464` — STORY-103 merged via PR #212
+- 1296 tests green (1247 post-STORY-103 +49 STORY-104); clippy+fmt clean
+- 244 BCs / 22 VPs (21 locked + VP-022 draft) / 58 stories / 353 pts
+- BC-2.14.013/014/015 at v2.1 (BC-DISCREPANCY-001 resolved — FC 0x17 -> [T0855,T0836])
+- Input-hash drift: MATCH=57/STALE=0/ERROR=1 (STORY-091 pre-existing no-inputs; STORY-104 recomputed 56a3714->e89c401 at D-041)
+- STORY-102/103 status: completed; STORY-104 status: draft (in delivery); STORY-105 status: draft
+- Active feature: issue-7-modbus-tcp-analyzer; Waves 32-33 DELIVERED (STORY-102/103); Wave 33 in delivery (STORY-104); Wave 34 PENDING (STORY-105)
+
+**CARRY-FORWARD ITEMS (at archival):**
+- 3 LOW deferrals from STORY-104: recon test ==1; DF-TEST-NAMESPACE-001 modbus_detection_tests flat namespace; 0xFF exception sentinel
+- Terminal multi-ID per-ID name resolution -> STORY-105 (BC-2.11.017; v0.3.0 deferral)
+- O-1 (EMITTED_IDS names 7 ICS): deferred to phase-5 (Modbus STORY-104 delivering -> resolve at phase-5)
+- VP-022 Kani run deferred to F6; VP-004 Kani oracle extension in STORY-105; VP-007(21/13)/016/020/021: F4 obligations (Wave 34)
+- ACTION-PIN-001: dtolnay/rust-toolchain @stable/@nightly intentionally exempt from pin gate
