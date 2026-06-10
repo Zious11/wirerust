@@ -22,7 +22,7 @@ const MITRE_DOMAIN: &str = "ics-attack";
 
 // F4: RESOLVED — pinned to ATT&CK for ICS v19.1 (released 2026-04-28).
 // Canonical STIX bundle: ics-attack-19.1.json. All emitted ICS technique IDs
-// (T0888, T0855, T0836, T0835, T0831, T0814, T0806) confirmed valid and active
+// (T0888, T1692.001, T0836, T0835, T0831, T0814, T0806) confirmed valid and active
 // in v19.1. See .factory/research/attack-ics-version-pin.md for full validation.
 const MITRE_ATTACK_VERSION: &str = "ics-attack-19.1";
 

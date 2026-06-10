@@ -92,16 +92,17 @@ mod story_104 {
 
     // ---------------------------------------------------------------------------
     // BC-2.14.013 / BC-2.14.014 — Register-write multi-tag finding
-    // AC-001: FC=0x06 emits exactly one finding with mitre_techniques = ["T0855","T0836"]
+    // AC-001: FC=0x06 emits exactly one finding with mitre_techniques = ["T1692.001","T0836"]
     // ---------------------------------------------------------------------------
 
-    /// test_BC_2_14_013_014_holding_register_write_emits_t0855_t0836
+    /// test_BC_2_14_013_014_holding_register_write_emits_t1692_001_t0836
     ///
     /// Canonical vector from BC-2.14.013:
     /// ADU: `00 01 00 00 00 06 01 06 00 10 01 F4` (FC=0x06, Write Single Register, UnitID=1)
-    /// Expected: exactly one Finding; mitre_techniques = ["T0855","T0836"];
+    /// Expected: exactly one Finding; mitre_techniques = ["T1692.001","T0836"];
     /// category = Execution; verdict = Likely; confidence = Medium.
     /// Traces to: BC-2.14.013 post.1, BC-2.14.014, STORY-104 AC-001.
+    /// ICS v19 remap (issue #222): T0855→T1692.001.
     #[test]
     fn test_BC_2_14_013_014_holding_register_write_emits_t0855_t0836() {
         let mut az = default_analyzer();
@@ -123,8 +124,8 @@ mod story_104 {
         let f = &findings[0];
         assert_eq!(
             f.mitre_techniques,
-            vec!["T0855", "T0836"],
-            "register write must tag T0855+T0836"
+            vec!["T1692.001", "T0836"],
+            "register write must tag T1692.001+T0836 (v19 remap: T0855→T1692.001)"
         );
         assert!(
             matches!(f.category, ThreatCategory::Execution),
@@ -162,13 +163,13 @@ mod story_104 {
             1_000_000,
         );
         assert_eq!(findings.len(), 1);
-        assert_eq!(findings[0].mitre_techniques, vec!["T0855", "T0836"]);
+        assert_eq!(findings[0].mitre_techniques, vec!["T1692.001", "T0836"]);
     }
 
-    /// test_BC_2_14_013_014_fc_0x16_emits_t0855_t0836
+    /// test_BC_2_14_013_014_fc_0x16_emits_t1692_001_t0836
     ///
     /// FC=0x16 (Mask Write Register) is in the holding-register subset.
-    /// Traces to: BC-2.14.013 EC-003, BC-2.14.014.
+    /// Traces to: BC-2.14.013 EC-003, BC-2.14.014. ICS v19 remap (issue #222).
     #[test]
     fn test_BC_2_14_013_014_fc_0x16_emits_t0855_t0836() {
         let mut az = default_analyzer();
@@ -184,20 +185,21 @@ mod story_104 {
             1_000_000,
         );
         assert_eq!(findings.len(), 1);
-        assert_eq!(findings[0].mitre_techniques, vec!["T0855", "T0836"]);
+        assert_eq!(findings[0].mitre_techniques, vec!["T1692.001", "T0836"]);
     }
 
     // ---------------------------------------------------------------------------
     // BC-2.14.013 / BC-2.14.015 — Coil-write multi-tag finding
-    // AC-002: FC=0x05 emits exactly one finding with ["T0855","T0835"]
+    // AC-002: FC=0x05 emits exactly one finding with ["T1692.001","T0835"]
     // ---------------------------------------------------------------------------
 
-    /// test_BC_2_14_013_015_coil_write_emits_t0855_t0835
+    /// test_BC_2_14_013_015_coil_write_emits_t1692_001_t0835
     ///
     /// Canonical vector from BC-2.14.013:
     /// ADU: `00 02 00 00 00 06 02 0F 00 00 00 08 01 FF` (FC=0x0F Write Multiple Coils)
-    /// Expected: mitre_techniques = ["T0855","T0835"].
+    /// Expected: mitre_techniques = ["T1692.001","T0835"].
     /// Traces to: BC-2.14.013 post.1, BC-2.14.015, STORY-104 AC-002.
+    /// ICS v19 remap (issue #222): T0855→T1692.001.
     #[test]
     fn test_BC_2_14_013_015_coil_write_emits_t0855_t0835() {
         let mut az = default_analyzer();
@@ -218,8 +220,8 @@ mod story_104 {
         assert_eq!(findings.len(), 1, "exactly one finding for coil write");
         assert_eq!(
             findings[0].mitre_techniques,
-            vec!["T0855", "T0835"],
-            "coil write must tag T0855+T0835"
+            vec!["T1692.001", "T0835"],
+            "coil write must tag T1692.001+T0835 (v19 remap: T0855→T1692.001)"
         );
     }
 
@@ -242,19 +244,20 @@ mod story_104 {
             1_000_000,
         );
         assert_eq!(findings.len(), 1);
-        assert_eq!(findings[0].mitre_techniques, vec!["T0855", "T0835"]);
+        assert_eq!(findings[0].mitre_techniques, vec!["T1692.001", "T0835"]);
     }
 
     // ---------------------------------------------------------------------------
-    // BC-2.14.013 — File/other write emits T0855 only (no register/coil subtype)
-    // AC-002: FC in {0x15, 0x17} → ["T0855"] only
+    // BC-2.14.013 — File/other write emits T1692.001 only (no register/coil subtype)
+    // AC-002: FC in {0x15, 0x17} → ["T1692.001"] only
     // ---------------------------------------------------------------------------
 
-    /// test_BC_2_14_013_file_write_emits_t0855_only
+    /// test_BC_2_14_013_file_write_emits_t1692_001_only
     ///
     /// FC=0x15 (Write File Record) — not in register or coil subset.
-    /// Expected: mitre_techniques = ["T0855"] only.
-    /// Traces to: BC-2.14.013 invariant 2 (FC 0x15/0x17 → T0855 only), AC-002.
+    /// Expected: mitre_techniques = ["T1692.001"] only.
+    /// Traces to: BC-2.14.013 invariant 2 (FC 0x15/0x17 → T1692.001 only), AC-002.
+    /// ICS v19 remap (issue #222): T0855→T1692.001.
     #[test]
     fn test_BC_2_14_013_file_write_emits_t0855_only() {
         let mut az = default_analyzer();
@@ -278,8 +281,8 @@ mod story_104 {
         assert_eq!(findings.len(), 1, "one finding for file-record write");
         assert_eq!(
             findings[0].mitre_techniques,
-            vec!["T0855"],
-            "FC=0x15 → T0855 only, no subtype"
+            vec!["T1692.001"],
+            "FC=0x15 → T1692.001 only, no subtype (v19 remap: T0855→T1692.001)"
         );
         assert!(!findings[0].mitre_techniques.contains(&"T0836".to_string()));
         assert!(!findings[0].mitre_techniques.contains(&"T0835".to_string()));
@@ -319,7 +322,10 @@ mod story_104 {
         // BC-2.14.013 EC-001 stale (spec-steward reconciling)
         assert_eq!(findings.len(), 1);
         let tags = &findings[0].mitre_techniques;
-        assert!(tags.contains(&"T0855".to_string()), "T0855 must be present");
+        assert!(
+            tags.contains(&"T1692.001".to_string()),
+            "T1692.001 must be present (v19 remap: T0855→T1692.001)"
+        );
         assert!(
             tags.contains(&"T0836".to_string()),
             "T0836 must appear for FC=0x17 (ORCHESTRATOR RULING BC-DISCREPANCY-001: 0x17 writes holding registers)"
@@ -328,15 +334,16 @@ mod story_104 {
 
     // ---------------------------------------------------------------------------
     // BC-2.14.016 — T0831 inline co-tag on 2nd holding-register write within 5s
-    // AC-003: first → ["T0855","T0836"]; second → ["T0855","T0836","T0831"]; third → ["T0855","T0836"]
+    // AC-003: first → ["T1692.001","T0836"]; second → ["T1692.001","T0836","T0831"]; third → ["T1692.001","T0836"]
     // ---------------------------------------------------------------------------
 
     /// test_BC_2_14_016_t0831_inline_cotag_on_second_holding_register_write
     ///
     /// Deliver three FC=0x06 writes within 5 seconds.
-    /// findings[0] = ["T0855","T0836"] (1st write, T0831 window starts, count=1)
-    /// findings[1] = ["T0855","T0836","T0831"] (2nd write, count=2 → T0831 fires once)
-    /// findings[2] = ["T0855","T0836"] (3rd write, T0831 emit-once exhausted)
+    /// findings[0] = ["T1692.001","T0836"] (1st write, T0831 window starts, count=1)
+    /// findings[1] = ["T1692.001","T0836","T0831"] (2nd write, count=2 → T0831 fires once)
+    /// findings[2] = ["T1692.001","T0836"] (3rd write, T0831 emit-once exhausted)
+    /// ICS v19 remap (issue #222): T0855→T1692.001.
     /// Traces to: BC-2.14.016, STORY-104 AC-003.
     #[test]
     fn test_BC_2_14_016_t0831_inline_cotag_on_second_holding_register_write() {
@@ -361,8 +368,8 @@ mod story_104 {
         );
         assert_eq!(
             f1[0].mitre_techniques,
-            vec!["T0855", "T0836"],
-            "first write: T0831 not yet fired"
+            vec!["T1692.001", "T0836"],
+            "first write: T0831 not yet fired (v19 remap: T0855→T1692.001)"
         );
 
         // Second write: count=2, t0831_burst_emitted=false → T0831 co-tagged.
@@ -373,8 +380,8 @@ mod story_104 {
         );
         assert_eq!(
             f2[0].mitre_techniques,
-            vec!["T0855", "T0836", "T0831"],
-            "second write must include T0831 co-tag"
+            vec!["T1692.001", "T0836", "T0831"],
+            "second write must include T0831 co-tag (v19 remap: T0855→T1692.001)"
         );
 
         // Third write: t0831_burst_emitted=true → back to T0836 only (no T0831).
@@ -385,8 +392,8 @@ mod story_104 {
         );
         assert_eq!(
             f3[0].mitre_techniques,
-            vec!["T0855", "T0836"],
-            "third write: T0831 emit-once exhausted"
+            vec!["T1692.001", "T0836"],
+            "third write: T0831 emit-once exhausted (v19 remap: T0855→T1692.001)"
         );
     }
 
@@ -414,8 +421,8 @@ mod story_104 {
         assert_eq!(f3.len(), 1);
         assert_eq!(
             f3[0].mitre_techniques,
-            vec!["T0855", "T0836"],
-            "after window reset: T0831 must NOT fire on the 1st write of a new window"
+            vec!["T1692.001", "T0836"],
+            "after window reset: T0831 must NOT fire on the 1st write of a new window (v19 remap)"
         );
         assert!(!f3[0].mitre_techniques.contains(&"T0831".to_string()));
     }
@@ -505,8 +512,8 @@ mod story_104 {
     }
 
     // ---------------------------------------------------------------------------
-    // BC-2.14.017 — Burst detector (T0806+T0855, 1-second window)
-    // AC-004: >20 writes in 1s → separate burst finding with ["T0806","T0855"]
+    // BC-2.14.017 — Burst detector (T0806+T1692.001, 1-second window)
+    // AC-004: >20 writes in 1s → separate burst finding with ["T0806","T1692.001"]
     // ---------------------------------------------------------------------------
 
     /// test_BC_2_14_017_burst_detector_fires_at_threshold_plus_1
@@ -514,8 +521,10 @@ mod story_104 {
     /// Deliver 21 write-class FCs within 1 second (default burst threshold = 20).
     /// The 21st write tips the burst threshold. Expected:
     /// - Exactly 21 per-PDU write findings emitted (one per write).
-    /// - Exactly 1 burst finding with mitre_techniques = ["T0806","T0855"].
+    /// - Exactly 1 burst finding with mitre_techniques = ["T0806","T1692.001"].
     /// - Total findings returned across all 21 calls = 22 (21 per-PDU + 1 burst).
+    ///
+    /// ICS v19 remap (issue #222): T0855→T1692.001.
     ///
     /// Traces to: BC-2.14.017 invariant 1, STORY-104 AC-004.
     #[test]
@@ -538,7 +547,7 @@ mod story_104 {
             .iter()
             .filter(|f| {
                 f.mitre_techniques.contains(&"T0836".to_string())
-                    || (f.mitre_techniques.contains(&"T0855".to_string())
+                    || (f.mitre_techniques.contains(&"T1692.001".to_string())
                         && !f.mitre_techniques.contains(&"T0806".to_string()))
             })
             .collect();
@@ -559,8 +568,8 @@ mod story_104 {
         );
         assert_eq!(
             burst[0].mitre_techniques,
-            vec!["T0806", "T0855"],
-            "burst finding: T0806 first, T0855 second (canonical order)"
+            vec!["T0806", "T1692.001"],
+            "burst finding: T0806 first, T1692.001 second (canonical order, v19 remap)"
         );
         assert_eq!(
             all_findings.len(),
@@ -721,8 +730,8 @@ mod story_104 {
             .expect("sustained finding must exist");
         assert_eq!(
             burst_f.mitre_techniques,
-            vec!["T0806", "T0855"],
-            "sustained finding carries T0806+T0855"
+            vec!["T0806", "T1692.001"],
+            "sustained finding carries T0806+T1692.001 (v19 remap: T0855→T1692.001)"
         );
     }
 
@@ -1610,7 +1619,7 @@ mod story_104 {
 
     /// test_BC_2_14_013_burst_and_per_pdu_finding_are_separate
     ///
-    /// The T0806+T0855 burst finding is a SEPARATE Finding object, emitted alongside
+    /// The T0806+T1692.001 burst finding is a SEPARATE Finding object, emitted alongside
     /// (not instead of) the per-PDU write finding. When the 21st write tips the burst
     /// threshold, that PDU should have generated: 1 per-PDU write finding + 1 burst finding.
     /// Total `all_findings` after 21 writes = 22 (21 per-PDU + 1 burst).
@@ -1641,7 +1650,7 @@ mod story_104 {
             .iter()
             .filter(|f| {
                 !f.mitre_techniques.contains(&"T0806".to_string())
-                    && f.mitre_techniques.contains(&"T0855".to_string())
+                    && f.mitre_techniques.contains(&"T1692.001".to_string())
             })
             .count();
         let burst_count = az
@@ -2358,8 +2367,8 @@ mod story_104 {
         let f1 = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu1, 0);
         assert_eq!(
             f1[0].mitre_techniques,
-            vec!["T0855", "T0836"],
-            "first write: T0831 not yet fired"
+            vec!["T1692.001", "T0836"],
+            "first write: T0831 not yet fired (v19 remap: T0855→T1692.001)"
         );
 
         // Second register write at t=5 == T0831_WINDOW_SECS — the exact boundary.

@@ -227,7 +227,7 @@ fn test_technique_name_resolves_all_21_seeded_ids() {
     // Seeded IDs (11 Enterprise + 10 ICS):
     //   T1027, T1036, T1040, T1046, T1071, T1071.001, T1071.004,
     //   T1083, T1499.002, T1505.003, T1573,
-    //   T0846, T0855, T0856, T0885,
+    //   T0846, T1692.001, T1692.002, T0885,
     //   T0836, T0814, T0806, T0835, T0831, T0888.
 
     // AC-010: spot-check on canonical test vector from BC-2.10.005.
@@ -251,10 +251,10 @@ fn test_technique_name_resolves_all_21_seeded_ids() {
         ("T1499.002", "Service Exhaustion Flood"),
         ("T1505.003", "Web Shell"),
         ("T1573", "Encrypted Channel"),
-        // ICS pre-F2 (4)
+        // ICS pre-F2 (4) — T0855/T0856 remapped to T1692.001/T1692.002 per v19 (issue #222)
         ("T0846", "Remote System Discovery"),
-        ("T0855", "Unauthorized Command Message"),
-        ("T0856", "Spoof Reporting Message"),
+        ("T1692.001", "Unauthorized Message: Command Message"),
+        ("T1692.002", "Unauthorized Message: Reporting Message"),
         ("T0885", "Commonly Used Port"),
         // ICS new F2 — STORY-100 additions (6)
         ("T0836", "Modify Parameter"),
@@ -335,10 +335,10 @@ fn test_technique_tactic_correct_assignments() {
         ("T1499.002", MitreTactic::Impact),
         ("T1505.003", MitreTactic::Persistence),
         ("T1573", MitreTactic::CommandAndControl),
-        // ICS pre-F2 (4)
+        // ICS pre-F2 (4) — T0855/T0856 remapped to T1692.001/T1692.002 per v19 (issue #222)
         ("T0846", MitreTactic::Discovery),
-        ("T0855", MitreTactic::IcsImpairProcessControl),
-        ("T0856", MitreTactic::IcsImpairProcessControl),
+        ("T1692.001", MitreTactic::IcsImpairProcessControl),
+        ("T1692.002", MitreTactic::IcsImpairProcessControl),
         ("T0885", MitreTactic::CommandAndControl),
         // ICS new F2 — STORY-100 additions (6)
         ("T0836", MitreTactic::IcsImpairProcessControl),
@@ -372,9 +372,10 @@ fn test_all_emitted_ids_resolve() {
     //   src/analyzer/http.rs         — T1083, T1505.003, T1046, T1499.002 (×2 sites)
     //   src/reassembly/mod.rs        — T1036
     //   src/reassembly/lifecycle.rs  — T1036
-    //   ICS analyzers (Modbus/DNP3)  — T0855, T0836, T0814, T0806, T0835, T0831, T0888
+    //   ICS analyzers (Modbus/DNP3)  — T1692.001, T0836, T0814, T0806, T0835, T0831, T0888
     // Total: 6 Enterprise + 7 ICS = 13 unique emitted technique IDs.
     // Note: T0846 is seeded but NOT emitted; T0888 IS emitted (Modbus recon).
+    // ICS v19 remap (issue #222): T0855→T1692.001 (emitted), T0856→T1692.002 (seeded-only).
     let emitted_ids = [
         // Enterprise (6)
         "T1027",     // src/analyzer/tls.rs
@@ -383,14 +384,14 @@ fn test_all_emitted_ids_resolve() {
         "T1083",     // src/analyzer/http.rs
         "T1499.002", // src/analyzer/http.rs
         "T1505.003", // src/analyzer/http.rs
-        // ICS (7) — T0855 pre-existing + 6 new F2 IDs (STORY-100)
-        "T0855", // ICS Impair Process Control
-        "T0836", // Modify Parameter
-        "T0814", // Denial of Service
-        "T0806", // Brute Force I/O
-        "T0835", // Manipulate I/O Image
-        "T0831", // Manipulation of Control
-        "T0888", // Remote System Information Discovery
+        // ICS (7) — T1692.001 (remapped from T0855 per v19 remap, issue #222) + 6 new F2 IDs (STORY-100)
+        "T1692.001", // ICS Impair Process Control (remapped from T0855)
+        "T0836",     // Modify Parameter
+        "T0814",     // Denial of Service
+        "T0806",     // Brute Force I/O
+        "T0835",     // Manipulate I/O Image
+        "T0831",     // Manipulation of Control
+        "T0888",     // Remote System Information Discovery
     ];
 
     assert_eq!(
@@ -479,6 +480,56 @@ fn test_ec_004_unknown_id_tactic_returns_none() {
     // BC-2.10.007 postcondition 3: technique_tactic returns None for any ID
     // not in the seeded set. "T9999" is unknown.
     assert_eq!(technique_tactic("T9999"), None);
+}
+
+// ---------------------------------------------------------------------------
+// ICS v19 remap (issue #222): explicit pin for T1692.001 emitted and sub-technique format
+// ---------------------------------------------------------------------------
+
+/// Explicit pin test: T1692.001 is the emitted ID for Modbus write findings (v19 remap).
+///
+/// Verifies:
+/// 1. T1692.001 resolves in the catalog with the expected name and tactic.
+/// 2. T1692.002 resolves in the catalog with the expected name and tactic (seeded-only).
+/// 3. The sub-technique format validator accepts T1692.001 and T1692.002.
+/// 4. The old revoked IDs T0855 and T0856 no longer resolve (removed from catalog).
+#[test]
+fn test_ics_v19_remap_t1692_sub_techniques_are_pinned() {
+    // T1692.001 — emitted by Modbus analyzer (replaces T0855).
+    assert_eq!(
+        technique_name("T1692.001"),
+        Some("Unauthorized Message: Command Message"),
+        "T1692.001 must resolve to the v19 name"
+    );
+    assert_eq!(
+        technique_tactic("T1692.001"),
+        Some(MitreTactic::IcsImpairProcessControl),
+        "T1692.001 tactic must be IcsImpairProcessControl (unchanged from T0855)"
+    );
+
+    // T1692.002 — seeded-only (replaces T0856, never emitted).
+    assert_eq!(
+        technique_name("T1692.002"),
+        Some("Unauthorized Message: Reporting Message"),
+        "T1692.002 must resolve to the v19 name"
+    );
+    assert_eq!(
+        technique_tactic("T1692.002"),
+        Some(MitreTactic::IcsImpairProcessControl),
+        "T1692.002 tactic must be IcsImpairProcessControl (unchanged from T0856)"
+    );
+
+    // Revoked IDs must NO LONGER resolve in the catalog.
+    assert_eq!(
+        technique_name("T0855"),
+        None,
+        "T0855 is revoked in v19 — must not resolve"
+    );
+    assert_eq!(
+        technique_name("T0856"),
+        None,
+        "T0856 is revoked in v19 — must not resolve"
+    );
 }
 
 // ---------------------------------------------------------------------------

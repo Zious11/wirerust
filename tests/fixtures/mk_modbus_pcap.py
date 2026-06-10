@@ -12,14 +12,14 @@ Packet sequence (all timestamps in seconds, realistic 2024-era epoch values):
   3. [t=1_717_000_002] Client→Server ACK (handshake complete)
   4. [t=1_717_000_003] Client→Server: FC=0x11 Report Server ID (recon → T0888)
   5. [t=1_717_000_004] Server→Client: FC=0x11 response (also triggers T0888, direction-independent)
-  6. [t=1_717_000_005] Client→Server: FC=0x10 Write Multiple Registers (write → T0855+T0836)
+  6. [t=1_717_000_005] Client→Server: FC=0x10 Write Multiple Registers (write → T1692.001+T0836)
   7. [t=1_717_000_006] Server→Client: FC=0x90 Exception response (0x10|0x80) for txn 0x0003
   8. [t=1_717_000_007] Client→Server: FIN-ACK
 
 Findings expected from wirerust analyze --modbus:
   - T0888 (recon): FC=0x11 from client (packet 4)
   - T0888 (recon): FC=0x11 from server (packet 5, direction-independent)
-  - T0855+T0836 (write): FC=0x10 Write Multiple Registers (packet 6)
+  - T1692.001+T0836 (write): FC=0x10 Write Multiple Registers (packet 6)
   - Exception response (packet 7) increments exception_count
 
 Summary fields:
@@ -305,7 +305,7 @@ def build_pcap() -> bytes:
     packets.append((t0 + 4, frame))
     server_seq += len(payload5)
 
-    # Packet 6: Client→Server — FC=0x10 Write Multiple Registers (write → T0855+T0836)
+    # Packet 6: Client→Server — FC=0x10 Write Multiple Registers (write → T1692.001+T0836)
     payload6 = adu_write_multiple_registers(txn_id=0x0002)
     frame = build_frame(
         CLIENT_MAC, SERVER_MAC, CLIENT_IP, SERVER_IP,
@@ -354,5 +354,5 @@ if __name__ == "__main__":
     print(f"Wrote {len(data)} bytes to {out_path}")
     print(f"  - 8 packets total")
     print(f"  - Modbus ADUs: FC=0x11 (recon x2), FC=0x10 (write), FC=0x90 (exception)")
-    print(f"  - Expected findings: T0888 (x2), T0855+T0836 (x1)")
+    print(f"  - Expected findings: T0888 (x2), T1692.001+T0836 (x1)")
     print(f"  - Timestamps: {1_717_000_000} .. {1_717_000_007} (Unix epoch, 2024-05-29)")

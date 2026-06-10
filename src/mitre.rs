@@ -141,12 +141,12 @@ pub fn technique_info(id: &str) -> Option<(&'static str, MitreTactic)> {
         // merge by name so a single grouped report has one section per
         // tactic name regardless of source matrix.
         "T0846" => ("Remote System Discovery", MitreTactic::Discovery),
-        "T0855" => (
-            "Unauthorized Command Message",
+        "T1692.001" => (
+            "Unauthorized Message: Command Message",
             MitreTactic::IcsImpairProcessControl,
         ),
-        "T0856" => (
-            "Spoof Reporting Message",
+        "T1692.002" => (
+            "Unauthorized Message: Reporting Message",
             MitreTactic::IcsImpairProcessControl,
         ),
         "T0885" => ("Commonly Used Port", MitreTactic::CommandAndControl),
@@ -213,14 +213,14 @@ mod kani_proofs {
         "T1083",     // HTTP: path traversal
         "T1499.002", // HTTP: header flood
         "T1505.003", // HTTP: web shell
-        // ICS (7) — T0855 pre-existing + 6 new F2 IDs
-        "T0855", // ICS Impair Process Control (pre-F2, single-tag emission)
-        "T0836", // Modify Parameter
-        "T0814", // Denial of Service
-        "T0806", // Brute Force I/O
-        "T0835", // Manipulate I/O Image
-        "T0831", // Manipulation of Control
-        "T0888", // Remote System Information Discovery
+        // ICS (7) — T1692.001 (remapped from T0855 per v19 remap) + 6 new F2 IDs
+        "T1692.001", // ICS Impair Process Control (remapped from T0855, v19 remap issue #222)
+        "T0836",     // Modify Parameter
+        "T0814",     // Denial of Service
+        "T0806",     // Brute Force I/O
+        "T0835",     // Manipulate I/O Image
+        "T0831",     // Manipulation of Control
+        "T0888",     // Remote System Information Discovery
     ];
 
     /// Sub-property A: format invariant `T[0-9]{4}` or `T[0-9]{4}.[0-9]{3}`.
@@ -283,6 +283,7 @@ mod kani_proofs {
 /// [`SEEDED_TECHNIQUE_ID_COUNT`]) being updated in lockstep — preventing the
 /// completeness proofs from silently going stale (CR-005).
 /// Post-F2 (STORY-100): 11 Enterprise + 10 ICS = 21 total (BC-2.10.005 inv3).
+/// ICS v19 remap (issue #222): T0855→T1692.001, T0856→T1692.002.
 #[cfg(any(kani, test))]
 const SEEDED_TECHNIQUE_IDS: &[&str] = &[
     // Enterprise (11)
@@ -299,8 +300,8 @@ const SEEDED_TECHNIQUE_IDS: &[&str] = &[
     "T1573",
     // ICS pre-F2 (4)
     "T0846",
-    "T0855",
-    "T0856",
+    "T1692.001",
+    "T1692.002",
     "T0885",
     // ICS new F2 (6) — STORY-100 additions
     "T0836",
@@ -345,6 +346,9 @@ mod vp007_format_tests {
         assert!(is_valid_technique_id_format("T1027"));
         assert!(is_valid_technique_id_format("T1071.001"));
         assert!(is_valid_technique_id_format("T0846"));
+        // ICS v19 sub-technique IDs (issue #222): must also be accepted.
+        assert!(is_valid_technique_id_format("T1692.001"));
+        assert!(is_valid_technique_id_format("T1692.002"));
         // Malformed cases must be rejected.
         assert!(!is_valid_technique_id_format("TXXXX"));
         assert!(!is_valid_technique_id_format("T102")); // too short

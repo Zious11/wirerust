@@ -128,12 +128,12 @@ pub struct ModbusFlowState {
     pub pdu_count: u64,
     pub last_ts: u32,
 
-    // --- T0806/T0855 burst window (1-second, configurable burst threshold) ---
+    // --- T0806/T1692.001 burst window (1-second, configurable burst threshold) ---
     pub window_write_count: u32,
     pub window_start_ts: u32,
     pub window_burst_emitted: bool,
 
-    // --- T0806/T0855 sustained window (>=2-second rolling, configurable sustained threshold) ---
+    // --- T0806/T1692.001 sustained window (>=2-second rolling, configurable sustained threshold) ---
     pub sustained_window_start_ts: u32,
     pub sustained_window_write_count: u32,
     pub sustained_burst_emitted: bool,
@@ -515,7 +515,7 @@ impl ModbusAnalyzer {
                         // Determine tag subset per ORCHESTRATOR RULING BC-DISCREPANCY-001:
                         // Register-write set {0x06,0x10,0x16,0x17} → T0836.
                         // Coil-write set     {0x05,0x0F}           → T0835.
-                        // All other write FCs (0x15)               → T0855 only.
+                        // All other write FCs (0x15)               → T1692.001 only.
                         let is_register_write = matches!(fc, 0x06 | 0x10 | 0x16 | 0x17);
                         let is_coil_write = matches!(fc, 0x05 | 0x0F);
 
@@ -550,11 +550,11 @@ impl ModbusAnalyzer {
 
                         // Build the canonical mitre_techniques vec.
                         // Canonical order (ADR-006 §13.7 sub-decision 3):
-                        //   T0806 > T0855 > T0836 > T0835 > T0831 > T0814 > T0888
-                        // For per-PDU write findings: T0855 always first (no T0806 here);
+                        //   T0806 > T1692.001 > T0836 > T0835 > T0831 > T0814 > T0888
+                        // For per-PDU write findings: T1692.001 always first (no T0806 here);
                         // then T0836 or T0835 based on subset; then T0831 if co-tagged.
                         let mut mitre: Vec<String> = Vec::with_capacity(3);
-                        mitre.push("T0855".to_string());
+                        mitre.push("T1692.001".to_string());
                         if is_register_write {
                             mitre.push("T0836".to_string());
                         } else if is_coil_write {
@@ -629,10 +629,10 @@ impl ModbusAnalyzer {
                                             fc,
                                             header.unit_id
                                         )],
-                                        // Canonical order: T0806 first, then T0855.
+                                        // Canonical order: T0806 first, then T1692.001.
                                         mitre_techniques: vec![
                                             "T0806".to_string(),
-                                            "T0855".to_string(),
+                                            "T1692.001".to_string(),
                                         ],
                                         source_ip: Some(client_ip),
                                         timestamp: finding_ts,
@@ -703,10 +703,10 @@ impl ModbusAnalyzer {
                                             fc,
                                             header.unit_id
                                         )],
-                                        // Canonical order: T0806 first, then T0855.
+                                        // Canonical order: T0806 first, then T1692.001.
                                         mitre_techniques: vec![
                                             "T0806".to_string(),
-                                            "T0855".to_string(),
+                                            "T1692.001".to_string(),
                                         ],
                                         source_ip: Some(client_ip),
                                         timestamp: finding_ts,
