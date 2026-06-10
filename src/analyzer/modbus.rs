@@ -10,8 +10,8 @@
 //! - `classify_fc` — total FC classification over all 256 u8 values (BC-2.14.005–008)
 //! - `ModbusFlowState` — full per-flow state (BC-2.14.009–012, STORY-103)
 //! - `ModbusAnalyzer` — analyzer-level aggregates and `duplicate_inflight_txn` counter
-//! - `ModbusAnalyzer::process_pdu` — detection engine stub (STORY-104, BC-2.14.013–022)
-//! - `ModbusAnalyzer::summarize` — six-key summary stub (STORY-104, BC-2.14.021)
+//! - `ModbusAnalyzer::process_pdu` — detection engine (BC-2.14.013–022): emits all eight finding kinds
+//! - `ModbusAnalyzer::summarize` — six-key summary (BC-2.14.021): pdu_count, write_count, exception_count, unknown_fc_count, duplicate_inflight_txn, parse_errors
 //! - `MAX_PENDING_TRANSACTIONS` — hard bound of 256 (BC-2.14.012)
 //! - `MAX_FINDINGS` — cap at 10,000 findings (BC-2.14.022)
 //! - VP-022 Kani harnesses (sub-properties A, B, C) — gated by `#[cfg(kani)]`
@@ -162,10 +162,11 @@ pub struct ModbusFlowState {
     /// When the walk loop cannot find a full ADU in `remaining`, the tail is stashed
     /// here for the next call.
     ///
-    /// Bounded by `MAX_ADU_CARRY_BYTES`: if the carry buffer would exceed this cap
-    /// (a malformed or adversarially crafted stream whose MBAP `length` field promises
-    /// more than one Modbus ADU maximum), we set `is_non_modbus = true` and bail,
-    /// preventing unbounded memory growth (DoS guard).
+    /// Bounded by `MAX_ADU_CARRY_BYTES` (260 bytes, one max ADU): the guard checks the
+    /// cumulative total (`carry.len() + remaining.len()`) before each stash, so the cap
+    /// holds regardless of how many partial stash points exist in the parse loop. When
+    /// the guard trips we set `is_non_modbus = true` and bail, preventing unbounded
+    /// memory growth on a malicious never-completing stream (DoS guard).
     pub carry: Vec<u8>,
 }
 
@@ -950,9 +951,12 @@ impl StreamHandler for ModbusAnalyzer {
     /// for a full ADU), stash the remainder into `flow.carry` and break. On the next
     /// call the carry is prepended again, completing the ADU.
     ///
-    /// DoS guard: if `flow.carry` would grow beyond `MAX_ADU_CARRY_BYTES` (260 bytes,
-    /// one maximum Modbus ADU), the stream is marked `is_non_modbus` to prevent
-    /// unbounded memory growth on a malicious never-completing stream.
+    /// DoS guard: the cumulative carry total (`flow.carry.len() + remaining.len()`) is
+    /// checked against `MAX_ADU_CARRY_BYTES` (260 bytes, one maximum Modbus ADU) before
+    /// any stash. Using the cumulative form means the cap is enforceable regardless of
+    /// how many partial stash points exist in the loop body. When the guard trips the
+    /// flow is marked `is_non_modbus` to prevent unbounded memory growth on a malicious
+    /// never-completing stream.
     ///
     /// ### Borrow-checker note
     /// `process_pdu` takes `&mut self` AND `&mut ModbusFlowState`. To satisfy the
@@ -1018,8 +1022,14 @@ impl StreamHandler for ModbusAnalyzer {
                 Some(h) => h,
                 None => {
                     // F-105-001: partial MBAP header — carry the tail forward.
-                    // DoS guard: if the tail exceeds the cap, treat as non-Modbus.
-                    if remaining.len() > MAX_ADU_CARRY_BYTES {
+                    // DoS guard: check the CUMULATIVE carry total (already-buffered +
+                    // what we are about to add). A single partial ADU is bounded by
+                    // MAX_ADU_CARRY_BYTES (260 bytes, one max ADU), but the cumulative
+                    // form is future-proof: if a refactor ever adds an earlier stash
+                    // point in the same loop body, the cap still holds. When the guard
+                    // trips, mark the flow non-Modbus and bail so the carry never grows
+                    // unboundedly on a malicious never-completing stream.
+                    if flow.carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES {
                         flow.is_non_modbus = true;
                         self.parse_errors += 1;
                     } else {
@@ -1048,10 +1058,13 @@ impl StreamHandler for ModbusAnalyzer {
             // F-105-001: if the full ADU is not yet present, stash the tail in carry
             // and break. The next on_data call will complete it.
             if remaining.len() < adu_len {
-                // DoS guard: adu_len is at most 6+254=260 (bounded by is_valid_modbus_adu).
-                // remaining.len() < adu_len <= 260, so this is always within cap.
-                // We check the cap anyway for defense-in-depth.
-                if remaining.len() > MAX_ADU_CARRY_BYTES {
+                // DoS guard: check the CUMULATIVE carry total (already-buffered +
+                // what we are about to add). `adu_len` is bounded at 260 by
+                // `is_valid_modbus_adu`, so a single partial is within cap — but the
+                // cumulative form is future-proof against refactors that might add
+                // earlier stash points, and makes the documented contract enforceable:
+                // total bytes in carry never exceeds one max ADU (260 bytes).
+                if flow.carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES {
                     flow.is_non_modbus = true;
                     self.parse_errors += 1;
                 } else {

@@ -30,7 +30,7 @@
 use std::net::IpAddr;
 
 use assert_cmd::Command;
-use wirerust::analyzer::modbus::ModbusAnalyzer;
+use wirerust::analyzer::modbus::{MAX_ADU_CARRY_BYTES, ModbusAnalyzer};
 use wirerust::dispatcher::StreamDispatcher;
 use wirerust::reassembly::flow::FlowKey;
 use wirerust::reassembly::handler::{CloseReason, Direction, StreamHandler};
@@ -941,5 +941,206 @@ fn test_F_105_002_pin3_partial_mbap_header_3_bytes_then_rest() {
     assert_eq!(
         modbus.parse_errors, 0,
         "F-105-002 pin-3: partial MBAP header split must produce ZERO parse errors"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// F-105-003 CARRY-CAP TESTS — DoS guard for cumulative carry bounding
+// ---------------------------------------------------------------------------
+
+/// F-105-003 pin-1: carry-cap guard (cumulative) — near-limit safe case.
+///
+/// Verifies that a partial ADU of exactly MAX_ADU_CARRY_BYTES - 1 bytes (259 bytes)
+/// is stored in carry without triggering the DoS guard, and that the subsequent
+/// call completing the ADU processes it correctly.
+///
+/// ADU: TxnID=0x0003, ProtoID=0x0000, Len=0x00FE (254 → adu_len=260), UnitID=0x01,
+/// FC=0x01 (Read Coils), followed by 252 bytes of coil data.
+/// Total ADU = 6 + 254 = 260 bytes (max valid ADU).
+///
+/// Delivery:
+///   Call 1: bytes 0..259 (259 bytes, one short of complete) → stashed in carry.
+///   Call 2: byte 259 (final byte) → carry(259) + data(1) = 260 bytes → complete ADU.
+///
+/// Expected: total_pdu_count == 1, parse_errors == 0 (cap NOT tripped — 259 <= 260).
+/// This is the boundary-safe case: carry stays within the allowed limit.
+#[test]
+fn test_F_105_003_pin1_carry_cap_near_limit_safe_case() {
+    let modbus = ModbusAnalyzer::new(20, 10);
+    let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+    let key = flow_key(49152, 502);
+
+    // Build a max-size valid ADU: length=254 → adu_len=260.
+    // MBAP: TxnID=0x0003, ProtoID=0x0000, Len=0x00FE, UnitID=0x01, FC=0x01.
+    // PDU payload: 252 bytes of 0xAB to fill to exactly adu_len=260.
+    let mut full_adu = Vec::with_capacity(260);
+    full_adu.extend_from_slice(&[
+        0x00u8, 0x03, // transaction_id
+        0x00, 0x00, // protocol_id = 0 (valid)
+        0x00, 0xFE, // length = 254 (max valid; adu_len = 6 + 254 = 260)
+        0x01, // unit_id
+        0x01, // FC: Read Coils (request)
+    ]);
+    // Fill remaining 252 bytes (length=254 covers UnitID + FC + 252 data bytes).
+    full_adu.extend(std::iter::repeat_n(0xABu8, 252));
+    assert_eq!(
+        full_adu.len(),
+        260,
+        "sanity: full ADU must be exactly 260 bytes"
+    );
+
+    // Call 1: deliver 259 bytes — one short of complete.
+    // Guard check: flow.carry.len()(0) + remaining.len()(259) = 259 <= 260. NOT tripped.
+    // Carry holds 259 bytes.
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        &full_adu[..259],
+        0,
+        1_000_000,
+    );
+
+    // Call 2: deliver final 1 byte — combined buf = carry(259) + data(1) = 260 bytes.
+    // adu_len = 260. remaining.len() = 260 >= 260 → complete ADU, processed normally.
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        &full_adu[259..],
+        259,
+        1_000_001,
+    );
+
+    let modbus = dispatcher.take_modbus_analyzer().unwrap();
+    assert_eq!(
+        modbus.total_pdu_count, 1,
+        "F-105-003 pin-1: near-limit partial ADU (259 bytes) + 1-byte completion must yield \
+         ONE PDU (carry cap NOT tripped at 259 bytes)"
+    );
+    assert_eq!(
+        modbus.parse_errors, 0,
+        "F-105-003 pin-1: near-limit partial must produce ZERO parse errors"
+    );
+}
+
+/// F-105-003 pin-2: carry-cap guard (cumulative) — dribble never-completing stream.
+///
+/// Verifies that a malicious stream dribbling bytes that accumulate in carry
+/// but can never form a valid Modbus ADU eventually triggers the non-Modbus
+/// desync flag and stops processing — bounding the carry before it could grow
+/// unboundedly.
+///
+/// Attack scenario: attacker sends bytes 0..6 with protocol_id=0x0100 (non-zero,
+/// invalid Modbus) dribbled one byte per call. For the first 7 calls, fewer than
+/// 8 bytes are in the combined buffer, so parse_mbap_header returns None and the
+/// tail is stashed. On the 8th call (8 bytes total), parse_mbap_header returns
+/// Some, is_valid_modbus_adu fails (protocol_id=0x0100 ≠ 0x0000), and the desync
+/// policy fires: is_non_modbus=true, parse_errors=1.
+///
+/// After is_non_modbus is set, a subsequent valid complete ADU on the same flow
+/// must produce ZERO new PDUs — verifying the carry is bounded (the flow is
+/// discarded, not accumulated forever).
+///
+/// The cumulative carry guard `flow.carry.len() + remaining.len() > MAX_ADU_CARRY_BYTES`
+/// is the safety net that prevents this carry accumulation from exceeding one max ADU
+/// (260 bytes) before the desync or guard fires.
+#[test]
+fn test_F_105_003_pin2_dribble_never_completing_stream_is_non_modbus_set() {
+    let modbus = ModbusAnalyzer::new(20, 10);
+    let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+    let key = flow_key(49152, 502);
+
+    // Crafted 8-byte sequence: valid enough to parse (>= 8 bytes) but protocol_id != 0.
+    // Bytes: TxnID=0x0001, ProtoID=0x0100 (INVALID — not 0x0000), Len=0x0006, UnitID=0x01,
+    //        FC=0x03. is_valid_modbus_adu will reject this and set is_non_modbus=true.
+    let crafted = [
+        0x00u8, 0x01, // transaction_id
+        0x01, 0x00, // protocol_id = 0x0100 (non-zero → desync)
+        0x00, 0x06, // length = 6
+        0x01, // unit_id
+        0x03, // function_code
+    ];
+
+    // Dribble one byte per call. For calls 1-7: buf < 8 bytes → stash in carry.
+    // The carry accumulates 1, 2, 3, …, 7 bytes across calls.
+    // Guard check per call: flow.carry.len()(0, because cleared) + remaining.len() <= 260.
+    // None of these exceed MAX_ADU_CARRY_BYTES, so carry grows safely (≤ 7 bytes).
+    for i in 0..7 {
+        dispatcher.on_data(
+            &key,
+            Direction::ClientToServer,
+            &crafted[i..=i],
+            i as u64,
+            1_000_000,
+        );
+    }
+
+    // Call 8: 8th byte arrives. carry(7) + data(1) = 8 bytes in combined buf.
+    // parse_mbap_header returns Some. is_valid_modbus_adu fails (protocol_id != 0).
+    // Desync fires: is_non_modbus = true, parse_errors = 1.
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        &crafted[7..=7],
+        7,
+        1_000_007,
+    );
+
+    // Verify: parse_errors == 1 (desync fired exactly once).
+    // total_pdu_count == 0 (no valid ADU was ever processed).
+    {
+        // Peek at the analyzer without consuming it.
+        let modbus_ref = dispatcher.take_modbus_analyzer().unwrap();
+        assert_eq!(
+            modbus_ref.parse_errors, 1,
+            "F-105-003 pin-2: dribble desync must set parse_errors=1"
+        );
+        assert_eq!(
+            modbus_ref.total_pdu_count, 0,
+            "F-105-003 pin-2: no valid PDU must be counted on the crafted invalid stream"
+        );
+        // Re-insert the analyzer so we can test subsequent behavior.
+        let mut dispatcher2 = StreamDispatcher::new(None, None, Some(modbus_ref));
+
+        // Now send a valid complete ADU on the same flow key.
+        // Because is_non_modbus == true, on_data bails immediately without processing.
+        let valid_adu = [
+            0x00u8, 0x04, // transaction_id
+            0x00, 0x00, // protocol_id = 0 (valid)
+            0x00, 0x06, // length = 6
+            0x01, // unit_id
+            0x03, // FC: Read Holding Registers
+            0x00, 0x00, // starting address
+            0x00, 0x01, // quantity
+        ];
+        dispatcher2.on_data(&key, Direction::ClientToServer, &valid_adu, 8, 1_000_100);
+
+        let modbus_final = dispatcher2.take_modbus_analyzer().unwrap();
+        assert_eq!(
+            modbus_final.total_pdu_count, 0,
+            "F-105-003 pin-2: after is_non_modbus is set, subsequent valid ADUs must NOT \
+             be processed — carry is bounded (flow discarded, not accumulated)"
+        );
+        assert_eq!(
+            modbus_final.parse_errors, 1,
+            "F-105-003 pin-2: parse_errors must stay at 1 after is_non_modbus bails"
+        );
+    }
+}
+
+/// F-105-003 pin-3: carry-cap guard cumulative check — MAX_ADU_CARRY_BYTES constant sanity.
+///
+/// Verifies that MAX_ADU_CARRY_BYTES equals 260 (6 MBAP prefix + 254 max PDU length),
+/// which is exactly one maximum-size Modbus ADU. The cumulative carry guard uses this
+/// bound to ensure carry can hold at most one ADU before firing. This is a structural
+/// pin test: if the constant changes, the carry semantics change and all carry-cap
+/// invariants need re-review.
+#[test]
+fn test_F_105_003_pin3_max_adu_carry_bytes_equals_one_max_adu() {
+    // One max ADU = 6 bytes MBAP prefix + 254 bytes (max valid length field).
+    // If this fails, update carry-cap comments and re-review the DoS guard threshold.
+    assert_eq!(
+        MAX_ADU_CARRY_BYTES, 260,
+        "MAX_ADU_CARRY_BYTES must equal 260 (6-byte MBAP prefix + max length=254); \
+         carry-cap invariant depends on this value"
     );
 }
