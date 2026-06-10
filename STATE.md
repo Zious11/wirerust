@@ -1,10 +1,10 @@
 ---
-pipeline: V0.4.0_PENDING_RELEASE
+pipeline: V0.4.0_RELEASED
 phase: feature-f7
-active_feature: issue-7-modbus-tcp-analyzer
+active_feature: null
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-09T12:00:00Z
+timestamp: 2026-06-10T05:12:40Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -22,17 +22,17 @@ phase_6_completed: "2026-06-02"
 phase_6_to_7_gate: "PASSED (human-approved 2026-06-02)"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045: human gate APPROVED, blemishes dispositioned, NEXT = v0.4.0 gitflow release)"
 adversary_gate: SATISFIED
-develop_head: 70abc27
-main_head: 9ef5af1
-released_version: v0.3.0
-released_at: "2026-06-09"
-release_tag: v0.3.0
-release_url: https://github.com/Zious11/wirerust/releases/tag/v0.3.0
-release_commit: 9ef5af1
-prior_released_version: v0.2.0
+develop_head: 8e38041
+main_head: 90aa91e
+released_version: v0.4.0
+released_at: "2026-06-10"
+release_tag: v0.4.0
+release_url: https://github.com/Zious11/wirerust/releases/tag/v0.4.0
+release_commit: 90aa91e
+prior_released_version: v0.3.0
 prior_released_at: "2026-06-09"
-prior_release_tag: v0.2.0
-prior_release_commit: 18be1ba
+prior_release_tag: v0.3.0
+prior_release_commit: 9ef5af1
 current_cycle: v0.1.0-greenfield-spec
 current_wave: 27 (FINAL — CLOSED)
 stories_delivered: 54
@@ -51,9 +51,9 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post D-045 blemish-1 fix; STORY-
 
 ## Status
 
-**Pipeline: V0.4.0_PENDING_RELEASE (D-045). Feature #7 v0.4.0 human gate APPROVED + blemishes dispositioned.** Blemish-1 FIXED: BC-2.14.019 v1.3 exception-burst recon 0x01/0x02 -> T0888 (spec-changelog [1.6]; STORY-104 input-hash bc3863e). Blemish-2 CORRECT-BY-DESIGN (port-502 service label). 1338 tests green; all CI green. NEXT: v0.4.0 gitflow release (release/0.4.0 -> PR main -> tag v0.4.0).
+**Pipeline: V0.4.0_RELEASED (D-046). Feature #7 COMPLETE AND RELEASED. issue #7 CLOSED.** wirerust v0.4.0 published 2026-06-10T05:12:40Z — Modbus TCP analyzer (port-502, MBAP/FC parse, transaction correlation, 7 ICS MITRE detectors). Full F1-F7 feature-mode cycle complete. main back-merged to develop (8e38041). No open feature work.
 
-**Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 244 BCs, 22 VPs (all 22 verified/locked, 0 draft), 1338 tests green, holdout 0.967. develop HEAD 70abc27 (PR #217 merged). Feature #7: Modbus analyzer LIVE + F7 CONVERGED — all 5 dims PASS.
+**Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 244 BCs, 22 VPs (all 22 verified/locked, 0 draft), 1338 tests green, holdout 0.967. develop HEAD 8e38041; main HEAD 90aa91e (v0.4.0). Feature #7: COMPLETE across 2 releases (v0.3.0 multi-tag schema + v0.4.0 Modbus analyzer).
 
 ## Phase Progress
 
@@ -76,40 +76,32 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post D-045 blemish-1 fix; STORY-
 | Release — v0.3.0 | **RELEASED** 2026-06-09 | gitflow-proper: release/0.3.0 → PR #210 → 9ef5af1; 4 binaries; run 27240476896; GitHub Release published; BREAKING: mitre_techniques array (ECS-aligned); F4-PIN resolved ics-attack-19.1; D-038 |
 | Feature #7 F4 Wave 2 — E-14 Modbus Core | **COMPLETE** 2026-06-09 | All 4 stories MERGED: PR #211 (STORY-102, 26d58bb), PR #212 (STORY-103, d894464), PR #213 (STORY-104, dba...), PR #214 (STORY-105, dba5f26). 1324 tests. Modbus LIVE. D-042 |
 | Feature #7 F5/F6/F7 — Hardening + Convergence | **F7 CONVERGED** 2026-06-09 | F5 CRITICAL timestamp-units (PR #215); F6 Kani 5/5 + fuzz 3.7M/0 + mutation 100% + audit clean (PR #216); F7 e2e + mod-wrappers (PR #217, 70abc27). Consistency 5-shadow sweep FIXED. 1338 tests. Holdout 0.967. D-044 |
+| Release — v0.4.0 | **RELEASED** 2026-06-10 | gitflow-proper: release/0.4.0 → PR #219 → main merge 90aa91e; annotated tag v0.4.0; 4 binaries; run 27254720396; GitHub Release published 2026-06-10T05:12:40Z; Feature #7 COMPLETE + issue #7 CLOSED; main back-merged to develop (8e38041). D-046 |
 
-## Session Resume Checkpoint (2026-06-09 — Feature #7 v0.4.0 human gate APPROVED + blemishes dispositioned — NEXT = v0.4.0 gitflow release)
+## Session Resume Checkpoint (2026-06-10 — v0.4.0 RELEASED — Feature #7 COMPLETE — No open feature work)
 
-**POSITION:** wirerust v0.3.0 RELEASED (D-038). Feature #7 v0.4.0 Modbus TCP analyzer F7 CONVERGED (D-044). Human gate APPROVED (D-045). Both holdout blemishes DISPOSITIONED (blemish-1 FIXED, blemish-2 CORRECT-BY-DESIGN). NEXT: v0.4.0 gitflow release (release/0.4.0 -> PR to main -> tag v0.4.0 -> GitHub Release). develop HEAD at blemish-1 merge.
+**POSITION:** wirerust v0.4.0 RELEASED (D-046). Feature #7 (Modbus TCP analyzer) COMPLETE AND CLOSED. issue #7 CLOSED. Full F1-F7 feature-mode cycle complete across 2 releases (v0.3.0 multi-tag schema + v0.4.0 Modbus). main back-merged to develop (8e38041). No open feature work. Next feature TBD by human.
 
-**VERIFIED-CLEAN FACTS (at human gate APPROVED):**
-- main HEAD `9ef5af1` — v0.3.0 release commit; annotated tag `v0.3.0`
-- develop HEAD — blemish-1 fix PR merged (BC-2.14.019 v1.3: exception 0x01/0x02 -> T0888)
+**VERIFIED-CLEAN FACTS (at v0.4.0 release):**
+- main HEAD `90aa91e` — v0.4.0 release commit; annotated tag `v0.4.0`
+- develop HEAD `8e38041` — main back-merged post v0.4.0; branches in sync
 - 244 BCs / 22 VPs (ALL 22 verified/locked, 0 draft) / 58 stories / 353 pts
-- BC-2.14.019 v1.3 — exception-burst recon 0x01/0x02 now emits T0888; spec-changelog [1.6]
-- VP-022 LOCKED @ 68a3306 (Kani 5/5 SUCCESSFUL: parse-safety, gate, classify-total, exception-bitvec + VP-004 oracle)
-- Input-hash drift: MATCH=57/STALE=0/ERROR=1 (STORY-104 recomputed bc3863e post BC-2.14.019 v1.3; STORY-091 pre-existing)
-- Holdout: 0.967 (no must-pass < 0.6; timestamp-year e2e correct end-to-end)
-- F7 convergence report: `.factory/phase-f7-convergence/modbus-delta-convergence-report.md`
-- GitHub Release: https://github.com/Zious11/wirerust/releases/tag/v0.3.0; 4 binaries
+- VP-022 LOCKED @ 68a3306; VP-021 LOCKED; all 22 VPs locked/verified, 0 draft
+- Input-hash drift: MATCH=57/STALE=0/ERROR=1 (STORY-091 no-inputs pre-existing)
+- GitHub Release: https://github.com/Zious11/wirerust/releases/tag/v0.4.0; 4 binaries (run 27254720396)
+- Holdout 0.967; 1338 tests green; consistency CONSISTENT; F5 CRITICAL timestamp-units FIXED
 
-**NEXT = v0.4.0 release path:**
-1. Cut `release/0.4.0` from `develop` (HEAD = blemish-1 merge commit)
-2. Version bump (Cargo.toml 0.3.0 -> 0.4.0) + CHANGELOG [0.4.0] (Modbus TCP analyzer; ICS detectors T0855/T0836/T0831/T0835/T0806/T0814/T0888; exception recon 0x01/0x02 -> T0888; --modbus-write-threshold flag)
-3. PR release/0.4.0 -> main -> merge -> annotated tag v0.4.0
-4. Back-merge main -> develop (no divergence)
-5. GitHub Release (release.yml auto-builds 4 binaries)
-
-**CARRY-FORWARD ITEMS (do NOT lose):**
+**CARRY-FORWARD ITEMS:**
 - #101 (FP/TP rate characterization): OPEN-DEBT; #103 (size-symmetry): DEFERRED
 - STORY-091: draft, P1, 5 pts, E-11 — deferred to next cycle
 - ACTION-PIN-001: dtolnay/rust-toolchain @stable/@nightly intentionally exempt from pin gate
 - Drift items: O-07, O-08, F-W25-S088-P6-001
 - RUSTSEC-2026-0097: accepted-transitive
-- PG-5/PG-6/PROCESS-ARITHMETIC-REVIEW-001: codification pending cycle-close
+- PG-5/PG-6 cycle-close follow-up items: see Cycle-Close Follow-Up Items table (OPEN — codification deferred)
 - Sub-second rate precision deferred (needs timestamp_usecs threaded through on_data)
 - Terminal per-ID multi-unknown name resolution (BC-2.11.017): deferred
 
-Prior checkpoint (F7 CONVERGED — NEXT = v0.4.0 human gate) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
+Prior checkpoint (Feature #7 v0.4.0 human gate APPROVED — NEXT = v0.4.0 gitflow release) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
 ## Decisions Log
 
@@ -160,6 +152,7 @@ Prior checkpoint (F7 CONVERGED — NEXT = v0.4.0 human gate) archived: cycles/v0
 | D-043 | Feature #7 v0.4.0 F5 combined-delta adversarial CONVERGED. Claude + Gemini cross-model on the WHOLE Modbus analyzer caught a CRITICAL the per-story reviews missed: timestamp units mismatch (process_pdu treated on_data timestamp as microseconds; pipeline delivers seconds per BC-2.09.007) — wrong finding timestamps + non-functional rate-detection windows. Both models independently rated CRITICAL. Fixed: code seconds-based windows + DateTime::from_timestamp(ts,0) + e2e dispatcher test; SS-14 BCs reconciled to seconds (BC-2.14.016 v2.1, BC-2.14.017 v2.2, BC-2.14.019 v1.2, BC-2.14.013 v2.2); f2-fix-directives §11.5/§11.5b F5-correction banners; spec-changelog [1.5]. Also fixed: is_non_modbus latch on length-invalid ADU (F-DELTA-003), source_ip from Direction not non-existent flow_key.client_ip() (F-DELTA-005, BCs reconciled), BC-2.14.021 post.3 struct mismatch + dead total_flows_analyzed counter (F-DELTA-002), flush granularity on on_close (F-DELTA-004). 78 test timestamps legitimately corrected micros->seconds, not weakened. Sub-second rate precision deferred (needs timestamp_usecs threaded through on_data). F5 fix delivered via PR fix/f5-modbus-timestamp-units. Review artifact: phase-f5-adversarial/modbus-delta-review.md. NEXT: F6 targeted hardening (VP-022/VP-004 Kani — kani IS installed; fuzz; mutation; cargo audit/deny; DF-TEST-NAMESPACE-001 mod-wrappers; e2e port-502 pcap fixture). | 2026-06-09 | Feature #7 F5 combined-delta adversarial CONVERGED — timestamp units micros->seconds (Claude+Gemini CRITICAL) + BC reconciliation |
 | D-044 | Feature #7 v0.4.0 Modbus F6 PASS + F7 CONVERGED. F6: Kani 5/5 SUCCESSFUL (VP-022 LOCKED @68a3306 + VP-004 precedence proven after port-502 Rule-5; cargo kani ran for real — cargo-kani 0.67.0, CBMC 140+ SAT checks), fuzz_modbus_parse 3.7M execs/0 crashes, mutation 100% effective kill (163 viable; verifier caught a parallel-run false-kill + manually verified 5 genuine gaps -> 3 killing tests, PR #216), audit/deny clean. F7: 5-dim convergence all PASS — holdout 0.967 (timestamp-year correct end-to-end confirming F5 units fix; regression intact), e2e port-502 pcap->finding acceptance test added (PR #217), DF-TEST-NAMESPACE-001 mod-wrappers added. Fresh consistency audit found 5 spec-doc propagation-shadows (VP-022 index lock not propagated; BC-2.14.014/015 client_ip->direction-resolved; BC-INDEX 0x17 title; f2-directives micros residue; BC-2.14.017 burst-summary ms-vs-s) — ALL FIXED (code was correct throughout). Input-hash scan: MATCH=57/STALE=0/ERROR=1 (STORY-100..105 rewritten post BC-version-bumps). 1338 tests green. NEXT: v0.4.0 human gate -> release. | 2026-06-09 | Feature #7 v0.4.0 Modbus F6 PASS + F7 CONVERGED — 5-dim all PASS + consistency sweep (D-044) |
 | D-045 | Feature #7 v0.4.0 human gate APPROVED (human authorized release, conditioned on fixing the 2 holdout blemishes first). Blemish-1 FIXED: exception-burst recon anomaly (Illegal Function 0x01 = FC scanning; Illegal Data Address 0x02 = register-map enumeration) now emits T0888 Remote System Information Discovery (consistent with the recon-FC mapping for FC 0x11/0x2B in BC-2.14.020 Decision 12); Clear-Counters 0x000A + other exception codes stay untagged. BC-2.14.019 v1.3; spec-changelog [1.6] updated; STORY-104 input-hash recomputed bc3863e; delivered via PR. Blemish-2 (port-502 service label in summary, src/decoder.rs:112) ASSESSED CORRECT-BY-DESIGN — standard IANA port-service hint (parallel to 443->HTTPS, port-name independent of analyzer), NOT a defect, no change. Both blemishes dispositioned. NEXT: v0.4.0 gitflow release. | 2026-06-09 | Feature #7 v0.4.0 human gate APPROVED + blemishes dispositioned |
+| D-046 | Published wirerust v0.4.0 (gitflow-proper) — Modbus TCP analyzer (Feature #7, issue #7 CLOSED). release/0.4.0 -> PR #219 -> main merge 90aa91e; annotated tag v0.4.0; release.yml run 27254720396 built+attached 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); GitHub Release live (published 2026-06-10T05:12:40Z). CHANGELOG [0.4.0]: Modbus TCP analyzer — port-502 detection, MBAP/FC parse, transaction correlation, 7 MITRE ATT&CK-for-ICS technique detectors (T0855/T0836/T0835/T0831/T0806/T0814/T0888), multi-tag co-emission, dual-window rate detection, exception-burst anomaly, CLI flags; ADR-005/006; VP-022 Kani-verified, fuzz 3.7M/0 crashes, mutation 100% effective. Full F1-F7 feature-mode cycle: F5 combined-delta caught the CRITICAL timestamp-units defect (both Claude+Gemini), F6 ran Kani/fuzz/mutation for real, F7 5-dim CONVERGED (holdout 0.967). main back-merged to develop (8e38041), branches in sync. Feature #7 COMPLETE across 2 releases: v0.3.0 (multi-tag schema migration) + v0.4.0 (Modbus analyzer). | 2026-06-10 | v0.4.0 release — Modbus TCP analyzer (Feature #7 COMPLETE, issue #7 CLOSED) |
 
 ## Blocking Issues
 
@@ -191,8 +184,14 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | PG-2 | CRITICAL VP "justified" via debug-only guard — caught at human gate | CLOSED — lesson recorded; hardening-gate checklist recommendation in lessons.md |
 | PG-3 | Stale local develop — agents must branch off origin/develop | CLOSED — lesson recorded; DF-DEVELOP-FRESHNESS-001 governs |
 | PG-4 | Dependabot does not auto-convert action tags to SHAs — SHA-pin policy was unenforceable by cooldown alone; prior pass (D-021) left 5/8 unpinned [codified] | CODIFIED/CLOSED — 'Action pin gate' CI check + CLAUDE.md policy enforced by PR #196; 2026-06-08 |
-| PG-5 | [process-gap DRAFT] DF-SIBLING-SWEEP intra-SS propagation-shadow — 3rd recurrence this cycle (test-comment #100 F5, VP-lock #100 F7, T0835/co-emission-cap Feature #7 F2). Candidate: codify DF-SIBLING-SWEEP-001 v5 (grep-sweep gate after any FC-set/title/enum change across intra-SS sibling BCs + referencing VP files + BC-INDEX). Codify during Feature #7 cycle-close. | OPEN — codification pending cycle-close |
-| PG-6 | [process-gap] Gemini cross-model hybrid caught arithmetic-precision defect class (integer-truncation bias, off-by-six ADU advance, off-by-one length gate, u32-wrap inconsistency) that 3 Claude adversarial rounds missed in Feature #7 F2 revision. Pattern: Claude blind-spot on numeric/detection-math edge cases in binary-protocol analyzers confirmed for 2nd time (1st: D-023 supply-chain). Candidate codification: for detection-math-heavy features (binary protocol analyzers, threshold arithmetic, numeric invariants), include a dedicated numeric/arithmetic-focused cross-model review slice as a standard spec-convergence step. Codify as PROCESS-ARITHMETIC-REVIEW-001 during Feature #7 cycle-close. | OPEN — codification pending cycle-close |
+| PG-5 | [process-gap DRAFT] DF-SIBLING-SWEEP intra-SS propagation-shadow — 3rd recurrence this cycle (test-comment #100 F5, VP-lock #100 F7, T0835/co-emission-cap Feature #7 F2). Candidate: codify DF-SIBLING-SWEEP-001 v5 (grep-sweep gate after any FC-set/title/enum change across intra-SS sibling BCs + referencing VP files + BC-INDEX). Codify during Feature #7 cycle-close. | OPEN — codification pending (deferred, not lost) |
+| PG-6 | [process-gap] Gemini cross-model hybrid caught arithmetic-precision defect class (integer-truncation bias, off-by-six ADU advance, off-by-one length gate, u32-wrap inconsistency) that 3 Claude adversarial rounds missed in Feature #7 F2 revision. Pattern: Claude blind-spot on numeric/detection-math edge cases in binary-protocol analyzers confirmed for 2nd time (1st: D-023 supply-chain). Candidate codification: for detection-math-heavy features (binary protocol analyzers, threshold arithmetic, numeric invariants), include a dedicated numeric/arithmetic-focused cross-model review slice as a standard spec-convergence step. Codify as PROCESS-ARITHMETIC-REVIEW-001 during Feature #7 cycle-close. | OPEN — codification pending (deferred, not lost) |
+| CC-001 | [cycle-close] DF-SIBLING-SWEEP extension candidate — extend sweep to test-file comments + canonical-vector arithmetic lint. Recurred 3x this cycle: STORY-100 test-comments (F5), VP-lock propagation (#100 F7), T0835/co-emission-cap sweep (Feature #7 F2). Track as DRAFT extension to DF-SIBLING-SWEEP-001 v5. | DRAFT — deferred to policy-codification pass |
+| CC-002 | [cycle-close] VP-lock propagation checklist — VP-lock bursts must propagate to: VP-INDEX, verification-coverage-matrix (tool-column counting), architecture spec VP anchors, BC VP-anchor prose, AND recompute all consuming-story input-hashes (VP files are story inputs). Manifested as D-028 8-finding sweep + D-029 coverage-matrix tally error. | DRAFT — deferred to policy-codification pass |
+| CC-003 | [cycle-close] PROCESS-ARITHMETIC-REVIEW-001 codification — for detection-math-heavy features (binary-protocol analyzers, threshold arithmetic, numeric invariants), include a dedicated numeric/arithmetic-focused cross-model (Gemini) slice in spec convergence. Caught truncation/wrap/off-by-one in F2; caught seconds-vs-micros units CRITICAL in F5. Both would have shipped undetected without the cross-model slice. | DRAFT — deferred to policy-codification pass |
+| CC-004 | [cycle-close] F5 process gap — any analyzer consuming on_data(timestamp:u32) must have >=1 test driving through the real dispatcher/reassembler boundary with timestamp_secs-shaped values (not synthetic micros). The Feature #7 F5 combined-delta review caught the seconds-vs-micros mismatch that per-story reviews missed because per-story tests used synthetic timestamps that happened to be valid in both units. | DRAFT — deferred to policy-codification pass |
+| CC-005 | [cycle-close holdout] Blemish-1 FIXED: exception-burst recon 0x01 (Illegal Function) + 0x02 (Illegal Data Address) → T0888 (BC-2.14.019 v1.3, spec-changelog [1.6], STORY-104 input-hash bc3863e). | CLOSED — fix merged pre-release |
+| CC-006 | [cycle-close holdout] Blemish-2 CORRECT-BY-DESIGN: port-502 service label in summary (src/decoder.rs:112) is standard IANA port-service hint, parallel to 443→HTTPS; port-name independent of analyzer assignment. No defect, no change required. | CLOSED — dispositioned correct-by-design |
 
 ## Governance Policy
 
