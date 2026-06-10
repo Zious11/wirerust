@@ -2,7 +2,7 @@
 document_type: verification-property
 level: L4
 version: "1.1"
-status: draft
+status: verified
 producer: formal-verifier
 timestamp: 2026-06-09T00:00:00Z
 phase: f2
@@ -20,10 +20,10 @@ bcs:
 module: src/analyzer/modbus.rs
 proof_method: kani
 feasibility: feasible
-verification_lock: false
-proof_completed_date: null
-proof_file_hash: null
-verified_at_commit: null
+verification_lock: true
+proof_completed_date: 2026-06-09
+proof_file_hash: sha256:8504f1c03e2417912cb2f10e059e9366959862e919fe62af4efd787294ce4370
+verified_at_commit: 68a33060127278f836a7d8a559b653b87de25c6d
 lifecycle_status: active
 introduced: v0.3.0-feature-007
 modified:
@@ -295,6 +295,13 @@ numbers are filled in when the harnesses are authored and the VP is locked.)
 | Event | Date | Actor |
 |-------|------|-------|
 | Created (draft, F2 spec evolution) | 2026-06-09 | formal-verifier |
-| Proof harness committed | TBD (F4) | formal-verifier |
-| Proof first passed | TBD (F4/F6) | formal-verifier |
-| Locked (VERIFIED) | TBD (F6 gate) | spec-steward / formal-verifier |
+| Proof harness committed | 2026-06-09 (F4) | formal-verifier |
+| Proof first passed | 2026-06-09 (F6) | formal-verifier |
+| Locked (VERIFIED) | 2026-06-09 (F6 gate) | formal-verifier |
+
+All 4 Kani harnesses (`verify_parse_mbap_header_safety`, `verify_is_valid_modbus_adu_gate`,
+`verify_classify_fc_total`, `verify_classify_fc_exception_iff_high_bit`) reported
+`VERIFICATION:- SUCCESSFUL` under cargo-kani 0.67.0 at develop HEAD `68a3306` (see
+`.factory/phase-f6-hardening/kani-results.md`). `proof_file_hash` is the SHA-256 of the proof
+harness file `src/analyzer/modbus.rs` at lock time. This document is now immutable; any change
+requires the VP withdrawal process.

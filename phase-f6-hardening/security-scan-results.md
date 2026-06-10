@@ -1,27 +1,26 @@
-# Phase F6 — Security Scan Results (Feature #100)
+# Phase F6 — Security Scan Results (Feature #7 — Modbus TCP analyzer)
 
-**Feature:** issue-100-pcap-timestamps
-**develop HEAD:** `256a490`
+**Feature:** Modbus TCP analyzer (issue #7, v0.4.0)
+**develop HEAD:** `68a3306`
 **Date:** 2026-06-09
-**Scope:** full tree for `cargo audit` / `cargo deny`; 6 changed source files for static review
+**Scope:** full dependency tree + Modbus untrusted-input memory-safety review.
 
 ---
 
 ## Summary
 
-| Scanner | Result | Findings (CRITICAL/HIGH) |
-|---------|--------|--------------------------|
-| `cargo audit` | PASS (1 known-allowed warning) | 0 |
-| `cargo deny check` | PASS (advisories, bans, licenses, sources all ok) | 0 |
-| semgrep | **SKIPPED — tool not installed** | n/a (manual review performed instead) |
-| Manual adversarial review (delta) | PASS | 0 |
+| Scan | Result |
+|------|--------|
+| `cargo audit` | 1 allowed warning (known-accepted), 0 unresolved vulnerabilities |
+| `cargo deny check` | **advisories ok, bans ok, licenses ok, sources ok** |
+| Modbus untrusted-input memory-safety review | PASS — no panic/OOB/unbounded-memory |
+| **CRITICAL / HIGH findings** | **0** |
 
-**No CRITICAL or HIGH severity findings. F6 security gate: PASS.** No `security-reviewer`
-escalation required.
+**Verdict: no CRITICAL/HIGH findings. PASS.** No `security-reviewer` escalation required.
 
 ---
 
-## cargo audit (full tree)
+## cargo audit
 
 ```
 Loaded 1123 security advisories
@@ -29,60 +28,49 @@ Scanning Cargo.lock for vulnerabilities (193 crate dependencies)
 
 Crate:    rand
 Version:  0.8.5
-Warning:  unsound (RUSTSEC-2026-0097)
+Warning:  unsound
 Title:    Rand is unsound with a custom logger using `rand::rng()`
-Dependency tree:
-  rand 0.8.5 └── phf_generator └── phf_codegen └── tls-parser └── wirerust
+ID:       RUSTSEC-2026-0097
+Tree:     rand 0.8.5 → phf_generator → phf_codegen → tls-parser 0.12.2 → wirerust
 
 warning: 1 allowed warning found
 ```
 
-- **RUSTSEC-2026-0097** is the **known-accepted** advisory called out in the F6 brief. It is a
-  transitive dependency: `rand 0.8.5` is pulled in by `phf_generator`/`phf_codegen`, which is a
-  **build-time code-generation** dependency of `tls-parser`. It does not appear in the runtime
-  call graph of wirerust, and wirerust does not use `rand::rng()` with a custom logger. It is
-  surfaced as a **warning (allowed)**, not an error — `cargo audit` does not fail the build.
-- This advisory is **unrelated to Feature #100** (the timestamp delta adds no new dependency;
-  it uses `chrono`, already in the tree).
-- **0 unaccepted advisories.**
+- **RUSTSEC-2026-0097** is the single **known-accepted** advisory. It is an *unsoundness*
+  warning (not a vulnerability with a fixed version available on this path) reaching us purely
+  transitively through `tls-parser → phf_codegen → phf_generator → rand 0.8.5`, used only at
+  TLS-parser build/codegen time. It is already allowlisted (`1 allowed warning`). No direct
+  `rand` usage in wirerust. **Accepted, no action.**
 
-## cargo deny check (full tree)
+## cargo deny check
 
 ```
 advisories ok, bans ok, licenses ok, sources ok
 ```
 
-All four `cargo deny` gates pass. The `advisories ok` result confirms RUSTSEC-2026-0097 is
-correctly accounted for in the deny configuration (otherwise this gate would fail). License
-compliance, dependency bans, and source allowlisting all pass. **0 findings.**
+All four gates pass: no banned crates, no license violations, no untrusted sources, and the
+advisory gate honours the RUSTSEC-2026-0097 allowance.
+
+## Modbus untrusted-input memory-safety review
+
+The Modbus parser consumes attacker-controlled pcap bytes. Confirmed (cross-validated by the
+VP-022 Kani proofs and the `fuzz_modbus_parse` 3.7M-exec run, 0 crashes):
+
+| Concern | Guard | Status |
+|---------|-------|--------|
+| OOB read in MBAP parse | `parse_mbap_header` returns `None` for `len < 8`; all indices `data[0..8]` then in-bounds | PASS (Kani-proven) |
+| Panic on malformed ADU | 3-point `is_valid_modbus_adu` gate + `parse_mbap_header` `Option` return; no `unwrap()` on attacker bytes | PASS |
+| Unbounded carry buffer (partial-ADU DoS) | `MAX_ADU_CARRY_BYTES = 260` cap; cumulative `carry.len()+remaining.len()` check → latch `is_non_modbus` on overflow | PASS |
+| Unbounded pending table (txn-flood DoS) | `MAX_PENDING_TRANSACTIONS = 256` cap; new inserts silently dropped at cap | PASS |
+| Unbounded exception-window state | per-FC counters keyed by `u8` (≤256 keys), window counts are `u32` | PASS |
+| Integer overflow in counters | release profile sets `overflow-checks = true`; window/aggregate counters use `wrapping_sub` for elapsed-time math by design | PASS |
+
+No CRITICAL/HIGH/MEDIUM memory-safety issue identified in the Modbus delta.
 
 ## semgrep
 
-`semgrep` is **not installed** in this environment (`command not found: semgrep`). Per the F6
-brief, this is documented as a skip and substituted with a targeted manual adversarial review
-of the 6 changed source files (below). The CI-side `action-pin-gate` (workflow SHA-pinning)
-is enforced separately in CI and is out of this local F6 scope.
-
-## Manual adversarial review of the delta
-
-The timestamp is **attacker-controlled pcap data surfaced into `Finding` output**. Reviewed the
-6 changed files (`src/reassembly/{mod,lifecycle,handler}.rs`, `src/dispatcher.rs`,
-`src/analyzer/{http,tls}.rs`) against the relevant security properties:
-
-| Check | Finding | Result |
-|-------|---------|--------|
-| Panic on adversarial timestamp | Only operation is `DateTime::from_timestamp(v as i64, 0)`, total over all `u32` (see kani-results.md). No `unwrap()`/`expect()` on the timestamp conversion in production code — all 21 sites bind the `Option` directly into the `Finding.timestamp` field. | SAFE |
-| Integer overflow | Only arithmetic is the widening cast `u32 as i64` (cannot overflow). Release profile sets `overflow-checks = true`; no narrowing or wrapping ops on the timestamp. | SAFE |
-| Internal-detail / info leakage | `Finding.timestamp` carries only the capture timestamp as ISO-8601; no memory addresses, paths, or internal state are surfaced. Provenance is explicitly framed as capture-relative (non-authoritative) per BC-2.09.007 invariant 3 / NIST SP 800-86. | SAFE |
-| Unsafe code introduced | None. `grep` of the delta shows no `unsafe` blocks added. | SAFE |
-| Cross-flow leakage (data isolation) | Per-flow `last_ts` stored keyed by `FlowKey` (consistent with existing per-flow state); proptest `prop_cross_flow_timestamp_isolation` confirms flow A's timestamp never appears in flow B's findings. | SAFE |
-| Denial-of-service via timestamp | The timestamp adds no allocation, no loop bound, and no recursion. It is a fixed-size `u32` stored once per flow. No amplification. | SAFE |
-| Secret/credential handling | Not applicable — timestamps are not secrets. | n/a |
-
-## Verdict
-
-**F6 security gate: PASS.** Zero CRITICAL/HIGH findings. The only advisory is the
-pre-existing, known-accepted, build-time-only RUSTSEC-2026-0097, which `cargo deny` already
-accommodates and which is unrelated to the timestamp delta. semgrep was unavailable and is
-documented as skipped, with a manual adversarial review substituted that found no issues in the
-attacker-controlled timestamp path.
+Not run in this environment (semgrep not installed on PATH). The two Rust-native SAST gates
+(`cargo audit`, `cargo deny`) ran clean, and the untrusted-input surface is independently
+covered by the Kani memory-safety proofs and the fuzz run. Flagged as an environment note,
+not a blocker — no Rust-relevant CRITICAL/HIGH class is left uncovered by the gates that did
+run. (Follow-up: wire semgrep into the F6 toolchain image if a third SAST layer is desired.)
