@@ -197,7 +197,7 @@ mod modbus_e2e {
     ///
     /// Traces to: BC-2.14.013 postcondition invariant 1; F-105-003.
     #[test]
-    fn test_BC_2_14_013_findings_contain_modbus_write_T0855_T0836() {
+    fn test_BC_2_14_013_findings_contain_modbus_write_T1692_001_T0836() {
         let json = run_modbus_json();
         let findings = json["findings"]
             .as_array()

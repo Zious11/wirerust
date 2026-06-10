@@ -307,7 +307,7 @@ fn test_technique_name_returns_none_for_unknown_ids() {
 
 // ---------------------------------------------------------------------------
 // AC-013 + AC-014 | BC-2.10.007 postcondition 2
-// All 15 seeded technique-to-tactic assignments are correct.
+// All 21 seeded technique-to-tactic assignments are correct.
 // AC-013 spot-checks T1027 => DefenseEvasion; AC-014 is exhaustive.
 // ---------------------------------------------------------------------------
 #[test]
@@ -444,7 +444,7 @@ fn test_mitre_tactic_is_non_exhaustive() {
 #[test]
 fn test_ec_001_real_unseed_technique_returns_none() {
     // BC-2.10.006 invariant 3: "T1059" is a real ATT&CK technique but is
-    // not present in the 15-entry seeded catalog. Must return None.
+    // not present in the 21-entry seeded catalog. Must return None.
     assert_eq!(technique_name("T1059"), None);
 }
 
