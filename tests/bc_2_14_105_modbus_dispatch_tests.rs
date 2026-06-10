@@ -61,20 +61,32 @@ const FIXTURE: &str = "tests/fixtures/http-ooo.pcap";
 /// as DispatchTarget::Modbus. This drives Rule 5 (after content rules 1-2
 /// and port fallback rules 3-4).
 ///
-/// MBAP bytes: [0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03] (valid
-/// Modbus read-holding-registers request per BC-2.14.001).
+/// Complete ADU: TxnID=0x0001, ProtoID=0x0000, Len=0x0006, UnitID=0x01, FC=0x03,
+/// starting-address=0x0000, quantity=0x0001 (12 bytes total, Len=6 → adu_len=12).
 ///
 /// GREEN: on_data() routes port-502 flows to ModbusAnalyzer (STORY-105 implemented).
 /// Verifies that a valid MBAP packet delivered on port-502 increments total_pdu_count.
+/// Updated for F-105-001 carry-buffer fix: complete ADUs are required (partial ADUs
+/// are now stashed in carry and not processed until the full ADU arrives).
 #[test]
 fn test_BC_2_14_025_port_502_classified_to_modbus_as_rule_5() {
     let modbus = ModbusAnalyzer::new(20, 10);
     let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
     let key = flow_key(12345, 502);
-    // Valid MBAP header: TxnID=0x0001, ProtoID=0x0000, Len=0x0006, UnitID=0x01, FC=0x03
-    let mbap_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03];
-    // on_data() routes to ModbusAnalyzer, which parses the ADU.
-    dispatcher.on_data(&key, Direction::ClientToServer, &mbap_data, 0, 1_000_000);
+    // Complete Modbus read-holding-registers request: 12 bytes total.
+    // TxnID=0x0001, ProtoID=0x0000, Len=0x0006, UnitID=0x01, FC=0x03,
+    // starting-address=0x0000, quantity=0x0001.
+    let complete_adu = [
+        0x00u8, 0x01, // transaction_id
+        0x00, 0x00, // protocol_id
+        0x00, 0x06, // length = 6 (UnitID + FC + 4 bytes data)
+        0x01, // unit_id
+        0x03, // function_code: Read Holding Registers
+        0x00, 0x00, // starting address
+        0x00, 0x01, // quantity of registers
+    ];
+    // on_data() routes to ModbusAnalyzer, which parses the complete ADU.
+    dispatcher.on_data(&key, Direction::ClientToServer, &complete_adu, 0, 1_000_000);
     // Verify the PDU was processed.
     let modbus = dispatcher.take_modbus_analyzer().unwrap();
     assert!(
@@ -227,8 +239,18 @@ fn test_BC_2_14_025_on_flow_close_routes_modbus_flow_to_analyzer() {
     let modbus = ModbusAnalyzer::new(20, 10);
     let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
     let key = flow_key(49152, 502);
-    let mbap_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03];
-    dispatcher.on_data(&key, Direction::ClientToServer, &mbap_data, 0, 1_000_000);
+    // Complete ADU: TxnID=0x0001, ProtoID=0x0000, Len=0x0006, UnitID=0x01, FC=0x03,
+    // starting-address=0x0000, quantity=0x0001 (12 bytes, F-105-001: full ADU needed).
+    let complete_adu = [
+        0x00u8, 0x01, // transaction_id
+        0x00, 0x00, // protocol_id
+        0x00, 0x06, // length = 6 (UnitID + FC + 4 bytes data)
+        0x01, // unit_id
+        0x03, // function_code: Read Holding Registers
+        0x00, 0x00, // starting address
+        0x00, 0x01, // quantity of registers
+    ];
+    dispatcher.on_data(&key, Direction::ClientToServer, &complete_adu, 0, 1_000_000);
     dispatcher.on_flow_close(&key, CloseReason::Fin);
     // Analyzer is still accessible after flow close; PDU was counted before close.
     let modbus = dispatcher.take_modbus_analyzer().unwrap();
@@ -746,5 +768,178 @@ fn test_BC_2_14_025_vp004_oracle_unknown_port_routes_to_none_not_modbus() {
         dispatcher.unclassified_flows(),
         1,
         "Port 9999 must route to None (not Modbus), incrementing unclassified_flows"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// F-105-002 PINNING TESTS — carry-buffer correctness (partial-ADU buffering)
+// ---------------------------------------------------------------------------
+
+/// F-105-002 pin-1: TWO complete ADUs concatenated in ONE on_data call.
+///
+/// Verifies that the walk loop processes multiple ADUs per on_data invocation.
+/// Two FC=0x05 write-single-coil ADUs (12 bytes each) concatenated → 24 bytes.
+/// Expected: total_pdu_count == 2.
+///
+/// This would have worked before F-105-001 as well (both ADUs were complete),
+/// but it is included here as a regression guard for the multi-ADU loop.
+#[test]
+fn test_F_105_002_pin1_two_complete_adus_in_one_on_data_counted_correctly() {
+    let modbus = ModbusAnalyzer::new(20, 10);
+    let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+    let key = flow_key(49152, 502);
+
+    // ADU 1: TxnID=0x0001, Len=6, UnitID=0x01, FC=0x05, addr=0x0000, value=0xFF00
+    let adu1 = [
+        0x00u8, 0x01, // transaction_id
+        0x00, 0x00, // protocol_id
+        0x00, 0x06, // length = 6 (UnitID + FC + 4 bytes)
+        0x01, // unit_id
+        0x05, // FC: Write Single Coil
+        0x00, 0x00, // coil address
+        0xFF, 0x00, // coil value ON
+    ];
+    // ADU 2: TxnID=0x0002, same structure
+    let adu2 = [
+        0x00u8, 0x02, // transaction_id
+        0x00, 0x00, // protocol_id
+        0x00, 0x06, // length = 6
+        0x01, // unit_id
+        0x05, // FC: Write Single Coil
+        0x00, 0x01, // coil address
+        0xFF, 0x00, // coil value ON
+    ];
+
+    // Concatenate both ADUs into one chunk and deliver in a single on_data call.
+    let mut combined = Vec::with_capacity(24);
+    combined.extend_from_slice(&adu1);
+    combined.extend_from_slice(&adu2);
+
+    dispatcher.on_data(&key, Direction::ClientToServer, &combined, 0, 1_000_000);
+
+    let modbus = dispatcher.take_modbus_analyzer().unwrap();
+    assert_eq!(
+        modbus.total_pdu_count, 2,
+        "F-105-002 pin-1: two concatenated complete ADUs in one on_data call must yield \
+         total_pdu_count == 2 (multi-ADU walk loop)"
+    );
+    assert_eq!(
+        modbus.parse_errors, 0,
+        "F-105-002 pin-1: no parse errors for well-formed ADUs"
+    );
+}
+
+/// F-105-002 pin-2: ONE write-class ADU SPLIT across two on_data calls.
+///
+/// This test pins F-105-001 (the partial-ADU buffering bug). It FAILS against
+/// code without the carry buffer and PASSES with the fix.
+///
+/// A FC=0x05 Write Single Coil ADU is 12 bytes total (Len=6).
+/// First call delivers only bytes 0..5 (5 bytes — MBAP prefix incomplete).
+/// Second call delivers the remaining bytes 5..12 (7 bytes — completes the ADU).
+///
+/// Expected:
+/// - total_pdu_count == 1 (ONE PDU, not zero or two)
+/// - total_write_count == 1 (ONE write finding)
+/// - parse_errors == 0 (NO spurious parse errors)
+/// - is_non_modbus == false on the flow (not incorrectly disabled)
+///
+/// Without carry buffer: first call gets 5 bytes → parse_mbap_header returns None
+/// (< 8 bytes) → break without processing. Second call gets 7 bytes → parse_mbap_header
+/// returns None (< 8 bytes) → break again. Result: 0 PDUs, NOT the correct behavior.
+/// (Or alternatively: parse_mbap_header succeeds on the second segment's bytes if
+/// they happen to contain a valid-looking header at offset 0, leading to misparse.)
+#[test]
+fn test_F_105_002_pin2_write_adu_split_across_two_on_data_calls() {
+    let modbus = ModbusAnalyzer::new(20, 10);
+    let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+    let key = flow_key(49152, 502);
+
+    // Complete FC=0x05 Write Single Coil ADU (12 bytes):
+    // TxnID=0x0001, ProtoID=0x0000, Len=0x0006, UnitID=0x01, FC=0x05,
+    // addr=0x0000, value=0xFF00
+    let full_adu = [
+        0x00u8, 0x01, // transaction_id
+        0x00, 0x00, // protocol_id
+        0x00, 0x06, // length = 6 (UnitID + FC + 4 data bytes)
+        0x01, // unit_id
+        0x05, // FC: Write Single Coil
+        0x00, 0x00, // coil address
+        0xFF, 0x00, // coil value ON
+    ];
+
+    // Split after 5 bytes (incomplete MBAP prefix — parse_mbap_header needs >= 8).
+    let first_chunk = &full_adu[..5];
+    let second_chunk = &full_adu[5..];
+
+    // First on_data: only 5 bytes — not enough for even the MBAP header.
+    // With carry buffer: stashed in carry, no PDU processed yet.
+    dispatcher.on_data(&key, Direction::ClientToServer, first_chunk, 0, 1_000_000);
+
+    // Second on_data: remaining 7 bytes — carry (5) + new (7) = 12 bytes → full ADU.
+    // With carry buffer: carry prepended, full 12-byte ADU parsed, process_pdu called.
+    dispatcher.on_data(&key, Direction::ClientToServer, second_chunk, 5, 1_000_000);
+
+    let modbus = dispatcher.take_modbus_analyzer().unwrap();
+    assert_eq!(
+        modbus.total_pdu_count, 1,
+        "F-105-002 pin-2: split write ADU must yield exactly ONE PDU \
+         (F-105-001 carry buffer fix pins this)"
+    );
+    assert_eq!(
+        modbus.total_write_count, 1,
+        "F-105-002 pin-2: split write ADU must emit exactly ONE write finding"
+    );
+    assert_eq!(
+        modbus.parse_errors, 0,
+        "F-105-002 pin-2: split write ADU must produce ZERO parse errors \
+         (no spurious desync from partial data)"
+    );
+}
+
+/// F-105-002 pin-3: partial MBAP header split (first 3 bytes, then the rest).
+///
+/// First call delivers only 3 bytes (bytes 0..3 of the MBAP header —
+/// transaction_id only). Second call delivers the remaining 9 bytes
+/// (protocol_id + length + unit_id + FC + 2 bytes data).
+///
+/// Expected: ONE PDU processed, parse_errors == 0.
+/// This exercises the `parse_mbap_header returns None` carry-stash branch
+/// with a very small initial chunk.
+#[test]
+fn test_F_105_002_pin3_partial_mbap_header_3_bytes_then_rest() {
+    let modbus = ModbusAnalyzer::new(20, 10);
+    let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+    let key = flow_key(49152, 502);
+
+    // Complete FC=0x03 Read Holding Registers ADU (12 bytes, Len=6):
+    let full_adu = [
+        0x00u8, 0x01, // transaction_id
+        0x00, 0x00, // protocol_id
+        0x00, 0x06, // length = 6
+        0x01, // unit_id
+        0x03, // FC: Read Holding Registers
+        0x00, 0x00, // starting address
+        0x00, 0x01, // quantity = 1
+    ];
+
+    // Split after just 3 bytes: [0x00, 0x01, 0x00] — partial transaction_id+protocol
+    let first_chunk = &full_adu[..3];
+    let second_chunk = &full_adu[3..];
+
+    // First on_data: 3 bytes → parse_mbap_header returns None (< 8) → stash in carry.
+    dispatcher.on_data(&key, Direction::ClientToServer, first_chunk, 0, 1_000_000);
+
+    // Second on_data: carry (3) + new (9) = 12 bytes → full ADU → process_pdu called.
+    dispatcher.on_data(&key, Direction::ClientToServer, second_chunk, 3, 1_000_000);
+
+    let modbus = dispatcher.take_modbus_analyzer().unwrap();
+    assert_eq!(
+        modbus.total_pdu_count, 1,
+        "F-105-002 pin-3: partial MBAP header split (3+9 bytes) must yield ONE PDU"
+    );
+    assert_eq!(
+        modbus.parse_errors, 0,
+        "F-105-002 pin-3: partial MBAP header split must produce ZERO parse errors"
     );
 }

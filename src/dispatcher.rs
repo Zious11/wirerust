@@ -184,6 +184,18 @@ fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget {
     // Rule 5: Modbus port (502 — IANA-assigned, ADR-005). Fires AFTER all
     // content rules and TLS/HTTP port fallbacks. TLS ClientHello or HTTP GET
     // on port 502 will have already matched Rules 1 or 2 above (BC-2.14.025).
+    //
+    // Gemini MEDIUM investigation (STORY-105 adversarial review, accepted):
+    // A TLS/HTTP flow on port 502 whose FIRST on_data chunk is < 5 bytes will
+    // reach Rule 5 and be committed to Modbus before content rules 1-2 can
+    // evaluate. This is CONSISTENT with the behavior of port rules 3-4: a flow
+    // on port 443 (Rule 3) or port 80 (Rule 4) with a tiny first chunk is
+    // similarly committed to TLS/HTTP before content is inspectable.
+    // The classification-retry mechanism (max_classification_attempts / None-caching)
+    // applies ONLY to the DispatchTarget::None path — it is not a defer-until-content
+    // mechanism for successful classifications. Port-fallback rules commit
+    // irrevocably on first presentation, uniformly across all three protocols.
+    // Verdict: ACCEPTED — no defect, no code change required.
     if ports.contains(&502) {
         return DispatchTarget::Modbus;
     }

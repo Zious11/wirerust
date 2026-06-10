@@ -73,6 +73,14 @@ pub const MAX_PENDING_TRANSACTIONS: usize = 256;
 /// perform a poison-skip: the finding is discarded and `dropped_findings` incremented.
 pub const MAX_FINDINGS: usize = 10_000;
 
+/// Maximum bytes held in a per-flow carry buffer (F-105-001 DoS guard).
+///
+/// A valid Modbus ADU is at most 6 (MBAP prefix) + 254 (max length field) = 260 bytes.
+/// If the carry buffer would grow beyond this cap, the stream is treated as non-Modbus
+/// (`is_non_modbus = true`), preventing unbounded memory growth on a malicious
+/// never-completing stream.
+pub const MAX_ADU_CARRY_BYTES: usize = 260;
+
 // ---------------------------------------------------------------------------
 // Detection window constants (STORY-104, BC-2.14.016/017/019)
 // ---------------------------------------------------------------------------
@@ -144,6 +152,21 @@ pub struct ModbusFlowState {
     /// When `true`, this flow carries non-Modbus binary data (Protocol ID != 0x0000).
     /// All subsequent `on_data` calls bail immediately without parsing.
     pub is_non_modbus: bool,
+
+    // --- TCP reassembly carry buffer (F-105-001 partial-ADU buffering fix) ---
+    /// Bytes left over from a prior `on_data` call that form an incomplete ADU.
+    ///
+    /// The reassembler delivers each contiguous TCP segment as a separate `on_data`
+    /// call; a Modbus ADU (6-byte MBAP prefix + variable PDU) can span two segments.
+    /// On every call we prepend `carry` to the incoming data before the walk loop.
+    /// When the walk loop cannot find a full ADU in `remaining`, the tail is stashed
+    /// here for the next call.
+    ///
+    /// Bounded by `MAX_ADU_CARRY_BYTES`: if the carry buffer would exceed this cap
+    /// (a malformed or adversarially crafted stream whose MBAP `length` field promises
+    /// more than one Modbus ADU maximum), we set `is_non_modbus = true` and bail,
+    /// preventing unbounded memory growth (DoS guard).
+    pub carry: Vec<u8>,
 }
 
 impl ModbusFlowState {
@@ -913,11 +936,29 @@ impl StreamHandler for ModbusAnalyzer {
     /// `process_pdu`. Multiple ADUs per call are handled by advancing through
     /// the buffer in a loop.
     ///
-    /// Borrow-checker note: `process_pdu` takes `&mut self` AND `&mut ModbusFlowState`.
-    /// To satisfy the borrow checker, the flow state is removed from `self.flows`,
-    /// mutated via `process_pdu`, then re-inserted. This is safe because
-    /// `process_pdu` never touches `self.flows` — it only reads/writes the
-    /// per-flow `ModbusFlowState` that is passed directly.
+    /// ### Partial-ADU carry buffer (F-105-001)
+    ///
+    /// The reassembler delivers each contiguous TCP segment as a SEPARATE `on_data`
+    /// call. A Modbus ADU (6-byte MBAP prefix + PDU, up to 260 bytes total) can span
+    /// two TCP segments. Without a carry buffer this caused:
+    ///   - The first segment to be processed as a TRUNCATED ADU
+    ///   - The second segment's bytes to be misparsed as a fresh ADU
+    ///   - Silent corruption / parse_errors / premature `is_non_modbus` disable
+    ///
+    /// The fix: prepend `flow.carry` to `data` before the walk loop. When the walk
+    /// loop encounters incomplete data (< 8 bytes for MBAP header, or < `adu_len` bytes
+    /// for a full ADU), stash the remainder into `flow.carry` and break. On the next
+    /// call the carry is prepended again, completing the ADU.
+    ///
+    /// DoS guard: if `flow.carry` would grow beyond `MAX_ADU_CARRY_BYTES` (260 bytes,
+    /// one maximum Modbus ADU), the stream is marked `is_non_modbus` to prevent
+    /// unbounded memory growth on a malicious never-completing stream.
+    ///
+    /// ### Borrow-checker note
+    /// `process_pdu` takes `&mut self` AND `&mut ModbusFlowState`. To satisfy the
+    /// borrow checker, the flow state is removed from `self.flows`, mutated via
+    /// `process_pdu`, then re-inserted. This is safe because `process_pdu` never
+    /// touches `self.flows`.
     ///
     /// No-panic guarantee: all attacker-controlled byte lengths are guarded by
     /// `parse_mbap_header` (returns `None` on short data) and the ADU-length
@@ -942,19 +983,50 @@ impl StreamHandler for ModbusAnalyzer {
             return;
         }
 
+        // F-105-001: Prepend carry buffer to incoming data so partial ADUs that
+        // spanned two TCP segments are completed before the walk loop runs.
+        // We build a combined buffer only when carry is non-empty to avoid an
+        // allocation on the common (carry-empty) fast path.
+        let combined: Vec<u8>;
+        let buf: &[u8] = if flow.carry.is_empty() {
+            data
+        } else {
+            combined = flow
+                .carry
+                .iter()
+                .copied()
+                .chain(data.iter().copied())
+                .collect();
+            &combined
+        };
+        // Clear the carry — it is now folded into `buf`. Any unconsumed tail will
+        // be re-stashed at the end of the loop.
+        flow.carry.clear();
+
         // Walk the buffer: parse and dispatch each ADU in the chunk.
         // Modbus TCP ADU layout: 6-byte MBAP prefix + PDU (length-1 bytes of FC+data).
         // Full ADU byte count = 6 (MBAP prefix without FC) + header.length (includes UnitID).
-        // But parse_mbap_header reads bytes 0..7 (6-byte prefix + FC = 7 bytes minimum + 1 FC = 8).
         // ADU total size = 6 + header.length; minimum valid = 6 + 2 = 8 bytes.
         let mut pos = 0usize;
-        while pos < data.len() {
-            let remaining = &data[pos..];
+        while pos < buf.len() {
+            let remaining = &buf[pos..];
 
             // Parse the MBAP header (needs at least 8 bytes: 6 prefix + 1 UnitID + 1 FC).
+            // If fewer than 8 bytes remain, the ADU is incomplete — stash the tail into
+            // carry and break. The next on_data call will complete it.
             let header = match parse_mbap_header(remaining) {
                 Some(h) => h,
-                None => break, // Truncated: not enough bytes for a full header — stop.
+                None => {
+                    // F-105-001: partial MBAP header — carry the tail forward.
+                    // DoS guard: if the tail exceeds the cap, treat as non-Modbus.
+                    if remaining.len() > MAX_ADU_CARRY_BYTES {
+                        flow.is_non_modbus = true;
+                        self.parse_errors += 1;
+                    } else {
+                        flow.carry.extend_from_slice(remaining);
+                    }
+                    break;
+                }
             };
 
             // 3-point validity gate (BC-2.14.003/004).
@@ -973,13 +1045,23 @@ impl StreamHandler for ModbusAnalyzer {
             // header.length covers UnitID (1 byte) + PDU (FC + data). Minimum = 2.
             let adu_len = 6usize + header.length as usize;
 
-            // Clamp adu_bytes to what is actually available.
-            // In streaming TCP, a reassembler chunk may be smaller than the full ADU
-            // (the rest will arrive in the next on_data call). process_pdu guards all
-            // field accesses with bounds checks so partial data is safe.
-            // Advance by min(adu_len, remaining.len()) to avoid infinite loops.
-            let available_len = remaining.len().min(adu_len);
-            let adu_bytes = &remaining[..available_len];
+            // F-105-001: if the full ADU is not yet present, stash the tail in carry
+            // and break. The next on_data call will complete it.
+            if remaining.len() < adu_len {
+                // DoS guard: adu_len is at most 6+254=260 (bounded by is_valid_modbus_adu).
+                // remaining.len() < adu_len <= 260, so this is always within cap.
+                // We check the cap anyway for defense-in-depth.
+                if remaining.len() > MAX_ADU_CARRY_BYTES {
+                    flow.is_non_modbus = true;
+                    self.parse_errors += 1;
+                } else {
+                    flow.carry.extend_from_slice(remaining);
+                }
+                break;
+            }
+
+            // Full ADU is present. Slice exactly adu_len bytes and dispatch.
+            let adu_bytes = &remaining[..adu_len];
             let fc = header.function_code;
 
             // Dispatch to the detection engine.
@@ -989,11 +1071,11 @@ impl StreamHandler for ModbusAnalyzer {
                 flow_key, &mut flow, direction, &header, fc, adu_bytes, timestamp,
             );
 
-            // Advance past this ADU (by actual available bytes if partial).
-            pos += available_len;
+            // Advance past exactly this ADU.
+            pos += adu_len;
         }
 
-        // Re-insert the (possibly mutated) flow state.
+        // Re-insert the (possibly mutated) flow state (with updated carry).
         self.flows.insert(flow_key.clone(), flow);
     }
 

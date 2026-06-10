@@ -90,9 +90,6 @@ fn run_analyze(
     cli: &Cli,
 ) -> Result<()> {
     // BC-2.14.024 §P3a/P3b: validate thresholds before constructing the analyzer.
-    // TODO(STORY-105 RED): These validations will fail at runtime (not compile time)
-    // when threshold == 0; the tests for this path will only run after the CLI wiring
-    // is complete and the analyzer is constructed.
     if modbus_write_burst_threshold == 0 {
         anyhow::bail!("--modbus-write-burst-threshold must be >= 1 (got 0)");
     }
@@ -167,8 +164,6 @@ fn run_analyze(
         None
     };
     // BC-2.14.023 §P2: construct ModbusAnalyzer only when enabled AND reassembly is on.
-    // TODO(STORY-105 RED): ModbusAnalyzer::new(burst, sustained) is not yet wired through
-    // on_data / on_flow_close — the dispatcher stub will todo!() when data arrives.
     let modbus_analyzer: Option<ModbusAnalyzer> = if enable_modbus && !skip_reassembly {
         Some(ModbusAnalyzer::new(
             modbus_write_burst_threshold,
@@ -266,9 +261,6 @@ fn run_analyze(
     }
 
     // BC-2.14.023 §P5: post-finalize — collect Modbus findings and summary.
-    // TODO(STORY-105 RED): take_modbus_analyzer() exists on the dispatcher (stub),
-    // but findings() / summarize() are not yet implemented via StreamHandler trait —
-    // this will fail to compile or produce wrong results until STORY-105 impl step.
     if let Some(modbus) = dispatcher.take_modbus_analyzer() {
         all_findings.extend(modbus.all_findings.iter().cloned());
         analyzer_summaries.push(modbus.summarize());
