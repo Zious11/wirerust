@@ -4,7 +4,7 @@ phase: feature-f7
 active_feature: null
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-10T18:00:00Z
+timestamp: 2026-06-10T22:45:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -15,7 +15,7 @@ phase_5_completed: "2026-06-01"
 phase_6_completed: "2026-06-02"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
-develop_head: 8e38041
+develop_head: fb2c875
 main_head: 90aa91e
 released_version: v0.4.0
 released_at: "2026-06-10"
@@ -44,9 +44,9 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post D-045 blemish-1 fix; STORY-
 
 ## Status
 
-**Pipeline: V0.4.0_RELEASED (D-046). Feature #7 COMPLETE AND RELEASED. issue #7 CLOSED.** wirerust v0.4.0 published 2026-06-10T05:12:40Z — Modbus TCP analyzer (port-502, MBAP/FC parse, transaction correlation, 7 ICS MITRE detectors). Full F1-F7 feature-mode cycle complete. main back-merged to develop (8e38041). No open feature work.
+**Pipeline: V0.4.0_RELEASED (D-046). Feature #7 COMPLETE AND RELEASED. issue #7 CLOSED.** wirerust v0.4.0 published 2026-06-10T05:12:40Z — Modbus TCP analyzer (port-502, MBAP/FC parse, transaction correlation, 7 ICS MITRE detectors). Full F1-F7 feature-mode cycle complete. Pipeline IDLE — no in-flight feature work.
 
-**Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 244 BCs, 22 VPs (all 22 verified/locked, 0 draft), 1338 tests green, holdout 0.967. develop HEAD 8e38041; main HEAD 90aa91e (v0.4.0). Feature #7: COMPLETE across 2 releases (v0.3.0 multi-tag schema + v0.4.0 Modbus analyzer).
+**Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 244 BCs, 22 VPs (all 22 verified/locked, 0 draft), 1338 tests green, holdout 0.967. develop HEAD fb2c875; main HEAD 90aa91e (v0.4.0). Feature #7: COMPLETE across 2 releases (v0.3.0 multi-tag schema + v0.4.0 Modbus analyzer). develop is ahead of main by 3 non-release chore commits (eb010a1 .gitignore, 92773a4 E2E-pcap tooling, fb2c875 merge — PR #221 local-only E2E pcap tooling). No release content outstanding; branches are NOT divergent in a problematic way (main has no commits develop lacks).
 
 ## Phase Progress
 
@@ -71,9 +71,9 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post D-045 blemish-1 fix; STORY-
 | Feature #7 F5/F6/F7 — Hardening + Convergence | **F7 CONVERGED** 2026-06-09 | F5 CRITICAL timestamp-units (PR #215); F6 Kani 5/5 + fuzz 3.7M/0 + mutation 100% + audit clean (PR #216); F7 e2e + mod-wrappers (PR #217, 70abc27). Consistency 5-shadow sweep FIXED. 1338 tests. Holdout 0.967. D-044 |
 | Release — v0.4.0 | **RELEASED** 2026-06-10 | gitflow-proper: release/0.4.0 → PR #219 → main merge 90aa91e; annotated tag v0.4.0; 4 binaries; run 27254720396; GitHub Release published 2026-06-10T05:12:40Z; Feature #7 COMPLETE + issue #7 CLOSED; main back-merged to develop (8e38041). D-046 |
 
-## Session Resume Checkpoint (2026-06-10 — SESSION-CLEAR — v0.4.0 RELEASED — Pipeline IDLE — PCAP-CORPUS-001 TABLED)
+## Session Resume Checkpoint (2026-06-10 — SESSION-CLEAR — v0.4.0 RELEASED — Pipeline IDLE — PR #221 MERGED — PCAP-CORPUS-001 TABLED)
 
-**POSITION:** wirerust v0.4.0 RELEASED (D-046). Feature #7 (Modbus TCP analyzer, issue #7) COMPLETE AND CLOSED. Pipeline IDLE — no in-flight feature work. develop HEAD `8e38041` == main HEAD `90aa91e` (branches in sync post back-merge). Next feature is TBD; pick a roadmap item.
+**POSITION:** wirerust v0.4.0 RELEASED (D-046). Feature #7 (Modbus TCP analyzer, issue #7) COMPLETE AND CLOSED. Pipeline IDLE — no in-flight feature work. develop HEAD `fb2c875`; main HEAD `90aa91e` (v0.4.0). develop is ahead of main by 3 non-release chore commits from PR #221 (E2E pcap tooling only — no release content). This is normal between releases; branches are NOT divergent in a problematic way. Next feature is TBD; pick a roadmap item.
 
 **RELEASE HISTORY:**
 - v0.1.0 (2026-06-08): greenfield full-cycle baseline (Phases 0-7)
@@ -112,7 +112,7 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post D-045 blemish-1 fix; STORY-
 - CC-001..CC-004: process-gap codification deferred (DF-SIBLING-SWEEP extension, VP-lock checklist, PROCESS-ARITHMETIC-REVIEW-001, F5 dispatcher-boundary test gap)
 - Sub-second rate precision: deferred (needs timestamp_usecs threaded through on_data)
 - Terminal per-ID multi-unknown name resolution (BC-2.11.017): deferred
-- PCAP-CORPUS-001 (TABLED 2026-06-10): E2E pcap test-corpus storage backend decision. Design complete: `test-pcaps` orphan-branch as control plane (MANIFEST.yaml per-pcap metadata + fetch.sh + run-corpus.sh; tiered smoke/full; sha256-keyed caching). 4SICS ICS-lab captures (4SICS-GeekLounge-151020/151021/151022, 25/134/200 MB) validated v0.4.0 Modbus analyzer (1.55M pps, deterministic, parse_errors 230/2.25M, DoS cap engaged). Backend options: GitHub Releases REJECTED (2 GiB/file cap, 1000-asset limit), Git LFS REJECTED (cost/quota), Google Drive public REJECTED (daily quota lockout in CI), Drive service-account VIABLE (reuse 5 TB, Drive API bypasses interstitial, needs free GCP project + SA JSON secret), Cloudflare R2 RECOMMENDED for 100s GB ($0.015/GB-mo, zero egress), Backblaze B2 cheapest ($0.006/GB-mo + free via Cloudflare CDN). PENDING: human to pick R2/B2 vs Drive-SA. Also: issue #220 filed (cosmetic Modbus write-burst "0s window" display bug, src/analyzer/modbus.rs L608/L615). Untracked in develop working tree: tests/fixtures/mk_modbus_large_pcap.py + tests/fixtures/modbus-large.pcap — disposition TBD alongside corpus decision.
+- PCAP-CORPUS-001 (TABLED 2026-06-10): E2E pcap test-corpus storage backend decision. Design complete: `test-pcaps` orphan-branch as control plane (MANIFEST.yaml per-pcap metadata + fetch.sh + run-corpus.sh; tiered smoke/full; sha256-keyed caching). 4SICS ICS-lab captures (4SICS-GeekLounge-151020/151021/151022, 25/134/200 MB) validated v0.4.0 Modbus analyzer (1.55M pps, deterministic, parse_errors 230/2.25M, DoS cap engaged). Backend options: GitHub Releases REJECTED (2 GiB/file cap, 1000-asset limit), Git LFS REJECTED (cost/quota), Google Drive public REJECTED (daily quota lockout in CI), Drive service-account VIABLE (reuse 5 TB, Drive API bypasses interstitial, needs free GCP project + SA JSON secret), Cloudflare R2 RECOMMENDED for 100s GB ($0.015/GB-mo, zero egress), Backblaze B2 cheapest ($0.006/GB-mo + free via Cloudflare CDN). PENDING: human to pick R2/B2 vs Drive-SA. PRECURSOR LANDED (PR #221, fb2c875, 2026-06-10): lightweight E2E pcap reproducibility layer merged to develop — tracked files: `tests/fixtures/E2E-PCAPS.md` (per-pcap index: size/sha256/source-URL-or-generator/protocols/what-it-validates; 4SICS/CS3Sthlm attribution), `bin/fetch-e2e-pcaps` (downloads real captures + regenerates synthetic into gitignored dir, verifies every sha256), `tests/fixtures/mk_modbus_large_pcap.py` (deterministic synthetic modbus-large.pcap generator). LOCAL-ONLY (gitignored under `tests/fixtures/local-samples/`, never committed): 4SICS-GeekLounge-151020/151021/151022.pcap (25/134/200 MB) + modbus-large.pcap (synthetic) + a local README — to reproduce on fresh checkout: run `bin/fetch-e2e-pcaps`. The `.gitignore` rule for `/tests/fixtures/local-samples/` committed in eb010a1. When PCAP-CORPUS-001 is revisited (backend decision made), migrate the E2E-PCAPS.md rows into the orphan-branch corpus manifest. Also: issue #220 filed (cosmetic Modbus write-burst "0s window" display bug, src/analyzer/modbus.rs L608/L615 — OPEN, good-first-issue).
 
 **INPUT-HASH DRIFT (verified 2026-06-10):** MATCH=57 STALE=0 ERROR=1 (STORY-091 pre-existing no-inputs; known).
 
@@ -160,7 +160,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | RUSTSEC-2026-0097 | rand 0.8.5 unsound (transitive via tls-parser→phf 0.11); upstream-only fix path | ACCEPTED-TRANSITIVE — revisit when tls-parser bumps phf→0.12+ |
 | FE-001 | pcapng input format not supported (.pcap-only) — v2 idea; see tech-debt-register.md | deferred / v2 / not-filed |
 | ACTION-PIN-001 | dtolnay/rust-toolchain @stable and @nightly remain branch-ref — intentionally exempt in the Action pin gate (toolchain installer, channel-selected). | OPEN P3 — low priority |
-| PCAP-CORPUS-001 | E2E pcap test-corpus storage backend (R2/B2 vs Drive-SA) — design ready, orphan-branch `test-pcaps` control plane (MANIFEST.yaml + fetch.sh + tiered runner); 100s of GB expected. 4SICS ICS-lab captures validated v0.4.0 (1.55M pps, 0 crashes). Backend decision pending human choice. | TABLED — human decision pending (2026-06-10) |
+| PCAP-CORPUS-001 | E2E pcap test-corpus storage backend (R2/B2 vs Drive-SA) — design ready, orphan-branch `test-pcaps` control plane (MANIFEST.yaml + fetch.sh + tiered runner); 100s of GB expected. 4SICS ICS-lab captures validated v0.4.0 (1.55M pps, 0 crashes). PRECURSOR LANDED (PR #221 fb2c875): lightweight index/fetch layer committed (E2E-PCAPS.md + bin/fetch-e2e-pcaps + mk_modbus_large_pcap.py); large pcaps gitignored under tests/fixtures/local-samples/. Only the shared-corpus STORAGE BACKEND choice (Cloudflare R2 / Backblaze B2 / Google Drive service account) remains tabled. | TABLED — human decision pending (2026-06-10) |
 
 ## Cycle-Close Follow-Up Items
 
