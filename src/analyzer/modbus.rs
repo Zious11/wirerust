@@ -302,7 +302,7 @@ impl ModbusAnalyzer {
     #[allow(clippy::too_many_arguments)] // 8 params: interface dictated by STORY-105 wiring (FlowKey, flow state, direction, header, fc, raw data, timestamp)
     pub fn process_pdu(
         &mut self,
-        _flow_key: &FlowKey,
+        flow_key: &FlowKey,
         flow: &mut ModbusFlowState,
         direction: Direction,
         header: &MbapHeader,
@@ -313,9 +313,27 @@ impl ModbusAnalyzer {
         use chrono::DateTime;
 
         // Convert pcap-relative microsecond u32 to a DateTime<Utc> for Finding.timestamp.
-        // Divide by 1_000_000 to get seconds; treat as POSIX seconds-from-epoch best effort.
-        let ts_secs = (timestamp / 1_000_000) as i64;
-        let finding_ts = DateTime::from_timestamp(ts_secs, 0);
+        // Per BC-2.09.007 post.1: DateTime::from_timestamp(ts_sec, ts_usec * 1_000)
+        // where ts_sec = timestamp / 1_000_000, ts_usec = timestamp % 1_000_000.
+        let ts_sec = (timestamp / 1_000_000) as i64;
+        let ts_nsec = (timestamp % 1_000_000) * 1_000;
+        let finding_ts = DateTime::from_timestamp(ts_sec, ts_nsec);
+
+        // Resolve source IPs from FlowKey using Modbus port-502 convention
+        // (BC-2.14.013 post.1, BC-2.14.017 post.1, BC-2.14.019 post.A/B, BC-2.14.020).
+        // The Modbus server always listens on port 502; the client is the other endpoint.
+        // FlowKey stores (lower_ip:lower_port, upper_ip:upper_port) canonicalized by
+        // (ip, port) tuple order — we check which port is 502 to identify server vs client.
+        let client_ip = if flow_key.lower_port() == 502 {
+            flow_key.upper_ip()
+        } else {
+            flow_key.lower_ip()
+        };
+        let server_ip = if flow_key.lower_port() == 502 {
+            flow_key.lower_ip()
+        } else {
+            flow_key.upper_ip()
+        };
 
         // Helper: push a finding into self.all_findings with MAX_FINDINGS poison-skip.
         // Returns the finding unchanged so it can also be appended to the local return vec.
@@ -323,12 +341,109 @@ impl ModbusAnalyzer {
 
         let mut local_findings: Vec<Finding> = Vec::new();
 
-        // --- PDU counter + FC distribution (always, regardless of direction) ---
+        // --- total_flows_analyzed: increment once per flow on first PDU (BC-2.14.021 post.3) ---
+        if flow.pdu_count == 0 {
+            self.total_flows_analyzed += 1;
+        }
+
+        // --- Per-flow PDU counter + last timestamp (always, regardless of direction) ---
+        flow.pdu_count += 1;
+        flow.last_ts = timestamp;
+
+        // --- Analyzer-level PDU counter + FC distribution (always, regardless of direction) ---
         self.total_pdu_count += 1;
         *self.fn_code_counts.entry(fc).or_insert(0) += 1;
 
         // --- Classify FC ---
         let fc_class = classify_fc(fc);
+
+        // --- Recon detection for FC=0x11 and FC=0x2B/0x0E: direction-independent (BC-2.14.020 EC-010) ---
+        // These emit regardless of direction; source_ip uses direction to select client vs server.
+        match fc {
+            0x11 => {
+                // FC=0x11 (Report Server ID) → T0888 recon (BC-2.14.020 post. recon path).
+                // Fires for both ClientToServer and ServerToClient (EC-010).
+                let src_ip = match direction {
+                    Direction::ClientToServer => client_ip,
+                    Direction::ServerToClient => server_ip,
+                };
+                local_findings.push(Finding {
+                    category: crate::findings::ThreatCategory::Anomaly,
+                    verdict: crate::findings::Verdict::Inconclusive,
+                    confidence: crate::findings::Confidence::Medium,
+                    summary: format!(
+                        "Modbus recon: Report Server ID (FC 0x11) from unit {}",
+                        header.unit_id
+                    ),
+                    evidence: vec![format!(
+                        "FC=0x11 TxnID={:#06X} UnitID={}",
+                        header.transaction_id, header.unit_id
+                    )],
+                    mitre_techniques: vec!["T0888".to_string()],
+                    source_ip: Some(src_ip),
+                    timestamp: finding_ts,
+                    direction: Some(direction),
+                });
+            }
+            0x2B => {
+                // FC=0x2B MEI: check MEI type byte (data[8]).
+                // MEI type 0x0E = Read Device Identification → T0888 (BC-2.14.020 EC-010).
+                // MEI type != 0x0E → no T0888 (BC-2.14.020 EC-005).
+                // Fires for both directions per EC-010.
+                if data.len() >= 9 {
+                    let mei_type = data[8];
+                    if mei_type == 0x0E {
+                        let src_ip = match direction {
+                            Direction::ClientToServer => client_ip,
+                            Direction::ServerToClient => server_ip,
+                        };
+                        local_findings.push(Finding {
+                            category: crate::findings::ThreatCategory::Anomaly,
+                            verdict: crate::findings::Verdict::Inconclusive,
+                            confidence: crate::findings::Confidence::Medium,
+                            summary: format!(
+                                "Modbus recon: Read Device Identification (MEI 0x2B/0x0E) on unit {}",
+                                header.unit_id
+                            ),
+                            evidence: vec![format!(
+                                "FC=0x2B MEI type=0x0E TxnID={:#06X} UnitID={}",
+                                header.transaction_id, header.unit_id
+                            )],
+                            mitre_techniques: vec!["T0888".to_string()],
+                            source_ip: Some(src_ip),
+                            timestamp: finding_ts,
+                            direction: Some(direction),
+                        });
+                    }
+                    // MEI type != 0x0E: no T0888.
+                }
+            }
+            // Unknown FC detection: direction-independent (BC-2.14.020 EC-010).
+            fc_byte if fc_class == FunctionCodeClass::Unknown => {
+                let src_ip = match direction {
+                    Direction::ClientToServer => client_ip,
+                    Direction::ServerToClient => server_ip,
+                };
+                local_findings.push(Finding {
+                    category: crate::findings::ThreatCategory::Anomaly,
+                    verdict: crate::findings::Verdict::Inconclusive,
+                    confidence: crate::findings::Confidence::Low,
+                    summary: format!(
+                        "Modbus unknown function code: 0x{fc_byte:02X} on unit {}",
+                        header.unit_id
+                    ),
+                    evidence: vec![format!(
+                        "FC=0x{fc_byte:02X} TxnID={:#06X} UnitID={}",
+                        header.transaction_id, header.unit_id
+                    )],
+                    mitre_techniques: vec![],
+                    source_ip: Some(src_ip),
+                    timestamp: finding_ts,
+                    direction: Some(direction),
+                });
+            }
+            _ => {}
+        }
 
         // --- Branch on direction ---
         match direction {
@@ -349,6 +464,7 @@ impl ModbusAnalyzer {
                         // Write-class detection (BC-2.14.013–016)
                         // -------------------------------------------------------
                         self.total_write_count += 1;
+                        flow.write_count += 1; // per-flow counter (BC-2.14.013 post.2)
 
                         // Determine tag subset per ORCHESTRATOR RULING BC-DISCREPANCY-001:
                         // Register-write set {0x06,0x10,0x16,0x17} → T0836.
@@ -406,15 +522,17 @@ impl ModbusAnalyzer {
                             verdict: crate::findings::Verdict::Likely,
                             confidence: crate::findings::Confidence::Medium,
                             summary: format!(
-                                "Modbus write-class FC 0x{fc:02X} detected (unit_id={})",
+                                "Modbus write command observed: FC 0x{fc:02X} from unit {}",
                                 header.unit_id
                             ),
                             evidence: vec![format!(
-                                "FC=0x{fc:02X}, txn_id=0x{:04X}, unit_id=0x{:02X}",
-                                header.transaction_id, header.unit_id
+                                "FC=0x{fc:02X} TxnID={:#06X} UnitID={} ADU bytes 0..{}",
+                                header.transaction_id,
+                                header.unit_id,
+                                data.len()
                             )],
                             mitre_techniques: mitre,
-                            source_ip: None,
+                            source_ip: Some(client_ip),
                             timestamp: finding_ts,
                             direction: Some(direction),
                         });
@@ -436,27 +554,36 @@ impl ModbusAnalyzer {
                                     && !flow.window_burst_emitted
                                 {
                                     flow.window_burst_emitted = true;
+                                    let elapsed_ms = burst_elapsed / 1_000;
                                     // Burst finding: SEPARATE from per-PDU finding (BC-2.14.013 inv5).
                                     local_findings.push(Finding {
                                         category: crate::findings::ThreatCategory::Execution,
                                         verdict: crate::findings::Verdict::Likely,
                                         confidence: crate::findings::Confidence::High,
                                         summary: format!(
-                                            "Modbus write burst detected: {} writes in 1s window",
-                                            flow.window_write_count
+                                            "Modbus write burst: {} writes in {}ms window (unit {}, threshold {}/s)",
+                                            flow.window_write_count,
+                                            elapsed_ms,
+                                            header.unit_id,
+                                            self.write_burst_threshold
                                         ),
                                         evidence: vec![format!(
-                                            "Write burst: {} writes in {}µs window (threshold={})",
+                                            "Burst threshold exceeded: {} write FCs in 1s window; \
+                                             window_write_count={} window_start_ts={} threshold={} \
+                                             FC=0x{:02X} UnitID={}",
                                             flow.window_write_count,
-                                            burst_elapsed,
-                                            self.write_burst_threshold
+                                            flow.window_write_count,
+                                            flow.window_start_ts,
+                                            self.write_burst_threshold,
+                                            fc,
+                                            header.unit_id
                                         )],
                                         // Canonical order: T0806 first, then T0855.
                                         mitre_techniques: vec![
                                             "T0806".to_string(),
                                             "T0855".to_string(),
                                         ],
-                                        source_ip: None,
+                                        source_ip: Some(client_ip),
                                         timestamp: finding_ts,
                                         direction: Some(direction),
                                     });
@@ -496,23 +623,29 @@ impl ModbusAnalyzer {
                                         verdict: crate::findings::Verdict::Likely,
                                         confidence: crate::findings::Confidence::High,
                                         summary: format!(
-                                            "Modbus sustained write rate exceeded: {} writes over {:.1}s (>{}/s average)",
+                                            "Modbus write burst: {} writes over {:.0}s window (unit {}, >{}/s avg)",
                                             flow.sustained_window_write_count,
                                             elapsed_secs_f,
+                                            header.unit_id,
                                             self.write_sustained_threshold
                                         ),
                                         evidence: vec![format!(
-                                            "Sustained write rate exceeded: {} writes over {:.1} seconds (>{}/s average)",
+                                            "Sustained write rate exceeded: {} writes over {:.1} seconds \
+                                             (>{}/s average); sustained_window_start_ts={} \
+                                             FC=0x{:02X} UnitID={}",
                                             flow.sustained_window_write_count,
                                             elapsed_secs_f,
-                                            self.write_sustained_threshold
+                                            self.write_sustained_threshold,
+                                            flow.sustained_window_start_ts,
+                                            fc,
+                                            header.unit_id
                                         )],
                                         // Canonical order: T0806 first, then T0855.
                                         mitre_techniques: vec![
                                             "T0806".to_string(),
                                             "T0855".to_string(),
                                         ],
-                                        source_ip: None,
+                                        source_ip: Some(client_ip),
                                         timestamp: finding_ts,
                                         direction: Some(direction),
                                     });
@@ -532,19 +665,19 @@ impl ModbusAnalyzer {
 
                     FunctionCodeClass::Diagnostic => {
                         // -------------------------------------------------------
-                        // Diagnostics detection (BC-2.14.018)
+                        // Diagnostics detection (BC-2.14.018 + BC-2.14.019 Path B)
                         // FC 0x08: check sub-function bytes in PDU.
-                        // FC 0x2B: check MEI type byte for recon (BC-2.14.020).
+                        //   sub-func 0x0001/0x0004 → T0814 (BC-2.14.018)
+                        //   sub-func 0x000A → anti-forensic Anomaly (BC-2.14.019 Path B)
+                        // FC 0x2B: handled in the direction-independent recon block above.
                         // -------------------------------------------------------
                         if fc == 0x08 {
-                            // PDU for FC=0x08: [fc, sub_func_hi, sub_func_lo, data...]
-                            // data param here includes everything AFTER the MBAP header.
-                            // data[0]=fc, data[1..]=sub-func+data (data starts at offset 8 in ADU).
-                            // Actually: `data` is the full ADU slice; fc is at data[7].
-                            // Sub-function bytes are at data[8] and data[9].
+                            // PDU layout: MBAP(7 bytes) + FC(1 byte) + sub_func(2 bytes) + data...
+                            // Full ADU: data[0..6]=MBAP prefix, data[7]=FC, data[8..9]=sub-func.
                             if data.len() >= 10 {
                                 let sub_func = u16::from_be_bytes([data[8], data[9]]);
                                 if matches!(sub_func, 0x0001 | 0x0004) {
+                                    // BC-2.14.018: DoS sub-functions → T0814 Denial of Service.
                                     local_findings.push(Finding {
                                         category: crate::findings::ThreatCategory::Anomaly,
                                         verdict: crate::findings::Verdict::Likely,
@@ -557,92 +690,44 @@ impl ModbusAnalyzer {
                                             header.unit_id
                                         )],
                                         mitre_techniques: vec!["T0814".to_string()],
-                                        source_ip: None,
+                                        source_ip: Some(client_ip),
+                                        timestamp: finding_ts,
+                                        direction: Some(direction),
+                                    });
+                                } else if sub_func == 0x000A {
+                                    // BC-2.14.019 Path B: Clear Counters → anti-forensic Anomaly.
+                                    local_findings.push(Finding {
+                                        category: crate::findings::ThreatCategory::Anomaly,
+                                        verdict: crate::findings::Verdict::Inconclusive,
+                                        confidence: crate::findings::Confidence::Medium,
+                                        summary: format!(
+                                            "Modbus anti-forensic: Clear Counters (0x08/0x000A) sent to unit {}",
+                                            header.unit_id
+                                        ),
+                                        evidence: vec![format!(
+                                            "FC=0x08 SubFunc=0x000A TxnID={:#06X} UnitID={}",
+                                            header.transaction_id, header.unit_id
+                                        )],
+                                        mitre_techniques: vec![],
+                                        source_ip: Some(client_ip),
                                         timestamp: finding_ts,
                                         direction: Some(direction),
                                     });
                                 }
                                 // Other sub-functions: no T0814 (BC-2.14.018 EC-006).
                             }
-                        } else if fc == 0x2B {
-                            // FC=0x2B MEI: check MEI type byte (data[8]).
-                            // MEI type 0x0E = Read Device Identification → T0888 (BC-2.14.020).
-                            // MEI type != 0x0E → no T0888 (BC-2.14.020 EC-005).
-                            if data.len() >= 9 {
-                                let mei_type = data[8];
-                                if mei_type == 0x0E {
-                                    local_findings.push(Finding {
-                                        category: crate::findings::ThreatCategory::Anomaly,
-                                        verdict: crate::findings::Verdict::Inconclusive,
-                                        confidence: crate::findings::Confidence::Medium,
-                                        summary: format!(
-                                            "Modbus recon: FC=0x2B MEI Read Device Identification (unit_id={})",
-                                            header.unit_id
-                                        ),
-                                        evidence: vec![format!(
-                                            "FC=0x2B MEI type=0x0E txn_id=0x{:04X}",
-                                            header.transaction_id
-                                        )],
-                                        mitre_techniques: vec!["T0888".to_string()],
-                                        source_ip: None,
-                                        timestamp: finding_ts,
-                                        direction: Some(direction),
-                                    });
-                                }
-                                // MEI type != 0x0E: no T0888.
-                            }
                         }
+                        // FC=0x2B handled in direction-independent recon block above.
                     }
 
                     FunctionCodeClass::Read => {
-                        // -------------------------------------------------------
-                        // Recon detection (BC-2.14.020)
-                        // FC=0x11 (Report Server ID) → T0888.
-                        // FC=0x07 (Read Exception Status) → NO finding (Decision 12).
-                        // -------------------------------------------------------
-                        if fc == 0x11 {
-                            local_findings.push(Finding {
-                                category: crate::findings::ThreatCategory::Anomaly,
-                                verdict: crate::findings::Verdict::Inconclusive,
-                                confidence: crate::findings::Confidence::Medium,
-                                summary: format!(
-                                    "Modbus recon: FC=0x11 Report Server ID (unit_id={})",
-                                    header.unit_id
-                                ),
-                                evidence: vec![format!(
-                                    "FC=0x11 txn_id=0x{:04X} unit_id=0x{:02X}",
-                                    header.transaction_id, header.unit_id
-                                )],
-                                mitre_techniques: vec!["T0888".to_string()],
-                                source_ip: None,
-                                timestamp: finding_ts,
-                                direction: Some(direction),
-                            });
-                        }
+                        // Recon detection for FC=0x11 is handled in the direction-independent block
+                        // above; no additional action for other Read-class FCs.
                         // FC=0x07 and all other read FCs: no finding.
                     }
 
                     FunctionCodeClass::Unknown => {
-                        // -------------------------------------------------------
-                        // Unknown FC → Anomaly finding (BC-2.14.020 unknown path).
-                        // -------------------------------------------------------
-                        local_findings.push(Finding {
-                            category: crate::findings::ThreatCategory::Anomaly,
-                            verdict: crate::findings::Verdict::Inconclusive,
-                            confidence: crate::findings::Confidence::Low,
-                            summary: format!(
-                                "Modbus unknown function code 0x{fc:02X} (unit_id={})",
-                                header.unit_id
-                            ),
-                            evidence: vec![format!(
-                                "FC=0x{fc:02X} unknown, txn_id=0x{:04X}",
-                                header.transaction_id
-                            )],
-                            mitre_techniques: vec![],
-                            source_ip: None,
-                            timestamp: finding_ts,
-                            direction: Some(direction),
-                        });
+                        // Unknown FC handled in the direction-independent block above.
                     }
 
                     FunctionCodeClass::Exception => {
@@ -659,6 +744,7 @@ impl ModbusAnalyzer {
                     // Exception response (BC-2.14.011 + BC-2.14.019)
                     // -------------------------------------------------------
                     self.total_exception_count += 1;
+                    flow.exception_count += 1; // per-flow counter (BC-2.14.019 inv4)
 
                     // Attribute exception to pending request (BC-2.14.011).
                     flow.attribute_exception(header.transaction_id, header.unit_id, fc);
@@ -668,6 +754,8 @@ impl ModbusAnalyzer {
 
                     // Per-exception-code burst window (BC-2.14.019).
                     // wrapping_sub for all elapsed computations (f2-fix-directives §11.5b).
+                    // CRITICAL: use unwrap_or(timestamp) so new codes get 0 elapsed on first
+                    // occurrence, NOT an anchor — the anchor must be inserted in the else branch.
                     let exc_elapsed = timestamp.wrapping_sub(
                         *flow
                             .exception_window_start_ts
@@ -676,11 +764,20 @@ impl ModbusAnalyzer {
                     );
 
                     if exc_elapsed > EXCEPTION_WINDOW_SECS * 1_000_000 {
-                        // Window expired → reset.
+                        // Window expired → reset (also handles first-time with exc_elapsed=0
+                        // via the else branch below for new codes).
                         flow.exception_window_counts.insert(exc_code, 1);
                         flow.exception_window_start_ts.insert(exc_code, timestamp);
                         flow.exception_burst_emitted.insert(exc_code, false);
                     } else {
+                        // Accumulate count. For a NEW exception code, or_insert(0) → count = 1.
+                        // ALSO seed the window-start timestamp for new codes so subsequent
+                        // exceptions measure real elapsed time (BC-2.14.019 EC-005 fix).
+                        // Seed window-start timestamp for new exception codes so subsequent
+                        // exceptions measure real elapsed time (BC-2.14.019 EC-005 anchor fix).
+                        flow.exception_window_start_ts
+                            .entry(exc_code)
+                            .or_insert(timestamp);
                         let count = flow.exception_window_counts.entry(exc_code).or_insert(0);
                         *count += 1;
                         let cur_count = *count;
@@ -691,19 +788,32 @@ impl ModbusAnalyzer {
 
                         if cur_count > EXCEPTION_RATE_THRESHOLD && !emitted {
                             flow.exception_burst_emitted.insert(exc_code, true);
+                            let orig_fc = fc & 0x7F;
+                            let summary = match exc_code {
+                                0x01 => format!(
+                                    "Modbus recon: {} Illegal Function exceptions in window (unit {}) — possible FC scanning",
+                                    cur_count, header.unit_id
+                                ),
+                                0x02 => format!(
+                                    "Modbus recon: {} Illegal Data Address exceptions in window (unit {}) — possible register map enumeration",
+                                    cur_count, header.unit_id
+                                ),
+                                _ => format!(
+                                    "Modbus exception anomaly: {} exceptions code 0x{exc_code:02X} in window (unit {})",
+                                    cur_count, header.unit_id
+                                ),
+                            };
                             local_findings.push(Finding {
                                 category: crate::findings::ThreatCategory::Anomaly,
                                 verdict: crate::findings::Verdict::Inconclusive,
                                 confidence: crate::findings::Confidence::Medium,
-                                summary: format!(
-                                    "Modbus exception burst: exception code 0x{exc_code:02X} seen {cur_count} times in 10s window"
-                                ),
+                                summary,
                                 evidence: vec![format!(
-                                    "Exception code=0x{exc_code:02X} count={cur_count} (threshold={})",
-                                    EXCEPTION_RATE_THRESHOLD
+                                    "exception_fc=0x{fc:02X} exception_code=0x{exc_code:02X} \
+                                     window_count={cur_count} original_fc=0x{orig_fc:02X}"
                                 )],
                                 mitre_techniques: vec![],
-                                source_ip: None,
+                                source_ip: Some(server_ip),
                                 timestamp: finding_ts,
                                 direction: Some(direction),
                             });
@@ -779,7 +889,8 @@ impl ModbusAnalyzer {
         );
 
         AnalysisSummary {
-            analyzer_name: "Modbus".to_string(),
+            // BC-2.14.021 post.3: lowercase "modbus" matches "http" and "tls" analyzer convention.
+            analyzer_name: "modbus".to_string(),
             packets_analyzed: self.total_pdu_count,
             detail,
         }

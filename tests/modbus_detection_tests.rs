@@ -1758,3 +1758,511 @@ fn test_BC_2_14_022_EC003_second_finding_dropped_when_cap_at_9999() {
         "at least one finding must be dropped (dropped_findings >= 1)"
     );
 }
+
+// ---------------------------------------------------------------------------
+// BINDING TESTS — adversarial review findings (STORY-104 defect fixes)
+// These tests assert the BC postconditions that were previously gaps.
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// BINDING-001: source_ip — client_ip for ClientToServer (BC-2.14.013 post.1)
+// ---------------------------------------------------------------------------
+
+/// test_binding_source_ip_client_for_write_finding
+///
+/// Asserts finding.source_ip = Some(client_ip) for a write-class PDU in ClientToServer.
+/// FlowKey: client 192.168.1.10:1234 ↔ server 192.168.1.100:502.
+/// Per BC-2.14.013 post.1: source_ip = Some(flow_key.client_ip()).
+#[test]
+fn test_binding_source_ip_client_for_write_finding() {
+    let mut az = default_analyzer();
+    let mut flow = ModbusFlowState::default();
+    let fk = test_flow_key();
+    let adu = build_adu(0x0001, 0x01, 0x06, &[0x00, 0x10, 0x01, 0xF4]);
+    let findings = drive(
+        &mut az,
+        &mut flow,
+        &fk,
+        Direction::ClientToServer,
+        &adu,
+        1_000_000,
+    );
+    assert!(!findings.is_empty(), "write PDU must produce a finding");
+    let f = &findings[0];
+    assert!(
+        f.source_ip.is_some(),
+        "write finding source_ip must be Some (BC-2.14.013 post.1)"
+    );
+    // Client is 192.168.1.10 (not on port 502)
+    let expected_client = std::net::IpAddr::V4(std::net::Ipv4Addr::new(192, 168, 1, 10));
+    assert_eq!(
+        f.source_ip,
+        Some(expected_client),
+        "write finding source_ip must equal client IP 192.168.1.10 (BC-2.14.013 post.1)"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// BINDING-002: source_ip — server_ip for ServerToClient exception (BC-2.14.019 post.A)
+// ---------------------------------------------------------------------------
+
+/// test_binding_source_ip_server_for_exception_finding
+///
+/// Asserts finding.source_ip = Some(server_ip) for an exception-burst finding in
+/// ServerToClient direction. Per BC-2.14.019 post.A: source_ip = Some(flow_key.server_ip()).
+#[test]
+fn test_binding_source_ip_server_for_exception_finding() {
+    let mut az = default_analyzer();
+    let mut flow = ModbusFlowState::default();
+    let fk = test_flow_key();
+
+    // Deliver 6 exception responses to trigger the burst (BC-2.14.019 EC-002: 6th triggers).
+    let mut anomaly_finding = None;
+    for i in 0..6_u32 {
+        let req_adu = build_adu(i as u16, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
+        drive(
+            &mut az,
+            &mut flow,
+            &fk,
+            Direction::ClientToServer,
+            &req_adu,
+            i * 100_000,
+        );
+        let exc_adu = build_adu(i as u16, 0x01, 0x86, &[0x01]);
+        let findings = drive(
+            &mut az,
+            &mut flow,
+            &fk,
+            Direction::ServerToClient,
+            &exc_adu,
+            i * 100_000 + 50_000,
+        );
+        for f in findings {
+            if matches!(f.category, wirerust::findings::ThreatCategory::Anomaly)
+                && f.mitre_techniques.is_empty()
+            {
+                anomaly_finding = Some(f);
+            }
+        }
+    }
+
+    let f = anomaly_finding.expect("6 exceptions must produce an Anomaly finding");
+    assert!(
+        f.source_ip.is_some(),
+        "exception-burst finding source_ip must be Some (BC-2.14.019 post.A)"
+    );
+    // Server is 192.168.1.100 (on port 502)
+    let expected_server = std::net::IpAddr::V4(std::net::Ipv4Addr::new(192, 168, 1, 100));
+    assert_eq!(
+        f.source_ip,
+        Some(expected_server),
+        "exception-burst finding source_ip must equal server IP 192.168.1.100 (BC-2.14.019 post.A)"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// BINDING-003: source_ip — client_ip for Clear Counters Path B (BC-2.14.019 post.B)
+// ---------------------------------------------------------------------------
+
+/// test_binding_source_ip_client_for_clear_counters_finding
+///
+/// Asserts finding.source_ip = Some(client_ip) for the Clear Counters Path B finding.
+/// Per BC-2.14.019 post.B: source_ip = Some(flow_key.client_ip()).
+#[test]
+fn test_binding_source_ip_client_for_clear_counters_finding() {
+    let mut az = default_analyzer();
+    let mut flow = ModbusFlowState::default();
+    let fk = test_flow_key();
+    // FC=0x08, sub-func=0x000A (Clear Counters)
+    let adu = build_adu(0x0001, 0x01, 0x08, &[0x00, 0x0A, 0x00, 0x00]);
+    let findings = drive(
+        &mut az,
+        &mut flow,
+        &fk,
+        Direction::ClientToServer,
+        &adu,
+        1_000_000,
+    );
+    let cc_finding = findings
+        .iter()
+        .find(|f| {
+            matches!(f.category, wirerust::findings::ThreatCategory::Anomaly)
+                && f.mitre_techniques.is_empty()
+                && f.summary.contains("Clear Counters")
+        })
+        .expect("FC=0x08/0x000A must emit a Clear Counters Anomaly finding (BC-2.14.019 Path B)");
+
+    let expected_client = std::net::IpAddr::V4(std::net::Ipv4Addr::new(192, 168, 1, 10));
+    assert_eq!(
+        cc_finding.source_ip,
+        Some(expected_client),
+        "Clear Counters finding source_ip must equal client IP (BC-2.14.019 post.B)"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// BINDING-004: exception cross-window reset (BC-2.14.019 EC-005)
+// ---------------------------------------------------------------------------
+
+/// test_binding_exception_cross_window_reset
+///
+/// 6 exceptions of the same code → first finding emitted. Then advance time > 10s.
+/// Another 6 exceptions of the same code → SECOND finding must be emitted (window reset).
+/// Per BC-2.14.019 EC-005: "burst_emitted was reset to false on window rollover; new finding emitted."
+#[test]
+fn test_binding_exception_cross_window_reset() {
+    let mut az = default_analyzer();
+    let mut flow = ModbusFlowState::default();
+    let fk = test_flow_key();
+
+    let mut anomaly_count = 0usize;
+
+    // First burst: 6 exceptions of exc_code=0x01 within 9 seconds.
+    for i in 0..6_u32 {
+        let req_adu = build_adu(i as u16, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
+        drive(
+            &mut az,
+            &mut flow,
+            &fk,
+            Direction::ClientToServer,
+            &req_adu,
+            i * 1_000_000,
+        );
+        let exc_adu = build_adu(i as u16, 0x01, 0x86, &[0x01]);
+        let findings = drive(
+            &mut az,
+            &mut flow,
+            &fk,
+            Direction::ServerToClient,
+            &exc_adu,
+            i * 1_000_000 + 50_000,
+        );
+        for f in &findings {
+            if matches!(f.category, wirerust::findings::ThreatCategory::Anomaly)
+                && f.mitre_techniques.is_empty()
+            {
+                anomaly_count += 1;
+            }
+        }
+    }
+    assert_eq!(
+        anomaly_count, 1,
+        "first burst of 6 same-code exceptions must produce exactly one Anomaly finding"
+    );
+
+    // Second burst: 6 more exceptions starting at ts > 10s after the first window start.
+    // Window started at ts=0 (or ts=50_000); 11 seconds later = 11_000_000 µs.
+    let base_ts: u32 = 11_000_000;
+    for i in 0..6_u32 {
+        let req_adu = build_adu((100 + i) as u16, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
+        drive(
+            &mut az,
+            &mut flow,
+            &fk,
+            Direction::ClientToServer,
+            &req_adu,
+            base_ts + i * 1_000_000,
+        );
+        let exc_adu = build_adu((100 + i) as u16, 0x01, 0x86, &[0x01]);
+        let findings = drive(
+            &mut az,
+            &mut flow,
+            &fk,
+            Direction::ServerToClient,
+            &exc_adu,
+            base_ts + i * 1_000_000 + 50_000,
+        );
+        for f in &findings {
+            if matches!(f.category, wirerust::findings::ThreatCategory::Anomaly)
+                && f.mitre_techniques.is_empty()
+            {
+                anomaly_count += 1;
+            }
+        }
+    }
+    assert_eq!(
+        anomaly_count, 2,
+        "second burst of 6 exceptions in a new window must produce a SECOND Anomaly finding (BC-2.14.019 EC-005 cross-window reset)"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// BINDING-005: per-flow counters (BC-2.14.013 post.2, BC-2.14.019 inv4)
+// ---------------------------------------------------------------------------
+
+/// test_binding_per_flow_counters_updated
+///
+/// Asserts that flow.write_count, flow.exception_count, flow.pdu_count, and
+/// flow.last_ts are correctly updated per PDU.
+/// Per BC-2.14.013 post.2: flow.write_count incremented.
+/// Per BC-2.14.019 inv4: flow.exception_count incremented for every exception PDU.
+#[test]
+fn test_binding_per_flow_counters_updated() {
+    let mut az = default_analyzer();
+    let mut flow = ModbusFlowState::default();
+    let fk = test_flow_key();
+
+    assert_eq!(flow.pdu_count, 0, "initial pdu_count = 0");
+    assert_eq!(flow.write_count, 0, "initial write_count = 0");
+    assert_eq!(flow.exception_count, 0, "initial exception_count = 0");
+    assert_eq!(flow.last_ts, 0, "initial last_ts = 0");
+
+    // One write PDU (FC=0x06)
+    let adu_write = build_adu(0x0001, 0x01, 0x06, &[0x00, 0x10, 0x01, 0xF4]);
+    drive(
+        &mut az,
+        &mut flow,
+        &fk,
+        Direction::ClientToServer,
+        &adu_write,
+        1_000_000,
+    );
+    assert_eq!(flow.pdu_count, 1, "pdu_count = 1 after one write PDU");
+    assert_eq!(flow.write_count, 1, "write_count = 1 after one write PDU");
+    assert_eq!(
+        flow.exception_count, 0,
+        "exception_count unchanged after write PDU"
+    );
+    assert_eq!(flow.last_ts, 1_000_000, "last_ts updated to 1_000_000");
+
+    // One read PDU (FC=0x03)
+    let adu_read = build_adu(0x0002, 0x01, 0x03, &[0x00, 0x00, 0x00, 0x01]);
+    drive(
+        &mut az,
+        &mut flow,
+        &fk,
+        Direction::ClientToServer,
+        &adu_read,
+        2_000_000,
+    );
+    assert_eq!(flow.pdu_count, 2, "pdu_count = 2 after two PDUs");
+    assert_eq!(
+        flow.write_count, 1,
+        "write_count unchanged after read PDU (read is not write)"
+    );
+    assert_eq!(flow.last_ts, 2_000_000, "last_ts updated to 2_000_000");
+
+    // One exception response (FC=0x86)
+    let exc_adu = build_adu(0x0001, 0x01, 0x86, &[0x01]);
+    drive(
+        &mut az,
+        &mut flow,
+        &fk,
+        Direction::ServerToClient,
+        &exc_adu,
+        3_000_000,
+    );
+    assert_eq!(flow.pdu_count, 3, "pdu_count = 3 after three PDUs");
+    assert_eq!(
+        flow.exception_count, 1,
+        "exception_count = 1 after one exception PDU (BC-2.14.019 inv4)"
+    );
+    assert_eq!(flow.last_ts, 3_000_000, "last_ts updated to 3_000_000");
+}
+
+// ---------------------------------------------------------------------------
+// BINDING-006: total_flows_analyzed incremented once per flow (BC-2.14.021 post.3)
+// ---------------------------------------------------------------------------
+
+/// test_binding_total_flows_analyzed_incremented_on_first_pdu
+///
+/// total_flows_analyzed is incremented once per flow, on the flow's first PDU.
+/// Subsequent PDUs on the same flow must NOT re-increment it.
+/// Per BC-2.14.021 post.3.
+#[test]
+fn test_binding_total_flows_analyzed_incremented_on_first_pdu() {
+    let mut az = default_analyzer();
+    let fk = test_flow_key();
+
+    assert_eq!(
+        az.total_flows_analyzed, 0,
+        "initial total_flows_analyzed = 0"
+    );
+
+    // First PDU on flow A
+    let mut flow_a = ModbusFlowState::default();
+    let adu1 = build_adu(0x0001, 0x01, 0x03, &[0x00, 0x00, 0x00, 0x01]);
+    drive(
+        &mut az,
+        &mut flow_a,
+        &fk,
+        Direction::ClientToServer,
+        &adu1,
+        0,
+    );
+    assert_eq!(
+        az.total_flows_analyzed, 1,
+        "total_flows_analyzed = 1 after first PDU on flow A"
+    );
+
+    // Second PDU on the SAME flow — must NOT re-increment
+    let adu2 = build_adu(0x0002, 0x01, 0x03, &[0x00, 0x00, 0x00, 0x01]);
+    drive(
+        &mut az,
+        &mut flow_a,
+        &fk,
+        Direction::ClientToServer,
+        &adu2,
+        100_000,
+    );
+    assert_eq!(
+        az.total_flows_analyzed, 1,
+        "total_flows_analyzed still 1 after second PDU on same flow"
+    );
+
+    // First PDU on a DIFFERENT flow (flow B) — must increment
+    let fk2 = FlowKey::new(
+        std::net::IpAddr::V4(std::net::Ipv4Addr::new(10, 0, 0, 1)),
+        5000,
+        std::net::IpAddr::V4(std::net::Ipv4Addr::new(10, 0, 0, 2)),
+        502,
+    );
+    let mut flow_b = ModbusFlowState::default();
+    let adu3 = build_adu(0x0001, 0x02, 0x03, &[0x00, 0x00, 0x00, 0x01]);
+    drive(
+        &mut az,
+        &mut flow_b,
+        &fk2,
+        Direction::ClientToServer,
+        &adu3,
+        200_000,
+    );
+    assert_eq!(
+        az.total_flows_analyzed, 2,
+        "total_flows_analyzed = 2 after first PDU on flow B"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// BINDING-007: Clear-Counters Path B anomaly (BC-2.14.019 post.B)
+// ---------------------------------------------------------------------------
+
+/// test_binding_clear_counters_path_b_emits_anomaly
+///
+/// FC=0x08 sub-func=0x000A (Clear Counters, ClientToServer) → Anomaly finding with
+/// mitre_techniques: vec![] and category Anomaly (BC-2.14.019 Path B).
+/// Summary must contain "Clear Counters" and "0x08/0x000A".
+#[test]
+fn test_binding_clear_counters_path_b_emits_anomaly() {
+    let mut az = default_analyzer();
+    let mut flow = ModbusFlowState::default();
+    let fk = test_flow_key();
+    // FC=0x08, sub-func=0x000A, ClientToServer
+    let adu = build_adu(0x0001, 0x01, 0x08, &[0x00, 0x0A, 0x00, 0x00]);
+    let findings = drive(
+        &mut az,
+        &mut flow,
+        &fk,
+        Direction::ClientToServer,
+        &adu,
+        1_000_000,
+    );
+
+    let cc = findings
+        .iter()
+        .find(|f| {
+            matches!(f.category, wirerust::findings::ThreatCategory::Anomaly)
+                && f.mitre_techniques.is_empty()
+                && f.summary.contains("Clear Counters")
+        })
+        .expect("FC=0x08/0x000A must emit a Clear Counters Anomaly (BC-2.14.019 Path B)");
+
+    assert!(
+        matches!(cc.verdict, wirerust::findings::Verdict::Inconclusive),
+        "verdict = Inconclusive"
+    );
+    assert!(
+        matches!(cc.confidence, wirerust::findings::Confidence::Medium),
+        "confidence = Medium"
+    );
+    assert!(
+        cc.summary.contains("0x08/0x000A"),
+        "summary must mention FC/sub-func"
+    );
+    assert!(
+        cc.mitre_techniques.is_empty(),
+        "Clear Counters: no MITRE technique (BC-2.14.019 post.B)"
+    );
+    // Must NOT have T0814 (that's for 0x0001/0x0004)
+    assert!(
+        !cc.mitre_techniques.contains(&"T0814".to_string()),
+        "Clear Counters must NOT carry T0814"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// BINDING-008: Response-direction recon emission (BC-2.14.020 EC-010)
+// ---------------------------------------------------------------------------
+
+/// test_binding_recon_fc_0x11_fires_in_response_direction
+///
+/// FC=0x11 in ServerToClient direction must also emit a T0888 finding with
+/// source_ip = server_ip (BC-2.14.020 EC-010: "recon Anomaly still emitted").
+#[test]
+fn test_binding_recon_fc_0x11_fires_in_response_direction() {
+    let mut az = default_analyzer();
+    let mut flow = ModbusFlowState::default();
+    let fk = test_flow_key();
+    // FC=0x11 in ServerToClient direction — server responding to server-id query
+    let adu = build_adu(0x0001, 0x01, 0x11, &[]);
+    let findings = drive(
+        &mut az,
+        &mut flow,
+        &fk,
+        Direction::ServerToClient,
+        &adu,
+        1_000_000,
+    );
+
+    let t0888 = findings
+        .iter()
+        .find(|f| f.mitre_techniques.contains(&"T0888".to_string()))
+        .expect("FC=0x11 in ServerToClient must emit a T0888 finding (BC-2.14.020 EC-010)");
+
+    // source_ip should be server_ip = 192.168.1.100 for ServerToClient
+    let expected_server = std::net::IpAddr::V4(std::net::Ipv4Addr::new(192, 168, 1, 100));
+    assert_eq!(
+        t0888.source_ip,
+        Some(expected_server),
+        "response-direction recon finding source_ip must equal server IP (BC-2.14.020 EC-010)"
+    );
+    assert!(
+        matches!(
+            t0888.direction,
+            Some(wirerust::reassembly::handler::Direction::ServerToClient)
+        ),
+        "direction must be ServerToClient"
+    );
+}
+
+/// test_binding_recon_fc_0x2b_0x0e_fires_in_response_direction
+///
+/// FC=0x2B MEI type=0x0E in ServerToClient → T0888 finding with source_ip = server_ip.
+/// Per BC-2.14.020 EC-010: direction-independent.
+#[test]
+fn test_binding_recon_fc_0x2b_0x0e_fires_in_response_direction() {
+    let mut az = default_analyzer();
+    let mut flow = ModbusFlowState::default();
+    let fk = test_flow_key();
+    let adu = build_adu(0x0001, 0x01, 0x2B, &[0x0E, 0x01, 0x00]);
+    let findings = drive(
+        &mut az,
+        &mut flow,
+        &fk,
+        Direction::ServerToClient,
+        &adu,
+        1_000_000,
+    );
+
+    let t0888 = findings
+        .iter()
+        .find(|f| f.mitre_techniques.contains(&"T0888".to_string()))
+        .expect("FC=0x2B/0x0E in ServerToClient must emit a T0888 finding (BC-2.14.020 EC-010)");
+
+    let expected_server = std::net::IpAddr::V4(std::net::Ipv4Addr::new(192, 168, 1, 100));
+    assert_eq!(
+        t0888.source_ip,
+        Some(expected_server),
+        "response-direction 0x2B/0x0E source_ip must equal server IP"
+    );
+}
