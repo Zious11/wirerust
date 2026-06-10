@@ -4,6 +4,23 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 
 ---
 
+## Archived: 2026-06-09 — Feature #7 F5 CONVERGED — timestamp units fixed; NEXT = F6 targeted hardening (superseded by F7 CONVERGED — NEXT = v0.4.0 human gate)
+
+**POSITION:** wirerust v0.3.0 RELEASED (D-038). Feature #7 Wave 2 COMPLETE (D-042). Feature #7 F5 combined-delta adversarial CONVERGED (D-043) — 1 CRITICAL + 4 HIGH found and RESOLVED (timestamp units micros->seconds, Claude+Gemini independent CRITICAL agreement). Fix PR: `fix/f5-modbus-timestamp-units`. Spec: SS-14 BCs reconciled to seconds (BC-2.14.016/017/019/013 updated); f2-fix-directives §11.5/§11.5b F5-correction banners in place. develop HEAD `dba5f26` + fix-PR branch pending merge.
+
+**VERIFIED-CLEAN FACTS (at F5 CONVERGED):**
+- main HEAD `9ef5af1` — v0.3.0 release commit; annotated tag `v0.3.0`
+- develop HEAD `dba5f26` — STORY-105 merged via PR #214; fix/f5-modbus-timestamp-units fix-PR in flight
+- 244 BCs / 22 VPs (21 locked + VP-022 draft) / 58 stories / 353 pts
+- BC-2.14.013 v2.2 / BC-2.14.016 v2.1 / BC-2.14.017 v2.2 / BC-2.14.019 v1.2 / BC-2.14.021 v1.1
+- Input-hash drift: MATCH=57/STALE=0/ERROR=1 (STORY-091 pre-existing no-inputs; all 6 stale Modbus stories rewritten post-BC-version-bumps)
+- F5 review artifact: `.factory/phase-f5-adversarial/modbus-delta-review.md`
+- GitHub Release: https://github.com/Zious11/wirerust/releases/tag/v0.3.0; 4 binaries
+
+**NEXT (at archival):** F6 targeted hardening (VP-022/VP-004 Kani, fuzz, mutation, cargo audit/deny, DF-TEST-NAMESPACE-001 mod-wrappers, e2e port-502 pcap fixture) — then F7 convergence + human gate -> v0.4.0 release.
+
+---
+
 ## Archived: 2026-06-08 — GITFLOW CORRECTION + v0.1.0 STAGING — AWAITING HUMAN SIGN-OFF (superseded by v0.1.0 RELEASED — pipeline complete)
 
 **POSITION:** Gitflow main-branch correction complete (D-019). v0.1.0 staged via release/v0.1.0 → PR #189 → main merge commit 8928398. Branch protection ACTIVE on main. Awaiting human sign-off before pushing v0.1.0 tag (pause-before-publish).

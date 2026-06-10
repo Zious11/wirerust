@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.2"
+version: "2.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -23,6 +23,9 @@ modified:
   - version: "2.2"
     date: 2026-06-09
     change: "F5 spec defect fix: timestamp units corrected microseconds→seconds to match the pipeline's timestamp_secs delivery (BC-2.09.007; StreamHandler::on_data passes seconds, not microseconds). The f2 microsecond-scale assumption (*1_000_000, elapsed_us, 2_000_000) was wrong. Both burst and sustained window math now uses elapsed_secs = now_ts.wrapping_sub(window_start_ts) where now_ts is in SECONDS. Burst expiry: elapsed_secs > WRITE_BURST_WINDOW_SECS (1). Sustained minimum: elapsed_secs >= WRITE_SUSTAINED_WINDOW_SECS (2); rate check: count > threshold * elapsed_secs (seconds form, no *1_000_000). wrapping_sub retained (u32 second timestamps wrap at ~136 years — never in practice, policy kept for correctness). source_ip fields changed from flow_key.client_ip() (non-existent accessor) to Direction-resolved endpoint: ClientToServer direction → client/initiator endpoint. Canonical test vectors updated to second-scale timestamps. Note: sub-second rate precision is a future enhancement."
+  - version: "2.3"
+    date: 2026-06-09
+    change: "F7 consistency finding F5: burst postcondition 1 summary string corrected to match code emission. Previous spec said '{count} writes in {elapsed_ms}ms window' with {elapsed_ms} = (now_ts - window_start_ts)/1000 — the /1000 formula is dead-letter (now_ts is already in seconds, not microseconds; /1000 would produce sub-second fractions). The code correctly emits '{elapsed_secs}s window'. Fixed: renamed elapsed_ms→elapsed_secs, removed /1000 formula, changed 'ms' unit to 's'. The burst finding summary is now '{count} writes in {elapsed_secs}s window (unit {unit_id}, threshold {threshold}/s)'."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -105,10 +108,10 @@ Targets v0.3.0.
    - `category: ThreatCategory::Execution`
    - `verdict: Verdict::Likely`
    - `confidence: Confidence::High` — burst patterns are high-confidence Brute Force I/O.
-   - `summary`: `"Modbus write burst: {count} writes in {elapsed_ms}ms window (unit {unit_id}, threshold {threshold}/s)"`
-     where `{count}` is `flow.window_write_count`, `{elapsed_ms}` is
-     `(now_ts - flow.window_start_ts) / 1000`, `{unit_id}` is the MBAP Unit ID,
-     and `{threshold}` is `self.write_burst_threshold`.
+   - `summary`: `"Modbus write burst: {count} writes in {elapsed_secs}s window (unit {unit_id}, threshold {threshold}/s)"`
+     where `{count}` is `flow.window_write_count`, `{elapsed_secs}` is
+     `now_ts.wrapping_sub(flow.window_start_ts)` (seconds, per BC-2.09.007 — no /1000),
+     `{unit_id}` is the MBAP Unit ID, and `{threshold}` is `self.write_burst_threshold`.
    - `evidence`: one entry — `"Burst threshold exceeded: {count} write FCs in 1s window; window_write_count={count} window_start_ts={start_ts} threshold={threshold} FC=0x{fc:02X} UnitID={unit_id}"`.
    - `mitre_techniques: vec!["T0806", "T0855"]`
    - `source_ip: Some(<client/initiator endpoint>)` — resolved from the TCP `direction` arg

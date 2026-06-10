@@ -1,0 +1,92 @@
+RED GATE LOG — STORY-102 Modbus MBAP Parse + FC Classification (Pure Core)
+==========================================================================
+Date: 2026-06-09
+Branch: feature/story-102-modbus-parse
+Worktree: /Users/zious/Documents/GITHUB/wirerust/.worktrees/story-102-modbus
+Commit: 5038339
+
+Command: cargo test --all-targets
+
+Result: FAILED (expected — Red Gate confirmed)
+  modbus_parse_tests: 2 passed; 33 failed; 0 ignored (35 total)
+  All other test suites: ALL PASSED (479+ tests across 27 suites)
+
+Failure mode: todo!() panic — correct Red Gate failure.
+Build: cargo build --all-targets exits 0, zero warnings.
+
+Failing tests (33) — all expected todo!() panics:
+
+BC-2.14.001 (parse_mbap_header accept path):
+  - test_BC_2_14_001_returns_some_for_minimum_8_bytes
+  - test_BC_2_14_001_canonical_vector_write_single_register
+  - test_BC_2_14_001_canonical_vector_exception_response
+  - test_BC_2_14_001_exact_8_bytes_minimum_adu
+  - test_BC_2_14_001_trailing_bytes_not_consumed
+  - test_BC_2_14_001_adu_offset_advance_is_6_plus_length
+  - test_BC_2_14_001_invariant_parse_does_not_gate_on_protocol_or_length
+
+BC-2.14.002 (parse_mbap_header truncation safety):
+  - test_BC_2_14_002_returns_none_for_empty_slice
+  - test_BC_2_14_002_returns_none_for_single_byte
+  - test_BC_2_14_002_returns_none_for_seven_bytes
+  - test_BC_2_14_002_returns_none_for_short_slices_boundary_sweep
+
+BC-2.14.003 (protocol_id gate / desync bail):
+  - test_BC_2_14_003_rejects_non_zero_protocol_id
+  - test_BC_2_14_003_rejects_max_protocol_id
+  - test_BC_2_14_003_dos_safe_crafted_huge_length_with_bad_protocol
+  - test_BC_2_14_003_is_non_modbus_bail_simulated
+
+BC-2.14.004 (length gate [2, 254]):
+  - test_BC_2_14_004_length_boundary_values
+  - test_BC_2_14_004_length_253_valid
+  - test_BC_2_14_004_all_zeros_rejected_by_validity_gate
+
+BC-2.14.005 (classify_fc totality):
+  - test_BC_2_14_005_classify_fc_is_total
+  - test_BC_2_14_005_canonical_read_fcs
+  - test_BC_2_14_005_edge_case_fc_0x7f_is_unknown
+  - test_BC_2_14_005_edge_case_fc_0xff_is_exception
+  - test_BC_2_14_005_edge_case_fc_0x01_is_read
+
+BC-2.14.006 (exception biconditional):
+  - test_BC_2_14_006_exception_when_high_bit_set
+  - test_BC_2_14_006_exception_biconditional_all_256_values
+  - test_BC_2_14_006_no_fc_below_0x80_is_exception
+
+BC-2.14.007 (write-class FCs):
+  - test_BC_2_14_007_write_class_completeness
+  - test_BC_2_14_007_write_0x17_classified_as_write
+  - test_BC_2_14_007_write_0x15_and_0x16_classified_as_write
+  - test_BC_2_14_007_no_write_exception_fc_is_write
+  - test_BC_2_14_007_0x08_diagnostics_not_write
+
+BC-2.14.008 (diagnostic-class FCs):
+  - test_BC_2_14_008_diagnostic_class
+  - test_BC_2_14_008_exception_for_0x08_is_exception_not_diagnostic
+
+Passing tests (2) — structurally correct without implementation:
+  - test_BC_2_14_003_is_non_modbus_flag_defaults_to_false
+    (ModbusFlowState::default() exists in stub; is_non_modbus=false is the struct init value)
+  - test_BC_2_14_006_original_fc_recovered_via_mask
+    (pure constant arithmetic: 0x83u8 & 0x7F == 0x03, etc. — no function call needed)
+
+These two passing tests are correct: they test structural properties of the stub
+(the Default impl) and pure constant arithmetic (no classify_fc call). They are NOT
+vacuous; they verify real contracts. Both will remain green after implementation.
+
+VP-022 Kani harnesses: present as #[cfg(kani)] stubs in src/analyzer/modbus.rs.
+Not exercised by cargo test; run via `cargo kani` in the formal-hardening wave (F6).
+
+DONE_WITH_CONCERNS: BC-2.14.004 canonical vectors state length range [2, 254]
+(len=254 → true, len=255 → false). STORY-102 AC-005 states len=254 → false.
+Tests follow BC-2.14.004. The spec steward should resolve the one-off discrepancy
+before Green Gate review. The test test_BC_2_14_004_length_boundary_values documents
+this concern inline.
+
+Red Gate status: VERIFIED — implementation phase may begin.
+Files created:
+  - src/analyzer/modbus.rs (stub: MbapHeader, FunctionCodeClass, ModbusFlowState,
+    todo!() bodies, #[cfg(kani)] harnesses)
+  - src/analyzer/mod.rs (modified: pub mod modbus; added)
+  - tests/modbus_parse_tests.rs (35 tests across BC-2.14.001 through BC-2.14.008 + AC-013)

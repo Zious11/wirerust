@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.1"
+version: "2.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -20,6 +20,9 @@ modified:
   - version: "2.1"
     date: 2026-06-09
     change: "BC-DISCREPANCY-001 reconciliation: FC 0x17 (Read/Write Multiple Registers) added to the T0836 holding-register write set. The register-write FC set is now {0x06, 0x10, 0x16, 0x17} (consistent with BC-2.14.016). Title, description, precondition 3, invariant 1, and invariant 4 updated. Invariant 4 no longer lists 0x17 as a T0855-only FC. Orchestrator ruling: 0x17 writes holding registers -> Modify Parameter (T0836)."
+  - version: "2.2"
+    date: 2026-06-09
+    change: "F5 spec defect fix (F7 consistency finding F2): source_ip postcondition changed from flow_key.client_ip() (non-existent accessor — FlowKey only has lower_ip/upper_ip/lower_port/upper_port) to Direction-resolved client/initiator endpoint. Write-class PDUs are always ClientToServer; resolve initiator endpoint from flow_key.lower_ip()/upper_ip() combined with the direction arg passed to on_data. Mirrors BC-2.14.013 v2.2 and BC-2.14.017 v2.2 correction."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -81,7 +84,10 @@ FC subset: holding registers {0x06, 0x10, 0x16, 0x17} → T0836 tag; coil output
    - `summary`: `"Modbus write command observed: FC 0x{fc:02X} from unit {unit_id}"`
    - `evidence`: one entry — `"FC=0x{fc:02X} TxnID={txn_id:#06X} UnitID={unit_id} ADU bytes {start}..{end}"`.
    - `mitre_techniques: vec!["T0855", "T0836"]`
-   - `source_ip: Some(flow_key.client_ip())`
+   - `source_ip: Some(<client/initiator endpoint>)` — `FlowKey` has no `client_ip()` accessor;
+     resolve using the `direction` arg and `flow_key.lower_ip()` / `flow_key.upper_ip()`.
+     For `Direction::ClientToServer`, the client/initiator endpoint is determinable from the
+     `Direction` value combined with the flow key's lower/upper address pair.
    - `timestamp: Some(...)` — pcap-relative capture timestamp per BC-2.09.007.
    - `direction: Some(Direction::ClientToServer)`
 2. When the T0831 coordinated-write condition is also met (2nd+ holding-register write within

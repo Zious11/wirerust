@@ -22,6 +22,9 @@ modified:
   - date: 2026-06-09
     actor: architect
     reason: "F2 delta (issue #7 Modbus TCP): VP-022 added (draft; Kani; P1; analyzer/modbus.rs). New module row added. Kani 8→9, Total 21→22."
+  - date: 2026-06-09
+    actor: spec-steward
+    reason: "F7 consistency fix F1 — VP-022 locked/verified at F6 (Kani 4/4 SUCCESSFUL @ develop 68a3306); propagate lock: Status draft→verified. All 22 VPs now verified; draft count 0."
 ---
 
 # Verification Coverage Matrix
@@ -51,7 +54,7 @@ modified:
 | VP-019 | DNS statistics-only (no findings) | analyzer/dns.rs | unit | test-sufficient | verified |
 | VP-020 | CSV injection neutralization | reporter/csv.rs | unit | test-sufficient | verified |
 | VP-021 | Timestamp provenance threading | reassembly/mod.rs | integration+proptest | test-sufficient | verified |
-| VP-022 | Modbus MBAP parse safety + FC boundary classification | analyzer/modbus.rs | Kani | P1 | draft |
+| VP-022 | Modbus MBAP parse safety + FC boundary classification | analyzer/modbus.rs | Kani | P1 | verified |
 
 
 ## Per-Module Coverage Totals
@@ -85,6 +88,9 @@ modified:
   verification_lock=true is set on all those VP documents.
 - VP-021 is `verified` — locked at F6 formal hardening gate (2026-06-09 @ develop 256a490). verification_lock=true.
   Proof evidence: tests/timestamp_threading_tests.rs (integration + proptest). 1147 tests green.
+- VP-022 is `verified` — locked at F6 formal hardening gate (2026-06-09 @ develop 68a3306). verification_lock=true.
+  Proof evidence: Kani 4/4 harnesses SUCCESSFUL (verify_parse_mbap_header_safety, verify_is_valid_modbus_adu_gate,
+  verify_classify_fc_total, verify_classify_fc_exception_iff_high_bit). See .factory/phase-f6-hardening/kani-results.md.
 
 - `module-criticality.md` defines kill-rate targets that constrain the minimum proof
   depth for each module. CRITICAL modules (reassembly/segment.rs, reassembly/flow.rs,

@@ -104,7 +104,7 @@ struct ModbusFlowState {
     window_burst_emitted: bool,
 
     // --- NEW: T0806/T0855 sustained-rate window (configurable threshold, >=2s rolling) ---
-    /// Start timestamp of the current sustained-rate accumulation window (pcap-relative u32 us).
+    /// Start timestamp of the current sustained-rate accumulation window (pcap-relative u32 seconds).
     sustained_window_start_ts: u32,
     /// Write-class FC count accumulated since sustained_window_start_ts.
     sustained_window_write_count: u32,
@@ -168,73 +168,10 @@ struct ModbusFlowState {
 > and §11.5a. The BC-2.14.017 v2.2 specification is the authoritative corrected form.
 > Sub-second rate precision is a future enhancement requiring `timestamp_usecs` threading.
 
-On each write-class FC (request direction), after the burst window update:
-
-1. **Window initialization:** If `sustained_window_start_ts == 0` (initial state), set
-   `sustained_window_start_ts = now_ts` and `sustained_window_write_count = 1`.
-
-2. **Accumulate:** Otherwise increment `sustained_window_write_count`.
-
-3. **Window duration check:** Compute `elapsed_us = now_ts.wrapping_sub(sustained_window_start_ts)`
-   using `wrapping_sub` (u32 wrapping subtraction). This is correct for pcap-relative timestamps
-   that start near 0, and correct under the Timestamp Wrap Policy (see §11.5a below).
-   **Do NOT convert to seconds** — the truncation `elapsed_secs = elapsed_us / 1_000_000`
-   is eliminated entirely (see §11.5a for the defect this avoids).
-
-4. **Detection trigger** (truncation-free microsecond-scale integer math — no division):
-   - If `elapsed_us >= WRITE_SUSTAINED_WINDOW_SECS * 1_000_000` AND
-     `(sustained_window_write_count as u64) * 1_000_000 > (write_sustained_threshold as u64) * (elapsed_us as u64)` AND
-     `!sustained_burst_emitted`:
-     - Emit T0806 + T0855 (sustained variant) findings.
-     - Set `sustained_burst_emitted = true`.
-
-5. **Window reset:** When `elapsed_us >= WRITE_SUSTAINED_WINDOW_SECS * 1_000_000`, after
-   detection evaluation, always reset (whether or not a finding fired): slide the window
-   forward — reset `sustained_window_start_ts = now_ts`, `sustained_window_write_count = 1`,
-   `sustained_burst_emitted = false`. This prevents the accumulated count from growing
-   unboundedly.
-
-6. **Emit-once semantics:** `sustained_burst_emitted = true` after the first T0806+T0855
-   sustained pair fires within the window. Subsequent writes in the same window do NOT re-fire.
-   The flag is reset on window advancement (step 5).
-
-### 11.5a Defect Eliminated: Integer-Truncation False Positives (Gemini Adversarial Finding)
-
-The prior formulation divided `elapsed_us` by `1_000_000` to get `elapsed_secs` (integer
-division), then compared `sustained_window_write_count > write_sustained_threshold * elapsed_secs`.
-This introduced a systematic false-positive bias: integer division truncates the elapsed time,
-making the window appear shorter than it is.
-
-**Concrete counterexample (prior formula):**
-- 25 writes accumulated; `elapsed_us = 2_900_000` µs (2.9 seconds, real rate = 8.6/s)
-- `elapsed_secs = 2_900_000 / 1_000_000 = 2` (truncates 0.9 s)
-- Check: `25 > 10 * 2 = 20` → TRUE → fires T0806 (FALSE POSITIVE)
-- Real rate (8.6/s) is below the 10/s threshold; detection should NOT fire.
-
-**Corrected formula (cross-multiplication, no division):**
-- Same inputs: `elapsed_us = 2_900_000`
-- Check: `(25 as u64) * 1_000_000 = 25_000_000 > (10 as u64) * 2_900_000 = 29_000_000` → FALSE
-- Correctly does NOT fire.
-
-**Detection math summary (canonical, truncation-free):**
-
-```
-elapsed_us := now_ts.wrapping_sub(sustained_window_start_ts)   // u32 wrapping sub
-
-trigger := elapsed_us >= WRITE_SUSTAINED_WINDOW_SECS * 1_000_000
-         AND (sustained_window_write_count as u64) * 1_000_000
-             > (write_sustained_threshold as u64) * (elapsed_us as u64)
-         AND NOT sustained_burst_emitted
-```
-
-The u64 cast on both sides of the rate comparison prevents overflow: maximum values are
-`65535 * 1_000_000 = 65_535_000_000` (fits in u64; u32 max is ~4.3 billion, so u64 is required
-if `sustained_window_write_count` could approach u32::MAX — it is bounded in practice by the
-MAX_FINDINGS cap and typical capture durations, but the u64 cast is mandatory for correctness).
-
-For defaults at exactly 2 s (`elapsed_us = 2_000_000`):
-- Fires if `count * 1_000_000 > 10 * 2_000_000 = 20_000_000`, i.e., count ≥ 21 writes.
-- Equivalent to: strict average > 10/s over the elapsed window.
+~~Steps 1–6 and §11.5a (microsecond-scale body) removed by F5 correction (2026-06-09).~~
+~~The superseded microsecond steps (`elapsed_us`, `*1_000_000`, cross-multiplication formula)~~
+~~are no longer authoritative. See BC-2.14.017 v2.2 Invariant §2 for the canonical~~
+~~seconds-scale sustained-window detection algorithm.~~
 
 ### 11.5b Timestamp Wrap Policy (u32 pcap-relative seconds)
 

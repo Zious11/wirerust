@@ -1,0 +1,95 @@
+# STORY-104 Red Gate Log
+
+**Date:** 2026-06-09
+**Story:** STORY-104 — Modbus Detection Emissions + Summary
+**Branch:** feature/story-104-modbus-detections
+**Worktree:** .worktrees/story-104-modbus
+**Commit:** 35df5d2
+
+## Red Gate Result: PASS
+
+All 40 new detection tests FAIL. All existing 559 tests remain GREEN.
+
+```
+test result: FAILED. 0 passed; 40 failed; 0 ignored; 0 measured; 0 filtered out
+```
+
+## Failing Tests (40)
+
+All 40 fail with `todo!()` panic at `src/analyzer/modbus.rs:316:9`:
+```
+not yet implemented: STORY-104: implement process_pdu detection engine (BC-2.14.013–022)
+```
+
+| Test | BC |
+|------|----|
+| test_BC_2_14_013_014_holding_register_write_emits_t0855_t0836 | BC-2.14.013/014 |
+| test_BC_2_14_013_014_fc_0x10_emits_t0855_t0836 | BC-2.14.014 |
+| test_BC_2_14_013_014_fc_0x16_emits_t0855_t0836 | BC-2.14.014 |
+| test_BC_2_14_013_015_coil_write_emits_t0855_t0835 | BC-2.14.013/015 |
+| test_BC_2_14_013_015_fc_0x05_emits_t0855_t0835 | BC-2.14.015 |
+| test_BC_2_14_013_file_write_emits_t0855_only | BC-2.14.013 inv.2 |
+| test_BC_2_14_013_fc_0x17_emits_t0855_only_per_pdu_finding | BC-2.14.013 EC-001 |
+| test_BC_2_14_016_t0831_inline_cotag_on_second_holding_register_write | BC-2.14.016 |
+| test_BC_2_14_016_t0831_window_reset_after_5s | BC-2.14.016 inv.2 |
+| test_BC_2_14_016_t0831_window_update_before_emission_ordering | BC-2.14.016 inv.2 |
+| test_BC_2_14_016_t0831_wrapping_sub_wrap | BC-2.14.016 + §11.5b |
+| test_BC_2_14_017_burst_detector_fires_at_threshold_plus_1 | BC-2.14.017 inv.1 |
+| test_BC_2_14_017_burst_does_not_fire_at_exactly_threshold | BC-2.14.017 inv.1 |
+| test_BC_2_14_017_burst_emit_once_per_window | BC-2.14.017 inv.1 |
+| test_BC_2_14_017_sustained_detector_uses_truncation_free_math_no_false_positive | BC-2.14.017 inv.2 + §11.5a |
+| test_BC_2_14_017_sustained_detector_fires_when_rate_exceeded | BC-2.14.017 inv.2 |
+| test_BC_2_14_017_sustained_low_and_slow_fires | BC-2.14.017 (motivation) |
+| test_BC_2_14_017_window_elapsed_uses_wrapping_sub_no_panic | BC-2.14.017 + §11.5b |
+| test_BC_2_14_018_diagnostics_force_listen_only_emits_t0814 | BC-2.14.018 |
+| test_BC_2_14_018_diagnostics_restart_comms_emits_t0814 | BC-2.14.018 |
+| test_BC_2_14_018_diagnostics_other_subfunc_does_not_emit_t0814 | BC-2.14.018 inv.2 |
+| test_BC_2_14_019_exception_burst_emits_anomaly_finding | BC-2.14.019 |
+| test_BC_2_14_019_exception_burst_does_not_fire_at_threshold | BC-2.14.019 pre.5 |
+| test_BC_2_14_019_exception_burst_emit_once_per_window | BC-2.14.019 post.2 |
+| test_BC_2_14_020_recon_fc_0x11_emits_t0888 | BC-2.14.020 |
+| test_BC_2_14_020_recon_fc_0x2b_0x0e_emits_t0888 | BC-2.14.020 |
+| test_BC_2_14_020_recon_fc_0x2b_non_0x0e_does_not_emit_t0888 | BC-2.14.020 EC-005 |
+| test_BC_2_14_020_fc_0x07_does_not_emit_t0888 | BC-2.14.020 (Decision 12) |
+| test_BC_2_14_020_unknown_fc_emits_anomaly | BC-2.14.020 post.1 (unknown) |
+| test_BC_2_14_021_summarize_returns_six_keys | BC-2.14.021 post.1 |
+| test_BC_2_14_021_summarize_pdu_count_correct | BC-2.14.021 inv.4 |
+| test_BC_2_14_021_summarize_write_count_correct | BC-2.14.021 inv.4 |
+| test_BC_2_14_021_summarize_dropped_findings_always_present | BC-2.14.021 inv.1 |
+| test_BC_2_14_021_summarize_function_code_distribution_hex_format | BC-2.14.021 inv.3 |
+| test_BC_2_14_021_summarize_function_code_distribution_no_zero_entries | BC-2.14.021 inv.2 |
+| test_BC_2_14_022_max_findings_cap_poison_skip | BC-2.14.022 post.1-4 |
+| test_BC_2_14_022_dropped_findings_counts_each_skipped_push | BC-2.14.022 post.2 |
+| test_BC_2_14_022_counters_unaffected_by_cap | BC-2.14.022 post.3 |
+| test_BC_2_14_022_EC003_second_finding_dropped_when_cap_at_9999 | STORY-104 EC-003 |
+| test_BC_2_14_013_burst_and_per_pdu_finding_are_separate | BC-2.14.013 inv.5 |
+
+## Existing Tests: All Green
+
+559 pre-existing tests across all other test files pass without regressions.
+`cargo build --all-targets` exits 0 (clean compile, zero warnings).
+
+## Stub Changes
+
+**src/analyzer/modbus.rs:**
+- Added module-level imports: `AnalysisSummary`, `Finding`, `FlowKey`, `Direction`
+- Added constants: `MAX_FINDINGS=10_000`, `T0831_WINDOW_SECS=5`,
+  `WRITE_BURST_WINDOW_SECS=1`, `WRITE_SUSTAINED_WINDOW_SECS=2`,
+  `DEFAULT_WRITE_BURST_THRESHOLD=20`, `DEFAULT_WRITE_SUSTAINED_THRESHOLD=10`,
+  `EXCEPTION_RATE_THRESHOLD=5`, `EXCEPTION_WINDOW_SECS=10`
+- Added fields to `ModbusAnalyzer`: `total_exception_count`, `parse_errors`,
+  `all_findings: Vec<Finding>`, `dropped_findings: u64`, `total_flows_analyzed: u64`
+- Added stub: `fn process_pdu(...) -> Vec<Finding> { todo!() }`
+- Added stub: `fn summarize(&self) -> AnalysisSummary { todo!() }`
+
+**tests/modbus_detection_tests.rs** (new file):
+- 40 tests covering BC-2.14.013–022 + AC-001 through AC-012 + EC-003
+
+## BC Discrepancy Flagged
+
+**BC-DISCREPANCY-001** (noted inline in `test_BC_2_14_013_fc_0x17_emits_t0855_only_per_pdu_finding`):
+- BC-2.14.013 EC-001 states FC=0x17 → `["T0855"]` only (not T0836)
+- BC-2.14.016 union-tagging table row 1 states FC {0x06,0x10,0x16,0x17} → `["T0855","T0836"]`
+  for the first write in a window.
+- The test follows BC-2.14.013 EC-001 (write-class BC is primary authority for tag composition).
+- Requires spec-steward resolution before implementation of this path.

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.1"
+version: "2.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -20,6 +20,9 @@ modified:
   - version: "2.1"
     date: 2026-06-09
     change: "BC-DISCREPANCY-001 reconciliation: corrected stale references that described FC 0x17 as carrying T0855 only. FC 0x17 is now in the T0836 holding-register set (per BC-2.14.013/014 v2.1 and BC-2.14.016). Precondition 3, Invariant 2 (0x17 entry), EC-004, and the 0x17 canonical test vector updated to reflect that 0x17 -> [T0855, T0836]. The T0835 coil-only set {0x05, 0x0F} is unchanged."
+  - version: "2.2"
+    date: 2026-06-09
+    change: "F5 spec defect fix (F7 consistency finding F2): source_ip postcondition changed from flow_key.client_ip() (non-existent accessor — FlowKey only has lower_ip/upper_ip/lower_port/upper_port) to Direction-resolved client/initiator endpoint. Write-class PDUs are always ClientToServer; resolve initiator endpoint from flow_key.lower_ip()/upper_ip() combined with the direction arg passed to on_data. Mirrors BC-2.14.013 v2.2 and BC-2.14.017 v2.2 correction."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -80,7 +83,10 @@ Targets v0.3.0.
    - `summary`: `"Modbus write command observed: FC 0x{fc:02X} from unit {unit_id}"`
    - `evidence`: one entry — `"FC=0x{fc:02X} TxnID={txn_id:#06X} UnitID={unit_id} ADU bytes {start}..{end}"`.
    - `mitre_techniques: vec!["T0855", "T0835"]`
-   - `source_ip: Some(flow_key.client_ip())`
+   - `source_ip: Some(<client/initiator endpoint>)` — `FlowKey` has no `client_ip()` accessor;
+     resolve using the `direction` arg and `flow_key.lower_ip()` / `flow_key.upper_ip()`.
+     For `Direction::ClientToServer`, the client/initiator endpoint is determinable from the
+     `Direction` value combined with the flow key's lower/upper address pair.
    - `timestamp: Some(...)` — pcap-relative capture timestamp per BC-2.09.007.
    - `direction: Some(Direction::ClientToServer)`
 2. `flow.write_count` and `self.total_write_count` incremented once per PDU.

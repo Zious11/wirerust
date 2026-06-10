@@ -1,6 +1,6 @@
 ---
-pipeline: V0.3.0_RELEASED
-phase: feature-f3
+pipeline: V0.4.0_PENDING_RELEASE
+phase: feature-f7
 active_feature: issue-7-modbus-tcp-analyzer
 product: wirerust
 mode: brownfield
@@ -22,7 +22,7 @@ phase_6_completed: "2026-06-02"
 phase_6_to_7_gate: "PASSED (human-approved 2026-06-02)"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-08 — Approve → release-prep)"
 adversary_gate: SATISFIED
-develop_head: dba5f26
+develop_head: 70abc27
 main_head: 9ef5af1
 released_version: v0.3.0
 released_at: "2026-06-09"
@@ -44,16 +44,16 @@ dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 convergence_trajectory: "P1-MED|P2-MED|P3-HIGH+LOW|P4-MED|P5-ZERO|P6-HIGH+MED|P7-MED+LOW|P8-HIGH|P9-ZERO|P10-MED+MED+LOW|P11-MED+LOW|P12-CLEAN(1/3)|P13-CLEAN(2/3)|P14-CLEAN(3/3)-GATE-SATISFIED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 consistency_audit: CONSISTENT
-input_drift_check: "CLEAN — MATCH=57/STALE=0 (post D-043 F5 BC reconciliation; 6 Modbus stories rewritten post-BC-version-bumps; STORY-091 no-inputs ERROR pre-existing)"
+input_drift_check: "CLEAN — MATCH=57/STALE=0 (post D-044 F7 consistency sweep; 6 Modbus stories rewritten post BC-2.14.014/015/017 version bumps; STORY-091 no-inputs ERROR pre-existing)"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**Pipeline: V0.3.0_RELEASED (D-038). Feature #7 Wave 2 COMPLETE (D-042).** Wave 1 (E-13 multi-tag) RELEASED as v0.3.0. All 4 Modbus stories delivered: STORY-102 PR #211 (26d58bb), STORY-103 PR #212 (d894464), STORY-104 PR #213, STORY-105 PR #214 (dba5f26). Modbus analyzer LIVE end-to-end on develop. 1324 tests green; clippy+fmt clean. NEXT: v0.4.0 release path (F5 combined-delta adversarial + F6 hardening [VP-022/VP-004 Kani, fuzz, mutation] + F7 convergence gate) — pending human decision.
+**Pipeline: V0.4.0_PENDING_RELEASE (D-044). Feature #7 v0.4.0 Modbus F7 CONVERGED.** F5 CRITICAL timestamp-units fix (PR #215) + F6 Kani 5/5 / fuzz 3.7M / mutation 100% (PR #216) + F7 e2e port-502 pcap + DF-TEST-NAMESPACE-001 mod-wrappers (PR #217). Consistency sweep: 5 spec-doc propagation shadows all FIXED (VP-022 lock, BC-2.14.014/015 client_ip, BC-INDEX 0x17 title, f2-directives micros residue, BC-2.14.017 burst-summary). 1338 tests green; clippy+fmt clean; 9/9 CI. NEXT: v0.4.0 human gate -> gitflow release.
 
-**Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 244 BCs, 22 VPs (21 locked, 1 draft VP-022), 1324 tests green, holdout mean 0.99, adversary convergence 6 PASS / 1 non-blocking CONCERN. develop HEAD dba5f26 (STORY-105 merged via PR #214). Feature #7: v0.3.0 multi-tag RELEASED (Wave 31); Waves 32-34 ALL DELIVERED (STORY-102/103/104/105); Modbus analyzer LIVE.
+**Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 244 BCs, 22 VPs (all 22 verified/locked, 0 draft), 1338 tests green, holdout 0.967. develop HEAD 70abc27 (PR #217 merged). Feature #7: Modbus analyzer LIVE + F7 CONVERGED — all 5 dims PASS.
 
 ## Phase Progress
 
@@ -75,44 +75,41 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post D-043 F5 BC reconciliation;
 | Feature #7 F4 Wave 1 — E-13 Multi-Tag Migration | **DELIVERED** 2026-06-09 | STORY-100+101 PR #209 -> develop c846b3b; 1189 tests; 9/9 CI; AI review APPROVE; OPEN: mitre_attack_version F4-PIN; D-037 |
 | Release — v0.3.0 | **RELEASED** 2026-06-09 | gitflow-proper: release/0.3.0 → PR #210 → 9ef5af1; 4 binaries; run 27240476896; GitHub Release published; BREAKING: mitre_techniques array (ECS-aligned); F4-PIN resolved ics-attack-19.1; D-038 |
 | Feature #7 F4 Wave 2 — E-14 Modbus Core | **COMPLETE** 2026-06-09 | All 4 stories MERGED: PR #211 (STORY-102, 26d58bb), PR #212 (STORY-103, d894464), PR #213 (STORY-104, dba...), PR #214 (STORY-105, dba5f26). 1324 tests. Modbus LIVE. D-042 |
+| Feature #7 F5/F6/F7 — Hardening + Convergence | **F7 CONVERGED** 2026-06-09 | F5 CRITICAL timestamp-units (PR #215); F6 Kani 5/5 + fuzz 3.7M/0 + mutation 100% + audit clean (PR #216); F7 e2e + mod-wrappers (PR #217, 70abc27). Consistency 5-shadow sweep FIXED. 1338 tests. Holdout 0.967. D-044 |
 
-## Session Resume Checkpoint (2026-06-09 — Feature #7 F5 CONVERGED — timestamp units fixed; NEXT = F6 targeted hardening)
+## Session Resume Checkpoint (2026-06-09 — Feature #7 v0.4.0 F7 CONVERGED — NEXT = v0.4.0 human gate -> gitflow release)
 
-**POSITION:** wirerust v0.3.0 RELEASED (D-038). Feature #7 Wave 2 COMPLETE (D-042). Feature #7 F5 combined-delta adversarial CONVERGED (D-043) — 1 CRITICAL + 4 HIGH found and RESOLVED (timestamp units micros->seconds, Claude+Gemini independent CRITICAL agreement). Fix PR: `fix/f5-modbus-timestamp-units`. Spec: SS-14 BCs reconciled to seconds (BC-2.14.016/017/019/013 updated); f2-fix-directives §11.5/§11.5b F5-correction banners in place. develop HEAD `dba5f26` + fix-PR branch pending merge.
+**POSITION:** wirerust v0.3.0 RELEASED (D-038). Feature #7 v0.4.0 Modbus TCP analyzer F7 CONVERGED (D-044). All 5 convergence dimensions PASS. 1338 tests green (PR #217 develop 70abc27). Consistency sweep 5-shadow FIXED. NEXT: v0.4.0 human gate approval -> gitflow release.
 
-**VERIFIED-CLEAN FACTS (at F5 CONVERGED):**
+**VERIFIED-CLEAN FACTS (at F7 CONVERGED):**
 - main HEAD `9ef5af1` — v0.3.0 release commit; annotated tag `v0.3.0`
-- develop HEAD `dba5f26` — STORY-105 merged via PR #214; fix/f5-modbus-timestamp-units fix-PR in flight
-- 244 BCs / 22 VPs (21 locked + VP-022 draft) / 58 stories / 353 pts
-- BC-2.14.013 v2.2 / BC-2.14.016 v2.1 / BC-2.14.017 v2.2 / BC-2.14.019 v1.2 / BC-2.14.021 v1.1
-- Input-hash drift: MATCH=57/STALE=0/ERROR=1 (STORY-091 pre-existing no-inputs; all 6 stale Modbus stories rewritten post-BC-version-bumps)
-- F5 review artifact: `.factory/phase-f5-adversarial/modbus-delta-review.md`
+- develop HEAD `70abc27` — PR #217 (e2e port-502 pcap fixture + DF-TEST-NAMESPACE-001 mod-wrappers) merged
+- 244 BCs / 22 VPs (ALL 22 verified/locked, 0 draft) / 58 stories / 353 pts
+- VP-022 LOCKED @ 68a3306 (Kani 5/5 SUCCESSFUL: parse-safety, gate, classify-total, exception-bitvec + VP-004 oracle)
+- Input-hash drift: MATCH=57/STALE=0/ERROR=1 (STORY-091 pre-existing; STORY-100..105 rewritten post BC-2.14.014/015/017 v-bumps, D-044)
+- Holdout: 0.967 (no must-pass < 0.6; timestamp-year e2e correct end-to-end)
+- F7 convergence report: `.factory/phase-f7-convergence/modbus-delta-convergence-report.md`
 - GitHub Release: https://github.com/Zious11/wirerust/releases/tag/v0.3.0; 4 binaries
 
-**NEXT = F6 targeted hardening (v0.4.0 path):**
-- Run VP-022 Kani proofs (`cargo kani`) — kani IS installed (confirmed)
-- Run VP-004 Kani oracle extension
-- Fuzz Modbus parse (cargo fuzz)
-- Mutation test modbus.rs (--in-diff or targeted)
-- cargo audit/deny (RUSTSEC-2026-0097 accepted-transitive still applies)
-- DF-TEST-NAMESPACE-001 mod-wrappers (modbus test flat namespace)
-- e2e port-502 pcap fixture (F-105-003)
-- Then F7 convergence + human gate -> v0.4.0 release
+**NEXT = v0.4.0 release path:**
+1. Human gate approval (all 5 dims PASS, 1338 tests, consistency CONSISTENT — ready)
+2. Cut `release/0.4.0` from `develop` (HEAD 70abc27)
+3. Version bump (Cargo.toml 0.3.0 -> 0.4.0) + CHANGELOG [0.4.0] (Modbus TCP analyzer; ICS detectors T0855/T0836/T0831/T0835/T0806/T0814/T0888; --modbus-write-threshold flag)
+4. PR release/0.4.0 -> main -> merge -> annotated tag v0.4.0
+5. Back-merge main -> develop (no divergence)
 
 **CARRY-FORWARD ITEMS (do NOT lose):**
-- DEFERRED to v0.4.0 F6: VP-022 Kani run; VP-004 Kani oracle extension; e2e port-502 pcap fixture (F-105-003)
-- DEFERRED: DF-TEST-NAMESPACE-001 modbus test mod-wrappers; terminal per-ID multi-unknown name resolution (BC-2.11.017)
-- Sub-second rate precision deferred (needs timestamp_usecs threaded through on_data — new BC addition)
-- 3 LOW STORY-104 deferrals: recon test ==1; DF-TEST-NAMESPACE-001 flat namespace; 0xFF exception sentinel
 - #101 (FP/TP rate characterization): OPEN-DEBT; #103 (size-symmetry): DEFERRED
 - STORY-091: draft, P1, 5 pts, E-11 — deferred to next cycle
 - ACTION-PIN-001: dtolnay/rust-toolchain @stable/@nightly intentionally exempt from pin gate
 - Drift items: O-07, O-08, F-W25-S088-P6-001
 - RUSTSEC-2026-0097: accepted-transitive
 - PG-5/PG-6/PROCESS-ARITHMETIC-REVIEW-001: codification pending cycle-close
-- Process-gap codification candidate (F5): any analyzer consuming on_data(timestamp:u32) must have >=1 test through dispatcher/reassembler boundary with timestamp_secs-shaped values
+- Sub-second rate precision deferred (needs timestamp_usecs threaded through on_data)
+- Terminal per-ID multi-unknown name resolution (BC-2.11.017): deferred
+- Post-release follow-up: exception-burst anomaly no MITRE tag; coarse port-502 service-label in summary (both pre-existing/minor)
 
-Prior checkpoint (Wave 2 COMPLETE — Modbus LIVE) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
+Prior checkpoint (F5 CONVERGED — NEXT = F6 targeted hardening) archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
 ## Decisions Log
 
@@ -161,6 +158,7 @@ Prior checkpoint (Wave 2 COMPLETE — Modbus LIVE) archived: cycles/v0.1.0-green
 | D-041 | Feature #7 Wave 2 — STORY-103 (transaction correlation) MERGED via PR #212 (develop d894464). STORY-104 (Modbus detection engine) CONVERGED + delivering: process_pdu with 7 ICS MITRE detectors (T0855/T0836/T0835/T0831/T0806/T0814/T0888), multi-tag union co-emission (1 finding/write PDU, DoS-bounded), dual-window burst(1s)+sustained(>=2s truncation-free microsecond math) rate detection, exception-burst anomaly (per-code 10s window), MAX_FINDINGS cap, summarize 6-key. 1296 tests. Per-story convergence: Claude + Gemini cross-model BOTH independently caught 2 blocking defects (source_ip=None on all findings; exception-window start_ts never anchored -> infinite 10s window) + dead per-flow counters; all fixed + 9 binding tests; re-pass CONVERGED. Strong cross-model agreement (both families found the same root defects). BC-DISCREPANCY-001 resolved: FC 0x17 Read/Write Multiple Registers writes holding registers -> [T0855,T0836]; reconciled BC-2.14.013/014/015 v2.1 so T0836 set=={0x06,0x10,0x16,0x17}==T0831 set, T0835 coil-only {0x05,0x0F}, 0x15 T0855-only. 3 LOW deferred: recon test ==1; DF-TEST-NAMESPACE-001 modbus_detection_tests flat namespace; 0xFF exception sentinel. dual-window/cap/co-emission verified regression-free. STORY-104 input-hash recomputed: 56a3714->e89c401 (BC-2.14.013/014/015 v2.1 inputs changed); MATCH=57/STALE=0/ERROR=1. | 2026-06-09 | Feature #7 Wave 2 — STORY-103 merged + STORY-104 converged + BC-DISCREPANCY-001 (0x17) reconciled |
 | D-042 | Feature #7 Wave 2 (E-14 Modbus TCP Analyzer) COMPLETE — all 4 stories delivered, analyzer LIVE end-to-end. STORY-104 (detection engine) MERGED PR #213; STORY-105 (dispatcher integration + CLI) MERGED PR #214 (develop dba5f26). The Modbus analyzer: MBAP parse + FC classify (VP-022 Kani) [102], transaction correlation + bounded pending [103], 7 ICS MITRE detectors + dual-window + multi-tag co-emission + summary [104], dispatcher port-502 Rule-5 + StreamHandler with segment-spanning carry buffer + CLI [105]. 1324 tests green; clippy+fmt clean; all CI green. Per-story adversarial: Claude + Gemini cross-model on EVERY story — caught real defects each pass (STORY-102 Kani-harness tautology; STORY-103 duplicate-counter false-green; STORY-104 source_ip=None + infinite exception window [both models]; STORY-105 serde-rename breaking regression + partial-ADU buffering [both models]). The hybrid repeatedly caught defect classes one model missed; Gemini hallucinations caught by verification. BC-DISCREPANCY-001 (0x17) resolved. DEFERRED to v0.4.0 release hardening: VP-022 + VP-004 Kani run (kani not in local env -> F6); e2e port-502 pcap fixture (F-105-003); DF-TEST-NAMESPACE-001 modbus test mod-wrappers; terminal per-ID multi-unknown name resolution; O-1 EMITTED-naming now satisfied (Modbus emits the 7 ICS techniques). | 2026-06-09 | Feature #7 Wave 2 COMPLETE — Modbus analyzer live (STORY-102/103/104/105) |
 | D-043 | Feature #7 v0.4.0 F5 combined-delta adversarial CONVERGED. Claude + Gemini cross-model on the WHOLE Modbus analyzer caught a CRITICAL the per-story reviews missed: timestamp units mismatch (process_pdu treated on_data timestamp as microseconds; pipeline delivers seconds per BC-2.09.007) — wrong finding timestamps + non-functional rate-detection windows. Both models independently rated CRITICAL. Fixed: code seconds-based windows + DateTime::from_timestamp(ts,0) + e2e dispatcher test; SS-14 BCs reconciled to seconds (BC-2.14.016 v2.1, BC-2.14.017 v2.2, BC-2.14.019 v1.2, BC-2.14.013 v2.2); f2-fix-directives §11.5/§11.5b F5-correction banners; spec-changelog [1.5]. Also fixed: is_non_modbus latch on length-invalid ADU (F-DELTA-003), source_ip from Direction not non-existent flow_key.client_ip() (F-DELTA-005, BCs reconciled), BC-2.14.021 post.3 struct mismatch + dead total_flows_analyzed counter (F-DELTA-002), flush granularity on on_close (F-DELTA-004). 78 test timestamps legitimately corrected micros->seconds, not weakened. Sub-second rate precision deferred (needs timestamp_usecs threaded through on_data). F5 fix delivered via PR fix/f5-modbus-timestamp-units. Review artifact: phase-f5-adversarial/modbus-delta-review.md. NEXT: F6 targeted hardening (VP-022/VP-004 Kani — kani IS installed; fuzz; mutation; cargo audit/deny; DF-TEST-NAMESPACE-001 mod-wrappers; e2e port-502 pcap fixture). | 2026-06-09 | Feature #7 F5 combined-delta adversarial CONVERGED — timestamp units micros->seconds (Claude+Gemini CRITICAL) + BC reconciliation |
+| D-044 | Feature #7 v0.4.0 Modbus F6 PASS + F7 CONVERGED. F6: Kani 5/5 SUCCESSFUL (VP-022 LOCKED @68a3306 + VP-004 precedence proven after port-502 Rule-5; cargo kani ran for real — cargo-kani 0.67.0, CBMC 140+ SAT checks), fuzz_modbus_parse 3.7M execs/0 crashes, mutation 100% effective kill (163 viable; verifier caught a parallel-run false-kill + manually verified 5 genuine gaps -> 3 killing tests, PR #216), audit/deny clean. F7: 5-dim convergence all PASS — holdout 0.967 (timestamp-year correct end-to-end confirming F5 units fix; regression intact), e2e port-502 pcap->finding acceptance test added (PR #217), DF-TEST-NAMESPACE-001 mod-wrappers added. Fresh consistency audit found 5 spec-doc propagation-shadows (VP-022 index lock not propagated; BC-2.14.014/015 client_ip->direction-resolved; BC-INDEX 0x17 title; f2-directives micros residue; BC-2.14.017 burst-summary ms-vs-s) — ALL FIXED (code was correct throughout). Input-hash scan: MATCH=57/STALE=0/ERROR=1 (STORY-100..105 rewritten post BC-version-bumps). 1338 tests green. NEXT: v0.4.0 human gate -> release. | 2026-06-09 | Feature #7 v0.4.0 Modbus F6 PASS + F7 CONVERGED — 5-dim all PASS + consistency sweep (D-044) |
 
 ## Blocking Issues
 
