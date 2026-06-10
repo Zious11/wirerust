@@ -922,7 +922,9 @@ mod story_104 {
 
     // ---------------------------------------------------------------------------
     // BC-2.14.019 — Exception-burst anomaly: >5 same-code exceptions in 10s
-    // AC-008: 6th exception of same code → Anomaly finding with mitre_techniques = []
+    // AC-008: 6th exception of same code → Anomaly finding; recon codes 0x01/0x02 carry
+    //         mitre_techniques = ["T0888"] (blemish-T0888 fix, BC-2.14.019 v1.3).
+    //         Other exception codes emit mitre_techniques = [].
     // ---------------------------------------------------------------------------
 
     /// test_BC_2_14_019_exception_burst_emits_anomaly_finding
@@ -930,7 +932,8 @@ mod story_104 {
     /// Deliver 11 exception responses for FC=0x83 (exception for Write Single Reg 0x06,
     /// exception code=0x01) within 10 seconds.
     /// The 6th exception (count STRICTLY EXCEEDS 5) must emit an Anomaly finding with
-    /// mitre_techniques: vec![].
+    /// mitre_techniques: ["T0888"] (exc_code=0x01 is Illegal Function = FC scanning →
+    /// T0888 Remote System Information Discovery; blemish-T0888 fix, BC-2.14.019 v1.3).
     /// Traces to: BC-2.14.019 post.1 (path A), STORY-104 AC-008.
     #[test]
     fn test_BC_2_14_019_exception_burst_emits_anomaly_finding() {
