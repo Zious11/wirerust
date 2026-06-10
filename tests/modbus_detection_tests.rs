@@ -104,7 +104,7 @@ mod story_104 {
     /// Traces to: BC-2.14.013 post.1, BC-2.14.014, STORY-104 AC-001.
     /// ICS v19 remap (issue #222): T0855→T1692.001.
     #[test]
-    fn test_BC_2_14_013_014_holding_register_write_emits_t0855_t0836() {
+    fn test_BC_2_14_013_014_holding_register_write_emits_t1692_001_t0836() {
         let mut az = default_analyzer();
         let mut flow = ModbusFlowState::default();
         let fk = test_flow_key();
@@ -143,7 +143,7 @@ mod story_104 {
     /// FC=0x10 (Write Multiple Registers) is in the holding-register subset.
     /// Traces to: BC-2.14.014.
     #[test]
-    fn test_BC_2_14_013_014_fc_0x10_emits_t0855_t0836() {
+    fn test_BC_2_14_013_014_fc_0x10_emits_t1692_001_t0836() {
         let mut az = default_analyzer();
         let mut flow = ModbusFlowState::default();
         let fk = test_flow_key();
@@ -171,7 +171,7 @@ mod story_104 {
     /// FC=0x16 (Mask Write Register) is in the holding-register subset.
     /// Traces to: BC-2.14.013 EC-003, BC-2.14.014. ICS v19 remap (issue #222).
     #[test]
-    fn test_BC_2_14_013_014_fc_0x16_emits_t0855_t0836() {
+    fn test_BC_2_14_013_014_fc_0x16_emits_t1692_001_t0836() {
         let mut az = default_analyzer();
         let mut flow = ModbusFlowState::default();
         let fk = test_flow_key();
@@ -201,7 +201,7 @@ mod story_104 {
     /// Traces to: BC-2.14.013 post.1, BC-2.14.015, STORY-104 AC-002.
     /// ICS v19 remap (issue #222): T0855→T1692.001.
     #[test]
-    fn test_BC_2_14_013_015_coil_write_emits_t0855_t0835() {
+    fn test_BC_2_14_013_015_coil_write_emits_t1692_001_t0835() {
         let mut az = default_analyzer();
         let mut flow = ModbusFlowState::default();
         let fk = test_flow_key();
@@ -230,7 +230,7 @@ mod story_104 {
     /// FC=0x05 (Write Single Coil).
     /// Traces to: BC-2.14.013 EC-006, BC-2.14.015.
     #[test]
-    fn test_BC_2_14_013_015_fc_0x05_emits_t0855_t0835() {
+    fn test_BC_2_14_013_015_fc_0x05_emits_t1692_001_t0835() {
         let mut az = default_analyzer();
         let mut flow = ModbusFlowState::default();
         let fk = test_flow_key();
@@ -259,7 +259,7 @@ mod story_104 {
     /// Traces to: BC-2.14.013 invariant 2 (FC 0x15/0x17 → T1692.001 only), AC-002.
     /// ICS v19 remap (issue #222): T0855→T1692.001.
     #[test]
-    fn test_BC_2_14_013_file_write_emits_t0855_only() {
+    fn test_BC_2_14_013_file_write_emits_t1692_001_only() {
         let mut az = default_analyzer();
         let mut flow = ModbusFlowState::default();
         let fk = test_flow_key();
@@ -297,7 +297,7 @@ mod story_104 {
     /// set {0x06,0x10,0x16,0x17} per BC-2.14.016 union-tagging table, which is authoritative.
     /// Traces to: ORCHESTRATOR RULING BC-DISCREPANCY-001 (supersedes BC-2.14.013 EC-001).
     #[test]
-    fn test_BC_2_14_013_fc_0x17_emits_t0855_only_per_pdu_finding() {
+    fn test_BC_2_14_013_fc_0x17_emits_t1692_001_only_per_pdu_finding() {
         let mut az = default_analyzer();
         let mut flow = ModbusFlowState::default();
         let fk = test_flow_key();
