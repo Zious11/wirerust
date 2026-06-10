@@ -872,6 +872,15 @@ impl ModbusAnalyzer {
                                     cur_count, header.unit_id
                                 ),
                             };
+                            // BC-2.14.019 / blemish-T0888 fix: recon exception codes
+                            // 0x01 (Illegal Function = FC scanning) and 0x02 (Illegal Data
+                            // Address = register-map enumeration) map to T0888 Remote System
+                            // Information Discovery — consistent with the FC=0x11/0x2B recon
+                            // mapping (BC-2.14.020). All other exception codes carry no MITRE tag.
+                            let mitre_techniques = match exc_code {
+                                0x01 | 0x02 => vec!["T0888".to_string()],
+                                _ => vec![],
+                            };
                             local_findings.push(Finding {
                                 category: crate::findings::ThreatCategory::Anomaly,
                                 verdict: crate::findings::Verdict::Inconclusive,
@@ -881,7 +890,7 @@ impl ModbusAnalyzer {
                                     "exception_fc=0x{fc:02X} exception_code=0x{exc_code:02X} \
                                      window_count={cur_count} original_fc=0x{orig_fc:02X}"
                                 )],
-                                mitre_techniques: vec![],
+                                mitre_techniques,
                                 source_ip: Some(server_ip),
                                 timestamp: finding_ts,
                                 direction: Some(direction),
