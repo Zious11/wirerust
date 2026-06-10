@@ -976,14 +976,17 @@ mod story_104 {
             !anomaly_findings.is_empty(),
             "6+ same-code exceptions must emit at least one Anomaly finding"
         );
-        // Anomaly finding from BC-2.14.019 has empty mitre_techniques
+        // exc_code=0x01 (Illegal Function = FC scanning) → T0888 (blemish-T0888 fix,
+        // BC-2.14.019 updated: recon exception codes carry T0888 tag).
         let exception_anomaly = anomaly_findings
             .iter()
-            .find(|f| f.mitre_techniques.is_empty())
-            .expect("exception-burst Anomaly must have mitre_techniques: vec![]");
+            .find(|f| f.mitre_techniques.contains(&"T0888".to_string()))
+            .expect("exception-burst Anomaly for exc_code=0x01 must carry T0888 (FC scanning → Remote System Information Discovery)");
         assert!(
-            exception_anomaly.mitre_techniques.is_empty(),
-            "exception-burst Anomaly: no MITRE technique"
+            exception_anomaly
+                .mitre_techniques
+                .contains(&"T0888".to_string()),
+            "exception-burst Anomaly: exc_code=0x01 must emit T0888"
         );
     }
 
@@ -1023,10 +1026,13 @@ mod story_104 {
             all_findings.append(&mut f);
         }
 
+        // exc_code=0x01 → if a burst did fire it would carry T0888 (blemish-T0888 fix).
+        // With only 5 exceptions (= threshold, not > threshold), no burst fires at all.
         let exception_anomaly_count = all_findings
             .iter()
             .filter(|f| {
-                matches!(f.category, ThreatCategory::Anomaly) && f.mitre_techniques.is_empty()
+                matches!(f.category, ThreatCategory::Anomaly)
+                    && f.mitre_techniques.contains(&"T0888".to_string())
             })
             .count();
         assert_eq!(
@@ -1070,10 +1076,13 @@ mod story_104 {
             all_findings.append(&mut f);
         }
 
+        // exc_code=0x01 → burst finding now carries T0888 (blemish-T0888 fix,
+        // BC-2.14.019: Illegal Function exception burst → T0888 Remote System Information Discovery).
         let exception_anomaly_count = all_findings
             .iter()
             .filter(|f| {
-                matches!(f.category, ThreatCategory::Anomaly) && f.mitre_techniques.is_empty()
+                matches!(f.category, ThreatCategory::Anomaly)
+                    && f.mitre_techniques.contains(&"T0888".to_string())
             })
             .count();
         assert_eq!(
@@ -1783,15 +1792,18 @@ mod story_104 {
                 i,
             );
             for f in findings {
+                // exc_code=0x01 → burst finding carries T0888 (blemish-T0888 fix,
+                // BC-2.14.019: Illegal Function exception burst → T0888).
                 if matches!(f.category, wirerust::findings::ThreatCategory::Anomaly)
-                    && f.mitre_techniques.is_empty()
+                    && f.mitre_techniques.contains(&"T0888".to_string())
                 {
                     anomaly_finding = Some(f);
                 }
             }
         }
 
-        let f = anomaly_finding.expect("6 exceptions must produce an Anomaly finding");
+        let f = anomaly_finding
+            .expect("6 exceptions must produce an Anomaly finding (T0888 for exc_code=0x01)");
         assert!(
             f.source_ip.is_some(),
             "exception-burst finding source_ip must be Some (BC-2.14.019 post.A)"
@@ -1886,8 +1898,10 @@ mod story_104 {
                 i,
             );
             for f in &findings {
+                // exc_code=0x01 → burst finding carries T0888 (blemish-T0888 fix,
+                // BC-2.14.019: Illegal Function exception burst → T0888).
                 if matches!(f.category, wirerust::findings::ThreatCategory::Anomaly)
-                    && f.mitre_techniques.is_empty()
+                    && f.mitre_techniques.contains(&"T0888".to_string())
                 {
                     anomaly_count += 1;
                 }
@@ -1921,8 +1935,9 @@ mod story_104 {
                 base_ts + i,
             );
             for f in &findings {
+                // exc_code=0x01 → burst finding carries T0888 (blemish-T0888 fix).
                 if matches!(f.category, wirerust::findings::ThreatCategory::Anomaly)
-                    && f.mitre_techniques.is_empty()
+                    && f.mitre_techniques.contains(&"T0888".to_string())
                 {
                     anomaly_count += 1;
                 }
