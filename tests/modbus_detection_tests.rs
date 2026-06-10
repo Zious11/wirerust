@@ -2205,3 +2205,141 @@ fn test_binding_recon_fc_0x2b_0x0e_fires_in_response_direction() {
         "response-direction 0x2B/0x0E source_ip must equal server IP"
     );
 }
+
+// ---------------------------------------------------------------------------
+// Phase-F6 mutation-killing tests (FIX-F6 / VP-022 hardening).
+//
+// These three tests close mutation-testing gaps surfaced by `cargo mutants
+// --file src/analyzer/modbus.rs`. Each was a CONFIRMED surviving mutant in the
+// detection/correlation core of `process_pdu` (verified by manually applying
+// the mutation and observing the pre-existing Modbus suite stay green). They
+// drive the real `process_pdu` integration path (via `drive`) and assert the
+// observable consequence the mutant would change, so the corresponding mutation
+// is now reliably caught.
+// ---------------------------------------------------------------------------
+
+/// Kills mutant `modbus.rs:499:29 replace != with ==` in `process_pdu`.
+///
+/// The request-path guard `if fc_class != FunctionCodeClass::Exception` decides
+/// whether a request ADU is inserted into the per-flow `pending` table
+/// (BC-2.14.009). Inverting it to `==` would insert ONLY exception-FC requests
+/// (which never legitimately appear on the request path) and would skip every
+/// real (Read/Write/Diagnostic) request — leaving `pending` empty. We drive a
+/// non-exception Read request through `process_pdu` and assert the pending entry
+/// exists; the mutant makes `pending` empty, failing the assertion.
+#[test]
+fn test_f6_mutation_process_pdu_inserts_nonexception_request_into_pending() {
+    let mut az = default_analyzer();
+    let mut flow = ModbusFlowState::default();
+    let fk = test_flow_key();
+
+    // Read Holding Registers (FC=0x03) — a non-exception request.
+    let adu = build_adu(0x0011, 0x07, 0x03, &[0x00, 0x00, 0x00, 0x0A]);
+    let _ = drive(
+        &mut az,
+        &mut flow,
+        &fk,
+        Direction::ClientToServer,
+        &adu,
+        100,
+    );
+
+    assert!(
+        flow.pending.contains_key(&(0x0011u16, 0x07u8)),
+        "process_pdu must insert a non-exception request into pending \
+         (kills the 499 != -> == guard-inversion mutant)"
+    );
+    let &(stored_fc, stored_ts) = flow
+        .pending
+        .get(&(0x0011u16, 0x07u8))
+        .expect("pending entry must exist for the inserted request");
+    assert_eq!(stored_fc, 0x03, "stored FC must be the request FC");
+    assert_eq!(stored_ts, 100, "stored ts must be the request timestamp");
+}
+
+/// Kills mutants `modbus.rs:503:53 replace += with -=` and `... with *=`
+/// in `process_pdu`.
+///
+/// On a duplicate in-flight transaction — the SAME `(txn_id, unit_id)` request
+/// observed again before its response — `insert_request` returns `Some(old)` and
+/// `process_pdu` performs `self.duplicate_inflight_txn += 1` (BC-2.14.009
+/// invariant 6). The `+= 1 -> -= 1` mutant would underflow the `u64` counter
+/// from 0 (panicking under overflow-checks, or wrapping); `+= 1 -> *= 1` would
+/// leave it at 0. We drive the same request twice and assert the counter is
+/// exactly 1.
+#[test]
+fn test_f6_mutation_process_pdu_increments_duplicate_inflight_txn() {
+    let mut az = default_analyzer();
+    let mut flow = ModbusFlowState::default();
+    let fk = test_flow_key();
+
+    // Same (txn_id=0x0021, unit_id=0x01) request driven twice with no intervening
+    // response → the second insert overwrites → duplicate_inflight_txn increments.
+    let adu = build_adu(0x0021, 0x01, 0x03, &[0x00, 0x00, 0x00, 0x05]);
+    let _ = drive(
+        &mut az,
+        &mut flow,
+        &fk,
+        Direction::ClientToServer,
+        &adu,
+        100,
+    );
+    assert_eq!(
+        az.duplicate_inflight_txn, 0,
+        "no duplicate after a single request"
+    );
+
+    let _ = drive(
+        &mut az,
+        &mut flow,
+        &fk,
+        Direction::ClientToServer,
+        &adu,
+        101,
+    );
+    assert_eq!(
+        az.duplicate_inflight_txn, 1,
+        "duplicate in-flight (txn_id, unit_id) must increment duplicate_inflight_txn \
+         by exactly 1 (kills the 503 += -> -= / += -> *= mutants)"
+    );
+}
+
+/// Kills mutants `modbus.rs:535:46 replace > with ==` and `... with >=`
+/// in `process_pdu` (T0831 window-expiry boundary, BC-2.14.016).
+///
+/// The T0831 register-write window check is `if t0831_elapsed > T0831_WINDOW_SECS`
+/// (window = 5s). A SECOND register write whose elapsed time is EXACTLY the window
+/// width (5s) is still "within window" under `>` (5 > 5 == false), so the within-
+/// window branch runs, the count reaches 2, and T0831 co-tags the finding. Both
+/// the `==` and `>=` mutants flip `5 (==|>=) 5` to true → they take the
+/// window-RESET branch instead → count resets to 1 → T0831 does NOT fire. We
+/// assert T0831 IS present on the boundary write, killing both mutants. (The
+/// existing `window_reset_after_5s` test uses elapsed=6, which all three operators
+/// agree is expired, so it could not distinguish them — this pins the boundary.)
+#[test]
+fn test_f6_mutation_t0831_fires_at_exact_window_boundary() {
+    let mut az = default_analyzer();
+    let mut flow = ModbusFlowState::default();
+    let fk = test_flow_key();
+
+    // First register write at t=0 starts the T0831 window.
+    let adu1 = build_adu(0x0001, 0x01, 0x06, &[0x00, 0x10, 0x01, 0xF4]);
+    let f1 = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu1, 0);
+    assert_eq!(
+        f1[0].mitre_techniques,
+        vec!["T0855", "T0836"],
+        "first write: T0831 not yet fired"
+    );
+
+    // Second register write at t=5 == T0831_WINDOW_SECS — the exact boundary.
+    // With the production `>`: 5 > 5 is false → within-window → count=2 → T0831 fires.
+    let adu2 = build_adu(0x0002, 0x01, 0x06, &[0x00, 0x11, 0x02, 0x00]);
+    let f2 = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu2, 5);
+    assert!(
+        f2[0].mitre_techniques.contains(&"T0831".to_string()),
+        "a register write at elapsed == T0831_WINDOW_SECS (5s) is WITHIN the window \
+         and MUST co-tag T0831 (kills the 535 > -> == and > -> >= boundary mutants); \
+         got {:?}",
+        f2[0].mitre_techniques
+    );
+}
