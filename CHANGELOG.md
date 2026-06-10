@@ -7,6 +7,51 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-10
+
+### Added
+
+- **Modbus TCP protocol analyzer** for ICS/OT network forensics (Feature #7, issue #7, PRs #211–#218).
+  Detects Modbus traffic on port 502; parses the MBAP header (transaction ID, protocol ID, length,
+  unit ID) and function code; per-flow transaction correlation with bounded pending-table (request /
+  response matching). Emits findings mapped to **7 MITRE ATT&CK for ICS techniques**:
+  - T0855 Unauthorized Command Message (write-class function codes)
+  - T0836 Modify Parameter (write-register / write-coil)
+  - T0835 Manipulate I/O Image (force-listen-only, write-multiple coils)
+  - T0831 Manipulation of Control (mask write register, write file record)
+  - T0806 Brute Force I/O (sustained coil/register write flooding)
+  - T0814 Denial of Service (exception-burst flooding pattern)
+  - T0888 Remote System Information Discovery (FC-scanning / register-map enumeration via exception
+    burst on recon function codes 0x01/0x02)
+
+  Multi-tag co-emission: one finding per write PDU carrying the union of applicable techniques.
+  Dual-window write-rate detection: burst threshold (>20 writes/1 s, configurable) + sustained
+  threshold (>10 writes/s over ≥2 s, configurable). Exception-burst anomaly detection triggers
+  T0888 on recon-code exception runs. Per-analyzer summary reports function-code distribution,
+  write count, exception count, and PDU count.
+
+- **CLI flags for the Modbus analyzer:**
+  - `--modbus` — enable Modbus TCP analysis (also included in `-a`/`--all`)
+  - `--modbus-write-burst-threshold N` — burst detection threshold (default 20 writes/1 s)
+  - `--modbus-write-sustained-threshold N` — sustained-rate threshold (default 10 writes/s over ≥2 s)
+
+- **Dispatcher port-502 classification** — Rule 5 in the stream dispatcher classifies port-502
+  flows for Modbus after content-signature rules and the 443/8443/80/8080 port rules; it never
+  steals HTTP or TLS traffic (VP-004 port-precedence invariant preserved, PR #214).
+
+- **Formal verification and quality assurance for the Modbus analyzer:**
+  - VP-022 (Kani): MBAP parse safety, function-code classification totality, exception-code
+    biconditional invariant.
+  - Fuzz testing: 3.7 M executions, 0 crashes (PR #216).
+  - Mutation testing: 100 % effective kill rate on the detection core (PR #216).
+  - E2E integration: pcap fixture + end-to-end flow tests (PR #217).
+  - T0888 blemish fix: exception-burst correctly emits T0888 for recon function codes 0x01/0x02
+    (PR #218, BC-2.14.019).
+
+- **Architecture records:**
+  - ADR-005 — Binary ICS protocol integration strategy.
+  - ADR-006 — Multi-technique Finding attribution model.
+
 ## [0.3.0] - 2026-06-09
 
 ### Changed (BREAKING)
@@ -170,7 +215,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Zious11/wirerust/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Zious11/wirerust/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Zious11/wirerust/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Zious11/wirerust/releases/tag/v0.1.0
