@@ -1,10 +1,11 @@
 ---
 pipeline: V0.4.0_RELEASED
-phase: feature-f2
+phase: maintenance-fix-mitre-v19
 active_feature: "#8-dnp3"
+feature_8_status: "F1-APPROVED-PAUSED (resumes after MITRE-v19 remap release)"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-10T23:00:00Z
+timestamp: 2026-06-10T23:30:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -44,7 +45,7 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0 (post D-045 blemish-1 fix; STORY-
 
 ## Status
 
-**Feature #8 (DNP3 TCP analyzer, issue #8) IN PROGRESS — Phase F2 (spec evolution).** F1 delta analysis APPROVED by human 2026-06-10 (D-047). Full F1-F7 cycle authorized. TCP-only first; DNP3 StreamHandler+StreamAnalyzer wired into StreamDispatcher as DispatchTarget::Dnp3 (port-20000 Rule 6). Expanded MITRE: T0803+T0828 (new)+T0855+T0814+T0836; T0803/T0828 ATT&CK-ICS v19.1 confirmation in progress. wirerust v0.4.0 released 2026-06-10T05:12:40Z (D-046); pipeline was IDLE.
+**MAINTENANCE FIX CYCLE ACTIVE — MITRE ATT&CK-ICS v19 revocation defect (issue #222, D-048).** Two independent research passes (DF-VALIDATION-001 satisfied) confirmed a release-safety defect: v0.4.0 emits/seeds technique IDs revoked in ATT&CK-for-ICS v19.0 (T0855→T1692.001, T0856→T1692.002). Blast-radius: exactly 2 IDs affected; 19 others ACTIVE-unchanged. Fix scope: remap IDs across mitre.rs + modbus.rs emission sites + tests + BCs SS-09/10/11/14 + VP-007 sub-technique-format acceptance + correct stale attack-ics-version-pin.md. Ship as own release (v0.4.1/v0.5.0 TBD). **Feature #8 (DNP3) is PAUSED at F1-APPROVED** — scope locked (D-047); DNP3 MITRE set corrected to v19.1-accurate IDs (D-048); resumes after fix ships.
 
 **Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 244 BCs, 22 VPs (all 22 verified/locked, 0 draft), 1338 tests green, holdout 0.967. develop HEAD fb2c875; main HEAD 90aa91e (v0.4.0). Feature #7: COMPLETE across 2 releases (v0.3.0 multi-tag schema + v0.4.0 Modbus analyzer). develop is ahead of main by 3 non-release chore commits (eb010a1 .gitignore, 92773a4 E2E-pcap tooling, fb2c875 merge — PR #221 local-only E2E pcap tooling). No release content outstanding; branches are NOT divergent in a problematic way (main has no commits develop lacks).
 
@@ -125,6 +126,7 @@ D-001..D-046 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md`.
 | ID | Decision | Date | Rationale |
 |----|----------|------|-----------|
 | D-047 | Feature #8 (DNP3 analyzer, issue #8) F1 delta analysis APPROVED by human (2026-06-10). Intent=feature, type=backend, non-trivial → full F1-F7. Integration: Dnp3Analyzer implements StreamHandler+StreamAnalyzer, wired into StreamDispatcher as DispatchTarget::Dnp3 (port-20000 Rule 6) — mirrors Modbus (D-032), NOT the UDP/ProtocolAnalyzer path; UDP DNP3 deferred to v2. New: src/analyzer/dnp3.rs, subsystem SS-15 'DNP3/ICS', VP-023 (Kani candidate, parse/classify pure core), ADR-007 (binary-ICS TCP integration). Modified (5): dispatcher.rs (HIGH — DispatchTarget::Dnp3 + port-20000 classification + VP-004 oracle), mitre.rs (HIGH/CRITICAL — VP-007 drift guard; T0803 AND T0828 are NEW to catalog, must seed+emit atomically), analyzer/mod.rs, main.rs, cli.rs. DTU_REQUIRED=false (no external service, confirmed). HUMAN SCOPE DECISIONS: (1) integration = TCP-only first (StreamDispatcher); (2) CRC-16/DNP = structure-only, strip-not-validate in v1; (3) MITRE = EXPANDED set T0803(new)+T0828(new)+T0855+T0814+T0836 — human chose to add T0828 Loss of Control beyond the architect's minimal recommendation; both T0803 and T0828 need ATT&CK-ICS v19.1 confirmation (research dispatched); (4) app-layer parse = FIR=1 first-fragment only; (5) CLI = add --dnp3-direct-operate-threshold (mirrors --modbus-write-burst-threshold). Delta-analysis doc: .factory/phase-f1-delta-analysis/dnp3-delta-analysis.md. | 2026-06-10 | Feature #8 F1 gate APPROVED — full F1-F7, TCP-only, expanded MITRE (T0803+T0828 new) |
+| D-048 | Two independent research passes (DF-VALIDATION-001 satisfied) confirmed a release-safety defect: the MITRE catalog emits/seeds technique IDs REVOKED in ATT&CK-for-ICS v19.0 while the envelope advertises ics-attack-19.1. Full 21-ID blast-radius audit (.factory/research/mitre-ics-v19-catalog-audit.md): exactly 2 IDs affected — T0855 Unauthorized Command Message → T1692.001 (EMITTED by Modbus in v0.4.0; catalogued v0.3.0+v0.4.0) and T0856 Spoof Reporting Message → T1692.002 (catalogue-only, both releases); both fold into new ICS parent T1692 'Unauthorized Message' (v19 introduced ICS sub-techniques). Other 19 IDs ACTIVE-unchanged. VP-007 structurally cannot catch this (closed-world consistency proof, no external-currency oracle). HUMAN DECISIONS (2026-06-10): (1) FIX-FIRST — run a scoped maintenance fix cycle now (remap T0855→T1692.001, T0856→T1692.002 across mitre.rs + modbus.rs emission sites + tests + affected BCs SS-09/10/11/14 + VP-007 sub-technique-format acceptance + correct stale attack-ics-version-pin.md), ship as its own release (v0.4.1/v0.5.0 TBD), THEN resume DNP3 on the corrected base — mirrors D-035 'isolate the correctness change' precedent. (2) DNP3 (Feature #8) MITRE set corrected to v19.1-accurate IDs: T1692.001 (unauthorized command), T1691.001 (block command, ex-T0803), T0827 Loss of Control (correlated finding, not per-packet; replaces the T0828 misread), T0814, T0836. Issue #222 filed. Feature #8 PAUSED at F1-APPROVED. | 2026-06-10 | MITRE v19 revocation defect — fix-first; DNP3 paused; corrected IDs locked |
 
 ## Blocking Issues
 
@@ -145,6 +147,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | FE-001 | pcapng input format not supported (.pcap-only) — v2 idea; see tech-debt-register.md | deferred / v2 / not-filed |
 | ACTION-PIN-001 | dtolnay/rust-toolchain @stable and @nightly remain branch-ref — intentionally exempt in the Action pin gate (toolchain installer, channel-selected). | OPEN P3 — low priority |
 | PCAP-CORPUS-001 | E2E pcap test-corpus storage backend (R2/B2 vs Drive-SA) — design ready, orphan-branch `test-pcaps` control plane (MANIFEST.yaml + fetch.sh + tiered runner); 100s of GB expected. 4SICS ICS-lab captures validated v0.4.0 (1.55M pps, 0 crashes). PRECURSOR LANDED (PR #221 fb2c875): lightweight index/fetch layer committed (E2E-PCAPS.md + bin/fetch-e2e-pcaps + mk_modbus_large_pcap.py); large pcaps gitignored under tests/fixtures/local-samples/. Only the shared-corpus STORAGE BACKEND choice (Cloudflare R2 / Backblaze B2 / Google Drive service account) remains tabled. | TABLED — human decision pending (2026-06-10) |
+| MITRE-V19-REMAP-001 | MITRE ATT&CK-ICS v19 revocation defect (issue #222, D-048): T0855→T1692.001 and T0856→T1692.002 remapped across mitre.rs + modbus.rs emission sites + tests + BCs SS-09/10/11/14 + VP-007 sub-technique-format acceptance. Also: attack-ics-version-pin.md stale (still references pre-v19 IDs — correct as part of fix). DF-VALIDATION-001 satisfied (2 research passes). | IN-PROGRESS — fix cycle active (maintenance-fix-mitre-v19) |
 
 ## Deferred Next-Work Backlog (recorded 2026-06-10, while Feature #8 DNP3 in flight)
 
