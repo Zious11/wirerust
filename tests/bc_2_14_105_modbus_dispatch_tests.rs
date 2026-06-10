@@ -1285,7 +1285,7 @@ mod story_105 {
         let write_findings: Vec<_> = modbus_ref
             .all_findings
             .iter()
-            .filter(|f| f.mitre_techniques.contains(&"T0855".to_string()))
+            .filter(|f| f.mitre_techniques.contains(&"T1692.001".to_string()))
             .collect();
 
         assert!(

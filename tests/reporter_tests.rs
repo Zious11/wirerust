@@ -978,7 +978,7 @@ fn mitre_grouping_emits_tactic_headers_in_canonical_order() {
     let findings = vec![
         base_finding_with_mitre(Some("T1499.002"), Verdict::Likely, Confidence::High, "dos"),
         base_finding_with_mitre(Some("T1046"), Verdict::Likely, Confidence::High, "scan"),
-        base_finding_with_mitre(Some("T0855"), Verdict::Likely, Confidence::High, "ics"),
+        base_finding_with_mitre(Some("T1692.001"), Verdict::Likely, Confidence::High, "ics"),
     ];
     let reporter = TerminalReporter {
         use_color: false,

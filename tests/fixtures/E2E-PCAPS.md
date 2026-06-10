@@ -21,7 +21,7 @@ That downloads the real captures and regenerates the synthetic one into
 |------|------|--------|--------|-----------|-----------|
 | `4SICS-GeekLounge-151020.pcap` | 25 MB | `8c6ee02dc26b1b5298a7c9b4dc83cc779bd2a3219d5c5cbc51e3d4d325763bc2` | [Netresec 4SICS](https://www.netresec.com/?page=PCAP4SICS) | Modbus/502, DNP3, S7, HTTP, DNS, … | parse robustness / mixed-protocol scale; light Modbus |
 | `4SICS-GeekLounge-151021.pcap` | 134 MB | `7365b0ea475b76bf79b207fd8f83baa45e4449aead5da6a9214bbcffbc5fa7de` | [Netresec 4SICS](https://www.netresec.com/?page=PCAP4SICS) | Modbus/502, DNP3, S7, HTTP, TLS, … | recon detection (FC 0x2B/0x11); throughput |
-| `4SICS-GeekLounge-151022.pcap` | 200 MB | `82529c23906416dc73d7f1926a0d38b82527f1f2a7ff8c6f755ce3208feb9643` | [Netresec 4SICS](https://www.netresec.com/?page=PCAP4SICS) | Modbus/502 (heavy), DNP3, TLS, … | full Modbus detector set: writes (T0835/T0836/T0855), burst (T0806), recon (T0888); DoS finding-cap; determinism |
+| `4SICS-GeekLounge-151022.pcap` | 200 MB | `82529c23906416dc73d7f1926a0d38b82527f1f2a7ff8c6f755ce3208feb9643` | [Netresec 4SICS](https://www.netresec.com/?page=PCAP4SICS) | Modbus/502 (heavy), DNP3, TLS, … | full Modbus detector set: writes (T0835/T0836/T1692.001), burst (T0806), recon (T0888); DoS finding-cap; determinism |
 | `modbus-large.pcap` | ~7 KB | `1286603a7c83ca28de7eb46bc93271acd86ce3121f8fe695a744491cc22e5966` | synthetic — `tests/fixtures/mk_modbus_large_pcap.py` | Modbus/502 (5 crafted flows) | every Modbus detector class in isolation (recon, write-burst, coil/register/control writes, diagnostics DoS) |
 
 > A tiny committed fixture, `tests/fixtures/modbus-write.pcap` (8 packets), is

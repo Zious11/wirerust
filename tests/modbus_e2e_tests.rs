@@ -9,7 +9,7 @@
 //!   - Packet 1-3:  TCP three-way handshake (SYN, SYN-ACK, ACK)
 //!   - Packet 4:    Client→Server FC=0x11 Report Server ID (recon → T0888)
 //!   - Packet 5:    Server→Client FC=0x11 response (also fires T0888, direction-independent)
-//!   - Packet 6:    Client→Server FC=0x10 Write Multiple Registers (write → T0855+T0836)
+//!   - Packet 6:    Client→Server FC=0x10 Write Multiple Registers (write → T1692.001+T0836)
 //!   - Packet 7:    Server→Client FC=0x90 Exception response (exception_count++)
 //!   - Packet 8:    Client→Server FIN-ACK
 //!
@@ -17,7 +17,7 @@
 //! - JSON `analyzers` array contains a "modbus" entry with non-zero pdu_count and write_count.
 //! - JSON `findings` array contains:
 //!   - At least one T0888 finding (Modbus recon — Report Server ID FC=0x11)
-//!   - At least one T0855 + T0836 finding (Modbus Write Multiple Registers FC=0x10)
+//!   - At least one T1692.001 + T0836 finding (Modbus Write Multiple Registers FC=0x10)
 //! - All finding timestamps are in the year 2024 (not 1970, confirming pcap-relative
 //!   timestamp provenance through the full pipeline per BC-2.09.007 / VP-021).
 //!
@@ -183,21 +183,21 @@ mod modbus_e2e {
     }
 
     // ---------------------------------------------------------------------------
-    // BC-2.14.013 / BC-2.14.020: findings array — T0855+T0836 and T0888
+    // BC-2.14.013 / BC-2.14.020: findings array — T1692.001+T0836 and T0888
     // ---------------------------------------------------------------------------
 
-    /// test_BC_2_14_013_findings_contain_modbus_write_T0855_T0836
+    /// test_BC_2_14_013_findings_contain_modbus_write_T1692_001_T0836
     ///
     /// Postcondition: at least one finding in the "findings" array contains
-    /// both "T0855" and "T0836" in its `mitre_techniques` list.
+    /// both "T1692.001" and "T0836" in its `mitre_techniques` list.
     ///
     /// The fixture's FC=0x10 Write Multiple Registers (a register-write FC)
-    /// must emit a write finding with MITRE tags T0855 (Modify Parameter) and
+    /// must emit a write finding with MITRE tags T1692.001 (Unauthorized Message: Command Message) and
     /// T0836 (Modify Control Logic), per BC-2.14.013 / ORCHESTRATOR RULING BC-DISCREPANCY-001.
     ///
     /// Traces to: BC-2.14.013 postcondition invariant 1; F-105-003.
     #[test]
-    fn test_BC_2_14_013_findings_contain_modbus_write_T0855_T0836() {
+    fn test_BC_2_14_013_findings_contain_modbus_write_T1692_001_T0836() {
         let json = run_modbus_json();
         let findings = json["findings"]
             .as_array()
@@ -211,7 +211,7 @@ mod modbus_e2e {
         let has_write_finding = findings.iter().any(|f| {
             if let Some(techniques) = f["mitre_techniques"].as_array() {
                 let strs: Vec<&str> = techniques.iter().filter_map(|t| t.as_str()).collect();
-                strs.contains(&"T0855") && strs.contains(&"T0836")
+                strs.contains(&"T1692.001") && strs.contains(&"T0836")
             } else {
                 false
             }
@@ -219,7 +219,7 @@ mod modbus_e2e {
 
         assert!(
             has_write_finding,
-            "No finding with both T0855 and T0836 found. FC=0x10 (Write Multiple Registers) must emit T0855+T0836. Findings: {:?}",
+            "No finding with both T1692.001 and T0836 found. FC=0x10 (Write Multiple Registers) must emit T1692.001+T0836. Findings: {:?}",
             findings
                 .iter()
                 .map(|f| &f["mitre_techniques"])

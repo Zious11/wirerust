@@ -124,7 +124,7 @@ pub struct Finding {
     pub summary: String,
     pub evidence: Vec<String>,
     // STORY-100 (BC-2.09.001 / ADR-006 Decision 13): `mitre_techniques` is a
-    // `Vec<String>` so co-attributed ICS findings (e.g., `["T0855","T0836"]`)
+    // `Vec<String>` so co-attributed ICS findings (e.g., `["T1692.001","T0836"]`)
     // are expressible in the type system. Empty vec serializes as absent key
     // (Vec::is_empty skip); singleton vec produces a JSON array `["TXXXX"]`.
     // The old scalar option field is removed (STORY-100 AC-008); all emission
