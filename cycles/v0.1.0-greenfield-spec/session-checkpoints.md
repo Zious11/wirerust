@@ -4,6 +4,40 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 
 ---
 
+## Archived: 2026-06-10 — Feature #8 DNP3 — Phase F2 IN PROGRESS — F1 gate APPROVED D-047 (superseded by MITRE v19 remap CONVERGED checkpoint)
+
+**POSITION:** Feature #8 (DNP3 TCP analyzer, issue #8) IN PROGRESS at Phase F2 (spec evolution). F1 delta analysis APPROVED by human 2026-06-10 (D-047). Full F1-F7 cycle. wirerust v0.4.0 RELEASED (D-046); develop HEAD `fb2c875`; main HEAD `90aa91e`. develop is ahead of main by 3 non-release chore commits (PR #221 E2E pcap tooling — no release content).
+
+**RELEASE HISTORY:**
+- v0.1.0 (2026-06-08): greenfield full-cycle baseline (Phases 0-7)
+- v0.2.0 (2026-06-09): Feature #100 — pcap timestamp threading to Finding.timestamp (VP-021 Kani-verified)
+- v0.3.0 (2026-06-09): Feature #7 Wave 1 — multi-tag MITRE schema migration (BREAKING: mitre_technique→mitre_techniques array; ECS-aligned)
+- v0.4.0 (2026-06-10): Feature #7 Wave 2 — Modbus TCP analyzer (port-502; MBAP/FC parse; transaction correlation; 7 ICS MITRE detectors T0855/T0836/T0835/T0831/T0806/T0814/T0888; dual-window rate detection; VP-022 Kani-verified)
+
+**OPEN DEPENDABOT PRs (need disposition before next release):**
+- #202 actions/checkout bump — REQUIRES SHA-pin per ACTION-PIN policy (do NOT merge tag ref; close and SHA-pin manually)
+- #203 serde_json — standard cargo bump; review + merge
+- #204 assert_cmd — standard cargo bump; review + merge
+- #205 etherparse 0.16→0.20 (4-minor jump) — review API changes before merging
+- #206 rayon — standard cargo bump; review + merge
+- #207 clap — standard cargo bump; review + merge
+
+**ROADMAP / NEXT FEATURE OPTIONS:**
+- Issue #8: DNP3 analyzer; Issue #3: C2 beaconing; Issue #4: CSV+SQLite; Issues #64/#62/#63: reporter improvements; Issue #6: rayon parallel; Issue #101: FP/TP characterization (OPEN-DEBT; blocked on labelled corpus); Issue #103: size-symmetry evasion (DEFERRED; blocked on labelled corpus); FE-001: pcapng (deferred v2)
+
+**CARRY-FORWARD / OPEN ITEMS:**
+- STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred to next cycle
+- Drift items: O-07 (rayon unused), O-08 (dns.rs stale doc), F-W25-S088-P6-001
+- RUSTSEC-2026-0097: accepted-transitive (rand 0.8.5 via tls-parser→phf 0.11)
+- ACTION-PIN-001: dtolnay/rust-toolchain @stable/@nightly intentionally exempt from pin gate (OPEN P3)
+- CC-001..CC-004: process-gap codification deferred
+- Sub-second rate precision: deferred (needs timestamp_usecs threaded through on_data)
+- Terminal per-ID multi-unknown name resolution (BC-2.11.017): deferred
+- PCAP-CORPUS-001 (TABLED 2026-06-10): E2E pcap test-corpus storage backend decision. Design complete: `test-pcaps` orphan-branch as control plane (MANIFEST.yaml per-pcap metadata + fetch.sh + run-corpus.sh; tiered smoke/full; sha256-keyed caching). 4SICS ICS-lab captures (4SICS-GeekLounge-151020/151021/151022, 25/134/200 MB) validated v0.4.0 Modbus analyzer (1.55M pps, deterministic, parse_errors 230/2.25M, DoS cap engaged). Backend options: GitHub Releases REJECTED (2 GiB/file cap, 1000-asset limit), Git LFS REJECTED (cost/quota), Google Drive public REJECTED (daily quota lockout in CI), Drive service-account VIABLE (reuse 5 TB, Drive API bypasses interstitial, needs free GCP project + SA JSON secret), Cloudflare R2 RECOMMENDED for 100s GB ($0.015/GB-mo, zero egress), Backblaze B2 cheapest ($0.006/GB-mo + free via Cloudflare CDN). PENDING: human to pick R2/B2 vs Drive-SA. PRECURSOR LANDED (PR #221, fb2c875, 2026-06-10): lightweight E2E pcap reproducibility layer merged to develop — tracked files: `tests/fixtures/E2E-PCAPS.md`, `bin/fetch-e2e-pcaps`, `tests/fixtures/mk_modbus_large_pcap.py`. LOCAL-ONLY (gitignored under `tests/fixtures/local-samples/`). When PCAP-CORPUS-001 is revisited, migrate E2E-PCAPS.md rows into orphan-branch corpus manifest. issue #220 filed (cosmetic Modbus write-burst "0s window" display bug — OPEN, good-first-issue).
+- Input-hash drift (verified 2026-06-10): MATCH=57 STALE=0 ERROR=1 (STORY-091 pre-existing no-inputs; known).
+
+---
+
 ## Archived: 2026-06-09 — Feature #7 F5 CONVERGED — timestamp units fixed; NEXT = F6 targeted hardening (superseded by F7 CONVERGED — NEXT = v0.4.0 human gate)
 
 **POSITION:** wirerust v0.3.0 RELEASED (D-038). Feature #7 Wave 2 COMPLETE (D-042). Feature #7 F5 combined-delta adversarial CONVERGED (D-043) — 1 CRITICAL + 4 HIGH found and RESOLVED (timestamp units micros->seconds, Claude+Gemini independent CRITICAL agreement). Fix PR: `fix/f5-modbus-timestamp-units`. Spec: SS-14 BCs reconciled to seconds (BC-2.14.016/017/019/013 updated); f2-fix-directives §11.5/§11.5b F5-correction banners in place. develop HEAD `dba5f26` + fix-PR branch pending merge.
