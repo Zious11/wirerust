@@ -278,6 +278,31 @@ Checkpoints archived here when superseded by a new checkpoint in STATE.md.
 
 ---
 
+## Archived: 2026-06-10 — v0.4.0 RELEASED — Feature #7 COMPLETE — No open feature work (superseded by session-clear checkpoint 2026-06-10)
+
+**POSITION:** wirerust v0.4.0 RELEASED (D-046). Feature #7 (Modbus TCP analyzer) COMPLETE AND CLOSED. issue #7 CLOSED. Full F1-F7 feature-mode cycle complete across 2 releases (v0.3.0 multi-tag schema + v0.4.0 Modbus). main back-merged to develop (8e38041). No open feature work. Next feature TBD by human.
+
+**VERIFIED-CLEAN FACTS (at v0.4.0 release):**
+- main HEAD `90aa91e` — v0.4.0 release commit; annotated tag `v0.4.0`
+- develop HEAD `8e38041` — main back-merged post v0.4.0; branches in sync
+- 244 BCs / 22 VPs (ALL 22 verified/locked, 0 draft) / 58 stories / 353 pts
+- VP-022 LOCKED @ 68a3306; VP-021 LOCKED; all 22 VPs locked/verified, 0 draft
+- Input-hash drift: MATCH=57/STALE=0/ERROR=1 (STORY-091 no-inputs pre-existing)
+- GitHub Release: https://github.com/Zious11/wirerust/releases/tag/v0.4.0; 4 binaries (run 27254720396)
+- Holdout 0.967; 1338 tests green; consistency CONSISTENT; F5 CRITICAL timestamp-units FIXED
+
+**CARRY-FORWARD ITEMS:**
+- #101 (FP/TP rate characterization): OPEN-DEBT; #103 (size-symmetry): DEFERRED
+- STORY-091: draft, P1, 5 pts, E-11 — deferred to next cycle
+- ACTION-PIN-001: dtolnay/rust-toolchain @stable/@nightly intentionally exempt from pin gate
+- Drift items: O-07, O-08, F-W25-S088-P6-001
+- RUSTSEC-2026-0097: accepted-transitive
+- PG-5/PG-6 cycle-close follow-up items: see Cycle-Close Follow-Up Items table (OPEN — codification deferred)
+- Sub-second rate precision deferred (needs timestamp_usecs threaded through on_data)
+- Terminal per-ID multi-unknown name resolution (BC-2.11.017): deferred
+
+---
+
 ## Archived: 2026-06-09 — Feature #7 Wave 2 COMPLETE — Modbus LIVE; NEXT = v0.4.0 release path (superseded by F5 CONVERGED checkpoint)
 
 **POSITION:** wirerust v0.3.0 RELEASED (D-038). Feature #7 Wave 2 (E-14 Modbus TCP Analyzer) COMPLETE (D-042). All 4 stories MERGED: STORY-102 PR #211 (26d58bb, 1224 tests), STORY-103 PR #212 (d894464, 1247 tests), STORY-104 PR #213 (dba..., 1296 tests), STORY-105 PR #214 (dba5f26). 1324 tests green total; clippy+fmt clean; all CI green. Modbus analyzer LIVE end-to-end on develop. NEXT = v0.4.0 release path: F5 combined-delta adversarial review + F6 formal hardening (VP-022/VP-004 Kani run, fuzz, mutation) + F7 convergence gate, OR streamlined release — pending human decision.
