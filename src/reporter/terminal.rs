@@ -227,7 +227,7 @@ impl TerminalReporter {
 
     /// Renders a single finding in the default flat view. MITRE line, if
     /// non-empty, shows comma-space joined technique IDs.
-    /// BC-2.11.017: multi-ID renders as `MITRE: T0855, T0836`; empty vec → no line.
+    /// BC-2.11.017: multi-ID renders as `MITRE: T1692.001, T0836`; empty vec → no line.
     fn render_finding_flat(&self, out: &mut String, f: &Finding) {
         self.render_finding_prefix(out, f);
         if !f.mitre_techniques.is_empty() {

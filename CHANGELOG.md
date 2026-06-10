@@ -7,6 +7,19 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-10
+
+### Fixed
+
+- **Behavioral change — emitted output:** Remapped revoked MITRE ATT&CK-ICS techniques to their
+  replacement IDs in the pinned ics-attack-19.1 catalog (issue #222):
+  - `T0855` "Unauthorized Command Message" → **`T1692.001`** "Unauthorized Message: Command Message"
+    (ICS sub-technique under parent T1692 "Unauthorized Message"). **Behavioral change:** Modbus
+    findings now emit `T1692.001` instead of `T0855` in the `mitre_techniques` field of all JSON,
+    terminal, and CSV output. Tactic (IcsImpairProcessControl) and co-emission ordering are unchanged.
+  - `T0856` "Spoof Reporting Message" → **`T1692.002`** "Unauthorized Message: Reporting Message"
+    (ICS sub-technique under T1692). Catalog-only (seeded, never emitted); no emitted output affected.
+
 ## [0.4.0] - 2026-06-10
 
 ### Added
@@ -215,7 +228,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Zious11/wirerust/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Zious11/wirerust/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Zious11/wirerust/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Zious11/wirerust/compare/v0.1.0...v0.2.0

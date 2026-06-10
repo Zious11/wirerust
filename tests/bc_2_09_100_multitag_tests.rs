@@ -7,7 +7,7 @@
 //!   - EMITTED_IDS updated to 13 (6 Enterprise + 7 ICS)
 //!   - JSON envelope gains `mitre_domain` + `mitre_attack_version`
 //!   - CSV column 6 renamed `mitre_techniques`; value = semicolon-join
-//!   - Terminal renders `"MITRE: T0855, T0836"` for multi-element vecs
+//!   - Terminal renders `"MITRE: T1692.001, T0836"` for multi-element vecs
 //!   - Terminal tactic-grouping uses `mitre_techniques[0]`
 //!
 //! Red Gate: `cargo build` fails on this file today because `mitre_techniques`
@@ -23,7 +23,7 @@
 //!
 //! The constant `MITRE_ATTACK_VERSION = "ics-attack-19.1"` is pinned to
 //! ATT&CK for ICS v19.1 (released 2026-04-28). All emitted ICS technique IDs
-//! (T0888, T0855, T0836, T0835, T0831, T0814, T0806) are confirmed valid and
+//! (T0888, T1692.001, T0836, T0835, T0831, T0814, T0806) are confirmed valid and
 //! active in v19.1. See .factory/research/attack-ics-version-pin.md.
 
 // Rust flags non-snake-case names that embed BC identifiers; suppress per project
@@ -94,14 +94,14 @@ fn csv_first_data_row(csv: &str) -> Vec<String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// BC-2.09.001 postcondition 1, AC-001 (STORY-100):
-/// `Finding` can be constructed with `mitre_techniques: vec!["T0855", "T0836"]`
+/// `Finding` can be constructed with `mitre_techniques: vec!["T1692.001", "T0836"]`
 /// (multi-tag co-attributed). This is the primary Red Gate compile error.
 #[test]
 fn test_BC_2_09_001_constructs_finding_with_multi_technique_vec() {
-    let f = make_finding_multitag(vec!["T0855", "T0836"]);
+    let f = make_finding_multitag(vec!["T1692.001", "T0836"]);
     // Postcondition: the vec has exactly 2 elements with the correct IDs.
     assert_eq!(f.mitre_techniques.len(), 2);
-    assert_eq!(f.mitre_techniques[0], "T0855");
+    assert_eq!(f.mitre_techniques[0], "T1692.001");
     assert_eq!(f.mitre_techniques[1], "T0836");
 }
 
@@ -228,17 +228,17 @@ fn test_BC_2_09_006_single_technique_serializes_as_json_array() {
 }
 
 /// BC-2.09.006 EC-006, STORY-100 AC-003:
-/// Multi-technique vec → `"mitre_techniques": ["T0855","T0836"]` (array).
+/// Multi-technique vec → `"mitre_techniques": ["T1692.001","T0836"]` (array).
 #[test]
 fn test_BC_2_09_006_multi_technique_serializes_as_json_array() {
-    let f = make_finding_multitag(vec!["T0855", "T0836"]);
+    let f = make_finding_multitag(vec!["T1692.001", "T0836"]);
     let json = render_json(&[f]);
     let finding_json = &json["findings"][0];
     let arr = finding_json["mitre_techniques"]
         .as_array()
         .expect("BC-2.09.006 EC-006: mitre_techniques must be a JSON array");
     assert_eq!(arr.len(), 2);
-    assert_eq!(arr[0], "T0855");
+    assert_eq!(arr[0], "T1692.001");
     assert_eq!(arr[1], "T0836");
 }
 
@@ -250,7 +250,7 @@ fn test_BC_2_09_006_no_scalar_mitre_technique_key_in_json() {
     let findings = vec![
         make_finding_multitag(vec![]),
         make_finding_multitag(vec!["T1027"]),
-        make_finding_multitag(vec!["T0855", "T0836"]),
+        make_finding_multitag(vec!["T1692.001", "T0836"]),
     ];
     let json_str = JsonReporter.render(&Summary::new(), &findings, &[]);
     assert!(
@@ -286,8 +286,8 @@ fn test_BC_2_10_005_technique_name_resolves_all_21_seeded_ids() {
         "T1573",
         // ICS — pre-F2 (4)
         "T0846",
-        "T0855",
-        "T0856",
+        "T1692.001",
+        "T1692.002",
         "T0885",
         // ICS — NEW F2 (6): RED GATE — these return None today
         "T0836",
@@ -378,8 +378,8 @@ fn test_BC_2_10_007_technique_tactic_correct_for_all_21_seeded_ids() {
         ("T1573", MitreTactic::CommandAndControl),
         // ICS pre-F2 (4) — unchanged
         ("T0846", MitreTactic::Discovery),
-        ("T0855", MitreTactic::IcsImpairProcessControl),
-        ("T0856", MitreTactic::IcsImpairProcessControl),
+        ("T1692.001", MitreTactic::IcsImpairProcessControl),
+        ("T1692.002", MitreTactic::IcsImpairProcessControl),
         ("T0885", MitreTactic::CommandAndControl),
         // ICS NEW F2 (6) — RED GATE: these return None today
         ("T0836", MitreTactic::IcsImpairProcessControl),
@@ -453,7 +453,7 @@ fn test_BC_2_10_008_all_emitted_ids_resolve_in_lookup() {
     //   src/analyzer/http.rs         — T1083, T1505.003, T1046, T1499.002
     //   src/reassembly/mod.rs        — T1036
     //   src/reassembly/lifecycle.rs  — T1036
-    //   src/analyzer/modbus.rs (F2)  — T0855, T0836, T0814, T0806, T0835, T0831, T0888
+    //   src/analyzer/modbus.rs (F2)  — T1692.001, T0836, T0814, T0806, T0835, T0831, T0888
     let emitted_ids: &[&str] = &[
         // Enterprise (6) — unchanged
         "T1027",
@@ -462,8 +462,8 @@ fn test_BC_2_10_008_all_emitted_ids_resolve_in_lookup() {
         "T1083",
         "T1499.002",
         "T1505.003",
-        // ICS (7) — 6 new F2 + T0855 which was already emitted pre-F2 via single-tag
-        "T0855",
+        // ICS (7) — 6 new F2 + T1692.001 which was already emitted pre-F2 via single-tag
+        "T1692.001",
         "T0836",
         "T0814",
         "T0806",
@@ -662,12 +662,12 @@ fn make_terminal(mitre_grouping: bool) -> TerminalReporter {
 
 /// BC-2.11.013 postcondition, AC-003 (STORY-101):
 /// Terminal reporter groups by `mitre_techniques[0]` tactic.
-/// Finding with `["T0855", "T0836"]` (T0855 first → IcsImpairProcessControl)
+/// Finding with `["T1692.001", "T0836"]` (T1692.001 first → IcsImpairProcessControl)
 /// appears under "Impair Process Control" bucket.
 #[test]
 fn test_BC_2_11_013_terminal_tactic_grouping_uses_first_technique() {
-    let f1 = make_finding_multitag(vec!["T0855", "T0836"]); // first = T0855 → IcsImpairProcessControl
-    let f2 = make_finding_multitag(vec!["T0806", "T0855"]); // first = T0806 → IcsImpairProcessControl
+    let f1 = make_finding_multitag(vec!["T1692.001", "T0836"]); // first = T1692.001 → IcsImpairProcessControl
+    let f2 = make_finding_multitag(vec!["T0806", "T1692.001"]); // first = T0806 → IcsImpairProcessControl
 
     let reporter = make_terminal(true);
     let output = reporter.render(&Summary::new(), &[f1, f2], &[]);
@@ -722,21 +722,21 @@ fn test_BC_2_11_015_terminal_unknown_id_lands_in_uncategorized() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BC-2.11.017: terminal renders "MITRE: T0855, T0836" for multi-ID (STORY-101)
+// BC-2.11.017: terminal renders "MITRE: T1692.001, T0836" for multi-ID (STORY-101)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// BC-2.11.017 postcondition, AC-002 (STORY-101):
-/// Two-technique finding renders as `"MITRE: T0855, T0836"` (comma-space join).
+/// Two-technique finding renders as `"MITRE: T1692.001, T0836"` (comma-space join).
 /// Flat view (show_mitre_grouping=false).
 #[test]
 fn test_BC_2_11_017_terminal_renders_multi_id_mitre_string() {
-    let f = make_finding_multitag(vec!["T0855", "T0836"]);
+    let f = make_finding_multitag(vec!["T1692.001", "T0836"]);
     let reporter = make_terminal(false);
     let output = reporter.render(&Summary::new(), &[f], &[]);
 
     assert!(
-        output.contains("MITRE: T0855, T0836"),
-        "BC-2.11.017: multi-technique finding must render 'MITRE: T0855, T0836' \
+        output.contains("MITRE: T1692.001, T0836"),
+        "BC-2.11.017: multi-technique finding must render 'MITRE: T1692.001, T0836' \
          (comma-space separated); got:\n{output}"
     );
 }
@@ -873,15 +873,15 @@ fn test_BC_2_11_024_csv_singleton_technique_is_plain_id() {
 }
 
 /// BC-2.11.024 postcondition, AC-006 (multi):
-/// `vec!["T0855", "T0836"]` → CSV column 6 is `"T0855;T0836"` (semicolon join, no spaces).
+/// `vec!["T1692.001", "T0836"]` → CSV column 6 is `"T1692.001;T0836"` (semicolon join, no spaces).
 #[test]
 fn test_BC_2_11_024_csv_multi_technique_semicolon_join() {
-    let f = make_finding_multitag(vec!["T0855", "T0836"]);
+    let f = make_finding_multitag(vec!["T1692.001", "T0836"]);
     let csv = render_csv(&[f]);
     let lines: Vec<&str> = csv.lines().collect();
     let cols: Vec<&str> = lines[1].split(',').collect();
     assert_eq!(
-        cols[5], "T0855;T0836",
+        cols[5], "T1692.001;T0836",
         "BC-2.11.024 pc: multi-technique vec must produce semicolon-joined string \
          in column 6; got {:?}",
         cols[5]
@@ -889,16 +889,16 @@ fn test_BC_2_11_024_csv_multi_technique_semicolon_join() {
 }
 
 /// BC-2.11.024 (3-element join):
-/// `vec!["T0855", "T0836", "T0831"]` → `"T0855;T0836;T0831"`.
+/// `vec!["T1692.001", "T0836", "T0831"]` → `"T1692.001;T0836;T0831"`.
 #[test]
 fn test_BC_2_11_024_csv_three_technique_semicolon_join() {
-    let f = make_finding_multitag(vec!["T0855", "T0836", "T0831"]);
+    let f = make_finding_multitag(vec!["T1692.001", "T0836", "T0831"]);
     let csv = render_csv(&[f]);
     let lines: Vec<&str> = csv.lines().collect();
     let cols: Vec<&str> = lines[1].split(',').collect();
     assert_eq!(
-        cols[5], "T0855;T0836;T0831",
-        "BC-2.11.024: three-element vec must produce 'T0855;T0836;T0831' in column 6; \
+        cols[5], "T1692.001;T0836;T0831",
+        "BC-2.11.024: three-element vec must produce 'T1692.001;T0836;T0831' in column 6; \
          got {:?}",
         cols[5]
     );
@@ -908,12 +908,12 @@ fn test_BC_2_11_024_csv_three_technique_semicolon_join() {
 /// Verify column count with a populated finding row.
 #[test]
 fn test_BC_2_11_020_csv_column_count_stays_9_with_multitag() {
-    let f = make_finding_multitag(vec!["T0855", "T0836"]);
+    let f = make_finding_multitag(vec!["T1692.001", "T0836"]);
     let csv = render_csv(&[f]);
     // The csv crate quotes cells with semicolons so the column count stays 9.
     // Use the csv crate's own reader logic via raw output inspection.
     // The finding is not quoted if no CSV-special characters appear — but
-    // "T0855;T0836" contains no comma so no quoting happens.
+    // "T1692.001;T0836" contains no comma so no quoting happens.
     let lines: Vec<&str> = csv.lines().collect();
     // Header must have 9 comma-separated fields.
     let header_count = lines[0].split(',').count();
@@ -922,7 +922,7 @@ fn test_BC_2_11_020_csv_column_count_stays_9_with_multitag() {
         "BC-2.11.020: header must have exactly 9 columns; got {header_count}"
     );
     // Data row: the csv crate quotes the column-6 value if needed so splits
-    // must yield 9 fields. T0855;T0836 has no commas → simple split is safe.
+    // must yield 9 fields. T1692.001;T0836 has no commas → simple split is safe.
     let data_count = lines[1].split(',').count();
     assert_eq!(
         data_count, 9,

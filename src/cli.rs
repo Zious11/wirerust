@@ -158,13 +158,13 @@ pub enum Commands {
         #[arg(long)]
         modbus: bool,
 
-        /// Per-flow write-burst threshold: fires T0806+T0855 when more than N
+        /// Per-flow write-burst threshold: fires T0806+T1692.001 when more than N
         /// write-class FCs are observed within any 1-second window (BC-2.14.024).
         /// Default: 20. Must be >= 1.
         #[arg(long, default_value_t = 20)]
         modbus_write_burst_threshold: u32,
 
-        /// Per-flow sustained-rate threshold: fires T0806+T0855 when the average
+        /// Per-flow sustained-rate threshold: fires T0806+T1692.001 when the average
         /// write-FC rate exceeds M writes/second over a contiguous window of >= 2s
         /// (BC-2.14.024). Default: 10. Must be >= 1.
         #[arg(long, default_value_t = 10)]
