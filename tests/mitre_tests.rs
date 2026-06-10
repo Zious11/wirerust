@@ -293,7 +293,7 @@ fn test_technique_name_resolves_all_21_seeded_ids() {
 // ---------------------------------------------------------------------------
 #[test]
 fn test_technique_name_returns_none_for_unknown_ids() {
-    // BC-2.10.006 postcondition 1: returns None for any ID not in the 15-entry
+    // BC-2.10.006 postcondition 1: returns None for any ID not in the 21-entry
     // static match table. No panic, no error, no default string.
     // BC-2.10.006 invariant 1: match is exact string equality (case-sensitive, no trim).
     assert_eq!(technique_name("T9999"), None);
