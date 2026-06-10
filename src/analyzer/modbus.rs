@@ -324,7 +324,12 @@ impl ModbusAnalyzer {
     /// - Guard every finding push with `MAX_FINDINGS` poison-skip (BC-2.14.022).
     /// - Return a `Vec<Finding>` containing all findings emitted for this PDU.
     ///
-    /// The `timestamp` argument is the pcap-relative capture timestamp (u32 microseconds).
+    /// The `timestamp` argument is the pcap-relative capture timestamp in WHOLE SECONDS
+    /// (u32, same as `timestamp_secs` from `reader.rs`). The pipeline delivers second
+    /// granularity only — `timestamp_usecs` exists in `RawPacket` but is NOT threaded
+    /// through `StreamHandler::on_data` (threading sub-second precision is a future
+    /// enhancement, out of scope for v0.4.0). All detectors operate at 1-second resolution.
+    ///
     /// All window elapsed computations use `now_ts.wrapping_sub(window_start_ts)` per
     /// f2-fix-directives §11.5b.
     #[allow(clippy::too_many_arguments)] // 8 params: interface dictated by STORY-105 wiring (FlowKey, flow state, direction, header, fc, raw data, timestamp)
@@ -340,27 +345,40 @@ impl ModbusAnalyzer {
     ) -> Vec<Finding> {
         use chrono::DateTime;
 
-        // Convert pcap-relative microsecond u32 to a DateTime<Utc> for Finding.timestamp.
-        // Per BC-2.09.007 post.1: DateTime::from_timestamp(ts_sec, ts_usec * 1_000)
-        // where ts_sec = timestamp / 1_000_000, ts_usec = timestamp % 1_000_000.
-        let ts_sec = (timestamp / 1_000_000) as i64;
-        let ts_nsec = (timestamp % 1_000_000) * 1_000;
-        let finding_ts = DateTime::from_timestamp(ts_sec, ts_nsec);
+        // F-DELTA-001 fix: timestamp is SECONDS (the pipeline delivers timestamp_secs,
+        // not microseconds). Treat it as a whole-second Unix epoch value, matching how
+        // TLS (tls.rs), reassembly (mod.rs), and all other analyzers handle it.
+        // BC-2.09.007 post.1: DateTime::from_timestamp(seconds, 0) — no sub-second
+        // precision available at this layer; sub-second threading is a future enhancement.
+        let finding_ts = DateTime::from_timestamp(timestamp as i64, 0);
 
-        // Resolve source IPs from FlowKey using Modbus port-502 convention
-        // (BC-2.14.013 post.1, BC-2.14.017 post.1, BC-2.14.019 post.A/B, BC-2.14.020).
-        // The Modbus server always listens on port 502; the client is the other endpoint.
-        // FlowKey stores (lower_ip:lower_port, upper_ip:upper_port) canonicalized by
-        // (ip, port) tuple order — we check which port is 502 to identify server vs client.
-        let client_ip = if flow_key.lower_port() == 502 {
-            flow_key.upper_ip()
+        // F-DELTA-005 fix: resolve client/server IPs from the TCP `Direction` argument,
+        // not solely from the port-502 heuristic.
+        //
+        // `Direction::ClientToServer` means the packet is from the TCP initiator (the
+        // Modbus client). `Direction::ServerToClient` means the packet is from the
+        // responder (the Modbus server). This is the authoritative source — it comes from
+        // `TcpFlow::direction()` which tracks the SYN initiator explicitly.
+        //
+        // FlowKey canonicalizes by (ip, port) tuple order, giving `lower_*` and `upper_*`
+        // endpoints with no inherent client/server semantics. We determine which endpoint
+        // is which by combining the port-502 heuristic (Modbus server always listens on
+        // port 502) with the `direction` argument:
+        //   - If lower_port == 502: lower endpoint is the server, upper is the client.
+        //   - Otherwise:            upper endpoint is the server, lower is the client.
+        // The `direction` arg is then used to select `source_ip` for each finding
+        // (ClientToServer → the client endpoint; ServerToClient → the server endpoint),
+        // which is more semantically accurate than deriving source_ip from the heuristic
+        // alone, especially for mid-stream-join flows where the SYN was not observed.
+        //
+        // Note: FlowKey has no `client_ip()`/`server_ip()` accessors — those BCs cite
+        // a non-existent API (spec-steward reconciling). We resolve from direction + ports.
+        let (client_ip, server_ip) = if flow_key.lower_port() == 502 {
+            // lower endpoint is the Modbus server (port 502), upper is the client.
+            (flow_key.upper_ip(), flow_key.lower_ip())
         } else {
-            flow_key.lower_ip()
-        };
-        let server_ip = if flow_key.lower_port() == 502 {
-            flow_key.lower_ip()
-        } else {
-            flow_key.upper_ip()
+            // upper endpoint is the Modbus server (port 502), lower is the client.
+            (flow_key.lower_ip(), flow_key.upper_ip())
         };
 
         // Helper: push a finding into self.all_findings with MAX_FINDINGS poison-skip.
@@ -511,8 +529,10 @@ impl ModbusAnalyzer {
                         let mut emit_t0831 = false;
                         if is_register_write {
                             // Check if window has expired (wrapping_sub).
+                            // F-DELTA-001: timestamp is in SECONDS; compare directly against
+                            // T0831_WINDOW_SECS (5 seconds). No * 1_000_000 scaling.
                             let t0831_elapsed = timestamp.wrapping_sub(flow.t0831_window_start_ts);
-                            if t0831_elapsed > T0831_WINDOW_SECS * 1_000_000 {
+                            if t0831_elapsed > T0831_WINDOW_SECS {
                                 // Window expired → reset.
                                 flow.t0831_window_start_ts = timestamp;
                                 flow.t0831_window_write_count = 1;
@@ -570,8 +590,10 @@ impl ModbusAnalyzer {
                         // Update window FIRST, then check threshold (wrapping_sub).
                         // -------------------------------------------------------
                         {
+                            // F-DELTA-001: timestamp is in SECONDS; compare directly against
+                            // WRITE_BURST_WINDOW_SECS (1 second). No * 1_000_000 scaling.
                             let burst_elapsed = timestamp.wrapping_sub(flow.window_start_ts);
-                            if burst_elapsed > WRITE_BURST_WINDOW_SECS * 1_000_000 {
+                            if burst_elapsed > WRITE_BURST_WINDOW_SECS {
                                 // Window expired → slide forward.
                                 flow.window_start_ts = timestamp;
                                 flow.window_write_count = 1;
@@ -582,14 +604,15 @@ impl ModbusAnalyzer {
                                     && !flow.window_burst_emitted
                                 {
                                     flow.window_burst_emitted = true;
-                                    let elapsed_ms = burst_elapsed / 1_000;
+                                    // elapsed is in seconds; display as whole seconds.
+                                    let elapsed_ms = burst_elapsed;
                                     // Burst finding: SEPARATE from per-PDU finding (BC-2.14.013 inv5).
                                     local_findings.push(Finding {
                                         category: crate::findings::ThreatCategory::Execution,
                                         verdict: crate::findings::Verdict::Likely,
                                         confidence: crate::findings::Confidence::High,
                                         summary: format!(
-                                            "Modbus write burst: {} writes in {}ms window (unit {}, threshold {}/s)",
+                                            "Modbus write burst: {} writes in {}s window (unit {}, threshold {}/s)",
                                             flow.window_write_count,
                                             elapsed_ms,
                                             header.unit_id,
@@ -621,7 +644,20 @@ impl ModbusAnalyzer {
 
                         // -------------------------------------------------------
                         // Sustained detector: >=2-second window (BC-2.14.017 Invariant 2)
-                        // Truncation-free cross-multiplication (f2-fix-directives §11.5a).
+                        // F-DELTA-001 + Gemini #3 fix: timestamp is in SECONDS.
+                        // Truncation-free rate check for second-granularity:
+                        //   count > threshold * elapsed_secs
+                        // (no * 1_000_000 needed — both count and elapsed are already
+                        // in the same unit system; the cross-multiply was only necessary
+                        // when elapsed was in microseconds).
+                        //
+                        // Known v1 limitation (F-DELTA-004): all ADUs delivered in a
+                        // single reassembly flush share the same flush timestamp (the
+                        // pcap timestamp of the triggering packet). Window fidelity is
+                        // therefore limited by reassembly granularity — bursts within
+                        // the same packet appear as a single second. This is an inherent
+                        // v1 detector property; sub-second precision requires threading
+                        // timestamp_usecs through StreamHandler::on_data (future work).
                         // -------------------------------------------------------
                         {
                             if flow.sustained_window_write_count == 0 {
@@ -632,37 +668,36 @@ impl ModbusAnalyzer {
                             } else {
                                 // Accumulate first (update-before-check).
                                 flow.sustained_window_write_count += 1;
-                                let elapsed_us =
+                                let elapsed_secs =
                                     timestamp.wrapping_sub(flow.sustained_window_start_ts);
 
                                 // Check trigger: elapsed >= 2s AND rate exceeded AND not emitted.
-                                // Truncation-free: (count*1_000_000) > (threshold*elapsed_us)
-                                // (f2-fix-directives §11.5a)
-                                if elapsed_us >= WRITE_SUSTAINED_WINDOW_SECS * 1_000_000
+                                // Truncation-free (seconds form): count > threshold * elapsed_secs
+                                // Cast to u64 to prevent u32 overflow on large counts.
+                                if elapsed_secs >= WRITE_SUSTAINED_WINDOW_SECS
                                     && !flow.sustained_burst_emitted
-                                    && (flow.sustained_window_write_count as u64) * 1_000_000
+                                    && (flow.sustained_window_write_count as u64)
                                         > (self.write_sustained_threshold as u64)
-                                            * (elapsed_us as u64)
+                                            * (elapsed_secs as u64)
                                 {
                                     flow.sustained_burst_emitted = true;
-                                    let elapsed_secs_f = (elapsed_us as f64) / 1_000_000.0;
                                     local_findings.push(Finding {
                                         category: crate::findings::ThreatCategory::Execution,
                                         verdict: crate::findings::Verdict::Likely,
                                         confidence: crate::findings::Confidence::High,
                                         summary: format!(
-                                            "Modbus write burst: {} writes over {:.0}s window (unit {}, >{}/s avg)",
+                                            "Modbus write burst: {} writes over {}s window (unit {}, >{}/s avg)",
                                             flow.sustained_window_write_count,
-                                            elapsed_secs_f,
+                                            elapsed_secs,
                                             header.unit_id,
                                             self.write_sustained_threshold
                                         ),
                                         evidence: vec![format!(
-                                            "Sustained write rate exceeded: {} writes over {:.1} seconds \
+                                            "Sustained write rate exceeded: {} writes over {} seconds \
                                              (>{}/s average); sustained_window_start_ts={} \
                                              FC=0x{:02X} UnitID={}",
                                             flow.sustained_window_write_count,
-                                            elapsed_secs_f,
+                                            elapsed_secs,
                                             self.write_sustained_threshold,
                                             flow.sustained_window_start_ts,
                                             fc,
@@ -682,7 +717,7 @@ impl ModbusAnalyzer {
                                 // Window slide: reset when elapsed >= WRITE_SUSTAINED_WINDOW_SECS.
                                 // (f2-fix-directives §11.5 step 5: ALWAYS reset regardless of
                                 // whether a finding fired, to prevent unbounded accumulation.)
-                                if elapsed_us >= WRITE_SUSTAINED_WINDOW_SECS * 1_000_000 {
+                                if elapsed_secs >= WRITE_SUSTAINED_WINDOW_SECS {
                                     flow.sustained_window_start_ts = timestamp;
                                     flow.sustained_window_write_count = 1;
                                     flow.sustained_burst_emitted = false;
@@ -791,7 +826,13 @@ impl ModbusAnalyzer {
                             .unwrap_or(&timestamp),
                     );
 
-                    if exc_elapsed > EXCEPTION_WINDOW_SECS * 1_000_000 {
+                    // F-DELTA-001: timestamp is in SECONDS; compare directly against
+                    // EXCEPTION_WINDOW_SECS (10 seconds). No * 1_000_000 scaling.
+                    // Gemini #6 re-verified: with second granularity the 10s window
+                    // actually expires correctly, and the or_insert anchor in the else
+                    // branch ensures EC-005 cross-window reset works (new exception code
+                    // gets a fresh anchor so subsequent exceptions measure real elapsed).
+                    if exc_elapsed > EXCEPTION_WINDOW_SECS {
                         // Window expired → reset (also handles first-time with exc_elapsed=0
                         // via the else branch below for new codes).
                         flow.exception_window_counts.insert(exc_code, 1);
@@ -1041,12 +1082,17 @@ impl StreamHandler for ModbusAnalyzer {
 
             // 3-point validity gate (BC-2.14.003/004).
             if !is_valid_modbus_adu(&header) {
-                // Invalid protocol_id or out-of-range length.
-                // Per the desync policy (BC-2.14.003): if protocol_id != 0, mark the flow
-                // as non-Modbus so future chunks bail immediately.
-                if header.protocol_id != 0x0000 {
-                    flow.is_non_modbus = true;
-                }
+                // F-DELTA-003 fix: structurally-impossible Modbus ADU → latch is_non_modbus.
+                //
+                // Both failure modes indicate a non-Modbus stream:
+                //   1. protocol_id != 0x0000: a well-specified Modbus/TCP deviation.
+                //   2. length out of [2, 254]: no valid Modbus PDU can have this length;
+                //      a real Modbus device would never emit such a frame. Latching
+                //      is_non_modbus prevents per-chunk re-scan (matching behavior of the
+                //      protocol_id case) and stops parse_errors inflation on subsequent
+                //      calls. Also clears carry so no partial state lingers.
+                flow.is_non_modbus = true;
+                flow.carry.clear();
                 self.parse_errors += 1;
                 break; // Cannot safely advance: length field is invalid.
             }
