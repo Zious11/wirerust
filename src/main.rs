@@ -24,6 +24,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use wirerust::analyzer::ProtocolAnalyzer;
 use wirerust::analyzer::dns::DnsAnalyzer;
 use wirerust::analyzer::http::HttpAnalyzer;
+use wirerust::analyzer::modbus::ModbusAnalyzer;
 use wirerust::analyzer::tls::TlsAnalyzer;
 use wirerust::cli::{Cli, Commands, OutputFormat};
 use wirerust::decoder::decode_packet;
@@ -50,13 +51,18 @@ fn main() -> Result<()> {
             tls,
             all,
             mitre,
-            ..
+            modbus,
+            modbus_write_burst_threshold,
+            modbus_write_sustained_threshold,
         } => {
             run_analyze(
                 targets,
                 *dns || *all,
                 *http || *all,
                 *tls || *all,
+                *modbus || *all,
+                *modbus_write_burst_threshold,
+                *modbus_write_sustained_threshold,
                 *mitre,
                 use_color,
                 &cli,
@@ -70,26 +76,48 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_analyze(
     targets: &[std::path::PathBuf],
     enable_dns: bool,
     enable_http: bool,
     enable_tls: bool,
+    enable_modbus: bool,
+    modbus_write_burst_threshold: u32,
+    modbus_write_sustained_threshold: u32,
     show_mitre_grouping: bool,
     use_color: bool,
     cli: &Cli,
 ) -> Result<()> {
+    // BC-2.14.024 §P3a/P3b: validate thresholds before constructing the analyzer.
+    if modbus_write_burst_threshold == 0 {
+        anyhow::bail!("--modbus-write-burst-threshold must be >= 1 (got 0)");
+    }
+    if modbus_write_sustained_threshold == 0 {
+        anyhow::bail!("--modbus-write-sustained-threshold must be >= 1 (got 0)");
+    }
+
     let mut summary = Summary::new();
     let mut dns_analyzer = DnsAnalyzer::new();
     let mut all_findings = Vec::new();
     let mut total_decode_errors: u64 = 0;
 
-    let needs_reassembly = cli.reassemble || enable_http || enable_tls;
     let skip_reassembly = cli.no_reassemble;
+
+    // BC-2.14.023 §P4: needs_reassembly includes enable_modbus so that --modbus
+    // alone (without --http or --tls) activates the reassembly engine.
+    let needs_reassembly = cli.reassemble || enable_http || enable_tls || enable_modbus;
 
     if (enable_http || enable_tls) && skip_reassembly {
         eprintln!(
             "Warning: --http/--tls require TCP reassembly, but --no-reassemble is set. Stream analysis will be skipped."
+        );
+    }
+    // BC-2.14.023 §P2 sub-case (EC-001): warn and omit Modbus when reassembly disabled.
+    if enable_modbus && skip_reassembly {
+        eprintln!(
+            "WARNING: --modbus requires stream reassembly; ignoring --modbus \
+             (pass --reassemble or omit --no-reassemble)"
         );
     }
 
@@ -135,7 +163,17 @@ fn run_analyze(
     } else {
         None
     };
-    let mut dispatcher = StreamDispatcher::new(http_analyzer, tls_analyzer);
+    // BC-2.14.023 §P2: construct ModbusAnalyzer only when enabled AND reassembly is on.
+    let modbus_analyzer: Option<ModbusAnalyzer> = if enable_modbus && !skip_reassembly {
+        Some(ModbusAnalyzer::new(
+            modbus_write_burst_threshold,
+            modbus_write_sustained_threshold,
+        ))
+    } else {
+        None
+    };
+
+    let mut dispatcher = StreamDispatcher::new(http_analyzer, tls_analyzer, modbus_analyzer);
 
     // Capture loop wrapped in an immediately-invoked closure so any `?`-bail
     // inside (e.g. unreadable pcap, malformed progress-bar template) is
@@ -220,6 +258,12 @@ fn run_analyze(
     }
     if let Some(tls) = dispatcher.tls_analyzer() {
         analyzer_summaries.push(tls.summarize());
+    }
+
+    // BC-2.14.023 §P5: post-finalize — collect Modbus findings and summary.
+    if let Some(modbus) = dispatcher.take_modbus_analyzer() {
+        all_findings.extend(modbus.all_findings.iter().cloned());
+        analyzer_summaries.push(modbus.summarize());
     }
 
     let resolved_format = resolve_format(cli);
