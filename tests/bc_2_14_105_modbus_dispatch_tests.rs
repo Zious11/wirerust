@@ -1334,3 +1334,92 @@ fn test_f_delta_001_e2e_second_scale_timestamps_through_dispatcher() {
         "F-DELTA-001 E2E: burst finding timestamp must also be year 2023"
     );
 }
+
+// ---------------------------------------------------------------------------
+// F-DELTA-003 — proto-id=0 + length-invalid latch test
+// ---------------------------------------------------------------------------
+
+/// F-DELTA-003 latch: proto-id=0 ADU with length OUT OF [2, 254] latches is_non_modbus.
+///
+/// A Modbus/TCP ADU with protocol_id=0x0000 (valid Modbus identifier) but length=255
+/// (out of the valid range [2, 254]) fails `is_valid_modbus_adu` and must:
+///   (a) increment parse_errors to 1
+///   (b) latch the flow as is_non_modbus (clearing carry)
+///   (c) cause all subsequent ADUs on the SAME flow to be silently ignored
+///       (total_pdu_count stays at 0 even after a structurally-valid follow-up ADU)
+///
+/// This pins the F-DELTA-003 length-invalid branch of the desync policy. The
+/// protocol_id!=0 branch was already tested (F-105-003 pin-2). This test covers the
+/// symmetric proto-id=0 / bad-length path which was previously untested.
+///
+/// Traces to: BC-2.14.003/004 (is_valid_modbus_adu gate), F-DELTA-003 fix directive.
+#[test]
+fn test_f_delta_003_proto_id_0_length_invalid_latches_is_non_modbus_and_bails() {
+    // --- Part (a) + (b): bad ADU causes parse_errors==1 and latches the flow ---
+    let modbus = ModbusAnalyzer::new(20, 10);
+    let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+    let key = flow_key(49152, 502);
+
+    // ADU: protocol_id=0x0000 (valid Modbus), length=0x00FF=255 (OUT OF [2, 254]).
+    // This passes parse_mbap_header (>= 8 bytes) but fails is_valid_modbus_adu.
+    // F-DELTA-003: the invalid-length branch must latch is_non_modbus and increment
+    // parse_errors, symmetrically to the protocol_id!=0 branch.
+    let bad_length_adu = [
+        0x00u8, 0x01, // transaction_id = 1
+        0x00, 0x00, // protocol_id = 0x0000 (Modbus — but length is invalid)
+        0x00, 0xFF, // length = 255 (INVALID: outside [2, 254])
+        0x01, // unit_id
+        0x03, // function_code: Read Holding Registers
+    ];
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        &bad_length_adu,
+        0,
+        1_700_000_000,
+    );
+
+    let modbus_ref = dispatcher.take_modbus_analyzer().unwrap();
+    assert_eq!(
+        modbus_ref.parse_errors, 1,
+        "F-DELTA-003: proto-id=0 + length=255 (invalid) must increment parse_errors to 1 \
+         (is_valid_modbus_adu gate fires on the length-out-of-range path)"
+    );
+
+    // --- Part (c): subsequent valid ADU on the SAME flow is ignored (latch holds) ---
+    // Re-insert the analyzer (with parse_errors=1 and the flow latched) into a new
+    // dispatcher and deliver a structurally-valid Modbus ADU on the SAME flow key.
+    // Because is_non_modbus was set on the flow, on_data must bail immediately —
+    // total_pdu_count must stay at 0.
+    let mut dispatcher2 = StreamDispatcher::new(None, None, Some(modbus_ref));
+
+    // Valid Read Holding Registers request: proto-id=0, length=6 (in range [2, 254]).
+    let valid_adu = [
+        0x00u8, 0x02, // transaction_id = 2
+        0x00, 0x00, // protocol_id = 0x0000
+        0x00, 0x06, // length = 6 (valid)
+        0x01, // unit_id
+        0x03, // function_code: Read Holding Registers
+        0x00, 0x00, // starting address
+        0x00, 0x01, // quantity = 1
+    ];
+    dispatcher2.on_data(
+        &key,
+        Direction::ClientToServer,
+        &valid_adu,
+        8,
+        1_700_000_001,
+    );
+
+    let modbus_final = dispatcher2.take_modbus_analyzer().unwrap();
+    assert_eq!(
+        modbus_final.total_pdu_count, 0,
+        "F-DELTA-003: after length-invalid latch, a subsequent valid ADU on the same flow \
+         must NOT be processed — total_pdu_count must stay at 0 (is_non_modbus bail fires)"
+    );
+    assert_eq!(
+        modbus_final.parse_errors, 1,
+        "F-DELTA-003: parse_errors must remain at 1 after the latch-bail \
+         (no additional parse_errors incremented for latched flows)"
+    );
+}

@@ -623,8 +623,8 @@ fn test_BC_2_14_017_burst_emit_once_per_window() {
 }
 
 // ---------------------------------------------------------------------------
-// BC-2.14.017 — Sustained detector (truncation-free microsecond math)
-// AC-005: (count*1_000_000) > (threshold*elapsed_us) AND elapsed_us >= 2_000_000
+// BC-2.14.017 — Sustained detector (truncation-free second-scale math)
+// AC-005: count > threshold*elapsed_s AND elapsed_s >= 2
 // ---------------------------------------------------------------------------
 
 /// test_BC_2_14_017_sustained_detector_uses_truncation_free_math_no_false_positive
@@ -773,8 +773,8 @@ fn test_BC_2_14_017_sustained_low_and_slow_fires() {
 ///
 /// Deliver a write at ts=0xFFFFFF00 (near u32::MAX), then a write at ts=0x00000100.
 /// Plain subtraction: 0x100 - 0xFFFFFF00 = underflow → panic in debug mode.
-/// wrapping_sub: 0x100u32.wrapping_sub(0xFFFFFF00) = 0x00000200 = 512 µs → no panic.
-/// Expected: no panic; 512µs elapsed << 1_000_000µs → still in burst window.
+/// wrapping_sub: 0x100u32.wrapping_sub(0xFFFFFF00) = 0x00000200 = 512 seconds → no panic.
+/// Expected: no panic; 512 seconds elapsed < 1s burst window boundary check → still in window.
 /// Traces to: BC-2.14.017 + f2-fix-directives §11.5b, STORY-104 AC-006.
 #[test]
 fn test_BC_2_14_017_window_elapsed_uses_wrapping_sub_no_panic() {
@@ -803,7 +803,7 @@ fn test_BC_2_14_017_window_elapsed_uses_wrapping_sub_no_panic() {
         0x00000100_u32,
     );
 
-    // wrapping_sub = 0x200 = 512µs → WITHIN 1s burst window → window_write_count = 2
+    // wrapping_sub = 0x200 = 512 seconds elapsed > 1s burst window → window resets
     // (No burst yet since threshold = 20; just verifying no panic and correct window state.)
     assert!(
         !f2.is_empty(),
@@ -812,7 +812,7 @@ fn test_BC_2_14_017_window_elapsed_uses_wrapping_sub_no_panic() {
     assert!(
         !f2.iter()
             .any(|f| f.mitre_techniques.contains(&"T0806".to_string())),
-        "512µs elapsed with 2 writes: no burst (threshold=20)"
+        "512 seconds elapsed with 2 writes: no burst (threshold=20, window reset)"
     );
 }
 

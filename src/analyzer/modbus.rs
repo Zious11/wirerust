@@ -11,7 +11,7 @@
 //! - `ModbusFlowState` — full per-flow state (BC-2.14.009–012, STORY-103)
 //! - `ModbusAnalyzer` — analyzer-level aggregates and `duplicate_inflight_txn` counter
 //! - `ModbusAnalyzer::process_pdu` — detection engine (BC-2.14.013–022): emits all eight finding kinds
-//! - `ModbusAnalyzer::summarize` — six-key summary (BC-2.14.021): pdu_count, write_count, exception_count, unknown_fc_count, duplicate_inflight_txn, parse_errors
+//! - `ModbusAnalyzer::summarize` — six-key summary (BC-2.14.021): pdu_count, write_count, exception_count, parse_errors, function_code_distribution, dropped_findings
 //! - `MAX_PENDING_TRANSACTIONS` — hard bound of 256 (BC-2.14.012)
 //! - `MAX_FINDINGS` — cap at 10,000 findings (BC-2.14.022)
 //! - VP-022 Kani harnesses (sub-properties A, B, C) — gated by `#[cfg(kani)]`
