@@ -339,35 +339,14 @@ fn test_BC_2_14_016_t0831_inline_cotag_on_second_holding_register_write() {
     let mut flow = ModbusFlowState::default();
     let fk = test_flow_key();
 
-    // All three writes within 5s (timestamps 1.0s, 2.0s, 3.0s in microseconds).
+    // All three writes within 5s (timestamps 1s, 2s, 3s — second-granularity after F-DELTA-001 fix).
     let adu1 = build_adu(0x0001, 0x01, 0x06, &[0x00, 0x10, 0x01, 0xF4]);
     let adu2 = build_adu(0x0002, 0x01, 0x06, &[0x00, 0x10, 0x02, 0x00]);
     let adu3 = build_adu(0x0003, 0x01, 0x06, &[0x00, 0x10, 0x03, 0x00]);
 
-    let f1 = drive(
-        &mut az,
-        &mut flow,
-        &fk,
-        Direction::ClientToServer,
-        &adu1,
-        1_000_000,
-    );
-    let f2 = drive(
-        &mut az,
-        &mut flow,
-        &fk,
-        Direction::ClientToServer,
-        &adu2,
-        2_000_000,
-    );
-    let f3 = drive(
-        &mut az,
-        &mut flow,
-        &fk,
-        Direction::ClientToServer,
-        &adu3,
-        3_000_000,
-    );
+    let f1 = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu1, 1);
+    let f2 = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu2, 2);
+    let f3 = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu3, 3);
 
     // First write: T0831 window started, count=1 → no T0831 tag.
     assert_eq!(
@@ -417,29 +396,15 @@ fn test_BC_2_14_016_t0831_window_reset_after_5s() {
     let mut flow = ModbusFlowState::default();
     let fk = test_flow_key();
 
-    // Two writes within 5s to fire T0831.
+    // Two writes within 5s to fire T0831. (F-DELTA-001: second-granularity timestamps)
     let adu1 = build_adu(0x0001, 0x01, 0x06, &[0x00, 0x10, 0x01, 0xF4]);
     let adu2 = build_adu(0x0002, 0x01, 0x06, &[0x00, 0x11, 0x01, 0xF4]);
     drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu1, 0);
-    drive(
-        &mut az,
-        &mut flow,
-        &fk,
-        Direction::ClientToServer,
-        &adu2,
-        1_000_000,
-    );
+    drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu2, 1);
 
-    // Third write at 6s (window expired — wrapping_sub(6_000_000, 0) = 6_000_000 > 5_000_000).
+    // Third write at 6s (window expired — wrapping_sub(6, 0) = 6 > T0831_WINDOW_SECS=5).
     let adu3 = build_adu(0x0003, 0x01, 0x06, &[0x00, 0x12, 0x01, 0xF4]);
-    let f3 = drive(
-        &mut az,
-        &mut flow,
-        &fk,
-        Direction::ClientToServer,
-        &adu3,
-        6_000_000,
-    );
+    let f3 = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu3, 6);
 
     assert_eq!(f3.len(), 1);
     assert_eq!(
@@ -475,22 +440,9 @@ fn test_BC_2_14_016_t0831_window_update_before_emission_ordering() {
         &[0x00, 0x01, 0x00, 0x01, 0x02, 0x02, 0x00],
     );
 
-    let f1 = drive(
-        &mut az,
-        &mut flow,
-        &fk,
-        Direction::ClientToServer,
-        &adu1,
-        500_000,
-    );
-    let f2 = drive(
-        &mut az,
-        &mut flow,
-        &fk,
-        Direction::ClientToServer,
-        &adu2,
-        1_500_000,
-    );
+    // F-DELTA-001: second-granularity. Two writes at 0s and 1s → within 5s T0831 window.
+    let f1 = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu1, 0);
+    let f2 = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu2, 1);
 
     // If ordering is wrong (check before update): T0831 would never fire because
     // count=1 before increment. Correct ordering means count=2 after increment → fires.
@@ -506,9 +458,10 @@ fn test_BC_2_14_016_t0831_window_update_before_emission_ordering() {
 
 /// test_BC_2_14_016_t0831_wrapping_sub_wrap
 ///
-/// Timestamp wrap: write1 at ts=0xFFFFFF00, write2 at ts=0x00000100.
-/// wrapping_sub(0x00000100, 0xFFFFFF00) = 0x00000200 = 512 µs << 5_000_000 µs → same window.
+/// Timestamp wrap: write1 at ts=0xFFFFFFFE, write2 at ts=0x00000001.
+/// wrapping_sub(0x00000001, 0xFFFFFFFE) = 3 seconds < T0831_WINDOW_SECS=5 → same window.
 /// Both writes within the same T0831 window → second write carries T0831.
+/// F-DELTA-001: timestamps are seconds; 3s elapsed is within the 5s T0831 window.
 /// Traces to: BC-2.14.016 + f2-fix-directives §11.5b (wrapping_sub policy).
 /// Also traces to: STORY-104 AC-006 (wrapping_sub for all window elapsed computations).
 #[test]
@@ -520,14 +473,15 @@ fn test_BC_2_14_016_t0831_wrapping_sub_wrap() {
     let adu1 = build_adu(0x0001, 0x01, 0x06, &[0x00, 0x10, 0x01, 0xF4]);
     let adu2 = build_adu(0x0002, 0x01, 0x06, &[0x00, 0x10, 0x02, 0x00]);
 
-    // write1 near u32::MAX boundary, write2 slightly past zero (wrap-around)
+    // write1 near u32::MAX boundary, write2 slightly past zero (wrap-around).
+    // wrapping_sub(0x00000001, 0xFFFFFFFE) = 3 seconds → within 5s T0831 window.
     drive(
         &mut az,
         &mut flow,
         &fk,
         Direction::ClientToServer,
         &adu1,
-        0xFFFFFF00_u32,
+        0xFFFFFFFE_u32,
     );
     let f2 = drive(
         &mut az,
@@ -535,11 +489,10 @@ fn test_BC_2_14_016_t0831_wrapping_sub_wrap() {
         &fk,
         Direction::ClientToServer,
         &adu2,
-        0x00000100_u32,
+        0x00000001_u32,
     );
 
-    // wrapping_sub(0x100, 0xFFFFFF00) = 0x200 = 512 µs → within 5s window → T0831 fires
-    // (no panic from overflow-checks either)
+    // wrapping_sub(0x1, 0xFFFFFFFE) = 3 → within 5s window → T0831 fires (no panic from overflow-checks)
     assert!(
         f2[0].mitre_techniques.contains(&"T0831".to_string()),
         "wrapping_sub ensures T0831 fires across u32 boundary"
@@ -567,10 +520,11 @@ fn test_BC_2_14_017_burst_detector_fires_at_threshold_plus_1() {
     let fk = test_flow_key();
 
     let mut all_findings = Vec::new();
-    // 21 writes, each 10ms apart (all within 1s window = 200ms total << 1_000_000µs)
+    // 21 writes all at ts=0 (same second, within 1s burst window).
+    // F-DELTA-001: timestamps are seconds; all same second → burst window never expires.
     for i in 0..21_u32 {
         let adu = build_adu(i as u16 + 1, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
-        let ts = i * 10_000; // 10ms intervals → 200ms total
+        let ts = 0_u32; // all in the same 1-second window
         let mut findings = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu, ts);
         all_findings.append(&mut findings);
     }
@@ -622,9 +576,10 @@ fn test_BC_2_14_017_burst_does_not_fire_at_exactly_threshold() {
     let fk = test_flow_key();
 
     let mut all_findings = Vec::new();
+    // F-DELTA-001: all writes at ts=0 (same second, within burst window).
     for i in 0..20_u32 {
         let adu = build_adu(i as u16 + 1, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
-        let ts = i * 10_000;
+        let ts = 0_u32; // all in same 1-second window
         let mut f = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu, ts);
         all_findings.append(&mut f);
     }
@@ -650,10 +605,10 @@ fn test_BC_2_14_017_burst_emit_once_per_window() {
     let fk = test_flow_key();
 
     let mut all_findings = Vec::new();
-    // 31 writes within 300ms (all same window)
+    // 31 writes all at ts=0 (same 1-second window). F-DELTA-001: timestamps are seconds.
     for i in 0..31_u32 {
         let adu = build_adu(i as u16 + 1, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
-        let ts = i * 10_000;
+        let ts = 0_u32; // all in same 1-second window
         let mut f = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu, ts);
         all_findings.append(&mut f);
     }
@@ -668,16 +623,17 @@ fn test_BC_2_14_017_burst_emit_once_per_window() {
 }
 
 // ---------------------------------------------------------------------------
-// BC-2.14.017 — Sustained detector (truncation-free microsecond math)
-// AC-005: (count*1_000_000) > (threshold*elapsed_us) AND elapsed_us >= 2_000_000
+// BC-2.14.017 — Sustained detector (truncation-free second-scale math)
+// AC-005: count > threshold*elapsed_s AND elapsed_s >= 2
 // ---------------------------------------------------------------------------
 
 /// test_BC_2_14_017_sustained_detector_uses_truncation_free_math_no_false_positive
 ///
-/// 25 writes over 2.9s (elapsed_us = 2_900_000; rate = 8.62/s < 10/s threshold).
-/// Naive integer-division: 25 > 10*2 = 20 → TRUE (FALSE POSITIVE).
-/// Correct formula: 25*1_000_000=25_000_000 > 10*2_900_000=29_000_000 → FALSE → no burst.
-/// Traces to: BC-2.14.017 invariant 2, f2-fix-directives §11.5a, STORY-104 AC-005.
+/// 25 writes over 3 seconds (rate = 25/3 ≈ 8.33/s < 10/s threshold).
+/// Naive integer division: 25 > 10*3 = 30 → FALSE (correct, no burst).
+/// Truncation-free form: 25 > 10*3 = 30 → FALSE → no burst.
+/// F-DELTA-001: timestamps are seconds. First 24 writes at ts=0, 25th at ts=3.
+/// Traces to: BC-2.14.017 invariant 2, STORY-104 AC-005.
 #[test]
 fn test_BC_2_14_017_sustained_detector_uses_truncation_free_math_no_false_positive() {
     // Use a HIGH burst threshold so burst detector does NOT fire on its own.
@@ -686,14 +642,22 @@ fn test_BC_2_14_017_sustained_detector_uses_truncation_free_math_no_false_positi
     let fk = test_flow_key();
 
     let mut all_findings = Vec::new();
-    // 25 writes; first at ts=0, last at ts=2_900_000 (even spacing within 2.9s).
-    // Each write ~116_000µs apart.
-    for i in 0..25_u32 {
+    // 24 writes at ts=0, 25th write at ts=3 (elapsed=3s; count=25; 25 > 10*3=30 → FALSE → no burst).
+    for i in 0..24_u32 {
         let adu = build_adu(i as u16 + 1, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
-        let ts = i * 116_000;
-        let mut f = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu, ts);
+        let mut f = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu, 0);
         all_findings.append(&mut f);
     }
+    let adu25 = build_adu(0x0019, 0x01, 0x06, &[0x00, 0x18, 0x01, 0x00]);
+    let mut f25 = drive(
+        &mut az,
+        &mut flow,
+        &fk,
+        Direction::ClientToServer,
+        &adu25,
+        3,
+    );
+    all_findings.append(&mut f25);
 
     let sustained_count = all_findings
         .iter()
@@ -701,14 +665,15 @@ fn test_BC_2_14_017_sustained_detector_uses_truncation_free_math_no_false_positi
         .count();
     assert_eq!(
         sustained_count, 0,
-        "truncation-free math: 8.62/s < 10/s threshold → NO sustained finding (would be false positive with naive integer division)"
+        "8.33/s < 10/s threshold: 25 > 10*3=30 → FALSE → NO sustained finding"
     );
 }
 
 /// test_BC_2_14_017_sustained_detector_fires_when_rate_exceeded
 ///
-/// 25 writes over 2.0s (elapsed_us = 2_000_000; rate = 12.5/s > 10/s threshold).
-/// Correct formula: 25*1_000_000=25_000_000 > 10*2_000_000=20_000_000 → TRUE → fires.
+/// 25 writes over 2 seconds (rate = 12.5/s > 10/s threshold).
+/// Truncation-free seconds form: 25 > 10*2=20 → TRUE → fires.
+/// F-DELTA-001: timestamps are seconds. 24 writes at ts=0, 25th at ts=2.
 /// Traces to: BC-2.14.017 invariant 2, STORY-104 AC-005.
 #[test]
 fn test_BC_2_14_017_sustained_detector_fires_when_rate_exceeded() {
@@ -718,15 +683,14 @@ fn test_BC_2_14_017_sustained_detector_fires_when_rate_exceeded() {
     let fk = test_flow_key();
 
     let mut all_findings = Vec::new();
-    // 25 writes over 2s: each ~80_000µs apart so last ts ≈ 1_920_000µs ≈ 2s.
-    // Deliver 24 writes to accumulate; 25th at exactly elapsed=2_000_000.
+    // 24 writes at ts=0 (uninitialized → window starts at ts=0, count=1, then accumulates to 24).
+    // 25th write at ts=2 → elapsed=2, count=25, 25 > 10*2=20 → TRUE → fires.
     for i in 0..24_u32 {
         let adu = build_adu(i as u16 + 1, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
-        let ts = i * 80_000;
-        let mut f = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu, ts);
+        let mut f = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu, 0);
         all_findings.append(&mut f);
     }
-    // 25th write at ts = 2_000_000 (elapsed from 0 = exactly 2s)
+    // 25th write at ts=2 (elapsed from 0 = exactly 2s)
     let adu25 = build_adu(0x0019, 0x01, 0x06, &[0x00, 0x18, 0x01, 0x00]);
     let mut f25 = drive(
         &mut az,
@@ -734,7 +698,7 @@ fn test_BC_2_14_017_sustained_detector_fires_when_rate_exceeded() {
         &fk,
         Direction::ClientToServer,
         &adu25,
-        2_000_000,
+        2,
     );
     all_findings.append(&mut f25);
 
@@ -772,15 +736,14 @@ fn test_BC_2_14_017_sustained_low_and_slow_fires() {
     let fk = test_flow_key();
 
     let mut all_findings = Vec::new();
-    // 17 writes over 2s (17/2s = 8.5/s > 5/s threshold).
-    // Space them at 125_000µs intervals (8/s). 16 intervals = 2_000_000µs elapsed.
+    // 17 writes over 2s: 16 at ts=0, 17th at ts=2 → elapsed=2s; count=17; 17 > 5*2=10 → fires.
+    // F-DELTA-001: timestamps are seconds; rate = 17/2 = 8.5/s > 5/s threshold.
     for i in 0..16_u32 {
         let adu = build_adu(i as u16 + 1, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
-        let ts = i * 125_000;
-        let mut f = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu, ts);
+        let mut f = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu, 0);
         all_findings.append(&mut f);
     }
-    // 17th write at exactly ts=2_000_000 triggers the window check
+    // 17th write at ts=2 triggers the sustained window check (elapsed=2 >= WRITE_SUSTAINED_WINDOW_SECS=2)
     let adu17 = build_adu(0x0011, 0x01, 0x06, &[0x00, 0x10, 0x01, 0x00]);
     let mut f17 = drive(
         &mut az,
@@ -788,7 +751,7 @@ fn test_BC_2_14_017_sustained_low_and_slow_fires() {
         &fk,
         Direction::ClientToServer,
         &adu17,
-        2_000_000,
+        2,
     );
     all_findings.append(&mut f17);
 
@@ -810,8 +773,8 @@ fn test_BC_2_14_017_sustained_low_and_slow_fires() {
 ///
 /// Deliver a write at ts=0xFFFFFF00 (near u32::MAX), then a write at ts=0x00000100.
 /// Plain subtraction: 0x100 - 0xFFFFFF00 = underflow → panic in debug mode.
-/// wrapping_sub: 0x100u32.wrapping_sub(0xFFFFFF00) = 0x00000200 = 512 µs → no panic.
-/// Expected: no panic; 512µs elapsed << 1_000_000µs → still in burst window.
+/// wrapping_sub: 0x100u32.wrapping_sub(0xFFFFFF00) = 0x00000200 = 512 seconds → no panic.
+/// Expected: no panic; 512 seconds elapsed < 1s burst window boundary check → still in window.
 /// Traces to: BC-2.14.017 + f2-fix-directives §11.5b, STORY-104 AC-006.
 #[test]
 fn test_BC_2_14_017_window_elapsed_uses_wrapping_sub_no_panic() {
@@ -840,7 +803,7 @@ fn test_BC_2_14_017_window_elapsed_uses_wrapping_sub_no_panic() {
         0x00000100_u32,
     );
 
-    // wrapping_sub = 0x200 = 512µs → WITHIN 1s burst window → window_write_count = 2
+    // wrapping_sub = 0x200 = 512 seconds elapsed > 1s burst window → window resets
     // (No burst yet since threshold = 20; just verifying no panic and correct window state.)
     assert!(
         !f2.is_empty(),
@@ -849,7 +812,7 @@ fn test_BC_2_14_017_window_elapsed_uses_wrapping_sub_no_panic() {
     assert!(
         !f2.iter()
             .any(|f| f.mitre_techniques.contains(&"T0806".to_string())),
-        "512µs elapsed with 2 writes: no burst (threshold=20)"
+        "512 seconds elapsed with 2 writes: no burst (threshold=20, window reset)"
     );
 }
 
@@ -972,6 +935,7 @@ fn test_BC_2_14_019_exception_burst_emits_anomaly_finding() {
 
     // Pre-insert a pending request so attribute_exception can match:
     // request: txn=0x000N, unit=0x01, FC=0x06
+    // F-DELTA-001: timestamps in seconds. 11 exceptions at ts=0..10 → all within 10s window.
     let mut all_findings = Vec::new();
     for i in 0..11_u32 {
         // Insert the request first (so exception can be attributed)
@@ -982,11 +946,10 @@ fn test_BC_2_14_019_exception_burst_emits_anomaly_finding() {
             &fk,
             Direction::ClientToServer,
             &req_adu,
-            i * 100_000,
+            i,
         );
 
         // Exception response: FC=0x86 (=0x06|0x80), exception code=0x01
-        // ADU: [txn, 0x00, 0x00, length=0x03, unit=0x01, FC=0x86, code=0x01]
         let exc_adu = build_adu(i as u16, 0x01, 0x86, &[0x01]);
         let mut f = drive(
             &mut az,
@@ -994,7 +957,7 @@ fn test_BC_2_14_019_exception_burst_emits_anomaly_finding() {
             &fk,
             Direction::ServerToClient,
             &exc_adu,
-            i * 100_000 + 50_000,
+            i,
         );
         all_findings.append(&mut f);
     }
@@ -1030,6 +993,7 @@ fn test_BC_2_14_019_exception_burst_does_not_fire_at_threshold() {
     let mut flow = ModbusFlowState::default();
     let fk = test_flow_key();
 
+    // F-DELTA-001: timestamps in seconds. 5 exceptions at ts=0..4 → all within 10s window.
     let mut all_findings = Vec::new();
     for i in 0..5_u32 {
         let req_adu = build_adu(i as u16, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
@@ -1039,7 +1003,7 @@ fn test_BC_2_14_019_exception_burst_does_not_fire_at_threshold() {
             &fk,
             Direction::ClientToServer,
             &req_adu,
-            i * 100_000,
+            i,
         );
 
         let exc_adu = build_adu(i as u16, 0x01, 0x86, &[0x01]);
@@ -1049,7 +1013,7 @@ fn test_BC_2_14_019_exception_burst_does_not_fire_at_threshold() {
             &fk,
             Direction::ServerToClient,
             &exc_adu,
-            i * 100_000 + 50_000,
+            i,
         );
         all_findings.append(&mut f);
     }
@@ -1075,6 +1039,7 @@ fn test_BC_2_14_019_exception_burst_emit_once_per_window() {
     let mut flow = ModbusFlowState::default();
     let fk = test_flow_key();
 
+    // F-DELTA-001: timestamps in seconds. 20 exceptions at ts=0..9 (reusing ts) → all within 10s window.
     let mut all_findings = Vec::new();
     for i in 0..20_u32 {
         let req_adu = build_adu(i as u16, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
@@ -1084,7 +1049,7 @@ fn test_BC_2_14_019_exception_burst_emit_once_per_window() {
             &fk,
             Direction::ClientToServer,
             &req_adu,
-            i * 100_000,
+            i % 9, // 0..8 seconds, all within 10s window
         );
         let exc_adu = build_adu(i as u16, 0x01, 0x86, &[0x01]);
         let mut f = drive(
@@ -1093,7 +1058,7 @@ fn test_BC_2_14_019_exception_burst_emit_once_per_window() {
             &fk,
             Direction::ServerToClient,
             &exc_adu,
-            i * 100_000 + 50_000,
+            i % 9,
         );
         all_findings.append(&mut f);
     }
@@ -1296,16 +1261,10 @@ fn test_BC_2_14_021_summarize_returns_six_keys() {
     let fk = test_flow_key();
 
     // 3 reads (FC=0x03), 2 writes (FC=0x06)
+    // F-DELTA-001: timestamps in seconds.
     for i in 0..3_u32 {
         let adu = build_adu(i as u16, 0x01, 0x03, &[0x00, 0x00, 0x00, 0x01]);
-        drive(
-            &mut az,
-            &mut flow,
-            &fk,
-            Direction::ClientToServer,
-            &adu,
-            i * 100_000,
-        );
+        drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu, i);
     }
     for i in 0..2_u32 {
         let adu = build_adu((10 + i) as u16, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
@@ -1315,7 +1274,7 @@ fn test_BC_2_14_021_summarize_returns_six_keys() {
             &fk,
             Direction::ClientToServer,
             &adu,
-            1_000_000 + i * 100_000,
+            10 + i,
         );
     }
 
@@ -1361,16 +1320,10 @@ fn test_BC_2_14_021_summarize_pdu_count_correct() {
     let mut flow = ModbusFlowState::default();
     let fk = test_flow_key();
 
+    // F-DELTA-001: timestamps in seconds.
     for i in 0..5_u32 {
         let adu = build_adu(i as u16, 0x01, 0x03, &[0x00, 0x00, 0x00, 0x01]);
-        drive(
-            &mut az,
-            &mut flow,
-            &fk,
-            Direction::ClientToServer,
-            &adu,
-            i * 100_000,
-        );
+        drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu, i);
     }
 
     let summary = az.summarize();
@@ -1393,16 +1346,10 @@ fn test_BC_2_14_021_summarize_write_count_correct() {
     let mut flow = ModbusFlowState::default();
     let fk = test_flow_key();
 
+    // F-DELTA-001: timestamps in seconds.
     for i in 0..2_u32 {
         let adu = build_adu(i as u16, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
-        drive(
-            &mut az,
-            &mut flow,
-            &fk,
-            Direction::ClientToServer,
-            &adu,
-            i * 100_000,
-        );
+        drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu, i);
     }
 
     let summary = az.summarize();
@@ -1656,7 +1603,8 @@ fn test_BC_2_14_013_burst_and_per_pdu_finding_are_separate() {
     let mut total_findings = 0usize;
     for i in 0..21_u32 {
         let adu = build_adu(i as u16 + 1, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
-        let ts = i * 10_000; // 10ms intervals — all within 1s window
+        // F-DELTA-001: timestamps in seconds. All at ts=0 → within 1s burst window.
+        let ts = 0_u32;
         let findings = drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu, ts);
         total_findings += findings.len();
     }
@@ -1728,25 +1676,12 @@ fn test_BC_2_14_022_EC003_second_finding_dropped_when_cap_at_9999() {
     // First write: with threshold=1, after 1st write count=1+1=2 > 1 → burst fires.
     // This PDU would emit: 1 per-PDU write finding + 1 burst finding = 2 findings.
     // Cap allows: first push (9999→10000), second push dropped.
+    // F-DELTA-001: timestamps in seconds.
     let adu = build_adu(0x0001, 0x01, 0x06, &[0x00, 0x10, 0x01, 0xF4]);
-    drive(
-        &mut az,
-        &mut flow,
-        &fk,
-        Direction::ClientToServer,
-        &adu,
-        1_000_000,
-    );
+    drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu, 1);
     // Second write at same ts tips burst immediately (window_write_count=2 > threshold=1)
     let adu2 = build_adu(0x0002, 0x01, 0x06, &[0x00, 0x11, 0x01, 0xF4]);
-    drive(
-        &mut az,
-        &mut flow,
-        &fk,
-        Direction::ClientToServer,
-        &adu2,
-        1_000_100,
-    );
+    drive(&mut az, &mut flow, &fk, Direction::ClientToServer, &adu2, 1);
 
     assert_eq!(
         az.all_findings.len(),
@@ -1785,7 +1720,7 @@ fn test_binding_source_ip_client_for_write_finding() {
         &fk,
         Direction::ClientToServer,
         &adu,
-        1_000_000,
+        1, // F-DELTA-001: timestamp in seconds
     );
     assert!(!findings.is_empty(), "write PDU must produce a finding");
     let f = &findings[0];
@@ -1817,6 +1752,7 @@ fn test_binding_source_ip_server_for_exception_finding() {
     let fk = test_flow_key();
 
     // Deliver 6 exception responses to trigger the burst (BC-2.14.019 EC-002: 6th triggers).
+    // F-DELTA-001: timestamps in seconds. 6 exceptions at ts=0..5 → all within 10s window.
     let mut anomaly_finding = None;
     for i in 0..6_u32 {
         let req_adu = build_adu(i as u16, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
@@ -1826,7 +1762,7 @@ fn test_binding_source_ip_server_for_exception_finding() {
             &fk,
             Direction::ClientToServer,
             &req_adu,
-            i * 100_000,
+            i,
         );
         let exc_adu = build_adu(i as u16, 0x01, 0x86, &[0x01]);
         let findings = drive(
@@ -1835,7 +1771,7 @@ fn test_binding_source_ip_server_for_exception_finding() {
             &fk,
             Direction::ServerToClient,
             &exc_adu,
-            i * 100_000 + 50_000,
+            i,
         );
         for f in findings {
             if matches!(f.category, wirerust::findings::ThreatCategory::Anomaly)
@@ -1918,6 +1854,7 @@ fn test_binding_exception_cross_window_reset() {
     let mut anomaly_count = 0usize;
 
     // First burst: 6 exceptions of exc_code=0x01 within 9 seconds.
+    // F-DELTA-001: timestamps in seconds. ts=0..5 → all within 10s window.
     for i in 0..6_u32 {
         let req_adu = build_adu(i as u16, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
         drive(
@@ -1926,7 +1863,7 @@ fn test_binding_exception_cross_window_reset() {
             &fk,
             Direction::ClientToServer,
             &req_adu,
-            i * 1_000_000,
+            i,
         );
         let exc_adu = build_adu(i as u16, 0x01, 0x86, &[0x01]);
         let findings = drive(
@@ -1935,7 +1872,7 @@ fn test_binding_exception_cross_window_reset() {
             &fk,
             Direction::ServerToClient,
             &exc_adu,
-            i * 1_000_000 + 50_000,
+            i,
         );
         for f in &findings {
             if matches!(f.category, wirerust::findings::ThreatCategory::Anomaly)
@@ -1951,8 +1888,8 @@ fn test_binding_exception_cross_window_reset() {
     );
 
     // Second burst: 6 more exceptions starting at ts > 10s after the first window start.
-    // Window started at ts=0 (or ts=50_000); 11 seconds later = 11_000_000 µs.
-    let base_ts: u32 = 11_000_000;
+    // Window started at ts=0; 11 seconds later → new window (EXCEPTION_WINDOW_SECS=10).
+    let base_ts: u32 = 11;
     for i in 0..6_u32 {
         let req_adu = build_adu((100 + i) as u16, 0x01, 0x06, &[0x00, i as u8, 0x01, 0x00]);
         drive(
@@ -1961,7 +1898,7 @@ fn test_binding_exception_cross_window_reset() {
             &fk,
             Direction::ClientToServer,
             &req_adu,
-            base_ts + i * 1_000_000,
+            base_ts + i,
         );
         let exc_adu = build_adu((100 + i) as u16, 0x01, 0x86, &[0x01]);
         let findings = drive(
@@ -1970,7 +1907,7 @@ fn test_binding_exception_cross_window_reset() {
             &fk,
             Direction::ServerToClient,
             &exc_adu,
-            base_ts + i * 1_000_000 + 50_000,
+            base_ts + i,
         );
         for f in &findings {
             if matches!(f.category, wirerust::findings::ThreatCategory::Anomaly)
@@ -2008,6 +1945,7 @@ fn test_binding_per_flow_counters_updated() {
     assert_eq!(flow.last_ts, 0, "initial last_ts = 0");
 
     // One write PDU (FC=0x06)
+    // F-DELTA-001: timestamps in seconds.
     let adu_write = build_adu(0x0001, 0x01, 0x06, &[0x00, 0x10, 0x01, 0xF4]);
     drive(
         &mut az,
@@ -2015,7 +1953,7 @@ fn test_binding_per_flow_counters_updated() {
         &fk,
         Direction::ClientToServer,
         &adu_write,
-        1_000_000,
+        1,
     );
     assert_eq!(flow.pdu_count, 1, "pdu_count = 1 after one write PDU");
     assert_eq!(flow.write_count, 1, "write_count = 1 after one write PDU");
@@ -2023,7 +1961,7 @@ fn test_binding_per_flow_counters_updated() {
         flow.exception_count, 0,
         "exception_count unchanged after write PDU"
     );
-    assert_eq!(flow.last_ts, 1_000_000, "last_ts updated to 1_000_000");
+    assert_eq!(flow.last_ts, 1, "last_ts updated to 1");
 
     // One read PDU (FC=0x03)
     let adu_read = build_adu(0x0002, 0x01, 0x03, &[0x00, 0x00, 0x00, 0x01]);
@@ -2033,14 +1971,14 @@ fn test_binding_per_flow_counters_updated() {
         &fk,
         Direction::ClientToServer,
         &adu_read,
-        2_000_000,
+        2,
     );
     assert_eq!(flow.pdu_count, 2, "pdu_count = 2 after two PDUs");
     assert_eq!(
         flow.write_count, 1,
         "write_count unchanged after read PDU (read is not write)"
     );
-    assert_eq!(flow.last_ts, 2_000_000, "last_ts updated to 2_000_000");
+    assert_eq!(flow.last_ts, 2, "last_ts updated to 2");
 
     // One exception response (FC=0x86)
     let exc_adu = build_adu(0x0001, 0x01, 0x86, &[0x01]);
@@ -2050,14 +1988,14 @@ fn test_binding_per_flow_counters_updated() {
         &fk,
         Direction::ServerToClient,
         &exc_adu,
-        3_000_000,
+        3,
     );
     assert_eq!(flow.pdu_count, 3, "pdu_count = 3 after three PDUs");
     assert_eq!(
         flow.exception_count, 1,
         "exception_count = 1 after one exception PDU (BC-2.14.019 inv4)"
     );
-    assert_eq!(flow.last_ts, 3_000_000, "last_ts updated to 3_000_000");
+    assert_eq!(flow.last_ts, 3, "last_ts updated to 3");
 }
 
 // ---------------------------------------------------------------------------
@@ -2096,6 +2034,7 @@ fn test_binding_total_flows_analyzed_incremented_on_first_pdu() {
     );
 
     // Second PDU on the SAME flow — must NOT re-increment
+    // F-DELTA-001: timestamps in seconds.
     let adu2 = build_adu(0x0002, 0x01, 0x03, &[0x00, 0x00, 0x00, 0x01]);
     drive(
         &mut az,
@@ -2103,7 +2042,7 @@ fn test_binding_total_flows_analyzed_incremented_on_first_pdu() {
         &fk,
         Direction::ClientToServer,
         &adu2,
-        100_000,
+        1,
     );
     assert_eq!(
         az.total_flows_analyzed, 1,
@@ -2125,7 +2064,7 @@ fn test_binding_total_flows_analyzed_incremented_on_first_pdu() {
         &fk2,
         Direction::ClientToServer,
         &adu3,
-        200_000,
+        2,
     );
     assert_eq!(
         az.total_flows_analyzed, 2,

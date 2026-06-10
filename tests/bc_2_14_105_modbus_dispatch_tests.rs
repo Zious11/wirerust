@@ -86,7 +86,13 @@ fn test_BC_2_14_025_port_502_classified_to_modbus_as_rule_5() {
         0x00, 0x01, // quantity of registers
     ];
     // on_data() routes to ModbusAnalyzer, which parses the complete ADU.
-    dispatcher.on_data(&key, Direction::ClientToServer, &complete_adu, 0, 1_000_000);
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        &complete_adu,
+        0,
+        1_700_000_000,
+    );
     // Verify the PDU was processed.
     let modbus = dispatcher.take_modbus_analyzer().unwrap();
     assert!(
@@ -120,7 +126,7 @@ fn test_BC_2_14_025_port_502_tls_content_classified_to_tls_not_modbus() {
     // This should route to TLS (Rule 1 fires), NOT Modbus (Rule 5).
     // The TLS analyzer receives data (no panic — TLS on_data is implemented).
     // We verify Modbus analyzer gets no PDUs.
-    dispatcher.on_data(&key, Direction::ClientToServer, &tls_data, 0, 1_000_000);
+    dispatcher.on_data(&key, Direction::ClientToServer, &tls_data, 0, 1_700_000_000);
     // Modbus should have zero PDUs — TLS content wins.
     let modbus = dispatcher.take_modbus_analyzer().unwrap();
     assert_eq!(
@@ -146,7 +152,7 @@ fn test_BC_2_14_025_port_502_http_content_classified_to_http_not_modbus() {
     let key = flow_key(12345, 502);
     let http_data = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
     // Rule 2 fires (HTTP content) before Rule 5 (port 502).
-    dispatcher.on_data(&key, Direction::ClientToServer, http_data, 0, 1_000_000);
+    dispatcher.on_data(&key, Direction::ClientToServer, http_data, 0, 1_700_000_000);
     // Modbus should have zero PDUs — HTTP content wins.
     let modbus = dispatcher.take_modbus_analyzer().unwrap();
     assert_eq!(
@@ -173,7 +179,13 @@ fn test_BC_2_14_025_port_443_mbap_bytes_classified_to_tls_not_modbus() {
     let key = flow_key(12345, 443);
     let mbap_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03];
     // Rule 3 (port 443 → TLS) fires before Rule 5 (port 502 → Modbus).
-    dispatcher.on_data(&key, Direction::ClientToServer, &mbap_data, 0, 1_000_000);
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        &mbap_data,
+        0,
+        1_700_000_000,
+    );
     // Modbus should have zero PDUs.
     let modbus = dispatcher.take_modbus_analyzer().unwrap();
     assert_eq!(
@@ -196,7 +208,13 @@ fn test_BC_2_14_025_modbus_disabled_port_502_flow_is_noop() {
     let mbap_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03];
     // This calls classify() → Modbus, then on_data() Modbus arm → None check → no-op.
     // Should NOT panic (the arm is `if let Some(...)` not unwrap).
-    dispatcher.on_data(&key, Direction::ClientToServer, &mbap_data, 0, 1_000_000);
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        &mbap_data,
+        0,
+        1_700_000_000,
+    );
     // No assertions needed — just verify no panic.
 }
 
@@ -221,7 +239,13 @@ fn test_BC_2_14_025_on_data_routes_port_502_flow_to_modbus_analyzer() {
         0x00, 0x00, // coil address
         0xFF, 0x00, // coil value (ON)
     ];
-    dispatcher.on_data(&key, Direction::ClientToServer, &write_pdu, 0, 1_000_000);
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        &write_pdu,
+        0,
+        1_700_000_000,
+    );
 
     let modbus = dispatcher.take_modbus_analyzer().unwrap();
     assert!(
@@ -250,7 +274,13 @@ fn test_BC_2_14_025_on_flow_close_routes_modbus_flow_to_analyzer() {
         0x00, 0x00, // starting address
         0x00, 0x01, // quantity of registers
     ];
-    dispatcher.on_data(&key, Direction::ClientToServer, &complete_adu, 0, 1_000_000);
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        &complete_adu,
+        0,
+        1_700_000_000,
+    );
     dispatcher.on_flow_close(&key, CloseReason::Fin);
     // Analyzer is still accessible after flow close; PDU was counted before close.
     let modbus = dispatcher.take_modbus_analyzer().unwrap();
@@ -281,7 +311,13 @@ fn test_BC_2_14_025_unclassified_flows_counted_in_modbus_only_run() {
     let mut dispatcher = StreamDispatcher::new(None, None, Some(ModbusAnalyzer::new(20, 10)))
         .with_max_classification_attempts(1);
 
-    dispatcher.on_data(&key, Direction::ClientToServer, &random_data, 0, 1_000_000);
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        &random_data,
+        0,
+        1_700_000_000,
+    );
     // Close the flow — it had DispatchTarget::None cached.
     dispatcher.on_flow_close(&key, CloseReason::Fin);
 
@@ -738,7 +774,13 @@ fn test_BC_2_14_025_vp004_oracle_port_8080_routes_to_http_not_modbus() {
     // Non-HTTP content bytes — port fallback fires (Rule 4: port 8080 → HTTP).
     let binary_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03];
     // No panic — HTTP arm is implemented.
-    dispatcher.on_data(&key, Direction::ClientToServer, &binary_data, 0, 1_000_000);
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        &binary_data,
+        0,
+        1_700_000_000,
+    );
     // Modbus should have zero PDUs.
     let modbus = dispatcher.take_modbus_analyzer().unwrap();
     assert_eq!(
@@ -761,7 +803,13 @@ fn test_BC_2_14_025_vp004_oracle_unknown_port_routes_to_none_not_modbus() {
     let mbap_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03];
     // classify() returns None (no content match, not 443/8443/80/8080/502).
     // on_data() Modbus arm is NOT reached.
-    dispatcher.on_data(&key, Direction::ClientToServer, &mbap_data, 0, 1_000_000);
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        &mbap_data,
+        0,
+        1_700_000_000,
+    );
     // Force close so unclassified_flows is incremented.
     dispatcher.on_flow_close(&key, CloseReason::Timeout);
     assert_eq!(
@@ -815,7 +863,7 @@ fn test_F_105_002_pin1_two_complete_adus_in_one_on_data_counted_correctly() {
     combined.extend_from_slice(&adu1);
     combined.extend_from_slice(&adu2);
 
-    dispatcher.on_data(&key, Direction::ClientToServer, &combined, 0, 1_000_000);
+    dispatcher.on_data(&key, Direction::ClientToServer, &combined, 0, 1_700_000_000);
 
     let modbus = dispatcher.take_modbus_analyzer().unwrap();
     assert_eq!(
@@ -874,11 +922,23 @@ fn test_F_105_002_pin2_write_adu_split_across_two_on_data_calls() {
 
     // First on_data: only 5 bytes — not enough for even the MBAP header.
     // With carry buffer: stashed in carry, no PDU processed yet.
-    dispatcher.on_data(&key, Direction::ClientToServer, first_chunk, 0, 1_000_000);
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        first_chunk,
+        0,
+        1_700_000_000,
+    );
 
     // Second on_data: remaining 7 bytes — carry (5) + new (7) = 12 bytes → full ADU.
     // With carry buffer: carry prepended, full 12-byte ADU parsed, process_pdu called.
-    dispatcher.on_data(&key, Direction::ClientToServer, second_chunk, 5, 1_000_000);
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        second_chunk,
+        5,
+        1_700_000_000,
+    );
 
     let modbus = dispatcher.take_modbus_analyzer().unwrap();
     assert_eq!(
@@ -928,10 +988,22 @@ fn test_F_105_002_pin3_partial_mbap_header_3_bytes_then_rest() {
     let second_chunk = &full_adu[3..];
 
     // First on_data: 3 bytes → parse_mbap_header returns None (< 8) → stash in carry.
-    dispatcher.on_data(&key, Direction::ClientToServer, first_chunk, 0, 1_000_000);
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        first_chunk,
+        0,
+        1_700_000_000,
+    );
 
     // Second on_data: carry (3) + new (9) = 12 bytes → full ADU → process_pdu called.
-    dispatcher.on_data(&key, Direction::ClientToServer, second_chunk, 3, 1_000_000);
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        second_chunk,
+        3,
+        1_700_000_000,
+    );
 
     let modbus = dispatcher.take_modbus_analyzer().unwrap();
     assert_eq!(
@@ -997,7 +1069,7 @@ fn test_F_105_003_pin1_carry_cap_near_limit_safe_case() {
         Direction::ClientToServer,
         &full_adu[..259],
         0,
-        1_000_000,
+        1_700_000_000,
     );
 
     // Call 2: deliver final 1 byte — combined buf = carry(259) + data(1) = 260 bytes.
@@ -1007,7 +1079,7 @@ fn test_F_105_003_pin1_carry_cap_near_limit_safe_case() {
         Direction::ClientToServer,
         &full_adu[259..],
         259,
-        1_000_001,
+        1_700_000_001,
     );
 
     let modbus = dispatcher.take_modbus_analyzer().unwrap();
@@ -1070,7 +1142,7 @@ fn test_F_105_003_pin2_dribble_never_completing_stream_is_non_modbus_set() {
             Direction::ClientToServer,
             &crafted[i..=i],
             i as u64,
-            1_000_000,
+            1_700_000_000,
         );
     }
 
@@ -1082,7 +1154,7 @@ fn test_F_105_003_pin2_dribble_never_completing_stream_is_non_modbus_set() {
         Direction::ClientToServer,
         &crafted[7..=7],
         7,
-        1_000_007,
+        1_700_000_007,
     );
 
     // Verify: parse_errors == 1 (desync fired exactly once).
@@ -1112,7 +1184,13 @@ fn test_F_105_003_pin2_dribble_never_completing_stream_is_non_modbus_set() {
             0x00, 0x00, // starting address
             0x00, 0x01, // quantity
         ];
-        dispatcher2.on_data(&key, Direction::ClientToServer, &valid_adu, 8, 1_000_100);
+        dispatcher2.on_data(
+            &key,
+            Direction::ClientToServer,
+            &valid_adu,
+            8,
+            1_700_000_001,
+        );
 
         let modbus_final = dispatcher2.take_modbus_analyzer().unwrap();
         assert_eq!(
@@ -1142,5 +1220,206 @@ fn test_F_105_003_pin3_max_adu_carry_bytes_equals_one_max_adu() {
         MAX_ADU_CARRY_BYTES, 260,
         "MAX_ADU_CARRY_BYTES must equal 260 (6-byte MBAP prefix + max length=254); \
          carry-cap invariant depends on this value"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// F-DELTA-001 mandatory E2E test — timestamp units (seconds) verified end-to-end
+// ---------------------------------------------------------------------------
+
+/// E2E test: port-502 Modbus flow through StreamDispatcher::on_data with second-scale
+/// timestamps (1_700_000_000 ≈ 2023-11-14).
+///
+/// Asserts:
+///   1. Finding.timestamp year is 2023 (confirms pipeline delivers SECONDS, not microseconds).
+///   2. Burst detector fires when 21 writes are delivered within the 1-second burst window.
+///
+/// This is the mandatory end-to-end validation for F-DELTA-001: the timestamp unit fix
+/// that corrected modbus.rs from treating timestamp as microseconds to treating it as
+/// seconds (consistent with all other analyzers and the reassembly pipeline).
+///
+/// Using StreamDispatcher::on_data (not process_pdu directly) ensures the full pipeline
+/// path — dispatcher → ModbusHandler::on_data → process_pdu — is exercised.
+#[test]
+fn test_f_delta_001_e2e_second_scale_timestamps_through_dispatcher() {
+    use chrono::Datelike;
+
+    // 1_700_000_000 seconds = 2023-11-14T22:13:20Z (UTC)
+    // This is a second-scale UNIX timestamp, matching what the pipeline delivers.
+    const TS_2023: u32 = 1_700_000_000;
+
+    // Use a low burst threshold (1) so 2 writes in the same second triggers the burst detector.
+    let modbus = ModbusAnalyzer::new(1, 100);
+    let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+    let key = flow_key(49152, 502); // client:49152 → server:502
+
+    // Helper: build a complete Modbus write-single-register ADU (FC=0x06).
+    // MBAP: TxnID, ProtoID=0x0000, Len=0x0006, UnitID=0x01, FC=0x06, addr, value.
+    let make_write_adu = |txn: u16, addr: u16, value: u16| -> [u8; 12] {
+        [
+            (txn >> 8) as u8,
+            (txn & 0xFF) as u8, // transaction_id
+            0x00,
+            0x00, // protocol_id = 0
+            0x00,
+            0x06, // length = 6 (UnitID + FC + 4 bytes data)
+            0x01, // unit_id
+            0x06, // function_code: Write Single Register
+            (addr >> 8) as u8,
+            (addr & 0xFF) as u8, // register address
+            (value >> 8) as u8,
+            (value & 0xFF) as u8, // register value
+        ]
+    };
+
+    // --- Part 1: Verify timestamp year is 2023 ---
+    // Deliver a single write at TS_2023. The per-PDU write finding should have year=2023.
+    let adu1 = make_write_adu(0x0001, 0x0010, 0x01F4);
+    dispatcher.on_data(&key, Direction::ClientToServer, &adu1, 0, TS_2023);
+
+    let modbus_ref = dispatcher.take_modbus_analyzer().unwrap();
+    let write_findings: Vec<_> = modbus_ref
+        .all_findings
+        .iter()
+        .filter(|f| f.mitre_techniques.contains(&"T0855".to_string()))
+        .collect();
+
+    assert!(
+        !write_findings.is_empty(),
+        "F-DELTA-001 E2E: at least one write finding must be emitted for FC=0x06"
+    );
+    let f = &write_findings[0];
+    let ts = f
+        .timestamp
+        .expect("F-DELTA-001 E2E: write finding must have a timestamp (not None)");
+    assert_eq!(
+        ts.year(),
+        2023,
+        "F-DELTA-001 E2E: finding timestamp year must be 2023 (confirming SECONDS pipeline, \
+         not microseconds). timestamp={ts:?}"
+    );
+
+    // --- Part 2: Burst detector fires with second-scale timestamps ---
+    // Use threshold=1: 2nd write in same 1-second window fires the burst detector.
+    // Deliver 21 writes all at TS_2023 (same second → same burst window).
+    let modbus2 = ModbusAnalyzer::new(1, 100);
+    let mut dispatcher2 = StreamDispatcher::new(None, None, Some(modbus2));
+
+    for txn in 0..21_u16 {
+        let adu = make_write_adu(txn + 2, txn, 1);
+        dispatcher2.on_data(&key, Direction::ClientToServer, &adu, 0, TS_2023);
+    }
+
+    let modbus2_ref = dispatcher2.take_modbus_analyzer().unwrap();
+    let burst_findings: Vec<_> = modbus2_ref
+        .all_findings
+        .iter()
+        .filter(|f| f.mitre_techniques.contains(&"T0806".to_string()))
+        .collect();
+
+    assert_eq!(
+        burst_findings.len(),
+        1,
+        "F-DELTA-001 E2E: burst detector must fire exactly once when 21 writes arrive \
+         within a 1-second window (threshold=1). burst_findings={:?}",
+        burst_findings.len()
+    );
+    // Burst finding also has correct year.
+    let burst_ts = burst_findings[0]
+        .timestamp
+        .expect("F-DELTA-001 E2E: burst finding must have a timestamp");
+    assert_eq!(
+        burst_ts.year(),
+        2023,
+        "F-DELTA-001 E2E: burst finding timestamp must also be year 2023"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// F-DELTA-003 — proto-id=0 + length-invalid latch test
+// ---------------------------------------------------------------------------
+
+/// F-DELTA-003 latch: proto-id=0 ADU with length OUT OF [2, 254] latches is_non_modbus.
+///
+/// A Modbus/TCP ADU with protocol_id=0x0000 (valid Modbus identifier) but length=255
+/// (out of the valid range [2, 254]) fails `is_valid_modbus_adu` and must:
+///   (a) increment parse_errors to 1
+///   (b) latch the flow as is_non_modbus (clearing carry)
+///   (c) cause all subsequent ADUs on the SAME flow to be silently ignored
+///       (total_pdu_count stays at 0 even after a structurally-valid follow-up ADU)
+///
+/// This pins the F-DELTA-003 length-invalid branch of the desync policy. The
+/// protocol_id!=0 branch was already tested (F-105-003 pin-2). This test covers the
+/// symmetric proto-id=0 / bad-length path which was previously untested.
+///
+/// Traces to: BC-2.14.003/004 (is_valid_modbus_adu gate), F-DELTA-003 fix directive.
+#[test]
+fn test_f_delta_003_proto_id_0_length_invalid_latches_is_non_modbus_and_bails() {
+    // --- Part (a) + (b): bad ADU causes parse_errors==1 and latches the flow ---
+    let modbus = ModbusAnalyzer::new(20, 10);
+    let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+    let key = flow_key(49152, 502);
+
+    // ADU: protocol_id=0x0000 (valid Modbus), length=0x00FF=255 (OUT OF [2, 254]).
+    // This passes parse_mbap_header (>= 8 bytes) but fails is_valid_modbus_adu.
+    // F-DELTA-003: the invalid-length branch must latch is_non_modbus and increment
+    // parse_errors, symmetrically to the protocol_id!=0 branch.
+    let bad_length_adu = [
+        0x00u8, 0x01, // transaction_id = 1
+        0x00, 0x00, // protocol_id = 0x0000 (Modbus — but length is invalid)
+        0x00, 0xFF, // length = 255 (INVALID: outside [2, 254])
+        0x01, // unit_id
+        0x03, // function_code: Read Holding Registers
+    ];
+    dispatcher.on_data(
+        &key,
+        Direction::ClientToServer,
+        &bad_length_adu,
+        0,
+        1_700_000_000,
+    );
+
+    let modbus_ref = dispatcher.take_modbus_analyzer().unwrap();
+    assert_eq!(
+        modbus_ref.parse_errors, 1,
+        "F-DELTA-003: proto-id=0 + length=255 (invalid) must increment parse_errors to 1 \
+         (is_valid_modbus_adu gate fires on the length-out-of-range path)"
+    );
+
+    // --- Part (c): subsequent valid ADU on the SAME flow is ignored (latch holds) ---
+    // Re-insert the analyzer (with parse_errors=1 and the flow latched) into a new
+    // dispatcher and deliver a structurally-valid Modbus ADU on the SAME flow key.
+    // Because is_non_modbus was set on the flow, on_data must bail immediately —
+    // total_pdu_count must stay at 0.
+    let mut dispatcher2 = StreamDispatcher::new(None, None, Some(modbus_ref));
+
+    // Valid Read Holding Registers request: proto-id=0, length=6 (in range [2, 254]).
+    let valid_adu = [
+        0x00u8, 0x02, // transaction_id = 2
+        0x00, 0x00, // protocol_id = 0x0000
+        0x00, 0x06, // length = 6 (valid)
+        0x01, // unit_id
+        0x03, // function_code: Read Holding Registers
+        0x00, 0x00, // starting address
+        0x00, 0x01, // quantity = 1
+    ];
+    dispatcher2.on_data(
+        &key,
+        Direction::ClientToServer,
+        &valid_adu,
+        8,
+        1_700_000_001,
+    );
+
+    let modbus_final = dispatcher2.take_modbus_analyzer().unwrap();
+    assert_eq!(
+        modbus_final.total_pdu_count, 0,
+        "F-DELTA-003: after length-invalid latch, a subsequent valid ADU on the same flow \
+         must NOT be processed — total_pdu_count must stay at 0 (is_non_modbus bail fires)"
+    );
+    assert_eq!(
+        modbus_final.parse_errors, 1,
+        "F-DELTA-003: parse_errors must remain at 1 after the latch-bail \
+         (no additional parse_errors incremented for latched flows)"
     );
 }
