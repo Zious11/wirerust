@@ -299,11 +299,10 @@ impl ModbusAnalyzer {
     /// The `timestamp` argument is the pcap-relative capture timestamp (u32 microseconds).
     /// All window elapsed computations use `now_ts.wrapping_sub(window_start_ts)` per
     /// f2-fix-directives §11.5b.
-    ///
-    /// NOT YET IMPLEMENTED — stub for Red Gate (STORY-104 TDD step 1).
+    #[allow(clippy::too_many_arguments)] // 8 params: interface dictated by STORY-105 wiring (FlowKey, flow state, direction, header, fc, raw data, timestamp)
     pub fn process_pdu(
         &mut self,
-        flow_key: &FlowKey,
+        _flow_key: &FlowKey,
         flow: &mut ModbusFlowState,
         direction: Direction,
         header: &MbapHeader,
@@ -311,20 +310,479 @@ impl ModbusAnalyzer {
         data: &[u8],
         timestamp: u32,
     ) -> Vec<Finding> {
-        // Suppress unused-parameter warnings in the stub — all params used in impl.
-        let _ = (flow_key, flow, direction, header, fc, data, timestamp);
-        todo!("STORY-104: implement process_pdu detection engine (BC-2.14.013–022)")
+        use chrono::DateTime;
+
+        // Convert pcap-relative microsecond u32 to a DateTime<Utc> for Finding.timestamp.
+        // Divide by 1_000_000 to get seconds; treat as POSIX seconds-from-epoch best effort.
+        let ts_secs = (timestamp / 1_000_000) as i64;
+        let finding_ts = DateTime::from_timestamp(ts_secs, 0);
+
+        // Helper: push a finding into self.all_findings with MAX_FINDINGS poison-skip.
+        // Returns the finding unchanged so it can also be appended to the local return vec.
+        // We accumulate into a local vec first, then push in one pass below.
+
+        let mut local_findings: Vec<Finding> = Vec::new();
+
+        // --- PDU counter + FC distribution (always, regardless of direction) ---
+        self.total_pdu_count += 1;
+        *self.fn_code_counts.entry(fc).or_insert(0) += 1;
+
+        // --- Classify FC ---
+        let fc_class = classify_fc(fc);
+
+        // --- Branch on direction ---
+        match direction {
+            Direction::ClientToServer => {
+                // REQUEST path
+                // --- Insert into pending table (BC-2.14.009) ---
+                if fc_class != FunctionCodeClass::Exception {
+                    let overwrite =
+                        flow.insert_request(header.transaction_id, header.unit_id, fc, timestamp);
+                    if overwrite.is_some() {
+                        self.duplicate_inflight_txn += 1;
+                    }
+                }
+
+                match fc_class {
+                    FunctionCodeClass::Write => {
+                        // -------------------------------------------------------
+                        // Write-class detection (BC-2.14.013–016)
+                        // -------------------------------------------------------
+                        self.total_write_count += 1;
+
+                        // Determine tag subset per ORCHESTRATOR RULING BC-DISCREPANCY-001:
+                        // Register-write set {0x06,0x10,0x16,0x17} → T0836.
+                        // Coil-write set     {0x05,0x0F}           → T0835.
+                        // All other write FCs (0x15)               → T0855 only.
+                        let is_register_write = matches!(fc, 0x06 | 0x10 | 0x16 | 0x17);
+                        let is_coil_write = matches!(fc, 0x05 | 0x0F);
+
+                        // -------------------------------------------------------
+                        // T0831 inline co-tag logic (BC-2.14.016)
+                        // Must run BEFORE building mitre_techniques vec so T0831
+                        // can be appended if the condition fires.
+                        // Window update FIRST, emission check SECOND (BC-2.14.016 inv2).
+                        // T0831 window applies only to register-write FCs {0x06,0x10,0x16,0x17}.
+                        // -------------------------------------------------------
+                        let mut emit_t0831 = false;
+                        if is_register_write {
+                            // Check if window has expired (wrapping_sub).
+                            let t0831_elapsed = timestamp.wrapping_sub(flow.t0831_window_start_ts);
+                            if t0831_elapsed > T0831_WINDOW_SECS * 1_000_000 {
+                                // Window expired → reset.
+                                flow.t0831_window_start_ts = timestamp;
+                                flow.t0831_window_write_count = 1;
+                                flow.t0831_burst_emitted = false;
+                            } else {
+                                // Still within window → increment count FIRST (update-before-check).
+                                flow.t0831_window_write_count += 1;
+                                // Now check emission: count >= 2 and not yet emitted.
+                                if flow.t0831_window_write_count >= 2 && !flow.t0831_burst_emitted {
+                                    emit_t0831 = true;
+                                    flow.t0831_burst_emitted = true;
+                                }
+                            }
+                        }
+
+                        // Build the canonical mitre_techniques vec.
+                        // Canonical order (ADR-006 §13.7 sub-decision 3):
+                        //   T0806 > T0855 > T0836 > T0835 > T0831 > T0814 > T0888
+                        // For per-PDU write findings: T0855 always first (no T0806 here);
+                        // then T0836 or T0835 based on subset; then T0831 if co-tagged.
+                        let mut mitre: Vec<String> = Vec::with_capacity(3);
+                        mitre.push("T0855".to_string());
+                        if is_register_write {
+                            mitre.push("T0836".to_string());
+                        } else if is_coil_write {
+                            mitre.push("T0835".to_string());
+                        }
+                        if emit_t0831 {
+                            mitre.push("T0831".to_string());
+                        }
+
+                        // Emit ONE per-PDU write finding (BC-2.14.013 invariant 1).
+                        local_findings.push(Finding {
+                            category: crate::findings::ThreatCategory::Execution,
+                            verdict: crate::findings::Verdict::Likely,
+                            confidence: crate::findings::Confidence::Medium,
+                            summary: format!(
+                                "Modbus write-class FC 0x{fc:02X} detected (unit_id={})",
+                                header.unit_id
+                            ),
+                            evidence: vec![format!(
+                                "FC=0x{fc:02X}, txn_id=0x{:04X}, unit_id=0x{:02X}",
+                                header.transaction_id, header.unit_id
+                            )],
+                            mitre_techniques: mitre,
+                            source_ip: None,
+                            timestamp: finding_ts,
+                            direction: Some(direction),
+                        });
+
+                        // -------------------------------------------------------
+                        // Burst detector: 1-second window (BC-2.14.017 Invariant 1)
+                        // Update window FIRST, then check threshold (wrapping_sub).
+                        // -------------------------------------------------------
+                        {
+                            let burst_elapsed = timestamp.wrapping_sub(flow.window_start_ts);
+                            if burst_elapsed > WRITE_BURST_WINDOW_SECS * 1_000_000 {
+                                // Window expired → slide forward.
+                                flow.window_start_ts = timestamp;
+                                flow.window_write_count = 1;
+                                flow.window_burst_emitted = false;
+                            } else {
+                                flow.window_write_count += 1;
+                                if flow.window_write_count > self.write_burst_threshold
+                                    && !flow.window_burst_emitted
+                                {
+                                    flow.window_burst_emitted = true;
+                                    // Burst finding: SEPARATE from per-PDU finding (BC-2.14.013 inv5).
+                                    local_findings.push(Finding {
+                                        category: crate::findings::ThreatCategory::Execution,
+                                        verdict: crate::findings::Verdict::Likely,
+                                        confidence: crate::findings::Confidence::High,
+                                        summary: format!(
+                                            "Modbus write burst detected: {} writes in 1s window",
+                                            flow.window_write_count
+                                        ),
+                                        evidence: vec![format!(
+                                            "Write burst: {} writes in {}µs window (threshold={})",
+                                            flow.window_write_count,
+                                            burst_elapsed,
+                                            self.write_burst_threshold
+                                        )],
+                                        // Canonical order: T0806 first, then T0855.
+                                        mitre_techniques: vec![
+                                            "T0806".to_string(),
+                                            "T0855".to_string(),
+                                        ],
+                                        source_ip: None,
+                                        timestamp: finding_ts,
+                                        direction: Some(direction),
+                                    });
+                                }
+                            }
+                        }
+
+                        // -------------------------------------------------------
+                        // Sustained detector: >=2-second window (BC-2.14.017 Invariant 2)
+                        // Truncation-free cross-multiplication (f2-fix-directives §11.5a).
+                        // -------------------------------------------------------
+                        {
+                            if flow.sustained_window_write_count == 0 {
+                                // Uninitialized — start window.
+                                flow.sustained_window_start_ts = timestamp;
+                                flow.sustained_window_write_count = 1;
+                                flow.sustained_burst_emitted = false;
+                            } else {
+                                // Accumulate first (update-before-check).
+                                flow.sustained_window_write_count += 1;
+                                let elapsed_us =
+                                    timestamp.wrapping_sub(flow.sustained_window_start_ts);
+
+                                // Check trigger: elapsed >= 2s AND rate exceeded AND not emitted.
+                                // Truncation-free: (count*1_000_000) > (threshold*elapsed_us)
+                                // (f2-fix-directives §11.5a)
+                                if elapsed_us >= WRITE_SUSTAINED_WINDOW_SECS * 1_000_000
+                                    && !flow.sustained_burst_emitted
+                                    && (flow.sustained_window_write_count as u64) * 1_000_000
+                                        > (self.write_sustained_threshold as u64)
+                                            * (elapsed_us as u64)
+                                {
+                                    flow.sustained_burst_emitted = true;
+                                    let elapsed_secs_f = (elapsed_us as f64) / 1_000_000.0;
+                                    local_findings.push(Finding {
+                                        category: crate::findings::ThreatCategory::Execution,
+                                        verdict: crate::findings::Verdict::Likely,
+                                        confidence: crate::findings::Confidence::High,
+                                        summary: format!(
+                                            "Modbus sustained write rate exceeded: {} writes over {:.1}s (>{}/s average)",
+                                            flow.sustained_window_write_count,
+                                            elapsed_secs_f,
+                                            self.write_sustained_threshold
+                                        ),
+                                        evidence: vec![format!(
+                                            "Sustained write rate exceeded: {} writes over {:.1} seconds (>{}/s average)",
+                                            flow.sustained_window_write_count,
+                                            elapsed_secs_f,
+                                            self.write_sustained_threshold
+                                        )],
+                                        // Canonical order: T0806 first, then T0855.
+                                        mitre_techniques: vec![
+                                            "T0806".to_string(),
+                                            "T0855".to_string(),
+                                        ],
+                                        source_ip: None,
+                                        timestamp: finding_ts,
+                                        direction: Some(direction),
+                                    });
+                                }
+
+                                // Window slide: reset when elapsed >= WRITE_SUSTAINED_WINDOW_SECS.
+                                // (f2-fix-directives §11.5 step 5: ALWAYS reset regardless of
+                                // whether a finding fired, to prevent unbounded accumulation.)
+                                if elapsed_us >= WRITE_SUSTAINED_WINDOW_SECS * 1_000_000 {
+                                    flow.sustained_window_start_ts = timestamp;
+                                    flow.sustained_window_write_count = 1;
+                                    flow.sustained_burst_emitted = false;
+                                }
+                            }
+                        }
+                    }
+
+                    FunctionCodeClass::Diagnostic => {
+                        // -------------------------------------------------------
+                        // Diagnostics detection (BC-2.14.018)
+                        // FC 0x08: check sub-function bytes in PDU.
+                        // FC 0x2B: check MEI type byte for recon (BC-2.14.020).
+                        // -------------------------------------------------------
+                        if fc == 0x08 {
+                            // PDU for FC=0x08: [fc, sub_func_hi, sub_func_lo, data...]
+                            // data param here includes everything AFTER the MBAP header.
+                            // data[0]=fc, data[1..]=sub-func+data (data starts at offset 8 in ADU).
+                            // Actually: `data` is the full ADU slice; fc is at data[7].
+                            // Sub-function bytes are at data[8] and data[9].
+                            if data.len() >= 10 {
+                                let sub_func = u16::from_be_bytes([data[8], data[9]]);
+                                if matches!(sub_func, 0x0001 | 0x0004) {
+                                    local_findings.push(Finding {
+                                        category: crate::findings::ThreatCategory::Anomaly,
+                                        verdict: crate::findings::Verdict::Likely,
+                                        confidence: crate::findings::Confidence::High,
+                                        summary: format!(
+                                            "Modbus Diagnostics DoS sub-function 0x{sub_func:04X} detected"
+                                        ),
+                                        evidence: vec![format!(
+                                            "FC=0x08 sub-func=0x{sub_func:04X} unit_id=0x{:02X}",
+                                            header.unit_id
+                                        )],
+                                        mitre_techniques: vec!["T0814".to_string()],
+                                        source_ip: None,
+                                        timestamp: finding_ts,
+                                        direction: Some(direction),
+                                    });
+                                }
+                                // Other sub-functions: no T0814 (BC-2.14.018 EC-006).
+                            }
+                        } else if fc == 0x2B {
+                            // FC=0x2B MEI: check MEI type byte (data[8]).
+                            // MEI type 0x0E = Read Device Identification → T0888 (BC-2.14.020).
+                            // MEI type != 0x0E → no T0888 (BC-2.14.020 EC-005).
+                            if data.len() >= 9 {
+                                let mei_type = data[8];
+                                if mei_type == 0x0E {
+                                    local_findings.push(Finding {
+                                        category: crate::findings::ThreatCategory::Anomaly,
+                                        verdict: crate::findings::Verdict::Inconclusive,
+                                        confidence: crate::findings::Confidence::Medium,
+                                        summary: format!(
+                                            "Modbus recon: FC=0x2B MEI Read Device Identification (unit_id={})",
+                                            header.unit_id
+                                        ),
+                                        evidence: vec![format!(
+                                            "FC=0x2B MEI type=0x0E txn_id=0x{:04X}",
+                                            header.transaction_id
+                                        )],
+                                        mitre_techniques: vec!["T0888".to_string()],
+                                        source_ip: None,
+                                        timestamp: finding_ts,
+                                        direction: Some(direction),
+                                    });
+                                }
+                                // MEI type != 0x0E: no T0888.
+                            }
+                        }
+                    }
+
+                    FunctionCodeClass::Read => {
+                        // -------------------------------------------------------
+                        // Recon detection (BC-2.14.020)
+                        // FC=0x11 (Report Server ID) → T0888.
+                        // FC=0x07 (Read Exception Status) → NO finding (Decision 12).
+                        // -------------------------------------------------------
+                        if fc == 0x11 {
+                            local_findings.push(Finding {
+                                category: crate::findings::ThreatCategory::Anomaly,
+                                verdict: crate::findings::Verdict::Inconclusive,
+                                confidence: crate::findings::Confidence::Medium,
+                                summary: format!(
+                                    "Modbus recon: FC=0x11 Report Server ID (unit_id={})",
+                                    header.unit_id
+                                ),
+                                evidence: vec![format!(
+                                    "FC=0x11 txn_id=0x{:04X} unit_id=0x{:02X}",
+                                    header.transaction_id, header.unit_id
+                                )],
+                                mitre_techniques: vec!["T0888".to_string()],
+                                source_ip: None,
+                                timestamp: finding_ts,
+                                direction: Some(direction),
+                            });
+                        }
+                        // FC=0x07 and all other read FCs: no finding.
+                    }
+
+                    FunctionCodeClass::Unknown => {
+                        // -------------------------------------------------------
+                        // Unknown FC → Anomaly finding (BC-2.14.020 unknown path).
+                        // -------------------------------------------------------
+                        local_findings.push(Finding {
+                            category: crate::findings::ThreatCategory::Anomaly,
+                            verdict: crate::findings::Verdict::Inconclusive,
+                            confidence: crate::findings::Confidence::Low,
+                            summary: format!(
+                                "Modbus unknown function code 0x{fc:02X} (unit_id={})",
+                                header.unit_id
+                            ),
+                            evidence: vec![format!(
+                                "FC=0x{fc:02X} unknown, txn_id=0x{:04X}",
+                                header.transaction_id
+                            )],
+                            mitre_techniques: vec![],
+                            source_ip: None,
+                            timestamp: finding_ts,
+                            direction: Some(direction),
+                        });
+                    }
+
+                    FunctionCodeClass::Exception => {
+                        // Should not occur in ClientToServer direction (exceptions are
+                        // server responses). No-op in request path.
+                    }
+                }
+            }
+
+            Direction::ServerToClient => {
+                // RESPONSE path
+                if fc_class == FunctionCodeClass::Exception {
+                    // -------------------------------------------------------
+                    // Exception response (BC-2.14.011 + BC-2.14.019)
+                    // -------------------------------------------------------
+                    self.total_exception_count += 1;
+
+                    // Attribute exception to pending request (BC-2.14.011).
+                    flow.attribute_exception(header.transaction_id, header.unit_id, fc);
+
+                    // Exception code byte is at data[8] (after 8-byte MBAP+FC prefix).
+                    let exc_code = if data.len() >= 9 { data[8] } else { 0xFF };
+
+                    // Per-exception-code burst window (BC-2.14.019).
+                    // wrapping_sub for all elapsed computations (f2-fix-directives §11.5b).
+                    let exc_elapsed = timestamp.wrapping_sub(
+                        *flow
+                            .exception_window_start_ts
+                            .get(&exc_code)
+                            .unwrap_or(&timestamp),
+                    );
+
+                    if exc_elapsed > EXCEPTION_WINDOW_SECS * 1_000_000 {
+                        // Window expired → reset.
+                        flow.exception_window_counts.insert(exc_code, 1);
+                        flow.exception_window_start_ts.insert(exc_code, timestamp);
+                        flow.exception_burst_emitted.insert(exc_code, false);
+                    } else {
+                        let count = flow.exception_window_counts.entry(exc_code).or_insert(0);
+                        *count += 1;
+                        let cur_count = *count;
+                        let emitted = *flow
+                            .exception_burst_emitted
+                            .get(&exc_code)
+                            .unwrap_or(&false);
+
+                        if cur_count > EXCEPTION_RATE_THRESHOLD && !emitted {
+                            flow.exception_burst_emitted.insert(exc_code, true);
+                            local_findings.push(Finding {
+                                category: crate::findings::ThreatCategory::Anomaly,
+                                verdict: crate::findings::Verdict::Inconclusive,
+                                confidence: crate::findings::Confidence::Medium,
+                                summary: format!(
+                                    "Modbus exception burst: exception code 0x{exc_code:02X} seen {cur_count} times in 10s window"
+                                ),
+                                evidence: vec![format!(
+                                    "Exception code=0x{exc_code:02X} count={cur_count} (threshold={})",
+                                    EXCEPTION_RATE_THRESHOLD
+                                )],
+                                mitre_techniques: vec![],
+                                source_ip: None,
+                                timestamp: finding_ts,
+                                direction: Some(direction),
+                            });
+                        }
+                    }
+                } else {
+                    // Normal response: match against pending table.
+                    flow.match_response(header.transaction_id, header.unit_id, fc);
+                }
+            }
+        }
+
+        // -------------------------------------------------------
+        // MAX_FINDINGS poison-skip (BC-2.14.022)
+        // Push all local_findings into self.all_findings with cap guard.
+        // -------------------------------------------------------
+        for f in &local_findings {
+            if self.all_findings.len() >= MAX_FINDINGS {
+                self.dropped_findings += 1;
+            } else {
+                self.all_findings.push(f.clone());
+            }
+        }
+
+        local_findings
     }
 
     /// Produce the six-key `AnalysisSummary` (STORY-104, BC-2.14.021).
     ///
-    /// Keys (authoritative set):
+    /// Keys (authoritative set — exactly six):
     ///   `pdu_count`, `write_count`, `exception_count`, `parse_errors`,
     ///   `function_code_distribution`, `dropped_findings`.
     ///
-    /// NOT YET IMPLEMENTED — stub for Red Gate (STORY-104 TDD step 1).
+    /// `function_code_distribution` is a JSON object with keys formatted as
+    /// "0x{:02X}" (uppercase hex, zero-padded, "0x" prefix) per BC-2.14.021 invariant 3.
+    /// Zero-count FC entries are suppressed (BC-2.14.021 post.2 invariant 2).
     pub fn summarize(&self) -> AnalysisSummary {
-        todo!("STORY-104: implement summarize() returning six-key AnalysisSummary (BC-2.14.021)")
+        use std::collections::BTreeMap;
+
+        let mut detail: BTreeMap<String, serde_json::Value> = BTreeMap::new();
+
+        detail.insert(
+            "pdu_count".to_string(),
+            serde_json::json!(self.total_pdu_count),
+        );
+        detail.insert(
+            "write_count".to_string(),
+            serde_json::json!(self.total_write_count),
+        );
+        detail.insert(
+            "exception_count".to_string(),
+            serde_json::json!(self.total_exception_count),
+        );
+        detail.insert(
+            "parse_errors".to_string(),
+            serde_json::json!(self.parse_errors),
+        );
+        detail.insert(
+            "dropped_findings".to_string(),
+            serde_json::json!(self.dropped_findings),
+        );
+
+        // function_code_distribution: "0x{FC:02X}" → count (zero-count suppressed).
+        let mut dist: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
+        for (&fc, &count) in &self.fn_code_counts {
+            if count > 0 {
+                dist.insert(format!("0x{fc:02X}"), serde_json::json!(count));
+            }
+        }
+        detail.insert(
+            "function_code_distribution".to_string(),
+            serde_json::Value::Object(dist),
+        );
+
+        AnalysisSummary {
+            analyzer_name: "Modbus".to_string(),
+            packets_analyzed: self.total_pdu_count,
+            detail,
+        }
     }
 }
 
