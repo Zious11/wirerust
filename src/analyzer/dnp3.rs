@@ -403,8 +403,10 @@ pub fn transport_is_fir(transport_octet: u8) -> bool {
     transport_octet & 0x40 != 0
 }
 
-/// Returns `true` when the link-layer CONTROL field indicates a primary frame
-/// that carries user data (DIR=1, PRM=1, FC=0x03 or 0x04).
+/// Returns `true` when the link-layer CONTROL field's function-code nibble
+/// (`control & 0x0F`) is CONFIRMED_USER_DATA (0x03) or UNCONFIRMED_USER_DATA (0x04) —
+/// the only link FCs that carry a transport+application payload
+/// (BC-2.15.008 precondition 2 / Invariant 4). The DIR and PRM bits are NOT inspected.
 ///
 /// Used to decide whether the frame body after the header CRC contains a
 /// transport octet + application data.
