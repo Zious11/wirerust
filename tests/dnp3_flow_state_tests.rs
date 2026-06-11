@@ -28,9 +28,7 @@
 mod story_107 {
     use std::net::{IpAddr, Ipv4Addr};
 
-    use wirerust::analyzer::dnp3::{
-        Dnp3Analyzer, MAX_DNP3_FRAME_LEN, MAX_MASTER_ADDRS, MAX_PENDING_REQUESTS,
-    };
+    use wirerust::analyzer::dnp3::{Dnp3Analyzer, MAX_MASTER_ADDRS, MAX_PENDING_REQUESTS};
     use wirerust::reassembly::flow::FlowKey;
 
     // ---------------------------------------------------------------------------
@@ -136,14 +134,27 @@ mod story_107 {
             .get(&key)
             .expect("flow must exist after on_data");
 
-        assert_eq!(
-            flow.carry.len(),
-            MAX_DNP3_FRAME_LEN,
-            "carry.len() must be capped at MAX_DNP3_FRAME_LEN=292 after overflow"
-        );
+        // BC-2.15.016 PC2: the 292-cap invariant is proven by parse_errors == 1.
+        // parse_errors is incremented once and ONLY ONCE — in the overflow arm of Step 2,
+        // when carry.len() + new_bytes.len() > 292. If the cap were not enforced,
+        // carry would grow to 295 and no parse_errors increment would occur.
+        // parse_errors == 1 is the authoritative cap-invariant assertion.
         assert_eq!(
             flow.parse_errors, 1,
-            "parse_errors must be 1: carry overflow increments the lifetime parse_errors counter"
+            "parse_errors must be 1: carry overflow fired (292-cap enforced; 3 bytes discarded)"
+        );
+
+        // After the overflow, the frame-walk ran and found no [0x05,0x64] sync word
+        // in the 292 bytes of 0xAA/0xBB filler → byte-walk-forward resync cleared carry.
+        // carry.len() == 0 confirms: (a) the frame-walk ran (not a no-op), and
+        // (b) the resync liveness property (carry advanced on every non-break iteration).
+        // STORY-109 behavior: byte-walk resync clears unrecoverable junk carry;
+        // the 292-cap is proven by parse_errors==1 (overflow arm only fires when carry+new > 292).
+        assert_eq!(
+            flow.carry.len(),
+            0,
+            "carry must be 0 after byte-walk-forward resync found no sync in junk carry \
+             (STORY-109 behavior; overflow was already counted via parse_errors)"
         );
     }
 
@@ -320,13 +331,22 @@ mod story_107 {
         let seed_frame = build_frame(5, 0x0003, 0x0001, 0xC4);
         analyzer.on_data(key.clone(), &seed_frame, 0);
 
-        // Pre-populate pending_requests with 256 entries, ts 0..=255.
-        // Entry (0u16, 0u8) → ts=0 is the oldest and must be evicted.
+        // Pre-populate pending_requests with 256 entries.
+        // Entry (0u16, 0u8) → ts=290 is the oldest and must be evicted by the 256-cap.
+        // All timestamps are set within BLOCK_CMD_TIMEOUT_SECS (10s) of the delivery
+        // ts=300 so that STORY-109's block-timeout scan does NOT drain the pre-filled
+        // entries before the cap-eviction logic fires.
+        // Specifically: STORY-109 scan removes entries where (300 - ts) > 10 (strictly
+        // greater); ts=290 gives elapsed=10 (not > 10, survives); ts=295 gives elapsed=5.
         {
             let flow = analyzer.flows.get_mut(&key).expect("flow must exist");
             flow.pending_requests.clear();
-            for i in 0u32..(MAX_PENDING_REQUESTS as u32) {
-                flow.pending_requests.insert((i as u16, 0u8), i);
+            // Entry (0,0) at ts=290 — oldest single entry, survives block-timeout scan
+            // (300-290=10, not strictly > 10) and is evicted by the 256-cap eviction.
+            flow.pending_requests.insert((0u16, 0u8), 290u32);
+            // Entries (1..=255) at ts=295 — all newer than (0,0), all survive scan.
+            for i in 1u32..(MAX_PENDING_REQUESTS as u32) {
+                flow.pending_requests.insert((i as u16, 0u8), 295u32);
             }
             assert_eq!(
                 flow.pending_requests.len(),
@@ -335,7 +355,7 @@ mod story_107 {
             );
             assert!(
                 flow.pending_requests.contains_key(&(0u16, 0u8)),
-                "pre-condition: oldest entry (0,0)→ts=0 must be present before eviction"
+                "pre-condition: oldest entry (0,0)→ts=290 must be present before eviction"
             );
         }
 
@@ -377,12 +397,12 @@ mod story_107 {
             flow.pending_requests.len(),
             MAX_PENDING_REQUESTS,
             "pending_requests must stay at MAX_PENDING_REQUESTS=256 after the 257th insert \
-             triggers eviction of the oldest entry (ts=0)"
+             triggers eviction of the oldest entry (ts=290)"
         );
-        // The oldest entry (ts=0) must have been evicted.
+        // The oldest entry (ts=290) must have been evicted by the 256-cap eviction.
         assert!(
             !flow.pending_requests.contains_key(&(0u16, 0u8)),
-            "entry (0u16, 0u8) with ts=0 must be evicted before the 257th insert"
+            "entry (0u16, 0u8) with ts=290 must be evicted before the 257th insert"
         );
         // F-P2-001 / AC-005 post-state: the new (dest=256, app_seq=0) entry seeded by the
         // ctrl_frame must be present, confirming that the evict-then-insert swap actually
@@ -583,14 +603,22 @@ mod story_107 {
             .flows
             .get(&key)
             .expect("flow must exist after on_data");
-        assert_eq!(
-            flow.carry.len(),
-            MAX_DNP3_FRAME_LEN,
-            "carry must be capped at 292 after accepting 1 of 2 bytes"
-        );
+        // BC-2.15.016 PC2 (292-cap): parse_errors == 1 proves the cap fired.
+        // 291 bytes in carry + 2 bytes delivered → only 1 accepted (total=292 cap);
+        // 1 byte discarded; overflow arm increments parse_errors exactly once.
+        // STORY-109 behavior: byte-walk resync clears the carry; the 292-cap is
+        // proven by parse_errors==1 (overflow arm only fires when carry+new > 292).
         assert_eq!(
             flow.parse_errors, 1,
-            "parse_errors must be 1: 1 byte was discarded (overflow)"
+            "parse_errors must be 1: 1 byte was discarded at the 292 cap (BC-2.15.016 PC2)"
+        );
+
+        // After overflow, frame-walk ran: no [0x05,0x64] sync found in 292 bytes of 0xAA
+        // → carry cleared by byte-walk-forward resync (STORY-109 behavior).
+        assert_eq!(
+            flow.carry.len(),
+            0,
+            "carry must be 0: byte-walk-forward resync found no sync in junk carry after overflow"
         );
     }
 
@@ -652,7 +680,7 @@ mod story_107 {
 
     /// EC-005: pending_requests at 256 with two entries sharing minimum ts.
     ///
-    /// When two entries share ts=0, either may be evicted (implementation-defined per
+    /// When two entries share the same minimum ts, either may be evicted (implementation-defined per
     /// BC-2.15.016 postcondition 9).  After insert: map.len()==256 and at least one
     /// of the tied-oldest keys is no longer present.
     ///
@@ -669,14 +697,18 @@ mod story_107 {
         let seed_frame = build_frame(5, 0x0003, 0x0001, 0xC4);
         analyzer.on_data(key.clone(), &seed_frame, 0);
 
-        // Pre-populate with 256 entries: two entries share ts=0 (tied oldest).
+        // Pre-populate with 256 entries: two entries share ts=490 (tied oldest).
+        // All timestamps are within BLOCK_CMD_TIMEOUT_SECS (10s) of the delivery ts=500
+        // so STORY-109's block-timeout scan does NOT drain entries before cap-eviction fires.
+        // ts=490 → elapsed at ts=500 is 10, which is NOT > 10 (strictly), so entries survive.
+        // ts=495 → elapsed=5 → survives scan.
         {
             let flow = analyzer.flows.get_mut(&key).expect("flow must exist");
             flow.pending_requests.clear();
-            flow.pending_requests.insert((0u16, 0u8), 0u32); // ts=0, tied oldest
-            flow.pending_requests.insert((1u16, 0u8), 0u32); // ts=0, tied oldest
+            flow.pending_requests.insert((0u16, 0u8), 490u32); // ts=490, tied oldest
+            flow.pending_requests.insert((1u16, 0u8), 490u32); // ts=490, tied oldest
             for i in 2u32..(MAX_PENDING_REQUESTS as u32) {
-                flow.pending_requests.insert((i as u16, 0u8), i - 1); // ts=1..=254
+                flow.pending_requests.insert((i as u16, 0u8), 495u32); // ts=495, newer
             }
             assert_eq!(
                 flow.pending_requests.len(),
@@ -686,7 +718,7 @@ mod story_107 {
         }
 
         // Deliver a 257th Control-class frame (dest=300, seq=0, ts=500) via on_data.
-        // The implementation must evict one of the tied-oldest (ts=0) entries.
+        // The implementation must evict one of the tied-oldest (ts=490) entries.
         // STORY-108: seed moved to gate-validated carry path; complete frame required.
         // LENGTH=8 → frame_len = 5+8+2 = 15 bytes (complete).
         // link CONTROL nibble=0x04 UNCONFIRMED_USER_DATA → has_user_data==true.
@@ -767,27 +799,31 @@ mod story_107 {
             flow.frame_count, 0,
             "frame_count must be 0: no valid frame was consumed from an invalid-LENGTH carry"
         );
-        // F-P2-002 / EC-006 resync-progress assertion: the drain-1 resync policy must have
-        // advanced the carry past the invalid LENGTH byte.  The carry must be SHORTER than
-        // the 10 bytes originally delivered — proving the drain-1 resync occurred and the
-        // implementation did not simply break without advancing (a no-op stuck-state).
+        // F-P2-002 / EC-006 resync-progress assertion: the byte-walk-forward resync
+        // (STORY-109; realizes STORY-107 deferral, per STORY-109-resync-adjudication.md
+        // Decision 3) must have advanced the carry past the invalid LENGTH byte.
         //
-        // Derivation:
+        // Derivation under byte-walk-forward resync:
         //   bad_frame = [0x05, 0x64, 0x04, ...zeros...] (10 bytes)
         //   Iteration 1: carry[0..2] = [0x05, 0x64] — sync OK; compute_dnp3_frame_len(4)
-        //     returns None → parse_errors++; carry.drain(..1) → carry now has 9 bytes.
-        //   Iteration 2: carry[0] = 0x64 (not 0x05) → sync break.
-        //   Final carry length = 9 (the 9 bytes starting from original index 1).
+        //     returns None → parse_errors++; carry.drain(..1) → carry now has 9 bytes:
+        //     [0x64, 0x04, 0x00, ..., 0x00].
+        //   Iteration 2: carry[0] = 0x64 (not 0x05) → sync gate fires; byte-walk scans
+        //     windows from offset 1: no [0x05,0x64] pair exists in the remaining bytes →
+        //     carry.clear() → carry is empty (len == 0). continue.
+        //   Iteration 3: carry.len() < 3 → guard breaks.
+        //   Final carry length = 0 (no [0x05,0x64] sync found → cleared).
         assert!(
             flow.carry.len() < 10,
-            "carry must have advanced: drain-1 resync must reduce carry below the 10 \
+            "carry must have advanced: resync must reduce carry below the 10 \
              originally delivered bytes (stuck carry == no-op, which is a liveness bug)"
         );
         assert_eq!(
             flow.carry.len(),
-            9,
-            "carry must be exactly 9 bytes: drain-1 resync consumed 1 byte, then the sync \
-             gate broke on carry[0]=0x64, leaving bytes [1..9] of the original delivery"
+            0,
+            "carry must be 0 bytes: byte-walk-forward resync found no [0x05,0x64] in the \
+             remaining bytes and cleared the carry (STORY-109 realization of STORY-107 \
+             deferred byte-walk resync; adjudication Decision 3)"
         );
     }
 

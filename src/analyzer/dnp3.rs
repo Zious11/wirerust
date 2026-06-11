@@ -215,6 +215,11 @@ pub struct Dnp3FlowState {
     pub block_finding_emitted_this_window: bool,
     pub loss_of_control_emitted: bool,
     pub correlation_window_start_ts: u32,
+    /// Set to `true` on the first call to `maybe_expire_correlation_window`.
+    /// Until set, `correlation_window_start_ts` is not yet valid and the
+    /// window is seeded to the first observed packet's timestamp instead of
+    /// the default u32 zero value (BC-2.15.015 / STORY-109 fix).
+    pub correlation_window_seeded: bool,
     /// Windowed malformed-frame counter for BC-2.15.024 T0814 threshold.
     pub malformed_in_window: u64,
     /// One-shot T0814 guard for BC-2.15.024.
@@ -349,16 +354,35 @@ impl Dnp3Analyzer {
             }
 
             // SYNC GATE FIRST: the head of an established DNP3 carry must begin with the
-            // sync word [0x05, 0x64]. If it does not, the carry is mis-aligned corruption;
-            // stop the walk and leave the carry intact (no count, no drain, no parse_error
-            // beyond any overflow already recorded above). This is the resync hold-point —
-            // the bounded carry (≤292) guarantees no unbounded growth. (BC-2.15.004 sync.)
-            // Resync policy (STORY-107 v1, adv Pass-1 F-2): an invalid LENGTH (<5) drains 1 byte to resync;
-            //  a mid-carry sync-word loss holds the carry until the 292 cap (then overflow-discards). Both
-            //  paths guarantee progress/termination (each non-break iteration drains >=1 byte; carry bounded
-            //  <=292). Byte-walk resync on mid-carry sync-loss is deferred to a later detection story.
+            // sync word [0x05, 0x64]. If it does not, the carry is mis-aligned; perform
+            // byte-walk-forward resync (STORY-109; realizes STORY-107 deferral F-2,
+            // adjudicated in STORY-109-resync-adjudication.md Decision 1).
+            // Scan from offset 1 for the next [0x05,0x64]; drain preceding bytes, else
+            // clear. continue (NOT break) so the walk loop re-examines the realigned carry.
+            // No parse_errors/malformed_in_window increment here — those were already
+            // counted in the LENGTH-gate arm that created the misalignment (no double-
+            // counting; adjudication Decision 2). carry.clear() is a fresh-start, not a
+            // desync bail — is_non_dnp3 is NOT set. VP-023 invariants preserved: each
+            // iteration drains ≥1 byte; carry ≤292 bound unchanged.
             if flow.carry[0] != 0x05 || flow.carry[1] != 0x64 {
-                break;
+                // Byte-walk-forward resync (STORY-109; realizes STORY-107 deferral).
+                // Scan from offset 1 for the next [0x05,0x64]; drain preceding bytes, else clear.
+                let next_sync = flow
+                    .carry
+                    .windows(2)
+                    .enumerate()
+                    .skip(1)
+                    .find(|(_, w)| w[0] == 0x05 && w[1] == 0x64)
+                    .map(|(i, _)| i);
+                match next_sync {
+                    Some(i) => {
+                        flow.carry.drain(..i);
+                    } // realign to next sync
+                    None => {
+                        flow.carry.clear();
+                    } // no sync found — start fresh
+                }
+                continue; // NOT break
             }
 
             // VALIDITY GATE: LENGTH must yield a computable frame length (LENGTH ≥ 5).
@@ -791,6 +815,20 @@ impl Dnp3Analyzer {
     /// `malformed_in_window`, `malformed_anomaly_emitted`.
     /// **NOT reset:** `parse_errors` (lifetime counter, BC-2.15.024 Inv 1).
     fn maybe_expire_correlation_window(flow: &mut Dnp3FlowState, now_ts: u32) {
+        // Seed the window on first use: if the window has never been started
+        // (correlation_window_start_ts == 0 and no window has been active), set it
+        // to now_ts so that the first 300-second window starts at the first observed
+        // packet timestamp, not at the UNIX epoch.  Without this seed, the very
+        // first delivery at any ts >= CORRELATION_WINDOW_SECS would spuriously fire
+        // a window expiry (wrapping_sub(ts, 0) >= 300) and reset windowed fields
+        // that were just populated in the same on_data call.
+        // NOTE: when now_ts == 0 this is a no-op (seed to 0 == already 0) and
+        // the next delivery at ts=301 will correctly trigger a real expiry.
+        if !flow.correlation_window_seeded {
+            flow.correlation_window_start_ts = now_ts;
+            flow.correlation_window_seeded = true;
+            return;
+        }
         if now_ts.wrapping_sub(flow.correlation_window_start_ts) >= CORRELATION_WINDOW_SECS {
             // Reset ALL SIX windowed fields (BC-2.15.015 PC3).
             flow.restart_event_count = 0;
