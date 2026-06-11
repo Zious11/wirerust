@@ -36,7 +36,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.023.md
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.024.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
-input-hash: "6086c25"
+input-hash: "f0fb436"
 ---
 
 # STORY-109: DNP3 Correlated/Derived + Anomaly Detections — T1691.001, T0827, Broadcast, Unsolicited, ENABLE/DISABLE, Malformed
