@@ -27,6 +27,8 @@
 
 use std::collections::HashMap;
 
+use crate::analyzer::AnalysisSummary;
+use crate::findings::Finding;
 use crate::reassembly::flow::FlowKey;
 
 // ---------------------------------------------------------------------------
@@ -125,6 +127,15 @@ pub const MAX_MASTER_ADDRS: usize = 64;
 #[allow(unused)]
 pub const MALFORMED_ANOMALY_THRESHOLD: u64 = 3;
 
+/// Detection window for the Direct-Operate burst guard in seconds (BC-2.15.010).
+/// Control-class FC counter and `window_start_ts` reset when elapsed exceeds this.
+pub const DETECTION_WINDOW_SECS: u32 = 60;
+
+/// Hard upper bound on findings accumulated in `Dnp3Analyzer.all_findings` (BC-2.15.022).
+/// Mirrors `modbus::MAX_FINDINGS` (10_000) — consistent DoS cap across analyzers
+/// (BC-2.15.022 Invariant 1 / ADR-007 Decision 2).
+pub const MAX_FINDINGS: usize = 10_000;
+
 // ---------------------------------------------------------------------------
 // Per-flow state (effectful shell — NOT a Kani target)
 // ---------------------------------------------------------------------------
@@ -198,6 +209,8 @@ pub struct Dnp3Analyzer {
     pub direct_operate_threshold: u32,
     /// Aggregate function-code distribution across all flows: FC byte → count.
     pub fn_code_counts: HashMap<u8, u64>,
+    /// Accumulated findings — capped at MAX_FINDINGS (BC-2.15.022).
+    pub all_findings: Vec<Finding>,
 }
 
 impl Dnp3Analyzer {
@@ -207,6 +220,7 @@ impl Dnp3Analyzer {
             flows: HashMap::new(),
             direct_operate_threshold,
             fn_code_counts: HashMap::new(),
+            all_findings: Vec::new(),
         }
     }
 
@@ -340,6 +354,46 @@ impl Dnp3Analyzer {
                     let app_fc = flow.carry[12];
                     *flow.fc_counts.entry(app_fc).or_insert(0) += 1;
                     *self.fn_code_counts.entry(app_fc).or_insert(0) += 1;
+
+                    // --- Detection branches (STORY-108, BC-2.15.010/011/012) -------
+                    // Borrow-checker note: `flow` borrows `self.flows`; we cannot call
+                    // `&mut self` methods while `flow` is held.  Instead, we pass the
+                    // mutable sub-fields of self directly as separate references.
+                    let dest = header.destination;
+                    let src = header.source;
+
+                    match classify_dnp3_fc(app_fc) {
+                        Dnp3FcClass::Control => {
+                            // BC-2.15.010: seed pending_requests for Control-class FCs
+                            // (STORY-108 relocates STORY-107 seed here onto gate-validated frame).
+                            let app_seq = flow.carry[11] & 0x0F;
+                            Self::insert_pending_request(flow, (dest, app_seq), ts);
+
+                            // Detection burst branch.
+                            Self::detect_control_class_burst_split(
+                                flow,
+                                &mut self.all_findings,
+                                self.direct_operate_threshold,
+                                app_fc,
+                                ts,
+                                dest,
+                                src,
+                            );
+                        }
+                        Dnp3FcClass::Restart => {
+                            Self::detect_restart_split(
+                                flow,
+                                &mut self.all_findings,
+                                app_fc,
+                                dest,
+                                src,
+                            );
+                        }
+                        Dnp3FcClass::Write => {
+                            Self::detect_write_split(&mut self.all_findings, dest, src);
+                        }
+                        _ => {}
+                    }
                 }
             }
 
@@ -348,22 +402,210 @@ impl Dnp3Analyzer {
             // frame_len above, so this drain can never index out of bounds (AC-006).
             flow.carry.drain(..frame_len);
         }
+    }
 
-        // --- Pending-request seed for Control-class requests (AC-005 / EC-005). ------
-        // STORY-107 scope: this is a MINIMAL bound-exercise seed that drives the pending_requests
-        //  eviction bound (AC-005). It reads the raw delivery head and is intentionally DECOUPLED from
-        //  the sync-gated carry-walk for STORY-107 — it can seed spurious/duplicate entries, which is
-        //  harmless here because STORY-107 only contracts the >=256 oldest-eviction BOUND and nothing
-        //  reads pending_requests yet. STORY-108 OWNS detection-driven seeding: it will relocate this
-        //  onto the gate-validated frame inside the carry walk and add sync-gating, removing this seed.
-        //  (adv Pass-1 F-1)
-        if data.len() >= 13 && has_user_data(data[3]) && transport_is_fir(data[10]) {
-            let app_fc = data[12];
-            if matches!(classify_dnp3_fc(app_fc), Dnp3FcClass::Control) {
-                let dest = u16::from_le_bytes([data[4], data[5]]);
-                let app_seq = data[11] & 0x0F; // APPLICATION CONTROL SEQ nibble.
-                Self::insert_pending_request(flow, (dest, app_seq), ts);
-            }
+    // -----------------------------------------------------------------------
+    // Detection branches (STORY-108, Tasks 3–7).
+    //
+    // These are associated functions (not methods) to avoid the Rust borrow
+    // conflict between `flow` (borrowed from `self.flows`) and `self`.  Each
+    // receives the minimum mutable sub-state it needs.
+    // -----------------------------------------------------------------------
+
+    /// Control-class burst detection branch (BC-2.15.010).
+    ///
+    /// Increments `flow.direct_operate_count`, seeds `flow.window_start_ts` on
+    /// the first FC in a window, resets on window expiry, and pushes exactly one
+    /// T1692.001 `Finding` when `count > threshold` and the one-shot guard is clear.
+    ///
+    /// All timestamp arithmetic uses `wrapping_sub` (overflow-checks=true in release;
+    /// EC-008 out-of-order pcap safety). Cap check: `findings.len() < MAX_FINDINGS`.
+    fn detect_control_class_burst_split(
+        flow: &mut Dnp3FlowState,
+        findings: &mut Vec<Finding>,
+        direct_operate_threshold: u32,
+        app_fc: u8,
+        now_ts: u32,
+        dest: u16,
+        src: u16,
+    ) {
+        // BC-2.15.010 postcondition 4: check window expiry BEFORE incrementing.
+        // When elapsed > DETECTION_WINDOW_SECS, reset to a fresh window seeded
+        // by this incoming FC.
+        if flow.direct_operate_count > 0
+            && now_ts.wrapping_sub(flow.window_start_ts) > DETECTION_WINDOW_SECS
+        {
+            flow.direct_operate_count = 1;
+            flow.window_start_ts = now_ts;
+            flow.direct_operate_emitted = false;
+            // Window reset — count=1 never exceeds threshold; return.
+            return;
+        }
+
+        // BC-2.15.010 postcondition 1: increment counter.
+        flow.direct_operate_count += 1;
+
+        // BC-2.15.010 postcondition 2: seed window_start_ts on first FC in window.
+        if flow.direct_operate_count == 1 {
+            flow.window_start_ts = now_ts;
+        }
+
+        // BC-2.15.010 postcondition 3: emit finding when threshold exceeded and guard clear.
+        if flow.direct_operate_count > direct_operate_threshold
+            && !flow.direct_operate_emitted
+            && now_ts.wrapping_sub(flow.window_start_ts) <= DETECTION_WINDOW_SECS
+            && findings.len() < MAX_FINDINGS
+        {
+            let count = flow.direct_operate_count;
+            let elapsed = now_ts.wrapping_sub(flow.window_start_ts);
+            let threshold = direct_operate_threshold;
+            findings.push(Finding {
+                category: crate::findings::ThreatCategory::Execution,
+                verdict: crate::findings::Verdict::Likely,
+                confidence: crate::findings::Confidence::Medium,
+                summary: format!(
+                    "DNP3 unauthorized control command burst: {count} control FCs \
+                     in {elapsed}s window (threshold {threshold})"
+                ),
+                evidence: vec![format!("FC=0x{app_fc:02X} dest={dest:#06X} src={src:#06X}")],
+                mitre_techniques: vec!["T1692.001".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            });
+            flow.direct_operate_emitted = true;
+        }
+    }
+
+    /// Restart-command detection branch (BC-2.15.011).
+    ///
+    /// Pushes one T0814 `Finding` per occurrence (no threshold guard).
+    /// Increments `flow.restart_event_count` UNCONDITIONALLY — even when capped.
+    /// Cap check: `findings.len() < MAX_FINDINGS` evaluated before push.
+    fn detect_restart_split(
+        flow: &mut Dnp3FlowState,
+        findings: &mut Vec<Finding>,
+        app_fc: u8,
+        dest: u16,
+        src: u16,
+    ) {
+        // BC-2.15.011 postcondition 1: push ONE Finding per occurrence (cap gated).
+        if findings.len() < MAX_FINDINGS {
+            let name = match app_fc {
+                0x0D => "COLD_RESTART",
+                0x0E => "WARM_RESTART",
+                _ => "RESTART",
+            };
+            findings.push(Finding {
+                category: crate::findings::ThreatCategory::Execution,
+                verdict: crate::findings::Verdict::Likely,
+                confidence: crate::findings::Confidence::High,
+                summary: format!(
+                    "DNP3 restart command observed: FC 0x{app_fc:02X} ({name}) \
+                     from src={src:#06X} to dest={dest:#06X}"
+                ),
+                evidence: vec![format!("FC=0x{app_fc:02X} dest={dest:#06X} src={src:#06X}")],
+                mitre_techniques: vec!["T0814".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            });
+        }
+
+        // BC-2.15.011 postcondition 2 / Architecture Compliance Rule 3:
+        // restart_event_count is incremented UNCONDITIONALLY (even when capped).
+        flow.restart_event_count += 1;
+
+        // T0827 co-emission placeholder: STORY-109 inserts derived T0827 push HERE,
+        // after the T0814 push, ensuring most-specific-first ordering (BC-2.15.013).
+    }
+
+    /// WRITE-command detection branch (BC-2.15.012).
+    ///
+    /// Pushes one T0836 `Finding` per occurrence. T0836 only — NOT T1692.001
+    /// (ADR-007 Decision 5 / Architecture Compliance Rule 2).
+    /// Cap check: `findings.len() < MAX_FINDINGS` evaluated before push.
+    fn detect_write_split(findings: &mut Vec<Finding>, dest: u16, src: u16) {
+        if findings.len() < MAX_FINDINGS {
+            findings.push(Finding {
+                category: crate::findings::ThreatCategory::Execution,
+                verdict: crate::findings::Verdict::Likely,
+                confidence: crate::findings::Confidence::Medium,
+                summary: format!(
+                    "DNP3 WRITE command observed: parameter modification \
+                     from src={src:#06X} to dest={dest:#06X}"
+                ),
+                evidence: vec![format!("FC=0x02 (WRITE) dest={dest:#06X} src={src:#06X}")],
+                mitre_techniques: vec!["T0836".to_string()],
+                source_ip: None,
+                timestamp: None,
+                direction: None,
+            });
+        }
+    }
+
+    /// Produce the DNP3 analyzer summary (BC-2.15.020).
+    ///
+    /// Aggregates across all flows: `function_code_distribution` (from
+    /// `self.fn_code_counts`, zero-count FCs suppressed), `control_operation_counts`
+    /// (per-flow `direct_operate_count`), `total_frames`, `total_parse_errors`,
+    /// `flows_analyzed`. Returns a populated `AnalysisSummary` even when zero flows
+    /// were processed (all counts zero, maps empty — BC-2.15.020 postcondition 2).
+    ///
+    /// Does NOT emit new findings (BC-2.15.020 Invariant 3).
+    pub fn summarize(&self) -> AnalysisSummary {
+        use std::collections::BTreeMap;
+
+        let flows_analyzed = self.flows.len() as u64;
+        let total_frames: u64 = self.flows.values().map(|f| f.frame_count).sum();
+        let total_parse_errors: u64 = self.flows.values().map(|f| f.parse_errors).sum();
+
+        // BC-2.15.020 postcondition 1: function_code_distribution — only FCs with count > 0.
+        // Keys are decimal strings of the FC byte (e.g. "5" for 0x05 DIRECT_OPERATE).
+        let function_code_distribution: BTreeMap<String, u64> = self
+            .fn_code_counts
+            .iter()
+            .filter(|&(_, count)| *count > 0)
+            .map(|(&fc, &count)| (fc.to_string(), count))
+            .collect();
+
+        // BC-2.15.020 postcondition 1: control_operation_counts — per-flow direct_operate_count.
+        // Keys are the flow index (0-based) as string to produce a stable JSON object.
+        let control_operation_counts: BTreeMap<String, u64> = self
+            .flows
+            .values()
+            .enumerate()
+            .map(|(i, flow)| (i.to_string(), flow.direct_operate_count as u64))
+            .collect();
+
+        let mut detail = BTreeMap::new();
+        detail.insert(
+            "function_code_distribution".to_string(),
+            serde_json::to_value(function_code_distribution)
+                .unwrap_or(serde_json::Value::Object(Default::default())),
+        );
+        detail.insert(
+            "control_operation_counts".to_string(),
+            serde_json::to_value(control_operation_counts)
+                .unwrap_or(serde_json::Value::Object(Default::default())),
+        );
+        detail.insert(
+            "total_frames".to_string(),
+            serde_json::Value::Number(total_frames.into()),
+        );
+        detail.insert(
+            "total_parse_errors".to_string(),
+            serde_json::Value::Number(total_parse_errors.into()),
+        );
+        detail.insert(
+            "flows_analyzed".to_string(),
+            serde_json::Value::Number(flows_analyzed.into()),
+        );
+
+        AnalysisSummary {
+            analyzer_name: "DNP3".to_string(),
+            packets_analyzed: total_frames,
+            detail,
         }
     }
 

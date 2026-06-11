@@ -342,22 +342,29 @@ mod story_107 {
         // Deliver a Control-class frame (FC=0x03 SELECT, dest=256, src=1) at ts=300.
         // This must trigger the eviction path: detect map full → evict oldest (ts=0) →
         // insert new entry (dest=256, seq determined by app_ctrl, ts=300).
-        // Frame: 13 bytes, control nibble=0x03 (CONFIRMED_USER_DATA), FIR=1 transport,
-        // app_ctrl=0xC0, app_fc=0x03 (SELECT=Control-class).
-        let mut ctrl_frame = vec![0u8; 13];
+        //
+        // STORY-108 relocated the pending_request seed onto the gate-validated carry path.
+        // The frame must be COMPLETE (frame_len bytes) so the carry-walk reaches the app FC.
+        // LENGTH=8 → frame_len = 5+8+2*ceil(3/16) = 5+8+2 = 15 bytes.
+        // link CONTROL nibble=0x04 UNCONFIRMED_USER_DATA → has_user_data==true.
+        // transport byte 0xC0: FIR=1 (0x40) | FIN=1 (0x80).
+        // app_ctrl=0xC0, app_seq = 0xC0 & 0x0F = 0.
+        // app_fc=0x03 (SELECT=Control-class).
+        let mut ctrl_frame = vec![0u8; 15];
         ctrl_frame[0] = 0x05; // start1
         ctrl_frame[1] = 0x64; // start2
-        ctrl_frame[2] = 0x0E; // LENGTH=14
-        ctrl_frame[3] = 0xC3; // link CONTROL: DIR+PRM+CONFIRMED_USER_DATA (nibble 0x03)
+        ctrl_frame[2] = 0x08; // LENGTH=8 → frame_len=15 (complete)
+        ctrl_frame[3] = 0xC4; // link CONTROL: DIR+PRM+UNCONFIRMED_USER_DATA (nibble 0x04)
         ctrl_frame[4] = 0x00; // dest low byte = 256 & 0xFF = 0
         ctrl_frame[5] = 0x01; // dest high byte = 256 >> 8 = 1  → dest LE = 0x0100 = 256
         ctrl_frame[6] = 0x01; // src low = 1
         ctrl_frame[7] = 0x00; // src high = 0  → src LE = 0x0001 = 1
-        ctrl_frame[8] = 0x00; // CRC placeholder
-        ctrl_frame[9] = 0x00; // CRC placeholder
+        ctrl_frame[8] = 0x00; // header CRC placeholder
+        ctrl_frame[9] = 0x00; // header CRC placeholder
         ctrl_frame[10] = 0xC0; // transport: FIR=1 (0x40), FIN=1 (0x80), SEQ=0
-        ctrl_frame[11] = 0xC0; // app_ctrl (arbitrary)
+        ctrl_frame[11] = 0xC0; // app_ctrl: app_seq = 0xC0 & 0x0F = 0
         ctrl_frame[12] = 0x03; // app FC = SELECT (Control-class)
+        // bytes 13-14: data-block CRC placeholder (0x00)
         analyzer.on_data(key.clone(), &ctrl_frame, 300);
 
         let flow = analyzer
@@ -381,12 +388,7 @@ mod story_107 {
         // ctrl_frame must be present, confirming that the evict-then-insert swap actually
         // occurred (not merely that len happened to stay at 256 for some other reason).
         //
-        // Carry note: the ctrl_frame is 13 bytes but requires frame_len=21 (LENGTH=14 → 21).
-        // The carry-walk leaves the 13-byte partial in carry — it IS the expected residual.
-        // The seed (dest, app_seq) is read from the raw delivery head (decoupled from the
-        // carry-walk per STORY-107 F-1 scope note); the residual carry is harmless and
-        // intentional — STORY-108 will relocate the seed onto the gate-validated carry path.
-        //
+        // STORY-108: seed moved to gate-validated carry path; complete frame required.
         // dest  = u16::from_le_bytes([ctrl_frame[4]=0x00, ctrl_frame[5]=0x01]) = 256
         // app_seq = ctrl_frame[11] & 0x0F = 0xC0 & 0x0F = 0
         assert!(
@@ -685,11 +687,14 @@ mod story_107 {
 
         // Deliver a 257th Control-class frame (dest=300, seq=0, ts=500) via on_data.
         // The implementation must evict one of the tied-oldest (ts=0) entries.
-        let mut ctrl_frame = vec![0u8; 13];
+        // STORY-108: seed moved to gate-validated carry path; complete frame required.
+        // LENGTH=8 → frame_len = 5+8+2 = 15 bytes (complete).
+        // link CONTROL nibble=0x04 UNCONFIRMED_USER_DATA → has_user_data==true.
+        let mut ctrl_frame = vec![0u8; 15];
         ctrl_frame[0] = 0x05;
         ctrl_frame[1] = 0x64;
-        ctrl_frame[2] = 0x0E;
-        ctrl_frame[3] = 0xC3; // CONFIRMED_USER_DATA nibble
+        ctrl_frame[2] = 0x08; // LENGTH=8 → frame_len=15 (complete)
+        ctrl_frame[3] = 0xC4; // UNCONFIRMED_USER_DATA (nibble 0x04)
         ctrl_frame[4] = 0x2C; // dest low byte of 300: 300 & 0xFF = 0x2C
         ctrl_frame[5] = 0x01; // dest high byte of 300: 300 >> 8 = 0x01 → dest=0x012C=300
         ctrl_frame[6] = 0x01;
@@ -699,6 +704,7 @@ mod story_107 {
         ctrl_frame[10] = 0xC0; // FIR=1
         ctrl_frame[11] = 0xC0;
         ctrl_frame[12] = 0x03; // FC=SELECT (Control-class)
+        // bytes 13-14: data-block CRC placeholder
         analyzer.on_data(key.clone(), &ctrl_frame, 500);
 
         let flow = analyzer
