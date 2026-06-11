@@ -377,6 +377,23 @@ mod story_107 {
             !flow.pending_requests.contains_key(&(0u16, 0u8)),
             "entry (0u16, 0u8) with ts=0 must be evicted before the 257th insert"
         );
+        // F-P2-001 / AC-005 post-state: the new (dest=256, app_seq=0) entry seeded by the
+        // ctrl_frame must be present, confirming that the evict-then-insert swap actually
+        // occurred (not merely that len happened to stay at 256 for some other reason).
+        //
+        // Carry note: the ctrl_frame is 13 bytes but requires frame_len=21 (LENGTH=14 → 21).
+        // The carry-walk leaves the 13-byte partial in carry — it IS the expected residual.
+        // The seed (dest, app_seq) is read from the raw delivery head (decoupled from the
+        // carry-walk per STORY-107 F-1 scope note); the residual carry is harmless and
+        // intentional — STORY-108 will relocate the seed onto the gate-validated carry path.
+        //
+        // dest  = u16::from_le_bytes([ctrl_frame[4]=0x00, ctrl_frame[5]=0x01]) = 256
+        // app_seq = ctrl_frame[11] & 0x0F = 0xC0 & 0x0F = 0
+        assert!(
+            flow.pending_requests.contains_key(&(256u16, 0u8)),
+            "new entry (dest=256, app_seq=0) must be present: seed+evict swap must have \
+             occurred, not merely preserved the existing 256 entries unchanged"
+        );
     }
 
     // ---------------------------------------------------------------------------
@@ -743,6 +760,28 @@ mod story_107 {
         assert_eq!(
             flow.frame_count, 0,
             "frame_count must be 0: no valid frame was consumed from an invalid-LENGTH carry"
+        );
+        // F-P2-002 / EC-006 resync-progress assertion: the drain-1 resync policy must have
+        // advanced the carry past the invalid LENGTH byte.  The carry must be SHORTER than
+        // the 10 bytes originally delivered — proving the drain-1 resync occurred and the
+        // implementation did not simply break without advancing (a no-op stuck-state).
+        //
+        // Derivation:
+        //   bad_frame = [0x05, 0x64, 0x04, ...zeros...] (10 bytes)
+        //   Iteration 1: carry[0..2] = [0x05, 0x64] — sync OK; compute_dnp3_frame_len(4)
+        //     returns None → parse_errors++; carry.drain(..1) → carry now has 9 bytes.
+        //   Iteration 2: carry[0] = 0x64 (not 0x05) → sync break.
+        //   Final carry length = 9 (the 9 bytes starting from original index 1).
+        assert!(
+            flow.carry.len() < 10,
+            "carry must have advanced: drain-1 resync must reduce carry below the 10 \
+             originally delivered bytes (stuck carry == no-op, which is a liveness bug)"
+        );
+        assert_eq!(
+            flow.carry.len(),
+            9,
+            "carry must be exactly 9 bytes: drain-1 resync consumed 1 byte, then the sync \
+             gate broke on carry[0]=0x64, leaving bytes [1..9] of the original delivery"
         );
     }
 
