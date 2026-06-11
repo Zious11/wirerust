@@ -1695,6 +1695,422 @@ mod story_109 {
         );
     }
 
+    // =========================================================================
+    // ADVERSARIAL PASS-2 EXACT-EQUALITY PINS (F-P2-001..005 + OBS-3/EC-006)
+    // These pin every BC-mandated summary and evidence string to an exact
+    // assert_eq! so that format drift from the BC is caught immediately.
+    // =========================================================================
+
+    // -------------------------------------------------------------------------
+    // F-P2-001 — exact T0827 summary pin (BC-2.15.015 PC1)
+    // -------------------------------------------------------------------------
+
+    /// F-P2-001: Pin `f.summary` for the T0827 finding in
+    /// `test_t0827_emitted_at_combined_threshold` (AC-004) to the EXACT BC-2.15.015
+    /// PC1 format string:
+    ///   "DNP3 sustained loss-of-control pattern: {restart_count} restart events +
+    ///    {block_count} blocked commands within {elapsed}s on flow (dest={dest:#06X})"
+    ///
+    /// Concrete values (Trace B test):
+    ///   restart_count=1, block_count=2, elapsed=200s
+    ///   (correlation_window_start=0, T0827-triggering COLD_RESTART at ts=200)
+    ///   dest=0x0003 (outstation address from the COLD_RESTART frame)
+    ///   Formatted: "0x0003" ({:#06X} = "0x" + zero-pad to 4 hex digits, uppercase).
+    ///
+    /// Traces to: BC-2.15.015 PC1; STORY-109 AC-004 (Trace B); F-P2-001.
+    #[test]
+    fn test_BC_2_15_015_t0827_summary_exact_pin() {
+        let mut analyzer = Dnp3Analyzer::new(10);
+        let key = test_flow_key();
+
+        // Replicate AC-004 Trace B setup:
+        // Block event #1: ts=0 → timeout at ts=11
+        let frame1 = build_detection_frame_with_seq(0x05, 0x0003, 0x0001, 0);
+        analyzer.on_data(key.clone(), &frame1, 0);
+        let t1 = build_detection_frame(0x01, 0x0003, 0x0001);
+        analyzer.on_data(key.clone(), &t1, 11);
+
+        // Block event #2: ts=150 → timeout at ts=161
+        let frame2 = build_detection_frame_with_seq(0x05, 0x0003, 0x0001, 1);
+        analyzer.on_data(key.clone(), &frame2, 150);
+        let t2 = build_detection_frame(0x01, 0x0003, 0x0001);
+        analyzer.on_data(key.clone(), &t2, 161);
+
+        // COLD_RESTART at ts=200 → combined=3 → T0827
+        let restart = build_detection_frame(0x0D, 0x0003, 0x0001);
+        analyzer.on_data(key.clone(), &restart, 200);
+
+        let t0827_findings: Vec<_> = analyzer
+            .all_findings
+            .iter()
+            .filter(|f| f.mitre_techniques.contains(&"T0827".to_string()))
+            .collect();
+        assert_eq!(
+            t0827_findings.len(),
+            1,
+            "F-P2-001 pre: exactly ONE T0827 finding must exist"
+        );
+
+        let f = t0827_findings[0];
+
+        // BC-2.15.015 PC1 exact summary format:
+        //   restart_count=1, block_count=2, elapsed=200s, dest=0x0003
+        // wrapping_sub(200, 0) = 200; {0x0003:#06X} = "0x0003"
+        let expected_summary = "DNP3 sustained loss-of-control pattern: \
+            1 restart events + 2 blocked commands within 200s on flow (dest=0x0003)";
+        assert_eq!(
+            f.summary, expected_summary,
+            "F-P2-001 (BC-2.15.015 PC1): T0827 summary must match exact BC format;\n\
+             BC-expected: {:?}\n\
+             impl-actual:  {:?}",
+            expected_summary, f.summary
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // F-P2-002 — exact broadcast summary + evidence pin (BC-2.15.018 PC1)
+    // -------------------------------------------------------------------------
+
+    /// F-P2-002: Pin both `f.summary` and `f.evidence` for the broadcast anomaly
+    /// finding in `test_broadcast_control_anomaly_fires_for_dest_ffff` (AC-007)
+    /// to the EXACT BC-2.15.018 PC1 format strings:
+    ///   summary:  "DNP3 broadcast control command: Control FC 0x{fc:02X} sent to
+    ///              broadcast destination {dest:#06X}"
+    ///   evidence: "FC=0x{fc:02X} dest={dest:#06X} (broadcast) src={src:#06X}"
+    ///
+    /// Concrete values:
+    ///   fc=0x05 (DIRECT_OPERATE), dest=0xFFFF, src=0x0001
+    ///   fc formatted as 02X (no # prefix in summary/evidence): "05"
+    ///   dest as {:#06X}: "0xFFFF"  (2-char prefix + 4-char hex = 6 total)
+    ///   src  as {:#06X}: "0x0001"
+    ///
+    /// Traces to: BC-2.15.018 PC1; STORY-109 AC-007; F-P2-002.
+    #[test]
+    fn test_BC_2_15_018_broadcast_summary_and_evidence_exact_pin() {
+        let mut analyzer = Dnp3Analyzer::new(10);
+        let key = test_flow_key();
+
+        // DIRECT_OPERATE (FC=0x05) to broadcast dest=0xFFFF from src=0x0001
+        let frame = build_detection_frame(0x05, 0xFFFF, 0x0001);
+        analyzer.on_data(key.clone(), &frame, 1000);
+
+        let broadcast_findings: Vec<_> = analyzer
+            .all_findings
+            .iter()
+            .filter(|f| {
+                f.mitre_techniques.contains(&"T1692.001".to_string())
+                    && matches!(f.category, ThreatCategory::Suspicious)
+            })
+            .collect();
+        assert_eq!(
+            broadcast_findings.len(),
+            1,
+            "F-P2-002 pre: exactly ONE Suspicious T1692.001 broadcast finding"
+        );
+
+        let f = broadcast_findings[0];
+
+        // BC-2.15.018 PC1 exact summary format:
+        let expected_summary =
+            "DNP3 broadcast control command: Control FC 0x05 sent to broadcast destination 0xFFFF";
+        assert_eq!(
+            f.summary, expected_summary,
+            "F-P2-002 (BC-2.15.018 PC1 summary): broadcast summary must match exact BC format;\n\
+             BC-expected: {:?}\n\
+             impl-actual:  {:?}",
+            expected_summary, f.summary
+        );
+
+        // BC-2.15.018 PC1 exact evidence format (single entry in Vec<String>):
+        let expected_evidence = vec!["FC=0x05 dest=0xFFFF (broadcast) src=0x0001".to_string()];
+        assert_eq!(
+            f.evidence, expected_evidence,
+            "F-P2-002 (BC-2.15.018 PC1 evidence): broadcast evidence must match exact BC format;\n\
+             BC-expected: {:?}\n\
+             impl-actual:  {:?}",
+            expected_evidence, f.evidence
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // F-P2-003 — exact unsolicited summary + evidence pin (BC-2.15.019 PC1)
+    // -------------------------------------------------------------------------
+
+    /// F-P2-003: Pin both `f.summary` and `f.evidence` for the unsolicited-anomaly
+    /// finding in `test_unsolicited_response_anomaly_no_prior_enable` (AC-009a)
+    /// to the EXACT BC-2.15.019 PC1 format strings:
+    ///   summary:  "DNP3 unexpected unsolicited response: UNSOLICITED_RESPONSE from
+    ///              src={src:#06X} with no prior ENABLE_UNSOLICITED or solicited
+    ///              exchange on this flow"
+    ///   evidence: "FC=0x82 src={src:#06X} dest={dest:#06X} UNS_bit={uns_bit}"
+    ///
+    /// Concrete values from the test frame `build_detection_frame(0x82, 0x0001, 0x0003)`:
+    ///   app_fc=0x82, dest=0x0001, src=0x0003  (outstation→master direction)
+    ///   app_ctrl byte (frame[11]) = 0x00; UNS bit = (0x00 & 0x10 != 0) = false
+    ///   src  as {:#06X}: "0x0003"
+    ///   dest as {:#06X}: "0x0001"
+    ///   uns_bit: false
+    ///
+    /// Traces to: BC-2.15.019 PC1; STORY-109 AC-009; F-P2-003.
+    #[test]
+    fn test_BC_2_15_019_unsolicited_summary_and_evidence_exact_pin() {
+        let mut analyzer = Dnp3Analyzer::new(10);
+        let key = test_flow_key();
+
+        // FC=0x82 (UNSOLICITED_RESPONSE) — outstation (src=0x0003) to master (dest=0x0001)
+        // app_ctrl byte = 0x00 (app_seq=0, no UNS bit set)
+        let frame = build_detection_frame(0x82, 0x0001, 0x0003);
+        analyzer.on_data(key.clone(), &frame, 1000);
+
+        let t0814_findings: Vec<_> = analyzer
+            .all_findings
+            .iter()
+            .filter(|f| {
+                f.mitre_techniques.contains(&"T0814".to_string())
+                    && f.summary.contains("unexpected unsolicited response")
+            })
+            .collect();
+        assert_eq!(
+            t0814_findings.len(),
+            1,
+            "F-P2-003 pre: exactly ONE unsolicited-anomaly T0814 finding"
+        );
+
+        let f = t0814_findings[0];
+
+        // BC-2.15.019 PC1 exact summary format:
+        let expected_summary = "DNP3 unexpected unsolicited response: \
+            UNSOLICITED_RESPONSE from src=0x0003 with no prior ENABLE_UNSOLICITED \
+            or solicited exchange on this flow";
+        assert_eq!(
+            f.summary, expected_summary,
+            "F-P2-003 (BC-2.15.019 PC1 summary): unsolicited summary must match exact BC format;\n\
+             BC-expected: {:?}\n\
+             impl-actual:  {:?}",
+            expected_summary, f.summary
+        );
+
+        // BC-2.15.019 PC1 exact evidence format (single entry in Vec<String>):
+        //   app_ctrl=0x00 → UNS_bit = (0x00 & 0x10 != 0) = false
+        let expected_evidence = vec!["FC=0x82 src=0x0003 dest=0x0001 UNS_bit=false".to_string()];
+        assert_eq!(
+            f.evidence, expected_evidence,
+            "F-P2-003 (BC-2.15.019 PC1 evidence): unsolicited evidence must match exact BC format;\n\
+             BC-expected: {:?}\n\
+             impl-actual:  {:?}",
+            expected_evidence, f.evidence
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // F-P2-004 — exact ENABLE_UNSOLICITED summary pin (BC-2.15.023 PC1)
+    // -------------------------------------------------------------------------
+
+    /// F-P2-004: Pin `f.summary` for the ENABLE_UNSOLICITED (FC=0x14) finding in
+    /// `test_enable_unsolicited_emits_t0814_possible_low` (AC-011) to the EXACT
+    /// BC-2.15.023 PC1 ENABLE format string:
+    ///   "DNP3 ENABLE_UNSOLICITED observed: FC 0x14 from src={src:#06X} to
+    ///    dest={dest:#06X} — unsolicited reporting control"
+    ///
+    /// Concrete values (frame built with dest=0x0003, src=0x0001):
+    ///   src=0x0001, dest=0x0003
+    ///   Expected: "DNP3 ENABLE_UNSOLICITED observed: FC 0x14 from src=0x0001
+    ///              to dest=0x0003 — unsolicited reporting control"
+    ///
+    /// The DISABLE sibling (AC-010) is already pinned in
+    /// `test_disable_unsolicited_emits_t0814_likely_medium` — this test confirms
+    /// the ENABLE sibling is equally pinned. Both must pass or fail together.
+    ///
+    /// Traces to: BC-2.15.023 PC1 (ENABLE variant); STORY-109 AC-011; F-P2-004.
+    #[test]
+    fn test_BC_2_15_023_enable_unsolicited_summary_exact_pin() {
+        let mut analyzer = Dnp3Analyzer::new(10);
+        let key = test_flow_key();
+
+        // FC=0x14 (ENABLE_UNSOLICITED) from src=0x0001 to dest=0x0003
+        let frame = build_detection_frame(0x14, 0x0003, 0x0001);
+        analyzer.on_data(key.clone(), &frame, 500);
+
+        let enable_findings: Vec<_> = analyzer
+            .all_findings
+            .iter()
+            .filter(|f| {
+                f.mitre_techniques.contains(&"T0814".to_string())
+                    && f.summary.contains("ENABLE_UNSOLICITED")
+            })
+            .collect();
+        assert_eq!(
+            enable_findings.len(),
+            1,
+            "F-P2-004 pre: exactly ONE ENABLE_UNSOLICITED T0814 finding"
+        );
+
+        let f = enable_findings[0];
+
+        // BC-2.15.023 PC1 (ENABLE variant) exact summary:
+        let expected_summary = "DNP3 ENABLE_UNSOLICITED observed: FC 0x14 from src=0x0001 \
+            to dest=0x0003 — unsolicited reporting control";
+        assert_eq!(
+            f.summary, expected_summary,
+            "F-P2-004 (BC-2.15.023 PC1 ENABLE): ENABLE_UNSOLICITED summary must match exact \
+             BC format;\n\
+             BC-expected: {:?}\n\
+             impl-actual:  {:?}",
+            expected_summary, f.summary
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // F-P2-005 — exact malformed evidence pin (BC-2.15.024 PC3)
+    // -------------------------------------------------------------------------
+
+    /// F-P2-005: Add an exact `f.evidence` assertion to the malformed-anomaly
+    /// finding in `test_malformed_anomaly_at_threshold_3_of_300s` (AC-012),
+    /// pinned to BC-2.15.024 PC3 evidence format:
+    ///   "malformed_in_window={count} in correlation window; threshold={threshold}"
+    ///
+    /// Concrete values:
+    ///   count=3 (3rd malformed frame crosses threshold)
+    ///   threshold=MALFORMED_ANOMALY_THRESHOLD=3
+    ///   Expected: "malformed_in_window=3 in correlation window; threshold=3"
+    ///
+    /// Traces to: BC-2.15.024 PC3; STORY-109 AC-012; F-P2-005.
+    #[test]
+    fn test_BC_2_15_024_malformed_evidence_exact_pin() {
+        let mut analyzer = Dnp3Analyzer::new(10);
+        let key = test_flow_key();
+
+        // 3 malformed (LENGTH=2) frames within 300s → T0814 emitted at 3rd
+        for _ in 0..3u32 {
+            let malformed = build_invalid_frame_length_too_short();
+            analyzer.on_data(key.clone(), &malformed, 0);
+        }
+
+        let malformed_findings: Vec<_> = analyzer
+            .all_findings
+            .iter()
+            .filter(|f| {
+                f.mitre_techniques.contains(&"T0814".to_string())
+                    && f.summary.contains("possible Crain-Sistrunk crash-probe")
+            })
+            .collect();
+        assert_eq!(
+            malformed_findings.len(),
+            1,
+            "F-P2-005 pre: exactly ONE T0814 malformed-anomaly finding"
+        );
+
+        let f = malformed_findings[0];
+
+        // BC-2.15.024 PC3 exact evidence format (single entry in Vec<String>):
+        let expected_evidence =
+            vec!["malformed_in_window=3 in correlation window; threshold=3".to_string()];
+        assert_eq!(
+            f.evidence, expected_evidence,
+            "F-P2-005 (BC-2.15.024 PC3 evidence): malformed evidence must match exact BC format;\n\
+             BC-expected: {:?}\n\
+             impl-actual:  {:?}",
+            expected_evidence, f.evidence
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // OBS-3 / EC-006 — bailed flow is permanent no-op (BC-2.15.009 PC5)
+    // test_EC_006_bailed_flow_disable_unsolicited_no_op
+    // -------------------------------------------------------------------------
+
+    /// OBS-3 / EC-006: On a flow already bailed (`is_non_dnp3=true` from a prior
+    /// sync-loss), delivering a DISABLE_UNSOLICITED (FC=0x15) frame is an immediate
+    /// NO-OP per BC-2.15.009 PC5:
+    ///   - `parse_errors` does NOT increment (no new parse attempted)
+    ///   - `malformed_in_window` does NOT increment
+    ///   - No Finding is pushed (no detection on bailed flow)
+    ///   - carry is NOT touched
+    ///
+    /// Setup: deliver a frame whose first bytes are NOT the DNP3 sync word [0x05, 0x64]
+    /// so the flow latches `is_non_dnp3=true`. Then deliver a well-formed
+    /// DISABLE_UNSOLICITED (FC=0x15) frame and verify ALL counts are unchanged.
+    ///
+    /// This codifies that the implementation's immediate-bail after non-DNP3 sync is
+    /// correct and that EC-006 ("subsequent on_data on bailed flow → immediate no-op")
+    /// matches BC-2.15.009 PC5.
+    ///
+    /// Traces to: BC-2.15.009 PC5; BC-2.15.009 EC-006; OBS-3; STORY-109.
+    #[test]
+    fn test_EC_006_bailed_flow_disable_unsolicited_no_op() {
+        let mut analyzer = Dnp3Analyzer::new(10);
+        let key = test_flow_key();
+
+        // --- Step 1: trigger the desync bail ---
+        // Deliver bytes that do NOT start with [0x05, 0x64] so the analyzer
+        // latches is_non_dnp3=true on this flow.
+        // Use 16+ bytes of non-DNP3 data (e.g. 0xFF-filled buffer) so the
+        // 16-byte bail window is satisfied.
+        let non_dnp3_bytes: Vec<u8> = vec![0xFF; 20];
+        analyzer.on_data(key.clone(), &non_dnp3_bytes, 0);
+
+        // Verify bail was latched
+        {
+            let flow = analyzer
+                .flows
+                .get(&key)
+                .expect("flow must exist after bail");
+            assert!(
+                flow.is_non_dnp3,
+                "OBS-3/EC-006 setup: is_non_dnp3 must be true after non-DNP3 data"
+            );
+        }
+
+        // Snapshot counters before the bailed-flow call
+        let (parse_errors_before, malformed_in_window_before, findings_before) = {
+            let flow = analyzer.flows.get(&key).unwrap();
+            (
+                flow.parse_errors,
+                flow.malformed_in_window,
+                analyzer.all_findings.len(),
+            )
+        };
+
+        // --- Step 2: deliver a well-formed DISABLE_UNSOLICITED (FC=0x15) to the bailed flow ---
+        // This MUST be an immediate no-op per BC-2.15.009 PC5.
+        let disable_frame = build_detection_frame(0x15, 0x0003, 0x0001);
+        analyzer.on_data(key.clone(), &disable_frame, 100);
+
+        let flow = analyzer.flows.get(&key).expect("flow must still exist");
+
+        // BC-2.15.009 PC5: parse_errors must NOT increment on bailed flow
+        assert_eq!(
+            flow.parse_errors, parse_errors_before,
+            "OBS-3/EC-006 (BC-2.15.009 PC5): parse_errors must NOT increment on bailed flow; \
+             before={parse_errors_before} after={}",
+            flow.parse_errors
+        );
+
+        // BC-2.15.009 PC5: malformed_in_window must NOT increment on bailed flow
+        assert_eq!(
+            flow.malformed_in_window, malformed_in_window_before,
+            "OBS-3/EC-006 (BC-2.15.009 PC5): malformed_in_window must NOT increment on \
+             bailed flow; before={malformed_in_window_before} after={}",
+            flow.malformed_in_window
+        );
+
+        // BC-2.15.009 PC5: no Finding must be pushed on bailed flow
+        assert_eq!(
+            analyzer.all_findings.len(),
+            findings_before,
+            "OBS-3/EC-006 (BC-2.15.009 PC5): no Finding must be pushed on bailed flow; \
+             findings before={findings_before} after={}",
+            analyzer.all_findings.len()
+        );
+
+        // is_non_dnp3 must remain latched (one-way latch per BC-2.15.009 invariant 2)
+        assert!(
+            flow.is_non_dnp3,
+            "OBS-3/EC-006 (BC-2.15.009 invariant 2): is_non_dnp3 must remain true \
+             (one-way latch — never reset to false)"
+        );
+    }
+
     /// Verify is_broadcast_destination helper: dest >= 0xFFFD → true, others false.
     ///
     /// Traces to: BC-2.15.018 invariant 1; STORY-109 AC-007.

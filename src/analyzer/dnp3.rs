@@ -545,10 +545,14 @@ impl Dnp3Analyzer {
                             // STORY-109 (BC-2.15.019): response-seen tracking + unsolicited anomaly.
                             // FC=0x81 sets response_seen (solicited response from outstation).
                             // FC=0x82 triggers unsolicited anomaly check (one-shot).
+                            // Pass app_ctrl (carry[11]) so detect_unsolicited_anomaly can extract
+                            // the UNS bit (bit 0x10) for the BC-2.15.019 PC1 evidence field.
+                            let app_ctrl = flow.carry[11];
                             Self::detect_unsolicited_anomaly(
                                 flow,
                                 &mut self.all_findings,
                                 app_fc,
+                                app_ctrl,
                                 dest,
                                 src,
                                 ts,
@@ -765,14 +769,24 @@ impl Dnp3Analyzer {
             .map(|(&key, _)| key)
             .collect();
 
-        // Track the dest address from timed-out entries for BC-2.15.014 PC3 summary.
-        let mut last_timedout_dest: u16 = 0;
+        // Track the smallest dest address among timed-out entries for BC-2.15.014 PC3 summary.
+        // Using min (not last-visited) makes the displayed dest deterministic regardless of
+        // HashMap iteration order — required for reproducibility when ≥2 distinct dests
+        // time out in a single scan (OBS-1 deterministic-dest fix).
+        let mut min_timedout_dest: u16 = 0;
+        let mut first = true;
         for key in timed_out {
-            last_timedout_dest = key.0; // key = (dest, app_seq)
+            let dest = key.0; // key = (dest, app_seq)
+            if first || dest < min_timedout_dest {
+                min_timedout_dest = dest;
+                first = false;
+            }
             flow.pending_requests.remove(&key);
             // BC-2.15.014 PC1: increment UNCONDITIONALLY (even when cap or guard active).
             flow.block_event_count += 1;
         }
+        // Alias for use in the T0827 co-emission call below (kept separate from min logic).
+        let last_timedout_dest = min_timedout_dest;
 
         // BC-2.15.014 PC3: emit T1691.001 when threshold reached, guard clear, in-window.
         if flow.block_event_count >= BLOCK_CMD_THRESHOLD
@@ -801,7 +815,8 @@ impl Dnp3Analyzer {
             flow.block_finding_emitted_this_window = true;
 
             // T0827 co-emission after T1691.001 (BC-2.15.013 ordering — derived after direct).
-            Self::maybe_emit_t0827(flow, findings, now_ts, 0, flow_key);
+            // Pass last_timedout_dest as the triggering-frame dest (BC-2.15.015 PC1).
+            Self::maybe_emit_t0827(flow, findings, now_ts, last_timedout_dest, flow_key);
         }
     }
 
@@ -857,11 +872,14 @@ impl Dnp3Analyzer {
     /// On match: pushes one `Finding` with `mitre_techniques: vec!["T0827"]`,
     /// `category: Impact`, `verdict: Likely`, `confidence: Medium`, tactic
     /// `IcsImpact`.  Sets `loss_of_control_emitted = true`.
+    ///
+    /// `dest` is the DNP3 destination address of the triggering frame
+    /// (BC-2.15.015 PC1 — included in the exact summary format).
     fn maybe_emit_t0827(
         flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
         now_ts: u32,
-        _dest: u16,
+        dest: u16,
         flow_key: &FlowKey,
     ) {
         let combined = flow.restart_event_count + flow.block_event_count;
@@ -870,17 +888,24 @@ impl Dnp3Analyzer {
             && findings.len() < MAX_FINDINGS
         {
             let master_ip = Self::resolve_master_ip(flow_key);
+            let elapsed = now_ts.wrapping_sub(flow.correlation_window_start_ts);
+            let restart_count = flow.restart_event_count;
+            let block_count = flow.block_event_count;
             findings.push(Finding {
                 category: crate::findings::ThreatCategory::Impact,
                 verdict: crate::findings::Verdict::Likely,
                 confidence: crate::findings::Confidence::Medium,
+                // BC-2.15.015 PC1 exact format:
+                // "DNP3 sustained loss-of-control pattern: {restart_count} restart events +
+                //  {block_count} blocked commands within {elapsed}s on flow (dest={dest:#06X})"
                 summary: format!(
-                    "DNP3 loss of control inferred: {combined} combined restart/block events \
-                     in 300s window (T0827)"
+                    "DNP3 sustained loss-of-control pattern: \
+                     {restart_count} restart events + {block_count} blocked commands \
+                     within {elapsed}s on flow (dest={dest:#06X})"
                 ),
                 evidence: vec![format!(
-                    "restart_event_count={} block_event_count={} threshold={}",
-                    flow.restart_event_count, flow.block_event_count, T0827_THRESHOLD
+                    "restart_event_count={restart_count} block_event_count={block_count} \
+                     threshold={T0827_THRESHOLD}"
                 )],
                 mitre_techniques: vec!["T0827".to_string()],
                 source_ip: Some(master_ip),
@@ -918,12 +943,17 @@ impl Dnp3Analyzer {
                 category: crate::findings::ThreatCategory::Suspicious,
                 verdict: crate::findings::Verdict::Possible,
                 confidence: crate::findings::Confidence::Medium,
+                // BC-2.15.018 PC1 exact summary format (src is NOT in the summary):
+                // "DNP3 broadcast control command: Control FC 0x{fc:02X} sent to
+                //  broadcast destination {dest:#06X}"
                 summary: format!(
-                    "DNP3 broadcast Control command anomaly: \
-                     FC 0x{app_fc:02X} to broadcast dest={dest:#06X} from src={src:#06X}"
+                    "DNP3 broadcast control command: Control FC 0x{app_fc:02X} \
+                     sent to broadcast destination {dest:#06X}"
                 ),
+                // BC-2.15.018 PC1 exact evidence format:
+                // "FC=0x{fc:02X} dest={dest:#06X} (broadcast) src={src:#06X}"
                 evidence: vec![format!(
-                    "FC=0x{app_fc:02X} dest={dest:#06X} src={src:#06X} (broadcast)"
+                    "FC=0x{app_fc:02X} dest={dest:#06X} (broadcast) src={src:#06X}"
                 )],
                 mitre_techniques: vec!["T1692.001".to_string()],
                 source_ip: Some(master_ip),
@@ -943,11 +973,15 @@ impl Dnp3Analyzer {
     ///   `!flow.enable_unsolicited_seen && !flow.response_seen
     ///   && !flow.unsolicited_anomaly_emitted`.
     /// Sets `unsolicited_anomaly_emitted = true` (one-shot).
+    ///
+    /// `app_ctrl` is the application-control byte (carry[11]); its bit 0x10 is
+    /// the UNS bit included in the BC-2.15.019 PC1 evidence field.
     #[allow(clippy::too_many_arguments)]
     fn detect_unsolicited_anomaly(
         flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
         app_fc: u8,
+        app_ctrl: u8,
         dest: u16,
         src: u16,
         now_ts: u32,
@@ -967,18 +1001,27 @@ impl Dnp3Analyzer {
                 && !flow.unsolicited_anomaly_emitted
                 && findings.len() < MAX_FINDINGS
             {
+                // UNS bit is bit 4 (0x10) of the application control byte
+                // (IEEE Std 1815-2012 §7.2.3); included in BC-2.15.019 PC1 evidence.
+                let uns_bit = (app_ctrl & 0x10) != 0;
                 let master_ip = Self::resolve_master_ip(flow_key);
                 findings.push(Finding {
                     category: crate::findings::ThreatCategory::Suspicious,
                     verdict: crate::findings::Verdict::Possible,
                     confidence: crate::findings::Confidence::Low,
+                    // BC-2.15.019 PC1 exact summary format:
+                    // "DNP3 unexpected unsolicited response: UNSOLICITED_RESPONSE from
+                    //  src={src:#06X} with no prior ENABLE_UNSOLICITED or solicited
+                    //  exchange on this flow"
                     summary: format!(
                         "DNP3 unexpected unsolicited response: \
-                         FC 0x82 from src={src:#06X} to dest={dest:#06X} \
-                         — no prior ENABLE_UNSOLICITED observed"
+                         UNSOLICITED_RESPONSE from src={src:#06X} \
+                         with no prior ENABLE_UNSOLICITED or solicited exchange on this flow"
                     ),
+                    // BC-2.15.019 PC1 exact evidence format:
+                    // "FC=0x82 src={src:#06X} dest={dest:#06X} UNS_bit={uns_bit}"
                     evidence: vec![format!(
-                        "FC=0x82 (UNSOLICITED_RESPONSE) src={src:#06X} dest={dest:#06X}"
+                        "FC=0x82 src={src:#06X} dest={dest:#06X} UNS_bit={uns_bit}"
                     )],
                     mitre_techniques: vec!["T0814".to_string()],
                     source_ip: Some(master_ip),
@@ -1047,9 +1090,13 @@ impl Dnp3Analyzer {
                         category: crate::findings::ThreatCategory::Execution,
                         verdict: crate::findings::Verdict::Possible,
                         confidence: crate::findings::Confidence::Low,
+                        // BC-2.15.023 PC1 exact ENABLE summary format (with suffix):
+                        // "DNP3 ENABLE_UNSOLICITED observed: FC 0x14 from src={src:#06X}
+                        //  to dest={dest:#06X} — unsolicited reporting control"
                         summary: format!(
                             "DNP3 ENABLE_UNSOLICITED observed: FC 0x14 \
-                             from src={src:#06X} to dest={dest:#06X}"
+                             from src={src:#06X} to dest={dest:#06X} \
+                             \u{2014} unsolicited reporting control"
                         ),
                         evidence: vec![format!(
                             "FC=0x14 (ENABLE_UNSOLICITED) src={src:#06X} dest={dest:#06X}"
@@ -1081,8 +1128,14 @@ impl Dnp3Analyzer {
         now_ts: u32,
         flow_key: &FlowKey,
     ) {
+        // BC-2.15.024 Precondition 3 (OBS-2): explicit in-window guard so this function
+        // is correct under any call-site ordering (not just when maybe_expire runs first).
+        // Uses wrapping_sub for u32 timestamp safety (overflow-checks=true in release).
+        let in_window =
+            now_ts.wrapping_sub(flow.correlation_window_start_ts) < CORRELATION_WINDOW_SECS;
         if flow.malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD
             && !flow.malformed_anomaly_emitted
+            && in_window
             && findings.len() < MAX_FINDINGS
         {
             let elapsed = now_ts.wrapping_sub(flow.correlation_window_start_ts);
@@ -1099,10 +1152,12 @@ impl Dnp3Analyzer {
                      in {elapsed}s window (flow {src_ip}\u{2192}{dest_ip}) \
                      \u{2014} possible Crain-Sistrunk crash-probe"
                 ),
+                // BC-2.15.024 PC3 exact evidence format:
+                // "malformed_in_window={count} in correlation window; threshold={threshold}"
+                // (parse_errors field is NOT included)
                 evidence: vec![format!(
-                    "malformed_in_window={count} threshold={MALFORMED_ANOMALY_THRESHOLD} \
-                     parse_errors={}",
-                    flow.parse_errors
+                    "malformed_in_window={count} in correlation window; \
+                     threshold={MALFORMED_ANOMALY_THRESHOLD}"
                 )],
                 mitre_techniques: vec!["T0814".to_string()],
                 source_ip: Some(master_ip),
