@@ -26,6 +26,7 @@
 #![allow(dead_code)]
 
 use std::collections::HashMap;
+use std::net::IpAddr;
 
 use crate::analyzer::AnalysisSummary;
 use crate::findings::Finding;
@@ -475,15 +476,8 @@ impl Dnp3Analyzer {
             let count = flow.direct_operate_count;
             let elapsed = now_ts.wrapping_sub(flow.window_start_ts);
             let threshold = direct_operate_threshold;
-            // BC-2.15.010 PC3: resolve master endpoint from FlowKey (analogous to Modbus
-            // client_ip resolution). DNP3 server (outstation) listens on port 20000.
-            //   lower_port == 20000 → lower endpoint is outstation, upper is master.
-            //   otherwise          → upper endpoint is outstation, lower is master.
-            let master_ip = if flow_key.lower_port() == 20000 {
-                flow_key.upper_ip()
-            } else {
-                flow_key.lower_ip()
-            };
+            // BC-2.15.010 PC3: resolve master endpoint from FlowKey.
+            let master_ip = Self::resolve_master_ip(flow_key);
             findings.push(Finding {
                 category: crate::findings::ThreatCategory::Execution,
                 verdict: crate::findings::Verdict::Likely,
@@ -524,14 +518,7 @@ impl Dnp3Analyzer {
                 _ => "RESTART",
             };
             // BC-2.15.011 PC1: resolve master endpoint from FlowKey.
-            // DNP3 server (outstation) listens on port 20000.
-            //   lower_port == 20000 → lower endpoint is outstation, upper is master.
-            //   otherwise          → upper endpoint is outstation, lower is master.
-            let master_ip = if flow_key.lower_port() == 20000 {
-                flow_key.upper_ip()
-            } else {
-                flow_key.lower_ip()
-            };
+            let master_ip = Self::resolve_master_ip(flow_key);
             findings.push(Finding {
                 category: crate::findings::ThreatCategory::Execution,
                 verdict: crate::findings::Verdict::Likely,
@@ -570,14 +557,7 @@ impl Dnp3Analyzer {
     ) {
         if findings.len() < MAX_FINDINGS {
             // BC-2.15.012 PC1: resolve master endpoint from FlowKey.
-            // DNP3 server (outstation) listens on port 20000.
-            //   lower_port == 20000 → lower endpoint is outstation, upper is master.
-            //   otherwise          → upper endpoint is outstation, lower is master.
-            let master_ip = if flow_key.lower_port() == 20000 {
-                flow_key.upper_ip()
-            } else {
-                flow_key.lower_ip()
-            };
+            let master_ip = Self::resolve_master_ip(flow_key);
             findings.push(Finding {
                 category: crate::findings::ThreatCategory::Execution,
                 verdict: crate::findings::Verdict::Likely,
@@ -657,6 +637,35 @@ impl Dnp3Analyzer {
             analyzer_name: "DNP3".to_string(),
             packets_analyzed: total_frames,
             detail,
+        }
+    }
+
+    /// Resolve the DNP3 master (command-originator) endpoint from the flow key.
+    ///
+    /// **Port-heuristic-only resolution.** DNP3 outstations listen on port 20000
+    /// by convention; the opposite endpoint is therefore the master:
+    ///
+    /// - `lower_port == 20000` → lower endpoint is the outstation, upper is the master.
+    /// - otherwise             → upper endpoint is the outstation, lower is the master.
+    ///
+    /// **Known limitation:** this heuristic is correct for standard DNP3 flows where
+    /// exactly one endpoint is on port 20000. It cannot disambiguate when NEITHER
+    /// endpoint is on 20000 (non-standard outstation port or proxied capture) — in
+    /// that case the function silently returns `lower_ip`, which may or may not be
+    /// the actual master.
+    ///
+    /// **Direction deferral:** this function does NOT use the TCP `Direction` signal
+    /// that sibling analyzers (modbus, http, tls) receive, because `Dnp3Analyzer::on_data`
+    /// is not yet wired into the dispatcher and does not accept a `direction` argument.
+    /// Direction-aware resolution — analogous to `src/analyzer/modbus.rs` ~355–382,
+    /// where `direction` selects `client_ip` vs `server_ip` — is deferred to the
+    /// DNP3 dispatcher-integration story that adds the `DispatchTarget::Dnp3` arm and
+    /// threads `direction` into `on_data`.
+    fn resolve_master_ip(flow_key: &FlowKey) -> IpAddr {
+        if flow_key.lower_port() == 20000 {
+            flow_key.upper_ip()
+        } else {
+            flow_key.lower_ip()
         }
     }
 
