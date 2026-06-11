@@ -37,8 +37,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.022.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/specs/verification-properties/vp-023-dnp3-parse-safety.md
-input-hash: TBD
-input-hash: "99211c4"
+input-hash: "a4218c5"
 ---
 
 # STORY-108: DNP3 Direct Detection Emissions — T1692.001, T0814 (Restart), T0836, Co-Emission, Summarize
