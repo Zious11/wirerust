@@ -12,6 +12,7 @@
 //! per-protocol schemas.
 
 pub mod dns;
+pub mod dnp3;
 pub mod http;
 pub mod modbus;
 pub mod tls;
