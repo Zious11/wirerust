@@ -827,6 +827,110 @@ mod story_106 {
     }
 
     // =========================================================================
+    // AC-008 / on_data FIR-gated counter updates (integration test)
+    // =========================================================================
+
+    /// test_on_data_fir_gating_updates_counters
+    ///
+    /// Verifies that `on_data` correctly gates app-FC extraction on the FIR bit:
+    ///
+    /// Case 1 — FIR=1 (transport octet 0xC0, bit 0x40 set):
+    ///   - Constructs a 13-byte minimum valid DNP3 frame with sync [0x05, 0x64] at byte 0,
+    ///     transport octet 0xC0 at byte 10, and app FC 0x05 (DIRECT_OPERATE) at byte 12.
+    ///   - Asserts: flow.fc_counts[0x05] == 1, analyzer.fn_code_counts[0x05] == 1,
+    ///     flow.frame_count == 1.
+    ///
+    /// Case 2 — FIR=0 (transport octet 0x80, bit 0x40 clear):
+    ///   - Same frame layout but transport octet = 0x80.
+    ///   - Asserts: flow.frame_count == 1 (incremented), but fc_counts and fn_code_counts
+    ///     are EMPTY (no FC extraction on continuation segments).
+    ///
+    /// Traces to: BC-2.15.008 invariant 1 (FIR=1 gate); AC-008; STORY-106 adversarial F2.
+    #[test]
+    fn test_on_data_fir_gating_updates_counters() {
+        // ------------------------------------------------------------------
+        // Case 1: FIR=1 — FC extraction must occur.
+        // ------------------------------------------------------------------
+        // 13-byte minimum single-block DNP3 frame:
+        //   [0]  0x05  start1 (sync)
+        //   [1]  0x64  start2 (sync)
+        //   [2]  0x0E  LENGTH=14 (arbitrary valid)
+        //   [3]  0xC4  control
+        //   [4]  0x03  dest low
+        //   [5]  0x00  dest high
+        //   [6]  0x01  src low
+        //   [7]  0x00  src high
+        //   [8]  0x88  CRC low  (not parsed by pure core; present as filler)
+        //   [9]  0xC5  CRC high
+        //   [10] 0xC0  transport octet: FIR=1 (0x40 set), FIN=1 (0x80), SEQ=0
+        //   [11] 0xC0  app control (arbitrary)
+        //   [12] 0x05  app FC = DIRECT_OPERATE
+        let frame_fir1: [u8; 13] = [
+            0x05, 0x64, 0x0E, 0xC4, 0x03, 0x00, 0x01, 0x00, 0x88, 0xC5,
+            0xC0, // transport: FIR=1, FIN=1
+            0xC0, // app control
+            0x05, // app FC: DIRECT_OPERATE
+        ];
+
+        let mut analyzer = Dnp3Analyzer::new(10);
+        let key = test_flow_key();
+        analyzer.on_data(key.clone(), &frame_fir1, 0);
+
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow entry must exist after on_data");
+
+        assert_eq!(
+            flow.frame_count, 1,
+            "FIR=1 frame: frame_count must be 1 after one on_data call"
+        );
+        assert_eq!(
+            flow.fc_counts.get(&0x05).copied().unwrap_or(0),
+            1,
+            "FIR=1 frame: fc_counts[0x05] must be 1 (FC extracted)"
+        );
+        assert_eq!(
+            analyzer.fn_code_counts.get(&0x05).copied().unwrap_or(0),
+            1,
+            "FIR=1 frame: fn_code_counts[0x05] must be 1 (aggregate FC extracted)"
+        );
+
+        // ------------------------------------------------------------------
+        // Case 2: FIR=0 — no FC extraction; frame_count still incremented.
+        // ------------------------------------------------------------------
+        // Same frame layout but transport octet = 0x80 (FIR=0, FIN=1, SEQ=0).
+        let frame_fir0: [u8; 13] = [
+            0x05, 0x64, 0x0E, 0xC4, 0x03, 0x00, 0x01, 0x00, 0x88, 0xC5,
+            0x80, // transport: FIR=0 (0x40 clear), FIN=1
+            0xC0, // app control
+            0x05, // app FC: DIRECT_OPERATE (must NOT be counted)
+        ];
+
+        let mut analyzer2 = Dnp3Analyzer::new(10);
+        let key2 = test_flow_key();
+        analyzer2.on_data(key2.clone(), &frame_fir0, 0);
+
+        let flow2 = analyzer2
+            .flows
+            .get(&key2)
+            .expect("flow entry must exist after on_data (FIR=0 case)");
+
+        assert_eq!(
+            flow2.frame_count, 1,
+            "FIR=0 frame: frame_count must be 1 (frame counted even without FC extraction)"
+        );
+        assert!(
+            flow2.fc_counts.is_empty(),
+            "FIR=0 frame: fc_counts must be EMPTY — no FC extraction on continuation segment"
+        );
+        assert!(
+            analyzer2.fn_code_counts.is_empty(),
+            "FIR=0 frame: fn_code_counts must be EMPTY — no aggregate FC extraction"
+        );
+    }
+
+    // =========================================================================
     // AC-009 / BC-2.15.009: Desync bail — is_non_dnp3 latch
     // =========================================================================
 
@@ -901,13 +1005,14 @@ mod story_106 {
         analyzer.on_data(key.clone(), &valid_frame, 0);
 
         // is_non_dnp3 must stay false for a valid DNP3 flow.
-        if let Some(flow) = analyzer.flows.get(&key) {
-            assert!(
-                !flow.is_non_dnp3,
-                "is_non_dnp3 must remain false for valid DNP3 sync at offset 0"
-            );
-        }
-        // If no flow entry created yet, the test passes vacuously (not yet implemented).
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow entry must exist after on_data");
+        assert!(
+            !flow.is_non_dnp3,
+            "is_non_dnp3 must remain false for valid DNP3 sync at offset 0"
+        );
     }
 
     /// EC-010: valid sync at offset 2 (not offset 0) → desync bail fires.
@@ -928,12 +1033,14 @@ mod story_106 {
         analyzer.on_data(key.clone(), &misaligned, 0);
 
         // Valid sync at offset 2 must still trigger bail (v1 only checks offset 0).
-        if let Some(flow) = analyzer.flows.get(&key) {
-            assert!(
-                flow.is_non_dnp3,
-                "sync at offset 2 must trigger desync bail — v1 checks only offset 0"
-            );
-        }
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow entry must exist after on_data");
+        assert!(
+            flow.is_non_dnp3,
+            "sync at offset 2 must trigger desync bail — v1 checks only offset 0"
+        );
     }
 
     // =========================================================================
