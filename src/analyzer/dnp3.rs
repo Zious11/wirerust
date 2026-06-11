@@ -67,11 +67,11 @@ pub struct Dnp3DlHeader {
 /// - `Read`       — FC 0x01 (READ)
 /// - `Write`      — FC 0x02 (WRITE)
 /// - `Control`    — FC set {0x03, 0x04, 0x05, 0x06}
-///                  (SELECT / OPERATE / DIRECT_OPERATE / DIRECT_OPERATE_NR)
+///   (SELECT / OPERATE / DIRECT_OPERATE / DIRECT_OPERATE_NR)
 /// - `Restart`    — FC set {0x0D, 0x0E} (COLD_RESTART / WARM_RESTART)
 /// - `Management` — remaining DNP3-defined primary FCs (IMMED_FREEZE, INITIALIZE_DATA, …)
 /// - `Response`   — FC set {0x81, 0x82, 0x83}
-///                  (RESPONSE / UNSOLICITED_RESPONSE / AUTHENTICATE_RESP)
+///   (RESPONSE / UNSOLICITED_RESPONSE / AUTHENTICATE_RESP)
 /// - `Unknown`    — all other FC values (wildcard; guarantees totality per VP-023 Sub-B)
 ///
 /// INVARIANT: `classify_dnp3_fc` MUST contain `_ => Dnp3FcClass::Unknown` as the final
@@ -118,6 +118,7 @@ pub const MALFORMED_ANOMALY_THRESHOLD: u64 = 3;
 /// are stubs for STORY-107/108/109; they compile but contain no logic yet.
 ///
 /// BC-2.15.009 (desync bail), ADR-007 Decision 4 (full field list).
+#[derive(Default)]
 #[allow(dead_code)]
 pub struct Dnp3FlowState {
     /// Partial frame accumulation buffer.  Max 292 bytes (ADR-007 Decision 2).
@@ -160,30 +161,6 @@ pub struct Dnp3FlowState {
     pub malformed_anomaly_emitted: bool,
 }
 
-impl Default for Dnp3FlowState {
-    fn default() -> Self {
-        Self {
-            carry: Vec::new(),
-            is_non_dnp3: false,
-            fc_counts: HashMap::new(),
-            frame_count: 0,
-            parse_errors: 0,
-            direct_operate_count: 0,
-            window_start_ts: 0,
-            direct_operate_emitted: false,
-            master_addrs_seen: Vec::new(),
-            restart_event_count: 0,
-            block_event_count: 0,
-            pending_requests: HashMap::new(),
-            block_finding_emitted_this_window: false,
-            loss_of_control_emitted: false,
-            correlation_window_start_ts: 0,
-            malformed_in_window: 0,
-            malformed_anomaly_emitted: false,
-        }
-    }
-}
-
 // ---------------------------------------------------------------------------
 // DNP3 analyzer struct (effectful shell — NOT a Kani target)
 // ---------------------------------------------------------------------------
@@ -224,11 +201,61 @@ impl Dnp3Analyzer {
     ///
     /// Full frame-walk and carry-buffer management are implemented in STORY-107.
     pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], _ts: u32) {
-        todo!(
-            "STORY-107: implement carry-buffer frame walk, desync bail, FIR gate \
-             (flow_key={flow_key:?}, data.len={})",
-            data.len()
-        )
+        // Look up (or create) the per-flow state entry.
+        let flow = self.flows.entry(flow_key).or_default();
+
+        // BC-2.15.009 postcondition 5: if the desync latch is already set, this
+        // on_data call is an immediate no-op — no parsing, no metrics, no findings.
+        if flow.is_non_dnp3 {
+            return;
+        }
+
+        // BC-2.15.009: check for valid DNP3 sync word [0x05, 0x64] at offset 0 of
+        // the incoming data within the first 16-byte window.
+        //
+        // v1 implementation (STORY-106 scope):
+        //   - If data has at least 2 bytes and data[0..2] != [0x05, 0x64], set
+        //     is_non_dnp3 = true and return immediately (no-op).
+        //   - If data[0..2] == [0x05, 0x64], the flow is valid DNP3 — do not bail.
+        //   - The carry buffer is not populated in STORY-106 (STORY-107 scope).
+        //
+        // The 16-byte check is: if the first data delivered contains no valid sync
+        // at offset 0, bail. This matches the test requirement: 16-byte delivery
+        // with no [0x05, 0x64] at byte 0 triggers is_non_dnp3 = true.
+        if data.len() >= 2 {
+            if data[0] != 0x05 || data[1] != 0x64 {
+                // No valid DNP3 sync word at offset 0 — desync bail.
+                flow.is_non_dnp3 = true;
+                return;
+            }
+            // Valid sync observed. Continue processing (STORY-107 will add frame walk).
+        } else if !data.is_empty() {
+            // Less than 2 bytes — cannot determine sync yet. Defer (STORY-107 carry logic).
+            // For STORY-106 scope: treat < 2 bytes as insufficient data, no bail yet.
+        }
+
+        // BC-2.15.008 FIR=1 gate: extract application FC from FIR=1 transport fragments.
+        // For STORY-106 scope, basic frame counting + FC extraction is included here
+        // to satisfy AC-008 (tested via transport_is_fir pure fn) and the desync bail.
+        // Full carry-buffer frame-walk is STORY-107 scope.
+        //
+        // Minimum frame: 10-byte header + 1 transport byte + 2 app bytes = 13 bytes for
+        // FC extraction. If we have at least 13 bytes and FIR=1, extract the App FC.
+        if data.len() >= 13 {
+            // Bytes 0-9: header (10 bytes); byte 10: transport octet; byte 11: app ctrl;
+            // byte 12: app FC.
+            let transport_octet = data[10];
+            flow.frame_count += 1;
+
+            if transport_is_fir(transport_octet) {
+                let app_fc = data[12];
+                *flow.fc_counts.entry(app_fc).or_insert(0) += 1;
+                *self.fn_code_counts.entry(app_fc).or_insert(0) += 1;
+            }
+        } else if data.len() >= 10 {
+            // Valid sync present, frame_count can be incremented for short frames.
+            flow.frame_count += 1;
+        }
     }
 }
 
@@ -251,7 +278,18 @@ impl Dnp3Analyzer {
 ///
 /// BC-2.15.001 / BC-2.15.002 / BC-2.15.003. VP-023 Sub-property A.
 pub fn parse_dnp3_dl_header(data: &[u8]) -> Option<Dnp3DlHeader> {
-    todo!("STORY-106: implement fixed-offset decode with LE u16 for DEST/SRC (data.len={})", data.len())
+    if data.len() < 10 {
+        return None;
+    }
+    Some(Dnp3DlHeader {
+        start1: data[0],
+        start2: data[1],
+        length: data[2],
+        control: data[3],
+        // Little-endian decode — BC-2.15.003 LE invariant; ADR-007 Decision 2.
+        destination: u16::from_le_bytes([data[4], data[5]]),
+        source: u16::from_le_bytes([data[6], data[7]]),
+    })
 }
 
 /// Three-point post-classification validity gate.
@@ -266,7 +304,7 @@ pub fn parse_dnp3_dl_header(data: &[u8]) -> Option<Dnp3DlHeader> {
 ///
 /// BC-2.15.004. VP-023 Sub-property C.
 pub fn is_valid_dnp3_frame_header(h: &Dnp3DlHeader) -> bool {
-    todo!("STORY-106: implement 3-clause boolean (start1==0x05 && start2==0x64 && length>=5), h={h:?}")
+    h.start1 == 0x05 && h.start2 == 0x64 && h.length >= 5
 }
 
 /// Classify a DNP3 application-layer function code.
@@ -280,13 +318,36 @@ pub fn is_valid_dnp3_frame_header(h: &Dnp3DlHeader) -> bool {
 /// - Write:      {0x02}
 /// - Control:    {0x03, 0x04, 0x05, 0x06}
 /// - Restart:    {0x0D, 0x0E}
-/// - Management: {0x07..=0x0C, 0x0F..=0x1A} (other defined primary FCs)
+/// - Management: {0x00, 0x07..=0x0C, 0x0F..=0x1A} (other defined primary FCs)
 /// - Response:   {0x81, 0x82, 0x83}
 /// - Unknown:    all remaining values (wildcard)
 ///
 /// BC-2.15.005 / BC-2.15.006. VP-023 Sub-property B.
 pub fn classify_dnp3_fc(fc: u8) -> Dnp3FcClass {
-    todo!("STORY-106: implement match with _ => Unknown wildcard (fc=0x{fc:02X})")
+    match fc {
+        // Read set (BC-2.15.006 postcondition 8).
+        0x01 => Dnp3FcClass::Read,
+        // Write set (BC-2.15.006 postcondition 7).
+        0x02 => Dnp3FcClass::Write,
+        // Control set: SELECT/OPERATE/DIRECT_OPERATE/DIRECT_OPERATE_NR
+        // (BC-2.15.006 postconditions 1–4; contiguous range 0x03..=0x06).
+        0x03..=0x06 => Dnp3FcClass::Control,
+        // Management set — CONFIRM and all defined primary FCs not in other sets.
+        // 0x00 = CONFIRM (BC-2.15.005 canonical vector; BC-2.15.006 EC-005)
+        // 0x07..=0x0C = IMMED_FREEZE through FREEZE_AT_TIME_NR
+        // 0x0F..=0x1A = INITIALIZE_DATA through various management FCs
+        // (BC-2.15.006 EC-009: 0x0F INITIALIZE_DATA is Management, NOT Restart)
+        0x00 | 0x07..=0x0C | 0x0F..=0x1A => Dnp3FcClass::Management,
+        // Restart set: COLD_RESTART / WARM_RESTART
+        // (BC-2.15.006 postconditions 5–6).
+        0x0D | 0x0E => Dnp3FcClass::Restart,
+        // Response set: RESPONSE / UNSOLICITED_RESPONSE / AUTHENTICATE_RESP
+        // (BC-2.15.006 postconditions 9–11).
+        0x81..=0x83 => Dnp3FcClass::Response,
+        // Wildcard: all remaining values → Unknown.
+        // NO `unreachable!` — this wildcard arm is required for VP-023 Sub-B totality.
+        _ => Dnp3FcClass::Unknown,
+    }
 }
 
 /// Compute the total on-wire frame length for a given DNP3 LENGTH field value.
@@ -303,7 +364,12 @@ pub fn classify_dnp3_fc(fc: u8) -> Dnp3FcClass {
 ///
 /// BC-2.15.007. VP-023 Sub-property D.
 pub fn compute_dnp3_frame_len(length: u8) -> Option<usize> {
-    todo!("STORY-106: implement formula 5 + length + 2*ceil((length-5)/16) (length={length})")
+    if length < 5 {
+        return None;
+    }
+    let u = (length as usize) - 5;
+    let blocks = u.div_ceil(16); // integer ceil(u / 16) — BC-2.15.007, no float
+    Some(5 + length as usize + 2 * blocks)
 }
 
 /// Returns `true` when the transport-layer FIR (First) bit is set in the
@@ -315,7 +381,7 @@ pub fn compute_dnp3_frame_len(length: u8) -> Option<usize> {
 ///
 /// BC-2.15.008. Unit test only (not a Kani target).
 pub fn transport_is_fir(transport_octet: u8) -> bool {
-    todo!("STORY-106: return transport_octet & 0x40 != 0 (transport_octet=0x{transport_octet:02X})")
+    transport_octet & 0x40 != 0
 }
 
 /// Returns `true` when the link-layer CONTROL field indicates a primary frame
@@ -326,7 +392,8 @@ pub fn transport_is_fir(transport_octet: u8) -> bool {
 ///
 /// Unit test only (not a Kani target).
 pub fn has_user_data(control: u8) -> bool {
-    todo!("STORY-106: implement DIR/PRM/FC check from CONTROL octet (control=0x{control:02X})")
+    let link_fc = control & 0x0F;
+    link_fc == 0x03 || link_fc == 0x04
 }
 
 // ---------------------------------------------------------------------------
@@ -341,39 +408,118 @@ mod kani_proofs {
 
     // ---- Sub-property A: parse_dnp3_dl_header safety (BC-2.15.001/002/003) ----
     //
-    // Symbolic input: [u8; 12] array + symbolic len <= 12. Proves:
-    //   - no panic / no OOB for any (bytes, len) combination
-    //   - None iff len < 10
-    //   - Some with correct LE field decode when len >= 10
+    // MAX_LEN = 12 covers: the len<10 reject band (0..=9), the minimum accept
+    // (len==10), and lengths with a couple of user bytes visible (11..=12) to
+    // ensure sub-B/C paths remain representable. No allocation, no loop.
+    const MAX_LEN: usize = 12;
+
     #[kani::proof]
     fn verify_parse_dnp3_dl_header_safety() {
-        todo!("STORY-106: wire VP-023 Sub-A harness per vp-023-dnp3-parse-safety.md skeleton")
+        let buf: [u8; MAX_LEN] = kani::any();
+        let len: usize = kani::any();
+        kani::assume(len <= MAX_LEN);
+        let data = &buf[..len];
+
+        // (A.3) No panic / no OOB: calling over the symbolic slice proves
+        // absence of out-of-bounds indexing for every length 0..=12.
+        let parsed = parse_dnp3_dl_header(data);
+
+        // (A.1) len<10 => None ; (A.2) len>=10 => Some.
+        if len < 10 {
+            assert!(parsed.is_none());
+        } else {
+            let h = parsed.expect("len>=10 must parse to Some");
+            // (A.2) field decode correctness.
+            assert!(h.start1 == data[0]);
+            assert!(h.start2 == data[1]);
+            assert!(h.length == data[2]);
+            assert!(h.control == data[3]);
+            // Little-endian DEST/SOURCE (BC-2.15.003).
+            assert!(h.destination == u16::from_le_bytes([data[4], data[5]]));
+            assert!(h.source == u16::from_le_bytes([data[6], data[7]]));
+        }
+    }
+
+    // ---- Sub-property C: validity gate biconditional (BC-2.15.004) ----
+    #[kani::proof]
+    fn verify_is_valid_dnp3_frame_gate() {
+        let h = Dnp3DlHeader {
+            start1: kani::any(),
+            start2: kani::any(),
+            length: kani::any(),
+            control: kani::any(),
+            destination: kani::any(),
+            source: kani::any(),
+        };
+        let ok = is_valid_dnp3_frame_header(&h);
+        // Gate is true IFF sync matches AND LENGTH >= 5.
+        assert!(ok == (h.start1 == 0x05 && h.start2 == 0x64 && h.length >= 5));
     }
 
     // ---- Sub-property B: classify_dnp3_fc totality + set membership (BC-2.15.005/006) ----
     //
-    // Symbolic input: fc: u8 (all 256 values). Proves totality (no panic,
-    // returns a defined variant) and Read/Write/Control/Restart/Response set membership.
+    // Symbolic input: a single u8 (all 256 values). The match is exhaustive by
+    // construction; "no panic" + a returned variant proves totality.
     #[kani::proof]
     fn verify_classify_dnp3_fc_total() {
-        todo!("STORY-106: wire VP-023 Sub-B harness per vp-023-dnp3-parse-safety.md skeleton")
-    }
+        let fc: u8 = kani::any();
+        let class = classify_dnp3_fc(fc); // must return for every u8
 
-    // ---- Sub-property C: validity gate biconditional (BC-2.15.004) ----
-    //
-    // Symbolic input: fully symbolic Dnp3DlHeader. Proves gate is true IFF
-    // start1==0x05 && start2==0x64 && length>=5.
-    #[kani::proof]
-    fn verify_is_valid_dnp3_frame_gate() {
-        todo!("STORY-106: wire VP-023 Sub-C harness per vp-023-dnp3-parse-safety.md skeleton")
+        // Read set (BC-2.15.006).
+        if matches!(fc, 0x01) {
+            assert!(class == Dnp3FcClass::Read);
+        }
+        // Write set (BC-2.15.006).
+        if matches!(fc, 0x02) {
+            assert!(class == Dnp3FcClass::Write);
+        }
+        // Control set (BC-2.15.006 — SELECT/OPERATE/DIRECT_OPERATE/DIRECT_OPERATE_NR).
+        if matches!(fc, 0x03 | 0x04 | 0x05 | 0x06) {
+            assert!(class == Dnp3FcClass::Control);
+        }
+        // Restart set (BC-2.15.006 — COLD_RESTART/WARM_RESTART).
+        if matches!(fc, 0x0D | 0x0E) {
+            assert!(class == Dnp3FcClass::Restart);
+        }
+        // Response set (BC-2.15.006).
+        if matches!(fc, 0x81 | 0x82 | 0x83) {
+            assert!(class == Dnp3FcClass::Response);
+        }
+        // Totality witness: returned value is one of the defined variants.
+        assert!(matches!(
+            class,
+            Dnp3FcClass::Read
+                | Dnp3FcClass::Write
+                | Dnp3FcClass::Control
+                | Dnp3FcClass::Restart
+                | Dnp3FcClass::Management
+                | Dnp3FcClass::Response
+                | Dnp3FcClass::Unknown
+        ));
     }
 
     // ---- Sub-property D: frame_len arithmetic (BC-2.15.007) ----
     //
-    // Symbolic input: length: u8 (all 256 values). Proves None for length<5;
-    // correct formula for length>=5; result in [10, 292]; no panic/overflow.
+    // Symbolic input: a single u8 (all 256 LENGTH values).
+    // Proves: None for length<5; correct formula for length>=5; result in [10,292].
     #[kani::proof]
     fn verify_compute_dnp3_frame_len() {
-        todo!("STORY-106: wire VP-023 Sub-D harness per vp-023-dnp3-parse-safety.md skeleton")
+        let length: u8 = kani::any();
+        let result = compute_dnp3_frame_len(length);
+
+        if length < 5 {
+            // (D.1) Below minimum: must return None.
+            assert!(result.is_none());
+        } else {
+            // (D.2) Valid range: formula must hold and result in [10, 292].
+            let fl = result.expect("length>=5 must return Some");
+            let u = (length as usize) - 5;
+            let blocks = (u + 15) / 16; // ceil(u / 16)
+            let expected = 5 + (length as usize) + 2 * blocks;
+            assert!(fl == expected);
+            // (D.3) Bounds invariant.
+            assert!(fl >= 10);
+            assert!(fl <= 292);
+        }
     }
 }

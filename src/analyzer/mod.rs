@@ -11,8 +11,8 @@
 //! key/value pairs live in `detail` so the reporter does not need to know
 //! per-protocol schemas.
 
-pub mod dns;
 pub mod dnp3;
+pub mod dns;
 pub mod http;
 pub mod modbus;
 pub mod tls;

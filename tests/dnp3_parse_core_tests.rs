@@ -23,8 +23,7 @@ mod story_106 {
 
     use wirerust::analyzer::dnp3::{
         Dnp3Analyzer, Dnp3DlHeader, Dnp3FcClass, Dnp3FlowState, classify_dnp3_fc,
-        compute_dnp3_frame_len, is_valid_dnp3_frame_header, parse_dnp3_dl_header,
-        transport_is_fir,
+        compute_dnp3_frame_len, is_valid_dnp3_frame_header, parse_dnp3_dl_header, transport_is_fir,
     };
     use wirerust::reassembly::flow::FlowKey;
 
@@ -61,7 +60,10 @@ mod story_106 {
     fn test_parse_dnp3_dl_header_returns_some_for_minimum_10_bytes() {
         let data = canonical_direct_operate_header();
         let result = parse_dnp3_dl_header(&data);
-        assert!(result.is_some(), "10-byte canonical vector must return Some");
+        assert!(
+            result.is_some(),
+            "10-byte canonical vector must return Some"
+        );
         let h = result.unwrap();
         assert_eq!(h.start1, 0x05, "start1 must be 0x05");
         assert_eq!(h.start2, 0x64, "start2 must be 0x64");
@@ -82,7 +84,10 @@ mod story_106 {
     fn test_BC_2_15_001_minimum_length_control_frame() {
         let data: &[u8] = &[0x05, 0x64, 0x05, 0xC0, 0x01, 0x00, 0x03, 0x00, 0xA1, 0xB2];
         let result = parse_dnp3_dl_header(data);
-        assert!(result.is_some(), "10-byte minimum control frame must return Some");
+        assert!(
+            result.is_some(),
+            "10-byte minimum control frame must return Some"
+        );
         let h = result.unwrap();
         assert_eq!(h.start1, 0x05);
         assert_eq!(h.start2, 0x64);
@@ -181,10 +186,7 @@ mod story_106 {
             );
         }
         // Length 10 must return Some.
-        assert!(
-            parse_dnp3_dl_header(base).is_some(),
-            "len=10 must be Some"
-        );
+        assert!(parse_dnp3_dl_header(base).is_some(), "len=10 must be Some");
     }
 
     /// EC-001: zero-length input — no panic.
@@ -260,7 +262,10 @@ mod story_106 {
         let h = parse_dnp3_dl_header(data).expect("10 bytes with invalid sync must return Some");
         assert_eq!(h.start1, 0x00);
         assert_eq!(h.start2, 0x00);
-        assert_eq!(h.destination, 0x0003, "LE decode still correct even with invalid sync");
+        assert_eq!(
+            h.destination, 0x0003,
+            "LE decode still correct even with invalid sync"
+        );
     }
 
     /// EC-004: DEST bytes [0xFF,0xFF] → destination = 0xFFFF (broadcast).
@@ -308,21 +313,30 @@ mod story_106 {
         );
 
         // 2. Wrong START1 (0x04).
-        let wrong_start1 = Dnp3DlHeader { start1: 0x04, ..valid.clone() };
+        let wrong_start1 = Dnp3DlHeader {
+            start1: 0x04,
+            ..valid.clone()
+        };
         assert!(
             !is_valid_dnp3_frame_header(&wrong_start1),
             "start1=0x04 must be false (condition 1 fails)"
         );
 
         // 3. Wrong START2 (0x63).
-        let wrong_start2 = Dnp3DlHeader { start2: 0x63, ..valid.clone() };
+        let wrong_start2 = Dnp3DlHeader {
+            start2: 0x63,
+            ..valid.clone()
+        };
         assert!(
             !is_valid_dnp3_frame_header(&wrong_start2),
             "start2=0x63 must be false (condition 2 fails)"
         );
 
         // 4. LENGTH=4 (below minimum 5).
-        let length_too_low = Dnp3DlHeader { length: 4, ..valid.clone() };
+        let length_too_low = Dnp3DlHeader {
+            length: 4,
+            ..valid.clone()
+        };
         assert!(
             !is_valid_dnp3_frame_header(&length_too_low),
             "length=4 must be false (condition 3 fails)"
@@ -469,14 +483,46 @@ mod story_106 {
     /// Traces to: BC-2.15.005 canonical test vector table.
     #[test]
     fn test_BC_2_15_005_canonical_vectors() {
-        assert_eq!(classify_dnp3_fc(0x01), Dnp3FcClass::Read, "0x01 READ must be Read");
-        assert_eq!(classify_dnp3_fc(0x02), Dnp3FcClass::Write, "0x02 WRITE must be Write");
-        assert_eq!(classify_dnp3_fc(0x05), Dnp3FcClass::Control, "0x05 DIRECT_OPERATE must be Control");
-        assert_eq!(classify_dnp3_fc(0x0D), Dnp3FcClass::Restart, "0x0D COLD_RESTART must be Restart");
-        assert_eq!(classify_dnp3_fc(0x81), Dnp3FcClass::Response, "0x81 RESPONSE must be Response");
-        assert_eq!(classify_dnp3_fc(0x82), Dnp3FcClass::Response, "0x82 UNSOLICITED_RESPONSE must be Response");
-        assert_eq!(classify_dnp3_fc(0xFF), Dnp3FcClass::Unknown, "0xFF (reserved) must be Unknown");
-        assert_eq!(classify_dnp3_fc(0x00), Dnp3FcClass::Management, "0x00 CONFIRM must be Management");
+        assert_eq!(
+            classify_dnp3_fc(0x01),
+            Dnp3FcClass::Read,
+            "0x01 READ must be Read"
+        );
+        assert_eq!(
+            classify_dnp3_fc(0x02),
+            Dnp3FcClass::Write,
+            "0x02 WRITE must be Write"
+        );
+        assert_eq!(
+            classify_dnp3_fc(0x05),
+            Dnp3FcClass::Control,
+            "0x05 DIRECT_OPERATE must be Control"
+        );
+        assert_eq!(
+            classify_dnp3_fc(0x0D),
+            Dnp3FcClass::Restart,
+            "0x0D COLD_RESTART must be Restart"
+        );
+        assert_eq!(
+            classify_dnp3_fc(0x81),
+            Dnp3FcClass::Response,
+            "0x81 RESPONSE must be Response"
+        );
+        assert_eq!(
+            classify_dnp3_fc(0x82),
+            Dnp3FcClass::Response,
+            "0x82 UNSOLICITED_RESPONSE must be Response"
+        );
+        assert_eq!(
+            classify_dnp3_fc(0xFF),
+            Dnp3FcClass::Unknown,
+            "0xFF (reserved) must be Unknown"
+        );
+        assert_eq!(
+            classify_dnp3_fc(0x00),
+            Dnp3FcClass::Management,
+            "0x00 CONFIRM must be Management"
+        );
     }
 
     // =========================================================================
@@ -494,9 +540,21 @@ mod story_106 {
     #[test]
     fn test_classify_dnp3_fc_set_membership() {
         // Control set (BC-2.15.006 postconditions 1–4).
-        assert_eq!(classify_dnp3_fc(0x03), Dnp3FcClass::Control, "0x03 SELECT must be Control");
-        assert_eq!(classify_dnp3_fc(0x04), Dnp3FcClass::Control, "0x04 OPERATE must be Control");
-        assert_eq!(classify_dnp3_fc(0x05), Dnp3FcClass::Control, "0x05 DIRECT_OPERATE must be Control");
+        assert_eq!(
+            classify_dnp3_fc(0x03),
+            Dnp3FcClass::Control,
+            "0x03 SELECT must be Control"
+        );
+        assert_eq!(
+            classify_dnp3_fc(0x04),
+            Dnp3FcClass::Control,
+            "0x04 OPERATE must be Control"
+        );
+        assert_eq!(
+            classify_dnp3_fc(0x05),
+            Dnp3FcClass::Control,
+            "0x05 DIRECT_OPERATE must be Control"
+        );
         assert_eq!(
             classify_dnp3_fc(0x06),
             Dnp3FcClass::Control,
@@ -504,19 +562,47 @@ mod story_106 {
         );
 
         // Restart set (BC-2.15.006 postconditions 5–6).
-        assert_eq!(classify_dnp3_fc(0x0D), Dnp3FcClass::Restart, "0x0D COLD_RESTART must be Restart");
-        assert_eq!(classify_dnp3_fc(0x0E), Dnp3FcClass::Restart, "0x0E WARM_RESTART must be Restart");
+        assert_eq!(
+            classify_dnp3_fc(0x0D),
+            Dnp3FcClass::Restart,
+            "0x0D COLD_RESTART must be Restart"
+        );
+        assert_eq!(
+            classify_dnp3_fc(0x0E),
+            Dnp3FcClass::Restart,
+            "0x0E WARM_RESTART must be Restart"
+        );
 
         // Write set (BC-2.15.006 postcondition 7).
-        assert_eq!(classify_dnp3_fc(0x02), Dnp3FcClass::Write, "0x02 WRITE must be Write");
+        assert_eq!(
+            classify_dnp3_fc(0x02),
+            Dnp3FcClass::Write,
+            "0x02 WRITE must be Write"
+        );
 
         // Read set (BC-2.15.006 postcondition 8).
-        assert_eq!(classify_dnp3_fc(0x01), Dnp3FcClass::Read, "0x01 READ must be Read");
+        assert_eq!(
+            classify_dnp3_fc(0x01),
+            Dnp3FcClass::Read,
+            "0x01 READ must be Read"
+        );
 
         // Response set (BC-2.15.006 postconditions 9–11).
-        assert_eq!(classify_dnp3_fc(0x81), Dnp3FcClass::Response, "0x81 RESPONSE must be Response");
-        assert_eq!(classify_dnp3_fc(0x82), Dnp3FcClass::Response, "0x82 UNSOLICITED_RESPONSE must be Response");
-        assert_eq!(classify_dnp3_fc(0x83), Dnp3FcClass::Response, "0x83 AUTHENTICATE_RESP must be Response");
+        assert_eq!(
+            classify_dnp3_fc(0x81),
+            Dnp3FcClass::Response,
+            "0x81 RESPONSE must be Response"
+        );
+        assert_eq!(
+            classify_dnp3_fc(0x82),
+            Dnp3FcClass::Response,
+            "0x82 UNSOLICITED_RESPONSE must be Response"
+        );
+        assert_eq!(
+            classify_dnp3_fc(0x83),
+            Dnp3FcClass::Response,
+            "0x83 AUTHENTICATE_RESP must be Response"
+        );
 
         // FC 0x07 IMMED_FREEZE → Management (NOT Control).
         assert_eq!(
@@ -577,22 +663,46 @@ mod story_106 {
     fn test_compute_dnp3_frame_len_formula() {
         // Below minimum (None cases).
         assert_eq!(compute_dnp3_frame_len(0), None, "length=0 must be None");
-        assert_eq!(compute_dnp3_frame_len(4), None, "length=4 must be None (one below minimum)");
+        assert_eq!(
+            compute_dnp3_frame_len(4),
+            None,
+            "length=4 must be None (one below minimum)"
+        );
 
         // Minimum valid: U=0, blocks=0, frame_len=5+5+0=10.
-        assert_eq!(compute_dnp3_frame_len(5), Some(10), "length=5 must be Some(10)");
+        assert_eq!(
+            compute_dnp3_frame_len(5),
+            Some(10),
+            "length=5 must be Some(10)"
+        );
 
         // First block: U=1, blocks=ceil(1/16)=1, frame_len=5+6+2=13.
-        assert_eq!(compute_dnp3_frame_len(6), Some(13), "length=6 must be Some(13)");
+        assert_eq!(
+            compute_dnp3_frame_len(6),
+            Some(13),
+            "length=6 must be Some(13)"
+        );
 
         // Exactly one 16-octet block: U=16, blocks=ceil(16/16)=1, frame_len=5+21+2=28.
-        assert_eq!(compute_dnp3_frame_len(21), Some(28), "length=21 must be Some(28)");
+        assert_eq!(
+            compute_dnp3_frame_len(21),
+            Some(28),
+            "length=21 must be Some(28)"
+        );
 
         // Starts second block: U=17, blocks=ceil(17/16)=2, frame_len=5+22+4=31.
-        assert_eq!(compute_dnp3_frame_len(22), Some(31), "length=22 must be Some(31)");
+        assert_eq!(
+            compute_dnp3_frame_len(22),
+            Some(31),
+            "length=22 must be Some(31)"
+        );
 
         // Maximum frame: U=250, blocks=ceil(250/16)=16, frame_len=5+255+32=292.
-        assert_eq!(compute_dnp3_frame_len(255), Some(292), "length=255 must be Some(292)");
+        assert_eq!(
+            compute_dnp3_frame_len(255),
+            Some(292),
+            "length=255 must be Some(292)"
+        );
     }
 
     /// Result bounds: all valid LENGTHs produce frame_len in [10, 292].
@@ -630,7 +740,11 @@ mod story_106 {
     /// Traces to: STORY-106 EC-006; BC-2.15.007 canonical vector row 7.
     #[test]
     fn test_BC_2_15_007_ec006_length_255_returns_292() {
-        assert_eq!(compute_dnp3_frame_len(255), Some(292), "length=255 must be Some(292)");
+        assert_eq!(
+            compute_dnp3_frame_len(255),
+            Some(292),
+            "length=255 must be Some(292)"
+        );
     }
 
     /// Additional typical DIRECT_OPERATE vector: LENGTH=14 → Some(21).
@@ -641,7 +755,11 @@ mod story_106 {
     #[test]
     fn test_BC_2_15_007_length_14_direct_operate() {
         // U=9, blocks=1, frame_len=5+14+2=21
-        assert_eq!(compute_dnp3_frame_len(14), Some(21), "length=14 must be Some(21)");
+        assert_eq!(
+            compute_dnp3_frame_len(14),
+            Some(21),
+            "length=14 must be Some(21)"
+        );
     }
 
     // =========================================================================
@@ -727,14 +845,20 @@ mod story_106 {
 
         // Step 1: Deliver 16 non-DNP3 bytes — no valid sync [0x05, 0x64] at offset 0.
         let non_dnp3: [u8; 16] = [
-            0xFF, 0xFE, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
-            0x0B, 0x0C, 0x0D,
+            0xFF, 0xFE, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B,
+            0x0C, 0x0D,
         ];
         analyzer.on_data(key.clone(), &non_dnp3, 0);
 
         // After delivering non-DNP3 data, is_non_dnp3 must be set to true.
-        let flow = analyzer.flows.get(&key).expect("flow state must exist after on_data");
-        assert!(flow.is_non_dnp3, "is_non_dnp3 must be true after no valid sync in first 16 bytes");
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow state must exist after on_data");
+        assert!(
+            flow.is_non_dnp3,
+            "is_non_dnp3 must be true after no valid sync in first 16 bytes"
+        );
 
         // Step 2: deliver a second segment — this must be a no-op.
         let carry_before = flow.carry.len();
@@ -823,7 +947,13 @@ mod story_106 {
     #[test]
     fn test_BC_2_15_009_flow_state_defaults_to_not_bailed() {
         let state = Dnp3FlowState::default();
-        assert!(!state.is_non_dnp3, "Dnp3FlowState must default to is_non_dnp3=false");
-        assert!(state.carry.is_empty(), "carry buffer must be empty on default");
+        assert!(
+            !state.is_non_dnp3,
+            "Dnp3FlowState must default to is_non_dnp3=false"
+        );
+        assert!(
+            state.carry.is_empty(),
+            "carry buffer must be empty on default"
+        );
     }
 } // mod story_106
