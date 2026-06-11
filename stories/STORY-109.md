@@ -36,7 +36,6 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.023.md
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.024.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
-input-hash: TBD
 input-hash: "6086c25"
 ---
 
