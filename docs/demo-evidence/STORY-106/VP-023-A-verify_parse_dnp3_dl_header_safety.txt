@@ -1,0 +1,6 @@
+Kani Rust Verifier 0.67.0 (cargo plugin)
+Checking harness analyzer::dnp3::kani_proofs::verify_parse_dnp3_dl_header_safety...
+Solving with CaDiCaL 2.0.0
+Solving with CaDiCaL 2.0.0
+Solving with CaDiCaL 2.0.0
+VERIFICATION:- SUCCESSFUL
