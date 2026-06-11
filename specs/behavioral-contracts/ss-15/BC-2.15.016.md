@@ -15,7 +15,7 @@ lifecycle_status: active
 introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Pass-3 adversarial fix HIGH-2: added pending_requests DoS bound — MAX_PENDING_REQUESTS=256 entries. On insert when at cap, evict the OLDEST entry (minimum request_ts). Postconditions 8–10 added; Invariant 5 added; EC-008 added; canonical test vector added; Architecture Anchors and Description updated. BC-2.15.014 Invariant 8 now correctly cross-references this BC for the pending_requests cap. — 2026-06-10"
-  - "v1.2: EC-007 resync policy updated — drain-1 (STORY-107 v1 behavior) replaced by byte-walk-forward resync (STORY-109 realization of the STORY-107 explicitly deferred resync). STORY-107 in-code comment stated: 'Byte-walk resync on mid-carry sync-loss is deferred to a later detection story'; STORY-109 is that story. EC-007 now specifies: after the LENGTH gate increments parse_errors and malformed_in_window, the carry head is repositioned by scanning from index 1 for the next [0x05,0x64] sync word; bytes before it are drained; if none found, carry is cleared. No postcondition or invariant logic changed — this is an EC-007 navigation-detail clarification only. Authorized by STORY-109-resync-adjudication.md Decision 2. — 2026-06-11"
+  - "v1.2: EC-007 resync policy updated — drain-1 (STORY-107 v1 behavior) replaced by byte-walk-forward resync (STORY-109 realization of the STORY-107 explicitly deferred resync). STORY-107 in-code comment stated: 'Byte-walk resync on mid-carry sync-loss is deferred to a later detection story'; STORY-109 is that story. EC-007 now specifies: after the LENGTH gate increments parse_errors and malformed_in_window, the carry head is repositioned by scanning from index 1 for the next [0x05,0x64] sync word; bytes before it are drained; if none found, carry is cleared. No postcondition or invariant logic changed — this is an EC-007 navigation-detail clarification only. Authorized by STORY-109-resync-adjudication.md Decision 2. — 2026-06-11. Additionally (per ADJ-001-A): Canonical Test Vectors 'Carry overflow (adversarial)' row clarified to note that the frame-walk subsequently runs post-overflow and, if no [0x05,0x64] sync word is found, byte-walk-forward resync clears the carry (final carry may be empty); the 292-cap proof rests on the parse_errors increment, not residual carry length."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -106,7 +106,7 @@ These three bounds collectively prevent unbounded memory growth under adversaria
 | Partial frame | [] (empty) | 5 bytes of a 10-byte header | carry = [5 bytes]; no frame processed |
 | Complete minimum frame | [partial 5 bytes] | 5 more bytes | carry = [] (frame consumed); frame_count=1 |
 | Frame + next frame start | [] | 21 bytes (10 + 11) | carry = [11 bytes]; frame_count=1 |
-| Carry overflow (adversarial) | [290 bytes] | 5 bytes | 2 bytes appended (292); 3 discarded; parse_errors++ |
+| Carry overflow (adversarial) | [290 bytes] | 5 bytes | 2 bytes appended (292); 3 discarded; parse_errors++ (the frame-walk then runs: if the carry head is not a valid sync word and no `[0x05,0x64]` is found in the carry, byte-walk-forward resync CLEARS the carry — final carry may be empty; the 292-cap is proven by the parse_errors increment, not by residual carry length) |
 | pending_requests at cap (adversarial flood) | 256 pending entries; new SELECT (0x03) arrives | Entry with oldest request_ts evicted; new SELECT inserted; map.len() == 256 |
 
 ## Verification Properties
