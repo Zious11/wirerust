@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.5"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -48,7 +48,7 @@ supplements:
 > ADR-005). Updated Section 1.5 Out of Scope (T0855/T1692.001 and 5 other ICS techniques now emitted).
 > Updated Section 6 KD-005 and KD-003 with Modbus-specific BC references. Added SS-14 rows to
 > Section 7 RTM. Total BC count: 244 (was 219).
-> **→ Current total after all deltas: 266 BCs.**
+> **→ Current total after all deltas: 268 BCs.**
 >
 > **Version 1.2 delta (2026-06-09 — F2 Modbus revision):** Adopts three approved decisions from
 > `f2-fix-directives.md` v2 (Decisions 11, 12, 13). **BREAKING CHANGE targeting v0.3.0:**
@@ -86,6 +86,28 @@ supplements:
 > grows 16→17 elements. Updated BCs: BC-2.10.002/003/004/005/007/008 (v1.3–v1.7 per BC).
 > Added SS-15 rows to Section 7 RTM. KD-005 and KD-007 extended with DNP3 BCs.
 > Total BC count: 266 (was 244). See `spec-changelog.md` §[dnp3-f2-2026-06-10].
+>
+> **Version 1.6 delta (2026-06-10 — Feature #8 DNP3 research must-adds, issue #8 post-gate):**
+> Added 2 research-validated must-add detections from `dnp3-f2-scope-threshold-validation.md`:
+> BC-2.15.023 (DISABLE_UNSOLICITED/ENABLE_UNSOLICITED abuse → T0814) and BC-2.15.024
+> (malformed/structural DNP3 anomaly from parse_errors threshold → T0814, Crain-Sistrunk
+> coverage). Both map to existing T0814 — MITRE catalog counts unchanged (23/15/8). Applied
+> threshold clarifications: BC-2.15.010 v1.2 (10/60s is flood guard; unauthorized-source
+> fires at count=1; ~5/60s option for quiet profiles); BC-2.15.014 v1.4 (DIRECT_OPERATE_NR
+> exclusion research-confirmed); BC-2.15.015 v1.4 (≥3 must be distinct impact events, not
+> double-counted). SS-15 now 24 BCs. Total BC count: 268 (was 266).
+> See `spec-changelog.md` §[dnp3-f2-mustadds-2026-06-10].
+
+> **Version 1.7 delta (2026-06-10 — Adversarial finding C-2 fix, issue #8 blocking):**
+> Fixed BC-2.15.024 (v1.1): replaced the erroneous windowed use of `parse_errors` with a
+> separate windowed counter `malformed_in_window`. `parse_errors` is now correctly specified
+> as a LIFETIME/monotonic counter (NEVER reset at window expiry; consumed by BC-2.15.020
+> summarize()). `malformed_in_window` is the new windowed counter used for all threshold
+> checks; resets to 0 at 300s window expiry. Extended BC-2.15.015 (v1.5) to reset the two
+> new BC-2.15.024 windowed fields at window expiry (malformed_in_window, malformed_anomaly_emitted);
+> Invariant 6 updated from "four fields" to six. PRD prose updated from "BC-2.15.001..022"
+> to "BC-2.15.001..024", "22 BCs" to "24 BCs", and RTM entry for BC-2.15.024 corrected to
+> name `malformed_in_window`. No new BCs; no MITRE catalog change; counts 23/15/8 unchanged.
 
 > **Supplement Model:** Sections 3-5 reference extracted supplement files under
 > `prd-supplements/`. These supplements are produced in a SEPARATE burst (Phase 1b).
@@ -656,11 +678,11 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 ### 2.15 DNP3/ICS Analysis (CAP-15) [Feature #8 — ADR-007]
 
 > **Release target: v0.5.0 (additive — no schema break).**
-> All SS-15 BCs (BC-2.15.001..022) ship in v0.5.0. The `mitre_techniques: Vec<String>` type
+> All SS-15 BCs (BC-2.15.001..024) ship in v0.5.0. The `mitre_techniques: Vec<String>` type
 > and multi-tag finding model established by v0.3.0 are reused without modification. DNP3 is
 > purely additive at v0.5.0.
 
-> **Feature Mode F2 addition (v1.5).** 22 BCs covering the DNP3 TCP protocol analyzer (SS-15,
+> **Feature Mode F2 addition (v1.5).** 24 BCs covering the DNP3 TCP protocol analyzer (SS-15,
 > C-26 Dnp3Analyzer). Analyzer detects 5 MITRE ATT&CK for ICS techniques directly and 2 via
 > correlation: T1692.001 (unauthorized control command — direct), T0814 (restart/DoS — direct),
 > T0836 (write FC — direct), T1691.001 (inferred block-command, ICS sub-technique — per-flow
@@ -758,7 +780,17 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.15.021 | Port-20000 flow dispatched to Dnp3Analyzer (DispatchTarget::Dnp3, Rule 6) | P0 | feature-008-F2 |
 | BC-2.15.022 | MAX_FINDINGS DoS bound — finding cap prevents unbounded all_findings growth | P0 | feature-008-F2 |
 
-> Full contracts: `behavioral-contracts/ss-15/BC-2.15.001.md` through `BC-2.15.022.md`
+#### 2.15.I Research Must-Add Detections (Post-Gate F2, issue #8)
+
+> Added 2026-06-10 based on `dnp3-f2-scope-threshold-validation.md` scope validation.
+> Both detections map to existing T0814 — no MITRE catalog change; counts remain 23/15/8.
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.15.023 | Unsolicited-response enable/disable abuse — FC 0x15/0x14 observed emits T0814 | P1 | feature-008-F2 |
+| BC-2.15.024 | Malformed/structural DNP3 anomaly — malformed_in_window threshold emits T0814 | P1 | feature-008-F2 |
+
+> Full contracts: `behavioral-contracts/ss-15/BC-2.15.001.md` through `BC-2.15.024.md`
 
 
 ## 3. Interface Definition
@@ -871,6 +903,8 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.15.013 | Co-emission ordering — direct finding (T0814/T1692.001) precedes derived T0827; broadcast-anomaly (018↔010) dedup rule |
 | BC-2.15.014 | T1691.001 (Block Operational Technology Message: Command Message) emitted via per-flow request/response correlation — control request without response within window |
 | BC-2.15.015 | T0827 (Loss of Control) emitted as derived correlated finding — N restart/block events in detection window |
+| BC-2.15.023 | T0814 emitted per-occurrence for DISABLE_UNSOLICITED (0x15, Likely/Medium) and ENABLE_UNSOLICITED (0x14, Possible/Low) — alarm-suppression / event-blinding primitive detection |
+| BC-2.15.024 | T0814 emitted as low-confidence anomaly when malformed_in_window ≥ MALFORMED_ANOMALY_THRESHOLD [F2-GATE-DEFAULT: 3] in 300s window — Crain-Sistrunk malformed-frame crash-class coverage (parse_errors is lifetime/monotonic; malformed_in_window is the windowed threshold counter) |
 
 ### 6.6 KD-006: SNI Anomaly Detection with 4-Way Classification
 
@@ -1169,6 +1203,8 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.15.020 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P1 | unit |
 | BC-2.15.021 | CAP-15 | SS-05 (dispatcher.rs) + SS-15 | P0 | unit+kani |
 | BC-2.15.022 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit |
+| BC-2.15.023 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P1 | unit |
+| BC-2.15.024 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P1 | unit |
 
 
 ## 8. Domain Debt Index

@@ -14,6 +14,130 @@ changes, invariant rewrites).
 
 ---
 
+## [dnp3-f2-mustadds-c2fix-2026-06-10] — 2026-06-10
+
+### MINOR: BC-2.15.024 C-2 Remediation — Separate Windowed Counter + Two-Counter Model
+
+**Summary:** Adversarial pass C-2 identified that the original BC-2.15.024 (v1.0, recorded in
+`§[dnp3-f2-mustadds-2026-06-10]` below) reused `parse_errors: u64` as a windowed threshold
+counter. This was incorrect: `parse_errors` is a lifetime monotonic counter consumed by
+BC-2.15.020's summarize() output; resetting it would corrupt the lifetime parse-error summary
+(BC-2.15.020 postcondition), and since BC-2.15.015 is the single reset owner of correlated
+window fields, the absence of a dedicated windowed field left EC-005 unsatisfiable. This entry
+records the corrected two-counter model that resolves both C-1 (orphaned fields) and C-2
+(reset owner + parse_errors collision).
+
+**Key design change — two-counter model:**
+- `parse_errors: u64` — LIFETIME monotonic counter. Never reset. Consumed exclusively by
+  BC-2.15.020 (`summarize()` detail map key `"parse_errors"`). Unchanged from original intent
+  except it is now explicitly forbidden from serving as a windowed threshold counter.
+- `malformed_in_window: u64` — NEW windowed threshold counter. Incremented on each
+  structural-reject path (LENGTH<5, frame-length/block-count mismatch, sync-loss) within the
+  active 300s correlation window. Threshold: `const MALFORMED_ANOMALY_THRESHOLD: u64 = 3`.
+  Reset by BC-2.15.015 (single reset owner) at the 300s CORRELATION_WINDOW_SECS expiry.
+- `malformed_anomaly_emitted: bool` — NEW one-shot guard. Prevents repeated T0814 anomaly
+  emission within the same window once threshold is reached. Reset by BC-2.15.015 alongside
+  all other windowed fields.
+
+**Updated Dnp3FlowState canonical field set (architecture-delta v1.2 + ADR-007):**
+BC-2.15.015 is now the single reset owner of **6 windowed fields** (was 4):
+`restart_event_count: u64`, `block_event_count: u64`,
+`pending_requests: HashMap<(u16,u8), u32>`,
+`block_finding_emitted_this_window: bool`,
+`loss_of_control_emitted: bool`,
+`correlation_window_start_ts: u32`,
+`malformed_in_window: u64` ← NEW,
+`malformed_anomaly_emitted: bool` ← NEW.
+(`parse_errors: u64` and `malformed_anomaly_emitted: bool` registration also confirmed in ADR-007.)
+
+**Rationale for the fix:**
+Reusing `parse_errors` as a windowed counter would have: (1) silently corrupted BC-2.15.020's
+lifetime parse-error summary whenever BC-2.15.015 reset the window — a cross-BC invariant
+violation; (2) left `malformed_anomaly_emitted: bool` with no reset path under the original
+design, making EC-005 (second burst in new window fires again) unsatisfiable. The separate
+`malformed_in_window` counter eliminates both issues cleanly.
+
+**Adversarial findings resolved:**
+- **C-1** (orphaned fields): `malformed_anomaly_emitted` is now explicitly registered in
+  Dnp3FlowState and listed as a BC-2.15.015 reset target.
+- **C-2** (reset owner + parse_errors collision): `parse_errors` is now read-only from
+  BC-2.15.024's perspective; the new `malformed_in_window` counter is owned and reset by
+  BC-2.15.015.
+
+**Files changed:**
+
+| Artifact | Version | Change |
+|----------|---------|--------|
+| BC-2.15.024 | v1.0 → v1.1 | Precondition 3 updated: threshold counter is `malformed_in_window`, not `parse_errors`. Postcondition 1 updated: fires when `malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD`. Invariant 3 added: `parse_errors` is lifetime-only and must never be used as windowed threshold. Invariant 4 added: `malformed_in_window` is the sole windowed structural-reject counter. EC-005 updated: second-burst scenario now satisfiable via `malformed_in_window` reset. |
+| BC-2.15.015 | v1.4 → v1.5 | Reset owner postcondition updated: now resets 6 windowed fields (adds `malformed_in_window` and `malformed_anomaly_emitted`). Invariant 6 updated: field list extended. Architecture Anchors updated with both new fields. |
+| dnp3-architecture-delta | v1.1 → v1.2 | Dnp3FlowState field table: `malformed_in_window: u64` and `malformed_anomaly_emitted: bool` added; `parse_errors` annotated as lifetime-only (not reset). BC-2.15.015 reset-owner table updated to 6 windowed fields. |
+| ADR-007 | existing | Consequences section updated: two-counter model rationale recorded; `parse_errors` immutability invariant noted. |
+| BC-INDEX | v1.5 → v1.6 | BC-2.15.024 title updated to reflect two-counter model; BC-2.15.015 annotation updated. |
+| prd.md | v1.6 → v1.7 | Section 2.15 BC-2.15.024 summary updated; delta note for C-2 fix added. |
+
+**Historical note:** The v1.0 design recorded in `§[dnp3-f2-mustadds-2026-06-10]` (below) is
+correct as a historical record of the original must-add design at that point in time. It is
+intentionally preserved unchanged. This entry supersedes it for the two-counter model going
+forward.
+
+---
+
+## [dnp3-f2-mustadds-2026-06-10] — 2026-06-10
+
+### MINOR: DNP3 F2 Research Must-Add Detections — issue #8 Post-Gate Scope Validation
+
+**Summary:** Two research-validated must-add detections added to SS-15 based on
+`dnp3-f2-scope-threshold-validation.md` (verified against Crain/Sistrunk S4x14, Chipkin
+DNP3 Quick Reference, Zeek/icsnpp-dnp3 tool coverage). Both new BCs map to existing T0814
+(Denial of Service / Inhibit Response Function). MITRE catalog counts remain 23 seeded /
+15 emitted / 8 catalogue-only — UNCHANGED. No changes to `classify_dnp3_fc`, VP-023, or
+BC-2.15.006.
+
+**BC-2.15.023 — Unsolicited-Response Enable/Disable Abuse → T0814:**
+DISABLE_UNSOLICITED (FC 0x15) is the classic alarm-suppression / event-blinding primitive:
+an attacker sends it to silence outstation event reporting. ENABLE_UNSOLICITED (FC 0x14) is
+the control-plane counterpart. Detection keys on the RAW FC byte directly (NOT via
+classify_dnp3_fc — 0x14/0x15 return `Management` from the classifier, which is correct and
+unchanged). Per-occurrence detection mirroring BC-2.15.011 (restart) style. Severity split:
+DISABLE_UNSOLICITED → Likely/Medium; ENABLE_UNSOLICITED → Possible/Low. Source: [VERIFIED]
+Chipkin DNP3 Quick Reference FC table; Crain/Bratus: disproportionate share of DNP3
+application-layer vulns in unsolicited response functions.
+
+**BC-2.15.024 — Malformed/Structural DNP3 Anomaly → T0814 [F2-GATE-DEFAULT: ≥3/300s]:**
+Surfaces the parser's EXISTING structural-reject paths (LENGTH<5, frame-length/block-count
+mismatch, sync-loss) as a low-confidence T0814 anomaly when `flow.parse_errors` reaches
+MALFORMED_ANOMALY_THRESHOLD **[F2-GATE-DEFAULT: ≥3 malformed frames within 300s]**. This is
+the ONLY coverage for the Crain-Sistrunk "Project Robus" class (~28-30 DNP3 vulns, 16+ ICS-CERT
+advisories). Critically, Crain-Sistrunk attack frames carry VALID CRCs — CRC deferral does NOT
+excuse this blind spot (the two are orthogonal). New flow-state fields: `malformed_anomaly_emitted:
+bool` (one-shot guard); uses existing `parse_errors: u64` counter and shared 300s
+CORRELATION_WINDOW_SECS window (BC-2.15.015 is single reset owner). Deep object-level
+malformation analysis deferred to v2 (JUDGMENT, per research).
+
+**Threshold clarifications applied to existing BCs:**
+- BC-2.15.010 v1.2: 10/60s threshold is a FLOOD GUARD, not the primary unauthorized-source
+  detector. Unauthorized control from an UNEXPECTED SOURCE fires at count=1, independent of
+  the rate threshold. ~5/60s available for quiet transmission profiles via CLI flag. 10/60s
+  default CONFIRMED (do not raise above 10).
+- BC-2.15.014 v1.4: DIRECT_OPERATE_NR (0x06) exclusion from block-command timeout count is
+  research-CONFIRMED [VERIFIED: dnp3-f2-scope-threshold-validation.md §Q2 Threshold-2]. The
+  exclusion was already present in Precondition 1 and Invariant 1 since v1.0; this records
+  the explicit research-backed validation.
+- BC-2.15.015 v1.4: ≥3 combined restart+block events must be DISTINCT impact events — a single
+  underlying incident cannot be double-counted. The implementation is already correct (two
+  independent increment paths); this clarification makes the semantic intent explicit.
+
+**Files changed:**
+- NEW: `.factory/specs/behavioral-contracts/ss-15/BC-2.15.023.md` (v1.0)
+- NEW: `.factory/specs/behavioral-contracts/ss-15/BC-2.15.024.md` (v1.0)
+- UPDATED: `BC-2.15.010.md` v1.1 → v1.2 (threshold clarification)
+- UPDATED: `BC-2.15.014.md` v1.3 → v1.4 (DIRECT_OPERATE_NR confirmation)
+- UPDATED: `BC-2.15.015.md` v1.3 → v1.4 (distinct-events clarification + Invariant 7)
+- UPDATED: `BC-INDEX.md` v1.4 → v1.5 (SS-15 24 BCs; total 266 → 268)
+- UPDATED: `prd.md` v1.5 → v1.6 (Section 2.15.I, RTM rows, KD-005 rows, delta note)
+
+---
+
 ## [dnp3-f2-pass2-2026-06-10] — 2026-06-10
 
 ### MINOR: DNP3 F2 Pass-2 Adversarial Remediation — CRITICAL-1 + CRITICAL-2

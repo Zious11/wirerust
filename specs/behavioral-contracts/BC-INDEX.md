@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -14,7 +14,7 @@ traces_to: .factory/specs/prd.md
 > **Navigation:** This file is the master index of all BC-S.SS.NNN contracts. Each entry
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
-> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 266 entries.
+> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 268 entries.
 > 218 draft ingestion BCs were produced; 6 were retired during the remediation cycle (BC-ABS-004
 > through BC-ABS-009) leaving 212 active L3 BCs from ingestion. BC-2.11.020 through BC-2.11.024
 > were added in adversarial-review pass-4 (finding H-1: CsvReporter coverage gap), bringing
@@ -22,12 +22,14 @@ traces_to: .factory/specs/prd.md
 > (issue #100 pcap-timestamps delta) bringing the total to 219 active L3 BCs. BC-2.14.001
 > through BC-2.14.025 were added in Feature Mode F2 (issue #7 Modbus/ICS analyzer) bringing
 > the total to 244 active L3 BCs. BC-2.15.001 through BC-2.15.022 were added in Feature Mode
-> F2 (issue #8 DNP3/ICS analyzer) bringing the total to 266 active L3 BCs.
+> F2 (issue #8 DNP3/ICS analyzer) bringing the total to 266 active L3 BCs. BC-2.15.023 and
+> BC-2.15.024 were added in Feature Mode F2 (issue #8 research must-adds: DISABLE_UNSOLICITED
+> abuse + malformed/structural anomaly) bringing the total to 268 active L3 BCs.
 >
 > **Status as of Phase 1a (current):**
-> - Fully written: 266 BCs (all body files verified on disk)
+> - Fully written: 268 BCs (all body files verified on disk)
 > - Remaining: 0 BCs
-> - PRD index (prd.md): UPDATED (v1.5) -- all 266 L3 BC IDs are registered
+> - PRD index (prd.md): UPDATED (v1.6) -- all 268 L3 BC IDs are registered
 
 ## ss-01: PCAP File Ingestion (CAP-01)
 
@@ -360,7 +362,7 @@ traces_to: .factory/specs/prd.md
 
 ## ss-15: DNP3/ICS Analysis (CAP-15)
 
-> 22 BCs total; 22 fully written; 0 planned.
+> 24 BCs total; 24 fully written; 0 planned.
 > BCs 001-004: DL Header Parse and Validity Gate (Group A + C).
 > BCs 005-007: Function-Code Classification (Group B).
 > BCs 008-009: Transport Layer / Desync Safety (Group E + desync).
@@ -370,8 +372,11 @@ traces_to: .factory/specs/prd.md
 > BCs 018-019: Anomaly Detection (broadcast destination, unsolicited response) (Group I).
 > BC 020: Summary Stats.
 > BCs 021-022: Dispatcher Integration and MAX_FINDINGS DoS Bound.
+> BC 023: Research must-add — DISABLE_UNSOLICITED/ENABLE_UNSOLICITED abuse → T0814 (alarm suppression).
+> BC 024: Research must-add — malformed/structural DNP3 anomaly from malformed_in_window threshold → T0814 (Crain-Sistrunk coverage).
 > Feature: issue-008-dnp3-analyzer; ADR-007; introduced v0.5.0-feature-008.
 > **New MITRE techniques (F2 DNP3):** T1691.001 (IcsInhibitResponseFunction — inferred block command) + T0827 (IcsImpact — derived loss-of-control correlated finding).
+> **Research must-adds (2026-06-10 post-gate):** BC-2.15.023 and BC-2.15.024 use existing T0814 — no catalog change; MITRE counts remain 23 seeded / 15 emitted / 8 catalogue-only.
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
@@ -397,6 +402,8 @@ traces_to: .factory/specs/prd.md
 | BC-2.15.020 | summarize() Emits Function-Code Distribution and Control-Operation Counts | P1 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.021 | Port-20000 Flow Dispatched to Dnp3Analyzer (DispatchTarget::Dnp3, Rule 6) | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.022 | MAX_FINDINGS DoS Bound — Finding Cap Prevents Unbounded all_findings Growth | P0 | [WRITTEN] | feature-008-F2 |
+| BC-2.15.023 | Unsolicited-Response Enable/Disable Abuse — FC 0x15/0x14 Observed Emits T0814 | P1 | [WRITTEN] | feature-008-F2 |
+| BC-2.15.024 | Malformed/Structural DNP3 Anomaly — malformed_in_window Threshold Emits T0814 | P1 | [WRITTEN] | feature-008-F2 |
 
 ---
 
@@ -419,9 +426,9 @@ traces_to: .factory/specs/prd.md
 | BC-SUM-001..004 | 4 | BC-2.12.018..021 |
 | BC-ABS-001..010 | 10 | BC-2.13.001..004 (6 ABS retired by remediation cycle) |
 | feature-007-F2 Modbus/ICS (greenfield) | 25 | BC-2.14.001..025 |
-| feature-008-F2 DNP3/ICS (greenfield) | 22 | BC-2.15.001..022 |
+| feature-008-F2 DNP3/ICS (greenfield) | 24 | BC-2.15.001..024 |
 
-**Total BCs: 266. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 22 greenfield rows.**
+**Total BCs: 268. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows.**
 
 Note: BC-ABS-004 (--hosts unwired), BC-ABS-005 (--services unwired), BC-ABS-006 (--json
 file unwired), BC-ABS-007 (CSV unwired), BC-ABS-009 (no e2e CLI tests) are RETIRED --

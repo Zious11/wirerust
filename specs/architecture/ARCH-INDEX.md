@@ -12,6 +12,9 @@ modified:
   - date: 2026-06-10
     actor: architect
     reason: "Pass-1 adversarial remediation (issue #8 F2): SS-15 BC count updated TBD→22; stale 'F2 in progress' comment replaced (all 22 SS-15 BCs now written)."
+  - date: 2026-06-10
+    actor: architect
+    reason: "Issue #8 research-validated scope additions: SS-15 BC count updated 22→24 for BC-2.15.023 (ENABLE/DISABLE_UNSOLICITED→T0814) and BC-2.15.024 (malformed-frame anomaly→T0814). ADR-007 Decision 5 extended to match. No VP/catalog/count change."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -76,7 +79,7 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 | SS-12 | CLI / Entry | CAP-12 | main.rs, cli.rs, lib.rs, summary.rs | 21 |
 | SS-13 | Absent Behaviors | CAP-12 | cli.rs (flag parse only) | 4 | <!-- intentional: SS-13 is a sub-classification of CAP-12 (absent/intentionally-excluded behaviors), not a separate capability; see prd.md §2.13 -->
 | SS-14 | Modbus/ICS Analysis | CAP-14 | analyzer/modbus.rs | 25 | <!-- Feature cycle issue #7; ADR-005; BC-2.14.001..025 all written; F2 adversarial review complete -->
-| SS-15 | DNP3/ICS Analysis | CAP-15 | analyzer/dnp3.rs | 22 | <!-- Feature cycle issue #8; ADR-007; BC-2.15.001..022 written (F2 complete) -->
+| SS-15 | DNP3/ICS Analysis | CAP-15 | analyzer/dnp3.rs | 24 | <!-- Feature cycle issue #8; ADR-007; BC-2.15.001..024 written (F2 complete + issue #8 research-validated scope additions: BC-2.15.023 ENABLE/DISABLE_UNSOLICITED→T0814, BC-2.15.024 malformed-frame anomaly→T0814) -->
 
 > SS-03 is intentionally absent. See "CAP-03 / ss-02 Ruling" below.
 

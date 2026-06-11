@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -17,6 +17,8 @@ modified:
   - "v1.1: Pass-1 adversarial fix I-5 (companion update): clarified Invariant 5 — block_event_count is fed unconditionally by BC-2.15.014 (every block-timeout, not only on T1691.001 finding emission). Added explanatory note that 2-block+1-restart correctly yields T0827 even with no T1691.001 finding emitted for the first 2 events. — 2026-06-10"
   - "v1.2: Pass-2 adversarial fix CRITICAL-2: this BC is now the single reset owner for the shared correlation window. Added explicit window-expiry handler spec: when now_ts - correlation_window_start_ts >= CORRELATION_WINDOW_SECS (300s [F2-GATE]), reset ALL four fields together: restart_event_count=0, block_event_count=0, block_finding_emitted_this_window=false, loss_of_control_emitted=false, then set correlation_window_start_ts=now_ts. Invariant 6 rewritten to name the single reset owner. T0827_WINDOW_SECS constant removed (now CORRELATION_WINDOW_SECS=300s shared with BC-2.15.011/014). Verified both T0827 traces end-to-end: (A) 2-block+1-restart within 300s → T0827 fires; (B) 2-block spaced 150s apart + 1-restart at 200s → T0827 fires (key: no 120s sub-window reset). — 2026-06-10"
   - "v1.3: Pass-3 adversarial fix HIGH-3: changed all four plain `now_ts - flow.correlation_window_start_ts` subtractions to `now_ts.wrapping_sub(flow.correlation_window_start_ts)` to prevent panic under overflow-checks=true when timestamps go backward (out-of-order pcap replay, explicitly a valid confound per BC-2.15.014 Inv 2). Rationale: u32 second timestamps wrap at ~136 years — effectively never, policy kept. Matches BC-2.15.010 and Modbus BC-2.14.017 convention. — 2026-06-10"
+  - "v1.4: Research threshold clarification (dnp3-f2-scope-threshold-validation.md §Q3): added Invariant 7 and clarification note to Precondition 1 that the ≥3 combined events must be DISTINCT impact events — a distinct restart event and/or a distinct sustained-block finding — not a single incident double-counted (e.g. one block_event_count increment that also satisfies the T1691.001 threshold does not count as two separate events toward T0827). The current implementation is already correct because restart_event_count and block_event_count are incremented by independent code paths (BC-2.15.011 and BC-2.15.014 respectively) and a single underlying incident can increment at most one of the two counters per occurrence. This clarification makes the invariant explicit for reviewers. — 2026-06-10"
+  - "v1.5: Adversarial finding C-2 companion fix: extended the window-expiry reset set to include the two new BC-2.15.024 windowed fields: malformed_in_window=0 and malformed_anomaly_emitted=false. parse_errors (BC-2.15.024 lifetime counter) is explicitly NOT in the reset set — it is a monotonic lifetime counter consumed by BC-2.15.020 summarize(). Updated Description reset list, Postcondition 3 reset list, and Invariant 6 to name SIX fields reset at window expiry (restart_event_count, block_event_count, block_finding_emitted_this_window, loss_of_control_emitted, malformed_in_window, malformed_anomaly_emitted; plus correlation_window_start_ts updated to now_ts). Added Architecture Anchors for the two new fields. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -44,14 +46,21 @@ the tactic for this finding.
 
 **This BC is the single reset owner** for the shared per-flow correlation window. When
 `now_ts.wrapping_sub(flow.correlation_window_start_ts) >= CORRELATION_WINDOW_SECS = 300s` **[F2-GATE:
-human to confirm]**, this handler resets ALL correlated state together:
+human to confirm]**, this handler resets ALL windowed correlated state together (six fields):
 - `flow.restart_event_count = 0`
 - `flow.block_event_count = 0`
 - `flow.block_finding_emitted_this_window = false`
 - `flow.loss_of_control_emitted = false`
+- `flow.malformed_in_window = 0` (BC-2.15.024 windowed counter — NEW v1.5)
+- `flow.malformed_anomaly_emitted = false` (BC-2.15.024 one-shot guard — NEW v1.5)
 - `flow.correlation_window_start_ts = now_ts` (start of new window)
 
-BC-2.15.011 and BC-2.15.014 reference this single reset; they do NOT own separate window timers.
+**`flow.parse_errors` is NOT in this reset set.** `parse_errors` is a LIFETIME/monotonic
+counter (BC-2.15.024 Invariant 1) reported by BC-2.15.020 `summarize()`. It must never be
+reset at window expiry.
+
+BC-2.15.011, BC-2.15.014, and BC-2.15.024 reference this single reset; they do NOT own
+separate window timers.
 
 **[F2-GATE: human to confirm]**
 The proposed default for the T0827 emission guard is:
@@ -69,6 +78,13 @@ threshold (e.g., 5) misses shorter but still impactful attack sequences.
 ## Preconditions
 
 1. `flow.restart_event_count + flow.block_event_count >= T0827_THRESHOLD` (proposed: 3).
+   **Distinct-event clarification (v1.4):** the ≥3 combined count must represent DISTINCT
+   impact events — each increment of `restart_event_count` (from BC-2.15.011) counts as one
+   restart event; each increment of `block_event_count` (from BC-2.15.014) counts as one
+   block-command event. A single underlying network incident increments at most one of the
+   two counters per occurrence (the code paths are independent), so double-counting of a
+   single incident is not possible under the current architecture. This clarification makes
+   the semantic intent explicit: three correlated events, not one event counted multiple times.
 2. The accumulated events occurred within `CORRELATION_WINDOW_SECS` (proposed: 300s) of
    `flow.correlation_window_start_ts` — i.e., `now_ts.wrapping_sub(flow.correlation_window_start_ts) < CORRELATION_WINDOW_SECS`.
    // wrapping_sub used for u32 second timestamps; wrap at ~136 years — effectively never, policy kept.
@@ -102,7 +118,11 @@ threshold (e.g., 5) misses shorter but still impactful attack sequences.
    - `flow.block_event_count = 0`
    - `flow.block_finding_emitted_this_window = false`
    - `flow.loss_of_control_emitted = false`
+   - `flow.malformed_in_window = 0` (BC-2.15.024 windowed counter; NEW v1.5)
+   - `flow.malformed_anomaly_emitted = false` (BC-2.15.024 one-shot guard; NEW v1.5)
    - `flow.correlation_window_start_ts = now_ts`
+   **Note: `flow.parse_errors` is NOT reset here.** It is a lifetime counter; see BC-2.15.024
+   Invariant 1 and BC-2.15.020.
 
 ## Invariants
 
@@ -124,12 +144,25 @@ threshold (e.g., 5) misses shorter but still impactful attack sequences.
    though no T1691.001 finding was emitted for the first 2 block events.
 6. **Single reset owner**: This BC (BC-2.15.015) owns the window-expiry reset logic. After
    `CORRELATION_WINDOW_SECS = 300s` **[F2-GATE]** elapsed since `correlation_window_start_ts`,
-   ALL four correlated-state fields reset together: `restart_event_count`, `block_event_count`,
-   `block_finding_emitted_this_window`, `loss_of_control_emitted`. BC-2.15.011 and BC-2.15.014
-   do NOT own separate window timers; they reference this single reset. This eliminates the
-   contradiction where a 120s BLOCK_CMD_WINDOW_SECS reset (old v1.1 BC-2.15.014 design) would
-   discard block events before T0827 could see them.
-7. **DoS-bounded**: `restart_event_count` and `block_event_count` are `u64` (no practical
+   ALL six windowed correlated-state fields reset together: `restart_event_count`,
+   `block_event_count`, `block_finding_emitted_this_window`, `loss_of_control_emitted`,
+   `malformed_in_window` (BC-2.15.024 windowed counter; v1.5 addition), and
+   `malformed_anomaly_emitted` (BC-2.15.024 one-shot guard; v1.5 addition); plus
+   `correlation_window_start_ts` is set to `now_ts`. **`parse_errors` is explicitly NOT in
+   this reset set** — it is the lifetime structural-error counter consumed by BC-2.15.020
+   `summarize()`. BC-2.15.011, BC-2.15.014, and BC-2.15.024 do NOT own separate window
+   timers; they reference this single reset. This eliminates the contradiction where a 120s
+   BLOCK_CMD_WINDOW_SECS reset (old v1.1 BC-2.15.014 design) would discard block events
+   before T0827 could see them.
+7. **Distinct impact events** (v1.4 clarification, sourced from
+   dnp3-f2-scope-threshold-validation.md §Q3): the ≥3 combined guard is satisfied by DISTINCT
+   impact events. A restart event (increment of `restart_event_count`) and a block-command
+   event (increment of `block_event_count`) are events from independent code paths (BC-2.15.011
+   and BC-2.15.014 respectively). A single underlying incident (e.g. one timed-out control
+   request) can increment at most one of the two counters per occurrence — the T0827 accumulator
+   sum therefore represents genuinely distinct events and cannot be satisfied by a single
+   incident double-counted through separate code paths.
+8. **DoS-bounded**: `restart_event_count` and `block_event_count` are `u64` (no practical
    overflow). `loss_of_control_emitted` is a bool one-shot guard. Window reset at 300s bounds
    the worst-case accumulator value at `300s / BLOCK_CMD_TIMEOUT_SECS = 300/10 = 30` block
    events per window per flow (tight upper bound on pending_requests churn).
@@ -230,6 +263,8 @@ No T0827 in either window; first window expired before threshold reached.
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.pending_requests: HashMap<(u16, u8), u32>`
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.block_finding_emitted_this_window: bool`
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.loss_of_control_emitted: bool`
+- `src/analyzer/dnp3.rs` — `Dnp3FlowState.malformed_in_window: u64` (NEW v1.5; windowed malformed-frame counter owned by BC-2.15.024; reset here at window expiry)
+- `src/analyzer/dnp3.rs` — `Dnp3FlowState.malformed_anomaly_emitted: bool` (NEW v1.5; one-shot guard owned by BC-2.15.024; reset here at window expiry)
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.correlation_window_start_ts: u32` (single shared window; this BC owns its reset logic)
 - `src/mitre.rs` — `technique_info("T0827")` arm (NEW: `("Loss of Control", MitreTactic::IcsImpact)`); `MitreTactic::IcsImpact` variant (NEW)
 - `.factory/phase-f2-spec-evolution/dnp3-architecture-delta.md §8` (detection table: "Loss of control derived → T0827 correlated finding")
@@ -257,7 +292,7 @@ TBD (F3 story decomposition)
 | Property | Assessment |
 |----------|-----------|
 | **I/O operations** | none |
-| **Global state access** | reads restart_event_count + block_event_count; writes loss_of_control_emitted, all_findings; owns window-expiry reset of all four correlation fields |
+| **Global state access** | reads restart_event_count + block_event_count; writes loss_of_control_emitted, all_findings; owns window-expiry reset of all six windowed correlation fields (restart_event_count, block_event_count, block_finding_emitted_this_window, loss_of_control_emitted, malformed_in_window, malformed_anomaly_emitted) + correlation_window_start_ts; does NOT reset parse_errors (lifetime) |
 | **Deterministic** | yes — same event sequence produces same T0827 trigger |
 | **Thread safety** | single-threaded |
 | **Overall classification** | effectful shell (correlated/derived finding) |

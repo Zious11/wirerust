@@ -4,11 +4,12 @@ feature_id: issue-008-dnp3-analyzer
 github_issue: 8
 title: "F2 Architecture Delta — DNP3 TCP Analyzer (SS-15)"
 status: draft
-version: "1.1"
+version: "1.2"
 producer: architect
 created: 2026-06-10
 modified:
   - "v1.1 (2026-06-10, Pass-2 remediation): Added 6 correlation-state fields to Dnp3FlowState (HIGH-1/HIGH-2): restart_event_count, block_event_count, pending_requests, block_finding_emitted_this_window, loss_of_control_emitted, correlation_window_start_ts. Added MAX_PENDING_REQUESTS bound constant. Added correlation-window reset note. Fields required by BC-2.15.011/014/015 for T1691.001 and T0827 detection."
+  - "v1.2 (2026-06-10, BC-2.15.024 struct registration): Added malformed_in_window: u64 (windowed malformed-frame counter for BC-2.15.024 T0814 threshold) and malformed_anomaly_emitted: bool (one-shot T0814 guard) to Dnp3FlowState §2.3. Added MALFORMED_ANOMALY_THRESHOLD: u64 = 3 constant. Clarified parse_errors as lifetime (never-reset) counter vs. malformed_in_window as the windowed counter. All 6 correlation-window fields (including the 2 new malformed fields) reset together at 300s expiry owned by BC-2.15.015; parse_errors does NOT reset. Fixes the BC-2.15.024 / ADR-007 Decision 5 struct contradiction."
 base_commit: fb2c875
 branch: develop
 traces_to:
@@ -102,16 +103,25 @@ pub struct Dnp3FlowState {
     /// traffic spoofing many source addresses.
     master_addrs_seen: Vec<u16>,
 
-    /// Parse errors (invalid frames, sync failures, CRC-block boundary overruns).
+    /// LIFETIME parse-error counter: incremented for every frame that fails the
+    /// three-point validity gate (sync word absent, LENGTH < 5, or block-count
+    /// arithmetic mismatch) OR any structural overrun.  NEVER reset — accumulates
+    /// for the full lifetime of the flow.  Consumed by BC-2.15.020 summary output.
+    ///
+    /// NOTE: do NOT conflate with `malformed_in_window` below.  `parse_errors` is
+    /// the lifetime monotonic total; `malformed_in_window` is the windowed counter
+    /// that drives the BC-2.15.024 T0814 threshold.  Both are incremented on each
+    /// malformed frame; only `malformed_in_window` resets at the 300s window expiry.
     parse_errors: u64,
 
     /// Total frames processed.
     frame_count: u64,
 
-    // ---- Correlation-window state (BC-2.15.011 / BC-2.15.014 / BC-2.15.015) ----
-    // All six fields below reset together at correlation-window expiry (single window,
-    // default 300s [F2-GATE]).  They are distinct from the direct-operate burst
-    // detector window above (60s, controlled by window_start_ts / direct_operate_count).
+    // ---- Correlation-window state (BC-2.15.011 / BC-2.15.014 / BC-2.15.015 / BC-2.15.024) ----
+    // All SIX fields below reset together at correlation-window expiry (single window,
+    // default 300s [F2-GATE], owned by BC-2.15.015).  They are distinct from the
+    // direct-operate burst detector window above (60s, window_start_ts / direct_operate_count).
+    // `parse_errors` (above) does NOT reset — it is a lifetime counter, not a window counter.
 
     /// COLD_RESTART (0x0D) + WARM_RESTART (0x0E) event accumulator within the
     /// correlation window.  Contributes to the T0827 (Loss of Control) derived
@@ -150,6 +160,19 @@ pub struct Dnp3FlowState {
     /// When `now - correlation_window_start_ts >= window_duration`, all six
     /// correlation-state fields reset and this field is set to `now`.
     correlation_window_start_ts: u32,
+
+    /// Windowed malformed-frame counter for BC-2.15.024 (T0814 low/med-confidence
+    /// anomaly detection).  Incremented on every frame that fails the three-point
+    /// validity gate (same frames that increment `parse_errors`).  When this counter
+    /// exceeds MALFORMED_ANOMALY_THRESHOLD within the 300s correlation window, a
+    /// T0814 finding is emitted.  Reset at correlation-window expiry together with
+    /// the other five correlation-window fields above (BC-2.15.015 owns the reset).
+    malformed_in_window: u64,
+
+    /// One-shot T0814 guard for BC-2.15.024: prevents duplicate T0814 malformed-frame
+    /// findings within a single 300s correlation window.  Set to true when the T0814
+    /// anomaly finding is emitted; reset at correlation-window expiry.
+    malformed_anomaly_emitted: bool,
 }
 ```
 
@@ -166,6 +189,11 @@ const MAX_MASTER_ADDRS: usize = 64;
 /// cause the oldest entry to be evicted (DoS-safe bounded table,
 /// mirrors Modbus pending-table bound).
 const MAX_PENDING_REQUESTS: usize = 256;
+
+/// Number of malformed/structural frames within the 300s correlation window
+/// that triggers a T0814 low/med-confidence anomaly finding (BC-2.15.024).
+/// Feeds `malformed_in_window`; guarded by `malformed_anomaly_emitted`.
+const MALFORMED_ANOMALY_THRESHOLD: u64 = 3;
 ```
 
 ---

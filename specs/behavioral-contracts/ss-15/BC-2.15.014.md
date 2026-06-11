@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v1.1: Pass-1 adversarial fix I-5: separated block_event_count (unconditional timeout counter, feeds T0827 accumulator) from block_finding_emitted_this_window (one-shot guard, prevents T1691.001 finding flood). Original model had block_event_count gated behind finding emission, causing the T0827 accumulator to never see the first 2 block events. Fixed: Postconditions restructured into unconditional (counter increment) + conditional (finding emission). Precondition 5 rewritten to check counter AFTER increment. EC-003, EC-004, EC-007 and canonical test vectors updated. Architecture anchors updated with new block_finding_emitted_this_window field. — 2026-06-10"
   - "v1.2: Pass-2 adversarial fix CRITICAL-2: eliminated separate BLOCK_CMD_WINDOW_SECS=120s window entirely. T1691.001 emission now uses the shared CORRELATION_WINDOW_SECS=300s [F2-GATE: human to confirm] tracked by correlation_window_start_ts. Sustained pattern is now 3-of-300s (was 3-of-120s). block_event_count and block_finding_emitted_this_window reset ONLY at 300s window expiry together with restart_event_count and loss_of_control_emitted — single reset owner in BC-2.15.015 window-expiry handler. Invariant 7 (old 120s window reset) rewritten. EC-006 (old 120s reset) rewritten to 300s. Canonical test vectors updated. Architecture anchors updated: removed BLOCK_CMD_WINDOW_SECS, added CORRELATION_WINDOW_SECS reference. The key security implication: block events spaced 120–300s apart are no longer silently dropped; they accumulate toward both T1691.001 and T0827. — 2026-06-10"
   - "v1.3: Pass-3 adversarial fix HIGH-2 (cross-ref accuracy): Invariant 8 cross-reference '(see BC-2.15.016 for the pending_requests cap)' is now accurate — BC-2.15.016 v1.1 adds Postconditions 8–10 and Invariant 5 specifying MAX_PENDING_REQUESTS=256 with oldest-eviction. Also fix HIGH-3: Precondition 3 timeout check changed from plain subtraction `now_ts - request_ts` to `now_ts.wrapping_sub(request_ts)` to prevent panic under overflow-checks=true when timestamps go backward (out-of-order pcap replay). Rationale: u32 second timestamps wrap at ~136 years — effectively never, policy kept. — 2026-06-10"
+  - "v1.4: Research validation confirmation (dnp3-f2-scope-threshold-validation.md §Q2 Threshold-2): DIRECT_OPERATE_NR (0x06) exclusion from the block-command timeout count is explicitly confirmed as a required guard by the research pass [VERIFIED]. The exclusion is already present in Precondition 1 and Invariant 1 (since v1.0). This entry records the explicit research-backed validation. No behavioral change. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null

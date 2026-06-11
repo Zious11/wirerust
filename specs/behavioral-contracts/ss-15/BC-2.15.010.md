@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.5.0-feature-008
 modified:
   - "v1.1: Pass-1 adversarial fix C-2: corrected tactic cardinality — T1692.001 maps to exactly ONE MitreTactic (IcsImpairProcessControl); removed erroneous '+ Evasion' from Traceability MITRE Techniques field. The technique_info table is single-tactic per entry. — 2026-06-10"
+  - "v1.2: Research threshold clarification (dnp3-f2-scope-threshold-validation.md §Q1 Threshold-1): clarified the semantic role of the 10/60s threshold — it is a flood/burst guard for the allowlisted-but-abnormally-busy case, NOT the primary unauthorized-source detector. Unauthorized control from an UNEXPECTED SOURCE ADDRESS fires at count=1, independent of this rate threshold. Added Invariant 5 and expanded [F2-GATE] note. Confirmed 10/60s default; noted ~5/60s tighter option for quiet transmission profiles. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -86,16 +87,41 @@ per detection window per flow. ADR-007 Decision 5.
 4. **Broadcast co-emission**: if `h.destination` is in 0xFFFD..=0xFFFF, the finding additionally
    notes the broadcast destination in the evidence field (anomaly note — see BC-2.15.018).
    The broadcast anomaly does NOT change the technique tag set; T1692.001 remains the sole tag.
+5. **10/60s threshold is a flood guard, NOT the primary authz check (v1.2 clarification)**:
+   [JUDGMENT: dnp3-f2-scope-threshold-validation.md §Q2 Threshold-1] The threshold catches
+   a source that is issuing an abnormally high VOLUME of control commands. The high-value
+   unauthorized-command signal — control FC from a non-allowlisted SOURCE address — fires at
+   **count=1**, independent of this threshold. The source-address check is the primary gate;
+   the 10/60s rate check is the secondary volumetric gate for the flood/burst case. This design
+   matches real-world DNP3 security posture: an illegitimate source sending even ONE control
+   command is anomalous; a legitimate source sending 10+/60s is also anomalous for different
+   reasons (flood, misconfiguration, replay). The `--dnp3-direct-operate-threshold` flag
+   (BC-2.15.017) allows operators to tighten to ~5/60s for quiet transmission profiles.
 
 **[F2-GATE: human to confirm default]**
 The default value of `direct_operate_threshold` is proposed as **10** (ten Control-class FCs
-within `DETECTION_WINDOW_SECS = 60 seconds`). Rationale: mirrors the Modbus write-burst
-threshold pattern; a legitimate engineering workstation issues SELECT+OPERATE pairs at most
-a few times per minute during commissioning; sustained control bursts above 10/minute from
-an unknown source are anomalous. The Modbus write-burst default was 20/1s (very fast);
-DNP3 control commands are operationally slower (SBO round-trips include relay dwell times).
-The human should confirm whether this default is appropriate for their OT environment or
-whether a lower value (5) or environment-specific tuning is preferred.
+within `DETECTION_WINDOW_SECS = 60 seconds`). This threshold is CONFIRMED as sound by
+dnp3-f2-scope-threshold-validation.md §Q2 Threshold-1 [JUDGMENT, grounded in vendor device
+profiles and ICS literature].
+
+**Semantic role clarification (v1.2):** the 10/60s threshold is a deliberately-lax BURST /
+FLOOD GUARD for the case where a source is allowlisted but issuing an abnormally high command
+rate. It is NOT the primary unauthorized-source detector.
+
+- **Unauthorized control from an UNEXPECTED SOURCE ADDRESS** must fire at **count=1**,
+  independent of this rate threshold. The source-address check (comparing `src` against an
+  allowlist or expected master-address set) is the high-value gate for the classic
+  unauthorized-operator scenario. The 10/60s threshold is the secondary volumetric gate.
+- **10/60s default is deliberately conservative** against false positives. Mechanical reality:
+  DNP3 control commands (SBO round-trips for breakers/relays) occur at most a few per minute
+  in normal operations; sustained bursts above 10/min are genuinely anomalous.
+- **Quiet transmission profiles:** operators in environments with very low legitimate control
+  rates (substation with a single breaker, for example) may tighten to **~5/60s** using the
+  `--dnp3-direct-operate-threshold` CLI flag (BC-2.15.017). The default is NOT raised above 10.
+  [JUDGMENT: dnp3-f2-scope-threshold-validation.md §Q2 Threshold-1 — "do not raise above 10"]
+
+The human should confirm whether 10/60s is appropriate for their OT environment or whether
+5/60s is preferred for a quieter transmission profile.
 
 ## Edge Cases
 

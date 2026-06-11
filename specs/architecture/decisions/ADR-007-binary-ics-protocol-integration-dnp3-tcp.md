@@ -5,6 +5,9 @@ status: proposed
 date: 2026-06-10
 modified:
   - "2026-06-10 (Pass-2 remediation, issue #8): Added 6 correlation-state fields to Dnp3FlowState sketch in Decision 4 (restart_event_count, block_event_count, pending_requests, block_finding_emitted_this_window, loss_of_control_emitted, correlation_window_start_ts) and MAX_PENDING_REQUESTS constant. These fields are required by BC-2.15.011/014/015 for T1691.001 and T0827 detection. Added correlation-window reset note consistent with architecture-delta v1.1."
+  - "2026-06-10 (issue #8, research-validated scope additions): Decision 5 extended with two new detections: BC-2.15.023 (ENABLE/DISABLE_UNSOLICITED app FC 0x14/0x15 → T0814 alarm-suppression variant) and BC-2.15.024 (malformed/structural-frame anomaly → T0814 low/med confidence, separate windowed counter malformed_in_window + one-shot guard malformed_anomaly_emitted + MALFORMED_ANOMALY_THRESHOLD = 3; parse_errors remains the lifetime counter and is also incremented but never reset). Neither detection alters classify_dnp3_fc semantics, VP-023, the MITRE catalog, or seeded/emitted counts. SS-15 BC count updated 22 → 24."
+  - "2026-06-10 (BC-2.15.024 struct registration): Decision 4 Dnp3FlowState sketch updated to add malformed_in_window: u64 (windowed malformed-frame counter) and malformed_anomaly_emitted: bool (one-shot T0814 guard); MALFORMED_ANOMALY_THRESHOLD: u64 = 3 constant added. parse_errors clarified as lifetime counter (never reset). Decision 5 BC-2.15.024 paragraph corrected: replaced 'no new field / reuses parse_errors' with the separate windowed-counter design. All 6 correlation-window fields reset together at 300s expiry; parse_errors does NOT reset."
+  - "2026-06-10 (BC-2.15.024 semantic correction): Decision 5 'Distinction from deferred CRC validation' paragraph rewritten to correct HIGH semantic contradiction. Previous text wrongly stated that CRC validation would catch Crain-Sistrunk-style frame corruption and demoted BC-2.15.024 to 'not CRC-level corruption'. Ground truth (dnp3-f2-scope-threshold-validation.md §Q1(c); BC-2.15.024 Invariant 3): Crain-Sistrunk frames carry VALID CRCs; they are structurally/length malformed. CRC validation (deferred) would NOT have caught them. BC-2.15.024's structural-reject-path detection is the ONLY coverage for the Crain-Sistrunk malformed-frame crash class. CRC deferral and malformed-frame coverage are ORTHOGONAL — deferring CRC does NOT defer malformed-frame coverage."
 subsystems_affected:
   - SS-05
   - SS-10
@@ -251,16 +254,25 @@ pub struct Dnp3FlowState {
     /// Source link addresses seen claiming DIR=1 (master direction).
     master_addrs_seen: Vec<u16>,  // bounded to MAX_MASTER_ADDRS
 
-    /// Total parse errors (invalid frames, CRC-block overruns, etc.).
+    /// LIFETIME parse-error counter: incremented for every frame that fails the
+    /// three-point validity gate (sync word absent, LENGTH < 5, or block-count
+    /// arithmetic mismatch) OR any structural overrun.  NEVER reset — accumulates
+    /// for the full lifetime of the flow.  Consumed by BC-2.15.020 summary output.
+    ///
+    /// NOTE: do NOT conflate with `malformed_in_window` below.  `parse_errors` is
+    /// the lifetime monotonic total; `malformed_in_window` is the windowed counter
+    /// that drives the BC-2.15.024 T0814 threshold.  Both are incremented on each
+    /// malformed frame; only `malformed_in_window` resets at the 300s window expiry.
     parse_errors: u64,
 
     /// Total frames analyzed.
     frame_count: u64,
 
-    // ---- Correlation-window state (BC-2.15.011 / BC-2.15.014 / BC-2.15.015) ----
-    // All six fields reset together at correlation-window expiry (single window,
-    // default 300s [F2-GATE]).  Distinct from the direct-operate burst window
-    // (window_start_ts / direct_operate_count, 60s).
+    // ---- Correlation-window state (BC-2.15.011 / BC-2.15.014 / BC-2.15.015 / BC-2.15.024) ----
+    // All SIX fields below reset together at correlation-window expiry (single window,
+    // default 300s [F2-GATE], owned by BC-2.15.015).  Distinct from the direct-operate
+    // burst window (window_start_ts / direct_operate_count, 60s).
+    // `parse_errors` (above) does NOT reset — it is a lifetime counter, not a window counter.
 
     /// COLD/WARM restart event accumulator within the correlation window.
     /// Contributes to the T0827 Loss of Control derivation threshold (BC-2.15.011).
@@ -288,15 +300,33 @@ pub struct Dnp3FlowState {
     /// Start timestamp (seconds) of the current correlation window.
     /// Window default 300s [F2-GATE]; exact threshold pinned in F3 BCs.
     correlation_window_start_ts: u32,
+
+    /// Windowed malformed-frame counter for BC-2.15.024 (T0814 low/med-confidence
+    /// anomaly detection).  Incremented on every frame that fails the three-point
+    /// validity gate (same frames that increment `parse_errors`).  When this counter
+    /// exceeds MALFORMED_ANOMALY_THRESHOLD within the 300s correlation window, a
+    /// T0814 finding is emitted.  Reset at correlation-window expiry together with
+    /// the other five correlation-window fields above.
+    malformed_in_window: u64,
+
+    /// One-shot T0814 guard for BC-2.15.024: prevents duplicate T0814 malformed-frame
+    /// findings within a single 300s correlation window.  Set to true when the T0814
+    /// anomaly finding is emitted; reset at correlation-window expiry.
+    malformed_anomaly_emitted: bool,
 }
 ```
 
-**Additional bounded-resource constant (Pass-2, mirrors architecture-delta v1.1):**
+**Additional bounded-resource constants (Pass-2 + v1.2, mirrors architecture-delta v1.2):**
 
 ```rust
 /// Maximum outstanding pending control requests per flow for T1691.001
 /// request/response correlation.  Oldest entry evicted on overflow.
 const MAX_PENDING_REQUESTS: usize = 256;
+
+/// Number of malformed/structural frames within the 300s correlation window
+/// that triggers a T0814 low/med-confidence anomaly finding (BC-2.15.024).
+/// Feeds `malformed_in_window`; guarded by `malformed_anomaly_emitted`.
+const MALFORMED_ANOMALY_THRESHOLD: u64 = 3;
 ```
 
 ### Decision 5: ICS-matrix MITRE technique additions — corrected technique set
@@ -379,6 +409,69 @@ the SAME commit:
 | T0814 | Modbus (force-listen-only) + DNP3 (COLD/WARM_RESTART) | Already in EMITTED_IDS |
 | T1691.001 | DNP3 (request-without-response inference) | **NEW — add to EMITTED_IDS** |
 | T0827 | DNP3 (correlated loss-of-control impact finding) | **NEW — add to EMITTED_IDS** |
+
+**BC-2.15.023 — Unsolicited enable/disable abuse (app FC 0x14/0x15 → T0814):**
+
+Application Function Code 0x14 (`ENABLE_UNSOLICITED`) and 0x15 (`DISABLE_UNSOLICITED`)
+control whether a DNP3 outstation proactively reports alarm/event data to the master.
+An attacker sending DISABLE_UNSOLICITED suppresses event notifications from the
+outstation — a form of alarm suppression that maps to T0814 Denial of Service
+(IcsInhibitResponseFunction). Detection reads the raw application FC directly from
+`payload_buf[2]` on FIR=1 frames (FC byte is always in the first fragment). This
+detection does NOT alter `classify_dnp3_fc` semantics; `classify_dnp3_fc` is the
+pure-core classification function targeted by VP-023, and adding FC 0x14/0x15 to its
+output table is not required — the detection compares the raw FC value inline. VP-023
+and its Kani harness are unchanged. The technique emitted is T0814 (already seeded and
+in EMITTED_IDS); no catalog or count change results.
+
+**BC-2.15.024 — Malformed/structural-frame anomaly (→ T0814 low/med confidence):**
+
+Frames that fail the three-point validity gate in `is_valid_dnp3_frame` (sync word
+absent, LENGTH < 5, or LENGTH/block-count mismatch against actual frame bytes) are
+counted as malformed frames. BC-2.15.024 surfaces these as a low/med-confidence T0814
+indicator: a sustained spike in structural parse errors on a DNP3 flow suggests crafted
+malformed frames intended to disrupt processing (Denial of Service). The correlation uses
+the single 300s window established for T0827/T1691.001 events (the
+`correlation_window_start_ts` window in Decision 4).
+
+This detection uses a **separate windowed counter** — NOT a direct reuse of
+`parse_errors`. The `Dnp3FlowState` struct registers three dedicated items for
+BC-2.15.024:
+
+- `malformed_in_window: u64` — windowed malformed-frame counter; feeds the T0814
+  threshold check; reset at the 300s correlation-window expiry (same reset owned by
+  BC-2.15.015 that resets all six correlation-window fields).
+- `malformed_anomaly_emitted: bool` — one-shot T0814 guard; prevents duplicate
+  findings within a single 300s window; reset at window expiry.
+- `const MALFORMED_ANOMALY_THRESHOLD: u64 = 3` — the per-window count threshold at
+  which T0814 is emitted.
+
+`parse_errors: u64` remains the **lifetime monotonic counter**: it is also incremented
+on each malformed frame (unchanged from Decision 2), but it is NEVER reset. It feeds the
+BC-2.15.020 summary output. The two counters serve different consumers: `parse_errors`
+for lifetime summaries, `malformed_in_window` for the windowed BC-2.15.024 threshold.
+Do not conflate them.
+
+Confidence is explicitly low/medium (not high) because structural anomalies can also
+arise from benign line noise or partial captures.
+
+**Distinction from deferred CRC validation:** BC-2.15.024 covers STRUCTURAL malformation
+— LENGTH<5, frame-length/block-count mismatch, sync-loss/carry-overflow — surfaced by the
+parser's existing reject paths. This is ORTHOGONAL to CRC validation, which is deferred to a
+future cycle. Critically, **Crain-Sistrunk attack frames carry VALID CRCs** [VERIFIED:
+dnp3-f2-scope-threshold-validation.md §Q1(c): "ASDUs that are too short to contain a valid
+object header could be delivered in a frame with a correct lower-layer CRC value to cause an
+unhandled exception"]. The Crain-Sistrunk crash class — ~28-30 DNP3 vulnerabilities across
+16+ ICS-CERT advisories (Project Robus, S4x14) — is caused by structurally malformed frames:
+ASDUs too short to hold a valid object header, LENGTH/block-count mismatches, transport-
+header-only frames that trigger unhandled parser states. **CRC validation (deferred) would
+NOT have caught them.** BC-2.15.024's structural-reject-path detection is therefore the ONLY
+coverage for the Crain-Sistrunk malformed-frame crash class. "CRC deferred" must NOT be read
+as "malformed-frame coverage deferred" — these are orthogonal, independent concerns. (Matches
+BC-2.15.024 Invariant 3.)
+
+The technique emitted is T0814 (already seeded and in EMITTED_IDS); no catalog or
+count change results. This detection is test-sufficient; no new Kani VP is required.
 
 **Note on T0803 (revoked):** Per F1 delta analysis §6, T0803 was the anticipated new
 catalog entry. T0803 is REVOKED in ics-attack-19.1 (replaced by T1691.001). Do NOT add
