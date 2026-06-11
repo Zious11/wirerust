@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Pass-3 adversarial fix HIGH-2: added pending_requests DoS bound — MAX_PENDING_REQUESTS=256 entries. On insert when at cap, evict the OLDEST entry (minimum request_ts). Postconditions 8–10 added; Invariant 5 added; EC-008 added; canonical test vector added; Architecture Anchors and Description updated. BC-2.15.014 Invariant 8 now correctly cross-references this BC for the pending_requests cap. — 2026-06-10"
+  - "v1.2: EC-007 resync policy updated — drain-1 (STORY-107 v1 behavior) replaced by byte-walk-forward resync (STORY-109 realization of the STORY-107 explicitly deferred resync). STORY-107 in-code comment stated: 'Byte-walk resync on mid-carry sync-loss is deferred to a later detection story'; STORY-109 is that story. EC-007 now specifies: after the LENGTH gate increments parse_errors and malformed_in_window, the carry head is repositioned by scanning from index 1 for the next [0x05,0x64] sync word; bytes before it are drained; if none found, carry is cleared. No postcondition or invariant logic changed — this is an EC-007 navigation-detail clarification only. Authorized by STORY-109-resync-adjudication.md Decision 2. — 2026-06-11"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -95,7 +96,7 @@ These three bounds collectively prevent unbounded memory growth under adversaria
 | EC-004 | Carry reaches 291 bytes (1 byte short of 292); on_data delivers 2 more bytes | 1 byte accepted (total=292); 1 byte discarded; `parse_errors++` |
 | EC-005 | `master_addrs_seen` already has 64 entries; new master source addr arrives | Silently ignored; vec stays at 64 entries |
 | EC-006 | Desync-bailed flow (`is_non_dnp3=true`); on_data delivers bytes | Immediate no-op; carry NOT updated (per BC-2.15.009) |
-| EC-007 | `flow.carry[2]` (LENGTH byte) is invalid (< 5) after partial accumulation | Validity gate (BC-2.15.004) handles this; `parse_errors++`; carry advanced |
+| EC-007 | `flow.carry[2]` (LENGTH byte) is invalid (< 5) after partial accumulation | Validity gate (BC-2.15.004) handles this; `parse_errors++` (lifetime) and `malformed_in_window++` (windowed, per BC-2.15.024); then carry advanced via byte-walk-forward resync: scan carry from index 1 for the next `[0x05, 0x64]` sync word; drain all bytes before it if found; if no sync word found, clear carry entirely. No further `parse_errors` or `malformed_in_window` increment occurs during resync navigation — the error was already counted at the LENGTH gate. The carry-clear on no-sync-found does NOT set `is_non_dnp3 = true`. Each non-break iteration drains ≥1 byte; carry bounded ≤292 bytes; loop terminates. This replaces the STORY-107 v1 drain-1 behavior for this path (STORY-109 realization; authorized by STORY-109-resync-adjudication.md Decision 2). |
 | EC-008 | `pending_requests` already has 256 entries; new Control-class request arrives | Oldest entry (minimum request_ts) evicted; new entry inserted; map stays at 256 entries. No timeout-event generated for evicted entry. |
 
 ## Canonical Test Vectors
