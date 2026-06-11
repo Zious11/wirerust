@@ -102,6 +102,18 @@ pub const MAX_PENDING_REQUESTS: usize = 256;
 #[allow(unused)]
 pub const MAX_DNP3_CARRY_BYTES: usize = 292;
 
+/// Maximum on-wire DNP3 link frame size; also the carry-buffer bound.
+/// Alias for `MAX_DNP3_CARRY_BYTES` using the name referenced by BC-2.15.016
+/// postconditions 1–2 and the AC-001..006 test suite.  Both constants are 292.
+#[allow(unused)]
+pub const MAX_DNP3_FRAME_LEN: usize = 292;
+
+/// Maximum unique master-station source addresses tracked per flow
+/// (BC-2.15.016 postconditions 5–6; ADR-007 Decision 4).
+/// Once full, new master source addresses are silently ignored.
+#[allow(unused)]
+pub const MAX_MASTER_ADDRS: usize = 64;
+
 /// Number of malformed/structural frames within the 300s correlation window
 /// that triggers a T0814 low/med-confidence anomaly finding (BC-2.15.024).
 #[allow(unused)]
@@ -415,6 +427,19 @@ pub fn transport_is_fir(transport_octet: u8) -> bool {
 pub fn has_user_data(control: u8) -> bool {
     let link_fc = control & 0x0F;
     link_fc == 0x03 || link_fc == 0x04
+}
+
+/// Returns `true` when the link-layer CONTROL field has the DIR bit set
+/// (`control & 0x10 != 0`), indicating a master-direction frame (DIR=1).
+///
+/// Used by the master-address tracking logic (BC-2.15.016 postconditions 5–6)
+/// to decide whether the frame's source address should be recorded in
+/// `flow.master_addrs_seen`.  Implemented in STORY-107 Task 5.
+///
+/// Unit test only (not a Kani target).
+#[allow(unused)]
+pub fn is_master_frame(control: u8) -> bool {
+    todo!("STORY-107: implement DIR bit check — control & 0x10 != 0")
 }
 
 // ---------------------------------------------------------------------------
