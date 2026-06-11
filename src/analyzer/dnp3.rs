@@ -250,7 +250,13 @@ impl Dnp3Analyzer {
             //  before counting is part of the STORY-107 frame-walk. (adv Pass-2 B1)
             flow.frame_count += 1;
 
-            if transport_is_fir(transport_octet) {
+            // BC-2.15.008 precondition 2 / Invariant 4 / EC-005 (adv Pass-3 F-P3-001):
+            // The transport+application layer is present ONLY when the link CONTROL field FC
+            // nibble (CONTROL & 0x0F) is CONFIRMED_USER_DATA (0x03) or UNCONFIRMED_USER_DATA
+            // (0x04). Other link FCs (e.g. RESET_LINK = 0x00) carry NO transport/app payload;
+            // descending into the app layer for those frames is incorrect.
+            let control = data[3]; // link CONTROL byte
+            if transport_is_fir(transport_octet) && has_user_data(control) {
                 // STORY-107 scope: this offset assumes the minimum single-block frame
                 // (no interior CRC blocks). Multi-block CRC-block stripping and correct
                 // payload_buf indexing are STORY-107 scope (ADR-007 Decision 3).
