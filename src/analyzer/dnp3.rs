@@ -170,7 +170,7 @@ pub struct Dnp3FlowState {
     /// the three-point validity gate.  NEVER reset (ADR-007 Decision 4).
     pub parse_errors: u64,
 
-    // --- Direct-operate burst window (BC-2.15.011, STORY-108) ---
+    // --- Direct-operate burst window (BC-2.15.010, STORY-108) ---
     pub direct_operate_count: u32,
     pub window_start_ts: u32,
     pub direct_operate_emitted: bool,

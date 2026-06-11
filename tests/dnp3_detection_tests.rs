@@ -190,12 +190,17 @@ mod story_108 {
             "AC-002: confidence must be Medium"
         );
 
-        // Verify the summary string format
+        // BC-2.15.010 PC3: verify the exact summary format from the BC postcondition.
+        // Format: "DNP3 unauthorized control command burst: {count} control FCs in {elapsed}s
+        // window (threshold {threshold})"
+        // count=11, elapsed=10 (ts of 11th frame=10, window_start_ts=0), threshold=10.
+        // Elapsed is derived from wrapping_sub(10, 0)=10 — deterministic for fixed timestamps.
+        // Use starts_with to pin everything except the timing-sensitive elapsed suffix.
         assert!(
-            f.summary.contains("T1692.001")
-                || f.summary.contains("control command burst")
-                || f.summary.contains("11"),
-            "AC-002: summary must mention the count (11) or technique/burst context; got: {:?}",
+            f.summary.starts_with(
+                "DNP3 unauthorized control command burst: 11 control FCs in 10s window (threshold 10)"
+            ),
+            "BC-2.15.010 PC3: summary must match exact BC format string; got: {:?}",
             f.summary
         );
 
@@ -390,6 +395,19 @@ mod story_108 {
             "AC-005: COLD_RESTART confidence must be High"
         );
 
+        // BC-2.15.011 PC1: pin exact summary format from BC postcondition.
+        // Format: "DNP3 restart command observed: FC 0x{fc:02X} ({name}) from src={src:#06X}
+        // to dest={dest:#06X}"
+        // Frame built with build_detection_frame(0x0D, 0x0003, 0x0001):
+        //   fc=0x0D, name="COLD_RESTART", src=0x0001, dest=0x0003
+        // {:#06X} → uppercase hex with 0x prefix, minimum 6 chars total → "0x0001", "0x0003"
+        assert_eq!(
+            f.summary,
+            "DNP3 restart command observed: FC 0x0D (COLD_RESTART) from src=0x0001 to dest=0x0003",
+            "BC-2.15.011 PC1: summary must match exact BC format string; got: {:?}",
+            f.summary
+        );
+
         // BC-2.15.011 PC1: source_ip must be Some(<source endpoint resolved from flow_key>).
         //
         // Derivation: same flow_key as AC-002 above.
@@ -564,6 +582,19 @@ mod story_108 {
             "AC-006: WRITE confidence must be Medium"
         );
 
+        // BC-2.15.012 PC1: pin exact summary format from BC postcondition.
+        // Format: "DNP3 WRITE command observed: parameter modification from src={src:#06X}
+        // to dest={dest:#06X}"
+        // Frame built with build_detection_frame(0x02, 0x0003, 0x0001):
+        //   src=0x0001, dest=0x0003
+        // {:#06X} → uppercase hex with 0x prefix, minimum 6 chars total → "0x0001", "0x0003"
+        assert_eq!(
+            f.summary,
+            "DNP3 WRITE command observed: parameter modification from src=0x0001 to dest=0x0003",
+            "BC-2.15.012 PC1: summary must match exact BC format string; got: {:?}",
+            f.summary
+        );
+
         // BC-2.15.012 PC1: source_ip must be Some(<source endpoint resolved from flow_key>).
         //
         // Derivation: same flow_key as AC-002/AC-005 above.
@@ -629,25 +660,28 @@ mod story_108 {
     }
 
     // -----------------------------------------------------------------------
-    // AC-007 (BC-2.15.013 postconditions 2/3 — co-emission ordering)
-    // test_co_emission_ordering_t0814_before_derived
+    // AC-007 (BC-2.15.013 postconditions 2/3) — restart findings append in observation order
     // -----------------------------------------------------------------------
 
-    /// AC-007: T0814 (direct observation) must appear BEFORE any derived finding
-    /// (T0827) in `all_findings` when both would be emitted from the same frame.
+    /// AC-007: Restart findings append to `all_findings` in observation order.
     ///
-    /// STORY-108 scope: T0827 is NOT emitted here (implemented in STORY-109).
-    /// This test verifies the ordering CONTRACT by asserting:
-    ///   1. After COLD_RESTART + WARM_RESTART: both T0814 findings land in order.
-    ///   2. The first finding in all_findings for any COLD/WARM restart frame is T0814.
-    ///   3. No T0827 appears (STORY-109 stub not implemented).
+    /// Verifies that two T0814 findings (from two separate `on_data` calls) appear in
+    /// the order they were emitted — COLD_RESTART first, then WARM_RESTART.
     ///
-    /// When STORY-109 adds T0827, this test's ordering assertion (T0814 first) must
-    /// still hold — the T0827 push must come AFTER the T0814 push in the same call.
+    /// DEFERRAL NOTE: BC-2.15.013 PC2 (direct-before-derived ordering WITHIN A SINGLE
+    /// `on_data` call) and PC4/PC5 (mid-multi-finding-sequence cap re-check) require
+    /// T0827 derived findings to be present. T0827 emission is NOT implemented in
+    /// STORY-108 (deferred to STORY-109 where the T0827 derived push exists).
+    /// When STORY-109 adds T0827, this test's append-order assertion (T0814 before any
+    /// T0827 from the same call) must still hold — the T0827 push must come AFTER the
+    /// T0814 push within the same `detect_restart_split` call.
+    ///
+    /// This test proves the inter-call append ordering (two sequential `on_data` calls),
+    /// not the intra-call ordering that BC-2.15.013 PC2 specifies.
     ///
     /// Traces to: BC-2.15.013 postconditions 2/3; STORY-108 AC-007.
     #[test]
-    fn test_co_emission_ordering_t0814_before_derived() {
+    fn test_restart_findings_append_in_observation_order() {
         let mut analyzer = Dnp3Analyzer::new(10);
         let key = test_flow_key();
 
@@ -1382,6 +1416,168 @@ mod story_108 {
         assert_eq!(
             count_before, count_after,
             "BC-2.15.020 invariant 3: summarize() must NOT push new findings"
+        );
+    }
+    // -----------------------------------------------------------------------
+    // F-108-P2-001: Asymmetric-port coverage — de-vacuify the port-20000 heuristic
+    //
+    // The existing test_flow_key() has BOTH endpoints on port 20000, so the
+    // `if flow_key.lower_port() == 20000` branch always takes the same arm.
+    // These two tests build realistic flows (master on ephemeral port, outstation
+    // on port 20000) and verify BOTH branches of the heuristic independently.
+    //
+    // FlowKey::new canonicalizes by (ip, port) tuple: if (ip_a, port_a) <= (ip_b, port_b)
+    // then lower=(ip_a, port_a), upper=(ip_b, port_b); otherwise swapped.
+    // -----------------------------------------------------------------------
+
+    /// F-108-P2-001 Test A: master on ephemeral port, outstation on port 20000,
+    /// master IP is numerically smaller.
+    ///
+    /// Configuration:
+    ///   master    = 10.0.0.5:49152  (initiator, sends control commands)
+    ///   outstation = 10.0.0.9:20000 (server / responder)
+    ///
+    /// FlowKey canonicalization:
+    ///   Compare (10.0.0.5, 49152) vs (10.0.0.9, 20000):
+    ///   10.0.0.5 < 10.0.0.9 (IpAddr Ord compares octets) → lower=(10.0.0.5, 49152),
+    ///   upper=(10.0.0.9, 20000).
+    ///
+    /// Port heuristic branch exercised:
+    ///   lower_port() == 49152 ≠ 20000 → ELSE branch → master_ip = lower_ip = 10.0.0.5
+    ///
+    /// This tests the ELSE branch of `if flow_key.lower_port() == 20000`.
+    ///
+    /// Traces to: BC-2.15.010 PC3 (source_ip resolution); STORY-108 F-108-P2-001 Test A.
+    #[test]
+    fn test_BC_2_15_010_asymmetric_port_master_lower_ip_else_branch() {
+        let mut analyzer = Dnp3Analyzer::new(10);
+
+        // Build asymmetric FlowKey: master=10.0.0.5:49152, outstation=10.0.0.9:20000
+        // Canonicalization: (10.0.0.5, 49152) < (10.0.0.9, 20000) → lower=(10.0.0.5, 49152)
+        // lower_port() = 49152 ≠ 20000 → ELSE branch → master_ip = lower_ip = 10.0.0.5
+        let master_ip = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 5));
+        let outstation_ip = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 9));
+        let key = FlowKey::new(master_ip, 49152, outstation_ip, 20000);
+
+        // Verify the canonicalization so the branch derivation is self-documenting:
+        // lower_port must be 49152 (not 20000), confirming the ELSE branch fires.
+        assert_eq!(
+            key.lower_port(),
+            49152,
+            "Test A canonicalization: lower_port must be 49152 (master's ephemeral port) \
+             so the ELSE branch of the heuristic fires"
+        );
+        assert_eq!(
+            key.lower_ip(),
+            master_ip,
+            "Test A canonicalization: lower_ip must be 10.0.0.5 (master)"
+        );
+
+        // Deliver 11 Control-class FCs (DIRECT_OPERATE=0x05) to trigger T1692.001
+        for i in 0..11u32 {
+            let frame = build_detection_frame(0x05, 0x0003, 0x0001);
+            analyzer.on_data(key.clone(), &frame, i);
+        }
+
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "Test A: 11 Control FCs must emit exactly ONE T1692.001 finding"
+        );
+        let f = &analyzer.all_findings[0];
+        assert_eq!(
+            f.mitre_techniques,
+            vec!["T1692.001"],
+            "Test A: finding must carry T1692.001"
+        );
+
+        // The critical assertion: source_ip must be the MASTER's IP (10.0.0.5).
+        // ELSE branch: lower_port != 20000 → master_ip = lower_ip = 10.0.0.5
+        assert_eq!(
+            f.source_ip,
+            Some(master_ip),
+            "Test A (ELSE branch): source_ip must be Some(10.0.0.5) = master (lower_ip); \
+             lower_port=49152 ≠ 20000 takes ELSE → lower_ip; got {:?}",
+            f.source_ip
+        );
+    }
+
+    /// F-108-P2-001 Test B: master on ephemeral port, outstation on port 20000,
+    /// outstation IP is numerically smaller (forces outstation into lower slot).
+    ///
+    /// Configuration:
+    ///   master     = 10.0.0.9:49152 (initiator, sends control commands)
+    ///   outstation = 10.0.0.5:20000 (server / responder)
+    ///
+    /// FlowKey canonicalization:
+    ///   Compare (10.0.0.9, 49152) vs (10.0.0.5, 20000):
+    ///   10.0.0.5 < 10.0.0.9 → (10.0.0.5, 20000) wins as lower tuple →
+    ///   lower=(10.0.0.5, 20000), upper=(10.0.0.9, 49152).
+    ///
+    /// Port heuristic branch exercised:
+    ///   lower_port() == 20000 → IF branch → master_ip = upper_ip = 10.0.0.9
+    ///
+    /// This tests the IF branch of `if flow_key.lower_port() == 20000`.
+    /// Test A exercises the ELSE branch; together they cover both branches non-vacuously.
+    ///
+    /// Traces to: BC-2.15.010 PC3 (source_ip resolution); STORY-108 F-108-P2-001 Test B.
+    #[test]
+    fn test_BC_2_15_010_asymmetric_port_master_upper_ip_if_branch() {
+        let mut analyzer = Dnp3Analyzer::new(10);
+
+        // Build asymmetric FlowKey: master=10.0.0.9:49152, outstation=10.0.0.5:20000
+        // Canonicalization: (10.0.0.9, 49152) vs (10.0.0.5, 20000):
+        //   10.0.0.5 < 10.0.0.9 → lower=(10.0.0.5, 20000), upper=(10.0.0.9, 49152)
+        // lower_port() = 20000 → IF branch → master_ip = upper_ip = 10.0.0.9
+        let master_ip = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 9));
+        let outstation_ip = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 5));
+        let key = FlowKey::new(master_ip, 49152, outstation_ip, 20000);
+
+        // Verify the canonicalization so the branch derivation is self-documenting:
+        // lower_port must be 20000 (outstation's port), confirming the IF branch fires.
+        assert_eq!(
+            key.lower_port(),
+            20000,
+            "Test B canonicalization: lower_port must be 20000 (outstation's well-known port) \
+             so the IF branch of the heuristic fires"
+        );
+        assert_eq!(
+            key.lower_ip(),
+            outstation_ip,
+            "Test B canonicalization: lower_ip must be 10.0.0.5 (outstation)"
+        );
+        assert_eq!(
+            key.upper_ip(),
+            master_ip,
+            "Test B canonicalization: upper_ip must be 10.0.0.9 (master)"
+        );
+
+        // Deliver 11 Control-class FCs (DIRECT_OPERATE=0x05) to trigger T1692.001
+        for i in 0..11u32 {
+            let frame = build_detection_frame(0x05, 0x0003, 0x0001);
+            analyzer.on_data(key.clone(), &frame, i);
+        }
+
+        assert_eq!(
+            analyzer.all_findings.len(),
+            1,
+            "Test B: 11 Control FCs must emit exactly ONE T1692.001 finding"
+        );
+        let f = &analyzer.all_findings[0];
+        assert_eq!(
+            f.mitre_techniques,
+            vec!["T1692.001"],
+            "Test B: finding must carry T1692.001"
+        );
+
+        // The critical assertion: source_ip must be the MASTER's IP (10.0.0.9).
+        // IF branch: lower_port == 20000 → master_ip = upper_ip = 10.0.0.9
+        assert_eq!(
+            f.source_ip,
+            Some(master_ip),
+            "Test B (IF branch): source_ip must be Some(10.0.0.9) = master (upper_ip); \
+             lower_port=20000 takes IF → upper_ip; got {:?}",
+            f.source_ip
         );
     }
 } // mod story_108
