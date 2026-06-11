@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,8 @@ modified:
   - "v1.4: DF-SIBLING-SWEEP-001 ADV-IMPL-P03-HIGH-001 re-anchor: mod.rs:442 → mod.rs:471 (T1036 mitre_technique assignment site in check_anomaly_thresholds, shifted by HS-043 merge). — 2026-06-01"
   - "v1.5: ADR-006 / Decision 12+13 (F2 v0.3.0 BREAKING) — emitted-ID set grows from 6->13 (6 Enterprise + 7 ICS); grep pattern updated from 'mitre_technique: Some' to 'mitre_techniques: vec!'; T0888 replaces T0846 as Modbus recon emitter (Decision 12); 7 ICS IDs added to emitted set. ECs and canonical vectors updated. — 2026-06-09"
   - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Postcondition 1 ICS emitted list, EC-007, and Architecture Anchors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
+  - "v1.7: Feature #8 DNP3 analyzer (F2). Added 2 new ICS emitted techniques: T1691.001 (Block Operational Technology Message: Command Message — DNP3 inferred block-command, IcsInhibitResponseFunction) + T0827 (Loss of Control — DNP3 derived correlated finding, IcsImpact). EMITTED count 13→15 (6 Enterprise + 9 ICS). Description, emission sites, Postcondition 1, Invariant 1, EC-014 and EC-015 added. — 2026-06-10"
+  - "v1.8: Pass-1 adversarial fix C-1: corrected T1691.001 technique name from fabricated 'Unauthorized Message: Inhibit Response Function' to authoritative 'Block Operational Technology Message: Command Message' in changelog v1.7 and EC-014. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -45,36 +47,39 @@ removal_reason: null
 
 Every technique ID that any analyzer or reassembly engine emits in `Finding.mitre_techniques`
 must resolve to `Some(...)` when passed to `technique_name` or `technique_tactic`. After F2
-(Feature #7 — Modbus analyzer), the emitted-ID set grows to 13 distinct IDs: 6 Enterprise
-(unchanged) + 7 ICS (Modbus). No emitted ID may return None from the lookup — that would
-cause the terminal reporter to display `<id> (unknown)` for a Finding produced by current
-analyzers.
+(Feature #7 Modbus + Feature #8 DNP3), the emitted-ID set grows to 15 distinct IDs: 6
+Enterprise (unchanged) + 9 ICS (Modbus: 7, DNP3: +2). No emitted ID may return None from
+the lookup — that would cause the terminal reporter to display `<id> (unknown)` for a
+Finding produced by current analyzers.
 
-Emission sites after F2 (verified via `grep -rn 'mitre_techniques: vec!' src/`):
+Emission sites after F2 DNP3 (verified via `grep -rn 'mitre_techniques: vec!' src/`):
 - `src/analyzer/tls.rs` — `vec!["T1027"]` x3
 - `src/analyzer/http.rs` — `vec!["T1083"]`, `vec!["T1505.003"]`, `vec!["T1046"]`, `vec!["T1499.002"]` x2
 - `src/reassembly/mod.rs` — `vec!["T1036"]`
 - `src/reassembly/lifecycle.rs` — `vec!["T1036"]`
-- `src/analyzer/modbus.rs` (F2 new) — `vec!["T1692.001","T0836"]`, `vec!["T1692.001","T0835"]`,
+- `src/analyzer/modbus.rs` (F2 Feature #7) — `vec!["T1692.001","T0836"]`, `vec!["T1692.001","T0835"]`,
   `vec!["T1692.001"]`, `vec!["T0806","T1692.001"]`, `vec!["T0814"]`, `vec!["T1692.001","T0836","T0831"]`, `vec!["T0888"]`
+- `src/analyzer/dnp3.rs` (F2 Feature #8 new) — `vec!["T1692.001"]` (control threshold),
+  `vec!["T0814"]` (restart DoS), `vec!["T0836"]` (write FC), `vec!["T1691.001"]` (block-command
+  inferred, BC-2.15.014), `vec!["T0827"]` (derived loss-of-control, BC-2.15.015)
 
-The emitted-ID set is 13 distinct IDs. Multi-element vecs at Modbus sites contribute multiple
-IDs per emission; all IDs in all vecs must resolve.
+The emitted-ID set is 15 distinct IDs. Multi-element vecs contribute multiple IDs per emission;
+all IDs in all vecs must resolve.
 
 ## Preconditions
 
-1. `technique_name` or `technique_tactic` is called with one of the 13 emitted IDs.
+1. `technique_name` or `technique_tactic` is called with one of the 15 emitted IDs.
 
 ## Postconditions
 
-1. All 13 currently-emitted distinct IDs return `Some(...)`:
+1. All 15 currently-emitted distinct IDs return `Some(...)`:
    - Enterprise (6): T1027, T1036, T1046, T1083, T1499.002, T1505.003
-   - ICS (7): T1692.001, T0836, T0814, T0806, T0835, T0831, T0888
-2. None of the 13 emitted IDs returns None.
+   - ICS (9): T1692.001, T0836, T0814, T0806, T0835, T0831, T0888, T1691.001, T0827
+2. None of the 15 emitted IDs returns None.
 
 ## Invariants
 
-1. The emitted set (13 IDs) is a strict subset of the catalogued set (21 IDs).
+1. The emitted set (15 IDs) is a strict subset of the catalogued set (23 IDs).
 2. The invariant is enforced by convention: when an analyzer adds a new emission site, the
    developer must add the ID to `technique_info` first (or simultaneously). For multi-element
    `mitre_techniques` vecs, EVERY element must resolve.
@@ -101,6 +106,8 @@ IDs per emission; all IDs in all vecs must resolve.
 | EC-011 | T0835 (Modbus: coil write — I/O Image) | Some("Manipulate I/O Image") |
 | EC-012 | T0831 (Modbus: coordinated write sequence) | Some("Manipulation of Control") |
 | EC-013 | T0888 (Modbus: recon FCs 0x11, 0x2B/0x0E) | Some("Remote System Information Discovery") |
+| EC-014 | T1691.001 (DNP3: inferred block-command, control request without response; ICS sub-technique, v19) | Some("Block Operational Technology Message: Command Message") |
+| EC-015 | T0827 (DNP3: derived loss-of-control correlated finding — N restart/block events in window) | Some("Loss of Control") |
 
 ## Canonical Test Vectors
 
@@ -112,12 +119,14 @@ IDs per emission; all IDs in all vecs must resolve.
 | technique_name("T0888") | Some("Remote System Information Discovery") | happy-path (ICS, F2) |
 | technique_name("T0836") | Some("Modify Parameter") | happy-path (ICS, F2) |
 | technique_name("T0806") | Some("Brute Force I/O") | happy-path (ICS, F2) |
+| technique_name("T1691.001") | Some("Block Operational Technology Message: Command Message") | happy-path (ICS, F2 DNP3) |
+| technique_name("T0827") | Some("Loss of Control") | happy-path (ICS, F2 DNP3) |
 
 ## Verification Properties
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-007 | All 13 emitted IDs resolve in technique_name | unit: test each emitted ID |
+| VP-007 | All 15 emitted IDs resolve in technique_name | unit: test each emitted ID |
 | VP-007 | No new emission site uses an ID not in technique_info | manual: code review of analyzer PRs; every element in mitre_techniques vec must resolve |
 
 ## Traceability

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Feature #8 DNP3 analyzer (F2). MitreTactic gains third ICS-unique variant IcsImpact. Slice length 16→17. Element [16] = IcsImpact. Description, Postconditions, Invariants, Edge Cases, and Canonical Test Vectors updated. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -27,11 +28,12 @@ removal_reason: null
 
 ## Description
 
-`all_tactics_in_report_order()` returns a static slice of all 16 `MitreTactic` variants in
+`all_tactics_in_report_order()` returns a static slice of all 17 `MitreTactic` variants in
 a fixed order: the 14 Enterprise ATT&CK tactics in canonical kill-chain order (Reconnaissance
-through Impact), followed by the 2 ICS-unique tactics. This function provides the stable
+through Impact), followed by the 3 ICS-unique tactics. This function provides the stable
 iteration order used by the terminal reporter to generate tactic group headers in a
-consistent, predictable sequence.
+consistent, predictable sequence. The third ICS variant `IcsImpact` was added in Feature #8
+(DNP3) to support T0827 "Loss of Control" (ICS Impact tactic TA0105).
 
 ## Preconditions
 
@@ -39,45 +41,51 @@ consistent, predictable sequence.
 
 ## Postconditions
 
-1. Returns a `&'static [MitreTactic]` slice of length exactly 16.
+1. Returns a `&'static [MitreTactic]` slice of length exactly 17.
 2. The first 14 elements are the Enterprise tactics in this order:
    Reconnaissance, ResourceDevelopment, InitialAccess, Execution, Persistence,
    PrivilegeEscalation, DefenseEvasion, CredentialAccess, Discovery, LateralMovement,
    Collection, CommandAndControl, Exfiltration, Impact.
-3. Elements [14] and [15] are: IcsInhibitResponseFunction, IcsImpairProcessControl.
+3. Elements [14], [15], and [16] are: IcsInhibitResponseFunction, IcsImpairProcessControl,
+   IcsImpact.
 4. The returned reference is `'static`; no heap allocation occurs.
 
 ## Invariants
 
 1. The function is a `&'static` literal slice -- it never changes at runtime.
-2. The length is always 16 (14 Enterprise + 2 ICS).
+2. The length is always 17 (14 Enterprise + 3 ICS).
 3. The order is the authoritative render order for the terminal reporter.
 
 ## Edge Cases
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | Slice length | all_tactics_in_report_order().len() == 16 |
+| EC-001 | Slice length | all_tactics_in_report_order().len() == 17 |
 | EC-002 | First element | Reconnaissance |
-| EC-003 | Last element | IcsImpairProcessControl |
-| EC-004 | No duplicate elements | All 16 variants appear exactly once |
+| EC-003 | Last element | IcsImpact |
+| EC-004 | No duplicate elements | All 17 variants appear exactly once |
+| EC-005 | Element at index [15] | IcsImpairProcessControl |
+| EC-006 | Element at index [16] | IcsImpact (new F2 DNP3) |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| all_tactics_in_report_order().len() | 16 | happy-path |
+| all_tactics_in_report_order().len() | 17 | happy-path |
 | all_tactics_in_report_order()[0] | Reconnaissance | happy-path |
 | all_tactics_in_report_order()[13] | Impact | happy-path |
 | all_tactics_in_report_order()[14] | IcsInhibitResponseFunction | happy-path |
+| all_tactics_in_report_order()[15] | IcsImpairProcessControl | happy-path |
+| all_tactics_in_report_order()[16] | IcsImpact | happy-path (new F2 DNP3) |
 
 ## Verification Properties
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-016 | Slice length is 16 | unit: assert_eq!(all_tactics_in_report_order().len(), 16) |
+| VP-016 | Slice length is 17 | unit: assert_eq!(all_tactics_in_report_order().len(), 17) |
 | VP-016 | No duplicate variants in the slice | unit: HashSet dedup check |
 | VP-016 | Kill-chain order for first 14 | unit: assert positions 0..14 |
+| VP-016 | IcsImpact at position [16] | unit: assert_eq!(slice[16], IcsImpact) |
 
 ## Traceability
 

@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.1"
+version: "2.2"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -26,6 +26,7 @@ modified:
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set."
   - "2026-06-09 (F2 issue #7, directives v2 + ADR-006): appended non-normative 'F4 Harness-Update Obligations' body section recording the catalog growth (SEEDED 15→21, EMITTED 6→13, recon T0846→T0888) and the Finding field-rename grep change (mitre_technique:Some → mitre_techniques:vec!). Lock fields (verification_lock, proof_completed_date, proof_file_hash, verified_at_commit), property statement, and source BCs are UNCHANGED — this is an F4 obligation pointer, authoritative copy in verification-delta.md §4."
   - "v2.1 (2026-06-10, issue #222): Updated format invariant in Sub-property A to explicitly accept ICS sub-technique IDs (T[0-9]{4}(\\.[0-9]{3})? — the optional .[0-9]{3} suffix was already present in code but not stated in this VP spec). Updated SEEDED_IDS array in harness skeleton: T0855→T1692.001, T0856→T1692.002 (MITRE ATT&CK-ICS v19.1 revocation, both IDs map to parent T1692 Unauthorized Message). Updated EMITTED_IDS similarly for T0855→T1692.001. Added Known Limitation note documenting that VP-007 is a closed-world consistency check and cannot detect external ATT&CK revocations; references issue #222 as the defect that escaped this gap."
+  - "v2.2 (2026-06-10, Pass-2 remediation, issue #8 DNP3 F2): Updated catalog counts from 21/13 to 23/15. SEEDED_IDS: added T1691.001 and T0827 (ICS section now 12 entries); ICS comment updated 10→12. EMITTED_IDS: added T1691.001 and T0827 (now 15: 6 Enterprise + 9 ICS); comment updated. F4 Harness-Update Obligations table: Post-F2 expected SEEDED 21→23, EMITTED 13→15; positive-coverage obligation assertions updated to == 23 / == 15. Added Re-verification Obligation note: verification_lock must be broken and VP-007 re-proven in F6 against the post-F4 catalog containing T1691.001+T0827 (CC-002). Lock fields (verification_lock, proof_completed_date, proof_file_hash, verified_at_commit) and property statement are UNCHANGED — the lock itself is not broken until F6 re-run."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -69,8 +70,8 @@ and do NOT cause a panic (BC-2.10.006).
 
 ## Source Contract
 
-- **Primary BC:** BC-2.10.005 -- technique_name Returns Some for Every Seeded ID (21 Total; post-F2 + issue #222 remap)
-- **Postcondition:** `technique_name(id).is_some()` for all 21 seeded IDs
+- **Primary BC:** BC-2.10.005 -- technique_name Returns Some for Every Seeded ID (23 Total; post-F2 issue #8 DNP3 + issue #222 remap)
+- **Postcondition:** `technique_name(id).is_some()` for all 23 seeded IDs
 - **Invariant:** INV-9 (MITRE Technique ID Format, inv-01-core-invariants.md)
 - **Related BC:** BC-2.10.006 -- technique_name Returns None for Unknown IDs
 - **Related BC:** BC-2.10.007 -- technique_tactic Returns Correct Tactic for Every Seeded ID
@@ -80,10 +81,10 @@ and do NOT cause a panic (BC-2.10.006).
 
 | Method | Tool | Bounded? | Coverage |
 |--------|------|----------|----------|
-| Model checking | Kani | Yes -- enumerate all 21 seeded IDs explicitly | Complete coverage of the static match table |
+| Model checking | Kani | Yes -- enumerate all 23 seeded IDs explicitly | Complete coverage of the static match table |
 
 The static match in `mitre.rs` is closed-world enumeration. Kani can enumerate all
-21 known IDs (including ICS sub-technique IDs in `T[0-9]{4}.[0-9]{3}` form) plus
+23 known IDs (including ICS sub-technique IDs in `T[0-9]{4}.[0-9]{3}` form) plus
 verify that the return type (Option) is handled correctly.
 
 ## Proof Harness Skeleton
@@ -93,9 +94,10 @@ verify that the return type (Option) is handled correctly.
 mod kani_proofs {
     use super::*;
 
-    // All 21 seeded IDs from mitre.rs technique_info (src/mitre.rs — post-F2 + issue #222 remap)
+    // All 23 seeded IDs from mitre.rs technique_info (src/mitre.rs — post-F2 issue #8 DNP3 + issue #222 remap)
     // ICS sub-technique IDs T1692.001 and T1692.002 replace the revoked T0855 and T0856
     // per MITRE ATT&CK-ICS v19.1 (issue #222).
+    // T1691.001 and T0827 added in F2 issue #8 (DNP3 TCP analyzer).
     const SEEDED_IDS: &[&str] = &[
         // Enterprise (11)
         "T1027",
@@ -109,7 +111,7 @@ mod kani_proofs {
         "T1499.002",
         "T1505.003",
         "T1573",
-        // ICS (10)
+        // ICS (12)
         "T0846",
         "T1692.001",  // was T0855 (revoked v19.1 → T1692 Unauthorized Message: Command Message)
         "T1692.002",  // was T0856 (revoked v19.1 → T1692 Unauthorized Message: Reporting Message)
@@ -120,6 +122,8 @@ mod kani_proofs {
         "T0835",
         "T0831",
         "T0888",
+        "T1691.001",  // DNP3: Block OT Message: Command Message (IcsInhibitResponseFunction) — issue #8
+        "T0827",      // DNP3: Loss of Control (IcsImpact) — issue #8
     ];
 
     #[kani::proof]
@@ -154,8 +158,9 @@ mod catalog_completeness {
     use super::*;
 
     // IDs emitted by current analyzers (compile-time constant list)
-    // Post-F2 (issue #7) + issue #222 remap: 13 total (6 Enterprise + 7 ICS)
+    // Post-F2 issue #8 (DNP3) + issue #7 (Modbus) + issue #222 remap: 15 total (6 Enterprise + 9 ICS)
     // T0855 replaced by T1692.001 (MITRE ATT&CK-ICS v19.1 revocation, issue #222)
+    // T1691.001 and T0827 added by DNP3 analyzer (issue #8)
     const EMITTED_IDS: &[&str] = &[
         // Enterprise (6)
         "T1027",      // TLS analyzer: SNI anomaly
@@ -164,14 +169,16 @@ mod catalog_completeness {
         "T1083",      // HTTP: path traversal
         "T1499.002",  // HTTP: header flood
         "T1505.003",  // HTTP: web shell
-        // ICS (7) — Modbus analyzer (post-F2)
-        "T1692.001",  // was T0855: Modbus write FCs (issue #222 remap)
-        "T0836",      // Modbus: Modify Parameter
-        "T0814",      // Modbus: Denial of Service
+        // ICS (9) — Modbus analyzer (post-F2 issue #7) + DNP3 analyzer (issue #8)
+        "T1692.001",  // was T0855: Modbus write FCs + DNP3 unauthorized control (issue #222 remap)
+        "T0836",      // Modbus + DNP3: Modify Parameter
+        "T0814",      // Modbus + DNP3: Denial of Service
         "T0806",      // Modbus: Brute Force I/O
         "T0835",      // Modbus: Manipulate I/O Image
         "T0831",      // Modbus: Manipulation of Control
         "T0888",      // Modbus recon path: Remote System Information Discovery
+        "T1691.001",  // DNP3: Block OT Message: Command Message (request/response inference) — issue #8
+        "T0827",      // DNP3: Loss of Control (derived/correlated Impact finding) — issue #8
     ];
 
     #[test]
@@ -190,7 +197,7 @@ mod catalog_completeness {
 
 | Factor | Assessment | Notes |
 |--------|-----------|-------|
-| Input space size | Finite | 21 seeded IDs; closed enumeration |
+| Input space size | Finite | 23 seeded IDs; closed enumeration |
 | Proof complexity | Very low | Static match table; no loops or state |
 | Tool support | High | `technique_name` is a pure function returning Option<&str> |
 | Estimated proof time | < 10 seconds | Trivial Kani proof; simple unit test sufficient as fallback |
@@ -199,7 +206,7 @@ mod catalog_completeness {
 
 `src/mitre.rs:122-156` -- `technique_info` static match block.
 
-The 21 currently-seeded IDs include T1040, T1071, T1071.001, T1071.004, T1573,
+The 23 currently-seeded IDs include T1040, T1071, T1071.001, T1071.004, T1573,
 T0846, T1692.002, T0885 which are staged-but-never-emitted (O-04). Sub-property
 B (emitter-catalog completeness) only tests the IDs that analyzers actually emit.
 
@@ -241,21 +248,53 @@ The MITRE catalog grows in the Modbus F2 commit (directives v2 Decision 12). The
 catalog-drift guard MUST be updated in the SAME F4 commit so the locked proof stays
 `VERIFICATION:- SUCCESSFUL`:
 
-| Quantity (mitre.rs) | Pre-F2 expected | Post-F2 expected (directives v2) |
-|---------------------|-----------------|----------------------------------|
-| `SEEDED_TECHNIQUE_ID_COUNT` / `SEEDED_TECHNIQUE_IDS.len()` | 15 | **21** (11 Enterprise + 10 ICS; +6 new ICS arms: T0836, T0814, T0806, T0835, T0831, T0888) |
-| `EMITTED_IDS.len()` | 6 (Enterprise only) | **13** (6 Enterprise + 7 ICS: **T1692.001** [was T0855, remapped issue #222], T0836, T0814, T0806, T0835, T0831, **T0888**) |
-| Recon-path emitted ID | n/a (no ICS emitted) | **T0888** "Remote System Information Discovery" (corrects the v1 T0846 misattribution; **T0846 stays SEEDED but is NOT Modbus-emitted**) |
-| Emitted-ID grep pattern | `mitre_technique: Some` | `mitre_techniques: vec!` (ADR-006 Decision 13: `Finding` field rename `Option<String>` → `Vec<String>`) |
+| Quantity (mitre.rs) | Pre-F2 expected | Post-F2 expected (Modbus directives v2) | Post-DNP3 expected (issue #8) |
+|---------------------|-----------------|------------------------------------------|-------------------------------|
+| `SEEDED_TECHNIQUE_ID_COUNT` / `SEEDED_TECHNIQUE_IDS.len()` | 15 | **21** (11 Enterprise + 10 ICS; +6 new ICS arms: T0836, T0814, T0806, T0835, T0831, T0888) | **23** (11 Enterprise + 12 ICS; +T1691.001 + T0827) |
+| `EMITTED_IDS.len()` | 6 (Enterprise only) | **13** (6 Enterprise + 7 ICS: **T1692.001** [was T0855, remapped issue #222], T0836, T0814, T0806, T0835, T0831, **T0888**) | **15** (6 Enterprise + 9 ICS; +T1691.001 + T0827) |
+| Recon-path emitted ID | n/a (no ICS emitted) | **T0888** "Remote System Information Discovery" (corrects the v1 T0846 misattribution; **T0846 stays SEEDED but is NOT Modbus-emitted**) | (unchanged) |
+| Emitted-ID grep pattern | `mitre_technique: Some` | `mitre_techniques: vec!` (ADR-006 Decision 13: `Finding` field rename `Option<String>` → `Vec<String>`) | (unchanged) |
 
-**POL-11 positive-coverage obligation (carried forward; updated issue #222):** the guard MUST assert the
-runtime-computed counts `EMITTED_IDS.len() == 13` and `SEEDED_TECHNIQUE_ID_COUNT == 21`, and MUST
-deliberately resolve ≥1 newly-added ICS ID **including T0888** AND **T1692.001** (the remapped
-successor of revoked T0855) through `technique_name` + `technique_tactic` (assert `Some(..)` on
-both), so the proof cannot pass false-green over an empty/no-op loop. Re-run `cargo kani` over the
-VP-007 harnesses after the atomic catalog update; both `VERIFICATION:- SUCCESSFUL` and the
-positive-coverage assertions MUST hold. The ICS sub-technique IDs `T1692.001` and `T1692.002` MUST
-be present in `SEEDED_TECHNIQUE_IDS` and satisfy the `T[0-9]{4}(\.[0-9]{3})?` format check.
+**POL-11 positive-coverage obligation (carried forward; updated issue #8 DNP3 F2):** the guard MUST assert the
+runtime-computed counts `EMITTED_IDS.len() == 15` and `SEEDED_TECHNIQUE_ID_COUNT == 23`, and MUST
+deliberately resolve ≥1 newly-added ICS ID **including T0888**, **T1692.001** (the remapped
+successor of revoked T0855), **T1691.001**, and **T0827** through `technique_name` + `technique_tactic`
+(assert `Some(..)` on both), so the proof cannot pass false-green over an empty/no-op loop.
+Re-run `cargo kani` over the VP-007 harnesses after the atomic catalog update; both
+`VERIFICATION:- SUCCESSFUL` and the positive-coverage assertions MUST hold. The ICS sub-technique
+IDs `T1692.001`, `T1692.002`, and `T1691.001` MUST be present in `SEEDED_TECHNIQUE_IDS` and satisfy
+the `T[0-9]{4}(\.[0-9]{3})?` format check.
+
+## Re-verification Obligation (CC-002 — DNP3 F2, issue #8)
+
+> **VP-007 carries `verification_lock: true`. Per VP-lock discipline CC-002, the lock MUST be
+> broken and VP-007 re-proven after any structural change that invalidates the existing proof.**
+
+The proof enumerates `SEEDED_IDS` and `EMITTED_IDS` explicitly. Adding T1691.001 and T0827 to
+both arrays changes the enumeration such that:
+
+- `verify_all_seeded_ids_resolve` now iterates 23 IDs (was 21); the proof is structurally
+  identical but the catalog must contain the two new `technique_info` arms or it fails.
+- `all_emitted_ids_resolve_in_catalog` now checks 15 IDs (was 13); same structural form.
+
+**Obligation:** When the DNP3 F4 implementation story delivers the `technique_info` arms for
+T1691.001 and T0827 (per ADR-007 Decision 5 §9.1 of the architecture delta), the F4/F6
+formal-verifier MUST:
+
+1. Break the lock: set `verification_lock: false` in this VP's frontmatter.
+2. Re-run `cargo kani` against the updated `src/mitre.rs` containing T1691.001 + T0827 arms,
+   the updated `SEEDED_TECHNIQUE_IDS` (23 entries), and the updated `EMITTED_IDS` (15 entries).
+3. Confirm `VERIFICATION:- SUCCESSFUL` for all VP-007 harnesses (`verify_all_seeded_ids_resolve`,
+   `verify_unknown_id_returns_none_no_panic`, `all_emitted_ids_resolve_in_catalog`).
+4. Confirm the POL-11 positive-coverage assertions pass: `SEEDED_TECHNIQUE_ID_COUNT == 23`,
+   `EMITTED_IDS.len() == 15`.
+5. Re-lock: set `verification_lock: true`, update `proof_completed_date`, `proof_file_hash`,
+   and `verified_at_commit` to the F4/F6 run values.
+
+**This is not optional.** A locked VP-007 with a 21-entry `SEEDED_IDS` array but a 23-entry
+production catalog is a false-green locked proof — it no longer characterizes the live code.
+The re-verification obligation was triggered by the catalog growth (T1691.001 + T0827) introduced
+in F2 issue #8 (DNP3 TCP analyzer).
 
 ## Lifecycle
 
@@ -267,3 +306,4 @@ be present in `SEEDED_TECHNIQUE_IDS` and satisfy the `T[0-9]{4}(\.[0-9]{3})?` fo
 | Locked (VERIFIED) | 2026-06-02 | spec-steward (Phase-6 gate) |
 | F4 harness-update obligation recorded (issue #7: SEEDED 15→21, EMITTED 6→13, recon T0888, field-rename grep) — lock fields unchanged | 2026-06-09 | formal-verifier |
 | v2.1 spec update (issue #222): Sub-property A format rule made explicit for ICS sub-techniques; T0855→T1692.001, T0856→T1692.002 in harness skeleton SEEDED_IDS/EMITTED_IDS; Known Limitation section added | 2026-06-10 | architect |
+| v2.2 Pass-2 remediation (issue #8 DNP3 F2): SEEDED count 21→23 (T1691.001 + T0827 added, ICS now 12); EMITTED count 13→15 (9 ICS); F4 Obligations table updated; POL-11 assertions updated to ==23/==15; Re-verification Obligation (CC-002) section added; lock fields UNCHANGED — re-lock deferred to F6 re-run | 2026-06-10 | architect |

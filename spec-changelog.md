@@ -14,6 +14,140 @@ changes, invariant rewrites).
 
 ---
 
+## [dnp3-f2-pass2-2026-06-10] — 2026-06-10
+
+### MINOR: DNP3 F2 Pass-2 Adversarial Remediation — CRITICAL-1 + CRITICAL-2
+
+**Summary:** Two blocking adversarial findings from the Pass-2 review of issue #8 DNP3 spec.
+
+**CRITICAL-1 (fabricated T1691.001 name in spec-changelog):** Two live references to the
+fabricated name "Unauthorized Message: Inhibit Response Function" in the dnp3-f2-2026-06-10
+changelog entry (MITRE catalog section and summary list) have been corrected to the authoritative
+"Block Operational Technology Message: Command Message". The fabricated name now survives ONLY
+in `modified:` audit-trail entries in BC-2.10.005, BC-2.10.007, BC-2.10.008 that explicitly
+document the correction from the Pass-1 burst.
+
+**CRITICAL-2 (window-reset contradiction on block_event_count):** The dual-window model
+(BC-2.15.014 using BLOCK_CMD_WINDOW_SECS=120s; BC-2.15.015 using T0827_WINDOW_SECS=300s)
+caused block events spaced 120–300s apart to be silently discarded by the 120s sub-window
+reset before T0827 could see them. The separate BLOCK_CMD_WINDOW_SECS=120s window is eliminated.
+The model now uses a single shared CORRELATION_WINDOW_SECS=300s [F2-GATE: human to confirm]
+tracked by correlation_window_start_ts: u32. BC-2.15.015 is the single reset owner: it resets
+all four correlated-state fields together (restart_event_count, block_event_count,
+block_finding_emitted_this_window, loss_of_control_emitted) at the 300s expiry.
+
+The T1691.001 "sustained pattern" is now 3-of-300s (was 3-of-120s in v1.1). This change
+is explicitly flagged [F2-GATE] for human confirmation.
+
+Both T0827 traces verified end-to-end under the single-window model:
+- Trace A (3 restarts within 300s): fires correctly.
+- Trace B (2 block events spaced 150s apart + 1 restart at 200s): fires correctly.
+  (Under old model: block_event_count reset at 120s → combined=1 at t=200 → T0827 suppressed.)
+
+**Canonical per-flow correlation field set (agreed with architect):**
+`restart_event_count: u64`, `block_event_count: u64`,
+`pending_requests: HashMap<(u16,u8), u32>`,
+`block_finding_emitted_this_window: bool`,
+`loss_of_control_emitted: bool`,
+`correlation_window_start_ts: u32`.
+(BC-2.15.010 keeps its own separate 60s window/window_start_ts/direct_operate_count — not merged.)
+
+**Artifacts changed:**
+
+| Artifact | Version | Change |
+|----------|---------|--------|
+| spec-changelog.md | this entry | CRITICAL-1: two live fabricated T1691.001 names corrected in dnp3-f2-2026-06-10 entry (lines ~43 and ~74). CRITICAL-2: this entry added. |
+| BC-2.15.011 | v1.0 → v1.1 | Added single-window reference to Description, Postcondition 2, Invariant 6; added EC-007 (spaced block+restart trace); updated Architecture Anchors with correlation_window_start_ts. |
+| BC-2.15.014 | v1.1 → v1.2 | Eliminated BLOCK_CMD_WINDOW_SECS=120s; T1691.001 threshold now over CORRELATION_WINDOW_SECS=300s; Invariant 7 rewritten (single reset owner); EC-006 updated (300s); EC-008 added (key fix trace: 2 blocks at t=0/150s + restart at t=200s → T0827 fires); canonical test vectors updated. |
+| BC-2.15.015 | v1.1 → v1.2 | Named as single reset owner; Postcondition 3 added (window-expiry reset spec); Invariant 6 rewritten; T0827_WINDOW_SECS removed (now CORRELATION_WINDOW_SECS); EC-008 and EC-009 added; Traces A-D documented end-to-end; Architecture Anchors list all six canonical correlation fields. |
+
+---
+
+## [dnp3-f2-2026-06-10] — 2026-06-10
+
+### MINOR: Feature #8 DNP3/ICS Analyzer — SS-15 BCs + PRD Section 2.15 + MITRE Catalog Update
+
+**Summary:** Feature #8 (issue #8) adds the DNP3 TCP protocol analyzer (SS-15). 22 behavioral
+contracts (BC-2.15.001..022) specify parsing, detection, correlated-finding, and CLI integration
+behavior. Two new MITRE ATT&CK for ICS techniques (T1691.001 and T0827) are seeded and emitted.
+A new ICS-unique `MitreTactic` variant (`IcsImpact`) is added to the enum. All MITRE catalog BCs
+and the PRD are updated to reflect the new counts (SEEDED=23, EMITTED=15, CATALOGUE-ONLY=8).
+
+**BC-2.15 group structure:**
+- Group A+C (BCs 001–004): DL header parse safety and validity gate. VP-023 target.
+- Group B (BCs 005–007): FC classification totality and frame-length arithmetic. VP-023 target.
+- Group C (BCs 008–009): Transport FIR gating and desync-safe bail.
+- Group D (BCs 010–013): Direct-detection findings — T1692.001 (control threshold), T0814
+  (restart/DoS), T0836 (write FC), co-emission ordering.
+- Group E (BCs 014–015): Inferred/correlated findings — T1691.001 (block-command inference,
+  per-flow request/response correlation), T0827 (derived loss-of-control, N-event aggregation).
+- Group F (BCs 016–017): Bounded resource (292-byte carry buffer, 64-entry master_addrs_seen)
+  and CLI flag (`--dnp3-direct-operate-threshold`).
+- Group G (BCs 018–019): Anomaly detection (broadcast DEST, unsolicited response).
+- Group H (BCs 020–022): summarize() stats, port-20000 dispatcher Rule 6, MAX_FINDINGS cap.
+
+**MITRE catalog changes (SEEDED 21→23, EMITTED 13→15):**
+
+New seeded + emitted ICS techniques:
+- **T1691.001** — "Block Operational Technology Message: Command Message" (ICS sub-technique, v19)
+  → tactic `IcsInhibitResponseFunction`. Emitted by: BC-2.15.014 (inferred block-command).
+- **T0827** — "Loss of Control" (ICS Impact tactic TA0105)
+  → tactic `IcsImpact` (NEW enum variant). Emitted by: BC-2.15.015 (derived correlated finding).
+
+New MitreTactic variant:
+- **IcsImpact** — Display "Impact" (canonical ICS TA0105 name, no prefix). Third ICS-unique
+  variant after IcsInhibitResponseFunction and IcsImpairProcessControl.
+  `all_tactics_in_report_order` grows from 16 to 17 elements; IcsImpact at position [16].
+
+Arithmetic verification: SEEDED=23 (11 Enterprise + 12 ICS), EMITTED=15 (6 Enterprise + 9 ICS),
+CATALOGUE-ONLY = 23 − 15 = 8. Previous: SEEDED=21, EMITTED=13, CATALOGUE-ONLY=8.
+The catalogue-only count is unchanged because both new techniques are immediately emitted.
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| PRD | Version bump 1.4 → 1.5; Section 2.15 added (22 BCs); Section 7 RTM extended (22 rows); KD-003 and KD-005 and KD-007 updated with DNP3 BC references; O-04 updated SEEDED/EMITTED counts; total BC count 244 → 266 | `.factory/specs/prd.md` |
+| BC-INDEX | Version bump 1.3 → 1.4; ss-15 subsystem section added (22 rows); total BC count 244 → 266 | `.factory/specs/behavioral-contracts/BC-INDEX.md` |
+| BC-2.15.001..022 | Created (F2 DNP3 create burst, Groups A-H) | `.factory/specs/behavioral-contracts/ss-15/` |
+| BC-2.10.005 | v1.5 → v1.6: SEEDED 21→23; added T1691.001 + T0827 to seeded set; postconditions, invariants, edge cases, test vectors updated | `.factory/specs/behavioral-contracts/ss-10/BC-2.10.005.md` |
+| BC-2.10.007 | v1.4 → v1.5: Added T1691.001→IcsInhibitResponseFunction, T0827→IcsImpact tactic assignments; invariant 3 extended with IcsImpact note | `.factory/specs/behavioral-contracts/ss-10/BC-2.10.007.md` |
+| BC-2.10.008 | v1.6 → v1.7: EMITTED 13→15; added T1691.001 + T0827 to emitted set; description emission sites updated with dnp3.rs; postconditions, invariants, EC-014/015, test vectors updated | `.factory/specs/behavioral-contracts/ss-10/BC-2.10.008.md` |
+| BC-2.10.002 | v1.2 → v1.3: Added IcsImpact variant; description, preconditions, postconditions, invariants, edge cases, test vectors updated; slice length 16→17 noted | `.factory/specs/behavioral-contracts/ss-10/BC-2.10.002.md` |
+| BC-2.10.003 | v1.2 → v1.3: Slice length 16→17; element [16] = IcsImpact; description, postconditions, invariants, edge cases, test vectors, VP-016 updated | `.factory/specs/behavioral-contracts/ss-10/BC-2.10.003.md` |
+| BC-2.10.004 | v1.2 → v1.3: Variant count 16→17; description, postconditions, invariants, edge cases, test vectors updated | `.factory/specs/behavioral-contracts/ss-10/BC-2.10.004.md` |
+| ADR-007 | Created (binary ICS protocol integration decision for DNP3 TCP) | `.factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md` |
+| VP-023 | Designed (parse_dnp3_dl_header, classify_dnp3_fc, is_valid_dnp3_frame_header, compute_dnp3_frame_len) | `.factory/specs/verification-properties/VP-023.md` |
+
+**New MITRE ATT&CK for ICS techniques (2 total, Feature #8):**
+- T1691.001 — Block Operational Technology Message: Command Message (IcsInhibitResponseFunction, v19 ICS sub-technique)
+- T0827 — Loss of Control (IcsImpact, ICS Impact tactic TA0105)
+
+**MITRE catalog size:** 21 → 23 seeded technique IDs; 13 → 15 emitted IDs; 8 catalogue-only unchanged.
+
+**New ICS tactic variant:** IcsImpact (Display "Impact") — third ICS-unique variant.
+
+**Key constants introduced:**
+- `MAX_DNP3_FRAME_LEN = 292` (per-flow carry buffer cap; matches DNP3 link-layer max)
+- `MAX_MASTER_ADDRS = 64` (per-flow master-address tracking cap)
+- `DNP3_TCP_PORT = 20000` (dispatcher Rule 6 port)
+- `DEFAULT_DIRECT_OPERATE_THRESHOLD` (--dnp3-direct-operate-threshold default; exact value TBD at F3)
+
+**CLI surface changes:**
+- `--dnp3` flag added to `analyze` subcommand (boolean, default false)
+- `--dnp3-direct-operate-threshold N` flag added (u32, default TBD; zero rejected)
+- `--all` expansion updated to include `--dnp3`
+- `needs_reassembly` expression updated: `enable_http || enable_tls || enable_modbus || enable_dnp3`
+
+**Dispatcher changes:**
+- `DispatchTarget::Dnp3` variant added (5th variant)
+- `StreamDispatcher.dnp3: Option<Dnp3Analyzer>` field added
+- `classify` Rule 6: port 20000 → `DispatchTarget::Dnp3` (after all prior rules 1-5)
+- `dnp3_analyzer()` and `take_dnp3_analyzer()` accessors added
+- `on_data` and `on_flow_close` DNP3 routing arms added
+
+---
+
 ## [v19-remap-2026-06-10] — 2026-06-10
 
 ### MINOR: MITRE ATT&CK for ICS v19 Remap — T0855 → T1692.001, T0856 → T1692.002

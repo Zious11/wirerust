@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-architecture
 traces_to: ARCH-INDEX.md
-version: "1.3"
+version: "1.4"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -25,6 +25,12 @@ modified:
   - date: 2026-06-10
     actor: architect
     reason: "Issue #222 (MITRE ATT&CK-ICS v19.1 remap): VP-007 row description updated to note ICS sub-technique acceptance explicitly (T1692.001/T1692.002 replace revoked T0855/T0856). VP count unchanged at 22."
+  - date: 2026-06-10
+    actor: architect
+    reason: "F2 delta (issue #8 DNP3 TCP): VP-023 added to Should Prove table (P1, Kani, analyzer/dnp3.rs). P1 count 8→9. Total 22→23."
+  - date: 2026-06-10
+    actor: architect
+    reason: "Pass-1 adversarial remediation (issue #8 F2): Kani Tooling Selection table row was missing VP-023; appended VP-023 to complete the Kani VP list."
 ---
 
 # Verification Architecture
@@ -56,6 +62,7 @@ modified:
 | VP-014 | HttpAnalyzer cross-flow isolation: parse errors and poisoning in flow A do not affect flow B | (isolation) | analyzer/http.rs | proptest |
 | VP-015 | TCP sequence wraparound: segment at seq=isn+1=0xFFFF_FFFF (ISN=0xFFFF_FFFE, offset 1) crossing 32-bit boundary reassembles correctly | (arithmetic) | reassembly/segment.rs | Kani |
 | VP-022 | Modbus MBAP parse safety and function-code boundary classification: (A) parse_mbap_header never panics and returns None for <8-byte inputs; (B) classify_fc is total over all 256 FC values; (C) exception detection iff fc >= 0x80 | (no-panic + boundary) | analyzer/modbus.rs | Kani |
+| VP-023 | DNP3 data-link frame parse safety and FC classification: (A) parse_dnp3_dl_header never panics, None for <10-byte inputs; (B) classify_dnp3_fc total over all 256 FC values, Control/Restart/Write sets correct; (C) validity gate true iff sync==0x0564 and LENGTH>=5; (D) compute_dnp3_frame_len correct over all LENGTH 5..=255, result in [10,292] | (no-panic + boundary + arithmetic) | analyzer/dnp3.rs | Kani |
 
 ### Test Sufficient (UI logic, non-critical defaults)
 
@@ -90,6 +97,7 @@ modified:
 - VP-014: HttpAnalyzer cross-flow isolation
 - VP-015: TCP sequence wraparound
 - VP-022: Modbus MBAP parse safety and function-code boundary classification [NEW — SS-14]
+- VP-023: DNP3 data-link frame parse safety and function-code classification [NEW — SS-15]
 
 
 ## Tooling Selection
@@ -98,7 +106,7 @@ See `tooling-selection.md` for full rationale. Summary:
 
 | Tool | Target Properties | Scope |
 |------|-----------------|-------|
-| Kani (model checker) | State machine reachability, arithmetic overflow, pointer safety | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022 |
+| Kani (model checker) | State machine reachability, arithmetic overflow, pointer safety | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022, VP-023 |
 | proptest | Property-based: generate random inputs, check invariants | VP-006, VP-010..014 |
 | cargo-fuzz (libFuzzer) | No-panic for parser entry points | VP-008 |
 | cargo-mutants | Mutation coverage for domain logic | SS-06, SS-07, SS-08, SS-10 |

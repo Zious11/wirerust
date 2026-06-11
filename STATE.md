@@ -2,7 +2,7 @@
 pipeline: V0.5.0_RELEASED
 phase: feature-f2
 active_feature: "#8-dnp3"
-feature_8_status: "F1-APPROVED — RESUMING at F2 on corrected MITRE base"
+feature_8_status: "F2-CONVERGED — awaiting F2 human gate"
 product: wirerust
 mode: brownfield
 timestamp: 2026-06-10T18:00:00Z
@@ -38,16 +38,16 @@ dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 consistency_audit: CONSISTENT
-input_drift_check: "CLEAN — MATCH=57/STALE=0/ERROR=1 (STORY-091 no-inputs pre-existing; re-verified post Burst-4 spec commit c4765e6)"
+input_drift_check: "CLEAN — MATCH=57/STALE=0/ERROR=1 (STORY-091 no-inputs pre-existing; 12 stories refreshed post F2 prd.md+ss-10 BC edits)"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**wirerust v0.5.0 RELEASED (MITRE ATT&CK-ICS v19 remap, issue #222 CLOSED). Branches in sync (develop 10036fc, main c2df1b5/v0.5.0). Feature #8 DNP3 RESUMING at Phase F2 (spec evolution) on the corrected MITRE base (T1692.001/T1692.002 in catalog; sub-technique format accepted; DNP3 will use T1692.001 unauthorized-command, T1691.001 block-command, T0827 loss-of-control, T0814, T0836).**
+**wirerust v0.5.0 RELEASED (MITRE ATT&CK-ICS v19 remap, issue #222 CLOSED). Branches in sync (develop 10036fc, main c2df1b5/v0.5.0). Feature #8 DNP3 F2 spec evolution CONVERGED (5-pass adversarial; consistency CONSISTENT); awaiting F2 human gate. D-052.**
 
-**Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 244 BCs, 22 VPs (all 22 verified/locked, 0 draft), 1338 tests green, holdout 0.967. develop HEAD fb2c875; main HEAD 90aa91e (v0.4.0). Feature #7: COMPLETE across 2 releases (v0.3.0 multi-tag schema + v0.4.0 Modbus analyzer). develop is ahead of main by 3 non-release chore commits (eb010a1 .gitignore, 92773a4 E2E-pcap tooling, fb2c875 merge — PR #221 local-only E2E pcap tooling). No release content outstanding; branches are NOT divergent in a problematic way (main has no commits develop lacks).
+**Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 266 BCs (244 pre-F2 + 22 SS-15), 23 VPs (22 locked + VP-023 F2-new), 1338 tests green, holdout 0.967. develop HEAD 10036fc; main HEAD c2df1b5 (v0.5.0). Feature #7: COMPLETE. Feature #8 DNP3: F2 CONVERGED, awaiting human gate. develop is ahead of main by 3 non-release chore commits (eb010a1, 92773a4, fb2c875 — PR #221 local-only E2E pcap tooling).
 
 ## Phase Progress
 
@@ -73,27 +73,31 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0/ERROR=1 (STORY-091 no-inputs pre-
 | Release — v0.4.0 | **RELEASED** 2026-06-10 | gitflow-proper: release/0.4.0 → PR #219 → main merge 90aa91e; annotated tag v0.4.0; 4 binaries; run 27254720396; GitHub Release published 2026-06-10T05:12:40Z; Feature #7 COMPLETE + issue #7 CLOSED; main back-merged to develop (8e38041). D-046 |
 | Maintenance — MITRE v19 remap (issue #222) | **RELEASED in v0.5.0** 2026-06-10 | 3-pass adversarial CONVERGED; T0855→T1692.001 emitted, T0856→T1692.002 catalogue-only; PR #223 develop; PR #224 → main c2df1b5; annotated tag v0.5.0 @ 9b3a1c6; run 27313698900; 4 binaries; issue #222 CLOSED. D-049/D-050/D-051 |
 | Release — v0.5.0 | **RELEASED** 2026-06-10 | gitflow-proper: release/0.5.0 → PR #224 → main merge c2df1b5; annotated tag v0.5.0 @ 9b3a1c6; 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); run 27313698900 SUCCESS; GitHub Release published (not draft); main back-merged to develop (10036fc). D-051 |
-| Feature #8 DNP3 — F2 Spec Evolution | **IN PROGRESS** | Resuming on corrected MITRE base. F1-locked scope: TCP-only, CRC structure-only (strip-not-validate), FIR=1 first-fragment parse, --dnp3-direct-operate-threshold; MITRE: T1692.001/T1691.001/T0827/T0814/T0836. D-047/D-048 |
+| Feature #8 DNP3 — F2 Spec Evolution | **CONVERGED — awaiting human gate** | 5-pass adversarial CONVERGED (P1→P5 clean). Delta: SS-15 22 BCs (BC-2.15.001-022), ADR-007, VP-023, MITRE +T1691.001/+T0827, PRD v1.5 (266 BCs). Consistency CONSISTENT. 3 [F2-GATE] human decisions pending. D-047/D-048/D-052 |
 
-## Session Resume Checkpoint (2026-06-10 — v0.5.0 RELEASED — Feature #8 DNP3 resuming at F2)
+## Session Resume Checkpoint (2026-06-10 — Feature #8 DNP3 F2 CONVERGED — awaiting human gate)
 
-**POSITION:** wirerust v0.5.0 RELEASED (issue #222 CLOSED, MITRE v19 remap). develop HEAD `10036fc`; main HEAD `c2df1b5` (v0.5.0, annotated tag @ 9b3a1c6). Branches in sync — main back-merged to develop. Feature #8 (DNP3) NOW RESUMING at Phase F2 (spec evolution) on the corrected MITRE base. D-047/D-048/D-051.
+**POSITION:** wirerust v0.5.0 RELEASED (issue #222 CLOSED). develop HEAD `10036fc`; main HEAD `c2df1b5` (v0.5.0). Feature #8 (DNP3) Phase F2 spec evolution CONVERGED (5-pass adversarial; consistency CONSISTENT). Spec delta committed to factory-artifacts. D-047/D-048/D-051/D-052. NEXT: F2 human gate (3 open decisions), then F3 story decomposition.
 
 **RELEASE HISTORY:** v0.1.0 (2026-06-08) greenfield; v0.2.0 (2026-06-09) timestamp threading; v0.3.0 (2026-06-09) multi-tag MITRE schema; v0.4.0 (2026-06-10) Modbus TCP analyzer; v0.5.0 (2026-06-10) MITRE ATT&CK-ICS v19 remap.
 
-**DNP3 F1-LOCKED SCOPE (for F2 entry):**
-- Integration: TCP-only (StreamDispatcher, DispatchTarget::Dnp3, port-20000); NOT UDP path
-- CRC: structure-only in v1 (strip-not-validate)
-- App-layer parse: FIR=1 first-fragment only
-- CLI: --dnp3-direct-operate-threshold (mirrors --modbus-write-burst-threshold)
-- MITRE (v19.1-accurate): T1692.001 unauthorized-command, T1691.001 block-command (ex-T0803), T0827 loss-of-control (correlated, not per-packet), T0814, T0836
-- New: src/analyzer/dnp3.rs, subsystem SS-15, VP-023 (Kani candidate), ADR-007
-- Modified: dispatcher.rs, mitre.rs (VP-007 drift guard), analyzer/mod.rs, main.rs, cli.rs
+**DNP3 F2 CONVERGED SPEC STATE:**
+- SS-15 'DNP3/ICS Analysis': 22 BCs (BC-2.15.001-022), CAP-15
+- ADR-007: TCP/ICS integration, port-20000 Rule 6, frame_len=5+LENGTH+2*ceil((LENGTH-5)/16) max 292, CRC structure-only, FIR=1
+- VP-023: Kani parse-safety (4 sub-properties incl. frame-len arithmetic)
+- MITRE catalog: SEEDED 21→23 / EMITTED 13→15 (+T1691.001→IcsInhibitResponseFunction, +T0827→MitreTactic::IcsImpact)
+- PRD v1.5: 266 BCs; Dnp3FlowState: single 300s window, wrapping_sub, pending_requests bounded 256
+- Input-hash drift: MATCH=57/STALE=0/ERROR=1 (STORY-091 pre-existing; 12 stories refreshed post F2 edits)
+
+**[F2-GATE] OPEN HUMAN DECISIONS (3):**
+1. --dnp3-direct-operate-threshold default: 10/60s (recommend 10 count / 60s window)
+2. block-command/T0827 correlation window: 300s (current spec)
+3. T0827 guard threshold: ≥3 combined events (direct-operate + inhibit-response)
 
 **RESUME PROTOCOL FOR NEXT SESSION:**
-1. Run `vsdd-factory:factory-worktree-health` — verify .factory/ worktree on factory-artifacts BEFORE any factory reads/writes
-2. Read STATE.md (this file) — orient to current state
-3. Invoke `vsdd-factory:phase-f2-spec-evolution` for Feature #8 DNP3
+1. Run `vsdd-factory:factory-worktree-health` — verify .factory/ worktree on factory-artifacts
+2. Read STATE.md (this file) — orient
+3. Present [F2-GATE] decisions to human; on approval invoke `vsdd-factory:phase-f3-incremental-stories`
 
 **CARRY-FORWARD / OPEN ITEMS:**
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred
@@ -102,8 +106,6 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0/ERROR=1 (STORY-091 no-inputs pre-
 - RUSTSEC-2026-0097: accepted-transitive; ACTION-PIN-001: dtolnay/rust-toolchain exempt (OPEN P3)
 - PCAP-CORPUS-001 (TABLED): storage-backend decision pending
 - Dependabot PRs #202-#207: disposition before next release — see Deferred Next-Work Backlog
-
-**INPUT-HASH DRIFT (verified 2026-06-10 post c4765e6):** MATCH=57 STALE=0 ERROR=1 (STORY-091 pre-existing no-inputs; known).
 
 Prior checkpoint archived: cycles/v0.1.0-greenfield-spec/session-checkpoints.md.
 
@@ -118,6 +120,7 @@ D-001..D-046 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md`.
 | D-049 | MITRE v19 remap fix (issue #222) CONVERGED. Spec delta + code/test remap (T0855→T1692.001 emitted, T0856→T1692.002 catalogue-only) across ~30 spec files + 6 code files + 8 test files. Adversarial convergence: Pass 1 NOT-CONVERGED (incomplete sibling sweep — ADR-005/006 authoritative emission tables, cap-10 counts, domain-debt staged list, stale test fn name; PG-5 propagation-shadow recurrence); Pass 2 adversary CONVERGED but consistency caught story-writer's wrong AC-014 tactic labels (T1692.001/.002→CommandAndControl, T0836→IcsInhibitResponseFunction, T0888→IcsImpairProcessControl) + AC-015 count 6→13; Pass 3 (final) CONSISTENT. Code: 1339 tests green, clippy/fmt clean, Kani VP-007 4/4 SUCCESSFUL, sub-technique format T[0-9]{4}(\.[0-9]{3})? accepted. develop-branch code on fix/mitre-ics-v19-remap (HEAD post-2fbab82). NEXT: code PR → develop, then release. | 2026-06-10 | MITRE v19 remap CONVERGED — 3-pass adversarial (caught 2 propagation shadows + tactic errors) |
 | D-050 | MITRE v19 remap fix (issue #222) MERGED to develop via PR #223 (merge commit 33de854; repo allows merge-commits only, not squash). 9/9 CI green on final commit 14a52c6 (test/clippy/fmt/audit/deny/fuzz-build/semantic-PR/action-pin-gate/trust-boundary), security review PASS, AI review APPROVE (0 blocking). Final pr-review finding (7 stale `t0855` test-fn identifiers in modbus_detection_tests.rs) resolved before merge — renamed to `t1692_001` (commit 14a52c6), completing the symbol-level sweep. Behavioral change shipped to develop: Modbus findings now emit T1692.001 (JSON/CSV/terminal) instead of revoked T0855; envelope conforms to pinned ics-attack-19.1. Issue #222 CLOSED. Spec delta on factory-artifacts (01451fe/d1dabf9/c4765e6). NEXT: human-gated gitflow release to main (version disposition v0.4.1 patch vs v0.5.0 minor — changes emitted output). | 2026-06-10 | MITRE v19 remap MERGED to develop (PR #223, 33de854); release pending |
 | D-051 | Published wirerust v0.5.0 (gitflow-proper) — MITRE ATT&CK-ICS v19 revocation fix (issue #222). release/0.5.0 → PR #224 → main merge c2df1b5; annotated tag v0.5.0 @ 9b3a1c6; release.yml run 27313698900 SUCCESS, 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); GitHub Release published (not draft). CHANGELOG [0.5.0]: remap T0855→T1692.001 (emitted by Modbus; behavioral change to JSON/CSV/terminal mitre_techniques output) + T0856→T1692.002 (catalogue-only); conforms to pinned ics-attack-19.1. Shipped MITRE-fix-alone (Dependabot sweep deferred per human). Treated as MINOR (output-contract change) per human disposition. main back-merged to develop (10036fc) — branches in sync, no divergence. Feature #8 DNP3 now resumes at F2 on the corrected base. | 2026-06-10 | v0.5.0 release — MITRE v19 remap (issue #222 CLOSED) |
+| D-052 | Feature #8 (DNP3) Phase F2 spec evolution CONVERGED (2026-06-10). Delta: SS-15 'DNP3/ICS Analysis' (22 BCs BC-2.15.001-022, CAP-15), ADR-007 (TCP/ICS integration, port-20000 dispatcher Rule 6, frame_len=5+LENGTH+2*ceil((LENGTH-5)/16) max 292, CRC structure-only, FIR=1), VP-023 (Kani parse-safety, 4 sub-properties incl. frame-len arithmetic), MITRE catalog grown SEEDED 21→23 / EMITTED 13→15 (+T1691.001 'Block Operational Technology Message: Command Message'→IcsInhibitResponseFunction, +T0827 'Loss of Control'→new MitreTactic::IcsImpact), PRD v1.5 (266 BCs), Dnp3FlowState correlation-state (single 300s window, wrapping_sub, pending_requests bounded 256). Adversarial convergence: 5 fresh-context passes — P1 (3 HIGH: fabricated T1691.001 name across 5 sites + tactic cardinality + cap-10 un-propagated; arithmetic slice clean) → P2 (2 CRITICAL regressions from P1 fixes: changelog name leak + window-reset contradiction; struct-orphaned fields; VP-007 not updated) → P3 (consistency CONSISTENT; 2 HIGH: orphaned pending_requests DoS bound + panic-prone subtraction) → P4 (cosmetic) → P5 CONVERGED (0 CRITICAL/0 HIGH). 3 [F2-GATE] human decisions pending: --dnp3-direct-operate-threshold default (10/60s), block-command/T0827 correlation window (300s), T0827 guard (≥3 combined events). NEXT: F2 human gate, then F3 story decomposition. | 2026-06-10 | DNP3 F2 spec evolution CONVERGED (5-pass adversarial) |
 
 ## Blocking Issues
 

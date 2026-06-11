@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,8 @@ modified:
   - "v1.3: Wave 3 Ph3 pass-1 adversarial fix: m-1 correct technique_info line-anchor range to :122-156 (closing brace verified) in Architecture Anchors and Source Evidence — 2026-05-22 (product-owner)"
   - "v1.4: ADR-006 / Decision 12+13 (F2 v0.3.0) — SEEDED count updated 15 -> 21 (added 6 ICS: T0836,T0814,T0806,T0835,T0831,T0888; T0846 kept seeded, not Modbus-emitted; T0888 replaces T0846 in Modbus recon emission). Postconditions, Invariants, canonical vectors updated. — 2026-06-09"
   - "v1.5: v19 remap: T0855 → T1692.001, T0856 → T1692.002 per MITRE ATT&CK for ICS v19.0 revocation. ICS seeded ID list and Postcondition 1 updated. Seeded count remains 21. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
+  - "v1.6: Feature #8 DNP3 analyzer (F2). Added 2 new ICS techniques: T1691.001 (Block Operational Technology Message: Command Message, IcsInhibitResponseFunction) + T0827 (Loss of Control, IcsImpact). SEEDED count 21→23 (11 Enterprise + 12 ICS). H1 title updated 21→23. — 2026-06-10"
+  - "v1.7: Pass-1 adversarial fix C-1: corrected T1691.001 technique name from fabricated 'Unauthorized Message: Inhibit Response Function' to authoritative 'Block Operational Technology Message: Command Message' (parent T1691, tactic IcsInhibitResponseFunction) in changelog v1.6, EC-009, and canonical test vectors. Fixed duplicate invariant numbering (I-6): second invariant 4 renumbered to 5. — 2026-06-10"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -26,7 +28,7 @@ removed: null
 removal_reason: null
 ---
 
-# BC-2.10.005: technique_name Returns Some for Every Seeded ID (21 Total)
+# BC-2.10.005: technique_name Returns Some for Every Seeded ID (23 Total)
 
 <!--
   PREVIOUS VERSION SUMMARY (v1.3 -> v1.4):
@@ -36,15 +38,23 @@ removal_reason: null
   Invariant 1: emitted count 6 -> 13 (6 Enterprise + 7 ICS)
   Invariant 2: catalogued-but-not-emitted updated (T0846 remains non-emitted; staged IDS updated)
   Invariant 3: count claim updated 15 -> 21
+
+  PREVIOUS VERSION SUMMARY (v1.5 -> v1.6):
+  Title: "21 Total" -> "23 Total"
+  Seeded count: 21 -> 23 (11 Enterprise + 12 ICS)
+  Added seeded ICS IDs: T1691.001, T0827 (Feature #8 DNP3)
+  Invariant 1: emitted count 13 -> 15 (6 Enterprise + 9 ICS)
+  Invariant 2: catalogued-but-not-emitted remains 8 (23 - 15 = 8)
+  Invariant 3: count claim updated 21 -> 23
 -->
 
 ## Description
 
-`technique_name(id: &str)` returns `Some(&'static str)` for all 21 technique IDs present in
-the `technique_info` static match table. IDs not in the table return `None`. The 21-entry
-catalog (post-F2) includes 13 IDs emitted by analyzers and 8 staged IDs for future analyzers.
-The catalog grows from 15 (pre-F2, 11 Enterprise + 4 ICS) to 21 (11 Enterprise + 10 ICS) as
-part of Feature #7 (Modbus analyzer, ADR-005 + ADR-006).
+`technique_name(id: &str)` returns `Some(&'static str)` for all 23 technique IDs present in
+the `technique_info` static match table. IDs not in the table return `None`. The 23-entry
+catalog (post-F2 DNP3) includes 15 IDs emitted by analyzers and 8 staged IDs for future
+analyzers. The catalog grows from 21 (post-Feature #7 Modbus, 11 Enterprise + 10 ICS) to 23
+(11 Enterprise + 12 ICS) as part of Feature #8 (DNP3 analyzer, ADR-007).
 
 ## Preconditions
 
@@ -52,24 +62,27 @@ part of Feature #7 (Modbus analyzer, ADR-005 + ADR-006).
 
 ## Postconditions
 
-1. For each of the 21 seeded IDs, returns `Some(technique_name_string)`.
+1. For each of the 23 seeded IDs, returns `Some(technique_name_string)`.
 2. For any other string, returns `None`.
-3. The 21 seeded IDs are:
+3. The 23 seeded IDs are:
    - Enterprise (11): T1027, T1036, T1040, T1046, T1071, T1071.001, T1071.004,
      T1083, T1499.002, T1505.003, T1573
-   - ICS (10): T0846, T1692.001, T1692.002, T0885, T0836, T0814, T0806, T0835, T0831, T0888
+   - ICS (12): T0846, T1692.001, T1692.002, T0885, T0836, T0814, T0806, T0835, T0831, T0888,
+     T1691.001, T0827
 
 ## Invariants
 
-1. IDs currently emitted (13): 6 Enterprise (T1027, T1036, T1046, T1083, T1499.002,
-   T1505.003) + 7 ICS (T1692.001, T0836, T0814, T0806, T0835, T0831, T0888).
+1. IDs currently emitted (15): 6 Enterprise (T1027, T1036, T1046, T1083, T1499.002,
+   T1505.003) + 9 ICS (T1692.001, T0836, T0814, T0806, T0835, T0831, T0888, T1691.001, T0827).
 2. IDs catalogued but not emitted (8): T1040, T1071, T1071.001, T1071.004, T1573, T0846,
    T1692.002, T0885. T0846 was previously the Modbus recon technique but was corrected to T0888
    per Decision 12; T0846 remains seeded for future use (e.g., address-sweep detection).
    T1692.002 replaces revoked T0856 ("Spoof Reporting Message") per ATT&CK-ICS v19 remap.
-3. The catalog count is 21 after Feature #7 (F2). Pre-F2 count was 15. Any claim of 15
-   post-F2 is an error; any claim of 20 is an error (21 = 11 Enterprise + 10 ICS).
-4. The match is exact string equality; no prefix/suffix matching.
+3. The catalog count is 23 after Feature #8 DNP3 (F2). Post-Feature #7 count was 21.
+   Any claim of 21 post-DNP3 is an error; any claim of 22 is an error (23 = 11 Enterprise + 12 ICS).
+4. Arithmetic check: SEEDED=23, EMITTED=15, CATALOGUE-ONLY=23−15=8. These counts are
+   mutually consistent.
+5. The match is exact string equality; no prefix/suffix matching.
 
 ## Edge Cases
 
@@ -83,6 +96,8 @@ part of Feature #7 (Modbus analyzer, ADR-005 + ADR-006).
 | EC-006 | "T1071.001" (sub-technique) | Some("Web Protocols") |
 | EC-007 | "T0888" (new ICS seeded — Remote System Information Discovery) | Some("Remote System Information Discovery") |
 | EC-008 | "T0836" (new ICS seeded — Modify Parameter) | Some("Modify Parameter") |
+| EC-009 | "T1691.001" (new ICS seeded F2 DNP3 — Block Operational Technology Message: Command Message) | Some("Block Operational Technology Message: Command Message") |
+| EC-010 | "T0827" (new ICS seeded F2 DNP3 — Loss of Control) | Some("Loss of Control") |
 
 ## Canonical Test Vectors
 
@@ -95,6 +110,8 @@ part of Feature #7 (Modbus analyzer, ADR-005 + ADR-006).
 | "T0888" | Some("Remote System Information Discovery") | happy-path (new F2) |
 | "T0836" | Some("Modify Parameter") | happy-path (new F2) |
 | "T0806" | Some("Brute Force I/O") | happy-path (new F2) |
+| "T1691.001" | Some("Block Operational Technology Message: Command Message") | happy-path (new F2 DNP3) |
+| "T0827" | Some("Loss of Control") | happy-path (new F2 DNP3) |
 | "T9999" | None | edge-case |
 | "" | None | edge-case |
 
@@ -102,7 +119,7 @@ part of Feature #7 (Modbus analyzer, ADR-005 + ADR-006).
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-007 | All 21 seeded IDs return Some | unit: technique_name_resolves_every_seeded_id |
+| VP-007 | All 23 seeded IDs return Some | unit: technique_name_resolves_every_seeded_id |
 | VP-007 | Non-seeded IDs return None | unit: technique_name_returns_none_for_unknown_ids |
 
 ## Traceability

@@ -5,12 +5,12 @@ version: "2.0"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
-modified: "2026-06-09: Phase-F6 — VP-021 (timestamp-provenance-threading) locked/verified @ develop 256a490. status draft→verified, verification_lock→true. test_sufficient_count 5→6. All 21 VPs now verified; draft count 1→0. | 2026-06-09: F2 delta issue #7 — VP-022 added (Modbus MBAP parse safety; draft; Kani; P1; analyzer/modbus.rs). total 21→22, p1 7→8, kani 8→9, draft 0→1. | 2026-06-09: F2 fix (consistency BLOCKING-1 / F-MED-006) — VP-022 catalog-row Verified BCs reconciled 6→8 (added BC-2.14.005, BC-2.14.008) to match VP-022 frontmatter and the architect's canonical BC map; no VP-count change. | 2026-06-09: F7 consistency fix F1 — VP-022 locked/verified at F6 (Kani 4/4 SUCCESSFUL @ develop 68a3306); propagate lock: status draft→verified, verification_lock→true. draft count 1→0; verified count 21→22. Mirrors VP-021 lock propagation pattern."
-total_vps: 22
+modified: "2026-06-09: Phase-F6 — VP-021 (timestamp-provenance-threading) locked/verified @ develop 256a490. status draft→verified, verification_lock→true. test_sufficient_count 5→6. All 21 VPs now verified; draft count 1→0. | 2026-06-09: F2 delta issue #7 — VP-022 added (Modbus MBAP parse safety; draft; Kani; P1; analyzer/modbus.rs). total 21→22, p1 7→8, kani 8→9, draft 0→1. | 2026-06-09: F2 fix (consistency BLOCKING-1 / F-MED-006) — VP-022 catalog-row Verified BCs reconciled 6→8 (added BC-2.14.005, BC-2.14.008) to match VP-022 frontmatter and the architect's canonical BC map; no VP-count change. | 2026-06-09: F7 consistency fix F1 — VP-022 locked/verified at F6 (Kani 4/4 SUCCESSFUL @ develop 68a3306); propagate lock: status draft→verified, verification_lock→true. draft count 1→0; verified count 21→22. Mirrors VP-021 lock propagation pattern. | 2026-06-10: F2 delta issue #8 — VP-023 added (DNP3 data-link parse safety and FC classification; draft; Kani; P1; analyzer/dnp3.rs). total 22→23, p1 8→9, kani 9→10, draft 0→1. 4 harnesses: verify_parse_dnp3_dl_header_safety (sub-A), verify_is_valid_dnp3_frame_gate (sub-C), verify_classify_dnp3_fc_total (sub-B), verify_compute_dnp3_frame_len (sub-D)."
+total_vps: 23
 p0_count: 8
-p1_count: 8
+p1_count: 9
 test_sufficient_count: 6
-kani_count: 9
+kani_count: 10
 proptest_count: 7
 fuzz_count: 1
 integration_unit_count: 5
@@ -31,18 +31,18 @@ integration_unit_count: 5
 
 | Total VPs | P0 | P1 | Test-Sufficient |
 |-----------|----|----|-----------------|
-| 22 | 8 | 8 | 6 |
+| 23 | 8 | 9 | 6 |
 
 | Tool | Count | VP IDs |
 |------|-------|--------|
-| Kani | 9 | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022 |
+| Kani | 10 | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022, VP-023 |
 | proptest | 7 | VP-006, VP-010, VP-011, VP-012, VP-013, VP-014, VP-021 |
 | cargo-fuzz | 1 | VP-008 |
 | integration/unit | 5 | VP-016, VP-017, VP-018, VP-019, VP-020 |
 
 > VP-005 (SNI 4-way ordered classification) uses Kani as its primary and sole
 > counted tool. VP-021 uses integration + proptest; counted under proptest. VP-022
-> uses Kani only. Each VP is counted exactly once. Totals: 9+7+1+5 = 22.
+> uses Kani only. VP-023 uses Kani only. Each VP is counted exactly once. Totals: 10+7+1+5 = 23.
 
 ## Complete VP Catalog
 
@@ -70,6 +70,7 @@ integration_unit_count: 5
 | VP-020 | CSV Injection Neutralization | reporter/csv.rs | unit | test-sufficient | verified | BC-2.11.021 |
 | VP-021 | Timestamp Provenance Threading | reassembly/mod.rs | integration+proptest | test-sufficient | verified | BC-2.09.007, BC-2.04.055 |
 | VP-022 | Modbus MBAP Parse Safety and Function-Code Boundary Classification | analyzer/modbus.rs | Kani | P1 | verified | BC-2.14.001, BC-2.14.002, BC-2.14.003, BC-2.14.004, BC-2.14.005, BC-2.14.006, BC-2.14.007, BC-2.14.008 |
+| VP-023 | DNP3 Data-Link Frame Parse Safety and Function-Code Classification | analyzer/dnp3.rs | Kani | P1 | draft | BC-2.15.001, BC-2.15.002, BC-2.15.003, BC-2.15.004, BC-2.15.005, BC-2.15.006, BC-2.15.007 |
 
 ## P0 Properties (required before Phase 5 gate)
 
@@ -92,6 +93,7 @@ integration_unit_count: 5
 - VP-014: HttpAnalyzer cross-flow isolation
 - VP-015: TCP sequence wraparound
 - VP-022: Modbus MBAP parse safety and function-code boundary classification [NEW — SS-14]
+- VP-023: DNP3 data-link frame parse safety and function-code classification [NEW — SS-15]
 
 ## Test-Sufficient Properties (VP-016..VP-021)
 
@@ -109,10 +111,10 @@ No standalone formal proof harness (Kani) is required; VP-021 additionally uses 
 
 ## Consistency Invariants (machine-enforced by validate-vp-consistency.sh)
 
-- VP-INDEX total (22) must equal verification-architecture.md row count (22)
-- VP-INDEX total (22) must equal verification-coverage-matrix.md VP row count (22)
-- verification-coverage-matrix.md Totals row: Kani(9) + proptest(7) + fuzz(1) + integration/unit(5) = 22
-- P0 count (8) + P1 count (8) + test-sufficient (6) = 22; draft count 0; verified 22
+- VP-INDEX total (23) must equal verification-architecture.md row count (23)
+- VP-INDEX total (23) must equal verification-coverage-matrix.md VP row count (23)
+- verification-coverage-matrix.md Totals row: Kani(10) + proptest(7) + fuzz(1) + integration/unit(5) = 23
+- P0 count (8) + P1 count (9) + test-sufficient (6) = 23; draft count 1 (VP-023); verified 22
 
 ## File Naming Convention
 

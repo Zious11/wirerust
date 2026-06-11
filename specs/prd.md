@@ -1,10 +1,10 @@
 ---
 document_type: prd
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
-timestamp: 2026-06-09T00:00:00Z
+timestamp: 2026-06-10T00:00:00Z
 phase: 1a
 origin: brownfield
 inputs:
@@ -48,6 +48,7 @@ supplements:
 > ADR-005). Updated Section 1.5 Out of Scope (T0855/T1692.001 and 5 other ICS techniques now emitted).
 > Updated Section 6 KD-005 and KD-003 with Modbus-specific BC references. Added SS-14 rows to
 > Section 7 RTM. Total BC count: 244 (was 219).
+> **→ Current total after all deltas: 266 BCs.**
 >
 > **Version 1.2 delta (2026-06-09 — F2 Modbus revision):** Adopts three approved decisions from
 > `f2-fix-directives.md` v2 (Decisions 11, 12, 13). **BREAKING CHANGE targeting v0.3.0:**
@@ -77,6 +78,14 @@ supplements:
 > BC-2.14.006/007/008/011/013/014/015/016/017/018/019/020/022/024; SS-11
 > BC-2.11.001/013/017/020/024; SS-10 BC-2.10.008; SS-09 BC-2.09.001/006.
 > See `spec-changelog.md` §[v19-remap-2026-06-10].
+>
+> **Version 1.5 delta (2026-06-10 — Feature #8 DNP3/ICS analyzer, issue #8):** Added Section
+> 2.15 (SS-15 DNP3/ICS Analysis, 22 BCs, ADR-007). Updated Section 2.10 O-04 domain debt
+> note: SEEDED 21→23 (added T1691.001 + T0827), EMITTED 13→15. New ICS-unique MitreTactic
+> variant `IcsImpact` (Display "Impact", ICS TA0105) added; `all_tactics_in_report_order`
+> grows 16→17 elements. Updated BCs: BC-2.10.002/003/004/005/007/008 (v1.3–v1.7 per BC).
+> Added SS-15 rows to Section 7 RTM. KD-005 and KD-007 extended with DNP3 BCs.
+> Total BC count: 266 (was 244). See `spec-changelog.md` §[dnp3-f2-2026-06-10].
 
 > **Supplement Model:** Sections 3-5 reference extracted supplement files under
 > `prd-supplements/`. These supplements are produced in a SEPARATE burst (Phase 1b).
@@ -438,8 +447,8 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.10.001 | MitreTactic Display renders Enterprise tactics with canonical spacing | P0 | BC-MIT-001 |
 | BC-2.10.002 | ICS tactics render unprefixed (no ICS: prefix) | P1 | BC-MIT-002 |
 | BC-2.10.003 | all_tactics_in_report_order returns kill-chain order first then ICS-unique | P0 | BC-MIT-003 |
-| BC-2.10.004 | all_tactics_in_report_order contains every variant exactly once (16 total) | P0 | BC-MIT-004 |
-| BC-2.10.005 | technique_name returns Some for every seeded ID (21 total) | P0 | BC-MIT-005 |
+| BC-2.10.004 | all_tactics_in_report_order contains every variant exactly once (17 total) | P0 | BC-MIT-004 |
+| BC-2.10.005 | technique_name returns Some for every seeded ID (23 Total) | P0 | BC-MIT-005 |
 | BC-2.10.006 | technique_name returns None for unknown IDs | P0 | BC-MIT-006 |
 | BC-2.10.007 | technique_tactic returns correct tactic for every seeded ID | P0 | BC-MIT-007 |
 | BC-2.10.008 | All technique IDs currently emitted by analyzers resolve in lookup | P0 | BC-MIT-008 |
@@ -447,12 +456,14 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 
 > Full contracts: `behavioral-contracts/ss-10/BC-2.10.001.md` through `BC-2.10.009.md`
 >
-> Domain debt O-04 (revised v1.2): 21 techniques seeded (11 Enterprise + 10 ICS); 13 emitted
-> (6 Enterprise + 7 ICS). Catalogued-but-never-emitted: T1040, T1071, T1071.001, T1071.004,
+> Domain debt O-04 (revised v1.5): 23 techniques seeded (11 Enterprise + 12 ICS); 15 emitted
+> (6 Enterprise + 9 ICS). Catalogued-but-never-emitted (8): T1040, T1071, T1071.001, T1071.004,
 > T1573, T1692.002, T0885 (Enterprise), T0846 (ICS — seeded but not emitted per Decision 12;
 > T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap).
 > T1692.001, T0836, T0814, T0806, T0835, T0831, T0888 are emitted by the Modbus analyzer.
-> BC-2.10.005 documents all 21 seeded IDs; BC-2.10.008 documents 13 emitted IDs.
+> T1691.001, T0827 are emitted by the DNP3 analyzer (Feature #8).
+> Arithmetic: SEEDED=23, EMITTED=15, CATALOGUE-ONLY=23−15=8.
+> BC-2.10.005 documents all 23 seeded IDs; BC-2.10.008 documents 15 emitted IDs.
 
 ### 2.11 Reporting and Output (CAP-11)
 
@@ -642,6 +653,114 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > Full contracts: `behavioral-contracts/ss-14/BC-2.14.001.md` through `BC-2.14.025.md`
 
 
+### 2.15 DNP3/ICS Analysis (CAP-15) [Feature #8 — ADR-007]
+
+> **Release target: v0.5.0 (additive — no schema break).**
+> All SS-15 BCs (BC-2.15.001..022) ship in v0.5.0. The `mitre_techniques: Vec<String>` type
+> and multi-tag finding model established by v0.3.0 are reused without modification. DNP3 is
+> purely additive at v0.5.0.
+
+> **Feature Mode F2 addition (v1.5).** 22 BCs covering the DNP3 TCP protocol analyzer (SS-15,
+> C-26 Dnp3Analyzer). Analyzer detects 5 MITRE ATT&CK for ICS techniques directly and 2 via
+> correlation: T1692.001 (unauthorized control command — direct), T0814 (restart/DoS — direct),
+> T0836 (write FC — direct), T1691.001 (inferred block-command, ICS sub-technique — per-flow
+> inference), T0827 (derived loss-of-control — correlated across events).
+>
+> **New ICS tactic variant:** `IcsImpact` (Display "Impact", TA0105) added to `MitreTactic`
+> enum for T0827. `all_tactics_in_report_order` grows from 16 to 17 elements (element [16]).
+> See BC-2.10.002/003/004 for the tactic enum update.
+>
+> **DNP3 frame model:** Link-layer header (10 bytes minimum: 8 header + 2 CRC). Validity gate:
+> sync==0x0564 and LENGTH>=5. DEST/SOURCE addresses little-endian at offsets 4–7. Maximum
+> frame size 292 bytes (BC-2.15.007). Carry buffer per-flow bounded to 292 bytes.
+>
+> **FC classification:** `classify_dnp3_fc` is total over all 256 values — Control class
+> {0x03,0x04,0x05,0x06}, Restart class {0x0D,0x0E}, Write class {0x02}, Read class {0x01},
+> Unknown otherwise. Transport FIR=1 gates application-layer FC extraction (BC-2.15.008).
+>
+> **Desync safety:** `is_non_dnp3` check — if no valid sync bytes in first 16 bytes, flow is
+> silenced permanently (BC-2.15.009). Prevents false-positive finding spam on non-DNP3 flows.
+>
+> **Correlated findings (F2 novel):** T1691.001 (BC-2.15.014) requires a control request
+> without response within a configurable window — per-flow request/response correlation.
+> T0827 (BC-2.15.015) requires N restart/block events within a detection window — cross-event
+> aggregation producing a single derived impact finding.
+>
+> **CLI flags added:** `--dnp3` (enable analyzer), `--dnp3-direct-operate-threshold N`
+> (default 5; zero rejected). `--all` includes DNP3. DNP3 analysis requires stream reassembly
+> (`--no-reassemble` disables it with a warning). Dispatcher Rule 6: port-20000 flows →
+> `DispatchTarget::Dnp3`, checked AFTER content rules (Rules 1-2), TLS/HTTP port fallbacks
+> (Rules 3-4), and Modbus Rule 5.
+>
+> **Formal verification:** VP-023 covers `parse_dnp3_dl_header` (None for < 10 bytes),
+> `classify_dnp3_fc` (total over all 256 values), `is_valid_dnp3_frame_header` (biconditional),
+> and `compute_dnp3_frame_len` (arithmetic correctness, result in [10,292]).
+
+#### 2.15.A DL Header Parse and Validity Gate
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.15.001 | DNP3 DL header accepted for well-formed 10-byte-minimum frame | P0 | feature-008-F2 |
+| BC-2.15.002 | DNP3 DL header rejected for frame shorter than 10 bytes (truncation safety) | P0 | feature-008-F2 |
+| BC-2.15.003 | DEST/SOURCE addresses decoded little-endian from fixed offsets 4–7 | P0 | feature-008-F2 |
+| BC-2.15.004 | Three-point validity gate returns true iff sync==0x0564 and LENGTH>=5 | P0 | feature-008-F2 |
+
+#### 2.15.B Function-Code Classification
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.15.005 | classify_dnp3_fc is total over all 256 FC values (no gap, no panic) | P0 | feature-008-F2 |
+| BC-2.15.006 | FC classification correctness — Control {0x03,0x04,0x05,0x06}, Restart {0x0D,0x0E}, Write {0x02}, Read {0x01} | P0 | feature-008-F2 |
+| BC-2.15.007 | compute_dnp3_frame_len arithmetic correct; result in [10,292]; no overflow | P0 | feature-008-F2 |
+
+#### 2.15.C Transport Layer and Desync Safety
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.15.008 | Transport FIR=1 first-fragment gates application-layer FC extraction | P0 | feature-008-F2 |
+| BC-2.15.009 | is_non_dnp3 desync-safe bail — flow silenced after no valid sync in first 16 bytes | P0 | feature-008-F2 |
+
+#### 2.15.D Finding Emission: Detection (Direct Techniques)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.15.010 | Unauthorized control command — Control-class FC exceeding threshold emits T1692.001 | P0 | feature-008-F2 |
+| BC-2.15.011 | COLD_RESTART/WARM_RESTART observed — emits T0814 per-occurrence finding | P0 | feature-008-F2 |
+| BC-2.15.012 | WRITE FC observed — emits T0836 Modify-Parameter finding per-occurrence | P0 | feature-008-F2 |
+| BC-2.15.013 | Co-emission ordering — direct finding (T0814/T1692.001) precedes derived T0827 | P0 | feature-008-F2 |
+
+#### 2.15.E Finding Emission: Inferred and Correlated (T1691.001 and T0827)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.15.014 | Inferred block-command — control request without response within window emits T1691.001 | P0 | feature-008-F2 |
+| BC-2.15.015 | Derived loss-of-control — N restart/block events in window emits T0827 as correlated finding | P0 | feature-008-F2 |
+
+#### 2.15.F Bounded Resource and CLI Integration
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.15.016 | Per-flow state and carry buffer — ≤292 bytes, bounded across all flows | P0 | feature-008-F2 |
+| BC-2.15.017 | --dnp3-direct-operate-threshold CLI flag controls control-command detection window | P0 | feature-008-F2 |
+
+#### 2.15.G Anomaly Detection
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.15.018 | Broadcast destination anomaly — DEST in 0xFFFD/0xFFFE/0xFFFF emits anomaly finding | P1 | feature-008-F2 |
+| BC-2.15.019 | Unsolicited response anomaly — UNS bit set or FC 0x82 from unexpected pattern | P1 | feature-008-F2 |
+
+#### 2.15.H Summary, Dispatcher, and DoS Bound
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.15.020 | summarize() emits function-code distribution and control-operation counts | P1 | feature-008-F2 |
+| BC-2.15.021 | Port-20000 flow dispatched to Dnp3Analyzer (DispatchTarget::Dnp3, Rule 6) | P0 | feature-008-F2 |
+| BC-2.15.022 | MAX_FINDINGS DoS bound — finding cap prevents unbounded all_findings growth | P0 | feature-008-F2 |
+
+> Full contracts: `behavioral-contracts/ss-15/BC-2.15.001.md` through `BC-2.15.022.md`
+
+
 ## 3. Interface Definition
 
 > **Supplement:** Full interface definitions are in `prd-supplements/interface-definitions.md`.
@@ -719,6 +838,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.05.005 | Classification cached per flow for efficiency |
 | BC-2.05.006 | DispatchTarget::None not cached until retry cap (default 8); late protocol identification retried until cap, then permanently cached as None |
 | BC-2.14.025 | Modbus port-502 Rule 5 checked AFTER content rules (1-2) and TLS/HTTP port fallbacks (3-4); TLS/HTTP traffic on port 502 is never stolen by Modbus rule |
+| BC-2.15.021 | DNP3 port-20000 Rule 6 checked AFTER all prior rules (1-5); TLS/HTTP/Modbus traffic on port 20000 is never stolen by DNP3 rule |
 
 ### 6.4 KD-004: First-Wins TCP Overlap Forensics
 
@@ -734,7 +854,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC ID | Contribution |
 |-------|-------------|
 | BC-2.10.003 | all_tactics_in_report_order returns kill-chain order for deterministic grouping |
-| BC-2.10.005 | technique_name lookup for all 21 seeded IDs (11 Enterprise + 10 ICS: T0846 seeded-not-emitted; T0855→T1692.001/T0856→T1692.002/T0885 existing; T0836/T0814/T0806/T0835/T0831/T0888 new) |
+| BC-2.10.005 | technique_name lookup for all 23 seeded IDs (11 Enterprise + 12 ICS: T0846 seeded-not-emitted; T1692.001/T1692.002/T0885 existing; T0836/T0814/T0806/T0835/T0831/T0888 new Modbus; T1691.001/T0827 new DNP3 F2) |
 | BC-2.11.013 | TerminalReporter MITRE grouping with tactic headers in canonical order; groups by `mitre_techniques[0]`; multi-tag findings display all IDs |
 | BC-2.11.015 | Uncategorized bucket for empty `mitre_techniques` vec or all-unknown IDs |
 | BC-2.11.016 | Per-finding MITRE expansion with em-dash and name |
@@ -745,6 +865,12 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.14.017 | Burst/sustained rate detection emits `["T0806","T1692.001"]` — dual-window model (1s burst + >=2s sustained) |
 | BC-2.14.018 | T0814 (Denial of Service) emitted for Force-Listen-Only (0x0004) and Restart-Comms (0x0001) Diagnostics sub-functions |
 | BC-2.14.020 | T0888 (Remote System Information Discovery) emitted for recon FCs 0x11 and 0x2B/0x0E (correctness fix; T0846 not emitted) |
+| BC-2.15.010 | T1692.001 emitted for Control-class FC exceeding threshold per flow (DNP3) |
+| BC-2.15.011 | T0814 (Denial of Service) emitted for COLD_RESTART/WARM_RESTART FCs (DNP3) |
+| BC-2.15.012 | T0836 (Modify Parameter) emitted for WRITE FC (DNP3) |
+| BC-2.15.013 | Co-emission ordering — direct finding (T0814/T1692.001) precedes derived T0827; broadcast-anomaly (018↔010) dedup rule |
+| BC-2.15.014 | T1691.001 (Block Operational Technology Message: Command Message) emitted via per-flow request/response correlation — control request without response within window |
+| BC-2.15.015 | T0827 (Loss of Control) emitted as derived correlated finding — N restart/block events in detection window |
 
 ### 6.6 KD-006: SNI Anomaly Detection with 4-Way Classification
 
@@ -767,6 +893,8 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.06.022 | MAX_HEADER_BUF=65536 per-direction buffer cap in HTTP |
 | BC-2.04.041 | max_depth truncation prevents unbounded stream accumulation |
 | BC-2.04.042 | max_receive_window rejects out-of-window segments |
+| BC-2.15.016 | Per-flow DNP3 carry buffer bounded to MAX_DNP3_FRAME_LEN=292 bytes; master_addrs_seen bounded to 64 entries |
+| BC-2.15.022 | MAX_FINDINGS cap prevents unbounded all_findings growth in Dnp3Analyzer |
 
 
 ## 7. Requirements Traceability Matrix
@@ -1019,6 +1147,28 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.14.023 | CAP-14 | SS-12 (cli.rs, main.rs) + SS-14 | P0 | unit+integration |
 | BC-2.14.024 | CAP-14 | SS-12 (cli.rs, main.rs) + SS-14 | P0 | unit+integration |
 | BC-2.14.025 | CAP-14 | SS-05 (dispatcher.rs) + SS-14 | P0 | unit+kani |
+| BC-2.15.001 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit+kani |
+| BC-2.15.002 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit+kani |
+| BC-2.15.003 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit+kani |
+| BC-2.15.004 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit+kani |
+| BC-2.15.005 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit+kani |
+| BC-2.15.006 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit+kani |
+| BC-2.15.007 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit+kani |
+| BC-2.15.008 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit |
+| BC-2.15.009 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit |
+| BC-2.15.010 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit |
+| BC-2.15.011 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit |
+| BC-2.15.012 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit |
+| BC-2.15.013 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit |
+| BC-2.15.014 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit |
+| BC-2.15.015 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit |
+| BC-2.15.016 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit |
+| BC-2.15.017 | CAP-15 | SS-12 (cli.rs, main.rs) + SS-15 | P0 | unit+integration |
+| BC-2.15.018 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P1 | unit |
+| BC-2.15.019 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P1 | unit |
+| BC-2.15.020 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P1 | unit |
+| BC-2.15.021 | CAP-15 | SS-05 (dispatcher.rs) + SS-15 | P0 | unit+kani |
+| BC-2.15.022 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit |
 
 
 ## 8. Domain Debt Index
@@ -1031,7 +1181,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | O-01 | Finding.timestamp always None; RawPacket timestamps never threaded to Finding constructors | BC-2.09.001, BC-2.09.006 |
 | O-02 | Absent User-Agent (None) intentionally not detected; only Some("") fires | BC-2.06.011 |
 | O-03 | Anomaly thresholds not empirically calibrated against labelled traffic | BC-2.04.019, BC-2.04.020, BC-2.04.021 |
-| O-04 | 7 MITRE techniques catalogued but never emitted (T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885; T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap); T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 now emitted by Modbus analyzer (Feature #7); T0846 seeded-not-emitted (Decision 12) | BC-2.10.005 |
+| O-04 | 8 MITRE techniques catalogued but never emitted (T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885, T0846; T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap; T0846 seeded-not-emitted per Decision 12); T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 now emitted by Modbus analyzer (Feature #7); T1691.001/T0827 now emitted by DNP3 analyzer (Feature #8); SEEDED=23, EMITTED=15, CATALOGUE-ONLY=8 | BC-2.10.005 |
 | O-05 | reassembly/mod.rs still 691 LOC after partial split (#85) | BC-2.04.* (reassembly module group) |
 | O-06 | Weak-cipher Finding evidence Vec has unbounded cardinality (up to ~9216 cipher names) | BC-2.07.009 |
 | O-07 | rayon declared in Cargo.toml but never imported; unused transitive dependency | (none -- build/dep debt only) |

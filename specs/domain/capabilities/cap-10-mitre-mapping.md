@@ -5,7 +5,7 @@ cap_id: CAP-10
 title: MITRE ATT&CK Mapping
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
-version: "1.2"
+version: "1.3"
 modified:
   - date: 2026-06-10
     actor: architect
@@ -13,6 +13,9 @@ modified:
   - date: 2026-06-10
     actor: architect
     reason: "Fix F2 staleness: catalog expanded to 21 IDs (add Modbus techniques T0836/T0814/T0806/T0835/T0831/T0888); correct emitted count 6→13; correct never-emitted count 9→8 (T1692.001 is emitted, not staged); fix IcsInhibitResponseFunction paragraph (T0814→IcsInhibitResponseFunction is active, not unreachable); update BC-2.10.005 total (issue #222)."
+  - date: 2026-06-10
+    actor: architect
+    reason: "F2 delta (issue #8 DNP3 TCP): catalog expanded to 23 IDs (add T1691.001 Block Operational Technology Message: Command Message → IcsInhibitResponseFunction, T0827 Loss of Control → IcsImpact); emitted count 13→15; add IcsImpact variant to MitreTactic enum (17 variants / 3 ICS-unique); update BC-2.10.005 total."
 ---
 
 # CAP-10: MITRE ATT&CK Mapping
@@ -27,8 +30,8 @@ groups findings by tactic when `--mitre` is set.
 
 ## Technique catalog
 
-The `technique_info` function contains 21 IDs in its match arms (F2 corrected; 15 brownfield IDs
-plus 6 new Modbus ICS techniques added in Feature #7: T0836, T0814, T0806, T0835, T0831, T0888):
+The `technique_info` function contains 23 IDs in its match arms (21 post-Feature-#7 IDs plus
+2 new DNP3 ICS techniques added in Feature #8: T1691.001, T0827):
 
 | ID | Technique name | Tactic |
 |---|---|---|
@@ -53,8 +56,10 @@ plus 6 new Modbus ICS techniques added in Feature #7: T0836, T0814, T0806, T0835
 | T0835 | Manipulate I/O Image | IcsImpairProcessControl |
 | T0831 | Manipulation of Control | IcsImpairProcessControl |
 | T0888 | Remote System Information Discovery | IcsDiscovery |
+| T1691.001 | Block Operational Technology Message: Command Message | IcsInhibitResponseFunction |
+| T0827 | Loss of Control | IcsImpact |
 
-**Emitted (13):** T1027, T1036, T1046, T1083, T1499.002, T1505.003, T1692.001, T0836, T0814, T0806, T0835, T0831, T0888.
+**Emitted (15):** T1027, T1036, T1046, T1083, T1499.002, T1505.003, T1692.001, T0836, T0814, T0806, T0835, T0831, T0888, T1691.001, T0827.
 **Catalogued but never emitted (8):** T1040, T1071, T1071.001, T1071.004, T1573, T0846, T1692.002, T0885.
 
 These 8 staged IDs are documented in mitre.rs source comments (P3.04 / #89; open item O-04).
@@ -63,15 +68,21 @@ and are intentionally present in the catalog without corresponding emission site
 
 ## MitreTactic enum (E-27)
 
-16 variants: 14 Enterprise ATT&CK tactics (Reconnaissance through Impact) + 2 ICS-unique
-(`IcsInhibitResponseFunction`, `IcsImpairProcessControl`). The enum is `#[non_exhaustive]`
+17 variants: 14 Enterprise ATT&CK tactics (Reconnaissance through Impact) + 3 ICS-unique
+(`IcsInhibitResponseFunction`, `IcsImpairProcessControl`, `IcsImpact`). The enum is `#[non_exhaustive]`
 so adding new tactics in a future ATT&CK version is non-breaking for downstream match consumers.
 
-**IcsInhibitResponseFunction (active, reachable via T0814):** `MitreTactic::IcsInhibitResponseFunction`
-is declared (mitre.rs:64), appears in `Display` (mitre.rs:85) and in `all_tactics_in_report_order`
-(mitre.rs:111). T0814 (Denial of Service — Diagnostics Force Listen Only sub-function) maps to
-`IcsInhibitResponseFunction` in `technique_info` and is actively emitted by the Modbus analyzer
-(Feature #7). This tactic is therefore reachable via the T0814 emission path.
+**IcsInhibitResponseFunction (active, reachable via T0814 and T1691.001):** `MitreTactic::IcsInhibitResponseFunction`
+is declared (mitre.rs), appears in `Display` and in `all_tactics_in_report_order`. T0814 (Denial
+of Service — Diagnostics Force Listen Only sub-function) maps to `IcsInhibitResponseFunction` and
+is actively emitted by the Modbus analyzer (Feature #7). T1691.001 (Block Operational Technology
+Message: Command Message) maps to `IcsInhibitResponseFunction` and is emitted by the DNP3 analyzer
+(Feature #8). This tactic is reachable via both emission paths.
+
+**IcsImpact (active, reachable via T0827):** `MitreTactic::IcsImpact` (ICS Impact, TA0105) was
+added in Feature #8 (issue #8, ADR-007). T0827 (Loss of Control) is a derived/correlated finding
+emitted by the DNP3 analyzer when unauthorized command activity is detected. `IcsImpact` appears
+in `Display` and `all_tactics_in_report_order`.
 
 ## CLI --mitre flag
 
@@ -91,7 +102,7 @@ If an analyzer emits a malformed or unrecognized MITRE technique ID:
 ## BC references
 
 BC-2.10.001..004: MitreTactic Display rendering + all_tactics_in_report_order.
-BC-2.10.005: technique_name returns Some for every seeded ID (21 total).
+BC-2.10.005: technique_name returns Some for every seeded ID (23 total).
 BC-2.10.006: technique_name returns None for unknown IDs.
 BC-2.10.007: technique_tactic returns correct tactic for every seeded ID.
 BC-2.10.008: all emitted technique IDs resolve in lookup.

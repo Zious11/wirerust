@@ -28,6 +28,9 @@ modified:
   - date: 2026-06-10
     actor: architect
     reason: "Issue #222 (MITRE ATT&CK-ICS v19.1 remap): no row-level changes — VP-007 row module/tool/phase/status unchanged. VP counts unchanged at 22 (Kani 9, proptest 7, fuzz 1, integration-unit 5). Coverage note updated to reference T1692.001/T1692.002 replacing revoked T0855/T0856."
+  - date: 2026-06-10
+    actor: architect
+    reason: "F2 delta (issue #8 DNP3 TCP): VP-023 added (draft; Kani; P1; analyzer/dnp3.rs). New module row added. Kani 9→10, Total 22→23."
 ---
 
 # Verification Coverage Matrix
@@ -58,6 +61,7 @@ modified:
 | VP-020 | CSV injection neutralization | reporter/csv.rs | unit | test-sufficient | verified |
 | VP-021 | Timestamp provenance threading | reassembly/mod.rs | integration+proptest | test-sufficient | verified |
 | VP-022 | Modbus MBAP parse safety + FC boundary classification | analyzer/modbus.rs | Kani | P1 | verified |
+| VP-023 | DNP3 DL frame parse safety + FC classification + frame_len arithmetic | analyzer/dnp3.rs | Kani | P1 | draft |
 
 
 ## Per-Module Coverage Totals
@@ -78,7 +82,8 @@ modified:
 | analyzer/dns.rs | 0 | 0 | 0 | 1 (VP-019) | 1 |
 | reporter/csv.rs | 0 | 0 | 0 | 1 (VP-020) | 1 |
 | analyzer/modbus.rs | 1 (VP-022) | 0 | 0 | 0 | 1 |
-| **Totals** | **9** | **7** | **1** | **5** | **22** |
+| analyzer/dnp3.rs | 1 (VP-023) | 0 | 0 | 0 | 1 |
+| **Totals** | **10** | **7** | **1** | **5** | **23** |
 
 
 ## Coverage Notes

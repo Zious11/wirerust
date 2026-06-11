@@ -9,6 +9,9 @@ modified:
   - date: 2026-06-08
     actor: spec-steward
     reason: "Phase-6 gate close: status draft→verified (all arch section files promoted); input-hash computed; SS-13/CAP-12 note added for clarity."
+  - date: 2026-06-10
+    actor: architect
+    reason: "Pass-1 adversarial remediation (issue #8 F2): SS-15 BC count updated TBD→22; stale 'F2 in progress' comment replaced (all 22 SS-15 BCs now written)."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -73,6 +76,7 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 | SS-12 | CLI / Entry | CAP-12 | main.rs, cli.rs, lib.rs, summary.rs | 21 |
 | SS-13 | Absent Behaviors | CAP-12 | cli.rs (flag parse only) | 4 | <!-- intentional: SS-13 is a sub-classification of CAP-12 (absent/intentionally-excluded behaviors), not a separate capability; see prd.md §2.13 -->
 | SS-14 | Modbus/ICS Analysis | CAP-14 | analyzer/modbus.rs | 25 | <!-- Feature cycle issue #7; ADR-005; BC-2.14.001..025 all written; F2 adversarial review complete -->
+| SS-15 | DNP3/ICS Analysis | CAP-15 | analyzer/dnp3.rs | 22 | <!-- Feature cycle issue #8; ADR-007; BC-2.15.001..022 written (F2 complete) -->
 
 > SS-03 is intentionally absent. See "CAP-03 / ss-02 Ruling" below.
 
@@ -125,6 +129,7 @@ Three independent caps operate at different layers:
 - L3/SS-07: `MAX_BUF = 65,536` bytes per direction in TLS buffer; `MAX_RECORD_PAYLOAD`
 - L3/SS-06+07: `MAX_MAP_ENTRIES` on aggregate counter maps; `MAX_URIS = 10,000`
 - L3/SS-14: `MAX_PENDING_TRANSACTIONS = 256` per Modbus flow (transaction correlation table); `MAX_FINDINGS = 10,000` shared constant
+- L3/SS-15: carry buffer bounded to 292 bytes per DNP3 flow (max DNP3 link frame); `MAX_MASTER_ADDRS` (bounded master-address tracking per flow)
 - L1/SS-04: `max_flows` and `memcap` configurable via `ReassemblyConfig`
 
 ### Single-Threaded Synchronous Execution
@@ -150,6 +155,7 @@ or any network-related call. This is the basis for the "offline" forensic-tool g
 | ADR 0004 | 2026-05-19 | Process-wide warning atomics for one-shot bug tripwires | SS-04 |
 | ADR 0005 | 2026-06-09 | Binary ICS protocol integration (Modbus TCP): port-only classification exception, PDU-oriented manual parsing, full transaction-correlation state, ICS-matrix MITRE representation | SS-05, SS-10, SS-14 |
 | ADR 0006 | 2026-06-09 | Multi-technique Finding attribution: `mitre_technique: Option<String>` → `mitre_techniques: Vec<String>`; one-finding-N-tags aligned with Sigma/Elastic standard; volume control via aggregation not tag-suppression; v0.3.0 breaking schema change | SS-09, SS-10, SS-11, SS-14 |
+| ADR 0007 | 2026-06-10 | DNP3 TCP integration (Issue #8): port-20000 Rule 6 port-fallback classification, `DispatchTarget::Dnp3`, carry-buffer + CRC-block-skip parse, FIR=1-only app-layer extract, corrected MITRE technique set (T1691.001+T0827 new; T0803/T0855 revoked in ics-attack-19.1), new `MitreTactic::IcsImpact` variant, VP-004 oracle extension, VP-007 SEEDED 21→23 | SS-05, SS-10, SS-15 |
 
 ADRs 0001–0004 are canonical and reside in `docs/adr/`. ADR 0005 onwards reside in
 `.factory/specs/architecture/decisions/`. Architecture section files reference them by ID
