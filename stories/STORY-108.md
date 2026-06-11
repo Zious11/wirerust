@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-108
 epic_id: E-15
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
@@ -88,8 +88,8 @@ Every WRITE (FC=0x02) on a FIR=1 frame pushes ONE `Finding` with `mitre_techniqu
 - **Test:** `test_t0836_emitted_for_write_fc()`, `test_write_fc_not_t1692()`
 
 ### AC-007 (traces to BC-2.15.013 postconditions 2/3 — co-emission ordering: direct before derived)
-When a single `on_data` call would emit BOTH a T0814 finding AND a T0827 finding (because the T0814 is the Nth event crossing the T0827 threshold), T0814 is pushed FIRST and T0827 is pushed SECOND. Verified by checking `all_findings[i].mitre_techniques` ordering. (T0827 emission logic is implemented in STORY-109; this story must NOT emit T0827 directly — but it MUST NOT emit findings in the wrong order when STORY-109 is integrated.)
-- **Test:** `test_co_emission_ordering_t0814_before_derived()` — stubbed T0827 path verifies ordering contract.
+When multiple T0814 findings are pushed across successive `on_data` calls, they appear in the `all_findings` vec in the inter-call order they were observed (first restart finding appended before subsequent restart findings). Intra-call ordering (T0814 pushed before derived T0827 within the same `on_data` call — BC-2.15.013 PC2) and the mid-sequence cap re-check (PC4/PC5) are DEFERRED to STORY-109 where the T0827 derived push is implemented.
+- **Test:** `test_restart_findings_append_in_observation_order()` — verifies inter-call append ordering of T0814 findings across successive `on_data` calls.
 
 ### AC-008 (traces to BC-2.15.013 postcondition 4/5 — MAX_FINDINGS cap applied per-push)
 `MAX_FINDINGS` cap check is `self.all_findings.len() < MAX_FINDINGS` evaluated immediately before each `push`. When cap is hit mid-multi-finding sequence, the first (most specific) finding is preserved and subsequent findings are silently dropped.
