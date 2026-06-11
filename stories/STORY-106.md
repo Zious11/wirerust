@@ -2,7 +2,10 @@
 document_type: story
 story_id: STORY-106
 epic_id: E-15
-version: "1.1"
+version: "1.5"
+# v1.5 2026-06-11: adversarial Pass-7 F1 — add AC-004 BC-2.15.004 PC4 caller-side parse_errors STORY-107 deferral note (symmetry with AC-008/AC-009)
+# v1.4 2026-06-11: adversarial Pass-3 F-P3-001 — document BC-2.15.008 link-FC guard in AC-008 + cite has_user_data/RESET_LINK tests (sibling-sweep)
+# v1.3 2026-06-11: adversarial Pass-2 B1/B2 scope notes + B4 test citation
 status: draft
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
@@ -43,8 +46,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.009.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/specs/verification-properties/vp-023-dnp3-parse-safety.md
-input-hash: TBD
-input-hash: "cc854c4"
+input-hash: "b465d38"
 ---
 
 # STORY-106: DNP3 DL/Transport Parse + FC Classify — Pure Core (VP-023 Kani)
@@ -90,6 +92,7 @@ input-hash: "cc854c4"
 `is_valid_dnp3_frame_header(h: &Dnp3DlHeader) -> bool` returns `true` IFF `h.start1==0x05 && h.start2==0x64 && h.length>=5`. Returns `false` if any condition fails: wrong START1 (0x04), wrong START2 (0x63), LENGTH=4 (below minimum).
 - **Test:** `test_is_valid_dnp3_frame_header_biconditional()` — 6 vectors covering all partial-match cases.
 - **Kani:** VP-023 Sub-property C proves biconditional for all symbolic `Dnp3DlHeader` inputs.
+- **STORY-106 scope boundary (BC-2.15.004 PC4 caller obligation):** AC-004 covers the PURE validity-gate biconditional (`is_valid_dnp3_frame_header`) only. BC-2.15.004 Postcondition 4's caller-side obligation — `on_data` must increment `flow.parse_errors` and skip processing when the gate returns false — requires the per-frame gating in the STORY-107 frame-walk and is deferred to STORY-107 (consistent with the `frame_count`-semantics note in AC-008).
 
 ### AC-005 (traces to BC-2.15.005 postcondition 2 — totality no panic)
 `classify_dnp3_fc(fc: u8) -> Dnp3FcClass` returns exactly one of `{Read, Write, Control, Restart, Management, Response, Unknown}` for every `fc` in 0x00..=0xFF. Never panics. No `unreachable!` macro. Wildcard arm `_ => Dnp3FcClass::Unknown` ensures totality.
@@ -106,13 +109,17 @@ Control set {0x03, 0x04, 0x05, 0x06} → `Control`. Restart set {0x0D, 0x0E} →
 - **Test:** `test_compute_dnp3_frame_len_formula()` — 7 canonical vectors including both block boundaries.
 - **Kani:** VP-023 Sub-property D proves formula correctness, [10,292] bound, and no-panic over all 256 `u8` values.
 
-### AC-008 (traces to BC-2.15.008 postconditions 1-4 — FIR=1 gating)
-When `transport_octet & 0x40 != 0` (FIR=1): application FC is extracted from `payload_buf[2]`, `classify_dnp3_fc` is called, and `fc_counts`/`fn_code_counts` are updated. When FIR=0 (continuation): no App FC extraction, no finding emission, `frame_count` still incremented.
-- **Test:** `test_fir_gating_extract_on_fir1_skip_on_fir0()` — transport_octet=0xC0 (FIR=1)→FC extracted; transport_octet=0x80 (FIR=0)→no extraction.
+### AC-008 (traces to BC-2.15.008 postconditions 1-4 — FIR=1 gating + link-FC guard)
+When `transport_octet & 0x40 != 0` (FIR=1): application FC is extracted from `payload_buf[2]`, `classify_dnp3_fc` is called, and `fc_counts`/`fn_code_counts` are updated. When FIR=0 (continuation): no App FC extraction, no finding emission, `frame_count` still incremented. App-FC extraction additionally requires the link CONTROL nibble (`data[3] & 0x0F`) to be CONFIRMED_USER_DATA (0x03) or UNCONFIRMED_USER_DATA (0x04) per BC-2.15.008 precondition 2 / Invariant 4; a FIR=1 fragment in a non-user-data link frame (e.g. RESET_LINK 0x00) is counted but NOT app-extracted (EC-005).
+- **Test:** `test_fir_gating_extract_on_fir1_skip_on_fir0()` (predicate) and `test_on_data_fir_gating_updates_counters()` (on_data end-to-end counter update) — transport_octet=0xC0 (FIR=1)→FC extracted; transport_octet=0x80 (FIR=0)→no extraction. Also: `test_has_user_data_link_fc_guard()` (link-FC predicate unit test) and `test_on_data_fir_but_non_user_data_link_fc_no_extraction()` (RESET_LINK 0x00 with FIR=1 — frame counted, app-FC NOT extracted).
+- **STORY-106 scope boundary (Finding 5):** This AC covers FIR=1 gating and app-FC extraction for minimum-single-block frames only — the `on_data` FIR-extraction path reads the app FC at the minimum-frame offset. BC-2.15.008 EC-006 (`parse_errors` accounting for payloads &lt;3 bytes) requires the frame-walk and error-accounting infrastructure that is STORY-107 scope; that EC is deferred to STORY-107. Full multi-block CRC-strip indexing for `payload_buf[2]` access is likewise STORY-107.
+- **STORY-106 scope boundary (frame_count semantics):** `on_data` increments `frame_count` for sync-valid deliveries (`[0x05, 0x64]` at offset 0) WITHOUT a per-frame validity-gate check. Gating each frame through `is_valid_dnp3_frame_header` before counting (so `frame_count` counts validated frames, not just sync-valid deliveries) is part of the STORY-107 frame-walk. In STORY-106, `frame_count` means "sync-valid delivery count".
+- **STORY-106 scope boundary (app-FC extraction minimum frame size):** App-FC extraction occurs only for frames >=13 bytes (the minimum that carries an application FC at byte 12: 10 header + 1 transport + 2 app). FIR=1 frames of 10–12 bytes have no app-layer FC and are counted but not extracted — this is correct; multi-block and short-frame handling is STORY-107 frame-walk scope.
 
 ### AC-009 (traces to BC-2.15.009 postconditions 1-6 — desync bail)
 When the first 16 bytes of carry data contain no valid DNP3 sync word `[0x05, 0x64]` at offset 0, `flow.is_non_dnp3` is set to `true`. All subsequent `on_data` calls for that flow return immediately (no-op). The latch is one-way: `is_non_dnp3` once true is never reset.
 - **Test:** `test_desync_bail_non_dnp3_traffic()` — deliver `[0xFF, 0xFE, ...]` first; assert `is_non_dnp3=true`; deliver second segment; assert no findings, no carry growth.
+- **STORY-106 scope boundary (Finding 4):** This AC covers the single-delivery desync latch — when the first delivered segment is ≥2 bytes and has no `[0x05, 0x64]` at offset 0, `is_non_dnp3` is set. BC-2.15.009 EC-004 (a sub-2-byte first segment, e.g. a lone `0x05`, must DEFER not bail, accumulating up to 16 bytes of carry before deciding) cannot be fully implemented here because the carry buffer is STORY-107 scope. Multi-segment carry-accumulated sync deferral for the lone-`0x05`-first-segment case is verified in STORY-107 when the carry buffer lands.
 
 ## Architecture Mapping
 
@@ -184,8 +191,8 @@ All four harnesses use straight-line symbolics (no user loops); expected Kani ru
 | AC-005 | Unit + Kani | Sub-B | `classify_dnp3_fc` totality; Sub-B no-panic assertion |
 | AC-006 | Unit + Kani | Sub-B | Set membership; Sub-B per-set `if matches! ... assert!` |
 | AC-007 | Unit + Kani | Sub-D | `compute_dnp3_frame_len` formula + bounds; Sub-D biconditional |
-| AC-008 | Unit | No | FIR gating; effectful shell logic; Kani not targeting effectful path |
-| AC-009 | Unit | No | Desync bail; state machine; unit test sufficient |
+| AC-008 | Unit | No | FIR gating + link-FC guard; effectful shell logic; Kani not targeting effectful path. Covers: `test_fir_gating_extract_on_fir1_skip_on_fir0`, `test_on_data_fir_gating_updates_counters`, `test_has_user_data_link_fc_guard` (has_user_data predicate), `test_on_data_fir_but_non_user_data_link_fc_no_extraction` (RESET_LINK 0x00 no-extraction). Minimum-single-block frame offset only — `parse_errors` for &lt;3-byte payloads (BC-2.15.008 EC-006) deferred to STORY-107. |
+| AC-009 | Unit | No | Desync bail; single-delivery latch (first segment ≥2 bytes, no sync at offset 0). Lone-0x05 carry-accumulation case (BC-2.15.009 EC-004) deferred to STORY-107. |
 
 Run Kani with `cargo kani --harness verify_parse_dnp3_dl_header_safety`, `--harness verify_classify_dnp3_fc_total`, `--harness verify_is_valid_dnp3_frame_gate`, `--harness verify_compute_dnp3_frame_len`. All four must report `VERIFICATION:- SUCCESSFUL`.
 

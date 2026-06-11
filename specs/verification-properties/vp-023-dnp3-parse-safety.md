@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.3"
+version: "1.4"
 status: draft
 producer: architect
 timestamp: 2026-06-10T00:00:00Z
@@ -30,6 +30,7 @@ modified:
   - "v1.1: Pass-1 adversarial remediation (issue #8): Sub-property C prose corrected from slice-based is_valid_dnp3_frame(data: &[u8]) with 4 conditions to struct-based is_valid_dnp3_frame_header(h: &Dnp3DlHeader) with 3 conditions (start1==0x05, start2==0x64, length>=5), matching BC-2.15.004 and the verify_is_valid_dnp3_frame_gate harness. No change to harness or other sub-properties."
   - "v1.2: Pass-2 adversarial remediation LOW-1 (issue #8): Related-BC note for BC-2.15.004 corrected from 'LENGTH in 5..=255' to 'LENGTH >= 5', aligning with BC-2.15.004 phrasing and harness Sub-property C biconditional (h.length >= 5). The upper bound 255 is a structural u8 constraint, not a gate condition. No change to property statement or harnesses."
   - "v1.3: Corrected introduced: field from v0.5.0-feature-008 to v0.6.0-feature-008. v0.5.0 shipped the MITRE fix; DNP3 TCP analyzer targets v0.6.0, matching all 24 SS-15 BC files. No change to property statement or harnesses."
+  - "v1.4: STORY-106 adversarial Pass-1 F1: lock 0x00 CONFIRM → Management; reconcile VP-023 Sub-B with BC-2.15.005. Added 0x00 to the Management set in Sub-property B so it reads {0x00, 0x07..=0x0C, 0x0F..=0x1A}; updated 'All other fc values' wording to reflect 0x00 is now explicitly in the Management set; added 0x00 membership assertion to the Kani harness skeleton. — 2026-06-11"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -77,9 +78,11 @@ The match is exhaustive by construction (a `_ => Unknown` wildcard arm); there i
 - Write set: `{0x02}` → `Write`
 - Control set: `{0x03, 0x04, 0x05, 0x06}` (SELECT, OPERATE, DIRECT_OPERATE, DIRECT_OPERATE_NR) → `Control`
 - Restart set: `{0x0D, 0x0E}` (COLD_RESTART, WARM_RESTART) → `Restart`
-- Management set: `{0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A}` → `Management`
+- Management set: `{0x00, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A}` → `Management`
+  (0x00 = CONFIRM; 0x07–0x0C = IMMED_FREEZE through FREEZE_AT_TIME_NR; 0x0F–0x1A = INITIALIZE_DATA through proprietary range)
 - Response set: `{0x81, 0x82, 0x83}` (RESPONSE, UNSOLICITED_RESPONSE, AUTHENTICATE_RESP) → `Response`
-- All other `fc` values not in the above sets → `Unknown`
+- All other `fc` values not in the above six named sets → `Unknown`
+  (i.e., values in 0x1B–0x80 and 0x84–0xFF not matching any explicit arm fall through to `_ => Unknown`)
 
 **Sub-property C — Three-condition validity gate biconditional** (anchors BC-2.15.004):
 
@@ -250,6 +253,12 @@ mod kani_proofs {
         if matches!(fc, 0x0D | 0x0E) {
             assert!(class == Dnp3FcClass::Restart);
         }
+        // Management set (BC-2.15.006 EC-005/006/009; BC-2.15.005 canonical vector 0x00).
+        // 0x00 = CONFIRM; 0x07..=0x0C = IMMED_FREEZE..FREEZE_AT_TIME_NR;
+        // 0x0F..=0x1A = INITIALIZE_DATA and remaining defined primary FCs.
+        if matches!(fc, 0x00 | 0x07..=0x0C | 0x0F..=0x1A) {
+            assert!(class == Dnp3FcClass::Management);
+        }
         // Response set (BC-2.15.006).
         if matches!(fc, 0x81 | 0x82 | 0x83) {
             assert!(class == Dnp3FcClass::Response);
@@ -300,7 +309,7 @@ mod kani_proofs {
 |--------------|---------|----------------|----------------|------------|
 | A (parse) | `verify_parse_dnp3_dl_header_safety` | `[u8; 12]` + symbolic `len <= 12`, sliced `&buf[..len]` | `kani::assume(len <= 12)`; no loop → no `#[kani::unwind]` | no panic; `None` iff `len<10`; LE field decode on `Some` |
 | C (gate) | `verify_is_valid_dnp3_frame_gate` | symbolic `Dnp3DlHeader` fields | none (straight-line) | gate true iff `start1==0x05 && start2==0x64 && length>=5` |
-| B (totality) | `verify_classify_dnp3_fc_total` | `fc: u8 = kani::any()` (256 values) | none (straight-line `match`) | no panic; Read/Write/Control/Restart/Response set membership; returns a defined variant |
+| B (totality) | `verify_classify_dnp3_fc_total` | `fc: u8 = kani::any()` (256 values) | none (straight-line `match`) | no panic; Read/Write/Control/Restart/Management/Response set membership; returns a defined variant |
 | D (frame_len) | `verify_compute_dnp3_frame_len` | `length: u8 = kani::any()` (256 values) | none (straight-line arithmetic) | `None` iff `length<5`; formula correct; result in `[10, 292]` |
 
 **Loop / unwind bounds:** none of the four harnesses contains a user-visible loop

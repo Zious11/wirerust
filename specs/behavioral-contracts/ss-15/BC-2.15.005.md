@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
 introduced: v0.6.0-feature-008
-modified: []
+modified:
+  - "v1.2: STORY-106 adversarial Pass-1 F1: lock 0x00 CONFIRM → Management; reconcile VP-023 Sub-B with BC-2.15.005. EC-001 hedged 'Management OR Unknown depending on F3 implementation choice' — replaced with locked decision: 0x00 CONFIRM → Management (aligns with canonical test vector table, impl match arm 0x00 | 0x07..=0x0C | 0x0F..=0x1A, and VP-023 Sub-B updated Management set). Ambiguity removed. — 2026-06-11"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -72,7 +73,7 @@ the complete 256-value `u8` domain via Kani.
 
 | ID | Description | Expected Behavior |
 |----|-------------|-------------------|
-| EC-001 | FC = 0x00 (CONFIRM) | Returns `Management` (app-layer confirmation is a management frame) or `Unknown` depending on F3 implementation choice; this BC only specifies totality, not CONFIRM's exact class — see BC-2.15.006 for set membership |
+| EC-001 | FC = 0x00 (CONFIRM) | Returns `Management` — LOCKED. App-layer CONFIRM is a management frame; 0x00 is in the Management set {0x00, 0x07..=0x0C, 0x0F..=0x1A} per BC-2.15.006 and VP-023 Sub-B. See BC-2.15.006 for full set membership. |
 | EC-002 | FC = 0xFF (reserved/undefined) | Returns `Unknown` — wildcard arm |
 | EC-003 | FC = 0x80 (reserved range) | Returns `Unknown` — wildcard arm |
 | EC-004 | FC = 0x7F (undefined) | Returns `Unknown` — wildcard arm |

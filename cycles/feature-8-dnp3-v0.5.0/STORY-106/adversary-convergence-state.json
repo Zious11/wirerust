@@ -1,0 +1,118 @@
+{
+  "story": "STORY-106",
+  "wave": 35,
+  "title": "DNP3 DL/Transport Parse + FC Classify — Pure Core (VP-023 Kani)",
+  "step": "4.5",
+  "bc_gating": "BC-5.39.001",
+  "policy": "DF-CONVERGENCE-BEFORE-MERGE-001",
+  "satisfied": true,
+  "total_passes": 7,
+  "clean_streak": 3,
+  "clean_streak_required": 3,
+  "converged": true,
+  "merge_commit": "d0f3586",
+  "pr": "#225",
+  "merged_at": "2026-06-11T16:07:00Z",
+  "trajectory": [
+    { "pass": 1, "classification": "MAJOR_ISSUES",  "novelty": "high",   "findings_raised": 7, "findings_ids": ["F1","F2","F3","F4","F5","F6","F7"] },
+    { "pass": 2, "classification": "MINOR_ISSUES",  "novelty": "medium", "findings_raised": 3, "findings_ids": ["B1","B2","B4"] },
+    { "pass": 3, "classification": "MINOR_ISSUES",  "novelty": "low",    "findings_raised": 1, "findings_ids": ["F-P3-001"] },
+    { "pass": 4, "classification": "MINOR_ISSUES",  "novelty": "low",    "findings_raised": 2, "findings_ids": ["P4-F1","P4-F2"] },
+    { "pass": 5, "classification": "CLEAN",         "novelty": "none",   "findings_raised": 0, "findings_ids": [] },
+    { "pass": 6, "classification": "CLEAN",         "novelty": "none",   "findings_raised": 0, "findings_ids": [] },
+    { "pass": 7, "classification": "CLEAN",         "novelty": "none",   "findings_raised": 1, "findings_ids": ["P7-F1"],
+      "note": "P7-F1 was a duplicate / already-resolved restatement; classification remained CLEAN; converged" }
+  ],
+  "findings": [
+    {
+      "id": "F1", "pass": 1, "severity": "MAJOR",
+      "summary": "FC classify missing edge-cases for reserved/vendor-specific FC bytes",
+      "resolution_route": "FIXED", "fix_commit": "aec20de"
+    },
+    {
+      "id": "F2", "pass": 1, "severity": "MAJOR",
+      "summary": "parse_dnp3_data_link_header did not guard minimum-length before indexing data[3]",
+      "resolution_route": "FIXED", "fix_commit": "aec20de"
+    },
+    {
+      "id": "F3", "pass": 1, "severity": "MAJOR",
+      "summary": "transport header FIR/FIN bit extraction used wrong bit mask",
+      "resolution_route": "FIXED", "fix_commit": "3b514b1"
+    },
+    {
+      "id": "F4", "pass": 1, "severity": "MODERATE",
+      "summary": "Dnp3FcClass exhaustiveness: CONFIRM (0x00) was mapped to Unknown instead of Management",
+      "resolution_route": "FIXED — VP-023 v1.4 spec bump (0x00→Management locked); fix in impl",
+      "fix_commit": "3b514b1"
+    },
+    {
+      "id": "F5", "pass": 1, "severity": "MINOR",
+      "summary": "Frame-len formula off-by-one in comment vs. implementation (CRC block count)",
+      "resolution_route": "FIXED", "fix_commit": "4d92648"
+    },
+    {
+      "id": "F6", "pass": 1, "severity": "MINOR",
+      "summary": "VP-023 Sub-B Kani harness did not cover all FC byte values (loop bound was 0xFE not 0xFF)",
+      "resolution_route": "FIXED", "fix_commit": "4d92648"
+    },
+    {
+      "id": "F7", "pass": 1, "severity": "MINOR",
+      "summary": "BC-2.15.005 trace comment missing in classify_dnp3_fc implementation",
+      "resolution_route": "FIXED", "fix_commit": "1e9a1c7"
+    },
+    {
+      "id": "B1", "pass": 2, "severity": "MINOR",
+      "summary": "gate-before-count: is_valid_dnp3_frame_header not called before entering frame-walk in caller path (overlaps SEC-106-001)",
+      "resolution_route": "DEFERRED to STORY-107 (frame-walk lives in STORY-107; carry-forward SEC-106-001)",
+      "fix_commit": null
+    },
+    {
+      "id": "B2", "pass": 2, "severity": "MINOR",
+      "summary": "Sub-C Kani harness validity-gate assertion could be strengthened with a second assume",
+      "resolution_route": "FIXED", "fix_commit": "04a3c85"
+    },
+    {
+      "id": "B4", "pass": 2, "severity": "MINOR",
+      "summary": "Doc comment for Dnp3FcClass::Management missing CONFIRM (0x00) in example list",
+      "resolution_route": "DEFERRED — cosmetic; recorded as DOC-106-001; target next dnp3.rs touch",
+      "fix_commit": null
+    },
+    {
+      "id": "F-P3-001", "pass": 3, "severity": "MINOR",
+      "summary": "BC-2.15.004 PC4 caller-side parse_errors increment path not explicitly tested",
+      "resolution_route": "DEFERRED to STORY-107 per carry-forward STORY-107-CARRY-001 (parse_errors lives in flow-state story)",
+      "fix_commit": null
+    },
+    {
+      "id": "P4-F1", "pass": 4, "severity": "MINOR",
+      "summary": "Sub-D frame-len Kani harness: upper bound assume could be tightened to max 292",
+      "resolution_route": "FIXED", "fix_commit": "e40c6ae"
+    },
+    {
+      "id": "P4-F2", "pass": 4, "severity": "MINOR",
+      "summary": "parse_dnp3_transport_header: sequence number extraction mask comment incorrectly stated 7-bit vs 6-bit",
+      "resolution_route": "FIXED (comment only)", "fix_commit": "e40c6ae"
+    },
+    {
+      "id": "P7-F1", "pass": 7, "severity": "INFO",
+      "summary": "Restatement of B4/DOC-106-001 (CONFIRM in doc comment); already recorded as deferred carry-forward",
+      "resolution_route": "DUPLICATE — already tracked as DOC-106-001; no new fix required; classification CLEAN maintained",
+      "fix_commit": null
+    }
+  ],
+  "all_content_defects": true,
+  "process_gap_codification_required": false,
+  "kani_harnesses": [
+    { "id": "Sub-A", "name": "kani_sub_a_parse_safety",   "result": "VERIFICATION_SUCCESSFUL", "counterexamples": 0, "iterations": 141 },
+    { "id": "Sub-B", "name": "kani_sub_b_fc_totality",    "result": "VERIFICATION_SUCCESSFUL", "counterexamples": 0, "iterations": 20  },
+    { "id": "Sub-C", "name": "kani_sub_c_validity_gate",  "result": "VERIFICATION_SUCCESSFUL", "counterexamples": 0, "iterations": 19  },
+    { "id": "Sub-D", "name": "kani_sub_d_frame_len",      "result": "VERIFICATION_SUCCESSFUL", "counterexamples": 0, "iterations": 30  }
+  ],
+  "spec_bumps": [
+    { "artifact": "VP-023", "version": "v1.4", "change": "locked 0x00 CONFIRM → Management in Sub-B + Management-set Kani assertion" },
+    { "artifact": "BC-2.15.005", "version": "v1.2", "change": "EC-001 0x00→Management LOCKED" },
+    { "artifact": "STORY-106", "version": "v1.5", "change": "input-hash b465d38 regenerated after VP-023/BC-2.15.005 edits" }
+  ],
+  "security_review": "APPROVE_WITH_NOTES — 0 CRITICAL/HIGH/MEDIUM; SEC-106-001 (CWE-129) + SEC-106-002 (CWE-400) as carry-forwards",
+  "pr_review": "APPROVE"
+}
