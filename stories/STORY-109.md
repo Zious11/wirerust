@@ -26,7 +26,7 @@ wave: 38
 estimated_days: 5
 feature_id: issue-008-dnp3-analyzer
 github_issue: 8
-# BC status: 6 BCs authored 2026-06-10; BC-2.15.014 v1.4, BC-2.15.015 v1.5, BC-2.15.024 v1.1
+# BC status: 6 BCs authored 2026-06-10; BC-2.15.014 v1.6, BC-2.15.015 v1.5, BC-2.15.018 v1.1, BC-2.15.019 v1.1, BC-2.15.023 v1.1, BC-2.15.024 v1.1
 # VP-007 atomic update obligation: T1691.001 and T0827 (+ MitreTactic::IcsImpact) seeded HERE
 inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.014.md
