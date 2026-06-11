@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-109
 epic_id: E-15
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
@@ -84,7 +84,7 @@ When `flow.block_event_count >= BLOCK_CMD_THRESHOLD = 3` (after increment) AND `
 - **Test:** `test_block_events_not_reset_at_120s()` — block at t=0, block at t=150s (both within 300s); assert `block_event_count=2`; no premature reset.
 
 ### AC-004 (traces to BC-2.15.015 postconditions 1/2 — T0827 emitted when combined ≥3)
-When `flow.restart_event_count + flow.block_event_count >= T0827_THRESHOLD = 3` AND `flow.loss_of_control_emitted == false` AND within `CORRELATION_WINDOW_SECS = 300s`: ONE `Finding` pushed with `mitre_techniques: vec!["T0827"]`, `category: Impact`, tactic `IcsImpact` (NEW variant). `flow.loss_of_control_emitted = true`. T0827 is pushed AFTER the triggering direct finding (BC-2.15.013 ordering).
+When `flow.restart_event_count + flow.block_event_count >= T0827_THRESHOLD = 3` AND `flow.loss_of_control_emitted == false` AND within `CORRELATION_WINDOW_SECS = 300s`: ONE `Finding` pushed with `mitre_techniques: vec!["T0827"]`, `category: Impact`, `verdict: Likely`, `confidence: Medium`, tactic `IcsImpact` (NEW variant). `flow.loss_of_control_emitted = true`. T0827 is pushed AFTER the triggering direct finding (BC-2.15.013 ordering).
 - **T0827 MUST NOT fire from a single restart or block event alone.**
 - **Test:** `test_t0827_emitted_at_combined_threshold()` — 2 block events + 1 restart = 3; assert T0827 after restart (following Trace B from BC-2.15.015).
 
