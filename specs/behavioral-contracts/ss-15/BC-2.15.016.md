@@ -12,7 +12,7 @@ traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
-introduced: v0.5.0-feature-008
+introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Pass-3 adversarial fix HIGH-2: added pending_requests DoS bound — MAX_PENDING_REQUESTS=256 entries. On insert when at cap, evict the OLDEST entry (minimum request_ts). Postconditions 8–10 added; Invariant 5 added; EC-008 added; canonical test vector added; Architecture Anchors and Description updated. BC-2.15.014 Invariant 8 now correctly cross-references this BC for the pending_requests cap. — 2026-06-10"
 deprecated: null

@@ -12,7 +12,7 @@ traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
-introduced: v0.5.0-feature-008
+introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Pass-1 adversarial fix C-2: corrected tactic cardinality — T1692.001 maps to exactly ONE MitreTactic (IcsImpairProcessControl); removed erroneous '+ Evasion' from Traceability MITRE Techniques field. The technique_info table is single-tactic per entry. — 2026-06-10"
   - "v1.2: Research threshold clarification (dnp3-f2-scope-threshold-validation.md §Q1 Threshold-1): clarified the semantic role of the 10/60s threshold — it is a flood/burst guard for the allowlisted-but-abnormally-busy case, NOT the primary unauthorized-source detector. Unauthorized control from an UNEXPECTED SOURCE ADDRESS fires at count=1, independent of this rate threshold. Added Invariant 5 and expanded [F2-GATE] note. Confirmed 10/60s default; noted ~5/60s tighter option for quiet transmission profiles. — 2026-06-10"

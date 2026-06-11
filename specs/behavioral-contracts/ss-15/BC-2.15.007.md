@@ -12,7 +12,7 @@ traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
-introduced: v0.5.0-feature-008
+introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Pass-1 adversarial fix I-1: EC-004 corrected from Some(12) to Some(13) — correct arithmetic is U=1, blocks=ceil(1/16)=1, frame_len=5+6+2*1=13. Removed embedded exploratory-chain prose ('...wait:') from EC-004 cell. — 2026-06-10"
 deprecated: null

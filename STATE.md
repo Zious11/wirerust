@@ -1,11 +1,11 @@
 ---
 pipeline: V0.5.0_RELEASED
-phase: feature-f2
+phase: feature-f3
 active_feature: "#8-dnp3"
-feature_8_status: "F2-COMPLETE — entering F3"
+feature_8_status: "F3-CONVERGED — awaiting F3 gate"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-10T18:00:00Z
+timestamp: 2026-06-10T20:00:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -38,16 +38,16 @@ dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 consistency_audit: CONSISTENT
-input_drift_check: "CLEAN — MATCH=57/STALE=0/ERROR=1 (STORY-091 no-inputs pre-existing; 10 stories refreshed post F2 prd.md v1.7+ss-10 BC edits; commit 0548445)"
+input_drift_check: "CLEAN — MATCH=62/STALE=0/ERROR=1 (STORY-091 no-inputs pre-existing; STORY-106..110 new hashes + 10 prior-stale refreshed post F3 edits)"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**wirerust v0.5.0 RELEASED (MITRE ATT&CK-ICS v19 remap, issue #222 CLOSED). Branches in sync (develop 10036fc, main c2df1b5/v0.5.0). Feature #8 DNP3 F2 COMPLETE (research-validated gate, 2 must-adds applied); advancing to F3 story decomposition. D-053.**
+**wirerust v0.5.0 RELEASED (MITRE ATT&CK-ICS v19 remap, issue #222 CLOSED). Feature #8 DNP3 F3 CONVERGED (3-pass adversarial; 5 stories STORY-106..110, E-15, v0.6.0 target). Awaiting F3 human gate. D-054.**
 
-**Summary:** 58 stories (48 greenfield + 4 F-cycle + 6 F3-new), 353 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22 locked + VP-023 F2-new), 1338 tests green, holdout 0.967. develop HEAD 10036fc; main HEAD c2df1b5 (v0.5.0). Feature #7: COMPLETE. Feature #8 DNP3: F2 COMPLETE, entering F3. develop is ahead of main by 3 non-release chore commits (eb010a1, 92773a4, fb2c875 — PR #221 local-only E2E pcap tooling).
+**Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22 locked + VP-023 F2-new), 1338 tests green, holdout 0.967. develop HEAD 10036fc; main HEAD c2df1b5 (v0.5.0). Feature #7: COMPLETE. Feature #8 DNP3: F3 CONVERGED, awaiting gate. develop is ahead of main by 3 non-release chore commits (eb010a1, 92773a4, fb2c875 — PR #221 local-only E2E pcap tooling).
 
 ## Phase Progress
 
@@ -73,27 +73,28 @@ input_drift_check: "CLEAN — MATCH=57/STALE=0/ERROR=1 (STORY-091 no-inputs pre-
 | Release — v0.4.0 | **RELEASED** 2026-06-10 | gitflow-proper: release/0.4.0 → PR #219 → main merge 90aa91e; annotated tag v0.4.0; 4 binaries; run 27254720396; GitHub Release published 2026-06-10T05:12:40Z; Feature #7 COMPLETE + issue #7 CLOSED; main back-merged to develop (8e38041). D-046 |
 | Maintenance — MITRE v19 remap (issue #222) | **RELEASED in v0.5.0** 2026-06-10 | 3-pass adversarial CONVERGED; T0855→T1692.001 emitted, T0856→T1692.002 catalogue-only; PR #223 develop; PR #224 → main c2df1b5; annotated tag v0.5.0 @ 9b3a1c6; run 27313698900; 4 binaries; issue #222 CLOSED. D-049/D-050/D-051 |
 | Release — v0.5.0 | **RELEASED** 2026-06-10 | gitflow-proper: release/0.5.0 → PR #224 → main merge c2df1b5; annotated tag v0.5.0 @ 9b3a1c6; 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); run 27313698900 SUCCESS; GitHub Release published (not draft); main back-merged to develop (10036fc). D-051 |
-| Feature #8 DNP3 — F2 Spec Evolution | **COMPLETE** 2026-06-10 | Research-validated gate (DF-VALIDATION-001). Must-adds: BC-2.15.023 (ENABLE/DISABLE_UNSOLICITED→T0814) + BC-2.15.024 (malformed frame→T0814). SS-15 now 24 BCs. Thresholds CONFIRMED (10/60s, 300s, ≥3). Adversarial delta convergence 3-pass. Total 268 BCs. MITRE 23/15/8 UNCHANGED. D-047/D-048/D-052/D-053. NEXT: F3 story decomposition. |
+| Feature #8 DNP3 — F2 Spec Evolution | **COMPLETE** 2026-06-10 | Research-validated gate (DF-VALIDATION-001). Must-adds: BC-2.15.023 (ENABLE/DISABLE_UNSOLICITED→T0814) + BC-2.15.024 (malformed frame→T0814). SS-15 now 24 BCs. Thresholds CONFIRMED (10/60s, 300s, ≥3). Adversarial delta convergence 3-pass. Total 268 BCs. MITRE 23/15/8 UNCHANGED. D-047/D-048/D-052/D-053. |
+| Feature #8 DNP3 — F3 Story Decomposition | **CONVERGED** 2026-06-10; awaiting F3 gate | 5 stories STORY-106..110, epic E-15 'DNP3/ICS Analyzer', 47 pts, waves 35-39, strictly-linear chain. 24 SS-15 BCs covered 1:1. 22 holdout scenarios HS-W35..39. STORY-INDEX 58→63/353→400 pts. 3-pass adversarial CONVERGED. Release target v0.6.0. D-054. |
 
-## Session Resume Checkpoint (2026-06-10 — Feature #8 DNP3 F2 COMPLETE — entering F3)
+## Session Resume Checkpoint (2026-06-10 — Feature #8 DNP3 F3 CONVERGED — awaiting F3 gate)
 
-**POSITION:** wirerust v0.5.0 RELEASED (issue #222 CLOSED). develop HEAD `10036fc`; main HEAD `c2df1b5` (v0.5.0). Feature #8 (DNP3) F2 COMPLETE — research-validated gate passed (D-053). Must-adds BC-2.15.023/024 applied, thresholds confirmed, adversarial delta CONVERGED (3-pass). factory-artifacts commit `0548445`. Input-hash MATCH=57/STALE=0/ERROR=1. NEXT: F3 story decomposition — invoke `vsdd-factory:phase-f3-incremental-stories`.
+**POSITION:** wirerust v0.5.0 RELEASED (issue #222 CLOSED). develop HEAD `10036fc`; main HEAD `c2df1b5` (v0.5.0). Feature #8 (DNP3) F3 CONVERGED — 3-pass adversarial complete (D-054). STORY-106..110 authored, epic E-15 (47 pts), waves 35-39, 22 holdout scenarios, input-hash MATCH=62/STALE=0/ERROR=1. Release target v0.6.0. NEXT: F3 human gate, then F4 TDD wave 35 (STORY-106 parse-core).
 
 **RELEASE HISTORY:** v0.1.0 (2026-06-08) greenfield; v0.2.0 (2026-06-09) timestamp threading; v0.3.0 (2026-06-09) multi-tag MITRE schema; v0.4.0 (2026-06-10) Modbus TCP analyzer; v0.5.0 (2026-06-10) MITRE ATT&CK-ICS v19 remap.
 
-**DNP3 F2 COMPLETE SPEC STATE:**
-- SS-15 'DNP3/ICS Analysis': 24 BCs (BC-2.15.001-024), CAP-15; total 268 BCs (PRD v1.7)
-- BC-2.15.023: ENABLE/DISABLE_UNSOLICITED (FC 0x14/0x15) → T0814 (alarm-suppression primitive)
-- BC-2.15.024: malformed/structural-frame anomaly → T0814 (Crain-Sistrunk valid-CRC crash class)
-- ADR-007: TCP/ICS integration, port-20000 Rule 6, frame_len=5+LENGTH+2*ceil((LENGTH-5)/16) max 292, CRC structure-only, FIR=1
-- VP-023: Kani parse-safety (4 sub-properties incl. frame-len arithmetic)
-- MITRE: SEEDED 23 / EMITTED 15 / CATALOG-ONLY 8 — UNCHANGED post must-adds
-- Thresholds CONFIRMED: direct-operate 10/60s, correlation window 300s, T0827 ≥3/300s
+**DNP3 F3 CONVERGED SPEC STATE:**
+- STORY-106..110: strictly-linear chain; 106→107→108→109→110; E-15; waves 35-39; 47 pts total
+- STORY-106 (8 pts, w35): DNP3 parse/classify pure-core — VP-023 Kani (4 sub-properties)
+- STORY-107 (8 pts, w36): per-flow state + correlation (Dnp3FlowState, 300s window)
+- STORY-108 (11 pts, w37): direct detections T1692.001/T0814/T0836 + co-emission + summarize
+- STORY-109 (13 pts, w38): correlated/derived T1691.001/T0827 + broadcast/unsolicited/malformed; VP-007 atomic seed; SEEDED 21→23/EMITTED 13→15
+- STORY-110 (7 pts, w39): dispatcher Rule-6 + CLI (VP-004 oracle; VP-023 draft→verified)
+- 22 holdout scenarios HS-W35..39 (incl. Trace-B spaced-event + Crain-Sistrunk + FP-guards)
 
 **RESUME PROTOCOL FOR NEXT SESSION:**
 1. Run `vsdd-factory:factory-worktree-health` — verify .factory/ worktree on factory-artifacts
-2. Read STATE.md (this file) — orient
-3. Invoke `vsdd-factory:phase-f3-incremental-stories` for F3 story decomposition
+2. Read STATE.md (this file) — orient; confirm F3 human gate status
+3. If gate PASSED: invoke `vsdd-factory:phase-f4-delta-implementation` wave 35 (STORY-106)
 
 **CARRY-FORWARD / OPEN ITEMS:**
 - STORY-091: draft, P1, 5 pts, E-11 — anchor-validation tooling; deferred
@@ -118,6 +119,7 @@ D-001..D-046 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md`.
 | D-051 | Published wirerust v0.5.0 (gitflow-proper) — MITRE ATT&CK-ICS v19 revocation fix (issue #222). release/0.5.0 → PR #224 → main merge c2df1b5; annotated tag v0.5.0 @ 9b3a1c6; release.yml run 27313698900 SUCCESS, 4 binaries (linux x86_64, macos arm64+x86_64, windows msvc); GitHub Release published (not draft). CHANGELOG [0.5.0]: remap T0855→T1692.001 (emitted by Modbus; behavioral change to JSON/CSV/terminal mitre_techniques output) + T0856→T1692.002 (catalogue-only); conforms to pinned ics-attack-19.1. Shipped MITRE-fix-alone (Dependabot sweep deferred per human). Treated as MINOR (output-contract change) per human disposition. main back-merged to develop (10036fc) — branches in sync, no divergence. Feature #8 DNP3 now resumes at F2 on the corrected base. | 2026-06-10 | v0.5.0 release — MITRE v19 remap (issue #222 CLOSED) |
 | D-052 | Feature #8 (DNP3) Phase F2 spec evolution CONVERGED (2026-06-10). Delta: SS-15 'DNP3/ICS Analysis' (22 BCs BC-2.15.001-022, CAP-15), ADR-007 (TCP/ICS integration, port-20000 dispatcher Rule 6, frame_len=5+LENGTH+2*ceil((LENGTH-5)/16) max 292, CRC structure-only, FIR=1), VP-023 (Kani parse-safety, 4 sub-properties incl. frame-len arithmetic), MITRE catalog grown SEEDED 21→23 / EMITTED 13→15 (+T1691.001 'Block Operational Technology Message: Command Message'→IcsInhibitResponseFunction, +T0827 'Loss of Control'→new MitreTactic::IcsImpact), PRD v1.5 (266 BCs), Dnp3FlowState correlation-state (single 300s window, wrapping_sub, pending_requests bounded 256). Adversarial convergence: 5 fresh-context passes — P1 (3 HIGH: fabricated T1691.001 name across 5 sites + tactic cardinality + cap-10 un-propagated; arithmetic slice clean) → P2 (2 CRITICAL regressions from P1 fixes: changelog name leak + window-reset contradiction; struct-orphaned fields; VP-007 not updated) → P3 (consistency CONSISTENT; 2 HIGH: orphaned pending_requests DoS bound + panic-prone subtraction) → P4 (cosmetic) → P5 CONVERGED (0 CRITICAL/0 HIGH). 3 [F2-GATE] human decisions pending: --dnp3-direct-operate-threshold default (10/60s), block-command/T0827 correlation window (300s), T0827 guard (≥3 combined events). NEXT: F2 human gate, then F3 story decomposition. | 2026-06-10 | DNP3 F2 spec evolution CONVERGED (5-pass adversarial) |
 | D-053 | Feature #8 (DNP3) F2 gate research-validated + COMPLETE (2026-06-10). Human delegated the F2 gate to research validation (research-agent: .factory/research/dnp3-f2-scope-threshold-validation.md, cited to CISA icsnpp-dnp3 / Crain-Sistrunk / IEEE 1815 / vendor device profiles; it caught+discarded its own deep-research hallucinations). VERDICT: scope COMPLETE for v1 with 2 MUST-ADD detections (applied) + all 3 thresholds CONFIRMED. Applied: BC-2.15.023 (ENABLE/DISABLE_UNSOLICITED 0x14/0x15 → T0814, alarm-suppression primitive) + BC-2.15.024 (malformed/structural-frame anomaly → T0814, the ONLY coverage for the Crain-Sistrunk valid-CRC crash class; CRC-deferral orthogonal to malformed coverage). SS-15 now 24 BCs / total 268. Both map to existing T0814 — MITRE counts UNCHANGED (23/15/8). Thresholds CONFIRMED: --dnp3-direct-operate-threshold 10/60s (count=1 for unexpected-source), correlation window 300s (block 3-of-300s, req-timeout 10s, exclude DIRECT_OPERATE_NR 0x06), T0827 ≥3 distinct events/300s. Additive-delta adversarial convergence: pass1 (C-1 orphaned malformed fields + C-2 reset-owner/parse_errors-collision) → pass2 (F-1 BC-INDEX title + F-2 ADR CRC-rationale) → pass3 (F-3 spec-changelog) — all the SAME sibling-propagation class, core two-counter model (parse_errors lifetime + malformed_in_window windowed) clean throughout; now CONVERGED. NEXT: F3 story decomposition. | 2026-06-10 | DNP3 F2 gate research-validated COMPLETE — 2 must-adds, thresholds confirmed |
+| D-054 | Feature #8 (DNP3) Phase F3 story decomposition CONVERGED (2026-06-10). 5 stories STORY-106..110 (epic E-15 'DNP3/ICS Analyzer', 47 pts, waves 35-39, strictly-linear acyclic chain): 106 parse/classify pure-core (VP-023 Kani, 4 sub-properties) → 107 per-flow state+correlation → 108 direct detections (T1692.001/T0814/T0836+co-emission+summarize) → 109 correlated/derived+anomaly (T1691.001/T0827/broadcast/unsolicited/malformed; VP-007 atomic seed T1691.001+T0827, SEEDED 21→23/EMITTED 13→15) → 110 dispatcher Rule-6+CLI (VP-004 oracle; VP-023 draft→verified propagation). All 24 SS-15 BCs covered 1:1. 22 holdout scenarios (HS-W35..39, incl. Trace-B spaced-event + Crain-Sistrunk + FP-guards). STORY-INDEX 58→63 stories/353→400 pts; epics total_bcs→268. Release target v0.6.0 (v0.5.0 already shipped). Adversarial convergence: P1 (C-1 release-target v0.5.0→v0.6.0 + epics 243→268 + VP-coherence + phantom symbols) → P2 (un-swept propagation tail of P1) → P3 CONVERGED after global grep-exhaustion sweep. Core decomposition (BC coverage, acyclic deps, AC↔BC traceability, VP placement, thresholds) clean throughout. NEXT: F3 human gate, then F4 TDD (wave 35 = STORY-106 parse-core). | 2026-06-10 | DNP3 F3 story decomposition CONVERGED (5 stories, E-15, v0.6.0 target) |
 
 ## Blocking Issues
 

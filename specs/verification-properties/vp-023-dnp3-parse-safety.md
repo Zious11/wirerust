@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.2"
+version: "1.3"
 status: draft
 producer: architect
 timestamp: 2026-06-10T00:00:00Z
@@ -24,11 +24,12 @@ proof_completed_date: null
 proof_file_hash: null
 verified_at_commit: null
 lifecycle_status: active
-introduced: v0.5.0-feature-008
+introduced: v0.6.0-feature-008
 modified:
   - "v1.0: Authored in Phase-F2 spec evolution for issue #8 (DNP3 TCP analyzer). Pre-registered by architect in VP-INDEX/verification-architecture/verification-coverage-matrix (Kani, P1, total→23, kani→10). Four Kani sub-properties (A header safety, B FC classification totality + correctness, C validity gate biconditional, D frame_len arithmetic). Status=draft; harnesses authored in F4 TDD."
   - "v1.1: Pass-1 adversarial remediation (issue #8): Sub-property C prose corrected from slice-based is_valid_dnp3_frame(data: &[u8]) with 4 conditions to struct-based is_valid_dnp3_frame_header(h: &Dnp3DlHeader) with 3 conditions (start1==0x05, start2==0x64, length>=5), matching BC-2.15.004 and the verify_is_valid_dnp3_frame_gate harness. No change to harness or other sub-properties."
   - "v1.2: Pass-2 adversarial remediation LOW-1 (issue #8): Related-BC note for BC-2.15.004 corrected from 'LENGTH in 5..=255' to 'LENGTH >= 5', aligning with BC-2.15.004 phrasing and harness Sub-property C biconditional (h.length >= 5). The upper bound 255 is a structural u8 constraint, not a gate condition. No change to property statement or harnesses."
+  - "v1.3: Corrected introduced: field from v0.5.0-feature-008 to v0.6.0-feature-008. v0.5.0 shipped the MITRE fix; DNP3 TCP analyzer targets v0.6.0, matching all 24 SS-15 BC files. No change to property statement or harnesses."
 deprecated: null
 deprecated_by: null
 replacement: null

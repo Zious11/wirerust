@@ -12,7 +12,7 @@ traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
-introduced: v0.5.0-feature-008
+introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Pass-1 adversarial fix I-4: added explicit ordering/dedup rule to Invariant 4 — broadcast anomaly finding (BC-2.15.018) is pushed FIRST; BC-2.15.010 burst finding pushed second if/when threshold crossed in same call. Both T1692.001 findings are RETAINED (distinct observations). Implementation must not deduplicate by technique ID alone. Cross-reference BC-2.15.013 added to Related BCs. — 2026-06-10"
 deprecated: null

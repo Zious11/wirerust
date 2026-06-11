@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -12,7 +12,7 @@ traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
-introduced: v0.5.0-feature-008
+introduced: v0.6.0-feature-008
 modified: []
 deprecated: null
 deprecated_by: null

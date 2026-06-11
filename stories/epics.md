@@ -1,11 +1,11 @@
 ---
 document_type: epics
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
 phase: 2
 timestamp: 2026-05-21T00:00:00Z
-total_bcs: 219
+total_bcs: 268
 traces_to:
   - .factory/specs/prd.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
@@ -275,7 +275,10 @@ the same test vehicle (CLI invocation with obsolete flag).
 | E-9: CLI, Entry Point, and Analysis Orchestration | SS-12 | BC-2.12.001..021 | 21 |
 | E-10: Absent Behavior Contracts (Flag Rejection) | SS-13 | BC-2.13.001..004 | 4 |
 | E-12: Pcap Timestamp Provenance (issue #100) | SS-04, SS-09 | BC-2.04.055, BC-2.09.007 | 2 |
-| **TOTAL** | | | **219** |
+| E-13: Multi-Tag Finding Schema Migration | SS-09, SS-10, SS-11 | BC-2.09.001/006 (extensions), BC-2.10.005/007/008 (extensions), BC-2.11.001/013/015/017/020/024 (extensions) | 0 (extensions, not new BCs) |
+| E-14: Modbus TCP Analyzer | SS-14 (new), SS-05, SS-12 | BC-2.14.001..025 | 25 |
+| E-15: DNP3/ICS Analyzer | SS-15 (new), SS-05, SS-12 | BC-2.15.001..024 | 24 |
+| **TOTAL** | | | **268** |
 
 ### Arithmetic Verification
 
@@ -292,7 +295,11 @@ E-9:  21 (SS-12)              = 21
 E-10: 4 (SS-13)               =  4
 E-12: 2 (BC-2.04.055, BC-2.09.007) = 2
                       --------
-                      219 / 219  ✓
+                      219 (pre-feature subtotal)
+E-14: 25 (SS-14, BC-2.14.001..025) = 25
+E-15: 24 (SS-15, BC-2.15.001..024) = 24
+                      --------
+                      268 / 268  ✓
 ```
 
 Note: E-11 (Tooling) has 0 BCs authored yet (STORY-091 pending). E-12 BCs are feature-mode
@@ -323,7 +330,8 @@ non-overlapping. No BC appears in more than one epic row above.
 | SS-12 | CLI / Entry | E-9 |
 | SS-13 | Absent Behaviors | E-10 |
 
-**Coverage confirmed: 219 / 219 BCs assigned, 0 unassigned, 0 double-assigned.**
+**Coverage confirmed: 268 / 268 BCs assigned, 0 unassigned, 0 double-assigned.**
+(219 pre-feature + 25 E-14 Modbus + 24 E-15 DNP3 = 268)
 
 ---
 
@@ -366,6 +374,35 @@ group here.
 
 ---
 
+## Epic E-15: DNP3/ICS Analyzer (issue #8)
+
+- **Goal:** A forensic analyst or ICS/OT security engineer can point wirerust at a pcap
+  containing DNP3 traffic (TCP port 20000, IEEE 1815-2012) and receive structured findings
+  for unauthorized control commands (T1692.001), restart/stop commands (T0814), write-
+  register commands (T0836), block-control inference (T1691.001), process impact (T0827),
+  and anomaly conditions (broadcast, unsolicited, malformed frames) — with per-flow state
+  tracking, a 292-byte carry buffer for segment-spanning frame reassembly, and a tunable
+  `--dnp3-direct-operate-threshold` CLI flag.
+- **BCs:**
+  BC-2.15.001, BC-2.15.002, BC-2.15.003, BC-2.15.004, BC-2.15.005, BC-2.15.006,
+  BC-2.15.007, BC-2.15.008, BC-2.15.009, BC-2.15.010, BC-2.15.011, BC-2.15.012,
+  BC-2.15.013, BC-2.15.014, BC-2.15.015, BC-2.15.016, BC-2.15.017, BC-2.15.018,
+  BC-2.15.019, BC-2.15.020, BC-2.15.021, BC-2.15.022, BC-2.15.023, BC-2.15.024
+- **Subsystems touched:** SS-15 (new DNP3 analyzer), SS-05 (dispatcher Rule 6), SS-12 (CLI threshold flag)
+- **Estimated stories:** 5 (STORY-106..110)
+- **Feature issue:** #8
+
+**Rationale:** DNP3 analysis (24 BCs, IEEE 1815-2012 binary protocol) decomposes into
+five natural layers matching the ADR-007 design decisions: (1) pure-core parse + FC
+classification (Kani-verifiable, VP-023 anchor), (2) per-flow state + carry buffer +
+memory safety bounds, (3) direct detection emissions (T1692.001, T0814 restart, T0836),
+(4) correlated/derived + anomaly detections (T1691.001, T0827, broadcast, malformed —
+VP-007 atomic-update anchor), (5) dispatcher integration + CLI flag (VP-004 oracle
+obligation). Each layer is independently testable; the dependency chain is strictly linear
+with no parallelism (each story builds on the previous one's produced types and state).
+
+---
+
 ## Estimated Story Count Summary
 
 | Epic | Stories Est. |
@@ -382,4 +419,7 @@ group here.
 | E-10 | 1           |
 | E-11 | 1           |
 | E-12 | 3           |
-| **Total** | **52** |
+| E-13 | 2           |
+| E-14 | 4           |
+| E-15 | 5           |
+| **Total** | **63** |

@@ -12,7 +12,7 @@ traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
-introduced: v0.5.0-feature-008
+introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Pass-1 adversarial fix I-5 (companion update): clarified Invariant 5 — block_event_count is fed unconditionally by BC-2.15.014 (every block-timeout, not only on T1691.001 finding emission). Added explanatory note that 2-block+1-restart correctly yields T0827 even with no T1691.001 finding emitted for the first 2 events. — 2026-06-10"
   - "v1.2: Pass-2 adversarial fix CRITICAL-2: this BC is now the single reset owner for the shared correlation window. Added explicit window-expiry handler spec: when now_ts - correlation_window_start_ts >= CORRELATION_WINDOW_SECS (300s [F2-GATE]), reset ALL four fields together: restart_event_count=0, block_event_count=0, block_finding_emitted_this_window=false, loss_of_control_emitted=false, then set correlation_window_start_ts=now_ts. Invariant 6 rewritten to name the single reset owner. T0827_WINDOW_SECS constant removed (now CORRELATION_WINDOW_SECS=300s shared with BC-2.15.011/014). Verified both T0827 traces end-to-end: (A) 2-block+1-restart within 300s → T0827 fires; (B) 2-block spaced 150s apart + 1-restart at 200s → T0827 fires (key: no 120s sub-window reset). — 2026-06-10"

@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -245,7 +245,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.10.005 | technique_name Returns Some for Every Seeded ID (23 Total) | P0 | [WRITTEN] | BC-MIT-005 | <!-- v1.7: count 21->23; T1691.001+T0827 added (DNP3 F2); pass-1 adv fix C-1+I-6 -->
 | BC-2.10.006 | technique_name Returns None for Unknown IDs | P0 | [WRITTEN] | BC-MIT-006 |
 | BC-2.10.007 | technique_tactic Returns Correct Tactic for Every Seeded ID | P0 | [WRITTEN] | BC-MIT-007 |
-| BC-2.10.008 | All Emitted Technique IDs Resolve in Lookup | P0 | [WRITTEN] | BC-MIT-008 | <!-- v1.3: grep pattern mitre_technique:Some->mitre_techniques:vec!; T0888 replaces T0846 in emitted list; 13 total emitted; ADR-006 / Decision-12 F2 revision -->
+| BC-2.10.008 | All Emitted Technique IDs Resolve in Lookup | P0 | [WRITTEN] | BC-MIT-008 | <!-- v1.8: grep pattern mitre_technique:Some->mitre_techniques:vec!; T0888 replaces T0846 in emitted list; 15 total emitted (T1691.001+T0827 added DNP3 F3); ADR-006 / Decision-12 F2 revision -->
 | BC-2.10.009 | MitreTactic is #[non_exhaustive] | P2 | [WRITTEN] | BC-MIT-009 |
 
 ## ss-11: Reporting and Output (CAP-11)
@@ -374,7 +374,7 @@ traces_to: .factory/specs/prd.md
 > BCs 021-022: Dispatcher Integration and MAX_FINDINGS DoS Bound.
 > BC 023: Research must-add — DISABLE_UNSOLICITED/ENABLE_UNSOLICITED abuse → T0814 (alarm suppression).
 > BC 024: Research must-add — malformed/structural DNP3 anomaly from malformed_in_window threshold → T0814 (Crain-Sistrunk coverage).
-> Feature: issue-008-dnp3-analyzer; ADR-007; introduced v0.5.0-feature-008.
+> Feature: issue-008-dnp3-analyzer; ADR-007; introduced v0.6.0-feature-008.
 > **New MITRE techniques (F2 DNP3):** T1691.001 (IcsInhibitResponseFunction — inferred block command) + T0827 (IcsImpact — derived loss-of-control correlated finding).
 > **Research must-adds (2026-06-10 post-gate):** BC-2.15.023 and BC-2.15.024 use existing T0814 — no catalog change; MITRE counts remain 23 seeded / 15 emitted / 8 catalogue-only.
 

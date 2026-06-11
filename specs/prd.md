@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -677,10 +677,10 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 
 ### 2.15 DNP3/ICS Analysis (CAP-15) [Feature #8 — ADR-007]
 
-> **Release target: v0.5.0 (additive — no schema break).**
-> All SS-15 BCs (BC-2.15.001..024) ship in v0.5.0. The `mitre_techniques: Vec<String>` type
+> **Release target: v0.6.0 (additive — no schema break).**
+> All SS-15 BCs (BC-2.15.001..024) ship in v0.6.0. The `mitre_techniques: Vec<String>` type
 > and multi-tag finding model established by v0.3.0 are reused without modification. DNP3 is
-> purely additive at v0.5.0.
+> purely additive at v0.6.0.
 
 > **Feature Mode F2 addition (v1.5).** 24 BCs covering the DNP3 TCP protocol analyzer (SS-15,
 > C-26 Dnp3Analyzer). Analyzer detects 5 MITRE ATT&CK for ICS techniques directly and 2 via

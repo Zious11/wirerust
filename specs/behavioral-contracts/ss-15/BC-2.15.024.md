@@ -12,7 +12,7 @@ traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
-introduced: v0.5.0-feature-008
+introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Adversarial finding C-2 fix: replaced windowed use of parse_errors with a SEPARATE
     windowed counter malformed_in_window (new field). parse_errors is now lifetime/monotonic

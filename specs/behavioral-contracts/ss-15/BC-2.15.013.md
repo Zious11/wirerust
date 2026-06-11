@@ -12,7 +12,7 @@ traces_to: .factory/specs/domain/domain-spec.md
 subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
-introduced: v0.5.0-feature-008
+introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Pass-1 adversarial fix I-2: retitled H1 from 'Most-Specific-Rule Co-Emission Ordering — T0814 and T1692.001 When Both Conditions Present' (misleading — T0814 and T1692.001 cannot co-occur on one FC) to 'Co-Emission Ordering — Direct Finding (T0814/T1692.001) Precedes Derived T0827' (accurate — real co-emission is direct T0814/T1692.001 → derived T0827). Added I-4 dedup rule for broadcast-anomaly (018↔010 T1692.001 double-count). — 2026-06-10"
 deprecated: null

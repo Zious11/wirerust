@@ -1,13 +1,13 @@
 ---
 document_type: story-index
-version: "1.1"
+version: "1.3"
 status: draft
 producer: story-writer
-timestamp: 2026-06-09T00:00:00Z
-phase: 2
-total_stories: 58
-total_waves: 34
-total_points: 353
+timestamp: 2026-06-10T00:00:00Z
+phase: 3
+total_stories: 63
+total_waves: 39
+total_points: 400
 traces_to:
   - .factory/stories/dependency-graph.md
   - .factory/stories/epics.md
@@ -17,11 +17,12 @@ traces_to:
 
 # wirerust Story Index
 
-> **Authoritative story registry for the v0.1.0-greenfield-spec cycle (49 stories) + Feature Mode F3 additions (3 stories, STORY-097/098/099 for issue #100) + Feature #7 additions (6 stories, STORY-100..105 for issue #7 Modbus Analyzer).**
+> **Authoritative story registry for the v0.1.0-greenfield-spec cycle (49 stories) + Feature Mode F3 additions (3 stories, STORY-097/098/099 for issue #100) + Feature #7 additions (6 stories, STORY-100..105 for issue #7 Modbus Analyzer) + Feature #8 additions (5 stories, STORY-106..110 for issue #8 DNP3/ICS Analyzer).**
 > All 48 greenfield stories formalize behavioral contracts for the existing shipped wirerust
 > codebase. STORY-097/098/099 are new feature stories for issue #100 (pcap timestamps).
 > STORY-100/101 implement E-13 multi-tag Finding schema migration (v0.3.0).
 > STORY-102/103/104/105 implement E-14 Modbus TCP analyzer (v0.4.0).
+> STORY-106/107/108/109/110 implement E-15 DNP3/ICS analyzer (issue #8).
 > Status `draft` = not yet dispatched. Wave assignments are from the
 > authoritative dependency-graph.md (longest-path / Kahn topological sort).
 
@@ -89,6 +90,11 @@ traces_to:
 | STORY-103 | Modbus Flow State + Transaction Correlation | E-14 | 33 | 8 | completed | STORY-102 |
 | STORY-104 | Modbus Detection Emissions + Summary | E-14 | 33 | 13 | completed | STORY-103 |
 | STORY-105 | Modbus Dispatcher Integration + CLI | E-14 | 34 | 8 | completed | STORY-104 |
+| STORY-106 | DNP3 DL/Transport Parse + FC Classify — Pure Core (VP-023 Kani) | E-15 | 35 | 8 | draft | STORY-100 |
+| STORY-107 | DNP3 Per-Flow State + Carry Buffer + Pending-Request Bounds | E-15 | 36 | 5 | draft | STORY-106 |
+| STORY-108 | DNP3 Direct Detection Emissions — T1692.001, T0814 (Restart), T0836, Co-Emission, Summarize | E-15 | 37 | 13 | draft | STORY-107 |
+| STORY-109 | DNP3 Correlated/Derived + Anomaly Detections — T1691.001, T0827, Broadcast, Unsolicited, ENABLE/DISABLE, Malformed | E-15 | 38 | 13 | draft | STORY-108 |
+| STORY-110 | DNP3 Dispatcher Integration + CLI Flag — VP-004 Oracle + VP-007 Atomic-Update | E-15 | 39 | 8 | draft | STORY-109 |
 
 ---
 
@@ -130,7 +136,12 @@ traces_to:
 | 32 | STORY-102 | 1 | 8 |
 | 33 | STORY-103, STORY-104 | 2 | 21 |
 | 34 | STORY-105 | 1 | 8 |
-| **TOTAL** | | **57** | **348** |
+| 35 | STORY-106 | 1 | 8 |
+| 36 | STORY-107 | 1 | 5 |
+| 37 | STORY-108 | 1 | 13 |
+| 38 | STORY-109 | 1 | 13 |
+| 39 | STORY-110 | 1 | 8 |
+| **TOTAL (excl. STORY-091, wave-TBD)** | | **62** | **395** |
 
 ---
 
@@ -152,7 +163,8 @@ traces_to:
 | E-12: Pcap Timestamp Provenance (issue #100) | STORY-097, STORY-098, STORY-099 | 3 | 18 |
 | E-13: Multi-Tag Finding Schema Migration (v0.3.0 / issue #7) | STORY-100, STORY-101 | 2 | 21 |
 | E-14: Modbus TCP Analyzer (v0.4.0 / issue #7) | STORY-102, STORY-103, STORY-104, STORY-105 | 4 | 37 |
-| **TOTAL** | | **58** | **353** |
+| E-15: DNP3/ICS Analyzer (issue #8) | STORY-106, STORY-107, STORY-108, STORY-109, STORY-110 | 5 | 47 |
+| **TOTAL** | | **63** | **400** |
 
 ---
 
@@ -187,6 +199,9 @@ traces_to:
 | 25 | STORY-088 | **DELIVERED & CLOSED** | #168 | 5202fe9 | 2026-05-31 |
 | 26 | STORY-089 | **DELIVERED & CLOSED** | #169 | 450d33e | 2026-05-31 |
 | 27 | STORY-090 | **DELIVERED & CLOSED** | #170 | 6158e6e | 2026-05-31 |
+| 28 | STORY-097 | **DELIVERED & CLOSED** | #197 | 2d1c9e2 | 2026-06-08 |
+| 29 | STORY-098 | **DELIVERED & CLOSED** | #198 | 3b390b2 | 2026-06-08 |
+| 30 | STORY-099 | **DELIVERED & CLOSED** | #199 | 48cbc05 | 2026-06-08 |
 | 31 | STORY-100, STORY-101 | **DELIVERED & CLOSED** | #209 | c846b3b | 2026-06-09 |
 | 32 | STORY-102 | **DELIVERED & CLOSED** | #211 | 26d58bb | 2026-06-09 |
 | 33 | STORY-103, STORY-104 | **DELIVERED & CLOSED** | #212, #213 | d894464, dba... | 2026-06-09 |
@@ -194,13 +209,13 @@ traces_to:
 
 ## Coverage Verification
 
-- Total stories: **58** (48 greenfield product + 1 tooling STORY-091 + 3 F3 feature STORY-097/098/099 + 6 Feature-#7 STORY-100..105)
-- Total waves: **34** (Waves 31–34 added for Feature #7; STORY-091 wave TBD)
-- Total points: **353** (282 greenfield product + 5 tooling + 18 E-12 feature + 21 E-13 + 37 E-14 = 353; note wave-total row shows 348 — delta of 5 is STORY-091 at wave TBD excluded from wave table)
-- Graph is acyclic: **Yes** (Kahn topological sort verified; Feature-#7 dependency chain: STORY-100 → {STORY-101 ∥ STORY-102} → STORY-103 → STORY-104 → STORY-105; no back-edges into existing 52-story graph)
-- All 10 product epics + E-11 (Tooling) + E-12 (Pcap Timestamps) + E-13 (Multi-Tag Migration) + E-14 (Modbus) covered: **Yes**
-- All 219 greenfield BCs assigned + F2 additions + BC-2.09.001/006 (shared, extended in STORY-100) + BC-2.10.005/007/008 (extended in STORY-100) + BC-2.11.001/013/015/017/020/024 (extended in STORY-101) + BC-2.14.001..025 (new Modbus BCs in STORY-102..105): **Yes**
+- Total stories: **63** (48 greenfield product + 1 tooling STORY-091 + 3 F3 feature STORY-097/098/099 + 6 Feature-#7 STORY-100..105 + 5 Feature-#8 STORY-106..110)
+- Total waves: **39** (Waves 35–39 added for Feature #8 DNP3; STORY-091 wave TBD)
+- Total points: **400** (353 pre-DNP3 + 47 E-15 DNP3; wave-total row shows 395 — delta of 5 is STORY-091 at wave TBD excluded from wave table)
+- Graph is acyclic: **Yes** (Kahn topological sort verified; Feature-#7 dependency chain: STORY-100 → {STORY-101 ∥ STORY-102} → STORY-103 → STORY-104 → STORY-105; Feature-#8 DNP3 chain: STORY-100 → STORY-106 → STORY-107 → STORY-108 → STORY-109 → STORY-110; no back-edges into existing 58-story graph)
+- All 10 product epics + E-11 (Tooling) + E-12 (Pcap Timestamps) + E-13 (Multi-Tag Migration) + E-14 (Modbus) + E-15 (DNP3) covered: **Yes**
+- All 219 greenfield BCs assigned + F2 additions + BC-2.09.001/006 (shared, extended in STORY-100) + BC-2.10.005/007/008 (extended in STORY-100) + BC-2.11.001/013/015/017/020/024 (extended in STORY-101) + BC-2.14.001..025 (new Modbus BCs in STORY-102..105) + BC-2.15.001..024 (new DNP3 BCs in STORY-106..110): **Yes**
 - PROCESS-GAP-P5-001 dispositioned: **Yes** — STORY-091 created as the S-7.02 cycle-close disposition
-- Coverage note: STORY-097/098/099 trace to BC-2.04.055 and BC-2.09.007 (both F2 additions); these 3 stories cover VP-021 (verified @256a490). STORY-100 extends BC-2.09.001 (field rename) and BC-2.10.005/007/008 (catalog seed to 21). STORY-101 extends BC-2.11.001/013/015/017/020/024 (reporter multi-tag). STORY-102..105 cover BC-2.14.001..025 (Modbus TCP analyzer).
-- Release mapping: v0.3.0 ships after Wave 31 gate (STORY-100 + STORY-101 merged); v0.4.0 ships after Wave 34 gate (STORY-102..105 merged).
+- Coverage note: STORY-097/098/099 trace to BC-2.04.055 and BC-2.09.007 (both F2 additions); these 3 stories cover VP-021 (verified @256a490). STORY-100 extends BC-2.09.001 (field rename) and BC-2.10.005/007/008 (catalog seed to 21). STORY-101 extends BC-2.11.001/013/015/017/020/024 (reporter multi-tag). STORY-102..105 cover BC-2.14.001..025 (Modbus TCP analyzer). STORY-106..110 cover BC-2.15.001..024 (DNP3/ICS analyzer); VP-023 Kani lands in STORY-106, VP-004 oracle obligation lands in STORY-110, VP-007 atomic-update obligation (SEEDED 21→23, EMITTED 13→15) lands in STORY-109.
+- Release mapping: v0.3.0 ships after Wave 31 gate (STORY-100 + STORY-101 merged); v0.4.0 ships after Wave 34 gate (STORY-102..105 merged); v0.6.0 ships after Wave 39 gate (STORY-106..110 merged). (v0.5.0 was the MITRE-drift-guard fix released separately; DNP3 targets v0.6.0.)
 - Existing stories affected by schema migration: STORY-069/070/071/078/079/080 — their MITRE-technique test assertions migrate from `mitre_technique: Option<String>` to `mitre_techniques: Vec<String>` via STORY-100 (see revision notes in each story).
