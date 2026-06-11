@@ -852,11 +852,17 @@ mod story_106 {
         // ------------------------------------------------------------------
         // Case 1: FIR=1 — FC extraction must occur.
         // ------------------------------------------------------------------
-        // 13-byte minimum single-block DNP3 frame:
+        // 13-byte single-block DNP3 frame:
         //   [0]  0x05  start1 (sync)
         //   [1]  0x64  start2 (sync)
-        //   [2]  0x0E  LENGTH=14 (arbitrary valid)
-        //   [3]  0xC4  control
+        //   [2]  0x06  LENGTH=6  (STORY-107 skeleton→real-frame-walk: the carry-walk now
+        //              consumes frame_len = compute_dnp3_frame_len(LENGTH) bytes. LENGTH=6
+        //              ⇒ frame_len = 5+6+2*ceil(1/16) = 13, matching the delivered length,
+        //              so this 13-byte frame is a COMPLETE frame the walk will process. The
+        //              STORY-106 skeleton used LENGTH=0x0E (14 ⇒ frame_len=21) and only
+        //              checked data.len()>=13, which under the real walk would be an
+        //              INCOMPLETE frame and regress this test.)
+        //   [3]  0xC4  control (nibble 0x04 = UNCONFIRMED_USER_DATA)
         //   [4]  0x03  dest low
         //   [5]  0x00  dest high
         //   [6]  0x01  src low
@@ -867,7 +873,7 @@ mod story_106 {
         //   [11] 0xC0  app control (arbitrary)
         //   [12] 0x05  app FC = DIRECT_OPERATE
         let frame_fir1: [u8; 13] = [
-            0x05, 0x64, 0x0E, 0xC4, 0x03, 0x00, 0x01, 0x00, 0x88, 0xC5,
+            0x05, 0x64, 0x06, 0xC4, 0x03, 0x00, 0x01, 0x00, 0x88, 0xC5,
             0xC0, // transport: FIR=1, FIN=1
             0xC0, // app control
             0x05, // app FC: DIRECT_OPERATE
@@ -901,8 +907,10 @@ mod story_106 {
         // Case 2: FIR=0 — no FC extraction; frame_count still incremented.
         // ------------------------------------------------------------------
         // Same frame layout but transport octet = 0x80 (FIR=0, FIN=1, SEQ=0).
+        // LENGTH=0x06 so frame_len=13 == delivered length (STORY-107 skeleton→real
+        // frame-walk: the carry-walk consumes compute_dnp3_frame_len(LENGTH) bytes).
         let frame_fir0: [u8; 13] = [
-            0x05, 0x64, 0x0E, 0xC4, 0x03, 0x00, 0x01, 0x00, 0x88, 0xC5,
+            0x05, 0x64, 0x06, 0xC4, 0x03, 0x00, 0x01, 0x00, 0x88, 0xC5,
             0x80, // transport: FIR=0 (0x40 clear), FIN=1
             0xC0, // app control
             0x05, // app FC: DIRECT_OPERATE (must NOT be counted)
@@ -1138,7 +1146,11 @@ mod story_106 {
     /// Frame layout (13 bytes):
     ///   [0]  0x05  start1 (sync)
     ///   [1]  0x64  start2 (sync)
-    ///   [2]  0x0E  LENGTH (arbitrary)
+    ///   [2]  0x06  LENGTH=6  (STORY-107 skeleton→real frame-walk: frame_len =
+    ///              compute_dnp3_frame_len(6) = 13 == delivered length, so the carry-walk
+    ///              treats this as a COMPLETE frame. The STORY-106 skeleton used LENGTH=0x0E
+    ///              (frame_len=21), which under the real walk would be incomplete and
+    ///              regress this test.)
     ///   [3]  0xC0  link CONTROL — DIR+PRM bits set (0xC_), nibble = 0x00 (RESET_LINK)
     ///   [4]–[9]  remaining header bytes
     ///   [10] 0xC0  transport octet: FIR=1 (0x40 set), FIN=1 (0x80)
@@ -1156,9 +1168,9 @@ mod story_106 {
     #[test]
     fn test_on_data_fir_but_non_user_data_link_fc_no_extraction() {
         // 13-byte frame: valid sync, FIR=1 transport, but link CONTROL nibble = 0x00
-        // (RESET_LINK — not a user-data FC).
+        // (RESET_LINK — not a user-data FC). LENGTH=0x06 ⇒ frame_len=13 == delivered length.
         let frame: [u8; 13] = [
-            0x05, 0x64, 0x0E, 0xC0, // control = 0xC0 → nibble 0x00 = RESET_LINK
+            0x05, 0x64, 0x06, 0xC0, // control = 0xC0 → nibble 0x00 = RESET_LINK
             0x03, 0x00, 0x01, 0x00, 0x88, 0xC5,
             0xC0, // transport: FIR=1 (0x40 set), FIN=1 (0x80), SEQ=0
             0xC0, // app control (filler)

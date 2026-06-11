@@ -29,7 +29,7 @@ mod story_107 {
     use std::net::{IpAddr, Ipv4Addr};
 
     use wirerust::analyzer::dnp3::{
-        Dnp3Analyzer, Dnp3FlowState, MAX_DNP3_FRAME_LEN, MAX_MASTER_ADDRS, MAX_PENDING_REQUESTS,
+        Dnp3Analyzer, MAX_DNP3_FRAME_LEN, MAX_MASTER_ADDRS, MAX_PENDING_REQUESTS,
     };
     use wirerust::reassembly::flow::FlowKey;
 
@@ -123,7 +123,7 @@ mod story_107 {
             let flow = analyzer.flows.get_mut(&key).expect("flow must exist");
             // Reset carry and fill with 290 bytes of filler.
             flow.carry.clear();
-            flow.carry.extend(std::iter::repeat(0xAA).take(290));
+            flow.carry.extend(std::iter::repeat_n(0xAA, 290));
             assert_eq!(flow.carry.len(), 290, "pre-condition: carry must be 290");
         }
 
@@ -131,7 +131,10 @@ mod story_107 {
         let segment = [0xBBu8; 5];
         analyzer.on_data(key.clone(), &segment, 1);
 
-        let flow = analyzer.flows.get(&key).expect("flow must exist after on_data");
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
 
         assert_eq!(
             flow.carry.len(),
@@ -175,12 +178,19 @@ mod story_107 {
         let mut twenty_one_bytes = Vec::with_capacity(21);
         twenty_one_bytes.extend_from_slice(&frame1);
         twenty_one_bytes.extend_from_slice(partial_second);
-        assert_eq!(twenty_one_bytes.len(), 21, "combined carry must be 21 bytes");
+        assert_eq!(
+            twenty_one_bytes.len(),
+            21,
+            "combined carry must be 21 bytes"
+        );
 
         // Deliver all 21 bytes in a single on_data call.
         analyzer.on_data(key.clone(), &twenty_one_bytes, 0);
 
-        let flow = analyzer.flows.get(&key).expect("flow must exist after on_data");
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
 
         assert_eq!(
             flow.carry.len(),
@@ -228,7 +238,10 @@ mod story_107 {
         let frame_65 = build_master_frame(0x0003, 65u16);
         analyzer.on_data(base_key.clone(), &frame_65, 0);
 
-        let flow = analyzer.flows.get(&base_key).expect("flow must exist after 65th");
+        let flow = analyzer
+            .flows
+            .get(&base_key)
+            .expect("flow must exist after 65th");
         assert_eq!(
             flow.master_addrs_seen.len(),
             MAX_MASTER_ADDRS,
@@ -264,7 +277,10 @@ mod story_107 {
         // Deliver all 30 bytes in one call.
         analyzer.on_data(key.clone(), &thirty_bytes, 0);
 
-        let flow = analyzer.flows.get(&key).expect("flow must exist after on_data");
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert_eq!(
             flow.frame_count, 3,
             "frame_count must be 3 after delivering 3 complete frames in one on_data call"
@@ -344,7 +360,10 @@ mod story_107 {
         ctrl_frame[12] = 0x03; // app FC = SELECT (Control-class)
         analyzer.on_data(key.clone(), &ctrl_frame, 300);
 
-        let flow = analyzer.flows.get(&key).expect("flow must exist after on_data");
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
 
         // The map must stay at MAX_PENDING_REQUESTS (never exceed 256).
         assert_eq!(
@@ -393,12 +412,20 @@ mod story_107 {
 
         // Pre-load carry with exactly one 10-byte minimum frame (LENGTH=5).
         let min_frame = build_frame(5, 0x0003, 0x0001, 0xC4);
-        assert_eq!(min_frame.len(), 10, "minimum frame must be exactly 10 bytes");
+        assert_eq!(
+            min_frame.len(),
+            10,
+            "minimum frame must be exactly 10 bytes"
+        );
         {
             let flow = analyzer.flows.get_mut(&key).expect("flow must exist");
             flow.carry.clear();
             flow.carry.extend_from_slice(&min_frame);
-            assert_eq!(flow.carry.len(), 10, "pre-condition: carry must be 10 bytes");
+            assert_eq!(
+                flow.carry.len(),
+                10,
+                "pre-condition: carry must be 10 bytes"
+            );
         }
 
         // Deliver 1 additional byte.  The implementation must:
@@ -411,7 +438,10 @@ mod story_107 {
         // as the beginning of the next (as-yet-incomplete) frame.
         analyzer.on_data(key.clone(), &[0x05], 1);
 
-        let flow = analyzer.flows.get(&key).expect("flow must exist after on_data");
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
 
         assert_eq!(
             flow.carry.len(),
@@ -445,7 +475,10 @@ mod story_107 {
 
         analyzer.on_data(key.clone(), partial, 0);
 
-        let flow = analyzer.flows.get(&key).expect("flow must exist after on_data");
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert_eq!(
             flow.carry.len(),
             7,
@@ -477,11 +510,18 @@ mod story_107 {
         let mut twenty_bytes = Vec::with_capacity(20);
         twenty_bytes.extend_from_slice(&frame1);
         twenty_bytes.extend_from_slice(&frame2);
-        assert_eq!(twenty_bytes.len(), 20, "two 10-byte frames = 20 bytes total");
+        assert_eq!(
+            twenty_bytes.len(),
+            20,
+            "two 10-byte frames = 20 bytes total"
+        );
 
         analyzer.on_data(key.clone(), &twenty_bytes, 0);
 
-        let flow = analyzer.flows.get(&key).expect("flow must exist after on_data");
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert_eq!(
             flow.carry.len(),
             0,
@@ -513,14 +553,17 @@ mod story_107 {
         {
             let flow = analyzer.flows.get_mut(&key).expect("flow must exist");
             flow.carry.clear();
-            flow.carry.extend(std::iter::repeat(0xAA).take(291));
+            flow.carry.extend(std::iter::repeat_n(0xAA, 291));
             assert_eq!(flow.carry.len(), 291, "pre-condition: carry must be 291");
         }
 
         // Deliver 2 bytes.  Only 1 fits (292 - 291 = 1); the second is discarded.
         analyzer.on_data(key.clone(), &[0xBB, 0xCC], 1);
 
-        let flow = analyzer.flows.get(&key).expect("flow must exist after on_data");
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert_eq!(
             flow.carry.len(),
             MAX_DNP3_FRAME_LEN,
@@ -549,12 +592,17 @@ mod story_107 {
         let key = test_flow_key();
 
         // Trigger the desync bail: deliver non-DNP3 bytes (no valid sync at offset 0).
-        let non_dnp3 = [0xFF, 0xFE, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
-                         0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D];
+        let non_dnp3 = [
+            0xFF, 0xFE, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B,
+            0x0C, 0x0D,
+        ];
         analyzer.on_data(key.clone(), &non_dnp3, 0);
 
         {
-            let flow = analyzer.flows.get(&key).expect("flow must exist after bail");
+            let flow = analyzer
+                .flows
+                .get(&key)
+                .expect("flow must exist after bail");
             assert!(flow.is_non_dnp3, "pre-condition: flow must be bailed");
         }
 
@@ -636,7 +684,10 @@ mod story_107 {
         ctrl_frame[12] = 0x03; // FC=SELECT (Control-class)
         analyzer.on_data(key.clone(), &ctrl_frame, 500);
 
-        let flow = analyzer.flows.get(&key).expect("flow must exist after on_data");
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
 
         assert_eq!(
             flow.pending_requests.len(),
@@ -678,7 +729,10 @@ mod story_107 {
         // Deliver the malformed frame.
         analyzer.on_data(key.clone(), &bad_frame, 0);
 
-        let flow = analyzer.flows.get(&key).expect("flow must exist after on_data");
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
         assert_eq!(
             flow.parse_errors, 1,
             "parse_errors must be 1: invalid LENGTH byte must increment parse_errors"

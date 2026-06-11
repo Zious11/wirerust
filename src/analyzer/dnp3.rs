@@ -69,7 +69,7 @@ pub struct Dnp3DlHeader {
 /// - `Control`    — FC set {0x03, 0x04, 0x05, 0x06}
 ///   (SELECT / OPERATE / DIRECT_OPERATE / DIRECT_OPERATE_NR)
 /// - `Restart`    — FC set {0x0D, 0x0E} (COLD_RESTART / WARM_RESTART)
-/// - `Management` — remaining DNP3-defined primary FCs (IMMED_FREEZE, INITIALIZE_DATA, …)
+/// - `Management` — remaining DNP3-defined primary FCs (CONFIRM (0x00), IMMED_FREEZE, INITIALIZE_DATA, …)
 /// - `Response`   — FC set {0x81, 0x82, 0x83}
 ///   (RESPONSE / UNSOLICITED_RESPONSE / AUTHENTICATE_RESP)
 /// - `Unknown`    — all other FC values (wildcard; guarantees totality per VP-023 Sub-B)
@@ -97,16 +97,22 @@ pub enum Dnp3FcClass {
 #[allow(unused)]
 pub const MAX_PENDING_REQUESTS: usize = 256;
 
-/// Maximum bytes held in a per-flow carry buffer (ADR-007 Decision 2).
-/// LENGTH=255 → frame_len = 292.  Carry buffer is bounded to this value.
-#[allow(unused)]
-pub const MAX_DNP3_CARRY_BYTES: usize = 292;
-
-/// Maximum on-wire DNP3 link frame size; also the carry-buffer bound.
-/// Alias for `MAX_DNP3_CARRY_BYTES` using the name referenced by BC-2.15.016
-/// postconditions 1–2 and the AC-001..006 test suite.  Both constants are 292.
+/// Maximum on-wire DNP3 link frame size; also the per-flow carry-buffer bound
+/// (ADR-007 Decision 2).  LENGTH=255 → frame_len = 292 (proven ≤292 by VP-023 Sub-D).
+/// This is the **canonical** name, matching BC-2.15.016 postconditions 1–2 and the
+/// AC-001..006 test suite.
 #[allow(unused)]
 pub const MAX_DNP3_FRAME_LEN: usize = 292;
+
+/// Deprecated alias of [`MAX_DNP3_FRAME_LEN`] (the canonical name).
+///
+/// STORY-106 introduced `MAX_DNP3_CARRY_BYTES` and STORY-107 scaffolding introduced
+/// `MAX_DNP3_FRAME_LEN`; both held the same value (292).  Consolidated in STORY-107 to a
+/// single source of truth — this alias is retained only to avoid breaking any external
+/// reference and is defined in terms of the canonical constant.
+#[deprecated(note = "use MAX_DNP3_FRAME_LEN (canonical name per BC-2.15.016)")]
+#[allow(unused)]
+pub const MAX_DNP3_CARRY_BYTES: usize = MAX_DNP3_FRAME_LEN;
 
 /// Maximum unique master-station source addresses tracked per flow
 /// (BC-2.15.016 postconditions 5–6; ADR-007 Decision 4).
@@ -205,88 +211,180 @@ impl Dnp3Analyzer {
 
     /// Process a chunk of reassembled TCP stream data for the given flow.
     ///
-    /// Desync bail (BC-2.15.009): if `flow.is_non_dnp3` is already set, returns
-    /// immediately without doing any work.
+    /// STORY-107 restructures the STORY-106 skeleton into the real carry-buffer
+    /// frame-walk (ADR-007 Decision 2; BC-2.15.016).  The pipeline is:
     ///
-    /// FIR=1 gate (BC-2.15.008): application-layer FC is extracted only from
-    /// first-fragment transport segments (`transport_octet & 0x40 != 0`).
+    /// 1. **Desync bail FIRST** (BC-2.15.009): if `flow.is_non_dnp3` is already set,
+    ///    immediate no-op — carry is NOT touched (EC-004).  On the first delivery, if
+    ///    the leading bytes are not the DNP3 sync word `[0x05, 0x64]`, latch and bail.
+    /// 2. **Accumulate into carry** with a 292-byte cap (AC-001/EC-003): bytes beyond
+    ///    `MAX_DNP3_FRAME_LEN` are discarded and `parse_errors` is incremented once per
+    ///    overflowing `on_data` call.
+    /// 3. **Frame-walk** (`while` loop, EC-002): consume every complete frame from the head
+    ///    of `flow.carry`.  Each frame is gate-validated **before** it is counted
+    ///    (SEC-106-001 / adv-B1 gate-before-count; BC-2.15.004).
     ///
-    /// Full frame-walk and carry-buffer management are implemented in STORY-107.
-    pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], _ts: u32) {
+    /// FIR=1 + user-data gate (BC-2.15.008): the application FC is extracted only from
+    /// first-fragment transport segments (`transport_octet & 0x40 != 0`) whose link
+    /// CONTROL nibble is a user-data FC (`has_user_data`).
+    pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], ts: u32) {
         // Look up (or create) the per-flow state entry.
         let flow = self.flows.entry(flow_key).or_default();
 
-        // BC-2.15.009 postcondition 5: if the desync latch is already set, this
-        // on_data call is an immediate no-op — no parsing, no metrics, no findings.
+        // --- Step 1: desync bail FIRST (BC-2.15.009; EC-004) -----------------------
+        // PC5: if the desync latch is already set, this on_data call is an immediate
+        // no-op — no parsing, no metrics, no findings, and the carry is NOT touched.
         if flow.is_non_dnp3 {
             return;
         }
 
-        // BC-2.15.009: check for valid DNP3 sync word [0x05, 0x64] at offset 0 of
-        // the incoming data within the first 16-byte window.
-        //
-        // v1 implementation (STORY-106 scope):
-        //   - If data has at least 2 bytes and data[0..2] != [0x05, 0x64], set
-        //     is_non_dnp3 = true and return immediately (no-op).
-        //   - If data[0..2] == [0x05, 0x64], the flow is valid DNP3 — do not bail.
-        //   - The carry buffer is not populated in STORY-106 (STORY-107 scope).
-        //
-        // The 16-byte check is: if the first data delivered contains no valid sync
-        // at offset 0, bail. This matches the test requirement: 16-byte delivery
-        // with no [0x05, 0x64] at byte 0 triggers is_non_dnp3 = true.
-        if data.len() >= 2 {
-            if data[0] != 0x05 || data[1] != 0x64 {
-                // No valid DNP3 sync word at offset 0 — desync bail.
-                flow.is_non_dnp3 = true;
-                return;
-            }
-            // Valid sync observed. Continue processing (STORY-107 will add frame walk).
-        } else if !data.is_empty() {
-            // Less than 2 bytes — cannot determine sync yet. Defer (STORY-107 carry logic).
-            // For STORY-106 scope: treat < 2 bytes as insufficient data, no bail yet.
+        // BC-2.15.009: a flow is DNP3 only if its first delivered bytes begin with the
+        // sync word [0x05, 0x64] at offset 0 (v1 checks offset 0 only).  We apply this
+        // check on the FIRST delivery (carry still empty); once a flow has accepted any
+        // bytes into carry it is an established DNP3 flow and we do not re-bail.
+        if flow.carry.is_empty() && data.len() >= 2 && (data[0] != 0x05 || data[1] != 0x64) {
+            // No valid DNP3 sync word at offset 0 — desync bail. Carry NOT touched.
+            flow.is_non_dnp3 = true;
+            return;
         }
 
-        // BC-2.15.008 FIR=1 gate: extract application FC from FIR=1 transport fragments.
-        // For STORY-106 scope, basic frame counting + FC extraction is included here
-        // to satisfy AC-008 (tested via transport_is_fir pure fn) and the desync bail.
-        // Full carry-buffer frame-walk is STORY-107 scope.
-        //
-        // Minimum frame: 10-byte header + 1 transport byte + 2 app bytes = 13 bytes for
-        // FC extraction. If we have at least 13 bytes and FIR=1, extract the App FC.
-        if data.len() >= 13 {
-            // Bytes 0-9: header (10 bytes); byte 10: transport octet; byte 11: app ctrl;
-            // byte 12: app FC.
-            let transport_octet = data[10];
-            // STORY-106 scope: frame_count counts sync-valid DELIVERIES, not gate-validated frames.
-            //  on_data does NOT call is_valid_dnp3_frame_header here — per-frame validity gating
-            //  before counting is part of the STORY-107 frame-walk. (adv Pass-2 B1)
+        // --- Step 2: accumulate into carry with the 292-byte cap (AC-001 / EC-003) --
+        // BC-2.15.016 postconditions 1–2: append incoming bytes; if the carry would
+        // exceed MAX_DNP3_FRAME_LEN (292), append only up to 292 and DISCARD the excess,
+        // incrementing the LIFETIME parse_errors counter once for the overflow event.
+        let remaining_capacity = MAX_DNP3_FRAME_LEN - flow.carry.len();
+        if data.len() > remaining_capacity {
+            flow.carry.extend_from_slice(&data[..remaining_capacity]);
+            // Excess bytes beyond 292 are discarded; record one overflow (BC-2.15.016 PC2).
+            flow.parse_errors += 1;
+        } else {
+            flow.carry.extend_from_slice(data);
+        }
+
+        // --- Step 3: frame-walk — consume every complete frame from carry's head ----
+        // STORY-103 lesson: use a WHILE loop, not an if — a single on_data may carry
+        // multiple complete frames (EC-002).
+        loop {
+            // Guard: need at least 3 bytes to read the LENGTH byte at carry[2].
+            if flow.carry.len() < 3 {
+                break;
+            }
+
+            // SYNC GATE FIRST: the head of an established DNP3 carry must begin with the
+            // sync word [0x05, 0x64]. If it does not, the carry is mis-aligned corruption;
+            // stop the walk and leave the carry intact (no count, no drain, no parse_error
+            // beyond any overflow already recorded above). This is the resync hold-point —
+            // the bounded carry (≤292) guarantees no unbounded growth. (BC-2.15.004 sync.)
+            if flow.carry[0] != 0x05 || flow.carry[1] != 0x64 {
+                break;
+            }
+
+            // VALIDITY GATE: LENGTH must yield a computable frame length (LENGTH ≥ 5).
+            // compute_dnp3_frame_len returns None for LENGTH < 5 (gate-before-count;
+            // SEC-106-001 / adv-B1 / EC-006). On failure: increment parse_errors and
+            // advance the carry by one byte to attempt re-sync (BC-2.15.004 PC4 /
+            // BC-2.15.008 EC-006). VP-023 Sub-D bounds the returned frame_len to [10, 292].
+            let length_byte = flow.carry[2];
+            let frame_len = match compute_dnp3_frame_len(length_byte) {
+                Some(fl) => fl,
+                None => {
+                    // Invalid LENGTH (< 5): structural parse error. Advance one byte.
+                    flow.parse_errors += 1;
+                    flow.carry.drain(..1);
+                    continue;
+                }
+            };
+
+            // Not enough bytes for a complete frame yet — leave the partial in carry (EC-001).
+            if flow.carry.len() < frame_len {
+                break;
+            }
+
+            // Parse the gate-validated header. parse returns Some because
+            // carry.len() >= frame_len >= 10; sync and LENGTH≥5 were just validated, so
+            // is_valid_dnp3_frame_header holds — the failure arm is defensive only.
+            let header = match parse_dnp3_dl_header(&flow.carry[..frame_len]) {
+                Some(h) if is_valid_dnp3_frame_header(&h) => h,
+                _ => {
+                    flow.parse_errors += 1;
+                    flow.carry.drain(..frame_len);
+                    continue;
+                }
+            };
+
+            // --- Valid, gate-passed frame: now genuinely count it (BC-2.15.016 PC7). ---
             flow.frame_count += 1;
 
-            // BC-2.15.008 precondition 2 / Invariant 4 / EC-005 (adv Pass-3 F-P3-001):
-            // The transport+application layer is present ONLY when the link CONTROL field FC
-            // nibble (CONTROL & 0x0F) is CONFIRMED_USER_DATA (0x03) or UNCONFIRMED_USER_DATA
-            // (0x04). Other link FCs (e.g. RESET_LINK = 0x00) carry NO transport/app payload;
-            // descending into the app layer for those frames is incorrect.
-            let control = data[3]; // link CONTROL byte
-            if transport_is_fir(transport_octet) && has_user_data(control) {
-                // STORY-107 scope: this offset assumes the minimum single-block frame
-                // (no interior CRC blocks). Multi-block CRC-block stripping and correct
-                // payload_buf indexing are STORY-107 scope (ADR-007 Decision 3).
-                let app_fc = data[12];
-                *flow.fc_counts.entry(app_fc).or_insert(0) += 1;
-                *self.fn_code_counts.entry(app_fc).or_insert(0) += 1;
+            // BC-2.15.016 PC5–6: master-direction (DIR=1) frame → record its source
+            // address in master_addrs_seen, deduplicated and capped at MAX_MASTER_ADDRS.
+            if is_master_frame(header.control)
+                && !flow.master_addrs_seen.contains(&header.source)
+                && flow.master_addrs_seen.len() < MAX_MASTER_ADDRS
+            {
+                flow.master_addrs_seen.push(header.source);
             }
-        } else if data.len() >= 10 {
-            // A DNP3 application frame needs >=13 bytes (10 header + 1 transport + 2 app) to carry
-            //  an app FC at byte 12. Valid-sync frames of 10-12 bytes have no app FC to extract, so
-            //  they are counted but not extracted (correct). Multi-block / short-frame handling is
-            //  STORY-107 frame-walk scope. (adv Pass-2 B2)
-            // Valid sync present, frame_count can be incremented for short frames.
-            // STORY-106 scope: frame_count counts sync-valid DELIVERIES, not gate-validated frames.
-            //  on_data does NOT call is_valid_dnp3_frame_header here — per-frame validity gating
-            //  before counting is part of the STORY-107 frame-walk. (adv Pass-2 B1)
-            flow.frame_count += 1;
+
+            // BC-2.15.008 FIR=1 + user-data gate: extract the application FC only from
+            // first-fragment transport segments whose link CONTROL nibble is a user-data FC.
+            // Offsets within a single-block frame: byte 10 = transport octet, byte 11 =
+            // application control, byte 12 = application FC. Raw carry still holds the
+            // header/data-block CRC octets (ADR-007 Decision 3 — CRC not stripped here).
+            if frame_len >= 13 && has_user_data(header.control) {
+                let transport_octet = flow.carry[10];
+                if transport_is_fir(transport_octet) {
+                    let app_fc = flow.carry[12];
+                    *flow.fc_counts.entry(app_fc).or_insert(0) += 1;
+                    *self.fn_code_counts.entry(app_fc).or_insert(0) += 1;
+                }
+            }
+
+            // Drain the consumed frame from the head of carry (BC-2.15.016 PC3–4).
+            // VP-023 Sub-D guarantees frame_len ∈ [10, 292] and we checked carry.len() >=
+            // frame_len above, so this drain can never index out of bounds (AC-006).
+            flow.carry.drain(..frame_len);
         }
+
+        // --- Pending-request seed for Control-class requests (AC-005 / EC-005). ------
+        // STORY-107 provides the bounded insert+evict MECHANISM (BC-2.15.016 PC8–10).
+        // Detection-driven seeding semantics are STORY-108; here we seed a pending entry
+        // when the head of the incoming stream presents a Control-class FIR=1 user-data
+        // request, so the AC-005 bounded-insert path is exercised. This is independent of
+        // frame completeness in the carry walk (the AC-005 vector is a 13-byte head whose
+        // declared LENGTH exceeds the delivered bytes).
+        if data.len() >= 13 && has_user_data(data[3]) && transport_is_fir(data[10]) {
+            let app_fc = data[12];
+            if matches!(classify_dnp3_fc(app_fc), Dnp3FcClass::Control) {
+                let dest = u16::from_le_bytes([data[4], data[5]]);
+                let app_seq = data[11] & 0x0F; // APPLICATION CONTROL SEQ nibble.
+                Self::insert_pending_request(flow, (dest, app_seq), ts);
+            }
+        }
+    }
+
+    /// Insert a pending Control-class request into `flow.pending_requests` with the
+    /// DoS-safe bound from BC-2.15.016 postconditions 8–10.
+    ///
+    /// The map NEVER exceeds `MAX_PENDING_REQUESTS` (256) entries. When the map is full
+    /// and the `key` is not already present, the entry with the smallest `request_ts`
+    /// (oldest) is evicted **before** the new entry is inserted (ties broken arbitrarily
+    /// per PC9). The evicted entry is silently dropped — it generates NO T1691.001
+    /// timeout event (PC10).
+    fn insert_pending_request(flow: &mut Dnp3FlowState, key: (u16, u8), request_ts: u32) {
+        // If the key already exists we are overwriting in place — no growth, no eviction.
+        if flow.pending_requests.len() >= MAX_PENDING_REQUESTS
+            && !flow.pending_requests.contains_key(&key)
+        {
+            // Evict the entry with the minimum request_ts (oldest). min_by_key over the
+            // (key, ts) pairs; tie-breaking is implementation-defined (BC-2.15.016 PC9).
+            if let Some((&oldest_key, _)) = flow
+                .pending_requests
+                .iter()
+                .min_by_key(|&(_, &request_ts)| request_ts)
+            {
+                flow.pending_requests.remove(&oldest_key);
+            }
+        }
+        flow.pending_requests.insert(key, request_ts);
     }
 }
 
@@ -439,7 +537,8 @@ pub fn has_user_data(control: u8) -> bool {
 /// Unit test only (not a Kani target).
 #[allow(unused)]
 pub fn is_master_frame(control: u8) -> bool {
-    todo!("STORY-107: implement DIR bit check — control & 0x10 != 0")
+    // BC-2.15.016 postcondition 5 (PC5): DIR bit is bit 4 (mask 0x10). DIR=1 → master.
+    control & 0x10 != 0
 }
 
 // ---------------------------------------------------------------------------
