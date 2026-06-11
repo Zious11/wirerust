@@ -5,7 +5,7 @@ active_feature: "#8-dnp3"
 feature_8_status: "F4 IN PROGRESS — waves 35-36 (STORY-106,107) DELIVERED; wave 37 STORY-108 next"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-11T17:30:00Z
+timestamp: 2026-06-11T17:35:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -38,7 +38,7 @@ dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 consistency_audit: CONSISTENT
-input_drift_check: "CLEAN — MATCH=62/STALE=0/ERROR=1 (STORY-091 no-inputs pre-existing; STORY-106..110 new hashes + 10 prior-stale refreshed post F3 edits)"
+input_drift_check: "STORY-106/107 regenerated post-delivery (VP-023 v1.3→v1.4 drift; b465d38/2fd1cec). STORY-108/109/110 pending regeneration at delivery (VP-023 v1.4 drift — run bin/compute-input-hash --write before each delivery)"
 ---
 
 # VSDD Pipeline State — wirerust
@@ -84,13 +84,14 @@ input_drift_check: "CLEAN — MATCH=62/STALE=0/ERROR=1 (STORY-091 no-inputs pre-
 4. Continue through waves 38-39 (STORY-109→110), targeting v0.6.0.
 
 **LOCKED DNP3 FACTS (F4 must not re-derive these):**
-- 5 stories: STORY-106 (8 pts, w35), STORY-107 (8 pts, w36), STORY-108 (11 pts, w37), STORY-109 (13 pts, w38), STORY-110 (7 pts, w39). Epic E-15 'DNP3/ICS Analyzer', 47 pts total. Strictly-linear chain 106→107→108→109→110.
+- 5 stories: STORY-106 (8 pts, w35), STORY-107 (5 pts, w36, DELIVERED), STORY-108 (13 pts, w37), STORY-109 (13 pts, w38), STORY-110 (8 pts, w39). Epic E-15 'DNP3/ICS Analyzer', 47 pts total. Strictly-linear chain 106→107→108→109→110.
 - SS-15 = 24 BCs (BC-2.15.001..024). All covered 1:1 across the 5 stories.
 - MITRE set (ATT&CK-ICS v19.1): T1692.001 (unauthorized command, IcsImpairProcessControl), T1691.001 (block command, IcsInhibitResponseFunction), T0827 (loss of control, MitreTactic::IcsImpact — NEW tactic), T0814 (restart/DoS), T0836 (write).
 - Catalog after F4: SEEDED 21→23 (+T1691.001 +T0827); EMITTED 13→15. Seed+emit happens ATOMICALLY in STORY-109 with VP-007 update.
 - Confirmed thresholds: `--dnp3-direct-operate-threshold 10/60s` (count=1 for unexpected-source); single 300s correlation window; block-command 3-of-300s; req-timeout 10s; exclude DIRECT_OPERATE_NR 0x06; T0827 ≥3 distinct events/300s; malformed-frame ≥3/300s.
 - Integration: StreamDispatcher port-20000 Rule 6, DispatchTarget::Dnp3, VP-004 oracle. Parse via FIR=1 first-fragment; CRC structure-only (strip-not-validate); frame_len = 5+LENGTH+2*ceil((LENGTH-5)/16), max 292. Per-flow Dnp3FlowState: fields include malformed_in_window, malformed_anomaly_emitted, correlation_window_start_ts + 4 correlation fields for the 300s window.
 - 22 holdout scenarios at `.factory/feature/wave-holdout-scenarios/wave-35-39-holdout.md` (for F4 holdout eval). Scenarios include: Trace-B spaced-event, Crain-Sistrunk crash-pattern, FP-guard baseline, direct-operate bursts, unsolicited/broadcast flood.
+- INPUT-HASH HYGIENE: VP-023 changed v1.3→v1.4 during STORY-106 (0x00→Management). STORY-106 (b465d38) and STORY-107 (2fd1cec) input-hashes were regenerated. STORY-108/109/110 still carry their F3-era stored hashes and are LIKELY STALE (VP-023 is among their inputs). Before delivering each, run `bin/compute-input-hash --write .factory/stories/STORY-NNN.md` and remove any duplicate `input-hash: TBD` frontmatter line (same hygiene applied to 106/107).
 
 **OPEN BACKLOG / DEFERRED:**
 - Drift Items: see table below (DRIFT-F2-COUNT-001, DRIFT-SUPERPOWERS-001, O-07, O-08).
