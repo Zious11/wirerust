@@ -1,5 +1,5 @@
 //! DNP3 (IEEE Std 1815-2012) pure-core parser, function-code classifier,
-//! per-flow state skeleton, and VP-023 Kani harness stubs (SS-15, CAP-15).
+//! per-flow state with carry-buffer frame-walk, and VP-023 Kani harness stubs (SS-15, CAP-15).
 //!
 //! ## Architecture
 //! - `parse_dnp3_dl_header` — pure parse, no validity gate (BC-2.15.001/002/003)
@@ -10,7 +10,7 @@
 //!   (BC-2.15.007)
 //! - `transport_is_fir` — FIR=1 first-fragment predicate (BC-2.15.008)
 //! - `has_user_data` — link-layer control field predicate
-//! - `Dnp3FlowState` — per-flow state skeleton (desync latch + carry placeholder)
+//! - `Dnp3FlowState` — per-flow state with carry-buffer frame-walk (implemented in STORY-107)
 //! - VP-023 Kani harnesses (sub-properties A, B, C, D) — gated by `#[cfg(kani)]`
 //!
 //! ## Architecture compliance (ADR-007 Decision 2 / STORY-106 rule set)
@@ -132,15 +132,16 @@ pub const MALFORMED_ANOMALY_THRESHOLD: u64 = 3;
 /// Per-flow DNP3 analyzer state.
 ///
 /// Carries the desync latch (`is_non_dnp3`) and the partial-frame accumulation
-/// buffer (`carry`).  Additional correlation-window and detection-emission fields
-/// are stubs for STORY-107/108/109; they compile but contain no logic yet.
+/// buffer (`carry`) — both implemented in STORY-107 (carry-buffer frame-walk,
+/// AC-001..006).  Detection-emission and correlation-window fields are stubs for
+/// STORY-108/109; they compile but contain no logic yet.
 ///
 /// BC-2.15.009 (desync bail), ADR-007 Decision 4 (full field list).
 #[derive(Default)]
 #[allow(dead_code)]
 pub struct Dnp3FlowState {
     /// Partial frame accumulation buffer.  Max 292 bytes (ADR-007 Decision 2).
-    /// Populated in STORY-107; declared here as a carry placeholder.
+    /// Implemented in STORY-107 (frame-walk, AC-001..006, BC-2.15.016 PC1-4).
     pub carry: Vec<u8>,
 
     /// Set to `true` on desync (no valid DNP3 sync word in first 16 bytes).
@@ -275,6 +276,10 @@ impl Dnp3Analyzer {
             // stop the walk and leave the carry intact (no count, no drain, no parse_error
             // beyond any overflow already recorded above). This is the resync hold-point —
             // the bounded carry (≤292) guarantees no unbounded growth. (BC-2.15.004 sync.)
+            // Resync policy (STORY-107 v1, adv Pass-1 F-2): an invalid LENGTH (<5) drains 1 byte to resync;
+            //  a mid-carry sync-word loss holds the carry until the 292 cap (then overflow-discards). Both
+            //  paths guarantee progress/termination (each non-break iteration drains >=1 byte; carry bounded
+            //  <=292). Byte-walk resync on mid-carry sync-loss is deferred to a later detection story.
             if flow.carry[0] != 0x05 || flow.carry[1] != 0x64 {
                 break;
             }
@@ -345,12 +350,13 @@ impl Dnp3Analyzer {
         }
 
         // --- Pending-request seed for Control-class requests (AC-005 / EC-005). ------
-        // STORY-107 provides the bounded insert+evict MECHANISM (BC-2.15.016 PC8–10).
-        // Detection-driven seeding semantics are STORY-108; here we seed a pending entry
-        // when the head of the incoming stream presents a Control-class FIR=1 user-data
-        // request, so the AC-005 bounded-insert path is exercised. This is independent of
-        // frame completeness in the carry walk (the AC-005 vector is a 13-byte head whose
-        // declared LENGTH exceeds the delivered bytes).
+        // STORY-107 scope: this is a MINIMAL bound-exercise seed that drives the pending_requests
+        //  eviction bound (AC-005). It reads the raw delivery head and is intentionally DECOUPLED from
+        //  the sync-gated carry-walk for STORY-107 — it can seed spurious/duplicate entries, which is
+        //  harmless here because STORY-107 only contracts the >=256 oldest-eviction BOUND and nothing
+        //  reads pending_requests yet. STORY-108 OWNS detection-driven seeding: it will relocate this
+        //  onto the gate-validated frame inside the carry walk and add sync-gating, removing this seed.
+        //  (adv Pass-1 F-1)
         if data.len() >= 13 && has_user_data(data[3]) && transport_is_fir(data[10]) {
             let app_fc = data[12];
             if matches!(classify_dnp3_fc(app_fc), Dnp3FcClass::Control) {
