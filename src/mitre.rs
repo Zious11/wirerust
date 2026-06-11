@@ -201,7 +201,7 @@ pub fn technique_tactic(id: &str) -> Option<MitreTactic> {
 // resolves in `technique_info` (both name and tactic Some).
 // Corollary (BC-2.10.006): unknown IDs return None without panicking.
 //
-// The catalogue is a closed-world static match; the seeded set is finite (21)
+// The catalogue is a closed-world static match; the seeded set is finite (23)
 // so the harness enumerates it exhaustively — fully sound, no abstraction.
 //
 // To audit the emitted IDs: `grep -rn 'mitre_techniques: vec!' src/`
@@ -209,7 +209,7 @@ pub fn technique_tactic(id: &str) -> Option<MitreTactic> {
 mod kani_proofs {
     use super::*;
 
-    /// All 21 seeded IDs (mirrors `technique_info`, this file). If `technique_info`
+    /// All 23 seeded IDs (mirrors `technique_info`, this file). If `technique_info`
     /// gains/loses an entry, the completeness proof here will diverge from the
     /// table and must be updated in lockstep with the VP.
     const SEEDED_IDS: &[&str] = super::SEEDED_TECHNIQUE_IDS;
@@ -234,15 +234,14 @@ mod kani_proofs {
         "T0835",     // Manipulate I/O Image
         "T0831",     // Manipulation of Control
         "T0888",     // Remote System Information Discovery
-        // STORY-109 (2) — VP-007 atomic obligation; stubs seeded here; detection branches
-        // are todo!() until STORY-109 implementation phase.
+        // STORY-109 (2) — VP-007 atomic obligation; implemented in STORY-109.
         "T1691.001", // Block OT Message: Command Message (BC-2.15.014; IcsInhibitResponseFunction)
         "T0827",     // Loss of Control (BC-2.15.015; IcsImpact)
     ];
 
     /// Sub-property A: format invariant `T[0-9]{4}` or `T[0-9]{4}.[0-9]{3}`.
     ///
-    /// BOUND/SOUNDNESS: the seeded set is a finite closed enumeration (21 IDs);
+    /// BOUND/SOUNDNESS: the seeded set is a finite closed enumeration (23 IDs);
     /// the harness checks every one against the regex-equivalent byte predicate.
     /// No symbolic input is needed — the property is universal over a fixed set,
     /// so enumeration is exhaustive and sound.

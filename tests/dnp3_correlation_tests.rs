@@ -173,6 +173,13 @@ mod story_109 {
     ///   ts=22: advance (no response) → block_event_count=2
     ///   ts=33: advance (no response) → block_event_count=3 → T1691.001 emitted
     ///
+    /// F-109-P1-003: BC-2.15.014 PC3 pins the exact summary format:
+    ///   "DNP3 inferred blocked command: {count} requests without response within {window}s
+    ///    (dest={dest:#06X})"
+    /// where {window} = BLOCK_CMD_TIMEOUT_SECS (10), {dest} = 0x0003, {count} = 3.
+    /// Expected exact summary: "DNP3 inferred blocked command: 3 requests without response
+    /// within 10s (dest=0x0003)"
+    ///
     /// Traces to: BC-2.15.014 postcondition 3; Canonical Test Vector §1; STORY-109 AC-002.
     #[test]
     fn test_t1691_001_emitted_at_threshold_3_of_300s() {
@@ -222,6 +229,31 @@ mod story_109 {
             f.mitre_techniques,
             vec!["T1691.001"],
             "AC-002: mitre_techniques must be exactly [\"T1691.001\"]"
+        );
+
+        // F-109-P1-003: BC-2.15.014 PC3 exact summary pin.
+        // Format: "DNP3 inferred blocked command: {count} requests without response
+        //          within {window}s (dest={dest:#06X})"
+        // With the test's concrete values: count=3, window=BLOCK_CMD_TIMEOUT_SECS=10,
+        // dest=0x0003 → dest formatted as {:#06X} = "0x0003".
+        // {window} per BC-2.15.014 is the per-request timeout (BLOCK_CMD_TIMEOUT_SECS),
+        // NOT the correlation window, per BC description: "10 seconds. Rationale: DNP3
+        // SBO select-to-operate timeout is typically 3–10 seconds".
+        let expected_t1691_summary =
+            "DNP3 inferred blocked command: 3 requests without response within 10s (dest=0x0003)";
+        assert_eq!(
+            f.summary, expected_t1691_summary,
+            "AC-002 (F-109-P1-003): T1691.001 summary must match exact BC-2.15.014 PC3 format; \
+             BC-expected: {:?}; impl-actual: {:?}",
+            expected_t1691_summary, f.summary
+        );
+
+        // BC-2.15.014 PC3 — category must be ThreatCategory::Execution.
+        assert!(
+            matches!(f.category, ThreatCategory::Execution),
+            "AC-002: T1691.001 category must be ThreatCategory::Execution \
+             (BC-2.15.014 PC3); got {:?}",
+            f.category
         );
 
         // Verify the one-shot guard is set
@@ -598,6 +630,13 @@ mod story_109 {
         );
 
         let f = broadcast_findings[0];
+        // F-109-P1-001 closure: BC-2.15.018 PC1 pins category: ThreatCategory::Suspicious.
+        assert!(
+            matches!(f.category, ThreatCategory::Suspicious),
+            "AC-007 (F-109-P1-001 category closure): broadcast anomaly category must be \
+             ThreatCategory::Suspicious (BC-2.15.018 PC1); got {:?}",
+            f.category
+        );
         assert!(
             matches!(f.verdict, Verdict::Possible),
             "AC-007: broadcast anomaly verdict must be Possible; got {:?}",
@@ -757,6 +796,13 @@ mod story_109 {
         );
 
         let f = t0814_findings[0];
+        // F-109-P1-001 closure: BC-2.15.019 PC1 pins category: ThreatCategory::Suspicious.
+        assert!(
+            matches!(f.category, ThreatCategory::Suspicious),
+            "AC-009 (F-109-P1-001 category closure): unsolicited anomaly category must be \
+             ThreatCategory::Suspicious (BC-2.15.019 PC1); got {:?}",
+            f.category
+        );
         assert!(
             matches!(f.verdict, Verdict::Possible),
             "AC-009: unsolicited anomaly verdict must be Possible; got {:?}",
@@ -880,6 +926,13 @@ mod story_109 {
         );
 
         let f = disable_findings[0];
+        // F-109-P1-001 closure: BC-2.15.023 PC1 pins category: ThreatCategory::Execution.
+        assert!(
+            matches!(f.category, ThreatCategory::Execution),
+            "AC-010 (F-109-P1-001 category closure): DISABLE_UNSOLICITED category must be \
+             ThreatCategory::Execution (BC-2.15.023 PC1); got {:?}",
+            f.category
+        );
         assert!(
             matches!(f.verdict, Verdict::Likely),
             "AC-010: DISABLE_UNSOLICITED verdict must be Likely; got {:?}",
@@ -972,6 +1025,13 @@ mod story_109 {
         );
 
         let f = enable_findings[0];
+        // F-109-P1-001 closure: BC-2.15.023 PC1 pins category: ThreatCategory::Execution.
+        assert!(
+            matches!(f.category, ThreatCategory::Execution),
+            "AC-011 (F-109-P1-001 category closure): ENABLE_UNSOLICITED category must be \
+             ThreatCategory::Execution (BC-2.15.023 PC1); got {:?}",
+            f.category
+        );
         assert!(
             matches!(f.verdict, Verdict::Possible),
             "AC-011: ENABLE_UNSOLICITED verdict must be Possible; got {:?}",
@@ -1049,6 +1109,17 @@ mod story_109 {
         );
 
         let f = malformed_findings[0];
+
+        // F-109-P1-001 (MAJOR): BC-2.15.024 PC3 pins category: ThreatCategory::Anomaly.
+        // The impl currently emits ThreatCategory::Suspicious — this assertion exposes
+        // the impl/BC drift. Expected RED.
+        assert!(
+            matches!(f.category, ThreatCategory::Anomaly),
+            "AC-012 (F-109-P1-001 MAJOR): malformed anomaly category must be \
+             ThreatCategory::Anomaly (BC-2.15.024 PC3); got {:?}",
+            f.category
+        );
+
         assert!(
             matches!(f.verdict, Verdict::Possible),
             "AC-012: malformed anomaly verdict must be Possible; got {:?}",
@@ -1063,6 +1134,25 @@ mod story_109 {
             f.mitre_techniques,
             vec!["T0814"],
             "AC-012: malformed anomaly must carry only [\"T0814\"]"
+        );
+
+        // F-109-P1-004: BC-2.15.024 PC3 summary format must include the flow fragment
+        // "(flow {src_ip}→{dest_ip})". The test_flow_key() uses:
+        //   ip_a = 10.0.0.1:20000, ip_b = 10.0.0.2:20000
+        // FlowKey canonicalizes: lower_ip=10.0.0.1 (port 20000), upper_ip=10.0.0.2 (port 20000).
+        // The flow fragment in the summary uses lower_ip as src and upper_ip as dest
+        // (source-endpoint convention: the flow's originating/lower-IP endpoint → remote).
+        // Expected full BC-2.15.024 PC3 summary (count=3, elapsed=0s since all frames at ts=0):
+        //   "DNP3 structural anomaly: 3 malformed frames in 0s window
+        //    (flow 10.0.0.1→10.0.0.2) — possible Crain-Sistrunk crash-probe"
+        // The impl currently omits the flow fragment — this assertion exposes F-004.
+        // Expected RED.
+        assert!(
+            f.summary.contains("(flow 10.0.0.1→10.0.0.2)"),
+            "AC-012 (F-109-P1-004): summary must contain flow fragment \
+             \"(flow 10.0.0.1→10.0.0.2)\" per BC-2.15.024 PC3; \
+             got: {:?}",
+            f.summary
         );
 
         // Summary must contain the Crain-Sistrunk substring (exact BC-2.15.024 PC3 pin)
@@ -1435,17 +1525,28 @@ mod story_109 {
             analyzer.on_data(key.clone(), &malformed, 0);
         }
 
-        let t0814_malformed_count_before = analyzer
+        let t0814_malformed_findings_before: Vec<_> = analyzer
             .all_findings
             .iter()
             .filter(|f| {
                 f.mitre_techniques.contains(&"T0814".to_string())
                     && f.summary.contains("possible Crain-Sistrunk crash-probe")
             })
-            .count();
+            .collect();
+        let t0814_malformed_count_before = t0814_malformed_findings_before.len();
         assert_eq!(
             t0814_malformed_count_before, 1,
             "EC-009 pre: exactly ONE malformed T0814 after 3 frames"
+        );
+
+        // F-109-P1-001 (MAJOR): category must be ThreatCategory::Anomaly per BC-2.15.024 PC3.
+        // This will FAIL (impl emits Suspicious) — intended RED exposing F-001.
+        let f_pre = t0814_malformed_findings_before[0];
+        assert!(
+            matches!(f_pre.category, ThreatCategory::Anomaly),
+            "EC-009 (F-109-P1-001 MAJOR): malformed anomaly category must be \
+             ThreatCategory::Anomaly (BC-2.15.024 PC3); got {:?}",
+            f_pre.category
         );
 
         // 4th malformed frame — guard must prevent second T0814

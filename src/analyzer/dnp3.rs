@@ -765,7 +765,10 @@ impl Dnp3Analyzer {
             .map(|(&key, _)| key)
             .collect();
 
+        // Track the dest address from timed-out entries for BC-2.15.014 PC3 summary.
+        let mut last_timedout_dest: u16 = 0;
         for key in timed_out {
+            last_timedout_dest = key.0; // key = (dest, app_seq)
             flow.pending_requests.remove(&key);
             // BC-2.15.014 PC1: increment UNCONDITIONALLY (even when cap or guard active).
             flow.block_event_count += 1;
@@ -782,9 +785,9 @@ impl Dnp3Analyzer {
                 verdict: crate::findings::Verdict::Possible,
                 confidence: crate::findings::Confidence::Low,
                 summary: format!(
-                    "DNP3 inferred block command: {} control requests without response \
-                     within {}s (T1691.001)",
-                    flow.block_event_count, BLOCK_CMD_TIMEOUT_SECS
+                    "DNP3 inferred blocked command: {} requests without response \
+                     within {}s (dest={:#06X})",
+                    flow.block_event_count, BLOCK_CMD_TIMEOUT_SECS, last_timedout_dest
                 ),
                 evidence: vec![format!(
                     "block_event_count={} threshold={}",
@@ -901,7 +904,7 @@ impl Dnp3Analyzer {
     // is emitted here as a separate Suspicious/Possible/Medium finding.
     #[allow(clippy::too_many_arguments)]
     fn detect_broadcast_anomaly(
-        flow: &mut Dnp3FlowState,
+        _flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
         app_fc: u8,
         dest: u16,
@@ -931,7 +934,6 @@ impl Dnp3Analyzer {
         // BC-2.15.018 PC2: direct_operate_count incremented so burst threshold can fire.
         // The burst detection (detect_control_class_burst_split) runs after this in on_data
         // and will increment the counter itself. No double-increment needed here.
-        let _ = flow; // suppress unused warning; flow fields touched via burst detection
     }
 
     /// Unsolicited-response anomaly (Task 8, BC-2.15.019).
@@ -1086,13 +1088,16 @@ impl Dnp3Analyzer {
             let elapsed = now_ts.wrapping_sub(flow.correlation_window_start_ts);
             let count = flow.malformed_in_window;
             let master_ip = Self::resolve_master_ip(flow_key);
+            let src_ip = flow_key.lower_ip();
+            let dest_ip = flow_key.upper_ip();
             findings.push(Finding {
-                category: crate::findings::ThreatCategory::Suspicious,
+                category: crate::findings::ThreatCategory::Anomaly,
                 verdict: crate::findings::Verdict::Possible,
                 confidence: crate::findings::Confidence::Low,
                 summary: format!(
                     "DNP3 structural anomaly: {count} malformed frames \
-                     in {elapsed}s window — possible Crain-Sistrunk crash-probe"
+                     in {elapsed}s window (flow {src_ip}\u{2192}{dest_ip}) \
+                     \u{2014} possible Crain-Sistrunk crash-probe"
                 ),
                 evidence: vec![format!(
                     "malformed_in_window={count} threshold={MALFORMED_ANOMALY_THRESHOLD} \
