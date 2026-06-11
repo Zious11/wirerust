@@ -785,9 +785,6 @@ impl Dnp3Analyzer {
             // BC-2.15.014 PC1: increment UNCONDITIONALLY (even when cap or guard active).
             flow.block_event_count += 1;
         }
-        // Alias for use in the T0827 co-emission call below (kept separate from min logic).
-        let last_timedout_dest = min_timedout_dest;
-
         // BC-2.15.014 PC3: emit T1691.001 when threshold reached, guard clear, in-window.
         if flow.block_event_count >= BLOCK_CMD_THRESHOLD
             && !flow.block_finding_emitted_this_window
@@ -801,10 +798,10 @@ impl Dnp3Analyzer {
                 summary: format!(
                     "DNP3 inferred blocked command: {} requests without response \
                      within {}s (dest={:#06X})",
-                    flow.block_event_count, BLOCK_CMD_TIMEOUT_SECS, last_timedout_dest
+                    flow.block_event_count, BLOCK_CMD_TIMEOUT_SECS, min_timedout_dest
                 ),
                 evidence: vec![format!(
-                    "block_event_count={} threshold={}",
+                    "block_event_count={} in correlation window; threshold={}",
                     flow.block_event_count, BLOCK_CMD_THRESHOLD
                 )],
                 mitre_techniques: vec!["T1691.001".to_string()],
@@ -815,8 +812,8 @@ impl Dnp3Analyzer {
             flow.block_finding_emitted_this_window = true;
 
             // T0827 co-emission after T1691.001 (BC-2.15.013 ordering — derived after direct).
-            // Pass last_timedout_dest as the triggering-frame dest (BC-2.15.015 PC1).
-            Self::maybe_emit_t0827(flow, findings, now_ts, last_timedout_dest, flow_key);
+            // Pass min_timedout_dest as the triggering-frame dest (BC-2.15.015 PC1).
+            Self::maybe_emit_t0827(flow, findings, now_ts, min_timedout_dest, flow_key);
         }
     }
 
