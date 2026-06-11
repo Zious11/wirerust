@@ -245,6 +245,9 @@ impl Dnp3Analyzer {
             // Bytes 0-9: header (10 bytes); byte 10: transport octet; byte 11: app ctrl;
             // byte 12: app FC.
             let transport_octet = data[10];
+            // STORY-106 scope: frame_count counts sync-valid DELIVERIES, not gate-validated frames.
+            //  on_data does NOT call is_valid_dnp3_frame_header here — per-frame validity gating
+            //  before counting is part of the STORY-107 frame-walk. (adv Pass-2 B1)
             flow.frame_count += 1;
 
             if transport_is_fir(transport_octet) {
@@ -256,7 +259,14 @@ impl Dnp3Analyzer {
                 *self.fn_code_counts.entry(app_fc).or_insert(0) += 1;
             }
         } else if data.len() >= 10 {
+            // A DNP3 application frame needs >=13 bytes (10 header + 1 transport + 2 app) to carry
+            //  an app FC at byte 12. Valid-sync frames of 10-12 bytes have no app FC to extract, so
+            //  they are counted but not extracted (correct). Multi-block / short-frame handling is
+            //  STORY-107 frame-walk scope. (adv Pass-2 B2)
             // Valid sync present, frame_count can be incremented for short frames.
+            // STORY-106 scope: frame_count counts sync-valid DELIVERIES, not gate-validated frames.
+            //  on_data does NOT call is_valid_dnp3_frame_header here — per-frame validity gating
+            //  before counting is part of the STORY-107 frame-walk. (adv Pass-2 B1)
             flow.frame_count += 1;
         }
     }
