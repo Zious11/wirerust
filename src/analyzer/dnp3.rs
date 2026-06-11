@@ -244,7 +244,9 @@ impl Dnp3Analyzer {
     /// CONTROL nibble is a user-data FC (`has_user_data`).
     pub fn on_data(&mut self, flow_key: FlowKey, data: &[u8], ts: u32) {
         // Look up (or create) the per-flow state entry.
-        let flow = self.flows.entry(flow_key).or_default();
+        // Clone flow_key here so it remains available for source_ip resolution in
+        // detection branches below (BC-2.15.010/011/012 PC3).
+        let flow = self.flows.entry(flow_key.clone()).or_default();
 
         // --- Step 1: desync bail FIRST (BC-2.15.009; EC-004) -----------------------
         // PC5: if the desync latch is already set, this on_data call is an immediate
@@ -378,6 +380,7 @@ impl Dnp3Analyzer {
                                 ts,
                                 dest,
                                 src,
+                                &flow_key,
                             );
                         }
                         Dnp3FcClass::Restart => {
@@ -387,10 +390,18 @@ impl Dnp3Analyzer {
                                 app_fc,
                                 dest,
                                 src,
+                                ts,
+                                &flow_key,
                             );
                         }
                         Dnp3FcClass::Write => {
-                            Self::detect_write_split(&mut self.all_findings, dest, src);
+                            Self::detect_write_split(
+                                &mut self.all_findings,
+                                dest,
+                                src,
+                                ts,
+                                &flow_key,
+                            );
                         }
                         _ => {}
                     }
@@ -420,6 +431,10 @@ impl Dnp3Analyzer {
     ///
     /// All timestamp arithmetic uses `wrapping_sub` (overflow-checks=true in release;
     /// EC-008 out-of-order pcap safety). Cap check: `findings.len() < MAX_FINDINGS`.
+    // 8 args is one above the default clippy limit (7); adding flow_key for BC-2.15.010 PC3
+    // source_ip resolution is the minimal change. A refactor into a context struct is tracked
+    // as a future cleanup but is out of scope for this adversarial fix (F-108-P1-001).
+    #[allow(clippy::too_many_arguments)]
     fn detect_control_class_burst_split(
         flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
@@ -428,6 +443,7 @@ impl Dnp3Analyzer {
         now_ts: u32,
         dest: u16,
         src: u16,
+        flow_key: &FlowKey,
     ) {
         // BC-2.15.010 postcondition 4: check window expiry BEFORE incrementing.
         // When elapsed > DETECTION_WINDOW_SECS, reset to a fresh window seeded
@@ -459,6 +475,15 @@ impl Dnp3Analyzer {
             let count = flow.direct_operate_count;
             let elapsed = now_ts.wrapping_sub(flow.window_start_ts);
             let threshold = direct_operate_threshold;
+            // BC-2.15.010 PC3: resolve master endpoint from FlowKey (analogous to Modbus
+            // client_ip resolution). DNP3 server (outstation) listens on port 20000.
+            //   lower_port == 20000 → lower endpoint is outstation, upper is master.
+            //   otherwise          → upper endpoint is outstation, lower is master.
+            let master_ip = if flow_key.lower_port() == 20000 {
+                flow_key.upper_ip()
+            } else {
+                flow_key.lower_ip()
+            };
             findings.push(Finding {
                 category: crate::findings::ThreatCategory::Execution,
                 verdict: crate::findings::Verdict::Likely,
@@ -469,8 +494,8 @@ impl Dnp3Analyzer {
                 ),
                 evidence: vec![format!("FC=0x{app_fc:02X} dest={dest:#06X} src={src:#06X}")],
                 mitre_techniques: vec!["T1692.001".to_string()],
-                source_ip: None,
-                timestamp: None,
+                source_ip: Some(master_ip),
+                timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
                 direction: None,
             });
             flow.direct_operate_emitted = true;
@@ -488,6 +513,8 @@ impl Dnp3Analyzer {
         app_fc: u8,
         dest: u16,
         src: u16,
+        now_ts: u32,
+        flow_key: &FlowKey,
     ) {
         // BC-2.15.011 postcondition 1: push ONE Finding per occurrence (cap gated).
         if findings.len() < MAX_FINDINGS {
@@ -495,6 +522,15 @@ impl Dnp3Analyzer {
                 0x0D => "COLD_RESTART",
                 0x0E => "WARM_RESTART",
                 _ => "RESTART",
+            };
+            // BC-2.15.011 PC1: resolve master endpoint from FlowKey.
+            // DNP3 server (outstation) listens on port 20000.
+            //   lower_port == 20000 → lower endpoint is outstation, upper is master.
+            //   otherwise          → upper endpoint is outstation, lower is master.
+            let master_ip = if flow_key.lower_port() == 20000 {
+                flow_key.upper_ip()
+            } else {
+                flow_key.lower_ip()
             };
             findings.push(Finding {
                 category: crate::findings::ThreatCategory::Execution,
@@ -506,8 +542,8 @@ impl Dnp3Analyzer {
                 ),
                 evidence: vec![format!("FC=0x{app_fc:02X} dest={dest:#06X} src={src:#06X}")],
                 mitre_techniques: vec!["T0814".to_string()],
-                source_ip: None,
-                timestamp: None,
+                source_ip: Some(master_ip),
+                timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
                 direction: None,
             });
         }
@@ -525,8 +561,23 @@ impl Dnp3Analyzer {
     /// Pushes one T0836 `Finding` per occurrence. T0836 only — NOT T1692.001
     /// (ADR-007 Decision 5 / Architecture Compliance Rule 2).
     /// Cap check: `findings.len() < MAX_FINDINGS` evaluated before push.
-    fn detect_write_split(findings: &mut Vec<Finding>, dest: u16, src: u16) {
+    fn detect_write_split(
+        findings: &mut Vec<Finding>,
+        dest: u16,
+        src: u16,
+        now_ts: u32,
+        flow_key: &FlowKey,
+    ) {
         if findings.len() < MAX_FINDINGS {
+            // BC-2.15.012 PC1: resolve master endpoint from FlowKey.
+            // DNP3 server (outstation) listens on port 20000.
+            //   lower_port == 20000 → lower endpoint is outstation, upper is master.
+            //   otherwise          → upper endpoint is outstation, lower is master.
+            let master_ip = if flow_key.lower_port() == 20000 {
+                flow_key.upper_ip()
+            } else {
+                flow_key.lower_ip()
+            };
             findings.push(Finding {
                 category: crate::findings::ThreatCategory::Execution,
                 verdict: crate::findings::Verdict::Likely,
@@ -537,8 +588,8 @@ impl Dnp3Analyzer {
                 ),
                 evidence: vec![format!("FC=0x02 (WRITE) dest={dest:#06X} src={src:#06X}")],
                 mitre_techniques: vec!["T0836".to_string()],
-                source_ip: None,
-                timestamp: None,
+                source_ip: Some(master_ip),
+                timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
                 direction: None,
             });
         }

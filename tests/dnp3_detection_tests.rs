@@ -18,6 +18,7 @@
 mod story_108 {
     use std::net::{IpAddr, Ipv4Addr};
 
+    use chrono::DateTime;
     use wirerust::analyzer::dnp3::{Dnp3Analyzer, Dnp3FcClass, MAX_FINDINGS, classify_dnp3_fc};
     use wirerust::findings::{Confidence, ThreatCategory, Verdict};
     use wirerust::reassembly::flow::FlowKey;
@@ -198,6 +199,38 @@ mod story_108 {
             f.summary
         );
 
+        // BC-2.15.010 PC3: source_ip must be Some(<source endpoint resolved from flow_key>).
+        //
+        // Derivation: test_flow_key() = FlowKey::new(10.0.0.1:20000, 10.0.0.2:20000).
+        // FlowKey canonicalizes by (ip, port): (10.0.0.1, 20000) < (10.0.0.2, 20000) so
+        //   lower_ip = 10.0.0.1 (outstation / server side, port 20000)
+        //   upper_ip = 10.0.0.2 (master / client side, port 20000)
+        // DNP3 frames here have CTRL=0xC4 (DIR=1, PRM=1 — master-to-outstation direction).
+        // The master is the frame source; analogous to Modbus client_ip convention:
+        //   lower_port == 20000 (server port) → lower endpoint is outstation, upper is master.
+        // Expected source_ip = upper_ip = 10.0.0.2 (the master/initiator).
+        //
+        // Failing RED: the impl currently sets source_ip: None.
+        let expected_source_ip = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+        assert_eq!(
+            f.source_ip,
+            Some(expected_source_ip),
+            "BC-2.15.010 PC3: source_ip must be Some(10.0.0.2) resolved from flow_key \
+             (upper_ip = master endpoint); got {:?}",
+            f.source_ip
+        );
+
+        // BC-2.15.010 PC3: timestamp must be Some(<pcap-relative capture timestamp>).
+        // The 11th frame was delivered with ts=10; expected = DateTime::from_timestamp(10, 0).
+        //
+        // Failing RED: the impl currently sets timestamp: None.
+        let expected_ts = DateTime::from_timestamp(10i64, 0);
+        assert_eq!(
+            f.timestamp, expected_ts,
+            "BC-2.15.010 PC3: timestamp must be Some(DateTime from ts=10); got {:?}",
+            f.timestamp
+        );
+
         // Verify one-shot guard is set
         let flow = analyzer.flows.get(&key).expect("flow must exist");
         assert!(
@@ -357,6 +390,34 @@ mod story_108 {
             "AC-005: COLD_RESTART confidence must be High"
         );
 
+        // BC-2.15.011 PC1: source_ip must be Some(<source endpoint resolved from flow_key>).
+        //
+        // Derivation: same flow_key as AC-002 above.
+        //   lower_ip = 10.0.0.1 (outstation, port 20000)
+        //   upper_ip = 10.0.0.2 (master, port 20000)
+        // COLD_RESTART frames come from the master (DIR=1 / PRM=1 in CTRL=0xC4).
+        // Expected source_ip = upper_ip = 10.0.0.2.
+        //
+        // Failing RED: the impl currently sets source_ip: None.
+        let expected_source_ip = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+        assert_eq!(
+            f.source_ip,
+            Some(expected_source_ip),
+            "BC-2.15.011 PC1: source_ip must be Some(10.0.0.2) resolved from flow_key; got {:?}",
+            f.source_ip
+        );
+
+        // BC-2.15.011 PC1: timestamp must be Some(<pcap-relative capture timestamp>).
+        // The COLD_RESTART frame was delivered with ts=1000.
+        //
+        // Failing RED: the impl currently sets timestamp: None.
+        let expected_ts = DateTime::from_timestamp(1000i64, 0);
+        assert_eq!(
+            f.timestamp, expected_ts,
+            "BC-2.15.011 PC1: timestamp must be Some(DateTime from ts=1000); got {:?}",
+            f.timestamp
+        );
+
         let flow = analyzer.flows.get(&key).expect("flow must exist");
         assert_eq!(
             flow.restart_event_count, 1,
@@ -501,6 +562,34 @@ mod story_108 {
         assert!(
             matches!(f.confidence, Confidence::Medium),
             "AC-006: WRITE confidence must be Medium"
+        );
+
+        // BC-2.15.012 PC1: source_ip must be Some(<source endpoint resolved from flow_key>).
+        //
+        // Derivation: same flow_key as AC-002/AC-005 above.
+        //   lower_ip = 10.0.0.1 (outstation, port 20000)
+        //   upper_ip = 10.0.0.2 (master, port 20000)
+        // WRITE frames come from the master (DIR=1 / PRM=1 in CTRL=0xC4).
+        // Expected source_ip = upper_ip = 10.0.0.2.
+        //
+        // Failing RED: the impl currently sets source_ip: None.
+        let expected_source_ip = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 2));
+        assert_eq!(
+            f.source_ip,
+            Some(expected_source_ip),
+            "BC-2.15.012 PC1: source_ip must be Some(10.0.0.2) resolved from flow_key; got {:?}",
+            f.source_ip
+        );
+
+        // BC-2.15.012 PC1: timestamp must be Some(<pcap-relative capture timestamp>).
+        // The WRITE frame was delivered with ts=1000.
+        //
+        // Failing RED: the impl currently sets timestamp: None.
+        let expected_ts = DateTime::from_timestamp(1000i64, 0);
+        assert_eq!(
+            f.timestamp, expected_ts,
+            "BC-2.15.012 PC1: timestamp must be Some(DateTime from ts=1000); got {:?}",
+            f.timestamp
         );
     }
 
