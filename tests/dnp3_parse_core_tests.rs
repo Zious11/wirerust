@@ -23,7 +23,8 @@ mod story_106 {
 
     use wirerust::analyzer::dnp3::{
         Dnp3Analyzer, Dnp3DlHeader, Dnp3FcClass, Dnp3FlowState, classify_dnp3_fc,
-        compute_dnp3_frame_len, is_valid_dnp3_frame_header, parse_dnp3_dl_header, transport_is_fir,
+        compute_dnp3_frame_len, has_user_data, is_valid_dnp3_frame_header, parse_dnp3_dl_header,
+        transport_is_fir,
     };
     use wirerust::reassembly::flow::FlowKey;
 
@@ -1061,6 +1062,131 @@ mod story_106 {
         assert!(
             state.carry.is_empty(),
             "carry buffer must be empty on default"
+        );
+    }
+    // =========================================================================
+    // BC-2.15.008 / has_user_data — link-FC guard unit tests (adv Pass-3 F-P3-001)
+    // =========================================================================
+
+    /// test_has_user_data_link_fc_guard
+    ///
+    /// Verifies `has_user_data` returns true for CONFIRMED_USER_DATA (nibble 0x03)
+    /// and UNCONFIRMED_USER_DATA (nibble 0x04), and false for all other link FC nibbles
+    /// (e.g. RESET_LINK = 0x00).
+    ///
+    /// Control bytes tested (full byte, not just nibble) to ensure the mask is applied
+    /// correctly regardless of upper-nibble DIR/PRM bits.
+    ///
+    /// Traces to: BC-2.15.008 precondition 2 / Invariant 4; STORY-106 architecture mapping
+    /// ("unit test only"); adv Pass-3 F-P3-001.
+    #[test]
+    fn test_has_user_data_link_fc_guard() {
+        // --- True cases: nibble == 0x03 (CONFIRMED_USER_DATA) ---
+        assert!(
+            has_user_data(0x03),
+            "control=0x03 (nibble 0x03) must return true"
+        );
+        assert!(
+            has_user_data(0xC3),
+            "control=0xC3 (DIR+PRM set, nibble 0x03) must return true"
+        );
+
+        // --- True cases: nibble == 0x04 (UNCONFIRMED_USER_DATA) ---
+        assert!(
+            has_user_data(0x04),
+            "control=0x04 (nibble 0x04) must return true"
+        );
+        assert!(
+            has_user_data(0xC4),
+            "control=0xC4 (DIR+PRM set, nibble 0x04) must return true — canonical DNP3 master"
+        );
+
+        // --- False cases: various non-user-data nibbles ---
+        assert!(
+            !has_user_data(0x00),
+            "control=0x00 (RESET_LINK, nibble 0x00) must return false"
+        );
+        assert!(
+            !has_user_data(0xC0),
+            "control=0xC0 (DIR+PRM, RESET_LINK nibble 0x00) must return false"
+        );
+        assert!(
+            !has_user_data(0x01),
+            "control=0x01 (nibble 0x01) must return false"
+        );
+        assert!(
+            !has_user_data(0x09),
+            "control=0x09 (nibble 0x09) must return false"
+        );
+        assert!(
+            !has_user_data(0x0A),
+            "control=0x0A (nibble 0x0A) must return false"
+        );
+    }
+
+    // =========================================================================
+    // BC-2.15.008 on_data negative test — non-user-data link FC blocks extraction
+    // (adv Pass-3 F-P3-001)
+    // =========================================================================
+
+    /// test_on_data_fir_but_non_user_data_link_fc_no_extraction
+    ///
+    /// Verifies that `on_data` does NOT extract the app FC when:
+    ///   - FIR=1 (transport octet bit 0x40 set), AND
+    ///   - the link CONTROL nibble is NOT a user-data FC (e.g. 0x00 = RESET_LINK).
+    ///
+    /// Frame layout (13 bytes):
+    ///   [0]  0x05  start1 (sync)
+    ///   [1]  0x64  start2 (sync)
+    ///   [2]  0x0E  LENGTH (arbitrary)
+    ///   [3]  0xC0  link CONTROL — DIR+PRM bits set (0xC_), nibble = 0x00 (RESET_LINK)
+    ///   [4]–[9]  remaining header bytes
+    ///   [10] 0xC0  transport octet: FIR=1 (0x40 set), FIN=1 (0x80)
+    ///   [11] 0xC0  app control (arbitrary filler)
+    ///   [12] 0x05  app FC = DIRECT_OPERATE (must NOT be counted)
+    ///
+    /// Asserts:
+    ///   - frame_count == 1  (RESET_LINK frames are still counted frames)
+    ///   - fc_counts.is_empty()  (no app-FC extraction for non-user-data link FC)
+    ///   - fn_code_counts.is_empty()  (no aggregate FC extraction)
+    ///
+    /// This test FAILS before Change 1 (guard not wired) and PASSES after.
+    ///
+    /// Traces to: BC-2.15.008 precondition 2 / Invariant 4 / EC-005; adv Pass-3 F-P3-001.
+    #[test]
+    fn test_on_data_fir_but_non_user_data_link_fc_no_extraction() {
+        // 13-byte frame: valid sync, FIR=1 transport, but link CONTROL nibble = 0x00
+        // (RESET_LINK — not a user-data FC).
+        let frame: [u8; 13] = [
+            0x05, 0x64, 0x0E, 0xC0, // control = 0xC0 → nibble 0x00 = RESET_LINK
+            0x03, 0x00, 0x01, 0x00, 0x88, 0xC5,
+            0xC0, // transport: FIR=1 (0x40 set), FIN=1 (0x80), SEQ=0
+            0xC0, // app control (filler)
+            0x05, // app FC = DIRECT_OPERATE — must NOT be counted
+        ];
+
+        let mut analyzer = Dnp3Analyzer::new(10);
+        let key = test_flow_key();
+        analyzer.on_data(key.clone(), &frame, 0);
+
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow entry must exist after on_data");
+
+        assert_eq!(
+            flow.frame_count, 1,
+            "RESET_LINK frame: frame_count must be 1 — non-user-data frames are still counted"
+        );
+        assert!(
+            flow.fc_counts.is_empty(),
+            "RESET_LINK frame: fc_counts must be EMPTY — link FC 0x00 carries no app payload \
+             (BC-2.15.008 EC-005 / adv F-P3-001)"
+        );
+        assert!(
+            analyzer.fn_code_counts.is_empty(),
+            "RESET_LINK frame: fn_code_counts must be EMPTY — no aggregate extraction for \
+             non-user-data link FC (BC-2.15.008 EC-005 / adv F-P3-001)"
         );
     }
 } // mod story_106
