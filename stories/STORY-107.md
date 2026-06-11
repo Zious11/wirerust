@@ -27,7 +27,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.016.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/specs/verification-properties/vp-023-dnp3-parse-safety.md
-input-hash: "2fd1cec"
+input-hash: "8d3d02a"
 ---
 
 # STORY-107: DNP3 Per-Flow State + Carry Buffer + Pending-Request Bounds
