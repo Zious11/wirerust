@@ -128,6 +128,35 @@ pub const MAX_MASTER_ADDRS: usize = 64;
 #[allow(unused)]
 pub const MALFORMED_ANOMALY_THRESHOLD: u64 = 3;
 
+/// Shared correlation window length in seconds.  All six windowed correlation
+/// fields reset together when the elapsed time since
+/// `correlation_window_start_ts` reaches this value (BC-2.15.015).
+/// `block_event_count` and T1691.001 threshold share this window
+/// per BC-2.15.014 (no separate BLOCK_CMD_WINDOW_SECS constant).
+#[allow(unused)]
+pub const CORRELATION_WINDOW_SECS: u32 = 300;
+
+/// Per-request timeout for block-command inference (BC-2.15.014).
+/// A Control-class request that receives no matching RESPONSE (FC=0x81) within
+/// this many seconds contributes one increment to `block_event_count`.
+/// `wrapping_sub` used for all comparisons (BC-2.15.014 Inv 2 / BC-2.15.016
+/// Inv 8 — prevents panic under overflow-checks=true on out-of-order pcap replay).
+#[allow(unused)]
+pub const BLOCK_CMD_TIMEOUT_SECS: u32 = 10;
+
+/// Minimum number of block-command timeout events within `CORRELATION_WINDOW_SECS`
+/// before a T1691.001 finding is emitted (BC-2.15.014 Inv 4 / Precondition 5).
+/// 3-of-300s sustained pattern prevents single-packet-loss false positives.
+#[allow(unused)]
+pub const BLOCK_CMD_THRESHOLD: u64 = 3;
+
+/// Combined restart + block-command event threshold for T0827 "Loss of Control"
+/// emission (BC-2.15.015 Precondition 1).  Distinct events required; single
+/// incident can increment at most one of the two accumulators per occurrence
+/// (BC-2.15.015 Inv 7).
+#[allow(unused)]
+pub const T0827_THRESHOLD: u64 = 3;
+
 /// Detection window for the Direct-Operate burst guard in seconds (BC-2.15.010).
 /// Control-class FC counter and `window_start_ts` reset when elapsed exceeds this.
 pub const DETECTION_WINDOW_SECS: u32 = 60;
@@ -190,6 +219,22 @@ pub struct Dnp3FlowState {
     pub malformed_in_window: u64,
     /// One-shot T0814 guard for BC-2.15.024.
     pub malformed_anomaly_emitted: bool,
+
+    // --- Unsolicited-response context flags (BC-2.15.019/023, STORY-109) ---
+    /// Set `true` when ENABLE_UNSOLICITED (FC=0x14) has been observed on this
+    /// flow.  When true, subsequent UNSOLICITED_RESPONSE (FC=0x82) is NOT
+    /// anomalous (BC-2.15.019 Postcondition 3 / Invariant 2).
+    pub enable_unsolicited_seen: bool,
+    /// Set `true` when a solicited RESPONSE (FC=0x81) has been observed on this
+    /// flow.  When true, a subsequent UNSOLICITED_RESPONSE is not anomalous
+    /// because the outstation is already known to be a legitimate responder
+    /// (BC-2.15.019 Postcondition 4).
+    pub response_seen: bool,
+    /// One-shot guard — set `true` when the BC-2.15.019 unsolicited anomaly
+    /// finding has been emitted.  Prevents repeated findings on the same flow
+    /// (BC-2.15.019 Invariant 1).  NOT reset at correlation-window expiry
+    /// (unsolicited context is flow-lifetime, not window-lifetime).
+    pub unsolicited_anomaly_emitted: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -266,15 +311,30 @@ impl Dnp3Analyzer {
             return;
         }
 
+        // --- Step 1b: STORY-109 — 300s correlation window expiry (BC-2.15.015) ------
+        // Must run FIRST (before any emission check) so stale state from the previous
+        // window cannot affect new-window detections.  parse_errors is NOT reset here
+        // (lifetime counter, BC-2.15.024 Invariant 1).
+        Self::maybe_expire_correlation_window(flow, ts);
+
+        // --- Step 1c: STORY-109 — block-timeout scan (BC-2.15.014) -----------------
+        // Scan pending_requests for entries that have not received a RESPONSE within
+        // BLOCK_CMD_TIMEOUT_SECS.  Must run BEFORE the frame-walk so that newly-arriving
+        // frames at ts=T can observe timeouts from requests at ts=T-11.
+        Self::scan_block_timeouts(flow, &mut self.all_findings, ts, &flow_key);
+
         // --- Step 2: accumulate into carry with the 292-byte cap (AC-001 / EC-003) --
         // BC-2.15.016 postconditions 1–2: append incoming bytes; if the carry would
         // exceed MAX_DNP3_FRAME_LEN (292), append only up to 292 and DISCARD the excess,
         // incrementing the LIFETIME parse_errors counter once for the overflow event.
+        // STORY-109: also increments malformed_in_window (windowed, BC-2.15.024).
         let remaining_capacity = MAX_DNP3_FRAME_LEN - flow.carry.len();
         if data.len() > remaining_capacity {
             flow.carry.extend_from_slice(&data[..remaining_capacity]);
             // Excess bytes beyond 292 are discarded; record one overflow (BC-2.15.016 PC2).
             flow.parse_errors += 1;
+            flow.malformed_in_window += 1;
+            Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key);
         } else {
             flow.carry.extend_from_slice(data);
         }
@@ -303,7 +363,8 @@ impl Dnp3Analyzer {
 
             // VALIDITY GATE: LENGTH must yield a computable frame length (LENGTH ≥ 5).
             // compute_dnp3_frame_len returns None for LENGTH < 5 (gate-before-count;
-            // SEC-106-001 / adv-B1 / EC-006). On failure: increment parse_errors and
+            // SEC-106-001 / adv-B1 / EC-006). On failure: increment parse_errors AND
+            // malformed_in_window (STORY-109 BC-2.15.024 two-counter model), and
             // advance the carry by one byte to attempt re-sync (BC-2.15.004 PC4 /
             // BC-2.15.008 EC-006). VP-023 Sub-D bounds the returned frame_len to [10, 292].
             let length_byte = flow.carry[2];
@@ -311,8 +372,12 @@ impl Dnp3Analyzer {
                 Some(fl) => fl,
                 None => {
                     // Invalid LENGTH (< 5): structural parse error. Advance one byte.
+                    // STORY-109: increment BOTH parse_errors (lifetime) AND
+                    // malformed_in_window (windowed) — BC-2.15.024 two-counter model.
                     flow.parse_errors += 1;
+                    flow.malformed_in_window += 1;
                     flow.carry.drain(..1);
+                    Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key);
                     continue;
                 }
             };
@@ -328,8 +393,12 @@ impl Dnp3Analyzer {
             let header = match parse_dnp3_dl_header(&flow.carry[..frame_len]) {
                 Some(h) if is_valid_dnp3_frame_header(&h) => h,
                 _ => {
+                    // Frame-length mismatch: structural reject.
+                    // STORY-109: increment BOTH parse_errors AND malformed_in_window.
                     flow.parse_errors += 1;
+                    flow.malformed_in_window += 1;
                     flow.carry.drain(..frame_len);
+                    Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key);
                     continue;
                 }
             };
@@ -358,21 +427,55 @@ impl Dnp3Analyzer {
                     *flow.fc_counts.entry(app_fc).or_insert(0) += 1;
                     *self.fn_code_counts.entry(app_fc).or_insert(0) += 1;
 
-                    // --- Detection branches (STORY-108, BC-2.15.010/011/012) -------
+                    // --- Detection branches (STORY-108/109) -------------------------
                     // Borrow-checker note: `flow` borrows `self.flows`; we cannot call
                     // `&mut self` methods while `flow` is held.  Instead, we pass the
                     // mutable sub-fields of self directly as separate references.
                     let dest = header.destination;
                     let src = header.source;
 
+                    // STORY-109 (BC-2.15.023 Arch Rule 5): raw FC check for
+                    // ENABLE/DISABLE_UNSOLICITED BEFORE the classify_dnp3_fc dispatch.
+                    // Also sets enable_unsolicited_seen and response_seen context flags.
+                    // These are per-occurrence (no one-shot guard) per BC-2.15.023.
+                    if app_fc == 0x14 || app_fc == 0x15 {
+                        Self::detect_unsolicited_control(
+                            flow,
+                            &mut self.all_findings,
+                            app_fc,
+                            dest,
+                            src,
+                            ts,
+                            &flow_key,
+                        );
+                    }
+
                     match classify_dnp3_fc(app_fc) {
                         Dnp3FcClass::Control => {
-                            // BC-2.15.010: seed pending_requests for Control-class FCs
-                            // (STORY-108 relocates STORY-107 seed here onto gate-validated frame).
-                            let app_seq = flow.carry[11] & 0x0F;
-                            Self::insert_pending_request(flow, (dest, app_seq), ts);
+                            // STORY-109 (BC-2.15.018): broadcast destination anomaly —
+                            // fires BEFORE the burst detection branch (direct finding first).
+                            if is_broadcast_destination(dest) {
+                                Self::detect_broadcast_anomaly(
+                                    flow,
+                                    &mut self.all_findings,
+                                    app_fc,
+                                    dest,
+                                    src,
+                                    ts,
+                                    &flow_key,
+                                );
+                            }
 
-                            // Detection burst branch.
+                            // BC-2.15.010: seed pending_requests for Control-class FCs
+                            // EXCLUDING FC=0x06 (DIRECT_OPERATE_NR — expects no response
+                            // by design; BC-2.15.014 Invariant 1).
+                            // STORY-109: 0x06 is excluded from pending_requests.
+                            if app_fc != 0x06 {
+                                let app_seq = flow.carry[11] & 0x0F;
+                                Self::insert_pending_request(flow, (dest, app_seq), ts);
+                            }
+
+                            // Detection burst branch (also increments direct_operate_count).
                             Self::detect_control_class_burst_split(
                                 flow,
                                 &mut self.all_findings,
@@ -385,6 +488,8 @@ impl Dnp3Analyzer {
                             );
                         }
                         Dnp3FcClass::Restart => {
+                            // Restart detection: pushes T0814 THEN checks T0827 (ordering
+                            // BC-2.15.013 PC2 — derived after direct).
                             Self::detect_restart_split(
                                 flow,
                                 &mut self.all_findings,
@@ -392,6 +497,14 @@ impl Dnp3Analyzer {
                                 dest,
                                 src,
                                 ts,
+                                &flow_key,
+                            );
+                            // T0827 co-emission: STORY-109 — after the T0814 push above.
+                            Self::maybe_emit_t0827(
+                                flow,
+                                &mut self.all_findings,
+                                ts,
+                                dest,
                                 &flow_key,
                             );
                         }
@@ -403,6 +516,30 @@ impl Dnp3Analyzer {
                                 ts,
                                 &flow_key,
                             );
+                        }
+                        Dnp3FcClass::Response => {
+                            // STORY-109 (BC-2.15.019): response-seen tracking + unsolicited anomaly.
+                            // FC=0x81 sets response_seen (solicited response from outstation).
+                            // FC=0x82 triggers unsolicited anomaly check (one-shot).
+                            Self::detect_unsolicited_anomaly(
+                                flow,
+                                &mut self.all_findings,
+                                app_fc,
+                                dest,
+                                src,
+                                ts,
+                                &flow_key,
+                            );
+                            // FC=0x81: remove matching pending_request entry (response received;
+                            // no block timeout for this (dest, app_seq) pair).
+                            if app_fc == 0x81 {
+                                let app_seq = flow.carry[11] & 0x0F;
+                                // Response comes from outstation (src=outstation, dest=master).
+                                // The pending request was keyed by (outstation_addr, app_seq)
+                                // where the control request went TO the outstation (dest=outstation).
+                                // In the response, src IS the outstation.
+                                flow.pending_requests.remove(&(src, app_seq));
+                            }
                         }
                         _ => {}
                     }
@@ -572,6 +709,364 @@ impl Dnp3Analyzer {
                 timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
                 direction: None,
             });
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // STORY-109 detection methods (Tasks 4-10) — GREEN PHASE implementations.
+    // -----------------------------------------------------------------------
+
+    /// Block-timeout scan (Task 4, BC-2.15.014).
+    ///
+    /// Iterates `flow.pending_requests`; for every entry where
+    /// `now_ts.wrapping_sub(request_ts) > BLOCK_CMD_TIMEOUT_SECS`:
+    /// increments `block_event_count` unconditionally, removes the entry, and
+    /// checks for T1691.001 emission (`block_event_count >= BLOCK_CMD_THRESHOLD
+    /// && !block_finding_emitted_this_window`).
+    ///
+    /// DIRECT_OPERATE_NR (0x06) is EXCLUDED at the insert point — it is never
+    /// added to `pending_requests` (BC-2.15.014 Precondition 1 / Invariant 1).
+    /// All timestamp arithmetic uses `wrapping_sub` (BC-2.15.014 Inv 8 / AC-014).
+    fn scan_block_timeouts(
+        flow: &mut Dnp3FlowState,
+        findings: &mut Vec<Finding>,
+        now_ts: u32,
+        flow_key: &FlowKey,
+    ) {
+        // Collect timed-out keys first (cannot mutate map while iterating).
+        let timed_out: Vec<(u16, u8)> = flow
+            .pending_requests
+            .iter()
+            .filter(|&(_, &request_ts)| now_ts.wrapping_sub(request_ts) > BLOCK_CMD_TIMEOUT_SECS)
+            .map(|(&key, _)| key)
+            .collect();
+
+        for key in timed_out {
+            flow.pending_requests.remove(&key);
+            // BC-2.15.014 PC1: increment UNCONDITIONALLY (even when cap or guard active).
+            flow.block_event_count += 1;
+        }
+
+        // BC-2.15.014 PC3: emit T1691.001 when threshold reached, guard clear, in-window.
+        if flow.block_event_count >= BLOCK_CMD_THRESHOLD
+            && !flow.block_finding_emitted_this_window
+            && findings.len() < MAX_FINDINGS
+        {
+            let master_ip = Self::resolve_master_ip(flow_key);
+            findings.push(Finding {
+                category: crate::findings::ThreatCategory::Execution,
+                verdict: crate::findings::Verdict::Possible,
+                confidence: crate::findings::Confidence::Low,
+                summary: format!(
+                    "DNP3 inferred block command: {} control requests without response \
+                     within {}s (T1691.001)",
+                    flow.block_event_count, BLOCK_CMD_TIMEOUT_SECS
+                ),
+                evidence: vec![format!(
+                    "block_event_count={} threshold={}",
+                    flow.block_event_count, BLOCK_CMD_THRESHOLD
+                )],
+                mitre_techniques: vec!["T1691.001".to_string()],
+                source_ip: Some(master_ip),
+                timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+                direction: None,
+            });
+            flow.block_finding_emitted_this_window = true;
+
+            // T0827 co-emission after T1691.001 (BC-2.15.013 ordering — derived after direct).
+            Self::maybe_emit_t0827(flow, findings, now_ts, 0, flow_key);
+        }
+    }
+
+    /// 300s correlation-window expiry handler (Task 5, BC-2.15.015 single
+    /// reset owner).
+    ///
+    /// When `now_ts.wrapping_sub(flow.correlation_window_start_ts) >=
+    /// CORRELATION_WINDOW_SECS`, resets ALL SIX windowed fields and updates
+    /// `correlation_window_start_ts = now_ts`.  Must be called BEFORE any
+    /// emission check in `on_data`.
+    ///
+    /// **Fields reset:** `restart_event_count`, `block_event_count`,
+    /// `block_finding_emitted_this_window`, `loss_of_control_emitted`,
+    /// `malformed_in_window`, `malformed_anomaly_emitted`.
+    /// **NOT reset:** `parse_errors` (lifetime counter, BC-2.15.024 Inv 1).
+    fn maybe_expire_correlation_window(flow: &mut Dnp3FlowState, now_ts: u32) {
+        if now_ts.wrapping_sub(flow.correlation_window_start_ts) >= CORRELATION_WINDOW_SECS {
+            // Reset ALL SIX windowed fields (BC-2.15.015 PC3).
+            flow.restart_event_count = 0;
+            flow.block_event_count = 0;
+            flow.block_finding_emitted_this_window = false;
+            flow.loss_of_control_emitted = false;
+            flow.malformed_in_window = 0;
+            flow.malformed_anomaly_emitted = false;
+            // Slide the window start to now.
+            flow.correlation_window_start_ts = now_ts;
+            // NOTE: parse_errors is NOT reset (lifetime counter, BC-2.15.024 Inv 1).
+        }
+    }
+
+    /// T0827 "Loss of Control" correlation emission (Task 6, BC-2.15.015).
+    ///
+    /// After the triggering T0814 or T1691.001 finding has been pushed (ordering
+    /// per BC-2.15.013), checks:
+    ///   `restart_event_count + block_event_count >= T0827_THRESHOLD`
+    ///   `&& !loss_of_control_emitted`
+    ///   `&& findings.len() < MAX_FINDINGS`
+    ///
+    /// On match: pushes one `Finding` with `mitre_techniques: vec!["T0827"]`,
+    /// `category: Impact`, `verdict: Likely`, `confidence: Medium`, tactic
+    /// `IcsImpact`.  Sets `loss_of_control_emitted = true`.
+    fn maybe_emit_t0827(
+        flow: &mut Dnp3FlowState,
+        findings: &mut Vec<Finding>,
+        now_ts: u32,
+        _dest: u16,
+        flow_key: &FlowKey,
+    ) {
+        let combined = flow.restart_event_count + flow.block_event_count;
+        if combined >= T0827_THRESHOLD
+            && !flow.loss_of_control_emitted
+            && findings.len() < MAX_FINDINGS
+        {
+            let master_ip = Self::resolve_master_ip(flow_key);
+            findings.push(Finding {
+                category: crate::findings::ThreatCategory::Impact,
+                verdict: crate::findings::Verdict::Likely,
+                confidence: crate::findings::Confidence::Medium,
+                summary: format!(
+                    "DNP3 loss of control inferred: {combined} combined restart/block events \
+                     in 300s window (T0827)"
+                ),
+                evidence: vec![format!(
+                    "restart_event_count={} block_event_count={} threshold={}",
+                    flow.restart_event_count, flow.block_event_count, T0827_THRESHOLD
+                )],
+                mitre_techniques: vec!["T0827".to_string()],
+                source_ip: Some(master_ip),
+                timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+                direction: None,
+            });
+            flow.loss_of_control_emitted = true;
+        }
+    }
+
+    /// Broadcast control-command anomaly (Task 7, BC-2.15.018).
+    ///
+    /// Called when `is_broadcast_destination(h.destination)` is `true` AND
+    /// `classify_dnp3_fc(app_fc) == Control` on a FIR=1 frame.
+    /// Emits one `Finding` with `mitre_techniques: vec!["T1692.001"]`,
+    /// `category: Suspicious`, `verdict: Possible`, `confidence: Medium`.
+    /// Also increments `direct_operate_count` (broadcast Control still feeds
+    /// the BC-2.15.010 burst threshold — BC-2.15.018 Postcondition 2).
+    // Note: direct_operate_count is already incremented by detect_control_class_burst_split
+    // which is called after this function in on_data. The BC-2.15.018 anomaly finding
+    // is emitted here as a separate Suspicious/Possible/Medium finding.
+    #[allow(clippy::too_many_arguments)]
+    fn detect_broadcast_anomaly(
+        flow: &mut Dnp3FlowState,
+        findings: &mut Vec<Finding>,
+        app_fc: u8,
+        dest: u16,
+        src: u16,
+        now_ts: u32,
+        flow_key: &FlowKey,
+    ) {
+        if findings.len() < MAX_FINDINGS {
+            let master_ip = Self::resolve_master_ip(flow_key);
+            findings.push(Finding {
+                category: crate::findings::ThreatCategory::Suspicious,
+                verdict: crate::findings::Verdict::Possible,
+                confidence: crate::findings::Confidence::Medium,
+                summary: format!(
+                    "DNP3 broadcast Control command anomaly: \
+                     FC 0x{app_fc:02X} to broadcast dest={dest:#06X} from src={src:#06X}"
+                ),
+                evidence: vec![format!(
+                    "FC=0x{app_fc:02X} dest={dest:#06X} src={src:#06X} (broadcast)"
+                )],
+                mitre_techniques: vec!["T1692.001".to_string()],
+                source_ip: Some(master_ip),
+                timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+                direction: None,
+            });
+        }
+        // BC-2.15.018 PC2: direct_operate_count incremented so burst threshold can fire.
+        // The burst detection (detect_control_class_burst_split) runs after this in on_data
+        // and will increment the counter itself. No double-increment needed here.
+        let _ = flow; // suppress unused warning; flow fields touched via burst detection
+    }
+
+    /// Unsolicited-response anomaly (Task 8, BC-2.15.019).
+    ///
+    /// Sets `response_seen = true` on FC=0x81 (solicited RESPONSE).
+    /// On FC=0x82 (UNSOLICITED_RESPONSE): emits T0814 Possible/Low when
+    ///   `!flow.enable_unsolicited_seen && !flow.response_seen
+    ///   && !flow.unsolicited_anomaly_emitted`.
+    /// Sets `unsolicited_anomaly_emitted = true` (one-shot).
+    #[allow(clippy::too_many_arguments)]
+    fn detect_unsolicited_anomaly(
+        flow: &mut Dnp3FlowState,
+        findings: &mut Vec<Finding>,
+        app_fc: u8,
+        dest: u16,
+        src: u16,
+        now_ts: u32,
+        flow_key: &FlowKey,
+    ) {
+        if app_fc == 0x81 {
+            // Solicited RESPONSE: mark outstation as known-responsive.
+            flow.response_seen = true;
+            return;
+        }
+        if app_fc == 0x82 {
+            // UNSOLICITED_RESPONSE: anomalous only when no ENABLE_UNSOLICITED was seen
+            // AND no prior solicited response has been seen (not a known responder)
+            // AND the one-shot guard is clear.
+            if !flow.enable_unsolicited_seen
+                && !flow.response_seen
+                && !flow.unsolicited_anomaly_emitted
+                && findings.len() < MAX_FINDINGS
+            {
+                let master_ip = Self::resolve_master_ip(flow_key);
+                findings.push(Finding {
+                    category: crate::findings::ThreatCategory::Suspicious,
+                    verdict: crate::findings::Verdict::Possible,
+                    confidence: crate::findings::Confidence::Low,
+                    summary: format!(
+                        "DNP3 unexpected unsolicited response: \
+                         FC 0x82 from src={src:#06X} to dest={dest:#06X} \
+                         — no prior ENABLE_UNSOLICITED observed"
+                    ),
+                    evidence: vec![format!(
+                        "FC=0x82 (UNSOLICITED_RESPONSE) src={src:#06X} dest={dest:#06X}"
+                    )],
+                    mitre_techniques: vec!["T0814".to_string()],
+                    source_ip: Some(master_ip),
+                    timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+                    direction: None,
+                });
+                flow.unsolicited_anomaly_emitted = true;
+            }
+        }
+    }
+
+    /// ENABLE_UNSOLICITED (0x14) and DISABLE_UNSOLICITED (0x15) detection
+    /// (Task 9, BC-2.15.023).
+    ///
+    /// Detection is on the RAW `app_fc` byte — NOT via `classify_dnp3_fc`
+    /// (BC-2.15.023 Invariant 2 / Arch Rule 5).  Per-occurrence (no one-shot guard).
+    ///
+    /// - FC 0x15 (DISABLE_UNSOLICITED): `verdict: Likely`, `confidence: Medium`.
+    ///   Exact summary format from BC-2.15.023 PC1.
+    /// - FC 0x14 (ENABLE_UNSOLICITED): `verdict: Possible`, `confidence: Low`.
+    ///   Also sets `flow.enable_unsolicited_seen = true` (context flag).
+    ///
+    /// Both push `mitre_techniques: vec!["T0814"]`.
+    #[allow(clippy::too_many_arguments)]
+    fn detect_unsolicited_control(
+        flow: &mut Dnp3FlowState,
+        findings: &mut Vec<Finding>,
+        app_fc: u8,
+        dest: u16,
+        src: u16,
+        now_ts: u32,
+        flow_key: &FlowKey,
+    ) {
+        match app_fc {
+            0x15 => {
+                // DISABLE_UNSOLICITED: Likely/Medium per BC-2.15.023 PC1.
+                // Exact summary format is pinned in AC-010 test.
+                if findings.len() < MAX_FINDINGS {
+                    let master_ip = Self::resolve_master_ip(flow_key);
+                    findings.push(Finding {
+                        category: crate::findings::ThreatCategory::Execution,
+                        verdict: crate::findings::Verdict::Likely,
+                        confidence: crate::findings::Confidence::Medium,
+                        summary: format!(
+                            "DNP3 DISABLE_UNSOLICITED observed: FC 0x15 \
+                             from src={src:#06X} to dest={dest:#06X} \
+                             — alarm suppression / event-blinding primitive"
+                        ),
+                        evidence: vec![format!(
+                            "FC=0x15 (DISABLE_UNSOLICITED) src={src:#06X} dest={dest:#06X}"
+                        )],
+                        mitre_techniques: vec!["T0814".to_string()],
+                        source_ip: Some(master_ip),
+                        timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+                        direction: None,
+                    });
+                }
+            }
+            0x14 => {
+                // ENABLE_UNSOLICITED: Possible/Low per BC-2.15.023 PC1.
+                // Also sets context flag so subsequent 0x82 is NOT anomalous (BC-2.15.019 PC3).
+                flow.enable_unsolicited_seen = true;
+                if findings.len() < MAX_FINDINGS {
+                    let master_ip = Self::resolve_master_ip(flow_key);
+                    findings.push(Finding {
+                        category: crate::findings::ThreatCategory::Execution,
+                        verdict: crate::findings::Verdict::Possible,
+                        confidence: crate::findings::Confidence::Low,
+                        summary: format!(
+                            "DNP3 ENABLE_UNSOLICITED observed: FC 0x14 \
+                             from src={src:#06X} to dest={dest:#06X}"
+                        ),
+                        evidence: vec![format!(
+                            "FC=0x14 (ENABLE_UNSOLICITED) src={src:#06X} dest={dest:#06X}"
+                        )],
+                        mitre_techniques: vec!["T0814".to_string()],
+                        source_ip: Some(master_ip),
+                        timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+                        direction: None,
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Malformed-frame windowed anomaly check (Task 10, BC-2.15.024).
+    ///
+    /// Called at each structural-reject path AFTER both counters have been
+    /// incremented (parse_errors and malformed_in_window are incremented at the
+    /// call site before this function is invoked).
+    ///
+    /// When `malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD
+    /// && !malformed_anomaly_emitted`: pushes one `Finding` with
+    /// `mitre_techniques: vec!["T0814"]`, `verdict: Possible`, `confidence: Low`.
+    /// Sets `malformed_anomaly_emitted = true`.
+    fn check_malformed_anomaly(
+        flow: &mut Dnp3FlowState,
+        findings: &mut Vec<Finding>,
+        now_ts: u32,
+        flow_key: &FlowKey,
+    ) {
+        if flow.malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD
+            && !flow.malformed_anomaly_emitted
+            && findings.len() < MAX_FINDINGS
+        {
+            let elapsed = now_ts.wrapping_sub(flow.correlation_window_start_ts);
+            let count = flow.malformed_in_window;
+            let master_ip = Self::resolve_master_ip(flow_key);
+            findings.push(Finding {
+                category: crate::findings::ThreatCategory::Suspicious,
+                verdict: crate::findings::Verdict::Possible,
+                confidence: crate::findings::Confidence::Low,
+                summary: format!(
+                    "DNP3 structural anomaly: {count} malformed frames \
+                     in {elapsed}s window — possible Crain-Sistrunk crash-probe"
+                ),
+                evidence: vec![format!(
+                    "malformed_in_window={count} threshold={MALFORMED_ANOMALY_THRESHOLD} \
+                     parse_errors={}",
+                    flow.parse_errors
+                )],
+                mitre_techniques: vec!["T0814".to_string()],
+                source_ip: Some(master_ip),
+                timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+                direction: None,
+            });
+            flow.malformed_anomaly_emitted = true;
         }
     }
 
@@ -833,6 +1328,25 @@ pub fn transport_is_fir(transport_octet: u8) -> bool {
 pub fn has_user_data(control: u8) -> bool {
     let link_fc = control & 0x0F;
     link_fc == 0x03 || link_fc == 0x04
+}
+
+/// Returns `true` when `dest` is in the DNP3 broadcast address range
+/// 0xFFFD..=0xFFFF (BC-2.15.018 Invariant 1).
+///
+/// The three broadcast addresses are:
+/// - 0xFFFD — broadcast, confirmation required
+/// - 0xFFFE — broadcast, confirmation optional
+/// - 0xFFFF — broadcast, no confirmation
+///
+/// A simple `>=` comparison covers all three (BC-2.15.018 Architecture Anchor).
+/// OQ-2 (0xFFFC self-address) and OQ-3 (0xFFF0..=0xFFFB reserved range) are
+/// explicitly OUT OF v1 SCOPE — they are NOT covered by this predicate.
+///
+/// Pure function — no side effects, no state.  VP-023 correctness is trivial
+/// (single comparison); no Kani harness required (BC-2.15.018 VP Anchors).
+#[allow(unused)]
+pub fn is_broadcast_destination(dest: u16) -> bool {
+    dest >= 0xFFFD
 }
 
 /// Returns `true` when the link-layer CONTROL field has the DIR bit set

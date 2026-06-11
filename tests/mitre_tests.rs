@@ -97,15 +97,18 @@ fn test_ics_impair_process_control_display() {
 
 // ---------------------------------------------------------------------------
 // AC-005 | BC-2.10.003 postcondition 1
-// all_tactics_in_report_order().len() equals 16 (14 Enterprise + 2 ICS).
+// all_tactics_in_report_order().len() equals 17 (14 Enterprise + 3 ICS).
+// STORY-109 adds MitreTactic::IcsImpact for T0827 (VP-007 atomic obligation),
+// bringing the ICS-unique count from 2 to 3 and the total from 16 to 17.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_all_tactics_length_is_16() {
-    // BC-2.10.003 postcondition 1 / invariant 2: The slice length is always 16.
+    // BC-2.10.003 postcondition 1 / invariant 2 (updated STORY-109):
+    // 14 Enterprise + 3 ICS-unique = 17 variants.
     assert_eq!(
         all_tactics_in_report_order().len(),
-        16,
-        "expected 14 Enterprise + 2 ICS-unique = 16 variants"
+        17,
+        "expected 14 Enterprise + 3 ICS-unique = 17 variants (STORY-109 adds IcsImpact)"
     );
 }
 
@@ -161,7 +164,8 @@ fn test_all_tactics_ics_at_end() {
 
 // ---------------------------------------------------------------------------
 // AC-008 | BC-2.10.004 postcondition 1 & 2
-// Collecting all_tactics_in_report_order() into a HashSet gives size 16.
+// Collecting all_tactics_in_report_order() into a HashSet gives size 17.
+// STORY-109 adds MitreTactic::IcsImpact → total 17.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_all_tactics_no_duplicates() {
@@ -175,12 +179,14 @@ fn test_all_tactics_no_duplicates() {
         tactics.len(),
         "duplicate variant detected in all_tactics_in_report_order()"
     );
-    assert_eq!(unique.len(), 16);
+    // STORY-109: IcsImpact added → 17 total (was 16 post-F2).
+    assert_eq!(unique.len(), 17);
 }
 
 // ---------------------------------------------------------------------------
 // AC-009 | BC-2.10.004 postcondition 3
-// No variant omitted — all 16 variants appear in the slice.
+// No variant omitted — all 17 variants appear in the slice.
+// STORY-109 adds MitreTactic::IcsImpact → total 17.
 // ---------------------------------------------------------------------------
 #[test]
 fn test_all_tactics_all_variants_present() {
@@ -205,6 +211,8 @@ fn test_all_tactics_all_variants_present() {
         MitreTactic::Impact,
         MitreTactic::IcsInhibitResponseFunction,
         MitreTactic::IcsImpairProcessControl,
+        // STORY-109 (VP-007 atomic obligation) — IcsImpact for T0827
+        MitreTactic::IcsImpact,
     ]
     .into_iter()
     .collect();
