@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.3: Pass-3 adversarial fix HIGH-2 (cross-ref accuracy): Invariant 8 cross-reference '(see BC-2.15.016 for the pending_requests cap)' is now accurate — BC-2.15.016 v1.1 adds Postconditions 8–10 and Invariant 5 specifying MAX_PENDING_REQUESTS=256 with oldest-eviction. Also fix HIGH-3: Precondition 3 timeout check changed from plain subtraction `now_ts - request_ts` to `now_ts.wrapping_sub(request_ts)` to prevent panic under overflow-checks=true when timestamps go backward (out-of-order pcap replay). Rationale: u32 second timestamps wrap at ~136 years — effectively never, policy kept. — 2026-06-10"
   - "v1.4: Research validation confirmation (dnp3-f2-scope-threshold-validation.md §Q2 Threshold-2): DIRECT_OPERATE_NR (0x06) exclusion from the block-command timeout count is explicitly confirmed as a required guard by the research pass [VERIFIED]. The exclusion is already present in Precondition 1 and Invariant 1 (since v1.0). This entry records the explicit research-backed validation. No behavioral change. — 2026-06-10"
   - "v1.5: Adversarial Pass-3 fix F-P3-001 (MEDIUM): PC3 evidence format reconciled to producible form. The original format 'FC=0x{fc:02X} dest={dest:#06X} app_seq={seq} ts={ts}' required an FC byte that is NOT retained in pending_requests (keyed (dest_addr, app_seq) → request_ts only; FC was deliberately excluded from the value type in STORY-107). Additionally, all entries in pending_requests are Control-class by construction (only FC 0x03/0x04/0x05 are inserted; FC 0x06 DIRECT_OPERATE_NR is excluded at insert), so the FC byte adds no discriminating value. New canonical format: one entry per timed-out request, 'dest={dest:#06X} app_seq={seq} ts={ts}' — producible from the (dest, app_seq) key and request_ts value available at removal time in scan_block_timeouts. — 2026-06-11"
+  - "v1.6: F-P3-001 correction — per-request format also not producible without structural change. The v1.5 per-request format 'dest={dest:#06X} app_seq={seq} ts={ts}' assumed all 3 timed-out requests would be available in a single scan_block_timeouts call. In practice, scan_block_timeouts is called per-packet: each of the 3 control requests times out in a separate scan (seq=0 at ts=11, seq=1 at ts=22, seq=2 at ts=33), and the T1691.001 finding fires only when block_event_count reaches 3 (the 3rd scan). At that point only the current scan's timed-out entry is available; prior entries were already remove()d. Collecting all 3 would require a new windowed accumulator field (block_timeout_evidence: Vec<(u16,u8,u32)>), a growth bound, and amendment of BC-2.15.015's six-field reset set — a structural change that violates the producibility-without-structural-change criterion (option A chosen over option B). FINAL canonical format: single-entry summary 'block_event_count={count} in correlation window; threshold={threshold}' — fully producible from block_event_count and BLOCK_CMD_THRESHOLD at emission time, no new fields, parallels BC-2.15.024 malformed evidence. — 2026-06-11"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -94,7 +95,7 @@ The human should confirm whether 10s timeout and 3-of-300s threshold are appropr
    - `verdict: Verdict::Possible` (inferred, not directly observed)
    - `confidence: Confidence::Low` (passive inference; packet loss is a confound)
    - `summary`: `"DNP3 inferred blocked command: {count} requests without response within {window}s (dest={dest:#06X})"`
-   - `evidence`: one entry per timed-out request: `"dest={dest:#06X} app_seq={seq} ts={ts}"` (FC omitted — not retained in `pending_requests` keyed `(dest_addr, app_seq) → request_ts`; all entries are Control-class by construction)
+   - `evidence`: single-entry summary: `"block_event_count={count} in correlation window; threshold={threshold}"` where `{count}` = `flow.block_event_count` at emission time and `{threshold}` = `BLOCK_CMD_THRESHOLD` (constant 3). Per-request entries are not producible without a new windowed accumulator field: timeouts accumulate across separate scans and only the current scan's entries are available at emission time.
    - `mitre_techniques: vec!["T1691.001"]`
    - `source_ip: Some(...)`, `timestamp: Some(...)`
 4. `flow.block_finding_emitted_this_window = true` (one-shot guard: at most one T1691.001 finding
