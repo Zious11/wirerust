@@ -1,0 +1,133 @@
+{
+  "story": "STORY-107",
+  "wave": 36,
+  "epic": "E-15",
+  "bc_primary": "BC-2.15.016",
+  "pr": "#226",
+  "merge_commit": "ebb4751",
+  "merged_at": "2026-06-11T17:19Z",
+  "step": "4.5",
+  "protocol": "DF-CONVERGENCE-BEFORE-MERGE-001",
+  "passes": [
+    {
+      "pass": 1,
+      "verdict": "NITPICK_ONLY",
+      "clean_streak_contribution": true,
+      "findings": [
+        {
+          "id": "F-1",
+          "severity": "LOW",
+          "category": "design-note",
+          "title": "flows HashMap uncapped — offline-pcap accepted risk",
+          "resolution": "ACCEPTED — documented as SEC-107-001 (CWE-400); consistent with Modbus; carry to STORY-108 if live-capture added",
+          "status": "resolved"
+        },
+        {
+          "id": "F-2",
+          "severity": "NITPICK",
+          "category": "doc",
+          "title": "MAX_DNP3_CARRY_BYTES deprecation comment clarity",
+          "resolution": "FIXED — deprecation #[deprecated] alias added in 9acb31e; comment updated",
+          "status": "resolved"
+        },
+        {
+          "id": "F-3",
+          "severity": "NITPICK",
+          "category": "test",
+          "title": "test_pending_request_bounds_at_max should assert eviction behavior explicitly",
+          "resolution": "FIXED — assertion strengthened in 8fbbbff",
+          "status": "resolved"
+        }
+      ]
+    },
+    {
+      "pass": 2,
+      "verdict": "CLEAN",
+      "clean_streak_contribution": true,
+      "findings": [
+        {
+          "id": "F-P2-001",
+          "severity": "LOW",
+          "category": "test-coverage",
+          "title": "carry-buffer overflow eviction path not covered by multi-frame test",
+          "resolution": "FIXED — test_carry_buffer_evicts_on_overflow extended in 8fbbbff to cover overflow path",
+          "status": "resolved"
+        },
+        {
+          "id": "F-P2-002",
+          "severity": "NITPICK",
+          "category": "doc",
+          "title": "per_flow_state_isolation test name ambiguous — should clarify it tests key isolation",
+          "resolution": "FIXED — test renamed and doc comment added in 8fbbbff",
+          "status": "resolved"
+        }
+      ]
+    },
+    {
+      "pass": 3,
+      "verdict": "CLEAN",
+      "clean_streak_contribution": true,
+      "findings": []
+    }
+  ],
+  "clean_streak": 3,
+  "clean_streak_required": 3,
+  "converged": true,
+  "convergence_verdict": "DF-CONVERGENCE-BEFORE-MERGE-001 SATISFIED",
+  "trajectory": "P1 NITPICK_ONLY → P2 CLEAN → P3 CLEAN",
+  "total_findings": 5,
+  "findings_resolved": 5,
+  "findings_accepted": 1,
+  "security_review": {
+    "verdict": "APPROVE_WITH_NOTES",
+    "critical": 0,
+    "high": 0,
+    "medium": 1,
+    "low": 2,
+    "medium_findings": [
+      {
+        "id": "SEC-001",
+        "cwe": "CWE-129",
+        "title": "gate-before-count guard (is_valid_dnp3_frame_header before data[3] read)",
+        "disposition": "FIXED — implemented in 9acb31e carry-walk; frame header validated before any field access"
+      }
+    ],
+    "low_findings": [
+      {
+        "id": "SEC-002",
+        "cwe": "CWE-400",
+        "title": "pending-request HashMap bounded by MAX_PENDING_REQUESTS but eviction policy is FIFO-drop",
+        "disposition": "ACCEPTED — bounded at compile-time constant; FIFO-drop is correct behavior per BC-2.15.016"
+      },
+      {
+        "id": "SEC-006",
+        "title": "seed relocation for new MITRE tactics deferred to STORY-109",
+        "disposition": "ACCEPTED — STORY-107 scope is per-flow state only; seed+emit is STORY-109 atomic obligation"
+      }
+    ]
+  },
+  "pr_review": {
+    "verdict": "APPROVE",
+    "notes": "1 fixed PR-body typo; no code changes required"
+  },
+  "ci": {
+    "jobs": 9,
+    "passed": 9,
+    "result": "CLEAN"
+  },
+  "kani_vps": {
+    "vp": "VP-023",
+    "harnesses": 4,
+    "result": "SUCCESSFUL",
+    "note": "Pure-core VP-023 harnesses (Sub-A/B/C/D) untouched by STORY-107; remain SUCCESSFUL"
+  },
+  "implementation_notes": {
+    "on_data_restructure": "Restructured from STORY-106 skeleton into real carry-buffer frame-walk with gate-before-count and lifetime parse_errors",
+    "story_106_frame_corrections": "3 STORY-106 on_data test frames made wire-valid: LENGTH 0x0E→0x06, frame_len=13",
+    "constant_consolidation": "MAX_DNP3_FRAME_LEN is now the primary constant; MAX_DNP3_CARRY_BYTES is a #[deprecated] alias",
+    "doc_106_001_resolved": "CONFIRM (0x00) added to Dnp3FcClass::Management variant doc — DOC-106-001 CLOSED",
+    "master_addrs_cap_satisfied": "MAX_MASTER_ADDRS=64 AC-003 implemented (SEC-106-002 SATISFIED for master_addrs_seen bound)"
+  },
+  "story_version": "v1.2",
+  "input_hash": "2fd1cec"
+}

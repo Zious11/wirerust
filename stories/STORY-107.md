@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-107
 epic_id: E-15
-version: "1.0"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
@@ -27,8 +27,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.016.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/specs/verification-properties/vp-023-dnp3-parse-safety.md
-input-hash: TBD
-input-hash: "526e300"
+input-hash: "2fd1cec"
 ---
 
 # STORY-107: DNP3 Per-Flow State + Carry Buffer + Pending-Request Bounds
@@ -66,6 +65,7 @@ When a frame with DIR=1 (master-direction, `control & 0x10 != 0`) is observed, `
 ### AC-005 (traces to BC-2.15.016 postconditions 8/9/10 — pending_requests bounded at 256 with eviction)
 `flow.pending_requests: HashMap<(u16, u8), u32>` (key=(dest_addr, app_seq), value=request_ts) NEVER exceeds `MAX_PENDING_REQUESTS = 256` entries. When a new Control-class request would be inserted AND the map is full, the entry with the smallest `request_ts` (oldest) is evicted before the new entry is inserted. After eviction the map remains at 256 entries. The evicted entry generates NO T1691.001 timeout event.
 - **Test:** `test_pending_requests_eviction_at_256()` — insert 256 entries with timestamps 0..=255; insert entry 257 with ts=300; assert map.len()==256; assert oldest entry (ts=0) is evicted.
+- **STORY-107 scope boundary (pending_requests seeding):** AC-005 verifies the bounded-insert + oldest-eviction MECHANISM (≤256, min request_ts evicted, no timeout event emitted). The minimal seed that drives this through on_data is intentionally decoupled from the sync-gated carry-walk and may seed spurious/duplicate entries — harmless here because STORY-107 contracts only the bound and no detection reads pending_requests yet. Detection-driven seeding (which entries are inserted, gated on a validated Control-class request frame) is STORY-108 scope; STORY-108 relocates seeding onto the gate-validated frame inside the carry walk.
 
 ### AC-006 (traces to BC-2.15.016 invariant 1 — VP-023 Sub-D guarantees in-bounds indexing)
 Carry-buffer frame-consumption indexing uses `compute_dnp3_frame_len(length_byte)` (proved in VP-023 Sub-D to return values in [10,292]). Carrying this invariant forward: `flow.carry.drain(..frame_len)` can never index out of bounds when `flow.carry.len() >= frame_len` and `frame_len <= 292`.
@@ -170,3 +170,11 @@ Well within 20-30% of agent context window.
 
 - `depends_on: [STORY-106]` — `compute_dnp3_frame_len` (VP-023 Sub-D), `is_valid_dnp3_frame_header`, `Dnp3FlowState.is_non_dnp3`, and the `src/analyzer/dnp3.rs` module all come from STORY-106. The carry-consume loop calls `compute_dnp3_frame_len`; it cannot exist before the function does.
 - `blocks: [STORY-108]` — STORY-108 (direct detection emissions) adds detection fields to `Dnp3FlowState` and writes detection branches inside the `on_data` loop that the carry buffer manages. The carry loop must be functional first.
+
+## Changelog
+
+| Version | Date | Author | Notes |
+|---------|------|--------|-------|
+| v1.0 | 2026-06-10 | story-writer | Initial decomposition |
+| v1.1 | 2026-06-11 | story-writer | input-hash hygiene — remove duplicate TBD key + regenerate after VP-023 v1.4 (STORY-106 delivery) |
+| v1.2 | 2026-06-11 | story-writer | adversarial Pass-1 F-1 — document pending-seed scope boundary (STORY-108 owns detection-driven seeding) |

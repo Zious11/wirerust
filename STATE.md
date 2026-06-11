@@ -2,10 +2,10 @@
 pipeline: V0.5.0_RELEASED
 phase: feature-f4
 active_feature: "#8-dnp3"
-feature_8_status: "F4 IN PROGRESS — wave 35 STORY-106 DELIVERED (PR #225, d0f3586); wave 36 STORY-107 next"
+feature_8_status: "F4 IN PROGRESS — waves 35-36 (STORY-106,107) DELIVERED; wave 37 STORY-108 next"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-11T16:07:00Z
+timestamp: 2026-06-11T17:30:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -16,7 +16,7 @@ phase_5_completed: "2026-06-01"
 phase_6_completed: "2026-06-02"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
-develop_head: d0f3586
+develop_head: ebb4751
 main_head: c2df1b5
 released_version: v0.5.0
 released_at: "2026-06-10"
@@ -45,9 +45,9 @@ input_drift_check: "CLEAN — MATCH=62/STALE=0/ERROR=1 (STORY-091 no-inputs pre-
 
 ## Status
 
-**wirerust v0.5.0 RELEASED (MITRE ATT&CK-ICS v19 remap, issue #222 CLOSED). Feature #8 DNP3 F4 IN PROGRESS — wave 35 STORY-106 DELIVERED (PR #225, d0f3586); wave 36 = STORY-107 next; v0.6.0 target.**
+**wirerust v0.5.0 RELEASED (MITRE ATT&CK-ICS v19 remap, issue #222 CLOSED). Feature #8 DNP3 F4 IN PROGRESS — waves 35-36 (STORY-106,107) DELIVERED; wave 37 = STORY-108 next; v0.6.0 target.**
 
-**Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22 locked + VP-023 F2-new), 1338 tests green, holdout 0.967. develop HEAD d0f3586; main HEAD c2df1b5 (v0.5.0). Feature #8 DNP3: F4 in progress; wave 35 STORY-106 DELIVERED (PR #225, d0f3586; 7-pass adversarial 3/3 CLEAN; VP-023 4/4 Kani SUCCESSFUL); waves 36-39 remaining. develop is ahead of main by 4 commits (3 chore PR #221 + STORY-106 merge d0f3586).
+**Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22 locked + VP-023 F2-new), 1338 tests green, holdout 0.967. develop HEAD ebb4751; main HEAD c2df1b5 (v0.5.0). Feature #8 DNP3: F4 in progress; waves 35-36 DELIVERED (STORY-106 PR #225 d0f3586; STORY-107 PR #226 ebb4751 — 3-pass adversarial 3/3 CLEAN; carry-buffer frame-walk + bounds; MAX_DNP3_FRAME_LEN consolidated); waves 37-39 remaining. develop is ahead of main by 5 commits.
 
 ## Phase Progress
 
@@ -67,21 +67,21 @@ input_drift_check: "CLEAN — MATCH=62/STALE=0/ERROR=1 (STORY-091 no-inputs pre-
 | Release v0.5.0 | **RELEASED** 2026-06-10 | c2df1b5; 4 binaries; run 27313698900 SUCCESS |
 | Feature #8 DNP3 — F2 Spec Evolution | **COMPLETE** 2026-06-10 | SS-15 24 BCs; 268 total; MITRE 23/15/8; thresholds CONFIRMED |
 | Feature #8 DNP3 — F3 Story Decomposition | **PASSED** (human-gated 2026-06-11) | 3 decisions accepted: (a) 5 stories as-is (STORY-109 atomic for VP-007), (b) VP placements VP-023@106/110 VP-007@109 VP-004@110, (c) linear chain 106→107→108→109→110 |
-| Feature #8 DNP3 — F4 Delta Implementation | IN PROGRESS 2026-06-11 | wave 35 STORY-106 DELIVERED (PR #225 d0f3586; 7-pass adversarial 3/3 CLEAN; VP-023 4/4 Kani SUCCESSFUL); waves 36-39 remaining; v0.6.0 target |
+| Feature #8 DNP3 — F4 Delta Implementation | IN PROGRESS 2026-06-11 | waves 35-36 DELIVERED (STORY-106 PR #225 d0f3586; STORY-107 PR #226 ebb4751 — 3-pass adversarial 3/3 CLEAN; carry-buffer frame-walk + bounds; VP-023 4/4 Kani SUCCESSFUL); waves 37-39 remaining; v0.6.0 target |
 
-## Session Resume Checkpoint (2026-06-11 — Feature #8 DNP3 wave 35 STORY-106 DELIVERED — wave 36 next)
+## Session Resume Checkpoint (2026-06-11 — Feature #8 DNP3 waves 35-36 STORY-106,107 DELIVERED — wave 37 next)
 
-**POSITION:** Feature #8 (DNP3 TCP analyzer, issue #8). Phase `feature-f4` (delta implementation). Wave 35 STORY-106 DELIVERED (PR #225, merge commit d0f3586). NEXT: wave 36 = STORY-107 (per-flow state + carry buffer), branch from develop@d0f3586.
+**POSITION:** Feature #8 (DNP3 TCP analyzer, issue #8). Phase `feature-f4` (delta implementation). Waves 35-36 DELIVERED (STORY-106 PR #225 d0f3586; STORY-107 PR #226 ebb4751). NEXT: wave 37 = STORY-108 (direct detections T1692.001/T0814/T0836 — 13 pts), branch from develop@ebb4751.
 
-**KEY SHAs:** develop HEAD `d0f3586`; main HEAD `c2df1b5` (v0.5.0 released 2026-06-10); released_version v0.5.0. factory-artifacts HEAD = run `git -C .factory log -1 --format='%h %s'`.
+**KEY SHAs:** develop HEAD `ebb4751`; main HEAD `c2df1b5` (v0.5.0 released 2026-06-10); released_version v0.5.0. factory-artifacts HEAD = run `git -C .factory log -1 --format='%h %s'`.
 
-**RELEASE HISTORY:** v0.1.0 (2026-06-08) greenfield; v0.2.0 (2026-06-09) timestamp threading; v0.3.0 (2026-06-09) multi-tag MITRE schema; v0.4.0 (2026-06-10) Modbus TCP analyzer; v0.5.0 (2026-06-10) MITRE ATT&CK-ICS v19 remap (issue #222 CLOSED). develop ahead of main by 4 commits (3 chore PR #221 + STORY-106 merge d0f3586).
+**RELEASE HISTORY:** v0.1.0 (2026-06-08) greenfield; v0.2.0 (2026-06-09) timestamp threading; v0.3.0 (2026-06-09) multi-tag MITRE schema; v0.4.0 (2026-06-10) Modbus TCP analyzer; v0.5.0 (2026-06-10) MITRE ATT&CK-ICS v19 remap (issue #222 CLOSED). develop ahead of main by 5 commits.
 
 **BLOCKING RESUME PROTOCOL (in order):**
 1. Run `vsdd-factory:factory-worktree-health` — verify .factory/ worktree on factory-artifacts branch.
-2. Read STATE.md (this file) — orient; confirm wave 35 STORY-106 DELIVERED and wave 36 STORY-107 is NEXT.
-3. Deliver STORY-107 via per-story-delivery (worktree → stubs → red gate → TDD → Step-4.5 adversarial 3-clean → demos → PR → merge).
-4. Continue through waves 37-39 (STORY-108→109→110), targeting v0.6.0.
+2. Read STATE.md (this file) — orient; confirm waves 35-36 STORY-106,107 DELIVERED and wave 37 STORY-108 is NEXT.
+3. Deliver STORY-108 via per-story-delivery (worktree → stubs → red gate → TDD → Step-4.5 adversarial 3-clean → demos → PR → merge).
+4. Continue through waves 38-39 (STORY-109→110), targeting v0.6.0.
 
 **LOCKED DNP3 FACTS (F4 must not re-derive these):**
 - 5 stories: STORY-106 (8 pts, w35), STORY-107 (8 pts, w36), STORY-108 (11 pts, w37), STORY-109 (13 pts, w38), STORY-110 (7 pts, w39). Epic E-15 'DNP3/ICS Analyzer', 47 pts total. Strictly-linear chain 106→107→108→109→110.
@@ -116,6 +116,7 @@ D-047..D-054 full text archived: `cycles/v0.1.0-greenfield-spec/decisions-archiv
 | D-054 | Feature #8 F3 story decomposition CONVERGED — 5 stories STORY-106..110, E-15, 47 pts, waves 35-39, 22 holdout scenarios, 3-pass adversarial. | 2026-06-10 |
 | D-055 | Feature #8 F3 human gate PASSED — (a) accept 5 stories as-is (STORY-109 stays atomic for VP-007 seed+emit invariant), (b) accept VP placements (VP-023 author@106/lock@110, VP-007@109, VP-004@110), (c) accept strictly-linear chain 106→107→108→109→110. F4 TDD authorized. | 2026-06-11 |
 | D-056 | STORY-106 (DNP3 parse-core, wave 35) DELIVERED — PR #225 merged d0f3586. Red Gate PASSED; Step-4.5 adversarial 7-pass 3/3 CLEAN (9 findings resolved); VP-023 4/4 Kani harnesses SUCCESSFUL (Sub-A/B/C/D 0 counterexamples); security APPROVE_WITH_NOTES (0 CRITICAL/HIGH/MED); spec bumps VP-023 v1.4 (0x00 CONFIRM→Management) + BC-2.15.005 v1.2 + STORY-106 v1.5. Wave 36 = STORY-107 next. | 2026-06-11 |
+| D-057 | STORY-107 (DNP3 per-flow state + carry buffer + bounds, wave 36) DELIVERED — PR #226 merged ebb4751. Red Gate PASSED; Step-4.5 adversarial 3-pass 3/3 CLEAN (F-1/F-2/F-3 + F-P2-001/F-P2-002 resolved); on_data restructured to real carry-walk (gate-before-count); 3 STORY-106 frames wire-valid (LENGTH 0x06); MAX_DNP3_FRAME_LEN consolidated (MAX_DNP3_CARRY_BYTES deprecated alias); DOC-106-001 resolved; security APPROVE-WITH-NOTES (0 CRITICAL/HIGH; 1 MEDIUM SEC-001 accepted; 2 LOW). Wave 37 = STORY-108 next. | 2026-06-11 |
 
 ## Blocking Issues
 
@@ -139,10 +140,11 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | MITRE-V19-REMAP-001 | T0855→T1692.001 / T0856→T1692.002 remap; PR #223 develop; PR #224 main; issue #222 CLOSED | CLOSED — RELEASED in v0.5.0 |
 | DRIFT-F2-COUNT-001 | Stale "15 seeded IDs" count in BC-2.10.006.md, prd-supplements/nfr-catalog.md, HS-008+HS-009 | DEFERRED — validate before filing |
 | DRIFT-SUPERPOWERS-001 | docs/superpowers/ carries stale pre-F2 catalog (T0855/T0856, singular mitre_technique field) | DEFERRED — reconcile-or-archive decision pending |
-| SEC-106-001 (CWE-129) | STORY-107 must call is_valid_dnp3_frame_header before reading data[3] / entering frame-walk (security review SEC-001; overlaps adv B1 gate-before-count) | OPEN — target STORY-107 |
-| SEC-106-002 (CWE-400) | STORY-108 must add MAX_MASTER_ADDRS cap + push guard before writing to master_addrs_seen: Vec<u16> (security review SEC-002) | OPEN — target STORY-108 |
-| DOC-106-001 (cosmetic) | Add CONFIRM (0x00) to Dnp3FcClass::Management variant doc example list when STORY-107 next touches src/analyzer/dnp3.rs (PR #225 pr-reviewer nit) | OPEN — cosmetic; target next dnp3.rs touch |
-| STORY-107-CARRY-001 | BC-2.15.009 EC-004 (lone-0x05 sub-2-byte sync deferral), BC-2.15.008 EC-006 (parse_errors for <3-byte payloads), BC-2.15.004 PC4 (caller-side parse_errors on gate failure), multi-block CRC-strip payload_buf indexing | OPEN — target STORY-107 frame-walk implementation |
+| SEC-106-001 (CWE-129) | STORY-107 must call is_valid_dnp3_frame_header before reading data[3] / entering frame-walk (security review SEC-001; overlaps adv B1 gate-before-count) | SATISFIED — implemented in STORY-107 (gate-before-count frame-walk) |
+| SEC-106-002 (CWE-400) | STORY-108 must add MAX_MASTER_ADDRS cap + push guard before writing to master_addrs_seen: Vec<u16> (security review SEC-002); also carry adv F-1 + security SEC-006 (pending-seed relocation) | OPEN — target STORY-108 |
+| DOC-106-001 (cosmetic) | Add CONFIRM (0x00) to Dnp3FcClass::Management variant doc example list | SATISFIED — resolved in STORY-107 (PR #226) |
+| STORY-107-CARRY-001 | BC-2.15.009 EC-004 (lone-0x05 sub-2-byte sync deferral), BC-2.15.008 EC-006 (parse_errors for <3-byte payloads), BC-2.15.004 PC4 (caller-side parse_errors on gate failure), multi-block CRC-strip payload_buf indexing | SATISFIED — resolved in STORY-107 frame-walk implementation (PR #226) |
+| SEC-107-001 (CWE-400) | Dnp3Analyzer.flows HashMap uncapped — accepted offline-pcap design risk (consistent with Modbus flows HashMap); add max_flows cap IF live-capture mode ever added (adversary F-1 + security SEC-006 → STORY-108) | ACCEPTED — offline-pcap risk; carry to STORY-108 |
 
 ## Deferred Next-Work Backlog (recorded 2026-06-10)
 
