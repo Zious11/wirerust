@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-109
 epic_id: E-15
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
@@ -166,7 +166,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-15 c
 | EC-003 | 2 block + 1 restart at t=0, t=150s, t=200s (Trace B) | Both blocks within 300s (not reset at 120s); combined=3; T0827 fires after restart |
 | EC-004 | T0827 one-shot: 4th restart same window | `loss_of_control_emitted` prevents second T0827 |
 | EC-005 | Broadcast READ (0x01) to 0xFFFF | No broadcast anomaly (only Control-class triggers BC-2.15.018) |
-| EC-006 | DISABLE_UNSOLICITED on bailed flow | `parse_errors++`, `malformed_in_window++`; anomaly emission skipped (is_non_dnp3) |
+| EC-006 | DISABLE_UNSOLICITED on already-bailed flow (`is_non_dnp3=true`) | Immediate no-op (BC-2.15.009 PC5): no parsing, `parse_errors` NOT incremented, `malformed_in_window` NOT incremented, no Finding emitted, carry untouched. Note: counter increments described in AC-010/AC-012 apply only to frames that arrive on a live (non-bailed) flow. |
 | EC-007 | ENABLE_UNSOLICITED before UNSOLICITED_RESPONSE | `enable_unsolicited_seen=true`; no unsolicited anomaly |
 | EC-008 | Multiple DISABLE_UNSOLICITED — adversarial flood | Each emits T0814 (per-occurrence) up to MAX_FINDINGS cap |
 | EC-009 | 4th malformed frame (same window, guard set) | `parse_errors=4`, `malformed_in_window=4`; NO second T0814 (one-shot guard) |
