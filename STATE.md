@@ -1,8 +1,8 @@
 ---
 pipeline: V0.5.0_RELEASED
-phase: feature-f3
+phase: feature-f4
 active_feature: "#8-dnp3"
-feature_8_status: "F3-CONVERGED — awaiting F3 gate"
+feature_8_status: "F3-GATE-PASSED — F4 TDD starting wave 35 (STORY-106)"
 product: wirerust
 mode: brownfield
 timestamp: 2026-06-11T00:00:00Z
@@ -45,9 +45,9 @@ input_drift_check: "CLEAN — MATCH=62/STALE=0/ERROR=1 (STORY-091 no-inputs pre-
 
 ## Status
 
-**wirerust v0.5.0 RELEASED (MITRE ATT&CK-ICS v19 remap, issue #222 CLOSED). Feature #8 DNP3 F3 CONVERGED (3-pass adversarial; 5 stories STORY-106..110, E-15, v0.6.0 target). Awaiting F3 human gate. D-054.**
+**wirerust v0.5.0 RELEASED (MITRE ATT&CK-ICS v19 remap, issue #222 CLOSED). Feature #8 DNP3 F3 gate PASSED (D-055, human-gated 2026-06-11). F4 delta implementation IN PROGRESS — wave 35 = STORY-106 starting; waves 35-39; v0.6.0 target.**
 
-**Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22 locked + VP-023 F2-new), 1338 tests green, holdout 0.967. develop HEAD 10036fc; main HEAD c2df1b5 (v0.5.0). Feature #8 DNP3: F3 CONVERGED, awaiting gate. develop is ahead of main by 3 non-release chore commits (eb010a1, 92773a4, fb2c875 — PR #221 local-only E2E pcap tooling).
+**Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22 locked + VP-023 F2-new), 1338 tests green, holdout 0.967. develop HEAD 10036fc; main HEAD c2df1b5 (v0.5.0). Feature #8 DNP3: F3 gate PASSED (D-055); F4 TDD authorized, wave 35 starting. develop is ahead of main by 3 non-release chore commits (eb010a1, 92773a4, fb2c875 — PR #221 local-only E2E pcap tooling).
 
 ## Phase Progress
 
@@ -66,11 +66,12 @@ input_drift_check: "CLEAN — MATCH=62/STALE=0/ERROR=1 (STORY-091 no-inputs pre-
 | Maintenance MITRE v19 remap (issue #222) | **RELEASED in v0.5.0** 2026-06-10 | 3-pass adversarial CONVERGED; PR #223→develop; PR #224→main; issue #222 CLOSED |
 | Release v0.5.0 | **RELEASED** 2026-06-10 | c2df1b5; 4 binaries; run 27313698900 SUCCESS |
 | Feature #8 DNP3 — F2 Spec Evolution | **COMPLETE** 2026-06-10 | SS-15 24 BCs; 268 total; MITRE 23/15/8; thresholds CONFIRMED |
-| Feature #8 DNP3 — F3 Story Decomposition | **CONVERGED** 2026-06-10; awaiting F3 gate | STORY-106..110; E-15; 47 pts; waves 35-39; 22 holdout scenarios |
+| Feature #8 DNP3 — F3 Story Decomposition | **PASSED** (human-gated 2026-06-11) | 3 decisions accepted: (a) 5 stories as-is (STORY-109 atomic for VP-007), (b) VP placements VP-023@106/110 VP-007@109 VP-004@110, (c) linear chain 106→107→108→109→110 |
+| Feature #8 DNP3 — F4 Delta Implementation | IN PROGRESS 2026-06-11 | wave 35 = STORY-106 starting; waves 35-39; v0.6.0 target |
 
-## Session Resume Checkpoint (2026-06-11 — Feature #8 DNP3 F3 CONVERGED — durable cold-start)
+## Session Resume Checkpoint (2026-06-11 — Feature #8 DNP3 F3 gate PASSED — F4 delta implementation starting)
 
-**POSITION:** Feature #8 (DNP3 TCP analyzer, issue #8). Phase `feature-f3`. Status: F3-CONVERGED — 3-pass adversarial complete (D-054). Awaiting F3 human gate before starting F4 TDD.
+**POSITION:** Feature #8 (DNP3 TCP analyzer, issue #8). Phase `feature-f4` (delta implementation). F3 gate PASSED (D-055). F4 in progress: wave 35 = STORY-106.
 
 **KEY SHAs:** develop HEAD `10036fc`; main HEAD `c2df1b5` (v0.5.0 released 2026-06-10); released_version v0.5.0. factory-artifacts HEAD = run `git -C .factory log -1 --format='%h %s'`.
 
@@ -78,12 +79,9 @@ input_drift_check: "CLEAN — MATCH=62/STALE=0/ERROR=1 (STORY-091 no-inputs pre-
 
 **BLOCKING RESUME PROTOCOL (in order):**
 1. Run `vsdd-factory:factory-worktree-health` — verify .factory/ worktree on factory-artifacts branch.
-2. Read STATE.md (this file) — orient; confirm F3 human gate status.
-3. **F3 HUMAN GATE** — present the 3 open review questions and obtain sign-off:
-   - (a) Decomposition granularity: STORY-108 (11 pts) and STORY-109 (13 pts) are the two largest stories. Accept as-is or split further?
-   - (b) VP obligation placement: VP-023 (parse-safety Kani, 4 sub-properties) authored in STORY-106, verified/locked in STORY-110. VP-007 (seed+emit atomicity) obligation lands in STORY-109. VP-004 (dispatcher oracle) satisfied by STORY-110. Accept these placements?
-   - (c) Dependency chain strictly linear 106→107→108→109→110 (no parallelism). Accept, or parallelize any branches (e.g., 108 and 109 share no state)?
-4. Once gate PASSED: invoke `vsdd-factory:phase-f4-delta-implementation` starting **wave 35 = STORY-106** (DNP3 parse/classify pure-core + author VP-023's 4 Kani harnesses), then waves 36→39, targeting v0.6.0.
+2. Read STATE.md (this file) — orient; confirm F4 in-progress status.
+3. Check sprint-state / .worktrees / open PRs to find the active in-flight wave and story.
+4. Continue F4 delta implementation at the current in-flight wave — invoke `vsdd-factory:phase-f4-delta-implementation` for the active story, then continue through waves 35→39 (STORY-106→110), targeting v0.6.0.
 
 **LOCKED DNP3 FACTS (F4 must not re-derive these):**
 - 5 stories: STORY-106 (8 pts, w35), STORY-107 (8 pts, w36), STORY-108 (11 pts, w37), STORY-109 (13 pts, w38), STORY-110 (7 pts, w39). Epic E-15 'DNP3/ICS Analyzer', 47 pts total. Strictly-linear chain 106→107→108→109→110.
@@ -116,6 +114,7 @@ D-047..D-054 full text archived: `cycles/v0.1.0-greenfield-spec/decisions-archiv
 | D-052 | Feature #8 F2 spec evolution CONVERGED — SS-15 22 BCs + ADR-007 + VP-023; SEEDED 21→23/EMITTED 13→15; 5-pass adversarial. | 2026-06-10 |
 | D-053 | Feature #8 F2 gate research-validated COMPLETE — 2 must-add BCs (BC-023 unsolicited→T0814, BC-024 malformed→T0814); SS-15 now 24 BCs / 268 total; 3 thresholds CONFIRMED. | 2026-06-10 |
 | D-054 | Feature #8 F3 story decomposition CONVERGED — 5 stories STORY-106..110, E-15, 47 pts, waves 35-39, 22 holdout scenarios, 3-pass adversarial. | 2026-06-10 |
+| D-055 | Feature #8 F3 human gate PASSED — (a) accept 5 stories as-is (STORY-109 stays atomic for VP-007 seed+emit invariant), (b) accept VP placements (VP-023 author@106/lock@110, VP-007@109, VP-004@110), (c) accept strictly-linear chain 106→107→108→109→110. F4 TDD authorized. | 2026-06-11 |
 
 ## Blocking Issues
 
