@@ -248,6 +248,9 @@ impl Dnp3Analyzer {
             flow.frame_count += 1;
 
             if transport_is_fir(transport_octet) {
+                // STORY-107 scope: this offset assumes the minimum single-block frame
+                // (no interior CRC blocks). Multi-block CRC-block stripping and correct
+                // payload_buf indexing are STORY-107 scope (ADR-007 Decision 3).
                 let app_fc = data[12];
                 *flow.fc_counts.entry(app_fc).or_insert(0) += 1;
                 *self.fn_code_counts.entry(app_fc).or_insert(0) += 1;
@@ -480,6 +483,13 @@ mod kani_proofs {
         // Restart set (BC-2.15.006 — COLD_RESTART/WARM_RESTART).
         if matches!(fc, 0x0D | 0x0E) {
             assert!(class == Dnp3FcClass::Restart);
+        }
+        // Management set (BC-2.15.006 EC-005/006/009; BC-2.15.005 canonical vector 0x00).
+        // 0x00 = CONFIRM (LOCKED: CONFIRM → Management per VP-023 v1.4);
+        // 0x07..=0x0C = IMMED_FREEZE..FREEZE_AT_TIME_NR;
+        // 0x0F..=0x1A = INITIALIZE_DATA and remaining defined primary FCs.
+        if matches!(fc, 0x00 | 0x07..=0x0C | 0x0F..=0x1A) {
+            assert!(class == Dnp3FcClass::Management);
         }
         // Response set (BC-2.15.006).
         if matches!(fc, 0x81 | 0x82 | 0x83) {
