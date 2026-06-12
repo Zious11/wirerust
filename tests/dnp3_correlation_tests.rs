@@ -256,6 +256,21 @@ mod story_109 {
             f.category
         );
 
+        // BC-2.15.014 PC3 v1.6 — evidence is a SUMMARY string (not per-request).
+        // Format: "block_event_count={count} in correlation window; threshold={threshold}"
+        // For this scenario: count=3, threshold=BLOCK_CMD_THRESHOLD=3.
+        // This assertion pins the BC-2.15.014 v1.6 evidence format (including the
+        // " in correlation window; " segment required by v1.6).
+        let expected_evidence = vec!["block_event_count=3 in correlation window; threshold=3"];
+        assert_eq!(
+            f.evidence, expected_evidence,
+            "AC-002 (BC-2.15.014 PC3 v1.6): T1691.001 evidence must be the SUMMARY format \
+             \"block_event_count={{count}} in correlation window; threshold={{threshold}}\";\n\
+             BC-expected: {:?}\n\
+             impl-actual:  {:?}",
+            expected_evidence, f.evidence
+        );
+
         // Verify the one-shot guard is set
         let flow = analyzer.flows.get(&key).expect("flow must exist");
         assert!(
@@ -960,6 +975,20 @@ mod story_109 {
             f.summary
         );
 
+        // F-109-P6-001 (resolved GREEN): BC-2.15.023 PC1 pins evidence format:
+        //   "FC=0x{fc:02X} dest={dest:#06X} src={src:#06X}"
+        // — dest BEFORE src, NO parenthetical FC name.
+        // frame: dest=0x0003, src=0x0001, fc=0x15 → "FC=0x15 dest=0x0003 src=0x0001".
+        // The impl now emits exactly this format; the assertion passes.
+        assert_eq!(
+            f.evidence,
+            vec!["FC=0x15 dest=0x0003 src=0x0001"],
+            "AC-010 (F-109-P6-001): DISABLE_UNSOLICITED evidence must match exact \
+             BC-2.15.023 PC1 format \"FC=0x{{fc:02X}} dest={{dest:#06X}} src={{src:#06X}}\"; \
+             got: {:?}",
+            f.evidence
+        );
+
         // source_ip must be Some
         assert!(
             f.source_ip.is_some(),
@@ -1048,6 +1077,22 @@ mod story_109 {
             "AC-011: ENABLE_UNSOLICITED must carry only [\"T0814\"]"
         );
 
+        // F-109-P6-001 (MAJOR): BC-2.15.023 PC1 pins evidence format:
+        //   "FC=0x{fc:02X} dest={dest:#06X} src={src:#06X}"
+        // — dest BEFORE src, NO parenthetical FC name.
+        // frame: dest=0x0003, src=0x0001, fc=0x14 → "FC=0x14 dest=0x0003 src=0x0001".
+        // This assertion WILL FAIL: the impl emits
+        //   "FC=0x14 (ENABLE_UNSOLICITED) src=0x0001 dest=0x0003"
+        // (FC-name parenthetical present + src/dest order swapped) — intended RED.
+        assert_eq!(
+            f.evidence,
+            vec!["FC=0x14 dest=0x0003 src=0x0001"],
+            "AC-011 (F-109-P6-001): ENABLE_UNSOLICITED evidence must match exact \
+             BC-2.15.023 PC1 format \"FC=0x{{fc:02X}} dest={{dest:#06X}} src={{src:#06X}}\"; \
+             got: {:?}",
+            f.evidence
+        );
+
         // Per-occurrence: second ENABLE_UNSOLICITED emits another finding
         let frame2 = build_detection_frame(0x14, 0x0003, 0x0001);
         analyzer.on_data(key.clone(), &frame2, 501);
@@ -1110,9 +1155,8 @@ mod story_109 {
 
         let f = malformed_findings[0];
 
-        // F-109-P1-001 (MAJOR): BC-2.15.024 PC3 pins category: ThreatCategory::Anomaly.
-        // The impl currently emits ThreatCategory::Suspicious — this assertion exposes
-        // the impl/BC drift. Expected RED.
+        // F-109-P1-001 closure: BC-2.15.024 PC3 pins category: ThreatCategory::Anomaly.
+        // This assertion verifies the impl emits Anomaly (not Suspicious) per BC-2.15.024 PC3.
         assert!(
             matches!(f.category, ThreatCategory::Anomaly),
             "AC-012 (F-109-P1-001 MAJOR): malformed anomaly category must be \
@@ -1145,8 +1189,8 @@ mod story_109 {
         // Expected full BC-2.15.024 PC3 summary (count=3, elapsed=0s since all frames at ts=0):
         //   "DNP3 structural anomaly: 3 malformed frames in 0s window
         //    (flow 10.0.0.1→10.0.0.2) — possible Crain-Sistrunk crash-probe"
-        // The impl currently omits the flow fragment — this assertion exposes F-004.
-        // Expected RED.
+        // This assertion pins the BC-2.15.024 PC3 flow fragment requirement:
+        // the summary must contain "(flow {src_ip}→{dest_ip})" per the v1.6 format.
         assert!(
             f.summary.contains("(flow 10.0.0.1→10.0.0.2)"),
             "AC-012 (F-109-P1-004): summary must contain flow fragment \
@@ -1539,8 +1583,8 @@ mod story_109 {
             "EC-009 pre: exactly ONE malformed T0814 after 3 frames"
         );
 
-        // F-109-P1-001 (MAJOR): category must be ThreatCategory::Anomaly per BC-2.15.024 PC3.
-        // This will FAIL (impl emits Suspicious) — intended RED exposing F-001.
+        // F-109-P1-001 closure: category must be ThreatCategory::Anomaly per BC-2.15.024 PC3.
+        // This assertion verifies the impl emits Anomaly (not Suspicious) per BC-2.15.024 PC3.
         let f_pre = t0814_malformed_findings_before[0];
         assert!(
             matches!(f_pre.category, ThreatCategory::Anomaly),

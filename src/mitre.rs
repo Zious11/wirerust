@@ -276,7 +276,7 @@ mod kani_proofs {
     /// projections and never panics.
     ///
     /// BOUND/SOUNDNESS: `technique_info` is a closed match whose only catch-all
-    /// arm is `_ => None`; any string outside the 21 seeded literals takes it.
+    /// arm is `_ => None`; any string outside the 23 seeded literals takes it.
     /// A single representative unknown ID ("T9999") exercises that arm. "T9999"
     /// is deliberately a VALIDLY-FORMATTED (`T[0-9]{4}`) but UNREGISTERED ID, so
     /// this proves the "unknown" branch — not merely a malformed-string reject.
