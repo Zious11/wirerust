@@ -746,7 +746,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 
 | BC ID | Title | Priority | Origin |
 |-------|-------|----------|--------|
-| BC-2.15.010 | Unauthorized control command — Control-class FC exceeding threshold emits T1692.001 | P0 | feature-008-F2 |
+| BC-2.15.010 | Unauthorized control command — Unexpected source (count=1) or Control-class FC exceeding threshold emits T1692.001 | P0 | feature-008-F2 |
 | BC-2.15.011 | COLD_RESTART/WARM_RESTART observed — emits T0814 per-occurrence finding | P0 | feature-008-F2 |
 | BC-2.15.012 | WRITE FC observed — emits T0836 Modify-Parameter finding per-occurrence | P0 | feature-008-F2 |
 | BC-2.15.013 | Co-emission ordering — direct finding (T0814/T1692.001) precedes derived T0827 | P0 | feature-008-F2 |
@@ -897,7 +897,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.14.017 | Burst/sustained rate detection emits `["T0806","T1692.001"]` — dual-window model (1s burst + >=2s sustained) |
 | BC-2.14.018 | T0814 (Denial of Service) emitted for Force-Listen-Only (0x0004) and Restart-Comms (0x0001) Diagnostics sub-functions |
 | BC-2.14.020 | T0888 (Remote System Information Discovery) emitted for recon FCs 0x11 and 0x2B/0x0E (correctness fix; T0846 not emitted) |
-| BC-2.15.010 | T1692.001 emitted for Control-class FC exceeding threshold per flow (DNP3) |
+| BC-2.15.010 | T1692.001 emitted for unexpected source (count=1) or Control-class FC exceeding threshold per flow (DNP3) |
 | BC-2.15.011 | T0814 (Denial of Service) emitted for COLD_RESTART/WARM_RESTART FCs (DNP3) |
 | BC-2.15.012 | T0836 (Modify Parameter) emitted for WRITE FC (DNP3) |
 | BC-2.15.013 | Co-emission ordering — direct finding (T0814/T1692.001) precedes derived T0827; broadcast-anomaly (018↔010) dedup rule |
