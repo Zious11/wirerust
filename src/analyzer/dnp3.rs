@@ -353,13 +353,51 @@ impl Dnp3Analyzer {
         // exceed MAX_DNP3_FRAME_LEN (292), append only up to 292 and DISCARD the excess,
         // incrementing the LIFETIME parse_errors counter once for the overflow event.
         // STORY-109: also increments malformed_in_window (windowed, BC-2.15.024).
+        //
+        // F-F5-003 REVISION 2 Change 3-REPLACEMENT: after counting the overflow, perform
+        // an INLINE byte-walk-forward resync (identical to Change 2 in the LENGTH-gate arm).
+        // This preserves any valid [0x05,0x64,...] head frame present in the carry after
+        // the cap operation, and prevents the frame-walk's sync-check arm from firing for
+        // the same overflow event (no double-count). Do NOT clear+return — that silently
+        // discards a recoverable head frame (F-B-002 detection-evasion DoS).
+        // F-F5-003 REVISION 2 / D-4 invariant: when the overflow arm fires and performs an
+        // inline resync, the carry may retain trailing junk bytes after the valid head frame
+        // has been consumed. The overflow arm already counted the structural event once; the
+        // frame-walk's resync arm must NOT fire a second increment for those trailing bytes
+        // (they are part of the same overflow event, not a new independent sync-loss event).
+        // This flag suppresses the resync arm's Change-1 increment for the remainder of the
+        // frame-walk when the overflow arm has already counted this call's malformed event.
+        let mut overflow_counted_this_call = false;
+
         let remaining_capacity = MAX_DNP3_FRAME_LEN - flow.carry.len();
         if data.len() > remaining_capacity {
             flow.carry.extend_from_slice(&data[..remaining_capacity]);
             // Excess bytes beyond 292 are discarded; record one overflow (BC-2.15.016 PC2).
             flow.parse_errors += 1;
             flow.malformed_in_window += 1;
+            overflow_counted_this_call = true;
+            // Inline resync: reposition carry to next [0x05,0x64] or clear if none found.
+            // Structurally identical to Change 2 (LENGTH-gate arm inline resync).
+            // Prevents the frame-walk sync-check arm from firing for this same overflow event.
+            // If a valid [0x05,0x64,...] sync word exists in the carry, it is PRESERVED.
+            let next_sync = flow
+                .carry
+                .windows(2)
+                .enumerate()
+                .find(|(_, w)| w[0] == 0x05 && w[1] == 0x64)
+                .map(|(i, _)| i);
+            match next_sync {
+                Some(i) => {
+                    flow.carry.drain(..i);
+                }
+                None => {
+                    flow.carry.clear();
+                }
+            }
             Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key);
+            // Fall through to frame-walk. Do NOT return early.
+            // The frame-walk will find a valid head frame (if preserved) or
+            // carry.len() < 3 → break immediately (empty carry). Both are correct.
         } else {
             flow.carry.extend_from_slice(data);
         }
@@ -379,12 +417,30 @@ impl Dnp3Analyzer {
             // adjudicated in STORY-109-resync-adjudication.md Decision 1).
             // Scan from offset 1 for the next [0x05,0x64]; drain preceding bytes, else
             // clear. continue (NOT break) so the walk loop re-examines the realigned carry.
-            // No parse_errors/malformed_in_window increment here — those were already
-            // counted in the LENGTH-gate arm that created the misalignment (no double-
-            // counting; adjudication Decision 2). carry.clear() is a fresh-start, not a
-            // desync bail — is_non_dnp3 is NOT set. VP-023 invariants preserved: each
+            //
+            // F-F5-003 REVISION 2 Change 1: this arm now UNCONDITIONALLY increments
+            // parse_errors and malformed_in_window before performing the byte-walk. This
+            // covers Path B (junk at a clean frame boundary): after a clean carry.drain,
+            // the next loop iteration enters here with no prior count for this event.
+            // The LENGTH-gate arm (Change 2) performs its own inline resync, so the
+            // LENGTH-gate drain NEVER causes this arm to fire in the next iteration —
+            // no double-count for Path A. carry.clear() is a fresh-start, not a desync
+            // bail — is_non_dnp3 is NOT set. VP-023 invariants preserved: each
             // iteration drains ≥1 byte; carry ≤292 bound unchanged.
             if flow.carry[0] != 0x05 || flow.carry[1] != 0x64 {
+                // Sync-loss event: count it exactly once (F-F5-003 REVISION 2 Change 1).
+                // This arm is ONLY reached from Path B (clean consume leaves non-sync head)
+                // or initial misalignment. The LENGTH-gate arm's inline resync (Change 2)
+                // ensures it never reaches here for Path A.
+                //
+                // D-4 invariant: if the overflow arm already counted a malformed event
+                // in this on_data call, the trailing-junk resync here is the SAME structural
+                // event (overflow residue), not a new event. Suppress the second increment.
+                if !overflow_counted_this_call {
+                    flow.parse_errors += 1;
+                    flow.malformed_in_window += 1;
+                    Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key);
+                }
                 // Byte-walk-forward resync (STORY-109; realizes STORY-107 deferral).
                 // Scan from offset 1 for the next [0x05,0x64]; drain preceding bytes, else clear.
                 let next_sync = flow
@@ -421,6 +477,26 @@ impl Dnp3Analyzer {
                     flow.parse_errors += 1;
                     flow.malformed_in_window += 1;
                     flow.carry.drain(..1);
+                    // F-F5-003 REVISION 2 Change 2: inline byte-walk-forward resync.
+                    // After drain(..1), immediately reposition carry to the next
+                    // [0x05,0x64] sync word (or clear if none found). This ensures the
+                    // loop's NEXT iteration begins with a valid sync head or empty carry,
+                    // preventing the sync-check arm from firing for the SAME sync-loss
+                    // event (no double-count across iterations — Path A).
+                    let next_sync = flow
+                        .carry
+                        .windows(2)
+                        .enumerate()
+                        .find(|(_, w)| w[0] == 0x05 && w[1] == 0x64)
+                        .map(|(i, _)| i);
+                    match next_sync {
+                        Some(i) => {
+                            flow.carry.drain(..i);
+                        }
+                        None => {
+                            flow.carry.clear();
+                        }
+                    }
                     Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key);
                     continue;
                 }
@@ -449,6 +525,16 @@ impl Dnp3Analyzer {
 
             // --- Valid, gate-passed frame: now genuinely count it (BC-2.15.016 PC7). ---
             flow.frame_count += 1;
+
+            // --- Snapshot for unexpected-source check (BC-2.15.010 Invariant 5) ---
+            // F-F5-001 REVISION 2 §R2-3: capture PRE-PUSH state of master_addrs_seen
+            // BEFORE the population step below. These snapshots let the Control-class
+            // detection arm (inside the FIR=1 block) know whether the current frame's
+            // source was already known at the time of this frame's arrival.
+            // Uses header.source directly (same value as `src` declared inside the
+            // FIR=1 block; available here in outer scope before that block runs).
+            let src_was_known = flow.master_addrs_seen.contains(&header.source);
+            let expected_set_established = !flow.master_addrs_seen.is_empty();
 
             // BC-2.15.016 PC5–6: master-direction (DIR=1) frame → record its source
             // address in master_addrs_seen, deduplicated and capped at MAX_MASTER_ADDRS.
@@ -500,6 +586,28 @@ impl Dnp3Analyzer {
                             // fires BEFORE the burst detection branch (direct finding first).
                             if is_broadcast_destination(dest) {
                                 Self::detect_broadcast_anomaly(
+                                    flow,
+                                    &mut self.all_findings,
+                                    app_fc,
+                                    dest,
+                                    src,
+                                    ts,
+                                    &flow_key,
+                                );
+                            }
+
+                            // BC-2.15.010 Invariant 5 (F-F5-001 REVISION 2): unexpected-source
+                            // check — fires when a Control-class FC arrives from a master-direction
+                            // frame whose source address was NOT in master_addrs_seen before this
+                            // frame was processed (pre-push snapshot).
+                            // Uses corrected is_master_frame (0x80 mask) and pre-push snapshots
+                            // captured above. Falls through unconditionally (no early-return) so
+                            // pending_requests insertion and burst detection still run.
+                            if is_master_frame(header.control)
+                                && expected_set_established
+                                && !src_was_known
+                            {
+                                Self::detect_unexpected_source_split(
                                     flow,
                                     &mut self.all_findings,
                                     app_fc,
@@ -991,6 +1099,70 @@ impl Dnp3Analyzer {
         // BC-2.15.018 PC2: direct_operate_count incremented so burst threshold can fire.
         // The burst detection (detect_control_class_burst_split) runs after this in on_data
         // and will increment the counter itself. No double-increment needed here.
+    }
+
+    /// Unexpected-source detection (F-F5-001 REVISION 2, BC-2.15.010 Invariant 5).
+    ///
+    /// Fires ONE T1692.001 finding when a Control-class frame arrives from a source address
+    /// not previously seen as a master on this flow, AFTER the expected set was established
+    /// (i.e., at least one master address was already known before this frame).
+    ///
+    /// Pre-push snapshot semantics: `src_was_known` and `expected_set_established` MUST be
+    /// captured BEFORE the `master_addrs_seen.push()` so the first-ever-master does NOT
+    /// trigger a false-positive (expected_set_established is false on first push).
+    ///
+    /// One-shot guard: sets `flow.unexpected_source_emitted = true` and never fires again.
+    /// Fall-through invariant: does NOT return early — pending_requests and burst detection
+    /// still run after this function returns.
+    fn detect_unexpected_source_split(
+        flow: &mut Dnp3FlowState,
+        findings: &mut Vec<Finding>,
+        _app_fc: u8,
+        dest: u16,
+        src: u16,
+        now_ts: u32,
+        flow_key: &FlowKey,
+    ) {
+        if flow.unexpected_source_emitted || findings.len() >= MAX_FINDINGS {
+            return;
+        }
+        // Build the expected master set string from master_addrs_seen, EXCLUDING `src`.
+        // Rationale: `src` may have been pushed into master_addrs_seen (it IS master-direction
+        // so the push gate fires for new addresses), but the "expected master set" in the
+        // finding should represent only the PREVIOUSLY established masters, not the intruder.
+        // This matches the test's expectation that the summary shows [0x0001] not [0x0001, 0x0099].
+        let master_set = format!(
+            "[{}]",
+            flow.master_addrs_seen
+                .iter()
+                .filter(|&&a| a != src)
+                .map(|a| format!("{a:#06X}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+        let master_ip = Self::resolve_master_ip(flow_key);
+        findings.push(Finding {
+            category: crate::findings::ThreatCategory::Execution,
+            verdict: crate::findings::Verdict::Likely,
+            confidence: crate::findings::Confidence::High,
+            // BC-2.15.010 Invariant 5 exact summary format:
+            // "DNP3 unauthorized control command from unexpected source: src={src:#06X}
+            //  is not in expected master set {master_set} on dest={dest:#06X}"
+            summary: format!(
+                "DNP3 unauthorized control command from unexpected source: \
+                 src={src:#06X} is not in expected master set {master_set} \
+                 on dest={dest:#06X}"
+            ),
+            evidence: vec![format!(
+                "unexpected_source src={src:#06X} dest={dest:#06X} \
+                 master_set={master_set}"
+            )],
+            mitre_techniques: vec!["T1692.001".to_string()],
+            source_ip: Some(master_ip),
+            timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
+            direction: None,
+        });
+        flow.unexpected_source_emitted = true;
     }
 
     /// Unsolicited-response anomaly (Task 8, BC-2.15.019).
