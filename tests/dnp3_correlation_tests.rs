@@ -4,8 +4,8 @@
 //! Traces to behavioral contracts: BC-2.15.014, BC-2.15.015, BC-2.15.018,
 //! BC-2.15.019, BC-2.15.023, BC-2.15.024.
 //!
-//! RED GATE: ALL tests in `mod story_109` MUST FAIL (todo!() panics or assertion
-//! failures) before any production logic is added.  Tests compile clean.
+//! These tests were authored RED-first (TDD) against todo!() stubs; production logic
+//! has since landed and all 34 tests in `mod story_109` pass.
 //!
 //! Test naming convention: exact names mandated by STORY-109 ACs plus
 //! `test_EC_NNN_xxx` for edge cases, all in `mod story_109` per DF-TEST-NAMESPACE-001.
@@ -465,10 +465,10 @@ mod story_109 {
     // Expose the gap: T0827 must fire when the BLOCK-TIMEOUT path crosses the
     // combined threshold, even when block_event_count < BLOCK_CMD_THRESHOLD (3).
     //
-    // The impl currently only calls maybe_emit_t0827 from inside the
-    // `block_event_count >= BLOCK_CMD_THRESHOLD` guard, so when restarts supply
-    // 2 of the 3 events and 1 block timeout supplies the remainder, T0827 is
-    // silently dropped.  Both tests below WILL FAIL (RED) until the fix lands.
+    // The impl calls maybe_emit_t0827 on the block-timeout path regardless of
+    // block_event_count, so when restarts supply 2 of the 3 events and 1 block
+    // timeout supplies the remainder, T0827 is correctly emitted.  Both tests
+    // below verify this combined-threshold path (F-P9-001 fix).
     // -------------------------------------------------------------------------
 
     /// F-P9-001 regression test 1 (BC-2.15.015 PC5 / EC-002):
@@ -490,8 +490,9 @@ mod story_109 {
     ///   verdict: Verdict::Likely
     ///   confidence: Confidence::Medium
     ///
-    /// This test FAILS before the fix: T0827 absent (block-timeout path skips
-    /// maybe_emit_t0827 because block_event_count=1 < BLOCK_CMD_THRESHOLD=3).
+    /// Authored RED (F-P9-001): the fix unconditionally calls maybe_emit_t0827 on the
+    /// block-timeout path so T0827 fires when combined >= threshold regardless of
+    /// block_event_count.  This test now passes.
     ///
     /// Traces to: BC-2.15.015 PC5; EC-002; F-P9-001; STORY-109 AC-004 (Trace C-rev).
     #[test]
@@ -584,8 +585,8 @@ mod story_109 {
         );
 
         // T0827 MUST have fired exactly once (combined=3 >= T0827_THRESHOLD=3).
-        // This assertion WILL FAIL before the fix (block-timeout path skips
-        // maybe_emit_t0827 when block_event_count < BLOCK_CMD_THRESHOLD).
+        // Verifies BC-2.15.015 PC5: the block-timeout path calls maybe_emit_t0827
+        // regardless of block_event_count (F-P9-001 fix).
         let t0827_findings: Vec<_> = analyzer
             .all_findings
             .iter()
@@ -673,8 +674,9 @@ mod story_109 {
     ///
     /// Expected T0827 fields: same as test 1 (Impact / Likely / Medium).
     ///
-    /// This test FAILS before the fix for the same reason: the block-timeout path
-    /// only calls maybe_emit_t0827 inside the block_event_count >= 3 guard.
+    /// Authored RED for the same F-P9-001 reason: the fix removes the
+    /// block_event_count >= 3 guard from the maybe_emit_t0827 call site on the
+    /// block-timeout path.  This test now passes.
     ///
     /// Traces to: BC-2.15.015 PC5; EC-002; F-P9-001; STORY-109 AC-004 (Trace D).
     #[test]
@@ -768,7 +770,7 @@ mod story_109 {
         );
 
         // T0827 MUST have fired exactly once on the scan where the 2nd block crossed
-        // the combined threshold.  This WILL FAIL before the fix.
+        // the combined threshold.  Verifies BC-2.15.015 PC5 (F-P9-001 fix).
         let t0827_findings: Vec<_> = analyzer
             .all_findings
             .iter()
@@ -1460,9 +1462,8 @@ mod story_109 {
         //   "FC=0x{fc:02X} dest={dest:#06X} src={src:#06X}"
         // — dest BEFORE src, NO parenthetical FC name.
         // frame: dest=0x0003, src=0x0001, fc=0x14 → "FC=0x14 dest=0x0003 src=0x0001".
-        // This assertion WILL FAIL: the impl emits
-        //   "FC=0x14 (ENABLE_UNSOLICITED) src=0x0001 dest=0x0003"
-        // (FC-name parenthetical present + src/dest order swapped) — intended RED.
+        // Authored RED (F-109-P6-001): the impl was corrected to omit the FC-name
+        // parenthetical and to emit dest before src.  This assertion now passes.
         assert_eq!(
             f.evidence,
             vec!["FC=0x14 dest=0x0003 src=0x0001"],

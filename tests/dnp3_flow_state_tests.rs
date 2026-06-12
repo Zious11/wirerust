@@ -1,8 +1,8 @@
-//! Failing tests for STORY-107: DNP3 Per-Flow State + Carry Buffer + Pending-Request Bounds.
+//! Tests for STORY-107: DNP3 Per-Flow State + Carry Buffer + Pending-Request Bounds.
 //!
 //! Covers BC-2.15.016 AC-001..AC-006 and edge cases EC-001..EC-006.
-//! All tests MUST FAIL before implementation — Red Gate per the strict-TDD contract
-//! (STORY-107, tdd_mode: strict).
+//! These tests were authored RED-first (TDD) against STORY-106 stubs; STORY-107
+//! production logic has since landed and all 13 tests pass.
 //!
 //! ## Test naming convention
 //! AC-derived tests use `test_BC_2_16_NNN_xxx()` or the exact names specified by the
@@ -308,10 +308,9 @@ mod story_107 {
     ///
     /// Expected: map.len()==256; entry with ts=0 (key=(0,0)) is evicted; map stays at 256.
     ///
-    /// Red Gate: on_data has NO eviction logic in STORY-106.  After delivering the 257th
-    /// frame, the map will either stay at 256 (if STORY-107 eviction is implemented) or
-    /// grow to 257 (if not).  This test asserts len==256 AND oldest evicted — both will
-    /// FAIL until the implementation is complete.
+    /// Authored RED (STORY-107): STORY-106's on_data had no eviction logic; the 257th
+    /// insert would have grown the map to 257.  STORY-107 added the eviction path;
+    /// this test asserts len==256 AND the oldest entry evicted — both assertions pass.
     ///
     /// We drive the test via on_data with a Control-class frame (FC=0x03 SELECT, link
     /// CONTROL nibble=0x03 CONFIRMED_USER_DATA, transport FIR=1) targeting dest=(0u16, seq 0).
@@ -435,10 +434,10 @@ mod story_107 {
     ///   - frame_count == 1.
     ///   - No panic (VP-023 Sub-D invariant: drain index in [10, 292]).
     ///
-    /// Red Gate: STORY-106's on_data does not accumulate into carry and does not
-    /// execute the carry-consume loop.  carry.len() will be 0 (not 1) and
-    /// frame_count will reflect STORY-106 counting (not carry-consume counting).
-    /// The assertion on carry.len()==1 will FAIL until implementation is complete.
+    /// Authored RED (STORY-107): STORY-106's on_data did not accumulate into carry
+    /// and did not execute the carry-consume loop.  STORY-107 added both; this test
+    /// asserts carry.len()==1 after draining a 10-byte minimum frame — the assertion
+    /// now passes.
     ///
     /// Traces to: BC-2.15.016 invariant 1; VP-023 Sub-D; STORY-107 AC-006.
     #[test]
@@ -684,8 +683,8 @@ mod story_107 {
     /// BC-2.15.016 postcondition 9).  After insert: map.len()==256 and at least one
     /// of the tied-oldest keys is no longer present.
     ///
-    /// Red Gate: on_data has NO eviction logic in STORY-106.  This test will FAIL
-    /// until the STORY-107 eviction implementation is in place.
+    /// Authored RED (STORY-107): STORY-106's on_data had no eviction logic.
+    /// STORY-107 added eviction; this test verifies tie-breaking behaviour and now passes.
     ///
     /// Traces to: STORY-107 EC-005; BC-2.15.016 postcondition 9 (tie-breaking impl-defined).
     #[test]
