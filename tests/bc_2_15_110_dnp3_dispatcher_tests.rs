@@ -697,7 +697,7 @@ mod story_110 {
     ///   tests in src/mitre.rs:
     ///     - `vp007_catalog_drift_guard` asserts
     ///       SEEDED_TECHNIQUE_IDS.len() == SEEDED_TECHNIQUE_ID_COUNT == 23.
-    ///     - The Kani proof `kani_proofs::vp007_all_seeded_ids_resolve` asserts
+    ///     - The Kani proof `kani_proofs::verify_all_emitted_ids_resolve` asserts
     ///       EMITTED_IDS.len() == 15 (reachable only under the kani harness).
     ///
     ///   STRENGTHENING (O-1 fix): Instead of checking a 5-ID representative sample,
