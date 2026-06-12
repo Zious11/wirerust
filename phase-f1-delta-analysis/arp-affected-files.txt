@@ -1,0 +1,141 @@
+# Affected Files — ARP Security Analyzer (with etherparse 0.16 → 0.20.1 migration)
+# Format: STATUS ABSOLUTE_PATH
+# STATUS: NEW | MODIFIED | MODIFIED-BC | DEPENDENT
+# Generated: 2026-06-12
+# Base commit: develop HEAD (post-STORY-110, v0.6.0)
+# Sub-deltas: A=etherparse migration, B=ARP analyzer
+
+# ── NEW SOURCE FILES ────────────────────────────────────────────────────────────
+
+NEW /Users/zious/Documents/GITHUB/wirerust/src/analyzer/arp.rs
+
+# ── MODIFIED SOURCE FILES (Sub-delta A: etherparse migration) ───────────────────
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/Cargo.toml
+# Change: etherparse "0.16" → "0.20" (or "0.20.1")
+# Risk: HIGH — triggers all API compile breaks below
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/src/decoder.rs
+# Change: (1) Add DecodedFrame enum (Ip/Arp variants)
+# Change: (2) decode_packet return type Result<ParsedPacket> → Result<DecodedFrame>
+# Change: (3) Add NetSlice::Arp arm to strict_ip_triple (decoder.rs:209-228)
+# Change: (4) Add LaxNetSlice::Arp arm to lax_ip_triple (decoder.rs:231-250)
+# Change: (5) Replace SliceError::Len(_) with etherparse 0.20 length-error equivalent
+# Change: (6) Add ArpFrame struct and extraction logic from ArpPacketSlice
+# Change: (7) Update doc comments that reference "etherparse 0.16 API contract"
+# Risk: HIGH — CRITICAL path, two compile breaks, return type change
+
+# ── MODIFIED SOURCE FILES (Sub-delta B: ARP analyzer + wiring) ──────────────────
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/src/analyzer/mod.rs
+# Change: Add pub mod arp;
+# Risk: LOW
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/src/main.rs
+# Change: (1) Packet loop: decode_packet returns DecodedFrame; route Ip to IP pipeline, Arp to ArpAnalyzer
+# Change: (2) Wire --arp CLI flag → ArpAnalyzer construction
+# Change: (3) Collect ARP findings post-loop
+# Change: (4) Push ARP summary to analyzer_summaries
+# Risk: MEDIUM
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/src/cli.rs
+# Change: Add --arp bool flag to Commands::Analyze
+# Change: Add --arp-spoof-threshold flag (configures binding rebind threshold)
+# Change: Add arp || all expansion
+# Risk: MEDIUM
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/src/mitre.rs
+# Change: Add confirmed ARP MITRE technique IDs (TBD-pending-research-agent)
+# Change: VP-007 5-part atomic update: technique_info arm(s), SEEDED_TECHNIQUE_IDS,
+#         SEEDED_TECHNIQUE_ID_COUNT, EMITTED_IDS, cargo test mitre gate
+# Risk: CRITICAL — vp007_catalog_drift_guard enforces atomicity mechanically
+
+# ── MODIFIED FACTORY SPEC FILES ──────────────────────────────────────────────────
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/.factory/specs/behavioral-contracts/BC-INDEX.md
+# Change: Add SS-16 section (BC-2.16.001..NNN rows)
+# Change: Revise BC-2.02.009 entry (non-IP frame rejection now excludes ARP)
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/.factory/specs/behavioral-contracts/ss-02/bc-2.02.009.md
+# Change: Text revision — ARP frames return Ok(DecodedFrame::Arp), not Err("No IP layer found")
+# Classification: MODIFIED-BC (behavioral change, not new BC)
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/.factory/specs/architecture/ARCH-INDEX.md
+# Change: Add SS-16 to Subsystem Registry; update BC count
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/.factory/specs/architecture/module-decomposition.md
+# Change: Add C-23 src/analyzer/arp.rs (SS-16, pure core)
+# Change: Update C-5 src/decoder.rs description (returns DecodedFrame enum)
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/.factory/specs/verification-properties/VP-INDEX.md
+# Change: Add VP-024; bump total 23→24; bump p1 9→10; bump kani 10→11
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/.factory/specs/architecture/verification-architecture.md
+# Change: Add VP-024 row to Provable Properties Catalog; update P1 list; update counts
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/.factory/specs/architecture/verification-coverage-matrix.md
+# Change: Add VP-024 row; update Kani column count; update Totals row
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/.factory/specs/module-criticality.md
+# Change: Add ArpAnalyzer (HIGH criticality)
+# Note: module-criticality.md is currently FROZEN as of 2026-06-02.
+#       Feature cycle must unfreeze per lifecycle rule before modification.
+
+MODIFIED /Users/zious/Documents/GITHUB/wirerust/.factory/specs/dtu-assessment.md
+# Change: Version bump + confirmation that ARP feature keeps DTU_REQUIRED: false
+
+# ── NEW FACTORY SPEC FILES ────────────────────────────────────────────────────────
+
+NEW /Users/zious/Documents/GITHUB/wirerust/.factory/specs/behavioral-contracts/ss-16/
+# (new directory, 18–24 BC-2.16.NNN files)
+
+NEW /Users/zious/Documents/GITHUB/wirerust/.factory/specs/verification-properties/vp-024-arp-parse-safety.md
+
+NEW /Users/zious/Documents/GITHUB/wirerust/.factory/specs/architecture/decisions/ADR-008-arp-security-analyzer.md
+
+# ── DEPENDENT FILES (Regression Zone — must stay green) ─────────────────────────
+
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reassembly/handler.rs
+# Risk: NONE — StreamHandler trait unchanged; ARP never enters reassembly pipeline
+
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reassembly/mod.rs
+# Risk: NONE — receives ParsedPacket from DecodedFrame::Ip; ARP variant never reaches it
+
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reassembly/flow.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reassembly/segment.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reassembly/config.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reassembly/stats.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reassembly/lifecycle.rs
+# Risk: NONE — all reassembly code is downstream of decode_packet; ARP routed before it
+
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/dispatcher.rs
+# Risk: NONE — VP-004 Kani oracle unaffected; ARP never reaches StreamDispatcher
+
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/analyzer/http.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/analyzer/tls.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/analyzer/dns.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/analyzer/modbus.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/analyzer/dnp3.rs
+# Risk: NONE — IP-pipeline analyzers unchanged; ARP has its own routing path
+
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/findings.rs
+# Risk: NONE — Finding struct unchanged; ArpAnalyzer uses existing Finding API
+
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reporter/mod.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reporter/json.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reporter/terminal.rs
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/reporter/csv.rs
+# Risk: NONE — reporters are Finding-agnostic; ARP findings flow through existing pipeline
+
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/src/summary.rs
+# Risk: LOW — summary.rs ingests ParsedPacket for IP stats; ARP frames do not increment
+#   IP-level counters. May need protocol_hint addition for "ARP" in summary output (F2 decision).
+
+# ── HIGH-RISK TEST FILES (must be re-verified) ──────────────────────────────────
+
+DEPENDENT /Users/zious/Documents/GITHUB/wirerust/tests/
+# Specifically: any test that calls decode_packet directly and pattern-matches the return value
+# must be updated from Result<ParsedPacket> to Result<DecodedFrame>.
+# The two named contract tests in decoder.rs:44-48 doc comment are the SliceError::Len oracles:
+#   test_decode_snaplen_truncated_ipv6_recovers_via_lax_parsing
+#   test_decode_structurally_corrupt_packet_is_rejected_not_lax_recovered

@@ -1,12 +1,13 @@
 ---
-pipeline: V0.6.0_RELEASED
-phase: released
-phase_status: RELEASED
-active_feature: "#8-dnp3"
+pipeline: FEATURE_MODE_ARP_ANALYZER
+phase: feature-F2-pending
+phase_status: F1-PASSED
+active_feature: "arp-analyzer"
+feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-12T22:45:00Z
+timestamp: 2026-06-12T23:30:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -47,11 +48,11 @@ input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef95
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). F7 5-dim convergence achieved (6 fresh-context passes); tag v0.6.0 + 4 binaries via release.yml. Feature #8 DNP3 v0.6.0 cycle CLOSED — F7 5-dim CONVERGED, RELEASED, session-reviewed; 8 lessons codified; cycle-close deferrals recorded per S-7.02.**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20.1 migration STARTED (F1 PASSED 2026-06-12); release target v0.7.0. F2 spec evolution PENDING.**
 
-**Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22+VP-023 ALL LOCKED), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). Feature #8 DNP3: F7 CONVERGED — 6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM); BC-2.15.009 v1.3; HS-INDEX feature-holdouts indexed.
+**Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22+VP-023 ALL LOCKED), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — est. 18-24 new BCs (SS-16), 1 revised BC, VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE T0830 (primary) + T1557.002 (secondary).
 
-Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #202/#205 closed; develop 31d1231; etherparse 0.20 deferred as migration story.
+Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #202/#205 closed; develop 31d1231; etherparse 0.20 folded into ARP feature cycle (IN-PROGRESS).
 
 ## Phase Progress
 
@@ -77,14 +78,15 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 | Feature #8 DNP3 — F7 Delta Convergence | **CONVERGED** 2026-06-12 | 5-dim convergence; 6 fresh-context passes (final 3 consecutive CONVERGED); PRs #232/#233; BC-2.15.009 v1.3 |
 | Release v0.6.0 | **RELEASED** 2026-06-12 | PR #234 (release/0.6.0 → main 3e29891); fixup fb3935c; tag v0.6.0; 4 binaries (release.yml); develop merge-back 04f8ccb |
 | Maintenance: Dependabot sweep (post-v0.6.0) | **COMPLETE** 2026-06-12 | 5 PRs merged (#203/#204/#207/#235/#206), 2 closed (#202 superseded, #205 deferred); develop 31d1231 |
+| Feature: ARP analyzer — F1 Delta Analysis | **PASSED** (human-gated 2026-06-12) | DecodedFrame{Ip,Arp} integration, ADR-008 planned, F2→F7 authorized; artifacts: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` |
 
-## Session Resume Checkpoint (2026-06-12 — IDLE / STEADY-STATE)
+## Session Resume Checkpoint (2026-06-12 — ARP Feature F1 PASSED / F2 PENDING)
 
 ### POSITION
 
-wirerust **v0.6.0 RELEASED 2026-06-12**. Feature #8 DNP3 (issue #8) cycle **CLOSED**. Pipeline is **IDLE / steady-state** — no work in progress, no active phase, no open PRs for this cycle. Working tree clean. Awaiting next human direction or a steady-state task.
+wirerust **v0.6.0 RELEASED 2026-06-12**. Feature: ARP security analyzer + etherparse 0.16→0.20.1 migration — **F1 Delta Analysis PASSED** (human-gated 2026-06-12, D-066). **F2 Spec Evolution is NEXT.** Working tree clean. No open PRs.
 
-**Cycle outcome:** F7 5-dim CONVERGED — 6 fresh-context adversarial passes; final 3 consecutive CLEAN (0 P0/CRITICAL/HIGH/MEDIUM). Session-reviewed. 8 lessons codified (PG-F7-001..008). S-7.02 process-gap deferrals recorded (PG-F7-001..007 in Drift Items). Do NOT re-run any F-phase; Feature #8 is DONE.
+**F1 outcome:** DecodedFrame{Ip,Arp} integration approach selected. ADR-008 planned. ArpAnalyzer owns bounded IP↔MAC binding table. etherparse 0.20 migration is sub-delta A (SliceError::Len removed; 2 non-exhaustive match breaks; DecodedFrame return-type change). Estimate: 18-24 new BCs (SS-16), 1 revised BC (BC-2.02.009), VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE T0830 (primary) + T1557.002 (secondary) — validated ATT&CK v19.1.
 
 ### VERIFIED SHAs (re-verify live on resume — do NOT trust as current-HEAD values)
 
@@ -93,37 +95,26 @@ wirerust **v0.6.0 RELEASED 2026-06-12**. Feature #8 DNP3 (issue #8) cycle **CLOS
 | develop HEAD | `31d1231` | `git rev-parse --short HEAD` (on develop) |
 | main HEAD | `3e29891` | `git log main -1 --format='%h'` |
 | tag v0.6.0 | annotated 411c243 → commit 3e29891 | `git show v0.6.0 --format='%h' -s` |
-| factory-artifacts HEAD | `5f9709a` | `git -C .factory log -1 --format='%h %s'` |
+| factory-artifacts HEAD | see live | `git -C .factory log -1 --format='%h %s'` |
 | released_version | v0.6.0 | — |
-| prior release | v0.5.0 → c2df1b5 | — |
 
 develop == origin/develop at checkpoint. No divergence.
 
 ### RESUMING-ORCHESTRATOR RUNBOOK (strict order)
 
 1. `vsdd-factory:factory-worktree-health` — verify `.factory/` on `factory-artifacts` branch. **BLOCKING — do not proceed if this fails.**
-2. Read `STATE.md` (this file). Confirm develop==origin/develop, working tree clean, `git worktree list` shows only main + `.factory`.
-3. `bin/compute-input-hash --scan` — expect **MATCH=62 STALE=0 ERROR=1** (STORY-091 is a known/out-of-scope error; not a blocker).
-4. Pipeline is **IDLE** — there is no phase to resume. Choose from the Next-Work Options below or await human direction.
+2. Read `STATE.md` (this file). Confirm develop==origin/develop, working tree clean.
+3. `bin/compute-input-hash --scan` — expect **MATCH=62 STALE=0 ERROR=1** (STORY-091 known/out-of-scope; not a blocker).
+4. Active phase is **Feature F2 Spec Evolution** — dispatch `vsdd-factory:phase-f2-spec-evolution` to produce SS-16 BCs, ADR-008, VP-024.
 
-### NEXT-WORK OPTIONS (none in progress — all optional, human-prioritized)
+### KEY ARTIFACT POINTERS (ARP feature)
 
-**A. Dependabot PR sweep — DONE (2026-06-12).** 5 merged: #203 serde_json 1.0.150 (24bc419), #204 assert_cmd 2.2.2 (8f48697), #207 clap 4.6.1 (ec7b288), #235 SHA-pin actions/checkout 6.0.3 (b31f65c), #206 rayon 1.12.0 (31d1231). 2 closed: #202 superseded by #235; #205 etherparse 0.16→0.20 deferred as migration story (see DRIFT-ETHERPARSE-0.20-MIGRATION-001). Note: O-07 unused-rayon still open.
-
-**B. Policy-candidate registrations from F7 lessons (human approval needed):** PG-F7-001 (BC bump must re-stamp consuming stories same burst; gate runs live scan) and PG-F7-002 (re-validate holdout assertions vs impl after behavior-changing adjudication). Register via `vsdd-factory:policy-add` into `.factory/policies.yaml` if approved.
-
-**C. Roadmap (post-DNP3):** issue #3 C2 beaconing | issue #4 CSV+SQLite reporters | issue #6 rayon parallel (relates to O-07 unused-rayon).
-
-**D. PCAP-CORPUS-001** (E2E pcap corpus storage) — TABLED, human decision pending.
-
-### KEY ARTIFACT POINTERS
-
-- Lessons (all cycles): `cycles/feature-8-dnp3-v0.5.0/lessons.md` (PG-F4-F5-001..006 + PG-F7-001..008)
-- Session review: `cycles/feature-8-dnp3-v0.5.0/session-review-f7-release.md`
-- F7 process-gap deferrals: Drift Items table below (PG-F7-001..007 + DRIFT-ENGINE-RELEASECONFIG-STALE-001)
+- F1 delta analysis: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md`
+- F1 affected files: `.factory/phase-f1-delta-analysis/arp-affected-files.txt`
+- F1 MITRE research: `.factory/phase-f1-delta-analysis/mitre-arp-research.md`
+- F1 MITRE additional detections: `.factory/phase-f1-delta-analysis/mitre-arp-additional-detections.md`
+- Feature #8 DNP3 lessons: `cycles/feature-8-dnp3-v0.5.0/lessons.md` (PG-F4-F5-001..006 + PG-F7-001..008)
 - Prior session checkpoints: `cycles/v0.1.0-greenfield-spec/session-checkpoints.md`
-- Immutable PR/SHA audit trail (F4-F7 + release): STORY-106..110 PRs #225-229; F5 #230 e685664; F6 #231 a125c69; F7 #232/#233 f217f27; release fixup fb3935c; PR #234 → main 3e29891; develop merge-back 04f8ccb
-- Dependabot sweep audit trail (2026-06-12): #203 24bc419, #204 8f48697, #207 ec7b288, #235 b31f65c (manual SHA pin → df4cb1c), #206 31d1231; #202/#205 closed; develop HEAD 31d1231; state burst 5f9709a; D-065.
 
 ## Decisions Log
 
@@ -151,6 +142,7 @@ D-047..D-054 full text archived: `cycles/v0.1.0-greenfield-spec/decisions-archiv
 | D-063 | Feature #8 F7 CONVERGED — 5-dim delta convergence after remediation of F-S2-001 (canonical-frame IEEE 1815 provenance: holdout HS-W37-002 + test, PR #232), F-S1-001 (BC-2.15.009 v1.3 initial-delivery-only reconciliation + BC-INDEX/STORY-106 propagation), F-PG-001 (HS-INDEX feature-holdout indexing), F-CC-001 (HS-W36-001 stale carry assertion), F-CC-002 (STORY-106..110 status drift), F-CC-003/004 (README/CHANGELOG DNP3 docs, PR #233). 6 fresh-context adversarial passes; final 3 consecutive CONVERGED. develop f217f27. NEXT = human gate → v0.6.0. | 2026-06-12 |
 | D-064 | v0.6.0 RELEASED — gitflow release/0.6.0 → PR #234 → main 3e29891; fixup fb3935c; tag v0.6.0; GitHub Release WITH 4 binaries (release.yml auto-build); develop merge-back 04f8ccb. DNP3 TCP analyzer is the headline feature. | 2026-06-12 |
 | D-065 | Dependabot sweep post-v0.6.0 COMPLETE — #203 serde_json/#204 assert_cmd/#207 clap/#206 rayon routine bumps merged; #235 manual SHA-pin actions/checkout 6.0.3 (replacing tag-ref #202); #205 etherparse 0.16→0.20 closed and deferred as migration story (new drift DRIFT-ETHERPARSE-0.20-MIGRATION-001). develop 31d1231. | 2026-06-12 |
+| D-066 | Feature ARP analyzer F1 gate APPROVED — full F1-F7, release target v0.7.0. Integration via DecodedFrame{Ip,Arp} enum from decode_packet (new ADR-008); ArpAnalyzer owns bounded IP↔MAC binding table; zero structural impact on existing 5 analyzers/reassembly/dispatcher. etherparse 0.20 migration is sub-delta A (SliceError::Len removed; 2 non-exhaustive NetSlice/LaxNetSlice match breaks; DecodedFrame return-type change). Estimate: 18-24 new BCs (SS-16), 1 revised BC (BC-2.02.009), VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE: T0830 (ICS AiTM, primary) + T1557.002 (Enterprise ARP Cache Poisoning, secondary) — validated ATT&CK v19.1. Detections approved: ARP spoof/cache-poisoning + gratuitous ARP + ARP storm/rate anomaly + research-agent pass for additional detections. DRIFT-ETHERPARSE-0.20-MIGRATION-001 folded into this cycle (IN-PROGRESS). | 2026-06-12 |
 
 ## Blocking Issues
 
@@ -192,7 +184,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | PG-F7-005 | Story status (body frontmatter + STORY-INDEX) advances to completed at merge, not draft. Add to per-story delivery close-out. Backing: lessons.md PG-F7-005. | DEFERRED — engine workflow note |
 | PG-F7-006 | Shipping a feature moves README planned→implemented + adds CHANGELOG Unreleased entry at delivery, not release scramble. Backing: lessons.md PG-F7-006. | DEFERRED — engine workflow note |
 | PG-F7-007 | Agents must check gh run list for in-flight tag-triggered workflows before reporting missing CI/release assets. Backing: lessons.md PG-F7-007. | DEFERRED LOW — engine devops checklist note |
-| DRIFT-ETHERPARSE-0.20-MIGRATION-001 | etherparse 0.20 adds Arp variants to NetSlice/LaxNetSlice/InternetSlice; non-exhaustive match at src/decoder.rs:210,232. Migration options: (A) return Option<IpTriple> + skip ARP; (B) ARP analyzer feature. PR #205 closed; needs Feature-Mode story. | DEFERRED — feature-cycle |
+| DRIFT-ETHERPARSE-0.20-MIGRATION-001 | etherparse 0.20 adds Arp variants to NetSlice/LaxNetSlice/InternetSlice; non-exhaustive match at src/decoder.rs:210,232. Folded into ARP analyzer feature cycle (D-066, sub-delta A). | IN-PROGRESS — ARP feature cycle |
 
 ## Deferred Next-Work Backlog
 
@@ -200,7 +192,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 
 **2. Roadmap (post-DNP3):** #3 C2 beaconing | #4 CSV+SQLite reporters | #6 rayon parallel (relates to O-07).
 
-**3. etherparse 0.20 migration:** DRIFT-ETHERPARSE-0.20-MIGRATION-001 — non-exhaustive Arp variants at src/decoder.rs:210,232; needs Feature-Mode story (see Drift Items).
+**3. etherparse 0.20 migration:** DRIFT-ETHERPARSE-0.20-MIGRATION-001 — folded into ARP analyzer feature cycle (D-066, sub-delta A); IN-PROGRESS.
 
 ## Governance Policy
 
