@@ -7,6 +7,74 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-12
+
+### Added
+
+- **DNP3 TCP protocol analyzer** for ICS/OT network forensics (Feature #8, PRs #219–#231).
+  Analyzes TCP streams on port 20000 per IEEE Std 1815-2012 (DNP3); dispatched as Rule 6 in the
+  stream dispatcher after content-signature rules (TLS record, HTTP prefix) and port rules for
+  TLS, HTTP, and Modbus — it never misclassifies TLS or HTTP traffic
+  (BC-2.15.021 INV-2, ADR-007 Decision 1).
+
+  Parses the 10-byte DNP3 data-link layer header: sync bytes, LENGTH, CONTROL, DEST/SRC link
+  addresses (little-endian per IEEE 1815-2012 §8.2). Classifies application-layer function codes
+  into six classes: Read, Write, Control, Restart, Management, Response. Per-flow state with a
+  292-byte carry-buffer frame-walk handles fragmented TCP delivery and desync detection.
+
+  Emits findings mapped to **5 MITRE ATT&CK for ICS techniques**:
+
+  - **T1692.001** Unauthorized Message: Command Message — direct-operate burst (Control-class FCs
+    exceed the per-flow threshold within a 60-second detection window), unexpected master source
+    (Control FC from a source address not in the established master set), and broadcast control
+    command (Control FC to a DNP3 broadcast destination address)
+  - **T1691.001** Block Operational Technology Message: Command Message — Control-class requests
+    that receive no matching RESPONSE (FC 0x81) within 10 seconds contribute to a block-event
+    counter; fires when >= 3 block events accumulate within the 300-second correlation window
+  - **T0827** Loss of Control — fires when the combined count of restart events and block-command
+    events reaches >= 3 within the 300-second correlation window (co-emitted after T0814 or
+    T1691.001)
+  - **T0814** Denial of Service — emitted per cold/warm restart command (FC 0x0D / FC 0x0E), and
+    as a malformed-frame anomaly when >= 3 parse-invalid frames are observed within the 300-second
+    correlation window
+  - **T0836** Modify Parameter — emitted per WRITE command (FC 0x02)
+
+  Additional anomaly detections (emitted as Suspicious findings without technique assignment):
+  unsolicited-response anomaly when UNSOLICITED_RESPONSE (FC 0x82) arrives on a flow where
+  ENABLE_UNSOLICITED was never observed.
+
+  Bounded-resource design: per-flow state capped at 64 tracked master addresses, 256 pending
+  requests, and 10,000 total findings; 300-second correlation window with six windowed counters
+  reset together (ADR-007 Decision 4).
+
+- **CLI flags for the DNP3 analyzer:**
+  - `--dnp3` — enable DNP3 TCP analysis (also included in `-a`/`--all`; default-off,
+    BC-2.15.021)
+  - `--dnp3-direct-operate-threshold N` — per-flow direct-operate burst threshold; fires T1692.001
+    when Control-class FC count exceeds N within the 60-second detection window (default: 10,
+    BC-2.15.017)
+
+- **Dispatcher Rule 6** — Port-20000 classification added to the stream dispatcher as Rule 6
+  (STORY-110, ADR-007 Decision 1). Fires after content-signature rules (Rules 1–2) and port rules
+  for TLS/HTTP/Modbus (Rules 3–5), preserving the VP-004 port-precedence invariant.
+
+- **`MitreTactic::IcsImpact` tactic variant** — new variant added to the `MitreTactic` enum
+  (STORY-109, VP-007 obligation). Maps to the MITRE ATT&CK for ICS "Impact" tactic (TA0105).
+  Used exclusively by T0827 "Loss of Control". Added atomically with the T0827 emission branch
+  and the `technique_info("T0827")` catalog entry.
+
+- **`T1691.001` and `T0827` catalog entries** — two new technique IDs seeded in the static MITRE
+  catalog (`technique_info`): T1691.001 "Block Operational Technology Message: Command Message"
+  (IcsInhibitResponseFunction) and T0827 "Loss of Control" (IcsImpact). Total catalog size: 23
+  technique IDs (STORY-109, VP-007).
+
+- **Formal verification and quality assurance for the DNP3 analyzer:**
+  - VP-023 (Kani): parse safety sub-properties A–D: all-input range, FC totality, frame-length
+    bounds, carry-buffer progress.
+  - Fuzz testing: `fuzz_dnp3_parse` target added (PR #229).
+  - Mutation testing: 100% effective kill rate on the detection core including edge cases for
+    window-seeding (PR #231).
+
 ## [0.5.0] - 2026-06-10
 
 ### Fixed
@@ -228,7 +296,8 @@ Downstream consumers of wirerust JSON or CSV output must update for this release
 - Output sanitization in the terminal reporter guards against C1 control bytes
   in packet-derived strings.
 
-[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Zious11/wirerust/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Zious11/wirerust/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Zious11/wirerust/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Zious11/wirerust/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Zious11/wirerust/compare/v0.2.0...v0.3.0
