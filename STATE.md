@@ -6,7 +6,7 @@ active_feature: "#8-dnp3"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-12T17:08:39Z
+timestamp: 2026-06-12T18:15:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -75,46 +75,51 @@ input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef95
 | Feature #8 DNP3 — F7 Delta Convergence | **CONVERGED** 2026-06-12 | 5-dim convergence; 6 fresh-context passes (final 3 consecutive CONVERGED); PRs #232/#233; BC-2.15.009 v1.3 |
 | Release v0.6.0 | **RELEASED** 2026-06-12 | PR #234 (release/0.6.0 → main 3e29891); fixup fb3935c; tag v0.6.0; 4 binaries (release.yml); develop merge-back 04f8ccb |
 
-## Session Resume Checkpoint (2026-06-12 — v0.6.0 RELEASED)
+## Session Resume Checkpoint (2026-06-12 — IDLE / STEADY-STATE)
 
-**POSITION:** Feature #8 (DNP3 TCP analyzer, issue #8). v0.6.0 RELEASED 2026-06-12 via gitflow. release/0.6.0 → PR #234 → main 3e29891; fixup fb3935c; tag v0.6.0 annotated; 4 binaries auto-built by release.yml (aarch64-apple-darwin, x86_64-apple-darwin, x86_64-pc-windows-msvc, x86_64-unknown-linux-gnu); develop merge-back 04f8ccb.
+### POSITION
 
-**KEY SHAs (verified live — do not hardcode factory-artifacts HEAD in current-state sections):**
-- develop HEAD: `04f8ccb` (main merge-back; 2026-06-12)
-- main HEAD: `3e29891` (v0.6.0 released 2026-06-12)
-- factory-artifacts HEAD: `git -C .factory log -1 --format='%h %s'` (run live; never hardcode here)
-- released_version: v0.6.0; prior: v0.5.0 (c2df1b5)
+wirerust **v0.6.0 RELEASED 2026-06-12**. Feature #8 DNP3 (issue #8) cycle **CLOSED**. Pipeline is **IDLE / steady-state** — no work in progress, no active phase, no open PRs for this cycle. Working tree clean. Awaiting next human direction or a steady-state task.
 
-**v0.6.0 RELEASE SUMMARY:**
-- F7 5-dim: spec(BC-2.15.009 v1.3) / tests(1496 green) / impl(clippy+fmt clean) / verification(VP-023 LOCKED, 9/9 Kani, 89% mutation, 3.19M fuzz/0) / docs(README+CHANGELOG PRs #232/#233)
-- Release: PR #234 (9 CI green) → main 3e29891; fixup fb3935c; tag v0.6.0; GitHub Release with 4 binaries
-- Input-hash scan: MATCH=62 STALE=0 ERROR=1 (STORY-091 known/out-of-scope)
-- DRIFT-DNP3-DOC-T0814-COMPLETENESS-001: RESOLVED in v0.6.0 (T0814 ENABLE/DISABLE trigger sources added to README/CHANGELOG on release branch)
-- DRIFT-ENGINE-RELEASECONFIG-STALE-001: PARTIALLY RESOLVED — release-config.yaml prose refreshed this burst
+**Cycle outcome:** F7 5-dim CONVERGED — 6 fresh-context adversarial passes; final 3 consecutive CLEAN (0 P0/CRITICAL/HIGH/MEDIUM). Session-reviewed. 8 lessons codified (PG-F7-001..008). S-7.02 process-gap deferrals recorded (PG-F7-001..007 in Drift Items). Do NOT re-run any F-phase; Feature #8 is DONE.
 
-**MERGED PR / SHA HISTORY (F4-F7 + release — immutable audit trail):**
-- STORY-106..110 PRs #225-229 → d0f3586/ebb4751/9c03fde/34443f9/ddfa576
-- F5 remediation PR #230 → e685664; F6 hardening PR #231 → a125c69
-- F7 test-citation PR #232; docs PR #233 → f217f27
-- Release fixup fb3935c; PR #234 → main 3e29891; tag v0.6.0; develop merge-back 04f8ccb
+### VERIFIED SHAs (re-verify live on resume — do NOT trust as current-HEAD values)
 
-**NEXT ACTIONS (post-v0.6.0):**
-- Dependabot PR sweep (#202-207); roadmap: #3 C2 beaconing, #4 CSV+SQLite reporters, #6 rayon.
+| Ref | Value at checkpoint | How to re-verify |
+|-----|--------------------|--------------------|
+| develop HEAD | `04f8ccb` | `git rev-parse --short HEAD` (on develop) |
+| main HEAD | `3e29891` | `git log main -1 --format='%h'` |
+| tag v0.6.0 | annotated 411c243 → commit 3e29891 | `git show v0.6.0 --format='%h' -s` |
+| factory-artifacts HEAD | `1cfea98` | `git -C .factory log -1 --format='%h %s'` |
+| released_version | v0.6.0 | — |
+| prior release | v0.5.0 → c2df1b5 | — |
 
-**OPEN DRIFT ITEMS (carry to v0.6.0 release prep):**
-- DRIFT-DNP3-DIRECTION-001: resolve_master_ip port-heuristic-only; direction-aware deferred post-v0.6.0.
-- DRIFT-MITRE-EMITTED-LABEL-001: kani EMITTED_IDS T0835/T0831 over-label; LOW.
-- DRIFT-BC-2.15.024-EC006-PROSE-001: EC-006 prose vs BC-2.15.009 PC5 conflict; LOW.
-- DRIFT-SEMGREP-001: semgrep absent; manual CLEAN; non-blocking LOW.
-- DRIFT-ENGINE-RELEASECONFIG-STALE-001: release-config.yaml human-prose fields stale since v0.2.0; fix at v0.6.0 release prep; MEDIUM.
-- DRIFT-DNP3-DOC-T0814-COMPLETENESS-001: README/CHANGELOG omit T0814 ENABLE/DISABLE_UNSOLICITED as trigger sources; LOW.
-- DRIFT-BC-INPUTHASH-TBD-001: SS-15 BC files carry input-hash:TBD; by-design (tool scopes to stories/); known/accepted.
+develop == origin/develop at checkpoint. No divergence.
 
-**SESSION-REVIEW LESSONS:** `cycles/feature-8-dnp3-v0.5.0/session-review-f4-f6.md` + `cycles/feature-8-dnp3-v0.5.0/session-review-f7-release.md` + `cycles/feature-8-dnp3-v0.5.0/lessons.md` (PG-F7-001..008 appended)
+### RESUMING-ORCHESTRATOR RUNBOOK (strict order)
 
-**CYCLE CLOSED:** Feature #8 DNP3 / v0.6.0 sub-cycle CLOSED 2026-06-12 — F7 5-dim CONVERGED, RELEASED, session-reviewed; 8 lessons codified (PG-F7-001..008); 7 S-7.02 process-gap deferrals recorded (PG-F7-001..007 in Drift Items); DRIFT-ENGINE-RELEASECONFIG-STALE-001 engine follow-up confirmed DEFERRED.
+1. `vsdd-factory:factory-worktree-health` — verify `.factory/` on `factory-artifacts` branch. **BLOCKING — do not proceed if this fails.**
+2. Read `STATE.md` (this file). Confirm develop==origin/develop, working tree clean, `git worktree list` shows only main + `.factory`.
+3. `bin/compute-input-hash --scan` — expect **MATCH=62 STALE=0 ERROR=1** (STORY-091 is a known/out-of-scope error; not a blocker).
+4. Pipeline is **IDLE** — there is no phase to resume. Choose from the Next-Work Options below or await human direction.
 
-**PRIOR CHECKPOINTS:** `cycles/v0.1.0-greenfield-spec/session-checkpoints.md`
+### NEXT-WORK OPTIONS (none in progress — all optional, human-prioritized)
+
+**A. Dependabot PR sweep (6 open PRs):** #202 actions/checkout (MUST close + SHA-pin manually — do NOT merge tag ref), #203 serde_json (routine review+merge), #204 assert_cmd (routine), #205 etherparse 0.16→0.20 (review API breaks before merging), #206 rayon (routine), #207 clap (routine).
+
+**B. Policy-candidate registrations from F7 lessons (human approval needed):** PG-F7-001 (BC bump must re-stamp consuming stories same burst; gate runs live scan) and PG-F7-002 (re-validate holdout assertions vs impl after behavior-changing adjudication). Register via `vsdd-factory:policy-add` into `.factory/policies.yaml` if approved.
+
+**C. Roadmap (post-DNP3):** issue #3 C2 beaconing | issue #4 CSV+SQLite reporters | issue #6 rayon parallel (relates to O-07 unused-rayon).
+
+**D. PCAP-CORPUS-001** (E2E pcap corpus storage) — TABLED, human decision pending.
+
+### KEY ARTIFACT POINTERS
+
+- Lessons (all cycles): `cycles/feature-8-dnp3-v0.5.0/lessons.md` (PG-F4-F5-001..006 + PG-F7-001..008)
+- Session review: `cycles/feature-8-dnp3-v0.5.0/session-review-f7-release.md`
+- F7 process-gap deferrals: Drift Items table below (PG-F7-001..007 + DRIFT-ENGINE-RELEASECONFIG-STALE-001)
+- Prior session checkpoints: `cycles/v0.1.0-greenfield-spec/session-checkpoints.md`
+- Immutable PR/SHA audit trail (F4-F7 + release): STORY-106..110 PRs #225-229; F5 #230 e685664; F6 #231 a125c69; F7 #232/#233 f217f27; release fixup fb3935c; PR #234 → main 3e29891; develop merge-back 04f8ccb
 
 ## Decisions Log
 
