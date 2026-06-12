@@ -87,10 +87,12 @@ mod story_107 {
         frame
     }
 
-    /// Build a master-direction frame: control has DIR bit set (0x10).
-    /// Uses nibble 0x04 (UNCONFIRMED_USER_DATA) with DIR+PRM bits: 0xD4.
+    /// Build a master-direction frame: control has DIR bit set (bit 7, mask 0x80).
+    /// Uses nibble 0x04 (UNCONFIRMED_USER_DATA) with DIR+PRM+FCV bits: 0xD4.
     fn build_master_frame(dest: u16, src: u16) -> Vec<u8> {
-        // 0xD4 = 1101 0100: DIR(1) PRM(1) FCB(0) FCV(0) FC(0100=UNCONF_USER_DATA)
+        // 0xD4 = 1101 0100: DIR(1, bit7) PRM(1, bit6) FCB(0, bit5) FCV(1, bit4) FC(0100=UNCONF_USER_DATA)
+        // DIR=1 because 0xD4 & 0x80 = 0x80 != 0 (corrected mask per BC-2.15.016 PC5 / F-A-001 REVISION 2).
+        // Note: bit4 of 0xD4 is FCV (Frame Count Valid), NOT DIR. DIR is bit7.
         build_frame(5, dest, src, 0xD4)
     }
 
@@ -831,42 +833,81 @@ mod story_107 {
     // BC-2.15.016 postconditions 5–6 depend on is_master_frame
     // ---------------------------------------------------------------------------
 
-    /// Verify is_master_frame correctly identifies DIR=1 frames (control & 0x10 != 0).
+    /// Verify is_master_frame correctly identifies DIR=1 frames (control & 0x80 != 0).
     ///
-    /// This is a direct unit test of the helper used by master-addr tracking.
-    /// `is_master_frame` currently has `todo!()` — this test will panic until implemented.
+    /// CORRECTED per F-A-001 REVISION 2: DIR is bit 7 (mask 0x80) per IEEE 1815 DNP3
+    /// link-layer framing. The previous version incorrectly tested bit 4 (mask 0x10 = FCV/DFC).
     ///
-    /// Traces to: BC-2.15.016 postconditions 5–6; STORY-107 Task 5.
+    /// RED GATE: this test asserts the CORRECT 0x80-mask behavior. It fails until
+    /// `is_master_frame` is fixed from `control & 0x10 != 0` to `control & 0x80 != 0`.
+    ///
+    /// Traces to: BC-2.15.016 postcondition 5 (corrected); F-A-001 REVISION 2 §R2-1.
     #[test]
     fn test_BC_2_15_016_is_master_frame_dir_bit() {
         use wirerust::analyzer::dnp3::is_master_frame;
 
-        // DIR bit set (0x10) — master-direction frame.
+        // -------------------------------------------------------------------
+        // DIR=1 (bit 7 set) — master-direction frames. All must return true.
+        // -------------------------------------------------------------------
+
+        // Canonical master frame per BC-2.15.010 / HS-W37-002 byte vectors.
+        // 0xC4 = 1100 0100: DIR=1(bit7), PRM=1(bit6), FCB=0(bit5), FCV=0(bit4),
+        //                    FC=0x04(UNCONF_USER_DATA).
+        // 0xC4 & 0x80 = 0x80 != 0 → is_master_frame=true (CORRECT).
+        // 0xC4 & 0x10 = 0x00 == 0 → BUGGY mask returns false (proves the bug).
         assert!(
-            is_master_frame(0x10),
-            "control=0x10 (DIR bit only) must return true"
-        );
-        assert!(
-            is_master_frame(0xD4),
-            "control=0xD4 (DIR+PRM+UNCONF_USER_DATA) must return true"
-        );
-        assert!(
-            is_master_frame(0xFF),
-            "control=0xFF (all bits set) must return true"
+            is_master_frame(0xC4),
+            "control=0xC4 (canonical master frame: DIR=1 bit7 set) must return true; \
+             RED: buggy mask 0x10 returns false for this canonical value"
         );
 
-        // DIR bit clear — outstation-direction frame.
+        // 0xD4 = 1101 0100: DIR=1(bit7), PRM=1(bit6), FCB=0(bit5), FCV=1(bit4),
+        //                    FC=0x04(UNCONF_USER_DATA).
+        // 0xD4 & 0x80 = 0x80 != 0 → is_master_frame=true (CORRECT).
+        assert!(
+            is_master_frame(0xD4),
+            "control=0xD4 (DIR=1 bit7 set; also PRM+FCV bits set) must return true"
+        );
+
+        // 0xFF = all bits set; bit 7 (DIR) is set → must return true.
+        assert!(
+            is_master_frame(0xFF),
+            "control=0xFF (all bits set, DIR=1) must return true"
+        );
+
+        // -------------------------------------------------------------------
+        // DIR=0 (bit 7 clear) — outstation-direction frames. All must return false.
+        // -------------------------------------------------------------------
+
+        // 0x00 = all bits clear; DIR=0 → must return false.
         assert!(
             !is_master_frame(0x00),
-            "control=0x00 (no DIR bit) must return false"
+            "control=0x00 (no bits set, DIR=0) must return false"
         );
+
+        // 0x04 = UNCONF_USER_DATA with DIR=0: bit7=0, FC=0x04.
+        // 0x04 & 0x80 = 0 → must return false.
         assert!(
             !is_master_frame(0x04),
-            "control=0x04 (UNCONF_USER_DATA, no DIR) must return false"
+            "control=0x04 (UNCONF_USER_DATA, DIR=0 bit7 clear) must return false"
         );
+
+        // 0x44 = 0100 0100: bit7=0 (DIR=0), bit6=1 (PRM=1), bit5=0, bit4=0, FC=0x04.
+        // Outstation direction (DIR=0). 0x44 & 0x80 = 0 → must return false.
+        // Replaces the previously-wrong 0xEF assertion: 0xEF & 0x80 = 0x80 (DIR=1,
+        // so 0xEF IS a master frame under the correct mask — the old assertion was wrong).
         assert!(
-            !is_master_frame(0xEF),
-            "control=0xEF (DIR bit clear: 0xEF & 0x10 == 0) must return false"
+            !is_master_frame(0x44),
+            "control=0x44 (DIR=0, PRM=1, outstation direction) must return false"
+        );
+
+        // Confirm 0x10 (FCV/DFC bit only, DIR=0) now returns FALSE under corrected mask.
+        // Under the BUGGY mask (0x10), this returned true — which was the bug.
+        // Under the CORRECT mask (0x80): 0x10 & 0x80 = 0 → false.
+        assert!(
+            !is_master_frame(0x10),
+            "control=0x10 (FCV bit only, DIR=0 bit7 clear) must return false; \
+             RED: buggy mask 0x10 returns true for this value (wrong: 0x10 is FCV, not DIR)"
         );
     }
 
