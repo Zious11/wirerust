@@ -2,10 +2,10 @@
 pipeline: V0.5.0_RELEASED
 phase: feature-f4
 active_feature: "#8-dnp3"
-feature_8_status: "F4 IN PROGRESS — waves 35-37 (STORY-106,107,108) DELIVERED; wave 38 STORY-109 next"
+feature_8_status: "F4 IN PROGRESS — waves 35-38 (STORY-106,107,108,109) DELIVERED; wave 39 STORY-110 (FINAL) next"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-11T19:46:40Z
+timestamp: 2026-06-12T01:12:31Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -16,7 +16,7 @@ phase_5_completed: "2026-06-01"
 phase_6_completed: "2026-06-02"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
-develop_head: 9c03fde
+develop_head: 34443f9
 main_head: c2df1b5
 released_version: v0.5.0
 released_at: "2026-06-10"
@@ -29,7 +29,7 @@ prior_release_tag: v0.4.0
 prior_release_commit: 90aa91e
 current_cycle: v0.1.0-greenfield-spec
 current_wave: 27 (FINAL — CLOSED)
-stories_delivered: 55
+stories_delivered: 56
 wave_history_detail: "cycles/phase-3-tdd/wave-history.md (all waves 1-27)"
 dtu_required: false
 dtu_assessment: 2026-05-20
@@ -38,16 +38,16 @@ dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 consistency_audit: CONSISTENT
-input_drift_check: "STORY-106/107/108 regenerated at delivery (VP-023 v1.3→v1.4 drift; b465d38/2fd1cec/350c8b1). STORY-109/110 LIKELY STALE — run bin/compute-input-hash --write before each delivery"
+input_drift_check: "STORY-106/107/108/109 regenerated at delivery (b465d38/2fd1cec/a4218c5/f0fb436). Scan MATCH=62/STALE=0 (STORY-091 structural ERROR pre-existing/out-of-scope). STORY-110 hash a9cdfb5 — confirm TBD-dup cleaned before delivery; run bin/compute-input-hash --write before delivery"
 ---
 
 # VSDD Pipeline State — wirerust
 
 ## Status
 
-**wirerust v0.5.0 RELEASED (MITRE ATT&CK-ICS v19 remap, issue #222 CLOSED). Feature #8 DNP3 F4 IN PROGRESS — waves 35-37 (STORY-106,107,108) DELIVERED; wave 38 = STORY-109 next; v0.6.0 target.**
+**wirerust v0.5.0 RELEASED (MITRE ATT&CK-ICS v19 remap, issue #222 CLOSED). Feature #8 DNP3 F4 IN PROGRESS — waves 35-38 (STORY-106,107,108,109) DELIVERED; wave 39 = STORY-110 (FINAL) next; v0.6.0 target.**
 
-**Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22 locked + VP-023 F2-new), 1338 tests green, holdout 0.967. develop HEAD 9c03fde; main HEAD c2df1b5 (v0.5.0). Feature #8 DNP3: F4 in progress; waves 35-37 DELIVERED (STORY-106 PR #225 d0f3586; STORY-107 PR #226 ebb4751; STORY-108 PR #227 9c03fde — 3-pass adversarial 3/3 CLEAN; direct detections T1692.001/T0814/T0836; source_ip/timestamp fix; resolve_master_ip helper); waves 38-39 remaining. develop is ahead of main by 6 commits.
+**Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22 locked + VP-023 F2-new), 1338+ tests green, holdout 0.967. develop HEAD 34443f9; main HEAD c2df1b5 (v0.5.0). Feature #8 DNP3: F4 in progress; waves 35-38 DELIVERED (STORY-106 PR #225 d0f3586; STORY-107 PR #226 ebb4751; STORY-108 PR #227 9c03fde; STORY-109 PR #228 34443f9 — 13-pass adversarial 3/3 CLEAN; correlated T1691.001/T0827 detections; MitreTactic::IcsImpact; VP-007 atomic seed; BC-2.15.016 v1.2 resync); wave 39 STORY-110 remaining (FINAL: dispatcher wiring + CLI flags). develop is ahead of main by 7 commits.
 
 ## Phase Progress
 
@@ -67,38 +67,31 @@ input_drift_check: "STORY-106/107/108 regenerated at delivery (VP-023 v1.3→v1.
 | Release v0.5.0 | **RELEASED** 2026-06-10 | c2df1b5; 4 binaries; run 27313698900 SUCCESS |
 | Feature #8 DNP3 — F2 Spec Evolution | **COMPLETE** 2026-06-10 | SS-15 24 BCs; 268 total; MITRE 23/15/8; thresholds CONFIRMED |
 | Feature #8 DNP3 — F3 Story Decomposition | **PASSED** (human-gated 2026-06-11) | 3 decisions accepted: (a) 5 stories as-is (STORY-109 atomic for VP-007), (b) VP placements VP-023@106/110 VP-007@109 VP-004@110, (c) linear chain 106→107→108→109→110 |
-| Feature #8 DNP3 — F4 Delta Implementation | IN PROGRESS 2026-06-11 | waves 35-37 DELIVERED (STORY-106 PR #225 d0f3586; STORY-107 PR #226 ebb4751; STORY-108 PR #227 9c03fde — 3-pass adversarial 3/3 CLEAN; direct T1692.001/T0814/T0836; source_ip/timestamp fix; resolve_master_ip helper; DRIFT-DNP3-DIRECTION-001 recorded); waves 38-39 remaining; v0.6.0 target |
+| Feature #8 DNP3 — F4 Delta Implementation | IN PROGRESS 2026-06-12 | waves 35-38 DELIVERED (STORY-106 PR #225 d0f3586; STORY-107 PR #226 ebb4751; STORY-108 PR #227 9c03fde; STORY-109 PR #228 34443f9 — 13-pass adversarial 3/3 CLEAN; T1691.001/T0827 correlated detections; MitreTactic::IcsImpact; VP-007 atomic seed T1691.001+T0827; BC-2.15.016 v1.2 byte-walk resync; 3 new drift items); wave 39 STORY-110 (FINAL) remaining; v0.6.0 target |
 
-## Session Resume Checkpoint (2026-06-11 — Feature #8 DNP3 waves 35-37 STORY-106,107,108 DELIVERED — wave 38 next)
+## Session Resume Checkpoint (2026-06-12 — Feature #8 DNP3 waves 35-38 STORY-106,107,108,109 DELIVERED — wave 39 STORY-110 FINAL next)
 
-**POSITION:** Feature #8 (DNP3 TCP analyzer, issue #8). Phase `feature-f4` (delta implementation). Waves 35-37 DELIVERED (STORY-106 PR #225 d0f3586; STORY-107 PR #226 ebb4751; STORY-108 PR #227 9c03fde). NEXT: wave 38 = STORY-109 (correlated/derived detections T1691.001 block-command + T0827 loss-of-control; adds MitreTactic::IcsImpact; seeds T1691.001+T0827 atomically with VP-007 update; 13 pts; branch from develop@9c03fde).
+**POSITION:** Feature #8 (DNP3 TCP analyzer, issue #8). Phase `feature-f4` (delta implementation). Waves 35-38 DELIVERED (STORY-106 PR #225 d0f3586; STORY-107 PR #226 ebb4751; STORY-108 PR #227 9c03fde; STORY-109 PR #228 34443f9). NEXT: wave 39 = STORY-110 (FINAL: StreamDispatcher port-20000 Rule 6 / DispatchTarget::Dnp3 wiring per BC-2.15.021 + `--dnp3-*` CLI flags per BC-2.15.017; 8 pts; branch from develop@34443f9). After STORY-110 → Feature #8 F5/F6/F7 (scoped adversarial / hardening / convergence) then v0.6.0 release.
 
-**KEY SHAs:** develop HEAD `9c03fde`; main HEAD `c2df1b5` (v0.5.0 released 2026-06-10); released_version v0.5.0. factory-artifacts HEAD = run `git -C .factory log -1 --format='%h %s'`.
+**KEY SHAs:** develop HEAD `34443f9`; main HEAD `c2df1b5` (v0.5.0 released 2026-06-10); released_version v0.5.0. factory-artifacts HEAD = run `git -C .factory log -1 --format='%h %s'`.
 
-**RELEASE HISTORY:** v0.1.0 (2026-06-08) greenfield; v0.2.0 (2026-06-09) timestamp threading; v0.3.0 (2026-06-09) multi-tag MITRE schema; v0.4.0 (2026-06-10) Modbus TCP analyzer; v0.5.0 (2026-06-10) MITRE ATT&CK-ICS v19 remap (issue #222 CLOSED). develop ahead of main by 6 commits.
+**RELEASE HISTORY:** v0.1.0 (2026-06-08) greenfield; v0.2.0 (2026-06-09) timestamp threading; v0.3.0 (2026-06-09) multi-tag MITRE schema; v0.4.0 (2026-06-10) Modbus TCP analyzer; v0.5.0 (2026-06-10) MITRE ATT&CK-ICS v19 remap (issue #222 CLOSED). develop ahead of main by 7 commits.
 
 **BLOCKING RESUME PROTOCOL (in order):**
 1. Run `vsdd-factory:factory-worktree-health` — verify .factory/ worktree on factory-artifacts branch.
-2. Read STATE.md (this file) — orient; confirm waves 35-37 STORY-106,107,108 DELIVERED and wave 38 STORY-109 is NEXT.
-3. Deliver STORY-109 via per-story-delivery (worktree → stubs → red gate → TDD → Step-4.5 adversarial 3-clean → demos → PR → merge). INPUT-HASH HYGIENE: run `bin/compute-input-hash --write .factory/stories/STORY-109.md` before delivery (VP-023 v1.4 drift — LIKELY STALE).
-4. Continue through wave 39 (STORY-110), targeting v0.6.0.
+2. Read STATE.md (this file) — orient; confirm waves 35-38 STORY-106,107,108,109 DELIVERED and wave 39 STORY-110 (FINAL) is NEXT.
+3. Deliver STORY-110 via per-story-delivery (worktree → stubs → red gate → TDD → Step-4.5 adversarial 3-clean → demos → PR → merge). INPUT-HASH HYGIENE: run `bin/compute-input-hash --write .factory/stories/STORY-110.md` before delivery (hash a9cdfb5 — confirm TBD-dup cleaned). DRIFT-DNP3-DIRECTION-001 resolved in STORY-110 (direction-aware resolution).
+4. After STORY-110 → F5 scoped adversarial → F6 targeted hardening → F7 delta convergence → v0.6.0 release.
 
-**LOCKED DNP3 FACTS (F4 must not re-derive these):**
-- 5 stories: STORY-106 (8 pts, w35), STORY-107 (5 pts, w36, DELIVERED), STORY-108 (13 pts, w37), STORY-109 (13 pts, w38), STORY-110 (8 pts, w39). Epic E-15 'DNP3/ICS Analyzer', 47 pts total. Strictly-linear chain 106→107→108→109→110.
-- SS-15 = 24 BCs (BC-2.15.001..024). All covered 1:1 across the 5 stories.
-- MITRE set (ATT&CK-ICS v19.1): T1692.001 (unauthorized command, IcsImpairProcessControl), T1691.001 (block command, IcsInhibitResponseFunction), T0827 (loss of control, MitreTactic::IcsImpact — NEW tactic), T0814 (restart/DoS), T0836 (write).
-- Catalog after F4: SEEDED 21→23 (+T1691.001 +T0827); EMITTED 13→15. Seed+emit happens ATOMICALLY in STORY-109 with VP-007 update.
-- Confirmed thresholds: `--dnp3-direct-operate-threshold 10/60s` (count=1 for unexpected-source); single 300s correlation window; block-command 3-of-300s; req-timeout 10s; exclude DIRECT_OPERATE_NR 0x06; T0827 ≥3 distinct events/300s; malformed-frame ≥3/300s.
-- Integration: StreamDispatcher port-20000 Rule 6, DispatchTarget::Dnp3, VP-004 oracle. Parse via FIR=1 first-fragment; CRC structure-only (strip-not-validate); frame_len = 5+LENGTH+2*ceil((LENGTH-5)/16), max 292. Per-flow Dnp3FlowState: fields include malformed_in_window, malformed_anomaly_emitted, correlation_window_start_ts + 4 correlation fields for the 300s window.
-- 22 holdout scenarios at `.factory/feature/wave-holdout-scenarios/wave-35-39-holdout.md` (for F4 holdout eval). Scenarios include: Trace-B spaced-event, Crain-Sistrunk crash-pattern, FP-guard baseline, direct-operate bursts, unsolicited/broadcast flood.
-- INPUT-HASH HYGIENE: VP-023 changed v1.3→v1.4 during STORY-106. STORY-106 (b465d38), STORY-107 (2fd1cec), STORY-108 (350c8b1→a4218c5) input-hashes regenerated at delivery. STORY-109/110 LIKELY STALE — before delivering each, run `bin/compute-input-hash --write .factory/stories/STORY-NNN.md` and remove any duplicate `input-hash: TBD` frontmatter line.
+**LOCKED DNP3 FACTS (for STORY-110):**
+- STORY-110: 8 pts, wave 39, NEXT. Epic E-15, 47 pts, strictly-linear chain 106→107→108→109→110. SS-15 = 24 BCs (BC-2.15.001..024).
+- MITRE after STORY-109: SEEDED 21→23 (T1691.001+T0827); EMITTED 13→15. VP-007 seeded. MitreTactic::IcsImpact added.
+- STORY-110 scope: StreamDispatcher port-20000 Rule 6 / DispatchTarget::Dnp3 (BC-2.15.021) + `--dnp3-*` CLI flags (BC-2.15.017) + VP-004 oracle + DRIFT-DNP3-DIRECTION-001 direction-aware resolution.
+- Thresholds locked: `--dnp3-direct-operate-threshold 10/60s`; 300s correlation window; block-cmd 3/300s; T0827 ≥3/300s; malformed ≥3/300s; req-timeout 10s.
+- Holdout scenarios: `.factory/feature/wave-holdout-scenarios/wave-35-39-holdout.md` (22 scenarios).
+- INPUT-HASH: STORY-110 hash a9cdfb5 — run `bin/compute-input-hash --write .factory/stories/STORY-110.md` before delivery (confirm TBD-dup cleaned).
 
-**OPEN BACKLOG / DEFERRED:**
-- Drift Items: see table below (DRIFT-F2-COUNT-001, DRIFT-SUPERPOWERS-001, O-07, O-08).
-- Deferred Next-Work Backlog: see section below (6 Dependabot PRs, PCAP-CORPUS-001, roadmap #3/#4/#6).
-- PROCESS-GAP CODIFICATION PENDING: PG-5/PG-7/PG-8 (DF-SIBLING-SWEEP extend to ADRs/domain-debt/cap-10/superpowers; orphaned-field/partial-fix in-burst checklist + grep-to-exhaustion). Full lesson text: `cycles/feature-8-dnp3-v0.5.0/lessons.md`. Full archived entries: `cycles/v0.1.0-greenfield-spec/decisions-archive.md`.
-
-Prior checkpoint archived: `cycles/v0.1.0-greenfield-spec/session-checkpoints.md`.
+**OPEN BACKLOG / DEFERRED:** Drift items: table below. Deferred work: Dependabot PRs, PCAP-CORPUS-001, roadmap #3/#4/#6 (see section below). Process-gap codification PG-5/PG-7/PG-8 pending: `cycles/feature-8-dnp3-v0.5.0/lessons.md`. Prior checkpoint: `cycles/v0.1.0-greenfield-spec/session-checkpoints.md`.
 
 ## Decisions Log
 
@@ -119,6 +112,7 @@ D-047..D-054 full text archived: `cycles/v0.1.0-greenfield-spec/decisions-archiv
 | D-056 | STORY-106 (DNP3 parse-core, wave 35) DELIVERED — PR #225 merged d0f3586. Red Gate PASSED; Step-4.5 adversarial 7-pass 3/3 CLEAN (9 findings resolved); VP-023 4/4 Kani harnesses SUCCESSFUL (Sub-A/B/C/D 0 counterexamples); security APPROVE_WITH_NOTES (0 CRITICAL/HIGH/MED); spec bumps VP-023 v1.4 (0x00 CONFIRM→Management) + BC-2.15.005 v1.2 + STORY-106 v1.5. Wave 36 = STORY-107 next. | 2026-06-11 |
 | D-057 | STORY-107 (DNP3 per-flow state + carry buffer + bounds, wave 36) DELIVERED — PR #226 merged ebb4751. Red Gate PASSED; Step-4.5 adversarial 3-pass 3/3 CLEAN (F-1/F-2/F-3 + F-P2-001/F-P2-002 resolved); on_data restructured to real carry-walk (gate-before-count); 3 STORY-106 frames wire-valid (LENGTH 0x06); MAX_DNP3_FRAME_LEN consolidated (MAX_DNP3_CARRY_BYTES deprecated alias); DOC-106-001 resolved; security APPROVE-WITH-NOTES (0 CRITICAL/HIGH; 1 MEDIUM SEC-001 accepted; 2 LOW). Wave 37 = STORY-108 next. | 2026-06-11 |
 | D-058 | STORY-108 (DNP3 direct detections T1692.001/T0814/T0836, wave 37) DELIVERED — PR #227 merged 9c03fde (2026-06-11T19:46:40Z). Step-4.5 adversarial 5-pass 3/3 CLEAN streak (BC-5.39.001): P1 source_ip/timestamp None violation fixed (c216118); P2 resolve_master_ip helper extracted + direction-deferral documented (78028cf); P3 stale AC-007 citation fixed (fb64529); P4-P5 CLEAN. Input-hash regenerated to a4218c5 (350c8b1). DRIFT-DNP3-DIRECTION-001 recorded. Wave 38 = STORY-109 next. | 2026-06-11 |
+| D-059 | STORY-109 (DNP3 correlated detections T1691.001/T0827 + MitreTactic::IcsImpact + VP-007 atomic seed, wave 38) DELIVERED — PR #228 merged 34443f9 (2026-06-12T01:12:31Z). Step-4.5 adversarial 13-pass 3/3 CLEAN streak (BC-5.39.001; P9 real T0827 detection bug fixed; P11 byte-walk resync adjudicated). BC-2.15.016 v1.2 + BC-2.15.014 v1.6 spec evolution. 3 new drift items recorded (DRIFT-MITRE-EMITTED-LABEL-001, DRIFT-BC-2.15.024-EC006-PROSE-001, DRIFT-DNP3-DIRECTION-001 target updated to STORY-110). Wave 39 = STORY-110 (FINAL) next. | 2026-06-12 |
 
 ## Blocking Issues
 
@@ -147,7 +141,9 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | DOC-106-001 (cosmetic) | Add CONFIRM (0x00) to Dnp3FcClass::Management variant doc example list | SATISFIED — resolved in STORY-107 (PR #226) |
 | STORY-107-CARRY-001 | BC-2.15.009 EC-004 (lone-0x05 sub-2-byte sync deferral), BC-2.15.008 EC-006 (parse_errors for <3-byte payloads), BC-2.15.004 PC4 (caller-side parse_errors on gate failure), multi-block CRC-strip payload_buf indexing | SATISFIED — resolved in STORY-107 frame-walk implementation (PR #226) |
 | SEC-107-001 (CWE-400) | Dnp3Analyzer.flows HashMap uncapped — accepted offline-pcap design risk; add max_flows cap if live-capture ever added | ACCEPTED — offline-pcap risk; carry to STORY-108 then forward |
-| DRIFT-DNP3-DIRECTION-001 | DNP3 source_ip resolution port-20000-heuristic-only; direction-aware resolution deferred to DNP3 dispatcher-integration story | DEFERRED — target: DNP3 dispatcher-integration; see tech-debt-register.md |
+| DRIFT-DNP3-DIRECTION-001 | DNP3 source_ip resolution port-20000-heuristic-only; direction-aware resolution deferred to DNP3 dispatcher-integration story | DEFERRED — target: STORY-110 (wave 39 NEXT); see tech-debt-register.md |
+| DRIFT-MITRE-EMITTED-LABEL-001 | kani EMITTED_IDS labels T0835/T0831 as emitted but neither is actually emitted (13 actual vs 15 labeled); VP-007 Sub-B sound (resolvability only) | DEFERRED — target: system-level catalogue-accuracy pass; severity LOW |
+| DRIFT-BC-2.15.024-EC006-PROSE-001 | BC-2.15.024 EC-006 prose says bailed-flow increments parse_errors; conflicts with BC-2.15.009 PC5 no-op (correct behavior); story EC-006 corrected | DEFERRED — target: PO backlog prose-refresh; severity LOW |
 
 ## Deferred Next-Work Backlog (recorded 2026-06-10)
 
