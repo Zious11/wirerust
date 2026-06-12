@@ -141,12 +141,14 @@ Detections emitted:
 | Direct-operate burst | T1692.001 | Impair Process Control | Control-class FCs exceed `--dnp3-direct-operate-threshold` (default 10) within the 60s detection window |
 | Unexpected master source | T1692.001 | Impair Process Control | Control-class FC from a source address not in the established master set for this flow |
 | Broadcast control command | T1692.001 | Impair Process Control | Control-class FC addressed to a DNP3 broadcast destination |
-| Restart command (cold/warm) | T0814 | Inhibit Response Function | COLD_RESTART (FC 0x0D) or WARM_RESTART (FC 0x0E) observed |
+| Restart command (cold/warm) | T0814 | Inhibit Response Function | COLD_RESTART (FC 0x0D) or WARM_RESTART (FC 0x0E) observed; verdict Likely / confidence High |
+| DISABLE_UNSOLICITED command | T0814 | Inhibit Response Function | FC 0x15 observed — alarm suppression / event-blinding primitive; verdict Likely / confidence Medium |
+| ENABLE_UNSOLICITED command | T0814 | Inhibit Response Function | FC 0x14 observed — unsolicited reporting control; verdict Possible / confidence Low |
 | WRITE command | T0836 | Impair Process Control | WRITE FC (0x02) observed |
 | Block command (unanswered) | T1691.001 | Inhibit Response Function | Control-class requests with no RESPONSE within 10s, >= 3 events in 300s window |
 | Loss of Control | T0827 | Impact (ICS) | Combined restart + block-command events >= 3 in 300s window |
-| Malformed frame anomaly | T0814 | Inhibit Response Function | >= 3 parse-invalid frames within the 300s correlation window |
-| Unsolicited response anomaly | — | Suspicious | UNSOLICITED_RESPONSE (FC 0x82) on a flow where ENABLE_UNSOLICITED was never sent |
+| Malformed frame anomaly | T0814 | Inhibit Response Function | >= 3 parse-invalid frames within the 300s correlation window; verdict Possible / confidence Low |
+| Unsolicited response anomaly | T0814 | Inhibit Response Function | UNSOLICITED_RESPONSE (FC 0x82) on a flow where ENABLE_UNSOLICITED was never sent; verdict Possible / confidence Low |
 
 CLI flags:
 - `--dnp3` — enable DNP3 TCP analysis (also included in `-a`/`--all`; default-off)
