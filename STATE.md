@@ -6,7 +6,7 @@ active_feature: "#8-dnp3"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-12T22:30:00Z
+timestamp: 2026-06-12T22:45:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -49,7 +49,7 @@ input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef95
 
 **wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). F7 5-dim convergence achieved (6 fresh-context passes); tag v0.6.0 + 4 binaries via release.yml. Feature #8 DNP3 v0.6.0 cycle CLOSED — F7 5-dim CONVERGED, RELEASED, session-reviewed; 8 lessons codified; cycle-close deferrals recorded per S-7.02.**
 
-**Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22+VP-023 ALL LOCKED), 1496 tests green, holdout 0.967. develop HEAD 04f8ccb; main HEAD 3e29891 (v0.6.0). Feature #8 DNP3: F7 CONVERGED — 6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM); BC-2.15.009 v1.3; HS-INDEX feature-holdouts indexed.
+**Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22+VP-023 ALL LOCKED), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). Feature #8 DNP3: F7 CONVERGED — 6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM); BC-2.15.009 v1.3; HS-INDEX feature-holdouts indexed.
 
 Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #202/#205 closed; develop 31d1231; etherparse 0.20 deferred as migration story.
 
@@ -93,7 +93,7 @@ wirerust **v0.6.0 RELEASED 2026-06-12**. Feature #8 DNP3 (issue #8) cycle **CLOS
 | develop HEAD | `31d1231` | `git rev-parse --short HEAD` (on develop) |
 | main HEAD | `3e29891` | `git log main -1 --format='%h'` |
 | tag v0.6.0 | annotated 411c243 → commit 3e29891 | `git show v0.6.0 --format='%h' -s` |
-| factory-artifacts HEAD | `1cfea98` | `git -C .factory log -1 --format='%h %s'` |
+| factory-artifacts HEAD | `5f9709a` | `git -C .factory log -1 --format='%h %s'` |
 | released_version | v0.6.0 | — |
 | prior release | v0.5.0 → c2df1b5 | — |
 
@@ -123,6 +123,7 @@ develop == origin/develop at checkpoint. No divergence.
 - F7 process-gap deferrals: Drift Items table below (PG-F7-001..007 + DRIFT-ENGINE-RELEASECONFIG-STALE-001)
 - Prior session checkpoints: `cycles/v0.1.0-greenfield-spec/session-checkpoints.md`
 - Immutable PR/SHA audit trail (F4-F7 + release): STORY-106..110 PRs #225-229; F5 #230 e685664; F6 #231 a125c69; F7 #232/#233 f217f27; release fixup fb3935c; PR #234 → main 3e29891; develop merge-back 04f8ccb
+- Dependabot sweep audit trail (2026-06-12): #203 24bc419, #204 8f48697, #207 ec7b288, #235 b31f65c (manual SHA pin → df4cb1c), #206 31d1231; #202/#205 closed; develop HEAD 31d1231; state burst 5f9709a; D-065.
 
 ## Decisions Log
 
@@ -227,4 +228,4 @@ Full policy text: `.factory/policies.yaml`.
 
 - `.factory/` is a `factory-artifacts` orphan-branch worktree, gitignored from `develop`.
 - Artifact pointers: Phase 0 synthesis `.factory/semport/wirerust/wirerust-pass-8-deep-synthesis.md`; wave history `cycles/phase-3-tdd/convergence-trajectory.md`; phase 4 holdout `cycles/v0.1.0-greenfield-spec/phase-4-holdout-eval-summary.md`; F6 hardening `cycles/feature-8-dnp3-v0.5.0/F6-hardening/`.
-- Issues: #104/#102 CLOSED (PRs #194/#195), #100 RELEASED v0.2.0, #101 OPEN-DEBT, #103 DEFERRED. Dependabot PRs #202-207 open (see backlog). 7/8 actions SHA-pinned; pin gate enforced (PR #196).
+- Issues: #104/#102 CLOSED (PRs #194/#195), #100 RELEASED v0.2.0, #101 OPEN-DEBT, #103 DEFERRED. Dependabot sweep 2026-06-12 cleared all v0.6.0-era PRs (5 merged: #203/#204/#207/#235/#206; 2 closed: #202 superseded by #235, #205 etherparse deferred — see DRIFT-ETHERPARSE-0.20-MIGRATION-001). All actions SHA-pinned (actions/checkout now at df4cb1c # v6.0.3); pin gate enforced (PR #196, PR #235).
