@@ -29,3 +29,10 @@ path = "fuzz_targets/fuzz_modbus_parse.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "fuzz_dnp3_parse"
+path = "fuzz_targets/fuzz_dnp3_parse.rs"
+test = false
+doc = false
+bench = false

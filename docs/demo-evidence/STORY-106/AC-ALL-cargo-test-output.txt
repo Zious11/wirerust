@@ -1,0 +1,43 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s
+     Running tests/dnp3_parse_core_tests.rs (target/debug/deps/dnp3_parse_core_tests-dc2324ebca306eda)
+
+running 36 tests
+test story_106::test_BC_2_15_001_invariant_parse_does_not_gate_on_sync ... ok
+test story_106::test_BC_2_15_001_minimum_length_control_frame ... ok
+test story_106::test_BC_2_15_001_trailing_bytes_not_decoded ... ok
+test story_106::test_BC_2_15_002_ec001_zero_length_no_panic ... ok
+test story_106::test_BC_2_15_002_boundary_sweep_all_short_lengths ... ok
+test story_106::test_BC_2_15_002_ec002_nine_bytes_returns_none ... ok
+test story_106::test_BC_2_15_003_ec003_invalid_sync_returns_some_with_raw_fields ... ok
+test story_106::test_BC_2_15_003_ec004_broadcast_0xffff ... ok
+test story_106::test_BC_2_15_004_ec005_length_4_rejected_by_gate ... ok
+test story_106::test_BC_2_15_004_length_255_valid ... ok
+test story_106::test_BC_2_15_004_length_zero_false ... ok
+test story_106::test_BC_2_15_005_canonical_vectors ... ok
+test story_106::test_BC_2_15_005_totality_sweep_all_256_values ... ok
+test story_106::test_BC_2_15_006_ec007_direct_operate_nr_is_control ... ok
+test story_106::test_BC_2_15_006_ec008_unsolicited_response_is_response ... ok
+test story_106::test_BC_2_15_007_ec005_length_4_returns_none ... ok
+test story_106::test_BC_2_15_007_ec006_length_255_returns_292 ... ok
+test story_106::test_BC_2_15_007_length_14_direct_operate ... ok
+test story_106::test_BC_2_15_007_result_bounds_all_valid_lengths ... ok
+test story_106::test_BC_2_15_008_ec009_fir0_continuation_returns_false ... ok
+test story_106::test_BC_2_15_008_fir_biconditional_all_256_transport_octets ... ok
+test story_106::test_BC_2_15_009_ec010_sync_at_offset_2_triggers_bail ... ok
+test story_106::test_BC_2_15_009_flow_state_defaults_to_not_bailed ... ok
+test story_106::test_BC_2_15_009_valid_sync_no_bail ... ok
+test story_106::test_classify_dnp3_fc_set_membership ... ok
+test story_106::test_classify_dnp3_fc_total ... ok
+test story_106::test_compute_dnp3_frame_len_formula ... ok
+test story_106::test_desync_bail_non_dnp3_traffic ... ok
+test story_106::test_fir_gating_extract_on_fir1_skip_on_fir0 ... ok
+test story_106::test_has_user_data_link_fc_guard ... ok
+test story_106::test_is_valid_dnp3_frame_header_biconditional ... ok
+test story_106::test_on_data_fir_but_non_user_data_link_fc_no_extraction ... ok
+test story_106::test_on_data_fir_gating_updates_counters ... ok
+test story_106::test_parse_dnp3_dl_header_le_address_decode ... ok
+test story_106::test_parse_dnp3_dl_header_rejects_truncated_input ... ok
+test story_106::test_parse_dnp3_dl_header_returns_some_for_minimum_10_bytes ... ok
+
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

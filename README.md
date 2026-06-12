@@ -7,9 +7,11 @@ Inspired by [pcapper](https://github.com/SackOfHacks/pcapper) — reimagined for
 ## Features
 
 - **One-pass triage** — hosts, services, protocols, and threat signals from pcap files
-- **Protocol analysis** — DNS, HTTP, and TLS traffic analysis with extensible analyzer framework
+- **Protocol analysis** — DNS, HTTP, TLS, Modbus, and DNP3 traffic analysis with extensible analyzer framework
 - **HTTP forensics** — stream-level HTTP/1.x parsing with detection for path traversal, web shells, unusual methods, and anomalies
 - **TLS forensics** — ClientHello/ServerHello parsing, SNI extraction, JA3/JA3S fingerprinting, weak cipher and deprecated SSL 2.0/3.0 detection
+- **Modbus TCP forensics** — ICS/OT threat detection on port 502; parses MBAP header and function codes; detects 7 MITRE ATT&CK for ICS techniques (T1692.001, T0836, T0835, T0831, T0806, T0814, T0888); configurable write-burst and sustained-rate thresholds; enabled via `--modbus`
+- **DNP3 TCP forensics** — ICS/OT threat detection on port 20000; parses IEEE Std 1815-2012 data-link frames; detects MITRE ATT&CK for ICS techniques T1692.001, T1691.001, T0827, T0814, and T0836; anomaly detection for broadcast control, unsolicited responses, and malformed frames; enabled via `--dnp3`
 - **TCP stream reassembly** — forensic-grade reassembly engine with first-wins overlap policy, configurable depth/memory/window limits
 - **Multi-link-type support** — Ethernet, Raw IP, IPv4, IPv6, and Linux Cooked (SLL) pcap formats
 - **Threat detection** — finding system with verdict/confidence scoring and MITRE ATT&CK mapping
@@ -69,7 +71,6 @@ Commands:
   summary   Generate a triage summary of PCAP files
 
 Options:
-  -v, --verbose              Enable verbose output
       --no-color             Disable colored output
       --output-format <FMT>  Output format: json, csv
       --reassemble           Force TCP stream reassembly on
@@ -83,13 +84,16 @@ Options:
 ### Analyze flags
 
 ```
---threats    Run threat detection
---dns        Analyze DNS traffic
---http       Analyze HTTP traffic (auto-enables reassembly)
---tls        Analyze TLS handshakes (SNI, JA3/JA3S, weak ciphers, deprecated SSL)
---beacon     Detect C2 beaconing patterns (coming soon)
--a, --all    Run all analyzers
--f, --filter BPF filter expression
+--dns                                  Analyze DNS traffic
+--http                                 Analyze HTTP traffic (auto-enables reassembly)
+--tls                                  Analyze TLS handshakes (SNI, JA3/JA3S, weak ciphers, deprecated SSL)
+--modbus                               Analyze Modbus TCP traffic (port 502, default-off; included in --all)
+--modbus-write-burst-threshold N       Burst detection threshold in writes/1s window (default: 20)
+--modbus-write-sustained-threshold N   Sustained-rate threshold in writes/s over >=2s (default: 10)
+--dnp3                                 Analyze DNP3 TCP traffic (port 20000, default-off; included in --all)
+--dnp3-direct-operate-threshold N      Direct-operate burst threshold per flow (default: 10)
+--mitre                                Group findings by MITRE ATT&CK tactic with technique names
+-a, --all                              Run all analyzers
 ```
 
 ## Architecture
@@ -113,6 +117,42 @@ PCAP file → Reader → Decoder → Analyzers → Reporter
 | Reassembly | (built-in) | TCP stream reassembly engine |
 | CLI | `clap` | Argument parsing |
 | Output | `owo-colors`, `serde_json` | Terminal + JSON |
+
+## Supported Protocol Analyzers
+
+| Protocol | Port | Flag | Default | MITRE ATT&CK for ICS Techniques Detected |
+|----------|------|------|---------|------------------------------------------|
+| DNS | 53/UDP | `--dns` | off | — |
+| HTTP/1.x | 80, 8080 | `--http` | off | T1071.001, T1505.003, T1083 |
+| TLS | 443, 8443 | `--tls` | off | T1040, T1573, T1036, T1027 |
+| Modbus TCP | 502 | `--modbus` | off | T1692.001, T0836, T0835, T0831, T0806, T0814, T0888 |
+| DNP3 TCP | 20000 | `--dnp3` | off | T1692.001, T1691.001, T0827, T0814, T0836 |
+
+### DNP3 TCP Analyzer
+
+The DNP3 analyzer (`--dnp3`) processes TCP streams on port 20000 per IEEE Std 1815-2012. It is
+dispatched as Rule 6 in the stream dispatcher — after content-signature rules (TLS, HTTP) and
+port-based rules for TLS, HTTP, and Modbus — so it never misclassifies TLS or HTTP traffic.
+
+Detections emitted:
+
+| Detection | Technique | Tactic | Trigger |
+|-----------|-----------|--------|---------|
+| Direct-operate burst | T1692.001 | Impair Process Control | Control-class FCs exceed `--dnp3-direct-operate-threshold` (default 10) within the 60s detection window |
+| Unexpected master source | T1692.001 | Impair Process Control | Control-class FC from a source address not in the established master set for this flow |
+| Broadcast control command | T1692.001 | Impair Process Control | Control-class FC addressed to a DNP3 broadcast destination |
+| Restart command (cold/warm) | T0814 | Inhibit Response Function | COLD_RESTART (FC 0x0D) or WARM_RESTART (FC 0x0E) observed; verdict Likely / confidence High |
+| DISABLE_UNSOLICITED command | T0814 | Inhibit Response Function | FC 0x15 observed — alarm suppression / event-blinding primitive; verdict Likely / confidence Medium |
+| ENABLE_UNSOLICITED command | T0814 | Inhibit Response Function | FC 0x14 observed — unsolicited reporting control; verdict Possible / confidence Low |
+| WRITE command | T0836 | Impair Process Control | WRITE FC (0x02) observed |
+| Block command (unanswered) | T1691.001 | Inhibit Response Function | Control-class requests with no RESPONSE within 10s, >= 3 events in 300s window |
+| Loss of Control | T0827 | Impact (ICS) | Combined restart + block-command events >= 3 in 300s window |
+| Malformed frame anomaly | T0814 | Inhibit Response Function | >= 3 parse-invalid frames within the 300s correlation window; verdict Possible / confidence Low |
+| Unsolicited response anomaly | T0814 | Inhibit Response Function | UNSOLICITED_RESPONSE (FC 0x82) on a flow where ENABLE_UNSOLICITED was never sent; verdict Possible / confidence Low |
+
+CLI flags:
+- `--dnp3` — enable DNP3 TCP analysis (also included in `-a`/`--all`; default-off)
+- `--dnp3-direct-operate-threshold N` — direct-operate burst threshold per flow, default 10
 
 ## Supported Link Types
 
@@ -179,9 +219,7 @@ See [open issues](https://github.com/Zious11/wirerust/issues) for planned featur
 
 - C2 beaconing detection
 - CSV and SQLite export
-- MITRE ATT&CK mapping
 - Parallel file processing
-- ICS/OT protocols (Modbus, DNP3)
 - pcapng format support
 
 ## License

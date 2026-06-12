@@ -212,6 +212,7 @@ impl TerminalReporter {
                     Confidence::High => line.red().bold().to_string(),
                     _ => line.yellow().to_string(),
                 },
+                Verdict::Possible => line.yellow().to_string(),
                 Verdict::Inconclusive => line.cyan().to_string(),
                 Verdict::Unlikely => line.dimmed().to_string(),
             }
@@ -286,8 +287,9 @@ impl TerminalReporter {
         fn verdict_rank(v: Verdict) -> u8 {
             match v {
                 Verdict::Likely => 0,
-                Verdict::Inconclusive => 1,
-                Verdict::Unlikely => 2,
+                Verdict::Possible => 1,
+                Verdict::Inconclusive => 2,
+                Verdict::Unlikely => 3,
             }
         }
         fn confidence_rank(c: Confidence) -> u8 {

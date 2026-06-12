@@ -13,6 +13,8 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
 
+use crate::analyzer::dnp3::DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT;
+
 /// Value parser for usize arguments that must be >= 1 (0 is rejected).
 /// Used for `--reassembly-depth` and `--reassembly-memcap`.
 fn parse_nonzero_usize(s: &str) -> Result<usize, String> {
@@ -169,6 +171,17 @@ pub enum Commands {
         /// (BC-2.14.024). Default: 10. Must be >= 1.
         #[arg(long, default_value_t = 10)]
         modbus_write_sustained_threshold: u32,
+
+        /// Analyze DNP3 TCP traffic (port 20000, requires stream reassembly)
+        /// (BC-2.15.021 — default-off; included by --all)
+        #[arg(long)]
+        dnp3: bool,
+
+        /// Per-flow direct-operate burst threshold: fires T1692.001 when more than N
+        /// Control-class FCs are observed within the detection window (BC-2.15.010 /
+        /// BC-2.15.017). Default: 10.
+        #[arg(long, default_value_t = DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT)]
+        dnp3_direct_operate_threshold: u32,
     },
 
     /// Generate a triage summary of PCAP files
