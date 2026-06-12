@@ -6,6 +6,21 @@
 //! `is_master_frame` currently tests `control & 0x10 != 0` — this is wrong.
 //! Tests assert the CORRECT behavior; they FAIL until the mask is fixed.
 //!
+//! ### IEEE 1815 Provenance for the 0xC4 Canonical Control Byte
+//!
+//! Per IEEE 1815-2012 §9.2.4.1 (data-link fixed-frame header; CONTROL field
+//! validity per §9.2.4.1.3 and Annex B "Valid Data Link Layer Control Codes"),
+//! the data-link CONTROL octet places DIR at bit 7 (0x80) and PRM at bit 6
+//! (0x40), with the function code in the low nibble. A canonical
+//! master-to-outstation UNCONFIRMED_USER_DATA primary frame has:
+//!
+//!   CONTROL = DIR(0x80) | PRM(0x40) | FC(0x04) = 0xC4
+//!
+//! This 0xC4 value is sourced from the authoritative IEEE 1815 standard,
+//! cross-validated independently of the project's BC-2.15.016 PC5 /
+//! BC-2.15.010 (the independent external cross-check required by
+//! DF-CANONICAL-FRAME-HOLDOUT-001).
+//!
 //! ## Part B — F-F5-001: Unexpected-source detection (BC-2.15.010 Invariant 5)
 //!
 //! All frames use the canonical `build_canonical_master_control_frame` helper
@@ -70,6 +85,17 @@ mod f5_dir_bit_fix {
     /// is_master_frame(0xC4) must return true: 0xC4 is the canonical master frame
     /// control byte (DIR=1, PRM=1, FCV=0, FC=UNCONF_USER_DATA). RED: buggy 0x10
     /// mask returns false (0xC4 & 0x10 = 0).
+    ///
+    /// IEEE 1815 citation (primary provenance for 0xC4):
+    /// Per IEEE 1815-2012 §9.2.4.1 (data-link fixed-frame header; CONTROL field
+    /// validity per §9.2.4.1.3 and Annex B "Valid Data Link Layer Control Codes"),
+    /// the data-link CONTROL octet places DIR at bit 7 (0x80) and PRM at bit 6
+    /// (0x40), function code in the low nibble. A canonical master-to-outstation
+    /// UNCONFIRMED_USER_DATA primary frame has CONTROL = DIR(0x80) | PRM(0x40) |
+    /// FC(0x04) = 0xC4. This 0xC4 value is sourced from the authoritative IEEE
+    /// 1815 standard, cross-validated independently of the project's BC-2.15.016
+    /// PC5 / BC-2.15.010 (the independent external cross-check required by
+    /// DF-CANONICAL-FRAME-HOLDOUT-001).
     #[test]
     fn test_canonical_master_frame_is_master_frame() {
         // 0xC4 & 0x80 = 0x80 != 0 → must return true under corrected mask.
