@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.0"
+version: "2.1"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -19,13 +19,14 @@ module: src/dispatcher.rs
 proof_method: kani
 feasibility: feasible
 verification_lock: true
-proof_completed_date: "2026-06-02"
-proof_file_hash: "b9d3ae79747df8df70ae185efd268c8f0fc9eee3331dd0d5caa752c6814b89ce"
-verified_at_commit: "0855f25"
+proof_completed_date: "2026-06-12"
+proof_file_hash: "dd45978ec72cc115e4935add02ebde116f213b144818f0544ea8f4ba6f5720c8"
+verified_at_commit: "e685664"
 lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set."
+  - "v2.1: VP-004 prose relocked at F6 to include Rules 5/6 (Modbus/502 + DNP3/20000); proof re-verified SUCCESSFUL on develop@e685664. Property Statement updated to add Rule 5 (Modbus port 502 → DispatchTarget::Modbus) and Rule 6 (DNP3 port 20000 → DispatchTarget::Dnp3) to the full 7-rule table, plus Rule 7 fallthrough None. proof_file_hash updated to SHA-256 of src/dispatcher.rs at e685664 (dispatcher.rs changed when Rule 6 DNP3 arm was added). verified_at_commit updated to e685664. — 2026-06-12"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -43,14 +44,17 @@ removal_reason: null
 The `classify` function in `dispatcher.rs` satisfies the following precedence rules
 for all possible input byte slices and port values:
 
-1. If `data.len() >= 5 && data[0] == 0x16 && data[1] == 0x03`:
+1. **Rule 1 (TLS content):** If `data.len() >= 5 && data[0] == 0x16 && data[1] == 0x03`:
    result is `DispatchTarget::Tls` regardless of port numbers.
-2. Else if the data starts with a recognized HTTP method token (`GET `, `POST `,
-   `PUT `, `DELETE `, `HEAD `, `OPTIONS `, `PATCH `, `CONNECT `, `TRACE `, `HTTP/`):
-   result is `DispatchTarget::Http` regardless of port numbers.
-3. Else if data is too short (< 5 bytes) or matches neither signature:
-   port 443 or 8443 -> `DispatchTarget::Tls`; port 80 or 8080 -> `DispatchTarget::Http`.
-4. Otherwise: `DispatchTarget::None`.
+2. **Rule 2 (HTTP content):** Else if the data starts with a recognized HTTP method
+   token (`GET `, `POST `, `PUT `, `DELETE `, `HEAD `, `OPTIONS `, `PATCH `, `CONNECT `,
+   `TRACE `, `HTTP/`): result is `DispatchTarget::Http` regardless of port numbers.
+3. **Rule 3 (TLS port fallback):** Else if data is too short (< 5 bytes) or matches
+   neither content signature: port 443 or 8443 -> `DispatchTarget::Tls`.
+4. **Rule 4 (HTTP port fallback):** Else port 80 or 8080 -> `DispatchTarget::Http`.
+5. **Rule 5 (Modbus port fallback):** Else port 502 -> `DispatchTarget::Modbus`.
+6. **Rule 6 (DNP3 port fallback):** Else port 20000 -> `DispatchTarget::Dnp3`.
+7. **Rule 7 (fallthrough):** Otherwise: `DispatchTarget::None`.
 
 `DispatchTarget::None` is NOT inserted into `routes` before the per-flow
 `classification_attempts` counter reaches `max_classification_attempts`
@@ -187,3 +191,11 @@ mod kani_proofs {
 | Proof harness committed | 2026-06-02 | formal-verifier |
 | Proof first passed | 2026-06-02 | formal-verifier |
 | Locked (VERIFIED) | 2026-06-02 | spec-steward (Phase-6 gate) |
+| Prose updated (Rules 5/6/7 added) | 2026-06-12 (F6) | product-owner |
+| Relocked (VERIFIED, Rules 5+6 incl.) | 2026-06-12 (F6 gate @ develop e685664) | formal-verifier |
+
+`verify_content_first_precedence_exhaustive` re-verified `VERIFICATION:- SUCCESSFUL` at
+develop HEAD `e685664` with the port-20000 (DNP3) arm present in `src/dispatcher.rs`.
+`proof_file_hash` updated to SHA-256 of `src/dispatcher.rs` at e685664 (file changed when
+Rule 6 DNP3/port-20000 arm was added). This document is now immutable at v2.1; any change
+requires the VP withdrawal process.

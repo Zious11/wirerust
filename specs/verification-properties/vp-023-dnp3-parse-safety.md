@@ -1,8 +1,8 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.4"
-status: draft
+version: "1.5"
+status: verified
 producer: architect
 timestamp: 2026-06-10T00:00:00Z
 phase: f2
@@ -19,10 +19,10 @@ bcs:
 module: src/analyzer/dnp3.rs
 proof_method: kani
 feasibility: feasible
-verification_lock: false
-proof_completed_date: null
-proof_file_hash: null
-verified_at_commit: null
+verification_lock: true
+proof_completed_date: "2026-06-12"
+proof_file_hash: sha256:500f2ecfc528aa2560d077c32ff1d158fe2dcf522187a42b8bf1e64af5b70c24
+verified_at_commit: e685664
 lifecycle_status: active
 introduced: v0.6.0-feature-008
 modified:
@@ -31,6 +31,7 @@ modified:
   - "v1.2: Pass-2 adversarial remediation LOW-1 (issue #8): Related-BC note for BC-2.15.004 corrected from 'LENGTH in 5..=255' to 'LENGTH >= 5', aligning with BC-2.15.004 phrasing and harness Sub-property C biconditional (h.length >= 5). The upper bound 255 is a structural u8 constraint, not a gate condition. No change to property statement or harnesses."
   - "v1.3: Corrected introduced: field from v0.5.0-feature-008 to v0.6.0-feature-008. v0.5.0 shipped the MITRE fix; DNP3 TCP analyzer targets v0.6.0, matching all 24 SS-15 BC files. No change to property statement or harnesses."
   - "v1.4: STORY-106 adversarial Pass-1 F1: lock 0x00 CONFIRM → Management; reconcile VP-023 Sub-B with BC-2.15.005. Added 0x00 to the Management set in Sub-property B so it reads {0x00, 0x07..=0x0C, 0x0F..=0x1A}; updated 'All other fc values' wording to reflect 0x00 is now explicitly in the Management set; added 0x00 membership assertion to the Kani harness skeleton. — 2026-06-11"
+  - "v1.5: VP-023 locked at F6 (Feature #8 DNP3 wave-39); 4 Kani harnesses SUCCESSFUL on develop@e685664 under the corrected is_master_frame 0x80 mask. status draft→verified, verification_lock→true, verified_at_commit=e685664. proof_file_hash=sha256 of src/analyzer/dnp3.rs at lock-time commit. Mirrors VP-022 lock pattern (VP-022 locked at F6 @ develop 68a3306). This document is now immutable; any change requires the VP withdrawal process. — 2026-06-12"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -346,6 +347,12 @@ line numbers are filled in when harnesses are authored and the VP is locked.)
 | Event | Date | Actor |
 |-------|------|-------|
 | Created (draft, F2 spec evolution) | 2026-06-10 | architect |
-| Proof harness to be committed | F4 TDD | formal-verifier |
-| Proof to be verified | F6 formal hardening | formal-verifier |
-| Lock (VERIFIED) | F6 gate | formal-verifier |
+| Proof harnesses committed (F4 TDD) | 2026-06-12 | formal-verifier |
+| Proof first passed — all 4 SUCCESSFUL | 2026-06-12 (F6) | formal-verifier |
+| Locked (VERIFIED) | 2026-06-12 (F6 gate @ develop e685664) | formal-verifier |
+
+All 4 Kani harnesses (`verify_parse_dnp3_dl_header_safety`, `verify_classify_dnp3_fc_total`,
+`verify_is_valid_dnp3_frame_gate`, `verify_compute_dnp3_frame_len`) reported
+`VERIFICATION:- SUCCESSFUL` at develop HEAD `e685664` (Feature #8 DNP3 wave-39, corrected
+is_master_frame 0x80 mask). `proof_file_hash` is the SHA-256 of `src/analyzer/dnp3.rs` at
+lock time. This document is now immutable; any change requires the VP withdrawal process.
