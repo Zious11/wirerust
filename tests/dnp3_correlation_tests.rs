@@ -977,7 +977,10 @@ mod story_109 {
         analyzer.on_data(key.clone(), &first_frame, 1000);
 
         {
-            let flow = analyzer.flows.get(&key).expect("flow must exist after first frame");
+            let flow = analyzer
+                .flows
+                .get(&key)
+                .expect("flow must exist after first frame");
 
             // Assertion 1 (kills mutant): the window anchor must be the first frame's ts,
             // not 0 (which would mean the seed branch was skipped).
@@ -1018,7 +1021,10 @@ mod story_109 {
         analyzer.on_data(key.clone(), &restart_frame, 1000);
 
         {
-            let flow = analyzer.flows.get(&key).expect("flow must exist after restart frame");
+            let flow = analyzer
+                .flows
+                .get(&key)
+                .expect("flow must exist after restart frame");
             assert_eq!(
                 flow.restart_event_count, 1,
                 "BC-2.15.015 seed: restart_event_count must be 1 after one COLD_RESTART \
