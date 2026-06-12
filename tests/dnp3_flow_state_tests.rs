@@ -869,4 +869,145 @@ mod story_107 {
             "control=0xEF (DIR bit clear: 0xEF & 0x10 == 0) must return false"
         );
     }
+
+    // ---------------------------------------------------------------------------
+    // OBS-P11-1 REALIGN branch — byte-walk-forward finds next sync at offset > 1
+    // Adjudication Step-6 requirement: drain-to-next-sync case
+    // BC-2.15.016 / STORY-109-resync-adjudication.md Step 6
+    // ---------------------------------------------------------------------------
+
+    /// OBS-P11-1: byte-walk-forward resync REALIGN branch — next `[0x05,0x64]` sync
+    /// word is found at carry offset i > 1; carry drains to that offset and the
+    /// recovered frame is then fully consumed in the same frame-walk loop.
+    ///
+    /// This is coverage-strengthening for the `Some(i) => carry.drain(..i)` arm of
+    /// the resync match.  All other resync tests exercise only the `None => carry.clear()`
+    /// arm (junk with no embedded sync).  This test exercises the RECOVER-to-next-frame
+    /// path explicitly required by STORY-109-resync-adjudication.md Step 6.
+    ///
+    /// ## Byte vector (20 bytes)
+    ///
+    /// ```text
+    /// Offset  Bytes           Meaning
+    /// 0..5    05 64 02 AA AA  Malformed frame: sync OK, LENGTH=0x02 < 5 → validity-gate
+    ///                         REJECT → parse_errors+1, malformed_in_window+1,
+    ///                         carry.drain(..1) → head becomes 0x64.
+    /// 5..20   05 64 08 C4     Valid 15-byte frame (LENGTH=0x08 → frame_len=15):
+    ///         03 00 01 00       dest=0x0003, src=0x0001
+    ///         00 00             header CRC placeholder
+    ///         C0 00 03          transport=0xC0 (FIR=1), app_ctrl=0x00, app_fc=0x03
+    ///         00 00             data-block CRC placeholder
+    /// ```
+    ///
+    /// ## Trace
+    ///
+    /// After delivery carry = 20 bytes.
+    ///
+    /// Iter 1: carry[0..2] = [05 64] — sync OK; `compute_dnp3_frame_len(0x02)` = None
+    ///   → `parse_errors=1`, `malformed_in_window=1`; `carry.drain(..1)`.
+    ///   carry = 19 bytes: `[64 02 AA AA 05 64 08 C4 03 00 01 00 00 00 C0 00 03 00 00]`.
+    ///
+    /// Iter 2: carry[0]=0x64 ≠ 0x05 → resync arm.
+    ///   Scan windows(2) from index 1: index 4 = [0x05, 0x64] → found, i=4.
+    ///   `carry.drain(..4)` → carry = 15 bytes: `[05 64 08 C4 03 00 01 00 00 00 C0 00 03 00 00]`.
+    ///   `continue` (NOT break).
+    ///
+    /// Iter 3: carry[0..2] = [05 64] — sync OK;
+    ///   `compute_dnp3_frame_len(0x08)` = Some(15); carry.len()=15 >= 15.
+    ///   Header: start1=0x05 start2=0x64 length=0x08 control=0xC4 dest=0x0003 src=0x0001.
+    ///   `is_valid_dnp3_frame_header` = true → `frame_count=1`.
+    ///   `has_user_data(0xC4)` = true (link FC nibble = 0x04 = UNCONFIRMED_USER_DATA).
+    ///   `transport_is_fir(0xC0)` = true (bit 0x40 set).
+    ///   `app_fc = carry[12] = 0x03` (SELECT).
+    ///   `classify_dnp3_fc(0x03)` = Control → `fc_counts[0x03]` += 1.
+    ///   `carry.drain(..15)` → carry empty.
+    ///
+    /// Iter 4: carry.len()=0 < 3 → break.
+    ///
+    /// ## Assertions (cover Step-6 requirements from adjudication)
+    ///
+    /// (a) `parse_errors == 1`: the malformed first frame counted exactly once;
+    ///     the resync navigation did NOT double-count.
+    /// (b) `frame_count == 1` and `fc_counts[0x03] == 1`: the embedded valid frame
+    ///     was consumed after the REALIGN drain positioned the carry head correctly.
+    /// (c) `carry.len() == 0`: carry is empty after both the malformed frame and the
+    ///     recovered valid frame were consumed.
+    ///
+    /// Traces to: STORY-109-resync-adjudication.md Step 6 (adversarial pass requirement);
+    /// BC-2.15.016 resync path; BC-2.15.024 no-double-count invariant; OBS-P11-1.
+    #[test]
+    fn test_BC_2_16_OBS_P11_1_resync_realign_branch_drain_to_next_sync() {
+        let mut analyzer = Dnp3Analyzer::new(10);
+        let key = test_flow_key();
+
+        // 20-byte delivery vector — see doc comment for full trace.
+        //
+        // Bytes 0-4:  malformed frame (LENGTH=0x02 < 5 → validity-gate reject)
+        // Bytes 5-19: valid 15-byte DNP3 frame (LENGTH=0x08, FC=0x03 SELECT)
+        //
+        //                                  --- valid 15-byte frame ---
+        //                  -- malformed --  sync  LEN  CTL  DST    SRC    hCRC  trp  aseq aFC  dCRC
+        let delivery: &[u8] = &[
+            0x05, 0x64, 0x02, 0xAA, 0xAA, // malformed: sync OK, LENGTH=2 < 5
+            0x05, 0x64, 0x08, 0xC4, // valid sync + LENGTH=8 + CTRL (UNCONF_USER_DATA, DIR=1)
+            0x03, 0x00, // dest = 0x0003 little-endian
+            0x01, 0x00, // src  = 0x0001 little-endian
+            0x00, 0x00, // header CRC placeholder
+            0xC0, // transport octet: FIR=1 (bit 0x40) | FIN=1 (bit 0x80) = 0xC0
+            0x00, // app control (seq=0)
+            0x03, // app FC = 0x03 SELECT (Control-class)
+            0x00, 0x00, // data-block CRC placeholder
+        ];
+        assert_eq!(delivery.len(), 20, "delivery vector must be exactly 20 bytes");
+
+        analyzer.on_data(key.clone(), delivery, 0);
+
+        let flow = analyzer
+            .flows
+            .get(&key)
+            .expect("flow must exist after on_data");
+
+        // (a) parse_errors == 1: malformed first frame counted once; resync arm MUST NOT
+        //     double-count (adjudication Decision 1: "draining the carry is pure cursor
+        //     movement, not a new error event").
+        assert_eq!(
+            flow.parse_errors,
+            1,
+            "OBS-P11-1 (a): parse_errors must be exactly 1 — the malformed LENGTH=2 frame \
+             was rejected once by the validity gate; the resync arm does NOT increment \
+             parse_errors (no double-counting — adjudication Decision 1 / BC-2.15.024)"
+        );
+
+        // (b.i) frame_count == 1: the embedded valid frame was consumed AFTER the REALIGN
+        //       drain positioned the carry head at [0x05, 0x64] (the Some(i) branch).
+        //       frame_count=0 would mean the realign drained too far or broke instead of
+        //       continuing, leaving the valid frame unconsumed.
+        assert_eq!(
+            flow.frame_count,
+            1,
+            "OBS-P11-1 (b.i): frame_count must be 1 — the valid SELECT frame embedded after \
+             the junk bytes must have been parsed after the REALIGN drain positioned carry[0] \
+             at its [0x05,0x64] sync word (Some(i) branch with i=4; adjudication Step 6)"
+        );
+
+        // (b.ii) fc_counts[0x03] == 1: the FC=0x03 (SELECT) application function code was
+        //        recorded, proving the application layer of the recovered frame was fully
+        //        processed (transport FIR gate passed, app_fc extracted and classified).
+        assert_eq!(
+            flow.fc_counts.get(&0x03u8).copied().unwrap_or(0),
+            1,
+            "OBS-P11-1 (b.ii): fc_counts[0x03] must be 1 — SELECT (FC=0x03) was recorded as \
+             a Control-class function code after the realigned frame was fully parsed"
+        );
+
+        // (c) carry empty: both the malformed frame's junk bytes and the valid frame's 15
+        //     bytes have been consumed; nothing remains in carry.
+        assert_eq!(
+            flow.carry.len(),
+            0,
+            "OBS-P11-1 (c): carry must be empty — the malformed prefix was drained by the \
+             validity-gate (drain-1) + resync (drain-4), and the valid 15-byte frame was \
+             fully consumed by carry.drain(..15)"
+        );
+    }
 } // mod story_107
