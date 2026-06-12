@@ -958,7 +958,11 @@ mod story_107 {
             0x03, // app FC = 0x03 SELECT (Control-class)
             0x00, 0x00, // data-block CRC placeholder
         ];
-        assert_eq!(delivery.len(), 20, "delivery vector must be exactly 20 bytes");
+        assert_eq!(
+            delivery.len(),
+            20,
+            "delivery vector must be exactly 20 bytes"
+        );
 
         analyzer.on_data(key.clone(), delivery, 0);
 
@@ -971,8 +975,7 @@ mod story_107 {
         //     double-count (adjudication Decision 1: "draining the carry is pure cursor
         //     movement, not a new error event").
         assert_eq!(
-            flow.parse_errors,
-            1,
+            flow.parse_errors, 1,
             "OBS-P11-1 (a): parse_errors must be exactly 1 — the malformed LENGTH=2 frame \
              was rejected once by the validity gate; the resync arm does NOT increment \
              parse_errors (no double-counting — adjudication Decision 1 / BC-2.15.024)"
@@ -983,8 +986,7 @@ mod story_107 {
         //       frame_count=0 would mean the realign drained too far or broke instead of
         //       continuing, leaving the valid frame unconsumed.
         assert_eq!(
-            flow.frame_count,
-            1,
+            flow.frame_count, 1,
             "OBS-P11-1 (b.i): frame_count must be 1 — the valid SELECT frame embedded after \
              the junk bytes must have been parsed after the REALIGN drain positioned carry[0] \
              at its [0x05,0x64] sync word (Some(i) branch with i=4; adjudication Step 6)"
