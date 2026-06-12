@@ -241,20 +241,36 @@ FF FE AB CD EF 01 02 03 04 05 06 07 08 09 0A 0B
 
 ---
 
-## HS-W36-001: Carry Buffer — Accumulate and Cap at 292
+## HS-W36-001: Carry Buffer — Cap at 292 then Resync (all-junk carry → empty)
 
 **Scope:** STORY-107 (BC-2.15.016)
 **Priority:** P0 (must-pass)
 **Wave:** 36
 
-**Setup:** Create a fresh `Dnp3FlowState`. Pre-load `flow.carry` with 290 bytes of arbitrary
-data (simulating a partial large frame). Then call `on_data` with 5 additional bytes.
+**Amendment history:**
+- F-CC-001 [HIGH]: original assertions 1–2 assumed cap-and-keep (`carry.len() == 292`).
+  The implemented carry-overflow arm (src/analyzer/dnp3.rs ~lines 370-397, F-F5-003
+  REVISION 2 Change 3-REPLACEMENT) performs an INLINE byte-walk-forward resync after
+  capping: it scans the capped carry for `[0x05, 0x64]`; finding none in all-junk data,
+  calls `flow.carry.clear()`. Real post-`on_data` state is `carry.len() == 0`, not 292.
+  BC-2.15.016 Canonical Test Vector confirms: "If carry was all-junk with no sync word:
+  final carry is empty." ADJ-001 Addendum Q2 reconciled the unit test
+  (`test_carry_buffer_cap_at_292`) to the same behavior. Assertions updated accordingly.
+
+**Setup:** Create a fresh `Dnp3FlowState`. Pre-load `flow.carry` with 290 bytes of
+arbitrary non-DNP3 data (no `[0x05, 0x64]` sync word anywhere — simulating a junk
+partial-frame carry). Then call `on_data` with 5 additional bytes (also non-sync junk).
 
 **Assertions:**
-1. After `on_data`: `flow.carry.len() == 292` (capped at MAX_DNP3_FRAME_LEN).
-2. 3 bytes were discarded (290 + 5 = 295 > 292; only 2 accepted, 3 dropped).
-3. `flow.parse_errors == 1` (one overflow event incremented the lifetime counter).
-4. No panic. No carry growth beyond 292.
+1. `flow.parse_errors == 1` after `on_data` — the overflow event fired and incremented
+   the lifetime counter exactly once (cap enforced; 3 bytes discarded: 290+5=295>292).
+2. `flow.carry.len() == 0` after `on_data` — the inline byte-walk-forward resync found
+   no `[0x05, 0x64]` sync word in the all-junk capped carry and called `carry.clear()`
+   (cap-then-resync semantics per BC-2.15.016 EC-004 / Canonical Test Vector /
+   ADJ-001 Addendum Q2).
+3. `flow.malformed_in_window == 1` — the overflow path increments the windowed malformed
+   counter (BC-2.15.024 integration; same path as `parse_errors`).
+4. No panic. No carry growth beyond 292 at any point during processing.
 
 **Carry-frame-consumption scenario:**
 5. Pre-load carry with exactly one complete 10-byte frame (LENGTH=5, which gives
@@ -342,7 +358,30 @@ T1692.001 finding emitted with confidence=High, summary containing "unexpected s
 "0x0099". direct_operate_count=2 (both FCs counted). direct_operate_emitted=false
 (count=2, threshold=10, 2 > 10 = false). unexpected_source_emitted=true.
 
-**Annotated byte sequence (canonical CTRL=0xC4 master frame, matching BC-2.15.010 Canonical Test Vectors):**
+**IEEE 1815-2012 Spec Citation (DF-CANONICAL-FRAME-HOLDOUT-001 — primary provenance):**
+
+Per IEEE 1815-2012 §9.2.4.1 (data-link fixed-frame header; CONTROL field validity per
+§9.2.4.1.3 and Annex B "Valid Data Link Layer Control Codes"), the data-link CONTROL octet —
+the fourth octet of the frame — places DIR at bit 7 (0x80) and PRM at bit 6 (0x40), with the
+function code in the low nibble. DIR = 1 denotes the master-to-outstation direction. A canonical
+master-to-outstation UNCONFIRMED_USER_DATA primary frame therefore has:
+
+```
+CONTROL octet = DIR(0x80) | PRM(0x40) | FC(0x04) = 0xC4   (binary 1100 0100)
+```
+
+Source: §9.2.4.1 bit-field definitions + §9.2.4.1.3 / Annex B valid-code-point set, as
+documented in DNP Users Group Technical Bulletin AN2013-004(b) "Validation of Incoming DNP3
+Data" (quasi-primary; dnp.org / Chipkin mirror), corroborated by ABB/Emerson vendor manuals,
+DNP3 "Basic 4" cheat-sheets, and opendnp3 field captures. IEEE 1815-2012 is paywalled and was
+not read directly; the derivation and valid-code-point membership of `0xC4` are confirmed via
+multiple independent secondary sources. The `0xC4` value was cross-validated against IEEE 1815
+independently of this project's behavioral contracts (BC-2.15.016 PC5 / BC-2.15.010); those BCs
+remain as secondary traceability, but the AUTHORITATIVE provenance for this holdout is the
+protocol standard derivation above, satisfying the independent-external-citation requirement
+of policy DF-CANONICAL-FRAME-HOLDOUT-001.
+
+**Annotated byte sequence (canonical CTRL=0xC4 master frame):**
 ```
 Frame (both frame 1 and frame 2 use this structure, differing only in SRC field):
   05 64 0E C4 [DEST_L] [DEST_H] [SRC_L] [SRC_H] [hdr-crc-lo] [hdr-crc-hi]
@@ -351,6 +390,8 @@ Frame (both frame 1 and frame 2 use this structure, differing only in SRC field)
 Frame 1 (src=0x0001, dest=0x0003): CTRL=0xC4 (DIR=1, PRM=1, FCV=0, link-FC=4)
 Frame 2 (src=0x0099, dest=0x0003): CTRL=0xC4 (DIR=1, PRM=1, FCV=0, link-FC=4)
 ```
+
+Secondary BC traceability: BC-2.15.016 PC5, BC-2.15.010 Canonical Test Vectors.
 
 **Assertions:**
 1. After frame 1: all_findings.len() == 0. master_addrs_seen == [0x0001].
@@ -555,7 +596,13 @@ is NOT present.
 1. T0814 emitted for the COLD_RESTART (per BC-2.15.011; `["T0814"]`, Likely/High).
 2. T0827 emitted AFTER T0814 in the SAME `on_data` call.
 3. `finding.mitre_techniques == vec!["T0827"]`.
-4. `finding.category` reflects tactic `IcsImpact` (new `MitreTactic::IcsImpact` variant).
+4. `finding.category == ThreatCategory::Impact` (the Finding struct's `category` field uses
+   `ThreatCategory::Impact` — there is no `MitreTactic` field on `Finding`; see src/findings.rs).
+   Separately: `technique_tactic("T0827")` returns `Some(MitreTactic::IcsImpact)` in the MITRE
+   catalogue (src/mitre.rs), confirming the tactic mapping — but this is a catalogue lookup, not
+   a Finding struct field. These are two independent assertions; both must hold.
+   (O-CC-002 [LOW]: original wording conflated the Finding struct field with the catalogue tactic
+   lookup; reworded to avoid a false-fail against the actual Finding struct shape.)
 5. `flow.loss_of_control_emitted == true`.
 6. One-shot guard: a 4th restart/block event in the same 300s window does NOT emit a second T0827.
 

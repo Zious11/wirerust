@@ -366,7 +366,7 @@ traces_to: .factory/specs/prd.md
 > BCs 001-004: DL Header Parse and Validity Gate (Group A + C).
 > BCs 005-007: Function-Code Classification (Group B).
 > BCs 008-009: Transport Layer / Desync Safety (Group E + desync).
-> BCs 010-013: Finding Emission — Detection (T1692.001 control threshold, T0814 restart/DoS, T0836 write, T0813 co-emission) (Group D).
+> BCs 010-013: Finding Emission — Detection (T1692.001 control threshold, T0814 restart/DoS, T0836 write, T0827 co-emission) (Group D).
 > BCs 014-015: Derived / Correlated Findings (T1691.001 block-command inference, T0827 loss-of-control) (Group F).
 > BCs 016-017: Bounded Resource and CLI Integration (Group G + H).
 > BCs 018-019: Anomaly Detection (broadcast destination, unsolicited response) (Group I).
@@ -388,7 +388,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.15.006 | FC Classification Correctness — Control {0x03,0x04,0x05,0x06}, Restart {0x0D,0x0E}, Write {0x02}, Read {0x01} | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.007 | compute_dnp3_frame_len Arithmetic Correct; Result in [10,292]; No Overflow | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.008 | Transport FIR=1 First-Fragment Gates Application-Layer FC Extraction | P0 | [WRITTEN] | feature-008-F2 |
-| BC-2.15.009 | is_non_dnp3 Desync-Safe Bail — Flow Silenced After No Valid Sync in First 16 Bytes | P0 | [WRITTEN] | feature-008-F2 |
+| BC-2.15.009 | is_non_dnp3 Desync-Safe Bail — Flow Silenced on Initial-Delivery No-Sync (One-Shot, First Delivery Only) | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.010 | Unauthorized Control Command — Unexpected Source (count=1) or Control-Class FC Exceeding Threshold Emits T1692.001 | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.011 | COLD_RESTART/WARM_RESTART Observed — Emits T0814 Per-Occurrence Finding | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.012 | WRITE FC Observed — Emits T0836 Modify-Parameter Finding Per-Occurrence | P0 | [WRITTEN] | feature-008-F2 |

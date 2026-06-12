@@ -34,11 +34,11 @@ traces_to:
 
 | Check | Result |
 |-------|--------|
-| Total HS files present | 100 (HS-001..HS-100) |
-| Sequential numbering (no gaps) | PASS — all integers 1..100 present |
+| Total HS files present | 100 (HS-001..HS-100) — greenfield set only; see Feature Holdouts section below for DNP3 |
+| Sequential numbering (no gaps) | PASS — all integers 1..100 present (greenfield HS-NNN sequence) |
 | Duplicate IDs | NONE |
 | Empty `behavioral_contracts` fields | NONE — all 100 non-empty |
-| All waves 1-27 covered | PASS — see per-wave table below |
+| All waves 1-27 covered | PASS — see per-wave table below (greenfield waves; DNP3 waves 35-39 are in the feature tree) |
 
 ---
 
@@ -289,10 +289,100 @@ All 100 scenarios, one row each, grouped by epic.
 
 ## Anomalies
 
-None detected. All checks passed:
+None detected. All checks passed for the greenfield set:
 
-- HS-001 through HS-100 present with no gaps or duplicates
+- HS-001 through HS-100 present with no gaps or duplicates (greenfield HS-NNN sequence)
 - All 100 `behavioral_contracts` fields are non-empty
 - All 27 waves (1-27) have at least one scenario
 - One should-pass scenario: HS-025 (ICS Tactic Display — lower priority feature)
 - All 100 HS files carry concrete per-file `inputs` listing specific BC and story paths
+
+> **Note:** This index covers the v0.1.0 greenfield holdout set (HS-NNN sequence, waves 1-27).
+> Feature-mode holdouts for SS-15 DNP3 (v0.6.0, waves 35-39) use the HS-W35-NNN / HS-W37-NNN
+> namespace and are tracked separately in the feature holdout tree — see the
+> "Feature Holdouts (SS-15 DNP3, waves 35-39)" section below.
+
+---
+
+## Feature Holdouts (SS-15 DNP3, waves 35-39)
+
+> **Source file:** `.factory/feature/wave-holdout-scenarios/wave-35-39-holdout.md`
+>
+> These holdouts belong to the v0.6.0 DNP3 feature cycle (issue-008-dnp3-analyzer).
+> They use the `HS-W<wave>-<seq>` namespace and are NOT part of the greenfield HS-NNN sequence.
+> The HS-001..HS-100 completeness assertions above are scoped to the greenfield set only.
+>
+> Stories: STORY-106 (wave 35), STORY-107 (wave 36), STORY-108 (wave 37), STORY-109 (wave 38), STORY-110 (wave 39).
+> MITRE version: ics-attack-19.1. T0855 and T0803 are REVOKED and must never appear.
+
+### Wave 35 — Pure-Core Parse, Classify, and VP-023 Kani (STORY-106)
+
+| HS ID | Title | Priority | BCs |
+|-------|-------|----------|-----|
+| HS-W35-001 | DL Header Parse — Canonical 10-Byte Minimum Vector | P0 | BC-2.15.001, BC-2.15.003 |
+| HS-W35-002 | DL Header Parse — Extended Canonical Frame (BC byte-level vector) | P0 | BC-2.15.001, BC-2.15.003 |
+| HS-W35-003 | DL Header Parse — Truncation Rejection and LE Disambiguation | P0 | BC-2.15.002, BC-2.15.003 |
+| HS-W35-004 | Three-Point Validity Gate — Biconditional Exhaustive | P0 | BC-2.15.004 |
+| HS-W35-005 | FC Classification — Totality and Set Membership | P0 | BC-2.15.005, BC-2.15.006 |
+| HS-W35-006 | compute_dnp3_frame_len — Formula Correctness at Boundaries | P0 | BC-2.15.007 |
+| HS-W35-007 | Transport FIR=1 Gating — Extract vs Skip | P0 | BC-2.15.008 |
+| HS-W35-008 | Desync Bail — Non-DNP3 Traffic Silenced | P0 | BC-2.15.009 |
+
+### Wave 36 — Carry Buffer and Pending-Requests Bounds (STORY-107)
+
+| HS ID | Title | Priority | BCs |
+|-------|-------|----------|-----|
+| HS-W36-001 | Carry Buffer — Accumulate and Cap at 292 | P0 | BC-2.15.016 |
+| HS-W36-002 | Pending-Requests — Bounded at 256 with Oldest-Eviction | P0 | BC-2.15.016 |
+
+### Wave 37 — Direct Detections: T1692.001, T0814, T0836, Co-Emission, Summarize (STORY-108)
+
+| HS ID | Title | Priority | BCs |
+|-------|-------|----------|-----|
+| HS-W37-001 | T1692.001 — Direct-Operate Burst at Threshold Boundary | P0 | BC-2.15.010 |
+| HS-W37-002 | T1692.001 — Unexpected Source Fires at Count=1 (canonical DIR-bit holdout) | P0 | BC-2.15.010 Invariant 5 |
+| HS-W37-003 | T0814 — COLD_RESTART and WARM_RESTART Per-Occurrence (No Threshold) | P0 | BC-2.15.011 |
+| HS-W37-004 | T0836 — WRITE Per-Occurrence; NOT Also T1692.001 | P0 | BC-2.15.012 |
+| HS-W37-005 | Co-Emission Ordering — Direct Finding Before Derived T0827 | P0 | BC-2.15.013 |
+| HS-W37-006 | summarize() — Function-Code Distribution and Zero-Flow Case | P0 | BC-2.15.020 |
+
+### Wave 38 — Correlated/Anomaly: T1691.001, T0827, Broadcast, Unsolicited, DISABLE, Malformed (STORY-109)
+
+| HS ID | Title | Priority | BCs |
+|-------|-------|----------|-----|
+| HS-W38-001 | T1691.001 — Block-Command 3-of-300s Threshold | P0 | BC-2.15.014 |
+| HS-W38-002 | T1691.001 — Block Events Not Reset at 120s (Trace B Regression) | P0 | BC-2.15.014, BC-2.15.015 |
+| HS-W38-003 | T0827 — Combined Restart + Block Accumulation (Trace B) | P0 | BC-2.15.015 |
+| HS-W38-004 | Correlation Window — Six-Field Expiry Reset | P0 | BC-2.15.015 |
+| HS-W38-005 | Broadcast Control Anomaly — DEST in 0xFFFD/0xFFFE/0xFFFF | P0 | BC-2.15.018 |
+| HS-W38-006 | Unsolicited Response Anomaly — UNS Bit / FC=0x82 Without Prior ENABLE | P1 | BC-2.15.019 |
+| HS-W38-007 | DISABLE_UNSOLICITED T0814 (Likely/Medium) and ENABLE T0814 (Possible/Low) | P0 | BC-2.15.023 |
+| HS-W38-008 | Malformed-Frame Anomaly — 3-of-300s Crain-Sistrunk-Style Threshold | P0 | BC-2.15.024 |
+| HS-W38-009 | Negative / False-Positive Guard — Legitimate Low-Rate Control | P0 | (guard for BC-2.15.010, BC-2.15.014) |
+
+### Wave 39 — End-to-End Dispatch, CLI Threshold Flag, VP-004 Oracle (STORY-110)
+
+| HS ID | Title | Priority | BCs |
+|-------|-------|----------|-----|
+| HS-W39-001 | Dispatcher — Port-20000 Routes to Dnp3Analyzer (Rule 6) | P0 | BC-2.15.021 |
+| HS-W39-002 | Content-First Precedence — TLS/HTTP on Port 20000 Not Stolen | P0 | BC-2.15.021, VP-004 |
+| HS-W39-003 | Non-DNP3 Traffic on Port 20000 — is_non_dnp3 Bail, No False Findings | P0 | BC-2.15.021, BC-2.15.009 |
+| HS-W39-004 | --dnp3-direct-operate-threshold CLI Flag — Override Changes Firing Point | P0 | BC-2.15.017 |
+| HS-W39-005 | End-to-End — Crafted DNP3 Synthetic PCAP with Full Detection Surface | P0 | BC-2.15.021 + all wave 37-38 detections |
+| HS-W39-006 | Regression on Existing Analyzers After Waves 35-39 | P0 | VP-004, VP-007, VP-022, VP-023 |
+| HS-W39-007 | VP-023 Kani Four Sub-Properties — All Pass | P0 | VP-023 (BC-2.15.001 through BC-2.15.008) |
+
+### Feature Holdout Summary
+
+| Metric | Count |
+|--------|-------|
+| Total DNP3 feature holdouts | 32 |
+| P0 must-pass | 31 |
+| P1 nice-to-have | 1 (HS-W38-006) |
+| Waves covered | 35, 36, 37, 38, 39 |
+| Stories covered | STORY-106, STORY-107, STORY-108, STORY-109, STORY-110 |
+| Source file | `.factory/feature/wave-holdout-scenarios/wave-35-39-holdout.md` |
+
+> **Canonical DIR-bit holdout:** HS-W37-002 is the authoritative test for the corrected
+> `is_master_frame` bitmask (0x80, bit 7 = DIR). It verifies that unexpected-source detection
+> is independent of the burst-count threshold (F-F5-001 REVISION 2 R2-5 amendment).

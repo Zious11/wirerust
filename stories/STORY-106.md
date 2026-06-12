@@ -2,11 +2,12 @@
 document_type: story
 story_id: STORY-106
 epic_id: E-15
-version: "1.5"
+version: "1.6"
+# v1.6 2026-06-12: F7 F-S1-001 reconciliation — AC-009 and Previous Story Intelligence corrected from stale "first 16 bytes of carry data" cross-segment framing to BC-2.15.009 v1.3 initial-delivery-only semantics (carry.is_empty && data.len>=2 && no-offset-0-sync; no cross-segment 16-byte accumulation bail per ADJ-001 Addendum Q1)
 # v1.5 2026-06-11: adversarial Pass-7 F1 — add AC-004 BC-2.15.004 PC4 caller-side parse_errors STORY-107 deferral note (symmetry with AC-008/AC-009)
 # v1.4 2026-06-11: adversarial Pass-3 F-P3-001 — document BC-2.15.008 link-FC guard in AC-008 + cite has_user_data/RESET_LINK tests (sibling-sweep)
 # v1.3 2026-06-11: adversarial Pass-2 B1/B2 scope notes + B4 test citation
-status: draft
+status: completed
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
 phase: 3
@@ -46,7 +47,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.009.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/specs/verification-properties/vp-023-dnp3-parse-safety.md
-input-hash: "7b04726"
+input-hash: "d0ef956"
 ---
 
 # STORY-106: DNP3 DL/Transport Parse + FC Classify — Pure Core (VP-023 Kani)
@@ -69,7 +70,7 @@ input-hash: "7b04726"
 | BC-2.15.006 | FC Classification Correctness — Control {0x03,0x04,0x05,0x06}, Restart {0x0D,0x0E}, Write {0x02}, Read {0x01} |
 | BC-2.15.007 | compute_dnp3_frame_len Arithmetic Correct; Result in [10,292]; No Overflow |
 | BC-2.15.008 | Transport FIR=1 First-Fragment Gates Application-Layer FC Extraction |
-| BC-2.15.009 | is_non_dnp3 Desync-Safe Bail — Flow Silenced After No Valid Sync in First 16 Bytes |
+| BC-2.15.009 | is_non_dnp3 Desync-Safe Bail — Flow Silenced on Initial-Delivery No-Sync (One-Shot, First Delivery Only) |
 
 ## Acceptance Criteria
 
@@ -117,9 +118,9 @@ When `transport_octet & 0x40 != 0` (FIR=1): application FC is extracted from `pa
 - **STORY-106 scope boundary (app-FC extraction minimum frame size):** App-FC extraction occurs only for frames >=13 bytes (the minimum that carries an application FC at byte 12: 10 header + 1 transport + 2 app). FIR=1 frames of 10–12 bytes have no app-layer FC and are counted but not extracted — this is correct; multi-block and short-frame handling is STORY-107 frame-walk scope.
 
 ### AC-009 (traces to BC-2.15.009 postconditions 1-6 — desync bail)
-When the first 16 bytes of carry data contain no valid DNP3 sync word `[0x05, 0x64]` at offset 0, `flow.is_non_dnp3` is set to `true`. All subsequent `on_data` calls for that flow return immediately (no-op). The latch is one-way: `is_non_dnp3` once true is never reset.
+When the first `on_data` delivery arrives while `flow.carry.is_empty()`, `data.len() >= 2`, and there is no valid DNP3 sync word `[0x05, 0x64]` at offset 0, `flow.is_non_dnp3` is set to `true`. This is a one-shot, initial-delivery-only mechanism — once carry is non-empty the bail path is permanently closed. All subsequent `on_data` calls for that flow return immediately (no-op). The latch is one-way: `is_non_dnp3` once true is never reset.
 - **Test:** `test_desync_bail_non_dnp3_traffic()` — deliver `[0xFF, 0xFE, ...]` first; assert `is_non_dnp3=true`; deliver second segment; assert no findings, no carry growth.
-- **STORY-106 scope boundary (Finding 4):** This AC covers the single-delivery desync latch — when the first delivered segment is ≥2 bytes and has no `[0x05, 0x64]` at offset 0, `is_non_dnp3` is set. BC-2.15.009 EC-004 (a sub-2-byte first segment, e.g. a lone `0x05`, must DEFER not bail, accumulating up to 16 bytes of carry before deciding) cannot be fully implemented here because the carry buffer is STORY-107 scope. Multi-segment carry-accumulated sync deferral for the lone-`0x05`-first-segment case is verified in STORY-107 when the carry buffer lands.
+- **STORY-106 scope boundary (Finding 4):** This AC covers the single-delivery desync latch — when the first delivered segment is ≥2 bytes and has no `[0x05, 0x64]` at offset 0, `is_non_dnp3` is set. BC-2.15.009 EC-004 (a sub-2-byte first delivery, e.g. a lone `0x05`, defers because `data.len() < 2` — the bail guard is not satisfied; the byte is accumulated into carry and the bail re-evaluates on the next delivery while carry is still empty; once carry is non-empty the flow is established as DNP3 and the bail path is permanently closed — there is NO cross-segment 16-byte accumulation bail; ADJ-001 Addendum Q1) requires the carry buffer that is STORY-107 scope. The lone-`0x05` re-evaluation on the next delivery while carry is empty, and the permanent closure of the bail path once carry is non-empty, are verified in STORY-107 when the carry buffer lands.
 
 ## Architecture Mapping
 
@@ -201,7 +202,7 @@ Run Kani with `cargo kani --harness verify_parse_dnp3_dl_header_safety`, `--harn
 STORY-102 (Modbus MBAP Parse, E-14) is the direct structural precedent:
 - Same pure-core + Kani pattern (VP-022 → VP-023 parallel)
 - Same `#[cfg(kani)] mod kani_proofs` placement in the analyzer module
-- Key DNP3 differences: (1) DEST/SRC are **little-endian** (Modbus is big-endian); (2) an additional Sub-D property for `compute_dnp3_frame_len` arithmetic (no Modbus equivalent); (3) FIR=1 gating is a DNP3-specific transport layer concept; (4) desync bail window is 16 bytes (same as Modbus 16-byte pattern per ADR-007 Decision 2).
+- Key DNP3 differences: (1) DEST/SRC are **little-endian** (Modbus is big-endian); (2) an additional Sub-D property for `compute_dnp3_frame_len` arithmetic (no Modbus equivalent); (3) FIR=1 gating is a DNP3-specific transport layer concept; (4) desync bail is initial-delivery-only (fires on the first delivery when `carry.is_empty() && data.len() >= 2 && no sync at offset 0`; there is no cross-segment 16-byte accumulation bail — ADJ-001 Addendum Q1, ADR-007 Decision 2).
 - Lesson from STORY-102: write all Kani harnesses in the SAME commit as the pure-core functions, not as a follow-up. The Red Gate check counts harness lines as non-trivial.
 
 ## Architecture Compliance Rules

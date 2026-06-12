@@ -92,9 +92,9 @@ traces_to:
 | STORY-105 | Modbus Dispatcher Integration + CLI | E-14 | 34 | 8 | completed | STORY-104 |
 | STORY-106 | DNP3 DL/Transport Parse + FC Classify — Pure Core (VP-023 Kani) | E-15 | 35 | 8 | completed | STORY-100 |
 | STORY-107 | DNP3 Per-Flow State + Carry Buffer + Pending-Request Bounds | E-15 | 36 | 5 | completed | STORY-106 |
-| STORY-108 | DNP3 Direct Detection Emissions — T1692.001, T0814 (Restart), T0836, Co-Emission, Summarize | E-15 | 37 | 13 | draft | STORY-107 |
-| STORY-109 | DNP3 Correlated/Derived + Anomaly Detections — T1691.001, T0827, Broadcast, Unsolicited, ENABLE/DISABLE, Malformed | E-15 | 38 | 13 | draft | STORY-108 |
-| STORY-110 | DNP3 Dispatcher Integration + CLI Flag — VP-004 Oracle + VP-007 Atomic-Update | E-15 | 39 | 8 | draft | STORY-109 |
+| STORY-108 | DNP3 Direct Detection Emissions — T1692.001, T0814 (Restart), T0836, Co-Emission, Summarize | E-15 | 37 | 13 | completed | STORY-107 |
+| STORY-109 | DNP3 Correlated/Derived + Anomaly Detections — T1691.001, T0827, Broadcast, Unsolicited, ENABLE/DISABLE, Malformed | E-15 | 38 | 13 | completed | STORY-108 |
+| STORY-110 | DNP3 Dispatcher Integration + CLI Flag — VP-004 Oracle + VP-007 Atomic-Update | E-15 | 39 | 8 | completed | STORY-109 |
 
 ---
 
@@ -206,8 +206,11 @@ traces_to:
 | 32 | STORY-102 | **DELIVERED & CLOSED** | #211 | 26d58bb | 2026-06-09 |
 | 33 | STORY-103, STORY-104 | **DELIVERED & CLOSED** | #212, #213 | d894464, dba... | 2026-06-09 |
 | 34 | STORY-105 | **DELIVERED & CLOSED** | #214 | dba5f26 | 2026-06-09 |
-| 35 | STORY-106 | **DELIVERED** | #225 | d0f3586 | 2026-06-11 |
-| 36 | STORY-107 | DELIVERED | #226 | ebb4751 | 2026-06-11 |
+| 35 | STORY-106 | **DELIVERED & CLOSED** | #225 | d0f3586 | 2026-06-11 |
+| 36 | STORY-107 | **DELIVERED & CLOSED** | #226 | ebb4751 | 2026-06-11 |
+| 37 | STORY-108 | **DELIVERED & CLOSED** | #227 | 9c03fde | 2026-06-11 |
+| 38 | STORY-109 | **DELIVERED & CLOSED** | #228 | 34443f9 | 2026-06-11 |
+| 39 | STORY-110 | **DELIVERED & CLOSED** | #229 | ddfa576 | 2026-06-11 |
 
 ## Coverage Verification
 

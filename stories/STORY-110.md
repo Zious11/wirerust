@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-110
 epic_id: E-15
 version: "1.3"
-status: draft
+status: completed
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
 phase: 3
@@ -31,7 +31,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.021.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/specs/verification-properties/vp-023-dnp3-parse-safety.md
-input-hash: "a9cdfb5"
+input-hash: "482500f"
 ---
 
 # STORY-110: DNP3 Dispatcher Integration + CLI Flag — VP-004 Oracle + VP-007 Atomic-Update

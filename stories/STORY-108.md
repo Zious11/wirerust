@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-108
 epic_id: E-15
 version: "1.1"
-status: draft
+status: completed
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
 phase: 3
@@ -27,7 +27,7 @@ wave: 37
 estimated_days: 5
 feature_id: issue-008-dnp3-analyzer
 github_issue: 8
-# BC status: 6 BCs authored 2026-06-10; latest versions BC-2.15.010 v1.2, BC-2.15.011 v1.2, BC-2.15.013 v1.1
+# BC status: 6 BCs authored 2026-06-10; latest versions BC-2.15.010 v1.5, BC-2.15.011 v1.2, BC-2.15.013 v1.1
 inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.010.md
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.011.md
@@ -37,7 +37,7 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.022.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
   - .factory/specs/verification-properties/vp-023-dnp3-parse-safety.md
-input-hash: "44e3256"
+input-hash: "6393da4"
 ---
 
 # STORY-108: DNP3 Direct Detection Emissions — T1692.001, T0814 (Restart), T0836, Co-Emission, Summarize
@@ -111,6 +111,17 @@ When no DNP3 flows analyzed, summary is present with zero counts, not absent fro
 CONFIRMED threshold values: default `direct_operate_threshold = 10` (count > 10), `DETECTION_WINDOW_SECS = 60`. Control FC from an UNEXPECTED source address fires at count=1 (source-address allowlist check is the primary gate; 10/60s is the secondary volumetric flood guard per BC-2.15.010 Invariant 5).
 - **Note:** Source-address allowlist is a runtime/config concern; the threshold > 10 check is the detectable behavior in unit tests.
 
+### AC-013 (traces to BC-2.15.010 EC-009 — pre-push snapshot: first master establishes expected set, no finding)
+The first master-direction (DIR=1, `is_master_frame(control) = true` using mask 0x80 per BC-2.15.016 PC5) Control-class FC on a flow establishes the expected master set with NO unexpected-source finding. The snapshot variables `src_was_known` and `expected_set_established` MUST be captured BEFORE `master_addrs_seen` is populated for the current frame (`expected_set_established = !flow.master_addrs_seen.is_empty()` evaluated before the push). On the first frame: `expected_set_established = false` (empty set) → the unexpected-source condition is not met → no T1692.001 finding. After processing: `master_addrs_seen = [src]`. `flow.unexpected_source_emitted` remains `false`. `direct_operate_count` incremented normally.
+- **DIR=1 qualifier (F-C-007):** source-learning and unexpected-source check apply ONLY to master-direction Control frames (`is_master_frame(control) == true`).
+- **Test:** `test_first_master_is_expected()` in `tests/dnp3_f5_remediation_tests.rs` (B-4) — first Control FC from src=0x0001 on a fresh flow; assert no finding, `master_addrs_seen == [0x0001]`, `unexpected_source_emitted == false`, `direct_operate_count == 1`.
+
+### AC-014 (traces to BC-2.15.010 EC-010 — one-shot guard: unexpected source fires exactly once per flow)
+When a master-direction Control-class FC arrives from a source (`src`) NOT in `master_addrs_seen` AND the expected set is already established (`expected_set_established = true`, i.e., `master_addrs_seen` was non-empty BEFORE the current frame's master-addr push): exactly ONE T1692.001 finding is emitted at `count=1` regardless of `direct_operate_count` vs `direct_operate_threshold`. Finding fields: `verdict: Likely`, `confidence: High`, summary contains "unexpected source". `flow.unexpected_source_emitted = true` (flow-lifetime one-shot guard). Subsequent Control FCs from the same unexpected source on the same flow do NOT emit additional unexpected-source findings (guard is set). The burst-threshold check continues to run independently.
+- **One-shot guard is flow-lifetime** (NOT window-scoped): `unexpected_source_emitted` is NOT reset at the 60s `DETECTION_WINDOW_SECS` window expiry.
+- **Test:** `test_unexpected_source_fires_at_count_1()` in `tests/dnp3_f5_remediation_tests.rs` (B-1) — src=0x0001 establishes set (frame 1); src=0x0099 triggers unexpected-source finding (frame 2); assert 1 finding, `Confidence::High`, `unexpected_source_emitted == true`.
+- **Test (one-shot):** `test_unexpected_source_one_shot_guard()` in `tests/dnp3_f5_remediation_tests.rs` (B-3) — 3 Control FCs from unexpected src=0x0099; assert exactly ONE unexpected-source finding total.
+
 ## Architecture Mapping
 
 | Component | Module | Pure/Effectful |
@@ -160,7 +171,7 @@ T1692.001, T0814, T0836 were ALREADY added to the `SEEDED_TECHNIQUE_IDS` slice (
 7. **Implement co-emission ordering** (BC-2.15.013) — direct detection pushes happen before any derived-impact push within the same `on_data` call. Leave placeholder stub for T0827 (STORY-109 fills it in).
 8. **Implement `finalize()` / `summarize()`** (BC-2.15.020) — aggregate `fn_code_counts`, per-flow `direct_operate_count`, total_frames, total_parse_errors, flows_analyzed into output struct.
 9. **Add `DETECTION_WINDOW_SECS: u32 = 60`** and `const MAX_FINDINGS` constants.
-10. **Unit tests** for AC-001 through AC-012.
+10. **Unit tests** for AC-001 through AC-014.
 
 ## Test Plan
 
@@ -178,6 +189,8 @@ T1692.001, T0814, T0836 were ALREADY added to the `SEEDED_TECHNIQUE_IDS` slice (
 | AC-010 | Unit + Integration | summarize() FC distribution map; 5 DIRECT_OPERATE + 3 READ |
 | AC-011 | Unit | summarize() zero-flow case |
 | AC-012 | Unit | Threshold semantics: `> 10` not `>= 10` |
+| AC-013 | Unit | Pre-push snapshot: first master establishes set, no finding; `test_first_master_is_expected` (B-4) |
+| AC-014 | Unit | One-shot unexpected-source guard; `test_unexpected_source_fires_at_count_1` (B-1), `test_unexpected_source_one_shot_guard` (B-3) |
 
 ## Previous Story Intelligence
 

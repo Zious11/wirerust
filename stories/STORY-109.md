@@ -3,7 +3,7 @@ document_type: story
 story_id: STORY-109
 epic_id: E-15
 version: "1.3"
-status: draft
+status: completed
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
 phase: 3
@@ -26,18 +26,17 @@ wave: 38
 estimated_days: 5
 feature_id: issue-008-dnp3-analyzer
 github_issue: 8
-# BC status: 6 BCs authored 2026-06-10; BC-2.15.014 v1.6, BC-2.15.015 v1.5, BC-2.15.018 v1.1, BC-2.15.019 v1.1, BC-2.15.023 v1.1, BC-2.15.024 v1.1
+# BC status: 6 BCs authored 2026-06-10; BC-2.15.014 v1.6, BC-2.15.015 v1.5, BC-2.15.018 v1.1, BC-2.15.019 v1.1, BC-2.15.023 v1.1, BC-2.15.024 v1.1 (BC-2.15.016 removed from inputs: F7 F-001/F-002 correction — transposed invariant annotation; no AC legitimately references it)
 # VP-007 atomic update obligation: T1691.001 and T0827 (+ MitreTactic::IcsImpact) seeded HERE
 inputs:
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.014.md
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.015.md
-  - .factory/specs/behavioral-contracts/ss-15/BC-2.15.016.md
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.018.md
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.019.md
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.023.md
   - .factory/specs/behavioral-contracts/ss-15/BC-2.15.024.md
   - .factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md
-input-hash: "4d8c16e"
+input-hash: "cf0bb94"
 ---
 
 # STORY-109: DNP3 Correlated/Derived + Anomaly Detections — T1691.001, T0827, Broadcast, Unsolicited, ENABLE/DISABLE, Malformed
@@ -129,7 +128,7 @@ On each structural-reject path fire (LENGTH<5, frame-length mismatch, carry over
 `flow.parse_errors` is a lifetime monotonic counter. After the 300s window expiry reset, `parse_errors` remains at its accumulated value (NOT reset to 0). `malformed_in_window` IS reset to 0 at window expiry.
 - **Test:** `test_parse_errors_not_reset_at_window_expiry()` — 3 malformed frames (parse_errors=3); advance past 300s; assert parse_errors still 3, malformed_in_window=0.
 
-### AC-014 (traces to BC-2.15.016 invariant 8 / BC-2.15.014 invariant 8 — pending_requests timeout-check uses wrapping_sub)
+### AC-014 (traces to BC-2.15.014 invariant 8 — pending_requests timeout-check uses wrapping_sub)
 `now_ts.wrapping_sub(request_ts) > BLOCK_CMD_TIMEOUT_SECS = 10` is the timeout check (not `now_ts - request_ts`). This prevents panic under overflow-checks=true when timestamps go backward (out-of-order pcap replay).
 - **Test:** `test_pending_request_timeout_wrapping_sub()`
 
