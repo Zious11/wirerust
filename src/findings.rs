@@ -37,6 +37,12 @@ pub enum Verdict {
     /// The finding cannot be classified as Likely or Unlikely from the
     /// available evidence.
     Inconclusive,
+    /// The finding is a plausible threat but has a legitimate explanation
+    /// that cannot be ruled out from passive observation alone.
+    /// Lower confidence than Likely.  Added in STORY-109 for inferred /
+    /// anomaly detections (BC-2.15.014 T1691.001, BC-2.15.018, BC-2.15.019,
+    /// BC-2.15.023 ENABLE, BC-2.15.024 malformed).
+    Possible,
 }
 
 impl fmt::Display for Verdict {
@@ -45,6 +51,7 @@ impl fmt::Display for Verdict {
             Verdict::Likely => write!(f, "LIKELY"),
             Verdict::Unlikely => write!(f, "UNLIKELY"),
             Verdict::Inconclusive => write!(f, "INCONCLUSIVE"),
+            Verdict::Possible => write!(f, "POSSIBLE"),
         }
     }
 }
@@ -108,6 +115,15 @@ pub enum ThreatCategory {
     /// Unclassified protocol-level anomalies (RFC violations, evasion
     /// indicators) that don't yet warrant a specific tactic tag.
     Anomaly,
+    /// Protocol-anomaly signals that warrant attention but have a plausible
+    /// legitimate explanation — lower confidence than Execution.
+    /// Added in STORY-109 for BC-2.15.018 (broadcast anomaly) and
+    /// BC-2.15.019 (unsolicited-response anomaly).
+    Suspicious,
+    /// Impact-class findings: outcomes representing loss of control or
+    /// denial of service at the ICS/OT level.
+    /// Added in STORY-109 for BC-2.15.015 (T0827 Loss of Control).
+    Impact,
 }
 
 impl fmt::Display for ThreatCategory {

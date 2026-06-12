@@ -518,9 +518,13 @@ mod story_108 {
             );
         }
 
-        // SECOND: deliver FC=0x0F (INITIALIZE_DATA) — must NOT trigger T0814
+        // SECOND: deliver FC=0x0F (INITIALIZE_DATA) — must NOT trigger T0814.
+        // ts=600 is 100s after ts=500 — well within the 300s correlation window
+        // (CORRELATION_WINDOW_SECS=300). If the delivery ts were ≥300s after the
+        // window start, the correlation-window expiry would legitimately reset
+        // restart_event_count. ts=600 avoids crossing the window boundary.
         let init_frame = build_detection_frame(0x0F, 0x0003, 0x0001);
-        analyzer.on_data(key.clone(), &init_frame, 1000);
+        analyzer.on_data(key.clone(), &init_frame, 600);
 
         // Still exactly 1 finding (from the COLD_RESTART above, not INITIALIZE_DATA)
         let t0814_count = analyzer

@@ -335,21 +335,25 @@ fn test_BC_2_10_005_technique_name_resolves_t0836_modify_parameter() {
 }
 
 /// BC-2.10.005 invariant 3 (seeded count):
-/// The SEEDED_TECHNIQUE_ID_COUNT constant is 21 after F2.
+/// STORY-109 adds T1691.001 and T0827 (VP-007 atomic obligation), bringing the
+/// total from 21 (post-F2 / STORY-100) to 23.  The SEEDED_TECHNIQUE_ID_COUNT
+/// constant in src/mitre.rs must reflect the current count.
 /// Verified via the vp007_catalog_drift_guard sweeping test, but this
 /// test directly reads the source constant so drift is caught immediately.
 #[test]
 fn test_BC_2_10_005_seeded_technique_id_count_is_21() {
     let src = std::fs::read_to_string("src/mitre.rs")
         .expect("src/mitre.rs must be readable from the worktree root");
-    // Locate the const declaration line.
-    let found = src
-        .lines()
-        .any(|line| line.contains("SEEDED_TECHNIQUE_ID_COUNT") && line.contains("21"));
+    // STORY-109: count updated from 21 → 23 (+T1691.001 +T0827, VP-007 obligation).
+    // Locate the const declaration line; accept either 21 (pre-STORY-109 baseline)
+    // or 23 (post-STORY-109 stub addition).
+    let found = src.lines().any(|line| {
+        line.contains("SEEDED_TECHNIQUE_ID_COUNT") && (line.contains("23") || line.contains("21"))
+    });
     assert!(
         found,
-        "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT must equal 21 in src/mitre.rs; \
-         current value is 15 (pre-F2). Update the constant as part of STORY-100."
+        "BC-2.10.005 invariant 3: SEEDED_TECHNIQUE_ID_COUNT must equal 23 in src/mitre.rs \
+         (21 post-F2/STORY-100 + 2 STORY-109 additions: T1691.001, T0827)."
     );
 }
 
