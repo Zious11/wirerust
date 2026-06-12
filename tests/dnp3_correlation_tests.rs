@@ -461,6 +461,385 @@ mod story_109 {
     }
 
     // -------------------------------------------------------------------------
+    // F-P9-001 regression tests (BC-2.15.015 PC5 / EC-002)
+    // Expose the gap: T0827 must fire when the BLOCK-TIMEOUT path crosses the
+    // combined threshold, even when block_event_count < BLOCK_CMD_THRESHOLD (3).
+    //
+    // The impl currently only calls maybe_emit_t0827 from inside the
+    // `block_event_count >= BLOCK_CMD_THRESHOLD` guard, so when restarts supply
+    // 2 of the 3 events and 1 block timeout supplies the remainder, T0827 is
+    // silently dropped.  Both tests below WILL FAIL (RED) until the fix lands.
+    // -------------------------------------------------------------------------
+
+    /// F-P9-001 regression test 1 (BC-2.15.015 PC5 / EC-002):
+    /// Trace C-rev — 2 restarts first, then 1 block timeout crosses combined threshold.
+    ///
+    /// Arrival order:
+    ///   ts=0:   COLD_RESTART #1 → restart_event_count=1, T0814 emitted
+    ///   ts=10:  COLD_RESTART #2 → restart_event_count=2, T0814 emitted; combined=2 < 3
+    ///   ts=20:  SELECT (FC=0x03, app_seq=7, dest=0x0003) delivered — pending_requests entry
+    ///   ts=31:  READ frame (no RESPONSE for seq=7) — block-timeout scan fires;
+    ///           wrapping_sub(31, 20) = 11 > BLOCK_CMD_TIMEOUT_SECS=10;
+    ///           block_event_count becomes 1; combined = 2+1 = 3 >= T0827_THRESHOLD=3.
+    ///           T1691.001 is NOT emitted (block_event_count=1 < BLOCK_CMD_THRESHOLD=3).
+    ///           T0827 MUST be emitted (combined >= 3, !loss_of_control_emitted).
+    ///
+    /// Expected T0827 fields (BC-2.15.015 PC1):
+    ///   mitre_techniques: vec!["T0827"]
+    ///   category: ThreatCategory::Impact
+    ///   verdict: Verdict::Likely
+    ///   confidence: Confidence::Medium
+    ///
+    /// This test FAILS before the fix: T0827 absent (block-timeout path skips
+    /// maybe_emit_t0827 because block_event_count=1 < BLOCK_CMD_THRESHOLD=3).
+    ///
+    /// Traces to: BC-2.15.015 PC5; EC-002; F-P9-001; STORY-109 AC-004 (Trace C-rev).
+    #[test]
+    fn test_t0827_emitted_when_block_crosses_threshold_after_restarts() {
+        let mut analyzer = Dnp3Analyzer::new(10);
+        let key = test_flow_key();
+
+        // --- Step 1: 2 COLD_RESTARTs → restart_event_count=2, combined=2 ---
+        // ts=0: COLD_RESTART #1 → T0814; restart_event_count=1
+        let r1 = build_detection_frame(0x0D, 0x0003, 0x0001);
+        analyzer.on_data(key.clone(), &r1, 0);
+
+        // ts=10: COLD_RESTART #2 → T0814; restart_event_count=2, combined=2 < 3
+        let r2 = build_detection_frame(0x0D, 0x0003, 0x0001);
+        analyzer.on_data(key.clone(), &r2, 10);
+
+        {
+            let flow = analyzer
+                .flows
+                .get(&key)
+                .expect("flow must exist after 2 restarts");
+            assert_eq!(
+                flow.restart_event_count, 2,
+                "F-P9-001/test1 pre: restart_event_count must be 2"
+            );
+            assert_eq!(
+                flow.block_event_count, 0,
+                "F-P9-001/test1 pre: block_event_count must be 0"
+            );
+        }
+        // No T0827 yet (combined=2 < threshold=3)
+        assert_eq!(
+            analyzer
+                .all_findings
+                .iter()
+                .filter(|f| f.mitre_techniques.contains(&"T0827".to_string()))
+                .count(),
+            0,
+            "F-P9-001/test1 pre: no T0827 at combined=2 (< threshold=3)"
+        );
+
+        // --- Step 2: SELECT (FC=0x03) at ts=20 — enters pending_requests ---
+        // Uses app_seq=7 so it does not collide with any prior request.
+        // dest=0x0003, src=0x0001.
+        let select = build_detection_frame_with_seq(0x03, 0x0003, 0x0001, 7);
+        analyzer.on_data(key.clone(), &select, 20);
+
+        {
+            let flow = analyzer
+                .flows
+                .get(&key)
+                .expect("flow must exist after SELECT");
+            assert!(
+                flow.pending_requests.contains_key(&(0x0003, 7)),
+                "F-P9-001/test1 pre: pending_requests must contain (dest=0x0003, seq=7) \
+                 after SELECT"
+            );
+        }
+
+        // --- Step 3: advance to ts=31 with no RESPONSE for seq=7 ---
+        // wrapping_sub(31, 20) = 11 > BLOCK_CMD_TIMEOUT_SECS=10 → block timeout fires.
+        // block_event_count → 1; combined = 2+1 = 3.
+        // T1691.001 must NOT fire (block_event_count=1 < BLOCK_CMD_THRESHOLD=3).
+        // T0827 MUST fire (combined=3 >= T0827_THRESHOLD=3).
+        let trigger = build_detection_frame(0x01, 0x0003, 0x0001);
+        analyzer.on_data(key.clone(), &trigger, 31);
+
+        // Verify block_event_count reached 1
+        {
+            let flow = analyzer
+                .flows
+                .get(&key)
+                .expect("flow must exist after block timeout");
+            assert_eq!(
+                flow.block_event_count, 1,
+                "F-P9-001/test1: block_event_count must be 1 after SELECT timeout"
+            );
+        }
+
+        // T1691.001 must NOT have fired (block_event_count=1 < BLOCK_CMD_THRESHOLD=3)
+        let t1691_count = analyzer
+            .all_findings
+            .iter()
+            .filter(|f| f.mitre_techniques.contains(&"T1691.001".to_string()))
+            .count();
+        assert_eq!(
+            t1691_count, 0,
+            "F-P9-001/test1: T1691.001 must NOT fire when block_event_count=1 \
+             (< BLOCK_CMD_THRESHOLD=3); got {t1691_count}"
+        );
+
+        // T0827 MUST have fired exactly once (combined=3 >= T0827_THRESHOLD=3).
+        // This assertion WILL FAIL before the fix (block-timeout path skips
+        // maybe_emit_t0827 when block_event_count < BLOCK_CMD_THRESHOLD).
+        let t0827_findings: Vec<_> = analyzer
+            .all_findings
+            .iter()
+            .filter(|f| f.mitre_techniques.contains(&"T0827".to_string()))
+            .collect();
+
+        // Diagnostic: print what IS present so the failure message is informative.
+        let present_techniques: Vec<Vec<String>> = analyzer
+            .all_findings
+            .iter()
+            .map(|f| f.mitre_techniques.clone())
+            .collect();
+
+        assert_eq!(
+            t0827_findings.len(),
+            1,
+            "F-P9-001/test1 (BC-2.15.015 PC5 / EC-002 REGRESSION): exactly ONE T0827 must be \
+             emitted when block-timeout path crosses combined threshold \
+             (2 restarts + 1 block = 3); impl currently skips maybe_emit_t0827 from \
+             block-timeout when block_event_count < BLOCK_CMD_THRESHOLD=3. \
+             Techniques actually present: {present_techniques:?}"
+        );
+
+        let f = t0827_findings[0];
+        assert_eq!(
+            f.mitre_techniques,
+            vec!["T0827"],
+            "F-P9-001/test1: T0827 finding must carry only [\"T0827\"]"
+        );
+        assert!(
+            matches!(f.category, ThreatCategory::Impact),
+            "F-P9-001/test1: T0827 category must be Impact; got {:?}",
+            f.category
+        );
+        assert!(
+            matches!(f.verdict, Verdict::Likely),
+            "F-P9-001/test1: T0827 verdict must be Likely; got {:?}",
+            f.verdict
+        );
+        assert!(
+            matches!(f.confidence, Confidence::Medium),
+            "F-P9-001/test1: T0827 confidence must be Medium; got {:?}",
+            f.confidence
+        );
+
+        // BC-2.15.013 ordering: T0827 must appear after at least one T0814
+        // (the COLD_RESTART T0814s were pushed before the block scan ran).
+        let last_t0814_pos = analyzer
+            .all_findings
+            .iter()
+            .rposition(|f| f.mitre_techniques.contains(&"T0814".to_string()))
+            .expect("F-P9-001/test1: at least one T0814 must exist (from COLD_RESTARTs)");
+        let t0827_pos = analyzer
+            .all_findings
+            .iter()
+            .position(|f| f.mitre_techniques.contains(&"T0827".to_string()))
+            .expect("F-P9-001/test1: T0827 must be present");
+        assert!(
+            t0827_pos > last_t0814_pos,
+            "F-P9-001/test1 (BC-2.15.013 PC2): T0827 [{t0827_pos}] must appear AFTER \
+             last T0814 [{last_t0814_pos}] in all_findings"
+        );
+
+        // One-shot guard
+        let flow = analyzer.flows.get(&key).expect("flow must exist");
+        assert!(
+            flow.loss_of_control_emitted,
+            "F-P9-001/test1: loss_of_control_emitted must be true after T0827 emission"
+        );
+    }
+
+    /// F-P9-001 regression test 2 (BC-2.15.015 PC5 / EC-002):
+    /// Trace D — 1 restart, then 2 block timeouts; T0827 fires on the 2nd block timeout.
+    ///
+    /// Arrival order:
+    ///   ts=0:   COLD_RESTART → restart_event_count=1, T0814 emitted; combined=1
+    ///   ts=10:  SELECT #1 (FC=0x03, app_seq=1, dest=0x0003) → pending_requests entry
+    ///   ts=21:  READ frame (no RESPONSE for seq=1) → block timeout fires;
+    ///           block_event_count=1; combined=2 < 3.  No T0827 yet.
+    ///   ts=30:  SELECT #2 (FC=0x03, app_seq=2, dest=0x0003) → pending_requests entry
+    ///   ts=41:  READ frame (no RESPONSE for seq=2) → block timeout fires;
+    ///           block_event_count=2; combined = 1+2 = 3 >= T0827_THRESHOLD=3.
+    ///           T1691.001 still NOT emitted (block_event_count=2 < BLOCK_CMD_THRESHOLD=3).
+    ///           T0827 MUST be emitted on THIS scan.
+    ///
+    /// Expected T0827 fields: same as test 1 (Impact / Likely / Medium).
+    ///
+    /// This test FAILS before the fix for the same reason: the block-timeout path
+    /// only calls maybe_emit_t0827 inside the block_event_count >= 3 guard.
+    ///
+    /// Traces to: BC-2.15.015 PC5; EC-002; F-P9-001; STORY-109 AC-004 (Trace D).
+    #[test]
+    fn test_t0827_emitted_when_second_block_crosses_threshold_after_one_restart() {
+        let mut analyzer = Dnp3Analyzer::new(10);
+        let key = test_flow_key();
+
+        // --- Step 1: 1 COLD_RESTART → restart_event_count=1, combined=1 ---
+        let r1 = build_detection_frame(0x0D, 0x0003, 0x0001);
+        analyzer.on_data(key.clone(), &r1, 0);
+
+        {
+            let flow = analyzer
+                .flows
+                .get(&key)
+                .expect("flow must exist after restart");
+            assert_eq!(
+                flow.restart_event_count, 1,
+                "F-P9-001/test2 pre: restart_event_count must be 1"
+            );
+            assert_eq!(
+                flow.block_event_count, 0,
+                "F-P9-001/test2 pre: block_event_count must be 0"
+            );
+        }
+
+        // --- Step 2: SELECT #1 at ts=10 → pending_requests entry (seq=1) ---
+        let select1 = build_detection_frame_with_seq(0x03, 0x0003, 0x0001, 1);
+        analyzer.on_data(key.clone(), &select1, 10);
+
+        // --- Step 3: advance to ts=21 with no RESPONSE for seq=1 ---
+        // wrapping_sub(21, 10) = 11 > 10 → block timeout fires; block_event_count=1.
+        // combined = 1+1 = 2 < 3 → no T0827 yet.
+        let trigger1 = build_detection_frame(0x01, 0x0003, 0x0001);
+        analyzer.on_data(key.clone(), &trigger1, 21);
+
+        {
+            let flow = analyzer
+                .flows
+                .get(&key)
+                .expect("flow must exist after first block timeout");
+            assert_eq!(
+                flow.block_event_count, 1,
+                "F-P9-001/test2: block_event_count must be 1 after first SELECT timeout"
+            );
+        }
+        assert_eq!(
+            analyzer
+                .all_findings
+                .iter()
+                .filter(|f| f.mitre_techniques.contains(&"T0827".to_string()))
+                .count(),
+            0,
+            "F-P9-001/test2: no T0827 at combined=2 (< threshold=3) after 1 restart + 1 block"
+        );
+
+        // --- Step 4: SELECT #2 at ts=30 → pending_requests entry (seq=2) ---
+        let select2 = build_detection_frame_with_seq(0x03, 0x0003, 0x0001, 2);
+        analyzer.on_data(key.clone(), &select2, 30);
+
+        // --- Step 5: advance to ts=41 with no RESPONSE for seq=2 ---
+        // wrapping_sub(41, 30) = 11 > 10 → block timeout fires; block_event_count=2.
+        // combined = 1+2 = 3 >= T0827_THRESHOLD=3.
+        // T1691.001 must NOT fire (block_event_count=2 < BLOCK_CMD_THRESHOLD=3).
+        // T0827 MUST fire (combined=3 >= 3, !loss_of_control_emitted).
+        let trigger2 = build_detection_frame(0x01, 0x0003, 0x0001);
+        analyzer.on_data(key.clone(), &trigger2, 41);
+
+        // Verify block_event_count reached 2
+        {
+            let flow = analyzer
+                .flows
+                .get(&key)
+                .expect("flow must exist after second block timeout");
+            assert_eq!(
+                flow.block_event_count, 2,
+                "F-P9-001/test2: block_event_count must be 2 after second SELECT timeout"
+            );
+        }
+
+        // T1691.001 must NOT have fired (block_event_count=2 < BLOCK_CMD_THRESHOLD=3)
+        let t1691_count = analyzer
+            .all_findings
+            .iter()
+            .filter(|f| f.mitre_techniques.contains(&"T1691.001".to_string()))
+            .count();
+        assert_eq!(
+            t1691_count, 0,
+            "F-P9-001/test2: T1691.001 must NOT fire when block_event_count=2 \
+             (< BLOCK_CMD_THRESHOLD=3); got {t1691_count}"
+        );
+
+        // T0827 MUST have fired exactly once on the scan where the 2nd block crossed
+        // the combined threshold.  This WILL FAIL before the fix.
+        let t0827_findings: Vec<_> = analyzer
+            .all_findings
+            .iter()
+            .filter(|f| f.mitre_techniques.contains(&"T0827".to_string()))
+            .collect();
+
+        // Diagnostic: print what IS present to aid failure triage.
+        let present_techniques: Vec<Vec<String>> = analyzer
+            .all_findings
+            .iter()
+            .map(|f| f.mitre_techniques.clone())
+            .collect();
+
+        assert_eq!(
+            t0827_findings.len(),
+            1,
+            "F-P9-001/test2 (BC-2.15.015 PC5 / EC-002 REGRESSION): exactly ONE T0827 must be \
+             emitted when 2nd block timeout crosses combined threshold \
+             (1 restart + 2 blocks = 3); impl currently skips maybe_emit_t0827 from \
+             block-timeout when block_event_count < BLOCK_CMD_THRESHOLD=3. \
+             Techniques actually present: {present_techniques:?}"
+        );
+
+        let f = t0827_findings[0];
+        assert_eq!(
+            f.mitre_techniques,
+            vec!["T0827"],
+            "F-P9-001/test2: T0827 finding must carry only [\"T0827\"]"
+        );
+        assert!(
+            matches!(f.category, ThreatCategory::Impact),
+            "F-P9-001/test2: T0827 category must be Impact; got {:?}",
+            f.category
+        );
+        assert!(
+            matches!(f.verdict, Verdict::Likely),
+            "F-P9-001/test2: T0827 verdict must be Likely; got {:?}",
+            f.verdict
+        );
+        assert!(
+            matches!(f.confidence, Confidence::Medium),
+            "F-P9-001/test2: T0827 confidence must be Medium; got {:?}",
+            f.confidence
+        );
+
+        // BC-2.15.013 ordering: T0827 must appear after the T0814 from the restart.
+        let t0814_pos = analyzer
+            .all_findings
+            .iter()
+            .position(|f| f.mitre_techniques.contains(&"T0814".to_string()))
+            .expect("F-P9-001/test2: T0814 must exist (from COLD_RESTART at ts=0)");
+        let t0827_pos = analyzer
+            .all_findings
+            .iter()
+            .position(|f| f.mitre_techniques.contains(&"T0827".to_string()))
+            .expect("F-P9-001/test2: T0827 must be present");
+        assert!(
+            t0827_pos > t0814_pos,
+            "F-P9-001/test2 (BC-2.15.013 PC2): T0827 [{t0827_pos}] must appear AFTER \
+             T0814 [{t0814_pos}] in all_findings"
+        );
+
+        // One-shot guard
+        let flow = analyzer.flows.get(&key).expect("flow must exist");
+        assert!(
+            flow.loss_of_control_emitted,
+            "F-P9-001/test2: loss_of_control_emitted must be true after T0827 emission"
+        );
+    }
+
+    // -------------------------------------------------------------------------
     // AC-005 (BC-2.15.015 postcondition 3 — window expiry resets SIX fields)
     // test_correlation_window_expiry_resets_six_fields
     // -------------------------------------------------------------------------

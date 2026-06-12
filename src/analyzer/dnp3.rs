@@ -810,9 +810,19 @@ impl Dnp3Analyzer {
                 direction: None,
             });
             flow.block_finding_emitted_this_window = true;
+        }
 
-            // T0827 co-emission after T1691.001 (BC-2.15.013 ordering — derived after direct).
-            // Pass min_timedout_dest as the triggering-frame dest (BC-2.15.015 PC1).
+        // BC-2.15.015 PC5 / EC-002: T0827 must fire in the same on_data call that crosses
+        // the COMBINED threshold (restart_event_count + block_event_count >= T0827_THRESHOLD),
+        // regardless of whether T1691.001 fired in this scan.  Call maybe_emit_t0827 whenever
+        // at least one block timeout occurred this scan so that restart-dominated combinations
+        // (e.g. 2 restarts + 1 block) are not missed.  maybe_emit_t0827 is a no-op if the
+        // combined threshold has not yet been reached or the one-shot guard is already set,
+        // so calling it here is always safe.
+        //
+        // Ordering (BC-2.15.013 PC2): T1691.001 (if any) was pushed above; T0827 follows.
+        if !first {
+            // `first` remains true only when no entries timed out; !first ⟺ ≥1 timeout.
             Self::maybe_emit_t0827(flow, findings, now_ts, min_timedout_dest, flow_key);
         }
     }
