@@ -1068,7 +1068,8 @@ impl Dnp3Analyzer {
                              — alarm suppression / event-blinding primitive"
                         ),
                         evidence: vec![format!(
-                            "FC=0x15 (DISABLE_UNSOLICITED) src={src:#06X} dest={dest:#06X}"
+                            "FC=0x{:02X} dest={dest:#06X} src={src:#06X}",
+                            app_fc
                         )],
                         mitre_techniques: vec!["T0814".to_string()],
                         source_ip: Some(master_ip),
@@ -1096,7 +1097,8 @@ impl Dnp3Analyzer {
                              \u{2014} unsolicited reporting control"
                         ),
                         evidence: vec![format!(
-                            "FC=0x14 (ENABLE_UNSOLICITED) src={src:#06X} dest={dest:#06X}"
+                            "FC=0x{:02X} dest={dest:#06X} src={src:#06X}",
+                            app_fc
                         )],
                         mitre_techniques: vec!["T0814".to_string()],
                         source_ip: Some(master_ip),
