@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -16,6 +16,17 @@ introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Pass-1 adversarial fix C-2: corrected tactic cardinality — T1692.001 maps to exactly ONE MitreTactic (IcsImpairProcessControl); removed erroneous '+ Evasion' from Traceability MITRE Techniques field. The technique_info table is single-tactic per entry. — 2026-06-10"
   - "v1.2: Research threshold clarification (dnp3-f2-scope-threshold-validation.md §Q1 Threshold-1): clarified the semantic role of the 10/60s threshold — it is a flood/burst guard for the allowlisted-but-abnormally-busy case, NOT the primary unauthorized-source detector. Unauthorized control from an UNEXPECTED SOURCE ADDRESS fires at count=1, independent of this rate threshold. Added Invariant 5 and expanded [F2-GATE] note. Confirmed 10/60s default; noted ~5/60s tighter option for quiet transmission profiles. — 2026-06-10"
+  - "v1.3: F5 adversarial adjudication F-F5-001 (unexpected-source detection) post-implementation:
+    added EC-009 (first Control FC from a new master — no unexpected-source finding; address
+    joins expected set) and EC-010 (Control FC from a second distinct master address — one
+    T1692.001 unexpected-source finding fires at count=1; unexpected_source_emitted=true).
+    These edge cases document the first-seen-master-learning mechanism adjudicated in
+    F-F5-001-unexpected-source-adjudication.md: (1) the first master address to issue a
+    Control FC on a flow establishes the expected set with no finding; (2) any subsequent
+    distinct master address issuing a Control FC is unauthorized and fires at count=1
+    regardless of direct_operate_threshold. The snapshot-variable approach (src_was_known
+    + expected_set_established captured BEFORE master_addrs_seen population) ensures the
+    check correctly sees the pre-push state. Implementation is confirmed complete. — 2026-06-11"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -135,6 +146,8 @@ The human should confirm whether 10/60s is appropriate for their OT environment 
 | EC-006 | Control FC 0x06 (DIRECT_OPERATE_NR, no response) | Still counted and detected as T1692.001; this FC intentionally expects no response — but it IS an unauthorized control command if threshold exceeded |
 | EC-007 | Control FC to broadcast dest 0xFFFF | Finding carries broadcast anomaly note in evidence; technique tag unchanged: T1692.001 |
 | EC-008 | FC 0x03 (SELECT) without subsequent 0x04 (OPERATE) | Still counted; incomplete SBO sequence is itself anomalous but no separate finding for incompleteness in v1 |
+| EC-009 | First Control-class FC on a flow from src=0x0001 (master_addrs_seen is empty at the start of the frame's FIR=1 processing; expected set not yet established) | No unexpected-source finding. The snapshot `expected_set_established = !flow.master_addrs_seen.is_empty()` is false before the master_addrs_seen push runs — the unexpected-source check condition is not met. After the push, master_addrs_seen = [0x0001]. The first master address establishes the expected set; this is not unauthorized. `direct_operate_count` incremented; normal burst-threshold check applies. `flow.unexpected_source_emitted` remains false. |
+| EC-010 | Control-class FC from src=0x0099 on a flow where master_addrs_seen = [0x0001] (expected set established; 0x0099 not present) | Exactly ONE T1692.001 finding emitted at count=1, regardless of `direct_operate_count` vs `direct_operate_threshold`. The snapshot `src_was_known = flow.master_addrs_seen.contains(&0x0099)` is false and `expected_set_established` is true — unexpected-source condition fires. Finding fields: `verdict=Verdict::Likely`, `confidence=Confidence::High`, summary contains "unexpected source" and "not in expected master set". `flow.unexpected_source_emitted = true` (one-shot flow-lifetime guard set). Subsequent Control FCs from 0x0099 on the same flow do NOT emit additional unexpected-source findings (guard is set). The burst-threshold check still runs and will fire independently if `direct_operate_count` later exceeds `direct_operate_threshold`. (F-F5-001 adjudication; see F-F5-001-unexpected-source-adjudication.md §1–2) |
 
 ## Canonical Test Vectors
 
@@ -179,6 +192,7 @@ App FC:      0x05 → DIRECT_OPERATE → Dnp3FcClass::Control
 - BC-2.15.006 — depends on (Control-class FC classification by classify_dnp3_fc)
 - BC-2.15.008 — depends on (FIR=1 gate enables App FC extraction)
 - BC-2.15.015 — composes with (T0827 derived-impact may be co-emitted after sustained T1692.001 conditions)
+- BC-2.15.016 — composes with (master_addrs_seen populated via BC-2.15.016 PC5-6; used by EC-009/EC-010 unexpected-source check — F-F5-001 adjudication)
 - BC-2.15.017 — composes with (threshold CLI flag --dnp3-direct-operate-threshold controls direct_operate_threshold)
 - BC-2.15.018 — composes with (broadcast destination anomaly adds note to this finding's evidence)
 - BC-2.15.022 — depends on (MAX_FINDINGS cap guard)

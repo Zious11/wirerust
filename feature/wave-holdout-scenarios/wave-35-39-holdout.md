@@ -436,7 +436,14 @@ Pre-fill `self.all_findings` to `MAX_FINDINGS - 1`. Deliver the same triggering 
 5. FC bytes with count=0 do NOT appear in the distribution (non-sparse output).
 6. `total_frames` reflects all complete frames processed.
 7. `flows_analyzed` reflects the number of distinct flows processed.
-8. `findings_emitted` equals `self.all_findings.len()`.
+8. ~~`findings_emitted` equals `self.all_findings.len()`.~~ **REMOVED (F-F5-006):** BC-2.15.020
+   does NOT require a `findings_emitted` key in `summarize()` output. The authoritative
+   summarize() output fields are: `function_code_distribution`, `control_operation_counts`,
+   `total_frames`, `total_parse_errors`, `flows_analyzed`. Adding `findings_emitted` would
+   require a BC-2.15.020 amendment AND an implementation change — that is larger scope and
+   not in scope for this cycle. Assertion 8 is dropped to align holdout to BC-2.15.020 as
+   specified. The implementation is BC-correct; this holdout was over-specifying.
+   (F-F5-006: aligned to BC-2.15.020; findings_emitted not a BC-required summarize field)
 
 **Zero-flow case:**
 9. A fresh `Dnp3Analyzer` with no flows analyzed: `summarize()` returns output with zero counts (not absent/None).
