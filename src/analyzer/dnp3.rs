@@ -251,6 +251,15 @@ pub struct Dnp3FlowState {
     /// (BC-2.15.019 Invariant 1).  NOT reset at correlation-window expiry
     /// (unsolicited context is flow-lifetime, not window-lifetime).
     pub unsolicited_anomaly_emitted: bool,
+
+    /// One-shot guard — set `true` when the BC-2.15.010 Invariant 5
+    /// unexpected-source T1692.001 finding has been emitted for this flow.
+    /// Flow-lifetime guard: never reset (not window-scoped).
+    /// See F-F5-001-unexpected-source-adjudication.md §2 for full semantics.
+    ///
+    /// STUB: field exists so RED-gate tests compile; detection logic is NOT
+    /// yet implemented (detect_unexpected_source_split is absent).
+    pub unexpected_source_emitted: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -1470,17 +1479,23 @@ pub fn is_broadcast_destination(dest: u16) -> bool {
 }
 
 /// Returns `true` when the link-layer CONTROL field has the DIR bit set
-/// (`control & 0x10 != 0`), indicating a master-direction frame (DIR=1).
+/// (`control & 0x80 != 0`), indicating a master-direction frame (DIR=1).
 ///
 /// Used by the master-address tracking logic (BC-2.15.016 postconditions 5–6)
 /// to decide whether the frame's source address should be recorded in
 /// `flow.master_addrs_seen`.  Implemented in STORY-107 Task 5.
 ///
+/// CORRECTED (F-A-001 REVISION 2): DIR is bit 7 (mask 0x80) per IEEE 1815
+/// DNP3 link-layer framing. The previous implementation used mask 0x10 (bit 4 = FCV/DFC),
+/// which was wrong. Canonical master frame CTRL=0xC4: 0xC4 & 0x80 = 0x80 → true.
+///
 /// Unit test only (not a Kani target).
 #[allow(unused)]
 pub fn is_master_frame(control: u8) -> bool {
-    // BC-2.15.016 postcondition 5 (PC5): DIR bit is bit 4 (mask 0x10). DIR=1 → master.
-    control & 0x10 != 0
+    // BC-2.15.016 postcondition 5 (PC5, CORRECTED): DIR bit is bit 7 (mask 0x80)
+    // per IEEE 1815 DNP3 link-layer framing. DIR=1 → master direction.
+    // Bit 4 (mask 0x10) is FCV/DFC, NOT DIR.
+    control & 0x80 != 0
 }
 
 // ---------------------------------------------------------------------------
