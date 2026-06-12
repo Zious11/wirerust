@@ -87,10 +87,12 @@ mod story_107 {
         frame
     }
 
-    /// Build a master-direction frame: control has DIR bit set (0x10).
-    /// Uses nibble 0x04 (UNCONFIRMED_USER_DATA) with DIR+PRM bits: 0xD4.
+    /// Build a master-direction frame: control has DIR bit set (bit 7, mask 0x80).
+    /// Uses nibble 0x04 (UNCONFIRMED_USER_DATA) with DIR+PRM+FCV bits: 0xD4.
     fn build_master_frame(dest: u16, src: u16) -> Vec<u8> {
-        // 0xD4 = 1101 0100: DIR(1) PRM(1) FCB(0) FCV(0) FC(0100=UNCONF_USER_DATA)
+        // 0xD4 = 1101 0100: DIR(1, bit7) PRM(1, bit6) FCB(0, bit5) FCV(1, bit4) FC(0100=UNCONF_USER_DATA)
+        // DIR=1 because 0xD4 & 0x80 = 0x80 != 0 (corrected mask per BC-2.15.016 PC5 / F-A-001 REVISION 2).
+        // Note: bit4 of 0xD4 is FCV (Frame Count Valid), NOT DIR. DIR is bit7.
         build_frame(5, dest, src, 0xD4)
     }
 
@@ -99,13 +101,18 @@ mod story_107 {
     // BC-2.15.016 postconditions 1–2: carry never exceeds 292; overflow → parse_errors++
     // ---------------------------------------------------------------------------
 
-    /// AC-001: Deliver 290-byte carry + 5-byte segment → carry=292, parse_errors=1, 3 discarded.
+    /// AC-001: Deliver 290-byte carry + 5-byte segment → parse_errors=1 (overflow fired);
+    /// carry cleared to 0 by byte-walk-forward resync (no sync word in junk carry).
     ///
-    /// Pre-state: flow.carry has 290 bytes.
-    /// Action: on_data delivers 5 more bytes.
-    /// Expected: carry.len() == 292, parse_errors == 1 (overflow occurred), 3 bytes discarded.
+    /// Pre-state: flow.carry has 290 bytes of 0xAA filler (no valid sync word).
+    /// Action: on_data delivers 5 more bytes (only 2 fit before 292-cap; 3 discarded).
+    /// Expected: parse_errors == 1 (overflow arm fires exactly once, proving the 292-cap);
+    ///           carry.len() == 0 (byte-walk-forward resync found no [0x05,0x64] in junk
+    ///           carry and cleared it — STORY-109 behavior).
+    /// NOTE: the 292-cap is proven by parse_errors==1, NOT by a residual carry.len()==292.
+    /// The byte-walk resync runs after the overflow arm and clears all-junk carry.
     ///
-    /// Traces to: BC-2.15.016 postconditions 1–2; STORY-107 AC-001.
+    /// Traces to: BC-2.15.016 postconditions 1–2; STORY-107 AC-001; STORY-109 resync.
     #[test]
     fn test_carry_buffer_cap_at_292() {
         let mut analyzer = Dnp3Analyzer::new(10);
@@ -221,7 +228,7 @@ mod story_107 {
 
     /// AC-003: Insert 64 unique source addresses then a 65th → vec len stays at 64.
     ///
-    /// Each delivery is a master-direction frame (DIR=1, control & 0x10 != 0).
+    /// Each delivery is a master-direction frame (DIR=1, control & 0x80 != 0).
     /// The 65th unique source address must be silently ignored.
     ///
     /// Traces to: BC-2.15.016 postconditions 5–6; STORY-107 AC-003.
@@ -802,16 +809,17 @@ mod story_107 {
         // (STORY-109; realizes STORY-107 deferral, per STORY-109-resync-adjudication.md
         // Decision 3) must have advanced the carry past the invalid LENGTH byte.
         //
-        // Derivation under byte-walk-forward resync:
+        // Derivation under byte-walk-forward resync (post-Change-2 inline-resync flow):
         //   bad_frame = [0x05, 0x64, 0x04, ...zeros...] (10 bytes)
         //   Iteration 1: carry[0..2] = [0x05, 0x64] — sync OK; compute_dnp3_frame_len(4)
-        //     returns None → parse_errors++; carry.drain(..1) → carry now has 9 bytes:
-        //     [0x64, 0x04, 0x00, ..., 0x00].
-        //   Iteration 2: carry[0] = 0x64 (not 0x05) → sync gate fires; byte-walk scans
-        //     windows from offset 1: no [0x05,0x64] pair exists in the remaining bytes →
-        //     carry.clear() → carry is empty (len == 0). continue.
-        //   Iteration 3: carry.len() < 3 → guard breaks.
-        //   Final carry length = 0 (no [0x05,0x64] sync found → cleared).
+        //     returns None → LENGTH-gate arm fires: parse_errors++, malformed_in_window++,
+        //     carry.drain(..1) to remove the 0x05 head.
+        //     INLINE resync (Change-2): carry is now [0x64, 0x04, 0x00, ..., 0x00] (9 bytes);
+        //     byte-walk scans windows(2) from index 1 for next [0x05,0x64]: none found →
+        //     carry.clear() → carry is empty. continue.
+        //   Iteration 2: carry.len() == 0 < 3 → guard breaks.
+        //   Final carry length = 0 (inline resync inside LENGTH-gate arm cleared the carry;
+        //   the separate sync-check arm is NOT entered — no double-count).
         assert!(
             flow.carry.len() < 10,
             "carry must have advanced: resync must reduce carry below the 10 \
@@ -831,42 +839,81 @@ mod story_107 {
     // BC-2.15.016 postconditions 5–6 depend on is_master_frame
     // ---------------------------------------------------------------------------
 
-    /// Verify is_master_frame correctly identifies DIR=1 frames (control & 0x10 != 0).
+    /// Verify is_master_frame correctly identifies DIR=1 frames (control & 0x80 != 0).
     ///
-    /// This is a direct unit test of the helper used by master-addr tracking.
-    /// `is_master_frame` currently has `todo!()` — this test will panic until implemented.
+    /// CORRECTED per F-A-001 REVISION 2: DIR is bit 7 (mask 0x80) per IEEE 1815 DNP3
+    /// link-layer framing. The previous version incorrectly tested bit 4 (mask 0x10 = FCV/DFC).
     ///
-    /// Traces to: BC-2.15.016 postconditions 5–6; STORY-107 Task 5.
+    /// RED GATE: this test asserts the CORRECT 0x80-mask behavior. It fails until
+    /// `is_master_frame` is fixed from `control & 0x10 != 0` to `control & 0x80 != 0`.
+    ///
+    /// Traces to: BC-2.15.016 postcondition 5 (corrected); F-A-001 REVISION 2 §R2-1.
     #[test]
     fn test_BC_2_15_016_is_master_frame_dir_bit() {
         use wirerust::analyzer::dnp3::is_master_frame;
 
-        // DIR bit set (0x10) — master-direction frame.
+        // -------------------------------------------------------------------
+        // DIR=1 (bit 7 set) — master-direction frames. All must return true.
+        // -------------------------------------------------------------------
+
+        // Canonical master frame per BC-2.15.010 / HS-W37-002 byte vectors.
+        // 0xC4 = 1100 0100: DIR=1(bit7), PRM=1(bit6), FCB=0(bit5), FCV=0(bit4),
+        //                    FC=0x04(UNCONF_USER_DATA).
+        // 0xC4 & 0x80 = 0x80 != 0 → is_master_frame=true (CORRECT).
+        // 0xC4 & 0x10 = 0x00 == 0 → BUGGY mask returns false (proves the bug).
         assert!(
-            is_master_frame(0x10),
-            "control=0x10 (DIR bit only) must return true"
-        );
-        assert!(
-            is_master_frame(0xD4),
-            "control=0xD4 (DIR+PRM+UNCONF_USER_DATA) must return true"
-        );
-        assert!(
-            is_master_frame(0xFF),
-            "control=0xFF (all bits set) must return true"
+            is_master_frame(0xC4),
+            "control=0xC4 (canonical master frame: DIR=1 bit7 set) must return true; \
+             RED: buggy mask 0x10 returns false for this canonical value"
         );
 
-        // DIR bit clear — outstation-direction frame.
+        // 0xD4 = 1101 0100: DIR=1(bit7), PRM=1(bit6), FCB=0(bit5), FCV=1(bit4),
+        //                    FC=0x04(UNCONF_USER_DATA).
+        // 0xD4 & 0x80 = 0x80 != 0 → is_master_frame=true (CORRECT).
+        assert!(
+            is_master_frame(0xD4),
+            "control=0xD4 (DIR=1 bit7 set; also PRM+FCV bits set) must return true"
+        );
+
+        // 0xFF = all bits set; bit 7 (DIR) is set → must return true.
+        assert!(
+            is_master_frame(0xFF),
+            "control=0xFF (all bits set, DIR=1) must return true"
+        );
+
+        // -------------------------------------------------------------------
+        // DIR=0 (bit 7 clear) — outstation-direction frames. All must return false.
+        // -------------------------------------------------------------------
+
+        // 0x00 = all bits clear; DIR=0 → must return false.
         assert!(
             !is_master_frame(0x00),
-            "control=0x00 (no DIR bit) must return false"
+            "control=0x00 (no bits set, DIR=0) must return false"
         );
+
+        // 0x04 = UNCONF_USER_DATA with DIR=0: bit7=0, FC=0x04.
+        // 0x04 & 0x80 = 0 → must return false.
         assert!(
             !is_master_frame(0x04),
-            "control=0x04 (UNCONF_USER_DATA, no DIR) must return false"
+            "control=0x04 (UNCONF_USER_DATA, DIR=0 bit7 clear) must return false"
         );
+
+        // 0x44 = 0100 0100: bit7=0 (DIR=0), bit6=1 (PRM=1), bit5=0, bit4=0, FC=0x04.
+        // Outstation direction (DIR=0). 0x44 & 0x80 = 0 → must return false.
+        // Replaces the previously-wrong 0xEF assertion: 0xEF & 0x80 = 0x80 (DIR=1,
+        // so 0xEF IS a master frame under the correct mask — the old assertion was wrong).
         assert!(
-            !is_master_frame(0xEF),
-            "control=0xEF (DIR bit clear: 0xEF & 0x10 == 0) must return false"
+            !is_master_frame(0x44),
+            "control=0x44 (DIR=0, PRM=1, outstation direction) must return false"
+        );
+
+        // Confirm 0x10 (FCV/DFC bit only, DIR=0) now returns FALSE under corrected mask.
+        // Under the BUGGY mask (0x10), this returned true — which was the bug.
+        // Under the CORRECT mask (0x80): 0x10 & 0x80 = 0 → false.
+        assert!(
+            !is_master_frame(0x10),
+            "control=0x10 (FCV bit only, DIR=0 bit7 clear) must return false; \
+             RED: buggy mask 0x10 returns true for this value (wrong: 0x10 is FCV, not DIR)"
         );
     }
 
@@ -899,20 +946,21 @@ mod story_107 {
     ///         00 00             data-block CRC placeholder
     /// ```
     ///
-    /// ## Trace
+    /// ## Trace (post-Change-2: inline resync inside LENGTH-gate arm)
     ///
     /// After delivery carry = 20 bytes.
     ///
     /// Iter 1: carry[0..2] = [05 64] — sync OK; `compute_dnp3_frame_len(0x02)` = None
-    ///   → `parse_errors=1`, `malformed_in_window=1`; `carry.drain(..1)`.
+    ///   → LENGTH-gate arm fires: `parse_errors=1`, `malformed_in_window=1`;
+    ///   `carry.drain(..1)` removes the 0x05 head.
+    ///   INLINE resync (Change-2, inside LENGTH-gate arm):
     ///   carry = 19 bytes: `[64 02 AA AA 05 64 08 C4 03 00 01 00 00 00 C0 00 03 00 00]`.
-    ///
-    /// Iter 2: carry[0]=0x64 ≠ 0x05 → resync arm.
-    ///   Scan windows(2) from index 1: index 4 = [0x05, 0x64] → found, i=4.
+    ///   Scan windows(2) from index 1 for next [0x05, 0x64]: found at index 4 → i=4.
     ///   `carry.drain(..4)` → carry = 15 bytes: `[05 64 08 C4 03 00 01 00 00 00 C0 00 03 00 00]`.
-    ///   `continue` (NOT break).
+    ///   `continue` (NOT break). NOTE: the separate sync-check arm is NOT entered for this
+    ///   iteration — the inline resync within the LENGTH-gate arm handles the realignment.
     ///
-    /// Iter 3: carry[0..2] = [05 64] — sync OK;
+    /// Iter 2: carry[0..2] = [05 64] — sync OK;
     ///   `compute_dnp3_frame_len(0x08)` = Some(15); carry.len()=15 >= 15.
     ///   Header: start1=0x05 start2=0x64 length=0x08 control=0xC4 dest=0x0003 src=0x0001.
     ///   `is_valid_dnp3_frame_header` = true → `frame_count=1`.
@@ -922,7 +970,7 @@ mod story_107 {
     ///   `classify_dnp3_fc(0x03)` = Control → `fc_counts[0x03]` += 1.
     ///   `carry.drain(..15)` → carry empty.
     ///
-    /// Iter 4: carry.len()=0 < 3 → break.
+    /// Iter 3: carry.len()=0 < 3 → break.
     ///
     /// ## Assertions (cover Step-6 requirements from adjudication)
     ///

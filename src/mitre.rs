@@ -88,7 +88,7 @@ impl fmt::Display for MitreTactic {
             MitreTactic::Impact => "Impact",
             MitreTactic::IcsInhibitResponseFunction => "Inhibit Response Function",
             MitreTactic::IcsImpairProcessControl => "Impair Process Control",
-            MitreTactic::IcsImpact => "Impact",
+            MitreTactic::IcsImpact => "Impact (ICS)",
         };
         f.write_str(name)
     }
