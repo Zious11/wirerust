@@ -1,11 +1,11 @@
 ---
 pipeline: V0.5.0_RELEASED
-phase: feature-f6
+phase: feature-f7
 active_feature: "#8-dnp3"
-feature_8_status: "F5 COMPLETE (scoped adversarial + remediation merged); NEXT = F6 formal hardening → F7 convergence → v0.6.0"
+feature_8_status: "F6 COMPLETE (HARDENED); NEXT = F7 delta convergence → v0.6.0"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-12T15:23:29Z
+timestamp: 2026-06-12T17:08:39Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -16,7 +16,7 @@ phase_5_completed: "2026-06-01"
 phase_6_completed: "2026-06-02"
 phase_7_to_release_gate: "PASSED (human-approved 2026-06-09 — D-045)"
 adversary_gate: SATISFIED
-develop_head: e685664
+develop_head: a125c69
 main_head: c2df1b5
 released_version: v0.5.0
 released_at: "2026-06-10"
@@ -45,9 +45,9 @@ input_drift_check: "STORY-106/107/108/109/110 regenerated at delivery. Scan MATC
 
 ## Status
 
-**wirerust v0.5.0 RELEASED (MITRE ATT&CK-ICS v19 remap, issue #222 CLOSED). Feature #8 DNP3 F5 COMPLETE — scoped adversarial + remediation merged (PR #230 e685664); NEXT = F6 formal hardening → F7 convergence → v0.6.0.**
+**wirerust v0.5.0 RELEASED (MITRE ATT&CK-ICS v19 remap, issue #222 CLOSED). Feature #8 DNP3 F6 COMPLETE (HARDENED) — PR #231 merged a125c69; NEXT = F7 delta convergence → v0.6.0.**
 
-**Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22 locked + VP-023 F2-new draft), 1338+ tests green, holdout 0.967. develop HEAD e685664; main HEAD c2df1b5 (v0.5.0). Feature #8 DNP3: F5 COMPLETE; 4 issues fixed (F-A-001 DIR-bit P0, F-F5-001 unexpected-source P0, F-F5-002 IcsImpact display, F-F5-003 resync data-loss); 4 BCs bumped (BC-2.15.009/010/016/024). develop ahead of main by 13 commits. 4 F6-gate obligations (3 carried + 1 new: DIR-bit Kani revalidation).
+**Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22+VP-023 ALL LOCKED), 1495 tests green, holdout 0.967. develop HEAD a125c69; main HEAD c2df1b5 (v0.5.0). Feature #8 DNP3: F6 HARDENED — 9/9 Kani SUCCESSFUL; 89% mutation kill; 3.19M fuzz/0 crashes; VP-023 locked; VP-004 relocked. develop ahead of main by 14 commits.
 
 ## Phase Progress
 
@@ -69,29 +69,26 @@ input_drift_check: "STORY-106/107/108/109/110 regenerated at delivery. Scan MATC
 | Feature #8 DNP3 — F3 Story Decomposition | **PASSED** (human-gated 2026-06-11) | 3 decisions accepted: (a) 5 stories as-is (STORY-109 atomic for VP-007), (b) VP placements VP-023@106/110 VP-007@109 VP-004@110, (c) linear chain 106→107→108→109→110 |
 | Feature #8 DNP3 — F4 Delta Implementation | **COMPLETE** 2026-06-12 | waves 35-39 / stories 106-110 ALL DELIVERED (STORY-106 PR #225 d0f3586; STORY-107 PR #226 ebb4751; STORY-108 PR #227 9c03fde; STORY-109 PR #228 34443f9; STORY-110 PR #229 ddfa576 — dispatcher Rule 6 + CLI flags; VP-004 oracle synced; 6-pass adversarial 3-clean) |
 | Feature #8 DNP3 — F5 Scoped Adversarial + Remediation | **COMPLETE** 2026-06-12 | PR #230 e685664 merged. 4 issues fixed (F-A-001 DIR-bit P0; F-F5-001 unexpected-source P0; F-F5-002 IcsImpact display; F-F5-003 resync data-loss). 10-pass convergence 3/3 CLEAN. 4 BCs bumped. Detail: cycles/feature-8-dnp3-v0.5.0/F5-remediation/ |
-| Feature #8 DNP3 — F6 Formal Hardening | **NEXT** | 4 obligations: (1) AC-005 Kani verify_content_first_precedence_exhaustive; (2) VP-023 draft→verified + VP-INDEX bump; (3) VP-004 relock Rules 5/6; (4) NEW: confirm VP-023 Kani harnesses + master-frame proofs hold under corrected is_master_frame (0x80). After F6 → F7 delta convergence → v0.6.0. |
+| Feature #8 DNP3 — F6 Formal Hardening | **COMPLETE** 2026-06-12 | PR #231 a125c69 MERGED. Verdict: HARDENED. 9/9 Kani SUCCESSFUL (VP-023 ×4 + VP-004 ×1 + VP-007 ×4; 0 failed). 89% mutation kill (0 logic survivors). 3.19M fuzz/0 crashes. VP-023 → v1.5 LOCKED (verified_at e685664). VP-004 relocked Rules 5/6. 4/4 F6 obligations SATISFIED. Detail: cycles/feature-8-dnp3-v0.5.0/F6-hardening/ |
+| Feature #8 DNP3 — F7 Delta Convergence | **NEXT** | 5-dimensional check + full regression + final human gate → v0.6.0 release. |
 
-## Session Resume Checkpoint (2026-06-12 — Feature #8 DNP3 F5 COMPLETE — F6 formal hardening NEXT)
+## Session Resume Checkpoint (2026-06-12 — Feature #8 DNP3 F6 COMPLETE — F7 delta convergence NEXT)
 
-**POSITION:** Feature #8 (DNP3 TCP analyzer, issue #8). Phase `feature-f6` (formal hardening). F5 Scoped Adversarial COMPLETE — PR #230 merged e685664 (2026-06-12T15:23:29Z). 4 issues fixed (F-A-001 DIR-bit P0; F-F5-001 unexpected-source P0; F-F5-002 IcsImpact display; F-F5-003 resync data-loss). 10-pass convergence 3/3 CLEAN. 4 BCs bumped (BC-2.15.009/010/016/024). NEXT: Feature #8 F6 formal hardening — execute 4 F6-gate obligations.
+**POSITION:** Feature #8 (DNP3 TCP analyzer, issue #8). Phase `feature-f7` (delta convergence). F6 Formal Hardening COMPLETE — PR #231 merged a125c69 (2026-06-12T17:08:39Z). Verdict: HARDENED. All 4 F6 obligations SATISFIED. NEXT: Feature #8 F7 delta convergence → v0.6.0.
 
-**KEY SHAs:** develop HEAD `e685664`; main HEAD `c2df1b5` (v0.5.0 released 2026-06-10); released_version v0.5.0. factory-artifacts HEAD = run `git -C .factory log -1 --format='%h %s'`.
+**KEY SHAs:** develop HEAD `a125c69`; main HEAD `c2df1b5` (v0.5.0 released 2026-06-10); released_version v0.5.0. factory-artifacts HEAD = run `git -C .factory log -1 --format='%h %s'`.
 
-**RELEASE HISTORY:** v0.1.0 (2026-06-08) greenfield; v0.2.0 (2026-06-09) timestamp threading; v0.3.0 (2026-06-09) multi-tag MITRE schema; v0.4.0 (2026-06-10) Modbus TCP analyzer; v0.5.0 (2026-06-10) MITRE ATT&CK-ICS v19 remap (issue #222 CLOSED). develop ahead of main by 13 commits.
+**RELEASE HISTORY:** v0.1.0 (2026-06-08) greenfield; v0.2.0 (2026-06-09) timestamp threading; v0.3.0 (2026-06-09) multi-tag MITRE schema; v0.4.0 (2026-06-10) Modbus TCP analyzer; v0.5.0 (2026-06-10) MITRE ATT&CK-ICS v19 remap (issue #222 CLOSED). develop ahead of main by 14 commits.
 
 **BLOCKING RESUME PROTOCOL (in order):**
 1. Run `vsdd-factory:factory-worktree-health` — verify .factory/ worktree on factory-artifacts branch.
-2. Read STATE.md (this file) — orient; confirm F5 COMPLETE (PR #230 e685664); NEXT = F6 formal hardening.
-3. Execute 4 F6-gate obligations:
-   a. AC-005 Kani `verify_content_first_precedence_exhaustive` proof (STORY-106).
-   b. VP-023 draft→verified + VP-INDEX bump (after 4 STORY-106 Kani proofs).
-   c. VP-004 locked-prose relock to include Rules 5/6.
-   d. NEW (F5): Confirm VP-023 Kani harnesses + master-frame-dependent proofs hold under corrected `is_master_frame` mask (0x80) — run `cargo kani` on all VP-023 harnesses; confirm 0 counterexamples.
-4. After F6 → F7 delta convergence → v0.6.0 release.
+2. Read STATE.md (this file) — orient; confirm F6 COMPLETE (PR #231 a125c69); NEXT = F7 delta convergence.
+3. Execute F7: 5-dimensional convergence check + full regression + final human gate.
+4. After F7 PASSED → v0.6.0 release pipeline.
 
-**F5 REMEDIATION SUMMARY:** 4 issues found by F5 holistic + agentic-sliced pre-impl review (3 parallel slices). F-A-001 (P0 DIR-bit: 0x10→0x80, latent since STORY-107, BC-2.15.016 v1.3); F-F5-001 (P0 unexpected-source detection unimplemented, BC-2.15.010 v1.5); F-F5-002 (IcsImpact display collision); F-F5-003 (resync data-loss, BC-2.15.024 v1.3). 10-pass convergence, 2 ARCHITECT REVISION-2 directives. Detail: cycles/feature-8-dnp3-v0.5.0/F5-remediation/
+**F6 HARDENING SUMMARY:** 9/9 Kani SUCCESSFUL (VP-023 Sub-A/B/C/D + VP-004 AC-005 + VP-007 ×4; 0 counterexamples). 89% mutation kill (0 logic survivors; survivor #6 window-seeding gap KILLED by new unit test PR #231). 3.19M fuzz execs / 0 crashes. VP-023 → LOCKED (v1.5, verified_at e685664). VP-004 relocked Rules 5/6. 1495 tests green, clippy CLEAN. Security: manual reviews CLEAN; DRIFT-SEMGREP-001 recorded (non-blocking). Detail: cycles/feature-8-dnp3-v0.5.0/F6-hardening/
 
-**OPEN BACKLOG / DEFERRED:** Drift items: table below. Deferred work: Dependabot PRs, PCAP-CORPUS-001, roadmap #3/#4/#6 (see section below). Process-gap codification PG-5/PG-7/PG-8 + F5 lessons in `cycles/feature-8-dnp3-v0.5.0/lessons.md` and `cycles/feature-8-dnp3-v0.5.0/F5-remediation/lessons.md`. Prior checkpoint: `cycles/v0.1.0-greenfield-spec/session-checkpoints.md`.
+**OPEN BACKLOG / DEFERRED:** Drift items: table below. Deferred work: Dependabot PRs, PCAP-CORPUS-001, roadmap #3/#4/#6 (see section below). Process-gap codification PG-5/PG-7/PG-8 + F5/F6 lessons in `cycles/feature-8-dnp3-v0.5.0/lessons.md`. Prior checkpoints: `cycles/v0.1.0-greenfield-spec/session-checkpoints.md`.
 
 ## Decisions Log
 
@@ -115,6 +112,7 @@ D-047..D-054 full text archived: `cycles/v0.1.0-greenfield-spec/decisions-archiv
 | D-059 | STORY-109 (DNP3 correlated detections T1691.001/T0827 + MitreTactic::IcsImpact + VP-007 atomic seed, wave 38) DELIVERED — PR #228 merged 34443f9 (2026-06-12T01:12:31Z). Step-4.5 adversarial 13-pass 3/3 CLEAN streak (BC-5.39.001; P9 real T0827 detection bug fixed; P11 byte-walk resync adjudicated). BC-2.15.016 v1.2 + BC-2.15.014 v1.6 spec evolution. 3 new drift items recorded (DRIFT-MITRE-EMITTED-LABEL-001, DRIFT-BC-2.15.024-EC006-PROSE-001, DRIFT-DNP3-DIRECTION-001 target updated to STORY-110). Wave 39 = STORY-110 (FINAL) next. | 2026-06-12 |
 | D-060 | STORY-110 (DNP3 StreamDispatcher Rule 6 port-20000/DispatchTarget::Dnp3 + --dnp3-* CLI flags + VP-004 oracle arm, wave 39 FINAL) DELIVERED — PR #229 merged ddfa576 (2026-06-12T03:36:45Z). Step-4.5 adversarial 6-pass 3/3 CLEAN streak (BC-5.39.001): P1 DRIFT-DNP3-DIRECTION-001 re-deferred + AC-010 strengthened; P2 phantom test citation vp007_catalog_drift_guard fixed; P3 phantom Kani citation verify_all_emitted_ids_resolve fixed; P4/P5/P6 CLEAN. VP-004 oracle/production sync CLEAN throughout. Feature #8 F4 Delta Implementation COMPLETE — all 5 DNP3 stories (106-110) delivered. 3 F6-gate obligations recorded (AC-005 Kani; VP-023 lock; VP-004 relock). NEXT = F5 scoped adversarial. | 2026-06-12 |
 | D-061 | Feature #8 F5 Scoped Adversarial + Remediation COMPLETE — PR #230 merged e685664 (2026-06-12T15:23:29Z). 4 issues fixed: F-A-001 DIR-bit P0 (is_master_frame 0x10→0x80, latent since STORY-107, BC-2.15.016 v1.3); F-F5-001 unexpected-source detection unimplemented P0 (BC-2.15.010 v1.5, EC-009/010/011); F-F5-002 IcsImpact display collision; F-F5-003 resync data-loss Crain-Sistrunk evasion (BC-2.15.024 v1.3). 10-pass convergence 3/3 CLEAN (P6/P8/P10); 2 ARCHITECT REVISION-2 directives. 4 F6-gate obligations (3 carried + 1 new: VP-023 Kani revalidation under corrected 0x80 mask). | 2026-06-12 |
+| D-062 | Feature #8 F6 Formal Hardening COMPLETE (HARDENED) — PR #231 merged a125c69 (2026-06-12T17:08:39Z). 9/9 Kani SUCCESSFUL (VP-023 ×4 + VP-004 ×1 + VP-007 ×4; 0 counterexamples; 0x80 mask regression NONE). 89% mutation kill (0 logic survivors). 3.19M fuzz/0 crashes. VP-023 LOCKED v1.5 (verified_at e685664; factory-artifacts c5db1bf). VP-004 relocked Rules 5/6 (factory-artifacts aa469bd). 4/4 F6 obligations SATISFIED. 1495 tests green, clippy CLEAN. DRIFT-SEMGREP-001 recorded (non-blocking). NEXT = F7 delta convergence → v0.6.0. | 2026-06-12 |
 
 ## Blocking Issues
 
@@ -146,6 +144,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | DRIFT-DNP3-DIRECTION-001 | DNP3 source_ip resolution port-20000-heuristic-only; direction-aware resolution NOT resolved by STORY-110 (out of AC scope; ~100 on_data call-site ripple) | DEFERRED — post-v0.6.0 dedicated chore; see tech-debt-register.md |
 | DRIFT-MITRE-EMITTED-LABEL-001 | kani EMITTED_IDS labels T0835/T0831 as emitted but neither is actually emitted (13 actual vs 15 labeled); VP-007 Sub-B sound (resolvability only) | DEFERRED — target: system-level catalogue-accuracy pass; severity LOW |
 | DRIFT-BC-2.15.024-EC006-PROSE-001 | BC-2.15.024 EC-006 prose says bailed-flow increments parse_errors; conflicts with BC-2.15.009 PC5 no-op (correct behavior); story EC-006 corrected | DEFERRED — target: PO backlog prose-refresh; severity LOW |
+| DRIFT-SEMGREP-001 | semgrep not installed on build host; F6 security relied on manual reviews (all CLEAN); install semgrep for automated SAST in a future cycle | DEFERRED — non-blocking; severity LOW |
 
 ## Deferred Next-Work Backlog (recorded 2026-06-10)
 
