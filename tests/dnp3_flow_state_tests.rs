@@ -223,7 +223,7 @@ mod story_107 {
 
     /// AC-003: Insert 64 unique source addresses then a 65th → vec len stays at 64.
     ///
-    /// Each delivery is a master-direction frame (DIR=1, control & 0x10 != 0).
+    /// Each delivery is a master-direction frame (DIR=1, control & 0x80 != 0).
     /// The 65th unique source address must be silently ignored.
     ///
     /// Traces to: BC-2.15.016 postconditions 5–6; STORY-107 AC-003.

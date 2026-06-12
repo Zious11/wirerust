@@ -100,7 +100,7 @@ mod story_110 {
         let mut frame = vec![
             0x05, 0x64, // sync
             0x0D, // LENGTH = 13 (frame_len = 20)
-            0x54, // CONTROL: DIR=1 (0x10), PRM=1 (0x40), FC=0x04 (UNS_USER_DATA=0x04) → 0x54
+            0x54, // CONTROL: DIR=0 (bit7=0), PRM=1 (0x40), FCV=1 (0x10), FC=0x04 (UNS_USER_DATA=0x04) → 0x54
             0x03, 0x00, // DEST = 0x0003 LE
             0x01, 0x00, // SRC  = 0x0001 LE
             // CRC of header (2 bytes) — we use 0x00 0x00 (not valid CRC but
