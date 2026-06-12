@@ -52,7 +52,7 @@ input-hash: "44e3256"
 
 | BC | Title |
 |----|-------|
-| BC-2.15.010 | Unauthorized Control Command — Control-Class FC Exceeding Threshold Emits T1692.001 |
+| BC-2.15.010 | Unauthorized Control Command — Unexpected Source (count=1) or Control-Class FC Exceeding Threshold Emits T1692.001 |
 | BC-2.15.011 | COLD_RESTART/WARM_RESTART Observed — Emits T0814 Per-Occurrence Finding |
 | BC-2.15.012 | WRITE FC Observed — Emits T0836 Modify-Parameter Finding Per-Occurrence |
 | BC-2.15.013 | Co-Emission Ordering — Direct Finding (T0814/T1692.001) Precedes Derived T0827 |

@@ -389,7 +389,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.15.007 | compute_dnp3_frame_len Arithmetic Correct; Result in [10,292]; No Overflow | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.008 | Transport FIR=1 First-Fragment Gates Application-Layer FC Extraction | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.009 | is_non_dnp3 Desync-Safe Bail — Flow Silenced After No Valid Sync in First 16 Bytes | P0 | [WRITTEN] | feature-008-F2 |
-| BC-2.15.010 | Unauthorized Control Command — Control-Class FC Exceeding Threshold Emits T1692.001 | P0 | [WRITTEN] | feature-008-F2 |
+| BC-2.15.010 | Unauthorized Control Command — Unexpected Source (count=1) or Control-Class FC Exceeding Threshold Emits T1692.001 | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.011 | COLD_RESTART/WARM_RESTART Observed — Emits T0814 Per-Occurrence Finding | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.012 | WRITE FC Observed — Emits T0836 Modify-Parameter Finding Per-Occurrence | P0 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.013 | Co-Emission Ordering — Direct Finding (T0814/T1692.001) Precedes Derived T0827 | P0 | [WRITTEN] | feature-008-F2 |
