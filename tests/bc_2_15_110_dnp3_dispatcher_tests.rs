@@ -695,7 +695,7 @@ mod story_110 {
     ///
     ///   COUNT DELEGATION: The count invariants are enforced by the in-crate drift-guard
     ///   tests in src/mitre.rs:
-    ///     - `vp007_catalog_drift_guard` / `test_technique_catalog_integrity` assert
+    ///     - `vp007_catalog_drift_guard` asserts
     ///       SEEDED_TECHNIQUE_IDS.len() == SEEDED_TECHNIQUE_ID_COUNT == 23.
     ///     - The Kani proof `kani_proofs::vp007_all_seeded_ids_resolve` asserts
     ///       EMITTED_IDS.len() == 15 (reachable only under the kani harness).
