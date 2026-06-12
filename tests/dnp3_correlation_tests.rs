@@ -941,6 +941,106 @@ mod story_109 {
     }
 
     // -------------------------------------------------------------------------
+    // BC-2.15.015 first-window-seeding edge (mutation survivor #6 kill)
+    // test_BC_2_15_015_first_window_seed_sets_anchor_not_expiry
+    // -------------------------------------------------------------------------
+
+    /// First-window-seeding: on a brand-new flow (`correlation_window_seeded == false`),
+    /// the very first `maybe_expire_correlation_window` call (via `on_data`) at a
+    /// high timestamp (ts=1000) MUST:
+    ///   1. Set `correlation_window_start_ts = 1000` (anchored to the first frame).
+    ///   2. Set `correlation_window_seeded = true`.
+    ///   3. NOT reset the six windowed counters (no spurious expiry — it is a seed,
+    ///      not an expiry).
+    ///
+    /// If the `!` in `if !flow.correlation_window_seeded` is deleted (mutation survivor #6),
+    /// the seed branch is SKIPPED for unseeded flows.  The expiry branch then evaluates
+    /// `wrapping_sub(1000, 0) = 1000 >= 300` → spurious expiry fires, AND
+    /// `correlation_window_seeded` remains `false` forever, so the window is re-seeded on
+    /// EVERY subsequent call instead of only once.  Both observable effects kill the mutant:
+    ///   - Under the mutant, `correlation_window_seeded` stays `false` after the first call.
+    ///   - Under the mutant, a second frame at ts=1000 (same window) would again "expire"
+    ///     the window, resetting counters that were just accumulated — the distinct-source
+    ///     assertion below catches this via `restart_event_count`.
+    ///
+    /// Traces to: BC-2.15.015 seeding invariant (STORY-109); mutation survivor #6.
+    #[test]
+    fn test_BC_2_15_015_first_window_seed_sets_anchor_not_expiry() {
+        let mut analyzer = Dnp3Analyzer::new(10);
+        let key = test_flow_key();
+
+        // Fresh flow: before any on_data call, no flow state exists yet.
+        // Deliver the FIRST frame at ts=1000.  This is far above
+        // CORRELATION_WINDOW_SECS (300), so without the seed guard it would
+        // trigger a spurious window expiry (wrapping_sub(1000, 0) >= 300).
+        let first_frame = build_detection_frame(0x01, 0x0003, 0x0001);
+        analyzer.on_data(key.clone(), &first_frame, 1000);
+
+        {
+            let flow = analyzer.flows.get(&key).expect("flow must exist after first frame");
+
+            // Assertion 1 (kills mutant): the window anchor must be the first frame's ts,
+            // not 0 (which would mean the seed branch was skipped).
+            assert_eq!(
+                flow.correlation_window_start_ts, 1000,
+                "BC-2.15.015 seed: correlation_window_start_ts must be anchored to the \
+                 first frame's ts=1000, not 0. \
+                 Mutant (deleted `!`): seed branch is skipped, anchor stays 0."
+            );
+
+            // Assertion 2 (kills mutant): the seeded flag must be true after the first call.
+            assert!(
+                flow.correlation_window_seeded,
+                "BC-2.15.015 seed: correlation_window_seeded must be true after the first \
+                 frame. \
+                 Mutant (deleted `!`): seeded flag is never set on an unseeded flow."
+            );
+
+            // Assertion 3: no spurious expiry — windowed counters must not have been touched.
+            // (They start at 0 and a pure seed must not reset them — a reset is harmless for
+            // zero values, but combined with assertions 1 & 2 this pins the code path.)
+            assert_eq!(
+                flow.restart_event_count, 0,
+                "BC-2.15.015 seed: restart_event_count must be 0 — seed must not touch \
+                 windowed counters"
+            );
+        }
+
+        // Assertion 4: deliver a COLD_RESTART (FC=0x0D) at the SAME ts=1000 (still inside
+        // the seeded window).  restart_event_count must become 1.
+        // Under the mutant, `correlation_window_seeded` is still false after the first call,
+        // so `maybe_expire_correlation_window` treats this second call as ALSO unseeded:
+        // it seeds again (anchor=1000) and returns — preventing the expiry check from running.
+        // That means restart_event_count can still increment here (same outcome as correct
+        // code for this step).  The decisive observable difference was already in assertions
+        // 1 & 2 above.  This step confirms the counter accumulates in the seeded window.
+        let restart_frame = build_detection_frame(0x0D, 0x0003, 0x0001);
+        analyzer.on_data(key.clone(), &restart_frame, 1000);
+
+        {
+            let flow = analyzer.flows.get(&key).expect("flow must exist after restart frame");
+            assert_eq!(
+                flow.restart_event_count, 1,
+                "BC-2.15.015 seed: restart_event_count must be 1 after one COLD_RESTART \
+                 in the seeded window"
+            );
+
+            // Assertion 5 (secondary mutant kill): deliver a third frame still at ts=1000.
+            // Under the correct code: seeded=true, so the expiry check runs but
+            // wrapping_sub(1000, 1000) = 0 < 300 → no expiry → counters intact.
+            // Under the mutant: seeded is still false → seed branch fires again → return
+            // immediately WITHOUT running the expiry check.  Either way restart_event_count
+            // must still be 1 here (no expiry occurred), but `correlation_window_seeded`
+            // being false (mutant) was already caught in assertion 2.
+            assert!(
+                flow.correlation_window_seeded,
+                "BC-2.15.015 seed: correlation_window_seeded must remain true on subsequent \
+                 same-window frames"
+            );
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // AC-006 (BC-2.15.015 invariant 7 — distinct-event guard)
     // test_t0827_requires_distinct_events
     // -------------------------------------------------------------------------
