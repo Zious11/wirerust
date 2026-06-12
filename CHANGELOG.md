@@ -39,9 +39,15 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
     correlation window
   - **T0836** Modify Parameter — emitted per WRITE command (FC 0x02)
 
-  Additional anomaly detections (emitted as Suspicious findings without technique assignment):
-  unsolicited-response anomaly when UNSOLICITED_RESPONSE (FC 0x82) arrives on a flow where
-  ENABLE_UNSOLICITED was never observed.
+  Additional T0814 trigger sources (Inhibit Response Function):
+  - DISABLE_UNSOLICITED (FC 0x15): verdict Likely / confidence Medium — alarm suppression /
+    event-blinding primitive; emitted per occurrence.
+  - ENABLE_UNSOLICITED (FC 0x14): verdict Possible / confidence Low — unsolicited reporting
+    control; emitted per occurrence; also sets the per-flow context flag that suppresses the
+    unsolicited-response anomaly.
+  - Unsolicited-response anomaly: UNSOLICITED_RESPONSE (FC 0x82) arrives on a flow where
+    ENABLE_UNSOLICITED was never observed and no solicited exchange has been seen; verdict
+    Possible / confidence Low; one-shot per flow (T0814).
 
   Bounded-resource design: per-flow state capped at 64 tracked master addresses, 256 pending
   requests, and 10,000 total findings; 300-second correlation window with six windowed counters
@@ -74,6 +80,14 @@ Version numbers follow [Semantic Versioning](https://semver.org/).
   - Fuzz testing: `fuzz_dnp3_parse` target added (PR #229).
   - Mutation testing: 100% effective kill rate on the detection core including edge cases for
     window-seeding (PR #231).
+
+- **T0814 full detection surface documented** (DRIFT-DNP3-DOC-T0814-COMPLETENESS-001). The DNP3
+  T0814 "Denial of Service / Inhibit Response Function" technique is emitted from five trigger
+  sources: cold/warm restart command (FC 0x0D/0x0E; verdict Likely/High), DISABLE_UNSOLICITED
+  (FC 0x15; verdict Likely/Medium), ENABLE_UNSOLICITED (FC 0x14; verdict Possible/Low),
+  unsolicited-response anomaly (FC 0x82 on a flow with no prior ENABLE_UNSOLICITED; verdict
+  Possible/Low), and malformed-frame anomaly (>= 3 parse-invalid frames in the 300s window;
+  verdict Possible/Low). README and CHANGELOG now enumerate all five sources.
 
 ## [0.5.0] - 2026-06-10
 
