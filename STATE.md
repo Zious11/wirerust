@@ -80,13 +80,13 @@ input_drift_check: "STORY-106/107/108/109 regenerated at delivery (b465d38/2fd1c
 **BLOCKING RESUME PROTOCOL (in order):**
 1. Run `vsdd-factory:factory-worktree-health` — verify .factory/ worktree on factory-artifacts branch.
 2. Read STATE.md (this file) — orient; confirm waves 35-38 STORY-106,107,108,109 DELIVERED and wave 39 STORY-110 (FINAL) is NEXT.
-3. Deliver STORY-110 via per-story-delivery (worktree → stubs → red gate → TDD → Step-4.5 adversarial 3-clean → demos → PR → merge). INPUT-HASH HYGIENE: run `bin/compute-input-hash --write .factory/stories/STORY-110.md` before delivery (hash a9cdfb5 — confirm TBD-dup cleaned). DRIFT-DNP3-DIRECTION-001 resolved in STORY-110 (direction-aware resolution).
+3. Deliver STORY-110 via per-story-delivery (worktree → stubs → red gate → TDD → Step-4.5 adversarial 3-clean → demos → PR → merge). INPUT-HASH HYGIENE: run `bin/compute-input-hash --write .factory/stories/STORY-110.md` before delivery (hash a9cdfb5 — confirm TBD-dup cleaned). DRIFT-DNP3-DIRECTION-001 is NOT resolved by STORY-110 (re-deferred post-STORY-110 adv P1 F-110-P1-001; see Drift Items table).
 4. After STORY-110 → F5 scoped adversarial → F6 targeted hardening → F7 delta convergence → v0.6.0 release.
 
 **LOCKED DNP3 FACTS (for STORY-110):**
 - STORY-110: 8 pts, wave 39, NEXT. Epic E-15, 47 pts, strictly-linear chain 106→107→108→109→110. SS-15 = 24 BCs (BC-2.15.001..024).
 - MITRE after STORY-109: SEEDED 21→23 (T1691.001+T0827); EMITTED 13→15. VP-007 seeded. MitreTactic::IcsImpact added.
-- STORY-110 scope: StreamDispatcher port-20000 Rule 6 / DispatchTarget::Dnp3 (BC-2.15.021) + `--dnp3-*` CLI flags (BC-2.15.017) + VP-004 oracle + DRIFT-DNP3-DIRECTION-001 direction-aware resolution.
+- STORY-110 scope: StreamDispatcher port-20000 Rule 6 / DispatchTarget::Dnp3 (BC-2.15.021) + `--dnp3-*` CLI flags (BC-2.15.017) + VP-004 oracle. NOTE: DRIFT-DNP3-DIRECTION-001 (direction-aware resolve_master_ip) is NOT in STORY-110 scope — re-deferred post-STORY-110 adv P1 F-110-P1-001.
 - Thresholds locked: `--dnp3-direct-operate-threshold 10/60s`; 300s correlation window; block-cmd 3/300s; T0827 ≥3/300s; malformed ≥3/300s; req-timeout 10s.
 - Holdout scenarios: `.factory/feature/wave-holdout-scenarios/wave-35-39-holdout.md` (22 scenarios).
 - INPUT-HASH: STORY-110 hash a9cdfb5 — run `bin/compute-input-hash --write .factory/stories/STORY-110.md` before delivery (confirm TBD-dup cleaned).
@@ -141,7 +141,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | DOC-106-001 (cosmetic) | Add CONFIRM (0x00) to Dnp3FcClass::Management variant doc example list | SATISFIED — resolved in STORY-107 (PR #226) |
 | STORY-107-CARRY-001 | BC-2.15.009 EC-004 (lone-0x05 sub-2-byte sync deferral), BC-2.15.008 EC-006 (parse_errors for <3-byte payloads), BC-2.15.004 PC4 (caller-side parse_errors on gate failure), multi-block CRC-strip payload_buf indexing | SATISFIED — resolved in STORY-107 frame-walk implementation (PR #226) |
 | SEC-107-001 (CWE-400) | Dnp3Analyzer.flows HashMap uncapped — accepted offline-pcap design risk; add max_flows cap if live-capture ever added | ACCEPTED — offline-pcap risk; carry to STORY-108 then forward |
-| DRIFT-DNP3-DIRECTION-001 | DNP3 source_ip resolution port-20000-heuristic-only; direction-aware resolution deferred to DNP3 dispatcher-integration story | DEFERRED — target: STORY-110 (wave 39 NEXT); see tech-debt-register.md |
+| DRIFT-DNP3-DIRECTION-001 | DNP3 source_ip resolution port-20000-heuristic-only; direction-aware resolution NOT resolved by STORY-110 (out of AC scope; ~100 on_data call-site ripple) | DEFERRED — post-v0.6.0 dedicated chore; see tech-debt-register.md |
 | DRIFT-MITRE-EMITTED-LABEL-001 | kani EMITTED_IDS labels T0835/T0831 as emitted but neither is actually emitted (13 actual vs 15 labeled); VP-007 Sub-B sound (resolvability only) | DEFERRED — target: system-level catalogue-accuracy pass; severity LOW |
 | DRIFT-BC-2.15.024-EC006-PROSE-001 | BC-2.15.024 EC-006 prose says bailed-flow increments parse_errors; conflicts with BC-2.15.009 PC5 no-op (correct behavior); story EC-006 corrected | DEFERRED — target: PO backlog prose-refresh; severity LOW |
 
