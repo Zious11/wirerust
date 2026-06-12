@@ -1267,13 +1267,15 @@ impl Dnp3Analyzer {
     /// that case the function silently returns `lower_ip`, which may or may not be
     /// the actual master.
     ///
-    /// **Direction deferral:** this function does NOT use the TCP `Direction` signal
-    /// that sibling analyzers (modbus, http, tls) receive, because `Dnp3Analyzer::on_data`
-    /// is not yet wired into the dispatcher and does not accept a `direction` argument.
-    /// Direction-aware resolution — analogous to `src/analyzer/modbus.rs` ~355–382,
-    /// where `direction` selects `client_ip` vs `server_ip` — is deferred to the
-    /// DNP3 dispatcher-integration story that adds the `DispatchTarget::Dnp3` arm and
-    /// threads `direction` into `on_data`.
+    /// **Direction deferral (DRIFT-DNP3-DIRECTION-001):** this function uses only the
+    /// port-20000 heuristic above; it does NOT use the TCP `Direction` signal that
+    /// sibling analyzers (modbus, http, tls) receive. Direction-aware resolution —
+    /// analogous to `src/analyzer/modbus.rs` ~355–382, where `direction` selects
+    /// `client_ip` vs `server_ip` — is deferred to a post-v0.6.0 "DNP3
+    /// direction-aware source resolution" follow-up chore. Threading `Direction`
+    /// into `Dnp3Analyzer::on_data` would ripple across the STORY-106..109 call
+    /// sites and was explicitly re-deferred after STORY-110 added the
+    /// `DispatchTarget::Dnp3` arm.
     fn resolve_master_ip(flow_key: &FlowKey) -> IpAddr {
         if flow_key.lower_port() == 20000 {
             flow_key.upper_ip()

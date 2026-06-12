@@ -671,7 +671,7 @@ mod story_110 {
     // AC-010: VP-007 catalog state (seeded=23, emitted=15) — guard/state assertion
     // ---------------------------------------------------------------------------
 
-    /// AC-010: VP-007 SEEDED_TECHNIQUE_IDS has 23 entries, SEEDED_TECHNIQUE_ID_COUNT == 23
+    /// AC-010: VP-007 catalog state — all 23 seeded technique IDs resolve via public API
     ///
     /// This asserts the catalog state established by STORY-109. The test verifies
     /// the constants are correct in the current codebase. It is expected to PASS
@@ -682,36 +682,107 @@ mod story_110 {
     /// Difference: 23 - 15 = 8 seeded but not yet emitted.
     /// T1691.001 present in SEEDED_TECHNIQUE_IDS (index 21).
     /// T0827 present in SEEDED_TECHNIQUE_IDS (index 22).
+    ///
+    /// REACHABILITY NOTE (O-1 adversarial pass-1):
+    ///   - `SEEDED_TECHNIQUE_IDS` is `#[cfg(any(kani, test))]` AND `const` (not `pub const`).
+    ///     It is crate-private and not accessible from an integration-test crate.
+    ///   - `SEEDED_TECHNIQUE_ID_COUNT` has identical gating — also not reachable here.
+    ///   - `EMITTED_IDS` is `#[cfg(kani)]`-only inside `kani_proofs` — not reachable from
+    ///     any normal test binary.
+    ///     Therefore the literal count assertions `assert_eq!(SEEDED_TECHNIQUE_ID_COUNT, 23)`
+    ///     and `assert_eq!(EMITTED_IDS.len(), 15)` are NOT expressible in this integration
+    ///     test without modifying production code visibility.
+    ///
+    ///   COUNT DELEGATION: The count invariants are enforced by the in-crate drift-guard
+    ///   tests in src/mitre.rs:
+    ///     - `vp007_catalog_drift_guard` / `test_technique_catalog_integrity` assert
+    ///       SEEDED_TECHNIQUE_IDS.len() == SEEDED_TECHNIQUE_ID_COUNT == 23.
+    ///     - The Kani proof `kani_proofs::vp007_all_seeded_ids_resolve` asserts
+    ///       EMITTED_IDS.len() == 15 (reachable only under the kani harness).
+    ///
+    ///   STRENGTHENING (O-1 fix): Instead of checking a 5-ID representative sample,
+    ///   this test now exhaustively verifies ALL 23 seeded IDs resolve via the public
+    ///   API (`technique_name`, `technique_tactic`), and asserts the resolved count == 23.
+    ///   This is the maximum strength achievable from an integration-test crate given
+    ///   current visibility.
     #[test]
     fn test_vp007_seeded_23_emitted_15() {
-        // Verify SEEDED_TECHNIQUE_ID_COUNT == 23 via the public constant.
-        // (The constant is cfg(test)-gated; accessing it here confirms it compiles.)
-        // We use the mitre module's public functions as proxies.
+        // The full seeded list from src/mitre.rs (mirrored literally here so that any
+        // production-code deletion of an entry causes this test to fail immediately).
+        // Format: 11 Enterprise + 4 ICS pre-F2 + 6 ICS F2 (STORY-100) + 2 ICS STORY-109.
+        let all_seeded_ids: &[&str] = &[
+            // Enterprise (11)
+            "T1027",
+            "T1071",
+            "T1071.001",
+            "T1071.004",
+            "T1036",
+            "T1040",
+            "T1046",
+            "T1083",
+            "T1499.002",
+            "T1505.003",
+            "T1573",
+            // ICS pre-F2 (4)
+            "T0846",
+            "T1692.001",
+            "T1692.002",
+            "T0885",
+            // ICS F2 / STORY-100 (6)
+            "T0836",
+            "T0814",
+            "T0806",
+            "T0835",
+            "T0831",
+            "T0888",
+            // ICS STORY-109 (2) — VP-007 atomic obligation
+            "T1691.001",
+            "T0827",
+        ];
 
-        // Technique IDs that must be in the catalogue (from STORY-109 VP-007 obligation).
-        let must_be_seeded = ["T1691.001", "T0827", "T1692.001", "T0836", "T0814"];
-        for id in &must_be_seeded {
+        // Assert the mirror list itself has the expected count (catches copy-paste errors
+        // in this test's literal above, independent of any production constant).
+        assert_eq!(
+            all_seeded_ids.len(),
+            23,
+            "AC-010 test internal: seeded-ID mirror list must have exactly 23 entries"
+        );
+
+        // Exhaustively verify every seeded ID resolves via the public API.
+        // Any deletion or rename in technique_info that removes a Some-arm will cause
+        // exactly the failing ID to be reported here.
+        let mut resolved = 0usize;
+        for id in all_seeded_ids {
             assert!(
                 wirerust::mitre::technique_name(id).is_some(),
-                "AC-010: VP-007 requires '{id}' to be in the MITRE catalogue (technique_name → Some)"
+                "AC-010: VP-007 seeded ID '{id}' must resolve via technique_name (got None); \
+                 SEEDED_TECHNIQUE_IDS count == 23 enforced by vp007_catalog_drift_guard in \
+                 src/mitre.rs"
             );
             assert!(
                 wirerust::mitre::technique_tactic(id).is_some(),
-                "AC-010: VP-007 requires '{id}' to have a tactic in the catalogue"
+                "AC-010: VP-007 seeded ID '{id}' must resolve via technique_tactic (got None)"
             );
+            resolved += 1;
         }
 
-        // The seeded count (23) and emitted count (15) delta is 8.
-        // We verify the seeded IDs are present by checking a representative sample.
-        // The exact count of 23 is guarded by the vp007_catalog_drift_guard test in mitre.rs.
-        // Here we just confirm the STORY-109 additions are present.
-        let story109_ids = ["T1691.001", "T0827"];
-        for id in &story109_ids {
-            assert!(
-                wirerust::mitre::technique_name(id).is_some(),
-                "AC-010: STORY-109 VP-007 obligation: '{id}' must be seeded and resolvable"
-            );
-        }
+        // Count assertion: all 23 seeded IDs must resolve (no silent loop-exit early).
+        assert_eq!(
+            resolved, 23,
+            "AC-010: exactly 23 seeded IDs must resolve via technique_name/technique_tactic; \
+             got {resolved}"
+        );
+
+        // Spot-check: T1691.001 and T0827 are the STORY-109 VP-007 atomic obligation IDs.
+        // Their presence is critical; assert them explicitly for clarity in failure messages.
+        assert!(
+            wirerust::mitre::technique_name("T1691.001").is_some(),
+            "AC-010: STORY-109 VP-007 obligation: T1691.001 must be seeded and resolvable"
+        );
+        assert!(
+            wirerust::mitre::technique_name("T0827").is_some(),
+            "AC-010: STORY-109 VP-007 obligation: T0827 must be seeded and resolvable"
+        );
     }
 
     // ---------------------------------------------------------------------------

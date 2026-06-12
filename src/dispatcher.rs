@@ -307,9 +307,10 @@ impl StreamHandler for StreamDispatcher {
                 }
             }
             DispatchTarget::Dnp3 => {
-                // BC-2.15.021 §P3: route to Dnp3Analyzer; no-op if disabled.
-                // STORY-110 stub: wiring of direction/offset/timestamp into
-                // Dnp3Analyzer::on_data is the implementer's TDD task.
+                // BC-2.15.021 §P3: route a port-20000-classified flow's data to
+                // Dnp3Analyzer; no-op if disabled. Direction and byte-offset are
+                // not threaded through — Dnp3Analyzer::on_data does its own
+                // frame-walk from the raw payload.
                 if let Some(ref mut dnp3) = self.dnp3 {
                     dnp3.on_data(flow_key.clone(), data, timestamp);
                 }
