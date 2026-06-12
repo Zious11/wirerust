@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -33,6 +33,13 @@ modified:
     (A3) EC-009 and EC-010 updated with DIR=1/master-direction qualifier (F-C-007): the
     source-learning and unexpected-source check apply only to master-direction (DIR=1, mask
     0x80 per corrected BC-2.15.016 PC5) Control frames. — 2026-06-12"
+  - "v1.5: F5 OBS-P4-2: H1 title updated to reflect dual-gate detection — primary gate
+    (unexpected source, count=1) named explicitly alongside secondary gate (burst/threshold).
+    Previous title named only the volumetric/threshold path, which is the secondary gate;
+    the primary unexpected-source path (added in v1.2 Invariant 5 + v1.3 EC-009/EC-010)
+    was absent from the H1. Title now reads: 'Unauthorized Control Command — Unexpected
+    Source (count=1) or Control-Class FC Exceeding Threshold Emits T1692.001'.
+    No postcondition/invariant/EC content changed. — 2026-06-12"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -46,7 +53,7 @@ inputs:
 input-hash: TBD
 ---
 
-# BC-2.15.010: Unauthorized Control Command — Control-Class FC Exceeding Threshold Emits T1692.001
+# BC-2.15.010: Unauthorized Control Command — Unexpected Source (count=1) or Control-Class FC Exceeding Threshold Emits T1692.001
 
 ## Description
 
