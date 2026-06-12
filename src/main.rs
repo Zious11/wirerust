@@ -22,6 +22,7 @@ use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 
 use wirerust::analyzer::ProtocolAnalyzer;
+use wirerust::analyzer::dnp3::Dnp3Analyzer;
 use wirerust::analyzer::dns::DnsAnalyzer;
 use wirerust::analyzer::http::HttpAnalyzer;
 use wirerust::analyzer::modbus::ModbusAnalyzer;
@@ -54,6 +55,8 @@ fn main() -> Result<()> {
             modbus,
             modbus_write_burst_threshold,
             modbus_write_sustained_threshold,
+            dnp3,
+            dnp3_direct_operate_threshold,
         } => {
             run_analyze(
                 targets,
@@ -63,6 +66,8 @@ fn main() -> Result<()> {
                 *modbus || *all,
                 *modbus_write_burst_threshold,
                 *modbus_write_sustained_threshold,
+                *dnp3 || *all,
+                *dnp3_direct_operate_threshold,
                 *mitre,
                 use_color,
                 &cli,
@@ -85,6 +90,8 @@ fn run_analyze(
     enable_modbus: bool,
     modbus_write_burst_threshold: u32,
     modbus_write_sustained_threshold: u32,
+    enable_dnp3: bool,
+    dnp3_direct_operate_threshold: u32,
     show_mitre_grouping: bool,
     use_color: bool,
     cli: &Cli,
@@ -104,9 +111,10 @@ fn run_analyze(
 
     let skip_reassembly = cli.no_reassemble;
 
-    // BC-2.14.023 §P4: needs_reassembly includes enable_modbus so that --modbus
-    // alone (without --http or --tls) activates the reassembly engine.
-    let needs_reassembly = cli.reassemble || enable_http || enable_tls || enable_modbus;
+    // BC-2.14.023 §P4: needs_reassembly includes enable_modbus / enable_dnp3 so that
+    // --modbus or --dnp3 alone (without --http or --tls) activates the reassembly engine.
+    let needs_reassembly =
+        cli.reassemble || enable_http || enable_tls || enable_modbus || enable_dnp3;
 
     if (enable_http || enable_tls) && skip_reassembly {
         eprintln!(
@@ -117,6 +125,13 @@ fn run_analyze(
     if enable_modbus && skip_reassembly {
         eprintln!(
             "WARNING: --modbus requires stream reassembly; ignoring --modbus \
+             (pass --reassemble or omit --no-reassemble)"
+        );
+    }
+    // BC-2.15.021: warn and omit DNP3 when reassembly disabled.
+    if enable_dnp3 && skip_reassembly {
+        eprintln!(
+            "WARNING: --dnp3 requires stream reassembly; ignoring --dnp3 \
              (pass --reassemble or omit --no-reassemble)"
         );
     }
@@ -172,8 +187,19 @@ fn run_analyze(
     } else {
         None
     };
+    // BC-2.15.021 / BC-2.15.017: construct Dnp3Analyzer only when enabled AND reassembly is on.
+    // Forward the CLI-parsed dnp3_direct_operate_threshold to Dnp3Analyzer::new().
+    // When flag omitted, clap default = DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT (10).
+    // AC-006: threshold wired; AC-007: 0 fires immediately, MAX never fires;
+    // AC-008: threshold echoed in T1692.001 summary string "(threshold N)".
+    let dnp3_analyzer: Option<Dnp3Analyzer> = if enable_dnp3 && !skip_reassembly {
+        Some(Dnp3Analyzer::new(dnp3_direct_operate_threshold))
+    } else {
+        None
+    };
 
-    let mut dispatcher = StreamDispatcher::new(http_analyzer, tls_analyzer, modbus_analyzer);
+    let mut dispatcher =
+        StreamDispatcher::new(http_analyzer, tls_analyzer, modbus_analyzer, dnp3_analyzer);
 
     // Capture loop wrapped in an immediately-invoked closure so any `?`-bail
     // inside (e.g. unreadable pcap, malformed progress-bar template) is
@@ -264,6 +290,12 @@ fn run_analyze(
     if let Some(modbus) = dispatcher.take_modbus_analyzer() {
         all_findings.extend(modbus.all_findings.iter().cloned());
         analyzer_summaries.push(modbus.summarize());
+    }
+
+    // BC-2.15.021: post-finalize — collect DNP3 findings and summary.
+    if let Some(dnp3) = dispatcher.take_dnp3_analyzer() {
+        all_findings.extend(dnp3.all_findings.iter().cloned());
+        analyzer_summaries.push(dnp3.summarize());
     }
 
     let resolved_format = resolve_format(cli);

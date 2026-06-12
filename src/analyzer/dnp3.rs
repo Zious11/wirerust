@@ -157,6 +157,17 @@ pub const BLOCK_CMD_THRESHOLD: u64 = 3;
 #[allow(unused)]
 pub const T0827_THRESHOLD: u64 = 3;
 
+/// Default threshold for the Direct-Operate burst guard (BC-2.15.017 / STORY-110).
+///
+/// Exposed via `--dnp3-direct-operate-threshold` CLI flag. When
+/// `flow.direct_operate_count > direct_operate_threshold` within the detection
+/// window, one T1692.001 finding is emitted.
+///
+/// Value 10: captures commissioning-speed attacks while tolerating legitimate
+/// maintenance in most OT environments (BC-2.15.017 Description §rationale).
+/// Operator may lower to 3–5 for very quiet segments.
+pub const DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT: u32 = 10;
+
 /// Detection window for the Direct-Operate burst guard in seconds (BC-2.15.010).
 /// Control-class FC counter and `window_start_ts` reset when elapsed exceeds this.
 pub const DETECTION_WINDOW_SECS: u32 = 60;
@@ -1256,13 +1267,15 @@ impl Dnp3Analyzer {
     /// that case the function silently returns `lower_ip`, which may or may not be
     /// the actual master.
     ///
-    /// **Direction deferral:** this function does NOT use the TCP `Direction` signal
-    /// that sibling analyzers (modbus, http, tls) receive, because `Dnp3Analyzer::on_data`
-    /// is not yet wired into the dispatcher and does not accept a `direction` argument.
-    /// Direction-aware resolution — analogous to `src/analyzer/modbus.rs` ~355–382,
-    /// where `direction` selects `client_ip` vs `server_ip` — is deferred to the
-    /// DNP3 dispatcher-integration story that adds the `DispatchTarget::Dnp3` arm and
-    /// threads `direction` into `on_data`.
+    /// **Direction deferral (DRIFT-DNP3-DIRECTION-001):** this function uses only the
+    /// port-20000 heuristic above; it does NOT use the TCP `Direction` signal that
+    /// sibling analyzers (modbus, http, tls) receive. Direction-aware resolution —
+    /// analogous to `src/analyzer/modbus.rs` ~355–382, where `direction` selects
+    /// `client_ip` vs `server_ip` — is deferred to a post-v0.6.0 "DNP3
+    /// direction-aware source resolution" follow-up chore. Threading `Direction`
+    /// into `Dnp3Analyzer::on_data` would ripple across the STORY-106..109 call
+    /// sites and was explicitly re-deferred after STORY-110 added the
+    /// `DispatchTarget::Dnp3` arm.
     fn resolve_master_ip(flow_key: &FlowKey) -> IpAddr {
         if flow_key.lower_port() == 20000 {
             flow_key.upper_ip()
