@@ -474,6 +474,27 @@ mod f5_unexpected_source {
             f.summary
         );
 
+        // F-P4-001: evidence field must carry TWO entries per F-F5-001 REVISION 2 §2:
+        //   entry[0] = "FC=0x{app_fc:02X} dest={dest:#06X} src={src:#06X}"
+        //   entry[1] = "expected_masters={master_set}"
+        // For this test: app_fc=0x05 (DIRECT_OPERATE), dest=0x0003, src=0x0099,
+        //   master_set=[0x0001] (single entry formatted {:#06X}).
+        // The current impl emits a SINGLE entry "unexpected_source src=... dest=... master_set=..."
+        // and DROPS app_fc → this assertion FAILS now (RED exposing F-P4-001).
+        assert_eq!(
+            f.evidence,
+            vec![
+                "FC=0x05 dest=0x0003 src=0x0099".to_string(),
+                "expected_masters=[0x0001]".to_string(),
+            ],
+            "evidence must be TWO entries per F-F5-001 REVISION 2 §2: \
+             entry[0]='FC=0x{{app_fc:02X}} dest={{dest:#06X}} src={{src:#06X}}', \
+             entry[1]='expected_masters={{master_set}}'; \
+             RED (F-P4-001): current impl emits one entry without app_fc; \
+             got: {:?}",
+            f.evidence
+        );
+
         // Fall-through invariant: both FCs (0x0001 and 0x0099) counted.
         let flow = analyzer.flows.get(&key).expect("flow must exist");
         assert_eq!(
