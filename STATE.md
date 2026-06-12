@@ -145,6 +145,8 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | DRIFT-MITRE-EMITTED-LABEL-001 | kani EMITTED_IDS labels T0835/T0831 as emitted but neither is actually emitted (13 actual vs 15 labeled); VP-007 Sub-B sound (resolvability only) | DEFERRED — target: system-level catalogue-accuracy pass; severity LOW |
 | DRIFT-BC-2.15.024-EC006-PROSE-001 | BC-2.15.024 EC-006 prose says bailed-flow increments parse_errors; conflicts with BC-2.15.009 PC5 no-op (correct behavior); story EC-006 corrected | DEFERRED — target: PO backlog prose-refresh; severity LOW |
 | DRIFT-SEMGREP-001 | semgrep not installed on build host; F6 security relied on manual reviews (all CLEAN); install semgrep for automated SAST in a future cycle | DEFERRED — non-blocking; severity LOW |
+| DRIFT-ENGINE-CHECKOUT-GUARD-001 | ENGINE-LEVEL: dark-factory adversary dispatch template does not embed DF-ADVERSARY-CHECKOUT-GUARD-001 verbatim as first instruction block; F5-P9 reviewed wrong tree (develop pre-fix), produced 3 false BLOCKERs. Engine fix: dark-factory adversary agent prompt. NOT a wirerust product change; see tech-debt-register.md | ENGINE-NOTE — severity HIGH; dark-factory plugin maintainer action |
+| DRIFT-ENGINE-PRMGR-REPORT-001 | ENGINE-LEVEL: pr-manager returned only security review on 4/5 PRs this session (#227-230), omitting PR#/pr-reviewer/CI; DF-PR-MANAGER-COMPLETE-001 already mandates consolidated report — this is prompt non-compliance. Engine fix: dark-factory pr-manager agent prompt. NOT a wirerust product change; see tech-debt-register.md | ENGINE-NOTE — severity MEDIUM; dark-factory plugin maintainer action |
 
 ## Deferred Next-Work Backlog (recorded 2026-06-10)
 
@@ -192,6 +194,8 @@ Full policy text: `.factory/policies.yaml`. Detail: `cycles/phase-3-tdd/governan
 | DF-TEST-CITATION-SWEEP-001 | HIGH |
 | DF-TEST-NAMESPACE-001 | MEDIUM |
 | DF-CONSISTENCY-AUDIT-POST-FIXBURST-001 | HIGH |
+| DF-CANONICAL-FRAME-HOLDOUT-001 | CRITICAL |
+| DF-BC-COMPLETENESS-SWEEP-001 | HIGH |
 
 ## Notes
 

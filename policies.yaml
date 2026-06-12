@@ -854,6 +854,145 @@ policies:
       PG-W18-003 / F-W18-WAVE-I-006 (TLS flat namespace vs HTTP per-story
       mod wrappers; latent collision risk; codified 2026-05-30)
 
+  - id: DF-CANONICAL-FRAME-HOLDOUT-001
+    name: canonical-frame-holdout-cross-validation
+    description: >
+      For any behavioral contract that asserts a PROTOCOL-FRAMING invariant
+      (bit-field/byte-position semantics of a wire protocol — e.g. DNP3 link-control
+      DIR/PRM bits, frame headers, length fields), at least one holdout scenario AND
+      at least one test MUST use a CANONICAL byte sequence taken from the AUTHORITATIVE
+      protocol specification (e.g. IEEE 1815 for DNP3), NOT a byte value derived from
+      the project's own BCs or tests.
+
+      The holdout scenario MUST:
+        - Cite the protocol specification section that defines the bit/byte layout.
+        - State the canonical byte value explicitly (e.g. "DIR bit is bit 7 per
+          IEEE 1815 §8.2.1 — canonical master-to-outstation frame uses DIR=1,
+          therefore byte 1 of the link-layer header = 0x44 | 0x80 = 0xC4").
+        - Be authored INDEPENDENTLY of the project's BCs and test vectors —
+          i.e., the holdout author MUST consult the authoritative spec directly,
+          NOT read the project's BC postconditions or existing tests to derive
+          the byte value.
+
+      Stories implementing protocol-framing invariants MUST include in their
+      acceptance criteria: "At least one test uses a canonical byte sequence
+      from the authoritative protocol specification for the framing invariant
+      under test, with the spec section and byte value cited."
+
+      F3 story decomposition MUST flag any story whose BCs include a
+      PROTOCOL-FRAMING invariant and add the canonical-byte holdout requirement
+      to that story's AC before decomposition is finalized.
+
+    severity: CRITICAL
+    scope:
+      - orchestrator
+      - holdout-authorship
+      - adversary
+      - story-writer
+      - f3-decomposition
+    rationale: >
+      PG-F4-F5-001 root-cause evidence (Feature #8 DNP3, 2026-06-12): the
+      is_master_frame DIR-bit mask was wrong (0x10 instead of 0x80 — DIR is bit
+      7 per IEEE 1815 DNP3, not bit 4). The bug was latent since STORY-107
+      (wave 36) and survived approximately 30 per-story adversarial passes across
+      STORY-107, 108, 109, and 110. Root cause: the per-story adversary reviews
+      code against the project's own BC and tests. The BC (PC5) and the tests both
+      used the same wrong mask — an internally self-consistent error that per-story
+      review cannot catch because the adversary has no external reference. The fix
+      was found by the F5 agentic-sliced pre-implementation review, which
+      cross-checked the mask against the DNP3 link-layer bit layout in IEEE 1815
+      independently. Canonical-spec cross-validation breaks the shared-assumption
+      loop: if one holdout scenario had been authored from IEEE 1815 directly, the
+      mask error would have been caught at F3 decomposition, not F5.
+    enforcement: >
+      F3 decomposition checklist MUST include: "For each BC in this story's spec
+      that asserts a PROTOCOL-FRAMING invariant, add an AC requiring at least one
+      test with a canonical byte sequence from the authoritative protocol spec (cite
+      spec section + byte value)." Holdout authorship (F3) MUST include at least one
+      scenario per framing-invariant BC that uses a spec-derived byte value. F4/F5
+      adversary MUST verify the canonical-byte test exists and its byte value is
+      correct against the cited spec section. A missing canonical-byte test for any
+      framing-invariant BC is a HIGH adversarial finding at F4 and a P0 BLOCKER at
+      F5. The F5 adversary MUST NOT accept a byte value derived from the project's
+      own BCs as a substitute for a canonical spec citation.
+    added: "2026-06-12"
+    version: v1
+    derived-from: >
+      PG-F4-F5-001 (Feature #8 DNP3 DIR-bit 0x10→0x80 mask bug; 30+ per-story
+      passes missed; found F5 canonical cross-check; codified 2026-06-12;
+      lessons.md IP-1 / PG-F4-F5-001)
+
+  - id: DF-BC-COMPLETENESS-SWEEP-001
+    name: bc-set-completeness-sweep-at-f5
+    description: >
+      Per-story adversarial review verifies only what EXISTS — it cannot detect
+      an entirely-absent feature. At the feature-level scoped-adversarial (F5)
+      gate, the reviewer MUST perform a BC-set completeness sweep as the FIRST
+      mandatory step before any per-finding analysis.
+
+      Mandatory F5 completeness sweep procedure:
+        1. Enumerate every behavioral contract in the feature's spec (the full
+           SS-NN BC set for the feature being reviewed).
+        2. For each BC that specifies a detection invariant, guard condition,
+           emission requirement, or named behavioral postcondition, confirm that
+           a corresponding implementation path EXISTS in the feature delta.
+        3. "Corresponding implementation path" means: a named symbol, branch,
+           function, or match arm can be found in the changed source files that
+           could produce the behavior described in the BC's postcondition. A
+           grep for the postcondition's named symbol/branch is the minimum
+           verification step.
+        4. Any BC Invariant / Postcondition / Precondition with NO corresponding
+           implementation path is a P0 BLOCKER finding. It is NOT sufficient
+           for earlier per-story passes to have been CLEAN — per-story passes
+           verify correctness of what was implemented, not completeness of what
+           was specified.
+        5. Report the sweep result in the F5 findings section as: "BC-set
+           completeness sweep: [N] BCs checked, [N] with implementation path,
+           [N] with no implementation path (BLOCKER)."
+
+      This sweep is ADDITIVE to per-finding analysis — it must run even if all
+      per-story passes were CLEAN and no individual story raised completeness
+      concerns.
+
+    severity: HIGH
+    scope:
+      - orchestrator
+      - adversary
+      - f5-scoped-adversarial
+    rationale: >
+      PG-F4-F5-002 root-cause evidence (Feature #8 DNP3, 2026-06-12):
+      BC-2.15.010 Invariant 5 (unexpected-source detection — a P0 holdout
+      requirement) was ENTIRELY UNIMPLEMENTED after 5 stories (STORY-106..110)
+      were delivered. None of the approximately 34 per-story adversarial passes
+      across the 5 stories detected this gap. Each per-story pass correctly
+      verified that existing detection branches satisfied their own BCs; none
+      checked whether Invariant 5 had any corresponding code path at all. The
+      F5 holistic adversarial review found the gap by scanning the full delta
+      for coverage of each BC Invariant — a structural difference from per-story
+      review. A single BC-set completeness sweep at F5 entry would have caught
+      this gap before any remediation work was needed.
+    enforcement: >
+      Orchestrator MUST inject the following block into every F5 adversary
+      dispatch prompt as the MANDATORY FIRST STEP:
+      "## BC-Set Completeness Sweep (MANDATORY per DF-BC-COMPLETENESS-SWEEP-001)
+      Before any per-finding analysis, enumerate ALL BCs in the feature's spec
+      (SS-NN set). For each BC Invariant/Postcondition/Precondition, grep the
+      feature delta for a corresponding implementation path. Any BC with NO
+      implementation path is a P0 BLOCKER. Report the sweep result before
+      proceeding to per-finding analysis."
+      The F5 findings report MUST include the sweep result table. A findings
+      report that skips or omits the completeness sweep is methodology-incomplete
+      and MUST be flagged by the orchestrator before accepting the findings.
+      This policy extends DF-ADVERSARY-METHODOLOGY-001 by adding BC-completeness
+      as a numbered step at F5; the DF-ADVERSARY-METHODOLOGY-001 enforcement
+      section should reference this policy for F5 contexts.
+    added: "2026-06-12"
+    version: v1
+    derived-from: >
+      PG-F4-F5-002 (Feature #8 BC-2.15.010 Invariant-5 entirely unimplemented
+      after 34 per-story passes; found F5 holistic delta scan; codified 2026-06-12;
+      lessons.md IP-2 / PG-F4-F5-002)
+
   - id: DF-CONSISTENCY-AUDIT-POST-FIXBURST-001
     name: consistency-audit-after-fix-burst-or-bc-enrichment
     description: >
