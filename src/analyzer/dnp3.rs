@@ -1116,7 +1116,7 @@ impl Dnp3Analyzer {
     fn detect_unexpected_source_split(
         flow: &mut Dnp3FlowState,
         findings: &mut Vec<Finding>,
-        _app_fc: u8,
+        app_fc: u8,
         dest: u16,
         src: u16,
         now_ts: u32,
@@ -1152,10 +1152,10 @@ impl Dnp3Analyzer {
                  src={src:#06X} is not in expected master set {master_set} \
                  on dest={dest:#06X}"
             ),
-            evidence: vec![format!(
-                "unexpected_source src={src:#06X} dest={dest:#06X} \
-                 master_set={master_set}"
-            )],
+            evidence: vec![
+                format!("FC=0x{app_fc:02X} dest={dest:#06X} src={src:#06X}"),
+                format!("expected_masters={master_set}"),
+            ],
             mitre_techniques: vec!["T1692.001".to_string()],
             source_ip: Some(master_ip),
             timestamp: chrono::DateTime::from_timestamp(now_ts as i64, 0),
