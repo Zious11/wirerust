@@ -75,7 +75,7 @@ mod story_105 {
     #[test]
     fn test_BC_2_14_025_port_502_classified_to_modbus_as_rule_5() {
         let modbus = ModbusAnalyzer::new(20, 10);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), None);
         let key = flow_key(12345, 502);
         // Complete Modbus read-holding-registers request: 12 bytes total.
         // TxnID=0x0001, ProtoID=0x0000, Len=0x0006, UnitID=0x01, FC=0x03,
@@ -123,6 +123,7 @@ mod story_105 {
             None,
             Some(TlsAnalyzer::new()),
             Some(ModbusAnalyzer::new(20, 10)),
+            None,
         );
         let key = flow_key(12345, 502);
         // TLS ClientHello signature: 0x16 0x03 0x03 ...
@@ -152,6 +153,7 @@ mod story_105 {
             Some(HttpAnalyzer::new()),
             None,
             Some(ModbusAnalyzer::new(20, 10)),
+            None,
         );
         let key = flow_key(12345, 502);
         let http_data = b"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n";
@@ -179,6 +181,7 @@ mod story_105 {
             None,
             Some(TlsAnalyzer::new()),
             Some(ModbusAnalyzer::new(20, 10)),
+            None,
         );
         let key = flow_key(12345, 443);
         let mbap_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03];
@@ -207,7 +210,7 @@ mod story_105 {
     #[test]
     fn test_BC_2_14_025_modbus_disabled_port_502_flow_is_noop() {
         // No Modbus analyzer — modbus=None
-        let mut dispatcher = StreamDispatcher::new(None, None, None);
+        let mut dispatcher = StreamDispatcher::new(None, None, None, None);
         let key = flow_key(12345, 502);
         let mbap_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03];
         // This calls classify() → Modbus, then on_data() Modbus arm → None check → no-op.
@@ -229,7 +232,7 @@ mod story_105 {
     #[test]
     fn test_BC_2_14_025_on_data_routes_port_502_flow_to_modbus_analyzer() {
         let modbus = ModbusAnalyzer::new(20, 10);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), None);
         let key = flow_key(49152, 502); // ephemeral src port, Modbus dst port
         // Valid Modbus write-single-coil request:
         // MBAP: TxnID=0x0001, ProtoID=0x0000, Len=0x0006, UnitID=0xFF, FC=0x05
@@ -265,7 +268,7 @@ mod story_105 {
     #[test]
     fn test_BC_2_14_025_on_flow_close_routes_modbus_flow_to_analyzer() {
         let modbus = ModbusAnalyzer::new(20, 10);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), None);
         let key = flow_key(49152, 502);
         // Complete ADU: TxnID=0x0001, ProtoID=0x0000, Len=0x0006, UnitID=0x01, FC=0x03,
         // starting-address=0x0000, quantity=0x0001 (12 bytes, F-105-001: full ADU needed).
@@ -312,8 +315,9 @@ mod story_105 {
         let random_data = [0xDEu8, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x00, 0x00];
 
         // Force it past the retry cap so it gets cached as None.
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(ModbusAnalyzer::new(20, 10)))
-            .with_max_classification_attempts(1);
+        let mut dispatcher =
+            StreamDispatcher::new(None, None, Some(ModbusAnalyzer::new(20, 10)), None)
+                .with_max_classification_attempts(1);
 
         dispatcher.on_data(
             &key,
@@ -342,7 +346,7 @@ mod story_105 {
     #[test]
     fn test_BC_2_14_025_take_modbus_analyzer_uses_option_take() {
         let modbus = ModbusAnalyzer::new(20, 10);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), None);
 
         // Before take: accessor returns Some.
         assert!(
@@ -744,7 +748,7 @@ mod story_105 {
         // Rules 1-4 don't fire; Rule 5 (port 502) fires → DispatchTarget::Modbus.
         // Production classify() must agree with the oracle (VP-004 property).
         let modbus = ModbusAnalyzer::new(20, 10);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), None);
         let key = flow_key(54321, 502);
         // Random non-TLS, non-HTTP binary data on port 502.
         // This data begins with 0xAB which is a high-bit-set byte — parse_mbap_header
@@ -773,6 +777,7 @@ mod story_105 {
             Some(HttpAnalyzer::new()),
             None,
             Some(ModbusAnalyzer::new(20, 10)),
+            None,
         );
         let key = flow_key(12345, 8080);
         // Non-HTTP content bytes — port fallback fires (Rule 4: port 8080 → HTTP).
@@ -801,8 +806,9 @@ mod story_105 {
     #[test]
     fn test_BC_2_14_025_vp004_oracle_unknown_port_routes_to_none_not_modbus() {
         // Modbus-only dispatcher, but port 9999 — classify returns None.
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(ModbusAnalyzer::new(20, 10)))
-            .with_max_classification_attempts(1);
+        let mut dispatcher =
+            StreamDispatcher::new(None, None, Some(ModbusAnalyzer::new(20, 10)), None)
+                .with_max_classification_attempts(1);
         let key = flow_key(12345, 9999);
         let mbap_data = [0x00u8, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03];
         // classify() returns None (no content match, not 443/8443/80/8080/502).
@@ -838,7 +844,7 @@ mod story_105 {
     #[test]
     fn test_F_105_002_pin1_two_complete_adus_in_one_on_data_counted_correctly() {
         let modbus = ModbusAnalyzer::new(20, 10);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), None);
         let key = flow_key(49152, 502);
 
         // ADU 1: TxnID=0x0001, Len=6, UnitID=0x01, FC=0x05, addr=0x0000, value=0xFF00
@@ -904,7 +910,7 @@ mod story_105 {
     #[test]
     fn test_F_105_002_pin2_write_adu_split_across_two_on_data_calls() {
         let modbus = ModbusAnalyzer::new(20, 10);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), None);
         let key = flow_key(49152, 502);
 
         // Complete FC=0x05 Write Single Coil ADU (12 bytes):
@@ -973,7 +979,7 @@ mod story_105 {
     #[test]
     fn test_F_105_002_pin3_partial_mbap_header_3_bytes_then_rest() {
         let modbus = ModbusAnalyzer::new(20, 10);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), None);
         let key = flow_key(49152, 502);
 
         // Complete FC=0x03 Read Holding Registers ADU (12 bytes, Len=6):
@@ -1043,7 +1049,7 @@ mod story_105 {
     #[test]
     fn test_F_105_003_pin1_carry_cap_near_limit_safe_case() {
         let modbus = ModbusAnalyzer::new(20, 10);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), None);
         let key = flow_key(49152, 502);
 
         // Build a max-size valid ADU: length=254 → adu_len=260.
@@ -1122,7 +1128,7 @@ mod story_105 {
     #[test]
     fn test_F_105_003_pin2_dribble_never_completing_stream_is_non_modbus_set() {
         let modbus = ModbusAnalyzer::new(20, 10);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), None);
         let key = flow_key(49152, 502);
 
         // Crafted 8-byte sequence: valid enough to parse (>= 8 bytes) but protocol_id != 0.
@@ -1175,7 +1181,7 @@ mod story_105 {
                 "F-105-003 pin-2: no valid PDU must be counted on the crafted invalid stream"
             );
             // Re-insert the analyzer so we can test subsequent behavior.
-            let mut dispatcher2 = StreamDispatcher::new(None, None, Some(modbus_ref));
+            let mut dispatcher2 = StreamDispatcher::new(None, None, Some(modbus_ref), None);
 
             // Now send a valid complete ADU on the same flow key.
             // Because is_non_modbus == true, on_data bails immediately without processing.
@@ -1254,7 +1260,7 @@ mod story_105 {
 
         // Use a low burst threshold (1) so 2 writes in the same second triggers the burst detector.
         let modbus = ModbusAnalyzer::new(1, 100);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), None);
         let key = flow_key(49152, 502); // client:49152 → server:502
 
         // Helper: build a complete Modbus write-single-register ADU (FC=0x06).
@@ -1307,7 +1313,7 @@ mod story_105 {
         // Use threshold=1: 2nd write in same 1-second window fires the burst detector.
         // Deliver 21 writes all at TS_2023 (same second → same burst window).
         let modbus2 = ModbusAnalyzer::new(1, 100);
-        let mut dispatcher2 = StreamDispatcher::new(None, None, Some(modbus2));
+        let mut dispatcher2 = StreamDispatcher::new(None, None, Some(modbus2), None);
 
         for txn in 0..21_u16 {
             let adu = make_write_adu(txn + 2, txn, 1);
@@ -1361,7 +1367,7 @@ mod story_105 {
     fn test_f_delta_003_proto_id_0_length_invalid_latches_is_non_modbus_and_bails() {
         // --- Part (a) + (b): bad ADU causes parse_errors==1 and latches the flow ---
         let modbus = ModbusAnalyzer::new(20, 10);
-        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus));
+        let mut dispatcher = StreamDispatcher::new(None, None, Some(modbus), None);
         let key = flow_key(49152, 502);
 
         // ADU: protocol_id=0x0000 (valid Modbus), length=0x00FF=255 (OUT OF [2, 254]).
@@ -1395,7 +1401,7 @@ mod story_105 {
         // dispatcher and deliver a structurally-valid Modbus ADU on the SAME flow key.
         // Because is_non_modbus was set on the flow, on_data must bail immediately —
         // total_pdu_count must stay at 0.
-        let mut dispatcher2 = StreamDispatcher::new(None, None, Some(modbus_ref));
+        let mut dispatcher2 = StreamDispatcher::new(None, None, Some(modbus_ref), None);
 
         // Valid Read Holding Registers request: proto-id=0, length=6 (in range [2, 254]).
         let valid_adu = [

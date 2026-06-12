@@ -2,29 +2,32 @@
 //!
 //! Sits between [`crate::reassembly::TcpReassembler`] (which produces
 //! contiguous TCP-stream byte ranges) and the per-protocol analyzers
-//! ([`HttpAnalyzer`], [`TlsAnalyzer`], [`ModbusAnalyzer`]). On the first
-//! chunk of each flow, peeks at the leading bytes to decide whether the
-//! stream is TLS (`0x16 0x03` record-type-and-version prefix), HTTP (one of
-//! the known method tokens), or Modbus (port-502 fallback per ADR-005) and
-//! routes all subsequent data on that flow to the matching analyzer. Streams
-//! whose content doesn't match any prefix and whose ports don't match any
-//! known port are tracked under "unclassified" for the JSON summary.
+//! ([`HttpAnalyzer`], [`TlsAnalyzer`], [`ModbusAnalyzer`], [`Dnp3Analyzer`]).
+//! On the first chunk of each flow, peeks at the leading bytes to decide
+//! whether the stream is TLS (`0x16 0x03` record-type-and-version prefix),
+//! HTTP (one of the known method tokens), Modbus (port-502 fallback per
+//! ADR-005), or DNP3 (port-20000 fallback per ADR-007) and routes all
+//! subsequent data on that flow to the matching analyzer. Streams whose
+//! content doesn't match any prefix and whose ports don't match any known
+//! port are tracked under "unclassified" for the JSON summary.
 //!
 //! Routing is irrevocable per flow — once classified, a flow stays with
 //! its analyzer for the rest of its lifetime to avoid mid-stream
 //! protocol confusion attacks.
 //!
-//! ## Classification Rule Order (BC-2.14.025, INV-2 content-first)
+//! ## Classification Rule Order (BC-2.14.025 / BC-2.15.021, INV-2 content-first)
 //!
 //! 1. TLS content signature (`0x16 0x03 ...`, len >= 5) → `DispatchTarget::Tls`
 //! 2. HTTP method token (`GET `, `POST `, etc.) → `DispatchTarget::Http`
 //! 3. Port 443/8443 → `DispatchTarget::Tls`
 //! 4. Port 80/8080 → `DispatchTarget::Http`
 //! 5. Port 502 → `DispatchTarget::Modbus`  ← Rule 5 (STORY-105, ADR-005)
-//! 6. No match → `DispatchTarget::None`
+//! 6. Port 20000 → `DispatchTarget::Dnp3`  ← Rule 6 (STORY-110, ADR-007)
+//! 7. No match → `DispatchTarget::None`
 
 use std::collections::HashMap;
 
+use crate::analyzer::dnp3::Dnp3Analyzer;
 use crate::analyzer::http::HttpAnalyzer;
 use crate::analyzer::modbus::ModbusAnalyzer;
 use crate::analyzer::tls::TlsAnalyzer;
@@ -37,6 +40,8 @@ enum DispatchTarget {
     Tls,
     /// Port-502 Modbus TCP flows (Rule 5, BC-2.14.025). Added in STORY-105.
     Modbus,
+    /// Port-20000 DNP3 TCP flows (Rule 6, BC-2.15.021). Added in STORY-110.
+    Dnp3,
     None,
 }
 
@@ -66,18 +71,24 @@ pub struct StreamDispatcher {
     /// Modbus TCP analyzer (STORY-105, BC-2.14.025). Receives data for all
     /// port-502 flows that do not match content rules 1–2 or port rules 3–4.
     modbus: Option<ModbusAnalyzer>,
+    /// DNP3 TCP analyzer (STORY-110, BC-2.15.021). Receives data for all
+    /// port-20000 flows that do not match content rules 1–2 or port rules 3–5.
+    dnp3: Option<Dnp3Analyzer>,
     unclassified_flows: u64,
 }
 
 impl StreamDispatcher {
-    /// Construct a dispatcher with optional HTTP, TLS, and Modbus analyzers.
+    /// Construct a dispatcher with optional HTTP, TLS, Modbus, and DNP3 analyzers.
     ///
     /// Pass `modbus: Some(analyzer)` to enable port-502 flow routing (STORY-105).
     /// Pass `modbus: None` to leave Modbus disabled (default-off per BC-2.14.023).
+    /// Pass `dnp3: Some(analyzer)` to enable port-20000 flow routing (STORY-110).
+    /// Pass `dnp3: None` to leave DNP3 disabled (default-off per BC-2.15.021).
     pub fn new(
         http: Option<HttpAnalyzer>,
         tls: Option<TlsAnalyzer>,
         modbus: Option<ModbusAnalyzer>,
+        dnp3: Option<Dnp3Analyzer>,
     ) -> Self {
         StreamDispatcher {
             routes: HashMap::new(),
@@ -86,6 +97,7 @@ impl StreamDispatcher {
             http,
             tls,
             modbus,
+            dnp3,
             unclassified_flows: 0,
         }
     }
@@ -150,6 +162,23 @@ impl StreamDispatcher {
     pub fn take_modbus_analyzer(&mut self) -> Option<ModbusAnalyzer> {
         self.modbus.take()
     }
+
+    /// Returns a reference to the DNP3 analyzer, if one was configured.
+    ///
+    /// BC-2.15.021: mirrors `modbus_analyzer()` shape.
+    pub fn dnp3_analyzer(&self) -> Option<&Dnp3Analyzer> {
+        self.dnp3.as_ref()
+    }
+
+    /// Moves the DNP3 analyzer out of the dispatcher, consuming the slot.
+    ///
+    /// BC-2.15.021 Invariant 5: mirrors `take_modbus_analyzer()` — uses
+    /// `Option::take()`, leaving `self.dnp3 = None` permanently. After this
+    /// call, all DNP3 dispatch arms are no-ops. Call ONCE,
+    /// post-`reassembler.finalize()`.
+    pub fn take_dnp3_analyzer(&mut self) -> Option<Dnp3Analyzer> {
+        self.dnp3.take()
+    }
 }
 
 fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget {
@@ -199,7 +228,16 @@ fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget {
     if ports.contains(&502) {
         return DispatchTarget::Modbus;
     }
-    // Rule 6: no match.
+    // Rule 6: DNP3 port (20000 — IANA-assigned, ADR-007 Decision 1). Fires AFTER all
+    // content rules and TLS/HTTP/Modbus port fallbacks. TLS ClientHello or HTTP GET
+    // on port 20000 will have already matched Rules 1 or 2 above (BC-2.15.021 INV-2).
+    // VP-004 oracle obligation: classify_oracle in #[cfg(kani)] mod kani_proofs has the
+    // identical arm at the identical position (BC-2.15.021 Invariant 3, STORY-110 AC-005,
+    // same-commit requirement per ADR-007 Decision 1).
+    if ports.contains(&20000) {
+        return DispatchTarget::Dnp3;
+    }
+    // Rule 7: no match.
     DispatchTarget::None
 }
 
@@ -212,8 +250,11 @@ impl StreamHandler for StreamDispatcher {
         offset: u64,
         timestamp: u32,
     ) {
-        // BC-2.14.025 §P2 early-exit guard: extended to include modbus.
-        if self.http.is_none() && self.tls.is_none() && self.modbus.is_none() {
+        // BC-2.14.025 §P2 / BC-2.15.021 Inv 4 early-exit guard: extended to include dnp3.
+        // Without `self.dnp3.is_none()`, on_data silently drops data when only a DNP3
+        // analyzer is active (AC-003 of STORY-110).
+        if self.http.is_none() && self.tls.is_none() && self.modbus.is_none() && self.dnp3.is_none()
+        {
             return;
         }
 
@@ -265,6 +306,14 @@ impl StreamHandler for StreamDispatcher {
                     modbus.on_data(flow_key, direction, data, offset, timestamp);
                 }
             }
+            DispatchTarget::Dnp3 => {
+                // BC-2.15.021 §P3: route to Dnp3Analyzer; no-op if disabled.
+                // STORY-110 stub: wiring of direction/offset/timestamp into
+                // Dnp3Analyzer::on_data is the implementer's TDD task.
+                if let Some(ref mut dnp3) = self.dnp3 {
+                    dnp3.on_data(flow_key.clone(), data, timestamp);
+                }
+            }
             DispatchTarget::None => {}
         }
     }
@@ -292,9 +341,18 @@ impl StreamHandler for StreamDispatcher {
                     modbus.on_flow_close(flow_key, reason);
                 }
             }
+            Some(DispatchTarget::Dnp3) => {
+                // BC-2.15.021: route on_flow_close to Dnp3Analyzer (no-op if disabled).
+                // Dnp3Analyzer does not implement StreamHandler; no forwarding needed.
+                let _ = reason;
+            }
             Some(DispatchTarget::None) | None => {
-                // BC-2.14.025 §P3: unclassified_flows guard extended with modbus.
-                if self.http.is_some() || self.tls.is_some() || self.modbus.is_some() {
+                // BC-2.14.025 §P3: unclassified_flows guard extended with modbus + dnp3.
+                if self.http.is_some()
+                    || self.tls.is_some()
+                    || self.modbus.is_some()
+                    || self.dnp3.is_some()
+                {
                     self.unclassified_flows += 1;
                 }
             }
@@ -393,7 +451,13 @@ mod kani_proofs {
         if ports.contains(&502) {
             return DispatchTarget::Modbus;
         }
-        // Rule 6: nothing matched.
+        // Rule 6: DNP3 port fallback (ADR-007 Decision 1 — MUST mirror production exactly).
+        // VP-004 oracle obligation: this arm is mandatory per BC-2.15.021 Invariant 3 /
+        // STORY-110 AC-005. Placed AFTER Rule 5 and BEFORE Rule 7 (None).
+        if ports.contains(&20000) {
+            return DispatchTarget::Dnp3;
+        }
+        // Rule 7: nothing matched.
         DispatchTarget::None
     }
 

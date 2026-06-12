@@ -157,6 +157,17 @@ pub const BLOCK_CMD_THRESHOLD: u64 = 3;
 #[allow(unused)]
 pub const T0827_THRESHOLD: u64 = 3;
 
+/// Default threshold for the Direct-Operate burst guard (BC-2.15.017 / STORY-110).
+///
+/// Exposed via `--dnp3-direct-operate-threshold` CLI flag. When
+/// `flow.direct_operate_count > direct_operate_threshold` within the detection
+/// window, one T1692.001 finding is emitted.
+///
+/// Value 10: captures commissioning-speed attacks while tolerating legitimate
+/// maintenance in most OT environments (BC-2.15.017 Description §rationale).
+/// Operator may lower to 3–5 for very quiet segments.
+pub const DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT: u32 = 10;
+
 /// Detection window for the Direct-Operate burst guard in seconds (BC-2.15.010).
 /// Control-class FC counter and `window_start_ts` reset when elapsed exceeds this.
 pub const DETECTION_WINDOW_SECS: u32 = 60;
