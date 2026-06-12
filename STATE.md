@@ -47,7 +47,7 @@ input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef95
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). F7 5-dim convergence achieved (6 fresh-context passes); tag v0.6.0 + 4 binaries via release.yml.**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). F7 5-dim convergence achieved (6 fresh-context passes); tag v0.6.0 + 4 binaries via release.yml. Feature #8 DNP3 v0.6.0 cycle CLOSED — F7 5-dim CONVERGED, RELEASED, session-reviewed; 8 lessons codified; cycle-close deferrals recorded per S-7.02.**
 
 **Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22+VP-023 ALL LOCKED), 1496 tests green, holdout 0.967. develop HEAD 04f8ccb; main HEAD 3e29891 (v0.6.0). Feature #8 DNP3: F7 CONVERGED — 6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM); BC-2.15.009 v1.3; HS-INDEX feature-holdouts indexed.
 
@@ -110,7 +110,9 @@ input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef95
 - DRIFT-DNP3-DOC-T0814-COMPLETENESS-001: README/CHANGELOG omit T0814 ENABLE/DISABLE_UNSOLICITED as trigger sources; LOW.
 - DRIFT-BC-INPUTHASH-TBD-001: SS-15 BC files carry input-hash:TBD; by-design (tool scopes to stories/); known/accepted.
 
-**SESSION-REVIEW LESSONS:** `cycles/feature-8-dnp3-v0.5.0/session-review-f4-f6.md` + `cycles/feature-8-dnp3-v0.5.0/lessons.md`
+**SESSION-REVIEW LESSONS:** `cycles/feature-8-dnp3-v0.5.0/session-review-f4-f6.md` + `cycles/feature-8-dnp3-v0.5.0/session-review-f7-release.md` + `cycles/feature-8-dnp3-v0.5.0/lessons.md` (PG-F7-001..008 appended)
+
+**CYCLE CLOSED:** Feature #8 DNP3 / v0.6.0 sub-cycle CLOSED 2026-06-12 — F7 5-dim CONVERGED, RELEASED, session-reviewed; 8 lessons codified (PG-F7-001..008); 7 S-7.02 process-gap deferrals recorded (PG-F7-001..007 in Drift Items); DRIFT-ENGINE-RELEASECONFIG-STALE-001 engine follow-up confirmed DEFERRED.
 
 **PRIOR CHECKPOINTS:** `cycles/v0.1.0-greenfield-spec/session-checkpoints.md`
 
@@ -173,6 +175,13 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | DRIFT-ENGINE-RELEASECONFIG-STALE-001 | release-config.yaml human-prose fields refreshed this burst (human_approval_prompt version-agnostic; test counts updated to 1496 / 23 VPs; release.yml stale note corrected); engine template follow-up (version_sources) DEFERRED | PARTIALLY RESOLVED |
 | DRIFT-DNP3-DOC-T0814-COMPLETENESS-001 | RESOLVED in v0.6.0 — README/CHANGELOG T0814 ENABLE/DISABLE_UNSOLICITED trigger sources added on release branch; also corrected pre-existing README "—" technique error for unsolicited-response row → T0814 | RESOLVED |
 | DRIFT-BC-INPUTHASH-TBD-001 | all 24 SS-15 BC files carry input-hash:TBD; compute-input-hash scopes to .factory/stories/ per CLAUDE.md; by-design; known/accepted, non-blocking | BY-DESIGN LOW |
+| PG-F7-001 | BC version bump must re-stamp all consuming stories in same burst; F4/F5/F6 gates run live compute-input-hash --scan not trust STATE value. Policy candidate: DF-INPUT-HASH-CANONICAL-001 sub-rule. Backing: lessons.md PG-F7-001. | DEFERRED — next feature cycle |
+| PG-F7-002 | After behavior-changing adjudication, grep + re-validate all holdout assertions on the changed path against impl. Policy candidate: F5 remediation playbook step. Backing: lessons.md PG-F7-002. | DEFERRED — next feature cycle |
+| PG-F7-003 | Adjudicating agent must Read() current BC text and verify each Invariant before writing "BC needs no update". Engine agent-prompt note. Backing: lessons.md PG-F7-003. | DEFERRED — engine agent-prompt note |
+| PG-F7-004 | DF-SIBLING-SWEEP v5: BC Invariant text change must sweep BC-INDEX titles + consuming-story body notes. Policy candidate: DF-SIBLING-SWEEP-001 protocol-BC sub-rule. Backing: lessons.md PG-F7-004. | DEFERRED — next feature cycle |
+| PG-F7-005 | Story status (body frontmatter + STORY-INDEX) advances to completed at merge, not draft. Add to per-story delivery close-out. Backing: lessons.md PG-F7-005. | DEFERRED — engine workflow note |
+| PG-F7-006 | Shipping a feature moves README planned→implemented + adds CHANGELOG Unreleased entry at delivery, not release scramble. Backing: lessons.md PG-F7-006. | DEFERRED — engine workflow note |
+| PG-F7-007 | Agents must check gh run list for in-flight tag-triggered workflows before reporting missing CI/release assets. Backing: lessons.md PG-F7-007. | DEFERRED LOW — engine devops checklist note |
 
 ## Deferred Next-Work Backlog
 

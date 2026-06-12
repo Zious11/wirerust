@@ -351,3 +351,263 @@ consolidated report as the mandatory final section of every run:
 
 **Follow-up recommendation:** Warrant: YES — update pr-manager agent prompt immediately.
 DF-PR-MANAGER-COMPLETE-001 already exists; this is a compliance fix, not a new policy.
+
+---
+
+## F7 Delta-Convergence + v0.6.0 Release Lessons (appended 2026-06-12)
+
+_Session arc: F7 delta-convergence (6 fresh-context adversarial passes; final 3 consecutive
+CONVERGED) + consistency audit + v0.6.0 release (PR #234 → main 3e29891; tag v0.6.0; 4 binaries).
+Decisions D-063..D-064. Full analysis: `session-review-f7-release.md`._
+
+---
+
+### PG-F7-001 [process-gap] Input-Hash Re-Stamp Must Follow BC Version Bumps in the Same Burst
+
+**Tag:** `[process-gap]`
+
+**What happened:** F5 and F6 bumped BC versions on BCs 2.15.009, 2.15.010, 2.15.014, and
+2.15.016. The `bin/compute-input-hash --scan` step was run at F6 completion and recorded
+MATCH=62/STALE=0 in STATE.md. However, a live scan at F7 entry revealed STALE=4 (STORY-106,
+STORY-107, STORY-108, STORY-110). The STATE.md value was recorded after a partial re-stamp
+pass that missed 4 stories because those stories reference the bumped BCs in their `inputs:`
+lists but were not individually re-stamped after the BC content changes that occurred during
+F5 adversarial remediation.
+
+**Impact:** STATE.md recorded a convergence it did not actually have. The F7 pre-pass had to
+remediate the drift before proceeding — adding an extra burst before the first adversarial pass.
+
+**Rule:** Any BC version bump (content change, not merely a prose clarification) MUST be
+followed in the SAME burst by:
+1. Running `bin/compute-input-hash --scan` to identify all stories with newly-STALE hashes.
+2. Running `bin/compute-input-hash --write --scan` to re-stamp them.
+3. Committing the re-stamped stories to factory-artifacts AND recording the resulting
+   MATCH=N/STALE=0 in STATE.md.
+
+F4, F5, and F6 gate checklists MUST include a live `bin/compute-input-hash --scan` run as
+a mandatory gate step rather than trusting the last STATE.md-recorded value. The recorded
+value becomes stale the moment any `inputs:` file changes.
+
+**Proposed policy:** Add a sub-rule to DF-INPUT-HASH-CANONICAL-001: "A BC version bump is a
+mandatory trigger for a full --scan + --write cycle in the same burst."
+
+_Discovered: F7 pre-pass live scan, 2026-06-12_
+
+---
+
+### PG-F7-002 [process-gap] Holdout Assertion Re-Validation When Implementation Behavior Changes
+
+**Tag:** `[process-gap]`
+
+**What happened:** F5 remediation introduced the inline-resync behavior (F-F5-003 adjudication,
+ADJ-001 Addendum Q2): when an unexpected carry overflows the counter window, the counter resets
+to 0 rather than the prior value. Unit tests (BC-2.15.016) were updated to reflect this
+behavior. Holdout HS-W36-001, however, retained its original carry assertion (carry==292)
+rather than the post-resync value of 0. The F7 adversarial pass caught this as F-CC-001 [HIGH].
+
+The pattern: a behavior-changing fix was followed by unit-test updates but NOT by a holdout
+re-validation sweep. The holdout and the unit tests diverged on the same behavior.
+
+**Rule:** When an adjudication changes implementation behavior (not merely clarifies it),
+the remediation burst MUST include a mandatory step: grep the holdout corpus for every
+scenario that touches the changed code path and validate each holdout assertion against the
+new behavior. A holdout assertion that conflicts with updated unit tests is a failing [HIGH]
+finding at the next adversarial pass. This step is separate from and in addition to the unit
+test update.
+
+**Proposed policy:** Add to F5 remediation playbook: "After adjudication-driven behavior
+change, run: grep the holdout corpus for any scenario asserting on the affected detection
+output. Validate each match against the post-adjudication behavior. Update or document
+justification for each assertion."
+
+_Discovered: F7 pass 1 finding F-CC-001, 2026-06-12_
+
+---
+
+### PG-F7-003 [process-gap] Adjudication Must Verify That Governing BC Text Matches the Ruling
+
+**Tag:** `[process-gap]`
+
+**What happened:** ADJ-001 ruled that BC-2.15.009 described "initial delivery only" behavior
+and that "BC-2.15.009 does not need updating." At the time the ruling was written, BC-2.15.009
+Invariant 1 text described a "cross-segment 16-byte bail" that was explicitly NOT the
+implemented behavior. The BC text was stale relative to the adjudicated/implemented behavior.
+ADJ-001's statement that the BC needed no update was wrong because the BC text already
+contradicted the ruling — but no one re-read the BC text when writing ADJ-001.
+
+Finding F-S1-001 [HIGH] surfaced this at F7. BC-2.15.009 required a v1.3 update to remove
+the never-implemented cross-segment bail language and align with ADJ-001.
+
+**Rule:** When authoring an adjudication, the adjudicating agent MUST:
+1. Read the current text of every BC named in the ruling (not rely on memory of the BC).
+2. Confirm the BC text matches the ruling's description of current behavior.
+3. If the BC text contradicts the ruling, update the BC as part of the adjudication burst —
+   the adjudication MUST NOT claim "BC does not need updating" without having read the BC.
+
+**Proposed policy:** Add to F5 adjudication authorship rules: "Before finalizing an
+adjudication, Read() the current content of each governing BC. If the BC Invariant text
+contradicts the ruling, the BC requires a version bump in the same burst."
+
+_Discovered: F7 pass 1 finding F-S1-001, 2026-06-12_
+
+---
+
+### PG-F7-004 [process-gap] Partial-Fix Sibling Sweep Must Propagate to BC-INDEX Titles and Story Body Notes
+
+**Tag:** `[process-gap]`
+
+**What happened:** F-S1-001 was filed and remediated: BC-2.15.009 text was updated (v1.3),
+removing the stale cross-segment bail language. The fix was correct on the BC body. However,
+a re-pass (F-N-001 [HIGH]) caught that the BC-INDEX title for BC-2.15.009 still reflected the
+old behavior description, and the STORY-106 body note still cited the old Invariant 1 wording.
+The partial-fix created a sibling regression that was caught only one pass later.
+
+**Rule:** This is an instance of DF-SIBLING-SWEEP-001 that deserves a concrete protocol-BC
+sub-rule: when a protocol BC Invariant text is corrected, the mandatory sweep MUST include:
+1. BC-INDEX entry title for the corrected BC.
+2. All story body sections (Notes, AC rows, Architecture Mapping) that cite the corrected
+   Invariant text.
+3. Any holdout scenario notes that reference the invariant by description.
+
+"The BC body fix is not complete until its BC-INDEX title and all story citations are
+consistent with the new text."
+
+_Discovered: F7 pass 2 finding F-N-001, 2026-06-12_
+
+---
+
+### PG-F7-005 [process-gap] Story Status Lifecycle Must Advance to Completed at Delivery/Merge
+
+**Tag:** `[process-gap]`
+
+**What happened:** F-CC-002 [HIGH] found that STORY-106 through STORY-110 status was still
+marked `draft` in both the story body frontmatter and the STORY-INDEX, despite all five
+stories having been delivered via merged PRs (#225–#229). Additionally, wave 37-39 delivery
+rows were absent from the STORY-INDEX.
+
+**Rule:** The per-story delivery close-out procedure MUST include:
+1. Update story frontmatter status from `draft` to `completed`.
+2. Update STORY-INDEX status column to `completed` with the merge commit SHA.
+3. Add or verify the wave delivery row exists in the STORY-INDEX for the story's wave.
+
+This is a mandatory step in the story-delivery close-out, not optional housekeeping. A
+story merged to develop but still marked draft creates a false picture of the backlog and
+will be flagged as [HIGH] at the next convergence audit.
+
+_Discovered: F7 consistency audit finding F-CC-002, 2026-06-12_
+
+---
+
+### PG-F7-006 [process-gap] Doc Roadmap Accuracy Must Be Updated at Delivery, Not at Release
+
+**Tag:** `[process-gap]`
+
+**What happened:** F-CC-003 [HIGH] and F-CC-004 [HIGH] found that the README listed shipped
+DNP3 and Modbus analyzers as "planned/roadmap" features, and the CHANGELOG had no DNP3 entry
+despite DNP3 having been fully delivered and hardened. These gaps required last-minute docs
+PRs (#232 and #233) during F7 to pass the docs dimension of the 5-dim convergence gate.
+
+**Rule:** Shipping a feature (i.e., merging the final story of the feature to develop) MUST
+trigger a same-burst documentation update:
+1. Move the feature from the README "Planned" / "Roadmap" section to the implemented features
+   section.
+2. Add a CHANGELOG entry in the `[Unreleased]` section describing the feature.
+
+These are mandatory delivery close-out steps, not deferred to release-prep. If they are
+deferred, they create a mismatch between develop's code and its docs that will fail the F7
+docs convergence dimension and require emergency PRs. Deferring to release-prep also makes
+the CHANGELOG unreliable during the interval between delivery and release.
+
+_Discovered: F7 pass 1 findings F-CC-003/F-CC-004, 2026-06-12_
+
+---
+
+### PG-F7-007 [process-gap] Async Workflow Verification Before Reporting CI/Release Asset State
+
+**Tag:** `[process-gap]`
+
+**What happened:** During v0.6.0 release, a devops agent reported "release.yml does not
+exist / no binaries built" after the tag was pushed. In fact, release.yml existed and did
+build 4 binaries — the workflow was triggered by the tag push and had not yet completed when
+the agent checked. The agent reported an absence based on a snapshot taken before the
+async workflow finished.
+
+**Rule:** Before reporting the absence of CI workflow outputs or release assets (binaries,
+attestations, release notes), an agent MUST:
+1. Verify the workflow exists by reading `.github/workflows/` — not by checking whether
+   outputs have appeared yet.
+2. If the workflow is tag-triggered, wait at least one polling cycle (or check
+   `gh run list --workflow=release.yml --limit=5`) to confirm the run was triggered.
+3. Report the run ID and status rather than the presence or absence of artifacts when the
+   run may still be in progress.
+
+Reporting "missing" for an in-flight async workflow is a false alarm that can cause
+unnecessary remediation actions.
+
+_Discovered: v0.6.0 release devops check, 2026-06-12_
+
+---
+
+### PG-F7-008 [meta-lesson] "Phase Marked COMPLETE in STATE" Does Not Mean Converged
+
+**Tag:** `[meta-lesson]` `[process-gap]`
+
+**What happened:** This session provides the clearest evidence yet for the load-bearing
+nature of fresh-context F7 convergence audits. At F7 entry, the STATE.md read:
+- F4 COMPLETE, F5 COMPLETE (adversary gate 3/3), F6 HARDENED
+- input_drift MATCH=62/STALE=0
+
+A fresh-context audit found:
+- STALE=4 (input-hash not as claimed) — PG-F7-001
+- F-S2-001 CRITICAL: canonical holdout derived circularly — PG-F4-F5-001 violation surviving
+  into F7
+- F-S1-001 HIGH: BC text contradicting the governing adjudication
+- F-N-001 HIGH: partial fix not propagated
+- F-CC-001 HIGH: holdout assertion contradicting implemented behavior
+- F-CC-002/003/004 HIGH: status and docs gaps
+
+Six passes and multiple remediation rounds were required before the first 3-consecutive-CLEAN
+streak. These were not cosmetic findings; they included a CRITICAL policy violation
+(DF-CANONICAL-FRAME-HOLDOUT-001 violated in a holdout that ADJ-001 Addendum Q2 was specifically
+written to address).
+
+**Meta-rule:** The F7 fresh-context convergence audit is not a rubber-stamp. It is a separate
+quality gate that operates with different context from the phases that preceded it. Prior
+"COMPLETE/HARDENED" markings in STATE.md record that the phase's own checklist was satisfied,
+not that a fresh adversary will find nothing. The 3-consecutive-CLEAN streak of 6 passes was
+needed precisely because prior in-context phases share context with the artifacts they produce.
+
+Fresh-context adversarial divergence from STATE.md's recorded convergence is expected, not
+alarming. The F7 gate MUST NOT be shortened on the basis of prior STATE.md phase markings.
+
+_Observed pattern: F7 delta-convergence, 2026-06-12 — confirmed across DNP3 (6 passes),
+greenfield (14 passes), and MITRE v19 maintenance (3 passes)._
+
+---
+
+## Open Follow-Ups — F7 + Release (carry into next session)
+
+| Item | Category | Priority | Codification target |
+|------|----------|----------|---------------------|
+| PG-F7-001: BC-version-bump → input-hash re-stamp rule | policy sub-rule | HIGH | DF-INPUT-HASH-CANONICAL-001 addendum |
+| PG-F7-002: Holdout re-validation after behavior-changing adjudication | playbook step | HIGH | F5 remediation playbook |
+| PG-F7-003: Adjudication must read and verify BC text | adjudication rules | HIGH | F5 adjudication authorship checklist |
+| PG-F7-004: BC-INDEX + story-body sibling sweep on protocol BC text fix | DF-SIBLING-SWEEP extension | HIGH | DF-SIBLING-SWEEP-001 protocol-BC sub-rule |
+| PG-F7-005: Story status lifecycle close-out | delivery close-out | MEDIUM | Per-story delivery checklist |
+| PG-F7-006: Docs update at delivery, not at release | delivery close-out | MEDIUM | Feature-delivery close-out checklist |
+| PG-F7-007: Async workflow verification before reporting absence | agent dispatch rules | LOW | Orchestrator devops checklist |
+| PG-F7-008: Meta-lesson — F7 gate is load-bearing, not a rubber stamp | culture/process | (standing practice) | Session-review template note |
+| DRIFT-ENGINE-RELEASECONFIG-STALE-001 engine follow-up (version_sources in human_approval_prompt template) | engine deferred | MEDIUM | Factory engine template; DEFERRED — no self-improvement story yet |
+
+---
+
+## Policy Candidates (F7 + Release)
+
+| Lesson | Proposed Policy / Rule | Scope | Status |
+|--------|------------------------|-------|--------|
+| PG-F7-001 | DF-INPUT-HASH-CANONICAL-001 sub-rule: BC version bump triggers mandatory --scan+--write in same burst | F4/F5/F6 gate checklists; all BC-edit dispatches | proposed |
+| PG-F7-002 | F5 remediation playbook Step: grep holdout corpus for scenarios touching changed code path; validate assertions against new behavior | F5 remediation playbook | proposed |
+| PG-F7-003 | Adjudication authorship rule: Read() every named BC before finalizing "BC needs no update" | F5 adjudication dispatch | proposed |
+| PG-F7-004 | DF-SIBLING-SWEEP-001 protocol-BC sub-rule: BC-INDEX title + story-body notes are mandatory sweep targets when BC Invariant text changes | DF-SIBLING-SWEEP-001 v5 | proposed |
+| PG-F7-005 | Per-story delivery close-out: story frontmatter + STORY-INDEX status MUST advance to completed at merge | Delivery close-out checklist | proposed |
+| PG-F7-006 | Feature delivery close-out: README planned→implemented + CHANGELOG Unreleased entry in the delivery burst | Feature delivery close-out | proposed |
