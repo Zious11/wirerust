@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-110
 epic_id: E-15
-version: "1.1"
+version: "1.2"
 status: draft
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
@@ -109,7 +109,10 @@ After full E-15 integration (STORY-106 through STORY-110), the VP-007 invariants
 - `kani_proofs::EMITTED_IDS.len() == 15` (Kani-local const in `src/mitre.rs` under `#[cfg(kani)] mod kani_proofs`)
 - Catalogue-only count is a DERIVED assertion: `SEEDED_TECHNIQUE_ID_COUNT - kani_proofs::EMITTED_IDS.len() == 8` (23 − 15 == 8). There is no named `CATALOGUE_ONLY_TECHNIQUE_IDS` const in the codebase; the check is purely arithmetic.
 - T1691.001 and T0827 are present in `SEEDED_TECHNIQUE_IDS` and in `kani_proofs::EMITTED_IDS` (added in STORY-109).
-- **Test:** `test_vp007_seeded_23_emitted_15()` — assert `SEEDED_TECHNIQUE_IDS.len() == 23` (via the existing mitre drift-guard test `test_technique_catalog_integrity`), `SEEDED_TECHNIQUE_ID_COUNT == 23`, and the Kani `EMITTED_IDS` slice length == 15. Verify arithmetic: 23 − 15 == 8.
+- **Test (layered verification):**
+  - **(a) Integration test** `test_vp007_seeded_23_emitted_15()` — exercises the PUBLIC API surface only: calls `technique_name(id)` and `technique_tactic(id)` for all 23 seeded technique IDs and asserts each resolves to a non-empty, non-`"Unknown"` name/tactic. This verifies the catalog is reachable and coherent via the public interface; it does NOT directly assert the private constants `SEEDED_TECHNIQUE_IDS.len()`, `SEEDED_TECHNIQUE_ID_COUNT`, or the Kani-local `EMITTED_IDS` slice (those symbols are `#[cfg(any(kani, test))]`-guarded or `kani_proofs`-local and are not visible from an integration-test crate).
+  - **(b) In-crate unit test** `vp007_catalog_drift_guard` / `test_technique_catalog_integrity` (in `src/mitre.rs`, `#[cfg(test)]`) — asserts the literal count invariants `SEEDED_TECHNIQUE_IDS.len() == 23` and `SEEDED_TECHNIQUE_ID_COUNT == 23`. This is where the private constants are accessible. Run with `cargo test technique_catalog_integrity`.
+  - **(c) Kani harness (F6 gate)** — `kani_proofs::EMITTED_IDS.len() == 15` is verified by the Kani proof(s) in `src/mitre.rs`'s `#[cfg(kani)] mod kani_proofs`, executed at the Wave 39 F6 formal-hardening gate. The arithmetic check 23 − 15 == 8 is also validated there.
 
 ### AC-011 (traces to BC-2.15.021 — VP-023 status propagation at F6 gate)
 When the four Kani proofs in STORY-106 run green at the Wave 39 F6 gate, VP-023 status MUST be propagated from `draft` to `verified` and VP-INDEX bumped: `verified` count 22 → 23, `draft` count 1 → 0. This mirrors the VP-021 and VP-022 lock pattern applied at prior F6 gates. The STORY-110 implementer records this propagation obligation so the F6 state-manager step can execute it.
@@ -172,7 +175,7 @@ Architecture section references: `architecture/module-decomposition.md` (SS-05 d
 | AC-007 | Unit | Threshold 0 fires immediately; threshold MAX never fires |
 | AC-008 | Unit | Threshold echoed in T1692.001 summary |
 | AC-009 | Unit | Port 502+20000 → Modbus (Rule 5 wins) |
-| AC-010 | Unit | VP-007 catalog counts SEEDED=23, EMITTED=15 |
+| AC-010 | Layered: Integration (public API resolve) + in-crate unit (count invariants) + Kani/F6 (EMITTED=15) | VP-007 catalog counts SEEDED=23/EMITTED=15 |
 | AC-011 | F6 gate (manual) | VP-023 status draft→verified; VP-INDEX bump |
 
 ## Previous Story Intelligence
