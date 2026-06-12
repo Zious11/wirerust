@@ -1388,39 +1388,49 @@ mod f5_resync_accounting {
     // -----------------------------------------------------------------------
     // D-4 — test_overflow_arm_preserves_valid_head_frame
     //
-    // Data-loss guard (REVISION 2 Change 3 replacement): the overflow arm must
-    // perform inline resync (NOT carry.clear()+return) so that a valid [0x05,0x64]
-    // head frame sitting in the carry after the cap operation is preserved and
-    // parsed, not silently discarded.
+    // Data-loss guard + structural separation (REVISION 2 Change 3 replacement +
+    // F-F5-003 REV 2 §R2-SECTION 4 / IMP-3):
+    //   - The overflow arm must perform inline resync (NOT carry.clear()+return) so that
+    //     a valid [0x05,0x64] head frame sitting in the carry after the cap is preserved
+    //     and parsed, not silently discarded.
+    //   - DISTINCT trailing junk bytes left in the carry AFTER the valid frame is consumed
+    //     constitute a NEW independent sync-loss event. The unconditional resync arm
+    //     (Change 1) increments parse_errors and malformed_in_window a SECOND time for
+    //     those trailing bytes. No `overflow_counted_this_call`-style flag is used —
+    //     structural path separation is the sole mechanism.
     //
     // Setup:
     //   1. Create flow entry. Pre-fill carry with 291 bytes:
-    //      [0xAA, 0xAA, 0x05, 0x64, 0x05, 0x44, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00]
-    //      at bytes [2..12] within the 291-byte block, with 0xAA padding before.
-    //      Concretely: 2 bytes 0xAA + then a valid 10-byte frame + 279 bytes 0xAA,
-    //      total=291. The valid frame [0x05,0x64,0x05,0x44,...] is at offset 2.
+    //      2 bytes 0xAA + valid 10-byte frame + 279 bytes 0xAA, total=291.
+    //      The valid frame [0x05,0x64,0x05,0x44,...] is at offset 2.
     //   2. Deliver 2 bytes [0xBB, 0xCC]. remaining_capacity=1; overflow fires:
     //      1 byte (0xBB) accepted (carry becomes 292); 0xCC discarded.
-    //      parse_errors=1, malformed_in_window=1.
+    //      Event 1: parse_errors=1, malformed_in_window=1.
     //   3. Overflow arm inline resync: finds [0x05, 0x64] at offset 2 in the 292-byte carry.
-    //      Drains bytes 0..2 → carry now starts at [0x05, 0x64, 0x05, 0x44, ...].
-    //      The frame_len=10 frame is complete (10 bytes available) → frame-walk parses it.
-    //      frame_count=1.
+    //      Drains bytes 0..2 → carry now starts at [0x05, 0x64, 0x05, 0x44, ...] + 280 bytes.
+    //   4. Frame-walk: valid 10-byte frame at carry head → consumed → frame_count=1.
+    //      Remaining carry: 280 bytes of 0xAA (279 original post-junk + 1 accepted 0xBB).
+    //   5. Next frame-walk iteration: carry head is [0xAA, 0xAA] — not [0x05, 0x64].
+    //      Resync arm (Change 1, unconditional): Event 2: parse_errors=2, malformed_in_window=2.
+    //      Byte-walk finds no sync in 280 bytes of 0xAA → carry cleared → loop exits.
     //
-    // Expected:
-    //   flow.parse_errors == 1      (overflow counted once)
-    //   flow.malformed_in_window == 1
+    // Expected (REVISION 2 with flag removed — structural separation):
+    //   flow.parse_errors == 2      (Event 1: overflow; Event 2: distinct trailing junk)
+    //   flow.malformed_in_window == 2
     //   flow.frame_count >= 1       (valid head frame was PRESERVED and parsed)
     //
-    // RED: under REVISION 1 Change 3 (carry.clear()+return): frame_count==0.
-    //      Under REVISION 2 (inline resync): frame_count==1. RED until Change 3R implemented.
+    // Contrast with all-junk carry-cap tests (test_carry_buffer_cap_at_292,
+    // test_EC_003_carry_291_plus_2_overflow): those have NO valid frame in the carry, so
+    // the overflow arm's inline resync clears the entire carry — the frame-walk loop exits
+    // immediately (carry.len() < 3) — parse_errors stays at 1. The resync arm is NOT
+    // entered for those traces.
     //
     // Traces to: F-F5-003 REVISION 2 §R2-SECTION 1 "Replacement: Overflow Arm
-    //            Does Inline Resync"; REVISION 2 test (vi).
+    //            Does Inline Resync"; REVISION 2 test (vi); REV 2 §R2-SECTION 4 / IMP-3.
     // -----------------------------------------------------------------------
 
-    /// Overflow arm inline resync preserves a valid head frame. RED: the REVISION 1
-    /// carry.clear()+return would produce frame_count==0 (data loss).
+    /// Overflow arm inline resync preserves a valid head frame; trailing junk after the
+    /// consumed frame is counted as a distinct event (structural separation, no flag).
     #[test]
     fn test_overflow_arm_preserves_valid_head_frame() {
         let mut analyzer = Dnp3Analyzer::new(10);
@@ -1468,24 +1478,26 @@ mod f5_resync_accounting {
 
         let flow = analyzer.flows.get(&key).expect("flow must exist");
 
+        // Event 1 (overflow) + Event 2 (distinct trailing junk after valid frame consumed):
+        // structural path separation — no overflow_counted_this_call flag — each event counted.
         assert_eq!(
-            flow.parse_errors, 1,
-            "parse_errors must be 1 (overflow counted exactly once)"
+            flow.parse_errors, 2,
+            "parse_errors must be 2: Event 1=overflow counted in overflow arm; \
+             Event 2=distinct trailing 0xAA junk after valid frame consumed, counted by \
+             unconditional resync arm (Change 1). No flag suppresses the second increment."
         );
 
         assert_eq!(
-            flow.malformed_in_window, 1,
-            "malformed_in_window must be 1 (no double-count)"
+            flow.malformed_in_window, 2,
+            "malformed_in_window must be 2 (two distinct sync-loss events, one per structural arm)"
         );
 
-        // RED: under REVISION 1 carry.clear()+return → frame_count==0 (data loss).
-        // Under REVISION 2 inline resync → frame_count==1 (valid head frame preserved).
+        // Core invariant: valid head frame was preserved and parsed (not discarded by clear+return).
         assert!(
             flow.frame_count >= 1,
             "test_overflow_arm_preserves_valid_head_frame: frame_count must be >= 1 \
              (valid head frame sitting in carry after overflow cap must be preserved and parsed); \
-             RED: REVISION 1 carry.clear()+return would discard it → frame_count==0 \
-             (Change 3 replacement not yet implemented)"
+             RED: REVISION 1 carry.clear()+return would discard it → frame_count==0"
         );
     }
 

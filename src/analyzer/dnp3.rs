@@ -256,9 +256,6 @@ pub struct Dnp3FlowState {
     /// unexpected-source T1692.001 finding has been emitted for this flow.
     /// Flow-lifetime guard: never reset (not window-scoped).
     /// See F-F5-001-unexpected-source-adjudication.md §2 for full semantics.
-    ///
-    /// STUB: field exists so RED-gate tests compile; detection logic is NOT
-    /// yet implemented (detect_unexpected_source_split is absent).
     pub unexpected_source_emitted: bool,
 }
 
@@ -360,14 +357,15 @@ impl Dnp3Analyzer {
         // the cap operation, and prevents the frame-walk's sync-check arm from firing for
         // the same overflow event (no double-count). Do NOT clear+return — that silently
         // discards a recoverable head frame (F-B-002 detection-evasion DoS).
-        // F-F5-003 REVISION 2 / D-4 invariant: when the overflow arm fires and performs an
-        // inline resync, the carry may retain trailing junk bytes after the valid head frame
-        // has been consumed. The overflow arm already counted the structural event once; the
-        // frame-walk's resync arm must NOT fire a second increment for those trailing bytes
-        // (they are part of the same overflow event, not a new independent sync-loss event).
-        // This flag suppresses the resync arm's Change-1 increment for the remainder of the
-        // frame-walk when the overflow arm has already counted this call's malformed event.
-        let mut overflow_counted_this_call = false;
+        // F-F5-003 REVISION 2 structural separation: the overflow arm performs an inline
+        // byte-walk-forward resync that leaves either a valid [0x05,0x64] sync head OR an
+        // empty carry. Because the carry is repositioned before the frame-walk runs, the
+        // frame-walk's resync arm will NOT fire for the overflow event's own residue (no
+        // carry bytes remain before the sync head). A SEPARATE junk run appearing later in
+        // the same frame-walk (e.g. trailing 0xAA bytes after a consumed valid frame) IS a
+        // distinct sync-loss event and MUST be counted by the unconditional resync arm
+        // (F-F5-003 REVISION 2 Change 1). No flag is needed — structural path separation
+        // is the sole mechanism (REV 2 §R2-SECTION 4 / IMP-3 forbids counted_this_iter flags).
 
         let remaining_capacity = MAX_DNP3_FRAME_LEN - flow.carry.len();
         if data.len() > remaining_capacity {
@@ -375,7 +373,6 @@ impl Dnp3Analyzer {
             // Excess bytes beyond 292 are discarded; record one overflow (BC-2.15.016 PC2).
             flow.parse_errors += 1;
             flow.malformed_in_window += 1;
-            overflow_counted_this_call = true;
             // Inline resync: reposition carry to next [0x05,0x64] or clear if none found.
             // Structurally identical to Change 2 (LENGTH-gate arm inline resync).
             // Prevents the frame-walk sync-check arm from firing for this same overflow event.
@@ -428,19 +425,21 @@ impl Dnp3Analyzer {
             // bail — is_non_dnp3 is NOT set. VP-023 invariants preserved: each
             // iteration drains ≥1 byte; carry ≤292 bound unchanged.
             if flow.carry[0] != 0x05 || flow.carry[1] != 0x64 {
-                // Sync-loss event: count it exactly once (F-F5-003 REVISION 2 Change 1).
-                // This arm is ONLY reached from Path B (clean consume leaves non-sync head)
-                // or initial misalignment. The LENGTH-gate arm's inline resync (Change 2)
-                // ensures it never reaches here for Path A.
-                //
-                // D-4 invariant: if the overflow arm already counted a malformed event
-                // in this on_data call, the trailing-junk resync here is the SAME structural
-                // event (overflow residue), not a new event. Suppress the second increment.
-                if !overflow_counted_this_call {
-                    flow.parse_errors += 1;
-                    flow.malformed_in_window += 1;
-                    Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key);
-                }
+                // Sync-loss event: count it unconditionally (F-F5-003 REVISION 2 Change 1).
+                // This arm is reached from:
+                //   Path B: after a clean frame consume leaves a non-sync head (distinct event).
+                //   Path C: trailing junk bytes after a valid frame was consumed in the same
+                //            on_data call following an overflow + inline resync (also distinct —
+                //            the overflow arm's inline resync already repositioned carry to the
+                //            valid sync head; these trailing bytes survived that consume and are
+                //            a NEW independent sync-loss event).
+                // Structural path separation (REV 2 §R2-SECTION 4 / IMP-3) guarantees no
+                // double-count: the overflow arm's inline resync leaves carry starting at a
+                // valid sync head or empty — the resync arm is NOT entered for overflow
+                // residue until AFTER a full valid frame has been consumed first.
+                flow.parse_errors += 1;
+                flow.malformed_in_window += 1;
+                Self::check_malformed_anomaly(flow, &mut self.all_findings, ts, &flow_key);
                 // Byte-walk-forward resync (STORY-109; realizes STORY-107 deferral).
                 // Scan from offset 1 for the next [0x05,0x64]; drain preceding bytes, else clear.
                 let next_sync = flow
