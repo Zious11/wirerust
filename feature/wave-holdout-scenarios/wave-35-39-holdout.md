@@ -326,17 +326,53 @@ All 11 frames share the same flow (src=0x0001, dest=0x0003), delivered within 60
 **Priority:** P0 (must-pass)
 **Wave:** 37
 
-**Scenario:** A Control-class FC arrives from source address 0x0099 which is NOT in the
-expected/allowlisted master-address set for this flow. Count=1 (first occurrence). Default
-threshold=10.
+**Scenario:** Two-frame sequence on a fresh flow. Default threshold=10.
 
-**Assertion:** The unexpected-source check fires independently of the burst threshold.
-At count=1, a T1692.001 finding IS emitted (source-address check is the primary gate;
-10/60s is the secondary volumetric gate).
+Frame 1 (establishing frame): A Control-class FC (FC=0x05, DIRECT_OPERATE) arrives from
+src=0x0001, dest=0x0003, with CTRL=0xC4 (DIR=1 bit7 set, mask 0x80 per corrected
+BC-2.15.016 PC5; PRM=1 bit6; FCV=0 bit4; link-FC=4 UNCONFIRMED_USER_DATA). This is the
+first master-direction Control FC on the flow. Expected set is empty at the start of frame 1
+processing. After frame 1: master_addrs_seen=[0x0001], direct_operate_count=1. No finding
+emitted.
 
-**Note for evaluator:** If the implementation gates the unexpected-source check behind the
-same `direct_operate_count > threshold` condition as the burst check, this test will fail.
-The two checks are independent per BC-2.15.010 Invariant 5.
+Frame 2 (unexpected-source frame): A Control-class FC (FC=0x05, DIRECT_OPERATE) arrives from
+src=0x0099, dest=0x0003, with CTRL=0xC4 (DIR=1). At the start of frame 2 processing:
+master_addrs_seen=[0x0001] (established), src=0x0099 is NOT present. After frame 2: one
+T1692.001 finding emitted with confidence=High, summary containing "unexpected source" and
+"0x0099". direct_operate_count=2 (both FCs counted). direct_operate_emitted=false
+(count=2, threshold=10, 2 > 10 = false). unexpected_source_emitted=true.
+
+**Annotated byte sequence (canonical CTRL=0xC4 master frame, matching BC-2.15.010 Canonical Test Vectors):**
+```
+Frame (both frame 1 and frame 2 use this structure, differing only in SRC field):
+  05 64 0E C4 [DEST_L] [DEST_H] [SRC_L] [SRC_H] [hdr-crc-lo] [hdr-crc-hi]
+  C0 81 05 [app-objects] [data-crc-lo] [data-crc-hi]
+
+Frame 1 (src=0x0001, dest=0x0003): CTRL=0xC4 (DIR=1, PRM=1, FCV=0, link-FC=4)
+Frame 2 (src=0x0099, dest=0x0003): CTRL=0xC4 (DIR=1, PRM=1, FCV=0, link-FC=4)
+```
+
+**Assertions:**
+1. After frame 1: all_findings.len() == 0. master_addrs_seen == [0x0001].
+2. After frame 2: all_findings.len() == 1.
+   finding[0].mitre_techniques == vec!["T1692.001"].
+   finding[0].confidence == Confidence::High.
+   finding[0].verdict == Verdict::Likely.
+   finding[0].summary contains "unexpected source".
+   finding[0].summary contains "0x0099".
+   finding[0].summary contains "0x0003".
+   flow.direct_operate_count == 2.
+   flow.direct_operate_emitted == false.
+   flow.unexpected_source_emitted == true.
+
+**Note for evaluator:** Frames must use CTRL=0xC4 or any control byte with bit 7 set
+(DIR=1, mask 0x80) for `is_master_frame` to return true with the corrected mask. Under
+the previously-buggy mask (0x10, bit 4 / FCV), CTRL=0xC4 would return false and the
+feature would be inert on canonical master traffic. The corrected implementation uses 0x80.
+If the unexpected-source check is gated behind `direct_operate_count > threshold`, this
+test will fail. The two checks are independent per BC-2.15.010 Invariant 5. (Amendment:
+F-F5-001 REVISION 2 R2-5 — F-A-005 MAJOR fix; replaced single-frame scenario with pinned
+two-frame sequence.)
 
 ---
 

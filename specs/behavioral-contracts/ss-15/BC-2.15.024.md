@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -42,6 +42,17 @@ modified:
     accordingly. Related BCs entry for BC-2.15.009 updated to 'composes with (desync bail
     is a flow-level no-op; NOT a malformed-frame reject path; parse_errors NOT incremented
     per BC-2.15.009 PC3)'. — 2026-06-11"
+  - "v1.3: F5-R2 changes (F-F5-003 REVISION 2) — five-site propagation of the three-path
+    resync-arm accounting model. (B1) Precondition 1 replaced with the exact three-path PC1
+    text from F-F5-003 REVISION 2 R2-SECTION 3: resync arm added as third structural-reject
+    path (NOT 'fourth' — v1.2 already removed the bail, leaving two; resync arm is the
+    third). Semantics wording updated to Principle 1 ('one per arm entry'). NOT INCLUDED
+    paragraph for BC-2.15.009 is_non_dnp3 bail preserved verbatim (F-F5-004 reconciliation).
+    (B2) Description 'Two-counter model' parse_errors-source bullet updated with resync arm
+    as third increment site. (B3) Invariant 1 parse_errors feed-list updated to three paths.
+    (B4) Architecture Anchors increment-site bullet updated to three-path list. (B5) EC-006
+    confirmed correct as-is (no change). (B6) 'one per sync-loss event' language deleted;
+    Principle 1 language added; fake-sync-flood T0814 note added. — 2026-06-12"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -74,11 +85,15 @@ deferring CRC validation does NOT excuse the malformed-frame blind spot.
 
 **Two-counter model (v1.1 fix, adversarial finding C-2):**
 - `parse_errors: u64` — **LIFETIME / monotonic counter**. Incremented on every structurally
-  malformed DNP3 frame by the existing reject paths: BC-2.15.016 Postcondition 2 (carry
-  overflow / LENGTH byte truncation) and BC-2.15.004 validity-gate reject (LENGTH<5 or
-  sync!=0x0564). **NEVER reset at window expiry.** Used exclusively by BC-2.15.020
-  `summarize()` to report the total lifetime structural-error count. This counter is already
-  defined and incremented by existing code; this BC does NOT add new increments to it.
+  malformed DNP3 frame by the three structural-reject paths: BC-2.15.016 Postcondition 2
+  (carry overflow / LENGTH byte truncation), BC-2.15.004 validity-gate reject (LENGTH<5 or
+  sync!=0x0564), and the byte-walk-forward resync arm (sync-loss after a clean consume —
+  BC-2.15.016 EC-009). Each counter-arm entry counts as exactly one increment; this is
+  Principle 1 ("one per arm entry"). Attacker-salted fake-sync floods that embed multiple
+  `[0x05, 0x64, invalid-LENGTH]` triplets will produce multiple increments — one per
+  LENGTH-gate entry — which is INTENDED T0814 (Possible/Low) Crain-Sistrunk-probe behavior;
+  no de-duplication is needed or desired. **NEVER reset at window expiry.** Used exclusively
+  by BC-2.15.020 `summarize()` to report the total lifetime structural-error count.
   NOTE: BC-2.15.009 is_non_dnp3 desync bail is NOT a source of parse_errors increments —
   that bail is a flow-level early-exit for non-DNP3 traffic that never reaches frame parsing;
   per BC-2.15.009 PC3, parse_errors is explicitly NOT incremented on that bail path.
@@ -102,13 +117,23 @@ the reset set — it is lifetime.
 
 ## Preconditions
 
-1. One of the existing structural-reject paths for a malformed DNP3 frame has just fired, causing:
-   - `flow.parse_errors += 1` (lifetime counter — already incremented by the existing reject
-     path; this BC does not change that increment), AND
-   - `flow.malformed_in_window += 1` (new windowed counter — incremented HERE, in parallel).
-   The two existing malformed-frame reject paths are:
+1. One of the structural-reject paths for a malformed DNP3 frame has just fired, causing:
+   - `flow.parse_errors += 1` (lifetime counter — already incremented by the reject path;
+     this BC does not change that increment), AND
+   - `flow.malformed_in_window += 1` (windowed counter — incremented HERE, in parallel).
+   The three structural-reject paths are:
    - BC-2.15.016 Postcondition 2 (carry overflow / LENGTH byte truncation), **or**
-   - BC-2.15.004 validity gate reject (LENGTH<5 or sync!=0x0564).
+   - BC-2.15.004 validity gate reject (LENGTH<5 or sync!=0x0564), **or**
+   - byte-walk-forward resync arm (sync-loss on an established flow after a clean frame
+     consume — non-sync bytes appear immediately after a valid frame boundary; the resync
+     arm increments both parse_errors and malformed_in_window exactly once per arm entry
+     before performing the byte-walk-forward navigation, as specified in BC-2.15.016 EC-009).
+   Each arm entry counts as exactly one structural reject event, regardless of how many
+   non-sync bytes are present in the carry at that point. An attacker embedding multiple
+   `[0x05, 0x64, invalid-LENGTH]` ("fake-sync") triplets may trigger multiple LENGTH-gate
+   entries and therefore multiple increments per `on_data` call — this is INTENDED and
+   correct behavior; T0814 (Possible/Low) is the appropriate response when the threshold
+   is crossed.
    **NOT INCLUDED:** BC-2.15.009 is_non_dnp3 desync bail. The desync bail is a flow-level
    early-exit for non-DNP3 traffic that fires BEFORE any frame parse begins. Per BC-2.15.009
    Postcondition 3, parse_errors is explicitly NOT incremented on the is_non_dnp3 bail path
@@ -165,9 +190,12 @@ the reset set — it is lifetime.
 ## Invariants
 
 1. **parse_errors is LIFETIME — incremented by malformed-frame reject paths, NEVER reset at
-   window expiry**: `parse_errors` is fed by BC-2.15.016 Postcondition 2 (carry overflow /
-   LENGTH truncation) and BC-2.15.004 validity-gate reject (LENGTH<5 or sync!=0x0564). It is
-   NOT incremented by BC-2.15.009 is_non_dnp3 desync bail — per BC-2.15.009 PC3, the bail
+   window expiry**: `parse_errors` is fed by three structural-reject paths: BC-2.15.016
+   Postcondition 2 (carry overflow / LENGTH truncation), BC-2.15.004 validity-gate reject
+   (LENGTH<5 or sync!=0x0564), and the byte-walk-forward resync arm (sync-loss after a clean
+   consume — BC-2.15.016 EC-009). Each arm entry increments both `parse_errors` and
+   `malformed_in_window` exactly once (Principle 1: "one per arm entry"). It is NOT
+   incremented by BC-2.15.009 is_non_dnp3 desync bail — per BC-2.15.009 PC3, the bail
    fires before any frame parse and explicitly does not increment parse_errors (to avoid
    misleading metrics on misclassified non-DNP3 flows). BC-2.15.015 does NOT reset
    `parse_errors` at window expiry. BC-2.15.020 `summarize()` reports the lifetime structural-
@@ -303,7 +331,7 @@ Kani formal verification target.
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.malformed_in_window: u64` (NEW field; WINDOWED counter; incremented on each malformed frame in parallel with parse_errors; reset to 0 at 300s window expiry by BC-2.15.015; **used for all threshold checks**)
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.malformed_anomaly_emitted: bool` (NEW field; one-shot guard; reset to false at 300s window expiry by BC-2.15.015)
 - `src/analyzer/dnp3.rs` — `const MALFORMED_ANOMALY_THRESHOLD: u64 = 3` (NEW constant; **[F2-GATE-DEFAULT]**)
-- `src/analyzer/dnp3.rs` — on each structural-reject path (BC-2.15.016 PC2 carry-overflow and BC-2.15.004 validity-gate): `flow.malformed_in_window += 1;` (NEW, added alongside existing `flow.parse_errors += 1`). The BC-2.15.009 is_non_dnp3 bail does NOT have a malformed_in_window increment — it returns before any parse and does not increment parse_errors either (per BC-2.15.009 PC3).
+- `src/analyzer/dnp3.rs` — on each of the three structural-reject paths (BC-2.15.016 PC2 carry-overflow, BC-2.15.004 validity-gate, and the byte-walk-forward resync arm / BC-2.15.016 EC-009): `flow.malformed_in_window += 1;` (NEW, added alongside existing `flow.parse_errors += 1`). The BC-2.15.009 is_non_dnp3 bail does NOT have a malformed_in_window increment — it returns before any parse and does not increment parse_errors either (per BC-2.15.009 PC3).
 - `src/analyzer/dnp3.rs` — emission check after each increment site: `if flow.malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD && !flow.malformed_anomaly_emitted && /* window check */ { /* emit T0814 */ }`
 - `src/analyzer/dnp3.rs` — BC-2.15.015 window-expiry reset handler: add `flow.malformed_in_window = 0; flow.malformed_anomaly_emitted = false;` to the existing reset block (parse_errors is NOT added to that block)
 - `src/mitre.rs` — `technique_info("T0814")` arm (existing; shared)

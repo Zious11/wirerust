@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Pass-3 adversarial fix HIGH-2: added pending_requests DoS bound — MAX_PENDING_REQUESTS=256 entries. On insert when at cap, evict the OLDEST entry (minimum request_ts). Postconditions 8–10 added; Invariant 5 added; EC-008 added; canonical test vector added; Architecture Anchors and Description updated. BC-2.15.014 Invariant 8 now correctly cross-references this BC for the pending_requests cap. — 2026-06-10"
   - "v1.2: EC-007 resync policy updated — drain-1 (STORY-107 v1 behavior) replaced by byte-walk-forward resync (STORY-109 realization of the STORY-107 explicitly deferred resync). STORY-107 in-code comment stated: 'Byte-walk resync on mid-carry sync-loss is deferred to a later detection story'; STORY-109 is that story. EC-007 now specifies: after the LENGTH gate increments parse_errors and malformed_in_window, the carry head is repositioned by scanning from index 1 for the next [0x05,0x64] sync word; bytes before it are drained; if none found, carry is cleared. No postcondition or invariant logic changed — this is an EC-007 navigation-detail clarification only. Authorized by STORY-109-resync-adjudication.md Decision 2. — 2026-06-11. Additionally (per ADJ-001-A): Canonical Test Vectors 'Carry overflow (adversarial)' row clarified to note that the frame-walk subsequently runs post-overflow and, if no [0x05,0x64] sync word is found, byte-walk-forward resync clears the carry (final carry may be empty); the 292-cap proof rests on the parse_errors increment, not residual carry length."
+  - "v1.3: F5-R2 changes (F-F5-001 REVISION 2 + F-F5-003 REVISION 2) — (A1) Postcondition 5 corrected: DIR bit is bit 7 (mask 0x80) per IEEE 1815 DNP3 link-layer framing — the previous text implied mask 0x10 (bit 4, FCV/DFC), which is wrong; CTRL=0xC4 canonical master frame now correctly returns is_master_frame=true. Architecture Anchors updated to note the 0x80 mask. (B7) EC-007 inline-resync-location clarification added: the LENGTH-gate arm performs byte-walk-forward resync INLINE before continue, so the loop's next iteration begins with a valid sync head or empty carry; the sync-check arm is NOT entered as a consequence of a LENGTH-gate drain. (B8) EC-004 Edge Cases row and Canonical Test Vectors 'Carry overflow (adversarial)' row updated to reflect that the overflow arm now performs INLINE resync (identical to Change 2) — a recoverable valid head frame is preserved; carry is cleared only if no [0x05,0x64] sync word is found; the frame-walk then runs on the repositioned carry; the sync-check arm is NOT entered as a consequence of the overflow. (B9) EC-009 added (new): junk-at-clean-boundary counted as one structural malformed event via the sync-check arm. — 2026-06-12"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -59,6 +60,7 @@ These three bounds collectively prevent unbounded memory growth under adversaria
 
 **Bounded master-address tracking:**
 5. When a frame with DIR=1 (master-direction, `is_master_frame(control)`) is observed, `src` is appended to `flow.master_addrs_seen` if not already present.
+   IMPLEMENTATION NOTE: DIR is bit 7 of the link-control byte (mask 0x80), per IEEE 1815 DNP3 link-layer framing. `is_master_frame(control)` tests `control & 0x80 != 0`. Mask 0x10 is FCV/DFC (bit 4), NOT DIR. Canonical master frame CTRL=0xC4: `0xC4 & 0x80 = 0x80 != 0` → `is_master_frame(0xC4) = true`. This is a correction from a pre-existing bug where the implementation used mask 0x10 (F-F5-001 REVISION 2 R2-1 — F-A-001 BLOCKER fix).
 6. `flow.master_addrs_seen.len()` NEVER exceeds `MAX_MASTER_ADDRS = 64`. Once full, new source addresses are silently ignored (not appended).
 
 **Flow counter updates:**
@@ -93,11 +95,12 @@ These three bounds collectively prevent unbounded memory growth under adversaria
 | EC-001 | Single on_data call delivers a partial frame (< 10 bytes) | Bytes accumulated in carry; no frame parse attempted |
 | EC-002 | Single on_data call delivers exactly one complete frame | Frame parsed and consumed; carry empty after |
 | EC-003 | Single on_data call delivers one complete frame + start of a second | First frame parsed; remaining bytes stay in carry |
-| EC-004 | Carry reaches 291 bytes (1 byte short of 292); on_data delivers 2 more bytes | 1 byte accepted (total=292); 1 byte discarded; `parse_errors++` |
+| EC-004 | Carry reaches 291 bytes (1 byte short of 292); on_data delivers 2 more bytes | 1 byte accepted (total=292); 1 byte discarded; `parse_errors++`; `malformed_in_window++`; overflow arm performs inline resync (byte-walk-forward): if carry head is `[0x05, 0x64, ...]`, carry preserved at head (valid head frame recoverable); if carry is all-junk with no `[0x05, 0x64]`, carry cleared. Frame-walk then runs on the repositioned carry. The sync-check arm is NOT entered as a consequence of the overflow (no double-count). |
 | EC-005 | `master_addrs_seen` already has 64 entries; new master source addr arrives | Silently ignored; vec stays at 64 entries |
 | EC-006 | Desync-bailed flow (`is_non_dnp3=true`); on_data delivers bytes | Immediate no-op; carry NOT updated (per BC-2.15.009) |
-| EC-007 | `flow.carry[2]` (LENGTH byte) is invalid (< 5) after partial accumulation | Validity gate (BC-2.15.004) handles this; `parse_errors++` (lifetime) and `malformed_in_window++` (windowed, per BC-2.15.024); then carry advanced via byte-walk-forward resync: scan carry from index 1 for the next `[0x05, 0x64]` sync word; drain all bytes before it if found; if no sync word found, clear carry entirely. No further `parse_errors` or `malformed_in_window` increment occurs during resync navigation — the error was already counted at the LENGTH gate. The carry-clear on no-sync-found does NOT set `is_non_dnp3 = true`. Each non-break iteration drains ≥1 byte; carry bounded ≤292 bytes; loop terminates. This replaces the STORY-107 v1 drain-1 behavior for this path (STORY-109 realization; authorized by STORY-109-resync-adjudication.md Decision 2). |
+| EC-007 | `flow.carry[2]` (LENGTH byte) is invalid (< 5) after partial accumulation | Validity gate (BC-2.15.004) handles this; `parse_errors++` (lifetime) and `malformed_in_window++` (windowed, per BC-2.15.024); then carry advanced via byte-walk-forward resync: scan carry from index 1 for the next `[0x05, 0x64]` sync word; drain all bytes before it if found; if no sync word found, clear carry entirely. No further `parse_errors` or `malformed_in_window` increment occurs during resync navigation — the error was already counted at the LENGTH gate. The LENGTH-gate arm performs this resync navigation INLINE before `continue`, so the loop's next iteration begins with a valid sync head or an empty carry; the sync-check arm is NOT entered as a consequence of a LENGTH-gate drain (no double-count across iterations). The carry-clear on no-sync-found does NOT set `is_non_dnp3 = true`. Each non-break iteration drains ≥1 byte; carry bounded ≤292 bytes; loop terminates. This replaces the STORY-107 v1 drain-1 behavior for this path (STORY-109 realization; authorized by STORY-109-resync-adjudication.md Decision 2). |
 | EC-008 | `pending_requests` already has 256 entries; new Control-class request arrives | Oldest entry (minimum request_ts) evicted; new entry inserted; map stays at 256 entries. No timeout-event generated for evicted entry. |
+| EC-009 | After a clean frame consume (`carry.drain(..frame_len)`), carry head is immediately non-sync (junk injected at frame boundary, or corruption) | `parse_errors++` (lifetime); `malformed_in_window++` (windowed, per BC-2.15.024); byte-walk-forward resync locates next `[0x05, 0x64]` or clears carry; if `malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD`, T0814 emitted (BC-2.15.024). This counts as one structural malformed event. The sync-check arm is entered ONLY from Path B (clean consume → junk head) — it is NOT entered after a LENGTH-gate or overflow-arm reject (those arms perform inline resync that leaves a valid head or empty carry before continue). Attacker-crafted fake-sync `[0x05, 0x64, invalid-LENGTH]` floods crossing the malformed threshold are INTENDED T0814 (Possible/Low) Crain-Sistrunk-probe behavior (no de-dup); each embedded fake-sync triplet is a distinct counter-arm entry per Principle 1 ("one per arm entry"). (F-F5-003 REVISION 2 R2-SECTION 3 + R2-SECTION 2 Principle 1) |
 
 ## Canonical Test Vectors
 
@@ -106,7 +109,7 @@ These three bounds collectively prevent unbounded memory growth under adversaria
 | Partial frame | [] (empty) | 5 bytes of a 10-byte header | carry = [5 bytes]; no frame processed |
 | Complete minimum frame | [partial 5 bytes] | 5 more bytes | carry = [] (frame consumed); frame_count=1 |
 | Frame + next frame start | [] | 21 bytes (10 + 11) | carry = [11 bytes]; frame_count=1 |
-| Carry overflow (adversarial) | [290 bytes] | 5 bytes | 2 bytes appended (292); 3 discarded; parse_errors++ (the frame-walk then runs: if the carry head is not a valid sync word and no `[0x05,0x64]` is found in the carry, byte-walk-forward resync CLEARS the carry — final carry may be empty; the 292-cap is proven by the parse_errors increment, not by residual carry length) |
+| Carry overflow (adversarial) | [290 bytes] | 5 bytes | 2 bytes appended (292); 3 discarded; `parse_errors++`; `malformed_in_window++`; then INLINE resync within the overflow arm (before falling through to the frame-walk): if a `[0x05,0x64]` sync word is found in the carry, bytes before it are drained (preserving a valid head frame if present); if no sync word found, carry is cleared. The frame-walk then runs on the repositioned carry. The sync-check arm is NOT entered as a consequence of the overflow (no double-count). If carry was all-junk with no sync word: final carry is empty; `parse_errors==1`, `malformed_in_window==1`. (F-F5-003 REVISION 2 — recoverable valid head frame preserved; REVISION 1 Change 3 carry.clear()+return rejected as data-loss defect) |
 | pending_requests at cap (adversarial flood) | 256 pending entries; new SELECT (0x03) arrives | Entry with oldest request_ts evicted; new SELECT inserted; map.len() == 256 |
 
 ## Verification Properties
@@ -141,6 +144,7 @@ These three bounds collectively prevent unbounded memory growth under adversaria
 - `src/analyzer/dnp3.rs` — `const MAX_MASTER_ADDRS: usize = 64`
 - `src/analyzer/dnp3.rs` — `const MAX_PENDING_REQUESTS: usize = 256`
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.carry: Vec<u8>`, `.master_addrs_seen: Vec<u16>`
+- `src/analyzer/dnp3.rs` — `is_master_frame(control: u8) -> bool` tests `control & 0x80 != 0` (DIR bit = bit 7 per IEEE 1815 DNP3 link-layer framing; mask 0x80 is CORRECT; mask 0x10 was a pre-existing bug — F-F5-001 REVISION 2 R2-1 fix)
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.pending_requests: HashMap<(u16, u8), u32>` (key=(dest_addr, app_seq), value=request_ts as u32 seconds; bounded to 256 by eviction)
 - `.factory/phase-f2-spec-evolution/dnp3-architecture-delta.md §2.2` — constants and struct layout
 - `.factory/phase-f2-spec-evolution/dnp3-architecture-delta.md §2.3` — MAX_PENDING_REQUESTS=256 constant

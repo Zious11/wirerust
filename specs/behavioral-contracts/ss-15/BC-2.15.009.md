@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-15
 capability: CAP-15
 lifecycle_status: active
 introduced: v0.6.0-feature-008
-modified: []
+modified:
+  - "v1.2: F5-R2 change (F-C-006) — Related BCs: added reciprocal cross-reference to BC-2.15.024 with explicit statement that is_non_dnp3 bail is NOT a parse_errors source per this BC's PC3, consistent with BC-2.15.024 v1.3 F-F5-004 reconciliation. — 2026-06-12"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -116,6 +117,7 @@ once set, is never cleared (flows are immutable in their desync state).
 
 - BC-2.15.004 — composes with (validity gate checks individual frames; is_non_dnp3 is a flow-level bail that short-circuits before any individual frame is parsed)
 - BC-2.15.020 — composes with (carry buffer management BC; bail prevents unbounded carry growth)
+- BC-2.15.024 — composes with (malformed-anomaly counter; is_non_dnp3 bail is NOT a parse_errors source per this BC's PC3 — the bail fires BEFORE any frame parse stage and explicitly does not increment parse_errors to avoid misleading metrics on misclassified non-DNP3 flows; F-F5-004 reconciliation; F-C-006 cross-reference)
 
 ## Architecture Anchors
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -27,6 +27,12 @@ modified:
     regardless of direct_operate_threshold. The snapshot-variable approach (src_was_known
     + expected_set_established captured BEFORE master_addrs_seen population) ensures the
     check correctly sees the pre-push state. Implementation is confirmed complete. — 2026-06-11"
+  - "v1.4: F5-R2 changes (F-F5-001 REVISION 2) — (A2) EC-011 added: redundant-SCADA-master
+    false-positive is an accepted v1 limitation bounded by the one-shot unexpected_source_emitted
+    guard; future --dnp3-expected-master allowlist flag (DRIFT) is the escape hatch.
+    (A3) EC-009 and EC-010 updated with DIR=1/master-direction qualifier (F-C-007): the
+    source-learning and unexpected-source check apply only to master-direction (DIR=1, mask
+    0x80 per corrected BC-2.15.016 PC5) Control frames. — 2026-06-12"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -146,8 +152,10 @@ The human should confirm whether 10/60s is appropriate for their OT environment 
 | EC-006 | Control FC 0x06 (DIRECT_OPERATE_NR, no response) | Still counted and detected as T1692.001; this FC intentionally expects no response — but it IS an unauthorized control command if threshold exceeded |
 | EC-007 | Control FC to broadcast dest 0xFFFF | Finding carries broadcast anomaly note in evidence; technique tag unchanged: T1692.001 |
 | EC-008 | FC 0x03 (SELECT) without subsequent 0x04 (OPERATE) | Still counted; incomplete SBO sequence is itself anomalous but no separate finding for incompleteness in v1 |
-| EC-009 | First Control-class FC on a flow from src=0x0001 (master_addrs_seen is empty at the start of the frame's FIR=1 processing; expected set not yet established) | No unexpected-source finding. The snapshot `expected_set_established = !flow.master_addrs_seen.is_empty()` is false before the master_addrs_seen push runs — the unexpected-source check condition is not met. After the push, master_addrs_seen = [0x0001]. The first master address establishes the expected set; this is not unauthorized. `direct_operate_count` incremented; normal burst-threshold check applies. `flow.unexpected_source_emitted` remains false. |
-| EC-010 | Control-class FC from src=0x0099 on a flow where master_addrs_seen = [0x0001] (expected set established; 0x0099 not present) | Exactly ONE T1692.001 finding emitted at count=1, regardless of `direct_operate_count` vs `direct_operate_threshold`. The snapshot `src_was_known = flow.master_addrs_seen.contains(&0x0099)` is false and `expected_set_established` is true — unexpected-source condition fires. Finding fields: `verdict=Verdict::Likely`, `confidence=Confidence::High`, summary contains "unexpected source" and "not in expected master set". `flow.unexpected_source_emitted = true` (one-shot flow-lifetime guard set). Subsequent Control FCs from 0x0099 on the same flow do NOT emit additional unexpected-source findings (guard is set). The burst-threshold check still runs and will fire independently if `direct_operate_count` later exceeds `direct_operate_threshold`. (F-F5-001 adjudication; see F-F5-001-unexpected-source-adjudication.md §1–2) |
+| EC-009 | First Control-class FC on a flow from src=0x0001, with DIR=1 (master-direction, `is_master_frame(control)` = true using corrected mask 0x80 per BC-2.15.016 PC5; master_addrs_seen is empty at the start of the frame's FIR=1 processing; expected set not yet established) | No unexpected-source finding. The source-learning and unexpected-source check apply ONLY to master-direction (DIR=1) Control frames consistent with BC-2.15.016 PC5 (corrected mask 0x80). The snapshot `expected_set_established = !flow.master_addrs_seen.is_empty()` is false before the master_addrs_seen push runs — the unexpected-source check condition is not met. After the push, master_addrs_seen = [0x0001]. The first master address establishes the expected set; this is not unauthorized. `direct_operate_count` incremented; normal burst-threshold check applies. `flow.unexpected_source_emitted` remains false. (F-C-007: DIR=1 qualifier) |
+| EC-010 | Control-class FC from src=0x0099 with DIR=1 (master-direction; `is_master_frame(control)` = true, mask 0x80) on a flow where master_addrs_seen = [0x0001] (expected set established; 0x0099 not present) | Exactly ONE T1692.001 finding emitted at count=1, regardless of `direct_operate_count` vs `direct_operate_threshold`. Source-learning and unexpected-source check apply only to master-direction (DIR=1) frames per BC-2.15.016 PC5 corrected mask 0x80 (F-C-007). The snapshot `src_was_known = flow.master_addrs_seen.contains(&0x0099)` is false and `expected_set_established` is true — unexpected-source condition fires. Finding fields: `verdict=Verdict::Likely`, `confidence=Confidence::High`, summary contains "unexpected source" and "not in expected master set". `flow.unexpected_source_emitted = true` (one-shot flow-lifetime guard set). Subsequent Control FCs from 0x0099 on the same flow do NOT emit additional unexpected-source findings (guard is set). The burst-threshold check still runs and will fire independently if `direct_operate_count` later exceeds `direct_operate_threshold`. (F-F5-001 adjudication; see F-F5-001-unexpected-source-adjudication.md §1–2; F-C-007 DIR=1 qualifier) |
+
+| EC-011 | Redundant-SCADA-master topology: two legitimate master addresses (e.g., 0x0001 primary + 0x0002 backup) both issue Control FCs on the same flow (both with DIR=1, master-direction). After 0x0001 establishes the expected set (first Control FC — no finding), a Control FC from 0x0002 triggers the unexpected-source finding (T1692.001, Confidence=High) at count=1. | This is a conscious false-positive: the product has no configured-allowlist mechanism in v1 to suppress this. The one-shot flow-lifetime guard (`unexpected_source_emitted=true`) limits FP volume to one finding per flow. Operators at redundant-master sites should acknowledge this finding class; the future `--dnp3-expected-master` allowlist flag (DRIFT) will be the escape hatch. This edge case is an accepted limitation documented in the v1 design. (F-F5-001 REVISION 2 R2-2 redundant-master decision; F-A-002 resolution) |
 
 ## Canonical Test Vectors
 
