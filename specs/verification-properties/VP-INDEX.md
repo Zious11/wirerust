@@ -5,7 +5,7 @@ version: "2.0"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
-modified: "2026-06-09: Phase-F6 — VP-021 (timestamp-provenance-threading) locked/verified @ develop 256a490. status draft→verified, verification_lock→true. test_sufficient_count 5→6. All 21 VPs now verified; draft count 1→0. | 2026-06-09: F2 delta issue #7 — VP-022 added (Modbus MBAP parse safety; draft; Kani; P1; analyzer/modbus.rs). total 21→22, p1 7→8, kani 8→9, draft 0→1. | 2026-06-09: F2 fix (consistency BLOCKING-1 / F-MED-006) — VP-022 catalog-row Verified BCs reconciled 6→8 (added BC-2.14.005, BC-2.14.008) to match VP-022 frontmatter and the architect's canonical BC map; no VP-count change. | 2026-06-09: F7 consistency fix F1 — VP-022 locked/verified at F6 (Kani 4/4 SUCCESSFUL @ develop 68a3306); propagate lock: status draft→verified, verification_lock→true. draft count 1→0; verified count 21→22. Mirrors VP-021 lock propagation pattern. | 2026-06-10: F2 delta issue #8 — VP-023 added (DNP3 data-link parse safety and FC classification; draft; Kani; P1; analyzer/dnp3.rs). total 22→23, p1 8→9, kani 9→10, draft 0→1. 4 harnesses: verify_parse_dnp3_dl_header_safety (sub-A), verify_is_valid_dnp3_frame_gate (sub-C), verify_classify_dnp3_fc_total (sub-B), verify_compute_dnp3_frame_len (sub-D). | 2026-06-10: H-3/H-4 coherence fixes (issue #8) — VP-023 Verified-BCs scope clarified: BC-2.15.001..007 only; BC-2.15.008 and BC-2.15.009 explicitly excluded (unit-test-only, not Kani obligations). VP-023 draft→verified lifecycle note added documenting F6 lock obligation and count transition (verified 22→23, draft 1→0) mirroring VP-021/VP-022 pattern. No VP counts changed."
+modified: "2026-06-09: Phase-F6 — VP-021 (timestamp-provenance-threading) locked/verified @ develop 256a490. status draft→verified, verification_lock→true. test_sufficient_count 5→6. All 21 VPs now verified; draft count 1→0. | 2026-06-09: F2 delta issue #7 — VP-022 added (Modbus MBAP parse safety; draft; Kani; P1; analyzer/modbus.rs). total 21→22, p1 7→8, kani 8→9, draft 0→1. | 2026-06-09: F2 fix (consistency BLOCKING-1 / F-MED-006) — VP-022 catalog-row Verified BCs reconciled 6→8 (added BC-2.14.005, BC-2.14.008) to match VP-022 frontmatter and the architect's canonical BC map; no VP-count change. | 2026-06-09: F7 consistency fix F1 — VP-022 locked/verified at F6 (Kani 4/4 SUCCESSFUL @ develop 68a3306); propagate lock: status draft→verified, verification_lock→true. draft count 1→0; verified count 21→22. Mirrors VP-021 lock propagation pattern. | 2026-06-10: F2 delta issue #8 — VP-023 added (DNP3 data-link parse safety and FC classification; draft; Kani; P1; analyzer/dnp3.rs). total 22→23, p1 8→9, kani 9→10, draft 0→1. 4 harnesses: verify_parse_dnp3_dl_header_safety (sub-A), verify_is_valid_dnp3_frame_gate (sub-C), verify_classify_dnp3_fc_total (sub-B), verify_compute_dnp3_frame_len (sub-D). | 2026-06-10: H-3/H-4 coherence fixes (issue #8) — VP-023 Verified-BCs scope clarified: BC-2.15.001..007 only; BC-2.15.008 and BC-2.15.009 explicitly excluded (unit-test-only, not Kani obligations). VP-023 draft→verified lifecycle note added documenting F6 lock obligation and count transition (verified 22→23, draft 1→0) mirroring VP-021/VP-022 pattern. No VP counts changed. | 2026-06-12: Phase-F6 — VP-023 (DNP3 data-link frame parse safety and FC classification) locked/verified @ develop e685664. status draft→verified, verification_lock→true. verified count 22→23, draft count 1→0."
 total_vps: 23
 p0_count: 8
 p1_count: 9
@@ -70,7 +70,7 @@ integration_unit_count: 5
 | VP-020 | CSV Injection Neutralization | reporter/csv.rs | unit | test-sufficient | verified | BC-2.11.021 |
 | VP-021 | Timestamp Provenance Threading | reassembly/mod.rs | integration+proptest | test-sufficient | verified | BC-2.09.007, BC-2.04.055 |
 | VP-022 | Modbus MBAP Parse Safety and Function-Code Boundary Classification | analyzer/modbus.rs | Kani | P1 | verified | BC-2.14.001, BC-2.14.002, BC-2.14.003, BC-2.14.004, BC-2.14.005, BC-2.14.006, BC-2.14.007, BC-2.14.008 |
-| VP-023 | DNP3 Data-Link Frame Parse Safety and Function-Code Classification | analyzer/dnp3.rs | Kani | P1 | draft | BC-2.15.001, BC-2.15.002, BC-2.15.003, BC-2.15.004, BC-2.15.005, BC-2.15.006, BC-2.15.007 [^vp023-bc-scope] |
+| VP-023 | DNP3 Data-Link Frame Parse Safety and Function-Code Classification | analyzer/dnp3.rs | Kani | P1 | verified | BC-2.15.001, BC-2.15.002, BC-2.15.003, BC-2.15.004, BC-2.15.005, BC-2.15.006, BC-2.15.007 [^vp023-bc-scope] |
 
 ## P0 Properties (required before Phase 5 gate)
 
@@ -115,30 +115,27 @@ bail-out / reject-until-SYN) are unit-test-only obligations — they exercise st
 runtime behaviour that is not amenable to bounded Kani model-checking. These two BCs
 are correctly excluded from VP-023 and carry no Kani harness obligation.
 
-## VP-023 Lifecycle Note (draft → verified at F6)
+## VP-023 Lifecycle Note (draft → verified at F6) — COMPLETED 2026-06-12
 
-VP-023 is currently `status: draft`. It transitions to `verified` when all four Kani
-harnesses run green at Phase F6 hardening (mirroring the VP-021 and VP-022 lock
-propagation pattern):
+VP-023 transitioned from `status: draft` to `verified` at Phase F6 hardening. All
+four Kani harnesses ran green at develop@e685664 (lock commit aa469bd on
+factory-artifacts), mirroring the VP-021 and VP-022 lock propagation pattern:
 
 - `verify_parse_dnp3_dl_header_safety` (sub-A)
 - `verify_classify_dnp3_fc_total` (sub-B)
 - `verify_is_valid_dnp3_frame_gate` (sub-C)
 - `verify_compute_dnp3_frame_len` (sub-D)
 
-At that point the STORY-110 task records the lock commit, this file's `modified:`
-field is updated, `status` flips draft→verified, `verification_lock: true` is added to
-the VP-023 frontmatter, and the Consistency Invariants block counts shift from
-"verified 22 / draft 1" to "verified 23 / draft 0". Total VP count (23), Kani count
-(10), and P1 count (9) are unchanged by the lock.
+The Consistency Invariants block counts shifted from "verified 22 / draft 1" to
+"verified 23 / draft 0". Total VP count (23), Kani count (10), and P1 count (9)
+are unchanged by the lock.
 
 ## Consistency Invariants (machine-enforced by validate-vp-consistency.sh)
 
 - VP-INDEX total (23) must equal verification-architecture.md row count (23)
 - VP-INDEX total (23) must equal verification-coverage-matrix.md VP row count (23)
 - verification-coverage-matrix.md Totals row: Kani(10) + proptest(7) + fuzz(1) + integration/unit(5) = 23
-- P0 count (8) + P1 count (9) + test-sufficient (6) = 23; draft count 1 (VP-023); verified 22
-- **At F6 lock:** draft count 1→0; verified count 22→23; all other counts unchanged.
+- P0 count (8) + P1 count (9) + test-sufficient (6) = 23; draft count 0; verified 23
 
 ## File Naming Convention
 
