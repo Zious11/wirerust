@@ -2,7 +2,7 @@
 document_type: story
 story_id: STORY-110
 epic_id: E-15
-version: "1.2"
+version: "1.3"
 status: draft
 producer: story-writer
 timestamp: 2026-06-10T00:00:00Z
@@ -62,7 +62,7 @@ After STORY-109 (which adds T1691.001 and T0827 to SEEDED and EMITTED), the fina
 - **EMITTED**: 15 technique IDs (was 13 before F3; T1691.001 and T0827 first emitted in STORY-109)
 - **CATALOGUE-ONLY**: 8 technique IDs (unchanged)
 
-The implementer MUST verify in this story that `SEEDED_TECHNIQUE_ID_COUNT == 23` (module-level const) and `SEEDED_TECHNIQUE_IDS.len() == 23` after all E-15 stories are integrated. The Kani-local `kani_proofs::EMITTED_IDS` slice must have length 15. The catalogue-only count (8) is derived: 23 − 15 == 8. There is no named `EMITTED_TECHNIQUE_IDS` or `CATALOGUE_ONLY_TECHNIQUE_IDS` const in `src/mitre.rs`; the real symbols are `SEEDED_TECHNIQUE_IDS: &[&str]`, `SEEDED_TECHNIQUE_ID_COUNT: usize`, and `kani_proofs::EMITTED_IDS: &[&str]`. If any count is wrong, the VP-007 drift-guard test (`test_technique_catalog_integrity`) will fail at F6. This is the final integration story for E-15 — it is the correct place to confirm the atomic-update obligation was fully satisfied.
+The implementer MUST verify in this story that `SEEDED_TECHNIQUE_ID_COUNT == 23` (module-level const) and `SEEDED_TECHNIQUE_IDS.len() == 23` after all E-15 stories are integrated. The Kani-local `kani_proofs::EMITTED_IDS` slice must have length 15. The catalogue-only count (8) is derived: 23 − 15 == 8. There is no named `EMITTED_TECHNIQUE_IDS` or `CATALOGUE_ONLY_TECHNIQUE_IDS` const in `src/mitre.rs`; the real symbols are `SEEDED_TECHNIQUE_IDS: &[&str]`, `SEEDED_TECHNIQUE_ID_COUNT: usize`, and `kani_proofs::EMITTED_IDS: &[&str]`. If any count is wrong, the VP-007 drift-guard test (`vp007_catalog_drift_guard`) will fail at normal test time (`cargo test`). This is the final integration story for E-15 — it is the correct place to confirm the atomic-update obligation was fully satisfied.
 
 ## Acceptance Criteria
 
@@ -111,7 +111,7 @@ After full E-15 integration (STORY-106 through STORY-110), the VP-007 invariants
 - T1691.001 and T0827 are present in `SEEDED_TECHNIQUE_IDS` and in `kani_proofs::EMITTED_IDS` (added in STORY-109).
 - **Test (layered verification):**
   - **(a) Integration test** `test_vp007_seeded_23_emitted_15()` — exercises the PUBLIC API surface only: calls `technique_name(id)` and `technique_tactic(id)` for all 23 seeded technique IDs and asserts each resolves to a non-empty, non-`"Unknown"` name/tactic. This verifies the catalog is reachable and coherent via the public interface; it does NOT directly assert the private constants `SEEDED_TECHNIQUE_IDS.len()`, `SEEDED_TECHNIQUE_ID_COUNT`, or the Kani-local `EMITTED_IDS` slice (those symbols are `#[cfg(any(kani, test))]`-guarded or `kani_proofs`-local and are not visible from an integration-test crate).
-  - **(b) In-crate unit test** `vp007_catalog_drift_guard` / `test_technique_catalog_integrity` (in `src/mitre.rs`, `#[cfg(test)]`) — asserts the literal count invariants `SEEDED_TECHNIQUE_IDS.len() == 23` and `SEEDED_TECHNIQUE_ID_COUNT == 23`. This is where the private constants are accessible. Run with `cargo test technique_catalog_integrity`.
+  - **(b) In-crate unit test** `vp007_catalog_drift_guard` (in `src/mitre.rs`, `#[cfg(test)]`) — asserts the literal count invariants `SEEDED_TECHNIQUE_IDS.len() == 23` and `SEEDED_TECHNIQUE_ID_COUNT == 23`. This is where the private constants are accessible. Run with `cargo test vp007_catalog_drift_guard`.
   - **(c) Kani harness (F6 gate)** — `kani_proofs::EMITTED_IDS.len() == 15` is verified by the Kani proof(s) in `src/mitre.rs`'s `#[cfg(kani)] mod kani_proofs`, executed at the Wave 39 F6 formal-hardening gate. The arithmetic check 23 − 15 == 8 is also validated there.
 
 ### AC-011 (traces to BC-2.15.021 — VP-023 status propagation at F6 gate)
