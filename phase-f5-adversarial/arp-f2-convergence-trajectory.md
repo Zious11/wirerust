@@ -45,19 +45,26 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 2 (sliced) | 2026-06-12 | 20 | 5 | 7 | 8 | 0 | HIGH | 0/3 | NOT_CLEAN |
 | 3 (sliced) | 2026-06-12 | ~8 | 0 | ~6 | ~2 | 0 | MED | 0/3 | NOT_CLEAN |
 | 4 (sliced) | 2026-06-12 | ~15 | 0 | ~5 | ~10 | 0 | LOW | 0/3 | NOT_CLEAN |
-| 5 (sliced) | 2026-06-12 | — | — | — | — | — | — | 0/3 | IN_PROGRESS |
+| 5 (sliced) | 2026-06-12 | ~6 | 0 | 1 | ~5 | 0 | LOW | 0/3 | NOT_CLEAN |
+| 6 (sliced) | 2026-06-12 | ~4 | 0 | 2 | 2 | 0 | LOW | 0/3 | NOT_CLEAN |
+| 7 (sliced) | 2026-06-12 | ~4 | 0 | ~4 | 0 | 0 | LOW | 0/3 | NOT_CLEAN |
+| 8 (sliced) | 2026-06-12 | ~7 | 0 | 2 | 4 | 0 | MED | 0/3 | NOT_CLEAN |
+| 9 (sliced) | 2026-06-12 | — | — | — | — | — | — | 0/3 | IN_PROGRESS |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→(in progress)`
+`15→20→~8→~15→~6→~4→~4→~7→(P9 in progress)`
 
-Severity profile: CRITICAL count decaying (4→5→0→0) — core detection semantics hardening.
-HIGH count: 8→7→~6→~5 — steady reduction. Medium count spike in Pass 2 (partial-fix
-regressions from Pass-1 remediation) then propagation-hygiene dominates Pass 4.
+Severity profile: CRITICAL count decayed (4→5→0→0→0→0→0→0) — core detection semantics
+fully settled. HIGH count: 8→7→~6→~5→1→2→~4→2 — oscillating on mechanical/anchor hygiene
+then two genuine HIGHs in Pass 8 (both resolved). MEDIUM count: 3→8→~2→~10→~5→2→0→4 —
+propagation/hygiene dominates.
 
 ## Convergence Counter
 
-**0/3** consecutive clean passes (minimum 3 required for F2 gate).
+**0/3** consecutive clean passes.
+**STRICT mode** (human-elected 2026-06-12): zero findings of ANY severity (including LOW)
+across all 4 slices required for 3 consecutive clean passes.
 
 ## Core Semantics — Confirmed Clean (Settled)
 
@@ -95,17 +102,29 @@ treat these as LOW-RISK unless new evidence contradicts:
 
 | Artifact | Version | Notes |
 |----------|---------|-------|
-| PRD | v1.12 | Updated in Pass-4 remediation |
-| BC-INDEX | v1.10 | Updated in Pass-4 remediation (consuming-doc sweep) |
-| ADR-008 | v1.3 | |
-| arp-architecture-delta | v1.5 | |
-| VP-024 | v1.1 | |
-| error-taxonomy | v1.6 | |
-| test-vectors | v1.4 | |
+| PRD | v1.13 | Updated through Pass-8 remediation |
+| BC-INDEX | v1.13 | Updated through Pass-8 remediation |
+| ADR-008 | v1.6 | Decision 3 updated: LaxNetSlice::Arp routed explicitly (Pass-8 fix) |
+| arp-architecture-delta | v1.8 | §2.2 updated: LaxNetSlice::Arp explicit routing (Pass-8 fix) |
+| VP-024 | v1.4 | |
+| error-taxonomy | v1.8 | |
+| test-vectors | v1.6 | |
 | HS-INDEX | v1.3 | |
+| cap-10 | v1.4 | |
+| BC-2.10.002 | v1.4 | |
+| BC-2.10.004 | v1.5 | |
 | BC-2.10.005 | v1.10 | Forward-declaration convention |
 | BC-2.10.008 | v1.11 | Forward-declaration convention |
-| BC-2.16.001-015 | v1.0–v1.4 (various) | ARP catalogue BCs |
+| BC-2.16.003 | v1.3 | |
+| BC-2.16.004 | v1.5 | |
+| BC-2.16.005 | v1.4 | |
+| BC-2.16.006 | v1.2 | |
+| BC-2.16.007 | v1.1 | |
+| BC-2.16.008 | v1.5 | |
+| BC-2.16.009 | v1.3 | |
+| BC-2.16.010 | v1.4 | |
+| BC-2.16.013 | v1.1 | |
+| BC-2.16.014 | v1.4 | |
 | BC-2.02.009 | v1.5 | Revised BC (etherparse migration) |
 | Total BCs | 283 | 268 pre-ARP + 15 SS-16 |
 
@@ -213,8 +232,76 @@ v1.10; all 15 BC-INDEX titles verified against BC Invariant headings.
 
 ### Pass 5 — 2026-06-12 (sliced: A, B, C, D)
 
-**Status:** IN PROGRESS.
+**Method:** 4 parallel fresh-context slices.
+**Findings:** 0C / 1H / ~5M — mechanical (prose/anchor hygiene).
+**Novelty:** LOW.
 **Convergence counter:** 0/3.
+**Verdict:** NOT_CLEAN.
+
+Key findings: 1 HIGH (mechanical) + ~5 MEDIUM mechanical (prose/anchor hygiene items).
+Core semantics CONFIRMED CLEAN across all 4 slices.
+
+**Remediation:** All mechanical findings addressed.
+
+---
+
+### Pass 6 — 2026-06-12 (sliced: A, B, C, D)
+
+**Method:** 4 parallel fresh-context slices.
+**Findings:** Slice A CLEAN; 2H / 2M (other slices).
+**Novelty:** LOW.
+**Convergence counter:** 0/3.
+**Verdict:** NOT_CLEAN.
+
+Key findings: Slice A confirmed fully clean. 2 HIGH + 2 MEDIUM across remaining slices.
+
+**Remediation:** All findings addressed.
+
+---
+
+### Pass 7 — 2026-06-12 (sliced: A, B, C, D)
+
+**Method:** 4 parallel fresh-context slices.
+**Findings:** 0C / ~4H — anchor + version hygiene.
+**Novelty:** LOW.
+**Convergence counter:** 0/3.
+**Verdict:** NOT_CLEAN.
+
+Key findings: ~4 HIGH items — anchor reference hygiene and version hygiene (no new semantic issues).
+
+**Remediation:** All findings addressed.
+
+---
+
+### Pass 8 — 2026-06-12 (sliced: A, B, C, D)
+
+**Method:** 4 parallel fresh-context slices.
+**Findings:** 0C / 2 GENUINE HIGH / 4 MED + 1 brownfield obligation.
+**Novelty:** MEDIUM — two genuine HIGH findings surfaced.
+**Convergence counter:** 0/3.
+**Verdict:** NOT_CLEAN.
+
+Key findings:
+- GENUINE HIGH (1): Reachable `unreachable!()` panic on truncated ARP via lax decode path.
+  **FIXED:** ADR-008 Decision 3 v1.6 + arch-delta §2.2 v1.8 now route `LaxNetSlice::Arp`
+  explicitly.
+- GENUINE HIGH (1): `Ethernet2Slice::source()` return type scrutiny.
+  **CONFIRMED:** `[u8; 6]` by value — code correct, no fix required.
+- MEDIUM (4): Additional medium-severity findings; all addressed.
+- Brownfield obligation: IcsImpact "Impact (ICS)" mismatch recorded as STORY-114 F4
+  obligation.
+
+All passes 5–8 remediated. Core spec confirmed clean repeatedly across passes 3–8.
+
+---
+
+### HUMAN DECISION — 2026-06-12
+
+**Convergence endgame:** STRICT 3-consecutive-clean mode (human-elected 2026-06-12).
+Definition: zero findings of ANY severity (including LOW) across all 4 slices, 3 passes
+running.
+
+**Current counter: 0/3.** Pass 9 in progress.
 
 ---
 
