@@ -1,7 +1,7 @@
 ---
 artifact: module-criticality
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
-version: "1.1"
+version: "1.2"
 status: draft
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -9,6 +9,10 @@ frozen: true
 freeze_condition: Phase 5 gate pass
 frozen_at: "2026-06-02"
 frozen_reason: "Phase 5 long passed (gate closed prior to Phase 6). Frozen by spec-steward at Phase-6 gate close per module-criticality lifecycle rule (MUTABLE through Phase 5)."
+modified:
+  - date: 2026-06-13
+    actor: architect
+    reason: "Corpus-wide consistency audit remediation (PR-2): C-23 ArpAnalyzer (SS-16, HIGH tier) added — same feature-cycle precedent as C-22 Modbus addition in v1.1. C-24 Dnp3Analyzer (SS-15, HIGH tier) also added — was missing from file despite shipping v0.6.0. Version bump 1.1→1.2."
 ---
 
 # Module Criticality Classification
@@ -46,6 +50,8 @@ frozen_reason: "Phase 5 long passed (gate closed prior to Phase 6). Frozen by sp
 | Packet decoder | decoder.rs | Link-type gate is a security boundary (prevents processing of unexpected frame types). Decode bugs corrupt ParsedPacket fields flowing into all downstream analysis. |
 | MITRE catalog | mitre.rs | Incorrect technique ID routing produces findings that land in the wrong tactic bucket or in Uncategorized. Directly affects kill-chain analysis output. |
 | Modbus TCP analyzer | analyzer/modbus.rs (C-22, SS-14) | ICS/OT threat detection. Bugs in MBAP parsing or function-code classification produce incorrect findings or miss attack signals. Pure core functions (parse_mbap_header, classify_fc) verified by VP-022. Finding-emission logic (write-burst, T0814 Diagnostics) is high-criticality. Target kill rate >= 90%. [NEW — feature cycle issue #7, F2 delta] |
+| DNP3 TCP analyzer | analyzer/dnp3.rs (C-24, SS-15) | ICS/OT threat detection for DNP3 protocol (shipped v0.6.0). Bugs in carry-buffer parse or function-code classification produce incorrect findings or miss attack signals. Pure core functions verified by VP-023 (Kani). Findings: T1691.001/T0827/T0836/T0814. Target kill rate >= 90%. [NEW — feature cycle issue #8] |
+| ARP security analyzer | analyzer/arp.rs (C-23, SS-16) | Link-layer security analysis. Binding table (HashMap, LRU-bounded MAX_ARP_BINDINGS) maintains IP→MAC state; bugs corrupt spoof detection. D1 spoof MEDIUM→HIGH escalation requires correct rebind counting. VP-024 Kani obligation covers binding-table invariant and parse safety. Findings: T0830 (ICS LateralMovement) + T1557.002 (Enterprise CredentialAccess). Target kill rate >= 90%. [NEW — feature cycle issue #9, F2 delta] |
 
 ## MEDIUM Modules (>= 80% kill rate)
 

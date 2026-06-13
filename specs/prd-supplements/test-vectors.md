@@ -1,10 +1,10 @@
 ---
 document_type: prd-supplement-test-vectors
 level: L3
-version: "1.0"
+version: "1.9"
 status: draft
 producer: product-owner
-timestamp: 2026-05-20T00:00:00Z
+timestamp: 2026-06-12T02:00:00Z
 phase: 1a
 origin: brownfield
 inputs:
@@ -16,12 +16,16 @@ inputs:
   - src/analyzer/http.rs
   - src/analyzer/tls.rs
   - src/analyzer/dns.rs
+  - src/analyzer/arp.rs
   - src/findings.rs
   - src/reporter/terminal.rs
   - src/reporter/json.rs
   - src/mitre.rs
-input-hash: "592d3cb"
+input-hash: TBD
 traces_to: .factory/specs/prd.md
+modified:
+  - "v1.6: Pass-7 remediation F-C-P7-002: separated BC-2.10.005/BC-2.10.004 attributions — 'per BC-2.10.005 v1.10 (25 seeded IDs) and BC-2.10.004 v1.4 (17 tactic variants)'; was incorrectly citing BC-2.10.004 as the seeded-count source. — 2026-06-12"
+  - "v1.7: Pass-9 remediation F-C-P9-002: BC-2.10.004 version citation updated v1.4→v1.5 (file is at v1.5 per pass-7 F-C-P7-003 remediation). F-C-P9-004: SS-10 unknown-ID canary updated UNKNOWN999→T9999 and category happy-path→edge-case to match BC-2.10.005/BC-2.10.006 canonical canary and mitre.rs Kani verify_unknown_id_returns_none_no_panic. — 2026-06-12"
 ---
 
 # Canonical Test Vectors: wirerust
@@ -282,7 +286,12 @@ traces_to: .factory/specs/prd.md
 
 ### SS-10: MITRE ATT&CK Mapping (CAP-10)
 
-#### BC-2.10.005 -- technique_name for All 15 Seeded IDs
+#### BC-2.10.005 -- technique_name for All 25 Seeded IDs
+
+> Representative subset (8 of 25 total seeded IDs shown; full 25-ID catalog in BC-2.10.005
+> canonical test vectors). Added in F2 ARP feature: T0830 (ICS LateralMovement) and T1557.002
+> (Enterprise CredentialAccess). Full seeded count is 25 (12 Enterprise + 13 ICS) per
+> BC-2.10.005 v1.10 (25 seeded IDs) and BC-2.10.004 v1.5 (17 tactic variants). PLANNED — implemented in STORY-114.
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
@@ -292,13 +301,15 @@ traces_to: .factory/specs/prd.md
 | `technique_name("T1499.002")` | Some("Service Exhaustion Flood") | happy-path | Too-many-headers |
 | `technique_name("T1505.003")` | Some("Web Shell") | happy-path | Web-shell URI |
 | `technique_name("T1046")` | Some("Network Service Discovery") | happy-path | Admin panel |
-| `technique_name("UNKNOWN999")` | None | happy-path | BC-2.10.006 |
+| `technique_name("T0830")` | Some("Adversary-in-the-Middle") | happy-path | ARP AiTM, ICS (new F2 ARP) |
+| `technique_name("T1557.002")` | Some("Adversary-in-the-Middle: ARP Cache Poisoning") | happy-path | ARP Cache Poisoning, Enterprise (new F2 ARP) |
+| `technique_name("T9999")` | None | edge-case | BC-2.10.006; canonical canary aligns to mitre.rs Kani verify_unknown_id_returns_none_no_panic |
 
 #### BC-2.10.003/004 -- all_tactics_in_report_order
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| `all_tactics_in_report_order()` | Vec with exactly 16 MitreTactic variants; Reconnaissance first; ICS tactics last; no duplicates | happy-path | Kill-chain order: Recon, ResourceDev, InitAccess, Exec, Persist, PrivEsc, DefEvasion, CredAccess, Discovery, LateralMov, Collection, C2, Exfil, Impact, then ICS |
+| `all_tactics_in_report_order()` | Vec with exactly 17 MitreTactic variants; Reconnaissance first; ICS tactics last; no duplicates | happy-path | Kill-chain order: Recon, ResourceDev, InitAccess, Exec, Persist, PrivEsc, DefEvasion, CredAccess, Discovery, LateralMov, Collection, C2, Exfil, Impact [14 Enterprise], then IcsInhibitResponseFunction, IcsImpairProcessControl, IcsImpact [3 ICS — IcsImpact added F2 DNP3, index [16]] |
 
 ---
 
@@ -352,6 +363,70 @@ traces_to: .factory/specs/prd.md
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
 | `wirerust analyze /does/not/exist.pcap` | Exit code 1; error: "Target not found: /does/not/exist.pcap" | error | E-INP-006; anyhow::bail! |
+
+---
+
+### SS-16: ARP Security Analysis (CAP-16) [Feature #9 — v0.7.0]
+
+> Edge cases and boundary conditions for the ARP security analyzer.
+> Sources: BC-2.16.003 through BC-2.16.009 Edge Case tables (greenfield F2 contracts).
+> These supplement the canonical test vectors embedded in each BC file.
+
+#### ARP Storm Rate — Same-Second Denominator (BC-2.16.008 EC-002/EC-008)
+
+| Source MAC | Frame count | Timing | storm_rate | Expected outcome |
+|---|---|---|---|---|
+| AA:BB:CC:DD:EE:FF | 50 frames, all `ts = 100` (same second) | 60s window (same integer second; ts==window_start_ts) | 50 | Storm finding emitted; rate = 50/1 = 50 = threshold; count/1 avoids divide-by-zero |
+| AA:BB:CC:DD:EE:FF | 49 frames, all `ts = 100` | 60s window (same integer second; ts==window_start_ts) | 50 | No storm finding (49 < 50) |
+| AA:BB:CC:DD:EE:FF | 51st frame, same source MAC, `storm_emitted=true` | 60s window (same integer second; ts==window_start_ts) | 50 | No additional finding; one-shot guard active |
+| BB:CC:DD:EE:FF:00 | 50 frames, `ts = 100` | 60s window (same integer second; ts==window_start_ts) | 50 | Independent storm finding for distinct source MAC; per-MAC state |
+
+**Rate formula (ARP-AMB-003 RESOLVED in F2):** `rate = count_in_window / max(1, ts - window_start_ts)`. Timestamps are integer seconds (u32); there is no sub-second ambiguity. When `ts == window_start_ts` (all frames in the same integer second), `max(1, 0) = 1` and rate = count_in_window. When frames span N elapsed seconds, rate = count / N. The table above is arithmetically consistent with this formula. See BC-2.16.008 for complete test vectors including the 2-second burst case.
+
+#### GARP-That-Conflicts Upgrade Escalation (BC-2.16.014)
+
+| Binding table state | Frame | Expected findings |
+|---|---|---|
+| Empty | op=2, sender_ip=10.0.0.1==target_ip, sender_mac=AA:AA | GARP finding LOW (no conflict; BC-2.16.003) |
+| `{10.0.0.1 → BB:BB, rebind_count=0}` | op=2, sender_ip=10.0.0.1==target_ip, sender_mac=AA:AA | GARP finding MEDIUM + D1 spoof finding MEDIUM; T0830+T1557.002 on both |
+| `{10.0.0.1 → BB:BB, rebind_count=2, first_rebind_ts=5}` | op=2, sender_ip=10.0.0.1==target_ip, sender_mac=AA:AA, ts=30 (within 60s) | GARP finding MEDIUM + D1 spoof finding HIGH (rebind_count→3 ≥ threshold=3) |
+| `{10.0.0.1 → BB:BB}`, `spoof_high_emitted=true` | op=2 GARP conflict | GARP MEDIUM + D1 MEDIUM (HIGH one-shot guard active; BC-2.16.014 EC-005) |
+
+**Edge case note:** GARP-that-conflicts escalation is the only path where two findings are emitted for a single frame. F3 test vectors must verify both findings in emission order: GARP finding first, D1 spoof finding second.
+
+#### Binding-Table LRU Eviction Cap (BC-2.16.006)
+
+| Sequence | Expected `bindings.len()` | Notes |
+|---|---|---|
+| 65,535 distinct IPs inserted | 65,535 | Below cap; no eviction |
+| 65,536th distinct IP | 65,536 | Cap reached; no eviction yet |
+| 65,537th distinct IP | 65,536 | LRU evicted; len stays at 65,536 |
+| Evicted IP reappears | 65,536 | Treated as first-time; rebind_count=0; no spoof finding on re-appearance (BC-2.16.006 EC-005) |
+| Kani scaled: TEST_MAX_ARP_BINDINGS=8; 9 distinct IPs | ≤ 8 after each step | VP-024 Sub-property D |
+
+**Edge case note (ARP-AMB-001):** The LRU substrate (HashMap-ordered LRU vs BTreeMap vs custom) is an F3 implementation choice. The cap invariant (`len ≤ MAX_ARP_BINDINGS`) is specified; the substrate is not. Kani scaled proof uses `#[kani::unwind(12)]` for 9-iteration loop.
+
+#### Malformed ARP Frame Detection (BC-2.16.009)
+
+| ARP payload characteristics | `extract_arp_frame` result | D11 finding | Notes |
+|---|---|---|---|
+| hw_type=Ethernet, proto=IPv4, hlen=6, plen=4 (well-formed) | `Some(ArpFrame)` | None | Normal path (BC-2.16.001 / BC-2.16.002) |
+| hw_type=Ethernet, proto=IPv4, hlen=8, plen=4 (non-standard MAC len) | `None` | LOW finding | E-DEC-004; ARP-AMB-002 re: call site |
+| hw_type=0x0006 (IEEE 802), proto=IPv4, hlen=6, plen=4 | `None` | LOW finding | E-DEC-004 |
+| hw_type=Ethernet, proto=0x86DD (IPv6), hlen=6, plen=16 | `None` | LOW finding | E-DEC-004 |
+| hw_addr_size=0 | `None` | LOW finding | Zero-length HW address |
+| proto_addr_size=0 | `None` | LOW finding | Zero-length protocol address |
+| etherparse rejects frame entirely (bad EtherType, truncated) | Err before ArpPacketSlice | None (D11 not triggered) | BC-2.16.009 EC-007: decoder error path, not D11 |
+
+**Edge case note (ARP-AMB-004 — RESOLVED in F2):** Malformed frames (returning `None` from `extract_arp_frame`) are excluded from `frames_analyzed`; they are counted separately in the `malformed_frames` key (BC-2.16.010 v1.5). This is no longer an F3 implementation choice — the decision was made in F2 Pass 1 remediation. See spec-changelog §[arp-f2-pass1-remediation-2026-06-12]. (Mirrors the ARP-AMB-003 RESOLVED note above.)
+
+#### ARP Extraction — SLL Capture (outer_src_mac = None) (BC-2.16.001 EC-003)
+
+| `outer_src_mac` | Frame | Expected `ArpFrame.outer_src_mac` | D12 check |
+|---|---|---|---|
+| `Some([0xAA,0xBB,0xCC,0xDD,0xEE,0xFF])` matching sender_mac | op=1 ARP Request | `Some([0xAA,...])` | D12 check passes; no mismatch finding |
+| `Some([0x11,0x22,0x33,0x44,0x55,0x66])` ≠ sender_mac | op=1 ARP Request with sender_mac=AA:AA | `Some([0x11,...])` | D12 check fires MEDIUM finding (BC-2.16.007) |
+| `None` (SLL capture) | op=1 ARP Request | `None` | D12 check silently skipped; no mismatch finding |
 
 ---
 

@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.6"
+version: "1.19"
 status: draft
 producer: product-owner
-timestamp: 2026-06-10T00:00:00Z
+timestamp: 2026-06-12T02:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -14,7 +14,7 @@ traces_to: .factory/specs/prd.md
 > **Navigation:** This file is the master index of all BC-S.SS.NNN contracts. Each entry
 > links to the individual BC file. BCs are sharded into per-subsystem directories (ss-NN/).
 >
-> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 268 entries.
+> All BCs are marked [WRITTEN]. Body files have been verified on disk for all 283 entries.
 > 218 draft ingestion BCs were produced; 6 were retired during the remediation cycle (BC-ABS-004
 > through BC-ABS-009) leaving 212 active L3 BCs from ingestion. BC-2.11.020 through BC-2.11.024
 > were added in adversarial-review pass-4 (finding H-1: CsvReporter coverage gap), bringing
@@ -24,12 +24,16 @@ traces_to: .factory/specs/prd.md
 > the total to 244 active L3 BCs. BC-2.15.001 through BC-2.15.022 were added in Feature Mode
 > F2 (issue #8 DNP3/ICS analyzer) bringing the total to 266 active L3 BCs. BC-2.15.023 and
 > BC-2.15.024 were added in Feature Mode F2 (issue #8 research must-adds: DISABLE_UNSOLICITED
-> abuse + malformed/structural anomaly) bringing the total to 268 active L3 BCs.
+> abuse + malformed/structural anomaly) bringing the total to 268 active L3 BCs. BC-2.02.009
+> was revised v1.4→v1.5 in Feature Mode F2 (issue #9 ARP analyzer, ADR-008 Decision 1:
+> three-way ARP/non-Ethernet-ARP/non-IP postcondition; not a new BC). BC-2.16.001 through
+> BC-2.16.015 were added in Feature Mode F2 (issue #9 ARP security analyzer) bringing the
+> total to 283 active L3 BCs.
 >
 > **Status as of Phase 1a (current):**
-> - Fully written: 268 BCs (all body files verified on disk)
+> - Fully written: 283 BCs (all body files verified on disk)
 > - Remaining: 0 BCs
-> - PRD index (prd.md): UPDATED (v1.6) -- all 268 L3 BC IDs are registered
+> - PRD index (prd.md): UPDATED (v1.15) -- all 283 L3 BC IDs are registered
 
 ## ss-01: PCAP File Ingestion (CAP-01)
 
@@ -56,7 +60,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.02.006 | Decode Linux SLL (Cooked) TCP Packets | P0 | [WRITTEN] | BC-DEC-006 |
 | BC-2.02.007 | Reject Malformed Input Bytes with anyhow Error (No Panic) | P0 | [WRITTEN] | BC-DEC-007 |
 | BC-2.02.008 | Reject Unsupported Link Types in decode_packet | P1 | [WRITTEN] | BC-DEC-008 |
-| BC-2.02.009 | Surface No IP Layer Found Error for Non-IP Frames | P1 | [WRITTEN] | BC-DEC-009 |
+| BC-2.02.009 | Non-IP Non-ARP Frames Return No-IP-Layer Error; ARP Frames Return DecodedFrame::Arp | P1 | [WRITTEN] | BC-DEC-009 | <!-- v1.6: F2 ARP delta (ADR-008 Decision 1): three-way postcondition; ARP→DecodedFrame::Arp, non-Ethernet/IPv4 ARP→Err("Non-Ethernet/IPv4 ARP frame"), non-IP non-ARP→Err("No IP layer found") -->
 | BC-2.02.010 | Classify ICMP as Protocol::Icmp with TransportInfo::None | P1 | [WRITTEN] | BC-DEC-010 |
 | BC-2.02.011 | Classify Other IP Protocols as Protocol::Other(byte) | P1 | [WRITTEN] | BC-DEC-011 |
 | BC-2.02.012 | app_protocol_hint Returns Service Strings from Port Number | P1 | [WRITTEN] | BC-DEC-012 |
@@ -239,13 +243,13 @@ traces_to: .factory/specs/prd.md
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
 | BC-2.10.001 | MitreTactic Display Renders Enterprise Tactics with Canonical Spacing | P0 | [WRITTEN] | BC-MIT-001 |
-| BC-2.10.002 | ICS Tactics Render Unprefixed | P1 | [WRITTEN] | BC-MIT-002 |
+| BC-2.10.002 | ICS Tactics Render Unprefixed | P1 | [WRITTEN] | BC-MIT-002 | <!-- v1.4: F-C-P8-M01: Architecture Anchors and Source Evidence re-anchored :85-87→:89-91 (IcsInhibitResponseFunction :89, IcsImpairProcessControl :90, IcsImpact :91) -->
 | BC-2.10.003 | all_tactics_in_report_order Returns Kill-Chain Order First Then ICS | P0 | [WRITTEN] | BC-MIT-003 |
 | BC-2.10.004 | all_tactics_in_report_order Contains Every Variant Exactly Once | P0 | [WRITTEN] | BC-MIT-004 |
-| BC-2.10.005 | technique_name Returns Some for Every Seeded ID (23 Total) | P0 | [WRITTEN] | BC-MIT-005 | <!-- v1.7: count 21->23; T1691.001+T0827 added (DNP3 F2); pass-1 adv fix C-1+I-6 -->
+| BC-2.10.005 | technique_name Returns Some for Every Seeded ID (25 Total) | P0 | [WRITTEN] | BC-MIT-005 | <!-- v1.10: count 23->25; T0830 (ICS)+T1557.002 (Enterprise) added (ARP F2); 12E+13I split; PLANNED forward-declaration added -->
 | BC-2.10.006 | technique_name Returns None for Unknown IDs | P0 | [WRITTEN] | BC-MIT-006 |
 | BC-2.10.007 | technique_tactic Returns Correct Tactic for Every Seeded ID | P0 | [WRITTEN] | BC-MIT-007 |
-| BC-2.10.008 | All Emitted Technique IDs Resolve in Lookup | P0 | [WRITTEN] | BC-MIT-008 | <!-- v1.8: grep pattern mitre_technique:Some->mitre_techniques:vec!; T0888 replaces T0846 in emitted list; 15 total emitted (T1691.001+T0827 added DNP3 F3); ADR-006 / Decision-12 F2 revision -->
+| BC-2.10.008 | All Emitted Technique IDs Resolve in Lookup | P0 | [WRITTEN] | BC-MIT-008 | <!-- v1.12: 17 emitted IDs; T0830 (ICS)+T1557.002 (Enterprise) added (ARP F2); 7E+10I split; PLANNED forward-declaration in STORY-114 -->
 | BC-2.10.009 | MitreTactic is #[non_exhaustive] | P2 | [WRITTEN] | BC-MIT-009 |
 
 ## ss-11: Reporting and Output (CAP-11)
@@ -335,21 +339,21 @@ traces_to: .factory/specs/prd.md
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
 | BC-2.14.001 | MBAP Header Accepted for Well-Formed 8-Byte-Minimum ADU | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.002 | MBAP Header Rejected for ADU Shorter Than 8 Bytes | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.003 | MBAP Header Rejected When Protocol ID is Not 0x0000 | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.004 | MBAP Header Rejected When Length is Outside [2, 254] | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.005 | classify_fc Is Total Over All 256 FC Values (Covers Read, Write, Diagnostic, Exception, and Unknown Classes) | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.002 | MBAP Header Rejected for ADU Shorter than 8 Bytes (Truncation Safety) | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.003 | MBAP ADU Rejected When Protocol ID Is Not 0x0000 (3-Point Gate: Protocol Check — Bail-Out Policy) | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.004 | MBAP ADU Rejected When Length Is Outside [2, 254] (3-Point Gate: Length Check) | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.005 | classify_fc Is Total Over All 256 FC Values — Complete Classification Enum | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.006 | Exception Response Detection — FC High Bit Set Identifies Exception and Recovers Original FC | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.007 | Write-Class FC Classification — State-Changing Function Codes Identified as Elevated-Risk | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.008 | Diagnostic-Class FC Classification and Sub-Function Dispatch (0x08 and 0x2B) | P1 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.009 | Request PDU Inserted into Per-Flow Pending Table Keyed on (Transaction ID, Unit ID) | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.010 | Response PDU Matched Against Pending Table and Entry Removed on FC Echo Match | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.011 | Exception Response PDU Attributed to Originating Request FC via Pending Table Lookup | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.012 | Pending Table Bounded to MAX_PENDING_TRANSACTIONS=256; New Requests Dropped (Not Evicting) When Full | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.011 | Exception Response Attributed to Originating Request FC via (Transaction ID, Unit ID) Lookup | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.012 | Pending Table Bounded to MAX_PENDING_TRANSACTIONS=256; New Requests Dropped When Full | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.013 | Write-Class FC in Request Direction Emits Multi-Tag Finding Carrying T1692.001 and Applicable Technique Tags | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: co-emission model; T0855 co-included in multi-tag vec; ADR-006 Decision-13; v2.3: T0855→T1692.001 (v19 remap, issue #222) -->
 | BC-2.14.014 | Write FC 0x06/0x10/0x16/0x17 in Request Direction Emits Finding Tagged ["T1692.001","T0836"] | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: single multi-tag finding replaces two separate findings; ADR-006 Decision-13; v2.1: 0x17 added per BC-DISCREPANCY-001; v2.3: T0855→T1692.001 (v19 remap, issue #222) -->
 | BC-2.14.015 | Write FC to Coil Output Only ({0x05, 0x0F}) Emits Finding Tagged ["T1692.001","T0835"] | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: single multi-tag finding; no suppression; ADR-006 Decision-13; v2.3: T0855→T1692.001 (v19 remap, issue #222) -->
-| BC-2.14.016 | Coordinated Write Sequence to Holding Registers Within 5-Second Window Tags the Per-PDU Finding with T0831 | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: T0831 is co-tagged inline on the per-PDU write finding (mitre_techniques: ["T0855","T0836","T0831"]); no separate T0831 Finding object; ADR-006 Decision-13 §13.5; v2.2: T0855→T1692.001 (v19 remap, issue #222) -->
+| BC-2.14.016 | Coordinated Write Sequence to Holding Registers Within 5-Second Window Tags the Per-PDU Finding with T0831 | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: T0831 is co-tagged inline on the per-PDU write finding (mitre_techniques: ["T1692.001","T0836","T0831"]); no separate T0831 Finding object; ADR-006 Decision-13 §13.5; v2.2: T0855→T1692.001 (v19 remap, issue #222) -->
 | BC-2.14.017 | Write-Rate Exceeding Either Burst or Sustained Threshold Emits T0806 + T1692.001 Finding | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: dual-window (1s burst / >=2s sustained); each fires at most once per window; ADR-006 Decision-11; v2.4: T0855→T1692.001 (v19 remap, issue #222) -->
 | BC-2.14.018 | Diagnostics FC 0x08 Sub-Function 0x0004 or 0x0001 Emits T0814 Denial of Service Finding | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.019 | Exception Response Anomaly — Burst of Exception Codes Emits Anomaly Finding for Recon/Scanning | P0 | [WRITTEN] | feature-007-F2 |
@@ -376,7 +380,7 @@ traces_to: .factory/specs/prd.md
 > BC 024: Research must-add — malformed/structural DNP3 anomaly from malformed_in_window threshold → T0814 (Crain-Sistrunk coverage).
 > Feature: issue-008-dnp3-analyzer; ADR-007; introduced v0.6.0-feature-008.
 > **New MITRE techniques (F2 DNP3):** T1691.001 (IcsInhibitResponseFunction — inferred block command) + T0827 (IcsImpact — derived loss-of-control correlated finding).
-> **Research must-adds (2026-06-10 post-gate):** BC-2.15.023 and BC-2.15.024 use existing T0814 — no catalog change; MITRE counts remain 23 seeded / 15 emitted / 8 catalogue-only.
+> **Research must-adds (2026-06-10 post-gate):** BC-2.15.023 and BC-2.15.024 use existing T0814 — no catalog change; MITRE counts remain 23 seeded / 15 emitted / 8 catalogue-only (counts current as of issue #8 post-gate; raised to 25 seeded / 17 emitted by issue #9 ARP — see BC-2.10.005/008; PLANNED until STORY-114).
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
@@ -405,6 +409,43 @@ traces_to: .factory/specs/prd.md
 | BC-2.15.023 | Unsolicited-Response Enable/Disable Abuse — FC 0x15/0x14 Observed Emits T0814 | P1 | [WRITTEN] | feature-008-F2 |
 | BC-2.15.024 | Malformed/Structural DNP3 Anomaly — malformed_in_window Threshold Emits T0814 | P1 | [WRITTEN] | feature-008-F2 |
 
+## ss-16: ARP Security Analysis (CAP-16) [Feature #9 — ADR-008]
+
+> 15 BCs total; 15 fully written; 0 planned.
+> BCs 001-002: ARP frame extraction (Group A — parse).
+> BCs 003-004: GARP detection and spoof detection / binding-table update (Group B — detection).
+> BC-005: Binding-table update (last-seen MAC wins) (Group B — state).
+> BC-006: Binding-table cap (MAX_ARP_BINDINGS=65,536 via LRU) (Group B — resource).
+> BC-007: D12 L2/L3 sender mismatch (Group C — detection).
+> BC-008: D3 ARP storm rate detection (Group D — detection).
+> BC-009: D11 malformed ARP finding (Group E — detection).
+> BC-010: summarize() stats (Group F).
+> BCs 011-013: CLI integration — --arp flag, --arp-spoof-threshold, --arp-storm-rate (Group G).
+> BC-014: GARP-that-conflicts upgrade to D1 spoof finding (Group H — escalation).
+> BC-015: Decode-vs-analysis separation architectural invariant (Group I — invariant).
+> Feature: issue-009-arp-security-analyzer; ADR-008; introduced v0.7.0-feature-arp.
+> **MITRE techniques:** T0830 (Adversary-in-the-Middle, `MitreTactic::LateralMovement`),
+> T1557.002 (ARP Cache Poisoning, `MitreTactic::CredentialAccess`). No new MitreTactic
+> variants added (both variants already exist in mitre.rs per arp-architecture-delta.md §5).
+
+| BC ID | Title | Priority | Status | Origin |
+|-------|-------|----------|--------|--------|
+| BC-2.16.001 | ARP Request Frame Correctly Parsed from ArpPacketSlice | P0 | [WRITTEN] | feature-009-F2 |
+| BC-2.16.002 | ARP Reply Frame Correctly Parsed from ArpPacketSlice | P0 | [WRITTEN] | feature-009-F2 |
+| BC-2.16.003 | Gratuitous ARP Detection — sender_ip == target_ip Classified as GARP | P0 | [WRITTEN] | feature-009-F2 | <!-- v1.4: F-B9-L01: EC-009 moved from between EC-003/EC-004 to end after EC-008 — restores monotonic numbering; all EC content unchanged -->
+| BC-2.16.004 | ARP Spoof Detection — IP→MAC Rebind Emits MEDIUM then HIGH Finding | P0 | [WRITTEN] | feature-009-F2 |
+| BC-2.16.005 | Binding-Table Update — Last-Seen MAC Wins for a Given IP | P0 | [WRITTEN] | feature-009-F2 | <!-- v1.4: F-B8-M01: PC1 tightened — sender_ip excludes both 0.0.0.0 and 255.255.255.255 per Invariant 5; test-infra note for VP-024 Sub-C (new_for_test, process_arp_for_test, bindings_snapshot) added -->
+| BC-2.16.006 | Binding-Table Cap — Table Never Exceeds MAX_ARP_BINDINGS via LRU Eviction | P0 | [WRITTEN] | feature-009-F2 |
+| BC-2.16.007 | D12 L2/L3 Sender Mismatch — Ethernet Src MAC != ARP Sender HW Addr | P0 | [WRITTEN] | feature-009-F2 |
+| BC-2.16.008 | D3 ARP Storm Rate Detection — Source MAC Exceeds ARP_STORM_RATE_DEFAULT Frames/Sec | P1 | [WRITTEN] | feature-009-F2 |
+| BC-2.16.009 | D11 Malformed ARP — Non-Ethernet/IPv4 HW/Proto Address Sizes Emit LOW Finding | P1 | [WRITTEN] | feature-009-F2 | <!-- v1.3: F-B8-L02: PC4 --arp-absent clause clarified — malformed_frames increments unconditionally outside the analysis gate; note distinguishes PC4's outer precondition scope from counter behavior -->
+| BC-2.16.010 | ArpAnalyzer::summarize() Returns AnalysisSummary with Required Keys (11 Keys) | P1 | [WRITTEN] | feature-009-F2 | <!-- v1.6: corpus-consistency-audit-2026-06-13 PR-1a/PR-1b: H1 enriched with "(11 Keys)" per Criterion-75; version suffix "; v1.5" removed from title (version belongs in frontmatter only) -->
+| BC-2.16.011 | --arp CLI Flag Gates ARP Security Analysis | P0 | [WRITTEN] | feature-009-F2 |
+| BC-2.16.012 | --arp-spoof-threshold Overrides SPOOF_REBIND_ESCALATION_DEFAULT | P1 | [WRITTEN] | feature-009-F2 |
+| BC-2.16.013 | --arp-storm-rate Overrides ARP_STORM_RATE_DEFAULT | P1 | [WRITTEN] | feature-009-F2 |
+| BC-2.16.014 | GARP-That-Conflicts Upgrades to MEDIUM and Triggers D1 Spoof Finding | P0 | [WRITTEN] | feature-009-F2 |
+| BC-2.16.015 | Decode-vs-Analysis Separation — DecodedFrame::Arp Always Produced; Analysis Gated on --arp | P0 | [WRITTEN] | feature-009-F2 |
+
 ---
 
 ## Ingestion-to-L3 Mapping Coverage
@@ -412,13 +453,13 @@ traces_to: .factory/specs/prd.md
 | Ingestion group | Count | Mapped to L3 |
 |----------------|-------|--------------|
 | BC-RDR-001..008 | 8 | BC-2.01.001..008 |
-| BC-DEC-001..015 | 15 | BC-2.02.001..015 |
-| BC-RAS-001..054 | 54 | BC-2.04.001..054 |
+| BC-DEC-001..015 | 15 | BC-2.02.001..015 (BC-2.02.009 revised v1.4→v1.5 in F2 ARP delta) |
+| BC-RAS-001..054 + issue-#100 F2 | 55 | BC-2.04.001..055 |
 | BC-DSP-001..009 | 9 | BC-2.05.001..009 |
 | BC-HTTP-001..026 | 26 | BC-2.06.001..026 |
 | BC-TLS-001..037 | 37 | BC-2.07.001..037 |
 | BC-DNS-001..004 | 4 | BC-2.08.001..004 |
-| BC-FND-001..006 | 6 | BC-2.09.001..006 |
+| BC-FND-001..006 + issue-#100 F2 | 7 | BC-2.09.001..007 |
 | BC-MIT-001..009 | 9 | BC-2.10.001..009 |
 | BC-RPT-001..019 | 19 | BC-2.11.001..019 |
 | pass-4 H-1 (CsvReporter) | 5 | BC-2.11.020..024 |
@@ -427,8 +468,9 @@ traces_to: .factory/specs/prd.md
 | BC-ABS-001..010 | 10 | BC-2.13.001..004 (6 ABS retired by remediation cycle) |
 | feature-007-F2 Modbus/ICS (greenfield) | 25 | BC-2.14.001..025 |
 | feature-008-F2 DNP3/ICS (greenfield) | 24 | BC-2.15.001..024 |
+| feature-009-F2 ARP security (greenfield) | 15 | BC-2.16.001..015 |
 
-**Total BCs: 268. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows.**
+**Total BCs: 283. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs; + 15 Feature Mode F2 additions (BC-2.16.001..015) for issue #9 ARP security analyzer = 283 active BCs. BC-2.02.009 was revised v1.4→v1.5 (ADR-008 Decision 1, three-way postcondition) — a revision, not a new BC; count unchanged at each prior step. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows; SS-16 adds 15 greenfield rows.**
 
 Note: BC-ABS-004 (--hosts unwired), BC-ABS-005 (--services unwired), BC-ABS-006 (--json
 file unwired), BC-ABS-007 (CSV unwired), BC-ABS-009 (no e2e CLI tests) are RETIRED --

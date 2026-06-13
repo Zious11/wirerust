@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: tooling-selection
 traces_to: ARCH-INDEX.md
-version: "1.1"
+version: "1.2"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -13,6 +13,9 @@ modified:
   - date: 2026-06-08
     actor: spec-steward
     reason: "Phase-6 gate close: status draft→verified."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-12 corpus debt cleanup (F-2): Kani 'Properties targeted' list expanded from 8 to 11 VPs — added VP-022 (Modbus MBAP parse safety; analyzer/modbus.rs; shipped v0.6.0), VP-023 (DNP3 data-link frame parse safety; analyzer/dnp3.rs; shipped v0.6.0), VP-024 (ARP frame parse safety and binding-table invariant; analyzer/arp.rs; planned/draft). Kani scope bullets updated to match. Total now reflects 11 Kani VPs per VP-INDEX."
 ---
 
 # Tooling Selection
@@ -29,7 +32,7 @@ wirerust is single-crate Rust 2024 edition, MSRV 1.91, stable toolchain only.
 primary tool for properties that must hold for ALL inputs within a bounded domain:
 state machine transitions, arithmetic invariants, and pointer-safety proofs.
 
-**Properties targeted:** VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015
+**Properties targeted:** VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022, VP-023, VP-024 (draft/planned)
 
 **Setup:** Add `[dev-dependencies] kani = { ... }` and `#[cfg(kani)] #[kani::proof]`
 harnesses inline in the relevant modules or in `tests/`. Run with `cargo kani`.
@@ -46,6 +49,9 @@ require careful scoping.
 - `dispatcher.rs`: content-first precedence (VP-004)
 - `analyzer/tls.rs`: SNI arm selection (VP-005)
 - `mitre.rs`: technique ID format (VP-007)
+- `analyzer/modbus.rs`: MBAP parse safety and function-code boundary classification (VP-022) [shipped v0.6.0]
+- `analyzer/dnp3.rs`: data-link frame parse safety and function-code classification (VP-023) [shipped v0.6.0]
+- `analyzer/arp.rs` + `decoder.rs`: ARP frame parse safety and binding-table invariant (VP-024) [planned/draft]
 
 ### proptest (Property-Based Testing)
 

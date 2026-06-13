@@ -5,6 +5,11 @@ cap_id: CAP-11
 title: Reporting and Output
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
+version: "1.1"
+modified:
+  - date: 2026-06-12
+    actor: product-owner
+    reason: "Pass-10 remediation F-D10-L02: stale '16 MitreTactic variants' corrected to '17 MitreTactic variants (14 Enterprise + 3 ICS-unique incl. IcsImpact)' per cap-10 v1.6 and BC-2.10.004 v1.5."
 ---
 
 # CAP-11: Reporting and Output
@@ -65,7 +70,7 @@ Color testing is documented as intentionally untested (ADR 0003 amendment recomm
 BC-RPT-018 keep-MEDIUM).
 
 **MITRE tactic grouping:** rendered when `show_mitre_grouping = true`. Uses
-`all_tactics_in_report_order()` for stable iteration over the 16 MitreTactic variants.
+`all_tactics_in_report_order()` for stable iteration over the 17 MitreTactic variants.
 
 **U+2192 in output (BC-RAS-049):** The finalize segment-limit finding uses `->` in its
 display path, which in context involves U+2192 (RIGHT ARROW). This is NOT ASCII `->`. Any

@@ -1,7 +1,7 @@
 ---
 artifact: architecture-index
 level: L4
-version: "1.1"
+version: "1.4"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,18 @@ modified:
   - date: 2026-06-10
     actor: architect
     reason: "Issue #8 research-validated scope additions: SS-15 BC count updated 22→24 for BC-2.15.023 (ENABLE/DISABLE_UNSOLICITED→T0814) and BC-2.15.024 (malformed-frame anomaly→T0814). ADR-007 Decision 5 extended to match. No VP/catalog/count change."
+  - date: 2026-06-12
+    actor: architect
+    reason: "F2 delta ARP security analyzer: SS-16 added to Subsystem Registry (CAP-16, analyzer/arp.rs, TBD BC count); ADR-008 added to ADR table; VP-024 to be added to arch section files in this burst."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Corpus-wide consistency audit remediation (CD-3/CD-4/CD-5): SS-04 BC count 54→55 (BC-2.04.055 added F2 issue #100); SS-09 BC count 6→7 (BC-2.09.007 added F2 issue #100); SS-16 BC count TBD→15 (all 15 BC-2.16.001..015 written, F2 issue #9 complete); stale inline comment on SS-16 row removed."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-12 corpus debt cleanup: Document Map '21 components C-1..C-21' corrected to '24 components C-1..C-24' (C-22 Modbus, C-23 ARP, C-24 DNP3 shipped); O-04 Architecture Debt entry corrected '9 MITRE techniques' → '8 MITRE techniques (SEEDED 25 − EMITTED 17 = 8; domain-debt.md, PRD all say 8; the 9 was pre-F2-ARP stale)' (F-1 and F-D12-H01)."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-13 corpus remediation (F-A13-005): module-criticality.md added to Architecture Section Document Map with its actual path (.factory/specs/module-criticality.md). Previously absent from the Document Map despite being referenced by architecture peers."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -49,13 +61,14 @@ network interfaces. The binary IS the complete deployment unit.
 | File | Contents | Tokens (est.) |
 |------|----------|---------------|
 | `system-overview.md` | 5-layer pipeline narrative, data flow, key constraints | ~900 |
-| `module-decomposition.md` | 21 components C-1..C-21 mapped to source files and SS-NN | ~1100 |
+| `module-decomposition.md` | 24 components C-1..C-24 mapped to source files and SS-NN | ~1100 |
 | `dependency-graph.md` | Import DAG, the one accepted cycle (L2<->L3), external crates | ~800 |
 | `api-surface.md` | Public API: traits, structs, CLI surface, no network interfaces | ~900 |
 | `verification-architecture.md` | Provable properties catalog, P0/P1 list, tooling selection | ~1100 |
 | `purity-boundary-map.md` | Pure core vs effectful shell classification per module | ~800 |
 | `tooling-selection.md` | Kani, proptest, cargo-fuzz, cargo-mutants rationale | ~600 |
 | `verification-coverage-matrix.md` | VP-to-module coverage table | ~700 |
+| `.factory/specs/module-criticality.md` | Module kill-rate tier classification (CRITICAL/HIGH/MEDIUM/LOW) for all 24 components | ~500 |
 
 
 ## Subsystem Registry
@@ -68,18 +81,19 @@ The SS-NN numbering matches the PRD section scheme (bc-2.NN.NNN).
 |-------|------|-------------|---------------------|----------|
 | SS-01 | PCAP Ingestion | CAP-01 | reader.rs | 8 |
 | SS-02 | Packet Decoding | CAP-02 + CAP-03 | decoder.rs | 15 |
-| SS-04 | TCP Reassembly | CAP-04 | reassembly/{mod,flow,segment,handler,lifecycle,config,stats}.rs | 54 |
+| SS-04 | TCP Reassembly | CAP-04 | reassembly/{mod,flow,segment,handler,lifecycle,config,stats}.rs | 55 |
 | SS-05 | Protocol Dispatch | CAP-05 | dispatcher.rs, analyzer/mod.rs | 9 |
 | SS-06 | HTTP Analysis | CAP-06 | analyzer/http.rs | 26 |
 | SS-07 | TLS Analysis | CAP-07 | analyzer/tls.rs | 37 |
 | SS-08 | DNS Analysis | CAP-08 | analyzer/dns.rs | 4 |
-| SS-09 | Finding Emission | CAP-09 | findings.rs | 6 |
+| SS-09 | Finding Emission | CAP-09 | findings.rs | 7 |
 | SS-10 | MITRE Mapping | CAP-10 | mitre.rs | 9 |
 | SS-11 | Reporting | CAP-11 | reporter/{mod,json,terminal,csv}.rs | 24 |
 | SS-12 | CLI / Entry | CAP-12 | main.rs, cli.rs, lib.rs, summary.rs | 21 |
 | SS-13 | Absent Behaviors | CAP-12 | cli.rs (flag parse only) | 4 | <!-- intentional: SS-13 is a sub-classification of CAP-12 (absent/intentionally-excluded behaviors), not a separate capability; see prd.md §2.13 -->
 | SS-14 | Modbus/ICS Analysis | CAP-14 | analyzer/modbus.rs | 25 | <!-- Feature cycle issue #7; ADR-005; BC-2.14.001..025 all written; F2 adversarial review complete -->
 | SS-15 | DNP3/ICS Analysis | CAP-15 | analyzer/dnp3.rs | 24 | <!-- Feature cycle issue #8; ADR-007; BC-2.15.001..024 written (F2 complete + issue #8 research-validated scope additions: BC-2.15.023 ENABLE/DISABLE_UNSOLICITED→T0814, BC-2.15.024 malformed-frame anomaly→T0814) -->
+| SS-16 | ARP Security Analysis | CAP-16 | analyzer/arp.rs | 15 |
 
 > SS-03 is intentionally absent. See "CAP-03 / ss-02 Ruling" below.
 
@@ -159,6 +173,7 @@ or any network-related call. This is the basis for the "offline" forensic-tool g
 | ADR 0005 | 2026-06-09 | Binary ICS protocol integration (Modbus TCP): port-only classification exception, PDU-oriented manual parsing, full transaction-correlation state, ICS-matrix MITRE representation | SS-05, SS-10, SS-14 |
 | ADR 0006 | 2026-06-09 | Multi-technique Finding attribution: `mitre_technique: Option<String>` → `mitre_techniques: Vec<String>`; one-finding-N-tags aligned with Sigma/Elastic standard; volume control via aggregation not tag-suppression; v0.3.0 breaking schema change | SS-09, SS-10, SS-11, SS-14 |
 | ADR 0007 | 2026-06-10 | DNP3 TCP integration (Issue #8): port-20000 Rule 6 port-fallback classification, `DispatchTarget::Dnp3`, carry-buffer + CRC-block-skip parse, FIR=1-only app-layer extract, corrected MITRE technique set (T1691.001+T0827 new; T0803/T0855 revoked in ics-attack-19.1), new `MitreTactic::IcsImpact` variant, VP-004 oracle extension, VP-007 SEEDED 21→23 | SS-05, SS-10, SS-15 |
+| ADR 0008 | 2026-06-12 | ARP link-layer integration: `DecodedFrame` enum from `decode_packet` (Ip/Arp variants), `ArpFrame` struct, etherparse 0.20 `NetSlice::Arp`/`LaxNetSlice::Arp` match fix, `ArpAnalyzer` binding table (MAX_ARP_BINDINGS=65536 LRU), 5 detections (D1 spoof/D2 GARP/D3 storm/D11 malformed/D12 L2/L3 mismatch), MITRE T0830+T1557.002, VP-007 SEEDED 23→25, BC-2.02.009 revised | SS-02, SS-10, SS-16 |
 
 ADRs 0001–0004 are canonical and reside in `docs/adr/`. ADR 0005 onwards reside in
 `.factory/specs/architecture/decisions/`. Architecture section files reference them by ID
@@ -175,7 +190,7 @@ summary:
 |------|--------|----------|
 | O-01: Finding.timestamp universally None | Open | Medium (forensic gap) |
 | O-03: Thresholds not empirically calibrated | Open | Low (P2) |
-| O-04: 9 MITRE techniques staged but never emitted | Open | Low (documentation) |
+| O-04: 8 MITRE techniques staged but never emitted (SEEDED 25 − EMITTED 17 = 8 catalogue-only) | Open | Low (documentation) |
 | O-05: reassembly/mod.rs still ~691 LOC | Open | Low (partially closed) |
 | O-06: Weak-cipher evidence vec unbounded | Open | Medium (NFR-RES-023) |
 | Smell #4: L2<->L3 trait cycle (ADR 0002 accepted) | Advisory | Low |

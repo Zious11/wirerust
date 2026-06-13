@@ -1,18 +1,26 @@
 ---
 document_type: adr
 adr_id: ADR-005
-status: proposed
+status: accepted
+accepted_date: 2026-06-13
 date: 2026-06-09
 modified:
   - date: 2026-06-10
     actor: architect
     reason: "MITRE ATT&CK-ICS v19 remap: T0855→T1692.001 in all live spec body references (issue #222)."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-12 corpus debt cleanup (F-5/OBS-1): status proposed→accepted. src/analyzer/modbus.rs, DispatchTarget::Modbus, and mitre_techniques: Vec<String> are all shipped. Partial-supersession note: ADR-006 supersedes the mitre_technique: Option<String> field referenced in Decisions 4 and Consequences (multi-technique attribution); this is an intentional partial supersession and does not warrant a full superseded_by link because ADR-005's core decisions (port classification, PDU parsing, transaction correlation, ICS matrix) remain authoritative and unaffected. The superseded_by field therefore remains null; the partial-supersession scope is documented in the ADR-005 body preamble."
 subsystems_affected:
   - SS-05
   - SS-10
   - SS-14
 supersedes: null
 superseded_by: null
+# Note: ADR-006 partially supersedes ADR-005 Decisions 4/Consequences (mitre_technique:
+# Option<String> → mitre_techniques: Vec<String>). This is intentionally not a full
+# superseded_by link; ADR-005 core decisions (port classification, PDU parsing, transaction
+# correlation, ICS matrix) remain authoritative. See ADR-005 body preamble for details.
 ---
 
 # ADR-005: Binary ICS Protocol Integration (Modbus TCP)
@@ -240,12 +248,13 @@ What this decision causes downstream. Use sub-headings:
   fires at most once per its respective window expiry. The prior single `--modbus-write-threshold`
   flag is removed; this is a CLI-breaking change in v0.3.0.
 
-### Status as of 2026-06-09
+### Status as of 2026-06-13
 
-Proposed. Implementation has not yet begun (Feature cycle Issue #7, F2 architecture delta
-phase). The ADR decisions are design-complete and await F3 story decomposition and
-implementation. VP-004 and VP-007 Kani proof updates are part of the F3 implementation
-stories for `dispatcher.rs` and `mitre.rs` respectively.
+**Accepted.** `src/analyzer/modbus.rs`, `DispatchTarget::Modbus`, and the ICS-matrix MITRE
+representation are all shipped (v0.6.0). VP-004 and VP-022 Kani proofs are complete and
+verified. The `mitre_techniques: Vec<String>` field (per ADR-006) is shipped. ADR-005's
+core decisions remain authoritative; the partial supersession by ADR-006 is limited to the
+mitre_technique field name/type described in Decision 4 and Consequences.
 
 ## Alternatives Considered
 

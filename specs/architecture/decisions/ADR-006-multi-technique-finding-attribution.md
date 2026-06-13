@@ -1,12 +1,16 @@
 ---
 document_type: adr
 adr_id: ADR-006
-status: proposed
+status: accepted
+accepted_date: 2026-06-13
 date: 2026-06-09
 modified:
   - date: 2026-06-10
     actor: architect
     reason: "MITRE ATT&CK-ICS v19 remap: T0855→T1692.001 (Unauthorized Message: Command Message) in all live spec body references (issue #222)."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-12 corpus debt cleanup (F-5/OBS-1): status proposed→accepted. mitre_techniques: Vec<String> is shipped in src/findings.rs; all emission sites migrated."
 subsystems_affected:
   - SS-09
   - SS-10
@@ -289,11 +293,9 @@ DEPENDENT to MODIFIED in this feature cycle.
 - **F2 directives (v2):** `.factory/phase-f2-spec-evolution/f2-fix-directives.md` Decision 13,
   which contains the full product-owner and formal-verifier obligation list.
 
-## Status as of 2026-06-09
+## Status as of 2026-06-13
 
-Proposed. The `Finding` type change, reporter updates, and analyzer emission-site updates are
-part of the Feature #7 F3 implementation stories. All VP harness updates (VP-016, VP-020,
-VP-021) are gated to the same implementation story that touches `src/findings.rs`. The
-`vp007_catalog_drift_guard` test will remain green as long as the atomic update of
-`SEEDED_TECHNIQUE_IDS`, `EMITTED_IDS`, and `technique_info` arms is performed in the same
-commit as the `mitre_techniques: vec![...]` emission sites are introduced.
+**Accepted.** `mitre_techniques: Vec<String>` is shipped in `src/findings.rs`. All analyzer
+emission sites in `src/analyzer/http.rs`, `src/analyzer/tls.rs`, `src/reassembly/`, and
+`src/analyzer/modbus.rs` have been migrated. The `vp007_catalog_drift_guard` test is green.
+VP harness updates (VP-016, VP-020, VP-021) are complete.

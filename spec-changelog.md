@@ -14,6 +14,1342 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-13-corpus-cleanup-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-13 Corpus Cleanup — BC-2.10.006 anchor + count fix (F-C-P13-001), NFR-OBS-004 seeded/emitted label (F-C-P13-002), STORY-071 variant/seeded count reconciliation (F-C-P13-003), BC-INDEX BC-2.14.016 T0855→T1692.001 annotation (F-D13-001), BC-INDEX inline version annotation refresh (Slice-B), PRD EC-008→EC-002 citation alignment (Slice-D)
+
+**Summary:** Remediates all PRODUCT-OWNER-bucket findings from whole-corpus adversarial Pass 13. No source, architecture docs, VPs, or STATE.md modified.
+
+**F-C-P13-001 (MEDIUM):** BC-2.10.006 was the only SS-10 BC not updated during the F2+Pass-12 sibling sweep (remained at v1.2). Three classes of staleness fixed:
+- Architecture Anchors `src/mitre.rs:153` → `src/mitre.rs:179` (live `_ => return None` wildcard arm per live grep).
+- Source Evidence Path `src/mitre.rs:153` → `src/mitre.rs:179`.
+- Description, Precondition 2, and Invariant 2: "15-entry" / "15 seeded IDs" → "23-entry (current; 25 after STORY-114 — PLANNED)" matching BC-2.10.005/007 PLANNED forward-declaration pattern.
+BC-2.10.006 bumped v1.2→v1.3.
+
+**F-C-P13-002 (MEDIUM):** NFR-OBS-004 Target cell read "All 15 seeded technique IDs resolve; no force-fit" — mislabels seeded vs emitted. The test `known_emitted_technique_ids_resolve_in_lookup` tests EMITTED IDs (15 current / 17 after STORY-114), not seeded (23/25). Target corrected to "All 15 emitted technique IDs resolve in lookup (current; 17 after STORY-114 — PLANNED); no force-fit" per BC-2.10.008.
+nfr-catalog.md bumped v1.5→v1.6.
+
+**F-C-P13-003 (MEDIUM):** STORY-071 body carried internally-contradictory stale counts: "16 MITRE tactic variants (14 Enterprise + 2 ICS)" in Narrative + "21 seeded technique IDs" — these never co-existed (16-variant era predates 21-seeded; 21-seeded era has 17 variants). Reconciled to current BCs: BC-2.10.004 (17 variants = 14E+3 ICS incl. IcsImpact) and BC-2.10.005 (23 seeded current; 25 PLANNED after STORY-114). Changes: Narrative 16/2ICS/21 → 17/3ICS/23 PLANNED; AC-005/008/009 "16"→"17"; AC-007 ICS positions [14],[15]→[14],[15],[16]+IcsImpact; AC-010/011 test ref 21→23; AC-011 ICS split 10→12 with T1691.001+T0827; AC-014 "21"→"23" + ICS 10→12 + assignments for T1691.001/T0827 added; Tasks 3/4/5/6/8 updated; Architecture Compliance Rules 21/16→23/17. STORY-071 bumped v1.9→v1.10.
+
+**F-D13-001 (MEDIUM):** BC-INDEX:356 BC-2.14.016 annotation embedded stale literal `mitre_techniques: ["T0855","T0836","T0831"]` — contradicting the v2.2 remap note on the same line and the BC body (which uses T1692.001). Fixed: `"T0855"` → `"T1692.001"` in the annotation example. Absorbed into BC-INDEX bump below.
+
+**Slice-B (LOW):** Two BC-INDEX inline version annotations lagged their file versions:
+- BC-INDEX:63 (BC-2.02.009) comment "v1.5" → "v1.6" (file is v1.6).
+- BC-INDEX:252 (BC-2.10.008) comment "v1.11" → "v1.12" (file is v1.12).
+BC-INDEX bumped v1.18→v1.19 (absorbs F-D13-001 + Slice-B).
+
+**Slice-D (LOW):** PRD:138 cited "EC-008 of BC-2.16.008" for the same-second storm-denominator resolution. HS-INDEX:484 already cites "BC-2.16.008 EC-002" (canonical fire-at-50 same-second vector). Aligned PRD to use EC-002 (the canonical cite). PRD bumped v1.15→v1.16.
+
+**Architect-burst changes recorded (do not modify):**
+
+| Document | Old Version | New Version | Change |
+|----------|-------------|-------------|--------|
+| `specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md` | (modified entry) | v2.1 | Architect Pass-13 burst |
+| `specs/verification-properties/vp-005-no-panic-guarantee.md` | 2.0 | 2.1 | Architect Pass-13 burst |
+| `specs/architecture/verification-architecture.md` | 1.4 | 1.5 | Architect Pass-13 burst |
+| `specs/verification-properties/vp-008-all-analyzers-pure.md` | 2.0 | 2.1 | Architect Pass-13 burst |
+| `specs/behavioral-contracts/ARCH-INDEX.md` | 1.3 | 1.4 | Architect Pass-13 burst |
+
+**PO-owned documents updated:**
+
+| Document | Old Version | New Version | Change |
+|----------|-------------|-------------|--------|
+| `specs/behavioral-contracts/ss-10/BC-2.10.006.md` | 1.2 | 1.3 | F-C-P13-001: line anchor :153→:179; count 15-entry/15 seeded → 23-entry (current; 25 after STORY-114 PLANNED) |
+| `specs/prd-supplements/nfr-catalog.md` | 1.5 | 1.6 | F-C-P13-002: NFR-OBS-004 Target "15 seeded" → "15 emitted (current; 17 after STORY-114 PLANNED)" |
+| `stories/STORY-071.md` | 1.9 | 1.10 | F-C-P13-003: variant/seeded count reconciliation to 17 variants / 23 seeded throughout body |
+| `specs/behavioral-contracts/BC-INDEX.md` | 1.18 | 1.19 | F-D13-001: BC-2.14.016 annotation T0855→T1692.001; Slice-B: BC-2.02.009 v1.5→v1.6, BC-2.10.008 v1.11→v1.12 |
+| `specs/prd.md` | 1.15 | 1.16 | Slice-D: BC-2.16.008 citation EC-008→EC-002 (same-second storm denominator) |
+| `spec-changelog.md` | — | — | This pass-13 entry |
+
+---
+
+## [pass-12-corpus-debt-cleanup-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-12 Corpus Debt Cleanup — SS-14 BC-INDEX title sync (F-B12-001), SS-15 MITRE count note (F-B12-002), BC-2.16.008 ARP_FLAP_WINDOW_SECS anchor (F-B12-003), stale src/mitre.rs line anchors (F-C-P12-001..005), spec-changelog phantom VP path (O-D12-01)
+
+**Summary:** Remediates all PRODUCT-OWNER-bucket findings from whole-corpus adversarial Pass 12. No source, architecture docs, VPs, or STATE.md modified.
+
+**F-B12-001 (HIGH):** Six SS-14 BC-INDEX rows had H1 ↔ BC-INDEX title desync (enrichments present in H1 but missing from INDEX rows). Per `bc_h1_is_title_source_of_truth` policy (Criterion-75 precedent), INDEX rows updated to match H1s verbatim: BC-2.14.002 (Truncation Safety suffix added), BC-2.14.003 (renamed to ADU/3-Point Gate form), BC-2.14.004 (renamed to ADU/3-Point Gate form), BC-2.14.005 (replaced long parenthetical with em-dash form), BC-2.14.011 (Pending Table Lookup → (Transaction ID, Unit ID) Lookup), BC-2.14.012 (dropped "(Not Evicting)" parenthetical to match H1). Rows 001/006-010/013-025 already matched; no change. BC INDEX bumped 1.17→1.18. No BC file bumps (H1 unchanged; INDEX-only change).
+
+**F-B12-002 (LOW):** SS-15 subsection note (BC-INDEX ~line 383) cited stale MITRE counts "23 seeded / 15 emitted / 8 catalogue-only" without acknowledging the ARP issue #9 raise. Note extended with "(counts current as of issue #8 post-gate; raised to 25 seeded / 17 emitted by issue #9 ARP — see BC-2.10.005/008; PLANNED until STORY-114)". BC-INDEX bump absorbed into same 1.17→1.18 bump.
+
+**F-B12-003 (LOW):** BC-2.16.008 Architecture Anchors omitted `ARP_FLAP_WINDOW_SECS` despite the BC using it in postconditions and edge cases. Anchor added: `src/analyzer/arp.rs — const ARP_FLAP_WINDOW_SECS: u32 = 60` with cross-ref to BC-2.16.004 as authoritative definition. BC-2.16.008 bumped 1.5→1.6.
+
+**F-C-P12-001 (HIGH):** Stale `technique_info :122-156` anchor in three PO-owned files. Live source: technique_info fn@:128, let info=match id@:129, _ => return None@:179, closing }@:182.
+- inv-01-core-invariants.md: INV-9 Enforcement line re-anchored :122-156 (:123/:153/:156) → :128-182 (:128/:129/:179/:182). Version field added (no prior version); bumped (none)→1.1.
+- nfr-catalog.md: NFR-MNT-009 source column re-anchored :122-156 → :128-182; projections corrected from "160-167" to technique_name@:186-188, technique_tactic@:192-194. Bumped 1.4→1.5.
+- STORY-071.md: Architecture Mapping table row for technique_info re-anchored :122-156 → :128-182 (covered in same bump as F-C-P12-002 below).
+
+**F-C-P12-002 (HIGH):** Stale `technique_tactic :166-168` anchor in two files. Live source: technique_tactic@:192-194.
+- BC-2.10.007.md: Architecture Anchors + Source Evidence re-anchored :166-168 → :192-194. Bumped 1.6→1.7.
+- STORY-071.md: Architecture Mapping table row for technique_tactic re-anchored :166-168 → :192-194; also all_tactics row :95-114 → :100-120 and technique_name row :160-162 → :186-188 swept in same pass. STORY-071 bumped 1.8→1.9.
+
+**F-C-P12-003 (MEDIUM):** BC-2.10.007 lacked PLANNED forward-declaration marker (siblings BC-2.10.005/008 have it). Added to Description section: STORY-114 adds T0830→LateralMovement and T1557.002→CredentialAccess arms; seeded count 23→25 post-STORY-114. Absorbed into same BC-2.10.007 bump 1.6→1.7.
+
+**F-C-P12-004 (LOW):** BC-2.10.003 all_tactics_in_report_order anchor :95-114 (stale; sibling BC-2.10.004 had :100-120 already). Re-anchored to :100-120. BC-2.10.003 bumped 1.3→1.4.
+
+**F-C-P12-005 (LOW):** BC-2.10.001 Display impl anchor :68-90 imprecise. Live: impl fmt::Display block :72-95. Re-anchored to :72-95. BC-2.10.001 bumped 1.2→1.3.
+
+**O-D12-01 (MEDIUM):** spec-changelog ~lines 233 and 251 cited phantom path `vp-016-mitre-tactic-display.md`; actual file is `vp-016-mitre-tactic-grouping-order.md`. Both lines corrected (replace_all). Historical correction only — no VP version change.
+
+**Architect-burst changes recorded (do not modify):**
+
+| Document | Old Version | New Version | Change |
+|----------|-------------|-------------|--------|
+| `specs/architecture/ARCH-INDEX.md` | 1.2 | 1.3 | Architect Pass-12 burst |
+| `specs/architecture/tooling-selection.md` | 1.1 | 1.2 | Architect Pass-12 burst |
+| `specs/architecture/dependency-graph.md` | 1.1 | 1.2 | Architect Pass-12 burst |
+| `specs/verification-properties/vp-007-mitre-technique-id-format.md` | 2.3 | 2.4 | Architect Pass-12 burst |
+| `specs/architecture/arp-architecture-delta.md` | §7 v1.10 row-add | v1.10 (no version change) | Architect Pass-12 burst: §7 row added |
+| `specs/architecture/decisions/ADR-005-binary-ics-protocol-integration-modbus-tcp.md` | — | accepted | Architect Pass-12 burst |
+| `specs/architecture/decisions/ADR-006-multi-technique-finding-attribution.md` | — | accepted | Architect Pass-12 burst |
+| `specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md` | — | accepted | Architect Pass-12 burst |
+
+**PO-owned documents updated:**
+
+| Document | Version | Change |
+|----------|---------|--------|
+| `specs/behavioral-contracts/BC-INDEX.md` | 1.17 → 1.18 | F-B12-001: SS-14 rows 002/003/004/005/011/012 title-synced to H1 verbatim; F-B12-002: SS-15 MITRE count note extended |
+| `specs/behavioral-contracts/ss-16/BC-2.16.008.md` | 1.5 → 1.6 | F-B12-003: ARP_FLAP_WINDOW_SECS anchor added to Architecture Anchors |
+| `specs/domain/invariants/inv-01-core-invariants.md` | (none) → 1.1 | F-C-P12-001: INV-9 enforcement anchor :122-156 → :128-182; version field introduced |
+| `specs/prd-supplements/nfr-catalog.md` | 1.4 → 1.5 | F-C-P12-001: NFR-MNT-009 anchor :122-156 → :128-182; projections 160-167 → :186-188/:192-194 |
+| `specs/behavioral-contracts/ss-10/BC-2.10.007.md` | 1.6 → 1.7 | F-C-P12-002: technique_tactic anchor :166-168 → :192-194; F-C-P12-003: PLANNED forward-declaration added |
+| `specs/behavioral-contracts/ss-10/BC-2.10.003.md` | 1.3 → 1.4 | F-C-P12-004: all_tactics anchor :95-114 → :100-120 |
+| `specs/behavioral-contracts/ss-10/BC-2.10.001.md` | 1.2 → 1.3 | F-C-P12-005: Display impl anchor :68-90 → :72-95 |
+| `stories/STORY-071.md` | 1.8 → 1.9 | F-C-P12-001/F-C-P12-002: Architecture Mapping table all four mitre.rs anchors re-anchored (all_tactics :95-114→:100-120; technique_info :122-156→:128-182; technique_name :160-162→:186-188; technique_tactic :166-168→:192-194) |
+| `spec-changelog.md` | — | O-D12-01: phantom path vp-016-mitre-tactic-display.md → vp-016-mitre-tactic-grouping-order.md corrected (2 occurrences); this pass-12 entry |
+
+---
+
+## [corpus-consistency-audit-2026-06-13] — 2026-06-13
+
+### PATCH: Corpus Consistency Audit 2026-06-13 — BC-2.16.010 H1 title enrichment (Criterion-75) + BC-INDEX version-suffix removal
+
+**Summary:** Remediates the PRODUCT-OWNER-bucket defects identified in the 2026-06-13 corpus consistency audit. Two defects, two file changes.
+
+PR-1a (Criterion-75): BC-2.16.010 H1 was missing the "(11 Keys)" enrichment that appeared only in downstream indexes. Per the `bc_h1_is_title_source_of_truth` policy, title enrichment must live in the H1, not only in downstream references. H1 updated from "ArpAnalyzer::summarize() Returns AnalysisSummary with Required Keys" to "ArpAnalyzer::summarize() Returns AnalysisSummary with Required Keys (11 Keys)". BC-2.16.010 bumped v1.5→v1.6.
+
+PR-1b: BC-INDEX row for BC-2.16.010 carried a non-standard "; v1.5" version suffix in the title field. Version tokens belong in frontmatter only, not in title fields. The suffix was removed and the title field synced to the new H1 canonical form. BC-INDEX bumped v1.16→v1.17.
+
+Note: The STORY-114 PLANNED code-vs-spec gap (CD-1/CD-2) is intentional and NOT fixed in this audit pass — it is forward-declared with an F4 obligation and is tracked separately.
+
+**Documents updated:**
+
+| Document | Version | Change |
+|----------|---------|--------|
+| `specs/architecture/ARCH-INDEX.md` | 1.1 → 1.2 | Architect burst: SS-04 BC count 54→55, SS-09 BC count 6→7, SS-16 BC count TBD→15 |
+| `specs/architecture/module-decomposition.md` | 1.3 → 1.4 | Architect burst: CD-6 prose updated; CD-7 C-24 DNP3 component added |
+| `specs/verification-properties/VP-INDEX.md` | 2.0 → 2.1 | Architect burst: VP-023 lifecycle note qualified |
+| `specs/verification-properties/vp-007-mitre-technique-id-format.md` | 2.2 → 2.3 | Architect burst: Post-ARP F4 obligation added + CC-003 |
+| `specs/module-criticality.md` | 1.1 → 1.2 | Architect burst: C-23 ARP and C-24 DNP3 components added |
+| `specs/behavioral-contracts/ss-16/BC-2.16.010.md` | 1.5 → 1.6 | PR-1a: H1 enriched with "(11 Keys)" per Criterion-75 (bc_h1_is_title_source_of_truth) |
+| `specs/behavioral-contracts/BC-INDEX.md` | 1.16 → 1.17 | PR-1b: BC-2.16.010 title version-suffix "; v1.5" removed; title synced to new H1 canonical form |
+| `spec-changelog.md` | — | This corpus-audit remediation entry |
+
+---
+
+## [arp-f2-pass11-remediation-2026-06-12] — 2026-06-12
+
+### PATCH: F2 Adversarial Pass 11 (ARP analyzer) — E-ARP-004 3-condition escalation, BC-2.16.014 verdict token, test-vectors BC-2.16.010 version citation, PRD BC-2.04.055/BC-2.09.007 registration, PRD §2.9 range note, PRD T0846 enumeration, BC-INDEX PRD version, cap-10 MitreTactic enum line citation
+
+**Summary:** Remediates all product-owner-routed F2 adversarial Pass 11 findings (ARP analyzer pass).
+F-C-P11-001: error-taxonomy.md E-ARP-004 escalation rule had only 2 conditions ("rebind_count >= spoof_threshold AND !spoof_high_emitted") but BC-2.16.004 PC1.c requires 3 (the flap-window term). Corrected to "HIGH iff rebind_count >= spoof_threshold AND (timestamp_secs - first_rebind_ts <= ARP_FLAP_WINDOW_SECS) AND !spoof_high_emitted, else MEDIUM (per BC-2.16.004 PC1.c)".
+F-B11-L01: BC-2.16.014 Source Evidence carried retired "LOW/Inconclusive" verdict token; corrected to "LOW/Anomaly (confidence: LOW, finding_type: Anomaly)" matching BC-2.16.003 v1.5 normalization.
+F-D11-M02: test-vectors.md cited "BC-2.16.010 v1.2" at line ~421; file is v1.5; corrected.
+F-D11-H01: PRD §2.4 BC table and §7 RTM both omitted BC-2.04.055 (issue-#100 propagation gap); BC-2.04.055 row added after BC-2.04.054. PRD §2.9 BC table and §7 RTM both omitted BC-2.09.007; BC-2.09.007 row added after BC-2.09.006. BC count claim "all 283 registered" now accurate.
+F-D11-M01: PRD §2.9 range note read "through BC-2.09.006.md" excluding BC-2.09.007; updated to "through BC-2.09.007.md (BC-2.09.007 added Feature Mode F2 issue #100)".
+O-D11-01: BC-INDEX status line PRD version updated from "(v1.9)" to "(v1.15)" reflecting current PRD version after F-D11-H01 bump; "all 283 registered" claim now accurate.
+O-D11-02: PRD §1 (~line 317) catalogued-but-never-emitted primary list enumerated 7 IDs omitting T0846; T0846 added to enumeration (8 IDs total; O-04 canonical).
+F-C-P11-002: cap-10 pass-9/10 changelog line citation for the MitreTactic enum section said "lines 80-82"; the ## MitreTactic enum (E-27) header is at line 81 and variant prose spans lines 83-85; corrected to "lines 81-85" in both the pass-9 reason entry and a new pass-11 entry.
+Architect-burst change arch-delta v1.9→v1.10 recorded below per spec-changelog responsibility.
+
+**F-C-P11-001 (MEDIUM) — error-taxonomy.md E-ARP-004 escalation rule corrected to 3 conditions:**
+
+E-ARP-004 Notes cell read "Severity = HIGH iff `rebind_count >= spoof_threshold AND !spoof_high_emitted`" — only 2 conditions. BC-2.16.004 PC1.c (Step 3) specifies all 3: `rebind_count >= spoof_threshold AND (timestamp_secs - first_rebind_ts <= ARP_FLAP_WINDOW_SECS) AND spoof_high_emitted == false`. The missing flap-window term means the 2-condition rule would incorrectly upgrade to HIGH even after the 60-second window expires.
+
+- error-taxonomy.md bumped v1.8→v1.9.
+
+**F-B11-L01 (LOW) — BC-2.16.014 Source Evidence verdict token "LOW/Inconclusive" → "LOW/Anomaly":**
+
+Source Evidence Path cell read "D2 GARP confidence LOW/Inconclusive" — "Inconclusive" is a Verdict enum value, not a finding_type. BC-2.16.003 v1.5 normalization (Pass-10 F-D10-L01) established the canonical triple: confidence=LOW, finding_type=Anomaly (no Verdict token). Corrected to "LOW/Anomaly (confidence: LOW, finding_type: Anomaly)".
+
+- BC-2.16.014 bumped v1.4→v1.5.
+
+**F-D11-M02 (MEDIUM) — test-vectors.md BC-2.16.010 version citation "v1.2" → "v1.5":**
+
+ARP-AMB-004 RESOLVED note at line ~421 cited "BC-2.16.010 v1.2"; BC-2.16.010 is at v1.5. Corrected.
+
+- test-vectors.md bumped v1.8→v1.9.
+
+**F-D11-H01 (HIGH) — PRD §2.4 and §2.9 BC tables + §7 RTM add BC-2.04.055 and BC-2.09.007:**
+
+BC-INDEX:36 claimed "all 283 registered" but PRD body had 281 registered IDs: BC-2.04.055 ("StreamHandler::on_data Carries Capture-Relative Timestamp Parameter", P1, SS-04) and BC-2.09.007 ("Finding.timestamp Carries Capture-Relative Pcap Timestamp from on_data Call Site", P1, SS-09) were missing from both the §2.4/§2.9 index tables and the §7 RTM. Added:
+- §2.4: BC-2.04.055 row after BC-2.04.054 (P1, BC-RAS-055)
+- §2.9: BC-2.09.007 row after BC-2.09.006 (P1, BC-FND-007)
+- §7 RTM: BC-2.04.055 (CAP-04, SS-04, P1, integration) and BC-2.09.007 (CAP-09, SS-09, P1, integration)
+
+- prd.md bumped v1.14→v1.15.
+
+**F-D11-M01 (MEDIUM) — PRD §2.9 range note "through BC-2.09.006.md" → "through BC-2.09.007.md":**
+
+Range note read "through `BC-2.09.006.md`" excluding BC-2.09.007. Updated to "through `BC-2.09.007.md` (BC-2.09.007 added Feature Mode F2 issue #100)". (Same PRD bump as F-D11-H01.)
+
+**O-D11-01 (LOW) — BC-INDEX PRD version "(v1.9)" → "(v1.15)":**
+
+BC-INDEX status line read "UPDATED (v1.9)" — stale from a prior pass. Updated to "(v1.15)" matching PRD current version. The "all 283 registered" claim is now accurate after F-D11-H01.
+
+- BC-INDEX bumped v1.15→v1.16.
+
+**O-D11-02 (LOW) — PRD §1 T0846 added to 7-ID enumeration:**
+
+Line ~317 listed 7 catalogued-but-never-emitted IDs (T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885); T0846 was mentioned in the annotation but not in the primary list. O-04 canonical count is 8. T0846 added between T1573 and T1692.002. (Same PRD bump as F-D11-H01.)
+
+**F-C-P11-002 (LOW) — cap-10 pass-9/10 changelog line citation corrected to "lines 81-85":**
+
+Pass-10 F-C-P10-002 corrected pass-9's "lines 76-77" to "lines 80-82". Pass-11 F-C-P11-002 corrects this further: the `## MitreTactic enum (E-27)` header is at line 81 of cap-10; the variant prose spans lines 83-85. Corrected in the pass-9 reason entry from "lines 80-82" to "lines 81-85". Pass-10 entry updated to reflect subsequent Pass-11 correction.
+
+- cap-10-mitre-mapping.md bumped v1.6→v1.7.
+
+**Architect-burst changes (recorded here per spec-changelog responsibility):**
+
+| Document | Old Version | New Version | Change |
+|----------|-------------|-------------|--------|
+| `specs/architecture/arp-architecture-delta.md` | 1.9 | 1.10 | Architect Pass-11 burst |
+
+**Documents updated:**
+
+| Document | Version | Change |
+|----------|---------|--------|
+| `specs/prd-supplements/error-taxonomy.md` | 1.8 → 1.9 | F-C-P11-001: E-ARP-004 escalation rule 2-condition → 3-condition (flap-window term added) |
+| `specs/behavioral-contracts/ss-16/BC-2.16.014.md` | 1.4 → 1.5 | F-B11-L01: Source Evidence "LOW/Inconclusive" verdict token → "LOW/Anomaly (confidence: LOW, finding_type: Anomaly)" |
+| `specs/prd-supplements/test-vectors.md` | 1.8 → 1.9 | F-D11-M02: BC-2.16.010 version citation "v1.2" → "v1.5" |
+| `specs/prd.md` | 1.14 → 1.15 | F-D11-H01: BC-2.04.055 and BC-2.09.007 rows added to §2.4, §2.9, §7 RTM; F-D11-M01: §2.9 range note; O-D11-02: T0846 added to §1 enumeration |
+| `specs/behavioral-contracts/BC-INDEX.md` | 1.15 → 1.16 | O-D11-01: PRD version updated "(v1.9)" → "(v1.15)"; "all 283 registered" claim now accurate |
+| `specs/domain/capabilities/cap-10-mitre-mapping.md` | 1.6 → 1.7 | F-C-P11-002: pass-9 changelog line citation "lines 80-82" → "lines 81-85"; pass-10 entry annotated |
+| `spec-changelog.md` | — | This pass-11 remediation entry |
+
+---
+
+## [arp-f2-pass10-remediation-2026-06-12] — 2026-06-12
+
+### PATCH: F2 Adversarial Pass 10 (ARP analyzer) — test-vectors subset count, cap-10 line citation, BC-2.10.008 PLANNED qualifier, PRD §2.10 ICS mislabel, BC-INDEX issue-#100 rows, BC-2.02.009 lax-arm wording, BC-2.16.003 verdict normalization, 16→17 MitreTactic stale-count sweep
+
+**Summary:** Remediates all product-owner-routed F2 adversarial Pass 10 findings (ARP analyzer pass).
+F-C-P10-001: test-vectors.md SS-10 subset comment said "6 of 25" but the table has 8 Some-returning rows (original 6 + T0830 + T1557.002 added in F2); corrected to "8 of 25".
+F-C-P10-002: cap-10 pass-9 changelog reason cited stale "lines 76-77" for the MitreTactic enum description; corrected to "lines 80-82".
+F-C-P10-003: BC-2.10.008 Description arp.rs emission bullet was presented without a PLANNED qualifier despite arp.rs not existing in develop HEAD until STORY-114; lead-in updated to distinguish grep-verified (Modbus/DNP3) from PLANNED (arp.rs); arp.rs bullet labelled "PLANNED — STORY-114".
+F-D10-M01: PRD §2.10 O-04 note mislabelled T0885 as "(Enterprise)"; T0885 is ICS (CommandAndControl, ICS matrix); T1692.002 is also ICS (IcsImpairProcessControl); both labelled correctly; T0846 ICS label preserved; 12E+13I arithmetic unaffected.
+F-D10-M02: BC-INDEX Ingestion-to-L3 Mapping Coverage table omitted BC-2.04.055 and BC-2.09.007 (issue-#100 F2 additions already counted in the 283-total derivation prose); BC-RAS row updated to 55/BC-2.04.001..055; BC-FND row updated to 7/BC-2.09.001..007.
+F-D10-M03: BC-2.02.009 Description (~lines 41-42) and Invariants 2-4 incorrectly stated both strict and lax ARP arms are unreachable!; ADR-008 Decision 3 v1.6 specifies: strict_ip_triple NetSlice::Arp = compile-safety unreachable! (ARP routed out before that function is called); lax_ip_triple LaxNetSlice::Arp = explicit routing (NOT unreachable!) because a snaplen-truncated ARP frame reaches lax_ip_triple; explicit routing to extract_arp_frame → Err on bad size, no panic, VP-008/VP-024 Sub-A no-panic preserved. Description, Invariants 2-4, and Architecture Anchors corrected to canonical ADR-008 wording.
+F-D10-L01: BC-2.16.003 mixed "LOW/Inconclusive" (Description, Invariant 4, Architecture Anchor) with "LOW/Anomaly" (PC5, EC-001, canonical vectors); PC5 is authoritative (confidence:LOW, finding_type:Anomaly); normalized all occurrences to "LOW/Anomaly (confidence: LOW, finding_type: Anomaly)"; stray "Inconclusive" verdict token removed.
+F-D10-L02: Pre-existing DNP3-era drift "16 MitreTactic variants (14 Enterprise + 2 ICS)" stale in three consuming docs; corrected to "17 MitreTactic variants (14 Enterprise + 3 ICS-unique incl. IcsImpact)" in ent-05, cap-11, and nfr-catalog.md; IcsImpact added in Feature #8.
+Architect-burst changes ADR-008 v1.7→v1.8 and vp-016 v2.0→v2.1 recorded below per spec-changelog responsibility (product-owner does not modify those files).
+
+**F-C-P10-001 (HIGH) — test-vectors.md SS-10 subset count corrected "6 of 25" → "8 of 25":**
+
+Line ~291 read "Representative subset (6 of 25 total seeded IDs shown" but the table contained 8
+Some-returning rows: the original 6 (T1036, T1027, T1083, T1499.002, T1505.003, T1046) plus
+T0830 and T1557.002 added in F2 ARP remediation. Fixed to "8 of 25".
+
+- test-vectors.md bumped v1.7→v1.8.
+
+**F-C-P10-002 (LOW) — cap-10 pass-9 changelog line citation corrected "lines 76-77" → "lines 80-82":**
+
+The pass-9 changelog entry in cap-10's `modified` block cited "lines 76-77" as the location of
+the MitreTactic enum description section. The actual section begins at line 80 of cap-10
+("## MitreTactic enum (E-27)"). Corrected to "lines 80-82" (the section header through the
+`#[non_exhaustive]` sentence).
+
+- cap-10-mitre-mapping.md bumped v1.5→v1.6.
+
+**F-C-P10-003 (LOW) — BC-2.10.008 Description arp.rs emission bullet given PLANNED qualifier:**
+
+The Description section (line ~62-73) lead-in read "Emission sites after F2 ARP (verified via
+`grep -rn 'mitre_techniques: vec!' src/`)" — presenting all sites including arp.rs as
+grep-verified. arp.rs does not exist in develop HEAD; it is created by STORY-114. Changed lead-in
+to "Emission sites after F2 ARP (Modbus/DNP3 verified via grep; arp.rs PLANNED STORY-114)"; arp.rs
+bullet updated from "(F2 Feature #9 new)" to "(F2 Feature #9 PLANNED — STORY-114)".
+
+- BC-2.10.008 bumped v1.11→v1.12.
+
+**F-D10-M01 (MEDIUM) — PRD §2.10 T0885 mislabel "(Enterprise)" → "(ICS)":**
+
+The O-04 domain-debt note in PRD §2.10 (~lines 613-614) listed the 8 catalogued-but-never-emitted
+IDs with "T0885 (Enterprise)". T0885 (Commonly Used Port) is an ICS-matrix technique mapping to
+CommandAndControl in the ICS namespace; T1692.002 (Unauthorized Message: Reporting Message) maps
+to IcsImpairProcessControl (also ICS). The "(Enterprise)" label broke the 12E+13I seeded-ID split.
+Corrected: T1573 labelled "(Enterprise)"; T1692.002 labelled "(ICS — IcsImpairProcessControl)";
+T0885 labelled "(ICS — CommandAndControl)"; T0846 retains "(ICS)" label. 12E+13I arithmetic confirmed
+unaffected — the labels were cosmetic errors, not count errors.
+
+- prd.md bumped v1.13→v1.14.
+
+**F-D10-M02 (MEDIUM) — BC-INDEX Ingestion-to-L3 table adds BC-2.04.055 and BC-2.09.007:**
+
+The Ingestion-to-L3 Mapping Coverage table omitted the two issue-#100 F2 additions that ARE
+already counted in the 283-total derivation prose (line 473: "+ 2 Feature Mode F2 additions
+(BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs"). The BC-RAS row showed "54 / BC-2.04.001..054"
+and BC-FND showed "6 / BC-2.09.001..006". Updated: BC-RAS row → "55 / BC-2.04.001..055 (+ issue-#100 F2)";
+BC-FND row → "7 / BC-2.09.001..007 (+ issue-#100 F2)". Total 283 unchanged.
+
+- BC-INDEX bumped v1.14→v1.15.
+
+**F-D10-M03 (MEDIUM) — BC-2.02.009 Description and Invariants corrected for lax-arm routing:**
+
+Description (~lines 41-42) stated "the ARP path exits before `strict_ip_triple` or `lax_ip_triple`
+are called (ADR-008 Decision 3: `unreachable!` arms)" — implying both arms are unreachable!.
+ADR-008 Decision 3 v1.6 revised this: the strict arm is a compile-safety unreachable! (ARP routed
+out before strict_ip_triple); the lax arm MUST NOT be unreachable! (truncated ARP reaches
+lax_ip_triple; explicit routing to extract_arp_frame → Err, no panic). Invariant 2 "both unreachable!",
+Invariant 3 "lax retry unchanged for ARP", Invariant 4 "LaxNetSlice::Arp unreachable! in lax_ip_triple",
+and Architecture Anchor for lax_ip_triple all corrected to ADR-008 canonical wording.
+
+- BC-2.02.009 bumped v1.5→v1.6.
+
+**F-D10-L01 (LOW) — BC-2.16.003 verdict-triple normalized to "LOW/Anomaly":**
+
+"LOW/Inconclusive" appeared in Description, Invariant 4, and Architecture Anchor; "LOW/Anomaly"
+appeared in PC5, EC-001, and canonical vectors. PC5 specifies confidence:LOW, finding_type:Anomaly
+(no verdict token). "Inconclusive" is the Verdict enum value — not the finding_type axis. Normalized
+Description to "LOW/Anomaly (confidence: LOW, finding_type: Anomaly)"; Invariant 4 to "confidence: LOW,
+finding_type: Anomaly"; Architecture Anchor to "confidence=LOW, finding_type=Anomaly".
+
+- BC-2.16.003 bumped v1.4→v1.5.
+
+**F-D10-L02 (LOW) — "16 MitreTactic variants (14 Enterprise + 2 ICS)" stale count in 3 docs:**
+
+Pre-existing DNP3-era drift: IcsImpact (3rd ICS-unique variant) was added in Feature #8 (issue #8,
+ADR-007), making the correct count 17 variants (14 Enterprise + 3 ICS-unique). Three consuming docs
+still said 16/2 ICS: ent-05-enums-value-objects.md (enum table row), cap-11-reporting-output.md
+(`all_tactics_in_report_order` sentence), nfr-catalog.md NFR-OBS-008 target column. All corrected to
+"17 MitreTactic variants (14 Enterprise + 3 ICS-unique incl. IcsImpact)". nfr-catalog also corrected
+"16 tactic headers" to "17 tactic headers" in the NFR-OBS-008 target.
+
+- ent-05-enums-value-objects.md bumped (no prior version) → v1.1.
+- cap-11-reporting-output.md bumped (no prior version) → v1.1.
+- nfr-catalog.md bumped v1.3→v1.4.
+- ent-04-findings-output.md: additional sibling-sweep instance found at E-27 section (~line 61);
+  "16-variant enum (14 Enterprise + 2 ICS)" corrected to "17-variant enum (14 Enterprise + 3
+  ICS-unique incl. IcsImpact)"; bumped (no prior version) → v1.1.
+
+**Architect-burst changes (recorded here per spec-changelog responsibility):**
+
+| Document | Old Version | New Version | Change |
+|----------|-------------|-------------|--------|
+| `specs/architecture/decisions/ADR-008-arp-link-layer-integration.md` | 1.7 | 1.8 | Architect Pass-10 burst |
+| `specs/verification-properties/vp-016-mitre-tactic-grouping-order.md` | 2.0 | 2.1 | Architect Pass-10 burst |
+
+**Documents updated:**
+
+| Document | Version | Change |
+|----------|---------|--------|
+| `specs/prd-supplements/test-vectors.md` | 1.7 → 1.8 | F-C-P10-001: "6 of 25" → "8 of 25" in SS-10 BC-2.10.005 subset comment |
+| `specs/domain/capabilities/cap-10-mitre-mapping.md` | 1.5 → 1.6 | F-C-P10-002: pass-9 changelog reason line citation "lines 76-77" → "lines 80-82" |
+| `specs/behavioral-contracts/ss-10/BC-2.10.008.md` | 1.11 → 1.12 | F-C-P10-003: arp.rs emission bullet PLANNED qualifier added |
+| `specs/prd.md` | 1.13 → 1.14 | F-D10-M01: T0885/T1692.002 "(Enterprise)" mislabel corrected to "(ICS)" in §2.10 O-04 note |
+| `specs/behavioral-contracts/BC-INDEX.md` | 1.14 → 1.15 | F-D10-M02: BC-RAS row +BC-2.04.055; BC-FND row +BC-2.09.007 |
+| `specs/behavioral-contracts/ss-02/BC-2.02.009.md` | 1.5 → 1.6 | F-D10-M03: lax_ip_triple ARP arm Description/Invariants/Anchors corrected to explicit routing (NOT unreachable!) per ADR-008 Decision 3 v1.6+ |
+| `specs/behavioral-contracts/ss-16/BC-2.16.003.md` | 1.4 → 1.5 | F-D10-L01: "LOW/Inconclusive" verdict token normalized to "LOW/Anomaly (confidence:LOW, finding_type:Anomaly)" |
+| `specs/domain/entities/ent-05-enums-value-objects.md` | (none) → 1.1 | F-D10-L02: MitreTactic (E-27) "16 variants (14 Enterprise + 2 ICS)" → "17 variants (14 Enterprise + 3 ICS-unique incl. IcsImpact)" |
+| `specs/domain/capabilities/cap-11-reporting-output.md` | (none) → 1.1 | F-D10-L02: "16 MitreTactic variants" → "17 MitreTactic variants" |
+| `specs/prd-supplements/nfr-catalog.md` | 1.3 → 1.4 | F-D10-L02: NFR-OBS-008 target "16 tactic headers" → "17 tactic headers" |
+| `specs/domain/entities/ent-04-findings-output.md` | (none) → 1.1 | F-D10-L02 sibling-sweep: E-27 "16-variant enum (14 Enterprise + 2 ICS)" → "17-variant enum (14 Enterprise + 3 ICS-unique incl. IcsImpact)" |
+| `specs/architecture/decisions/ADR-008-arp-link-layer-integration.md` | 1.7 → 1.8 | Architect Pass-10 burst (product-owner records; do not modify) |
+| `specs/verification-properties/vp-016-mitre-tactic-grouping-order.md` | 2.0 → 2.1 | Architect Pass-10 burst (product-owner records; do not modify) |
+| `spec-changelog.md` | — | This pass-10 remediation entry |
+
+---
+
+## [arp-f2-pass9-remediation-2026-06-12] — 2026-06-12
+
+### PATCH: F2 Adversarial Pass 9 — cap-10 IcsDiscovery→Discovery (T0846/T0888), test-vectors BC-2.10.004 v1.4→v1.5 + T9999 Canary, BC-2.16.010 EC-003 Frame-vs-Finding Clarification, BC-2.16.003 EC Monotonic Numbering
+
+**Summary:** Remediates all product-owner-routed F2 adversarial Pass 9 findings.
+F-C-P9-001: cap-10-mitre-mapping.md tactic column for T0846 and T0888 read "IcsDiscovery" — a
+non-existent MitreTactic enum variant; the enum has 3 ICS-unique variants
+(IcsInhibitResponseFunction, IcsImpairProcessControl, IcsImpact) per both src/mitre.rs and
+cap-10's own enum description (lines 76-77); corrected to "Discovery". F-C-P9-002: test-vectors.md
+line ~293 cited "BC-2.10.004 v1.4" but the file is at v1.5 (bumped in Pass-7 F-C-P7-003);
+updated to v1.5. F-B9-M04: BC-2.16.010 EC-003 could be misread as 108 frames (50+50+5+3);
+clarifying clause added: the 5 GARP and 3 spoof findings are detection classifications of frames
+already counted among the 100 request/reply frames — they are NOT additional frames; reconciliation
+invariant counts frames, not findings. F-B9-L01: BC-2.16.003 EC table was non-monotonic
+(EC-009 inserted between EC-003 and EC-004); EC-009 moved to end after EC-008; all EC
+content and citations unchanged. F-B9-L03 (process-gap): BC-2.02.009 (brownfield SS-02)
+intentionally omits inputs:/input-hash: frontmatter — predates the F2 convention; by-design,
+not drift. No BC edit. F-C-P9-004: test-vectors.md SS-10 unknown-ID canary changed from
+"UNKNOWN999" (happy-path) to "T9999" (edge-case) to align with BC-2.10.005's canonical canary
+and mitre.rs Kani verify_unknown_id_returns_none_no_panic harness.
+F-B9-M02 confirmation (no edit): BC-2.16.010 key 11 (`malformed_frames`) is defined as
+`extract_arp_frame → None` counts only; BC-2.16.009 EC-007 explicitly excludes etherparse-reject
+frames (they never reach extract_arp_frame; routed to existing decode error path). Both BCs
+already match ADR-008 Decision 7 key 11 narrowing. No changes needed.
+ADR-008 v1.6→v1.7 and arch-delta v1.8→v1.9 bumped by architect in this pass (architect burst;
+product-owner records here per spec-changelog responsibility).
+
+**F-C-P9-001 (MEDIUM) — cap-10 IcsDiscovery tactic corrected for T0846 and T0888:**
+
+T0846 (Remote System Discovery) and T0888 (Remote System Information Discovery) were mapped to
+`IcsDiscovery` in the tactic column. No such variant exists in the `MitreTactic` enum — the enum
+has 17 variants: 14 Enterprise ATT&CK tactics plus 3 ICS-unique variants
+(`IcsInhibitResponseFunction`, `IcsImpairProcessControl`, `IcsImpact`). The correct tactic for
+both T0846 and T0888 is `Discovery` (the Enterprise Discovery tactic). This is confirmed by
+src/mitre.rs mapping and cap-10's own enum description in lines 76-77.
+
+- cap-10-mitre-mapping.md bumped v1.4→v1.5.
+
+**F-C-P9-002 (MEDIUM) — test-vectors.md BC-2.10.004 version citation corrected v1.4→v1.5:**
+
+Line ~293 read "BC-2.10.004 v1.4" but the file has been at v1.5 since Pass-7 remediation
+F-C-P7-003 (Architecture Anchors and Source Evidence re-anchored). Updated to v1.5.
+
+(Same test-vectors.md bump as F-C-P9-004 below.)
+
+**F-B9-M04 (MEDIUM) — BC-2.16.010 EC-003 frame-vs-finding double-count ambiguity:**
+
+EC-003 described 50 requests, 50 replies, 5 GARPs, 3 spoofs → frames_analyzed=100. A reader
+could sum 50+50+5+3=108, contradicting the reconciliation invariant (50+50=100). Clarifying
+clause added: "(the 5 GARP and 3 spoof findings are detection classifications of frames already
+counted among the 100 request/reply frames — they are NOT additional frames; the reconciliation
+invariant counts frames, not findings)."
+
+- BC-2.16.010 bumped v1.4→v1.5.
+
+**F-B9-M02 confirmation (no change) — BC-2.16.010 key 11 and BC-2.16.009 EC-007 etherparse-parse-failure exclusion:**
+
+Verified: BC-2.16.010 Postcondition 1 key `malformed_frames` definition reads "count of ARP
+frames with non-Ethernet/IPv4 hw/proto sizes (extract_arp_frame → None)". BC-2.16.009 EC-007
+explicitly states: "etherparse rejects the frame entirely (malformed EtherType, truncated
+payload) — etherparse returns Err (not ArpPacketSlice); the frame never reaches
+extract_arp_frame; handled by existing decode error path (not D11)." Both BCs correctly
+exclude etherparse-parse-failure from `malformed_frames` and D11, consistent with ADR-008
+Decision 7 key 11 narrowing. No changes needed.
+
+**F-B9-L01 (LOW) — BC-2.16.003 EC table non-monotonic numbering:**
+
+EC-009 (Real RFC 5227 ACD probe) was inserted between EC-003 and EC-004 in a prior pass
+(Pass-2 F-B-008 remediation), creating the sequence EC-001, EC-002, EC-003, EC-009, EC-004,
+EC-005, EC-006, EC-007, EC-008. Fix: EC-009 moved to end after EC-008, restoring monotonic
+order: EC-001..EC-009. All EC content and citations unchanged.
+
+- BC-2.16.003 bumped v1.3→v1.4.
+
+**F-B9-L03 (LOW, process-gap) — BC-2.02.009 missing inputs:/input-hash: governance note:**
+
+BC-2.02.009 (brownfield SS-02) intentionally omits `inputs:` and `input-hash:` frontmatter
+fields — it predates the F2 convention; by-design, not drift. No BC edit.
+
+**F-C-P9-004 (LOW) — test-vectors.md SS-10 unknown-ID canary corrected:**
+
+Line ~305 had `technique_name("UNKNOWN999")` with category "happy-path". Aligned to
+BC-2.10.005's canonical canary "T9999" and category "edge-case" (matches the mitre.rs Kani
+harness `verify_unknown_id_returns_none_no_panic` which uses T9999 as the representative
+unknown ID). Notes field updated to reference BC-2.10.006 and the Kani harness.
+
+- test-vectors.md bumped v1.6→v1.7 (same bump as F-C-P9-002 above).
+
+**Architect-burst changes (recorded here per spec-changelog responsibility):**
+
+| Document | Old Version | New Version | Change |
+|----------|-------------|-------------|--------|
+| `specs/architecture/decisions/ADR-008-arp-link-layer-integration.md` | 1.6 | 1.7 | Architect Pass-9 burst |
+| `specs/architecture/arp-architecture-delta.md` | 1.8 | 1.9 | Architect Pass-9 burst |
+
+**Documents updated:**
+
+| Document | Version | Change |
+|----------|---------|--------|
+| `specs/domain/capabilities/cap-10-mitre-mapping.md` | 1.4 → 1.5 | F-C-P9-001: T0846 and T0888 tactic column IcsDiscovery → Discovery |
+| `specs/prd-supplements/test-vectors.md` | 1.6 → 1.7 | F-C-P9-002: BC-2.10.004 citation v1.4→v1.5; F-C-P9-004: UNKNOWN999 → T9999, happy-path → edge-case |
+| `specs/behavioral-contracts/ss-16/BC-2.16.010.md` | 1.4 → 1.5 | F-B9-M04: EC-003 clarifying clause added — GARP/spoof findings are classifications of frames already in frames_analyzed |
+| `specs/behavioral-contracts/ss-16/BC-2.16.003.md` | 1.3 → 1.4 | F-B9-L01: EC-009 moved from between EC-003/EC-004 to after EC-008 — monotonic EC numbering restored |
+| `specs/behavioral-contracts/BC-INDEX.md` | 1.13 → 1.14 | BC-2.16.003 annotation v1.3→v1.4; BC-2.16.010 annotation v1.4→v1.5 |
+| `specs/architecture/decisions/ADR-008-arp-link-layer-integration.md` | 1.6 → 1.7 | Architect Pass-9 burst (product-owner records; do not modify) |
+| `specs/architecture/arp-architecture-delta.md` | 1.8 → 1.9 | Architect Pass-9 burst (product-owner records; do not modify) |
+| `spec-changelog.md` | — | This pass-9 remediation entry |
+
+---
+
+## [arp-f2-pass8-remediation-2026-06-12] — 2026-06-12
+
+### PATCH: F2 Adversarial Pass 8 — BC-2.16.005 PC1 Broadcast Exclusion, BC-2.10.002 Line Re-Anchor, PRD §2.2 BC-2.02.009 Title Sync, VP-024 Test-Infrastructure Note, BC-2.16.003 PC6 One-Shot Clarification, BC-2.16.009 PC4 --arp-absent Scope Note, input-hash:TBD Governance Note
+
+**Summary:** Remediates all product-owner-routed F2 adversarial Pass 8 findings.
+F-B8-M01: BC-2.16.005 PC1 contradicted Invariant 5 — the precondition required only
+"non-zero sender_ip", which broadcast (255.255.255.255) satisfies, implying a binding must
+be inserted; Invariant 5 forbids inserting broadcast IPs. PC1 tightened to exclude both
+0.0.0.0 and 255.255.255.255. VP-024 test-infrastructure affordances (new_for_test(),
+process_arp_for_test(), bindings_snapshot()) documented in BC-2.16.005 Architecture Anchors
+per ADR-008 Decision 4 (folds into BC-2.16.005 bump). F-C-P8-M01: BC-2.10.002 Architecture
+Anchors and Source Evidence cited stale src/mitre.rs:85-87; verified in develop HEAD: lines
+85-88 are Enterprise arms (Collection, CommandAndControl, Exfiltration, Impact); ICS arms are
+at 89-91 (IcsInhibitResponseFunction :89, IcsImpairProcessControl :90, IcsImpact :91). Re-anchored
+to :89-91. F-D8-M01: PRD §2.2 row for BC-2.02.009 read "Surface No IP layer found error" (stale
+v1.4 title); updated to the BC-INDEX/H1 canonical title "Non-IP Non-ARP Frames Return No-IP-Layer
+Error; ARP Frames Return DecodedFrame::Arp". F-B8-L01: BC-2.16.003 PC6 self-referential one-shot
+phrasing reworded to "exactly one GARP finding is emitted per GARP frame; no cross-frame one-shot
+guard (unlike D1/D3)". F-B8-L02: BC-2.16.009 PC4 clarified — --arp-absent sub-clause describes
+the unconditional malformed_frames counter behavior, which operates outside the --arp-active gate
+of Precondition 4; not a contradiction. F-B8-L03: governance note recorded here (see below) for
+input-hash: TBD convention — no per-BC change needed.
+ADR-008 v1.5→v1.6, arch-delta v1.7→v1.8, VP-024 v1.3→v1.4 bumped by architect in this pass
+(architect burst; product-owner records here per spec-changelog responsibility).
+
+**F-B8-M01 (MEDIUM) — BC-2.16.005 PC1 contradicts Invariant 5 for broadcast sender IP:**
+
+PC1 previously read "a non-zero `sender_ip`", which the broadcast address 255.255.255.255
+satisfies (it is non-zero), implying a binding MUST be inserted for it. Invariant 5 explicitly
+states that broadcast sender IPs MUST NOT be inserted. Fix: PC1 reworded to "a `sender_ip` that
+is neither all-zero (0.0.0.0 / [0,0,0,0]) nor broadcast (255.255.255.255 / [255,255,255,255])";
+added note that PC1 applies only to admissible sender IPs per Invariant 5.
+
+VP-024 test-infrastructure note added to Architecture Anchors (ADR-008 Decision 4):
+`new_for_test()`, `process_arp_for_test(&frame, ts)`, and `bindings_snapshot()` are
+`#[cfg(test)]` affordances declared as ADR-008 Decision 4 extensions and used by the
+VP-024 Sub-C proptest. F3/F4 implementers need to know these exist.
+
+- BC-2.16.005 bumped v1.3→v1.4.
+
+**F-C-P8-M01 (MEDIUM) — BC-2.10.002 stale line anchor (85-87 → 89-91):**
+
+Verified in develop HEAD src/mitre.rs:
+- Lines 85-88: Enterprise Display arms (Collection :85, CommandAndControl :86,
+  Exfiltration :87, Impact :88)
+- Line 89: `MitreTactic::IcsInhibitResponseFunction => "Inhibit Response Function"`
+- Line 90: `MitreTactic::IcsImpairProcessControl => "Impair Process Control"`
+- Line 91: `MitreTactic::IcsImpact => "Impact (ICS)"`
+
+Architecture Anchors and Source Evidence both re-anchored from :85-87 to :89-91 with inline
+per-line annotation. BC-2.10.002 Display string for "Impact" (PC3) is correct per spec;
+the src/mitre.rs "Impact (ICS)" mismatch is recorded as a STORY-114 F4 obligation by the
+architect and is NOT touched here.
+
+- BC-2.10.002 bumped v1.3→v1.4.
+
+**F-D8-M01 (MEDIUM) — PRD §2.2 BC-2.02.009 summary title stale:**
+
+PRD §2.2 SS-02 table row for BC-2.02.009 read "Surface No IP layer found error" (the v1.4
+single-postcondition title). BC was revised to v1.5 in F2 ARP delta with a three-way
+postcondition; BC-INDEX and the BC H1 both carry the updated title. PRD row updated to match:
+"Non-IP Non-ARP Frames Return No-IP-Layer Error; ARP Frames Return DecodedFrame::Arp".
+
+- PRD bumped v1.12→v1.13.
+
+**LOW findings:**
+
+F-B8-L01 (BC-2.16.003 PC6 one-shot reword):
+
+PC6 previously read: "A GARP finding is emitted at most once per unique GARP event (not
+deduplicated beyond what the reporting pipeline provides). The one-shot guard for GARP is not
+required; GARP findings are emitted on every GARP frame observed (to preserve forensic record
+of all occurrences)." The self-referential structure ("at most once … one-shot guard … not
+required") was circular and confusing. Reworded to: "Exactly one GARP finding is emitted per
+GARP frame; there is no cross-frame one-shot guard for GARP (unlike detections D1 and D3,
+which carry per-IP or per-rate deduplication guards)."
+
+- BC-2.16.003 bumped v1.2→v1.3.
+
+F-B8-L02 (BC-2.16.009 PC4 --arp-absent scope note):
+
+PC4 includes a sub-clause describing --arp-absent counter behavior, but PC4 is positioned
+within a contract whose Precondition 4 requires "--arp active". This appeared contradictory.
+Clarification note added: the --arp-absent sub-clause describes the unconditional
+malformed_frames counter behavior, which is separable from the --arp-active analysis gate;
+malformed_frames increments unconditionally; malformed_findings increments only under the gate.
+
+- BC-2.16.009 bumped v1.2→v1.3.
+
+F-B8-L03 (process-gap) — input-hash: TBD governance note:
+
+The `input-hash: TBD` value appearing in SS-16 BC frontmatter is the intentional F2 draft
+placeholder for greenfield BCs whose inputs are architecture artifacts not yet committed to
+develop HEAD. The actual hash is populated by `bin/compute-input-hash --write` at the
+factory-artifacts step before Phase-4 entry (per CLAUDE.md §Input Hash Computation). No
+per-BC change is needed; this note documents the convention for future maintainers.
+
+**BC-INDEX updated:**
+- BC-2.10.002 annotation: no prior inline comment → v1.4 annotation added
+- BC-2.16.003 annotation: no prior inline comment → v1.3 annotation added
+- BC-2.16.005 annotation: no prior inline comment → v1.4 annotation added
+- BC-2.16.009 annotation: no prior inline comment → v1.3 annotation added
+- BC-INDEX bumped v1.12→v1.13.
+
+**Architect-burst changes (recorded here per spec-changelog responsibility):**
+
+| Document | Old Version | New Version | Change |
+|----------|-------------|-------------|--------|
+| `specs/architecture/decisions/ADR-008-arp-link-layer-integration.md` | 1.5 | 1.6 | Architect Pass-8 burst |
+| `specs/architecture/arp-architecture-delta.md` | 1.7 | 1.8 | Architect Pass-8 burst |
+| `specs/verification-properties/vp-024-arp-parse-safety.md` | 1.3 | 1.4 | Architect Pass-8 burst |
+
+**Documents updated:**
+
+| Document | Version | Change |
+|----------|---------|--------|
+| `specs/behavioral-contracts/ss-16/BC-2.16.005.md` | 1.3 → 1.4 | F-B8-M01: PC1 tightened to exclude 0.0.0.0 and 255.255.255.255; VP-024 Sub-C test-infrastructure affordances note added (ADR-008 Decision 4) |
+| `specs/behavioral-contracts/ss-10/BC-2.10.002.md` | 1.3 → 1.4 | F-C-P8-M01: Architecture Anchors and Source Evidence re-anchored from stale :85-87 to verified :89-91 |
+| `specs/prd.md` | 1.12 → 1.13 | F-D8-M01: §2.2 BC-2.02.009 row title updated from stale v1.4 title to canonical v1.5 H1/BC-INDEX title |
+| `specs/behavioral-contracts/ss-16/BC-2.16.003.md` | 1.2 → 1.3 | F-B8-L01: PC6 one-shot phrasing reworded — exactly one finding per GARP frame; no cross-frame one-shot guard unlike D1/D3 |
+| `specs/behavioral-contracts/ss-16/BC-2.16.009.md` | 1.2 → 1.3 | F-B8-L02: PC4 --arp-absent sub-clause scope note added — malformed_frames unconditional vs malformed_findings gated |
+| `specs/behavioral-contracts/BC-INDEX.md` | 1.12 → 1.13 | Version annotations added for BC-2.10.002 (v1.4), BC-2.16.003 (v1.3), BC-2.16.005 (v1.4), BC-2.16.009 (v1.3) |
+| `specs/architecture/decisions/ADR-008-arp-link-layer-integration.md` | 1.5 → 1.6 | Architect Pass-8 burst (product-owner records; do not modify) |
+| `specs/architecture/arp-architecture-delta.md` | 1.7 → 1.8 | Architect Pass-8 burst (product-owner records; do not modify) |
+| `specs/verification-properties/vp-024-arp-parse-safety.md` | 1.3 → 1.4 | Architect Pass-8 burst (product-owner records; do not modify) |
+| `spec-changelog.md` | — | This pass-8 remediation entry |
+
+---
+
+## [arp-f2-pass7-remediation-2026-06-12] — 2026-06-12
+
+### PATCH: F2 Adversarial Pass 7 — MITRE Tactic Anchors for SS-16 BCs, cap-10 Forward-Declaration, test-vectors Attribution Fix, BC-2.10.004 Line Re-Anchor, BC-INDEX Annotation Sync
+
+**Summary:** Remediates all product-owner-routed F2 adversarial Pass 7 findings.
+F-B7-H01/F-B7-H02: four MITRE-emitting SS-16 BCs lacked the tactic-anchor cross-reference
+specifying which MitreTactic variant each technique ID maps to; tactic-anchor paragraph added
+to Invariant 3/4 of each. F-C-P7-001: cap-10-mitre-mapping.md was frozen at the DNP3 era
+(23 seeded / 15 emitted), contradicting BC-2.10.004/005/008 by 2 IDs; PLANNED forward-declaration
+appended for T0830 and T1557.002. F-C-P7-002: test-vectors.md incorrectly attributed the 25-seeded-ID
+count to BC-2.10.004 (which owns the 17-tactic-variant count); attributions separated into two
+independent citations. F-C-P7-003: BC-2.10.004 Architecture Anchors and Source Evidence cited
+stale `src/mitre.rs:95-114`; re-anchored to verified `src/mitre.rs:100-120` (function lines).
+F-D7-M01: BC-INDEX inline version annotations for BC-2.10.005 ("v1.9") and BC-2.10.008 ("v1.10")
+were one version behind file state; updated to v1.10 and v1.11 respectively.
+ADR-008 bumped — architect Pass-7 burst, F-SA7-HIGH-01.
+
+**F-B7-H01/F-B7-H02 (HIGH) — SS-16 MITRE tactic-anchor cross-reference missing:**
+
+Added the following paragraph to the MITRE tagging invariant in each of the four BCs:
+
+> "Tactic anchors (ADR-008 Decision 6 — merge-by-name policy): T0830 maps to
+> `MitreTactic::LateralMovement` and T1557.002 maps to `MitreTactic::CredentialAccess`; the
+> F3/STORY-114 implementer wires these in `technique_info`. Normative source: ADR-008 Decision 6."
+
+The instruction is to cite ADR-008 Decision 6 as normative source only, not to duplicate the
+full mapping logic. The tactic-anchor paragraph does not repeat the technique-to-tactic
+derivation beyond the cross-reference.
+
+- BC-2.16.003 Invariant 3 (MITRE tagging): tactic-anchor paragraph appended. Bumped v1.1→v1.2.
+- BC-2.16.004 Invariant 4 (MITRE tagging): tactic-anchor paragraph appended. Bumped v1.4→v1.5.
+- BC-2.16.007 Invariant 4 (MITRE tagging): tactic-anchor paragraph appended. Bumped v1.0→v1.1.
+- BC-2.16.014 Invariant 4 (MITRE tagging): tactic-anchor paragraph appended. Bumped v1.3→v1.4.
+
+**F-C-P7-001 (MEDIUM) — cap-10-mitre-mapping.md frozen at DNP3 era:**
+
+The cap-10 document was the declared L2 anchor for BC-2.10.004/005/008, but contained only 23 IDs
+(pre-ARP state). Since T0830 and T1557.002 are PLANNED (not yet in develop HEAD until STORY-114),
+the fix is a PLANNED forward-declaration matching the style used in BC-2.10.005/008:
+
+- Technique catalog: two rows appended with PLANNED STORY-114 annotation:
+  T0830 → LateralMovement (*PLANNED STORY-114 (ARP F2); not in develop HEAD until STORY-114*)
+  T1557.002 → CredentialAccess (*PLANNED STORY-114 (ARP F2); not in develop HEAD until STORY-114*)
+- Emitted count line: "Emitted (15)" → "Emitted (15 current / 17 after STORY-114)"
+- Preamble sentence: "23 IDs" → "23 current IDs ... expanding to 25 total after STORY-114"
+- BC references line: "23 total" → "25 total after STORY-114; 23 current"
+- cap-10 bumped v1.3→v1.4.
+
+**F-C-P7-002 (MEDIUM) — test-vectors.md mis-attributes seeded-ID count to BC-2.10.004:**
+
+Line ~291 said: "Full seeded count is 25 (12 Enterprise + 13 ICS) per BC-2.10.005 v1.10 and
+BC-2.10.004 v1.4." BC-2.10.004 owns the 17-tactic-variant count, not the seeded-ID count.
+
+Fixed to: "per BC-2.10.005 v1.10 (25 seeded IDs) and BC-2.10.004 v1.4 (17 tactic variants)"
+— the two counts are now attributed to their respective authoritative BCs independently.
+test-vectors.md bumped v1.5→v1.6.
+
+**F-C-P7-003 (MEDIUM) — BC-2.10.004 Architecture Anchors + Source Evidence stale line range:**
+
+Previous citations: `src/mitre.rs:95-114`. Verified against develop HEAD src/mitre.rs:
+- Line 95: `}` (closing brace of MitreTactic enum — NOT the function)
+- Line 100: `pub fn all_tactics_in_report_order() -> &'static [MitreTactic] {` (function declaration)
+- Lines 101–119: slice literal (`&[` to `]`)
+- Line 120: `}` (function closing brace)
+
+Re-anchored to `src/mitre.rs:100-120` with inline annotation:
+"function declaration line 100, slice literal lines 101-119, closing brace line 120".
+Both Architecture Anchors and Source Evidence updated.
+BC-2.10.004 bumped v1.4→v1.5.
+
+**F-D7-M01 (MEDIUM) — BC-INDEX inline version annotations stale for SS-10:**
+
+- BC-2.10.005 annotation: "v1.9" → "v1.10" (file is at v1.10 per pass-4 remediation)
+- BC-2.10.008 annotation: "v1.10" → "v1.11" (file is at v1.11 per pass-4 remediation)
+- BC-INDEX bumped v1.11→v1.12.
+
+**ADR-008 bumped v1.4 → v1.5 — F-SA7-HIGH-01:** Decision 4 malformed_frames field doc-comment reworded to conditional equality.
+
+**Documents updated:**
+
+| Document | Version | Change |
+|----------|---------|--------|
+| `specs/behavioral-contracts/ss-16/BC-2.16.003.md` | 1.1 → 1.2 | F-B7-H01/H02: tactic-anchor paragraph added to Invariant 3 (T0830→LateralMovement, T1557.002→CredentialAccess, per ADR-008 Decision 6) |
+| `specs/behavioral-contracts/ss-16/BC-2.16.004.md` | 1.4 → 1.5 | F-B7-H01/H02: tactic-anchor paragraph added to Invariant 4 |
+| `specs/behavioral-contracts/ss-16/BC-2.16.007.md` | 1.0 → 1.1 | F-B7-H01/H02: tactic-anchor paragraph added to Invariant 4 |
+| `specs/behavioral-contracts/ss-16/BC-2.16.014.md` | 1.3 → 1.4 | F-B7-H01/H02: tactic-anchor paragraph added to Invariant 4 |
+| `specs/domain/capabilities/cap-10-mitre-mapping.md` | 1.3 → 1.4 | F-C-P7-001: T0830/T1557.002 PLANNED forward-declaration appended; emitted/seeded counts updated to current/after-STORY-114 form; BC references line updated |
+| `specs/prd-supplements/test-vectors.md` | 1.5 → 1.6 | F-C-P7-002: BC-2.10.005/BC-2.10.004 attributions separated — seeded-ID count to BC-2.10.005, tactic-variant count to BC-2.10.004 |
+| `specs/behavioral-contracts/ss-10/BC-2.10.004.md` | 1.4 → 1.5 | F-C-P7-003: Architecture Anchors and Source Evidence re-anchored from stale :95-114 to verified :100-120 |
+| `specs/behavioral-contracts/BC-INDEX.md` | 1.11 → 1.12 | F-D7-M01: BC-2.10.005 annotation v1.9→v1.10; BC-2.10.008 annotation v1.10→v1.11 |
+| `specs/architecture/decisions/ADR-008-arp-link-layer-integration.md` | 1.4 → 1.5 | F-SA7-HIGH-01 malformed_frames doc-comment conditional-equality fix |
+| `spec-changelog.md` | — | This pass-7 remediation entry |
+
+---
+
+## [arp-f2-pass6-remediation-2026-06-12] — 2026-06-12
+
+### PATCH: F2 Adversarial Pass 6 — BindingEntry last_seen_ts Sibling (BC-2.16.005), insert_binding_lru ts-responsibility Note (BC-2.16.005/006), malformed_findings Conditional Equality (BC-2.16.010), E-ARP-003 MITRE Tag, Changelog Ledger Reconciliation
+
+**Summary:** Remediates all product-owner-routed F2 adversarial Pass 6 findings.
+F-B6-H01: BC-2.16.005 Architecture Anchors BindingEntry struct was missing `last_seen_ts: u32`
+(the pass-4 F-B4-H01 fix reached BC-2.16.004 but not this sibling). F-B6-M01: BC-2.16.005 and
+BC-2.16.006 both lacked the ADR-008 Decision 4 normative note on `insert_binding_lru` ts-write
+responsibility. F-B6-H02: BC-2.16.010 Invariant 4 (now Invariant 5) ambiguously implied
+unconditional equality between malformed_findings and malformed_frames; corrected to conditional
+phrasing per ADR-008 Decision 7 key 11 and BC-2.16.009 PC4. F-C-P6-MED-001: E-ARP-003 Notes
+lacked the dual MITRE tag statement that its AiTM siblings (E-ARP-004/005) carry; appended per
+BC-2.16.007 PC1. F-D6-H1/O-D6-2: spec-changelog ledger reconciliation — pass-5 arch-delta
+placeholder replaced with exact 1.5→1.6, VP-024 1.1→1.2 row added (was omitted from pass-5
+table entirely); BC-2.16.010 BC-INDEX annotation updated to v1.4.
+
+**F-B6-H01 (HIGH) — BC-2.16.005 BindingEntry missing last_seen_ts:**
+- Architecture Anchors BindingEntry struct field list: added `last_seen_ts: u32` as fifth field
+  (was 4 fields; ADR-008 Decision 4 and BC-2.16.004:183 both list 5 fields). The struct now reads:
+  `{ mac: [u8; 6], rebind_count: u32, first_rebind_ts: Option<u32>, spoof_high_emitted: bool, last_seen_ts: u32 }`.
+- BC-2.16.005 bumped v1.2→v1.3.
+
+**F-B6-M01 (MEDIUM) — insert_binding_lru ts-write responsibility normative note:**
+- BC-2.16.005 Architecture Anchors `insert_binding_lru` bullet: normative note appended —
+  "`insert_binding_lru` has no `ts` parameter; `last_seen_ts` is written by `process_arp` on
+  every observation and read by `insert_binding_lru` only during the eviction scan (per ADR-008
+  Decision 4)."
+- BC-2.16.006 Architecture Anchors `insert_binding_lru` bullet: same normative note appended.
+- BC-2.16.005 bumped v1.2→v1.3 (same bump as F-B6-H01 above).
+- BC-2.16.006 bumped v1.1→v1.2.
+
+**F-B6-H02 (HIGH) — BC-2.16.010 unconditional malformed_findings == malformed_frames:**
+- Invariant 5 added: "`malformed_findings <= malformed_frames`; equality holds only when `--arp`
+  is active. When `--arp` is absent, `malformed_frames` still increments (unconditional frame
+  counter) but no D11 finding is emitted, so `malformed_findings` remains lower. No invariant or
+  test vector may assert unconditional equality between the two counts (per ADR-008 Decision 7
+  key 11 and BC-2.16.009 PC4)."
+- Existing Invariants 1–4 unchanged. No existing test vector asserts unconditional equality
+  (vectors are already --arp-active scenarios where equality holds; the new invariant formalizes
+  the conditional scope).
+- BC-2.16.010 bumped v1.3→v1.4.
+
+**F-C-P6-MED-001 (MEDIUM) — E-ARP-003 missing MITRE tag statement:**
+- E-ARP-003 Notes: appended "MITRE techniques T0830 (Adversary-in-the-Middle, ICS) and T1557.002
+  (ARP Cache Poisoning, Enterprise) attached (per BC-2.16.007 PC1)." Matches phrasing of E-ARP-004
+  and E-ARP-005. BC-2.16.007 PC1 mandates both techniques on all D12 mismatch findings; the Notes
+  field now reflects this.
+- error-taxonomy bumped v1.7→v1.8.
+
+**F-D6-H1 (HIGH) + O-D6-2 (LOW) — spec-changelog ledger reconciliation:**
+- Pass-5 "Documents updated" table: arch-delta row placeholder "bumped — see architect burst"
+  replaced with exact `1.5 → 1.6`. VP-024 row `1.1 → 1.2` added (was omitted entirely from
+  pass-5 table). Both were architect-burst changes that pass-5 had not yet resolved.
+- BC-INDEX BC-2.16.010 inline annotation "v1.2" updated to "v1.4" (final version after this pass).
+- BC-INDEX bumped v1.10→v1.11.
+- This pass-6 entry records all files bumped this round with exact versions (see table below).
+
+**Documents updated:**
+
+| Document | Version | Change |
+|----------|---------|--------|
+| `specs/architecture/decisions/ADR-008-arp-link-layer-integration.md` | 1.3 → 1.4 | F-B6-H02: Decision 7 key 11 malformed_findings/malformed_frames conditional equality; F-B6-M01: Decision 4 normative note on last_seen_ts write responsibility (architect burst) |
+| `specs/verification-properties/vp-024-arp-parse-safety.md` | 1.2 → 1.3 | F-B6-M01: Source Location anchor for insert_binding_lru updated; last_seen_ts write-responsibility note; Sub-D harness skeleton comment updated (architect burst) |
+| `specs/architecture/arp-architecture-delta.md` | 1.6 → 1.7 | OBS-2: ARP_STORM_RATE_DEFAULT doc-comment and Decision 5 D3 trigger aligned to average-frames-per-second phrasing (architect burst) |
+| `specs/behavioral-contracts/ss-16/BC-2.16.005.md` | 1.2 → 1.3 | F-B6-H01: BindingEntry last_seen_ts added; F-B6-M01: insert_binding_lru ts normative note added |
+| `specs/behavioral-contracts/ss-16/BC-2.16.006.md` | 1.1 → 1.2 | F-B6-M01: insert_binding_lru ts normative note added |
+| `specs/behavioral-contracts/ss-16/BC-2.16.010.md` | 1.3 → 1.4 | F-B6-H02: Invariant 5 malformed_findings <= malformed_frames conditional phrasing added |
+| `specs/prd-supplements/error-taxonomy.md` | 1.7 → 1.8 | F-C-P6-MED-001: E-ARP-003 Notes MITRE T0830/T1557.002 tag appended |
+| `specs/behavioral-contracts/BC-INDEX.md` | 1.10 → 1.11 | O-D6-2: BC-2.16.010 inline annotation v1.2 → v1.4 |
+| `spec-changelog.md` | — | This pass-6 remediation entry; pass-5 ledger corrections (arch-delta placeholder resolved 1.5→1.6; VP-024 1.1→1.2 row added) |
+
+---
+
+## [arp-f2-pass5-remediation-2026-06-12] — 2026-06-12
+
+### PATCH: F2 Adversarial Pass 5 — Cross-Reference Postcondition Fixes, E-ARP-003 Verdict Triple, SS-10 Test-Vector Catch-Up, BC-2.16.008 Step Sequence + First-Observation Init
+
+**Summary:** Remediates all product-owner-routed F2 adversarial Pass 5 findings.
+Cross-reference postcondition numbers in BC-2.16.012 and BC-2.16.014 were mis-cited
+following BC-2.16.004 v1.4's Step restructuring. E-ARP-003 verdict triple carried a stray
+"Likely" token not present in BC-2.16.007. test-vectors.md SS-10 section was pre-F2 stale
+(15 seeded IDs / 16 MitreTactic variants). BC-2.16.008 lacked a first-observation StormCounter
+init postcondition, an explicit ordered step sequence, and its Description contradicted Invariant 2.
+Also records the architect's arch-delta version bump (unknown at time of writing — see row note).
+
+**F-B5-M01 (MEDIUM) — BC-2.16.012 PC3 mis-citation:**
+- BC-2.16.012 Postcondition 3 cited "BC-2.16.004 Postcondition 5" (the flap-window reset) as
+  the location of the escalation rule. Corrected to: "BC-2.16.004 Postcondition 1 (Step 3 / 1.c —
+  escalation evaluation)" with the full three-condition expression quoted.
+- BC-2.16.012 bumped v1.0→v1.1.
+
+**F-B5-M02 (MEDIUM) — BC-2.16.014 PC2 mis-citation:**
+- BC-2.16.014 Postcondition 2 cited "BC-2.16.004 Postcondition 1.b" (the first_rebind_ts setter)
+  as the location of the three-condition escalation evaluation. Corrected to: "Postcondition 1.c
+  (Step 3 — escalation evaluation)".
+- BC-2.16.014 bumped v1.2→v1.3.
+
+**F-B5-M03 (MEDIUM) — BC-2.16.014 PC4 mis-citation:**
+- BC-2.16.014 Postcondition 4 cited "BC-2.16.004 Postcondition 3" (first_rebind_ts semantics)
+  for the rebind_count increment. Corrected to: "BC-2.16.004 Postcondition 1 (Step 1 / 1.a —
+  rebind_count increment)".
+- BC-2.16.014 bumped v1.2→v1.3 (same bump as F-B5-M02 above).
+
+**F-C5-MED-001 (MEDIUM) — error-taxonomy E-ARP-003 stray "Likely" token:**
+- E-ARP-003 Signal Type changed from "Anomaly/Likely/MEDIUM" to "Anomaly/MEDIUM". BC-2.16.007
+  specifies `confidence: MEDIUM` only — no "Likely" confidence token. Siblings E-ARP-004/005
+  confirm pattern: no "Likely" on D12. Consistent with how E-ARP-004/005 are written.
+- error-taxonomy bumped v1.6→v1.7.
+
+**F-D5-M01 (MEDIUM) — test-vectors.md SS-10 section stale (pre-F2 drift):**
+- BC-2.10.005 header "All 15 Seeded IDs" → "All 25 Seeded IDs" (subset table retained with note).
+- Added representative subset note clarifying 6-of-25 IDs shown; added T0830 and T1557.002 rows
+  to the representative table.
+- `all_tactics_in_report_order()` vector: "exactly 16 MitreTactic variants" → "exactly 17
+  MitreTactic variants". Kill-chain ordering note updated: IcsInhibitResponseFunction,
+  IcsImpairProcessControl, IcsImpact [index 16] listed explicitly (IcsImpact added F2 DNP3).
+- test-vectors bumped v1.4→v1.5.
+
+**F-B5-L01 (LOW) — BC-2.16.008 missing first-observation StormCounter init postcondition:**
+- Step 1 of the new intra-frame ordered sequence specifies: a never-before-seen MAC initializes
+  a new StormCounter with `count_in_window=1`, `window_start_ts=timestamp_secs`, `storm_emitted=false`.
+  This is symmetric to Invariant 6 (eviction re-init) and makes the postcondition complete.
+- BC-2.16.008 bumped v1.4→v1.5.
+
+**F-B5-L02 (LOW) — BC-2.16.008 intra-frame step ordering not pinned:**
+- Explicit ordered step sequence added (mirroring BC-2.16.004 Step pattern):
+  Step 1 = window-expiry check → reset (count=1, new window_start) or init new MAC or continue;
+  Step 2 = increment count_in_window (if Step 1 determined window is active and entry exists);
+  Step 3 = evaluate rate after increment.
+- Vectors verified arithmetically valid: all 8 existing canonical vectors produce identical
+  outcomes under the new Step structure.
+- BC-2.16.008 bumped v1.4→v1.5 (same bump as F-B5-L01 above).
+
+**(LOW) BC-2.16.008 Description "sliding window" contradiction:**
+- Description "per-MAC sliding window counter" corrected to "per-MAC 60-second flap-window
+  counter" to avoid the implicit contradiction with Invariant 2 ("not a sliding-window detector").
+  The description was loose terminology; Invariant 2 is the authoritative characterization.
+- BC-2.16.008 bumped v1.4→v1.5 (same bump as above).
+
+**Documents updated:**
+
+| Document | Version | Change |
+|----------|---------|--------|
+| `specs/behavioral-contracts/ss-16/BC-2.16.012.md` | 1.0 → 1.1 | F-B5-M01: PC3 citation corrected from "Postcondition 5" to "Postcondition 1 (Step 3 / 1.c — escalation evaluation)"; full three-condition expression quoted |
+| `specs/behavioral-contracts/ss-16/BC-2.16.014.md` | 1.2 → 1.3 | F-B5-M02: PC2 citation corrected from "Postcondition 1.b" to "Postcondition 1.c (Step 3)"; F-B5-M03: PC4 citation corrected from "Postcondition 3" to "Postcondition 1 (Step 1 / 1.a)" |
+| `specs/behavioral-contracts/ss-16/BC-2.16.008.md` | 1.4 → 1.5 | F-B5-L01: Step 1 init clause for first-observation MAC; F-B5-L02: explicit 3-step ordered sequence; (LOW) Description "sliding window" → "60-second flap-window counter" |
+| `specs/prd-supplements/error-taxonomy.md` | 1.6 → 1.7 | F-C5-MED-001: E-ARP-003 "Anomaly/Likely/MEDIUM" → "Anomaly/MEDIUM" |
+| `specs/prd-supplements/test-vectors.md` | 1.4 → 1.5 | F-D5-M01: BC-2.10.005 header "15 Seeded" → "25 Seeded"; T0830/T1557.002 rows added to representative subset; all_tactics_in_report_order "16" → "17"; IcsImpact and ICS ordering note added |
+| `specs/architecture/arp-architecture-delta.md` | 1.5 → 1.6 | F-SA5 architect pass: §5.0(b) duplicate row targeting src/mitre.rs line 301 deleted; §3.3 D2 GARP confidence cell updated to LOW base / MEDIUM on conflict |
+| `specs/verification-properties/vp-024-arp-parse-safety.md` | 1.1 → 1.2 | F-SA5 architect pass: Sub-A negative harness vacuous-satisfiability risk note added; F4 obligation to confirm Ok-arm reachability or restructure with kani::cover! |
+| `spec-changelog.md` | — | This pass-5 remediation entry |
+
+---
+
+## [arp-f2-pass4-remediation-2026-06-12] — 2026-06-12
+
+### PATCH: F2 Adversarial Pass 4 — Full Propagation Sweep + BC Body Fixes
+
+**Summary:** Completes propagation of pass-3 Enterprise/ICS split corrections into all
+consuming documents (PRD, BC-INDEX inline comments). Remediates all product-owner-routed
+F2 adversarial Pass 4 findings: F-D4-C1/C2 (propagation), F-D4-I1/I2 (spec-changelog
+completeness, Source Evidence path), F-B4-H01/H02 (BindingEntry last_seen_ts, BC-2.16.013
+storm formula), F-B4-M01..M06 (BC-2.16.008 vector pin, EC-011 contrast, BC-2.16.009 PC4,
+BC-2.16.004 mac-update timing, BC-2.16.008 eviction re-init), F-C-P4-HIGH-002/003
+(BC-2.10.008 parenthetical, PLANNED markers), F-C-P4-MEDIUM-001/002/003 (error-taxonomy
+E-ARP-002 sliding-window / Likely, PLANNED NOTE). Also records architect's arch-delta
+v1.4→v1.5 and ADR-008 v1.2→v1.3 bumps (F-D4-I1 obligation).
+BC-2.02.009 missing input-hash/inputs is intentional (brownfield BC predating input-hash
+convention per F-B4-L03); no fabricated inputs added.
+
+**F-D4-C1 (HIGH) — PRD §2.10 O-04 and §6.5 KD-005 Enterprise/ICS split:**
+- PRD §2.10 O-04 note (v1.6→v1.9 label): "11 Enterprise + 14 ICS seeded" → "12 Enterprise + 13 ICS seeded"; "6 Enterprise + 11 ICS emitted" → "7 Enterprise + 10 ICS emitted". Authoritative split from BC-2.10.005 v1.9 / BC-2.10.008 v1.10 (pass-3). T1557.002=Enterprise; T0830=ICS. Arithmetic: 12E+13I=25 seeded; 7E+10I=17 emitted; 25−17=8 catalogued-only.
+- PRD §6.5 KD-005 BC-2.10.005 row: "11 Enterprise + 14 ICS" → "12 Enterprise + 13 ICS; T0830 [ICS] + T1557.002 [Enterprise] new ARP F2".
+- PRD bumped to v1.12.
+
+**F-D4-C2 (HIGH) — BC-INDEX BC-2.10.005 title "(23 Total)" → "(25 Total)":**
+- BC-INDEX line for BC-2.10.005: title "(23 Total)" → "(25 Total)"; inline comment refreshed to v1.9 (T0830+T1557.002 added, 12E+13I).
+- BC-INDEX line for BC-2.10.008: inline comment refreshed from "v1.8 / 15 total emitted" → v1.10 / 17 emitted; PLANNED forward-declaration in STORY-114 noted.
+- BC-INDEX bumped to v1.10.
+
+**F-D4-I1 (MEDIUM) — spec-changelog "Documents updated" tables: BC-INDEX bumps added:**
+- pass-2 table: BC-INDEX 1.7→1.8 row added (pass-2 propagated SEEDED=25 to BC-2.10.005 title; previously omitted).
+- pass-3 table: BC-INDEX 1.8→1.9 row added (pass-3 corrected "(23 Total)" → "(25 Total)"; previously omitted).
+- This pass-4 entry records ALL bumped files including architect's arch-delta v1.4→v1.5 and ADR-008 v1.2→v1.3.
+
+**F-D4-I2 (LOW) — BC-2.10.008 Source Evidence path stale:**
+- Source Evidence `src/mitre.rs:123-154` → `src/mitre.rs:128-181`. Matches pass-3-corrected Architecture Anchors and BC-2.10.005 sibling row.
+
+**F-B4-H01 (HIGH) — BC-2.16.004 BindingEntry missing `last_seen_ts`:**
+- Architecture Anchors struct field list: added `last_seen_ts: u32` to BindingEntry (per ADR-008 Decision 4; used for LRU eviction heuristic by BC-2.16.006). BC-2.16.004 bumped v1.3→v1.4.
+
+**F-B4-H02 (HIGH) — BC-2.16.013 PC3 retired storm formula:**
+- PC3 rewritten: removed independent restatement of `count_in_window / window_duration_secs >= storm_rate` (divide-by-zero risk). Replaced with cross-reference: "per BC-2.16.008 Postcondition 3 / Note 6 formula". BC-2.16.013 bumped v1.0→v1.1.
+
+**F-B4-M01 (MEDIUM) — BC-2.16.008 canonical vector row 4 under-specified:**
+- Vector row 4 pinned: "50 frames spanning ts=100 and ts=101" → "25 frames at ts=100 (rate peaks 25/1=25 — no fire), then 25 at ts=101 (count=50, elapsed=1, rate=50/1=50 — fires at 50th frame)". BC-2.16.008 bumped v1.3→v1.4.
+
+**F-B4-M02 (MEDIUM) — BC-2.16.008 EC-011 reader-confusion vs EC-002:**
+- EC-011 contrast note added: "Contrast EC-002: the same 50-frame same-second burst fires when window_start_ts equals the burst second (denominator=1); here window_start_ts=100 dilutes denominator to 59. This is the accepted average-since-window-start limitation (Invariant 2)."
+
+**F-B4-M03 (MEDIUM) — BC-2.16.004 mac-update timing not in Step sequence:**
+- Postcondition 1 Step 4 added: "`bindings[sender_ip].mac` updated AFTER escalation evaluation and finding emission; occurs exactly once per frame." PC2 updated to cross-reference Step 4.
+
+**F-B4-M04 (MEDIUM) — BC-2.16.010 canonical vector row 2 self-contradictory:**
+- Removed "3 additional malformed frames (total 3 malformed frames)" clause from vector row 2 input description. Replaced with "no other-opcode frames". malformed_findings:3/malformed_frames:3 already encodes intent. BC-2.16.010 bumped v1.2→v1.3.
+
+**F-B4-M05 (MEDIUM) — BC-2.16.009 PC4 "increment together" contradiction:**
+- PC4 reworded: "When --arp is active, one malformed_findings increment accompanies each malformed_frames increment. When --arp is absent, malformed_frames still increments but no finding is emitted (malformed_findings unchanged), per BC-2.16.010 key 11 and ADR-008 Decision 7." BC-2.16.009 bumped v1.1→v1.2.
+
+**F-B4-M06 (MEDIUM) — BC-2.16.008 storm_counter re-init after LRU eviction unspecified:**
+- Invariant 6 added: "When an evicted MAC reappears, a new StormCounter is initialized: count_in_window=1, window_start_ts=timestamp_secs, storm_emitted=false (first-time observation). Analogous to BC-2.16.005 Invariant 4."
+
+**F-C-P4-HIGH-002 (HIGH) — BC-2.10.008 Description parenthetical breakdown:**
+- Description reconciliation parenthetical added: "(pre-F2: 6 Enterprise; Modbus F2: 7 ICS; DNP3 F2: +2 ICS [T1691.001, T0827]; ARP F2: +2 = 1 Enterprise [T1557.002] + 1 ICS [T0830]) → 7 Enterprise + 10 ICS = 17". BC-2.10.008 bumped v1.10→v1.11.
+
+**F-C-P4-HIGH-003 / forward-declaration target (MEDIUM) — PLANNED markers augmented:**
+- BC-2.10.005 PLANNED marker: "current code 23/15" → "current code 23 seeded / 15 emitted → target 25 seeded / 17 emitted after STORY-114 5-part atomic update". BC-2.10.005 bumped v1.9→v1.10.
+- BC-2.10.008 PLANNED marker: same augmentation.
+
+**F-C-P4-MEDIUM-001 (MEDIUM) — error-taxonomy E-ARP-002 "sliding window" + "Likely":**
+- E-ARP-002 Notes: "sliding window" → "average since window-start within the 60-second flap window (per BC-2.16.008 Invariant 2; not a sliding-window detector)".
+- E-ARP-002 Signal Type: "Anomaly/Likely/MEDIUM" → "Anomaly/MEDIUM" (BC-2.16.008 PC3 has no Likely token). error-taxonomy bumped v1.5→v1.6.
+
+**F-C-P4-MEDIUM-002/003 (MEDIUM) — error-taxonomy ARP rows unshipped (flat present tense):**
+- NOTE block added at head of ARP section: "ARP decode + analyzer behavior and T0830/T1557.002 MITRE arms are PLANNED in STORY-111..115 (v0.7.0); not present in current develop HEAD. `technique_name` returns `None` for T0830/T1557.002 until STORY-114."
+- E-DEC-003 and E-DEC-004 Notes updated with "PLANNED (STORY-111)" inline markers.
+
+**F-B4-L03 (LOW) — BC-2.02.009 missing input-hash/inputs fields (brownfield BC):**
+- Left as-is per instructions. Intentional: brownfield BC predating the input-hash convention. No fabricated inputs added.
+
+**Documents updated:**
+
+| Document | Version | Change |
+|----------|---------|--------|
+| `specs/prd.md` | 1.11 → 1.12 | F-D4-C1: §2.10 O-04 12E+13I seeded / 7E+10I emitted; §6.5 KD-005 split updated; v1.12 delta note |
+| `specs/behavioral-contracts/BC-INDEX.md` | 1.9 → 1.10 | F-D4-C2: BC-2.10.005 title "(23 Total)"→"(25 Total)"; BC-2.10.008 inline comment refreshed to v1.10 / 17 emitted |
+| `specs/behavioral-contracts/ss-10/BC-2.10.005.md` | 1.9 → 1.10 | F-C-P4-HIGH-003: PLANNED marker augmented with current 23/15 → target 25/17 |
+| `specs/behavioral-contracts/ss-10/BC-2.10.008.md` | 1.10 → 1.11 | F-C-P4-HIGH-002: Description parenthetical reconciliation added; F-C-P4-HIGH-003: PLANNED marker augmented; F-D4-I2: Source Evidence path corrected 123-154→128-181 |
+| `specs/behavioral-contracts/ss-16/BC-2.16.004.md` | 1.3 → 1.4 | F-B4-H01: BindingEntry last_seen_ts added to Architecture Anchors; F-B4-M03: Step 4 mac-update added to intra-event sequence |
+| `specs/behavioral-contracts/ss-16/BC-2.16.008.md` | 1.3 → 1.4 | F-B4-M01: vector row 4 pinned (25@ts=100 + 25@ts=101); F-B4-M02: EC-011 contrast note added; F-B4-M06: Invariant 6 storm counter re-init after eviction |
+| `specs/behavioral-contracts/ss-16/BC-2.16.009.md` | 1.1 → 1.2 | F-B4-M05: PC4 "increment together" → conditional on --arp flag |
+| `specs/behavioral-contracts/ss-16/BC-2.16.010.md` | 1.2 → 1.3 | F-B4-M04: vector row 2 self-contradiction resolved |
+| `specs/behavioral-contracts/ss-16/BC-2.16.013.md` | 1.0 → 1.1 | F-B4-H02: PC3 storm formula → cross-reference to BC-2.16.008 PC3 |
+| `specs/prd-supplements/error-taxonomy.md` | 1.5 → 1.6 | F-C-P4-MEDIUM-001: E-ARP-002 "sliding window"→"average-since-window-start"; "Likely" dropped; F-C-P4-MEDIUM-002/003: NOTE block added to ARP section; E-DEC-003/004 PLANNED markers |
+| `specs/architecture/arp-architecture-delta.md` | 1.4 → 1.5 | (architect pass; recorded here per F-D4-I1 obligation) |
+| `specs/architecture/decisions/ADR-008-arp-link-layer-integration.md` | 1.2 → 1.3 | (architect pass; recorded here per F-D4-I1 obligation) |
+| `spec-changelog.md` | — | This pass-4 remediation entry; pass-2 BC-INDEX 1.7→1.8 row added; pass-3 BC-INDEX 1.8→1.9 row added |
+
+---
+
+## [arp-f2-pass3-remediation-2026-06-12] — 2026-06-12
+
+### PATCH: F2 Adversarial Pass 3 (Sliced) Remediation — Storm Wording, PC3/PC4, MITRE Enterprise/ICS Split, Canonical Names, Forward-Declaration Markers
+
+**Summary:** Remediates all product-owner-routed F2 adversarial Pass 3 findings:
+F-B03-001 (BC-2.16.008 sustained wording + late-burst EC), F-B03-002 (BC-2.16.004 PC3 over-broad),
+F-B03-003/F-D9-H2 (BC-2.16.009 PC4 F3-detail conditional + Invariant 1 re-anchor),
+F-B03-004 (BC-2.16.008 boundary vectors), F-C3 (BC-2.10.008 T1557.002 canonical name),
+F-C4 (BC-2.10.005+008 Enterprise/ICS split), F-C5 (BC-2.10.005 EC/vector rows for T0830/T1557.002),
+F-C6/O-D-1 (BC-2.10.005+008 Architecture Anchors), F-C1(b) (PLANNED forward-declaration markers),
+F-D3-H1 (test-vectors.md "1s window"→"60s window").
+
+**F-B03-001 (HIGH) — BC-2.16.008 sustained wording:**
+- Description reworded: removed "sustained", added "average ARP frame rate since window_start_ts
+  within the 60-second flap window". Rate metric explicitly identified as average-since-window-start,
+  not a sustained-rate detector.
+- Invariant 2 rewritten: late-burst/window-averaging suppression documented as ACCEPTED v0.7.0
+  behavior. Added late-burst example (49 frames ts=100, 50 more at ts=159, rate=99/59≈1.68 < 50
+  → no storm finding despite burst).
+- EC-011 added: late-burst suppression scenario (ACCEPTED limitation).
+
+**F-B03-002 (MEDIUM) — BC-2.16.004 PC3 over-broad:**
+- PC3 amended: "set on the first rebind of a flap window (when first_rebind_ts is None per Step 2);
+  not updated on subsequent rebinds within the same window; re-set on the first rebind after a
+  window reset per Postcondition 5."
+
+**F-B03-003/F-D9-H2 (HIGH) — BC-2.16.009 PC4 + Invariant 1 re-anchor:**
+- PC4: "if a malformed_count field is added; this is an F3 detail" replaced with:
+  "`malformed_frames` and `malformed_findings` increment together (one finding per rejected
+  frame when --arp active). ARP-AMB-004 RESOLVED in F2." BC-2.16.010 and ADR-008 Decision 7
+  cited normatively.
+- Invariant 1: re-anchored from "BC-2.16.001 Invariant 4, EC-007, EC-008" (wrong — Invariant 4
+  is about extraction agnosticism, not panic-freedom) to: VP-024 Sub-A Kani harness
+  `verify_extract_arp_frame_none_on_bad_size` + BC-2.16.001 EC-007/EC-008 + BC-2.16.001/002
+  generally.
+
+**F-B03-004 (MEDIUM) — BC-2.16.008 boundary vectors:**
+- EC-009 added: ts-window_start_ts==60 (in-window per <= boundary; no reset; rate≈0.83 < 50).
+- EC-010 added: ts-window_start_ts==61 (window resets; storm_emitted cleared; count=1).
+- Canonical vectors: two boundary rows added (ts=160/window_start=100; ts=161/window_start=100).
+- PC2's <= boundary confirmed intentional (consistent with existing EC-004).
+
+**F-C3 (HIGH) — BC-2.10.008 T1557.002 canonical name:**
+- EC-017 expected output corrected: Some("ARP Cache Poisoning") → Some("Adversary-in-the-Middle: ARP Cache Poisoning").
+- Canonical vector for T1557.002 corrected: same change.
+- Authoritative source: arch-delta §5 line ~267 + mitre-arp-research.md §2.
+
+**F-C4 (HIGH) — BC-2.10.005 + BC-2.10.008 Enterprise/ICS split:**
+- T1557.002 reclassified Enterprise (sub-technique of T1557 "Adversary-in-the-Middle").
+- T0830 confirmed ICS (T08xx prefix, ICS matrix).
+- Corrected split: Enterprise 12 (+1 T1557.002), ICS 13 (-1 T1557.002). Total = 25. ✓
+- Emitted split: Enterprise 7 (+1 T1557.002), ICS 10 (-1 T1557.002). Total = 17. ✓
+- BC-2.10.005: Postcondition 3, Invariant 1, Invariant 3, Description, changelog comment updated.
+- BC-2.10.008: Description, Postcondition 1, Invariant 1, changelog updated.
+
+**F-C5 (HIGH) — BC-2.10.005 EC + canonical vectors for T0830/T1557.002:**
+- EC-011 added: T0830 → Some("Adversary-in-the-Middle").
+- EC-012 added: T1557.002 → Some("Adversary-in-the-Middle: ARP Cache Poisoning").
+- Canonical vectors: T0830 and T1557.002 rows added.
+- VP table: "All 23 seeded IDs" → "All 25 seeded IDs".
+
+**F-C6/O-D-1 (HIGH/LOW) — Architecture Anchors re-anchored to current mitre.rs:**
+- BC-2.10.005: `:122`→`:128` (function declaration), `:123-156`→`:129-181`, T0885 `:152`→`:158`,
+  `_ => return None` `:153`→`:179`. Source Evidence range updated to `:128-181`.
+- BC-2.10.008: `:123-154` with "all 13 emitted IDs" → `:128` decl + `:129-181` match table
+  with "17 emitted IDs"; T0830/T1557.002 noted as PLANNED in STORY-114.
+
+**F-C1(b) — PLANNED forward-declaration markers:**
+- BC-2.10.005: PLANNED marker added to Description.
+- BC-2.10.008: PLANNED marker added to Description.
+- Text: "PLANNED — implemented in STORY-114; current code 23/15. src/mitre.rs remains at
+  SEEDED=23/EMITTED=15 until STORY-114 lands the 5-part atomic update;
+  vp007_catalog_drift_guard enforces consistency at implementation time."
+
+**F-D3-H1 (HIGH) — test-vectors.md SS-16 storm table "Timing" column:**
+- All 4 occurrences of "1s window" replaced with "60s window (same integer second; ts==window_start_ts)".
+- Section header cite updated: "EC-008" → "EC-002/EC-008".
+
+**Documents updated:**
+
+| Document | Version | Change |
+|----------|---------|--------|
+| `specs/behavioral-contracts/ss-16/BC-2.16.008.md` | 1.2 → 1.3 | F-B03-001 sustained wording; Invariant 2 late-burst accepted limitation; EC-009/010/011 added; boundary canonical vectors added |
+| `specs/behavioral-contracts/ss-16/BC-2.16.004.md` | 1.2 → 1.3 | F-B03-002 PC3 over-broad amended |
+| `specs/behavioral-contracts/ss-16/BC-2.16.009.md` | 1.0 → 1.1 | F-B03-003 PC4 F3-conditional removed; normative BC-2.16.010/ADR-008-D7 citation added; Invariant 1 re-anchored to VP-024 Sub-A |
+| `specs/behavioral-contracts/ss-10/BC-2.10.008.md` | 1.8 → 1.10 | F-C3 T1557.002 canonical name; F-C4 Enterprise/ICS split (7E+10I); F-C6 line anchors; F-C1(b) PLANNED marker |
+| `specs/behavioral-contracts/ss-10/BC-2.10.005.md` | 1.7 → 1.9 | F-C4 Enterprise/ICS split (12E+13I); F-C5 EC-011/012 + vectors for T0830/T1557.002; F-C6 line anchors; F-C1(b) PLANNED marker; VP table 25 seeded IDs |
+| `specs/behavioral-contracts/BC-INDEX.md` | 1.8 → 1.9 | BC-2.10.005 row title "(23 Total)" → "(25 Total)" reflecting F-C4 12E+13I split from pass-3 |
+| `specs/prd-supplements/test-vectors.md` | 1.3 → 1.4 | F-D3-H1 "1s window"→"60s window (same integer second; ts==window_start_ts)" (4x); section header EC cite updated |
+| `spec-changelog.md` | — | This pass-3 remediation entry |
+
+---
+
+## [arp-f2-pass2-remediation-2026-06-12] — 2026-06-12
+
+### PATCH: F2 Adversarial Pass 2 (Sliced) Remediation + ADR-008 Decision 7 Propagation
+
+**Summary:** Propagates ADR-008 Decision 7 canonical 11-key summarize() set (adds
+`other_opcode_count`); remediates all product-owner-routed F2 adversarial Pass 2 findings
+(F-B-003/004/005/007/008/009, C-CRIT-001, C-IMP-002, F-D-C1/C2/H1/H2/H3/H4/M1/M2, O-D1/D3).
+PRD bumped to v1.11. BC-2.16.003 bumped to v1.1. BC-2.16.004/005/008/014 bumped to v1.2.
+BC-2.16.010 bumped to v1.2. HS-INDEX bumped to v1.3. spec-changelog updated with RESOLVED
+annotations and pass-1 Documents updated table (F-D-H2/H4). error-taxonomy.md E-ARP-002
+corrected (O-D3). test-vectors.md ARP-AMB-004 note updated (F-D-H3).
+
+**ADR-008 Decision 7 propagation (canonical 11-key set):**
+
+- **other_opcode_count added (F-B-001/F-B-006/F-D-M2):** BC-2.16.010 updated from 10 to 11
+  keys. `other_opcode_count` (frames with operation != 1 and != 2) added as key 4 in the
+  canonical order. Reconciliation invariant explicitly stated:
+  `request_count + reply_count + other_opcode_count == frames_analyzed` (malformed_frames
+  excluded from frames_analyzed entirely). Description, Postconditions, Invariant 1,
+  EC-001/003/005, canonical test vectors, and VP table updated.
+
+**F2 adversarial Pass 2 findings:**
+
+- **F-B-003 (HIGH):** BC-2.16.014 Postcondition 2 repaired. The D1 escalation condition
+  previously stated only 2 terms. Now reproduces all 3 terms verbatim from BC-2.16.004
+  Postcondition 1.b: `rebind_count >= spoof_threshold AND (timestamp_secs - first_rebind_ts
+  <= ARP_FLAP_WINDOW_SECS) AND !spoof_high_emitted`.
+- **F-B-004 (MEDIUM):** BC-2.16.004 intra-event ordering made explicit. New Steps 1/2/3:
+  (1) increment rebind_count; (2) set first_rebind_ts if unset; (3) evaluate 3-term HIGH
+  condition. EC-008 (threshold=1 → HIGH on first rebind) updated to show elapsed=0 from
+  Step 2 satisfying the window condition.
+- **F-B-005 (HIGH):** BC-2.16.008 Postcondition 3 prefaced with "rate is evaluated after
+  each frame increment, using timestamp_secs of the frame just processed." The 2-second burst
+  vector (row 4) annotated with unambiguous elapsed denominator calculation.
+- **F-B-007 (MEDIUM):** BC-2.16.010 test vector row 2 was contradictory (input "0 Malformed"
+  but malformed_findings:3). Row 2 rewritten with consistent inputs: 3 malformed frames all
+  produce findings; all 11 keys consistent with those inputs.
+- **F-B-008 (MEDIUM):** BC-2.16.003 EC-003 label "RFC 5227 probe" dropped for both-zero case
+  (sender_ip=0=target_ip is NOT a real RFC 5227 probe). EC-009 added for real RFC 5227 ACD
+  probe (sender_ip=0.0.0.0, target_ip=192.0.2.1) → is_gratuitous_arp=false.
+- **F-B-009 (MEDIUM):** BC-2.16.005 pins zero/broadcast sender IP admissibility rule:
+  0.0.0.0 and 255.255.255.255 are filtered at `process_arp` entry (not inserted into binding
+  table). Invariant 5 added. EC-006/007 updated. BC-2.16.004 EC-010 cross-references
+  BC-2.16.005 instead of independently deferring.
+- **C-CRIT-001/F-D-H1 (CRITICAL):** HS-INDEX ARP seed counts reconciled. Actual row count:
+  W40=4, W41=4, W42=7, W43=4, W44=7 → total=26, P0=24, P1=2.
+  Frontmatter `arp_waves_40_44` updated 20→26. Summary table updated 22→26 total, 20→24 P0.
+  STORY-113 row HS-W42-006 updated: "11 required keys" with reconciliation invariant.
+- **C-IMP-002 (MEDIUM):** HS-W43-004 bare SEEDED=25/EMITTED=17 values qualified with
+  "after STORY-114 merges" post-impl note.
+- **F-D-C1 (CRITICAL):** PRD §2.10 BC-2.10.005 table row updated "23 Total"→"25 Total".
+  O-04 domain debt note updated: SEEDED=25, EMITTED=17; §6.5 KD-005 table updated.
+- **F-D-C2 (CRITICAL):** PRD F-ARP-O5 note corrected. P1 seeds = HS-W44-001 and HS-W44-003.
+  HS-W42-002 and HS-W43-003 are P0 (were incorrectly cited as P1 in the pass-1 note).
+- **F-D-H2 (HIGH):** spec-changelog ARP-AMB-003 and ARP-AMB-004 entries annotated with
+  "RESOLVED in F2 — see [arp-f2-pass1-remediation-2026-06-12]" in the arp-f2-2026-06-12
+  ambiguities section. History preserved; resolution pointer added.
+- **F-D-H3 (HIGH):** test-vectors.md ARP-AMB-004 edge case note at ~line 411 updated:
+  "RESOLVED in F2: malformed frames excluded from frames_analyzed; counted in separate
+  malformed_frames key (BC-2.16.010)", mirroring the ARP-AMB-003 RESOLVED note at ~line 374.
+- **F-D-H4 (HIGH):** spec-changelog [arp-f2-pass1-remediation-2026-06-12] entry updated with
+  "Documents updated" version table (was missing). Includes test-vectors.md 1.1→1.2 entry.
+- **F-D-M1 (MEDIUM):** PRD §2.16 "detects 5 MITRE ATT&CK techniques" corrected to "has 5
+  detection types (D1, D2, D3, D11, D12) and emits 2 MITRE techniques (T0830, T1557.002)".
+- **F-D-M2:** Covered under F-B-001/F-B-006 above (BC-2.16.010 nine/ten→eleven).
+- **O-D1 (LOW):** PRD §2.16 Detection surface GARP bullet prefixed with "D2:".
+- **O-D3 (LOW):** error-taxonomy.md E-ARP-002: "exceeds" corrected to "meets or exceeds"
+  (BC-2.16.008 uses >= not >).
+
+**Documents updated:**
+
+| Document | Version | Change |
+|----------|---------|--------|
+| `specs/prd.md` | 1.10 → 1.11 | Pass 2 findings; 11-key summarize; §2.10 SEEDED/EMITTED 23→25/15→17; §2.16 5-detection-types/2-MITRE-techniques; D2 label; F-ARP-O5 P1 correction; v1.11 delta note |
+| `specs/behavioral-contracts/BC-INDEX.md` | 1.7 → 1.8 | (Note: BC-2.10.005 row title "21 Total" → "25 Total" propagation; reflects pass-2 F-D-C1 SEEDED=25 update already in prd.md; BC-INDEX inline comment refreshed to match) |
+| `specs/behavioral-contracts/ss-16/BC-2.16.003.md` | 1.0 → 1.1 | EC-003 both-zero label; EC-009 real RFC5227 probe added |
+| `specs/behavioral-contracts/ss-16/BC-2.16.004.md` | 1.1 → 1.2 | Explicit intra-event ordering Steps 1/2/3; EC-008/010 updated |
+| `specs/behavioral-contracts/ss-16/BC-2.16.005.md` | 1.1 → 1.2 | Invariant 5 (zero/broadcast filter); EC-006/007 updated |
+| `specs/behavioral-contracts/ss-16/BC-2.16.008.md` | 1.1 → 1.2 | Rate evaluated after each frame; 2-second burst vector annotated |
+| `specs/behavioral-contracts/ss-16/BC-2.16.010.md` | 1.1 → 1.2 | 11 keys; other_opcode_count added; reconciliation invariant; consistent test vectors |
+| `specs/behavioral-contracts/ss-16/BC-2.16.014.md` | 1.1 → 1.2 | Postcondition 2 all 3 terms reproduced |
+| `specs/prd-supplements/error-taxonomy.md` | 1.4 → 1.5 | E-ARP-002 "exceeds" → "meets or exceeds" |
+| `specs/prd-supplements/test-vectors.md` | 1.2 → 1.3 | ARP-AMB-004 note updated to RESOLVED |
+| `holdout-scenarios/HS-INDEX.md` | 1.2 → 1.3 | 26 total/24 P0/2 P1; HS-W42-006 11 keys; HS-W43-004 post-impl qualifier; BC-2.16.010 "11 keys" in BC-2.16.016 note |
+| `spec-changelog.md` | — | This entry; ARP-AMB-003/004 RESOLVED annotations; pass-1 Documents updated table |
+
+---
+
+## [arp-f2-pass1-remediation-2026-06-12] — 2026-06-12
+
+### PATCH: F2 Adversarial Pass 1 Remediation + Architect Decision Propagation
+
+**Summary:** Propagates architect decisions from `arp-architecture-delta.md §5-6` and
+remediates all product-owner-routed F2 adversarial Pass 1 findings. PRD bumped to v1.10.
+No new BCs added. BC-2.16.004, BC-2.16.005, BC-2.16.006, BC-2.16.008, BC-2.16.010,
+BC-2.16.014 bumped to v1.1. error-taxonomy.md bumped to v1.4. HS-INDEX bumped to v1.2.
+
+**Architect decision propagation (arch-delta §5-6):**
+
+- **T0830 tactic corrected:** `IcsImpairProcessControl` was incorrect for T0830.
+  Canonical mapping per `mitre.rs` merge-by-name convention:
+  `T0830` → `MitreTactic::LateralMovement` (ICS lateral movement, TA0109 maps to Enterprise
+  Lateral Movement TA0008 in the mitre.rs variant). All PRD, HS-INDEX, and spec-changelog
+  occurrences updated.
+- **T1557.002 tactic corrected:** `LateralMovement/CredentialAccess` (dual-tactic notation)
+  was ambiguous. Canonical mapping: `T1557.002` → `MitreTactic::CredentialAccess` only.
+- **BC-2.16.006 eviction claim downgraded:** "evicts the least-recently-accessed entry"
+  changed to "evicts the entry with the minimum `last_seen_ts` timestamp (heuristic LRU
+  approximation)". VP-024 Sub-D proves only `len <= cap`; no formal LRU ordering proven.
+  BTreeMap noted as Kani surrogate only (not production substrate).
+- **BC-2.16.005 Architecture Anchor:** `insert_binding_lru` signature updated to use
+  `HashMap<[u8;4], BindingEntry>` (production substrate).
+- **HS-INDEX waves 40-44 rewritten:** Match arch-delta §6 canonical story decomposition.
+  BC-2.16.016 reconciliation: no such BC exists; STORY-115 arch-delta citation maps to
+  BC-2.16.010 (storm_findings already a required summarize() key) and BC-2.16.013 (storm
+  CLI flag). BC-2.16.014 is GARP-that-conflicts, not storm CLI flag.
+
+**F2 adversarial Pass 1 findings (F-ARP-C2, C3, H5, H6, H7, H8, O1, O4, O5):**
+
+- **F-ARP-C2 (CRITICAL):** PRD §2.16 "GARP-that-conflicts D14 paths" → "GARP-that-conflicts
+  (BC-2.16.014) paths". There is no detection "D14".
+- **F-ARP-C3 (CRITICAL):** PRD §2.16 VP-024 sub-property labels corrected to match VP-024
+  source of truth: Sub-A=extraction; Sub-B=GARP biconditional; Sub-C=binding last-write-wins
+  (proptest); Sub-D=MAX_ARP_BINDINGS cap (scaled Kani).
+- **F-ARP-H5 (HIGH):** BC-2.16.008 storm-rate formula corrected from
+  `count / (elapsed + 1)` to `count / max(1, elapsed)`. EC-001, EC-002, and all canonical
+  test vectors made arithmetically valid. ARP-AMB-003 reclassified RESOLVED in F2.
+- **F-ARP-H6 (HIGH):** error-taxonomy.md v1.3→v1.4: added E-ARP-004 (D1 spoof finding:
+  Anomaly/MEDIUM or HIGH; T0830+T1557.002) and E-ARP-005 (D2 GARP finding: Anomaly/LOW or
+  MEDIUM; T0830+T1557.002). E-ARP-001 (D11) verdict triple corrected: "Anomaly/Inconclusive/LOW"
+  → "Anomaly/LOW" to match BC-2.16.009.
+- **F-ARP-H7 (HIGH):** BC-2.16.010 v1.0→v1.1: `malformed_frames` added as 10th summary key
+  (distinct from `malformed_findings`); `frames_analyzed` explicitly defined to exclude
+  malformed frames. Invariant 3 updated: no ARP-AMB-004 dependency. ARP-AMB-004 RESOLVED.
+- **F-ARP-H8 (HIGH):** BC-2.16.004 v1.0→v1.1: exactly-one-finding-per-rebind rule stated
+  explicitly. Severity deterministic: HIGH iff `rebind_count >= spoof_threshold &&
+  !spoof_high_emitted`, else MEDIUM. Unconditional "first rebind = MEDIUM" language removed.
+  BC-2.16.014 Postcondition 2 aligned. EC-008 aligned (threshold=1 → HIGH on first rebind).
+- **F-ARP-O1 (MEDIUM/process-gap):** ARP-AMB-003 and ARP-AMB-004 reclassified RESOLVED in F2
+  in PRD v1.10 delta notes and spec-changelog. ARP-AMB-001/002/005/006 remain F3 choices.
+- **F-ARP-O4 (LOW):** PRD RTM BC-2.16.004 and BC-2.16.005 verification-method updated to
+  "unit+proptest" (VP-024 Sub-C proptest anchors both).
+- **F-ARP-O5 (LOW):** HS-INDEX P1 seed count corrected. Previous table said "2 (HS-W42-002,
+  HS-W43-003, HS-W44-003)" — three IDs for count=2. Revised wave tables have P1 count = 2
+  (HS-W44-001, HS-W44-003); total seeds = 22 (20 P0 + 2 P1).
+  (Subsequent Pass 2 remediation further corrected to 26 total / 24 P0 / 2 P1; see
+  [arp-f2-pass2-remediation-2026-06-12].)
+
+**Finding F-ARP-O2 (input-hash: TBD):** Not addressed per instructions — release-gate item
+resolved at convergence via `bin/compute-input-hash`.
+
+**Documents updated:**
+
+| Document | Version | Change |
+|----------|---------|--------|
+| `specs/prd.md` | 1.9 → 1.10 | Pass 1 remediation: VP-024 labels, GARP-that-conflicts D14 fix, MITRE tactic corrections, ARP-AMB-003/004 RESOLVED, F-ARP-H5..H8/O1/O4/O5 |
+| `specs/behavioral-contracts/ss-16/BC-2.16.004.md` | 1.0 → 1.1 | Exactly-one-finding rule; HIGH iff rebind_count >= threshold && !spoof_high_emitted; EC-008 threshold=1 aligned |
+| `specs/behavioral-contracts/ss-16/BC-2.16.005.md` | 1.0 → 1.1 | insert_binding_lru signature corrected (HashMap production substrate) |
+| `specs/behavioral-contracts/ss-16/BC-2.16.006.md` | 1.0 → 1.1 | Eviction claim downgraded to heuristic LRU; BTreeMap noted as Kani surrogate only |
+| `specs/behavioral-contracts/ss-16/BC-2.16.008.md` | 1.0 → 1.1 | Storm-rate formula corrected to count/max(1,elapsed); EC-001/002 arithmetic aligned |
+| `specs/behavioral-contracts/ss-16/BC-2.16.010.md` | 1.0 → 1.1 | malformed_frames added as 10th key; frames_analyzed exclusion stated; ARP-AMB-004 RESOLVED |
+| `specs/behavioral-contracts/ss-16/BC-2.16.014.md` | 1.0 → 1.1 | EC-008 threshold=1 aligned; Postcondition 2 severity terms aligned |
+| `specs/prd-supplements/error-taxonomy.md` | 1.3 → 1.4 | E-ARP-004 (D1 spoof), E-ARP-005 (D2 GARP) added; E-ARP-001 verdict triple corrected |
+| `specs/prd-supplements/test-vectors.md` | 1.1 → 1.2 | ARP-AMB-003 RESOLVED note added; storm-rate vectors made arithmetically consistent |
+| `holdout-scenarios/HS-INDEX.md` | 1.1 → 1.2 | Waves 40-44 rewritten per arch-delta §6 canonical order; T0830/T1557.002 tactic corrections |
+| `spec-changelog.md` | — | This entry |
+
+---
+
+## [arp-f2-2026-06-12] — 2026-06-12
+
+### MINOR + BREAKING-DECODER: Feature #9 ARP Security Analyzer (SS-16, v0.7.0)
+
+**Summary:** 15 new behavioral contracts (BC-2.16.001..015) covering the ARP security analyzer
+(SS-16, C-23 ArpAnalyzer). BC-2.02.009 revised v1.4→v1.5 (ADR-008 Decision 1: three-way
+postcondition). This is a MINOR addition at the spec level (no existing BC retired; no existing
+interface key removed), but the decoder change constitutes a BREAKING CHANGE at the Rust type
+level: `decode_packet` return type changes from `Result<ParsedPacket>` to `Result<DecodedFrame>`.
+All consumers of `decode_packet` (main.rs analysis loop, cargo-fuzz VP-008 harness) must be
+updated in STORY-111.
+
+**New BCs added (15):**
+
+| BC ID | Title | Group |
+|-------|-------|-------|
+| BC-2.16.001 | ARP Request Frame Correctly Parsed from ArpPacketSlice | A — extraction |
+| BC-2.16.002 | ARP Reply Frame Correctly Parsed from ArpPacketSlice | A — extraction |
+| BC-2.16.003 | Gratuitous ARP Detection — sender_ip == target_ip | B — binding/detect |
+| BC-2.16.004 | ARP Spoof Detection — IP→MAC Rebind MEDIUM→HIGH | B — binding/detect |
+| BC-2.16.005 | Binding-Table Update — Last-Seen MAC Wins | B — binding/detect |
+| BC-2.16.006 | Binding-Table Cap — MAX_ARP_BINDINGS=65,536 via LRU | B — resource |
+| BC-2.16.007 | D12 L2/L3 Sender Mismatch | C — mismatch |
+| BC-2.16.008 | D3 ARP Storm Rate Detection | D — storm |
+| BC-2.16.009 | D11 Malformed ARP — Non-Ethernet/IPv4 Sizes → LOW Finding | E — malformed |
+| BC-2.16.010 | ArpAnalyzer::summarize() Required Keys | F — summary |
+| BC-2.16.011 | --arp CLI Flag Gates ARP Analysis | G — CLI |
+| BC-2.16.012 | --arp-spoof-threshold Overrides Default | G — CLI |
+| BC-2.16.013 | --arp-storm-rate Overrides Default | G — CLI |
+| BC-2.16.014 | GARP-That-Conflicts Upgrades to MEDIUM + D1 Spoof Finding | H — escalation |
+| BC-2.16.015 | Decode-vs-Analysis Separation — DecodedFrame::Arp Always Produced | I — invariant |
+
+**BC revised (1):**
+
+- **BC-2.02.009 v1.4 → v1.5** (ADR-008 Decision 1): `decode_packet` return type changes from
+  `Result<ParsedPacket>` to `Result<DecodedFrame>`. Three-way postcondition:
+  - Path 1 (new): Ethernet/IPv4 ARP frame → `Ok(DecodedFrame::Arp(ArpFrame))`.
+  - Path 2 (new): Non-Ethernet/IPv4 ARP frame → `Err("Non-Ethernet/IPv4 ARP frame")` (E-DEC-004).
+  - Path 3 (unchanged): Non-IP non-ARP frame → `Err("No IP layer found")` (E-DEC-003).
+  Previous behavior (ARP frames returning `Err("No IP layer found")`) is retired.
+  VP-008 cargo-fuzz harness update required (accept `Result<DecodedFrame>`).
+
+**MITRE catalog changes:**
+
+Two new techniques enter the seeded catalog (first use in SS-16 ARP analyzer):
+- **T0830** — Adversary-in-the-Middle (`MitreTactic::LateralMovement`): emitted by D1 (spoof)
+  and D12 (L2/L3 mismatch) detection paths. (Note: earlier drafts incorrectly listed tactic
+  as IcsImpairProcessControl; corrected in arp-f2-pass1-remediation-2026-06-12.)
+- **T1557.002** — ARP Cache Poisoning (`MitreTactic::CredentialAccess`): co-emitted on
+  all spoof findings alongside T0830. (Note: earlier drafts listed LateralMovement/CredentialAccess
+  dual notation; canonical mapping is CredentialAccess only.)
+
+Updated counts: **SEEDED=25** (was 23), **EMITTED=17** (was 15), **CATALOGUE-ONLY=8** (unchanged).
+BC-2.10.005 and BC-2.10.008 must be updated by story-writer to reflect the new seeded IDs.
+
+**Error taxonomy changes (error-taxonomy.md v1.2 → v1.3):**
+
+- New error code **E-DEC-004** (`Decoder`, `degraded`): "Non-Ethernet/IPv4 ARP frame" — anyhow
+  error returned by `decode_packet` Path 2; counted as skipped packet.
+- New ARP error section added: **E-ARP-001** (D11 malformed finding), **E-ARP-002** (D3 storm
+  finding), **E-ARP-003** (D12 mismatch finding).
+- New category `ARP` added to the category table.
+
+**CLI surface changes (to be implemented in STORY-115):**
+
+- `--arp` flag added to `analyze` subcommand (boolean, default false; NOT included in `--all`).
+- `--arp-spoof-threshold N` flag (u32, default 3 rebinds within 60s; BC-2.16.012).
+- `--arp-storm-rate N` flag (u32, default 50 frames/sec; BC-2.16.013).
+- `needs_reassembly` expression unchanged (ARP does not require TCP stream reassembly).
+
+**Decoder changes (STORY-111):**
+
+- New `pub enum DecodedFrame { Ip(ParsedPacket), Arp(ArpFrame) }` in `src/decoder.rs`.
+- New `pub struct ArpFrame { operation, sender_mac, sender_ip, target_mac, target_ip, outer_src_mac, packet_len }` in `src/decoder.rs`.
+- New `fn extract_arp_frame(arp: &ArpPacketSlice<'_>, outer_src_mac: Option<[u8; 6]>, packet_len: usize) -> Option<ArpFrame>` in `src/decoder.rs`.
+- `unreachable!` arms added to `strict_ip_triple` and `lax_ip_triple` for `NetSlice::Arp` /
+  `LaxNetSlice::Arp` (ADR-008 Decision 3).
+- etherparse version bumped to 0.20 in `Cargo.toml` (from 0.16) to access `NetSlice::Arp`.
+
+**Formal verification (VP-024):**
+
+Four sub-properties verified (per VP-024 source of truth):
+- Sub-A: `extract_arp_frame` parse safety — no-panic; field-copy correctness (Request +
+  Reply paths); None for non-Ethernet/IPv4 inputs. (Kani, anchors BC-2.16.001/002)
+- Sub-B: GARP detection totality — `is_gratuitous_arp` biconditional (sender_ip==target_ip),
+  opcode-agnostic over all 65,536 u16 operation values. (Kani, anchors BC-2.16.003)
+- Sub-C: Binding-table last-write-wins determinism — arbitrary Vec<ArpFrame> sequences;
+  bindings[ip].mac equals last-frame MAC; no duplicate keys. (proptest, anchors BC-2.16.004/005)
+- Sub-D: MAX_ARP_BINDINGS cap — `bindings.len()` never exceeds cap; LRU evicts one entry
+  on overflow. (Kani scaled: TEST_MAX_ARP_BINDINGS=8; `#[kani::unwind(12)]`. Anchors BC-2.16.006)
+(Note: earlier draft incorrectly labeled Sub-B=Reply extraction and Sub-C=GARP; corrected
+in arp-f2-pass1-remediation-2026-06-12 per VP-024 source of truth.)
+
+**F3 implementation ambiguities (record only — not spec defects):**
+
+These are F3 story-writer and implementer choices, not spec gaps. Recorded here so F3 inherits
+them without requiring re-discovery:
+
+- **ARP-AMB-001:** LRU substrate for binding table (indexmap-based HashMap LRU vs BTreeMap vs
+  custom doubly-linked list). BC-2.16.006 specifies cap invariant only. F3 story must pin.
+- **ARP-AMB-002:** Malformed-frame integration mechanism — whether D11 finding is emitted
+  inside `decode_packet` (decoder), inside `ArpAnalyzer::process_arp` (analyzer), or via a
+  separate hook. BC-2.16.009 and BC-2.02.009 are silent on call site. F3 STORY-111 must decide.
+- **ARP-AMB-003:** Sub-second rate denominator for storm detection — EC-008 specifies count/1
+  when `ts == window_start_ts`; the formula for frames spanning <1s within the window is
+  unspecified. F3 story must define clamping.
+  **RESOLVED in F2 — see [arp-f2-pass1-remediation-2026-06-12].** Formula is
+  `rate = count_in_window / max(1, ts - window_start_ts)` (integer-seconds, no sub-second
+  ambiguity). BC-2.16.008 updated; ARP-AMB-003 closed.
+- **ARP-AMB-004:** Whether malformed frames (extract_arp_frame → None) count toward
+  `frames_analyzed` in summarize(). BC-2.16.010 is silent. F3 STORY-111 must decide.
+  **RESOLVED in F2 — see [arp-f2-pass1-remediation-2026-06-12].** Malformed frames excluded
+  from `frames_analyzed`; tracked separately in `malformed_frames` key. BC-2.16.010 updated;
+  ARP-AMB-004 closed.
+- **ARP-AMB-005:** Stale line-number anchors in BC-2.02.009 Architecture Anchors — will be
+  invalidated by STORY-111's DecodedFrame addition. F3 story-writer must update after implementation.
+- **ARP-AMB-006:** Stories STORY-111..STORY-115 (estimated waves 40-44) have TBD Story Anchor
+  in all SS-16 BCs. F3 story decomposition assigns these.
+
+**Test vectors supplement changes (test-vectors.md v1.0 → v1.1):**
+
+- SS-16 section added with: same-second storm denominator edge cases; GARP escalation table;
+  binding-table LRU eviction table; malformed ARP table; SLL outer_src_mac=None table.
+
+**Holdout seeds added (HS-INDEX.md v1.0 → v1.1):**
+
+- 20 ARP feature holdout seeds registered (HS-W40-NNN through HS-W44-NNN, waves 40-44).
+- Seeds categorized across 5 waves matching estimated STORY-111..115 decomposition.
+- 2 real-world corpus seeds: known-good (clean LAN ARP) and known-problematic (ARP poisoning pcap).
+- Full scenarios to be authored by holdout-evaluator in Phase 4.
+
+**Documents updated:**
+
+| Document | Version | Change |
+|----------|---------|--------|
+| `specs/prd.md` | 1.8 → 1.9 | Added Section 2.16 (15 BC summary table), SS-16 RTM rows, MITRE O-04 update, v1.9 delta note |
+| `specs/behavioral-contracts/BC-INDEX.md` | 1.6 → 1.7 | Added ss-16 section (15 rows), updated BC-2.02.009 title row (v1.5), updated count 268→283 |
+| `specs/prd-supplements/error-taxonomy.md` | 1.2 → 1.3 | Added E-DEC-004, ARP category, E-ARP-001..003 |
+| `specs/prd-supplements/test-vectors.md` | 1.0 → 1.1 | Added SS-16 edge-case vectors section |
+| `holdout-scenarios/HS-INDEX.md` | 1.0 → 1.1 | Added ARP feature holdout seeds (waves 40-44) |
+| `spec-changelog.md` | — | This entry |
+
+---
+
 ## [dnp3-f2-mustadds-c2fix-2026-06-10] — 2026-06-10
 
 ### MINOR: BC-2.15.024 C-2 Remediation — Separate Windowed Counter + Two-Counter Model

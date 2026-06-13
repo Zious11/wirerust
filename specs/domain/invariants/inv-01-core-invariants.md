@@ -4,6 +4,9 @@ traces_to: ../domain-spec.md
 title: Core Domain Invariants
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
+version: "1.1"
+modified:
+  - "v1.1: Pass-12 corpus-cleanup F-C-P12-001: INV-9 enforcement anchor re-anchored from stale :122-156 (let info=match@:123, _=>return None@:153, }@:156) to current :128-182 (technique_info fn@:128, let info=match id@:129, _ => return None@:179, closing }@:182). — 2026-06-13"
 ---
 
 # Core Domain Invariants
@@ -214,6 +217,6 @@ absence of `= false` assignments (confirmed pass-2 R3 Target 3).
 unrecognized ID produces an ungrouped finding with a `<id> (unknown)` label. JSON output
 passes the raw ID string through without validation.
 
-**Enforcement:** `src/mitre.rs:122-156` (`technique_info` function; `let info = match id`
-block starts at `:123`, wildcard arm `_ => return None` at `:153`, closing `}` at `:156`).
+**Enforcement:** `src/mitre.rs:128-182` (`technique_info` function; fn declaration at `:128`, `let info = match id`
+block starts at `:129`, wildcard arm `_ => return None` at `:179`, closing `}` at `:182`).
 **Corpus refs:** VO-6, BC-MIT-005..008, CAP-10.

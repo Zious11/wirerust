@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Feature #8 DNP3 analyzer (F2). MitreTactic gains third ICS-unique variant IcsImpact. Slice length 16→17. Element [16] = IcsImpact. Description, Postconditions, Invariants, Edge Cases, and Canonical Test Vectors updated. — 2026-06-10"
+  - "v1.4: Pass-12 corpus-cleanup F-C-P12-004: all_tactics_in_report_order anchor re-anchored from stale :95-114 to current :100-120 (matching sibling BC-2.10.004). Architecture Anchors and Source Evidence updated. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -106,13 +107,13 @@ consistent, predictable sequence. The third ICS variant `IcsImpact` was added in
 
 ## Architecture Anchors
 
-- `src/mitre.rs:95-114` -- all_tactics_in_report_order static slice literal
+- `src/mitre.rs:100-120` -- all_tactics_in_report_order static slice literal
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/mitre.rs:95-114` |
+| **Path** | `src/mitre.rs:100-120` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

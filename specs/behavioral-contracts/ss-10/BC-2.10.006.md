@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Pass-13 F-C-P13-001: line anchors :153 → :179; count descriptions 15-entry/15 seeded → 23-entry (current; 25 after STORY-114) per live src/mitre.rs — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -27,15 +28,15 @@ removal_reason: null
 
 ## Description
 
-`technique_name(id)` returns `None` for any string that is not in the 15-entry static match
-table. This includes fabricated IDs, IDs with wrong formatting, IDs with extra whitespace,
-and lowercase forms of valid IDs. The function never panics or returns a default string
-for unknown IDs.
+`technique_name(id)` returns `None` for any string that is not in the 23-entry static match
+table (current; 25 entries after STORY-114 — PLANNED). This includes fabricated IDs, IDs with
+wrong formatting, IDs with extra whitespace, and lowercase forms of valid IDs. The function
+never panics or returns a default string for unknown IDs.
 
 ## Preconditions
 
 1. `technique_name` is called with any string argument.
-2. The argument is not one of the 15 seeded IDs.
+2. The argument is not one of the 23 seeded IDs (current; 25 after STORY-114 — PLANNED).
 
 ## Postconditions
 
@@ -45,7 +46,7 @@ for unknown IDs.
 ## Invariants
 
 1. The match is exact string equality (case-sensitive, no trimming).
-2. An ID not in the 15-entry table always returns None.
+2. An ID not in the 23-entry table (current; 25 after STORY-114 — PLANNED) always returns None.
 3. This applies to valid-looking IDs for real ATT&CK techniques that are not yet seeded
    (e.g., "T1059" is a real technique but not in the catalog; returns None).
 
@@ -94,13 +95,13 @@ for unknown IDs.
 
 ## Architecture Anchors
 
-- `src/mitre.rs:153` -- `_ => return None` wildcard arm
+- `src/mitre.rs:179` -- `_ => return None` wildcard arm
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/mitre.rs:153` |
+| **Path** | `src/mitre.rs:179` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

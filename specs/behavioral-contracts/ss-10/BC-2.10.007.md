@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.4: v19 remap: T0855 → T1692.001, T0856 → T1692.002 per MITRE ATT&CK for ICS v19.0 revocation. Tactic table rows updated to use new ICS sub-technique IDs. Tactic assignment (IcsImpairProcessControl) unchanged. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
   - "v1.5: Feature #8 DNP3 analyzer (F2). Added 2 new tactic assignments: T1691.001 → IcsInhibitResponseFunction (same parent tactic as T0814 Denial of Service), T0827 → IcsImpact (new ICS-unique tactic variant). Postcondition 2 extended. Seeded count 21→23; all_tactics_in_report_order must include new IcsImpact variant (see BC-2.10.002 update). — 2026-06-10"
   - "v1.6: Pass-1 adversarial fix C-1: corrected T1691.001 technique name in EC-007 from fabricated 'Unauthorized Message: Inhibit Response Function' to authoritative 'Block Operational Technology Message: Command Message' (parent T1691, tactic IcsInhibitResponseFunction). — 2026-06-10"
+  - "v1.7: Pass-12 corpus-cleanup F-C-P12-002/F-C-P12-003: technique_tactic src anchor re-anchored from stale :166-168 to current :192-194 (Architecture Anchors + Source Evidence). PLANNED forward-declaration marker added: STORY-114 adds T0830→LateralMovement and T1557.002→CredentialAccess arms, raising seeded count 23→25 (mirrors BC-2.10.005/008). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -45,6 +46,8 @@ removal_reason: null
 (Enterprise or ICS). Like `technique_name`, it is a thin projection over `technique_info`. The
 tactic assignments match the ATT&CK matrix assignments (e.g., T1027 => DefenseEvasion, T0888
 => Discovery, T0806 => IcsImpairProcessControl, T0827 => IcsImpact).
+
+PLANNED — implemented in STORY-114; current code 23 seeded → target 25 seeded after STORY-114 5-part atomic update. T0830→LateralMovement and T1557.002→CredentialAccess tactic arms added in STORY-114. src/mitre.rs remains at SEEDED=23 until STORY-114 lands; vp007_catalog_drift_guard enforces consistency at implementation time.
 
 ## Preconditions
 
@@ -142,13 +145,13 @@ tactic assignments match the ATT&CK matrix assignments (e.g., T1027 => DefenseEv
 
 ## Architecture Anchors
 
-- `src/mitre.rs:166-168` -- technique_tactic thin wrapper
+- `src/mitre.rs:192-194` -- technique_tactic thin wrapper
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/mitre.rs:166-168` |
+| **Path** | `src/mitre.rs:192-194` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

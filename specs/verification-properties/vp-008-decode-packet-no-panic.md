@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.0"
+version: "2.1"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -25,6 +25,7 @@ modified:
   - "v1.1: Correct fuzz target filename from decode_packet.rs to fuzz_decode_packet.rs to match delivered harness and STORY-003 AC-011; annotate pcap_source harness as unowned obligation — 2026-05-22"
   - "v1.2: Note that delivered harness is wider than skeleton (also fuzzes unsupported variants IEEE802_11, NULL, LOOP); update skeleton import to pcap_file::DataLink (STORY-003 pass-3 Nit-1) — 2026-05-22"
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set (fuzz/fuzz_targets/fuzz_decode_packet.rs)."
+  - "v2.1: Pass-13 anchor correction (F-A13-004, label-only — proof unaffected, verification_lock preserved): BC-2.02.009 Related BC title updated from stale 'Surface No IP Layer Found Error' to current title 'Non-IP Non-ARP Frames Return No-IP-Layer Error; ARP Frames Return DecodedFrame::Arp'. Note: the code still returns Err on the non-IP non-ARP path; the BC title reflects the revised BC-2.02.009 scope introduced by ADR-008 (ARP integration adds the DecodedFrame::Arp variant)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -63,7 +64,7 @@ And for all inputs including:
 - **Primary BC:** BC-2.02.007 -- Reject Malformed Input Bytes with anyhow Error (No Panic)
 - **Postcondition:** `decode_packet` returns `Ok` or `Err`; never panics
 - **Related BC:** BC-2.02.008 -- Reject Unsupported Link Types in decode_packet
-- **Related BC:** BC-2.02.009 -- Surface No IP Layer Found Error
+- **Related BC:** BC-2.02.009 -- Non-IP Non-ARP Frames Return No-IP-Layer Error; ARP Frames Return DecodedFrame::Arp
 
 ## Proof Method
 

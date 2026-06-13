@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Feature #8 DNP3 analyzer (F2). MitreTactic gains third ICS-unique variant IcsImpact. All postconditions and invariants updated: variant count 16→17 (14 Enterprise + 3 ICS). Edge case EC-001 and test vectors updated. — 2026-06-10"
   - "v1.4: Pass-1 adversarial fix F3: corrected two stale informative lines — Architecture Anchors '16 elements' → '17 elements'; Evidence Types Used '16 verified' → '17 verified'. Normative body already said 17; only these two informative lines were stale. — 2026-06-10"
+  - "v1.5: Pass-7 remediation F-C-P7-003: re-anchored Architecture Anchors and Source Evidence from stale 'src/mitre.rs:95-114' to verified 'src/mitre.rs:100-120' (function declaration line 100, slice literal lines 101-119, closing brace line 120). — 2026-06-12"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -95,13 +96,13 @@ with the addition of `IcsImpact` in Feature #8 (DNP3).
 
 ## Architecture Anchors
 
-- `src/mitre.rs:95-114` -- all_tactics_in_report_order static slice (17 elements)
+- `src/mitre.rs:100-120` -- all_tactics_in_report_order function and static slice (17 elements; function declaration line 100, slice literal lines 101-119, closing brace line 120)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/mitre.rs:95-114` |
+| **Path** | `src/mitre.rs:100-120` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

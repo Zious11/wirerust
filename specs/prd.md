@@ -1,10 +1,10 @@
 ---
 document_type: prd
 level: L3
-version: "1.8"
+version: "1.16"
 status: draft
 producer: product-owner
-timestamp: 2026-06-10T00:00:00Z
+timestamp: 2026-06-12T02:00:00Z
 phase: 1a
 origin: brownfield
 inputs:
@@ -48,7 +48,7 @@ supplements:
 > ADR-005). Updated Section 1.5 Out of Scope (T0855/T1692.001 and 5 other ICS techniques now emitted).
 > Updated Section 6 KD-005 and KD-003 with Modbus-specific BC references. Added SS-14 rows to
 > Section 7 RTM. Total BC count: 244 (was 219).
-> **→ Current total after all deltas: 268 BCs.**
+> **→ Current total after all deltas: 283 BCs.**
 >
 > **Version 1.2 delta (2026-06-09 — F2 Modbus revision):** Adopts three approved decisions from
 > `f2-fix-directives.md` v2 (Decisions 11, 12, 13). **BREAKING CHANGE targeting v0.3.0:**
@@ -108,6 +108,137 @@ supplements:
 > Invariant 6 updated from "four fields" to six. PRD prose updated from "BC-2.15.001..022"
 > to "BC-2.15.001..024", "22 BCs" to "24 BCs", and RTM entry for BC-2.15.024 corrected to
 > name `malformed_in_window`. No new BCs; no MITRE catalog change; counts 23/15/8 unchanged.
+>
+> **Version 1.8 delta (2026-06-10 — PRD version alignment bump, no new BCs):** Version bump
+> to align with BC-INDEX v1.6 and SS-15 must-add additions tracked in v1.6 delta above.
+> No new BCs; spec-changelog §[dnp3-f2-mustadds-c2fix-2026-06-10] is the authoritative
+> record. → Current total after all deltas: 268 BCs.
+>
+> **Version 1.9 delta (2026-06-12 — Feature #9 ARP security analyzer, issue #9):** Added
+> Section 2.16 (SS-16 ARP Security Analysis, 15 BCs, ADR-008). Revised BC-2.02.009 v1.4→v1.5
+> (ADR-008 Decision 1: three-way ARP/non-Ethernet-ARP/non-IP postcondition; `decode_packet`
+> return type changes from `Result<ParsedPacket>` to `Result<DecodedFrame>`). New decoder
+> variant `DecodedFrame::Arp(ArpFrame)` introduced. New error code E-DEC-004 ("Non-Ethernet/
+> IPv4 ARP frame") and ARP section (E-ARP-001..003) added to error-taxonomy supplement (v1.3).
+> MITRE techniques added to catalog: T0830 (Adversary-in-the-Middle, LateralMovement),
+> T1557.002 (ARP Cache Poisoning, CredentialAccess) — SEEDED count grows
+> 23→25; EMITTED grows 15→17; CATALOGUE-ONLY remains 8. Added SS-16 rows to Section 7 RTM.
+> Total BC count: 283 (was 268). See `spec-changelog.md` §[arp-f2-2026-06-12].
+> **F3 implementation ambiguities flagged (record only — not spec defects; F3 story-writer
+> must resolve as implementation choices):**
+> - ARP-AMB-001: LRU substrate for binding table — HashMap-ordered LRU (indexmap-based) vs
+>   BTreeMap-ordered LRU vs custom doubly-linked list; BC-2.16.006 specifies cap invariant
+>   only, not substrate. F3 story must pick and pin in story body.
+> - ARP-AMB-002: Malformed-frame integration mechanism — whether D11 finding is emitted inside
+>   `decode_packet` (decoder layer), inside `process_arp` (analyzer layer), or via a separate
+>   hook; BC-2.16.009 and BC-2.02.009 are silent on call site. F3 story STORY-111 must pick.
+> - ARP-AMB-003: **RESOLVED in F2.** Storm-rate denominator is integer-seconds based
+>   (`u32` timestamps). The sound formula is `rate = count_in_window / max(1, ts -
+>   window_start_ts)`. When all frames arrive in the same second (`ts == window_start_ts`),
+>   `max(1, 0) = 1`, so rate = count_in_window (no division-by-zero). EC-002 of BC-2.16.008
+>   is consistent with this formula. There is no sub-second ambiguity because timestamps
+>   are integer seconds. BC-2.16.008 updated accordingly. (Was incorrectly deferred as F3
+>   ambiguity; the formula is fully determined by u32 integer-seconds semantics.)
+> - ARP-AMB-004: **RESOLVED in F2.** Malformed ARP frames (extract_arp_frame → None,
+>   E-DEC-004) do NOT count toward `frames_analyzed`. They are tracked by a separate
+>   `malformed_frames` counter (distinct from `malformed_findings`). This makes
+>   BC-2.16.010 Invariant 3 (`request_count + reply_count <= frames_analyzed`) trivially
+>   consistent: only well-formed Ethernet/IPv4 ARP frames increment `frames_analyzed`.
+>   BC-2.16.010 updated to add `malformed_frames` as a 10th summary key and to state the
+>   exclusion explicitly. (Was incorrectly deferred as F3 ambiguity.)
+> - ARP-AMB-005: Stale line-number anchors in BC-2.02.009 Architecture Anchors post-STORY-111
+>   — the Architecture Anchors section of BC-2.02.009 cites decoder.rs line references that
+>   will be invalidated by STORY-111's DecodedFrame enum addition. F3 story-writer must update
+>   BC-2.02.009 Architecture Anchors after STORY-111 implementation.
+> - ARP-AMB-006: Affected stories STORY-111..STORY-115 (estimated wave assignments TBD) must
+>   be created by F3 story decomposition. BC-2.16.001..015 all have `Story Anchor: TBD`.
+
+> **Version 1.10 delta (2026-06-12 — F2 adversarial Pass 1 remediation + architect propagation):**
+> This version propagates architect decisions from arp-architecture-delta.md §6 and remediates
+> F2 adversarial Pass 1 findings routed to product-owner (F-ARP-C2, F-ARP-C3, F-ARP-H5,
+> F-ARP-H6, F-ARP-H7, F-ARP-H8, F-ARP-O1, F-ARP-O4, F-ARP-O5). Key changes:
+> - **A.1** Binding-table substrate clarified: `HashMap<[u8;4], BindingEntry>` (production);
+>   BTreeMap is Kani-surrogate only (VP-024 Sub-D). PRD §2.16 and BC-2.16.005/006 updated.
+> - **A.2** BC-2.16.006 eviction claim downgraded: evicts entry with minimum `last_seen_ts`
+>   (heuristic LRU approximation). VP-024 Sub-D proves only `len <= cap`, not a proven LRU order.
+> - **A.3** MITRE tactic corrections: T0830 → `LateralMovement` (not IcsImpairProcessControl);
+>   T1557.002 → `CredentialAccess`. All occurrences updated in PRD, HS-INDEX, spec-changelog.
+> - **A.4** HS-INDEX waves 40-44 rewritten to match arch-delta §6 canonical story decomposition.
+>   BC-2.16.016 (arch-delta mis-cite in STORY-115 row) reconciled: no such BC exists; maps to
+>   BC-2.16.010 (storm_findings already a required summarize() key).
+> - **A.5** BC-2.16.003 GARP preconditions confirmed opcode-agnostic (no `operation == 2`
+>   restriction present — no change needed; confirmed clean).
+> - **F-ARP-C2** PRD §2.16 reference "GARP-that-conflicts D14 paths" corrected to
+>   "GARP-that-conflicts (BC-2.16.014) paths". There is no detection "D14".
+> - **F-ARP-C3** VP-024 sub-property labels in PRD §2.16 corrected to match VP-024 exactly:
+>   Sub-A=extraction; Sub-B=GARP biconditional; Sub-C=binding last-write-wins (proptest);
+>   Sub-D=MAX_ARP_BINDINGS cap (scaled Kani).
+> - **F-ARP-H5** BC-2.16.008 storm-rate formula corrected:
+>   `rate = count_in_window / max(1, ts - window_start_ts)`. EC-002 and canonical test vectors
+>   made arithmetically consistent. ARP-AMB-003 reclassified: RESOLVED in F2.
+> - **F-ARP-H6** error-taxonomy.md updated: added E-ARP-004 (D1 spoof finding) and E-ARP-005
+>   (D2 GARP finding). E-ARP-001 (D11) verdict triple aligned: Anomaly/LOW (per BC-2.16.009).
+> - **F-ARP-H7** BC-2.16.010 updated: malformed frames explicitly excluded from
+>   `frames_analyzed`; `malformed_frames` added as 10th summary key (separate from
+>   `malformed_findings`). ARP-AMB-004 reclassified: RESOLVED in F2.
+> - **F-ARP-H8** BC-2.16.004 severity logic clarified: a rebind emits exactly one D1 finding.
+>   Severity = HIGH iff `rebind_count >= spoof_threshold && !spoof_high_emitted`, else MEDIUM.
+>   BC-2.16.014 EC-004 aligned. Unconditional "first rebind = MEDIUM" language removed.
+> - **F-ARP-O1** ARP-AMB-003 and ARP-AMB-004 reclassified RESOLVED in F2 (see above).
+> - **F-ARP-O4** RTM verification-method for BC-2.16.004 and BC-2.16.005 updated to
+>   unit+proptest (VP-024 Sub-C proptest anchors both).
+> - **F-ARP-O5** HS-INDEX P1 count corrected: 2 seeds are P1 — HS-W44-001 and HS-W44-003
+>   (both in wave 44: D3 storm and --arp-storm-rate override). HS-W42-002 and HS-W43-003 are
+>   P0, not P1; they were previously mislabeled. Total ARP seeds = 26 (24 P0 + 2 P1).
+> Total BC count: 283 (unchanged). See `spec-changelog.md` §[arp-f2-pass1-remediation-2026-06-12].
+
+> **Version 1.11 delta (2026-06-12 — F2 adversarial Pass 2 remediation + ADR-008 Decision 7 propagation):**
+> Propagates canonical 11-key summarize() set from ADR-008 Decision 7 (adds `other_opcode_count`
+> as key 4; reconciliation invariant `request_count + reply_count + other_opcode_count ==
+> frames_analyzed` stated explicitly). Remediates all PO-routed Pass 2 findings. Key changes:
+> - **F-B-001/F-B-006/F-D-M2** BC-2.16.010 updated nine→ten→eleven; `other_opcode_count` added
+>   as key 4; reconciliation invariant stated; malformed_frames exclusion documented. v1.1→v1.2.
+> - **F-B-003** BC-2.16.014 Postcondition 2 repaired: D1 severity now cites all three conditions
+>   per BC-2.16.004 Postcondition 1.b (rebind_count >= threshold AND elapsed <= window AND
+>   !spoof_high_emitted). v1.1→v1.2.
+> - **F-B-004** BC-2.16.004 explicit intra-event ordering added (Step 1 increment, Step 2 set
+>   first_rebind_ts, Step 3 evaluate). EC-008 updated to reflect ordering. v1.1→v1.2.
+> - **F-B-005** BC-2.16.008 "rate is evaluated after each frame increment" statement added;
+>   2-second burst vector annotated with unambiguous elapsed denominator. v1.1→v1.2.
+> - **F-B-007** BC-2.16.010 contradictory vector row 2 repaired (inputs now consistent with outputs).
+> - **F-B-008** BC-2.16.003 EC-003 reworded to drop "RFC 5227 probe" label for both-zero case;
+>   EC-009 added for real RFC 5227 probe (sender_ip=0, target_ip=192.0.2.1 → is_gratuitous_arp=false).
+>   v1.0→v1.1.
+> - **F-B-009** BC-2.16.005 pins zero/broadcast sender IP admissibility rule (filtered, not
+>   inserted); Invariant 5 added; EC-006/007 updated. BC-2.16.004 EC-010 cross-references BC-2.16.005.
+>   v1.1→v1.2.
+> - **C-CRIT-001/F-D-H1** HS-INDEX ARP summary table corrected: 26 total (24 P0, 2 P1);
+>   frontmatter `arp_waves_40_44` updated 20→26; STORY-113 row updated (11 keys). v1.2→v1.3.
+> - **C-IMP-002** HS-W43-004: "after STORY-114 merges" qualifier added.
+> - **F-D-C1** PRD §2.10 O-04 updated SEEDED=23→25, EMITTED=15→17; BC-2.10.005 row updated
+>   (23 Total → 25 Total); RTM entry updated; §6.5 KD-005 updated.
+> - **F-D-C2** PRD F-ARP-O5 note corrected: P1 count=2 (HS-W44-001, HS-W44-003); HS-W42-002
+>   and HS-W43-003 were mislabeled as P1 (both are P0).
+> - **F-D-H2** spec-changelog ARP-AMB-003/004 entries annotated RESOLVED.
+> - **F-D-H3** test-vectors.md ARP-AMB-004 note updated to RESOLVED.
+> - **F-D-H4** spec-changelog arp-f2-pass1-remediation entry: "Documents updated" table added
+>   with test-vectors 1.1→1.2 version bump.
+> - **F-D-M1** PRD §2.16 "5 MITRE ATT&CK techniques" corrected to "5 detection types (D1, D2,
+>   D3, D11, D12) and emits 2 MITRE techniques (T0830, T1557.002)".
+> - **O-D1** PRD §2.16 Detection surface GARP bullet labeled "D2: GARP".
+> - **O-D3** error-taxonomy E-ARP-002 "exceeds" → "meets or exceeds".
+> Total BC count: 283 (unchanged). See `spec-changelog.md` §[arp-f2-pass2-remediation-2026-06-12].
+
+> **Version 1.12 delta (2026-06-12 — F2 adversarial Pass 4 propagation sweep):**
+> Completes propagation of pass-3 Enterprise/ICS split corrections into all consuming documents.
+> Key changes:
+> - **F-D4-C1** §2.10 O-04: corrected "11 Enterprise + 14 ICS seeded; 6 Enterprise + 11 ICS emitted"
+>   → "12 Enterprise + 13 ICS seeded (25 total); 7 Enterprise + 10 ICS emitted (17 total);
+>   CATALOGUE-ONLY=8". Authoritative split from BC-2.10.005 v1.9 / BC-2.10.008 v1.10 (pass-3).
+>   T1557.002 is Enterprise; T0830 is ICS.
+> - **F-D4-C1** §6.5 KD-005 BC-2.10.005 row: "11 Enterprise + 14 ICS" → "12 Enterprise + 13 ICS;
+>   T0830 [ICS] + T1557.002 [Enterprise] new ARP F2".
+> Total BC count: 283 (unchanged). See `spec-changelog.md` §[arp-f2-pass4-remediation-2026-06-12].
 
 > **Supplement Model:** Sections 3-5 reference extracted supplement files under
 > `prd-supplements/`. These supplements are produced in a SEPARATE burst (Phase 1b).
@@ -183,7 +314,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 - Streaming / lazy-read pcap processing (entire file loaded into RAM before processing)
 - Per-packet timestamp in findings (Finding.timestamp is always None; O-01)
 - Empirically-calibrated anomaly thresholds (defaults are research-documented but not validated against labelled traffic; O-03)
-- MITRE techniques T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885 (catalogued but never emitted; O-04; note: T1692.001, T0836, T0814, T0806, T0835, T0831, T0888 are now emitted by the Modbus/ICS analyzer — see Section 2.14; T0846 is seeded in the catalog but NOT emitted — see ADR-006 Decision 12; T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap)
+- MITRE techniques T1040, T1071, T1071.001, T1071.004, T1573, T0846, T1692.002, T0885 (catalogued but never emitted; O-04; note: T1692.001, T0836, T0814, T0806, T0835, T0831, T0888 are now emitted by the Modbus/ICS analyzer — see Section 2.14; T0846 is seeded in the catalog but NOT emitted — see ADR-006 Decision 12; T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap)
 
 
 ## 2. Behavioral Contracts Index
@@ -264,7 +395,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.02.006 | Decode Linux SLL (cooked) TCP packets | P0 | BC-DEC-006 |
 | BC-2.02.007 | Reject malformed input bytes with anyhow error (no panic) | P0 | BC-DEC-007 |
 | BC-2.02.008 | Reject unsupported link types in decode_packet | P1 | BC-DEC-008 |
-| BC-2.02.009 | Surface No IP layer found error | P1 | BC-DEC-009 |
+| BC-2.02.009 | Non-IP Non-ARP Frames Return No-IP-Layer Error; ARP Frames Return DecodedFrame::Arp | P1 | BC-DEC-009 |
 | BC-2.02.010 | Classify ICMP as Protocol::Icmp with TransportInfo::None | P1 | BC-DEC-010 |
 | BC-2.02.011 | Classify other IP protocols as Protocol::Other(byte) | P1 | BC-DEC-011 |
 | BC-2.02.012 | app_protocol_hint returns service strings from port number | P1 | BC-DEC-012 |
@@ -338,6 +469,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.04.052 | on_data_without_syn transitions New->Established and sets partial=true | P0 | BC-RAS-052 |
 | BC-2.04.053 | TcpFlow::direction returns ClientToServer when src matches initiator | P0 | BC-RAS-053 |
 | BC-2.04.054 | finalize unconditionally bypasses MAX_FINDINGS cap for segment-limit finding | P0 | BC-RAS-054 |
+| BC-2.04.055 | StreamHandler::on_data Carries Capture-Relative Timestamp Parameter | P1 | BC-RAS-055 |
 
 > Full contracts: `behavioral-contracts/ss-04/BC-2.04.001.md` through `BC-2.04.055.md`
 > (BC-2.04.055 added Feature Mode F2 issue #100: StreamHandler::on_data timestamp parameter)
@@ -456,11 +588,13 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.09.004 | Confidence Display: High/Medium/Low render as uppercase tokens | P1 | BC-FND-004 |
 | BC-2.09.005 | Finding.summary and evidence store RAW post-from_utf8_lossy bytes per ADR 0003 | P0 | BC-FND-005 |
 | BC-2.09.006 | Finding JSON serialization: empty Vec fields omitted (skip_serializing_if Vec::is_empty); mitre_techniques serialized as array | P0 | BC-FND-006 |
+| BC-2.09.007 | Finding.timestamp Carries Capture-Relative Pcap Timestamp from on_data Call Site | P1 | BC-FND-007 |
 
-> Full contracts: `behavioral-contracts/ss-09/BC-2.09.001.md` through `BC-2.09.006.md`
+> Full contracts: `behavioral-contracts/ss-09/BC-2.09.001.md` through `BC-2.09.007.md` (BC-2.09.007 added Feature Mode F2 issue #100)
 >
 > Known limitation: All 22 emission sites set timestamp: None (domain-debt O-01). This is
 > described by BC-2.09.001 as current behavior. Finding.timestamp field exists but is never populated.
+> BC-2.09.007 (F2) resolves O-01 for 21 of 22 emission sites; the segment-limit summary finding retains timestamp: None per BC-2.04.054.
 
 ### 2.10 MITRE ATT&CK Mapping (CAP-10)
 
@@ -470,7 +604,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.10.002 | ICS tactics render unprefixed (no ICS: prefix) | P1 | BC-MIT-002 |
 | BC-2.10.003 | all_tactics_in_report_order returns kill-chain order first then ICS-unique | P0 | BC-MIT-003 |
 | BC-2.10.004 | all_tactics_in_report_order contains every variant exactly once (17 total) | P0 | BC-MIT-004 |
-| BC-2.10.005 | technique_name returns Some for every seeded ID (23 Total) | P0 | BC-MIT-005 |
+| BC-2.10.005 | technique_name returns Some for every seeded ID (25 Total) | P0 | BC-MIT-005 |
 | BC-2.10.006 | technique_name returns None for unknown IDs | P0 | BC-MIT-006 |
 | BC-2.10.007 | technique_tactic returns correct tactic for every seeded ID | P0 | BC-MIT-007 |
 | BC-2.10.008 | All technique IDs currently emitted by analyzers resolve in lookup | P0 | BC-MIT-008 |
@@ -478,14 +612,15 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 
 > Full contracts: `behavioral-contracts/ss-10/BC-2.10.001.md` through `BC-2.10.009.md`
 >
-> Domain debt O-04 (revised v1.5): 23 techniques seeded (11 Enterprise + 12 ICS); 15 emitted
-> (6 Enterprise + 9 ICS). Catalogued-but-never-emitted (8): T1040, T1071, T1071.001, T1071.004,
-> T1573, T1692.002, T0885 (Enterprise), T0846 (ICS — seeded but not emitted per Decision 12;
-> T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap).
+> Domain debt O-04 (revised v1.9): 25 techniques seeded (12 Enterprise + 13 ICS); 17 emitted
+> (7 Enterprise + 10 ICS). Catalogued-but-never-emitted (8): T1040, T1071, T1071.001, T1071.004,
+> T1573 (Enterprise); T1692.002 (ICS — IcsImpairProcessControl; replaces revoked T0856 per ATT&CK-ICS v19 remap),
+> T0885 (ICS — CommandAndControl), T0846 (ICS — seeded but not emitted per Decision 12).
 > T1692.001, T0836, T0814, T0806, T0835, T0831, T0888 are emitted by the Modbus analyzer.
 > T1691.001, T0827 are emitted by the DNP3 analyzer (Feature #8).
-> Arithmetic: SEEDED=23, EMITTED=15, CATALOGUE-ONLY=23−15=8.
-> BC-2.10.005 documents all 23 seeded IDs; BC-2.10.008 documents 15 emitted IDs.
+> T0830, T1557.002 are emitted by the ARP analyzer (Feature #9) — added in v1.9.
+> Arithmetic: SEEDED=25, EMITTED=17, CATALOGUE-ONLY=25−17=8.
+> BC-2.10.005 documents all 25 seeded IDs; BC-2.10.008 documents 17 emitted IDs.
 
 ### 2.11 Reporting and Output (CAP-11)
 
@@ -793,6 +928,127 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > Full contracts: `behavioral-contracts/ss-15/BC-2.15.001.md` through `BC-2.15.024.md`
 
 
+### 2.16 ARP Security Analysis (CAP-16) [Feature #9 — ADR-008]
+
+> **Release target: v0.7.0 (additive — existing schema unchanged).**
+> All SS-16 BCs (BC-2.16.001..015) ship in v0.7.0. ARP analysis is purely additive; no
+> existing analyzer, struct, or serialization key changes, except the `decode_packet` return
+> type change (Result<ParsedPacket> → Result<DecodedFrame>) mandated by ADR-008 Decision 1,
+> which is a BREAKING CHANGE targeted at STORY-111.
+
+> **Feature Mode F2 addition (v1.9).** 15 BCs covering the link-layer ARP security analyzer
+> (SS-16, C-23 ArpAnalyzer). Analyzer has 5 detection types (D1, D2, D3, D11, D12) and emits
+> 2 MITRE techniques (T0830, T1557.002): T0830 (Adversary-in-the-Middle — spoof D1 and D12
+> paths), T1557.002 (ARP Cache Poisoning — spoof D1 and GARP-that-conflicts (BC-2.16.014)
+> paths). Two new techniques enter the seeded catalog.
+
+> **ARP frame model:** Standard Ethernet/IPv4 ARP (28-byte minimum payload): hardware type
+> 0x0001 (Ethernet), protocol type 0x0800 (IPv4), hw_addr_size=6, proto_addr_size=4.
+> Non-Ethernet/IPv4 ARP frames (different hw_type, proto_type, or address sizes) are rejected
+> by `extract_arp_frame` → `None` → E-DEC-004 degraded skip + optional D11 finding.
+
+> **Binding table:** `HashMap<[u8; 4], BindingEntry>` (production substrate; BTreeMap used only
+> as Kani surrogate in VP-024 Sub-D scaled proof) bounded
+> to MAX_ARP_BINDINGS=65,536 via LRU eviction (BC-2.16.006). The VP-024 Kani proof uses a
+> scaled model (TEST_MAX_ARP_BINDINGS=8) to prove the cap invariant holds for all inputs.
+
+> **Detection surface (5 detections):**
+> - D1: ARP Spoof — IP→MAC rebind emits MEDIUM then HIGH finding (BC-2.16.004); GARP-that-
+>   conflicts upgrades to MEDIUM + D1 MEDIUM (BC-2.16.014) or HIGH if threshold reached.
+> - D3: ARP Storm — rate detection per source MAC, one-shot per 60s window (BC-2.16.008).
+> - D11: Malformed ARP — non-Ethernet/IPv4 sizes emit LOW finding (BC-2.16.009).
+> - D12: L2/L3 Mismatch — Ethernet outer src MAC ≠ ARP sender HW addr (BC-2.16.007).
+> - D2: GARP (Gratuitous ARP): sender_ip == target_ip, LOW when no conflict, MEDIUM when conflict
+>   (BC-2.16.003; escalation via BC-2.16.014).
+
+> **CLI flags added:** `--arp` (enable analyzer, default off), `--arp-spoof-threshold N`
+> (default 3 rebinds within 60s before HIGH; override via BC-2.16.012), `--arp-storm-rate N`
+> (default 50 frames/sec; override via BC-2.16.013). `--all` does NOT include `--arp` by
+> default (ARP is opt-in; cross-layer integration note: ARP frames are link-layer only, not
+> IP-layer, so they bypass the stream dispatcher). ARP analysis does NOT require stream
+> reassembly.
+
+> **Decode-vs-analysis separation:** `decode_packet` always produces `DecodedFrame::Arp` for
+> valid Ethernet/IPv4 ARP frames — regardless of whether `--arp` is active. The ArpAnalyzer
+> only processes the frame when `--arp` is set (BC-2.16.015). This preserves the existing
+> skipped-packet counting behavior when `--arp` is absent.
+
+> **Formal verification:** VP-024 covers four sub-properties:
+> - Sub-property A: `extract_arp_frame` parse safety — no-panic, field correctness (Request
+>   and Reply extraction); `None` for non-Ethernet/IPv4 inputs. Anchors BC-2.16.001/BC-2.16.002.
+> - Sub-property B: GARP detection totality — `is_gratuitous_arp` biconditional
+>   (`sender_ip == target_ip`), opcode-agnostic over all 65,536 u16 operation values.
+>   Anchors BC-2.16.003. Kani: symbolic ArpFrame.
+> - Sub-property C: Binding-table last-write-wins determinism — proptest over arbitrary
+>   Vec<ArpFrame> sequences; `bindings[ip].mac` equals MAC from last frame; no duplicate
+>   keys. Anchors BC-2.16.004/BC-2.16.005.
+> - Sub-property D: MAX_ARP_BINDINGS cap — `bindings.len()` never exceeds cap; LRU evicts
+>   exactly one entry on overflow. Scaled Kani proof (TEST_MAX_ARP_BINDINGS=8). Anchors
+>   BC-2.16.006.
+
+#### 2.16.A ARP Frame Extraction (Group A)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.16.001 | ARP Request frame correctly parsed from ArpPacketSlice | P0 | feature-009-F2 |
+| BC-2.16.002 | ARP Reply frame correctly parsed from ArpPacketSlice | P0 | feature-009-F2 |
+
+#### 2.16.B Binding Table and Core Detection (Group B)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.16.003 | Gratuitous ARP detection — sender_ip == target_ip classified as GARP | P0 | feature-009-F2 |
+| BC-2.16.004 | ARP Spoof detection — IP→MAC rebind emits MEDIUM then HIGH finding | P0 | feature-009-F2 |
+| BC-2.16.005 | Binding-table update — last-seen MAC wins for a given IP | P0 | feature-009-F2 |
+| BC-2.16.006 | Binding-table cap — table never exceeds MAX_ARP_BINDINGS via LRU eviction | P0 | feature-009-F2 |
+
+#### 2.16.C L2/L3 Mismatch Detection (Group C)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.16.007 | D12 L2/L3 sender mismatch — Ethernet src MAC != ARP sender HW addr | P0 | feature-009-F2 |
+
+#### 2.16.D ARP Storm Rate Detection (Group D)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.16.008 | D3 ARP storm rate detection — source MAC exceeds ARP_STORM_RATE_DEFAULT frames/sec | P1 | feature-009-F2 |
+
+#### 2.16.E Malformed ARP Detection (Group E)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.16.009 | D11 malformed ARP — non-Ethernet/IPv4 HW/proto address sizes emit LOW finding | P1 | feature-009-F2 |
+
+#### 2.16.F Summary Statistics (Group F)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.16.010 | ArpAnalyzer::summarize() returns AnalysisSummary with required keys | P1 | feature-009-F2 |
+
+#### 2.16.G CLI Integration (Group G)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.16.011 | --arp CLI flag gates ARP security analysis | P0 | feature-009-F2 |
+| BC-2.16.012 | --arp-spoof-threshold overrides SPOOF_REBIND_ESCALATION_DEFAULT | P1 | feature-009-F2 |
+| BC-2.16.013 | --arp-storm-rate overrides ARP_STORM_RATE_DEFAULT | P1 | feature-009-F2 |
+
+#### 2.16.H GARP Escalation (Group H)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.16.014 | GARP-that-conflicts upgrades to MEDIUM and triggers D1 spoof finding | P0 | feature-009-F2 |
+
+#### 2.16.I Decode-vs-Analysis Separation (Group I)
+
+| BC ID | Title | Priority | Origin |
+|-------|-------|----------|--------|
+| BC-2.16.015 | Decode-vs-analysis separation — DecodedFrame::Arp always produced; analysis gated on --arp | P0 | feature-009-F2 |
+
+> Full contracts: `behavioral-contracts/ss-16/BC-2.16.001.md` through `BC-2.16.015.md`
+
+
 ## 3. Interface Definition
 
 > **Supplement:** Full interface definitions are in `prd-supplements/interface-definitions.md`.
@@ -886,7 +1142,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC ID | Contribution |
 |-------|-------------|
 | BC-2.10.003 | all_tactics_in_report_order returns kill-chain order for deterministic grouping |
-| BC-2.10.005 | technique_name lookup for all 23 seeded IDs (11 Enterprise + 12 ICS: T0846 seeded-not-emitted; T1692.001/T1692.002/T0885 existing; T0836/T0814/T0806/T0835/T0831/T0888 new Modbus; T1691.001/T0827 new DNP3 F2) |
+| BC-2.10.005 | technique_name lookup for all 25 seeded IDs (12 Enterprise + 13 ICS: T0846 seeded-not-emitted; T1692.001/T1692.002/T0885 existing; T0836/T0814/T0806/T0835/T0831/T0888 new Modbus; T1691.001/T0827 new DNP3 F2; T0830 [ICS] + T1557.002 [Enterprise] new ARP F2) |
 | BC-2.11.013 | TerminalReporter MITRE grouping with tactic headers in canonical order; groups by `mitre_techniques[0]`; multi-tag findings display all IDs |
 | BC-2.11.015 | Uncategorized bucket for empty `mitre_techniques` vec or all-unknown IDs |
 | BC-2.11.016 | Per-finding MITRE expansion with em-dash and name |
@@ -1016,6 +1272,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.04.052 | CAP-04 | SS-04 (reassembly/) | P0 | unit |
 | BC-2.04.053 | CAP-04 | SS-04 (reassembly/) | P0 | unit |
 | BC-2.04.054 | CAP-04 | SS-04 (reassembly/) | P0 | unit |
+| BC-2.04.055 | CAP-04 | SS-04 (reassembly/) | P1 | integration |
 | BC-2.05.001 | CAP-05 | SS-05 (dispatcher.rs) | P0 | unit |
 | BC-2.05.002 | CAP-05 | SS-05 (dispatcher.rs) | P0 | unit |
 | BC-2.05.003 | CAP-05 | SS-05 (dispatcher.rs) | P0 | unit |
@@ -1098,6 +1355,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.09.004 | CAP-09 | SS-09 (findings.rs) | P1 | unit |
 | BC-2.09.005 | CAP-09 | SS-09 (findings.rs) | P0 | unit+integration |
 | BC-2.09.006 | CAP-09 | SS-09 (findings.rs) | P0 | unit |
+| BC-2.09.007 | CAP-09 | SS-09 (findings.rs) | P1 | integration |
 | BC-2.10.001 | CAP-10 | SS-10 (mitre.rs) | P0 | unit |
 | BC-2.10.002 | CAP-10 | SS-10 (mitre.rs) | P1 | unit |
 | BC-2.10.003 | CAP-10 | SS-10 (mitre.rs) | P0 | unit |
@@ -1205,6 +1463,21 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | BC-2.15.022 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P0 | unit |
 | BC-2.15.023 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P1 | unit |
 | BC-2.15.024 | CAP-15 | SS-15 (analyzer/dnp3.rs) | P1 | unit |
+| BC-2.16.001 | CAP-16 | SS-16 (decoder.rs + analyzer/arp.rs) | P0 | unit+kani |
+| BC-2.16.002 | CAP-16 | SS-16 (decoder.rs + analyzer/arp.rs) | P0 | unit+kani |
+| BC-2.16.003 | CAP-16 | SS-16 (analyzer/arp.rs) | P0 | unit+kani |
+| BC-2.16.004 | CAP-16 | SS-16 (analyzer/arp.rs) | P0 | unit+proptest |
+| BC-2.16.005 | CAP-16 | SS-16 (analyzer/arp.rs) | P0 | unit+proptest |
+| BC-2.16.006 | CAP-16 | SS-16 (analyzer/arp.rs) | P0 | unit+kani |
+| BC-2.16.007 | CAP-16 | SS-16 (analyzer/arp.rs) | P0 | unit |
+| BC-2.16.008 | CAP-16 | SS-16 (analyzer/arp.rs) | P1 | unit |
+| BC-2.16.009 | CAP-16 | SS-02 (decoder.rs) + SS-16 (analyzer/arp.rs) | P1 | unit |
+| BC-2.16.010 | CAP-16 | SS-16 (analyzer/arp.rs) | P1 | unit |
+| BC-2.16.011 | CAP-16 | SS-12 (cli.rs, main.rs) + SS-16 | P0 | unit+integration |
+| BC-2.16.012 | CAP-16 | SS-12 (cli.rs, main.rs) + SS-16 | P1 | unit+integration |
+| BC-2.16.013 | CAP-16 | SS-12 (cli.rs, main.rs) + SS-16 | P1 | unit+integration |
+| BC-2.16.014 | CAP-16 | SS-16 (analyzer/arp.rs) | P0 | unit |
+| BC-2.16.015 | CAP-16 | SS-02 (decoder.rs) + SS-16 | P0 | unit+integration |
 
 
 ## 8. Domain Debt Index
@@ -1217,7 +1490,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 | O-01 | Finding.timestamp always None; RawPacket timestamps never threaded to Finding constructors | BC-2.09.001, BC-2.09.006 |
 | O-02 | Absent User-Agent (None) intentionally not detected; only Some("") fires | BC-2.06.011 |
 | O-03 | Anomaly thresholds not empirically calibrated against labelled traffic | BC-2.04.019, BC-2.04.020, BC-2.04.021 |
-| O-04 | 8 MITRE techniques catalogued but never emitted (T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885, T0846; T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap; T0846 seeded-not-emitted per Decision 12); T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 now emitted by Modbus analyzer (Feature #7); T1691.001/T0827 now emitted by DNP3 analyzer (Feature #8); SEEDED=23, EMITTED=15, CATALOGUE-ONLY=8 | BC-2.10.005 |
+| O-04 | 8 MITRE techniques catalogued but never emitted (T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885, T0846; T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap; T0846 seeded-not-emitted per Decision 12); T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 now emitted by Modbus analyzer (Feature #7); T1691.001/T0827 now emitted by DNP3 analyzer (Feature #8); T0830/T1557.002 now emitted by ARP analyzer (Feature #9); SEEDED=25, EMITTED=17, CATALOGUE-ONLY=8 | BC-2.10.005, BC-2.10.008 |
 | O-05 | reassembly/mod.rs still 691 LOC after partial split (#85) | BC-2.04.* (reassembly module group) |
 | O-06 | Weak-cipher Finding evidence Vec has unbounded cardinality (up to ~9216 cipher names) | BC-2.07.009 |
 | O-07 | rayon declared in Cargo.toml but never imported; unused transitive dependency | (none -- build/dep debt only) |

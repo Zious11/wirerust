@@ -1,10 +1,10 @@
 ---
 document_type: prd-supplement-error-taxonomy
 level: L3
-version: "1.2"
+version: "1.9"
 status: draft
 producer: product-owner
-timestamp: 2026-05-20T00:00:00Z
+timestamp: 2026-06-12T02:00:00Z
 phase: 1a
 origin: brownfield
 inputs:
@@ -17,7 +17,8 @@ inputs:
   - src/analyzer/http.rs
   - src/analyzer/tls.rs
   - src/analyzer/dns.rs
-input-hash: "592d3cb"
+  - src/analyzer/arp.rs
+input-hash: TBD
 traces_to: .factory/specs/prd.md
 ---
 
@@ -43,6 +44,7 @@ traces_to: .factory/specs/prd.md
 | `DEC` | Decoder | Packet-level decode failures (malformed L2/L3/L4 headers) |
 | `RAS` | Reassembly | TCP stream reassembly state-machine edge cases and resource limits |
 | `ANA` | Analyzer | Protocol-level parse failures (HTTP, TLS, DNS) |
+| `ARP` | ARP Decoder | ARP frame decode and malformed-ARP detection signals |
 | `OUT` | Output | File write failures for --json/--csv file paths |
 | `CFG` | Configuration | Mutually exclusive flag combinations rejected by clap |
 
@@ -67,7 +69,8 @@ traces_to: .factory/specs/prd.md
 |-----------|----------|----------|-----------|----------------|----------------|--------|-------|
 | E-DEC-001 | Decoder | `degraded` | 0 | `src/decoder.rs` (decode_packet) | (no message -- Result::Err returned to caller) | BC-2.02.007 | `etherparse::SlicedPacket::from_ethernet` / `from_ip` / `from_linux_sll` (selected by `datalink` match) fails for genuine structural corruption (bad header version, bad IHL, bad TCP data-offset). NOT triggered by snaplen-length truncation (see E-DEC-002). Propagates as anyhow::Error to caller (main.rs E-INP-007 path). |
 | E-DEC-002 | Decoder | `degraded` | 0 | `src/decoder.rs` (lax fallback) | (no message -- continues with degraded ParsedPacket) | BC-2.02.003 | Strict parser returns `SliceError::Len` -> lax (`LaxSlicedPacket`) fallback triggered. Packet decoded with clamped lengths. This is NOT an error from the caller's perspective; it produces a valid ParsedPacket. |
-| E-DEC-003 | Decoder | `degraded` | 0 | `src/decoder.rs` | `No IP layer found` | BC-2.02.009 | anyhow error returned when neither IPv4 nor IPv6 is found in the parsed packet. Counted as skipped. |
+| E-DEC-003 | Decoder | `degraded` | 0 | `src/decoder.rs` | `No IP layer found` | BC-2.02.009 (Path 3) | anyhow error returned when the frame is non-IP and non-ARP (e.g. LLDP, EtherType 0x9000). Counted as skipped. **PLANNED (STORY-111):** Since v0.7.0, ARP frames will no longer produce this error — they return Ok(DecodedFrame::Arp) or E-ARP-001 instead. This behavior change requires the decoder refactor in STORY-111; not yet present in develop HEAD. |
+| E-DEC-004 | Decoder | `degraded` | 0 | `src/decoder.rs` | `Non-Ethernet/IPv4 ARP frame` | BC-2.02.009 (Path 2), BC-2.16.009 | **PLANNED (STORY-111):** anyhow error returned when an ARP frame is present but hw_addr_type != Ethernet (0x0001) or proto_addr_type != IPv4 (0x0800) or hw_addr_size != 6 or proto_addr_size != 4. Counted as skipped. The ArpAnalyzer's D11 malformed finding (E-ARP-001) is additionally emitted when --arp is active. Added in v0.7.0 (ADR-008 Decision 2); not present in develop HEAD until STORY-111 lands. |
 
 ### RAS: Reassembly Errors / Signals
 
@@ -94,6 +97,25 @@ findings or one-shot warnings. They are catalogued here for implementer complete
 | E-ANA-006 | Analyzer | `cosmetic` | 0 | `src/analyzer/http.rs:375-389` | New map key silently dropped | BC-2.06.024 | HTTP per-map cardinality (`MAX_MAP_ENTRIES=50,000`): new keys past the cap are dropped; existing keys still increment. Affects: `methods`, `hosts`, `user_agents`, `status_codes`. |
 | E-ANA-007 | Analyzer | `cosmetic` | 0 | `src/analyzer/tls.rs:372-375` (increment helper), `387, 416, 494, 549, 564, 568` (call sites) | New map key silently dropped | BC-2.07.028 | TLS per-map cardinality (`MAX_MAP_ENTRIES=50,000`): same behavior. Affects: `sni_counts`, `ja3_counts`, `ja3s_counts`, `version_counts`, `cipher_counts`. SNI anomaly findings still fire even when `sni_counts` is at capacity. |
 | E-ANA-008 | Analyzer | `cosmetic` | 0 | `src/analyzer/http.rs:391-392` | URI silently dropped | BC-2.06.025 | HTTP URI list cap: `MAX_URIS=10,000`; further URIs silently dropped from the `uris` list. Detection rules continue to run on dropped URIs. |
+
+### ARP: ARP Decoder Signals
+
+> NOTE: ARP decode + analyzer behavior and T0830/T1557.002 MITRE arms are PLANNED in
+> STORY-111..115 (v0.7.0); not present in current develop HEAD. `technique_name` returns
+> `None` for T0830/T1557.002 until STORY-114. Rows E-DEC-004, E-ARP-001..005 describe
+> the post-STORY-111..115 target behavior.
+
+These are not exit-code-1 errors; they are either degraded-result conditions that increment
+skipped-packet counters or findings emitted by the ArpAnalyzer. They are catalogued here
+for implementer and test-writer completeness. All require `--arp` to be active unless noted.
+
+| Error Code | Category | Severity | Exit Code | Source Location | Signal Type | BC Ref | Notes |
+|-----------|----------|----------|-----------|----------------|-------------|--------|-------|
+| E-ARP-001 | ARP | `degraded` | 0 | `src/analyzer/arp.rs` (D11 malformed path) | Finding emitted: Anomaly/LOW; message format: `Malformed ARP: hw_addr_size=<n>, proto_addr_size=<n>, hw_type=<hex>` | BC-2.16.009 | Emitted when `extract_arp_frame` returns `None` (non-Ethernet/IPv4 hw/proto sizes), indicating a non-standard or malformed ARP frame. Verdict triple: `finding_type: Anomaly`, `confidence: LOW` (per BC-2.16.009 Postcondition 3 — no Inconclusive field; LOW reflects the high FP rate in ICS environments with legacy protocol converters). The frame is counted in `malformed_frames` (not `frames_analyzed`) per BC-2.16.010. Also counted as a skipped packet via E-DEC-004. Requires `--arp`. |
+| E-ARP-002 | ARP | `cosmetic` | 0 | `src/analyzer/arp.rs` (D3 storm path) | Finding emitted: Anomaly/MEDIUM; message format: `ARP storm from <mac>: <rate> frames/sec (threshold: <n>)` | BC-2.16.008 | Emitted when a source MAC meets or exceeds `ARP_STORM_RATE_DEFAULT` (default 50) ARP frames per second within the average since window-start within the 60-second flap window (per BC-2.16.008 Invariant 2; not a sliding-window detector). One-shot per source MAC per 60-second window. Counter state stored per-MAC in a bounded map (MAX_STORM_COUNTERS=4,096; LRU eviction at cap). Requires `--arp`. |
+| E-ARP-003 | ARP | `cosmetic` | 0 | `src/analyzer/arp.rs` (D12 mismatch path) | Finding emitted: Anomaly/MEDIUM; message format: `ARP sender/Ethernet MAC mismatch: sender_mac=<mac>, outer_src_mac=<mac>` | BC-2.16.007 | Emitted when the Ethernet frame's outer source MAC differs from the ARP sender HW address field (D12). Requires Ethernet link type (`outer_src_mac` is `Some`); silently skipped for SLL captures where `outer_src_mac` is `None`. Requires `--arp`. MITRE techniques T0830 (Adversary-in-the-Middle, ICS) and T1557.002 (ARP Cache Poisoning, Enterprise) attached (per BC-2.16.007 PC1). |
+| E-ARP-004 | ARP | `cosmetic` | 0 | `src/analyzer/arp.rs` (D1 spoof path) | Finding emitted: Anomaly/MEDIUM or Anomaly/HIGH; message format: `ARP spoof: IP <ip> changed MAC from <old_mac> to <new_mac> (rebind <n>)` | BC-2.16.004 | Emitted when `ArpAnalyzer::process_arp` detects an IP→MAC rebind (sender_ip already in binding table with a different sender_mac). Exactly one Finding per rebind event. Severity = HIGH iff `rebind_count >= spoof_threshold AND (timestamp_secs - first_rebind_ts <= ARP_FLAP_WINDOW_SECS) AND !spoof_high_emitted`, else MEDIUM (per BC-2.16.004 PC1.c). `spoof_high_emitted` one-shot guard prevents repeated HIGH findings per flap window. MITRE techniques T0830 (LateralMovement) and T1557.002 (CredentialAccess) attached. Requires `--arp`. |
+| E-ARP-005 | ARP | `cosmetic` | 0 | `src/analyzer/arp.rs` (D2 GARP path) | Finding emitted: Anomaly/LOW (benign GARP) or Anomaly/MEDIUM (GARP-that-conflicts); message format: `Gratuitous ARP from <ip> (sender_mac=<mac>)` | BC-2.16.003, BC-2.16.014 | Emitted when `is_gratuitous_arp(frame)` returns `true` (sender_ip == target_ip, any opcode). Confidence = LOW when no binding conflict exists; MEDIUM when the same frame also triggers a D1 binding conflict (GARP-that-conflicts escalation, BC-2.16.014). MITRE techniques T0830 and T1557.002 attached to both forms. Requires `--arp`. |
 
 ### OUT: Output Errors
 
@@ -125,6 +147,8 @@ findings or one-shot warnings. They are catalogued here for implementer complete
 | HTTP parse error | Count to `parse_errors`; optionally poison after threshold | Mid-stream joins produce transient errors; 3 consecutive errors indicate non-HTTP stream. |
 | TLS parse / buffer overflow | Count to `parse_errors`; clear buffer; continue | Malformed TLS records should not kill handshake fingerprinting for subsequent records. |
 | DNS parse | Implicit QR-bit dispatch; no error counter | DNS is statistics-only; failure to parse one record only affects that record's counter. |
+| ARP non-Ethernet/IPv4 | E-DEC-004 degraded result (skipped packet) + optional D11 finding via E-ARP-001 | Non-standard ARP frames are rare but valid in OT/ICS networks; analyst signal emitted rather than silent skip. |
+| ARP storm | One-shot finding per source MAC per 60s window (E-ARP-002) | Rate-based: avoids finding spam on legitimate ARP floods; one-shot guard resets at window expiry. |
 | Findings cap | Silent drop after MAX_FINDINGS=10,000 | Adversarial input could generate unbounded findings; cap prevents memory exhaustion. |
 | Output write | `anyhow` `?` -- abort with message | If the analyst-requested output cannot be written, the run is a failure. |
 | Clap arg parse | clap exits 2 | Standard UX contract; invalid flags are user errors, not internal errors. |

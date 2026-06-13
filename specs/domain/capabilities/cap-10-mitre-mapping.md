@@ -5,7 +5,7 @@ cap_id: CAP-10
 title: MITRE ATT&CK Mapping
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
-version: "1.3"
+version: "1.7"
 modified:
   - date: 2026-06-10
     actor: architect
@@ -16,6 +16,18 @@ modified:
   - date: 2026-06-10
     actor: architect
     reason: "F2 delta (issue #8 DNP3 TCP): catalog expanded to 23 IDs (add T1691.001 Block Operational Technology Message: Command Message → IcsInhibitResponseFunction, T0827 Loss of Control → IcsImpact); emitted count 13→15; add IcsImpact variant to MitreTactic enum (17 variants / 3 ICS-unique); update BC-2.10.005 total."
+  - date: 2026-06-12
+    actor: product-owner
+    reason: "Pass-7 remediation F-C-P7-001: add PLANNED forward-declaration for T0830 (LateralMovement, ICS) and T1557.002 (CredentialAccess, Enterprise) — ARP F2 STORY-114; update seeded/emitted counts to current/after-STORY-114 form."
+  - date: 2026-06-12
+    actor: product-owner
+    reason: "Pass-9 remediation F-C-P9-001: correct tactic column for T0846 and T0888 from non-existent IcsDiscovery to Discovery — the MitreTactic enum has only 3 ICS-unique variants (IcsInhibitResponseFunction, IcsImpairProcessControl, IcsImpact); there is no IcsDiscovery variant (confirmed src/mitre.rs and the ## MitreTactic enum (E-27) section (lines 81-85))."
+  - date: 2026-06-12
+    actor: product-owner
+    reason: "Pass-10 remediation F-C-P10-002: stale line citation in pass-9 changelog entry corrected from 'lines 76-77' to 'lines 80-82' (subsequently corrected to 'lines 81-85' by Pass-11 F-C-P11-002) — the ## MitreTactic enum (E-27) header is at line 81."
+  - date: 2026-06-12
+    actor: product-owner
+    reason: "Pass-11 remediation F-C-P11-002: pass-9/10 changelog line citation for the MitreTactic enum section corrected from 'lines 80-82' to 'lines 81-85' — the ## MitreTactic enum (E-27) header is at line 81 and the variant prose spans lines 83-85."
 ---
 
 # CAP-10: MITRE ATT&CK Mapping
@@ -30,8 +42,9 @@ groups findings by tactic when `--mitre` is set.
 
 ## Technique catalog
 
-The `technique_info` function contains 23 IDs in its match arms (21 post-Feature-#7 IDs plus
-2 new DNP3 ICS techniques added in Feature #8: T1691.001, T0827):
+The `technique_info` function contains 23 current IDs in its match arms (21 post-Feature-#7 IDs
+plus 2 new DNP3 ICS techniques added in Feature #8: T1691.001, T0827), expanding to 25 total
+after STORY-114 (ARP F2) adds T0830 and T1557.002:
 
 | ID | Technique name | Tactic |
 |---|---|---|
@@ -46,7 +59,7 @@ The `technique_info` function contains 23 IDs in its match arms (21 post-Feature
 | T1499.002 | Service Exhaustion Flood | Impact |
 | T1505.003 | Web Shell | Persistence |
 | T1573 | Encrypted Channel | CommandAndControl (*catalogued, never emitted*) |
-| T0846 | Remote System Discovery | IcsDiscovery (*catalogued, never emitted*) |
+| T0846 | Remote System Discovery | Discovery (*catalogued, never emitted*) |
 | T1692.001 | Unauthorized Message: Command Message | IcsImpairProcessControl |
 | T1692.002 | Unauthorized Message: Reporting Message | IcsImpairProcessControl (*catalogued, never emitted*) |
 | T0885 | Commonly Used Port | CommandAndControl (*catalogued, never emitted*) |
@@ -55,11 +68,13 @@ The `technique_info` function contains 23 IDs in its match arms (21 post-Feature
 | T0806 | Brute Force I/O | IcsImpairProcessControl |
 | T0835 | Manipulate I/O Image | IcsImpairProcessControl |
 | T0831 | Manipulation of Control | IcsImpairProcessControl |
-| T0888 | Remote System Information Discovery | IcsDiscovery |
+| T0888 | Remote System Information Discovery | Discovery |
 | T1691.001 | Block Operational Technology Message: Command Message | IcsInhibitResponseFunction |
 | T0827 | Loss of Control | IcsImpact |
+| T0830 | Adversary-in-the-Middle | LateralMovement (*PLANNED STORY-114 (ARP F2); not in develop HEAD until STORY-114*) |
+| T1557.002 | Adversary-in-the-Middle: ARP Cache Poisoning | CredentialAccess (*PLANNED STORY-114 (ARP F2); not in develop HEAD until STORY-114*) |
 
-**Emitted (15):** T1027, T1036, T1046, T1083, T1499.002, T1505.003, T1692.001, T0836, T0814, T0806, T0835, T0831, T0888, T1691.001, T0827.
+**Emitted (15 current / 17 after STORY-114):** T1027, T1036, T1046, T1083, T1499.002, T1505.003, T1692.001, T0836, T0814, T0806, T0835, T0831, T0888, T1691.001, T0827 (current 15); T0830 and T1557.002 added after STORY-114.
 **Catalogued but never emitted (8):** T1040, T1071, T1071.001, T1071.004, T1573, T0846, T1692.002, T0885.
 
 These 8 staged IDs are documented in mitre.rs source comments (P3.04 / #89; open item O-04).
@@ -102,7 +117,7 @@ If an analyzer emits a malformed or unrecognized MITRE technique ID:
 ## BC references
 
 BC-2.10.001..004: MitreTactic Display rendering + all_tactics_in_report_order.
-BC-2.10.005: technique_name returns Some for every seeded ID (23 total).
+BC-2.10.005: technique_name returns Some for every seeded ID (25 total after STORY-114; 23 current).
 BC-2.10.006: technique_name returns None for unknown IDs.
 BC-2.10.007: technique_tactic returns correct tactic for every seeded ID.
 BC-2.10.008: all emitted technique IDs resolve in lookup.

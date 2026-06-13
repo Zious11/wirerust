@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Feature #8 DNP3 analyzer (F2). Added third ICS-unique MitreTactic variant: IcsImpact (Display 'Impact', ICS Impact tactic TA0105). Postconditions, Invariants, Edge Cases, and Canonical Test Vectors extended. all_tactics_in_report_order grows from 16→17 elements. — 2026-06-10"
+  - "v1.4: Pass-8 remediation F-C-P8-M01: Architecture Anchors and Source Evidence re-anchored from stale :85-87 to verified :89-91 (IcsInhibitResponseFunction :89, IcsImpairProcessControl :90, IcsImpact :91). Lines 85-88 are Enterprise tactic Display arms (Collection :85, CommandAndControl :86, Exfiltration :87, Impact :88). — 2026-06-12"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -100,13 +101,13 @@ support T0827 "Loss of Control" (ICS Impact tactic TA0105).
 
 ## Architecture Anchors
 
-- `src/mitre.rs:85-87` -- ICS tactic Display arms
+- `src/mitre.rs:89-91` -- ICS tactic Display arms (IcsInhibitResponseFunction :89, IcsImpairProcessControl :90, IcsImpact :91)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/mitre.rs:85-87` |
+| **Path** | `src/mitre.rs:89-91` (IcsInhibitResponseFunction :89, IcsImpairProcessControl :90, IcsImpact :91) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

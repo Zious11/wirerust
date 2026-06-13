@@ -31,6 +31,9 @@ modified:
   - date: 2026-06-10
     actor: architect
     reason: "F2 delta (issue #8 DNP3 TCP): VP-023 added (draft; Kani; P1; analyzer/dnp3.rs). New module row added. Kani 9→10, Total 22→23."
+  - date: 2026-06-12
+    actor: architect
+    reason: "F2 delta ARP security analyzer (SS-16): VP-024 added (draft; Kani; P1; analyzer/arp.rs). New module row added. Kani 10→11, Total 23→24."
 ---
 
 # Verification Coverage Matrix
@@ -61,7 +64,8 @@ modified:
 | VP-020 | CSV injection neutralization | reporter/csv.rs | unit | test-sufficient | verified |
 | VP-021 | Timestamp provenance threading | reassembly/mod.rs | integration+proptest | test-sufficient | verified |
 | VP-022 | Modbus MBAP parse safety + FC boundary classification | analyzer/modbus.rs | Kani | P1 | verified |
-| VP-023 | DNP3 DL frame parse safety + FC classification + frame_len arithmetic | analyzer/dnp3.rs | Kani | P1 | draft |
+| VP-023 | DNP3 DL frame parse safety + FC classification + frame_len arithmetic | analyzer/dnp3.rs | Kani | P1 | verified |
+| VP-024 | ARP frame parse safety (extract_arp_frame) + GARP totality + binding-table cap | analyzer/arp.rs | Kani | P1 | draft |
 
 
 ## Per-Module Coverage Totals
@@ -83,7 +87,8 @@ modified:
 | reporter/csv.rs | 0 | 0 | 0 | 1 (VP-020) | 1 |
 | analyzer/modbus.rs | 1 (VP-022) | 0 | 0 | 0 | 1 |
 | analyzer/dnp3.rs | 1 (VP-023) | 0 | 0 | 0 | 1 |
-| **Totals** | **10** | **7** | **1** | **5** | **23** |
+| analyzer/arp.rs | 1 (VP-024) | 0 | 0 | 0 | 1 |
+| **Totals** | **11** | **7** | **1** | **5** | **24** |
 
 
 ## Coverage Notes

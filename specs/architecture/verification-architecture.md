@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-architecture
 traces_to: ARCH-INDEX.md
-version: "1.4"
+version: "1.5"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -31,6 +31,12 @@ modified:
   - date: 2026-06-10
     actor: architect
     reason: "Pass-1 adversarial remediation (issue #8 F2): Kani Tooling Selection table row was missing VP-023; appended VP-023 to complete the Kani VP list."
+  - date: 2026-06-12
+    actor: architect
+    reason: "F2 delta ARP security analyzer (SS-16): VP-024 added to Should Prove table (P1, Kani, analyzer/arp.rs). P1 count 9→10. Total 23→24. Tooling table Kani row updated 10→11 VPs."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-13 anchor correction (F-A13-003, label-only — proof unaffected): VP-005 harness skeleton line references updated: fn extract_sni 246→247; 4-way match range 251-265→252-266. Verified against live src/analyzer/tls.rs."
 ---
 
 # Verification Architecture
@@ -63,6 +69,7 @@ modified:
 | VP-015 | TCP sequence wraparound: segment at seq=isn+1=0xFFFF_FFFF (ISN=0xFFFF_FFFE, offset 1) crossing 32-bit boundary reassembles correctly | (arithmetic) | reassembly/segment.rs | Kani |
 | VP-022 | Modbus MBAP parse safety and function-code boundary classification: (A) parse_mbap_header never panics and returns None for <8-byte inputs; (B) classify_fc is total over all 256 FC values; (C) exception detection iff fc >= 0x80 | (no-panic + boundary) | analyzer/modbus.rs | Kani |
 | VP-023 | DNP3 data-link frame parse safety and FC classification: (A) parse_dnp3_dl_header never panics, None for <10-byte inputs; (B) classify_dnp3_fc total over all 256 FC values, Control/Restart/Write sets correct; (C) validity gate true iff sync==0x0564 and LENGTH>=5; (D) compute_dnp3_frame_len correct over all LENGTH 5..=255, result in [10,292] | (no-panic + boundary + arithmetic) | analyzer/dnp3.rs | Kani |
+| VP-024 | ARP frame parse safety and binding-table invariant: (A) extract_arp_frame never panics on any valid ArpPacketSlice input; Some(ArpFrame) for Eth/IPv4, None otherwise; (B) GARP detection total: is_gratuitous_arp(f)==(f.sender_ip==f.target_ip) for all ArpFrame; (C) binding-table last-write-wins determinism and no-duplicate-key; (D) MAX_ARP_BINDINGS cap never exceeded | (no-panic + GARP totality + binding-table invariant) | analyzer/arp.rs | Kani |
 
 ### Test Sufficient (UI logic, non-critical defaults)
 
@@ -98,6 +105,7 @@ modified:
 - VP-015: TCP sequence wraparound
 - VP-022: Modbus MBAP parse safety and function-code boundary classification [NEW — SS-14]
 - VP-023: DNP3 data-link frame parse safety and function-code classification [NEW — SS-15]
+- VP-024: ARP frame parse safety and binding-table invariant [NEW — SS-16]
 
 
 ## Tooling Selection
@@ -106,7 +114,7 @@ See `tooling-selection.md` for full rationale. Summary:
 
 | Tool | Target Properties | Scope |
 |------|-----------------|-------|
-| Kani (model checker) | State machine reachability, arithmetic overflow, pointer safety | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022, VP-023 |
+| Kani (model checker) | State machine reachability, arithmetic overflow, pointer safety | VP-001, VP-002, VP-003, VP-004, VP-005, VP-007, VP-009, VP-015, VP-022, VP-023, VP-024 |
 | proptest | Property-based: generate random inputs, check invariants | VP-006, VP-010..014 |
 | cargo-fuzz (libFuzzer) | No-panic for parser entry points | VP-008 |
 | cargo-mutants | Mutation coverage for domain logic | SS-06, SS-07, SS-08, SS-10 |
@@ -148,10 +156,10 @@ fn verify_first_wins_overlap() {
 
 ### VP-005: SNI 4-way Ordered Match (Kani)
 
-// Real signature (src/analyzer/tls.rs:246):
+// Real signature (src/analyzer/tls.rs:247):
 //   fn extract_sni(extensions: &[TlsExtension<'_>]) -> Option<SniValue>
 //
-// The 4-way classification is the inline match at tls.rs:251-265:
+// The 4-way classification is the inline match at tls.rs:252-266:
 //   Ok(s) if s.is_ascii() && !contains_c0_or_del(s) => SniValue::Ascii
 //   Ok(s) if s.is_ascii()                             => SniValue::AsciiWithControl
 //   Ok(s)                                             => SniValue::NonAsciiUtf8

@@ -1,13 +1,16 @@
 ---
 document_type: adr
 adr_id: ADR-007
-status: proposed
+status: accepted
+accepted_date: 2026-06-13
 date: 2026-06-10
 modified:
   - "2026-06-10 (Pass-2 remediation, issue #8): Added 6 correlation-state fields to Dnp3FlowState sketch in Decision 4 (restart_event_count, block_event_count, pending_requests, block_finding_emitted_this_window, loss_of_control_emitted, correlation_window_start_ts) and MAX_PENDING_REQUESTS constant. These fields are required by BC-2.15.011/014/015 for T1691.001 and T0827 detection. Added correlation-window reset note consistent with architecture-delta v1.1."
   - "2026-06-10 (issue #8, research-validated scope additions): Decision 5 extended with two new detections: BC-2.15.023 (ENABLE/DISABLE_UNSOLICITED app FC 0x14/0x15 → T0814 alarm-suppression variant) and BC-2.15.024 (malformed/structural-frame anomaly → T0814 low/med confidence, separate windowed counter malformed_in_window + one-shot guard malformed_anomaly_emitted + MALFORMED_ANOMALY_THRESHOLD = 3; parse_errors remains the lifetime counter and is also incremented but never reset). Neither detection alters classify_dnp3_fc semantics, VP-023, the MITRE catalog, or seeded/emitted counts. SS-15 BC count updated 22 → 24."
   - "2026-06-10 (BC-2.15.024 struct registration): Decision 4 Dnp3FlowState sketch updated to add malformed_in_window: u64 (windowed malformed-frame counter) and malformed_anomaly_emitted: bool (one-shot T0814 guard); MALFORMED_ANOMALY_THRESHOLD: u64 = 3 constant added. parse_errors clarified as lifetime counter (never reset). Decision 5 BC-2.15.024 paragraph corrected: replaced 'no new field / reuses parse_errors' with the separate windowed-counter design. All 6 correlation-window fields reset together at 300s expiry; parse_errors does NOT reset."
   - "2026-06-10 (BC-2.15.024 semantic correction): Decision 5 'Distinction from deferred CRC validation' paragraph rewritten to correct HIGH semantic contradiction. Previous text wrongly stated that CRC validation would catch Crain-Sistrunk-style frame corruption and demoted BC-2.15.024 to 'not CRC-level corruption'. Ground truth (dnp3-f2-scope-threshold-validation.md §Q1(c); BC-2.15.024 Invariant 3): Crain-Sistrunk frames carry VALID CRCs; they are structurally/length malformed. CRC validation (deferred) would NOT have caught them. BC-2.15.024's structural-reject-path detection is the ONLY coverage for the Crain-Sistrunk malformed-frame crash class. CRC deferral and malformed-frame coverage are ORTHOGONAL — deferring CRC does NOT defer malformed-frame coverage."
+  - "2026-06-13 (Pass-12 corpus debt cleanup, F-5/OBS-1): status proposed→accepted. src/analyzer/dnp3.rs, DispatchTarget::Dnp3 (src/dispatcher.rs:238/309/345), and VP-023 Kani proofs are all shipped (v0.6.0). Verify: grep DispatchTarget::Dnp3 src/dispatcher.rs returns lines 238, 309, 345."
+  - "2026-06-13 (Pass-13 corpus remediation, F-A13-001): Decision 5 IcsImpact Display value note — the spec in this ADR states MitreTactic::IcsImpact => \"Impact\" (BC-2.10.002 PC3 canonical). The shipped code at src/mitre.rs:91 currently emits \"Impact (ICS)\" — a brownfield drift that breaks the merge-by-name grouping invariant (separate \"Impact (ICS)\" bucket instead of merging into the canonical \"Impact\" tactic). This is tracked pre-existing brownfield debt documented in arp-architecture-delta.md §5.0 brownfield-debt table and deferred to STORY-114 adjudication. Do NOT change src/mitre.rs before STORY-114. This ADR's Decision 5 spec value (\"Impact\") is authoritative; the code is the deviant party."
 subsystems_affected:
   - SS-05
   - SS-10
@@ -573,12 +576,11 @@ Enterprise Impact (T1499.002, etc.).
 - **T0827 emission guard thresholds**: number of T0814 or T1691.001 events required to
   derive T0827. F2 open item; pinned in F3 BCs.
 
-### Status as of 2026-06-10
+### Status as of 2026-06-13
 
-Proposed. Implementation has not yet begun (Feature cycle Issue #8, F2 architecture
-delta phase). VP-004 and VP-007 Kani proof updates are part of the F3 implementation
-stories for `dispatcher.rs` and `mitre.rs` respectively. VP-023 Kani proof is an F3/F4
-story for `src/analyzer/dnp3.rs`.
+**Accepted.** `src/analyzer/dnp3.rs`, `DispatchTarget::Dnp3` (at `src/dispatcher.rs`:238/309/345),
+and VP-023 Kani proofs are all shipped (v0.6.0). VP-004 Kani proof was updated to include the
+port-20000 arm. VP-007 SEEDED 21→23 atomic update is complete (T1691.001 and T0827 added).
 
 ## Alternatives Considered
 

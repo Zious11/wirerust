@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.12"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -21,6 +21,10 @@ modified:
   - "v1.6: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, Postcondition 1 ICS emitted list, EC-007, and Architecture Anchors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
   - "v1.7: Feature #8 DNP3 analyzer (F2). Added 2 new ICS emitted techniques: T1691.001 (Block Operational Technology Message: Command Message — DNP3 inferred block-command, IcsInhibitResponseFunction) + T0827 (Loss of Control — DNP3 derived correlated finding, IcsImpact). EMITTED count 13→15 (6 Enterprise + 9 ICS). Description, emission sites, Postcondition 1, Invariant 1, EC-014 and EC-015 added. — 2026-06-10"
   - "v1.8: Pass-1 adversarial fix C-1: corrected T1691.001 technique name from fabricated 'Unauthorized Message: Inhibit Response Function' to authoritative 'Block Operational Technology Message: Command Message' in changelog v1.7 and EC-014. — 2026-06-10"
+  - "v1.9: Feature #9 ARP analyzer (F2). Added 2 new emitted techniques: T0830 (ICS: Adversary-in-the-Middle, LateralMovement) + T1557.002 (Enterprise: Adversary-in-the-Middle: ARP Cache Poisoning, CredentialAccess). EMITTED count 15→17 (7 Enterprise + 10 ICS). Description, emission sites, Postcondition 1, Invariant 1, EC-016 and EC-017 added. — 2026-06-12 (F-D-C1 pass-2 remediation)"
+  - "v1.10: Pass-3 remediation F-C3/F-C4/F-C6/F-C1(b): EC-017 technique_name corrected to 'Adversary-in-the-Middle: ARP Cache Poisoning' (authoritative name from arch-delta §5 + mitre-arp-research.md); T1557.002 reclassified Enterprise (not ICS); Enterprise/ICS split corrected 6E+11I→7E+10I; Architecture Anchors re-anchored to current mitre.rs line numbers (T0885:158, _ => return None:179); 'all 13 emitted IDs' corrected to '17 emitted IDs'; PLANNED forward-declaration marker added. — 2026-06-12"
+  - "v1.11: Pass-4 remediation F-C-P4-HIGH-002/F-D4-I2: Description reconciliation parenthetical added (pre-F2: 6E; Modbus: 7I; DNP3: +2I; ARP: +1E+1I → 7E+10I=17); PLANNED marker augmented with current→target values (23/15→25/17); Source Evidence path corrected 123-154→128-181. — 2026-06-12"
+  - "v1.12: Pass-10 remediation F-C-P10-003: src/analyzer/arp.rs emission bullet lead-in changed from 'verified via grep' (implied current) to explicit PLANNED qualifier — 'Emission sites after F2 ARP (Modbus/DNP3 verified via grep; arp.rs PLANNED STORY-114)'; arp.rs bullet appended '(F2 Feature #9 PLANNED — STORY-114)'. arp.rs does not exist in develop HEAD until STORY-114 lands. — 2026-06-12"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,12 +51,16 @@ removal_reason: null
 
 Every technique ID that any analyzer or reassembly engine emits in `Finding.mitre_techniques`
 must resolve to `Some(...)` when passed to `technique_name` or `technique_tactic`. After F2
-(Feature #7 Modbus + Feature #8 DNP3), the emitted-ID set grows to 15 distinct IDs: 6
-Enterprise (unchanged) + 9 ICS (Modbus: 7, DNP3: +2). No emitted ID may return None from
-the lookup — that would cause the terminal reporter to display `<id> (unknown)` for a
-Finding produced by current analyzers.
+(Feature #7 Modbus + Feature #8 DNP3 + Feature #9 ARP), the emitted-ID set grows to 17
+distinct IDs: 7 Enterprise + 10 ICS. Reconciliation:
+(pre-F2: 6 Enterprise; Modbus F2: 7 ICS; DNP3 F2: +2 ICS [T1691.001, T0827]; ARP F2: +2 = 1 Enterprise [T1557.002] + 1 ICS [T0830]) → 7 Enterprise + 10 ICS = 17.
+No emitted ID may return None from the lookup — that would cause the terminal reporter to display
+`<id> (unknown)` for a Finding produced by current analyzers.
 
-Emission sites after F2 DNP3 (verified via `grep -rn 'mitre_techniques: vec!' src/`):
+PLANNED — implemented in STORY-114; current code 23 seeded / 15 emitted → target 25 seeded / 17 emitted after STORY-114 5-part atomic update. src/mitre.rs remains at SEEDED=23/EMITTED=15
+until STORY-114 lands; vp007_catalog_drift_guard enforces consistency at implementation time.
+
+Emission sites after F2 ARP (Modbus/DNP3 verified via grep; arp.rs PLANNED STORY-114):
 - `src/analyzer/tls.rs` — `vec!["T1027"]` x3
 - `src/analyzer/http.rs` — `vec!["T1083"]`, `vec!["T1505.003"]`, `vec!["T1046"]`, `vec!["T1499.002"]` x2
 - `src/reassembly/mod.rs` — `vec!["T1036"]`
@@ -62,24 +70,26 @@ Emission sites after F2 DNP3 (verified via `grep -rn 'mitre_techniques: vec!' sr
 - `src/analyzer/dnp3.rs` (F2 Feature #8 new) — `vec!["T1692.001"]` (control threshold),
   `vec!["T0814"]` (restart DoS), `vec!["T0836"]` (write FC), `vec!["T1691.001"]` (block-command
   inferred, BC-2.15.014), `vec!["T0827"]` (derived loss-of-control, BC-2.15.015)
+- `src/analyzer/arp.rs` (F2 Feature #9 PLANNED — STORY-114) — `vec!["T0830","T1557.002"]` (D1 spoof, D2 GARP,
+  D12 mismatch paths; see BC-2.16.003, BC-2.16.004, BC-2.16.007, BC-2.16.014)
 
-The emitted-ID set is 15 distinct IDs. Multi-element vecs contribute multiple IDs per emission;
+The emitted-ID set is 17 distinct IDs. Multi-element vecs contribute multiple IDs per emission;
 all IDs in all vecs must resolve.
 
 ## Preconditions
 
-1. `technique_name` or `technique_tactic` is called with one of the 15 emitted IDs.
+1. `technique_name` or `technique_tactic` is called with one of the 17 emitted IDs.
 
 ## Postconditions
 
-1. All 15 currently-emitted distinct IDs return `Some(...)`:
-   - Enterprise (6): T1027, T1036, T1046, T1083, T1499.002, T1505.003
-   - ICS (9): T1692.001, T0836, T0814, T0806, T0835, T0831, T0888, T1691.001, T0827
-2. None of the 15 emitted IDs returns None.
+1. All 17 currently-emitted distinct IDs return `Some(...)`:
+   - Enterprise (7): T1027, T1036, T1046, T1083, T1499.002, T1505.003, T1557.002
+   - ICS (10): T1692.001, T0836, T0814, T0806, T0835, T0831, T0888, T1691.001, T0827, T0830
+2. None of the 17 emitted IDs returns None.
 
 ## Invariants
 
-1. The emitted set (15 IDs) is a strict subset of the catalogued set (23 IDs).
+1. The emitted set (17 IDs: 7 Enterprise + 10 ICS) is a strict subset of the catalogued set (25 IDs).
 2. The invariant is enforced by convention: when an analyzer adds a new emission site, the
    developer must add the ID to `technique_info` first (or simultaneously). For multi-element
    `mitre_techniques` vecs, EVERY element must resolve.
@@ -108,6 +118,8 @@ all IDs in all vecs must resolve.
 | EC-013 | T0888 (Modbus: recon FCs 0x11, 0x2B/0x0E) | Some("Remote System Information Discovery") |
 | EC-014 | T1691.001 (DNP3: inferred block-command, control request without response; ICS sub-technique, v19) | Some("Block Operational Technology Message: Command Message") |
 | EC-015 | T0827 (DNP3: derived loss-of-control correlated finding — N restart/block events in window) | Some("Loss of Control") |
+| EC-016 | T0830 (ARP: D1 spoof and D12 mismatch paths; ICS Adversary-in-the-Middle, LateralMovement) | Some("Adversary-in-the-Middle") |
+| EC-017 | T1557.002 (ARP: D1 spoof and D2 GARP-that-conflicts paths; Enterprise Adversary-in-the-Middle: ARP Cache Poisoning, CredentialAccess) | Some("Adversary-in-the-Middle: ARP Cache Poisoning") |
 
 ## Canonical Test Vectors
 
@@ -121,12 +133,14 @@ all IDs in all vecs must resolve.
 | technique_name("T0806") | Some("Brute Force I/O") | happy-path (ICS, F2) |
 | technique_name("T1691.001") | Some("Block Operational Technology Message: Command Message") | happy-path (ICS, F2 DNP3) |
 | technique_name("T0827") | Some("Loss of Control") | happy-path (ICS, F2 DNP3) |
+| technique_name("T0830") | Some("Adversary-in-the-Middle") | happy-path (ICS, F2 ARP) |
+| technique_name("T1557.002") | Some("Adversary-in-the-Middle: ARP Cache Poisoning") | happy-path (Enterprise, F2 ARP) |
 
 ## Verification Properties
 
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-007 | All 15 emitted IDs resolve in technique_name | unit: test each emitted ID |
+| VP-007 | All 17 emitted IDs resolve in technique_name | unit: test each emitted ID |
 | VP-007 | No new emission site uses an ID not in technique_info | manual: code review of analyzer PRs; every element in mitre_techniques vec must resolve |
 
 ## Traceability
@@ -147,19 +161,21 @@ all IDs in all vecs must resolve.
 
 ## Architecture Anchors
 
-- `src/mitre.rs:123-154` -- technique_info match table covering all 13 emitted IDs (post-F2 range TBD)
+- `src/mitre.rs:128` -- `pub fn technique_info(id: &str)` function declaration
+- `src/mitre.rs:129-181` -- technique_info match table covering all 17 emitted IDs (T0885 at :158; `_ => return None` at :179; T0830 and T1557.002 arms PLANNED in STORY-114 — not yet in source)
 - Emitted sites (pre-F2 baseline; F2 sites to be added at implementation):
   - `src/analyzer/tls.rs:443` (T1027), `src/analyzer/tls.rs:463` (T1027), `src/analyzer/tls.rs:483` (T1027)
   - `src/analyzer/http.rs:198` (T1083), `src/analyzer/http.rs:228` (T1505.003), `src/analyzer/http.rs:244` (T1046), `src/analyzer/http.rs:423` (T1499.002), `src/analyzer/http.rs:482` (T1499.002)
   - `src/reassembly/mod.rs:471` (T1036)
   - `src/reassembly/lifecycle.rs:111` (T1036)
   - `src/analyzer/modbus.rs` — multiple sites (T1692.001, T0836, T0814, T0806, T0835, T0831, T0888; exact lines TBD at F3 implementation)
+  - `src/analyzer/arp.rs` (F2 Feature #9 PLANNED in STORY-114) — `vec!["T0830","T1557.002"]` (D1 spoof, D2 GARP, D12 mismatch paths)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/mitre.rs:123-154` |
+| **Path** | `src/mitre.rs:128-181` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

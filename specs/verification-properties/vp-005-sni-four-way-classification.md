@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.0"
+version: "2.1"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -28,6 +28,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "2026-05-29: resolve 1-based-prose vs 0-based-harness arm-numbering inconsistency (F-S056-P2-002)"
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set."
+  - "v2.1: Pass-13 anchor correction (F-A13-003, label-only — proof unaffected, verification_lock preserved): fn extract_sni line reference 246→247; 4-way match range 251-265→252-266 in Proof Harness Skeleton comments and Source Location section. Verified against live src/analyzer/tls.rs."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -103,12 +104,12 @@ and the arm-3 priority case). proptest supplemental for longer inputs.
 // Comments and function names use the SniValue variant name followed by "(code N)"
 // to avoid ambiguity with the 1-based prose.
 
-// Real function signature (src/analyzer/tls.rs:246):
+// Real function signature (src/analyzer/tls.rs:247):
 //   fn extract_sni(extensions: &[TlsExtension<'_>]) -> Option<SniValue>
 //
 // `extract_sni` takes a parsed extension list, not a raw byte slice.
 // The 4-way classification match operates on the raw hostname bytes
-// extracted from the first SNI extension entry (tls.rs:251-265).
+// extracted from the first SNI extension entry (tls.rs:252-266).
 //
 // Because constructing a synthetic `TlsExtension::SNI` value requires
 // tls-parser types that Kani cannot symbolically model directly, the
@@ -118,13 +119,13 @@ and the arm-3 priority case). proptest supplemental for longer inputs.
 // production code without the tls-parser dependency.
 //
 // The formal-verifier MUST verify that the harness replicates
-// tls.rs:251-265 exactly before locking this VP.
+// tls.rs:252-266 exactly before locking this VP.
 
 ```rust
 // Kani harnesses -- placed in src/analyzer/tls.rs under #[cfg(kani)]
 #[cfg(kani)]
 mod kani_proofs {
-    // Replicates the inline match at tls.rs:251-265 for symbolic testing.
+    // Replicates the inline match at tls.rs:252-266 for symbolic testing.
     fn classify_hostname(hostname: &[u8]) -> u8 {
         // 0-based codes: 0=Ascii (prose arm 1), 1=AsciiWithControl (prose arm 2),
         //                2=NonAsciiUtf8 (prose arm 3), 3=NonUtf8 (prose arm 4)
@@ -219,8 +220,8 @@ mod proptest_proofs {
 
 ## Source Location
 
-`src/analyzer/tls.rs:246-269` -- `fn extract_sni(extensions: &[TlsExtension<'_>]) -> Option<SniValue>`;
-the 4-way classification match is at lines 251-265.
+`src/analyzer/tls.rs:247-270` -- `fn extract_sni(extensions: &[TlsExtension<'_>]) -> Option<SniValue>`;
+the 4-way classification match is at lines 252-266.
 
 ## Lifecycle
 

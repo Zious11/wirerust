@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: dependency-graph
 traces_to: ARCH-INDEX.md
-version: "1.1"
+version: "1.2"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -10,6 +10,9 @@ modified:
   - date: 2026-06-08
     actor: spec-steward
     reason: "Phase-6 gate close: status draft→verified."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-12 corpus debt cleanup (F-3): added analyzer/dnp3.rs (holds Option<Dnp3Analyzer>) [C-24, ADR-007] to dispatcher.rs import DAG, after the modbus.rs line. DNP3 shipped v0.6.0 with DispatchTarget::Dnp3 at src/dispatcher.rs:238/309/345. ARP (C-23) stays absent — PLANNED, NON-BLOCKING."
 ---
 
 # Dependency Graph
@@ -35,7 +38,8 @@ main.rs / lib.rs
   |     |-- reassembly/handler.rs  (imports StreamHandler trait)
   |     |-- analyzer/http.rs       (holds Option<HttpAnalyzer>)
   |     |-- analyzer/tls.rs        (holds Option<TlsAnalyzer>)
-  |     |-- analyzer/modbus.rs     (holds Option<ModbusAnalyzer>) [NEW — C-22, ADR-005]
+  |     |-- analyzer/modbus.rs     (holds Option<ModbusAnalyzer>) [C-22, ADR-005]
+  |     |-- analyzer/dnp3.rs       (holds Option<Dnp3Analyzer>) [C-24, ADR-007]
   |-- analyzer/dns.rs
   |-- findings.rs
   |-- mitre.rs

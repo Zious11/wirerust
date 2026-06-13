@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.0"
+version: "2.1"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -26,6 +26,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v1.1: proof_method manual→integration to match body table + VP-INDEX (Wave-21 wave-level consistency lens; SS-11 reporter VP family harmonization completion — sibling of VP-017 fix in 86113c2; DF-SIBLING-SWEEP-001)"
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set (tests/reporter_terminal_tests.rs)."
+  - "v2.1 (2026-06-12): F-D10-L02 — corrected stale variant count 16 → 17. IcsImpact was added in the DNP3/Feature-8 cycle (src/mitre.rs, STORY-109). Canonical count: 14 Enterprise + 3 ICS-unique (IcsInhibitResponseFunction, IcsImpairProcessControl, IcsImpact) = 17. Updated test assertion comment and assert_eq value."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -86,10 +87,11 @@ fn test_mitre_grouping_order_canonical() {
 
     // all_tactics_in_report_order returns a &'static [MitreTactic] (mitre.rs:95).
     // MitreTactic has no all_variants() method; count the variants manually:
-    // 14 Enterprise + 2 ICS-unique = 16 total (mitre.rs:48-66).
+    // 14 Enterprise + 3 ICS-unique (IcsInhibitResponseFunction, IcsImpairProcessControl,
+    // IcsImpact) = 17 total (mitre.rs enum; IcsImpact added STORY-109 DNP3/Feature-8 cycle).
     let tactics = all_tactics_in_report_order();
-    assert_eq!(tactics.len(), 16,
-        "all_tactics_in_report_order must list all 16 MitreTactic variants");
+    assert_eq!(tactics.len(), 17,
+        "all_tactics_in_report_order must list all 17 MitreTactic variants (14 Enterprise + 3 ICS-unique incl. IcsImpact)");
 
     // No duplicates
     let unique: std::collections::HashSet<_> = tactics.iter().collect();

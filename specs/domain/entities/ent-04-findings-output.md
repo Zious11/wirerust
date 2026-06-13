@@ -4,6 +4,11 @@ traces_to: ../domain-spec.md
 title: Entities -- Findings and Output (L3-L4)
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
+version: "1.1"
+modified:
+  - date: 2026-06-12
+    actor: product-owner
+    reason: "Pass-10 sibling-sweep (DF-SIBLING-SWEEP-001) F-D10-L02: stale 'E-27 MitreTactic 16-variant enum (14 Enterprise + 2 ICS)' corrected to '17-variant enum (14 Enterprise + 3 ICS-unique incl. IcsImpact)' — IcsImpact added in Feature #8 (issue #8, ADR-007)."
 ---
 
 # Entities: Findings and Output (L3-L4)
@@ -58,7 +63,7 @@ it; reassembly-engine findings leave it None.
 
 ## E-27: MitreTactic (src/mitre.rs:45-66)
 
-16-variant enum (14 Enterprise + 2 ICS). `#[non_exhaustive]` (VO-5). Derives `Debug, Clone,
+17-variant enum (14 Enterprise + 3 ICS-unique incl. IcsImpact). `#[non_exhaustive]` (VO-5). Derives `Debug, Clone,
 Copy, PartialEq, Eq, Hash`. `Display` renders canonical English names. See CAP-10 for full
 variant list.
 
