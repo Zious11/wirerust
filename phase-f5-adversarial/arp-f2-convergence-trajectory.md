@@ -4,7 +4,7 @@ level: ops
 version: "1.0"
 status: in-progress
 producer: state-manager
-timestamp: 2026-06-12T23:45:00Z
+timestamp: 2026-06-13T00:00:00Z
 feature: arp-analyzer
 cycle: feature-arp-v0.7.0
 phase: F2-spec-evolution
@@ -49,22 +49,25 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 6 (sliced) | 2026-06-12 | ~4 | 0 | 2 | 2 | 0 | LOW | 0/3 | NOT_CLEAN |
 | 7 (sliced) | 2026-06-12 | ~4 | 0 | ~4 | 0 | 0 | LOW | 0/3 | NOT_CLEAN |
 | 8 (sliced) | 2026-06-12 | ~7 | 0 | 2 | 4 | 0 | MED | 0/3 | NOT_CLEAN |
-| 9 (sliced) | 2026-06-12 | — | — | — | — | — | — | 0/3 | IN_PROGRESS |
+| 9 (sliced) | 2026-06-13 | ~4 | 0 | 0 | ~4 | 0 | LOW | 0/3 | NOT_CLEAN |
+| 10 (sliced) | 2026-06-13 | ~6 | 0 | 1 | ~5 | 0 | LOW | 0/3 | NOT_CLEAN |
+| 11 (sliced) | 2026-06-13 | ~5 | 0 | 1 | ~4 | 0 | LOW | 0/3 | NOT_CLEAN |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→(P9 in progress)`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5`
 
-Severity profile: CRITICAL count decayed (4→5→0→0→0→0→0→0) — core detection semantics
-fully settled. HIGH count: 8→7→~6→~5→1→2→~4→2 — oscillating on mechanical/anchor hygiene
-then two genuine HIGHs in Pass 8 (both resolved). MEDIUM count: 3→8→~2→~10→~5→2→0→4 —
-propagation/hygiene dominates.
+Severity profile: CRITICAL count decayed (4→5→0→0→0→0→0→0→0→0→0) — core detection
+semantics fully settled. HIGH count: 8→7→~6→~5→1→2→~4→2→0→1→1 — only corpus-wide debt
+items; ARP delta clean. MEDIUM count: 3→8→~2→~10→~5→2→0→4→~4→~5→~4 — propagation hygiene
+and churn residue dominate.
 
 ## Convergence Counter
 
 **0/3** consecutive clean passes.
-**STRICT mode** (human-elected 2026-06-12): zero findings of ANY severity (including LOW)
-across all 4 slices required for 3 consecutive clean passes.
+**STRICT WHOLE-CORPUS mode** (human-elected 2026-06-12; scope extended 2026-06-13): zero
+findings of ANY severity (including LOW) across the ENTIRE spec corpus (not just ARP delta)
+required for 3 consecutive clean passes. 11 passes run. Corpus-wide sweep in progress.
 
 ## Core Semantics — Confirmed Clean (Settled)
 
@@ -102,15 +105,20 @@ treat these as LOW-RISK unless new evidence contradicts:
 
 | Artifact | Version | Notes |
 |----------|---------|-------|
-| PRD | v1.13 | Updated through Pass-8 remediation |
-| BC-INDEX | v1.13 | Updated through Pass-8 remediation |
-| ADR-008 | v1.6 | Decision 3 updated: LaxNetSlice::Arp routed explicitly (Pass-8 fix) |
-| arp-architecture-delta | v1.8 | §2.2 updated: LaxNetSlice::Arp explicit routing (Pass-8 fix) |
+| PRD | v1.15 | Updated through Pass-11 remediation |
+| BC-INDEX | v1.16 | Updated through Pass-11 remediation |
+| ADR-008 | v1.8 | D11 cell corrected; through Pass-11 remediation |
+| arp-architecture-delta | v1.10 | §5 Some() double-wrap fixed (Pass-11) |
 | VP-024 | v1.4 | |
-| error-taxonomy | v1.8 | |
-| test-vectors | v1.6 | |
+| vp-016 | v2.1 | |
+| error-taxonomy | v1.9 | |
+| test-vectors | v1.9 | Citation corrected through Pass-11 |
 | HS-INDEX | v1.3 | |
-| cap-10 | v1.4 | |
+| cap-10 | v1.7 | IcsDiscovery naming/description corrected (Pass-9) |
+| ent-04 | v1.1 | |
+| ent-05 | v1.1 | |
+| cap-11 | v1.1 | |
+| nfr-catalog | v1.4 | |
 | BC-2.10.002 | v1.4 | |
 | BC-2.10.004 | v1.5 | |
 | BC-2.10.005 | v1.10 | Forward-declaration convention |
@@ -124,8 +132,8 @@ treat these as LOW-RISK unless new evidence contradicts:
 | BC-2.16.009 | v1.3 | |
 | BC-2.16.010 | v1.4 | |
 | BC-2.16.013 | v1.1 | |
-| BC-2.16.014 | v1.4 | |
-| BC-2.02.009 | v1.5 | Revised BC (etherparse migration) |
+| BC-2.16.014 | v1.6 | Inconclusive classification gap fixed (Pass-11) |
+| BC-2.02.009 | v1.6 | Lax-arm precision gap fixed (Pass-10) |
 | Total BCs | 283 | 268 pre-ARP + 15 SS-16 |
 
 ## Per-Pass Details
@@ -295,13 +303,95 @@ All passes 5–8 remediated. Core spec confirmed clean repeatedly across passes 
 
 ---
 
+### Pass 9 — 2026-06-13 (sliced: A, B, C, D)
+
+**Method:** 4 parallel fresh-context slices.
+**Findings:** Slice D CLEAN; NOT_CLEAN overall.
+**Novelty:** LOW — ARP delta itself CLEAN; findings from corpus-wide debt and remediation-churn residue.
+**Convergence counter:** 0/3.
+**Verdict:** NOT_CLEAN.
+
+Key findings:
+- `malformed_frames` definition drift (cross-doc inconsistency).
+- cap-10 IcsDiscovery: naming/description inconsistency.
+- Changelog ordering / typo items.
+
+**Remediation:** All findings addressed.
+
+---
+
+### Pass 10 — 2026-06-13 (sliced: A, B, C, D)
+
+**Method:** 4 parallel fresh-context slices.
+**Findings:** Slice A CLEAN; NOT_CLEAN overall.
+**Novelty:** LOW — corpus-wide propagation debt (pre-existing DNP3-era items).
+**Convergence counter:** 0/3.
+**Verdict:** NOT_CLEAN.
+
+Key findings:
+- ADR D11 cell: stale/incorrect table cell content.
+- test-vectors count: citation mismatch.
+- PRD §2.10 Enterprise mislabel.
+- RTM omission.
+- 16→17 count not propagated across 5 docs (pre-existing DNP3-era debt).
+- BC-2.02.009 lax-arm: precision gap.
+
+**Remediation:** All findings addressed.
+
+---
+
+### Pass 11 — 2026-06-13 (sliced: A, B, C, D)
+
+**Method:** 4 parallel fresh-context slices.
+**Findings:** NOT_CLEAN overall.
+**Novelty:** LOW — remediation-churn residue + pre-existing corpus debt.
+**Convergence counter:** 0/3.
+**Verdict:** NOT_CLEAN.
+
+Key findings:
+- arch-delta §5: `Some()` double-wrap (introduced by prior remediation).
+- E-ARP-004: missing flap-window condition.
+- BC-2.16.014: `Inconclusive` classification gap.
+- test-vectors citation: stale reference.
+- PRD issue-#100 registration gap: BC-2.04.055 / BC-2.09.007 now registered (gap closed).
+
+**Remediation:** All findings addressed. BC-2.04.055 / BC-2.09.007 PRD registration now complete.
+
+---
+
+### ANALYSIS — After Pass 11 (2026-06-13)
+
+**ARP F2 delta itself CONVERGED** since approximately Pass 3. Only trivia found in ARP-specific
+artifacts in passes 9–11. Findings are now dominated by:
+(a) **Pre-existing corpus-wide debt** — DNP3-era 16→17 count propagation, issue-#100 PRD
+    registration (BC-2.04.055/BC-2.09.007 now resolved).
+(b) **Remediation-churn residue** — fixes in one pass introduce small inconsistencies caught
+    in the next pass (arch-delta §5 Some() double-wrap is the canonical example).
+
+**Strict 3-consecutive-clean is asymptotic** under whole-corpus fresh-context review: the
+reviewer surfaces anything in the full corpus, not just ARP delta, so pre-existing systematic
+debt classes will always produce findings until explicitly flushed.
+
+---
+
+### HUMAN DECISION — 2026-06-13
+
+**CONTINUE STRICT WHOLE-CORPUS** — bar remains zero findings of ANY severity across the
+ENTIRE spec corpus (not just ARP delta). This is explicitly accepted as a full corpus
+audit/cleanup, not just ARP F2 convergence. Counter 0/3.
+
+**New tactic:** comprehensive corpus-wide consistency sweep (flush systematic debt classes)
+before resuming strict sliced passes broadened to whole corpus.
+
+---
+
 ### HUMAN DECISION — 2026-06-12
 
 **Convergence endgame:** STRICT 3-consecutive-clean mode (human-elected 2026-06-12).
 Definition: zero findings of ANY severity (including LOW) across all 4 slices, 3 passes
 running.
 
-**Current counter: 0/3.** Pass 9 in progress.
+**Current counter: 0/3.** Passes 9–11 complete; corpus-wide sweep in progress.
 
 ---
 
