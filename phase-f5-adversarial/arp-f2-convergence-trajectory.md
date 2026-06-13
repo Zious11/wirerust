@@ -53,25 +53,30 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 10 (sliced) | 2026-06-13 | ~6 | 0 | 1 | ~5 | 0 | LOW | 0/3 | NOT_CLEAN |
 | 11 (sliced) | 2026-06-13 | ~5 | 0 | 1 | ~4 | 0 | LOW | 0/3 | NOT_CLEAN |
 | 13 (whole-corpus) | 2026-06-13 | ~8 | 0 | 0 | ~8 | 0 | LOW | 0/3 | NOT_CLEAN, REMEDIATED |
+| 14 (whole-corpus) | 2026-06-13 | 22 | 2 | 5 | ~11 | ~4 | MED | 0/3 | NOT_CLEAN |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)`
 
-Severity profile: CRITICAL count decayed (4→5→0→0→0→0→0→0→0→0→0→0→0) — core detection
-semantics fully settled. HIGH count: 8→7→~6→~5→1→2→~4→2→0→1→1→0→0 — only corpus-wide
-debt items in recent passes; ARP delta clean. MEDIUM count: 3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8
-— propagation hygiene and pre-existing corpus debt dominate; trajectory decaying.
-Slice B (all 283 BC H1 titles) verified CLEAN in Pass 13.
+Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2 — REGRESSION at Pass 14
+(2 genuinely-new CRITICAL corpus-debt findings, not ARP delta defects). HIGH count:
+8→7→~6→~5→1→2→~4→2→0→1→1→0→0→5 — REGRESSION at Pass 14 (5 new HIGH findings in architecture
+and domain docs not reached by prior 13 passes); ARP delta itself clean. MEDIUM count:
+3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8→~11 — propagation hygiene and pre-existing corpus debt.
+Trend BROKE at Pass 14 — Passes 12-13 showed 0 CRIT/0 HIGH; Pass 14 surfaced 2 CRITICAL + 5 HIGH
+genuinely-new shipped-code-vs-spec drift not reached by 13 prior passes.
+Slice B (all 283 BC H1 titles) verified CLEAN in Pass 13; ARP delta clean 6th consecutive pass.
 
 ## Convergence Counter
 
 **0/3** consecutive clean passes.
 **STRICT WHOLE-CORPUS mode** (human-elected 2026-06-12; scope extended 2026-06-13): zero
 findings of ANY severity (including LOW) across the ENTIRE spec corpus (not just ARP delta)
-required for 3 consecutive clean passes. 13 passes run. Trajectory decaying (corpus audit 9
-→ Pass 12 ~18 → Pass 13 ~8). Slice B (all 283 BC H1 titles) verified CLEAN. ARP delta clean
-5th consecutive pass. Sustained multi-pass corpus cleanup ongoing.
+required for 3 consecutive clean passes. 14 passes run. Trend BROKE at Pass 14 — 2 CRITICAL
++ 5 HIGH genuinely-new shipped-code-vs-spec drift surfaced (not ARP delta defects; corpus
+coverage not reached by prior 13 passes). ARP delta clean 6th consecutive pass. Awaiting
+human strategic decision: continue strict whole-corpus remediation + Pass 15 vs off-ramp.
 
 ## Core Semantics — Confirmed Clean (Settled)
 
@@ -518,6 +523,65 @@ ongoing.
 | STORY-071 | v1.10 | Stale 16/21→17/23 counts corrected |
 | BC-INDEX | v1.19 | T1692.001 literal corrected |
 | PRD | v1.16 | Updated |
+
+---
+
+### Pass 14 — 2026-06-13 (strict whole-corpus; NOT_CLEAN)
+
+**Method:** Strict whole-corpus fresh-context pass across full spec corpus; 4 parallel slices.
+**Factory-artifacts HEAD reviewed:** 69da05c.
+**Findings:** 22 total — 2 CRITICAL, 5 HIGH, ~11 MEDIUM, ~4 LOW — ALL pre-existing corpus
+debt unrelated to ARP F2 delta; all 4 slices NOT_CLEAN.
+**Novelty:** MED — 2 CRITICAL + 5 HIGH are genuinely-new shipped-code-vs-spec drift not
+reached by 13 prior passes (trend broke; Passes 12-13 were 0 CRIT/0 HIGH).
+**Convergence counter:** 0/3 (counter stays 0/3; ARP F2 delta CLEAN 6th consecutive pass).
+**Verdict:** NOT_CLEAN.
+
+**PERSISTENCE-ONLY — findings NOT remediated this burst. Awaiting human strategic decision
+(continue strict whole-corpus remediation + Pass 15 vs off-ramp).**
+
+#### Slice A (route: architect) — 9 findings
+
+- **A-01 HIGH** | `architecture/api-surface.md:148` | Finding row type `mitre_technique: Option<String>`; ADR-006 (accepted, v0.3.0) shipped `mitre_techniques: Vec<String>` in `src/findings.rs:148`. Shipped-code drift.
+- **A-02 HIGH** | `architecture/api-surface.md:47-57` | `analyze` flag table omits 3 SHIPPED flags: `--modbus-write-burst-threshold`, `--modbus-write-sustained-threshold` (ADR-005), `--dnp3-direct-operate-threshold` (ADR-007).
+- **A-03 HIGH** | `architecture/purity-boundary-map.md:30-58,80-97` | Omits C-24 `dnp3.rs` (SHIPPED v0.6.0) and C-23 `arp.rs`; Pass-12/13 audit updated module-decomposition/criticality/dependency-graph but not purity-boundary-map.
+- **A-04 HIGH** | `architecture/system-overview.md:54-69,72-74` | L3 lists only dns/http/tls; omits C-22 Modbus, C-23 ARP, C-24 DNP3 (Modbus+DNP3 SHIPPED); "C-1..C-20" note stale vs canonical 24 components.
+- **A-05 MEDIUM** | `architecture/system-overview.md:61` | "mitre.rs ... (15 technique IDs)" stale; canonical 23 current / 25 target.
+- **A-06 MEDIUM** | `api-surface.md:141` + `purity-boundary-map.md:38` vs `module-decomposition.md:46` | `decode_packet` shown as current `Result<ParsedPacket>` in two peers, target `Result<DecodedFrame>` in one — unmarked asymmetry (add uniform PLANNED marker).
+- **A-07 MEDIUM** | `architecture/dependency-graph.md:94` | etherparse pinned `0.16` vs module-decomposition C-5 "etherparse 0.20" — peer disagreement, no PLANNED marker.
+- **A-08 MEDIUM** | `module-decomposition.md:70,72` | C-16/C-22 MITRE lists omit T0888 (Remote System Information Discovery), shipped recon emitter per ADR-005 D12/ADR-006.
+- **A-09 LOW** | `purity-boundary-map.md:113` | `mitre.rs` implications omit T0888 + DNP3 IDs (T1691.001, T0827).
+- **D-OBS-01 (architect sweep)** | `architecture/decisions/ADR-005-...modbus-tcp.md:105` | "[2,253]" Modbus length range, same defect as D-01; sweep with D-01 fix.
+
+#### Slice B (route: product-owner) — 4 findings
+
+- **B-01 MEDIUM** | `ss-14/BC-2.14.017.md:329` | MITRE Techniques field "T1692.001 — Unauthorized Command Message" uses revoked-T0855 NAME; canonical "Unauthorized Message: Command Message". ID was swept, name was not (DF-SIBLING-SWEEP).
+- **B-02 MEDIUM** | `ss-14/BC-2.14.024.md:214` | Same stale name as B-01.
+- **B-03 MEDIUM** | `ss-14/BC-2.14.020.md:151-153` (Invariant 6) | Stale Decision-12 counts "SEEDED 21 / EMITTED 13"; canonical 25/17.
+- **B-04 LOW** | `ss-14/BC-2.14.020.md:238` | Source-Evidence cites stale "SEEDED=21, EMITTED=13"; annotate as Decision-12-era superseded.
+- (NOTE: ss-16 ARP all 15 H1 titles CLEAN; ss-10 anchors all CLEAN; settled ARP semantics intact. Slice B coverage limitation: ss-04/ss-07 bodies not fully opened this pass — spot-checked clean.)
+
+#### Slice C (route: product-owner; architect for VP/mitre.rs facts) — 7 findings
+
+- **C-01 CRITICAL** | `domain/capabilities/cap-09-finding-emission.md:22-43,119` | Finding schema is pre-STORY-100 single-tag form: declares `mitre_technique: Option<String>` + "all four Option fields"; STORY-100 (E-13, completed, v0.3.0) replaced with `mitre_techniques: Vec<String>` (3 Option fields now). Authoritative schema contradicts shipped code. BC ref "BC-2.09.001..006" also stale.
+- **C-02 CRITICAL** | `cap-09:14-16,50-99` | "22 emission sites (authoritative)" + "all 22 set timestamp:None" stale: STORY-097/098/099 (E-12, completed) wired timestamp; Modbus (STORY-102..105) + DNP3 (STORY-106..110) add emission sites. Undercounts shipped reality.
+- **C-03 HIGH** | `domain/entities/ent-04-findings-output.md:53-62` | E-26 inherits C-01 stale single-tag schema; Pass-10 swept E-27 (16→17 tactics) but not sibling E-26.
+- **C-04 HIGH** | `domain/domain-debt.md:49-67` (O-01) | Timestamp debt listed "OPEN/genuine debt on develop today" but STORY-097/098/099 closed it (Option A done).
+- **C-05 HIGH** | `prd-supplements/test-vectors.md:19,24` + `prd-supplements/error-taxonomy.md:20,21` | `input-hash:TBD` because `inputs:` lists `src/analyzer/arp.rs` which does not exist in develop HEAD (compute-input-hash errors on missing input). Gate behind PLANNED marker or document TBD rationale (DF-INPUT-HASH-CANONICAL-001).
+- **C-06 LOW** | `phase-f1-delta-analysis/arp-analyzer-delta-analysis.md:27-32` | Frontmatter `mitre_research_status` says T0830/T1557.002 "TBD-pending-research/placeholders" though validation landed; may be intentionally frozen F1 snapshot.
+- **C-07 LOW** | `error-taxonomy.md:115` (E-ARP-002) | Storm-rate prose "within the average since window-start within the 60-second flap window" awkward double-nesting.
+- (NOTE: cap-10 MITRE mapping CLEAN; `src/mitre.rs` anchors all CLEAN @128/179/192-194/100-120/89-91; 17 MitreTactic variants consistent; ARP holdout roll-up 26/24/2 verified; summarize 11-key + reconciliation invariant CLEAN.)
+
+#### Slice D (route: product-owner) — 2 findings + observations
+
+- **D-01 HIGH** | `prd.md:747` (§2.14.A BC-2.14.004 row) | Reject range "[2, 253]"; canonical BC-2.14.004 + VP-022:117 + BC-INDEX:344 all say "[2, 254]". Understates valid upper bound by 1 (len=254 valid). Sweep ADR-005:105 (D-OBS-01) in same burst.
+- **D-02 LOW** | `behavioral-contracts/BC-INDEX.md:36` | Status line cites PRD "(v1.15)"; PRD now v1.16 (pass-13 bump). Stale version-pin; "all 283 registered" still accurate.
+- (NOTE: Master counts all reconciled PASS — 283 BCs, 24 VPs, 17 tactics, ARP MITRE mappings, release targets, changelog ledger completeness, ADR-008/VP-024 registration all CLEAN.)
+
+**Key observation — trend break:** Passes 12-13 showed 0 CRIT/0 HIGH. Pass 14 surfaced 2
+CRITICAL (cap-09 authoritative schema pre-STORY-100; cap-09 emission-site count stale) + 5 HIGH
+across architecture docs not reached by prior passes. These are genuine shipped-code-vs-spec drift
+items, not ARP-delta defects. Counter remains 0/3.
 
 ---
 
