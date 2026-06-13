@@ -374,6 +374,84 @@ debt classes will always produce findings until explicitly flushed.
 
 ---
 
+### Corpus Consistency Audit — 2026-06-13
+
+**Method:** Comprehensive corpus-wide consistency sweep (flush systematic debt classes before
+resuming strict whole-corpus sliced passes). All findings REMEDIATED.
+
+**Blocking corpus-debt defects found and REMEDIATED (9 total):**
+
+1. ARCH-INDEX SS-04/09/16 component counts — stale counts corrected.
+2. module-decomposition C-24 DNP3 missing — entry added.
+3. module-criticality C-23/C-24 missing — entries added.
+4. VP-INDEX lifecycle counts — counts updated.
+5. vp-007 ARP F4 obligation — obligation added.
+6. BC-2.16.010 H1 enrichment — enrichment clause added.
+7–9. Three additional blocking corpus-debt items remediated in same burst.
+
+**Correctly classified (not a defect):** STORY-114 PLANNED code-vs-spec entry — correctly
+classified as expected (F4 obligation, not a convergence defect).
+
+**Verdict:** REMEDIATED — all 9 blocking items closed. Ready for Pass 12.
+
+---
+
+### Pass 12 — 2026-06-13 (strict whole-corpus; NOT_CLEAN, REMEDIATED)
+
+**Method:** Strict whole-corpus fresh-context pass across full spec corpus.
+**Findings:** ~18 total — 0 CRITICAL, 0 HIGH (corpus-wide), many MEDIUM/LOW — ALL pre-existing
+corpus debt unrelated to ARP F2 delta.
+**Novelty:** LOW — zero ARP-F2 defects; ARP delta clean 4th consecutive pass.
+**Convergence counter:** 0/3 (corpus-wide debt findings prevent clean count; ARP delta itself
+clean).
+**Verdict:** NOT_CLEAN (corpus debt), REMEDIATED.
+
+Finding categories (all pre-existing corpus debt, none ARP-F2-specific):
+- SS-14 Modbus BC title desyncs (6 findings).
+- Stale technique_info/technique_tactic line anchors in inv-01, nfr-catalog, vp-007,
+  STORY-071, BC-2.10.001, BC-2.10.003, BC-2.10.007 (6 findings).
+- ARCH-INDEX "21 components" count and O-04 "9" count — stale corpus counts.
+- tooling-selection and dependency-graph missing DNP3 entries.
+- ADR-005, ADR-006, ADR-007 status: proposed→accepted (not yet updated).
+- changelog phantom vp-016 path — stale reference.
+- BC-2.16.008 missing ARP_FLAP_WINDOW_SECS anchor.
+
+**All ~18 findings REMEDIATED.**
+
+**KEY FINDING:** Strict whole-corpus = full audit of the released-product spec corpus (283 BCs,
+24 VPs, 8 ADRs, domain/capability/entity/story docs); each pass surfaces fresh pre-existing
+drift in not-yet-reviewed docs. Sustained multi-pass effort required; counter still 0/3.
+
+**Artifact versions post-Pass-12:**
+
+| Artifact | Version | Change |
+|----------|---------|--------|
+| ARCH-INDEX | v1.3 | SS-04/09/16 counts + O-04 updated |
+| tooling-selection | v1.2 | DNP3 entry added |
+| dependency-graph | v1.2 | DNP3 entry added |
+| module-decomposition | v1.4 | C-24 DNP3 added |
+| module-criticality | v1.2 | C-23/C-24 added |
+| VP-INDEX | v2.1 | Lifecycle counts updated |
+| vp-007 | v2.4 | ARP F4 obligation added; technique anchors corrected |
+| arp-architecture-delta | v1.10 | (carried from Pass-11) |
+| BC-INDEX | v1.18 | Titles synced |
+| PRD | v1.15 | (carried from Pass-11) |
+| ADR-005/006/007 | accepted | Status updated proposed→accepted |
+| ADR-008 | v1.8 | (carried from Pass-11) |
+| BC-2.16.008 | v1.6 | ARP_FLAP_WINDOW_SECS anchor added |
+| BC-2.16.010 | v1.6 | H1 enrichment added |
+| BC-2.10.001 | v1.3 | technique_info/tactic anchors corrected |
+| BC-2.10.003 | v1.4 | technique_info/tactic anchors corrected |
+| BC-2.10.007 | v1.7 | technique_info/tactic anchors corrected |
+| inv-01 | v1.1 | technique anchors corrected |
+| nfr-catalog | v1.5 | technique anchors corrected |
+| STORY-071 | v1.9 | technique anchors corrected |
+| cap-10 | v1.7 | (carried from Pass-9) |
+| error-taxonomy | v1.9 | (carried from Pass-11) |
+| test-vectors | v1.9 | (carried from Pass-11) |
+
+---
+
 ### HUMAN DECISION — 2026-06-13
 
 **CONTINUE STRICT WHOLE-CORPUS** — bar remains zero findings of ANY severity across the
