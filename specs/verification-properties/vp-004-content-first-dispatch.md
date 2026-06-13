@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.1"
+version: "2.2"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -27,6 +27,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set."
   - "v2.1: VP-004 prose relocked at F6 to include Rules 5/6 (Modbus/502 + DNP3/20000); proof re-verified SUCCESSFUL on develop@e685664. Property Statement updated to add Rule 5 (Modbus port 502 → DispatchTarget::Modbus) and Rule 6 (DNP3 port 20000 → DispatchTarget::Dnp3) to the full 7-rule table, plus Rule 7 fallthrough None. proof_file_hash updated to SHA-256 of src/dispatcher.rs at e685664 (dispatcher.rs changed when Rule 6 DNP3 arm was added). verified_at_commit updated to e685664. — 2026-06-12"
+  - "v2.2 (2026-06-13, PG-ARP-F2-007 anchor-drift sweep): Source Location and harness-comment line anchors corrected for F2 dispatcher.rs line shifts (Modbus/DNP3 arms added earlier rows, shifting all fn/const offsets). DEFAULT_MAX: :40→:58. StreamDispatcher struct: :42-53→:60-78; routes field: :43→:61; classification_attempts: :48→:66. fn classify: :90→:184 (all harness-comment references). fn on_data: :120→:245. phase-B None insertion: :146→:282. classification_attempts.remove: :147→:283. two-phase block range: :137-148→:279-290. Lock fields unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -58,9 +59,9 @@ for all possible input byte slices and port values:
 
 `DispatchTarget::None` is NOT inserted into `routes` before the per-flow
 `classification_attempts` counter reaches `max_classification_attempts`
-(default 8, defined at `dispatcher.rs:40`). Once the counter reaches the cap,
-`DispatchTarget::None` IS inserted permanently (phase B, `dispatcher.rs:146`),
-and `classification_attempts[flow_key]` is removed (`dispatcher.rs:147`).
+(default 8, defined at `dispatcher.rs:58`). Once the counter reaches the cap,
+`DispatchTarget::None` IS inserted permanently (phase B, `dispatcher.rs:282`),
+and `classification_attempts[flow_key]` is removed (`dispatcher.rs:283`).
 Subsequent `on_data` calls for that flow short-circuit via the cached `None`
 and never re-run `classify`. `DispatchTarget::Http` and `DispatchTarget::Tls`
 are stored immediately on their first classification and never evicted except
@@ -76,7 +77,7 @@ by `on_flow_close`.
 - **Related BC:** BC-2.05.003 -- Port fallback: 443/8443->TLS, 80/8080->HTTP when content insufficient
 - **Related BC:** BC-2.05.004 -- Unknown content and unknown port returns DispatchTarget::None
 - **Related BC:** BC-2.05.005 -- Classification cached per FlowKey after first non-None result
-- **Related BC:** BC-2.05.006 -- DispatchTarget::None NOT cached before retry cap; reclassification retried until cap; permanently cached once cap reached (two-phase behavior, dispatcher.rs:137-148)
+- **Related BC:** BC-2.05.006 -- DispatchTarget::None NOT cached before retry cap; reclassification retried until cap; permanently cached once cap reached (two-phase behavior, dispatcher.rs:279-290)
 
 ## Proof Method
 
@@ -94,7 +95,7 @@ mod kani_proofs {
     #[kani::proof]
     fn verify_tls_signature_beats_port() {
         // Even if port is 80 (HTTP port), TLS signature wins.
-        // Real signature (src/dispatcher.rs:90):
+        // Real signature (src/dispatcher.rs:184):
         //   fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget
         // classify takes a &FlowKey (not a bare u16 port); construct a key with port 80.
         use std::net::{IpAddr, Ipv4Addr};
@@ -142,7 +143,7 @@ mod kani_proofs {
 
     #[kani::proof]
     fn verify_content_first_precedence_exhaustive() {
-        // classify takes a &FlowKey (src/dispatcher.rs:90); build symbolic key.
+        // classify takes a &FlowKey (src/dispatcher.rs:184); build symbolic key.
         use std::net::{IpAddr, Ipv4Addr};
         let raw_a: u32 = kani::any();
         let raw_b: u32 = kani::any();
@@ -173,15 +174,15 @@ mod kani_proofs {
 
 ## Source Location
 
-`src/dispatcher.rs:90` -- `fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget`
+`src/dispatcher.rs:184` -- `fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget`
 
-`src/dispatcher.rs:40` -- `pub const DEFAULT_MAX_CLASSIFICATION_ATTEMPTS: u32 = 8`
+`src/dispatcher.rs:58` -- `pub const DEFAULT_MAX_CLASSIFICATION_ATTEMPTS: u32 = 8`
 
-`src/dispatcher.rs:42-53` -- `StreamDispatcher` struct; `routes: HashMap<FlowKey, DispatchTarget>` at line 43;
-`classification_attempts: HashMap<FlowKey, u32>` at line 48.
+`src/dispatcher.rs:60-78` -- `StreamDispatcher` struct; `routes: HashMap<FlowKey, DispatchTarget>` at line 61;
+`classification_attempts: HashMap<FlowKey, u32>` at line 66.
 
-`src/dispatcher.rs:120` -- `fn on_data` (StreamHandler impl); phase-B None insertion at line 146;
-`classification_attempts.remove` at line 147.
+`src/dispatcher.rs:245` -- `fn on_data` (StreamHandler impl); phase-B None insertion at line 282;
+`classification_attempts.remove` at line 283.
 
 ## Lifecycle
 

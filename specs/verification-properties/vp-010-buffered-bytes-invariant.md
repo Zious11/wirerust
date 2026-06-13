@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.0"
+version: "2.1"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -22,6 +22,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set (tests/reassembly_segment_tests.rs)."
+  - "v2.1 (2026-06-13, PG-ARP-F2-007 anchor-drift sweep): Source Location line anchors corrected for segment.rs shifts. insert_segment: :39→:189. flush_contiguous: :236→:369. Lock fields unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -126,7 +127,7 @@ mod proptest_proofs {
                     }
                     SegmentOp::Flush => {
                         // flush_contiguous returns Vec<(u64, Vec<u8>)>; no closure
-                        // (src/reassembly/segment.rs:236).
+                        // (src/reassembly/segment.rs:369).
                         let _ = dir.flush_contiguous();
                     }
                 }
@@ -172,9 +173,8 @@ mod proptest_proofs {
 
 `src/reassembly/flow.rs:90` -- `FlowDirection.buffered_bytes: usize` field (pub(super)).
 `src/reassembly/flow.rs:154` -- `FlowDirection::buffered_bytes(&self) -> usize` public accessor.
-`src/reassembly/segment.rs:39` -- `FlowDirection::insert_segment(seq: u32, data: &[u8], max_depth: usize, max_segments: usize, max_receive_window: usize) -> InsertResult`.
-Counter incremented on insert (line ~196, ~225) and decremented on flush (line ~241).
-`src/reassembly/segment.rs:236` -- `FlowDirection::flush_contiguous(&mut self) -> Vec<(u64, Vec<u8>)>`.
+`src/reassembly/segment.rs:189` -- `FlowDirection::insert_segment(seq: u32, data: &[u8], max_depth: usize, max_segments: usize, max_receive_window: usize) -> InsertResult`.
+`src/reassembly/segment.rs:369` -- `FlowDirection::flush_contiguous(&mut self) -> Vec<(u64, Vec<u8>)>`.
 `src/reassembly/flow.rs:89` -- `segments: BTreeMap<u64, Vec<u8>>` is `pub(super)`; test code
 inside the `reassembly` module can access it directly for sum verification.
 

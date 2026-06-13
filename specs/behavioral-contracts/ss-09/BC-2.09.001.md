@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: Feature-100 (pcap timestamps) — O-01 resolved: 21 of 22 emission sites now set timestamp: Some(...); segment-limit summary retains None. Invariant 1 updated; Refactoring Notes updated. — 2026-06-08"
   - "v1.4: ADR-006 / Decision 13 (v0.3.0 BREAKING) — mitre_technique: Option<String> renamed to mitre_techniques: Vec<String>; empty vec replaces None; singleton vec replaces Some; added EC-006 (multi-tag co-emission). Emission-site count updated from 22 to 22+ (Modbus sites added in F2). — 2026-06-09"
   - "v1.5: v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description, EC-006, and Canonical Test Vectors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md. — 2026-06-10"
+  - "v1.6: Pass-19 B-01 re-anchor — Architecture Anchor and Source Evidence corrected: src/findings.rs:119-146 → :135-162 (struct Finding spans lines 135-162 after STORY-100 multi-tag comment block inserted). Verified against HEAD findings.rs. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -148,13 +149,13 @@ the full literal.
 
 ## Architecture Anchors
 
-- `src/findings.rs:119-146` -- Finding struct definition with all fields and serde attributes
+- `src/findings.rs:135-162` -- Finding struct definition with all fields and serde attributes
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/findings.rs:119-146` |
+| **Path** | `src/findings.rs:135-162` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

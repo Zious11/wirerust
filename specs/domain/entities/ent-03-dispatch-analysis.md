@@ -4,6 +4,11 @@ traces_to: ../domain-spec.md
 title: Entities -- Dispatch and Protocol Analysis (L2-L3)
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
+version: "1.1"
+modified:
+  - date: 2026-06-13
+    actor: product-owner
+    reason: "P19 straggler anchor sweep: E-21 struct range :42-54 → :60-78; E-22 enum range :23-28 → :38-46; E-22 None-cache prose :137-148 → :269-290; E-31 :114 → :122; E-32 :82 → :84; E-33 :298 → :305; E-34 :273 → :274; E-35 :200 → :201; E-40 UA rationale :319-343 → :334-358. Verified against src/dispatcher.rs, src/analyzer/http.rs, src/analyzer/tls.rs."
 ---
 
 # Entities: Dispatch and Protocol Analysis (L2-L3)
@@ -37,7 +42,7 @@ Supertrait of `StreamHandler`. Returns L3 types (`AnalysisSummary`, `Vec<Finding
 is the only upward import (L2 imports L3) in the file-level DAG -- the formalized advisory
 module-group cycle accepted by ADR 0002. Implementors: `HttpAnalyzer`, `TlsAnalyzer`.
 
-## E-21: StreamDispatcher (src/dispatcher.rs:42-54)
+## E-21: StreamDispatcher (src/dispatcher.rs:60-78)
 
 ```
 struct StreamDispatcher {
@@ -59,13 +64,13 @@ never produce enough bytes to classify (P2.11 / #80). Default:
 subsequent `on_data` calls for that flow forward to no analyzer. Configurable via
 `StreamDispatcher::with_max_classification_attempts()`.
 
-## E-22: DispatchTarget (src/dispatcher.rs:23-28) [module-private]
+## E-22: DispatchTarget (src/dispatcher.rs:38-46) [module-private]
 
 ```
-enum DispatchTarget { Http, Tls, None }
+enum DispatchTarget { Http, Tls, Modbus, Dnp3, None }
 ```
 
-Module-private (no `pub`). `None` operates in two phases (dispatcher.rs:137-148;
+Module-private (no `pub`). `None` operates in two phases (dispatcher.rs:269-290;
 LESSON-P2.11):
 Phase 1 (attempt count < `max_classification_attempts`): NOT cached in `routes`; triggers
 reclassification on each subsequent `on_data` call, incrementing the per-flow
@@ -96,25 +101,25 @@ struct DnsAnalyzer { query_count: u64, response_count: u64 }
 
 Implements `ProtocolAnalyzer`. `analyze()` returns `vec![]` unconditionally (Smell #5).
 
-## E-31: HttpAnalyzer (src/analyzer/http.rs:114)
+## E-31: HttpAnalyzer (src/analyzer/http.rs:122)
 
 See CAP-06 for full field description. Key counters: `transactions`, `parse_errors`,
 `non_http_flows`, `poisoned_bytes_skipped`. `all_findings: Vec<Finding>` is unbounded.
 Implements `StreamHandler + StreamAnalyzer`.
 
-## E-32: HttpFlowState (src/analyzer/http.rs:82) [module-private]
+## E-32: HttpFlowState (src/analyzer/http.rs:84) [module-private]
 
 See CAP-06. Seven fields. `request_poisoned` / `response_poisoned` are monotonic false->true.
 `counted_as_non_http` is a per-flow (not per-direction) one-way latch.
 
-## E-33: TlsAnalyzer (src/analyzer/tls.rs:298)
+## E-33: TlsAnalyzer (src/analyzer/tls.rs:305)
 
 See CAP-07 for full field description. Bounded by `MAX_BUF=65,536`, `MAX_MAP_ENTRIES=50,000`,
 `MAX_RECORD_PAYLOAD=18,432`. `all_findings: Vec<Finding>` is unbounded. `truncated_records: u64`
 counter added P1.05 (#73); TlsAnalyzer now conforms to CNV-PAT-002. Implements
 `StreamHandler + StreamAnalyzer`.
 
-## E-34: TlsFlowState (src/analyzer/tls.rs:273) [module-private]
+## E-34: TlsFlowState (src/analyzer/tls.rs:274) [module-private]
 
 ```
 struct TlsFlowState {
@@ -128,7 +133,7 @@ struct TlsFlowState {
 `done()` returns true when both hellos seen; subsequent `on_data` calls early-exit. State
 record persists in the HashMap until `on_flow_close` fires.
 
-## E-35: SniValue (src/analyzer/tls.rs:200) [module-private]
+## E-35: SniValue (src/analyzer/tls.rs:201) [module-private]
 
 ```
 enum SniValue {
@@ -160,7 +165,7 @@ struct ParsedRequest {
 `host` and `user_agent` encode a 3-state space: `None` (absent), `Some("")` (present-empty),
 `Some(non_empty)`. Host detection uses all 3 states (both None and Some("") fire findings
 post-#71). UA detection uses only the Some("") state; absent UA is intentionally silent
-(open item O-02; research rationale documented in http.rs:319-343).
+(open item O-02; research rationale documented in http.rs:334-358).
 
 ## E-41: ParsedResponse (src/analyzer/http.rs:52) [module-private]
 

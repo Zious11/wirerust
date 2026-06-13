@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: anchor-completeness — add 5 missing test back-references (STORY-046 Wave 18, F-S046-P3-001) — 2026-05-29"
   - "v1.4: FIX-P5-003 / ADV-IMPL-P06-HIGH-001 — tighten top_hosts tiebreaker: count desc then host name ASC; determinism claim now covers sort key, not just BTreeMap; add EC-004; add VP/anchor for test_summarize_top_hosts_ties_broken_alphabetically — 2026-06-01"
+  - "v1.5 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — summarize() :550-601→:583-634; top_hosts sort :571-573→:604-606. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -109,7 +110,7 @@ the keys listed in the postconditions.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- summarize() is the primary output channel for HTTP analysis statistics |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:550-601, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:583-634, C-12) |
 | Stories | STORY-046 |
 | Origin BC | BC-HTTP-023 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -120,8 +121,8 @@ the keys listed in the postconditions.
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:550-601` -- summarize() implementation
-- `src/analyzer/http.rs:571-573` -- top_hosts sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)))` then `.take(20)` (FIX-P5-003)
+- `src/analyzer/http.rs:583-634` -- summarize() implementation
+- `src/analyzer/http.rs:604-606` -- top_hosts sort: `sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)))` then `.take(20)` (FIX-P5-003)
 - `tests/http_analyzer_tests.rs::test_summarize_produces_complete_output` -- covers postcondition 1 (all required keys present)
 - `tests/http_analyzer_tests.rs::test_parse_error_in_summarize` -- covers postcondition 1 (parse_errors key)
 - `tests/http_analyzer_tests.rs::test_summarize_top_hosts_sorted_and_truncated` -- covers postcondition 2 / EC-002 (top_hosts sort + truncation)
@@ -135,7 +136,7 @@ the keys listed in the postconditions.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:550-601` |
+| **Path** | `src/analyzer/http.rs:583-634` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

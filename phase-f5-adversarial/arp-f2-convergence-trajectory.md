@@ -58,17 +58,18 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 16 (whole-corpus, Claude) | 2026-06-13 | 7 | 0 | 0 | 5 | 2 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 | 17 (whole-corpus, Claude) | 2026-06-13 | 10 | 3 | 2 | 2 | 3 | MED | 0/3 | NOT_CLEAN→REMEDIATED |
 | 18 (whole-corpus, Claude) | 2026-06-13 | 9 | 0 | 3 | 2 | 4 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
+| 19 (whole-corpus, Claude) | 2026-06-13 | 15 | 0 | 8 | 2 | 5 | HIGH | 0/3 | NOT_CLEAN→PARTIAL |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)`
 
-Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3→0 — DECAYING on CRITICAL
-(0 for 2 of last 3 passes: P16+P18).
-HIGH count: 8→7→~6→~5→1→2→~4→2→0→1→1→0→0→5→1→0→2→3 — NON-MONOTONIC at P17; P18 back to 3H
-(ss-05 anchor-drift class: A-01/indicatif version self-invariant + B-01/B-02 systematic anchor
-re-sync).
-MEDIUM count: 3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8→~11→3→5→2→2 — propagation hygiene and
+Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3→0→0 — DECAYING on CRITICAL
+(0 for 3 of last 4 passes: P16+P18+P19).
+HIGH count: 8→7→~6→~5→1→2→~4→2→0→1→1→0→0→5→1→0→2→3→8 — REGRESSION at P19: 8H (corpus-wide
+anchor-drift class PG-ARP-F2-007: ss-09/findings.rs + ss-06/26 BCs/http.rs + ss-04/mod.rs +
+ss-07/3 BCs off-by-one + BC-2.04.055 http.rs/tls.rs on_data partial-fix regression).
+MEDIUM count: 3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8→~11→3→5→2→2→2 — propagation hygiene and
 holdout count-assertion drift.
 Trend BROKE at Pass 14 — Passes 12-13 showed 0 CRIT/0 HIGH; Pass 14 surfaced 2 CRITICAL + 5 HIGH.
 DECAYING P14→P16: 2C/5H → 2C/1H → 0C/0H. NON-MONOTONIC at P17: 3C/2H (new corpus corner:
@@ -77,17 +78,22 @@ PLANNED/ARP markers). Slice B CLEAN 2nd consecutive (P16+P17). P18: 0C/3H — ss
 anchor-drift (systematic: all 9 ss-05 BCs stale due to Modbus/DNP3 code insertions shifting
 dispatcher.rs line offsets) + indicatif 0.17→0.18 version self-invariant + STORY-INDEX 48-vs-49
 ambiguity. arp.rs pre-flush STORY-112 anchor-uniformity verified CLEAN by Slice A (proactive fix
-verified). Holdout tree (101 files, Slice C) CLEAN. Ground truth (src/dispatcher.rs): fn classify
-:184; on_data :245; cache block :269-289; on_flow_close :322-361; DEFAULT_MAX :58; 4-analyzer
-guard :256-259. Ground truth (src/mitre.rs): 23 seeded / 15 emitted / 8 cat-only / 17 MitreTactic
-variants.
+verified). Holdout tree (101 files, Slice C) CLEAN. P19: 0C/8H — PG-ARP-F2-007 confirmed
+CORPUS-WIDE: ss-09 (findings.rs; 6 BCs re-anchored + BC-2.09.003 Possible-verdict variant added),
+ss-06 (http.rs; ALL 26 BCs re-anchored), ss-04 (BC-2.04.055/BC-2.04.024/020 mod.rs),
+ss-07 partial (BC-2.07.037/016/008 off-by-one; full tls.rs re-anchor PENDING), purity-boundary-map
+v1.4→v1.5 (A-01/A-02), VP-sweep 9 files re-anchored (vp-003/004/006/010/011/013/014/015/021),
+HS-009 T1083→Discovery (C-01), nfr-catalog/nfr-story-map/inv-01 INV-2 dispatcher anchors,
+domain straggler sweep. Slice D CLEAN. Ground truth src maps (dispatcher.rs/http.rs/tls.rs/
+findings.rs/mod.rs/segment.rs/lifecycle.rs/flow.rs) recorded. ss-07 FULL re-anchor + audit
+ss-01/02/04-rest/08/11/12/13 STILL PENDING before Pass 20. Counter 0/3.
 
 ## Convergence Counter
 
 **0/3** consecutive clean passes.
 **STRICT WHOLE-CORPUS mode** (human-elected 2026-06-12; scope extended 2026-06-13): zero
 findings of ANY severity (including LOW) across the ENTIRE spec corpus (not just ARP delta)
-required for 3 consecutive clean passes. 18 passes run. Pass 14 REMEDIATED (22 findings:
+required for 3 consecutive clean passes. 19 passes run. Pass 14 REMEDIATED (22 findings:
 mitre_techniques field-rename corpus sweep + O-01 closure propagation + architect ×2 + PO ×10
 bursts + consistency audit CONSISTENT). Pass 15 REMEDIATED (8 findings: holdout-scenarios
 field-rename sweep [C-01/02/03, 16 files] + inv-01 YAML regression [C-04] + VP-024 scope
@@ -107,7 +113,12 @@ BC-2.04.055 on_data :144→:245 [CARRY-OVER]; 0C/3H). Proactive pre-pass fix (ar
 PLANNED STORY-111→STORY-112 in system-overview v1.3→v1.4 + purity-boundary-map v1.2→v1.3)
 verified CLEAN by Slice A. Holdout tree 101 files (Slice C) CLEAN. Trajectory P14-18:
 2C/5H → 2C/1H → 0C/0H → 3C/2H → 0C/3H. Decaying on CRITICAL (0 for 2 of last 3).
-Counter 0/3 — remediation does NOT advance counter. Next = Pass 19 via Claude adversary.
+Pass 19 REMEDIATION IN PROGRESS (15 findings: 0C/8H/2M/5L; PG-ARP-F2-007 corpus-wide anchor
+re-sync; ~62 files re-anchored in this checkpoint; ss-07-full + ss-01/02/04-rest/08/11/12/13
+anchor audit STILL PENDING before Pass 20). Trajectory P14-19:
+2C/5H → 2C/1H → 0C/0H → 3C/2H → 0C/3H → 0C/8H. REGRESSION at P19 HIGH.
+Counter 0/3 — remediation does NOT advance counter. Next = complete ss-07-full + remaining-BC
+anchor audit, then Pass 20 via Claude adversary.
 
 ## Core Semantics — Confirmed Clean (Settled)
 
@@ -1221,6 +1232,113 @@ F-cycle anchor-resync checklist. ANCHOR-DRIFT WATCH: ss-10 (mitre.rs) + ss-05/ss
 (dispatcher.rs) anchors re-synced this pass; ss-09 (findings.rs) + ss-06/ss-07
 (http.rs/tls.rs/reassembly, potentially shifted by STORY-097/098/099 timestamp wiring) NOT
 yet anchor-audited — likely Pass-19 Slice B targets.
+
+---
+
+### Pass 19 — 2026-06-13 (whole-corpus, Claude adversary; NOT_CLEAN → REMEDIATION IN PROGRESS)
+
+**Method:** Whole-corpus fresh-context pass; Claude vsdd-factory:adversary per human direction.
+**Factory-artifacts HEAD reviewed:** (post-P18-remediation burst).
+**Findings:** 15 total — 0 CRITICAL, 8 HIGH, 2 MEDIUM, 5 LOW — PARTIAL REMEDIATION (this checkpoint).
+**Novelty:** HIGH — PG-ARP-F2-007 confirmed CORPUS-WIDE. P19's directed anchor-drift audit
+revealed the drift class extends far beyond ss-05/BC-2.04.055 (fixed at P18): src line-number
+shifts from F2 features (Modbus/DNP3→dispatcher.rs; timestamp-wiring STORY-097/098/099→http.rs/
+tls.rs/reassembly; multi-tag STORY-100→findings.rs) left stale src-anchors across BCs, VPs,
+domain docs, and prd-supplements. Slice D CLEAN.
+**Convergence counter:** 0/3 (remediation does NOT advance counter; ss-07-full + remaining-BC
+anchor audit PENDING before Pass 20).
+**Verdict:** NOT_CLEAN → REMEDIATION IN PROGRESS (partial checkpoint committed).
+
+#### Findings
+
+- **B-01..B-06 (PO, ss-09)** — BC-2.09.001..005/007 (findings.rs anchors stale); BC-2.09.003
+  missing Possible-verdict variant (content gap — new finding beyond anchor-drift).
+- **B-07 (PO, ss-04/06)** — BC-2.04.055 http.rs/tls.rs on_data partial-fix regression
+  (http.rs + tls.rs anchor also stale, introduced as partial-fix at P18).
+- **B-08 (PO, ss-06)** — ALL 26 ss-06 http.rs BCs: stale anchors from STORY-097/098/099
+  timestamp-wiring shifts.
+- **B-09 (PO, ss-04)** — BC-2.04.024/020 mod.rs anchors stale.
+- **B-10 (PO, ss-07)** — BC-2.07.037/016/008 off-by-one anchor errors (3 BCs; full tls.rs
+  re-anchor across remaining ~34 ss-07 BCs STILL PENDING).
+- **A-01 (architect)** — purity-boundary-map sub-letter numbering inconsistency (v1.4→v1.5).
+- **A-02 (architect)** — dispatcher.rs ground-truth anchor in purity-boundary-map stale.
+- **C-01 (PO)** — HS-009 MITRE technique lookup: T1083→Discovery mapping fact fix.
+- **C-02 (PO)** — nfr-catalog/nfr-story-map dispatcher anchors stale.
+- **C-03 (PO)** — inv-01 INV-2 dispatcher anchors stale.
+
+#### Remediated this checkpoint (~62 files committed)
+
+**Architect:**
+- purity-boundary-map v1.4→v1.5 (A-01/A-02): sub-letter fix + dispatcher ground-truth anchor.
+
+**VP sweep (9 files re-anchored):**
+- vp-003 v2.0→v2.1, vp-004 v2.1→v2.2, vp-006/010/011/013/014/015/021 v2.0→v2.1.
+
+**PO — BC subsystems:**
+- ss-09: 6 BCs (BC-2.09.001/002/003/004/005/007) re-anchored vs findings.rs; BC-2.09.003
+  Possible-verdict variant ADDED (B-06 content gap).
+- ss-06: ALL 26 BCs (BC-2.06.001..026) re-anchored vs http.rs current lines.
+- ss-04: BC-2.04.055 http.rs/tls.rs on_data + BC-2.04.024/020 mod.rs anchors corrected.
+- ss-07 partial: BC-2.07.037/016/008 off-by-one corrected.
+
+**PO — holdout/domain/prd-supp:**
+- HS-009: T1083→Discovery MITRE-fact fix (C-01).
+- nfr-catalog/nfr-story-map: dispatcher anchors (C-02).
+- inv-01 INV-2: dispatcher anchors (C-03).
+- Domain straggler sweep: cap-05/06/07/09, ent-03/04, inv-01 INV-2/5/6/8, nfr-catalog
+  NFR-RES-011..017, error-taxonomy, test-vectors.
+
+**Ground truth src maps recorded (verified vs develop HEAD 31d1231):**
+- src/dispatcher.rs: fn classify :184; on_data :245; cache :269-289; on_flow_close :322-361;
+  DEFAULT_MAX :58; 4-analyzer guard :256-259.
+- src/http.rs, src/tls.rs, src/findings.rs, src/analyzer/mod.rs, src/segment.rs,
+  src/lifecycle.rs, src/flow.rs — line maps captured during this anchor sweep.
+
+#### STILL PENDING (before Pass 20)
+
+1. **ss-07 FULL re-anchor** — ~34 remaining ss-07 BCs cite tls.rs across many regions;
+   e.g., BC-2.07.031 tls.rs:771-773 top_snis-sort is stale (actual @860-862). Full tls.rs
+   re-anchor sweep required.
+2. **Remaining BC subsystem audit** — ss-01/02/04-rest/08/11/12/13: spot-check for shifted-file
+   anchors vs current src.
+
+#### Artifact versions post-Pass-19 checkpoint
+
+| Artifact | Version | Change |
+|----------|---------|--------|
+| purity-boundary-map | v1.5 | A-01/A-02: sub-letter fix + dispatcher ground-truth anchor |
+| vp-003 | v2.1 | anchor re-sync |
+| vp-004 | v2.2 | anchor re-sync |
+| vp-006 | v2.1 | anchor re-sync |
+| vp-010 | v2.1 | anchor re-sync |
+| vp-011 | v2.1 | anchor re-sync |
+| vp-013 | v2.1 | anchor re-sync |
+| vp-014 | v2.1 | anchor re-sync |
+| vp-015 | v2.1 | anchor re-sync |
+| vp-021 | v2.1 | anchor re-sync |
+| BC-2.09.001 | bumped | ss-09 findings.rs anchor re-sync |
+| BC-2.09.002 | bumped | ss-09 findings.rs anchor re-sync |
+| BC-2.09.003 | bumped | ss-09 anchor re-sync + Possible-verdict variant ADDED |
+| BC-2.09.004 | bumped | ss-09 findings.rs anchor re-sync |
+| BC-2.09.005 | bumped | ss-09 findings.rs anchor re-sync |
+| BC-2.09.007 | bumped | ss-09 findings.rs anchor re-sync |
+| BC-2.06.001..026 | bumped | ALL 26 ss-06 http.rs anchors re-synced |
+| BC-2.04.055 | bumped | http.rs/tls.rs on_data anchor (B-07) |
+| BC-2.04.024 | bumped | mod.rs anchor (B-09) |
+| BC-2.04.020 | bumped | mod.rs anchor (B-09) |
+| BC-2.07.037 | bumped | off-by-one anchor (B-10 partial) |
+| BC-2.07.016 | bumped | off-by-one anchor (B-10 partial) |
+| BC-2.07.008 | bumped | off-by-one anchor (B-10 partial) |
+| HS-009 | bumped | T1083→Discovery MITRE-fact fix (C-01) |
+| nfr-catalog | bumped | dispatcher anchors (C-02) + NFR-RES-011..017 sweep |
+| nfr-story-map | bumped | dispatcher anchors (C-02) |
+| inv-01 | bumped | INV-2 dispatcher anchors (C-03) |
+| cap-05/06/07/09 | bumped | domain straggler sweep |
+| ent-03/04 | bumped | domain straggler sweep |
+| error-taxonomy | bumped | domain straggler sweep |
+| test-vectors | bumped | domain straggler sweep |
+| BC-INDEX | updated | version pins for all re-anchored BCs |
+| spec-changelog | updated | all P19 checkpoint version bumps recorded |
 
 ---
 

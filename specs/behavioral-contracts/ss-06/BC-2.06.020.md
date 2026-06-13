@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-05-28): F-W15P6-D01 reciprocal Related-BCs fix — added cross-reference to BC-2.06.004 (response-side had_success guard; both BCs anchor the same suppression design on their respective parse paths). Closes F-W15P6-D01 (020→004 direction)."
   - "v1.4 (2026-05-29): F-DRIFT2A-001 — fixed stale domain/capabilities/cap-06-http-analysis.md citation to domain/capabilities/cap-06-http-analysis.md in L2 Capability and Capability Anchor Justification rows."
+  - "v1.5 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — had_success decl :362-364→:379-380; guard :403-408→:422-427; req range :362-408→:374-427; resp range :441-462→:462-483. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,7 +54,7 @@ inadvertently triggering the poison threshold.
 
 1. `had_success` is a local bool initialized to `false` per `try_parse_requests` invocation.
 2. The suppression is unconditional for any Err when `had_success == true`; this is a
-   deliberate "body bytes after success" tolerance per the source comment (http.rs:362-364).
+   deliberate "body bytes after success" tolerance per the source comment (http.rs:379-380).
 3. The TooManyHeaders finding check (inside the `if !had_success` block) is also suppressed.
 
 ## Edge Cases
@@ -84,7 +85,7 @@ inadvertently triggering the poison threshold.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- had_success suppression is part of the HTTP parsing resilience design |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true -- had_success prevents body bytes from advancing toward threshold) |
-| Architecture Module | SS-06 (analyzer/http.rs:362-408, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:374-427, C-12) |
 | Stories | STORY-044 |
 | Origin BC | BC-HTTP-020 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -92,19 +93,19 @@ inadvertently triggering the poison threshold.
 
 - BC-2.06.013 -- composes with (parse error counting is gated by had_success)
 - BC-2.06.015 -- related to (body bytes cannot inadvertently trigger poisoning)
-- BC-2.06.004 -- related to (BC-2.06.004 formalizes the response-side had_success guard at http.rs:441-462; this BC formalizes the request-side had_success guard at http.rs:362-408; both anchor the same suppression design on their respective parse paths)
+- BC-2.06.004 -- related to (BC-2.06.004 formalizes the response-side had_success guard at http.rs:462-483; this BC formalizes the request-side had_success guard at http.rs:374-427; both anchor the same suppression design on their respective parse paths)
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:362-364` -- had_success local variable and initialization
-- `src/analyzer/http.rs:403-408` -- `if !had_success` guard before error counting
+- `src/analyzer/http.rs:379-380` -- had_success local variable and initialization
+- `src/analyzer/http.rs:422-427` -- `if !had_success` guard before error counting
 - `tests/http_analyzer_tests.rs` -- test_body_bytes_do_not_inflate_parse_errors
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:362-408` |
+| **Path** | `src/analyzer/http.rs:374-427` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

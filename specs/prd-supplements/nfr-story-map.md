@@ -1,7 +1,7 @@
 ---
 document_type: prd-supplement-nfr-story-map
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-08T00:00:00Z
@@ -76,7 +76,7 @@ traces_to:
 | NFR-OBS-002 | P1 | STORY-012, STORY-046, STORY-058, STORY-066 | Uniform AnalysisSummary shape across all 4 analyzers + reassembler; STORY-012 owns reassembler summarize; STORY-046 owns HTTP analyzer summary; STORY-058 owns TLS analyzer summarize; STORY-066 owns DNS analyzer summarize |
 | NFR-OBS-003 | P0 | STORY-041, STORY-052, STORY-053 | parse_errors counters in HTTP and TLS analyzers; STORY-041 owns HTTP parse error tracking; STORY-052 owns TLS parse error counting (ClientHello parsing); STORY-053 owns additional TLS parse error paths (per per-story table authority; STORY-044 removed — NFR-OBS-003 does not appear in STORY-044's per-story row) |
 | NFR-OBS-004 | P1 | STORY-071 | MITRE technique IDs with None-preferred policy is in SS-10 mitre.rs; STORY-071 owns MITRE ATT&CK mapping and catalog lookup |
-| NFR-OBS-005 | P1 | STORY-033 | `unclassified_flows` counter is in SS-05 dispatcher.rs:53; STORY-033 owns flow lifecycle and unclassified counter in the dispatcher |
+| NFR-OBS-005 | P1 | STORY-033 | `unclassified_flows` counter is in SS-05 dispatcher.rs:77; STORY-033 owns flow lifecycle and unclassified counter in the dispatcher |
 | NFR-OBS-006 | P1 | STORY-019, STORY-089 | One-shot stderr warnings: ISN-missing (STORY-014/019), close-flow missing key (STORY-019), decode error (STORY-089), --no-reassemble conflict (STORY-088/089) |
 | NFR-OBS-007 | P2 | STORY-088 | Per-target progress bar via indicatif at main.rs:153-156; STORY-088 owns run_analyze orchestration including progress bar |
 | NFR-OBS-008 | P0 | STORY-078 | `--mitre` tactic grouping in terminal reporter; STORY-078 owns TerminalReporter MITRE grouping and section order |

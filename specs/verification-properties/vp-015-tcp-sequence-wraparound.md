@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.0"
+version: "2.1"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -24,6 +24,7 @@ modified:
     actor: product-owner
     reason: "Fix prose inconsistency: Property Statement items 1-2 corrected to match harness/code (ISN=0xFFFF_FFFE, first segment at isn+1=0xFFFF_FFFF covering offsets 1-4, adjacent segment at seq=0x0000_0003 offset 5)"
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set (src/reassembly/segment.rs)."
+  - "v2.1 (2026-06-13, PG-ARP-F2-007 anchor-drift sweep): Source Location line anchors corrected. insert_segment: segment.rs:39-46→:189. flush_contiguous: segment.rs:236→:369. Lock fields unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -170,10 +171,10 @@ mod kani_proofs {
 
 `src/reassembly/segment.rs:32` -- private function `seq_offset(seq: u32, isn: u32) -> u64`
 implements the sequence-number-to-byte-offset conversion using `seq.wrapping_sub(isn) as u64`.
-`src/reassembly/segment.rs:39-46` -- `FlowDirection::insert_segment` (5 params: seq, data,
+`src/reassembly/segment.rs:189` -- `FlowDirection::insert_segment` (5 params: seq, data,
 max_depth, max_segments, max_receive_window; no `isn` parameter -- ISN is stored on `self`).
 `src/reassembly/flow.rs:136` -- `FlowDirection::set_isn(&mut self, isn: u32)` (takes `u32`).
-`src/reassembly/segment.rs:236` -- `FlowDirection::flush_contiguous(&mut self) -> Vec<(u64, Vec<u8>)>`.
+`src/reassembly/segment.rs:369` -- `FlowDirection::flush_contiguous(&mut self) -> Vec<(u64, Vec<u8>)>`.
 
 Existing test: BC-2.04.039 is [PLANNED]; the Kani proof provides the verification.
 

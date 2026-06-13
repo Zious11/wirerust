@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,7 +15,8 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
-  - "v1.3: Anchor-precision fix — request guard 509-511→509-512, response guard 521-523→521-524 (F-W16-S044-P3-002) — 2026-05-28"
+  - "v1.3: Anchor-precision fix — request guard 509-511→509-512, response guard 521-523→521-524 (F-W16-S044-P3-002) [pre-F2 lines; now :542-545 / :554-557 post-F2] — 2026-05-28"
+  - "v1.4 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — req_poisoned early-return :509-512→:542-545; resp_poisoned early-return :521-524→:554-557; arch module :509-523→:542-556. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,8 +50,8 @@ counts, and separate poison flags.
 
 ## Invariants
 
-1. `request_poisoned` only gates `Direction::ClientToServer` data (http.rs:509-512).
-2. `response_poisoned` only gates `Direction::ServerToClient` data (http.rs:521-524).
+1. `request_poisoned` only gates `Direction::ClientToServer` data (http.rs:542-545).
+2. `response_poisoned` only gates `Direction::ServerToClient` data (http.rs:554-557).
 3. The two flags are independent boolean fields in `HttpFlowState`; neither sets the other.
 
 ## Edge Cases
@@ -81,7 +82,7 @@ counts, and separate poison flags.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- per-direction poisoning isolation is required for correct HTTP analysis in bidirectional flows |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true -- per direction) |
-| Architecture Module | SS-06 (analyzer/http.rs:509-523, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:542-556, C-12) |
 | Stories | STORY-044 |
 | Origin BC | BC-HTTP-017 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -92,15 +93,15 @@ counts, and separate poison flags.
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:509-512` -- request_poisoned early-return
-- `src/analyzer/http.rs:521-524` -- response_poisoned early-return
+- `src/analyzer/http.rs:542-545` -- request_poisoned early-return
+- `src/analyzer/http.rs:554-557` -- response_poisoned early-return
 - `tests/http_analyzer_tests.rs` -- test_poison_request_does_not_affect_response
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:509-523` |
+| **Path** | `src/analyzer/http.rs:542-556` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

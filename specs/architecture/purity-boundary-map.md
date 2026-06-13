@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: purity-boundary-map
 traces_to: ARCH-INDEX.md
-version: "1.4"
+version: "1.5"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-18 A-03: analyzer/arp.rs VP-024 bullet added to Implications for Verification (parallel to existing modbus.rs VP-022 and dnp3.rs VP-023 entries); marked PLANNED consistent with VP-024 status=draft and STORY-112 marker. Version bump 1.3→1.4."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-19 A-01/A-02: (A-01) Implications for Verification arp.rs bullet: corrected VP-024 sub-letter for binding-table cap from sub-C to sub-D (Kani); added sub-C (proptest, last-write-wins determinism) as separate clause per VP-024 anchor table. (A-02) dispatcher.rs bullet: re-anchored None-caching source location from dispatcher.rs:146-148 (inside take_tls_analyzer doc-comment) to dispatcher.rs:279-282 (actual if *count >= self.max_classification_attempts / routes.insert None block). Version bump 1.4→1.5."
 ---
 
 # Purity Boundary Map
@@ -120,12 +123,12 @@ proptest. Key formally-verifiable properties:
 - `decoder.rs`: No panic on malformed input; link-type gate exhaustive
 - `reassembly/flow.rs`: FlowKey canonical ordering (INV-1); state machine reachability
 - `reassembly/segment.rs`: First-wins overlap (INV-3); buffered_bytes monotonicity (INV-6 partial)
-- `dispatcher.rs`: Content-first precedence (INV-2); DispatchTarget::None NOT cached before retry cap (pre-cap: attempts incremented, routes untouched); permanently cached as DispatchTarget::None once cap reached (dispatcher.rs:146-148)
+- `dispatcher.rs`: Content-first precedence (INV-2); DispatchTarget::None NOT cached before retry cap (pre-cap: attempts incremented, routes untouched); permanently cached as DispatchTarget::None once cap reached (dispatcher.rs:279-282)
 - `analyzer/tls.rs`: SNI 4-way ordered match (INV-5); JA3 GREASE filter correctness
 - `analyzer/http.rs`: HTTP poison monotonicity (INV-8); cross-flow state isolation
 - `analyzer/modbus.rs`: MBAP parse safety (VP-022 sub-A); function-code classification totality (VP-022 sub-B); exception detection correctness (VP-022 sub-C) [SS-14]
 - `analyzer/dnp3.rs`: DNP3 DL header parse safety (VP-023 sub-A); FC classification totality (VP-023 sub-B); no-panic on malformed frames [C-24, SS-15, SHIPPED v0.6.0]
-- `analyzer/arp.rs`: ARP frame parse safety — extract_arp_frame no-panic on malformed input (VP-024 sub-A); GARP detection totality (VP-024 sub-B); binding-table cap enforcement (VP-024 sub-C) [C-23, SS-16, PLANNED — STORY-112; VP-024 status=draft]
+- `analyzer/arp.rs`: ARP frame parse safety — extract_arp_frame no-panic on malformed input (VP-024 sub-A); GARP detection totality (VP-024 sub-B); binding-table last-write-wins determinism (VP-024 sub-C, proptest); binding-table cap enforcement (VP-024 sub-D, Kani) [C-23, SS-16, PLANNED — STORY-112; VP-024 status=draft]
 - `mitre.rs`: technique_id format invariant (INV-9); all_tactics_in_report_order completeness; ICS-matrix technique resolution (T0836/T0814/T0806/T0835/T0831/T0888/T1691.001/T0827)
 
 See `verification-architecture.md` for the full proof strategy per invariant.

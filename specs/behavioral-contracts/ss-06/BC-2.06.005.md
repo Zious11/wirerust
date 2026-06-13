@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,11 +16,12 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 16 Pass-1 prose fix (F-W16-S042-P1-002) — stray quote in backslash-pattern negation corrected (`..\\\"` → `..\\ `) — 2026-05-28"
-  - "v1.4: Wave 16 Pass-2 (F-W16-S042-P2-001) — tighten invariant 1 anchor 187-191 → 187-190 (191 is closing brace, not a contains() call) — 2026-05-28"
-  - "v1.5: Wave 16 Pass-4 (F-W16-S042-P4-001) — correct factually wrong brace-prose in invariant 1: 191 is the opening brace `{` of the if-body (not the closing brace); closing brace is at line 203 — 2026-05-28"
-  - "v1.6: F-W16-S042-P5-001 finding-push anchor fix — corrected stale `192-202` to `192-203` in Architecture Anchor (finding-push block closes at line 203); corrected `186-202` to `186-203` in Architecture Module. Verified against src/analyzer/http.rs:192-203. Closes F-W16-S042-P5-001. — 2026-05-28"
+  - "v1.4: Wave 16 Pass-2 (F-W16-S042-P2-001) — tighten invariant 1 anchor 187-191 → 187-190 (191 is closing brace, not a contains() call) [pre-F2 lines; now 200-204 post-F2] — 2026-05-28"
+  - "v1.5: Wave 16 Pass-4 (F-W16-S042-P4-001) — correct factually wrong brace-prose in invariant 1: 191 is the opening brace `{` of the if-body (not the closing brace); closing brace is at line 203 [pre-F2 lines; now 204/218 post-F2] — 2026-05-28"
+  - "v1.6: F-W16-S042-P5-001 finding-push anchor fix — corrected stale `192-202` to `192-203` in Architecture Anchor (finding-push block closes at line 203); corrected `186-202` to `186-203` in Architecture Module. Verified against src/analyzer/http.rs:192-203 [pre-F2 lines; now :205-218 post-F2]. Closes F-W16-S042-P5-001. — 2026-05-28"
   - "v1.7 (2026-05-29): F-DRIFT2A-001 — fixed stale domain/capabilities/cap-06-http-analysis.md citation to domain/capabilities/cap-06-http-analysis.md in L2 Capability and Capability Anchor Justification rows."
   - "v1.8 (2026-06-13): ARP-F2-Pass14-Burst5 — Postcondition 1 mitre_technique: Some(\"T1083\") → mitre_techniques: vec![\"T1083\"] (Finding struct field renamed to plural Vec<String>)."
+  - "v1.9 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — contains() calls :187-190→:200-203; opening brace :191→:204; finding push :192-203→:205-218; closing brace :203→:218; arch module :186-203→:200-218. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -59,7 +60,7 @@ preserved in the finding evidence without escaping (ADR 0003).
 
 ## Invariants
 
-1. The check is a substring match on the lowercased URI: `uri_lower.contains("../") || uri_lower.contains("..%2f") || uri_lower.contains("..%252f") || uri_lower.contains("....//")`. The four `.contains()` calls are at http.rs:187-190; line 191 is the opening `{` of the if-body (the closing `}` is at line 203). There is NO backslash (`..\`) traversal variant in source.
+1. The check is a substring match on the lowercased URI: `uri_lower.contains("../") || uri_lower.contains("..%2f") || uri_lower.contains("..%252f") || uri_lower.contains("....//")`. The four `.contains()` calls are at http.rs:200-203; line 204 is the opening `{` of the if-body (the closing `}` is at line 218). There is NO backslash (`..\`) traversal variant in source.
 2. Raw URI bytes are preserved in evidence (ADR 0003 / INV-4).
 3. The finding fires even if the request also triggers other detections (e.g., admin path).
 
@@ -100,7 +101,7 @@ preserved in the finding evidence without escaping (ADR 0003).
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- path traversal detection is one of the core HTTP anomaly findings |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:186-203, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:200-218, C-12) |
 | Stories | STORY-042 |
 | Origin BC | BC-HTTP-005 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -111,14 +112,14 @@ preserved in the finding evidence without escaping (ADR 0003).
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:186-191` -- path traversal detection: `if uri_lower.contains("../")` and encoded variants
-- `src/analyzer/http.rs:192-203` -- Finding construction and push (T1083, Reconnaissance/Likely/High); line 203 is the closing `}` of the if-body
+- `src/analyzer/http.rs:200-204` -- path traversal detection: `if uri_lower.contains("../")` and encoded variants (200-203 are the four .contains() calls; 204 is the opening `{`)
+- `src/analyzer/http.rs:205-218` -- Finding construction and push (T1083, Reconnaissance/Likely/High); line 218 is the closing `}` of the if-body
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:186-203` |
+| **Path** | `src/analyzer/http.rs:200-218` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

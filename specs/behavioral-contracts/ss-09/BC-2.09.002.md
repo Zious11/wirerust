@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Phase 3 per-story adversarial review — corrected extracted_from accuracy: Postcondition 1 and Invariant 1 now use {cat} (plain Display) not {cat:?}, with an explicit note that ThreatCategory::Display delegates to Debug so rendered output is the variant name — 2026-05-21"
   - "v1.4: DF-SIBLING-SWEEP-001 — fix stale source-file line anchor: findings.rs:157-168 → 159-170 (impl fmt::Display for Finding starts at 159, closes at 170); verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.5: Pass-19 B-02 re-anchor — Architecture Anchor and Source Evidence corrected: src/findings.rs:159-170 → :173-184 (impl fmt::Display for Finding shifted down after STORY-100 multi-tag comment block at lines 142-147). Verified against HEAD findings.rs. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,7 +48,7 @@ rendering uses the reporter layer.
    `ThreatCategory`'s `Display` impl delegates to `{self:?}`, so the rendered category token is the
    variant name (e.g., `"Anomaly"`) — observationally identical to Debug, but via Display dispatch.
 2. `category` renders via `ThreatCategory::fmt` (Display), which internally writes `{self:?}` -- e.g., "Anomaly".
-3. `verdict` renders via Display -- "LIKELY", "UNLIKELY", or "INCONCLUSIVE".
+3. `verdict` renders via Display -- "LIKELY", "UNLIKELY", "INCONCLUSIVE", or "POSSIBLE".
 4. `confidence` renders via Display -- "HIGH", "MEDIUM", or "LOW".
 5. `summary` is included as-is (raw bytes, no escaping -- see ADR 0003).
 
@@ -101,13 +102,13 @@ rendering uses the reporter layer.
 
 ## Architecture Anchors
 
-- `src/findings.rs:159-170` -- impl fmt::Display for Finding
+- `src/findings.rs:173-184` -- impl fmt::Display for Finding
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/findings.rs:159-170` |
+| **Path** | `src/findings.rs:173-184` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

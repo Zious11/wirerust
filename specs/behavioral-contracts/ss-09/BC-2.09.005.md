@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.4: Replace raw ESC control byte (0x1B) with literal \\u001b in EC-001, test vectors, and VP rows (STORY-070 m-1) — 2026-05-22"
   - "v1.5: Correct Architecture Anchor for ADR 0003 doc comment — was findings.rs:155-156, corrected to 150-158 (full block) / :157 (cited line); verified against STORY-070 worktree (STORY-070 pass-5 M-2) — 2026-05-22"
   - "v1.6: DF-SIBLING-SWEEP-001 — fix stale terminal.rs call-site anchors: :172 → :179 (escape_for_terminal in summary detail loop), :197 → :204 (escape_for_terminal for f.summary in render_finding_prefix), :216 → :223 (escape_for_terminal for evidence entries); verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.7: Pass-19 B-05 re-anchor — findings.rs anchors corrected: struct:120 → :135 (pub struct Finding); fields:124-125 → :140-141 (summary/evidence fields); doc-comment block:150-158 → :164-172; cited line :157 → :171 ('See ADR 0003'); struct range in Source Evidence :120-145 → :135-162. terminal.rs call-site 3 corrected: :223 → :224 (escape_for_terminal(ev) in render_finding_prefix evidence loop). Verified against HEAD. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -56,8 +57,8 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 
 1. `escape_for_terminal` is defined and invoked exclusively within `src/reporter/terminal.rs`.
    No other module — in particular no Finding-construction site in the data layer (analyzers,
-   findings.rs) — calls it. The function has three call sites within terminal.rs (lines 172,
-   197, and 216), all within `TerminalReporter`'s rendering methods. Any call site outside
+   findings.rs) — calls it. The function has three call sites within terminal.rs (lines 179,
+   204, and 224), all within `TerminalReporter`'s rendering methods. Any call site outside
    `src/reporter/terminal.rs` is a violation of ADR 0003's display-boundary invariant.
 2. The compiler does NOT enforce this. Any analyzer that calls `escape_for_terminal` at
    construction time violates the invariant silently.
@@ -98,7 +99,7 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 | L2 Capability | CAP-09 ("Forensic finding emission") per domain/capabilities/cap-09-finding-emission.md |
 | Capability Anchor Justification | CAP-09 ("Forensic finding emission") per domain/capabilities/cap-09-finding-emission.md -- the raw-data contract is the foundational invariant of the Finding type's data preservation guarantee |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-09 (findings.rs:120-145, C-14; all analyzer emission sites) |
+| Architecture Module | SS-09 (findings.rs:135-162, C-14; all analyzer emission sites) |
 | Stories | STORY-070 |
 | Origin BC | BC-FND-005 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -111,20 +112,20 @@ that SIEM consumers of JSON output see the original attacker bytes, not an escap
 
 ## Architecture Anchors
 
-- `src/findings.rs:120` -- `pub struct Finding` definition
-- `src/findings.rs:124-125` -- `pub summary: String`, `pub evidence: Vec<String>` fields
-- `src/findings.rs:150-158` -- doc comment block on Display impl (full block); literal "See ADR 0003" text at line 157
+- `src/findings.rs:135` -- `pub struct Finding` definition
+- `src/findings.rs:140-141` -- `pub summary: String`, `pub evidence: Vec<String>` fields
+- `src/findings.rs:164-172` -- doc comment block on Display impl (full block); literal "See ADR 0003" text at line 171
 - `src/reporter/terminal.rs:44` -- `fn escape_for_terminal(s: &str) -> String` -- function definition
 - `src/reporter/terminal.rs:179` -- call site 1: analyzer summary detail values (ADR 0003 C1 gap comment)
 - `src/reporter/terminal.rs:204` -- call site 2: `render_finding_prefix` escapes `f.summary`
-- `src/reporter/terminal.rs:223` -- call site 3: `render_finding_prefix` escapes each `f.evidence` element
+- `src/reporter/terminal.rs:224` -- call site 3: `render_finding_prefix` escapes each `f.evidence` element
 - `tests/reporter_tests.rs` -- test_output_sanitization_layering_contract
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/findings.rs:120-145` (struct + serde attrs), `:150-158` (ADR 0003 doc comment block, cited line :157) |
+| **Path** | `src/findings.rs:135-162` (struct + serde attrs), `:164-172` (ADR 0003 doc comment block, cited line :171) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,8 +15,9 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
-  - "v1.3 (2026-05-28): W15 Pass-3 remediation — F-W15P3-005; split had_success anchor to cite both declaration (http.rs:364) and guard (http.rs:404); line anchor reconciled."
+  - "v1.3 (2026-05-28): W15 Pass-3 remediation — F-W15P3-005; split had_success anchor to cite both declaration (http.rs:364, now :379 post-F2) and guard (http.rs:404, now :423 post-F2); line anchor reconciled."
   - "v1.4 (2026-05-28): W15 Pass-5 sibling-sweep — added Related BC cross-reference to BC-2.06.004 (response-side analog) (F-W15P5-002)."
+  - "v1.5 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — had_success decl :364→:379; !had_success guard :404→:423; resp analog :462→:483; try_parse_requests :359-438→:374-459. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -54,8 +55,8 @@ detection separately per request. The loop exits when the buffer is exhausted (r
 ## Invariants
 
 1. `request_error_count` is reset to 0 after each successful parse within the loop.
-2. The `had_success` flag (declared at http.rs:364) prevents error counting for body-bytes
-   that follow a successfully parsed header via the guard at http.rs:404
+2. The `had_success` flag (declared at http.rs:379) prevents error counting for body-bytes
+   that follow a successfully parsed header via the guard at http.rs:423
    (`if !had_success { self.parse_errors += 1; }`).
 3. Each request's detection and counting is isolated; findings do NOT aggregate across requests
    in a single call.
@@ -91,7 +92,7 @@ detection separately per request. The loop exits when the buffer is exhausted (r
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- pipelined request handling is a required behavior for HTTP/1.1 analysis |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:359-438, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:374-459, C-12) |
 | Stories | STORY-041 |
 | Origin BC | BC-HTTP-002 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -100,18 +101,18 @@ detection separately per request. The loop exits when the buffer is exhausted (r
 - BC-2.06.001 -- composes with (per-request parsing logic is the inner step)
 - BC-2.06.003 -- composes with (partial exit condition is the complement)
 - BC-2.06.020 -- related to (body bytes after a parsed header invoke had_success guard)
-- BC-2.06.004 -- response-side analog (response-side had_success guard at http.rs:462 is the analog of this BC's invariant 2 — request-side guard at http.rs:404)
+- BC-2.06.004 -- response-side analog (response-side had_success guard at http.rs:483 is the analog of this BC's invariant 2 — request-side guard at http.rs:423)
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:359-438` -- try_parse_requests loop
+- `src/analyzer/http.rs:374-459` -- try_parse_requests loop
 - `tests/http_analyzer_tests.rs` -- test_parse_pipelined_requests
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:359-438` |
+| **Path** | `src/analyzer/http.rs:374-459` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

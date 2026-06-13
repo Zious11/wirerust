@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — MAX_MAP_ENTRIES :24→:26; map entry guard :375-378→:390-392; overall range :375-389→:390-408. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,8 +49,8 @@ bounded by MAX_URIS (BC-2.06.025).
 
 ## Invariants
 
-1. `MAX_MAP_ENTRIES = 50,000` (http.rs:24).
-2. Guard pattern: `if self.methods.len() < MAX_MAP_ENTRIES || self.methods.contains_key(&parsed.method)` (http.rs:375-378).
+1. `MAX_MAP_ENTRIES = 50,000` (http.rs:26).
+2. Guard pattern: `if self.methods.len() < MAX_MAP_ENTRIES || self.methods.contains_key(&parsed.method)` (http.rs:390-392).
 3. The guard allows EXISTING keys to increment even at cap (the `contains_key` short-circuit).
 4. The cap applies independently per map; a host map at cap does not prevent new method keys.
 
@@ -82,7 +83,7 @@ bounded by MAX_URIS (BC-2.06.025).
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- map cardinality cap is a memory-bounding mechanism for HTTP analysis statistics |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:375-389, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:390-408, C-12) |
 | Stories | STORY-045 |
 | Origin BC | BC-HTTP-024 (pass-3 ingestion corpus, MEDIUM confidence -- no direct test) |
 
@@ -92,19 +93,19 @@ bounded by MAX_URIS (BC-2.06.025).
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:375-389` -- map entry guards with MAX_MAP_ENTRIES check
+- `src/analyzer/http.rs:390-408` -- map entry guards with MAX_MAP_ENTRIES check
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:375-389` |
+| **Path** | `src/analyzer/http.rs:390-408` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-20 |
 
 ## Evidence Types Used
 
-- **guard clause**: `if self.methods.len() < MAX_MAP_ENTRIES || self.methods.contains_key(...)` (inferred)
+- **guard clause**: `if self.methods.len() < MAX_MAP_ENTRIES || self.methods.contains_key(...)` at http.rs:390-392 (inferred)
 - **inferred**: no direct test; code pattern confirmed in source
 
 ## Purity Classification

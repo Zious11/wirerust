@@ -93,11 +93,11 @@ traces_to: .factory/specs/prd.md
 | BC-2.04.017 | Eviction Sort -- Non-Established First, Then Oldest-Last-Seen | P1 | [WRITTEN] | BC-RAS-017 |
 | BC-2.04.018 | Conflicting Overlap Emits Anomaly/Likely/High Finding with MITRE T1036 | P0 | [WRITTEN] | BC-RAS-018 | <!-- v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
 | BC-2.04.019 | Excessive Overlaps Emit One-Shot T1036 Finding | P0 | [WRITTEN] | BC-RAS-019 | <!-- v1.7: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
-| BC-2.04.020 | Excessive Small Segments Emit One-Shot Finding | P1 | [WRITTEN] | BC-RAS-020 | <!-- v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
+| BC-2.04.020 | Excessive Small Segments Emit One-Shot Finding | P1 | [WRITTEN] | BC-RAS-020 | <!-- v1.6: P19 B-09 anchor fix: mod.rs:486-517→:506-538; :385-399→:402-405 -->
 | BC-2.04.021 | Excessive Out-of-Window Segments Emit One-Shot Low Finding | P1 | [WRITTEN] | BC-RAS-021 | <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
 | BC-2.04.022 | Per-Direction Alert Fires At Most Once Per Flow (Sticky Latch) | P0 | [WRITTEN] | BC-RAS-022 |
 | BC-2.04.023 | Truncated Segment Emits Anomaly/Inconclusive/Low Finding | P1 | [WRITTEN] | BC-RAS-023 | <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
-| BC-2.04.024 | Total Findings Capped at MAX_FINDINGS=10000; Excess Silently Dropped | P0 | [WRITTEN] | BC-RAS-024 |
+| BC-2.04.024 | Total Findings Capped at MAX_FINDINGS=10000; Excess Silently Dropped | P0 | [WRITTEN] | BC-RAS-024 | <!-- v1.4: P19 B-09 anchor fix: MAX_FINDINGS mod.rs:54→:56; guards :461,495,524→:479,515,546 -->
 | BC-2.04.025 | finalize Emits Segment-Limit Summary Finding When Segments Dropped | P0 | [WRITTEN] | BC-RAS-025 | <!-- v1.6: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
 | BC-2.04.026 | finalize Does NOT Emit Segment-Limit Finding When Counter is Zero | P0 | [WRITTEN] | BC-RAS-026 |
 | BC-2.04.027 | segments_depth_exceeded Tracks Fully-Rejected Segments After Depth Hit | P1 | [WRITTEN] | BC-RAS-027 |
@@ -128,7 +128,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.04.052 | on_data_without_syn: New->Established; partial=true | P0 | [WRITTEN] | BC-RAS-052 |
 | BC-2.04.053 | TcpFlow::direction Returns ClientToServer When src Matches Initiator | P0 | [WRITTEN] | BC-RAS-053 |
 | BC-2.04.054 | finalize Unconditionally Bypasses MAX_FINDINGS Cap for Segment-Limit Finding | P0 | [WRITTEN] | BC-RAS-054 |
-| BC-2.04.055 | StreamHandler::on_data Carries Capture-Relative Timestamp Parameter | P1 | [WRITTEN] | feature-100-F2 | <!-- v1.0.2: Pass-18 carry-over anchor fix; dispatcher.rs:144→:245 -->
+| BC-2.04.055 | StreamHandler::on_data Carries Capture-Relative Timestamp Parameter | P1 | [WRITTEN] | feature-100-F2 | <!-- v1.0.3: P19 B-07 anchor fix; http.rs:501→:524; tls.rs:771→:798 -->
 
 ## ss-05: Content-First Protocol Dispatch (CAP-05)
 
@@ -148,32 +148,32 @@ traces_to: .factory/specs/prd.md
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
-| BC-2.06.001 | Parse Complete HTTP/1.1 Request with Method/URI/Version/Host/UA | P0 | [WRITTEN] | BC-HTTP-001 |
-| BC-2.06.002 | Parse Pipelined Requests with Independent Per-Request Counting | P0 | [WRITTEN] | BC-HTTP-002 |
-| BC-2.06.003 | Partial Requests Buffered Until Complete; Not Counted Until Full | P0 | [WRITTEN] | BC-HTTP-003 |
-| BC-2.06.004 | Parse HTTP/1.1 Responses with Status Code Counting | P0 | [WRITTEN] | BC-HTTP-004 |
-| BC-2.06.005 | Path Traversal in URI Emits Reconnaissance/Likely/High Finding Mapped to T1083 | P0 | [WRITTEN] | BC-HTTP-005 | <!-- v1.8: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
-| BC-2.06.006 | Web-Shell URI Patterns Emit Execution/Likely/Medium Finding (T1505.003) | P0 | [WRITTEN] | BC-HTTP-006 | <!-- v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
-| BC-2.06.007 | Admin Panel Paths Emit Reconnaissance/Inconclusive/Low Finding (T1046) | P1 | [WRITTEN] | BC-HTTP-007 | <!-- v1.6: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
-| BC-2.06.008 | Unusual HTTP Methods Emit Reconnaissance/Inconclusive/Medium Finding | P1 | [WRITTEN] | BC-HTTP-008 | <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
-| BC-2.06.009 | HTTP/1.1 Missing or Empty Host Emits Anomaly/Inconclusive/Medium Finding | P0 | [WRITTEN] | BC-HTTP-009 | <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
-| BC-2.06.010 | URI Greater Than 2048 Chars Emits Execution/Likely/Medium Finding | P1 | [WRITTEN] | BC-HTTP-010 | <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
-| BC-2.06.011 | Empty UA Emits Anomaly/Inconclusive/Low; Absent UA Does NOT | P1 | [WRITTEN] | BC-HTTP-011 | <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
-| BC-2.06.012 | Well-Formed HTTP Request Produces Zero Findings | P0 | [WRITTEN] | BC-HTTP-012 |
-| BC-2.06.013 | Non-HTTP Bytes Increment parse_errors; No Token-Error Findings | P0 | [WRITTEN] | BC-HTTP-013 |
-| BC-2.06.014 | Too Many Headers Emits Anomaly/Inconclusive/Medium Finding (T1499.002) | P0 | [WRITTEN] | BC-HTTP-014 | <!-- v1.3: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
-| BC-2.06.015 | After 3 Consecutive Parse Errors a Direction is Poisoned; Subsequent Bytes Skipped | P0 | [WRITTEN] | BC-HTTP-015 |
-| BC-2.06.016 | Single Parse Error Does NOT Poison | P0 | [WRITTEN] | BC-HTTP-016 |
-| BC-2.06.017 | Poisoning is Per-Direction; Poisoned Request Does Not Affect Response | P0 | [WRITTEN] | BC-HTTP-017 |
-| BC-2.06.018 | non_http_flows Counts Flow Once Even if Both Directions Poisoned | P1 | [WRITTEN] | BC-HTTP-018 |
-| BC-2.06.019 | on_flow_close Removes Per-Flow State; Reopening Same Key Starts Fresh | P0 | [WRITTEN] | BC-HTTP-019 |
-| BC-2.06.020 | HTTP Body Bytes After Header Completion Do Not Inflate parse_errors | P1 | [WRITTEN] | BC-HTTP-020 |
-| BC-2.06.021 | Cross-Flow Isolation: Errors and Poisoning Do Not Leak | P0 | [WRITTEN] | BC-HTTP-021 |
-| BC-2.06.022 | Per-Direction Header Buffer Capped at MAX_HEADER_BUF (65536) | P1 | [WRITTEN] | BC-HTTP-022 |
-| BC-2.06.023 | summarize Emits AnalysisSummary with HTTP Stats Detail Map | P1 | [WRITTEN] | BC-HTTP-023 |
-| BC-2.06.024 | Per-Map Cardinality Cap: New Keys Dropped Past MAX_MAP_ENTRIES | P2 | [WRITTEN] | BC-HTTP-024 |
-| BC-2.06.025 | uris List Capped at MAX_URIS=10000 | P2 | [WRITTEN] | BC-HTTP-025 |
-| BC-2.06.026 | Header Values Extracted via from_utf8_lossy.trim(); Raw Bytes Preserved | P0 | [WRITTEN] | BC-HTTP-026 |
+| BC-2.06.001 | Parse Complete HTTP/1.1 Request with Method/URI/Version/Host/UA | P0 | [WRITTEN] | BC-HTTP-001 | <!-- v1.3: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.002 | Parse Pipelined Requests with Independent Per-Request Counting | P0 | [WRITTEN] | BC-HTTP-002 | <!-- v1.5: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.003 | Partial Requests Buffered Until Complete; Not Counted Until Full | P0 | [WRITTEN] | BC-HTTP-003 | <!-- v1.4: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.004 | Parse HTTP/1.1 Responses with Status Code Counting | P0 | [WRITTEN] | BC-HTTP-004 | <!-- v1.9: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.005 | Path Traversal in URI Emits Reconnaissance/Likely/High Finding Mapped to T1083 | P0 | [WRITTEN] | BC-HTTP-005 | <!-- v1.9: P19-B-08 ss-06 line-anchor re-sync (prev v1.8: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5) -->
+| BC-2.06.006 | Web-Shell URI Patterns Emit Execution/Likely/Medium Finding (T1505.003) | P0 | [WRITTEN] | BC-HTTP-006 | <!-- v1.6: P19-B-08 ss-06 line-anchor re-sync (prev v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5) -->
+| BC-2.06.007 | Admin Panel Paths Emit Reconnaissance/Inconclusive/Low Finding (T1046) | P1 | [WRITTEN] | BC-HTTP-007 | <!-- v1.7: P19-B-08 ss-06 line-anchor re-sync (prev v1.6: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5) -->
+| BC-2.06.008 | Unusual HTTP Methods Emit Reconnaissance/Inconclusive/Medium Finding | P1 | [WRITTEN] | BC-HTTP-008 | <!-- v1.5: P19-B-08 ss-06 line-anchor re-sync (prev v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5) -->
+| BC-2.06.009 | HTTP/1.1 Missing or Empty Host Emits Anomaly/Inconclusive/Medium Finding | P0 | [WRITTEN] | BC-HTTP-009 | <!-- v1.5: P19-B-08 ss-06 line-anchor re-sync (prev v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5) -->
+| BC-2.06.010 | URI Greater Than 2048 Chars Emits Execution/Likely/Medium Finding | P1 | [WRITTEN] | BC-HTTP-010 | <!-- v1.5: P19-B-08 ss-06 line-anchor re-sync (prev v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5) -->
+| BC-2.06.011 | Empty UA Emits Anomaly/Inconclusive/Low; Absent UA Does NOT | P1 | [WRITTEN] | BC-HTTP-011 | <!-- v1.5: P19-B-08 ss-06 line-anchor re-sync (prev v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5) -->
+| BC-2.06.012 | Well-Formed HTTP Request Produces Zero Findings | P0 | [WRITTEN] | BC-HTTP-012 | <!-- v1.3: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.013 | Non-HTTP Bytes Increment parse_errors; No Token-Error Findings | P0 | [WRITTEN] | BC-HTTP-013 | <!-- v1.3: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.014 | Too Many Headers Emits Anomaly/Inconclusive/Medium Finding (T1499.002) | P0 | [WRITTEN] | BC-HTTP-014 | <!-- v1.4: P19-B-08 ss-06 line-anchor re-sync (prev v1.3: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5) -->
+| BC-2.06.015 | After 3 Consecutive Parse Errors a Direction is Poisoned; Subsequent Bytes Skipped | P0 | [WRITTEN] | BC-HTTP-015 | <!-- v1.4: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.016 | Single Parse Error Does NOT Poison | P0 | [WRITTEN] | BC-HTTP-016 | <!-- v1.3: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.017 | Poisoning is Per-Direction; Poisoned Request Does Not Affect Response | P0 | [WRITTEN] | BC-HTTP-017 | <!-- v1.4: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.018 | non_http_flows Counts Flow Once Even if Both Directions Poisoned | P1 | [WRITTEN] | BC-HTTP-018 | <!-- v1.3: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.019 | on_flow_close Removes Per-Flow State; Reopening Same Key Starts Fresh | P0 | [WRITTEN] | BC-HTTP-019 | <!-- v1.3: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.020 | HTTP Body Bytes After Header Completion Do Not Inflate parse_errors | P1 | [WRITTEN] | BC-HTTP-020 | <!-- v1.5: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.021 | Cross-Flow Isolation: Errors and Poisoning Do Not Leak | P0 | [WRITTEN] | BC-HTTP-021 | <!-- v1.3: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.022 | Per-Direction Header Buffer Capped at MAX_HEADER_BUF (65536) | P1 | [WRITTEN] | BC-HTTP-022 | <!-- v1.3: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.023 | summarize Emits AnalysisSummary with HTTP Stats Detail Map | P1 | [WRITTEN] | BC-HTTP-023 | <!-- v1.5: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.024 | Per-Map Cardinality Cap: New Keys Dropped Past MAX_MAP_ENTRIES | P2 | [WRITTEN] | BC-HTTP-024 | <!-- v1.3: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.025 | uris List Capped at MAX_URIS=10000 | P2 | [WRITTEN] | BC-HTTP-025 | <!-- v1.3: P19-B-08 ss-06 line-anchor re-sync -->
+| BC-2.06.026 | Header Values Extracted via from_utf8_lossy.trim(); Raw Bytes Preserved | P0 | [WRITTEN] | BC-HTTP-026 | <!-- v1.4: P19-B-08 ss-06 line-anchor re-sync -->
 
 ## ss-07: TLS Traffic Analysis (CAP-07)
 
@@ -186,7 +186,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.07.005 | Per-Direction Buffer Capped at MAX_BUF = 65536 Bytes | P1 | [WRITTEN] | BC-TLS-005 |
 | BC-2.07.006 | JA3 Computation Filters GREASE Values per RFC 8701 | P0 | [WRITTEN] | BC-TLS-006 |
 | BC-2.07.007 | JA3 String Format: version,ciphers,...; MD5 Hex | P0 | [WRITTEN] | BC-TLS-007 |
-| BC-2.07.008 | JA3S String Format: version,cipher,extensions; MD5 Hex | P0 | [WRITTEN] | BC-TLS-008 |
+| BC-2.07.008 | JA3S String Format: version,cipher,extensions; MD5 Hex | P0 | [WRITTEN] | BC-TLS-008 | <!-- v1.4: P19 B-10 anchor fix: format tls.rs:171→:172; digest :172→:173 -->
 | BC-2.07.009 | Weak Client Cipher in ClientHello Emits Anomaly/Likely/High Finding | P0 | [WRITTEN] <!-- v1.3: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B6 --> | BC-TLS-009 |
 | BC-2.07.010 | Weak Server Cipher Selected Emits Anomaly/Likely/Medium Finding | P0 | [WRITTEN] <!-- v1.3: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B6 --> | BC-TLS-010 |
 | BC-2.07.011 | Deprecated Client Protocol (<=SSLv3) Emits Anomaly/Likely/High Finding | P0 | [WRITTEN] <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B6 --> | BC-TLS-011 |
@@ -194,7 +194,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.07.013 | Clean ASCII SNI Produces No Finding | P0 | [WRITTEN] | BC-TLS-013 |
 | BC-2.07.014 | SNI Containing C0/DEL Byte Emits Anomaly/Inconclusive/Low Finding Mapped to T1027 | P0 | [WRITTEN] <!-- v1.3: mitre_technique→mitre_techniques vec!["T1027"]; ARP-F2 P14 B6 --> | BC-TLS-014 |
 | BC-2.07.015 | Multiple Control Bytes in One SNI Produce Exactly ONE Finding | P0 | [WRITTEN] | BC-TLS-015 |
-| BC-2.07.016 | C0 Boundary: 0x1F Trips Finding; 0x20 (Space) Does NOT | P0 | [WRITTEN] | BC-TLS-016 |
+| BC-2.07.016 | C0 Boundary: 0x1F Trips Finding; 0x20 (Space) Does NOT | P0 | [WRITTEN] | BC-TLS-016 | <!-- v1.3: P19 B-10 anchor fix: contains_c0_or_del tls.rs:231-238→:232-239 -->
 | BC-2.07.017 | Non-ASCII UTF-8 SNI Emits Anomaly/Inconclusive/Low Finding (T1027) | P0 | [WRITTEN] <!-- v1.4: mitre_technique→mitre_techniques vec!["T1027"]; ARP-F2 P14 B6 --> | BC-TLS-017 |
 | BC-2.07.018 | Punycode A-label is Pure ASCII; Emits No SNI Finding | P1 | [WRITTEN] | BC-TLS-018 |
 | BC-2.07.019 | Non-UTF-8 SNI Emits Anomaly/Inconclusive/Low Finding (T1027); Count Key Tagged | P0 | [WRITTEN] <!-- v1.4: mitre_technique→mitre_techniques vec!["T1027"]; ARP-F2 P14 B6 --> | BC-TLS-019 |
@@ -215,7 +215,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.07.034 | After Both Hellos Seen, on_data Short-Circuits | P0 | [WRITTEN] | BC-TLS-034 |
 | BC-2.07.035 | on_flow_close Drops Per-Flow TlsFlowState | P1 | [WRITTEN] | BC-TLS-035 |
 | BC-2.07.036 | Unknown Cipher IDs Render as Hex 0xNNNN Lowercase | P2 | [WRITTEN] | BC-TLS-036 |
-| BC-2.07.037 | SNI with Both Non-ASCII and C0 Control Bytes Fires Arm 3 (NonAsciiUtf8), Not Arm 2 | P0 | [WRITTEN] | BC-TLS-037 |
+| BC-2.07.037 | SNI with Both Non-ASCII and C0 Control Bytes Fires Arm 3 (NonAsciiUtf8), Not Arm 2 | P0 | [WRITTEN] | BC-TLS-037 | <!-- v1.3: P19 B-10 anchor fix: extract_sni tls.rs:246→:247; match block :251-265→:252-269 -->
 
 ## ss-08: DNS Traffic Analysis (CAP-08)
 
@@ -230,13 +230,13 @@ traces_to: .factory/specs/prd.md
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
-| BC-2.09.001 | Finding Constructed with Required Fields and Optional Fields | P0 | [WRITTEN] | BC-FND-001 | <!-- v1.4: mitre_technique->mitre_techniques Vec<String>; ADR-006 F2 revision -->
-| BC-2.09.002 | Finding Display Renders [Category] VERDICT (CONFIDENCE) — summary | P1 | [WRITTEN] | BC-FND-002 |
-| BC-2.09.003 | Verdict Display: Uppercase Tokens | P1 | [WRITTEN] | BC-FND-003 |
-| BC-2.09.004 | Confidence Display: Uppercase Tokens | P1 | [WRITTEN] | BC-FND-004 |
-| BC-2.09.005 | Finding.summary and Evidence Store RAW Post-from_utf8_lossy Bytes per ADR 0003 | P0 | [WRITTEN] | BC-FND-005 |
-| BC-2.09.006 | Finding JSON Serialization: Empty Vec Fields Omitted; mitre_techniques Serialized as Array | P0 | [WRITTEN] | BC-FND-006 | <!-- v1.5: mitre_techniques Vec; skip_serializing_if Vec::is_empty; ADR-006 F2 revision -->
-| BC-2.09.007 | Finding.timestamp Carries Capture-Relative Pcap Timestamp from on_data Call Site | P1 | [WRITTEN] | feature-100-F2 |
+| BC-2.09.001 | Finding Constructed with Required Fields and Optional Fields | P0 | [WRITTEN] | BC-FND-001 | <!-- v1.6: P19 B-01 anchor :119-146 → :135-162 -->
+| BC-2.09.002 | Finding Display Renders [Category] VERDICT (CONFIDENCE) — summary | P1 | [WRITTEN] | BC-FND-002 | <!-- v1.5: P19 B-02 anchor :159-170 → :173-184 -->
+| BC-2.09.003 | Verdict Display: Uppercase Tokens | P1 | [WRITTEN] | BC-FND-003 | <!-- v1.3: P19 B-03 anchor :43-50 → :48-57; Possible variant added -->
+| BC-2.09.004 | Confidence Display: Uppercase Tokens | P1 | [WRITTEN] | BC-FND-004 | <!-- v1.3: P19 B-04 anchor :68-76 → :75-83 -->
+| BC-2.09.005 | Finding.summary and Evidence Store RAW Post-from_utf8_lossy Bytes per ADR 0003 | P0 | [WRITTEN] | BC-FND-005 | <!-- v1.7: P19 B-05 struct :120 → :135; fields :124-125 → :140-141; doc-comment :150-158 → :164-172; ev call-site :223 → :224 -->
+| BC-2.09.006 | Finding JSON Serialization: Empty Vec Fields Omitted; mitre_techniques Serialized as Array | P0 | [WRITTEN] | BC-FND-006 | <!-- v1.6: mitre_techniques Vec; skip_serializing_if Vec::is_empty; ADR-006 F2 revision; P19 confirmed clean -->
+| BC-2.09.007 | Finding.timestamp Carries Capture-Relative Pcap Timestamp from on_data Call Site | P1 | [WRITTEN] | feature-100-F2 | <!-- v1.1.2: P19 B-06 anchor :119-146 → :135-162 -->
 
 ## ss-10: MITRE ATT&CK Mapping (CAP-10)
 

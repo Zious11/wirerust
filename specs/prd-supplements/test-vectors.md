@@ -1,7 +1,7 @@
 ---
 document_type: prd-supplement-test-vectors
 level: L3
-version: "2.0"
+version: "2.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -31,6 +31,7 @@ modified:
   - "v1.6: Pass-7 remediation F-C-P7-002: separated BC-2.10.005/BC-2.10.004 attributions — 'per BC-2.10.005 v1.10 (25 seeded IDs) and BC-2.10.004 v1.4 (17 tactic variants)'; was incorrectly citing BC-2.10.004 as the seeded-count source. — 2026-06-12"
   - "v1.7: Pass-9 remediation F-C-P9-002: BC-2.10.004 version citation updated v1.4→v1.5 (file is at v1.5 per pass-7 F-C-P7-003 remediation). F-C-P9-004: SS-10 unknown-ID canary updated UNKNOWN999→T9999 and category happy-path→edge-case to match BC-2.10.005/BC-2.10.006 canonical canary and mitre.rs Kani verify_unknown_id_returns_none_no_panic. — 2026-06-12"
   - "v2.0: ARP-F2 Pass-14 remediation C-05 + 12 stale snippets: (C-05) removed src/analyzer/arp.rs from inputs (not in develop HEAD; forward-reference to STORY-111); set input-hash to N/A with deferred-hash rationale comment. (12 stale snippets) converted all mitre_technique:Some('X') / 'mitre_technique':'X' occurrences to mitre_techniques:vec!['X'] / 'mitre_techniques':['X'] form per STALE discrimination rule; updated skip-serialization/empty-semantics prose (lines ~279/280/342) to Vec/empty-vec/key-absent form. Version 1.9→2.0. — 2026-06-13"
+  - "v2.1: P19 straggler anchor sweep — BC-2.06.005 Notes http.rs:193→:205 (path-traversal push); BC-2.07.014 Notes tls.rs:426-448→:437-460 (AsciiWithControl block); BC-2.07.017 Notes tls.rs:449-468→:461-493 (NonAsciiUtf8 block); BC-2.07.037 Notes tls.rs:251-258→:252-266 (extract_sni match block). Verified against src/analyzer/http.rs and src/analyzer/tls.rs. — 2026-06-13"
 ---
 
 # Canonical Test Vectors: wirerust
@@ -183,7 +184,7 @@ modified:
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| `GET /../etc/passwd HTTP/1.1\r\nHost: example.com\r\n\r\n` | Finding { category: Reconnaissance, verdict: Likely, confidence: High, mitre_techniques: vec!["T1083"], summary: contains "../" } | happy-path | Classic directory traversal; http.rs:193 uses ThreatCategory::Reconnaissance |
+| `GET /../etc/passwd HTTP/1.1\r\nHost: example.com\r\n\r\n` | Finding { category: Reconnaissance, verdict: Likely, confidence: High, mitre_techniques: vec!["T1083"], summary: contains "../" } | happy-path | Classic directory traversal; http.rs:205 uses ThreatCategory::Reconnaissance |
 | `GET /static/file.css HTTP/1.1\r\nHost: example.com\r\n\r\n` | No finding | happy-path | Clean path; no traversal |
 
 #### BC-2.06.009 -- Missing Host Header
@@ -223,7 +224,7 @@ modified:
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| TLS ClientHello with SNI = `evil\x1bhost.com` (ESC byte 0x1B, a C0 control) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_techniques: vec!["T1027"] } | happy-path | AsciiWithControl arm (tls.rs:426-448); verdict/confidence are Inconclusive/Low, not Likely/High |
+| TLS ClientHello with SNI = `evil\x1bhost.com` (ESC byte 0x1B, a C0 control) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_techniques: vec!["T1027"] } | happy-path | AsciiWithControl arm (tls.rs:437-460); verdict/confidence are Inconclusive/Low, not Likely/High |
 | TLS ClientHello with SNI = `evil\x7fhost.com` (DEL 0x7F) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_techniques: vec!["T1027"] } | happy-path | DEL = AsciiWithControl arm |
 | TLS ClientHello with SNI = `www.example.com` (clean ASCII) | No SNI-related finding | happy-path | BC-2.07.013 |
 | TLS ClientHello with SNI = `www.ex\x20ample.com` (SPACE = 0x20) | No SNI C0 finding (0x20 is not C0/DEL) | edge-case | BC-2.07.016: 0x1F trips; 0x20 does NOT |
@@ -232,14 +233,14 @@ modified:
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| TLS ClientHello with SNI = `xn--\xC3\xA9vil.com` (contains U+00E9, valid UTF-8 but non-ASCII) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_techniques: vec!["T1027"] } | happy-path | NonAsciiUtf8 arm (tls.rs:449-468); verdict/confidence are Inconclusive/Low, not Likely/High |
+| TLS ClientHello with SNI = `xn--\xC3\xA9vil.com` (contains U+00E9, valid UTF-8 but non-ASCII) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_techniques: vec!["T1027"] } | happy-path | NonAsciiUtf8 arm (tls.rs:461-493); verdict/confidence are Inconclusive/Low, not Likely/High |
 | TLS ClientHello with SNI = `xn--test.com` (pure ASCII Punycode A-label) | No finding | happy-path | BC-2.07.018: A-labels are pure ASCII |
 
 #### BC-2.07.037 -- Mixed Non-ASCII + C0 SNI Fires Arm 3
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| SNI bytes contain BOTH U+00E9 (non-ASCII UTF-8) AND 0x1B (C0 control) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_techniques: vec!["T1027"] } with arm = NonAsciiUtf8 (arm 3), not C0/DEL (arm 2) | edge-case | Arm 3 (NonAsciiUtf8) takes priority because `from_utf8` succeeds on the multi-byte U+00E9 sequence before `is_ascii()` is checked; tls.rs:251-258 `extract_sni` match order |
+| SNI bytes contain BOTH U+00E9 (non-ASCII UTF-8) AND 0x1B (C0 control) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_techniques: vec!["T1027"] } with arm = NonAsciiUtf8 (arm 3), not C0/DEL (arm 2) | edge-case | Arm 3 (NonAsciiUtf8) takes priority because `from_utf8` succeeds on the multi-byte U+00E9 sequence before `is_ascii()` is checked; tls.rs:252-266 `extract_sni` match order |
 
 #### BC-2.07.009 -- Weak Cipher Finding
 

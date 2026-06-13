@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-05-28): W15 Pass-3 remediation — F-W15P3-006; corrected 459→460 in Architecture Module row and Source Evidence Path to match verified Partial arm location; line anchor reconciled."
+  - "v1.4 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — Partial request :402→:421; Partial response :460→:481. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -89,7 +90,7 @@ responses via `try_parse_responses`.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- buffering partial request headers is required for correct HTTP parsing over TCP stream data |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:402, 460, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:421, 481, C-12) |
 | Stories | STORY-041 |
 | Origin BC | BC-HTTP-003 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -102,15 +103,15 @@ responses via `try_parse_responses`.
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:402` -- `Some(Ok(None)) => return` (Partial arm, requests)
-- `src/analyzer/http.rs:460` -- `Some(Ok(None)) => return` (Partial arm, responses)
+- `src/analyzer/http.rs:421` -- `Some(Ok(None)) => return` (Partial arm, requests)
+- `src/analyzer/http.rs:481` -- `Some(Ok(None)) => return` (Partial arm, responses)
 - `tests/http_analyzer_tests.rs` -- test_parse_partial_request, test_partial_response_reassembly
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:402, 460` |
+| **Path** | `src/analyzer/http.rs:421, 481` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

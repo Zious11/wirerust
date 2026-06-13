@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — MAX_HEADER_BUF :21→:23; buffer cap in on_data :513-529→:532-565. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,7 +49,7 @@ exceeds the cap will never parse to completion and will be silently discarded at
 
 ## Invariants
 
-1. `MAX_HEADER_BUF = 65,536` (http.rs:21). This is the same value as TLS's `MAX_BUF`.
+1. `MAX_HEADER_BUF = 65,536` (http.rs:23). This is the same value as TLS's `MAX_BUF`.
 2. Buffer overflow is silently clamped via `min`; no panic, no error.
 3. The cap applies per-direction independently (request_buf and response_buf have separate caps).
 4. No finding is emitted when the cap is reached.
@@ -83,7 +84,7 @@ exceeds the cap will never parse to completion and will be silently discarded at
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- header buffer cap is the memory-bounding mechanism for HTTP analysis |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:513-529, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:532-565, C-12) |
 | Stories | STORY-045 |
 | Origin BC | BC-HTTP-022 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -93,15 +94,15 @@ exceeds the cap will never parse to completion and will be silently discarded at
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:513-529` -- buffer cap logic in on_data
-- `src/analyzer/http.rs:21` -- MAX_HEADER_BUF constant definition
+- `src/analyzer/http.rs:532-565` -- buffer cap logic in on_data
+- `src/analyzer/http.rs:23` -- MAX_HEADER_BUF constant definition
 - `tests/http_analyzer_tests.rs` -- test_buffer_cap_no_panic_on_oversized_headers
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:21, 513-529` |
+| **Path** | `src/analyzer/http.rs:23, 532-565` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

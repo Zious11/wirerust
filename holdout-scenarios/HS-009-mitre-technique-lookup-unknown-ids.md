@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -46,7 +46,7 @@ risk_source: null
 2. Every finding in the output that carries a known MITRE technique ID (T1083, T1505.003,
    T1046, T1036, T1027) shows the correct human-readable technique name in the `--mitre`
    terminal view.
-3. Each known technique ID maps to the correct parent tactic (T1083 -> Reconnaissance,
+3. Each known technique ID maps to the correct parent tactic (T1083 -> Discovery,
    T1505.003 -> Persistence, T1027 -> Defense Evasion, T1036 -> Defense Evasion).
 4. If a future caller were to query an unknown technique ID (e.g., "T9999"), the lookup
    returns a "none" or empty result — no panic, no crash.

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: Pass-19 B-04 re-anchor — Architecture Anchor and Source Evidence corrected: src/findings.rs:68-76 → :75-83 (impl fmt::Display for Confidence shifted after Verdict enum + Display expansion). Verified against HEAD findings.rs. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -89,13 +90,13 @@ visible output contract.
 
 ## Architecture Anchors
 
-- `src/findings.rs:68-76` -- impl fmt::Display for Confidence
+- `src/findings.rs:75-83` -- impl fmt::Display for Confidence
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/findings.rs:68-76` |
+| **Path** | `src/findings.rs:75-83` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

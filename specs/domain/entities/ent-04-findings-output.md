@@ -4,7 +4,7 @@ traces_to: ../domain-spec.md
 title: Entities -- Findings and Output (L3-L4)
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
-version: "1.2"
+version: "1.3"
 modified:
   - date: 2026-06-12
     actor: product-owner
@@ -12,13 +12,16 @@ modified:
   - date: 2026-06-13
     actor: product-owner
     reason: "ARP-F2 Pass-14 remediation C-03: E-26 'all four Option fields' corrected to 'three remaining Option fields' — mitre_techniques is Vec<String> with skip_serializing_if=Vec::is_empty (not an Option; STORY-100 AC-008/ADR-006 Decision 13). O-01 closed: timestamp wired in STORY-097/098/099. Version 1.1→1.2."
+  - date: 2026-06-13
+    actor: product-owner
+    reason: "P19 straggler anchor sweep: E-23 Verdict :30-40 → :32-46; E-24 Confidence :57-66 → :66-73; E-27 MitreTactic :45-66 → :47-70. Verified against src/findings.rs and src/mitre.rs. Version 1.2→1.3."
 ---
 
 # Entities: Findings and Output (L3-L4)
 
 Covers E-23 through E-28, E-36 through E-39. Source: pass-2-domain-model.md + pass-3-R4.md.
 
-## E-23: Verdict (src/findings.rs:30-40)
+## E-23: Verdict (src/findings.rs:32-46)
 
 ```
 enum Verdict { Likely, Unlikely, Inconclusive }
@@ -28,7 +31,7 @@ enum Verdict { Likely, Unlikely, Inconclusive }
 `Display` renders uppercase (`LIKELY`, etc.).
 `verdict_rank` order (for sorting): `Likely < Inconclusive < Unlikely` (terminal.rs:269-275).
 
-## E-24: Confidence (src/findings.rs:57-66)
+## E-24: Confidence (src/findings.rs:66-73)
 
 ```
 enum Confidence { High, Medium, Low }
@@ -71,7 +74,7 @@ for http/tls/reassembly; STORY-102..110 for modbus/dnp3). O-01 is closed.
 `direction: Option<Direction>` was added (P2.08 / #77). HTTP and TLS analyzer findings set
 it; reassembly-engine findings leave it None.
 
-## E-27: MitreTactic (src/mitre.rs:45-66)
+## E-27: MitreTactic (src/mitre.rs:47-70)
 
 17-variant enum (14 Enterprise + 3 ICS-unique incl. IcsImpact). `#[non_exhaustive]` (VO-5). Derives `Debug, Clone,
 Copy, PartialEq, Eq, Hash`. `Display` renders canonical English names. See CAP-10 for full

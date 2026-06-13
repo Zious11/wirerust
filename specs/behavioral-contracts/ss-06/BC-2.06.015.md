@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,7 +15,8 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
-  - "v1.3: Wave 16 Pass-2 (F-W16-S044-P2-002) — align response poison anchor :467 → :467-468 (guard+assignment) in Architecture Anchors and Source Evidence; align with VP-006 — 2026-05-28"
+  - "v1.3: Wave 16 Pass-2 (F-W16-S044-P2-002) — align response poison anchor :467 → :467-468 (guard+assignment) in Architecture Anchors and Source Evidence; align with VP-006 [pre-F2 lines; now :488-489 post-F2] — 2026-05-28"
+  - "v1.4 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — POISON_THRESHOLD :80→:82; req poison :408-409→:427-428; resp poison :467-468→:488-489. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -94,7 +95,7 @@ resets to false within the flow's lifetime (INV-8).
 | L2 Capability | CAP-06 ("HTTP traffic analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP traffic analysis") per domain/capabilities/cap-06-http-analysis.md -- HTTP poisoning state machine is the resilience mechanism for non-HTTP traffic in HTTP-dispatched flows |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true) |
-| Architecture Module | SS-06 (analyzer/http.rs:408-409, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:427-428, C-12) |
 | Stories | STORY-044 |
 | Origin BC | BC-HTTP-015 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -107,16 +108,16 @@ resets to false within the flow's lifetime (INV-8).
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:80` -- `const POISON_THRESHOLD: u8 = 3`
-- `src/analyzer/http.rs:408-409` -- request direction poison transition: `if state.request_error_count >= POISON_THRESHOLD { state.request_poisoned = true; }`
-- `src/analyzer/http.rs:467-468` -- response direction poison transition: `if state.response_error_count >= POISON_THRESHOLD { state.response_poisoned = true; }`
+- `src/analyzer/http.rs:82` -- `const POISON_THRESHOLD: u8 = 3`
+- `src/analyzer/http.rs:427-428` -- request direction poison transition: `if state.request_error_count >= POISON_THRESHOLD { state.request_poisoned = true; }`
+- `src/analyzer/http.rs:488-489` -- response direction poison transition: `if state.response_error_count >= POISON_THRESHOLD { state.response_poisoned = true; }`
 - `tests/http_analyzer_tests.rs` -- test_parse_error_poisons_direction_after_threshold
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:408-409` (request poison), `:467-468` (response poison), `:80` (threshold const) |
+| **Path** | `src/analyzer/http.rs:427-428` (request poison), `:488-489` (response poison), `:82` (threshold const) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

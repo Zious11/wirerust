@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-06-13): ARP-F2-Pass14-Burst5 — Postcondition 1 mitre_technique: Some(\"T1499.002\") → mitre_techniques: vec![\"T1499.002\"] (Finding struct field renamed to plural Vec<String>)."
+  - "v1.4 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — TooManyHeaders req :416-428→:435-449; TooManyHeaders resp :475-487→:496-509. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -95,7 +96,7 @@ determines whether the evidence cites "request" or "response". The error also in
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- excessive-header detection is an HTTP DoS/evasion anomaly finding |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true -- TooManyHeaders contributes to error_count) |
-| Architecture Module | SS-06 (analyzer/http.rs:416-428, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:435-449, C-12) |
 | Stories | STORY-044 |
 | Origin BC | BC-HTTP-014 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -106,15 +107,15 @@ determines whether the evidence cites "request" or "response". The error also in
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:416-428` -- TooManyHeaders arm in request Err block
-- `src/analyzer/http.rs:475-487` -- TooManyHeaders arm in response Err block
+- `src/analyzer/http.rs:435-449` -- TooManyHeaders arm in request Err block
+- `src/analyzer/http.rs:496-509` -- TooManyHeaders arm in response Err block
 - `tests/http_analyzer_tests.rs` -- test_too_many_headers_generates_finding, test_too_many_headers_in_response_generates_finding
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:416-428, 475-487` |
+| **Path** | `src/analyzer/http.rs:435-449, 496-509` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

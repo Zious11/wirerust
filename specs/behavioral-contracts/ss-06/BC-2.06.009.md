@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: F-W16-WAVE-P1-001 — update Verification Properties + Architecture Anchors to renamed STORY-043 formalization tests (test_BC_2_06_009_detect_missing_host_header, test_BC_2_06_009_detect_empty_host_header); Evidence Types legacy citation intentionally preserved — 2026-05-28"
   - "v1.4 (2026-06-13): ARP-F2-Pass14-Burst5 — Postcondition 1 mitre_technique: None → mitre_techniques: vec![]; Invariant 3 prose updated to match plural field name (Finding struct field renamed to plural Vec<String>)."
+  - "v1.5 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — host anomaly block :283-302→:282-317 (RFC comment block lines 282-297 + code lines 298-317). Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -100,7 +101,7 @@ PR #71 which closed the empty-value evasion lane.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- missing/empty Host header detection is a core HTTP protocol compliance anomaly finding |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:283-302, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:282-317, C-12) |
 | Stories | STORY-043 |
 | Origin BC | BC-HTTP-009 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -111,14 +112,14 @@ PR #71 which closed the empty-value evasion lane.
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:283-302` -- host anomaly detection block (None/empty/non-empty 3-state match)
+- `src/analyzer/http.rs:282-317` -- host anomaly detection block (RFC comment 282-297; code: `if parsed.version == 1` guard at 298; None/empty/non-empty 3-state match 299-303; finding push 304-316; closing `}` 317)
 - `tests/http_analyzer_tests.rs` -- test_BC_2_06_009_detect_missing_host_header, test_BC_2_06_009_detect_empty_host_header (in mod bc_2_06_043_formalization)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:283-302` |
+| **Path** | `src/analyzer/http.rs:282-317` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.0"
+version: "2.1"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -23,6 +23,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set (tests/reassembly_segment_tests.rs)."
+  - "v2.1 (2026-06-13, PG-ARP-F2-007 anchor-drift sweep): Source Location and harness-comment line anchors corrected. flush_contiguous: segment.rs:236→:369. insert_segment: segment.rs:39→:189. Lock fields unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -107,7 +108,7 @@ mod proptest_proofs {
                 let _ = dir.insert_segment(seq, &data, MAX_DEPTH, MAX_SEGS, MAX_WIN);
 
                 // flush_contiguous returns Vec<(u64, Vec<u8>)>; no closure arg.
-                // (src/reassembly/segment.rs:236)
+                // (src/reassembly/segment.rs:369)
                 let flushed = dir.flush_contiguous();
                 for (_, bytes) in &flushed {
                     total_delivered += bytes.len();
@@ -162,11 +163,11 @@ mod proptest_proofs {
 
 ## Source Location
 
-`src/reassembly/segment.rs:236` -- `FlowDirection::flush_contiguous(&mut self) -> Vec<(u64, Vec<u8>)>`.
+`src/reassembly/segment.rs:369` -- `FlowDirection::flush_contiguous(&mut self) -> Vec<(u64, Vec<u8>)>`.
 Returns flushed (offset, data) pairs; caller iterates the returned Vec. No closure arg.
 `src/reassembly/flow.rs:88` -- `FlowDirection::base_offset: u64` pub field (not a method).
 Initialized to 0 by `FlowDirection::new()`; set to 1 by `set_isn` (ISN+1 is first data byte).
-`src/reassembly/segment.rs:39` -- `FlowDirection::insert_segment` (5-arg signature).
+`src/reassembly/segment.rs:189` -- `FlowDirection::insert_segment` (5-arg signature).
 
 ## Lifecycle
 

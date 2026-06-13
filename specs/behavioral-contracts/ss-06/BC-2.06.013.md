@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — had_success refs :364/:403-408→:379/:422-427; Err arm :403-434→:422-459. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,7 +52,7 @@ The `TooManyHeaders` special case (BC-2.06.014) is the only error path that emit
 ## Invariants
 
 1. `had_success` suppresses error counting for body bytes that follow a complete header
-   (http.rs:364, 403-408). Body bytes after a parsed header do NOT increment `parse_errors`.
+   (http.rs:379, 422-427). Body bytes after a parsed header do NOT increment `parse_errors`.
 2. `TooManyHeaders` is the only Err variant that also emits a finding (BC-2.06.014).
 3. Buffer is cleared on error; the offending bytes are discarded.
 
@@ -88,7 +89,7 @@ The `TooManyHeaders` special case (BC-2.06.014) is the only error path that emit
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- parse error counting and no-finding-on-error policy is part of HTTP analysis resilience |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true -- error_count drives poisoning) |
-| Architecture Module | SS-06 (analyzer/http.rs:403-434, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:422-459, C-12) |
 | Stories | STORY-044 |
 | Origin BC | BC-HTTP-013 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -100,14 +101,14 @@ The `TooManyHeaders` special case (BC-2.06.014) is the only error path that emit
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:403-434` -- Err arm in try_parse_requests
+- `src/analyzer/http.rs:422-459` -- Err arm in try_parse_requests
 - `tests/http_analyzer_tests.rs` -- test_parse_error_increments_counter, test_parse_error_in_response
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:403-434` |
+| **Path** | `src/analyzer/http.rs:422-459` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

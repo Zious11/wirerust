@@ -10,6 +10,9 @@ modified:
   - date: 2026-06-13
     actor: product-owner
     reason: "ARP-F2 Pass-14 remediation: C-01/C-02: mitre_technique Option<String> → mitre_techniques Vec<String> (skip_serializing_if Vec::is_empty; STORY-100 AC-008); four Option fields → three remaining Option fields (source_ip, timestamp, direction); stale timestamp:None universal claim updated — STORY-097/098/099 wired timestamp in http.rs/tls.rs/reassembly/lifecycle.rs, STORY-102..110 added modbus+dnp3 emission sites; site count framing updated to ≥22 (includes modbus/dnp3 analyzers); BC refs extended to BC-2.09.001..007 per STORY-100 extension."
+  - date: 2026-06-13
+    actor: product-owner
+    reason: "P19 straggler anchor sweep: all 22 emission site line numbers updated for F2 shift (Modbus/DNP3/timestamp/mitre-tag). Verified against src/analyzer/http.rs, src/analyzer/tls.rs, src/reassembly/mod.rs, src/reassembly/lifecycle.rs."
 ---
 
 # CAP-09: Forensic Finding Emission
@@ -80,54 +83,54 @@ clock (no longer None). Grouped by file:
 
 | Line | Detection | Summary type | Evidence shape | Direction |
 |---|---|---|---|---|
-| 192 | Path traversal | format! | vec![1 entry] | ClientToServer |
-| 219 | Web shell | format! | vec![1 entry] | ClientToServer |
-| 238 | Admin panel | format! | vec![1 entry] | ClientToServer |
-| 254 | Unusual method | format! | vec![1 entry] | ClientToServer |
-| 290 | Missing Host | string literal | vec![1 entry] | ClientToServer |
-| 306 | Long URI | format! | vec![1 entry] | ClientToServer |
-| 345 | Empty UA | string literal | vec![1 entry] | ClientToServer |
-| 417 | Too-many-headers (request) | string literal | vec![1 entry] | ClientToServer |
-| 476 | Too-many-headers (response) | string literal (byte-identical to 417) | vec![1 entry] | ServerToClient |
+| 205 | Path traversal | format! | vec![1 entry] | ClientToServer |
+| 234 | Web shell | format! | vec![1 entry] | ClientToServer |
+| 253 | Admin panel | format! | vec![1 entry] | ClientToServer |
+| 269 | Unusual method | format! | vec![1 entry] | ClientToServer |
+| 305 | Missing Host | string literal | vec![1 entry] | ClientToServer |
+| 321 | Long URI | format! | vec![1 entry] | ClientToServer |
+| 360 | Empty UA | string literal | vec![1 entry] | ClientToServer |
+| 437 | Too-many-headers (request) | string literal | vec![1 entry] | ClientToServer |
+| 498 | Too-many-headers (response) | string literal (byte-identical to 437) | vec![1 entry] | ServerToClient |
 
 **analyzer/tls.rs (7 sites):**
 
 | Line | Detection | Summary type | Evidence shape | Direction |
 |---|---|---|---|---|
-| 427 | SNI AsciiWithControl | format! | vec![1 entry] | ClientToServer |
-| 450 | SNI NonAsciiUtf8 | format! | vec![1 entry] | ClientToServer |
-| 470 | SNI NonUtf8 | format! | vec![1 entry] | ClientToServer |
-| 505 | Weak ClientHello ciphers | string literal | vec![variable; 1..=~9216 cipher names] | ClientToServer |
-| 526 | Deprecated ClientHello version | format! | vec![1 entry] | ClientToServer |
-| 571 | Weak ServerHello cipher | format! | vec![1 entry] | ServerToClient |
-| 591 | Deprecated ServerHello version | format! | vec![1 entry] | ServerToClient |
+| 438 | SNI AsciiWithControl | format! | vec![1 entry] | ClientToServer |
+| 474 | SNI NonAsciiUtf8 | format! | vec![1 entry] | ClientToServer |
+| 495 | SNI NonUtf8 | format! | vec![1 entry] | ClientToServer |
+| 543 | Weak ClientHello ciphers | string literal | vec![variable; 1..=~9216 cipher names] | ClientToServer |
+| 565 | Deprecated ClientHello version | format! | vec![1 entry] | ClientToServer |
+| 615 | Weak ServerHello cipher | format! | vec![1 entry] | ServerToClient |
+| 636 | Deprecated ServerHello version | format! | vec![1 entry] | ServerToClient |
 
 **reassembly/mod.rs (4 sites):**
 
 | Line | Detection | Summary type | Evidence shape | Direction |
 |---|---|---|---|---|
-| 433 | Excessive overlaps | format! | vec![1 entry] | Some(dir) |
-| 467 | Excessive small segments | format! | vec![1 entry] | Some(dir) |
-| 496 | Out-of-window segments | format! | vec![1 entry] | Some(dir) |
-| 573 | Finalize segment-limit summary | format! with plural_s helper | vec![2 entries] | None |
+| 480 | Excessive overlaps | format! | vec![1 entry] | Some(dir) |
+| 516 | Excessive small segments | format! | vec![1 entry] | Some(dir) |
+| 547 | Out-of-window segments | format! | vec![1 entry] | Some(dir) |
+| 659 | Finalize segment-limit summary | format! with plural_s helper | vec![2 entries] | None |
 
 **reassembly/lifecycle.rs (2 sites):**
 
 | Line | Detection | Summary type | Evidence shape | Direction |
 |---|---|---|---|---|
-| 105 | Conflicting TCP overlap | format! | vec![1 entry] | None |
-| 125 | Stream depth exceeded | format! | vec![1 entry] | None |
+| 115 | Conflicting TCP overlap | format! | vec![1 entry] | None |
+| 145 | Stream depth exceeded | format! | vec![1 entry] | None |
 
 **analyzer/modbus.rs and analyzer/dnp3.rs:** Additional emission sites added in
 STORY-102..105 (Modbus) and STORY-106..110 (DNP3). See module-decomposition.md C-22/C-23
 for the per-file site inventory.
 
 **Notable emission-site properties:**
-- Sites 417 and 476 (HTTP too-many-headers) share byte-identical summary strings; differ only
+- Sites 437 and 498 (HTTP too-many-headers) share byte-identical summary strings; differ only
   in evidence[0] ("Direction: request" vs "Direction: response") AND in direction field.
   Finding-dedup by (category+verdict+confidence+summary) would still collapse distinct events.
-- Site 505 (tls.rs) is the ONLY data-dependent-cardinality evidence vec.
-- Site 573 (reassembly/mod.rs finalize) is the ONLY 2-entry evidence vec in the engine.
+- Site 543 (tls.rs) is the ONLY data-dependent-cardinality evidence vec.
+- Site 659 (reassembly/mod.rs finalize) is the ONLY 2-entry evidence vec in the engine.
 
 ## Raw-data contract (ADR 0003; INV-4)
 

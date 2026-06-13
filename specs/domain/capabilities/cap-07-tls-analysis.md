@@ -5,6 +5,11 @@ cap_id: CAP-07
 title: TLS Traffic Analysis
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
+version: "1.1"
+modified:
+  - date: 2026-06-13
+    actor: product-owner
+    reason: "P19 straggler anchor sweep: done() :291-293 → :298-300, early-exit :721-724 → :807-810, truncated_records field :312 → :319, increment :645 → :691, summarize :798-801 → :887-890. All 7 anomaly detection rows updated for F2 shift. Verified against src/analyzer/tls.rs."
 ---
 
 # CAP-07: TLS Traffic Analysis
@@ -31,7 +36,7 @@ TlsFlowState {
 
 Once both `client_hello_seen` and `server_hello_seen` are true, `TlsFlowState::done()`
 returns true and subsequent `on_data` calls early-exit without processing. `done()` is
-defined at tls.rs:291-293; the early-exit guard in `on_data` is at tls.rs:721-724.
+defined at tls.rs:298-300; the early-exit guard in `on_data` is at tls.rs:807-810.
 The state record persists in the HashMap until `on_flow_close` fires.
 
 ## Limit constants
@@ -73,25 +78,25 @@ All TLS findings carry a `direction` tag (P2.08 / #77):
 
 | Detection | Trigger | Finding | MITRE | Direction tag | Source lines |
 |---|---|---|---|---|---|
-| SNI AsciiWithControl | Arm 2 of extract_sni | Anomaly/Inconclusive/Low | T1027 | ClientToServer | tls.rs:426-448 |
-| SNI NonAsciiUtf8 | Arm 3 of extract_sni | Anomaly/Inconclusive/Low | T1027 | ClientToServer | tls.rs:449-468 |
-| SNI NonUtf8 | Arm 4 of extract_sni | Anomaly/Inconclusive/Low | T1027 | ClientToServer | tls.rs:469-489 |
-| Weak ClientHello ciphers | ClientHello contains NULL/anon/export ciphers | Anomaly/Likely/High | none | ClientToServer | tls.rs:504-517 |
-| Deprecated ClientHello version | SSLv2 or SSLv3 in ClientHello | Anomaly/Likely/High | none | ClientToServer | tls.rs:526-539 |
-| Weak ServerHello cipher selected | ServerHello cipher is weak (NULL/anon/export/RC4) | Anomaly/Likely/Medium | none | ServerToClient | tls.rs:571-582 |
-| Deprecated ServerHello version | SSLv2 or SSLv3 negotiated | Anomaly/Likely/High | none | ServerToClient | tls.rs:591-604 |
+| SNI AsciiWithControl | Arm 2 of extract_sni | Anomaly/Inconclusive/Low | T1027 | ClientToServer | tls.rs:437-460 |
+| SNI NonAsciiUtf8 | Arm 3 of extract_sni | Anomaly/Inconclusive/Low | T1027 | ClientToServer | tls.rs:461-493 |
+| SNI NonUtf8 | Arm 4 of extract_sni | Anomaly/Inconclusive/Low | T1027 | ClientToServer | tls.rs:494-514 |
+| Weak ClientHello ciphers | ClientHello contains NULL/anon/export ciphers | Anomaly/Likely/High | none | ClientToServer | tls.rs:542-556 |
+| Deprecated ClientHello version | SSLv2 or SSLv3 in ClientHello | Anomaly/Likely/High | none | ClientToServer | tls.rs:559-579 |
+| Weak ServerHello cipher selected | ServerHello cipher is weak (NULL/anon/export/RC4) | Anomaly/Likely/Medium | none | ServerToClient | tls.rs:614-627 |
+| Deprecated ServerHello version | SSLv2 or SSLv3 negotiated | Anomaly/Likely/High | none | ServerToClient | tls.rs:630-650 |
 
 ## Truncation instrumentation (CNV-PAT-002 conformance)
 
-`TlsAnalyzer` carries `truncated_records: u64` (tls.rs:312), incremented at tls.rs:645 each
+`TlsAnalyzer` carries `truncated_records: u64` (tls.rs:319), incremented at tls.rs:691 each
 time a TLS record is discarded due to exceeding `MAX_RECORD_PAYLOAD`. The counter is surfaced
-in `summarize()` at tls.rs:798-801 via `detail["truncated_records"]`. This was added by
+in `summarize()` at tls.rs:887-890 via `detail["truncated_records"]`. This was added by
 P1.05 (#73). TlsAnalyzer now fully conforms to CNV-PAT-002 (silent-drop instrumentation
 convention).
 
 ## Weak-cipher evidence cardinality (O-06)
 
-The weak-cipher ClientHello finding at tls.rs:504-517 uses `evidence: weak` where `weak` is
+The weak-cipher ClientHello finding at tls.rs:542-556 uses `evidence: weak` where `weak` is
 a filtered `Vec<String>` of cipher names. This is the ONLY evidence vec in the codebase with
 data-dependent cardinality. Upper bound: ~9,216 cipher names (MAX_RECORD_PAYLOAD / 2 bytes).
 Worst-case Finding heap: ~270-500 KB. No per-cipher cap exists (domain-debt O-06).

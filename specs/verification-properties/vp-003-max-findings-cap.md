@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.0"
+version: "2.1"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -23,6 +23,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v1.1: DF-SIBLING-SWEEP-001 ADV-IMPL-P03-HIGH-001 re-anchor: guard sites mod.rs:432,466,495 → mod.rs:461,495,524; finalize bypass mod.rs:573 → mod.rs:630. HS-043 merge shifted check_anomaly_thresholds by 29 lines and finalize() by 57 lines. — 2026-06-01"
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set."
+  - "v2.1 (2026-06-13, PG-ARP-F2-007 anchor-drift sweep): Source Location line anchors corrected for F2 line shifts. MAX_FINDINGS const: mod.rs:54→56. Guard sites in check_anomaly_thresholds: mod.rs:461,495,524→mod.rs:479,515,546. Guard sites in lifecycle.rs: lifecycle.rs:101,121→lifecycle.rs:111,141. Finalize unconditional bypass: mod.rs:630→mod.rs:659. Lock fields unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -114,21 +115,21 @@ mod kani_proofs {
 | Factor | Assessment | Notes |
 |--------|-----------|-------|
 | Input space size | Bounded | MAX_FINDINGS = 10,000 is a fixed constant; Kani unwind bound is tractable |
-| Proof complexity | Medium | Must trace all 5 guard sites: mod.rs:461,495,524 + lifecycle.rs:101,121; finalize bypass at mod.rs:630 |
+| Proof complexity | Medium | Must trace all 5 guard sites: mod.rs:479,515,546 + lifecycle.rs:111,141; finalize bypass at mod.rs:659 |
 | Tool support | High | Guard pattern is simple `if len >= MAX_FINDINGS { return; }` (lifecycle.rs) and `if len < MAX_FINDINGS { push }` (mod.rs) |
 | Estimated proof time | 5-15 minutes | Unwind bound of ~10,005 is large but guard sites are simple |
 
 ## Source Location
 
-`src/reassembly/mod.rs:54` -- `const MAX_FINDINGS: usize = 10_000;` (private const, not pub)
+`src/reassembly/mod.rs:56` -- `const MAX_FINDINGS: usize = 10_000;` (private const, not pub)
 
-Guard sites in `mod.rs` (check_anomaly_thresholds): `mod.rs:461, 495, 524`
+Guard sites in `mod.rs` (check_anomaly_thresholds): `mod.rs:479, 515, 546`
   -- pattern: `if self.findings.len() < MAX_FINDINGS { push } else { dropped_findings += 1 }`
 
-Guard sites in `lifecycle.rs` (generate_*_finding): `lifecycle.rs:101, 121`
+Guard sites in `lifecycle.rs` (generate_*_finding): `lifecycle.rs:111, 141`
   -- pattern: `if self.findings.len() >= MAX_FINDINGS { dropped_findings += 1; return; }`
 
-Finalize unconditional push (bypasses cap): `mod.rs:630`
+Finalize unconditional push (bypasses cap): `mod.rs:659`
   -- pushes segment-limit summary finding without a guard; this is the ONLY bypass path.
 
 ## Lifecycle

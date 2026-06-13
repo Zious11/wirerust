@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: F-W16-WAVE-P1-001 — update Verification Properties + Architecture Anchors to renamed STORY-043 formalization test (test_BC_2_06_008_detect_unusual_method); Evidence Types legacy citation intentionally preserved — 2026-05-28"
   - "v1.4 (2026-06-13): ARP-F2-Pass14-Burst5 — Postcondition 1 mitre_technique: None → mitre_techniques: vec![]; Invariant 3 prose updated to match plural field name (Finding struct field renamed to plural Vec<String>)."
+  - "v1.5 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — unusual methods block :251-265→:266-280. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -95,7 +96,7 @@ actions, OPTIONS for fingerprinting).
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- unusual HTTP method detection is one of the HTTP anomaly findings |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:251-265, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:266-280, C-12) |
 | Stories | STORY-043 |
 | Origin BC | BC-HTTP-008 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -105,14 +106,14 @@ actions, OPTIONS for fingerprinting).
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:251-265` -- unusual methods detection block
+- `src/analyzer/http.rs:266-280` -- unusual methods detection block
 - `tests/http_analyzer_tests.rs` -- test_BC_2_06_008_detect_unusual_method (in mod bc_2_06_043_formalization)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:251-265` |
+| **Path** | `src/analyzer/http.rs:266-280` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

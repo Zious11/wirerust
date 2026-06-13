@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: F-W16-WAVE-P1-001 — update Verification Properties + Architecture Anchors to renamed STORY-043 formalization tests (test_BC_2_06_011_detect_empty_user_agent, test_BC_2_06_011_missing_user_agent_no_finding); Evidence Types legacy citations intentionally preserved — 2026-05-28"
   - "v1.4 (2026-06-13): ARP-F2-Pass14-Burst5 — Postcondition 1 mitre_technique: None → mitre_techniques: vec![]; Invariant 3 prose updated to match plural field name (Finding struct field renamed to plural Vec<String>)."
+  - "v1.5 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — empty UA block :344-356→:359-371; Kheir comments :319-343→:334-358; description prose :319-343→:334-358. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -33,7 +34,7 @@ The HttpAnalyzer applies an intentionally asymmetric rule for the User-Agent hea
 only a present-but-empty value (`user_agent == Some("")`) triggers an
 `Anomaly/Inconclusive/Low` finding. A completely absent User-Agent header (`user_agent == None`)
 does NOT fire. This asymmetry is documented in the source with cited research rationale
-(http.rs:319-343): empty-UA is a stronger malware signal (Kheir 2015), while missing-UA
+(http.rs:334-358): empty-UA is a stronger malware signal (Kheir 2015), while missing-UA
 is routine for cron jobs and microservices. No MITRE technique ID is assigned.
 
 ## Preconditions
@@ -92,7 +93,7 @@ is routine for cron jobs and microservices. No MITRE technique ID is assigned.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- empty User-Agent detection is one of the HTTP anomaly findings; absent-UA non-detection is an intentional design choice |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:344-356, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:359-371, C-12) |
 | Stories | STORY-043 |
 | Origin BC | BC-HTTP-011 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -102,15 +103,15 @@ is routine for cron jobs and microservices. No MITRE technique ID is assigned.
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:344-356` -- empty UA detection block
-- `src/analyzer/http.rs:319-343` -- source comments with Kheir 2015 rationale
+- `src/analyzer/http.rs:359-371` -- empty UA detection block
+- `src/analyzer/http.rs:334-358` -- source comments with Kheir 2015 rationale
 - `tests/http_analyzer_tests.rs` -- test_BC_2_06_011_detect_empty_user_agent, test_BC_2_06_011_missing_user_agent_no_finding (in mod bc_2_06_043_formalization)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:344-356` |
+| **Path** | `src/analyzer/http.rs:359-371` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

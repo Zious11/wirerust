@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: PATCH — Pass-19 B-10 anchor fix: contains_c0_or_del tls.rs:231-238→:232-239 (off-by-one). No functional postcondition change. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -86,7 +88,7 @@ This BC defines the precise predicate boundary for the AsciiWithControl arm.
 | L2 Capability | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md |
 | Capability Anchor Justification | CAP-07 ("TLS traffic analysis") per domain/capabilities/cap-07-tls-analysis.md -- precise predicate boundary definition is load-bearing for SNI classification accuracy |
 | L2 Domain Invariants | INV-5 (SNI 4-way classification ordered match) |
-| Architecture Module | SS-07 (analyzer/tls.rs:231-238, C-13) |
+| Architecture Module | SS-07 (analyzer/tls.rs:232-239, C-13) |
 | Stories | STORY-055 |
 | Origin BC | BC-TLS-016 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -97,14 +99,14 @@ This BC defines the precise predicate boundary for the AsciiWithControl arm.
 
 ## Architecture Anchors
 
-- `src/analyzer/tls.rs:231-238` -- `contains_c0_or_del` function
+- `src/analyzer/tls.rs:232-239` -- `contains_c0_or_del` function
 - `tests/tls_analyzer_tests.rs` -- test_ascii_control_boundary_bytes
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/tls.rs:231-238` |
+| **Path** | `src/analyzer/tls.rs:232-239` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

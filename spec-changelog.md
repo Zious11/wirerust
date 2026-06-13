@@ -14,6 +14,492 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-19-straggler-domain-reanchor-2026-06-13] — 2026-06-13
+
+### PATCH: P19 straggler — comprehensive domain + prd-supplement src-line anchor sweep (PG-ARP-F2-007)
+
+**Summary:** Completes the anchor-drift remediation left over after Pass 19. F2 feature cycles (Modbus STORY-105, DNP3 STORY-110, timestamp wiring STORY-097/098/099, multi-tag mitre_techniques STORY-100) shifted source line numbers throughout the codebase, leaving capability docs, entity docs, invariants, and prd-supplement docs with stale anchors. This sweep corrects all identified stale citations. No src files touched. No BC subsystem files touched. No VP files touched (architect already completed VP-sweep in the preceding burst). No commit issued in this step.
+
+---
+
+**Architect VP-sweep bumps (logged here per PO changelog ownership):**
+
+Applied in the preceding burst by architect agent. VP version bumps from VP-sweep (src-line anchor correction across VP files):
+
+| File | Before | After |
+|------|--------|-------|
+| vp-003 | v2.0 | v2.1 |
+| vp-004 | v2.1 | v2.2 |
+| vp-006 | v2.0 | v2.1 |
+| vp-010 | v2.0 | v2.1 |
+| vp-011 | v2.0 | v2.1 |
+| vp-013 | v2.0 | v2.1 |
+| vp-014 | v2.0 | v2.1 |
+| vp-015 | v2.0 | v2.1 |
+| vp-021 | v2.0 | v2.1 |
+
+Note: purity-boundary-map v1.4→v1.5 (P19 A-01/A-02) was already logged in `[pass-19-c-fixes-2026-06-13]` — not re-logged here.
+
+---
+
+**cap-05-content-first-dispatch.md (applied in prior burst, logged here):**
+
+| Cited symbol | Old anchor | Actual anchor (verified) |
+|-------------|-----------|------------------------|
+| None-cache block in `on_data` | dispatcher.rs:137-148 | dispatcher.rs:269-290 |
+
+| File | Version |
+|------|---------|
+| cap-05-content-first-dispatch.md | — → 1.1 |
+
+---
+
+**cap-06-http-analysis.md:**
+
+All 10 anomaly detection table source-line anchors updated. UA rationale prose anchor updated.
+
+| Detection | Old | New |
+|-----------|-----|-----|
+| Path traversal | http.rs:187-203 | http.rs:200-218 |
+| Web shell | http.rs:218-233 | http.rs:221-248 |
+| Admin panel | http.rs:237-249 | http.rs:250-264 |
+| Unusual method | http.rs:253-265 | http.rs:266-280 |
+| Missing/Empty Host | http.rs:283-301 | http.rs:282-317 |
+| Abnormally long URI | http.rs:305-317 | http.rs:319-332 |
+| Empty UA | http.rs:344-356 | http.rs:359-371 |
+| Too-many-headers (request) | http.rs:416-428 | http.rs:435-449 |
+| Too-many-headers (response) | http.rs:475-487 | http.rs:496-509 |
+| UA rationale prose | http.rs:319-343 | http.rs:334-358 |
+
+| File | Version |
+|------|---------|
+| cap-06-http-analysis.md | — → 1.1 |
+
+---
+
+**cap-07-tls-analysis.md:**
+
+| Cited symbol | Old anchor | Actual anchor (verified) |
+|-------------|-----------|------------------------|
+| TlsFlowState::done() | tls.rs:291-293 | tls.rs:298-300 |
+| Early-exit guard in on_data | tls.rs:721-724 | tls.rs:807-810 |
+| truncated_records field | tls.rs:312 | tls.rs:319 |
+| truncated_records += 1 | tls.rs:645 | tls.rs:691 |
+| summarize() truncated_records insertion | tls.rs:798-801 | tls.rs:887-890 |
+| SNI AsciiWithControl finding block | tls.rs:426-448 | tls.rs:437-460 |
+| SNI NonAsciiUtf8 finding block | tls.rs:449-468 | tls.rs:461-493 |
+| SNI NonUtf8 finding block | tls.rs:469-489 | tls.rs:494-514 |
+| Weak ClientHello ciphers block | tls.rs:504-517 | tls.rs:542-556 |
+| Deprecated ClientHello version block | tls.rs:526-539 | tls.rs:559-579 |
+| Weak ServerHello cipher block | tls.rs:571-582 | tls.rs:614-627 |
+| Deprecated ServerHello version block | tls.rs:591-604 | tls.rs:630-650 |
+| O-06 weak-cipher evidence note | tls.rs:504-517 | tls.rs:542-556 |
+
+| File | Version |
+|------|---------|
+| cap-07-tls-analysis.md | — → 1.1 |
+
+---
+
+**cap-09-finding-emission.md:**
+
+All 22 emission site line numbers updated (9 http.rs, 7 tls.rs, 4 mod.rs, 2 lifecycle.rs). Notable-properties refs also updated.
+
+| File | Version |
+|------|---------|
+| cap-09-finding-emission.md | 1.1 → 1.2 (second modified entry added) |
+
+---
+
+**ent-03-dispatch-analysis.md:**
+
+| Cited symbol | Old anchor | Actual anchor (verified) |
+|-------------|-----------|------------------------|
+| E-21 StreamDispatcher struct | dispatcher.rs:42-54 | dispatcher.rs:60-78 |
+| E-22 DispatchTarget enum | dispatcher.rs:23-28 | dispatcher.rs:38-46 |
+| E-22 None-cache prose | dispatcher.rs:137-148 | dispatcher.rs:269-290 |
+| E-31 HttpAnalyzer struct | http.rs:114 | http.rs:122 |
+| E-32 HttpFlowState struct | http.rs:82 | http.rs:84 |
+| E-33 TlsAnalyzer struct | tls.rs:298 | tls.rs:305 |
+| E-34 TlsFlowState struct | tls.rs:273 | tls.rs:274 |
+| E-35 SniValue enum | tls.rs:200 | tls.rs:201 |
+| E-40 UA rationale prose | http.rs:319-343 | http.rs:334-358 |
+
+E-22 enum body updated to include Modbus and Dnp3 variants (per F2 extension).
+
+| File | Version |
+|------|---------|
+| ent-03-dispatch-analysis.md | — → 1.1 |
+
+---
+
+**ent-04-findings-output.md:**
+
+| Cited symbol | Old anchor | Actual anchor (verified) |
+|-------------|-----------|------------------------|
+| E-23 Verdict enum | findings.rs:30-40 | findings.rs:32-46 |
+| E-24 Confidence enum | findings.rs:57-66 | findings.rs:66-73 |
+| E-27 MitreTactic enum | mitre.rs:45-66 | mitre.rs:47-70 |
+
+| File | Version |
+|------|---------|
+| ent-04-findings-output.md | 1.2 → 1.3 |
+
+---
+
+**inv-01-core-invariants.md:**
+
+| Cited symbol | Old anchor | Actual anchor (verified) |
+|-------------|-----------|------------------------|
+| INV-2 HTTP/ arm inline cite | dispatcher.rs:104 | dispatcher.rs:199 |
+| INV-5 SniValue enum | tls.rs:200 | tls.rs:201 |
+| INV-5 extract_sni match block | tls.rs:251-265 | tls.rs:252-266 |
+| INV-6 MAX_FINDINGS const | mod.rs:54 | mod.rs:56 |
+| INV-6 guard sites | mod.rs:461,495,524 + lifecycle.rs:101,121 | mod.rs:479,515,546 + lifecycle.rs:111,141 |
+| INV-8 request poison transition | http.rs:408-409 | http.rs:427-428 |
+| INV-8 response poison transition | http.rs:467-468 | http.rs:488-489 |
+
+| File | Version |
+|------|---------|
+| inv-01-core-invariants.md | 1.3 → 1.4 |
+
+---
+
+**nfr-catalog.md:**
+
+| Cited symbol | Old anchor | Actual anchor (verified) |
+|-------------|-----------|------------------------|
+| NFR-RES-011 MAX_HEADER_BUF const | http.rs:21 | http.rs:23 |
+| NFR-RES-011 buffer cap sites | http.rs:513, 525 | http.rs:546, 558 |
+| NFR-RES-012 MAX_HEADERS const | http.rs:22 | http.rs:24 |
+| NFR-RES-012 TooManyHeaders request | http.rs:416-428 | http.rs:435-449 |
+| NFR-RES-012 TooManyHeaders response | http.rs:475-487 | http.rs:496-509 |
+| NFR-RES-013 MAX_URIS const | http.rs:23 | http.rs:25 |
+| NFR-RES-013 URI cap guard | http.rs:391-393 | http.rs:406 |
+| NFR-RES-014 MAX_MAP_ENTRIES (http) | http.rs:24 | http.rs:26 |
+| NFR-RES-014 MAX_MAP_ENTRIES (tls) | tls.rs:30 | tls.rs:31 |
+| NFR-RES-015 MAX_BUF const | tls.rs:29 | tls.rs:30 |
+| NFR-RES-015 buffer cap sites | tls.rs:761, 768 | tls.rs:822, 829 |
+| NFR-RES-016 MAX_RECORD_PAYLOAD const | tls.rs:31-33 | tls.rs:32-34 |
+| NFR-RES-016 oversized record guard | tls.rs:643-653 | tls.rs:689 |
+| NFR-RES-017 POISON_THRESHOLD const | http.rs:80 | http.rs:82 |
+
+| File | Version |
+|------|---------|
+| nfr-catalog.md | 2.0 → 2.1 |
+
+---
+
+**error-taxonomy.md:**
+
+| Cited symbol | Old anchor | Actual anchor (verified) |
+|-------------|-----------|------------------------|
+| E-ANA-001 parse_errors increment | http.rs:405, 463 | http.rs:424, 484 |
+| E-ANA-002 request poison block | http.rs:406-415 | http.rs:424-434 |
+| E-ANA-002 response poison block | http.rs:464-473 | http.rs:484-494 |
+| E-ANA-003 oversized record path | tls.rs:643-653 | tls.rs:689-699 |
+| E-ANA-006 per-map cap guard (http) | http.rs:375-389 | http.rs:390-394 |
+| E-ANA-007 increment helper | tls.rs:372-375 | tls.rs:379-384 |
+| E-ANA-007 call sites | tls.rs:387,416,494,549,564,568 | tls.rs:398,427,520,593,608,612 |
+| E-ANA-008 URI cap guard | http.rs:391-392 | http.rs:406 |
+| E-RAS-003 mod.rs guard sites | mod.rs:461,495,524 | mod.rs:479,515,546 |
+| E-RAS-003 lifecycle guard sites | lifecycle.rs:101,121 | lifecycle.rs:111,141 |
+
+| File | Version |
+|------|---------|
+| error-taxonomy.md | 2.0 → 2.1 |
+
+---
+
+**test-vectors.md:**
+
+| Cited symbol | Old anchor | Actual anchor (verified) |
+|-------------|-----------|------------------------|
+| BC-2.06.005 path-traversal push | http.rs:193 | http.rs:205 |
+| BC-2.07.014 AsciiWithControl block | tls.rs:426-448 | tls.rs:437-460 |
+| BC-2.07.017 NonAsciiUtf8 block | tls.rs:449-468 | tls.rs:461-493 |
+| BC-2.07.037 extract_sni match | tls.rs:251-258 | tls.rs:252-266 |
+
+| File | Version |
+|------|---------|
+| test-vectors.md | 2.0 → 2.1 |
+
+---
+
+## [pass-19-c-fixes-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-19 C-01/C-02/C-03 — MITRE fact, dispatcher.rs anchor drift (prd-supplements + inv-01), HS-009 tactic fix; Architect P19 A-01/A-02 bump
+
+**Summary:** Remediates three Pass-19 findings (C-01 HIGH MITRE fact error in HS-009; C-02 HIGH dispatcher.rs anchor drift in nfr-catalog and nfr-story-map; C-03 MED dispatcher.rs anchor drift in inv-01). Also logs the architect's P19 A-01/A-02 bump to purity-boundary-map.md (v1.4→v1.5), which was applied in the preceding burst. No src files touched. No BCs touched. No stories touched.
+
+---
+
+**C-01 (HIGH) — HS-009: T1083 tactic "Reconnaissance" → "Discovery"**
+
+Root cause: Step 3 of HS-009 stated "T1083 -> Reconnaissance". This is factually wrong.
+`src/mitre.rs:141` seeded T1083 as `("File and Directory Discovery", MitreTactic::Discovery)`.
+Discovery is the correct parent tactic per MITRE ATT&CK Enterprise. The HTTP analyzer uses
+"Reconnaissance" as a ThreatCategory label (a different axis); that had no bearing on the
+technique_tactic() return value for T1083.
+
+| File | Before | After |
+|------|--------|-------|
+| HS-009 line 49 | `T1083 -> Reconnaissance` | `T1083 -> Discovery` |
+| HS-009 version | 1.2 | 1.3 |
+
+Verified: `src/mitre.rs:141` → `"T1083" => ("File and Directory Discovery", MitreTactic::Discovery)`.
+
+---
+
+**C-02 (HIGH) — nfr-catalog.md + nfr-story-map.md: dispatcher.rs anchor drift**
+
+Root cause: The Modbus (STORY-105) and DNP3 (STORY-110) additions extended
+`src/dispatcher.rs` significantly, shifting the struct field positions and the
+`on_data` cache-lookup block down from where they were when the NFR anchors were first written.
+
+**NFR-PERF-003 (nfr-catalog.md):**
+
+| Cited symbol | Old anchor | Actual anchor (verified) |
+|-------------|-----------|------------------------|
+| `routes: HashMap<FlowKey, DispatchTarget>` struct field | dispatcher.rs:43 | dispatcher.rs:61 |
+| cache lookup block (`let target = if let Some(&cached)`) | dispatcher.rs:133-154 | dispatcher.rs:269-290 |
+
+**NFR-OBS-005 (nfr-catalog.md):**
+
+| Cited symbol | Old anchor | Actual anchor (verified) |
+|-------------|-----------|------------------------|
+| `unclassified_flows: u64` struct field | dispatcher.rs:53 | dispatcher.rs:77 |
+| accessor fn `unclassified_flows()` | dispatcher.rs:80-81 | dispatcher.rs:117-119 |
+| `self.unclassified_flows += 1` (on_flow_close None arm) | dispatcher.rs:188-191 | dispatcher.rs:357 |
+
+**NFR-OBS-005 (nfr-story-map.md line 79):**
+
+| Old text | New text |
+|---------|---------|
+| `dispatcher.rs:53` | `dispatcher.rs:77` |
+
+| File | Version |
+|------|---------|
+| nfr-catalog.md | 1.9 → 2.0 |
+| nfr-story-map.md | 1.2 → 1.3 |
+
+---
+
+**C-03 (MED) — inv-01-core-invariants.md INV-2: dispatcher.rs anchor drift**
+
+Root cause: Same Modbus/DNP3 extension as C-02. INV-2 enforcement anchors for the `classify`
+function and the `on_data` cache-lookup block were stale.
+
+| Cited symbol | Old anchor | Actual anchor (verified) |
+|-------------|-----------|------------------------|
+| `fn classify` | dispatcher.rs:90-117 | dispatcher.rs:184-242 |
+| cache-lookup/retry-budget block in `on_data` | dispatcher.rs:133-154 ("block starts at line 133") | dispatcher.rs:269-290 ("block starts at line 269") |
+
+| File | Version |
+|------|---------|
+| inv-01-core-invariants.md | 1.2 → 1.3 |
+
+Confirmed: inv-01 has exactly ONE `version:` key post-edit (no duplicate introduced).
+INV-9 mitre.rs anchors (v1.1/v1.2 corrections) left unchanged — confirmed still current.
+
+---
+
+**Architect P19 A-01/A-02 bump — purity-boundary-map.md v1.4 → v1.5**
+
+Applied in the preceding burst by architect agent. Logged here per changelog ownership.
+
+| Finding | Change |
+|---------|--------|
+| A-01 (MED) | VP-024 sub-letter corrected C→D; Sub-C clause language added to clarify the read-only observer contract |
+| A-02 (LOW) | None-caching anchor updated: dispatcher.rs:146-148→:279-282 (verified — the `self.routes.insert(flow_key.clone(), DispatchTarget::None)` site in on_data's None branch) |
+
+---
+
+## [pass-19-ss04-ss07-reanchor-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-19 B-07/B-09/B-10 — ss-04 and ss-07 stale src anchor remediation (6 BCs)
+
+**Summary:** Remediates Pass-19 findings B-07 (BC-2.04.055 sibling stale anchors), B-09 (ss-04
+mod.rs anchors shifted by F2 timestamp wiring), and B-10 (ss-07 tls.rs off-by-one anchors).
+All line numbers verified against current source before editing.
+
+**Root cause:** The F2 timestamp wiring burst (STORY-097/098/099) inserted new state fields
+and call-site code into `src/reassembly/mod.rs` (~18 additional lines, shifting mod.rs content
+downward), `src/analyzer/http.rs` (new `last_ts` field and assignment), and `src/analyzer/tls.rs`
+(new `last_ts` field and assignment). A separate minor edit to tls.rs produced 1-line off-by-ones
+in the SNI classification functions.
+
+**Changes applied:**
+
+| BC | Finding | Change |
+|----|---------|--------|
+| BC-2.04.055 v1.0.2→v1.0.3 | B-07 | `http.rs:501→:524` (HttpAnalyzer::on_data); `tls.rs:771→:798` (TlsAnalyzer::on_data) |
+| BC-2.04.024 v1.3→v1.4 | B-09 | `mod.rs:54→:56` (MAX_FINDINGS const); guard sites `mod.rs:461,495,524→:479,515,546` |
+| BC-2.04.020 v1.5→v1.6 | B-09 | small-segment block `mod.rs:486-517→:506-538`; counter maintenance `mod.rs:385-399→:402-405` |
+| BC-2.07.037 v1.2→v1.3 | B-10 | `fn extract_sni tls.rs:246→:247`; match block `tls.rs:251-265→:252-269`; module range `:200-265→:200-269` |
+| BC-2.07.016 v1.2→v1.3 | B-10 | `contains_c0_or_del tls.rs:231-238→:232-239` |
+| BC-2.07.008 v1.3→v1.4 | B-10 | format string `tls.rs:171→:172`; `Md5::digest tls.rs:172→:173` |
+
+**H1 titles:** Unchanged on all 6 BCs.
+
+**Scope:** BC files + BC-INDEX.md inline annotations only. No src, stories, or other subsystems touched.
+
+---
+
+## [pass-19-ss06-reanchor-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-19 B-08 — ss-06 (http.rs) systematic line anchor re-sync across all 26 BCs
+
+**Summary:** Remediates Pass-19 finding B-08. The F2 timestamp wiring (STORY-097/098/099)
+and subsequent refactors extended `src/analyzer/http.rs` to 1044 lines, shifting every
+line number cited by the 26 ss-06 behavioral contracts. This entry records the full
+authoritative line-map correction applied to all BCs in BC-2.06.001 through BC-2.06.026.
+
+**Root cause:** The F2 timestamp wiring burst inserted ~70+ lines into http.rs (new `last_ts`
+field in HttpFlowState, `state.last_ts = timestamp` in `on_data`, associated struct fields),
+shifting all prior cited line numbers. Every ss-06 BC carrying an `http.rs:NNN` anchor was
+stale against the current 1044-line file.
+
+**Authoritative current line map (verified against src/analyzer/http.rs at 1044 lines):**
+
+| Symbol | Old anchor | New anchor |
+|--------|-----------|------------|
+| `MAX_HEADER_BUF` const | `:21` | `:23` |
+| `MAX_HEADERS` const | `:22` | `:24` |
+| `MAX_URIS` const | `:23` | `:25` |
+| `MAX_MAP_ENTRIES` const | `:24` | `:26` |
+| `POISON_THRESHOLD` const | `:80` | `:82` |
+| `find_header` fn | `:70-75` | `:72-77` |
+| `HttpFlowState` struct | `:84` | `:84` (unchanged) |
+| `counted_as_non_http` field | `:89` | `:91` |
+| `HttpAnalyzer` struct | `:114-126` | `:122-134` |
+| `check_request_detections` fn | `:183-357` | `:191-372` |
+| path traversal contains() calls | `:187-190` | `:200-203` |
+| path traversal finding push block | `:192-203` | `:205-218` |
+| web shell shell_patterns array | `:206-217` | `:221-232` |
+| web shell guard + finding push | `:218-233` | `:233-248` |
+| admin panel admin_patterns + block | `:235-249` | `:250-264` |
+| unusual methods block | `:251-265` | `:266-280` |
+| host anomaly block (full incl. RFC comment) | `:283-302` | `:282-317` |
+| long URI block | `:304-317` | `:319-332` |
+| Kheir rationale comments | `:319-343` | `:334-358` |
+| empty UA detection | `:344-356` | `:359-371` |
+| `try_parse_requests` fn | `:359-438` | `:374-459` |
+| `had_success` local var decl (req) | `:364` | `:379` |
+| `!had_success` guard (req) | `:403-408` | `:422-427` |
+| error_count increment + threshold block | `:406-414` | `:425-434` |
+| POISON_THRESHOLD check (req) | `:408-409` | `:427-428` |
+| `counted_as_non_http` latch | `:410-413` | `:429-432` |
+| TooManyHeaders request finding | `:416-428` | `:435-449` |
+| `try_parse_responses` fn | `:440-497` | `:461-520` |
+| `had_success` local var decl (resp) | `:441` | `:462` |
+| transactions + status_codes lines | `:450-452` | `:471-474` |
+| `!had_success` guard (resp) | `:462` | `:483` |
+| POISON_THRESHOLD check (resp) | `:467-468` | `:488-489` |
+| TooManyHeaders response finding | `:475-487` | `:496-509` |
+| `on_data` fn | `:506-540` (approx) | `:524-571` |
+| request_poisoned gate | `:509-512` | `:542-545` |
+| request buf cap block | (part of on_data) | `:546-551` |
+| response_poisoned gate | `:521-524` | `:554-557` |
+| response buf cap + full buffer cap | `:513-529` | `:532-565` |
+| `on_flow_close` fn | `:540-542` | `:573-575` |
+| `summarize()` fn | `:550-601` | `:583-634` |
+| top_hosts sort | `:571-573` | `:604-606` |
+| `findings()` fn | (approx `:610`) | `:636-638` |
+| map entry guards (MAX_MAP_ENTRIES) | `:375-389` | `:390-408` |
+| uris push guard (MAX_URIS) | `:391-393` | `:406-408` |
+
+**Per-BC anchor corrections and version bumps:**
+
+| BC | Fields corrected | Old version | New version |
+|----|-----------------|-------------|-------------|
+| BC-2.06.001 | Architecture Module, Architecture Anchors, Source Evidence Path; find_header :70-75→:72-77; try_parse_requests :359-438→:374-459; parse_one_request fn range | v1.2 | v1.3 |
+| BC-2.06.002 | had_success decl :364→:379; !had_success guard :404→:423; resp analog :462→:483; try_parse_requests :359-438→:374-459 | v1.4 | v1.5 |
+| BC-2.06.003 | Partial request return :402→:421; Partial response return :460→:481 | v1.3 | v1.4 |
+| BC-2.06.004 | status_codes :452→:473; resp had_success decl :441→:462; resp guard :462→:483; try_parse_responses :440-497→:461-520; transactions :450-452→:471-474 | v1.8 | v1.9 |
+| BC-2.06.005 | path traversal contains() :187-190→:200-203; opening brace :191→:204; finding push :192-203→:205-218; arch module/path :186-203→:200-218 | v1.8 | v1.9 |
+| BC-2.06.006 | shell_patterns :206-217→:221-232; guard :218→:233; finding push :219-232→:234-248; overall :206-233→:220-248 | v1.5 | v1.6 |
+| BC-2.06.007 | admin_patterns :236→:251; guard :237→:252; finding push :238-248→:253-264; EC-005 inline cite; overall :235-249→:250-264 | v1.6 | v1.7 |
+| BC-2.06.008 | unusual methods block :251-265→:266-280 | v1.4 | v1.5 |
+| BC-2.06.009 | host anomaly block :283-302→:282-317 (expanded to include RFC comment lines) | v1.4 | v1.5 |
+| BC-2.06.010 | long URI block :304-317→:319-332 | v1.4 | v1.5 |
+| BC-2.06.011 | empty UA :344-356→:359-371; Kheir comments :319-343→:334-358 | v1.4 | v1.5 |
+| BC-2.06.012 | check_request_detections :183-357→:191-372 | v1.2 | v1.3 |
+| BC-2.06.013 | had_success :364/:403-408→:379/:422-427; Err arm :403-434→:422-459 | v1.2 | v1.3 |
+| BC-2.06.014 | TooManyHeaders req :416-428→:435-449; resp :475-487→:496-509 | v1.3 | v1.4 |
+| BC-2.06.015 | POISON_THRESHOLD :80→:82; req poison :408-409→:427-428; resp poison :467-468→:488-489 | v1.3 | v1.4 |
+| BC-2.06.016 | error_count increment+threshold block :406-414→:425-434 | v1.2 | v1.3 |
+| BC-2.06.017 | req_poisoned gate :509-512→:542-545; resp_poisoned gate :521-524→:554-557; arch module/path :509-523→:542-556 | v1.3 | v1.4 |
+| BC-2.06.018 | counted_as_non_http latch :410-413→:429-432; field decl :89→:91 | v1.2 | v1.3 |
+| BC-2.06.019 | on_flow_close :540-542→:573-575 | v1.2 | v1.3 |
+| BC-2.06.020 | had_success decl :362-364→:379-380; guard :403-408→:422-427; req :362-408→:374-427; resp :441-462→:462-483 | v1.4 | v1.5 |
+| BC-2.06.021 | flows HashMap+HttpAnalyzer struct :114-126→:122-134 | v1.2 | v1.3 |
+| BC-2.06.022 | MAX_HEADER_BUF :21→:23; buffer cap in on_data :513-529→:532-565 | v1.2 | v1.3 |
+| BC-2.06.023 | summarize() :550-601→:583-634; top_hosts sort :571-573→:604-606 | v1.4 | v1.5 |
+| BC-2.06.024 | MAX_MAP_ENTRIES :24→:26; map entry guard :375-378→:390-392; overall :375-389→:390-408 | v1.2 | v1.3 |
+| BC-2.06.025 | MAX_URIS :23→:25; uris push guard :391-393→:406-408 | v1.2 | v1.3 |
+| BC-2.06.026 | find_header :70-75→:72-77 | v1.3 | v1.4 |
+
+**H1 titles:** Unchanged on all 26 BCs (anchor-only edits).
+
+**BC-INDEX:** ss-06 inline annotations updated for all 26 BCs with new version numbers.
+
+---
+
+## [pass-19-ss09-reanchor-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-19 B-01..B-06 — ss-09 stale line anchors + Possible variant content gap
+
+**Summary:** Remediates Pass-19 findings B-01 through B-06 against the seven ss-09 BCs
+(BC-2.09.001..007). The root cause is the STORY-100 (multi-tag mitre_techniques) comment block
+inserted at findings.rs:142-147, which shifted all subsequent code down by 6+ lines. Pass-18
+re-anchors (DF-SIBLING-SWEEP-001 in v1.4/v1.6) used the cfe0112a HEAD but were themselves
+stale for this file relative to the current HEAD.
+
+**Anchor fixes applied (all verified against current src/findings.rs):**
+
+| BC | Finding | Old anchor | New anchor |
+|----|---------|------------|------------|
+| BC-2.09.001 | B-01 | `findings.rs:119-146` (struct Finding) | `findings.rs:135-162` |
+| BC-2.09.002 | B-02 | `findings.rs:159-170` (Display for Finding) | `findings.rs:173-184` |
+| BC-2.09.003 | B-03 (anchor) | `findings.rs:43-50` (Display for Verdict) | `findings.rs:48-57` |
+| BC-2.09.004 | B-04 | `findings.rs:68-76` (Display for Confidence) | `findings.rs:75-83` |
+| BC-2.09.005 | B-05 | struct `:120` → `:135`; fields `:124-125` → `:140-141`; doc-comment `:150-158` → `:164-172`; cited line `:157` → `:171`; struct Source Evidence `:120-145` → `:135-162`; terminal.rs call site 3 `:223` → `:224`. Invariant 1 call-site list corrected from `172, 197, 216` to `179, 204, 224`. |
+| BC-2.09.006 | — | No line-specific anchors — confirmed clean. No changes. |
+| BC-2.09.007 | B-06 | `findings.rs:119-146` (Finding struct in Architecture Anchors) | `findings.rs:135-162` |
+
+**Content gap B-03 resolved — Verdict::Possible variant:**
+
+`src/findings.rs:45` confirms `Possible` is a current variant of the `Verdict` enum (added
+STORY-109). It renders as "POSSIBLE" (`findings.rs:54`). BC-2.09.003 previously listed only
+three variants (Likely/Unlikely/Inconclusive) in Description, Postconditions, Invariants, Edge
+Cases, and Canonical Test Vectors — a content gap that made the BC falsifiable against current
+source. Additions made:
+- Description: added `Possible => "POSSIBLE"` and STORY-109 provenance.
+- Postcondition 4: `Verdict::Possible` displays as "POSSIBLE".
+- Postcondition 5: renumbered "No other strings" to reflect four current variants.
+- Invariant 2: updated to list all four variants; Invariant 4 added (Possible rank + terminal sort).
+- EC-004: `Verdict::Possible` → "POSSIBLE" (with STORY-109 usage context).
+- Canonical Test Vectors: row added for `format!("{}", Verdict::Possible)` → "POSSIBLE".
+- Architecture Anchors: added `enum Verdict` anchor at `findings.rs:32-46`; Display anchor updated to `:48-57`.
+
+BC-2.09.002 Postcondition 3 also updated to include "POSSIBLE" in the verdict token list.
+
+**Version bumps:**
+- BC-2.09.001: v1.5 → v1.6
+- BC-2.09.002: v1.4 → v1.5
+- BC-2.09.003: v1.2 → v1.3
+- BC-2.09.004: v1.2 → v1.3
+- BC-2.09.005: v1.6 → v1.7
+- BC-2.09.006: no change (clean)
+- BC-2.09.007: v1.1.1 → v1.1.2
+
+**H1 titles:** Unchanged on all seven BCs.
+
+**BC-INDEX:** ss-09 inline annotations updated for all changed BCs.
+
+---
+
 ## [pass-18-c-fixes-2026-06-13] — 2026-06-13
 
 ### PATCH: Pass-18 C-01/D-01/C-02 + carry-over anchor + pending architect-A and proactive version-bump log

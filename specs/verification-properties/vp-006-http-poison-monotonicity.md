@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.0"
+version: "2.1"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -24,6 +24,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v1.1: DF-SIBLING-SWEEP-001 — fix stale http.rs line anchors in proof harness comment: request_poisoned block :509-511 → :509-512, response_poisoned block :521-522 → :521-524; verified against HEAD cfe0112a — 2026-06-01"
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set."
+  - "v2.1 (2026-06-13, PG-ARP-F2-007 anchor-drift sweep): Source Location and harness-comment line anchors corrected for F2 http.rs shifts. POISON_THRESHOLD: :80→:82. Request poison transition: :408-409→:427-429. Response poison transition: :467-468→:489-490. Harness comment skip-block anchors: :509-512/:521-524→:542-544/:554-556. Lock fields unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -77,7 +78,7 @@ sequences of byte chunks and verifies the monotonicity invariant across all orde
 //     a PRIVATE struct. There is no flow_state() public method on HttpAnalyzer.
 //   - The only public observable for poisoning is poisoned_bytes_skipped() -> u64,
 //     which increments for every byte fed to a direction after it is poisoned
-//     (src/analyzer/http.rs:509-512, 521-524).
+//     (src/analyzer/http.rs:542-544, 554-556).
 //   - Public methods: new(), transaction_count(), parse_error_count(),
 //     poisoned_bytes_skipped(), method_counts(), host_counts(), uri_list(),
 //     status_code_counts(), user_agent_counts().
@@ -195,13 +196,13 @@ mod proptest_proofs {
 
 ## Source Location
 
-`src/analyzer/http.rs:408-409` -- request direction poison transition:
+`src/analyzer/http.rs:427-429` -- request direction poison transition:
   `if state.request_error_count >= POISON_THRESHOLD { state.request_poisoned = true; }`
 
-`src/analyzer/http.rs:467-468` -- response direction poison transition:
+`src/analyzer/http.rs:489-490` -- response direction poison transition:
   `if state.response_error_count >= POISON_THRESHOLD { state.response_poisoned = true; }`
 
-`src/analyzer/http.rs:80` -- `const POISON_THRESHOLD: u8 = 3;`
+`src/analyzer/http.rs:82` -- `const POISON_THRESHOLD: u8 = 3;`
 
 Confirmed zero `= false` assignments to `*_poisoned` fields (pass-2 R3 Target 3 audit).
 

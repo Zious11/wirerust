@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0.2"
+version: "1.0.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-08T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.2.0-feature-100
 modified:
   - "v1.0.1: PATCH — VP Anchor annotation updated: VP-021 status corrected from draft/unverified to verified @256a490 (F6 lock propagation, FINDING-005). No functional postcondition change. — 2026-06-09"
   - "v1.0.2: PATCH — Pass-18 carry-over anchor fix: Architecture Anchors dispatcher.rs:144→:245 (StreamDispatcher::on_data now opens at line 245 after Feature #7/#8 additions shifted content). No functional postcondition change. — 2026-06-13"
+  - "v1.0.3: PATCH — Pass-19 B-07 anchor fix: http.rs:501→:524 (HttpAnalyzer::on_data); tls.rs:771→:798 (TlsAnalyzer::on_data) — F2 timestamp wiring shifted both. No functional postcondition change. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -150,8 +151,8 @@ this parameter to compile; the trait is a breaking-change boundary.
 - `src/reassembly/mod.rs` — `flush_contiguous_data`: pass current-packet `timestamp: u32` to `handler.on_data`
 - `src/reassembly/lifecycle.rs:42-57` — `close_flow`: pass `flow.last_seen` to `handler.on_data`
 - `src/dispatcher.rs:245` — `StreamDispatcher::on_data` (add and forward `timestamp: u32`)
-- `src/analyzer/http.rs:501` — `HttpAnalyzer::on_data` (add `timestamp: u32`; store per-flow)
-- `src/analyzer/tls.rs:771` — `TlsAnalyzer::on_data` (add `timestamp: u32`; store per-flow)
+- `src/analyzer/http.rs:524` — `HttpAnalyzer::on_data` (add `timestamp: u32`; store per-flow)
+- `src/analyzer/tls.rs:798` — `TlsAnalyzer::on_data` (add `timestamp: u32`; store per-flow)
 
 ## Story Anchor
 

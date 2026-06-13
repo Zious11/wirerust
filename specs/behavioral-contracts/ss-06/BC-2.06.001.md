@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — find_header :70-75→:72-77; parse_one_request :35-50→:37-52; try_parse_requests :359-438→:374-459. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -57,7 +58,7 @@ increment `transactions`; only a parsed response does (per BC-2.06.004).
 ## Invariants
 
 1. Header field values are extracted via `String::from_utf8_lossy(h.value).trim().to_string()`
-   (find_header at http.rs:70-75). Non-UTF-8 bytes in header values are replaced with U+FFFD.
+   (find_header at http.rs:72-77). Non-UTF-8 bytes in header values are replaced with U+FFFD.
 2. The method string is extracted from `req.method` (ASCII token; httparse guarantees ASCII).
 3. Raw bytes are NOT escaped at parse time; ADR 0003 / INV-4 applies.
 4. `transactions` is NOT incremented on request parse -- only on response (BC-2.06.004).
@@ -97,7 +98,7 @@ increment `transactions`; only a parsed response does (per BC-2.06.004).
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- request parsing is the core data-extraction behavior of HTTP analysis |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:35-49, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:37-52, C-12) |
 | Stories | STORY-041 |
 | Origin BC | BC-HTTP-001 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -110,15 +111,15 @@ increment `transactions`; only a parsed response does (per BC-2.06.004).
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:35-50` -- parse_one_request function
-- `src/analyzer/http.rs:359-438` -- try_parse_requests loop
+- `src/analyzer/http.rs:37-52` -- parse_one_request function
+- `src/analyzer/http.rs:374-459` -- try_parse_requests loop
 - `tests/http_analyzer_tests.rs` -- test_parse_get_request, test_parse_pipelined_requests
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:35-50, 359-438` |
+| **Path** | `src/analyzer/http.rs:37-52, 374-459` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.0"
+version: "2.1"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -23,6 +23,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set (src/analyzer/tls.rs)."
+  - "v2.1 (2026-06-13, PG-ARP-F2-007 anchor-drift sweep): Source Location and harness-comment line anchors corrected for F2 tls.rs shifts. is_grease_u16: :50→:51. compute_ja3: :95→:96. compute_ja3s: :156→:157. JA3 format string comment: :148→:149. Cipher filter chain comment: :101-106→:101-107. Lock fields unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -82,13 +83,13 @@ API notes verified against `src/analyzer/tls.rs` @ 0082a0c:
 - `is_grease_u16(val: u16) -> bool` is the module-private GREASE predicate.
   It uses the broader mask `(val & 0x0F0F) == 0x0A0A` (intentionally covers
   240 non-canonical `0x_A_A` values beyond the 16 strict RFC 8701 GREASE
-  values -- see src/analyzer/tls.rs:50 for rationale).
+  values -- see src/analyzer/tls.rs:51 for rationale).
 - Both `compute_ja3` and `is_grease_u16` are private (`fn`, not `pub fn`).
   Proptest must be a module-internal test using `use super::*`.
 - Cipher types use `TlsCipherSuiteID` (a newtype wrapper around `u16`), not
   bare `u16`. Construct via `TlsCipherSuiteID(val)`.
 - JA3 string format uses `-` as the field delimiter and `-` as the
-  within-field delimiter (src/analyzer/tls.rs:148: `format!("{version},{cipher_str},{ext_ids},{curves_str},{pf_str}")`
+  within-field delimiter (src/analyzer/tls.rs:149: `format!("{version},{cipher_str},{ext_ids},{curves_str},{pf_str}")`
   where inner join also uses `-`).
 
 ```rust
@@ -99,7 +100,7 @@ mod proptest_proofs {
     use tls_parser::TlsCipherSuiteID;
     use super::*; // brings compute_ja3, is_grease_u16 into scope
 
-    // The GREASE predicate used by this module (src/analyzer/tls.rs:50):
+    // The GREASE predicate used by this module (src/analyzer/tls.rs:51):
     // (val & 0x0F0F) == 0x0A0A -- broader than the 16 strict RFC 8701 values.
     fn grease(v: u16) -> bool {
         (v & 0x0F0F) == 0x0A0A
@@ -120,7 +121,7 @@ mod proptest_proofs {
             let (_, ja3_str) = compute_ja3(version, &ciphers, &[]);
 
             // Parse the cipher field (field index 1, delimiter '-') and verify
-            // no GREASE values appear (src/analyzer/tls.rs:101-106).
+            // no GREASE values appear (src/analyzer/tls.rs:101-107).
             let fields: Vec<&str> = ja3_str.splitn(5, ',').collect();
             if let Some(cipher_field) = fields.get(1) {
                 for s in cipher_field.split('-').filter(|s| !s.is_empty()) {
@@ -179,10 +180,10 @@ mod proptest_proofs {
 
 ## Source Location
 
-`src/analyzer/tls.rs:50` -- `fn is_grease_u16(val: u16) -> bool` -- GREASE predicate.
-`src/analyzer/tls.rs:95` -- `fn compute_ja3(version: u16, ciphers: &[TlsCipherSuiteID], extensions: &[TlsExtension<'_>]) -> (String, String)`.
+`src/analyzer/tls.rs:51` -- `fn is_grease_u16(val: u16) -> bool` -- GREASE predicate.
+`src/analyzer/tls.rs:96` -- `fn compute_ja3(version: u16, ciphers: &[TlsCipherSuiteID], extensions: &[TlsExtension<'_>]) -> (String, String)`.
 Curves and point_formats are extracted from `extensions` internally (no separate curves arg).
-`src/analyzer/tls.rs:156` -- `fn compute_ja3s(version: u16, cipher: TlsCipherSuiteID, extensions: &[TlsExtension<'_>]) -> String`.
+`src/analyzer/tls.rs:157` -- `fn compute_ja3s(version: u16, cipher: TlsCipherSuiteID, extensions: &[TlsExtension<'_>]) -> String`.
 Returns MD5 hex string only (not a tuple).
 Both functions are module-private; proofs must be in `src/analyzer/tls.rs` test submodule.
 

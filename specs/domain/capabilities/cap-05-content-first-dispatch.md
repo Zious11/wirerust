@@ -5,6 +5,11 @@ cap_id: CAP-05
 title: Content-First Protocol Dispatch
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
+version: "1.1"
+modified:
+  - date: 2026-06-13
+    actor: product-owner
+    reason: "P19 straggler anchor sweep: None-cache block anchor :137-148 → :269-290 (Modbus/DNP3 extension shifted on_data). Verified against src/dispatcher.rs."
 ---
 
 # CAP-05: Content-First Protocol Dispatch
@@ -54,7 +59,7 @@ advisory). Zero tests exercise the misroute path.
   Phase 2 (attempt count reaches `max_classification_attempts`): `DispatchTarget::None` IS
   inserted permanently into `routes` and `classify()` is no longer called for that flow.
   The `classification_attempts` entry is removed at that point.
-  (dispatcher.rs:137-148; LESSON-P2.11)
+  (dispatcher.rs:269-290; LESSON-P2.11)
 
 ## max_classification_attempts knob (P2.11 / #80)
 

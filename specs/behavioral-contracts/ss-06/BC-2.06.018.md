@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — counted_as_non_http latch :410-413→:429-432; field decl :89→:91. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,7 +53,7 @@ each flow contributes at most 1 to `non_http_flows`.
 
 1. `counted_as_non_http` is a per-flow latch (one bool per HttpFlowState).
 2. `non_http_flows` counts flows, not directions.
-3. The latch is checked before incrementing: `if !state.counted_as_non_http { state.counted_as_non_http = true; self.non_http_flows += 1; }` (http.rs:410-413).
+3. The latch is checked before incrementing: `if !state.counted_as_non_http { state.counted_as_non_http = true; self.non_http_flows += 1; }` (http.rs:429-432).
 
 ## Edge Cases
 
@@ -84,7 +85,7 @@ each flow contributes at most 1 to `non_http_flows`.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- per-flow non_http_flows counting is part of HTTP analysis statistics |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true -- counted_as_non_http latch is part of this) |
-| Architecture Module | SS-06 (analyzer/http.rs:410-413, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:429-432, C-12) |
 | Stories | STORY-044 |
 | Origin BC | BC-HTTP-018 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -96,15 +97,15 @@ each flow contributes at most 1 to `non_http_flows`.
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:410-413` -- counted_as_non_http latch and non_http_flows increment
-- `src/analyzer/http.rs:89` -- counted_as_non_http field in HttpFlowState
+- `src/analyzer/http.rs:429-432` -- counted_as_non_http latch and non_http_flows increment
+- `src/analyzer/http.rs:91` -- counted_as_non_http field in HttpFlowState
 - `tests/http_analyzer_tests.rs` -- test_non_http_flows_counts_per_flow_not_direction
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:410-413` |
+| **Path** | `src/analyzer/http.rs:429-432` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

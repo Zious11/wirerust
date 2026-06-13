@@ -4,10 +4,12 @@ traces_to: ../domain-spec.md
 title: Core Domain Invariants
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
-version: "1.2"
+version: "1.4"
 modified:
   - "v1.1: Pass-12 corpus-cleanup F-C-P12-001: INV-9 enforcement anchor re-anchored from stale :122-156 (let info=match@:123, _=>return None@:153, }@:156) to current :128-182 (technique_info fn@:128, let info=match id@:129, _ => return None@:179, closing }@:182). — 2026-06-13"
   - "v1.2: ARP-F2 Pass-14 remediation: INV-9 rule prose updated 'Finding.mitre_technique' → 'Finding.mitre_techniques' (STORY-100 AC-008 renamed scalar→Vec; STALE fix per pass-14 discrimination rule). — 2026-06-13"
+  - "v1.3: Pass-19 C-03 — INV-2 dispatcher.rs anchors corrected: classify fn :90-117→:184-242; cache-lookup/retry-budget block :133-154→:269-290 (block starts at :269 with 'let target = if let Some(&cached) = self.routes.get(flow_key)'). — 2026-06-13"
+  - "v1.4: P19 straggler anchor sweep — INV-2 inline HTTP/ arm cite :104→:199; INV-5 SniValue enum :200→:201, match block :251-265→:252-266; INV-6 MAX_FINDINGS const :54→:56, mod.rs guard sites :461/:495/:524→:479/:515/:546, lifecycle guard sites :101/:121→:111/:141; INV-8 request poison :408-409→:427-428, response poison :467-468→:488-489. Verified against src/reassembly/mod.rs, lifecycle.rs, analyzer/http.rs, analyzer/tls.rs. — 2026-06-13"
 ---
 
 # Core Domain Invariants
@@ -49,11 +51,11 @@ TCP content before falling back to port numbers. Precedence order:
    5-byte buffer minimum to guard against short data) => TLS
 2. HTTP method token prefix (`GET `, `POST `, `PUT `, `DELETE `, `HEAD `, `OPTIONS `,
    `PATCH `, `CONNECT `, `TRACE `, or `HTTP/` via `starts_with`) => HTTP
-   (the `HTTP/` arm matches response-first streams; see `src/dispatcher.rs:104`)
+   (the `HTTP/` arm matches response-first streams; see `src/dispatcher.rs:199`)
 3. Port-based fallback (80/443/8080/8443) => HTTP or TLS
 4. Otherwise => `DispatchTarget::None` for this call
 
-**None caching behavior (verified against `src/dispatcher.rs:133-154`):**
+**None caching behavior (verified against `src/dispatcher.rs:269-290`):**
 `DispatchTarget::None` is NOT immediately cached. Each `None` result increments a
 per-flow `classification_attempts` counter. Once the counter reaches
 `max_classification_attempts` (default 8), the dispatcher permanently inserts
@@ -65,9 +67,9 @@ immutable for the flow's lifetime.
 **Why load-bearing:** This is the dispatch identity per ADR 0001. Changing to port-first
 would break the sniffing of protocol-aware attacks where attackers run non-standard ports.
 
-**Enforcement:** `src/dispatcher.rs:90-117` (`classify` function); `src/dispatcher.rs:133-154`
-(cache lookup + retry-budget logic in `on_data`; block starts at line 133 with
-`let target = if let Some(&cached)`).
+**Enforcement:** `src/dispatcher.rs:184-242` (`classify` function); `src/dispatcher.rs:269-290`
+(cache lookup + retry-budget logic in `on_data`; block starts at line 269 with
+`let target = if let Some(&cached) = self.routes.get(flow_key)`).
 **Corpus refs:** ADR 0001, VO-E-22, BC-DSP-001..006.
 
 
@@ -129,16 +131,16 @@ recoverable from hex evidence only (BC-TLS-037; pass-2-R3 Target 2).
 downstream SIEM text. Knowing the precedence is necessary to correctly interpret which finding
 a given SNI will produce.
 
-**Enforcement:** `src/analyzer/tls.rs:200` (`SniValue` enum definition);
-`src/analyzer/tls.rs:251-265` (the match block inside `extract_sni`).
+**Enforcement:** `src/analyzer/tls.rs:201` (`SniValue` enum definition);
+`src/analyzer/tls.rs:252-266` (the match block inside `extract_sni`).
 **Corpus refs:** VO-E-35, BC-TLS-014..020, BC-TLS-037.
 
 
 ## INV-6: MAX_FINDINGS Cap with Cap-Bypass for Finalize
 
 **Rule:** The reassembly engine's `findings: Vec<Finding>` is capped at `MAX_FINDINGS = 10,000`
-(reassembly/mod.rs:54). Guard checks push or count-as-dropped via `self.findings.len() >= MAX_FINDINGS`
-at five sites (mod.rs:461,495,524 and lifecycle.rs:101,121).
+(reassembly/mod.rs:56). Guard checks push or count-as-dropped via `self.findings.len() >= MAX_FINDINGS`
+at five sites (mod.rs:479,515,546 and lifecycle.rs:111,141).
 
 **Exception:** `TcpReassembler::finalize()` pushes the segment-limit summary finding
 UNCONDITIONALLY, bypassing the cap guard (BC-RAS-054). This finding can make
@@ -155,9 +157,9 @@ to this cap. Only the reassembly engine enforces MAX_FINDINGS.
 **Why load-bearing:** Prevents unbounded memory growth from adversarial input designed to
 flood the finding buffer. The cap is the primary resource-bounding mechanism for the engine.
 
-**Enforcement:** `MAX_FINDINGS` const at `src/reassembly/mod.rs:54`; guard sites at
-`mod.rs:461,495,524` (three per-direction anomaly threshold checks in
-`check_anomaly_thresholds`) AND `reassembly/lifecycle.rs:101,121` (conflicting-overlap
+**Enforcement:** `MAX_FINDINGS` const at `src/reassembly/mod.rs:56`; guard sites at
+`mod.rs:479,515,546` (three per-direction anomaly threshold checks in
+`check_anomaly_thresholds`) AND `reassembly/lifecycle.rs:111,141` (conflicting-overlap
 and truncated findings in `generate_conflicting_overlap_finding` /
 `generate_truncated_finding`). Five guard sites across two files.
 **Corpus refs:** ADR 0002, NFR-RES-001, NFR-RES-022, BC-RAS-054.
@@ -199,9 +201,9 @@ latch could reset, a successfully-parsed segment after poisoning would re-open t
 path unexpectedly. The monotonic design ensures a flow with proven repeated-parse-failures
 stays quarantined for its lifetime.
 
-**Enforcement:** `src/analyzer/http.rs:408-409` (request direction poison transition:
+**Enforcement:** `src/analyzer/http.rs:427-428` (request direction poison transition:
 `request_error_count >= POISON_THRESHOLD` => `request_poisoned = true`);
-`src/analyzer/http.rs:467-468` (response direction poison transition:
+`src/analyzer/http.rs:488-489` (response direction poison transition:
 `response_error_count >= POISON_THRESHOLD` => `response_poisoned = true`);
 absence of `= false` assignments (confirmed pass-2 R3 Target 3).
 **Corpus refs:** BC-HTTP-010..016, VO-E-32.

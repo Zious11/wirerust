@@ -1,7 +1,7 @@
 ---
 document_type: prd-supplement-error-taxonomy
 level: L3
-version: "2.0"
+version: "2.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -26,6 +26,7 @@ input-hash: N/A
 traces_to: .factory/specs/prd.md
 modified:
   - "v2.0: ARP-F2 Pass-14 remediation C-05 + C-07: (C-05) removed src/analyzer/arp.rs from inputs (not in develop HEAD; forward-reference to STORY-111); set input-hash to N/A with deferred-hash rationale comment. (C-07) E-ARP-002 Notes rewritten for clarity: 'within the average since window-start within the 60-second flap window' → explicit rate formula count/max(1,elapsed) prose; detector is average-rate not sliding-window; window semantics clarified. Version 1.9→2.0. — 2026-06-13"
+  - "v2.1: P19 straggler anchor sweep — E-ANA-001 http.rs:405/:463 → :424/:484 (parse_errors increment); E-ANA-002 request block :406-415 → :424-434, response block :464-473 → :484-494; E-ANA-003 tls.rs:643-653 → :689-699; E-ANA-006 http.rs:375-389 → :390-394; E-ANA-007 tls.rs increment helper :372-375 → :379-384, call sites :387/:416/:494/:549/:564/:568 → :398/:427/:520/:593/:608/:612; E-ANA-008 http.rs:391-392 → :406; E-RAS-003 mod.rs :461/:495/:524 → :479/:515/:546, lifecycle.rs :101/:121 → :111/:141. Verified against src. — 2026-06-13"
 ---
 
 # Error Taxonomy: wirerust
@@ -87,7 +88,7 @@ findings or one-shot warnings. They are catalogued here for implementer complete
 |-----------|----------|----------|-----------|----------------|-------------|--------|-------|
 | E-RAS-001 | Reassembly | `cosmetic` | 0 | `src/reassembly/segment.rs:16, 54-55` | One-shot stderr: `wirerust: insert_segment called with no ISN set` | BC-2.04.032, BC-2.04.048 | Guarded by `ISN_MISSING_WARNED: AtomicBool` (segment.rs:16). `eprintln!` fires at most ONCE per process (segment.rs:54-55). |
 | E-RAS-002 | Reassembly | `cosmetic` | 0 | `src/reassembly/lifecycle.rs:31, 44-47` | One-shot stderr: `wirerust: close_flow called for non-existent key: <key> (reason: <reason>)` | BC-2.04.029 | Guarded by `CLOSE_FLOW_MISSING_WARNED: AtomicBool` (lifecycle.rs:31). `eprintln!` fires at most ONCE (lifecycle.rs:44-47). `<reason>` is the `CloseReason` Debug repr. Indicates a structural invariant violation (flow table inconsistency). |
-| E-RAS-003 | Reassembly | `degraded` | 0 | `src/reassembly/mod.rs:461, 495, 524`; `src/reassembly/lifecycle.rs:101, 121` | Silent drop + counter increment | BC-2.04.024 | When `self.findings.len() >= MAX_FINDINGS (10,000)`, further per-flow findings are silently dropped. The `finalize()` summary finding unconditionally bypasses this cap. |
+| E-RAS-003 | Reassembly | `degraded` | 0 | `src/reassembly/mod.rs:479, 515, 546`; `src/reassembly/lifecycle.rs:111, 141` | Silent drop + counter increment | BC-2.04.024 | When `self.findings.len() >= MAX_FINDINGS (10,000)`, further per-flow findings are silently dropped. The `finalize()` summary finding unconditionally bypasses this cap. |
 | E-RAS-004 | Reassembly | `cosmetic` | 0 | `src/reassembly/mod.rs:115-125` | `assert!` panic (programmer error only; unreachable in production via CLI path post-FIX-P5-002) | BC-2.04.001 | `TcpReassembler::new` panics if any config field is 0 or invalid. **FIX-P5-002 (ADV-IMPL-P04-MED-001, 2026-06-01):** `--reassembly-depth` and `--reassembly-memcap` now use a `parse_nonzero_usize` custom clap `value_parser` that rejects 0 at parse time (exit 2, `ValueValidation`, message `"0 is not in 1.."`), preventing 0 from ever reaching this assert on the operator-input path. The assert is retained as a backstop for programmer-error scenarios (e.g., direct Rust API construction with a zero-valued config). The prior panic on user-supplied `--reassembly-depth 0` / `--reassembly-memcap 0` is now fully prevented; that class of input is handled at the CLI layer as a usage error (E-CFG-007 below). |
 | E-RAS-005 | Reassembly | `degraded` | 0 | `src/reassembly/segment.rs` | `InsertResult::SegmentLimitReached` returned | BC-2.04.044..046 | When `max_segments_per_direction` (default 10,000) is reached, new segments return `SegmentLimitReached`. Tracked via `segments_segment_limit`. A summary finding is emitted by `finalize()`. |
 
@@ -95,14 +96,14 @@ findings or one-shot warnings. They are catalogued here for implementer complete
 
 | Error Code | Category | Severity | Exit Code | Source Location | Signal Type | BC Ref | Notes |
 |-----------|----------|----------|-----------|----------------|-------------|--------|-------|
-| E-ANA-001 | Analyzer | `degraded` | 0 | `src/analyzer/http.rs:405, 463` | `parse_errors` counter incremented | BC-2.06.013, BC-2.06.015 | Non-HTTP bytes or incomplete HTTP headers that fail `httparse`. No finding emitted for individual parse errors. After `POISON_THRESHOLD=3` consecutive errors in one direction, that direction is "poisoned" (E-ANA-002). |
-| E-ANA-002 | Analyzer | `degraded` | 0 | `src/analyzer/http.rs:406-415` (request), `464-473` (response) | Direction poisoned; `poisoned_bytes_skipped` counter incremented | BC-2.06.015..017 | HTTP direction poisoning: after 3 consecutive parse errors, subsequent bytes in that direction are skipped. Per-direction and per-flow. Cleared on `on_flow_close`. |
-| E-ANA-003 | Analyzer | `degraded` | 0 | `src/analyzer/tls.rs:643-653` | `parse_errors` incremented; per-direction buffer cleared | BC-2.07.004, BC-2.07.029 | TLS record payload exceeds `MAX_RECORD_PAYLOAD=18,432` bytes or body parse fails. Buffer is cleared; analysis continues on next record. |
+| E-ANA-001 | Analyzer | `degraded` | 0 | `src/analyzer/http.rs:424, 484` | `parse_errors` counter incremented | BC-2.06.013, BC-2.06.015 | Non-HTTP bytes or incomplete HTTP headers that fail `httparse`. No finding emitted for individual parse errors. After `POISON_THRESHOLD=3` consecutive errors in one direction, that direction is "poisoned" (E-ANA-002). |
+| E-ANA-002 | Analyzer | `degraded` | 0 | `src/analyzer/http.rs:424-434` (request), `484-494` (response) | Direction poisoned; `poisoned_bytes_skipped` counter incremented | BC-2.06.015..017 | HTTP direction poisoning: after 3 consecutive parse errors, subsequent bytes in that direction are skipped. Per-direction and per-flow. Cleared on `on_flow_close`. |
+| E-ANA-003 | Analyzer | `degraded` | 0 | `src/analyzer/tls.rs:689-699` | `parse_errors` incremented; per-direction buffer cleared | BC-2.07.004, BC-2.07.029 | TLS record payload exceeds `MAX_RECORD_PAYLOAD=18,432` bytes or body parse fails. Buffer is cleared; analysis continues on next record. |
 | E-ANA-004 | Analyzer | `degraded` | 0 | `src/analyzer/tls.rs` | `parse_errors` incremented | BC-2.07.029 | TLS record body parsing failure (bad handshake structure, truncated extension). Buffer continues. |
 | E-ANA-005 | Analyzer | `cosmetic` | 0 | `src/analyzer/dns.rs` | (none -- counts as query or response) | BC-2.08.002 | DNS parse error is implicit: malformed DNS is silently counted as a query or response based on the QR-bit only; no per-packet parse error counter exists for DNS. |
-| E-ANA-006 | Analyzer | `cosmetic` | 0 | `src/analyzer/http.rs:375-389` | New map key silently dropped | BC-2.06.024 | HTTP per-map cardinality (`MAX_MAP_ENTRIES=50,000`): new keys past the cap are dropped; existing keys still increment. Affects: `methods`, `hosts`, `user_agents`, `status_codes`. |
-| E-ANA-007 | Analyzer | `cosmetic` | 0 | `src/analyzer/tls.rs:372-375` (increment helper), `387, 416, 494, 549, 564, 568` (call sites) | New map key silently dropped | BC-2.07.028 | TLS per-map cardinality (`MAX_MAP_ENTRIES=50,000`): same behavior. Affects: `sni_counts`, `ja3_counts`, `ja3s_counts`, `version_counts`, `cipher_counts`. SNI anomaly findings still fire even when `sni_counts` is at capacity. |
-| E-ANA-008 | Analyzer | `cosmetic` | 0 | `src/analyzer/http.rs:391-392` | URI silently dropped | BC-2.06.025 | HTTP URI list cap: `MAX_URIS=10,000`; further URIs silently dropped from the `uris` list. Detection rules continue to run on dropped URIs. |
+| E-ANA-006 | Analyzer | `cosmetic` | 0 | `src/analyzer/http.rs:390-394` | New map key silently dropped | BC-2.06.024 | HTTP per-map cardinality (`MAX_MAP_ENTRIES=50,000`): new keys past the cap are dropped; existing keys still increment. Affects: `methods`, `hosts`, `user_agents`, `status_codes`. |
+| E-ANA-007 | Analyzer | `cosmetic` | 0 | `src/analyzer/tls.rs:379-384` (increment helper), `398, 427, 520, 593, 608, 612` (call sites) | New map key silently dropped | BC-2.07.028 | TLS per-map cardinality (`MAX_MAP_ENTRIES=50,000`): same behavior. Affects: `sni_counts`, `ja3_counts`, `ja3s_counts`, `version_counts`, `cipher_counts`. SNI anomaly findings still fire even when `sni_counts` is at capacity. |
+| E-ANA-008 | Analyzer | `cosmetic` | 0 | `src/analyzer/http.rs:406` | URI silently dropped | BC-2.06.025 | HTTP URI list cap: `MAX_URIS=10,000`; further URIs silently dropped from the `uris` list. Detection rules continue to run on dropped URIs. |
 
 ### ARP: ARP Decoder Signals
 

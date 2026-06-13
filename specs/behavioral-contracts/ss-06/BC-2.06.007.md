@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,9 +16,10 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: Wave 16 Pass-2 (F-W16-S042-P2-002) — rewrite EC-005 expected behavior: /administrator DOES fire because admin matching is substring-based (.contains); removed contradictory WAIT: inline self-correction — 2026-05-28"
-  - "v1.4 (2026-05-28): F-W16-S042-P5-003 invariant-1 line-precise anchor prose added — admin_patterns array at http.rs:236; iter().any() guard at http.rs:237; finding push at http.rs:238-248; if-body closing `}` at http.rs:249. Matches precision of BC-2.06.005 v1.6. Verified against src/analyzer/http.rs:235-249. Closes F-W16-S042-P5-003 (007 direction). — 2026-05-28"
+  - "v1.4 (2026-05-28): F-W16-S042-P5-003 invariant-1 line-precise anchor prose added — admin_patterns array at http.rs:236; iter().any() guard at http.rs:237; finding push at http.rs:238-248; if-body closing `}` at http.rs:249 [pre-F2 lines; now :251/:252/:253-264/:264 post-F2]. Verified against src/analyzer/http.rs:235-249. Closes F-W16-S042-P5-003 (007 direction). — 2026-05-28"
   - "v1.5 (2026-05-29): F-DRIFT2A-001 — fixed stale domain/capabilities/cap-06-http-analysis.md citation to domain/capabilities/cap-06-http-analysis.md in L2 Capability and Capability Anchor Justification rows."
   - "v1.6 (2026-06-13): ARP-F2-Pass14-Burst5 — Postcondition 1 mitre_technique: Some(\"T1046\") → mitre_techniques: vec![\"T1046\"] (Finding struct field renamed to plural Vec<String>)."
+  - "v1.7 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — admin_patterns :236→:251; iter().any() guard :237→:252; finding push :238-248→:253-264; closing brace :249→:264; arch module/path :235-249→:250-264. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -57,7 +58,7 @@ administrators; the finding is informational rather than definitive.
 
 ## Invariants
 
-1. URI comparison is case-insensitive (lowercased before match). The `admin_patterns` array is defined at http.rs:236; the iter().any() guard is at http.rs:237; the finding push block spans http.rs:238-248; the if-body closing `}` is at http.rs:249.
+1. URI comparison is case-insensitive (lowercased before match). The `admin_patterns` array is defined at http.rs:251; the iter().any() guard is at http.rs:252; the finding push block spans http.rs:253-264; the if-body closing `}` is at http.rs:264.
 2. Pattern match is substring: `/site/admin/settings` triggers the finding via `/admin`.
 3. Raw URI bytes preserved in evidence (INV-4 / ADR 0003).
 4. The finding is independent of other detections on the same request.
@@ -70,7 +71,7 @@ administrators; the finding is informational rather than definitive.
 | EC-002 | URI = "/phpmyadmin" | Finding emitted |
 | EC-003 | URI = "/manager/html" | Finding emitted (Tomcat manager pattern) |
 | EC-004 | URI = "/ADMIN" (uppercase) | Finding emitted (case-insensitive) |
-| EC-005 | URI = "/administrator/index.php" | Finding emitted — "/administrator" contains "/admin" as a substring; matching is substring-based (http.rs:237 uses `.contains`), not token-exact |
+| EC-005 | URI = "/administrator/index.php" | Finding emitted — "/administrator" contains "/admin" as a substring; matching is substring-based (http.rs:252 uses `.contains`), not token-exact |
 | EC-006 | URI = "/sadmin/config" | Finding emitted ("/sadmin" contains "/admin" as substring) |
 | EC-007 | URI = "/my-site/content" | No finding |
 
@@ -95,7 +96,7 @@ administrators; the finding is informational rather than definitive.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- admin panel access detection is one of the HTTP reconnaissance findings |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:235-249, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:250-264, C-12) |
 | Stories | STORY-042 |
 | Origin BC | BC-HTTP-007 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -106,14 +107,14 @@ administrators; the finding is informational rather than definitive.
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:235-249` -- admin panel detection block
+- `src/analyzer/http.rs:250-264` -- admin panel detection block
 - `tests/http_analyzer_tests.rs` -- test_detect_admin_panel_paths
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:235-249` |
+| **Path** | `src/analyzer/http.rs:250-264` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1.1"
+version: "1.1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-08T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.2.0-feature-100
 modified:
   - "v1.1: F5 ADV-F5-HIGH-001 — corrected canonical ts_sec=1_000_000 vector from 2001-09-08 to arithmetically-correct 1970-01-12T13:46:40Z (1_000_000_000 ≠ 1_000_000). — 2026-06-08"
   - "v1.1.1: PATCH — VP Anchor annotation updated: VP-021 status corrected from draft/unverified to verified @256a490 (F6 lock propagation, FINDING-005). No functional postcondition change. — 2026-06-09"
+  - "v1.1.2: Pass-19 B-06 re-anchor — Architecture Anchor corrected: src/findings.rs:119-146 → :135-162 (Finding struct shifted after STORY-100 multi-tag comment block). Verified against HEAD findings.rs. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -145,7 +146,7 @@ post-capture aggregate not tied to any specific packet; that finding correctly r
 
 ## Architecture Anchors
 
-- `src/findings.rs:119-146` — Finding struct; `timestamp: Option<DateTime<Utc>>` field with existing serde attribute
+- `src/findings.rs:135-162` — Finding struct; `timestamp: Option<DateTime<Utc>>` field with existing serde attribute
 - `src/reassembly/mod.rs` — `flush_contiguous_data`; call site passes current-packet timestamp to `handler.on_data`
 - `src/reassembly/lifecycle.rs` — `close_flow`; call site passes `flow.last_seen` to `handler.on_data`
 - `src/analyzer/http.rs` — per-flow last-seen timestamp storage; 9 emission sites set `Some(stored_last_ts)`

@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.0"
+version: "2.1"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -22,6 +22,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set (tests/http_analyzer_tests.rs)."
+  - "v2.1 (2026-06-13, PG-ARP-F2-007 anchor-drift sweep): Source Location and harness-comment line anchors corrected for F2 http.rs shifts. HttpAnalyzer.flows field: :115→:123. parse_error_count: :175→:183. on_data (StreamHandler): :501→:524. on_flow_close: :540→:573. HttpFlowState struct: :82→:84. Lock fields unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -69,14 +70,14 @@ API notes verified against `src/analyzer/http.rs` @ 0082a0c:
   `flow_state(&key)`. The `flows: HashMap<FlowKey, HttpFlowState>` field and
   `HttpFlowState` struct are both private. The only public error counter is
   `parse_error_count(&self) -> u64` which returns the global aggregate across all
-  flows (`src/analyzer/http.rs:175`).
+  flows (`src/analyzer/http.rs:183`).
 - Per-flow isolation must therefore be tested by observing observable side effects:
   `parse_error_count()` delta, `transaction_count()`, and emitted `Finding` objects
   (via `take_findings()` or equivalent). The harness tests isolation via black-box
   behavior, not by inspecting private state.
-- `on_data` is on the `StreamHandler` impl (line 501):
+- `on_data` is on the `StreamHandler` impl (line 524):
   `fn on_data(&mut self, flow_key: &FlowKey, direction: Direction, data: &[u8], _offset: u64)`
-- `on_flow_close` is on the `StreamHandler` impl (line 540):
+- `on_flow_close` is on the `StreamHandler` impl (line 573):
   `fn on_flow_close(&mut self, flow_key: &FlowKey, _reason: CloseReason)`
 - These are trait methods; call them via the `StreamHandler` trait or directly
   on a concrete `HttpAnalyzer` instance (Rust allows calling trait methods directly
@@ -187,7 +188,7 @@ mod proptest_proofs {
             );
             let errors_before = analyzer.parse_error_count();
 
-            // Close the flow -- removes per-flow state (src/analyzer/http.rs:540)
+            // Close the flow -- removes per-flow state (src/analyzer/http.rs:573)
             <HttpAnalyzer as StreamHandler>::on_flow_close(
                 &mut analyzer, &key, CloseReason::Fin
             );
@@ -219,12 +220,12 @@ mod proptest_proofs {
 
 ## Source Location
 
-`src/analyzer/http.rs:115` -- `HttpAnalyzer.flows: HashMap<FlowKey, HttpFlowState>` (private).
+`src/analyzer/http.rs:123` -- `HttpAnalyzer.flows: HashMap<FlowKey, HttpFlowState>` (private).
 Per-flow state is keyed by `FlowKey`. No per-flow accessor is exposed publicly.
-`src/analyzer/http.rs:501` -- `fn on_data(&mut self, flow_key: &FlowKey, direction: Direction, data: &[u8], _offset: u64)` via `StreamHandler` impl.
-`src/analyzer/http.rs:540` -- `fn on_flow_close(&mut self, flow_key: &FlowKey, _reason: CloseReason)` removes the flow entry (`self.flows.remove(flow_key)`).
-`src/analyzer/http.rs:175` -- `fn parse_error_count(&self) -> u64` -- global aggregate parse error count (the only public error accessor; no per-flow variant exists).
-`src/analyzer/http.rs:82` -- `HttpFlowState` struct (private; not accessible from tests outside the module).
+`src/analyzer/http.rs:524` -- `fn on_data(&mut self, flow_key: &FlowKey, direction: Direction, data: &[u8], _offset: u64)` via `StreamHandler` impl.
+`src/analyzer/http.rs:573` -- `fn on_flow_close(&mut self, flow_key: &FlowKey, _reason: CloseReason)` removes the flow entry (`self.flows.remove(flow_key)`).
+`src/analyzer/http.rs:183` -- `fn parse_error_count(&self) -> u64` -- global aggregate parse error count (the only public error accessor; no per-flow variant exists).
+`src/analyzer/http.rs:84` -- `HttpFlowState` struct (private; not accessible from tests outside the module).
 
 ## Lifecycle
 

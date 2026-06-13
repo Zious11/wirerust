@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-05-28): W15 Pass-3 remediation — F-W15P3-002; narrowed invariant 3 to note LF/CR unreachability via httparse C0 rejection; line anchor reconciled."
+  - "v1.4 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — find_header :70-75→:72-77. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -89,7 +90,7 @@ ADR 0003 / INV-4.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- header value extraction and raw byte preservation are core to HTTP analysis data quality |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation -- no escape at analyzer) |
-| Architecture Module | SS-06 (analyzer/http.rs:70-75, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:72-77, C-12) |
 | Stories | STORY-041 |
 | Origin BC | BC-HTTP-026 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -100,14 +101,14 @@ ADR 0003 / INV-4.
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:70-75` -- find_header function
+- `src/analyzer/http.rs:72-77` -- find_header function
 - `tests/reporter_tests.rs` -- test_http_finding_c1_csi_escaped_by_terminal_reporter (pins raw-byte flow)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:70-75` |
+| **Path** | `src/analyzer/http.rs:72-77` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

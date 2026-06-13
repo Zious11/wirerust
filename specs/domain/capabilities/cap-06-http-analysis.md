@@ -5,6 +5,11 @@ cap_id: CAP-06
 title: HTTP Traffic Analysis
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
+version: "1.1"
+modified:
+  - date: 2026-06-13
+    actor: product-owner
+    reason: "P19 straggler anchor sweep: all 10 anomaly detection table source-line anchors corrected for F2 shift (Modbus/DNP3/timestamp/mitre-tag). UA rationale prose anchor updated. Verified against src/analyzer/http.rs."
 ---
 
 # CAP-06: HTTP Traffic Analysis
@@ -57,16 +62,16 @@ All findings now carry `direction: Some(Direction::ClientToServer)` or
 
 | Detection | Condition | Finding | MITRE | Direction tag | Source lines |
 |---|---|---|---|---|---|
-| Path traversal | URI contains `../`, `..%2f`, `..%252f`, or `....//` | Reconnaissance/Likely/High | T1083 | ClientToServer | http.rs:187-203 |
-| Web shell access | URI matches web-shell path patterns | Execution/Likely/Medium | T1505.003 | ClientToServer | http.rs:218-233 |
-| Admin panel access | URI matches admin-path patterns | Reconnaissance/Inconclusive/Low | T1046 | ClientToServer | http.rs:237-249 |
-| Unusual HTTP method | Method in CONNECT/TRACE/DELETE/OPTIONS | Reconnaissance/Inconclusive/Medium | none | ClientToServer | http.rs:253-265 |
-| Missing Host (HTTP/1.1) | version==1 AND host.is_none() | Anomaly/Inconclusive/Medium | none | ClientToServer | http.rs:283-301 |
-| Empty Host (HTTP/1.1) | version==1 AND host == Some("") | Anomaly/Inconclusive/Medium | none | ClientToServer | http.rs:283-301 |
-| Abnormally long URI | uri.len() > 2048 | Execution/Likely/Medium | none | ClientToServer | http.rs:305-317 |
-| Empty User-Agent | user_agent.as_deref() == Some("") | Anomaly/Inconclusive/Low | none | ClientToServer | http.rs:344-356 |
-| Too many headers (request) | httparse::Error::TooManyHeaders on request parse | Anomaly/Inconclusive/Medium | T1499.002 | ClientToServer | http.rs:416-428 |
-| Too many headers (response) | httparse::Error::TooManyHeaders on response parse | Anomaly/Inconclusive/Medium | T1499.002 | ServerToClient | http.rs:475-487 |
+| Path traversal | URI contains `../`, `..%2f`, `..%252f`, or `....//` | Reconnaissance/Likely/High | T1083 | ClientToServer | http.rs:200-218 |
+| Web shell access | URI matches web-shell path patterns | Execution/Likely/Medium | T1505.003 | ClientToServer | http.rs:221-248 |
+| Admin panel access | URI matches admin-path patterns | Reconnaissance/Inconclusive/Low | T1046 | ClientToServer | http.rs:250-264 |
+| Unusual HTTP method | Method in CONNECT/TRACE/DELETE/OPTIONS | Reconnaissance/Inconclusive/Medium | none | ClientToServer | http.rs:266-280 |
+| Missing Host (HTTP/1.1) | version==1 AND host.is_none() | Anomaly/Inconclusive/Medium | none | ClientToServer | http.rs:282-317 |
+| Empty Host (HTTP/1.1) | version==1 AND host == Some("") | Anomaly/Inconclusive/Medium | none | ClientToServer | http.rs:282-317 |
+| Abnormally long URI | uri.len() > 2048 | Execution/Likely/Medium | none | ClientToServer | http.rs:319-332 |
+| Empty User-Agent | user_agent.as_deref() == Some("") | Anomaly/Inconclusive/Low | none | ClientToServer | http.rs:359-371 |
+| Too many headers (request) | httparse::Error::TooManyHeaders on request parse | Anomaly/Inconclusive/Medium | T1499.002 | ClientToServer | http.rs:435-449 |
+| Too many headers (response) | httparse::Error::TooManyHeaders on response parse | Anomaly/Inconclusive/Medium | T1499.002 | ServerToClient | http.rs:496-509 |
 
 **Host detection (fixed by #71 / P0.05):** Both absent Host (`None`) and empty-value Host
 (`Some("")`) now fire findings with distinct summary text: "HTTP/1.1 request without Host
@@ -75,7 +80,7 @@ is now closed.
 
 **UA detection (intentionally asymmetric -- domain-debt O-02):** Only `Some("")` (present-
 empty) fires. Absent UA (`None`) does NOT fire. This is a documented design decision
-with cited research rationale in http.rs:319-343.
+with cited research rationale in http.rs:334-358.
 
 ## Host/UA 3-state semantics
 

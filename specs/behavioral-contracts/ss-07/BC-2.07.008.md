@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-05-28): W15 Pass-1 remediation — anchor line ranges verified (F-W15S051-P1-006); STORY-051 BC-prefixed companion tests added to Architecture Anchors test list (covers test rename + 2 new tests from Round 1 commit 920891e)."
+  - "v1.4: PATCH — Pass-19 B-10 anchor fix: format string tls.rs:171→:172; Md5::digest tls.rs:172→:173 (off-by-one). No functional postcondition change. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -96,7 +97,7 @@ The function returns only the MD5 hex string, not the underlying JA3S string.
 ## Architecture Anchors
 
 - `src/analyzer/tls.rs:153-173` -- `compute_ja3s` function body
-- `src/analyzer/tls.rs:171` -- format string `format!("{},{},{}", version, cipher.0, ext_ids)` and `Md5::digest` at 172
+- `src/analyzer/tls.rs:172` -- format string `format!("{},{},{}", version, cipher.0, ext_ids)` and `Md5::digest` at 173
 - `src/analyzer/tls.rs:157-169` -- extension GREASE filtering in compute_ja3s
 - `tests/tls_analyzer_tests.rs` -- test_BC_2_07_008_ja3s_has_exactly_two_commas_three_fields
 - `tests/tls_analyzer_tests.rs` -- test_BC_2_07_008_ja3s_grease_extension_filtered_from_ext_field
@@ -115,7 +116,7 @@ The function returns only the MD5 hex string, not the underlying JA3S string.
 
 ## Evidence Types Used
 
-- **inferred**: format string at tls.rs:171; proptest covers determinism and length
+- **inferred**: format string at tls.rs:172; proptest covers determinism and length
 
 ## Purity Classification
 

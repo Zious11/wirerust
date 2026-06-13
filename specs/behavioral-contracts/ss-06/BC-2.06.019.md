@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — on_flow_close :540-542→:573-575. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -82,7 +83,7 @@ their zero/false values.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- flow state cleanup on close is required for correct per-flow HTTP analysis lifecycle |
 | L2 Domain Invariants | INV-8 (HTTP poisoning is monotonic false-to-true -- on_flow_close is the ONLY reset path) |
-| Architecture Module | SS-06 (analyzer/http.rs:540-542, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:573-575, C-12) |
 | Stories | STORY-045 |
 | Origin BC | BC-HTTP-019 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -93,14 +94,14 @@ their zero/false values.
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:540-542` -- on_flow_close implementation
+- `src/analyzer/http.rs:573-575` -- on_flow_close implementation
 - `tests/http_analyzer_tests.rs` -- test_poison_cleared_after_flow_close, test_flow_close_cleans_up_state
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:540-542` |
+| **Path** | `src/analyzer/http.rs:573-575` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

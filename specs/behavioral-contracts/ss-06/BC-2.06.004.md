@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,10 +16,11 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.4 (2026-05-28): W15 Pass-2 remediation — invariant 3 + EC-005 marked DEFENSIVE (reachability via on_data unverified; W15.D1 pending research-agent validation per F-W15P2-004)."
-  - "v1.5 (2026-05-28): W15 Pass-4 remediation — added invariant 4 formalizing the response-side had_success guard (try_parse_responses:462) as the response-side analog of BC-2.06.002 invariant 2 (F-W15P4-001, F-W15P4-005 process-gap). Closes the BC↔implementation asymmetry that left the response-side had_success suppression unspecified."
+  - "v1.5 (2026-05-28): W15 Pass-4 remediation — added invariant 4 formalizing the response-side had_success guard (try_parse_responses:462, now :483 post-F2) as the response-side analog of BC-2.06.002 invariant 2 (F-W15P4-001, F-W15P4-005 process-gap). Closes the BC↔implementation asymmetry that left the response-side had_success suppression unspecified."
   - "v1.6 (2026-05-28): W15 Pass-5 sibling-sweep cascade — added Related BC cross-reference to BC-2.06.002 (F-W15P5-002); added Verification Properties row for invariant 4 coverage (F-W15P5-003)."
   - "v1.7 (2026-05-28): F-W15P6-D01 reciprocal Related-BCs fix — added cross-reference to BC-2.06.020 (request-side had_success guard; both BCs anchor the same had_success suppression design on their respective parse paths). Closes F-W15P6-D01 (004→020 direction)."
   - "v1.8 (2026-05-29): F-DRIFT2A-001 — fixed stale domain/capabilities/cap-06-http-analysis.md citation to domain/capabilities/cap-06-http-analysis.md in L2 Capability and Capability Anchor Justification rows."
+  - "v1.9 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — status_codes :452→:473; had_success resp decl :441→:462; resp guard :462→:483; req guard :404→:423; try_parse_responses :440-497→:461-520; transactions+status_codes :450-452→:471-474; req had_success range :362-408→:374-423; resp had_success range :441-462→:462-483. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,7 +48,7 @@ The response direction supports the same buffering and pipelined-loop semantics 
 ## Postconditions
 
 1. `transactions` incremented by 1.
-2. `status_codes` map gains an entry (or increments) for the numeric status code (http.rs:452).
+2. `status_codes` map gains an entry (or increments) for the numeric status code (http.rs:473).
    There is NO `MAX_MAP_ENTRIES` guard on `status_codes`; the key type is u16 which provides a
    natural practical limit of 65535 distinct status codes (see BC-2.06.024 Invariants).
 3. The bytes consumed are drained from `response_buf`.
@@ -61,7 +62,7 @@ The response direction supports the same buffering and pipelined-loop semantics 
 2. Response parsing never emits findings for content-based anomalies (no check_response_detections
    function; detections only exist on the request path).
 3. `status_codes` can store status_code=0 if httparse returns `code: None` via the `unwrap_or(0)` fallback in parse_one_response (src/analyzer/http.rs:63) — DEFENSIVE PATH: empirically httparse rejects status lines without numeric codes via `Err(InvalidStatus)`, so this branch may be unreachable via the public on_data API (W15.D1 — pending research-agent validation per DF-VALIDATION-001).
-4. The `had_success` flag (declared at http.rs:441) prevents response body-bytes that follow a successfully parsed header from inflating `parse_errors` via the guard at http.rs:462 (`if !had_success { self.parse_errors += 1; }`). This is the response-side analog of BC-2.06.002 invariant 2 (request-side guard at http.rs:404).
+4. The `had_success` flag (declared at http.rs:462) prevents response body-bytes that follow a successfully parsed header from inflating `parse_errors` via the guard at http.rs:483 (`if !had_success { self.parse_errors += 1; }`). This is the response-side analog of BC-2.06.002 invariant 2 (request-side guard at http.rs:423).
 
 ## Edge Cases
 
@@ -97,7 +98,7 @@ The response direction supports the same buffering and pipelined-loop semantics 
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- response status code tracking is part of HTTP traffic analysis statistics |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:440-497, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:461-520, C-12) |
 | Stories | STORY-041 |
 | Origin BC | BC-HTTP-004 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -105,8 +106,8 @@ The response direction supports the same buffering and pipelined-loop semantics 
 
 - BC-2.06.001 -- related to (request parsing is analogous; requests do NOT increment transactions)
 - BC-2.06.023 -- composes with (summarize maps packets_analyzed = transactions)
-- BC-2.06.002 -- request-side analog (request-side had_success guard at http.rs:404 is the analog of this BC's invariant 4 — response-side guard at http.rs:462)
-- BC-2.06.020 -- related to (BC-2.06.020 formalizes the request-side had_success guard at http.rs:362-408; this BC formalizes the response-side analog at http.rs:441-462; both anchor the same suppression design on their respective parse paths)
+- BC-2.06.002 -- request-side analog (request-side had_success guard at http.rs:423 is the analog of this BC's invariant 4 — response-side guard at http.rs:483)
+- BC-2.06.020 -- related to (BC-2.06.020 formalizes the request-side had_success guard at http.rs:374-423; this BC formalizes the response-side analog at http.rs:462-483; both anchor the same suppression design on their respective parse paths)
 
 ## Notes
 
@@ -118,10 +119,10 @@ The response direction supports the same buffering and pipelined-loop semantics 
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:440-497` -- try_parse_responses function
-- `src/analyzer/http.rs:441` -- response-side had_success local variable declaration
-- `src/analyzer/http.rs:450-452` -- transactions increment and status_codes update
-- `src/analyzer/http.rs:462` -- response-side `if !had_success` guard (invariant 4)
+- `src/analyzer/http.rs:461-520` -- try_parse_responses function
+- `src/analyzer/http.rs:462` -- response-side had_success local variable declaration
+- `src/analyzer/http.rs:471-474` -- transactions increment and status_codes update
+- `src/analyzer/http.rs:483` -- response-side `if !had_success` guard (invariant 4)
 - `tests/http_analyzer_tests.rs` -- test_parse_response, test_parse_pipelined_responses
 - `tests/http_analyzer_tests.rs::bc_2_06_formalization::test_BC_2_06_004_had_success_suppresses_response_body_byte_errors` (line 1367)
 
@@ -129,7 +130,7 @@ The response direction supports the same buffering and pipelined-loop semantics 
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:450-452` |
+| **Path** | `src/analyzer/http.rs:471-474` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

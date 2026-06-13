@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — MAX_URIS :23→:25; uris push guard :391-393→:406-408. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -45,8 +46,8 @@ multiple times. The cap prevents unbounded memory growth from high-volume HTTP t
 
 ## Invariants
 
-1. `MAX_URIS = 10,000` (http.rs:23).
-2. Guard: `if self.uris.len() < MAX_URIS { self.uris.push(...) }` (http.rs:391-393).
+1. `MAX_URIS = 10,000` (http.rs:25).
+2. Guard: `if self.uris.len() < MAX_URIS { self.uris.push(...) }` (http.rs:406-408).
 3. The cap applies to the Vec length; URIs dropped at cap are permanently lost.
 4. The `summarize()` method returns only the FIRST 20 URIs from this list (BC-2.06.023).
 
@@ -78,7 +79,7 @@ multiple times. The cap prevents unbounded memory growth from high-volume HTTP t
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- uris Vec cap is a memory-bounding mechanism for HTTP analysis statistics |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:391-393, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:406-408, C-12) |
 | Stories | STORY-045 |
 | Origin BC | BC-HTTP-025 (pass-3 ingestion corpus, MEDIUM confidence -- no direct test) |
 
@@ -88,13 +89,13 @@ multiple times. The cap prevents unbounded memory growth from high-volume HTTP t
 
 ## Architecture Anchors
 
-- `src/analyzer/http.rs:391-393` -- uris push guard
+- `src/analyzer/http.rs:406-408` -- uris push guard
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:391-393` |
+| **Path** | `src/analyzer/http.rs:406-408` |
 | **Confidence** | medium |
 | **Extraction Date** | 2026-05-20 |
 

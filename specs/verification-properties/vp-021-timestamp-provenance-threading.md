@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.0"
+version: "2.1"
 status: verified
 producer: product-owner
 timestamp: 2026-06-08T00:00:00Z
@@ -22,6 +22,7 @@ lifecycle_status: active
 introduced: v0.2.0-feature-100
 modified:
   - "v2.0: Phase-F6 verification locked 2026-06-09 @ develop 256a490. status→verified, verification_lock→true. Proof evidence: tests/timestamp_threading_tests.rs — VP-021 end-to-end integration test (hot-path + close-flush + segment-limit-None), all-u32 proptest (prop_finding_timestamp_matches_on_data_timestamp), boundary proptest (prop_cross_flow_timestamp_isolation). F6 mutation result: 100% effective kill on the timestamp delta. 1147 tests green. Kani appropriately excluded (inline chrono conversion; totality by closed-form u32-range reasoning + all-u32 proptest + boundary tests). proof_file_hash set (SHA-256 of tests/timestamp_threading_tests.rs @256a490)."
+  - "v2.1 (2026-06-13, PG-ARP-F2-007 anchor-drift sweep): Source Location line anchors corrected for F2 shifts. HttpAnalyzer::on_data: http.rs:501→:524. TlsAnalyzer::on_data: tls.rs:771→:798. Lock fields unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -150,8 +151,8 @@ proptest! {
 - `src/reassembly/mod.rs` — `flush_contiguous_data`: call site passes `timestamp: u32` to `handler.on_data`
 - `src/reassembly/lifecycle.rs` — `close_flow`: call site passes `flow.last_seen` to `handler.on_data`
 - `src/reassembly/handler.rs:49` — `StreamHandler::on_data` trait method (new `timestamp: u32` parameter)
-- `src/analyzer/http.rs:501` — `HttpAnalyzer::on_data` stores per-flow timestamp; emission sites use it
-- `src/analyzer/tls.rs:771` — `TlsAnalyzer::on_data` stores per-flow timestamp; emission sites use it
+- `src/analyzer/http.rs:524` — `HttpAnalyzer::on_data` stores per-flow timestamp; emission sites use it
+- `src/analyzer/tls.rs:798` — `TlsAnalyzer::on_data` stores per-flow timestamp; emission sites use it
 - `src/findings.rs` — `Finding.timestamp: Option<DateTime<Utc>>` (no change needed; field already exists)
 
 ## Lifecycle

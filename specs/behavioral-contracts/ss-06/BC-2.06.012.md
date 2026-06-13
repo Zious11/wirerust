@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-06-13): P19-B-08 ss-06 line-anchor re-sync — check_request_detections span :183-357→:191-372. Verified against current src/analyzer/http.rs (1044 lines)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -82,7 +83,7 @@ empty for the flow.
 | L2 Capability | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md |
 | Capability Anchor Justification | CAP-06 ("HTTP Traffic Analysis") per domain/capabilities/cap-06-http-analysis.md -- zero-findings for normal traffic is the baseline correctness guarantee for HTTP analysis |
 | L2 Domain Invariants | INV-4 (Raw-data/display-layer separation) |
-| Architecture Module | SS-06 (analyzer/http.rs:183-357, C-12) |
+| Architecture Module | SS-06 (analyzer/http.rs:191-372, C-12) |
 | Stories | STORY-042 |
 | Origin BC | BC-HTTP-012 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -99,7 +100,7 @@ empty for the flow.
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/analyzer/http.rs:183-357` |
+| **Path** | `src/analyzer/http.rs:191-372` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
