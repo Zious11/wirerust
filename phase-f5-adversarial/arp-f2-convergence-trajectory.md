@@ -52,22 +52,26 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 9 (sliced) | 2026-06-13 | ~4 | 0 | 0 | ~4 | 0 | LOW | 0/3 | NOT_CLEAN |
 | 10 (sliced) | 2026-06-13 | ~6 | 0 | 1 | ~5 | 0 | LOW | 0/3 | NOT_CLEAN |
 | 11 (sliced) | 2026-06-13 | ~5 | 0 | 1 | ~4 | 0 | LOW | 0/3 | NOT_CLEAN |
+| 13 (whole-corpus) | 2026-06-13 | ~8 | 0 | 0 | ~8 | 0 | LOW | 0/3 | NOT_CLEAN, REMEDIATED |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8`
 
-Severity profile: CRITICAL count decayed (4→5→0→0→0→0→0→0→0→0→0) — core detection
-semantics fully settled. HIGH count: 8→7→~6→~5→1→2→~4→2→0→1→1 — only corpus-wide debt
-items; ARP delta clean. MEDIUM count: 3→8→~2→~10→~5→2→0→4→~4→~5→~4 — propagation hygiene
-and churn residue dominate.
+Severity profile: CRITICAL count decayed (4→5→0→0→0→0→0→0→0→0→0→0→0) — core detection
+semantics fully settled. HIGH count: 8→7→~6→~5→1→2→~4→2→0→1→1→0→0 — only corpus-wide
+debt items in recent passes; ARP delta clean. MEDIUM count: 3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8
+— propagation hygiene and pre-existing corpus debt dominate; trajectory decaying.
+Slice B (all 283 BC H1 titles) verified CLEAN in Pass 13.
 
 ## Convergence Counter
 
 **0/3** consecutive clean passes.
 **STRICT WHOLE-CORPUS mode** (human-elected 2026-06-12; scope extended 2026-06-13): zero
 findings of ANY severity (including LOW) across the ENTIRE spec corpus (not just ARP delta)
-required for 3 consecutive clean passes. 11 passes run. Corpus-wide sweep in progress.
+required for 3 consecutive clean passes. 13 passes run. Trajectory decaying (corpus audit 9
+→ Pass 12 ~18 → Pass 13 ~8). Slice B (all 283 BC H1 titles) verified CLEAN. ARP delta clean
+5th consecutive pass. Sustained multi-pass corpus cleanup ongoing.
 
 ## Core Semantics — Confirmed Clean (Settled)
 
@@ -105,12 +109,19 @@ treat these as LOW-RISK unless new evidence contradicts:
 
 | Artifact | Version | Notes |
 |----------|---------|-------|
-| PRD | v1.15 | Updated through Pass-11 remediation |
-| BC-INDEX | v1.16 | Updated through Pass-11 remediation |
-| ADR-008 | v1.8 | D11 cell corrected; through Pass-11 remediation |
+| PRD | v1.16 | Updated through Pass-13 remediation |
+| BC-INDEX | v1.19 | T1692.001 literal corrected (Pass-13) |
+| ADR-008 | v1.8 | (carried from Pass-11) |
+| ADR-007 | accepted + drift-note | IcsImpact "Impact" vs shipped "Impact (ICS)" drift-note added (Pass-13) |
+| ARCH-INDEX | v1.4 | Updated through Pass-13 remediation |
 | arp-architecture-delta | v1.10 | §5 Some() double-wrap fixed (Pass-11) |
+| verification-architecture | v1.5 | extract_sni anchor corrected (Pass-13) |
 | VP-024 | v1.4 | |
+| vp-005 | v2.1 | Updated through Pass-13 remediation |
+| vp-007 | v2.4 | (carried from Pass-12) |
+| vp-008 | v2.1 | Stale BC title corrected (Pass-13) |
 | vp-016 | v2.1 | |
+| VP-INDEX | v2.1 | (carried from corpus audit) |
 | error-taxonomy | v1.9 | |
 | test-vectors | v1.9 | Citation corrected through Pass-11 |
 | HS-INDEX | v1.3 | |
@@ -118,22 +129,33 @@ treat these as LOW-RISK unless new evidence contradicts:
 | ent-04 | v1.1 | |
 | ent-05 | v1.1 | |
 | cap-11 | v1.1 | |
-| nfr-catalog | v1.4 | |
+| nfr-catalog | v1.6 | NFR-OBS-004 seeded/emitted mislabel corrected (Pass-13) |
+| module-criticality | v1.2 | Document-Map gap closed (Pass-13) |
+| tooling-selection | v1.2 | (carried from Pass-12) |
+| dependency-graph | v1.2 | (carried from Pass-12) |
+| module-decomposition | v1.4 | (carried from corpus audit) |
 | BC-2.10.002 | v1.4 | |
 | BC-2.10.004 | v1.5 | |
 | BC-2.10.005 | v1.10 | Forward-declaration convention |
+| BC-2.10.006 | v1.3 | Stale src/mitre.rs anchor (:153→:179) + "15"→23/25 counts corrected (Pass-13) |
 | BC-2.10.008 | v1.11 | Forward-declaration convention |
 | BC-2.16.003 | v1.3 | |
 | BC-2.16.004 | v1.5 | |
 | BC-2.16.005 | v1.4 | |
 | BC-2.16.006 | v1.2 | |
 | BC-2.16.007 | v1.1 | |
-| BC-2.16.008 | v1.5 | |
+| BC-2.16.008 | v1.6 | (carried from Pass-12) |
 | BC-2.16.009 | v1.3 | |
-| BC-2.16.010 | v1.4 | |
+| BC-2.16.010 | v1.6 | (carried from Pass-12) |
 | BC-2.16.013 | v1.1 | |
 | BC-2.16.014 | v1.6 | Inconclusive classification gap fixed (Pass-11) |
 | BC-2.02.009 | v1.6 | Lax-arm precision gap fixed (Pass-10) |
+| STORY-071 | v1.10 | Stale 16/21→17/23 counts corrected (Pass-13) |
+| ADR-005/006 | accepted | (carried from Pass-12) |
+| inv-01 | v1.1 | (carried from Pass-12) |
+| BC-2.10.001 | v1.3 | (carried from Pass-12) |
+| BC-2.10.003 | v1.4 | (carried from Pass-12) |
+| BC-2.10.007 | v1.7 | (carried from Pass-12) |
 | Total BCs | 283 | 268 pre-ARP + 15 SS-16 |
 
 ## Per-Pass Details
@@ -449,6 +471,53 @@ drift in not-yet-reviewed docs. Sustained multi-pass effort required; counter st
 | cap-10 | v1.7 | (carried from Pass-9) |
 | error-taxonomy | v1.9 | (carried from Pass-11) |
 | test-vectors | v1.9 | (carried from Pass-11) |
+
+---
+
+### Pass 13 — 2026-06-13 (strict whole-corpus; NOT_CLEAN, REMEDIATED)
+
+**Method:** Strict whole-corpus fresh-context pass across full spec corpus.
+**Findings:** ~8 total — 0 CRITICAL, 0 HIGH, ~8 MEDIUM — ALL pre-existing corpus debt
+unrelated to ARP F2 delta. **Slice B (all 283 BC H1 titles) verified CLEAN.**
+**Novelty:** LOW — zero ARP-F2 defects; ARP delta clean 5th consecutive pass.
+**Convergence counter:** 0/3 (strict whole-corpus; a fully-clean all-4-slice pass not yet
+achieved; each pass still surfaces residual pre-existing drift in not-yet-swept docs).
+**Verdict:** NOT_CLEAN (corpus debt), REMEDIATED.
+
+Finding categories (all pre-existing corpus debt, none ARP-F2-specific):
+
+- BC-2.10.006 sibling-orphan: stale `src/mitre.rs:153` anchor (corrected to `:179`) + "15"→23/25
+  sibling counts.
+- nfr-catalog NFR-OBS-004: seeded/emitted mislabel corrected.
+- STORY-071 body: stale 16/21→17/23 counts corrected.
+- BC-INDEX:356: stale `["T0855"...]` literal corrected to T1692.001.
+- ADR-007: IcsImpact "Impact" vs shipped "Impact (ICS)" drift-note added (accepted; F4 obligation
+  tracks the code-side rename).
+- extract_sni anchor off-by-one: vp-005/verification-architecture corrected.
+- VP-008: stale BC title corrected.
+- module-criticality: Document-Map gap closed.
+
+**All ~8 findings REMEDIATED.**
+
+**KEY FINDING:** Trajectory decaying — corpus audit 9 findings → Pass 12 ~18 → Pass 13 ~8.
+Slice B (all 283 BC H1 titles) confirmed CLEAN. Zero ARP-F2 defects (delta clean 5th
+consecutive pass). Strict whole-corpus counter still 0/3; sustained multi-pass corpus cleanup
+ongoing.
+
+**Artifact versions post-Pass-13:**
+
+| Artifact | Version | Change |
+|----------|---------|--------|
+| ARCH-INDEX | v1.4 | Updated |
+| verification-architecture | v1.5 | extract_sni anchor corrected |
+| vp-005 | v2.1 | Updated |
+| vp-008 | v2.1 | Stale BC title corrected |
+| ADR-007 | accepted + drift-note | IcsImpact drift-note added |
+| BC-2.10.006 | v1.3 | Stale anchor + count corrected |
+| nfr-catalog | v1.6 | NFR-OBS-004 seeded/emitted mislabel corrected |
+| STORY-071 | v1.10 | Stale 16/21→17/23 counts corrected |
+| BC-INDEX | v1.19 | T1692.001 literal corrected |
+| PRD | v1.16 | Updated |
 
 ---
 

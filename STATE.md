@@ -1,13 +1,13 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F2-in-progress
-phase_status: "F2 STRICT WHOLE-CORPUS convergence 0/3 — corpus audit + Pass 12 remediated (corpus debt cleanup); Pass 13 in progress; ARP delta clean"
+phase_status: "F2 STRICT WHOLE-CORPUS convergence 0/3 — corpus audit + Passes 12-13 remediated; trajectory decaying (9→18→8); Slice B(all BCs) clean; ARP delta clean 5x; sustained multi-pass corpus cleanup ongoing"
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
 product: wirerust
 mode: brownfield
-timestamp: 2026-06-13T18:00:00Z
+timestamp: 2026-06-13T23:59:00Z
 bootstrapped: 2026-05-19T16:56:48Z
 phase_0_completed: 2026-05-19T20:00:00Z
 phase_1_completed: "2026-05-21"
@@ -40,7 +40,7 @@ dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 arp_f2_adversary_convergence_counter: 0/3  # STRICT WHOLE-CORPUS mode — zero findings any severity across entire spec corpus required
-arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18 — 0/3 STRICT WHOLE-CORPUS; 12 passes; ARP delta SETTLED (clean 4 consecutive); corpus audit + Pass 12 REMEDIATED; Pass 13 in progress. Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
+arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8 — 0/3 STRICT WHOLE-CORPUS; 13 passes; ARP delta SETTLED (clean 5 consecutive); corpus audit + Passes 12-13 REMEDIATED; trajectory decaying; Slice B(all BCs) CLEAN. Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
 f7_convergence_trajectory: "6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM)"
 consistency_audit: CONSISTENT
 input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef956 / STORY-109 cf0bb94 re-stamped"
@@ -50,7 +50,7 @@ input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef95
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20.1 migration (F1 PASSED 2026-06-12); release target v0.7.0. F2 spec evolution IN PROGRESS — adversarial convergence 0/3 STRICT WHOLE-CORPUS mode (human-elected 2026-06-13; 12 passes; ARP delta SETTLED clean 4 consecutive; corpus audit + Pass 12 REMEDIATED; Pass 13 in progress; trajectory 15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18).**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20.1 migration (F1 PASSED 2026-06-12); release target v0.7.0. F2 spec evolution IN PROGRESS — adversarial convergence 0/3 STRICT WHOLE-CORPUS mode (human-elected 2026-06-13; 13 passes; ARP delta SETTLED clean 5 consecutive; corpus audit + Passes 12-13 REMEDIATED; trajectory decaying 9→18→8; Slice B(all BCs) CLEAN; trajectory 15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8).**
 
 **Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22+VP-023 ALL LOCKED), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — est. 18-24 new BCs (SS-16), 1 revised BC, VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE T0830 (primary) + T1557.002 (secondary).
 
@@ -81,7 +81,7 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 | Release v0.6.0 | **RELEASED** 2026-06-12 | PR #234 (release/0.6.0 → main 3e29891); fixup fb3935c; tag v0.6.0; 4 binaries (release.yml); develop merge-back 04f8ccb |
 | Maintenance: Dependabot sweep (post-v0.6.0) | **COMPLETE** 2026-06-12 | 5 PRs merged (#203/#204/#207/#235/#206), 2 closed (#202 superseded, #205 deferred); develop 31d1231 |
 | Feature: ARP analyzer — F1 Delta Analysis | **PASSED** (human-gated 2026-06-12) | DecodedFrame{Ip,Arp} integration, ADR-008 planned, F2→F7 authorized; artifacts: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` |
-| Feature: ARP analyzer — F2 Spec Evolution | **IN PROGRESS** — adversarial convergence 0/3 STRICT WHOLE-CORPUS mode (human-elected 2026-06-13) | SLICED 4-slice method; 12 passes; ARP delta SETTLED (clean 4 consecutive); corpus audit + Pass 12 REMEDIATED; Pass 13 in progress; trajectory 15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18; 283 BCs; artifact versions updated through Pass-12 (ARCH-INDEX v1.3, tooling-selection v1.2, dependency-graph v1.2, module-decomposition v1.4, module-criticality v1.2, VP-INDEX v2.1, vp-007 v2.4, BC-INDEX v1.18, PRD v1.15, ADR-005/006/007 accepted, ADR-008 v1.8, BC-2.16.008 v1.6, BC-2.16.010 v1.6, BC-2.10.001 v1.3/003 v1.4/007 v1.7, inv-01 v1.1, nfr-catalog v1.5, STORY-071 v1.9); trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
+| Feature: ARP analyzer — F2 Spec Evolution | **IN PROGRESS** — adversarial convergence 0/3 STRICT WHOLE-CORPUS mode (human-elected 2026-06-13) | SLICED 4-slice method; 13 passes; ARP delta SETTLED (clean 5 consecutive); corpus audit + Passes 12-13 REMEDIATED; trajectory decaying (9→18→8); Slice B(all BCs) CLEAN; trajectory 15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8; 283 BCs; artifact versions updated through Pass-13 (ARCH-INDEX v1.4, verification-architecture v1.5, vp-005 v2.1, vp-008 v2.1, ADR-007 accepted+drift-note, BC-2.10.006 v1.3, nfr-catalog v1.6, STORY-071 v1.10, BC-INDEX v1.19, PRD v1.16); trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
 
 ## Session Resume Checkpoint (2026-06-12 — ARP Feature F1 PASSED / F2 PENDING)
 
