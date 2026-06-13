@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: system-overview
 traces_to: ARCH-INDEX.md
-version: "1.2"
+version: "1.3"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -13,6 +13,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "ARP-F2 Pass-14 remediation (A-04/A-05): L3 pipeline listing extended with C-22 ModbusAnalyzer and C-24 Dnp3Analyzer (both shipped) and C-23 ArpAnalyzer [PLANNED]; component-count note updated from C-1..C-20/C-21 to C-1..C-24; mitre.rs technique count corrected from stale '15 technique IDs' to '23 SEEDED / 15 EMITTED (target 25 SEEDED / 17 EMITTED)'."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-16 A-02: both decode_packet diagram references (5-Layer Pipeline L1 listing and Data Flow diagram) annotated with PLANNED marker for DecodedFrame return-type change. Current shipped state remains Result<ParsedPacket>; PLANNED change to Result<DecodedFrame> is STORY-111 (etherparse 0.20 migration + DecodedFrame enum), not yet shipped — consistent with module-decomposition C-5, api-surface decode_packet row (now STORY-111), and purity-boundary-map."
 ---
 
 # System Overview
@@ -41,7 +44,7 @@ L0 Entry
 
 L1 Ingest
   reader.rs   C-4  PcapSource: reads classic pcap into Vec<RawPacket>
-  decoder.rs  C-5  decode_packet: link-type gate + L2-L4 header parse -> ParsedPacket
+  decoder.rs  C-5  decode_packet: link-type gate + L2-L4 header parse -> ParsedPacket [current]; [PLANNED→Result<DecodedFrame> per STORY-111/ADR-008; Cargo.toml still pins etherparse 0.16]
 
 L2 Stream
   reassembly/
@@ -95,7 +98,7 @@ PcapSource::from_file(path)    -- SS-01: reads entire pcap into Vec<RawPacket>
   |
   v
 for each RawPacket:
-  decode_packet(raw)            -- SS-02: link-type gate + L2-L4 parse -> ParsedPacket
+  decode_packet(raw)            -- SS-02: link-type gate + L2-L4 parse -> ParsedPacket [current; PLANNED→DecodedFrame per STORY-111/ADR-008]
     |
     +-- [TCP] process_packet    -- SS-04: reassembly engine; on data-flush -> dispatcher
     |     |

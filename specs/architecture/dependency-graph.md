@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: dependency-graph
 traces_to: ARCH-INDEX.md
-version: "1.4"
+version: "1.5"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "O-01 closure propagation: chrono row parenthetical updated to reflect O-01 CLOSED (timestamp field now populated at emission sites — STORY-097/098/099 + STORY-102..110; BC-2.04.054 by-design exception). Version bump 1.3→1.4."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-16 A-04: Dev/Test footnote inline test count generalized — replaced brittle hardcoded '264 tests in tests/ + 18 inline = 282 total' (predates Modbus/DNP3/ARP stories STORY-097..115) with a pointer to verification-coverage-matrix.md as the live source of truth for test counts. Version bump 1.4→1.5."
 ---
 
 # Dependency Graph
@@ -121,4 +124,4 @@ Verified against Cargo.toml @ 0082a0c. Every row name and version matches the
 | `tempfile` | 3 | Temporary file/directory fixtures for tests |
 | `proptest` | 1 | Property-based testing (VP harnesses) |
 | `criterion` | 0.8 | Micro-benchmarks for hot pcap-processing paths (`cargo bench`) |
-| Inline test modules | -- | 264 tests in `tests/` + 18 inline (11 in `reporter/terminal.rs`, 7 in `analyzer/tls.rs`) = 282 total |
+| Inline test modules | -- | See `verification-coverage-matrix.md` for the authoritative live test count (the prior hardcoded "264 + 18 = 282" predates Modbus/DNP3/ARP stories and is stale) |

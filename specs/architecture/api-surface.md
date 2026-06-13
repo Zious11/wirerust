@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: api-surface
 traces_to: ARCH-INDEX.md
-version: "1.3"
+version: "1.4"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-14 post-remediation F1 (MEDIUM): Finding.timestamp stale claim 'always None; O-01' corrected to shipped type Option<DateTime<Utc>> with skip_serializing_if; domain-debt O-01 CLOSED (STORY-097/098/099 + STORY-102..110)."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-16 A-03: decode_packet PLANNED marker corrected from STORY-114 to STORY-111. STORY-111 is the etherparse 0.20 migration story that introduces DecodedFrame enum + ArpFrame struct + decode_packet return-type change (per arp-architecture-delta.md §6 authoritative story decomposition). STORY-114 is D1 ARP spoof escalation + VP-007 MITRE atomic update — it does not touch decode_packet. purity-boundary-map and dependency-graph already anchor this work to STORY-111 consistently."
 ---
 
 # API Surface
@@ -149,7 +152,7 @@ Implemented by: `JsonReporter`, `TerminalReporter`, `CsvReporter`.
 
 | Function | File | Signature | Notes |
 |----------|------|-----------|-------|
-| `decode_packet` | decoder.rs | `pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<ParsedPacket>` | Current (shipped) signature. Link-type whitelist gate + L2-L4 header parse. Data-first argument order. Used by integration tests and VP-008 fuzz target. Accepts ETHERNET, RAW, IPV4, IPV6, LINUX_SLL; rejects all other link types with Err. **[PLANNED — STORY-114]** Return type will change to `Result<DecodedFrame>` where `DecodedFrame::Ip(ParsedPacket)` covers the IP path and `DecodedFrame::Arp(ArpFrame)` the ARP path post-etherparse-0.20 migration (ADR-008). Not yet shipped; Cargo.toml pins etherparse 0.16. |
+| `decode_packet` | decoder.rs | `pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<ParsedPacket>` | Current (shipped) signature. Link-type whitelist gate + L2-L4 header parse. Data-first argument order. Used by integration tests and VP-008 fuzz target. Accepts ETHERNET, RAW, IPV4, IPV6, LINUX_SLL; rejects all other link types with Err. **[PLANNED — STORY-111]** Return type will change to `Result<DecodedFrame>` where `DecodedFrame::Ip(ParsedPacket)` covers the IP path and `DecodedFrame::Arp(ArpFrame)` the ARP path post-etherparse-0.20 migration (ADR-008). Not yet shipped; Cargo.toml pins etherparse 0.16. |
 
 
 ## Key Public Structs (L3 Domain)

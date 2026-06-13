@@ -14,6 +14,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "ARP-F2 Pass-14 remediation (D-OBS-01): Decision 1 prose corrected 'Length in [2, 253]' → 'Length in [2, 254]' to match canonical BC-2.14.004 / VP-022:117 / BC-INDEX:344. Rationale: Modbus TCP Length field covers UnitID(1)+PDU(up to 253 bytes FC+data) = 254 maximum; 253 was the incorrect pre-v0.5 value from an early draft."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-16 D-01: Rationale section §Context (line ~74) corrected 'Length in 2..=253' → 'Length in 2..=254' — Pass-14 D-OBS-01 fixed Decision 1 prose (:108) but missed the parallel Rationale sentence. Canonical value confirmed: src/analyzer/modbus.rs (h.length <= 254), BC-2.14.004, VP-022, and ADR-005 Decision 1 :108 (already corrected). Grepped ADR-005 for all remaining [2,253]/2..=253 current-state occurrences; none remain after this fix."
 subsystems_affected:
   - SS-05
   - SS-10
@@ -71,7 +74,7 @@ and fourth bytes happen to be zero.
 In contrast, HTTP and TLS were chosen precisely because their content-discriminators are highly
 distinctive at byte 0. Modbus does not share this property. Port 502 is, in practice, the sole
 reliable classifier for Modbus TCP in a captured stream. The three-point post-classification
-validity gate (Protocol ID == `0x0000` AND Length in 2..=253 AND plausible FC) mitigates the
+validity gate (Protocol ID == `0x0000` AND Length in 2..=254 AND plausible FC) mitigates the
 risk of analyzing non-Modbus traffic that happens to land on port 502.
 
 A second structural difference is the request/response model. Modbus TCP uses a Transaction ID

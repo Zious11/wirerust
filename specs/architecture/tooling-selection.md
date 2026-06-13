@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: tooling-selection
 traces_to: ARCH-INDEX.md
-version: "1.2"
+version: "1.3"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-12 corpus debt cleanup (F-2): Kani 'Properties targeted' list expanded from 8 to 11 VPs — added VP-022 (Modbus MBAP parse safety; analyzer/modbus.rs; shipped v0.6.0), VP-023 (DNP3 data-link frame parse safety; analyzer/dnp3.rs; shipped v0.6.0), VP-024 (ARP frame parse safety and binding-table invariant; analyzer/arp.rs; planned/draft). Kani scope bullets updated to match. Total now reflects 11 Kani VPs per VP-INDEX."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-16 A-01: proptest 'Properties targeted' list expanded from 6 to 7 VPs — added VP-021 (timestamp provenance threading; integration+proptest; counted under proptest per VP-INDEX convention). proptest count now = 7, matching VP-INDEX proptest_count=7."
 ---
 
 # Tooling Selection
@@ -60,7 +63,7 @@ It is the right tool for probabilistic invariants (escape function, cross-flow
 isolation, JA3 GREASE filter) where Kani's bounded state space would be
 prohibitively large.
 
-**Properties targeted:** VP-006, VP-010, VP-011, VP-012, VP-013, VP-014
+**Properties targeted:** VP-006, VP-010, VP-011, VP-012, VP-013, VP-014, VP-021
 
 **Setup:** `proptest = "1"` in `[dev-dependencies]`. Run via `cargo test`.
 
@@ -69,6 +72,7 @@ prohibitively large.
 - `reassembly/segment.rs`: buffered_bytes invariant (VP-010), flush monotonicity (VP-011)
 - `reporter/terminal.rs`: escape_for_terminal correctness (VP-012)
 - `analyzer/tls.rs`: JA3 GREASE filter (VP-013)
+- `reassembly/mod.rs`: timestamp provenance threading (VP-021; integration+proptest; counted under proptest per VP-INDEX convention — proptest component covers all-u32 timestamp range + cross-flow isolation)
 
 ### cargo-fuzz (libFuzzer)
 

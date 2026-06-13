@@ -1,5 +1,15 @@
 # Holdout Re-Evaluation — Chunk 3 (12 "unverified" scenarios)
 
+<!-- ERRATUM 2026-06-13 (Pass-16 C-01): This is a FROZEN historical run-record.
+     Observed verdicts, satisfaction scores, and output quotes reflect a specific past
+     binary build and must not be rewritten. The phrase "mitre=null" in the HS-058 row
+     (line ~18) uses pre-v0.3.0 schema language as evaluated at the time. Current schema
+     (ADR-006 / STORY-100 v0.3.0): `mitre_techniques: Vec<String>` with
+     `skip_serializing_if = "Vec::is_empty"` — the key is ABSENT (not null) when the
+     Vec is empty. This erratum was added by the Pass-16 remediation sweep; the Pass-15
+     H3 erratum sweep covered chunk1-eval.md and chunk3-eval.md but missed this
+     chunk3-reeval.md sibling. -->
+
 Re-evaluator crafted adversarial inputs from scratch using a dependency-free Python
 libpcap generator (Ethernet/IPv4/TCP handshake + PSH segments for HTTP; hand-built
 TLS handshake records with SNI extensions / ServerHello for TLS). All scores are by

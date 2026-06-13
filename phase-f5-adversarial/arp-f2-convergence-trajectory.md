@@ -55,32 +55,38 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 13 (whole-corpus) | 2026-06-13 | ~8 | 0 | 0 | ~8 | 0 | LOW | 0/3 | NOT_CLEAN, REMEDIATED |
 | 14 (whole-corpus) | 2026-06-13 | 22 | 2 | 5 | ~11 | ~4 | MED | 0/3 | NOT_CLEAN |
 | 15 (whole-corpus, Claude) | 2026-06-13 | 8 | 2 | 1 | 3 | 2 | MED | 0/3 | NOT_CLEAN→REMEDIATED |
+| 16 (whole-corpus, Claude) | 2026-06-13 | 7 | 0 | 0 | 5 | 2 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)`
 
-Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2 — REGRESSION at Pass 14
-(2 genuinely-new CRITICAL corpus-debt findings, not ARP delta defects). HIGH count:
-8→7→~6→~5→1→2→~4→2→0→1→1→0→0→5 — REGRESSION at Pass 14 (5 new HIGH findings in architecture
-and domain docs not reached by prior 13 passes); ARP delta itself clean. MEDIUM count:
-3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8→~11 — propagation hygiene and pre-existing corpus debt.
+Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0 — DECAYING at Pass 16
+(0 CRIT/0 HIGH; 5 MED/2 LOW; all sibling-sweep misses, no new debt layers). HIGH count:
+8→7→~6→~5→1→2→~4→2→0→1→1→0→0→5→1→0 — DECAYING at Pass 16. MEDIUM count:
+3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8→~11→3→5 — propagation hygiene and partial-fix sibling-sweep
+misses (VP-021 omitted from proptest list; decode_packet STORY-111 vs 114; ADR-005 :74 second
+instance; chunk3-reeval missed in H3 sweep; dependency-graph hardcoded 282).
 Trend BROKE at Pass 14 — Passes 12-13 showed 0 CRIT/0 HIGH; Pass 14 surfaced 2 CRITICAL + 5 HIGH
-genuinely-new shipped-code-vs-spec drift not reached by 13 prior passes.
-Slice B (all 283 BC H1 titles) verified CLEAN in Pass 13; ARP delta clean 6th consecutive pass.
+genuinely-new shipped-code-vs-spec drift not reached by 13 prior passes. DECAYING: P14 2C/5H →
+P15 2C/1H → P16 0C/0H (5 MED, 2 LOW). Slice B CLEAN (all 283 BCs + field-rename verified).
 
 ## Convergence Counter
 
 **0/3** consecutive clean passes.
 **STRICT WHOLE-CORPUS mode** (human-elected 2026-06-12; scope extended 2026-06-13): zero
 findings of ANY severity (including LOW) across the ENTIRE spec corpus (not just ARP delta)
-required for 3 consecutive clean passes. 15 passes run. Pass 14 REMEDIATED (22 findings:
+required for 3 consecutive clean passes. 16 passes run. Pass 14 REMEDIATED (22 findings:
 mitre_techniques field-rename corpus sweep + O-01 closure propagation + architect ×2 + PO ×10
 bursts + consistency audit CONSISTENT). Pass 15 REMEDIATED (8 findings: holdout-scenarios
 field-rename sweep [C-01/02/03, 16 files] + inv-01 YAML regression [C-04] + VP-024 scope
-reconciliation [A-01] + 4 more; consistency audit CONSISTENT all 7 dimensions). Next = Pass 16
-via agy (Gemini, additional quota provided by human). Counter 0/3 — remediation does NOT
-advance counter.
+reconciliation [A-01] + 4 more; consistency audit CONSISTENT all 7 dimensions). Pass 16
+REMEDIATED (7 findings: VP-021 added to proptest list [A-01]; decode_packet diagrams STORY-111
+markers [A-02]; api-surface STORY-114→STORY-111 [A-03]; dependency-graph 282→pointer [A-04];
+A-05 DISCARDED (ADR-008 proposed correct); chunk3-reeval ERRATUM [C-01]; ADR-005 :74 [2,254]
+[D-01]; 6 remediated, 1 discarded). Trajectory DECAYING: P14 2C/5H → P15 2C/1H → P16 0C/0H.
+Slice B CLEAN (all 283 BCs + field-rename verified). Next = Pass 17 via Claude adversary.
+Counter 0/3 — remediation does NOT advance counter.
 
 ## Core Semantics — Confirmed Clean (Settled)
 
@@ -140,8 +146,8 @@ treat these as LOW-RISK unless new evidence contradicts:
 | cap-11 | v1.1 | |
 | nfr-catalog | v1.6 | NFR-OBS-004 seeded/emitted mislabel corrected (Pass-13) |
 | module-criticality | v1.2 | Document-Map gap closed (Pass-13) |
-| tooling-selection | v1.2 | (carried from Pass-12) |
-| dependency-graph | v1.2 | (carried from Pass-12) |
+| tooling-selection | v1.3 | VP-021 added to proptest list (Pass-16 A-01) |
+| dependency-graph | v1.5 | Hardcoded "282 tests" generalized to verification-coverage-matrix pointer (Pass-16 A-04) |
 | module-decomposition | v1.4 | (carried from corpus audit) |
 | BC-2.10.002 | v1.4 | |
 | BC-2.10.004 | v1.5 | |
@@ -868,6 +874,97 @@ must replace-in-place, and a frontmatter dup-key lint should run pre-commit.
 | evaluations/chunk1-eval.md, evaluations/chunk3-eval.md | — | ERRATA 2026-06-13 appended (H3; history preserved) |
 | spec-changelog | updated | All P15 version bumps recorded |
 
+**Post-Pass-16 (partial — only changed artifacts):**
+
+| Artifact | Version | Change |
+|----------|---------|--------|
+| tooling-selection | v1.3 | VP-021 added to proptest list (A-01) |
+| system-overview | v1.3 | decode_packet diagram (:44,:98) PLANNED→DecodedFrame/STORY-111 markers (A-02) |
+| api-surface | v1.4 | decode_packet PLANNED anchor corrected STORY-114→STORY-111 (A-03) |
+| dependency-graph | v1.5 | Hardcoded "282 tests" generalized to verification-coverage-matrix pointer (A-04) |
+| evaluations/chunk3-reeval.md | — | Dated ERRATUM added: mitre=null frozen run-record; P15 H3 sweep missed sibling (C-01) |
+| ADR-005 | modified[] | Rationale :74 "2..=253"→"2..=254" corrected (D-01; P14 D-OBS-01 fixed :108, missed :74) |
+| spec-changelog | updated | All P16 version bumps recorded |
+
+---
+
+### Pass 16 — 2026-06-13 (whole-corpus, Claude adversary; NOT_CLEAN → REMEDIATED)
+
+**Method:** Whole-corpus fresh-context pass; Claude vsdd-factory:adversary per human direction.
+**Note on method:** agy (Gemini CLI) was ATTEMPTED for Pass 16 via 3 invocation modes: (1) broad
+file-tool slices ended on a tool-call with no synthesis output; (2) --conversation resume stalled
+silently; (3) tool-free content-paste hung >14 minutes ignoring --print-timeout. No synthesized
+output produced across all 3 modes. agy set aside for adversary use pending a working headless
+invocation. Pass 16 run via Claude vsdd-factory:adversary per human direction.
+**Findings:** 7 total — 0 CRITICAL, 0 HIGH, 5 MEDIUM, 2 LOW — 6 REMEDIATED, 1 DISCARDED.
+**Novelty:** LOW — all localized partial-fix sibling-sweep misses; no new debt layers.
+**Convergence counter:** 0/3 (remediation does NOT advance counter; next = Pass 17 via Claude).
+**Verdict:** NOT_CLEAN → REMEDIATED.
+
+#### Findings and Remediation
+
+**A-01 MED (architect) — tooling-selection.md proptest list VP-021 missing:**
+Pass-14/15 remediation added VP-021 to the verification corpus but the proptest tool list in
+tooling-selection.md still enumerated 6 proptest VPs (omitting VP-021). List updated to 7.
+tooling-selection bumped v1.2→v1.3.
+
+**A-02 MED (architect) — system-overview.md decode_packet diagrams stale (:44,:98):**
+Two sequence/data-flow diagrams still showed `decode_packet` returning `Result<ParsedPacket>`
+(pre-ADR-008); both needed PLANNED→DecodedFrame/STORY-111 markers matching arp-architecture-delta
+convention. Added PLANNED annotation with STORY-111 scope reference.
+system-overview bumped v1.2→v1.3.
+
+**A-03 MED (architect) — api-surface.md decode_packet PLANNED anchor STORY-114→STORY-111:**
+Pass-14 A-06 introduced the PLANNED marker for decode_packet's `Result<DecodedFrame>` return type
+but cited STORY-114 (the wrong story; that is the ARP implementation story). Canonical story for
+etherparse DecodedFrame integration at the decoder layer is STORY-111. Corrected STORY-114→STORY-111
+(verified vs arp-architecture-delta §6 which cites STORY-111 for DecodedFrame at decoder boundary).
+api-surface bumped v1.3→v1.4.
+
+**A-04 LOW (architect) — dependency-graph.md hardcoded "282 tests" stale:**
+A hardcoded "282 tests" count in dependency-graph.md was stale (current total 283 + ongoing
+Pass-16-era additions). Generalized to a prose pointer to verification-coverage-matrix (living
+document) rather than a hardcoded count that will drift with each test addition.
+dependency-graph bumped v1.4→v1.5.
+
+**A-05 LOW — DISCARDED (ADR-008 status `proposed` correct/NON-BLOCKING):**
+Adversary flagged ADR-008 status as `proposed` rather than `accepted`. This is correct by
+convention: ADR-008 is forward-declared for F4 implementation (STORY-111); `proposed` is the
+right state until implementation lands. Adversary itself noted the consistency — non-blocking
+by the NON-BLOCKING forward-declaration policy. Discarded.
+
+**C-01 MED (PO) — evaluations/chunk3-reeval.md `mitre=null` (H3 sweep miss):**
+Pass-15 H3 sweep added ERRATA to chunk1-eval.md and chunk3-eval.md (two frozen run records)
+but missed the sibling `chunk3-reeval.md`. The reeval record carried `mitre=null` from the
+pre-STORY-100 single-tag era. File is a frozen audit-trail record; dated ERRATUM appended
+(2026-06-13) recording the field-rename without rewriting history. Same H3 pattern applied.
+
+**D-01 MED (architect) — ADR-005.md:74 Rationale "2..=253"→"2..=254":**
+Pass-14 D-OBS-01 corrected the `[2,254]` length range at ADR-005:108. The Rationale section
+at :74 carried a second instance — "2..=253" — which was missed in the same burst
+(partial-fix sibling sweep miss). Corrected to "2..=254" (verified vs src/analyzer/modbus.rs
+which validates `len >= 2 && len <= 254`). Modified[] entry appended to ADR-005 frontmatter.
+
+#### Consistency verification (targeted grep)
+
+Post-remediation targeted grep sweep PASS:
+- No current-state `[2,253]` or `2..=253` in ADR-005 (both :74 and :108 now correct).
+- api-surface decode_packet PLANNED anchor cites STORY-111 (not STORY-114).
+- tooling-selection proptest list = 7 VPs.
+- chunk3-reeval.md ERRATUM present (2026-06-13 dated).
+- No duplicate YAML version-keys in modified files.
+- dependency-graph "282 tests" hardcode removed.
+
+Full fresh-context re-check deferred to Pass 17 (edits were tiny/non-structural).
+
+#### Process gap noted [process-gap]
+
+**PG-ARP-F2-005:** erratum/sweep glob patterns must cover sibling naming variants
+(chunk*-eval.md glob matched chunk1-eval.md and chunk3-eval.md but missed chunk3-reeval.md).
+And partial-fix discipline: when a fix touches one of N siblings (e.g., one of two `2..=253`
+instances in ADR-005; one of three decode_packet peers), sweep ALL siblings in the same burst
+before committing.
+
 ---
 
 ### HUMAN DECISION — 2026-06-13
@@ -951,6 +1048,25 @@ caught only at Pass 15 (C-04).
 (Edit tool targeting the exact `version: vX.Y` line), never append. A frontmatter dup-key lint
 (e.g., `python3 -c "import yaml; yaml.safe_load(open(f).read())"` over modified .md files)
 should run pre-commit.
+
+---
+
+### [process-gap] PG-ARP-F2-005 — Sibling naming variants in sweep globs + partial-fix discipline
+
+Pass-15 H3 sweep used glob `chunk*-eval.md` which matched chunk1-eval.md and chunk3-eval.md
+but MISSED chunk3-reeval.md (the sibling reeval record). The erratum was caught only at Pass 16.
+
+Additionally, partial-fix discipline failed twice in this cycle: (1) Pass-14 D-OBS-01 corrected
+ADR-005:108 `[2,253]` but missed :74 (caught at Pass 16 D-01); (2) Pass-14 A-06 introduced
+decode_packet STORY-114 anchor in one peer (api-surface) but the arp-architecture-delta §6
+already cited STORY-111 — the wrong story number was introduced into the newer file rather than
+verified against the authoritative doc.
+
+**Candidate policy codification:** DF-SIBLING-SWEEP-001 sub-rule — when a fix touches one of N
+instances of the same defect across sibling files or within a single file, enumerate ALL siblings
+before committing. Sweep globs must include all naming variants: `chunk*eval.md`, `chunk*-eval.md`,
+`chunk*reeval.md` — or use `find` over the directory. No partial-fix commits on multi-occurrence
+defects.
 
 ---
 

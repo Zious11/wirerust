@@ -14,6 +14,64 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-16-fixes-2026-06-13] — 2026-06-13
+
+### ERRATUM + PATCH: Pass-16 C-01 Remediation — chunk3-reeval.md frozen-record erratum + architect bump log
+
+**Summary:** Remediates Pass-16 finding C-01 (MEDIUM). Adds a dated erratum note to
+`chunk3-reeval.md` (the `*-reeval.md` sibling missed by the Pass-15 H3 sweep), and logs
+the architect's five Pass-16 version bumps. No other files touched.
+
+**C-01 (MEDIUM) — chunk3-reeval.md HS-058 row "mitre=null" — frozen-record erratum:**
+
+Classification: FROZEN historical run-record. Evidence: header states "All scores are by
+OBSERVED behavior of `target/debug/wirerust analyze`..."; per-scenario table contains
+satisfaction scores, PASS/FAIL verdicts, and verbatim observed-output quotes for a specific
+past binary build. Same structural pattern as chunk1-eval.md and chunk3-eval.md (classified
+as frozen in Pass-15 H3). In-place rewrite of historical verdicts is not permitted.
+
+The Pass-15 H3 erratum sweep covered chunk1-eval.md and chunk3-eval.md but missed
+chunk3-reeval.md because the sweep pattern matched `chunk*-eval.md` and excluded this
+`*-reeval.md` sibling.
+
+Stale reference in HS-058 row: "all mitre=null" — pre-v0.3.0 schema language.
+
+Current schema truth (ADR-006 / STORY-100 v0.3.0): `mitre_techniques: Vec<String>` with
+`skip_serializing_if = "Vec::is_empty"` — the key is ABSENT (not null) when the Vec is
+empty. JSON `null` is not a valid serialized form for an absent-when-empty Vec field.
+
+Action: Added HTML comment erratum block immediately after the H1 heading (before the
+re-evaluator intro paragraph), contextualizing the stale schema language in the HS-058 row
+and explaining that this is a frozen record. Historical content untouched.
+
+| Before | After |
+|--------|-------|
+| No erratum note; HS-058 row contains "all mitre=null" without qualification | HTML comment erratum block added after H1, stating: frozen run-record; "mitre=null" reflects pre-v0.3.0 schema language; current schema uses `mitre_techniques: Vec<String>` with key ABSENT when empty, per ADR-006 |
+
+**Architect bumps logged (Pass-16):**
+
+| Artifact | Change | Reason |
+|----------|--------|--------|
+| `architecture/tooling-selection.md` | v1.2 → v1.3 | Pass-16 architect bump |
+| `architecture/system-overview.md` | v1.2 → v1.3 | Pass-16 architect bump |
+| `architecture/api-surface.md` | v1.3 → v1.4 | Pass-16 architect bump |
+| `architecture/dependency-graph.md` | v1.4 → v1.5 | Pass-16 architect bump |
+| `specs/architecture/ADR-005.md` | modified[] entry appended for D-01 line-74 [2,253]→[2,254] | Pass-16 D-01 remediation |
+
+**Version bumps (spec artifacts):**
+
+No versioned spec artifact was modified. chunk3-reeval.md is a run-record without a version
+field (same as chunk1-eval.md / chunk3-eval.md — no version bump applicable).
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| chunk3-reeval.md | HTML comment erratum note added after H1 (frozen record; historical content untouched) | `.factory/holdout-scenarios/evaluations/chunk3-reeval.md` |
+| spec-changelog.md | Pass-16-fixes entry prepended; architect Pass-16 bumps logged | `.factory/spec-changelog.md` |
+
+---
+
 ## [pass-15-h3-eval-erratum-2026-06-13] — 2026-06-13
 
 ### ERRATUM: Pass-15 C-01 Burst H3 — Frozen Evaluation Records (chunk1-eval.md, chunk3-eval.md)
