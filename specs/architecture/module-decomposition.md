@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: module-decomposition
 traces_to: ARCH-INDEX.md
-version: "1.6"
+version: "1.7"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -18,7 +18,7 @@ modified:
     reason: "C-22 over-inclusion correction: removed T1692.002 (catalogue-only, never emitted) from Modbus analyzer findings list (issue #222)."
   - date: 2026-06-12
     actor: architect
-    reason: "F2 delta ARP security analyzer: C-23 added (src/analyzer/arp.rs, SS-16, pure core); C-5 description updated to reflect DecodedFrame return type post-etherparse-0.20 migration."
+    reason: "F2 delta ARP security analyzer: C-23 added (src/analyzer/arp.rs, SS-16, pure core) [PLANNED — STORY-112/ADR-008; not yet in src tree]; C-5 description forward-declared PLANNED DecodedFrame return type and etherparse-0.20 migration target per STORY-111/ADR-008 (not yet shipped; Cargo.toml still pins 0.16)."
   - date: 2026-06-13
     actor: architect
     reason: "Corpus-wide consistency audit remediation (CD-6/CD-7): Component Inventory preamble updated to reflect current 24-component count including C-21 StreamDispatcher, C-22 ModbusAnalyzer, C-23 ArpAnalyzer, and C-24 Dnp3Analyzer; C-24 DNP3 analyzer row added (analyzer/dnp3.rs, SS-15, shipped v0.6.0; non-chronological C-ID documented)."
@@ -28,13 +28,16 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "O-01 closure propagation: Architecture Debt by Component table row updated Open→CLOSED (21/22 sites wired STORY-097/098/099+STORY-102..110; BC-2.04.054 summary finding timestamp:None by design). Version bump 1.5→1.6."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-17 A-01/A-02/A-03 remediation: C-5 row corrected from forward-declared PLANNED state to accurate current state (etherparse 0.16, Result<ParsedPacket>) with explicit PLANNED marker for STORY-111/ADR-008 migration; modified-log entry for 2026-06-12 clarified to mark C-23 addition and C-5 update as PLANNED/forward-declared targets; C-23 table row and Component Inventory preamble both receive explicit [PLANNED — STORY-112/ADR-008; not yet in src tree] markers matching peer docs. Version bump 1.6→1.7."
 ---
 
 # Module Decomposition
 
 ## Component Inventory
 
-All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by ADR 0001), C-22 (ModbusAnalyzer, added F2 issue #7), C-23 (ArpAnalyzer, added F2 issue #9), and C-24 (Dnp3Analyzer, shipped v0.6.0 — see note on C-24 below for non-chronological C-ID assignment). 24 components total.
+All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by ADR 0001), C-22 (ModbusAnalyzer, added F2 issue #7), C-23 (ArpAnalyzer, added F2 issue #9 — **PLANNED; not yet in src tree, see STORY-112/ADR-008**), and C-24 (Dnp3Analyzer, shipped v0.6.0 — see note on C-24 below for non-chronological C-ID assignment). 24 components total (23 shipped; C-23 planned).
 
 ### L0 Entry Layer
 
@@ -49,7 +52,7 @@ All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by 
 | C-ID | File | SS-ID | Role | Purity |
 |------|------|-------|------|--------|
 | C-4 | src/reader.rs | SS-01 | `PcapSource::from_file` / `from_pcap_reader`; reads pcap into `Vec<RawPacket>` | Effectful (file I/O) |
-| C-5 | src/decoder.rs | SS-02 | `decode_packet`: link-type whitelist gate + L2-L4 header parse via etherparse 0.20; returns `Result<DecodedFrame>` where `DecodedFrame::Ip(ParsedPacket)` is the IP path and `DecodedFrame::Arp(ArpFrame)` is the new ARP path (ADR-008). Also defines `ArpFrame` struct. `app_protocol_hint` unchanged. | Pure core (no I/O; takes `&[u8]`, returns `Result<DecodedFrame>`) |
+| C-5 | src/decoder.rs | SS-02 | `decode_packet`: link-type whitelist gate + L2-L4 header parse via etherparse 0.16; currently returns `Result<ParsedPacket>`. **PLANNED (STORY-111/ADR-008; not yet shipped — Cargo.toml pins etherparse 0.16):** migrate to etherparse 0.20, change return type to `Result<DecodedFrame>` where `DecodedFrame::Ip(ParsedPacket)` is the IP path and `DecodedFrame::Arp(ArpFrame)` is the new ARP path, add `ArpFrame` struct definition. `app_protocol_hint` unchanged. | Pure core (no I/O; takes `&[u8]`, returns `Result<ParsedPacket>` today; `Result<DecodedFrame>` post-STORY-111) |
 
 ### L2 Stream Layer
 
@@ -76,7 +79,7 @@ All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by 
 | C-16 | src/mitre.rs | SS-10 | `MitreTactic` enum; `MitreMatrix` enum (Enterprise/Ics); `technique_info` static match; `technique_name`, `technique_tactic`, `technique_matrix`, `all_tactics_in_report_order` — extended with T0836/T0814/T0806/T0835/T0831/T0888 for SS-14 and T1691.001/T0827 for SS-15 (STORY-109); 23 SEEDED IDs (target: 25 when ARP ships) | Pure core |
 | C-17 | src/summary.rs | SS-12 | `Summary`: per-packet accumulator; `ingest`, `unique_hosts`, serialization | Pure core |
 | C-22 | src/analyzer/modbus.rs | SS-14 | `ModbusAnalyzer`: `StreamHandler` + `StreamAnalyzer`; per-flow `HashMap<FlowKey, ModbusFlowState>`; MBAP parse + 3-point validity gate; function-code classification; transaction correlation table; write-burst rate detection; findings for T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 (T0888 = recon FC 0x11/0x12/0x2B, Remote System Information Discovery; ADR-005 D12) | Pure core |
-| C-23 | src/analyzer/arp.rs | SS-16 | `ArpAnalyzer`: direct `process_arp(&ArpFrame)` method (not ProtocolAnalyzer/StreamAnalyzer); binding table (HashMap<[u8;4], BindingEntry>, LRU-bounded); D1 spoof, D2 GARP, D3 storm, D11 malformed, D12 L2/L3 mismatch detection; T0830+T1557.002 findings (ADR-008) | Pure core |
+| C-23 | src/analyzer/arp.rs | SS-16 | **[PLANNED — STORY-112/ADR-008; not yet in src tree]** `ArpAnalyzer`: direct `process_arp(&ArpFrame)` method (not ProtocolAnalyzer/StreamAnalyzer); binding table (HashMap<[u8;4], BindingEntry>, LRU-bounded); D1 spoof, D2 GARP, D3 storm, D11 malformed, D12 L2/L3 mismatch detection; T0830+T1557.002 findings (ADR-008) | Pure core |
 | C-24 | src/analyzer/dnp3.rs | SS-15 | `Dnp3Analyzer`: `StreamHandler`; carry-buffer + CRC-block-skip parse; FIR=1-only app-layer extract; function-code classification; ICS MITRE findings T1691.001/T0827/T0836/T0814; per-flow master-address tracking (MAX_MASTER_ADDRS); VP-023 Kani obligation (ADR-007). **Note — non-chronological C-ID:** DNP3 shipped before ARP (v0.6.0 vs v0.7.0-planned) but C-IDs are assigned by factory-registration order; C-22 (Modbus) and C-23 (ARP) were registered first. DNP3 receives C-24 by registration sequence, not deployment sequence. Do not renumber C-23 — it is cited in arp-architecture-delta, ARCH-INDEX, module-criticality, and BC-INDEX. | Pure core |
 
 ### L4 Output Layer

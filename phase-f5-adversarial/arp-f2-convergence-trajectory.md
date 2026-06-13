@@ -56,27 +56,29 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 14 (whole-corpus) | 2026-06-13 | 22 | 2 | 5 | ~11 | ~4 | MED | 0/3 | NOT_CLEAN |
 | 15 (whole-corpus, Claude) | 2026-06-13 | 8 | 2 | 1 | 3 | 2 | MED | 0/3 | NOT_CLEAN→REMEDIATED |
 | 16 (whole-corpus, Claude) | 2026-06-13 | 7 | 0 | 0 | 5 | 2 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
+| 17 (whole-corpus, Claude) | 2026-06-13 | 10 | 3 | 2 | 2 | 3 | MED | 0/3 | NOT_CLEAN→REMEDIATED |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P18 next (Claude); P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)`
 
-Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0 — DECAYING at Pass 16
-(0 CRIT/0 HIGH; 5 MED/2 LOW; all sibling-sweep misses, no new debt layers). HIGH count:
-8→7→~6→~5→1→2→~4→2→0→1→1→0→0→5→1→0 — DECAYING at Pass 16. MEDIUM count:
-3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8→~11→3→5 — propagation hygiene and partial-fix sibling-sweep
-misses (VP-021 omitted from proptest list; decode_packet STORY-111 vs 114; ADR-005 :74 second
-instance; chunk3-reeval missed in H3 sweep; dependency-graph hardcoded 282).
-Trend BROKE at Pass 14 — Passes 12-13 showed 0 CRIT/0 HIGH; Pass 14 surfaced 2 CRITICAL + 5 HIGH
-genuinely-new shipped-code-vs-spec drift not reached by 13 prior passes. DECAYING: P14 2C/5H →
-P15 2C/1H → P16 0C/0H (5 MED, 2 LOW). Slice B CLEAN (all 283 BCs + field-rename verified).
+Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3 — NON-MONOTONIC at Pass 17
+(3C/2H; new holdout MITRE-count sub-layer + module-decomposition peer not previously deep-reviewed).
+HIGH count: 8→7→~6→~5→1→2→~4→2→0→1→1→0→0→5→1→0→2 — NON-MONOTONIC at Pass 17.
+MEDIUM count: 3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8→~11→3→5→2 — propagation hygiene and
+holdout count-assertion drift.
+Trend BROKE at Pass 14 — Passes 12-13 showed 0 CRIT/0 HIGH; Pass 14 surfaced 2 CRITICAL + 5 HIGH.
+DECAYING P14→P16: 2C/5H → 2C/1H → 0C/0H. NON-MONOTONIC at P17: 3C/2H (new corpus corner:
+holdout-scenarios MITRE-catalog count assertions; module-decomposition never deep-reviewed for
+PLANNED/ARP markers). Slice B CLEAN 2nd consecutive (P16+P17). Ground truth (src/mitre.rs): 23
+seeded / 15 emitted / 8 cat-only / 17 MitreTactic variants.
 
 ## Convergence Counter
 
 **0/3** consecutive clean passes.
 **STRICT WHOLE-CORPUS mode** (human-elected 2026-06-12; scope extended 2026-06-13): zero
 findings of ANY severity (including LOW) across the ENTIRE spec corpus (not just ARP delta)
-required for 3 consecutive clean passes. 16 passes run. Pass 14 REMEDIATED (22 findings:
+required for 3 consecutive clean passes. 17 passes run. Pass 14 REMEDIATED (22 findings:
 mitre_techniques field-rename corpus sweep + O-01 closure propagation + architect ×2 + PO ×10
 bursts + consistency audit CONSISTENT). Pass 15 REMEDIATED (8 findings: holdout-scenarios
 field-rename sweep [C-01/02/03, 16 files] + inv-01 YAML regression [C-04] + VP-024 scope
@@ -84,9 +86,12 @@ reconciliation [A-01] + 4 more; consistency audit CONSISTENT all 7 dimensions). 
 REMEDIATED (7 findings: VP-021 added to proptest list [A-01]; decode_packet diagrams STORY-111
 markers [A-02]; api-surface STORY-114→STORY-111 [A-03]; dependency-graph 282→pointer [A-04];
 A-05 DISCARDED (ADR-008 proposed correct); chunk3-reeval ERRATUM [C-01]; ADR-005 :74 [2,254]
-[D-01]; 6 remediated, 1 discarded). Trajectory DECAYING: P14 2C/5H → P15 2C/1H → P16 0C/0H.
-Slice B CLEAN (all 283 BCs + field-rename verified). Next = Pass 17 via Claude adversary.
-Counter 0/3 — remediation does NOT advance counter.
+[D-01]; 6 remediated, 1 discarded). Pass 17 REMEDIATED (10 findings: module-decomposition
+PLANNED markers [A-01/A-02/A-03/A-04]; HS-025/HS-008/HS-009 holdout MITRE-catalog count
+assertions [C-01/C-02/C-03/C-04]; nfr-catalog NFR-OBS-010 disambiguation [D-01]; domain-spec
+§Summary-Metrics erratum [D-02]; 10 remediated). Trajectory NON-MONOTONIC P14→P17:
+2C/5H → 2C/1H → 0C/0H → 3C/2H. Slice B CLEAN 2nd consecutive (P16+P17). Next = Pass 18
+via Claude adversary. Counter 0/3 — remediation does NOT advance counter.
 
 ## Core Semantics — Confirmed Clean (Settled)
 
@@ -967,6 +972,107 @@ before committing.
 
 ---
 
+### Pass 17 — 2026-06-13 (whole-corpus, Claude adversary; NOT_CLEAN → REMEDIATED)
+
+**Method:** Whole-corpus fresh-context pass; Claude vsdd-factory:adversary per human direction.
+**Factory-artifacts HEAD reviewed:** (post-P16-remediation burst).
+**Findings:** 10 total — 3 CRITICAL, 2 HIGH, 2 MEDIUM, 3 LOW — ALL REMEDIATED.
+**Novelty:** MED — two not-previously-deep-reviewed corpus corners: (1) module-decomposition.md
+— the ONE architecture peer never swept for decode_packet/ARP PLANNED markers (asserted
+etherparse-0.20/DecodedFrame migration as shipped when current src=ParsedPacket/0.16); (2) a
+new holdout sub-layer — MITRE-catalog holdouts HS-008/009/025 carried greenfield-era counts
+(16 tactics/15 seeded/5 emitted/9 cat-only) contradicting their updated anchor BCs.
+**Convergence counter:** 0/3 (remediation does NOT advance counter; next = Pass 18 via Claude).
+**Verdict:** NOT_CLEAN → REMEDIATED.
+**Trajectory note:** NON-MONOTONIC — P14 2C/5H → P15 2C/1H → P16 0C/0H → P17 3C/2H. Slice B
+CLEAN 2nd consecutive. Ground truth (src/mitre.rs verified): 23 seeded / 15 emitted / 8
+cat-only / 17 MitreTactic variants (14E+3 ICS incl IcsImpact) — current shipped values.
+
+#### Findings and Remediation
+
+**A-01 HIGH (architect) — module-decomposition C-5 row + modified-log asserted
+decode_packet→DecodedFrame/etherparse-0.20 as shipped:**
+module-decomposition.md C-5 row described etherparse-0.20 and DecodedFrame migration as current
+shipped state. Current src=ParsedPacket/etherparse-0.16 (migration is STORY-111, F4 obligation).
+PLANNED→STORY-111 markers added to C-5 row and to any prose asserting DecodedFrame migration as
+complete. module-decomposition bumped v1.6→v1.7.
+
+**A-02 HIGH (architect) — module-decomposition C-23 ArpAnalyzer + preamble asserted as
+shipped:**
+C-23 ArpAnalyzer entry and related preamble described arp.rs as present in source tree.
+src/analyzer/arp.rs does NOT exist in develop HEAD (ARP implementation is STORY-112/F4,
+ADR-008). PLANNED→STORY-112/ADR-008 markers added. module-decomposition bumped (same file,
+same version v1.6→v1.7).
+
+**A-03 LOW (architect) — module-decomposition peer cross-refs resolved by A-01:**
+Peer references in module-decomposition that cross-cited now-PLANNED rows were covered by
+the same PLANNED marker sweep in A-01/A-02. Resolved as part of A-01/A-02 fix.
+
+**A-04 LOW (architect) — module-decomposition modified-log entries:**
+Modified-log entries asserting etherparse-0.20/ArpAnalyzer changes as complete were annotated
+with PLANNED scope references. Resolved as part of A-01/A-02 sweep.
+
+**C-01 CRITICAL (PO) — HS-025 "16 entries (14E+2 ICS)"→17 (14E+3 ICS incl IcsImpact):**
+HS-025 holdout scenario (ICS tactic display and non-exhaustive guard) carried greenfield-era
+count "16 entries (14E+2 ICS)". STORY-109 (DNP3 F4) shipped MitreTactic::IcsImpact as the 3rd
+ICS variant; canonical count is 17 (14 Enterprise + 3 ICS). 7 count-bearing assertions updated.
+HS-025 bumped v1.0→v1.1.
+
+**C-02 CRITICAL (PO) — HS-008 "(16 total)"→17, "15 seeded"→23:**
+HS-008 holdout scenario (MITRE tactic display and kill-chain order) carried "(16 total)" tactic
+count and "15 seeded" IDs (greenfield-era). Canonical: 17 MitreTactic variants; 23 seeded IDs
+(src/mitre.rs verified). Updated. HS-008 bumped v1.0→v1.1.
+
+**C-03 CRITICAL (PO) — HS-009 "15 seeded"→23, "5 emitted"→15 (enumerated EMITTED_IDS),
+"9 cat-only"→8:**
+HS-009 holdout scenario (MITRE technique lookup — unknown IDs) carried "15 seeded" / "5
+emitted" / "9 cat-only" from the greenfield era. Canonical (src/mitre.rs): 23 seeded / 15
+emitted / 8 cat-only. Emitted IDs enumerated inline (current EMITTED_IDS list confirmed). HS-009
+bumped v1.1→v1.2.
+
+**C-04 MED (PO) — HS-009 T0886 phantom ICS ID corrected:**
+HS-009 used T0886 as an example unknown ICS technique ID. T0886 is not in the MITRE ICS
+ATT&CK catalog (verified); the correct adjacent ID is T0885 (Theft of Operational Information).
+Prose corrected: T0886 replaced with a note that the real unknown-ID path uses T9999 (reserved
+for testing) and cites T0885 as the nearest-neighbor real ID. HS-009 bumped (same file,
+v1.1→v1.2).
+
+**D-01 LOW (PO) — nfr-catalog NFR-OBS-010 "all four fields" disambiguation:**
+nfr-catalog NFR-OBS-010 carried "all four fields" phrasing (parallel to Pass-15 C-05
+interface-definitions fix). Disambiguated to: mitre_techniques Vec + 3 Option fields
+(timestamp, src_ip, dst_ip). nfr-catalog bumped v1.8→v1.9.
+
+**D-02 LOW (PO) — domain-spec §Summary-Metrics "21 components" erratum:**
+domain-spec §Summary-Metrics cited "21 components". This is a FROZEN pre-F2 ingestion baseline
+(develop@0082a0c; 21 C-numbered components, 24 source files). The adversary misread the
+24-source-files count as 24-components and flagged the row. The row is a frozen snapshot, NOT
+a live count — it correctly describes the brownfield ingestion baseline. Dated erratum/disclaimer
+added pointing to ARCH-INDEX for the current 24-component count; the rows themselves NOT
+rewritten (frozen snapshot integrity preserved). NOT a count regression.
+
+#### Artifact versions post-Pass-17
+
+| Artifact | Version | Change |
+|----------|---------|--------|
+| module-decomposition | v1.7 | C-5/C-23 PLANNED→STORY-111/STORY-112/ADR-008 markers; modified-log annotated |
+| HS-025 | v1.1 | 16→17 tactic count (14E+3 ICS incl IcsImpact); 7 count assertions updated |
+| HS-008 | v1.1 | "(16 total)"→17; "15 seeded"→23 |
+| HS-009 | v1.2 | "15 seeded"→23; "5 emitted"→15 (EMITTED_IDS enumerated); "9 cat-only"→8; T0886 phantom ID corrected |
+| nfr-catalog | v1.9 | NFR-OBS-010 "all four fields" disambiguated |
+| domain-spec | modified | §Summary-Metrics erratum/disclaimer added (frozen baseline preserved) |
+| spec-changelog | updated | All P17 version bumps recorded |
+
+#### Process gap noted [process-gap]
+
+**PG-ARP-F2-006:** Holdout-scenarios carry count assertions (tactic/seeded/emitted/cat-only)
+that drift when feature cycles change the MITRE catalog. HS-008/009/025 carried greenfield-era
+counts not updated across DNP3 cycle (STORY-109 added IcsImpact; STORY-109 expanded seeded
+IDs). F-cycle close-out must sweep holdout count-assertions in addition to field-names. Candidate
+policy: extend DF-CANONICAL-FRAME-HOLDOUT-001 / holdout-maintenance policy to require a
+count-assertion sweep whenever src/mitre.rs seeded/emitted/catalog size changes.
+
+---
+
 ### HUMAN DECISION — 2026-06-13
 
 **CONTINUE STRICT WHOLE-CORPUS** — bar remains zero findings of ANY severity across the
@@ -1067,6 +1173,26 @@ instances of the same defect across sibling files or within a single file, enume
 before committing. Sweep globs must include all naming variants: `chunk*eval.md`, `chunk*-eval.md`,
 `chunk*reeval.md` — or use `find` over the directory. No partial-fix commits on multi-occurrence
 defects.
+
+---
+
+### [process-gap] PG-ARP-F2-006 — Holdout count-assertions drift across feature cycles
+
+HS-008/009/025 carried MITRE catalog count assertions (tactic count, seeded IDs, emitted IDs,
+cat-only IDs) from the greenfield era. These counts were not swept when STORY-109 (DNP3 F4)
+shipped MitreTactic::IcsImpact (17th variant) and expanded seeded/emitted IDs. The counts
+drifted silently across the entire DNP3 feature cycle (F1-F7) + release v0.6.0 and were caught
+only at Pass 17.
+
+**Root cause:** Holdout-scenario count assertions are not live (they are scenario-file prose,
+not test assertions), so compile/test CI does not catch them. No close-out sweep discipline
+covered count-bearing holdout prose.
+
+**Candidate policy codification:** Extend DF-CANONICAL-FRAME-HOLDOUT-001 (or add a sub-rule)
+requiring that whenever src/mitre.rs seeded/emitted set or MitreTactic variant count changes,
+a sweep of ALL holdout-scenarios carrying count assertions (grep for "seeded", "emitted",
+"cat-only", "tactics", "MitreTactic variants") is mandatory in the same burst as the code
+change. Candidate trigger: F-cycle close-out checklist step.
 
 ---
 

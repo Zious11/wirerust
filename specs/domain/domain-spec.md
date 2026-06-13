@@ -53,6 +53,21 @@ renderer is the sole owner of escape logic.
 
 **Codebase metrics (verified against source; source: pass-8-deep-synthesis.md):**
 
+<!-- ERRATUM 2026-06-13 (Pass-17 D-02): The metrics table below is the PRE-F2 INGESTION
+BASELINE snapshot captured at develop@0082a0c during the brownfield ingestion pass
+(2026-05-20). Counts reflect the state at that commit and are intentionally FROZEN —
+rewriting individual rows would desync the snapshot from its corpus ground truth
+(wirerust-pass-8-deep-synthesis.md). Do not treat these as current live-state values.
+For current component counts, ADR inventory, BC counts, and test counts, see:
+  - .factory/specs/architecture/ARCH-INDEX.md (subsystem/component registry, current)
+  - .factory/specs/behavioral-contracts/BC-INDEX.md (BC count, current)
+  - .factory/spec-changelog.md (all post-ingestion changes)
+The 24 source files (row 1) map to 21 C-numbered components (C-1..C-21) because
+config.rs, stats.rs, and csv.rs are unnumbered data/support modules — this mapping
+is explained inline in the Components row and is correct for the ingestion baseline.
+-->
+
+
 | Metric | Value |
 |---|---|
 | Rust source files (src/) | 24 |

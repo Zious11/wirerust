@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -57,8 +57,8 @@ risk_source: null
 |-------|--------------|-----------------|
 | BC-2.10.001 | Postcondition 1 — Enterprise tactics render with canonical spacing (e.g., "Command and Control") | Step 4: tactic display names |
 | BC-2.10.003 | Postcondition 1 — all_tactics_in_report_order returns kill-chain order first then ICS-unique | Step 3: tactic header ordering |
-| BC-2.10.004 | Postcondition 1 — all_tactics_in_report_order contains every variant exactly once (16 total) | Step 6: no duplicate tactic headers |
-| BC-2.10.005 | Postcondition 1 — technique_name returns Some for all 15 seeded IDs | Step 5: T1036 resolves to "Masquerading" |
+| BC-2.10.004 | Postcondition 1 — all_tactics_in_report_order contains every variant exactly once (17 total) | Step 6: no duplicate tactic headers |
+| BC-2.10.005 | Postcondition 1 — technique_name returns Some for all 23 seeded IDs | Step 5: T1036 resolves to "Masquerading" |
 
 ## Verification Approach
 

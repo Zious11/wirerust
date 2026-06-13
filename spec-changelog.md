@@ -14,6 +14,126 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-17-fixes-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-17 Remediation — Holdout MITRE-catalog counts (C-01/C-02/C-03/C-04) + two LOWs (D-01/D-02) + architect module-decomposition bump log
+
+**Summary:** Remediates five Pass-17 findings (4 CRITICAL/MED holdout-count staleness + 2 LOWs)
+and logs the architect's module-decomposition.md v1.6→v1.7 bump (Pass-17 C-05/C-23 PLANNED
+markers). No story bodies touched.
+
+**Shipped truth verified from src/mitre.rs (SEEDED_TECHNIQUE_IDS, EMITTED_IDS, MitreTactic enum):**
+
+| Fact | Value | Source |
+|------|-------|--------|
+| Seeded technique IDs | 23 (11 Enterprise + 12 ICS) | `SEEDED_TECHNIQUE_ID_COUNT = 23`; `SEEDED_TECHNIQUE_IDS` array at src/mitre.rs:305-333 |
+| Emitted technique IDs | 15 (6 Enterprise + 7 ICS + 2 STORY-109) | `EMITTED_IDS` array at src/mitre.rs:221-240 |
+| Catalogue-only (never emitted) | 8 (23 − 15): T1040, T1071, T1071.001, T1071.004, T1573, T0846, T1692.002, T0885 | Derived |
+| MitreTactic variants | 17 (14 Enterprise + 3 ICS: IcsInhibitResponseFunction, IcsImpairProcessControl, IcsImpact) | `all_tactics_in_report_order` at src/mitre.rs:100-120 |
+| T0886 in catalog? | NO — not present in any match arm of `technique_info` | src/mitre.rs:129-179 |
+| T0885 in catalog? | YES — "Commonly Used Port" at src/mitre.rs:158 | src/mitre.rs:158 |
+| T0888 in catalog? | YES — "Remote System Information Discovery" at src/mitre.rs:168-171 | src/mitre.rs:168-171 |
+
+The stale values in the holdouts (16 tactics, 15 seeded, 5 emitted, 9 catalogue-only) predate
+Modbus (v0.4) + DNP3 (v0.6) + STORY-109; they are greenfield-era counts that contradict the
+holdouts' own anchored BCs (BC-2.10.004 = 17 variants; BC-2.10.005 = 23 seeded/current).
+
+**Architect bump logged (Pass-17):**
+
+| Artifact | Change | Reason |
+|----------|--------|--------|
+| `architecture/module-decomposition.md` | v1.6 → v1.7 | Pass-17 C-05/C-23 PLANNED markers added |
+
+**C-01 (CRITICAL) — HS-025 stale tactic count (16→17) and ICS-unique count (2→3):**
+
+| Location | Before | After |
+|----------|--------|-------|
+| Scenario step 2 | "exactly 16 entries (14 Enterprise + 2 ICS-unique)" | "exactly 17 entries (14 Enterprise + 3 ICS-unique)" |
+| BC table BC-2.10.004 row | "(16 total)" | "(17 total)" |
+| Verification approach | "Count: exactly 16 tactics." | "Count: exactly 17 tactics." |
+| Evaluation Rubric (3 occurrences) | "exactly 16 entries", "16 canonical ATT&CK", "all 16 tactics" | "exactly 17 entries", "17 canonical ATT&CK", "all 17 tactics" |
+| Edge Conditions | "The two ICS-unique tactics" | "The three ICS-unique tactics" |
+| Failure Guidance | "count is not 16" | "count is not 17" |
+
+**C-02 (CRITICAL) — HS-008 stale tactic count and seeded count:**
+
+| Location | Before | After |
+|----------|--------|-------|
+| BC table BC-2.10.004 row | "(16 total)" | "(17 total)" |
+| BC table BC-2.10.005 row | "all 15 seeded IDs" | "all 23 seeded IDs" |
+
+**C-03 (CRITICAL) — HS-009 stale seeded count, stale emitted list (5→15), stale catalogue-only count (9→8):**
+
+| Location | Before | After |
+|----------|--------|-------|
+| BC table BC-2.10.005 row | "all 15 seeded IDs" | "all 23 seeded IDs" |
+| Verification approach | "5 currently-emitted technique IDs (T1083, T1505.003, T1046, T1036, T1027). All 5 must resolve." | "15 currently-emitted technique IDs (T1027, T1036, T1046, T1083, T1499.002, T1505.003, T1692.001, T0836, T0814, T0806, T0835, T0831, T0888, T1691.001, T0827). All 15 must resolve." |
+| Edge Conditions | "9 catalogued-but-never-emitted IDs (T1040, T1071, etc.)" | "8 catalogued-but-never-emitted IDs (T1040, T1071, T1071.001, T1071.004, T1573, T0846, T1692.002, T0885)" |
+
+**C-04 (MEDIUM) — HS-009 T0886 false catalog-membership claim:**
+
+T0886 is NOT in the catalog (no match arm in `technique_info`). The old text claimed "T0886
+or similar ICS technique IDs ... ICS IDs are in the catalog" — a false assertion when evaluated.
+
+| Location | Before | After |
+|----------|--------|-------|
+| Edge Conditions first bullet | "T0886 or similar ICS technique IDs should not confuse the lookup (ICS IDs are in the catalog)." | "T0885 and other catalogued ICS technique IDs should not confuse the lookup. T0886 is NOT in the catalog (not a seeded ID); use T9999 or another explicitly unregistered ID to test the unknown-ID path. Catalogued ICS IDs that are staged (not yet emitted) include T0846, T1692.002, T0885." |
+
+**D-01 (LOW) — nfr-catalog.md NFR-OBS-010 AC cell "all four fields" disambiguation:**
+
+Parallel fix to the Pass-15 C-05 sibling fix in interface-definitions.md:360.
+
+| Location | Before | After |
+|----------|--------|-------|
+| NFR-OBS-010 Target cell | "downstream consumers must handle key-absent for all four fields." | "downstream consumers must handle key-absent rather than key-present-but-null for all four optional-presence fields — mitre_techniques (omitted when empty via Vec::is_empty) and the three Option fields source_ip/timestamp/direction (omitted when None via Option::is_none)." |
+
+**D-02 (LOW) — domain-spec.md Summary-Metrics component count (21 vs "24"):**
+
+**Classification: FROZEN pre-F2 ingestion baseline.**
+
+Evidence: domain-spec.md is the brownfield ingestion output at develop@0082a0c (2026-05-20),
+version 1.0, with no modifications list. The 217 BCs, 282 tests, and ADRs 0001-0004 counts
+are all pre-F2 ingestion-era figures. The document has no live-update mechanism.
+
+The "21 components (C-1..C-20 + C-21)" row is internally correct: the 24 source files (row 1)
+map to 21 C-numbered components because config.rs, stats.rs, and csv.rs are unnumbered
+data/support modules — this is explicitly noted in the row text. The Pass-17 finding's
+"24 components" figure is a misread of "24 source files" as "24 components." The
+C-numbering ends at C-21; C-22/C-23/C-24 do not exist in any spec artifact.
+
+**Action: ERRATUM NOTE (no row content changed).** Added a dated HTML comment erratum block
+immediately before the metrics table in domain-spec.md, stating: (a) this is the pre-F2
+ingestion baseline at develop@0082a0c; (b) counts are FROZEN; (c) current values are in
+ARCH-INDEX.md and BC-INDEX.md; (d) the 24-source-files / 21-C-components mapping is explained.
+Individual table rows NOT rewritten. Domain-spec.md version field NOT bumped (frozen baseline).
+
+**Version bumps:**
+
+| Document | Before | After |
+|----------|--------|-------|
+| HS-025-ics-tactic-display-and-non-exhaustive.md | 1.0 | 1.1 |
+| HS-008-mitre-tactic-display-and-kill-chain-order.md | 1.0 | 1.1 |
+| HS-009-mitre-technique-lookup-unknown-ids.md | 1.1 | 1.2 |
+| prd-supplements/nfr-catalog.md | 1.8 | 1.9 |
+| specs/domain/domain-spec.md | 1.0 | 1.0 (frozen; erratum note added before metrics table; no version bump on frozen baseline) |
+
+**BC-INDEX rows:** None.
+
+**Story body changes:** None (constraint per task).
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| HS-025 | v1.0→v1.1; 16→17 tactic count; 2→3 ICS-unique count (7 occurrences total) | `.factory/holdout-scenarios/HS-025-ics-tactic-display-and-non-exhaustive.md` |
+| HS-008 | v1.0→v1.1; BC table (16→17 total); BC table (15→23 seeded IDs) | `.factory/holdout-scenarios/HS-008-mitre-tactic-display-and-kill-chain-order.md` |
+| HS-009 | v1.1→v1.2; BC table 15→23 seeded IDs; Verification 5→15 emitted IDs (full list); Edge Conditions 9→8 catalogue-only (full list); T0886 false claim replaced with T0885 accurate example + T0886 negation | `.factory/holdout-scenarios/HS-009-mitre-technique-lookup-unknown-ids.md` |
+| nfr-catalog.md | v1.8→v1.9; NFR-OBS-010 AC cell "all four fields" → explicit Vec+3-Option enumeration | `.factory/specs/prd-supplements/nfr-catalog.md` |
+| domain-spec.md | Frozen; HTML comment erratum block added before metrics table (no row content changed; no version bump) | `.factory/specs/domain/domain-spec.md` |
+| spec-changelog.md | Pass-17-fixes entry prepended; architect module-decomposition v1.6→v1.7 bump logged | `.factory/spec-changelog.md` |
+
+---
+
 ## [pass-16-fixes-2026-06-13] — 2026-06-13
 
 ### ERRATUM + PATCH: Pass-16 C-01 Remediation — chunk3-reeval.md frozen-record erratum + architect bump log

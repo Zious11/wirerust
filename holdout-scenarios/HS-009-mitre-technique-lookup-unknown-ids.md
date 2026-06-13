@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -55,7 +55,7 @@ risk_source: null
 
 | BC ID | Clause Tested | Scenario Aspect |
 |-------|--------------|-----------------|
-| BC-2.10.005 | Postcondition 1 — technique_name returns Some for all 15 seeded IDs | Step 2: all emitted technique IDs resolve |
+| BC-2.10.005 | Postcondition 1 — technique_name returns Some for all 23 seeded IDs | Step 2: all emitted technique IDs resolve |
 | BC-2.10.006 | Postcondition 1 — technique_name returns None for unknown IDs | Step 4: graceful unknown-ID handling |
 | BC-2.10.007 | Postcondition 1 — technique_tactic returns correct tactic for every seeded ID | Step 3: tactic-to-technique mapping accuracy |
 | BC-2.10.008 | Postcondition 1 — all technique IDs currently emitted by analyzers resolve in lookup | Step 2: end-to-end resolution coverage |
@@ -70,8 +70,9 @@ For each finding with a non-empty `mitre_techniques` array:
 - Confirm the name visible in terminal matches the ATT&CK catalogue entry.
 - Confirm the tactic in terminal matches the expected parent tactic.
 
-Lookup exhaustion: run wirerust on a capture that produces each of the 5 currently-emitted
-technique IDs (T1083, T1505.003, T1046, T1036, T1027). All 5 must resolve.
+Lookup exhaustion: run wirerust on a capture that produces each of the 15 currently-emitted
+technique IDs (T1027, T1036, T1046, T1083, T1499.002, T1505.003, T1692.001, T0836, T0814,
+T0806, T0835, T0831, T0888, T1691.001, T0827). All 15 must resolve.
 
 Synthesize a test where a non-standard ID would be queried (e.g., via a code path test)
 and confirm no panic occurs.
@@ -89,9 +90,13 @@ and confirm no panic occurs.
 
 - T1505.003 is a sub-technique ID with a period; the lookup must handle the period correctly
   and not treat "T1505" and "T1505.003" as the same ID.
-- T0886 or similar ICS technique IDs should not confuse the lookup (ICS IDs are in the catalog).
-- The 9 catalogued-but-never-emitted IDs (T1040, T1071, etc.) should still return Some from
-  technique_name — they are in the catalog even if no analyzer emits them.
+- T0885 and other catalogued ICS technique IDs should not confuse the lookup. T0886 is NOT
+  in the catalog (not a seeded ID); use T9999 or another explicitly unregistered ID to test
+  the unknown-ID path. Catalogued ICS IDs that are staged (not yet emitted) include T0846,
+  T1692.002, T0885.
+- The 8 catalogued-but-never-emitted IDs (T1040, T1071, T1071.001, T1071.004, T1573, T0846,
+  T1692.002, T0885) should still return Some from technique_name — they are in the catalog
+  even if no analyzer emits them.
 
 ## Failure Guidance
 
