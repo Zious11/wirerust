@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: W13 Pass 1 remediation: add test anchor for cache-hit path (F-W13P1-002); update stale coverage prose to reflect STORY-032 closure (F-W13P1-003) — 2026-05-27
   - v1.4: W13 Pass 2 remediation: append test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified to Architecture Anchors (F-W13P2-001, exercises Invariant 2 + EC-003) — 2026-05-27
+  - v1.5: Pass-18 B-01/B-02 — re-anchored all dispatcher.rs line citations to current post-ICS-insertion positions (stale :133-154/:149-151 → current :269-290/:286-287). — 2026-06-13
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -54,7 +55,7 @@ cache-hit path and would catch a regression that broke cache lookup while leavin
 
 ## Invariants
 
-1. Http and Tls are inserted into routes on first non-None classification. None is NOT inserted during the retry phase (before the cap); None IS inserted permanently once `classification_attempts[flow_key]` reaches `max_classification_attempts` (dispatcher.rs:146). See BC-2.05.006 for the full two-phase contract.
+1. Http and Tls are inserted into routes on first non-None classification. None is NOT inserted during the retry phase (before the cap); None IS inserted permanently once `classification_attempts[flow_key]` reaches `max_classification_attempts` (dispatcher.rs:282). See BC-2.05.006 for the full two-phase contract.
 2. Cached routes are removed only on on_flow_close (BC-2.05.009).
 3. Cache entries are per FlowKey (not per connection direction).
 
@@ -87,7 +88,7 @@ cache-hit path and would catch a regression that broke cache lookup while leavin
 | L2 Capability | CAP-05 ("Content-first protocol dispatch") per domain/capabilities/cap-05-content-first-dispatch.md |
 | Capability Anchor Justification | CAP-05 ("Content-first protocol dispatch") per domain/capabilities/cap-05-content-first-dispatch.md -- caching is the efficiency mechanism for per-flow classification state |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- once classified, the decision is sticky) |
-| Architecture Module | SS-05 (dispatcher.rs:133-154, C-21) |
+| Architecture Module | SS-05 (dispatcher.rs:269-290, C-21) |
 | Stories | STORY-032 |
 | Origin BC | BC-DSP-005 (pass-3 ingestion corpus, HIGH confidence post-STORY-032 (cache-hit path independently verified by test_BC_2_05_005_classification_cached_after_first_match)) |
 
@@ -98,15 +99,15 @@ cache-hit path and would catch a regression that broke cache lookup while leavin
 
 ## Architecture Anchors
 
-- `src/dispatcher.rs:133-154` -- classification cache block in on_data
-- `src/dispatcher.rs:149-151` -- routes.insert when target is Http or Tls (not None); classification_attempts.remove
+- `src/dispatcher.rs:269-290` -- classification cache block in on_data
+- `src/dispatcher.rs:286-287` -- routes.insert when target is Http or Tls (not None); classification_attempts.remove
 - `tests/dispatcher_tests.rs` -- test_BC_2_05_005_classification_cached_after_first_match, test_BC_2_05_005_cache_evicted_on_flow_close_then_reclassified
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/dispatcher.rs:149-151` |
+| **Path** | `src/dispatcher.rs:286-287` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

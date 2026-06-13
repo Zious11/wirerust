@@ -14,6 +14,176 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-18-c-fixes-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-18 C-01/D-01/C-02 + carry-over anchor + pending architect-A and proactive version-bump log
+
+**Summary:** Remediates two Pass-18 findings (C-01/D-01 STORY-INDEX 48/49 split ambiguity; C-02
+stale self-referential line anchors in cap-10 changelog entries), one carry-over anchor finding
+from the ss-05 re-anchor burst (BC-2.04.055 dispatcher.rs:144→:245), and logs all pending
+version bumps from architect-A (Pass-18 A-01/A-02/A-03) and proactive pre-Pass-18 story-anchor
+bumps that were not yet recorded.
+
+No story bodies touched. No ss-05 BCs touched (covered by pass-18-b entry).
+
+---
+
+**C-01/D-01 (MED/LOW) — STORY-INDEX.md line 20: 48 vs 49 split clarifier**
+
+Root cause: line 20 said "(49 stories)" but line 21 immediately below said "All 48 greenfield
+stories", creating an adjacent contradiction resolvable only by reading line 217.
+
+| Location | Before | After |
+|----------|--------|-------|
+| STORY-INDEX.md line 20 (lede parenthetical) | "(49 stories)" | "(48 greenfield product + 1 tooling STORY-091 = 49 stories)" |
+
+Arithmetic verified from line 217 Coverage Verification section:
+`63 total = 48 greenfield product + 1 tooling STORY-091 + 3 F3 (STORY-097/098/099) + 6 E-13/E-14 (STORY-100..105) + 5 E-15 (STORY-106..110)`.
+The v0.1.0-greenfield-spec cycle block is 48 + 1 = 49; "48 greenfield" on line 21 remains
+correct and is now consistent with the explicit split on line 20.
+
+| Artifact | Version change |
+|----------|---------------|
+| STORY-INDEX.md | prose patch only (no version field) |
+
+---
+
+**C-02 (LOW) — cap-10-mitre-mapping.md: stale self-referential line anchors in Pass-9/10/11 changelog entries**
+
+Root cause: Pass-14 (+ARP-F2 CLI --mitre prose fix) added ~6 lines to cap-10, shifting the
+`## MitreTactic enum (E-27)` header from line 81 to line 87 and ICS-unique variant prose from
+lines 83-85 to lines 89-91. The Pass-9/10/11 changelog entries cited lines 81-85 and remained
+stale.
+
+Verified from reading the file: header is at line 87, ICS-unique prose at lines 89-91.
+
+| Changelog entry | Before | After |
+|-----------------|--------|-------|
+| Pass-9 entry | "lines 81-85" | "lines 87-91, corrected by Pass-18 C-02" |
+| Pass-10 entry | "lines 80-82 (subsequently corrected to 'lines 81-85')" | trailing note added: "and to 'lines 87-91' by Pass-18 C-02" |
+| Pass-11 entry | "header is at line 81 and the variant prose spans lines 83-85" | note added that header shifted to line 87 after Pass-14 |
+
+| Artifact | Version change |
+|----------|---------------|
+| cap-10-mitre-mapping.md | v1.8 → v1.9 |
+
+---
+
+**Carry-over anchor — BC-2.04.055 dispatcher.rs:144→:245**
+
+Found during ss-05 re-anchor burst: BC-2.04.055 Architecture Anchors cited
+`src/dispatcher.rs:144 — StreamDispatcher::on_data`; the `fn on_data` opening brace now sits
+at line 245 (verified by `grep -n "fn on_data" src/dispatcher.rs`). Root cause: Feature #7
+(Modbus) and Feature #8 (DNP3) added new struct fields, accessor methods, dispatch arms, and
+an expanded early-exit guard — shifting content ~101 lines below the original 144.
+
+| Location | Before | After |
+|----------|--------|-------|
+| BC-2.04.055 Architecture Anchors | `src/dispatcher.rs:144` | `src/dispatcher.rs:245` |
+
+No other dispatcher.rs anchors appear in BC-2.04.055.
+
+| Artifact | Version change |
+|----------|---------------|
+| BC-2.04.055 | v1.0.1 → v1.0.2 |
+| BC-INDEX.md | inline annotation added to BC-2.04.055 row |
+
+---
+
+**Pending version bumps — architect-A (Pass-18 A-01/A-02/A-03)**
+
+These bumps were applied by the architect agent in the Pass-18 A burst but not yet recorded
+in spec-changelog.md:
+
+| Artifact | Before | After | Reason |
+|----------|--------|-------|--------|
+| `architecture/dependency-graph.md` | v1.5 | v1.6 | A-01: indicatif 0.17→0.18 dependency updated |
+| `architecture/verification-coverage-matrix.md` | v1.3 | v1.4 | A-02: VP-023 lock note added |
+| `architecture/purity-boundary-map.md` | v1.3 | v1.4 | A-03: VP-024 bullet added |
+
+---
+
+**Pending version bumps — proactive pre-Pass-18 story-anchor bumps (not previously logged)**
+
+These bumps were applied during the arp.rs STORY-111→112 re-anchor sweep before Pass-18 was
+submitted, but were not captured in the spec-changelog:
+
+| Artifact | Before | After | Reason |
+|----------|--------|-------|--------|
+| `architecture/system-overview.md` | v1.3 | v1.4 | arp.rs STORY-111→112 re-anchor (story reference updated) |
+| `architecture/purity-boundary-map.md` | v1.2 | v1.3 | arp.rs STORY-111→112 re-anchor (story reference updated) |
+
+Note: purity-boundary-map.md full chain in this cycle: v1.2 → v1.3 (proactive arp.rs re-anchor)
+→ v1.4 (A-03 VP-024 bullet, Pass-18 architect-A). Both increments are now recorded.
+
+---
+
+## [pass-18-b-fixes-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-18 B-01/B-02/B-03 — ss-05 dispatcher.rs source-line anchor re-sync + four-analyzer guard prose (all 9 BCs)
+
+**Summary:** Remediates Pass-18 findings B-01 (systematic stale line anchors in ss-05 BCs),
+B-02 (same root cause — last anchor sync was v1.3 pre-ICS, before Modbus Rule 5 + DNP3 Rule 6
+insertions + new accessor methods shifted `src/dispatcher.rs` by ~94-235 lines), and B-03
+(BC-2.05.007 and BC-2.05.008 prose described the unconfigured-dispatcher guard as a
+two-analyzer check `http/tls`; shipped code checks all four analyzers `http/tls/modbus/dnp3`).
+
+No H1 titles changed. No story bodies touched. No other subsystems' BCs touched.
+
+**Verified current `src/dispatcher.rs` line map (built from reading the actual file):**
+
+| Item | Stale (pre-ICS) | Current |
+|------|----------------|---------|
+| `DEFAULT_MAX_CLASSIFICATION_ATTEMPTS = 8` | `:40` | `:58` |
+| `fn classify(...)` | `:90` | `:184` |
+| TLS check (`data[0]==0x16 && data[1]==0x03`) | `:92-94` | `:186-187` |
+| HTTP method prefix block | `:95-107` | `:190-202` |
+| Port fallback (Rules 3+4: 443/8443/80/8080) | `:108-116` | `:204-212` |
+| `DispatchTarget::None` return | `:116` | `:241` |
+| `classify()` call in `on_data` | `:136` | `:272` |
+| None branch (count increment + cap logic) | `:137-148` | `:273-284` |
+| `routes.insert(None)` permanent | `:146` | `:282` |
+| `classification_attempts.remove` (None branch) | `:147` | `:283` |
+| Non-None branch: `routes.insert` + `remove` | `:149-151` | `:286-287` |
+| Early-return guard in `on_data` | `:121-123` | `:256-259` |
+| `fn on_flow_close` full range | `:171-194` | `:322-361` |
+| `classification_attempts.remove` + `routes.remove` | `:175-176` | `:326-327` |
+| Unclassified guard in `on_flow_close` | `:188-191` | `:352-356` |
+
+**B-03 prose change (BC-2.05.007 and BC-2.05.008):**
+
+BC-2.05.007 Precondition 3 BEFORE:
+> "At least one of `self.http` or `self.tls` is configured (the counter does not increment for unconfigured dispatchers -- dispatcher.rs:188-191)."
+
+BC-2.05.007 Precondition 3 AFTER:
+> "At least one of `self.http`, `self.tls`, `self.modbus`, or `self.dnp3` is configured (the counter does not increment for fully-unconfigured dispatchers -- dispatcher.rs:352-356)."
+
+BC-2.05.007 Invariant 3 BEFORE:
+> "The counter increments only when at least one analyzer is configured (guard at dispatcher.rs:188-191: `if self.http.is_some() || self.tls.is_some()`)."
+
+BC-2.05.007 Invariant 3 AFTER:
+> "The counter increments only when at least one analyzer is configured (guard at dispatcher.rs:352-356: `if self.http.is_some() || self.tls.is_some() || self.modbus.is_some() || self.dnp3.is_some()`)."
+
+BC-2.05.008 Description/Preconditions/Postconditions/Invariants/EC-001/EC-002/Evidence similarly widened from `http/tls` two-analyzer to `http/tls/modbus/dnp3` four-analyzer throughout.
+
+**Version bumps:**
+
+| BC | Old | New |
+|----|-----|-----|
+| BC-2.05.001 | 1.6 | 1.7 |
+| BC-2.05.002 | 1.5 | 1.6 |
+| BC-2.05.003 | 1.6 | 1.7 |
+| BC-2.05.004 | 1.4 | 1.5 |
+| BC-2.05.005 | 1.4 | 1.5 |
+| BC-2.05.006 | 1.4 | 1.5 |
+| BC-2.05.007 | 1.3 | 1.4 |
+| BC-2.05.008 | 1.5 | 1.6 |
+| BC-2.05.009 | 1.3 | 1.4 |
+
+BC-INDEX ss-05 section updated with inline `<!-- vN.N: ... -->` annotations on all 9 rows.
+
+---
+
 ## [pass-17-fixes-2026-06-13] — 2026-06-13
 
 ### PATCH: Pass-17 Remediation — Holdout MITRE-catalog counts (C-01/C-02/C-03/C-04) + two LOWs (D-01/D-02) + architect module-decomposition bump log

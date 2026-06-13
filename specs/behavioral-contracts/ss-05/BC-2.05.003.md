@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - v1.4: Pass-4 anchor-completeness sweep (DF-SIBLING-SWEEP-001 v2, doctrine application extended from pass-3 BC-2.05.002 to siblings BC-2.05.001 + BC-2.05.003). Added test_port_fallback_uses_canonical_port_ordering (INV-1 TLS-port-first + INV-2 canonical-ordering lookup), test_http_content_on_port_443_routes_to_http (INV-3 content-first precedence over port fallback) to VP-004 table and Architecture Anchors. Closes F-W12P4-001. — 2026-05-27
   - v1.5: W12-D2 EC table inline test citations added (DF-SIBLING-SWEEP-001 v3) — added `covered by` test citations to EC-001 through EC-005 matching sibling BC-2.05.002 style. Closes W12-D2. — 2026-05-28
   - v1.6: F-DRIFT2A-001 — fixed stale domain/capabilities/cap-05-content-first-dispatch.md citation to domain/capabilities/cap-05-content-first-dispatch.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29
+  - v1.7: Pass-18 B-01/B-02 — re-anchored all dispatcher.rs line citations to current post-ICS-insertion positions (stale `:108-116` → current `:204-212` for port fallback Rules 3+4). — 2026-06-13
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -96,7 +97,7 @@ FlowKey (INV-1).
 | L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md |
 | Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md -- port-based fallback is the third and last classification rule per ADR 0001 |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- port fallback is LAST, after both content checks fail) |
-| Architecture Module | SS-05 (dispatcher.rs:108-116, C-21) |
+| Architecture Module | SS-05 (dispatcher.rs:204-212, C-21) |
 | Stories | STORY-031 |
 | Origin BC | BC-DSP-003 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -108,14 +109,14 @@ FlowKey (INV-1).
 
 ## Architecture Anchors
 
-- `src/dispatcher.rs:108-116` -- port fallback in classify function
+- `src/dispatcher.rs:204-212` -- port fallback in classify function (Rules 3+4: 443/8443→Tls, 80/8080→Http)
 - `tests/dispatcher_tests.rs` -- test_port_fallback_443_to_tls, test_port_fallback_8443_to_tls, test_port_fallback_80_to_http, test_port_fallback_8080_to_http, test_port_fallback_uses_canonical_port_ordering, test_http_content_on_port_443_routes_to_http
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/dispatcher.rs:108-116` |
+| **Path** | `src/dispatcher.rs:204-212` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

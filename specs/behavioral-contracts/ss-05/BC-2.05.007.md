@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: W14 Pass 1 remediation: add BC-prefixed test anchors to VP table + Architecture Anchors; add EC-005 (two-unclassified-flows monotonicity) — 2026-05-28
+  - v1.4: Pass-18 B-01/B-02/B-03 — re-anchored dispatcher.rs line citations to current post-ICS positions (stale :171-194/:188-191 → current :322-361/:352-356); widened unclassified_flows guard description from two-analyzer (http/tls) to four-analyzer (http/tls/modbus/dnp3) to match shipped on_flow_close guard. — 2026-06-13
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -40,8 +41,8 @@ summary detail map (BC-2.12.015).
 1. `on_flow_close` is called for a FlowKey.
 2. `routes.remove(flow_key)` returns either `None` (no route entry) or
    `Some(DispatchTarget::None)` (cached None from retry-cap logic).
-3. At least one of `self.http` or `self.tls` is configured (the counter does not increment
-   for unconfigured dispatchers -- dispatcher.rs:188-191).
+3. At least one of `self.http`, `self.tls`, `self.modbus`, or `self.dnp3` is configured (the
+   counter does not increment for fully-unconfigured dispatchers -- dispatcher.rs:352-356).
 
 ## Postconditions
 
@@ -53,7 +54,7 @@ summary detail map (BC-2.12.015).
 1. `unclassified_flows` is a monotonically increasing u64 counter; never decrements.
 2. Classified flows (Http or Tls) do NOT increment `unclassified_flows` on close.
 3. The counter increments only when at least one analyzer is configured (guard at
-   dispatcher.rs:188-191: `if self.http.is_some() || self.tls.is_some()`).
+   dispatcher.rs:352-356: `if self.http.is_some() || self.tls.is_some() || self.modbus.is_some() || self.dnp3.is_some()`).
 4. Flows with no data (SYN-only, no content) may land here, making this metric potentially
    misleading for handshake-only flows (noted in cap-05).
 
@@ -64,7 +65,7 @@ summary detail map (BC-2.12.015).
 | EC-001 | Flow classified as Http then closed | Http.on_flow_close called; unclassified NOT incremented |
 | EC-002 | Flow never classified (no data sent) | unclassified_flows=1 on close |
 | EC-003 | Flow with None-cached route closed | unclassified_flows=1 on close |
-| EC-004 | Dispatcher has no analyzers configured; unclassified flow closed | unclassified NOT incremented |
+| EC-004 | Dispatcher has no analyzers configured (all four None); unclassified flow closed | unclassified NOT incremented |
 | EC-005 | Two unclassified flows closed sequentially | unclassified_flows counter monotonically increments to 2; covered by test_BC_2_05_007_unclassified_flows_counter sub-case 3 |
 
 ## Canonical Test Vectors
@@ -89,7 +90,7 @@ summary detail map (BC-2.12.015).
 | L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md |
 | Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md -- unclassified_flows counter is the observability metric for flows the dispatcher could not classify |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- None flows are the unclassified population) |
-| Architecture Module | SS-05 (dispatcher.rs:171-194, C-21) |
+| Architecture Module | SS-05 (dispatcher.rs:322-361, C-21) |
 | Stories | STORY-033 |
 | Origin BC | BC-DSP-007 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -100,21 +101,21 @@ summary detail map (BC-2.12.015).
 
 ## Architecture Anchors
 
-- `src/dispatcher.rs:171-194` -- on_flow_close implementation
-- `src/dispatcher.rs:188-191` -- unclassified_flows increment guard
+- `src/dispatcher.rs:322-361` -- on_flow_close implementation
+- `src/dispatcher.rs:352-356` -- unclassified_flows increment guard (four-analyzer: http/tls/modbus/dnp3)
 - `tests/dispatcher_tests.rs` -- test_unclassified_flows_counter, test_classified_flow_not_counted_as_unclassified, test_BC_2_05_007_unclassified_flows_counter, test_BC_2_05_007_classified_flow_not_counted_as_unclassified
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/dispatcher.rs:171-194` |
+| **Path** | `src/dispatcher.rs:322-361` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 
 ## Evidence Types Used
 
-- **guard clause**: `Some(DispatchTarget::None) | None => { if self.http.is_some() || self.tls.is_some() { self.unclassified_flows += 1; } }`
+- **guard clause**: `Some(DispatchTarget::None) | None => { if self.http.is_some() || self.tls.is_some() || self.modbus.is_some() || self.dnp3.is_some() { self.unclassified_flows += 1; } }`
 - **assertion**: test_unclassified_flows_counter
 
 ## Purity Classification

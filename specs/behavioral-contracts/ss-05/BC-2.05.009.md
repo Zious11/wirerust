@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21
   - v1.3: W14 Pass 1 remediation: Description past-tense (pass-3 R4 finding closed by STORY-033), VP confidence MED→HIGH with concrete test, Architecture Anchors add STORY-033 BC-prefixed tests — 2026-05-28
+  - v1.4: Pass-18 B-01/B-02 — re-anchored all dispatcher.rs line citations to current post-ICS-insertion positions (stale :171-194/:175-176 → current :322-361/:326-327). — 2026-06-13
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -93,7 +94,7 @@ and closed by STORY-033 via `test_BC_2_05_009_flow_close_forwards_to_http_analyz
 | L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md |
 | Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md -- on_flow_close cleans up per-flow dispatcher state and propagates close events to wrapped analyzers |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- route removal ensures clean per-flow lifecycle) |
-| Architecture Module | SS-05 (dispatcher.rs:171-194, C-21) |
+| Architecture Module | SS-05 (dispatcher.rs:322-361, C-21) |
 | Stories | STORY-033 |
 | Origin BC | BC-DSP-009 (pass-3 ingestion corpus, MEDIUM confidence -- route-remove side-effect HIGH per R4; analyzer-forward side-effect MEDIUM per R4) |
 
@@ -104,15 +105,15 @@ and closed by STORY-033 via `test_BC_2_05_009_flow_close_forwards_to_http_analyz
 
 ## Architecture Anchors
 
-- `src/dispatcher.rs:171-194` -- on_flow_close implementation
-- `src/dispatcher.rs:175-176` -- classification_attempts.remove and routes.remove
+- `src/dispatcher.rs:322-361` -- on_flow_close implementation
+- `src/dispatcher.rs:326-327` -- classification_attempts.remove and routes.remove
 - `tests/dispatcher_tests.rs` -- test_unclassified_flows_counter (indirectly pins route-remove), test_BC_2_05_009_flow_close_forwards_to_http_analyzer (independently verifies Http and Tls analyzer-forward side effects via active_flows_len_for_testing post-close), test_BC_2_05_009_flow_close_for_unknown_flow_key (verifies None branch increments unclassified_flows for unknown FlowKey)
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/dispatcher.rs:171-194` |
+| **Path** | `src/dispatcher.rs:322-361` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

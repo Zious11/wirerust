@@ -20,17 +20,20 @@ modified:
     reason: "Pass-7 remediation F-C-P7-001: add PLANNED forward-declaration for T0830 (LateralMovement, ICS) and T1557.002 (CredentialAccess, Enterprise) — ARP F2 STORY-114; update seeded/emitted counts to current/after-STORY-114 form."
   - date: 2026-06-12
     actor: product-owner
-    reason: "Pass-9 remediation F-C-P9-001: correct tactic column for T0846 and T0888 from non-existent IcsDiscovery to Discovery — the MitreTactic enum has only 3 ICS-unique variants (IcsInhibitResponseFunction, IcsImpairProcessControl, IcsImpact); there is no IcsDiscovery variant (confirmed src/mitre.rs and the ## MitreTactic enum (E-27) section (lines 81-85))."
+    reason: "Pass-9 remediation F-C-P9-001: correct tactic column for T0846 and T0888 from non-existent IcsDiscovery to Discovery — the MitreTactic enum has only 3 ICS-unique variants (IcsInhibitResponseFunction, IcsImpairProcessControl, IcsImpact); there is no IcsDiscovery variant (confirmed src/mitre.rs and the ## MitreTactic enum (E-27) section (lines 87-91, corrected by Pass-18 C-02))."
   - date: 2026-06-12
     actor: product-owner
-    reason: "Pass-10 remediation F-C-P10-002: stale line citation in pass-9 changelog entry corrected from 'lines 76-77' to 'lines 80-82' (subsequently corrected to 'lines 81-85' by Pass-11 F-C-P11-002) — the ## MitreTactic enum (E-27) header is at line 81."
+    reason: "Pass-10 remediation F-C-P10-002: stale line citation in pass-9 changelog entry corrected from 'lines 76-77' to 'lines 80-82' (subsequently corrected to 'lines 81-85' by Pass-11, and to 'lines 87-91' by Pass-18 C-02) — the ## MitreTactic enum (E-27) header is at line 87 as of Pass-18."
   - date: 2026-06-12
     actor: product-owner
-    reason: "Pass-11 remediation F-C-P11-002: pass-9/10 changelog line citation for the MitreTactic enum section corrected from 'lines 80-82' to 'lines 81-85' — the ## MitreTactic enum (E-27) header is at line 81 and the variant prose spans lines 83-85."
+    reason: "Pass-11 remediation F-C-P11-002: pass-9/10 changelog line citation for the MitreTactic enum section corrected from 'lines 80-82' to 'lines 81-85' — the ## MitreTactic enum (E-27) header was at line 81 at that time; subsequently shifted to line 87 after Pass-14 (+6 lines) and corrected to 'lines 87-91' by Pass-18 C-02."
   - date: 2026-06-13
     actor: product-owner
     reason: "ARP-F2 Pass-14 remediation: CLI --mitre flag section stale 'mitre_technique: Option<String>' prose updated to 'mitre_techniques: Vec<String>' (empty vec → key absent; ADR-006 Decision 13; STORY-100 AC-008). Version bumped 1.7→1.8."
-version: "1.8"
+  - date: 2026-06-13
+    actor: product-owner
+    reason: "Pass-18 remediation C-02: stale self-referential line anchors in Pass-9/10/11 changelog entries corrected — MitreTactic enum header shifted from line 81 to line 87, variant prose from lines 83-85 to lines 89-91, after Pass-14 added ~6 lines. Version bumped 1.8→1.9."
+version: "1.9"
 ---
 
 # CAP-10: MITRE ATT&CK Mapping

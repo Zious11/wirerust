@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: dependency-graph
 traces_to: ARCH-INDEX.md
-version: "1.5"
+version: "1.6"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -22,6 +22,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-16 A-04: Dev/Test footnote inline test count generalized — replaced brittle hardcoded '264 tests in tests/ + 18 inline = 282 total' (predates Modbus/DNP3/ARP stories STORY-097..115) with a pointer to verification-coverage-matrix.md as the live source of truth for test counts. Version bump 1.4→1.5."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-18 A-01: indicatif row corrected 0.17→0.18 to match Cargo.toml line 33 exactly. No other crate-version drift found (all 13 other rows verified against Cargo.toml). Version bump 1.5→1.6."
 ---
 
 # Dependency Graph
@@ -107,7 +110,7 @@ Verified against Cargo.toml @ 0082a0c. Every row name and version matches the
 | `csv` | 1 | reporter/csv.rs | CSV serialization |
 | `anyhow` | 1 | reader.rs, decoder.rs, main.rs | Error propagation with context |
 | `owo-colors` | 4 | reporter/terminal.rs | Terminal colorization |
-| `indicatif` | 0.17 | main.rs | Per-target progress bar on stderr |
+| `indicatif` | 0.18 | main.rs | Per-target progress bar on stderr |
 | `chrono` | 0.4 (serde feature) | main.rs / findings.rs | Timestamp types (`Option<DateTime<Utc>>`; populated at emission sites — O-01 CLOSED; BC-2.04.054 summary finding retains None by design) |
 | `rayon` | 1 | (present in Cargo.toml; unused in current call-paths; tracked as domain-debt O-07) | Work-stealing parallelism (not yet wired in) |
 

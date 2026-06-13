@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - v1.3: Pass-3 sibling-sweep gap closure (DF-SIBLING-SWEEP-001 v2 BC pre-merge re-anchor): added test_all_http_method_prefixes_route_to_http to Architecture Anchors and VP-004 table (comprehensive 10-prefix coverage added in STORY-031 pass-1 but not anchored back into BC until pass-3). Also added test_http_no_space_does_not_match for Inv-2/Inv-3 case-sensitive/no-space coverage. EC test citations updated. Closes F-W12P3-002. — 2026-05-27
   - v1.4: Pass-4 anchor-completeness sweep (DF-SIBLING-SWEEP-001 v2, doctrine application extended from pass-3 BC-2.05.002 to siblings BC-2.05.001 + BC-2.05.003). Added test_tls_takes_priority_over_http_methods_check (INV-1: HTTP check unreachable for data starting 0x16 0x03) to VP-004 table and Architecture Anchors. Closes F-W12P4-001. — 2026-05-27
   - v1.5: Pass-6 EC-001 anchor fix (DF-SIBLING-SWEEP-001 v2 anchor-completeness sub-rule discovery): replaced citation `test_all_http_method_prefixes_route_to_http` (port 9999) with `test_http_content_on_port_443_routes_to_http` (port 443 — matches EC-001 scenario specifically). Added test_http_content_on_port_443_routes_to_http to Architecture Anchors for EC-001 and content-first invariant coverage. Codification candidate: EC citations must match EC scenario, not just BC capability (F-W12P6-OBS-003). — 2026-05-27
+  - v1.6: Pass-18 B-01/B-02 — re-anchored all dispatcher.rs line citations to current post-ICS-insertion positions (stale `:95-107` → current `:190-202`). — 2026-06-13
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -90,7 +91,7 @@ strings, the flow is routed to `DispatchTarget::Http`. This check is performed i
 | L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md |
 | Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md -- HTTP method prefix routing is the second content-first dispatch rule per ADR 0001 |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence -- HTTP check is second after TLS) |
-| Architecture Module | SS-05 (dispatcher.rs:95-107, C-21) |
+| Architecture Module | SS-05 (dispatcher.rs:190-202, C-21) |
 | Stories | STORY-031 |
 | Origin BC | BC-DSP-002 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -102,14 +103,14 @@ strings, the flow is routed to `DispatchTarget::Http`. This check is performed i
 
 ## Architecture Anchors
 
-- `src/dispatcher.rs:95-107` -- HTTP method prefix check in classify function
+- `src/dispatcher.rs:190-202` -- HTTP method prefix check in classify function
 - `tests/dispatcher_tests.rs` -- test_dispatcher_routes_http, test_all_http_method_prefixes_route_to_http, test_http_no_space_does_not_match, test_tls_takes_priority_over_http_methods_check, test_http_content_on_port_443_routes_to_http
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/dispatcher.rs:95-107` |
+| **Path** | `src/dispatcher.rs:190-202` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-20 |
 

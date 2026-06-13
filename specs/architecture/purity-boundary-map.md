@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: purity-boundary-map
 traces_to: ARCH-INDEX.md
-version: "1.2"
+version: "1.4"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -13,6 +13,12 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "ARP-F2 Pass-14 remediation (A-03/A-06/A-09): C-24 Dnp3Analyzer row added (shipped v0.6.0, pure core); C-23 ArpAnalyzer row annotated PLANNED (src/analyzer/arp.rs not yet shipped, etherparse 0.16 in Cargo.toml); diagram updated with C-24 and C-23[PLANNED]; mitre.rs implications extended with T0888 and DNP3 IDs T1691.001/T0827."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Proactive consistency fix: C-23 ArpAnalyzer PLANNED marker in purity boundary table corrected from STORY-111 to STORY-112. STORY-111 creates DecodedFrame/ArpFrame/etherparse-0.20 in decoder.rs only; STORY-112 first creates src/analyzer/arp.rs (ArpAnalyzer stub). Authoritative source: arp-architecture-delta.md §6."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-18 A-03: analyzer/arp.rs VP-024 bullet added to Implications for Verification (parallel to existing modbus.rs VP-022 and dnp3.rs VP-023 entries); marked PLANNED consistent with VP-024 status=draft and STORY-112 marker. Version bump 1.3→1.4."
 ---
 
 # Purity Boundary Map
@@ -53,7 +59,7 @@ The pure portions are extracted for verification; the effectful portions are int
 | src/analyzer/tls.rs | **Pure core** | Stream-level; all state per-instance; `md5` is deterministic; `extract_sni` is a pure function (INV-5). Formally verifiable. |
 | src/analyzer/modbus.rs | **Pure core** | Stream-level; all state per-instance `HashMap<FlowKey, ModbusFlowState>`; pure core functions (`parse_mbap_header`, `classify_fc`, `is_valid_modbus_adu`) are Kani-verifiable (VP-022); no global side effects. Formally verifiable for core parse/classify path. [C-22, SS-14] |
 | src/analyzer/dnp3.rs | **Pure core** | Stream-level; carry-buffer + CRC-block-skip parse; FIR=1-only app-layer extract; FC classification; ICS findings T1691.001/T0827/T0836/T0814; per-flow master-address tracking; VP-023 Kani obligation (ADR-007). No global side effects. Formally verifiable for core parse/classify path. [C-24, SS-15, SHIPPED v0.6.0] |
-| src/analyzer/arp.rs | **Pure core** | [PLANNED — STORY-111/ADR-008; src/analyzer/arp.rs not yet in Cargo.toml-shipped tree; etherparse pins 0.16] Binding table (LRU-bounded); D1 spoof, D2 GARP, D3 storm, D11 malformed, D12 L2/L3 mismatch; MITRE T0830+T1557.002. When shipped: no global side effects; formally verifiable. [C-23, SS-16] |
+| src/analyzer/arp.rs | **Pure core** | [PLANNED — STORY-112/ADR-008; src/analyzer/arp.rs not yet in Cargo.toml-shipped tree; etherparse pins 0.16] Binding table (LRU-bounded); D1 spoof, D2 GARP, D3 storm, D11 malformed, D12 L2/L3 mismatch; MITRE T0830+T1557.002. When shipped: no global side effects; formally verifiable. [C-23, SS-16] |
 | src/findings.rs | Pure core | Data struct + Display impls; no I/O |
 | src/mitre.rs | **Pure core** | Static match table; pure lookup functions (INV-9). Formally verifiable. |
 | src/summary.rs | Pure core | Per-instance accumulator; no I/O |
@@ -119,6 +125,7 @@ proptest. Key formally-verifiable properties:
 - `analyzer/http.rs`: HTTP poison monotonicity (INV-8); cross-flow state isolation
 - `analyzer/modbus.rs`: MBAP parse safety (VP-022 sub-A); function-code classification totality (VP-022 sub-B); exception detection correctness (VP-022 sub-C) [SS-14]
 - `analyzer/dnp3.rs`: DNP3 DL header parse safety (VP-023 sub-A); FC classification totality (VP-023 sub-B); no-panic on malformed frames [C-24, SS-15, SHIPPED v0.6.0]
+- `analyzer/arp.rs`: ARP frame parse safety — extract_arp_frame no-panic on malformed input (VP-024 sub-A); GARP detection totality (VP-024 sub-B); binding-table cap enforcement (VP-024 sub-C) [C-23, SS-16, PLANNED — STORY-112; VP-024 status=draft]
 - `mitre.rs`: technique_id format invariant (INV-9); all_tactics_in_report_order completeness; ICS-matrix technique resolution (T0836/T0814/T0806/T0835/T0831/T0888/T1691.001/T0827)
 
 See `verification-architecture.md` for the full proof strategy per invariant.

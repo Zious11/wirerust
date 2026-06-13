@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - v1.4: Pass-4 anchor-completeness sweep (DF-SIBLING-SWEEP-001 v2, doctrine application extended from pass-3 BC-2.05.002 to siblings BC-2.05.001 + BC-2.05.003). Added test_tls_check_skipped_below_len_5 (PC2 boundary at len=4, EC-004), test_tls_check_requires_byte1_equals_0x03 (PC4 specificity, EC-005), test_tls_takes_priority_over_http_methods_check (INV-1 ordering) to VP-004 table and Architecture Anchors. Closes F-W12P4-001. — 2026-05-27
   - v1.5: W12-D2 EC table inline test citations added (DF-SIBLING-SWEEP-001 v3) — added `covered by` test citations to EC-001 through EC-005 matching sibling BC-2.05.002 style. Closes W12-D2. — 2026-05-28
   - v1.6: F-DRIFT2A-001 — fixed stale domain/capabilities/cap-05-content-first-dispatch.md citation to domain/capabilities/cap-05-content-first-dispatch.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29
+  - v1.7: Pass-18 B-01/B-02 — re-anchored all dispatcher.rs line citations to current post-ICS-insertion positions (last sync was v1.3 at v1.3 pre-ICS; Modbus Rule 5 + DNP3 Rule 6 insertions + new accessor methods shifted fn classify by ~94 lines). — 2026-06-13
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -96,7 +97,7 @@ an attacker running TLS on port 80 is still identified as TLS, not HTTP.
 | L2 Capability | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md |
 | Capability Anchor Justification | CAP-05 ("Content-First Protocol Dispatch") per domain/capabilities/cap-05-content-first-dispatch.md -- TLS content signature routing is the primary dispatch rule per ADR 0001 |
 | L2 Domain Invariants | INV-2 (Content-first dispatch precedence) |
-| Architecture Module | SS-05 (dispatcher.rs:90-117, C-21) |
+| Architecture Module | SS-05 (dispatcher.rs:184-242, C-21) |
 | Stories | STORY-031 |
 | Origin BC | BC-DSP-001 (pass-3 ingestion corpus, HIGH confidence) |
 
@@ -108,15 +109,15 @@ an attacker running TLS on port 80 is still identified as TLS, not HTTP.
 
 ## Architecture Anchors
 
-- `src/dispatcher.rs:90` -- `fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget`
-- `src/dispatcher.rs:92-94` -- TLS check: `data.len() >= 5 && data[0] == 0x16 && data[1] == 0x03`
+- `src/dispatcher.rs:184` -- `fn classify(data: &[u8], flow_key: &FlowKey) -> DispatchTarget`
+- `src/dispatcher.rs:186-187` -- TLS check: `data.len() >= 5 && data[0] == 0x16 && data[1] == 0x03`
 - `tests/dispatcher_tests.rs` -- test_tls_content_wins_over_port_8080, test_tls_content_routes_tls_on_port_443, test_dispatcher_content_detection_tls_on_port_80, test_tls_check_skipped_below_len_5, test_tls_check_requires_byte1_equals_0x03, test_tls_takes_priority_over_http_methods_check
 
 ## Source Evidence
 
 | Property | Value |
 |----------|-------|
-| **Path** | `src/dispatcher.rs:90-94` |
+| **Path** | `src/dispatcher.rs:184-187` |
 | **Confidence** | high |
 | **Extraction Date** | 2026-05-19 |
 

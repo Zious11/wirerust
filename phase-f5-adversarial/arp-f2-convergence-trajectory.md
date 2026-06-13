@@ -57,28 +57,37 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 15 (whole-corpus, Claude) | 2026-06-13 | 8 | 2 | 1 | 3 | 2 | MED | 0/3 | NOT_CLEAN→REMEDIATED |
 | 16 (whole-corpus, Claude) | 2026-06-13 | 7 | 0 | 0 | 5 | 2 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 | 17 (whole-corpus, Claude) | 2026-06-13 | 10 | 3 | 2 | 2 | 3 | MED | 0/3 | NOT_CLEAN→REMEDIATED |
+| 18 (whole-corpus, Claude) | 2026-06-13 | 9 | 0 | 3 | 2 | 4 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P18 next (Claude); P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)`
 
-Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3 — NON-MONOTONIC at Pass 17
-(3C/2H; new holdout MITRE-count sub-layer + module-decomposition peer not previously deep-reviewed).
-HIGH count: 8→7→~6→~5→1→2→~4→2→0→1→1→0→0→5→1→0→2 — NON-MONOTONIC at Pass 17.
-MEDIUM count: 3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8→~11→3→5→2 — propagation hygiene and
+Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3→0 — DECAYING on CRITICAL
+(0 for 2 of last 3 passes: P16+P18).
+HIGH count: 8→7→~6→~5→1→2→~4→2→0→1→1→0→0→5→1→0→2→3 — NON-MONOTONIC at P17; P18 back to 3H
+(ss-05 anchor-drift class: A-01/indicatif version self-invariant + B-01/B-02 systematic anchor
+re-sync).
+MEDIUM count: 3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8→~11→3→5→2→2 — propagation hygiene and
 holdout count-assertion drift.
 Trend BROKE at Pass 14 — Passes 12-13 showed 0 CRIT/0 HIGH; Pass 14 surfaced 2 CRITICAL + 5 HIGH.
 DECAYING P14→P16: 2C/5H → 2C/1H → 0C/0H. NON-MONOTONIC at P17: 3C/2H (new corpus corner:
 holdout-scenarios MITRE-catalog count assertions; module-decomposition never deep-reviewed for
-PLANNED/ARP markers). Slice B CLEAN 2nd consecutive (P16+P17). Ground truth (src/mitre.rs): 23
-seeded / 15 emitted / 8 cat-only / 17 MitreTactic variants.
+PLANNED/ARP markers). Slice B CLEAN 2nd consecutive (P16+P17). P18: 0C/3H — ss-05 dispatcher
+anchor-drift (systematic: all 9 ss-05 BCs stale due to Modbus/DNP3 code insertions shifting
+dispatcher.rs line offsets) + indicatif 0.17→0.18 version self-invariant + STORY-INDEX 48-vs-49
+ambiguity. arp.rs pre-flush STORY-112 anchor-uniformity verified CLEAN by Slice A (proactive fix
+verified). Holdout tree (101 files, Slice C) CLEAN. Ground truth (src/dispatcher.rs): fn classify
+:184; on_data :245; cache block :269-289; on_flow_close :322-361; DEFAULT_MAX :58; 4-analyzer
+guard :256-259. Ground truth (src/mitre.rs): 23 seeded / 15 emitted / 8 cat-only / 17 MitreTactic
+variants.
 
 ## Convergence Counter
 
 **0/3** consecutive clean passes.
 **STRICT WHOLE-CORPUS mode** (human-elected 2026-06-12; scope extended 2026-06-13): zero
 findings of ANY severity (including LOW) across the ENTIRE spec corpus (not just ARP delta)
-required for 3 consecutive clean passes. 17 passes run. Pass 14 REMEDIATED (22 findings:
+required for 3 consecutive clean passes. 18 passes run. Pass 14 REMEDIATED (22 findings:
 mitre_techniques field-rename corpus sweep + O-01 closure propagation + architect ×2 + PO ×10
 bursts + consistency audit CONSISTENT). Pass 15 REMEDIATED (8 findings: holdout-scenarios
 field-rename sweep [C-01/02/03, 16 files] + inv-01 YAML regression [C-04] + VP-024 scope
@@ -89,9 +98,16 @@ A-05 DISCARDED (ADR-008 proposed correct); chunk3-reeval ERRATUM [C-01]; ADR-005
 [D-01]; 6 remediated, 1 discarded). Pass 17 REMEDIATED (10 findings: module-decomposition
 PLANNED markers [A-01/A-02/A-03/A-04]; HS-025/HS-008/HS-009 holdout MITRE-catalog count
 assertions [C-01/C-02/C-03/C-04]; nfr-catalog NFR-OBS-010 disambiguation [D-01]; domain-spec
-§Summary-Metrics erratum [D-02]; 10 remediated). Trajectory NON-MONOTONIC P14→P17:
-2C/5H → 2C/1H → 0C/0H → 3C/2H. Slice B CLEAN 2nd consecutive (P16+P17). Next = Pass 18
-via Claude adversary. Counter 0/3 — remediation does NOT advance counter.
+§Summary-Metrics erratum [D-02]; 10 remediated). Pass 18 REMEDIATED (9 findings:
+dependency-graph indicatif 0.17→0.18 [A-01]; verification-coverage-matrix VP-023 lock-evidence
+[A-02]; purity-boundary-map VP-024 arp.rs bullet [A-03]; ss-05 systematic dispatcher anchor
+re-sync all 9 BCs [B-01/B-02]; BC-2.05.007/008 4-analyzer guard prose [B-03]; STORY-INDEX
+48-vs-49 clarification [C-01/D-01]; cap-10 changelog self-ref line anchors [C-02];
+BC-2.04.055 on_data :144→:245 [CARRY-OVER]; 0C/3H). Proactive pre-pass fix (arp.rs/C-23
+PLANNED STORY-111→STORY-112 in system-overview v1.3→v1.4 + purity-boundary-map v1.2→v1.3)
+verified CLEAN by Slice A. Holdout tree 101 files (Slice C) CLEAN. Trajectory P14-18:
+2C/5H → 2C/1H → 0C/0H → 3C/2H → 0C/3H. Decaying on CRITICAL (0 for 2 of last 3).
+Counter 0/3 — remediation does NOT advance counter. Next = Pass 19 via Claude adversary.
 
 ## Core Semantics — Confirmed Clean (Settled)
 
@@ -1073,6 +1089,141 @@ count-assertion sweep whenever src/mitre.rs seeded/emitted/catalog size changes.
 
 ---
 
+### Pass 18 — 2026-06-13 (whole-corpus, Claude adversary; NOT_CLEAN → REMEDIATED)
+
+**Method:** Whole-corpus fresh-context pass; Claude vsdd-factory:adversary per human direction.
+**Factory-artifacts HEAD reviewed:** (post-P17-remediation burst).
+**Findings:** 9 total — 0 CRITICAL, 3 HIGH, 2 MEDIUM, 4 LOW — ALL REMEDIATED.
+**Novelty:** LOW — ss-05 dispatcher anchor-drift class is the largest cluster (systematic:
++94..+235 line shift across all 9 ss-05 BCs from Modbus Rule-5/DNP3 Rule-6 + accessor
+insertions, last sync v1.3 pre-ICS); indicatif 0.17→0.18 version self-invariant violation; STORY-INDEX
+48-vs-49 prose ambiguity. Proactive pre-pass fix (arp.rs/C-23 PLANNED markers STORY-111→STORY-112)
+verified CLEAN by Slice A. Entire holdout tree 101 files (Slice C) verified CLEAN.
+**Convergence counter:** 0/3 (remediation does NOT advance counter; next = Pass 19 via Claude).
+**Verdict:** NOT_CLEAN → REMEDIATED.
+
+#### Pre-pass proactive fix (committed in this burst)
+
+**arp.rs/C-23 PLANNED marker correction (architect, pre-pass):**
+system-overview.md C-23 PLANNED note cited STORY-111 for ArpAnalyzer. Correct story is
+STORY-112 (arp.rs created in STORY-112; STORY-111 = decode_packet/DecodedFrame only per
+arp-architecture-delta §6). system-overview bumped v1.3→v1.4. purity-boundary-map C-23 PLANNED
+note also cited STORY-111→corrected to STORY-112; purity-boundary-map bumped v1.2→v1.3
+(continuing chain from P17 v1.1→v1.2; full session chain v1.1→v1.2→v1.3→v1.4 for
+purity-boundary-map across P14/P18 architect work). Verified consistent across all architecture
+peers by Pass-18 Slice A.
+
+#### Findings and Remediation
+
+**A-01 HIGH (architect) — dependency-graph indicatif 0.17 self-invariant violation:**
+dependency-graph.md listed indicatif as "0.17" in the crate version table. Cargo.toml
+(develop HEAD 31d1231, post-PR #206) specifies indicatif = "0.18". Self-invariant: the
+dependency-graph document asserts it lists "current Cargo.toml versions" — listing a stale
+version violates this invariant. All 14 crate rows verified against Cargo.toml; indicatif row
+corrected 0.17→0.18. dependency-graph bumped v1.5→v1.6.
+
+**A-02 MED (architect) — verification-coverage-matrix VP-023 lock-evidence note missing:**
+verification-coverage-matrix listed VP-023 without the lock-evidence annotation that was added
+at commit @e685664 (Feature #8 F6 hardening, PR #231). The lock-evidence note records that
+VP-023 was LOCKED (Kani+fuzz 9/9 + 3.19M/0) by the DNP3 F6 burst. Added lock-evidence bullet
+to VP-023 row. verification-coverage-matrix bumped v1.3→v1.4.
+
+**A-03 LOW (architect) — purity-boundary-map VP-024 arp.rs verification bullet absent:**
+purity-boundary-map v1.3 (post-pre-pass bump) listed C-23 arp.rs entry but did not include
+the VP-024 verification bullet noting arp.rs as the primary subject of VP-024
+(spoof/GARP/storm/rate anomaly proofs). Bullet added. purity-boundary-map bumped v1.3→v1.4
+(full session chain: P14 v1.1→v1.2 [field-rename/C-23+C-24]; pre-pass fix v1.2→v1.3
+[STORY-111→STORY-112]; A-03 v1.3→v1.4 [VP-024 bullet]).
+
+**B-01/B-02 HIGH (PO) — ss-05 SYSTEMATIC stale src/dispatcher.rs anchors (all 9 BCs):**
+All 9 ss-05 BCs (BC-2.05.001 through BC-2.05.009) carried stale dispatcher.rs line anchors
+from the pre-ICS era (v1.3 last sync). Modbus Rule-5 (STORY-102..105) and DNP3 Rule-6
+(STORY-106..110) inserted code into src/dispatcher.rs, shifting line offsets by +94..+235
+depending on location. Additionally, accessor method insertions (on_data, on_flow_close,
+classify) shifted anchor targets. All 9 BCs re-anchored against current src/dispatcher.rs
+using ground-truth line map:
+- fn classify: :184
+- on_data: :245
+- cache block: :269-289
+- on_flow_close: :322-361
+- DEFAULT_MAX: :58
+- 4-analyzer guard: :256-259
+
+Each of the 9 BCs bumped by one version (BC-2.05.001 through BC-2.05.009). BC-INDEX
+annotations for ss-05 updated with new version pins.
+
+**B-03 LOW (PO) — BC-2.05.007/008 unconfigured-guard prose widened to 4-analyzer:**
+BC-2.05.007 and BC-2.05.008 described the "unconfigured analyzer" guard as covering "http and
+tls analyzers". Current dispatcher.rs:256-259 guards http/tls/modbus/dnp3 (4 analyzers since
+Modbus+DNP3 integration). Prose widened to enumerate all 4. BCs bumped (same version bump as
+B-01/B-02).
+
+**C-01/D-01 MED/LOW (PO) — STORY-INDEX line 20 "49 stories" ambiguity:**
+STORY-INDEX line 20 stated "(49 stories)" without distinguishing the 48 greenfield-product
+stories from STORY-091 (tooling story, compute-input-hash). Corrected to
+"(48 greenfield product + 1 tooling STORY-091 = 49 stories)" to resolve the 48-vs-49 apparent
+discrepancy seen in cross-doc counts. STORY-INDEX version annotated.
+
+**C-02 LOW (PO) — cap-10 changelog self-referential line anchors stale:**
+cap-10 changelog (spec-changelog.md entries for cap-10 v1.8) cited self-referential line
+anchors 81/83-85 that shifted to 87/89-91 after the Pass-14 burst that bumped cap-10 v1.7→v1.8.
+Line anchors corrected in changelog entry. cap-10 spec-changelog bump recorded; cap-10 itself
+not re-versioned (changelog-only correction).
+
+**CARRY-OVER HIGH (PO, found during ss-05 sweep) — BC-2.04.055 Architecture Anchor
+dispatcher.rs:144→:245:**
+During the ss-05 anchor re-sync sweep, BC-2.04.055 was discovered to carry a stale
+`dispatcher.rs:144` Architecture Anchor for `on_data`. Current ground truth: `on_data` is
+at dispatcher.rs:245 (shifted by Feature #7 Modbus + Feature #8 DNP3 insertions). BC-2.04.055
+bumped v1.0.1→v1.0.2. This is the same line-shift class as the ss-05 BCs (PG-ARP-F2-007).
+
+#### Ground truth (verified, 2026-06-13)
+
+src/dispatcher.rs line map (develop HEAD 31d1231):
+- `fn classify` → :184
+- `fn on_data` → :245
+- cache block (binding entry + analyzer dispatch) → :269-289
+- `fn on_flow_close` → :322-361
+- `DEFAULT_MAX_STORED_HEADERS` → :58
+- 4-analyzer unconfigured guard → :256-259
+
+#### Artifact versions post-Pass-18
+
+| Artifact | Version | Change |
+|----------|---------|--------|
+| system-overview | v1.4 | C-23 PLANNED STORY-111→STORY-112 (pre-pass fix) |
+| purity-boundary-map | v1.4 | C-23 STORY-111→STORY-112 (pre-pass v1.2→v1.3) + VP-024 arp.rs bullet (A-03 v1.3→v1.4) |
+| dependency-graph | v1.6 | indicatif 0.17→0.18 (A-01) |
+| verification-coverage-matrix | v1.4 | VP-023 lock-evidence note (A-02) |
+| BC-2.05.001 | bumped | ss-05 dispatcher anchor re-sync (B-01/B-02) |
+| BC-2.05.002 | bumped | ss-05 dispatcher anchor re-sync (B-01/B-02) |
+| BC-2.05.003 | bumped | ss-05 dispatcher anchor re-sync (B-01/B-02) |
+| BC-2.05.004 | bumped | ss-05 dispatcher anchor re-sync (B-01/B-02) |
+| BC-2.05.005 | bumped | ss-05 dispatcher anchor re-sync (B-01/B-02) |
+| BC-2.05.006 | bumped | ss-05 dispatcher anchor re-sync (B-01/B-02) |
+| BC-2.05.007 | bumped | ss-05 dispatcher anchor re-sync + 4-analyzer guard prose (B-01/B-02/B-03) |
+| BC-2.05.008 | bumped | ss-05 dispatcher anchor re-sync + 4-analyzer guard prose (B-01/B-02/B-03) |
+| BC-2.05.009 | bumped | ss-05 dispatcher anchor re-sync (B-01/B-02) |
+| BC-2.04.055 | v1.0.2 | on_data anchor :144→:245 (CARRY-OVER) |
+| BC-INDEX | updated | ss-05 version pins + BC-2.04.055 annotation |
+| STORY-INDEX | updated | 48-vs-49 ambiguity resolved (C-01/D-01) |
+| cap-10 / spec-changelog | updated | changelog anchor correction (C-02) |
+| spec-changelog | updated | All P18 version bumps recorded (incl. pre-pass proactive fix) |
+
+#### Process gap noted [process-gap]
+
+**PG-ARP-F2-007:** src-line-anchor drift class — feature cycles that insert code into a shared
+file (dispatcher.rs via Modbus/DNP3) leave EVERY citing BC's anchors stale; F-cycle close-out
+must re-run an anchor-resync sweep across ALL BCs citing the touched src files
+(dispatcher.rs → ss-04/ss-05; mitre.rs → ss-10 [done]; findings.rs → ss-09;
+reassembly/http/tls → ss-04/06/07 [verify next pass]). Candidate: anchor-drift lint or
+F-cycle anchor-resync checklist. ANCHOR-DRIFT WATCH: ss-10 (mitre.rs) + ss-05/ss-04-055
+(dispatcher.rs) anchors re-synced this pass; ss-09 (findings.rs) + ss-06/ss-07
+(http.rs/tls.rs/reassembly, potentially shifted by STORY-097/098/099 timestamp wiring) NOT
+yet anchor-audited — likely Pass-19 Slice B targets.
+
+---
+
 ### HUMAN DECISION — 2026-06-13
 
 **CONTINUE STRICT WHOLE-CORPUS** — bar remains zero findings of ANY severity across the
@@ -1193,6 +1344,35 @@ requiring that whenever src/mitre.rs seeded/emitted set or MitreTactic variant c
 a sweep of ALL holdout-scenarios carrying count assertions (grep for "seeded", "emitted",
 "cat-only", "tactics", "MitreTactic variants") is mandatory in the same burst as the code
 change. Candidate trigger: F-cycle close-out checklist step.
+
+---
+
+### [process-gap] PG-ARP-F2-007 — src-line-anchor drift across feature cycles (dispatcher.rs)
+
+Feature cycles that insert code into a shared file (e.g., dispatcher.rs via Modbus Rule-5 and
+DNP3 Rule-6) shift the line offsets of EVERY function in that file, leaving EVERY citing BC's
+line anchors stale. Pass 18 discovered all 9 ss-05 BCs and BC-2.04.055 were stale for the same
+reason — the last dispatcher.rs anchor sync (v1.3) predated ICS feature integration.
+
+**Root cause:** F-cycle close-out does not include an anchor-resync sweep over BCs citing src
+files that were modified during delivery. CI cannot enforce this (anchors are prose in spec
+files, not executable).
+
+**Anchor-drift watch (post-P18):**
+- ss-10 (mitre.rs): RE-SYNCED (Pass 13 + ongoing checks).
+- ss-05 (dispatcher.rs): RE-SYNCED this pass (Pass 18).
+- BC-2.04.055 (dispatcher.rs on_data): RE-SYNCED this pass.
+- ss-09 (findings.rs): NOT YET audited — likely shifted by STORY-097/098/099 timestamp wiring.
+- ss-06/ss-07 (http.rs/tls.rs/reassembly): NOT YET audited — potentially shifted by
+  STORY-097/098/099 or earlier reassembly work.
+- ss-04 (dispatcher.rs: classify, other): partially covered by BC-2.04.055; remaining ss-04
+  anchors should be spot-checked.
+
+**Candidate policy codification:** F-cycle close-out checklist step: for each src file touched
+by the feature's delivered stories, grep all BC files for citations of that src file and
+re-verify each cited line number against the current source. Candidate lint: anchor-drift
+checker script that reads BC `Architecture Anchor` fields and spot-checks line content against
+current src.
 
 ---
 

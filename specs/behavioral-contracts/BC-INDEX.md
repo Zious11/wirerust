@@ -128,21 +128,21 @@ traces_to: .factory/specs/prd.md
 | BC-2.04.052 | on_data_without_syn: New->Established; partial=true | P0 | [WRITTEN] | BC-RAS-052 |
 | BC-2.04.053 | TcpFlow::direction Returns ClientToServer When src Matches Initiator | P0 | [WRITTEN] | BC-RAS-053 |
 | BC-2.04.054 | finalize Unconditionally Bypasses MAX_FINDINGS Cap for Segment-Limit Finding | P0 | [WRITTEN] | BC-RAS-054 |
-| BC-2.04.055 | StreamHandler::on_data Carries Capture-Relative Timestamp Parameter | P1 | [WRITTEN] | feature-100-F2 |
+| BC-2.04.055 | StreamHandler::on_data Carries Capture-Relative Timestamp Parameter | P1 | [WRITTEN] | feature-100-F2 | <!-- v1.0.2: Pass-18 carry-over anchor fix; dispatcher.rs:144→:245 -->
 
 ## ss-05: Content-First Protocol Dispatch (CAP-05)
 
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
-| BC-2.05.001 | TLS Content Signature Routes Flow to TLS Regardless of Port | P0 | [WRITTEN] | BC-DSP-001 |
-| BC-2.05.002 | HTTP Method Prefix Routes Flow to HTTP | P0 | [WRITTEN] | BC-DSP-002 |
-| BC-2.05.003 | Port Fallback: 443/8443->TLS, 80/8080->HTTP When Content Insufficient | P0 | [WRITTEN] | BC-DSP-003 |
-| BC-2.05.004 | Unknown Content + Unknown Port Returns DispatchTarget::None | P1 | [WRITTEN] | BC-DSP-004 |
-| BC-2.05.005 | Classification Cached Per FlowKey After First Non-None Result | P0 | [WRITTEN] | BC-DSP-005 |
-| BC-2.05.006 | DispatchTarget::None NOT Cached Until Retry Cap; Reclassification Retried Until Cap Then Cached Permanently | P0 | [WRITTEN] | BC-DSP-006 |
-| BC-2.05.007 | unclassified_flows Increments Only at on_flow_close | P1 | [WRITTEN] | BC-DSP-007 |
-| BC-2.05.008 | No Analyzer Configured: Dispatcher Early-Returns | P1 | [WRITTEN] | BC-DSP-008 |
-| BC-2.05.009 | on_flow_close Removes Route Entry and Forwards Close | P0 | [WRITTEN] | BC-DSP-009 |
+| BC-2.05.001 | TLS Content Signature Routes Flow to TLS Regardless of Port | P0 | [WRITTEN] | BC-DSP-001 | <!-- v1.7: Pass-18 B-01/B-02 anchor re-sync; fn classify :90→:184, TLS check :92-94→:186-187 -->
+| BC-2.05.002 | HTTP Method Prefix Routes Flow to HTTP | P0 | [WRITTEN] | BC-DSP-002 | <!-- v1.6: Pass-18 B-01/B-02 anchor re-sync; HTTP method block :95-107→:190-202 -->
+| BC-2.05.003 | Port Fallback: 443/8443->TLS, 80/8080->HTTP When Content Insufficient | P0 | [WRITTEN] | BC-DSP-003 | <!-- v1.7: Pass-18 B-01/B-02 anchor re-sync; port fallback :108-116→:204-212 -->
+| BC-2.05.004 | Unknown Content + Unknown Port Returns DispatchTarget::None | P1 | [WRITTEN] | BC-DSP-004 | <!-- v1.5: Pass-18 B-01/B-02 anchor re-sync; None return :116→:241, classify call :136→:272, None branch :137-148→:273-284, non-None :149-151→:286-287 -->
+| BC-2.05.005 | Classification Cached Per FlowKey After First Non-None Result | P0 | [WRITTEN] | BC-DSP-005 | <!-- v1.5: Pass-18 B-01/B-02 anchor re-sync; cache block :133-154→:269-290, non-None insert :149-151→:286-287 -->
+| BC-2.05.006 | DispatchTarget::None NOT Cached Until Retry Cap; Reclassification Retried Until Cap Then Cached Permanently | P0 | [WRITTEN] | BC-DSP-006 | <!-- v1.5: Pass-18 B-01/B-02 anchor re-sync (most heavily stale); MAX const :40→:58, cache+retry :133-154→:269-290, None branch :137-148→:273-284, perm-insert :146→:282, attempts-remove :147→:283, non-None :149-151→:286-287, flow-close removes :175-176→:326-327 -->
+| BC-2.05.007 | unclassified_flows Increments Only at on_flow_close | P1 | [WRITTEN] | BC-DSP-007 | <!-- v1.4: Pass-18 B-01/B-02/B-03 anchor re-sync + four-analyzer guard prose; on_flow_close :171-194→:322-361, guard :188-191→:352-356; guard widened http/tls→http/tls/modbus/dnp3 -->
+| BC-2.05.008 | No Analyzer Configured: Dispatcher Early-Returns | P1 | [WRITTEN] | BC-DSP-008 | <!-- v1.6: Pass-18 B-01/B-02/B-03 anchor re-sync + four-analyzer guard prose; early-return guard :121-123→:256-259; guard widened http/tls→http/tls/modbus/dnp3 -->
+| BC-2.05.009 | on_flow_close Removes Route Entry and Forwards Close | P0 | [WRITTEN] | BC-DSP-009 | <!-- v1.4: Pass-18 B-01/B-02 anchor re-sync; on_flow_close :171-194→:322-361, removes :175-176→:326-327 -->
 
 ## ss-06: HTTP Traffic Analysis (CAP-06)
 
