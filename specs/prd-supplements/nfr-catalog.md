@@ -1,10 +1,12 @@
 ---
 document_type: prd-supplement-nfr-catalog
 level: L3
-version: "1.6"
+version: "1.8"
 modified:
   - "v1.5: Pass-12 corpus-cleanup F-C-P12-001: NFR-MNT-009 source anchor re-anchored from stale :122-156 (projections at 160-167) to current technique_info :128-182 (fn@:128, let info=match id@:129, _ => return None@:179, }@:182); projections technique_name@:186-188, technique_tactic@:192-194. — 2026-06-13"
-  - "v1.6: Pass-13 F-C-P13-002: NFR-OBS-004 Target corrected from 'All 15 seeded technique IDs resolve' to 'All 15 emitted technique IDs resolve in lookup (current; 17 after STORY-114 — PLANNED)'; seeded vs emitted distinction aligns with test name `known_emitted_technique_ids_resolve_in_lookup` and BC-2.10.008. — 2026-06-13"
+  - "v1.6: Pass-13 F-C-P13-002: NFR-OBS-004 Target corrected from 'All 15 emitted technique IDs resolve in lookup (current; 17 after STORY-114 — PLANNED)'; seeded vs emitted distinction aligns with test name `known_emitted_technique_ids_resolve_in_lookup` and BC-2.10.008. — 2026-06-13"
+  - "v1.7: ARP-F2 Pass-14 PO Burst 8 — NFR-OBS-010: corrected to reflect post-ADR-006 reality: three Option fields (source_ip, timestamp, direction) use skip_serializing_if=Option::is_none; mitre_techniques: Vec<String> uses skip_serializing_if=Vec::is_empty. src/findings.rs line anchor corrected from :132-145 (stale) to :148-161 (current field block). LESSON-P1.02 historical note preserved and updated. — 2026-06-13"
+  - "v1.8: Burst-10 (O-01-closure) — NFR-PERF-002 mapping row: 'O-01 class debt' replaced with accurate framing (NFR-VIO-001 is independent eager-load concern, O-01 was timestamp threading — CLOSED). NFR-VIO-001 disposition: 'OPEN-DEBT (O-01 class)' reworded to clarify O-01 is closed and NFR-VIO-001 is a separate streaming-refactor concern. — 2026-06-13"
 status: reviewed
 producer: product-owner
 timestamp: 2026-06-08T00:00:00Z
@@ -107,7 +109,7 @@ traces_to: .factory/specs/prd.md
 | NFR-OBS-007 | Observability | Per-target progress bar via `indicatif` written to stderr; template `[elapsed] {bar:40} pos/len packets` | Progress visible on stderr without polluting stdout | Manual test with large pcap | P2 | N/A | N/A -- src/main.rs:153-156 (ProgressBar creation and style template) |
 | NFR-OBS-008 | Observability | `--mitre` flag groups findings under tactic headers in kill-chain order; `Uncategorized` bucket last | 17 tactic headers + Uncategorized; stable order per `all_tactics_in_report_order` | Tests: `mitre_grouping_*` (BC-RPT-013..017) | P0 | N/A | N/A -- src/reporter/terminal.rs:260-304 (`render_findings_grouped`) |
 | NFR-OBS-009 | Observability | `Skipped: N packets` line suppressed when N = 0; only shown when N > 0 | No spurious "Skipped: 0" in clean-capture output | Tests: `test_terminal_reporter_shows_skipped_when_nonzero`, `test_terminal_reporter_hides_skipped_when_zero` | P1 | N/A | N/A -- src/reporter/terminal.rs:94-105 (`if summary.skipped_packets > 0` guard) |
-| NFR-OBS-010 | Observability | `Finding` JSON schema uses symmetric `skip_serializing_if = "Option::is_none"` on ALL four Option fields: `mitre_technique`, `source_ip`, `timestamp`, `direction` | All None Option fields omitted (not serialized as null); downstream consumers must handle key-absent | Test: BC-2.09.006; `test_finding_serializes_with_or_without_options` (proposed) | P0 | NFR-VIO previous | CLOSED (LESSON-P1.02) -- src/findings.rs:132-145 shows all four Option fields now carry `skip_serializing_if = "Option::is_none"`; the previous asymmetry where only `timestamp` had the attribute is corrected |
+| NFR-OBS-010 | Observability | `Finding` JSON schema uses `skip_serializing_if = "Vec::is_empty"` on `mitre_techniques: Vec<String>` AND `skip_serializing_if = "Option::is_none"` on THREE Option fields: `source_ip`, `timestamp`, `direction`. The old scalar `mitre_technique: Option<String>` no longer exists (ADR-006 Decision 13, STORY-100 AC-008). | Empty `mitre_techniques` vec omitted (key absent, not `[]`); all None Option fields omitted (not serialized as null); downstream consumers must handle key-absent for all four fields. | Test: BC-2.09.006; `test_finding_serializes_with_or_without_options` (proposed) | P0 | NFR-VIO previous | CLOSED (LESSON-P1.02, updated post-ADR-006) -- src/findings.rs:148-161: `mitre_techniques: Vec<String>` with `skip_serializing_if = "Vec::is_empty"` at :148-149; `source_ip: Option<IpAddr>` at :150-151; `timestamp: Option<DateTime<Utc>>` at :152-153; `direction: Option<Direction>` at :160-161; each Option field uses `skip_serializing_if = "Option::is_none"`. The previous asymmetry where only `timestamp` had the attribute is corrected (LESSON-P1.02). The subsequent rename of scalar Option to Vec (ADR-006) means the skip predicate is now Vec::is_empty for that field. |
 
 ### Resource Bounds (NFR-RES)
 
@@ -187,7 +189,7 @@ traces_to: .factory/specs/prd.md
 | NFR ID | Affected Subsystem / Source Files | Architectural Impact |
 |--------|----------------------------------|---------------------|
 | NFR-PERF-001 | SS-02 (decoder.rs) | Zero-copy slice API must not be broken by any decoder refactor |
-| NFR-PERF-002 | SS-01 (reader.rs) | All-in-memory design constraint; streaming refactor is O-01 class debt |
+| NFR-PERF-002 | SS-01 (reader.rs) | All-in-memory design constraint; streaming refactor is separate architectural debt (NFR-VIO-001) — unrelated to O-01 (timestamp threading; CLOSED) |
 | NFR-PERF-003 | SS-05 (dispatcher.rs) | Cache must be preserved; no per-packet re-classification |
 | NFR-SEC-001..003 | SS-06, SS-07, SS-09, SS-11 | ADR 0003 must be maintained across all new analyzers and reporters |
 | NFR-SEC-008 | SS-07 (tls.rs) | MAX_RECORD_PAYLOAD must not be raised without RFC justification |
@@ -199,7 +201,7 @@ traces_to: .factory/specs/prd.md
 | NFR-RES-014..016 | SS-07 (analyzer/tls.rs) | MAX_MAP_ENTRIES / MAX_RECORD_PAYLOAD / MAX_BUF constrain adversarial input bounds |
 | NFR-RES-023 | SS-07 (analyzer/tls.rs:497-516) | Weak-cipher evidence vec is the only data-dependent-cardinality evidence vector |
 | NFR-RES-024 | SS-08 (analyzer/dns.rs) | DnsAnalyzer port-dispatch, 12-byte header guard, and never-emit-findings contract; unbounded u64 counters are safe (never-emit design) |
-| NFR-OBS-010 | SS-09 (findings.rs) | JSON schema Option symmetry must be preserved across all Finding fields |
+| NFR-OBS-010 | SS-09 (findings.rs) | Vec::is_empty on mitre_techniques and Option::is_none on three Option fields (source_ip, timestamp, direction) must be preserved across all Finding fields; scalar mitre_technique removed (ADR-006) |
 | NFR-MNT-011 | SS-06 (analyzer/http.rs:110) | MSRV 1.86 constraint; floor_char_boundary must not be replaced with a 1.85-compatible workaround without updating Cargo.toml |
 
 
@@ -223,7 +225,7 @@ are recorded here for traceability. Closed items were addressed in PRs #69-#98.
 
 | VIO ID | Description | Disposition | Status |
 |--------|------------|-------------|--------|
-| NFR-VIO-001 | "Multi-GB captures" README claim vs. eager `Vec<RawPacket>` load | document-and-accept | OPEN-DEBT (O-01 class) |
+| NFR-VIO-001 | "Multi-GB captures" README claim vs. eager `Vec<RawPacket>` load | document-and-accept | OPEN-DEBT -- eager full-file load is a separate architectural concern from O-01 (timestamp threading, CLOSED); streaming refactor deferred |
 | NFR-VIO-002 | `resolve_targets` glob included `*.pcapng` but reader rejects pcapng | fix (S) | CLOSED -- pcapng extension excluded from glob in remediation cycle |
 | NFR-VIO-003 | 8 unwired CLI flags (`--threats`, `--beacon`, `--filter`, `--verbose`, `--hosts`, `--services`, `--json <FILE>`, `--csv <FILE>`) | fix (mixed) | CLOSED -- unwired flags removed; `--json`/`--csv` wired; `--hosts` wired (LESSON-P1.03) |
 | NFR-VIO-004 | `--json/--csv <FILE>` wrote to stdout, not the specified file | fix (S) | CLOSED -- `std::fs::write` wired in `write_output()` |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:489-512 → mod.rs:518-541 (out-of-window threshold block). — 2026-06-01"
+  - "v1.4: ARP-F2 Pass-14 Burst 4 — Postconditions mitre_technique: None → mitre_techniques: vec![] (shipped Finding struct uses Vec<String>; ADR-006). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,7 +48,7 @@ same as for overlap and small-segment alerts (LESSON-P1.01).
    - category: Anomaly
    - verdict: Inconclusive
    - confidence: Low
-   - mitre_technique: None
+   - mitre_techniques: vec![]
    - summary: "Excessive out-of-window segments (N) on flow <key>"
    - evidence: ["max_receive_window=W bytes; possible misconfiguration, evasion, or capture corruption"]
 3. If at MAX_FINDINGS cap: `stats.dropped_findings` increments; no Finding pushed.

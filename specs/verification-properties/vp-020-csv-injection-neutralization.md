@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.0"
+version: "2.1"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -24,6 +24,7 @@ modified:
     actor: product-owner
     note: "proof_method label corrected manual→unit to match body table + VP-INDEX + BC-2.11.021 (STORY-079 P1 finding)"
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set (tests/reporter_csv_tests.rs)."
+  - "v2.1 (2026-06-13, ARP-F2 Pass-14 PO Burst 2): Property Statement item 3 corrected: stale field name 'mitre_technique' → 'mitre_techniques' (semicolon-joined) per ADR-006 Decision 13 and BC-2.11.020/024. Lock fields and proof unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,8 +50,8 @@ in the output causes a spreadsheet application to interpret the cell as a formul
 2. The `csv` crate handles field quoting and escaping of commas and double-quotes.
 3. The neutralization applies to all string fields derived from attacker-controlled
    data that are actually emitted to CSV cells: per-`Finding` fields `summary`,
-   `evidence` (joined), `category`, `verdict`, `confidence`, `mitre_technique`,
-   `source_ip`, `direction`, and `timestamp`. The `_analyzer_summaries` parameter
+   `evidence` (joined), `category`, `verdict`, `confidence`, `mitre_techniques`
+   (semicolon-joined), `source_ip`, `direction`, and `timestamp`. The `_analyzer_summaries` parameter
    is accepted by the trait signature but is explicitly ignored by `CsvReporter::render`
    (underscore-prefixed at `csv.rs:56`); no `AnalysisSummary` detail value ever
    reaches a CSV cell, so that field is outside the neutralization scope.

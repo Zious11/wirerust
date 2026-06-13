@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.4"
+version: "2.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -29,6 +29,9 @@ modified:
   - version: "2.4"
     date: 2026-06-10
     change: "v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in H1 title, Description, Postconditions, Invariants, Edge Cases, Canonical Test Vectors, MITRE Techniques traceability, and Architecture Anchors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md."
+  - version: "2.5"
+    date: 2026-06-13
+    change: "ARP-F2 Pass-14 Burst-3 (B-01): MITRE Techniques traceability field: corrected stale revoked-T0855 display name 'Unauthorized Command Message' → canonical ATT&CK v19 name 'Unauthorized Message: Command Message' for T1692.001. Technique ID unchanged. Verified against BC-2.14.013/014/016 siblings."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -326,7 +329,7 @@ All timestamps are in SECONDS (timestamp_secs per BC-2.09.007; the pipeline deli
 | Architecture Module | SS-14 (analyzer/modbus.rs, C-22; ModbusFlowState burst+sustained window fields; ModbusAnalyzer write_burst_threshold + write_sustained_threshold) |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-007-modbus-analyzer |
-| MITRE Techniques | T0806 — Brute Force I/O (ATT&CK for ICS; IcsImpairProcessControl); T1692.001 — Unauthorized Command Message (co-tagged on burst/sustained events) |
+| MITRE Techniques | T0806 — Brute Force I/O (ATT&CK for ICS; IcsImpairProcessControl); T1692.001 — Unauthorized Message: Command Message (co-tagged on burst/sustained events) |
 
 ## Related BCs
 

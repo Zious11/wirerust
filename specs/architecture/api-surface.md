@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: api-surface
 traces_to: ARCH-INDEX.md
-version: "1.1"
+version: "1.3"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -10,6 +10,12 @@ modified:
   - date: 2026-06-08
     actor: spec-steward
     reason: "Phase-6 gate close: status draft→verified."
+  - date: 2026-06-13
+    actor: architect
+    reason: "ARP-F2 Pass-14 remediation (A-01/A-02/A-06): Finding struct row corrected mitre_technique:Option<String> → mitre_techniques:Vec<String> with skip_serializing_if note (ADR-006); three shipped ICS CLI flags added (--modbus-write-burst-threshold, --modbus-write-sustained-threshold, --dnp3-direct-operate-threshold); decode_packet signature annotated with PLANNED→DecodedFrame marker (STORY-114)."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-14 post-remediation F1 (MEDIUM): Finding.timestamp stale claim 'always None; O-01' corrected to shipped type Option<DateTime<Utc>> with skip_serializing_if; domain-debt O-01 CLOSED (STORY-097/098/099 + STORY-102..110)."
 ---
 
 # API Surface
@@ -54,6 +60,11 @@ wirerust summary [OPTIONS] <TARGET>...
 | `--tls` | bool | false | BC-2.12.001 |
 | `-a` / `--all` | bool | false | BC-2.12.008 |
 | `--mitre` | bool | false | BC-2.12.001 |
+| `--modbus` | bool | false | BC-2.14.023 |
+| `--modbus-write-burst-threshold <N>` | u32 | 20 | BC-2.14.024; fires T0806+T1692.001 when >N write-class FCs in any 1-second window; must be >= 1 (ADR-005) |
+| `--modbus-write-sustained-threshold <N>` | u32 | 10 | BC-2.14.024; fires T0806+T1692.001 when average write-FC rate exceeds M writes/s over >=2s window; must be >= 1 (ADR-005) |
+| `--dnp3` | bool | false | BC-2.15.021 |
+| `--dnp3-direct-operate-threshold <N>` | u32 | 10 | BC-2.15.010/BC-2.15.017; fires T1692.001 when >N control-class FCs in detection window; ADR-007 |
 
 ### summary Flags
 
@@ -138,14 +149,14 @@ Implemented by: `JsonReporter`, `TerminalReporter`, `CsvReporter`.
 
 | Function | File | Signature | Notes |
 |----------|------|-----------|-------|
-| `decode_packet` | decoder.rs | `pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<ParsedPacket>` | Link-type whitelist gate + L2-L4 header parse. Data-first argument order. Used by integration tests and VP-008 fuzz target. Accepts ETHERNET, RAW, IPV4, IPV6, LINUX_SLL; rejects all other link types with Err. |
+| `decode_packet` | decoder.rs | `pub fn decode_packet(data: &[u8], datalink: DataLink) -> Result<ParsedPacket>` | Current (shipped) signature. Link-type whitelist gate + L2-L4 header parse. Data-first argument order. Used by integration tests and VP-008 fuzz target. Accepts ETHERNET, RAW, IPV4, IPV6, LINUX_SLL; rejects all other link types with Err. **[PLANNED — STORY-114]** Return type will change to `Result<DecodedFrame>` where `DecodedFrame::Ip(ParsedPacket)` covers the IP path and `DecodedFrame::Arp(ArpFrame)` the ARP path post-etherparse-0.20 migration (ADR-008). Not yet shipped; Cargo.toml pins etherparse 0.16. |
 
 
 ## Key Public Structs (L3 Domain)
 
 | Struct | File | Key Fields |
 |--------|------|-----------|
-| `Finding` | findings.rs | `category: ThreatCategory`, `verdict: Verdict`, `confidence: Confidence`, `mitre_technique: Option<String>`, `summary: String` (raw), `evidence: Vec<String>` (raw), `timestamp: Option<...>` (always None; O-01) |
+| `Finding` | findings.rs | `category: ThreatCategory`, `verdict: Verdict`, `confidence: Confidence`, `mitre_techniques: Vec<String>` (`#[serde(skip_serializing_if = "Vec::is_empty")]`; singleton or multi-ID; empty vec omitted from JSON/CSV output — ADR-006), `summary: String` (raw), `evidence: Vec<String>` (raw), `source_ip: Option<IpAddr>`, `timestamp: Option<DateTime<Utc>>` (`#[serde(skip_serializing_if = "Option::is_none")]`; omitted when None; populated at emission sites — STORY-097/098/099 + STORY-102..110; domain-debt O-01 CLOSED), `direction: Option<Direction>` |
 | `AnalysisSummary` | analyzer/mod.rs | `analyzer_name: String`, `packets_analyzed: u64`, `detail: BTreeMap<String, serde_json::Value>` |
 | `FlowKey` | reassembly/flow.rs | `lower_ip: IpAddr`, `lower_port: u16`, `upper_ip: IpAddr`, `upper_port: u16` (canonically ordered per INV-1) |
 | `ParsedPacket` | decoder.rs | `src_ip: IpAddr`, `dst_ip: IpAddr`, `protocol: Protocol`, `transport: TransportInfo`, `payload: Vec<u8>`, `packet_len: usize` |

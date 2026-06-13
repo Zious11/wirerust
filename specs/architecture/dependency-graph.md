@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: dependency-graph
 traces_to: ARCH-INDEX.md
-version: "1.2"
+version: "1.4"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -13,6 +13,12 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-12 corpus debt cleanup (F-3): added analyzer/dnp3.rs (holds Option<Dnp3Analyzer>) [C-24, ADR-007] to dispatcher.rs import DAG, after the modbus.rs line. DNP3 shipped v0.6.0 with DispatchTarget::Dnp3 at src/dispatcher.rs:238/309/345. ARP (C-23) stays absent — PLANNED, NON-BLOCKING."
+  - date: 2026-06-13
+    actor: architect
+    reason: "ARP-F2 Pass-14 remediation (A-07): etherparse row corrected: version column now shows '0.16 [PLANNED→0.20 — STORY-111]' to align with Cargo.toml shipped pin (0.16) and the pending migration documented in module-decomposition C-5 and arp-architecture-delta §2.3. Version bump 1.2→1.3."
+  - date: 2026-06-13
+    actor: architect
+    reason: "O-01 closure propagation: chrono row parenthetical updated to reflect O-01 CLOSED (timestamp field now populated at emission sites — STORY-097/098/099 + STORY-102..110; BC-2.04.054 by-design exception). Version bump 1.3→1.4."
 ---
 
 # Dependency Graph
@@ -91,7 +97,7 @@ Verified against Cargo.toml @ 0082a0c. Every row name and version matches the
 | `tls-parser` | 0.12 | analyzer/tls.rs | TLS record + handshake parsing |
 | `md-5` | 0.11 | analyzer/tls.rs | JA3/JA3S fingerprint computation (exposes `md5` module) |
 | `clap` | 4 (derive feature) | cli.rs | CLI argument parsing |
-| `etherparse` | 0.16 | decoder.rs (C-5) | L2-L4 header parsing (Ethernet, IP, TCP, UDP); pinned to 0.16 API contract |
+| `etherparse` | 0.16 [PLANNED→0.20 — STORY-111] | decoder.rs (C-5) | L2-L4 header parsing (Ethernet, IP, TCP, UDP); current Cargo.toml pin is 0.16; migration to 0.20 is planned for STORY-111 (ARP integration, ADR-008) — not yet shipped |
 | `pcap-file` | 2 | reader.rs (C-4) | Classic pcap file format parsing |
 | `serde` | 1 (derive feature) | findings.rs, reporter/*.rs | Serialization traits |
 | `serde_json` | 1 | reporter/json.rs, analyzer/{http,tls}.rs | JSON serialization; RFC 8259 escaping |
@@ -99,7 +105,7 @@ Verified against Cargo.toml @ 0082a0c. Every row name and version matches the
 | `anyhow` | 1 | reader.rs, decoder.rs, main.rs | Error propagation with context |
 | `owo-colors` | 4 | reporter/terminal.rs | Terminal colorization |
 | `indicatif` | 0.17 | main.rs | Per-target progress bar on stderr |
-| `chrono` | 0.4 (serde feature) | main.rs / findings.rs | Timestamp types (O-01: field exists but universally None) |
+| `chrono` | 0.4 (serde feature) | main.rs / findings.rs | Timestamp types (`Option<DateTime<Utc>>`; populated at emission sites — O-01 CLOSED; BC-2.04.054 summary finding retains None by design) |
 | `rayon` | 1 | (present in Cargo.toml; unused in current call-paths; tracked as domain-debt O-07) | Work-stealing parallelism (not yet wired in) |
 
 > Exact pinned versions are in Cargo.lock. Cargo.toml version specs above use

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: add VP back-ref for client version_name reachability test (F-S054-P3-003) — 2026-05-29"
+  - "v1.4: mitre_technique: None → mitre_techniques: vec![] in Postconditions (ARP-F2 P14 B6) — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,7 +48,7 @@ There is no MITRE technique ID on this finding.
    - confidence: High
    - summary: "ClientHello uses deprecated protocol ({version_name}, RFC 7568 prohibits SSLv3)"
    - evidence: ["Version: 0x{version:04x} ({version_name})"]
-   - mitre_technique: None
+   - mitre_techniques: vec![]
    - source_ip: None
    - timestamp: None
    - direction: Some(Direction::ClientToServer)

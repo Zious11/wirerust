@@ -1,10 +1,10 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.19"
+version: "1.23"
 status: draft
 producer: product-owner
-timestamp: 2026-06-12T02:00:00Z
+timestamp: 2026-06-13T00:00:00Z
 phase: 1a
 traces_to: .factory/specs/prd.md
 ---
@@ -33,7 +33,7 @@ traces_to: .factory/specs/prd.md
 > **Status as of Phase 1a (current):**
 > - Fully written: 283 BCs (all body files verified on disk)
 > - Remaining: 0 BCs
-> - PRD index (prd.md): UPDATED (v1.15) -- all 283 L3 BC IDs are registered
+> - PRD index (prd.md): UPDATED (v1.18) -- all 283 L3 BC IDs are registered
 
 ## ss-01: PCAP File Ingestion (CAP-01)
 
@@ -91,14 +91,14 @@ traces_to: .factory/specs/prd.md
 | BC-2.04.015 | Flow Eviction on max_flows Hit Uses LRU Non-Established-First | P1 | [WRITTEN] | BC-RAS-015 |
 | BC-2.04.016 | Memory Pressure Eviction When total_memory Exceeds memcap | P1 | [WRITTEN] | BC-RAS-016 |
 | BC-2.04.017 | Eviction Sort -- Non-Established First, Then Oldest-Last-Seen | P1 | [WRITTEN] | BC-RAS-017 |
-| BC-2.04.018 | Conflicting Overlap Emits Anomaly/Likely/High Finding with MITRE T1036 | P0 | [WRITTEN] | BC-RAS-018 |
-| BC-2.04.019 | Excessive Overlaps Emit One-Shot T1036 Finding | P0 | [WRITTEN] | BC-RAS-019 |
-| BC-2.04.020 | Excessive Small Segments Emit One-Shot Finding | P1 | [WRITTEN] | BC-RAS-020 |
-| BC-2.04.021 | Excessive Out-of-Window Segments Emit One-Shot Low Finding | P1 | [WRITTEN] | BC-RAS-021 |
+| BC-2.04.018 | Conflicting Overlap Emits Anomaly/Likely/High Finding with MITRE T1036 | P0 | [WRITTEN] | BC-RAS-018 | <!-- v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
+| BC-2.04.019 | Excessive Overlaps Emit One-Shot T1036 Finding | P0 | [WRITTEN] | BC-RAS-019 | <!-- v1.7: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
+| BC-2.04.020 | Excessive Small Segments Emit One-Shot Finding | P1 | [WRITTEN] | BC-RAS-020 | <!-- v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
+| BC-2.04.021 | Excessive Out-of-Window Segments Emit One-Shot Low Finding | P1 | [WRITTEN] | BC-RAS-021 | <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
 | BC-2.04.022 | Per-Direction Alert Fires At Most Once Per Flow (Sticky Latch) | P0 | [WRITTEN] | BC-RAS-022 |
-| BC-2.04.023 | Truncated Segment Emits Anomaly/Inconclusive/Low Finding | P1 | [WRITTEN] | BC-RAS-023 |
+| BC-2.04.023 | Truncated Segment Emits Anomaly/Inconclusive/Low Finding | P1 | [WRITTEN] | BC-RAS-023 | <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
 | BC-2.04.024 | Total Findings Capped at MAX_FINDINGS=10000; Excess Silently Dropped | P0 | [WRITTEN] | BC-RAS-024 |
-| BC-2.04.025 | finalize Emits Segment-Limit Summary Finding When Segments Dropped | P0 | [WRITTEN] | BC-RAS-025 |
+| BC-2.04.025 | finalize Emits Segment-Limit Summary Finding When Segments Dropped | P0 | [WRITTEN] | BC-RAS-025 | <!-- v1.6: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B4 -->
 | BC-2.04.026 | finalize Does NOT Emit Segment-Limit Finding When Counter is Zero | P0 | [WRITTEN] | BC-RAS-026 |
 | BC-2.04.027 | segments_depth_exceeded Tracks Fully-Rejected Segments After Depth Hit | P1 | [WRITTEN] | BC-RAS-027 |
 | BC-2.04.028 | summarize Returns AnalysisSummary with Reassembly Stats Detail Map | P1 | [WRITTEN] | BC-RAS-028 |
@@ -152,16 +152,16 @@ traces_to: .factory/specs/prd.md
 | BC-2.06.002 | Parse Pipelined Requests with Independent Per-Request Counting | P0 | [WRITTEN] | BC-HTTP-002 |
 | BC-2.06.003 | Partial Requests Buffered Until Complete; Not Counted Until Full | P0 | [WRITTEN] | BC-HTTP-003 |
 | BC-2.06.004 | Parse HTTP/1.1 Responses with Status Code Counting | P0 | [WRITTEN] | BC-HTTP-004 |
-| BC-2.06.005 | Path Traversal in URI Emits Reconnaissance/Likely/High Finding Mapped to T1083 | P0 | [WRITTEN] | BC-HTTP-005 |
-| BC-2.06.006 | Web-Shell URI Patterns Emit Execution/Likely/Medium Finding (T1505.003) | P0 | [WRITTEN] | BC-HTTP-006 |
-| BC-2.06.007 | Admin Panel Paths Emit Reconnaissance/Inconclusive/Low Finding (T1046) | P1 | [WRITTEN] | BC-HTTP-007 |
-| BC-2.06.008 | Unusual HTTP Methods Emit Reconnaissance/Inconclusive/Medium Finding | P1 | [WRITTEN] | BC-HTTP-008 |
-| BC-2.06.009 | HTTP/1.1 Missing or Empty Host Emits Anomaly/Inconclusive/Medium Finding | P0 | [WRITTEN] | BC-HTTP-009 |
-| BC-2.06.010 | URI Greater Than 2048 Chars Emits Execution/Likely/Medium Finding | P1 | [WRITTEN] | BC-HTTP-010 |
-| BC-2.06.011 | Empty UA Emits Anomaly/Inconclusive/Low; Absent UA Does NOT | P1 | [WRITTEN] | BC-HTTP-011 |
+| BC-2.06.005 | Path Traversal in URI Emits Reconnaissance/Likely/High Finding Mapped to T1083 | P0 | [WRITTEN] | BC-HTTP-005 | <!-- v1.8: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
+| BC-2.06.006 | Web-Shell URI Patterns Emit Execution/Likely/Medium Finding (T1505.003) | P0 | [WRITTEN] | BC-HTTP-006 | <!-- v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
+| BC-2.06.007 | Admin Panel Paths Emit Reconnaissance/Inconclusive/Low Finding (T1046) | P1 | [WRITTEN] | BC-HTTP-007 | <!-- v1.6: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
+| BC-2.06.008 | Unusual HTTP Methods Emit Reconnaissance/Inconclusive/Medium Finding | P1 | [WRITTEN] | BC-HTTP-008 | <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
+| BC-2.06.009 | HTTP/1.1 Missing or Empty Host Emits Anomaly/Inconclusive/Medium Finding | P0 | [WRITTEN] | BC-HTTP-009 | <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
+| BC-2.06.010 | URI Greater Than 2048 Chars Emits Execution/Likely/Medium Finding | P1 | [WRITTEN] | BC-HTTP-010 | <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
+| BC-2.06.011 | Empty UA Emits Anomaly/Inconclusive/Low; Absent UA Does NOT | P1 | [WRITTEN] | BC-HTTP-011 | <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
 | BC-2.06.012 | Well-Formed HTTP Request Produces Zero Findings | P0 | [WRITTEN] | BC-HTTP-012 |
 | BC-2.06.013 | Non-HTTP Bytes Increment parse_errors; No Token-Error Findings | P0 | [WRITTEN] | BC-HTTP-013 |
-| BC-2.06.014 | Too Many Headers Emits Anomaly/Inconclusive/Medium Finding (T1499.002) | P0 | [WRITTEN] | BC-HTTP-014 |
+| BC-2.06.014 | Too Many Headers Emits Anomaly/Inconclusive/Medium Finding (T1499.002) | P0 | [WRITTEN] | BC-HTTP-014 | <!-- v1.3: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->
 | BC-2.06.015 | After 3 Consecutive Parse Errors a Direction is Poisoned; Subsequent Bytes Skipped | P0 | [WRITTEN] | BC-HTTP-015 |
 | BC-2.06.016 | Single Parse Error Does NOT Poison | P0 | [WRITTEN] | BC-HTTP-016 |
 | BC-2.06.017 | Poisoning is Per-Direction; Poisoned Request Does Not Affect Response | P0 | [WRITTEN] | BC-HTTP-017 |
@@ -187,17 +187,17 @@ traces_to: .factory/specs/prd.md
 | BC-2.07.006 | JA3 Computation Filters GREASE Values per RFC 8701 | P0 | [WRITTEN] | BC-TLS-006 |
 | BC-2.07.007 | JA3 String Format: version,ciphers,...; MD5 Hex | P0 | [WRITTEN] | BC-TLS-007 |
 | BC-2.07.008 | JA3S String Format: version,cipher,extensions; MD5 Hex | P0 | [WRITTEN] | BC-TLS-008 |
-| BC-2.07.009 | Weak Client Cipher in ClientHello Emits Anomaly/Likely/High Finding | P0 | [WRITTEN] | BC-TLS-009 |
-| BC-2.07.010 | Weak Server Cipher Selected Emits Anomaly/Likely/Medium Finding | P0 | [WRITTEN] | BC-TLS-010 |
-| BC-2.07.011 | Deprecated Client Protocol (<=SSLv3) Emits Anomaly/Likely/High Finding | P0 | [WRITTEN] | BC-TLS-011 |
-| BC-2.07.012 | Deprecated Server Protocol (<=SSLv3) Emits Anomaly/Likely/High Finding | P0 | [WRITTEN] | BC-TLS-012 |
+| BC-2.07.009 | Weak Client Cipher in ClientHello Emits Anomaly/Likely/High Finding | P0 | [WRITTEN] <!-- v1.3: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B6 --> | BC-TLS-009 |
+| BC-2.07.010 | Weak Server Cipher Selected Emits Anomaly/Likely/Medium Finding | P0 | [WRITTEN] <!-- v1.3: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B6 --> | BC-TLS-010 |
+| BC-2.07.011 | Deprecated Client Protocol (<=SSLv3) Emits Anomaly/Likely/High Finding | P0 | [WRITTEN] <!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B6 --> | BC-TLS-011 |
+| BC-2.07.012 | Deprecated Server Protocol (<=SSLv3) Emits Anomaly/Likely/High Finding | P0 | [WRITTEN] <!-- v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B6 --> | BC-TLS-012 |
 | BC-2.07.013 | Clean ASCII SNI Produces No Finding | P0 | [WRITTEN] | BC-TLS-013 |
-| BC-2.07.014 | SNI Containing C0/DEL Byte Emits Anomaly/Inconclusive/Low Finding Mapped to T1027 | P0 | [WRITTEN] | BC-TLS-014 |
+| BC-2.07.014 | SNI Containing C0/DEL Byte Emits Anomaly/Inconclusive/Low Finding Mapped to T1027 | P0 | [WRITTEN] <!-- v1.3: mitre_technique→mitre_techniques vec!["T1027"]; ARP-F2 P14 B6 --> | BC-TLS-014 |
 | BC-2.07.015 | Multiple Control Bytes in One SNI Produce Exactly ONE Finding | P0 | [WRITTEN] | BC-TLS-015 |
 | BC-2.07.016 | C0 Boundary: 0x1F Trips Finding; 0x20 (Space) Does NOT | P0 | [WRITTEN] | BC-TLS-016 |
-| BC-2.07.017 | Non-ASCII UTF-8 SNI Emits Anomaly/Inconclusive/Low Finding (T1027) | P0 | [WRITTEN] | BC-TLS-017 |
+| BC-2.07.017 | Non-ASCII UTF-8 SNI Emits Anomaly/Inconclusive/Low Finding (T1027) | P0 | [WRITTEN] <!-- v1.4: mitre_technique→mitre_techniques vec!["T1027"]; ARP-F2 P14 B6 --> | BC-TLS-017 |
 | BC-2.07.018 | Punycode A-label is Pure ASCII; Emits No SNI Finding | P1 | [WRITTEN] | BC-TLS-018 |
-| BC-2.07.019 | Non-UTF-8 SNI Emits Anomaly/Inconclusive/Low Finding (T1027); Count Key Tagged | P0 | [WRITTEN] | BC-TLS-019 |
+| BC-2.07.019 | Non-UTF-8 SNI Emits Anomaly/Inconclusive/Low Finding (T1027); Count Key Tagged | P0 | [WRITTEN] <!-- v1.4: mitre_technique→mitre_techniques vec!["T1027"]; ARP-F2 P14 B6 --> | BC-TLS-019 |
 | BC-2.07.020 | Non-UTF-8 SNI Preserves Raw Bytes per ADR 0003 | P0 | [WRITTEN] | BC-TLS-020 |
 | BC-2.07.021 | Non-ASCII UTF-8 SNI Preserves Raw Bytes per ADR 0003 | P0 | [WRITTEN] | BC-TLS-021 |
 | BC-2.07.022 | Empty SNI ServerNameList: No Count, No Finding, Handshake Counted | P1 | [WRITTEN] | BC-TLS-022 |
@@ -276,7 +276,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.11.013 | MITRE Grouping Emits Tactic Headers in Canonical Order; Uncategorized Last | P0 | [WRITTEN] | BC-RPT-013 |
 | BC-2.11.014 | Within Tactic Bucket: Sort by Verdict, Confidence, Emission Order | P1 | [WRITTEN] | BC-RPT-014 |
 | BC-2.11.015 | No-Technique or Unknown-ID Findings Land in Uncategorized | P0 | [WRITTEN] | BC-RPT-015 |
-| BC-2.11.016 | MITRE Grouping Expands Per-Finding Line with Em-Dash and Name | P1 | [WRITTEN] | BC-RPT-016 |
+| BC-2.11.016 | MITRE Grouping Expands Per-Finding Line with Em-Dash and Name | P1 | [WRITTEN] | BC-RPT-016 | <!-- v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B7 -->
 | BC-2.11.017 | Default Rendering Emits MITRE: <id(s)> Only (No Em-Dash) | P1 | [WRITTEN] | BC-RPT-017 | <!-- v1.5: multi-ID rendering "MITRE: T0855, T0836"; ADR-006 F2 revision; v1.6: example updated to T1692.001 (v19 remap) -->
 | BC-2.11.018 | TerminalReporter Colorization: Likely/High=Red Bold, etc. | P2 | [WRITTEN] | BC-RPT-018 |
 | BC-2.11.019 | TerminalReporter Renders Sections in Correct Order | P1 | [WRITTEN] | BC-RPT-019 |
@@ -341,7 +341,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.14.001 | MBAP Header Accepted for Well-Formed 8-Byte-Minimum ADU | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.002 | MBAP Header Rejected for ADU Shorter than 8 Bytes (Truncation Safety) | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.003 | MBAP ADU Rejected When Protocol ID Is Not 0x0000 (3-Point Gate: Protocol Check — Bail-Out Policy) | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.004 | MBAP ADU Rejected When Length Is Outside [2, 254] (3-Point Gate: Length Check) | P0 | [WRITTEN] | feature-007-F2 |
+| BC-2.14.004 | MBAP ADU Rejected When Length Is Outside [2, 254] (3-Point Gate: Length Check) | P0 | [WRITTEN] | feature-007-F2 | <!-- v1.1: Pass-14 Burst-3 D-01: Source Evidence path annotation [2,253]→[2,254] (annotation only; H1 unchanged) -->
 | BC-2.14.005 | classify_fc Is Total Over All 256 FC Values — Complete Classification Enum | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.006 | Exception Response Detection — FC High Bit Set Identifies Exception and Recovers Original FC | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.007 | Write-Class FC Classification — State-Changing Function Codes Identified as Elevated-Risk | P0 | [WRITTEN] | feature-007-F2 |
@@ -354,14 +354,14 @@ traces_to: .factory/specs/prd.md
 | BC-2.14.014 | Write FC 0x06/0x10/0x16/0x17 in Request Direction Emits Finding Tagged ["T1692.001","T0836"] | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: single multi-tag finding replaces two separate findings; ADR-006 Decision-13; v2.1: 0x17 added per BC-DISCREPANCY-001; v2.3: T0855→T1692.001 (v19 remap, issue #222) -->
 | BC-2.14.015 | Write FC to Coil Output Only ({0x05, 0x0F}) Emits Finding Tagged ["T1692.001","T0835"] | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: single multi-tag finding; no suppression; ADR-006 Decision-13; v2.3: T0855→T1692.001 (v19 remap, issue #222) -->
 | BC-2.14.016 | Coordinated Write Sequence to Holding Registers Within 5-Second Window Tags the Per-PDU Finding with T0831 | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: T0831 is co-tagged inline on the per-PDU write finding (mitre_techniques: ["T1692.001","T0836","T0831"]); no separate T0831 Finding object; ADR-006 Decision-13 §13.5; v2.2: T0855→T1692.001 (v19 remap, issue #222) -->
-| BC-2.14.017 | Write-Rate Exceeding Either Burst or Sustained Threshold Emits T0806 + T1692.001 Finding | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: dual-window (1s burst / >=2s sustained); each fires at most once per window; ADR-006 Decision-11; v2.4: T0855→T1692.001 (v19 remap, issue #222) -->
+| BC-2.14.017 | Write-Rate Exceeding Either Burst or Sustained Threshold Emits T0806 + T1692.001 Finding | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: dual-window (1s burst / >=2s sustained); each fires at most once per window; ADR-006 Decision-11; v2.4: T0855→T1692.001 (v19 remap, issue #222); v2.5: Pass-14 Burst-3 B-01: MITRE traceability T1692.001 display name corrected to "Unauthorized Message: Command Message" -->
 | BC-2.14.018 | Diagnostics FC 0x08 Sub-Function 0x0004 or 0x0001 Emits T0814 Denial of Service Finding | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.019 | Exception Response Anomaly — Burst of Exception Codes Emits Anomaly Finding for Recon/Scanning | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.020 | Reconnaissance Function Codes (0x11, 0x2B/0x0E) Emit T0888 Remote System Information Discovery Finding | P1 | [WRITTEN] | feature-007-F2 | <!-- v2.0: T0846->T0888 correctness fix; 0x07 excluded; Decision-12 -->
+| BC-2.14.020 | Reconnaissance Function Codes (0x11, 0x2B/0x0E) Emit T0888 Remote System Information Discovery Finding | P1 | [WRITTEN] | feature-007-F2 | <!-- v2.0: T0846->T0888 correctness fix; 0x07 excluded; Decision-12; v2.2: Pass-14 Burst-3 B-03/B-04: Invariant-6 counts 21/13→25/17 (canonical); Source Evidence §4.3 annotated as Decision-12-era -->
 | BC-2.14.021 | summarize() Returns AnalysisSummary with Specified Per-Analyzer Summary Keys | P1 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.022 | MAX_FINDINGS Cap and Poison-Skip Behavior for ModbusAnalyzer | P0 | [WRITTEN] | feature-007-F2 |
 | BC-2.14.023 | --modbus CLI Flag Enables ModbusAnalyzer; --all Includes Modbus; Default-Off; Requires Stream Reassembly | P0 | [WRITTEN] | feature-007-F2 |
-| BC-2.14.024 | --modbus-write-burst-threshold and --modbus-write-sustained-threshold Configure Dual-Window Burst Detection | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: old --modbus-write-threshold removed; replaced by two flags; Decision-11 -->
+| BC-2.14.024 | --modbus-write-burst-threshold and --modbus-write-sustained-threshold Configure Dual-Window Burst Detection | P0 | [WRITTEN] | feature-007-F2 | <!-- v2.0: old --modbus-write-threshold removed; replaced by two flags; Decision-11; v2.2: Pass-14 Burst-3 B-02: MITRE traceability T1692.001 display name corrected to "Unauthorized Message: Command Message" -->
 | BC-2.14.025 | StreamDispatcher Classifies Port-502 Flows to DispatchTarget::Modbus as Rule 5 (After Content and TLS/HTTP Port Rules); Routes on_data and on_flow_close to ModbusAnalyzer | P0 | [WRITTEN] | feature-007-F2 |
 
 ## ss-15: DNP3/ICS Analysis (CAP-15)

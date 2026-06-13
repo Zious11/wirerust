@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:383-385 → mod.rs:412-414 (Truncated match arm). — 2026-06-01"
+  - "v1.4: ARP-F2 Pass-14 Burst 4 — Postconditions mitre_technique: None → mitre_techniques: vec![] (shipped Finding struct uses Vec<String>; ADR-006). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,7 +48,7 @@ delivered (truncated) to the handler; the `depth_exceeded` flag is set on the di
    - category: Anomaly
    - verdict: Inconclusive
    - confidence: Low
-   - mitre_technique: None
+   - mitre_techniques: vec![]
    - summary: "Stream depth exceeded on flow <key>"
    - evidence: ["Max depth N bytes reached"] where N = config.max_depth
    - source_ip: Some(packet.src_ip)

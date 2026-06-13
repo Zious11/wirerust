@@ -14,6 +14,619 @@ changes, invariant rewrites).
 
 ---
 
+## [arp-f2-pass-14-po-burst-10-2026-06-13] — 2026-06-13
+
+### PATCH: ARP-F2 Pass-14 Product-Owner Bucket Burst 10 — O-01-closure propagation (domain/, prd-supplements/ — final sweep)
+
+**Summary:** Closes the O-01 propagation in domain entity/capability docs and prd-supplements
+that were not addressed in Bursts 1-9. Domain-debt O-01 (Finding.timestamp universally None)
+is CLOSED — timestamp wired by STORY-097/098/099 (http/tls/reassembly) and STORY-102..110
+(modbus/dnp3); 21 of 22 emission sites set timestamp:Some; BC-2.04.054 segment-limit summary
+retains timestamp:None by design as the sole exception. All open-framing of O-01 removed.
+Historical/changelog and "O-01 CLOSED" references preserved.
+
+**Architect artifact bumps logged (architecture/ files — touched by architect, recorded here):**
+
+| Artifact | Change | Reason |
+|----------|--------|--------|
+| `architecture/ARCH-INDEX.md` | v1.4 → v1.5 | O-01 closure reflected in subsystem annotations |
+| `architecture/module-decomposition.md` | v1.5 → v1.6 | timestamp threading noted in module descriptions |
+| `architecture/dependency-graph.md` | v1.3 → v1.4 | timestamp data-flow edges updated |
+
+**domain/ fixes — 2 files changed:**
+
+| Finding | File | Before | After |
+|---------|------|--------|-------|
+| E-4 RawPacket open-O-01 note | `domain/entities/ent-01-ingestion-decoding.md:88` | `timestamp_secs is read but never threaded to any Finding constructor (open item O-01).` | Reflects O-01 CLOSED: timestamp_secs threaded via STORY-097/098/099 + STORY-102..110; BC-2.04.054 sole exception noted |
+| CAP-01 scope/limitations timestamp note | `domain/capabilities/cap-01-pcap-ingestion.md:~60` | `NEVER threaded through to Finding.timestamp at any emission site. See domain-debt.md item O-01.` | Reflects O-01 CLOSED: wired at 21/22 sites; BC-2.04.054 sole exception; references BC-2.09.007 and domain-debt.md RETIRED entry |
+
+**prd-supplements/ fixes — 1 file changed (nfr-catalog.md):**
+
+| Finding | Location | Before | After |
+|---------|----------|--------|-------|
+| NFR-PERF-002 mapping row | NFR-to-Module Mapping ~line 191 | `streaming refactor is O-01 class debt` | `streaming refactor is separate architectural debt (NFR-VIO-001) — unrelated to O-01 (timestamp threading; CLOSED)` |
+| NFR-VIO-001 disposition row | NFR Violation Dispositions ~line 227 | `OPEN-DEBT (O-01 class)` | `OPEN-DEBT -- eager full-file load is a separate architectural concern from O-01 (timestamp threading, CLOSED); streaming refactor deferred` |
+
+**Version bumps:**
+
+| Document | Before | After |
+|----------|--------|-------|
+| `specs/domain/entities/ent-01-ingestion-decoding.md` | (no version field) | v1.1 |
+| `specs/domain/capabilities/cap-01-pcap-ingestion.md` | (no version field) | v1.1 |
+| `specs/prd-supplements/nfr-catalog.md` | 1.7 | 1.8 |
+
+**BC body changes:** None. All O-01 references in BC bodies (ss-01, ss-04, ss-09) are
+already correctly framed as "O-01 resolved by feature-100" — confirmed by grep; no
+BC bodies touched.
+
+**Story body changes:** None.
+
+**H1 title changes:** None.
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| ent-01-ingestion-decoding.md | v(none)→v1.1; E-4 open-O-01 note updated to CLOSED | `.factory/specs/domain/entities/ent-01-ingestion-decoding.md` |
+| cap-01-pcap-ingestion.md | v(none)→v1.1; scope/limitations timestamp note updated to CLOSED | `.factory/specs/domain/capabilities/cap-01-pcap-ingestion.md` |
+| nfr-catalog.md | v1.7→v1.8; NFR-PERF-002 mapping row + NFR-VIO-001 disposition: O-01 class framing removed | `.factory/specs/prd-supplements/nfr-catalog.md` |
+| spec-changelog.md | Burst-10 entry appended; architect ARCH-INDEX v1.4→v1.5, module-decomposition v1.5→v1.6, dependency-graph v1.3→v1.4 bumps logged | `.factory/spec-changelog.md` |
+
+---
+
+## [arp-f2-pass-14-po-burst-9-2026-06-13] — 2026-06-13
+
+### PATCH: ARP-F2 Pass-14 Product-Owner Bucket Burst 9 (final) — prd.md O-01 stale claims + api-surface.md bump log
+
+**Summary:** Final micro-burst of the ARP-F2 Pass-14 whole-corpus remediation. Removes three
+residual O-01 stale current-state claims from prd.md (F2/F3/F4 findings), logs the architect's
+api-surface.md v1.2→v1.3 bump, bumps prd.md v1.17→v1.18, and syncs BC-INDEX:36 to "(v1.18)".
+Domain-debt O-01 (Finding.timestamp always None) is CLOSED — timestamp wired by STORY-097/098/099
+across all applicable emission sites; BC-2.04.054 retains timestamp:None by design as the sole
+exception.
+
+**Architect artifact logged (F1):**
+
+| Artifact | Change | Reason |
+|----------|--------|--------|
+| `architecture/api-surface.md` | v1.2 → v1.3 | timestamp annotation updated to reflect O-01 closed: `Finding.timestamp: Option<DateTime<Utc>>` now populated at 21/22 emission sites; BC-2.04.054 by-design exception noted |
+
+**prd.md — 3 stale O-01 current-state items fixed (F2/F3/F4):**
+
+| Finding | Location | Before | After |
+|---------|----------|--------|-------|
+| F2 LOW | §1.5 Out of Scope (~line 321) | `- Per-packet timestamp in findings (Finding.timestamp is always None; O-01)` | `- Per-packet timestamp in findings: RESOLVED — BC-2.09.007 (F2) wired timestamp ... domain-debt O-01 CLOSED. Exception: BC-2.04.054 retains timestamp:None by design.` |
+| F3 LOW | §8 Domain Debt Index (~line 1496) | `\| O-01 \| Finding.timestamp always None; ... \| BC-2.09.001, BC-2.09.006 \|` | Row struck through; Description column appended `**[CLOSED — STORY-097/098/099; BC-2.04.054 retains timestamp:None by design]**` |
+| F4 LOW | §2.9 ss-09 note (~lines 601-603) | "Known limitation: All 22 emission sites set timestamp: None (domain-debt O-01)... Finding.timestamp field exists but is never populated." | Replaced with: "BC-2.09.007 (F2) wired timestamp ... (STORY-097/098/099); domain-debt O-01 CLOSED. The segment-limit summary finding (BC-2.04.054) retains timestamp:None by design as the sole exception." |
+
+Also cleaned up a co-located stale reference: NFR-VIO-001 note (~line 1084) had "(eager full-file load; O-01 context)" — the O-01 parenthetical was inaccurate (O-01 was about timestamps, not loading). Removed the O-01 reference; note now reads "(eager full-file load)" only.
+
+**Post-edit grep confirmation:** No current-state "timestamp always None", "never populated", or open-O-01 claims remain in prd.md. Remaining O-01 occurrences are: range enumeration O-01..O-08 (line 40), two "O-01 CLOSED" statements (lines 321, 602), and one struck-through "[CLOSED]" row (line 1496).
+
+**Version bumps:**
+
+| Document | Before | After |
+|----------|--------|-------|
+| `specs/prd.md` | 1.17 | 1.18 |
+| `specs/behavioral-contracts/BC-INDEX.md` | (v1.17) citation at line 36 | (v1.18) |
+
+**Story body changes:** None. No BC body files touched.
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| prd.md | v1.17→v1.18; F2/F3/F4 O-01 stale claims removed; NFR-VIO-001 O-01 parenthetical cleaned up | `.factory/specs/prd.md` |
+| BC-INDEX.md | BC-INDEX:36 status-line citation synced (v1.17)→(v1.18) | `.factory/specs/behavioral-contracts/BC-INDEX.md` |
+| spec-changelog.md | Burst-9 entry appended; architect api-surface.md v1.2→v1.3 bump logged | `.factory/spec-changelog.md` |
+
+---
+
+## [arp-f2-pass-14-po-burst-8-2026-06-13] — 2026-06-13
+
+### PATCH: ARP-F2 Pass-14 Product-Owner Bucket Burst 8 — prd-supplements cleanup (interface-definitions.md + nfr-catalog.md)
+
+**Summary:** Final cleanup burst of the ARP-F2 Pass-14 whole-corpus remediation. Remediates
+three stale items in interface-definitions.md and one stale item in nfr-catalog.md — the
+two prd-supplements files missed in Bursts 1-7. All changes reflect post-ADR-006 (Decision 13,
+STORY-100 AC-008) shipped reality: `mitre_techniques: Vec<String>` with
+`skip_serializing_if = "Vec::is_empty"` and exactly three remaining Option fields
+(`source_ip`, `timestamp`, `direction`) each with `skip_serializing_if = "Option::is_none"`.
+Domain-debt O-01 CLOSED (timestamp wired via STORY-097/098/099). Verified against
+src/findings.rs lines 148-161.
+
+**Shipped-anchor verification (src/findings.rs):**
+
+| Field | Line range | Attribute |
+|-------|-----------|-----------|
+| `mitre_techniques: Vec<String>` | :148-149 | `#[serde(skip_serializing_if = "Vec::is_empty")]` |
+| `source_ip: Option<IpAddr>` | :150-151 | `#[serde(skip_serializing_if = "Option::is_none")]` |
+| `timestamp: Option<DateTime<Utc>>` | :152-153 | `#[serde(skip_serializing_if = "Option::is_none")]` |
+| `direction: Option<Direction>` | :160-161 | `#[serde(skip_serializing_if = "Option::is_none")]` |
+
+No serde rename on `mitre_techniques`; JSON key is `mitre_techniques` verbatim. Scalar
+`mitre_technique: Option<String>` is absent from the struct — confirmed.
+
+Stale line anchor in NFR-OBS-010 (`src/findings.rs:132-145`) corrected to `:148-161`
+(the annotated block for mitre_techniques comment + all four serialization-annotated fields).
+
+**Phantom-input check:** Neither file declares `src/analyzer/arp.rs` in its `inputs:` list.
+No phantom-input fix needed (Burst 1 issue does not apply here).
+
+**interface-definitions.md — 3 stale items fixed:**
+
+| Item | Location | Before | After |
+|------|----------|--------|-------|
+| JSON schema property | ~line 231 (schema properties block) | `"mitre_technique": { "type": "string", ... }` scalar string | `"mitre_techniques": { "type": "array", "items": { "type": "string", "pattern": "..." }, "description": "... omitted when empty (Vec::is_empty) ..." }` |
+| timestamp description | ~lines 243-244 | "currently always absent (domain-debt O-01); all emission sites set timestamp: None" | "Packet-derived timestamp in RFC 3339 format. Present when emission site populates it; omitted when None. Domain-debt O-01 is CLOSED; wired STORY-097/098/099." |
+| Field-list section | ~line 351 | "All three Option<_> fields ... `mitre_technique: Option<String>` -- omitted when None; ... (always None today per O-01)" | Corrected to one Vec field (Vec::is_empty) + three Option fields (Option::is_none); scalar `mitre_technique` removal noted; O-01 CLOSED noted; src/findings.rs line anchors added |
+
+**nfr-catalog.md — 1 stale item fixed:**
+
+| Item | Location | Before | After |
+|------|----------|--------|-------|
+| NFR-OBS-010 row | ~line 110 | "ALL four Option fields: `mitre_technique`, `source_ip`, `timestamp`, `direction`"; Status cell "src/findings.rs:132-145 shows all four Option fields" | Three Option fields (source_ip, timestamp, direction) + Vec field (mitre_techniques, Vec::is_empty); line anchor corrected to :148-161; ADR-006 Decision 13 / STORY-100 AC-008 cited; LESSON-P1.02 historical note preserved |
+
+Also updated NFR-to-Module Mapping row for NFR-OBS-010 to describe the post-ADR-006 contract
+accurately (Vec::is_empty + Option::is_none; scalar removed).
+
+**Version bumps:**
+
+| Document | Before | After |
+|----------|--------|-------|
+| `specs/prd-supplements/interface-definitions.md` | 1.0 | 1.1 |
+| `specs/prd-supplements/nfr-catalog.md` | 1.6 | 1.7 |
+
+**Story body changes:** None. No BC files touched.
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| interface-definitions.md | v1.0→v1.1; 3 stale items fixed (mitre_technique schema property, timestamp description, field-list section) | `.factory/specs/prd-supplements/interface-definitions.md` |
+| nfr-catalog.md | v1.6→v1.7; NFR-OBS-010 corrected to Vec+3-Option reality; line anchor :132-145→:148-161; NFR-to-Module Mapping row updated | `.factory/specs/prd-supplements/nfr-catalog.md` |
+
+---
+
+## [arp-f2-pass-14-po-burst-7-2026-06-13] — 2026-06-13
+
+### PATCH: ARP-F2 Pass-14 Product-Owner Bucket Burst 7 — ss-11 BC bodies `mitre_technique` singular sweep (final BC-body burst)
+
+**Summary:** Final BC-body burst of the ARP-F2 Pass-14 whole-corpus remediation. Sweeps
+ss-11 (reporting/output) BC bodies for stale `mitre_technique` (singular, Option<String>)
+snippets. Shipped Finding struct is `mitre_techniques: Vec<String>` with three remaining
+Option fields: `source_ip`, `timestamp`, `direction`. Shipped CSV header column 6 is
+`mitre_techniques` (semicolon-joined; src/reporter/csv.rs). The singular scalar field no
+longer exists. Applies stale-vs-history discrimination per ARP-F2 rules: PREVIOUS VERSION
+SUMMARY blocks, changelog frontmatter, "field renamed X→Y" contrast prose, and
+Refactoring Notes migration paragraphs are HISTORY (preserved). Only current-state
+Precondition/Postcondition/EC/Test-Vector snippets presenting the old scalar shape are
+STALE (fixed).
+
+**Finding discrimination results:**
+
+| File | Occurrences | STALE fixed | HISTORY preserved | Notes |
+|------|-------------|-------------|-------------------|-------|
+| BC-2.11.013.md | 2 | 0 | 2 | PREVIOUS VERSION SUMMARY block (v1.5→v1.6): "mitre_technique is None" / "mitre_technique set" — changelog contrast prose; body already uses mitre_techniques throughout |
+| BC-2.11.015.md | 3 | 0 | 3 | PREVIOUS VERSION SUMMARY block (v1.5→v1.6): three "mitre_technique = None" / "mitre_technique=None" occurrences — changelog contrast prose; body already uses mitre_techniques throughout |
+| BC-2.11.016.md | 6 | 6 | 0 | Precondition 2: `mitre_technique set` → `non-empty mitre_techniques vec`; Postcondition 4: `mitre_technique = None` → `mitre_techniques = vec![]`; EC-003: `mitre_technique = None` → `mitre_techniques = vec![]`; Test Vectors rows 1-3: `mitre_technique="T1036"/"T9999"/None` → `mitre_techniques=["T1036"]/["T9999"]/vec![]` |
+| BC-2.11.017.md | 2 | 0 | 2 | PREVIOUS VERSION SUMMARY block (v1.4→v1.5): "mitre_technique=None" / EC-003 contrast — changelog; body already uses mitre_techniques throughout |
+| BC-2.11.020.md | 5 | 0 | 5 | PREVIOUS VERSION SUMMARY block (v1.4→v1.5): column rename contrast prose (5 occurrences of mitre_technique as BEFORE state); body (Description, Postconditions, Invariants, ECs, Test Vectors) already uses mitre_techniques throughout |
+| BC-2.11.024.md | 6 | 0 | 6 | PREVIOUS VERSION SUMMARY block (v1.3→v1.4): field rename + EC/precondition contrast prose (4 occurrences); Refactoring Notes migration paragraph (1 occurrence: `mitre_technique.as_deref().unwrap_or("")` as the REPLACED expression); Architecture Anchors comment (1 occurrence: `replaces f.mitre_technique.as_deref()` annotation) — all HISTORY; body already uses mitre_techniques throughout |
+
+**Version bumps:**
+
+| BC | Before | After |
+|----|--------|-------|
+| BC-2.11.016 | 1.4 | 1.5 |
+| BC-2.11.013 | 1.7 | unchanged (all HISTORY) |
+| BC-2.11.015 | 1.6 | unchanged (all HISTORY) |
+| BC-2.11.017 | 1.6 | unchanged (all HISTORY) |
+| BC-2.11.020 | 1.6 | unchanged (all HISTORY) |
+| BC-2.11.024 | 1.6 | unchanged (all HISTORY) |
+
+**BC-INDEX annotations added (DF-SIBLING-SWEEP-001):**
+- BC-2.11.016 — inline comment `<!-- v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B7 -->`
+- BC-INDEX bumped v1.22 → v1.23
+
+**H1 titles:** All unchanged. BC-2.11.016 H1 "MITRE Grouping Expands Per-Finding Line with Em-Dash and Name" does not reference the field name; no H1 change needed.
+
+**Story body changes:** None (constraint: touch only ss-11 BC files + BC-INDEX + spec-changelog).
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| BC-2.11.016 | v1.4→v1.5; 6 stale mitre_technique singular snippets → mitre_techniques Vec form | `.factory/specs/behavioral-contracts/ss-11/BC-2.11.016.md` |
+| BC-INDEX | v1.22→v1.23; BC-2.11.016 annotation added | `.factory/specs/behavioral-contracts/BC-INDEX.md` |
+
+---
+
+## [arp-f2-pass-14-po-burst-6-2026-06-13] — 2026-06-13
+
+### PATCH: ARP-F2 Pass-14 Product-Owner Bucket Burst 6 — ss-07 BC bodies `mitre_technique` singular sweep
+
+**Summary:** Remediates stale `mitre_technique` (singular, Option<String>) postcondition
+snippets in ss-07 BC bodies. Shipped Finding struct is `mitre_techniques: Vec<String>`
+(ADR-006 / Decision 13, v0.3.0 BREAKING). Applies stale-vs-history discrimination per
+ARP-F2 rules: changelog frontmatter, "field renamed X→Y" contrast prose, and grep-pattern
+migration notes are HISTORY (preserved). Only postcondition field-listing snippets
+presenting the old scalar shape as the current expected shape are STALE (fixed).
+
+**Finding discrimination results:**
+
+| File | Occurrences | STALE fixed | HISTORY preserved | Notes |
+|------|-------------|-------------|-------------------|-------|
+| BC-2.07.009.md | 1 | 1 | 0 | Postcondition: `mitre_technique: None` → `mitre_techniques: vec![]` |
+| BC-2.07.010.md | 1 | 1 | 0 | Postcondition: `mitre_technique: None` → `mitre_techniques: vec![]` |
+| BC-2.07.011.md | 1 | 1 | 0 | Postcondition: `mitre_technique: None` → `mitre_techniques: vec![]` |
+| BC-2.07.012.md | 1 | 1 | 0 | Postcondition: `mitre_technique: None` → `mitre_techniques: vec![]` |
+| BC-2.07.014.md | 1 | 1 | 0 | Postcondition: `mitre_technique: Some("T1027")` → `mitre_techniques: vec!["T1027"]` |
+| BC-2.07.017.md | 1 | 1 | 0 | Postcondition: `mitre_technique: Some("T1027")` → `mitre_techniques: vec!["T1027"]` |
+| BC-2.07.019.md | 1 | 1 | 0 | Postcondition: `mitre_technique: Some("T1027")` → `mitre_techniques: vec!["T1027"]` |
+
+**Version bumps:**
+
+| BC | Before | After |
+|----|--------|-------|
+| BC-2.07.009 | 1.2 | 1.3 |
+| BC-2.07.010 | 1.2 | 1.3 |
+| BC-2.07.011 | 1.3 | 1.4 |
+| BC-2.07.012 | 1.4 | 1.5 |
+| BC-2.07.014 | 1.2 | 1.3 |
+| BC-2.07.017 | 1.3 | 1.4 |
+| BC-2.07.019 | 1.3 | 1.4 |
+
+**BC-INDEX annotations added (DF-SIBLING-SWEEP-001):**
+- BC-2.07.009 — inline comment `<!-- v1.3: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B6 -->`
+- BC-2.07.010 — inline comment `<!-- v1.3: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B6 -->`
+- BC-2.07.011 — inline comment `<!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B6 -->`
+- BC-2.07.012 — inline comment `<!-- v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B6 -->`
+- BC-2.07.014 — inline comment `<!-- v1.3: mitre_technique→mitre_techniques vec!["T1027"]; ARP-F2 P14 B6 -->`
+- BC-2.07.017 — inline comment `<!-- v1.4: mitre_technique→mitre_techniques vec!["T1027"]; ARP-F2 P14 B6 -->`
+- BC-2.07.019 — inline comment `<!-- v1.4: mitre_technique→mitre_techniques vec!["T1027"]; ARP-F2 P14 B6 -->`
+- BC-INDEX bumped v1.21 → v1.22
+
+**H1 titles:** All unchanged (postcondition snippet-only fixes; titles not affected).
+
+**Story body changes:** None (constraint: touch only ss-07 BC files + BC-INDEX + spec-changelog).
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| BC-2.07.009 | v1.2→v1.3; mitre_technique None → mitre_techniques vec![] | `.factory/specs/behavioral-contracts/ss-07/BC-2.07.009.md` |
+| BC-2.07.010 | v1.2→v1.3; mitre_technique None → mitre_techniques vec![] | `.factory/specs/behavioral-contracts/ss-07/BC-2.07.010.md` |
+| BC-2.07.011 | v1.3→v1.4; mitre_technique None → mitre_techniques vec![] | `.factory/specs/behavioral-contracts/ss-07/BC-2.07.011.md` |
+| BC-2.07.012 | v1.4→v1.5; mitre_technique None → mitre_techniques vec![] | `.factory/specs/behavioral-contracts/ss-07/BC-2.07.012.md` |
+| BC-2.07.014 | v1.2→v1.3; mitre_technique Some("T1027") → mitre_techniques vec!["T1027"] | `.factory/specs/behavioral-contracts/ss-07/BC-2.07.014.md` |
+| BC-2.07.017 | v1.3→v1.4; mitre_technique Some("T1027") → mitre_techniques vec!["T1027"] | `.factory/specs/behavioral-contracts/ss-07/BC-2.07.017.md` |
+| BC-2.07.019 | v1.3→v1.4; mitre_technique Some("T1027") → mitre_techniques vec!["T1027"] | `.factory/specs/behavioral-contracts/ss-07/BC-2.07.019.md` |
+| BC-INDEX | v1.21→v1.22; version annotations added for 7 ss-07 BCs | `.factory/specs/behavioral-contracts/BC-INDEX.md` |
+
+---
+
+## [arp-f2-pass-14-po-burst-5-2026-06-13] — 2026-06-13
+
+### PATCH: ARP-F2 Pass-14 Product-Owner Bucket Burst 5 — ss-06 + ss-10 BC bodies `mitre_technique` singular sweep
+
+**Summary:** Remediates stale `mitre_technique` (singular, Option<String>) postcondition
+and invariant snippets in ss-06 and ss-10 BC bodies. Shipped Finding struct is
+`mitre_techniques: Vec<String>` (ADR-006 / Decision 13, v0.3.0 BREAKING). Applies
+stale-vs-history discrimination per ARP-F2 rules: changelog frontmatter, PREVIOUS VERSION
+SUMMARY blocks, grep-pattern migration notes, and "field renamed X→Y" contrast prose are
+HISTORY (preserved). Only postcondition/invariant field-listing snippets presenting the old
+scalar shape as the current expected shape are STALE (fixed).
+
+**Finding discrimination results:**
+
+| File | Occurrences | STALE fixed | HISTORY preserved | Notes |
+|------|-------------|-------------|-------------------|-------|
+| BC-2.06.005.md | 1 | 1 | 0 | Postcondition: `mitre_technique: Some("T1083")` → `mitre_techniques: vec!["T1083"]` |
+| BC-2.06.006.md | 1 | 1 | 0 | Postcondition: `mitre_technique: Some("T1505.003")` → `mitre_techniques: vec!["T1505.003"]` |
+| BC-2.06.007.md | 1 | 1 | 0 | Postcondition: `mitre_technique: Some("T1046")` → `mitre_techniques: vec!["T1046"]` |
+| BC-2.06.008.md | 2 | 2 | 0 | Postcondition: `mitre_technique: None` → `mitre_techniques: vec![]`; Invariant 3 prose updated |
+| BC-2.06.009.md | 2 | 2 | 0 | Postcondition: `mitre_technique: None` → `mitre_techniques: vec![]`; Invariant 3 prose updated |
+| BC-2.06.010.md | 2 | 2 | 0 | Postcondition: `mitre_technique: None` → `mitre_techniques: vec![]`; Invariant 4 prose updated |
+| BC-2.06.011.md | 2 | 2 | 0 | Postcondition: `mitre_technique: None` → `mitre_techniques: vec![]`; Invariant 3 prose updated |
+| BC-2.06.014.md | 1 | 1 | 0 | Postcondition: `mitre_technique: Some("T1499.002")` → `mitre_techniques: vec!["T1499.002"]` |
+| BC-2.10.008.md | 6 | 0 | 6 | All occurrences: PREVIOUS VERSION SUMMARY block (line 41), Invariant 3 old grep pattern (line 97), Documentation line (line 185), Refactoring Notes section (lines 199-200) — all are migration contrast prose or changelog history |
+
+**Version bumps:**
+
+| BC | Before | After |
+|----|--------|-------|
+| BC-2.06.005 | 1.7 | 1.8 |
+| BC-2.06.006 | 1.4 | 1.5 |
+| BC-2.06.007 | 1.5 | 1.6 |
+| BC-2.06.008 | 1.3 | 1.4 |
+| BC-2.06.009 | 1.3 | 1.4 |
+| BC-2.06.010 | 1.3 | 1.4 |
+| BC-2.06.011 | 1.3 | 1.4 |
+| BC-2.06.014 | 1.2 | 1.3 |
+| BC-2.10.008 | 1.12 | unchanged (all HISTORY) |
+
+**BC-INDEX annotations added (DF-SIBLING-SWEEP-001):**
+- BC-2.06.005 — inline comment `<!-- v1.8: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->`
+- BC-2.06.006 — inline comment `<!-- v1.5: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->`
+- BC-2.06.007 — inline comment `<!-- v1.6: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->`
+- BC-2.06.008 — inline comment `<!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->`
+- BC-2.06.009 — inline comment `<!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->`
+- BC-2.06.010 — inline comment `<!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->`
+- BC-2.06.011 — inline comment `<!-- v1.4: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->`
+- BC-2.06.014 — inline comment `<!-- v1.3: mitre_technique→mitre_techniques vec![]; ARP-F2 P14 B5 -->`
+- BC-INDEX bumped v1.20 → v1.21
+
+**H1 titles:** All unchanged (snippet-only fix; titles not affected).
+
+**Story body changes:** None (constraint: touch only ss-06/ss-10 BC files + BC-INDEX + spec-changelog).
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| BC-2.06.005 | v1.7→v1.8; mitre_technique postcondition → plural form | `.factory/specs/behavioral-contracts/ss-06/BC-2.06.005.md` |
+| BC-2.06.006 | v1.4→v1.5; mitre_technique postcondition → plural form | `.factory/specs/behavioral-contracts/ss-06/BC-2.06.006.md` |
+| BC-2.06.007 | v1.5→v1.6; mitre_technique postcondition → plural form | `.factory/specs/behavioral-contracts/ss-06/BC-2.06.007.md` |
+| BC-2.06.008 | v1.3→v1.4; mitre_technique postcondition + invariant prose → plural form | `.factory/specs/behavioral-contracts/ss-06/BC-2.06.008.md` |
+| BC-2.06.009 | v1.3→v1.4; mitre_technique postcondition + invariant prose → plural form | `.factory/specs/behavioral-contracts/ss-06/BC-2.06.009.md` |
+| BC-2.06.010 | v1.3→v1.4; mitre_technique postcondition + invariant prose → plural form | `.factory/specs/behavioral-contracts/ss-06/BC-2.06.010.md` |
+| BC-2.06.011 | v1.3→v1.4; mitre_technique postcondition + invariant prose → plural form | `.factory/specs/behavioral-contracts/ss-06/BC-2.06.011.md` |
+| BC-2.06.014 | v1.2→v1.3; mitre_technique postcondition → plural form | `.factory/specs/behavioral-contracts/ss-06/BC-2.06.014.md` |
+| BC-INDEX | v1.20→v1.21; version annotations added for 8 ss-06 BCs | `.factory/specs/behavioral-contracts/BC-INDEX.md` |
+
+---
+
+## [arp-f2-pass-14-po-burst-4-2026-06-13] — 2026-06-13
+
+### PATCH: ARP-F2 Pass-14 Product-Owner Bucket Burst 4 — ss-04 + ss-09 BC bodies `mitre_technique` singular sweep
+
+**Summary:** Remediates stale `mitre_technique` (singular, Option<String>) postcondition
+snippets in ss-04 and ss-09 BC bodies. Shipped Finding struct is
+`mitre_techniques: Vec<String>` (ADR-006 / Decision 13, v0.3.0 BREAKING). Applies
+stale-vs-history discrimination per ARP-F2 rules: changelog frontmatter, PREVIOUS VERSION
+SUMMARY blocks, and "field renamed X→Y" prose are HISTORY (preserved). Only postcondition
+field-listing snippets presenting the old scalar shape as the current expected shape are STALE
+(fixed).
+
+**Finding discrimination results:**
+
+| File | Occurrences | STALE fixed | HISTORY preserved | Notes |
+|------|-------------|-------------|-------------------|-------|
+| BC-2.04.018.md | 1 | 1 | 0 | Postcondition: `mitre_technique: Some("T1036")` → `mitre_techniques: vec!["T1036"]` |
+| BC-2.04.019.md | 1 | 1 | 0 | Postcondition: `mitre_technique: Some("T1036")` → `mitre_techniques: vec!["T1036"]` |
+| BC-2.04.020.md | 1 | 1 | 0 | Postcondition: `mitre_technique: None` → `mitre_techniques: vec![]` |
+| BC-2.04.021.md | 1 | 1 | 0 | Postcondition: `mitre_technique: None` → `mitre_techniques: vec![]` |
+| BC-2.04.023.md | 1 | 1 | 0 | Postcondition: `mitre_technique: None` → `mitre_techniques: vec![]` |
+| BC-2.04.025.md | 1 | 1 | 0 | Postcondition: `mitre_technique: None` → `mitre_techniques: vec![]` |
+| BC-2.09.001.md | 4 | 0 | 4 | All occurrences in modified: frontmatter and PREVIOUS VERSION SUMMARY block (changelog/history) |
+| BC-2.09.006.md | 8 | 0 | 8 | All occurrences in modified: frontmatter, PREVIOUS VERSION SUMMARY block, and "field renamed"/"renames mitre_technique to" contrast prose (changelog/history) |
+
+**Version bumps (ss-04 only; ss-09 no-change):**
+
+| BC | Before | After |
+|----|--------|-------|
+| BC-2.04.018 | 1.4 | 1.5 |
+| BC-2.04.019 | 1.6 | 1.7 |
+| BC-2.04.020 | 1.4 | 1.5 |
+| BC-2.04.021 | 1.3 | 1.4 |
+| BC-2.04.023 | 1.3 | 1.4 |
+| BC-2.04.025 | 1.5 | 1.6 |
+
+**BC-INDEX annotations added (DF-SIBLING-SWEEP-001):**
+- BC-2.04.018, .019, .020, .021, .023, .025 — inline version comments added
+- BC-2.09.001, BC-2.09.006 — already annotated from prior bursts; no change
+
+**H1 titles:** All unchanged (snippet-only fix; titles not affected).
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| BC-2.04.018 | v1.4→v1.5; mitre_technique postcondition → plural form | `.factory/specs/behavioral-contracts/ss-04/BC-2.04.018.md` |
+| BC-2.04.019 | v1.6→v1.7; mitre_technique postcondition → plural form | `.factory/specs/behavioral-contracts/ss-04/BC-2.04.019.md` |
+| BC-2.04.020 | v1.4→v1.5; mitre_technique postcondition → plural form | `.factory/specs/behavioral-contracts/ss-04/BC-2.04.020.md` |
+| BC-2.04.021 | v1.3→v1.4; mitre_technique postcondition → plural form | `.factory/specs/behavioral-contracts/ss-04/BC-2.04.021.md` |
+| BC-2.04.023 | v1.3→v1.4; mitre_technique postcondition → plural form | `.factory/specs/behavioral-contracts/ss-04/BC-2.04.023.md` |
+| BC-2.04.025 | v1.5→v1.6; mitre_technique postcondition → plural form | `.factory/specs/behavioral-contracts/ss-04/BC-2.04.025.md` |
+| BC-INDEX | Version annotations added for 6 ss-04 BCs | `.factory/specs/behavioral-contracts/BC-INDEX.md` |
+
+---
+
+## [arp-f2-pass-14-po-burst-3-2026-06-13] — 2026-06-13
+
+### PATCH: ARP-F2 Pass-14 Product-Owner Bucket Burst 3 — ss-14 Modbus BC bodies
+
+**Summary:** Remediates PRODUCT-OWNER bucket findings from ARP-F2 Pass-14 whole-corpus adversarial
+remediation targeting ss-14 (Modbus) BC bodies. Covers substantive findings B-01 through B-04 and
+D-01-sibling plus snippet sweep of stale singular `mitre_technique` references.
+
+**B-01 (MEDIUM) — BC-2.14.017 MITRE Techniques traceability stale T1692.001 display name:**
+Traceability field T1692.001 display name corrected from stale revoked-T0855 form
+"Unauthorized Command Message" to canonical ATT&CK v19 name "Unauthorized Message: Command Message".
+Verified against BC-2.14.013:~56/187, BC-2.14.014:~28/44, BC-2.14.016 siblings which already used
+the correct name. Technique ID T1692.001 unchanged. BC-2.14.017 bumped v2.4→v2.5.
+
+**B-02 (MEDIUM) — BC-2.14.024 MITRE Techniques traceability stale T1692.001 display name:**
+Same stale revoked-T0855 form corrected in BC-2.14.024 MITRE Techniques traceability field:
+"Unauthorized Command Message" → "Unauthorized Message: Command Message". BC-2.14.024 bumped v2.1→v2.2.
+
+**B-03 (MEDIUM) — BC-2.14.020 Invariant 6 stale SEEDED/EMITTED counts:**
+Invariant 6 counts updated from Decision-12-era "SEEDED_TECHNIQUE_IDS (21 total)" and
+"EMITTED_IDS (13 total, 7 ICS)" to canonical "SEEDED 25 / EMITTED 17 (7 Enterprise + 10 ICS)"
+with forward-declaration note (current src 23/15, target 25/17 via STORY-114), consistent
+with BC-2.10.005/007/008 phrasing. T0888 presence in both sets assertion unchanged.
+
+**B-04 (LOW) — BC-2.14.020 Source Evidence path stale SEEDED/EMITTED annotation:**
+Source Evidence path for architecture-delta.md §4.3 annotated as Decision-12-era counts
+(SEEDED=21, EMITTED=13 at time of Decision 12 — superseded by canonical 25/17 after ARP feature
+per BC-2.10.005/008). Historical citation meaning preserved; superseded note added.
+BC-2.14.020 bumped v2.1→v2.2.
+
+**D-01-sibling (LOW) — BC-2.14.004 Source Evidence path stale length range annotation:**
+Source Evidence path annotation "modbus-tcp-research.md §1 (Length range [2,253]..." corrected
+to "[2,254]" matching the H1 title (already correct), Confidence note, and spec definition.
+H1 unchanged. BC-2.14.004 bumped v1.0→v1.1.
+
+**SNIPPET SWEEP — All singular `mitre_technique` occurrences in BC-2.14.013 through BC-2.14.020:**
+All occurrences audited. All singular `mitre_technique` usages in these files are HISTORY
+(changelog entries, prior-version documentation, and regression-guard notes explaining the
+Option<String>→Vec<String> rename). No STALE current-state snippets found requiring conversion.
+No changes made to BC-2.14.013, BC-2.14.014, BC-2.14.015, BC-2.14.016, BC-2.14.018, BC-2.14.019
+for snippet sweep (zero STALE instances). BC-2.14.017:~273 is also HISTORY (ADR-006 migration
+prose, not a current-state snippet).
+
+**BC-INDEX SYNC:** Version annotations updated for BC-2.14.004, BC-2.14.017, BC-2.14.020,
+BC-2.14.024. No H1 title changes in this burst; BC-INDEX title columns unchanged.
+
+---
+
+## [arp-f2-pass-14-po-burst-2-2026-06-13] — 2026-06-13
+
+### PATCH: ARP-F2 Pass-14 Product-Owner Bucket Burst 2 — PRD + BC-INDEX + VPs + F1 delta-analysis remediation
+
+**Summary:** Remediates PRODUCT-OWNER bucket findings from ARP-F2 Pass-14 whole-corpus adversarial
+remediation covering the PRD index, BC-INDEX, three verification properties, and the ARP F1
+delta-analysis frontmatter. Burst 1 (domain-spec/supplements) was applied separately.
+
+**D-01 (HIGH) — PRD §2.14.A BC-2.14.004 row stale length range:**
+BC-2.14.004 summary in PRD §2.14.A corrected: "outside [2, 253]" → "outside [2, 254]".
+Canonical range per BC-2.14.004 H1, ECs, VP-022:117, and BC-INDEX:344. Length field=254 is valid
+(unit-id byte + 253-byte PDU); first invalid value is 255.
+
+**D-02 (LOW) — BC-INDEX:36 stale PRD version reference:**
+Status block PRD version note corrected: "(v1.15)" → "(v1.17)" to match actual prd.md version
+after D-01 fix.
+
+**VP-007 (STALE field reference in Sub-property B):**
+Property Statement Sub-property B: "Finding.mitre_technique" (singular, stale) → "Finding.mitre_techniques"
+(plural Vec<String> per ADR-006 Decision 13). Lines 27 and 258 (grep-pattern migration notes
+"mitre_technique:Some → mitre_techniques:vec!") are HISTORY — preserved unchanged.
+
+**VP-016 (2 STALE field references in Test Specification):**
+Two test code Finding struct initializations corrected:
+- "mitre_technique: None" → "mitre_techniques: vec![]"
+- "mitre_technique: technique.map(|s| s.to_string())" → "mitre_techniques: technique.map(|s| vec![s.to_string()]).unwrap_or_default()"
+Shipped struct uses Vec<String> per ADR-006 Decision 13.
+
+**VP-020 (STALE field name in Property Statement item 3):**
+Field list in item 3 corrected: "mitre_technique" → "mitre_techniques (semicolon-joined)" per
+BC-2.11.020/024 and the actual CSV header (csv.rs:69).
+
+**C-06 (LOW) — arp-analyzer-delta-analysis.md stale mitre_research_status:**
+frontmatter mitre_research_status updated from TBD-pending placeholder to VALIDATION COMPLETE.
+Cites mitre-arp-research.md (2026-06-12, Confidence HIGH). T0830 and T1557.002 confirmed active
+in ICS ATT&CK v19.1 and Enterprise ATT&CK respectively. A `modified:` list added to frontmatter.
+No F1 analytical conclusions altered.
+
+**mitre_technique STALE vs HISTORY classification for prd.md and BC-INDEX:**
+All `mitre_technique` (singular) occurrences in prd.md (lines 55, 327, 329, 333, 368) and
+BC-INDEX (lines 233, 283) are HISTORY — they appear inside changelog blockquotes or HTML comments
+documenting the ADR-006 Decision 13 rename. These were PRESERVED unchanged per stale-vs-history
+discrimination rule.
+
+**Version bumps in this burst:**
+
+| Document | Old Version | New Version | Change |
+|----------|-------------|-------------|--------|
+| `specs/prd.md` | 1.16 | 1.17 | D-01: BC-2.14.004 row length range [2,253]→[2,254]; v1.17 delta note added |
+| `specs/behavioral-contracts/BC-INDEX.md` | 1.19 | 1.20 | D-02: PRD version note (v1.15)→(v1.17) |
+| `specs/verification-properties/vp-007-mitre-technique-id-format.md` | 2.4 | 2.5 | Stale singular field reference in Sub-property B corrected |
+| `specs/verification-properties/vp-016-mitre-tactic-grouping-order.md` | 2.1 | 2.2 | 2 stale Finding field references in Test Specification corrected |
+| `specs/verification-properties/vp-020-csv-injection-neutralization.md` | 2.0 | 2.1 | Stale field name in Property Statement item 3 corrected |
+| `phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` | (none → modified[] added) | — | C-06: mitre_research_status TBD→VALIDATION COMPLETE |
+
+---
+
+## [arp-f2-pass-14-po-burst-1-2026-06-13] — 2026-06-13
+
+### PATCH: ARP-F2 Pass-14 Product-Owner Bucket Burst 1 — Authoritative schema/supplement docs remediation
+
+**Summary:** Remediates PRODUCT-OWNER bucket findings C-01 through C-07 from ARP-F2 Pass-14
+whole-corpus adversarial remediation. Covers the authoritative schema/supplement docs
+(domain/, prd-supplements/). Architect bucket already applied separately. No BC-body files,
+story bodies, PRD indexes, or VPs touched in this burst.
+
+**C-01 (CRITICAL) — cap-09 schema block stale:** `mitre_technique: Option<String>` →
+`mitre_techniques: Vec<String>` with `skip_serializing_if = "Vec::is_empty"`. "Four Option
+fields" corrected to "three remaining Option fields" (source_ip, timestamp, direction).
+"22 sites set timestamp:None (O-01)" framing updated — O-01 is closed; Modbus+DNP3 sites
+added by STORY-102..110. Site count updated to "≥22 includes modbus/dnp3 analyzers". BC refs
+extended to BC-2.09.001..007. Version (none)→1.1.
+
+**C-02 (CRITICAL) — cap-09 22-authoritative framing + timestamp:None universal claim:**
+Resolved inline with C-01 above — emission site inventory framing updated from "22 sites
+(authoritative)" to "≥22 (includes modbus/dnp3)"; timestamp:None universal claim replaced
+with "O-01 closed, wired STORY-097/098/099 + STORY-102..110".
+
+**C-03 (HIGH) — ent-04 E-26 "all four Option fields":** E-26 schema description updated —
+`mitre_techniques: Vec<String>` (not an Option); "all four Option fields" → "three remaining
+Option fields"; O-01 closed note added. Version 1.1→1.2.
+
+**C-04 (HIGH) — domain-debt O-01 still shown as OPEN:** O-01 moved from OPEN ITEMS to
+RETIRED ITEMS table (closed by STORY-097/098/099 + STORY-102..110, Option A complete).
+Version 1.1→1.2.
+
+**cap-10 stale singular (STALE):** CLI --mitre flag section prose "mitre_technique:
+Option<String>" → "mitre_techniques: Vec<String> (empty vec → key absent; ADR-006 Decision
+13)". Version 1.7→1.8.
+
+**cap-11 CSV header + JSON Option prose (STALE):** CSV header column `mitre_technique` →
+`mitre_techniques` (verified csv.rs:69). Added semicolon-join note and EC-015 consumer
+guard. "All four Option fields" → "three remaining Option fields". Timestamp field note
+updated: O-01 closed. Version 1.1→1.2.
+
+**inv-01 INV-9 singular (STALE):** "Finding.mitre_technique" → "Finding.mitre_techniques".
+Version 1.1→1.2.
+
+**C-05 (test-vectors.md) — input-hash: TBD / phantom arp.rs input:** `src/analyzer/arp.rs`
+removed from `inputs:` list (does not exist in develop HEAD; forward-reference to STORY-111).
+`input-hash: TBD` → `input-hash: N/A` with rationale comment explaining deferral until
+STORY-111 lands. Version 1.9→2.0.
+
+**C-05 (12 stale snippets in test-vectors.md):** All 12 `mitre_technique: Some("X")` /
+`"mitre_technique":"X"` occurrences converted to plural array form. Lines 279/280 (BC-2.09.006
+section) fully replaced to reflect Vec semantics (empty-vec → key absent; singleton → JSON
+array; co-attribution → multi-element array). Line 342 (BC-2.11.013) "no mitre_technique" →
+"mitre_techniques: vec![] (empty)". Lines 439/445 (Integration 1/2) JSON snippets updated.
+Version 1.9→2.0.
+
+**C-05 (error-taxonomy.md) — input-hash: TBD / phantom arp.rs input:** Same fix as
+test-vectors.md — `src/analyzer/arp.rs` removed, `input-hash: N/A` with rationale comment.
+Version 1.9→2.0.
+
+**C-07 (LOW) — E-ARP-002 awkward prose:** "within the average since window-start within
+the 60-second flap window" rewritten to explicit rate formula
+`count_in_window / max(1, ts - window_start_ts)` with note that this is an average-rate
+detector, not a sliding-window detector. Semantics preserved. Version 1.9→2.0.
+
+**Architect-bucket version bumps recorded (architect burst, not PO):**
+
+| Document | Old Version | New Version | Change |
+|----------|-------------|-------------|--------|
+| `specs/architecture/api-surface.md` | 1.1 | 1.2 | A-01/A-02/A-06 |
+| `specs/architecture/purity-boundary-map.md` | 1.1 | 1.2 | A-03/A-06/A-09 |
+| `specs/architecture/system-overview.md` | 1.1 | 1.2 | A-04/A-05 |
+| `specs/architecture/module-decomposition.md` | 1.4 | 1.5 | A-08 |
+| `specs/architecture/dependency-graph.md` | 1.2 | 1.3 | A-07 |
+| `specs/architecture/decisions/ADR-005-binary-ics-protocol-integration-modbus-tcp.md` | — | modified[] | D-OBS-01 |
+
+**PO-owned documents updated in this burst:**
+
+| Document | Old Version | New Version | Change |
+|----------|-------------|-------------|--------|
+| `specs/domain/capabilities/cap-09-finding-emission.md` | (none) | 1.1 | C-01/C-02: schema block + emission site inventory + O-01 closure |
+| `specs/domain/capabilities/cap-10-mitre-mapping.md` | 1.7 | 1.8 | Stale singular `mitre_technique: Option<String>` → plural Vec form in CLI --mitre section |
+| `specs/domain/capabilities/cap-11-reporting-output.md` | 1.1 | 1.2 | CSV header mitre_technique→mitre_techniques; JSON "four Option" → "three remaining Option"; timestamp O-01 closed |
+| `specs/domain/entities/ent-04-findings-output.md` | 1.1 | 1.2 | C-03: E-26 four→three Option fields; Vec semantics; O-01 closed |
+| `specs/domain/domain-debt.md` | 1.1 | 1.2 | C-04: O-01 moved from OPEN to RETIRED table (Option A complete) |
+| `specs/domain/invariants/inv-01-core-invariants.md` | 1.1 | 1.2 | INV-9 "Finding.mitre_technique" → "Finding.mitre_techniques" |
+| `specs/prd-supplements/test-vectors.md` | 1.9 | 2.0 | C-05: arp.rs removed from inputs, input-hash→N/A; 12 stale snippets converted to plural array form |
+| `specs/prd-supplements/error-taxonomy.md` | 1.9 | 2.0 | C-05: arp.rs removed from inputs, input-hash→N/A; C-07: E-ARP-002 prose rewritten for clarity |
+| `spec-changelog.md` | — | — | This pass-14 burst-1 entry |
+
+---
+
 ## [pass-13-corpus-cleanup-2026-06-13] — 2026-06-13
 
 ### PATCH: Pass-13 Corpus Cleanup — BC-2.10.006 anchor + count fix (F-C-P13-001), NFR-OBS-004 seeded/emitted label (F-C-P13-002), STORY-071 variant/seeded count reconciliation (F-C-P13-003), BC-INDEX BC-2.14.016 T0855→T1692.001 annotation (F-D13-001), BC-INDEX inline version annotation refresh (Slice-B), PRD EC-008→EC-002 citation alignment (Slice-D)

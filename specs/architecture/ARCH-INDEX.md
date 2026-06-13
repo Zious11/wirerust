@@ -1,7 +1,7 @@
 ---
 artifact: architecture-index
 level: L4
-version: "1.4"
+version: "1.5"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -27,6 +27,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-13 corpus remediation (F-A13-005): module-criticality.md added to Architecture Section Document Map with its actual path (.factory/specs/module-criticality.md). Previously absent from the Document Map despite being referenced by architecture peers."
+  - date: 2026-06-13
+    actor: architect
+    reason: "O-01 closure propagation: Architecture Debt table row updated Open→CLOSED (21/22 sites wired STORY-097/098/099+STORY-102..110; BC-2.04.054 summary finding timestamp:None by design); open-item set enumeration updated to O-02..O-08 (O-01 now closed). Version bump 1.4→1.5."
 phase: 1c
 origin: brownfield
 deployment_topology: single-service
@@ -188,7 +191,7 @@ summary:
 
 | Item | Status | Severity |
 |------|--------|----------|
-| O-01: Finding.timestamp universally None | Open | Medium (forensic gap) |
+| O-01: Finding.timestamp universally None | CLOSED (21/22 sites wired; BC-2.04.054 summary finding timestamp:None by design — STORY-097/098/099 + STORY-102..110) | Medium (forensic gap) |
 | O-03: Thresholds not empirically calibrated | Open | Low (P2) |
 | O-04: 8 MITRE techniques staged but never emitted (SEEDED 25 − EMITTED 17 = 8 catalogue-only) | Open | Low (documentation) |
 | O-05: reassembly/mod.rs still ~691 LOC | Open | Low (partially closed) |
@@ -209,6 +212,6 @@ summary:
   Documentation debt only -- no architecture boundary implication. Fix is correcting the
   //! header. See domain-debt.md O-08.
 
-The complete open-item set is O-01 through O-08. O-02, O-07, and O-08 are tracked in
+O-01 is CLOSED (see table above). The remaining open-item set is O-02 through O-08. O-02, O-07, and O-08 are tracked in
 `.factory/specs/domain/domain-debt.md` rather than this table because they fall outside
 the architecture layer's scope.

@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: system-overview
 traces_to: ARCH-INDEX.md
-version: "1.1"
+version: "1.2"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -10,6 +10,9 @@ modified:
   - date: 2026-06-08
     actor: spec-steward
     reason: "Phase-6 gate close: status draft→verified."
+  - date: 2026-06-13
+    actor: architect
+    reason: "ARP-F2 Pass-14 remediation (A-04/A-05): L3 pipeline listing extended with C-22 ModbusAnalyzer and C-24 Dnp3Analyzer (both shipped) and C-23 ArpAnalyzer [PLANNED]; component-count note updated from C-1..C-20/C-21 to C-1..C-24; mitre.rs technique count corrected from stale '15 technique IDs' to '23 SEEDED / 15 EMITTED (target 25 SEEDED / 17 EMITTED)'."
 ---
 
 # System Overview
@@ -53,12 +56,15 @@ L2 Stream
 
 L3 Domain
   analyzer/
-    mod.rs   C-10  analyzer module; ProtocolAnalyzer trait
-    dns.rs   C-11  DnsAnalyzer: packet-level; statistics-only; no findings
-    http.rs  C-12  HttpAnalyzer: stream-level; 8 finding types; HTTP/1.x
-    tls.rs   C-13  TlsAnalyzer: stream-level; ClientHello/ServerHello; JA3/JA3S; SNI
+    mod.rs      C-10  analyzer module; ProtocolAnalyzer trait
+    dns.rs      C-11  DnsAnalyzer: packet-level; statistics-only; no findings
+    http.rs     C-12  HttpAnalyzer: stream-level; 8 finding types; HTTP/1.x
+    tls.rs      C-13  TlsAnalyzer: stream-level; ClientHello/ServerHello; JA3/JA3S; SNI
+    modbus.rs   C-22  ModbusAnalyzer: stream-level (port 502); MBAP parse + 3-point gate; write-burst/sustained detection; T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 [SHIPPED v0.5.x; ADR-005]
+    dnp3.rs     C-24  Dnp3Analyzer: stream-level (port 20000); carry-buffer + CRC-block-skip parse; T1691.001/T0827/T0836/T0814 [SHIPPED v0.6.0; ADR-007]
+    arp.rs      C-23  ArpAnalyzer: ARP link-layer; binding table; D1 spoof/D2 GARP/D3 storm/D11 malformed/D12 mismatch; T0830+T1557.002 [PLANNED — STORY-111/ADR-008; not yet shipped]
   findings.rs  C-14  Finding struct + Verdict/Confidence/ThreatCategory enums
-  mitre.rs     C-16  MITRE ATT&CK catalog (15 technique IDs); tactic lookup
+  mitre.rs     C-16  MITRE ATT&CK catalog (23 SEEDED technique IDs / 15 EMITTED; target: 25 SEEDED / 17 EMITTED when ARP ships); tactic lookup
   summary.rs   C-17  Summary: per-packet statistics accumulator for the summary subcommand
 
 L4 Output
@@ -69,9 +75,11 @@ L4 Output
     csv.rs      --    CsvReporter: CSV-injection neutralization
 ```
 
-> Note: The ingestion pass identified C-1..C-20. C-21 (StreamDispatcher in dispatcher.rs)
-> was added by ADR 0001 after the component count was set. The dispatcher sits at the
-> L2/L3 boundary.
+> Note: The ingestion pass identified C-1..C-20. C-21 (StreamDispatcher, dispatcher.rs) was
+> added by ADR 0001 after the initial count. C-22 (ModbusAnalyzer), C-23 (ArpAnalyzer
+> [PLANNED]), and C-24 (Dnp3Analyzer) were added during F2 feature cycles. The canonical
+> component set is C-1..C-24 (24 total). The dispatcher (C-21) sits at the L2/L3 boundary;
+> C-22 and C-24 are shipped; C-23 is forward-declared (ADR-008/STORY-111, not yet in tree).
 
 
 ## Data Flow (single target)

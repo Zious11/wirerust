@@ -1,7 +1,7 @@
 ---
 document_type: prd-supplement-test-vectors
 level: L3
-version: "1.9"
+version: "2.0"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -16,16 +16,21 @@ inputs:
   - src/analyzer/http.rs
   - src/analyzer/tls.rs
   - src/analyzer/dns.rs
-  - src/analyzer/arp.rs
   - src/findings.rs
   - src/reporter/terminal.rs
   - src/reporter/json.rs
   - src/mitre.rs
-input-hash: TBD
+input-hash: N/A
+# input-hash rationale: src/analyzer/arp.rs was removed from inputs (forward-referenced;
+# file does not exist in develop HEAD until STORY-111 lands). The hash computation tool
+# (bin/compute-input-hash) errors on missing inputs, so this supplement's hash is deferred
+# until STORY-111 merges and arp.rs is present. Re-add src/analyzer/arp.rs to inputs: and
+# run `bin/compute-input-hash --write` after STORY-111 lands.
 traces_to: .factory/specs/prd.md
 modified:
   - "v1.6: Pass-7 remediation F-C-P7-002: separated BC-2.10.005/BC-2.10.004 attributions — 'per BC-2.10.005 v1.10 (25 seeded IDs) and BC-2.10.004 v1.4 (17 tactic variants)'; was incorrectly citing BC-2.10.004 as the seeded-count source. — 2026-06-12"
   - "v1.7: Pass-9 remediation F-C-P9-002: BC-2.10.004 version citation updated v1.4→v1.5 (file is at v1.5 per pass-7 F-C-P7-003 remediation). F-C-P9-004: SS-10 unknown-ID canary updated UNKNOWN999→T9999 and category happy-path→edge-case to match BC-2.10.005/BC-2.10.006 canonical canary and mitre.rs Kani verify_unknown_id_returns_none_no_panic. — 2026-06-12"
+  - "v2.0: ARP-F2 Pass-14 remediation C-05 + 12 stale snippets: (C-05) removed src/analyzer/arp.rs from inputs (not in develop HEAD; forward-reference to STORY-111); set input-hash to N/A with deferred-hash rationale comment. (12 stale snippets) converted all mitre_technique:Some('X') / 'mitre_technique':'X' occurrences to mitre_techniques:vec!['X'] / 'mitre_techniques':['X'] form per STALE discrimination rule; updated skip-serialization/empty-semantics prose (lines ~279/280/342) to Vec/empty-vec/key-absent form. Version 1.9→2.0. — 2026-06-13"
 ---
 
 # Canonical Test Vectors: wirerust
@@ -127,7 +132,7 @@ modified:
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| Segment at offset 100, data `[0xAA, 0xBB]`; then segment at offset 100, data `[0xCC, 0xDD]` (conflicting overlap) | Finding { category: Anomaly, verdict: Likely, confidence: High, mitre_technique: Some("T1036") } | happy-path | First-wins overlap with conflicting bytes |
+| Segment at offset 100, data `[0xAA, 0xBB]`; then segment at offset 100, data `[0xCC, 0xDD]` (conflicting overlap) | Finding { category: Anomaly, verdict: Likely, confidence: High, mitre_techniques: vec!["T1036"] } | happy-path | First-wins overlap with conflicting bytes |
 | Segment at offset 100, data `[0xAA]`; then segment at offset 100, data `[0xAA]` (exact retransmission) | InsertResult::Duplicate; zero findings for this insert | happy-path | Identical retransmission = no conflict finding |
 
 #### BC-2.04.024 -- MAX_FINDINGS Cap
@@ -178,7 +183,7 @@ modified:
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| `GET /../etc/passwd HTTP/1.1\r\nHost: example.com\r\n\r\n` | Finding { category: Reconnaissance, verdict: Likely, confidence: High, mitre_technique: Some("T1083"), summary: contains "../" } | happy-path | Classic directory traversal; http.rs:193 uses ThreatCategory::Reconnaissance |
+| `GET /../etc/passwd HTTP/1.1\r\nHost: example.com\r\n\r\n` | Finding { category: Reconnaissance, verdict: Likely, confidence: High, mitre_techniques: vec!["T1083"], summary: contains "../" } | happy-path | Classic directory traversal; http.rs:193 uses ThreatCategory::Reconnaissance |
 | `GET /static/file.css HTTP/1.1\r\nHost: example.com\r\n\r\n` | No finding | happy-path | Clean path; no traversal |
 
 #### BC-2.06.009 -- Missing Host Header
@@ -199,7 +204,7 @@ modified:
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| HTTP request with 97 headers (MAX_HEADERS=96 exceeded) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Medium, mitre_technique: Some("T1499.002") } | edge-case | httparse array size = 96; overflow triggers finding |
+| HTTP request with 97 headers (MAX_HEADERS=96 exceeded) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Medium, mitre_techniques: vec!["T1499.002"] } | edge-case | httparse array size = 96; overflow triggers finding |
 | HTTP request with exactly 96 headers | No finding from header-count check | happy-path | At-cap, not over-cap |
 
 #### BC-2.06.015 -- Poison After 3 Consecutive Errors
@@ -218,8 +223,8 @@ modified:
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| TLS ClientHello with SNI = `evil\x1bhost.com` (ESC byte 0x1B, a C0 control) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_technique: Some("T1027") } | happy-path | AsciiWithControl arm (tls.rs:426-448); verdict/confidence are Inconclusive/Low, not Likely/High |
-| TLS ClientHello with SNI = `evil\x7fhost.com` (DEL 0x7F) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_technique: Some("T1027") } | happy-path | DEL = AsciiWithControl arm |
+| TLS ClientHello with SNI = `evil\x1bhost.com` (ESC byte 0x1B, a C0 control) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_techniques: vec!["T1027"] } | happy-path | AsciiWithControl arm (tls.rs:426-448); verdict/confidence are Inconclusive/Low, not Likely/High |
+| TLS ClientHello with SNI = `evil\x7fhost.com` (DEL 0x7F) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_techniques: vec!["T1027"] } | happy-path | DEL = AsciiWithControl arm |
 | TLS ClientHello with SNI = `www.example.com` (clean ASCII) | No SNI-related finding | happy-path | BC-2.07.013 |
 | TLS ClientHello with SNI = `www.ex\x20ample.com` (SPACE = 0x20) | No SNI C0 finding (0x20 is not C0/DEL) | edge-case | BC-2.07.016: 0x1F trips; 0x20 does NOT |
 
@@ -227,14 +232,14 @@ modified:
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| TLS ClientHello with SNI = `xn--\xC3\xA9vil.com` (contains U+00E9, valid UTF-8 but non-ASCII) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_technique: Some("T1027") } | happy-path | NonAsciiUtf8 arm (tls.rs:449-468); verdict/confidence are Inconclusive/Low, not Likely/High |
+| TLS ClientHello with SNI = `xn--\xC3\xA9vil.com` (contains U+00E9, valid UTF-8 but non-ASCII) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_techniques: vec!["T1027"] } | happy-path | NonAsciiUtf8 arm (tls.rs:449-468); verdict/confidence are Inconclusive/Low, not Likely/High |
 | TLS ClientHello with SNI = `xn--test.com` (pure ASCII Punycode A-label) | No finding | happy-path | BC-2.07.018: A-labels are pure ASCII |
 
 #### BC-2.07.037 -- Mixed Non-ASCII + C0 SNI Fires Arm 3
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| SNI bytes contain BOTH U+00E9 (non-ASCII UTF-8) AND 0x1B (C0 control) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_technique: Some("T1027") } with arm = NonAsciiUtf8 (arm 3), not C0/DEL (arm 2) | edge-case | Arm 3 (NonAsciiUtf8) takes priority because `from_utf8` succeeds on the multi-byte U+00E9 sequence before `is_ascii()` is checked; tls.rs:251-258 `extract_sni` match order |
+| SNI bytes contain BOTH U+00E9 (non-ASCII UTF-8) AND 0x1B (C0 control) | Finding { category: Anomaly, verdict: Inconclusive, confidence: Low, mitre_techniques: vec!["T1027"] } with arm = NonAsciiUtf8 (arm 3), not C0/DEL (arm 2) | edge-case | Arm 3 (NonAsciiUtf8) takes priority because `from_utf8` succeeds on the multi-byte U+00E9 sequence before `is_ascii()` is checked; tls.rs:251-258 `extract_sni` match order |
 
 #### BC-2.07.009 -- Weak Cipher Finding
 
@@ -272,15 +277,16 @@ modified:
 
 ### SS-09: Forensic Finding Emission (CAP-09)
 
-#### BC-2.09.006 -- JSON Serialization of Option Fields
+#### BC-2.09.006 -- JSON Serialization of Vec and Option Fields
 
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
-| Finding with mitre_technique: None | JSON object does NOT contain key "mitre_technique" | happy-path | skip_serializing_if |
-| Finding with mitre_technique: Some("T1027") | JSON object contains `"mitre_technique": "T1027"` | happy-path | |
-| Finding with source_ip: None | JSON object does NOT contain key "source_ip" | happy-path | skip_serializing_if |
-| Finding with timestamp: None | JSON object does NOT contain key "timestamp" | happy-path | Always None per O-01; must be absent not null |
-| Finding with direction: None | JSON object does NOT contain key "direction" | happy-path | |
+| Finding with mitre_techniques: vec![] (empty) | JSON object does NOT contain key "mitre_techniques" | happy-path | skip_serializing_if = Vec::is_empty; absent not null/[] |
+| Finding with mitre_techniques: vec!["T1027"] | JSON object contains `"mitre_techniques": ["T1027"]` | happy-path | singleton vec → JSON array |
+| Finding with mitre_techniques: vec!["T0830","T1557.002"] | JSON object contains `"mitre_techniques": ["T0830","T1557.002"]` | happy-path | multi-technique co-attribution (ADR-006 Decision 13) |
+| Finding with source_ip: None | JSON object does NOT contain key "source_ip" | happy-path | skip_serializing_if = Option::is_none |
+| Finding with timestamp: None | JSON object does NOT contain key "timestamp" | happy-path | absent not null; O-01 closed but None still valid for sites without timestamp |
+| Finding with direction: None | JSON object does NOT contain key "direction" | happy-path | skip_serializing_if = Option::is_none |
 
 ---
 
@@ -339,7 +345,7 @@ modified:
 | Input | Expected Output | Category | Notes |
 |-------|----------------|----------|-------|
 | 2 findings with T1036 (DefEvasion), 1 with T1083 (Discovery), 1 with no technique | Terminal output contains `## Defense Evasion` header with 2 findings; `## Discovery` with 1; `Uncategorized` with 1 (last) | happy-path | `--mitre` flag required |
-| All findings have no mitre_technique | Single `Uncategorized` section; no tactic headers | edge-case | BC-2.11.015 |
+| All findings have mitre_techniques: vec![] (empty) | Single `Uncategorized` section; no tactic headers | edge-case | BC-2.11.015 |
 
 ---
 
@@ -436,13 +442,13 @@ modified:
 
 | Scenario | Input | Step 1: Reassembly | Step 2: Dispatch | Step 3: HTTP Analysis | Final Output |
 |----------|-------|-------------------|-----------------|----------------------|-------------|
-| Attacker sends `GET /../etc/passwd HTTP/1.1\r\nHost: evil.com\r\n\r\n` over TCP flow | pcap with SYN, data, FIN sequence | TcpReassembler delivers data bytes to StreamDispatcher | Dispatcher classifies as HTTP (method prefix `GET `) | HttpAnalyzer detects traversal; emits Finding(Reconnaissance/Likely/High, T1083) | JSON: `{"category":"Reconnaissance","verdict":"Likely","confidence":"High","mitre_technique":"T1083"...}` |
+| Attacker sends `GET /../etc/passwd HTTP/1.1\r\nHost: evil.com\r\n\r\n` over TCP flow | pcap with SYN, data, FIN sequence | TcpReassembler delivers data bytes to StreamDispatcher | Dispatcher classifies as HTTP (method prefix `GET `) | HttpAnalyzer detects traversal; emits Finding(Reconnaissance/Likely/High, mitre_techniques: vec!["T1083"]) | JSON: `{"category":"Reconnaissance","verdict":"Likely","confidence":"High","mitre_techniques":["T1083"]...}` |
 
 ### Integration 2: TLS SNI C0 Injection (SS-04 -> SS-05 -> SS-07 -> SS-11)
 
 | Scenario | Input | Step 1 | Step 2 | Step 3 | Final Output |
 |----------|-------|--------|--------|--------|-------------|
-| TLS ClientHello with SNI = `evil\x00host.com` | pcap with TLS handshake | Reassembly delivers TLS record bytes | Dispatcher: first byte 0x16 -> TLS (content-first) | TlsAnalyzer: SNI AsciiWithControl arm; emits Finding(Anomaly/Inconclusive/Low, T1027) | JSON: `"mitre_technique":"T1027"`, summary contains raw SNI bytes |
+| TLS ClientHello with SNI = `evil\x00host.com` | pcap with TLS handshake | Reassembly delivers TLS record bytes | Dispatcher: first byte 0x16 -> TLS (content-first) | TlsAnalyzer: SNI AsciiWithControl arm; emits Finding(Anomaly/Inconclusive/Low, mitre_techniques: vec!["T1027"]) | JSON: `"mitre_techniques":["T1027"]`, summary contains raw SNI bytes |
 
 ### Integration 3: Terminal Injection Prevention (SS-07 -> SS-11 terminal path)
 

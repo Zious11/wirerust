@@ -5,11 +5,14 @@ cap_id: CAP-11
 title: Reporting and Output
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
-version: "1.1"
+version: "1.2"
 modified:
   - date: 2026-06-12
     actor: product-owner
     reason: "Pass-10 remediation F-D10-L02: stale '16 MitreTactic variants' corrected to '17 MitreTactic variants (14 Enterprise + 3 ICS-unique incl. IcsImpact)' per cap-10 v1.6 and BC-2.10.004 v1.5."
+  - date: 2026-06-13
+    actor: product-owner
+    reason: "ARP-F2 Pass-14 remediation: CSV header column updated mitre_technique→mitre_techniques (verified against csv.rs:69; shipped header uses plural form; semicolon-joined for multi-technique vecs per ADR-006 Decision 13). JSON Option fields: 'all four Option fields' corrected to 'three remaining Option fields (source_ip, timestamp, direction)' — mitre_techniques is Vec<String> not Option. Timestamp note updated: O-01 is closed (wired in STORY-097/098/099). Version 1.1→1.2."
 ---
 
 # CAP-11: Reporting and Output
@@ -89,9 +92,11 @@ Unit struct (no fields). Renders via `serde_json::to_string_pretty` on the combi
 `BTreeMap` rather than `HashMap`, producing deterministic alphabetical key ordering across
 runs. This was a non-determinism gap closed by the BTreeMap migration.
 
-**JSON Option handling (symmetric -- P1.02 / #73):** All four Option fields on `Finding`
-use `skip_serializing_if = "Option::is_none"`. No Option field ever serializes as `null`.
-See CAP-09 for the full schema.
+**JSON Option/Vec handling (symmetric -- P1.02 / #73; STORY-100 / ADR-006):** The three
+remaining Option fields on `Finding` (`source_ip`, `timestamp`, `direction`) use
+`skip_serializing_if = "Option::is_none"`. No Option field ever serializes as `null`.
+`mitre_techniques: Vec<String>` uses `skip_serializing_if = "Vec::is_empty"` — the key is
+absent when empty, not `null` or `[]`. See CAP-09 for the full schema.
 
 ## CsvReporter (E-39b)
 
@@ -99,8 +104,13 @@ Implemented by P2.03 (#84). Unit struct. Produces a CSV string with a fixed 9-co
 (column order as declared in csv.rs:63-73):
 
 ```
-category,verdict,confidence,summary,evidence,mitre_technique,source_ip,direction,timestamp
+category,verdict,confidence,summary,evidence,mitre_techniques,source_ip,direction,timestamp
 ```
+
+Note: `mitre_techniques` is a single cell; multiple techniques are joined with `;` (semicolon,
+no space). An empty technique vec renders as an empty string `""` (not `null`/`"[]"`).
+Downstream consumers must guard: `if cell.is_empty() { return vec![] }` before splitting on
+`;` (EC-015; csv.rs:87). Verified against csv.rs:69 (column header) and csv.rs:87 (join).
 
 **CSV injection neutralization:** The `neutralize_csv_injection()` function prefixes any
 field value starting with `=`, `+`, `-`, `@`, TAB (`\t`), or CR (`\r`) with a single
@@ -111,7 +121,8 @@ Google Sheets (csv.rs:42).
 - All string fields are double-quoted by the `csv` crate (RFC 4180).
 - `evidence`: all elements of the Vec are joined with `"; "` and placed in a single cell
   (csv.rs:81: `f.evidence.join("; ")`).
-- `timestamp`: renders as empty string (all Finding timestamps are None; open item O-01).
+- `timestamp`: renders as RFC 3339 string (e.g. `"2024-01-15T12:34:56+00:00"`) when Some;
+  empty string when None. O-01 is closed (timestamp wired in STORY-097/098/099).
 - `direction`: renders as the Debug format of the Direction variant (e.g. "ClientToServer")
   if Some; empty string if None.
 

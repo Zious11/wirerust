@@ -540,6 +540,178 @@ reached by 13 prior passes (trend broke; Passes 12-13 were 0 CRIT/0 HIGH).
 **PERSISTENCE-ONLY — findings NOT remediated this burst. Awaiting human strategic decision
 (continue strict whole-corpus remediation + Pass 15 vs off-ramp).**
 
+---
+
+### Pass 14 — REMEDIATION COMPLETE (2026-06-13)
+
+**Decision:** CONTINUE STRICT WHOLE-CORPUS. All 22 findings remediated across architect ×2
+bursts + PO ×10 bursts + consistency audit + O-01 closure sweep.
+
+#### Architect bucket (Slice A 9 findings + D-OBS-01)
+
+Dispatch 1 (A-01/A-03/A-04/A-06/A-07/D-OBS-01 — field-rename + component gaps + peer disagreement):
+
+| Artifact | Change |
+|----------|--------|
+| `specs/architecture/api-surface.md` | v1.1→v1.3 — `mitre_technique: Option<String>` renamed to `mitre_techniques: Vec<String>` in Finding row; 3 missing analyze flags added (`--modbus-write-burst-threshold`, `--modbus-write-sustained-threshold`, `--dnp3-direct-operate-threshold`); `decode_packet` PLANNED marker added uniformly |
+| `specs/architecture/purity-boundary-map.md` | v1.1→v1.2 — C-23 arp.rs + C-24 dnp3.rs entries added; `mitre.rs` implications updated to include T0888 + T1691.001/T0827; PLANNED markers added |
+| `specs/architecture/system-overview.md` | v1.1→v1.2 — L3 analyzer list updated to include C-22 Modbus, C-23 ARP, C-24 DNP3; "C-1..C-20" note corrected to "C-1..C-24"; mitre.rs technique count updated 15→23 (target 25) |
+| `specs/architecture/module-decomposition.md` | v1.4→v1.6 — C-16/C-22 MITRE lists updated to include T0888; etherparse version corrected to 0.20 (PLANNED for C-5); peer-disagreement resolved uniformly |
+| `specs/architecture/dependency-graph.md` | v1.2→v1.4 — etherparse 0.16→0.20 corrected; PLANNED marker added for DecodedFrame return-type transition |
+| `specs/architecture/decisions/ADR-005-binary-ics-protocol-integration-modbus-tcp.md` | modified[] — `[2,253]` length range corrected to `[2,254]` (D-OBS-01 sweep with D-01) |
+
+Dispatch 2 (A-02/A-05/A-08/A-09 — remaining Slice A items):
+
+| Artifact | Change |
+|----------|--------|
+| `specs/architecture/api-surface.md` | (same file, same version bump as above — carried) |
+| `specs/architecture/purity-boundary-map.md` | (same file, same version bump — carried) |
+| `specs/architecture/system-overview.md` | (same file, same version bump — carried) |
+| `specs/architecture/module-decomposition.md` | (same file, same version bump — carried) |
+
+#### PO bursts 1–10 (Slice B/C/D + corpus-wide sweeps)
+
+**Burst 1 — cap-09 (C-01/C-02: authoritative schema + emission-site count):**
+
+| Artifact | Change |
+|----------|--------|
+| `specs/domain/capabilities/cap-09-finding-emission.md` | v1.1→v1.1 (new file; field-rename + emission-site recount applied) — `mitre_technique: Option<String>` replaced with `mitre_techniques: Vec<String>`; emission-site count updated from "22" to current shipped count (STORY-097..110); 3 Option fields corrected; BC refs updated |
+
+**Burst 2 — PRD/BC-INDEX/VPs/delta-analysis (D-01/D-02 + mitre_techniques corpus sweep):**
+
+| Artifact | Change |
+|----------|--------|
+| `specs/prd.md` | v1.16→v1.18 — §2.14.A BC-2.14.004 reject range corrected `[2,253]`→`[2,254]`; BC-INDEX status line PRD version updated; mitre_techniques field-rename applied to all current-state Finding schema occurrences |
+| `specs/behavioral-contracts/BC-INDEX.md` | v1.19→v1.23 — PRD version-pin updated v1.15→v1.18; `mitre_technique` → `mitre_techniques` in all current-state annotations |
+| `specs/verification-properties/vp-007-mitre-technique-id-format.md` | v2.4→v2.5 — field-rename applied to current-state Finding schema snippet |
+| `specs/verification-properties/vp-016-mitre-tactic-grouping-order.md` | v2.1→v2.2 — field-rename applied |
+| `specs/verification-properties/vp-020-csv-injection-neutralization.md` | v2.0→v2.1 — field-rename applied |
+| `phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` | modified[] — mitre_techniques field-rename applied to current-state snippets; C-06 `mitre_research_status` note reviewed (intentional frozen F1 snapshot confirmed; prose clarified) |
+
+**Burst 3 — ss-14 BC bodies (B-01/B-02/B-03/B-04):**
+
+| Artifact | Change |
+|----------|--------|
+| `specs/behavioral-contracts/ss-14/BC-2.14.017.md` | modified[] — MITRE Techniques name corrected from "Unauthorized Command Message" (revoked-T0855 name) to "Unauthorized Message: Command Message" (T1692.001 canonical) |
+| `specs/behavioral-contracts/ss-14/BC-2.14.024.md` | modified[] — same stale name corrected |
+| `specs/behavioral-contracts/ss-14/BC-2.14.020.md` | modified[] — Invariant 6 SEEDED/EMITTED counts updated 21/13→25/17; Source-Evidence stale counts annotated as Decision-12-era superseded |
+| `specs/behavioral-contracts/ss-14/BC-2.14.004.md` | modified[] — reject range `[2,253]`→`[2,254]` (D-01 sibling sweep) |
+
+**Burst 4 — ss-04 + ss-09 BC bodies (mitre_techniques field-rename):**
+
+| Artifact | Change |
+|----------|--------|
+| `specs/behavioral-contracts/ss-04/BC-2.04.018.md` | modified[] |
+| `specs/behavioral-contracts/ss-04/BC-2.04.019.md` | modified[] |
+| `specs/behavioral-contracts/ss-04/BC-2.04.020.md` | modified[] |
+| `specs/behavioral-contracts/ss-04/BC-2.04.021.md` | modified[] |
+| `specs/behavioral-contracts/ss-04/BC-2.04.023.md` | modified[] |
+| `specs/behavioral-contracts/ss-04/BC-2.04.025.md` | modified[] |
+
+**Burst 5 — ss-06 + ss-10 BC bodies (mitre_techniques field-rename):**
+
+| Artifact | Change |
+|----------|--------|
+| `specs/behavioral-contracts/ss-06/BC-2.06.005.md` | modified[] |
+| `specs/behavioral-contracts/ss-06/BC-2.06.006.md` | modified[] |
+| `specs/behavioral-contracts/ss-06/BC-2.06.007.md` | modified[] |
+| `specs/behavioral-contracts/ss-06/BC-2.06.008.md` | modified[] |
+| `specs/behavioral-contracts/ss-06/BC-2.06.009.md` | modified[] |
+| `specs/behavioral-contracts/ss-06/BC-2.06.010.md` | modified[] |
+| `specs/behavioral-contracts/ss-06/BC-2.06.011.md` | modified[] |
+| `specs/behavioral-contracts/ss-06/BC-2.06.014.md` | modified[] |
+
+**Burst 6 — ss-07 BC bodies (mitre_techniques field-rename):**
+
+| Artifact | Change |
+|----------|--------|
+| `specs/behavioral-contracts/ss-07/BC-2.07.009.md` | modified[] |
+| `specs/behavioral-contracts/ss-07/BC-2.07.010.md` | modified[] |
+| `specs/behavioral-contracts/ss-07/BC-2.07.011.md` | modified[] |
+| `specs/behavioral-contracts/ss-07/BC-2.07.012.md` | modified[] |
+| `specs/behavioral-contracts/ss-07/BC-2.07.014.md` | modified[] |
+| `specs/behavioral-contracts/ss-07/BC-2.07.017.md` | modified[] |
+| `specs/behavioral-contracts/ss-07/BC-2.07.019.md` | modified[] |
+
+**Burst 7 — ss-11 + BC-2.11.016 (mitre_techniques field-rename):**
+
+| Artifact | Change |
+|----------|--------|
+| `specs/behavioral-contracts/ss-11/BC-2.11.016.md` | v1.4→v1.5 — `mitre_techniques` field-rename applied |
+
+**Burst 8 — interface-definitions + nfr-catalog (corpus sweep):**
+
+| Artifact | Change |
+|----------|--------|
+| `specs/prd-supplements/interface-definitions.md` | v1.0→v1.1 — `mitre_technique` → `mitre_techniques` in Finding struct definition |
+| `specs/prd-supplements/nfr-catalog.md` | v1.6→v1.8 — field-rename applied; technique anchor lines updated |
+
+**Burst 9 — domain docs (ent-01/cap-01/cap-10/cap-11/ent-04/domain-debt/inv-01):**
+
+| Artifact | Change |
+|----------|--------|
+| `specs/domain/entities/ent-01-ingestion-decoding.md` | v1.1 (new) — created; O-01 closure noted |
+| `specs/domain/capabilities/cap-01-pcap-ingestion.md` | v1.1 (new) — created; O-01 closure noted |
+| `specs/domain/capabilities/cap-10-mitre-mapping.md` | v1.7→v1.8 — field-rename applied |
+| `specs/domain/capabilities/cap-11-reporting-output.md` | v1.1→v1.2 — field-rename applied |
+| `specs/domain/entities/ent-04-findings-output.md` | v1.1→v1.2 — E-26 schema corrected: `mitre_technique: Option<String>` → `mitre_techniques: Vec<String>` (C-03 fix; sibling to E-27 sweep missed in Pass-10) |
+| `specs/domain/domain-debt.md` | v1.1→v1.2 — O-01 (Finding.timestamp) reframed from OPEN to CLOSED: STORY-097/098/099 (E-12) wired timestamp; O-01 closure propagated |
+| `specs/domain/invariants/inv-01-core-invariants.md` | v1.1→v1.2 — O-01 closure noted; field-rename applied to Finding invariants |
+
+**Burst 10 — test-vectors/error-taxonomy/spec-changelog:**
+
+| Artifact | Change |
+|----------|--------|
+| `specs/prd-supplements/test-vectors.md` | v1.9→v2.0 — `mitre_techniques` field-rename applied; `input-hash:TBD` note added with PLANNED rationale (src/analyzer/arp.rs not yet in develop; by-design per DRIFT-BC-INPUTHASH-TBD-001) |
+| `specs/prd-supplements/error-taxonomy.md` | v1.9→v2.0 — field-rename applied; `input-hash:TBD` rationale added; C-07 storm-rate prose corrected |
+| `spec-changelog.md` | modified[] — all version bumps from P14 remediation recorded |
+
+#### Two systematic debt classes flushed
+
+**Debt class 1 — STORY-100/ADR-006 multi-tag field rename:**
+`mitre_technique: Option<String>` was renamed to `mitre_techniques: Vec<String>` in
+STORY-100 (E-13, completed, v0.3.0; ADR-006 accepted). Propagated to ALL current-state
+Finding schema snippets corpus-wide. Affected: cap-09, ent-04, interface-definitions,
+nfr-catalog, vp-007, vp-016, vp-020, BC-INDEX annotations, all ss-04/ss-06/ss-07/ss-11/ss-14
+BCs that carry current-state Finding schema references, prd.md, test-vectors, error-taxonomy,
+api-surface. History/migration prose in ADR-006, STORY-100 body, and changelog entries
+correctly preserved (those describe the rename event itself — intentionally retain the old name
+as the "before" side). Zero current-state singular-field snippets remaining after sweep (grep
+confirmed).
+
+**Debt class 2 — domain-debt O-01 closure propagation:**
+O-01 (Finding.timestamp universally None — genuine domain debt) was closed by
+STORY-097/098/099 (E-12, completed, v0.3.0) which wired timestamp to actual capture time.
+O-01 was still framed as OPEN in domain-debt.md + ent-01 + cap-01 + cap-09 emission-site
+note + cap-10 + inv-01 + test-vectors annotation. All instances reframed to CLOSED with
+STORY-097..099 as the closing reference. Final grep confirms zero open-framed O-01 across
+corpus.
+
+#### Consistency audit (DF-CONSISTENCY-AUDIT-POST-FIXBURST-001)
+
+**Verdict: CONSISTENT** on 5/6 dimensions.
+
+- Dimension 1 (BC-INDEX ↔ BC files): CONSISTENT — all 283 BC titles match.
+- Dimension 2 (PRD counts ↔ BC-INDEX): CONSISTENT — 283 BCs, 24 VPs, 17 tactics.
+- Dimension 3 (architecture cross-doc): CONSISTENT — api-surface/purity-boundary-map/
+  module-decomposition/dependency-graph/system-overview peer-aligned after P14 architect bursts.
+- Dimension 4 (field-rename saturation): CONSISTENT — zero current-state `mitre_technique`
+  (singular) snippets remaining; grep clean.
+- Dimension 5 (O-01 closure): CONSISTENT — zero open-framed O-01 remaining; grep clean.
+- Dimension 6 (F1-F4 document residuals): F1-F4 documents (phase-f1-delta-analysis,
+  arp-analyzer-delta-analysis) carried O-01 residuals — FOUND AND FIXED. Post-fix: CONSISTENT.
+
+#### Note [process-gap]
+
+O-01 closure (from a prior cycle, completed v0.3.0 via STORY-097..099) was never fully
+propagated to its consuming documents (domain-debt, ent-01, cap-01, cap-09, cap-10, inv-01,
+test-vectors annotation). This surface only under strict whole-corpus review across all
+document types simultaneously — the same class of defect as DF-SIBLING-SWEEP-001
+(catalogue-level change not propagated to consuming docs in the same burst). Candidate for
+codification follow-up: DF-SIBLING-SWEEP-001 sub-rule — story-close propagation obligation
+(when a story closes a domain-debt item, sweep ALL consuming docs that reference that item
+as open in the same burst).
+
 #### Slice A (route: architect) — 9 findings
 
 - **A-01 HIGH** | `architecture/api-surface.md:148` | Finding row type `mitre_technique: Option<String>`; ADR-006 (accepted, v0.3.0) shipped `mitre_techniques: Vec<String>` in `src/findings.rs:148`. Shipped-code drift.

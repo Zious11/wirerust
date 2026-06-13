@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.1"
+version: "2.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -20,6 +20,9 @@ modified:
   - version: "2.1"
     date: 2026-06-10
     change: "v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. All T0855 technique ID references in Description and Canonical Test Vectors updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md."
+  - version: "2.2"
+    date: 2026-06-13
+    change: "ARP-F2 Pass-14 Burst-3 (B-02): MITRE Techniques traceability field: corrected stale revoked-T0855 display name 'Unauthorized Command Message' → canonical ATT&CK v19 name 'Unauthorized Message: Command Message' for T1692.001. Technique ID unchanged. Verified against BC-2.14.013/014/016 siblings."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -211,7 +214,7 @@ respectively. Targets v0.3.0.
 | Architecture Module | SS-14 (analyzer/modbus.rs C-22: `write_burst_threshold: u32` and `write_sustained_threshold: u32` fields); SS-12 (cli.rs: dual flags) |
 | Stories | TBD (F3 decomposition) |
 | Feature | issue-007-modbus-analyzer |
-| MITRE Techniques | T0806 (Brute Force I/O), T1692.001 (Unauthorized Command Message) — thresholds control when these findings fire |
+| MITRE Techniques | T0806 (Brute Force I/O), T1692.001 (Unauthorized Message: Command Message) — thresholds control when these findings fire |
 
 ## Related BCs
 

@@ -4,11 +4,14 @@ traces_to: ../domain-spec.md
 title: Entities -- Findings and Output (L3-L4)
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
-version: "1.1"
+version: "1.2"
 modified:
   - date: 2026-06-12
     actor: product-owner
     reason: "Pass-10 sibling-sweep (DF-SIBLING-SWEEP-001) F-D10-L02: stale 'E-27 MitreTactic 16-variant enum (14 Enterprise + 2 ICS)' corrected to '17-variant enum (14 Enterprise + 3 ICS-unique incl. IcsImpact)' — IcsImpact added in Feature #8 (issue #8, ADR-007)."
+  - date: 2026-06-13
+    actor: product-owner
+    reason: "ARP-F2 Pass-14 remediation C-03: E-26 'all four Option fields' corrected to 'three remaining Option fields' — mitre_techniques is Vec<String> with skip_serializing_if=Vec::is_empty (not an Option; STORY-100 AC-008/ADR-006 Decision 13). O-01 closed: timestamp wired in STORY-097/098/099. Version 1.1→1.2."
 ---
 
 # Entities: Findings and Output (L3-L4)
@@ -50,13 +53,20 @@ by any analyzer (grep for `::C2,` / `::LateralMovement,` in src/ returns zero hi
 **Consistency with MitreTactic:** Both `ThreatCategory` and `MitreTactic` are now
 `#[non_exhaustive]` (the prior inconsistency closed by P2.10).
 
-## E-26: Finding (src/findings.rs:119-146)
+## E-26: Finding (src/findings.rs:135-162)
 
-The critical output type. See CAP-09 for the full schema and all 22 emission sites.
+The critical output type. See CAP-09 for the full schema and all emission sites.
 
-All four Option fields use `skip_serializing_if = "Option::is_none"` (symmetric JSON
-serialization; fixed P1.02 / #73). No Option field ever serializes as `null`.
-All 22 emission sites set `timestamp: None` (open item O-01).
+`mitre_techniques: Vec<String>` (STORY-100 / ADR-006 Decision 13) uses
+`skip_serializing_if = "Vec::is_empty"` — the key is absent from JSON when no technique is
+attributed. The old scalar `mitre_technique: Option<String>` field was removed (STORY-100
+AC-008).
+
+Three remaining Option fields (`source_ip`, `timestamp`, `direction`) each use
+`skip_serializing_if = "Option::is_none"`. No Option field ever serializes as `null`.
+
+`timestamp: Option<DateTime<Utc>>` is now wired at all emission sites (STORY-097/098/099
+for http/tls/reassembly; STORY-102..110 for modbus/dnp3). O-01 is closed.
 
 `direction: Option<Direction>` was added (P2.08 / #77). HTTP and TLS analyzer findings set
 it; reassembly-engine findings leave it None.

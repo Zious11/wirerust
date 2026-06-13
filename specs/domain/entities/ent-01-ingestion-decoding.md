@@ -2,8 +2,11 @@
 artifact: L2-ent-01
 traces_to: ../domain-spec.md
 title: Entities -- Ingestion and Decoding Layer (L0-L1)
+version: "1.1"
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
+changelog:
+  - "v1.1: Burst-10 (O-01-closure) — E-4 RawPacket note updated: O-01 CLOSED; timestamp_secs now threaded to Finding.timestamp via STORY-097/098/099 (http/tls/reassembly) and STORY-102..110 (modbus/dnp3); BC-2.04.054 retains timestamp:None by design as the sole exception. — 2026-06-13"
 ---
 
 # Entities: Ingestion and Decoding (L0-L1)
@@ -85,7 +88,10 @@ struct RawPacket {
 ```
 
 Transient DTO. Emitted by PcapSource. Passed into `decode_packet`. Never enters L2+.
-`timestamp_secs` is read but never threaded to any `Finding` constructor (open item O-01).
+`timestamp_secs` is read and threaded to `Finding.timestamp` via STORY-097/098/099 (http/tls/reassembly
+emission sites) and STORY-102..110 (modbus/dnp3 analyzers). Domain-debt O-01 is CLOSED (21 of 22
+emission sites wired; BC-2.04.054 segment-limit summary retains timestamp:None by design as the sole
+exception — see BC-2.09.007 and domain-debt.md).
 
 ## E-5: PcapSource (src/reader.rs:38-42)
 

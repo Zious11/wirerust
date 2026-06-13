@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: F-W16-WAVE-P1-001 — update Verification Properties + Architecture Anchors to renamed STORY-043 formalization test (test_BC_2_06_010_detect_long_uri); Evidence Types legacy citation intentionally preserved — 2026-05-28"
+  - "v1.4 (2026-06-13): ARP-F2-Pass14-Burst5 — Postcondition 1 mitre_technique: None → mitre_techniques: vec![]; Invariant 4 prose updated to match plural field name (Finding struct field renamed to plural Vec<String>)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -46,7 +47,7 @@ No MITRE technique ID is assigned.
    - category: Execution
    - verdict: Likely
    - confidence: Medium
-   - mitre_technique: None
+   - mitre_techniques: vec![]
    - summary: "Abnormally long URI (<N> chars)" where N = uri.len()
    - evidence: vec!["URI prefix: <truncate_uri(uri, 200)>"]
    - direction: Some(Direction::ClientToServer)
@@ -57,7 +58,7 @@ No MITRE technique ID is assigned.
 1. Threshold is strictly greater-than: uri.len() == 2048 does NOT fire; uri.len() == 2049 does.
 2. Evidence is truncated to 200 characters via `truncate_uri` (UTF-8 char boundary safe).
 3. Summary includes the exact byte count (not the truncated length).
-4. `mitre_technique` is `None` for this finding.
+4. `mitre_techniques` is `vec![]` for this finding.
 
 ## Edge Cases
 

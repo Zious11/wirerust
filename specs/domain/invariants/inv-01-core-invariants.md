@@ -7,6 +7,8 @@ reconciled: 2026-05-20
 version: "1.1"
 modified:
   - "v1.1: Pass-12 corpus-cleanup F-C-P12-001: INV-9 enforcement anchor re-anchored from stale :122-156 (let info=match@:123, _=>return None@:153, }@:156) to current :128-182 (technique_info fn@:128, let info=match id@:129, _ => return None@:179, closing }@:182). — 2026-06-13"
+  - "v1.2: ARP-F2 Pass-14 remediation: INV-9 rule prose updated 'Finding.mitre_technique' → 'Finding.mitre_techniques' (STORY-100 AC-008 renamed scalar→Vec; STALE fix per pass-14 discrimination rule). — 2026-06-13"
+version: "1.2"
 ---
 
 # Core Domain Invariants
@@ -208,7 +210,7 @@ absence of `= false` assignments (confirmed pass-2 R3 Target 3).
 
 ## INV-9: MITRE Technique ID Format
 
-**Rule:** All MITRE technique IDs emitted in `Finding.mitre_technique` follow the pattern
+**Rule:** All MITRE technique IDs emitted in `Finding.mitre_techniques` follow the pattern
 `TXXXX` (4-digit parent) or `TXXXX.NNN` (3-digit sub-technique suffix). IDs not present in
 `technique_info`'s static match return `None` from `technique_name()` and
 `technique_tactic()`.

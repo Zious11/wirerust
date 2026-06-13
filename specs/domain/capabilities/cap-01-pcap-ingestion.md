@@ -5,8 +5,10 @@ cap_id: CAP-01
 title: PCAP File Ingestion
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
+version: "1.1"
 changelog:
   - 2026-05-21: Phase 3 per-story adversarial review — corrected Scope/limitations: smb3.pcapng IS now used as an active negative-test fixture (test_BC_2_01_004_rejects_pcapng, STORY-001)
+  - "v1.1: Burst-10 (O-01-closure) — Scope/limitations timestamp note updated: O-01 CLOSED; timestamp_secs now threaded to Finding.timestamp (STORY-097/098/099; STORY-102..110); BC-2.04.054 sole exception. — 2026-06-13"
 ---
 
 # CAP-01: PCAP File Ingestion
@@ -57,8 +59,10 @@ strict-first then lax-fallback strategy (see CAP-03).
   (delivered in STORY-001) asserts that passing it to `from_file` returns Err containing
   "Failed to parse pcap header". It is no longer merely a future-coverage placeholder.
 - Timestamp fields (`timestamp_secs`, `timestamp_usecs`) are read and stored in `RawPacket`
-  but are NEVER threaded through to `Finding.timestamp` at any emission site.
-  See domain-debt.md item O-01.
+  and are threaded through to `Finding.timestamp` at 21 of 22 emission sites (STORY-097/098/099
+  for http/tls/reassembly; STORY-102..110 for modbus/dnp3). Domain-debt O-01 is CLOSED.
+  BC-2.04.054 (segment-limit summary finding) retains timestamp:None by design as the sole
+  exception — see domain-debt.md RETIRED entry and BC-2.09.007.
 
 ## BC references
 

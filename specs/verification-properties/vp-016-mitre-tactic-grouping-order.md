@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.1"
+version: "2.2"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -27,6 +27,7 @@ modified:
   - "v1.1: proof_method manual→integration to match body table + VP-INDEX (Wave-21 wave-level consistency lens; SS-11 reporter VP family harmonization completion — sibling of VP-017 fix in 86113c2; DF-SIBLING-SWEEP-001)"
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set (tests/reporter_terminal_tests.rs)."
   - "v2.1 (2026-06-12): F-D10-L02 — corrected stale variant count 16 → 17. IcsImpact was added in the DNP3/Feature-8 cycle (src/mitre.rs, STORY-109). Canonical count: 14 Enterprise + 3 ICS-unique (IcsInhibitResponseFunction, IcsImpairProcessControl, IcsImpact) = 17. Updated test assertion comment and assert_eq value."
+  - "v2.2 (2026-06-13, ARP-F2 Pass-14 PO Burst 2): Two stale Finding field references in Test Specification corrected: 'mitre_technique: None' → 'mitre_techniques: vec![]' and 'mitre_technique: technique.map(|s| s.to_string())' → 'mitre_techniques: technique.map(|s| vec![s.to_string()]).unwrap_or_default()'. These were STALE singular field uses; shipped struct is Vec<String> per ADR-006 Decision 13. Lock fields unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -116,7 +117,7 @@ fn test_no_technique_finding_lands_in_uncategorized() {
         category: ThreatCategory::Anomaly,
         verdict: Verdict::Likely,
         confidence: Confidence::High,
-        mitre_technique: None,
+        mitre_techniques: vec![],
         summary: "test".to_string(),
         evidence: vec![],
         source_ip: None,
@@ -150,7 +151,7 @@ fn test_within_bucket_sort_verdict_first() {
             confidence,
             summary: format!("{verdict:?}"),
             evidence: vec![],
-            mitre_technique: technique.map(|s| s.to_string()),
+            mitre_techniques: technique.map(|s| vec![s.to_string()]).unwrap_or_default(),
             source_ip: None,
             timestamp: None,
             direction: None,

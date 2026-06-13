@@ -1,7 +1,7 @@
 ---
 document_type: prd-supplement-error-taxonomy
 level: L3
-version: "1.9"
+version: "2.0"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -17,9 +17,15 @@ inputs:
   - src/analyzer/http.rs
   - src/analyzer/tls.rs
   - src/analyzer/dns.rs
-  - src/analyzer/arp.rs
-input-hash: TBD
+input-hash: N/A
+# input-hash rationale: src/analyzer/arp.rs was removed from inputs (forward-referenced;
+# file does not exist in develop HEAD until STORY-111 lands). The hash computation tool
+# (bin/compute-input-hash) errors on missing inputs, so this supplement's hash is deferred
+# until STORY-111 merges. Re-add src/analyzer/arp.rs to inputs: and run
+# `bin/compute-input-hash --write` after STORY-111 lands.
 traces_to: .factory/specs/prd.md
+modified:
+  - "v2.0: ARP-F2 Pass-14 remediation C-05 + C-07: (C-05) removed src/analyzer/arp.rs from inputs (not in develop HEAD; forward-reference to STORY-111); set input-hash to N/A with deferred-hash rationale comment. (C-07) E-ARP-002 Notes rewritten for clarity: 'within the average since window-start within the 60-second flap window' → explicit rate formula count/max(1,elapsed) prose; detector is average-rate not sliding-window; window semantics clarified. Version 1.9→2.0. — 2026-06-13"
 ---
 
 # Error Taxonomy: wirerust
@@ -112,7 +118,7 @@ for implementer and test-writer completeness. All require `--arp` to be active u
 | Error Code | Category | Severity | Exit Code | Source Location | Signal Type | BC Ref | Notes |
 |-----------|----------|----------|-----------|----------------|-------------|--------|-------|
 | E-ARP-001 | ARP | `degraded` | 0 | `src/analyzer/arp.rs` (D11 malformed path) | Finding emitted: Anomaly/LOW; message format: `Malformed ARP: hw_addr_size=<n>, proto_addr_size=<n>, hw_type=<hex>` | BC-2.16.009 | Emitted when `extract_arp_frame` returns `None` (non-Ethernet/IPv4 hw/proto sizes), indicating a non-standard or malformed ARP frame. Verdict triple: `finding_type: Anomaly`, `confidence: LOW` (per BC-2.16.009 Postcondition 3 — no Inconclusive field; LOW reflects the high FP rate in ICS environments with legacy protocol converters). The frame is counted in `malformed_frames` (not `frames_analyzed`) per BC-2.16.010. Also counted as a skipped packet via E-DEC-004. Requires `--arp`. |
-| E-ARP-002 | ARP | `cosmetic` | 0 | `src/analyzer/arp.rs` (D3 storm path) | Finding emitted: Anomaly/MEDIUM; message format: `ARP storm from <mac>: <rate> frames/sec (threshold: <n>)` | BC-2.16.008 | Emitted when a source MAC meets or exceeds `ARP_STORM_RATE_DEFAULT` (default 50) ARP frames per second within the average since window-start within the 60-second flap window (per BC-2.16.008 Invariant 2; not a sliding-window detector). One-shot per source MAC per 60-second window. Counter state stored per-MAC in a bounded map (MAX_STORM_COUNTERS=4,096; LRU eviction at cap). Requires `--arp`. |
+| E-ARP-002 | ARP | `cosmetic` | 0 | `src/analyzer/arp.rs` (D3 storm path) | Finding emitted: Anomaly/MEDIUM; message format: `ARP storm from <mac>: <rate> frames/sec (threshold: <n>)` | BC-2.16.008 | Emitted when a source MAC's computed rate meets or exceeds `ARP_STORM_RATE_DEFAULT` (default 50) ARP frames per second. Rate is `count_in_window / max(1, ts - window_start_ts)` — average over the elapsed seconds since window-start, not a sliding-window detector. One-shot per source MAC per 60-second window (ARP_FLAP_WINDOW_SECS=60). Counter state stored per-MAC in a bounded map (MAX_STORM_COUNTERS=4,096; LRU eviction at cap). Requires `--arp`. |
 | E-ARP-003 | ARP | `cosmetic` | 0 | `src/analyzer/arp.rs` (D12 mismatch path) | Finding emitted: Anomaly/MEDIUM; message format: `ARP sender/Ethernet MAC mismatch: sender_mac=<mac>, outer_src_mac=<mac>` | BC-2.16.007 | Emitted when the Ethernet frame's outer source MAC differs from the ARP sender HW address field (D12). Requires Ethernet link type (`outer_src_mac` is `Some`); silently skipped for SLL captures where `outer_src_mac` is `None`. Requires `--arp`. MITRE techniques T0830 (Adversary-in-the-Middle, ICS) and T1557.002 (ARP Cache Poisoning, Enterprise) attached (per BC-2.16.007 PC1). |
 | E-ARP-004 | ARP | `cosmetic` | 0 | `src/analyzer/arp.rs` (D1 spoof path) | Finding emitted: Anomaly/MEDIUM or Anomaly/HIGH; message format: `ARP spoof: IP <ip> changed MAC from <old_mac> to <new_mac> (rebind <n>)` | BC-2.16.004 | Emitted when `ArpAnalyzer::process_arp` detects an IP→MAC rebind (sender_ip already in binding table with a different sender_mac). Exactly one Finding per rebind event. Severity = HIGH iff `rebind_count >= spoof_threshold AND (timestamp_secs - first_rebind_ts <= ARP_FLAP_WINDOW_SECS) AND !spoof_high_emitted`, else MEDIUM (per BC-2.16.004 PC1.c). `spoof_high_emitted` one-shot guard prevents repeated HIGH findings per flap window. MITRE techniques T0830 (LateralMovement) and T1557.002 (CredentialAccess) attached. Requires `--arp`. |
 | E-ARP-005 | ARP | `cosmetic` | 0 | `src/analyzer/arp.rs` (D2 GARP path) | Finding emitted: Anomaly/LOW (benign GARP) or Anomaly/MEDIUM (GARP-that-conflicts); message format: `Gratuitous ARP from <ip> (sender_mac=<mac>)` | BC-2.16.003, BC-2.16.014 | Emitted when `is_gratuitous_arp(frame)` returns `true` (sender_ip == target_ip, any opcode). Confidence = LOW when no binding conflict exists; MEDIUM when the same frame also triggers a D1 binding conflict (GARP-that-conflicts escalation, BC-2.16.014). MITRE techniques T0830 and T1557.002 attached to both forms. Requires `--arp`. |

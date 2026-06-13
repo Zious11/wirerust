@@ -5,7 +5,6 @@ cap_id: CAP-10
 title: MITRE ATT&CK Mapping
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
-version: "1.7"
 modified:
   - date: 2026-06-10
     actor: architect
@@ -28,6 +27,10 @@ modified:
   - date: 2026-06-12
     actor: product-owner
     reason: "Pass-11 remediation F-C-P11-002: pass-9/10 changelog line citation for the MitreTactic enum section corrected from 'lines 80-82' to 'lines 81-85' — the ## MitreTactic enum (E-27) header is at line 81 and the variant prose spans lines 83-85."
+  - date: 2026-06-13
+    actor: product-owner
+    reason: "ARP-F2 Pass-14 remediation: CLI --mitre flag section stale 'mitre_technique: Option<String>' prose updated to 'mitre_techniques: Vec<String>' (empty vec → key absent; ADR-006 Decision 13; STORY-100 AC-008). Version bumped 1.7→1.8."
+version: "1.8"
 ---
 
 # CAP-10: MITRE ATT&CK Mapping
@@ -104,7 +107,8 @@ in `Display` and `all_tactics_in_report_order`.
 When `--mitre` is set in `Commands::Analyze`, `TerminalReporter` renders findings grouped by
 tactic. Unknown technique IDs (not in the catalog) display as `<id> (unknown)`
 (terminal.rs:248-249). `JsonReporter` does not group by tactic; it emits the raw
-`mitre_technique: Option<String>` field per Finding (omitted from JSON when None).
+`mitre_techniques: Vec<String>` field per Finding (key absent from JSON when vec is empty;
+ADR-006 Decision 13).
 
 ## Unknown-ID handling (VO-6)
 

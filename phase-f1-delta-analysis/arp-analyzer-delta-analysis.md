@@ -25,11 +25,17 @@ prior_feature_precedent:
   - issue-007-modbus-analyzer (D-032..D-046, SS-14)
   - issue-008-dnp3-analyzer (ADR-007, SS-15, STORY-106..110)
 mitre_research_status: >
-  MITRE technique IDs (T0830, T1557.002) are TBD-pending-research-agent validation.
-  They are placeholders in this document. F2 spec work MUST NOT write BCs referencing
-  MITRE IDs that have not been validated by the research agent against ICS ATT&CK
-  v19.1 and Enterprise ATT&CK (current pinned version). This follows DF-VALIDATION-001
-  and the validated-findings policy in .factory/policies.yaml.
+  VALIDATION COMPLETE (2026-06-12). MITRE technique IDs T0830 (ICS LateralMovement)
+  and T1557.002 (Enterprise CredentialAccess) validated by research agent against
+  ICS ATT&CK v19.1 and Enterprise ATT&CK. Source: .factory/phase-f1-delta-analysis/
+  mitre-arp-research.md (2026-06-12, Confidence HIGH). Both IDs confirmed active
+  (non-revoked) in their respective ATT&CK domains. cap-10/HS-INDEX now carry them
+  as confirmed. This status supersedes the prior TBD-pending placeholder.
+modified:
+  - "v1.1 (2026-06-13, ARP-F2 Pass-14 PO Burst 2, C-06 LOW): mitre_research_status
+    updated from TBD-pending placeholder to VALIDATION COMPLETE. Research validated
+    T0830 and T1557.002 in mitre-arp-research.md (2026-06-12, Confidence HIGH).
+    No F1 analytical conclusions altered."
 traces_to:
   - .factory/specs/architecture/ARCH-INDEX.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md

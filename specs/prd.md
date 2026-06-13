@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.16"
+version: "1.18"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -240,6 +240,12 @@ supplements:
 >   T0830 [ICS] + T1557.002 [Enterprise] new ARP F2".
 > Total BC count: 283 (unchanged). See `spec-changelog.md` §[arp-f2-pass4-remediation-2026-06-12].
 
+> **Version 1.17 delta (2026-06-13 — ARP-F2 Pass-14 PO Burst 2 remediation):**
+> D-01 (HIGH): BC-2.14.004 row §2.14.A corrected reject range from "[2, 253]" to "[2, 254]".
+> Canonical range per BC-2.14.004 H1, ECs, VP-022:117, and BC-INDEX:344. Length field=254 is
+> valid (unit-id byte + 253-byte PDU); len=255 is the first invalid value. No BC count change.
+> See `spec-changelog.md` §[arp-f2-pass-14-po-burst-2-2026-06-13].
+
 > **Supplement Model:** Sections 3-5 reference extracted supplement files under
 > `prd-supplements/`. These supplements are produced in a SEPARATE burst (Phase 1b).
 > Entries in those sections are summary stubs until the supplement burst completes.
@@ -312,7 +318,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 - --services flag on summary subcommand (removed by PR #74; clap rejects --services as unknown argument; per-service breakdown is out of scope for current release)
 - Parallel file processing (rayon = "1" is a declared production dependency but is entirely unused in src/; single-threaded only)
 - Streaming / lazy-read pcap processing (entire file loaded into RAM before processing)
-- Per-packet timestamp in findings (Finding.timestamp is always None; O-01)
+- Per-packet timestamp in findings: RESOLVED — BC-2.09.007 (F2) wired timestamp from the pcap record header at all applicable emission sites (STORY-097/098/099); domain-debt O-01 CLOSED. Exception: segment-limit summary finding (BC-2.04.054) retains timestamp:None by design.
 - Empirically-calibrated anomaly thresholds (defaults are research-documented but not validated against labelled traffic; O-03)
 - MITRE techniques T1040, T1071, T1071.001, T1071.004, T1573, T0846, T1692.002, T0885 (catalogued but never emitted; O-04; note: T1692.001, T0836, T0814, T0806, T0835, T0831, T0888 are now emitted by the Modbus/ICS analyzer — see Section 2.14; T0846 is seeded in the catalog but NOT emitted — see ADR-006 Decision 12; T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap)
 
@@ -592,9 +598,9 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 
 > Full contracts: `behavioral-contracts/ss-09/BC-2.09.001.md` through `BC-2.09.007.md` (BC-2.09.007 added Feature Mode F2 issue #100)
 >
-> Known limitation: All 22 emission sites set timestamp: None (domain-debt O-01). This is
-> described by BC-2.09.001 as current behavior. Finding.timestamp field exists but is never populated.
-> BC-2.09.007 (F2) resolves O-01 for 21 of 22 emission sites; the segment-limit summary finding retains timestamp: None per BC-2.04.054.
+> BC-2.09.007 (F2) wired timestamp from the pcap record header at all applicable emission sites
+> (STORY-097/098/099); domain-debt O-01 CLOSED. The segment-limit summary finding (BC-2.04.054)
+> retains timestamp:None by design as the sole exception.
 
 ### 2.10 MITRE ATT&CK Mapping (CAP-10)
 
@@ -744,7 +750,7 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 | BC-2.14.001 | MBAP header accepted for well-formed 8-byte-minimum ADU | P0 | feature-007-F2 |
 | BC-2.14.002 | MBAP header rejected for ADU shorter than 8 bytes | P0 | feature-007-F2 |
 | BC-2.14.003 | MBAP header rejected when Protocol ID is not 0x0000 | P0 | feature-007-F2 |
-| BC-2.14.004 | MBAP header rejected when Length is outside [2, 253] | P0 | feature-007-F2 |
+| BC-2.14.004 | MBAP header rejected when Length is outside [2, 254] | P0 | feature-007-F2 |
 
 #### 2.14.B Function-Code Classification
 
@@ -1075,7 +1081,7 @@ PORT (Rust 2024 edition), SUP (MITRE version), COMPAT (pcap classic only).
 See `prd-supplements/nfr-catalog.md` for NFR-NNN entries with numerical targets.
 
 Known NFR violation: NFR-VIO-001 -- README's "multi-GB captures" claim is only accurate
-under matching RAM constraints (eager full-file load; O-01 context).
+under matching RAM constraints (eager full-file load).
 
 
 ## 5. Error Taxonomy
@@ -1487,7 +1493,7 @@ See `prd-supplements/error-taxonomy.md` for the complete E-xxx-NNN catalog.
 
 | Item | Description | Affected BCs |
 |------|-------------|--------------|
-| O-01 | Finding.timestamp always None; RawPacket timestamps never threaded to Finding constructors | BC-2.09.001, BC-2.09.006 |
+| ~~O-01~~ | ~~Finding.timestamp always None; RawPacket timestamps never threaded to Finding constructors~~ **[CLOSED — STORY-097/098/099; BC-2.04.054 retains timestamp:None by design]** | ~~BC-2.09.001, BC-2.09.006~~ |
 | O-02 | Absent User-Agent (None) intentionally not detected; only Some("") fires | BC-2.06.011 |
 | O-03 | Anomaly thresholds not empirically calibrated against labelled traffic | BC-2.04.019, BC-2.04.020, BC-2.04.021 |
 | O-04 | 8 MITRE techniques catalogued but never emitted (T1040, T1071, T1071.001, T1071.004, T1573, T1692.002, T0885, T0846; T1692.002 replaces revoked T0856 per ATT&CK-ICS v19 remap; T0846 seeded-not-emitted per Decision 12); T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 now emitted by Modbus analyzer (Feature #7); T1691.001/T0827 now emitted by DNP3 analyzer (Feature #8); T0830/T1557.002 now emitted by ARP analyzer (Feature #9); SEEDED=25, EMITTED=17, CATALOGUE-ONLY=8 | BC-2.10.005, BC-2.10.008 |

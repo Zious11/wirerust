@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3 (2026-05-28): F-W16-S042-P5-003 invariant-1 line-precise anchor prose added — shell_patterns array at http.rs:206-217; iter().any() guard at http.rs:218; finding push at http.rs:219-232; if-body closing `}` at http.rs:233. Matches precision of BC-2.06.005 v1.6. Verified against src/analyzer/http.rs:206-233. Closes F-W16-S042-P5-003 (006 direction). — 2026-05-28"
   - "v1.4 (2026-05-29): F-DRIFT2A-001 — fixed stale domain/capabilities/cap-06-http-analysis.md citation to domain/capabilities/cap-06-http-analysis.md in L2 Capability and Capability Anchor Justification rows."
+  - "v1.5 (2026-06-13): ARP-F2-Pass14-Burst5 — Postcondition 1 mitre_technique: Some(\"T1505.003\") → mitre_techniques: vec![\"T1505.003\"] (Finding struct field renamed to plural Vec<String>)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,7 +48,7 @@ Web Shell). The URI is included in the evidence without escaping (ADR 0003).
    - category: Execution
    - verdict: Likely
    - confidence: Medium
-   - mitre_technique: Some("T1505.003")
+   - mitre_techniques: vec!["T1505.003"]
    - summary: "Possible web shell access: <truncated URI (120 chars max)>"
    - evidence: vec!["URI: <raw URI>"]
    - direction: Some(Direction::ClientToServer)

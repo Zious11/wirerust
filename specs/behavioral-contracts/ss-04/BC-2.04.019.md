@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -19,6 +19,7 @@ modified:
   - "v1.4: W10-D3 fix — overlap if-block anchor corrected from 430-449 → 430-450 at all 3 sites (Traceability, Architecture Anchors, Source Evidence). The closing `}` of the if-block is at mod.rs:450, confirmed against source. — 2026-05-28"
   - "v1.5: F-DRIFT2A-001 — fixed stale domain/capabilities/cap-04-tcp-reassembly.md citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
   - "v1.6: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:430-450 → mod.rs:459-479 (overlap block); mod.rs:413-419 → mod.rs:442-448 (LESSON-P1.01 doc-comment). — 2026-06-01"
+  - "v1.7: ARP-F2 Pass-14 Burst 4 — Postconditions mitre_technique: Some(\"T1036\") → mitre_techniques: vec![\"T1036\"] (shipped Finding struct uses Vec<String>; ADR-006). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -55,7 +56,7 @@ separate, per-event mechanism. This threshold alert is a cumulative count-based 
    - category: Anomaly
    - verdict: Likely
    - confidence: Medium
-   - mitre_technique: Some("T1036")
+   - mitre_techniques: vec!["T1036"]
    - summary: "Excessive segment overlaps (N) on flow <key>"
    - direction: Some(dir)
 3. If `findings.len() >= MAX_FINDINGS`: `stats.dropped_findings` increments; no Finding pushed.

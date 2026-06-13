@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: 2026-05-26 | product-owner | Wave 10 STORY-017 pass-1 F-004 (anchor overshoot, DF-SIBLING-SWEEP-001): generate_conflicting_overlap_finding anchor lifecycle.rs:96-120 → :96-116 (closing brace at 116; lines 117-120 are blank + start of next function doc-comment). All 3 occurrences updated."
   - "v1.4: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:372-405 → mod.rs:401-434 (InsertResult match block); mod.rs:379-382 → mod.rs:408-411 (ConflictingOverlap arm). — 2026-06-01"
+  - "v1.5: ARP-F2 Pass-14 Burst 4 — Postconditions mitre_technique: Some(\"T1036\") → mitre_techniques: vec![\"T1036\"] (shipped Finding struct uses Vec<String>; ADR-006). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,7 +50,7 @@ such as segment-splicing and IDS bypass attempts.
    - category: Anomaly
    - verdict: Likely
    - confidence: High
-   - mitre_technique: Some("T1036")
+   - mitre_techniques: vec!["T1036"]
    - summary: contains the FlowKey display string (lower_ip:lower_port -> upper_ip:upper_port)
    - direction: None (reassembly-engine findings do not set direction)
 3. The original buffered bytes are NOT replaced; the conflicting new bytes are discarded.

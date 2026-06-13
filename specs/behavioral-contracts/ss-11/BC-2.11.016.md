@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: re-anchor Architecture-Anchor from legacy reporter_tests.rs to authoritative reporter_terminal_tests.rs mod story_078 formalization (F-W22-BC-ANCHOR) — 2026-05-31"
   - "v1.4: DF-SIBLING-SWEEP-001 — fix stale terminal.rs line anchors: MITRE expansion range 239-244 → 246-251 (fn render_finding_grouped body: match at 246-250, close at 252), em-dash literal :241 → :248; guard clause at :240 → :247; verified against HEAD cfe0112a — 2026-06-01"
+  - "v1.5: ARP-F2 Pass-14 Burst-7 — mitre_technique (singular) → mitre_techniques (Vec<String>) in Precondition 2, Postcondition 4, EC-003, and all three Canonical Test Vector rows. Shipped Finding struct uses Vec<String>; 'no MITRE line' condition is empty vec, not None. — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -37,7 +38,7 @@ render as `MITRE: <id> (unknown)`.
 ## Preconditions
 
 1. `TerminalReporter.show_mitre_grouping = true`.
-2. A finding has a `mitre_technique` set to a technique ID in the catalog.
+2. A finding has a non-empty `mitre_techniques` vec with at least one technique ID in the catalog.
 
 ## Postconditions
 
@@ -45,7 +46,7 @@ render as `MITRE: <id> (unknown)`.
    returned by `technique_name(id)`.
 2. The separator character is U+2014 (EM DASH), not two hyphens `--`.
 3. For unknown IDs, the line reads: `    MITRE: <id> (unknown)\n`.
-4. For `mitre_technique = None`, no MITRE line is rendered (not even "(unknown)").
+4. For `mitre_techniques = vec![]` (empty), no MITRE line is rendered (not even "(unknown)"). The key-absent-when-empty rule: `skip_serializing_if = Vec::is_empty` in the JSON path; no MITRE line in the terminal path.
 
 ## Invariants
 
@@ -60,16 +61,16 @@ render as `MITRE: <id> (unknown)`.
 |----|-------------|-------------------|
 | EC-001 | Known ID T1036 | "MITRE: T1036 \u{2014} Masquerading\n" (or whatever technique_name returns) |
 | EC-002 | Unknown ID T9999 | "MITRE: T9999 (unknown)\n" |
-| EC-003 | mitre_technique = None | No MITRE line |
+| EC-003 | mitre_techniques = vec![] (empty) | No MITRE line rendered for this finding |
 | EC-004 | Downstream grep for ASCII "--" separator | Will miss em-dash; must grep for U+2014 |
 
 ## Canonical Test Vectors
 
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| Finding with mitre_technique="T1036" in grouped mode | MITRE line contains U+2014 and technique name | happy-path |
-| Finding with mitre_technique="T9999" (unknown) | "MITRE: T9999 (unknown)" | happy-path |
-| Finding with mitre_technique=None in grouped mode | No MITRE line in output | edge-case |
+| Finding with mitre_techniques=["T1036"] in grouped mode | MITRE line contains U+2014 and technique name | happy-path |
+| Finding with mitre_techniques=["T9999"] (unknown) | "MITRE: T9999 (unknown)" | happy-path |
+| Finding with mitre_techniques=vec![] in grouped mode | No MITRE line in output | edge-case |
 
 ## Verification Properties
 

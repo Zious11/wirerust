@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.4"
+version: "2.5"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -29,6 +29,7 @@ modified:
   - "v2.2 (2026-06-10, Pass-2 remediation, issue #8 DNP3 F2): Updated catalog counts from 21/13 to 23/15. SEEDED_IDS: added T1691.001 and T0827 (ICS section now 12 entries); ICS comment updated 10→12. EMITTED_IDS: added T1691.001 and T0827 (now 15: 6 Enterprise + 9 ICS); comment updated. F4 Harness-Update Obligations table: Post-F2 expected SEEDED 21→23, EMITTED 13→15; positive-coverage obligation assertions updated to == 23 / == 15. Added Re-verification Obligation note: verification_lock must be broken and VP-007 re-proven in F6 against the post-F4 catalog containing T1691.001+T0827 (CC-002). Lock fields (verification_lock, proof_completed_date, proof_file_hash, verified_at_commit) and property statement are UNCHANGED — the lock itself is not broken until F6 re-run."
   - "v2.3 (2026-06-13, corpus-wide consistency audit remediation IR-1): F4 Harness-Update Obligations table extended with Post-ARP column (issue #9, STORY-114): SEEDED 23→25 (12 Enterprise + 13 ICS; +T0830 ICS LateralMovement, +T1557.002 Enterprise CredentialAccess); EMITTED 15→17 (7E+10I; +T0830+T1557.002). POL-11 positive-coverage obligation updated to assert ==25/==17. Re-verification Obligation section CC-003 added (ARP F2 issue #9, STORY-114). Lock fields and property statement UNCHANGED — lock broken + re-proven at STORY-114 F6 per CC-003."
   - "v2.4 (2026-06-13, Pass-12 corpus debt cleanup F-C-P12-001): Source Location line anchor corrected: 'src/mitre.rs:122-156' → 'src/mitre.rs:128-182'. Verified against live src/mitre.rs: pub fn technique_info at line 128; let info = match id { at line 129; _ => return None at line 179; closing }; of match at line 180; Some(info) at line 181; closing } of function at line 182. The prior range 122-156 was pre-F2 stale (technique_info was shorter before F2 Modbus/DNP3 arms were added). No proof-lock, property statement, or BC change."
+  - "v2.5 (2026-06-13, ARP-F2 Pass-14 PO Burst 2): Sub-property B text corrected: 'Finding.mitre_technique' (singular, stale) → 'Finding.mitre_techniques' (plural Vec<String> per ADR-006 Decision 13). Lines 27 and 258 (grep-pattern migration notes 'mitre_technique:Some → mitre_techniques:vec!') are HISTORY — preserved unchanged. Lock fields, property statement, and source BCs unchanged."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -63,7 +64,7 @@ sub-techniques.
 No other format is present in the static match.
 
 **Sub-property B (emitter-catalog completeness):** Every technique ID string that
-any analyzer places into `Finding.mitre_technique` is present in the static match
+any analyzer places into `Finding.mitre_techniques` is present in the static match
 in `technique_info`, such that `technique_name(id)` returns `Some(...)` and
 `technique_tactic(id)` returns `Some(...)` for that ID.
 

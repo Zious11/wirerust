@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: module-decomposition
 traces_to: ARCH-INDEX.md
-version: "1.4"
+version: "1.6"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -22,6 +22,12 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Corpus-wide consistency audit remediation (CD-6/CD-7): Component Inventory preamble updated to reflect current 24-component count including C-21 StreamDispatcher, C-22 ModbusAnalyzer, C-23 ArpAnalyzer, and C-24 Dnp3Analyzer; C-24 DNP3 analyzer row added (analyzer/dnp3.rs, SS-15, shipped v0.6.0; non-chronological C-ID documented)."
+  - date: 2026-06-13
+    actor: architect
+    reason: "ARP-F2 Pass-14 remediation (A-08/A-06): C-16 mitre.rs description extended with T0888 (Modbus recon emitter, ADR-005 D12) and T1691.001/T0827 (DNP3/STORY-109); seeded count 23/target 25 documented. C-22 modbus.rs findings list extended with T0888. Version bump 1.4→1.5."
+  - date: 2026-06-13
+    actor: architect
+    reason: "O-01 closure propagation: Architecture Debt by Component table row updated Open→CLOSED (21/22 sites wired STORY-097/098/099+STORY-102..110; BC-2.04.054 summary finding timestamp:None by design). Version bump 1.5→1.6."
 ---
 
 # Module Decomposition
@@ -67,9 +73,9 @@ All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by 
 | C-12 | src/analyzer/http.rs | SS-06 | `HttpAnalyzer`: `StreamAnalyzer`; HTTP/1.x request+response parse; 8 finding types; poison logic | Pure core |
 | C-13 | src/analyzer/tls.rs | SS-07 | `TlsAnalyzer`: `StreamAnalyzer`; ClientHello/ServerHello; JA3/JA3S; SNI 4-way; weak cipher; deprecated protocol | Pure core |
 | C-14 | src/findings.rs | SS-09 | `Finding`, `Verdict`, `Confidence`, `ThreatCategory`; `#[derive(Serialize)]`; `Display` impls | Pure (data model) |
-| C-16 | src/mitre.rs | SS-10 | `MitreTactic` enum; `MitreMatrix` enum (Enterprise/Ics); `technique_info` static match; `technique_name`, `technique_tactic`, `technique_matrix`, `all_tactics_in_report_order` — extended with T0836/T0814/T0806/T0835/T0831 for SS-14 | Pure core |
+| C-16 | src/mitre.rs | SS-10 | `MitreTactic` enum; `MitreMatrix` enum (Enterprise/Ics); `technique_info` static match; `technique_name`, `technique_tactic`, `technique_matrix`, `all_tactics_in_report_order` — extended with T0836/T0814/T0806/T0835/T0831/T0888 for SS-14 and T1691.001/T0827 for SS-15 (STORY-109); 23 SEEDED IDs (target: 25 when ARP ships) | Pure core |
 | C-17 | src/summary.rs | SS-12 | `Summary`: per-packet accumulator; `ingest`, `unique_hosts`, serialization | Pure core |
-| C-22 | src/analyzer/modbus.rs | SS-14 | `ModbusAnalyzer`: `StreamHandler` + `StreamAnalyzer`; per-flow `HashMap<FlowKey, ModbusFlowState>`; MBAP parse + 3-point validity gate; function-code classification; transaction correlation table; write-burst rate detection; findings for T1692.001/T0836/T0814/T0806/T0835/T0831 | Pure core |
+| C-22 | src/analyzer/modbus.rs | SS-14 | `ModbusAnalyzer`: `StreamHandler` + `StreamAnalyzer`; per-flow `HashMap<FlowKey, ModbusFlowState>`; MBAP parse + 3-point validity gate; function-code classification; transaction correlation table; write-burst rate detection; findings for T1692.001/T0836/T0814/T0806/T0835/T0831/T0888 (T0888 = recon FC 0x11/0x12/0x2B, Remote System Information Discovery; ADR-005 D12) | Pure core |
 | C-23 | src/analyzer/arp.rs | SS-16 | `ArpAnalyzer`: direct `process_arp(&ArpFrame)` method (not ProtocolAnalyzer/StreamAnalyzer); binding table (HashMap<[u8;4], BindingEntry>, LRU-bounded); D1 spoof, D2 GARP, D3 storm, D11 malformed, D12 L2/L3 mismatch detection; T0830+T1557.002 findings (ADR-008) | Pure core |
 | C-24 | src/analyzer/dnp3.rs | SS-15 | `Dnp3Analyzer`: `StreamHandler`; carry-buffer + CRC-block-skip parse; FIR=1-only app-layer extract; function-code classification; ICS MITRE findings T1691.001/T0827/T0836/T0814; per-flow master-address tracking (MAX_MASTER_ADDRS); VP-023 Kani obligation (ADR-007). **Note — non-chronological C-ID:** DNP3 shipped before ARP (v0.6.0 vs v0.7.0-planned) but C-IDs are assigned by factory-registration order; C-22 (Modbus) and C-23 (ARP) were registered first. DNP3 receives C-24 by registration sequence, not deployment sequence. Do not renumber C-23 — it is cited in arp-architecture-delta, ARCH-INDEX, module-criticality, and BC-INDEX. | Pure core |
 
@@ -93,5 +99,5 @@ All 20 components from the ingestion pass plus C-21 (StreamDispatcher, added by 
 | Smell #6: StreamDispatcher pub field exposure | C-21 | Low severity; unchanged |
 | Smell #7: pcap_file::DataLink leaks across crate boundary | C-5 | Low severity; unchanged |
 | Smell #10: Loose TLS gate (data[2] unchecked) | C-21 (classify function) | Theoretical; no test exercises misroute |
-| O-01: Finding.timestamp universally None | C-12, C-13, C-6, C-15 | Open; medium severity |
+| O-01: Finding.timestamp universally None | C-12, C-13, C-6, C-15 | CLOSED (21/22 sites wired; BC-2.04.054 summary finding timestamp:None by design — STORY-097/098/099 + STORY-102..110) |
 | O-06: Weak-cipher evidence vec unbounded | C-13 | Open; NFR-RES-023 |

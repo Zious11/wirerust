@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: F-W16-WAVE-P1-001 — update Verification Properties + Architecture Anchors to renamed STORY-043 formalization tests (test_BC_2_06_009_detect_missing_host_header, test_BC_2_06_009_detect_empty_host_header); Evidence Types legacy citation intentionally preserved — 2026-05-28"
+  - "v1.4 (2026-06-13): ARP-F2-Pass14-Burst5 — Postcondition 1 mitre_technique: None → mitre_techniques: vec![]; Invariant 3 prose updated to match plural field name (Finding struct field renamed to plural Vec<String>)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,7 +49,7 @@ PR #71 which closed the empty-value evasion lane.
    - category: Anomaly
    - verdict: Inconclusive
    - confidence: Medium
-   - mitre_technique: None
+   - mitre_techniques: vec![]
    - summary: either "HTTP/1.1 request without Host header" (absent) or
      "HTTP/1.1 request with empty Host header" (present-empty)
    - evidence: vec!["<method> <uri>"]
@@ -61,7 +62,7 @@ PR #71 which closed the empty-value evasion lane.
 1. The `version` field from httparse is 0 for HTTP/1.0, 1 for HTTP/1.1.
 2. `find_header` already trims whitespace; `Host:   \r\n` (whitespace-only value) produces
    `Some("")` and triggers the empty-host finding.
-3. `mitre_technique` is `None` for this finding.
+3. `mitre_techniques` is `vec![]` for this finding.
 4. Both cases are RFC non-compliant per RFC 7230 section 5.4 (and RFC 9112 section 3.2).
 
 ## Edge Cases

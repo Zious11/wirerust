@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -20,6 +20,7 @@ modified:
   - "v1.5: Wave 16 Pass-4 (F-W16-S042-P4-001) — correct factually wrong brace-prose in invariant 1: 191 is the opening brace `{` of the if-body (not the closing brace); closing brace is at line 203 — 2026-05-28"
   - "v1.6: F-W16-S042-P5-001 finding-push anchor fix — corrected stale `192-202` to `192-203` in Architecture Anchor (finding-push block closes at line 203); corrected `186-202` to `186-203` in Architecture Module. Verified against src/analyzer/http.rs:192-203. Closes F-W16-S042-P5-001. — 2026-05-28"
   - "v1.7 (2026-05-29): F-DRIFT2A-001 — fixed stale domain/capabilities/cap-06-http-analysis.md citation to domain/capabilities/cap-06-http-analysis.md in L2 Capability and Capability Anchor Justification rows."
+  - "v1.8 (2026-06-13): ARP-F2-Pass14-Burst5 — Postcondition 1 mitre_technique: Some(\"T1083\") → mitre_techniques: vec![\"T1083\"] (Finding struct field renamed to plural Vec<String>)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,7 +50,7 @@ preserved in the finding evidence without escaping (ADR 0003).
    - category: Reconnaissance
    - verdict: Likely
    - confidence: High
-   - mitre_technique: Some("T1083")
+   - mitre_techniques: vec!["T1083"]
    - summary: `format!("Path traversal in URI: {}", truncate_uri(&parsed.uri, 120))` (URI truncated to 120 chars in summary)
    - evidence: `vec![format!("URI: {}", parsed.uri)]` (full raw URI, NO truncation in evidence)
    - direction: Some(Direction::ClientToServer)

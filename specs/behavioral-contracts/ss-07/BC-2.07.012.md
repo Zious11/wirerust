@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: tls-parser-0.12 reachability correction (F-S054-P1-002) — 2026-05-29: SSL 2.0 and sub-0x0200 ServerHello version_name arms are defensive/unreachable under tls-parser 0.12; pin test documented"
   - "v1.4: reconcile pin-test rename (ec004_ec005) + correct BC-2.07.011 EC cross-ref (EC-001/EC-003, not EC-006/EC-007) — F-S054-P3-001 — 2026-05-29"
+  - "v1.5: mitre_technique: None → mitre_techniques: vec![] in Postconditions (ARP-F2 P14 B6) — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -60,7 +61,7 @@ and sub-0x0200 ClientHello records, so those arms ARE reachable client-side.
    - confidence: High
    - summary: "ServerHello negotiated deprecated protocol ({version_name}, RFC 7568 prohibits SSLv3)"
    - evidence: ["Version: 0x{version:04x} ({version_name})"]
-   - mitre_technique: None
+   - mitre_techniques: vec![]
    - source_ip: None
    - timestamp: None
    - direction: Some(Direction::ServerToClient)

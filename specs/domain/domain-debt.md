@@ -4,11 +4,14 @@ traces_to: domain-spec.md
 title: Known Limitations and Domain Debt
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
-version: "1.1"
+version: "1.2"
 modified:
   - date: 2026-06-10
     actor: architect
     reason: "O-04 staged IDs: remove T0855 (now T1692.001, emitted) and T0856 (now T1692.002, still staged); update staged list and catalog count to reflect F2 Modbus expansion (issue #222)."
+  - date: 2026-06-13
+    actor: product-owner
+    reason: "ARP-F2 Pass-14 remediation C-04: O-01 moved to RETIRED section — STORY-097 (thread capture-relative timestamp through StreamHandler::on_data), STORY-098, and STORY-099 wired timestamp at all http.rs/tls.rs/reassembly emission sites; STORY-102..110 wired timestamp in modbus/dnp3 analyzers. O-01 is fully resolved (Option A completed). Version 1.1→1.2."
 ---
 
 # Known Limitations / Domain Debt
@@ -42,32 +45,12 @@ of develop today.
 | D-16 | 8 of 14 pcap test fixtures unused | #86: tests/fixtures/README.md added; nfs_bad_stalls.cap re-added (#90) |
 | D-17 | Zero //! module headers in 19 of 20 modules | #75: //! headers on all 20 modules; #![warn(missing_docs)] added |
 | D-07 (partial) | Anomaly thresholds unjustified round numbers | #88/#92/#93/#96: thresholds moved to ReassemblyConfig fields, CLI-overridable, research-documented |
+| O-01 | Finding.timestamp universally None (forensic gap) | STORY-097 (thread capture-relative timestamp through StreamHandler::on_data) + STORY-098/099 wired http/tls/reassembly; STORY-102..110 wired modbus/dnp3. Option A fully complete. |
 
 
 ---
 
 ## OPEN ITEMS (genuine debt on develop today)
-
-### O-01: Finding.timestamp is Universally None (forensic gap)
-
-**What exists:** All Finding emission sites in src/ set `timestamp: None`.
-`RawPacket.timestamp_secs: u32` is read from the pcap header and threaded through
-`process_packet(packet, timestamp, handler)`, but is never consumed by any Finding
-constructor. The `direction` field (P2.08, #77) and JSON Option symmetry (P1.02, #73)
-were both wired; timestamp wiring was not part of the remediation cycle.
-
-**Observable consequence:** Forensic findings carry no time provenance. SIEM consumers
-cannot correlate a Finding with the originating pcap moment.
-
-**Source locations:** All emission sites across `src/analyzer/http.rs`,
-`src/analyzer/tls.rs`, `src/reassembly/mod.rs`, and `src/reassembly/lifecycle.rs`.
-
-**Engineering decision still open:** Option A (wire it; ~M cost: thread timestamp through
-StreamHandler::on_data signature, update ~all emission sites) vs. Option B (deprecate the
-field and drop the chrono dep). Option A is recommended (pass-4 R2 Target 6).
-
-**References:** Original D-03; pass-4 R2 Target 6.
-
 
 ### O-02: Absent User-Agent Intentionally Not Detected (documented asymmetry)
 

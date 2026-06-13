@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.1"
+version: "2.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -20,6 +20,9 @@ modified:
   - version: "2.1"
     date: 2026-06-10
     change: "v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. T0855 references in Invariant 9 updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md."
+  - version: "2.2"
+    date: 2026-06-13
+    change: "ARP-F2 Pass-14 Burst-3 (B-03/B-04): Invariant 6 SEEDED/EMITTED counts updated from Decision-12-era '21 total'/'13 total, 7 ICS' to canonical 'SEEDED 25 / EMITTED 17 (7 Enterprise + 10 ICS)' with forward-declaration note (current src 23/15, target 25/17 via STORY-114) matching BC-2.10.005/008 phrasing. Source Evidence path for architecture-delta.md §4.3 annotated as Decision-12-era counts (superseded by 25/17 after ARP feature). Historical §12.3 label preserved."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -149,8 +152,9 @@ Exception FCs (>= 0x80) are handled by BC-2.14.007 / BC-2.14.019.
    address-sweep / arp-scan detector). No Modbus BC emits `T0846`. Using T0846 for recon FCs
    was a documented misattribution corrected by Decision 12.
 6. **T0888 is a new seeded and emitted technique.** It must be present in both
-   `SEEDED_TECHNIQUE_IDS` (21 total) and `EMITTED_IDS` (13 total, 7 ICS) after the F2
-   feature commit. See f2-fix-directives.md §12.2 and §12.3 for authoritative counts.
+   `SEEDED_TECHNIQUE_IDS` (25 total) and `EMITTED_IDS` (17 total; 7 Enterprise + 10 ICS) after the F2
+   feature commit. See f2-fix-directives.md §12.2 and §12.3 for authoritative Decision-12 counts;
+   canonical counts are SEEDED 25 / EMITTED 17 (current src 23/15 — STORY-114 raises to 25/17).
 7. **`mitre_techniques` field** (plural, `Vec<String>`) per ADR-006. Empty vec for no-technique
    findings; `vec!["T0888"]` for recon-path findings.
 8. **No deduplication**: unknown FC and recon FC anomalies are emitted on every occurrence.
@@ -235,7 +239,7 @@ TBD (F3 story decomposition)
 
 | Property | Value |
 |----------|-------|
-| **Path** | f2-fix-directives.md §12 (Decision 12: T0846→T0888 correctness fix; §12.1 current state; §12.2 corrected technique_info arms; §12.3 corrected MITRE counts); architecture-delta.md §4.2 (T0888 new arm; T0846 non-emitted note); architecture-delta.md §4.3 (corrected SEEDED=21, EMITTED=13 counts) |
+| **Path** | f2-fix-directives.md §12 (Decision 12: T0846→T0888 correctness fix; §12.1 current state; §12.2 corrected technique_info arms; §12.3 Decision-12-era MITRE counts); architecture-delta.md §4.2 (T0888 new arm; T0846 non-emitted note); architecture-delta.md §4.3 (Decision-12-era counts SEEDED=21, EMITTED=13 — these are the counts at the time of Decision 12; canonical counts after ARP feature are SEEDED=25/EMITTED=17 per BC-2.10.005/008; current src 23/15, target 25/17 via STORY-114) |
 | **Confidence** | high |
 | **Extraction Date** | 2026-06-09 |
 

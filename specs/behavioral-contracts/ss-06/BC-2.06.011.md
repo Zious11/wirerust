@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: F-W16-WAVE-P1-001 — update Verification Properties + Architecture Anchors to renamed STORY-043 formalization tests (test_BC_2_06_011_detect_empty_user_agent, test_BC_2_06_011_missing_user_agent_no_finding); Evidence Types legacy citations intentionally preserved — 2026-05-28"
+  - "v1.4 (2026-06-13): ARP-F2-Pass14-Burst5 — Postcondition 1 mitre_technique: None → mitre_techniques: vec![]; Invariant 3 prose updated to match plural field name (Finding struct field renamed to plural Vec<String>)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -46,7 +47,7 @@ is routine for cron jobs and microservices. No MITRE technique ID is assigned.
    - category: Anomaly
    - verdict: Inconclusive
    - confidence: Low
-   - mitre_technique: None
+   - mitre_techniques: vec![]
    - summary: "Empty User-Agent header"
    - evidence: vec!["<method> <uri>"]
    - direction: Some(Direction::ClientToServer)
@@ -56,7 +57,7 @@ is routine for cron jobs and microservices. No MITRE technique ID is assigned.
 
 1. `find_header` returns `Some("")` for `User-Agent: \r\n` (whitespace only, after trim).
 2. Absent header -> `None` -> no finding. This is the intentional design per domain-debt O-02.
-3. `mitre_technique` is `None` for this finding.
+3. `mitre_techniques` is `vec![]` for this finding.
 4. The asymmetry is documented in the source and is NOT a defect; it is a deliberate policy.
 
 ## Edge Cases

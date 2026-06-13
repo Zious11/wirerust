@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -13,7 +13,9 @@ subsystem: SS-07
 capability: CAP-07
 lifecycle_status: active
 introduced: v0.1.0-brownfield
-modified: ["v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"]
+modified:
+  - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3: mitre_technique: None → mitre_techniques: vec![] in Postconditions (ARP-F2 P14 B6) — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -47,7 +49,7 @@ cipher, a single `Anomaly/Likely/Medium` finding is pushed. The confidence is Me
    - confidence: Medium
    - summary: format "ServerHello selected weak cipher suite ({name})"
    - evidence: ["Selected cipher: {name} (0x{id:04x})"]
-   - mitre_technique: None
+   - mitre_techniques: vec![]
    - source_ip: None
    - timestamp: None
    - direction: Some(Direction::ServerToClient)

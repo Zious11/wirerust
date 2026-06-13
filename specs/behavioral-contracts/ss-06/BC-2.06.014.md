@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.1.0-brownfield
 modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
+  - "v1.3 (2026-06-13): ARP-F2-Pass14-Burst5 — Postcondition 1 mitre_technique: Some(\"T1499.002\") → mitre_techniques: vec![\"T1499.002\"] (Finding struct field renamed to plural Vec<String>)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -46,7 +47,7 @@ determines whether the evidence cites "request" or "response". The error also in
    - category: Anomaly
    - verdict: Inconclusive
    - confidence: Medium
-   - mitre_technique: Some("T1499.002")
+   - mitre_techniques: vec!["T1499.002"]
    - summary: "Excessive HTTP headers exceeded parser limit (possible DoS or header-based attack)"
    - evidence: vec!["Direction: request"] or vec!["Direction: response"]
    - direction: Some(Direction::ClientToServer) or Some(Direction::ServerToClient)

@@ -1,7 +1,7 @@
 ---
 document_type: prd-supplement-interface-definitions
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -228,10 +228,13 @@ which calls `serde_json::to_string_pretty`. The output is a single JSON object.
             "items": { "type": "string" },
             "description": "Raw (unescaped) supporting evidence lines. Same escaping contract as summary."
           },
-          "mitre_technique": {
-            "type": "string",
-            "description": "MITRE ATT&CK technique ID (e.g. T1027). Present only when a clean mapping exists; omitted entirely when None (not null).",
-            "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$"
+          "mitre_techniques": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$"
+            },
+            "description": "MITRE ATT&CK technique IDs; omitted entirely when empty (skip_serializing_if = Vec::is_empty), never null. Singleton vec produces a JSON array [\"TXXXX\"]; co-attribution produces multi-element array."
           },
           "source_ip": {
             "type": "string",
@@ -240,7 +243,7 @@ which calls `serde_json::to_string_pretty`. The output is a single JSON object.
           "timestamp": {
             "type": "string",
             "format": "date-time",
-            "description": "Packet-derived timestamp. Omitted when None. IMPORTANT: currently always absent (domain-debt O-01); all emission sites set timestamp: None."
+            "description": "Packet-derived timestamp in RFC 3339 format. Present when the emission site populates it; omitted when None (skip_serializing_if = Option::is_none). Domain-debt O-01 is CLOSED; timestamp is wired at applicable emission sites (STORY-097/098/099). Downstream consumers must handle key-absent rather than key-present-but-null."
           },
           "direction": {
             "type": "string",
@@ -347,15 +350,18 @@ Note: `packets_analyzed` on the TLS summary object equals `handshakes_seen` (Cli
 
 ### JSON Option Field Serialization Contract
 
-All three `Option<_>` fields on `Finding` use `#[serde(skip_serializing_if = "Option::is_none")]`:
-- `mitre_technique: Option<String>` -- omitted when None; present as string when Some
-- `source_ip: Option<IpAddr>` -- omitted when None; present as string when Some
-- `timestamp: Option<DateTime<Utc>>` -- omitted when None (always None today per O-01)
-- `direction: Option<Direction>` -- omitted when None
+`Finding` has one `Vec<String>` field using `#[serde(skip_serializing_if = "Vec::is_empty")]`
+and three `Option<_>` fields each using `#[serde(skip_serializing_if = "Option::is_none")]`:
+- `mitre_techniques: Vec<String>` -- omitted when empty (skip_serializing_if = Vec::is_empty); present as a JSON array of technique-ID strings when non-empty (src/findings.rs:148-149)
+- `source_ip: Option<IpAddr>` -- omitted when None; present as string when Some (src/findings.rs:150-151)
+- `timestamp: Option<DateTime<Utc>>` -- omitted when None; present as RFC 3339 string when Some; O-01 CLOSED, wired in STORY-097/098/099 (src/findings.rs:152-153)
+- `direction: Option<Direction>` -- omitted when None; present as enum variant string when Some (src/findings.rs:160-161)
 
 Downstream consumers MUST handle key-absent rather than key-present-but-null for all four
-fields. This is a symmetric contract (all four use skip_serializing_if). Per NFR-OBS-010 /
-LESSON-P1.02, the asymmetry present in earlier revisions has been corrected.
+fields. The scalar `mitre_technique: Option<String>` field is removed (ADR-006 Decision 13,
+STORY-100 AC-008). Per NFR-OBS-010 / LESSON-P1.02, the asymmetry present in earlier
+revisions has been corrected. The Vec field uses a distinct skip predicate (Vec::is_empty)
+while the three Option fields use Option::is_none.
 
 
 ## Config File Schema

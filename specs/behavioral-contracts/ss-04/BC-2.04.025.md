@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.3: W11-D1 fix — replaced bare `—` VP placeholders with explicit N/A markers. No VP in VP-INDEX covers the segment-limit summary finding specifically; VP-003 covers the MAX_FINDINGS cap property on different BCs (024, 054). — 2026-05-28"
   - "v1.4: F-DRIFT2A-001 — fixed stale domain/capabilities/cap-04-tcp-reassembly.md citation to domain/capabilities/cap-04-tcp-reassembly.md in L2 Capability and Capability Anchor Justification rows. — 2026-05-29"
   - "v1.5: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:571-590 → mod.rs:629-647 (segment-limit block in finalize). plural_s at mod.rs:66-68 is above insertion point and remains correct. — 2026-06-01"
+  - "v1.6: ARP-F2 Pass-14 Burst 4 — Postconditions mitre_technique: None → mitre_techniques: vec![] (shipped Finding struct uses Vec<String>; ADR-006). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,7 +49,7 @@ no direction, and no MITRE technique.
    - category: Anomaly
    - verdict: Inconclusive
    - confidence: Medium
-   - mitre_technique: None
+   - mitre_techniques: vec![]
    - summary: "N segment[s] dropped due to per-flow segment count limit"
      (singular if N==1: "1 segment dropped...", plural otherwise: "N segments dropped...")
    - evidence: ["Segment count limit prevents BTreeMap overhead explosion",

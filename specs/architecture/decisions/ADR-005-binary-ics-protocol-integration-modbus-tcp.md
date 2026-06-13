@@ -11,6 +11,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-12 corpus debt cleanup (F-5/OBS-1): status proposed→accepted. src/analyzer/modbus.rs, DispatchTarget::Modbus, and mitre_techniques: Vec<String> are all shipped. Partial-supersession note: ADR-006 supersedes the mitre_technique: Option<String> field referenced in Decisions 4 and Consequences (multi-technique attribution); this is an intentional partial supersession and does not warrant a full superseded_by link because ADR-005's core decisions (port classification, PDU parsing, transaction correlation, ICS matrix) remain authoritative and unaffected. The superseded_by field therefore remains null; the partial-supersession scope is documented in the ADR-005 body preamble."
+  - date: 2026-06-13
+    actor: architect
+    reason: "ARP-F2 Pass-14 remediation (D-OBS-01): Decision 1 prose corrected 'Length in [2, 253]' → 'Length in [2, 254]' to match canonical BC-2.14.004 / VP-022:117 / BC-INDEX:344. Rationale: Modbus TCP Length field covers UnitID(1)+PDU(up to 253 bytes FC+data) = 254 maximum; 253 was the incorrect pre-v0.5 value from an early draft."
 subsystems_affected:
   - SS-05
   - SS-10
@@ -102,7 +105,7 @@ We will integrate Modbus TCP analysis via four coordinated decisions:
    The VP-004 `classify_oracle` Kani harness is extended with an identical port-502 arm so
    formal correctness of the precedence ladder is preserved. The absence of a content-level
    fingerprint is explicitly recorded here and mitigated by the three-point post-parse validity
-   gate in `ModbusAnalyzer::on_data`: Protocol ID == `0x0000` AND Length in [2, 253] AND
+   gate in `ModbusAnalyzer::on_data`: Protocol ID == `0x0000` AND Length in [2, 254] AND
    Function Code is a recognized or plausible code. ADUs failing the gate are skipped without
    emitting Modbus findings, preventing misclassification of non-Modbus traffic on port 502.
 

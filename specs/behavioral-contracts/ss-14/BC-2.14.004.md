@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -13,7 +13,10 @@ subsystem: SS-14
 capability: CAP-14
 lifecycle_status: active
 introduced: v0.3.0-feature-007
-modified: []
+modified:
+  - version: "1.1"
+    date: 2026-06-13
+    change: "ARP-F2 Pass-14 Burst-3 (D-01): Source Evidence Path annotation corrected: modbus-tcp-research.md §1 reference text was '[2,253]' — updated to '[2,254]' to match the H1 title, Confidence note, and spec-defined range (UnitID(1)+PDU(253)=254). H1 unchanged (already correct)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -185,7 +188,7 @@ TBD (F3 story decomposition)
 
 | Property | Value |
 |----------|-------|
-| **Path** | architecture-delta.md §2.4; modbus-tcp-research.md §1 (Length range [2,253], spec V1.1b3 ADU bounds); modbus-tcp-research.md §1 point 1 (Broadcom ASID 20676 flags >260-byte frames) |
+| **Path** | architecture-delta.md §2.4; modbus-tcp-research.md §1 (Length range [2,254], spec V1.1b3 ADU bounds); modbus-tcp-research.md §1 point 1 (Broadcom ASID 20676 flags >260-byte frames) |
 | **Confidence** | high — [2, 254] range is spec-defined; PDU max = 253 bytes (FC+data), Length = UnitID(1)+PDU(253) = 254; V1.1b3 harmonized PDU max from 249 to 253 bytes |
 | **Extraction Date** | 2026-06-09 |
 

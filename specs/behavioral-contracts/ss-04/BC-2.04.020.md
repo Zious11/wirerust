@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v0.1.0: VP back-reference back-fill (P8-DEFER) — 2026-05-21"
   - "v1.3: 2026-05-26 | product-owner | Wave 10 STORY-017 pass-1 F-005 (wrong field range): small_segment_ignore_ports anchor config.rs:62-104 → :90-104 (line 62 is in small_segment_alert_threshold doc-comment; ignore_ports doc-comment starts at 90, declaration at 104)."
   - "v1.4: DF-SIBLING-SWEEP-001 HS-043 re-anchor: mod.rs:457-488 → mod.rs:486-517 (small-segment threshold block); mod.rs:356-370 → mod.rs:385-399 (small_segment_run counter maintenance). — 2026-06-01"
+  - "v1.5: ARP-F2 Pass-14 Burst 4 — Postconditions mitre_technique: None → mitre_techniques: vec![] (shipped Finding struct uses Vec<String>; ADR-006). — 2026-06-13"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,7 +50,7 @@ counter, not a cumulative count -- a normal-sized segment resets the run to zero
    - category: Anomaly
    - verdict: Inconclusive
    - confidence: Medium
-   - mitre_technique: None
+   - mitre_techniques: vec![]
    - summary: "Excessive consecutive small segments (N) on flow <key>"
 3. If at MAX_FINDINGS cap: `stats.dropped_findings` increments; no Finding pushed.
 
