@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F2-strict-whole-corpus-convergence
-phase_status: "0/3 — Pass 14 REMEDIATED; resume = Pass 15 (via agy/Gemini)"
+phase_status: "0/3 — Pass 15 (Claude) REMEDIATED; resume = Pass 16 (via agy, additional quota)"
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -39,8 +39,8 @@ dtu_clones_built: n/a
 dtu_services: []
 adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 3/3; ADVERSARY GATE SATISFIED
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
-arp_f2_adversary_convergence_counter: 0/3  # STRICT WHOLE-CORPUS mode — zero findings any severity across entire spec corpus required; Pass 14 NOT_CLEAN→REMEDIATED; 22 findings fixed + corpus-wide field-rename + O-01 closure swept; remediation does NOT advance counter; Pass 15 is next clean-streak attempt
-arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass) — 0/3 STRICT WHOLE-CORPUS; 14 passes; ARP delta SETTLED (clean 6 consecutive); trend BROKE P14 (2C+5H new corpus-debt); P14 REMEDIATED (architect ×2 + PO ×10 bursts + consistency audit CONSISTENT + O-01 closure sweep); next=Pass 15 via agy. Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
+arp_f2_adversary_convergence_counter: 0/3  # STRICT WHOLE-CORPUS mode — zero findings any severity across entire spec corpus required; P15 NOT_CLEAN→REMEDIATED (8 findings incl holdout-layer field-rename C-01..03 + inv-01 YAML regression C-04 + VP-024 scope A-01 + 3 more); remediation does not advance counter; Pass 16 via agy next
+arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED) — 0/3 STRICT WHOLE-CORPUS; 15 passes; P14 REMEDIATED; P15 REMEDIATED (8 findings: holdout-scenarios field-rename 16 files C-01/02/03 + inv-01 YAML regression + VP-024 scope + 3 more; consistency CONSISTENT 7 dims); next=Pass 16 via agy (additional quota). Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
 f7_convergence_trajectory: "6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM)"
 consistency_audit: CONSISTENT
 input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef956 / STORY-109 cf0bb94 re-stamped"
@@ -50,7 +50,7 @@ input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef95
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 spec evolution IN PROGRESS — adversarial convergence 0/3 STRICT WHOLE-CORPUS mode (human-elected 2026-06-13; 14 passes completed; ARP delta SETTLED clean 6 consecutive; Pass 14 REMEDIATED — 22 findings fixed: mitre_techniques field-rename corpus sweep + O-01 closure propagation + architect ×2 + PO ×10 bursts + consistency audit CONSISTENT; next = Pass 15 via agy/Gemini CLI).**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 spec evolution IN PROGRESS — adversarial convergence 0/3 STRICT WHOLE-CORPUS mode (human-elected 2026-06-13; 15 passes completed; Pass 15 REMEDIATED — 8 findings: holdout-scenarios field-rename sweep 16 files [C-01/02/03] + inv-01 YAML regression [C-04] + VP-024 scope [A-01] + 3 more; consistency CONSISTENT all 7 dims; next = Pass 16 via agy/Gemini CLI, additional quota provided).**
 
 **Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 268 BCs (244 pre-F2 + 24 SS-15), 23 VPs (22+VP-023 ALL LOCKED), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — est. 18-24 new BCs (SS-16), 1 revised BC, VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE T0830 (primary) + T1557.002 (secondary).
 
@@ -81,11 +81,11 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 | Release v0.6.0 | **RELEASED** 2026-06-12 | PR #234 (release/0.6.0 → main 3e29891); fixup fb3935c; tag v0.6.0; 4 binaries (release.yml); develop merge-back 04f8ccb |
 | Maintenance: Dependabot sweep (post-v0.6.0) | **COMPLETE** 2026-06-12 | 5 PRs merged (#203/#204/#207/#235/#206), 2 closed (#202 superseded, #205 deferred); develop 31d1231 |
 | Feature: ARP analyzer — F1 Delta Analysis | **PASSED** (human-gated 2026-06-12) | DecodedFrame{Ip,Arp} integration, ADR-008 planned, F2→F7 authorized; artifacts: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` |
-| Feature: ARP analyzer — F2 Spec Evolution | **IN PROGRESS** — adversarial convergence 0/3 STRICT WHOLE-CORPUS (human-elected 2026-06-13); Pass 14 REMEDIATED; next = Pass 15 via agy (Gemini CLI, cross-family) | 4-slice method; 14 passes; ARP delta SETTLED (clean 6 consecutive); P14 REMEDIATED (22 findings fixed: mitre_techniques field-rename corpus sweep + O-01 closure propagation + architect ×2 + PO ×10 bursts + consistency audit CONSISTENT); trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
+| Feature: ARP analyzer — F2 Spec Evolution | **IN PROGRESS** — adversarial convergence 0/3 STRICT WHOLE-CORPUS (human-elected 2026-06-13); Pass 15 REMEDIATED; next = Pass 16 via agy (Gemini CLI, cross-family, additional quota) | 4-slice method; 15 passes; ARP delta SETTLED (clean 6 consecutive); P14 REMEDIATED (22 findings: mitre_techniques field-rename corpus sweep + O-01 closure + architect ×2 + PO ×10); P15 REMEDIATED (8 findings: holdout-scenarios field-rename 16 files C-01/02/03 + inv-01 YAML regression C-04 + VP-024 scope A-01 + 3 more; consistency CONSISTENT 7 dims); trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
 
-## Session Resume Checkpoint (2026-06-13 — F2 STRICT WHOLE-CORPUS CONVERGENCE, Pass 14 REMEDIATED; next = Pass 15 via agy)
+## Session Resume Checkpoint (2026-06-13 — F2 STRICT WHOLE-CORPUS CONVERGENCE, Pass 15 REMEDIATED; next = Pass 16 via agy)
 
-**Previous checkpoint (2026-06-12 — F1 PASSED / F2 PENDING) archived to:
+**Previous checkpoint (2026-06-13 — Pass 14 REMEDIATED) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### POSITION
@@ -99,14 +99,16 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 - **F2 adversarial convergence:** STRICT WHOLE-CORPUS mode (human-elected 2026-06-13).
   Bar = 3 consecutive passes with ZERO findings of ANY severity, including LOW, across the
   ENTIRE spec corpus — not just the ARP delta. Counter **0/3**.
-- **14 adversarial passes + 1 corpus consistency audit run. Pass 14 REMEDIATED.**
-  22 findings fixed: mitre_techniques field-rename corpus sweep (STORY-100/ADR-006 singular→plural
-  propagated to all current-state snippets corpus-wide; history/migration prose preserved) +
-  O-01 closure propagation (domain-debt O-01 Finding.timestamp universally None framed as OPEN
-  swept to CLOSED in every doc; zero residual open-framed O-01 after sweep) + architect ×2 bursts
-  (Slice A 9 findings + D-OBS-01) + PO ×10 bursts (Slice B/C/D + corpus-wide sweeps) +
-  consistency audit CONSISTENT (5/6 dimensions; F1-F4 O-01 residuals found and fixed).
-  ARP delta clean 6th consecutive pass.
+- **15 adversarial passes + 1 corpus consistency audit run. Pass 15 REMEDIATED.**
+  Pass 14 (22 findings): mitre_techniques field-rename corpus sweep + O-01 closure propagation +
+  architect ×2 + PO ×10 + consistency audit CONSISTENT (7 dims). ARP delta clean 6th consecutive.
+  Pass 15 (8 findings): holdout-scenarios field-rename sweep [16 HS files; C-01/02/03 — sibling
+  layer MISSED by Pass-14 sweep] + inv-01 YAML duplicate `version:` key [C-04 regression] +
+  VP-024 BC-scope reconciliation [A-01] + BC-2.11.024 Evidence + BC-INDEX pin + interface-definitions.
+  Consistency audit CONSISTENT all 7 dimensions (including new holdout-scenarios field-rename
+  saturation dimension and inv-01 YAML structure dimension). Two process-gaps noted:
+  PG-ARP-F2-003 (holdout-scenarios must be in sweep perimeter) and PG-ARP-F2-004
+  (YAML frontmatter version bumps must replace-in-place, not append).
 
 ### VERIFIED SHAs (re-verify live on resume — do NOT trust as current-HEAD values)
 
@@ -138,11 +140,15 @@ remediation-churn residue. Trajectory decaying: corpus-audit 9 → P12 ~18 → P
 2. Read `STATE.md` (this file) + `.factory/phase-f5-adversarial/arp-f2-convergence-trajectory.md`
    (full per-pass history + current artifact versions table, post-Pass-14 remediation).
 3. Confirm develop==origin/develop, working tree clean, no open PRs.
-4. **Next action: whole-corpus Pass 15 via `agy` (Gemini CLI).**
+4. **Next action: whole-corpus Pass 16 via `agy` (Gemini CLI).**
    Run `agy` (/opt/homebrew/bin/agy, -p print mode) as cross-family adversary (Gemini model,
-   cognitive diversity per human directive 2026-06-13). Dispatch 4 FRESH-CONTEXT slices in
-   parallel, STRICT mode (report EVERY finding of ANY severity), each covering its whole-corpus
-   partition:
+   cognitive diversity per human directive 2026-06-13). Additional individual quota provided by
+   human (prior RESOURCE_EXHAUSTED 429 that blocked Pass 15 attempt reset ~5 days; Pass 15 was
+   run via Claude adversary per human fallback direction). Monitor for RESOURCE_EXHAUSTED; if
+   quota dies, fall back to Claude vsdd-factory:adversary as in Pass 15. Use step-budgeted
+   scoped calls (~40 planner steps per slice to avoid agentic cap). Dispatch 4 FRESH-CONTEXT
+   slices in parallel, STRICT mode (report EVERY finding of ANY severity), each covering its
+   whole-corpus partition:
    - **Slice A** = ALL architecture/ (ARCH-INDEX, module-decomposition, module-criticality,
      tooling-selection, dependency-graph, api-surface, purity-boundary-map,
      arp-architecture-delta, ADR-0001..0008) + ALL verification-properties/ (VP-INDEX,
@@ -285,6 +291,8 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | PG-F7-006 | Shipping a feature moves README planned→implemented + adds CHANGELOG Unreleased entry at delivery, not release scramble. Backing: lessons.md PG-F7-006. | DEFERRED — engine workflow note |
 | PG-F7-007 | Agents must check gh run list for in-flight tag-triggered workflows before reporting missing CI/release assets. Backing: lessons.md PG-F7-007. | DEFERRED LOW — engine devops checklist note |
 | DRIFT-ETHERPARSE-0.20-MIGRATION-001 | etherparse 0.20 adds Arp variants to NetSlice/LaxNetSlice/InternetSlice; non-exhaustive match at src/decoder.rs:210,232. Folded into ARP analyzer feature cycle (D-066, sub-delta A). | IN-PROGRESS — ARP feature cycle |
+| PG-ARP-F2-003 | Pass-14 field-rename sweep scoped to .factory/specs/ only — MISSED .factory/holdout-scenarios/ sibling layer; 16 HS files caught at Pass 15. DF-SIBLING-SWEEP must include holdout-scenarios in propagation perimeter for any Finding-schema change. | DEFERRED — policy codification |
+| PG-ARP-F2-004 | PO burst appended second `version:` YAML frontmatter key (inv-01) instead of replacing existing one, introducing malformed YAML caught at Pass 15 (C-04). Version bumps must replace-in-place; pre-commit dup-key lint recommended. | DEFERRED — policy codification |
 
 ## Deferred Next-Work Backlog
 

@@ -4,6 +4,13 @@ Evaluator: black-box holdout. Strict information asymmetry observed (src/, specs
 tests/*.rs, behavioral-contracts NOT read). Binary: target/debug/wirerust @ develop.
 Inputs: assigned HS files + README + `--help` + tests/fixtures/*.pcap (input data only).
 
+<!-- ERRATUM 2026-06-13 (Pass-15 H3): This file is a FROZEN HISTORICAL RUN-RECORD. References to
+     "mitre_technique absent/None" (HS-059 row) and "mitre_technique null" (HS-074 row) in the
+     per-scenario table reflect the pre-v0.3.0 Finding schema as evaluated at the time of this run.
+     The current Finding schema uses `mitre_techniques: Vec<String>` per ADR-006/STORY-100 (v0.3.0);
+     the key is absent when the Vec is empty (skip_serializing_if = "Vec::is_empty"). Historical
+     content is preserved verbatim; this note provides schema context only. -->
+
 ## Methodology constraint (load-bearing)
 No Write/Edit tool is available to this evaluator, and hand-crafting the bespoke
 TLS-handshake / pipelined-HTTP / control-byte-SNI byte streams these scenarios

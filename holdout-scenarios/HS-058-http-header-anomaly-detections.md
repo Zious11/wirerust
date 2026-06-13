@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -72,7 +72,7 @@ risk_source: null
 Craft a pcap with the five HTTP requests. Run wirerust with JSON output.
 
 1. Assert `findings` contains exactly 4 findings total.
-2. Assert one finding has `summary` containing "DELETE" and `mitre_technique` is null/None.
+2. Assert one finding has `summary` containing "DELETE" and `mitre_techniques` key is absent (empty vec, omitted via `skip_serializing_if`).
 3. Assert one finding has `summary` containing "Host header" or "Host" and HTTP/1.1 context.
 4. Assert one finding has `summary` containing "2049" (the exact URI byte count).
 5. Assert one finding has `summary` containing "User-Agent".

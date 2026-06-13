@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -63,7 +63,7 @@ risk_source: null
 
 Craft a pcap with an HTTP flow where the request direction sends three back-to-back 97-header requests. Run wirerust.
 
-1. Assert `findings` contains exactly 3 entries with `mitre_technique == "T1499.002"`.
+1. Assert `findings` contains exactly 3 entries whose `mitre_techniques` array contains "T1499.002" (i.e., `select(.mitre_techniques | index("T1499.002"))`).
 2. Assert each finding has `category == "Anomaly"`, `verdict == "Inconclusive"`, `confidence == "Medium"`.
 3. Assert each finding's `evidence` contains `"Direction: request"` as a plain string.
 4. Assert `analyzers[HTTP].detail.parse_errors >= 3`.

@@ -4,6 +4,7 @@
 - Binary: `target/debug/wirerust` built at develop (`cargo build` clean)
 - Method: real binary run against crafted/fixture pcaps; observed stdout/stderr/exit codes/JSON only.
 - Date: 2026-06-01
+- erratum: 2026-06-13 (Pass-15 H3) — This file is a FROZEN HISTORICAL RUN-RECORD of the evaluation conducted on 2026-06-01. References to the scalar `mitre_technique` field in the per-scenario table (HS-007, HS-016, HS-017 rows) reflect the pre-v0.3.0 Finding schema as evaluated at that time. The current Finding schema uses `mitre_techniques: Vec<String>` per ADR-006/STORY-100 (v0.3.0). Historical content is preserved verbatim; this note provides schema context only.
 
 ## Per-Scenario Results
 

@@ -1,7 +1,7 @@
 ---
 document_type: prd-supplement-interface-definitions
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-20T00:00:00Z
@@ -358,10 +358,12 @@ and three `Option<_>` fields each using `#[serde(skip_serializing_if = "Option::
 - `direction: Option<Direction>` -- omitted when None; present as enum variant string when Some (src/findings.rs:160-161)
 
 Downstream consumers MUST handle key-absent rather than key-present-but-null for all four
-fields. The scalar `mitre_technique: Option<String>` field is removed (ADR-006 Decision 13,
-STORY-100 AC-008). Per NFR-OBS-010 / LESSON-P1.02, the asymmetry present in earlier
-revisions has been corrected. The Vec field uses a distinct skip predicate (Vec::is_empty)
-while the three Option fields use Option::is_none.
+optional-presence fields -- `mitre_techniques` (omitted when empty via Vec::is_empty) and
+the three Option fields `source_ip`/`timestamp`/`direction` (omitted when None via
+Option::is_none). The scalar `mitre_technique: Option<String>` field is removed (ADR-006
+Decision 13, STORY-100 AC-008). Per NFR-OBS-010 / LESSON-P1.02, the asymmetry present in
+earlier revisions has been corrected. The Vec field uses a distinct skip predicate
+(Vec::is_empty) while the three Option fields use Option::is_none.
 
 
 ## Config File Schema

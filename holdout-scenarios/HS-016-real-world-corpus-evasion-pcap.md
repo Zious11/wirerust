@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -86,11 +86,11 @@ Download from NETRESEC publicly available PCAPs or Wireshark captures:
   ```
 
 ```
-wirerust analyze --output-format json tcp_evasion.pcap | jq '.findings[] | select(.mitre_technique_id == "T1036")'
+wirerust analyze --output-format json tcp_evasion.pcap | jq '.findings[] | select(.mitre_techniques // [] | index("T1036"))'
 ```
 
 Expect: at least one finding with category=Anomaly, verdict=Likely, confidence=High, and
-mitre_technique_id=T1036. The `evidence` field must be present and non-empty; its specific
+mitre_techniques containing "T1036". The `evidence` field must be present and non-empty; its specific
 content (raw bytes vs. description string) is NOT checked by this scenario.
 
 | Field | Description |
@@ -105,7 +105,7 @@ content (raw bytes vs. description string) is NOT checked by this scenario.
 
 - **Functional correctness** (weight: 0.7): T1036 finding is emitted for conflicting TCP
   overlap; finding has correct verdict (Likely), confidence (High), category (Anomaly), and
-  mitre_technique_id (T1036).
+  mitre_techniques containing "T1036".
 - **Edge case handling** (weight: 0.2): Multiple conflicting segments in one flow produce
   findings (up to threshold), not just the first one. Exact-duplicate retransmissions do NOT
   emit a T1036 finding (only genuinely different bytes trigger the conflict finding).

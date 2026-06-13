@@ -14,6 +14,346 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-15-h3-eval-erratum-2026-06-13] — 2026-06-13
+
+### ERRATUM: Pass-15 C-01 Burst H3 — Frozen Evaluation Records (chunk1-eval.md, chunk3-eval.md)
+
+**Summary:** Pass-15 C-01 burst H3 of 3. Assessed two holdout EVALUATION-RESULT files for
+stale singular `mitre_technique` references. Both files were classified as FROZEN HISTORICAL
+RUN-RECORDS and treated with erratum notes rather than in-place field fixes.
+
+**Shipped truth (unchanged):** `mitre_techniques: Vec<String>` per ADR-006/STORY-100 (v0.3.0);
+scalar `mitre_technique` removed. Key is absent when Vec is empty
+(`skip_serializing_if = "Vec::is_empty"`).
+
+**Classification decisions:**
+
+| File | Classification | Evidence | Action |
+|------|---------------|----------|--------|
+| `evaluations/chunk1-eval.md` | FROZEN historical run-record (type a) | Header states "Date: 2026-06-01"; documents evaluator verdicts from a specific binary build; per-scenario table contains verbatim observed-output quotes and satisfaction scores | Erratum note added to header block |
+| `evaluations/chunk3-eval.md` | FROZEN historical run-record (type a) | Same structure: "Evaluator: black-box holdout...Binary: target/debug/wirerust @ develop"; per-scenario table contains satisfaction scores, PASS/FAIL verdicts, and evaluator-observed output quotes for a specific past run | HTML comment erratum note added after header block |
+
+**Stale references identified (NOT changed — frozen record):**
+
+| File | Location | Stale text | Schema truth |
+|------|----------|------------|--------------|
+| chunk1-eval.md | HS-007 row | "direction/mitre_technique present only when Some" | `mitre_techniques: Vec<String>` absent when empty; `direction` is `Option` absent when None |
+| chunk1-eval.md | HS-016 row | "mitre_technique=T1036 (verified)" | `mitre_techniques` array containing "T1036" |
+| chunk1-eval.md | HS-017 row | "all mitre_technique IDs resolve to catalog names in --mitre" | `mitre_techniques` array entries resolve to names |
+| chunk3-eval.md | HS-059 row | "all mitre_technique absent/None" | `mitre_techniques` key absent (empty Vec, Vec::is_empty) |
+| chunk3-eval.md | HS-074 row | "mitre_technique null" | `mitre_techniques` key absent (empty Vec, Vec::is_empty) |
+
+**Actions taken:**
+
+- `chunk1-eval.md`: Added dated erratum line (`erratum: 2026-06-13`) in the header metadata block, contextualizing stale schema references in HS-007/016/017 rows. Historical content untouched.
+- `chunk3-eval.md`: Added HTML comment erratum block immediately after the header paragraph, contextualizing stale schema references in HS-059/074 rows. Historical content untouched.
+- No version field exists in either file (they are run-records, not versioned spec artifacts). No version bump applicable.
+
+**Before → after (erratum notes only; no content changes):**
+
+chunk1-eval.md header: added `erratum: 2026-06-13 (Pass-15 H3)` line after `Date: 2026-06-01` stating this is a frozen record and the stale `mitre_technique` refs reflect pre-v0.3.0 schema.
+
+chunk3-eval.md: added HTML comment erratum block after the header paragraph (before Per-Scenario Results) stating the same, referencing HS-059 and HS-074 rows specifically.
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| chunk1-eval.md | Erratum note added to header (frozen record; historical content untouched) | `.factory/holdout-scenarios/evaluations/chunk1-eval.md` |
+| chunk3-eval.md | HTML comment erratum note added after header paragraph (frozen record; historical content untouched) | `.factory/holdout-scenarios/evaluations/chunk3-eval.md` |
+| spec-changelog.md | Pass-15 H3 entry prepended | `.factory/spec-changelog.md` |
+
+---
+
+## [pass-15-h2-holdout-sweep-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-15 C-01/C-02/C-03 Remediation — Holdout-Scenarios H2 Burst (CSV-schema + phantom-field + timestamp sweep)
+
+**Summary:** Remediates Pass-15 findings C-01 (CSV column header singular → plural),
+C-02 (phantom fields `mitre_technique_id` / `mitre_tactic` that never existed in Finding schema),
+and C-03 (stale O-01 "timestamp always None" claim; O-01 is closed, timestamp is wired at 21/22
+emission sites via STORY-097/098/099). Eight HS files touched; no BC-INDEX rows for holdouts.
+
+**Shipped truth confirmed against src/findings.rs + src/reporter/csv.rs:**
+- Finding JSON: `mitre_techniques` (Vec<String>, key absent when empty via `skip_serializing_if = "Vec::is_empty"`);
+  `source_ip` / `timestamp` / `direction` (Option, key absent when None via `skip_serializing_if = "Option::is_none"`).
+  No `mitre_technique` scalar, no `mitre_technique_id`, no `mitre_tactic` — those fields never existed.
+- CSV column order (csv.rs:63-73): `category,verdict,confidence,summary,evidence,mitre_techniques,source_ip,direction,timestamp`
+  (9 columns; column 6 is `mitre_techniques` plural, semicolon-joined; empty vec → empty string).
+- timestamp IS wired (O-01 CLOSED); BC-2.04.054 segment-limit summary finding is the sole by-design timestamp=None exception.
+
+**Discrimination rule applied:**
+- STALE (fixed): live assertions / jq selectors / JSON key specs referencing `mitre_technique` (scalar),
+  `mitre_technique_id`, `mitre_tactic`, CSV header with `mitre_technique` (singular), and "timestamp always None / absent from ALL findings".
+- PRESERVED: natural-language prose ("MITRE technique T1036"), lookup-function references
+  (technique_name / technique_tactic in mitre.rs), explicit changelog/history, negation statements
+  ("There is no `mitre_technique_id` field...").
+
+**Per-file findings (STALE fixed vs PRESERVED):**
+
+| File | STALE fixed | PRESERVED | Notes |
+|------|-------------|-----------|-------|
+| HS-074-tls-ssl30-real-world-pcap.md | 1 | 0 | Step 6: `mitre_technique is null` → `mitre_techniques key is absent` (Vec::is_empty) |
+| HS-080-csv-nine-column-schema-stable.md | 1 | 0 | Scenario item 3 header string: `mitre_technique` → `mitre_techniques`; byte-for-byte header now matches csv.rs |
+| HS-083-csv-optional-fields-none-encoded-as-empty.md | 5 | 0 | Scenario step 1 scalar → Vec; step 3 "four optional" → explicit Vec+Option framing; BC table row; Verification construct; Edge Conditions injection example |
+| HS-098-end-to-end-pcap-to-csv-report.md | 1 | 0 | Verification step 5 header array assertion: `mitre_technique` → `mitre_techniques` |
+| HS-007-json-serialization-skip-none-fields.md | 6 | 0 | C-02: scenario step 3 rewritten to real schema; Verification mitre/timestamp assertions rewritten; Edge Conditions phantom-field refs replaced with negation statements; C-03: "timestamp always None / O-01 limitation" → wired-timestamp behavior |
+| HS-009-mitre-technique-lookup-unknown-ids.md | 1 | 3 | Verification "for each finding with a `mitre_technique_id`" → "non-empty `mitre_techniques` array"; prose "T1083/T1036" natural lang PRESERVED; lookup-function refs PRESERVED |
+| HS-016-real-world-corpus-evasion-pcap.md | 3 | 0 | jq selector `select(.mitre_technique_id == "T1036")` → `select(.mitre_techniques // [] \| index("T1036"))`; prose "mitre_technique_id=T1036" → "mitre_techniques containing T1036" (x2 incl. rubric) |
+| HS-017-cross-subsystem-e1-e7-finding-construction.md | 5 | 0 | C-02: Verification step 3 `mitre_technique_id` → `non-empty mitre_techniques`; BC table row updated; C-03: step 4 / step 2 / BC table / Failure Guidance stale "timestamp absent from ALL" → per-finding wired-timestamp behavior |
+
+**STALE → fixed detail (before → after):**
+
+HS-074:
+- `Assert mitre_technique is null for all cipher/protocol weakness findings.`
+  → `Assert mitre_techniques key is absent for all cipher/protocol weakness findings (empty Vec omitted via skip_serializing_if = "Vec::is_empty").`
+
+HS-080:
+- `category,verdict,confidence,summary,evidence,mitre_technique,source_ip,direction,timestamp`
+  → `category,verdict,confidence,summary,evidence,mitre_techniques,source_ip,direction,timestamp`
+
+HS-083 (five changes):
+- Scenario step 1: `mitre_technique = None` → `mitre_techniques = vec![]`
+- Scenario step 3: `four optional columns` → `four columns 6–9 (one Vec-backed, three Option-backed)`
+- BC table Postcondition 1: `None mitre_technique → empty string` → `empty mitre_techniques Vec → empty string (join of empty vec)`
+- Verification construct: `A Finding where all four Option fields are None` → `A Finding where mitre_techniques = vec![] and all three Option fields are None`
+- Edge Conditions: `mitre_technique = Some("=HYPERLINK(...)")` → `mitre_techniques = vec!["=HYPERLINK(...)"]` with join/neutralize logic
+
+HS-098:
+- `["category","verdict","confidence","summary","evidence","mitre_technique","source_ip","direction","timestamp"]`
+  → `["category","verdict","confidence","summary","evidence","mitre_techniques","source_ip","direction","timestamp"]`
+
+HS-007 (six changes):
+- Scenario step 3: phantom-field list `mitre_technique_id / mitre_tactic` → real schema (mitre_techniques Vec + 3 Options); added "those never existed" negation
+- BC-2.09.006 table row: updated to reflect Vec + Option coverage
+- Verification: "timestamp does NOT appear in any finding" → per-finding wired-timestamp logic; mitre key absence rewritten
+- Edge Conditions: "both mitre_technique_id and mitre_tactic set" → "non-empty mitre_techniques vec" + negation; "Timestamp is always None (O-01)" → "O-01 is CLOSED / sole by-design case is BC-2.04.054"
+
+HS-009:
+- `For each finding with a mitre_technique_id:` → `For each finding with a non-empty mitre_techniques array:`
+
+HS-016:
+- `jq '.findings[] | select(.mitre_technique_id == "T1036")'`
+  → `jq '.findings[] | select(.mitre_techniques // [] | index("T1036"))'`
+- `mitre_technique_id=T1036` (prose, Verification section) → `mitre_techniques containing "T1036"`
+- `mitre_technique_id (T1036)` (Evaluation Rubric) → `mitre_techniques containing "T1036"`
+
+HS-017 (five changes):
+- Verification step 3: `mitre_technique_id` → `non-empty mitre_techniques array`
+- BC-2.09.006 table row: updated to reflect Vec + Option coverage
+- Scenario step 4: "timestamp absent from ALL findings" → per-finding presence/absence per shipped truth
+- Verification step 2: "each finding lacks timestamp key" → per-finding wired-timestamp jq check
+- Failure Guidance: "shows null timestamp" → "null (absent not null) or wrong timestamp presence/absence"
+
+**Version bumps:**
+
+| File | Before | After |
+|------|--------|-------|
+| HS-074-tls-ssl30-real-world-pcap.md | 1.0 | 1.1 |
+| HS-080-csv-nine-column-schema-stable.md | 1.0 | 1.1 |
+| HS-083-csv-optional-fields-none-encoded-as-empty.md | 1.0 | 1.1 |
+| HS-098-end-to-end-pcap-to-csv-report.md | 1.0 | 1.1 |
+| HS-007-json-serialization-skip-none-fields.md | 1.0 | 1.1 |
+| HS-009-mitre-technique-lookup-unknown-ids.md | 1.0 | 1.1 |
+| HS-016-real-world-corpus-evasion-pcap.md | 1.1 | 1.2 |
+| HS-017-cross-subsystem-e1-e7-finding-construction.md | 1.0 | 1.1 |
+
+**BC-INDEX rows:** None (holdout files have no BC-INDEX rows per constraint).
+
+**Story body changes:** None (constraint per task).
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| HS-074 | v1.0→v1.1; step 6 `mitre_technique` → `mitre_techniques` key-absent assertion | `.factory/holdout-scenarios/HS-074-tls-ssl30-real-world-pcap.md` |
+| HS-080 | v1.0→v1.1; header string `mitre_technique` → `mitre_techniques` | `.factory/holdout-scenarios/HS-080-csv-nine-column-schema-stable.md` |
+| HS-083 | v1.0→v1.1; 5 stale scalar/4-Option-field refs corrected to Vec/3-Option schema | `.factory/holdout-scenarios/HS-083-csv-optional-fields-none-encoded-as-empty.md` |
+| HS-098 | v1.0→v1.1; header array assertion `mitre_technique` → `mitre_techniques` | `.factory/holdout-scenarios/HS-098-end-to-end-pcap-to-csv-report.md` |
+| HS-007 | v1.0→v1.1; 6 phantom-field + stale-timestamp assertions rewritten to real schema + wired-timestamp truth | `.factory/holdout-scenarios/HS-007-json-serialization-skip-none-fields.md` |
+| HS-009 | v1.0→v1.1; 1 `mitre_technique_id` → `mitre_techniques` field ref fixed; lookup-function refs PRESERVED | `.factory/holdout-scenarios/HS-009-mitre-technique-lookup-unknown-ids.md` |
+| HS-016 | v1.1→v1.2; jq selector + 2 prose refs `mitre_technique_id` → `mitre_techniques` | `.factory/holdout-scenarios/HS-016-real-world-corpus-evasion-pcap.md` |
+| HS-017 | v1.0→v1.1; 2 phantom-field refs + 3 stale-timestamp assertions corrected | `.factory/holdout-scenarios/HS-017-cross-subsystem-e1-e7-finding-construction.md` |
+| spec-changelog.md | Pass-15 H2 entry prepended | `.factory/spec-changelog.md` |
+
+---
+
+## [pass-15-h1-holdout-sweep-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-15 C-01 Remediation — Holdout-Scenarios H1 Burst (8 HS files, mitre_technique → mitre_techniques)
+
+**Summary:** Remediates Pass-15 finding C-01 (CRITICAL, holdout-scenarios sweep — burst H1 of 3).
+The Pass-14 field rename (`mitre_technique: Option<String>` → `mitre_techniques: Vec<String>`) was
+propagated to `.factory/specs/` but NOT to `.factory/holdout-scenarios/`, leaving stale F4-evaluator
+assertions. This burst fixes all 8 designated HS files.
+
+Shipped truth: Finding JSON key is `mitre_techniques` (array of technique-ID strings); empty → key
+absent (`skip_serializing_if = "Vec::is_empty"`). The scalar `mitre_technique` field no longer exists.
+
+**Discrimination rule applied:**
+- STALE (fixed): any reference to the Finding field as `mitre_technique` — JSON key, jq selector
+  (`.mitre_technique == "X"`), prose assertion ("mitre_technique is null/None"), struct snippet.
+- PRESERVED: natural-language prose naming the MITRE technique ("MITRE technique T1036", "MITRE code
+  is T1499.002", "T1036/ConflictingOverlap findings count", "MITRE technique is null for all four
+  header anomaly findings"); references to mitre.rs lookup functions; changelog/history.
+
+**Per-file findings:**
+
+| File | STALE fixed | PRESERVED | Notes |
+|------|-------------|-----------|-------|
+| HS-032-tcp-evasion-detection.md | 1 | 2 | Verification prose `mitre_technique` field ref → `mitre_techniques` array; prose "T1036" natural language x 2 PRESERVED |
+| HS-046-real-world-clean-pcap.md | 1 | 2 | jq `.mitre_technique == "T1036"` → `.mitre_techniques // [] \| index("T1036")` selector; "T1036/ConflictingOverlap findings" prose x 2 PRESERVED |
+| HS-047-real-world-evasion-corpus.md | 2 | 0 | Scenario step field ref + jq selector both STALE; both fixed to plural array form |
+| HS-056-sni-control-byte-detection.md | 1 | 0 | Verification step 2 `mitre_technique == "T1027"` → array index assertion |
+| HS-057-sni-non-ascii-utf8-arm3.md | 1 | 1 | Verification step 5 `mitre_technique == "T1027"` → array index; Scenario prose "MITRE technique T1027" PRESERVED |
+| HS-058-http-header-anomaly-detections.md | 1 | 1 | Verification step 2 `mitre_technique is null/None` → key-absent assertion; Evaluation Rubric "MITRE technique is null" prose PRESERVED |
+| HS-059-tls-weak-cipher-findings.md | 2 | 1 | Scenario step 5 field ref + Verification step 2 field ref both STALE; Evaluation Rubric "MITRE technique is null" prose PRESERVED |
+| HS-065-http-too-many-headers-finding.md | 1 | 1 | Verification step 1 `mitre_technique == "T1499.002"` → array index; Rubric "MITRE code is T1499.002" prose PRESERVED |
+
+**STALE → fixed detail (before → after):**
+
+HS-032:
+- `The finding's mitre_technique field contains "T1036".`
+  → `The finding's mitre_techniques array contains "T1036" (i.e., select(.mitre_techniques | index("T1036"))).`
+
+HS-046:
+- `jq '.findings | map(select(.mitre_technique == "T1036")) | length'`
+  → `jq '.findings | map(select(.mitre_techniques // [] | index("T1036"))) | length'`
+
+HS-047:
+- `findings array contains at least one finding with mitre_technique == "T1036"`
+  → `findings array contains at least one finding whose mitre_techniques array contains "T1036"`
+- `jq '.findings | map(select(.mitre_technique == "T1036")) | length'`
+  → `jq '.findings | map(select(.mitre_techniques // [] | index("T1036"))) | length'`
+
+HS-056:
+- `Assert that finding has mitre_technique == "T1027"`
+  → `Assert that finding has mitre_techniques array containing "T1027" (i.e., select(.mitre_techniques | index("T1027")))`
+
+HS-057:
+- `Assert all three findings have mitre_technique == "T1027"`
+  → `Assert all three findings have mitre_techniques array containing "T1027" (i.e., select(.mitre_techniques | index("T1027")) matches all three)`
+
+HS-058:
+- `mitre_technique is null/None`
+  → `mitre_techniques key is absent (empty vec, omitted via skip_serializing_if)`
+
+HS-059:
+- `All Session 2 findings have mitre_technique as null`
+  → `All Session 2 findings have mitre_techniques key absent (empty vec, omitted via skip_serializing_if = "Vec::is_empty")`
+- `mitre_technique == null` in Verification step 2
+  → `mitre_techniques key absent (empty vec omitted)`
+
+HS-065:
+- `findings contains exactly 3 entries with mitre_technique == "T1499.002"`
+  → `findings contains exactly 3 entries whose mitre_techniques array contains "T1499.002" (i.e., select(.mitre_techniques | index("T1499.002")))`
+
+**Version bumps:**
+
+| File | Before | After |
+|------|--------|-------|
+| HS-032-tcp-evasion-detection.md | 1.0 | 1.1 |
+| HS-046-real-world-clean-pcap.md | 1.0 | 1.1 |
+| HS-047-real-world-evasion-corpus.md | 1.0 | 1.1 |
+| HS-056-sni-control-byte-detection.md | 1.0 | 1.1 |
+| HS-057-sni-non-ascii-utf8-arm3.md | 1.0 | 1.1 |
+| HS-058-http-header-anomaly-detections.md | 1.0 | 1.1 |
+| HS-059-tls-weak-cipher-findings.md | 1.0 | 1.1 |
+| HS-065-http-too-many-headers-finding.md | 1.0 | 1.1 |
+
+**BC-INDEX rows:** None (holdout files have no BC-INDEX rows per constraint).
+
+**Story body changes:** None (constraint per task).
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| HS-032 | v1.0→v1.1; 1 STALE field ref fixed | `.factory/holdout-scenarios/HS-032-tcp-evasion-detection.md` |
+| HS-046 | v1.0→v1.1; 1 STALE jq selector fixed | `.factory/holdout-scenarios/HS-046-real-world-clean-pcap.md` |
+| HS-047 | v1.0→v1.1; 2 STALE refs fixed (prose + jq) | `.factory/holdout-scenarios/HS-047-real-world-evasion-corpus.md` |
+| HS-056 | v1.0→v1.1; 1 STALE assertion fixed | `.factory/holdout-scenarios/HS-056-sni-control-byte-detection.md` |
+| HS-057 | v1.0→v1.1; 1 STALE assertion fixed | `.factory/holdout-scenarios/HS-057-sni-non-ascii-utf8-arm3.md` |
+| HS-058 | v1.0→v1.1; 1 STALE null-assertion fixed | `.factory/holdout-scenarios/HS-058-http-header-anomaly-detections.md` |
+| HS-059 | v1.0→v1.1; 2 STALE null-assertions fixed | `.factory/holdout-scenarios/HS-059-tls-weak-cipher-findings.md` |
+| HS-065 | v1.0→v1.1; 1 STALE assertion fixed | `.factory/holdout-scenarios/HS-065-http-too-many-headers-finding.md` |
+| spec-changelog.md | Pass-15 H1 entry prepended | `.factory/spec-changelog.md` |
+
+---
+
+## [pass-15-fixes-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-15 Remediation — Four PO findings (C-04/D-01/B-01/C-05) + Architect A-01 bump log
+
+**Summary:** Remediates four Pass-15 product-owner bucket findings and logs the architect's
+VP-INDEX v2.1→v2.2 bump (Pass-15 A-01). No story bodies touched. No holdout-scenarios touched.
+
+**Architect bump logged (A-01):**
+
+| Artifact | Change | Reason |
+|----------|--------|--------|
+| `specs/verification-properties/VP-INDEX.md` | v2.1 → v2.2 | Pass-15 A-01: VP-024 Verified-BCs reconciled to BCs 001-006; BC-2.16.007 footnote clarified as test-sufficient/non-Kani |
+
+**C-04 (MEDIUM) — inv-01-core-invariants.md duplicate `version:` key (REGRESSION from Pass-14):**
+
+| Before | After |
+|--------|-------|
+| Frontmatter had two top-level `version:` keys: `version: "1.1"` at line 7 and `version: "1.2"` at line 11 | Single `version: "1.2"` field retained; stale `version: "1.1"` key removed; YAML frontmatter now parses cleanly with one version key. Body/changelog already reflected v1.2; no further content bump warranted. |
+
+**D-01 (MEDIUM) — BC-2.11.024 Evidence Types Used stale guard-clause description:**
+
+| Before | After |
+|--------|-------|
+| `"guard clause": explicit unwrap_or("") / unwrap_or_default() calls at csv.rs:82-85 for all four Option fields` | `"guard clause": mitre_techniques.join(";") at csv.rs:87 for the Vec<String> field (empty vec → ""); unwrap_or_default() calls at csv.rs:88-90 for the three Option fields (source_ip, direction, timestamp)` |
+
+Verified against `src/reporter/csv.rs`: join at :87, source_ip at :88, direction at :89, timestamp at :90. BC-2.11.024 bumped v1.6→v1.7. BC-INDEX annotation updated.
+
+**B-01 (LOW) — BC-INDEX narrative prose "v1.4→v1.5" for BC-2.02.009 (three instances):**
+
+Three narrative references in BC-INDEX incorrectly described BC-2.02.009 as "revised v1.4→v1.5".
+The BC-2.02.009 body is at v1.6; the BC-INDEX row inline comment correctly says v1.6.
+
+| Location | Before | After |
+|----------|--------|-------|
+| BC-INDEX header blockquote (~line 28) | `was revised v1.4→v1.5 in Feature Mode F2` | `was revised to v1.6 in Feature Mode F2` |
+| Ingestion-to-L3 Mapping table (~line 456) | `BC-2.02.009 revised v1.4→v1.5 in F2 ARP delta` | `BC-2.02.009 revised to v1.6 in F2 ARP delta` |
+| Canonical derivation paragraph (~line 473) | `BC-2.02.009 was revised v1.4→v1.5 (ADR-008 Decision 1...)` | `BC-2.02.009 was revised to v1.6 (ADR-008 Decision 1...)` |
+
+BC-INDEX bumped v1.23→v1.24.
+
+**C-05 (LOW) — interface-definitions.md "all four fields" ambiguous prose (~line 360):**
+
+| Before | After |
+|--------|-------|
+| `Downstream consumers MUST handle key-absent rather than key-present-but-null for all four fields.` | `Downstream consumers MUST handle key-absent rather than key-present-but-null for all four optional-presence fields -- mitre_techniques (omitted when empty via Vec::is_empty) and the three Option fields source_ip/timestamp/direction (omitted when None via Option::is_none).` |
+
+interface-definitions.md bumped v1.1→v1.2.
+
+**Version bumps:**
+
+| Document | Before | After |
+|----------|--------|-------|
+| `specs/domain/invariants/inv-01-core-invariants.md` | v1.2 (duplicate key) | v1.2 (single key; no content change) |
+| `specs/behavioral-contracts/ss-11/BC-2.11.024.md` | v1.6 | v1.7 |
+| `specs/behavioral-contracts/BC-INDEX.md` | v1.23 | v1.24 |
+| `specs/prd-supplements/interface-definitions.md` | v1.1 | v1.2 |
+
+**Story body changes:** None (constraint per task).
+
+**Holdout scenario changes:** None (separate burst).
+
+**Artifacts affected:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| inv-01-core-invariants.md | Duplicate `version:` key removed; single `version: "1.2"` retained | `.factory/specs/domain/invariants/inv-01-core-invariants.md` |
+| BC-2.11.024.md | v1.6→v1.7; Evidence Types Used guard clause updated to csv.rs:87-90 current shape | `.factory/specs/behavioral-contracts/ss-11/BC-2.11.024.md` |
+| BC-INDEX.md | v1.23→v1.24; three "v1.4→v1.5" narrative references → "to v1.6"; BC-2.11.024 annotation updated | `.factory/specs/behavioral-contracts/BC-INDEX.md` |
+| interface-definitions.md | v1.1→v1.2; "all four fields" ambiguous prose → explicit Vec + 3 Option enumeration | `.factory/specs/prd-supplements/interface-definitions.md` |
+| spec-changelog.md | Pass-15-fixes entry appended; architect VP-INDEX v2.1→v2.2 bump logged | `.factory/spec-changelog.md` |
+
+---
+
 ## [arp-f2-pass-14-po-burst-10-2026-06-13] — 2026-06-13
 
 ### PATCH: ARP-F2 Pass-14 Product-Owner Bucket Burst 10 — O-01-closure propagation (domain/, prd-supplements/ — final sweep)

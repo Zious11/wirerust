@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -87,7 +87,7 @@ no attacker content.
 2. Run: `wirerust analyze --all http.cap --csv`
 3. Assert exit code == 0.
 4. Parse stdout with a standard CSV library (Python's `csv.reader` or Rust's `csv::Reader`).
-5. Assert first row == `["category","verdict","confidence","summary","evidence","mitre_technique","source_ip","direction","timestamp"]`.
+5. Assert first row == `["category","verdict","confidence","summary","evidence","mitre_techniques","source_ip","direction","timestamp"]`.
 6. For each subsequent row, assert `len(row) == 9`.
 7. For each cell in each row, assert the cell does not start with `=`, `+`, `-`, or `@` (without a `'` prefix).
 8. For each row, check columns 6-9 for optional fields: assert values are either non-empty or exactly `""`.

@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -50,7 +50,10 @@ risk_source: null
 3. For findings with MITRE technique IDs, the technique ID resolves to a known name in the
    catalog — confirming the E-7 MITRE mapping (STORY-071) integrates correctly with findings
    emitted by E-2 reassembly.
-4. The `timestamp` field is absent from ALL findings in the JSON output (not null, absent).
+4. For findings where timestamp is None, the `timestamp` key is absent from the JSON object
+   (not null, absent). Flow-data-path findings where timestamp is populated include a `timestamp`
+   key with an RFC 3339 string. The segment-limit summary finding (BC-2.04.054) is the
+   sole by-design timestamp=None case. O-01 is CLOSED; timestamp is wired.
 
 ## Behavioral Contract Linkage
 
@@ -58,7 +61,7 @@ risk_source: null
 |-------|--------------|-----------------|
 | BC-2.01.002 | Postcondition 1 — packets loaded in file order; drives finding production pipeline | Step 1: ingestion feeding the full pipeline |
 | BC-2.09.001 | Postcondition 1 — Finding constructed with required and optional fields | Step 2: finding structure correctness |
-| BC-2.09.006 | Postcondition 1 — None fields (timestamp) omitted from JSON via skip_serializing_if | Step 4: timestamp absent from all JSON findings |
+| BC-2.09.006 | Postcondition 1 — None Option / empty Vec fields omitted from JSON via skip_serializing_if | Step 4: timestamp key absent when None; present as RFC 3339 when Some |
 | BC-2.10.005 | Postcondition 1 — technique_name resolves all emitted technique IDs | Step 3: E-7 MITRE catalog serves E-2 findings |
 
 ## Verification Approach
@@ -69,9 +72,11 @@ wirerust analyze --output-format json --mitre evasion_traffic.pcap
 
 Check JSON:
 1. `findings` array is non-empty.
-2. Each finding object lacks a `timestamp` key (use `jq 'has("timestamp")'` on each element).
-3. Each finding object with a `mitre_technique_id` has a corresponding human-readable
-   technique name visible in `--mitre` terminal mode.
+2. For each finding object, use `jq 'has("timestamp")'` — flow-data-path findings should
+   return `true` (timestamp wired; O-01 CLOSED); the segment-limit summary finding
+   (BC-2.04.054) returns `false` (by-design None). No finding should have `timestamp: null`.
+3. Each finding object with a non-empty `mitre_techniques` array has a corresponding
+   human-readable technique name visible in `--mitre` terminal mode.
 4. No null values appear for any key — only absent keys for None fields.
 
 Cross-check with terminal output:
@@ -101,5 +106,5 @@ Verify that the MITRE tactic grouping references the same technique names as the
 ## Failure Guidance
 
 "HOLDOUT LOW: HS-017 (satisfaction: 0.XX) — cross-subsystem pipeline from packet ingestion
-to finding construction produces malformed JSON, shows null timestamp, or MITRE technique
-IDs do not resolve."
+to finding construction produces malformed JSON, shows null timestamp (should be absent, not null)
+or wrong timestamp presence/absence, or MITRE technique IDs do not resolve."

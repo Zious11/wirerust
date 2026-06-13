@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -62,7 +62,7 @@ segment interleaving, etc.).
 
 1. The user runs: `wirerust analyze <evasion-corpus-pcap> --output-format json`
 2. The tool completes with exit code 0.
-3. The JSON findings array contains at least one finding with `mitre_technique == "T1036"`.
+3. The JSON findings array contains at least one finding whose `mitre_techniques` array contains "T1036".
 4. No crash, panic, or memory exhaustion occurs even for adversarial inputs.
 5. The finding summary contains the flow key (IP addresses and ports) of the
    offending flow.
@@ -79,7 +79,7 @@ segment interleaving, etc.).
 
 ```bash
 wirerust analyze <evasion-pcap> --output-format json > evasion_output.json
-cat evasion_output.json | jq '.findings | map(select(.mitre_technique == "T1036")) | length'
+cat evasion_output.json | jq '.findings | map(select(.mitre_techniques // [] | index("T1036"))) | length'
 ```
 
 **Expected result:**

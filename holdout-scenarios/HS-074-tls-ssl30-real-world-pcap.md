@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -76,7 +76,7 @@ Run wirerust on the SSL 3.0 pcap with JSON output.
 3. Assert one of those findings has `direction == "ClientToServer"` (client-side deprecated protocol).
 4. Assert one of those findings has `direction == "ServerToClient"` (server-side deprecated protocol).
 5. Assert all deprecated-protocol findings have `confidence == "High"` and `verdict == "Likely"`.
-6. Assert `mitre_technique` is null for all cipher/protocol weakness findings.
+6. Assert `mitre_techniques` key is absent for all cipher/protocol weakness findings (empty Vec omitted via skip_serializing_if = "Vec::is_empty").
 7. Assert wirerust exits with status 0 (no crash on old SSL pcap).
 
 false_negative_threshold: 0 — all SSL 3.0 sessions in the corpus must produce deprecated-protocol findings.

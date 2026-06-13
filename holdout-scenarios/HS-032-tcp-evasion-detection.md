@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -82,7 +82,7 @@ wirerust analyze <evasion-pcap> --output-format json
 In the JSON findings array, verify:
 - At least one finding where `category == "Anomaly"` and `verdict == "Likely"`
   and `confidence == "High"`.
-- The finding's `mitre_technique` field contains "T1036".
+- The finding's `mitre_techniques` array contains "T1036" (i.e., `select(.mitre_techniques | index("T1036"))`).
 - The finding's `summary` contains the IP-port pair of the flow.
 
 Verify the cumulative overlap alert (if more than the threshold number of

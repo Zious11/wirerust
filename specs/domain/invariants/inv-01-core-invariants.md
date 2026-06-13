@@ -4,11 +4,10 @@ traces_to: ../domain-spec.md
 title: Core Domain Invariants
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
-version: "1.1"
+version: "1.2"
 modified:
   - "v1.1: Pass-12 corpus-cleanup F-C-P12-001: INV-9 enforcement anchor re-anchored from stale :122-156 (let info=match@:123, _=>return None@:153, }@:156) to current :128-182 (technique_info fn@:128, let info=match id@:129, _ => return None@:179, closing }@:182). — 2026-06-13"
   - "v1.2: ARP-F2 Pass-14 remediation: INV-9 rule prose updated 'Finding.mitre_technique' → 'Finding.mitre_techniques' (STORY-100 AC-008 renamed scalar→Vec; STALE fix per pass-14 discrimination rule). — 2026-06-13"
-version: "1.2"
 ---
 
 # Core Domain Invariants

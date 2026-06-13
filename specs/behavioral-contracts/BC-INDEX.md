@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.23"
+version: "1.24"
 status: draft
 producer: product-owner
 timestamp: 2026-06-13T00:00:00Z
@@ -25,7 +25,7 @@ traces_to: .factory/specs/prd.md
 > F2 (issue #8 DNP3/ICS analyzer) bringing the total to 266 active L3 BCs. BC-2.15.023 and
 > BC-2.15.024 were added in Feature Mode F2 (issue #8 research must-adds: DISABLE_UNSOLICITED
 > abuse + malformed/structural anomaly) bringing the total to 268 active L3 BCs. BC-2.02.009
-> was revised v1.4→v1.5 in Feature Mode F2 (issue #9 ARP analyzer, ADR-008 Decision 1:
+> was revised to v1.6 in Feature Mode F2 (issue #9 ARP analyzer, ADR-008 Decision 1:
 > three-way ARP/non-Ethernet-ARP/non-IP postcondition; not a new BC). BC-2.16.001 through
 > BC-2.16.015 were added in Feature Mode F2 (issue #9 ARP security analyzer) bringing the
 > total to 283 active L3 BCs.
@@ -284,7 +284,7 @@ traces_to: .factory/specs/prd.md
 | BC-2.11.021 | CsvReporter Neutralizes CSV-Injection Trigger Characters with a Leading Single Quote | P0 | [WRITTEN] | pass-4 H-1 |
 | BC-2.11.022 | CsvReporter Joins Evidence Vec Elements with "; " into a Single Cell | P1 | [WRITTEN] | pass-4 H-1 |
 | BC-2.11.023 | CsvReporter Implements Reporter Trait and Emits One Row per Finding; Summary and AnalysisSummary Are Ignored | P0 | [WRITTEN] | pass-4 H-1 |
-| BC-2.11.024 | CsvReporter Encodes Optional Fields as Empty Strings and mitre_techniques as Semicolon-Joined String | P1 | [WRITTEN] | pass-4 H-1 | <!-- v1.5: ADD-ON 2 — EC-015 added (consumer split guard for empty-cell); EC-001 strengthened (empty string not null/[]/N/A); Inv 4 explicit empty-string wording -->
+| BC-2.11.024 | CsvReporter Encodes Optional Fields as Empty Strings and mitre_techniques as Semicolon-Joined String | P1 | [WRITTEN] | pass-4 H-1 | <!-- v1.5: ADD-ON 2 — EC-015 added (consumer split guard for empty-cell); EC-001 strengthened (empty string not null/[]/N/A); Inv 4 explicit empty-string wording; v1.7: Pass-15 D-01: Evidence Types Used guard clause updated to current csv.rs:87-90 shape (Vec join + 3 Option unwrap_or_default) -->
 
 
 ## ss-12: CLI and Entry Point (Cross-Cutting)
@@ -453,7 +453,7 @@ traces_to: .factory/specs/prd.md
 | Ingestion group | Count | Mapped to L3 |
 |----------------|-------|--------------|
 | BC-RDR-001..008 | 8 | BC-2.01.001..008 |
-| BC-DEC-001..015 | 15 | BC-2.02.001..015 (BC-2.02.009 revised v1.4→v1.5 in F2 ARP delta) |
+| BC-DEC-001..015 | 15 | BC-2.02.001..015 (BC-2.02.009 revised to v1.6 in F2 ARP delta) |
 | BC-RAS-001..054 + issue-#100 F2 | 55 | BC-2.04.001..055 |
 | BC-DSP-001..009 | 9 | BC-2.05.001..009 |
 | BC-HTTP-001..026 | 26 | BC-2.06.001..026 |
@@ -470,7 +470,7 @@ traces_to: .factory/specs/prd.md
 | feature-008-F2 DNP3/ICS (greenfield) | 24 | BC-2.15.001..024 |
 | feature-009-F2 ARP security (greenfield) | 15 | BC-2.16.001..015 |
 
-**Total BCs: 283. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs; + 15 Feature Mode F2 additions (BC-2.16.001..015) for issue #9 ARP security analyzer = 283 active BCs. BC-2.02.009 was revised v1.4→v1.5 (ADR-008 Decision 1, three-way postcondition) — a revision, not a new BC; count unchanged at each prior step. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows; SS-16 adds 15 greenfield rows.**
+**Total BCs: 283. Canonical derivation: 218 draft ingestion BCs produced − 6 retired (BC-ABS-004..009) = 212 active from ingestion; + 5 post-ingestion pass-4 additions (BC-2.11.020..024) = 217; + 2 Feature Mode F2 additions (BC-2.04.055, BC-2.09.007) for issue #100 = 219 active BCs; + 25 Feature Mode F2 additions (BC-2.14.001..025) for issue #7 Modbus/ICS analyzer = 244 active BCs; + 22 Feature Mode F2 additions (BC-2.15.001..022) for issue #8 DNP3/ICS analyzer = 266 active BCs; + 2 research must-add additions (BC-2.15.023..024) for issue #8 post-gate F2 scope validation = 268 active BCs; + 15 Feature Mode F2 additions (BC-2.16.001..015) for issue #9 ARP security analyzer = 283 active BCs. BC-2.02.009 was revised to v1.6 (ADR-008 Decision 1, three-way postcondition) — a revision, not a new BC; count unchanged at each prior step. The mapping table above has 223 physical rows (218 ingestion-batch rows + 5 pass-4 rows) for pre-Modbus BCs; SS-14 adds 25 greenfield rows not in the ingestion batch; SS-15 adds 24 greenfield rows; SS-16 adds 15 greenfield rows.**
 
 Note: BC-ABS-004 (--hosts unwired), BC-ABS-005 (--services unwired), BC-ABS-006 (--json
 file unwired), BC-ABS-007 (CSV unwired), BC-ABS-009 (no e2e CLI tests) are RETIRED --

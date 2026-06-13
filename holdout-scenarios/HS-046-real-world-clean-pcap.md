@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -82,7 +82,7 @@ This corpus is:
 
 ```bash
 wirerust analyze ~/sample.pcap --output-format json > output.json
-cat output.json | jq '.findings | map(select(.mitre_technique == "T1036")) | length'
+cat output.json | jq '.findings | map(select(.mitre_techniques // [] | index("T1036"))) | length'
 ```
 
 **Expected result:**

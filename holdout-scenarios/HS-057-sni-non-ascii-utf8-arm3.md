@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -77,7 +77,7 @@ Craft a pcap with three ClientHellos. Run wirerust with JSON output.
 2. For finding (A): assert `summary` contains the raw Cyrillic characters (e.g., "мир") as readable UTF-8 — not `\u{...}` escape sequences.
 3. For finding (B): assert `evidence[0]` starts with `"hex: "` followed by `"fffe"` or the actual hex of the invalid bytes. Assert the sni_counts key (visible via the top_snis field) is in `<non-utf8:XXXX>` format.
 4. For finding (C): assert `summary` contains "non-ASCII" and NOT "control bytes" — the arm 3 message dominates.
-5. Assert all three findings have `mitre_technique == "T1027"`.
+5. Assert all three findings have `mitre_techniques` array containing "T1027" (i.e., `select(.mitre_techniques | index("T1027"))` matches all three).
 6. Assert all three findings have `direction == "ClientToServer"`.
 
 ## Evaluation Rubric

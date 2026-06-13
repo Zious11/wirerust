@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -42,10 +42,13 @@ A security toolchain integrator imports wirerust CSV output into a data pipeline
 missing fields by checking for empty strings — not sentinel strings like "null", "N/A",
 or "-". The tool must never write those sentinels.
 
-1. A finding with `mitre_technique = None`, `source_ip = None`, `direction = None`,
+1. A finding with `mitre_techniques = vec![]` (empty Vec), `source_ip = None`, `direction = None`,
    and `timestamp = None` is rendered via CsvReporter.
 2. The CSV row for this finding has columns 6, 7, 8, and 9 all as empty strings `""`.
-3. None of the four optional columns contain the string `"null"`, `"N/A"`, or `"-"`.
+   Column 6 (`mitre_techniques`) is empty because `vec![].join(";")` produces `""`.
+   Columns 7–9 (`source_ip`, `direction`, `timestamp`) are empty because
+   `unwrap_or_default()` on `None` produces `""`.
+3. None of the four columns 6–9 (one Vec-backed, three Option-backed) contain the string `"null"`, `"N/A"`, or `"-"`.
 4. A separate finding with `direction = Some(ClientToServer)` produces column 8 as
    `"ClientToServer"` (CamelCase, not `"client_to_server"` or `"client-to-server"`).
 5. A separate finding with `direction = Some(ServerToClient)` produces column 8 as
@@ -57,7 +60,7 @@ or "-". The tool must never write those sentinels.
 
 | BC ID | Clause Tested | Scenario Aspect |
 |-------|--------------|-----------------|
-| BC-2.11.024 | Postcondition 1: None mitre_technique → empty string | Column 6 of all-None finding is `""` |
+| BC-2.11.024 | Postcondition 1: empty mitre_techniques Vec → empty string | Column 6 of all-empty/None finding is `""` (join of empty vec) |
 | BC-2.11.024 | Postcondition 2: None source_ip → empty string | Column 7 of all-None finding is `""` |
 | BC-2.11.024 | Postcondition 3: direction → Debug CamelCase | ClientToServer and ServerToClient encoding |
 | BC-2.11.024 | Postcondition 4: None timestamp → empty string | Column 9 of all-None finding is `""` |
@@ -67,7 +70,8 @@ or "-". The tool must never write those sentinels.
 ## Verification Approach
 
 Invoke `CsvReporter::render` with:
-1. A Finding where all four Option fields are None.
+1. A Finding where `mitre_techniques = vec![]` (empty Vec) and all three Option fields
+   (`source_ip`, `direction`, `timestamp`) are None.
 2. A Finding where `direction = Some(ClientToServer)`.
 3. A Finding where `source_ip = Some(IpAddr::V6([0x20, 0x01, 0x0d, 0xb8, ...]))`.
 4. A Finding where `timestamp = Some(DateTime<Utc>)` set to a known UTC time.
@@ -89,8 +93,9 @@ Parse the output CSV and verify:
 ## Edge Conditions
 
 - `source_ip = Some(127.0.0.1)` produces `"127.0.0.1"` (IPv4 dotted notation, compact).
-- `mitre_technique = Some("=HYPERLINK(...)")` is neutralized to `"'=HYPERLINK(...)"`.
-- All four optional fields are None in the same row: a four-column sequence of empty strings.
+- `mitre_techniques = vec!["=HYPERLINK(...)"]` — the singleton is joined to `"=HYPERLINK(...)"` then neutralized to `"'=HYPERLINK(...)"` via csv_injection guard.
+- All four columns 6–9 are empty in the same row when `mitre_techniques = vec![]` and the three Option fields are None: a four-column sequence of empty strings.
+  Column 6 is empty via `vec![].join(";") == ""`; columns 7–9 via `unwrap_or_default()` on None.
 - Summary and AnalysisSummary are non-empty but must not appear in the CSV output.
 
 ## Failure Guidance

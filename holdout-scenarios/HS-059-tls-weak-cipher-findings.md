@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -58,7 +58,7 @@ risk_source: null
 2. The analyst runs wirerust on this pcap.
 3. Session 2 generates exactly 4 findings: (a) weak client cipher (High confidence), (b) deprecated client protocol SSL 3.0 (High confidence), (c) weak server cipher RC4 (Medium confidence), (d) deprecated server protocol SSL 3.0 (High confidence).
 4. Session 1 and Session 3 generate zero findings.
-5. All Session 2 findings have `mitre_technique` as null.
+5. All Session 2 findings have `mitre_techniques` key absent (empty vec, omitted via `skip_serializing_if = "Vec::is_empty"`).
 
 ## Behavioral Contract Linkage
 
@@ -76,7 +76,7 @@ risk_source: null
 Craft a pcap (or use crafted byte arrays in integration tests) with the three sessions. Run wirerust with JSON output.
 
 1. Assert exactly 4 findings in the `findings` array.
-2. For the weak-client-cipher finding: assert `verdict == "Likely"`, `confidence == "High"`, `direction == "ClientToServer"`, `mitre_technique == null`.
+2. For the weak-client-cipher finding: assert `verdict == "Likely"`, `confidence == "High"`, `direction == "ClientToServer"`, `mitre_techniques` key absent (empty vec omitted).
 3. For the weak-server-cipher finding: assert `verdict == "Likely"`, `confidence == "Medium"`, `direction == "ServerToClient"`.
 4. For each deprecated-protocol finding: assert `summary` contains "RFC 7568"; assert one has `direction == "ClientToServer"`, one has `direction == "ServerToClient"`.
 5. Assert zero findings from sessions 1 and 3.

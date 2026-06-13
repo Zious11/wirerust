@@ -54,10 +54,11 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 11 (sliced) | 2026-06-13 | ~5 | 0 | 1 | ~4 | 0 | LOW | 0/3 | NOT_CLEAN |
 | 13 (whole-corpus) | 2026-06-13 | ~8 | 0 | 0 | ~8 | 0 | LOW | 0/3 | NOT_CLEAN, REMEDIATED |
 | 14 (whole-corpus) | 2026-06-13 | 22 | 2 | 5 | ~11 | ~4 | MED | 0/3 | NOT_CLEAN |
+| 15 (whole-corpus, Claude) | 2026-06-13 | 8 | 2 | 1 | 3 | 2 | MED | 0/3 | NOT_CLEAN→REMEDIATED |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)`
 
 Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2 — REGRESSION at Pass 14
 (2 genuinely-new CRITICAL corpus-debt findings, not ARP delta defects). HIGH count:
@@ -73,10 +74,13 @@ Slice B (all 283 BC H1 titles) verified CLEAN in Pass 13; ARP delta clean 6th co
 **0/3** consecutive clean passes.
 **STRICT WHOLE-CORPUS mode** (human-elected 2026-06-12; scope extended 2026-06-13): zero
 findings of ANY severity (including LOW) across the ENTIRE spec corpus (not just ARP delta)
-required for 3 consecutive clean passes. 14 passes run. Trend BROKE at Pass 14 — 2 CRITICAL
-+ 5 HIGH genuinely-new shipped-code-vs-spec drift surfaced (not ARP delta defects; corpus
-coverage not reached by prior 13 passes). ARP delta clean 6th consecutive pass. Awaiting
-human strategic decision: continue strict whole-corpus remediation + Pass 15 vs off-ramp.
+required for 3 consecutive clean passes. 15 passes run. Pass 14 REMEDIATED (22 findings:
+mitre_techniques field-rename corpus sweep + O-01 closure propagation + architect ×2 + PO ×10
+bursts + consistency audit CONSISTENT). Pass 15 REMEDIATED (8 findings: holdout-scenarios
+field-rename sweep [C-01/02/03, 16 files] + inv-01 YAML regression [C-04] + VP-024 scope
+reconciliation [A-01] + 4 more; consistency audit CONSISTENT all 7 dimensions). Next = Pass 16
+via agy (Gemini, additional quota provided by human). Counter 0/3 — remediation does NOT
+advance counter.
 
 ## Core Semantics — Confirmed Clean (Settled)
 
@@ -126,7 +130,7 @@ treat these as LOW-RISK unless new evidence contradicts:
 | vp-007 | v2.4 | (carried from Pass-12) |
 | vp-008 | v2.1 | Stale BC title corrected (Pass-13) |
 | vp-016 | v2.1 | |
-| VP-INDEX | v2.1 | (carried from corpus audit) |
+| VP-INDEX | v2.2 | VP-024 BC-scope corrected; non-Kani footnote (Pass-15) |
 | error-taxonomy | v1.9 | |
 | test-vectors | v1.9 | Citation corrected through Pass-11 |
 | HS-INDEX | v1.3 | |
@@ -149,15 +153,16 @@ treat these as LOW-RISK unless new evidence contradicts:
 | BC-2.16.005 | v1.4 | |
 | BC-2.16.006 | v1.2 | |
 | BC-2.16.007 | v1.1 | |
+| BC-2.11.024 | v1.7 | Evidence "four Option fields"→3 Option + mitre_techniques.join; csv.rs anchor corrected (Pass-15) |
 | BC-2.16.008 | v1.6 | (carried from Pass-12) |
 | BC-2.16.009 | v1.3 | |
 | BC-2.16.010 | v1.6 | (carried from Pass-12) |
 | BC-2.16.013 | v1.1 | |
 | BC-2.16.014 | v1.6 | Inconclusive classification gap fixed (Pass-11) |
-| BC-2.02.009 | v1.6 | Lax-arm precision gap fixed (Pass-10) |
+| BC-2.02.009 | v1.6 | Lax-arm precision gap fixed (Pass-10); BC-INDEX pin corrected (Pass-15) |
 | STORY-071 | v1.10 | Stale 16/21→17/23 counts corrected (Pass-13) |
 | ADR-005/006 | accepted | (carried from Pass-12) |
-| inv-01 | v1.1 | (carried from Pass-12) |
+| inv-01 | v1.2 | Duplicate `version:` YAML key deduped (Pass-15 regression fix) |
 | BC-2.10.001 | v1.3 | (carried from Pass-12) |
 | BC-2.10.003 | v1.4 | (carried from Pass-12) |
 | BC-2.10.007 | v1.7 | (carried from Pass-12) |
@@ -757,6 +762,114 @@ items, not ARP-delta defects. Counter remains 0/3.
 
 ---
 
+### Pass 15 — 2026-06-13 (whole-corpus, Claude adversary; NOT_CLEAN → REMEDIATED)
+
+**Method:** Whole-corpus fresh-context pass; 4 slices via Claude vsdd-factory:adversary agent.
+**Note on method:** agy (Gemini cross-family) was attempted for Pass 15 but its print-mode hit
+a ~40-step agentic cap (broad slices read files but never synthesized) AND then hit
+RESOURCE_EXHAUSTED (429, individual quota, resets ~5 days). Pass 15 was run via Claude
+vsdd-factory:adversary (4 slices) per human direction. Human later provided additional agy quota
+for Pass 16+.
+**Factory-artifacts HEAD reviewed:** (post-P14-remediation burst).
+**Findings:** 8 total — 2 CRITICAL, 1 HIGH, 3 MEDIUM, 2 LOW — ALL REMEDIATED.
+**Novelty:** MED — C-01/02/03 holdout-scenarios field-rename is the largest class; it is the
+sibling layer MISSED by the Pass-14 field-rename sweep (which scoped only .factory/specs/).
+**Convergence counter:** 0/3 (remediation does NOT advance counter; next = Pass 16 via agy).
+**Verdict:** NOT_CLEAN → REMEDIATED.
+
+#### Findings and Remediation
+
+**A-01 MED (architect) — VP-INDEX ↔ VP-024 BC-scope reconciled:**
+VP-INDEX v2.1 listed VP-024 as covering "BC-2.16.001-015 (6 BCs)"; VP-024 itself scopes to
+BC-2.16.001-006 (spoof/GARP/storm/rate anomaly BCs). Also added non-Kani footnote for
+BC-2.16.007 (test-sufficient; non-Kani coverage acceptable). VP-INDEX bumped v2.1→v2.2.
+
+**C-04 MED (REGRESSION introduced in Pass-14 Burst-1) — inv-01-core-invariants.md duplicate
+top-level `version:` key:**
+Pass-14 PO Burst 9 appended a second `version:` YAML key instead of replacing the existing
+one, producing malformed frontmatter. Deduped to single `version: v1.2`. BC-2.11.024 Evidence
+also corrected (see D-01 below).
+
+**D-01 MED — BC-2.11.024 Evidence "all four Option fields"→3 Option + mitre_techniques.join;
+csv.rs anchor 82-85→87-90:**
+Evidence text described "all four Option fields" (pre-STORY-100 phrasing) and cited stale
+csv.rs line anchor 82-85 (now 87-90 post-refactor). Corrected to "three Option fields"
+(timestamp, src_ip, dst_ip) + `mitre_techniques.join("|")` serialization.
+BC-2.11.024 bumped v1.6→v1.7.
+
+**B-01 LOW — BC-INDEX BC-2.02.009 narrative prose version pin:**
+BC-INDEX v1.23 inline annotation for BC-2.02.009 cited v1.4 (stale; file is v1.6). Corrected
+in 3 locations. BC-INDEX bumped v1.23→v1.24.
+
+**C-05 LOW — interface-definitions "four fields"→"four optional-presence fields" clarified:**
+"four fields" phrasing was ambiguous; corrected to "four optional-presence fields" to
+distinguish from the now-separate `mitre_techniques` (Vec<String>, non-optional presence).
+interface-definitions bumped v1.1→v1.2.
+
+**C-01 CRITICAL / C-02 CRITICAL / C-03 HIGH — holdout-scenarios field-rename sweep
+(16 HS files fixed):**
+The Pass-14 mitre_techniques field-rename sweep scoped to `.factory/specs/` only and MISSED
+the `.factory/holdout-scenarios/` sibling layer. All 16 affected HS files corrected:
+
+- **H1 pass** (8 files — field-rename only): HS-032, HS-046, HS-047, HS-056, HS-057, HS-058,
+  HS-059, HS-065 — each carried `mitre_technique_id:` and/or `mitre_tactic:` phantom keys
+  (never existed in the Finding struct; both introduced as guessed substitutes for the
+  pre-rename `mitre_technique` field). Corrected to `mitre_techniques: [...]` array.
+  All 8 bumped to v1.1.
+
+- **H2 pass** (8 files — field-rename + additional corrections): HS-074, HS-080, HS-083,
+  HS-098, HS-007, HS-009, HS-016, HS-017 — phantom `mitre_technique_id`/`mitre_tactic` keys
+  corrected; CSV headers fixed byte-for-byte vs csv.rs (column order, naming); timestamp and
+  O-01 claims corrected for HS-007/HS-017 (timestamp now wired per STORY-097..099, not None).
+
+- **H3 pass** (2 frozen eval-run records): `evaluations/chunk1-eval.md` and
+  `evaluations/chunk3-eval.md` — historical eval-run records carry expectations referencing
+  the old schema. Given these are frozen audit-trail records (not living specs), added dated
+  errata sections (ERRATA 2026-06-13) recording the field-rename while preserving original
+  history. No history rewritten.
+
+#### Consistency audit (DF-CONSISTENCY-AUDIT-POST-FIXBURST-001)
+
+**Verdict: CONSISTENT** — all 7 dimensions checked:
+1. BC-INDEX ↔ BC files: CONSISTENT (BC-INDEX v1.24 titles match).
+2. PRD counts ↔ BC-INDEX: CONSISTENT (283 BCs, 24 VPs, 17 tactics).
+3. Architecture cross-doc: CONSISTENT (carried from P14 architect sweep).
+4. Field-rename saturation (specs layer): CONSISTENT (grep confirms zero `mitre_technique`
+   singular in .factory/specs/).
+5. Field-rename saturation (holdout-scenarios layer): CONSISTENT (all 16 HS files corrected;
+   grep confirms zero phantom `mitre_technique_id`/`mitre_tactic` keys).
+6. O-01 closure: CONSISTENT (zero open-framed O-01 remaining).
+7. inv-01 YAML structure: CONSISTENT (single `version:` key; no duplicate YAML keys).
+
+Regression confirmed resolved: inv-01 malformed YAML (C-04) deduped; no other P14-churn
+regressions found.
+
+#### Process gaps noted [process-gap]
+
+**PG-ARP-F2-003:** Pass-14 field-rename sweep scoped to `.factory/specs/` only and MISSED the
+`.factory/holdout-scenarios/` sibling layer — DF-SIBLING-SWEEP must include holdout-scenarios
+in the propagation perimeter for any Finding-schema change.
+
+**PG-ARP-F2-004:** A PO remediation burst appended a second `version:` YAML key instead of
+replacing it (inv-01), introducing malformed YAML caught only at the next pass — version bumps
+must replace-in-place, and a frontmatter dup-key lint should run pre-commit.
+
+#### Artifact versions post-Pass-15
+
+| Artifact | Version | Change |
+|----------|---------|--------|
+| VP-INDEX | v2.2 | BC-scope for VP-024 corrected; non-Kani footnote added |
+| inv-01-core-invariants | v1.2 | Duplicate `version:` key deduped |
+| BC-2.11.024 | v1.7 | Evidence "four Option fields"→3 Option + mitre_techniques.join; csv.rs anchor corrected |
+| BC-INDEX | v1.24 | BC-2.02.009 version pin corrected (3 locations) |
+| interface-definitions | v1.2 | "four optional-presence fields" clarification |
+| HS-032, HS-046, HS-047, HS-056, HS-057, HS-058, HS-059, HS-065 | v1.1 | mitre_techniques field-rename (H1 sweep) |
+| HS-074, HS-080, HS-083, HS-098, HS-007, HS-009, HS-016, HS-017 | various | mitre_techniques + CSV headers + O-01 corrections (H2 sweep) |
+| evaluations/chunk1-eval.md, evaluations/chunk3-eval.md | — | ERRATA 2026-06-13 appended (H3; history preserved) |
+| spec-changelog | updated | All P15 version bumps recorded |
+
+---
+
 ### HUMAN DECISION — 2026-06-13
 
 **CONTINUE STRICT WHOLE-CORPUS** — bar remains zero findings of ANY severity across the
@@ -812,6 +925,32 @@ all consuming-story body-notes in the same burst before committing.
 
 **Policy candidate:** DF-SIBLING-SWEEP-001 sub-rule — count-change consuming-doc sweep
 mandatory in same commit. See also PG-F7-004 from DNP3 cycle (same class of defect).
+
+---
+
+### [process-gap] PG-ARP-F2-003 — Holdout-scenarios layer excluded from field-rename sweep
+
+Pass-14 field-rename sweep (mitre_techniques corpus sweep) scoped to `.factory/specs/` only and
+MISSED the `.factory/holdout-scenarios/` sibling layer. 16 HS files still carried phantom
+`mitre_technique_id`/`mitre_tactic` keys (never existed in the Finding struct) and were caught
+only at Pass 15.
+
+**Candidate policy codification:** DF-SIBLING-SWEEP-001 must explicitly enumerate
+`.factory/holdout-scenarios/` in the propagation perimeter for any Finding-schema change, not
+just `.factory/specs/`.
+
+---
+
+### [process-gap] PG-ARP-F2-004 — Version bump must replace-in-place (no YAML key duplication)
+
+Pass-14 PO Burst 9 appended a second `version:` YAML frontmatter key to inv-01-core-invariants.md
+instead of replacing the existing one. This produced malformed YAML (duplicate key) that was
+caught only at Pass 15 (C-04).
+
+**Candidate policy codification:** Version bumps in YAML frontmatter must use replace-in-place
+(Edit tool targeting the exact `version: vX.Y` line), never append. A frontmatter dup-key lint
+(e.g., `python3 -c "import yaml; yaml.safe_load(open(f).read())"` over modified .md files)
+should run pre-commit.
 
 ---
 

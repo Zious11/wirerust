@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -74,7 +74,7 @@ risk_source: null
 Craft a pcap with four TLS ClientHello records. Run wirerust with JSON output.
 
 1. Assert `findings` array has exactly 1 SNI-related finding.
-2. Assert that finding has `mitre_technique == "T1027"`.
+2. Assert that finding has `mitre_techniques` array containing "T1027" (i.e., `select(.mitre_techniques | index("T1027"))`).
 3. Assert the finding's `evidence` array contains a string starting with `"hex: "` followed by lowercase hex.
 4. Assert `sni_counts` in `analyzers[TLS].detail.top_snis` includes entries for all four SNIs.
 5. Assert the space-containing SNI (D) has no finding (0x20 is NOT a C0 byte).

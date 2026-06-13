@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -50,7 +50,7 @@ stability under multiple conditions.
    - Multiple findings where some have empty evidence, some have multi-line evidence
 2. For each run, parse the raw CSV output.
 3. The first line is always the exact header:
-   `category,verdict,confidence,summary,evidence,mitre_technique,source_ip,direction,timestamp`
+   `category,verdict,confidence,summary,evidence,mitre_techniques,source_ip,direction,timestamp`
 4. Every data row (if any) has exactly 9 comma-separated fields as parsed by an RFC 4180 parser.
 5. A field value containing a comma is double-quoted by the csv library — the column count
    as parsed by RFC 4180 is still 9.
