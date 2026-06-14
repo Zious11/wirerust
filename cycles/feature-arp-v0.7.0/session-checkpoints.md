@@ -404,3 +404,29 @@ fully-clean pass. Passes 18-22 each surfaced+remediated genuine items.
 | develop HEAD | 31d1231 | — |
 | main HEAD | 3e29891 | chore: release v0.6.0 |
 | factory-artifacts HEAD | verify via git -C .factory log -1 | see prior burst |
+
+---
+
+## Archived Checkpoint: 2026-06-14 — F3 ARP adversarial convergence — Pass-32 NOT CLEAN; STORY-115 v1.1 REMEDIATED; clean-streak RESET 0/3; strict 3/3 in progress
+
+**Archived from STATE.md on:** 2026-06-14 (replaced by Pass-33 NOT CLEAN / BC-2.15.024 v1.7 REMEDIATED checkpoint)
+
+### POSITION at archival time
+
+- F1 PASSED (human-gated 2026-06-12, D-066). F2 CONVERGED (P33 CLEAN; 3/3). D-068/D-069 applied post-F2.
+- F3: STORY-111..115 created (E-16, 47 pts). All 5 ARP stories MATCH (d5bda72/268f53f/a767d96/e2f1c95/5ca9835).
+- F3 Adversarial Convergence: STRICT WHOLE-CORPUS, IN PROGRESS.
+  Pass-32 NOT CLEAN — Slices A/B/D ZERO (A 11th-consec); Slice C 1 MED (STORY-115
+  `storm_findings_count` → `storm_findings` cross-story field-name drift vs STORY-113:254
+  + BC-2.16.010 summarize key). REMEDIATED STORY-115 v1.1 (6 occurrences corrected).
+  Sibling sweep ZERO remaining live `storm_findings_count`. Clean-streak RESET: 1/3 → 0/3.
+  USER DIRECTIVE: CONTINUE STRICT 3/3 indefinitely.
+  NEXT ACTION at archival: Run Pass 33 (clean-streak attempt 1/3).
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
+| factory-artifacts HEAD | bed0906 | factory(F3): Pass-32 remediation — STORY-115 storm_findings field-name (clean-streak reset 0/3); STATE compaction |

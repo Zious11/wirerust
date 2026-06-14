@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -60,6 +60,16 @@ modified:
     from Description bullet for malformed_in_window, malformed_anomaly_emitted,
     MALFORMED_ANOMALY_THRESHOLD; from Postcondition 2; and from four Architecture Anchors lines.
     Retained all descriptive ownership/semantics text and src references. — 2026-06-14"
+  - "v1.7: Pass-33 F3-convergence Slice-B MEDIUM fix: Related-BCs descriptor for BC-2.15.015
+    corrected parse_errors→malformed_in_window in the reset-set reference. Old text listed
+    'parse_errors and malformed_anomaly_emitted reset at 300s expiry' — wrong because
+    parse_errors is the LIFETIME/monotonic counter (Invariant 1) that is NEVER in the reset
+    set. The windowed field that BC-2.15.015 resets alongside malformed_anomaly_emitted is
+    malformed_in_window. Corrected to 'malformed_in_window and malformed_anomaly_emitted
+    reset at 300s expiry by BC-2.15.015 (parse_errors is the LIFETIME counter — NOT in the
+    reset set, per Invariant 1)'. Residual stale cross-ref from v1.1 two-counter split.
+    DF-SIBLING-SWEEP-001: no other artifact in .factory/specs/ wrongly lists parse_errors in
+    a reset set. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -330,7 +340,7 @@ Kani formal verification target.
   malformed-frame reject path; per BC-2.15.009 PC3 parse_errors is NOT incremented on bail;
   the bail sets is_non_dnp3=true and all subsequent on_data calls are no-ops, so this BC's
   counters and emission check are never reached after bail — F-F5-004 reconciliation)
-- BC-2.15.015 — composes with (single reset owner for shared 300s correlation window; parse_errors and malformed_anomaly_emitted reset at 300s expiry by BC-2.15.015)
+- BC-2.15.015 — composes with (single reset owner for shared 300s correlation window; malformed_in_window and malformed_anomaly_emitted reset at 300s expiry by BC-2.15.015 (parse_errors is the LIFETIME counter — NOT in the reset set, per Invariant 1))
 - BC-2.15.016 — depends on (parse_errors is defined in Dnp3FlowState; BC-2.15.016 Postcondition 2 is one increment path; this BC adds the emission check on top of the existing counter)
 - BC-2.15.022 — depends on (MAX_FINDINGS cap guard)
 

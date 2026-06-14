@@ -105,6 +105,27 @@ edit). Sibling sweep: ZERO remaining live `storm_findings_count` in corpus. REME
 
 **Clean-streak RESET: 1/3 → 0/3.** NEXT = Pass 33 (clean-streak attempt 1/3 restart).
 
+### Pass 33 (2026-06-14)
+
+Slice A: ZERO [12th-consec]. Slice B: 1 MEDIUM [BC-2.15.024 Related-BCs descriptor for
+BC-2.15.015 incorrectly listed `parse_errors` in the 300s-expiry reset set. The windowed
+field BC-2.15.015 resets alongside `malformed_anomaly_emitted` is `malformed_in_window`,
+NOT `parse_errors`. `parse_errors` is the LIFETIME/monotonic counter per BC-2.15.024
+Invariant 1 / PC5 / Architecture Anchors + BC-2.15.015 + dnp3.rs:984-995 (which resets
+six windowed fields only, never parse_errors). Residual stale cross-ref from v1.1
+two-counter split.]. Slice C: ZERO. Slice D: ZERO [3rd-consec].
+
+**Finding:** 1 MEDIUM total (Slice B). NOT a clean pass.
+
+**Remediation:** BC-2.15.024 → v1.7 (2026-06-14). Related-BCs descriptor for BC-2.15.015
+corrected: "parse_errors and malformed_anomaly_emitted reset at 300s expiry" →
+"malformed_in_window and malformed_anomaly_emitted reset at 300s expiry by BC-2.15.015
+(parse_errors is the LIFETIME counter — NOT in the reset set, per Invariant 1)".
+DF-SIBLING-SWEEP-001: no other artifact in .factory/ wrongly lists parse_errors in a
+reset set — sibling sweep CLEAN. REMEDIATED.
+
+**clean-streak 0/3.** NEXT = Pass 34 (clean-streak attempt 1/3).
+
 ---
 
 ## Summary Table
@@ -126,3 +147,4 @@ edit). Sibling sweep: ZERO remaining live `storm_findings_count` in corpus. REME
 | 30 | ZERO | ZERO | INVALID | 1H+1L | 2+ | 0/3 | P30 Slice C env glitch (discarded) |
 | 31 | ZERO | ZERO | ZERO | ZERO | 0 | **1/3** | FULLY CLEAN — first of 3 needed |
 | 32 | ZERO | ZERO | 1 MED | ZERO | 1 | 0/3 | STORY-115 field storm_findings_count→storm_findings; REMEDIATED |
+| 33 | ZERO | 1 MED | ZERO | ZERO | 1 | 0/3 | BC-2.15.024 reset-set cross-ref parse_errors→malformed_in_window; REMEDIATED v1.7 |
