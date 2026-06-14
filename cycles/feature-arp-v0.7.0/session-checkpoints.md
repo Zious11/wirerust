@@ -222,3 +222,27 @@ _(This checkpoint was further superseded by the Pass-25 REMEDIATED checkpoint ar
 | develop HEAD | 31d1231 | — |
 | main HEAD | 3e29891 | chore: release v0.6.0 |
 | factory-artifacts HEAD | re-verify live | `git -C .factory log -1 --format='%h %s'` |
+
+---
+
+## Archived Checkpoint: 2026-06-13 — F2 STRICT WHOLE-CORPUS CONVERGENCE, Pass 30 NOT_CLEAN→REMEDIATED; counter 0/3
+
+**Archived from STATE.md on:** 2026-06-13 (replaced by "Pass 31 CLEAN; counter 1/3" checkpoint)
+
+### POSITION (at archival time)
+
+- Counter: 0/3 (Pass 30 NOT_CLEAN→REMEDIATED; 4 HIGH genuine defects found).
+- 30 adversarial passes + 1 corpus consistency audit run.
+- Pass 30: Slice D clean; Slices A/B/C found 5 genuine defects (4 HIGH + 1 MED).
+  B-01/B-02/B-03 HIGH: BC-2.14.018 v1.2→v1.3 + BC-2.14.020 v2.2→v2.3 (FlowKey accessor fix).
+  C-01 HIGH: STORY-100..105 input-hash dup-key removed; all 6 MATCH.
+  A-01 MED: ADR-006 FC-0x17 attribution corrected (T0836 bucket).
+- Next action at time of archival: whole-corpus Pass 31 via Claude adversary.
+
+### VERIFIED SHAs at archival time (Pass 30 checkpoint)
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
+| factory-artifacts HEAD | re-verify live | `git -C .factory log -1 --format='%h %s'` |
