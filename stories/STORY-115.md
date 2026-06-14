@@ -2,7 +2,8 @@
 document_type: story
 story_id: STORY-115
 epic_id: E-16
-version: "1.0"
+version: "1.1"
+# Pass-32: align analyzer field name storm_findings_count→storm_findings (matches STORY-113 declaration + sibling convention + BC-2.16.010 summarize key)
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -51,7 +52,7 @@ input-hash: "5ca9835"
 ## BC-2.16.010 Cross-Story Extension
 
 This story wires the VALUE of the existing `storm_findings` key in `ArpAnalyzer::summarize()`. The primary owner
-of BC-2.16.010 and the 11-key summarize contract is STORY-113. STORY-115 does NOT add a new key — the `storm_findings` key is canonical key 8 of BC-2.16.010's 11-key set, already defined by BC-2.16.010 and declared by STORY-113's `summarize()` with value 0. This story populates its VALUE from `ArpAnalyzer.storm_findings_count` so it becomes non-zero when D3 detections fire.
+of BC-2.16.010 and the 11-key summarize contract is STORY-113. STORY-115 does NOT add a new key — the `storm_findings` key is canonical key 8 of BC-2.16.010's 11-key set, already defined by BC-2.16.010 and declared by STORY-113's `summarize()` with value 0. This story populates its VALUE from `ArpAnalyzer.storm_findings` so it becomes non-zero when D3 detections fire.
 
 ## D3 MITRE Attribution — DF-VALIDATION-001 Compliance
 
@@ -157,7 +158,7 @@ An integration test exercises the full CLI pipeline: `wirerust analyze --arp --a
 | D3 storm rate detection logic in `process_arp` | `src/analyzer/arp.rs` | Pure core (stateful) |
 | `const ARP_STORM_RATE_DEFAULT: u32 = 50` | `src/analyzer/arp.rs` | Constant (wirerust engineering default) |
 | `const MAX_STORM_COUNTERS: usize = 4_096` | `src/analyzer/arp.rs` | Constant |
-| `storm_findings_count` counter field | `src/analyzer/arp.rs` | State field |
+| `storm_findings` counter field | `src/analyzer/arp.rs` | State field |
 | `summarize()` `storm_findings` key wiring | `src/analyzer/arp.rs` | Pure read-only aggregation |
 | `--arp-storm-rate: u32` CLI flag | `src/cli.rs` | Effectful shell (CLI) |
 | `src/main.rs` — `ArpAnalyzer::new(spoof_threshold, storm_rate)` | `src/main.rs` | Effectful shell |
@@ -190,8 +191,8 @@ Architecture section references: `architecture/module-decomposition.md` (SS-16 C
 
 1. **Implement D3 storm detection** in `process_arp`: follow the exact 3-step intra-frame sequence from BC-2.16.008 postconditions 1–4 (Step 1: window expiry check and initialization; Step 2: increment if window active; Step 3: rate evaluation using `count_in_window / max(1, timestamp_secs - window_start_ts)`). Emit MEDIUM/Anomaly finding with `mitre_techniques: []` when threshold met and `storm_emitted == false`; set `storm_emitted = true` after emission.
 2. **Implement storm counter LRU eviction**: when `storm_counters.len() >= MAX_STORM_COUNTERS` and a new MAC arrives, evict the entry with the minimum `window_start_ts` (heuristic LRU approximation). One-in-one-out.
-3. **Wire `storm_findings_count` counter**: increment in `process_arp` each time a D3 finding is emitted.
-4. **Update `summarize()`**: ensure `storm_findings` key returns `self.storm_findings_count` (was 0 in STORY-113 stub; now non-zero after D3 detections).
+3. **Wire `storm_findings` counter**: increment in `process_arp` each time a D3 finding is emitted.
+4. **Update `summarize()`**: ensure `storm_findings` key returns `self.storm_findings` (was 0 in STORY-113 stub; now non-zero after D3 detections).
 5. **Add `--arp-storm-rate` CLI flag** to `src/cli.rs`: `#[arg(long, default_value_t = 50)] arp_storm_rate: u32` on `Commands::Analyze`. This flag is STORY-115's primary deliverable per BC-2.16.013 — it is NOT added in earlier stories. Wire it to `ArpAnalyzer::new(spoof_threshold, storm_rate)` in `src/main.rs`.
 6. **Confirm `ArpAnalyzer::new(spoof_threshold, storm_rate)`** properly uses `storm_rate` in D3 evaluation. Confirm `src/main.rs` passes `args.arp_storm_rate`.
 7. **Write unit tests** for AC-001 through AC-015.
@@ -256,7 +257,7 @@ Derived from arp-architecture-delta.md §3.2, BC-2.16.008, BC-2.16.013:
 
 | File | Action | Notes |
 |------|--------|-------|
-| `src/analyzer/arp.rs` | Modify | D3 storm detection logic; LRU eviction for storm_counters; storm_findings_count counter; summarize() storm_findings key |
+| `src/analyzer/arp.rs` | Modify | D3 storm detection logic; LRU eviction for storm_counters; storm_findings counter; summarize() storm_findings key |
 | `src/cli.rs` | Modify | Add `#[arg(long, default_value_t = 50)] arp_storm_rate: u32` — STORY-115 is the owner of this flag per BC-2.16.013; it is not carried forward from any earlier story |
 | `tests/arp_integration_test.rs` (or equivalent) | Create/expand | `test_integration_arp_storm_end_to_end` integration test |
 

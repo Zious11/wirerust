@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F3-story-decomposition-adversarial-convergence
-phase_status: "F3 IN PROGRESS — story decomposition complete (STORY-111..115 created); adversarial convergence STRICT 3/3 IN PROGRESS; PASS-31 FULLY CLEAN (all 4 slices ZERO findings; mount-guards PASSED; Slice C env-glitch from P30 confirmed resolved). clean-streak 1/3. NEXT = Pass 32 (clean-streak attempt 2/3)."
+phase_status: "F3 IN PROGRESS — story decomposition complete (STORY-111..115 created); adversarial convergence STRICT 3/3 IN PROGRESS; PASS-32 NOT CLEAN (Slices A/B/D ZERO; Slice C 1 MED: STORY-115 storm_findings_count→storm_findings field-name drift; REMEDIATED STORY-115 v1.1). clean-streak RESET 1/3→0/3. NEXT = Pass 33 (clean-streak attempt 1/3)."
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -41,7 +41,7 @@ adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 arp_f2_adversary_convergence_counter: 3/3 CONVERGED  # Pass 31/32/33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED
 arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ batch2: ss-07-full(35 BCs)+ss-04-partial(21 BCs)+ss-11(10 BCs); ss-01/02/08/13 CLEAN; ss-04-remainder+ss-12 to Pass-20 — REMEDIATED → P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED) → P21(5 cosmetic; 0C/0H; A+C CLEAN; REMEDIATED) → P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED) → P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED) → P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED) → P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED) → P26 CLEAN 1/3 (all 4 slices zero findings; corpus-wide debt flushed P14-25) → P27 reset 1/3→0/3 (HS-008 kill-chain + HS-INDEX pin; holdout-pin-hardened) → P28 CLEAN 1/3 (restart after P27 reset) → P29 reset 1/3→0/3 (DNP3 T1692.001 + PRD FC-0x17 content gaps; REMEDIATED) → P30 (4 HIGH genuine: FlowKey accessor + STORY input-hash dup + ADR-006 FC0x17; REMEDIATED) → P31 CLEAN 1/3 (restart; P30 HIGH fixes held; all 4 slices zero findings) → P32 CLEAN 2/3 (2nd consecutive) → P33 CLEAN 3/3 CONVERGED (F2 strict-whole-corpus gate satisfied after 33 passes). Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
-f3_convergence_trajectory: "F3 STRICT WHOLE-CORPUS IN PROGRESS. P1..P21 detail: STATE.md (inline). P22-P30 detail: STATE.md §B (inline). P31 FULLY CLEAN — all 4 slices ZERO FINDINGS (Slice A: 10th-consec ZERO; Slice B: ZERO [converged]; Slice C: ZERO [mount-guard PASSED; Pass-30 empty-dir was env glitch, CONFIRMED resolved]; Slice D: ZERO). clean-streak 0/3→1/3. FIRST fully-clean pass. NEXT = Pass 32 (attempt 2/3 — need 2 more consecutive clean). Full per-pass detail P22-P30: STATE.md §B."
+f3_convergence_trajectory: "F3 STRICT WHOLE-CORPUS IN PROGRESS. Full per-pass detail P1-P32: phase-f5-adversarial/arp-f3-convergence-trajectory.md. P31 FULLY CLEAN (all 4 slices ZERO; clean-streak 0/3→1/3). P32 NOT CLEAN (Slice C 1 MED: STORY-115 storm_findings_count→storm_findings; REMEDIATED; clean-streak RESET 1/3→0/3). NEXT = Pass 33 (clean-streak attempt 1/3)."
 f7_convergence_trajectory: "6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM)"
 consistency_audit: CONSISTENT
 input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STORY-111..115 MATCH (d5bda72/268f53f/a767d96/e2f1c95/5ca9835); STALE=44 are pre-existing older greenfield/feature stories whose BC inputs evolved — expected, non-blocking for F3; scan 2026-06-14"
@@ -51,11 +51,9 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STO
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED (P33 CLEAN; 3/3 strict-whole-corpus). F3 ARP story decomposition: STORY-111..115 CREATED (epic E-16, 47 pts). D-068/D-069 applied post-F2. F3 adversarial convergence STRICT 3/3 IN PROGRESS: PASS-31 FULLY CLEAN — all 4 slices ZERO findings; mount-guards PASSED (Slice C env glitch from P30 confirmed resolved). clean-streak 1/3. NEXT = Pass 32 (clean-streak attempt 2/3 — need 2 more consecutive clean).**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED (P33 CLEAN; 3/3 strict-whole-corpus). F3 ARP story decomposition: STORY-111..115 CREATED (epic E-16, 47 pts). D-068/D-069 applied post-F2. F3 adversarial convergence STRICT 3/3 IN PROGRESS: PASS-32 NOT CLEAN — Slices A/B/D ZERO; Slice C 1 MED (STORY-115 storm_findings_count→storm_findings field-name drift vs STORY-113 + BC-2.16.010 summarize key); REMEDIATED STORY-115 v1.1. clean-streak RESET 1/3→0/3. NEXT = Pass 33 (clean-streak attempt 1/3).**
 
-**Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (23 locked + VP-024 ARP draft, locks at STORY-113 F6), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — est. 18-24 new BCs (SS-16), 1 revised BC, VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE T0830 (primary) + T1557.002 (secondary).
-
-Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #202/#205 closed; develop 31d1231; etherparse 0.20 folded into ARP feature cycle (IN-PROGRESS).
+**Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (23 locked + VP-024 ARP draft), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — SS-16 (18-24 new BCs), VP-024, ADR-008, E-16 (5-6 stories). MITRE T0830+T1557.002. Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #202/#205 closed; etherparse 0.20 folded into ARP cycle (IN-PROGRESS).
 
 ## Phase Progress
 
@@ -83,11 +81,11 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 | Maintenance: Dependabot sweep (post-v0.6.0) | **COMPLETE** 2026-06-12 | 5 PRs merged (#203/#204/#207/#235/#206), 2 closed (#202 superseded, #205 deferred); develop 31d1231 |
 | Feature: ARP analyzer — F1 Delta Analysis | **PASSED** (human-gated 2026-06-12) | DecodedFrame{Ip,Arp} integration, ADR-008 planned, F2→F7 authorized; artifacts: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` |
 | Feature: ARP analyzer — F2 Spec Evolution | **CONVERGED 3/3** (Pass 33, 2026-06-13); 33 passes total; P31/P32/P33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED | 4-slice method; ARP delta SETTLED P9+; corpus-wide debt flushed P14-25; P26/P28/P31/P32/P33 CLEAN; P27/P29/P30 reset cycles surfaced+fixed genuine defects; trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
-| Feature: ARP analyzer — F3 Story Decomposition | **IN PROGRESS** — stories created; adversarial convergence STRICT 3/3 in progress; Pass-31 FULLY CLEAN (all 4 slices ZERO; mount-guards PASSED; Slice C P30 env glitch confirmed resolved); clean-streak **1/3**; NEXT = Pass 32 (attempt 2/3) | STORY-111..115 (E-16, 47 pts, linear chain); 15 SS-16 BCs; waves 40-44 holdouts; HS-INDEX v1.7; wave-schedule v1.3; SS-15 fully de-NEW-ed; corpus canonical 457 pts |
+| Feature: ARP analyzer — F3 Story Decomposition | **IN PROGRESS** — stories created; adversarial convergence STRICT 3/3 in progress; Pass-32 NOT CLEAN (Slice C 1 MED: STORY-115 storm_findings_count→storm_findings; REMEDIATED v1.1); clean-streak RESET **0/3**; NEXT = Pass 33 (attempt 1/3) | STORY-111..115 (E-16, 47 pts, linear chain); 15 SS-16 BCs; waves 40-44 holdouts; HS-INDEX v1.7; wave-schedule v1.3; SS-15 fully de-NEW-ed; corpus canonical 457 pts; trajectory: phase-f5-adversarial/arp-f3-convergence-trajectory.md |
 
-## Session Resume Checkpoint (2026-06-14 — F3 ARP adversarial convergence — Pass-31 FULLY CLEAN; clean-streak 1/3; strict 3/3 in progress)
+## Session Resume Checkpoint (2026-06-14 — F3 ARP adversarial convergence — Pass-32 NOT CLEAN; STORY-115 v1.1 REMEDIATED; clean-streak RESET 0/3; strict 3/3 in progress)
 
-**Previous checkpoint (2026-06-14 — F3 ARP adversarial convergence — Pass-30 remediation complete; strict 3/3 in progress) archived to:
+**Previous checkpoint (2026-06-14 — F3 ARP adversarial convergence — Pass-31 FULLY CLEAN; clean-streak 1/3; strict 3/3 in progress) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
@@ -103,32 +101,29 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
   updated. All 5 ARP stories MATCH: STORY-111=d5bda72, STORY-112=268f53f, STORY-113=a767d96,
   STORY-114=e2f1c95, STORY-115=5ca9835.
 - **F3 Adversarial Convergence:** STRICT WHOLE-CORPUS, IN PROGRESS.
-  **Pass-31 FULLY CLEAN — all 4 slices ZERO (Slice A 10th-consec ZERO; B converged; C ZERO [mount-guard PASSED; P30 env glitch confirmed resolved]; D ZERO). Clean-streak: 1/3.**
+  **Pass-32 NOT CLEAN — Slices A/B/D ZERO; Slice C 1 MED (STORY-115 storm_findings_count→storm_findings cross-story field-name drift; REMEDIATED STORY-115 v1.1). Clean-streak RESET 1/3→0/3.**
   **USER DIRECTIVE (2026-06-14): CONTINUE STRICT 3/3 indefinitely.**
-  **NEXT ACTION: Run Pass 32 (clean-streak attempt 2/3 — need 2 more consecutive clean).**
+  **NEXT ACTION: Run Pass 33 (clean-streak attempt 1/3).**
 
 ### B. F3 CONVERGENCE STATUS
 
-- Method: STRICT WHOLE-CORPUS, 4 fresh-context slices per pass:
-  - Slice A = architecture + VPs
-  - Slice B = all 283 BC bodies
-  - Slice C = domain / holdout / MITRE / stories
-  - Slice D = PRD + indexes + changelog ledger
-- Bar: ZERO findings of ANY severity (incl LOW) across ALL 4 slices; 3 CONSECUTIVE
-  fully-clean passes required. Adversary: CLAUDE (Agent tool, `vsdd-factory:adversary`).
-  agy is UNUSABLE (40-step cap + quota-exhausted). Absolute paths, no cd (DF-ADVERSARY-METHODOLOGY-001).
-- **Pass 17** = first fully-clean pass. **Pass 18** broke streak (VP title-sync).
-  **Passes 19/20/21/22/23/24/25/26** each surfaced+remediated genuine items.
-  **Pass-26 remediation COMPLETE** (Slice A ZERO [5th consec]; Slice B 1 MED [BC-2.15.007 EC-008 frame_len Some(290)→Some(291) — sibling-row miss from v1.1 EC-004 cleanup; matches shipped compute_dnp3_frame_len(254)=291]; Slice C ZERO [3rd consec]; Slice D 1 HIGH [STORY-INDEX total_points 447→457, wave-TOTAL 442→452, epic-TOTAL 447→457, pre-ARP 400→410 — per-story rows correct, grand totals stale; propagated to dependency-graph.md + STATE summary; root cause: pre-ARP grand total was 10 low]; ALL REMEDIATED; BC-2.15.007 v1.4; STORY-INDEX v1.5; dep-graph 452/457; STATE summary 457 pts).
-  **Post-Pass-26 proactive consistency-flush COMPLETE** (consistency-validator full-corpus sweep: 16 latent defects remediated — VP-002 src-anchor wrong-fn de-pin, VP-016 src-anchor off-by-5 de-pin, VP-006 Must→Should table correct, proptest row 6→7 VPs [+VP-021], PRD §2.15 BC-2.15.009/016 H1 title-sync, SS-04×2+SS-12×6+STORY-033+STORY-077 line-pin de-pins). Clean-streak UNCHANGED 0/3. NOTE: flush burst self-introduced SS-12×6 version-field lag (added v1.4 changelog entries without bumping frontmatter version: "1.3"→"1.4"); caught and fixed at Pass-27.
-  **Pass-27 REMEDIATION COMPLETE** (Slice A ZERO 6th-consec, Slice C ZERO converged; Slice B: SS-12×6 version-field 1.3→1.4 [self-introduced by flush burst] + BC-2.15.023 FC 0x13 STOP_APPL→SAVE_CONFIG [IEEE 1815-2012 name; no behavioral impact]; Slice D: spec-changelog phantom paths pass-24 [ss-16→ss-15] + pass-25 [holdout→feature/wave-holdout-scenarios], wave-schedule title scope; ALL REMEDIATED). Clean-streak 0/3.
-  **Pass-28 REMEDIATION COMPLETE** (Slice A ZERO 7th-consec, Slice C ZERO converged; Slice B: BC-2.15.007→v1.5 + BC-2.15.009→v1.6 [Related-BC cross-ref corrected .020→.016; BC-2.15.016 is carry-buffer mgmt BC; .020 is summarize() stats BC; reciprocal link confirmed] + BC-2.15.014→v1.9 + BC-2.15.015→v1.8 + BC-2.15.024→v1.6 [stale (NEW)/to-be-added-in-F4/(NEW v1.5)/(NEW field/constant) markers removed; code shipped in STORY-109: T1691.001 arm src/mitre.rs:174, IcsImpact src/mitre.rs:69, T0827 arm :178, malformed_in_window dnp3.rs:235, malformed_anomaly_emitted :237, MALFORMED_ANOMALY_THRESHOLD :129; SS-15 now fully de-NEW-ed — zero live stale markers]; Slice D: feature/wave-schedule.md→v1.3 [T0855→T1692.001 ×3 live occurrences lines 121/129/145; HS-INDEX:322 enforcement rule also corrected; issue #222 v19-remap propagation miss] + seeded-count line 123 annotated as v0.3.0 milestone snapshot [21 at v0.3.0; canonical current 25]; ALL REMEDIATED). Clean-streak 0/3.
-  **Pass-29 REMEDIATION COMPLETE** (Slice A ZERO 8th-consec, Slice B ZERO [2nd clean/converged], Slice C ZERO [converged]; Slice D 1 MED [HS-INDEX HS-W39-007 VP-023 Kani BC over-scope — seed cited "VP-023 (BC-2.15.001 through BC-2.15.008)" but VP-023 Kani scope = .001..007 ONLY; BC-2.15.008 is unit-test-only (Transport FIR=1 Gating), no Kani harness; VP-INDEX:75 + footnote:131/135 confirm scope; BC-2.15.008 correctly handled standalone at HS-W35-007; corrected to "BC-2.15.001 through BC-2.15.007"; HS-INDEX→v1.7]; CLEANEST pass yet — 3/4 slices clean). Clean-streak 0/3.
-  **Pass-30 REMEDIATION COMPLETE** (Slice A ZERO [9th-consec], Slice B ZERO [converged]; Slice C INVALID [env glitch — empty-dir confabulation; .factory verified populated: 69 STORY files, 101 HS files; DISCARDED]; Slice D 1 HIGH [PRD v1.25 ledger gap — delta note+changelog entry verified present; anchor resolves] + 1 LOW [BC-2.15.017 v1.3 text tautology fixed]; 1 FALSE-POSITIVE rejected [BC-2.15.017:122 path CORRECT]; genuine findings REMEDIATED). Clean-streak 0/3.
-  **Pass-31 FULLY CLEAN** (all 4 slices ZERO; Slice A 10th-consec ZERO; Slice B converged; Slice C ZERO [mount-guard PASSED — P30 env glitch confirmed resolved]; Slice D ZERO). Clean-streak 0/3→**1/3**. FIRST fully-clean pass. NEXT = Pass 32 (clean-streak attempt 2/3).
-- 3 deep flush audits completed and cleared: (1) dependency-graph whole-file audit;
-  (2) VP-layer + index title-sync audit; (3) story-completeness (BC-PC→AC→test) audit.
-  Wave-28-34 dependency-graph gap closed.
+- Method: STRICT WHOLE-CORPUS, 4 fresh-context slices per pass (A=arch+VPs, B=all 283 BCs,
+  C=domain/holdout/MITRE/stories, D=PRD+indexes+changelog). Bar: ZERO any-severity across
+  ALL 4 slices; 3 consecutive clean passes required. Adversary: CLAUDE (`vsdd-factory:adversary`).
+  Absolute paths, no cd (DF-ADVERSARY-METHODOLOGY-001). Full per-pass detail P1-P32:
+  `phase-f5-adversarial/arp-f3-convergence-trajectory.md`.
+- Passes 1–28: archived to trajectory file. Key milestones: P17 first clean; P18 broke streak;
+  P19–28 each surfaced+remediated genuine items (anchor-drift, point-totals, SS-12 version lag,
+  SS-15 de-NEW, wave-schedule T0855→T1692.001). 3 deep flush audits COMPLETE.
+  **Pass-29 REMEDIATION COMPLETE** (A ZERO 8th-consec; B ZERO converged; C ZERO converged;
+  D 1 MED [HS-W39-007 VP-023 Kani scope .001..008→.001..007; HS-INDEX→v1.7]). Clean-streak 0/3.
+  **Pass-30 REMEDIATION COMPLETE** (A ZERO 9th-consec; B ZERO; C INVALID [env glitch—discarded];
+  D 1H+1L [PRD v1.25 ledger + BC-2.15.017 tautology]; 1 FALSE-POSITIVE rejected). Clean-streak 0/3.
+  **Pass-31 FULLY CLEAN** (all 4 slices ZERO; A 10th-consec; C mount-guard PASSED). Clean-streak 0/3→**1/3**.
+  **Pass-32 NOT CLEAN** (A ZERO 11th-consec; B ZERO; C 1 MED [STORY-115 `storm_findings_count`→
+  `storm_findings` cross-story field drift vs STORY-113:254 + BC-2.16.010 summarize key];
+  D ZERO; REMEDIATED STORY-115 v1.1; sibling sweep ZERO remaining). Clean-streak RESET **1/3→0/3**.
+  NEXT = Pass 33 (clean-streak attempt 1/3).
 - Canonical corpus facts (feed to each adversary dispatch):
   - BCs: 283 total (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP)
   - VPs: 24 total (22 pre-F2 + VP-023 DNP3 + VP-024 ARP draft)
@@ -179,18 +174,11 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 | STORY-INDEX.md | v1.5 (total_points 447→457, wave-TOTAL 442→452, epic-TOTAL 447→457, pre-ARP 400→410; all 68 per-story rows verified 0 mismatches) |
 | dependency-graph.md | updated (Total story points 442/447 → 452/457) |
 | dep-graph-extended.md | SUPERSEDED (edge-count 86→84; pointer to dependency-graph.md) |
-| vp-002-first-wins-overlap.md | v2.1 (src anchor de-pinned: segment.rs:39-46 wrong-fn ranges_overlap → symbol `insert_segment`; post-P26 consistency-flush) |
-| vp-016-mitre-tactic-grouping-order.md | v2.3 (src anchor de-pinned: mitre.rs:95 off-by-5 → symbol `all_tactics_in_report_order`; post-P26 consistency-flush) |
-| BC-2.04.009 | v1.5 (all mod.rs/flow.rs line-pins → symbol anchors; post-P26 consistency-flush) |
-| BC-2.04.019 | v1.9 (all mod.rs line-pins → symbol anchors; post-P26 consistency-flush) |
-| BC-2.12.004/006/012/013/016/017 | all v1.4 (all cli.rs/main.rs line-pins → symbol anchors; zero numeric src pins remain; post-P26 consistency-flush) |
-| STORY-033.md | v1.5 (http.rs/tls.rs/dispatcher.rs line-pins → symbol anchors; post-P26 consistency-flush) |
-| STORY-077.md | v1.4 (terminal.rs/dispatcher.rs line-pins → symbol anchors; post-P26 consistency-flush) |
+| vp-002-first-wins-overlap.md | v2.1 (anchor de-pinned → symbol `insert_segment`; post-P26) |
+| vp-016-mitre-tactic-grouping-order.md | v2.3 (anchor de-pinned → symbol `all_tactics_in_report_order`; post-P26) |
+| BC-2.04.009/019, BC-2.12.004/006/012/013/016/017, STORY-033, STORY-077 | various (post-P26 consistency-flush: all line-pins → symbol anchors; zero numeric src pins remain) |
 
-STORY-114 inputs include BC-2.16.007 (cross-story). All 16 SS-16 BC story-anchors back-filled.
-All 24 SS-15 BC story-anchors back-filled to STORY-106..110 (Pass-22 burst).
-STATE.md F3-OBL-STORY114-001/002/003 = REVOKED (superseded by D-069).
-DRIFT-PRD-V120-MBAPFRAMER-001 = RESOLVED (PRD v1.22 corrected MbapFramer prose).
+STORY-114 inputs include BC-2.16.007 (cross-story). All 16 SS-16 + 24 SS-15 BC story-anchors back-filled. F3-OBL-STORY114-001/002/003 REVOKED (D-069). DRIFT-PRD-V120-MBAPFRAMER-001 RESOLVED.
 
 ### E. DURABLE MITIGATIONS / SCOPE NOTES (feed to each adversary dispatch)
 
@@ -261,6 +249,11 @@ DRIFT-PRD-V120-MBAPFRAMER-001 = RESOLVED (PRD v1.22 corrected MbapFramer prose).
 - **BC-2.15.017 v1.3 sealed changelog** now accurately describes the erroneous-then-reverted
   DNPXX_→DNP3_ rename as: 'renamed DNPXX_→DNP3_ (erroneous; REVERTED in v1.4)'. Do NOT
   re-flag the v1.3 entry as a tautology — it was corrected at Pass-30.
+- **ArpAnalyzer aggregate counter field canonical name = `storm_findings`** (matches
+  BC-2.16.010 summarize key + STORY-113:254 declaration `storm_findings: u64` + sibling fields).
+  STORY-115 v1.1 uses `storm_findings` (not `storm_findings_count`) — CORRECT as of Pass-32
+  remediation. Do NOT re-flag as a naming inconsistency. Sibling sweep confirmed ZERO live
+  `storm_findings_count` in corpus after STORY-115 v1.1. (Pass-32 Slice C finding.)
 
 ### F. PROCESS-GAP CODIFICATION BACKLOG (for cycle-close)
 
@@ -345,20 +338,22 @@ DRIFT-PRD-V120-MBAPFRAMER-001 = RESOLVED (PRD v1.22 corrected MbapFramer prose).
 3. `git rev-parse --short HEAD` on develop (expect `31d1231` or newer, clean).
 4. `python3 /Users/zious/Documents/GITHUB/wirerust/bin/compute-input-hash --scan` —
    confirm STORY-111..115 MATCH (d5bda72/268f53f/a767d96/e2f1c95/5ca9835).
-5. **Resume: dispatch Pass 32 = 4 fresh-context adversary slices (strict whole-corpus,
-   zero-any-severity); clean-streak 1/3 → need 2 more consecutive clean.**
+5. **Resume: dispatch Pass 33 = 4 fresh-context adversary slices (strict whole-corpus,
+   zero-any-severity); clean-streak 0/3 (reset at P32 — need 3 consecutive clean).**
    DO NOT re-run F1/F2 (converged). DO NOT revert D-068/D-069.
-   Pass-31 FULLY CLEAN (all 4 slices ZERO; mount-guards PASSED). No remediation required.
+   Pass-32: Slices A/B/D ZERO; Slice C 1 MED (STORY-115 storm_findings_count→storm_findings)
+   REMEDIATED (STORY-115 v1.1). Sibling sweep CLEAN (zero remaining storm_findings_count).
    CRITICAL: Slice C dispatch MUST include a worktree-mount verification guard —
    Glob `.factory/stories/STORY-*`; if empty or only .gitkeep, STOP and report, do NOT
    confabulate. See PG-ARP-F3-ADVERSARY-MOUNT.
 
 ### I. KEY ARTIFACT POINTERS
 
-- ARP architecture delta: `/Users/zious/Documents/GITHUB/wirerust/.factory/specs/architecture/arp-architecture-delta.md`
-- F2 convergence trajectory (33 passes): `/Users/zious/Documents/GITHUB/wirerust/.factory/phase-f5-adversarial/arp-f2-convergence-trajectory.md`
-- F1 delta analysis: `/Users/zious/Documents/GITHUB/wirerust/.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md`
-- Archived checkpoints: `/Users/zious/Documents/GITHUB/wirerust/.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`
+- ARP architecture delta: `.factory/specs/architecture/arp-architecture-delta.md`
+- F2 convergence trajectory (33 passes): `.factory/phase-f5-adversarial/arp-f2-convergence-trajectory.md`
+- F3 convergence trajectory (P1-P32): `.factory/phase-f5-adversarial/arp-f3-convergence-trajectory.md`
+- F1 delta analysis: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md`
+- Archived checkpoints: `.factory/cycles/feature-arp-v0.7.0/session-checkpoints.md`
 
 ### J. VERIFIED SHAs (re-verify live on resume — snapshot only)
 
@@ -374,19 +369,10 @@ DRIFT-PRD-V120-MBAPFRAMER-001 = RESOLVED (PRD v1.22 corrected MbapFramer prose).
 
 ## Decisions Log
 
-D-001..D-046 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md`.
-D-047..D-054 full text archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md` (Feature #8 / v0.5.0 section).
+D-001..D-054 archived: `cycles/v0.1.0-greenfield-spec/decisions-archive.md` (D-047..D-054 in Feature #8 / v0.5.0 section).
 
 | ID | Decision | Date |
 |----|----------|------|
-| D-047 | Feature #8 DNP3 F1 gate APPROVED — full F1-F7, TCP-only, DispatchTarget::Dnp3 (port-20000 Rule 6), SS-15, VP-023, ADR-007. MITRE: T1692.001/T1691.001/T0827/T0814/T0836. | 2026-06-10 |
-| D-048 | MITRE v19 revocation defect (T0855→T1692.001, T0856→T1692.002) — fix-first (issue #222); DNP3 paused; corrected MITRE IDs locked. | 2026-06-10 |
-| D-049 | MITRE v19 remap CONVERGED — 3-pass adversarial. | 2026-06-10 |
-| D-050 | MITRE v19 remap MERGED to develop via PR #223 (33de854); issue #222 CLOSED. | 2026-06-10 |
-| D-051 | v0.5.0 RELEASED (gitflow-proper: release/0.5.0 → PR #224 → main c2df1b5; tag v0.5.0; run 27313698900). | 2026-06-10 |
-| D-052 | Feature #8 F2 spec evolution CONVERGED — SS-15 22 BCs + ADR-007 + VP-023; 5-pass adversarial. | 2026-06-10 |
-| D-053 | Feature #8 F2 gate COMPLETE — 2 must-add BCs (BC-023/024); SS-15 now 24 BCs / 268 total; 3 thresholds CONFIRMED. | 2026-06-10 |
-| D-054 | Feature #8 F3 story decomposition CONVERGED — 5 stories STORY-106..110, E-15, 47 pts, waves 35-39, 22 holdout scenarios. | 2026-06-10 |
 | D-055 | Feature #8 F3 human gate PASSED — 5 stories accepted; VP placements; strictly-linear chain. F4 TDD authorized. | 2026-06-11 |
 | D-056 | STORY-106 DELIVERED — PR #225 d0f3586. VP-023 4/4 Kani SUCCESSFUL. | 2026-06-11 |
 | D-057 | STORY-107 DELIVERED — PR #226 ebb4751. Carry-walk gate-before-count; STORY-106 frames wire-valid. | 2026-06-11 |
@@ -395,10 +381,10 @@ D-047..D-054 full text archived: `cycles/v0.1.0-greenfield-spec/decisions-archiv
 | D-060 | STORY-110 DELIVERED — PR #229 ddfa576. Rule 6 + CLI flags + VP-004 oracle. F4 COMPLETE. | 2026-06-12 |
 | D-061 | Feature #8 F5 COMPLETE — PR #230 e685664. 4 issues fixed (DIR-bit P0; unexpected-source P0; IcsImpact display; resync). 10-pass 3/3 CLEAN. | 2026-06-12 |
 | D-062 | Feature #8 F6 HARDENED — PR #231 a125c69. 9/9 Kani; 89% mut; 3.19M fuzz/0; VP-023 LOCKED v1.5; VP-004 relocked. 4/4 F6 obligations SATISFIED. | 2026-06-12 |
-| D-063 | Feature #8 F7 CONVERGED — 5-dim delta convergence after remediation of F-S2-001 (canonical-frame IEEE 1815 provenance: holdout HS-W37-002 + test, PR #232), F-S1-001 (BC-2.15.009 v1.3 initial-delivery-only reconciliation + BC-INDEX/STORY-106 propagation), F-PG-001 (HS-INDEX feature-holdout indexing), F-CC-001 (HS-W36-001 stale carry assertion), F-CC-002 (STORY-106..110 status drift), F-CC-003/004 (README/CHANGELOG DNP3 docs, PR #233). 6 fresh-context adversarial passes; final 3 consecutive CONVERGED. develop f217f27. NEXT = human gate → v0.6.0. | 2026-06-12 |
+| D-063 | Feature #8 F7 CONVERGED — 5-dim delta; 6 fresh-context adversarial passes (final 3/3 CONVERGED); F-S2-001/F-S1-001/F-PG-001/F-CC-001..004 remediated (PRs #232/#233). develop f217f27. | 2026-06-12 |
 | D-064 | v0.6.0 RELEASED — gitflow release/0.6.0 → PR #234 → main 3e29891; fixup fb3935c; tag v0.6.0; GitHub Release WITH 4 binaries (release.yml auto-build); develop merge-back 04f8ccb. DNP3 TCP analyzer is the headline feature. | 2026-06-12 |
 | D-065 | Dependabot sweep post-v0.6.0 COMPLETE — #203 serde_json/#204 assert_cmd/#207 clap/#206 rayon routine bumps merged; #235 manual SHA-pin actions/checkout 6.0.3 (replacing tag-ref #202); #205 etherparse 0.16→0.20 closed and deferred as migration story (new drift DRIFT-ETHERPARSE-0.20-MIGRATION-001). develop 31d1231. | 2026-06-12 |
-| D-066 | Feature ARP analyzer F1 gate APPROVED — full F1-F7, release target v0.7.0. Integration via DecodedFrame{Ip,Arp} enum from decode_packet (new ADR-008); ArpAnalyzer owns bounded IP↔MAC binding table; zero structural impact on existing 5 analyzers/reassembly/dispatcher. etherparse 0.20 migration is sub-delta A (SliceError::Len removed; 2 non-exhaustive NetSlice/LaxNetSlice match breaks; DecodedFrame return-type change). Estimate: 18-24 new BCs (SS-16), 1 revised BC (BC-2.02.009), VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE: T0830 (ICS AiTM, primary) + T1557.002 (Enterprise ARP Cache Poisoning, secondary) — validated ATT&CK v19.1. Detections approved: ARP spoof/cache-poisoning + gratuitous ARP + ARP storm/rate anomaly + research-agent pass for additional detections. DRIFT-ETHERPARSE-0.20-MIGRATION-001 folded into this cycle (IN-PROGRESS). | 2026-06-12 |
+| D-066 | Feature ARP analyzer F1 gate APPROVED — full F1-F7, release target v0.7.0. DecodedFrame{Ip,Arp} integration (ADR-008); ArpAnalyzer bounded IP↔MAC table; etherparse 0.20 sub-delta A. SS-16 (18-24 BCs), VP-024, ADR-008, E-16 (5-6 stories). MITRE T0830+T1557.002. Detections: spoof/cache-poison + GARP + storm/rate + research-agent additional. DRIFT-ETHERPARSE-0.20-MIGRATION-001 folded in. | 2026-06-12 |
 | D-067 | IcsImpact Display adjudication — canonical Display = "Impact" (spec correct; BC-2.10.002 PC3/PC4, PRD §85/823, cap-10, spec-changelog unanimous). src/mitre.rs:91 "Impact (ICS)" is DEVIANT (introduced F-F5-002 as "No BC change" tactical test fix). " (ICS)" suffix does NOT break merge-by-name report bucketing (terminal.rs render_findings_grouped keys on MitreTactic enum variant, not Display string); severity LOW (terminal section-header label only). F2 SPEC CHANGE: NONE — F2 3/3 strict-whole-corpus convergence preserved unaffected. Fix folded into STORY-114 (obligations: 1-line mitre.rs:91 fix; HS-008:75 "Impact (ICS)"→"Impact"; Display unit test; two-bucket enum-level report test). F2→F3 gate condition SATISFIED. **SUPERSEDED BY D-069.** | 2026-06-13 |
 | D-068 | Benign gratuitous ARP emits mitre_techniques: [] (LOW/Anomaly severity); T0830 + T1557.002 apply ONLY when GARP conflicts with binding table (BC-2.16.014). Research-backed: MITRE ATT&CK v19.1 T1557.002/DET0387 + T0830; arpwatch/Zeek/Suricata all gate techniques on conflict-detection. Corrected latent over-tagging defect in BC-2.16.003 (→v1.7) and ADR-008 (→v2.0). Propagated to §3.3/STORY-113 AC-003, holdouts, and error-taxonomy. | 2026-06-14 |
 | D-069 | IcsImpact Display canonical = "Impact (ICS)" (distinct from Enterprise "Impact" TA0040). SUPERSEDES D-067. Research-backed: MITRE TA0040 (Enterprise Impact) vs TA0105 (ICS Impact) are distinct tactic families; WCAG 2.4.6 requires unique headings/labels. src/mitre.rs:91 "Impact (ICS)" is CORRECT — not deviant. STORY-114 D-067 revert obligations (F3-OBL-STORY114-001/002/003) REVOKED. 2 shipped DNP3 F5 distinctness tests preserved (they test enum-variant identity, not Display string equality). Spec side corrected: BC-2.10.002 (→v1.5), PRD §85/882, ADR-007, arp-architecture-delta §5.0. | 2026-06-14 |
@@ -452,9 +438,7 @@ Full tech-debt register: `.factory/tech-debt-register.md`.
 | PG-ARP-F2-008 | Under STRICT zero-any-severity whole-corpus, each remediation burst can introduce ~1-2 new trivial propagation/whitespace items (version-pin lag, blank-line residue) the next pass flags — asymptotic. Mitigation: drop brittle current-state version-pins (done P22 D-01), and treat sustained 0 CRIT/HIGH/MED as practical convergence if LOW-cosmetic churn persists. (Human elected strict 3/3; continuing per directive.) Corpus substantively converged as of P22. | NOTED — asymptotic LOW churn; version-pin hardening done |
 | PG-ARP-F2-009 | F5 FlowKey-accessor fix (v2.2) swept 5 of 7 ss-14 direction-resolution BCs but missed 018/020; sibling-sweep completeness for code-vs-spec API fixes must enumerate ALL sibling BCs in same subsystem before closing. STORY input-hash dup-key (TBD placeholder + real hash both present) is a new frontmatter-validity defect class — pre-commit dup-key lint recommended. Caught at Pass 30; REMEDIATED. | DEFERRED — policy codification |
 | DRIFT-PRD-V120-MBAPFRAMER-001 | PRD v1.20 delta:285 "C-23 was MbapFramer" historical rationale was factually wrong — no MbapFramer component ever existed; ss-15/DNP3 was renumbered C-23→C-24 when ARP took C-23. | RESOLVED — PRD v1.22 corrected MbapFramer prose (Pass-22 burst 2026-06-14) |
-| F3-OBL-STORY114-001 | D-067 carry-forward: STORY-114 must fix src/mitre.rs:91 — change `MitreTactic::IcsImpact => "Impact (ICS)"` to `MitreTactic::IcsImpact => "Impact"` (1-line fix; adjudicated 2026-06-13). **REVOKED by D-069 (2026-06-14): src/mitre.rs:91 "Impact (ICS)" is CORRECT; no revert.** | REVOKED — superseded by D-069 |
-| F3-OBL-STORY114-002 | D-067 carry-forward: when STORY-114 fixes src/mitre.rs:91, also update `.factory/holdout-scenarios/HS-008-*.md:75` — change `"Impact (ICS)"` → `"Impact"` to align holdout assertion with corrected code. **REVOKED by D-069 (2026-06-14): HS-008-*.md:75 stays "Impact (ICS)"; no revert.** | REVOKED — superseded by D-069 |
-| F3-OBL-STORY114-003 | D-067 carry-forward: STORY-114 test obligations — (a) Display unit test: `assert_eq!(format!("{}", MitreTactic::IcsImpact), "Impact")`; (b) two-bucket report test confirming Impact vs IcsImpact bucket distinctly despite identical Display string (keyed on enum variant); (c) HS-008:75 alignment verified by test. **REVOKED by D-069 (2026-06-14): canonical Display is "Impact (ICS)"; D-067 test obligations nullified. VP-007 obligation in STORY-114 unchanged.** | REVOKED — superseded by D-069 |
+| F3-OBL-STORY114-001/002/003 | D-067 obligations (mitre.rs:91 "Impact"→"Impact (ICS)", HS-008 alignment, test obligations). **ALL REVOKED by D-069 (2026-06-14): src/mitre.rs:91 "Impact (ICS)" is CORRECT — canonical Display; no revert required. VP-007 obligation in STORY-114 unchanged.** | REVOKED — superseded by D-069 |
 | DNPXX-SOURCE-RENAME-001 | src constant `DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT` is an ugly placeholder-style name shipped in v0.6.0; candidate code-cleanup rename DNPXX_→DNP3_ (6 files: dnp3.rs/cli.rs/main.rs/tests + arp-delta + STORY-110) — OUT OF F3 SCOPE (spec/story only); defer to a code-quality maintenance sweep. Requires DF-VALIDATION-001 research-agent validation before GitHub issue filing. | DEFERRED LOW |
 
 ## Deferred Next-Work Backlog

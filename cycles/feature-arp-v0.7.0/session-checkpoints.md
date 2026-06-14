@@ -380,3 +380,27 @@ fully-clean pass. Passes 18-22 each surfaced+remediated genuine items.
 | main HEAD | 3e29891 | chore: release v0.6.0 |
 | factory-artifacts HEAD | 6fee89a | factory(F3): Pass-22 remediation |
 | factory-artifacts HEAD | 2f47145 | factory(state): correct stale story count and wrong ICS variant names |
+
+---
+
+## Archived Checkpoint: 2026-06-14 — F3 ARP adversarial convergence — Pass-31 FULLY CLEAN; clean-streak 1/3; strict 3/3 in progress
+
+**Archived from STATE.md on:** 2026-06-14 (replaced by Pass-32 NOT CLEAN / STORY-115 v1.1 REMEDIATED checkpoint)
+
+### POSITION at archival time
+
+- F1 PASSED (human-gated 2026-06-12, D-066). F2 CONVERGED (P33 CLEAN; 3/3). D-068/D-069 applied post-F2.
+- F3: STORY-111..115 created (E-16, 47 pts). All 5 ARP stories MATCH (d5bda72/268f53f/a767d96/e2f1c95/5ca9835).
+- F3 Adversarial Convergence: STRICT WHOLE-CORPUS, IN PROGRESS.
+  Pass-31 FULLY CLEAN — all 4 slices ZERO (Slice A 10th-consec ZERO; B converged; C ZERO
+  [mount-guard PASSED; P30 env glitch confirmed resolved]; D ZERO). Clean-streak: **1/3**.
+  USER DIRECTIVE: CONTINUE STRICT 3/3 indefinitely.
+  NEXT ACTION at archival: Run Pass 32 (clean-streak attempt 2/3 — need 2 more consecutive clean).
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
+| factory-artifacts HEAD | verify via git -C .factory log -1 | see prior burst |
