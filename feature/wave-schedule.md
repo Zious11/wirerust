@@ -1,7 +1,7 @@
 ---
 document_type: wave-schedule
 level: ops
-version: "1.2"
+version: "1.3"  # v1.3 (Pass-28 Slice-D): T0855→T1692.001 remap per issue #222 / ATT&CK-ICS v19 (HS-INDEX:322); seeded-count clarified as v0.3.0 milestone figure
 status: draft
 producer: story-writer
 timestamp: 2026-06-13T00:00:00Z
@@ -118,15 +118,15 @@ cycles:
 - `Finding.mitre_techniques: Vec<String>` (was `mitre_technique: Option<String>`)
 - JSON output: singleton techniques now `["T1027"]` (array, not scalar)
 - CSV column 6: renamed `mitre_techniques`; semicolon-join for multi-technique cells
-- Terminal: multi-ID MITRE line (`MITRE: T0855, T0836`); tactic grouping by first element
+- Terminal: multi-ID MITRE line (`MITRE: T1692.001, T0836`); tactic grouping by first element
 - JSON report: `mitre_domain: "ics-attack"` and `mitre_attack_version: "ics-attack-v15"` envelope keys
-- MITRE catalog: 21 seeded techniques (was 15); 6 new ICS arms: T0836, T0814, T0806, T0835, T0831, T0888
+- MITRE catalog: 21 seeded techniques at v0.3.0 (was 15; current canonical 25 post-DNP3/ARP); 6 new ICS arms: T0836, T0814, T0806, T0835, T0831, T0888
 
 **Breaking change:** JSON `"mitre_technique"` scalar field replaced by `"mitre_techniques"` array.
 CSV and terminal output are behavior-preserving for existing single-technique findings.
 
 **Pre-release obligations (FLAG F4):** Verify `mitre_attack_version = "ics-attack-v15"` covers
-all 7 ICS techniques (T0888, T0855, T0836, T0835, T0831, T0814, T0806) at
+all 7 ICS techniques (T0888, T1692.001, T0836, T0835, T0831, T0814, T0806) at
 attack.mitre.org/resources/attack-data-and-tools/ before creating the v0.3.0 release tag.
 
 ### v0.4.0 — After Wave 34
@@ -142,7 +142,7 @@ attack.mitre.org/resources/attack-data-and-tools/ before creating the v0.3.0 rel
 - `DispatchTarget::Modbus` Rule 5 in `src/dispatcher.rs` (port 502, after content rules)
 - VP-022 Kani proofs: parse_mbap no-panic, classify_fc total, pending-table bound
 - VP-004 Kani oracle extended to cover Modbus branch
-- 7 MITRE detection rules: T0855 (write), T0836 (register write), T0835 (coil write),
+- 7 MITRE detection rules: T1692.001 (write), T0836 (register write), T0835 (coil write),
   T0831 (coordinated write T0831 co-tag), T0806 (burst/sustained rate), T0814 (DoS diagnostics),
   T0888 (recon 0x11/0x2B)
 

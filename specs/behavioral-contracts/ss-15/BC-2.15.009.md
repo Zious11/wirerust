@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v1.2: F5-R2 change (F-C-006) — Related BCs: added reciprocal cross-reference to BC-2.15.024 with explicit statement that is_non_dnp3 bail is NOT a parse_errors source per this BC's PC3, consistent with BC-2.15.024 v1.3 F-F5-004 reconciliation. — 2026-06-12"
   - "v1.3: F7 F-S1-001 reconciliation — Invariant 1/Precondition 3/EC-004 corrected to match ADJ-001 initial-delivery-only is_non_dnp3 semantics (cross-segment 16-byte accumulation bail was never implemented and is architecturally rejected per ADJ-001 Addendum Q1; established-flow misalignment handled by byte-walk-forward resync per BC-2.15.016 EC-007). Vestige cleanup (same F7 F-S1-001 reconciliation): EC-002 reframed from '16-byte window' phrasing to initial-delivery-only semantics (carry empty, data.len()>=2, no offset-0 sync); Canonical Test Vectors column header changed from 'First 16 bytes (hex)' to 'First delivery (hex)'; vector rows annotated with carry-state context to match initial-delivery model. — 2026-06-12"
   - "v1.5: F3 story-anchor back-fill. — 2026-06-14"
+  - "v1.6: Pass-28 F3-convergence Slice-B FIX 1: corrected wrong cross-ref in Related BCs — BC-2.15.020 (stats BC) → BC-2.15.016 (carry buffer management BC); descriptor text was already correct; BC-2.15.016 reciprocally lists this BC. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -136,7 +137,7 @@ desync state).
 ## Related BCs
 
 - BC-2.15.004 — composes with (validity gate checks individual frames; is_non_dnp3 is a flow-level bail that short-circuits before any individual frame is parsed)
-- BC-2.15.020 — composes with (carry buffer management BC; bail prevents unbounded carry growth)
+- BC-2.15.016 — composes with (carry buffer management BC; bail prevents unbounded carry growth)
 - BC-2.15.024 — composes with (malformed-anomaly counter; is_non_dnp3 bail is NOT a parse_errors source per this BC's PC3 — the bail fires BEFORE any frame parse stage and explicitly does not increment parse_errors to avoid misleading metrics on misclassified non-DNP3 flows; F-F5-004 reconciliation; F-C-006 cross-reference)
 
 ## Architecture Anchors

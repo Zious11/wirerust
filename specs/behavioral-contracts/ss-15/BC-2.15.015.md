@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -20,6 +20,7 @@ modified:
   - "v1.4: Research threshold clarification (dnp3-f2-scope-threshold-validation.md §Q3): added Invariant 7 and clarification note to Precondition 1 that the ≥3 combined events must be DISTINCT impact events — a distinct restart event and/or a distinct sustained-block finding — not a single incident double-counted (e.g. one block_event_count increment that also satisfies the T1691.001 threshold does not count as two separate events toward T0827). The current implementation is already correct because restart_event_count and block_event_count are incremented by independent code paths (BC-2.15.011 and BC-2.15.014 respectively) and a single underlying incident can increment at most one of the two counters per occurrence. This clarification makes the invariant explicit for reviewers. — 2026-06-10"
   - "v1.5: Adversarial finding C-2 companion fix: extended the window-expiry reset set to include the two new BC-2.15.024 windowed fields: malformed_in_window=0 and malformed_anomaly_emitted=false. parse_errors (BC-2.15.024 lifetime counter) is explicitly NOT in the reset set — it is a monotonic lifetime counter consumed by BC-2.15.020 summarize(). Updated Description reset list, Postcondition 3 reset list, and Invariant 6 to name SIX fields reset at window expiry (restart_event_count, block_event_count, block_finding_emitted_this_window, loss_of_control_emitted, malformed_in_window, malformed_anomaly_emitted; plus correlation_window_start_ts updated to now_ts). Added Architecture Anchors for the two new fields. — 2026-06-10"
   - "v1.7: F3 story-anchor back-fill. — 2026-06-14"
+  - "v1.8: Pass-28 F3-convergence Slice-B FIX 2: removed stale '(NEW...)' qualifiers from Architecture Anchors and Invariant 2 — all symbols shipped in STORY-109: MitreTactic::IcsImpact (src/mitre.rs:69), technique_info(\"T0827\") (src/mitre.rs:178), malformed_in_window (src/analyzer/dnp3.rs:235), malformed_anomaly_emitted (src/analyzer/dnp3.rs:237). — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,8 +53,8 @@ human to confirm]**, this handler resets ALL windowed correlated state together 
 - `flow.block_event_count = 0`
 - `flow.block_finding_emitted_this_window = false`
 - `flow.loss_of_control_emitted = false`
-- `flow.malformed_in_window = 0` (BC-2.15.024 windowed counter — NEW v1.5)
-- `flow.malformed_anomaly_emitted = false` (BC-2.15.024 one-shot guard — NEW v1.5)
+- `flow.malformed_in_window = 0` (BC-2.15.024 windowed counter; shipped STORY-109)
+- `flow.malformed_anomaly_emitted = false` (BC-2.15.024 one-shot guard; shipped STORY-109)
 - `flow.correlation_window_start_ts = now_ts` (start of new window)
 
 **`flow.parse_errors` is NOT in this reset set.** `parse_errors` is a LIFETIME/monotonic
@@ -119,8 +120,8 @@ threshold (e.g., 5) misses shorter but still impactful attack sequences.
    - `flow.block_event_count = 0`
    - `flow.block_finding_emitted_this_window = false`
    - `flow.loss_of_control_emitted = false`
-   - `flow.malformed_in_window = 0` (BC-2.15.024 windowed counter; NEW v1.5)
-   - `flow.malformed_anomaly_emitted = false` (BC-2.15.024 one-shot guard; NEW v1.5)
+   - `flow.malformed_in_window = 0` (BC-2.15.024 windowed counter; shipped STORY-109)
+   - `flow.malformed_anomaly_emitted = false` (BC-2.15.024 one-shot guard; shipped STORY-109)
    - `flow.correlation_window_start_ts = now_ts`
    **Note: `flow.parse_errors` is NOT reset here.** It is a lifetime counter; see BC-2.15.024
    Invariant 1 and BC-2.15.020.
@@ -130,8 +131,8 @@ threshold (e.g., 5) misses shorter but still impactful attack sequences.
 1. **Multi-event requirement**: T0827 requires `restart_event_count + block_event_count >= T0827_THRESHOLD`.
    It MUST NOT be emitted from a single restart or block-command event. [ADR-007 Decision 5:
    "T0827 MUST NOT be emitted from a single packet and MUST require a multi-event correlation window"]
-2. **T0827 tactic is IcsImpact (NEW variant)**: T0827 "Loss of Control" uses `MitreTactic::IcsImpact`
-   (new variant added in this feature cycle, distinct from enterprise `Impact`). [ADR-007 Decision 5]
+2. **T0827 tactic is IcsImpact (IcsImpact variant)**: T0827 "Loss of Control" uses `MitreTactic::IcsImpact`
+   (distinct from enterprise `Impact`; shipped in STORY-109 — src/mitre.rs:69,178). [ADR-007 Decision 5]
 3. **One-shot guard**: `loss_of_control_emitted` prevents repeated T0827 findings within the same
    correlation window. Only one T0827 impact finding is emitted per (flow, window).
 4. **Emitted AFTER the triggering T0814/T1691.001 finding**: ordering per BC-2.15.013. T0827 is
@@ -147,8 +148,8 @@ threshold (e.g., 5) misses shorter but still impactful attack sequences.
    `CORRELATION_WINDOW_SECS = 300s` **[F2-GATE]** elapsed since `correlation_window_start_ts`,
    ALL six windowed correlated-state fields reset together: `restart_event_count`,
    `block_event_count`, `block_finding_emitted_this_window`, `loss_of_control_emitted`,
-   `malformed_in_window` (BC-2.15.024 windowed counter; v1.5 addition), and
-   `malformed_anomaly_emitted` (BC-2.15.024 one-shot guard; v1.5 addition); plus
+   `malformed_in_window` (BC-2.15.024 windowed counter; shipped STORY-109), and
+   `malformed_anomaly_emitted` (BC-2.15.024 one-shot guard; shipped STORY-109); plus
    `correlation_window_start_ts` is set to `now_ts`. **`parse_errors` is explicitly NOT in
    this reset set** — it is the lifetime structural-error counter consumed by BC-2.15.020
    `summarize()`. BC-2.15.011, BC-2.15.014, and BC-2.15.024 do NOT own separate window
@@ -264,10 +265,10 @@ No T0827 in either window; first window expired before threshold reached.
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.pending_requests: HashMap<(u16, u8), u32>`
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.block_finding_emitted_this_window: bool`
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.loss_of_control_emitted: bool`
-- `src/analyzer/dnp3.rs` — `Dnp3FlowState.malformed_in_window: u64` (NEW v1.5; windowed malformed-frame counter owned by BC-2.15.024; reset here at window expiry)
-- `src/analyzer/dnp3.rs` — `Dnp3FlowState.malformed_anomaly_emitted: bool` (NEW v1.5; one-shot guard owned by BC-2.15.024; reset here at window expiry)
+- `src/analyzer/dnp3.rs` — `Dnp3FlowState.malformed_in_window: u64` (windowed malformed-frame counter owned by BC-2.15.024; reset here at window expiry; shipped in STORY-109 — src/analyzer/dnp3.rs:235)
+- `src/analyzer/dnp3.rs` — `Dnp3FlowState.malformed_anomaly_emitted: bool` (one-shot guard owned by BC-2.15.024; reset here at window expiry; shipped in STORY-109 — src/analyzer/dnp3.rs:237)
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.correlation_window_start_ts: u32` (single shared window; this BC owns its reset logic)
-- `src/mitre.rs` — `technique_info("T0827")` arm (NEW: `("Loss of Control", MitreTactic::IcsImpact)`); `MitreTactic::IcsImpact` variant (NEW)
+- `src/mitre.rs` — `technique_info("T0827")` arm `("Loss of Control", MitreTactic::IcsImpact)` (shipped in STORY-109 — src/mitre.rs:178); `MitreTactic::IcsImpact` variant (shipped — src/mitre.rs:69)
 - `.factory/phase-f2-spec-evolution/dnp3-architecture-delta.md §8` (detection table: "Loss of control derived → T0827 correlated finding")
 - `.factory/phase-f2-spec-evolution/dnp3-architecture-delta.md §9.2` (MitreTactic::IcsImpact enum addition)
 - `.factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md §Decision 5`

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v1.1: Pass-1 adversarial fix I-1: EC-004 corrected from Some(12) to Some(13) — correct arithmetic is U=1, blocks=ceil(1/16)=1, frame_len=5+6+2*1=13. Removed embedded exploratory-chain prose ('...wait:') from EC-004 cell. — 2026-06-10"
   - "v1.3: F3 story-anchor back-fill. — 2026-06-14"
   - "v1.4: Pass-26: EC-008 stale frame_len Some(290)→Some(291) + removed residual exploratory prose (sibling-row miss from v1.1 EC-004 cleanup); matches shipped compute_dnp3_frame_len(254)=291. — 2026-06-14"
+  - "v1.5: Pass-28 F3-convergence Slice-B FIX 1: corrected wrong cross-ref in Related BCs — BC-2.15.020 (stats BC) → BC-2.15.016 (carry buffer management BC); descriptor text was already correct; BC-2.15.016 reciprocally lists this BC. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -141,7 +142,7 @@ frame consumption boundaries in the carry buffer loop.
 
 - BC-2.15.004 — depends on (frame_len is only computed after validity gate returns `true`)
 - BC-2.15.001 — composes with (the carry buffer in `on_data` uses `frame_len` to determine how many bytes constitute a complete frame to parse)
-- BC-2.15.020 — depends on (carry buffer management BC references the `frame_len` boundary computed here)
+- BC-2.15.016 — depends on (carry buffer management BC references the `frame_len` boundary computed here)
 
 ## Architecture Anchors
 

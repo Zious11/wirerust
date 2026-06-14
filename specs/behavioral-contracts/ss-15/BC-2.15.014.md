@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -21,6 +21,7 @@ modified:
   - "v1.5: Adversarial Pass-3 fix F-P3-001 (MEDIUM): PC3 evidence format reconciled to producible form. The original format 'FC=0x{fc:02X} dest={dest:#06X} app_seq={seq} ts={ts}' required an FC byte that is NOT retained in pending_requests (keyed (dest_addr, app_seq) → request_ts only; FC was deliberately excluded from the value type in STORY-107). Additionally, all entries in pending_requests are Control-class by construction (only FC 0x03/0x04/0x05 are inserted; FC 0x06 DIRECT_OPERATE_NR is excluded at insert), so the FC byte adds no discriminating value. New canonical format: one entry per timed-out request, 'dest={dest:#06X} app_seq={seq} ts={ts}' — producible from the (dest, app_seq) key and request_ts value available at removal time in scan_block_timeouts. — 2026-06-11"
   - "v1.6: F-P3-001 correction — per-request format also not producible without structural change. The v1.5 per-request format 'dest={dest:#06X} app_seq={seq} ts={ts}' assumed all 3 timed-out requests would be available in a single scan_block_timeouts call. In practice, scan_block_timeouts is called per-packet: each of the 3 control requests times out in a separate scan (seq=0 at ts=11, seq=1 at ts=22, seq=2 at ts=33), and the T1691.001 finding fires only when block_event_count reaches 3 (the 3rd scan). At that point only the current scan's timed-out entry is available; prior entries were already remove()d. Collecting all 3 would require a new windowed accumulator field (block_timeout_evidence: Vec<(u16,u8,u32)>), a growth bound, and amendment of BC-2.15.015's six-field reset set — a structural change that violates the producibility-without-structural-change criterion (option A chosen over option B). FINAL canonical format: single-entry summary 'block_event_count={count} in correlation window; threshold={threshold}' — fully producible from block_event_count and BLOCK_CMD_THRESHOLD at emission time, no new fields, parallels BC-2.15.024 malformed evidence. — 2026-06-11"
   - "v1.8: F3 story-anchor back-fill. — 2026-06-14"
+  - "v1.9: Pass-28 F3-convergence Slice-B FIX 2: removed stale '(NEW; to be added in F4)' from Architecture Anchors T1691.001 arm — shipped in STORY-109 (src/mitre.rs:174 confirmed). — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -169,7 +170,7 @@ The human should confirm whether 10s timeout and 3-of-300s threshold are appropr
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.block_event_count: u64` (incremented unconditionally on every block-timeout; part of shared 300s correlation state)
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.block_finding_emitted_this_window: bool` (one-shot guard; prevents T1691.001 finding flood within 300s window; resets with shared window)
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.correlation_window_start_ts: u32` (single shared 300s window start; reset owner in BC-2.15.015; this field — NOT a separate BLOCK_CMD_WINDOW_SECS — governs the T1691.001 threshold window)
-- `src/mitre.rs` — `technique_info("T1691.001")` arm (NEW; to be added in F4)
+- `src/mitre.rs` — `technique_info("T1691.001")` arm (shipped in STORY-109; src/mitre.rs:174)
 - `.factory/phase-f2-spec-evolution/dnp3-architecture-delta.md §8` (detection table: "Block command inferred → T1691.001")
 - `.factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md §Decision 5`
 

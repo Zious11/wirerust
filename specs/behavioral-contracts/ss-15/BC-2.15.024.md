@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -54,6 +54,12 @@ modified:
     confirmed correct as-is (no change). (B6) 'one per sync-loss event' language deleted;
     Principle 1 language added; fake-sync-flood T0814 note added. — 2026-06-12"
   - "v1.5: F3 story-anchor back-fill. — 2026-06-14"
+  - "v1.6: Pass-28 sibling-sweep (DF-SIBLING-SWEEP-001): de-NEW shipped malformed-counter
+    fields/constant markers. STORY-109 shipped in v0.6.0; parity with BC-2.15.014/015.
+    Removed '(NEW: ...)' / '(NEW field; ...)' / '(NEW constant; ...)' future-tense qualifiers
+    from Description bullet for malformed_in_window, malformed_anomaly_emitted,
+    MALFORMED_ANOMALY_THRESHOLD; from Postcondition 2; and from four Architecture Anchors lines.
+    Retained all descriptive ownership/semantics text and src references. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -98,12 +104,13 @@ deferring CRC validation does NOT excuse the malformed-frame blind spot.
   NOTE: BC-2.15.009 is_non_dnp3 desync bail is NOT a source of parse_errors increments —
   that bail is a flow-level early-exit for non-DNP3 traffic that never reaches frame parsing;
   per BC-2.15.009 PC3, parse_errors is explicitly NOT incremented on that bail path.
-- `malformed_in_window: u64` — **NEW windowed counter**. Incremented on each malformed frame
-  (in parallel with `parse_errors`). Reset to 0 at each 300s window expiry (owned by
-  BC-2.15.015). **This is the counter used for all threshold checks.**
-- `malformed_anomaly_emitted: bool` — **NEW one-shot guard**. Set true when a T0814 finding is
-  emitted within a window; reset to false at 300s window expiry (owned by BC-2.15.015).
-- `const MALFORMED_ANOMALY_THRESHOLD: u64 = 3` — **NEW constant** **[F2-GATE-DEFAULT]**.
+- `malformed_in_window: u64` — windowed malformed-frame counter (src/analyzer/dnp3.rs ~line 235).
+  Incremented on each malformed frame (in parallel with `parse_errors`). Reset to 0 at each 300s
+  window expiry (owned by BC-2.15.015). **This is the counter used for all threshold checks.**
+- `malformed_anomaly_emitted: bool` — one-shot guard (src/analyzer/dnp3.rs ~line 237). Set true
+  when a T0814 finding is emitted within a window; reset to false at 300s window expiry (owned by
+  BC-2.15.015).
+- `const MALFORMED_ANOMALY_THRESHOLD: u64 = 3` — threshold constant (src/analyzer/dnp3.rs line 129) **[F2-GATE-DEFAULT]**.
 
 Rationale for ≥3/300s: a single malformed frame is consistent with normal packet loss or a
 briefly corrupt stream; three or more within 300s on a single flow is anomalous and consistent
@@ -162,8 +169,9 @@ the reset set — it is lifetime.
 **Unconditional (on every malformed frame — on every structural-reject path fire):**
 1. `flow.parse_errors += 1`. (This always happens in the existing reject paths. This BC
    does NOT change those increments — they were already there.)
-2. `flow.malformed_in_window += 1`. (NEW: windowed counter incremented in parallel with
-   `parse_errors` on every malformed frame. This is the increment added by this BC.)
+2. `flow.malformed_in_window += 1`. (Windowed counter incremented in parallel with `parse_errors`
+   on every malformed frame, per the two-counter model (src/analyzer/dnp3.rs). This is the
+   increment introduced by this BC alongside existing `parse_errors` increments.)
 
 **Conditional — finding emission (when Preconditions 2–5 are met after increment):**
 3. Exactly ONE `Finding` is pushed to `self.all_findings`:
@@ -268,7 +276,7 @@ Link:        START=0x0564 (valid sync), LEN=2 (LENGTH<5 → validity gate REJECT
              DEST=0x0003, SRC=0x0001
 ```
 Expected: `flow.parse_errors += 1` (lifetime, BC-2.15.004 / BC-2.15.016 existing behavior) AND
-`flow.malformed_in_window += 1` (windowed, new). If this is the 3rd malformed frame in the
+`flow.malformed_in_window += 1` (windowed counter, shipped STORY-109). If this is the 3rd malformed frame in the
 300s window (malformed_in_window reaches 3): T0814 finding emitted:
 `{ verdict: Possible, confidence: Low, mitre_techniques: ["T0814"], summary: "DNP3 structural anomaly: 3 malformed frames in Xs window ..." }`
 
@@ -329,10 +337,10 @@ Kani formal verification target.
 ## Architecture Anchors
 
 - `src/analyzer/dnp3.rs` — `Dnp3FlowState.parse_errors: u64` (EXISTING field; LIFETIME/monotonic counter; incremented by existing reject paths on every malformed frame; **NEVER reset at window expiry**; reported by BC-2.15.020 summarize())
-- `src/analyzer/dnp3.rs` — `Dnp3FlowState.malformed_in_window: u64` (NEW field; WINDOWED counter; incremented on each malformed frame in parallel with parse_errors; reset to 0 at 300s window expiry by BC-2.15.015; **used for all threshold checks**)
-- `src/analyzer/dnp3.rs` — `Dnp3FlowState.malformed_anomaly_emitted: bool` (NEW field; one-shot guard; reset to false at 300s window expiry by BC-2.15.015)
-- `src/analyzer/dnp3.rs` — `const MALFORMED_ANOMALY_THRESHOLD: u64 = 3` (NEW constant; **[F2-GATE-DEFAULT]**)
-- `src/analyzer/dnp3.rs` — on each of the three structural-reject paths (BC-2.15.016 PC2 carry-overflow, BC-2.15.004 validity-gate, and the byte-walk-forward resync arm / BC-2.15.016 EC-009): `flow.malformed_in_window += 1;` (NEW, added alongside existing `flow.parse_errors += 1`). The BC-2.15.009 is_non_dnp3 bail does NOT have a malformed_in_window increment — it returns before any parse and does not increment parse_errors either (per BC-2.15.009 PC3).
+- `src/analyzer/dnp3.rs` — `Dnp3FlowState.malformed_in_window: u64` (shipped ~line 235; WINDOWED counter; incremented on each malformed frame in parallel with parse_errors; reset to 0 at 300s window expiry per BC-2.15.015; **used for all threshold checks**)
+- `src/analyzer/dnp3.rs` — `Dnp3FlowState.malformed_anomaly_emitted: bool` (shipped ~line 237; one-shot guard; reset to false at 300s window expiry per BC-2.15.015)
+- `src/analyzer/dnp3.rs` — `const MALFORMED_ANOMALY_THRESHOLD: u64 = 3` (shipped line 129; **[F2-GATE-DEFAULT]**)
+- `src/analyzer/dnp3.rs` — on each of the three structural-reject paths (BC-2.15.016 PC2 carry-overflow, BC-2.15.004 validity-gate, and the byte-walk-forward resync arm / BC-2.15.016 EC-009): `flow.malformed_in_window += 1;` (shipped alongside existing `flow.parse_errors += 1`; STORY-109). The BC-2.15.009 is_non_dnp3 bail does NOT have a malformed_in_window increment — it returns before any parse and does not increment parse_errors either (per BC-2.15.009 PC3).
 - `src/analyzer/dnp3.rs` — emission check after each increment site: `if flow.malformed_in_window >= MALFORMED_ANOMALY_THRESHOLD && !flow.malformed_anomaly_emitted && /* window check */ { /* emit T0814 */ }`
 - `src/analyzer/dnp3.rs` — BC-2.15.015 window-expiry reset handler: add `flow.malformed_in_window = 0; flow.malformed_anomaly_emitted = false;` to the existing reset block (parse_errors is NOT added to that block)
 - `src/mitre.rs` — `technique_info("T0814")` arm (existing; shared)
@@ -360,7 +368,7 @@ STORY-109
 | Property | Assessment |
 |----------|-----------|
 | **I/O operations** | none |
-| **Global state access** | increments flow.parse_errors (lifetime; existing paths already do this) + flow.malformed_in_window (windowed; new); reads flow.malformed_in_window for threshold check; writes flow.malformed_anomaly_emitted, all_findings |
+| **Global state access** | increments flow.parse_errors (lifetime; existing paths already do this) + flow.malformed_in_window (windowed; shipped STORY-109); reads flow.malformed_in_window for threshold check; writes flow.malformed_anomaly_emitted, all_findings |
 | **Deterministic** | yes — same frame sequence produces same threshold trigger |
 | **Thread safety** | single-threaded |
 | **Overall classification** | effectful shell |
