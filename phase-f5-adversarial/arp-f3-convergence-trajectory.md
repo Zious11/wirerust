@@ -184,6 +184,34 @@ consecutive pass respectively; only presentational LOW surfaced at Slice D. REME
 
 **clean-streak 0/3.** NEXT = Pass 35 (clean-streak attempt 1/3).
 
+### Pass 35 (2026-06-14)
+
+Slice A: ZERO [14th-consec]. Slice B: ZERO [converged]. Slice C: ZERO [converged].
+Slice D: 1 LOW [d-069 changelog entry [d-069-icsimpact-display-impact-ics-2026-06-14]
+Artifacts table carried stale raw PRD line-pins: "PRD §85 (v1.5 delta note)" with
+trailing "line 85" file reference, and "PRD §882 (F2 addition note)" with trailing
+"line 882" file reference. Line 882 is Modbus prose; actual IcsImpact note is in PRD §2.15
+"New ICS tactic variant" (at prd.md:974). Line 85 is a different section. The Artifacts
+table column carried raw line numbers as location identifiers — a drift-prone pattern].
+
+**Finding:** 1 LOW total (Slice D). NOT a clean pass.
+
+**Remediation:** spec-changelog.md [d-069-icsimpact-display-impact-ics-2026-06-14] Artifacts
+table updated — both rows de-pinned to §-section/concept anchors:
+- "PRD §85 (v1.5 delta note)" → "PRD v1.5 delta note (IcsImpact variant)"
+- "PRD §882 (F2 addition note)" → "PRD §2.15 'New ICS tactic variant' note (IcsImpact)"
+Trailing "line NNN" file references removed from both rows.
+
+Sweep of all 2026-06-12+ ACTIVE entries: no other drifted live-state spec line-pins found.
+Remaining numerics in spec-changelog are sealed historical correction records, src refs,
+§-anchors, ~approximates, or intra-BC audit notes — do NOT flag. Recurring Slice-D
+changelog line-pin drift class flushed via this de-pin sweep.
+
+Note: P33/P34/P35 all had A/B/C ZERO with only a single Slice-D LOW each (asymptotic
+changelog-cosmetic churn). This de-pin sweep eliminates the drift class at its root.
+
+**clean-streak 0/3.** NEXT = Pass 36 (clean-streak attempt 1/3).
+
 ---
 
 ## Summary Table
@@ -208,3 +236,4 @@ consecutive pass respectively; only presentational LOW surfaced at Slice D. REME
 | 33 | ZERO | 1 MED | ZERO | ZERO | 1 | 0/3 | BC-2.15.024 reset-set cross-ref parse_errors→malformed_in_window; REMEDIATED v1.7 |
 | POST-P33 SS-15 FLUSH | — | — | — | — | 6 | 0/3 (UNCHANGED) | PROACTIVE pre-Pass-34 flush: BC-2.15.014 v2.0 four→six-field reset (EC-006+Inv7); reciprocal Related-BCs 014↔016/016↔010/015↔024/022↔016; FC 0x13 SAVE_CONFIGURATION in BC-2.15.012 v1.4+BC-2.15.023 v1.6. Sweep classes 3/4/6 CLEAN. NOT an adversary pass; clean-streak UNCHANGED 0/3; NEXT = Pass 34. |
 | 34 | ZERO (13th-consec) | ZERO (converged) | ZERO (10th-consec) | 1 LOW | 1 | 0/3 | Slice D 1 LOW: spec-changelog [prd-v1.25-ss15-titlesync-2026-06-14] entry missing Artifacts-changed table (presentational sibling-consistency gap vs all peer ACTIVE entries). REMEDIATED: table added to spec-changelog.md. Corpus substantively converged — only presentational LOW surfaced. NEXT = Pass 35 (clean-streak attempt 1/3). |
+| 35 | ZERO (14th-consec) | ZERO (converged) | ZERO (converged) | 1 LOW | 1 | 0/3 | Slice D 1 LOW: d-069 changelog entry [d-069-icsimpact-display-impact-ics-2026-06-14] carried stale PRD raw line-pins in Artifacts table (§882→"PRD §2.15 'New ICS tactic variant' note (IcsImpact)" and §85→"PRD v1.5 delta note"). REMEDIATED: both rows de-pinned to §-section/concept anchors in spec-changelog.md. Swept all 2026-06-12+ ACTIVE entries — no other drifted live-state spec line-pins found (remaining numerics are sealed historical correction records, src refs, §-anchors, ~approximates, or intra-BC audit notes). Recurring Slice-D changelog line-pin drift class flushed via de-pin sweep. Note: P33/P34/P35 all had A/B/C ZERO with only a single Slice-D LOW each (asymptotic changelog-cosmetic churn) — now flushed. clean-streak 0/3. NEXT = Pass 36 (clean-streak attempt 1/3). |

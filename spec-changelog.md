@@ -314,8 +314,8 @@ spec correct; code deviant) is REVERSED. D-069 SUPERSEDES D-067 in all respects.
 | Artifact | Change | File |
 |----------|--------|------|
 | BC-2.10.002 | v1.4 → v1.5: H1 title updated; Description rewritten; PC3 changed from "Impact" to "Impact (ICS)"; PC4 updated; Invariant 2 updated; EC-003 updated; canonical test vector updated. Modified-log entry citing D-069 added. | `.factory/specs/behavioral-contracts/ss-10/BC-2.10.002.md` |
-| PRD §85 (v1.5 delta note) | `Display "Impact"` → `Display "Impact (ICS)"` | `.factory/specs/prd.md` line 85 |
-| PRD §882 (F2 addition note) | `Display "Impact"` → `Display "Impact (ICS)"`; D-069 note added | `.factory/specs/prd.md` line 882 |
+| PRD v1.5 delta note (IcsImpact variant) | `Display "Impact"` → `Display "Impact (ICS)"` | `.factory/specs/prd.md` |
+| PRD §2.15 'New ICS tactic variant' note (IcsImpact) | `Display "Impact"` → `Display "Impact (ICS)"`; D-069 note added | `.factory/specs/prd.md` |
 | arp-architecture-delta.md §5.0 brownfield-debt table | Resolution direction REVERSED: `"Impact (ICS)"` is correct; `"Impact"` (bare) was wrong. Table updated to RESOLVED. Narrative text updated. | `.factory/specs/architecture/arp-architecture-delta.md` §5.0 |
 | arp-architecture-delta.md §7 | v1.12 changelog entry added documenting D-069 resolution | `.factory/specs/architecture/arp-architecture-delta.md` §7 |
 | ADR-007 Decision 5 | Code snippet `MitreTactic::IcsImpact => "Impact"` → `"Impact (ICS)"`. Modified log entry added superseding F-A13-001 note. | `.factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md` |
