@@ -52,7 +52,7 @@ input_drift_check: "MATCH=62 STALE=0 ERROR=1 (STORY-091 known); STORY-106 d0ef95
 
 **wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 ARP spec evolution CONVERGED — 3/3 strict-whole-corpus adversarial gate SATISFIED (Pass 33 CLEAN; 33 passes total; P31/P32/P33 consecutive CLEAN). D-069 SUPERSEDES D-067: IcsImpact Display canonical = "Impact (ICS)" (distinct from Enterprise "Impact" TA0040; research-backed + WCAG 2.4.6); src/mitre.rs:91 "Impact (ICS)" is CORRECT as-is; STORY-114 D-067 revert obligations REVOKED; D-068: benign GARP emits mitre_techniques: [] (BC-2.16.003 v1.7 + ADR-008 v2.0). F2→F3 gate condition SATISFIED. Next = F3 ARP story decomposition (STORY-111..115).**
 
-**Summary:** 63 stories (48 greenfield + 4 F-cycle + 11 F3-new), 400 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (23 locked + VP-024 ARP draft, locks at STORY-113 F6), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — est. 18-24 new BCs (SS-16), 1 revised BC, VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE T0830 (primary) + T1557.002 (secondary).
+**Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 447 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (23 locked + VP-024 ARP draft, locks at STORY-113 F6), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — est. 18-24 new BCs (SS-16), 1 revised BC, VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE T0830 (primary) + T1557.002 (secondary).
 
 Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #202/#205 closed; develop 31d1231; etherparse 0.20 folded into ARP feature cycle (IN-PROGRESS).
 
@@ -147,7 +147,7 @@ Target: 5 stories (STORY-111..115), epic E-16, strict linear chain. Est. 18-24 A
 - **Canonical corpus facts (feed to each adversary dispatch):**
   - BCs: 283 total (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP)
   - VPs: 24 total (22 pre-F2 + VP-023 DNP3 + VP-024 ARP draft)
-  - MitreTactic variants: 17 (14 Enterprise + 3 ICS: IcsLateralMovement, IcsImpact, IcsInitialAccess)
+  - MitreTactic variants: 17 (14 Enterprise + 3 ICS: IcsInhibitResponseFunction, IcsImpairProcessControl, IcsImpact)
   - Components: 24 total (C-1..C-24; C-22 Modbus SHIPPED, C-23 ARP PLANNED, C-24 DNP3 SHIPPED)
   - `Finding.mitre_techniques`: `Vec<String>` + 3 Option fields (`source_ip`, `timestamp`, `direction`)
   - O-01: CLOSED
