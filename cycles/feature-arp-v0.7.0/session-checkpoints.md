@@ -485,3 +485,26 @@ fully-clean pass. Passes 18-22 each surfaced+remediated genuine items.
 | develop HEAD | 31d1231 | — |
 | main HEAD | 3e29891 | chore: release v0.6.0 |
 | factory-artifacts HEAD | verify live | run: git -C .factory log -1 --format='%h %s' |
+
+---
+
+## Checkpoint: 2026-06-14 — F3 ARP adversarial convergence — Pass-37 FULLY CLEAN; all 4 slices ZERO; clean-streak 2/3; strict 3/3 in progress
+
+**Archived from STATE.md on 2026-06-14 when Pass-38 completed and F3 gate was satisfied.**
+
+### Pipeline Position
+
+- F3 Adversarial Convergence: STRICT WHOLE-CORPUS, IN PROGRESS.
+  Pass-37 FULLY CLEAN — all 4 slices ZERO (A 16th-consec, B converged, C converged, D converged);
+  mount-guards PASSED. clean-streak 1/3→2/3. P36+P37 consecutive clean passes.
+  ONE more clean pass (Pass 38) satisfies the F3 strict 3/3 gate.
+  USER DIRECTIVE (2026-06-14): CONTINUE STRICT 3/3 indefinitely.
+  NEXT ACTION: Run Pass 38 (clean-streak attempt 3/3 — satisfies F3 gate if clean).
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
+| factory-artifacts HEAD | 1b33aae | factory(F3): Pass 37 FULLY CLEAN — all 4 slices ZERO; clean-streak 2/3 |
