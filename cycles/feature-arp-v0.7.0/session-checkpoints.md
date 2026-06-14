@@ -269,3 +269,26 @@ _(This checkpoint was further superseded by the Pass-25 REMEDIATED checkpoint ar
 | develop HEAD | 31d1231 | — |
 | main HEAD | 3e29891 | chore: release v0.6.0 |
 | factory-artifacts HEAD | re-verify live | `git -C .factory log -1 --format='%h %s'` |
+
+---
+
+## Archived Checkpoint: 2026-06-13 — F2 STRICT WHOLE-CORPUS CONVERGENCE, Pass 32 CLEAN; counter 2/3
+
+**Archived from STATE.md on:** 2026-06-13 (replaced by "F2 CONVERGED — Pass 33 CLEAN; counter 3/3" checkpoint)
+
+### POSITION (at archival time)
+
+- Counter: 2/3 (Pass 31+32 CLEAN; 2 consecutive clean passes).
+- 32 adversarial passes + 1 corpus consistency audit run.
+- Pass 32: All 4 slices (A/B/C/D) zero findings. Second consecutive clean pass post-P30
+  remediation. BC-INDEX:358 trailing-pipe correctly treated non-blocking by all slices
+  (consistent with Pass 31 watch-item ruling).
+- Next action at time of archival: whole-corpus Pass 33 via Claude adversary (convergence-decider).
+
+### VERIFIED SHAs at archival time (Pass 32 checkpoint)
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
+| factory-artifacts HEAD | re-verify live | `git -C .factory log -1 --format='%h %s'` |
