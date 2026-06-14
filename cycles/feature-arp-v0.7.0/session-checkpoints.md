@@ -292,3 +292,32 @@ _(This checkpoint was further superseded by the Pass-25 REMEDIATED checkpoint ar
 | develop HEAD | 31d1231 | — |
 | main HEAD | 3e29891 | chore: release v0.6.0 |
 | factory-artifacts HEAD | re-verify live | `git -C .factory log -1 --format='%h %s'` |
+
+---
+
+## Archived Checkpoint: 2026-06-13 — F2 CONVERGED 3/3; D-067 adjudicated; F2→F3 gate SATISFIED
+
+**Archived from STATE.md on:** 2026-06-13 (replaced by hardened cold-resume F3 brief)
+
+### POSITION (at archival time)
+
+- **F2 adversarial convergence:** STRICT WHOLE-CORPUS mode. Bar = 3 consecutive passes with
+  ZERO findings of ANY severity across the ENTIRE spec corpus. Counter 3/3 CONVERGED
+  (Pass 31+32+33 CLEAN; 3 consecutive). 33 adversarial passes total.
+  F2 STRICT-WHOLE-CORPUS ADVERSARIAL GATE SATISFIED.
+- **Pass 33 (Claude):** All 4 slices (A/B/C/D) returned ZERO findings. Slice D noted one
+  non-blocking observation: PRD v1.20 delta:285 "C-23 was MbapFramer" — factually-wrong
+  historical rationale; within the corrected-from-prose non-blocking exemption; verdict CLEAN.
+  Tracked as DRIFT-PRD-V120-MBAPFRAMER-001 (cosmetic; LOW; deferred).
+- **D-067 adjudicated 2026-06-13:** IcsImpact Display canonical = "Impact" (spec correct);
+  src/mitre.rs:91 "Impact (ICS)" is deviant. Severity LOW. Fix folded into STORY-114.
+  F2 NO SPEC CHANGE — convergence preserved. F2→F3 gate condition SATISFIED.
+- **Next action at time of archival:** F3 ARP story decomposition (STORY-111..115).
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
+| factory-artifacts HEAD | 4fb17e6 | factory(D-067): IcsImpact Display adjudication — decision record only; F2 convergence preserved |

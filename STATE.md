@@ -83,188 +83,116 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 | Feature: ARP analyzer — F1 Delta Analysis | **PASSED** (human-gated 2026-06-12) | DecodedFrame{Ip,Arp} integration, ADR-008 planned, F2→F7 authorized; artifacts: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` |
 | Feature: ARP analyzer — F2 Spec Evolution | **CONVERGED 3/3** (Pass 33, 2026-06-13); 33 passes total; P31/P32/P33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED | 4-slice method; ARP delta SETTLED P9+; corpus-wide debt flushed P14-25; P26/P28/P31/P32/P33 CLEAN; P27/P29/P30 reset cycles surfaced+fixed genuine defects; trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
 
-## Session Resume Checkpoint (2026-06-13 — F2 CONVERGED 3/3; D-067 adjudicated; F2→F3 gate SATISFIED)
+## Session Resume Checkpoint (2026-06-13 — F3 ARP STORY DECOMPOSITION; cold-resume hardened)
 
-**Previous checkpoint (2026-06-13 — Pass 32 CLEAN; counter 2/3) archived to:
+**Previous checkpoint (2026-06-13 — F2 CONVERGED 3/3; D-067 adjudicated) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
-### POSITION
+### A. EXACT PIPELINE POSITION
 
-- **Project:** wirerust. Mode: brownfield/feature. Active feature: ARP security analyzer +
-  etherparse 0.16→0.20 migration (issue #9). Release target v0.7.0.
-- **Pipeline phase:** Feature Mode **F2 (Spec Evolution) — CONVERGED**.
-- **F1 delta analysis:** PASSED (human-gated 2026-06-12, D-066).
-- **F2 spec authoring:** COMPLETE (SS-16 15 BCs, ADR-008, VP-024, arp-architecture-delta,
-  cap-10/SS-10 catalogue deltas, PRD §2.16/O-04, error-taxonomy ARP rows, HS-INDEX ARP seeds).
-- **F2 adversarial convergence:** STRICT WHOLE-CORPUS mode (human-elected 2026-06-13).
-  Bar = 3 consecutive passes with ZERO findings of ANY severity, including LOW, across the
-  ENTIRE spec corpus. **Counter 3/3 CONVERGED** (Pass 31+32+33 CLEAN; 3 consecutive).
-  33 adversarial passes total. **F2 STRICT-WHOLE-CORPUS ADVERSARIAL GATE SATISFIED.**
-- **Pass 33 (Claude):** All 4 slices (A/B/C/D) returned ZERO findings. Slice D noted one
-  non-blocking observation: PRD v1.20 delta:285 "C-23 was MbapFramer" — factually-wrong
-  historical rationale (no MbapFramer component ever existed; ss-15/DNP3 was renumbered
-  C-23→C-24 when ARP took C-23); within the corrected-from-prose non-blocking exemption;
-  verdict CLEAN. Tracked as DRIFT-PRD-V120-MBAPFRAMER-001 (cosmetic; LOW; deferred).
+- **Project:** wirerust. Mode: FEATURE MODE. Active feature: ARP security analyzer +
+  etherparse 0.16→0.20 migration. GitHub issue #9. Release target: **v0.7.0**.
+- **F1 Delta Analysis:** PASSED (human-gated 2026-06-12, D-066).
+- **F2 Spec Evolution:** CONVERGED — STRICT WHOLE-CORPUS adversarial loop, 3/3 consecutive
+  clean passes. Final clean pass: Pass 33. Factory HEAD before D-067 decision-record: `6c36b10`.
+  Current factory HEAD: `4fb17e6` (D-067 decision-record only; F2 corpus unchanged).
+- **D-067 adjudicated 2026-06-13:** IcsImpact Display canonical = "Impact" (spec correct);
+  src/mitre.rs:91 "Impact (ICS)" deviant; severity LOW; fix folded into STORY-114.
+  F2 NO SPEC CHANGE — F2 3/3 convergence preserved. Gate condition SATISFIED.
+- **F2→F3 human gate:** APPROVED by user, conditioned on IcsImpact adjudication.
+  Adjudication COMPLETE (D-067). Gate condition SATISFIED.
+- **NEXT ACTION:** Launch F3 — story-writer creates STORY-111..115 per
+  `.factory/specs/architecture/arp-architecture-delta.md` §6, plus wave-40..44 holdout skeleton.
 
-### VERIFIED SHAs (re-verify live on resume — do NOT trust as current-HEAD values)
+### B. F3 WORK DEFINITION
 
-| Ref | Value at checkpoint | How to re-verify |
+**Decomposition source:** `.factory/specs/architecture/arp-architecture-delta.md` §6.
+Target: 5 stories (STORY-111..115), epic E-16, strict linear chain. Est. 18-24 ARP BCs (SS-16).
+
+**Per-story carry-forward obligations (embed into story acceptance criteria):**
+
+- **STORY-111:** etherparse 0.16→0.20 upgrade (sub-delta A); VP-008 fuzz harness return-type
+  update: `decode_packet` → `DecodedFrame` (SliceError::Len removed; 2 non-exhaustive
+  NetSlice/LaxNetSlice match breaks).
+- **STORY-114:** (a) D-067 code fix — `src/mitre.rs:91`: change `"Impact (ICS)"` → `"Impact"`;
+  (b) `.factory/holdout-scenarios/HS-008-*.md:75`: change `"Impact (ICS)"` → `"Impact"`;
+  (c) Three D-067 test obligations: Display unit test `assert_eq!(format!("{}", MitreTactic::IcsImpact), "Impact")`;
+  two-bucket enum-level report test confirming Impact vs IcsImpact bucketed distinctly;
+  HS-008 alignment verified by test. (d) VP-007 5-part atomic obligation.
+
+**Additional F3 scope items:**
+- VP-024 kani::cover obligation (to be placed before F6 formal hardening).
+- `src/mitre.rs` forward-decl targets: SEEDED 23→25, EMITTED 15→17 (current src ships 23/15;
+  targets 25/17 are ARP feature additions).
+- `decode_packet` currently returns `Result<ParsedPacket>` (target: `Result<DecodedFrame>`);
+  no `src/analyzer/arp.rs` yet; ADR-008 status proposed; VP-024 status draft.
+  These are PLANNED forward-declarations, NOT inconsistencies — do not flag as defects.
+
+### C. GOVERNANCE AND CONVERGENCE PARAMETERS (for F3 adversarial loop)
+
+- **Adversarial method:** STRICT WHOLE-CORPUS, 4 fresh-context slices:
+  - Slice A = architecture + VPs
+  - Slice B = all 283 BC bodies
+  - Slice C = domain / holdout / MITRE / stories
+  - Slice D = PRD + indexes + changelog ledger
+- **Bar:** ZERO findings of ANY severity (including LOW) across ALL 4 slices.
+  3 CONSECUTIVE fully-clean passes required for convergence.
+- **Policy DF-ADVERSARY-METHODOLOGY-001:** adversary dispatches use ABSOLUTE paths; NO `cd`.
+- **Adversary tooling:** agy (Gemini/Antigravity) CLI is UNUSABLE headless (40-step agentic
+  cap; --conversation stall; content-paste hang) AND quota-exhausted (429, ~5-day reset).
+  Use CLAUDE adversary (Agent tool, `vsdd-factory:adversary`) for F3 passes.
+- **Canonical corpus facts (feed to each adversary dispatch):**
+  - BCs: 283 total (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP)
+  - VPs: 24 total (22 pre-F2 + VP-023 DNP3 + VP-024 ARP draft)
+  - MitreTactic variants: 17 (14 Enterprise + 3 ICS: IcsLateralMovement, IcsImpact, IcsInitialAccess)
+  - Components: 24 total (C-1..C-24; C-22 Modbus SHIPPED, C-23 ARP PLANNED, C-24 DNP3 SHIPPED)
+  - `Finding.mitre_techniques`: `Vec<String>` + 3 Option fields (`source_ip`, `timestamp`, `direction`)
+  - O-01: CLOSED
+  - SEEDED 25 / EMITTED 17 / CAT-ONLY 8 (PLANNED targets; current src 23/15)
+
+### D. DEFERRED AND CYCLE-CLOSE ITEMS (must not be lost)
+
+- **Process-gap codification backlog:** PG-ARP-F2-003..009 — deferred to F7/cycle-close.
+  DRIFT-PRD-V120-MBAPFRAMER-001 (PRD v1.20 "C-23 was MbapFramer" wrong historical rationale) —
+  fix in F3 cycle or maintenance sweep; LOW cosmetic; does NOT block F3.
+- **D-067 obligations:** F3-OBL-STORY114-001/002/003 recorded in Drift Items table below.
+  These are the authoritative carry-forward; the story-writer MUST reference them.
+
+### E. RESUME COMMAND
+
+To resume after cold context clear:
+
+1. `git -C .factory log -1 --format='%h %s'` — confirm factory HEAD (expect `4fb17e6` or newer).
+2. `git rev-parse --short HEAD` on develop — confirm `31d1231` or newer; `git status` clean.
+3. `vsdd-factory:factory-worktree-health` — BLOCKING; do not proceed if fails.
+4. Dispatch `vsdd-factory:story-writer` to create STORY-111..115 (split into create + integrate
+   sub-bursts, since >8 artifacts expected including holdout skeleton for waves 40..44).
+5. Run state-manager LAST in the burst (after story-writer completes).
+
+**DO NOT re-run F2 adversarial passes. F2 is CONVERGED. The gate is SATISFIED.**
+
+### F. KEY ARTIFACT POINTERS
+
+- ARP architecture delta (F3 decomposition source): `.factory/specs/architecture/arp-architecture-delta.md`
+- F2 convergence trajectory (33 passes): `.factory/phase-f5-adversarial/arp-f2-convergence-trajectory.md`
+- F1 delta analysis: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md`
+- F1 MITRE research: `.factory/phase-f1-delta-analysis/mitre-arp-research.md`
+- Corpus consistency audit: `.factory/phase-f5-adversarial/corpus-consistency-audit-2026-06-13.md`
+- Decisions log: D-066 (F1 gate), D-067 (IcsImpact) in Decisions Log below.
+- Archived prior checkpoints: `cycles/feature-arp-v0.7.0/session-checkpoints.md`
+- DNP3 feature lessons (process-gap reference): `cycles/feature-8-dnp3-v0.5.0/lessons.md`
+
+### G. VERIFIED SHAs (re-verify live on resume — treat as snapshot, not current-HEAD)
+
+| Ref | Value at checkpoint | Re-verify command |
 |-----|--------------------|--------------------|
 | develop HEAD | `31d1231` | `git rev-parse --short HEAD` (on develop) |
 | main HEAD | `3e29891` | `git log main -1 --format='%h %s'` |
-| tag v0.6.0 | annotated → commit 3e29891 | `git show v0.6.0 --format='%h' -s` |
-| factory-artifacts HEAD | re-verify live | `git -C .factory log -1 --format='%h %s'` |
+| tag v0.6.0 | annotated → commit `3e29891` | `git show v0.6.0 --format='%h' -s` |
+| factory-artifacts HEAD | `4fb17e6` | `git -C .factory log -1 --format='%h %s'` |
 | released_version | v0.6.0 | — |
-| Open PRs | none | `gh pr list --state open` |
-| Working tree | clean | `git status --short` |
-
-develop == origin/develop at checkpoint. No open PRs. Working tree clean.
-
-### HOW TO RESUME
-
-**F2 CONVERGED. D-067 adjudicated. F2→F3 gate condition SATISFIED. Next actions (strict order):**
-
-1. Run `vsdd-factory:factory-worktree-health`. BLOCKING — do not proceed if this fails.
-2. **(1) Run `vsdd-factory:consistency-validator` final full-corpus audit.**
-   If CONSISTENT → proceed to step 3.
-   If NOT CONSISTENT → remediate, then re-run consistency-validator until CONSISTENT.
-3. **(2) Present F2→F3 human approval gate** (structured questions per feature-mode protocol).
-   Confirm ARP story decomposition scope (STORY-111..115 per arp-architecture-delta §6).
-4. **(3) On human approval → F3 story decomposition (STORY-111..115).**
-   5 stories target (E-16); estimate 18-24 ARP BCs (SS-16); strict linear chain.
-   D-067 obligations carried into F3: STORY-114 must fix src/mitre.rs:91 "Impact (ICS)"→"Impact",
-   update HS-008:75, and add Display+bucket unit tests (see Drift Items F3-OBL-STORY114-*).
-
-**PG-ARP-F2-003..009 codification follow-up:** Each process-gap finding has a follow-up story
-or justified deferral recorded in the Drift Items table. Detailed codification deferred to
-F7/cycle-close (not blocking F2→F3).
-
-**DRIFT-PRD-V120-MBAPFRAMER-001:** LOW cosmetic; PRD v1.20 delta "C-23 was MbapFramer"
-historical rationale is factually wrong (no MbapFramer ever existed). Fix in F3 cycle or
-maintenance sweep. Does NOT block F2→F3.
-
-### NON-BLOCKING / EXPECTED (do NOT treat as findings)
-
-- **STORY-114 PLANNED forward-declarations:** src/mitre.rs at SEEDED=23/EMITTED=15 (target
-  25/17); decode_packet returns Result<ParsedPacket> (target Result<DecodedFrame>); no
-  src/analyzer/arp.rs yet; ADR-008 status proposed; VP-024 status draft. These are correct —
-  the code is implemented in F4/STORY-114, NOT in F2. PLANNED markers are in
-  BC-2.10.005/007/008, cap-10, arp-architecture-delta §5.0.
-- **Brownfield IcsImpact display obligation (D-067 ADJUDICATED):** src/mitre.rs:91 IcsImpact
-  Display "Impact (ICS)" vs spec canonical "Impact" — ADJUDICATED 2026-06-13 (D-067): spec is
-  correct, code is deviant; " (ICS)" suffix does NOT break report bucketing (keyed on enum
-  variant, not Display string); severity LOW (terminal section-header label only). Fix folded
-  into STORY-114. F2 NO SPEC CHANGE — convergence preserved. See Drift Items F3-OBL-STORY114-*.
-- **system-overview.md decode_packet diagrams:** now carry PLANNED→DecodedFrame/STORY-111 markers
-  (Pass-16 A-02 fix). Do NOT re-flag as inconsistent.
-- **api-surface.md decode_packet PLANNED anchor:** now cites STORY-111 (Pass-16 A-03 fix).
-- **tooling-selection.md proptest list:** now lists 7 VPs including VP-021 (Pass-16 A-01 fix).
-- **module-decomposition.md C-5/C-23:** now carry PLANNED→STORY-111/STORY-112/ADR-008 markers (Pass-17 A-01/A-02 fix). Do NOT re-flag DecodedFrame/ArpAnalyzer as unplanned.
-- **HS-025/HS-008/HS-009 MITRE counts:** now assert current shipped values — 17 tactics / 23 seeded / 15 emitted / 8 cat-only (Pass-17 C-01/C-02/C-03 fix). Do NOT re-flag as stale.
-- **domain-spec §Summary-Metrics "21 components":** FROZEN pre-F2 ingestion baseline (develop@0082a0c). Dated erratum added pointing to ARCH-INDEX for current 24-component count. Do NOT treat as a live count regression.
-- **system-overview.md C-23 PLANNED:** now cites STORY-112 for ArpAnalyzer (Pass-18 pre-pass fix v1.3→v1.4). Do NOT re-flag as STORY-111 inconsistency.
-- **purity-boundary-map.md C-23 PLANNED:** now cites STORY-112 (Pass-18 pre-pass v1.2→v1.3) + VP-024 arp.rs bullet (Pass-18 A-03 v1.3→v1.4). Do NOT re-flag.
-- **dependency-graph.md indicatif:** now shows 0.18 (Pass-18 A-01 fix, v1.5→v1.6). Do NOT re-flag as stale.
-- **ss-05 BCs (BC-2.05.001-009):** all 9 re-anchored against dispatcher.rs current lines (Pass-18 B-01/B-02). Do NOT re-flag anchors using pre-ICS line numbers.
-- **BC-2.05.007/008 4-analyzer guard prose:** now enumerates http/tls/modbus/dnp3 (Pass-18 B-03). Do NOT re-flag as 2-analyzer.
-- **BC-2.04.055 on_data anchor:** now :245 (Pass-18 CARRY-OVER, v1.0.1→v1.0.2). Do NOT re-flag as :144.
-- **STORY-INDEX "49 stories":** now clarified "(48 greenfield product + 1 tooling STORY-091 = 49 stories)" (Pass-18 C-01/D-01). Do NOT re-flag 48-vs-49 as inconsistency.
-- **verification-coverage-matrix VP-023:** now includes lock-evidence note (Pass-18 A-02). Do NOT re-flag as missing lock annotation.
-- **purity-boundary-map v1.5:** sub-letter numbering fixed + dispatcher ground-truth anchor updated (Pass-19 A-01/A-02). Do NOT re-flag sub-letter inconsistency.
-- **VP-003/004/006/010/011/013/014/015/021:** re-anchored (Pass-19 VP-sweep). Do NOT re-flag anchors using pre-P19 line numbers.
-- **ss-09 BCs (BC-2.09.001/002/003/004/005/007):** re-anchored vs findings.rs (Pass-19 B-01..B-06). BC-2.09.003 now includes Possible-verdict variant. Do NOT re-flag ss-09 anchors.
-- **ss-06 BCs (BC-2.06.001..026):** ALL 26 re-anchored vs http.rs (Pass-19 B-08). Do NOT re-flag ss-06 anchors.
-- **BC-2.04.024/020 mod.rs anchors:** corrected (Pass-19 B-09). Do NOT re-flag.
-- **BC-2.07.037/016/008:** off-by-one anchors corrected (Pass-19 B-10 partial). NOTE: remaining ss-07 BCs are still PENDING full re-anchor.
-- **HS-009 T1083→Discovery:** MITRE-fact corrected (Pass-19 C-01). Do NOT re-flag T1083 mapping.
-- **nfr-catalog/nfr-story-map dispatcher anchors:** corrected (Pass-19 C-02). Do NOT re-flag.
-- **inv-01 INV-2 dispatcher anchors:** corrected (Pass-19 C-03). Do NOT re-flag.
-- **ss-07 FULL re-anchor (COMPLETE — P19 Batch 2):** All 35 changed ss-07 BCs re-anchored vs tls.rs. BC-2.07.016/030 confirmed already clean. Do NOT re-flag tls.rs anchors in ss-07 using pre-Batch-2 line numbers.
-- **ss-11 re-anchor (COMPLETE — P19 Batch 2):** BC-2.11.009/013/014/015/016/017/018/021/022/024 re-anchored vs reporter src. 14 BCs confirmed clean. Do NOT re-flag ss-11 anchors using pre-Batch-2 line numbers.
-- **ss-01/02/08/13 (CONFIRMED CLEAN — P19 Batch 2):** Zero shifted-src citations. Do NOT flag as needing anchor correction.
-- **ss-04 BC-2.04.012/013/014 (COMPLETE — Pass-20):** All remaining ss-04 stragglers remediated. Do NOT re-flag these anchors.
-- **ss-12 BC-2.12.005 (COMPLETE — Pass-20):** main.rs + cli.rs anchors corrected. Do NOT re-flag these anchors.
-- **cap-09 version field (COMPLETE — Pass-20 D-01):** Frontmatter version: "1.1"→"1.2". Do NOT re-flag.
-- **ADR-008 T0830 matrix-label prose (COMPLETE — Pass-20 D-02):** v1.8→v1.9 prose reconciliation. Do NOT re-flag T0830 tactic assignment (correct, unchanged: ICS TA0109 LateralMovement).
-- **BC-INDEX ss-11 table blank line (COMPLETE — Pass-21 B-01):** Stray blank line between BC-2.11.001 and BC-2.11.002 removed; table now contiguous (v1.24→v1.25). Do NOT re-flag.
-- **spec-changelog Pass-13 ARCH-INDEX path (COMPLETE — Pass-21 D-01):** `behavioral-contracts/ARCH-INDEX.md` corrected to `architecture/ARCH-INDEX.md`. Do NOT re-flag.
-- **spec-changelog Pass-13 vp-005 slug (COMPLETE — Pass-21 D-02):** `vp-005-no-panic-guarantee.md` corrected to `vp-005-sni-four-way-classification.md`. Do NOT re-flag.
-- **spec-changelog Pass-13 vp-008 slug (COMPLETE — Pass-21 D-03):** `vp-008-all-analyzers-pure.md` corrected to `vp-008-decode-packet-no-panic.md`. Do NOT re-flag.
-- **PRD version-history 1.13/1.14/1.15/1.16/1.18 gap (COMPLETE — Pass-21 D-04):** Delta notes added for each missing version; prd.md v1.18→v1.19. Do NOT re-flag.
-- **domain-debt O-04 technique count 21→23 (COMPLETE — Pass-22 C-01):** Feature #8 DNP3 added T1691.001 + T0827; seeded catalog is now 23 IDs. domain-debt v1.2→v1.3. Do NOT re-flag.
-- **verification-architecture Pass-22 modified entry (COMPLETE — Pass-22 A-01):** Wording hardened; v1.5→v1.6. Do NOT re-flag.
-- **verification-coverage-matrix VP-024 Coverage Note (COMPLETE — Pass-22 A-02):** Draft lock-pending note added for VP-024; v1.4→v1.5. Do NOT re-flag.
-- **BC-INDEX PRD version-pin dropped (COMPLETE — Pass-22 D-01):** `(v1.18)`/`(v1.19)` pin removed from PRD-index status line; now version-agnostic. v1.25→v1.26. Do NOT re-flag version-pin lag for BC-INDEX PRD line.
-- **BC-INDEX double-blank before ss-12 (COMPLETE — Pass-22 B-01):** Two consecutive blank lines between ss-11 end and `## ss-12` reduced to one. v1.25→v1.26. Do NOT re-flag.
-- **verification-coverage-matrix VP-024 lock-note STORY-112→STORY-113 (COMPLETE — Pass-23 A-01):** P22 A-02 introduced STORY-112 as the locking story; correct story is STORY-113/F6 (ARP Kani proofs). v1.5→v1.6. Do NOT re-flag.
-- **verification-coverage-matrix decoder.rs Sub-A footnote (COMPLETE — Pass-23 A-02):** Attribution footnote added to VP-024 matrix row. v1.5→v1.6. Do NOT re-flag.
-- **verification-architecture VP-005 code-fence (COMPLETE — Pass-23 A-03):** Harness skeleton missing closing backticks fixed. v1.6→v1.7. Do NOT re-flag.
-- **module-criticality C-22 technique enumeration (COMPLETE — Pass-23 A-04):** Modbus emitted technique-ID enumeration harmonized with C-23/C-24 style. v1.2→v1.3. Do NOT re-flag.
-- **arp-architecture-delta §6 draft-as-authoritative note (COMPLETE — Pass-23 A-05):** Intentionality note added to §6 forward-declarations. v1.10→v1.11. Do NOT re-flag.
-- **ss-15 DNP3 component label C-23→C-24 (COMPLETE — Pass-24 D-01):** All 24 ss-15 BCs corrected from C-23 (planned ARP) to C-24 (canonical DNP3 analyzer). PRD §2.15 phantom C-26 corrected to C-24 (prd v1.19→v1.20). Do NOT re-flag C-24 in ss-15 BCs as mislabel.
-- **spec-changelog Pass-23 ledger paths (COMPLETE — Pass-24 D-02/D-03):** P23 ledger row phantom path specs/architecture/module-criticality.md corrected to specs/module-criticality.md; phantom path phase-f2-spec-evolution/arp-architecture-delta.md corrected to specs/architecture/arp-architecture-delta.md. Do NOT re-flag these paths.
-- **arp-architecture-delta §7 changelog row order (COMPLETE — Pass-24 A-01):** Rows reordered to ascending (1.10 before 1.11). No version bump (cosmetic reorder). Do NOT re-flag.
-- **spec-changelog VP-022/VP-023 File-column slugs (COMPLETE — Pass-25 D-01/D-02):** File column for VP-023 row corrected from truncated vp-023.md to vp-023-dnp3-parse-safety.md; VP-022 row corrected from vp-022.md to vp-022-modbus-parse-safety.md. Comprehensive changelog-path flush performed — all .factory/*.md path refs in spec-changelog.md scanned; only corrected-from audit prose retains now-irrelevant paths. Changelog-path debt class FLUSHED. Do NOT re-flag VP-022/VP-023 slugs.
-- **HS-008 kill-chain order (COMPLETE — Pass-27 C-01):** Canonical all_tactics_in_report_order sequence corrected — C2 (Command-and-Control) now appears between Collection and Exfiltration (Collection→C2→Exfiltration→Impact→[3 ICS]), matching src/mitre.rs. Prior narrative had C2 after Exfiltration. Do NOT re-flag HS-008 kill-chain order.
-- **HS-INDEX BC-2.02.009 version-pin dropped (COMPLETE — Pass-27 D-01):** HS-INDEX line ~489 carried stale "v1.5" pin for BC-2.02.009. Dropped for robustness (version-agnostic, like P22 D-01 spec-side hardening). Holdout layer swept — 1 active pin found and flushed. Do NOT re-flag HS-INDEX BC-2.02.009 version reference.
-- **Pass-28 corpus reviewed CLEAN:** Post-P27 corpus (with above two fixes) returned zero findings across all 4 slices. No new items to annotate as non-blocking.
-- **DNP3 emitted-set {T1692.001,T1691.001,T0814,T0836,T0827} (COMPLETE — Pass-29 A-01):** All 4 module-inventory docs (module-decomposition, system-overview, purity-boundary-map, module-criticality) now enumerate the canonical 5-ID DNP3 emitted technique set including T1692.001. Do NOT re-flag missing T1692.001 in module-inventory docs.
-- **PRD BC-2.14.014 write-set {0x06,0x10,0x16,0x17} (COMPLETE — Pass-29 D-01):** All 4 locations in PRD §2.14 / BC-2.14.014 now enumerate FC 0x17 alongside 0x06/0x10/0x16. Do NOT re-flag missing FC 0x17 in write-set.
-- **PRD v1.20 delta note + anchor slug (COMPLETE — Pass-29 D-02):** PRD:261 changelog anchor slug corrected [pass-13-2026-06-13]→[pass-13-corpus-cleanup-2026-06-13]; missing v1.20 PRD delta note backfilled. Do NOT re-flag anchor slug or missing v1.20 note.
-- **BC-2.14.018 postconditions/EC direction-resolved (COMPLETE — Pass-30 B-01):** Non-existent `flow_key.client_ip()`/`server_ip()` replaced with direction-resolved `flow_key.lower_ip()`/`upper_ip()` + direction. BC-2.14.018 v1.2→v1.3. Do NOT re-flag FlowKey accessor in BC-2.14.018.
-- **BC-2.14.020 postconditions direction-resolved (COMPLETE — Pass-30 B-02):** Same non-existent FlowKey accessor fix as B-01 applied to BC-2.14.020. BC-2.14.020 v2.2→v2.3. Do NOT re-flag FlowKey accessor in BC-2.14.020.
-- **BC-INDEX BC-2.14.018/020 entries updated (COMPLETE — Pass-30 B-03):** BC-INDEX annotations reflect v1.3 / v2.3. Do NOT re-flag BC-INDEX lag for these entries.
-- **STORY-100..105 input-hash dup-key removed (COMPLETE — Pass-30 C-01):** Duplicate `input-hash: TBD` YAML frontmatter key removed from all 6 files; re-stamped via bin/compute-input-hash --write; all 6 MATCH. Do NOT re-flag dup-key or TBD placeholder in STORY-100..105.
-- **ADR-006 FC-0x17 attribution table corrected (COMPLETE — Pass-30 A-01):** Lines 112+125 now place FC 0x17 in the T0836 register-write bucket (not T1692.001-only). Do NOT re-flag FC-0x17 ADR-006 attribution.
-- **Pass-31 corpus reviewed CLEAN:** Post-P30 corpus (with all P30 fixes: BC-2.14.018 v1.3, BC-2.14.020 v2.3, STORY input-hash dup-key removed, ADR-006 FC-0x17 corrected) returned zero findings across all 4 slices. Slice B noted BC-INDEX:358 trailing-pipe cosmetic — explicitly ruled non-blocking/not-a-finding (watch-item only; fix only if a future pass flags it).
-- **Pass-32 corpus reviewed CLEAN:** Post-P31 corpus returned zero findings across all 4 slices (2nd consecutive clean pass; counter 2/3). BC-INDEX:358 trailing-pipe correctly treated non-blocking by all slices. No remediation performed.
-
-### RECURRING DEFECT CLASSES (sweep proactively before each pass)
-
-- **Stale src/mitre.rs line anchors** — canonical: technique_info @128-182; `_ => return None`
-  @179; technique_tactic @192-194; all_tactics_in_report_order slice @100-120; Display impl
-  @72-95; ICS arms @89-91; extract_sni @247, match @252-266. Many docs cite pre-refactor lines.
-- **Stale src/dispatcher.rs line anchors** — canonical (post-ICS, develop HEAD 31d1231):
-  fn classify :184; fn on_data :245; cache block :269-289; fn on_flow_close :322-361;
-  DEFAULT_MAX :58; 4-analyzer unconfigured guard :256-259. ss-05 re-synced P18; ss-09/ss-06/
-  ss-04/ss-07-partial re-synced P19. ss-07 FULL tls.rs + ss-01/02/04-rest/08/11/12/13 PENDING.
-- **Stale src/http.rs, src/tls.rs, src/findings.rs, src/analyzer/mod.rs, src/reassembly/, src/lifecycle.rs line anchors** —
-  ground-truth maps recorded during P19 anchor sweep. ss-06 (http.rs) fully re-synced P19.
-  ss-07 (tls.rs) fully re-synced P19 Batch 2 (all 35 BCs). findings.rs (ss-09) fully re-synced P19.
-  ss-04 (reassembly/lifecycle.rs) fully re-synced P19+P20 — COMPLETE. ss-12 (main.rs/cli.rs)
-  re-synced P20 — COMPLETE. PG-ARP-F2-007 FLUSHED.
-- **Count drift** — canonical: 283 BCs total; 24 VPs (Kani 11/proptest 7/fuzz 1/int-unit 5;
-  P0 8/P1 10/test-suff 6); 17 MitreTactic variants (14E+3 ICS incl IcsImpact); SEEDED
-  25/EMITTED 17/CAT-ONLY 8 PLANNED (current src 23/15); 24 components C-1..C-24; ARP holdout
-  26/24/2; summarize 11 keys.
-- **Stale version-pin citations** — doc cites "BC-X vN" lagging file; BC-INDEX inline
-  annotation lag; H1↔BC-INDEX title sync.
-- **Changelog ledger completeness** — every frontmatter version recorded, no placeholders or
-  phantom paths.
-- **Index registration completeness** — PRD §2/§7 ↔ BC-INDEX ↔ ARCH-INDEX must match.
-- **Sibling naming variants** (PG-ARP-F2-005) — sweep globs must cover all variant spellings
-  (e.g., chunk*-eval.md AND chunk*reeval.md); partial-fix discipline on multi-occurrence defects.
-
-### OFF-RAMP OPTION (human may elect)
-
-Narrow the strict gate back to the ARP-F2 delta perimeter (already converged), declare F2
-CONVERGED, proceed to F2→F3 gate, and track remaining pre-existing corpus debt as a separate
-maintenance sweep. Human chose full whole-corpus on 2026-06-13; this remains available if
-they revise.
-
-### KEY ARTIFACT POINTERS
-
-- Trajectory + per-pass detail + current artifact versions table (post-Pass-16):
-  `.factory/phase-f5-adversarial/arp-f2-convergence-trajectory.md`
-- Corpus audit (systematic debt classes + remediation worklist):
-  `.factory/phase-f5-adversarial/corpus-consistency-audit-2026-06-13.md`
-- F1 delta analysis: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md`
-- F1 MITRE research: `.factory/phase-f1-delta-analysis/mitre-arp-research.md`
-- Feature #8 DNP3 lessons (process-gaps): `cycles/feature-8-dnp3-v0.5.0/lessons.md`
-- Decisions log: D-066 (F1 gate approval) in STATE.md Decisions Log below.
-- Adversary agent is read-only (cannot persist its own reports) — orchestrator persists
-  findings; known [process-gap] (PG-ARP-F2-001).
-- Archived prior session checkpoints: `cycles/feature-arp-v0.7.0/session-checkpoints.md`
+| open PRs | none | `gh pr list --state open` |
+| working tree | clean | `git status --short` |
 
 ## Decisions Log
 
