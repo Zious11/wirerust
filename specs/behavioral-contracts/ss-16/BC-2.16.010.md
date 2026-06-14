@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -18,6 +18,7 @@ modified:
   - "v1.4: Pass-6 remediation F-B6-H02: Invariant 5 added — malformed_findings <= malformed_frames; equality holds only when --arp is active (per ADR-008 Decision 7 key 11 and BC-2.16.009 PC4). No unconditional equality between the two counts. — 2026-06-12"
   - "v1.5: Pass-9 remediation F-B9-M04: EC-003 clarifying clause added — the 5 GARP and 3 spoof findings are detection classifications of frames already counted among the 100 request/reply frames; they are NOT additional frames; the reconciliation invariant counts frames, not findings. — 2026-06-12"
   - "v1.6: corpus-consistency-audit-2026-06-13 PR-1a: H1 updated to include '(11 Keys)' enrichment per Criterion-75 (title enrichment must live in H1, not only downstream indexes). — 2026-06-13"
+  - "v1.7: F3 story-anchor back-fill (primary owner STORY-113; cross-story extension STORY-115 for storm_findings VALUE). — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -138,7 +139,7 @@ The presence and content of all eleven keys is the contract verified by this BC.
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — the summarize() output is the analysis result surface for ARP Security Analysis; it feeds the CLI summary and JSON report that expose the capability's output to users |
 | L2 Domain Invariants | (none directly) |
 | Architecture Module | SS-16 (src/analyzer/arp.rs ArpAnalyzer::summarize, C-23); ADR-008 Decision 7 |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-113 (primary owner — keys defined here); STORY-115 (storm_findings VALUE, cross-story extension) |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | (none — summary method, no finding emission) |
 
@@ -159,7 +160,7 @@ The presence and content of all eleven keys is the contract verified by this BC.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-113 (primary); STORY-115 (cross-story extension — storm_findings VALUE)
 
 ## VP Anchors
 

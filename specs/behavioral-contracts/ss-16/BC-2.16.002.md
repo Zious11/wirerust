@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-16
 capability: CAP-16
 lifecycle_status: active
 introduced: v0.7.0-feature-arp
-modified: []
+modified:
+  - "v1.1: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -113,7 +114,7 @@ spoofing (D1), Gratuitous ARP (D2), and D12 L2/L3 mismatch detections.
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — ARP Reply parsing is critical because ARP Replies are the primary vehicle for cache poisoning (D1), gratuitous ARP (D2), and L2/L3 mismatch (D12) detections; incorrect Reply extraction would cause silent false negatives on all three detection paths |
 | L2 Domain Invariants | (none directly — pure extraction function with no finding emission) |
 | Architecture Module | SS-16 (src/decoder.rs `extract_arp_frame`, C-23); ADR-008 Decision 2 |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-112 |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | (none — pure extraction function; findings emitted by ArpAnalyzer detection BCs) |
 
@@ -134,7 +135,7 @@ spoofing (D1), Gratuitous ARP (D2), and D12 L2/L3 mismatch detections.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-112
 
 ## VP Anchors
 

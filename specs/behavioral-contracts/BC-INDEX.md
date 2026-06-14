@@ -245,7 +245,7 @@ traces_to: .factory/specs/prd.md
 | BC ID | Title | Priority | Status | Origin |
 |-------|-------|----------|--------|--------|
 | BC-2.10.001 | MitreTactic Display Renders Enterprise Tactics with Canonical Spacing | P0 | [WRITTEN] | BC-MIT-001 |
-| BC-2.10.002 | ICS Tactics Render Unprefixed | P1 | [WRITTEN] | BC-MIT-002 | <!-- v1.4: F-C-P8-M01: Architecture Anchors and Source Evidence re-anchored :85-87→:89-91 (IcsInhibitResponseFunction :89, IcsImpairProcessControl :90, IcsImpact :91) -->
+| BC-2.10.002 | ICS Tactics Render Without "ICS:" Prefix; IcsImpact Disambiguated as "Impact (ICS)" | P1 | [WRITTEN] | BC-MIT-002 | <!-- v1.5: D-069 — IcsImpact Display corrected to "Impact (ICS)" (H1 title updated per bc_h1_is_title_source_of_truth); code at src/mitre.rs:91 was already correct; spec-side corrected. Supersedes D-067. -->
 | BC-2.10.003 | all_tactics_in_report_order Returns Kill-Chain Order First Then ICS | P0 | [WRITTEN] | BC-MIT-003 |
 | BC-2.10.004 | all_tactics_in_report_order Contains Every Variant Exactly Once | P0 | [WRITTEN] | BC-MIT-004 |
 | BC-2.10.005 | technique_name Returns Some for Every Seeded ID (25 Total) | P0 | [WRITTEN] | BC-MIT-005 | <!-- v1.10: count 23->25; T0830 (ICS)+T1557.002 (Enterprise) added (ARP F2); 12E+13I split; PLANNED forward-declaration added -->
@@ -432,7 +432,7 @@ traces_to: .factory/specs/prd.md
 |-------|-------|----------|--------|--------|
 | BC-2.16.001 | ARP Request Frame Correctly Parsed from ArpPacketSlice | P0 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.002 | ARP Reply Frame Correctly Parsed from ArpPacketSlice | P0 | [WRITTEN] | feature-009-F2 |
-| BC-2.16.003 | Gratuitous ARP Detection — sender_ip == target_ip Classified as GARP | P0 | [WRITTEN] | feature-009-F2 | <!-- v1.4: F-B9-L01: EC-009 moved from between EC-003/EC-004 to end after EC-008 — restores monotonic numbering; all EC content unchanged -->
+| BC-2.16.003 | Gratuitous ARP Detection — sender_ip == target_ip Classified as GARP | P0 | [WRITTEN] | feature-009-F2 | <!-- v1.6: D-068 — benign GARP now emits mitre_techniques=[] (no MITRE attribution); T0830+T1557.002 exclusively on GARP-that-conflicts path (BC-2.16.014). Description, PC5, Invariant 2, Invariant 3, EC-001, EC-002, EC-007, canonical vectors updated. --> <!-- v1.7: Pass-5 Architecture Anchors §3.3 conditional benign-GARP MITRE fix — unconditional form replaced with conditional; Architecture Anchor updated per D-068. --> <!-- v1.8: Pass-13 PC7 cross-story clarity note; no H1/title change -->
 | BC-2.16.004 | ARP Spoof Detection — IP→MAC Rebind Emits MEDIUM then HIGH Finding | P0 | [WRITTEN] | feature-009-F2 |
 | BC-2.16.005 | Binding-Table Update — Last-Seen MAC Wins for a Given IP | P0 | [WRITTEN] | feature-009-F2 | <!-- v1.4: F-B8-M01: PC1 tightened — sender_ip excludes both 0.0.0.0 and 255.255.255.255 per Invariant 5; test-infra note for VP-024 Sub-C (new_for_test, process_arp_for_test, bindings_snapshot) added -->
 | BC-2.16.006 | Binding-Table Cap — Table Never Exceeds MAX_ARP_BINDINGS via LRU Eviction | P0 | [WRITTEN] | feature-009-F2 |

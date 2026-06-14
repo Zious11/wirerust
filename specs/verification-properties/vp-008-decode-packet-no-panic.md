@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.1"
+version: "2.2"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -26,6 +26,7 @@ modified:
   - "v1.2: Note that delivered harness is wider than skeleton (also fuzzes unsupported variants IEEE802_11, NULL, LOOP); update skeleton import to pcap_file::DataLink (STORY-003 pass-3 Nit-1) — 2026-05-22"
   - "v2.0: Phase-6 verification locked 2026-06-02 @ develop 0855f25. status→verified, verification_lock→true, proof_file_hash set (fuzz/fuzz_targets/fuzz_decode_packet.rs)."
   - "v2.1: Pass-13 anchor correction (F-A13-004, label-only — proof unaffected, verification_lock preserved): BC-2.02.009 Related BC title updated from stale 'Surface No IP Layer Found Error' to current title 'Non-IP Non-ARP Frames Return No-IP-Layer Error; ARP Frames Return DecodedFrame::Arp'. Note: the code still returns Err on the non-IP non-ARP path; the BC title reflects the revised BC-2.02.009 scope introduced by ADR-008 (ARP integration adds the DecodedFrame::Arp variant)."
+  - "v2.2: Pass-13 forward-reference obligation (F1): Property Statement and Source Location prose updated from Result<ParsedPacket> to Result<DecodedFrame> (pre-STORY-111 forward reference, tagged inline). STORY-111 changes the return type to Result<DecodedFrame> with DecodedFrame::Ip and DecodedFrame::Arp variants; the no-panic invariant covers BOTH variants. verification_lock, proof_completed_date, proof_file_hash, and verified_at_commit are UNCHANGED — the existing fuzz proof characterizes the pre-ARP locked state; re-locking deferred to STORY-111 F6 per the obligation note below."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -43,7 +44,20 @@ removal_reason: null
 For any byte slice `data` of any length (including empty) and any supported
 `DataLink` variant, `decode_packet(data, datalink)` never panics (no
 `unwrap()`, no index out of bounds, no stack overflow on any valid input). It
-either returns `Ok(ParsedPacket)` or `Err(anyhow::Error)`.
+either returns `Ok(DecodedFrame)` or `Err(anyhow::Error)`.
+
+> **Forward-reference obligation (STORY-111 — pre-merge state):** The return type
+> shown above reflects the post-STORY-111 signature `Result<DecodedFrame>`. Prior
+> to STORY-111, the function signature was `Result<ParsedPacket>`. STORY-111
+> (ARP integration, F3/v0.7.0) renames `ParsedPacket` to `DecodedFrame` and adds
+> the `DecodedFrame::Arp` variant alongside the existing `DecodedFrame::Ip` variant.
+> The no-panic invariant covers **BOTH** `DecodedFrame::Ip` and `DecodedFrame::Arp`
+> outcomes — neither variant is a panic; both are valid `Ok(...)` returns. The
+> verification_lock, proof_completed_date, proof_file_hash, and verified_at_commit
+> fields below reflect the pre-STORY-111 locked fuzz proof (against `Result<ParsedPacket>`).
+> The F4/F6 formal-verifier MUST re-run the fuzz harness against the post-STORY-111
+> `Result<DecodedFrame>` signature and re-lock VP-008 in the STORY-111 F6 step.
+> See arp-architecture-delta.md §4.3 which flags VP-008 as "EXISTING — MUST UPDATE".
 
 This property must hold for all five supported link types:
 - `DataLink::ETHERNET` (0x01)
@@ -144,7 +158,7 @@ fuzz_target!(|data: &[u8]| {
 
 ## Source Location
 
-`src/decoder.rs:128` -- `decode_packet(data: &[u8], datalink: DataLink) -> Result<ParsedPacket>`.
+`src/decoder.rs:128` -- `decode_packet(data: &[u8], datalink: DataLink) -> Result<DecodedFrame>` (post-STORY-111 signature; pre-STORY-111 the return type was `Result<ParsedPacket>` — see forward-reference obligation in Property Statement above).
 
 The etherparse parsing chain is the primary source of potential panics. wirerust has
 no `unsafe` blocks. The `unwrap()` audit from pass-1 ingestion found no panicking
@@ -166,3 +180,4 @@ Seed the fuzz corpus with:
 | Initial fuzzing run (8h) completed | 2026-06-02 | formal-verifier |
 | Corpus frozen | 2026-06-02 | formal-verifier |
 | Locked (VERIFIED) | 2026-06-02 | spec-steward (Phase-6 gate) |
+| v2.2 forward-reference obligation added (Pass-13 F1): Property Statement + Source Location updated to Result<DecodedFrame>; STORY-111 re-lock obligation noted; lock fields unchanged | 2026-06-14 | product-owner |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-16
 capability: CAP-16
 lifecycle_status: active
 introduced: v0.7.0-feature-arp
-modified: []
+modified:
+  - "v1.1: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -118,7 +119,7 @@ A target.
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — ARP Request parsing is the foundational extraction step that feeds all ARP security detections (D1/D2/D3/D11/D12); no analysis is possible without correctly extracting the sender and target fields from the ArpPacketSlice |
 | L2 Domain Invariants | (none directly — pure extraction function with no finding emission) |
 | Architecture Module | SS-16 (src/decoder.rs `extract_arp_frame`, C-23 ArpAnalyzer); ADR-008 Decision 2 |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-112 |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | (none — pure extraction function; no finding emission) |
 
@@ -137,7 +138,7 @@ A target.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-112
 
 ## VP Anchors
 

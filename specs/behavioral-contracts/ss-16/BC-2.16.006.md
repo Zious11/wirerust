@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T01:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-16
 capability: CAP-16
 lifecycle_status: active
 introduced: v0.7.0-feature-arp
-modified: []
+modified:
+  - "v1.3: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -124,7 +125,7 @@ standard for this value exists.
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — the binding-table cap is a bounded-resource invariant for the ARP Security Analysis capability; without it, a long-running capture against a large network would cause unbounded memory growth in the analyzer |
 | L2 Domain Invariants | (none directly) |
 | Architecture Module | SS-16 (src/analyzer/arp.rs `insert_binding_lru`, C-23); ADR-008 Decision 4 |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-113 |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | (none — capacity management operation; no finding emission) |
 
@@ -143,7 +144,7 @@ standard for this value exists.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-113
 
 ## VP Anchors
 

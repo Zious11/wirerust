@@ -1,10 +1,10 @@
 ---
 document_type: wave-schedule
 level: ops
-version: "1.0"
+version: "1.1"
 status: draft
 producer: story-writer
-timestamp: 2026-06-09T00:00:00Z
+timestamp: 2026-06-13T00:00:00Z
 phase: 4
 inputs:
   - .factory/stories/STORY-INDEX.md
@@ -14,12 +14,18 @@ inputs:
   - .factory/stories/STORY-103.md
   - .factory/stories/STORY-104.md
   - .factory/stories/STORY-105.md
+  - .factory/stories/STORY-111.md
+  - .factory/stories/STORY-112.md
+  - .factory/stories/STORY-113.md
+  - .factory/stories/STORY-114.md
+  - .factory/stories/STORY-115.md
 traces_to: .factory/stories/STORY-INDEX.md
-feature_id: issue-007-modbus-analyzer
-github_issue: 7
+feature_id: issue-007-modbus-analyzer, issue-009-arp-security-analyzer
+github_issue: 7, 9
 cycles:
   - v0.3.0-multitag   # Waves 31 — E-13 Multi-Tag Schema Migration
   - v0.4.0-modbus     # Waves 32-34 — E-14 Modbus TCP Analyzer
+  - v0.7.0-arp        # Waves 40-44 — E-16 ARP Security Analyzer
 ---
 
 # Wave Schedule: Feature #7 — Modbus Analyzer + Multi-Tag Schema
@@ -202,3 +208,109 @@ Their test assertions are updated by STORY-100; no re-implementation is required
 | STORY-078 | 1.5 | 1.6 | Terminal MITRE grouping: Vec[0] first-element; multi-ID render |
 | STORY-079 | 1.4 | 1.5 | CSV column 6 header rename + join(";") encoding |
 | STORY-080 | 1.3 | 1.4 | CSV optional-field encoding: Option::None → Vec::is_empty |
+
+---
+
+# Wave Schedule Extension: Feature #9 — ARP Security Analyzer (issue #9, v0.7.0)
+
+> **Context:** Feature #9 (GitHub issue #9) introduces the ARP Security Analyzer (E-16).
+> v0.7.0 ships the complete ARP detection stack. Waves 40–44 extend the existing wirerust
+> wave graph (Waves 1–39, all delivered). The dependency chain is strictly linear; no
+> parallelism within E-16. Topological sort confirmed acyclic (E-16 tail appended after
+> Wave 39; one cross-epic edge STORY-110 → STORY-111).
+
+---
+
+## Summary (E-16 ARP)
+
+| Metric | Value |
+|--------|-------|
+| New stories | 5 (STORY-111 through STORY-115) |
+| New waves | 5 (Waves 40–44) |
+| New story points | 47 |
+| Release gate | v0.7.0 after Wave 44 |
+| Critical path | STORY-110 → STORY-111 → STORY-112 → STORY-113 → STORY-114 → STORY-115 (5 E-16 stories, 4 serial hops; + 1 cross-epic hop from STORY-110) |
+| Max parallelism | None — strictly linear within E-16 |
+
+---
+
+## Dependency Graph (E-16)
+
+```
+(Wave 39, delivered)
+    STORY-110
+        │  ← v0.7.0 release gate after Wave 44 ──────────────────────┐
+        ▼                                                              │
+    STORY-111  [Wave 40, P0, 5 pts — SS-02: etherparse migration]    │
+    depends_on: [STORY-110]                                           │
+        │                                                              │
+        ▼                                                              │
+    STORY-112  [Wave 41, P0, 8 pts — SS-16: ArpAnalyzer Stub + VP-024 Sub-A]  │
+    depends_on: [STORY-111]                                           │
+        │                                                              │
+        ▼                                                              │
+    STORY-113  [Wave 42, P0, 13 pts — SS-16: D2/D11/D12 detections + binding table]  │
+    depends_on: [STORY-112]                                           │
+        │                                                              │
+        ▼                                                              │
+    STORY-114  [Wave 43, P0, 13 pts — SS-16: emissions + VP-007 atomic]  │
+    depends_on: [STORY-113]                                           │
+        │                                                              │
+        ▼                                                              │
+    STORY-115  [Wave 44, P0, 8 pts — SS-02/SS-16: D3 storm + decode-time ARP gating + --arp-storm-rate CLI]  │
+    depends_on: [STORY-114]                                           │
+        │                                                              │
+        └──────────────────────────── v0.7.0 release gate ────────────┘
+```
+
+---
+
+## Wave Table (E-16)
+
+| Wave | Stories | Parallelism | Points | Release Gate |
+|------|---------|-------------|--------|--------------|
+| 40 | STORY-111 | — | 5 | — |
+| 41 | STORY-112 | — | 8 | — |
+| 42 | STORY-113 | — | 13 | — |
+| 43 | STORY-114 | — | 13 | — |
+| 44 | STORY-115 | — | 8 | v0.7.0 |
+| **TOTAL** | **5** | | **47** | |
+
+---
+
+## Release Gate: v0.7.0 — After Wave 44
+
+**Trigger:** STORY-111 through STORY-115 PRs merged; `cargo test --all-targets` green; `cargo clippy --all-targets -- -D warnings` clean.
+
+**Scope:** ARP Security Analyzer (BC-2.16.001 through BC-2.16.015).
+
+**Deliverables:**
+- etherparse upgraded to 0.20; `DecodedFrame` enum with `Ip` and `Arp` variants; `ArpFrame` struct
+- BC-2.02.009 revised to v1.6: third decode path `Ok(DecodedFrame::Arp(...))` for Ethernet/IPv4 ARP frames
+- `src/analyzer/arp.rs`: `ArpAnalyzer` struct, `process_arp`, binding table (cap 65,536 = MAX_ARP_BINDINGS), per-MAC storm counters (cap 4,096 = MAX_STORM_COUNTERS), D1 spoofing, D2 GARP, D3 storm detections, `summarize()`
+- ARP gating at decode-time in `src/main.rs`: `DecodedFrame::Arp(frame)` branch routes to `ArpAnalyzer::process_arp` (BC-2.16.011). ARP does NOT pass through `classify()` / `src/dispatcher.rs` — it is intercepted before StreamDispatcher (arp-architecture-delta §4.4).
+- `--arp` CLI flag (default off); `--all` includes ARP
+- VP-024 Kani proofs (4 sub-groups / 6 properties): Sub-A = 3 Kani (verify_extract_arp_frame_safety, verify_extract_arp_frame_eth_ipv4_correctness, verify_extract_arp_frame_none_on_bad_size); Sub-B = 1 Kani (verify_classify_garp_total); Sub-C = 1 proptest (test_binding_table_last_write_wins — NOT Kani); Sub-D = 1 Kani (verify_binding_table_cap)
+- VP-007 atomic update: SEEDED 23→25 / EMITTED 15→17 (`vp007_catalog_drift_guard` green)
+- VP-008 fuzz harness updated for `Result<DecodedFrame>` return type
+- MITRE detections: T0830 + T1557.002 only on D1 spoof + GARP-that-conflicts escalation (BC-2.16.014); benign D2 GARP emits mitre_techniques=[]; T0814 deferred (D3 storm, per DF-VALIDATION-001)
+
+---
+
+## Dispatch Ordering (E-16)
+
+1. Dispatch **STORY-111** (5 pts) after STORY-110 is merged. Wait for PR merge + CI green.
+2. Dispatch **STORY-112** (8 pts) after STORY-111 is merged.
+3. Dispatch **STORY-113** (13 pts) after STORY-112 is merged.
+4. Dispatch **STORY-114** (13 pts) after STORY-113 is merged.
+5. Dispatch **STORY-115** (8 pts) after STORY-114 is merged.
+6. STORY-115 merged → **v0.7.0 release gate** → create release tag.
+
+---
+
+## Critical Path (E-16)
+
+```
+STORY-111 (5) → STORY-112 (8) → STORY-113 (13) → STORY-114 (13) → STORY-115 (8)
+Total: 47 pts, 4 serial hops — no off-critical-path work; all 5 stories are on the critical path.
+```

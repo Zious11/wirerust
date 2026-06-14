@@ -13,6 +13,7 @@ modified:
   - "v1.7 (2026-06-12): F-B9-M02 — Decision 7 key 11: struck 'or etherparse parse failure' from malformed_frames definition. malformed_frames counts only frames that reach extract_arp_frame and return None (bad hw/proto sizes / non-Eth-IPv4). Etherparse parse failures (truncated/garbage ARP that never produce an ArpPacketSlice) are handled by the existing decode error path and are NOT counted in malformed_frames (see BC-2.16.009 EC-007). Aligns ADR to BC-2.16.009 EC-007 and BC-2.16.010 key 11."
   - "v1.8 (2026-06-12): F-B10-L01 — Decision 5 detection table D11 trigger cell: removed 'or etherparse rejects the frame'. D11 covers only frames that produced an ArpPacketSlice and then failed the hw_addr_size/proto_addr_size (or non-Ethernet/IPv4 hw/proto type) check inside extract_arp_frame. Etherparse-reject frames never produce an ArpPacketSlice and are NOT D11 — they are handled by the existing decode error path (BC-2.16.009 EC-007). Aligns Decision 5 D11 trigger with Decision 7 key 11 (fixed in v1.7) and BC-2.16.009 EC-007."
   - "v1.9 (2026-06-13): Pass-20 D-02 (LOW) — Decision 6 MitreTactic enum assessment paragraph: reconciled inconsistent labeling of T0830's tactic source. Both the opening sentence and the bullet now consistently state that T0830's home matrix is ICS (TA0109 Lateral Movement), and that the wirerust code maps it to the shared MitreTactic::LateralMovement variant (no separate ICS variant exists) via the merge-by-name policy. Previously the opening sentence said 'ICS matrix (TA0109)' while the bullet said 'Enterprise Lateral Movement variant', creating an apparent contradiction. No mapping change — tactic assignment is unchanged."
+  - "v2.0 (2026-06-14): D-068 — Conditional GARP MITRE attribution. A benign gratuitous ARP (sender_ip == target_ip, no conflict with a prior IP↔MAC binding) is normal traffic and must NOT be attributed to T0830/T1557.002 (research-backed: ATT&CK T1557.002 DET0387, T0830, arpwatch/Zeek/Suricata convention). Three loci corrected: (1) Decision 5 D2 GARP row MITRE column changed from unconditional 'T0830 + T1557.002' to conditional — benign GARP (D2 alone) emits NO MITRE (LOW/Anomaly only); conflicting GARP (D2+D1 / BC-2.16.014 co-fires) emits T0830 + T1557.002. (2) Decision 6 opening paragraph now states the conditionality explicitly with arpwatch/Zeek/Suricata rationale. (3) Decision 6 Emission summary table rows for T0830 and T1557.002 updated from 'D2 GARP' to 'D2 conflicting-GARP only'. Aligns with corrected BC-2.16.003 (parallel burst), arch-delta §3.3, and STORY-113 AC-003. Research source: .factory/research/arp-garp-mitre-attribution.md."
 subsystems_affected:
   - SS-02
   - SS-10
@@ -414,7 +415,7 @@ MITRE technique class, T0840, creating a separate VP obligation).
 | Detection | Class | Confidence | Stateful? | MITRE technique |
 |-----------|-------|------------|-----------|-----------------|
 | D1 ARP spoof / cache-poisoning | IP rebinds to new MAC in binding table | MEDIUM (first rebind) → HIGH (≥3 rebinds within ARP_FLAP_WINDOW_SECS) | YES (binding table) | T0830 + T1557.002 |
-| D2 Gratuitous ARP (GARP) | sender_ip == target_ip | LOW base; MEDIUM when GARP also conflicts with existing binding (D2+D1 interaction) | NO (single-packet) | T0830 + T1557.002 |
+| D2 Gratuitous ARP (GARP) | sender_ip == target_ip | LOW base; MEDIUM when GARP also conflicts with existing binding (D2+D1 interaction) | NO (single-packet) | **Conditional** — benign GARP (D2 alone, no prior binding conflict): NO MITRE techniques (LOW/Anomaly only); GARP that conflicts with a prior IP↔MAC binding (D2 + D1 co-fires / BC-2.16.014): T0830 + T1557.002 |
 | D3 ARP storm / rate anomaly | source MAC exceeds storm_rate average-frames-per-second-since-window-start (per BC-2.16.008 Invariant 2) | MEDIUM | YES (per-MAC window counter) | anomaly only (no MITRE tag — see below) |
 | D11 Malformed / oversized ARP | hw_addr_size != 6 or proto_addr_size != 4 (or non-Ethernet/IPv4 hw/proto type) for ARP frames that produced an ArpPacketSlice; etherparse-reject frames are NOT D11 — handled by the existing decode error path, see BC-2.16.009 EC-007 | LOW | NO (structural check in extract_arp_frame) | anomaly only |
 | D12 L2/L3 sender mismatch | Ethernet src MAC (from outer frame) != ARP sender HW addr field | MEDIUM | NO (single-packet) | T0830 + T1557.002 |
@@ -449,9 +450,15 @@ do not populate `slice.link` with an `Ethernet2` slice).
 
 ### Decision 6: MITRE catalog additions — VP-007 atomic update obligation
 
-ARP spoofing detections emit `T0830` (ICS primary) and `T1557.002` (Enterprise secondary).
-Both IDs are confirmed current and non-revoked in ATT&CK v19.1 (validated by research agent
-in `.factory/phase-f1-delta-analysis/mitre-arp-research.md` §2, 2026-06-12).
+ARP spoofing and conflicting-GARP detections emit `T0830` (ICS primary) and `T1557.002`
+(Enterprise secondary). Both IDs are confirmed current and non-revoked in ATT&CK v19.1
+(validated by research agent in `.factory/phase-f1-delta-analysis/mitre-arp-research.md` §2,
+2026-06-12). **D2 GARP attribution is conditional:** a benign gratuitous ARP (sender_ip ==
+target_ip, no conflict with any prior IP↔MAC binding) emits NO MITRE techniques (LOW/Anomaly
+only). T0830 + T1557.002 are emitted for GARP **only** when the same frame also triggers D1
+spoof detection (binding conflict co-fires, i.e., D2 + D1 / BC-2.16.014). This aligns with
+arpwatch/Zeek/Suricata convention: benign GARPs (announcements, probes) are normal traffic;
+technique attribution applies only to the conflicting-GARP case.
 
 **MitreTactic enum assessment (resolved — no placeholder):** T0830 belongs to tactic
 "Lateral Movement" in the ICS matrix (TA0109); the wirerust `MitreTactic` enum has no
@@ -489,8 +496,8 @@ the `technique_info` match arms and the VP-007 5-part atomic update; no enum cha
 
 | ID | Emitted by | Status |
 |----|-----------|--------|
-| T0830 | ARP (D1 spoof, D2 GARP, D12 mismatch) | **NEW — add to EMITTED_IDS** |
-| T1557.002 | ARP (D1 spoof, D2 GARP, D12 mismatch — Enterprise cross-tag) | **NEW — add to EMITTED_IDS** |
+| T0830 | ARP (D1 spoof, D2 conflicting-GARP only, D12 mismatch) | **NEW — add to EMITTED_IDS** |
+| T1557.002 | ARP (D1 spoof, D2 conflicting-GARP only, D12 mismatch — Enterprise cross-tag) | **NEW — add to EMITTED_IDS** |
 
 **VP-007 invariant (post-ARP):** SEEDED 25, EMITTED 17 (15 pre-ARP + T0830 + T1557.002).
 

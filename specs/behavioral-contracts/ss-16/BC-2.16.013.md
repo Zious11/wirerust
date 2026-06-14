@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.7.0-feature-arp
 modified:
   - "v1.1: Pass-4 remediation F-B4-H02: PC3 storm formula retired ('count_in_window / window_duration_secs') → cross-reference to BC-2.16.008 PC3 / Note 6 formula ('count_in_window / max(1, timestamp_secs - window_start_ts) >= storm_rate'); eliminates divide-by-zero risk from independent restatement. — 2026-06-12"
+  - "v1.2: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -103,7 +104,7 @@ external standard.
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — the storm rate flag allows operators to tune D3 detection sensitivity for their specific network; this is critical for ICS environments where ARP rates differ substantially from enterprise networks |
 | L2 Domain Invariants | (none directly) |
 | Architecture Module | SS-16 (src/cli.rs, src/main.rs ArpAnalyzer initialization); ADR-008 Decision 4 |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-115 |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | (none — CLI flag, no finding emission) |
 
@@ -122,7 +123,7 @@ external standard.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-115
 
 ## VP Anchors
 

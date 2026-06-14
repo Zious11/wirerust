@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-16
 capability: CAP-16
 lifecycle_status: active
 introduced: v0.7.0-feature-arp
-modified: []
+modified:
+  - "v1.1: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -120,7 +121,7 @@ it specifies the structural pipeline guarantee rather than a security finding.
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — the decode-vs-analysis separation is the foundational architectural invariant enabling the ARP Security Analysis capability: decode is always exercised (correctness and fuzz coverage), analysis is opt-in (performance and noise control) |
 | L2 Domain Invariants | (none directly) |
 | Architecture Module | SS-16 + SS-02 (src/decoder.rs DecodedFrame enum + decode_packet; src/main.rs packet loop); ADR-008 Decisions 1–3 |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-112 |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | (none — architectural invariant; no finding emission) |
 
@@ -142,7 +143,7 @@ it specifies the structural pipeline guarantee rather than a security finding.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-112
 
 ## VP Anchors
 

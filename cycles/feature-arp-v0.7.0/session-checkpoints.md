@@ -321,3 +321,38 @@ _(This checkpoint was further superseded by the Pass-25 REMEDIATED checkpoint ar
 | develop HEAD | 31d1231 | — |
 | main HEAD | 3e29891 | chore: release v0.6.0 |
 | factory-artifacts HEAD | 4fb17e6 | factory(D-067): IcsImpact Display adjudication — decision record only; F2 convergence preserved |
+
+---
+
+## Archived Checkpoint: 2026-06-13 — F3 ARP STORY DECOMPOSITION; cold-resume hardened (pre-F3-adversarial)
+
+**Archived from STATE.md on:** 2026-06-14 (replaced by "Pass-21 remediation complete; strict 3/3 convergence in progress (0/3)" checkpoint)
+
+### POSITION (at archival time)
+
+- F2 CONVERGED 3/3. D-067 adjudicated; D-068 + D-069 issued (2026-06-14).
+- F3 ARP story decomposition: STORY-111..115 CREATED (epic E-16, 47 pts, linear chain).
+  HS-INDEX waves 40-44 + holdout scenarios authored. STORY-INDEX, dependency-graph,
+  wave-schedule updated. All 5 ARP stories MATCH (d5bda72/268f53f/a767d96/e2f1c95/5ca9835).
+- F3 adversarial convergence: STRICT WHOLE-CORPUS mode. Counter 0/3 at time of archival.
+  Pass-21 remediation COMPLETE. Next action: Pass 22 (clean-streak attempt 1/3).
+- factory HEAD at archival: 2f47145 (factory(state): correct stale story count and wrong ICS variant names)
+
+### KEY FACTS (at archival time)
+
+- D-068: benign GARP emits mitre_techniques: [] (BC-2.16.003 v1.7, ADR-008 v2.0).
+- D-069: IcsImpact Display canonical = "Impact (ICS)" — SUPERSEDES D-067.
+  F3-OBL-STORY114-001/002/003 REVOKED.
+- F3 adversarial passes run: 21 (all remediated). Clean-streak: 0/3 at archival.
+  Pass 17 = first fully-clean pass; Pass 18 broke streak (VP title-sync);
+  Passes 19/20/21 surfaced+remediated genuine items. Pass-21 remediation COMPLETE.
+- 3 flush audits completed + cleared: dependency-graph whole-file, VP-layer + index
+  title-sync, story-completeness (BC-PC→AC→test). Wave-28-34 dependency-graph gap closed.
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
+| factory-artifacts HEAD | 2f47145 | factory(state): correct stale story count and wrong ICS variant names |

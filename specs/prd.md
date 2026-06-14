@@ -82,7 +82,7 @@ supplements:
 > **Version 1.5 delta (2026-06-10 — Feature #8 DNP3/ICS analyzer, issue #8):** Added Section
 > 2.15 (SS-15 DNP3/ICS Analysis, 22 BCs, ADR-007). Updated Section 2.10 O-04 domain debt
 > note: SEEDED 21→23 (added T1691.001 + T0827), EMITTED 13→15. New ICS-unique MitreTactic
-> variant `IcsImpact` (Display "Impact", ICS TA0105) added; `all_tactics_in_report_order`
+> variant `IcsImpact` (Display "Impact (ICS)", ICS TA0105) added; `all_tactics_in_report_order`
 > grows 16→17 elements. Updated BCs: BC-2.10.002/003/004/005/007/008 (v1.3–v1.7 per BC).
 > Added SS-15 rows to Section 7 RTM. KD-005 and KD-007 extended with DNP3 BCs.
 > Total BC count: 266 (was 244). See `spec-changelog.md` §[dnp3-f2-2026-06-10].
@@ -879,9 +879,11 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 > T0836 (write FC — direct), T1691.001 (inferred block-command, ICS sub-technique — per-flow
 > inference), T0827 (derived loss-of-control — correlated across events).
 >
-> **New ICS tactic variant:** `IcsImpact` (Display "Impact", TA0105) added to `MitreTactic`
+> **New ICS tactic variant:** `IcsImpact` (Display "Impact (ICS)", TA0105) added to `MitreTactic`
 > enum for T0827. `all_tactics_in_report_order` grows from 16 to 17 elements (element [16]).
-> See BC-2.10.002/003/004 for the tactic enum update.
+> The "(ICS)" qualifier disambiguates from Enterprise `Impact` (TA0040, bare "Impact") per D-069
+> adjudication (WCAG 2.4.6; mitre-impact-tactic-disambiguation.md). src/mitre.rs:91 = "Impact (ICS)"
+> is correct; the prior spec assertion "Impact" (bare) was wrong. See BC-2.10.002 v1.5.
 >
 > **DNP3 frame model:** Link-layer header (10 bytes minimum: 8 header + 2 CRC). Validity gate:
 > sync==0x0564 and LENGTH>=5. DEST/SOURCE addresses little-endian at offsets 4–7. Maximum

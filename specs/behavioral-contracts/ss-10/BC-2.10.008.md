@@ -70,8 +70,9 @@ Emission sites after F2 ARP (Modbus/DNP3 verified via grep; arp.rs PLANNED STORY
 - `src/analyzer/dnp3.rs` (F2 Feature #8 new) — `vec!["T1692.001"]` (control threshold),
   `vec!["T0814"]` (restart DoS), `vec!["T0836"]` (write FC), `vec!["T1691.001"]` (block-command
   inferred, BC-2.15.014), `vec!["T0827"]` (derived loss-of-control, BC-2.15.015)
-- `src/analyzer/arp.rs` (F2 Feature #9 PLANNED — STORY-114) — `vec!["T0830","T1557.002"]` (D1 spoof, D2 GARP,
-  D12 mismatch paths; see BC-2.16.003, BC-2.16.004, BC-2.16.007, BC-2.16.014)
+- `src/analyzer/arp.rs` (F2 Feature #9 PLANNED — STORY-114) — `vec!["T0830","T1557.002"]` (D1 spoof,
+  D2 GARP-that-conflicts escalation path per BC-2.16.014, D12 mismatch paths;
+  D2 benign GARP emits mitre_techniques=[] per D-068; see BC-2.16.003, BC-2.16.004, BC-2.16.007, BC-2.16.014)
 
 The emitted-ID set is 17 distinct IDs. Multi-element vecs contribute multiple IDs per emission;
 all IDs in all vecs must resolve.
@@ -169,7 +170,7 @@ all IDs in all vecs must resolve.
   - `src/reassembly/mod.rs:471` (T1036)
   - `src/reassembly/lifecycle.rs:111` (T1036)
   - `src/analyzer/modbus.rs` — multiple sites (T1692.001, T0836, T0814, T0806, T0835, T0831, T0888; exact lines TBD at F3 implementation)
-  - `src/analyzer/arp.rs` (F2 Feature #9 PLANNED in STORY-114) — `vec!["T0830","T1557.002"]` (D1 spoof, D2 GARP, D12 mismatch paths)
+  - `src/analyzer/arp.rs` (F2 Feature #9 PLANNED in STORY-114) — `vec!["T0830","T1557.002"]` (D1 spoof, D2 GARP-that-conflicts per BC-2.16.014, D12 mismatch paths; D2 benign GARP emits mitre_techniques=[] per D-068)
 
 ## Source Evidence
 

@@ -14,6 +14,177 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-5-propagation-gap-fixes-2026-06-14] — 2026-06-14
+
+### PATCH: Pass-5 Adversarial Propagation-Gap Remediation (F-A-1, F-A-2, F-C-1, F-C-2, F-C-3)
+
+**Scope:** BC-2.16.003 Architecture Anchors, HS-025, HS-INDEX HS-W42-001, spec-changelog.
+
+#### F-A-1 (MEDIUM) — BC-2.16.003 v1.6 → v1.7: Architecture Anchors §3.3 conditional form
+
+The D-068 sweep updated all body sections (Description, PC5, Invariants, EC, test vectors,
+Traceability) but left Architecture Anchors line for `arp-architecture-delta.md §3.3` as
+unconditional "D2 confidence=LOW, finding_type=Anomaly, MITRE T0830+T1557.002" — contradicting
+the v1.6 body which asserts `mitre_techniques: []` for benign GARP.
+
+**Fix:** Architecture Anchors §3.3 line replaced with conditional form:
+"D2 confidence=LOW (base), finding_type=Anomaly; MITRE: none (mitre_techniques=[]) for benign
+non-conflicting GARP; T0830+T1557.002 emitted ONLY on GARP-that-conflicts escalation path
+(BC-2.16.014)".
+
+Full-file grep confirmed no other unconditional benign-GARP MITRE assertions remain in
+BC-2.16.003. All other T0830/T1557.002 references are correctly gated on the conflict path or
+are historical changelog entries.
+
+BC-2.16.003 bumped v1.6 → v1.7.
+
+**STORY-113 re-stamp COMPLETED:** BC-2.16.003 is a declared input of STORY-113. STORY-113
+was re-stamped after the v1.7 change — `bin/compute-input-hash --scan` confirmed MATCH (current
+hash: see STORY-113 frontmatter — frontmatter is the canonical source per DF-INPUT-HASH-CANONICAL-001).
+
+#### F-A-2 (LOW) — spec-changelog D-068 entry: dangling "See input-hash re-stamp list below"
+
+The D-068 entry (line ~99) referenced "See input-hash re-stamp list below" but no list
+followed. Replaced with the actual re-stamp list: STORY-071, STORY-100, STORY-106 through
+STORY-115. Added note that STORY-113 requires additional re-stamping after BC-2.16.003 v1.7
+(F-A-1 fix).
+
+#### F-C-1 (LOW) — HS-025 v1.1 → v1.2: IcsImpact D-069 disambiguation clause added
+
+HS-025 tested BC-2.10.002 only for the no-"ICS:"-prefix rule but did not surface that
+IcsImpact now displays as "Impact (ICS)" (D-069 / BC-2.10.002 v1.5). Added explicit clause:
+
+- Scenario step 1 extended: IcsImpact renders as "Impact (ICS)" (parenthetical ICS qualifier,
+  NOT an "ICS:" prefix); distinguishes ICS Impact TA0105 from Enterprise Impact TA0040.
+- BC table: BC-2.10.002 row extended to cite PC3 (IcsImpact = "Impact (ICS)") and PC4
+  (the "(ICS)" qualifier does not constitute an "ICS:" prefix).
+- Verification Approach: added note that "Impact (ICS)" passes the no-"ICS:"-prefix check.
+- Evaluation Rubric data integrity row: added expected strings for all three ICS tactics and
+  Enterprise Impact, making the rubric self-consistent with D-069.
+- Failure Guidance: updated to mention IcsImpact bare-"Impact" failure mode.
+
+#### F-C-2 (LOW) — HS-INDEX HS-W42-001: "no MITRE techniques" added to seed title
+
+HS-W42-001 "GARP Benign Baseline" seed title did not surface the D-068 mitre_techniques: []
+requirement. Added "mitre_techniques: [] (no MITRE techniques attributed to benign GARP per
+D-068)" to the seed title so the index communicates the no-tag obligation.
+
+#### F-C-3 (LOW NOTE) — HS-008 and HS-025 identical input-hash: informational note added
+
+Both HS-008 and HS-025 carry identical input-hash values (current values: see each file's frontmatter — frontmatter is the canonical source per DF-INPUT-HASH-CANONICAL-001). Per CLAUDE.md, bin/compute-input-hash
+scopes to .factory/stories/ only — holdout scenario hashes are NOT maintained by the canonical
+drift tool. Added a one-line YAML comment below each file's input-hash field clarifying the
+field is informational only and not tool-maintained.
+
+**Artifacts changed in this burst:**
+
+| Artifact | Change |
+|----------|--------|
+| `.factory/specs/behavioral-contracts/ss-16/BC-2.16.003.md` | v1.6 → v1.7: Architecture Anchors §3.3 line conditional; v1.7 modified-log entry added |
+| `.factory/holdout-scenarios/HS-025-ics-tactic-display-and-non-exhaustive.md` | v1.1 → v1.2: IcsImpact D-069 disambiguation clause added to Scenario, BC table, Verification Approach, Evaluation Rubric, Failure Guidance; input-hash informational note added |
+| `.factory/holdout-scenarios/HS-008-mitre-tactic-display-and-kill-chain-order.md` | input-hash informational note added (no content change) |
+| `.factory/holdout-scenarios/HS-INDEX.md` | HS-W42-001 seed title: "mitre_techniques: []" clause added |
+| `.factory/spec-changelog.md` | D-068 entry: dangling "See ... below" replaced with actual re-stamp list; this Pass-5 entry added |
+
+**Story-writer handoff COMPLETED:** STORY-113 input-hash re-stamping for BC-2.16.003 v1.7 is
+done. `bin/compute-input-hash --scan` confirmed MATCH for all ARP stories 111-115 (current
+hashes: see each story's frontmatter — frontmatter is the canonical source per
+DF-INPUT-HASH-CANONICAL-001). No further action required.
+
+---
+
+## [d-069-icsimpact-display-impact-ics-2026-06-14] — 2026-06-14
+
+### ADJUDICATION D-069: IcsImpact Display = "Impact (ICS)" — SUPERSEDES D-067
+
+**Research basis:** `.factory/research/mitre-impact-tactic-disambiguation.md`
+(WCAG 2.4.6 unique headings; MITRE ATT&CK TA0040 vs TA0105; MITRE Navigator single-domain
+model; cross-matrix tool conventions).
+
+**Decision:** `MitreTactic::IcsImpact` MUST render as `"Impact (ICS)"`, NOT bare `"Impact"`.
+A grouped findings report that co-renders Enterprise Impact (TA0040) and ICS Impact (TA0105)
+in the same output without a matrix-selection guard creates two identically-named section
+headers — a WCAG 2.4.6 violation and a high-blast-radius reader confusion risk in the security
+context (Enterprise ransomware/data-destruction vs ICS physical-process manipulation).
+`src/mitre.rs:91 = "Impact (ICS)"` is CORRECT. The prior D-067 adjudication ("Impact" bare,
+spec correct; code deviant) is REVERSED. D-069 SUPERSEDES D-067 in all respects.
+
+**ADR-008 Decision 5 impact:** Architect handles ADR-008 update in parallel under D-069.
+
+**Artifacts corrected in this burst:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| BC-2.10.002 | v1.4 → v1.5: H1 title updated; Description rewritten; PC3 changed from "Impact" to "Impact (ICS)"; PC4 updated; Invariant 2 updated; EC-003 updated; canonical test vector updated. Modified-log entry citing D-069 added. | `.factory/specs/behavioral-contracts/ss-10/BC-2.10.002.md` |
+| PRD §85 (v1.5 delta note) | `Display "Impact"` → `Display "Impact (ICS)"` | `.factory/specs/prd.md` line 85 |
+| PRD §882 (F2 addition note) | `Display "Impact"` → `Display "Impact (ICS)"`; D-069 note added | `.factory/specs/prd.md` line 882 |
+| arp-architecture-delta.md §5.0 brownfield-debt table | Resolution direction REVERSED: `"Impact (ICS)"` is correct; `"Impact"` (bare) was wrong. Table updated to RESOLVED. Narrative text updated. | `.factory/specs/architecture/arp-architecture-delta.md` §5.0 |
+| arp-architecture-delta.md §7 | v1.12 changelog entry added documenting D-069 resolution | `.factory/specs/architecture/arp-architecture-delta.md` §7 |
+| ADR-007 Decision 5 | Code snippet `MitreTactic::IcsImpact => "Impact"` → `"Impact (ICS)"`. Modified log entry added superseding F-A13-001 note. | `.factory/specs/architecture/decisions/ADR-007-binary-ics-protocol-integration-dnp3-tcp.md` |
+| HS-008 (line ~75) | VERIFIED correct already — `"Impact (ICS)"` is present and MUST NOT be changed | `.factory/holdout-scenarios/HS-008-mitre-tactic-display-and-kill-chain-order.md` |
+
+**Story-writer obligations (next burst):**
+STORY-114 body references D-067 obligations that are now REVERSED by D-069. The
+"IcsImpact Display fix" task in STORY-114 must be corrected from "change src/mitre.rs:91 to
+'Impact'" to "VERIFY src/mitre.rs:91 = 'Impact (ICS)' (no change required; code is correct)".
+The test obligation changes from `assert_eq!(format!("{}",
+MitreTactic::IcsImpact), "Impact")` to `assert_eq!(format!("{}",
+MitreTactic::IcsImpact), "Impact (ICS)")`. See STORY-114 body for full scope.
+
+**State-manager obligation:**
+STATE.md lines 99-100, 117-119 record D-067 adjudication with the now-reversed conclusion.
+State-manager must update STATE.md to note D-069 supersession of D-067, and correct the
+STORY-114 carry-forward obligations accordingly.
+
+---
+
+## [d-068-benign-garp-no-mitre-2026-06-14] — 2026-06-14
+
+### ADJUDICATION D-068: Benign Gratuitous ARP emits mitre_techniques: [] (no MITRE attribution)
+
+**Research basis:** `.factory/research/arp-garp-mitre-attribution.md`
+(MITRE T1557.002 DET0387 AN1091-AN1093; T0830 detection guidance; arpwatch/Zeek/Suricata/Snort
+convention; RFC 826; RFC 5227 ACD).
+
+**Decision:** A benign (non-conflicting) Gratuitous ARP (sender_ip == target_ip, with NO prior
+binding conflict) MUST NOT be attributed to MITRE T0830 or T1557.002. Those techniques describe
+the *malicious/overriding* ARP announcement — a GARP claiming an IP already bound to a different
+MAC. Benign GARP (first announcement or re-announcement consistent with the known binding) is
+routine network traffic emitted at link-up, DHCP lease, RFC 5227 ACD, and HA/VRRP failover.
+MITRE's own DET0387 analytics and all reference IDS tools (arpwatch, Zeek, Suricata, Snort)
+gate AiTM attribution on *binding conflict*, not on the GARP mechanism itself.
+
+D2 GARP finding (non-conflicting): `mitre_techniques: []` (empty).
+T0830 + T1557.002 attribution: exclusively the GARP-that-conflicts escalation (BC-2.16.014,
+which co-triggers D1). BC-2.16.014 is UNCHANGED and CORRECT — it already emits T0830+T1557.002
+on the conflict path.
+
+**ADR-008 Decision 5 impact:** Architect handles ADR-008 update in parallel under D-068.
+
+**Artifacts corrected in this burst:**
+
+| Artifact | Change | File |
+|----------|--------|------|
+| BC-2.16.003 | v1.5 → v1.6: Description, PC5, Invariant 2, Invariant 3, EC-001, EC-002, EC-007, and all canonical test vectors updated to emit mitre_techniques=[] for benign GARP. Traceability MITRE Techniques field updated. Source Evidence updated. Modified-log entry citing D-068 added. | `.factory/specs/behavioral-contracts/ss-16/BC-2.16.003.md` |
+| BC-2.16.014 | VERIFIED correct (no change) — conflict path emits T0830+T1557.002 on both GARP MEDIUM finding and D1 spoof finding. PC1, PC2, Invariant 4 all correct. | `.factory/specs/behavioral-contracts/ss-16/BC-2.16.014.md` |
+| HS-INDEX (wave seeds) | VERIFIED — HS-W42-001 title "GARP with no conflict produces LOW finding; no D1 spoof; VP-024 Sub-B" does NOT assert MITRE techniques in the benign case. Consistent with D-068. HS-W43-003 "GARP-That-Conflicts" and HS-W43-001/002 (D1 spoof) assert T0830+T1557.002, which is correct. | `.factory/holdout-scenarios/HS-INDEX.md` |
+
+**No holdout scenario files required changes:** ARP holdout scenarios are seeds in HS-INDEX only;
+no concrete wave-holdout.md files exist yet. The seeds are already consistent with D-068 (benign
+GARP seed does not assert MITRE techniques; conflict seeds correctly assert T0830+T1557.002).
+
+**Story-writer obligations (next burst):**
+BC-2.16.003 is a declared input of STORY-113 only (verified by grepping each story's `inputs:`
+list — STORY-071, STORY-100, STORY-106 through STORY-112, STORY-114, STORY-115 do NOT cite
+BC-2.16.003). The broader re-stamp in this burst covered those other stories because of their
+own changed inputs (arp-architecture-delta.md, BC-2.10.002, ADR-007, and others); each story
+was re-stamped per its own declared inputs. STORY-113 was additionally re-stamped after
+Pass-5 F-A-1 (BC-2.16.003 v1.7 Architecture Anchors fix — see pass-5-fixes-2026-06-14 entry)
+— COMPLETED (current hash: see STORY-113 frontmatter — frontmatter is the canonical source per
+DF-INPUT-HASH-CANONICAL-001).
+
+---
+
 ## [pass-30-fixes-2026-06-13] — 2026-06-13
 
 ### PATCH: Pass-30 — Three FlowKey non-existent-accessor fixes (B-01/B-02/B-03 HIGH) + Story YAML dedup (C-01 HIGH)
@@ -49,16 +220,16 @@ Each of the 6 story files had two top-level `input-hash:` keys in frontmatter �
 
 **Fix:** Removed the `input-hash: TBD` line from each file, retaining the single real computed hash. Then verified and re-stamped all hashes using `bin/compute-input-hash --write` (canonical tool per CLAUDE.md).
 
-| File | TBD removed | Stored hash after dedup | Computed hash | Result |
-|------|-------------|------------------------|---------------|--------|
-| STORY-100.md | yes | `602b80b` | `602b80b` | MATCH |
-| STORY-101.md | yes | `dc3fa11` | `dc3fa11` | MATCH |
-| STORY-102.md | yes | `9477090` | `9477090` | MATCH |
-| STORY-103.md | yes | `3b37229` | `3b37229` | MATCH |
-| STORY-104.md | yes | `e5c9d7e` | `e5c9d7e` | MATCH |
-| STORY-105.md | yes | `1eb4675` | `1eb4675` | MATCH |
+| File | TBD removed | Result |
+|------|-------------|--------|
+| STORY-100.md | yes | MATCH (current hash: see story frontmatter — canonical source per DF-INPUT-HASH-CANONICAL-001) |
+| STORY-101.md | yes | MATCH (current hash: see story frontmatter — canonical source per DF-INPUT-HASH-CANONICAL-001) |
+| STORY-102.md | yes | MATCH (current hash: see story frontmatter — canonical source per DF-INPUT-HASH-CANONICAL-001) |
+| STORY-103.md | yes | MATCH (current hash: see story frontmatter — canonical source per DF-INPUT-HASH-CANONICAL-001) |
+| STORY-104.md | yes | MATCH (current hash: see story frontmatter — canonical source per DF-INPUT-HASH-CANONICAL-001) |
+| STORY-105.md | yes | MATCH (current hash: see story frontmatter — canonical source per DF-INPUT-HASH-CANONICAL-001) |
 
-STORY-103 hash was already correct (`3b37229`) from the original real hash. STORY-104 hash changed from the prior stamped value because BC-2.14.018 and BC-2.14.020 (both in its `inputs:` list) were modified by B-01/B-02/B-03 in this pass — re-stamp is correct and expected. STORY-100/101/102/105 hashes also drifted from their pre-dedup values, indicating the BC/input files changed since they were originally stamped (unrelated prior drift, correctly resolved by re-stamping).
+STORY-103 hash was already correct from the original real hash. STORY-104 hash changed from the prior stamped value because BC-2.14.018 and BC-2.14.020 (both in its `inputs:` list) were modified by B-01/B-02/B-03 in this pass — re-stamp is correct and expected. STORY-100/101/102/105 hashes also drifted from their pre-dedup values, indicating the BC/input files changed since they were originally stamped (unrelated prior drift, correctly resolved by re-stamping).
 
 No story body content was modified — this is a frontmatter YAML-dedup + hash-verification only. No story-writer propagation needed.
 
@@ -71,12 +242,12 @@ ADR-006 bump noted by architect in this pass cycle. No direct file touch by prod
 | BC-2.14.018 | v1.2 → v1.3 (B-03: source_ip Direction-resolved) |
 | BC-2.14.020 | v2.2 → v2.3 (B-01/B-02: source_ip Direction-resolved) |
 | BC-INDEX.md | v1.3 annotation added for BC-2.14.018; v2.3 annotation added for BC-2.14.020 |
-| STORY-100.md | TBD dedup; hash `b69a886` → `602b80b` (re-stamped) |
-| STORY-101.md | TBD dedup; hash `2c5e1cf` → `dc3fa11` (re-stamped) |
-| STORY-102.md | TBD dedup; hash `b08b6ca` → `9477090` (re-stamped) |
-| STORY-103.md | TBD dedup; hash `3b37229` unchanged (was already correct) |
-| STORY-104.md | TBD dedup; hash `6eeea2c` → `e5c9d7e` (re-stamped; BC-018/020 inputs changed) |
-| STORY-105.md | TBD dedup; hash `a9ac815` → `1eb4675` (re-stamped) |
+| STORY-100.md | TBD dedup; re-stamped (current hash: see story frontmatter — canonical source per DF-INPUT-HASH-CANONICAL-001) |
+| STORY-101.md | TBD dedup; re-stamped (current hash: see story frontmatter — canonical source per DF-INPUT-HASH-CANONICAL-001) |
+| STORY-102.md | TBD dedup; re-stamped (current hash: see story frontmatter — canonical source per DF-INPUT-HASH-CANONICAL-001) |
+| STORY-103.md | TBD dedup; hash unchanged — was already correct (current hash: see story frontmatter — canonical source per DF-INPUT-HASH-CANONICAL-001) |
+| STORY-104.md | TBD dedup; re-stamped (BC-018/020 inputs changed; current hash: see story frontmatter — canonical source per DF-INPUT-HASH-CANONICAL-001) |
+| STORY-105.md | TBD dedup; re-stamped (current hash: see story frontmatter — canonical source per DF-INPUT-HASH-CANONICAL-001) |
 | spec-changelog.md | This entry |
 
 ---

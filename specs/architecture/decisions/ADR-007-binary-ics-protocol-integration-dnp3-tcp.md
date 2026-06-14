@@ -11,6 +11,7 @@ modified:
   - "2026-06-10 (BC-2.15.024 semantic correction): Decision 5 'Distinction from deferred CRC validation' paragraph rewritten to correct HIGH semantic contradiction. Previous text wrongly stated that CRC validation would catch Crain-Sistrunk-style frame corruption and demoted BC-2.15.024 to 'not CRC-level corruption'. Ground truth (dnp3-f2-scope-threshold-validation.md §Q1(c); BC-2.15.024 Invariant 3): Crain-Sistrunk frames carry VALID CRCs; they are structurally/length malformed. CRC validation (deferred) would NOT have caught them. BC-2.15.024's structural-reject-path detection is the ONLY coverage for the Crain-Sistrunk malformed-frame crash class. CRC deferral and malformed-frame coverage are ORTHOGONAL — deferring CRC does NOT defer malformed-frame coverage."
   - "2026-06-13 (Pass-12 corpus debt cleanup, F-5/OBS-1): status proposed→accepted. src/analyzer/dnp3.rs, DispatchTarget::Dnp3 (src/dispatcher.rs:238/309/345), and VP-023 Kani proofs are all shipped (v0.6.0). Verify: grep DispatchTarget::Dnp3 src/dispatcher.rs returns lines 238, 309, 345."
   - "2026-06-13 (Pass-13 corpus remediation, F-A13-001): Decision 5 IcsImpact Display value note — the spec in this ADR states MitreTactic::IcsImpact => \"Impact\" (BC-2.10.002 PC3 canonical). The shipped code at src/mitre.rs:91 currently emits \"Impact (ICS)\" — a brownfield drift that breaks the merge-by-name grouping invariant (separate \"Impact (ICS)\" bucket instead of merging into the canonical \"Impact\" tactic). This is tracked pre-existing brownfield debt documented in arp-architecture-delta.md §5.0 brownfield-debt table and deferred to STORY-114 adjudication. Do NOT change src/mitre.rs before STORY-114. This ADR's Decision 5 spec value (\"Impact\") is authoritative; the code is the deviant party."
+  - "2026-06-14 (D-069 adjudication — SUPERSEDES F-A13-001 note above): Decision 5 IcsImpact Display REVERSED. Research (mitre-impact-tactic-disambiguation.md; WCAG 2.4.6) confirms src/mitre.rs:91 = \"Impact (ICS)\" is CORRECT. The spec value \"Impact\" (bare) was wrong. Decision 5 code snippet updated from \"Impact\" to \"Impact (ICS)\". BC-2.10.002 v1.5 and PRD §85/882 corrected in the same burst. arp-architecture-delta.md §5.0 brownfield-debt table RESOLVED. The merge-by-name grouping concern from F-A13-001 is superseded: Enterprise Impact (TA0040) and ICS Impact (TA0105) MUST be separate buckets in a co-rendered report; \"Impact (ICS)\" is the correct Display for the ICS variant."
 subsystems_affected:
   - SS-05
   - SS-10
@@ -373,7 +374,7 @@ IcsImpact,  // NEW — ICS Impact tactic (TA0105): T0827 Loss of Control
 
 The `fmt::Display` implementation gains:
 ```rust
-MitreTactic::IcsImpact => "Impact",
+MitreTactic::IcsImpact => "Impact (ICS)",  // D-069: "(ICS)" qualifier required; distinguishes from Enterprise Impact (TA0040)
 ```
 
 The `all_tactics_in_report_order()` slice gains `MitreTactic::IcsImpact` appended last

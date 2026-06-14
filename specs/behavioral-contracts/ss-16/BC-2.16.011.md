@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -13,7 +13,8 @@ subsystem: SS-16
 capability: CAP-16
 lifecycle_status: active
 introduced: v0.7.0-feature-arp
-modified: []
+modified:
+  - "v1.1: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -104,7 +105,7 @@ findings are emitted, and the summary is appended. This gate mirrors the `--modb
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — the --arp flag is the user-facing activation switch for the ARP Security Analysis capability; without it the capability produces no output |
 | L2 Domain Invariants | (none directly) |
 | Architecture Module | SS-16 (src/cli.rs Commands::Analyze, src/main.rs packet loop); ADR-008 |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-113 |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | (none — CLI flag, no finding emission) |
 
@@ -123,7 +124,7 @@ findings are emitted, and the summary is appended. This gate mirrors the `--modb
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-113
 
 ## VP Anchors
 

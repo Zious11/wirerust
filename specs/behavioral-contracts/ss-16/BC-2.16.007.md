@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -15,6 +15,8 @@ lifecycle_status: active
 introduced: v0.7.0-feature-arp
 modified:
   - "v1.1: Pass-7 remediation F-B7-H01/F-B7-H02: added tactic-anchor cross-reference to Invariant 4 — T0830 maps to MitreTactic::LateralMovement and T1557.002 to MitreTactic::CredentialAccess per ADR-008 Decision 6 (merge-by-name policy); the F3/STORY-114 implementer wires these in technique_info. — 2026-06-12"
+  - "v1.2: Pass-12 D12-MITRE sequencing fix — added cross-story delivery note: STORY-113 (wave 42) DETECTS D12 and emits the finding with mitre_techniques: [] (catalog not yet seeded); STORY-114 (wave 43) ATTACHES T0830+T1557.002 co-committed with src/mitre.rs catalog seeding. Postconditions describe the final (post-STORY-114) end-state; the mitre_techniques: [] intermediate state at wave 42 is a valid in-flight state, not a contract violation. — 2026-06-14"
+  - "v1.3: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -41,6 +43,24 @@ This mismatch is near-impossible in legitimate traffic and is the signal used by
 GID 112 SID 2/3 (confirmed from `spp_arpspoof.c` primary source review;
 mitre-arp-additional-detections.md §4a). D12 is stateless (single-packet) and requires
 no binding table. MITRE techniques T0830 and T1557.002 are attached.
+
+> **Cross-story delivery note (Pass-12 D12-MITRE sequencing fix):** The Postconditions
+> below describe the FINAL end-state after both delivery waves complete. D12 is delivered
+> across two waves, analogous to how BC-2.16.010 `storm_findings` value is wired cross-story:
+>
+> - **Wave 42 (STORY-113):** D12 mismatch is DETECTED and a Finding is emitted with
+>   `mitre_techniques: []` (empty). The `src/mitre.rs` catalog is not yet seeded at this
+>   wave; emitting technique IDs before the catalog exists would create an
+>   emitted-but-uncatalogued window (T0830/T1557.002 emitted but `technique_info` /
+>   `EMITTED_IDS` do not resolve them until STORY-114).
+> - **Wave 43 (STORY-114):** The MITRE attachment — `mitre_techniques: ["T0830",
+>   "T1557.002"]` — is added to D12 (and D1, D2-conflict) findings co-committed with the
+>   `src/mitre.rs` catalog seeding and VP-007 5-part atomic update. After STORY-114 merges,
+>   all D12 findings carry the full technique array described in Postcondition 1.
+>
+> The intermediate wave-42 state (`mitre_techniques: []`) is correct in-flight behavior,
+> not a contract violation. STORY-113 already defers D1 MITRE emission to STORY-114 for
+> this same catalog-dependency reason (STORY-113's "Crucial boundary" note in the Previous Story Intelligence section, which defers D1 MITRE emission to STORY-114); D12 now follows the same pattern.
 
 ## Preconditions
 
@@ -130,7 +150,7 @@ no binding table. MITRE techniques T0830 and T1557.002 are attached.
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — D12 L2/L3 sender mismatch is a named detection in the ARP Security Analysis capability; it is the single highest-fidelity stateless ARP security signal (Snort GID 112 SID 2/3 equivalent), making it essential to the capability's detection coverage |
 | L2 Domain Invariants | (none directly) |
 | Architecture Module | SS-16 (src/analyzer/arp.rs ArpAnalyzer::process_arp, C-23); ADR-008 Decision 5 D12 |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-113 (D12 detection, primary owner); STORY-114 (D12 MITRE back-fill, cross-story extension) |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | T0830 (Adversary-in-the-Middle, ICS, ATT&CK v19.1 — current); T1557.002 (ARP Cache Poisoning, Enterprise, ATT&CK v19.1 — current) |
 
@@ -149,7 +169,7 @@ no binding table. MITRE techniques T0830 and T1557.002 are attached.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-113 (primary); STORY-114 (cross-story extension — MITRE back-fill)
 
 ## VP Anchors
 

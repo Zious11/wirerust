@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v1.4: Pass-4 remediation F-B4-M01 (canonical vector row 4: pinned intra-second distribution to 25@ts=100 then 25@ts=101); F-B4-M02 (EC-011: contrast note vs EC-002 added); F-B4-M06 (Invariant 6: storm_counter re-initialization after LRU eviction specified; analogous to BC-2.16.005 Invariant 4). — 2026-06-12"
   - "v1.5: Pass-5 remediation F-B5-L02 (explicit ordered step sequence for intra-frame processing: Step 1=window-expiry check, Step 2=increment, Step 3=rate evaluation — mirrors BC-2.16.004 Step pattern); F-B5-L01 (PC2 extended: first-observation of a never-before-seen MAC initializes count_in_window=1, window_start_ts=timestamp_secs, storm_emitted=false, symmetric to Invariant 6); (LOW) Description 'per-MAC sliding window counter' corrected to 'per-MAC 60-second flap-window counter' to avoid contradiction with Invariant 2. — 2026-06-12"
   - "v1.6: Pass-12 corpus-cleanup F-B12-003: ARP_FLAP_WINDOW_SECS anchor added to Architecture Anchors (BC-2.16.008 uses ARP_FLAP_WINDOW_SECS but the const was previously undeclared in this BC's anchors; defined in BC-2.16.004 and shared). — 2026-06-13"
+  - "v1.7: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -178,7 +179,7 @@ Rate formula: `rate = count_in_window / max(1, ts - window_start_ts)`.
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — ARP storm rate detection (D3) is a named detection in the ARP Security Analysis capability; high ARP volume from a single source is an indicator of flooding/DoS behavior or misconfigured device |
 | L2 Domain Invariants | (none directly) |
 | Architecture Module | SS-16 (src/analyzer/arp.rs ArpAnalyzer::process_arp, C-23); ADR-008 Decision 5 D3 |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-115 |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | NONE — T0814 withheld per DF-VALIDATION-001 (not validated live as of 2026-06-12) |
 
@@ -199,7 +200,7 @@ Rate formula: `rate = count_in_window / max(1, ts - window_start_ts)`.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-115
 
 ## VP Anchors
 

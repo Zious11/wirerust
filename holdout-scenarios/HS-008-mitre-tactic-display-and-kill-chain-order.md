@@ -13,6 +13,9 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-10/BC-2.10.004.md
   - .factory/specs/behavioral-contracts/ss-10/BC-2.10.005.md
 input-hash: "1c1c7a0"
+# NOTE (F-C-3): input-hash is informational only — bin/compute-input-hash scopes to
+# .factory/stories/ exclusively (per CLAUDE.md); holdout scenario hashes are NOT
+# maintained by the canonical drift tool and may not reflect current inputs.
 traces_to: .factory/specs/prd.md
 id: "HS-008"
 category: "behavioral-subtleties"

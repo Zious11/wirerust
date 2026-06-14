@@ -73,7 +73,7 @@ integration_unit_count: 5
 | VP-021 | Timestamp Provenance Threading | reassembly/mod.rs | integration+proptest | test-sufficient | verified | BC-2.09.007, BC-2.04.055 |
 | VP-022 | Modbus MBAP Parse Safety and Function-Code Boundary Classification | analyzer/modbus.rs | Kani | P1 | verified | BC-2.14.001, BC-2.14.002, BC-2.14.003, BC-2.14.004, BC-2.14.005, BC-2.14.006, BC-2.14.007, BC-2.14.008 |
 | VP-023 | DNP3 Data-Link Frame Parse Safety and Function-Code Classification | analyzer/dnp3.rs | Kani | P1 | verified | BC-2.15.001, BC-2.15.002, BC-2.15.003, BC-2.15.004, BC-2.15.005, BC-2.15.006, BC-2.15.007 [^vp023-bc-scope] |
-| VP-024 | ARP Frame Parse Safety and Binding-Table Invariant | analyzer/arp.rs | Kani | P1 | draft | BC-2.16.001, BC-2.16.002, BC-2.16.003, BC-2.16.004, BC-2.16.005, BC-2.16.006 [^vp024-bc-scope] |
+| VP-024 | ARP Frame Parse Safety and Binding-Table Invariant | analyzer/arp.rs + decoder.rs | Kani | P1 | draft | BC-2.16.001, BC-2.16.002, BC-2.16.003, BC-2.16.005, BC-2.16.006 [^vp024-bc-scope] |
 
 ## P0 Properties (required before Phase 5 gate)
 
@@ -113,14 +113,20 @@ No standalone formal proof harness (Kani) is required; VP-021 additionally uses 
 | VP-020 | Unit test: injection character prefix check in CSV output |
 | VP-021 | Integration test (end-to-end hot-path + close-flush + segment-limit-None) + proptest (all-u32 timestamp range + cross-flow isolation) — tests/timestamp_threading_tests.rs |
 
-[^vp024-bc-scope]: VP-024 formal (Kani/proptest) Verified-BCs are BC-2.16.001..006 only.
-BC-2.16.007 (D12 L2/L3 sender mismatch detection) is verified by unit test in STORY-113
-(stateless single-packet comparison) and is NOT a VP-024 Kani-verified BC. It was removed from
-the bcs: frontmatter array in vp-024-arp-parse-safety.md v1.1 (F-A04). The feature story that
-implements D12 carries unit-test coverage under the VP-024 umbrella story, but BC-2.16.007 is
-test-sufficient only — it carries no Kani harness obligation and is not counted in VP-024's
-formal BC scope. VP-024's Kani scope is Sub-A (BC-2.16.001, BC-2.16.002), Sub-B (BC-2.16.003),
-Sub-D (BC-2.16.006); Sub-C (BC-2.16.004, BC-2.16.005) is proptest.
+[^vp024-bc-scope]: VP-024 formal (Kani/proptest) Verified-BCs are BC-2.16.001, BC-2.16.002,
+BC-2.16.003, BC-2.16.005, and BC-2.16.006 only. BC-2.16.004 (D1 ARP spoof / rebind escalation)
+is NOT a VP-024 Verified BC — it is primary-owned by STORY-114 (wave 43), which runs after
+STORY-113. BC-2.16.007 (D12 L2/L3 sender mismatch detection) is verified by unit test in
+STORY-113 (stateless single-packet comparison) and is NOT a VP-024 Kani-verified BC. Both
+BC-2.16.004 and BC-2.16.007 were removed from the bcs: frontmatter array in
+vp-024-arp-parse-safety.md v1.1 (F-A04). VP-024's Kani scope is Sub-A (BC-2.16.001,
+BC-2.16.002), Sub-B (BC-2.16.003), Sub-D (BC-2.16.006). Sub-C (proptest
+test_binding_table_last_write_wins) has PRIMARY anchor BC-2.16.005 (binding-table last-write-wins
+semantics, implemented in STORY-113). BC-2.16.004 (D1 ARP spoof detection) is INDIRECTLY
+supported by Sub-C: the last-write-wins property (BC-2.16.005) is the substrate that the
+spoof-detection rebind escalation (BC-2.16.004, primary STORY-114) depends upon. Sub-C
+discharges BC-2.16.005 directly and supports BC-2.16.004 indirectly; BC-2.16.004 is not
+in VP-024's formal BC scope.
 
 [^vp023-bc-scope]: VP-023 Verified-BCs are intentionally scoped to BC-2.15.001..007 only.
 BC-2.15.008 (FIR=1 gating / single-fragment short-circuit) and BC-2.15.009 (desync

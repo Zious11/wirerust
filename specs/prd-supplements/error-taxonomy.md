@@ -1,7 +1,7 @@
 ---
 document_type: prd-supplement-error-taxonomy
 level: L3
-version: "2.1"
+version: "2.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -26,6 +26,7 @@ input-hash: N/A
 traces_to: .factory/specs/prd.md
 modified:
   - "v2.0: ARP-F2 Pass-14 remediation C-05 + C-07: (C-05) removed src/analyzer/arp.rs from inputs (not in develop HEAD; forward-reference to STORY-111); set input-hash to N/A with deferred-hash rationale comment. (C-07) E-ARP-002 Notes rewritten for clarity: 'within the average since window-start within the 60-second flap window' → explicit rate formula count/max(1,elapsed) prose; detector is average-rate not sliding-window; window semantics clarified. Version 1.9→2.0. — 2026-06-13"
+  - "v2.2: D-068 remediation sweep — E-ARP-005 Notes corrected: 'MITRE techniques T0830 and T1557.002 attached to both forms' was unconditional and violated D-068. Replaced with conditional form: T0830 and T1557.002 attached ONLY on the GARP-that-conflicts path (BC-2.16.014); benign non-conflicting GARP emits mitre_techniques=[] per D-068. — 2026-06-14"
   - "v2.1: P19 straggler anchor sweep — E-ANA-001 http.rs:405/:463 → :424/:484 (parse_errors increment); E-ANA-002 request block :406-415 → :424-434, response block :464-473 → :484-494; E-ANA-003 tls.rs:643-653 → :689-699; E-ANA-006 http.rs:375-389 → :390-394; E-ANA-007 tls.rs increment helper :372-375 → :379-384, call sites :387/:416/:494/:549/:564/:568 → :398/:427/:520/:593/:608/:612; E-ANA-008 http.rs:391-392 → :406; E-RAS-003 mod.rs :461/:495/:524 → :479/:515/:546, lifecycle.rs :101/:121 → :111/:141. Verified against src. — 2026-06-13"
 ---
 
@@ -122,7 +123,7 @@ for implementer and test-writer completeness. All require `--arp` to be active u
 | E-ARP-002 | ARP | `cosmetic` | 0 | `src/analyzer/arp.rs` (D3 storm path) | Finding emitted: Anomaly/MEDIUM; message format: `ARP storm from <mac>: <rate> frames/sec (threshold: <n>)` | BC-2.16.008 | Emitted when a source MAC's computed rate meets or exceeds `ARP_STORM_RATE_DEFAULT` (default 50) ARP frames per second. Rate is `count_in_window / max(1, ts - window_start_ts)` — average over the elapsed seconds since window-start, not a sliding-window detector. One-shot per source MAC per 60-second window (ARP_FLAP_WINDOW_SECS=60). Counter state stored per-MAC in a bounded map (MAX_STORM_COUNTERS=4,096; LRU eviction at cap). Requires `--arp`. |
 | E-ARP-003 | ARP | `cosmetic` | 0 | `src/analyzer/arp.rs` (D12 mismatch path) | Finding emitted: Anomaly/MEDIUM; message format: `ARP sender/Ethernet MAC mismatch: sender_mac=<mac>, outer_src_mac=<mac>` | BC-2.16.007 | Emitted when the Ethernet frame's outer source MAC differs from the ARP sender HW address field (D12). Requires Ethernet link type (`outer_src_mac` is `Some`); silently skipped for SLL captures where `outer_src_mac` is `None`. Requires `--arp`. MITRE techniques T0830 (Adversary-in-the-Middle, ICS) and T1557.002 (ARP Cache Poisoning, Enterprise) attached (per BC-2.16.007 PC1). |
 | E-ARP-004 | ARP | `cosmetic` | 0 | `src/analyzer/arp.rs` (D1 spoof path) | Finding emitted: Anomaly/MEDIUM or Anomaly/HIGH; message format: `ARP spoof: IP <ip> changed MAC from <old_mac> to <new_mac> (rebind <n>)` | BC-2.16.004 | Emitted when `ArpAnalyzer::process_arp` detects an IP→MAC rebind (sender_ip already in binding table with a different sender_mac). Exactly one Finding per rebind event. Severity = HIGH iff `rebind_count >= spoof_threshold AND (timestamp_secs - first_rebind_ts <= ARP_FLAP_WINDOW_SECS) AND !spoof_high_emitted`, else MEDIUM (per BC-2.16.004 PC1.c). `spoof_high_emitted` one-shot guard prevents repeated HIGH findings per flap window. MITRE techniques T0830 (LateralMovement) and T1557.002 (CredentialAccess) attached. Requires `--arp`. |
-| E-ARP-005 | ARP | `cosmetic` | 0 | `src/analyzer/arp.rs` (D2 GARP path) | Finding emitted: Anomaly/LOW (benign GARP) or Anomaly/MEDIUM (GARP-that-conflicts); message format: `Gratuitous ARP from <ip> (sender_mac=<mac>)` | BC-2.16.003, BC-2.16.014 | Emitted when `is_gratuitous_arp(frame)` returns `true` (sender_ip == target_ip, any opcode). Confidence = LOW when no binding conflict exists; MEDIUM when the same frame also triggers a D1 binding conflict (GARP-that-conflicts escalation, BC-2.16.014). MITRE techniques T0830 and T1557.002 attached to both forms. Requires `--arp`. |
+| E-ARP-005 | ARP | `cosmetic` | 0 | `src/analyzer/arp.rs` (D2 GARP path) | Finding emitted: Anomaly/LOW (benign GARP) or Anomaly/MEDIUM (GARP-that-conflicts); message format: `Gratuitous ARP from <ip> (sender_mac=<mac>)` | BC-2.16.003, BC-2.16.014 | Emitted when `is_gratuitous_arp(frame)` returns `true` (sender_ip == target_ip, any opcode). Confidence = LOW when no binding conflict exists; MEDIUM when the same frame also triggers a D1 binding conflict (GARP-that-conflicts escalation, BC-2.16.014). MITRE techniques T0830 and T1557.002 attached ONLY on the GARP-that-conflicts path (BC-2.16.014); benign non-conflicting GARP emits mitre_techniques=[] per D-068. Requires `--arp`. |
 
 ### OUT: Output Errors
 

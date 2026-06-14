@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "2.5"
+version: "2.6"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -30,6 +30,7 @@ modified:
   - "v2.3 (2026-06-13, corpus-wide consistency audit remediation IR-1): F4 Harness-Update Obligations table extended with Post-ARP column (issue #9, STORY-114): SEEDED 23→25 (12 Enterprise + 13 ICS; +T0830 ICS LateralMovement, +T1557.002 Enterprise CredentialAccess); EMITTED 15→17 (7E+10I; +T0830+T1557.002). POL-11 positive-coverage obligation updated to assert ==25/==17. Re-verification Obligation section CC-003 added (ARP F2 issue #9, STORY-114). Lock fields and property statement UNCHANGED — lock broken + re-proven at STORY-114 F6 per CC-003."
   - "v2.4 (2026-06-13, Pass-12 corpus debt cleanup F-C-P12-001): Source Location line anchor corrected: 'src/mitre.rs:122-156' → 'src/mitre.rs:128-182'. Verified against live src/mitre.rs: pub fn technique_info at line 128; let info = match id { at line 129; _ => return None at line 179; closing }; of match at line 180; Some(info) at line 181; closing } of function at line 182. The prior range 122-156 was pre-F2 stale (technique_info was shorter before F2 Modbus/DNP3 arms were added). No proof-lock, property statement, or BC change."
   - "v2.5 (2026-06-13, ARP-F2 Pass-14 PO Burst 2): Sub-property B text corrected: 'Finding.mitre_technique' (singular, stale) → 'Finding.mitre_techniques' (plural Vec<String> per ADR-006 Decision 13). Lines 27 and 258 (grep-pattern migration notes 'mitre_technique:Some → mitre_techniques:vec!') are HISTORY — preserved unchanged. Lock fields, property statement, and source BCs unchanged."
+  - "v2.6 (2026-06-14, F3 ARP VP-layer audit title-sync): Source Contract Primary BC title-quote updated from '(23 Total; post-F2 issue #8 DNP3 + issue #222 remap)' to '(25 Total per BC-2.10.005 H1, forward-declared; live src/mitre.rs catalog seeds 23 — T0830+T1557.002 land in STORY-114 per CC-003)' to match BC-2.10.005 H1 v1.10. All numeric '23 seeded / 15 emitted' claims in postcondition, proof-method, feasibility, source-location, and CC-002 are UNCHANGED — they correctly reflect live code. Only the BC-title-quote string changed."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -73,7 +74,7 @@ and do NOT cause a panic (BC-2.10.006).
 
 ## Source Contract
 
-- **Primary BC:** BC-2.10.005 -- technique_name Returns Some for Every Seeded ID (23 Total; post-F2 issue #8 DNP3 + issue #222 remap)
+- **Primary BC:** BC-2.10.005 -- technique_name Returns Some for Every Seeded ID (25 Total per BC-2.10.005 H1, forward-declared; live src/mitre.rs catalog seeds 23 — T0830+T1557.002 land in STORY-114 per CC-003)
 - **Postcondition:** `technique_name(id).is_some()` for all 23 seeded IDs
 - **Invariant:** INV-9 (MITRE Technique ID Format, inv-01-core-invariants.md)
 - **Related BC:** BC-2.10.006 -- technique_name Returns None for Unknown IDs
@@ -254,7 +255,7 @@ catalog-drift guard MUST be updated in the SAME F4 commit so the locked proof st
 | Quantity (mitre.rs) | Pre-F2 expected | Post-F2 expected (Modbus directives v2) | Post-DNP3 expected (issue #8) | Post-ARP expected (issue #9, STORY-114) |
 |---------------------|-----------------|------------------------------------------|-------------------------------|------------------------------------------|
 | `SEEDED_TECHNIQUE_ID_COUNT` / `SEEDED_TECHNIQUE_IDS.len()` | 15 | **21** (11 Enterprise + 10 ICS; +6 new ICS arms: T0836, T0814, T0806, T0835, T0831, T0888) | **23** (11 Enterprise + 12 ICS; +T1691.001 + T0827) | **25** (12 Enterprise + 13 ICS; +T1557.002 Enterprise CredentialAccess + T0830 ICS LateralMovement) |
-| `EMITTED_IDS.len()` | 6 (Enterprise only) | **13** (6 Enterprise + 7 ICS: **T1692.001** [was T0855, remapped issue #222], T0836, T0814, T0806, T0835, T0831, **T0888**) | **15** (6 Enterprise + 9 ICS; +T1691.001 + T0827) | **17** (7 Enterprise + 10 ICS; +T1557.002 Enterprise, +T0830 ICS — both emitted by ArpAnalyzer D1 spoof/D2 GARP/D12 mismatch) |
+| `EMITTED_IDS.len()` | 6 (Enterprise only) | **13** (6 Enterprise + 7 ICS: **T1692.001** [was T0855, remapped issue #222], T0836, T0814, T0806, T0835, T0831, **T0888**) | **15** (6 Enterprise + 9 ICS; +T1691.001 + T0827) | **17** (7 Enterprise + 10 ICS; +T1557.002 Enterprise, +T0830 ICS — both emitted by ArpAnalyzer on D1 spoof and GARP-that-conflicts paths; D2 benign GARP emits mitre_techniques=[] per D-068) |
 | Recon-path emitted ID | n/a (no ICS emitted) | **T0888** "Remote System Information Discovery" (corrects the v1 T0846 misattribution; **T0846 stays SEEDED but is NOT Modbus-emitted**) | (unchanged) | (unchanged) |
 | Emitted-ID grep pattern | `mitre_technique: Some` | `mitre_techniques: vec!` (ADR-006 Decision 13: `Finding` field rename `Option<String>` → `Vec<String>`) | (unchanged) | (unchanged) |
 

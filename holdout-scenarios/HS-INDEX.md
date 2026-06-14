@@ -1,10 +1,10 @@
 ---
 document_type: holdout-scenario-index
 level: ops
-version: "1.4"
+version: "1.6"
 status: draft
 producer: product-owner
-timestamp: 2026-06-13T00:00:00Z
+timestamp: 2026-06-14T00:00:00Z
 phase: 2
 total_scenarios: 100
 must_pass_count: 99
@@ -12,7 +12,7 @@ should_pass_count: 1
 total_waves: 27
 feature_holdout_seeds:
   dnp3_waves_35_39: 32
-  arp_waves_40_44: 26
+  arp_waves_40_44: 28
 traces_to:
   - .factory/specs/prd.md
   - .factory/specs/behavioral-contracts/BC-INDEX.md
@@ -397,7 +397,7 @@ None detected. All checks passed for the greenfield set:
 
 ## Feature Holdouts (SS-16 ARP Security Analyzer, waves 40-44)
 
-> **Source file:** TBD (F3 story-writer creates `.factory/feature/wave-holdout-scenarios/wave-40-44-holdout.md`)
+> **Source file:** `.factory/feature/wave-holdout-scenarios/wave-40-44-holdout.md` (skeleton created by product-owner F3 hand-off, 2026-06-13; Phase 4 holdout-evaluator completes concrete byte vectors)
 >
 > These holdout SEEDS belong to the v0.7.0 ARP feature cycle (issue-009-arp-security-analyzer).
 > They use the `HS-W<wave>-<seq>` namespace consistent with the DNP3 holdout convention.
@@ -410,7 +410,7 @@ None detected. All checks passed for the greenfield set:
 > STORY-112 (wave 41): extract_arp_frame + ArpAnalyzer stub + VP-024 Sub-A Kani
 > STORY-113 (wave 42): ArpAnalyzer full impl (binding table, D2 GARP, D11 finding, D12 mismatch, summarize, --arp) + VP-024 Sub-B/C/D
 > STORY-114 (wave 43): D1 spoof HIGH escalation + MITRE emission + VP-007 5-part atomic update
-> STORY-115 (wave 44): D3 storm detection + --arp-spoof-threshold + --arp-storm-rate CLI flags
+> STORY-115 (wave 44): D3 storm detection + --arp-storm-rate CLI flag + wires value of BC-2.16.010 storm_findings key (key 8 of 11; defined from STORY-113)
 >
 > **MITRE techniques:** T0830 (Adversary-in-the-Middle, `MitreTactic::LateralMovement`);
 > T1557.002 (ARP Cache Poisoning, `MitreTactic::CredentialAccess`).
@@ -425,7 +425,7 @@ None detected. All checks passed for the greenfield set:
 
 | HS ID | Title | Priority | BCs |
 |-------|-------|----------|-----|
-| HS-W40-001 | DecodedFrame Enum — Ethernet/IPv4 ARP produces DecodedFrame::Arp with correct ArpFrame fields | P0 | BC-2.02.009 (revised), BC-2.16.001 |
+| HS-W40-001 | DecodedFrame Enum — Ethernet/IPv4 ARP produces DecodedFrame::Arp variant (three-way BC-2.02.009 postcondition; ArpFrame field-value correctness is wave-41 scope) | P0 | BC-2.02.009 (revised) |
 | HS-W40-002 | Non-Ethernet/IPv4 ARP → E-DEC-004 degraded skip; no DecodedFrame::Arp | P0 | BC-2.02.009 (revised) |
 | HS-W40-003 | Non-IP non-ARP → "No IP layer found" (unchanged); no regression | P0 | BC-2.02.009 (Path 3) |
 | HS-W40-004 | VP-008 fuzz harness accepts Result<DecodedFrame>; no-panic invariant unchanged | P0 | VP-008 (return-type update) |
@@ -439,8 +439,8 @@ None detected. All checks passed for the greenfield set:
 |-------|-------|----------|-----|
 | HS-W41-001 | ARP Request — Happy-Path Extraction: all six address fields copied correctly | P0 | BC-2.16.001 |
 | HS-W41-002 | ARP Reply — Happy-Path Extraction: op=2, sender/target MACs and IPs | P0 | BC-2.16.002 |
-| HS-W41-003 | extract_arp_frame None → D11 structural check path; VP-024 Sub-A negative harness | P0 | BC-2.16.009 (structural check in extract_arp_frame), VP-024 Sub-A |
-| HS-W41-004 | SLL capture: outer_src_mac=None propagated faithfully; D12 skipped (outer_src_mac None) | P0 | BC-2.16.001, BC-2.16.007 |
+| HS-W41-003 | extract_arp_frame None → returns None on bad hw/proto size; decode-vs-analysis separation: DecodedFrame::Arp always produced for valid Ethernet/IPv4 ARP (finding emission deferred to ArpAnalyzer); VP-024 Sub-A negative harness | P0 | BC-2.16.015, VP-024 Sub-A |
+| HS-W41-004 | SLL capture: outer_src_mac=None propagated faithfully into DecodedFrame::Arp; decode-vs-analysis separation upheld (no D12 finding emitted at decode stage) | P0 | BC-2.16.001, BC-2.16.015 |
 
 ### Wave 42 — ArpAnalyzer Full Implementation: Binding Table, GARP, D11 Finding, D12, Summarize (STORY-113)
 
@@ -450,13 +450,14 @@ None detected. All checks passed for the greenfield set:
 
 | HS ID | Title | Priority | BCs |
 |-------|-------|----------|-----|
-| HS-W42-001 | GARP Benign Baseline — GARP with no conflict produces LOW finding; no D1 spoof; VP-024 Sub-B | P0 | BC-2.16.003, VP-024 Sub-B |
+| HS-W42-001 | GARP Benign Baseline — GARP with no conflict produces LOW finding; mitre_techniques: [] (no MITRE techniques attributed to benign GARP per D-068); no D1 spoof; VP-024 Sub-B | P0 | BC-2.16.003, VP-024 Sub-B |
 | HS-W42-002 | Binding-Table Last-Write-Wins — arbitrary frame sequence; VP-024 Sub-C proptest | P0 | BC-2.16.005, VP-024 Sub-C |
 | HS-W42-003 | Binding-Table Cap — 65,537th distinct IP evicts min-ts entry; len never exceeds 65,536; VP-024 Sub-D | P0 | BC-2.16.006, VP-024 Sub-D |
-| HS-W42-004 | L2/L3 Mismatch — Ethernet outer MAC differs from ARP sender HW addr: MEDIUM finding | P0 | BC-2.16.007 |
+| HS-W42-004 | L2/L3 Mismatch — Ethernet outer MAC differs from ARP sender HW addr: MEDIUM finding; mitre_techniques: [] at wave 42 (MITRE attachment deferred to STORY-114, wave 43 — see HS-W43-005) | P0 | BC-2.16.007 |
 | HS-W42-005 | D11 Malformed ARP — non-Ethernet/IPv4 hw/proto sizes produce LOW finding; malformed_frames incremented | P0 | BC-2.16.009, BC-2.16.010 |
 | HS-W42-006 | summarize() — 11 required keys present (incl. other_opcode_count); frames_analyzed excludes malformed; malformed_frames correct; reconciliation invariant request_count+reply_count+other_opcode_count==frames_analyzed holds | P0 | BC-2.16.010 |
-| HS-W42-007 | Negative / False-Positive Guard — legitimate ARP conversation produces no spoof finding | P0 | (guard for BC-2.16.004, BC-2.16.005) |
+| HS-W42-007 | Negative / False-Positive Guard — legitimate ARP conversation (stable IP→MAC bindings, no rebind) produces zero findings; binding-table last-write-wins updates correctly | P0 | BC-2.16.005, BC-2.16.003 |
+| HS-W42-008 | --arp flag gates analysis — DecodedFrame::Arp produced regardless of --arp flag; ARP findings emitted only when --arp active; without --arp, ArpAnalyzer not invoked | P0 | BC-2.16.011 |
 
 ### Wave 43 — D1 ARP Spoof HIGH Escalation, MITRE Emission, VP-007 Atomic (STORY-114)
 
@@ -471,19 +472,22 @@ None detected. All checks passed for the greenfield set:
 | HS-W43-002 | --arp-spoof-threshold 1 — HIGH on first rebind (no MEDIUM first); T0830+T1557.002 | P0 | BC-2.16.004 EC-008, BC-2.16.012 |
 | HS-W43-003 | GARP-That-Conflicts — GARP MEDIUM + D1 finding (MEDIUM or HIGH per escalation state) | P0 | BC-2.16.014, BC-2.16.004 |
 | HS-W43-004 | VP-007 Atomic — T0830 + T1557.002 arms in technique_info; SEEDED=25; EMITTED=17; cargo test mitre green (after STORY-114 merges) | P0 | VP-007 (5-part atomic update) |
+| HS-W43-005 | D12 MITRE Attachment — same outer-MAC-mismatch frame as HS-W42-004 now carries mitre_techniques: [T0830, T1557.002]; technique_info arms resolve (LateralMovement, CredentialAccess per ADR-008 Decision 6); co-committed with src/mitre.rs catalog seeding (Pass-12 D12-MITRE sequencing fix; see BC-2.16.007's cross-story delivery note and wave-40-44-holdout.md HS-W42-ARP-D11D12 Scenario D) | P0 | BC-2.16.007, VP-007 |
 
 ### Wave 44 — D3 Storm Detection, CLI Flags, End-to-End (STORY-115)
 
 > Gate: D3 storm one-shot per MAC per 60s window; rate formula `count/max(1,elapsed)` correct;
-> --arp-storm-rate CLI override; --arp-spoof-threshold CLI override; end-to-end PCAP → JSON
-> report contains ARP findings; regression on SS-02/SS-05/SS-14/SS-15.
+> --arp-storm-rate CLI override (BC-2.16.013); storm_findings key (key 8 of 11 in BC-2.16.010,
+> defined from STORY-113) value wired by STORY-115; end-to-end PCAP → JSON report contains ARP
+> storm findings; regression on SS-02/SS-05/SS-14/SS-15. Note: --arp-spoof-threshold is
+> STORY-114 scope (BC-2.16.012, wave 43) — NOT tested in wave 44.
 
 | HS ID | Title | Priority | BCs |
 |-------|-------|----------|-----|
-| HS-W44-001 | D3 Storm — source MAC exceeds threshold: one-shot MEDIUM finding per 60s window; rate=count/max(1,elapsed) | P1 | BC-2.16.008 |
+| HS-W44-001 | D3 Storm — source MAC exceeds threshold: one-shot MEDIUM finding per 60s window; rate=count/max(1,elapsed) | P0 | BC-2.16.008 |
 | HS-W44-002 | Same-Second Storm Denominator — all frames at ts=N: max(1,0)=1; rate=count; no divide-by-zero | P0 | BC-2.16.008 EC-002 (ARP-AMB-003 RESOLVED) |
 | HS-W44-003 | --arp-storm-rate override — custom rate threshold changes storm detection | P1 | BC-2.16.013 |
-| HS-W44-004 | --arp flag gates analysis — DecodedFrame::Arp produced with and without --arp; findings only when --arp active | P0 | BC-2.16.015, BC-2.16.011 |
+| HS-W44-004 | storm_findings summarize() key — populates the existing BC-2.16.010 storm_findings key (key 8 of 11; defined from STORY-113, value wired by STORY-115); count >= 1 after storm detection | P0 | BC-2.16.010 (storm_findings key, value wired by STORY-115), BC-2.16.008 |
 | HS-W44-005 | Known-Good ARP Corpus — legitimate LAN traffic with ARP produces zero false-positive findings | P0 | real-world corpus: known-good (Wireshark sample LAN traffic with ARP resolution) |
 | HS-W44-006 | Known-Problematic ARP Corpus — crafted pcap with ARP spoofing produces T0830+T1557.002 findings | P0 | real-world corpus: known-problematic (crafted or CTF ARP poisoning pcap) |
 | HS-W44-007 | Regression on Existing Analyzers After Waves 40-44 — no regression on SS-02, SS-05, SS-14, SS-15 | P0 | VP-008 (no-panic fuzz update), VP-004 (dispatcher), BC-2.02.009 (revised) |
@@ -492,18 +496,30 @@ None detected. All checks passed for the greenfield set:
 
 | Metric | Count |
 |--------|-------|
-| Total ARP feature holdout seeds | 26 |
-| P0 must-pass seeds | 24 |
-| P1 nice-to-have seeds | 2 (HS-W44-001, HS-W44-003) |
+| Total ARP feature holdout seeds | 28 |
+| P0 must-pass seeds | 27 |
+| P1 nice-to-have seeds | 1 (HS-W44-003) |
 | Waves covered (estimated) | 40, 41, 42, 43, 44 |
 | Stories covered (estimated) | STORY-111, STORY-112, STORY-113, STORY-114, STORY-115 |
-| Full holdout file (to be created by story-writer/holdout-evaluator) | `.factory/feature/wave-holdout-scenarios/wave-40-44-holdout.md` |
+| Skeleton holdout file | `.factory/feature/wave-holdout-scenarios/wave-40-44-holdout.md` (created F3 hand-off) |
 
 > **SEED STATUS:** These are seeds only. Concrete byte-level test vectors, PCAP sources,
 > and precise precondition/postcondition assertions are authored by the holdout-evaluator
 > agent during Phase 4, AFTER F3 story decomposition produces wave assignments and
 > implementation code exists for evaluation. F3 story-writer must create the wave-40-44-holdout.md
 > skeleton file referencing these seeds.
+>
+> **Rewrite note (v1.5 — F3 product-owner hand-off, 2026-06-13):** Four targeted corrections
+> to align seeds exactly with arp-architecture-delta.md §6 canonical story decomposition:
+> (1) HS-W41-003/004: removed BC-2.16.009 and BC-2.16.007 citations from wave 41; both belong
+> to STORY-113 (wave 42). Replaced with BC-2.16.015 (decode-vs-analysis separation), the correct
+> third primary for STORY-112. (2) HS-W42-007: removed BC-2.16.004 guard citation (D1 spoof
+> is not implemented until STORY-114, wave 43); replaced with BC-2.16.005 and BC-2.16.003
+> (the actual wave-42 BCs being protected by the negative guard). (3) HS-W44-004: removed
+> BC-2.16.015 (wave 41) and BC-2.16.011 (wave 42) citations from wave 44; reformulated as a
+> storm_findings summarize() cross-story extension test (BC-2.16.010 + BC-2.16.008), which is
+> the actual wave-44 deliverable. (4) Narrative line and wave-44 gate block: removed
+> "--arp-spoof-threshold" from STORY-115 scope; it belongs to STORY-114 (BC-2.16.012, wave 43).
 >
 > **Rewrite note (v1.2 — F2 adversarial Pass 1 remediation):** Waves 40-44 rewritten to match
 > the canonical story decomposition in arp-architecture-delta.md §6. The previous wave

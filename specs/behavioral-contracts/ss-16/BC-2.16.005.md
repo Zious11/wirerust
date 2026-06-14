@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.7.0-feature-arp
 modified:
   - "v1.4: Pass-8 remediation F-B8-M01: PC1 tightened to exclude broadcast (255.255.255.255) in addition to all-zero (0.0.0.0) sender IPs, consistent with Invariant 5. Test-infrastructure note added referencing ADR-008 Decision 4 affordances (new_for_test(), process_arp_for_test(), bindings_snapshot()) for VP-024 Sub-C proptest use by F3/F4 implementers. — 2026-06-12"
+  - "v1.5: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -120,7 +121,7 @@ VP-024 Sub-property C (proptest) verifies this invariant over arbitrary frame se
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — the binding-table last-write-wins semantic is the foundational correctness property for D1 ARP spoof detection; incorrect binding semantics would produce silent false negatives (stale MAC treated as current) or false positives (current MAC treated as new) |
 | L2 Domain Invariants | (none directly) |
 | Architecture Module | SS-16 (src/analyzer/arp.rs ArpAnalyzer, C-23); ADR-008 Decision 4 |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-113 |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | (none — binding table update is a data structure operation; findings are emitted by BC-2.16.004) |
 
@@ -148,7 +149,7 @@ VP-024 Sub-property C (proptest) verifies this invariant over arbitrary frame se
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-113
 
 ## VP Anchors
 

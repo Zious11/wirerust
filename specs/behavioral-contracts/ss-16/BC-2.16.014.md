@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v1.3: Pass-5 remediation F-B5-M02: PC2 citation corrected from 'Postcondition 1.b' (first_rebind_ts setter) to 'Postcondition 1.c (Step 3 — escalation evaluation)'. F-B5-M03: PC4 citation corrected from 'BC-2.16.004 Postcondition 3' (first_rebind_ts semantics) to 'BC-2.16.004 Postcondition 1 (Step 1 / 1.a — rebind_count increment)'. — 2026-06-12"
   - "v1.4: Pass-7 remediation F-B7-H01/F-B7-H02: added tactic-anchor cross-reference to Invariant 4 — T0830 maps to MitreTactic::LateralMovement and T1557.002 to MitreTactic::CredentialAccess per ADR-008 Decision 6 (merge-by-name policy); the F3/STORY-114 implementer wires these in technique_info. — 2026-06-12"
   - "v1.5: Pass-11 remediation F-B11-L01: Source Evidence 'LOW/Inconclusive' retired verdict token corrected to 'LOW/Anomaly (confidence: LOW, finding_type: Anomaly)' per BC-2.16.003 v1.5 normalization. — 2026-06-12"
+  - "v1.6: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -130,7 +131,7 @@ T0830 and T1557.002 are attached to both findings.
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — the GARP-that-conflicts escalation rule produces the highest-fidelity ARP AiTM signal: a gratuitous ARP that simultaneously conflicts with an existing binding is the canonical ARP cache poisoning attack procedure (T1557.002 page describes "gratuitous ARP reply" as the ARP Cache Poisoning procedure) |
 | L2 Domain Invariants | (none directly) |
 | Architecture Module | SS-16 (src/analyzer/arp.rs ArpAnalyzer::process_arp escalation logic, C-23); ADR-008 Decision 5 D2/D1 interaction; arp-architecture-delta.md §3.3 GARP escalation rule |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-114 |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | T0830 (Adversary-in-the-Middle, ICS, ATT&CK v19.1 — current); T1557.002 (ARP Cache Poisoning, Enterprise, ATT&CK v19.1 — current) |
 
@@ -148,7 +149,7 @@ T0830 and T1557.002 are attached to both findings.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-114
 
 ## VP Anchors
 

@@ -1,16 +1,16 @@
 ---
 document_type: dependency-graph
-version: "1.3"
+version: "1.4"
 status: draft
 producer: story-writer
 phase: 3
 timestamp: 2026-05-21T00:00:00Z
-modified: "2026-06-10: Feature #8 (issue #8) — added STORY-106..110 linear chain (E-15 DNP3). total_stories 57→62 (product; STORY-091 tooling separate). total_edges 83→87. number_of_waves 34→39."
-total_stories: 62
-total_edges: 87
-intra_epic_edges: 69
+modified: "2026-06-13: Feature #9 (issue #9) — added STORY-111..115 linear chain (E-16 ARP). total_stories 62→67 (product; STORY-091 tooling separate). total_edges 86→91 (+5 delta: 4 intra E-16 + 1 cross E-15→E-16 STORY-110→STORY-111). number_of_waves 39→44."
+total_stories: 67
+total_edges: 91
+intra_epic_edges: 73
 cross_epic_edges: 18
-number_of_waves: 39
+number_of_waves: 44
 acyclic: true
 traces_to:
   - .factory/stories/epics.md
@@ -22,7 +22,8 @@ traces_to:
 # wirerust Story Dependency Graph
 
 > **Brownfield context:** wirerust is a single-crate offline pcap forensic triage CLI.
-> All 48 stories formalize behavioral contracts for existing shipped code.
+> All 67 product stories formalize behavioral contracts for existing and new shipped code
+> (48 greenfield + F2/F7/F8/F9 feature additions across E-14, E-15, E-16).
 > Cross-epic dependencies reflect the architecture pipeline layering
 > (L1 Ingest -> L2 Stream -> L3 Domain -> L4 Output -> L0 Entry) defined in
 > `architecture/dependency-graph.md` and `architecture/module-decomposition.md`.
@@ -33,13 +34,13 @@ traces_to:
 
 | Metric | Value |
 |--------|-------|
-| Total stories | 62 (product; +STORY-091 tooling = 63) |
-| Total dependency edges | 87 |
-| Intra-epic edges | 69 |
+| Total stories | 67 (product; +STORY-091 tooling = 68) |
+| Total dependency edges | 91 |
+| Intra-epic edges | 73 |
 | Cross-epic edges | 18 |
-| Number of parallel waves | 39 |
-| Graph is acyclic | Yes (Kahn topological sort verified; STORY-097→098→099 extend acyclic order; STORY-106→107→108→109→110 extend further) |
-| Total story points | 395 (product; +5 tooling = 400) |
+| Number of parallel waves | 44 |
+| Graph is acyclic | Yes (Kahn topological sort verified; STORY-097→098→099 extend acyclic order; STORY-106→107→108→109→110 extend further; STORY-111→112→113→114→115 extend further) |
+| Total story points | 442 (product; +5 tooling = 447) |
 
 ---
 
@@ -66,7 +67,7 @@ Dependencies in this graph respect the layer rules from
 
 ## Dependencies (Edge List)
 
-### Intra-Epic Edges (69 edges)
+### Intra-Epic Edges (73 edges)
 
 #### Epic E-1: PCAP Ingestion and Packet Decoding
 
@@ -187,6 +188,15 @@ Dependencies in this graph respect the layer rules from
 | STORY-108 | STORY-109 | STORY-109 (correlated/derived detections) requires STORY-108's full detection surface (T1692.001, T0814 restart, T0836) plus the `direct_operate_count` / `restart_event_count` windowed counters needed for T0827 correlation; also requires the established `MAX_FINDINGS` cap pattern |
 | STORY-109 | STORY-110 | STORY-110 (dispatcher integration + CLI) wires the complete `Dnp3Analyzer` (all detections live, mitre.rs seeded) into `StreamDispatcher`; it cannot do so before the analyzer surface is finalized; also confirms VP-007 catalog counts (SEEDED=23, EMITTED=15) which requires STORY-109's seeding |
 
+#### Epic E-16: ARP Security Analyzer (issue #9)
+
+| From | To | Justification |
+|------|----|---------------|
+| STORY-111 | STORY-112 | STORY-112 (`ArpAnalyzer` struct + Kani VP-024 Sub-A harnesses) requires `DecodedFrame::Arp(ArpFrame)` type and the revised `decode_packet` → `Result<DecodedFrame>` return type established by STORY-111; compile-break dependency — the struct field types reference `ArpFrame` |
+| STORY-112 | STORY-113 | STORY-113 (D2 GARP, D11 malformed, D12 mismatch, binding table, summarize) requires the `ArpAnalyzer` stub skeleton and `process_arp` method signature from STORY-112; the binding-table types (`BindingEntry`, `HashMap<[u8;4], BindingEntry>`) are introduced in STORY-113 itself |
+| STORY-113 | STORY-114 | STORY-114 (D1 spoof detection emissions + VP-007 atomic update SEEDED 23→25 / EMITTED 15→17) requires the complete `ArpAnalyzer` detection surface from STORY-113 (binding table, classify_garp, D2/D11/D12 detectors) before D1 findings can be emitted and MITRE catalog seeded; also requires `summarize()` key layout from STORY-113 for VP-007 catalog alignment |
+| STORY-114 | STORY-115 | STORY-115 (D3 storm detection + `--arp-storm-rate` CLI flag + `storm_findings` summary key) finalizes the complete `ArpAnalyzer` (all detections live); it cannot do so before the analyzer's full detection surface and emission contract are finalized in STORY-114; also wires the VALUE of the existing BC-2.16.010 `storm_findings` key (canonical key 8, declared by STORY-113) in `summarize()` (ARP bypasses `classify()`/`StreamDispatcher` — arp-architecture-delta §4.4) |
+
 ---
 
 ### Cross-Epic Edges (18 edges)
@@ -213,6 +223,7 @@ These edges reflect the architecture pipeline layers defined in
 | STORY-100 | STORY-106 | E-13 -> E-15 | SS-10 -> SS-15 | SS-15 `Dnp3Analyzer` emits `Finding` structs using `mitre_techniques: Vec<String>` (multi-tag schema) established by E-13 (STORY-100); STORY-106 defines the `Dnp3Analyzer` type which depends on the post-migration Finding struct |
 | STORY-105 | STORY-110 | E-14 -> E-15 | SS-05 (Modbus Rule 5) -> SS-05 (DNP3 Rule 6) | STORY-110 adds `DispatchTarget::Dnp3` as Rule 6 in `classify()`, placed after Rule 5 (Modbus/502) from STORY-105; Rule 6 ordering is only meaningful once Rule 5 is established — and the VP-004 oracle must include the Modbus arm before the DNP3 arm can be added correctly |
 | STORY-105 | STORY-109 | E-14 -> E-15 | SS-10 mitre.rs | STORY-109 adds T1691.001 and T0827 to `SEEDED_TECHNIQUE_IDS` and the kani_proofs `EMITTED_IDS` set in `src/mitre.rs`; the Modbus seeding in STORY-105 sets the catalog counts to 21/13; STORY-109's obligation is 21→23 / 13→15 — this is a logical dependency on the prior state of mitre.rs |
+| STORY-110 | STORY-111 | E-15 -> E-16 | SS-02 (decoder) | STORY-111 migrates etherparse 0.16→0.20 and introduces `DecodedFrame::Arp(ArpFrame)` in `src/decoder.rs`; it also revises BC-2.02.009 to add the third decode path; the migration touches both `src/decoder.rs` and `src/dispatcher.rs` (Cargo.toml etherparse version bump affects both files) and must follow STORY-110's finalized `src/dispatcher.rs` changes (DNP3 Rule 6 in place) to avoid merge conflicts on the same file — file-level sequencing constraint, not a classify() ordering requirement |
 
 ---
 
@@ -222,7 +233,7 @@ Waves are computed as `wave(story) = max(wave(dependency)) + 1` (longest-path /
 critical-path method). Stories in the same wave have no dependency between them
 and can be dispatched in parallel.
 
-> **Graph is acyclic:** Kahn's algorithm processes all 48 stories. No cycle detected.
+> **Graph is acyclic:** Kahn's algorithm processes all 67 product stories. No cycle detected.
 
 ### Wave 1 — 2 stories | Epics: E-1, E-7
 
@@ -423,6 +434,58 @@ and can be dispatched in parallel.
 |-------|------|--------|-----------|-------------|
 | STORY-090 | E-9 | 5 | SS-12 | Summary Data Model — ingest, Service Hints, unique_hosts, Serialization |
 
+### Wave 28 — 1 story | Epic: E-12
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-097 | E-12 | 5 | SS-04, SS-05 | Thread Capture-Relative Timestamp Through StreamHandler::on_data |
+
+### Wave 29 — 1 story | Epic: E-12
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-098 | E-12 | 8 | SS-06, SS-07, SS-04, SS-09 | Attach Pcap Timestamp to Emitted Findings |
+
+### Wave 30 — 1 story | Epic: E-12
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-099 | E-12 | 5 | SS-09, SS-04, SS-06, SS-07 | Verify Timestamp Provenance End-to-End (VP-021) |
+
+### Wave 31 — 2 stories | Epic: E-13
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-100 | E-13 | 13 | SS-09, SS-10, SS-06, SS-07, SS-04 | Multi-Tag Finding Schema Migration (Atomic Type Rename + Catalog Seed) |
+| STORY-101 | E-13 | 8 | SS-11 | Multi-Tag Reporter Serialization + JSON Envelope Add-Ons |
+
+> **Note:** STORY-100 and STORY-101 can be parallelized once STORY-100's type-rename PR merges. Wave 31 gate closes the v0.3.0 release.
+
+### Wave 32 — 1 story | Epic: E-14
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-102 | E-14 | 8 | SS-14 | Modbus MBAP Parse + FC Classification (Pure Core) |
+
+> **Note:** STORY-102 depends on STORY-100 (multi-tag Finding schema). Root of the E-14 Modbus chain.
+
+### Wave 33 — 2 stories | Epic: E-14
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-103 | E-14 | 8 | SS-14 | Modbus Flow State + Transaction Correlation |
+| STORY-104 | E-14 | 13 | SS-14 | Modbus Detection Emissions + Summary |
+
+> **Note:** STORY-104 depends on STORY-103 (flow state required for detection emissions).
+
+### Wave 34 — 1 story | Epic: E-14
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-105 | E-14 | 8 | SS-14, SS-05, SS-12 | Modbus Dispatcher Integration + CLI |
+
+> **Release gate:** v0.4.0 ships after Wave 34 gate (STORY-102..105 all PRs merged, `cargo test --all-targets` green).
+
 ### Wave 35 — 1 story | Epic: E-15
 
 | Story | Epic | Points | Subsystem | Description |
@@ -459,6 +522,46 @@ and can be dispatched in parallel.
 
 > **VP-004 obligation:** `classify_oracle` gains port-20000 arm in this wave. `verify_content_first_precedence_exhaustive` Kani proof updated.
 
+### Wave 40 — 1 story | Epic: E-16
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-111 | E-16 | 5 | SS-02 | etherparse 0.20 Migration + DecodedFrame/ArpFrame Types + BC-2.02.009 Revision |
+
+> **Note:** STORY-111 depends on STORY-110 (cross-epic: `src/dispatcher.rs` and Cargo.toml etherparse migration must follow STORY-110's finalized DNP3 changes to avoid merge conflicts; file-sequencing constraint). Root of the E-16 strictly-linear chain.
+
+### Wave 41 — 1 story | Epic: E-16
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-112 | E-16 | 8 | SS-02, SS-16 | extract_arp_frame + decode_packet ARP Routing (Both Paths) + ArpAnalyzer Stub + VP-024 Sub-A |
+
+> **VP-024 Sub-A obligation:** 3 Kani harnesses (safety, eth_ipv4_correctness, none_on_bad_size) land in this wave.
+
+### Wave 42 — 1 story | Epic: E-16
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-113 | E-16 | 13 | SS-16 | ArpAnalyzer Full Implementation — Binding Table, GARP (D2), D11, D12, summarize(), --arp Flag, VP-024 Sub-B/C/D |
+
+> **VP-024 Sub-B/C/D obligations:** `verify_classify_garp_total` Kani (Sub-B), `test_binding_table_last_write_wins` proptest (Sub-C), `verify_binding_table_cap` Kani (Sub-D) land in this wave.
+
+### Wave 43 — 1 story | Epic: E-16
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-114 | E-16 | 13 | SS-16 | D1 ARP Spoof Escalation + GARP-that-Conflicts (D2+D1) + MITRE Attribution + VP-007 5-Part Atomic Update |
+
+> **VP-007 obligation:** ARP techniques added to `SEEDED_TECHNIQUE_IDS` and `EMITTED_IDS` in `src/mitre.rs`; SEEDED 23→25, EMITTED 15→17. `vp007_catalog_drift_guard` must pass.
+
+### Wave 44 — 1 story | Epics: E-16
+
+| Story | Epic | Points | Subsystem | Description |
+|-------|------|--------|-----------|-------------|
+| STORY-115 | E-16 | 8 | SS-02, SS-16 | D3 ARP Storm Detection + `--arp-storm-rate` CLI Flag + `storm_findings` Summary Key |
+
+> **Release gate:** v0.7.0 ships after Wave 44 gate (STORY-111..115 all PRs merged, `cargo test --all-targets` green). `--arp` CLI flag (STORY-113, BC-2.16.011) gates ARP analysis at decode-time — `main.rs` routes the `DecodedFrame::Arp` arm to `ArpAnalyzer`; ARP bypasses `classify()`/`StreamDispatcher` (arp-architecture-delta §4.4).
+
 ---
 
 ## Topological Order (Full Sequence)
@@ -475,14 +578,17 @@ STORY-086 -> STORY-087 -> STORY-096 -> STORY-088 -> STORY-089 -> STORY-090 ->
 [Wave 28-30: STORY-097 -> STORY-098 -> STORY-099] ->
 [Wave 31: STORY-100 ∥ STORY-101] ->
 [Wave 32: STORY-102] -> [Wave 33: STORY-103 ∥ STORY-104] -> [Wave 34: STORY-105] ->
-STORY-106 -> STORY-107 -> STORY-108 -> STORY-109 -> STORY-110
+STORY-106 -> STORY-107 -> STORY-108 -> STORY-109 -> STORY-110 ->
+STORY-111 -> STORY-112 -> STORY-113 -> STORY-114 -> STORY-115
 ```
 
-> **Cycle check:** All 62 product nodes processed by Kahn's algorithm. No node remained
+> **Cycle check:** All 67 product nodes processed by Kahn's algorithm. No node remained
 > in the queue with non-zero in-degree after processing. Graph is acyclic.
 > E-15 chain (STORY-106→107→108→109→110) is strictly linear; STORY-106 depends on
 > STORY-100 (cross-epic), STORY-110 depends on STORY-105 (cross-epic for VP-004 oracle
-> ordering). No back-edges into the existing 57-story graph.
+> ordering). E-16 chain (STORY-111→112→113→114→115) is strictly linear; STORY-111
+> depends on STORY-110 (cross-epic: dispatcher file ordering constraint). No back-edges
+> into the existing 67-story graph.
 
 ---
 
@@ -493,11 +599,14 @@ iteratively. Result:
 
 - Initial zero-in-degree nodes: STORY-001, STORY-069 (Wave 1)
 - Each wave removes its stories and decrements successor in-degrees
-- Final output: all 62 product stories processed, queue empty, no cycle detected
+- Final output: all 67 product stories processed, queue empty, no cycle detected
 - Any cycle would leave unprocessed nodes with non-zero in-degree — none found
 - E-15 extension (STORY-106→107→108→109→110) is a linear tail appended after Wave 34;
   it shares two cross-epic edges (STORY-100→106, STORY-105→110) that add in-degrees
   only to E-15 nodes — no existing node gains a new in-degree, so no cycle is possible
+- E-16 extension (STORY-111→112→113→114→115) is a linear tail appended after Wave 39;
+  it has one cross-epic edge (STORY-110→111) that adds in-degree only to the E-16 root
+  node — no existing node gains a new in-degree, so no cycle is possible
 
 ---
 
@@ -561,8 +670,13 @@ iteratively. Result:
 | BC-2.15.010, BC-2.15.011, BC-2.15.012, BC-2.15.013, BC-2.15.020, BC-2.15.022 | STORY-108 | E-15 | SS-15 |
 | BC-2.15.014, BC-2.15.015, BC-2.15.018, BC-2.15.019, BC-2.15.023, BC-2.15.024 | STORY-109 | E-15 | SS-15 |
 | BC-2.15.017, BC-2.15.021 | STORY-110 | E-15 | SS-05, SS-15 |
+| BC-2.02.009 (revised v1.6) | STORY-111 | E-16 / E-1 | SS-02 |
+| BC-2.16.001, BC-2.16.002, BC-2.16.015 | STORY-112 | E-16 | SS-16 |
+| BC-2.16.003, BC-2.16.005, BC-2.16.006, BC-2.16.007, BC-2.16.009, BC-2.16.010, BC-2.16.011 | STORY-113 | E-16 | SS-16 |
+| BC-2.16.004, BC-2.16.012, BC-2.16.014 (+BC-2.16.007 D12-MITRE extension) | STORY-114 | E-16 | SS-16 |
+| BC-2.16.008, BC-2.16.013 (+BC-2.16.010 extension) | STORY-115 | E-16 | SS-02, SS-16 |
 
-**Coverage: 268 / 268 BCs assigned (219 pre-feature + 25 Modbus BC-2.14.001..025 + 24 DNP3 BC-2.15.001..024 across STORY-106..110).**
+**Coverage: 283 / 283 BCs assigned (219 pre-feature + 25 Modbus BC-2.14.001..025 + 24 DNP3 BC-2.15.001..024 across STORY-106..110 + 15 ARP BC-2.16.001..015 across STORY-112..115; BC-2.02.009 is revised, not a new BC).**
 
 ---
 
@@ -594,6 +708,9 @@ iteratively. Result:
 | VP-023 | DNP3 Parse Safety (4 Kani sub-properties) | analyzer/dnp3.rs | STORY-106 | BC-2.15.001..007 (Kani-provable: parse header, LE decode, validity gate, FC totality, FC set membership, frame_len arithmetic, frame_len bounds). BC-2.15.008 (FIR=1 gating) and BC-2.15.009 (desync bail) are unit-test-only — NOT VP-023 Kani obligations. |
 | VP-004 (E-15 arm) | Content-First Dispatch Precedence — port-20000 oracle arm | dispatcher.rs | STORY-110 | BC-2.15.021 |
 | VP-007 (E-15 atomic update) | MITRE Technique ID Catalog Completeness — T1691.001 + T0827 seeding | mitre.rs | STORY-109 | BC-2.15.014 (T1691.001), BC-2.15.015 (T0827 correlation) |
+| VP-008 (E-16 carry-forward) | decode_packet Never Panics — updated for DecodedFrame return type | decoder.rs | STORY-111 | BC-2.02.009 invariant 5 |
+| VP-024 | ARP Frame Parse Safety and Binding-Table Invariant — 4 sub-property groups: Sub-A=3 Kani (verify_extract_arp_frame_safety, verify_extract_arp_frame_eth_ipv4_correctness, verify_extract_arp_frame_none_on_bad_size); Sub-B=1 Kani (verify_classify_garp_total); Sub-C=1 proptest (test_binding_table_last_write_wins — NOT Kani); Sub-D=1 Kani (verify_binding_table_cap) | analyzer/arp.rs + decoder.rs | STORY-112, STORY-113 | BC-2.16.001 (Sub-A safety), BC-2.16.002 (Sub-A correctness), BC-2.16.003 (Sub-B classify_garp_total), BC-2.16.005 (Sub-C last_write_wins), BC-2.16.006 (Sub-D binding_table_cap) |
+| VP-007 (E-16 atomic update) | MITRE Technique ID Catalog Completeness — ARP technique seeding | mitre.rs | STORY-114 | BC-2.10.005, BC-2.10.008 (catalog SEEDED 23→25 / EMITTED 15→17); BC-2.16.004 (ARP-spoof emission trigger) |
 
 ---
 
@@ -643,18 +760,31 @@ E-14 (SS-14 Modbus, SS-05 Rule 5)
 E-15 (SS-15 DNP3) — linear chain:
   STORY-106 -> STORY-107 -> STORY-108 -> STORY-109 -> STORY-110
   (SS-15 pure core -> SS-15 state -> SS-15 direct detections -> SS-15 correlated detections -> SS-05/SS-15 dispatcher)
+
+E-15 (SS-15 DNP3)
+  |
+  +----> E-16 (SS-16 ARP) [via STORY-110 -> STORY-111; file-sequencing: etherparse migration touches src/dispatcher.rs, must follow STORY-110's finalized DNP3 changes]
+
+E-16 (SS-16 ARP) — linear chain:
+  STORY-111 -> STORY-112 -> STORY-113 -> STORY-114 -> STORY-115
+  (SS-02 decoder migration -> SS-16 struct+Kani -> SS-16 detections+binding-table -> SS-16 emissions+VP-007 -> SS-16 D3 storm detection+--arp-storm-rate+storm_findings)
 ```
 
 ---
 
 ## Gap Register
 
-No story-decomposition gaps identified. All 268 BCs are covered (219 pre-feature + 25 Modbus BC-2.14.001..025 + 24 DNP3 BC-2.15.001..024 across STORY-106..110).
+No story-decomposition gaps identified. All 283 BCs are covered (219 pre-feature + 25 Modbus BC-2.14.001..025 + 24 DNP3 BC-2.15.001..024 across STORY-106..110 + 15 ARP BC-2.16.001..015 across STORY-112..115; BC-2.02.009 is revised in STORY-111, not a new BC).
 All L2 domain capabilities (CAP-NNN) are covered by at least one story.
 All cross-epic architectural dependencies are captured in this graph.
 
 E-15 DNP3 specific gap notes:
 - BC-2.15.017 (CLI threshold flag) and BC-2.15.021 (dispatcher Rule 6) are co-located in STORY-110; they share the same implementation scope (dispatcher + CLI wiring) and cannot be independently delivered.
+
+E-16 ARP specific gap notes:
+- BC-2.16.010 (summarize key layout) is primarily owned by STORY-113 but extended in STORY-115 (storm_findings key added). This is not a gap — the BC covers the full key set; STORY-113 establishes the initial layout and STORY-115 extends it in-place.
+- STORY-111 revises BC-2.02.009 (not a new BC); the revision adds a third decode path (DecodedFrame::Arp) and does not break the existing two paths. VP-008 fuzz harness must be updated in STORY-111 per F3-OBL-STORY111-VP008.
+- T0814 MITRE tag in STORY-115 (D3 storm) is deferred per DF-VALIDATION-001; STORY-115 covers BC-2.16.008 (storm detection) without the MITRE tag until validated.
 - BC-2.15.015 (single 300s window reset owner) and BC-2.15.014 (block inference emission) are co-located in STORY-109; the reset and the emission are inseparable behaviors.
 
 | Gap ID | Level | Source | Justification | Resolution Target |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.7.0-feature-arp
 modified:
   - "v1.1: Pass-5 remediation F-B5-M01: PC3 citation corrected from 'BC-2.16.004 Postcondition 5' (flap-window reset) to 'BC-2.16.004 Postcondition 1 (Step 3 / 1.c — escalation evaluation)'. — 2026-06-12"
+  - "v1.2: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -100,7 +101,7 @@ The flag is only meaningful when `--arp` is also active.
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — the spoof threshold flag allows operators to tune D1 detection sensitivity for their specific network environment, which is an essential configuration surface for the ARP Security Analysis capability in ICS contexts |
 | L2 Domain Invariants | (none directly) |
 | Architecture Module | SS-16 (src/cli.rs, src/main.rs ArpAnalyzer initialization); ADR-008 Decision 4 |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-114 |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | (none — CLI flag, no finding emission) |
 
@@ -118,7 +119,7 @@ The flag is only meaningful when `--arp` is also active.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-114
 
 ## VP Anchors
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.7"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T02:00:00Z
@@ -16,6 +16,8 @@ introduced: v0.7.0-feature-arp
 modified:
   - "v1.4: Pass-4 remediation F-B4-H01 (BindingEntry Architecture Anchor: last_seen_ts added); F-B4-M03 (PC2 mac-update timing: Step 4 added to intra-event sequence; PC2 cross-references Step 4). — 2026-06-12"
   - "v1.5: Pass-7 remediation F-B7-H01/F-B7-H02: added tactic-anchor cross-reference to Invariant 4 — T0830 maps to MitreTactic::LateralMovement and T1557.002 to MitreTactic::CredentialAccess per ADR-008 Decision 6 (merge-by-name policy); the F3/STORY-114 implementer wires these in technique_info. — 2026-06-12"
+  - "v1.6: F3 story-anchor back-fill. — 2026-06-14"
+  - "v1.7: Pass-21 HIGH remediation: requalified VP-024 Sub-C in all three loci (Verification Properties table, VP Anchors section, Purity Classification) as INDIRECT/substrate dependency only — Sub-C's primary anchor is BC-2.16.005; BC-2.16.004 is NOT a VP-024 Sub-C formally-verified BC; D1 spoof-escalation postconditions remain unit-tested per EC coverage. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -158,9 +160,9 @@ There is no "first rebind is always MEDIUM" guarantee when threshold=1.
 
 ## Verification Properties
 
-| VP-NNN | Property | Proof Method |
-|--------|----------|-------------|
-| VP-024 | Sub-property C (binding-table last-write-wins): after processing any sequence of frames for an IP, `bindings[ip].mac` equals the MAC from the last frame | proptest: arbitrary Vec<ArpFrame> sequences up to 1000 entries |
+| VP-NNN | Property | Proof Method | Relationship |
+|--------|----------|-------------|-------------|
+| VP-024 Sub-C | Binding-table last-write-wins determinism: after processing any sequence of frames for an IP, `bindings[ip].mac` equals the MAC from the last frame | INDIRECT — BC-2.16.004 depends on the last-write-wins binding substrate that Sub-C proves (primary anchor is BC-2.16.005); Sub-C does NOT formally discharge BC-2.16.004's spoof-escalation postconditions (D1 severity logic is unit-tested per EC coverage). | substrate dependency |
 
 ## Traceability
 
@@ -170,7 +172,7 @@ There is no "first rebind is always MEDIUM" guarantee when threshold=1.
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — ARP cache poisoning / spoof detection (D1) is the core security detection of the ARP Security Analysis capability, directly mapping to T0830 (AiTM, ICS) and T1557.002 (ARP Cache Poisoning, Enterprise) |
 | L2 Domain Invariants | (none directly) |
 | Architecture Module | SS-16 (src/analyzer/arp.rs ArpAnalyzer::process_arp, C-23); ADR-008 Decisions 4–5 |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-114 |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | T0830 (Adversary-in-the-Middle, ICS, ATT&CK v19.1 — current); T1557.002 (ARP Cache Poisoning, Enterprise, ATT&CK v19.1 — current) |
 
@@ -192,11 +194,11 @@ There is no "first rebind is always MEDIUM" guarantee when threshold=1.
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-114
 
 ## VP Anchors
 
-- VP-024 — ARP Frame Parse Safety and Binding-Table Invariant (Sub-property C: binding-table last-write-wins determinism for spoof detection correctness)
+- VP-024 Sub-C — INDIRECT: BC-2.16.004 depends on the last-write-wins binding substrate that Sub-C proves (primary anchor BC-2.16.005); Sub-C does NOT formally discharge BC-2.16.004's spoof-escalation postconditions (those are unit-tested per the EC coverage).
 
 ## Source Evidence
 
@@ -214,4 +216,4 @@ TBD (F3 story decomposition)
 | **Global state access** | none (ArpAnalyzer is a pure-core struct; process_arp mutates only the ArpAnalyzer instance fields) |
 | **Deterministic** | yes — same sequence of frames always produces same findings |
 | **Thread safety** | ArpAnalyzer is single-threaded (consistent with wirerust single-threaded pipeline) |
-| **Overall classification** | stateful pure core — VP-024 Sub-C (proptest) |
+| **Overall classification** | stateful pure core — D1 spoof-escalation logic verified by unit tests (EC-001 through EC-010); VP-024 Sub-C substrate dependency is indirect only (primary anchor BC-2.16.005; BC-2.16.004 is NOT a VP-024 Sub-C formally-verified target) |

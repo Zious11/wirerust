@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-12T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.7.0-feature-arp
 modified:
   - "v1.2: Pass-4 remediation F-B4-M05: PC4 'increment together' contradiction resolved — reworded to clarify: when --arp active, malformed_findings increments with malformed_frames; when --arp absent, malformed_frames still increments but no finding emitted (malformed_findings unchanged), per BC-2.16.010 key 11 and ADR-008 Decision 7. — 2026-06-12"
   - "v1.3: Pass-8 remediation F-B8-L02: PC4 clarified — note added explaining that the --arp-absent clause in PC4 describes counter behavior that operates outside the --arp-active gate stated in Precondition 4; PC4's --arp-absent sub-clause is not a contradiction of PC4's position within a contract whose outer precondition requires --arp active, but rather a specification of how malformed_frames still increments even without the active gate. — 2026-06-12"
+  - "v1.4: F3 story-anchor back-fill. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -145,7 +146,7 @@ validation that has not been performed (same rationale as D3).
 | Capability Anchor Justification | CAP-16 ("ARP Security Analysis") per ARCH-INDEX.md §SS-16 — D11 malformed ARP detection is a named detection in the ARP Security Analysis capability; malformed ARP frames can indicate protocol fuzzing, non-standard ICS stacks, or deliberate evasion attempts |
 | L2 Domain Invariants | (none directly) |
 | Architecture Module | SS-16 (src/decoder.rs `extract_arp_frame` None path, C-23); ADR-008 Decision 5 D11 |
-| Stories | TBD (F3 story decomposition) |
+| Stories | STORY-113 |
 | Feature | arp-security-analyzer |
 | MITRE Techniques | NONE — T0814 withheld per DF-VALIDATION-001 (not validated live as of 2026-06-12) |
 
@@ -164,7 +165,7 @@ validation that has not been performed (same rationale as D3).
 
 ## Story Anchor
 
-TBD (F3 story decomposition)
+STORY-113
 
 ## VP Anchors
 

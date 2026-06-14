@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.4"
+version: "1.7"
 status: draft
 producer: architect
 timestamp: 2026-06-12T00:00:00Z
@@ -12,10 +12,9 @@ bcs:
   - BC-2.16.001
   - BC-2.16.002
   - BC-2.16.003
-  - BC-2.16.004
   - BC-2.16.005
   - BC-2.16.006
-module: src/analyzer/arp.rs
+module: src/analyzer/arp.rs + src/decoder.rs
 proof_method: kani
 feasibility: feasible
 verification_lock: false
@@ -30,6 +29,9 @@ modified:
   - "v1.2 (2026-06-12): F-SA5 — Sub-A negative harness (verify_extract_arp_frame_none_on_bad_size): added explicit F4 obligation note warning of vacuous-satisfiability risk: if from_slice rejects the bad-HLEN/PLEN buffer on the Err path, the is_none() assertion is never reached; F4 must confirm Ok-arm reachability or restructure the harness to assert it explicitly via kani::cover! before F6 lock."
   - "v1.3 (2026-06-12): F-B6-M01 — Source Location anchor for insert_binding_lru updated to note that no ts parameter is present; last_seen_ts is written by process_arp on every observation and read by insert_binding_lru only during eviction scan (ADR-008 Decision 4 normative note). Sub-D harness skeleton comment updated with same rationale. Signature itself is unchanged."
   - "v1.4 (2026-06-12): Pass 8 remediation — (MED-01) Sub-A correctness harness (verify_extract_arp_frame_eth_ipv4_correctness): added same F4 vacuous-satisfiability obligation note that the negative harness carries: if from_slice rejects the fixed-header buffer (unlikely but unconfirmed), field-correctness assertions are never reached; F4 must add kani::cover! reachability assertion before F6 lock. (MED-02) Sub-C proptest sketch: declared three required test affordances in ADR-008 Decision 4 scope: new_for_test() constructor, process_arp_for_test(&frame, ts: u32) wrapper (note: ts arg is mandatory — no zero-arg form), and bindings_snapshot() test accessor; updated sketch to use process_arp_for_test(&frame, 0u32) matching the canonical two-arg process_arp signature, and bindings_snapshot() instead of direct field access; these affordances are ADR-008 Decision 4 extensions requiring PO propagation. (MED-03) Sub-D property statement: added normative specification of last_seen_ts initialization at insert time (new entries created by insert_binding_lru initialize last_seen_ts: 0; process_arp writes the real timestamp immediately after insert returns); explicitly reaffirmed that cap proof (len<=cap) is valid regardless of last_seen_ts init value and that LRU target-correctness is unit-tested in STORY-113, not Kani-proven."
+  - "v1.5 (2026-06-13): F-A-01/F-A-02 remediation (Pass-1 adversarial F3) — Sub-C primary anchor corrected to BC-2.16.005 (last-write-wins) only. BC-2.16.004 (D1 ARP spoof) removed from bcs: frontmatter array and from Sub-C's anchor list; it is INDIRECTLY supported by Sub-C (the last-write-wins substrate BC-2.16.004 depends upon) but is not a VP-024 formally-verified BC. Its primary story is STORY-114 (wave 43), which runs after STORY-113 where Sub-C is implemented. Sub-C anchor table row updated: PRIMARY=BC-2.16.005, INDIRECT=BC-2.16.004 with explicit scope note. Source Contract BC-2.16.004 line changed from 'Related' to 'Indirectly supported'. VP-INDEX Verified-BCs catalog row updated (BC-2.16.004 removed); [^vp024-bc-scope] footnote rewritten to explain primary/indirect anchor split."
+  - "v1.6 (2026-06-14): F-P16-A-02 remediation (Pass-16 semantic-anchor) — frontmatter module: field corrected from src/analyzer/arp.rs (singular) to src/analyzer/arp.rs + src/decoder.rs, aligning frontmatter with VP body (Sub-A target extract_arp_frame resides in src/decoder.rs) and VP-INDEX catalog row. No property or anchor content changed."
+  - "v1.7 (2026-06-14, F3 ARP VP-layer audit title-sync): Source Contract 'Indirectly supported BC' BC-2.16.004 wording corrected: 'MEDIUM or HIGH finding' → 'MEDIUM then HIGH finding' to mirror BC-2.16.004 H1 v1.5 (sequential escalation). No proof-method, postcondition, or anchor content changed."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -86,8 +88,8 @@ and Reply-form GARPs (gratuitous ARP Reply, operation==2) satisfy this condition
 harness uses `operation: kani::any()` to cover all 65,536 possible u16 operation values
 simultaneously; no `operation == 2` precondition is applied.
 
-**Sub-property C — Binding-table last-write-wins determinism** (proptest, anchors
-BC-2.16.004/BC-2.16.005):
+**Sub-property C — Binding-table last-write-wins determinism** (proptest, primary anchor
+BC-2.16.005; indirectly supports BC-2.16.004 — see Sub-C anchor note):
 
 For any sequence of `ArpFrame` values processed by `ArpAnalyzer::process_arp`:
 
@@ -158,7 +160,7 @@ ArpAnalyzer detections) both touch `mitre.rs` and must not break VP-007's drift 
 |---|---|---|
 | A — ARP frame extraction parse safety | `extract_arp_frame` panic/OOB-freedom; `None` for non-Eth/IPv4; `Some(correctly-decoded)` for Eth/IPv4 | BC-2.16.001 (ARP Request parse), BC-2.16.002 (ARP Reply parse) |
 | B — GARP detection totality | GARP iff sender_ip==target_ip; both op==1 and op==2 forms; no panic | BC-2.16.003 (GARP detection) |
-| C — Binding-table determinism | last-write-wins; no duplicate keys; proptest sequence | BC-2.16.004 (ARP spoof/cache-poisoning via binding conflict), BC-2.16.005 (binding-table update semantics) |
+| C — Binding-table determinism | last-write-wins; no duplicate keys; proptest sequence | **Primary:** BC-2.16.005 (binding-table update semantics — last-seen MAC wins for a given IP). **Indirect:** BC-2.16.004 (D1 ARP spoof/rebind escalation, primary STORY-114) depends on the last-write-wins property as its substrate; Sub-C discharges BC-2.16.005 directly and supports BC-2.16.004 indirectly. BC-2.16.004 is NOT in VP-024's formal verified-BC scope. |
 | D — MAX_ARP_BINDINGS cap | table.len() never > cap; eviction removes exactly one entry on overflow (min-last_seen_ts heuristic NOT proven — only len<=cap is Kani-proven) | BC-2.16.006 (binding-table bounded resource) |
 
 Additional BC-2.16.007 (D12 L2/L3 sender mismatch detection) is verified by unit test
@@ -175,7 +177,7 @@ Additional BC-2.16.007 (D12 L2/L3 sender mismatch detection) is verified by unit
 - **Primary BC:** BC-2.16.001 — ARP Request frame correctly parsed from ArpPacketSlice
 - **Primary BC:** BC-2.16.002 — ARP Reply frame correctly parsed from ArpPacketSlice
 - **Related BC:** BC-2.16.003 — Gratuitous ARP detection: sender_ip == target_ip classified as GARP
-- **Related BC:** BC-2.16.004 — ARP spoof detection: IP→MAC rebind emits MEDIUM or HIGH finding
+- **Indirectly supported BC:** BC-2.16.004 — ARP spoof detection: IP→MAC rebind emits MEDIUM then HIGH finding (primary STORY-114). Sub-C's last-write-wins proof (BC-2.16.005) is the substrate BC-2.16.004 depends upon; Sub-C discharges BC-2.16.005 directly and supports BC-2.16.004 indirectly. BC-2.16.004 is NOT a VP-024 formally-verified BC.
 - **Related BC:** BC-2.16.005 — Binding-table update: last-seen MAC wins for a given IP
 - **Related BC:** BC-2.16.006 — Binding-table cap: table never exceeds MAX_ARP_BINDINGS entries
 - **Note:** BC-2.16.007 (D12 L2/L3 sender mismatch) is verified by unit test in STORY-113
