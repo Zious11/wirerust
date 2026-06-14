@@ -40,7 +40,7 @@ traces_to:
 | Cross-epic edges | 18 |
 | Number of parallel waves | 44 |
 | Graph is acyclic | Yes (Kahn topological sort verified; STORY-097→098→099 extend acyclic order; STORY-106→107→108→109→110 extend further; STORY-111→112→113→114→115 extend further) |
-| Total story points | 442 (product; +5 tooling = 447) |
+| Total story points | 452 (product; +5 tooling = 457) |
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -16,6 +16,7 @@ introduced: v0.6.0-feature-008
 modified:
   - "v1.1: Pass-1 adversarial fix I-1: EC-004 corrected from Some(12) to Some(13) — correct arithmetic is U=1, blocks=ceil(1/16)=1, frame_len=5+6+2*1=13. Removed embedded exploratory-chain prose ('...wait:') from EC-004 cell. — 2026-06-10"
   - "v1.3: F3 story-anchor back-fill. — 2026-06-14"
+  - "v1.4: Pass-26: EC-008 stale frame_len Some(290)→Some(291) + removed residual exploratory prose (sibling-row miss from v1.1 EC-004 cleanup); matches shipped compute_dnp3_frame_len(254)=291. — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -96,7 +97,7 @@ frame consumption boundaries in the carry buffer loop.
 | EC-005 | `length = 21` | `Some(28)` — `U=16, blocks=1, frame_len=5+21+2=28` — exactly one full 16-octet data block |
 | EC-006 | `length = 22` | `Some(31)` — `U=17, blocks=ceil(17/16)=2, frame_len=5+22+4=31` — starts second block |
 | EC-007 | `length = 255` | `Some(292)` — maximum valid frame |
-| EC-008 | `length = 254` | `Some(290)` — `U=249, blocks=ceil(249/16)=16, frame_len=5+254+32=291`... recalc: `ceil(249/16)=ceil(15.5625)=16`, `5+254+32=291`. Correct: `Some(291)`. |
+| EC-008 | `length = 254` | `Some(291)` — `U=249, blocks=ceil(249/16)=16, frame_len=5+254+32=291` |
 
 **Boundary verification for EC-004 through EC-008:**
 - LENGTH=6: `U=1, blocks=ceil(1/16)=1, frame_len=5+6+2=13`

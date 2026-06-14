@@ -1,7 +1,7 @@
 ---
 pipeline: FEATURE_MODE_ARP_ANALYZER
 phase: feature-F3-story-decomposition-adversarial-convergence
-phase_status: "F3 IN PROGRESS — story decomposition complete (STORY-111..115 created); adversarial convergence STRICT 3/3 IN PROGRESS; Pass-25 remediation COMPLETE (Slice A ZERO [4th consec]; Slice B ZERO [1st clean]; Slice C 1 HIGH [D14 skeleton mislabel → BC-2.16.014 ×3] + 3 LOW [STORY-113:293 line-pin de-pin; HS-008:75 line-pin de-pins; storm frame-count narrative]; Slice D 1 HIGH [dangling PRD pass-24 changelog anchor] + 1 LOW [ledger gap]; ALL REMEDIATED — pass-24+pass-25 changelog entries created, all 19 PRD anchors resolve); clean-streak 0/3; next = Pass 26 (clean-streak attempt 1/3); user-directed strict continuation"
+phase_status: "F3 IN PROGRESS — story decomposition complete (STORY-111..115 created); adversarial convergence STRICT 3/3 IN PROGRESS; Pass-26 remediation COMPLETE (Slice A ZERO [5th consec]; Slice B 1 MED [BC-2.15.007 EC-008 frame_len Some(290)→Some(291) — sibling-row miss from v1.1 EC-004 cleanup; matches shipped compute_dnp3_frame_len(254)=291]; Slice C ZERO [3rd consec]; Slice D 1 HIGH [STORY-INDEX total_points 447→457, wave-TOTAL 442→452, epic-TOTAL 447→457, pre-ARP 400→410; per-story rows correct, grand totals stale; propagated to dependency-graph.md + STATE summary; root cause: pre-ARP grand total was 10 low]; ALL REMEDIATED; BC-2.15.007 v1.4; STORY-INDEX v1.5; dep-graph 452/457; STATE summary 457 pts); clean-streak remains 0/3; next = Pass 27 (clean-streak attempt 1/3); user-directed strict continuation"
 active_feature: "arp-analyzer"
 feature_arp_status: "F1 Delta Analysis PASSED (human-gated 2026-06-12) — DecodedFrame integration, ADR-008 planned, F2→F7 authorized; release target v0.7.0"
 feature_8_status: "v0.6.0 RELEASED 2026-06-12 — DNP3 TCP analyzer; F7 5-dim CONVERGED; tag v0.6.0 + 4 binaries"
@@ -41,7 +41,7 @@ adversary_convergence_counter: 3/3  # Pass 14 CONVERGENCE_REACHED; clean-streak 
 convergence_trajectory: "P1-P14 greenfield GATE-SATISFIED; MITRE-222 3-pass CONVERGED. Detail: cycles/v0.1.0-greenfield-spec/convergence-trajectory.md"
 arp_f2_adversary_convergence_counter: 3/3 CONVERGED  # Pass 31/32/33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED
 arp_f2_convergence_trajectory: "15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ batch2: ss-07-full(35 BCs)+ss-04-partial(21 BCs)+ss-11(10 BCs); ss-01/02/08/13 CLEAN; ss-04-remainder+ss-12 to Pass-20 — REMEDIATED → P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED) → P21(5 cosmetic; 0C/0H; A+C CLEAN; REMEDIATED) → P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED) → P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED) → P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED) → P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED) → P26 CLEAN 1/3 (all 4 slices zero findings; corpus-wide debt flushed P14-25) → P27 reset 1/3→0/3 (HS-008 kill-chain + HS-INDEX pin; holdout-pin-hardened) → P28 CLEAN 1/3 (restart after P27 reset) → P29 reset 1/3→0/3 (DNP3 T1692.001 + PRD FC-0x17 content gaps; REMEDIATED) → P30 (4 HIGH genuine: FlowKey accessor + STORY input-hash dup + ADR-006 FC0x17; REMEDIATED) → P31 CLEAN 1/3 (restart; P30 HIGH fixes held; all 4 slices zero findings) → P32 CLEAN 2/3 (2nd consecutive) → P33 CLEAN 3/3 CONVERGED (F2 strict-whole-corpus gate satisfied after 33 passes). Detail: phase-f5-adversarial/arp-f2-convergence-trajectory.md"
-f3_convergence_trajectory: "F3 STRICT WHOLE-CORPUS IN PROGRESS. P1..P21 detail: STATE.md (inline). P22(10 findings: 1H PRD↔HS-INDEX seed-count 26→28 + HS-W44-001 P0/P1 reconcile, 2 MED VP-INDEX 5-BC note + dep-graph-extended 86→84, 7 LOW SS-15 story-anchors-TBD/DNPXX→DNP3/byte-vector/grammar/VP-008 fuzz-filename/MbapFramer; ALL REMEDIATED — SS-15 24 BCs back-filled STORY-106..110, PRD seed-count reconciled v1.22, VP-024+VP-INDEX corrected, dep-graph-extended superseded, DRIFT-PRD-V120-MBAPFRAMER-001 CLOSED). P23(Slice A ZERO, Slice C ZERO; Slice B: 1 false-pos [Suspicious enum valid — 10 variants incl Suspicious+Impact added STORY-109; BC-2.15.013/018/019 CORRECT]; 1 genuine [canonical-frame LEN 9→8 BC-2.15.011/.023; verified against shipped build_detection_frame length_byte=8]; Slice D: 2 genuine [PRD dangling changelog anchor pass-22-f3-convergence + BC-2.16.004 VP-024 Sub-C mis-anchor; PRD v1.23]; ALL genuine REMEDIATED); clean-streak 0/3. P24(Slice A ZERO, Slice C ZERO; Slice B 1 CRIT [BC-2.15.017 DNPXX_ constant — REVERT of Pass-22 self-induced rename regression; DNPXX_ is the shipped name per src/analyzer/dnp3.rs:169 + STORY-110; verified live src]; Slice D 1 LOW [PRD §2.16 BC-2.16.010 title '(11 Keys)' enrichment]; BOTH REMEDIATED, BC-2.15.017 v1.4 + PRD v1.24); clean-streak 0/3. P25(Slice A ZERO [4th consec]; Slice B ZERO [1st clean]; Slice C 1 HIGH [wave-40-44-holdout.md D14→BC-2.16.014 ×3 — F-ARP-C2 sibling-sweep miss in feature/wave-holdout-scenarios/ skeleton] + 3 LOW [STORY-113:293 + HS-008:75 line-pin de-pins; storm frame-count narrative]; Slice D 1 HIGH [PRD v1.24 dangling §[pass-24-f3-convergence] anchor — Pass-24 added note without creating entry] + 1 LOW [ledger gap]; ALL REMEDIATED — pass-24+pass-25 changelog entries created, all 19 PRD anchors resolve); clean-streak 0/3; NEXT = Pass 26 (clean-streak attempt 1/3)"
+f3_convergence_trajectory: "F3 STRICT WHOLE-CORPUS IN PROGRESS. P1..P21 detail: STATE.md (inline). P22(10 findings: 1H PRD↔HS-INDEX seed-count 26→28 + HS-W44-001 P0/P1 reconcile, 2 MED VP-INDEX 5-BC note + dep-graph-extended 86→84, 7 LOW SS-15 story-anchors-TBD/DNPXX→DNP3/byte-vector/grammar/VP-008 fuzz-filename/MbapFramer; ALL REMEDIATED — SS-15 24 BCs back-filled STORY-106..110, PRD seed-count reconciled v1.22, VP-024+VP-INDEX corrected, dep-graph-extended superseded, DRIFT-PRD-V120-MBAPFRAMER-001 CLOSED). P23(Slice A ZERO, Slice C ZERO; Slice B: 1 false-pos [Suspicious enum valid — 10 variants incl Suspicious+Impact added STORY-109; BC-2.15.013/018/019 CORRECT]; 1 genuine [canonical-frame LEN 9→8 BC-2.15.011/.023; verified against shipped build_detection_frame length_byte=8]; Slice D: 2 genuine [PRD dangling changelog anchor pass-22-f3-convergence + BC-2.16.004 VP-024 Sub-C mis-anchor; PRD v1.23]; ALL genuine REMEDIATED); clean-streak 0/3. P24(Slice A ZERO, Slice C ZERO; Slice B 1 CRIT [BC-2.15.017 DNPXX_ constant — REVERT of Pass-22 self-induced rename regression; DNPXX_ is the shipped name per src/analyzer/dnp3.rs:169 + STORY-110; verified live src]; Slice D 1 LOW [PRD §2.16 BC-2.16.010 title '(11 Keys)' enrichment]; BOTH REMEDIATED, BC-2.15.017 v1.4 + PRD v1.24); clean-streak 0/3. P25(Slice A ZERO [4th consec]; Slice B ZERO [1st clean]; Slice C 1 HIGH [wave-40-44-holdout.md D14→BC-2.16.014 ×3 — F-ARP-C2 sibling-sweep miss in feature/wave-holdout-scenarios/ skeleton] + 3 LOW [STORY-113:293 + HS-008:75 line-pin de-pins; storm frame-count narrative]; Slice D 1 HIGH [PRD v1.24 dangling §[pass-24-f3-convergence] anchor — Pass-24 added note without creating entry] + 1 LOW [ledger gap]; ALL REMEDIATED — pass-24+pass-25 changelog entries created, all 19 PRD anchors resolve); clean-streak 0/3. P26 (Slice A ZERO 5th-consec, Slice C ZERO 3rd-consec; Slice B 1 MED [BC-2.15.007 EC-008 stale frame_len 290→291, sibling-row miss]; Slice D 1 HIGH [STORY-INDEX total_points 447→457/442→452/400→410 pre-ARP; per-story rows correct, grand totals stale; propagated to dependency-graph.md + STATE summary]; ALL REMEDIATED). Corpus 457 pts canonical. NEXT = Pass 27 (clean-streak attempt 1/3)"
 f7_convergence_trajectory: "6 fresh-context adversarial passes; final 3 consecutive CONVERGED (0 P0/CRITICAL/HIGH/MEDIUM)"
 consistency_audit: CONSISTENT
 input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STORY-111..115 MATCH (d5bda72/268f53f/a767d96/e2f1c95/5ca9835); STALE=44 are pre-existing older greenfield/feature stories whose BC inputs evolved — expected, non-blocking for F3; scan 2026-06-14"
@@ -51,9 +51,9 @@ input_drift_check: "MATCH=23 STALE=44 ERROR=1 (STORY-091 known); ARP stories STO
 
 ## Status
 
-**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED (P33 CLEAN; 3/3 strict-whole-corpus). F3 ARP story decomposition: STORY-111..115 CREATED (epic E-16, 47 pts). D-068: benign GARP emits mitre_techniques: [] (BC-2.16.003 v1.7 + ADR-008 v2.0). D-069 SUPERSEDES D-067: IcsImpact Display canonical = "Impact (ICS)" (research-backed); src/mitre.rs:91 CORRECT as-is; F3-OBL-STORY114-001/002/003 REVOKED. F3 adversarial convergence STRICT 3/3 IN PROGRESS: Pass-25 remediation COMPLETE (Slice A ZERO [4th consec]; Slice B ZERO [1st clean]; Slice C 1 HIGH [wave-40-44-holdout.md D14→BC-2.16.014 ×3 — F-ARP-C2 sibling-sweep miss in feature/wave-holdout-scenarios/ skeleton] + 3 LOW; Slice D 1 HIGH [PRD v1.24 dangling §[pass-24-f3-convergence] anchor — Pass-24 burst added delta-note without creating changelog entry] + 1 LOW [ledger gap]; ALL REMEDIATED — pass-24+pass-25 changelog entries created, all 19 PRD anchors resolve); clean-streak remains 0/3; NEXT = Pass 26 (clean-streak attempt 1/3).**
+**wirerust v0.6.0 RELEASED (DNP3 TCP analyzer, issue #8). Feature: ARP security analyzer + etherparse 0.16→0.20 migration (F1 PASSED 2026-06-12, D-066); release target v0.7.0. F2 CONVERGED (P33 CLEAN; 3/3 strict-whole-corpus). F3 ARP story decomposition: STORY-111..115 CREATED (epic E-16, 47 pts). D-068: benign GARP emits mitre_techniques: [] (BC-2.16.003 v1.7 + ADR-008 v2.0). D-069 SUPERSEDES D-067: IcsImpact Display canonical = "Impact (ICS)" (research-backed); src/mitre.rs:91 CORRECT as-is; F3-OBL-STORY114-001/002/003 REVOKED. F3 adversarial convergence STRICT 3/3 IN PROGRESS: Pass-26 remediation COMPLETE (Slice A ZERO [5th consec]; Slice B 1 MED [BC-2.15.007 EC-008 frame_len Some(290)→Some(291) — sibling-row miss from v1.1 EC-004 cleanup; matches shipped compute_dnp3_frame_len(254)=291]; Slice C ZERO [3rd consec]; Slice D 1 HIGH [STORY-INDEX total_points 447→457/wave-total 442→452/epic-total 447→457/pre-ARP 400→410 — per-story rows correct, grand totals stale; propagated to dep-graph + STATE summary]); ALL REMEDIATED; clean-streak remains 0/3; NEXT = Pass 27 (clean-streak attempt 1/3).**
 
-**Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 447 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (23 locked + VP-024 ARP draft, locks at STORY-113 F6), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — est. 18-24 new BCs (SS-16), 1 revised BC, VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE T0830 (primary) + T1557.002 (secondary).
+**Summary:** 68 stories (48 greenfield + 1 tooling + 19 feature-cycle), 457 pts. 283 BCs (244 pre-F2 + 24 SS-15 + 15 SS-16 ARP), 24 VPs (23 locked + VP-024 ARP draft, locks at STORY-113 F6), 1496 tests green, holdout 0.967. develop HEAD 31d1231; main HEAD 3e29891 (v0.6.0). ARP feature: F1 approved — est. 18-24 new BCs (SS-16), 1 revised BC, VP-024, ADR-008, 5-6 stories (E-16), 3-5 holdout scenarios. MITRE T0830 (primary) + T1557.002 (secondary).
 
 Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #202/#205 closed; develop 31d1231; etherparse 0.20 folded into ARP feature cycle (IN-PROGRESS).
 
@@ -83,11 +83,11 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 | Maintenance: Dependabot sweep (post-v0.6.0) | **COMPLETE** 2026-06-12 | 5 PRs merged (#203/#204/#207/#235/#206), 2 closed (#202 superseded, #205 deferred); develop 31d1231 |
 | Feature: ARP analyzer — F1 Delta Analysis | **PASSED** (human-gated 2026-06-12) | DecodedFrame{Ip,Arp} integration, ADR-008 planned, F2→F7 authorized; artifacts: `.factory/phase-f1-delta-analysis/arp-analyzer-delta-analysis.md` |
 | Feature: ARP analyzer — F2 Spec Evolution | **CONVERGED 3/3** (Pass 33, 2026-06-13); 33 passes total; P31/P32/P33 consecutive CLEAN; F2 strict-whole-corpus adversarial gate SATISFIED | 4-slice method; ARP delta SETTLED P9+; corpus-wide debt flushed P14-25; P26/P28/P31/P32/P33 CLEAN; P27/P29/P30 reset cycles surfaced+fixed genuine defects; trajectory: `phase-f5-adversarial/arp-f2-convergence-trajectory.md` |
-| Feature: ARP analyzer — F3 Story Decomposition | **IN PROGRESS** — stories created; adversarial convergence STRICT 3/3 in progress; Pass-25 remediation COMPLETE; clean-streak **0/3**; user-directed strict continuation | STORY-111..115 (E-16, 47 pts, linear chain); 15 SS-16 BCs; waves 40-44 holdouts; wave-40-44-holdout.md D14→BC-2.16.014 ×3 (F-ARP-C2 sibling-sweep miss corrected); STORY-114 v1.1 HS-008:75 line-pins de-pinned; spec-changelog pass-24+pass-25 entries created; all 19 PRD anchors resolve; next = Pass 26 (clean-streak attempt 1/3) |
+| Feature: ARP analyzer — F3 Story Decomposition | **IN PROGRESS** — stories created; adversarial convergence STRICT 3/3 in progress; Pass-26 remediation COMPLETE; clean-streak **0/3**; user-directed strict continuation | STORY-111..115 (E-16, 47 pts, linear chain); 15 SS-16 BCs; waves 40-44 holdouts; BC-2.15.007 v1.4 EC-008 290→291; STORY-INDEX v1.5 totals 447→457/442→452/400→410; dep-graph 452/457; corpus canonical 457 pts; next = Pass 27 (clean-streak attempt 1/3) |
 
-## Session Resume Checkpoint (2026-06-14 — F3 ARP adversarial convergence — Pass-25 remediation complete; strict 3/3 in progress)
+## Session Resume Checkpoint (2026-06-14 — F3 ARP adversarial convergence — Pass-26 remediation complete; strict 3/3 in progress)
 
-**Previous checkpoint (2026-06-14 — F3 ARP adversarial convergence — Pass-24 remediation complete) archived to:
+**Previous checkpoint (2026-06-14 — F3 ARP adversarial convergence — Pass-25 remediation complete) archived to:
 `cycles/feature-arp-v0.7.0/session-checkpoints.md`**
 
 ### A. EXACT PIPELINE POSITION
@@ -103,9 +103,9 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
   updated. All 5 ARP stories MATCH: STORY-111=d5bda72, STORY-112=268f53f, STORY-113=a767d96,
   STORY-114=e2f1c95, STORY-115=5ca9835.
 - **F3 Adversarial Convergence:** STRICT WHOLE-CORPUS, IN PROGRESS.
-  **Pass-25 remediation is COMPLETE. Clean-streak: 0/3.**
+  **Pass-26 remediation is COMPLETE. Clean-streak: 0/3.**
   **USER DIRECTIVE (2026-06-14): CONTINUE STRICT 3/3 indefinitely.**
-  **NEXT ACTION: Run Pass 26 (clean-streak attempt 1/3).**
+  **NEXT ACTION: Run Pass 27 (clean-streak attempt 1/3).**
 
 ### B. F3 CONVERGENCE STATUS
 
@@ -118,8 +118,8 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
   fully-clean passes required. Adversary: CLAUDE (Agent tool, `vsdd-factory:adversary`).
   agy is UNUSABLE (40-step cap + quota-exhausted). Absolute paths, no cd (DF-ADVERSARY-METHODOLOGY-001).
 - **Pass 17** = first fully-clean pass. **Pass 18** broke streak (VP title-sync).
-  **Passes 19/20/21/22/23/24/25** each surfaced+remediated genuine items.
-  **Pass-25 remediation COMPLETE** (Slice A ZERO [4th consec]; Slice B ZERO [1st clean]; Slice C 1 HIGH [wave-40-44-holdout.md D14→BC-2.16.014 ×3 — F-ARP-C2 sibling-sweep miss in feature/wave-holdout-scenarios/ skeleton] + 3 LOW [STORY-113:293 + HS-008:75 line-pin de-pins; storm frame-count]; Slice D 1 HIGH [PRD v1.24 dangling §[pass-24-f3-convergence] anchor — Pass-24 added delta-note without creating changelog entry] + 1 LOW [ledger gap]; ALL REMEDIATED; pass-24+pass-25 changelog entries created, all 19 PRD anchors resolve).
+  **Passes 19/20/21/22/23/24/25/26** each surfaced+remediated genuine items.
+  **Pass-26 remediation COMPLETE** (Slice A ZERO [5th consec]; Slice B 1 MED [BC-2.15.007 EC-008 frame_len Some(290)→Some(291) — sibling-row miss from v1.1 EC-004 cleanup; matches shipped compute_dnp3_frame_len(254)=291]; Slice C ZERO [3rd consec]; Slice D 1 HIGH [STORY-INDEX total_points 447→457, wave-TOTAL 442→452, epic-TOTAL 447→457, pre-ARP 400→410 — per-story rows correct, grand totals stale; propagated to dependency-graph.md + STATE summary; root cause: pre-ARP grand total was 10 low]; ALL REMEDIATED; BC-2.15.007 v1.4; STORY-INDEX v1.5; dep-graph 452/457; STATE summary 457 pts).
 - 3 deep flush audits completed and cleared: (1) dependency-graph whole-file audit;
   (2) VP-layer + index title-sync audit; (3) story-completeness (BC-PC→AC→test) audit.
   Wave-28-34 dependency-graph gap closed.
@@ -148,6 +148,7 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 | arp-architecture-delta.md | v1.15 |
 | BC-2.16.003 | v1.8 |
 | BC-2.16.004 | v1.7 |
+| BC-2.15.007 | v1.4 (EC-008 frame_len Some(290)→Some(291); sibling-row miss from v1.1 EC-004 cleanup; matches shipped compute_dnp3_frame_len(254)=291) |
 | BC-2.16.007 | v1.3 |
 | BC-2.16.010 | v1.7 |
 | BC-2.10.002 | v1.5 |
@@ -163,6 +164,8 @@ Post-release sweep 2026-06-12: 5 dep bumps merged (#203/#204/#207/#235/#206), #2
 | BC-2.15.017 | v1.4 (REVERT Pass-22 erroneous rename: DNPXX_DIRECT_OPERATE_THRESHOLD_DEFAULT is canonical shipped name per src/analyzer/dnp3.rs:169 + cli.rs:16/183 + main.rs:192 + STORY-110; broken v1.3 "DNP3_" rename superseded) |
 | BC-2.15.023 | v1.4 (canonical-frame LEN 9→8; DF-SIBLING-SWEEP-001 sibling to BC-2.15.011 fix) |
 | BC-2.15.001..024 | all 24 story-anchors back-filled to STORY-106..110 |
+| STORY-INDEX.md | v1.5 (total_points 447→457, wave-TOTAL 442→452, epic-TOTAL 447→457, pre-ARP 400→410; all 68 per-story rows verified 0 mismatches) |
+| dependency-graph.md | updated (Total story points 442/447 → 452/457) |
 | dep-graph-extended.md | SUPERSEDED (edge-count 86→84; pointer to dependency-graph.md) |
 
 STORY-114 inputs include BC-2.16.007 (cross-story). All 16 SS-16 BC story-anchors back-filled.
@@ -204,6 +207,10 @@ DRIFT-PRD-V120-MBAPFRAMER-001 = RESOLVED (PRD v1.22 corrected MbapFramer prose).
   both [pass-24-f3-convergence-2026-06-14] and [pass-25-f3-convergence-2026-06-14] entries.
   All 19 live PRD §[anchor] citations verified to resolve (excluding the intentional sealed-history
   quote at prd.md:298). Zero dangling anchors.
+- **Canonical point total = 457 (410 pre-ARP E-1..E-15 + 47 E-16 ARP); wave-table excl
+  STORY-091 = 452; STORY-091 tooling = 5.** Prior values 447/442/400 were stale (pre-ARP grand
+  total was 10 low; propagated before ARP +47 was added). Do NOT flag 457/452/410 as incorrect.
+  All 68 per-story points-cells verified to match story files (0 mismatches; Pass-26 Slice D).
 
 ### F. PROCESS-GAP CODIFICATION BACKLOG (for cycle-close)
 
@@ -231,6 +238,13 @@ DRIFT-PRD-V120-MBAPFRAMER-001 = RESOLVED (PRD v1.22 corrected MbapFramer prose).
   feature/wave-holdout-scenarios/wave-40-44-holdout.md. Candidate codification: extend
   DF-SIBLING-SWEEP-001 to enumerate feature/wave-holdout-scenarios/ as a required propagation
   perimeter for any detection-ID change.
+- **PG-ARP-F3-INDEX-TOTAL (Pass-26):** STORY-INDEX grand-total (total_points, wave-TOTAL,
+  epic-TOTAL, pre-ARP subtotal) MUST be recomputed as the sum of per-story `points:` fields
+  whenever any story's points change. Stale hand-entered totals drifted 10 pts undetected across
+  multiple cycles (pre-ARP total was 400, correct value is 410; propagated stale 447/442 into
+  STORY-INDEX header, dependency-graph.md, and STATE.md summary). Candidate gate: F3-entry
+  recompute check that sums all `points:` frontmatter values and diffs against STORY-INDEX
+  grand totals before adversarial convergence begins.
 
 ### G. DEFERRED ITEMS (must not be lost)
 

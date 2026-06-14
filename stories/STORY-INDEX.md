@@ -1,13 +1,17 @@
 ---
 document_type: story-index
-version: "1.4"
+version: "1.5"
 status: draft
 producer: story-writer
-timestamp: 2026-06-13T00:00:00Z
+timestamp: 2026-06-14T00:00:00Z
 phase: 3
 total_stories: 68
 total_waves: 44
-total_points: 447
+total_points: 457
+# v1.5 totals reconciliation (Pass-26 Slice-D remediation):
+# Root cause: the "400 pre-ARP" figure in v1.4 was itself 10 low (actual pre-ARP incl STORY-091 = 410).
+# 410 pre-ARP + 47 E-16 ARP = 457 grand total. Wave table (excl STORY-091) = 452.
+# All 68 per-story index cells verified against story files — zero mismatches found.
 traces_to:
   - .factory/stories/dependency-graph.md
   - .factory/stories/epics.md
@@ -152,7 +156,7 @@ traces_to:
 | 42 | STORY-113 | 1 | 13 |
 | 43 | STORY-114 | 1 | 13 |
 | 44 | STORY-115 | 1 | 8 |
-| **TOTAL (excl. STORY-091, wave-TBD)** | | **67** | **442** |
+| **TOTAL (excl. STORY-091, wave-TBD)** | | **67** | **452** |
 
 ---
 
@@ -176,7 +180,7 @@ traces_to:
 | E-14: Modbus TCP Analyzer (v0.4.0 / issue #7) | STORY-102, STORY-103, STORY-104, STORY-105 | 4 | 37 |
 | E-15: DNP3/ICS Analyzer (issue #8) | STORY-106, STORY-107, STORY-108, STORY-109, STORY-110 | 5 | 47 |
 | E-16: ARP Security Analyzer (issue #9) | STORY-111, STORY-112, STORY-113, STORY-114, STORY-115 | 5 | 47 |
-| **TOTAL** | | **68** | **447** |
+| **TOTAL** | | **68** | **457** |
 
 ---
 
@@ -233,7 +237,7 @@ traces_to:
 
 - Total stories: **68** (48 greenfield product + 1 tooling STORY-091 + 3 F3 feature STORY-097/098/099 + 6 Feature-#7 STORY-100..105 + 5 Feature-#8 STORY-106..110 + 5 Feature-#9 STORY-111..115)
 - Total waves: **44** (Waves 40–44 added for Feature #9 ARP; STORY-091 wave TBD)
-- Total points: **447** (400 pre-ARP + 47 E-16 ARP; wave-total row shows 442 — delta of 5 is STORY-091 at wave TBD excluded from wave table)
+- Total points: **457** (410 pre-ARP + 47 E-16 ARP; wave-total row shows 452 — delta of 5 is STORY-091 at wave TBD excluded from wave table)
 - Graph is acyclic: **Yes** (Kahn topological sort verified; Feature-#7 dependency chain: STORY-100 → {STORY-101 ∥ STORY-102} → STORY-103 → STORY-104 → STORY-105; Feature-#8 DNP3 chain: STORY-100 → STORY-106 → STORY-107 → STORY-108 → STORY-109 → STORY-110; Feature-#9 ARP chain: STORY-110 → STORY-111 → STORY-112 → STORY-113 → STORY-114 → STORY-115; no back-edges into existing 67-story graph)
 - All 10 product epics + E-11 (Tooling) + E-12 (Pcap Timestamps) + E-13 (Multi-Tag Migration) + E-14 (Modbus) + E-15 (DNP3) + E-16 (ARP) covered: **Yes**
 - All 219 greenfield BCs assigned + F2 additions + BC-2.09.001/006 (shared, extended in STORY-100) + BC-2.10.005/007/008 (extended in STORY-100) + BC-2.11.001/013/015/017/020/024 (extended in STORY-101) + BC-2.14.001..025 (new Modbus BCs in STORY-102..105) + BC-2.15.001..024 (new DNP3 BCs in STORY-106..110) + BC-2.02.009 (revised in STORY-111) + BC-2.16.001..015 (new ARP BCs in STORY-111..115): **Yes** (total 283 BCs)
