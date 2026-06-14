@@ -14,7 +14,6 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-14/BC-2.14.012.md
   - .factory/phase-f2-spec-evolution/architecture-delta.md
   - .factory/phase-f2-spec-evolution/f2-fix-directives.md
-input-hash: TBD
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-102]

@@ -14,6 +14,73 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-30-fixes-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-30 — Three FlowKey non-existent-accessor fixes (B-01/B-02/B-03 HIGH) + Story YAML dedup (C-01 HIGH)
+
+#### B-01/B-02 HIGH — BC-2.14.020: source_ip uses non-existent FlowKey accessors (v2.2 → v2.3)
+
+`FlowKey` exposes only `lower_ip()`, `upper_ip()`, `lower_port()`, `upper_port()`. The
+`client_ip()` and `server_ip()` accessors referenced in BC-2.14.020 do not exist. The
+F5 spec defect fix swept sibling BCs BC-2.14.013/014/015/017 and BC-2.14.019 but missed
+BC-2.14.020.
+
+- **B-01** (Unknown FC path postcondition): `source_ip: Some(flow_key.client_ip()) if ClientToServer; Some(flow_key.server_ip()) if ServerToClient` replaced with Direction-resolved endpoint description: resolve source endpoint from `direction` arg + `flow_key.lower_ip()`/`upper_ip()`, matching BC-2.14.019 §Path A/B and `src/analyzer/modbus.rs:374-381`.
+- **B-02** (EC-010 edge case): `source_ip = flow_key.server_ip()` replaced with direction-resolved server/responder endpoint from `Direction::ServerToClient` and `flow_key.lower_ip()`/`flow_key.upper_ip()`, citing `FlowKey` has no `server_ip()` accessor.
+
+**BC-2.14.020 bumped v2.2 → v2.3.** BC-INDEX annotation updated.
+
+**Verified against exemplar:**
+- BC-2.14.019 §Path A line ~104: "resolve server endpoint from `direction` arg and `flow_key.lower_ip()` / `flow_key.upper_ip()`"
+- BC-2.14.019 §Path B line ~125-127: "resolved from `Direction::ClientToServer` and `flow_key.lower_ip()` / `flow_key.upper_ip()`"
+- `src/analyzer/modbus.rs:374-381`: confirms `FlowKey` has no `client_ip()`/`server_ip()` (comment at line 375 notes this); resolves via port-502 heuristic + `lower_ip()`/`upper_ip()`.
+
+#### B-03 HIGH — BC-2.14.018: source_ip uses non-existent FlowKey accessor (v1.2 → v1.3)
+
+- **B-03** (postcondition line ~78): `source_ip: Some(flow_key.client_ip())` replaced with Direction-resolved client/initiator endpoint description matching BC-2.14.019 §Path B and `src/analyzer/modbus.rs:374-381`.
+
+**BC-2.14.018 bumped v1.2 → v1.3.** BC-INDEX annotation updated.
+
+**H1 titles unchanged:** BC-2.14.018 "Diagnostics FC 0x08 Sub-Function 0x0004 or 0x0001 Emits T0814 Denial of Service Finding" and BC-2.14.020 "Reconnaissance Function Codes (0x11, 0x2B/0x0E) Emit T0888 Remote System Information Discovery Finding" — confirmed identical to pre-patch.
+
+#### C-01 HIGH — STORY-100..105: duplicate input-hash YAML keys removed
+
+Each of the 6 story files had two top-level `input-hash:` keys in frontmatter — an early `input-hash: TBD` placeholder that was not removed when the real computed hash was added. Duplicate YAML mapping keys are invalid per the YAML 1.2 spec (behavior is parser-defined and typically last-value-wins, but the TBD placement made the intent ambiguous and is non-conforming).
+
+**Fix:** Removed the `input-hash: TBD` line from each file, retaining the single real computed hash. Then verified and re-stamped all hashes using `bin/compute-input-hash --write` (canonical tool per CLAUDE.md).
+
+| File | TBD removed | Stored hash after dedup | Computed hash | Result |
+|------|-------------|------------------------|---------------|--------|
+| STORY-100.md | yes | `602b80b` | `602b80b` | MATCH |
+| STORY-101.md | yes | `dc3fa11` | `dc3fa11` | MATCH |
+| STORY-102.md | yes | `9477090` | `9477090` | MATCH |
+| STORY-103.md | yes | `3b37229` | `3b37229` | MATCH |
+| STORY-104.md | yes | `e5c9d7e` | `e5c9d7e` | MATCH |
+| STORY-105.md | yes | `1eb4675` | `1eb4675` | MATCH |
+
+STORY-103 hash was already correct (`3b37229`) from the original real hash. STORY-104 hash changed from the prior stamped value because BC-2.14.018 and BC-2.14.020 (both in its `inputs:` list) were modified by B-01/B-02/B-03 in this pass — re-stamp is correct and expected. STORY-100/101/102/105 hashes also drifted from their pre-dedup values, indicating the BC/input files changed since they were originally stamped (unrelated prior drift, correctly resolved by re-stamping).
+
+No story body content was modified — this is a frontmatter YAML-dedup + hash-verification only. No story-writer propagation needed.
+
+#### Architect A-01 bump (logged per task)
+
+ADR-006 bump noted by architect in this pass cycle. No direct file touch by product-owner (architect owns ADR-006); logged here per F-D4-I1 obligation.
+
+| Artifact | Change |
+|----------|--------|
+| BC-2.14.018 | v1.2 → v1.3 (B-03: source_ip Direction-resolved) |
+| BC-2.14.020 | v2.2 → v2.3 (B-01/B-02: source_ip Direction-resolved) |
+| BC-INDEX.md | v1.3 annotation added for BC-2.14.018; v2.3 annotation added for BC-2.14.020 |
+| STORY-100.md | TBD dedup; hash `b69a886` → `602b80b` (re-stamped) |
+| STORY-101.md | TBD dedup; hash `2c5e1cf` → `dc3fa11` (re-stamped) |
+| STORY-102.md | TBD dedup; hash `b08b6ca` → `9477090` (re-stamped) |
+| STORY-103.md | TBD dedup; hash `3b37229` unchanged (was already correct) |
+| STORY-104.md | TBD dedup; hash `6eeea2c` → `e5c9d7e` (re-stamped; BC-018/020 inputs changed) |
+| STORY-105.md | TBD dedup; hash `a9ac815` → `1eb4675` (re-stamped) |
+| spec-changelog.md | This entry |
+
+---
+
 ## [pass-29-fixes-2026-06-13] — 2026-06-13
 
 ### PATCH: Pass-29 PRD findings D-01 (MED FC 0x17 omitted from write-set) + D-02 (LOW broken changelog anchor)

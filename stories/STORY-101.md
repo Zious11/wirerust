@@ -16,7 +16,6 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-11/BC-2.11.024.md
   - .factory/phase-f2-spec-evolution/f2-fix-directives.md
   - .factory/phase-f2-spec-evolution/prd-delta.md
-input-hash: TBD
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-100]
@@ -41,7 +40,7 @@ tdd_mode: strict
 feature_id: issue-007-modbus-analyzer
 github_issue: 7
 # BC status: all BCs authored at v1.5/v1.6 as of 2026-06-09
-input-hash: "2c5e1cf"
+input-hash: "dc3fa11"
 ---
 
 # STORY-101: Multi-Tag Reporter Serialization + JSON Envelope Add-Ons

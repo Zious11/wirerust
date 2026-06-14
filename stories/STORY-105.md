@@ -13,7 +13,6 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-14/BC-2.14.025.md
   - .factory/phase-f2-spec-evolution/architecture-delta.md
   - .factory/phase-f2-spec-evolution/f2-fix-directives.md
-input-hash: TBD
 traces_to: .factory/specs/prd.md
 points: 8
 depends_on: [STORY-104]
@@ -35,7 +34,7 @@ tdd_mode: strict
 feature_id: issue-007-modbus-analyzer
 github_issue: 7
 # BC status: BC-2.14.023/024/025 authored at v1.0/v2.0 as of 2026-06-09
-input-hash: "a9ac815"
+input-hash: "1eb4675"
 ---
 
 # STORY-105: Modbus Dispatcher Integration + CLI

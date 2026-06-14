@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -20,6 +20,9 @@ modified:
   - version: "1.2"
     date: 2026-06-10
     change: "v19 remap: T0855 → T1692.001 per MITRE ATT&CK for ICS v19.0 revocation. T0855 reference in Invariant 3 updated to T1692.001. Tactic unchanged: IcsImpairProcessControl. Issue #222; audit: mitre-ics-v19-catalog-audit.md."
+  - version: "1.3"
+    date: 2026-06-13
+    change: "Pass-30 B-03: source_ip postcondition corrected — flow_key.client_ip() is a non-existent accessor (FlowKey exposes only lower_ip/upper_ip/lower_port/upper_port). Replaced with Direction-resolved endpoint form: resolve client/initiator endpoint from direction == ClientToServer combined with flow_key.lower_ip()/upper_ip(), matching the pattern in BC-2.14.019 §Path B and src/analyzer/modbus.rs:374-381."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -75,7 +78,11 @@ sub-function value is extracted from the 2 bytes immediately following the FC by
    - `summary` (sub-func 0x0001): `"Modbus DoS: Restart Communications sent to unit {unit_id}"`
    - `evidence`: one entry — `"FC=0x08 SubFunc=0x{sub_func:04X} TxnID={txn_id:#06X} UnitID={unit_id} ADU bytes {start}..{end}"`.
    - `mitre_techniques: vec!["T0814".to_string()]`
-   - `source_ip: Some(flow_key.client_ip())`
+   - `source_ip: Some(<client/initiator endpoint>)` — resolved from `Direction::ClientToServer`
+     and `flow_key.lower_ip()` / `flow_key.upper_ip()`. `FlowKey` has no `client_ip()`
+     accessor; the client/initiator endpoint is determined from the `direction` arg combined
+     with the flow key's lower/upper address pair (matching BC-2.14.019 §Path B and
+     `src/analyzer/modbus.rs` direction-resolved endpoint pattern).
    - `timestamp: Some(...)` — pcap-relative capture timestamp per BC-2.09.007.
    - `direction: Some(Direction::ClientToServer)`
 2. `self.fn_code_counts.entry(0x08)` incremented by 1.

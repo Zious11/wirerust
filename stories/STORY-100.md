@@ -16,7 +16,6 @@ inputs:
   - .factory/phase-f2-spec-evolution/f2-fix-directives.md
   - .factory/phase-f2-spec-evolution/prd-delta.md
   - .factory/research/f2-decomposition-sequencing.md
-input-hash: TBD
 traces_to: .factory/specs/prd.md
 points: 13
 depends_on: []
@@ -42,7 +41,7 @@ tdd_mode: strict
 feature_id: issue-007-modbus-analyzer
 github_issue: 7
 # BC status: all BCs authored and confirmed at v1.4/v1.5 as of 2026-06-09
-input-hash: "b69a886"
+input-hash: "602b80b"
 ---
 
 # STORY-100: Multi-Tag Finding Schema Migration (Atomic Type Rename + Catalog Seed)

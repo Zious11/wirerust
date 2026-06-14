@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "2.2"
+version: "2.3"
 status: draft
 producer: product-owner
 timestamp: 2026-06-09T00:00:00Z
@@ -23,6 +23,9 @@ modified:
   - version: "2.2"
     date: 2026-06-13
     change: "ARP-F2 Pass-14 Burst-3 (B-03/B-04): Invariant 6 SEEDED/EMITTED counts updated from Decision-12-era '21 total'/'13 total, 7 ICS' to canonical 'SEEDED 25 / EMITTED 17 (7 Enterprise + 10 ICS)' with forward-declaration note (current src 23/15, target 25/17 via STORY-114) matching BC-2.10.005/008 phrasing. Source Evidence path for architecture-delta.md §4.3 annotated as Decision-12-era counts (superseded by 25/17 after ARP feature). Historical §12.3 label preserved."
+  - version: "2.3"
+    date: 2026-06-13
+    change: "Pass-30 B-01/B-02: source_ip postconditions corrected — flow_key.client_ip()/server_ip() are non-existent accessors (FlowKey exposes only lower_ip/upper_ip/lower_port/upper_port). Unknown FC path postcondition (line ~96) and EC-010 edge case (line ~180) rewritten to Direction-resolved endpoint form matching BC-2.14.019 §Path A/B and src/analyzer/modbus.rs:374-381."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -93,7 +96,13 @@ Exception FCs (>= 0x80) are handled by BC-2.14.007 / BC-2.14.019.
    - `summary`: `"Modbus unknown function code: 0x{fc:02X} on unit {unit_id}"`
    - `evidence`: one entry — `"FC=0x{fc:02X} TxnID={txn_id:#06X} UnitID={unit_id} ADU bytes {start}..{end}"`.
    - `mitre_techniques: vec![]` (empty — no technique attributed for genuinely unknown FCs)
-   - `source_ip: Some(flow_key.client_ip())` if ClientToServer; `Some(flow_key.server_ip())` if ServerToClient.
+   - `source_ip: Some(<direction-resolved endpoint>)` — `FlowKey` has no `client_ip()` or
+     `server_ip()` accessor; resolve the source endpoint from the `direction` arg and
+     `flow_key.lower_ip()` / `flow_key.upper_ip()` (matching BC-2.14.019 §Path A/B and
+     `src/analyzer/modbus.rs` direction-resolved endpoint pattern). For `ClientToServer`
+     the client/initiator endpoint is derived from the direction value; for `ServerToClient`
+     the server/responder endpoint is derived from the direction value combined with the
+     flow key's lower/upper address pair.
    - `timestamp: Some(...)` — pcap-relative capture timestamp per BC-2.09.007.
    - `direction: Some(direction)` — the direction parameter from `on_data`.
 
@@ -177,7 +186,7 @@ Exception FCs (>= 0x80) are handled by BC-2.14.007 / BC-2.14.019.
 | EC-007 | FC=0x07 (Read Exception Status) | NOT flagged as standalone recon. No T0888 or T0846 finding. `fn_code_counts[0x07]++` normal accounting only. |
 | EC-008 | `all_findings.len() == MAX_FINDINGS` when unknown FC arrives | No finding pushed (poison-skip). `fn_code_counts` incremented normally. |
 | EC-009 | Multiple consecutive FC=0x11 PDUs from the same source | Each emits a separate T0888 Anomaly finding (no deduplication). Cap guard applies per finding. |
-| EC-010 | FC=0x11 in response direction (server to client) | Recon Anomaly still emitted (the response confirms the device responded to the recon probe; the recon signal exists regardless of direction). `source_ip` = `flow_key.server_ip()`. |
+| EC-010 | FC=0x11 in response direction (server to client) | Recon Anomaly still emitted (the response confirms the device responded to the recon probe; the recon signal exists regardless of direction). `source_ip` = direction-resolved server/responder endpoint from `Direction::ServerToClient` and `flow_key.lower_ip()`/`flow_key.upper_ip()` — `FlowKey` has no `server_ip()` accessor (matching BC-2.14.019 §Path A). |
 
 ## Canonical Test Vectors
 

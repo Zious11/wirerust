@@ -20,7 +20,6 @@ inputs:
   - .factory/specs/behavioral-contracts/ss-14/BC-2.14.022.md
   - .factory/phase-f2-spec-evolution/architecture-delta.md
   - .factory/phase-f2-spec-evolution/f2-fix-directives.md
-input-hash: TBD
 traces_to: .factory/specs/prd.md
 points: 13
 depends_on: [STORY-103]
@@ -48,7 +47,7 @@ tdd_mode: strict
 feature_id: issue-007-modbus-analyzer
 github_issue: 7
 # BC status: all 10 BCs authored at v2.0 (multi-tag) as of 2026-06-09
-input-hash: "6eeea2c"
+input-hash: "e5c9d7e"
 ---
 
 # STORY-104: Modbus Detection Emissions + Summary

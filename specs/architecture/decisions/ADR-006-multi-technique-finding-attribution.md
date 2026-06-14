@@ -11,6 +11,9 @@ modified:
   - date: 2026-06-13
     actor: architect
     reason: "Pass-12 corpus debt cleanup (F-5/OBS-1): status proposed→accepted. mitre_techniques: Vec<String> is shipped in src/findings.rs; all emission sites migrated."
+  - date: 2026-06-13
+    actor: architect
+    reason: "Pass-30 A-01 (MED): correct FC bucket tables. Register-write set updated to {0x06,0x10,0x16,0x17} (line 3 of precedence list); 0x17 removed from T1692.001-only bucket (canonical table row). Now consistent with modbus.rs:519 and BC-2.14.014 ORCHESTRATOR RULING."
 subsystems_affected:
   - SS-09
   - SS-10
@@ -109,7 +112,7 @@ of runtime evaluation order:
 
 1. **T0806** — Brute Force I/O (burst/rate-level technique; only present on burst findings)
 2. **T1692.001** — Unauthorized Message: Command Message (always present on write-class and burst findings)
-3. **T0836** — Modify Parameter (register writes: FC {0x06, 0x10, 0x16})
+3. **T0836** — Modify Parameter (register writes: FC {0x06, 0x10, 0x16, 0x17})
 4. **T0835** — Manipulate I/O Image (coil writes: FC {0x05, 0x0F})
 5. **T0831** — Manipulation of Control (inline co-tag on the triggering holding-register write)
 6. **T0814** — Denial of Service (diagnostic sub-function findings)
@@ -122,7 +125,7 @@ of runtime evaluation order:
 | Register write (normal) | `["T1692.001", "T0836"]` |
 | Register write (T0831 co-tag fires) | `["T1692.001", "T0836", "T0831"]` |
 | Coil write | `["T1692.001", "T0835"]` |
-| Other write FC (0x15, 0x17) | `["T1692.001"]` |
+| Other write FC (0x15) | `["T1692.001"]` |
 | Burst or sustained rate exceeded | `["T0806", "T1692.001"]` |
 | Diagnostic sub-func 0x0001 or 0x0004 | `["T0814"]` |
 | Recon FC (0x11, 0x2B/0x0E) | `["T0888"]` |

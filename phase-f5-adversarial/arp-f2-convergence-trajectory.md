@@ -69,10 +69,11 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 27 (whole-corpus, Claude) | 2026-06-13 | 2 | 0 | 0 | 2 | 0 | MED | **0/3 (reset from 1/3)** | NOT_CLEAN→REMEDIATED |
 | 28 (whole-corpus, Claude) | 2026-06-13 | 0 | 0 | 0 | 0 | 0 | NONE | **1/3** | **CLEAN** |
 | 29 (whole-corpus, Claude) | 2026-06-13 | 3 | 0 | 0 | 2 | 1 | MED | **0/3 (reset from 1/3)** | NOT_CLEAN→REMEDIATED |
+| 30 (whole-corpus, Claude) | 2026-06-13 | 5 | 0 | 4 | 1 | 0 | HIGH | **0/3** | NOT_CLEAN→REMEDIATED |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)→P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED)→P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED)→P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED)→P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED)→ P26 CLEAN 1/3 (all 4 slices zero findings; corpus-wide debt flushed P14-25) → P27 reset 1/3→0/3 (HS-008 kill-chain + HS-INDEX pin; holdout-pin-hardened) → P28 CLEAN 1/3 (restart after P27 reset; all 4 slices zero findings; on post-P27 corpus with holdout kill-chain + version-pin fixes) → P29(3: DNP3 T1692.001 + PRD FC-0x17 + anchor; reset 1/3→0/3; REMEDIATED)`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)→P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED)→P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED)→P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED)→P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED)→ P26 CLEAN 1/3 (all 4 slices zero findings; corpus-wide debt flushed P14-25) → P27 reset 1/3→0/3 (HS-008 kill-chain + HS-INDEX pin; holdout-pin-hardened) → P28 CLEAN 1/3 (restart after P27 reset; all 4 slices zero findings; on post-P27 corpus with holdout kill-chain + version-pin fixes) → P29(3: DNP3 T1692.001 + PRD FC-0x17 + anchor; reset 1/3→0/3; REMEDIATED) → P30(5: FlowKey non-existent-accessor HIGH ×3 + STORY input-hash dup-key HIGH + ADR-006 FC-0x17; 4H; REMEDIATED — grind found real bugs)`
 
 Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3→0→0→0→0→0→0 — DECAYING on CRITICAL
 (0 for 7 of last 8 passes: P16+P18+P19+P20+P21+P22+P23+P24).
@@ -99,10 +100,10 @@ ss-01/02/04-rest/08/11/12/13 STILL PENDING before Pass 20. Counter 0/3.
 
 ## Convergence Counter
 
-**0/3** consecutive clean passes. **Counter RESET at Pass 29 (from 1/3).**
+**0/3** consecutive clean passes. **Counter RESET at Pass 30 (from 0/3 — remains 0/3 after genuine defects found).**
 **STRICT WHOLE-CORPUS mode** (human-elected 2026-06-12; scope extended 2026-06-13): zero
 findings of ANY severity (including LOW) across the ENTIRE spec corpus (not just ARP delta)
-required for 3 consecutive clean passes. 29 passes run. Pass 14 REMEDIATED (22 findings:
+required for 3 consecutive clean passes. 30 passes run. Pass 14 REMEDIATED (22 findings:
 mitre_techniques field-rename corpus sweep + O-01 closure propagation + architect ×2 + PO ×10
 bursts + consistency audit CONSISTENT). Pass 15 REMEDIATED (8 findings: holdout-scenarios
 field-rename sweep [C-01/02/03, 16 files] + inv-01 YAML regression [C-04] + VP-024 scope
@@ -246,6 +247,47 @@ cosmetics — fresh-context variance surfaced real gaps that P26 and P28 overloo
 alternating clean(P26/P28)/found(P27/P29); each fix improves corpus correctness.
 Counter **0/3** after Pass 29 reset. Next = whole-corpus Pass 30 via Claude adversary.
 Trajectory P27-P29: 2 (NOT_CLEAN→REMEDIATED) → 0 (CLEAN 1/3 restart) → 3 (NOT_CLEAN→REMEDIATED).
+
+Pass 30 NOT_CLEAN→REMEDIATED — **Slice D CLEAN; Slices A/B/C found 5 genuine defects (4 HIGH + 1 MED). Counter stays 0/3.**
+Slice D returned ZERO findings. Slices A, B, C surfaced 4 genuine HIGH + 1 genuine MED defects that
+16 prior passes had missed — concrete proof the whole-corpus grind has real ongoing value.
+
+B-01 HIGH (PO): BC-2.14.018 postcondition and EC mandated `flow_key.client_ip()` / `flow_key.server_ip()` —
+non-existent FlowKey accessors. src/analyzer/modbus.rs:375 explicitly comments these BCs "cite a
+non-existent API"; an implementer would write non-compiling code. Root cause: the v2.2 F5 sibling
+fix that corrected BC-2.14.013/014/015/017/019 to direction-resolved endpoint form was never
+propagated to BC-2.14.018. Fixed: BC-2.14.018 postconditions and EC rewritten to direction-resolved
+form using flow_key.lower_ip()/upper_ip() + direction. BC-2.14.018 v1.2→v1.3.
+
+B-02 HIGH (PO): BC-2.14.020 postcondition mandated `flow_key.client_ip()` / `flow_key.server_ip()` —
+same non-existent FlowKey accessor class as B-01. Same root cause (v2.2 F5 sibling fix missed
+BC-2.14.020 along with BC-2.14.018). Fixed: BC-2.14.020 postconditions rewritten to direction-resolved
+form using flow_key.lower_ip()/upper_ip() + direction. BC-2.14.020 v2.2→v2.3.
+
+B-03 HIGH (PO): BC-INDEX entries for BC-2.14.018 and BC-2.14.020 carried stale title/version
+annotations reflecting the pre-fix postcondition text. Fixed: BC-INDEX updated to reflect v1.3
+and v2.3 respectively.
+
+C-01 HIGH (PO): STORY-100..STORY-105 (6 files) each had DUPLICATE `input-hash:` YAML keys —
+a TBD placeholder from story generation was never removed when the real hash was stamped in,
+leaving two `input-hash:` keys in the YAML frontmatter (invalid YAML per spec; first key would
+shadow second in strict parsers). Removed the TBD placeholder key from all 6 files; re-stamped
+via `bin/compute-input-hash --write` (all 6 now report MATCH). STORY-104 hash legitimately changed
+(old hash was computed against pre-B-01/B-02 BCs; new hash e5c9d7e reflects the corrected
+BC-2.14.018 v1.3 input).
+
+A-01 MED (architect): ADR-006 attribution table at lines 112 and 125 mis-bucketed FC 0x17 —
+placed it in the T1692.001-only bucket when the canonical/shipped modbus.rs:519 implementation
+has 0x17 in the register-write set {0x06, 0x10, 0x16, 0x17} mapping to T0836 (not T1692.001).
+Fixed: ADR-006 attribution table lines 112 and 125 corrected to place FC 0x17 in the T0836
+register-write bucket.
+
+Counter **0/3** after Pass 30 — 4 HIGH genuine defects found; counter does not advance on NOT_CLEAN pass.
+Process note (PG-ARP-F2-009): the F5 FlowKey-accessor fix (v2.2) swept 5 of 7 ss-14 direction-resolution
+BCs but missed 018/020; sibling-sweep completeness for code-vs-spec API fixes must enumerate ALL
+sibling BCs in the same subsystem before closing a fix burst. STORY input-hash dup-key (TBD
+placeholder + real hash both present) is a new frontmatter-validity defect class.
+Trajectory P28-P30: 0 (CLEAN 1/3 restart) → 3 (NOT_CLEAN→REMEDIATED) → 5 (NOT_CLEAN→REMEDIATED; 4H genuine).
 
 ## Core Semantics — Confirmed Clean (Settled)
 
