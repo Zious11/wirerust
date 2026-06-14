@@ -66,10 +66,11 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 24 (whole-corpus, Claude) | 2026-06-13 | 4 | 0 | 1 | 2 | 1 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 | 25 (whole-corpus, Claude) | 2026-06-13 | 2 | 0 | 0 | 2 | 0 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 | 26 (whole-corpus, Claude) | 2026-06-13 | 0 | 0 | 0 | 0 | 0 | NONE | **1/3** | **CLEAN** |
+| 27 (whole-corpus, Claude) | 2026-06-13 | 2 | 0 | 0 | 2 | 0 | MED | **0/3 (reset from 1/3)** | NOT_CLEAN→REMEDIATED |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)→P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED)→P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED)→P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED)→P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED)→ P26 CLEAN 1/3 (all 4 slices zero findings; corpus-wide debt flushed P14-25)`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)→P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED)→P23(5; B/C/D CLEAN; Slice-A only; 0C/0H; REMEDIATED)→P24(4: D-01 DNP3-C24 sweep genuine + 3 self-induced; 0C/1H; B+C CLEAN; REMEDIATED)→P25(2; A/B/C CLEAN; changelog-path flush; 0C/0H; REMEDIATED)→ P26 CLEAN 1/3 (all 4 slices zero findings; corpus-wide debt flushed P14-25) → P27 reset 1/3→0/3 (HS-008 kill-chain + HS-INDEX pin; holdout-pin-hardened); P28 next`
 
 Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3→0→0→0→0→0→0 — DECAYING on CRITICAL
 (0 for 7 of last 8 passes: P16+P18+P19+P20+P21+P22+P23+P24).
@@ -96,10 +97,10 @@ ss-01/02/04-rest/08/11/12/13 STILL PENDING before Pass 20. Counter 0/3.
 
 ## Convergence Counter
 
-**1/3** consecutive clean passes. **CONVERGENCE STREAK STARTED.**
+**0/3** consecutive clean passes. **Counter RESET from 1/3 at Pass 27.**
 **STRICT WHOLE-CORPUS mode** (human-elected 2026-06-12; scope extended 2026-06-13): zero
 findings of ANY severity (including LOW) across the ENTIRE spec corpus (not just ARP delta)
-required for 3 consecutive clean passes. 26 passes run. Pass 14 REMEDIATED (22 findings:
+required for 3 consecutive clean passes. 27 passes run. Pass 14 REMEDIATED (22 findings:
 mitre_techniques field-rename corpus sweep + O-01 closure propagation + architect ×2 + PO ×10
 bursts + consistency audit CONSISTENT). Pass 15 REMEDIATED (8 findings: holdout-scenarios
 field-rename sweep [C-01/02/03, 16 files] + inv-01 YAML regression [C-04] + VP-024 scope
@@ -205,12 +206,16 @@ b008b178 via git guard. This is the first pass across 26 total where every slice
 simultaneously, reflecting the corpus-wide debt flush completed across P14-P25 (field-rename,
 O-01, MITRE counts, anchor-drift PG-ARP-F2-007, version-pins, changelog-paths, DNP3 component
 IDs). No remediation performed — clean pass advances counter.
-Counter **1/3**. Need 2 more consecutive all-4-slice-clean passes for convergence gate.
+Counter **1/3** after Pass 26. Need 2 more consecutive all-4-slice-clean passes for convergence gate.
 Trajectory P24-P26: 0C/1H → 0C/0H → 0 (CLEAN).
-Next = whole-corpus Pass 27 via Claude adversary (4 slices STRICT). If Pass 27 clean → 2/3;
-if Pass 28 also clean → 3/3 CONVERGED → F2→F3 human gate. NO remediation between clean
-passes — only run consecutive passes. If any pass finds something → remediate, counter resets
-to 0/3.
+
+Pass 27 NOT_CLEAN→REMEDIATED — **STREAK BROKEN; counter reset 1/3→0/3.**
+Slices A+B CLEAN. C-01 MED (HS-008 kill-chain order; C2 appeared after Exfiltration — wrong;
+corrected to canonical all_tactics_in_report_order: Collection→C2→Exfiltration→Impact→[3 ICS]).
+D-01 MED (HS-INDEX:~489 BC-2.02.009 "v1.5" stale version-pin; dropped for robustness; swept
+holdout layer — 1 active pin found and flushed). Both genuine items; fresh-context variance.
+Mitigation applied: holdout BC-version-pin lag class hardened (PG-ARP-F2-008).
+Counter **0/3**. Next = whole-corpus Pass 28 via Claude adversary.
 
 ## Core Semantics — Confirmed Clean (Settled)
 
@@ -1623,6 +1628,60 @@ The corpus-wide debt flush across passes 14-25 eliminated all known defect class
 - DNP3 component IDs C-23/C-24 (pass 24)
 
 No remediation performed this pass. Clean count advances: **1/3**.
+
+---
+
+### Pass 27 — 2026-06-13 (Claude adversary; NOT_CLEAN→REMEDIATED; counter reset 1/3→0/3)
+
+**Method:** Whole-corpus fresh-context pass; Claude vsdd-factory:adversary per human direction.
+4 parallel fresh-context slices (A/B/C/D). STRICT mode — report ANY finding of ANY severity.
+**Findings:** 2 total — 0 CRITICAL, 0 HIGH, 2 MEDIUM, 0 LOW.
+**Novelty:** MED — genuine items the P26-clean pass overlooked; FRESH-CONTEXT VARIANCE
+(each fresh pass surfaces ~1-2 items prior passes missed; see PG-ARP-F2-008).
+**Convergence counter:** **0/3** (reset from 1/3; remediation required; streak broken).
+**Verdict:** NOT_CLEAN→REMEDIATED.
+
+#### Slice verdicts
+
+| Slice | Scope | Verdict |
+|-------|-------|---------|
+| A | Architecture + verification-properties | CLEAN — 0 findings |
+| B | BC-INDEX + all ss-01..ss-16 BC bodies (283 BCs) | CLEAN — 0 findings |
+| C | Domain + prd-supplements + HS-INDEX + ss-10 + STORY-INDEX | NOT_CLEAN — C-01 MED |
+| D | PRD + all indexes + spec-changelog + cross-doc counts | NOT_CLEAN — D-01 MED |
+
+#### Findings
+
+**C-01 MED (PO, holdout layer):** HS-008 kill-chain narrative had Command-and-Control (C2)
+appearing after Exfiltration — wrong position. Canonical all_tactics_in_report_order in
+src/mitre.rs places C2 between Collection and Exfiltration:
+...Collection → C2 → Exfiltration → Impact → [3 ICS tactics].
+Fix: corrected HS-008 kill-chain narrative to match canonical sequence per src.
+
+**D-01 MED (PO, holdout layer):** HS-INDEX line ~489 carried stale "v1.5" version-pin for
+BC-2.02.009. The BC is currently at v1.6 (lax-arm fix Pass-10 + BC-INDEX pin corrected Pass-15).
+Pin was stale and created BC-version-pin lag vulnerability (PG-ARP-F2-008 class).
+Fix: dropped version pin for robustness (now version-agnostic, like P22 D-01 spec-side
+hardening). Swept holdout layer for additional active version-pins — 1 found and flushed.
+
+#### Remediation
+
+Both findings were holdout-layer items in HS-008 and HS-INDEX. Remediation:
+- HS-008: kill-chain narrative corrected (C2 order).
+- HS-INDEX: BC-2.02.009 version-pin dropped.
+- spec-changelog: Pass-27 remediation ledger entry added.
+
+**Holdout BC-version-pin lag class hardened** (parallel to P22 spec-side version-pin
+hardening): active version-pins in holdout scenario files drop-and-flush policy applied.
+Progressively reducing the surface fresh passes can find.
+
+**Class note (PG-ARP-F2-008):** Corpus is substantively converged. Fresh-context variance
+at this stage is expected to produce ~1-2 MED items per pass that prior passes missed. Each
+fix + class-hardening reduces the residual surface. The 0/3 counter reset is correct per
+strict protocol; next aim is 3 consecutive all-slice-clean.
+
+Trajectory P25-P27: 0C/0H → 0 (CLEAN P26) → 2 MED (P27 reset). Counter reset 0/3.
+Next = whole-corpus Pass 28 via Claude adversary.
 
 ---
 

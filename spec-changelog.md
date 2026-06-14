@@ -14,6 +14,61 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-27-fixes-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-27 holdout layer fixes (C-01 MED kill-chain order, D-01 MED BC-version-pin flush)
+
+Two targeted fixes to the holdout layer. No behavioral contract bodies or src changes.
+
+**C-01 MED — HS-008: wrong kill-chain order narrative corrected (v1.1 → v1.2)**
+
+Verification approach step 1 stated "Exfiltration, Command and Control at the end" — placing C2
+after Exfiltration and implying C2 was the terminal Enterprise tactic. This is wrong.
+
+Canonical order per `src/mitre.rs` `all_tactics_in_report_order` (verified lines 100-120):
+Enterprise tactics end: ...Collection → CommandAndControl → Exfiltration → Impact, followed by
+three ICS tactics (IcsInhibitResponseFunction, IcsImpairProcessControl, IcsImpact).
+So C2 (#12) precedes Exfiltration (#13); Impact (#14) is the last Enterprise tactic; ICS tactics
+are appended after. The terminal tactic overall is IcsImpact.
+
+Before (wrong): "... 'Exfiltration', 'Command and Control' at the end."
+After (correct): "... 'Collection', 'Command and Control', 'Exfiltration', 'Impact' (in that order);
+ICS tactics follow after all Enterprise tactics. 'Command and Control' precedes 'Exfiltration';
+'Impact' is the last Enterprise tactic."
+
+Cross-checked against: HS-081 (Defense Evasion before Command and Control — consistent);
+test-vectors.md:319 (C2, Exfil, Impact order — consistent).
+
+**D-01 MED — HS-INDEX: stale BC-2.02.009 v1.5 pin dropped; holdout BC-version-pin sweep (v1.3 → v1.4)**
+
+HS-INDEX line 489 (HS-W44-007) cited "BC-2.02.009 v1.5" while the BC body is v1.6. Rather than
+re-pinning to v1.6 (which lags again on the next BC bump), the version pin was dropped:
+"BC-2.02.009 v1.5" → "BC-2.02.009 (revised)" matching the robust sibling pattern at lines 428-430.
+
+**Holdout BC-version-pin sweep results:**
+
+Grep pattern: `BC-2\.\d+\.\d+ v\d` across `/Users/zious/Documents/GITHUB/wirerust/.factory/holdout-scenarios/`
+
+Active holdout files scanned: all .md files under `.factory/holdout-scenarios/`
+Pins found: 1 (HS-INDEX:489, HS-W44-007, "BC-2.02.009 v1.5") — DROPPED (see D-01 above)
+
+Additional hits in non-holdout factory paths:
+- `.factory/cycles/` — historical session checkpoints and convergence trajectory (frozen-eval context) — PRESERVED
+- `.factory/code-delivery/HS-043/` — PR description archive (frozen-eval context) — PRESERVED
+
+No other active (non-historical) holdout files contained BC-version pins. The holdout
+BC-version-pin lag class is fully flushed from the active holdout layer.
+
+**Artifacts changed:**
+
+| Artifact | Change |
+|----------|--------|
+| `.factory/holdout-scenarios/HS-008-mitre-tactic-display-and-kill-chain-order.md` | C-01: kill-chain order narrative corrected; v1.1 → v1.2 |
+| `.factory/holdout-scenarios/HS-INDEX.md` | D-01: BC-2.02.009 v1.5 pin → (revised); v1.3 → v1.4 |
+| `.factory/spec-changelog.md` | This entry |
+
+---
+
 ## [pass-25-changelog-path-flush-2026-06-13] — 2026-06-13
 
 ### PATCH: Pass-25 comprehensive phantom-path flush in spec-changelog.md (D-01, D-02 + residual historical rows)

@@ -1,10 +1,10 @@
 ---
 document_type: holdout-scenario-index
 level: ops
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
-timestamp: 2026-06-12T02:00:00Z
+timestamp: 2026-06-13T00:00:00Z
 phase: 2
 total_scenarios: 100
 must_pass_count: 99
@@ -486,7 +486,7 @@ None detected. All checks passed for the greenfield set:
 | HS-W44-004 | --arp flag gates analysis — DecodedFrame::Arp produced with and without --arp; findings only when --arp active | P0 | BC-2.16.015, BC-2.16.011 |
 | HS-W44-005 | Known-Good ARP Corpus — legitimate LAN traffic with ARP produces zero false-positive findings | P0 | real-world corpus: known-good (Wireshark sample LAN traffic with ARP resolution) |
 | HS-W44-006 | Known-Problematic ARP Corpus — crafted pcap with ARP spoofing produces T0830+T1557.002 findings | P0 | real-world corpus: known-problematic (crafted or CTF ARP poisoning pcap) |
-| HS-W44-007 | Regression on Existing Analyzers After Waves 40-44 — no regression on SS-02, SS-05, SS-14, SS-15 | P0 | VP-008 (no-panic fuzz update), VP-004 (dispatcher), BC-2.02.009 v1.5 |
+| HS-W44-007 | Regression on Existing Analyzers After Waves 40-44 — no regression on SS-02, SS-05, SS-14, SS-15 | P0 | VP-008 (no-panic fuzz update), VP-004 (dispatcher), BC-2.02.009 (revised) |
 
 ### ARP Feature Holdout Summary (Seeds)
 

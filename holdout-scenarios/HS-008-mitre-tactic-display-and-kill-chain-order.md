@@ -1,7 +1,7 @@
 ---
 document_type: holdout-scenario
 level: ops
-version: "1.1"
+version: "1.2"
 status: draft
 producer: product-owner
 timestamp: 2026-05-21T00:00:00Z
@@ -70,9 +70,11 @@ wirerust analyze --mitre mixed_anomalies.pcap
 
 Check terminal output:
 1. Tactic headers appear in kill-chain order — "Reconnaissance", "Resource Development",
-   "Initial Access", ... "Defense Evasion", ... "Exfiltration", "Command and Control"
-   at the end.
-2. "Command and Control" must be spelled exactly — lowercase "and", two spaces.
+   "Initial Access", ... "Defense Evasion", ... "Collection", "Command and Control",
+   "Exfiltration", "Impact" (in that order); ICS tactics (Inhibit Response Function,
+   Impair Process Control, Impact (ICS)) follow after all Enterprise tactics.
+   "Command and Control" precedes "Exfiltration"; "Impact" is the last Enterprise tactic.
+2. "Command and Control" must be spelled exactly — lowercase "and", correct spacing.
 3. "Defense Evasion" must appear and T1036 findings must appear under it.
 4. No tactic header is repeated.
 5. The technique name "Masquerading" must appear alongside T1036 findings.
