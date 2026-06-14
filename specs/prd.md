@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.22"
+version: "1.23"
 status: draft
 producer: product-owner
 timestamp: 2026-06-14T00:00:00Z
@@ -186,7 +186,9 @@ supplements:
 >   BC-2.16.014 EC-004 aligned. Unconditional "first rebind = MEDIUM" language removed.
 > - **F-ARP-O1** ARP-AMB-003 and ARP-AMB-004 reclassified RESOLVED in F2 (see above).
 > - **F-ARP-O4** RTM verification-method for BC-2.16.004 and BC-2.16.005 updated to
->   unit+proptest (VP-024 Sub-C proptest anchors both).
+>   unit+proptest. BC-2.16.005 is the primary VP-024 Sub-C anchor; BC-2.16.004 is
+>   indirectly supported (primary-owned by STORY-114, verified by unit+proptest) but
+>   is NOT in VP-024's formal Verified-BCs scope — see VP-INDEX footnote.
 > - **F-ARP-O5** HS-INDEX P1 count corrected: 2 seeds are P1 — HS-W44-001 and HS-W44-003
 >   (both in wave 44: D3 storm and --arp-storm-rate override). HS-W42-002 and HS-W43-003 are
 >   P0, not P1; they were previously mislabeled. Total ARP seeds = 26 (24 P0 + 2 P1).
@@ -327,6 +329,28 @@ supplements:
 >   assigned to SS-15/DNP3 (Dnp3Analyzer), and SS-15/DNP3 was renumbered from C-23 to C-24 when
 >   the ARP analyzer (SS-16/ArpAnalyzer) claimed C-23. The v1.20 prose error is corrected in the
 >   v1.20 delta text below. DRIFT-PRD-V120-MBAPFRAMER-001 CLOSED.
+> No new BCs; no BC count change. See `spec-changelog.md` §[pass-22-f3-convergence-2026-06-14].
+
+> **Version 1.23 delta (2026-06-14 — Pass-23 F3-convergence PRD defect remediation):**
+> Two defects remediated (F3 Pass-23 convergence):
+>
+> - **FIX-1 (HIGH) — Dangling changelog anchor resolved:** The v1.22 delta note referenced
+>   `spec-changelog.md §[pass-22-f3-convergence-2026-06-14]`, but that anchor did not exist.
+>   The missing entry has been added to spec-changelog.md (inserted at the top of the entry
+>   list, above [pass-5-propagation-gap-fixes-2026-06-14]) recording: ARP holdout seed-count
+>   26→28 reconciliation (27 P0 + 1 P1=HS-W44-003; HS-W44-001=P0; arp_waves_40_44=28);
+>   DRIFT-PRD-ARP-SEED-COUNT-001 CLOSED; v1.20 MbapFramer prose corrected →
+>   DRIFT-PRD-V120-MBAPFRAMER-001 CLOSED; BC-2.02.009 v1.6 annotation. The anchor now
+>   resolves correctly.
+>
+> - **FIX-2 (MEDIUM) — BC-2.16.004 mis-listed as VP-024 Sub-C formal anchor corrected:**
+>   §2.16 formal verification description (Sub-property C) previously stated "Anchors
+>   BC-2.16.004/BC-2.16.005." Per VP-INDEX, VP-024 Verified BCs are BC-2.16.001, .002,
+>   .003, .005, .006 ONLY; BC-2.16.004 is explicitly excluded from VP-024's formal
+>   Verified-BCs scope (primary-owned by STORY-114, verified by unit+proptest, indirectly
+>   supported). Sub-C primary anchor is BC-2.16.005. Both the §2.16 Sub-C description and
+>   the F-ARP-O4 delta note (v1.10) have been corrected to reflect this. RTM row for
+>   BC-2.16.004 (unit+proptest) was already correct; no RTM change required.
 > No new BCs; no BC count change. See `spec-changelog.md` §[pass-22-f3-convergence-2026-06-14].
 
 > **Supplement Model:** Sections 3-5 reference extracted supplement files under
@@ -1072,7 +1096,8 @@ Rust source files, 3,868 source LOC, 282 tests, single crate, Rust 2024 edition,
 >   Anchors BC-2.16.003. Kani: symbolic ArpFrame.
 > - Sub-property C: Binding-table last-write-wins determinism — proptest over arbitrary
 >   Vec<ArpFrame> sequences; `bindings[ip].mac` equals MAC from last frame; no duplicate
->   keys. Anchors BC-2.16.004/BC-2.16.005.
+>   keys. Anchors BC-2.16.005 (BC-2.16.004 indirectly supported only; not in VP-024's
+>   formal Verified-BCs scope — see VP-INDEX footnote).
 > - Sub-property D: MAX_ARP_BINDINGS cap — `bindings.len()` never exceeds cap; LRU evicts
 >   exactly one entry on overflow. Scaled Kani proof (TEST_MAX_ARP_BINDINGS=8). Anchors
 >   BC-2.16.006.

@@ -355,4 +355,28 @@ _(This checkpoint was further superseded by the Pass-25 REMEDIATED checkpoint ar
 |-----|-------|-------|
 | develop HEAD | 31d1231 | — |
 | main HEAD | 3e29891 | chore: release v0.6.0 |
+
+---
+
+## Archived Checkpoint: 2026-06-14 — F3 ARP adversarial convergence — Pass-22 remediation complete
+
+**Archived from STATE.md on:** 2026-06-14 (replaced by "Pass-23 remediation complete" checkpoint)
+
+### POSITION
+
+F3 adversarial convergence STRICT 3/3 IN PROGRESS. Pass-22 remediation COMPLETE. Clean-streak: 0/3.
+NEXT ACTION (at archival time): Run Pass 23 (clean-streak attempt 1/3).
+
+Pass-22 remediation items: SS-15 24 BCs story-anchors back-filled (STORY-106..110); PRD
+seed-count reconciled 26→28 (v1.22); VP-024 module + VP-INDEX 5-BC note corrected;
+dep-graph-extended superseded; DRIFT-PRD-V120-MBAPFRAMER-001 CLOSED. Pass 17 = first
+fully-clean pass. Passes 18-22 each surfaced+remediated genuine items.
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
+| factory-artifacts HEAD | 6fee89a | factory(F3): Pass-22 remediation |
 | factory-artifacts HEAD | 2f47145 | factory(state): correct stale story count and wrong ICS variant names |

@@ -14,6 +14,60 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-22-f3-convergence-2026-06-14] — 2026-06-14
+
+### PATCH: Pass-22 F3-Convergence PRD Reconciliation (FIX-1, FIX-2, FIX-3)
+
+**Scope:** prd.md v1.22 delta note; DRIFT-PRD-ARP-SEED-COUNT-001; DRIFT-PRD-V120-MBAPFRAMER-001;
+BC-2.02.009 v1.6 annotation.
+
+#### FIX-1 (HIGH) — ARP holdout seed-count reconciliation: 26 → 28
+
+The v1.10 and v1.11 delta notes in prd.md recorded the total ARP holdout seed count as 26
+(24 P0, 2 P1) and listed HS-W44-001 as P1. These notes accurately reflected the HS-INDEX
+state at that time (v1.2–v1.3). The HS-INDEX was subsequently expanded to v1.6, adding
+HS-W44-004 through HS-W44-007 (7 seeds in wave 44 vs. the prior 3) and reclassifying
+HS-W44-001 from P1 to P0.
+
+Canonical HS-INDEX v1.6 values:
+- **Total ARP feature holdout seeds = 28 (27 P0, 1 P1)**
+- Single P1 seed: **HS-W44-003** (--arp-storm-rate override) ONLY
+- **HS-W44-001 is P0** (D3 storm detection)
+- frontmatter `arp_waves_40_44 = 28`
+- Wave breakdown: W40=4, W41=4, W42=8, W43=5, W44=7
+
+The v1.10/v1.11 historical notes are preserved as-is (immutable history). The v1.22 delta note
+is the authoritative reconciliation record. **DRIFT-PRD-ARP-SEED-COUNT-001 CLOSED.**
+
+#### FIX-2 (LOW) — BC-2.02.009 v1.6 annotation
+
+The v1.13 delta note cites "canonical v1.5 H1/BC-INDEX title" for BC-2.02.009. That title was
+subsequently superseded: BC-2.02.009 was further revised to v1.6 (per BC-INDEX.md, ARCH-INDEX
+ADR-008, and spec-changelog). The v1.13 historical note is preserved; this annotation records
+that BC-2.02.009 was bumped to v1.6 after the v1.13 pass. The §2.2 live-body row title already
+reflects the current BC-INDEX H1 — no live-body change required.
+
+#### FIX-3 (LOW) — v1.20 MbapFramer prose corrected
+
+The v1.20 delta note (Pass-24) erroneously stated "C-23 was MbapFramer, a Modbus component."
+No MbapFramer component ever existed in the architecture. The correct history: C-23 was
+previously assigned to SS-15/DNP3 (Dnp3Analyzer); SS-15/DNP3 was renumbered from C-23 to C-24
+when the ARP analyzer (SS-16/ArpAnalyzer) claimed C-23. The v1.20 prose error is corrected in
+the v1.20 delta text. **DRIFT-PRD-V120-MBAPFRAMER-001 CLOSED.**
+
+**Note — other Pass-22 fixes recorded by their owners:** SS-15 story-anchor back-fill (story-writer
+burst); VP-024 module anchor (architect burst); VP-INDEX 5-BC footnote clarification (architect
+burst); dep-graph-extended superseded (architect burst). Those changes are in their respective
+agent's changelog entries.
+
+**Artifacts changed in this burst:**
+
+| Artifact | Change |
+|----------|--------|
+| `.factory/specs/prd.md` | v1.22 delta note added (FIX-1/FIX-2/FIX-3); DRIFT-PRD-ARP-SEED-COUNT-001 CLOSED; DRIFT-PRD-V120-MBAPFRAMER-001 CLOSED; BC-2.02.009 v1.6 annotation |
+
+---
+
 ## [pass-5-propagation-gap-fixes-2026-06-14] — 2026-06-14
 
 ### PATCH: Pass-5 Adversarial Propagation-Gap Remediation (F-A-1, F-A-2, F-C-1, F-C-2, F-C-3)

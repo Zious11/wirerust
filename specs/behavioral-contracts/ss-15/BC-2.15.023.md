@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -15,6 +15,7 @@ lifecycle_status: active
 introduced: v0.6.0-feature-008
 modified:
   - "v1.3: F3 story-anchor back-fill; corrected canonical DISABLE_UNSOLICITED frame App Control byte from 0x82 (FIR=1,FIN=0,CON=0,UNS=0,SEQ=2 — inconsistent with a single complete request) to 0x81 (FIR=1,FIN=0,CON=0,UNS=0,SEQ=1) matching sibling single-frame vectors (BC-2.15.008, BC-2.15.010, BC-2.15.011). Added explicit bit-breakdown annotation to the canonical test vector. — 2026-06-14"
+  - "v1.4: F3 Pass-23: canonical-frame LEN reconciled to user-octet count — 05 64 09→08 (3 user octets: transport+app_ctrl+app_fc = 5+3=8). Verified against shipped build_detection_frame (dnp3_detection_tests.rs:64, dnp3_correlation_tests.rs:58: length_byte=8). Sibling to BC-2.15.011 fix (DF-SIBLING-SWEEP-001). — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -138,8 +139,8 @@ to the global MAX_FINDINGS cap (Precondition 6).
 
 **DISABLE_UNSOLICITED frame (master 1 to outstation 3):**
 ```
-DNP3 frame:  05 64 09 C4 03 00 01 00 [hdr-crc]  C0 81 15  [data-crc]
-Link:        START=0x0564, LEN=9, CTRL=0xC4 (DIR=1, PRM=1, FC=4=UNCONFIRMED_USER_DATA)
+DNP3 frame:  05 64 08 C4 03 00 01 00 [hdr-crc]  C0 81 15  [data-crc]
+Link:        START=0x0564, LEN=8, CTRL=0xC4 (DIR=1, PRM=1, FC=4=UNCONFIRMED_USER_DATA)
              DEST=0x0003, SRC=0x0001
 Transport:   0xC0 (FIR=1, FIN=1, SEQ=0)
 App Control: 0x81  // bit7=FIR=1, bit6=FIN=0, bit5=CON=0, bit4=UNS=0, bits0-3=SEQ=1

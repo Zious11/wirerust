@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: product-owner
 timestamp: 2026-06-10T00:00:00Z
@@ -17,6 +17,7 @@ modified:
   - "v1.1: Pass-2 adversarial fix CRITICAL-2: collapsed dual-window model (120s BLOCK_CMD_WINDOW + 300s T0827_WINDOW) into a single shared CORRELATION_WINDOW_SECS=300s [F2-GATE]. restart_event_count incremented unconditionally; both restart_event_count and block_event_count reset ONLY at shared 300s window expiry (reset owner: BC-2.15.015 / window-expiry handler). Added correlation_window_start_ts reference to Architecture Anchors. Verified '2 block + 1 restart → T0827' trace fires correctly under single-window model. — 2026-06-10"
   - "v1.2: Pass-3 adversarial fix LOW: EC-007 wording corrected from '2 block events (120–300s apart)' (imprecise) to 'both within the same 300s correlation window (e.g. 150s apart)'. The old wording implied events must be 120–300s apart; the correct invariant is simply that both are within the same 300s window. Also updates matching table entry in Canonical Test Vectors trace note. — 2026-06-10"
   - "v1.4: F3 story-anchor back-fill. — 2026-06-14"
+  - "v1.5: F3 Pass-23: canonical-frame LEN reconciled to user-octet count — 05 64 09→08 (3 user octets: transport+app_ctrl+app_fc = 5+3=8). Verified against shipped build_detection_frame (dnp3_detection_tests.rs:64, dnp3_correlation_tests.rs:58: length_byte=8). — 2026-06-14"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -109,8 +110,8 @@ together at window expiry. ADR-007 Decision 5.
 
 **COLD_RESTART frame (outstation 3, master 1):**
 ```
-DNP3 frame:  05 64 09 C4 03 00 01 00 [hdr-crc]  C0 81 0D  [data-crc]
-Link:        START=0x0564, LEN=9, CTRL=0xC4, DEST=0x0003, SRC=0x0001
+DNP3 frame:  05 64 08 C4 03 00 01 00 [hdr-crc]  C0 81 0D  [data-crc]
+Link:        START=0x0564, LEN=8, CTRL=0xC4, DEST=0x0003, SRC=0x0001
 Transport:   0xC0 (FIR=1, FIN=1)
 App FC:      0x0D → COLD_RESTART → Dnp3FcClass::Restart
 ```
