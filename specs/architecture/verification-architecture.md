@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-architecture
 traces_to: ARCH-INDEX.md
-version: "1.5"
+version: "1.6"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -53,7 +53,7 @@ modified:
 | VP-004 | Content-first dispatch precedence: TLS signature always wins over port; HTTP method prefix wins over port; DispatchTarget::None is NOT inserted into `routes` before the per-flow classification-attempt counter reaches `max_classification_attempts` (default 8); at the cap it is inserted permanently and reclassification stops | INV-2 | dispatcher.rs | Kani |
 | VP-005 | SNI 4-way ordered match: given any byte slice, exactly one arm fires; arm 3 (NonAsciiUtf8) fires when valid UTF-8 + non-ASCII + C0 present (INV-5 boundary case) | INV-5 | analyzer/tls.rs | Kani |
 | VP-006 | HTTP poison monotonicity: `request_poisoned` / `response_poisoned` fields transition only false->true within a flow's lifetime | INV-8 | analyzer/http.rs | proptest |
-| VP-007 | MITRE technique ID format: every ID emitted by analyzers resolves in technique_info; format matches T[0-9]{4}(\.[0-9]{3})? (covers Enterprise techniques, Enterprise sub-techniques, ICS techniques, and ICS sub-techniques including T1692.001/T1692.002 added in issue #222) | INV-9 | mitre.rs | Kani |
+| VP-007 | MITRE technique ID format: every ID emitted by analyzers resolves in technique_info; format matches T[0-9]{4}(\.[0-9]{3})? (covers Enterprise techniques, Enterprise sub-techniques, ICS techniques, and ICS sub-techniques including T1692.001/T1692.002 remapped from revoked T0855/T0856 per issue #222) | INV-9 | mitre.rs | Kani |
 | VP-008 | decode_packet never panics on arbitrary input bytes: any byte slice returns Ok or Err, never unwinds | (no-panic invariant) | decoder.rs | cargo-fuzz |
 | VP-009 | FlowState machine: no transition reaches an undefined state; RST transitions to Closed from any prior state | (state machine) | reassembly/flow.rs | Kani |
 

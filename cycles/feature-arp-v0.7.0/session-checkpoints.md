@@ -49,3 +49,33 @@ ATT&CK v19.1.
 - F1 affected files: `.factory/phase-f1-delta-analysis/arp-affected-files.txt`
 - F1 MITRE research: `.factory/phase-f1-delta-analysis/mitre-arp-research.md`
 - F1 MITRE additional detections: `.factory/phase-f1-delta-analysis/mitre-arp-additional-detections.md`
+
+---
+
+## Archived Checkpoint: 2026-06-13 — Pass 21 REMEDIATED; 0C/0H cosmetic; Slices A+C CLEAN 2nd consecutive
+
+**Archived from STATE.md on:** 2026-06-13 (replaced by "Pass 22 REMEDIATED; 0C/0H; 5th consecutive; version-pin hardened" checkpoint)
+
+### POSITION
+
+- **21 adversarial passes + 1 corpus consistency audit run. Pass 21 REMEDIATED.**
+- F2 adversarial convergence: STRICT WHOLE-CORPUS mode. Counter 0/3.
+- Pass 21 (5 findings): 0C/0H; all cosmetic/ledger hygiene. B-01 LOW (PO): BC-INDEX ss-11
+  table stray blank line between BC-2.11.001 and BC-2.11.002 split the Markdown table —
+  removed (BC-INDEX v1.24→v1.25). D-01 MED (PO): spec-changelog Pass-13 ledger cited
+  `specs/behavioral-contracts/ARCH-INDEX.md` — corrected to `specs/architecture/ARCH-INDEX.md`.
+  D-02 MED (PO): spec-changelog Pass-13 ledger cited `vp-005-no-panic-guarantee.md` — corrected
+  to `vp-005-sni-four-way-classification.md`. D-03 MED (PO): spec-changelog Pass-13 ledger cited
+  `vp-008-all-analyzers-pure.md` — corrected to `vp-008-decode-packet-no-panic.md`. D-04 LOW (PO):
+  PRD body version-history missing delta notes for 1.13/1.14/1.15/1.16/1.18; notes added (prd.md
+  v1.18→v1.19). Slices A+C CLEAN (2nd consecutive clean for both slices).
+  Trajectory P14-21: 2C/5H→2C/1H→0C/0H→3C/2H→0C/3H→0C/8H→0C/1H→0C/0H. DECAYING strongly.
+- Next action at time of archival: whole-corpus Pass 22 via Claude (first-clean candidate).
+
+### VERIFIED SHAs at archival time
+
+| Ref | Value | Notes |
+|-----|-------|-------|
+| develop HEAD | 31d1231 | — |
+| main HEAD | 3e29891 | chore: release v0.6.0 |
+| factory-artifacts HEAD | re-verify live | `git -C .factory log -1 --format='%h %s'` |

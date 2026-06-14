@@ -61,15 +61,16 @@ Minimum 3 consecutive clean passes required for convergence gate (same as F5 sta
 | 19 (whole-corpus, Claude) | 2026-06-13 | 15 | 0 | 8 | 2 | 5 | HIGH | 0/3 | NOT_CLEAN→PARTIAL |
 | 20 (whole-corpus, Claude) | 2026-06-13 | 7 | 0 | 1 | 3 | 3 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 | 21 (whole-corpus, Claude) | 2026-06-13 | 5 | 0 | 0 | 4 | 1 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
+| 22 (whole-corpus, Claude) | 2026-06-13 | 5 | 0 | 0 | 1 | 4 | LOW | 0/3 | NOT_CLEAN→REMEDIATED |
 
 ## Trajectory Shorthand
 
-`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)`
+`15→20→~8→~15→~6→~4→~4→~7→~4→~6→~5→~18→~8→~22(P14: 2C/5H NEW corpus-debt; trend broke; ARP delta clean 6th pass)→P15(8 findings: holdout-layer field-rename + regression; REMEDIATED)→P16(7: 0C/0H, sibling-sweep misses; REMEDIATED; Slice B CLEAN all 283 BCs + field-rename verified)→P17(10: holdout MITRE-counts + module-decomposition peer; REMEDIATED; Slice B CLEAN 2nd)→P18(9: ss-05 anchor-drift + indicatif + STORY-INDEX; 0C/3H; REMEDIATED; arp.rs+holdout pre-flush verified clean)→P19(15: corpus-wide anchor-drift; 0C/8H; PARTIAL — ss-07-full+remaining-BC pending)→ P20(7: anchor-drift flushed, ss-04/ss-12 closed; 0C/1H; Slices A+C CLEAN; REMEDIATED)→P21(5 cosmetic; 0C/0H; A+C CLEAN 2nd consecutive; REMEDIATED)→P22(5 valid; 0C/0H; cosmetic; version-pin hardened; REMEDIATED)`
 
-Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3→0→0→0 — DECAYING on CRITICAL
-(0 for 4 of last 5 passes: P16+P18+P19+P20+P21).
-HIGH count: 8→7→~6→~5→1→2→~4→2→0→1→1→0→0→5→1→0→2→3→8→1→0 — DECAYING; P21 first 0H pass since
-P16 (P19 REGRESSION at 8H fully flushed).
+Severity profile: CRITICAL count: 4→5→0→0→0→0→0→0→0→0→0→0→0→2→2→0→3→0→0→0→0 — DECAYING on CRITICAL
+(0 for 5 of last 6 passes: P16+P18+P19+P20+P21+P22).
+HIGH count: 8→7→~6→~5→1→2→~4→2→0→1→1→0→0→5→1→0→2→3→8→1→0→0 — DECAYING; P21+P22 consecutive 0H
+(P19 REGRESSION at 8H fully flushed; 5th consecutive 0-CRIT/HIGH as of P22).
 MEDIUM count: 3→8→~2→~10→~5→2→0→4→~4→~5→~4→~18→~8→~11→3→5→2→2→2→3→4 — propagation hygiene and
 ledger-formatting drift; P21 findings all cosmetic (table formatting, historical slug corrections,
 version-history gap).
@@ -95,7 +96,7 @@ ss-01/02/04-rest/08/11/12/13 STILL PENDING before Pass 20. Counter 0/3.
 **0/3** consecutive clean passes.
 **STRICT WHOLE-CORPUS mode** (human-elected 2026-06-12; scope extended 2026-06-13): zero
 findings of ANY severity (including LOW) across the ENTIRE spec corpus (not just ARP delta)
-required for 3 consecutive clean passes. 21 passes run. Pass 14 REMEDIATED (22 findings:
+required for 3 consecutive clean passes. 22 passes run. Pass 14 REMEDIATED (22 findings:
 mitre_techniques field-rename corpus sweep + O-01 closure propagation + architect ×2 + PO ×10
 bursts + consistency audit CONSISTENT). Pass 15 REMEDIATED (8 findings: holdout-scenarios
 field-rename sweep [C-01/02/03, 16 files] + inv-01 YAML regression [C-04] + VP-024 scope
@@ -134,7 +135,22 @@ spec-changelog Pass-13 ledger vp-005 slug `vp-005-no-panic-guarantee.md` →
 version-history missing delta notes for 1.13/1.14/1.15/1.16/1.18; notes added (prd.md
 v1.18→v1.19). Slices A+C CLEAN (2nd consecutive clean for both). Trajectory P19-21:
 0C/8H → 0C/1H → 0C/0H. DECAYING strongly.
-Counter 0/3 — remediation does NOT advance counter. Next = whole-corpus Pass 22 via Claude
+
+Pass 22 REMEDIATED (8 raw findings; 3 discarded as no-action/NON-BLOCKING per adversary:
+A-03 verified anchor no-action, A-04 ADR-008 proposed NON-BLOCKING, A-05 VP-021 dual-axis
+convention documented. 5 valid findings: 0C/0H; cosmetic + 1 stale count). C-01 MED:
+domain-debt O-04 technique count 21→23 — Feature #8 DNP3 added T1691.001 + T0827 to
+technique_info; count was not propagated from mitre.rs SEEDED_TECHNIQUE_ID_COUNT=23 (domain-debt
+v1.2→v1.3). A-01 LOW: verification-architecture Pass-22 modified entry wording hardened
+(v1.5→v1.6). A-02 LOW: verification-coverage-matrix VP-024 draft Coverage Note added
+(v1.4→v1.5). D-01 LOW: BC-INDEX PRD version-pin dropped for robustness — self-induced lag from
+P21 prd v1.19 bump; now version-agnostic (v1.25→v1.26). B-01 LOW: BC-INDEX double-blank before
+ss-12 removed (v1.25→v1.26). Proactive version-citation robustness sweep run across all
+.factory/specs/ files — only 1 current-state cross-doc version-pin found (BC-INDEX PRD line);
+now dropped. Future version-lag churn minimized. PG-ARP-F2-008 noted: 5th consecutive
+0-CRIT/HIGH; corpus substantively converged; remaining churn cosmetic. Trajectory P20-22:
+0C/1H → 0C/0H → 0C/0H. 5th consecutive 0-CRIT/HIGH pass.
+Counter 0/3 — remediation does NOT advance counter. Next = whole-corpus Pass 23 via Claude
 adversary (4 slices STRICT) — first-clean candidate. If clean → 1/3 streak begins.
 
 ## Core Semantics — Confirmed Clean (Settled)

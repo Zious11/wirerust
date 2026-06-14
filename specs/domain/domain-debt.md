@@ -4,7 +4,7 @@ traces_to: domain-spec.md
 title: Known Limitations and Domain Debt
 status: descriptive (brownfield) -- reconciled against develop HEAD 0082a0c
 reconciled: 2026-05-20
-version: "1.2"
+version: "1.3"
 modified:
   - date: 2026-06-10
     actor: architect
@@ -12,6 +12,9 @@ modified:
   - date: 2026-06-13
     actor: product-owner
     reason: "ARP-F2 Pass-14 remediation C-04: O-01 moved to RETIRED section — STORY-097 (thread capture-relative timestamp through StreamHandler::on_data), STORY-098, and STORY-099 wired timestamp at all http.rs/tls.rs/reassembly emission sites; STORY-102..110 wired timestamp in modbus/dnp3 analyzers. O-01 is fully resolved (Option A completed). Version 1.1→1.2."
+  - date: 2026-06-13
+    actor: product-owner
+    reason: "Pass-22 C-01: O-04 technique count updated 21→23 (15 brownfield + 6 Modbus ICS Feature #7 + 2 DNP3 ICS Feature #8: T1691.001 + T0827); SEEDED_TECHNIQUE_ID_COUNT=23 confirmed in src/mitre.rs:341. Version 1.2→1.3."
 ---
 
 # Known Limitations / Domain Debt
@@ -85,10 +88,10 @@ advisory rather than load-bearing. Research flagged as sound but not yet impleme
 
 ### O-04: 8 MITRE Techniques Catalogued but Never Emitted (documentation debt)
 
-**What exists:** `technique_info` in mitre.rs contains 21 IDs (15 brownfield + 6 Modbus ICS
-techniques added in Feature #7); 8 are never referenced by any current analyzer. The mitre.rs
-doc comment now says "staged for future analyzers" (P3.04, #89). No analyzer wiring was added
-for these 8 IDs.
+**What exists:** `technique_info` in mitre.rs contains 23 IDs (15 brownfield + 6 Modbus ICS
+techniques added in Feature #7 + 2 DNP3 ICS techniques added in Feature #8: T1691.001 and T0827);
+8 are never referenced by any current analyzer. The mitre.rs doc comment now says "staged for
+future analyzers" (P3.04, #89). No analyzer wiring was added for these 8 IDs.
 
 **Staged IDs:** T1040, T1071, T1071.001, T1071.004, T1573, T0846, T1692.002, T0885.
 

@@ -2,7 +2,7 @@
 artifact: architecture-section
 section: verification-coverage-matrix
 traces_to: ARCH-INDEX.md
-version: "1.4"
+version: "1.5"
 status: verified
 producer: architect
 timestamp: 2026-05-20T00:00:00Z
@@ -110,6 +110,7 @@ modified:
 - VP-023 is `verified` — locked at F6 formal hardening gate (2026-06-12 @ develop e685664). verification_lock=true.
   Proof evidence: Kani harnesses SUCCESSFUL (DNP3 DL header parse safety, FC classification totality, validity gate
   biconditional, frame_len arithmetic). See vp-023-dnp3-parse-safety.md frontmatter (verified_at_commit: e685664).
+- VP-024 (ARP parse safety) is `draft` — formal lock pending at STORY-112/F6 (ARP not yet shipped; src/analyzer/arp.rs absent).
 
 - `module-criticality.md` defines kill-rate targets that constrain the minimum proof
   depth for each module. CRITICAL modules (reassembly/segment.rs, reassembly/flow.rs,

@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.25"
+version: "1.26"
 status: draft
 producer: product-owner
 timestamp: 2026-06-13T00:00:00Z
@@ -33,7 +33,7 @@ traces_to: .factory/specs/prd.md
 > **Status as of Phase 1a (current):**
 > - Fully written: 283 BCs (all body files verified on disk)
 > - Remaining: 0 BCs
-> - PRD index (prd.md): UPDATED (v1.18) -- all 283 L3 BC IDs are registered
+> - PRD index (prd.md): UPDATED -- all 283 L3 BC IDs are registered
 
 ## ss-01: PCAP File Ingestion (CAP-01)
 
@@ -286,7 +286,6 @@ traces_to: .factory/specs/prd.md
 | BC-2.11.022 | CsvReporter Joins Evidence Vec Elements with "; " into a Single Cell | P1 | [WRITTEN] | pass-4 H-1 | <!-- v1.4: PG-ARP-F2-007 — evidence neutralize call :93→:98 (shifted by mitre_techniques column addition) -->
 | BC-2.11.023 | CsvReporter Implements Reporter Trait and Emits One Row per Finding; Summary and AnalysisSummary Are Ignored | P0 | [WRITTEN] | pass-4 H-1 |
 | BC-2.11.024 | CsvReporter Encodes Optional Fields as Empty Strings and mitre_techniques as Semicolon-Joined String | P1 | [WRITTEN] | pass-4 H-1 | <!-- v1.5: ADD-ON 2 — EC-015 added (consumer split guard for empty-cell); EC-001 strengthened (empty string not null/[]/N/A); Inv 4 explicit empty-string wording; v1.7: Pass-15 D-01: Evidence Types Updated; v1.8: PG-ARP-F2-007 — neutralize anchor :94-97→:99-102; pc1 clarified join@:87 vs neutralize@:99 -->
-
 
 ## ss-12: CLI and Entry Point (Cross-Cutting)
 

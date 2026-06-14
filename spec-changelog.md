@@ -14,6 +14,66 @@ changes, invariant rewrites).
 
 ---
 
+## [pass-22-fixes-2026-06-13] — 2026-06-13
+
+### PATCH: Pass-22 remediation (C-01, D-01, B-01) + architect P22 bumps (A-01, A-02) + proactive version-citation hardening
+
+Five targeted fixes across three artifacts plus architect version bump logging. No behavioral
+changes; stale count, stale version pin, formatting, and version-citation hardening only.
+
+**C-01 MED — domain-debt.md O-04: technique count updated 21→23 (v1.2 → v1.3)**
+
+O-04 stated 21 IDs (15 brownfield + 6 Modbus ICS Feature #7). Feature #8 (DNP3 ICS analyzer)
+added T1691.001 (IcsInhibitResponseFunction) and T0827 (IcsImpact) to technique_info, bringing
+the catalog to 23 IDs. Verified: src/mitre.rs line 341 `SEEDED_TECHNIQUE_ID_COUNT: usize = 23`.
+The 8 staged/never-emitted count is unchanged; the seeded total grows 21→23.
+
+Before: `technique_info contains 21 IDs (15 brownfield + 6 Modbus ICS techniques added in Feature #7)`
+After: `technique_info contains 23 IDs (15 brownfield + 6 Modbus ICS techniques added in Feature #7 + 2 DNP3 ICS techniques added in Feature #8: T1691.001 and T0827)`
+
+**D-01 LOW — BC-INDEX.md: PRD version pin removed to prevent recurrence (v1.25 → v1.26)**
+
+Status line cited `UPDATED (v1.18)` while PRD is now v1.19. Rather than update to (v1.19)
+and face the same lag next pass, the version pin was dropped entirely. The line now reads
+`PRD index (prd.md): UPDATED -- all 283 L3 BC IDs are registered` — robust to all future
+PRD version bumps.
+
+**B-01 LOW — BC-INDEX.md: double blank line between ss-11 and ss-12 removed (v1.25 → v1.26)**
+
+Lines 289-290 contained two consecutive blank lines between the ss-11 table end and the
+`## ss-12` section header. Every other section transition uses a single blank line.
+The extra blank line was removed for consistency. (Combined with D-01 in the same v1.26 bump.)
+
+**A-01 (architect) — verification-architecture.md: v1.5 → v1.6**
+
+Architect P22 bump. This entry logs the architect-owned artifact version transition;
+verification-architecture.md is at v1.6 as of Pass-22.
+
+**A-02 (architect) — verification-coverage-matrix.md: v1.4 → v1.5**
+
+Architect P22 bump. verification-coverage-matrix.md is at v1.5 as of Pass-22.
+
+**PROACTIVE: version-citation robustness sweep**
+
+Grepped all .factory/specs/ files for parenthesized version pins that cross-reference other
+documents at a specific version (e.g. `(v1.1x)`, `prd.md v1.`, `BC-INDEX v1.`). Findings:
+- `BC-INDEX.md line 36`: sole current-state pin found — fixed (D-01 above).
+- `prd.md line 113` `BC-INDEX v1.6`: this is a historical changelog note in a version delta
+  block, correctly recording the state at a past point-in-time — left unchanged (correct use).
+- All other matches were within individual BC body files (inline version annotations on BC
+  revision history, e.g. `v1.0`, `v2.0`) or within spec-changelog itself (historical entries).
+  None are cross-document current-state pins; all left unchanged.
+
+**Artifacts changed:**
+
+| Artifact | Change |
+|----------|--------|
+| `.factory/specs/domain/domain-debt.md` | `version: 1.2 → 1.3`; O-04 technique count 21→23 (Feature #8 DNP3 additions T1691.001 + T0827) |
+| `.factory/specs/behavioral-contracts/BC-INDEX.md` | `version: 1.25 → 1.26`; PRD version pin removed (D-01); double blank line before ss-12 removed (B-01) |
+| `.factory/spec-changelog.md` | P22-fixes entry added; architect P22 bumps A-01/A-02 logged |
+
+---
+
 ## [pass-21-fixes-2026-06-13] — 2026-06-13
 
 ### PATCH: Pass-21 ledger hygiene (B-01, D-01, D-02, D-03, D-04)
